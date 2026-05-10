@@ -1818,26 +1818,27 @@ describe("safeInvoke args validation", () => {
     Result.unwrap(await openExternalUrl("mailto:?subject=First&body=https%3A%2F%2Fexample.com"));
   });
 
-  it.each(["mailto:?subject=Hello world", "mailto:?subject=Hello\tworld", "mailto:?subject=Hello\nworld"])(
-    "rejects unsafe mailto external URLs before invoking Tauri: %j",
-    async (url) => {
-      const consoleError = suppressConsoleError();
-      let invoked = false;
-      setupTauriMocks((cmd) => {
-        if (cmd === "plugin:opener|open_url") {
-          invoked = true;
-        }
-        return null;
-      });
+  it.each([
+    "mailto:?subject=Hello world",
+    "mailto:?subject=Hello\tworld",
+    "mailto:?subject=Hello\nworld",
+  ])("rejects unsafe mailto external URLs before invoking Tauri: %j", async (url) => {
+    const consoleError = suppressConsoleError();
+    let invoked = false;
+    setupTauriMocks((cmd) => {
+      if (cmd === "plugin:opener|open_url") {
+        invoked = true;
+      }
+      return null;
+    });
 
-      const result = await openExternalUrl(url);
+    const result = await openExternalUrl(url);
 
-      expect(Result.isFailure(result)).toBe(true);
-      expect(Result.unwrapError(result).message).toContain("validation failed");
-      expect(invoked).toBe(false);
-      expectTauriCommandValidationError(consoleError, "plugin:opener|open_url", "args");
-    },
-  );
+    expect(Result.isFailure(result)).toBe(true);
+    expect(Result.unwrapError(result).message).toContain("validation failed");
+    expect(invoked).toBe(false);
+    expectTauriCommandValidationError(consoleError, "plugin:opener|open_url", "args");
+  });
 
   it("redacts native opener URL tokens before logging or returning them", async () => {
     const consoleError = suppressConsoleError();

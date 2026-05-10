@@ -375,6 +375,113 @@ describe("AppShell", () => {
     expect(screen.getByRole("button", { name: "Close" })).toHaveClass("hover:bg-surface-1/72");
   });
 
+  it.each([
+    ["Clipboard unavailable", "runtime_unavailable"],
+    ["Clipboard permission denied", "permission_denied"],
+  ] as const)("logs debug HUD copy failures with clipboard category: %s", async (message, category) => {
+    setupTauriMocks((cmd) => {
+      if (cmd === "copy_to_clipboard") {
+        throw { type: "UserVisible", message };
+      }
+
+      return undefined;
+    });
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    enableDebugHud();
+    setDebugHudUiState();
+
+    try {
+      render(<AppShell />, { wrapper: createWrapper() });
+
+      fireEvent.click(await screen.findByRole("button", { name: "Copy debug HUD" }));
+
+      await waitFor(() => {
+        expect(useUiStore.getState().toastMessage?.message).toBe(message);
+      });
+      expect(consoleError).toHaveBeenCalledWith(
+        "Failed to copy focus debug HUD:",
+        expect.objectContaining({
+          category,
+          message,
+        }),
+      );
+      expect(await screen.findByText(new RegExp(`hud-copy error category=${category}`))).toBeInTheDocument();
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+
+  it("classifies oversized debug HUD copy payloads as invalid clipboard text before invoking Tauri", async () => {
+    const copyCalls: string[] = [];
+    setupTauriMocks((cmd) => {
+      if (cmd === "copy_to_clipboard") {
+        copyCalls.push(cmd);
+      }
+
+      return undefined;
+    });
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    enableDebugHud();
+    setDebugHudUiState();
+
+    try {
+      render(<AppShell />, { wrapper: createWrapper() });
+      window.dispatchEvent(
+        new CustomEvent(APP_EVENTS.debugInputTrace, {
+          detail: `12:00:00.000 ${"trace ".repeat(900)}`,
+        }),
+      );
+
+      fireEvent.click(await screen.findByRole("button", { name: "Copy debug HUD" }));
+
+      await waitFor(() => {
+        expect(useUiStore.getState().toastMessage?.message).toBe("Invalid clipboard text");
+      });
+      expect(copyCalls).toHaveLength(0);
+      expect(consoleError).toHaveBeenCalledWith(
+        "Failed to copy focus debug HUD:",
+        expect.objectContaining({
+          category: "invalid_text",
+          message: "Invalid clipboard text",
+        }),
+      );
+      expect(await screen.findByText(/hud-copy error category=invalid_text/)).toBeInTheDocument();
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+
+  it("redacts sensitive debug HUD targets before copying the payload", async () => {
+    let copiedText: string | null = null;
+    setupTauriMocks((cmd, args) => {
+      if (cmd === "copy_to_clipboard" && "text" in args) {
+        copiedText = args.text;
+        return null;
+      }
+
+      return undefined;
+    });
+    enableDebugHud();
+    setDebugHudUiState({
+      selectedArticleId: "article-with-secret-target",
+    });
+
+    render(<AppShell />, { wrapper: createWrapper() });
+    window.dispatchEvent(
+      new CustomEvent(APP_EVENTS.debugInputTrace, {
+        detail: "12:00:00.000 raw-key a target=input | label=Server URL",
+      }),
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Copy debug HUD" }));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().toastMessage?.message).toBeTruthy();
+    });
+    expect(copiedText).toContain("input | sensitive=[redacted]");
+    expect(copiedText).not.toContain("Server URL");
+  });
+
   it("copies the debug HUD contents when activated from the keyboard", async () => {
     const user = userEvent.setup();
 

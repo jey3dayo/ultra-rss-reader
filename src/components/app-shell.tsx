@@ -311,6 +311,13 @@ type FocusDebugHudProps = {
   avoidBottomRight?: boolean;
 };
 
+function normalizeDebugHudClipboardText(text: string): string {
+  return Array.from(text, (char) => {
+    const codePoint = char.codePointAt(0);
+    return codePoint !== undefined && (codePoint < 32 || codePoint === 127) ? " | " : char;
+  }).join("");
+}
+
 type DebugHudDocumentBoundary = {
   readonly activeElement?: unknown;
   readonly body?: unknown;
@@ -455,13 +462,15 @@ function FocusDebugHud({ temporarilyHidden = false, avoidBottomRight = false }: 
 
   const handleCopy = async () => {
     emitDebugInputTrace("hud-copy start");
-    await copyValueToClipboard(debugHudText, {
+    const clipboardText = normalizeDebugHudClipboardText(debugHudText);
+
+    await copyValueToClipboard(clipboardText, {
       onSuccess: () => {
         emitDebugInputTrace("hud-copy success");
         showToast(t("copied_to_clipboard"));
       },
       onError: (message, error) => {
-        emitDebugInputTrace(`hud-copy error=${message}`);
+        emitDebugInputTrace(`hud-copy error category=${error.category} message=${message}`);
         console.error("Failed to copy focus debug HUD:", error);
         showToast(message);
       },

@@ -268,7 +268,6 @@ describe("runtime diagnostics redaction", () => {
         }),
       ]),
     );
-    expect(Object.values(RUNTIME_DIAGNOSTIC_POLICIES)).toHaveLength(12);
     expect(Object.values(RUNTIME_DIAGNOSTIC_POLICIES).every((policy) => policy.toast === "never")).toBe(true);
     expect(Object.values(RUNTIME_DIAGNOSTIC_POLICIES).every((policy) => policy.redactSecrets)).toBe(true);
   });

@@ -178,15 +178,76 @@ describe("Storybook Explorer organization", () => {
     expect(getDuplicateStorybookStoryIdDiagnostics(storyIds)).toEqual([{ id: "reader-sidebar--default", count: 2 }]);
   });
 
+  it("extracts story ids from Storybook index payload versions with duplicate diagnostics", () => {
+    expect(
+      storybookIndexPayload.getStorybookIndexStoryIds({
+        v: 5,
+        entries: {
+          "reader-sidebar--default": {
+            id: "reader-sidebar--default",
+            title: "Reader/Sidebar/ReaderSidebar",
+            type: "story",
+          },
+          "ui-reference-foundations-canvas--default": {
+            id: "ui-reference-foundations-canvas--default",
+            title: "UI Reference/FoundationsCanvas",
+            type: "docs",
+          },
+        },
+      }),
+    ).toEqual(["reader-sidebar--default", "ui-reference-foundations-canvas--default"]);
+    expect(
+      getDuplicateStorybookStoryIdDiagnostics([
+        "reader-sidebar--default",
+        "ui-reference-foundations-canvas--default",
+        "reader-sidebar--default",
+      ]),
+    ).toEqual([{ id: "reader-sidebar--default", count: 2 }]);
+  });
+
+  it("rejects malformed Storybook index story fields", () => {
+    expect(() =>
+      storybookIndexPayload.getStorybookIndexStoryIds({
+        entries: {
+          "reader-sidebar--default": {
+            id: 123,
+          },
+        },
+      }),
+    ).toThrow("Storybook index entries must contain story objects with string id fields");
+    expect(() =>
+      storybookIndexPayload.getStorybookIndexStoryIds({
+        stories: {
+          "reader-sidebar--default": {
+            id: "reader-sidebar--default",
+          },
+        },
+      }),
+    ).toThrow("Storybook index payload must be an object with an object entries field");
+  });
+
   it("extracts Storybook iframe story ids with malformed URL diagnostics", () => {
     expect(
       storybookIndexPayload.getStorybookIframeStoryId(
         storybookIndexPayload.getStorybookIframeUrl("ui-reference-foundations-canvas--default"),
       ),
     ).toBe("ui-reference-foundations-canvas--default");
+    expect(
+      storybookIndexPayload.getStorybookIframeStoryId(
+        "/iframe.html?id=ui-reference-button-controls-canvas%2D%2Ddefault",
+      ),
+    ).toBe("ui-reference-button-controls-canvas--default");
     expect(() => storybookIndexPayload.getStorybookIframeStoryId("/iframe.html")).toThrow(
       "Storybook iframe URL must include a non-empty id query parameter",
     );
+    expect(() => storybookIndexPayload.getStorybookIframeStoryId("/iframe.html?id=")).toThrow(
+      "Storybook iframe URL must include a non-empty id query parameter",
+    );
+    expect(() =>
+      storybookIndexPayload.getStorybookIframeStoryId(
+        "/iframe.html?id=reader-sidebar--default&id=ui-reference-foundations-canvas--default",
+      ),
+    ).toThrow("Storybook iframe URL must include exactly one id query parameter");
     expect(() => storybookIndexPayload.getStorybookIframeStoryId("http://[::1")).toThrow(
       "Storybook iframe URL must include a non-empty id query parameter",
     );

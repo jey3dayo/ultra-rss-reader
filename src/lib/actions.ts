@@ -7,7 +7,7 @@ import { emitDebugInputTrace } from "@/lib/debug/debug-input-trace";
 import i18n from "@/lib/i18n";
 import { keyboardEvents } from "@/lib/keyboard/keyboard-shortcuts";
 import { focusArticleListTarget, focusSelectedSidebarTarget, scheduleReaderFocusFrame } from "@/lib/reader-focus";
-import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
+import { logRuntimeDiagnostic, type RuntimeDiagnosticPolicyId } from "@/lib/runtime/diagnostics";
 import { triggerManualSyncWithCooldown } from "@/lib/sync/manual-sync";
 import { resolveSyncFeedbackMessage, summarizeSyncResult } from "@/lib/sync/sync-result-feedback";
 import { isWindowFullscreen, setWindowFullscreen } from "@/lib/window/windows";
@@ -18,6 +18,14 @@ export type { AppAction } from "@/lib/app-actions";
 export { isAppAction } from "@/lib/app-actions";
 
 type BufferedBrowserCloseAction = Extract<AppAction, "prev-article" | "next-article" | "prev-feed" | "next-feed">;
+type GlobalActionDiagnosticCategory = "window" | "sync" | "browser" | "updates";
+
+const actionDiagnosticPolicyByCategory = {
+  window: "app-action-window",
+  sync: "app-action-sync",
+  browser: "app-action-browser",
+  updates: "app-action-updates",
+} as const satisfies Record<GlobalActionDiagnosticCategory, RuntimeDiagnosticPolicyId>;
 
 /** Emit a keyboard-style DOM event that existing components already listen for. */
 function emitEvent(name: string): void {
@@ -33,9 +41,17 @@ function emitArticleShareEvent(
   emitEvent(name);
 }
 
-function runGlobalActionBoundary(action: AppAction, operation: () => Promise<void>): void {
-  void operation().catch((error: unknown) => {
-    console.error(`[actions] ${action} failed:`, error);
+function logGlobalActionFailure(action: AppAction, category: GlobalActionDiagnosticCategory, error: unknown): void {
+  logRuntimeDiagnostic(actionDiagnosticPolicyByCategory[category], `[actions:${category}] ${action} failed.`, error);
+}
+
+function runGlobalActionBoundary(
+  action: AppAction,
+  category: GlobalActionDiagnosticCategory,
+  operation: () => Promise<void>,
+): void {
+  void Promise.resolve(operation()).catch((error: unknown) => {
+    logGlobalActionFailure(action, category, error);
   });
 }
 
@@ -105,7 +121,7 @@ async function navigateBrowserBackOrClose(): Promise<void> {
       }
     }),
     Result.inspectError((error) => {
-      console.error("Menu webview back failed:", error);
+      logGlobalActionFailure("mouse-back", "browser", error);
     }),
   );
 }
@@ -124,7 +140,7 @@ async function navigateBrowserForward(): Promise<void> {
       });
     }),
     Result.inspectError((error) => {
-      console.error("Menu webview forward failed:", error);
+      logGlobalActionFailure("mouse-forward", "browser", error);
     }),
   );
 }
@@ -212,32 +228,34 @@ export function executeAction(action: AppAction): void {
 
     // --- Window ---
     case "toggle-fullscreen":
-      runGlobalActionBoundary(action, toggleFullscreen);
+      runGlobalActionBoundary(action, "window", toggleFullscreen);
       break;
 
     // --- Sync ---
     case "sync-all": {
-      void triggerManualSyncWithCooldown({
-        onCooldown: () => {
-          store.showToast(i18n.t("sidebar:sync_cooldown_active"));
-        },
-        onSuccess: (syncResult) => {
-          store.showToast(
-            resolveSyncFeedbackMessage(summarizeSyncResult(syncResult), {
-              alreadyInProgress: i18n.t("sidebar:sync_already_in_progress"),
-              partialFailure: (accounts) => i18n.t("sidebar:sync_partial_failure", { accounts }),
-              retryScheduled: (accounts) => i18n.t("sidebar:sync_completed_with_retry_pending", { accounts }),
-              retryPending: (accounts) => i18n.t("sidebar:sync_completed_with_retry_pending", { accounts }),
-              warnings: (accounts) => i18n.t("sidebar:sync_completed_with_warnings", { accounts }),
-              success: i18n.t("sidebar:sync_completed"),
-            }),
-          );
-        },
-        onError: (e) => {
-          console.error("Menu sync failed:", e);
-          store.showToast(i18n.t("sidebar:sync_failed_with_message", { message: e.message }));
-        },
-      });
+      runGlobalActionBoundary(action, "sync", () =>
+        triggerManualSyncWithCooldown({
+          onCooldown: () => {
+            store.showToast(i18n.t("sidebar:sync_cooldown_active"));
+          },
+          onSuccess: (syncResult) => {
+            store.showToast(
+              resolveSyncFeedbackMessage(summarizeSyncResult(syncResult), {
+                alreadyInProgress: i18n.t("sidebar:sync_already_in_progress"),
+                partialFailure: (accounts) => i18n.t("sidebar:sync_partial_failure", { accounts }),
+                retryScheduled: (accounts) => i18n.t("sidebar:sync_completed_with_retry_pending", { accounts }),
+                retryPending: (accounts) => i18n.t("sidebar:sync_completed_with_retry_pending", { accounts }),
+                warnings: (accounts) => i18n.t("sidebar:sync_completed_with_warnings", { accounts }),
+                success: i18n.t("sidebar:sync_completed"),
+              }),
+            );
+          },
+          onError: (e) => {
+            logGlobalActionFailure(action, "sync", e);
+            store.showToast(i18n.t("sidebar:sync_failed_with_message", { message: e.message }));
+          },
+        }),
+      );
       break;
     }
 
@@ -310,11 +328,12 @@ export function executeAction(action: AppAction): void {
 
     // --- Browser ---
     case "reload-webview":
-      void reloadBrowserWebview().then((result) => {
+      runGlobalActionBoundary(action, "browser", async () => {
+        const result = await reloadBrowserWebview();
         Result.pipe(
           result,
           Result.inspectError((error) => {
-            console.error("Menu webview reload failed:", error);
+            logGlobalActionFailure(action, "browser", error);
           }),
         );
       });
@@ -377,7 +396,7 @@ export function executeAction(action: AppAction): void {
 
     // --- Updater ---
     case "check-for-updates": {
-      void runManualUpdateCheck();
+      runGlobalActionBoundary(action, "updates", runManualUpdateCheck);
       break;
     }
 

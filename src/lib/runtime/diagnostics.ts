@@ -1,4 +1,8 @@
 export type RuntimeDiagnosticPolicyId =
+  | "app-action-window"
+  | "app-action-sync"
+  | "app-action-browser"
+  | "app-action-updates"
   | "dev-runtime-options-load"
   | "startup-sync"
   | "sync-on-wake"
@@ -22,6 +26,38 @@ export type RuntimeDiagnosticPolicy = {
 };
 
 export const RUNTIME_DIAGNOSTIC_POLICIES = {
+  "app-action-window": {
+    console: "error",
+    devOnlyConsole: false,
+    productionDiagnostics: true,
+    toast: "never",
+    once: false,
+    redactSecrets: true,
+  },
+  "app-action-sync": {
+    console: "error",
+    devOnlyConsole: false,
+    productionDiagnostics: true,
+    toast: "never",
+    once: false,
+    redactSecrets: true,
+  },
+  "app-action-browser": {
+    console: "error",
+    devOnlyConsole: false,
+    productionDiagnostics: true,
+    toast: "never",
+    once: false,
+    redactSecrets: true,
+  },
+  "app-action-updates": {
+    console: "error",
+    devOnlyConsole: false,
+    productionDiagnostics: true,
+    toast: "never",
+    once: false,
+    redactSecrets: true,
+  },
   "dev-runtime-options-load": {
     console: "warn",
     devOnlyConsole: true,

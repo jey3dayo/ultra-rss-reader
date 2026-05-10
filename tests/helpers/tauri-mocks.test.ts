@@ -4,6 +4,7 @@ import { Result } from "@praha/byethrow";
 import { invoke } from "@tauri-apps/api/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  commandArgsSchemas,
   DatabaseInfoDtoSchema,
   FeedArticleSummaryDtoListSchema,
   FeedIntegrityCleanupDtoSchema,
@@ -23,12 +24,42 @@ import {
   listFolders,
 } from "@/api/tauri-commands";
 import { sampleAccounts, sampleArticles, sampleFeeds, sampleFolders } from "./fixtures";
-import { createCommandIndex, extractCommandNames, orderedCommandDifference } from "./tauri-command-contract";
+import {
+  createCommandIndex,
+  extractCommandNames,
+  extractSafeInvokeCommandsWithArgs,
+  orderedCommandDifference,
+} from "./tauri-command-contract";
 import { createTauriMockCallRecorder, mockPlatformInfo, setupTauriMocks, teardownTauriMocks } from "./tauri-mocks";
 
 function readWorkspaceFile(path: string): string {
   return readFileSync(resolve(process.cwd(), path), "utf8");
 }
+
+const INTENTIONALLY_UNHANDLED_DEFAULT_MOCK_COMMANDS = [
+  "add_to_reading_list",
+  "copy_to_clipboard",
+  "create_folder",
+  "delete_feed",
+  "discover_feeds",
+  "download_and_install_update",
+  "export_opml",
+  "get_article_tags",
+  "get_platform_permission_denied_recovery",
+  "list_articles_by_tag",
+  "mark_feed_read",
+  "mark_folder_read",
+  "rename_account",
+  "rename_feed",
+  "restart_app",
+  "tag_article",
+  "untag_article",
+  "update_account_credentials",
+  "update_account_sync",
+  "update_feed_display_settings",
+  "update_feed_folder",
+  "vacuum_database",
+].toSorted();
 
 function extractDefaultMockCommands(): string[] {
   return extractCommandNames(readWorkspaceFile("tests/helpers/tauri-mocks.ts"), /case "([^"]+)":/g);
@@ -36,6 +67,13 @@ function extractDefaultMockCommands(): string[] {
 
 function extractFrontendTauriCommands(): string[] {
   return extractCommandNames(readWorkspaceFile("src/api/tauri-commands.ts"), /safeInvoke\(\s*"([^"]+)"/g);
+}
+
+function extractRustInvokeRegistryCommands(): string[] {
+  const rustLib = readWorkspaceFile("src-tauri/src/lib.rs");
+  const registry = rustLib.match(/\.invoke_handler\(tauri::generate_handler!\[\s*([\s\S]*?)\s*\]\)/)?.[1] ?? "";
+
+  return extractCommandNames(registry, /commands::[a-z_]+::([a-zA-Z0-9_]+)/g);
 }
 
 describe("setupTauriMocks fixture isolation", () => {
@@ -285,32 +323,10 @@ describe("setupTauriMocks fixture isolation", () => {
     const frontendCommands = extractFrontendTauriCommands();
     const mockedCommandIndex = createCommandIndex(mockedCommands);
     const frontendCommandIndex = createCommandIndex(frontendCommands);
-    const intentionallyUnhandledCommands = [
-      "add_to_reading_list",
-      "copy_to_clipboard",
-      "create_folder",
-      "delete_feed",
-      "discover_feeds",
-      "download_and_install_update",
-      "export_opml",
-      "get_article_tags",
-      "get_platform_permission_denied_recovery",
-      "list_articles_by_tag",
-      "mark_feed_read",
-      "mark_folder_read",
-      "rename_account",
-      "rename_feed",
-      "restart_app",
-      "tag_article",
-      "untag_article",
-      "update_account_credentials",
-      "update_account_sync",
-      "update_feed_display_settings",
-      "update_feed_folder",
-      "vacuum_database",
-    ].toSorted();
 
-    expect(orderedCommandDifference(frontendCommandIndex, mockedCommandIndex)).toEqual(intentionallyUnhandledCommands);
+    expect(orderedCommandDifference(frontendCommandIndex, mockedCommandIndex)).toEqual(
+      INTENTIONALLY_UNHANDLED_DEFAULT_MOCK_COMMANDS,
+    );
     expect(orderedCommandDifference(mockedCommandIndex, frontendCommandIndex)).toEqual([
       "plugin:event|listen",
       "plugin:event|unlisten",
@@ -337,5 +353,50 @@ describe("setupTauriMocks fixture isolation", () => {
     await expect(invoke("export_opml", { accountId: "acc-1" })).rejects.toThrow(
       "Unhandled Tauri mock command: export_opml",
     );
+  });
+
+  it("validates schema-covered intentionally unhandled commands before strict unhandled failures", async () => {
+    await expect(invoke("rename_feed", { feedId: "   ", title: "Renamed" })).rejects.toThrow(
+      "Command id must not be blank",
+    );
+    await expect(invoke("rename_feed", { feedId: "feed-1", title: "Renamed" })).rejects.toThrow(
+      "Unhandled Tauri mock command: rename_feed",
+    );
+  });
+
+  it("keeps intentionally unhandled default mock commands covered by args schemas or no-args exceptions", () => {
+    const schemaCommands = createCommandIndex(Object.keys(commandArgsSchemas).toSorted());
+    const unhandledCommands = createCommandIndex(INTENTIONALLY_UNHANDLED_DEFAULT_MOCK_COMMANDS);
+
+    expect(orderedCommandDifference(unhandledCommands, schemaCommands)).toEqual([
+      "download_and_install_update",
+      "get_platform_permission_denied_recovery",
+      "restart_app",
+      "vacuum_database",
+    ]);
+  });
+
+  it("keeps command args schema registry aligned with frontend commands registered by Rust", () => {
+    const rustRegistryCommands = new Set(extractRustInvokeRegistryCommands());
+    const frontendCommandsWithArgs = extractSafeInvokeCommandsWithArgs(readWorkspaceFile("src/api/tauri-commands.ts"));
+    const rustBackedFrontendCommandsWithArgs = frontendCommandsWithArgs.filter((command) =>
+      rustRegistryCommands.has(command),
+    );
+    const schemaCommands = Object.keys(commandArgsSchemas)
+      .filter((command) => command !== "plugin:opener|open_url")
+      .toSorted();
+
+    expect(
+      orderedCommandDifference(
+        createCommandIndex(schemaCommands),
+        createCommandIndex(rustBackedFrontendCommandsWithArgs),
+      ),
+    ).toEqual([]);
+    expect(
+      orderedCommandDifference(
+        createCommandIndex(rustBackedFrontendCommandsWithArgs),
+        createCommandIndex(schemaCommands),
+      ),
+    ).toEqual([]);
   });
 });

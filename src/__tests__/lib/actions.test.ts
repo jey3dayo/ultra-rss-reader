@@ -220,6 +220,7 @@ let flushPendingBrowserCloseAction: () => void;
 beforeEach(async () => {
   useUiStore.setState(useUiStore.getInitialState());
   runManualUpdateCheckMock.mockReset();
+  runManualUpdateCheckMock.mockResolvedValue(undefined);
   restartAppMock.mockReset();
   restartAppMock.mockResolvedValue(Result.succeed(null));
   performUpdateCheckMock.mockReset();
@@ -751,7 +752,7 @@ describe("executeAction", () => {
       executeAction("toggle-fullscreen");
 
       await waitFor(() => {
-        expect(consoleError).toHaveBeenCalledWith("[actions] toggle-fullscreen failed:", error);
+        expect(consoleError).toHaveBeenCalledWith("[actions:window] toggle-fullscreen failed.", error);
       });
       expect(setWindowFullscreenMock).not.toHaveBeenCalled();
       consoleError.mockRestore();
@@ -765,7 +766,7 @@ describe("executeAction", () => {
       executeAction("toggle-fullscreen");
 
       await waitFor(() => {
-        expect(consoleError).toHaveBeenCalledWith("[actions] toggle-fullscreen failed:", error);
+        expect(consoleError).toHaveBeenCalledWith("[actions:window] toggle-fullscreen failed.", error);
       });
       consoleError.mockRestore();
     });
@@ -776,6 +777,18 @@ describe("executeAction", () => {
       executeAction("reload-webview");
 
       expect(reloadBrowserWebviewMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("reports rejected webview reload dispatch as browser action diagnostics", async () => {
+      const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+      const error = new Error("webview reload rejected");
+      reloadBrowserWebviewMock.mockRejectedValueOnce(error);
+
+      executeAction("reload-webview");
+
+      await waitFor(() => {
+        expect(consoleError).toHaveBeenCalledWith("[actions:browser] reload-webview failed.", error);
+      });
     });
 
     it("closes browser mode for close-browser", () => {
@@ -910,6 +923,18 @@ describe("executeAction", () => {
       expect(runManualUpdateCheckMock).toHaveBeenCalledTimes(1);
       expect(performUpdateCheckMock).not.toHaveBeenCalled();
       expect(showUpdateAvailableToastMock).not.toHaveBeenCalled();
+    });
+
+    it("reports rejected update checks as updates action diagnostics", async () => {
+      const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+      const error = new Error("update check rejected");
+      runManualUpdateCheckMock.mockRejectedValueOnce(error);
+
+      executeAction("check-for-updates");
+
+      await waitFor(() => {
+        expect(consoleError).toHaveBeenCalledWith("[actions:updates] check-for-updates failed.", error);
+      });
     });
   });
 
@@ -1063,6 +1088,7 @@ describe("executeAction", () => {
     });
 
     it("uses the translated unexpected-error toast with details", async () => {
+      const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
       triggerSyncMock.mockResolvedValueOnce(Result.fail({ type: "UserVisible", message: "boom" }));
 
       executeAction("sync-all");
@@ -1075,6 +1101,22 @@ describe("executeAction", () => {
 
       expect(i18nTMock).toHaveBeenCalledWith("sidebar:sync_failed_with_message", {
         message: "boom",
+      });
+      expect(consoleError).toHaveBeenCalledWith("[actions:sync] sync-all failed.", {
+        type: "UserVisible",
+        message: "boom",
+      });
+    });
+
+    it("reports rejected manual sync dispatch as sync action diagnostics", async () => {
+      const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+      const error = new Error("manual sync rejected");
+      triggerSyncMock.mockRejectedValueOnce(error);
+
+      executeAction("sync-all");
+
+      await waitFor(() => {
+        expect(consoleError).toHaveBeenCalledWith("[actions:sync] sync-all failed.", error);
       });
     });
   });
