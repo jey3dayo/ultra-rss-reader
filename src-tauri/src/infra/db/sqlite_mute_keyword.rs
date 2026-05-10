@@ -78,7 +78,33 @@ fn matches_mute_keyword(article: &Article, rule: &MuteKeyword) -> bool {
     }
 }
 
+const ARTICLE_BODY_TEXT_EXPR: &str =
+    "CASE WHEN trim(coalesce(content_text, '')) = '' THEN coalesce(summary, '') ELSE content_text END";
+const ARTICLE_BODY_TEXT_EXPR_A: &str =
+    "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END";
+const ARTICLE_BODY_TEXT_EXPR_ARTICLES: &str =
+    "CASE WHEN trim(coalesce(articles.content_text, '')) = '' THEN coalesce(articles.summary, '') ELSE articles.content_text END";
+
+fn assert_safe_mute_keyword_expr(expr: &str) {
+    const ALLOWED_MUTE_KEYWORD_EXPRESSIONS: &[&str] = &[
+        "title",
+        "a.title",
+        "articles.title",
+        ARTICLE_BODY_TEXT_EXPR,
+        ARTICLE_BODY_TEXT_EXPR_A,
+        ARTICLE_BODY_TEXT_EXPR_ARTICLES,
+    ];
+
+    assert!(
+        ALLOWED_MUTE_KEYWORD_EXPRESSIONS.contains(&expr),
+        "mute keyword SQL expression must be a repository-owned literal"
+    );
+}
+
 pub fn build_mute_keyword_match_clause(title_expr: &str, body_expr: &str) -> String {
+    assert_safe_mute_keyword_expr(title_expr);
+    assert_safe_mute_keyword_expr(body_expr);
+
     format!(
         "EXISTS (
             SELECT 1
@@ -356,6 +382,42 @@ mod tests {
 
         assert_eq!(rules.len(), 1);
         assert_eq!(rules[0], created);
+    }
+
+    #[test]
+    fn sql_clause_builder_accepts_only_repository_owned_literal_expressions() {
+        let allowed_pairs = [
+            (
+                "title",
+                "CASE WHEN trim(coalesce(content_text, '')) = '' THEN coalesce(summary, '') ELSE content_text END",
+            ),
+            (
+                "a.title",
+                "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
+            ),
+            (
+                "articles.title",
+                "CASE WHEN trim(coalesce(articles.content_text, '')) = '' THEN coalesce(articles.summary, '') ELSE articles.content_text END",
+            ),
+        ];
+
+        for (title_expr, body_expr) in allowed_pairs {
+            let match_clause = build_mute_keyword_match_clause(title_expr, body_expr);
+            let exclusion_clause = build_mute_keyword_exclusion_clause(title_expr, body_expr);
+
+            assert!(match_clause.contains(title_expr));
+            assert!(match_clause.contains(body_expr));
+            assert!(exclusion_clause.starts_with("NOT EXISTS"));
+        }
+    }
+
+    #[test]
+    #[should_panic(expected = "repository-owned literal")]
+    fn sql_clause_builder_rejects_malformed_expression_input() {
+        let _ = build_mute_keyword_match_clause(
+            "a.title) OR 1 = 1 --",
+            "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
+        );
     }
 
     #[test]
