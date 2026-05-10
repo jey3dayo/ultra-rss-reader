@@ -1897,11 +1897,6 @@
   - duplicate URL check と `ON CONFLICT(account_id, url) DO UPDATE` の間で競合すると、既存 feed を更新してから rollback path で削除する事故が起き得る
   - concurrent duplicate insert、existing feed update conflict、initial sync failure rollback、unread count recalc failure の integration test を追加する
 
-- [ ] P1 command DB lock 方針を `try_lock_db` / blocking lock で分類する
-  - 対象: `src-tauri/src/commands/mod.rs`, `src-tauri/src/commands/*_commands.rs`
-  - busy error helper がある一方で多くの command が `state.db.lock()` を直接呼び、sync 中に UI が待つ command と即時 busy を返す command の境界が曖昧
-  - read-only command、destructive command、maintenance command、sync command の lock policy matrix と contract test を追加する
-
 - [ ] P1 Feed landing stale request が現在選択を上書きしないよう latest-only にする
   - 対象: `src/hooks/use-feed-landing.ts`, `src/stores/ui-store.ts`, `src/__tests__/hooks/use-feed-landing.test.tsx`
   - stale 判定前に selection update が走る経路があり、遅い古い request が新しい landing 後に selected feed だけ上書きし得る
@@ -1916,11 +1911,6 @@
   - 対象: `.github/workflows/release.yml`, `.codex/skills/release/SKILL.md`, `tests/release-repo-contract.test.ts`
   - tag pattern は prerelease/build metadata を許可するが release action は `prerelease: false` 固定で、実 release の公開種別が曖昧
   - `v1.2.3-alpha.1`、`v1.2.3+build.1`、stable、draft/pre-release flag、release note template の repo contract を追加する
-
-- [ ] P2 old unread command の missing target を 0 件成功にするか validation error にするか決める
-  - 対象: `src-tauri/src/commands/article_commands.rs`, `src/components/reader/hooks/feed-actions/use-old-unread-read-action.ts`
-  - missing feed/folder/account target が 0 件成功に見えると、削除済み target への操作や account drift が user-visible にならない
-  - missing feed、missing folder、wrong account、scope ownership、count/mark parity の Rust + hook test を追加する
 
 - [ ] P2 `update_feed_display_settings` の raw query key usage を query key helper に寄せる
   - 対象: `src/hooks/use-update-feed-display-mode.ts`, `src/lib/query/query-invalidation.ts`
@@ -1961,11 +1951,6 @@
   - 対象: `src/components/reader/hooks/command-palette/use-command-palette-data.ts`, `src/components/reader/hooks/command-palette/use-command-history.ts`
   - `useMemo` 中の history normalization が localStorage write を呼び、React render phase side effect として StrictMode や test isolation で問題化しやすい
   - StrictMode double render、storage write count、invalid history normalize、storage unavailable、command palette reopen の test を追加する
-
-- [ ] P2 article view history 記録失敗が retry/toast loop にならない contract を作る
-  - 対象: `src/components/reader/hooks/article/use-article-pane-controller.tsx`, `src-tauri/src/commands/article_commands.rs`
-  - record failure 時に recorded selection を戻すため、同一 selection で再 render されると同じ失敗を繰り返しやすい
-  - transient DB failure、per-article retry budget、selection change、toast suppression、manual retry policy の test を追加する
 
 - [ ] P2 `seed-dev-db-from-prod` backup timestamp collision を防ぐ
   - 対象: `scripts/seed-dev-db-from-prod.ts`, `src/__tests__/scripts`
@@ -2503,30 +2488,10 @@
   - controller unmount 時の close が無条件だと、portal/scope remount や StrictMode 的な再作成で新しい webview を閉じるリスクがある
   - stale controller cleanup、StrictMode double mount、already-closed error、new URL after unmount、close suppression の test を追加する
 
-- [ ] P2 account 並列 sync の結果順序を event/result contract として固定する
-  - 対象: `src-tauri/src/commands/sync_commands.rs`
-  - `join_all` の入力順保持に依存しており、将来実装を変えると failed/warnings の順序、toast、snapshot が揺れやすい
-  - account order、fast failure + slow success、warning order、preferred startup account order、result serialization snapshot の test を追加する
-
-- [ ] P2 startup remote-state repair completion preference を mixed failure で固定する
-  - 対象: `src-tauri/src/commands/sync_commands.rs`
-  - `startup_remote_state_repair_v1=done` の保存条件が startup 対象・repair-only 対象・failure 混在に依存し、未完了なのに完了扱いになり得る
-  - startup FreshRSS success/failure、repair-only success/failure、Local only startup、preference write failure の test を追加する
-
-- [ ] P2 manual account/feed sync の failure-only event policy を決める
-  - 対象: `src-tauri/src/commands/sync_commands.rs`, `src/lib/sync`
-  - account/feed sync が全失敗した場合に completed event が出ないと、frontend が event 経由で status/query 更新する path で失敗後 refresh が漏れやすい
-  - account failure emits/no-emits、feed failure emits/no-emits、success with warning、event emit failure log-only、frontend invalidation parity の test を追加する
-
 - [ ] P2 scheduler `retry_after_seconds` を error message parse から構造化 metadata へ寄せる
   - 対象: `src-tauri/src/service/sync_scheduler.rs`, `src-tauri/src/domain/error.rs`
   - backoff が `retry_after_seconds=` という message 断片に依存し、provider copy 変更や user-visible 文言混入で retry timing が壊れやすい
   - markerなし、複数marker、巨大値、数字以外suffix、偶然marker、structured retry metadata 優先の test を追加する
-
-- [ ] P2 scheduler の account 設定変更を in-flight sync 後に stale snapshot で上書きしない
-  - 対象: `src-tauri/src/service/sync_scheduler.rs`
-  - due account snapshot の `sync_interval_secs` で成功後 `next_sync` を更新するため、sync 中の interval 変更・account 削除・sync 無効化が古い schedule で上書きされ得る
-  - interval changed during sync、account deleted during sync、interval shortened/lengthened、load-after-sync refresh、schedule prune の test を追加する
 
 - [ ] P2 remote subscription URL fallback merge が別 remote feed を上書きしない契約を作る
   - 対象: `src-tauri/src/service/sync_flow.rs`
