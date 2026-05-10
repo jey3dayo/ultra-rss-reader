@@ -130,6 +130,7 @@ Confirm and record:
 
 - Release tag and tag target SHA.
 - Source commit SHA checked out by the release workflow.
+- PR number or merge commit subject for the source commit.
 - GitHub workflow run id and run URL.
 - Release workflow path, ref, and whether the run came from tag push or manual dispatch.
 - Published artifact name, release URL, and SHA-256 digest.

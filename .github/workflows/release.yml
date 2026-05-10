@@ -583,6 +583,10 @@ jobs:
           const tagTargetSha = execFileSync("git", ["rev-parse", `refs/tags/${process.env.RELEASE_TAG}^{}`], {
             encoding: "utf8",
           }).trim();
+          const mergeCommitSubject = execFileSync("git", ["log", "-1", "--format=%s", sourceSha], {
+            encoding: "utf8",
+          }).trim();
+          const pullRequestNumber = mergeCommitSubject.match(/\(#(?<number>\d+)\)$/)?.groups?.number ?? null;
           const workflowRunUrl = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`;
           const record = {
             artifact: {
@@ -597,6 +601,10 @@ jobs:
               assetPlatform,
               matrixPlatform,
               os: process.env.RUNNER_OS,
+            },
+            pullRequest: {
+              mergeCommitSubject,
+              number: pullRequestNumber,
             },
             source: {
               commitSha: sourceSha,

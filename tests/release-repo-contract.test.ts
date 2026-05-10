@@ -336,6 +336,9 @@ describe("release repository contract", () => {
     expect(releaseWorkflow).toContain("release-provenance-$" + "{assetPlatform}.json");
     expect(releaseWorkflow).toContain("workflowRunUrl");
     expect(releaseWorkflow).toContain("tagTargetSha");
+    expect(releaseWorkflow).toContain('execFileSync("git", ["log", "-1", "--format=%s", sourceSha]');
+    expect(releaseWorkflow).toContain("pullRequestNumber");
+    expect(releaseWorkflow).toContain("mergeCommitSubject");
     expect(releaseWorkflow).toContain('execFileSync("git", ["rev-parse", "HEAD"]');
     expect(releaseWorkflow).toContain(
       'execFileSync("git", ["rev-parse", `refs/tags/$' + "{process.env.RELEASE_TAG}^{}`]",
@@ -354,6 +357,7 @@ describe("release repository contract", () => {
     );
     expect(releaseManualVerification).toContain("Release Provenance And SBOM Record");
     expect(releaseManualVerification).toContain("Release tag and tag target SHA");
+    expect(releaseManualVerification).toContain("PR number or merge commit subject for the source commit");
     expect(releaseManualVerification).toContain("Source commit SHA checked out by the release workflow");
     expect(releaseManualVerification).toContain("GitHub workflow run id and run URL");
     expect(releaseManualVerification).toContain("Updater checksum sidecar asset");
