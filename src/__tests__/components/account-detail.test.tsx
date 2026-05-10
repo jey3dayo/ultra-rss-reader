@@ -918,9 +918,7 @@ describe("AccountDetail", () => {
 
   it("shows the persisted connection summary for a verified FreshRSS account", async () => {
     const now = new Date();
-    const localTodayAt = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
-      now.getDate(),
-    ).padStart(2, "0")}T01:06:00+09:00`;
+    const localTodayAt = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 1, 6).toISOString();
 
     setupTauriMocks((cmd) => {
       switch (cmd) {
