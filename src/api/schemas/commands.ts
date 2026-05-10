@@ -225,11 +225,11 @@ export const markFolderReadArgs = z.object({ folderId: nonBlankTrimmedIdSchema }
 const localAddAccountArgs = z.object({
   kind: z.literal("Local"),
   name: accountNameSchema,
-  serverUrl: z.string().optional(),
-  appId: z.string().optional(),
-  appKey: z.string().optional(),
-  username: z.string().optional(),
-  password: z.string().optional(),
+  serverUrl: optionalBlankStringToUndefinedSchema,
+  appId: optionalBlankStringToUndefinedSchema,
+  appKey: optionalBlankStringToUndefinedSchema,
+  username: optionalBlankStringToUndefinedSchema,
+  password: optionalBlankStringToUndefinedSchema,
 });
 const freshRssAddAccountArgs = z.object({
   kind: z.literal("FreshRss"),
@@ -287,12 +287,12 @@ export const testAccountConnectionArgs = z.object({ accountId: nonBlankTrimmedId
 export const deleteAccountArgs = z.object({ accountId: nonBlankTrimmedIdSchema });
 
 // --- discoverFeeds ---
-export const discoverFeedsArgs = z.object({ url: nonBlankTrimmedStringSchema });
+export const discoverFeedsArgs = z.object({ url: httpCommandUrlSchema });
 
 // --- addLocalFeed ---
 export const addLocalFeedArgs = z.object({
   accountId: nonBlankTrimmedIdSchema,
-  url: nonBlankTrimmedStringSchema,
+  url: httpCommandUrlSchema,
 });
 
 // --- createFolder ---
@@ -326,9 +326,15 @@ export const updateFeedDisplaySettingsArgs = z.object({
 const externalUrlSchema = z
   .string()
   .trim()
-  .refine((url) => url.startsWith("http://") || url.startsWith("https://") || url.startsWith("mailto:"), {
-    message: "Only http://, https://, and mailto: URLs are supported",
-  })
+  .refine(
+    (url) =>
+      url.toLowerCase().startsWith("http://") ||
+      url.toLowerCase().startsWith("https://") ||
+      url.toLowerCase().startsWith("mailto:"),
+    {
+      message: "Only http://, https://, and mailto: URLs are supported",
+    },
+  )
   .refine((url) => !url.includes("\n") && !url.includes("\r"), {
     message: "External URLs must not contain newlines",
   });

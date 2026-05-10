@@ -6,12 +6,17 @@ import { describe, expect, it } from "vitest";
 import { TagDtoSchema } from "@/api/schemas";
 import {
   ACCOUNT_NAME_MAX_CHARS,
+  addAccountArgs,
+  addLocalFeedArgs,
   createFolderArgs,
   createTagArgs,
+  discoverFeedsArgs,
   FEED_TITLE_MAX_CHARS,
   FOLDER_NAME_MAX_CHARS,
   normalizeTagColorForCommand,
   normalizeTagColorForView,
+  openExternalUrlArgs,
+  openInBrowserArgs,
   renameAccountArgs,
   renameFeedArgs,
   renameTagArgs,
@@ -32,8 +37,14 @@ function readRustCommandSource(fileName: string) {
   );
 }
 
+function readRustDomainSource(fileName: string) {
+  return readFileSync(join(process.cwd(), "src-tauri/src/domain", fileName), "utf8");
+}
+
 function extractRustUsizeConst(source: string, constName: string) {
-  const match = source.match(new RegExp(`const ${constName}: usize = (\\d+);`));
+  const match = source.match(
+    new RegExp(`(?:pub )?const ${constName}: usize = (\\d+);`),
+  );
   expect(match, `${constName} should exist`).not.toBeNull();
   return Number(match?.[1]);
 }
@@ -131,7 +142,7 @@ describe("command args validation parity", () => {
     ).toBe(FEED_TITLE_MAX_CHARS);
     expect(
       extractRustUsizeConst(
-        readRustCommandSource("feed_commands.rs"),
+        readRustDomainSource("folder.rs"),
         "FOLDER_NAME_MAX_CHARS",
       ),
     ).toBe(FOLDER_NAME_MAX_CHARS);
@@ -257,5 +268,108 @@ describe("command args validation parity", () => {
       { name: "Review", color: "#cf7868" },
       { tagId: "tag-1", name: "Review", color: null },
     ]);
+  });
+
+  it("aligns Local account blank credential policy with FreshRSS command args", () => {
+    expect(
+      addAccountArgs.parse({
+        kind: "Local",
+        name: " Local ",
+        serverUrl: "   ",
+        appId: "   ",
+        appKey: "   ",
+        username: "   ",
+        password: "   ",
+      }),
+    ).toEqual({
+      kind: "Local",
+      name: "Local",
+      serverUrl: undefined,
+      appId: undefined,
+      appKey: undefined,
+      username: undefined,
+      password: undefined,
+    });
+    expect(addAccountArgs.parse({ kind: "Local", name: "Local" })).toEqual({
+      kind: "Local",
+      name: "Local",
+    });
+
+    expect(() =>
+      addAccountArgs.parse({
+        kind: "FreshRss",
+        name: "FreshRSS",
+        serverUrl: "   ",
+        username: "reader",
+        password: "secret",
+      }),
+    ).toThrow();
+    expect(() =>
+      addAccountArgs.parse({
+        kind: "FreshRss",
+        name: "FreshRSS",
+        serverUrl: "https://example.com",
+        username: "   ",
+        password: "secret",
+      }),
+    ).toThrow();
+  });
+
+  it("aligns feed discovery and add URL schemas with browser/open HTTP URL schemas", () => {
+    const cases = [
+      {
+        label: "uppercase scheme",
+        input: " HTTPS://example.com/feed.xml ",
+        expected: "HTTPS://example.com/feed.xml",
+        valid: true,
+      },
+      {
+        label: "https URL",
+        input: "https://example.com/feed.xml",
+        expected: "https://example.com/feed.xml",
+        valid: true,
+      },
+      {
+        label: "http URL",
+        input: "http://example.com/feed.xml",
+        expected: "http://example.com/feed.xml",
+        valid: true,
+      },
+      { label: "ftp URL", input: "ftp://example.com/feed.xml", valid: false },
+      { label: "mailto URL", input: "mailto:reader@example.com", valid: false },
+      { label: "newline URL", input: "https://example.com/\nfeed.xml", valid: false },
+    ] satisfies Array<{ label: string; input: string; expected?: string; valid: boolean }>;
+
+    for (const { input, expected, valid } of cases) {
+      const parsers = [
+        () => discoverFeedsArgs.parse({ url: input }),
+        () => addLocalFeedArgs.parse({ accountId: "acc-1", url: input }),
+        () => openInBrowserArgs.parse({ url: input }),
+      ];
+
+      for (const parse of parsers) {
+        if (valid) {
+          expect(parse().url).toBe(expected);
+        } else {
+          expect(parse).toThrow();
+        }
+      }
+    }
+  });
+
+  it("aligns external URL uppercase scheme policy with browser/open commands", () => {
+    expect(openExternalUrlArgs.parse({ url: " HTTPS://example.com/article " })).toEqual({
+      url: "HTTPS://example.com/article",
+    });
+    expect(openExternalUrlArgs.parse({ url: " MAILTO:reader@example.com " })).toEqual({
+      url: "MAILTO:reader@example.com",
+    });
+    expect(openInBrowserArgs.parse({ url: " HTTPS://example.com/article " })).toEqual({
+      url: "HTTPS://example.com/article",
+    });
+
+    expect(() => openExternalUrlArgs.parse({ url: "javascript:alert(1)" })).toThrow();
+    expect(() => openExternalUrlArgs.parse({ url: "https://example.com/\rarticle" })).toThrow();
+    expect(() => openInBrowserArgs.parse({ url: "MAILTO:reader@example.com" })).toThrow();
   });
 });
