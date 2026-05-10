@@ -4,6 +4,33 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.32.0] - 2026-05-10
+
+### Features
+
+- 記事移動時のアニメーション、コマンドパレットや primitive UI の参照 specimen、portless dev entrypoint を追加し、UI 確認と開発導線を広げた
+- 設定から個別ショートカットをリセットできるようにし、重複する discovered feed の判別や dev runtime options の扱いを改善した
+- typed result helper と Result ベースの失敗表現を導入し、フォーム、フィード、アクション、runtime option のエラー処理を段階的に揃えた
+
+### Bug Fixes
+
+- Reader、検索、Web プレビュー、command palette、記事タグ、購読レビュー、アカウント切り替えの stale state / race / focus 復帰をまとめて改善した
+- sync、startup repair、pending mutation、feed discovery、OPML、database maintenance、updater、keyring、clipboard、window / browser WebView 境界の失敗処理と診断ログを強化した
+- 設定画面、アカウント詳細、フィード編集、タグ、ミュートキーワード、フォルダ操作、通知、確認ダイアログの失敗時挙動と cache invalidation を安定化した
+- release workflow、Windows dispatch、Tauri dev port 管理、Storybook / Playwright 周辺のローカル検証と CI 契約を補強した
+
+### Documentation
+
+- agent / llm guidance、設計指針、品質ポリシー、Rust test unwrap 方針、reader keyboard navigation、release / privacy / incident docs を更新した
+- TODO の完了済み項目と次バッチ候補を整理し、後続の検証・修正タスクを追いやすくした
+
+### Maintenance
+
+- frontend の `lib`、hooks、schemas、reader / settings / subscriptions の type surface と helper 配置を大きく整理し、責務ごとの import 境界を明確にした
+- test helpers、fixtures、Tauri mocks、Storybook runtime、query wrapper、locale / schema / command contract tests を再編し、型安全なテスト基盤へ寄せた
+- reader / settings / shared UI の view props や local helper types を近い所有元へ移し、不要な re-export と重複 props を削減した
+- mock sample app や古い routing shim、不要になった generated / helper ファイルを削除し、repo scan と品質ゲートのノイズを減らした
+
 ## [0.31.1] - 2026-05-08
 
 ### Features
