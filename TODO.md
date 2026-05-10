@@ -3502,25 +3502,10 @@
   - FTS syntax error、phrase query、prefix query、snippet escaping の方針が未固定だと search UX が壊れる
   - quote query、special operators、prefix query、empty result, snippet escaped HTML、ranking tie の contract を追加する
 
-- [ ] P2 native notification を導入する場合の permission / privacy / quiet hours policy を先に決める
-  - 対象: future notification feature、sync result feedback、settings
-  - sync/update/error を native notification に出す場合、feed title や account 名が lock screen に出る可能性がある
-  - permission prompt、lock screen privacy、quiet hours、account name redaction、disable setting の decision を追加する
-
 - [ ] P2 system tray / background resident mode を導入する前の lifecycle contract を作る
   - 対象: future tray feature、sync scheduler、window close behavior
   - close で終了する app と tray 常駐 app では shutdown drain、sync scheduler、dirty form guard が変わる
   - close hides window、quit exits app、sync while hidden、update restart、dirty state prompt の decision を追加する
-
-- [ ] P2 custom protocol / deep link を導入する場合の URL schema と single-instance routing を先に決める
-  - 対象: future protocol feature、app action dispatcher、single-instance handling
-  - external URL から app action を起動できるようにすると、private host/open settings/import などの validation が必要になる
-  - protocol allowlist、action mapping、single-instance route、malformed link、security prompt の decision を追加する
-
-- [ ] P2 browser webview state と article reader state の same-origin assumptions を明文化する
-  - 対象: browser webview tracker、article content view、URL/open policies
-  - embedded browser は remote origin、article content は sanitized local DOM という前提が崩れると focus/script/security boundary が曖昧になる
-  - remote origin、local sanitized content、focus bridge、history tracking、script injection allowed surface の contract を追加する
 
 - [ ] P2 storage quota exhausted 時の cascading failure を preferences/sidebar/history/debug で検証する
   - 対象: localStorage-backed helpers、preferences store、runtime diagnostics
@@ -3596,11 +3581,6 @@
   - 対象: tests fixtures、reader/subscription review tests、Rust fixtures
   - 実日付 fixture が現在日に近づくと stale day、grouping、review warning の期待値が時間で変わる
   - frozen clock、relative date builder、timezone fixture、future date、DST boundary の migration plan を作る
-
-- [ ] P2 release notes と in-app updater message の user-visible change classification を同期する
-  - 対象: release notes workflow、updater UI、CHANGELOG
-  - release note では修正済みでも updater UI が generic だと、ユーザーが update urgency を判断できない
-  - security/privacy fix、data migration、manual action required、known issue、rollback impossible の copy policy を追加する
 
 - [ ] P3 dependency update review を runtime / dev-only / build-only / transitive risk に分類する
   - 対象: `package.json`, `pnpm-lock.yaml`, `src-tauri/Cargo.lock`
@@ -3678,11 +3658,6 @@
   - すべての account failure を「認証情報更新」に寄せると、server URL typo や stale cache の復旧が遠回りになる
   - credential reset、server URL edit、test connection、sync_state clear、pending mutation quarantine の flow を整理する
 
-- [ ] P2 provider-side deleted feed / folder の local retention policy を account kind ごとに固定する
-  - 対象: GReader/FreshRSS sync、local repository、subscriptions UI
-  - remote で消えた feed/folder を local に残すか消すかが曖昧だと、復活・削除・OPML export の期待値が揺れる
-  - remote deleted feed、remote deleted folder、local starred article、pending mutation、manual resubscribe の contract を追加する
-
 - [ ] P2 provider capability downgrade を account settings / pending mutation queue と同期する
   - 対象: provider traits、pending mutation repository、settings account detail
   - provider version や設定変更で read/star/tag support が消えた時、queue と UI が古い capability 前提で残る
@@ -3734,12 +3709,6 @@
   - TODO が多くなるほど「完了条件」が曖昧な項目が増え、実装 worker が scope を広げすぎる
   - 対象、問題、分割、focused test、manual verification、defer 明記の template を作る
 
-- [ ] P1 account credential rotation 中の sync/pending mutation を一時停止する contract を作る
-  - 対象: account credentials editor、sync scheduler、pending mutation replay
-  - credential 更新中に古い credential で sync/replay が走ると、更新直後に auth failure や provider lockout を誘発する
-  - edit draft started、save pending、save success、save failure rollback、manual sync blocked の contract を追加する
-  - superseded by: P1-Q2b (covered by credential rotation sync/pending mutation pause; kept verification: old credential does not replay during edit)
-
 - [ ] P2 empty state が permission/auth/network/schema failure を同じ「空」として見せないようにする
   - 対象: reader lists、subscriptions index、settings account views
   - failure を empty と表示すると、ユーザーがデータ消失と誤解するか、復旧 action を見つけられない
@@ -3749,11 +3718,6 @@
   - 対象: stale content banner、sync warnings、settings diagnostics
   - 一度閉じた warning が別 account/feed でも消えると重要な failure を見落とし、逆に毎回出ると無視される
   - session dismiss、account scoped dismiss、feed scoped dismiss、new error reopens、manual reset の contract を追加する
-
-- [ ] P2 remote delete vs local optimistic mutation conflict を provider capability ごとに固定する
-  - 対象: pending mutation replay、sync flow、article cache
-  - remote で article/feed が消えた後に local read/star/tag mutation を replay すると、404/skip/rollback の方針が必要になる
-  - remote article missing、remote feed missing、mutation replay 404、local cache rollback、user warning の contract を追加する
 
 - [ ] P2 account/feed/tag rename の optimistic UI と backend normalization 差分を固定する
   - 対象: rename account/feed/tag flows、repository validation、query cache
@@ -3784,11 +3748,6 @@
   - 対象: reader search UI、FTS query builder、locale copy
   - ユーザーが quote/operator を入力した時の扱いが不明だと、検索失敗を bug と誤解する
   - literal search、phrase search、operator escaped、syntax error copy、help text の contract を追加する
-
-- [ ] P2 release note known-issue と TODO risk のリンク方針を決める
-  - 対象: release notes、CHANGELOG、TODO.md
-  - 未解決の P1/P2 を抱えた release で known issue を書くべきか、internal TODO に留めるべきか判断基準が必要
-  - user-visible risk、internal-only risk、data loss risk、workaround exists、TODO reference の policy を追加する
 
 - [ ] P3 TODO.md の優先度と実装順を machine-readable に抽出する script を追加する
   - 対象: `TODO.md`, task triage tooling
