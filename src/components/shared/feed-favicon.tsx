@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { useState } from "react";
-import { extractSiteHost } from "@/lib/feed/feed";
+import { canUseExternalFaviconEndpoint, extractSiteHost } from "@/lib/feed/feed";
 import { cn } from "@/lib/utils";
 
 type FeedFaviconSize = "sm" | "md" | "lg";
@@ -74,7 +74,7 @@ export function FeedFavicon({ title, url, siteUrl, grayscale = false, size = "sm
   Result.pipe(
     extractSiteHost(siteUrl, url),
     Result.inspect((host) => {
-      resolvedHost = host;
+      resolvedHost = canUseExternalFaviconEndpoint(host) ? host : null;
     }),
   );
   const sizeClassName = faviconSizeClassNames[size];

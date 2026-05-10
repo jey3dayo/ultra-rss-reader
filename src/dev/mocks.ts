@@ -32,6 +32,7 @@ import {
   mockTags,
   resetMockDataForDevMocks,
 } from "@/dev/mock-data";
+import { stripHtmlTags } from "@/lib/content/html";
 import { addHours, getCurrentDate, getCurrentIsoTimestamp, toIsoTimestamp } from "@/lib/datetime";
 
 export const DEV_MOCK_PLATFORM_INFO = DEFAULT_PLATFORM_INFO;
@@ -330,9 +331,7 @@ function applyMuteKeywordFilter<
       return article.summary ?? "";
     }
 
-    const template = document.createElement("template");
-    template.innerHTML = article.content_sanitized;
-    const visibleText = template.content.textContent ?? "";
+    const visibleText = stripHtmlTags(article.content_sanitized);
 
     return visibleText.trim() ? visibleText : (article.summary ?? "");
   };

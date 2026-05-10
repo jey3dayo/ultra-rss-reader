@@ -114,6 +114,18 @@ describe("FeedFavicon", () => {
     expect(image?.getAttribute("src")).not.toContain("private/path");
   });
 
+  it.each([
+    ["localhost site", "http://localhost:8080", "http://localhost:8080/feed.xml"],
+    ["private IPv4 feed", "", "http://192.168.1.10/feed.xml"],
+    ["local mDNS site", "http://reader.local", "http://reader.local/feed.xml"],
+  ])("uses the offline fallback instead of sending %s to the external favicon endpoint", (_name, siteUrl, url) => {
+    const { container } = render(<FeedFavicon title="Private" url={url} siteUrl={siteUrl} grayscale />);
+
+    expect(container.querySelector("img")).toBeNull();
+    expect(screen.getByText("P")).toHaveAttribute("aria-hidden", "true");
+    expect(screen.getByText("P")).not.toHaveClass("grayscale");
+  });
+
   it("keeps the fallback on rerender after the same favicon source fails", () => {
     const { container, rerender } = render(
       <FeedFavicon title="Gamma" url="https://example.com/feed.xml" siteUrl="https://example.com" />,

@@ -172,7 +172,10 @@ export function ShortcutsSettingsView({
             >
               {item.isLocked ? (
                 <div className="flex w-full items-center gap-1.5 sm:w-auto">
-                  <kbd className="w-full rounded-md border border-border/70 bg-surface-1 px-2.5 py-1 text-center font-mono text-[13px] font-medium leading-none tracking-[0.02em] text-foreground-soft sm:w-auto">
+                  <kbd
+                    data-testid={`shortcut-badge-${item.id}`}
+                    className="w-full rounded-md border border-border/70 bg-surface-1 px-2.5 py-1 text-center font-mono text-[13px] font-medium leading-none tracking-[0.02em] text-foreground-soft sm:w-auto"
+                  >
                     {item.displayKey}
                   </kbd>
                   <ShortcutResetButton item={item} resetLabel={resetLabel} disabled />

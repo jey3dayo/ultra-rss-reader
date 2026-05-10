@@ -1,15 +1,17 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { buildShortcutCategoryOrder } from "@/components/settings/hooks/use-shortcuts-settings-view-props";
 import { ShortcutsSettings } from "@/components/settings/shortcuts-settings";
+import i18n from "@/lib/i18n";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
 describe("ShortcutsSettings", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    await i18n.changeLanguage("en");
     usePreferencesStore.setState({ prefs: {}, loaded: true });
     useUiStore.setState(useUiStore.getInitialState());
     usePlatformStore.setState({
@@ -81,6 +83,42 @@ describe("ShortcutsSettings", () => {
 
     expect(screen.getByText("Conflict: native menu")).toBeInTheDocument();
     expect(screen.getByTestId("shortcut-badge-reload_webview")).toHaveTextContent("⌘ r");
+  });
+
+  it("ignores locked open settings custom values for display and reset-all", async () => {
+    const user = userEvent.setup();
+    const setPref = vi.fn();
+    usePreferencesStore.setState({
+      prefs: {
+        shortcut_open_settings: "x",
+      },
+      loaded: true,
+      setPref,
+    });
+    useUiStore.setState({
+      showConfirm: (_message, onConfirm) => {
+        onConfirm();
+      },
+    });
+
+    render(<ShortcutsSettings />, { wrapper: createWrapper() });
+
+    expect(screen.getByTestId("shortcut-badge-open_settings")).toHaveTextContent("⌘ ,");
+    expect(screen.getByRole("button", { name: "Reset to Defaults" })).toBeDisabled();
+
+    usePreferencesStore.setState({
+      prefs: {
+        shortcut_next_article: "n",
+        shortcut_open_settings: "x",
+      },
+      loaded: true,
+      setPref,
+    });
+
+    await user.click(screen.getByRole("button", { name: "Reset to Defaults" }));
+
+    expect(setPref).toHaveBeenCalledWith("shortcut_next_article", "j");
+    expect(setPref).not.toHaveBeenCalledWith("shortcut_open_settings", "⌘,");
   });
 
   it("clears the global conflict message when recording a different shortcut starts", async () => {
@@ -232,6 +270,69 @@ describe("ShortcutsSettings", () => {
 
     expect(setPref).not.toHaveBeenCalled();
     expect(screen.getByText(/"Ctrl r" is already assigned to "native menu"/)).toBeInTheDocument();
+  });
+
+  it("refreshes the recorded conflict message when platform or locale changes", async () => {
+    const user = userEvent.setup();
+    const setPref = vi.fn();
+    usePlatformStore.setState({
+      platform: {
+        kind: "windows",
+        capabilities: {
+          supports_reading_list: false,
+          supports_background_browser_open: false,
+          supports_runtime_window_icon_replacement: false,
+          supports_native_browser_navigation: false,
+          uses_dev_file_credentials: false,
+        },
+      },
+      loaded: true,
+      loadError: false,
+      inFlightLoad: null,
+    });
+    usePreferencesStore.setState({
+      prefs: {
+        shortcut_next_article: "j",
+        shortcut_toggle_read: "⌘+q",
+      },
+      loaded: true,
+      setPref,
+    });
+
+    render(<ShortcutsSettings />, { wrapper: createWrapper() });
+
+    await user.click(screen.getByTestId("shortcut-badge-next_article"));
+    fireEvent.keyDown(screen.getByTestId("shortcut-badge-next_article"), {
+      key: "q",
+      ctrlKey: true,
+    });
+
+    expect(screen.getByText(/"Ctrl q" is already assigned to "Toggle read \/ unread"/)).toBeInTheDocument();
+
+    usePlatformStore.setState({
+      platform: {
+        kind: "macos",
+        capabilities: {
+          supports_reading_list: false,
+          supports_background_browser_open: false,
+          supports_runtime_window_icon_replacement: false,
+          supports_native_browser_navigation: false,
+          uses_dev_file_credentials: false,
+        },
+      },
+      loaded: true,
+      loadError: false,
+      inFlightLoad: null,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/"⌘ q" is already assigned to "Toggle read \/ unread"/)).toBeInTheDocument();
+    });
+
+    await i18n.changeLanguage("ja");
+
+    expect(await screen.findByText(/「⌘ q」は「既読\/未読を切り替え」に割り当て済みです/)).toBeInTheDocument();
+    expect(setPref).not.toHaveBeenCalled();
   });
 
   it("shows the shortcuts help collision when recording Shift+Slash", async () => {

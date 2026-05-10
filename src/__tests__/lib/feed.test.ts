@@ -1,6 +1,11 @@
 import { Result } from "@praha/byethrow";
 import { describe, expect, it } from "vitest";
-import { extractSiteHost, resolveFeedWebsiteHref, resolveSiteHostLabel } from "@/lib/feed/feed";
+import {
+  canUseExternalFaviconEndpoint,
+  extractSiteHost,
+  resolveFeedWebsiteHref,
+  resolveSiteHostLabel,
+} from "@/lib/feed/feed";
 
 describe("extractSiteHost", () => {
   it("resolves website href from site_url before feed url", () => {
@@ -122,6 +127,21 @@ describe("extractSiteHost", () => {
     ["unicode host", "https://例え.テスト/feed.xml", "xn--r8jz45g.xn--zckzah"],
   ])("applies privacy-reviewed host label fallback for %s", (_name, url, expectedLabel) => {
     expect(resolveSiteHostLabel("", url)).toBe(expectedLabel);
+  });
+
+  it.each([
+    ["public domain", "example.com", true],
+    ["public domain with private IPv6-looking prefix", "fd.example.com", true],
+    ["localhost", "localhost", false],
+    ["localhost subdomain", "reader.localhost", false],
+    ["local mDNS domain", "reader.local", false],
+    ["loopback IPv4", "127.0.0.1", false],
+    ["private IPv4", "192.168.1.2", false],
+    ["link-local IPv4", "169.254.1.2", false],
+    ["unique-local IPv6", "fd00::1", false],
+    ["loopback IPv6", "::1", false],
+  ])("keeps the external favicon endpoint host policy privacy-safe for %s", (_name, host, expectedAllowed) => {
+    expect(canUseExternalFaviconEndpoint(host)).toBe(expectedAllowed);
   });
 
   it.each([

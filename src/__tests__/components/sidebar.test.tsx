@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { flushMicrotasksAndRealTimer } from "@tests/helpers/async-flush";
-import { createWrapper } from "@tests/helpers/create-wrapper";
+import { createQueryWrapper, createWrapper } from "@tests/helpers/create-wrapper";
 import { type DevIntentState, resetDevIntentState } from "@tests/helpers/dev-intent";
 import { sampleAccounts, sampleFeeds, sampleTags } from "@tests/helpers/fixtures";
 import i18n from "@tests/helpers/i18n-setup";
@@ -771,7 +771,7 @@ describe("Sidebar", () => {
 
     render(<Sidebar />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("button", { name: /Starred/ }));
+    await user.click(await screen.findByRole("button", { name: /^Starred$/ }));
 
     expect(await screen.findByRole("button", { name: /Tech Blog/ })).toHaveTextContent("1");
     expect(screen.queryByRole("button", { name: /News/ })).not.toBeInTheDocument();
@@ -861,6 +861,52 @@ describe("Sidebar", () => {
 
     expect(await screen.findByRole("button", { name: /Tech Blog/ })).toHaveTextContent("1");
     expect(screen.queryByText(/Press \+ to add a feed|\+ でフィードを追加/)).not.toBeInTheDocument();
+  });
+
+  it("keeps the selected account label and starred feed counts on the adopted sidebar snapshot", async () => {
+    const user = userEvent.setup();
+    const { queryClient, wrapper } = createQueryWrapper({ includeToastHost: true });
+    sidebarSourceOverrides.feedsEnabled = true;
+    sidebarSourceOverrides.feedsData = [{ ...sampleFeeds[0], id: "feed-starred", title: "Snapshot Starred Feed" }];
+    sidebarSourceOverrides.foldersEnabled = true;
+    sidebarSourceOverrides.foldersData = [];
+    sidebarSourceOverrides.starredArticlesEnabled = true;
+    sidebarSourceOverrides.starredArticlesData = [
+      {
+        id: "star-1",
+        feed_id: "feed-starred",
+        title: "Starred article",
+        content_sanitized: "<p>starred</p>",
+        summary: null,
+        url: "https://example.com/starred",
+        author: null,
+        published_at: "2026-05-02T00:00:00Z",
+        thumbnail: null,
+        is_read: true,
+        is_starred: true,
+      },
+    ];
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+    });
+
+    const { rerender } = render(<Sidebar />, { wrapper });
+
+    expect(await screen.findByRole("button", { name: /Local/ })).toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: /Starred/ }));
+    const adoptedFeedButton = await screen.findByRole("button", { name: /Snapshot Starred Feed/ });
+    const adoptedFeedLabel = adoptedFeedButton.textContent;
+
+    sidebarSourceOverrides.feedsData = undefined;
+    sidebarSourceOverrides.foldersData = undefined;
+    sidebarSourceOverrides.starredArticlesData = undefined;
+    queryClient.setQueryData(["accounts"], undefined);
+    rerender(<Sidebar />);
+
+    expect(screen.getByRole("button", { name: /Local/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Snapshot Starred Feed/ })).toHaveTextContent(adoptedFeedLabel ?? "");
+    expect(screen.queryByTestId("sidebar-feed-tree-skeleton")).not.toBeInTheDocument();
   });
 
   it("allows the feed list scroll area to shrink inside the sidebar column layout", () => {

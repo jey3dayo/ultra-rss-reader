@@ -165,16 +165,19 @@ describe("preference contract", () => {
     expect(normalizePreferenceValue("custom_backend_preference", "  preserved  ")).toBe("  preserved  ");
     expect(normalizePreferenceValue("shortcut_next_article", " Shift+J ")).toBe("Shift+J");
     expect(normalizePreferenceValue("shortcut_next_article", "   ")).toBe(preferenceDefaults.shortcut_next_article);
+    expect(normalizePreferenceValue("shortcut_open_settings", "x")).toBe(preferenceDefaults.shortcut_open_settings);
 
     expect(
       normalizePreferenceRecord({
         theme: "sepia",
         shortcut_next_article: " Shift+J ",
+        shortcut_open_settings: "x",
         custom_backend_preference: "  preserved  ",
       }),
     ).toEqual({
       theme: "light",
       shortcut_next_article: "Shift+J",
+      shortcut_open_settings: preferenceDefaults.shortcut_open_settings,
       custom_backend_preference: "  preserved  ",
     });
   });

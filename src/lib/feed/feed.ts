@@ -59,6 +59,73 @@ export function extractSiteHost(siteUrl: string, feedUrl: string): Result.Result
   return Result.fail({ type: "invalid_url", value: invalidUrl });
 }
 
+function isPrivateIpv4Host(host: string): boolean {
+  const octets = host.split(".");
+  if (octets.length !== 4) {
+    return false;
+  }
+
+  const parsedOctets = octets.map((octet) => {
+    if (!/^\d{1,3}$/.test(octet)) {
+      return null;
+    }
+
+    const value = Number(octet);
+    return value >= 0 && value <= 255 ? value : null;
+  });
+  if (parsedOctets.some((octet) => octet === null)) {
+    return false;
+  }
+
+  const [first = null, second = null] = parsedOctets;
+  if (first === null || second === null) {
+    return false;
+  }
+
+  return (
+    first === 0 ||
+    first === 10 ||
+    first === 127 ||
+    (first === 169 && second === 254) ||
+    (first === 172 && second >= 16 && second <= 31) ||
+    (first === 192 && second === 168)
+  );
+}
+
+function normalizeHostForPrivacyPolicy(host: string): string {
+  return host.trim().toLowerCase().replace(/^\[/, "").replace(/\]$/, "").replace(/\.$/, "");
+}
+
+export function canUseExternalFaviconEndpoint(host: string): boolean {
+  const normalizedHost = normalizeHostForPrivacyPolicy(host);
+  if (normalizedHost.length === 0) {
+    return false;
+  }
+
+  if (normalizedHost === "localhost" || normalizedHost.endsWith(".localhost") || normalizedHost.endsWith(".local")) {
+    return false;
+  }
+
+  if (isPrivateIpv4Host(normalizedHost)) {
+    return false;
+  }
+
+  if (
+    normalizedHost.includes(":") &&
+    (normalizedHost === "::1" ||
+      normalizedHost.startsWith("fc") ||
+      normalizedHost.startsWith("fd") ||
+      normalizedHost.startsWith("fe8") ||
+      normalizedHost.startsWith("fe9") ||
+      normalizedHost.startsWith("fea") ||
+      normalizedHost.startsWith("feb"))
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
 export function resolveSiteHostLabel(siteUrl: string, feedUrl: string): string {
   const hostResult = extractSiteHost(siteUrl, feedUrl);
   if (Result.isSuccess(hostResult)) {

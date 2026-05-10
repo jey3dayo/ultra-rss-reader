@@ -779,6 +779,14 @@ describe("keyboard shortcut resolver", () => {
     });
   });
 
+  it("does not report the locked settings shortcut as conflicting with itself", () => {
+    expect(
+      getShortcutConflict("open_settings", "⌘,", {
+        shortcut_open_settings: "x",
+      }),
+    ).toBeNull();
+  });
+
   it.each([
     "?",
     "Shift+?",

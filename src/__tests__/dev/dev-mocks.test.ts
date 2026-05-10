@@ -618,6 +618,19 @@ describe("setupDevMocks", () => {
         is_starred: false,
       },
       {
+        id: "dev-body-block-visible",
+        feed_id: "feed-automaton",
+        title: "Block body article",
+        content_sanitized: "<p>Kindle</p><p>Unlimited</p>",
+        summary: "Summary fallback is ignored",
+        url: "https://example.com/block-body",
+        author: null,
+        published_at: "2026-04-20T12:01:30.000Z",
+        thumbnail: null,
+        is_read: false,
+        is_starred: false,
+      },
+      {
         id: "dev-body-summary-fallback",
         feed_id: "feed-automaton",
         title: "Summary body article",
@@ -637,6 +650,7 @@ describe("setupDevMocks", () => {
 
     expect(visibleArticles.map((article) => article.id)).toContain("dev-body-hidden-attribute");
     expect(visibleArticles.map((article) => article.id)).not.toContain("dev-body-inline-visible");
+    expect(visibleArticles.map((article) => article.id)).not.toContain("dev-body-block-visible");
     expect(visibleArticles.map((article) => article.id)).not.toContain("dev-body-summary-fallback");
   });
 

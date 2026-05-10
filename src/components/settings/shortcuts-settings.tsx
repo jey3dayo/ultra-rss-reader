@@ -154,6 +154,10 @@ export function ShortcutsSettings() {
     setConflictMessageState(null);
     setRecordingId(null);
     for (const def of shortcutDefinitions) {
+      if (isLockedShortcutActionId(def.id)) {
+        continue;
+      }
+
       setPref(shortcutPrefKey(def.id), def.defaultKey);
     }
   }, [setPref]);
@@ -180,6 +184,10 @@ export function ShortcutsSettings() {
   );
 
   const hasCustomBindings = shortcutDefinitions.some((def) => {
+    if (isLockedShortcutActionId(def.id)) {
+      return false;
+    }
+
     const current = prefs[shortcutPrefKey(def.id)];
     return current !== undefined && current !== def.defaultKey;
   });

@@ -24,12 +24,19 @@ export function useSidebarSources({ selectedAccountId }: SidebarSourcesParams): 
     () => accounts?.find((account) => account.id === selectedAccountId),
     [accounts, selectedAccountId],
   );
+  const latestStarredCountByFeedId = useMemo(() => buildStarredCountByFeedId(starredArticles), [starredArticles]);
   const sidebarSnapshotCandidate = useMemo(
     () =>
       selectedAccountId !== null && feeds !== undefined && folders !== undefined
-        ? { accountId: selectedAccountId, feeds, folders }
+        ? {
+            accountId: selectedAccountId,
+            selectedAccount,
+            feeds,
+            folders,
+            starredCountByFeedId: latestStarredCountByFeedId,
+          }
         : null,
-    [feeds, folders, selectedAccountId],
+    [feeds, folders, latestStarredCountByFeedId, selectedAccount, selectedAccountId],
   );
   const { snapshot: sidebarSnapshot } = useScreenSnapshot(sidebarSnapshotCandidate, sidebarSnapshotCandidate !== null);
   const adoptedSnapshot = adoptSnapshotByKey(sidebarSnapshot, "accountId", selectedAccountId);
@@ -37,7 +44,7 @@ export function useSidebarSources({ selectedAccountId }: SidebarSourcesParams): 
   const showFeedTreeSkeleton = isFeedTreeLoading && adoptedSnapshot === null;
   const feedList = adoptedSnapshot?.feeds ?? feeds ?? [];
   const folderList = adoptedSnapshot?.folders ?? folders ?? [];
-  const starredCountByFeedId = useMemo(() => buildStarredCountByFeedId(starredArticles), [starredArticles]);
+  const starredCountByFeedId = adoptedSnapshot?.starredCountByFeedId ?? latestStarredCountByFeedId;
   const sidebarCountsSnapshotCandidate = useMemo(
     () =>
       selectedAccountId !== null && tagArticleCounts !== undefined && accountStarredCount !== undefined
@@ -61,7 +68,7 @@ export function useSidebarSources({ selectedAccountId }: SidebarSourcesParams): 
   return {
     accounts,
     accountStatusLabels,
-    selectedAccount,
+    selectedAccount: adoptedSnapshot?.selectedAccount ?? selectedAccount,
     feeds: adoptedSnapshot?.feeds ?? feeds,
     folders: adoptedSnapshot?.folders ?? folders,
     isFeedTreeLoading,
