@@ -1,9 +1,11 @@
 import { Result } from "@praha/byethrow";
 import type { QueryClient } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
+import { expectTauriCommandError, suppressConsoleError, suppressConsoleWarn } from "@tests/helpers/console-spies";
 import { createQueryWrapper } from "@tests/helpers/create-wrapper";
+import { setupTauriMocks, teardownTauriMocks } from "@tests/helpers/tauri-mocks";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { FeedDto } from "@/api/tauri-commands";
+import type { AppError, FeedDto } from "@/api/tauri-commands";
 import * as tauriCommands from "@/api/tauri-commands";
 import { useUpdateFeedFolder } from "@/hooks/use-update-feed-folder";
 import { queryKeys } from "@/lib/query/query-invalidation";
@@ -27,6 +29,7 @@ describe("useUpdateFeedFolder", () => {
   });
 
   afterEach(() => {
+    teardownTauriMocks();
     vi.restoreAllMocks();
     useUiStore.setState(useUiStore.getInitialState());
   });
@@ -48,15 +51,20 @@ describe("useUpdateFeedFolder", () => {
     ]);
   }
 
-  function deferredUpdate() {
-    let resolveUpdate: ((value: Result.Result<null, { type: "UserVisible"; message: string }>) => void) | null = null;
-    const promise = new Promise<Result.Result<null, { type: "UserVisible"; message: string }>>((resolve) => {
+  function deferredTauriUpdate() {
+    let resolveUpdate: ((value: Result.Result<null, AppError>) => void) | null = null;
+    const promise = new Promise<Result.Result<null, AppError>>((resolve) => {
       resolveUpdate = resolve;
+    }).then((result) => {
+      if (Result.isFailure(result)) {
+        throw Result.unwrapError(result);
+      }
+      return Result.unwrap(result);
     });
 
     return {
       promise,
-      resolve(value: Result.Result<null, { type: "UserVisible"; message: string }>) {
+      resolve(value: Result.Result<null, AppError>) {
         if (!resolveUpdate) {
           throw new Error("Update promise has not been captured");
         }
@@ -130,9 +138,14 @@ describe("useUpdateFeedFolder", () => {
   });
 
   it("shows a toast and rejects when the folder update fails", async () => {
-    vi.spyOn(tauriCommands, "updateFeedFolder").mockResolvedValue(
-      Result.fail({ type: "UserVisible", message: "boom" }),
-    );
+    const consoleError = suppressConsoleError();
+    const appError: AppError = { type: "UserVisible", message: "boom" };
+    setupTauriMocks((cmd) => {
+      if (cmd === "update_feed_folder") {
+        throw appError;
+      }
+      return undefined;
+    });
 
     const { result } = renderHook(() => useUpdateFeedFolder(), { wrapper });
 
@@ -141,12 +154,20 @@ describe("useUpdateFeedFolder", () => {
     await waitFor(() => {
       expect(showToastMock).toHaveBeenCalledWith("Failed to update folder: boom");
     });
+    expectTauriCommandError(consoleError, "update_feed_folder", appError);
   });
 
   it("rolls back cached feeds when the folder update fails", async () => {
     seedFeeds();
-    const update = deferredUpdate();
-    vi.spyOn(tauriCommands, "updateFeedFolder").mockReturnValue(update.promise);
+    const consoleError = suppressConsoleError();
+    const appError: AppError = { type: "UserVisible", message: "boom" };
+    const update = deferredTauriUpdate();
+    setupTauriMocks((cmd) => {
+      if (cmd === "update_feed_folder") {
+        return update.promise;
+      }
+      return undefined;
+    });
 
     const { result } = renderHook(() => useUpdateFeedFolder(), { wrapper });
     let mutationPromise: Promise<unknown> | undefined;
@@ -165,7 +186,7 @@ describe("useUpdateFeedFolder", () => {
     });
 
     await act(async () => {
-      update.resolve(Result.fail({ type: "UserVisible", message: "boom" }));
+      update.resolve(Result.fail(appError));
       await mutationPromise;
     });
 
@@ -181,15 +202,22 @@ describe("useUpdateFeedFolder", () => {
         }),
       ]);
     });
+    expectTauriCommandError(consoleError, "update_feed_folder", appError);
   });
 
   it("does not let an older failed drop roll back a newer successful folder update", async () => {
     seedFeeds();
-    const firstUpdate = deferredUpdate();
-    const secondUpdate = deferredUpdate();
-    vi.spyOn(tauriCommands, "updateFeedFolder")
-      .mockReturnValueOnce(firstUpdate.promise)
-      .mockReturnValueOnce(secondUpdate.promise);
+    const consoleError = suppressConsoleError();
+    const appError: AppError = { type: "UserVisible", message: "first failed" };
+    const firstUpdate = deferredTauriUpdate();
+    const secondUpdate = deferredTauriUpdate();
+    const updates = [firstUpdate, secondUpdate];
+    setupTauriMocks((cmd) => {
+      if (cmd === "update_feed_folder") {
+        return updates.shift()?.promise;
+      }
+      return undefined;
+    });
 
     const { result } = renderHook(() => useUpdateFeedFolder(), { wrapper });
     let firstMutation: Promise<unknown> | undefined;
@@ -225,7 +253,7 @@ describe("useUpdateFeedFolder", () => {
     });
 
     await act(async () => {
-      firstUpdate.resolve(Result.fail({ type: "UserVisible", message: "first failed" }));
+      firstUpdate.resolve(Result.fail(appError));
       secondUpdate.resolve(Result.succeed(null));
       await firstMutation;
       await secondMutation;
@@ -238,11 +266,12 @@ describe("useUpdateFeedFolder", () => {
       }),
     ]);
     expect(showToastMock).toHaveBeenCalledWith("Failed to update folder: first failed");
+    expectTauriCommandError(consoleError, "update_feed_folder", appError);
   });
 
   it("keeps a successful folder update resolved when post-success invalidation rejects", async () => {
     seedFeeds();
-    const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const consoleWarn = suppressConsoleWarn();
     vi.spyOn(queryClient, "invalidateQueries").mockRejectedValue(new Error("invalidate boom"));
     vi.spyOn(tauriCommands, "updateFeedFolder").mockResolvedValue(Result.succeed(null));
 

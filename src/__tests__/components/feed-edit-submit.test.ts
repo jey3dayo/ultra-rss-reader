@@ -1,7 +1,8 @@
+import { expectTauriCommandError, suppressConsoleError } from "@tests/helpers/console-spies";
 import { createTestQueryClient } from "@tests/helpers/create-wrapper";
 import { createTauriMockCallRecorder, setupTauriMocks } from "@tests/helpers/tauri-mocks";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { FeedDto } from "@/api/tauri-commands";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { AppError, FeedDto } from "@/api/tauri-commands";
 import { submitFeedEdits } from "@/components/reader/feed-edit-submit";
 import type { SubmitFeedEditsParams } from "@/components/reader/rename-feed-dialog.types";
 
@@ -45,6 +46,10 @@ describe("submitFeedEdits", () => {
     recorder = createTauriMockCallRecorder();
   });
 
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("skips rename, folder move, and display updates when nothing changed", async () => {
     const updateFeedFolder = vi.fn(async () => true);
     const updateDisplaySettings = vi.fn(async () => true);
@@ -58,10 +63,12 @@ describe("submitFeedEdits", () => {
   });
 
   it("returns false and shows a toast when rename fails", async () => {
+    const consoleError = suppressConsoleError();
+    const appError: AppError = { type: "UserVisible", message: "Name already exists" };
     const showToast = vi.fn();
     recorder = createTauriMockCallRecorder((cmd) => {
       if (cmd === "rename_feed") {
-        throw { type: "UserVisible", message: "Name already exists" };
+        throw appError;
       }
       return undefined;
     });
@@ -74,6 +81,7 @@ describe("submitFeedEdits", () => {
       args: { feedId: feed.id, title: "Renamed" },
     });
     expect(showToast).toHaveBeenCalledWith("Rename failed: Name already exists");
+    expectTauriCommandError(consoleError, "rename_feed", appError);
   });
 
   it("updates feed display settings when the display preset changes", async () => {

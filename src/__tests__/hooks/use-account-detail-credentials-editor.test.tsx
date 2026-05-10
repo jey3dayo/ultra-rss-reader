@@ -1,5 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { act, renderHook } from "@testing-library/react";
+import { suppressConsoleWarn } from "@tests/helpers/console-spies";
 import { createTestQueryClient } from "@tests/helpers/create-wrapper";
 import { createDeferred } from "@tests/helpers/deferred";
 import { sampleAccounts } from "@tests/helpers/fixtures";
@@ -32,6 +33,7 @@ describe("useAccountDetailCredentialsEditor", () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     useUiStore.setState(useUiStore.getInitialState());
     document.body.replaceChildren();
   });
@@ -457,6 +459,7 @@ describe("useAccountDetailCredentialsEditor", () => {
   });
 
   it("keeps credential save success visible when account invalidation rejects", async () => {
+    const consoleWarn = suppressConsoleWarn();
     const account = sampleAccounts[1];
     const queryClient = createTestQueryClient();
     queryClient.setQueryData(["accounts"], [account]);
@@ -483,6 +486,14 @@ describe("useAccountDetailCredentialsEditor", () => {
     });
 
     expect(saved).toBe(true);
+    expect(consoleWarn).toHaveBeenCalledWith(
+      "Query invalidation failed:",
+      expect.objectContaining({
+        actionOwner: "unknown",
+        queryKey: ["accounts"],
+        error: expect.any(Error),
+      }),
+    );
     expect(queryClient.getQueryData(["accounts"])).toEqual([updated]);
     expect(useUiStore.getState().toastMessage?.message).toBe("Credentials saved");
   });

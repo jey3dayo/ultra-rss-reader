@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { expectTauriCommandError, suppressConsoleError } from "@tests/helpers/console-spies";
 import { createQueryWrapper } from "@tests/helpers/create-wrapper";
 import { sampleFeeds } from "@tests/helpers/fixtures";
 import { setupTauriMocks, teardownTauriMocks } from "@tests/helpers/tauri-mocks";
@@ -176,7 +177,7 @@ describe("RenameDialog", () => {
 
   it("continues renaming and display-mode updates when folder update fails", async () => {
     const user = userEvent.setup();
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const consoleError = suppressConsoleError();
     const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
     const { queryClient, wrapper } = createQueryWrapper();
     const invalidateQueries = vi.spyOn(queryClient, "invalidateQueries");
@@ -221,7 +222,7 @@ describe("RenameDialog", () => {
       expect(onOpenChange).toHaveBeenCalledWith(false);
     });
 
-    expect(consoleError).toHaveBeenCalledWith("[tauri-commands] update_feed_folder failed:", {
+    expectTauriCommandError(consoleError, "update_feed_folder", {
       type: "UserVisible",
       message: "folder update failed",
     });
@@ -229,7 +230,7 @@ describe("RenameDialog", () => {
 
   it("keeps the dialog open when the display-mode update fails", async () => {
     const user = userEvent.setup();
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const consoleError = suppressConsoleError();
     const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
     const { wrapper } = createQueryWrapper();
     const onOpenChange = vi.fn();
@@ -260,7 +261,7 @@ describe("RenameDialog", () => {
     });
 
     expect(onOpenChange).not.toHaveBeenCalled();
-    expect(consoleError).toHaveBeenCalledWith("[tauri-commands] update_feed_display_settings failed:", {
+    expectTauriCommandError(consoleError, "update_feed_display_settings", {
       type: "UserVisible",
       message: "display update failed",
     });
@@ -360,7 +361,7 @@ describe("RenameDialog", () => {
 
   it("keeps the dialog open when renaming fails", async () => {
     const user = userEvent.setup();
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const consoleError = suppressConsoleError();
     const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
     const { wrapper } = createQueryWrapper();
     const onOpenChange = vi.fn();
@@ -392,7 +393,7 @@ describe("RenameDialog", () => {
     });
 
     expect(onOpenChange).not.toHaveBeenCalled();
-    expect(consoleError).toHaveBeenCalledWith("[tauri-commands] rename_feed failed:", {
+    expectTauriCommandError(consoleError, "rename_feed", {
       type: "UserVisible",
       message: "rename failed",
     });

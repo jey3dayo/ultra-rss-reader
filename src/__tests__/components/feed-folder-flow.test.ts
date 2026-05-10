@@ -1,4 +1,5 @@
 import { Result } from "@praha/byethrow";
+import { expectTauriCommandError, suppressConsoleError } from "@tests/helpers/console-spies";
 import { setupTauriMocks, teardownTauriMocks } from "@tests/helpers/tauri-mocks";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { AppError } from "@/api/tauri-commands";
@@ -7,6 +8,7 @@ import { createFolderIfNeeded, createFolderIfNeededResult } from "@/components/r
 describe("feed-folder-flow", () => {
   afterEach(() => {
     teardownTauriMocks();
+    vi.restoreAllMocks();
   });
 
   it("returns the selected folder when a new folder is not needed", async () => {
@@ -49,6 +51,7 @@ describe("feed-folder-flow", () => {
   });
 
   it("returns the AppError when creating a folder fails", async () => {
+    const consoleError = suppressConsoleError();
     const appError: AppError = { type: "UserVisible", message: "Folder already exists" };
     setupTauriMocks((cmd) => {
       if (cmd === "create_folder") {
@@ -67,9 +70,11 @@ describe("feed-folder-flow", () => {
 
     expect(Result.isFailure(result)).toBe(true);
     expect(Result.unwrapError(result)).toEqual(appError);
+    expectTauriCommandError(consoleError, "create_folder", appError);
   });
 
   it("keeps the compatibility wrapper behavior on create failure", async () => {
+    const consoleError = suppressConsoleError();
     const appError: AppError = { type: "UserVisible", message: "Folder already exists" };
     const onError = vi.fn();
     setupTauriMocks((cmd) => {
@@ -90,5 +95,6 @@ describe("feed-folder-flow", () => {
       }),
     ).resolves.toBeUndefined();
     expect(onError).toHaveBeenCalledWith(appError);
+    expectTauriCommandError(consoleError, "create_folder", appError);
   });
 });

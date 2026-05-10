@@ -172,4 +172,7 @@ jobs:
           releaseDraft: true
           generateReleaseNotes: false
           prerelease: false
-          args: ${{ matrix.args }} --config src-tauri/tauri.release.conf.json --ci
+          args: >-
+            ${{ matrix.args }}
+            --config '{"identifier":"com.jey3dayo.ultra-rss-reader","bundle":{"createUpdaterArtifacts":true}}'
+            --ci

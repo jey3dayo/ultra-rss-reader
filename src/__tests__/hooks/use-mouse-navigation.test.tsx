@@ -26,7 +26,7 @@ function MouseNavigationHarness() {
       <select aria-label="Editable select">
         <option>One</option>
       </select>
-      <div contentEditable data-testid="editable-contenteditable">
+      <div contentEditable suppressContentEditableWarning data-testid="editable-contenteditable">
         Editable content
       </div>
       <div data-disable-global-shortcuts="true">

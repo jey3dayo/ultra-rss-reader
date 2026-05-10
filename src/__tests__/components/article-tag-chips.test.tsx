@@ -1,8 +1,10 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { expectTauriCommandError, suppressConsoleError } from "@tests/helpers/console-spies";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { describe, expect, it } from "vitest";
+import type { AppError } from "@/api/tauri-commands";
 import {
   ArticleTagChips,
   buildArticleTagPickerLists,
@@ -251,6 +253,8 @@ describe("ArticleTagChips", () => {
 
   it("keeps the picker open and surfaces feedback when existing tag assignment fails", async () => {
     const user = userEvent.setup();
+    const consoleError = suppressConsoleError();
+    const appError: AppError = { type: "UserVisible", message: "Assign failed" };
 
     useUiStore.setState({ toastMessage: null });
     setupTauriMocks((cmd) => {
@@ -260,7 +264,7 @@ describe("ArticleTagChips", () => {
         case "list_tags":
           return [{ id: "tag-later", name: "Later", color: "#3b82f6" }];
         case "tag_article":
-          throw { type: "UserVisible", message: "Assign failed" };
+          throw appError;
         case "create_tag":
           throw new Error("create_tag should not be called for an existing tag name");
         default:
@@ -278,10 +282,13 @@ describe("ArticleTagChips", () => {
     expect(await screen.findByText("Assign failed")).toBeInTheDocument();
     expect(screen.getByRole("listbox", { name: "Available tags" })).toBeInTheDocument();
     expect(screen.getByRole("textbox")).toHaveValue("later");
+    expectTauriCommandError(consoleError, "tag_article", appError);
   });
 
   it("keeps existing tag options open when option assignment fails", async () => {
     const user = userEvent.setup();
+    const consoleError = suppressConsoleError();
+    const appError: AppError = { type: "UserVisible", message: "Assign failed" };
 
     useUiStore.setState({ toastMessage: null });
     setupTauriMocks((cmd) => {
@@ -291,7 +298,7 @@ describe("ArticleTagChips", () => {
         case "list_tags":
           return [{ id: "tag-later", name: "Later", color: "#3b82f6" }];
         case "tag_article":
-          throw { type: "UserVisible", message: "Assign failed" };
+          throw appError;
         default:
           return undefined;
       }
@@ -305,10 +312,13 @@ describe("ArticleTagChips", () => {
     expect(await screen.findByText("Assign failed")).toBeInTheDocument();
     expect(screen.getByRole("listbox", { name: "Available tags" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Later" })).toBeInTheDocument();
+    expectTauriCommandError(consoleError, "tag_article", appError);
   });
 
   it("keeps the new tag draft open when create succeeds but assign fails", async () => {
     const user = userEvent.setup();
+    const consoleError = suppressConsoleError();
+    const appError: AppError = { type: "UserVisible", message: "Assign failed" };
     const commands: Array<{ cmd: string; args: Record<string, unknown> }> = [];
 
     useUiStore.setState({ toastMessage: null });
@@ -322,7 +332,7 @@ describe("ArticleTagChips", () => {
         case "create_tag":
           return { id: "tag-review", name: "Review", color: null };
         case "tag_article":
-          throw { type: "UserVisible", message: "Assign failed" };
+          throw appError;
         default:
           return undefined;
       }
@@ -342,5 +352,6 @@ describe("ArticleTagChips", () => {
       cmd: "tag_article",
       args: { articleId: "art-1", tagId: "tag-review" },
     });
+    expectTauriCommandError(consoleError, "tag_article", appError);
   });
 });

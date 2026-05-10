@@ -1,5 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { act, renderHook } from "@testing-library/react";
+import { suppressConsoleError } from "@tests/helpers/console-spies";
 import { useRef, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { BrowserWebviewState } from "@/api/tauri-commands";
@@ -95,6 +96,7 @@ describe("useBrowserWebviewSync", () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    vi.restoreAllMocks();
   });
 
   it("focuses the webview after creating it even when focus retention is disabled", async () => {
@@ -136,6 +138,7 @@ describe("useBrowserWebviewSync", () => {
   });
 
   it("surfaces focus failures after creating the webview", async () => {
+    const consoleError = suppressConsoleError();
     const error = { type: "UserVisible" as const, message: "focus failed" };
     const showSurfaceFailure = vi.fn();
     focusBrowserWebviewMock.mockResolvedValue(Result.fail(error));
@@ -147,9 +150,11 @@ describe("useBrowserWebviewSync", () => {
     });
 
     expect(showSurfaceFailure).toHaveBeenCalledWith(error);
+    expect(consoleError).toHaveBeenCalledWith("Failed to focus embedded browser after create:", error);
   });
 
   it("surfaces rejected native create calls without leaking the requested URL and allows retry", async () => {
+    const consoleError = suppressConsoleError();
     const requestedUrl = "https://example.com/private-token";
     const showSurfaceFailure = vi.fn();
     createOrUpdateBrowserWebviewMock.mockRejectedValueOnce(new Error(`failed to open ${requestedUrl}`));
@@ -166,6 +171,10 @@ describe("useBrowserWebviewSync", () => {
       message: "Webプレビューの操作に失敗しました。再試行してください。",
     });
     expect(showSurfaceFailure.mock.calls[0]?.[0].message).not.toContain(requestedUrl);
+    expect(consoleError).toHaveBeenCalledWith("Failed to create embedded browser webview:", {
+      type: "UserVisible",
+      message: "Webプレビューの操作に失敗しました。再試行してください。",
+    });
 
     createOrUpdateBrowserWebviewMock.mockResolvedValueOnce(Result.succeed(createBrowserState({ url: requestedUrl })));
     showSurfaceFailure.mockClear();
@@ -217,6 +226,7 @@ describe("useBrowserWebviewSync", () => {
   });
 
   it("surfaces resize bounds failures through the browser surface issue path", async () => {
+    const consoleError = suppressConsoleError();
     const error = { type: "UserVisible" as const, message: "resize failed" };
     const showSurfaceFailure = vi.fn();
     setBrowserWebviewBoundsMock.mockResolvedValue(Result.fail(error));
@@ -231,6 +241,7 @@ describe("useBrowserWebviewSync", () => {
     });
 
     expect(showSurfaceFailure).toHaveBeenCalledWith(error);
+    expect(consoleError).toHaveBeenCalledWith("Failed to sync embedded browser bounds:", error);
   });
 
   it("keeps resize sync latest-only while a native resize command is in flight", async () => {
@@ -357,6 +368,7 @@ describe("useBrowserWebviewSync", () => {
   });
 
   it("surfaces browser listener initialization failures instead of leaving them console-only", async () => {
+    const consoleError = suppressConsoleError();
     const error = { type: "UserVisible" as const, message: "listener failed" };
     const showSurfaceFailure = vi.fn();
     const { element } = createHostElement();
@@ -376,9 +388,11 @@ describe("useBrowserWebviewSync", () => {
     await vi.waitFor(() => {
       expect(showSurfaceFailure).toHaveBeenCalledWith(error);
     });
+    expect(consoleError).toHaveBeenCalledWith("Failed to sync embedded browser bounds:", error);
   });
 
   it("surfaces browser listener readiness timeouts instead of waiting forever", async () => {
+    const consoleError = suppressConsoleError();
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const showSurfaceFailure = vi.fn();
     const syncBrowserWebview = vi.fn();
@@ -406,11 +420,16 @@ describe("useBrowserWebviewSync", () => {
         message: "Webプレビューの初期化に時間がかかっています。再試行してください。",
       });
     });
+    expect(consoleError).toHaveBeenCalledWith("Failed to sync embedded browser bounds:", {
+      type: "Retryable",
+      message: "Webプレビューの初期化に時間がかかっています。再試行してください。",
+    });
     expect(syncBrowserWebview).not.toHaveBeenCalled();
     vi.useRealTimers();
   });
 
   it("surfaces rejected browser sync calls from layout observers", async () => {
+    const consoleError = suppressConsoleError();
     const requestedUrl = "https://example.com/private-token";
     const showSurfaceFailure = vi.fn();
     const { element } = createHostElement();
@@ -434,6 +453,10 @@ describe("useBrowserWebviewSync", () => {
       });
     });
     expect(showSurfaceFailure.mock.calls[0]?.[0].message).not.toContain(requestedUrl);
+    expect(consoleError).toHaveBeenCalledWith("Failed to sync embedded browser bounds:", {
+      type: "UserVisible",
+      message: "Webプレビューの表示位置を更新できませんでした。再試行してください。",
+    });
   });
 
   it("cleans up bounds observers and window resize listeners on unmount", async () => {
