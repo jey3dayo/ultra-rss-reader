@@ -63,6 +63,7 @@ Use an installed older build plus a signed draft release.
 
 Confirm:
 
+- Before testing against an existing profile, the verifier has preserved a private OS-level copy of the app data directory or complete database backup set.
 - The app can detect the new version from the packaged build.
 - Download starts and completes without a stuck progress state.
 - Install/restart applies the new version successfully.
@@ -124,8 +125,11 @@ Verify this when a release changes installer/uninstaller behavior, private data 
 Confirm and record:
 
 - Uninstalling or deleting the app binary does not get described as deleting all private data unless app data, credentials, logs, support/debug logs, support dumps, and backups were checked separately.
+- Reinstalling the same or newer version is allowed to reuse existing app data, preferences, logs, and OS keyring credentials; this must be described as retention, not as a clean install.
 - Reinstalling the same or a newer version does not silently depend on stale support/debug logs or support dumps.
 - Private data reset guidance covers the local database, `-wal` / `-shm` sidecars, OS keyring credentials, preferences/local app state, release logs, stale support/debug logs, support dumps, and migration backups.
+- Database backup/export copy says backups are private and not app-encrypted, and OPML export copy says subscription titles and URLs may be private even when secrets are excluded.
+- App settings export/import is not presented as supported unless the build includes a schema version, source app identifier, strict future-version import behavior, secret exclusion policy, conflict preview, and encryption decision.
 - Manual log deletion and support dump deletion are documented as separate cleanup steps after an incident is resolved.
 - If any artifact cannot be removed because of OS permissions, file locks, or an unknown path, the user-facing result says the reset is incomplete.
 - Support/debug copy does not automatically include hostname, local filesystem paths, OS username, account names, feed URLs, article URLs, server URLs, credentials, tokens, cookies, or a stable device identifier.

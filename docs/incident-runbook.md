@@ -46,12 +46,21 @@ Do not mix app UI debug actions with log collection in the same note. Record whi
 - Check the migration error output first to find the backup path that was created for the failed startup.
 - Do not delete backup files until you have confirmed the app can reopen the database safely.
 - Treat the main `.db` file and any matching `-wal` / `-shm` sidecars as a backup set.
+- Treat database backup sets as private, unencrypted user data. They may contain subscription history, article metadata/content, tags, folders, read/star state, and sync metadata even though production credentials live in the OS keyring.
+- Before a manual installer upgrade, app replacement, or updater test against a profile you care about, make an OS-level copy of the complete database backup set or app data directory and store it somewhere private.
 - On Windows, close the app before copying or replacing any database files; file locks can make partial restores look successful.
 - If restore fails, preserve the failed database, backup set, and release log before trying another restore path.
 
 ### Private Data Reset And Uninstall
 
 Use private data reset only after preserving any logs or backups needed for an active incident. Reset and uninstall are not the same privacy operation: removing the app binary may leave app data, credentials, logs, support/debug logs, support dumps, and backups behind.
+
+Retention contract:
+
+- Uninstall or app binary deletion removes the application bundle only; it must not be described as deleting local app data.
+- Reinstalling the same version or a newer version may reuse the existing app data, database, preferences, logs, and OS keyring credentials.
+- App data removal is a separate privacy operation that must verify each retained surface below.
+- A reset is complete only when all applicable surfaces are removed or intentionally preserved for an active incident. If any surface cannot be checked or removed, the result is incomplete.
 
 Before telling a user that private data has been cleared, verify each surface separately:
 
@@ -63,6 +72,12 @@ Before telling a user that private data has been cleared, verify each surface se
 - migration backups or manually copied database backup sets
 
 If any surface cannot be removed because of OS permissions, file locks, or an unknown platform path, report the reset as incomplete and preserve the error plus the remaining artifact type. Do not ask users to share raw app data directories as proof of deletion.
+
+### Export And Settings Portability
+
+- OPML export is a subscription list export. It should not contain credentials, tokens, cookies, article content, read/star state, sync metadata, local paths, or database backup metadata, but feed titles, folder names, and feed URLs can still be private.
+- App settings export/import is not a supported recovery promise until a schema version, source app identifier, secret exclusion list, import conflict behavior, and encryption decision are defined.
+- Do not recommend exporting settings as an uninstall/reinstall backup unless that versioned contract exists for the build being tested.
 
 ### Manual Verification Checklist
 
@@ -88,9 +103,10 @@ If any surface cannot be removed because of OS permissions, file locks, or an un
    - download
    - install / restart
 2. Save the packaged-build logs.
-3. Verify the current app version did not unexpectedly change.
-4. Re-run the updater path only after confirming the signed release and packaged build pair you are testing.
-5. If restart failed, capture the toast/error message and log output together.
+3. Before retrying an install/restart against a profile you care about, preserve the current app data or complete database backup set as private user data.
+4. Verify the current app version did not unexpectedly change.
+5. Re-run the updater path only after confirming the signed release and packaged build pair you are testing.
+6. If restart failed, capture the toast/error message and log output together.
 
 ### 3. Account Credentials / Keyring Failure
 

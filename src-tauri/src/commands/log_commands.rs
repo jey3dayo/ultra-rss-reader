@@ -13,7 +13,8 @@ fn log_dir_privacy_checklist() -> &'static [&'static str] {
         "Share only the relevant app.log excerpt.",
         "Remove account names, feed URLs, article URLs, and local user paths before sharing.",
         "Delete stale support/debug logs and support dumps after the incident is resolved.",
-        "Do not share backup database files unless explicitly requested for support.",
+        "Do not share private, unencrypted backup database files unless explicitly requested for support.",
+        "Treat OPML exports as private subscription lists because feed titles and URLs may be sensitive.",
     ]
 }
 
@@ -100,7 +101,10 @@ mod tests {
         assert!(checklist.contains("local user paths"));
         assert!(checklist.contains("stale support/debug logs"));
         assert!(checklist.contains("support dumps"));
+        assert!(checklist.contains("private, unencrypted"));
         assert!(checklist.contains("backup database files"));
+        assert!(checklist.contains("OPML exports"));
+        assert!(checklist.contains("subscription lists"));
     }
 
     #[test]

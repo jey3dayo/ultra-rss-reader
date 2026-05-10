@@ -14,6 +14,30 @@ const SQLITE_AUXILIARY_SUFFIXES: [&str; 2] = ["wal", "shm"];
 const BACKUP_METADATA_FORMAT_VERSION: i32 = 1;
 const SOURCE_APP_IDENTIFIER: &str = "com.jey3dayo.ultra-rss-reader";
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BackupEncryptionDecision {
+    NotAppEncrypted,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BackupPrivacyContract {
+    pub privacy_level: &'static str,
+    pub encryption_decision: BackupEncryptionDecision,
+    pub includes_database: bool,
+    pub includes_sqlite_sidecars: bool,
+    pub credential_storage: &'static str,
+    pub user_copy: &'static str,
+}
+
+pub const DATABASE_BACKUP_PRIVACY_CONTRACT: BackupPrivacyContract = BackupPrivacyContract {
+    privacy_level: "private-user-data",
+    encryption_decision: BackupEncryptionDecision::NotAppEncrypted,
+    includes_database: true,
+    includes_sqlite_sidecars: true,
+    credential_storage: "production credentials remain in the OS keyring",
+    user_copy: "Database backups are private, unencrypted app data. Store them privately and delete them when recovery is complete.",
+};
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BackupMetadata {
     pub metadata_format_version: i32,
@@ -639,6 +663,26 @@ mod tests {
             redacted_path_label(Path::new("/Users/example/app/backups/app_v2.db")),
             "[redacted parent]/app_v2.db"
         );
+    }
+
+    #[test]
+    fn database_backup_privacy_contract_marks_backups_private_and_unencrypted() {
+        assert_eq!(
+            DATABASE_BACKUP_PRIVACY_CONTRACT.privacy_level,
+            "private-user-data"
+        );
+        assert_eq!(
+            DATABASE_BACKUP_PRIVACY_CONTRACT.encryption_decision,
+            BackupEncryptionDecision::NotAppEncrypted
+        );
+        assert!(DATABASE_BACKUP_PRIVACY_CONTRACT.includes_database);
+        assert!(DATABASE_BACKUP_PRIVACY_CONTRACT.includes_sqlite_sidecars);
+        assert!(DATABASE_BACKUP_PRIVACY_CONTRACT
+            .credential_storage
+            .contains("OS keyring"));
+        assert!(DATABASE_BACKUP_PRIVACY_CONTRACT
+            .user_copy
+            .contains("private, unencrypted app data"));
     }
 
     #[test]

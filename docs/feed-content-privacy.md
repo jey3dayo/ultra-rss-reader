@@ -49,6 +49,36 @@ Rationale:
 
 Future work may revisit this decision with a scoped threat model, backup/export encryption rules, migration tests, and user-facing recovery copy. Until then, privacy docs and support flows must describe the local database as private user data that may remain on disk after uninstall or reset steps unless explicitly removed.
 
+### Backup And Export Privacy Levels
+
+Decision: database backups are private user data and are not app-encrypted by Ultra RSS Reader in this release. OPML exports are shareable only after user review because feed titles and URLs can reveal subscriptions, organizations, or private endpoints.
+
+Database backups include the SQLite database and any matching `-wal` / `-shm` sidecars. They can contain account names, feed URLs, article titles, saved article content, read/star state, folder and tag names, sync metadata, and local preferences stored in the database. Production credentials remain outside the database in the OS keyring, but a backup can still reveal private reading and subscription history. Backup files must be treated as confidential support artifacts, kept only as long as needed for recovery or incident triage, and deleted manually when no longer needed.
+
+OPML export must keep credential values, cookies, tokens, local paths, article content, read/star state, sync metadata, and database backup metadata out of the generated file. OPML may still contain private feed URLs and user-visible feed or folder names, so the user-facing flow must describe it as a subscription list export rather than an anonymous or sanitized privacy export.
+
+Encryption decision:
+
+- Ultra RSS Reader does not encrypt database backups or OPML exports with an app-managed key in this release.
+- Users who need encrypted storage or transfer must use OS disk encryption, an encrypted archive, or another external secure channel.
+- Any future app settings export/import or backup export feature must define its schema version, secret exclusion policy, encryption behavior, restore compatibility, and redaction preview before shipping.
+
+### App Settings Export/Import Preconditions
+
+Decision: do not introduce app settings export/import until the export contract is versioned and excludes secrets by design.
+
+Before app settings export/import is implemented, the contract must define:
+
+- a top-level schema version and source app identifier
+- strict import behavior for unknown future schema versions
+- a clear list of included preference keys and excluded runtime-only state
+- exclusion of credentials, tokens, cookies, OS keyring references, local filesystem paths, account passwords, and provider session material
+- whether account identifiers, feed URLs, folder names, tags, and mute keywords are included, redacted, or mapped during import
+- how conflicts are previewed before overwriting local settings
+- whether the export is plaintext, externally encrypted by the user, or app-encrypted by a reviewed key-management design
+
+Until that contract exists, support and release docs must not promise portable app settings export/import.
+
 ### Support/Debug Environment Fingerprint
 
 Decision: do not include a stable app/environment fingerprint in support or debug copy by default.
@@ -63,6 +93,7 @@ A future diagnostics dump may include a non-secret environment summary only afte
 - Any future CSP tightening must preserve `script-src 'self'` unless there is an explicit, reviewed reason to change it.
 - Privacy changes that affect remote images, frames, or preview loading must be verified in reader mode, preview mode, and packaged Tauri builds before release.
 - Private data reset and uninstall guidance must cover database, credentials, preferences/local app state, release logs, stale support/debug logs, support dumps, and backups as separate retention surfaces.
+- Installer, updater, uninstall, and reinstall copy must say that app data can persist across app binary removal and app reinstall.
 - Support artifacts must be redacted before sharing and deleted manually when they are no longer needed.
 
 ## Follow-Up Direction
