@@ -6,6 +6,7 @@ export type RuntimeDiagnosticPolicyId =
   | "platform-info-load"
   | "app-icon-theme"
   | "unread-badge"
+  | "article-action"
   | "window-runtime-error";
 
 export type RuntimeDiagnosticPolicy = {
@@ -74,6 +75,14 @@ export const RUNTIME_DIAGNOSTIC_POLICIES = {
     once: true,
     redactSecrets: true,
   },
+  "article-action": {
+    console: "error",
+    devOnlyConsole: false,
+    productionDiagnostics: true,
+    toast: "never",
+    once: false,
+    redactSecrets: true,
+  },
   "window-runtime-error": {
     console: "warn",
     devOnlyConsole: false,
@@ -88,14 +97,18 @@ const URL_LIKE_TOKEN_PATTERN = /https?:\/\/[^\s<>"'`]+/gi;
 const SECRET_ASSIGNMENT_PATTERN =
   /\b([A-Z0-9_]*(?:TOKEN|SECRET|PASSWORD|CREDENTIAL|PRIVATE_KEY|API_KEY)[A-Z0-9_]*)=([^\s,;]+)/gi;
 const AUTH_HEADER_PATTERN = /\b(Bearer|Basic)\s+[A-Za-z0-9._~+/-]+=*/gi;
-const SECRET_OBJECT_KEY_PATTERN = /(?:token|secret|password|credential|privateKey|apiKey)/i;
-const SECRET_URL_PATH_SEGMENT_PATTERN = /(?:token|secret|password|credential|private[-_]?key|api[-_]?key)/i;
+const SECRET_OBJECT_KEY_PATTERN =
+  /(?:token|secret|password|credential|privateKey|apiKey)/i;
+const SECRET_URL_PATH_SEGMENT_PATTERN =
+  /(?:token|secret|password|credential|private[-_]?key|api[-_]?key)/i;
 
 const emittedRuntimeDiagnosticKeys = new Set<string>();
 
 function redactUrlToken(value: string): string {
   const trailingPunctuation = value.match(/[),.;!?]+$/)?.[0] ?? "";
-  const urlToken = trailingPunctuation ? value.slice(0, -trailingPunctuation.length) : value;
+  const urlToken = trailingPunctuation
+    ? value.slice(0, -trailingPunctuation.length)
+    : value;
 
   try {
     const url = new URL(urlToken);
@@ -103,7 +116,9 @@ function redactUrlToken(value: string): string {
     url.password = "";
     if (
       url.pathname !== "/" &&
-      url.pathname.split("/").some((segment) => SECRET_URL_PATH_SEGMENT_PATTERN.test(segment))
+      url.pathname
+        .split("/")
+        .some((segment) => SECRET_URL_PATH_SEGMENT_PATTERN.test(segment))
     ) {
       url.pathname = "/redacted";
     }
@@ -126,8 +141,15 @@ export function redactRuntimeDiagnosticText(message: string): string {
     .replace(AUTH_HEADER_PATTERN, "$1 <redacted>");
 }
 
-function isMessageRecord(value: unknown): value is { message: string } & Record<string, unknown> {
-  return typeof value === "object" && value !== null && "message" in value && typeof value.message === "string";
+function isMessageRecord(
+  value: unknown,
+): value is { message: string } & Record<string, unknown> {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "message" in value &&
+    typeof value.message === "string"
+  );
 }
 
 function redactRuntimeDiagnosticDetail(
@@ -146,13 +168,17 @@ function redactRuntimeDiagnosticDetail(
   if (detail instanceof Error) {
     const redactedMessage = redactRuntimeDiagnosticText(detail.message);
     const redactedCause =
-      "cause" in detail ? redactRuntimeDiagnosticDetail(detail.cause, shouldRedact, seen) : undefined;
+      "cause" in detail
+        ? redactRuntimeDiagnosticDetail(detail.cause, shouldRedact, seen)
+        : undefined;
     if (redactedMessage === detail.message && redactedCause === detail.cause) {
       return detail;
     }
 
     const redactedError =
-      "cause" in detail ? new Error(redactedMessage, { cause: redactedCause }) : new Error(redactedMessage);
+      "cause" in detail
+        ? new Error(redactedMessage, { cause: redactedCause })
+        : new Error(redactedMessage);
     redactedError.name = detail.name;
     return redactedError;
   }
@@ -164,13 +190,17 @@ function redactRuntimeDiagnosticDetail(
     seen.add(detail);
 
     if (Array.isArray(detail)) {
-      return detail.map((item) => redactRuntimeDiagnosticDetail(item, shouldRedact, seen));
+      return detail.map((item) =>
+        redactRuntimeDiagnosticDetail(item, shouldRedact, seen),
+      );
     }
 
     return Object.fromEntries(
       Object.entries(detail).map(([key, value]) => [
         key,
-        SECRET_OBJECT_KEY_PATTERN.test(key) ? "<redacted>" : redactRuntimeDiagnosticDetail(value, shouldRedact, seen),
+        SECRET_OBJECT_KEY_PATTERN.test(key)
+          ? "<redacted>"
+          : redactRuntimeDiagnosticDetail(value, shouldRedact, seen),
       ]),
     );
   }
@@ -215,9 +245,17 @@ export function logRuntimeDiagnostic(
     return;
   }
 
-  const redactedMessage = policy.redactSecrets ? redactRuntimeDiagnosticText(message) : message;
-  const redactedDetails = details.map((detail) => redactRuntimeDiagnosticDetail(detail, policy.redactSecrets));
-  const onceKey = runtimeDiagnosticOnceKey(policyId, redactedMessage, redactedDetails);
+  const redactedMessage = policy.redactSecrets
+    ? redactRuntimeDiagnosticText(message)
+    : message;
+  const redactedDetails = details.map((detail) =>
+    redactRuntimeDiagnosticDetail(detail, policy.redactSecrets),
+  );
+  const onceKey = runtimeDiagnosticOnceKey(
+    policyId,
+    redactedMessage,
+    redactedDetails,
+  );
 
   if (policy.once && emittedRuntimeDiagnosticKeys.has(onceKey)) {
     return;

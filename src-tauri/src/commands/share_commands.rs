@@ -10,17 +10,16 @@ const CLIPBOARD_TEXT_ERROR: &str = "Invalid clipboard text";
 pub(crate) const CLIPBOARD_TEXT_MAX_CHARS: usize = 2048;
 
 #[cfg(any(target_os = "macos", test))]
-fn is_reading_list_url(url: &str) -> bool {
-    if url.contains(['\n', '\r']) {
-        return false;
+fn normalize_reading_list_url(url: &str) -> Option<&str> {
+    let trimmed = url.trim();
+    let lower = trimmed.to_lowercase();
+    if trimmed.contains(['\n', '\r'])
+        || !(lower.starts_with("http://") || lower.starts_with("https://"))
+    {
+        return None;
     }
 
-    match url.split_once("://") {
-        Some((scheme, _)) => {
-            scheme.eq_ignore_ascii_case("http") || scheme.eq_ignore_ascii_case("https")
-        }
-        None => false,
-    }
+    Some(trimmed)
 }
 
 #[cfg(any(target_os = "macos", test))]
@@ -30,16 +29,48 @@ fn applescript_string(value: &str) -> String {
 
 #[cfg(any(target_os = "macos", test))]
 fn reading_list_script(url: &str) -> Result<String, AppError> {
-    if !is_reading_list_url(url) {
-        return Err(AppError::UserVisible {
-            message: READING_LIST_URL_ERROR.to_string(),
-        });
-    }
+    let normalized_url = normalize_reading_list_url(url).ok_or_else(|| AppError::UserVisible {
+        message: READING_LIST_URL_ERROR.to_string(),
+    })?;
 
     Ok(format!(
         r#"tell application "Safari" to add reading list item "{}""#,
-        applescript_string(url)
+        applescript_string(normalized_url)
     ))
+}
+
+#[cfg(any(target_os = "macos", test))]
+fn redacted_reading_list_diagnostic_text(value: &str) -> String {
+    value
+        .split_whitespace()
+        .map(redacted_reading_list_diagnostic_token)
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+#[cfg(any(target_os = "macos", test))]
+fn redacted_reading_list_diagnostic_token(token: &str) -> String {
+    let trailing_punctuation = token
+        .chars()
+        .rev()
+        .take_while(|c| matches!(c, ')' | ',' | '.' | ';' | '!' | '?'))
+        .count();
+    let (url_token, trailing) = token.split_at(token.len().saturating_sub(trailing_punctuation));
+
+    match reqwest::Url::parse(url_token) {
+        Ok(mut url) if url.scheme() == "http" || url.scheme() == "https" => {
+            let _ = url.set_username("");
+            let _ = url.set_password(None);
+            if url.query().is_some() {
+                url.set_query(Some("redacted"));
+            }
+            if url.fragment().is_some() {
+                url.set_fragment(Some("redacted"));
+            }
+            format!("{url}{trailing}")
+        }
+        _ => token.to_string(),
+    }
 }
 
 fn validate_clipboard_text(text: &str) -> Result<(), AppError> {
@@ -84,6 +115,7 @@ pub async fn add_to_reading_list(url: String) -> Result<(), AppError> {
         })?;
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
+        let stderr = redacted_reading_list_diagnostic_text(&stderr);
         tracing::warn!(
             status = %output.status,
             stderr = %stderr,
@@ -105,9 +137,9 @@ pub async fn add_to_reading_list(_url: String) -> Result<(), AppError> {
 #[cfg(test)]
 mod tests {
     use super::{
-        is_reading_list_url, reading_list_command_error, reading_list_script,
-        validate_clipboard_text, CLIPBOARD_TEXT_ERROR, CLIPBOARD_TEXT_MAX_CHARS,
-        READING_LIST_COMMAND_ERROR, READING_LIST_URL_ERROR,
+        normalize_reading_list_url, reading_list_command_error, reading_list_script,
+        redacted_reading_list_diagnostic_text, validate_clipboard_text, CLIPBOARD_TEXT_ERROR,
+        CLIPBOARD_TEXT_MAX_CHARS, READING_LIST_COMMAND_ERROR, READING_LIST_URL_ERROR,
     };
 
     #[test]
@@ -118,8 +150,8 @@ mod tests {
             script,
             r#"tell application "Safari" to add reading list item "https://example.com/article?utm=reader""#
         );
-        assert!(is_reading_list_url("http://example.com/article"));
-        assert!(is_reading_list_url("https://example.com/article"));
+        assert!(normalize_reading_list_url("http://example.com/article").is_some());
+        assert!(normalize_reading_list_url("https://example.com/article").is_some());
     }
 
     #[test]
@@ -130,7 +162,7 @@ mod tests {
             "HtTp://example.com/article",
             "hTtPs://example.com/article",
         ] {
-            assert!(is_reading_list_url(url));
+            assert!(normalize_reading_list_url(url).is_some());
             let script = reading_list_script(url).unwrap();
 
             assert_eq!(
@@ -138,6 +170,20 @@ mod tests {
                 format!(r#"tell application "Safari" to add reading list item "{url}""#)
             );
         }
+    }
+
+    #[test]
+    fn trims_reading_list_urls_like_frontend_http_command_normalization() {
+        let script = reading_list_script(" https://example.com/article ").unwrap();
+
+        assert_eq!(
+            script,
+            r#"tell application "Safari" to add reading list item "https://example.com/article""#
+        );
+        assert_eq!(
+            normalize_reading_list_url(" http://example.com/article "),
+            Some("http://example.com/article")
+        );
     }
 
     #[test]
@@ -174,11 +220,11 @@ mod tests {
 
     #[test]
     fn rejects_newline_and_non_http_reading_list_urls() {
-        assert!(!is_reading_list_url("https://example.com/a\nb"));
-        assert!(!is_reading_list_url("https://example.com/a\rb"));
-        assert!(!is_reading_list_url("mailto:hello@example.com"));
-        assert!(!is_reading_list_url("file:///tmp/article.html"));
-        assert!(!is_reading_list_url(""));
+        assert!(normalize_reading_list_url("https://example.com/a\nb").is_none());
+        assert!(normalize_reading_list_url("https://example.com/a\rb").is_none());
+        assert!(normalize_reading_list_url("mailto:hello@example.com").is_none());
+        assert!(normalize_reading_list_url("file:///tmp/article.html").is_none());
+        assert!(normalize_reading_list_url("").is_none());
     }
 
     #[test]
@@ -210,6 +256,22 @@ mod tests {
         assert_eq!(error.to_string(), READING_LIST_COMMAND_ERROR);
         assert!(!error.to_string().contains("osascript"));
         assert!(!error.to_string().contains("https://example.com/private"));
+    }
+
+    #[test]
+    fn redacts_reading_list_diagnostic_stderr_url_tokens() {
+        let message = redacted_reading_list_diagnostic_text(
+            "osascript failed for https://user:pass@example.com/private?token=raw#frag.",
+        );
+
+        assert_eq!(
+            message,
+            "osascript failed for https://example.com/private?redacted#redacted."
+        );
+        assert!(!message.contains("user"));
+        assert!(!message.contains("pass"));
+        assert!(!message.contains("token=raw"));
+        assert!(!message.contains("#frag"));
     }
 
     #[test]

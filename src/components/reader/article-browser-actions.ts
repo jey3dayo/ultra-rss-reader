@@ -1,10 +1,18 @@
 import { Result } from "@praha/byethrow";
 import { normalizeHttpCommandUrl } from "@/api/schemas/commands";
-import { type AppError, addToReadingList, openInBrowser } from "@/api/tauri-commands";
+import {
+  type AppError,
+  addToReadingList,
+  openInBrowser,
+} from "@/api/tauri-commands";
 import { copyTextToClipboard } from "@/lib/runtime/clipboard";
+import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
-import type { ArticleStatusToast, ArticleToastActionParams } from "./article-actions.types";
+import type {
+  ArticleStatusToast,
+  ArticleToastActionParams,
+} from "./article-actions.types";
 
 export type ArticleActionErrorCategory =
   | "runtime_unavailable"
@@ -32,17 +40,24 @@ type OpenExternalBrowserParams = {
   errorLabel: string;
 };
 
-const ARTICLE_EXTERNAL_BROWSER_INVALID_URL_MESSAGE = "Only http:// and https:// URLs are supported";
-const ARTICLE_EXTERNAL_BROWSER_CREDENTIAL_URL_MESSAGE = "Article URLs must not include credentials";
+const ARTICLE_EXTERNAL_BROWSER_INVALID_URL_MESSAGE =
+  "Only http:// and https:// URLs are supported";
+const ARTICLE_EXTERNAL_BROWSER_CREDENTIAL_URL_MESSAGE =
+  "Article URLs must not include credentials";
 const ARTICLE_ACTION_ERROR_LOCALE_KEYS = {
   runtime_unavailable: "article_actions.errors.runtime_unavailable",
   permission_denied: "article_actions.errors.permission_denied",
   invalid_text: "article_actions.errors.invalid_text",
   invalid_url: "article_actions.errors.invalid_url",
   unknown: "article_actions.errors.unknown",
-} as const satisfies Record<ArticleActionErrorCategory, ArticleActionErrorLocaleKey>;
+} as const satisfies Record<
+  ArticleActionErrorCategory,
+  ArticleActionErrorLocaleKey
+>;
 
-function isArticleActionErrorCategory(value: unknown): value is ArticleActionErrorCategory {
+function isArticleActionErrorCategory(
+  value: unknown,
+): value is ArticleActionErrorCategory {
   return (
     value === "runtime_unavailable" ||
     value === "permission_denied" ||
@@ -52,13 +67,23 @@ function isArticleActionErrorCategory(value: unknown): value is ArticleActionErr
   );
 }
 
-function isCategorizedActionError(error: AppError): error is ArticleActionError {
-  return "category" in error && isArticleActionErrorCategory(error.category) && "localeKey" in error;
+function isCategorizedActionError(
+  error: AppError,
+): error is ArticleActionError {
+  return (
+    "category" in error &&
+    isArticleActionErrorCategory(error.category) &&
+    "localeKey" in error
+  );
 }
 
 function isAppError(error: unknown): error is AppError {
   return (
-    !!error && typeof error === "object" && "type" in error && "message" in error && typeof error.message === "string"
+    !!error &&
+    typeof error === "object" &&
+    "type" in error &&
+    "message" in error &&
+    typeof error.message === "string"
   );
 }
 
@@ -83,7 +108,9 @@ function toArticleActionError(error: unknown): ArticleActionError {
   };
 }
 
-function toInvalidArticleUrlError(message = ARTICLE_EXTERNAL_BROWSER_INVALID_URL_MESSAGE): ArticleActionError {
+function toInvalidArticleUrlError(
+  message = ARTICLE_EXTERNAL_BROWSER_INVALID_URL_MESSAGE,
+): ArticleActionError {
   return {
     type: "UserVisible",
     message,
@@ -91,7 +118,16 @@ function toInvalidArticleUrlError(message = ARTICLE_EXTERNAL_BROWSER_INVALID_URL
   };
 }
 
-export function normalizeArticleExternalBrowserUrl(url: string): Result.Result<string, ArticleActionError> {
+function logArticleActionFailure(
+  errorLabel: string,
+  error: ArticleActionError,
+): void {
+  logRuntimeDiagnostic("article-action", `${errorLabel}:`, error);
+}
+
+export function normalizeArticleExternalBrowserUrl(
+  url: string,
+): Result.Result<string, ArticleActionError> {
   const normalizedUrl = normalizeHttpCommandUrl(url);
   if (!normalizedUrl) {
     return Result.fail(toInvalidArticleUrlError());
@@ -100,7 +136,11 @@ export function normalizeArticleExternalBrowserUrl(url: string): Result.Result<s
   try {
     const parsedUrl = new URL(normalizedUrl);
     if (parsedUrl.username || parsedUrl.password) {
-      return Result.fail(toInvalidArticleUrlError(ARTICLE_EXTERNAL_BROWSER_CREDENTIAL_URL_MESSAGE));
+      return Result.fail(
+        toInvalidArticleUrlError(
+          ARTICLE_EXTERNAL_BROWSER_CREDENTIAL_URL_MESSAGE,
+        ),
+      );
     }
 
     return Result.succeed(normalizedUrl);
@@ -109,10 +149,16 @@ export function normalizeArticleExternalBrowserUrl(url: string): Result.Result<s
   }
 }
 
-export function resolveArticleActionErrorCategory(message: string): ArticleActionErrorCategory {
+export function resolveArticleActionErrorCategory(
+  message: string,
+): ArticleActionErrorCategory {
   const normalized = message.toLowerCase();
 
-  if (normalized.includes("permission") || normalized.includes("denied") || normalized.includes("not allowed")) {
+  if (
+    normalized.includes("permission") ||
+    normalized.includes("denied") ||
+    normalized.includes("not allowed")
+  ) {
     return "permission_denied";
   }
   if (
@@ -126,18 +172,24 @@ export function resolveArticleActionErrorCategory(message: string): ArticleActio
   if (
     normalized.includes("invalid url") ||
     normalized.includes("invalid uri") ||
-    normalized.includes("only http:// and https:// urls are supported")
+    normalized.includes("only http:// and https:// urls")
   ) {
     return "invalid_url";
   }
-  if (normalized.includes("invalid") || normalized.includes("validation") || normalized.includes("text")) {
+  if (
+    normalized.includes("invalid") ||
+    normalized.includes("validation") ||
+    normalized.includes("text")
+  ) {
     return "invalid_text";
   }
 
   return "unknown";
 }
 
-export function resolveArticleActionErrorLocaleKey(category: ArticleActionErrorCategory): ArticleActionErrorLocaleKey {
+export function resolveArticleActionErrorLocaleKey(
+  category: ArticleActionErrorCategory,
+): ArticleActionErrorLocaleKey {
   return ARTICLE_ACTION_ERROR_LOCALE_KEYS[category];
 }
 
@@ -151,7 +203,9 @@ export function resolveArticleActionErrorMetadata(
   };
 }
 
-export function categorizeArticleActionError(error: AppError): ArticleActionError {
+export function categorizeArticleActionError(
+  error: AppError,
+): ArticleActionError {
   if (isCategorizedActionError(error)) {
     return error;
   }
@@ -175,14 +229,17 @@ function runToastOperation<T>(
         result,
         Result.inspect(() => showToast(successMessage)),
         Result.inspectError((error) => {
-          console.error(`${errorLabel}:`, categorizeArticleActionError(error));
+          logArticleActionFailure(
+            errorLabel,
+            categorizeArticleActionError(error),
+          );
           showToast(error.message);
         }),
       ),
     )
     .catch((error: unknown) => {
       const actionError = toArticleActionError(error);
-      console.error(`${errorLabel}:`, actionError);
+      logArticleActionFailure(errorLabel, actionError);
       showToast(actionError.message);
       return Result.fail(actionError);
     });
@@ -190,21 +247,27 @@ function runToastOperation<T>(
 
 function runExternalBrowserOperation(
   operation: ArticleBrowserToastOperation<null>,
-  { showToast, errorLabel }: Pick<OpenExternalBrowserParams, "showToast" | "errorLabel">,
+  {
+    showToast,
+    errorLabel,
+  }: Pick<OpenExternalBrowserParams, "showToast" | "errorLabel">,
 ) {
   return operation()
     .then((result) =>
       Result.pipe(
         result,
         Result.inspectError((error) => {
-          console.error(`${errorLabel}:`, categorizeArticleActionError(error));
+          logArticleActionFailure(
+            errorLabel,
+            categorizeArticleActionError(error),
+          );
           showToast(error.message);
         }),
       ),
     )
     .catch((error: unknown) => {
       const actionError = toArticleActionError(error);
-      console.error(`${errorLabel}:`, actionError);
+      logArticleActionFailure(errorLabel, actionError);
       showToast(actionError.message);
       return Result.fail(actionError);
     });
@@ -214,7 +277,9 @@ export function openArticleInExternalBrowser(
   url: string,
   showToast: ArticleStatusToast = useUiStore.getState().showToast,
 ) {
-  const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
+  const bg =
+    (usePreferencesStore.getState().prefs.open_links_background ?? "false") ===
+    "true";
 
   return openUrlInExternalBrowser(url, {
     background: bg,
@@ -230,16 +295,22 @@ export function openUrlInExternalBrowser(
   const normalizedUrlResult = normalizeArticleExternalBrowserUrl(url);
   if (Result.isFailure(normalizedUrlResult)) {
     const actionError = Result.unwrapError(normalizedUrlResult);
-    console.error(`${errorLabel}:`, actionError);
+    logArticleActionFailure(errorLabel, actionError);
     showToast(actionError.message);
     return Promise.resolve(Result.fail(actionError));
   }
 
   const normalizedUrl = Result.unwrap(normalizedUrlResult);
-  return runExternalBrowserOperation(() => openInBrowser(normalizedUrl, background), { showToast, errorLabel });
+  return runExternalBrowserOperation(
+    () => openInBrowser(normalizedUrl, background),
+    { showToast, errorLabel },
+  );
 }
 
-export function copyArticleLink(url: string, { showToast, successMessage }: ArticleToastActionParams) {
+export function copyArticleLink(
+  url: string,
+  { showToast, successMessage }: ArticleToastActionParams,
+) {
   const normalizedUrl = normalizeHttpCommandUrl(url) ?? url;
 
   return runToastOperation(
@@ -249,11 +320,14 @@ export function copyArticleLink(url: string, { showToast, successMessage }: Arti
   );
 }
 
-export function addArticleToReadingList(url: string, { showToast, successMessage }: ArticleToastActionParams) {
+export function addArticleToReadingList(
+  url: string,
+  { showToast, successMessage }: ArticleToastActionParams,
+) {
   const normalizedUrl = normalizeHttpCommandUrl(url);
   if (!normalizedUrl) {
     const actionError = toInvalidArticleUrlError();
-    console.error("Add to reading list failed:", actionError);
+    logArticleActionFailure("Add to reading list failed", actionError);
     showToast(actionError.message);
     return Promise.resolve(Result.fail(actionError));
   }
