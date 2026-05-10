@@ -1,5 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { useQuery } from "@tanstack/react-query";
+import { normalizeQueryAccountId } from "@/lib/query/query-invalidation";
 
 export type CreateQueryDiagnostic =
   | {
@@ -36,12 +37,7 @@ export function setCreateQueryDiagnosticsReporterForDiagnostics(reporter: (diagn
 }
 
 function normalizeQueryId(id: string | null): string | null {
-  const normalizedId = id?.trim() ?? "";
-  if (normalizedId.length === 0) {
-    return null;
-  }
-
-  return normalizedId;
+  return normalizeQueryAccountId(id);
 }
 
 function unwrapGeneratedQueryResult<TData>(
@@ -66,14 +62,22 @@ export function createQuery<TData, TId extends string | null>(
       queryKey: [queryKey, queryId],
       queryFn: () => {
         if (queryId === null) {
-          createQueryDiagnosticsReporter({ type: "disabled-query-refetch", queryKey });
+          createQueryDiagnosticsReporter({
+            type: "disabled-query-refetch",
+            queryKey,
+          });
           return Promise.reject(new Error("Query id is required when the query is enabled."));
         }
 
         return fetcher(queryId)
           .then((result) => unwrapGeneratedQueryResult(result, queryKey, queryId))
           .catch((error: unknown) => {
-            createQueryDiagnosticsReporter({ type: "query-function-rejected", queryKey, queryId, error });
+            createQueryDiagnosticsReporter({
+              type: "query-function-rejected",
+              queryKey,
+              queryId,
+              error,
+            });
             throw error;
           });
       },

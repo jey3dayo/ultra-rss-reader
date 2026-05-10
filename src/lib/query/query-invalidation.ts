@@ -35,6 +35,10 @@ type InvalidateQueryKeysLogOnlyOptions = {
   actionOwner?: QueryInvalidationActionOwner;
 };
 
+type InvalidateFeedMutationQueriesOptions = {
+  accountId?: string | null;
+};
+
 let queryInvalidationFailureReporter: (failures: readonly QueryInvalidationFailure[]) => void =
   reportQueryInvalidationFailures;
 
@@ -333,6 +337,41 @@ export function invalidateArticleQueries(
   options: InvalidateArticleQueriesOptions & InvalidateQueryKeysLogOnlyOptions = {},
 ) {
   invalidateQueryKeysLogOnly(queryClient, resolveArticleInvalidationQueryKeys(options), options);
+}
+
+function invalidateFeedMutationQueries(
+  queryClient: QueryClient,
+  actionOwner: Extract<QueryInvalidationActionOwner, "add-feed" | "delete-feed">,
+  options: InvalidateFeedMutationQueriesOptions = {},
+) {
+  invalidateFeedQueries(queryClient, {
+    actionOwner,
+    includeFolders: actionOwner === "add-feed",
+    includeAccountUnreadCount: true,
+  });
+  invalidateArticleQueries(queryClient, {
+    actionOwner,
+    includeAccountUnreadCount: false,
+    includeFeeds: false,
+    includeTagArticleCounts: true,
+  });
+
+  if (options.accountId !== undefined) {
+    invalidateQueryKeysLogOnly(queryClient, [queryKeys.feedArticleSummaries.subscriptionsIndex(options.accountId)], {
+      actionOwner,
+    });
+  }
+}
+
+export function invalidateAddFeedQueries(queryClient: QueryClient, options: InvalidateFeedMutationQueriesOptions = {}) {
+  invalidateFeedMutationQueries(queryClient, "add-feed", options);
+}
+
+export function invalidateDeleteFeedQueries(
+  queryClient: QueryClient,
+  options: InvalidateFeedMutationQueriesOptions = {},
+) {
+  invalidateFeedMutationQueries(queryClient, "delete-feed", options);
 }
 
 export function invalidateSyncCompletedQueries(queryClient: QueryClient) {

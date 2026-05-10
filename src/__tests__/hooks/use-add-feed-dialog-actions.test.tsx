@@ -464,7 +464,13 @@ describe("useAddFeedDialogActions", () => {
       queryKey: ["recentArticles"],
     });
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: ["tagArticleCounts"],
+    });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
       queryKey: ["feedArticleSummaries"],
+    });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: ["feedArticleSummaries", "account-1"],
     });
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });

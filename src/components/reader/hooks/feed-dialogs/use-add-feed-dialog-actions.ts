@@ -6,6 +6,7 @@ import { useCallback, useRef } from "react";
 import type { DiscoveredFeedDto } from "@/api/tauri-commands";
 import { addLocalFeed, discoverFeeds, updateFeedFolder } from "@/api/tauri-commands";
 import { useAsyncCommandLifecycle } from "@/components/reader/hooks/browser/use-browser-url-effect";
+import { invalidateAddFeedQueries } from "@/lib/query/query-invalidation";
 import type {
   AddFeedDialogAction,
   AddFeedDialogControllerDerived,
@@ -13,11 +14,7 @@ import type {
   AddFeedDialogState,
 } from "../../add-feed-dialog.types";
 import { createFolderIfNeededResult } from "../../feed-folder-flow";
-import {
-  invalidateArticleQueries,
-  invalidateFeedQueries,
-  runFeedMutationWithOptimisticRollback,
-} from "../../feed-query-cache";
+import { runFeedMutationWithOptimisticRollback } from "../../feed-query-cache";
 
 type UseAddFeedDialogActionsParams = {
   accountId: string;
@@ -192,15 +189,7 @@ export function useAddFeedDialogActions({
           );
         }
 
-        invalidateFeedQueries(queryClient, {
-          actionOwner: "add-feed",
-          includeAccountUnreadCount: true,
-        });
-        invalidateArticleQueries(queryClient, {
-          actionOwner: "add-feed",
-          includeAccountUnreadCount: false,
-          includeFeeds: false,
-        });
+        invalidateAddFeedQueries(queryClient, { accountId });
         onOpenChange(false);
         submitRun.finish();
       },

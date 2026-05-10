@@ -4,7 +4,9 @@ import { describe, expect, it, vi } from "vitest";
 import {
   ARTICLE_CACHE_QUERY_ROOTS,
   getReaderArticleQueryMode,
+  invalidateAddFeedQueries,
   invalidateArticleQueries,
+  invalidateDeleteFeedQueries,
   invalidateFeedQueries,
   invalidateSyncCompletedQueries,
   normalizeQueryAccountId,
@@ -37,6 +39,7 @@ describe("query-invalidation", () => {
     expect(queryKeys.accountArticles.byAccount(" ", "all")).toEqual(["accountArticles", null, { mode: "all" }]);
     expect(queryKeys.accountArticles.byAccountPrefix("acc-1")).toEqual(["accountArticles", "acc-1"]);
     expect(queryKeys.accountArticles.byAccountPrefix(" acc-1 ")).toEqual(["accountArticles", "acc-1"]);
+    expect(queryKeys.accountArticles.byAccountPrefix(" ")).toEqual(["accountArticles", null]);
     expect(queryKeys.feedArticleSummaries.root).toEqual(["feedArticleSummaries"]);
     expect(queryKeys.feedArticleSummaries.byAccount("acc-1")).toEqual(["feedArticleSummaries", "acc-1"]);
     expect(queryKeys.feedArticleSummaries.byAccount(" ")).toEqual(["feedArticleSummaries", null]);
@@ -199,6 +202,43 @@ describe("query-invalidation", () => {
         includeAccountUnreadCount: true,
       }),
     ).toEqual([["feeds"], ["accountUnreadCount"]]);
+  });
+
+  it("keeps add and delete feed invalidation on the shared feed mutation matrix", () => {
+    const { invalidateQueries, queryClient } = createInvalidateSpy();
+
+    invalidateAddFeedQueries(queryClient, { accountId: " acc-1 " });
+    invalidateDeleteFeedQueries(queryClient, { accountId: " " });
+
+    expect(invalidateQueries.mock.calls.map(([options]) => options)).toEqual([
+      { queryKey: ["feeds"] },
+      { queryKey: ["folders"] },
+      { queryKey: ["accountUnreadCount"] },
+      { queryKey: ["articles"] },
+      { queryKey: ["accountArticles"] },
+      { queryKey: ["folderArticles"] },
+      { queryKey: ["starredArticles"] },
+      { queryKey: ["accountStarredCount"] },
+      { queryKey: ["articlesByTag"] },
+      { queryKey: ["tagArticleCounts"] },
+      { queryKey: ["search"] },
+      { queryKey: ["recentArticles"] },
+      { queryKey: ["feedArticleSummaries"] },
+      { queryKey: ["feedArticleSummaries", "acc-1"] },
+      { queryKey: ["feeds"] },
+      { queryKey: ["accountUnreadCount"] },
+      { queryKey: ["articles"] },
+      { queryKey: ["accountArticles"] },
+      { queryKey: ["folderArticles"] },
+      { queryKey: ["starredArticles"] },
+      { queryKey: ["accountStarredCount"] },
+      { queryKey: ["articlesByTag"] },
+      { queryKey: ["tagArticleCounts"] },
+      { queryKey: ["search"] },
+      { queryKey: ["recentArticles"] },
+      { queryKey: ["feedArticleSummaries"] },
+      { queryKey: ["feedArticleSummaries", null] },
+    ]);
   });
 
   it("invalidates feed query keys with opt-in account unread count", () => {

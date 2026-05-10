@@ -84,12 +84,7 @@ function requireEnabledQueryValue(value: string | null, label: string): string {
 }
 
 function normalizeManualArticleQueryId(value: string | null): string | null {
-  const normalizedValue = normalizeQueryAccountId(value);
-  if (normalizedValue === null) {
-    return null;
-  }
-
-  return normalizedValue;
+  return normalizeQueryAccountId(value);
 }
 
 export function normalizeArticleSearchQuery(query: string): string {
