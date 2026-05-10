@@ -138,6 +138,29 @@ describe("browser-webview-state", () => {
     });
   });
 
+  it("keeps the intended url while Windows placeholder updates report about:blank", () => {
+    expect(
+      mergeBrowserState(
+        browserState({
+          url: "https://example.com/intended",
+          is_loading: true,
+        }),
+        browserState({
+          url: "about:blank",
+          is_loading: true,
+          load_generation: 2,
+        }),
+        "https://example.com/intended",
+      ),
+    ).toEqual({
+      url: "https://example.com/intended",
+      can_go_back: false,
+      can_go_forward: false,
+      is_loading: true,
+      load_generation: 1,
+    });
+  });
+
   it("accepts the redirected url once the native payload finishes loading", () => {
     expect(
       mergeBrowserState(

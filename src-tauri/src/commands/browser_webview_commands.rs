@@ -1474,6 +1474,40 @@ mod tests {
     }
 
     #[test]
+    fn placeholder_update_skips_navigation_when_current_url_is_already_target() {
+        let snapshot = BrowserWebviewState {
+            url: "https://example.com/article".to_string(),
+            can_go_back: false,
+            can_go_forward: false,
+            is_loading: false,
+            load_generation: 1,
+        };
+
+        assert!(!should_navigate_existing_browser_webview(
+            "https://example.com/article",
+            "https://example.com/article",
+            Some(&snapshot),
+            PlatformKind::Windows,
+        ));
+    }
+
+    #[test]
+    fn placeholder_page_load_finish_is_not_accepted_for_target_navigation_state() {
+        let loading = BrowserWebviewState {
+            url: "https://example.com/article".to_string(),
+            can_go_back: false,
+            can_go_forward: false,
+            is_loading: true,
+            load_generation: 1,
+        };
+
+        assert!(!should_accept_page_load_finish(
+            Some(&loading),
+            "about:blank"
+        ));
+    }
+
+    #[test]
     fn non_windows_use_target_initial_url() {
         let initial_url =
             browser_webview_initial_url("https://example.com/article", PlatformKind::Macos)
