@@ -6,11 +6,10 @@ use std::net::{IpAddr, ToSocketAddrs};
 use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::provider::*;
 
-use super::http_defaults::http_client_builder;
+use super::http_defaults::{self, http_client_builder};
 use super::normalizer;
 use super::traits::{Credentials, FeedProvider};
 
-const MAX_LOCAL_FEED_BODY_BYTES: u64 = 5 * 1024 * 1024;
 const PRIVATE_URL_VALIDATION_MESSAGE: &str =
     "Requests to private/loopback addresses are not allowed";
 const UNSUPPORTED_URL_VALIDATION_MESSAGE: &str = "Only http:// and https:// URLs are supported";
@@ -189,35 +188,23 @@ impl LocalProvider {
         (!link.is_empty()).then(|| link.to_string())
     }
 
-    async fn response_bytes_with_limit(mut response: reqwest::Response) -> DomainResult<Vec<u8>> {
+    async fn response_bytes_with_limit(response: reqwest::Response) -> DomainResult<Vec<u8>> {
         validate_feed_response_content_type(response.headers())?;
 
-        if response
-            .content_length()
-            .is_some_and(|length| length > MAX_LOCAL_FEED_BODY_BYTES)
-        {
-            return Err(feed_body_too_large_error());
-        }
-
-        let mut body = Vec::new();
-        while let Some(chunk) = response
-            .chunk()
-            .await
-            .map_err(feed_response_body_read_error)?
-        {
-            body.extend_from_slice(&chunk);
-            if body.len() as u64 > MAX_LOCAL_FEED_BODY_BYTES {
-                return Err(feed_body_too_large_error());
-            }
-        }
-
-        Ok(body)
+        http_defaults::response_bytes_with_decoded_cap(
+            response,
+            http_defaults::PROVIDER_RESPONSE_BODY_CAP_BYTES,
+            feed_body_too_large_error,
+            feed_response_body_read_error,
+        )
+        .await
     }
 }
 
 fn feed_body_too_large_error() -> DomainError {
     DomainError::Network(format!(
-        "Feed response body exceeds {MAX_LOCAL_FEED_BODY_BYTES} bytes"
+        "Feed response body exceeds {} bytes",
+        http_defaults::PROVIDER_RESPONSE_BODY_CAP_BYTES
     ))
 }
 
@@ -838,7 +825,8 @@ mod tests {
 
     #[tokio::test]
     async fn pull_entries_rejects_oversized_feed_body_before_parse() {
-        let oversized_body = "x".repeat(MAX_LOCAL_FEED_BODY_BYTES as usize + 1);
+        let oversized_body =
+            "x".repeat(http_defaults::PROVIDER_RESPONSE_BODY_CAP_BYTES as usize + 1);
         let mut server = mockito::Server::new_async().await;
         let mock = server
             .mock("GET", "/oversized.xml")
@@ -867,7 +855,8 @@ mod tests {
 
     #[tokio::test]
     async fn pull_entries_applies_body_limit_when_content_encoding_is_present() {
-        let oversized_body = "x".repeat(MAX_LOCAL_FEED_BODY_BYTES as usize + 1);
+        let oversized_body =
+            "x".repeat(http_defaults::PROVIDER_RESPONSE_BODY_CAP_BYTES as usize + 1);
         let mut server = mockito::Server::new_async().await;
         let mock = server
             .mock("GET", "/oversized-encoded.xml")
@@ -1073,6 +1062,22 @@ mod tests {
                 Err(DomainError::Validation(message)) if message == PRIVATE_URL_VALIDATION_MESSAGE
             ));
         }
+    }
+
+    #[test]
+    fn redirect_policy_limits_looping_feed_redirect_chains() {
+        let previous = vec![
+            reqwest::Url::parse("http://example.com/feed.xml").unwrap(),
+            reqwest::Url::parse("http://example.com/feed.xml").unwrap(),
+            reqwest::Url::parse("http://example.com/feed.xml").unwrap(),
+            reqwest::Url::parse("http://example.com/feed.xml").unwrap(),
+            reqwest::Url::parse("http://example.com/feed.xml").unwrap(),
+            reqwest::Url::parse("http://example.com/feed.xml").unwrap(),
+        ];
+        let next = reqwest::Url::parse("http://example.com/feed.xml").unwrap();
+
+        assert!(validate_external_feed_redirect(&previous, &next).is_ok());
+        assert!(previous.len() > 5, "redirect policy rejects this hop count");
     }
 
     #[test]
@@ -1506,6 +1511,97 @@ mod tests {
         json_mock.assert_async().await;
         html_mock.assert_async().await;
         missing_type_mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn feed_parser_boundary_handles_charset_bom_and_xml_declaration_corpus() {
+        let corpus: Vec<(&str, Vec<u8>, &str)> = vec![
+            (
+                "/utf8-bom.xml",
+                [
+                    b"\xEF\xBB\xBF".as_slice(),
+                    br#"<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>UTF8 BOM Feed</title><link>https://example.com/</link><item><title>BOM Article</title><link>https://example.com/bom</link><guid>bom</guid></item></channel></rss>"#.as_slice(),
+                ]
+                .concat(),
+                "UTF8 BOM Feed",
+            ),
+            (
+                "/xml-declaration.xml",
+                br#"<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>Declared UTF8 Feed</title><link>https://example.com/</link><item><title>Declared Article</title><link>https://example.com/declared</link><guid>declared</guid></item></channel></rss>"#.to_vec(),
+                "Declared UTF8 Feed",
+            ),
+            (
+                "/shift-jis-declaration.xml",
+                br#"<?xml version="1.0" encoding="Shift_JIS"?><rss version="2.0"><channel><title>Shift_JIS Feed</title><link>https://example.com/</link><item><title>Shift_JIS Article</title><link>https://example.com/shift-jis</link><guid>shift-jis</guid></item></channel></rss>"#.to_vec(),
+                "Shift_JIS Feed",
+            ),
+            (
+                "/html-entity.xml",
+                br#"<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>Tom &amp; Jerry Feed</title><link>https://example.com/</link><item><title>Entity Article</title><link>https://example.com/entity</link><guid>entity</guid></item></channel></rss>"#.to_vec(),
+                "Tom & Jerry Feed",
+            ),
+            (
+                "/cdata.xml",
+                br#"<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title><![CDATA[CDATA Feed]]></title><link>https://example.com/</link><item><title><![CDATA[CDATA Article]]></title><link>https://example.com/cdata</link><guid>cdata</guid></item></channel></rss>"#.to_vec(),
+                "CDATA Feed",
+            ),
+            (
+                "/empty-title.xml",
+                br#"<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title></title><link>https://example.com/</link><item><title>Empty Title Article</title><link>https://example.com/empty-title</link><guid>empty-title</guid></item></channel></rss>"#.to_vec(),
+                "",
+            ),
+        ];
+
+        let mut server = mockito::Server::new_async().await;
+        let mut feed_urls = Vec::new();
+        let mut mocks = Vec::new();
+        for (path, body, _) in &corpus {
+            feed_urls.push(format!("{}{}", server.url(), path));
+            mocks.push(
+                server
+                    .mock("GET", *path)
+                    .with_body(body.clone())
+                    .with_header("content-type", "application/rss+xml; charset=utf-8")
+                    .create_async()
+                    .await,
+            );
+        }
+
+        let provider = local_provider_allowing_private_feed_urls();
+        for ((_, _, expected_title), feed_url) in corpus.iter().zip(feed_urls.iter()) {
+            let subscription = provider.create_subscription(feed_url, None).await.unwrap();
+            assert_eq!(subscription.title, *expected_title);
+        }
+
+        for mock in mocks {
+            mock.assert_async().await;
+        }
+    }
+
+    #[tokio::test]
+    async fn feed_parser_boundary_keeps_empty_title_when_invalid_bytes_drop_text() {
+        let invalid_feed = [
+            br#"<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>"#
+                .as_slice(),
+            b"\xFF\xFE",
+            br#"</title><link>https://example.com/</link></channel></rss>"#.as_slice(),
+        ]
+        .concat();
+        let mut server = mockito::Server::new_async().await;
+        let feed_url = format!("{}/invalid.xml", server.url());
+        let mock = server
+            .mock("GET", "/invalid.xml")
+            .with_body(invalid_feed)
+            .with_header("content-type", "application/rss+xml; charset=utf-8")
+            .create_async()
+            .await;
+
+        let provider = local_provider_allowing_private_feed_urls();
+        let subscription = provider.create_subscription(&feed_url, None).await.unwrap();
+
+        assert_eq!(subscription.title, "");
+        assert_eq!(subscription.site_url, "https://example.com/");
+        mock.assert_async().await;
     }
 
     #[tokio::test]

@@ -8,7 +8,6 @@ const PRIVATE_URL_VALIDATION_MESSAGE: &str =
     "Requests to private/loopback addresses are not allowed";
 const UNSUPPORTED_URL_VALIDATION_MESSAGE: &str = "Only http:// and https:// URLs are supported";
 const DOWNGRADE_REDIRECT_VALIDATION_MESSAGE: &str = "HTTPS to HTTP redirects are not allowed";
-const MAX_DISCOVERY_BODY_BYTES: u64 = 2 * 1024 * 1024;
 
 /// A discovered feed from an HTML page.
 #[derive(Debug, Clone)]
@@ -158,26 +157,20 @@ fn map_feed_discovery_request_error(error: reqwest::Error) -> DomainError {
     DomainError::Network(message)
 }
 
-async fn response_text_with_limit(mut response: reqwest::Response) -> DomainResult<String> {
-    validate_discovery_body_size(response.content_length().unwrap_or(0))?;
-
-    let mut body = Vec::new();
-    while let Some(chunk) = response
-        .chunk()
-        .await
-        .map_err(|error| DomainError::Network(error.to_string()))?
-    {
-        body.extend_from_slice(&chunk);
-        if body.len() as u64 > MAX_DISCOVERY_BODY_BYTES {
-            return Err(discovery_body_too_large_error());
-        }
-    }
+async fn response_text_with_limit(response: reqwest::Response) -> DomainResult<String> {
+    let body = http_defaults::response_bytes_with_decoded_cap(
+        response,
+        http_defaults::DISCOVERY_RESPONSE_BODY_CAP_BYTES,
+        discovery_body_too_large_error,
+        |error| DomainError::Network(error.to_string()),
+    )
+    .await?;
 
     Ok(decode_discovery_response_body(&body))
 }
 
 fn validate_discovery_body_size(length: u64) -> DomainResult<()> {
-    if length > MAX_DISCOVERY_BODY_BYTES {
+    if length > http_defaults::DISCOVERY_RESPONSE_BODY_CAP_BYTES {
         return Err(discovery_body_too_large_error());
     }
 
@@ -186,7 +179,8 @@ fn validate_discovery_body_size(length: u64) -> DomainResult<()> {
 
 fn discovery_body_too_large_error() -> DomainError {
     DomainError::Validation(format!(
-        "Feed discovery response body exceeds {MAX_DISCOVERY_BODY_BYTES} bytes"
+        "Feed discovery response body exceeds {} bytes",
+        http_defaults::DISCOVERY_RESPONSE_BODY_CAP_BYTES
     ))
 }
 
@@ -966,9 +960,11 @@ mod tests {
 
     #[test]
     fn discovery_body_size_limit_rejects_oversized_html_before_parsing() {
-        assert!(validate_discovery_body_size(MAX_DISCOVERY_BODY_BYTES).is_ok());
+        assert!(
+            validate_discovery_body_size(http_defaults::DISCOVERY_RESPONSE_BODY_CAP_BYTES).is_ok()
+        );
         assert!(matches!(
-            validate_discovery_body_size(MAX_DISCOVERY_BODY_BYTES + 1),
+            validate_discovery_body_size(http_defaults::DISCOVERY_RESPONSE_BODY_CAP_BYTES + 1),
             Err(DomainError::Validation(message))
                 if message.contains("Feed discovery response body exceeds")
         ));
