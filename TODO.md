@@ -1927,11 +1927,6 @@
   - tag pattern は prerelease/build metadata を許可するが release action は `prerelease: false` 固定で、実 release の公開種別が曖昧
   - `v1.2.3-alpha.1`、`v1.2.3+build.1`、stable、draft/pre-release flag、release note template の repo contract を追加する
 
-- [ ] P2 account sync settings を DB/repository 側でも範囲制約する
-  - 対象: `src-tauri/src/commands/account_commands.rs`, `src-tauri/src/infra/db/sqlite_account.rs`, `src-tauri/migrations/V1__initial.sql`
-  - command では interval/days を検証するが repository はそのまま保存できるため、scheduler に invalid interval が入る経路が残る
-  - negative interval、zero interval、too large interval、keep days boundary、legacy invalid row repair の contract を追加する
-
 - [ ] P2 bulk article mutation の missing / mixed-account ID policy を固定する
   - 対象: `src-tauri/src/commands/article_commands.rs`, `src/hooks/use-articles.ts`, `src/components/reader/hooks/article-list`
   - 複数 article id の更新が存在しない id や別 account 混在を明示せず部分成功にでき、stale selection 時の UI feedback が曖昧
@@ -2052,21 +2047,6 @@
   - resolver に `altKey` が渡らず meta/ctrl 以外は plain key fallback するため、Option+J などが `j` として article navigation を起こす可能性がある
   - alt+letter、alt+shift、option IME 入力、custom shortcut、ignored input target の keyboard contract を追加する
 
-- [ ] P1 browser webview 内部リンク遷移にも load timeout を張る
-  - 対象: `src-tauri/src/commands/browser_webview_commands.rs`, `src/components/reader/hooks/browser`
-  - `on_navigation` 経由の tracker start が timeout 予約を通らないため、埋め込みページ内リンクで loading が詰まっても fallback が発火しない可能性がある
-  - initial create、internal navigation、redirect、late finish、timeout fallback event の native/browser contract を追加する
-
-- [ ] P1 browser webview Windows placeholder navigate failure の state rollback event を固定する
-  - 対象: `src-tauri/src/commands/browser_webview_commands.rs`, `src/components/reader/hooks/browser/use-browser-view-surface-state.ts`
-  - placeholder から requested URL へ navigate する前後で failure すると tracker は clear されるが frontend に closed/fallback state が届かず loading が残り得る
-  - placeholder load success、navigate failure、tracker clear、fallback event、surface issue copy の contract を追加する
-
-- [ ] P1 `check_browser_embed_support` に request timeout と cancellation surface を追加する
-  - 対象: `src-tauri/src/commands/article_commands.rs`, `src/hooks/use-feed-landing.ts`, `src/components/reader/hooks/article/use-article-browser-overlay-display.ts`
-  - HEAD/GET request に timeout がないため、遅い配信元で browser embed 判定 command が長時間戻らず reader/browser UI の遷移が詰まり得る
-  - HEAD timeout、GET fallback timeout、DNS stall、settings/account switch during check、user-visible fallback の test を追加する
-
 - [ ] P2 `Cmd/Ctrl+,` legacy settings shortcut が user custom shortcut を迂回する方針を決める
   - 対象: `src/lib/keyboard/keyboard-shortcuts.ts`, `src/components/settings/shortcuts-settings.tsx`
   - `open_settings` を別キーにしても legacy `Cmd/Ctrl+,` が常に有効で、shortcut の移動/無効化と実動作がずれる
@@ -2106,11 +2086,6 @@
   - 対象: `src/hooks/use-app-icon-theme.ts`, `src/stores/preferences-store.ts`, `src/lib/runtime/match-media-listener.ts`
   - root theme 適用と app icon 適用がそれぞれ `matchMedia` を購読し、fallback/cleanup 差で DOM theme と runtime app icon がずれる可能性がある
   - system dark change、listener add/remove failure、theme transition failure、platform capability late load、icon request ordering の test を追加する
-
-- [ ] P1 FreshRSS account 追加時の server URL policy を private host / userinfo まで固定する
-  - 対象: `src-tauri/src/commands/account_commands.rs`, `src-tauri/src/infra/provider/greader.rs`, `src/components/settings/add-account`
-  - FreshRSS URL は provider 側で userinfo を落とす一方、add account の保存前 validation と private host / http policy がずれると危険な URL が credential flow に残りやすい
-  - loopback、private IP、userinfo付きURL、http/https、trailing slash、frontend schema error copy の contract test を追加する
 
 - [ ] P1 seed-dev-db-from-prod の install failure 時に backup restore する contract を作る
   - 対象: `scripts/seed-dev-db-from-prod.ts`, `src/__tests__/scripts/seed-dev-db-from-prod.test.ts`
@@ -2292,16 +2267,6 @@
   - unsupported は silent、それ以外は `console.warn` 直書きで、production diagnostics / once / redaction policy から外れている
   - unsupported no-op、permission failure、stale request、Tauri import failure、diagnostics policy id の test を追加する
 
-- [ ] P2 browser webview physical bounds を `add_child` 初期配置でも scale-aware にする
-  - 対象: `src-tauri/src/commands/browser_webview_commands.rs`, `src/lib/browser/browser-webview.ts`
-  - physical bounds を受け取れるのに作成時は scale 1.0 の logical 変換で渡しており、高 DPI/Windows で初期位置と resize 後がずれる可能性がある
-  - physical unit create、logical unit create、DPI scale、resize parity、Windows fixture の native contract を追加する
-
-- [ ] P2 browser webview bounds の座標上限と int conversion policy を決める
-  - 対象: `src-tauri/src/commands/browser_webview_commands.rs`, `src/api/schemas/browser-webview.ts`
-  - finite と正の size は見るが巨大な x/y/width/height は通るため、丸め・飽和・画面外配置の扱いが platform 依存になりやすい
-  - huge x/y、huge size、negative coordinate、fractional physical bounds、i32 overflow guard の contract を追加する
-
 - [ ] P2 browser webview navigation failure 後に bounds だけ適用済みになる挙動を固定する
   - 対象: `src-tauri/src/commands/browser_webview_commands.rs`, `src/components/reader/hooks/browser/use-browser-webview-sync.ts`
   - 既存 webview 更新は先に bounds を適用してから navigate するため、navigate 失敗時に URL state は戻っても bounds だけ変わる可能性がある
@@ -2311,11 +2276,6 @@
   - 対象: `src-tauri/src/commands/browser_webview_commands.rs`, `src/lib/runtime/diagnostics.ts`
   - query/userinfo/fragment は落としても path に token や signed URL 風の値が入ると timeout/fallback logs へ残る可能性がある
   - signed path token、UUID path、safe host only、multiline URL、redaction snapshot の Rust/TS test を追加する
-
-- [ ] P2 `check_browser_embed_support` の non-success GET response policy を固定する
-  - 対象: `src-tauri/src/commands/article_commands.rs`, `src/components/reader/hooks/article/use-article-browser-overlay-display.ts`
-  - HEAD 失敗後の GET は status を見ず、blocking header がなければ 404/500/403 も embeddable 扱いになり得る
-  - 404、403、500、204、HEAD blocked + GET allowed、user-visible fallback の test を追加する
 
 - [ ] P2 old unread count/mark の `Utc::now()` 境界 drift を固定する
   - 対象: `src-tauri/src/commands/article_commands.rs`, `src/components/reader/hooks/feed-actions/use-old-unread-read-action.ts`
