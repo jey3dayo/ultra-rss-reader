@@ -1,9 +1,10 @@
 use chrono::{DateTime, NaiveTime, SecondsFormat, Utc};
 use reqwest::header::{HeaderMap, CONTENT_SECURITY_POLICY, X_FRAME_OPTIONS};
 use rusqlite::OptionalExtension;
+use std::collections::HashSet;
 use std::process::Command;
 use std::sync::atomic::AtomicBool;
-use std::sync::Mutex;
+use std::sync::{Mutex, OnceLock};
 use std::time::Duration;
 use tauri::State;
 
@@ -28,20 +29,99 @@ const BROWSER_EMBED_SUPPORT_REQUEST_TIMEOUT: Duration = Duration::from_secs(5);
 // Offset pagination is a best-effort UI contract: page boundaries may shift if
 // articles are inserted, deleted, or reclassified between page requests.
 pub(crate) const MAX_ARTICLE_COMMAND_LIST_OFFSET: usize = 10_000;
+static BROWSER_OPEN_QUEUE: OnceLock<Mutex<HashSet<BrowserOpenQueueKey>>> = OnceLock::new();
+
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+struct BrowserOpenQueueKey {
+    url: String,
+    background: bool,
+}
+
+struct BrowserOpenQueueGuard<'a> {
+    queue: &'a Mutex<HashSet<BrowserOpenQueueKey>>,
+    key: BrowserOpenQueueKey,
+    acquired: bool,
+}
+
+impl Drop for BrowserOpenQueueGuard<'_> {
+    fn drop(&mut self) {
+        if !self.acquired {
+            return;
+        }
+
+        match self.queue.lock() {
+            Ok(mut queue) => {
+                queue.remove(&self.key);
+            }
+            Err(error) => {
+                tracing::error!("Browser open queue mutex poisoned while releasing: {error}");
+            }
+        }
+    }
+}
 
 #[tauri::command]
 pub fn open_in_browser(url: String, background: Option<bool>) -> Result<(), AppError> {
-    crate::commands::parse_browser_http_url(&url)?;
+    let parsed_url = crate::commands::parse_browser_http_url(&url)?;
     let platform_info = crate::platform::PlatformInfo::current();
+    let background =
+        should_use_background_browser_open(background.unwrap_or(false), &platform_info);
+    let normalized_url = parsed_url.to_string();
+    let Some(_open_guard) = acquire_browser_open_queue_guard(&normalized_url, background)? else {
+        tracing::debug!(
+            url = %crate::commands::redacted_browser_url_for_display(&normalized_url),
+            background,
+            "skipping duplicate in-flight browser open"
+        );
+        return Ok(());
+    };
 
-    if should_use_background_browser_open(background.unwrap_or(false), &platform_info) {
-        open_browser_in_background(&url)?;
+    if background {
+        open_browser_in_background(&normalized_url)?;
     } else {
-        open::that(&url).map_err(|e| AppError::UserVisible {
+        open::that(&normalized_url).map_err(|e| AppError::UserVisible {
             message: native_browser_open_failure_message(e),
         })?;
     }
     Ok(())
+}
+
+fn acquire_browser_open_queue_guard(
+    url: &str,
+    background: bool,
+) -> Result<Option<BrowserOpenQueueGuard<'static>>, AppError> {
+    acquire_browser_open_queue_guard_from(
+        browser_open_queue(),
+        BrowserOpenQueueKey {
+            url: url.to_string(),
+            background,
+        },
+    )
+}
+
+fn acquire_browser_open_queue_guard_from(
+    queue: &'static Mutex<HashSet<BrowserOpenQueueKey>>,
+    key: BrowserOpenQueueKey,
+) -> Result<Option<BrowserOpenQueueGuard<'static>>, AppError> {
+    let acquired = queue
+        .lock()
+        .map_err(|error| {
+            tracing::error!("Browser open queue mutex poisoned: {error}");
+            AppError::UserVisible {
+                message: crate::commands::APP_STATE_POISONED_ERROR.to_string(),
+            }
+        })?
+        .insert(key.clone());
+
+    Ok(acquired.then_some(BrowserOpenQueueGuard {
+        queue,
+        key,
+        acquired,
+    }))
+}
+
+fn browser_open_queue() -> &'static Mutex<HashSet<BrowserOpenQueueKey>> {
+    BROWSER_OPEN_QUEUE.get_or_init(|| Mutex::new(HashSet::new()))
 }
 
 fn should_use_background_browser_open(
@@ -60,7 +140,8 @@ fn native_browser_open_failure_message(error: impl std::fmt::Display) -> String 
 }
 
 fn native_browser_open_diagnostics_message(error: impl std::fmt::Display) -> String {
-    format!("Failed to open browser; native opener diagnostics: {error}")
+    let diagnostics = crate::commands::redacted_browser_diagnostic_text(&error.to_string());
+    format!("Failed to open browser; native opener diagnostics: {diagnostics}")
 }
 
 fn background_browser_open_status_failure_message(
@@ -1113,20 +1194,20 @@ mod tests {
     use super::check_browser_embed_support_with_timeout;
     use super::cleanup_feed_integrity_orphans_inner;
     use super::{
-        article_command_pagination, background_browser_open_failure_message,
-        background_browser_open_status_failure_message, bulk_mark_account_read,
-        bulk_mark_account_starred_read, bulk_mark_old_unread_read, bulk_unstar_account_articles,
-        collect_old_unread_rows, has_blocking_frame_ancestors, has_blocking_x_frame_options,
-        mark_article_read_with_conn, mark_articles_read_with_conn, mark_feed_read_with_conn,
-        mark_folder_read_with_conn, maybe_queue_mutation, native_browser_open_failure_message,
-        old_unread_before_from_now, open_browser_in_background_with_command,
-        parse_article_list_mode, provider_supports_pending_article_mutations,
-        recalculate_bulk_feed_unread_counts, record_article_view_with_conn,
-        should_use_background_browser_open, supports_remote_mutations,
-        toggle_article_star_with_conn, validate_feed_article_filters, validate_older_than_days,
-        BulkArticleMutationRow, OldUnreadScope, DEFAULT_ARTICLE_LIST_LIMIT,
-        DEFAULT_RECENT_ARTICLE_LIST_LIMIT, MAX_ARTICLE_COMMAND_LIST_LIMIT,
-        MAX_ARTICLE_COMMAND_LIST_OFFSET,
+        acquire_browser_open_queue_guard_from, article_command_pagination,
+        background_browser_open_failure_message, background_browser_open_status_failure_message,
+        bulk_mark_account_read, bulk_mark_account_starred_read, bulk_mark_old_unread_read,
+        bulk_unstar_account_articles, collect_old_unread_rows, has_blocking_frame_ancestors,
+        has_blocking_x_frame_options, mark_article_read_with_conn, mark_articles_read_with_conn,
+        mark_feed_read_with_conn, mark_folder_read_with_conn, maybe_queue_mutation,
+        native_browser_open_failure_message, old_unread_before_from_now,
+        open_browser_in_background_with_command, parse_article_list_mode,
+        provider_supports_pending_article_mutations, recalculate_bulk_feed_unread_counts,
+        record_article_view_with_conn, should_use_background_browser_open,
+        supports_remote_mutations, toggle_article_star_with_conn, validate_feed_article_filters,
+        validate_older_than_days, BrowserOpenQueueKey, BulkArticleMutationRow, OldUnreadScope,
+        DEFAULT_ARTICLE_LIST_LIMIT, DEFAULT_RECENT_ARTICLE_LIST_LIMIT,
+        MAX_ARTICLE_COMMAND_LIST_LIMIT, MAX_ARTICLE_COMMAND_LIST_OFFSET,
     };
     use crate::commands::dto::AppError;
     use crate::commands::DATABASE_MAINTENANCE_BUSY_ERROR;
@@ -1438,6 +1519,7 @@ mod tests {
             "file:///tmp/article.html",
             "javascript:alert(1)",
             "localhost:1420",
+            "https://user:pass@example.com/article",
         ] {
             let error = super::open_in_browser(url.to_string(), Some(true))
                 .expect_err("browser open should validate URL scheme before native opener");
@@ -1448,6 +1530,40 @@ mod tests {
                     if message == "Only http:// and https:// URLs are supported"
             ));
         }
+    }
+
+    #[test]
+    fn browser_open_queue_deduplicates_same_target_until_guard_drops() {
+        let queue = Box::leak(Box::new(Mutex::new(std::collections::HashSet::new())));
+        let key = BrowserOpenQueueKey {
+            url: "https://example.com/article".to_string(),
+            background: true,
+        };
+
+        let first = acquire_browser_open_queue_guard_from(queue, key.clone())
+            .expect("queue lock should be available")
+            .expect("first open should acquire queue slot");
+        let duplicate = acquire_browser_open_queue_guard_from(queue, key.clone())
+            .expect("queue lock should be available");
+
+        assert!(duplicate.is_none());
+
+        let distinct_background = acquire_browser_open_queue_guard_from(
+            queue,
+            BrowserOpenQueueKey {
+                url: key.url.clone(),
+                background: false,
+            },
+        )
+        .expect("queue lock should be available");
+
+        assert!(distinct_background.is_some());
+        drop(first);
+
+        let after_release = acquire_browser_open_queue_guard_from(queue, key)
+            .expect("queue lock should be available");
+
+        assert!(after_release.is_some());
     }
 
     #[test]
@@ -1511,6 +1627,20 @@ mod tests {
             message,
             "Failed to open browser; native opener diagnostics: default open failed: permission denied"
         );
+    }
+
+    #[test]
+    fn native_open_diagnostics_redact_url_credentials_query_and_fragment() {
+        let message = native_browser_open_failure_message(
+            "default app rejected https://user:pass@example.com/private?token=raw#frag.",
+        );
+
+        assert!(message.contains("https://example.com/..."));
+        assert!(!message.contains("user"));
+        assert!(!message.contains("pass"));
+        assert!(!message.contains("/private"));
+        assert!(!message.contains("token=raw"));
+        assert!(!message.contains("#frag"));
     }
 
     #[test]

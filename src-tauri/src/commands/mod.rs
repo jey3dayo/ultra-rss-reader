@@ -27,7 +27,7 @@ use crate::infra::db::connection::DbManager;
 const BROWSER_URL_SCHEME_ERROR: &str = "Only http:// and https:// URLs are supported";
 const DATABASE_BUSY_ERROR: &str =
     "Database is busy. Wait for the current operation to finish and try again.";
-const APP_STATE_POISONED_ERROR: &str =
+pub(crate) const APP_STATE_POISONED_ERROR: &str =
     "Application state needs recovery. Restart the application and check diagnostics if it happens again.";
 pub(crate) const DATABASE_MAINTENANCE_BUSY_ERROR: &str =
     "Database maintenance is unavailable while syncing. Try again after sync completes.";
@@ -157,10 +157,61 @@ pub(crate) fn parse_browser_http_url(url: &str) -> Result<Url, AppError> {
     })?;
 
     match parsed.scheme() {
-        "http" | "https" => Ok(parsed),
+        "http" | "https" if parsed.username().is_empty() && parsed.password().is_none() => {
+            Ok(parsed)
+        }
         _ => Err(AppError::UserVisible {
             message: BROWSER_URL_SCHEME_ERROR.to_string(),
         }),
+    }
+}
+
+pub(crate) fn redacted_browser_url_for_display(raw_url: &str) -> String {
+    match raw_url.parse::<Url>() {
+        Ok(mut url) if url.scheme() == "http" || url.scheme() == "https" => {
+            let has_non_origin_parts =
+                url.path() != "/" || url.query().is_some() || url.fragment().is_some();
+            let _ = url.set_username("");
+            let _ = url.set_password(None);
+            url.set_path("/");
+            url.set_query(None);
+            url.set_fragment(None);
+            let origin = url.to_string().trim_end_matches('/').to_string();
+            if has_non_origin_parts {
+                return format!("{origin}/...");
+            }
+            url.to_string()
+        }
+        Ok(url) => format!("{}://<redacted>", url.scheme()),
+        Err(_) => "<invalid-url>".to_string(),
+    }
+}
+
+pub(crate) fn redacted_browser_diagnostic_text(value: &str) -> String {
+    value
+        .split_whitespace()
+        .map(redacted_browser_diagnostic_token)
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+fn redacted_browser_diagnostic_token(token: &str) -> String {
+    let trailing_punctuation = token
+        .chars()
+        .rev()
+        .take_while(|c| matches!(c, ')' | ',' | '.' | ';' | '!' | '?' | ':'))
+        .count();
+    let (url_token, trailing) = token.split_at(token.len().saturating_sub(trailing_punctuation));
+
+    match url_token.parse::<Url>() {
+        Ok(url) if url.scheme() == "http" || url.scheme() == "https" => {
+            format!(
+                "{}{}",
+                redacted_browser_url_for_display(url_token),
+                trailing
+            )
+        }
+        _ => token.to_string(),
     }
 }
 
@@ -212,8 +263,9 @@ mod tests {
     use std::sync::Mutex;
 
     use super::{
-        command_db_lock_policy, lock_browser_webview, lock_db, try_lock_db, CommandDbLockPolicy,
-        APP_STATE_POISONED_ERROR, DATABASE_BUSY_ERROR,
+        command_db_lock_policy, lock_browser_webview, lock_db, parse_browser_http_url,
+        redacted_browser_diagnostic_text, redacted_browser_url_for_display, try_lock_db,
+        CommandDbLockPolicy, APP_STATE_POISONED_ERROR, DATABASE_BUSY_ERROR,
     };
     use crate::browser_webview::BrowserWebviewTracker;
     use crate::commands::dto::AppError;
@@ -339,5 +391,45 @@ mod tests {
     #[test]
     fn command_db_lock_policy_rejects_unclassified_commands() {
         assert_eq!(command_db_lock_policy("unknown_command"), None);
+    }
+
+    #[test]
+    fn parse_browser_http_url_rejects_credentials() {
+        for url in [
+            "https://user@example.com/article",
+            "https://user:pass@example.com/article",
+        ] {
+            let error = parse_browser_http_url(url).unwrap_err();
+
+            match error {
+                AppError::UserVisible { message } => {
+                    assert_eq!(message, super::BROWSER_URL_SCHEME_ERROR);
+                }
+                other => panic!("expected user-visible error, got {other:?}"),
+            }
+        }
+    }
+
+    #[test]
+    fn redacted_browser_display_url_hides_secret_bearing_parts() {
+        let redacted = redacted_browser_url_for_display(
+            "https://user:pass@example.com/private?token=raw&utm=1#secret",
+        );
+
+        assert_eq!(redacted, "https://example.com/...");
+        assert!(!redacted.contains("user"));
+        assert!(!redacted.contains("pass"));
+        assert!(!redacted.contains("/private"));
+        assert!(!redacted.contains("token=raw"));
+        assert!(!redacted.contains("secret"));
+    }
+
+    #[test]
+    fn redacted_browser_diagnostic_text_only_redacts_url_tokens() {
+        let redacted = redacted_browser_diagnostic_text(
+            "failed for https://user:pass@example.com/private?token=raw#frag, retry later",
+        );
+
+        assert_eq!(redacted, "failed for https://example.com/..., retry later");
     }
 }
