@@ -1673,6 +1673,30 @@ describe("repository static contracts", () => {
     expect(appInstallTask).toContain("src-tauri\\\\target\\\\release\\\\bundle");
   });
 
+  it("keeps bundled app icon provenance and configured icon outputs explicit", () => {
+    const docsReadme = readRepoFile("docs/README.md");
+    const miseSource = readRepoFile("mise.toml");
+    const appIconTask = extractMiseTaskSection(miseSource, "app:icon");
+    const bundleIcons = tauriConfig.bundle.icon;
+
+    expect(bundleIcons).toEqual([
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico",
+    ]);
+    for (const iconPath of bundleIcons) {
+      expect(existsSync(join(repoRoot, "src-tauri", iconPath)), iconPath).toBe(true);
+    }
+    expect(existsSync(join(repoRoot, "src-tauri/icons/icon.png"))).toBe(true);
+    expect(appIconTask).toContain("pnpm exec tauri icon");
+    expect(docsReadme).toContain("Bundled app icon provenance");
+    expect(docsReadme).toContain("`src-tauri/icons/icon.png` is the checked-in source image");
+    expect(docsReadme).toContain("project-owned artwork with no third-party attribution requirement");
+    expect(docsReadme).toContain("source URL, license, and attribution note");
+  });
+
   it("keeps top-level workflow permissions on a least-privilege inventory", () => {
     const workflowPermissions = workflowFilesUnderGithub().map((path) => ({
       path,
