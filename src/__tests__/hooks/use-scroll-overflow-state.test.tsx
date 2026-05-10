@@ -11,11 +11,7 @@ function mockScrollObservers() {
   return mocks;
 }
 
-function setScrollMetrics(
-  element: HTMLElement,
-  clientHeight: number,
-  scrollHeight: number,
-) {
+function setScrollMetrics(element: HTMLElement, clientHeight: number, scrollHeight: number) {
   Object.defineProperty(element, "clientHeight", {
     configurable: true,
     value: clientHeight,
@@ -26,11 +22,7 @@ function setScrollMetrics(
   });
 }
 
-function setTrackedScrollMetrics(
-  element: HTMLElement,
-  clientHeight: number,
-  scrollHeight: number,
-) {
+function setTrackedScrollMetrics(element: HTMLElement, clientHeight: number, scrollHeight: number) {
   const readCounts = {
     clientHeight: 0,
     scrollHeight: 0,
@@ -71,15 +63,11 @@ describe("useScrollOverflowState", () => {
       animationFrameCallback = callback;
       return 1;
     });
-    const cancelAnimationFrameSpy = vi
-      .spyOn(window, "cancelAnimationFrame")
-      .mockImplementation(() => {});
+    const cancelAnimationFrameSpy = vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
     const viewport = document.createElement("div");
     setScrollMetrics(viewport, 100, 100);
 
-    const { result, unmount } = renderHook(() =>
-      useScrollOverflowState("settings"),
-    );
+    const { result, unmount } = renderHook(() => useScrollOverflowState("settings"));
 
     act(() => {
       result.current.viewportRef(viewport);
@@ -114,9 +102,7 @@ describe("useScrollOverflowState", () => {
     const viewport = document.createElement("div");
     setScrollMetrics(viewport, 100, 100);
 
-    const { result, unmount } = renderHook(() =>
-      useScrollOverflowState("settings"),
-    );
+    const { result, unmount } = renderHook(() => useScrollOverflowState("settings"));
 
     act(() => {
       result.current.viewportRef(viewport);
@@ -145,15 +131,11 @@ describe("useScrollOverflowState", () => {
       animationFrameCallback = callback;
       return 7;
     });
-    const cancelAnimationFrameSpy = vi
-      .spyOn(window, "cancelAnimationFrame")
-      .mockImplementation(() => {});
+    const cancelAnimationFrameSpy = vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
     const viewport = document.createElement("div");
     setScrollMetrics(viewport, 100, 100);
 
-    const { result, unmount } = renderHook(() =>
-      useScrollOverflowState("settings"),
-    );
+    const { result, unmount } = renderHook(() => useScrollOverflowState("settings"));
 
     act(() => {
       result.current.viewportRef(viewport);
@@ -180,8 +162,7 @@ describe("useScrollOverflowState", () => {
     setScrollMetrics(viewport, 100, 140);
 
     const { result, rerender } = renderHook(
-      ({ dependency }: { dependency: string }) =>
-        useScrollOverflowState(dependency),
+      ({ dependency }: { dependency: string }) => useScrollOverflowState(dependency),
       {
         initialProps: { dependency: "settings" },
       },
@@ -212,9 +193,7 @@ describe("useScrollOverflowState", () => {
     setScrollMetrics(firstViewport, 100, 140);
     setScrollMetrics(secondViewport, 100, 100);
 
-    const { result, unmount } = renderHook(() =>
-      useScrollOverflowState("settings"),
-    );
+    const { result, unmount } = renderHook(() => useScrollOverflowState("settings"));
 
     act(() => {
       result.current.viewportRef(firstViewport);
@@ -250,9 +229,7 @@ describe("useScrollOverflowState", () => {
     const viewport = document.createElement("div");
     setScrollMetrics(viewport, 100, 100);
 
-    const { result, unmount } = renderHook(() =>
-      useScrollOverflowState("settings"),
-    );
+    const { result, unmount } = renderHook(() => useScrollOverflowState("settings"));
 
     act(() => {
       result.current.viewportRef(viewport);
@@ -346,9 +323,7 @@ describe("useScrollOverflowState", () => {
     });
 
     expect(resizeObservers[0]?.unobserve).toHaveBeenCalledWith(initialContent);
-    expect(resizeObservers[0]?.observe).toHaveBeenCalledWith(
-      replacementContent,
-    );
+    expect(resizeObservers[0]?.observe).toHaveBeenCalledWith(replacementContent);
     expect(result.current.hasOverflow).toBe(false);
 
     setScrollMetrics(viewport, 100, 150);
