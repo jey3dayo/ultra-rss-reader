@@ -101,6 +101,60 @@ Decision: user-facing copy may show a stable support code for the error category
 
 Support codes should identify broad recovery areas such as network, account auth, keyring, database recovery, or migration recovery. Diagnostics IDs may be generated per event or per export for support correlation, but they must not encode private data and must not be reused across unrelated support tickets. User-facing copy must keep recovery guidance separate from raw diagnostic detail.
 
+## Future Feature Contracts
+
+### Native Notification Permission And Quiet Hours
+
+Decision: do not ship native notifications for sync, update, or error events until permission, privacy, quiet-hours, and disable controls are designed together.
+
+Native notifications can appear on lock screens, in OS notification centers, or in shared-screen situations. Notification copy must therefore assume feed titles, article titles, account names, provider URLs, server URLs, and detailed error payloads are private by default.
+
+Before native notifications are enabled, the feature contract must define:
+
+- the exact events that may notify, separated by sync result, update, error, and recovery classes
+- an explicit user opt-in or OS permission prompt path before the first non-critical notification
+- a global disable setting and per-event-class controls before notification delivery
+- quiet hours behavior, including whether urgent errors may bypass it and how that exception is presented
+- lock-screen-safe copy that redacts account names, feed titles, article titles, server URLs, credentials, tokens, cookies, and local paths
+- how notification click actions route back into the app without exposing private content in the notification payload
+- focused packaged-build verification on macOS and Windows before release
+
+Until this contract exists, sync/update/error feedback must stay in-app or in redacted logs rather than native OS notifications.
+
+### Custom Protocol And Deep Link Routing
+
+Decision: do not add a custom protocol or deep links until the URL schema, action allowlist, validation behavior, and single-instance routing are fixed as a contract.
+
+External links are untrusted input. A future protocol must not accept arbitrary article URLs, feed URLs, local paths, provider endpoints, or app action names from the URL without explicit parsing and allowlisting.
+
+Before a custom protocol is registered, the feature contract must define:
+
+- the protocol scheme and versioned route shape, including reserved routes and unknown-version behavior
+- a closed allowlist of actions such as opening settings, starting a safe import preview, or focusing an existing view
+- strict parsing for malformed links, userinfo URLs, mixed scheme casing, percent-encoding, oversized payloads, and repeated parameters
+- validation for private hosts, local paths, external provider URLs, and import sources before any state mutation
+- a security confirmation prompt for actions that can import, navigate to remote content, reveal private state, or change settings
+- single-instance behavior: the first running app instance receives the route, validates it, focuses the main window, and applies the action only after the app is ready
+- logging and diagnostics that record route class and failure reason without storing the raw deep link when it can contain private data
+
+Until this contract exists, external URLs must continue to use normal OS/browser handling and must not dispatch app actions through a custom protocol.
+
+### Browser Webview And Article Reader Origin Boundaries
+
+Decision: treat the embedded browser webview and the article reader as separate origin and state boundaries.
+
+The embedded browser webview represents a remote publisher origin. The article reader renders sanitized article content inside the app-controlled local DOM. Reader state such as selected article, read/star status, focus target, and article-list position must not be inferred from the embedded browser's DOM origin, navigation state, cookies, or script context.
+
+The current same-origin assumptions are:
+
+- browser webview state may track URL, loading, back/forward availability, and host bounds, but must not expose remote DOM, cookies, storage, credentials, or injected script results to reader state
+- article reader state may use sanitized `content_sanitized`, local app metadata, and app-controlled focus state, but must not treat remote publisher pages as same-origin app content
+- focus bridging between reader controls and the embedded browser must be command-based and explicit; remote page scripts must not call app actions or Tauri IPC
+- browser history tracking is browser-surface state only and must not mutate article read/star state without an app-controlled user action
+- app scripts stay limited to `'self'`; any future script injection surface for preview automation requires a separate security review and packaged-build verification
+
+Future changes that merge reader and browser state, add cross-origin messaging, or expose webview navigation data to app actions must update this contract before implementation.
+
 ## Guardrails
 
 - Reader HTML must continue to come from sanitized `content_sanitized` fields.
@@ -110,6 +164,7 @@ Support codes should identify broad recovery areas such as network, account auth
 - Installer, updater, uninstall, and reinstall copy must say that app data can persist across app binary removal and app reinstall.
 - Support artifacts must be redacted before sharing and deleted manually when they are no longer needed.
 - Support dumps must not be generated before explicit user consent and redaction preview.
+- Native notifications, custom protocols, deep links, and cross-origin browser/reader bridges must not ship before their privacy and routing contracts are defined and verified.
 
 ## Follow-Up Direction
 
