@@ -15,17 +15,19 @@ use crate::infra::db::sqlite_feed::SqliteFeedRepository;
 use crate::infra::db::sqlite_folder::SqliteFolderRepository;
 use crate::infra::provider::local::LocalProvider;
 use crate::infra::provider::traits::FeedProvider;
-use crate::repository::account::AccountRepository;
 use crate::repository::feed::FeedRepository;
 use crate::repository::folder::FolderRepository;
 
 use crate::commands::dto::DiscoveredFeedDto;
 use crate::infra::feed_discovery;
+use crate::repository::account::AccountRepository;
 
 const FEED_TITLE_MAX_CHARS: usize = 200;
 const FOLDER_NAME_MAX_CHARS: usize = 100;
 const UPDATE_FEED_FOLDER_TARGET_VALIDATION_MESSAGE: &str =
     "feed not found or folder does not belong to feed account";
+const FOLDER_NAME_UNIQUE_INDEX: &str = "idx_folders_account_name_nocase_unique";
+const FOLDER_SORT_ORDER_UNIQUE_INDEX: &str = "idx_folders_account_sort_order_unique";
 
 pub(super) fn lock_db(
     db: &Mutex<DbManager>,
@@ -78,6 +80,25 @@ fn validate_folder_name(name: &str, existing_names: &[String]) -> Result<String,
     Ok(name.to_string())
 }
 
+fn classify_create_folder_persistence_error(error: DomainError, name: &str) -> AppError {
+    match &error {
+        DomainError::Persistence(message) if message.contains(FOLDER_NAME_UNIQUE_INDEX) => {
+            AppError::UserVisible {
+                message: format!("Folder name \"{name}\" is already in use"),
+            }
+        }
+        DomainError::Persistence(message)
+            if message.contains(FOLDER_SORT_ORDER_UNIQUE_INDEX)
+                || message.contains("folders.account_id, folders.sort_order") =>
+        {
+            AppError::UserVisible {
+                message: "Folder order changed while creating the folder. Please retry.".into(),
+            }
+        }
+        _ => AppError::from(error),
+    }
+}
+
 #[tauri::command]
 pub fn list_folders(
     state: State<'_, AppState>,
@@ -118,19 +139,31 @@ fn create_folder_in_db(
     use crate::domain::folder::Folder;
 
     let account_id = AccountId(account_id);
-    let account_repo = SqliteAccountRepository::new(db.reader());
+    let tx = db
+        .writer()
+        .unchecked_transaction()
+        .map_err(|error| DomainError::Persistence(error.to_string()))?;
+    let account_repo = SqliteAccountRepository::new(&tx);
     if account_repo.find_by_id(&account_id)?.is_none() {
         return Err(AppError::UserVisible {
             message: "Account not found".into(),
         });
     }
 
-    let tx = db
-        .writer()
-        .unchecked_transaction()
-        .map_err(|error| DomainError::Persistence(error.to_string()))?;
     let folder_repo = SqliteFolderRepository::new(&tx);
     let existing = folder_repo.find_by_account(&account_id)?;
+    for (sort_order, folder) in existing.iter().enumerate() {
+        let sort_order = i32::try_from(sort_order).map_err(|error| {
+            DomainError::Persistence(format!("Folder sort order overflow: {error}"))
+        })?;
+        if folder.sort_order != sort_order {
+            tx.execute(
+                "UPDATE folders SET sort_order = ?1 WHERE id = ?2",
+                params![sort_order, &folder.id.0],
+            )
+            .map_err(|error| DomainError::Persistence(error.to_string()))?;
+        }
+    }
     let name = validate_folder_name(
         &name,
         &existing
@@ -138,11 +171,9 @@ fn create_folder_in_db(
             .map(|folder| folder.name.clone())
             .collect::<Vec<_>>(),
     )?;
-    let sort_order = existing
-        .iter()
-        .map(|folder| folder.sort_order)
-        .max()
-        .map_or(0, |sort_order| sort_order + 1);
+    let sort_order = i32::try_from(existing.len()).map_err(|error| {
+        DomainError::Persistence(format!("Folder sort order overflow: {error}"))
+    })?;
 
     // NOTE: Local-only folder; remote sync will be handled in a future iteration
     let folder = Folder {
@@ -152,7 +183,9 @@ fn create_folder_in_db(
         name,
         sort_order,
     };
-    folder_repo.save(&folder)?;
+    folder_repo
+        .save(&folder)
+        .map_err(|error| classify_create_folder_persistence_error(error, &folder.name))?;
     tx.commit()
         .map_err(|error| DomainError::Persistence(error.to_string()))?;
     Ok(FolderDto::from(folder))
@@ -745,7 +778,7 @@ mod tests {
     }
 
     #[test]
-    fn create_folder_allocates_sort_order_after_current_max_inside_command() {
+    fn create_folder_compacts_existing_order_before_allocating_next_order() {
         let db = test_db();
         let account_id = insert_test_account(&db, "Primary");
 
@@ -765,8 +798,23 @@ mod tests {
         let first = create_folder_in_db(&db, account_id.0.clone(), "First".to_string()).unwrap();
         let second = create_folder_in_db(&db, account_id.0.clone(), "Second".to_string()).unwrap();
 
-        assert_eq!(first.sort_order, 8);
-        assert_eq!(second.sort_order, 9);
+        assert_eq!(first.sort_order, 2);
+        assert_eq!(second.sort_order, 3);
+
+        let orders = db
+            .reader()
+            .prepare(
+                "SELECT sort_order
+                 FROM folders
+                 WHERE account_id = ?1
+                 ORDER BY sort_order",
+            )
+            .unwrap()
+            .query_map(params![account_id.0.clone()], |row| row.get::<_, i32>(0))
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
+        assert_eq!(orders, vec![0, 1, 2, 3]);
 
         let duplicate_order_count: i64 = db
             .reader()
@@ -839,6 +887,77 @@ mod tests {
             .unwrap();
 
         assert_eq!(duplicate_order_count, 0);
+    }
+
+    #[test]
+    fn create_folder_classifies_concurrent_duplicate_name_constraint() {
+        let db = test_db();
+        let account_id = insert_test_account(&db, "Primary");
+        db.writer()
+            .execute_batch(
+                "CREATE TRIGGER simulate_folder_name_race
+                 BEFORE INSERT ON folders
+                 WHEN NEW.name = 'Raced'
+                 BEGIN
+                   INSERT INTO folders (id, account_id, name, sort_order)
+                   VALUES ('raced-folder', NEW.account_id, 'raced', NEW.sort_order + 1);
+                 END;",
+            )
+            .unwrap();
+
+        let error = create_folder_in_db(&db, account_id.0.clone(), "Raced".to_string())
+            .expect_err("concurrent same-name insert should be returned as command error");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message } if message == "Folder name \"Raced\" is already in use"
+        ));
+
+        let folder_count: i64 = db
+            .reader()
+            .query_row(
+                "SELECT COUNT(*) FROM folders WHERE account_id = ?1",
+                params![account_id.0],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(folder_count, 0);
+    }
+
+    #[test]
+    fn create_folder_classifies_concurrent_sort_order_constraint() {
+        let db = test_db();
+        let account_id = insert_test_account(&db, "Primary");
+        db.writer()
+            .execute_batch(
+                "CREATE TRIGGER simulate_folder_sort_order_race
+                 BEFORE INSERT ON folders
+                 WHEN NEW.name = 'Raced'
+                 BEGIN
+                   INSERT INTO folders (id, account_id, name, sort_order)
+                   VALUES ('raced-folder', NEW.account_id, 'Other', NEW.sort_order);
+                 END;",
+            )
+            .unwrap();
+
+        let error = create_folder_in_db(&db, account_id.0.clone(), "Raced".to_string())
+            .expect_err("concurrent same-order insert should be returned as command error");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message }
+                if message == "Folder order changed while creating the folder. Please retry."
+        ));
+
+        let folder_count: i64 = db
+            .reader()
+            .query_row(
+                "SELECT COUNT(*) FROM folders WHERE account_id = ?1",
+                params![account_id.0],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(folder_count, 0);
     }
 
     #[test]

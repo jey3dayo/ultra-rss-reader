@@ -13,6 +13,16 @@ impl<'a> SqliteFolderRepository<'a> {
     pub fn new(conn: &'a Connection) -> Self {
         Self { conn }
     }
+
+    fn ensure_order_contract(&self) -> DomainResult<()> {
+        self.conn.execute_batch(
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_folders_account_sort_order_unique
+               ON folders(account_id, sort_order);
+             CREATE UNIQUE INDEX IF NOT EXISTS idx_folders_account_name_nocase_unique
+               ON folders(account_id, lower(name));",
+        )?;
+        Ok(())
+    }
 }
 
 fn row_to_folder(row: &rusqlite::Row) -> rusqlite::Result<Folder> {
@@ -37,6 +47,7 @@ impl FolderRepository for SqliteFolderRepository<'_> {
     }
 
     fn save(&self, folder: &Folder) -> DomainResult<()> {
+        self.ensure_order_contract()?;
         self.conn.execute(
             "INSERT INTO folders (id, account_id, remote_id, name, sort_order)
              VALUES (?1, ?2, ?3, ?4, ?5)
@@ -57,6 +68,7 @@ impl FolderRepository for SqliteFolderRepository<'_> {
     }
 
     fn delete(&self, id: &FolderId) -> DomainResult<()> {
+        self.ensure_order_contract()?;
         let tx = self.conn.unchecked_transaction()?;
         let account_id = tx
             .query_row(
@@ -401,18 +413,22 @@ mod tests {
     }
 
     #[test]
-    fn find_by_account_orders_same_sort_order_by_id() {
+    fn find_by_account_allows_same_sort_order_in_different_accounts() {
         let db = test_db();
         let account_id = insert_test_account(&db);
+        let other_account_id = insert_test_account(&db);
         let repo = SqliteFolderRepository::new(db.writer());
 
-        for (id, name) in [("folder-b", "B"), ("folder-a", "A")] {
+        for (id, name, account_id) in [
+            ("folder-a", "A", account_id.clone()),
+            ("folder-b", "B", other_account_id),
+        ] {
             let folder = Folder {
                 id: FolderId(id.to_string()),
-                account_id: account_id.clone(),
+                account_id,
                 remote_id: None,
                 name: name.to_string(),
-                sort_order: 1,
+                sort_order: 0,
             };
             repo.save(&folder).unwrap();
         }
@@ -420,6 +436,58 @@ mod tests {
         let folders = repo.find_by_account(&account_id).unwrap();
         let ids: Vec<&str> = folders.iter().map(|folder| folder.id.0.as_str()).collect();
 
-        assert_eq!(ids, vec!["folder-a", "folder-b"]);
+        assert_eq!(ids, vec!["folder-a"]);
+    }
+
+    #[test]
+    fn save_rejects_duplicate_sort_order_within_account() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let repo = SqliteFolderRepository::new(db.writer());
+
+        repo.save(&Folder {
+            id: FolderId("folder-a".to_string()),
+            account_id: account_id.clone(),
+            remote_id: None,
+            name: "A".to_string(),
+            sort_order: 0,
+        })
+        .unwrap();
+
+        let result = repo.save(&Folder {
+            id: FolderId("folder-b".to_string()),
+            account_id,
+            remote_id: None,
+            name: "B".to_string(),
+            sort_order: 0,
+        });
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn save_rejects_duplicate_name_case_insensitive_within_account() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let repo = SqliteFolderRepository::new(db.writer());
+
+        repo.save(&Folder {
+            id: FolderId("folder-a".to_string()),
+            account_id: account_id.clone(),
+            remote_id: None,
+            name: "Tech".to_string(),
+            sort_order: 0,
+        })
+        .unwrap();
+
+        let result = repo.save(&Folder {
+            id: FolderId("folder-b".to_string()),
+            account_id,
+            remote_id: None,
+            name: "tech".to_string(),
+            sort_order: 1,
+        });
+
+        assert!(result.is_err());
     }
 }
