@@ -1,5 +1,5 @@
 import type { FeedArticleSummaryDto, FeedDto, FolderDto } from "@/api/tauri-commands";
-import { differenceInDays, parseDateInput } from "@/lib/datetime";
+import { parseDateInput } from "@/lib/datetime";
 
 export type SubscriptionReviewReasonKey = "stale_90d" | "no_unread" | "no_stars";
 export type SubscriptionReviewTone = "high" | "medium" | "low";
@@ -178,10 +178,21 @@ function buildFeedArticleSummaryByFeedIdMap(
   const summaryByFeedId = new Map<string, FeedArticleSummaryDto>();
 
   for (const summary of feedArticleSummaries) {
+    // Duplicate summaries can appear when backend or query merges overlap; review uses the latest merged entry.
     summaryByFeedId.set(summary.feed_id, summary);
   }
 
   return summaryByFeedId;
+}
+
+function getUtcCalendarDayTimeMs(date: Date): number {
+  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+}
+
+function calculateSubscriptionReviewStaleDays(now: Date, latestArticleDate: Date): number {
+  const dayDeltaMs = getUtcCalendarDayTimeMs(now) - getUtcCalendarDayTimeMs(latestArticleDate);
+
+  return Math.max(0, Math.floor(dayDeltaMs / 86_400_000));
 }
 
 export function buildSubscriptionReviewCandidates({
@@ -204,7 +215,7 @@ export function buildSubscriptionReviewCandidates({
     const latestArticleAt = summary?.latest_article_at ?? null;
 
     const latestArticleDate = parseDateInput(latestArticleAt);
-    const staleDays = latestArticleDate === null ? null : Math.max(0, differenceInDays(now, latestArticleDate));
+    const staleDays = latestArticleDate === null ? null : calculateSubscriptionReviewStaleDays(now, latestArticleDate);
     const unreadCount = clampNonnegativeCount(feed.unread_count);
     const starredCount = clampNonnegativeCount(summary?.starred_count ?? 0);
     const hasFetchedArticle = latestArticleAt !== null;

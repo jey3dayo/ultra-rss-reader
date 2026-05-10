@@ -211,7 +211,7 @@ describe("buildSubscriptionReviewCandidates", () => {
       summaryKey: "stale_and_inactive",
     });
     expect(buildSubscriptionReviewReasonFacts(multiReasonCandidate)).toEqual([
-      { key: "stale_days", value: 93 },
+      { key: "stale_days", value: 94 },
       { key: "unread_count", value: 0 },
       { key: "starred_count", value: 0 },
     ]);
@@ -296,6 +296,61 @@ describe("buildSubscriptionReviewCandidates", () => {
     expect(futureFacts).toEqual([]);
     expect(futureFacts.every((fact) => fact.value >= 0)).toBe(true);
     expect(resolveSubscriptionCleanupRecommendation(futureCandidate)).toBe("retain");
+  });
+
+  it("calculates stale days from UTC calendar days across DST and timezone offsets", () => {
+    const candidates = buildSubscriptionReviewCandidates({
+      feeds: [
+        { ...feeds[0], id: "feed-dst-boundary", title: "DST Boundary", unread_count: 1 },
+        { ...feeds[1], id: "feed-timezone-boundary", title: "Timezone Boundary", unread_count: 1 },
+      ],
+      folders,
+      feedArticleSummaries: [
+        {
+          feed_id: "feed-dst-boundary",
+          latest_article_at: "2026-03-08T05:30:00Z",
+          starred_count: 1,
+        },
+        {
+          feed_id: "feed-timezone-boundary",
+          latest_article_at: "2026-01-05T23:30:00-05:00",
+          starred_count: 1,
+        },
+      ],
+      now: new Date("2026-04-06T00:30:00+09:00"),
+      hiddenFeedIds: new Set(),
+    });
+
+    expect(candidates.find((candidate) => candidate.feedId === "feed-dst-boundary")).toMatchObject({
+      staleDays: 28,
+      reasonKeys: [],
+    });
+    expect(candidates.find((candidate) => candidate.feedId === "feed-timezone-boundary")).toMatchObject({
+      staleDays: 89,
+      reasonKeys: [],
+    });
+  });
+
+  it("keeps invalid latest article dates out of stale day review calculation", () => {
+    const candidates = buildSubscriptionReviewCandidates({
+      feeds: [{ ...feeds[0], id: "feed-invalid-date", unread_count: 1 }],
+      folders,
+      feedArticleSummaries: [
+        {
+          feed_id: "feed-invalid-date",
+          latest_article_at: "not-a-date",
+          starred_count: 1,
+        },
+      ],
+      now: new Date("2026-04-05T00:00:00Z"),
+      hiddenFeedIds: new Set(),
+    });
+
+    expect(candidates[0]).toMatchObject({
+      latestArticleAt: "not-a-date",
+      staleDays: null,
+      reasonKeys: [],
+    });
   });
 
   it("excludes candidates removed by keep or later local state", () => {
@@ -633,11 +688,11 @@ describe("buildSubscriptionReviewCandidates", () => {
     });
 
     expect(buildSubscriptionReviewReasonFacts(candidates[0])).toEqual([
-      { key: "stale_days", value: 154 },
+      { key: "stale_days", value: 155 },
       { key: "unread_count", value: 0 },
     ]);
     expect(buildSubscriptionReviewReasonFacts(candidates[1])).toEqual([
-      { key: "stale_days", value: 93 },
+      { key: "stale_days", value: 94 },
       { key: "unread_count", value: 0 },
       { key: "starred_count", value: 0 },
     ]);
