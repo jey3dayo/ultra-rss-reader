@@ -928,6 +928,9 @@ fn cleanup_feed_integrity_orphans_inner(
     } else {
         repo.delete_orphaned_articles()?
     };
+    if deleted_article_count > 0 {
+        db.refresh_query_statistics()?;
+    }
 
     Ok(FeedIntegrityCleanupDto {
         dry_run,
@@ -1146,9 +1149,11 @@ mod tests {
     use crate::domain::types::{AccountId, ArticleId, FeedId, FolderId};
     use crate::infra::db::connection::DbManager;
     use crate::infra::db::sqlite_article::SqliteArticleRepository;
+    use crate::infra::db::sqlite_feed::SqliteFeedRepository;
     use crate::infra::db::sqlite_pending_mutation::SqlitePendingMutationRepository;
     use crate::platform::{platform_info_for_kind, PlatformKind};
     use crate::repository::article::{ArticleListMode, ArticleRepository, Pagination};
+    use crate::repository::feed::FeedRepository;
     use crate::repository::pending_mutation::{PendingMutationRepository, PendingMutationType};
     use mockito::Server;
     use reqwest::header::{
@@ -1752,6 +1757,48 @@ mod tests {
         assert_eq!(result.deleted_article_count, 1);
         assert_eq!(remaining_orphans, 0);
         assert_eq!(healthy_articles, 1);
+        let article_stats_rows: i64 = {
+            let db_guard = db.lock().expect("test DB lock should succeed");
+            db_guard
+                .reader()
+                .query_row(
+                    "SELECT COUNT(*) FROM sqlite_stat1 WHERE tbl = 'articles'",
+                    [],
+                    |row| row.get(0),
+                )
+                .expect("article stats query should succeed")
+        };
+        assert!(article_stats_rows > 0);
+    }
+
+    #[test]
+    fn cleanup_feed_integrity_orphans_treats_feed_delete_cascade_as_already_clean() {
+        let db = Mutex::new(DbManager::new_in_memory().expect("in-memory DB should initialize"));
+        let syncing = AtomicBool::new(false);
+        {
+            let db_guard = db.lock().expect("test DB lock should succeed");
+            insert_bulk_account(&db_guard, "acc-cascade", "Local");
+            insert_bulk_feed(&db_guard, "feed-cascade", "acc-cascade", None, None);
+            insert_bulk_article(
+                &db_guard,
+                "article-cascade",
+                "feed-cascade",
+                None,
+                "2026-04-01T00:00:00Z",
+                false,
+                false,
+            );
+            SqliteFeedRepository::new(db_guard.writer())
+                .delete(&FeedId("feed-cascade".to_string()))
+                .expect("feed delete should cascade article rows");
+        }
+
+        let result = cleanup_feed_integrity_orphans_inner(&db, &syncing, false)
+            .expect("cleanup after cascade should succeed");
+
+        assert!(!result.dry_run);
+        assert_eq!(result.orphaned_article_count, 0);
+        assert_eq!(result.deleted_article_count, 0);
     }
 
     #[test]

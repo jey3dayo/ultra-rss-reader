@@ -57,7 +57,10 @@ impl DbManager {
             Self::apply_pragmas(&reader)?;
             let mut manager = Self { writer, reader };
             match super::migration::run_migrations(&mut manager.writer) {
-                Ok(_) => {
+                Ok(result) => {
+                    if result.migrated() {
+                        manager.refresh_query_statistics()?;
+                    }
                     manager.reconcile_startup_migration_cost()?;
                     Ok(manager)
                 }
@@ -78,6 +81,7 @@ impl DbManager {
         match super::migration::run_migrations(&mut manager.writer) {
             Ok(result) => {
                 if result.migrated() {
+                    manager.refresh_query_statistics()?;
                     if let Err(e) = super::backup::cleanup_old_backups(db_path, 3) {
                         tracing::warn!("Failed to clean up old backups: {e}");
                     }
@@ -262,9 +266,15 @@ impl DbManager {
         }
     }
 
+    pub fn refresh_query_statistics(&self) -> DomainResult<()> {
+        self.writer.execute_batch("ANALYZE;")?;
+        Ok(())
+    }
+
     pub fn vacuum(&mut self) -> DomainResult<DatabaseInfo> {
         let Some(db_path) = self.database_path()? else {
             self.writer.execute_batch("VACUUM")?;
+            self.refresh_query_statistics()?;
             return self.database_info();
         };
 
@@ -376,7 +386,11 @@ impl DbManager {
         self.reader = reader;
 
         match vacuum_result {
-            Ok(()) => self.database_info(),
+            Ok(()) => {
+                let database_info = self.database_info()?;
+                self.refresh_query_statistics()?;
+                Ok(database_info)
+            }
             Err(vacuum_err) => Err(vacuum_err),
         }
     }
@@ -481,6 +495,35 @@ mod tests {
             assert_eq!(busy_timeout, 5000);
             assert_eq!(journal_mode, "wal");
         }
+    }
+
+    #[test]
+    fn refresh_query_statistics_updates_sqlite_stat1() {
+        let db = DbManager::new_in_memory().unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO accounts (id, kind, name) VALUES ('stats-account', 'Local', 'Stats')",
+                [],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO feeds (id, account_id, title, url) VALUES ('stats-feed', 'stats-account', 'Stats Feed', 'https://example.com/stats.xml')",
+                [],
+            )
+            .unwrap();
+
+        db.refresh_query_statistics().unwrap();
+
+        let stats_rows: i64 = db
+            .reader()
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_stat1 WHERE tbl = 'feeds'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert!(stats_rows > 0);
     }
 
     #[test]
