@@ -1,6 +1,20 @@
 use std::borrow::Cow;
 
 pub const SANITIZER_VERSION: u32 = 2;
+const SANITIZER_ADDED_TAGS: &[&str] = &[
+    "img",
+    "picture",
+    "figure",
+    "figcaption",
+    "video",
+    "source",
+    "blockquote",
+    "pre",
+    "code",
+];
+const SANITIZER_IMG_ATTRS: &[&str] = &["src", "srcset", "sizes", "alt", "width", "height"];
+const SANITIZER_VIDEO_ATTRS: &[&str] = &["src", "controls", "width", "height"];
+const SANITIZER_SOURCE_ATTRS: &[&str] = &["src", "srcset", "sizes", "type", "media"];
 
 pub fn sanitize_html(raw: &str) -> String {
     if raw.trim().is_empty() {
@@ -8,20 +22,10 @@ pub fn sanitize_html(raw: &str) -> String {
     }
 
     ammonia::Builder::default()
-        .add_tags(&[
-            "img",
-            "picture",
-            "figure",
-            "figcaption",
-            "video",
-            "source",
-            "blockquote",
-            "pre",
-            "code",
-        ])
-        .add_tag_attributes("img", &["src", "srcset", "sizes", "alt", "width", "height"])
-        .add_tag_attributes("video", &["src", "controls", "width", "height"])
-        .add_tag_attributes("source", &["src", "srcset", "sizes", "type", "media"])
+        .add_tags(SANITIZER_ADDED_TAGS)
+        .add_tag_attributes("img", SANITIZER_IMG_ATTRS)
+        .add_tag_attributes("video", SANITIZER_VIDEO_ATTRS)
+        .add_tag_attributes("source", SANITIZER_SOURCE_ATTRS)
         .url_schemes(std::collections::HashSet::from(["http", "https"]))
         .attribute_filter(|_, attribute, value| {
             if attribute.eq_ignore_ascii_case("href") {
@@ -323,6 +327,36 @@ mod tests {
     #[test]
     fn records_current_sanitizer_contract_version() {
         assert_eq!(SANITIZER_VERSION, 2);
+    }
+
+    #[test]
+    fn records_current_sanitizer_added_tag_and_attribute_policy() {
+        assert_eq!(
+            SANITIZER_ADDED_TAGS,
+            &[
+                "img",
+                "picture",
+                "figure",
+                "figcaption",
+                "video",
+                "source",
+                "blockquote",
+                "pre",
+                "code",
+            ],
+        );
+        assert_eq!(
+            SANITIZER_IMG_ATTRS,
+            &["src", "srcset", "sizes", "alt", "width", "height"],
+        );
+        assert_eq!(
+            SANITIZER_VIDEO_ATTRS,
+            &["src", "controls", "width", "height"],
+        );
+        assert_eq!(
+            SANITIZER_SOURCE_ATTRS,
+            &["src", "srcset", "sizes", "type", "media"],
+        );
     }
 
     #[test]

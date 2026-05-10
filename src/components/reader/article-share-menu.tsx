@@ -10,6 +10,7 @@ import {
   copyArticleLink,
   normalizeArticleExternalBrowserUrl,
 } from "./article-browser-actions";
+import { CONTEXT_MENU_ACTION_IDS, createMenuActionHandler } from "./context-menu-action-policy";
 import { contextMenuStyles } from "./context-menu-styles";
 
 const articleShareMenuUnavailableClassName =
@@ -96,21 +97,31 @@ function isAppError(error: unknown): error is AppError {
 }
 
 function runArticleShareMenuAction(
+  actionId: Parameters<typeof createMenuActionHandler>[0],
   action: () => Promise<unknown>,
   showToast: ArticleShareMenuProps["showToast"],
   errorLabel: string,
 ) {
-  void action().catch((error: unknown) => {
-    const appError: AppError = isAppError(error)
-      ? error
-      : {
-          type: "UserVisible",
-          message: error instanceof Error ? error.message : String(error),
-        };
-    const actionError = categorizeArticleActionError(appError);
-    console.error(errorLabel, actionError);
-    showToast(actionError.message);
-  });
+  return createMenuActionHandler(
+    actionId,
+    async () => {
+      await action();
+    },
+    {
+      showToast,
+      getToastMessage: (error: unknown) => {
+        const appError: AppError = isAppError(error)
+          ? error
+          : {
+              type: "UserVisible",
+              message: error instanceof Error ? error.message : String(error),
+            };
+        const actionError = categorizeArticleActionError(appError);
+        console.error(errorLabel, actionError);
+        return actionError.message;
+      },
+    },
+  );
 }
 
 export function ArticleShareMenu({ article, supportsReadingList, showToast, labels }: ArticleShareMenuProps) {
@@ -127,40 +138,40 @@ export function ArticleShareMenu({ article, supportsReadingList, showToast, labe
         <Menu.Positioner sideOffset={4}>
           <Menu.Popup className={contextMenuStyles.popup}>
             <Menu.Item
+              data-action-id={CONTEXT_MENU_ACTION_IDS.articleCopyLink}
               className={contextMenuStyles.item}
-              onClick={() => {
-                runArticleShareMenuAction(
-                  async () => {
-                    if (!article?.url) return;
-                    await copyArticleLink(article.url, {
-                      showToast,
-                      successMessage: labels.linkCopied,
-                    });
-                  },
-                  showToast,
-                  "Copy failed",
-                );
-              }}
+              onClick={runArticleShareMenuAction(
+                CONTEXT_MENU_ACTION_IDS.articleCopyLink,
+                async () => {
+                  if (!article?.url) return;
+                  await copyArticleLink(article.url, {
+                    showToast,
+                    successMessage: labels.linkCopied,
+                  });
+                },
+                showToast,
+                "Copy failed",
+              )}
             >
               <Copy className="mr-2 size-4" />
               {labels.copyLink}
             </Menu.Item>
             {supportsReadingList ? (
               <Menu.Item
+                data-action-id={CONTEXT_MENU_ACTION_IDS.articleAddToReadingList}
                 className={contextMenuStyles.item}
-                onClick={() => {
-                  runArticleShareMenuAction(
-                    async () => {
-                      if (!article?.url) return;
-                      await addArticleToReadingList(article.url, {
-                        showToast,
-                        successMessage: labels.addedToReadingList,
-                      });
-                    },
-                    showToast,
-                    "Add to reading list failed",
-                  );
-                }}
+                onClick={runArticleShareMenuAction(
+                  CONTEXT_MENU_ACTION_IDS.articleAddToReadingList,
+                  async () => {
+                    if (!article?.url) return;
+                    await addArticleToReadingList(article.url, {
+                      showToast,
+                      successMessage: labels.addedToReadingList,
+                    });
+                  },
+                  showToast,
+                  "Add to reading list failed",
+                )}
               >
                 <BookmarkPlus className="mr-2 size-4" />
                 {labels.addToReadingList}
@@ -168,36 +179,30 @@ export function ArticleShareMenu({ article, supportsReadingList, showToast, labe
             ) : null}
             <Menu.Separator className={contextMenuStyles.separator} />
             <Menu.Item
+              data-action-id={CONTEXT_MENU_ACTION_IDS.articleShareEmail}
               className={contextMenuStyles.item}
-              onClick={() => {
-                runArticleShareMenuAction(
-                  async () => {
-                    if (!article) return;
-                    const mailtoResult = buildArticleMailto(article);
-                    if (Result.isFailure(mailtoResult)) {
-                      const error = Result.unwrapError(mailtoResult);
-                      if (error) {
-                        const actionError = categorizeArticleActionError(error);
-                        console.error("Failed to open email client:", actionError);
-                        showToast(actionError.message);
-                      }
-                      return;
+              onClick={runArticleShareMenuAction(
+                CONTEXT_MENU_ACTION_IDS.articleShareEmail,
+                async () => {
+                  if (!article) return;
+                  const mailtoResult = buildArticleMailto(article);
+                  if (Result.isFailure(mailtoResult)) {
+                    const error = Result.unwrapError(mailtoResult);
+                    if (error) {
+                      throw error;
                     }
+                    return;
+                  }
 
-                    const mailto = Result.unwrap(mailtoResult);
-                    Result.pipe(
-                      await openExternalUrl(mailto),
-                      Result.inspectError((error) => {
-                        const actionError = categorizeArticleActionError(error);
-                        console.error("Failed to open email client:", actionError);
-                        showToast(actionError.message);
-                      }),
-                    );
-                  },
-                  showToast,
-                  "Failed to open email client:",
-                );
-              }}
+                  const mailto = Result.unwrap(mailtoResult);
+                  const result = await openExternalUrl(mailto);
+                  if (Result.isFailure(result)) {
+                    throw Result.unwrapError(result);
+                  }
+                },
+                showToast,
+                "Failed to open email client:",
+              )}
             >
               <Mail className="mr-2 size-4" />
               {labels.shareViaEmail}

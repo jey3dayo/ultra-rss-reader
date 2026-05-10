@@ -81,6 +81,25 @@ describe("createQuery", () => {
     expect(result.current.failureCount).toBe(1);
   });
 
+  it("retries retryable generated read query failures without retrying command side effects", async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(Result.fail({ type: "Retryable", message: "network timeout" }))
+      .mockResolvedValueOnce(Result.succeed({ id: "item-1" }));
+    const useGeneratedQuery = createQuery("items", fetcher);
+
+    const { result } = renderHook(() => useGeneratedQuery("item-1"), {
+      wrapper,
+    });
+
+    await waitFor(() => {
+      expect(result.current.data).toEqual({ id: "item-1" });
+    });
+
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(result.current.failureCount).toBe(0);
+  });
+
   it("unwraps Result.fail into a query error", async () => {
     const fetcher = vi.fn(async () => Result.fail({ message: "load failed" }));
     const useGeneratedQuery = createQuery("items", fetcher);

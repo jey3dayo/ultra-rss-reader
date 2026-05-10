@@ -1,5 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { useQuery } from "@tanstack/react-query";
+import type { AppError } from "@/api/schemas/error";
+import { shouldRetryReadQuery } from "@/lib/query/query-client";
 import { normalizeQueryAccountId } from "@/lib/query/query-invalidation";
 
 export type CreateQueryDiagnostic =
@@ -49,11 +51,21 @@ function redactDiagnosticQueryId(queryId: string): string {
 }
 
 function redactDiagnosticError(error: unknown, queryKey: string, queryId: string): unknown {
+  const redactedMessagePattern = `[${queryKey}:${queryId}]`;
+  const redactedMessageReplacement = `[${queryKey}:<redacted>]`;
+
   if (!(error instanceof Error)) {
+    if (error !== null && typeof error === "object" && "message" in error && typeof error.message === "string") {
+      return {
+        ...error,
+        message: error.message.replace(redactedMessagePattern, redactedMessageReplacement),
+      };
+    }
+
     return error;
   }
 
-  const redactedMessage = error.message.replace(`[${queryKey}:${queryId}]`, `[${queryKey}:<redacted>]`);
+  const redactedMessage = error.message.replace(redactedMessagePattern, redactedMessageReplacement);
   if (redactedMessage === error.message) {
     return error;
   }
@@ -64,13 +76,18 @@ function redactDiagnosticError(error: unknown, queryKey: string, queryId: string
   return redactedError;
 }
 
+type GeneratedQueryError = Pick<AppError, "message"> & Partial<Pick<AppError, "type">>;
+
 function unwrapGeneratedQueryResult<TData>(
-  result: Result.Result<TData, { message: string }>,
+  result: Result.Result<TData, GeneratedQueryError>,
   queryKey: string,
   queryId: string,
 ): TData {
   if (Result.isFailure(result)) {
-    throw new Error(`[${queryKey}:${queryId}] ${result.error.message}`);
+    throw {
+      ...result.error,
+      message: `[${queryKey}:${queryId}] ${result.error.message}`,
+    };
   }
 
   return result.value;
@@ -78,11 +95,11 @@ function unwrapGeneratedQueryResult<TData>(
 
 export function createQuery<TData, TId extends string | null>(
   queryKey: string,
-  fetcher: (id: string) => Result.ResultAsync<TData, { message: string }>,
+  fetcher: (id: string) => Result.ResultAsync<TData, GeneratedQueryError>,
 ) {
   return function useGeneratedQuery(id: TId) {
     const queryId = normalizeQueryId(id);
-    return useQuery<TData, Error, TData, [string, string | null]>({
+    return useQuery<TData, GeneratedQueryError | Error, TData, [string, string | null]>({
       queryKey: [queryKey, queryId],
       queryFn: () => {
         if (queryId === null) {
@@ -106,7 +123,7 @@ export function createQuery<TData, TId extends string | null>(
           });
       },
       enabled: queryId !== null,
-      retry: false,
+      retry: shouldRetryReadQuery,
     });
   };
 }

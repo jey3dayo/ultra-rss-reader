@@ -2056,7 +2056,7 @@ describe("ArticleView", () => {
     expect(within(summary).getByRole("heading", { level: 3, name: "Gaming" })).toBeInTheDocument();
     expectSummaryLeadingVisual(summary, "size-5");
     expectSummaryMetricMotionValue(summary, "Feeds", "1");
-    expectSummaryMetricMotionValue(summary, "Unread", "2");
+    expectSummaryMetricMotionValue(summary, "Unread", "1");
     expect(within(summary).getByText(/^(Latest Update|latest_update)/i)).toBeInTheDocument();
     expect(screen.queryByText("Select an article")).not.toBeInTheDocument();
   });

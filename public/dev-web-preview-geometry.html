@@ -3,6 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="dev-web-preview-geometry:path" content="/dev-web-preview-geometry.html" />
     <title>Web Preview Geometry Check</title>
     <style>
       :root {
@@ -157,12 +158,12 @@
   </head>
   <body>
     <header class="top-band">
-      <div class="edge-label">left edge</div>
+      <div class="edge-label" data-geometry-rail="left">left edge</div>
       <div class="summary">
         <strong>native webview should touch both colored rails</strong>
         <span>if either rail disappears or turns into app background, geometry is still wrong</span>
       </div>
-      <div class="edge-label right">right edge</div>
+      <div class="edge-label right" data-geometry-rail="right">right edge</div>
     </header>
 
     <main class="grid">
@@ -185,9 +186,9 @@
     </main>
 
     <div class="ruler" aria-hidden="true">
+      <div data-geometry-rail="left"></div>
       <div></div>
-      <div></div>
-      <div></div>
+      <div data-geometry-rail="right"></div>
     </div>
   </body>
 </html>

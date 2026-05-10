@@ -1,13 +1,23 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, normalize, relative } from "node:path";
 
+export type TypeSurfaceAllowlistEntry =
+  | string
+  | {
+      readonly path: string;
+      readonly intent: string;
+      readonly followUpTodo: string;
+      readonly allowedRestrictedExports?: readonly string[];
+    };
+
 export type TypeSurfaceContract = {
   readonly label: string;
-  readonly typeFileList: readonly string[];
+  readonly typeFileList: readonly TypeSurfaceAllowlistEntry[];
 };
 
 export type TypeSurfaceHelper = {
   readonly assertTypeFileList: (contract: TypeSurfaceContract) => void;
+  readonly assertRemainingTypeSurfaceAllowlist: (contract: TypeSurfaceContract) => void;
   readonly collectPublicContractDiagnostics: (contract: TypeSurfaceContract) => string[];
 };
 
@@ -76,12 +86,29 @@ function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+function getTypeFilePath(entry: TypeSurfaceAllowlistEntry) {
+  return typeof entry === "string" ? entry : entry.path;
+}
+
+function getRestrictedExportNames(surfaceFile: string, source: string) {
+  return extractExportedTypeNames(surfaceFile, source)
+    .map(({ name }) => name)
+    .filter((name) => /(Props|Params|Result)$/.test(name))
+    .toSorted();
+}
+
 export function createTypeSurfaceHelper({
   expect,
   repoRoot,
   searchDirectories,
 }: {
-  expect: (actual: unknown, message?: string) => { toEqual: (expected: unknown) => void };
+  expect: (
+    actual: unknown,
+    message?: string,
+  ) => {
+    toBe: (expected: unknown) => void;
+    toEqual: (expected: unknown) => void;
+  };
   repoRoot: string;
   searchDirectories: readonly string[];
 }): TypeSurfaceHelper {
@@ -106,13 +133,41 @@ export function createTypeSurfaceHelper({
 
   return {
     assertTypeFileList({ typeFileList }: TypeSurfaceContract) {
-      expect(typeFileList.filter((path) => !existsSync(join(repoRoot, path)))).toEqual([]);
-      expect(typeFileList).toEqual([...typeFileList].toSorted());
+      const typeFilePaths = typeFileList.map(getTypeFilePath);
+
+      expect(typeFilePaths.filter((path) => !existsSync(join(repoRoot, path)))).toEqual([]);
+      expect(typeFilePaths).toEqual([...typeFilePaths].toSorted());
+    },
+    assertRemainingTypeSurfaceAllowlist({ typeFileList }: TypeSurfaceContract) {
+      const remainingTypeSurfaceFiles = typeSurfaceSearchFiles.filter((path) => path.endsWith(".types.ts")).toSorted();
+      const typeFilePaths = typeFileList.map(getTypeFilePath);
+
+      expect(typeFileList.every((entry) => typeof entry !== "string")).toBe(true);
+      expect(typeFilePaths.filter((path) => !existsSync(join(repoRoot, path)))).toEqual([]);
+      expect(typeFilePaths).toEqual(remainingTypeSurfaceFiles);
+
+      for (const entry of typeFileList) {
+        if (typeof entry === "string") {
+          continue;
+        }
+
+        expect(
+          entry.intent.trim().length > 0,
+          `${entry.path} should document why the type surface is intentional`,
+        ).toBe(true);
+        expect(
+          entry.followUpTodo.trim().length > 0,
+          `${entry.path} should keep the cleanup TODO reference visible`,
+        ).toBe(true);
+        expect(getRestrictedExportNames(entry.path, readCachedRepoFile(entry.path)), entry.path).toEqual(
+          [...(entry.allowedRestrictedExports ?? [])].toSorted(),
+        );
+      }
     },
     collectPublicContractDiagnostics({ label, typeFileList }: TypeSurfaceContract) {
       const diagnostics: string[] = [];
 
-      for (const surfaceFile of typeFileList) {
+      for (const surfaceFile of typeFileList.map(getTypeFilePath)) {
         const exportedTypeNames = extractExportedTypeNames(surfaceFile, readCachedRepoFile(surfaceFile));
 
         for (const { name: typeName, sourcePath } of exportedTypeNames) {

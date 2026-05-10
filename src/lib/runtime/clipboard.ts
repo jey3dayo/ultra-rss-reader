@@ -13,6 +13,9 @@ export type ClipboardCopyError = AppError & {
 
 export const CLIPBOARD_TEXT_MAX_CHARS = SHARE_COMMAND_TEXT_MAX_CHARS;
 const INVALID_CLIPBOARD_TEXT_MESSAGE = "Invalid clipboard text";
+const graphemeSegmenter = new Intl.Segmenter(undefined, {
+  granularity: "grapheme",
+});
 
 type ClipboardTextCategory = "plain_text" | "article_link";
 
@@ -73,8 +76,12 @@ function invalidClipboardTextError(
   };
 }
 
+function countClipboardGraphemes(value: string): number {
+  return Array.from(graphemeSegmenter.segment(value)).length;
+}
+
 function validateClipboardText(value: string, category: ClipboardTextCategory): ClipboardCopyError | null {
-  if (value.trim().length === 0 || Array.from(value).length > CLIPBOARD_TEXT_MAX_CHARS) {
+  if (value.trim().length === 0 || countClipboardGraphemes(value) > CLIPBOARD_TEXT_MAX_CHARS) {
     return invalidClipboardTextError();
   }
 

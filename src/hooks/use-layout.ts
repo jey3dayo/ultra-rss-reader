@@ -23,12 +23,19 @@ export function resolveResponsiveLayoutMode(
   return preferredLayoutMode;
 }
 
-export function resolveLayout(layoutMode: LayoutMode, focusedPane: FocusedPane, _contentMode: ContentMode): Pane[] {
+function shouldRenderCompactContentPane(focusedPane: FocusedPane, contentMode: ContentMode): boolean {
+  if (contentMode === "empty") {
+    return focusedPane === "content";
+  }
+  return focusedPane === "content";
+}
+
+export function resolveLayout(layoutMode: LayoutMode, focusedPane: FocusedPane, contentMode: ContentMode): Pane[] {
   if (layoutMode === "wide") {
     return ["sidebar", "list", "content"];
   }
   if (layoutMode === "compact") {
-    return focusedPane === "content" ? ["list", "content"] : ["sidebar", "list"];
+    return shouldRenderCompactContentPane(focusedPane, contentMode) ? ["list", "content"] : ["sidebar", "list"];
   }
   return [focusedPane];
 }

@@ -770,6 +770,50 @@ describe("tauri-commands with custom handler", () => {
     expect(JSON.stringify(consoleError.mock.calls)).not.toContain("auth-fragment");
   });
 
+  it("labels unknown network runtime failures as retryable for read query retry policy", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    setupTauriMocks((cmd) => {
+      if (cmd === "list_accounts") {
+        throw new Error("Network timeout while loading accounts");
+      }
+      return null;
+    });
+
+    expect(Result.unwrapError(await listAccounts())).toEqual({
+      type: "Retryable",
+      message: "Network timeout while loading accounts",
+    });
+    expect(consoleError).toHaveBeenCalledWith(
+      "[tauri-commands] list_accounts failed:",
+      "Network timeout while loading accounts",
+    );
+  });
+
+  it("keeps auth and permission runtime failures non-retryable for command side effects", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const cases = [
+      ["add_account", () => addAccount("Local", "Local"), new Error("Authentication failed")],
+      ["copy_to_clipboard", () => copyToClipboard("hello"), new Error("Permission denied")],
+    ] as const;
+
+    for (const [command, runCommand, thrown] of cases) {
+      setupTauriMocks((cmd) => {
+        if (cmd === command) {
+          throw thrown;
+        }
+        return null;
+      });
+
+      expect(Result.unwrapError(await runCommand())).toEqual({
+        type: "UserVisible",
+        message: thrown.message,
+      });
+    }
+
+    expect(consoleError).toHaveBeenCalledWith("[tauri-commands] add_account failed:", "Authentication failed");
+    expect(consoleError).toHaveBeenCalledWith("[tauri-commands] copy_to_clipboard failed:", "Permission denied");
+  });
+
   it("redacts URL tokens from non-Error rejected values before logging or returning fallback messages", async () => {
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
     setupTauriMocks((cmd) => {

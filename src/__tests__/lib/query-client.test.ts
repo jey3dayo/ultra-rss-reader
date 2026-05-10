@@ -5,18 +5,30 @@ import {
   queryClient,
   queryClientDefaultOptions,
   queryClientLifecyclePolicy,
+  READ_QUERY_RETRY_LIMIT,
+  shouldRetryCommandSideEffect,
+  shouldRetryReadQuery,
 } from "@/lib/query/query-client";
 
 describe("query client retry policy", () => {
-  it("keeps local IPC read queries non-retrying in production and tests", () => {
-    expect(queryClient.getDefaultOptions().queries?.retry).toBe(false);
-    expect(queryClientDefaultOptions.queries.retry).toBe(false);
+  it("retries only retryable read query failures within the bounded default policy", () => {
+    expect(queryClient.getDefaultOptions().queries?.retry).toBe(shouldRetryReadQuery);
+    expect(queryClientDefaultOptions.queries.retry).toBe(shouldRetryReadQuery);
+    expect(READ_QUERY_RETRY_LIMIT).toBe(2);
+    expect(shouldRetryReadQuery(0, { type: "Retryable", message: "network timeout" })).toBe(true);
+    expect(shouldRetryReadQuery(1, { type: "Retryable", message: "network timeout" })).toBe(true);
+    expect(shouldRetryReadQuery(2, { type: "Retryable", message: "network timeout" })).toBe(false);
+    expect(shouldRetryReadQuery(0, { type: "UserVisible", message: "Authentication failed" })).toBe(false);
+    expect(shouldRetryReadQuery(0, { type: "UserVisible", message: "Permission denied" })).toBe(false);
+    expect(shouldRetryReadQuery(0, { type: "Diagnostics", message: "Response validation failed" })).toBe(false);
+    expect(shouldRetryReadQuery(0, { message: "Command validation failed" })).toBe(false);
     expect(createTestQueryClient().getDefaultOptions().queries?.retry).toBe(false);
   });
 
-  it("keeps test mutations non-retrying by default", () => {
-    expect(queryClient.getDefaultOptions().mutations?.retry).toBe(false);
-    expect(queryClientDefaultOptions.mutations.retry).toBe(false);
+  it("keeps command side effects non-retrying by default", () => {
+    expect(queryClient.getDefaultOptions().mutations?.retry).toBe(shouldRetryCommandSideEffect);
+    expect(queryClientDefaultOptions.mutations.retry).toBe(shouldRetryCommandSideEffect);
+    expect(shouldRetryCommandSideEffect()).toBe(false);
     expect(createTestQueryClient().getDefaultOptions().mutations?.retry).toBe(false);
   });
 

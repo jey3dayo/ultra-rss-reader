@@ -13,6 +13,7 @@ import {
 } from "@/lib/articles/article-display";
 import { getErrorMessage } from "@/lib/ui/errors";
 import { useUiStore } from "@/stores/ui-store";
+import { CONTEXT_MENU_ACTION_IDS, createMenuActionHandler } from "./context-menu-action-policy";
 import { FolderContextMenuView } from "./folder-context-menu-view";
 
 type FolderContextMenuContentProps = {
@@ -67,11 +68,9 @@ export function FolderContextMenuContent({ folder, folderUnread, feeds }: Folder
       const nextModes = displayPresetToTriStateModes(value);
       await Promise.all(
         feeds.map((feed) => updateFeedDisplaySettings(feed.id, nextModes.readerMode, nextModes.webPreviewMode)),
-      ).catch((error: unknown) =>
-        showToast(t("failed_to_update_display_settings", { message: getErrorMessage(error) })),
       );
     },
-    [feeds, showToast, t, updateFeedDisplaySettings],
+    [feeds, updateFeedDisplaySettings],
   );
 
   return (
@@ -84,12 +83,23 @@ export function FolderContextMenuContent({ folder, folderUnread, feeds }: Folder
       selectedDisplayPreset={selectedDisplayPreset}
       hasUnreadArticles={folderUnread > 0}
       onMarkAllRead={handleMarkAllRead}
-      onMarkOldUnreadRead={(days) => {
-        void markOldUnreadRead(days);
-      }}
-      onSetDisplayPreset={(value) => {
-        void handleSetDisplayPreset(value);
-      }}
+      onMarkOldUnreadRead={(days) =>
+        createMenuActionHandler(
+          CONTEXT_MENU_ACTION_IDS.folderMarkOldUnreadReadDays,
+          () => markOldUnreadRead(days),
+          { showToast },
+        )()
+      }
+      onSetDisplayPreset={(value) =>
+        createMenuActionHandler(
+          CONTEXT_MENU_ACTION_IDS.folderSetDisplayPreset,
+          () => handleSetDisplayPreset(value),
+          {
+            showToast,
+            getToastMessage: (error) => t("failed_to_update_display_settings", { message: getErrorMessage(error) }),
+          },
+        )()
+      }
     />
   );
 }

@@ -166,6 +166,13 @@ type GenericInvokeOptions = InvokeArgsOptions;
 
 const VALIDATION_ISSUE_LIMIT = 3;
 const VALIDATION_DETAIL_MAX_LENGTH = 240;
+const RETRYABLE_RUNTIME_ERROR_PATTERNS = [
+  /\bnetwork\b/i,
+  /\btimeout\b/i,
+  /\btimed out\b/i,
+  /\btemporar(?:y|ily)\b/i,
+  /\bconnection (?:reset|refused|closed|aborted)\b/i,
+];
 
 class ResponseValidationError extends Error {
   readonly cause: z.ZodError;
@@ -218,6 +225,10 @@ function redactAppError(error: AppError): AppError {
   };
 }
 
+function isRetryableRuntimeErrorMessage(message: string): boolean {
+  return RETRYABLE_RUNTIME_ERROR_PATTERNS.some((pattern) => pattern.test(message));
+}
+
 function toAppError(cmd: string, error: unknown): AppError {
   if (error instanceof ResponseValidationError) {
     const detail = formatZodIssues(error.cause);
@@ -239,6 +250,9 @@ function toAppError(cmd: string, error: unknown): AppError {
 
   const message = redactRuntimeDiagnosticText(runtimeErrorMessage(error));
   console.error(`[tauri-commands] ${cmd} failed:`, message);
+  if (isRetryableRuntimeErrorMessage(message)) {
+    return { type: "Retryable", message };
+  }
   return { type: "UserVisible", message };
 }
 

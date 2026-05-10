@@ -182,6 +182,7 @@ describe("useArticleBrowserOverlayClose", () => {
       contentMode: "browser",
       browserCloseInFlight: false,
       pendingBrowserCloseAction: "next-article",
+      pendingBrowserCloseActionQueue: ["next-article"],
       setFocusedPane,
     });
     const closeBrowser = vi.fn();
@@ -395,6 +396,7 @@ describe("useArticleBrowserOverlayClose", () => {
       contentMode: "browser",
       browserCloseInFlight: false,
       pendingBrowserCloseAction: "next-article",
+      pendingBrowserCloseActionQueue: ["next-article"],
       setFocusedPane,
     });
     const closeBrowser = vi.fn();

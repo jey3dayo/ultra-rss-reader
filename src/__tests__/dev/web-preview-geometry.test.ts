@@ -12,6 +12,12 @@ describe("dev-web-preview-geometry", () => {
     );
   });
 
+  it("resolves the preview page from nested app routes without inheriting their path", () => {
+    window.history.replaceState(null, "", "/reader/account-1/feed-1");
+
+    expect(resolveDevWebPreviewGeometryUrl()).toBe(`${window.location.origin}/dev-web-preview-geometry.html`);
+  });
+
   it("returns the preview path when window is unavailable", () => {
     vi.stubGlobal("window", undefined);
 

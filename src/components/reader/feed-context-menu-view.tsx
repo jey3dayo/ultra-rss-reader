@@ -1,5 +1,6 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { contextMenuStyles } from "./context-menu-styles";
+import { CONTEXT_MENU_ACTION_IDS } from "./context-menu-action-policy";
 import { OldUnreadContextMenuItems, type OldUnreadDayPreset } from "./old-unread-context-menu-items";
 
 type FeedContextMenuViewProps = {
@@ -43,15 +44,23 @@ export function FeedContextMenuView({
     <ContextMenu.Portal>
       <ContextMenu.Positioner>
         <ContextMenu.Popup className={contextMenuStyles.popup}>
-          <ContextMenu.Item data-action-id="feed-edit" className={contextMenuStyles.item} onClick={onEdit}>
+          <ContextMenu.Item
+            data-action-id={CONTEXT_MENU_ACTION_IDS.feedEdit}
+            className={contextMenuStyles.item}
+            onClick={onEdit}
+          >
             {editLabel}
           </ContextMenu.Item>
-          <ContextMenu.Item data-action-id="feed-open-site" className={contextMenuStyles.item} onClick={onOpenSite}>
+          <ContextMenu.Item
+            data-action-id={CONTEXT_MENU_ACTION_IDS.feedOpenSite}
+            className={contextMenuStyles.item}
+            onClick={onOpenSite}
+          >
             {openSiteLabel}
           </ContextMenu.Item>
           {hasUnreadArticles && (
             <ContextMenu.Item
-              data-action-id="feed-mark-all-read"
+              data-action-id={CONTEXT_MENU_ACTION_IDS.feedMarkAllRead}
               className={contextMenuStyles.item}
               onClick={onMarkAllRead}
             >
@@ -59,7 +68,8 @@ export function FeedContextMenuView({
             </ContextMenu.Item>
           )}
           <OldUnreadContextMenuItems
-            actionId="feed-mark-old-unread-read"
+            actionId={CONTEXT_MENU_ACTION_IDS.feedMarkOldUnreadRead}
+            dayActionId={CONTEXT_MENU_ACTION_IDS.feedMarkOldUnreadReadDays}
             label={markOldUnreadReadLabel}
             dayLabel={oldUnreadDayLabel}
             onSelect={onMarkOldUnreadRead}
@@ -69,7 +79,7 @@ export function FeedContextMenuView({
           {displayPresetOptions.map((option) => (
             <ContextMenu.Item
               key={option.value}
-              data-action-id="feed-set-display-preset"
+              data-action-id={CONTEXT_MENU_ACTION_IDS.feedSetDisplayPreset}
               data-action-value={option.value}
               className={contextMenuStyles.item}
               onClick={() => onSetDisplayPreset(option.value)}
@@ -82,7 +92,7 @@ export function FeedContextMenuView({
           ))}
           <ContextMenu.Separator className={contextMenuStyles.separator} />
           <ContextMenu.Item
-            data-action-id="feed-unsubscribe"
+            data-action-id={CONTEXT_MENU_ACTION_IDS.feedUnsubscribe}
             className={contextMenuStyles.destructiveItem}
             onClick={onUnsubscribe}
           >

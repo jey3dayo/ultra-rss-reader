@@ -15,9 +15,9 @@ import {
   resolveFeedDisplayPreset,
 } from "@/lib/articles/article-display";
 import { resolveSiteHostLabel } from "@/lib/feed/feed";
-import { getErrorMessage } from "@/lib/ui/errors";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
+import { CONTEXT_MENU_ACTION_IDS, createMenuActionHandler } from "./context-menu-action-policy";
 import { FeedContextMenuView } from "./feed-context-menu-view";
 import { buildFeedMarkAllReadConfirmation } from "./feed-mark-all-read";
 import { RenameDialog } from "./rename-feed-dialog";
@@ -73,26 +73,16 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
     preview: t("display_mode_preview"),
   });
 
-  const handleOpenSite = useCallback(() => {
+  const handleOpenSite = useCallback(async () => {
     const url = feed.site_url || feed.url;
     if (url) {
       const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
-      void openInBrowser(url, bg)
-        .then((result) =>
-          Result.pipe(
-            result,
-            Result.inspectError((e) => {
-              console.error("Failed to open site:", e);
-              showToast(e.message);
-            }),
-          ),
-        )
-        .catch((error: unknown) => {
-          console.error("Failed to open site:", error);
-          showToast(getErrorMessage(error));
-        });
+      const result = await openInBrowser(url, bg);
+      if (Result.isFailure(result)) {
+        throw Result.unwrapError(result);
+      }
     }
-  }, [feed.site_url, feed.url, showToast]);
+  }, [feed.site_url, feed.url]);
 
   const handleMarkAllRead = useCallback(() => {
     confirmMarkAllRead(
@@ -111,13 +101,9 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
       }
 
       const nextModes = displayPresetToTriStateModes(value);
-      void updateFeedDisplaySettings(feed.id, nextModes.readerMode, nextModes.webPreviewMode).catch(
-        (error: unknown) => {
-          showToast(getErrorMessage(error));
-        },
-      );
+      return updateFeedDisplaySettings(feed.id, nextModes.readerMode, nextModes.webPreviewMode);
     },
-    [feed.id, showToast, updateFeedDisplaySettings],
+    [feed.id, updateFeedDisplaySettings],
   );
 
   const handleOpenUnsubscribeDialog = useCallback(() => {
@@ -163,12 +149,28 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
         unsubscribeLabel={t("unsubscribe_ellipsis")}
         editLabel={t("edit_ellipsis")}
         hasUnreadArticles={feed.unread_count > 0}
-        onOpenSite={handleOpenSite}
+        onOpenSite={createMenuActionHandler(CONTEXT_MENU_ACTION_IDS.feedOpenSite, handleOpenSite, { showToast })}
         onMarkAllRead={handleMarkAllRead}
         onMarkOldUnreadRead={(days) => {
-          void markOldUnreadRead(days);
+          createMenuActionHandler(
+            CONTEXT_MENU_ACTION_IDS.feedMarkOldUnreadReadDays,
+            async () => {
+              await markOldUnreadRead(days);
+            },
+            {
+              showToast,
+            },
+          )();
         }}
-        onSetDisplayPreset={handleSetDisplayPreset}
+        onSetDisplayPreset={(value) => {
+          createMenuActionHandler(
+            CONTEXT_MENU_ACTION_IDS.feedSetDisplayPreset,
+            async () => {
+              await handleSetDisplayPreset(value);
+            },
+            { showToast },
+          )();
+        }}
         onUnsubscribe={handleOpenUnsubscribeDialog}
         onEdit={handleOpenRenameDialog}
       />

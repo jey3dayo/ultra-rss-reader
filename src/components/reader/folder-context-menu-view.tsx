@@ -1,5 +1,6 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { contextMenuStyles } from "./context-menu-styles";
+import { CONTEXT_MENU_ACTION_IDS } from "./context-menu-action-policy";
 import { OldUnreadContextMenuItems, type OldUnreadDayPreset } from "./old-unread-context-menu-items";
 
 type FolderContextMenuViewProps = {
@@ -33,7 +34,7 @@ export function FolderContextMenuView({
         <ContextMenu.Popup className={contextMenuStyles.popup}>
           {hasUnreadArticles && (
             <ContextMenu.Item
-              data-action-id="folder-mark-all-read"
+              data-action-id={CONTEXT_MENU_ACTION_IDS.folderMarkAllRead}
               className={contextMenuStyles.item}
               onClick={onMarkAllRead}
             >
@@ -41,7 +42,8 @@ export function FolderContextMenuView({
             </ContextMenu.Item>
           )}
           <OldUnreadContextMenuItems
-            actionId="folder-mark-old-unread-read"
+            actionId={CONTEXT_MENU_ACTION_IDS.folderMarkOldUnreadRead}
+            dayActionId={CONTEXT_MENU_ACTION_IDS.folderMarkOldUnreadReadDays}
             label={markOldUnreadReadLabel}
             dayLabel={oldUnreadDayLabel}
             onSelect={onMarkOldUnreadRead}
@@ -51,7 +53,7 @@ export function FolderContextMenuView({
           {displayPresetOptions.map((option) => (
             <ContextMenu.Item
               key={option.value}
-              data-action-id="folder-set-display-preset"
+              data-action-id={CONTEXT_MENU_ACTION_IDS.folderSetDisplayPreset}
               data-action-value={option.value}
               className={contextMenuStyles.item}
               onClick={() => onSetDisplayPreset(option.value)}

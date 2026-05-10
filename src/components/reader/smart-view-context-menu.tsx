@@ -12,6 +12,7 @@ import { useConfirmMarkAllRead } from "@/hooks/use-confirm-mark-all-read";
 import type { SmartViewItemViewModel } from "@/lib/sidebar/sidebar-smart-views";
 import { useUiStore } from "@/stores/ui-store";
 import { contextMenuStyles } from "./context-menu-styles";
+import { CONTEXT_MENU_ACTION_IDS, createMenuActionHandler } from "./context-menu-action-policy";
 import { OldUnreadContextMenuItems } from "./old-unread-context-menu-items";
 
 type SmartViewContextMenuContentProps = {
@@ -28,6 +29,7 @@ export function SmartViewContextMenuContent({ accountId, view }: SmartViewContex
   const unstarAccountArticles = useUnstarAccountArticles();
   const clearArticleViewHistory = useClearArticleViewHistory();
   const showConfirm = useUiStore((state) => state.showConfirm);
+  const showToast = useUiStore((state) => state.showToast);
 
   const handleMarkUnreadRead = useCallback(() => {
     confirmMarkAllRead({
@@ -66,18 +68,23 @@ export function SmartViewContextMenuContent({ accountId, view }: SmartViewContex
         <ContextMenu.Positioner>
           <ContextMenu.Popup className={contextMenuStyles.popup}>
             <ContextMenu.Item
-              data-action-id="smart-unread-mark-all-read"
+              data-action-id={CONTEXT_MENU_ACTION_IDS.smartUnreadMarkAllRead}
               className={contextMenuStyles.item}
               onClick={handleMarkUnreadRead}
             >
               {t("mark_all_as_read")}
             </ContextMenu.Item>
             <OldUnreadContextMenuItems
-              actionId="smart-unread-mark-old-unread-read"
+              actionId={CONTEXT_MENU_ACTION_IDS.smartUnreadMarkOldUnreadRead}
+              dayActionId={CONTEXT_MENU_ACTION_IDS.smartUnreadMarkOldUnreadReadDays}
               label={t("mark_old_unread_read")}
               dayLabel={(days) => t("old_unread_older_than_days", { count: days })}
               onSelect={(days) => {
-                void markOldUnreadRead(days);
+                createMenuActionHandler(
+                  CONTEXT_MENU_ACTION_IDS.smartUnreadMarkOldUnreadReadDays,
+                  () => markOldUnreadRead(days),
+                  { showToast },
+                )();
               }}
             />
           </ContextMenu.Popup>
@@ -92,14 +99,14 @@ export function SmartViewContextMenuContent({ accountId, view }: SmartViewContex
         <ContextMenu.Positioner>
           <ContextMenu.Popup className={contextMenuStyles.popup}>
             <ContextMenu.Item
-              data-action-id="smart-starred-mark-all-read"
+              data-action-id={CONTEXT_MENU_ACTION_IDS.smartStarredMarkAllRead}
               className={contextMenuStyles.item}
               onClick={handleMarkStarredRead}
             >
               {t("mark_all_as_read")}
             </ContextMenu.Item>
             <ContextMenu.Item
-              data-action-id="smart-starred-unstar-all"
+              data-action-id={CONTEXT_MENU_ACTION_IDS.smartStarredUnstarAll}
               className={contextMenuStyles.item}
               onClick={handleUnstarAll}
             >
@@ -116,7 +123,7 @@ export function SmartViewContextMenuContent({ accountId, view }: SmartViewContex
       <ContextMenu.Positioner>
         <ContextMenu.Popup className={contextMenuStyles.popup}>
           <ContextMenu.Item
-            data-action-id="smart-recent-clear-history"
+            data-action-id={CONTEXT_MENU_ACTION_IDS.smartRecentClearHistory}
             className={contextMenuStyles.destructiveItem}
             onClick={handleClearRecentHistory}
           >

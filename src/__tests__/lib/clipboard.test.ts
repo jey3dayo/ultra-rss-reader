@@ -74,6 +74,16 @@ describe("clipboard", () => {
     expect(onError).not.toHaveBeenCalled();
   });
 
+  it("copies multiline plain text values without normalizing newlines", async () => {
+    const value = "Title\nhttps://example.com/article\r\nQuoted body";
+    copyToClipboardMock.mockResolvedValue(Result.succeed(null));
+
+    const result = await copyTextToClipboard(value);
+
+    expect(Result.isSuccess(result)).toBe(true);
+    expect(copyToClipboardMock).toHaveBeenCalledWith(value);
+  });
+
   it("passes copy errors to the error callback", async () => {
     const onSuccess = vi.fn();
     const onError = vi.fn();
@@ -192,6 +202,16 @@ describe("clipboard", () => {
 
   it("allows text at the fixed size limit", async () => {
     const value = "x".repeat(CLIPBOARD_TEXT_MAX_CHARS);
+    copyToClipboardMock.mockResolvedValue(Result.succeed(null));
+
+    const result = await copyTextToClipboard(value);
+
+    expect(Result.isSuccess(result)).toBe(true);
+    expect(copyToClipboardMock).toHaveBeenCalledWith(value);
+  });
+
+  it("counts clipboard size cap by grapheme clusters", async () => {
+    const value = "👨‍👩‍👧‍👦".repeat(CLIPBOARD_TEXT_MAX_CHARS);
     copyToClipboardMock.mockResolvedValue(Result.succeed(null));
 
     const result = await copyTextToClipboard(value);

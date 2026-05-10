@@ -1724,14 +1724,14 @@ mod tests {
     }
 
     #[test]
-    fn export_sanitizes_invalid_xml_chars_in_account_feed_and_folder_titles() {
+    fn export_sanitizes_invalid_xml_chars_in_account_feed_folder_and_urls() {
         let replacement = char::REPLACEMENT_CHARACTER;
         let folder_news = folder("folder-news", "News\u{0}Research", 0);
-        let feeds = vec![feed(
-            "folder-alpha",
-            Some(&folder_news.id),
-            "Alpha\u{8}Friends",
-        )];
+        let feeds = vec![Feed {
+            url: "https://example.com/\u{B}feed.xml".to_string(),
+            site_url: "https://example.com/\u{1F}home".to_string(),
+            ..feed("folder-alpha", Some(&folder_news.id), "Alpha\u{8}Friends")
+        }];
 
         let opml_feeds = build_export_opml_feeds(feeds, vec![folder_news]);
         let xml = opml::generate_opml("Primary\u{C}Local", &opml_feeds).unwrap();
@@ -1739,9 +1739,19 @@ mod tests {
 
         assert!(!xml.contains('\u{0}'));
         assert!(!xml.contains('\u{8}'));
+        assert!(!xml.contains('\u{B}'));
         assert!(!xml.contains('\u{C}'));
+        assert!(!xml.contains('\u{1F}'));
         assert!(xml.contains(&format!("<title>Primary{replacement}Local</title>")));
         assert_eq!(parsed[0].title, format!("Alpha{replacement}Friends"));
+        assert_eq!(
+            parsed[0].xml_url,
+            format!("https://example.com/{replacement}feed.xml")
+        );
+        assert_eq!(
+            parsed[0].html_url,
+            Some(format!("https://example.com/{replacement}home"))
+        );
         assert_eq!(parsed[0].folder, Some(format!("News{replacement}Research")));
     }
 
