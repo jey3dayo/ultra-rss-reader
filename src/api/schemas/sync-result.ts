@@ -4,11 +4,13 @@ import { IsoDateTimeStringSchema } from "./common";
 const nonnegativeIntegerSchema = z.number().int().nonnegative().finite();
 const nonBlankTrimmedStringSchema = z.string().trim().min(1);
 const accountNameSchema = z.string().trim();
+export const SyncIssueOwnerSchema = z.enum(["account", "feed", "credential", "scheduler"]);
 
 const AccountSyncErrorSchema = z
   .object({
     account_id: z.string(),
     account_name: accountNameSchema,
+    action_owner: SyncIssueOwnerSchema.optional(),
     message: nonBlankTrimmedStringSchema,
   })
   .strict();
@@ -17,6 +19,7 @@ export const AccountSyncWarningSchema = z
   .object({
     account_id: z.string(),
     account_name: accountNameSchema,
+    action_owner: SyncIssueOwnerSchema.optional(),
     kind: z.enum(["generic", "retry_pending", "retry_scheduled"]).optional(),
     message: nonBlankTrimmedStringSchema,
     retry_at: IsoDateTimeStringSchema.optional(),
@@ -36,4 +39,5 @@ export const SyncResultSchema = z
 
 export type AccountSyncError = z.output<typeof AccountSyncErrorSchema>;
 export type AccountSyncWarning = z.output<typeof AccountSyncWarningSchema>;
+export type SyncIssueOwner = z.output<typeof SyncIssueOwnerSchema>;
 export type SyncResultDto = z.output<typeof SyncResultSchema>;

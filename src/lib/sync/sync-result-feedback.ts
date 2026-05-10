@@ -1,4 +1,4 @@
-import type { AccountSyncError, AccountSyncWarning, SyncResultDto } from "@/api/schemas/sync-result";
+import type { AccountSyncError, AccountSyncWarning, SyncIssueOwner, SyncResultDto } from "@/api/schemas/sync-result";
 
 export type SyncFeedback =
   | { kind: "already-in-progress" }
@@ -22,15 +22,44 @@ export type SyncFeedbackMessages = {
   success: string;
 };
 
+const ACTION_OWNER_LABELS: Record<Exclude<SyncIssueOwner, "account">, string> = {
+  credential: "credentials",
+  feed: "feed",
+  scheduler: "scheduler",
+};
+
+const MAX_SYNC_FEEDBACK_ACCOUNT_LABELS = 4;
+
+function getIssueAccountName(item: AccountSyncError | AccountSyncWarning): string {
+  const accountName = item.account_name.trim();
+  return accountName.length > 0 ? accountName : item.account_id;
+}
+
+function getIssueOwner(item: AccountSyncError | AccountSyncWarning): SyncIssueOwner {
+  return item.action_owner ?? "account";
+}
+
+function getIssueOwnerLabel(owner: SyncIssueOwner): string {
+  if (owner === "account") {
+    return "";
+  }
+  return ACTION_OWNER_LABELS[owner];
+}
+
+function getIssueFeedbackLabel(item: AccountSyncError | AccountSyncWarning): string {
+  const accountName = getIssueAccountName(item);
+  const ownerLabel = getIssueOwnerLabel(getIssueOwner(item));
+  return ownerLabel.length > 0 ? `${accountName} (${ownerLabel})` : accountName;
+}
+
 function getDistinctAccountNames(items: Array<AccountSyncError | AccountSyncWarning>): string {
-  return [
-    ...new Set(
-      items.map((item) => {
-        const accountName = item.account_name.trim();
-        return accountName.length > 0 ? accountName : item.account_id;
-      }),
-    ),
-  ].join(", ");
+  const labels = [...new Set(items.map(getIssueFeedbackLabel))];
+  const visibleLabels = labels.slice(0, MAX_SYNC_FEEDBACK_ACCOUNT_LABELS);
+  const omittedCount = labels.length - visibleLabels.length;
+  if (omittedCount <= 0) {
+    return visibleLabels.join(", ");
+  }
+  return `${visibleLabels.join(", ")} +${omittedCount} more`;
 }
 
 function hasRetryPendingWarnings(warnings: AccountSyncWarning[]): boolean {
