@@ -3238,6 +3238,20 @@ mod tests {
 
         assert_eq!(content_text, "new sanitized");
         assert_eq!(sanitizer_version, 2);
+
+        let visible_text_results = repo
+            .search(&account_id, "new", &Pagination::default())
+            .unwrap();
+        let html_tag_results = repo
+            .search(&account_id, "strong", &Pagination::default())
+            .unwrap();
+
+        assert_eq!(visible_text_results.len(), 1);
+        assert_eq!(visible_text_results[0].id, a1.id);
+        assert!(
+            html_tag_results.is_empty(),
+            "sanitizer repair should refresh FTS from content_text, not sanitized HTML tags"
+        );
     }
 
     #[test]

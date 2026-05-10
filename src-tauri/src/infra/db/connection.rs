@@ -7,6 +7,11 @@ use crate::domain::error::{DomainError, DomainResult};
 use crate::infra::db::sqlite_mute_keyword::build_mute_keyword_exclusion_clause;
 
 static IN_MEMORY_COUNTER: AtomicU64 = AtomicU64::new(0);
+const BUSY_TIMEOUT_MS: i32 = 5000;
+const FILE_JOURNAL_MODE: &str = "wal";
+const IN_MEMORY_JOURNAL_MODE: &str = "memory";
+const ARTICLES_FTS_TRIGGER_COUNT: i32 = 3;
+const ARTICLES_FTS_TRIGGER_SQL_MARKER: &str = "content_text";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct DatabaseInfo {
@@ -144,23 +149,34 @@ impl DbManager {
     }
 
     fn apply_pragmas(conn: &Connection) -> DomainResult<()> {
-        conn.execute_batch(
-            "PRAGMA foreign_keys = ON;
-             PRAGMA journal_mode = WAL;
-             PRAGMA synchronous = NORMAL;
-             PRAGMA busy_timeout = 5000;",
-        )?;
+        conn.pragma_update(None, "foreign_keys", "ON")?;
+        conn.pragma_update(None, "journal_mode", "WAL")?;
+        conn.pragma_update(None, "synchronous", "NORMAL")?;
+        conn.busy_timeout(std::time::Duration::from_millis(BUSY_TIMEOUT_MS as u64))?;
+
+        let foreign_keys: i32 = conn.query_row("PRAGMA foreign_keys", [], |row| row.get(0))?;
+        let busy_timeout: i32 = conn.query_row("PRAGMA busy_timeout", [], |row| row.get(0))?;
+        let journal_mode: String = conn.query_row("PRAGMA journal_mode", [], |row| row.get(0))?;
+        let journal_mode_ok = journal_mode.eq_ignore_ascii_case(FILE_JOURNAL_MODE)
+            || journal_mode.eq_ignore_ascii_case(IN_MEMORY_JOURNAL_MODE);
+        if foreign_keys != 1 || busy_timeout != BUSY_TIMEOUT_MS || !journal_mode_ok {
+            return Err(DomainError::Persistence(format!(
+                "SQLite connection PRAGMA contract failed: foreign_keys={foreign_keys}, busy_timeout={busy_timeout}, journal_mode={journal_mode}"
+            )));
+        }
         Ok(())
     }
 
     fn reconcile_startup_migration_cost(&self) -> DomainResult<()> {
         let started_at = Instant::now();
         let repaired_article_content_rows = self.reconcile_article_content_text()?;
+        let rebuilt_articles_fts = self.reconcile_articles_fts_contract()?;
         let repaired_feed_unread_count_rows = self.reconcile_feed_unread_counts()?;
         let elapsed_ms = started_at.elapsed().as_millis() as u64;
 
         tracing::info!(
             repaired_article_content_rows,
+            rebuilt_articles_fts,
             repaired_feed_unread_count_rows,
             elapsed_ms,
             "Measured startup migration repair cost"
@@ -250,6 +266,68 @@ impl DbManager {
         }
         tx.commit()?;
         Ok(repaired_rows)
+    }
+
+    fn reconcile_articles_fts_contract(&self) -> DomainResult<bool> {
+        let has_articles_fts: bool = self.writer.query_row(
+            "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'articles_fts')",
+            [],
+            |row| row.get(0),
+        )?;
+        let has_content_text: bool = self.writer.query_row(
+            "SELECT EXISTS(
+                 SELECT 1
+                 FROM pragma_table_info('articles')
+                 WHERE name = 'content_text'
+             )",
+            [],
+            |row| row.get(0),
+        )?;
+        if !has_articles_fts || !has_content_text {
+            return Ok(false);
+        }
+
+        let trigger_contract_ok: bool = self.writer.query_row(
+            "SELECT COUNT(*) = ?1
+             FROM sqlite_master
+             WHERE type = 'trigger'
+               AND name IN ('articles_ai', 'articles_ad', 'articles_au')
+               AND sql LIKE '%' || ?2 || '%'",
+            rusqlite::params![ARTICLES_FTS_TRIGGER_COUNT, ARTICLES_FTS_TRIGGER_SQL_MARKER],
+            |row| row.get(0),
+        )?;
+
+        if trigger_contract_ok {
+            return Ok(false);
+        }
+
+        self.writer.execute_batch(
+            "DROP TRIGGER IF EXISTS articles_ai;
+             DROP TRIGGER IF EXISTS articles_ad;
+             DROP TRIGGER IF EXISTS articles_au;
+
+             CREATE TRIGGER articles_ai AFTER INSERT ON articles BEGIN
+               INSERT INTO articles_fts(rowid, title, content_sanitized)
+                 VALUES (new.rowid, new.title, new.content_text);
+             END;
+
+             CREATE TRIGGER articles_ad AFTER DELETE ON articles BEGIN
+               INSERT INTO articles_fts(articles_fts, rowid, title, content_sanitized)
+                 VALUES ('delete', old.rowid, old.title, old.content_text);
+             END;
+
+             CREATE TRIGGER articles_au AFTER UPDATE OF title, content_text ON articles BEGIN
+               INSERT INTO articles_fts(articles_fts, rowid, title, content_sanitized)
+                 VALUES ('delete', old.rowid, old.title, old.content_text);
+               INSERT INTO articles_fts(rowid, title, content_sanitized)
+                 VALUES (new.rowid, new.title, new.content_text);
+             END;
+
+             INSERT INTO articles_fts(articles_fts) VALUES ('delete-all');
+             INSERT INTO articles_fts(rowid, title, content_sanitized)
+               SELECT rowid, title, content_text FROM articles;",
+        )?;
+        Ok(true)
     }
 
     pub fn writer(&self) -> &Connection {
@@ -467,11 +545,21 @@ mod tests {
     #[test]
     fn foreign_keys_enabled() {
         let db = DbManager::new_in_memory().unwrap();
-        let fk: i32 = db
-            .reader()
-            .query_row("PRAGMA foreign_keys", [], |row| row.get(0))
-            .unwrap();
-        assert_eq!(fk, 1);
+        for conn in [db.writer(), db.reader()] {
+            let foreign_keys: i32 = conn
+                .query_row("PRAGMA foreign_keys", [], |row| row.get(0))
+                .unwrap();
+            let busy_timeout: i32 = conn
+                .query_row("PRAGMA busy_timeout", [], |row| row.get(0))
+                .unwrap();
+            let journal_mode: String = conn
+                .query_row("PRAGMA journal_mode", [], |row| row.get(0))
+                .unwrap();
+
+            assert_eq!(foreign_keys, 1);
+            assert_eq!(busy_timeout, BUSY_TIMEOUT_MS);
+            assert_eq!(journal_mode, IN_MEMORY_JOURNAL_MODE);
+        }
     }
 
     #[test]
@@ -493,8 +581,8 @@ mod tests {
                 .unwrap();
 
             assert_eq!(foreign_keys, 1);
-            assert_eq!(busy_timeout, 5000);
-            assert_eq!(journal_mode, "wal");
+            assert_eq!(busy_timeout, BUSY_TIMEOUT_MS);
+            assert_eq!(journal_mode, FILE_JOURNAL_MODE);
         }
     }
 
@@ -1209,6 +1297,35 @@ mod tests {
                 "<p>Broken <strong>body</p>Trailing",
                 Some("Should not be used")
             )
+        );
+
+        let trigger_count: i32 = repaired
+            .reader()
+            .query_row(
+                "SELECT COUNT(*)
+                 FROM sqlite_master
+                 WHERE type = 'trigger'
+                   AND name IN ('articles_ai', 'articles_ad', 'articles_au')
+                   AND sql LIKE '%content_text%'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let html_tag_hit_count: i32 = repaired
+            .reader()
+            .query_row(
+                "SELECT COUNT(*)
+                 FROM articles_fts
+                 WHERE articles_fts MATCH 'strong'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+
+        assert_eq!(trigger_count, ARTICLES_FTS_TRIGGER_COUNT);
+        assert_eq!(
+            html_tag_hit_count, 0,
+            "FTS rebuild should index visible content_text, not sanitized HTML tags"
         );
     }
 
