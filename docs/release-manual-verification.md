@@ -63,6 +63,54 @@ Confirm and record:
 
 If SmartScreen reputation is missing but the signature is valid, record it as a release risk instead of re-signing locally. Future policy work should define the EV/OV certificate, timestamping, and publisher reputation strategy before changing installer signing behavior.
 
+### 2b. macOS Quarantine And App Translocation Verification
+
+Run this with the published macOS artifact downloaded through the normal browser or GitHub Releases flow, before manually clearing quarantine attributes or moving support files. This verifies the path users get after downloading the release, not a locally rebuilt or re-signed app.
+
+Confirm and record:
+
+- Downloaded artifact name, release URL, SHA-256 digest, and whether the downloaded artifact has the `com.apple.quarantine` extended attribute.
+- Gatekeeper and notarization result before first launch, including any warning or confirmation prompt.
+- Whether launching directly from the mounted DMG works or is intentionally blocked by policy.
+- Whether launching after copying to `/Applications` opens the same app version and does not require removing quarantine manually.
+- Whether the app appears to run from a translocated path on direct launch, and whether that path changes after moving the app to `/Applications`.
+- Whether the app data directory, release log directory, updater cache, and packaged resources resolve to the expected app-owned locations in both direct-launch and `/Applications` launch paths.
+- Whether the in-app log-directory flow opens the same release log namespace after relaunching from `/Applications`.
+- Screenshot or log note for Gatekeeper, notarization, quarantine, or translocation evidence, with usernames and local paths redacted.
+
+If translocation changes resource resolution, log directory behavior, or app data visibility, stop the release handoff and treat it as a packaged-startup issue. Do not work around it by clearing quarantine on the verifier machine.
+
+### 2c. First-Run Permission Prompt Verification
+
+Run this from a clean OS profile or after resetting only the relevant OS permissions and app data for the packaged app. The goal is to record the first-run user experience for release artifacts, not development builds.
+
+Confirm and record:
+
+- First account setup reaches native keyring access without falling back to dev credentials or showing an unexplained OS prompt.
+- First OPML import or database restore file-open dialog appears as a user-initiated action and handles cancel as a neutral result.
+- First OPML export or database backup save dialog applies the expected extension and overwrite-confirmation policy.
+- First clipboard copy action succeeds or reports permission denial with action-specific recovery copy.
+- First network sync or account test uses the configured provider URL and reports offline, TLS, auth, or permission failure as distinct outcomes.
+- Denying any prompt that the OS allows denying leaves the app in a retryable state and writes enough redacted release log context to debug the denial.
+- Screenshots of OS permission prompts redact local usernames, local paths, account names, feed URLs, server URLs, and credential material.
+
+If a release adds a new permission prompt, record the user-visible feature that triggers it, the fallback when denied, and whether the prompt appears before the user takes an action that explains why access is needed.
+
+### 2d. Windows Hidden Console And Crash Visibility Verification
+
+Run this on the Windows packaged release artifact. This is a manual packaged-app check for the production window subsystem and startup failure surface; do not use a dev build as evidence.
+
+Confirm and record:
+
+- Normal launch does not leave an unexpected console window behind the app.
+- Startup, account sync, updater check, and normal quit write release logs without requiring a visible console.
+- A controlled startup failure or known crash-reproduction build, when available, leaves a user-visible failure surface such as a dialog, error window, or supportable OS crash record.
+- The same failure writes a redacted release log entry or crash artifact that support can correlate without exposing credentials, tokens, account names, feed URLs, server URLs, or local paths.
+- The process exit behavior is recorded when launch fails before the main window opens.
+- If Windows hides the console, crash visibility still includes a support path that does not require the user to run the app from PowerShell.
+
+If crash visibility depends on a code change, skip that part for the current release and record the missing behavior as release risk instead of changing native code during manual verification.
+
 ### 3. Native Keyring Verification
 
 Run the packaged app on the target OS with normal credentials storage enabled.
