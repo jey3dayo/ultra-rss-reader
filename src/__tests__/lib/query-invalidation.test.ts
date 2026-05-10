@@ -226,6 +226,7 @@ describe("query-invalidation", () => {
       { queryKey: ["feedArticleSummaries"] },
       { queryKey: ["feedArticleSummaries", "acc-1"] },
       { queryKey: ["feeds"] },
+      { queryKey: ["folders"] },
       { queryKey: ["accountUnreadCount"] },
       { queryKey: ["articles"] },
       { queryKey: ["accountArticles"] },
@@ -239,6 +240,64 @@ describe("query-invalidation", () => {
       { queryKey: ["feedArticleSummaries"] },
       { queryKey: ["feedArticleSummaries", null] },
     ]);
+  });
+
+  it("aggregates add feed invalidation failures with the add-feed owner", async () => {
+    const { invalidateQueries, queryClient } = createInvalidateSpy();
+    const feedsRejection = new Error("feeds invalidation failed");
+    const articlesRejection = new Error("articles invalidation failed");
+    const diagnosticsReporter = vi.fn();
+    const restoreDiagnosticsReporter = setQueryInvalidationFailureReporterForDiagnostics(diagnosticsReporter);
+
+    invalidateQueries
+      .mockRejectedValueOnce(feedsRejection)
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(articlesRejection);
+
+    invalidateAddFeedQueries(queryClient, { accountId: "acc-1" });
+
+    await vi.waitFor(() => {
+      expect(diagnosticsReporter).toHaveBeenCalledWith([
+        { actionOwner: "add-feed", queryKey: ["feeds"], error: feedsRejection },
+        { actionOwner: "add-feed", queryKey: ["articles"], error: articlesRejection },
+      ]);
+    });
+    expect(diagnosticsReporter).toHaveBeenCalledOnce();
+
+    restoreDiagnosticsReporter();
+  });
+
+  it("aggregates delete feed invalidation failures with the delete-feed owner", async () => {
+    const { invalidateQueries, queryClient } = createInvalidateSpy();
+    const foldersRejection = new Error("folders invalidation failed");
+    const accountScopedRejection = new Error("account scoped invalidation failed");
+    const diagnosticsReporter = vi.fn();
+    const restoreDiagnosticsReporter = setQueryInvalidationFailureReporterForDiagnostics(diagnosticsReporter);
+
+    invalidateQueries.mockImplementation((filters) => {
+      const queryKey = filters?.queryKey ?? [];
+      if (queryKey[0] === "folders") {
+        return Promise.reject(foldersRejection);
+      }
+      if (queryKey[0] === "feedArticleSummaries" && queryKey[1] === "acc-1") {
+        return Promise.reject(accountScopedRejection);
+      }
+
+      return Promise.resolve();
+    });
+
+    invalidateDeleteFeedQueries(queryClient, { accountId: "acc-1" });
+
+    await vi.waitFor(() => {
+      expect(diagnosticsReporter).toHaveBeenCalledWith([
+        { actionOwner: "delete-feed", queryKey: ["folders"], error: foldersRejection },
+        { actionOwner: "delete-feed", queryKey: ["feedArticleSummaries", "acc-1"], error: accountScopedRejection },
+      ]);
+    });
+    expect(diagnosticsReporter).toHaveBeenCalledOnce();
+
+    restoreDiagnosticsReporter();
   });
 
   it("invalidates feed query keys with opt-in account unread count", () => {

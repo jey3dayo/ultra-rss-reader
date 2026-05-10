@@ -66,24 +66,9 @@ fn redacted_path_label(path: &std::path::Path) -> String {
 fn redact_sensitive_url_token(token: &str) -> String {
     let trimmed_start = token.trim_start_matches(['"', '\'', '(', '[']);
     let prefix_len = token.len() - trimmed_start.len();
-    let trimmed = trimmed_start.trim_end_matches(|c| {
-        matches!(
-            c,
-            '"' | '\''
-                | ')'
-                | ']'
-                | ','
-                | '.'
-                | ';'
-                | ':'
-                | '。'
-                | '、'
-                | '，'
-                | '．'
-                | '！'
-                | '？'
-        )
-    });
+    let trimmed = trimmed_start.trim_end_matches([
+        '"', '\'', ')', ']', ',', '.', ';', ':', '。', '、', '，', '．', '！', '？',
+    ]);
     let suffix_len = trimmed_start.len() - trimmed.len();
 
     let Ok(mut url) = reqwest::Url::parse(trimmed) else {
@@ -114,8 +99,7 @@ fn redact_sensitive_url_token(token: &str) -> String {
 fn redact_sensitive_path_token(token: &str) -> String {
     let trimmed_start = token.trim_start_matches(['"', '\'', '(', '[']);
     let prefix_len = token.len() - trimmed_start.len();
-    let trimmed = trimmed_start
-        .trim_end_matches(|c| matches!(c, '"' | '\'' | ')' | ']' | ',' | '.' | ';' | ':' | '。'));
+    let trimmed = trimmed_start.trim_end_matches(['"', '\'', ')', ']', ',', '.', ';', ':', '。']);
     let suffix_len = trimmed_start.len() - trimmed.len();
 
     if !(trimmed.starts_with('/') || trimmed.starts_with("~/") || trimmed.contains(":\\"))
@@ -282,24 +266,6 @@ fn startup_preferences_read_warning_message(error: &DomainError) -> String {
     format!(
         "Failed to read startup preferences; using default menu state and diagnostics settings: {error}"
     )
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum StartupPluginFailureMode {
-    Fatal,
-    CommandRetryable,
-}
-
-fn clipboard_plugin_startup_failure_mode() -> StartupPluginFailureMode {
-    StartupPluginFailureMode::Fatal
-}
-
-fn updater_plugin_startup_failure_mode() -> StartupPluginFailureMode {
-    StartupPluginFailureMode::CommandRetryable
-}
-
-fn updater_endpoint_startup_failure_mode() -> StartupPluginFailureMode {
-    StartupPluginFailureMode::CommandRetryable
 }
 
 fn startup_main_window_show_warning(error: &impl std::fmt::Display) -> String {
@@ -717,8 +683,7 @@ mod tests {
     use super::{
         cleanup_old_logs, cleanup_old_logs_entry_debug, cleanup_old_logs_metadata_debug,
         cleanup_old_logs_modified_debug, cleanup_old_logs_read_dir_warning,
-        cleanup_old_logs_remove_warning, clipboard_plugin_startup_failure_mode,
-        database_init_error_message, database_init_panic_message,
+        cleanup_old_logs_remove_warning, database_init_error_message, database_init_panic_message,
         main_window_title_bar_uses_overlay, mark_startup_focus_restore_stopped, panic_payload_text,
         redact_sensitive_panic_text, redacted_path_label,
         startup_app_data_dir_create_error_message, startup_app_data_dir_error_message,
@@ -726,10 +691,9 @@ mod tests {
         startup_focus_restore_is_active, startup_main_webview_focus_warning,
         startup_main_window_focus_warning, startup_main_window_show_warning,
         startup_preferences_or_default, startup_preferences_read_warning_message,
-        tracing_init_status, updater_endpoint_startup_failure_mode,
-        updater_plugin_startup_failure_mode, StartupFocusRestoreDecision, StartupPluginFailureMode,
-        TracingInitStatus, RELEASE_LOG_MAX_FILE_SIZE_BYTES, RELEASE_LOG_RETENTION_DAYS,
-        RELEASE_LOG_ROTATION_STRATEGY, RELEASE_LOG_TIMEZONE_STRATEGY,
+        tracing_init_status, StartupFocusRestoreDecision, TracingInitStatus,
+        RELEASE_LOG_MAX_FILE_SIZE_BYTES, RELEASE_LOG_RETENTION_DAYS, RELEASE_LOG_ROTATION_STRATEGY,
+        RELEASE_LOG_TIMEZONE_STRATEGY,
     };
     use crate::domain::error::DomainError;
 
@@ -911,25 +875,6 @@ mod tests {
         assert!(warning.contains("Failed to read startup preferences"));
         assert!(warning.contains("using default menu state and diagnostics settings"));
         assert!(warning.contains("database is locked"));
-    }
-
-    #[test]
-    fn startup_plugin_failure_modes_are_classified_by_command_surface() {
-        assert_eq!(
-            clipboard_plugin_startup_failure_mode(),
-            StartupPluginFailureMode::Fatal,
-            "clipboard command has no native fallback in the Rust command surface"
-        );
-        assert_eq!(
-            updater_plugin_startup_failure_mode(),
-            StartupPluginFailureMode::CommandRetryable,
-            "updater init is surfaced by manual update commands instead of blocking boot"
-        );
-        assert_eq!(
-            updater_endpoint_startup_failure_mode(),
-            StartupPluginFailureMode::CommandRetryable,
-            "endpoint availability is checked by manual update commands instead of blocking boot"
-        );
     }
 
     #[test]

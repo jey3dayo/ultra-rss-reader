@@ -163,9 +163,7 @@ impl LocalProvider {
         while let Some(start_offset) = lower_body[search_from..].find("<link") {
             let start = search_from + start_offset;
             let remaining = &lower_body[start..];
-            let Some(end_offset) = remaining.find('>') else {
-                return None;
-            };
+            let end_offset = remaining.find('>')?;
             let tag = &body[start..start + end_offset + 1];
             search_from = start + end_offset + 1;
 
@@ -360,18 +358,6 @@ fn feed_response_content_type(
         "text/html" => Ok(FeedResponseContentType::HtmlFallback),
         _ => Err(unsupported_feed_content_type_error(content_type)),
     }
-}
-
-fn is_supported_feed_response_content_type(content_type: Option<&str>) -> bool {
-    let mut headers = reqwest::header::HeaderMap::new();
-    if let Some(content_type) = content_type {
-        let Ok(value) = reqwest::header::HeaderValue::from_str(content_type) else {
-            return false;
-        };
-        headers.insert(reqwest::header::CONTENT_TYPE, value);
-    }
-
-    feed_response_content_type(&headers).is_ok()
 }
 
 fn validate_feed_response_body_against_content_type(
@@ -1403,26 +1389,27 @@ mod tests {
     #[test]
     fn feed_response_content_type_policy_allows_feed_html_and_missing_types() {
         for content_type in [
-            Some("application/rss+xml; charset=utf-8"),
-            Some("application/atom+xml"),
-            Some("application/feed+json"),
-            Some("application/xml"),
-            Some("text/xml"),
-            Some("text/html; charset=utf-8"),
-            None,
+            "application/rss+xml; charset=utf-8",
+            "application/atom+xml",
+            "application/feed+json",
+            "application/xml",
+            "text/xml",
+            "text/html; charset=utf-8",
         ] {
             assert!(
-                is_supported_feed_response_content_type(content_type),
+                feed_response_content_type(&headers_with_content_type(content_type)).is_ok(),
                 "content type should be allowed: {content_type:?}"
             );
         }
+        assert!(feed_response_content_type(&reqwest::header::HeaderMap::new()).is_ok());
     }
 
     #[test]
     fn feed_response_content_type_policy_rejects_binary_types() {
-        assert!(!is_supported_feed_response_content_type(Some(
-            "application/octet-stream"
-        )));
+        assert!(
+            feed_response_content_type(&headers_with_content_type("application/octet-stream"))
+                .is_err()
+        );
     }
 
     #[test]

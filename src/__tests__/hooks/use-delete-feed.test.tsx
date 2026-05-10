@@ -50,6 +50,9 @@ describe("useDeleteFeed", () => {
         queryKey: ["feeds"],
       });
       expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+        queryKey: ["folders"],
+      });
+      expect(invalidateQueriesSpy).toHaveBeenCalledWith({
         queryKey: ["accountUnreadCount"],
       });
       expect(invalidateQueriesSpy).toHaveBeenCalledWith({

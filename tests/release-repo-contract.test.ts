@@ -19,6 +19,9 @@ type TauriConfig = {
   productName: string;
   version: string;
   identifier: string;
+  build?: {
+    devUrl?: string;
+  };
   bundle?: {
     createUpdaterArtifacts?: boolean;
   };
@@ -74,10 +77,21 @@ const extractWorkflowUses = (source: string): string[] => {
   return [...source.matchAll(usesPattern)].map((match) => match[1] ?? "");
 };
 
+const extractTauriActionBlock = (source: string): string => {
+  const value = source.match(
+    /- uses: tauri-apps\/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5\n(?<block>(?: {8}.+\n?)*)/,
+  )?.groups?.block;
+  if (!value) {
+    throw new Error("Missing release tauri-action block");
+  }
+  return value;
+};
+
 describe("release repository contract", () => {
   const packageJson: PackageJson = JSON.parse(readText("package.json"));
   const tauriConfig: TauriConfig = JSON.parse(readText("src-tauri/tauri.conf.json"));
   const tauriReleaseConfig: TauriConfig = JSON.parse(readText("src-tauri/tauri.release.conf.json"));
+  const tauriDevConfig: TauriConfig = JSON.parse(readText("src-tauri/tauri.dev.conf.json"));
   const cargoToml = readText("src-tauri/Cargo.toml");
   const releaseWorkflow = readText(".github/workflows/release.yml");
   const ciWorkflow = readText(".github/workflows/ci.yml");
@@ -223,10 +237,12 @@ describe("release repository contract", () => {
   });
 
   it("requires the release workflow to build with the release updater config", () => {
-    expect(releaseWorkflow).toContain("--config src-tauri/tauri.release.conf.json");
-    expect(releaseWorkflow).not.toContain('--config \'{"identifier"');
-    expect(releaseWorkflow).not.toContain('"createUpdaterArtifacts":true');
+    const tauriActionBlock = extractTauriActionBlock(releaseWorkflow);
+
+    expect(tauriActionBlock).toContain("--config src-tauri/tauri.release.conf.json");
+    expect(tauriActionBlock).not.toContain('--config \'{"identifier"');
     expect(releaseWorkflow).toContain("src-tauri/tauri.release.conf.json must enable updater artifacts");
+    expect(releaseWorkflow).toContain("release workflow must pass src-tauri/tauri.release.conf.json to tauri-action");
     expect(releaseWorkflow.indexOf("Validate release version parity")).toBeLessThan(
       releaseWorkflow.indexOf("tauri-apps/tauri-action"),
     );
@@ -242,6 +258,19 @@ describe("release repository contract", () => {
     expect(tauriConfig.plugins?.updater?.pubkey).not.toMatch(UPDATER_PUBKEY_PLACEHOLDER_PATTERN);
     expect(releaseWorkflow).toContain(RELEASE_UPDATER_ENDPOINT);
     expect(releaseWorkflow).toContain("src-tauri/tauri.conf.json updater pubkey must be configured");
+  });
+
+  it("keeps release builds from using dev Tauri config or dev credentials", () => {
+    const tauriActionBlock = extractTauriActionBlock(releaseWorkflow);
+
+    expect(tauriDevConfig.identifier).not.toBe(tauriReleaseConfig.identifier);
+    expect(tauriDevConfig.productName).not.toBe(tauriConfig.productName);
+    expect(tauriDevConfig.build?.devUrl).toBe("http://127.0.0.1:1420");
+    expect(releaseWorkflow).toContain("src-tauri/tauri.release.conf.json must not use the dev Tauri identifier");
+    expect(releaseWorkflow).toContain("src-tauri/tauri.release.conf.json must not use the dev Tauri product name");
+    expect(tauriActionBlock).not.toContain("--config src-tauri/tauri.dev.conf.json");
+    expect(releaseWorkflow).not.toMatch(/\bDEV_CREDENTIALS\s*:/);
+    expect(releaseWorkflow).not.toMatch(/\bULTRA_RSS_DEV_CREDENTIALS\s*:/);
   });
 
   it("keeps dependency audit manual until advisory policy is defined", () => {

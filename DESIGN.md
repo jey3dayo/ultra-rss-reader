@@ -222,6 +222,34 @@ Surface governance:
 - Prefer warm border emphasis or soft depth-based focus
 - Avoid cold blue default focus rings unless an accessibility layer specifically requires them
 
+### Accessibility Baseline Checklist
+
+Use this checklist for reader, settings, and subscriptions manual/a11y smoke before changing implementation. If a check fails, split the implementation fix into a separate task instead of broadening the review pass.
+
+Reader:
+
+- Landmark structure: the sidebar owns one labeled navigation landmark; the article list and article content remain distinguishable panes with stable headings or accessible labels.
+- Focus visible: sidebar rows, article rows, footer tabs, toolbar buttons, and reader controls must show keyboard focus without changing row geometry. Selected state and focused state must remain visually distinct.
+- Status and progress: loading, sync, read/unread, starred, account retry, and browser-preview warning states must include text or accessible labels. Do not rely on hue alone.
+
+Settings:
+
+- Landmark/dialog structure: the settings modal keeps one clear dialog title, a navigation rail for categories/accounts, and one active content heading.
+- Focus visible: close, nav rows, account rows, form controls, selects, switches, destructive actions, and compact utility actions must expose a visible keyboard focus treatment.
+- Status and progress: loading bars, lock messages, database/export state, account connection/sync state, and validation/error states must have text labels or descriptions in addition to tone.
+
+Subscriptions:
+
+- Landmark structure: the workspace header, summary filters, subscription inventory, and detail pane must each have a clear heading or accessible label that identifies the current region.
+- Focus visible: summary cards, group disclosure buttons, subscription rows, decision actions, and management actions must expose keyboard focus without layout shift.
+- Status and progress: review/stale/no-unread/no-star statuses, unread counts, latest-article metadata, reason tooltips, and empty states must include visible text or accessible labels. Color-only status is not allowed.
+
+Manual/a11y smoke:
+
+- Keyboard through each screen with `Tab`, `Shift+Tab`, and the screen's documented arrow-key behavior. Confirm every reachable control has visible focus and hidden panes do not receive focus.
+- Inspect landmarks/headings with the browser accessibility tree or a screen reader rotor/landmark list. Confirm region names are understandable without visual context.
+- Check status states in light/dark and high-contrast-adjacent themes. Any state that becomes color-only should be filed as a separate implementation task.
+
 ### Transitions
 
 - Color transitions: 150ms ease

@@ -149,6 +149,7 @@ pub struct SearchIndexRebuildMaintenanceContract {
     pub retries_after_cancellation: bool,
 }
 
+#[cfg(test)]
 pub(crate) fn schedule_database_maintenance_action(
     action: DatabaseMaintenanceAction,
     trigger: DatabaseMaintenanceTrigger,
@@ -176,6 +177,7 @@ pub(crate) fn schedule_database_maintenance_action(
     }
 }
 
+#[cfg(test)]
 pub(crate) fn filesystem_recovery_contract(
     surface: FilesystemRecoverySurface,
 ) -> FilesystemRecoveryContract {
@@ -215,6 +217,7 @@ pub(crate) fn filesystem_recovery_contract(
     }
 }
 
+#[cfg(test)]
 pub(crate) fn search_index_rebuild_maintenance_contract() -> SearchIndexRebuildMaintenanceContract {
     SearchIndexRebuildMaintenanceContract {
         action: DatabaseMaintenanceAction::SearchIndexRebuild,
@@ -224,6 +227,7 @@ pub(crate) fn search_index_rebuild_maintenance_contract() -> SearchIndexRebuildM
     }
 }
 
+#[cfg(test)]
 pub(crate) fn database_runtime_recovery_contract(
     failure_kind: DatabaseRuntimeFailureKind,
 ) -> DatabaseRuntimeRecoveryContract {

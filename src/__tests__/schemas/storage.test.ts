@@ -81,7 +81,12 @@ describe("storage schemas", () => {
       value: ["folder-proto"],
       writable: true,
     });
-    raw.constructor = ["folder-constructor"];
+    Object.defineProperty(raw, "constructor", {
+      configurable: true,
+      enumerable: true,
+      value: ["folder-constructor"],
+      writable: true,
+    });
     raw["account-\u0085id"] = ["folder-\u009fid", "folder-\u0000id"];
 
     const parsed = StoredSidebarExpandedFoldersSchema.parse(raw);

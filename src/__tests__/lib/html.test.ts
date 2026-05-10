@@ -139,6 +139,29 @@ describe("applyReaderContentPrivacyPolicy", () => {
       globalThis.DOMParser = originalDomParser;
     }
   });
+
+  it("keeps the frontend post-process aligned with the sanitizer link and media privacy corpus", () => {
+    const corpus = [
+      {
+        label: "sanitized tracking link",
+        html: '<a href="https://publisher.example.com/read?utm_source=feed">Read article</a>',
+        required: ['href="https://publisher.example.com/read?utm_source=feed"', 'rel="noopener noreferrer"'],
+      },
+      {
+        label: "sanitized article image",
+        html: '<picture><source srcset="https://cdn.example.com/hero.webp 1x"><img src="https://cdn.example.com/hero.jpg" alt="Hero"></picture>',
+        required: ['src="https://cdn.example.com/hero.jpg"', 'referrerpolicy="no-referrer"'],
+      },
+    ];
+
+    for (const fixture of corpus) {
+      const normalized = applyReaderContentPrivacyPolicy(fixture.html);
+
+      for (const fragment of fixture.required) {
+        expect(normalized, fixture.label).toContain(fragment);
+      }
+    }
+  });
 });
 
 describe("normalizeArticleBodyHtml", () => {
@@ -212,9 +235,7 @@ describe("normalizeArticleBodyHtml", () => {
   });
 
   it("removes only duplicated feed labels before real article content", () => {
-    expect(normalizeArticleBodyHtml("<p>Tech Blog：</p><p>Body text</p>", "Tech Blog")).toBe(
-      "<p>Body text</p>",
-    );
+    expect(normalizeArticleBodyHtml("<p>Tech Blog：</p><p>Body text</p>", "Tech Blog")).toBe("<p>Body text</p>");
     expect(normalizeArticleBodyHtml("<p>Tech Blog｜</p><p>Body text</p>", "Tech Blog")).toBe("<p>Body text</p>");
   });
 

@@ -5,7 +5,7 @@ use tauri::State;
 use crate::browser_webview::set_browser_webview_diagnostics_enabled;
 use crate::commands::dto::AppError;
 use crate::commands::AppState;
-use crate::domain::preference::{is_allowed_preference_key, preference_row_quarantine_reason};
+use crate::domain::preference::preference_row_quarantine_reason;
 use crate::infra::db::sqlite_preference::SqlitePreferenceRepository;
 use crate::repository::preference::PreferenceRepository;
 
@@ -53,15 +53,16 @@ fn apply_saved_preference_runtime_side_effect(key: &str, value: &str) {
 #[cfg(test)]
 mod tests {
     use super::{
-        apply_saved_preference_runtime_side_effect, is_allowed_preference_key,
-        save_preference_value, saved_language_menu_update_error,
-        should_rebuild_menu_after_saved_preference, validate_preference_input,
+        apply_saved_preference_runtime_side_effect, save_preference_value,
+        saved_language_menu_update_error, should_rebuild_menu_after_saved_preference,
+        validate_preference_input,
     };
     use crate::browser_webview::{
         browser_webview_diagnostics_enabled, set_browser_webview_diagnostics_enabled,
         BROWSER_WEBVIEW_DIAGNOSTICS_TEST_LOCK,
     };
     use crate::commands::dto::AppError;
+    use crate::domain::preference::is_allowed_preference_key;
     use crate::infra::db::connection::DbManager;
     use crate::infra::db::sqlite_preference::SqlitePreferenceRepository;
     use crate::repository::preference::PreferenceRepository;

@@ -20,6 +20,81 @@ For an urgent patch that only fixes a released regression, use the [Hotfix Relea
 4. A signed draft release exists if you are verifying the updater install path.
 5. The previous release build is available when verifying updater install and restart behavior.
 
+## Release Path Decision
+
+Use this table before choosing the amount of manual verification. It separates
+release process decisions from implementation work; do not change signing,
+notarization, updater, or artifact generation behavior during this checklist.
+
+| Path | Use When | Required Manual Entry | Evidence |
+| --- | --- | --- | --- |
+| Normal release | A scheduled release, feature release, or mixed fix release | Run the full checklist sections that match the changed surface | OS, artifact name, release URL, digest, logs, and screenshots for each platform in scope |
+| Hotfix release | A patch fixes a released regression and should avoid unrelated scope | Start with [Hotfix Release Checklist](#hotfix-release-checklist), then run only the smoke checks affected by the regression | Affected version, regression summary, focused tests, skipped checks with reasons, and artifact evidence |
+| Rollback or republish | A published artifact is broken, unsafe, or must be replaced | Record the old artifact, the replacement or rollback decision, and the user-facing guidance before changing release state | Old release URL, old digest, replacement digest if any, and rollback or upgrade note |
+| Manual native smoke only | No release is being cut, but packaged OS behavior changed | Run the short smoke checklist for the affected OS and feature only | Expected result, redacted log note, and screenshot for any OS prompt or warning |
+
+## Short Manual Smoke Checklist
+
+Use these short checks to decide whether a release candidate needs the detailed
+sections below. Record `not in scope` with a reason instead of forcing checks for
+platforms or surfaces that did not change.
+
+### Normal Release Smoke
+
+- OS: macOS and Windows for the platforms being released.
+- Expected result: published artifacts install, launch, report the expected
+  version, and can reach the first usable app screen without dev credentials.
+- Evidence: artifact name, release URL, SHA-256 digest, app version, and one
+  redacted startup log note per OS.
+
+### Hotfix Release Smoke
+
+- OS: every OS affected by the released regression; include both macOS and
+  Windows when the regression is in updater, startup, keyring, or packaging.
+- Expected result: the regression is fixed without introducing unrelated
+  release-surface changes, and any narrower quality gate is explicitly recorded.
+- Evidence: affected release version, fixed tag or commit, focused test command,
+  changed manual sections, skipped manual sections with reasons, and artifact
+  digest for every replaced artifact.
+
+### macOS Notarization And Quarantine Smoke
+
+- OS: macOS, using a published artifact downloaded through the normal browser or
+  GitHub Releases path.
+- Expected result: Gatekeeper accepts the signed/notarized app, quarantine does
+  not require manual removal, and launching from `/Applications` uses the
+  expected app data and log locations.
+- Evidence: `codesign` result, `spctl` result, quarantine attribute note,
+  notarization or Gatekeeper prompt screenshot if shown, and a redacted log note.
+
+### Windows SmartScreen Smoke
+
+- OS: Windows clean profile or VM, using the published installer artifact.
+- Expected result: installer signature is valid, SmartScreen behavior is known,
+  install does not require developer mode or local rebuild steps, and the app
+  launches with the expected version.
+- Evidence: `Get-AuthenticodeSignature` result, publisher/certificate summary,
+  SmartScreen prompt screenshot if shown, artifact digest, and install/uninstall
+  result.
+
+### First-Run Permission Prompt Smoke
+
+- OS: target OS with a clean profile or reset permissions for the packaged app.
+- Expected result: first-run prompts appear only after user-initiated actions,
+  denial leaves retryable UI, and no prompt reveals credentials or private URLs.
+- Evidence: screenshot of each OS prompt with private data redacted, action that
+  triggered it, deny/retry result, and redacted release log note.
+
+### Updater Smoke
+
+- OS: every platform whose updater path is being verified.
+- Expected result: an installed previous release detects the draft or published
+  update, downloads it, restarts into the expected version, and can recheck after
+  a failed or canceled update.
+- Evidence: previous version, target version, release URL, updater log note,
+  success or failure screenshot, and app data backup confirmation before testing
+  an existing profile.
+
 ## Checklist
 
 ### 1. FreshRSS Live Verification

@@ -70,6 +70,7 @@ const nullableBlankStringToNullSchema = z.preprocess((value) => {
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
 }, z.string().nullable());
+// biome-ignore lint/suspicious/noControlCharactersInRegex: IPC text fields must reject ASCII control characters.
 const controlCharPattern = /[\u0000-\u001f\u007f]/u;
 const whitespacePattern = /\s/u;
 const graphemeSegmenter = new Intl.Segmenter(undefined, {

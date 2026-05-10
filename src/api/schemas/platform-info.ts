@@ -1,9 +1,7 @@
 import { z } from "zod";
-import {
-  DEFAULT_PLATFORM_INFO,
-  PLATFORM_KINDS,
-  type PlatformKind,
-} from "@/constants/platform";
+import { DEFAULT_PLATFORM_INFO, PLATFORM_KINDS, type PlatformInfoShape, type PlatformKind } from "@/constants/platform";
+
+export type PlatformInfo = PlatformInfoShape;
 
 // Capabilities are part of PlatformInfo; keep the nested schema local until callers need a standalone contract.
 const PlatformCapabilitiesSchema = z
@@ -20,13 +18,13 @@ function isPlatformKind(kind: string): kind is PlatformKind {
   return PLATFORM_KINDS.some((platformKind) => platformKind === kind);
 }
 
-export const PlatformInfoSchema = z
+export const PlatformInfoSchema: z.ZodType<PlatformInfo> = z
   .object({
     kind: z.string(),
     capabilities: PlatformCapabilitiesSchema,
   })
   .strict()
-  .transform((platform) => {
+  .transform((platform): PlatformInfo => {
     if (isPlatformKind(platform.kind)) {
       return {
         ...platform,
@@ -38,12 +36,7 @@ export const PlatformInfoSchema = z
   });
 
 export const MAX_DEV_WINDOW_DIMENSION_PX = 10_000;
-const devWindowDimensionSchema = z
-  .number()
-  .int()
-  .positive()
-  .max(MAX_DEV_WINDOW_DIMENSION_PX)
-  .nullable();
+const devWindowDimensionSchema = z.number().int().positive().max(MAX_DEV_WINDOW_DIMENSION_PX).nullable();
 
 export const DevRuntimeOptionsSchema = z
   .object({
@@ -54,12 +47,7 @@ export const DevRuntimeOptionsSchema = z
   })
   .strict();
 
-const PlatformPermissionDeniedSurfaceSchema = z.enum([
-  "file",
-  "dialog",
-  "keyring",
-  "clipboard",
-]);
+const PlatformPermissionDeniedSurfaceSchema = z.enum(["file", "dialog", "keyring", "clipboard"]);
 
 export const PlatformPermissionDeniedRecoverySchema = z
   .object({
@@ -68,12 +56,7 @@ export const PlatformPermissionDeniedRecoverySchema = z
   })
   .strict();
 
-export const PlatformPermissionDeniedRecoveryListSchema = z.array(
-  PlatformPermissionDeniedRecoverySchema,
-);
+export const PlatformPermissionDeniedRecoveryListSchema = z.array(PlatformPermissionDeniedRecoverySchema);
 
-export type PlatformInfo = z.output<typeof PlatformInfoSchema>;
 export type DevRuntimeOptions = z.output<typeof DevRuntimeOptionsSchema>;
-export type PlatformPermissionDeniedRecovery = z.output<
-  typeof PlatformPermissionDeniedRecoverySchema
->;
+export type PlatformPermissionDeniedRecovery = z.output<typeof PlatformPermissionDeniedRecoverySchema>;

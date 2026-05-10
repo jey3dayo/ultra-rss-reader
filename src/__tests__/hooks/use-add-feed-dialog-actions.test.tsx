@@ -450,6 +450,7 @@ describe("useAddFeedDialogActions", () => {
     expect(addLocalFeed).toHaveBeenCalledWith("account-1", "https://example.com/atom.xml");
     expect(updateFeedFolder).toHaveBeenCalledWith("feed-new", "folder-1");
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ["feeds"] });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ["folders"] });
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({
       queryKey: ["accountUnreadCount"],
     });

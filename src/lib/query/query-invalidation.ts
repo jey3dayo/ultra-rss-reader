@@ -39,6 +39,12 @@ type InvalidateFeedMutationQueriesOptions = {
   accountId?: string | null;
 };
 
+type FeedMutationInvalidationOwnerMatrixEntry = {
+  feedOptions: InvalidateFeedQueriesOptions;
+  articleOptions: InvalidateArticleQueriesOptions;
+  includeAccountScopedFeedArticleSummaries: boolean;
+};
+
 let queryInvalidationFailureReporter: (failures: readonly QueryInvalidationFailure[]) => void =
   reportQueryInvalidationFailures;
 
@@ -270,6 +276,36 @@ const ARTICLE_INVALIDATION_TARGETS = [
   },
 ] as const satisfies ReadonlyArray<InvalidationTarget<keyof InvalidateArticleQueriesOptions>>;
 
+const FEED_MUTATION_INVALIDATION_OWNER_MATRIX = {
+  "add-feed": {
+    feedOptions: {
+      includeFolders: true,
+      includeAccountUnreadCount: true,
+    },
+    articleOptions: {
+      includeAccountUnreadCount: false,
+      includeFeeds: false,
+      includeTagArticleCounts: true,
+    },
+    includeAccountScopedFeedArticleSummaries: true,
+  },
+  "delete-feed": {
+    feedOptions: {
+      includeFolders: true,
+      includeAccountUnreadCount: true,
+    },
+    articleOptions: {
+      includeAccountUnreadCount: false,
+      includeFeeds: false,
+      includeTagArticleCounts: true,
+    },
+    includeAccountScopedFeedArticleSummaries: true,
+  },
+} as const satisfies Record<
+  Extract<QueryInvalidationActionOwner, "add-feed" | "delete-feed">,
+  FeedMutationInvalidationOwnerMatrixEntry
+>;
+
 function resolveInvalidationQueryKeys<TOption extends string>(
   targets: ReadonlyArray<InvalidationTarget<TOption>>,
   options: Partial<Record<TOption, boolean>>,
@@ -344,23 +380,17 @@ function invalidateFeedMutationQueries(
   actionOwner: Extract<QueryInvalidationActionOwner, "add-feed" | "delete-feed">,
   options: InvalidateFeedMutationQueriesOptions = {},
 ) {
-  invalidateFeedQueries(queryClient, {
-    actionOwner,
-    includeFolders: actionOwner === "add-feed",
-    includeAccountUnreadCount: true,
-  });
-  invalidateArticleQueries(queryClient, {
-    actionOwner,
-    includeAccountUnreadCount: false,
-    includeFeeds: false,
-    includeTagArticleCounts: true,
-  });
+  const matrixEntry = FEED_MUTATION_INVALIDATION_OWNER_MATRIX[actionOwner];
+  const invalidationQueryKeys: QueryKey[] = [
+    ...resolveFeedInvalidationQueryKeys(matrixEntry.feedOptions),
+    ...resolveArticleInvalidationQueryKeys(matrixEntry.articleOptions),
+  ];
 
-  if (options.accountId !== undefined) {
-    invalidateQueryKeysLogOnly(queryClient, [queryKeys.feedArticleSummaries.subscriptionsIndex(options.accountId)], {
-      actionOwner,
-    });
+  if (matrixEntry.includeAccountScopedFeedArticleSummaries && options.accountId !== undefined) {
+    invalidationQueryKeys.push(queryKeys.feedArticleSummaries.subscriptionsIndex(options.accountId));
   }
+
+  invalidateQueryKeysLogOnly(queryClient, invalidationQueryKeys, { actionOwner });
 }
 
 export function invalidateAddFeedQueries(queryClient: QueryClient, options: InvalidateFeedMutationQueriesOptions = {}) {

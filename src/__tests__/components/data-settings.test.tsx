@@ -4,8 +4,8 @@ import { DataSettings } from "@/components/settings/data-settings";
 import { STORAGE_CLEANUP_POLICY_CONNECTIONS } from "@/constants/storage";
 
 const mocks = vi.hoisted(() => ({
-  dataSettingsView: vi.fn(() => null),
-  useDataSettingsController: vi.fn(() => ({
+  dataSettingsView: vi.fn<(props: unknown) => null>(() => null),
+  useDataSettingsController: vi.fn((_params: unknown) => ({
     databaseSizeStatus: "ready",
     databaseSizeValue: "1.0 KB",
     vacuuming: false,

@@ -135,9 +135,13 @@ jobs:
           const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
           const tauriConfig = JSON.parse(fs.readFileSync("src-tauri/tauri.conf.json", "utf8"));
           const tauriReleaseConfig = JSON.parse(fs.readFileSync("src-tauri/tauri.release.conf.json", "utf8"));
+          const tauriDevConfig = JSON.parse(fs.readFileSync("src-tauri/tauri.dev.conf.json", "utf8"));
           const cargoToml = fs.readFileSync("src-tauri/Cargo.toml", "utf8");
+          const releaseWorkflow = fs.readFileSync(".github/workflows/release.yml", "utf8");
           const cargoVersion = cargoToml.match(/^version = "([^"]+)"$/m)?.[1];
           const expectedTag = `v${packageJson.version}`;
+          const releaseConfigPath = "src-tauri/tauri.release.conf.json";
+          const devConfigPath = "src-tauri/tauri.dev.conf.json";
           const updaterEndpoint = tauriConfig.plugins?.updater?.endpoints?.[0];
           const updaterPubkey = tauriConfig.plugins?.updater?.pubkey;
 
@@ -160,11 +164,26 @@ jobs:
           if (tauriReleaseConfig.bundle?.createUpdaterArtifacts !== true) {
             errors.push("src-tauri/tauri.release.conf.json must enable updater artifacts for release builds");
           }
+          if (tauriReleaseConfig.identifier === tauriDevConfig.identifier) {
+            errors.push("src-tauri/tauri.release.conf.json must not use the dev Tauri identifier");
+          }
+          if (tauriReleaseConfig.productName === tauriDevConfig.productName) {
+            errors.push("src-tauri/tauri.release.conf.json must not use the dev Tauri product name");
+          }
           if (updaterEndpoint !== "https://github.com/jey3dayo/ultra-rss-reader/releases/latest/download/latest.json") {
             errors.push(`src-tauri/tauri.conf.json updater endpoint ${updaterEndpoint ?? "(missing)"} does not match the GitHub release latest.json endpoint`);
           }
           if (!updaterPubkey || /(?:placeholder|change[_-]?me|todo)/i.test(updaterPubkey)) {
             errors.push("src-tauri/tauri.conf.json updater pubkey must be configured and must not be a placeholder");
+          }
+          if (!releaseWorkflow.includes(`--config ${releaseConfigPath}`)) {
+            errors.push("release workflow must pass src-tauri/tauri.release.conf.json to tauri-action");
+          }
+          if (releaseWorkflow.includes(`--config ${devConfigPath}`)) {
+            errors.push("release workflow must not pass src-tauri/tauri.dev.conf.json to tauri-action");
+          }
+          if (/\bDEV_CREDENTIALS\s*:/.test(releaseWorkflow) || /\bULTRA_RSS_DEV_CREDENTIALS\s*:/.test(releaseWorkflow)) {
+            errors.push("release workflow must not set dev credential environment variables");
           }
 
           if (errors.length > 0) {

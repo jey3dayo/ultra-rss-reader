@@ -1,8 +1,10 @@
+import type { SpawnSyncReturns } from "node:child_process";
 import { spawnSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 
 const reactDoctorVersion = "0.1.4";
 const knipVersion = "6.12.2";
+const qualityToolTimeoutMs = 120_000;
 
 const reactDoctorBaselines = {
   diff: {
@@ -45,6 +47,25 @@ type KnipReport = {
   issues: KnipIssueBucket[];
 };
 
+export type QualityToolDiagnosticKind =
+  | "missing-command"
+  | "non-zero-exit"
+  | "empty-report"
+  | "malformed-report"
+  | "timeout"
+  | "signal";
+
+export type QualityToolDiagnostic = {
+  kind: QualityToolDiagnosticKind;
+  tool: string;
+  command: string;
+  message: string;
+  exitCode?: number;
+  signal?: NodeJS.Signals;
+  stderr?: string;
+  stdout?: string;
+};
+
 export function runQualityBaseline(command: string | undefined = process.argv[2]): void {
   if (command !== "react-doctor:diff" && command !== "react-doctor:full" && command !== "knip") {
     console.error("Usage: node scripts/quality-baseline.ts react-doctor:diff|react-doctor:full|knip");
@@ -65,16 +86,16 @@ function runReactDoctor(mode: ReactDoctorMode, failOnDrift: boolean): void {
   const result = spawnSync(
     "pnpm",
     ["exec", "react-doctor", ".", "--verbose", modeFlag, "--offline", "--json", "--json-compact", "--fail-on", "none"],
-    { encoding: "utf8" },
+    { encoding: "utf8", timeout: qualityToolTimeoutMs },
   );
 
-  if (result.status !== 0) {
-    process.stderr.write(result.stderr);
-    process.stderr.write(result.stdout);
-    process.exit(result.status ?? 1);
+  const processDiagnostic = createProcessDiagnostic("React Doctor", "pnpm exec react-doctor", result);
+  if (processDiagnostic !== null) {
+    writeToolDiagnostic(processDiagnostic);
+    process.exit(exitCodeForDiagnostic(processDiagnostic));
   }
 
-  const report = parseReactDoctorReport(result.stdout);
+  const report = parseReactDoctorReportOrExit(result.stdout);
   const expected = reactDoctorBaselines[mode];
 
   const summary = [
@@ -109,15 +130,16 @@ function runKnip(): void {
   const actualVersion = readKnipVersion();
   const result = spawnSync("pnpm", ["exec", "knip", "--reporter", "json", "--no-exit-code", "--no-progress"], {
     encoding: "utf8",
+    timeout: qualityToolTimeoutMs,
   });
 
-  if (result.status !== 0) {
-    process.stderr.write(result.stderr);
-    process.stderr.write(result.stdout);
-    process.exit(result.status ?? 1);
+  const processDiagnostic = createProcessDiagnostic("Knip", "pnpm exec knip", result);
+  if (processDiagnostic !== null) {
+    writeToolDiagnostic(processDiagnostic);
+    process.exit(exitCodeForDiagnostic(processDiagnostic));
   }
 
-  const report = parseKnipReport(result.stdout);
+  const report = parseKnipReportOrExit(result.stdout);
   const findingsCount = report.issues.reduce((total, issue) => total + countIssueFindings(issue), 0);
 
   console.log(`Knip: issues=${report.issues.length} findings=${findingsCount} version=${actualVersion}`);
@@ -137,12 +159,13 @@ function runKnip(): void {
 function readKnipVersion(): string {
   const result = spawnSync("pnpm", ["exec", "knip", "--version"], {
     encoding: "utf8",
+    timeout: qualityToolTimeoutMs,
   });
 
-  if (result.status !== 0) {
-    process.stderr.write(result.stderr);
-    process.stderr.write(result.stdout);
-    process.exit(result.status ?? 1);
+  const processDiagnostic = createProcessDiagnostic("Knip", "pnpm exec knip --version", result);
+  if (processDiagnostic !== null) {
+    writeToolDiagnostic(processDiagnostic);
+    process.exit(exitCodeForDiagnostic(processDiagnostic));
   }
 
   const lines = result.stdout
@@ -157,7 +180,17 @@ function readKnipVersion(): string {
 }
 
 export function parseReactDoctorReport(stdout: string): ReactDoctorReport {
-  const parsed: unknown = JSON.parse(readJsonPayload(stdout));
+  for (const payload of readJsonPayloads(stdout)) {
+    try {
+      const parsed: unknown = JSON.parse(payload);
+      return readReactDoctorReport(parsed);
+    } catch {}
+  }
+
+  throw new Error("React Doctor did not return a valid report JSON object.");
+}
+
+function readReactDoctorReport(parsed: unknown): ReactDoctorReport {
   if (!isObject(parsed)) {
     throw new Error("React Doctor did not return a JSON object.");
   }
@@ -180,13 +213,100 @@ export function parseReactDoctorReport(stdout: string): ReactDoctorReport {
 }
 
 export function parseKnipReport(stdout: string): KnipReport {
-  const parsed: unknown = JSON.parse(readJsonPayload(stdout));
+  for (const payload of readJsonPayloads(stdout)) {
+    try {
+      const parsed: unknown = JSON.parse(payload);
+      return readKnipReport(parsed);
+    } catch {}
+  }
+
+  throw new Error("Knip did not return a valid report JSON object.");
+}
+
+function readKnipReport(parsed: unknown): KnipReport {
   if (!isObject(parsed) || !Array.isArray(parsed.issues)) {
     throw new Error("Knip did not return an issues array.");
   }
-
   return {
     issues: parsed.issues.filter(isObject),
+  };
+}
+
+export function createProcessDiagnostic(
+  tool: string,
+  command: string,
+  result: SpawnSyncReturns<string>,
+): QualityToolDiagnostic | null {
+  const stdout = trimOptional(result.stdout);
+  const stderr = trimOptional(result.stderr);
+  const errorCode = readErrorCode(result.error);
+
+  if (errorCode === "ENOENT") {
+    return {
+      kind: "missing-command",
+      tool,
+      command,
+      message: `${tool} command could not be started.`,
+      stderr,
+      stdout,
+    };
+  }
+
+  if (errorCode === "ETIMEDOUT") {
+    return {
+      kind: "timeout",
+      tool,
+      command,
+      message: `${tool} command timed out after ${qualityToolTimeoutMs}ms.`,
+      signal: result.signal ?? undefined,
+      stderr,
+      stdout,
+    };
+  }
+
+  if (result.signal !== null) {
+    return {
+      kind: "signal",
+      tool,
+      command,
+      message: `${tool} command was terminated by ${result.signal}.`,
+      signal: result.signal,
+      stderr,
+      stdout,
+    };
+  }
+
+  if (result.status !== 0) {
+    return {
+      kind: "non-zero-exit",
+      tool,
+      command,
+      message: `${tool} command exited with status ${result.status ?? "unknown"}.`,
+      exitCode: result.status ?? undefined,
+      stderr,
+      stdout,
+    };
+  }
+
+  return null;
+}
+
+export function createReportDiagnostic(
+  tool: string,
+  command: string,
+  stdout: string,
+  error: unknown,
+): QualityToolDiagnostic {
+  const hasOutput = stdout.trim().length > 0;
+  return {
+    kind: hasOutput ? "malformed-report" : "empty-report",
+    tool,
+    command,
+    message: hasOutput
+      ? `${tool} returned output, but no valid report JSON could be parsed.`
+      : `${tool} returned an empty report.`,
+    stdout: trimOptional(stdout),
+    stderr: error instanceof Error ? error.message : undefined,
   };
 }
 
@@ -200,6 +320,16 @@ function countIssueFindings(issue: KnipIssueBucket): number {
 }
 
 export function readJsonPayload(stdout: string): string {
+  const [payload] = readJsonPayloads(stdout);
+  if (payload !== undefined) {
+    return payload;
+  }
+
+  throw new Error("Tool output did not contain a JSON object.");
+}
+
+function readJsonPayloads(stdout: string): string[] {
+  const payloads: string[] = [];
   for (let start = stdout.indexOf("{"); start !== -1; start = stdout.indexOf("{", start + 1)) {
     const payload = readBalancedJsonObject(stdout, start);
     if (payload === null) {
@@ -208,11 +338,11 @@ export function readJsonPayload(stdout: string): string {
 
     try {
       JSON.parse(payload);
-      return payload;
+      payloads.push(payload);
     } catch {}
   }
 
-  throw new Error("Tool output did not contain a JSON object.");
+  return payloads;
 }
 
 function readBalancedJsonObject(stdout: string, start: number): string | null {
@@ -256,8 +386,58 @@ function checkEqual(name: string, actual: string | number, expected: string | nu
   return actual === expected ? null : `${name} drift: expected ${expected}, actual ${actual}`;
 }
 
+function parseReactDoctorReportOrExit(stdout: string): ReactDoctorReport {
+  try {
+    return parseReactDoctorReport(stdout);
+  } catch (error) {
+    const diagnostic = createReportDiagnostic("React Doctor", "pnpm exec react-doctor", stdout, error);
+    writeToolDiagnostic(diagnostic);
+    process.exit(exitCodeForDiagnostic(diagnostic));
+  }
+}
+
+function parseKnipReportOrExit(stdout: string): KnipReport {
+  try {
+    return parseKnipReport(stdout);
+  } catch (error) {
+    const diagnostic = createReportDiagnostic("Knip", "pnpm exec knip", stdout, error);
+    writeToolDiagnostic(diagnostic);
+    process.exit(exitCodeForDiagnostic(diagnostic));
+  }
+}
+
+function writeToolDiagnostic(diagnostic: QualityToolDiagnostic): void {
+  process.stderr.write(`${JSON.stringify(diagnostic)}\n`);
+}
+
+function exitCodeForDiagnostic(diagnostic: QualityToolDiagnostic): number {
+  if (diagnostic.kind === "missing-command") {
+    return 127;
+  }
+  if (diagnostic.kind === "timeout") {
+    return 124;
+  }
+  return diagnostic.exitCode ?? 1;
+}
+
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
+}
+
+function readErrorCode(error: Error | undefined): string | undefined {
+  if (error === undefined || !hasErrorCode(error) || typeof error.code !== "string") {
+    return undefined;
+  }
+  return error.code;
+}
+
+function hasErrorCode(error: Error): error is Error & { code: unknown } {
+  return "code" in error;
+}
+
+function trimOptional(value: string | null | undefined): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed === undefined || trimmed.length === 0 ? undefined : trimmed;
 }
 
 function readString(source: Record<string, unknown>, key: string): string {

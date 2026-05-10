@@ -539,4 +539,158 @@ describe("useArticleAutoMark", () => {
     expect(useUiStore.getState().retainedArticleIds).toEqual(new Set(["art-1"]));
     expect(showToast).not.toHaveBeenCalled();
   });
+
+  it("ignores stale mutation success after the mutation owner changes", () => {
+    const addRecentlyRead = vi.fn();
+    const mutationCallbacks = new Map<string, NonNullable<NonNullable<Parameters<AutoMarkMutate>[1]>["onSuccess"]>>();
+    const firstSetRead: UseArticleAutoMarkParams["setRead"] = {
+      mutate: vi.fn((variables, options) => {
+        if (options?.onSuccess) {
+          mutationCallbacks.set(`first:${variables.id}`, options.onSuccess);
+        }
+      }),
+    };
+    const secondSetRead: UseArticleAutoMarkParams["setRead"] = {
+      mutate: vi.fn((variables, options) => {
+        if (options?.onSuccess) {
+          mutationCallbacks.set(`second:${variables.id}`, options.onSuccess);
+        }
+      }),
+    };
+
+    const { rerender } = renderHook(
+      (props: UseArticleAutoMarkParams) => {
+        useArticleAutoMark(props);
+      },
+      {
+        initialProps: createParams({
+          afterReading: "immediately",
+          setRead: firstSetRead,
+          addRecentlyRead,
+        }),
+      },
+    );
+
+    rerender(
+      createParams({
+        articleId: "art-2",
+        afterReading: "immediately",
+        setRead: secondSetRead,
+        addRecentlyRead,
+      }),
+    );
+
+    act(() => {
+      mutationCallbacks.get("first:art-1")?.(
+        undefined,
+        { id: "art-1", read: true },
+        undefined,
+        createMutationContext(),
+      );
+      mutationCallbacks.get("second:art-2")?.(
+        undefined,
+        { id: "art-2", read: true },
+        undefined,
+        createMutationContext(),
+      );
+    });
+
+    expect(addRecentlyRead).toHaveBeenCalledTimes(1);
+    expect(addRecentlyRead).toHaveBeenCalledWith("art-2");
+  });
+
+  it("does not let a stale mutation error re-arm the current article after switching away and back", () => {
+    const mutationCallbacks = new Map<
+      string,
+      Array<NonNullable<NonNullable<Parameters<AutoMarkMutate>[1]>["onError"]>>
+    >();
+    const setRead: UseArticleAutoMarkParams["setRead"] = {
+      mutate: vi.fn((variables, options) => {
+        if (options?.onError) {
+          mutationCallbacks.set(variables.id, [...(mutationCallbacks.get(variables.id) ?? []), options.onError]);
+        }
+      }),
+    };
+
+    const { rerender } = renderHook(
+      (props: UseArticleAutoMarkParams) => {
+        useArticleAutoMark(props);
+      },
+      {
+        initialProps: createParams({
+          articleId: "art-1",
+          afterReading: "immediately",
+          setRead,
+        }),
+      },
+    );
+
+    rerender(
+      createParams({
+        articleId: "art-2",
+        afterReading: "immediately",
+        setRead,
+      }),
+    );
+    rerender(
+      createParams({
+        articleId: "art-1",
+        afterReading: "immediately",
+        setRead,
+      }),
+    );
+
+    act(() => {
+      mutationCallbacks.get("art-1")?.[0]?.(
+        new Error("Failed stale article"),
+        { id: "art-1", read: true },
+        undefined,
+        createMutationContext(),
+      );
+    });
+
+    rerender(
+      createParams({
+        articleId: "art-1",
+        afterReading: "immediately",
+        setRead,
+      }),
+    );
+
+    expect(setRead.mutate).toHaveBeenCalledTimes(3);
+    expect(setRead.mutate).toHaveBeenNthCalledWith(
+      1,
+      { id: "art-1", read: true },
+      expect.objectContaining({ onError: expect.any(Function) }),
+    );
+    expect(setRead.mutate).toHaveBeenNthCalledWith(
+      2,
+      { id: "art-2", read: true },
+      expect.objectContaining({ onError: expect.any(Function) }),
+    );
+    expect(setRead.mutate).toHaveBeenNthCalledWith(
+      3,
+      { id: "art-1", read: true },
+      expect.objectContaining({ onError: expect.any(Function) }),
+    );
+  });
+
+  it("does not schedule a delayed mark when timers are unavailable", () => {
+    const setRead: UseArticleAutoMarkParams["setRead"] = {
+      mutate: vi.fn(),
+    };
+    vi.useRealTimers();
+    vi.stubGlobal("setTimeout", undefined);
+
+    renderHook(() => {
+      useArticleAutoMark(
+        createParams({
+          afterReading: "after_1s",
+          setRead,
+        }),
+      );
+    });
+
+    expect(setRead.mutate).not.toHaveBeenCalled();
+  });
 });

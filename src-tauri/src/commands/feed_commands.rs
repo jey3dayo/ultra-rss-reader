@@ -24,7 +24,6 @@ use crate::infra::feed_discovery;
 use crate::repository::account::AccountRepository;
 
 const FEED_TITLE_MAX_CHARS: usize = 200;
-const FOLDER_NAME_MAX_CHARS: usize = crate::domain::folder::FOLDER_NAME_MAX_CHARS;
 const UPDATE_FEED_FOLDER_TARGET_VALIDATION_MESSAGE: &str =
     "feed not found or folder does not belong to feed account";
 const FOLDER_NAME_UNIQUE_INDEX: &str = "idx_folders_account_name_nocase_unique";

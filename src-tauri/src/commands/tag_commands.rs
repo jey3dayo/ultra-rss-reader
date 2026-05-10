@@ -142,27 +142,29 @@ fn create_tag_impl(
 
     let db = lock_db(db)?;
     let tx = begin_immediate_transaction(db.writer())?;
-    let repo = SqliteTagRepository::new(&tx);
-    if let Some(existing) = repo.find_by_name(&name)? {
-        return Err(AppError::UserVisible {
-            message: format!("Tag name \"{}\" already exists", existing.name),
-        });
-    }
-
-    let tag = Tag {
-        id: TagId::new(),
-        name,
-        color,
-    };
-    if let Err(error) = repo.save(&tag) {
-        if is_unique_constraint_domain_error(&error) {
+    let tag = {
+        let repo = SqliteTagRepository::new(&tx);
+        if let Some(existing) = repo.find_by_name(&name)? {
             return Err(AppError::UserVisible {
-                message: format!("Tag name \"{}\" already exists", tag.name),
+                message: format!("Tag name \"{}\" already exists", existing.name),
             });
         }
-        return Err(error.into());
-    }
-    drop(repo);
+
+        let tag = Tag {
+            id: TagId::new(),
+            name,
+            color,
+        };
+        if let Err(error) = repo.save(&tag) {
+            if is_unique_constraint_domain_error(&error) {
+                return Err(AppError::UserVisible {
+                    message: format!("Tag name \"{}\" already exists", tag.name),
+                });
+            }
+            return Err(error.into());
+        }
+        tag
+    };
     tx.commit().map_err(DomainError::from)?;
     Ok(TagDto::from(tag))
 }
@@ -229,9 +231,10 @@ fn delete_tag_impl(
 ) -> Result<(), AppError> {
     let db = lock_db(db)?;
     let tx = begin_immediate_transaction(db.writer())?;
-    let repo = SqliteTagRepository::new(&tx);
-    repo.delete(&TagId(tag_id))?;
-    drop(repo);
+    {
+        let repo = SqliteTagRepository::new(&tx);
+        repo.delete(&TagId(tag_id))?;
+    }
     tx.commit().map_err(DomainError::from)?;
     Ok(())
 }
@@ -258,9 +261,10 @@ fn tag_article_impl(
     let db = lock_db(db)?;
     let tx = begin_immediate_transaction(db.writer())?;
     validate_article_tag_targets(&tx, &article_id, &tag_id)?;
-    let repo = SqliteTagRepository::new(&tx);
-    repo.tag_article(&ArticleId(article_id), &TagId(tag_id))?;
-    drop(repo);
+    {
+        let repo = SqliteTagRepository::new(&tx);
+        repo.tag_article(&ArticleId(article_id), &TagId(tag_id))?;
+    }
     tx.commit().map_err(DomainError::from)?;
     Ok(())
 }
@@ -296,15 +300,17 @@ fn create_tag_and_assign_article_impl(
 
     let db = lock_db(db)?;
     let tx = begin_immediate_transaction(db.writer())?;
-    let repo = SqliteTagRepository::new(&tx);
-    let tag = repo.find_or_create(&Tag {
-        id: TagId::new(),
-        name,
-        color,
-    })?;
-    validate_article_tag_targets(&tx, &article_id, &tag.id.0)?;
-    repo.tag_article(&ArticleId(article_id), &tag.id)?;
-    drop(repo);
+    let tag = {
+        let repo = SqliteTagRepository::new(&tx);
+        let tag = repo.find_or_create(&Tag {
+            id: TagId::new(),
+            name,
+            color,
+        })?;
+        validate_article_tag_targets(&tx, &article_id, &tag.id.0)?;
+        repo.tag_article(&ArticleId(article_id), &tag.id)?;
+        tag
+    };
     tx.commit().map_err(DomainError::from)?;
     Ok(TagDto::from(tag))
 }
@@ -326,9 +332,10 @@ fn untag_article_impl(
     let db = lock_db(db)?;
     let tx = begin_immediate_transaction(db.writer())?;
     validate_article_tag_targets(&tx, &article_id, &tag_id)?;
-    let repo = SqliteTagRepository::new(&tx);
-    repo.untag_article(&ArticleId(article_id), &TagId(tag_id))?;
-    drop(repo);
+    {
+        let repo = SqliteTagRepository::new(&tx);
+        repo.untag_article(&ArticleId(article_id), &TagId(tag_id))?;
+    }
     tx.commit().map_err(DomainError::from)?;
     Ok(())
 }

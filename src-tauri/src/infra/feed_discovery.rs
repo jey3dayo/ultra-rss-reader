@@ -169,14 +169,6 @@ async fn response_text_with_limit(response: reqwest::Response) -> DomainResult<S
     Ok(decode_discovery_response_body(&body))
 }
 
-fn validate_discovery_body_size(length: u64) -> DomainResult<()> {
-    if length > http_defaults::DISCOVERY_RESPONSE_BODY_CAP_BYTES {
-        return Err(discovery_body_too_large_error());
-    }
-
-    Ok(())
-}
-
 fn discovery_body_too_large_error() -> DomainError {
     DomainError::Validation(format!(
         "Feed discovery response body exceeds {} bytes",
@@ -966,18 +958,6 @@ mod tests {
                 DomainError::Validation(message) if message == UNSUPPORTED_URL_VALIDATION_MESSAGE
             ));
         }
-    }
-
-    #[test]
-    fn discovery_body_size_limit_rejects_oversized_html_before_parsing() {
-        assert!(
-            validate_discovery_body_size(http_defaults::DISCOVERY_RESPONSE_BODY_CAP_BYTES).is_ok()
-        );
-        assert!(matches!(
-            validate_discovery_body_size(http_defaults::DISCOVERY_RESPONSE_BODY_CAP_BYTES + 1),
-            Err(DomainError::Validation(message))
-                if message.contains("Feed discovery response body exceeds")
-        ));
     }
 
     #[test]

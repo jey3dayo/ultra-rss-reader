@@ -843,6 +843,83 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn sync_account_repairs_outdated_saved_articles_before_provider_pull() {
+        let db = DbManager::new_in_memory().unwrap();
+        let account = test_account();
+        let feed = test_feed(&account.id);
+        let account_repo = SqliteAccountRepository::new(db.writer());
+        let feed_repo = SqliteFeedRepository::new(db.writer());
+        let article_repo = SqliteArticleRepository::new(db.writer());
+        let folder_repo = SqliteFolderRepository::new(db.writer());
+        let pending_repo = SqlitePendingMutationRepository::new(db.writer());
+        account_repo.save(&account).unwrap();
+        feed_repo.save(&feed).unwrap();
+
+        let article = Article {
+            id: crate::domain::types::ArticleId("saved-old-policy".to_string()),
+            feed_id: feed.id.clone(),
+            remote_id: Some("remote-saved-old-policy".to_string()),
+            title: "Saved article".to_string(),
+            content_raw: r#"
+                <article>
+                  <p onclick="evil()">Lead <strong>body</strong></p>
+                  <a href="https://publisher.example.com/read" ping="https://tracker.example.com">Read</a>
+                  <img src="https://cdn.example.com/body.jpg" onerror="evil()" alt="Body">
+                  <script>alert(1)</script>
+                </article>
+            "#
+            .to_string(),
+            content_sanitized: "<script>stale saved html</script>".to_string(),
+            sanitizer_version: sanitizer::SANITIZER_VERSION - 1,
+            summary: None,
+            url: Some("https://publisher.example.com/read".to_string()),
+            author: None,
+            published_at: Utc::now(),
+            thumbnail: None,
+            is_read: false,
+            is_starred: false,
+            fetched_at: Utc::now(),
+        };
+        article_repo.upsert(&[article.clone()]).unwrap();
+
+        let provider = FailingPullProvider {
+            failure: ProviderFailureKind::Network,
+        };
+        let error = sync_account(
+            &account.id,
+            &provider,
+            &article_repo,
+            &feed_repo,
+            &folder_repo,
+            &pending_repo,
+        )
+        .await
+        .expect_err("provider pull fails after saved article repair");
+
+        assert_eq!(error.to_string(), "Network error: network unavailable");
+
+        let saved = article_repo
+            .find_by_feed(&feed.id, &crate::repository::article::Pagination::default())
+            .unwrap()
+            .into_iter()
+            .find(|saved| saved.id == article.id)
+            .unwrap();
+
+        assert_eq!(saved.sanitizer_version, sanitizer::SANITIZER_VERSION);
+        assert!(saved.content_sanitized.contains("Lead"));
+        assert!(saved
+            .content_sanitized
+            .contains(r#"src="https://cdn.example.com/body.jpg""#));
+        assert!(saved
+            .content_sanitized
+            .contains(r#"rel="noopener noreferrer""#));
+        assert!(!saved.content_sanitized.contains("<script"));
+        assert!(!saved.content_sanitized.contains("onclick"));
+        assert!(!saved.content_sanitized.contains("onerror"));
+        assert!(!saved.content_sanitized.contains("ping="));
+    }
+
+    #[tokio::test]
     async fn sync_account_reuses_existing_remote_folder_id() {
         let db = DbManager::new_in_memory().unwrap();
         let account = test_account();

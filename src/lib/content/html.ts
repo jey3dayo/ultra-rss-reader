@@ -94,7 +94,9 @@ function normalizeVisibleText(text: string): string {
 }
 
 function isDuplicateLeadingLabelText(text: string, label: string): boolean {
-  return text === label || text === `${label}:` || text === `${label}：` || text === `${label}｜` || text === `${label} -`;
+  return (
+    text === label || text === `${label}:` || text === `${label}：` || text === `${label}｜` || text === `${label} -`
+  );
 }
 
 function hasMeaningfulVisibleText(node: ChildNode): boolean {

@@ -45,7 +45,7 @@ fn import_opml_inner(
     account_id: String,
 ) -> Result<Vec<FeedDto>, AppError> {
     let _maintenance_guard = start_database_maintenance(syncing)?;
-    let parsed_feeds = parse_import_opml(&opml_content)?;
+    let parsed_feeds = parse_import_opml(opml_content)?;
 
     let db = try_lock_db(db)?;
 

@@ -1,16 +1,10 @@
 import { Menu } from "@base-ui/react/menu";
 import { Result } from "@praha/byethrow";
 import { BookmarkPlus, Copy, Mail, Share } from "lucide-react";
-import {
-  normalizeHttpCommandUrl,
-  SHARE_COMMAND_TEXT_MAX_CHARS,
-} from "@/api/schemas/commands";
+import { normalizeHttpCommandUrl, SHARE_COMMAND_TEXT_MAX_CHARS } from "@/api/schemas/commands";
 import { type ArticleDto, openExternalUrl } from "@/api/tauri-commands";
 import { IconToolbarMenuTrigger } from "@/components/shared/icon-toolbar-control";
-import {
-  addArticleToReadingList,
-  copyArticleLink,
-} from "./article-browser-actions";
+import { addArticleToReadingList, copyArticleLink } from "./article-browser-actions";
 import { contextMenuStyles } from "./context-menu-styles";
 
 const articleShareMenuUnavailableClassName =
@@ -20,33 +14,24 @@ const MAILTO_FALLBACK_SUBJECT = "Untitled article";
 const MAILTO_SUBJECT_MAX_LENGTH = 160;
 const MAILTO_BODY_MAX_LENGTH = SHARE_COMMAND_TEXT_MAX_CHARS;
 
-function resolveMailtoValue(
-  value: string | null,
-  fallback: string,
-  maxLength: number,
-) {
+function resolveMailtoValue(value: string | null, fallback: string, maxLength: number) {
   const normalized = value?.trim() || fallback;
-  return normalized.length > maxLength
-    ? normalized.slice(0, maxLength)
-    : normalized;
+  return normalized.length > maxLength ? normalized.slice(0, maxLength) : normalized;
 }
 
 function buildArticleMailto(article: ArticleDto) {
-  const normalizedUrl = normalizeHttpCommandUrl(article.url);
+  const rawUrl = article.url;
+  if (!rawUrl) {
+    return null;
+  }
+
+  const normalizedUrl = normalizeHttpCommandUrl(rawUrl);
   if (!normalizedUrl) {
     return null;
   }
 
-  const subject = resolveMailtoValue(
-    article.title,
-    MAILTO_FALLBACK_SUBJECT,
-    MAILTO_SUBJECT_MAX_LENGTH,
-  );
-  const body = resolveMailtoValue(
-    normalizedUrl,
-    normalizedUrl,
-    MAILTO_BODY_MAX_LENGTH,
-  );
+  const subject = resolveMailtoValue(article.title, MAILTO_FALLBACK_SUBJECT, MAILTO_SUBJECT_MAX_LENGTH);
+  const body = resolveMailtoValue(normalizedUrl, normalizedUrl, MAILTO_BODY_MAX_LENGTH);
   return `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
@@ -66,12 +51,7 @@ type ArticleShareMenuProps = {
   labels: ArticleShareMenuLabels;
 };
 
-export function ArticleShareMenu({
-  article,
-  supportsReadingList,
-  showToast,
-  labels,
-}: ArticleShareMenuProps) {
+export function ArticleShareMenu({ article, supportsReadingList, showToast, labels }: ArticleShareMenuProps) {
   return (
     <Menu.Root>
       <IconToolbarMenuTrigger

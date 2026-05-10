@@ -21,7 +21,7 @@ const componentAndLibSourceFiles = import.meta.glob<string>("/src/{components,ho
   query: "?raw",
 });
 
-function isLocaleObject(value: LocaleNode): value is { readonly [key: string]: LocaleNode } {
+function isLocaleObject(value: LocaleNode | undefined): value is { readonly [key: string]: LocaleNode } {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
