@@ -21,6 +21,9 @@ describe("TagSectionContextMenuView", () => {
       </ContextMenu.Root>,
     );
 
+    expect(screen.getByRole("menuitem", { name: "Add tag" })).toHaveAttribute("data-action-id", "tag-add");
+    expect(screen.getByRole("menuitem", { name: "Manage tags" })).toHaveAttribute("data-action-id", "tag-manage");
+
     await user.click(screen.getByRole("menuitem", { name: "Add tag" }));
     await user.click(screen.getByRole("menuitem", { name: "Manage tags" }));
 

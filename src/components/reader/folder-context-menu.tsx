@@ -86,14 +86,20 @@ export function FolderContextMenuContent({ folder, folderUnread, feeds }: Folder
       onMarkOldUnreadRead={(days) =>
         createMenuActionHandler(
           CONTEXT_MENU_ACTION_IDS.folderMarkOldUnreadReadDays,
-          () => markOldUnreadRead(days),
-          { showToast },
+          async () => {
+            await markOldUnreadRead(days);
+          },
+          {
+            showToast,
+          },
         )()
       }
       onSetDisplayPreset={(value) =>
         createMenuActionHandler(
           CONTEXT_MENU_ACTION_IDS.folderSetDisplayPreset,
-          () => handleSetDisplayPreset(value),
+          async () => {
+            await handleSetDisplayPreset(value);
+          },
           {
             showToast,
             getToastMessage: (error) => t("failed_to_update_display_settings", { message: getErrorMessage(error) }),

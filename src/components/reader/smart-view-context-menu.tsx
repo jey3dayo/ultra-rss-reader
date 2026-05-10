@@ -11,8 +11,8 @@ import {
 import { useConfirmMarkAllRead } from "@/hooks/use-confirm-mark-all-read";
 import type { SmartViewItemViewModel } from "@/lib/sidebar/sidebar-smart-views";
 import { useUiStore } from "@/stores/ui-store";
-import { contextMenuStyles } from "./context-menu-styles";
 import { CONTEXT_MENU_ACTION_IDS, createMenuActionHandler } from "./context-menu-action-policy";
+import { contextMenuStyles } from "./context-menu-styles";
 import { OldUnreadContextMenuItems } from "./old-unread-context-menu-items";
 
 type SmartViewContextMenuContentProps = {

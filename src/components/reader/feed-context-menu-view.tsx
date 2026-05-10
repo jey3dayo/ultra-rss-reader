@@ -1,6 +1,6 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
-import { contextMenuStyles } from "./context-menu-styles";
 import { CONTEXT_MENU_ACTION_IDS } from "./context-menu-action-policy";
+import { contextMenuStyles } from "./context-menu-styles";
 import { OldUnreadContextMenuItems, type OldUnreadDayPreset } from "./old-unread-context-menu-items";
 
 type FeedContextMenuViewProps = {

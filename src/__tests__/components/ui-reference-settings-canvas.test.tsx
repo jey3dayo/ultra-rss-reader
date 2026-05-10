@@ -36,11 +36,30 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AppTooltip, TooltipProvider } from "@/components/ui/tooltip";
+import i18n from "@/lib/i18n";
 
 const UI_COMPONENTS_DIR = resolve(process.cwd(), "src/components/ui");
 
+const settingsCanvasLocaleSmokeCases = [
+  {
+    language: "en",
+    accountHeading: "Account",
+    serverUrlLabel: "Server URL",
+    submitLabel: "Add",
+    cancelLabel: "Cancel",
+  },
+  {
+    language: "ja",
+    accountHeading: "アカウント",
+    serverUrlLabel: "サーバーURL",
+    submitLabel: "追加",
+    cancelLabel: "キャンセル",
+  },
+] as const;
+
 describe("UI Reference canvases", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    await i18n.changeLanguage("en");
     vi.stubGlobal(
       "ResizeObserver",
       class ResizeObserver {
@@ -210,6 +229,31 @@ describe("UI Reference canvases", () => {
     expect(screen.getByRole("switch", { name: "ミュート時に自動既読" })).toHaveAttribute("aria-disabled", "true");
     expect(screen.queryByText("Shell examples")).not.toBeInTheDocument();
     expect(screen.queryByText("Dialog shell")).not.toBeInTheDocument();
+  });
+
+  it("smoke-renders UI reference settings canvases in English and Japanese locales", async () => {
+    for (const localeCase of settingsCanvasLocaleSmokeCases) {
+      await i18n.changeLanguage(localeCase.language);
+
+      const inputControlsRender = render(<InputControlsCanvas />);
+      expect(screen.getByRole("textbox", { name: "Display name" })).toHaveClass("h-10", "flex-1");
+      expect(screen.getByRole("button", { name: "Discover feed" })).toHaveClass(
+        "absolute",
+        "right-1",
+        "h-7",
+        "min-w-14",
+      );
+      inputControlsRender.unmount();
+
+      const settingsWorkspaceRender = render(<SettingsWorkspaceCanvas />);
+      const addAccountShell = screen.getByTestId("reference-settings-workspace-add-shell");
+      expect(addAccountShell.querySelector(".flex-wrap")).toBeInTheDocument();
+      expect(within(addAccountShell).getByRole("heading", { name: localeCase.accountHeading })).toBeInTheDocument();
+      expect(within(addAccountShell).getByRole("textbox", { name: localeCase.serverUrlLabel })).toHaveClass("h-10");
+      expect(within(addAccountShell).getByRole("button", { name: localeCase.cancelLabel })).toHaveClass("min-h-11");
+      expect(within(addAccountShell).getByRole("button", { name: localeCase.submitLabel })).toHaveClass("min-h-11");
+      settingsWorkspaceRender.unmount();
+    }
   });
 
   it("keeps Base UI wrapper data-slot contracts by primitive", async () => {

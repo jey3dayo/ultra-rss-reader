@@ -20,6 +20,8 @@ describe("TagContextMenuView", () => {
       "text-state-danger-foreground",
       "data-highlighted:bg-state-danger-surface",
     );
+    expect(screen.getByRole("menuitem", { name: "Edit…" })).toHaveAttribute("data-action-id", "tag-edit");
+    expect(screen.getByRole("menuitem", { name: "Delete…" })).toHaveAttribute("data-action-id", "tag-delete");
 
     await user.click(screen.getByRole("menuitem", { name: "Edit…" }));
     await user.click(screen.getByRole("menuitem", { name: "Delete…" }));

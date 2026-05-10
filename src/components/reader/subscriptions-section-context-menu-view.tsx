@@ -1,4 +1,5 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
+import { CONTEXT_MENU_ACTION_IDS } from "./context-menu-action-policy";
 import { contextMenuStyles } from "./context-menu-styles";
 
 type SubscriptionsSectionContextMenuViewProps = {
@@ -21,14 +22,14 @@ export function SubscriptionsSectionContextMenuView({
       <ContextMenu.Positioner>
         <ContextMenu.Popup className={contextMenuStyles.popup}>
           <ContextMenu.Item
-            data-action-id="subscriptions-expand-all-folders"
+            data-action-id={CONTEXT_MENU_ACTION_IDS.subscriptionsExpandAllFolders}
             className={contextMenuStyles.item}
             onClick={onExpandAllFolders}
           >
             {expandAllFoldersLabel}
           </ContextMenu.Item>
           <ContextMenu.Item
-            data-action-id="subscriptions-collapse-all-folders"
+            data-action-id={CONTEXT_MENU_ACTION_IDS.subscriptionsCollapseAllFolders}
             className={contextMenuStyles.item}
             onClick={onCollapseAllFolders}
           >

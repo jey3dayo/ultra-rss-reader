@@ -1,4 +1,5 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
+import { CONTEXT_MENU_ACTION_IDS } from "./context-menu-action-policy";
 import { contextMenuStyles } from "./context-menu-styles";
 
 type AccountContextMenuContentProps = {
@@ -12,7 +13,7 @@ export function AccountContextMenuContent({ settingsLabel, onOpenSettings }: Acc
       <ContextMenu.Positioner>
         <ContextMenu.Popup className={contextMenuStyles.popup}>
           <ContextMenu.Item
-            data-action-id="account-open-settings"
+            data-action-id={CONTEXT_MENU_ACTION_IDS.accountOpenSettings}
             className={contextMenuStyles.item}
             onClick={onOpenSettings}
           >

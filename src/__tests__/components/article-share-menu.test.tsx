@@ -7,6 +7,7 @@ import { SHARE_COMMAND_TEXT_MAX_CHARS } from "@/api/schemas/commands";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { ArticleShareMenu } from "@/components/reader/article-share-menu";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { APP_EVENTS } from "@/constants/events";
 
 const { addArticleToReadingListMock, copyArticleLinkMock, openExternalUrlMock, openInBrowserMock } = vi.hoisted(() => ({
   addArticleToReadingListMock: vi.fn(),
@@ -95,7 +96,9 @@ describe("ArticleShareMenu", () => {
     renderShareMenu({ showToast });
 
     await user.click(screen.getByRole("button", { name: "Share" }));
-    await user.click(await screen.findByRole("menuitem", { name: "Copy link" }));
+    const copyMenuItem = await screen.findByRole("menuitem", { name: "Copy link" });
+    expect(copyMenuItem).toHaveAttribute("data-action-id", "article-copy-link");
+    await user.click(copyMenuItem);
 
     await waitFor(() => {
       expect(copyArticleLinkMock).toHaveBeenCalledWith("https://example.com/article", {
@@ -289,7 +292,9 @@ describe("ArticleShareMenu", () => {
   it("handles rejected async copy menu actions with the shared menu policy", async () => {
     const user = userEvent.setup();
     const showToast = vi.fn();
+    const listener = vi.fn();
     copyArticleLinkMock.mockRejectedValue(new Error("clipboard plugin not available"));
+    window.addEventListener(APP_EVENTS.debugInputTrace, listener);
 
     renderShareMenu({ showToast });
 
@@ -299,6 +304,12 @@ describe("ArticleShareMenu", () => {
     await waitFor(() => {
       expect(showToast).toHaveBeenCalledWith("clipboard plugin not available");
     });
+    window.removeEventListener(APP_EVENTS.debugInputTrace, listener);
+    expect(String(listener.mock.calls[0]?.[0].detail)).toMatch(/ menu-action article-copy-link$/);
+    expect(console.error).toHaveBeenCalledWith(
+      "Menu action failed: article-copy-link",
+      expect.objectContaining({ message: "clipboard plugin not available" }),
+    );
     expect(console.error).toHaveBeenCalledWith(
       "Copy failed",
       expect.objectContaining({

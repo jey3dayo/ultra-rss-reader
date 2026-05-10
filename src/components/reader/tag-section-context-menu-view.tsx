@@ -1,4 +1,5 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
+import { CONTEXT_MENU_ACTION_IDS } from "./context-menu-action-policy";
 import { contextMenuStyles } from "./context-menu-styles";
 
 type TagSectionContextMenuViewProps = {
@@ -18,10 +19,18 @@ export function TagSectionContextMenuView({
     <ContextMenu.Portal>
       <ContextMenu.Positioner>
         <ContextMenu.Popup className={contextMenuStyles.popup}>
-          <ContextMenu.Item className={contextMenuStyles.item} onClick={onAddTag}>
+          <ContextMenu.Item
+            data-action-id={CONTEXT_MENU_ACTION_IDS.tagAdd}
+            className={contextMenuStyles.item}
+            onClick={onAddTag}
+          >
             {addTagLabel}
           </ContextMenu.Item>
-          <ContextMenu.Item className={contextMenuStyles.item} onClick={onManageTags}>
+          <ContextMenu.Item
+            data-action-id={CONTEXT_MENU_ACTION_IDS.tagManage}
+            className={contextMenuStyles.item}
+            onClick={onManageTags}
+          >
             {manageTagsLabel}
           </ContextMenu.Item>
         </ContextMenu.Popup>
