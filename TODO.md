@@ -3449,11 +3449,6 @@
   - action failure の再現には sequence が必要だが、telemetry なし方針なら local-only・redacted・size-capped の設計が必要
   - local-only log、redaction、size cap、action id、account/feed omission、support copy の decision を追加する
 
-- [ ] P2 user-facing error copy の support code / diagnostics id 方針を決める
-  - 対象: `AppError` schema、toasts、dialogs、runtime diagnostics
-  - 詳細を隠すほど問い合わせ時の特定が難しくなるため、secret を出さずに照合できる短い code/id が必要か判断する
-  - stable error code、diagnostics id、copy in ja/en、log correlation、no secret detail の policy を追加する
-
 - [ ] P3 TODO.md の重複検出 / 類似 task grouping を tooling 化する
   - 対象: `TODO.md`, similarity report, task triage scripts
   - TODO が増え続けると同じ risk を別名で積みやすくなり、優先度判断が鈍る
@@ -3569,16 +3564,6 @@
   - manifest が別 asset や別 arch を指すと、署名済みでも誤 artifact を配る可能性がある
   - macOS arm64、Windows x64、asset filename、signature file、checksum mismatch、missing platform の gate を追加する
 
-- [ ] P1 backup/export file の privacy level と encryption decision を明文化する
-  - 対象: DB backup、OPML export、support dump、docs
-  - DB backup や support dump は article/feed/account metadata を含むため、OPML と同じ感覚で共有されると privacy leak になる
-  - DB backup、OPML export、diagnostics dump、log zip、encryption required/optional、warning copy の policy を追加する
-
-- [ ] P1 uninstall / reinstall / app data removal の data retention contract を作る
-  - 対象: installer/uninstaller docs、app data dir、credentials/keyring
-  - app を削除しても DB/log/keyring が残るかどうかが未固定だと、privacy と復旧の期待がずれる
-  - macOS app delete、Windows uninstall、reinstall same version、reinstall newer version、manual data removal の checklist を追加する
-
 - [ ] P2 Tauri/macOS sandbox entitlements と file/network/keychain access の将来方針を整理する
   - 対象: Tauri config、release packaging、keyring/file/network commands
   - sandbox や store 配布を考えると、現状の file dialog・keyring・network access が entitlements と合うか早めに分けておく必要がある
@@ -3654,30 +3639,10 @@
   - binary は旧版のまま DB だけ migration 済み、または pending update state だけ残ると復旧不能に見える
   - install failure、restart failure、schema migrated、pending update cleared、manual redownload の contract を追加する
 
-- [ ] P1 support dump 生成前に user consent / redaction preview を必須にするか決める
-  - 対象: Debug HUD、diagnostics export、support workflow
-  - redaction があっても dump の中身をユーザーが確認できないと、購読傾向や環境情報を意図せず共有する可能性がある
-  - preview screen、copy summary、redacted fields list、cancel flow、large dump truncation の decision を追加する
-
-- [ ] P1 feed fetch abuse prevention を manual sync / auto sync / discovery で分ける
-  - 対象: local provider HTTP client、feed discovery、sync scheduler
-  - discovery と sync が同じ host に集中すると、ユーザー操作でも provider 側から abuse と見なされる可能性がある
-  - per-host rate、manual burst、auto sync batch、discovery retry、429/403 suppression の contract を追加する
-
-- [ ] P2 installer upgrade 前後の app data backup recommendation を user-facing flow にする
-  - 対象: release notes、manual verification、settings data export
-  - data migration を含む release で事前 backup 導線がないと、失敗時にユーザーが戻れない
-  - migration release、backup prompt、skip copy、backup failure、restore docs link の policy を追加する
-
 - [ ] P2 release artifact provenance を PR / tag / workflow run の三点で照合する
   - 対象: release workflow、PR template、release manual verification
   - tag と artifact の source commit、PR、workflow run がずれると、何を配ったか追跡できない
   - tag SHA、workflow run id、PR merge commit、artifact checksum、release note commit range の gate を追加する
-
-- [ ] P2 app settings export/import を導入する前の schema version / secret exclusion policy を作る
-  - 対象: preferences schema、settings data page、credential store
-  - 設定 export に credentials や environment-specific paths が混ざると privacy leak と import 事故につながる
-  - schema version、credential excluded、local paths excluded、unknown keys、downgrade import の decision を追加する
 
 - [ ] P2 DB restore 後の query cache / localStorage / selected account reconciliation を固定する
   - 対象: DB restore flow、query client、ui/preferences stores
@@ -3705,11 +3670,6 @@
   - 将来 virtualization を入れると scroll restore、text selection、search highlight、image loading の前提が変わる
   - selection preservation、find-in-article、scroll anchor、image lazy load、print/share future scope の decision を追加する
 
-- [ ] P2 app-level recovery action を error category ごとに整理する
-  - 対象: `AppError`, toasts/dialogs, settings debug actions
-  - すべての失敗が「再試行」だけだと、permission denied、auth failure、corrupt DB、network offline の復旧が混ざる
-  - retry、open settings、open log dir、restore backup、reset local state、contact support の action matrix を作る
-
 - [ ] P2 provider-specific max feed count / article count assumptions を account settings に出すか決める
   - 対象: provider traits、sync scheduler、settings account detail
   - 大量 feed/account で性能が落ちる場合、暗黙 limit のままだと user support が難しい
@@ -3736,12 +3696,6 @@
   - dry-run available、confirmation copy、typed confirmation、backup recommendation、undo unavailable の基準を作る
   - superseded by: P1-Q4d (covered by destructive recovery dry-run/confirmation criteria; kept verification: backup recommendation and undo unavailable copy)
 
-- [ ] P1 provider auth failure storm が account lockout を誘発しないよう backoff/circuit breaker を固定する
-  - 対象: GReader/FreshRSS provider、sync scheduler、manual sync
-  - 認証情報が壊れたまま自動 sync を続けると、provider 側で account lockout や rate limit を踏む可能性がある
-  - repeated 401/403、manual override、auto sync disabled、user notification、credential update reset の contract を追加する
-  - superseded by: P1-Q2a (covered by auth failure storm backoff/circuit breaker; kept verification: repeated 401/403 and credential update reset)
-
 - [ ] P2 account recovery flow を credential reset / server URL fix / cache clear の三系統に分ける
   - 対象: account detail settings、sync error UI、diagnostics
   - すべての account failure を「認証情報更新」に寄せると、server URL typo や stale cache の復旧が遠回りになる
@@ -3757,11 +3711,6 @@
   - provider version や設定変更で read/star/tag support が消えた時、queue と UI が古い capability 前提で残る
   - capability removed、queued mutation exists、UI disables action、sync warning、manual cleanup の contract を追加する
   - superseded by: P1-Q2d (covered by provider capability downgrade contract; kept verification: queued mutation exists and UI disables action)
-
-- [ ] P2 sync scheduler fairness を many-account / one-slow-account で固定する
-  - 対象: sync scheduler、provider fetch loop
-  - 1 つの遅い account が他 account の sync を遅らせると、全体の鮮度が落ちる
-  - one slow account、many small accounts、manual sync priority、timeout, fairness order の contract を追加する
 
 - [ ] P2 partial sync success の freshness indicator を feed/account/article list で揃える
   - 対象: sync result UI、account detail、sidebar/feed list
@@ -3823,12 +3772,6 @@
   - credential 更新中に古い credential で sync/replay が走ると、更新直後に auth failure や provider lockout を誘発する
   - edit draft started、save pending、save success、save failure rollback、manual sync blocked の contract を追加する
   - superseded by: P1-Q2b (covered by credential rotation sync/pending mutation pause; kept verification: old credential does not replay during edit)
-
-- [ ] P1 DB corruption detected after startup success の runtime recovery surface を設計する
-  - 対象: repository error handling、settings data page、runtime diagnostics
-  - 起動時は通っても後続 query で corruption が見つかる場合、単なる command error では復旧導線が弱い
-  - read corruption、write corruption、integrity check action、backup restore suggestion、read-only degraded mode の contract を追加する
-  - superseded by: P1-Q4c (covered by startup-after corruption runtime recovery surface; kept verification: read corruption, integrity check action, read-only degraded mode)
 
 - [ ] P2 empty state が permission/auth/network/schema failure を同じ「空」として見せないようにする
   - 対象: reader lists、subscriptions index、settings account views
