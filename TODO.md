@@ -1018,13 +1018,6 @@
   - 検証: repository/database command tests、settings data focused tests、runtime diagnostics tests
   - supersedes: `P1 DB corruption detected after startup success の runtime recovery surface を設計する`, `P1 startup database init panic を recoverable startup error UI へ寄せる`
 
-- [ ] P1-Q4d destructive recovery action の dry-run / confirmation 基準を settings data へ入れる
-  - worker prompt: restore backup、private data reset、cleanup orphans、clear history、delete account などの destructive recovery 操作に dry-run、二重確認、backup recommendation、undo unavailable copy の基準を作る
-  - 対象: `src/components/settings/hooks/use-data-settings-controller.ts`, `src/components/settings/data-settings.tsx`, `src/components/settings/data-settings-view.tsx`, DB commands
-  - 完了条件: recovery 中の destructive action は対象不明時に disabled になり、実行前に取り返しのつかなさと backup 推奨が伝わる
-  - 検証: `pnpm exec vitest run src/__tests__/components/use-data-settings-controller.test.ts src/__tests__/components/data-settings-view.test.tsx`
-  - supersedes: `P1 recovery操作の destructive command を二重確認 / dry-run 付きにする基準を決める`, `P2 app-level recovery action を error category ごとに整理する`
-
 - [ ] P1-Q4e DB restore 後の query cache / localStorage / selected account reconciliation を固定する
   - worker prompt: restore 後に query cache、localStorage、selected account preference、expanded folder ids、command history が古い DB を参照しないよう reconciliation contract を作る
   - 対象: query client、`src/lib/account/account-selection.ts`, `src/schemas/storage.ts`, settings data restore flow
@@ -3564,16 +3557,6 @@
   - manifest が別 asset や別 arch を指すと、署名済みでも誤 artifact を配る可能性がある
   - macOS arm64、Windows x64、asset filename、signature file、checksum mismatch、missing platform の gate を追加する
 
-- [ ] P2 Tauri/macOS sandbox entitlements と file/network/keychain access の将来方針を整理する
-  - 対象: Tauri config、release packaging、keyring/file/network commands
-  - sandbox や store 配布を考えると、現状の file dialog・keyring・network access が entitlements と合うか早めに分けておく必要がある
-  - network client、keychain/keyring、user-selected files、app data dir、external opener の entitlement matrix を作る
-
-- [ ] P2 Windows installer code signing / SmartScreen reputation の manual verification を追加する
-  - 対象: release workflow、Windows packaged artifact、release docs
-  - Windows では署名状態や SmartScreen 表示が初回導入率に直結するが、CI green だけでは見えない
-  - signature details、publisher name、SmartScreen prompt、install path、uninstall entry、upgrade install の check を追加する
-
 - [ ] P2 screen reader landmark / heading structure を reader/settings/subscriptions で固定する
   - 対象: app shell、reader panes、settings modal、subscriptions index
   - visual pane 構造が複雑なため、landmark と heading がないと screen reader で現在位置が分かりにくい
@@ -3690,12 +3673,6 @@
   - 1 ファイルに全 risk が積み上がると、reader/settings/release/provider の担当ごとの実行単位が見えにくい
   - reader、settings、provider、release、quality、security/privacy の shard policy と移行手順を決める
 
-- [ ] P1 recovery操作の destructive command を二重確認 / dry-run 付きにする基準を決める
-  - 対象: restore backup、private data reset、cleanup orphans、clear history、delete account
-  - 復旧中はユーザーが焦っているため、通常操作より destructive command の誤実行リスクが高い
-  - dry-run available、confirmation copy、typed confirmation、backup recommendation、undo unavailable の基準を作る
-  - superseded by: P1-Q4d (covered by destructive recovery dry-run/confirmation criteria; kept verification: backup recommendation and undo unavailable copy)
-
 - [ ] P2 account recovery flow を credential reset / server URL fix / cache clear の三系統に分ける
   - 対象: account detail settings、sync error UI、diagnostics
   - すべての account failure を「認証情報更新」に寄せると、server URL typo や stale cache の復旧が遠回りになる
@@ -3742,16 +3719,6 @@
   - discovery で見つかった title/url をそのまま trusted と扱うと、spoofed title や mixed-content URL を add してしまう
   - discovered title display、final URL validation、private URL reject、duplicate URL, user confirmation の contract を追加する
 
-- [ ] P2 release hotfix flow を normal release と別 checklist にする
-  - 対象: release skill/docs、release workflow、CHANGELOG
-  - 緊急修正では検証を短縮しがちなので、最低限落とせない gate を通常 release と分ける
-  - security hotfix、data corruption hotfix、CI minimum gates、manual smoke、rollback note の checklist を追加する
-
-- [ ] P2 bug report issue template に privacy-safe diagnostics attachment guidance を追加する
-  - 対象: `.github/ISSUE_TEMPLATE/02-bug.yml`, support docs
-  - ユーザーが log や DB をそのまま添付すると subscription/credential 周辺が漏れる可能性がある
-  - attach logs guidance、do not attach DB、redaction steps、support dump preferred、private contact note の copy を追加する
-
 - [ ] P2 internal dev mock data が product metrics / screenshots に混ざらないよう source label を出す
   - 対象: dev mocks、debug HUD、screenshots/storybook
   - mock data と実データが画面上で区別できないと、レビューやドキュメントで誤解される
@@ -3782,21 +3749,6 @@
   - 対象: stale content banner、sync warnings、settings diagnostics
   - 一度閉じた warning が別 account/feed でも消えると重要な failure を見落とし、逆に毎回出ると無視される
   - session dismiss、account scoped dismiss、feed scoped dismiss、new error reopens、manual reset の contract を追加する
-
-- [ ] P2 provider API version / server product detection を capability と diagnostics に接続する
-  - 対象: GReader/FreshRSS provider、test connection、account detail
-  - FreshRSS 互換 API の実装差がある場合、capability を server version/product から分けないと sync failure が増える
-  - product header、version endpoint、missing capability、unknown server、diagnostics label の contract を追加する
-
-- [ ] P2 auth token expiry / refresh semantics を provider ごとに明文化する
-  - 対象: GReader/FreshRSS auth flow、credential store、sync scheduler
-  - token/session が期限切れになる provider で再ログイン/credential reuse/backoff の方針が未固定だと auth storm になる
-  - token expired、refresh success、refresh failure、credential invalid、manual reauth required の contract を追加する
-
-- [ ] P2 provider clock skew と server timestamp を sync cursor/backoff で扱う方針を決める
-  - 対象: GReader cursor、sync_state、scheduler backoff
-  - server 時刻が client より進む/遅れると future cursor や retry_at が不自然になり、sync が止まる可能性がある
-  - server future timestamp、server past timestamp、client clock skew、cursor clamp、diagnostics warning の test を追加する
 
 - [ ] P2 remote delete vs local optimistic mutation conflict を provider capability ごとに固定する
   - 対象: pending mutation replay、sync flow、article cache
