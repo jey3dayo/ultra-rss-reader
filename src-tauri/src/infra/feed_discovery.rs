@@ -173,7 +173,7 @@ async fn response_text_with_limit(mut response: reqwest::Response) -> DomainResu
         }
     }
 
-    Ok(String::from_utf8_lossy(&body).into_owned())
+    Ok(decode_discovery_response_body(&body))
 }
 
 fn validate_discovery_body_size(length: u64) -> DomainResult<()> {
@@ -194,6 +194,10 @@ fn unsupported_discovery_content_type_error(content_type: &str) -> DomainError {
     DomainError::Validation(format!(
         "Unsupported feed discovery response content type: {content_type}"
     ))
+}
+
+fn decode_discovery_response_body(body: &[u8]) -> String {
+    String::from_utf8_lossy(body).into_owned()
 }
 
 /// Check if a host string refers to a loopback or private network address.
@@ -723,6 +727,26 @@ mod tests {
     }
 
     #[test]
+    fn test_extract_feed_links_allows_same_origin_base_href_path_traversal_after_normalization() {
+        let html = r#"
+            <html><head>
+            <base href="../../feeds/">
+            <link rel="alternate" type="application/rss+xml" title="RSS" href="./rss.xml">
+            </head><body></body></html>
+        "#;
+
+        let feeds = extract_feed_links(html, "https://example.com/articles/2026/index.html");
+
+        assert_eq!(
+            feeds
+                .iter()
+                .map(|feed| (feed.url.as_str(), feed.title.as_str()))
+                .collect::<Vec<_>>(),
+            vec![("https://example.com/feeds/rss.xml", "RSS")],
+        );
+    }
+
+    #[test]
     fn test_extract_feed_links_decodes_html_attribute_entities_before_resolution() {
         let html = r#"
             <html><head>
@@ -793,6 +817,50 @@ mod tests {
         assert_eq!(
             feeds[0].url,
             "https://example.com/articles/2026/feeds/rss.xml"
+        );
+    }
+
+    #[test]
+    fn test_extract_feed_links_ignores_cross_origin_base_href_even_with_path_traversal() {
+        let html = r#"
+            <html><head>
+            <base href="https://cdn.example.com/site/../../feeds/">
+            <link rel="alternate" type="application/rss+xml" title="RSS" href="rss.xml">
+            </head><body></body></html>
+        "#;
+
+        let feeds = extract_feed_links(html, "https://example.com/articles/2026/index.html");
+
+        assert_eq!(
+            feeds
+                .iter()
+                .map(|feed| (feed.url.as_str(), feed.title.as_str()))
+                .collect::<Vec<_>>(),
+            vec![("https://example.com/articles/2026/rss.xml", "RSS")],
+        );
+    }
+
+    #[test]
+    fn test_extract_feed_links_dedupes_normalized_final_urls() {
+        let html = r#"
+            <html><head>
+            <link rel="alternate" type="application/rss+xml" title="First RSS" href="/feeds/../feed.xml">
+            <link rel="alternate" type="application/rss+xml" title="Duplicate RSS" href="https://example.com:443/feed.xml">
+            <link rel="alternate" type="application/atom+xml" title="Atom" href="./atom.xml">
+            </head><body></body></html>
+        "#;
+
+        let feeds = extract_feed_links(html, "https://example.com/articles/index.html");
+
+        assert_eq!(
+            feeds
+                .iter()
+                .map(|feed| (feed.url.as_str(), feed.title.as_str()))
+                .collect::<Vec<_>>(),
+            vec![
+                ("https://example.com/feed.xml", "First RSS"),
+                ("https://example.com/articles/atom.xml", "Atom"),
+            ],
         );
     }
 
@@ -904,6 +972,16 @@ mod tests {
             Err(DomainError::Validation(message))
                 if message.contains("Feed discovery response body exceeds")
         ));
+    }
+
+    #[test]
+    fn decode_discovery_response_body_uses_lossy_utf8_policy() {
+        let body = b"<html><head><title>\xE3\x81broken</title></head></html>";
+
+        assert_eq!(
+            decode_discovery_response_body(body),
+            "<html><head><title>\u{FFFD}broken</title></head></html>"
+        );
     }
 
     #[test]
