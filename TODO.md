@@ -3736,16 +3736,6 @@
   - `KeepOne` と old log cleanup の組み合わせが曖昧だと、必要な事故ログを消すか、逆に path 付き warning を残しすぎる
   - max file size、rotation count、cleanup age、current app.log preserve、path redaction、cleanup failure の test を追加する
 
-- [ ] P2 tracing subscriber double-init / test init conflict を runtime boundary として固定する
-  - 対象: `src-tauri/src/lib.rs`, Rust tests, integration tests
-  - debug startup や test helper が tracing subscriber を複数回 init すると panic する可能性がある
-  - first init、second init、test parallel、env filter invalid、no logger installed の contract を追加する
-
-- [ ] P2 panic hook / Rust panic message redaction を background sync と startup で揃える
-  - 対象: `src-tauri/src/lib.rs`, `src-tauri/src/service/sync_scheduler.rs`, diagnostics/logging
-  - panic payload に URL/account/path が含まれると release log に secret が残る
-  - string payload、non-string payload、account name、URL token、path、background task panic の redaction policy を追加する
-
 - [ ] P2 main window close confirmation と dirty/pending state registry を native close event へ接続する
   - 対象: `src-tauri/src/lib.rs`, app shell dirty-state registry, settings/add-feed flows
   - OS の close button は frontend navigation guard を通らないため、dirty form や pending mutation を落とす可能性がある
@@ -3785,21 +3775,6 @@
   - 対象: `src-tauri/src/domain/constants.rs`, `record_article_view`, reader history UI
   - hardcoded 50 件の意味が未明確だと、履歴 UI や storage cleanup で期待がずれる
   - max count、duplicate article revisit、account delete、feed delete、clear history、migration の contract を追加する
-
-- [ ] P2 native opener plugin の platform-specific error を URL schema と diagnostics へ分類する
-  - 対象: `tauri_plugin_opener`, `open_in_browser`, share/open commands
-  - default browser 未設定、blocked by policy、unsupported scheme、Windows shell error を同じ error にすると復旧案が出せない
-  - no default browser、policy denied、unsupported scheme、shell execute failure、redacted URL の contract を追加する
-
-- [ ] P2 clipboard plugin init failure を app boot degraded mode として扱うか決める
-  - 対象: `src-tauri/src/lib.rs`, clipboard commands, runtime clipboard fallback
-  - plugin init 失敗で app 全体を落とすか copy 機能だけ degraded にするか未固定だと release-only failure の影響が読めない
-  - plugin init failure、command unavailable、frontend fallback、toast copy、diagnostics once の expectation を決める
-
-- [ ] P2 updater plugin init / endpoint unavailable を startup degraded mode として分類する
-  - 対象: `src-tauri/src/lib.rs`, updater commands, update hooks
-  - updater plugin や endpoint config が壊れている時に app boot を止めるか、manual check だけ失敗にするかを固定する必要がある
-  - plugin init failure、endpoint missing、invalid signature config、manual check disabled、release smoke の check を追加する
 
 - [ ] P2 release app first-run permission prompts を manual verification checklist に入れる
   - 対象: `docs/release-manual-verification.md`, packaged app smoke
@@ -3931,16 +3906,6 @@
   - 詳細を隠すほど問い合わせ時の特定が難しくなるため、secret を出さずに照合できる短い code/id が必要か判断する
   - stable error code、diagnostics id、copy in ja/en、log correlation、no secret detail の policy を追加する
 
-- [ ] P3 repository method naming と SQL operation kind の suffix を整理する
-  - 対象: `src-tauri/src/repository`, `src-tauri/src/infra/db`
-  - `list/find/get/count/save/update` の境界が揺れると、transaction/read-write classification と test naming が追いにくい
-  - read-only、write、upsert、bulk、maintenance、raw SQL owner の naming inventory を作る
-
-- [ ] P3 fixture domain names を RFC reserved domains へ寄せる移行計画を作る
-  - 対象: `src/dev/mock-data.ts`, tests fixtures, docs screenshots
-  - 実在ドメイン fixture が多いと accidental network access と権利/表示変更の影響を受ける
-  - `example.com`、`example.jp`、`.test`、allowed real domains、screenshot text の migration plan を作る
-
 - [ ] P3 TODO.md の重複検出 / 類似 task grouping を tooling 化する
   - 対象: `TODO.md`, similarity report, task triage scripts
   - TODO が増え続けると同じ risk を別名で積みやすくなり、優先度判断が鈍る
@@ -4050,11 +4015,6 @@
   - 対象: `src/schemas`, Tauri command wrappers, view models
   - parse failure 時に empty fallback を使うと、本来 disabled にすべき destructive action が enabled になる可能性がある
   - account list parse failure、feed list parse failure、preference parse failure、empty fallback、disabled action の test を追加する
-
-- [ ] P2 Rust test `cfg(test)` と production-only code path の coverage gap を inventory 化する
-  - 対象: `src-tauri/src/lib.rs`, `cfg(not(test))` blocks, integration tests
-  - plugin setup、startup lifecycle、log setup などが `cfg(not(test))` で外れると unit test だけでは release regression を拾えない
-  - plugin setup、log setup、focus restore、scheduler start、cleanup logs、release smoke owner の inventory を作る
 
 - [ ] P2 generated schema drift を PR review comment ではなく failing gate へ昇格する条件を決める
   - 対象: generated Tauri schemas、API schemas、CI
