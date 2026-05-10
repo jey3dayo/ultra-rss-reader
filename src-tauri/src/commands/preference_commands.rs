@@ -5,120 +5,14 @@ use tauri::State;
 use crate::browser_webview::set_browser_webview_diagnostics_enabled;
 use crate::commands::dto::AppError;
 use crate::commands::AppState;
+use crate::domain::preference::{is_allowed_preference_key, preference_row_quarantine_reason};
 use crate::infra::db::sqlite_preference::SqlitePreferenceRepository;
 use crate::repository::preference::PreferenceRepository;
 
-/// Known preference keys. Reject unknown keys to prevent table pollution.
-const ALLOWED_KEYS: &[&str] = &[
-    "theme",
-    "language",
-    "unread_badge",
-    "open_links",
-    "open_links_background",
-    "sort_unread",
-    "group_by",
-    "cmd_click_browser",
-    "ask_before_mark_all",
-    "list_selection_style",
-    "sidebar_density",
-    "layout",
-    "opaque_sidebars",
-    "grayscale_favicons",
-    "font_style",
-    "font_size",
-    "show_starred_count",
-    "show_unread_count",
-    "show_sidebar_unread",
-    "show_sidebar_starred",
-    "show_sidebar_recent_articles",
-    "show_sidebar_tags",
-    "startup_folder_expansion",
-    "image_previews",
-    "display_favicons",
-    "text_preview",
-    "dim_archived",
-    "reader_mode_default",
-    "web_preview_mode_default",
-    "web_preview_keep_focus",
-    "window_always_on_top",
-    "reading_sort",
-    "after_reading",
-    "scroll_to_top_on_change",
-    "open_first_article_on_feed_selection",
-    "sort_subscriptions",
-    "sync_on_startup",
-    "action_copy_link",
-    "action_open_browser",
-    "mute_auto_mark_read",
-    "recent_articles_history_enabled",
-    "debug_browser_hud",
-    "debug_web_preview_url",
-    "selected_account_id",
-];
-
-const SHORTCUT_KEY_PREFIX: &str = "shortcut_";
-const PREFERENCE_VALUE_MAX_BYTES: usize = 1024;
-const ALLOWED_SHORTCUT_IDS: &[&str] = &[
-    "next_article",
-    "prev_article",
-    "next_feed",
-    "prev_feed",
-    "reload_webview",
-    "focus_sidebar",
-    "toggle_sidebar",
-    "toggle_read",
-    "toggle_star",
-    "open_in_app_browser",
-    "open_external_browser",
-    "mark_all_read",
-    "show_unread",
-    "show_all",
-    "show_starred",
-    "cycle_filter",
-    "search",
-    "open_command_palette",
-    "close_or_clear",
-    "open_settings",
-];
-
-fn is_allowed_preference_key(key: &str) -> bool {
-    ALLOWED_KEYS.contains(&key) || is_allowed_shortcut_preference_key(key)
-}
-
-fn is_allowed_shortcut_preference_key(key: &str) -> bool {
-    key.strip_prefix(SHORTCUT_KEY_PREFIX)
-        .is_some_and(|shortcut_id| ALLOWED_SHORTCUT_IDS.contains(&shortcut_id))
-}
-
-fn is_valid_shortcut_preference_value(value: &str) -> bool {
-    let trimmed = value.trim();
-    !trimmed.is_empty() && trimmed.len() <= 128 && !value.chars().any(char::is_control)
-}
-
 fn validate_preference_input(key: &str, value: &str) -> Result<(), AppError> {
-    if !is_allowed_preference_key(key) {
+    if let Some(reason) = preference_row_quarantine_reason(key, value) {
         return Err(AppError::UserVisible {
-            message: format!("Unknown preference key: {key}"),
-        });
-    }
-
-    if key == "debug_browser_hud" && !matches!(value, "true" | "false") {
-        return Err(AppError::UserVisible {
-            message: format!("Invalid boolean preference value for key: {key}"),
-        });
-    }
-
-    if is_allowed_shortcut_preference_key(key) && !is_valid_shortcut_preference_value(value) {
-        return Err(AppError::UserVisible {
-            message: format!("Invalid shortcut preference value for key: {key}"),
-        });
-    }
-
-    if value.len() > PREFERENCE_VALUE_MAX_BYTES {
-        return Err(AppError::UserVisible {
-            message: format!(
-                "Preference value too long (max {PREFERENCE_VALUE_MAX_BYTES} UTF-8 bytes)"
-            ),
+            message: reason.message(key),
         });
     }
 
@@ -195,10 +89,15 @@ mod tests {
 
         save_preference_value(&repo, "theme", "dark").unwrap();
 
-        assert_eq!(
-            repo.get("custom_backend_preference").unwrap().as_deref(),
-            Some("preserved")
-        );
+        let preserved_value: String = db
+            .reader()
+            .query_row(
+                "SELECT value FROM preferences WHERE key = 'custom_backend_preference'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(preserved_value, "preserved");
         assert_eq!(repo.get("theme").unwrap().as_deref(), Some("dark"));
     }
 

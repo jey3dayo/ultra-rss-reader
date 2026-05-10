@@ -25,6 +25,28 @@ pub enum DomainError {
 
 pub type DomainResult<T> = Result<T, DomainError>;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DestructiveActionFallback {
+    pub visible: bool,
+    pub enabled: bool,
+    pub disabled_reason: String,
+}
+
+impl DestructiveActionFallback {
+    pub fn disabled(reason: impl Into<String>) -> Self {
+        let reason = reason.into();
+        Self {
+            visible: true,
+            enabled: false,
+            disabled_reason: if reason.trim().is_empty() {
+                "Action unavailable while recovery state is unknown".to_string()
+            } else {
+                reason
+            },
+        }
+    }
+}
+
 const LOOPBACK_CONNECT_PROBE_TIMEOUT: Duration = Duration::from_millis(200);
 const DNS_RESOLUTION_ERROR_MARKERS: &[&str] = &[
     "dns error",
@@ -307,7 +329,8 @@ mod tests {
 
     use super::{
         any_loopback_socket_accepts_connection, classify_network_error,
-        redact_sensitive_network_error_message, DomainError, NetworkErrorClassificationInput,
+        redact_sensitive_network_error_message, DestructiveActionFallback, DomainError,
+        NetworkErrorClassificationInput,
     };
     use crate::commands::dto::AppError;
     use reqwest::{
@@ -479,6 +502,27 @@ mod tests {
                 panic!("sqlite persistence errors must not become retryable: {message}");
             }
         }
+    }
+
+    #[test]
+    fn destructive_action_fallback_stays_visible_but_disabled_with_reason() {
+        let fallback = DestructiveActionFallback::disabled("Preferences failed to load");
+
+        assert!(fallback.visible);
+        assert!(!fallback.enabled);
+        assert_eq!(fallback.disabled_reason, "Preferences failed to load");
+    }
+
+    #[test]
+    fn destructive_action_fallback_uses_default_reason_for_blank_input() {
+        let fallback = DestructiveActionFallback::disabled("   ");
+
+        assert!(fallback.visible);
+        assert!(!fallback.enabled);
+        assert_eq!(
+            fallback.disabled_reason,
+            "Action unavailable while recovery state is unknown"
+        );
     }
 
     #[test]
