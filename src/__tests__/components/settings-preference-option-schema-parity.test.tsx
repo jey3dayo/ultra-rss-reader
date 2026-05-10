@@ -1,5 +1,6 @@
 import { renderHook } from "@testing-library/react";
 import { createWrapper } from "@tests/helpers/create-wrapper";
+import { settingsPreferenceLabelKeys } from "@tests/helpers/settings-fixtures";
 import { describe, expect, expectTypeOf, it, vi } from "vitest";
 import { useAppearanceSettingsViewProps } from "@/components/settings/hooks/use-appearance-settings-view-props";
 import { useGeneralSettingsViewProps } from "@/components/settings/hooks/use-general-settings-view-props";
@@ -16,6 +17,7 @@ function expectPreferenceWriteMatchesSchema(key: string, value: string) {
 
   expect(schema, `Missing preference schema for ${key}`).toBeDefined();
   expect(schema?.safeParse(value).success, `Invalid value ${value} for ${key}`).toBe(true);
+  expect(settingsPreferenceLabelKeys, `Missing settings preference fixture owner for ${key}`).toHaveProperty(key);
 }
 
 function assertControlSchemaParity(control: SettingsPageControl, setPref: ReturnType<typeof vi.fn>) {

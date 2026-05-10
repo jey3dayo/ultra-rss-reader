@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import { goBackBrowserWebview, goForwardBrowserWebview, reloadBrowserWebview } from "@/api/tauri-commands";
+import { goBackBrowserWebview, goForwardBrowserWebview, reloadBrowserWebview, restartApp } from "@/api/tauri-commands";
 import { APP_EVENTS } from "@/constants/events";
 import { runManualUpdateCheck } from "@/hooks/use-updater";
 import type { AppAction } from "@/lib/app-actions";
@@ -184,6 +184,34 @@ async function toggleFullscreen(): Promise<void> {
   }
 }
 
+async function restartApplication(): Promise<void> {
+  if (import.meta.env.DEV) {
+    // Tauri's native app.restart() detaches a new dev process from `cargo run`,
+    // which can leave the relaunched window blank. Keep the dev shortcut scoped
+    // to a frontend reload so the active dev session stays attached.
+    window.location.reload();
+    return;
+  }
+
+  const result = await restartApp();
+  Result.pipe(
+    result,
+    Result.inspectError((error) => {
+      useUiStore.getState().showToast(error.message);
+      logRuntimeDiagnostic("app-action-window", "[actions:window] restart-app failed.", error);
+    }),
+  );
+}
+
+function requestApplicationRestart(): void {
+  const store = useUiStore.getState();
+  const label = i18n.t("reader:command_palette.restart_app");
+  store.showConfirm(label, restartApplication, {
+    actionLabel: label,
+    variant: "warning",
+  });
+}
+
 /**
  * Central action dispatcher.
  * Both keyboard shortcuts and native menu events call into this function.
@@ -289,13 +317,7 @@ export function executeAction(action: AppAction): void {
       store.toggleCommandPalette();
       break;
     case "restart-app":
-      if (!import.meta.env.DEV) {
-        break;
-      }
-      // Tauri's native app.restart() detaches a new dev process from `cargo run`,
-      // which can leave the relaunched window blank. Keep the dev shortcut scoped
-      // to a frontend reload so the active dev session stays attached.
-      window.location.reload();
+      requestApplicationRestart();
       break;
 
     // --- Article navigation ---

@@ -1,6 +1,14 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, normalize, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import {
+  queryKeys,
+  resolveAddFeedInvalidationQueryKeys,
+  resolveArticleInvalidationQueryKeys,
+  resolveArticleMutationInvalidationQueryKeys,
+  resolveDeleteFeedInvalidationQueryKeys,
+  resolveFeedInvalidationQueryKeys,
+} from "@/lib/query/query-invalidation";
 import issueFeatureTemplate from "../../../.github/ISSUE_TEMPLATE/01-feature.yml?raw";
 import issueBugTemplate from "../../../.github/ISSUE_TEMPLATE/02-bug.yml?raw";
 import issueTestTemplate from "../../../.github/ISSUE_TEMPLATE/03-test-verification.yml?raw";
@@ -864,6 +872,65 @@ const typeSurfaceInventory = [
 }[];
 
 describe("repository static contracts", () => {
+  it("keeps query invalidation target matrices covering every non-account query root", () => {
+    const invalidationTargetRoots = [
+      ...resolveFeedInvalidationQueryKeys({ includeAccountUnreadCount: true }),
+      ...resolveArticleInvalidationQueryKeys({
+        includeTagArticleCounts: true,
+        includeFeedIntegrityReport: true,
+      }),
+    ];
+    const mutationTargetRoots = [
+      ...resolveArticleMutationInvalidationQueryKeys("article-read-star"),
+      ...resolveArticleMutationInvalidationQueryKeys("mute-keyword"),
+      ...resolveArticleMutationInvalidationQueryKeys("tag-article-assignment"),
+      ...resolveArticleMutationInvalidationQueryKeys("tag-metadata"),
+      ...resolveAddFeedInvalidationQueryKeys({ accountId: "acc-1" }),
+      ...resolveDeleteFeedInvalidationQueryKeys({ accountId: "acc-1" }),
+    ];
+    const reachableRootNames = new Set(
+      [...invalidationTargetRoots, ...mutationTargetRoots].map((queryKey) => queryKey[0]),
+    );
+
+    expect(
+      Object.values(queryKeys)
+        .map((entry) => entry.root[0])
+        .toSorted(),
+    ).toEqual([
+      "accountArticles",
+      "accountStarredCount",
+      "accountUnreadCount",
+      "accounts",
+      "articles",
+      "articlesByTag",
+      "feedArticleSummaries",
+      "feedIntegrityReport",
+      "feeds",
+      "folderArticles",
+      "folders",
+      "recentArticles",
+      "search",
+      "starredArticles",
+      "tagArticleCounts",
+    ]);
+    expect([...reachableRootNames].toSorted()).toEqual([
+      "accountArticles",
+      "accountStarredCount",
+      "accountUnreadCount",
+      "articles",
+      "articlesByTag",
+      "feedArticleSummaries",
+      "feedIntegrityReport",
+      "feeds",
+      "folderArticles",
+      "folders",
+      "recentArticles",
+      "search",
+      "starredArticles",
+      "tagArticleCounts",
+    ]);
+  });
+
   it("keeps Node and pnpm versions aligned between package.json and mise", () => {
     const miseSource = readRepoFile("mise.toml");
     const packageManagerVersion = extractPackageManagerVersion(packageJson.packageManager, "pnpm");

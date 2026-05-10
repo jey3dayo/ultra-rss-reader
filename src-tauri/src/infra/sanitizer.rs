@@ -162,61 +162,24 @@ mod tests {
     const SANITIZER_CORPUS: &[SanitizerCorpusCase] = &[
         SanitizerCorpusCase {
             label: "untrusted feed html strips executable content",
-            raw: r#"
-                <article>
-                  <h1 onclick="evil()">Feed title</h1>
-                  <p>Trusted <strong>body</strong></p>
-                  <script>alert('xss')</script>
-                  <style>body { display: none; }</style>
-                </article>
-            "#,
+            raw: include_str!("../../../tests/fixtures/sanitizer/untrusted-feed-html.html"),
             expected_text: "Feed title Trusted body",
             required_fragments: &["Feed title", "<strong>body</strong>"],
             forbidden_fragments: &["onclick", "<script", "<style", "alert('xss')"],
         },
         SanitizerCorpusCase {
             label: "tracking link attributes are removed",
-            raw: r#"
-                <p>
-                  <a href="https://publisher.example.com/read?utm_source=feed"
-                     ping="https://tracker.example.com/ping"
-                     target="_blank"
-                     rel="opener"
-                     referrerpolicy="origin">
-                    Read article
-                  </a>
-                </p>
-            "#,
+            raw: include_str!("../../../tests/fixtures/sanitizer/tracking-link.html"),
             expected_text: "Read article",
             required_fragments: &[
                 r#"href="https://publisher.example.com/read?utm_source=feed""#,
                 r#"rel="noopener noreferrer""#,
             ],
-            forbidden_fragments: &[
-                "ping=",
-                "target=",
-                "referrerpolicy=",
-                "tracker.example.com",
-            ],
+            forbidden_fragments: &["ping=", "target=", "referrerpolicy=", "tracker.example.com"],
         },
         SanitizerCorpusCase {
             label: "tracking media keeps only absolute http candidates",
-            raw: r#"
-                <picture>
-                  <source
-                    src="https://cdn.example.com/hero.webp"
-                    srcset="https://cdn.example.com/hero.webp 1x, data:image/svg+xml,evil 2x, javascript:alert(1) 3x"
-                    sizes="100vw"
-                    type="image/webp"
-                    referrerpolicy="origin">
-                  <img
-                    src="//cdn.example.com/protocol-relative.jpg"
-                    srcset="https://cdn.example.com/hero.jpg 800w, /relative.jpg 1200w"
-                    alt="Hero"
-                    loading="lazy"
-                    onerror="evil()">
-                </picture>
-            "#,
+            raw: include_str!("../../../tests/fixtures/sanitizer/responsive-media.html"),
             expected_text: "",
             required_fragments: &[
                 r#"src="https://cdn.example.com/hero.webp""#,
@@ -238,7 +201,7 @@ mod tests {
         },
         SanitizerCorpusCase {
             label: "malformed saved article markup is repaired before text extraction",
-            raw: "<article><p>Lead <strong>body</article>Trailing<img src=\"https://cdn.example.com/body.jpg\" alt=\"Body\">",
+            raw: include_str!("../../../tests/fixtures/sanitizer/malformed-saved-article.html"),
             expected_text: "Lead body Trailing",
             required_fragments: &[
                 "Lead",
@@ -250,12 +213,7 @@ mod tests {
         },
         SanitizerCorpusCase {
             label: "secret-bearing article urls keep text without preserving credentials",
-            raw: r#"
-                <p>
-                  <a href="https://alice:secret@example.com/private-token/feed.xml?api_key=raw">Private link</a>
-                  <img src="https://alice:secret@cdn.example.com/private-token/image.jpg?token=raw" alt="Private image">
-                </p>
-            "#,
+            raw: include_str!("../../../tests/fixtures/sanitizer/credential-url.html"),
             expected_text: "Private link",
             required_fragments: &["Private link", r#"alt="Private image""#],
             forbidden_fragments: &[
@@ -265,6 +223,20 @@ mod tests {
                 "private-token/feed.xml",
                 "private-token/image.jpg",
             ],
+        },
+        SanitizerCorpusCase {
+            label: "code block and Japanese text keep readable entity output",
+            raw: include_str!("../../../tests/fixtures/sanitizer/code-japanese-entity.html"),
+            expected_text: "日本語の本文 & emoji 😀 const value = \"<safe>\";",
+            required_fragments: &[
+                "日本語の本文 &amp; emoji 😀",
+                "<pre><code>",
+                "const value = \"&lt;safe&gt;\";",
+                r#"src="https://cdn.example.com/clip.mp4""#,
+                r#"src="https://cdn.example.com/clip.webm""#,
+                r#"type="video/webm""#,
+            ],
+            forbidden_fragments: &["<script", "onclick", "referrerpolicy="],
         },
     ];
 

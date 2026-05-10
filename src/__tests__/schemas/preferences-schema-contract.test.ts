@@ -1,10 +1,12 @@
 import { expectSortedKeysForTarget } from "@tests/helpers/repo-contract-parser";
+import { settingsPreferenceLabelKeys } from "@tests/helpers/settings-fixtures";
 import { describe, expect, expectTypeOf, it } from "vitest";
 import { PreferencesDtoSchema } from "@/api/schemas/preferences";
 import keyboardShortcutsSource from "@/lib/keyboard/keyboard-shortcuts.ts?raw";
 import enSettings from "@/locales/en/settings.json";
 import jaSettings from "@/locales/ja/settings.json";
 import {
+  backendOwnedPreferenceKeys,
   getLikelyPreferenceKeyTypo,
   getPreferenceValueSchema,
   type HiddenPreferenceKey,
@@ -77,51 +79,6 @@ function collectDuplicates(keys: string[]): string[] {
   return [...duplicates].toSorted();
 }
 
-const backendOnlyPreferenceKeys = ["selected_account_id"];
-const settingsPreferenceLabelKeys = {
-  language: "general.language",
-  unread_badge: "general.unread_count_badge",
-  open_links: "reading.open_links",
-  open_links_background: "reading.open_links_in_background",
-  sort_unread: "reading.sort",
-  group_by: "reading.group_by",
-  cmd_click_browser: "reading.cmd_click_browser",
-  ask_before_mark_all: "reading.ask_before_mark_all",
-  list_selection_style: "appearance.list_selection_style",
-  sidebar_density: "appearance.sidebar_density",
-  layout: "appearance.layout",
-  theme: "appearance.theme",
-  opaque_sidebars: "appearance.opaque_sidebars",
-  grayscale_favicons: "appearance.grayscale_favicons",
-  font_style: "appearance.app_font_style",
-  font_size: "appearance.font_size",
-  show_starred_count: "appearance.starred_list",
-  show_unread_count: "appearance.unread_list",
-  show_sidebar_unread: "general.show_unread",
-  show_sidebar_starred: "general.show_starred",
-  show_sidebar_recent_articles: "general.show_recent_articles",
-  show_sidebar_tags: "general.show_tags",
-  startup_folder_expansion: "general.startup_folder_expansion",
-  image_previews: "appearance.image_previews",
-  display_favicons: "appearance.display_favicons",
-  text_preview: "appearance.text_preview",
-  dim_archived: "appearance.dim_archived_articles",
-  reader_mode_default: "reading.default_display_mode",
-  web_preview_mode_default: "reading.default_display_mode",
-  web_preview_keep_focus: "reading.web_preview_keep_focus",
-  window_always_on_top: "reading.window_always_on_top",
-  reading_sort: "reading.sort",
-  after_reading: "reading.after_reading",
-  scroll_to_top_on_change: "reading.scroll_to_top_on_feed_change",
-  open_first_article_on_feed_selection: "reading.open_first_article_on_feed_selection",
-  sync_on_startup: "general.sync_on_startup",
-  action_copy_link: "actions.copy_link",
-  debug_browser_hud: "debug.web_preview_hud",
-  debug_web_preview_url: "debug.web_preview_url",
-  mute_auto_mark_read: "mute.auto_mark_read",
-  recent_articles_history_enabled: "reading.recent_articles_history_enabled",
-} as const satisfies Record<Exclude<VisiblePreferenceDefaultKey, `shortcut_${string}`>, string>;
-
 const afterReadingStoredValueCases = [
   { stored: "mark_as_read", normalized: "immediately" },
   { stored: "do_nothing", normalized: "never" },
@@ -146,7 +103,7 @@ describe("preference contract", () => {
   it("keeps backend preference keys unique and limited to frontend or backend-only keys", () => {
     const frontendKeys = extractFrontendPreferenceKeys(frontendSource);
     const backendAllowedKeys = extractBackendAllowedKeys(backendSource);
-    const allowedBackendKeys = new Set([...frontendKeys, ...backendOnlyPreferenceKeys]);
+    const allowedBackendKeys = new Set([...frontendKeys, ...backendOwnedPreferenceKeys]);
     const unexpectedBackendKeys = backendAllowedKeys.filter((key) => !allowedBackendKeys.has(key));
 
     expect(collectDuplicates(backendAllowedKeys)).toEqual([]);
@@ -157,7 +114,7 @@ describe("preference contract", () => {
     const frontendKeys = extractFrontendPreferenceKeys(frontendSource);
     const backendAllowedKeys = extractBackendAllowedKeys(backendSource);
 
-    expect(backendAllowedKeys.toSorted()).toEqual([...frontendKeys, ...backendOnlyPreferenceKeys].toSorted());
+    expect(backendAllowedKeys.toSorted()).toEqual([...frontendKeys, ...backendOwnedPreferenceKeys].toSorted());
   });
 
   it("does not expose removed Inoreader preference keys", () => {

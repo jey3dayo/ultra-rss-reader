@@ -1,21 +1,13 @@
 import { z } from "zod";
 import {
   getPreferenceValueSchema,
+  isReservedUnknownPreferenceKey,
   isRetiredBackendPassthroughPreferenceKey,
   preferenceKeyMaxLength,
   preferenceValueMaxUtf8Bytes,
-  reservedUnknownPreferenceKeyPrefixes,
 } from "@/schemas/preferences";
 
 const textEncoder = new TextEncoder();
-
-function isReservedUnknownPreferenceKey(key: string): boolean {
-  if (getPreferenceValueSchema(key)) {
-    return false;
-  }
-
-  return reservedUnknownPreferenceKeyPrefixes.some((prefix) => key.startsWith(prefix));
-}
 
 export const PreferencesDtoSchema = z.record(z.string(), z.string()).superRefine((preferences, context) => {
   for (const [key, value] of Object.entries(preferences)) {

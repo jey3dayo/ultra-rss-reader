@@ -29,6 +29,8 @@ type UpdateInfo = {
   source: string;
 } | null;
 
+const sharedOperationBusyMessage = "Database maintenance is unavailable while syncing. Try again after sync completes.";
+
 function updateInfo(version: string): NonNullable<UpdateInfo> {
   return {
     version,
@@ -193,6 +195,33 @@ describe("performUpdateCheck", () => {
     expect(useUiStore.getState().toastMessage?.persistent).toBe(true);
     expect(useUiStore.getState().toastMessage?.variant).toBe("update");
     expect(useUiStore.getState().toastMessage?.actions?.some((action) => action.label === "もう一度確認")).toBe(true);
+  });
+
+  it("surfaces the shared sync maintenance busy state when update install is guarded", async () => {
+    mockDownloadAndInstallUpdate.mockResolvedValue(Result.fail(testUserVisibleAppError(sharedOperationBusyMessage)));
+
+    const {
+      updaterModule: { showUpdateAvailableToast },
+      useUiStore,
+    } = await getUpdaterModuleAndUiStore();
+    useUiStore.setState(useUiStore.getInitialState());
+
+    showUpdateAvailableToast("1.2.3");
+    useUiStore
+      .getState()
+      .toastMessage?.actions?.find((action) => action.label === "今すぐ更新")
+      ?.onClick();
+    await flushMicrotasksAndRealTimer();
+
+    expect(useUiStore.getState().toastMessage).toMatchObject({
+      message: sharedOperationBusyMessage,
+      persistent: true,
+      variant: "update",
+    });
+    expect(useUiStore.getState().toastMessage?.actions?.map((action) => action.label)).toEqual([
+      "もう一度確認",
+      "閉じる",
+    ]);
   });
 
   it("cleans up the pending download when the download command rejects", async () => {
@@ -635,6 +664,34 @@ describe("performUpdateCheck", () => {
 
     expect(useUiStore.getState().toastMessage).toMatchObject({
       message: "再起動に失敗しました。更新の準備は完了しています。",
+      persistent: true,
+      variant: "update",
+    });
+    expect(useUiStore.getState().toastMessage?.actions?.map((action) => action.label)).toEqual([
+      "もう一度再起動",
+      "後で",
+    ]);
+  });
+
+  it("surfaces the shared sync maintenance busy state when prepared update restart is guarded", async () => {
+    mockRestartApp.mockResolvedValue(Result.fail(testUserVisibleAppError(sharedOperationBusyMessage)));
+
+    const {
+      updaterModule: { showRestartToast },
+      useUiStore,
+    } = await getUpdaterModuleAndUiStore();
+    useUiStore.setState(useUiStore.getInitialState());
+
+    showRestartToast();
+    useUiStore
+      .getState()
+      .toastMessage?.actions?.find((action) => action.label === "再起動")
+      ?.onClick();
+    await useUiStore.getState().confirmDialog.onConfirm?.();
+    await flushMicrotasksAndRealTimer();
+
+    expect(useUiStore.getState().toastMessage).toMatchObject({
+      message: sharedOperationBusyMessage,
       persistent: true,
       variant: "update",
     });

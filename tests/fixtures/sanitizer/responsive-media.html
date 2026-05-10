@@ -1,0 +1,14 @@
+<picture>
+  <source
+    src="https://cdn.example.com/hero.webp"
+    srcset="https://cdn.example.com/hero.webp 1x, data:image/svg+xml,evil 2x, javascript:alert(1) 3x"
+    sizes="100vw"
+    type="image/webp"
+    referrerpolicy="origin">
+  <img
+    src="//cdn.example.com/protocol-relative.jpg"
+    srcset="https://cdn.example.com/hero.jpg 800w, /relative.jpg 1200w"
+    alt="Hero"
+    loading="lazy"
+    onerror="evil()">
+</picture>

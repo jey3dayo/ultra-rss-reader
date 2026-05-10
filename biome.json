@@ -50,6 +50,7 @@
       "*.tsx",
       "*.js",
       "*.json",
+      "!!tests/fixtures/sanitizer",
       "!!node_modules",
       "!!dist",
       "!!src-tauri/target",

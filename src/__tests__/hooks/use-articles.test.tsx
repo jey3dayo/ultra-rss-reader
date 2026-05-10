@@ -641,13 +641,25 @@ describe("useSetRead", () => {
     vi.restoreAllMocks();
   });
 
-  it("marks unread-mode account caches read while preserving optimistic membership", async () => {
+  it("marks filtered article caches read while preserving optimistic membership", async () => {
     vi.spyOn(tauriCommands, "markArticleRead").mockResolvedValue(Result.succeed(null));
 
     queryClient.setQueryData(
       queryKeys.accountArticles.byAccount("acc-1", "unread"),
       sampleArticles.filter((article) => !article.is_read),
     );
+    queryClient.setQueryData(
+      queryKeys.articlesByTag.byTagAndAccount("tag-1", "acc-1", "unread"),
+      sampleArticles.filter((article) => !article.is_read),
+    );
+    queryClient.setQueryData(
+      queryKeys.recentArticles.byAccount("acc-1", "unread"),
+      sampleArticles.filter((article) => !article.is_read),
+    );
+    queryClient.setQueryData(queryKeys.search.byAccountAndQuery("acc-1", "fresh"), [
+      sampleArticles[0],
+      sampleArticles[1],
+    ]);
 
     const { result } = renderHook(() => useSetRead(), { wrapper });
 
@@ -656,6 +668,16 @@ describe("useSetRead", () => {
     await waitFor(() => {
       expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "unread"))).toEqual([
         expect.objectContaining({ id: "art-1", is_read: true }),
+      ]);
+      expect(queryClient.getQueryData(queryKeys.articlesByTag.byTagAndAccount("tag-1", "acc-1", "unread"))).toEqual([
+        expect.objectContaining({ id: "art-1", is_read: true }),
+      ]);
+      expect(queryClient.getQueryData(queryKeys.recentArticles.byAccount("acc-1", "unread"))).toEqual([
+        expect.objectContaining({ id: "art-1", is_read: true }),
+      ]);
+      expect(queryClient.getQueryData(queryKeys.search.byAccountAndQuery("acc-1", "fresh"))).toEqual([
+        expect.objectContaining({ id: "art-1", is_read: true }),
+        expect.objectContaining({ id: "art-2", is_read: true }),
       ]);
     });
   });

@@ -350,12 +350,22 @@ describe("executeAction", () => {
   });
 
   describe("development actions", () => {
-    it("reloads the current window instead of calling the native app restart in dev builds", async () => {
+    it("asks for confirmation before reloading the current window in dev builds", async () => {
       vi.stubEnv("DEV", true);
       const reloadSpy = vi.fn();
       stubWindowLocationReload(reloadSpy);
 
       executeAction("restart-app");
+
+      expect(reloadSpy).not.toHaveBeenCalled();
+      expect(useUiStore.getState().confirmDialog).toMatchObject({
+        open: true,
+        message: "translated:reader:command_palette.restart_app",
+        actionLabel: "translated:reader:command_palette.restart_app",
+        variant: "warning",
+      });
+
+      await useUiStore.getState().confirmDialog.onConfirm?.();
 
       await waitFor(() => {
         expect(reloadSpy).toHaveBeenCalledTimes(1);
@@ -363,17 +373,46 @@ describe("executeAction", () => {
       expect(restartAppMock).not.toHaveBeenCalled();
     });
 
-    it("does not restart the app outside dev builds", async () => {
+    it("asks for confirmation before calling the native restart outside dev builds", async () => {
       vi.stubEnv("DEV", false);
       const reloadSpy = vi.fn();
       stubWindowLocationReload(reloadSpy);
 
       executeAction("restart-app");
 
+      expect(restartAppMock).not.toHaveBeenCalled();
+      expect(useUiStore.getState().confirmDialog).toMatchObject({
+        open: true,
+        message: "translated:reader:command_palette.restart_app",
+        actionLabel: "translated:reader:command_palette.restart_app",
+        variant: "warning",
+      });
+
+      await useUiStore.getState().confirmDialog.onConfirm?.();
+
       await waitFor(() => {
-        expect(restartAppMock).not.toHaveBeenCalled();
+        expect(restartAppMock).toHaveBeenCalledTimes(1);
       });
       expect(reloadSpy).not.toHaveBeenCalled();
+    });
+
+    it("surfaces native restart guard failures to the user", async () => {
+      vi.stubEnv("DEV", false);
+      restartAppMock.mockResolvedValueOnce(
+        Result.fail({
+          type: "UserVisible",
+          message: "Database maintenance is unavailable while syncing. Try again after sync completes.",
+        }),
+      );
+
+      executeAction("restart-app");
+      await useUiStore.getState().confirmDialog.onConfirm?.();
+
+      await waitFor(() => {
+        expect(useUiStore.getState().toastMessage).toEqual({
+          message: "Database maintenance is unavailable while syncing. Try again after sync completes.",
+        });
+      });
     });
   });
 

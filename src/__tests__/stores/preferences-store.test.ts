@@ -1263,6 +1263,47 @@ describe("usePreferencesStore preferences", () => {
     expect(usePreferencesStore.getState().pendingPreferenceSaves).toBe(0);
   });
 
+  it("keeps failed optimistic saves as the UI source of truth, clears dirty guards, and allows retry", async () => {
+    await i18n.changeLanguage("ja");
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    vi.mocked(setPreference)
+      .mockResolvedValueOnce(Result.fail({ type: "UserVisible", message: "db write failed" }))
+      .mockResolvedValueOnce(Result.succeed(null));
+
+    try {
+      usePreferencesStore.getState().setPref("theme", "sepia");
+
+      await vi.waitFor(() => {
+        expect(usePreferencesStore.getState().pendingPreferenceSaves).toBe(0);
+      });
+
+      expect(usePreferencesStore.getState().prefs.theme).toBe("light");
+      expect(document.documentElement).not.toHaveClass("dark");
+      expect(window.localStorage.getItem(STORAGE_KEYS.theme)).toBe("light");
+      expect(useUiStore.getState().toastMessage).toEqual({
+        message: "設定の保存に失敗しました: db write failed",
+      });
+
+      usePreferencesStore.getState().setPref("theme", "dark");
+
+      await vi.waitFor(() => {
+        expect(usePreferencesStore.getState().pendingPreferenceSaves).toBe(0);
+      });
+
+      expect(usePreferencesStore.getState().prefs.theme).toBe("dark");
+      expect(document.documentElement).toHaveClass("dark");
+      expect(window.localStorage.getItem(STORAGE_KEYS.theme)).toBe("dark");
+      expect(setPreference).toHaveBeenNthCalledWith(1, "theme", "light");
+      expect(setPreference).toHaveBeenNthCalledWith(2, "theme", "dark");
+      expect(consoleError).toHaveBeenCalledWith("Failed to persist preference theme:", {
+        type: "UserVisible",
+        message: "db write failed",
+      });
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+
   it("reports synchronous latest manual preference persist failures", async () => {
     await i18n.changeLanguage("ja");
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);

@@ -65,6 +65,7 @@ export type BuildArticleViewSummaryParams = {
   folders: FolderDto[] | undefined;
   tags: TagDto[] | undefined;
   filteredArticles: ArticleDto[];
+  summaryArticles?: ArticleDto[] | undefined;
   allFeedArticles: ArticleDto[] | undefined;
 };
 
@@ -236,7 +237,8 @@ export function buildArticleViewSummaryResult(
     return Result.fail("summary_not_available");
   }
 
-  const summaryStats = buildArticleViewSummaryStats(filteredArticles);
+  const summaryArticles = params.summaryArticles ?? filteredArticles;
+  const summaryStats = buildArticleViewSummaryStats(summaryArticles);
 
   if (selection.type === "feed") {
     const feed = feeds?.find((candidate) => candidate.id === selection.feedId);
@@ -265,7 +267,7 @@ export function buildArticleViewSummaryResult(
       kind: "folder",
       folder,
       feedCount: countFeedsInFolder(feeds, folder.id),
-      unreadCount: countUnreadArticles(filteredArticles),
+      unreadCount: countUnreadArticles(summaryArticles),
       latestArticlePublishedAt: summaryStats.latestArticlePublishedAt,
     });
   }

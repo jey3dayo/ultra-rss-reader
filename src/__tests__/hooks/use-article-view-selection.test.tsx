@@ -1,4 +1,5 @@
 import { renderHook } from "@testing-library/react";
+import { sampleArticles, sampleFeeds, sampleFolders } from "@tests/helpers/fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useArticleViewSelection } from "@/components/reader/hooks/article/use-article-view-selection";
 import { useUiStore } from "@/stores/ui-store";
@@ -8,14 +9,18 @@ const {
   useArticleListDataMock,
   useArticleListSourcesMock,
   useArticlesMock,
+  useFolderArticlesMock,
   useFoldersMock,
+  useArticlesByTagMock,
   useTagsMock,
 } = vi.hoisted(() => ({
   useAccountsMock: vi.fn(),
   useArticleListDataMock: vi.fn(),
   useArticleListSourcesMock: vi.fn(),
   useArticlesMock: vi.fn(),
+  useFolderArticlesMock: vi.fn(),
   useFoldersMock: vi.fn(),
+  useArticlesByTagMock: vi.fn(),
   useTagsMock: vi.fn(),
 }));
 
@@ -25,6 +30,7 @@ vi.mock("@/hooks/use-accounts", () => ({
 
 vi.mock("@/hooks/use-articles", () => ({
   useArticles: useArticlesMock,
+  useFolderArticles: useFolderArticlesMock,
 }));
 
 vi.mock("@/hooks/use-folders", () => ({
@@ -32,6 +38,7 @@ vi.mock("@/hooks/use-folders", () => ({
 }));
 
 vi.mock("@/hooks/use-tags", () => ({
+  useArticlesByTag: useArticlesByTagMock,
   useTags: useTagsMock,
 }));
 
@@ -62,6 +69,8 @@ describe("useArticleViewSelection", () => {
     useFoldersMock.mockReturnValue({ data: [] });
     useTagsMock.mockReturnValue({ data: [] });
     useArticlesMock.mockReturnValue({ data: [] });
+    useFolderArticlesMock.mockReturnValue({ data: [] });
+    useArticlesByTagMock.mockReturnValue({ data: [] });
     useArticleListSourcesMock.mockReturnValue({
       accountArticles: [],
       accountListScopeId: "acc-1",
@@ -119,5 +128,85 @@ describe("useArticleViewSelection", () => {
     const { result } = renderHook(() => useArticleViewSelection());
 
     expect(result.current).toEqual({ kind: "not-found" });
+  });
+
+  it("uses the account switch reset instead of surfacing a stale not-found state", () => {
+    setArticleViewState("browser", "https://example.com/stale-article");
+
+    useUiStore.getState().selectAccount("acc-2");
+
+    const { result } = renderHook(() => useArticleViewSelection());
+
+    expect(result.current).toEqual({
+      kind: "empty",
+      emptyReason: "no-feeds",
+      summary: undefined,
+    });
+  });
+
+  it("builds empty folder summaries from all folder articles instead of visible filtered articles", () => {
+    const visibleArticle = {
+      ...sampleArticles[0],
+      feed_id: "feed-1",
+      is_read: false,
+      published_at: "2026-03-01T10:00:00Z",
+    };
+    const hiddenLatestArticle = {
+      ...sampleArticles[1],
+      id: "hidden-folder-latest",
+      feed_id: "feed-2",
+      is_read: false,
+      published_at: "2026-04-01T10:00:00Z",
+    };
+    const folderFeeds = sampleFeeds.slice(0, 2).map((feed) => ({
+      ...feed,
+      folder_id: "folder-1",
+    }));
+
+    useUiStore.setState({
+      contentMode: "empty",
+      browserUrl: null,
+      selectedArticleId: null,
+      selection: { type: "folder", folderId: "folder-1" },
+      subscriptionsWorkspace: null,
+      selectedAccountId: "acc-1",
+      retainedArticleIds: new Set(),
+      viewMode: "unread",
+    });
+    useFoldersMock.mockReturnValue({
+      data: [{ ...sampleFolders[0], id: "folder-1" }],
+    });
+    useArticleListSourcesMock.mockReturnValue({
+      accountArticles: [],
+      accountListScopeId: "acc-1",
+      articles: [],
+      feedId: null,
+      feeds: folderFeeds,
+      folderId: "folder-1",
+      sourcePlan: { kind: "folder", mode: "unread" },
+      tagArticles: [],
+      tagId: null,
+    });
+    useArticleListDataMock.mockReturnValue({
+      feedId: null,
+      filteredArticles: [visibleArticle],
+      tagId: null,
+    });
+    useFolderArticlesMock.mockReturnValue({
+      data: [visibleArticle, hiddenLatestArticle],
+    });
+
+    const { result } = renderHook(() => useArticleViewSelection());
+
+    expect(result.current).toMatchObject({
+      kind: "empty",
+      emptyReason: "default",
+      summary: {
+        kind: "folder",
+        feedCount: 2,
+        unreadCount: 2,
+        latestArticlePublishedAt: "2026-04-01T10:00:00Z",
+      },
+    });
   });
 });

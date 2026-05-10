@@ -3,14 +3,15 @@ import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import { useArticleListData } from "@/components/reader/hooks/article-list/use-article-list-data";
 import { useArticleListSources } from "@/components/reader/hooks/article-list/use-article-list-sources";
 import { useAccounts } from "@/hooks/use-accounts";
-import { useArticles } from "@/hooks/use-articles";
+import { useArticles, useFolderArticles } from "@/hooks/use-articles";
 import { useFolders } from "@/hooks/use-folders";
-import { useTags } from "@/hooks/use-tags";
+import { useArticlesByTag, useTags } from "@/hooks/use-tags";
 import {
   type ArticleViewSummaryState,
   buildArticleViewSummaryResult,
   findSelectedArticle,
 } from "@/lib/articles/article-view";
+import type { ReaderSelection } from "@/lib/reader/reader-selection.types";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -26,6 +27,29 @@ export type ArticleViewSelectionState =
   | ArticleViewEmptyState
   | { kind: "not-found" }
   | { kind: "article"; article: ArticleDto; feed?: FeedDto };
+
+function resolveSummaryArticles(params: {
+  selection: ReaderSelection;
+  allFeedArticles: ArticleDto[] | undefined;
+  allFolderArticles: ArticleDto[] | undefined;
+  allTagArticles: ArticleDto[] | undefined;
+}): ArticleDto[] | undefined {
+  const { selection, allFeedArticles, allFolderArticles, allTagArticles } = params;
+
+  if (selection.type === "feed") {
+    return allFeedArticles;
+  }
+
+  if (selection.type === "folder") {
+    return allFolderArticles;
+  }
+
+  if (selection.type === "tag") {
+    return allTagArticles;
+  }
+
+  return undefined;
+}
 
 function resolveEmptyArticleViewState(params: {
   accountsCount: number | undefined;
@@ -60,10 +84,18 @@ export function useArticleViewSelection(): ArticleViewSelectionState {
   const retainedArticleIds = useUiStore((s) => s.retainedArticleIds);
   const viewMode = useUiStore((s) => s.viewMode);
   const selectedFeedId = selection.type === "feed" ? selection.feedId : null;
+  const selectedFolderId = selection.type === "folder" ? selection.folderId : null;
+  const selectedTagId = selection.type === "tag" ? selection.tagId : null;
   const { data: accounts } = useAccounts();
   const { data: folders } = useFolders(selectedAccountId);
   const { data: tags } = useTags();
-  const { data: allFeedArticles } = useArticles(selectedFeedId);
+  const { data: allFeedArticles } = useArticles(selectedFeedId, {
+    mode: "all",
+  });
+  const { data: allFolderArticles } = useFolderArticles(selectedFolderId, {
+    mode: "all",
+  });
+  const { data: allTagArticles } = useArticlesByTag(selectedTagId, selectedAccountId, { mode: "all" });
   const sortUnread = usePreferencesStore((s) => s.prefs.reading_sort ?? s.prefs.sort_unread ?? "newest_first");
   const groupBy = usePreferencesStore((s) => s.prefs.group_by ?? "date");
   const sources = useArticleListSources({
@@ -108,6 +140,12 @@ export function useArticleViewSelection(): ArticleViewSelectionState {
       folders,
       tags,
       filteredArticles: data.filteredArticles,
+      summaryArticles: resolveSummaryArticles({
+        selection,
+        allFeedArticles,
+        allFolderArticles,
+        allTagArticles,
+      }),
       allFeedArticles,
     });
     const summary = Result.isSuccess(summaryResult) ? Result.unwrap(summaryResult) : undefined;

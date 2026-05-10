@@ -130,6 +130,36 @@ async function expectHiddenAppLayoutPanesBlockFocus(page: Page, expectedHiddenPa
   expect(result.programmaticFocusCaptured).toBe(false);
 }
 
+async function expectVisibleSlidingPaneFocusRestored(page: Page, visiblePaneLabel: string) {
+  const result = await page.evaluate(
+    ({ focusableElementSelector }) => {
+      const visiblePanes = Array.from(
+        document.querySelectorAll<HTMLElement>('[data-testid="sliding-pane-tray"] > [aria-hidden="false"]'),
+      );
+      const visibleFocusableElements = visiblePanes.flatMap((pane) =>
+        Array.from(pane.querySelectorAll<HTMLElement>(focusableElementSelector)),
+      );
+      const tabbableElements = visibleFocusableElements.filter((element) => element.tabIndex !== -1);
+      const managedElements = visibleFocusableElements.filter((element) =>
+        element.hasAttribute("data-app-layout-previous-tabindex"),
+      );
+
+      return {
+        visiblePaneCount: visiblePanes.length,
+        focusableCount: visibleFocusableElements.length,
+        tabbableCount: tabbableElements.length,
+        managedCount: managedElements.length,
+      };
+    },
+    { focusableElementSelector: focusableSelector },
+  );
+
+  expect(result.visiblePaneCount, visiblePaneLabel).toBe(1);
+  expect(result.focusableCount, visiblePaneLabel).toBeGreaterThan(0);
+  expect(result.tabbableCount, visiblePaneLabel).toBeGreaterThan(0);
+  expect(result.managedCount, visiblePaneLabel).toBe(0);
+}
+
 test.describe("Ultra RSS Reader - basic rendering", () => {
   test.beforeEach(async ({ page }) => {
     installRuntimeErrorGuard(page);
@@ -278,6 +308,30 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
         expect(page.locator(appLayoutHiddenPaneSelector)).toHaveCount(0),
       ]);
     });
+  });
+
+  test("restores mobile single-pane tab order after sidebar, list, and content pane switches", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 900 });
+    await page.goto("/", { waitUntil: "load" });
+
+    await expectHiddenAppLayoutPanesBlockFocus(page, 3);
+    await expectVisibleSlidingPaneFocusRestored(page, "sidebar pane");
+
+    await page.getByRole("button", { name: unreadSmartViewButtonName }).click();
+    await expect(page.getByRole("listbox", { name: /Article list|記事一覧/i })).toBeVisible();
+
+    await expectHiddenAppLayoutPanesBlockFocus(page, 3);
+    await expectVisibleSlidingPaneFocusRestored(page, "article list pane");
+
+    await page
+      .getByRole("listbox", { name: /Article list|記事一覧/i })
+      .getByRole("option")
+      .first()
+      .click();
+    await expect(page.getByRole("button", { name: /Toggle star|スターを切替/i })).toBeVisible();
+
+    await expectHiddenAppLayoutPanesBlockFocus(page, 3);
+    await expectVisibleSlidingPaneFocusRestored(page, "article content pane");
   });
 
   test("groups secondary article actions under More actions on mobile", async ({ page }) => {

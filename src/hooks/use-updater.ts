@@ -21,6 +21,8 @@ let activeDownloadSessionId: number | null = null;
 let activeDownloadRequestId: number | null = null;
 let nextDownloadRequestId = 0;
 const staleDownloadSessionIds = new Set<number>();
+const SHARED_OPERATION_BUSY_ERROR =
+  "Database maintenance is unavailable while syncing. Try again after sync completes.";
 
 function isCurrentToast(toast: ToastData): boolean {
   return useUiStore.getState().toastMessage === toast;
@@ -76,11 +78,15 @@ export function showUpdateAvailableToast(version: string): void {
   store.showToast(toast);
 }
 
+function getUpdateFailureToastMessage(message: string): string {
+  return message === SHARED_OPERATION_BUSY_ERROR ? message : i18n.t("updater.download_failed_keep_current");
+}
+
 function showUpdateFailureToast(message: string): void {
   const store = useUiStore.getState();
   console.error("Update download failed:", message);
   const toast: ToastData = {
-    message: i18n.t("updater.download_failed_keep_current"),
+    message: getUpdateFailureToastMessage(message),
     persistent: true,
     variant: "update",
     actions: [
@@ -237,9 +243,11 @@ function restartPreparedUpdate(ownerToast?: ToastData): void {
           return;
         }
 
+        const message =
+          error.message === SHARED_OPERATION_BUSY_ERROR ? error.message : i18n.t("updater.restart_failed_ready");
         console.error("App restart failed:", error);
         const failureToast: ToastData = {
-          message: i18n.t("updater.restart_failed_ready"),
+          message,
           persistent: true,
           variant: "update",
           actions: [

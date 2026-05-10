@@ -1,7 +1,21 @@
 import { stubNavigatorPlatform } from "@tests/helpers/navigator-platform";
 import { resetTauriRuntimeFlags, setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window/window-chrome";
+import { APP_STACKING_CLASS_NAMES, hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window/window-chrome";
+
+function readTailwindZIndexClassValue(className: string): number {
+  const arbitraryValueMatch = /^z-\[(\d+)\]$/.exec(className);
+  if (arbitraryValueMatch) {
+    return Number(arbitraryValueMatch[1]);
+  }
+
+  const scaleValueMatch = /^z-(\d+)$/.exec(className);
+  if (scaleValueMatch) {
+    return Number(scaleValueMatch[1]);
+  }
+
+  throw new Error(`Unsupported z-index class: ${className}`);
+}
 
 describe("window-chrome", () => {
   afterEach(() => {
@@ -111,5 +125,24 @@ describe("window-chrome", () => {
 
     deletePropertySpy.mockRestore();
     restorePlatform();
+  });
+
+  it("keeps app stacking layers ordered so browser overlays stay below dialogs and toasts", () => {
+    const browserOverlayRoot = readTailwindZIndexClassValue(APP_STACKING_CLASS_NAMES.browserOverlayRoot);
+    const dialog = readTailwindZIndexClassValue(APP_STACKING_CLASS_NAMES.dialog);
+    const commandPalette = readTailwindZIndexClassValue(APP_STACKING_CLASS_NAMES.commandPalette);
+    const toast = readTailwindZIndexClassValue(APP_STACKING_CLASS_NAMES.toast);
+
+    expect(APP_STACKING_CLASS_NAMES).toEqual({
+      browserOverlayRoot: "z-40",
+      dialog: "z-50",
+      commandPalette: "z-50",
+      toast: "z-[100]",
+    });
+    expect(browserOverlayRoot).toBeLessThan(dialog);
+    expect(browserOverlayRoot).toBeLessThan(commandPalette);
+    expect(dialog).toBe(commandPalette);
+    expect(toast).toBeGreaterThan(dialog);
+    expect(toast).toBeGreaterThan(commandPalette);
   });
 });

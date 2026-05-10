@@ -111,7 +111,7 @@ export type PreferenceRecord = KnownPreferenceRecord & ShortcutPreferenceRecord 
 type PreferenceValue<K extends KnownPreferenceKey> = z.output<(typeof preferenceSchemas)[K]>;
 
 const objectHasOwnProperty = Object.prototype.hasOwnProperty;
-const backendOwnedPreferenceKeys = ["selected_account_id"] as const;
+export const backendOwnedPreferenceKeys = ["selected_account_id"] as const;
 const retiredBackendPassthroughPreferenceKeys = [] as const;
 const retiredBackendPassthroughPreferenceKeySet: ReadonlySet<string> = new Set(retiredBackendPassthroughPreferenceKeys);
 const preferenceTypoDetectionDistance = 2;
@@ -267,6 +267,14 @@ export function getLikelyPreferenceKeyTypo(key: string): string | null {
 
 export function isRetiredBackendPassthroughPreferenceKey(key: string): boolean {
   return retiredBackendPassthroughPreferenceKeySet.has(key);
+}
+
+export function isReservedUnknownPreferenceKey(key: string): boolean {
+  if (getPreferenceValueSchema(key)) {
+    return false;
+  }
+
+  return reservedUnknownPreferenceKeyPrefixes.some((prefix) => key.startsWith(prefix));
 }
 
 function buildVisibleCorePreferenceDefaults(): Partial<Record<VisiblePreferenceDefaultKey, string>> {

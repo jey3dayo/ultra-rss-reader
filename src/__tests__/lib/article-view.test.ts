@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import { sampleArticles, sampleFeeds } from "@tests/helpers/fixtures";
+import { sampleArticles, sampleFeeds, sampleTags } from "@tests/helpers/fixtures";
 import { describe, expect, it, vi } from "vitest";
 import type { FolderDto } from "@/api/tauri-commands";
 import {
@@ -422,6 +422,84 @@ describe("buildArticleViewSummary", () => {
       feedCount: 2,
       unreadCount: 1,
       latestArticlePublishedAt: "2026-03-02T10:00:00Z",
+    });
+  });
+
+  it("keeps folder latest article and unread count independent from visible filters", () => {
+    const folders: FolderDto[] = [
+      {
+        id: "folder-1",
+        account_id: "acc-1",
+        name: "Work",
+        sort_order: 0,
+      },
+    ];
+    const folderFeeds = sampleFeeds.slice(0, 2).map((feed) => ({
+      ...feed,
+      folder_id: "folder-1",
+    }));
+    const visibleArticle = {
+      ...sampleArticles[0],
+      feed_id: "feed-1",
+      is_read: false,
+      published_at: "2026-03-01T10:00:00Z",
+    };
+    const hiddenUnreadLatestArticle = {
+      ...sampleArticles[1],
+      id: "hidden-unread-latest",
+      feed_id: "feed-2",
+      is_read: false,
+      published_at: "2026-04-01T10:00:00Z",
+    };
+
+    const result = buildArticleViewSummaryResult({
+      selection: { type: "folder", folderId: "folder-1" },
+      selectedFeedId: null,
+      feeds: folderFeeds,
+      folders,
+      tags: [],
+      filteredArticles: [visibleArticle],
+      summaryArticles: [visibleArticle, hiddenUnreadLatestArticle],
+      allFeedArticles: [],
+    });
+
+    expect(Result.unwrap(result)).toMatchObject({
+      kind: "folder",
+      feedCount: 2,
+      unreadCount: 2,
+      latestArticlePublishedAt: "2026-04-01T10:00:00Z",
+    });
+  });
+
+  it("keeps tag article stats independent from the currently visible articles", () => {
+    const visibleArticle = {
+      ...sampleArticles[0],
+      feed_id: "feed-1",
+      published_at: "2026-03-01T10:00:00Z",
+    };
+    const hiddenLatestArticle = {
+      ...sampleArticles[1],
+      id: "hidden-latest",
+      feed_id: "feed-2",
+      published_at: "2026-04-01T10:00:00Z",
+    };
+
+    const result = buildArticleViewSummaryResult({
+      selection: { type: "tag", tagId: "tag-1" },
+      selectedFeedId: null,
+      feeds: sampleFeeds,
+      folders: [],
+      tags: [{ ...sampleTags[0], id: "tag-1", name: "Important" }],
+      filteredArticles: [visibleArticle],
+      summaryArticles: [visibleArticle, hiddenLatestArticle],
+      allFeedArticles: [],
+    });
+
+    expect(Result.unwrap(result)).toMatchObject({
+      kind: "tag",
+      articleCount: 2,
+      feedCount: 2,
+      latestArticlePublishedAt: "2026-04-01T10:00:00Z",
     });
   });
 });
