@@ -258,6 +258,38 @@ mod tests {
     }
 
     #[test]
+    fn feed_parser_boundary_normalizes_atom_xhtml_content_and_relative_link_base() {
+        let atom = r#"<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:base="https://example.com/blog/">
+  <title>Atom Feed</title>
+  <id>https://example.com/feed</id>
+  <updated>2026-03-27T12:00:00Z</updated>
+  <entry xml:base="posts/">
+    <title>XHTML Content</title>
+    <id>xhtml-1</id>
+    <updated>2026-03-27T12:00:00Z</updated>
+    <link rel="alternate" href="xhtml-1" type="application/xhtml+xml"/>
+    <content type="xhtml">
+      <div xmlns="http://www.w3.org/1999/xhtml">
+        <p>Hello <strong>Atom</strong></p>
+      </div>
+    </content>
+  </entry>
+</feed>"#;
+
+        let entries = normalize_feed(atom.as_bytes(), "https://example.com/feed.xml").unwrap();
+
+        assert_eq!(entries.len(), 1);
+        assert_eq!(
+            entries[0].url,
+            Some("https://example.com/blog/posts/xhtml-1".to_string())
+        );
+        assert!(entries[0]
+            .content
+            .contains("<p>Hello <strong>Atom</strong></p>"));
+    }
+
+    #[test]
     fn article_url_keeps_rss_item_link_when_link_has_no_rel_or_media_type() {
         let entries =
             normalize_feed(SAMPLE_RSS.as_bytes(), "https://example.com/feed.xml").unwrap();
@@ -332,6 +364,31 @@ mod tests {
         let entries = normalize_feed(atom.as_bytes(), "https://example.com/feed.xml").unwrap();
 
         assert_eq!(entries[0].url, None);
+    }
+
+    #[test]
+    fn feed_parser_boundary_does_not_expand_external_xml_entities() {
+        let feed = r#"<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE rss [
+  <!ENTITY xxe SYSTEM "file:///etc/passwd">
+]>
+<rss version="2.0">
+  <channel>
+    <title>Entity Feed</title>
+    <link>https://example.com/</link>
+    <item>
+      <title>&xxe;</title>
+      <link>https://example.com/entity</link>
+      <guid>entity-1</guid>
+    </item>
+  </channel>
+</rss>"#;
+
+        let entries = normalize_feed(feed.as_bytes(), "https://example.com/feed.xml").unwrap();
+
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].id, Some("entity-1".to_string()));
+        assert_eq!(entries[0].title, "");
     }
 
     #[test]

@@ -1155,6 +1155,68 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn feed_parser_boundary_sniffs_supported_content_type_fallbacks() {
+        let json_feed = r#"{
+  "version": "https://jsonfeed.org/version/1.1",
+  "title": "JSON Feed",
+  "home_page_url": "https://example.com/",
+  "feed_url": "https://example.com/feed.json",
+  "items": [
+    {
+      "id": "json-1",
+      "url": "https://example.com/json-1",
+      "title": "JSON Article",
+      "content_text": "Hello"
+    }
+  ]
+}"#;
+        let mut server = mockito::Server::new_async().await;
+        let application_xml_url = format!("{}/application.xml", server.url());
+        let json_feed_url = format!("{}/feed.json", server.url());
+        let html_fallback_url = format!("{}/html", server.url());
+        let missing_type_url = format!("{}/missing-type", server.url());
+        let xml_mock = server
+            .mock("GET", "/application.xml")
+            .with_body(SAMPLE_RSS)
+            .with_header("content-type", "application/xml; charset=utf-8")
+            .create_async()
+            .await;
+        let json_mock = server
+            .mock("GET", "/feed.json")
+            .with_body(json_feed)
+            .with_header("content-type", "application/feed+json")
+            .create_async()
+            .await;
+        let html_mock = server
+            .mock("GET", "/html")
+            .with_body(SAMPLE_RSS)
+            .with_header("content-type", "text/html; charset=utf-8")
+            .create_async()
+            .await;
+        let missing_type_mock = server
+            .mock("GET", "/missing-type")
+            .with_body(SAMPLE_RSS)
+            .create_async()
+            .await;
+
+        let provider = local_provider_allowing_private_feed_urls();
+
+        for url in [
+            application_xml_url,
+            json_feed_url,
+            html_fallback_url,
+            missing_type_url,
+        ] {
+            provider.create_subscription(&url, None).await.unwrap();
+        }
+
+        xml_mock.assert_async().await;
+        json_mock.assert_async().await;
+        html_mock.assert_async().await;
+        missing_type_mock.assert_async().await;
+    }
+
+    #[tokio::test]
     async fn create_subscription_copies_feed_icon_url() {
         let feed = r#"<?xml version="1.0" encoding="UTF-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
