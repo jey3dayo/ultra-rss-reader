@@ -104,7 +104,7 @@ struct UnreadCountsResponse {
 #[derive(Deserialize)]
 struct UnreadCountEntry {
     id: String,
-    count: i32,
+    count: i64,
 }
 
 #[derive(Deserialize)]
@@ -209,6 +209,10 @@ fn normalize_label_remote_id(raw_id: &str, label: Option<&str>) -> Option<(Strin
     Some((format!("{LABEL_PREFIX}{display_label}"), display_label))
 }
 
+fn normalize_unread_count(count: i64) -> i32 {
+    count.clamp(0, i64::from(i32::MAX)) as i32
+}
+
 fn normalized_url_match_key(raw_url: &str) -> Option<String> {
     let mut url = reqwest::Url::parse(raw_url.trim()).ok()?;
     url.set_fragment(None);
@@ -273,7 +277,7 @@ impl GReaderProvider {
         Ok(response
             .unreadcounts
             .into_iter()
-            .map(|entry| (entry.id, entry.count))
+            .map(|entry| (entry.id, normalize_unread_count(entry.count)))
             .collect())
     }
 
@@ -1007,6 +1011,59 @@ mod tests {
         );
         assert_eq!(normalize_label_remote_id("user/-/label/%20%20", None), None);
         assert_eq!(normalize_label_remote_id(STATE_READ, None), None);
+    }
+
+    #[tokio::test]
+    async fn get_unread_count_map_normalizes_counts_and_keeps_last_duplicate_entry() {
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(200)
+            .with_body("Auth=tok\n")
+            .create_async()
+            .await;
+
+        server
+            .mock("GET", "/api/greader.php/reader/api/0/unread-count")
+            .match_query(mockito::Matcher::AllOf(vec![
+                mockito::Matcher::UrlEncoded("output".into(), "json".into()),
+                mockito::Matcher::UrlEncoded("all".into(), "true".into()),
+            ]))
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_status(200)
+            .with_body(
+                r#"{
+                    "unreadcounts": [
+                        { "id": "feed/https://example.com/rss", "count": 4 },
+                        { "id": "feed/https://example.com/negative", "count": -2 },
+                        { "id": "feed/https://example.com/overflow", "count": 2147483648 },
+                        { "id": "feed/https://example.com/rss", "count": 7 }
+                    ]
+                }"#,
+            )
+            .create_async()
+            .await;
+
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
+        provider
+            .authenticate(&Credentials {
+                password: Some("p".into()),
+                token: Some("u".into()),
+            })
+            .await
+            .unwrap();
+
+        let unread_counts = provider.get_unread_count_map().await.unwrap();
+
+        assert_eq!(unread_counts.get("feed/https://example.com/rss"), Some(&7));
+        assert_eq!(
+            unread_counts.get("feed/https://example.com/negative"),
+            Some(&0)
+        );
+        assert_eq!(
+            unread_counts.get("feed/https://example.com/overflow"),
+            Some(&i32::MAX)
+        );
     }
 
     #[tokio::test]
