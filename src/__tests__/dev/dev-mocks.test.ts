@@ -35,6 +35,8 @@ import {
 } from "@/api/schemas";
 import {
   addLocalFeed,
+  addToReadingList,
+  checkBrowserEmbedSupport,
   cleanupFeedIntegrityOrphans,
   clearArticleViewHistory,
   countAccountStarredArticles,
@@ -72,6 +74,8 @@ import {
   listTags,
   markArticleRead,
   markOldUnreadRead,
+  openExternalUrl,
+  openInBrowser,
   recordArticleView,
   reloadBrowserWebview,
   searchArticles,
@@ -98,6 +102,13 @@ type DevMockDiagnosticsTestWindow = Window & {
     message: string;
   }>;
 };
+type DevMockExternalOpenerTestWindow = Window & {
+  __ULTRA_RSS_DEV_MOCK_EXTERNAL_OPENS__?: Array<{
+    command: "open_in_browser" | "plugin:opener|open_url" | "add_to_reading_list";
+    url: string;
+    target: "_blank" | "reading-list";
+  }>;
+};
 
 describe("setupDevMocks", () => {
   const browserBounds: BrowserWebviewBounds = {
@@ -113,6 +124,7 @@ describe("setupDevMocks", () => {
     delete window.__DEV_BROWSER_MOCKS__;
     delete window.__ULTRA_RSS_BROWSER_MOCKS__;
     delete (window as DevMockDiagnosticsTestWindow).__ULTRA_RSS_DEV_MOCK_DIAGNOSTICS__;
+    delete (window as DevMockExternalOpenerTestWindow).__ULTRA_RSS_DEV_MOCK_EXTERNAL_OPENS__;
     document.getElementById("ultra-rss-dev-mock-diagnostics")?.remove();
   });
 
@@ -122,7 +134,9 @@ describe("setupDevMocks", () => {
     delete window.__DEV_BROWSER_MOCKS__;
     delete window.__ULTRA_RSS_BROWSER_MOCKS__;
     delete (window as DevMockDiagnosticsTestWindow).__ULTRA_RSS_DEV_MOCK_DIAGNOSTICS__;
+    delete (window as DevMockExternalOpenerTestWindow).__ULTRA_RSS_DEV_MOCK_EXTERNAL_OPENS__;
     document.getElementById("ultra-rss-dev-mock-diagnostics")?.remove();
+    vi.useRealTimers();
     vi.unstubAllEnvs();
   });
 
@@ -268,7 +282,7 @@ describe("setupDevMocks", () => {
   it("returns account sync status for browser-only account settings checks", async () => {
     setupDevMocks();
 
-    const result = await getAccountSyncStatus("acc-1");
+    const result = await getAccountSyncStatus("acc-freshrss");
     const status = Result.unwrap(result);
 
     expect(status).toEqual({
@@ -277,6 +291,59 @@ describe("setupDevMocks", () => {
       error_count: 0,
       next_retry_at: null,
     });
+  });
+
+  it("surfaces browser-only sync status failures for unknown, deleted, and local accounts", async () => {
+    setupDevMocks();
+
+    const unknown = Result.unwrap(await getAccountSyncStatus("acc-missing"));
+    const local = Result.unwrap(await getAccountSyncStatus("acc-local"));
+    Result.unwrap(await deleteAccount("acc-freshrss"));
+    const deleted = Result.unwrap(await getAccountSyncStatus("acc-freshrss"));
+
+    expect(unknown).toMatchObject({
+      last_success_at: null,
+      last_error: "Account not found: acc-missing",
+      error_count: 1,
+      next_retry_at: null,
+    });
+    expect(local).toMatchObject({
+      last_success_at: null,
+      last_error: "Sync is unavailable for local accounts",
+      error_count: 1,
+      next_retry_at: null,
+    });
+    expect(deleted).toMatchObject({
+      last_success_at: null,
+      last_error: "Account not found: acc-freshrss",
+      error_count: 1,
+      next_retry_at: null,
+    });
+    expect(AccountSyncStatusSchema.parse(unknown)).toEqual(unknown);
+    expect(AccountSyncStatusSchema.parse(local)).toEqual(local);
+    expect(AccountSyncStatusSchema.parse(deleted)).toEqual(deleted);
+  });
+
+  it("regenerates browser-only today and yesterday article dates when mock state resets", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-05-10T03:00:00.000Z"));
+    setupDevMocks();
+
+    const firstArticles = Result.unwrap(await listArticles("feed-automaton", 0, 10));
+    const firstTodayArticle = firstArticles.find((article) => article.id === "art-1");
+    const firstYesterdayArticle = firstArticles.find((article) => article.id === "art-3");
+
+    vi.setSystemTime(new Date("2026-05-12T03:00:00.000Z"));
+    setupDevMocks();
+
+    const nextArticles = Result.unwrap(await listArticles("feed-automaton", 0, 10));
+    const nextTodayArticle = nextArticles.find((article) => article.id === "art-1");
+    const nextYesterdayArticle = nextArticles.find((article) => article.id === "art-3");
+
+    expect(firstTodayArticle?.published_at).toMatch(/^2026-05-10T/);
+    expect(firstYesterdayArticle?.published_at).toMatch(/^2026-05-09T/);
+    expect(nextTodayArticle?.published_at).toMatch(/^2026-05-12T/);
+    expect(nextYesterdayArticle?.published_at).toMatch(/^2026-05-11T/);
   });
 
   it("returns cloned DTO lists so mock mutations do not alter cached responses", async () => {
@@ -378,6 +445,46 @@ describe("setupDevMocks", () => {
     ).toBeGreaterThanOrEqual(0);
     expect(DatabaseInfoDtoSchema.parse(Result.unwrap(await getDatabaseInfo()))).toBeDefined();
     expect(DatabaseInfoDtoSchema.parse(Result.unwrap(await vacuumDatabase()))).toBeDefined();
+  });
+
+  it("keeps browser-only external opener commands observable without calling window.open", async () => {
+    setupDevMocks();
+    const windowOpenSpy = vi.spyOn(window, "open").mockImplementation(() => null);
+
+    Result.unwrap(await openInBrowser("https://example.com/article", false));
+    Result.unwrap(await openExternalUrl("mailto:?subject=First&body=https%3A%2F%2Fexample.com"));
+    Result.unwrap(await addToReadingList("https://example.com/read-later"));
+
+    expect(windowOpenSpy).not.toHaveBeenCalled();
+    expect((window as DevMockExternalOpenerTestWindow).__ULTRA_RSS_DEV_MOCK_EXTERNAL_OPENS__).toEqual([
+      { command: "open_in_browser", url: "https://example.com/article", target: "_blank" },
+      {
+        command: "plugin:opener|open_url",
+        url: "mailto:?subject=First&body=https%3A%2F%2Fexample.com",
+        target: "_blank",
+      },
+      { command: "add_to_reading_list", url: "https://example.com/read-later", target: "reading-list" },
+    ]);
+    windowOpenSpy.mockRestore();
+  });
+
+  it("keeps browser-only browser embed URL fallback aligned with command URL policy", async () => {
+    setupDevMocks();
+
+    expect(Result.unwrap(await checkBrowserEmbedSupport("https://example.com/article"))).toBe(true);
+    expect(Result.unwrap(await checkBrowserEmbedSupport("https://note.com/npaka/n/example"))).toBe(false);
+
+    for (const url of [
+      "not-a-url",
+      "mailto:hello@example.com",
+      "file:///tmp/article.html",
+      "reader://article/1",
+      "https://example.com/article\nnext",
+    ]) {
+      expect(Result.isFailure(await checkBrowserEmbedSupport(url))).toBe(true);
+      expect(Result.isFailure(await createOrUpdateBrowserWebview(url, browserBounds))).toBe(true);
+      expect(Result.isFailure(await openInBrowser(url, false))).toBe(true);
+    }
   });
 
   it("keeps old-unread time filtering aligned with command argument boundaries", async () => {

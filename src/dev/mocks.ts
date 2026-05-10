@@ -55,6 +55,14 @@ type DevMockDiagnostic = {
 type DevMockDiagnosticsWindow = Window & {
   __ULTRA_RSS_DEV_MOCK_DIAGNOSTICS__?: DevMockDiagnostic[];
 };
+export type DevMockExternalOpen = {
+  command: "open_in_browser" | "plugin:opener|open_url" | "add_to_reading_list";
+  url: string;
+  target: "_blank" | "reading-list";
+};
+type DevMockExternalOpenerWindow = Window & {
+  __ULTRA_RSS_DEV_MOCK_EXTERNAL_OPENS__?: DevMockExternalOpen[];
+};
 export type RestoreDevMocks = () => void;
 
 const DEV_MOCK_DIAGNOSTICS_ELEMENT_ID = "ultra-rss-dev-mock-diagnostics";
@@ -82,6 +90,21 @@ function cloneMockResponse<T>(value: T): T {
 
 function devMockDiagnosticsWindow(): DevMockDiagnosticsWindow {
   return window as DevMockDiagnosticsWindow;
+}
+
+function devMockExternalOpenerWindow(): DevMockExternalOpenerWindow {
+  return window as DevMockExternalOpenerWindow;
+}
+
+function recordDevMockExternalOpen(open: DevMockExternalOpen) {
+  const targetWindow = devMockExternalOpenerWindow();
+  const opens = targetWindow.__ULTRA_RSS_DEV_MOCK_EXTERNAL_OPENS__ ?? [];
+  opens.push(open);
+  targetWindow.__ULTRA_RSS_DEV_MOCK_EXTERNAL_OPENS__ = opens;
+}
+
+function resetDevMockExternalOpens() {
+  devMockExternalOpenerWindow().__ULTRA_RSS_DEV_MOCK_EXTERNAL_OPENS__ = [];
 }
 
 function ensureDevMockDiagnosticsCanvas(): HTMLElement {
@@ -201,6 +224,7 @@ function resetDevMockState() {
   );
   resetMockDataForDevMocks();
   resetDevMockDiagnostics();
+  resetDevMockExternalOpens();
 }
 
 function titleFromUrl(feedUrl: string): string {
@@ -467,14 +491,32 @@ export function setupDevMocks(): RestoreDevMocks {
         return null;
       }
 
-      case "get_account_sync_status":
-        parseBrowserMockArgs("get_account_sync_status", rawIpcPayload);
+      case "get_account_sync_status": {
+        const { accountId } = parseBrowserMockArgs("get_account_sync_status", rawIpcPayload);
+        const account = mockAccounts.find((item) => item.id === accountId);
+        if (!account) {
+          return {
+            last_success_at: null,
+            last_error: `Account not found: ${accountId}`,
+            error_count: 1,
+            next_retry_at: null,
+          } satisfies AccountSyncStatusDto;
+        }
+        if (account.kind === "Local") {
+          return {
+            last_success_at: null,
+            last_error: "Sync is unavailable for local accounts",
+            error_count: 1,
+            next_retry_at: null,
+          } satisfies AccountSyncStatusDto;
+        }
         return {
           last_success_at: null,
           last_error: null,
           error_count: 0,
           next_retry_at: null,
         } satisfies AccountSyncStatusDto;
+      }
 
       case "list_folders": {
         const { accountId } = parseBrowserMockArgs("list_folders", rawIpcPayload);
@@ -1135,13 +1177,13 @@ export function setupDevMocks(): RestoreDevMocks {
 
       case "open_in_browser": {
         const { url } = parseBrowserMockArgs("open_in_browser", rawIpcPayload);
-        window.open(url, "_blank");
+        recordDevMockExternalOpen({ command: "open_in_browser", url, target: "_blank" });
         return null;
       }
 
       case "plugin:opener|open_url": {
         const { url } = parseBrowserMockArgs("plugin:opener|open_url", rawIpcPayload);
-        window.open(url, "_blank");
+        recordDevMockExternalOpen({ command: "plugin:opener|open_url", url, target: "_blank" });
         return null;
       }
 
@@ -1211,7 +1253,10 @@ export function setupDevMocks(): RestoreDevMocks {
         parseBrowserMockArgs("copy_to_clipboard", rawIpcPayload);
         return null;
       case "add_to_reading_list":
-        parseBrowserMockArgs("add_to_reading_list", rawIpcPayload);
+        {
+          const { url } = parseBrowserMockArgs("add_to_reading_list", rawIpcPayload);
+          recordDevMockExternalOpen({ command: "add_to_reading_list", url, target: "reading-list" });
+        }
         return null;
       case "get_database_info":
         return {

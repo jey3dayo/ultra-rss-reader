@@ -19,7 +19,7 @@ function createIframeWindow() {
   }
 
   return {
-    frameWindow,
+    frameWindow: frameWindow as Window & typeof globalThis,
     cleanup: () => iframe.remove(),
   };
 }

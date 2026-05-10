@@ -13,6 +13,17 @@ function mockArticlePublishedAt(baseDate: Date, hours: number, minutes: number):
   return toIsoTimestamp(createLocalDateTime(baseDate, hours, minutes));
 }
 
+const relativeMockArticlePublishedAt: Record<string, { dayOffset: 0 | -1; hours: number; minutes: number }> = {
+  "art-1": { dayOffset: 0, hours: 9, minutes: 7 },
+  "art-2": { dayOffset: 0, hours: 8, minutes: 30 },
+  "art-3": { dayOffset: -1, hours: 18, minutes: 24 },
+  "art-4": { dayOffset: -1, hours: 10, minutes: 0 },
+  "art-5": { dayOffset: 0, hours: 16, minutes: 8 },
+  "art-6": { dayOffset: 0, hours: 15, minutes: 56 },
+  "art-7": { dayOffset: 0, hours: 11, minutes: 30 },
+  "art-8": { dayOffset: -1, hours: 14, minutes: 0 },
+};
+
 const mockAccountSeeds = [
   {
     id: "acc-freshrss",
@@ -715,6 +726,21 @@ function syncUnreadCounts(feeds: FeedDto[], articles: readonly ArticleDto[]) {
   }
 }
 
+function refreshRelativeMockArticleDates(articles: ArticleDto[]) {
+  const currentDate = getCurrentDate();
+
+  for (const article of articles) {
+    const relativeDate = relativeMockArticlePublishedAt[article.id];
+    if (!relativeDate) continue;
+
+    article.published_at = mockArticlePublishedAt(
+      addLocalDays(currentDate, relativeDate.dayOffset),
+      relativeDate.hours,
+      relativeDate.minutes,
+    );
+  }
+}
+
 function createMockRuntimeState(seedState: DevMockSeedState = mockDataSeeds): DevMockRuntimeState {
   const accounts = cloneMockItems(seedState.accounts);
   const folders = cloneMockItems(seedState.folders);
@@ -723,6 +749,7 @@ function createMockRuntimeState(seedState: DevMockSeedState = mockDataSeeds): De
   const articleTags = cloneMockItems(seedState.articleTags);
   const articles = cloneMockItems(seedState.articles);
 
+  refreshRelativeMockArticleDates(articles);
   syncUnreadCounts(feeds, articles);
 
   return {

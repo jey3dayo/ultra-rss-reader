@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   AccountDtoListSchema,
   ArticleDtoListSchema,
@@ -28,6 +28,7 @@ function requireFirstItem<T>(items: readonly T[], label: string): T {
 
 describe("dev mock data", () => {
   afterEach(() => {
+    vi.useRealTimers();
     resetMockDataForDevMocks();
   });
 
@@ -109,6 +110,36 @@ describe("dev mock data", () => {
 
     expect(mockDataSeeds).toEqual(seedSnapshot);
     expect(mockAccounts).toEqual(initialAccounts);
+  });
+
+  it("regenerates relative today and yesterday article dates at reset time", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-20T12:00:00+09:00"));
+    resetMockDataForDevMocks();
+    const initialTodayArticle = requireFirstItem(
+      mockArticles.filter((article) => article.id === "art-1"),
+      "today article",
+    );
+    const initialYesterdayArticle = requireFirstItem(
+      mockArticles.filter((article) => article.id === "art-3"),
+      "yesterday article",
+    );
+
+    vi.setSystemTime(new Date("2026-04-21T12:00:00+09:00"));
+    resetMockDataForDevMocks();
+    const resetTodayArticle = requireFirstItem(
+      mockArticles.filter((article) => article.id === "art-1"),
+      "reset today article",
+    );
+    const resetYesterdayArticle = requireFirstItem(
+      mockArticles.filter((article) => article.id === "art-3"),
+      "reset yesterday article",
+    );
+
+    expect(initialTodayArticle.published_at).toContain("2026-04-20T");
+    expect(initialYesterdayArticle.published_at).toContain("2026-04-19T");
+    expect(resetTodayArticle.published_at).toContain("2026-04-21T");
+    expect(resetYesterdayArticle.published_at).toContain("2026-04-20T");
   });
 
   it("provides enough sample rows for keyboard navigation debugging", () => {
