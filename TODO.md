@@ -334,17 +334,6 @@
 
 #### Ready-to-dispatch second tranche briefs
 
-- [ ] P2-C2l `P1-Q1d` diagnostics second tranche brief を固定する
-  - task id: `P1-Q1d`
-  - domain shard: `security-privacy`
-  - write scope: runtime diagnostics redaction、support copy helper、toast/log payload tests
-  - do-not-run-with: provider auth redaction helper shape を変える `P1-Q2e` と shared redaction helper を同時編集しない
-  - worker prompt: diagnostics/support copy/toast/log で URL token、server path、account name、raw payload が漏れないよう structured object redaction を固定する
-  - acceptance criteria: string message、object payload、nested error、URL query/token、unknown payload の redaction expected が test で読める
-  - focused tests: runtime diagnostics tests、toast/log helper tests、必要なら article content privacy tests
-  - forbidden scope: telemetry/audit log 導入、provider HTTP policy、support bundle UI redesign へ広げない
-  - handoff note: provider 固有 secret は `P1-Q2e` へ寄せ、ここでは runtime 汎用 redaction surface に閉じる
-
 - [ ] P2-C2m `P1-Q2e` provider-sync second tranche brief を固定する
   - task id: `P1-Q2e`
   - domain shard: `provider-sync`
@@ -646,34 +635,6 @@
 
 #### P1-Q2 実装 tranche
 
-- [ ] P1-Q2a auth failure storm を backoff / circuit breaker で止める
-  - worker prompt: repeated 401/403、invalid credential、manual retry、credential update reset を provider と sync scheduler の contract として固定し、auth failure が account lockout を誘発しないようにする
-  - 対象: `src-tauri/src/infra/provider/greader.rs`, `src-tauri/src/infra/provider/traits.rs`, `src-tauri/src/service/sync_scheduler.rs`
-  - 完了条件: auto sync は auth storm を止め、manual retry と credential 更新後の retry は明示的に再開できる
-  - 検証: provider Rust tests、sync scheduler focused tests
-  - supersedes: `P1 provider auth failure storm が account lockout を誘発しないよう backoff/circuit breaker を固定する`
-
-- [ ] P1-Q2b credential rotation 中の sync / pending mutation replay を一時停止する
-  - worker prompt: account credentials editor の draft/save pending と scheduler/replay を接続し、古い credential で sync や pending mutation push が走らないようにする
-  - 対象: `src/components/settings/hooks/account-detail/use-account-detail-credentials-editor.ts`, `src-tauri/src/service/sync_scheduler.rs`, `src-tauri/src/infra/db/sqlite_pending_mutation.rs`
-  - 完了条件: edit started、save pending、save success、save failure rollback、manual sync blocked の状態が test で固定される
-  - 検証: `pnpm exec vitest run src/__tests__/hooks/use-account-detail-credentials-editor.test.tsx src/__tests__/hooks/use-account-detail-sync-controls.test.tsx`, pending mutation Rust tests
-  - supersedes: `P1 account credential rotation 中の sync/pending mutation を一時停止する contract を作る`
-
-- [ ] P1-Q2c account server URL / provider kind change 時に sync_state と pending mutation を quarantine する
-  - worker prompt: server URL や provider kind を変更した account に古い cursor/backoff/pending mutation が残らないよう、clear/quarantine/reset の contract を account command で固定する
-  - 対象: `src-tauri/src/commands/account_commands.rs`, `src-tauri/src/infra/db/sqlite_account.rs`, `src-tauri/src/infra/db/sqlite_pending_mutation.rs`
-  - 完了条件: server URL changed、provider kind changed、cursor cleared、pending mutation cleared/quarantined、backoff reset が同じ integration test で説明できる
-  - 検証: account command Rust tests、pending mutation repository tests、account detail focused tests
-  - supersedes: `P2 account/server URL change 時の existing sync_state / pending mutation migration policy を決める`
-
-- [ ] P1-Q2d provider capability downgrade を UI action と pending mutation queue に反映する
-  - worker prompt: provider capability が read/star/tag/pending mutation support を失った時、settings/reader action と queued mutation が stale capability 前提で残らないようにする
-  - 対象: `src-tauri/src/domain/provider.rs`, `src-tauri/src/infra/provider/traits.rs`, `src-tauri/src/repository/pending_mutation.rs`, account detail settings
-  - 完了条件: capability removed、queued mutation exists、UI disables action、sync warning、manual cleanup の policy が固定される
-  - 検証: provider trait tests、pending mutation tests、account detail/action availability focused tests
-  - supersedes: `P2 provider capability downgrade を account settings / pending mutation queue と同期する`
-
 - [ ] P1-Q3 Release artifact provenance / dev-only contamination gate
   - 目的: release asset、manifest、checksum、platform mapping、debug-only config の drift を static contract で止める
   - worker prompt: release workflow と Tauri config から release artifact mapping を抽出し、MCP bridge/dev mock/dev credential が production artifact に混入しない gate を作る
@@ -692,27 +653,6 @@
 
 #### P1-Q4 実装 tranche
 
-- [ ] P1-Q4c startup 後に検出した DB corruption を runtime recovery surface へ出す
-  - worker prompt: 起動時は通ったが repository read/write で corruption を検出した場合に、単なる command error ではなく read-only degraded mode、integrity check action、backup restore suggestion へ分類する
-  - 対象: repository error handling、`src-tauri/src/commands/database_commands.rs`, settings data page、runtime diagnostics
-  - 完了条件: read corruption、write corruption、DB lock failure、permission denied、disk full が recovery category と user action に変換される
-  - 検証: repository/database command tests、settings data focused tests、runtime diagnostics tests
-  - supersedes: `P1 DB corruption detected after startup success の runtime recovery surface を設計する`, `P1 startup database init panic を recoverable startup error UI へ寄せる`
-
-- [ ] P1-Q4d destructive recovery action の dry-run / confirmation 基準を settings data へ入れる
-  - worker prompt: restore backup、private data reset、cleanup orphans、clear history、delete account などの destructive recovery 操作に dry-run、二重確認、backup recommendation、undo unavailable copy の基準を作る
-  - 対象: `src/components/settings/hooks/use-data-settings-controller.ts`, `src/components/settings/data-settings.tsx`, `src/components/settings/data-settings-view.tsx`, DB commands
-  - 完了条件: recovery 中の destructive action は対象不明時に disabled になり、実行前に取り返しのつかなさと backup 推奨が伝わる
-  - 検証: `pnpm exec vitest run src/__tests__/components/use-data-settings-controller.test.ts src/__tests__/components/data-settings-view.test.tsx`
-  - supersedes: `P1 recovery操作の destructive command を二重確認 / dry-run 付きにする基準を決める`, `P2 app-level recovery action を error category ごとに整理する`
-
-- [ ] P1-Q4e DB restore 後の query cache / localStorage / selected account reconciliation を固定する
-  - worker prompt: restore 後に query cache、localStorage、selected account preference、expanded folder ids、command history が古い DB を参照しないよう reconciliation contract を作る
-  - 対象: query client、`src/lib/account/account-selection.ts`, `src/schemas/storage.ts`, settings data restore flow
-  - 完了条件: selected account missing、expanded folder missing、query cache clear、command history cleanup、restart required の policy が test で固定される
-  - 検証: `pnpm exec vitest run src/__tests__/lib/account-selection.test.ts src/__tests__/schemas/storage.test.ts src/__tests__/components/use-data-settings-controller.test.ts`
-  - supersedes: `P2 DB restore 後の query cache / localStorage / selected account reconciliation を固定する`, `P2 private data reset order を credentials / DB / localStorage / query cache で固定する`
-
 - [ ] P1-Q5 Query invalidation owner / diagnostics unification
   - 目的: mutation 後の cache stale と fire-and-forget invalidation failure を owner 別 diagnostics に寄せる
   - worker prompt: add/delete feed、tag update、article read/star、mute keyword、sync completed を query key helper 経由に寄せ、account scope/all account/deleted account の失敗を分類する
@@ -721,13 +661,6 @@
   - 検証: add feed/delete feed/tag update/article read-star/mute keyword/sync completed の focused vitest
 
 #### P1-Q5 実装 tranche
-
-- [ ] P1-Q5d mute/tag/article mutation invalidation matrix を固定する
-  - worker prompt: mute keyword create/update/delete、tag update、article read/star の invalidation 範囲を matrix 化し、visible list、search result、tag count、unread count がずれないことを focused test で固定する
-  - 対象: `src/hooks/use-mute-keywords.ts`, `src/hooks/use-tags.ts`, `src/hooks/use-articles.ts`, `src/lib/query/query-invalidation.ts`
-  - 完了条件: folder view、tag view、search active、old unread view、auto-mark-read on/off の invalidation target が明示される
-  - 検証: `pnpm exec vitest run src/__tests__/hooks/use-mute-keywords.test.tsx src/__tests__/hooks/use-tags.test.tsx src/__tests__/lib/query-invalidation.test.ts`
-  - supersedes: `P2 mute keyword invalidation が article/tag count/search result まで届くか matrix 化する`
 
 ### TODO shard 方針
 
@@ -1057,11 +990,6 @@
   - 対象: `src/hooks/use-keyboard.ts`, `src/components/settings`, `src/components/reader/command-palette.tsx`
   - settings/confirm/command palette の store flag だけで block すると、nested popover や future dialog が開いた時に背後の reader action が動く可能性がある
   - modal stack、popover open、confirm dialog、tag picker、Escape propagation、top-layer fallback の component test を追加する
-
-- [ ] P2 IME composition 中の global keyboard / account pane shortcut 抑止を統一する
-  - 対象: `src/hooks/use-keyboard.ts`, `src/components/subscriptions-index/subscriptions-index-page.tsx`, `src/lib/keyboard/keyboard-shortcuts.ts`
-  - 一部 handler は `isComposing` を見るが global keyboard path は target 判定中心なので、日本語入力中に Vim-like shortcut が発火する risk がある
-  - compositionstart/end、keydown `isComposing`、account pane route、sidebar route、contenteditable/input/textarea の test を追加する
 
 - [ ] P2 Rust native menu i18n と frontend locale copy の意味 drift を検出する
   - 対象: `src-tauri/src/menu_i18n.rs`, `src/locales/en`, `src/locales/ja`, `src/__tests__/lib/i18next-locale-contract.test.ts`
@@ -1690,11 +1618,6 @@
   - helper が `export type` 中心だと interface や barrel re-export の public surface が移動判断から漏れる
   - export interface、export type、re-export、namespace export、type-only barrel の fixture test を追加する
 
-- [ ] P1 Alt/Option 修飾キーが plain shortcut として発火しない contract を作る
-  - 対象: `src/hooks/use-keyboard.ts`, `src/lib/keyboard/keyboard-shortcuts.ts`, `src/__tests__/hooks/use-keyboard.test.tsx`
-  - resolver に `altKey` が渡らず meta/ctrl 以外は plain key fallback するため、Option+J などが `j` として article navigation を起こす可能性がある
-  - alt+letter、alt+shift、option IME 入力、custom shortcut、ignored input target の keyboard contract を追加する
-
 - [ ] P2 `Cmd/Ctrl+,` legacy settings shortcut が user custom shortcut を迂回する方針を決める
   - 対象: `src/lib/keyboard/keyboard-shortcuts.ts`, `src/components/settings/shortcuts-settings.tsx`
   - `open_settings` を別キーにしても legacy `Cmd/Ctrl+,` が常に有効で、shortcut の移動/無効化と実動作がずれる
@@ -1704,12 +1627,6 @@
   - 対象: `src/hooks/use-keyboard.ts`, `src/lib/reader-focus.ts`, `src/__tests__/hooks/use-keyboard.test.tsx`
   - ArrowLeft 経路は selected sidebar target へ focus するが shortcut action は sidebar を開くだけで、focus が article/list に残りやすい
   - sidebar closed、selected feed missing、account pane open、mobile layout、focus target not found の test を追加する
-
-- [ ] P2 native menu action に modal/top-layer block policy を適用する
-  - 対象: `src/hooks/use-menu-events.ts`, `src/hooks/use-keyboard.ts`, `src/lib/actions.ts`
-  - keyboard shortcut は modal open 時に block するが native menu event は `executeAction` へ直行するため、dialog 背後で destructive/global action が動く可能性がある
-  - settings modal、confirm dialog、command palette、popover menu、allowed app-level action の contract を追加する
-  - superseded by: P2-A11Y4 (covered by global/native keyboard and menu block policy; kept verification: settings modal, confirm dialog, command palette, allowed app-level action)
 
 - [ ] P2 menu action callback の synchronous throw を diagnostics boundary に閉じ込める
   - 対象: `src/hooks/use-menu-events.ts`, `src/lib/actions.ts`, `src/lib/runtime/diagnostics.ts`
@@ -1986,12 +1903,6 @@
   - 対象: `src/lib/window/window-events.ts`, `src/__tests__/lib/window-events.test.ts`
   - `KeyboardEvent` / `CustomEvent` を current realm の `instanceof` で判定しており、iframe/test helper/embedded context 由来 event の扱いが未契約
   - iframe keyboard event、cross-realm custom event、plain object event、security error、fallback guard の test を追加する
-
-- [ ] P3 text editing target 判定に ARIA combobox 系を含めるか決める
-  - 対象: `src/lib/keyboard/global-shortcut-targets.ts`, `src/components/ui/command.tsx`, `src/components/settings/shortcuts-settings-view.tsx`
-  - textbox/searchbox/select/contenteditable は守るが、custom select や search UI で使われがちな `role="combobox"` が global shortcut 対象になり得る
-  - combobox、listbox、spinbutton、slider、contenteditable nested の keyboard contract を追加する
-  - superseded by: P2-A11Y4 (covered by keyboard/IME target block policy; kept verification: combobox, listbox, spinbutton, contenteditable nested)
 
 - [ ] P3 dev scenario registry diagnostics を test/report に露出する
   - 対象: `src/dev/scenarios/registry.ts`, `src/dev/scenarios/import-registry.ts`, `src/__tests__/dev`
@@ -2314,16 +2225,6 @@
   - `i18n.changeLanguage()` は async なので、language を連続変更した時に古い promise の reject/log が最新操作の failure に見えやすい
   - ja->en rapid change、system->ja rapid change、old promise reject、navigator language change、latest-only diagnostics の test を追加する
 
-- [ ] P2 shortcut recorder の IME composing / Dead / Unidentified key を無視する
-  - 対象: `src/components/settings/shortcuts-settings.tsx`, `src/components/settings/shortcuts-settings-view.tsx`, `src/__tests__/components/shortcuts-settings.test.tsx`
-  - shortcut 記録中は global keyboard と別経路で、IME composition や `Dead` / `Unidentified` / `Process` key が custom shortcut として保存され得る
-  - composing keydown、Dead key、Unidentified、Process、Escape cancel、recording state retained の test を追加する
-
-- [ ] P2 shortcut recorder の Alt/Option 入力を recording lifecycle として固定する
-  - 対象: `src/components/settings/shortcuts-settings.tsx`, `src/lib/keyboard/keyboard-shortcuts.ts`
-  - `normalizeRecordedKey` は Alt を null にするが event は prevent/stop 済みで、ユーザーには無反応のまま recording が続く可能性がある
-  - Alt+letter、Alt+Shift、Option IME、recording stays/cancels policy、conflict message、focus retention の test を追加する
-
 - [ ] P2 shortcut reset-all と locked `open_settings` の bypassed custom value policy を決める
   - 対象: `src/components/settings/shortcuts-settings.tsx`, `src/lib/keyboard/keyboard-shortcuts.ts`, `src/schemas/preferences.ts`
   - UI では `open_settings` が locked でも backend/import/dev tools 経由で custom 値が入ると、reset-all が locked action を戻すべきかが曖昧
@@ -2343,12 +2244,6 @@
   - 対象: `src/components/shared/feed-favicon.tsx`, `src/__tests__/components/feed-favicon.test.tsx`
   - `failedFaviconSrc` は component state なので、同じ row が別 feed に再利用された時の failure cache reset 契約が必要
   - same component new feed、same host same src、different host、size change requestSize、error then success の test を追加する
-
-- [ ] P1 `clearArticle` 後に mobile/compact が空の content pane に残らないようにする
-  - 対象: `src/stores/ui-store.ts`, `src/hooks/use-layout.ts`
-  - `clearArticle()` が `focusedPane` を戻さないため、mobile で記事を閉じると `contentMode: empty` でも content pane が表示され続け得る
-  - mobile/compact article close、selected article not-found cleanup、browser close parity、focusedPane restore の test を追加する
-  - superseded by: P2-R4 (covered by selection not-found and selected-row cleanup contract; kept verification: mobile compact close, browser close parity, focusedPane restore)
 
 - [ ] P2 `DevRuntimeOptionsSchema` の strictness / future option policy を決める
   - 対象: `src/api/schemas/platform-info.ts`, `src-tauri/src/commands/platform_commands.rs`
@@ -2701,12 +2596,6 @@
   - OPML variants が Rust unit 内 string に散ると、実 reader 由来の fixture 追加や privacy review がやりにくい
   - fixture directory、redacted real OPML、round-trip fixtures、invalid fixture naming、privacy checklist の task に分割する
 
-- [ ] P1 Debug HUD / support dump の secret redaction inventory を作る
-  - 対象: `src/components/debug`, `src/lib/runtime/diagnostics.ts`, `src-tauri/src/commands/log_commands.rs`
-  - debug dump や copy/export に account URL、token 付き URL、local path、subscription metadata が混ざるとサポート共有で漏れる
-  - account URL token、diagnostics payload、log path、browser geometry URL、copy/export redaction の contract test に分ける
-  - superseded by: P1-Q1d (covered by runtime diagnostics/support copy redaction; kept verification: account URL token, diagnostics payload, log path)
-
 - [ ] P2 article reader scroll position retention policy を決める
   - 対象: `src/components/reader/hooks/article`, `src/stores/ui-store.ts`
   - article 切替、feed 切替、browser overlay close、account switch で scroll を残すか戻すかが曖昧だと閲覧復帰が不安定になる
@@ -2923,12 +2812,6 @@
   - 対象: `scripts/lib/windows-dispatch.ts`, `src/dev`, Tauri release config
   - dev credential や dev scenario が release artifact に到達すると credential handling と privacy boundary が壊れる
   - release env、dev config、debug scenario import、mock runtime install、artifact smoke の check を追加する
-
-- [ ] P1 global error / unhandled rejection の redaction と user-facing recovery を固定する
-  - 対象: `src/main.tsx`, `src/lib/runtime/diagnostics.ts`, app shell error boundary
-  - render 外の promise rejection や event handler throw が console だけに流れると、blank UI や secret 混入 log を検出できない
-  - unhandled rejection、window error、throwing reason、redaction、toast/reload fallback の contract を追加する
-  - superseded by: P1-Q1d (covered by runtime diagnostics structured error redaction; kept verification: unhandled rejection, window error, throwing reason)
 
 - [ ] P2 article/feed/folder/tag/account name の Unicode bidi / confusable display policy を決める
   - 対象: domain validation、settings forms、reader/sidebar display
@@ -3532,12 +3415,6 @@
   - dry-run available、confirmation copy、typed confirmation、backup recommendation、undo unavailable の基準を作る
   - superseded by: P1-Q4d (covered by destructive recovery dry-run/confirmation criteria; kept verification: backup recommendation and undo unavailable copy)
 
-- [ ] P1 provider auth failure storm が account lockout を誘発しないよう backoff/circuit breaker を固定する
-  - 対象: GReader/FreshRSS provider、sync scheduler、manual sync
-  - 認証情報が壊れたまま自動 sync を続けると、provider 側で account lockout や rate limit を踏む可能性がある
-  - repeated 401/403、manual override、auto sync disabled、user notification、credential update reset の contract を追加する
-  - superseded by: P1-Q2a (covered by auth failure storm backoff/circuit breaker; kept verification: repeated 401/403 and credential update reset)
-
 - [ ] P1 remote feed content 由来の filename/path suggestion を絶対に使わない contract を作る
   - 対象: OPML export、backup/export dialogs、article share future scope
   - feed title や article title を file name suggestion に使うと、path separator/control char/RTL spoof で危険な保存名になる
@@ -3633,12 +3510,6 @@
   - 対象: settings data actions、account/feed/tag destructive dialogs、query parse fallback
   - エラー時に空配列や default state へ倒すと、対象不明の delete/reset が enabled になる危険がある
   - account load failure、feed load failure、tag load failure、settings parse failure、disabled action reason の test を追加する
-
-- [ ] P1 account credential rotation 中の sync/pending mutation を一時停止する contract を作る
-  - 対象: account credentials editor、sync scheduler、pending mutation replay
-  - credential 更新中に古い credential で sync/replay が走ると、更新直後に auth failure や provider lockout を誘発する
-  - edit draft started、save pending、save success、save failure rollback、manual sync blocked の contract を追加する
-  - superseded by: P1-Q2b (covered by credential rotation sync/pending mutation pause; kept verification: old credential does not replay during edit)
 
 - [ ] P1 DB corruption detected after startup success の runtime recovery surface を設計する
   - 対象: repository error handling、settings data page、runtime diagnostics
