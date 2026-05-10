@@ -3342,20 +3342,10 @@
   - OS の close button は frontend navigation guard を通らないため、dirty form や pending mutation を落とす可能性がある
   - native close requested、dirty settings、add feed pending、sync pending、restart requested、force close の flow を固定する
 
-- [ ] P2 native file dialog extension / overwrite confirmation policy を import/export/backup で揃える
-  - 対象: OPML import/export、DB backup/restore UI、Tauri dialog usage
-  - open/save dialog の拡張子・既存 file overwrite・cancel handling がばらつくと、ユーザーデータを誤上書きしやすい
-  - `.opml`/`.xml` filter、existing file overwrite、cancel result、directory selected、extension auto-append の policy を追加する
-
 - [ ] P2 release app first-run permission prompts を manual verification checklist に入れる
   - 対象: `docs/release-manual-verification.md`, packaged app smoke
   - file dialog、keyring、clipboard、network などの初回 permission prompt を見ないと、配布後の初回 UX が確認できない
   - first keyring access、first file dialog、first clipboard copy、first network sync、denied permission の checklist を追加する
-
-- [ ] P2 OS sleep中の updater download / file export / DB backup を cancellation-aware にする
-  - 対象: updater hook、export/backup commands、runtime lifecycle
-  - laptop sleep で long-running file/network operation が中断すると、partial artifact や stale progress が残る
-  - sleep during download、sleep during export、sleep during backup、resume cleanup、progress reset の contract を追加する
 
 - [ ] P2 release artifact quarantine path と app translocation の data dir / log dir 影響を検証する
   - 対象: macOS packaged app verification, app path/log path helpers
@@ -3501,11 +3491,6 @@
   - 対象: FTS search SQL、reader search UI、locale copy
   - FTS syntax error、phrase query、prefix query、snippet escaping の方針が未固定だと search UX が壊れる
   - quote query、special operators、prefix query、empty result, snippet escaped HTML、ranking tie の contract を追加する
-
-- [ ] P2 system tray / background resident mode を導入する前の lifecycle contract を作る
-  - 対象: future tray feature、sync scheduler、window close behavior
-  - close で終了する app と tray 常駐 app では shutdown drain、sync scheduler、dirty form guard が変わる
-  - close hides window、quit exits app、sync while hidden、update restart、dirty state prompt の decision を追加する
 
 - [ ] P2 storage quota exhausted 時の cascading failure を preferences/sidebar/history/debug で検証する
   - 対象: localStorage-backed helpers、preferences store、runtime diagnostics
@@ -3664,16 +3649,6 @@
   - capability removed、queued mutation exists、UI disables action、sync warning、manual cleanup の contract を追加する
   - superseded by: P1-Q2d (covered by provider capability downgrade contract; kept verification: queued mutation exists and UI disables action)
 
-- [ ] P2 partial sync success の freshness indicator を feed/account/article list で揃える
-  - 対象: sync result UI、account detail、sidebar/feed list
-  - 一部 feed だけ成功した時に account 全体を fresh と見せると、ユーザーが未更新 feed に気づけない
-  - all success、partial success、all failed、stale feed count、last successful feed sync の display policy を追加する
-
-- [ ] P2 offline-first stale content banner を account/feed/article view で出すか決める
-  - 対象: reader UI、sync status、network error taxonomy
-  - network failure 中でも古い記事は読めるため、error toast だけでは stale content を見ていることが分かりにくい
-  - offline detected、last sync age、manual sync failed、per-feed stale、banner dismiss の policy を追加する
-
 - [ ] P2 keyboard-only recovery actions を error dialog/toast/settings debug で検証する
   - 対象: error surfaces、settings debug actions、toasts
   - 復旧導線が mouse 前提だと、キーボード操作ユーザーが backup restore/open log/retry に到達できない
@@ -3683,16 +3658,6 @@
   - 対象: delete account/feed/tag/history dialogs
   - 見出しや本文に対象名があっても、button label だけでは screen reader の action が曖昧になる
   - accessible name、target name、irreversible warning、loading state、failure retry の contract を追加する
-
-- [ ] P2 import/export progress cancellation の confirmation timing を固定する
-  - 対象: OPML import/export、DB backup/restore、settings data future flow
-  - cancel を押した瞬間に partial file/partial DB state が残る場合、確認なし cancel は危険になる
-  - safe cancel、unsafe cancel confirm、partial file cleanup、transaction rollback、post-cancel summary の contract を追加する
-
-- [ ] P2 feed discovery result trust level を UI 表示と add action で分ける
-  - 対象: feed discovery、add feed dialog、URL validation
-  - discovery で見つかった title/url をそのまま trusted と扱うと、spoofed title や mixed-content URL を add してしまう
-  - discovered title display、final URL validation、private URL reject、duplicate URL, user confirmation の contract を追加する
 
 - [ ] P2 internal dev mock data が product metrics / screenshots に混ざらないよう source label を出す
   - 対象: dev mocks、debug HUD、screenshots/storybook
