@@ -32,6 +32,7 @@ const MAX_BACKOFF_MULTIPLIER: u64 = 1 << MAX_BACKOFF_SHIFT_BITS;
 const TICK_INTERVAL: Duration = Duration::from_secs(SCHEDULER_TICK_INTERVAL_SECS);
 const MAX_BACKOFF: Duration = Duration::from_secs(DEFAULT_SYNC_INTERVAL_SECS);
 const MAX_SCHEDULER_WARNINGS_PER_TICK: usize = 16;
+const MAX_ACCOUNTS_PER_SCHEDULER_TICK: usize = 1;
 static INVALID_NEXT_RETRY_CLEANUP_FAILURES: OnceLock<Mutex<HashSet<String>>> = OnceLock::new();
 static SCHEDULER_LIFECYCLE: OnceLock<Mutex<SchedulerLifecycle>> = OnceLock::new();
 
@@ -239,18 +240,11 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
                 upsert_account_schedule(&mut schedules, id, account, now);
             }
 
-            // Check which accounts are due and not in backoff
-            let due_accounts: Vec<&Account> = accounts
-                .iter()
-                .filter(|account| {
-                    let id = account.id.as_ref().to_string();
-                    schedules
-                        .get(&id)
-                        .map(|s| now >= s.next_sync)
-                        .unwrap_or(false)
-                })
+            let due_accounts = select_due_accounts_for_tick(&accounts, &schedules, now, usize::MAX)
+                .into_iter()
                 .filter(|account| !is_in_backoff(&state.db, &account.id))
-                .collect();
+                .take(MAX_ACCOUNTS_PER_SCHEDULER_TICK)
+                .collect::<Vec<_>>();
 
             if due_accounts.is_empty() {
                 continue;
@@ -498,6 +492,33 @@ fn prune_deleted_account_schedules(
 ) {
     let account_ids: HashSet<&str> = accounts.iter().map(|a| a.id.as_ref()).collect();
     schedules.retain(|id, _| account_ids.contains(id.as_str()));
+}
+
+fn select_due_accounts_for_tick<'a>(
+    accounts: &'a [Account],
+    schedules: &HashMap<String, AccountSchedule>,
+    now: Instant,
+    max_accounts: usize,
+) -> Vec<&'a Account> {
+    if max_accounts == 0 {
+        return Vec::new();
+    }
+
+    let mut due_accounts = accounts
+        .iter()
+        .filter_map(|account| {
+            schedules
+                .get(account.id.as_ref())
+                .filter(|schedule| now >= schedule.next_sync)
+                .map(|schedule| (account, schedule.next_sync))
+        })
+        .collect::<Vec<_>>();
+    due_accounts.sort_by_key(|(account, next_sync)| (*next_sync, account.id.as_ref().to_string()));
+    due_accounts
+        .into_iter()
+        .take(max_accounts)
+        .map(|(account, _)| account)
+        .collect()
 }
 
 fn schedule_completed_account_sync(
@@ -1127,6 +1148,87 @@ mod tests {
         assert!(
             is_in_backoff(&db, &account.id),
             "active persisted backoff should still suppress the rescheduled account"
+        );
+    }
+
+    #[test]
+    fn select_due_accounts_for_tick_caps_many_accounts_to_one_oldest_due_account() {
+        let now = Instant::now();
+        let mut newest_due = test_account(60);
+        newest_due.id = AccountId("due-b".to_string());
+        let mut oldest_due = test_account(60);
+        oldest_due.id = AccountId("due-a".to_string());
+        let mut not_due = test_account(60);
+        not_due.id = AccountId("not-due".to_string());
+        let accounts = vec![newest_due.clone(), not_due.clone(), oldest_due.clone()];
+        let schedules = HashMap::from([
+            (
+                newest_due.id.as_ref().to_string(),
+                AccountSchedule {
+                    next_sync: now - Duration::from_secs(10),
+                    interval: Duration::from_secs(60),
+                },
+            ),
+            (
+                not_due.id.as_ref().to_string(),
+                AccountSchedule {
+                    next_sync: now + Duration::from_secs(10),
+                    interval: Duration::from_secs(60),
+                },
+            ),
+            (
+                oldest_due.id.as_ref().to_string(),
+                AccountSchedule {
+                    next_sync: now - Duration::from_secs(20),
+                    interval: Duration::from_secs(60),
+                },
+            ),
+        ]);
+
+        let selected = select_due_accounts_for_tick(
+            &accounts,
+            &schedules,
+            now,
+            MAX_ACCOUNTS_PER_SCHEDULER_TICK,
+        );
+
+        assert_eq!(selected.len(), 1);
+        assert_eq!(selected[0].id, oldest_due.id);
+    }
+
+    #[test]
+    fn select_due_accounts_for_tick_uses_account_id_as_stable_tie_breaker() {
+        let now = Instant::now();
+        let mut first = test_account(60);
+        first.id = AccountId("account-a".to_string());
+        let mut second = test_account(60);
+        second.id = AccountId("account-b".to_string());
+        let accounts = vec![second.clone(), first.clone()];
+        let schedules = HashMap::from([
+            (
+                first.id.as_ref().to_string(),
+                AccountSchedule {
+                    next_sync: now,
+                    interval: Duration::from_secs(60),
+                },
+            ),
+            (
+                second.id.as_ref().to_string(),
+                AccountSchedule {
+                    next_sync: now,
+                    interval: Duration::from_secs(60),
+                },
+            ),
+        ]);
+
+        let selected = select_due_accounts_for_tick(&accounts, &schedules, now, 2);
+
+        assert_eq!(
+            selected
+                .iter()
+                .map(|account| account.id.as_ref())
+                .collect::<Vec<_>>(),
+            vec!["account-a", "account-b"]
         );
     }
 
@@ -1840,6 +1942,41 @@ mod tests {
                 "backoff missing for {case_name}"
             );
         }
+    }
+
+    #[test]
+    fn auth_failure_storm_is_capped_by_scheduler_backoff() {
+        let db = std::sync::Mutex::new(test_db());
+        let account = test_account(60);
+        {
+            let db_guard = db.lock().unwrap();
+            insert_test_account(&db_guard, &account.id);
+        }
+        let auth_error = AppError::UserVisible {
+            message: "Auth error: HTTP 401 Unauthorized".to_string(),
+        };
+        let mut last_backoff = Duration::ZERO;
+
+        for _ in 0..20 {
+            let mut warnings = Vec::new();
+            last_backoff = complete_failed_account_sync(&db, &account, &auth_error, &mut warnings);
+            assert_eq!(
+                warnings.len(),
+                1,
+                "auth failure should emit one retry warning per persisted retry change"
+            );
+        }
+
+        assert_eq!(last_backoff, MAX_BACKOFF);
+        assert!(is_in_backoff(&db, &account.id));
+        let db_guard = db.lock().unwrap();
+        let repo = SqliteSyncStateRepository::new(db_guard.reader());
+        let state = repo
+            .get(&account.id, SyncStateScopeKey::scheduler())
+            .expect("sync state lookup should succeed")
+            .expect("sync state should exist");
+        assert_eq!(state.error_count, (MAX_BACKOFF_SHIFT_BITS as i32) + 1);
+        assert!(state.next_retry_at.is_some());
     }
 
     #[test]

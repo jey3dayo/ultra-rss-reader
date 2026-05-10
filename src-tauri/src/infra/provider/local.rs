@@ -23,12 +23,14 @@ const FEED_RESPONSE_BODY_INCOMPLETE_MESSAGE: &str =
     "Feed response body ended before the declared response length";
 const JSON_FEED_SUPPORT_DECISION: &str =
     "JSON Feed is supported only at explicit application/feed+json parser boundaries";
-const LOCAL_PROVIDER_REQUEST_CONCURRENCY_LIMIT: usize = 1;
+const LOCAL_PROVIDER_SYNC_REQUEST_CONCURRENCY_LIMIT: usize = 1;
+const LOCAL_PROVIDER_DISCOVERY_REQUEST_CONCURRENCY_LIMIT: usize = 1;
 
 pub struct LocalProvider {
     http_client: reqwest::Client,
     allow_private_feed_urls: bool,
-    request_permits: Arc<Semaphore>,
+    sync_request_permits: Arc<Semaphore>,
+    discovery_request_permits: Arc<Semaphore>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -54,7 +56,12 @@ impl LocalProvider {
         Self {
             http_client: Self::build_http_client(allow_private_feed_urls),
             allow_private_feed_urls,
-            request_permits: Arc::new(Semaphore::new(LOCAL_PROVIDER_REQUEST_CONCURRENCY_LIMIT)),
+            sync_request_permits: Arc::new(Semaphore::new(
+                LOCAL_PROVIDER_SYNC_REQUEST_CONCURRENCY_LIMIT,
+            )),
+            discovery_request_permits: Arc::new(Semaphore::new(
+                LOCAL_PROVIDER_DISCOVERY_REQUEST_CONCURRENCY_LIMIT,
+            )),
         }
     }
 
@@ -231,12 +238,24 @@ impl LocalProvider {
         Ok((bytes, content_type))
     }
 
-    async fn acquire_request_permit(&self) -> DomainResult<tokio::sync::OwnedSemaphorePermit> {
-        self.request_permits
+    async fn acquire_sync_request_permit(&self) -> DomainResult<tokio::sync::OwnedSemaphorePermit> {
+        self.sync_request_permits
             .clone()
             .acquire_owned()
             .await
-            .map_err(|_| DomainError::Network("Local provider request limiter closed".into()))
+            .map_err(|_| DomainError::Network("Local provider sync request limiter closed".into()))
+    }
+
+    async fn acquire_discovery_request_permit(
+        &self,
+    ) -> DomainResult<tokio::sync::OwnedSemaphorePermit> {
+        self.discovery_request_permits
+            .clone()
+            .acquire_owned()
+            .await
+            .map_err(|_| {
+                DomainError::Network("Local provider discovery request limiter closed".into())
+            })
     }
 }
 
@@ -453,7 +472,7 @@ impl FeedProvider for LocalProvider {
         };
 
         let feed_url = self.validate_feed_url(&feed_url)?;
-        let _permit = self.acquire_request_permit().await?;
+        let _permit = self.acquire_sync_request_permit().await?;
         let mut request = self.http_client.get(feed_url.clone());
         if let Some(current) = cursor.as_ref() {
             if let Some(etag) = current.etag.as_deref() {
@@ -532,7 +551,7 @@ impl FeedProvider for LocalProvider {
     ) -> DomainResult<RemoteSubscription> {
         // For local feeds, just validate the URL by fetching and parsing
         let url = self.validate_feed_url(url)?;
-        let _permit = self.acquire_request_permit().await?;
+        let _permit = self.acquire_discovery_request_permit().await?;
         let response = self
             .http_client
             .get(url.clone())
@@ -780,8 +799,25 @@ mod tests {
             .expect("test server task should finish");
         assert_eq!(
             max_active_requests.load(Ordering::SeqCst),
-            LOCAL_PROVIDER_REQUEST_CONCURRENCY_LIMIT
+            LOCAL_PROVIDER_SYNC_REQUEST_CONCURRENCY_LIMIT
         );
+    }
+
+    #[tokio::test]
+    async fn local_provider_keeps_sync_and_discovery_request_limits_separate() {
+        let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
+        let _sync_permit = provider
+            .acquire_sync_request_permit()
+            .await
+            .expect("sync limiter should allow the first request");
+
+        let _discovery_permit = tokio::time::timeout(
+            Duration::from_millis(50),
+            provider.acquire_discovery_request_permit(),
+        )
+        .await
+        .expect("discovery limiter should not be blocked by an in-flight sync request")
+        .expect("discovery limiter should allow the first request");
     }
 
     #[tokio::test]
