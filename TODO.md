@@ -2758,11 +2758,6 @@
   - `xn--` host、Unicode host、IPv6 zone id、mixed-case host が command ごとに違うと SSRF guard と opener policy がずれる
   - IDNA host、Unicode host、IPv6 zone id、localhost alias、percent-encoded host、trailing dot の contract を追加する
 
-- [ ] P1 release build で `DEV_CREDENTIALS` / dev mock / debug scenario が有効化されない gate を作る
-  - 対象: `scripts/lib/windows-dispatch.ts`, `src/dev`, Tauri release config
-  - dev credential や dev scenario が release artifact に到達すると credential handling と privacy boundary が壊れる
-  - release env、dev config、debug scenario import、mock runtime install、artifact smoke の check を追加する
-
 - [ ] P2 article/feed/folder/tag/account name の Unicode bidi / confusable display policy を決める
   - 対象: domain validation、settings forms、reader/sidebar display
   - RTL override、zero-width、confusable 文字が入ると feed name や action target が spoof され、delete/rename 確認で誤認しやすい
@@ -2843,26 +2838,6 @@
   - fixture や report が肥大化すると lint/check が遅くなり、TODO 追加や small refactor の feedback loop が悪化する
   - max fixture size、snapshot count、report artifact ignore、large corpus directory、review exception の policy を追加する
 
-- [ ] P1 app shutdown 中の background sync / DB write / browser webview cleanup を drain する contract を作る
-  - 対象: `src-tauri/src/lib.rs`, `src-tauri/src/service/sync_scheduler.rs`, browser webview tracker, DB commands
-  - window close や restart 中に sync/DB write/webview close が走ると、WAL・query cache・native webview state が中途半端に残る
-  - close requested、restart app、sync in-flight、DB write in-flight、browser webview open、timeout forced exit の contract を追加する
-
-- [ ] P1 startup database init panic を recoverable startup error UI へ寄せる
-  - 対象: `src-tauri/src/lib.rs`, DB init, startup fallback UI
-  - `panic!` で起動失敗するとログを読めないユーザーに復旧手順が届かず、migration/permission/disk full の切り分けができない
-  - migration error、permission denied、disk full、backup exists、redacted path、support copy の期待値を固定する
-
-- [ ] P1 release build に debug-only MCP bridge plugin が混入しない repo contract を追加する
-  - 対象: `src-tauri/src/lib.rs`, Tauri release config, release smoke
-  - debug 専用 plugin が release artifact に入ると、不要な local port や inspection surface を配布してしまう
-  - debug build includes bridge、release build excludes bridge、capability diff、open port smoke、artifact symbol/config check を追加する
-
-- [ ] P1 Tauri command blocking DB work を `spawn_blocking` / async boundary で分類する
-  - 対象: `src-tauri/src/commands`, repository access, `AppState` DB mutex
-  - async command 内で重い SQLite 処理を直接実行すると、runtime worker を詰まらせて sync・updater・webview events が遅延する
-  - list/search/export/vacuum/import/repair command の blocking classification と focused benchmark を追加する
-
 - [ ] P2 main window close confirmation と dirty/pending state registry を native close event へ接続する
   - 対象: `src-tauri/src/lib.rs`, app shell dirty-state registry, settings/add-feed flows
   - OS の close button は frontend navigation guard を通らないため、dirty form や pending mutation を落とす可能性がある
@@ -2882,11 +2857,6 @@
   - 対象: `src-tauri/tauri*.conf.json`, startup data dir, release docs
   - bundle identifier を変えると OS app data dir が変わり、既存 DB/credentials/log が見えなくなる
   - old identifier detection、DB migration prompt、credential migration impossible copy、log path note、rollback の contract を追加する
-
-- [ ] P2 `AppState` mutex poisoning を command surface 全体で同じ error に揃える
-  - 対象: `commands::*`, `AppState`, DB/browser tracker mutex access
-  - 一部 command だけ poisoned mutex を panic/unwrap すると、単一 command failure が app 全体 failure に広がる
-  - DB mutex、browser tracker mutex、pending update mutex、syncing flag、diagnostics category の matrix を作る
 
 - [ ] P2 recent article history limit と persistent storage / DB history の役割を整理する
   - 対象: `src-tauri/src/domain/constants.rs`, `record_article_view`, reader history UI
@@ -2917,16 +2887,6 @@
   - 対象: `src-tauri/src/lib.rs`, log docs, support workflow
   - release log が local time だと timezone をまたぐ報告で sync/update 時刻の突合が難しくなる
   - local timezone、UTC alternative、DST boundary、log filename/time display、support copy の policy を決める
-
-- [ ] P3 Windows dispatch env allowlist を dev credential 以外の future env 追加に備えて schema 化する
-  - 対象: `scripts/lib/windows-dispatch.ts`, dev scripts
-  - env forwarding が ad hoc だと、future secret env を WSL->Windows へ漏らすか、必要 env を渡し忘れる
-  - allowlist schema、secret denylist、path env、dev-only env、test fixture の task に分ける
-
-- [ ] P3 release/debug feature flag inventory を generated report にする
-  - 対象: `cfg(debug_assertions)`, `DEV_*` env, dev modules, Tauri configs
-  - debug/release 分岐が増えると、どの機能がどの build に入るかレビューしにくい
-  - Rust cfg、Vite env、dev module import、Tauri dev config、release artifact expected absence を一覧化する
 
 - [ ] P1 file drop / drag-and-drop import surface を URL validation と同じ security boundary にする
   - 対象: Tauri window events、OPML import UI、file path handling
@@ -3018,11 +2978,6 @@
   - 対象: `src/dev/mock-data.ts`, tests fixtures, docs screenshots
   - 実在ドメイン fixture が多いと accidental network access と権利/表示変更の影響を受ける
   - `example.com`、`example.jp`、`.test`、allowed real domains、screenshot text の migration plan を作る
-
-- [ ] P3 TODO.md の重複検出 / 類似 task grouping を tooling 化する
-  - 対象: `TODO.md`, similarity report, task triage scripts
-  - TODO が増え続けると同じ risk を別名で積みやすくなり、優先度判断が鈍る
-  - normalized heading、priority bucket、file target overlap、similarity threshold、completed task pruning の report を追加する
 
 - [ ] P1 release rollback / downgrade install を DB schema compatibility として禁止または明示復旧にする
   - 対象: updater flow、release metadata、DB migration
@@ -3118,16 +3073,6 @@
   - 対象: generated Tauri schemas、API schemas、CI
   - generated artifact drift が review 依存だと、release 直前に capability/schema mismatch が出る
   - generated file changed、source changed no generated update、CI failure, intentional update label、regeneration command の policy を追加する
-
-- [ ] P3 TODO priority aging policy を作る
-  - 対象: `TODO.md`, `.claude/rules/quality-policy.md`
-  - P1/P2 が増え続けると、古い高優先度が埋もれて実際の優先度を失う
-  - created batch marker、last reviewed date、stale P1 escalation、P3 archive、completed-to-CHANGELOG の運用を決める
-
-- [ ] P3 risk TODO を implementation / contract test / manual verification / rule update へ自動分類する
-  - 対象: `TODO.md`, task triage tooling
-  - risk 指摘が多いほど「何から実装するか」が見えにくくなるため、作業種別で並列投入しやすくする
-  - heading parser、target path extraction、priority extraction、work type classifier、worker batch export の script を追加する
 
 - [ ] P1 release artifact SBOM / provenance / checksum を生成・検証する gate を作る
   - 対象: release workflow、`package.json`, `src-tauri/Cargo.lock`, release docs
@@ -3341,11 +3286,6 @@
   - 対象: `src-tauri/src/infra/db`, migrations, repo contract tests
   - column rename や migration 追加後に raw SQL string が古いままでも compiler が拾えない
   - table names、column names、index names、raw SQL parser limits、intentional dynamic SQL allowlist の report を追加する
-
-- [ ] P3 TODO risk register を domain owner 別に shard する計画を作る
-  - 対象: `TODO.md`, future task files
-  - 1 ファイルに全 risk が積み上がると、reader/settings/release/provider の担当ごとの実行単位が見えにくい
-  - reader、settings、provider、release、quality、security/privacy の shard policy と移行手順を決める
 
 - [ ] P1 remote feed content 由来の filename/path suggestion を絶対に使わない contract を作る
   - 対象: OPML export、backup/export dialogs、article share future scope
