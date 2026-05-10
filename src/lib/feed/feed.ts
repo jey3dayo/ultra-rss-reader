@@ -3,18 +3,33 @@ import { Result } from "@praha/byethrow";
 /**
  * Returns the preferred link target for a feed website action.
  *
- * This helper only normalizes caller-provided strings by trimming outer whitespace:
- * it prefers a non-empty site URL, falls back to a non-empty feed URL, and returns
- * null when both inputs are blank after trimming. URL validity is handled by
- * upstream add-feed/provider boundaries, not here.
+ * This helper mirrors the app's browser-facing URL policy for feed website
+ * links: only valid http(s) URLs without credentials become clickable.
  */
 export function resolveFeedWebsiteHref(siteUrl: string, feedUrl: string): string | null {
-  const normalizedSiteUrl = siteUrl.trim();
-  const normalizedFeedUrl = feedUrl.trim();
-  return normalizedSiteUrl || normalizedFeedUrl || null;
+  return normalizeFeedWebsiteUrlCandidate(siteUrl) ?? normalizeFeedWebsiteUrlCandidate(feedUrl);
 }
 
 export type ExtractSiteHostError = { type: "missing_url" } | { type: "invalid_url"; value: string };
+
+export function normalizeFeedWebsiteUrlCandidate(value: string): string | null {
+  const normalizedUrl = value.trim();
+  if (normalizedUrl.length === 0 || normalizedUrl.includes("\n") || normalizedUrl.includes("\r")) {
+    return null;
+  }
+
+  try {
+    const parsedUrl = new URL(normalizedUrl);
+    const isHttpUrl = parsedUrl.protocol === "http:" || parsedUrl.protocol === "https:";
+    if (!isHttpUrl || parsedUrl.username || parsedUrl.password) {
+      return null;
+    }
+
+    return normalizedUrl;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Extract the hostname from a feed's site_url or fallback url.
@@ -32,11 +47,13 @@ export function extractSiteHost(siteUrl: string, feedUrl: string): Result.Result
 
   let invalidUrl = "";
   for (const url of urls) {
-    try {
-      return Result.succeed(new URL(url).hostname);
-    } catch {
+    const validUrl = normalizeFeedWebsiteUrlCandidate(url);
+    if (!validUrl) {
       invalidUrl = url;
+      continue;
     }
+
+    return Result.succeed(new URL(validUrl).hostname);
   }
 
   return Result.fail({ type: "invalid_url", value: invalidUrl });
@@ -48,6 +65,5 @@ export function resolveSiteHostLabel(siteUrl: string, feedUrl: string): string {
     return Result.unwrap(hostResult);
   }
 
-  const error = Result.unwrapError(hostResult);
-  return error.type === "invalid_url" ? error.value : "";
+  return "";
 }

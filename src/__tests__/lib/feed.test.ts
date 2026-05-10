@@ -14,6 +14,19 @@ describe("extractSiteHost", () => {
     expect(resolveFeedWebsiteHref("", "")).toBeNull();
   });
 
+  it("falls back to a valid feed url when the site url is invalid", () => {
+    expect(resolveFeedWebsiteHref("not-a-url", "https://feed.example.com/rss")).toBe("https://feed.example.com/rss");
+  });
+
+  it.each([
+    "not-a-url",
+    "mailto:owner@example.com",
+    "javascript:alert(1)",
+    "https://user:pass@example.com/rss",
+  ])("does not expose invalid or credentialed website href candidates: %s", (url) => {
+    expect(resolveFeedWebsiteHref(url, "")).toBeNull();
+  });
+
   it("normalizes whitespace-only website hrefs before falling back to feed url", () => {
     expect(resolveFeedWebsiteHref("   ", " https://feed.example.com/rss ")).toBe("https://feed.example.com/rss");
     expect(resolveFeedWebsiteHref(" https://site.example.com ", "https://feed.example.com/rss")).toBe(
@@ -42,14 +55,14 @@ describe("extractSiteHost", () => {
     const result = extractSiteHost("", "//example.com/feed.xml");
     expect(Result.isFailure(result)).toBe(true);
     expect(Result.unwrapError(result)).toEqual({ type: "invalid_url", value: "//example.com/feed.xml" });
-    expect(resolveSiteHostLabel("", "//example.com/feed.xml")).toBe("//example.com/feed.xml");
+    expect(resolveSiteHostLabel("", "//example.com/feed.xml")).toBe("");
   });
 
   it("keeps malformed URL constructor failures as invalid host-label fallback copy", () => {
     const result = extractSiteHost("", "https://[malformed");
     expect(Result.isFailure(result)).toBe(true);
     expect(Result.unwrapError(result)).toEqual({ type: "invalid_url", value: "https://[malformed" });
-    expect(resolveSiteHostLabel("", "https://[malformed")).toBe("https://[malformed");
+    expect(resolveSiteHostLabel("", "https://[malformed")).toBe("");
   });
 
   it("prefers site_url over feed url", () => {
@@ -82,7 +95,17 @@ describe("extractSiteHost", () => {
 
   it("resolves a host label without exposing Result handling to callers", () => {
     expect(resolveSiteHostLabel("https://example.com/path", "https://fallback.com/feed.xml")).toBe("example.com");
-    expect(resolveSiteHostLabel("", "not-a-url")).toBe("not-a-url");
+    expect(resolveSiteHostLabel("", "not-a-url")).toBe("");
     expect(resolveSiteHostLabel("", "")).toBe("");
+  });
+
+  it.each([
+    ["query token", "https://example.com/feed.xml?token=secret", "example.com"],
+    ["userinfo", "https://alice:secret@example.com/feed.xml", ""],
+    ["long invalid URL", `not-a-url-${"x".repeat(120)}`, ""],
+    ["newline", "https://example.com/feed.xml\nhttps://private.example.com", ""],
+    ["unicode host", "https://例え.テスト/feed.xml", "xn--r8jz45g.xn--zckzah"],
+  ])("applies privacy-reviewed host label fallback for %s", (_name, url, expectedLabel) => {
+    expect(resolveSiteHostLabel("", url)).toBe(expectedLabel);
   });
 });

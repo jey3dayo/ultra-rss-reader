@@ -5,6 +5,7 @@ import { FeedDetailCard, FeedDetailRow } from "@/components/shared/feed-detail-c
 import { LabelChip } from "@/components/shared/label-chip";
 import { SurfaceCard } from "@/components/shared/surface-card";
 import { Button } from "@/components/ui/button";
+import { normalizeFeedWebsiteUrlCandidate } from "@/lib/feed/feed";
 import { cn } from "@/lib/utils";
 
 type FeedDetailTone = "neutral" | "low" | "medium" | "high";
@@ -108,6 +109,8 @@ export function FeedDetailPanel({
   primaryAction,
   secondaryAction,
 }: FeedDetailPanelProps) {
+  const resolvedTitleHref = titleHref ? normalizeFeedWebsiteUrlCandidate(titleHref) : null;
+
   return (
     <FeedDetailCard data-feed-detail-panel="" className={cn("border-border/65 bg-card/38 shadow-none", className)}>
       <div className="space-y-4">
@@ -122,9 +125,9 @@ export function FeedDetailPanel({
           ) : null}
           <div data-testid="feed-detail-main-column" className="min-w-0">
             <div className="min-w-0">
-              {titleHref ? (
+              {resolvedTitleHref ? (
                 <a
-                  href={titleHref}
+                  href={resolvedTitleHref}
                   target="_blank"
                   rel="noreferrer"
                   className={cn(detailLinkClassName, "inline-flex max-w-full items-start gap-2 no-underline")}

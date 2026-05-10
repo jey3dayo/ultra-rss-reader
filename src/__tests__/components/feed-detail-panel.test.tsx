@@ -117,6 +117,22 @@ describe("FeedDetailPanel", () => {
     expect(screen.queryByText("https://example.com/rss.xml")).not.toBeInTheDocument();
   });
 
+  it("does not render invalid feed website title hrefs as links", () => {
+    render(
+      <FeedDetailPanel
+        title="Private Feed"
+        titleHref="https://user:secret@example.com/private.xml?token=hidden"
+        metrics={[{ label: "フォルダ", value: "Work" }]}
+        recentArticlesHeading="最近の記事"
+        recentArticles={[]}
+      />,
+    );
+
+    expect(screen.getByRole("heading", { level: 3, name: "Private Feed" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Private Feed/ })).toBeNull();
+    expect(screen.queryByText("https://user:secret@example.com/private.xml?token=hidden")).toBeNull();
+  });
+
   it("allows reader shells to share the detail panel surface treatment", () => {
     render(
       <FeedDetailPanel
