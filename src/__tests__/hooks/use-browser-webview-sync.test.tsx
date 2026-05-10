@@ -3,7 +3,7 @@ import { act, renderHook } from "@testing-library/react";
 import { suppressConsoleError } from "@tests/helpers/console-spies";
 import { useRef, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { BrowserWebviewState } from "@/api/tauri-commands";
+import type { AppError, BrowserWebviewState } from "@/api/tauri-commands";
 import { useBrowserWebviewBoundsSync } from "@/components/reader/hooks/browser/use-browser-webview-bounds-sync";
 import { useBrowserWebviewSync } from "@/components/reader/hooks/browser/use-browser-webview-sync";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -102,7 +102,10 @@ describe("useBrowserWebviewSync", () => {
   });
 
   it("focuses the webview after creating it even when focus retention is disabled", async () => {
-    usePreferencesStore.setState({ prefs: { web_preview_keep_focus: "false" }, loaded: true });
+    usePreferencesStore.setState({
+      prefs: { web_preview_keep_focus: "false" },
+      loaded: true,
+    });
     const { element } = createHostElement();
     const { result } = renderBrowserWebviewSync(element);
 
@@ -115,7 +118,10 @@ describe("useBrowserWebviewSync", () => {
   });
 
   it("focuses the webview after creating it when focus retention is enabled", async () => {
-    usePreferencesStore.setState({ prefs: { web_preview_keep_focus: "true" }, loaded: true });
+    usePreferencesStore.setState({
+      prefs: { web_preview_keep_focus: "true" },
+      loaded: true,
+    });
     const { element } = createHostElement();
     const { result } = renderBrowserWebviewSync(element);
 
@@ -166,10 +172,17 @@ describe("useBrowserWebviewSync", () => {
     const consoleError = suppressConsoleError();
     const requestedUrl = "https://example.com/private-token";
     const showSurfaceFailure = vi.fn();
-    const createdState = createBrowserState({ url: requestedUrl, can_go_back: true, is_loading: true });
+    const createdState = createBrowserState({
+      url: requestedUrl,
+      can_go_back: true,
+      is_loading: true,
+    });
     createOrUpdateBrowserWebviewMock.mockResolvedValue(Result.succeed(createdState));
     focusBrowserWebviewMock.mockRejectedValue(new Error(`focus failed for ${requestedUrl}`));
-    useUiStore.setState({ ...useUiStore.getInitialState(), browserUrl: requestedUrl });
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      browserUrl: requestedUrl,
+    });
     const { element } = createHostElement();
     const { result } = renderBrowserWebviewSync(element, showSurfaceFailure);
 
@@ -198,7 +211,10 @@ describe("useBrowserWebviewSync", () => {
     const requestedUrl = "https://example.com/private-token";
     const showSurfaceFailure = vi.fn();
     createOrUpdateBrowserWebviewMock.mockRejectedValueOnce(new Error(`failed to open ${requestedUrl}`));
-    useUiStore.setState({ ...useUiStore.getInitialState(), browserUrl: requestedUrl });
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      browserUrl: requestedUrl,
+    });
     const { element } = createHostElement();
     const { result } = renderBrowserWebviewSync(element, showSurfaceFailure);
 
@@ -263,6 +279,35 @@ describe("useBrowserWebviewSync", () => {
       height: 460,
       unit: "physical",
     });
+  });
+
+  it("drops pending resize bounds when create navigation fails before bounds can be flushed", async () => {
+    const createDeferredResult = createDeferred<ReturnType<typeof Result.fail<AppError>>>();
+    const showSurfaceFailure = vi.fn();
+    createOrUpdateBrowserWebviewMock.mockReturnValue(createDeferredResult.promise);
+    const { element, getBoundingClientRect } = createHostElement();
+    const { result } = renderBrowserWebviewSync(element, showSurfaceFailure);
+    const error = {
+      type: "UserVisible" as const,
+      message: "navigation failed",
+    };
+
+    await act(async () => {
+      void result.current.syncBrowserWebview(browserUrl, "create");
+    });
+
+    getBoundingClientRect.mockReturnValue(createDomRect({ x: 30, y: 50, width: 700, height: 460 }));
+    await act(async () => {
+      await result.current.syncBrowserWebview(browserUrl, "resize");
+    });
+
+    await act(async () => {
+      createDeferredResult.resolve(Result.fail(error));
+      await createDeferredResult.promise;
+    });
+
+    expect(showSurfaceFailure).toHaveBeenCalledWith(error);
+    expect(setBrowserWebviewBoundsMock).not.toHaveBeenCalled();
   });
 
   it("surfaces resize bounds failures through the browser surface issue path", async () => {

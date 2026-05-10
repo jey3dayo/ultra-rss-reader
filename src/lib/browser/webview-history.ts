@@ -55,17 +55,28 @@ export function createWebviewHistorySnapshot(urls: readonly string[]): WebviewHi
 }
 
 function getIframe(): Result.Result<HTMLIFrameElement, Error> {
+  if (typeof document === "undefined") {
+    return Result.fail(new Error("document unavailable"));
+  }
+
   const iframe = BROWSER_IFRAME_SELECTORS.map((selector) => document.querySelector<HTMLIFrameElement>(selector)).find(
     (candidate) => candidate !== null,
   );
   return iframe ? Result.succeed(iframe) : Result.fail(new Error("iframe not found"));
 }
 
+function getIframeWindow(iframe: HTMLIFrameElement): Result.Result<Window, Error> {
+  return iframe.contentWindow
+    ? Result.succeed(iframe.contentWindow)
+    : Result.fail(new Error("iframe runtime unavailable"));
+}
+
 export function goBackInWebview() {
   return Result.try({
     try: async () => {
       const iframe = Result.unwrap(getIframe());
-      iframe.contentWindow?.history.back();
+      const iframeWindow = Result.unwrap(getIframeWindow(iframe));
+      iframeWindow.history.back();
     },
     catch: (error) => (error instanceof Error ? error : new Error(String(error))),
   });
@@ -75,7 +86,8 @@ export function goForwardInWebview() {
   return Result.try({
     try: async () => {
       const iframe = Result.unwrap(getIframe());
-      iframe.contentWindow?.history.forward();
+      const iframeWindow = Result.unwrap(getIframeWindow(iframe));
+      iframeWindow.history.forward();
     },
     catch: (error) => (error instanceof Error ? error : new Error(String(error))),
   });

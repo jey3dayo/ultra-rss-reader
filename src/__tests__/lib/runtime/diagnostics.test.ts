@@ -195,6 +195,15 @@ describe("runtime diagnostics redaction", () => {
     expect(redactRuntimeDiagnosticText("https://example.com/token-secret/feed.xml?token=raw")).toBe(
       "https://example.com/redacted?redacted",
     );
+    expect(
+      redactRuntimeDiagnosticText("https://cdn.example.com/download/signed/AbCdEf1234567890AbCdEf123456?expires=1"),
+    ).toBe("https://cdn.example.com/redacted?redacted");
+    expect(redactRuntimeDiagnosticText("https://example.com/files/550e8400-e29b-41d4-a716-446655440000/report")).toBe(
+      "https://example.com/redacted",
+    );
+    expect(redactRuntimeDiagnosticText("https://example.com/feed/2026/05/11/article.html")).toBe(
+      "https://example.com/feed/2026/05/11/article.html",
+    );
     expect(redactRuntimeDiagnosticText("log=/Users/demo/Library/Application Support/Ultra RSS/private.sqlite")).toBe(
       "log=<redacted-path>",
     );

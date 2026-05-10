@@ -88,7 +88,11 @@ import {
   updateFeedFolderArgs,
   updateMuteKeywordArgs,
 } from "@/api/schemas";
-import { MAX_IPC_PAGINATION_OFFSET, SHARE_COMMAND_TEXT_MAX_CHARS } from "@/api/schemas/commands";
+import {
+  BROWSER_WEBVIEW_BOUNDS_MAX_VALUE,
+  MAX_IPC_PAGINATION_OFFSET,
+  SHARE_COMMAND_TEXT_MAX_CHARS,
+} from "@/api/schemas/commands";
 import { MAX_DEV_WINDOW_DIMENSION_PX } from "@/api/schemas/platform-info";
 import { UpdateDownloadProgressEventPayloadSchema, UpdateReadyEventPayloadSchema } from "@/api/schemas/update-info";
 
@@ -2046,20 +2050,20 @@ describe("command args schemas", () => {
     expect(
       browserWebviewBoundsArgs.parse({
         x: 0,
-        y: -12,
+        y: 12,
         width: 320,
         height: 240,
       }),
     ).toEqual({
       x: 0,
-      y: -12,
+      y: 12,
       width: 320,
       height: 240,
     });
     expect(() =>
       browserWebviewBoundsArgs.parse({
         x: 0.5,
-        y: -12,
+        y: 12,
         width: 320,
         height: 240,
       }),
@@ -2077,6 +2081,23 @@ describe("command args schemas", () => {
         x: 0,
         y: Number.POSITIVE_INFINITY,
         width: 320,
+        height: 240,
+      }),
+    ).toThrow();
+    expect(() => browserWebviewBoundsArgs.parse({ x: -1, y: 0, width: 320, height: 240 })).toThrow();
+    expect(() =>
+      browserWebviewBoundsArgs.parse({
+        x: 0,
+        y: BROWSER_WEBVIEW_BOUNDS_MAX_VALUE + 1,
+        width: 320,
+        height: 240,
+      }),
+    ).toThrow();
+    expect(() =>
+      browserWebviewBoundsArgs.parse({
+        x: 0,
+        y: 0,
+        width: BROWSER_WEBVIEW_BOUNDS_MAX_VALUE + 1,
         height: 240,
       }),
     ).toThrow();

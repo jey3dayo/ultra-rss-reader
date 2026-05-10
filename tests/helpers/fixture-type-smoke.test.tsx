@@ -8,6 +8,7 @@ import {
   sampleAccountSeeds,
 } from "./fixtures";
 import { renderStory } from "./render-story";
+import { createHookDataResult, type PartialHookDataResult } from "./typed-test-factories";
 
 describe("fixture type smoke", () => {
   it("keeps readonly fixture seeds separate from mutable clones", () => {
@@ -60,5 +61,25 @@ describe("fixture type smoke", () => {
         true,
       );
     }
+  });
+
+  it("keeps hook data result factories explicit about partial query result shape", () => {
+    type QueryResult = {
+      data: string[];
+      isLoading: boolean;
+      error: Error | null;
+    };
+
+    const partialResult = {
+      data: ["feed"],
+      isLoading: false,
+    } satisfies PartialHookDataResult<QueryResult>;
+
+    expectTypeOf(partialResult).toExtend<{
+      data: string[];
+      isLoading?: boolean;
+      error?: Error | null;
+    }>();
+    expectTypeOf(createHookDataResult<QueryResult>(["feed"], { isLoading: false })).toEqualTypeOf<QueryResult>();
   });
 });

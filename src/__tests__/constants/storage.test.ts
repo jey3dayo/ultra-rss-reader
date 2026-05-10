@@ -93,7 +93,8 @@ describe("storage constants", () => {
         rawJsonByteCap: MAX_COMMAND_HISTORY_STORAGE_LENGTH,
         unitPolicy: {
           entryCountCap: "entries",
-          entryLengthCap: "UTF-16 code units after control-character stripping and trimming",
+          entryLengthCap:
+            "UTF-16 code units after control-character stripping and trimming, truncated at grapheme boundaries",
           rawJsonByteCap: "JSON string length before parsing",
         },
       },

@@ -11,6 +11,10 @@ describe("Windows dispatch environment schema", () => {
       TAURI_DEV_PORT: "passthrough",
       VITE_DEV_INTENT: "passthrough",
       VITE_DEV_WEB_URL: "passthrough",
+      VITE_DEV_WINDOW_HEIGHT: "passthrough",
+      VITE_DEV_WINDOW_WIDTH: "passthrough",
+      VITE_ULTRA_RSS_DEV_INTENT: "passthrough",
+      VITE_ULTRA_RSS_DEV_WEB_URL: "passthrough",
     });
   });
 
@@ -22,11 +26,19 @@ describe("Windows dispatch environment schema", () => {
         RUST_LOG: "ultra_rss_reader=debug",
         TAURI_SIGNING_PRIVATE_KEY: "not-forwarded",
         VITE_DEV_WEB_URL: "https://example.test/article",
+        VITE_DEV_WINDOW_HEIGHT: "720",
+        VITE_DEV_WINDOW_WIDTH: "1280",
+        VITE_ULTRA_RSS_DEV_INTENT: "open-reader",
+        VITE_ULTRA_RSS_DEV_WEB_URL: "https://example.test/alias",
       }),
     ).toEqual({
       DEV_CREDENTIALS: "1",
       RUST_LOG: "ultra_rss_reader=debug",
       VITE_DEV_WEB_URL: "https://example.test/article",
+      VITE_DEV_WINDOW_HEIGHT: "720",
+      VITE_DEV_WINDOW_WIDTH: "1280",
+      VITE_ULTRA_RSS_DEV_INTENT: "open-reader",
+      VITE_ULTRA_RSS_DEV_WEB_URL: "https://example.test/alias",
     });
   });
 

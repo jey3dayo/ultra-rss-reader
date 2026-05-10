@@ -15,6 +15,7 @@ export const SHARE_COMMAND_TEXT_MAX_CHARS = 2048;
 export const SHARE_COMMAND_TEXT_MAX_BYTES = SHARE_COMMAND_TEXT_MAX_CHARS * 4;
 export const READING_LIST_URL_MAX_BYTES = 16 * 1024;
 export const PREFERENCE_VALUE_MAX_BYTES = 1024;
+export const BROWSER_WEBVIEW_BOUNDS_MAX_VALUE = 10_000;
 export const TAG_COLOR_VALIDATION_MESSAGE = "Color must be a valid hex color (e.g. #ff0000)";
 const paginationOffsetSchema = z.number().int().nonnegative().max(MAX_IPC_PAGINATION_OFFSET);
 const paginationLimitSchema = z.number().int().positive().max(MAX_IPC_PAGINATION_LIMIT);
@@ -402,11 +403,16 @@ const geometryIntegerSchema = z
   .finite()
   .int()
   .transform((value) => (Object.is(value, -0) ? 0 : value));
-const positiveGeometryIntegerSchema = geometryIntegerSchema.pipe(z.number().positive());
+const browserWebviewCoordinateSchema = geometryIntegerSchema.pipe(
+  z.number().nonnegative().max(BROWSER_WEBVIEW_BOUNDS_MAX_VALUE),
+);
+const positiveGeometryIntegerSchema = geometryIntegerSchema.pipe(
+  z.number().positive().max(BROWSER_WEBVIEW_BOUNDS_MAX_VALUE),
+);
 
 export const browserWebviewBoundsArgs = z.object({
-  x: geometryIntegerSchema,
-  y: geometryIntegerSchema,
+  x: browserWebviewCoordinateSchema,
+  y: browserWebviewCoordinateSchema,
   width: positiveGeometryIntegerSchema,
   height: positiveGeometryIntegerSchema,
   unit: z.enum(["logical", "physical"]).optional(),

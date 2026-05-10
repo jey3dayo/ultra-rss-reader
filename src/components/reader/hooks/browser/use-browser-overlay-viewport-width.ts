@@ -9,13 +9,21 @@ type BrowserOverlayViewportWidthAction = { type: "set-viewport-width"; value: nu
 
 const BROWSER_OVERLAY_VIEWPORT_WIDTH_FALLBACK = 1400;
 
+function normalizeBrowserOverlayViewportWidth(viewportWidth: unknown): number {
+  if (typeof viewportWidth !== "number" || !Number.isFinite(viewportWidth) || viewportWidth < 0) {
+    return BROWSER_OVERLAY_VIEWPORT_WIDTH_FALLBACK;
+  }
+
+  return viewportWidth;
+}
+
 function readBrowserOverlayViewportWidth(): number {
   if (typeof window === "undefined") {
     return BROWSER_OVERLAY_VIEWPORT_WIDTH_FALLBACK;
   }
 
   try {
-    return window.innerWidth;
+    return normalizeBrowserOverlayViewportWidth(window.innerWidth);
   } catch (error) {
     console.warn("Failed to read browser overlay viewport width.", error);
     return BROWSER_OVERLAY_VIEWPORT_WIDTH_FALLBACK;

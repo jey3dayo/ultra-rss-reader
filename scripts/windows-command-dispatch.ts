@@ -6,9 +6,11 @@ import {
   buildWslWindowsSpawnSpec,
   canUseWindowsInterop,
   convertWslPathToWindows,
+  installSignalForwarding,
   isWslEnvironment,
   pickWindowsEnvOverrides,
   type SpawnSpec,
+  shouldSpawnDetachedForSignalForwarding,
 } from "./lib/windows-dispatch.ts";
 
 export { isWslEnvironment, pickWindowsEnvOverrides } from "./lib/windows-dispatch.ts";
@@ -50,18 +52,14 @@ async function main(): Promise<void> {
   const child = spawn(spawnSpec.command, spawnSpec.args, {
     stdio: "inherit",
     env: process.env,
+    shell: spawnSpec.shell,
+    detached: shouldSpawnDetachedForSignalForwarding(process.platform),
   });
 
-  const forwardSignal = (signal: NodeJS.Signals): void => {
-    if (!child.killed) {
-      child.kill(signal);
-    }
-  };
-
-  process.on("SIGINT", forwardSignal);
-  process.on("SIGTERM", forwardSignal);
+  const cleanupSignalForwarding = installSignalForwarding(child);
 
   child.on("exit", (code, signal) => {
+    cleanupSignalForwarding();
     if (signal) {
       process.kill(process.pid, signal);
       return;
@@ -71,6 +69,7 @@ async function main(): Promise<void> {
   });
 
   child.on("error", (error) => {
+    cleanupSignalForwarding();
     console.error("[windows-command-dispatch]", buildWindowsDispatchSpawnFailureMessage(spawnSpec.command, error));
     process.exit(1);
   });

@@ -16,6 +16,7 @@ export type RuntimeDiagnosticPolicyId =
   | "article-action"
   | "database-runtime-recovery"
   | "mutation-invalidation"
+  | "command-history-storage"
   | "sidebar-expanded-folders-storage"
   | "window-always-on-top"
   | "window-runtime-error";
@@ -166,6 +167,14 @@ export const RUNTIME_DIAGNOSTIC_POLICIES = {
     once: false,
     redactSecrets: true,
   },
+  "command-history-storage": {
+    console: "warn",
+    devOnlyConsole: false,
+    productionDiagnostics: true,
+    toast: "never",
+    once: false,
+    redactSecrets: true,
+  },
   "sidebar-expanded-folders-storage": {
     console: "warn",
     devOnlyConsole: false,
@@ -220,7 +229,10 @@ const SECRET_OBJECT_KEYS = new Set([
   "suggestedpath",
   "username",
 ]);
-const SECRET_URL_PATH_SEGMENT_PATTERN = /(?:token|secret|password|credential|private[-_]?key|api[-_]?key)/i;
+const SECRET_URL_PATH_SEGMENT_PATTERN =
+  /(?:token|secret|password|credential|private[-_]?key|api[-_]?key|signature|signed)/i;
+const UUID_URL_PATH_SEGMENT_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const OPAQUE_URL_PATH_SEGMENT_PATTERN = /^(?=.{24,}$)(?=.*[A-Za-z])(?=.*\d)[A-Za-z0-9._~=-]+$/;
 const URL_TOKEN_TRAILING_PUNCTUATION_PATTERN = /[\])}>,.;!?。、，．；：！？]+$/;
 const UNSUPPORTED_DIAGNOSTICS_PAYLOAD = "[Unsupported diagnostics payload]";
 const RUNTIME_DIAGNOSTIC_PAYLOAD_MAX_CHARS = 200;
@@ -239,6 +251,22 @@ function redactInvalidUrlToken(value: string): string {
   return hashRedacted ? `${beforeHashRedacted}#redacted` : beforeHashRedacted;
 }
 
+function isSecretUrlPathSegment(segment: string): boolean {
+  return (
+    SECRET_URL_PATH_SEGMENT_PATTERN.test(segment) ||
+    UUID_URL_PATH_SEGMENT_PATTERN.test(segment) ||
+    OPAQUE_URL_PATH_SEGMENT_PATTERN.test(segment)
+  );
+}
+
+function decodeUrlPathSegment(segment: string): string {
+  try {
+    return decodeURIComponent(segment);
+  } catch {
+    return segment;
+  }
+}
+
 function redactUrlToken(value: string): string {
   const trailingPunctuation = value.match(URL_TOKEN_TRAILING_PUNCTUATION_PATTERN)?.[0] ?? "";
   const urlToken = trailingPunctuation ? value.slice(0, -trailingPunctuation.length) : value;
@@ -249,7 +277,7 @@ function redactUrlToken(value: string): string {
     url.password = "";
     if (
       url.pathname !== "/" &&
-      url.pathname.split("/").some((segment) => SECRET_URL_PATH_SEGMENT_PATTERN.test(segment))
+      url.pathname.split("/").some((segment) => isSecretUrlPathSegment(decodeUrlPathSegment(segment)))
     ) {
       url.pathname = "/redacted";
     }

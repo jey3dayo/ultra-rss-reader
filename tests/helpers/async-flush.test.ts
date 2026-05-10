@@ -24,6 +24,19 @@ describe("async flush helpers", () => {
     expect(calls).toEqual(["timer"]);
   });
 
+  it("advances fake timers for macrotask flushes", async () => {
+    vi.useFakeTimers();
+    const calls: string[] = [];
+
+    setTimeout(() => calls.push("timer"), 0);
+
+    await flushMacrotask();
+
+    expect(calls).toEqual(["timer"]);
+    expect(vi.getTimerCount()).toBe(0);
+    vi.useRealTimers();
+  });
+
   it("flushes requestAnimationFrame callbacks", async () => {
     const callbacks: FrameRequestCallback[] = [];
     const requestAnimationFrameSpy = vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
@@ -41,6 +54,15 @@ describe("async flush helpers", () => {
 
     expect(calls).toEqual(["raf"]);
     requestAnimationFrameSpy.mockRestore();
+  });
+
+  it("rejects requestAnimationFrame flushes when RAF is unavailable", async () => {
+    const originalRequestAnimationFrame = window.requestAnimationFrame;
+    vi.stubGlobal("requestAnimationFrame", undefined);
+
+    await expect(flushRaf()).rejects.toThrow("requestAnimationFrame is unavailable");
+
+    vi.stubGlobal("requestAnimationFrame", originalRequestAnimationFrame);
   });
 
   it("keeps the legacy helper as microtask then macrotask", async () => {

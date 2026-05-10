@@ -263,19 +263,33 @@ function BrowserOverlayShell({
 }
 
 export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, toolbarActions }: BrowserViewProps) {
-  const controller = useBrowserViewController({ scope, onCloseOverlay });
+  const portalTarget =
+    scope === "main-stage" && typeof document !== "undefined"
+      ? document.querySelector<HTMLElement>("[data-browser-overlay-root]")
+      : null;
+  const resolvedScope = scope === "main-stage" && !portalTarget ? "content-pane" : scope;
+  const controller = useBrowserViewController({ scope: resolvedScope, onCloseOverlay });
 
   if (!controller.browserUrl) return null;
 
-  if (scope === "main-stage" && typeof document !== "undefined") {
-    const portalTarget = document.querySelector<HTMLElement>("[data-browser-overlay-root]");
-    if (portalTarget) {
-      return createPortal(
-        <BrowserOverlayShell controller={controller} scope={scope} labels={labels} toolbarActions={toolbarActions} />,
-        portalTarget,
-      );
-    }
+  if (scope === "main-stage" && portalTarget) {
+    return createPortal(
+      <BrowserOverlayShell
+        controller={controller}
+        scope={resolvedScope}
+        labels={labels}
+        toolbarActions={toolbarActions}
+      />,
+      portalTarget,
+    );
   }
 
-  return <BrowserOverlayShell controller={controller} scope={scope} labels={labels} toolbarActions={toolbarActions} />;
+  return (
+    <BrowserOverlayShell
+      controller={controller}
+      scope={resolvedScope}
+      labels={labels}
+      toolbarActions={toolbarActions}
+    />
+  );
 }

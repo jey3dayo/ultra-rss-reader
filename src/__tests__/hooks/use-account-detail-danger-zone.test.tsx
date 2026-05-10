@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { createTestQueryClient } from "@tests/helpers/create-wrapper";
 import { sampleAccounts, sampleArticles, sampleFeeds } from "@tests/helpers/fixtures";
 import i18n from "@tests/helpers/i18n-setup";
@@ -121,8 +121,16 @@ describe("useAccountDetailDangerZone", () => {
     vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
       clickedDownloads.push(this.download);
     });
-    const firstAccount = { ...sampleAccounts[0], id: "acc-1", name: "Local Work" };
-    const secondAccount = { ...sampleAccounts[0], id: "acc-2", name: "Local Personal" };
+    const firstAccount = {
+      ...sampleAccounts[0],
+      id: "acc-1",
+      name: "Local Work",
+    };
+    const secondAccount = {
+      ...sampleAccounts[0],
+      id: "acc-2",
+      name: "Local Personal",
+    };
 
     const { result, rerender } = renderHook(
       ({ account }) =>
@@ -148,8 +156,16 @@ describe("useAccountDetailDangerZone", () => {
   it("revokes the active OPML object URL when switching accounts", async () => {
     exportOpmlMock.mockResolvedValue(Result.succeed("<opml />"));
     const revokeObjectUrlMock = vi.mocked(URL.revokeObjectURL);
-    const firstAccount = { ...sampleAccounts[0], id: "acc-1", name: "Local Work" };
-    const secondAccount = { ...sampleAccounts[0], id: "acc-2", name: "Local Personal" };
+    const firstAccount = {
+      ...sampleAccounts[0],
+      id: "acc-1",
+      name: "Local Work",
+    };
+    const secondAccount = {
+      ...sampleAccounts[0],
+      id: "acc-2",
+      name: "Local Personal",
+    };
 
     const { result, rerender } = renderHook(
       ({ account }) =>
@@ -354,6 +370,39 @@ describe("useAccountDetailDangerZone", () => {
     });
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({
       queryKey: queryKeys.tagArticleCounts.root,
+    });
+  });
+
+  it("surfaces selected account preference save failures after account delete", async () => {
+    deleteAccountMock.mockResolvedValue(Result.succeed(null));
+    setPreferenceMock.mockResolvedValue(Result.fail({ type: "UserVisible", message: "disk full" }));
+    const queryClient = createTestQueryClient();
+    queryClient.setQueryData(["accounts"], sampleAccounts);
+    usePreferencesStore.setState({
+      prefs: { selected_account_id: "acc-1" },
+      loaded: true,
+    });
+
+    const { result } = renderHook(() =>
+      useAccountDetailDangerZone({
+        account: sampleAccounts[0],
+        queryClient,
+        t,
+        onAccountDeleted: vi.fn(),
+      }),
+    );
+
+    act(() => {
+      result.current.handleRequestDelete();
+    });
+    await act(async () => {
+      await useUiStore.getState().confirmDialog.onConfirm?.();
+    });
+
+    expect(usePreferencesStore.getState().prefs.selected_account_id).toBe("acc-2");
+    expect(setPreferenceMock).toHaveBeenCalledWith("selected_account_id", "acc-2");
+    await waitFor(() => {
+      expect(useUiStore.getState().toastMessage?.message).toBe("Failed to save setting: disk full");
     });
   });
 });

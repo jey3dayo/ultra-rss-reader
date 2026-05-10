@@ -48,6 +48,32 @@ describe("webview-history", () => {
     expect(Result.unwrapError(result).message).toBe("iframe not found");
   });
 
+  it("fails with a stable error when the owner document is unavailable", async () => {
+    const originalDocument = document;
+    vi.stubGlobal("document", undefined);
+
+    try {
+      const result = await reloadWebview();
+
+      expect(Result.isFailure(result)).toBe(true);
+      expect(Result.unwrapError(result).message).toBe("document unavailable");
+    } finally {
+      vi.stubGlobal("document", originalDocument);
+    }
+  });
+
+  it("returns Result failures when iframe lookup throws", async () => {
+    const error = new Error("document runtime unavailable");
+    vi.spyOn(document, "querySelector").mockImplementation(() => {
+      throw error;
+    });
+
+    const result = await goBackInWebview();
+
+    expect(Result.isFailure(result)).toBe(true);
+    expect(Result.unwrapError(result)).toBe(error);
+  });
+
   it("reloads the iframe by restoring its current src", async () => {
     const iframe = appendIframe("https://example.com/article");
 
@@ -88,6 +114,19 @@ describe("webview-history", () => {
 
     expect(Result.isSuccess(await goBackInWebview())).toBe(true);
     expect(Result.isSuccess(await goForwardInWebview())).toBe(true);
+  });
+
+  it("fails history navigation with a stable error when the iframe runtime is unavailable", async () => {
+    const iframe = appendIframe();
+    Object.defineProperty(iframe, "contentWindow", {
+      configurable: true,
+      value: null,
+    });
+
+    const result = await goBackInWebview();
+
+    expect(Result.isFailure(result)).toBe(true);
+    expect(Result.unwrapError(result).message).toBe("iframe runtime unavailable");
   });
 
   it("navigates history only on the first iframe when multiple iframes exist", async () => {
@@ -131,5 +170,23 @@ describe("webview-history", () => {
     expect(Result.isSuccess(result)).toBe(true);
     expect(unrelated.assignedSrcs).toEqual([]);
     expect(preview.assignedSrcs).toEqual(["", "https://example.com/preview"]);
+  });
+
+  it("returns Result failures when iframe src reset throws", async () => {
+    const error = new Error("src setter unavailable");
+    const iframe = document.createElement("iframe");
+    Object.defineProperty(iframe, "src", {
+      configurable: true,
+      get: () => "https://example.com/article",
+      set: () => {
+        throw error;
+      },
+    });
+    document.body.append(iframe);
+
+    const result = await reloadWebview();
+
+    expect(Result.isFailure(result)).toBe(true);
+    expect(Result.unwrapError(result)).toBe(error);
   });
 });

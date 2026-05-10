@@ -16,8 +16,26 @@ function normalizeStoredIdentity(value: string): string {
   return value.replace(CONTROL_CHARACTERS_PATTERN, "").trim();
 }
 
+function truncateAtGraphemeBoundary(value: string, maxCodeUnits: number): string {
+  if (value.length <= maxCodeUnits) {
+    return value;
+  }
+
+  const segmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+  let truncated = "";
+
+  for (const { segment } of segmenter.segment(value)) {
+    if (truncated.length + segment.length > maxCodeUnits) {
+      break;
+    }
+    truncated += segment;
+  }
+
+  return truncated;
+}
+
 function normalizeCommandHistoryEntry(value: string): string {
-  return normalizeStoredIdentity(value).slice(0, MAX_COMMAND_HISTORY_ENTRY_LENGTH);
+  return truncateAtGraphemeBoundary(normalizeStoredIdentity(value), MAX_COMMAND_HISTORY_ENTRY_LENGTH);
 }
 
 function isUnknownRecord(value: unknown): value is Record<string, unknown> {
@@ -137,7 +155,8 @@ export const STORAGE_SCHEMA_CAPACITY_FIXTURES = {
     rawJsonByteCap: MAX_COMMAND_HISTORY_STORAGE_LENGTH,
     unitPolicy: {
       entryCountCap: "entries",
-      entryLengthCap: "UTF-16 code units after control-character stripping and trimming",
+      entryLengthCap:
+        "UTF-16 code units after control-character stripping and trimming, truncated at grapheme boundaries",
       rawJsonByteCap: "JSON string length before parsing",
     },
   },

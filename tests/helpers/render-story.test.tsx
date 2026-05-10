@@ -51,6 +51,81 @@ describe("renderStory", () => {
     });
   });
 
+  it("deep merges nested parameters while keeping story values last", () => {
+    const originalParameters = preview.parameters;
+    const snapshots: Array<Record<string, unknown>> = [];
+
+    preview.parameters = {
+      ...preview.parameters,
+      controls: {
+        expanded: true,
+        matchers: {
+          color: /(background|color)$/i,
+          date: /Date$/i,
+        },
+      },
+      docs: {
+        canvas: {
+          sourceState: "shown",
+        },
+      },
+    };
+
+    try {
+      renderStory<{ label: string }>(
+        {
+          component: ({ label }: { label: string }) => createElement("span", null, label),
+          args: { label: "base" },
+          parameters: {
+            controls: {
+              matchers: {
+                color: /color$/i,
+              },
+            },
+            docs: {
+              page: "meta-docs",
+            },
+          },
+        },
+        {
+          parameters: {
+            controls: {
+              include: ["label"],
+            },
+            docs: {
+              canvas: {
+                sourceState: "hidden",
+              },
+            },
+          },
+          render: (args, context) => {
+            snapshots.push(context.parameters);
+            return createElement("span", null, args.label);
+          },
+        },
+      );
+    } finally {
+      preview.parameters = originalParameters;
+    }
+
+    expect(snapshots[0]).toMatchObject({
+      controls: {
+        expanded: true,
+        include: ["label"],
+        matchers: {
+          color: /color$/i,
+          date: /Date$/i,
+        },
+      },
+      docs: {
+        canvas: {
+          sourceState: "hidden",
+        },
+        page: "meta-docs",
+      },
+    });
+  });
+
   it("applies global preview decorators outside meta and story decorators when configured", () => {
     const originalDecorators = preview.decorators;
     const calls: string[] = [];
@@ -231,6 +306,53 @@ describe("renderStory", () => {
     expect(snapshots[0]?.context.args).toEqual({
       label: "story",
       tone: "neutral",
+    });
+  });
+
+  it("deep merges nested parameters passed by decorators", () => {
+    const snapshots: Array<Record<string, unknown>> = [];
+    const updateParameters: StoryDecorator<{ label: string }> = (Story) =>
+      Story({
+        parameters: {
+          docs: {
+            canvas: {
+              sourceState: "hidden",
+            },
+          },
+        },
+      });
+
+    renderStory<{ label: string }>(
+      {
+        component: ({ label }: { label: string }) => createElement("span", null, label),
+        args: { label: "meta" },
+        parameters: {
+          docs: {
+            canvas: {
+              layout: "padded",
+              sourceState: "shown",
+            },
+            page: "meta-docs",
+          },
+        },
+        decorators: [updateParameters],
+      },
+      {
+        render: (args, context) => {
+          snapshots.push(context.parameters);
+          return createElement("span", null, args.label);
+        },
+      },
+    );
+
+    expect(snapshots[0]).toMatchObject({
+      docs: {
+        canvas: {
+          layout: "padded",
+          sourceState: "hidden",
+        },
+        page: "meta-docs",
+      },
     });
   });
 

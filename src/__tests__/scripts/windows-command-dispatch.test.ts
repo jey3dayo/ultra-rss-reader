@@ -1,8 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   buildWindowsDispatchSpawnFailureMessage,
   buildWindowsPathConversionFailureMessage,
+  forwardSignalToChildProcessGroup,
+  installSignalForwarding,
   isSecretLikeEnvValue,
+  shouldSpawnDetachedForSignalForwarding,
 } from "../../../scripts/lib/windows-dispatch.ts";
 import {
   buildLocalCommandSpawnSpec,
@@ -51,6 +54,10 @@ describe("windows-command-dispatch pickWindowsEnvOverrides", () => {
         VITE_DEV_CREDENTIALS: "secret-credentials",
         VITE_DEV_INTENT: "open-subscriptions-index",
         VITE_DEV_WEB_URL: "https://example.com/debug",
+        VITE_DEV_WINDOW_HEIGHT: "720",
+        VITE_DEV_WINDOW_WIDTH: "1280",
+        VITE_ULTRA_RSS_DEV_INTENT: "open-reader",
+        VITE_ULTRA_RSS_DEV_WEB_URL: "https://example.com/alias",
         PATH: "/usr/bin",
         HOME: "/home/dev",
       }),
@@ -60,6 +67,10 @@ describe("windows-command-dispatch pickWindowsEnvOverrides", () => {
       TAURI_DEV_PORT: "1420",
       VITE_DEV_INTENT: "open-subscriptions-index",
       VITE_DEV_WEB_URL: "https://example.com/debug",
+      VITE_DEV_WINDOW_HEIGHT: "720",
+      VITE_DEV_WINDOW_WIDTH: "1280",
+      VITE_ULTRA_RSS_DEV_INTENT: "open-reader",
+      VITE_ULTRA_RSS_DEV_WEB_URL: "https://example.com/alias",
     });
   });
 
@@ -72,6 +83,108 @@ describe("windows-command-dispatch pickWindowsEnvOverrides", () => {
     ).toEqual({
       DEV_CREDENTIALS: "github_pat_1234567890abcdef",
     });
+  });
+});
+
+describe("installSignalForwarding", () => {
+  it("forwards termination signals and removes listeners on cleanup", () => {
+    const listeners = new Map<NodeJS.Signals, (signal: NodeJS.Signals) => void>();
+    const processLike = {
+      on: (signal: NodeJS.Signals, listener: (signal: NodeJS.Signals) => void) => {
+        listeners.set(signal, listener);
+      },
+      off: (signal: NodeJS.Signals, listener: (signal: NodeJS.Signals) => void) => {
+        if (listeners.get(signal) === listener) {
+          listeners.delete(signal);
+        }
+      },
+      kill: vi.fn(() => true),
+      platform: "linux" as const,
+    };
+    const child = {
+      killed: false,
+      pid: undefined,
+      kill: vi.fn(() => true),
+    };
+
+    const cleanup = installSignalForwarding(child, processLike);
+    listeners.get("SIGINT")?.("SIGINT");
+    child.killed = true;
+    listeners.get("SIGTERM")?.("SIGTERM");
+    cleanup();
+
+    expect(child.kill).toHaveBeenCalledTimes(1);
+    expect(child.kill).toHaveBeenCalledWith("SIGINT");
+    expect(listeners.size).toBe(0);
+  });
+
+  it("does not forward a late parent signal after child exit cleanup", () => {
+    const listeners = new Map<NodeJS.Signals, (signal: NodeJS.Signals) => void>();
+    const processLike = {
+      on: (signal: NodeJS.Signals, listener: (signal: NodeJS.Signals) => void) => {
+        listeners.set(signal, listener);
+      },
+      off: (signal: NodeJS.Signals, listener: (signal: NodeJS.Signals) => void) => {
+        if (listeners.get(signal) === listener) {
+          listeners.delete(signal);
+        }
+      },
+      kill: vi.fn(() => true),
+      platform: "linux" as const,
+    };
+    const child = {
+      killed: false,
+      pid: undefined,
+      kill: vi.fn(() => true),
+    };
+
+    const cleanup = installSignalForwarding(child, processLike);
+    cleanup();
+    listeners.get("SIGTERM")?.("SIGTERM");
+
+    expect(child.kill).not.toHaveBeenCalled();
+    expect(listeners.size).toBe(0);
+  });
+
+  it("forwards signals to a child process group before direct child fallback", () => {
+    const child = {
+      killed: false,
+      pid: 123,
+      kill: vi.fn(() => true),
+    };
+    const processLike = {
+      platform: "linux" as const,
+      kill: vi.fn(() => true),
+    };
+
+    forwardSignalToChildProcessGroup(child, "SIGTERM", processLike);
+
+    expect(processLike.kill).toHaveBeenCalledWith(-123, "SIGTERM");
+    expect(child.kill).not.toHaveBeenCalled();
+  });
+
+  it("falls back to direct child signal forwarding when the process group is unavailable", () => {
+    const child = {
+      killed: false,
+      pid: 123,
+      kill: vi.fn(() => true),
+    };
+    const processLike = {
+      platform: "linux" as const,
+      kill: vi.fn(() => {
+        throw new Error("missing process group");
+      }),
+    };
+
+    forwardSignalToChildProcessGroup(child, "SIGINT", processLike);
+
+    expect(child.kill).toHaveBeenCalledWith("SIGINT");
+  });
+
+  it("keeps process group mode off on native Windows", () => {
+    expect(shouldSpawnDetachedForSignalForwarding("linux")).toBe(true);
+    expect(shouldSpawnDetachedForSignalForwarding("darwin")).toBe(true);
+    expect(shouldSpawnDetachedForSignalForwarding("win32")).toBe(false);
   });
 });
 

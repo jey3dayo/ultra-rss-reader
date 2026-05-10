@@ -39,6 +39,16 @@ describe("storage schemas", () => {
     ).toEqual(["feed:feed-1", "action:open-settings", oversizedEntry.slice(0, MAX_COMMAND_HISTORY_ENTRY_LENGTH)]);
   });
 
+  it("truncates command history entries at grapheme boundaries within the UTF-16 length cap", () => {
+    const combiningEntry = `${"x".repeat(MAX_COMMAND_HISTORY_ENTRY_LENGTH - 1)}e\u0301`;
+    const emojiEntry = `${"y".repeat(MAX_COMMAND_HISTORY_ENTRY_LENGTH - 1)}😀`;
+
+    expect(CommandHistoryStorageSchema.parse([combiningEntry, emojiEntry])).toEqual([
+      "x".repeat(MAX_COMMAND_HISTORY_ENTRY_LENGTH - 1),
+      "y".repeat(MAX_COMMAND_HISTORY_ENTRY_LENGTH - 1),
+    ]);
+  });
+
   it("caps persisted command history entries at the storage boundary", () => {
     const entries = Array.from({ length: MAX_COMMAND_HISTORY + 5 }, (_, index) => ` item-${index} `);
 

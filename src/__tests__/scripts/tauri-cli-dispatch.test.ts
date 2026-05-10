@@ -45,6 +45,10 @@ describe("pickWindowsEnvOverrides", () => {
         DEV_DIAGNOSTIC_FLAG: "1",
         VITE_DEV_INTENT: "open-subscriptions-index",
         VITE_DEV_WEB_URL: "https://example.com/debug",
+        VITE_DEV_WINDOW_HEIGHT: "720",
+        VITE_DEV_WINDOW_WIDTH: "1280",
+        VITE_ULTRA_RSS_DEV_INTENT: "open-reader",
+        VITE_ULTRA_RSS_DEV_WEB_URL: "https://example.com/alias",
         RUST_LOG: "info",
         RUSTFLAGS: "-Awarnings",
         TAURI_DEV_PORT: "1420",
@@ -63,6 +67,10 @@ describe("pickWindowsEnvOverrides", () => {
       DEV_CREDENTIALS: "1",
       VITE_DEV_INTENT: "open-subscriptions-index",
       VITE_DEV_WEB_URL: "https://example.com/debug",
+      VITE_DEV_WINDOW_HEIGHT: "720",
+      VITE_DEV_WINDOW_WIDTH: "1280",
+      VITE_ULTRA_RSS_DEV_INTENT: "open-reader",
+      VITE_ULTRA_RSS_DEV_WEB_URL: "https://example.com/alias",
       RUST_LOG: "info",
       TAURI_DEV_PORT: "1420",
     });
@@ -275,6 +283,41 @@ describe("removeStaleMacosDevBundle", () => {
 
     expect(removed).toBe(false);
     expect(removedPaths).toEqual([]);
+  });
+
+  it("continues dev startup when stale macOS bundle cleanup fails in warning mode", async () => {
+    const warnings: string[] = [];
+
+    const removed = await removeStaleMacosDevBundle({
+      cwd: "/repo",
+      platform: "darwin",
+      readFileImpl: async () =>
+        `<?xml version="1.0"?><plist><dict><key>CFBundleIdentifier</key><string>com.ultra-rss-reader.dev</string></dict></plist>`,
+      rmImpl: async () => {
+        throw new Error("permission denied");
+      },
+      warnImpl: (message) => warnings.push(message),
+    });
+
+    expect(removed).toBe(true);
+    expect(warnings).toHaveLength(4);
+    expect(warnings[0]).toContain("stale macOS dev bundle cleanup skipped");
+    expect(warnings[0]).toContain("permission denied");
+  });
+
+  it("supports strict stale macOS bundle cleanup failures for explicit callers", async () => {
+    await expect(
+      removeStaleMacosDevBundle({
+        cwd: "/repo",
+        platform: "darwin",
+        readFileImpl: async () =>
+          `<?xml version="1.0"?><plist><dict><key>CFBundleIdentifier</key><string>com.ultra-rss-reader.dev</string></dict></plist>`,
+        rmImpl: async () => {
+          throw new Error("permission denied");
+        },
+        strict: true,
+      }),
+    ).rejects.toThrow("permission denied");
   });
 });
 

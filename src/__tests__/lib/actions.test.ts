@@ -311,6 +311,34 @@ describe("executeAction", () => {
       expect(useUiStore.getState().settingsAddAccount).toBe(false);
     });
 
+    it("does not route settings actions away from a locked account setup view", () => {
+      useUiStore.setState({
+        selectedAccountId: "acc-other",
+        settingsOpen: true,
+        settingsCategory: "accounts",
+        settingsAccountId: "acc-setup",
+        settingsAddAccount: false,
+        accountSetupSession: {
+          accountId: "acc-setup",
+          owner: "account-detail",
+          state: "syncing",
+        },
+      });
+
+      executeAction("open-current-account-settings");
+      executeAction("open-settings-accounts-add");
+
+      expect(useUiStore.getState()).toEqual(
+        expect.objectContaining({
+          settingsOpen: true,
+          settingsCategory: "accounts",
+          settingsAccountId: "acc-setup",
+          settingsAddAccount: false,
+          settingsAddAccountInitialKind: null,
+        }),
+      );
+    });
+
     it("opens settings at accounts tab", () => {
       executeAction("open-settings-accounts");
       expect(useUiStore.getState().settingsOpen).toBe(true);

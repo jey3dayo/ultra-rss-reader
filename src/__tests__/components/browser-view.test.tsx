@@ -274,6 +274,24 @@ function BrowserViewHarness({ controllerParams }: BrowserViewHarnessProps = {}) 
   );
 }
 
+function BrowserViewWithoutPortalRootHarness({ controllerParams }: BrowserViewHarnessProps = {}) {
+  const contentMode = useUiStore((s) => s.contentMode);
+  const { scope, onCloseOverlay } = buildBrowserViewControllerParams(controllerParams);
+  return (
+    <div className="relative h-[900px] w-[1400px]">
+      {contentMode === "browser" ? (
+        <BrowserView
+          scope={scope}
+          onCloseOverlay={onCloseOverlay}
+          labels={{
+            closeWebPreview: "Close Web Preview",
+          }}
+        />
+      ) : null}
+    </div>
+  );
+}
+
 const browserViewToolbarActions: BrowserOverlayToolbarAction[] = [
   {
     key: "a",
@@ -928,6 +946,41 @@ describe("BrowserView", () => {
     });
   });
 
+  it("uses content-pane fallback geometry when the main-stage portal target is missing", () => {
+    mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
+
+    useUiStore.setState({
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://example.com/article",
+    });
+
+    render(
+      <BrowserView
+        scope="main-stage"
+        onCloseOverlay={() => useUiStore.getState().closeBrowser()}
+        labels={{
+          closeWebPreview: "Close Web Preview",
+        }}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    const shell = screen.getByTestId("browser-overlay-shell");
+    const stage = screen.getByTestId("browser-overlay-stage-shell");
+    expect(shell.closest("[data-browser-overlay-root]")).toBeNull();
+    expectInlineStyles(stage, {
+      left: "16px",
+      right: "16px",
+      top: "16px",
+      bottom: "16px",
+    });
+    expect(screen.queryByTestId("browser-overlay-top-rail")).not.toBeInTheDocument();
+    expect(screen.getByTestId("browser-webview-host")).toHaveStyle({
+      top: "0px",
+    });
+  });
+
   it("uses the fullscreen main-stage geometry with a visible top rail", () => {
     mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
 
@@ -1143,6 +1196,38 @@ describe("BrowserView", () => {
     } finally {
       window.removeEventListener(APP_EVENTS.browserDebugGeometry, handleGeometryEvent);
     }
+  });
+
+  it("falls back to content-pane geometry when the main-stage portal target is missing", async () => {
+    mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
+
+    useUiStore.setState({
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://example.com/article",
+    });
+
+    render(<BrowserViewWithoutPortalRootHarness />, { wrapper: createWrapper() });
+
+    const stage = screen.getByTestId("browser-overlay-stage-shell");
+    expectInlineStyles(stage, {
+      left: "16px",
+      top: "16px",
+      right: "16px",
+      bottom: "16px",
+    });
+    expect(stage).not.toHaveClass("rounded-none");
+    expect(screen.queryByTestId("browser-overlay-top-rail")).not.toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(commands).toContainEqual({
+        cmd: "create_or_update_browser_webview",
+        args: {
+          url: "https://example.com/article",
+          bounds: { x: 16, y: 16, width: 1368, height: 868 },
+        },
+      });
+    });
   });
 
   it("keeps the fullscreen surface full bleed at narrow widths", async () => {

@@ -8,15 +8,18 @@ import {
   buildWslWindowsSpawnSpec,
   canUseWindowsInterop,
   convertWslPathToWindows,
+  installSignalForwarding,
   isWslEnvironment,
   pickWindowsEnvOverrides,
   type SpawnSpec,
+  shouldSpawnDetachedForSignalForwarding,
 } from "./lib/windows-dispatch.ts";
 
 export { isWslEnvironment, pickWindowsEnvOverrides } from "./lib/windows-dispatch.ts";
 
 type ReadFileImpl = (targetPath: string, encoding: "utf8") => Promise<string>;
 type RmImpl = (targetPath: string, options: { recursive?: boolean; force?: boolean }) => Promise<void>;
+type WarnImpl = (message: string) => void;
 
 export function buildPnpmCommand(platform: NodeJS.Platform = process.platform): string {
   return platform === "win32" ? "pnpm.cmd" : "pnpm";
@@ -93,12 +96,20 @@ export function hasMacosDevBundleIdentifierMarker(infoPlist: string): boolean {
 }
 
 export async function removeStaleMacosDevBundle(
-  options: { cwd?: string; platform?: NodeJS.Platform; readFileImpl?: ReadFileImpl; rmImpl?: RmImpl } = {},
+  options: {
+    cwd?: string;
+    platform?: NodeJS.Platform;
+    readFileImpl?: ReadFileImpl;
+    rmImpl?: RmImpl;
+    strict?: boolean;
+    warnImpl?: WarnImpl;
+  } = {},
 ): Promise<boolean> {
   const cwd = options.cwd ?? process.cwd();
   const platform = options.platform ?? process.platform;
   const readFileImpl = options.readFileImpl ?? ((targetPath, encoding) => readFile(targetPath, encoding));
   const rmImpl = options.rmImpl ?? ((targetPath, rmOptions) => rm(targetPath, rmOptions));
+  const warnImpl = options.warnImpl ?? ((message) => console.warn(message));
 
   if (platform !== "darwin") {
     return false;
@@ -121,7 +132,21 @@ export async function removeStaleMacosDevBundle(
   ).filter((bundlePath): bundlePath is string => bundlePath !== null);
 
   await Promise.all(
-    removableBundlePaths.map((bundlePath) => rmImpl(path.join(cwd, bundlePath), { recursive: true, force: true })),
+    removableBundlePaths.map(async (bundlePath) => {
+      const targetPath = path.join(cwd, bundlePath);
+      try {
+        await rmImpl(targetPath, { recursive: true, force: true });
+      } catch (error) {
+        if (options.strict) {
+          throw error;
+        }
+        warnImpl(
+          `[tauri-cli-dispatch] stale macOS dev bundle cleanup skipped for ${targetPath}: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+    }),
   );
 
   return removableBundlePaths.length > 0;
@@ -168,18 +193,13 @@ async function main(): Promise<void> {
     stdio: "inherit",
     env: buildChildEnvForSpawnSpec(spawnSpec),
     shell: spawnSpec.shell,
+    detached: shouldSpawnDetachedForSignalForwarding(process.platform),
   });
 
-  const forwardSignal = (signal: NodeJS.Signals): void => {
-    if (!child.killed) {
-      child.kill(signal);
-    }
-  };
-
-  process.on("SIGINT", forwardSignal);
-  process.on("SIGTERM", forwardSignal);
+  const cleanupSignalForwarding = installSignalForwarding(child);
 
   child.on("exit", (code, signal) => {
+    cleanupSignalForwarding();
     if (signal) {
       process.kill(process.pid, signal);
       return;
@@ -189,6 +209,7 @@ async function main(): Promise<void> {
   });
 
   child.on("error", (error) => {
+    cleanupSignalForwarding();
     console.error("[tauri-cli-dispatch]", buildWindowsDispatchSpawnFailureMessage(spawnSpec.command, error));
     process.exit(1);
   });

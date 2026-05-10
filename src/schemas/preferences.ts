@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { i18nResourceLocales } from "@/lib/i18n-resources";
 import {
   isShortcutPreferenceKey,
   type KeyboardShortcutPrefs,
@@ -7,7 +8,8 @@ import {
 } from "@/lib/keyboard/keyboard-shortcuts";
 
 export const themeSchema = z.enum(["light", "dark", "system"]);
-const languageSchema = z.enum(["system", "en", "ja"]);
+export const languagePreferenceValues = ["system", ...i18nResourceLocales] as const;
+const languageSchema = z.enum(languagePreferenceValues);
 const unreadBadgeSchema = z.enum(["dont_display", "all_unread", "only_inbox"]);
 const openLinksSchema = z.enum(["in_app", "default_browser"]);
 const booleanStringSchema = z.enum(["true", "false"]);

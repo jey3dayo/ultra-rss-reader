@@ -330,7 +330,7 @@ describe("subscriptions index helpers", () => {
     expect(countStarredArticles(articles)).toBe(2);
   });
 
-  it("orders detail preview articles by valid dates before invalid dates with stable equal-date ties", () => {
+  it("orders detail preview articles by valid dates before invalid dates with title and id tie-breakers", () => {
     const invalidArticle: ArticleDto = {
       ...articles[0],
       id: "art-invalid-date",
@@ -339,14 +339,20 @@ describe("subscriptions index helpers", () => {
     };
     const firstEqualDateArticle: ArticleDto = {
       ...articles[0],
-      id: "art-equal-date-1",
-      title: "First equal date post",
+      id: "art-equal-date-b",
+      title: "Second equal date post",
       published_at: "2026-04-02T10:00:00Z",
     };
     const secondEqualDateArticle: ArticleDto = {
       ...articles[0],
-      id: "art-equal-date-2",
-      title: "Second equal date post",
+      id: "art-equal-date-a",
+      title: "First equal date post",
+      published_at: "2026-04-02T10:00:00Z",
+    };
+    const sameTitleEqualDateArticle: ArticleDto = {
+      ...articles[0],
+      id: "art-equal-date-c",
+      title: "First equal date post",
       published_at: "2026-04-02T10:00:00Z",
     };
     const newerValidArticle: ArticleDto = {
@@ -367,24 +373,24 @@ describe("subscriptions index helpers", () => {
     expect(
       buildSubscriptionDetailMetrics({
         feed: feeds[0],
-        articles: [firstEqualDateArticle, secondEqualDateArticle],
+        articles: [firstEqualDateArticle, sameTitleEqualDateArticle, secondEqualDateArticle],
         feedArticleSummary: feedArticleSummaryMap.get("feed-stale") ?? null,
       }).previewArticles.map((article) => article.id),
-    ).toEqual([firstEqualDateArticle.id, secondEqualDateArticle.id]);
+    ).toEqual([secondEqualDateArticle.id, sameTitleEqualDateArticle.id]);
   });
 
-  it("keeps invalid detail preview date ties in input order behind valid articles", () => {
+  it("keeps invalid detail preview date ties sorted by title behind valid articles", () => {
     const firstInvalidArticle: ArticleDto = {
       ...articles[0],
       id: "art-invalid-date-1",
-      title: "First invalid date post",
+      title: "Second invalid date post",
       published_at: "not-a-date",
     };
     const secondInvalidArticle: ArticleDto = {
       ...articles[0],
       id: "art-invalid-date-2",
-      title: "Second invalid date post",
-      published_at: "",
+      title: "First invalid date post",
+      published_at: "also-not-a-date",
     };
     const validArticle: ArticleDto = {
       ...articles[0],
@@ -399,7 +405,7 @@ describe("subscriptions index helpers", () => {
         articles: [firstInvalidArticle, secondInvalidArticle, validArticle],
         feedArticleSummary: feedArticleSummaryMap.get("feed-stale") ?? null,
       }).previewArticles.map((article) => article.id),
-    ).toEqual([validArticle.id, firstInvalidArticle.id]);
+    ).toEqual([validArticle.id, secondInvalidArticle.id]);
   });
 
   it("falls back to articles for missing detail summaries and preserves summary priority when present", () => {
@@ -557,6 +563,45 @@ describe("subscriptions index helpers", () => {
         feedArticleSummaryMap,
       }),
     ).toBeNull();
+  });
+
+  it("groups feeds with missing folder ids into the no-folder bucket", () => {
+    const staleFolderFeed: FeedDto = {
+      ...feeds[0],
+      id: "feed-missing-folder-a",
+      folder_id: "folder-deleted-a",
+      title: "Missing folder A",
+    };
+    const otherStaleFolderFeed: FeedDto = {
+      ...feeds[0],
+      id: "feed-missing-folder-b",
+      folder_id: "folder-deleted-b",
+      title: "Missing folder B",
+    };
+    const rows = buildSubscriptionListRows({
+      feeds: [staleFolderFeed, otherStaleFolderFeed, feeds[1]],
+      candidateMap: new Map(),
+      feedArticleSummaryMap,
+      folderNameById: new Map(),
+    });
+    const groups = buildSubscriptionListGroups(rows, "No folder");
+
+    expect(rows.map((row) => ({ feedId: row.feed.id, folderId: row.folderId, folderName: row.folderName }))).toEqual([
+      { feedId: "feed-missing-folder-a", folderId: null, folderName: null },
+      { feedId: "feed-missing-folder-b", folderId: null, folderName: null },
+      { feedId: "feed-active", folderId: null, folderName: null },
+    ]);
+    expect(groups).toHaveLength(1);
+    expect(groups[0]).toMatchObject({
+      key: "subscription-list:0-sentinel:no-folder",
+      label: "No folder",
+      folderId: null,
+    });
+    expect(groups[0]?.rows.map((row) => row.feed.id)).toEqual([
+      "feed-missing-folder-a",
+      "feed-missing-folder-b",
+      "feed-active",
+    ]);
   });
 
   it("resolves row reason tooltip keys from flagged status or missing article history", () => {

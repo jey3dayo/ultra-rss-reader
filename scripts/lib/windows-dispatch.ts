@@ -13,6 +13,10 @@ const WINDOWS_DISPATCH_ENV_ALLOWLIST = [
   { key: "TAURI_DEV_PORT", kind: "passthrough" },
   { key: "VITE_DEV_INTENT", kind: "passthrough" },
   { key: "VITE_DEV_WEB_URL", kind: "passthrough" },
+  { key: "VITE_DEV_WINDOW_HEIGHT", kind: "passthrough" },
+  { key: "VITE_DEV_WINDOW_WIDTH", kind: "passthrough" },
+  { key: "VITE_ULTRA_RSS_DEV_INTENT", kind: "passthrough" },
+  { key: "VITE_ULTRA_RSS_DEV_WEB_URL", kind: "passthrough" },
 ] as const satisfies readonly WindowsDispatchEnvRule[];
 const EXPLICIT_FORWARDED_ENV_KEYS: ReadonlyMap<string, WindowsDispatchEnvRule> = new Map<
   string,
@@ -41,6 +45,64 @@ export type SpawnSpec = {
   env?: NodeJS.ProcessEnv;
   shell?: boolean;
 };
+
+type SignalForwardingChild = {
+  killed: boolean;
+  pid?: number;
+  kill(signal: NodeJS.Signals): boolean;
+};
+
+type SignalForwardingProcess = {
+  platform?: NodeJS.Platform;
+  on(signal: NodeJS.Signals, listener: (signal: NodeJS.Signals) => void): void;
+  off(signal: NodeJS.Signals, listener: (signal: NodeJS.Signals) => void): void;
+  kill(pid: number, signal: NodeJS.Signals): boolean;
+};
+
+export function shouldSpawnDetachedForSignalForwarding(platform: NodeJS.Platform = process.platform): boolean {
+  return platform !== "win32";
+}
+
+export function forwardSignalToChildProcessGroup(
+  child: SignalForwardingChild,
+  signal: NodeJS.Signals,
+  targetProcess: Pick<SignalForwardingProcess, "kill" | "platform"> = process,
+): void {
+  if (child.killed) {
+    return;
+  }
+
+  if ((targetProcess.platform ?? process.platform) !== "win32" && typeof child.pid === "number") {
+    try {
+      targetProcess.kill(-child.pid, signal);
+      return;
+    } catch {
+      // The group may be gone already; fall back to the direct child handle.
+    }
+  }
+
+  child.kill(signal);
+}
+
+export function installSignalForwarding(
+  child: SignalForwardingChild,
+  targetProcess: SignalForwardingProcess = process,
+  signals: readonly NodeJS.Signals[] = ["SIGINT", "SIGTERM"],
+): () => void {
+  const forwardSignal = (signal: NodeJS.Signals): void => {
+    forwardSignalToChildProcessGroup(child, signal, targetProcess);
+  };
+
+  for (const signal of signals) {
+    targetProcess.on(signal, forwardSignal);
+  }
+
+  return () => {
+    for (const signal of signals) {
+      targetProcess.off(signal, forwardSignal);
+    }
+  };
+}
 
 export type WslEnvironmentOptions = {
   platform?: NodeJS.Platform;

@@ -249,6 +249,22 @@ describe("use-command-history", () => {
     expect(warn).toHaveBeenCalledTimes(1);
   });
 
+  it("redacts storage failure diagnostic details", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("quota exceeded for https://example.com/path/token-abc?secret=123#frag TOKEN=abc123");
+    });
+
+    addToHistory("feed-1");
+
+    expect(warn).toHaveBeenCalledWith(
+      "Failed to write command history to localStorage.",
+      expect.objectContaining({
+        message: "quota exceeded for https://example.com/redacted?redacted#redacted TOKEN=<redacted>",
+      }),
+    );
+  });
+
   it("can reset command history warning once cache between recovery checks", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {

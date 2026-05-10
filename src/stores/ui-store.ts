@@ -70,6 +70,49 @@ function getSettingsAccountsViewState(
   };
 }
 
+function isSettingsSetupLocked(
+  state: Pick<
+    UiState,
+    "accountSetupSession" | "settingsOpen" | "settingsCategory" | "settingsAccountId" | "settingsAddAccount"
+  >,
+): boolean {
+  const { accountSetupSession } = state;
+  if (!state.settingsOpen || accountSetupSession === null) {
+    return false;
+  }
+
+  if (accountSetupSession.state === "verifying") {
+    return state.settingsCategory === "accounts" && state.settingsAddAccount;
+  }
+
+  return (
+    (accountSetupSession.state === "syncing" || accountSetupSession.state === "failed") &&
+    state.settingsCategory === "accounts" &&
+    state.settingsAccountId === accountSetupSession.accountId
+  );
+}
+
+function canApplySettingsAccountTransition(
+  state: Pick<
+    UiState,
+    "accountSetupSession" | "settingsOpen" | "settingsCategory" | "settingsAccountId" | "settingsAddAccount"
+  >,
+  accountId: string | null,
+  addAccount: boolean,
+): boolean {
+  if (!isSettingsSetupLocked(state)) {
+    return true;
+  }
+
+  const { accountSetupSession } = state;
+  return (
+    accountSetupSession !== null &&
+    !addAccount &&
+    accountSetupSession.state !== "verifying" &&
+    accountSetupSession.accountId === accountId
+  );
+}
+
 function getResetBrowserState() {
   return {
     browserUrl: null,
@@ -804,48 +847,79 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
   openSettings: (tab?: SettingsCategory) =>
     set((s) => ({
       settingsOpen: true,
-      settingsCategory: tab ?? s.settingsCategory,
+      settingsCategory: isSettingsSetupLocked(s) ? s.settingsCategory : (tab ?? s.settingsCategory),
     })),
   openAddFeedDialog: () => set({ isAddFeedDialogOpen: true }),
   closeAddFeedDialog: () => set({ isAddFeedDialogOpen: false }),
   closeSettings: () =>
-    set({
-      settingsOpen: false,
-      settingsCategory: "general",
-      settingsAccountId: null,
-      settingsAddAccount: false,
-      settingsAddAccountInitialKind: null,
-      settingsLoading: false,
-    }),
+    set((state) =>
+      isSettingsSetupLocked(state)
+        ? state
+        : {
+            settingsOpen: false,
+            settingsCategory: "general",
+            settingsAccountId: null,
+            settingsAddAccount: false,
+            settingsAddAccountInitialKind: null,
+            settingsLoading: false,
+          },
+    ),
   setSettingsCategory: (cat) =>
-    set({
-      settingsCategory: cat,
-      settingsAccountId: null,
-      settingsAddAccount: false,
-      settingsAddAccountInitialKind: null,
-    }),
+    set((state) =>
+      isSettingsSetupLocked(state)
+        ? state
+        : {
+            settingsCategory: cat,
+            settingsAccountId: null,
+            settingsAddAccount: false,
+            settingsAddAccountInitialKind: null,
+          },
+    ),
   openSettingsAccount: (id) =>
-    set({
-      settingsOpen: true,
-      settingsCategory: "accounts",
-      ...getSettingsAccountsViewState(id, false),
-    }),
+    set((state) =>
+      !canApplySettingsAccountTransition(state, id, false)
+        ? state
+        : {
+            settingsOpen: true,
+            settingsCategory: "accounts",
+            ...getSettingsAccountsViewState(id, false),
+          },
+    ),
   openSettingsAddAccount: (initialKind) =>
-    set({
-      settingsOpen: true,
-      settingsCategory: "accounts",
-      ...getSettingsAccountsViewState(null, true, initialKind ?? null),
-    }),
-  setSettingsAccountId: (id) => set(getSettingsAccountsViewState(id, false)),
-  setSettingsAddAccount: (show, initialKind) => set(getSettingsAccountsViewState(null, show, initialKind ?? null)),
+    set((state) =>
+      isSettingsSetupLocked(state)
+        ? state
+        : {
+            settingsOpen: true,
+            settingsCategory: "accounts",
+            ...getSettingsAccountsViewState(null, true, initialKind ?? null),
+          },
+    ),
+  setSettingsAccountId: (id) =>
+    set((state) =>
+      canApplySettingsAccountTransition(state, id, false) ? getSettingsAccountsViewState(id, false) : state,
+    ),
+  setSettingsAddAccount: (show, initialKind) =>
+    set((state) =>
+      canApplySettingsAccountTransition(state, null, show)
+        ? getSettingsAccountsViewState(null, show, initialKind ?? null)
+        : state,
+    ),
   setSettingsAccountsView: (accountId, addAccount, initialKind) =>
-    set(getSettingsAccountsViewState(accountId, addAccount, initialKind ?? null)),
+    set((state) =>
+      canApplySettingsAccountTransition(state, accountId, addAccount)
+        ? getSettingsAccountsViewState(accountId, addAccount, initialKind ?? null)
+        : state,
+    ),
   setSettingsLoading: (loading) => set({ settingsLoading: loading }),
   openSubscriptionsIndex: (returnState) =>
     set({
       accountPaneOpen: false,
       subscriptionsWorkspace: returnState
-        ? { kind: "index", returnState: SubscriptionsWorkspaceReturnStateSchema.parse(returnState) }
+        ? {
+            kind: "index",
+            returnState: SubscriptionsWorkspaceReturnStateSchema.parse(returnState),
+          }
         : { kind: "index" },
       focusedPane: "content",
     }),

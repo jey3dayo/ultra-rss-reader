@@ -184,6 +184,18 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
     [listLayoutGeneration, viewportHeight],
   );
 
+  const updateSortKey = useCallback(
+    (nextSortKey: SubscriptionSortKey) => {
+      setSortKey(nextSortKey);
+      setListScrollState({
+        scrollTop: 0,
+        layoutGeneration: listLayoutGeneration,
+        viewportHeight,
+      });
+    },
+    [listLayoutGeneration, viewportHeight],
+  );
+
   useEffect(() => {
     setListScrollState((current) => {
       if (!listLayoutReady) {
@@ -238,7 +250,7 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
       }),
     setSearchQuery: updateSearchQuery,
     setSelectedFeedId,
-    setSortKey,
+    setSortKey: updateSortKey,
     markSelectedFeedDeferred: () => {
       updateSelectedFeedDecision({
         selectedFeedId,

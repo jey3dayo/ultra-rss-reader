@@ -294,6 +294,60 @@ describe("useSubscriptionsIndexState", () => {
     expect(result.current.listScrollTop).toBe(0);
   });
 
+  it("keeps search and sort as local state and resets scroll when sort changes", () => {
+    const { result } = renderHook(() => useSubscriptionsIndexState([makeRow("feed-first")]));
+
+    expect(result.current.searchQuery).toBe("");
+    expect(result.current.sortKey).toBe("title");
+
+    act(() => {
+      result.current.setSearchQuery("first");
+      result.current.setSortKey("updated_at");
+      result.current.setListScrollTop(72);
+    });
+
+    expect(result.current.searchQuery).toBe("first");
+    expect(result.current.sortKey).toBe("updated_at");
+    expect(result.current.listScrollTop).toBe(72);
+
+    act(() => {
+      result.current.setSortKey("unread_count");
+    });
+
+    expect(result.current.sortKey).toBe("unread_count");
+    expect(result.current.listScrollTop).toBe(0);
+  });
+
+  it("does not restore search and sort from return state across hook remounts", () => {
+    const firstRow = makeRow("feed-first");
+    const secondRow = makeRow("feed-second");
+    const { result, unmount } = renderHook(() => useSubscriptionsIndexState([secondRow, firstRow]));
+
+    act(() => {
+      result.current.setSearchQuery("second");
+      result.current.setSortKey("updated_at");
+    });
+
+    expect(result.current.searchQuery).toBe("second");
+    expect(result.current.sortKey).toBe("updated_at");
+    expect(result.current.visibleRows.map((row) => row.feed.id)).toEqual(["feed-second"]);
+
+    unmount();
+
+    const restored = renderHook(() =>
+      useSubscriptionsIndexState([secondRow, firstRow], {
+        initialSelectedFeedId: "feed-second",
+      }),
+    );
+
+    expect(restored.result.current.searchQuery).toBe("");
+    expect(restored.result.current.sortKey).toBe("title");
+    expect(restored.result.current.visibleRows.map((row) => row.feed.id)).toEqual(["feed-first", "feed-second"]);
+    expect(restored.result.current.selectedFeedId).toBe("feed-second");
+
+    restored.unmount();
+  });
+
   it("keeps kept and deferred decisions mutually exclusive for the selected row", () => {
     const reviewRow = makeRow("feed-review", {
       tone: "medium",

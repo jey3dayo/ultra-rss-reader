@@ -43,6 +43,35 @@ function createStoryRenderContext<TArgs extends StoryArgs>(
   } satisfies StoryRenderContext<TArgs>;
 }
 
+function isPlainStoryParametersObject(value: unknown): value is StoryParameters {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false;
+  }
+
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+
+function mergeStoryParameters(...parameterSources: Array<StoryParameters | undefined>): StoryParameters {
+  const mergedParameters: StoryParameters = {};
+
+  for (const parameters of parameterSources) {
+    if (parameters === undefined) {
+      continue;
+    }
+
+    for (const [key, value] of Object.entries(parameters)) {
+      const previousValue = mergedParameters[key];
+      mergedParameters[key] =
+        isPlainStoryParametersObject(previousValue) && isPlainStoryParametersObject(value)
+          ? mergeStoryParameters(previousValue, value)
+          : value;
+    }
+  }
+
+  return mergedParameters;
+}
+
 function mergeStoryRenderContext<TArgs extends StoryArgs>(
   context: StoryContext<TArgs>,
   update: StoryRenderContextUpdate<TArgs> | undefined,
@@ -53,7 +82,7 @@ function mergeStoryRenderContext<TArgs extends StoryArgs>(
 
   return createStoryRenderContext(
     mergePartialStoryArgsShape(context.args, update.args) as TArgs,
-    { ...context.parameters, ...(update.parameters ?? {}) },
+    mergeStoryParameters(context.parameters, update.parameters),
     { ...context.globals, ...(update.globals ?? {}) },
   ) as StoryContext<TArgs>;
 }
@@ -82,11 +111,7 @@ function resolveStoryFromStorybookBoundary<TArgs extends StoryArgs>(
   story: StoryLike<TArgs>,
 ): ResolvedStoryFromStorybookBoundary<TArgs> {
   const args = mergePartialStoryArgsShape(meta.args, story.args) as TArgs;
-  const parameters = {
-    ...(preview.parameters ?? {}),
-    ...(meta.parameters ?? {}),
-    ...(story.parameters ?? {}),
-  };
+  const parameters = mergeStoryParameters(preview.parameters, meta.parameters, story.parameters);
   const globals = { ...(meta.globals ?? {}), ...(story.globals ?? {}) };
   const context = createStoryRenderContext(args, parameters, globals) as StoryContext<TArgs>;
 

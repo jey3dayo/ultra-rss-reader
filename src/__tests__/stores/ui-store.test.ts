@@ -467,7 +467,10 @@ describe("useUiStore", () => {
     useUiStore.getState().clearSelectedAccount();
     expect(useUiStore.getState().expandedFolderIds).toEqual(new Set());
 
-    useUiStore.setState({ selectedAccountId: "acc-3", expandedFolderIds: new Set(["folder-4"]) });
+    useUiStore.setState({
+      selectedAccountId: "acc-3",
+      expandedFolderIds: new Set(["folder-4"]),
+    });
     useUiStore.getState().handleAccountDeleted("acc-3", ["acc-4"]);
     expect(useUiStore.getState().expandedFolderIds).toEqual(new Set());
   });
@@ -554,6 +557,58 @@ describe("useUiStore", () => {
       state: "failed",
       errorMessage: "Sync failed",
     });
+  });
+
+  it("keeps add-account verification locked at the settings store action boundary", () => {
+    useUiStore.setState({
+      settingsOpen: true,
+      settingsCategory: "accounts",
+      settingsAccountId: null,
+      settingsAddAccount: true,
+      settingsAddAccountInitialKind: "FreshRss",
+    });
+    useUiStore.getState().startAccountSetupVerification();
+
+    useUiStore.getState().closeSettings();
+    useUiStore.getState().setSettingsCategory("reading");
+    useUiStore.getState().openSettingsAccount("acc-1");
+    useUiStore.getState().setSettingsAccountsView("acc-1", false);
+
+    expect(useUiStore.getState()).toEqual(
+      expect.objectContaining({
+        settingsOpen: true,
+        settingsCategory: "accounts",
+        settingsAccountId: null,
+        settingsAddAccount: true,
+        settingsAddAccountInitialKind: "FreshRss",
+      }),
+    );
+  });
+
+  it("keeps tracked account setup locked while allowing the active setup account transition", () => {
+    useUiStore.setState({
+      settingsOpen: true,
+      settingsCategory: "accounts",
+      settingsAccountId: null,
+      settingsAddAccount: true,
+    });
+    useUiStore.getState().startAccountSetup("acc-1");
+
+    useUiStore.getState().setSettingsAccountsView("acc-1", false);
+    useUiStore.getState().closeSettings();
+    useUiStore.getState().openSettingsAccount("acc-2");
+    useUiStore.getState().openSettingsAddAccount();
+    useUiStore.getState().setSettingsCategory("reading");
+
+    expect(useUiStore.getState()).toEqual(
+      expect.objectContaining({
+        settingsOpen: true,
+        settingsCategory: "accounts",
+        settingsAccountId: "acc-1",
+        settingsAddAccount: false,
+        settingsAddAccountInitialKind: null,
+      }),
+    );
   });
 
   it("keeps account setup owner transitions scoped to the active setup session", () => {
@@ -676,6 +731,24 @@ describe("useUiStore", () => {
         },
         keptFeedIds: [],
         deferredFeedIds: [],
+      }).success,
+    ).toBe(false);
+
+    expect(
+      SubscriptionsWorkspaceReturnStateSchema.safeParse({
+        accountId: "acc-1",
+        activeSummaryFilter: "stale",
+        selectedFeedId: "feed-1",
+        expandedGroups: {},
+        listScrollTop: {
+          scrollTop: 18,
+          layoutGeneration: "feed-1",
+          viewportHeight: 720,
+        },
+        keptFeedIds: [],
+        deferredFeedIds: [],
+        searchQuery: "do-not-restore",
+        sortKey: "updated_at",
       }).success,
     ).toBe(false);
 
@@ -835,7 +908,10 @@ describe("useUiStore", () => {
 
     useUiStore.getState().handleTagDeleted("tag-2");
 
-    expect(useUiStore.getState().selection).toEqual({ type: "tag", tagId: "tag-1" });
+    expect(useUiStore.getState().selection).toEqual({
+      type: "tag",
+      tagId: "tag-1",
+    });
     expect(useUiStore.getState().browserUrl).toBe("https://example.com/preview");
 
     useUiStore.getState().handleTagDeleted("tag-1");
@@ -1180,6 +1256,39 @@ describe("useUiStore", () => {
     expect(useUiStore.getState().settingsAccountId).toBeNull();
     expect(useUiStore.getState().settingsAddAccount).toBe(false);
     expect(useUiStore.getState().settingsAddAccountInitialKind).toBeNull();
+  });
+
+  it("blocks user-facing settings navigation actions while account setup is locked", () => {
+    useUiStore.setState({
+      settingsOpen: true,
+      settingsCategory: "accounts",
+      settingsAccountId: "acc-setup",
+      settingsAddAccount: false,
+      accountSetupSession: {
+        accountId: "acc-setup",
+        owner: "account-detail",
+        state: "syncing",
+      },
+    });
+
+    useUiStore.getState().closeSettings();
+    useUiStore.getState().setSettingsCategory("reading");
+    useUiStore.getState().openSettingsAccount("acc-other");
+    useUiStore.getState().openSettingsAddAccount("FreshRss");
+    useUiStore.getState().setSettingsAccountId("acc-other");
+    useUiStore.getState().setSettingsAddAccount(true);
+
+    expect(getSettingsStateSnapshot(useUiStore.getState())).toEqual({
+      settingsOpen: true,
+      settingsCategory: "accounts",
+      settingsAccountId: "acc-setup",
+      settingsAddAccount: false,
+      settingsAddAccountInitialKind: null,
+      settingsLoading: false,
+    });
+
+    useUiStore.getState().setSettingsAccountsView("acc-setup", false);
+    expect(useUiStore.getState().settingsAccountId).toBe("acc-setup");
   });
 
   it("replaces the previous toast dismiss timer when showing another transient toast", () => {

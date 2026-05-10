@@ -1,4 +1,5 @@
 import { MAX_COMMAND_HISTORY_STORAGE_LENGTH, STORAGE_KEYS } from "@/constants/storage";
+import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
 import { CommandHistoryStorageSchema } from "@/schemas/storage";
 import { parseCommandPaletteHistoryEntry } from "../../command-palette-history";
 
@@ -14,14 +15,6 @@ export function resetCommandHistoryStorageFailureWarnings(): void {
   warnedStorageFailureKinds.clear();
 }
 
-function logCommandHistoryStorageFailure(message: string, error: unknown): void {
-  if (!import.meta.env.DEV) {
-    return;
-  }
-
-  console.warn(message, error);
-}
-
 function warnCommandHistoryStorageFailureOnce(
   kind: CommandHistoryStorageFailureKind,
   message: string,
@@ -32,7 +25,7 @@ function warnCommandHistoryStorageFailureOnce(
   }
 
   warnedStorageFailureKinds.add(kind);
-  logCommandHistoryStorageFailure(message, error);
+  logRuntimeDiagnostic("command-history-storage", message, error);
 }
 
 function readStorage(): Storage | null {

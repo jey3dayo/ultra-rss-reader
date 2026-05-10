@@ -1318,7 +1318,9 @@ describe("repository static contracts", () => {
     const renderStoryHelperSource = readRepoFile("tests/helpers/render-story.tsx");
 
     expect(renderStoryHelperSource).toContain('import preview from "../../.storybook/preview"');
-    expect(renderStoryHelperSource).toContain("...(preview.parameters ?? {})");
+    expect(renderStoryHelperSource).toContain(
+      "mergeStoryParameters(preview.parameters, meta.parameters, story.parameters)",
+    );
     expect(renderStoryHelperSource).toContain("...collectStoryDecorators<TArgs>(preview.decorators)");
   });
 

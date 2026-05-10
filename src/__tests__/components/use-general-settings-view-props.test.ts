@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { useGeneralSettingsViewProps as buildGeneralSettingsViewProps } from "@/components/settings/hooks/use-general-settings-view-props";
 import i18n from "@/lib/i18n";
+import { i18nResourceLocales } from "@/lib/i18n-resources";
+import { languagePreferenceValues, preferenceSchemas } from "@/schemas/preferences";
 
 const t = i18n.getFixedT("en", "settings");
 const tJa = i18n.getFixedT("ja", "settings");
@@ -88,6 +90,17 @@ describe("useGeneralSettingsViewProps", () => {
       vi.doUnmock("@/lib/i18n");
       vi.resetModules();
     }
+  });
+
+  it("keeps language settings options aligned with preference schema and locale resources", () => {
+    const languageValues = getLanguageControl().options.map((option) => option.value);
+
+    expect(languagePreferenceValues).toEqual(["system", ...i18nResourceLocales]);
+    expect(languageValues).toEqual([...languagePreferenceValues]);
+    for (const language of languageValues) {
+      expect(preferenceSchemas.language.safeParse(language).success).toBe(true);
+    }
+    expect(preferenceSchemas.language.safeParse("fr").success).toBe(false);
   });
 
   it("writes app startup sync from the general sync section", () => {

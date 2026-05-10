@@ -110,4 +110,32 @@ describe("browser webview history helpers", () => {
     expect(Result.isFailure(result)).toBe(true);
     expect(Result.unwrapError(result).message).toBe("iframe not found");
   });
+
+  it("reports a typed failure when the iframe owner document is unavailable", async () => {
+    const originalDocument = document;
+    vi.stubGlobal("document", undefined);
+
+    try {
+      const result = await webviewHistory.goBackInWebview();
+
+      expect(Result.isFailure(result)).toBe(true);
+      expect(Result.unwrapError(result).message).toBe("document unavailable");
+    } finally {
+      vi.stubGlobal("document", originalDocument);
+    }
+  });
+
+  it("reports a typed failure when the iframe history runtime is unavailable", async () => {
+    const iframe = document.createElement("iframe");
+    Object.defineProperty(iframe, "contentWindow", {
+      configurable: true,
+      value: null,
+    });
+    document.body.append(iframe);
+
+    const result = await webviewHistory.goForwardInWebview();
+
+    expect(Result.isFailure(result)).toBe(true);
+    expect(Result.unwrapError(result).message).toBe("iframe runtime unavailable");
+  });
 });

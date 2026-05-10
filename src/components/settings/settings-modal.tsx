@@ -204,7 +204,16 @@ function SettingsModalContent() {
     accountsSnapshotCandidate,
     accountsSnapshotCandidate !== null,
   );
-  const visibleAccounts = (accountsSnapshot ?? accounts)?.filter((account) => !deletedAccountIds.includes(account.id));
+  const hiddenAccountIds = new Set(deletedAccountIds);
+  if (accounts && accountsSnapshot) {
+    const liveAccountIds = new Set(accounts.map((account) => account.id));
+    for (const snapshotAccount of accountsSnapshot) {
+      if (!liveAccountIds.has(snapshotAccount.id)) {
+        hiddenAccountIds.add(snapshotAccount.id);
+      }
+    }
+  }
+  const visibleAccounts = (accountsSnapshot ?? accounts)?.filter((account) => !hiddenAccountIds.has(account.id));
   const activeSetupAccountId =
     accountSetupSession !== null &&
     accountSetupSession.state !== "verifying" &&

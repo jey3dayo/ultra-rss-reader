@@ -89,7 +89,9 @@ describe("SettingsModal", () => {
 
     render(<SettingsModal />, { wrapper: createWrapper() });
 
-    const accountButtons = await screen.findAllByRole("button", { name: /FreshRSS/i });
+    const accountButtons = await screen.findAllByRole("button", {
+      name: /FreshRSS/i,
+    });
     await user.click(accountButtons[accountButtons.length - 1] ?? accountButtons[0]);
 
     await waitFor(() => {
@@ -167,7 +169,9 @@ describe("SettingsModal", () => {
 
     render(<SettingsModal />, { wrapper: createWrapper() });
 
-    const accountButtons = await screen.findAllByRole("button", { name: /FreshRSS/i });
+    const accountButtons = await screen.findAllByRole("button", {
+      name: /FreshRSS/i,
+    });
     await user.click(accountButtons[accountButtons.length - 1] ?? accountButtons[0]);
 
     await waitFor(() => {
@@ -195,7 +199,9 @@ describe("SettingsModal", () => {
 
     render(<SettingsModal />, { wrapper: createWrapper() });
 
-    const addAccountButtons = await screen.findAllByRole("button", { name: /Add account/i });
+    const addAccountButtons = await screen.findAllByRole("button", {
+      name: /Add account/i,
+    });
     await user.click(addAccountButtons[addAccountButtons.length - 1] ?? addAccountButtons[0]);
 
     await waitFor(() => {
@@ -341,7 +347,9 @@ describe("SettingsModal", () => {
   it("renders the shortcuts category with an svg icon", async () => {
     render(<SettingsModal />, { wrapper: createWrapper() });
 
-    const shortcutsButton = await screen.findByRole("button", { name: /Shortcuts/i });
+    const shortcutsButton = await screen.findByRole("button", {
+      name: /Shortcuts/i,
+    });
 
     expect(shortcutsButton.querySelector("svg")).not.toBeNull();
     expect(shortcutsButton).not.toHaveTextContent("⌘");
@@ -466,8 +474,12 @@ describe("SettingsModal", () => {
 
     await user.click(screen.getByRole("button", { name: "Edit Tech" }));
 
-    const renameDialog = await screen.findByRole("dialog", { name: "Edit Tag" });
-    const renameInput = within(renameDialog).getByRole("textbox", { name: "Name" });
+    const renameDialog = await screen.findByRole("dialog", {
+      name: "Edit Tag",
+    });
+    const renameInput = within(renameDialog).getByRole("textbox", {
+      name: "Name",
+    });
 
     await user.clear(renameInput);
     await user.type(renameInput, "Tech News");
@@ -478,8 +490,14 @@ describe("SettingsModal", () => {
 
     await user.click(screen.getByRole("button", { name: "Delete Later" }));
 
-    const deleteDialog = await screen.findByRole("dialog", { name: "Delete Tag" });
-    await user.click(within(deleteDialog).getByRole("button", { name: 'Delete "Later". This cannot be undone.' }));
+    const deleteDialog = await screen.findByRole("dialog", {
+      name: "Delete Tag",
+    });
+    await user.click(
+      within(deleteDialog).getByRole("button", {
+        name: 'Delete "Later". This cannot be undone.',
+      }),
+    );
 
     await waitFor(() => {
       expect(screen.queryByText("Later")).not.toBeInTheDocument();
@@ -546,6 +564,31 @@ describe("SettingsModal", () => {
     expect(screen.getByRole("button", { name: /FreshRSS/i })).toHaveClass("text-[var(--sidebar-selection-foreground)]");
   });
 
+  it("hides an account that disappears by refetch before the adopted snapshot updates", async () => {
+    usePreferencesStore.setState({
+      prefs: { selected_account_id: "acc-1" },
+      loaded: true,
+    });
+    useUiStore.setState(useUiStore.getInitialState());
+    useUiStore.getState().openSettings("accounts");
+
+    const { queryClient, wrapper } = createQueryWrapper();
+    render(<SettingsModal />, { wrapper });
+
+    expect(await screen.findByRole("heading", { level: 2, name: "Local" })).toBeInTheDocument();
+
+    await act(async () => {
+      queryClient?.setQueryData(["accounts"], [sampleAccounts[1]]);
+    });
+
+    expect(screen.queryByRole("heading", { level: 2, name: "Local" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Local/i })).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(useUiStore.getState().settingsAccountId).toBe("acc-2");
+    });
+    expect(screen.getByRole("heading", { level: 2, name: "FreshRSS" })).toBeInTheDocument();
+  });
+
   it("does not keep showing a deleted account while accounts are pending after delete", async () => {
     const user = userEvent.setup();
     const { queryClient, wrapper } = createQueryWrapper();
@@ -581,7 +624,9 @@ describe("SettingsModal", () => {
 
     expect(await screen.findByRole("heading", { level: 2, name: "Local" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Delete Account" }));
-    const confirmDialog = await screen.findByRole("dialog", { name: "Confirm" });
+    const confirmDialog = await screen.findByRole("dialog", {
+      name: "Confirm",
+    });
     const confirmDeleteButton = within(confirmDialog).getByRole("button", {
       name: /^Delete\b/,
     });
@@ -750,7 +795,9 @@ describe("SettingsModal", () => {
 
     render(<ReadingSettings />, { wrapper: createWrapper() });
 
-    const combobox = screen.getByRole("combobox", { name: "Display when opening articles" });
+    const combobox = screen.getByRole("combobox", {
+      name: "Display when opening articles",
+    });
     expect(combobox).toHaveAttribute("aria-expanded", "false");
 
     await user.click(combobox);
@@ -788,7 +835,9 @@ describe("SettingsModal", () => {
 
     render(<ReadingSettings />, { wrapper: createWrapper() });
 
-    const autoOpenSwitch = screen.getByRole("switch", { name: "Open the first article when selecting a feed" });
+    const autoOpenSwitch = screen.getByRole("switch", {
+      name: "Open the first article when selecting a feed",
+    });
     expect(autoOpenSwitch).not.toBeChecked();
 
     await user.click(autoOpenSwitch);
@@ -810,10 +859,16 @@ describe("SettingsModal", () => {
 
     render(<ReadingSettings />, { wrapper: createWrapper() });
 
-    const historySwitch = screen.getByRole("switch", { name: "Record recently viewed articles" });
+    const historySwitch = screen.getByRole("switch", {
+      name: "Record recently viewed articles",
+    });
     expect(historySwitch).toBeChecked();
     expect(screen.getByRole("button", { name: "Clear recently viewed history" })).toBeInTheDocument();
-    expect(screen.getByRole("switch", { name: "Open the first article when selecting a feed" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("switch", {
+        name: "Open the first article when selecting a feed",
+      }),
+    ).toBeInTheDocument();
 
     await user.click(historySwitch);
 

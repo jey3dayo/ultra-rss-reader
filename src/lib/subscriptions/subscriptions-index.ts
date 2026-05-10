@@ -447,14 +447,15 @@ export function buildSubscriptionListRows({
 }): SubscriptionListRow[] {
   return feeds.map((feed) => {
     const latestArticleAt = feedArticleSummaryMap.get(feed.id)?.latest_article_at ?? null;
+    const folderName = feed.folder_id ? (folderNameById.get(feed.folder_id) ?? null) : null;
     const status = resolveSubscriptionRowStatus({
       candidate: candidateMap.get(feed.id),
     });
 
     return {
       feed,
-      folderId: feed.folder_id,
-      folderName: feed.folder_id ? (folderNameById.get(feed.folder_id) ?? null) : null,
+      folderId: folderName === null ? null : feed.folder_id,
+      folderName,
       latestArticleAt,
       status,
       reasonTooltipKey: resolveSubscriptionRowReasonTooltipKey({
@@ -534,21 +535,8 @@ export function buildSubscriptionDetailMetrics({
       }
     }
 
-    let insertIndex = -1;
-    for (let index = 0; index < previewArticles.length; index += 1) {
-      if (shouldPlaceSubscriptionPreviewArticleBefore(article, previewArticles[index])) {
-        insertIndex = index;
-        break;
-      }
-    }
-    if (insertIndex === -1) {
-      if (previewArticles.length < 2) {
-        previewArticles.push(article);
-      }
-      continue;
-    }
-
-    previewArticles.splice(insertIndex, 0, article);
+    previewArticles.push(article);
+    previewArticles.sort(compareSubscriptionPreviewArticles);
     if (previewArticles.length > 2) {
       previewArticles.pop();
     }
@@ -561,16 +549,12 @@ export function buildSubscriptionDetailMetrics({
   };
 }
 
-function shouldPlaceSubscriptionPreviewArticleBefore(candidate: ArticleDto, current: ArticleDto): boolean {
-  return compareSubscriptionPreviewArticles(candidate, current) < 0;
-}
-
 function compareSubscriptionPreviewArticles(candidate: ArticleDto, current: ArticleDto): number {
   const candidateTime = getDateInputTimeMs(candidate.published_at);
   const currentTime = getDateInputTimeMs(current.published_at);
 
   if (candidateTime === null) {
-    return currentTime === null ? 0 : 1;
+    return currentTime === null ? compareSubscriptionPreviewArticleFallback(candidate, current) : 1;
   }
 
   if (currentTime === null) {
@@ -578,10 +562,19 @@ function compareSubscriptionPreviewArticles(candidate: ArticleDto, current: Arti
   }
 
   if (candidateTime === currentTime) {
-    return 0;
+    return compareSubscriptionPreviewArticleFallback(candidate, current);
   }
 
   return candidateTime > currentTime ? -1 : 1;
+}
+
+function compareSubscriptionPreviewArticleFallback(candidate: ArticleDto, current: ArticleDto): number {
+  const titleOrder = candidate.title.localeCompare(current.title);
+  if (titleOrder !== 0) {
+    return titleOrder;
+  }
+
+  return candidate.id.localeCompare(current.id);
 }
 
 export function formatSubscriptionDate(value: string | null | undefined, locale?: string): string {

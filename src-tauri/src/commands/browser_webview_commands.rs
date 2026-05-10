@@ -23,6 +23,7 @@ const BROWSER_WEBVIEW_LOAD_TIMEOUT_MS: u64 = 10_000;
 const MAX_BROWSER_WEBVIEW_BOUND_VALUE: f64 = i32::MAX as f64;
 const BROWSER_WEBVIEW_DIAGNOSTICS_COORDINATE_BUCKET: f64 = 8.0;
 const BROWSER_WEBVIEW_DIAGNOSTICS_MAX_RECT_VALUE: f64 = 10_000.0;
+const OPAQUE_BROWSER_WEBVIEW_PATH_SEGMENT_MIN_LEN: usize = 24;
 const INVALID_BROWSER_BOUNDS_ERROR: &str =
     "Embedded browser bounds must be finite, within supported coordinate limits, and have positive width/height";
 const BROWSER_WEBVIEW_NOT_OPEN_ERROR: &str = "Embedded browser webview is not open";
@@ -159,6 +160,44 @@ fn normalized_scale_factor(scale_factor: f64) -> f64 {
     }
 }
 
+fn is_uuid_like_browser_webview_path_segment(segment: &str) -> bool {
+    let bytes = segment.as_bytes();
+    if bytes.len() != 36 {
+        return false;
+    }
+
+    bytes.iter().enumerate().all(|(index, byte)| match index {
+        8 | 13 | 18 | 23 => *byte == b'-',
+        _ => byte.is_ascii_hexdigit(),
+    })
+}
+
+fn is_opaque_browser_webview_path_segment(segment: &str) -> bool {
+    segment.len() >= OPAQUE_BROWSER_WEBVIEW_PATH_SEGMENT_MIN_LEN
+        && segment.bytes().all(|byte| {
+            byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.' | b'~' | b'=')
+        })
+        && segment.bytes().any(|byte| byte.is_ascii_alphabetic())
+        && segment.bytes().any(|byte| byte.is_ascii_digit())
+}
+
+fn is_sensitive_browser_webview_path_segment(segment: &str) -> bool {
+    let normalized = segment.to_ascii_lowercase();
+    normalized.contains("token")
+        || normalized.contains("secret")
+        || normalized.contains("password")
+        || normalized.contains("credential")
+        || normalized.contains("private-key")
+        || normalized.contains("private_key")
+        || normalized.contains("apikey")
+        || normalized.contains("api-key")
+        || normalized.contains("api_key")
+        || normalized.contains("signature")
+        || normalized.contains("signed")
+        || is_uuid_like_browser_webview_path_segment(segment)
+        || is_opaque_browser_webview_path_segment(segment)
+}
+
 fn child_webview_add_child_bounds(
     bounds: BrowserWebviewBounds,
     scale_factor: f64,
@@ -177,6 +216,13 @@ fn browser_webview_log_url(url: &str) -> String {
         Ok(mut parsed) => {
             let _ = parsed.set_username("");
             let _ = parsed.set_password(None);
+            if parsed.path_segments().is_some_and(|segments| {
+                segments
+                    .into_iter()
+                    .any(is_sensitive_browser_webview_path_segment)
+            }) {
+                parsed.set_path("/redacted");
+            }
             parsed.set_query(None);
             parsed.set_fragment(None);
             parsed.to_string()
@@ -679,10 +725,6 @@ pub async fn create_or_update_browser_webview(
 
     if let Some(browser_webview) = browser_webview(&window) {
         let rect = child_webview_rect_from_browser_bounds(bounds);
-        browser_webview.set_bounds(rect).map_err(|error| {
-            browser_webview_error(format!("Failed to update embedded browser bounds: {error}"))
-        })?;
-        log_browser_webview_bounds(&window, "update", bounds, &rect);
         let current_url = browser_webview
             .url()
             .map_err(|error| browser_webview_error(format!("Failed to read browser URL: {error}")))?
@@ -702,9 +744,17 @@ pub async fn create_or_update_browser_webview(
                     "Failed to navigate embedded browser webview: {error}"
                 )));
             }
+            browser_webview.set_bounds(rect).map_err(|error| {
+                browser_webview_error(format!("Failed to update embedded browser bounds: {error}"))
+            })?;
+            log_browser_webview_bounds(&window, "update", bounds, &rect);
             return Ok(next_state);
         }
 
+        browser_webview.set_bounds(rect).map_err(|error| {
+            browser_webview_error(format!("Failed to update embedded browser bounds: {error}"))
+        })?;
+        log_browser_webview_bounds(&window, "update", bounds, &rect);
         return current_or_loading_state(state.inner(), app_handle, current_url);
     }
 
@@ -961,6 +1011,32 @@ mod tests {
             }
             other => panic!("expected user-visible empty reload source error, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn browser_webview_log_url_redacts_sensitive_path_segments_and_signed_urls() {
+        assert_eq!(
+            browser_webview_log_url(
+                "https://user:pass@example.com/token-secret/feed.xml?token=raw#fragment"
+            ),
+            "https://example.com/redacted"
+        );
+        assert_eq!(
+            browser_webview_log_url(
+                "https://cdn.example.com/download/signed/AbCdEf1234567890AbCdEf123456?expires=1"
+            ),
+            "https://cdn.example.com/redacted"
+        );
+        assert_eq!(
+            browser_webview_log_url(
+                "https://example.com/files/550e8400-e29b-41d4-a716-446655440000/report"
+            ),
+            "https://example.com/redacted"
+        );
+        assert_eq!(
+            browser_webview_log_url("https://example.com/feed/2026/05/11/article.html"),
+            "https://example.com/feed/2026/05/11/article.html"
+        );
     }
 
     #[test]

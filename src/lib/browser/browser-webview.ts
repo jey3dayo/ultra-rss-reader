@@ -16,19 +16,27 @@ type BrowserWebviewBoundsOptions = {
   scaleFactor?: number;
 };
 
-export type BrowserWebviewBoundsError = "empty_rect" | "empty_bounds";
+export type BrowserWebviewBoundsError = "empty_rect" | "empty_bounds" | "invalid_scale_factor";
+
+function getDefaultBrowserWebviewScaleFactor(): number {
+  if (typeof window === "undefined" || !Number.isFinite(window.devicePixelRatio) || window.devicePixelRatio <= 0) {
+    return BROWSER_WEBVIEW_DEFAULT_SCALE_FACTOR;
+  }
+
+  return window.devicePixelRatio;
+}
 
 export function toBrowserWebviewBoundsResult(
   rect: DOMRect,
-  {
-    unit = "logical",
-    scaleFactor = typeof window === "undefined"
-      ? BROWSER_WEBVIEW_DEFAULT_SCALE_FACTOR
-      : window.devicePixelRatio || BROWSER_WEBVIEW_DEFAULT_SCALE_FACTOR,
-  }: BrowserWebviewBoundsOptions = {},
+  options: BrowserWebviewBoundsOptions = {},
 ): Result.Result<BrowserWebviewBounds, BrowserWebviewBoundsError> {
+  const { unit = "logical", scaleFactor = getDefaultBrowserWebviewScaleFactor() } = options;
   if (rect.width <= 0 || rect.height <= 0) {
     return Result.fail("empty_rect");
+  }
+
+  if ((unit === "physical" || "scaleFactor" in options) && (!Number.isFinite(scaleFactor) || scaleFactor <= 0)) {
+    return Result.fail("invalid_scale_factor");
   }
 
   const multiplier = unit === "physical" ? scaleFactor : BROWSER_WEBVIEW_DEFAULT_SCALE_FACTOR;

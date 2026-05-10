@@ -75,6 +75,15 @@ export function mockObserverConstructors() {
   return { resizeObservers, mutationObservers };
 }
 
-export function createHookDataResult<TResult extends { data: unknown }>(data: TResult["data"]): TResult {
-  return { data } as TResult;
+export type PartialHookDataResult<TResult extends { data: unknown }> = Pick<TResult, "data"> &
+  Partial<Omit<TResult, "data">>;
+
+export function createHookDataResult<TResult extends { data: unknown }>(
+  data: TResult["data"],
+  result?: Partial<Omit<TResult, "data">>,
+): TResult {
+  return {
+    data,
+    ...result,
+  } as TResult;
 }
