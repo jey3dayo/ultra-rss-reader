@@ -1,6 +1,7 @@
 import { createTestQueryClient } from "@tests/helpers/create-wrapper";
 import { describe, expect, it } from "vitest";
 import {
+  createAppQueryClient,
   getQueryFailureUx,
   queryClient,
   queryClientDefaultOptions,
@@ -46,9 +47,25 @@ describe("query client retry policy", () => {
   it("keeps app-wide singleton reset policy explicit", () => {
     expect(queryClientLifecyclePolicy).toEqual({
       instance: "app-wide-singleton",
+      cachePersistence: "disabled",
+      bootCache: "empty-after-reload",
+      startupRefetch: "observer-driven",
       reset: "manual-clear-after-database-restore",
       remount: "reuse-existing-client",
     });
+  });
+
+  it("starts each app boot with an empty in-memory query cache instead of persisted reload state", () => {
+    const firstBootClient = createAppQueryClient();
+
+    firstBootClient.setQueryData(["accounts"], [{ id: "stale-account" }]);
+    firstBootClient.setQueryData(["feeds", "stale-account"], [{ id: "stale-feed" }]);
+
+    const reloadClient = createAppQueryClient();
+
+    expect(reloadClient.getQueryData(["accounts"])).toBeUndefined();
+    expect(reloadClient.getQueryData(["feeds", "stale-account"])).toBeUndefined();
+    expect(reloadClient.getQueryCache().getAll()).toHaveLength(0);
   });
 
   it("allows tests to override query retry when a retry-specific scenario needs it", () => {

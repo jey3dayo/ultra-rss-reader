@@ -45,10 +45,17 @@ export const queryClientDefaultOptions = {
 
 export const queryClientLifecyclePolicy = {
   instance: "app-wide-singleton",
+  cachePersistence: "disabled",
+  bootCache: "empty-after-reload",
+  startupRefetch: "observer-driven",
   reset: "manual-clear-after-database-restore",
   remount: "reuse-existing-client",
 } as const;
 
-export const queryClient = new QueryClient({
-  defaultOptions: queryClientDefaultOptions,
-});
+export function createAppQueryClient() {
+  return new QueryClient({
+    defaultOptions: queryClientDefaultOptions,
+  });
+}
+
+export const queryClient = createAppQueryClient();
