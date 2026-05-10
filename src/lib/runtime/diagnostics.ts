@@ -79,6 +79,8 @@ const URL_LIKE_TOKEN_PATTERN = /https?:\/\/[^\s<>"'`]+/gi;
 const SECRET_ASSIGNMENT_PATTERN =
   /\b([A-Z0-9_]*(?:TOKEN|SECRET|PASSWORD|CREDENTIAL|PRIVATE_KEY|API_KEY)[A-Z0-9_]*)=([^\s,;]+)/gi;
 const AUTH_HEADER_PATTERN = /\b(Bearer|Basic)\s+[A-Za-z0-9._~+/-]+=*/gi;
+const SECRET_OBJECT_KEY_PATTERN = /(?:token|secret|password|credential|privateKey|apiKey)/i;
+const SECRET_URL_PATH_SEGMENT_PATTERN = /(?:token|secret|password|credential|private[-_]?key|api[-_]?key)/i;
 
 const emittedRuntimeDiagnosticKeys = new Set<string>();
 
@@ -90,6 +92,12 @@ function redactUrlToken(value: string): string {
     const url = new URL(urlToken);
     url.username = "";
     url.password = "";
+    if (
+      url.pathname !== "/" &&
+      url.pathname.split("/").some((segment) => SECRET_URL_PATH_SEGMENT_PATTERN.test(segment))
+    ) {
+      url.pathname = "/redacted";
+    }
     if (url.search) {
       url.search = "?redacted";
     }
@@ -113,7 +121,11 @@ function isMessageRecord(value: unknown): value is { message: string } & Record<
   return typeof value === "object" && value !== null && "message" in value && typeof value.message === "string";
 }
 
-function redactRuntimeDiagnosticDetail(detail: unknown, shouldRedact: boolean): unknown {
+function redactRuntimeDiagnosticDetail(
+  detail: unknown,
+  shouldRedact: boolean,
+  seen: WeakSet<object> = new WeakSet(),
+): unknown {
   if (!shouldRedact) {
     return detail;
   }
@@ -124,25 +136,34 @@ function redactRuntimeDiagnosticDetail(detail: unknown, shouldRedact: boolean): 
 
   if (detail instanceof Error) {
     const redactedMessage = redactRuntimeDiagnosticText(detail.message);
-    if (redactedMessage === detail.message) {
+    const redactedCause =
+      "cause" in detail ? redactRuntimeDiagnosticDetail(detail.cause, shouldRedact, seen) : undefined;
+    if (redactedMessage === detail.message && redactedCause === detail.cause) {
       return detail;
     }
 
-    const redactedError = new Error(redactedMessage);
+    const redactedError =
+      "cause" in detail ? new Error(redactedMessage, { cause: redactedCause }) : new Error(redactedMessage);
     redactedError.name = detail.name;
     return redactedError;
   }
 
-  if (isMessageRecord(detail)) {
-    const redactedMessage = redactRuntimeDiagnosticText(detail.message);
-    if (redactedMessage === detail.message) {
-      return detail;
+  if (typeof detail === "object" && detail !== null) {
+    if (seen.has(detail)) {
+      return "[Circular]";
+    }
+    seen.add(detail);
+
+    if (Array.isArray(detail)) {
+      return detail.map((item) => redactRuntimeDiagnosticDetail(item, shouldRedact, seen));
     }
 
-    return {
-      ...detail,
-      message: redactedMessage,
-    };
+    return Object.fromEntries(
+      Object.entries(detail).map(([key, value]) => [
+        key,
+        SECRET_OBJECT_KEY_PATTERN.test(key) ? "<redacted>" : redactRuntimeDiagnosticDetail(value, shouldRedact, seen),
+      ]),
+    );
   }
 
   return detail;
@@ -153,7 +174,17 @@ function shouldEmitRuntimeDiagnostic(policy: RuntimeDiagnosticPolicy): boolean {
 }
 
 function runtimeDiagnosticDetailKey(detail: unknown): string {
-  return isMessageRecord(detail) ? detail.message : detail instanceof Error ? detail.message : String(detail);
+  if (isMessageRecord(detail) || detail instanceof Error) {
+    return detail.message;
+  }
+  if (typeof detail === "object" && detail !== null) {
+    try {
+      return JSON.stringify(detail);
+    } catch {
+      return "[Unserializable detail]";
+    }
+  }
+  return String(detail);
 }
 
 function runtimeDiagnosticOnceKey(
@@ -182,7 +213,9 @@ export function logRuntimeDiagnostic(
   if (policy.once && emittedRuntimeDiagnosticKeys.has(onceKey)) {
     return;
   }
-  emittedRuntimeDiagnosticKeys.add(onceKey);
+  if (policy.once) {
+    emittedRuntimeDiagnosticKeys.add(onceKey);
+  }
 
   if (redactedDetails.length === 0) {
     console[policy.console](redactedMessage);

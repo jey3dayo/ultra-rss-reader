@@ -793,6 +793,42 @@ describe("safeInvoke response validation", () => {
     errorSpy.mockRestore();
   });
 
+  it("redacts response validation diagnostics detail for nested issues and secret-like URL paths", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const account = sampleAccounts[0];
+    if (!account) {
+      throw new Error("Expected sample account fixture");
+    }
+    setupTauriMocks((cmd) => {
+      if (cmd === "list_accounts") {
+        return [
+          {
+            ...account,
+            capabilities: {
+              ...account.capabilities,
+              supports_search: "https://user:pass@example.com/token-secret/capability?token=raw#frag",
+            },
+          },
+        ];
+      }
+      return null;
+    });
+
+    const result = await listAccounts();
+
+    expect(Result.isFailure(result)).toBe(true);
+    expect(Result.unwrapError(result)).toEqual({
+      type: "Diagnostics",
+      message: "Response validation failed. See diagnostics for details.",
+    });
+    const diagnosticDetail = errorSpy.mock.calls[0]?.[1];
+    expect(diagnosticDetail).toEqual(expect.stringContaining("0.capabilities.supports_search"));
+    expect(JSON.stringify(errorSpy.mock.calls)).not.toContain("user:pass");
+    expect(JSON.stringify(errorSpy.mock.calls)).not.toContain("token-secret/capability");
+    expect(JSON.stringify(errorSpy.mock.calls)).not.toContain("token=raw");
+    errorSpy.mockRestore();
+  });
+
   it("validates account command group AccountDto responses", async () => {
     const invalidAccountDto = { id: "acc-1", kind: "Local" };
     const accountCommandCases = [

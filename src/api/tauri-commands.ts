@@ -161,6 +161,7 @@ type SchemaBackedInvokeOptions<R extends z.ZodType> = InvokeArgsOptions & {
 type GenericInvokeOptions = InvokeArgsOptions;
 
 const URL_LIKE_TOKEN_PATTERN = /https?:\/\/[^\s<>"'`]+/gi;
+const SECRET_URL_PATH_SEGMENT_PATTERN = /(?:token|secret|password|credential|private[-_]?key|api[-_]?key)/i;
 const VALIDATION_ISSUE_LIMIT = 3;
 const VALIDATION_DETAIL_MAX_LENGTH = 240;
 
@@ -182,6 +183,12 @@ function redactUrlToken(value: string): string {
     const url = new URL(urlToken);
     url.username = "";
     url.password = "";
+    if (
+      url.pathname !== "/" &&
+      url.pathname.split("/").some((segment) => SECRET_URL_PATH_SEGMENT_PATTERN.test(segment))
+    ) {
+      url.pathname = "/redacted";
+    }
     if (url.search) {
       url.search = "?redacted";
     }
