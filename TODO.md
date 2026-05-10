@@ -3430,11 +3430,6 @@
   - loader missing/copy failure が cargo warning のままだと Windows release だけ起動不能になる
   - missing source、unsupported arch、copy failure、CI release behavior、artifact contains loader の check を追加する
 
-- [ ] P2 Rust provider test HTTP server の port isolation / shutdown contract を作る
-  - 対象: `src-tauri/src/infra/provider/*` tests
-  - fixed port や server shutdown 漏れがあると parallel test で flake し、provider boundary の regression を隠す
-  - port `0` binding、parallel tests、shutdown、request timeout、panic cleanup の helper 化を行う
-
 - [ ] P2 sanitizer dependency update contract を allowed tags / attrs snapshot で固定する
   - 対象: article sanitizer、`ammonia` dependency 周辺
   - sanitizer dependency 更新で allowed tags/attrs が変わると article 表示・privacy・search text が同時に変わる
@@ -3731,11 +3726,6 @@
   - async command 内で重い SQLite 処理を直接実行すると、runtime worker を詰まらせて sync・updater・webview events が遅延する
   - list/search/export/vacuum/import/repair command の blocking classification と focused benchmark を追加する
 
-- [ ] P2 release log rotation の retention / max file / path redaction を contract 化する
-  - 対象: `src-tauri/src/lib.rs`, log plugin setup, log cleanup helpers
-  - `KeepOne` と old log cleanup の組み合わせが曖昧だと、必要な事故ログを消すか、逆に path 付き warning を残しすぎる
-  - max file size、rotation count、cleanup age、current app.log preserve、path redaction、cleanup failure の test を追加する
-
 - [ ] P2 main window close confirmation と dirty/pending state registry を native close event へ接続する
   - 対象: `src-tauri/src/lib.rs`, app shell dirty-state registry, settings/add-feed flows
   - OS の close button は frontend navigation guard を通らないため、dirty form や pending mutation を落とす可能性がある
@@ -3760,11 +3750,6 @@
   - 対象: `src-tauri/tauri*.conf.json`, startup data dir, release docs
   - bundle identifier を変えると OS app data dir が変わり、既存 DB/credentials/log が見えなくなる
   - old identifier detection、DB migration prompt、credential migration impossible copy、log path note、rollback の contract を追加する
-
-- [ ] P2 background scheduler spawned task の cancellation / panic / duplicate start を lifecycle test にする
-  - 対象: `src-tauri/src/service/sync_scheduler.rs`, `src-tauri/src/lib.rs`
-  - app setup retry や test helper で scheduler が二重起動すると、同じ account を並列 sync する可能性がある
-  - duplicate start、app exit cancellation、panic recovery、automatic_sync_enabled notify、DB lock failure の task に分ける
 
 - [ ] P2 `AppState` mutex poisoning を command surface 全体で同じ error に揃える
   - 対象: `commands::*`, `AppState`, DB/browser tracker mutex access
@@ -3800,11 +3785,6 @@
   - 対象: `src-tauri/src/menu.rs`, preference update flows
   - menu rebuild の途中失敗で checked state だけ古く残ると、frontend preference と native menu 表示がずれる
   - rebuild failure、partial menu update、checked item stale、locale switch、preference rollback の contract を追加する
-
-- [ ] P2 production log timezone strategy を UTC/local のどちらにするか support docs と同期する
-  - 対象: `src-tauri/src/lib.rs`, log docs, support workflow
-  - release log が local time だと timezone をまたぐ報告で sync/update 時刻の突合が難しくなる
-  - local timezone、UTC alternative、DST boundary、log filename/time display、support copy の policy を決める
 
 - [ ] P3 Windows dispatch env allowlist を dev credential 以外の future env 追加に備えて schema 化する
   - 対象: `scripts/lib/windows-dispatch.ts`, dev scripts
@@ -3885,11 +3865,6 @@
   - 対象: Vitest setup、Rust tests、global diagnostics/reset helpers
   - parallel test が localStorage、window globals、OnceLock、env vars を共有すると flake が増える
   - env var isolation、OnceLock reset、localStorage reset、fake timers、Rust test threads の policy を追加する
-
-- [ ] P2 Rust integration tests の filesystem temp dir cleanup failure を diagnostics 化する
-  - 対象: `src-tauri/tests`, temp DB/keyring fixtures
-  - temp dir cleanup が失敗しても見えないと、次回 test や disk usage に影響する
-  - temp dir owner、Windows open handle、cleanup failure warning、test retry、artifact retention の task に分ける
 
 - [ ] P2 CI failure artifact retention を frontend/Rust/native smoke ごとに分類する
   - 対象: `.github/workflows/ci.yml`, release workflow, test outputs
