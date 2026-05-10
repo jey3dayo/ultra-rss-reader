@@ -4,7 +4,7 @@ import { useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { type FeedDto, updateFeedDisplaySettings } from "@/api/tauri-commands";
 import type { TriStateDisplayMode } from "@/lib/articles/article-display";
-import { invalidateFeedQueries } from "@/lib/query/query-invalidation";
+import { invalidateFeedQueries, queryKeys } from "@/lib/query/query-invalidation";
 import { useUiStore } from "@/stores/ui-store";
 
 export function useUpdateFeedDisplaySettings() {
@@ -17,10 +17,10 @@ export function useUpdateFeedDisplaySettings() {
     async (feedId: string, readerMode: TriStateDisplayMode, webPreviewMode: TriStateDisplayMode): Promise<boolean> => {
       const requestId = latestRequestIdRef.current + 1;
       latestRequestIdRef.current = requestId;
-      await qc.cancelQueries({ queryKey: ["feeds"] });
-      const previousFeedsQueries = qc.getQueriesData<FeedDto[]>({ queryKey: ["feeds"] });
+      await qc.cancelQueries({ queryKey: queryKeys.feeds.root });
+      const previousFeedsQueries = qc.getQueriesData<FeedDto[]>({ queryKey: queryKeys.feeds.root });
 
-      qc.setQueriesData<FeedDto[]>({ queryKey: ["feeds"] }, (prev) =>
+      qc.setQueriesData<FeedDto[]>({ queryKey: queryKeys.feeds.root }, (prev) =>
         prev?.map((feed) =>
           feed.id === feedId ? { ...feed, reader_mode: readerMode, web_preview_mode: webPreviewMode } : feed,
         ),

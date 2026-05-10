@@ -151,6 +151,55 @@ describe("useAccountDetailSyncControls", () => {
     );
   });
 
+  it("ignores a late manual sync result after switching selected accounts", async () => {
+    const firstAccount = {
+      ...sampleAccounts[1],
+      id: "acc-1",
+      name: "FreshRSS Work",
+    };
+    const secondAccount = {
+      ...sampleAccounts[1],
+      id: "acc-2",
+      name: "FreshRSS Personal",
+    };
+    const queryClient = createTestQueryClient();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const onSyncStatusChanged = vi.fn();
+    const staleSync = createDeferred<ReturnType<typeof Result.fail<Error>>>();
+    syncAccountMock.mockReturnValue(staleSync.promise);
+
+    const { result, rerender } = renderHook(
+      ({ account }) =>
+        useAccountDetailSyncControls({
+          account,
+          queryClient,
+          t,
+          onSyncStatusChanged,
+        }),
+      { initialProps: { account: firstAccount } },
+    );
+
+    let syncNow: Promise<void> = Promise.resolve();
+    await act(async () => {
+      syncNow = result.current.handleSyncNow();
+      await Promise.resolve();
+    });
+    expect(result.current.syncActionInFlight).toBe(true);
+    expect(syncAccountMock).toHaveBeenCalledWith(firstAccount.id);
+
+    rerender({ account: secondAccount });
+
+    await act(async () => {
+      staleSync.resolve(Result.fail(new Error("stale sync failure")));
+      await syncNow;
+    });
+
+    expect(result.current.syncActionInFlight).toBe(false);
+    expect(onSyncStatusChanged).not.toHaveBeenCalled();
+    expect(invalidateSpy).not.toHaveBeenCalled();
+    expect(useUiStore.getState().toastMessage).toBeNull();
+  });
+
   it("recovers account setup sync when the native sync promise rejects", async () => {
     const queryClient = createTestQueryClient();
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");

@@ -297,7 +297,18 @@ export function useAccountDetailCredentialsEditor({
         return;
       }
 
-      const result = await testAccountConnection(requestAccountId);
+      let result: Awaited<ReturnType<typeof testAccountConnection>>;
+      try {
+        result = await testAccountConnection(requestAccountId);
+      } catch (error) {
+        if (activeAccountIdRef.current !== requestAccountId || draftRevisionRef.current !== requestDraftRevision) {
+          return;
+        }
+        showConnectionError({ message: getErrorMessage(error) });
+        await queryClient.invalidateQueries({ queryKey: ["accounts"] });
+        return;
+      }
+
       if (activeAccountIdRef.current !== requestAccountId || draftRevisionRef.current !== requestDraftRevision) {
         return;
       }

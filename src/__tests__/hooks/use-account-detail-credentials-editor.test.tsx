@@ -328,6 +328,42 @@ describe("useAccountDetailCredentialsEditor", () => {
     expect(result.current.testingConnection).toBe(false);
   });
 
+  it.each([
+    {
+      label: "Result failure",
+      arrangeFailure: () => {
+        testAccountConnectionMock.mockResolvedValue(Result.fail({ message: "test account not found" }));
+      },
+    },
+    {
+      label: "thrown error",
+      arrangeFailure: () => {
+        testAccountConnectionMock.mockRejectedValue(new Error("test account not found"));
+      },
+    },
+  ])("surfaces connection test $label with the same failure feedback", async ({ arrangeFailure }) => {
+    const account = sampleAccounts[1];
+    const queryClient = createTestQueryClient();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    arrangeFailure();
+
+    const { result } = renderHook(() =>
+      useAccountDetailCredentialsEditor({
+        account,
+        queryClient,
+        t,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.handleTestConnection();
+    });
+
+    expect(result.current.testingConnection).toBe(false);
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["accounts"] });
+    expect(useUiStore.getState().toastMessage?.message).toBe("Connection failed: test account not found");
+  });
+
   it("ignores a stale connection success when the draft changes before the result returns", async () => {
     const account = sampleAccounts[1];
     const queryClient = createTestQueryClient();

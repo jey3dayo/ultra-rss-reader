@@ -1,7 +1,7 @@
 import { Result } from "@praha/byethrow";
 import type { QueryClient } from "@tanstack/react-query";
 import type { TFunction } from "i18next";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { syncAccount, updateAccountSync } from "@/api/tauri-commands";
 import type { AccountSetupSessionOwner, AccountSetupSessionState } from "@/lib/account/account-setup-session.types";
 import {
@@ -124,7 +124,29 @@ export function useAccountDetailSyncControls({
   const showSyncError = createAccountDetailErrorToast(t, "account.sync_failed");
   const syncActionInFlightRef = useRef(false);
   const syncUpdateRevisionRef = useRef(0);
+  const selectedAccountGenerationRef = useRef(0);
+  const selectedAccountIdRef = useRef(account.id);
+  const mountedRef = useRef(true);
   const [syncActionInFlight, setSyncActionInFlight] = useState(false);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    selectedAccountGenerationRef.current += 1;
+    selectedAccountIdRef.current = account.id;
+    syncActionInFlightRef.current = false;
+    setSyncActionInFlight(false);
+  }, [account.id]);
+
+  const isCurrentSelectedAccountGeneration = (generation: number, accountId: string) =>
+    mountedRef.current &&
+    generation === selectedAccountGenerationRef.current &&
+    selectedAccountIdRef.current === accountId;
 
   const handleSyncUpdate = async (partial: UpdateAccountSyncParams) => {
     const revision = syncUpdateRevisionRef.current + 1;
@@ -158,10 +180,15 @@ export function useAccountDetailSyncControls({
       return;
     }
 
+    const requestAccountId = account.id;
+    const requestGeneration = selectedAccountGenerationRef.current;
     syncActionInFlightRef.current = true;
     setSyncActionInFlight(true);
     try {
-      const result = await syncAccount(account.id);
+      const result = await syncAccount(requestAccountId);
+      if (!isCurrentSelectedAccountGeneration(requestGeneration, requestAccountId)) {
+        return;
+      }
       Result.pipe(
         result,
         Result.inspect((syncResult) => {
@@ -182,8 +209,10 @@ export function useAccountDetailSyncControls({
         Result.inspectError(showSyncError),
       );
     } finally {
-      syncActionInFlightRef.current = false;
-      setSyncActionInFlight(false);
+      if (isCurrentSelectedAccountGeneration(requestGeneration, requestAccountId)) {
+        syncActionInFlightRef.current = false;
+        setSyncActionInFlight(false);
+      }
     }
   };
 
@@ -192,18 +221,22 @@ export function useAccountDetailSyncControls({
       return;
     }
 
+    const requestAccountId = account.id;
+    const requestGeneration = selectedAccountGenerationRef.current;
     syncActionInFlightRef.current = true;
     setSyncActionInFlight(true);
     try {
       await runAccountSetupSync({
-        accountId: account.id,
+        accountId: requestAccountId,
         queryClient,
         t,
         onSyncStatusChanged,
       });
     } finally {
-      syncActionInFlightRef.current = false;
-      setSyncActionInFlight(false);
+      if (isCurrentSelectedAccountGeneration(requestGeneration, requestAccountId)) {
+        syncActionInFlightRef.current = false;
+        setSyncActionInFlight(false);
+      }
     }
   };
 
