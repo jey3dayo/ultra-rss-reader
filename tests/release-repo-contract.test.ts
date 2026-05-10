@@ -1,5 +1,7 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -119,6 +121,17 @@ const RELEASE_UPDATER_ASSET_CONTRACT = [
 const UNSUPPORTED_UPDATER_PLATFORM_KEYS = ["linux-x86_64", "linux-aarch64"] as const;
 
 const readText = (path: string): string => readFileSync(path, "utf8");
+
+const runWorkflowPinChecker = (workflowsDir: string): string =>
+  execFileSync("node", ["scripts/check-workflow-pins.mjs"], {
+    cwd: process.cwd(),
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      WORKFLOW_PINS_WORKFLOWS_DIR: workflowsDir,
+    },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
 
 const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -581,7 +594,54 @@ describe("release repository contract", () => {
       "jey3dayo/pr-insights-labeler@e9bccb2e8c9ed048d6022d6ae2e5c85eeed80f16",
     );
     expect(extractTaskBlock(miseToml, "lint:workflow-pins")).toContain("node scripts/check-workflow-pins.mjs");
-    expect(readText("scripts/check-workflow-pins.mjs")).toContain('const workflowsDir = ".github/workflows"');
+    expect(readText("scripts/check-workflow-pins.mjs")).toContain('?? ".github/workflows"');
+  });
+
+  it("keeps workflow pin checker parsing quoted uses, inline comments, and local actions", () => {
+    const tempDir = mkdtempSync(join(tmpdir(), "ultra-rss-workflow-pins-"));
+    try {
+      writeFileSync(
+        join(tempDir, "valid.yml"),
+        [
+          "name: valid",
+          "on: workflow_dispatch",
+          "jobs:",
+          "  check:",
+          "    runs-on: ubuntu-latest",
+          "    steps:",
+          "      - uses: 'actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd' # pinned checkout",
+          '      - uses: "jdx/mise-action@1648a7812b9aeae629881980618f079932869151"',
+          "      - uses: ./.github/actions/local-tool",
+          "      - uses: owner/repo/.github/workflows/reusable.yml@1234567890abcdef1234567890abcdef12345678",
+        ].join("\n"),
+      );
+
+      expect(runWorkflowPinChecker(tempDir)).toBe("");
+    } finally {
+      rmSync(tempDir, { force: true, recursive: true });
+    }
+  });
+
+  it("keeps workflow pin checker rejecting floating quoted uses", () => {
+    const tempDir = mkdtempSync(join(tmpdir(), "ultra-rss-workflow-pins-"));
+    try {
+      writeFileSync(
+        join(tempDir, "invalid.yml"),
+        [
+          "name: invalid",
+          "on: workflow_dispatch",
+          "jobs:",
+          "  check:",
+          "    runs-on: ubuntu-latest",
+          "    steps:",
+          "      - uses: 'actions/checkout@v6' # floating ref",
+        ].join("\n"),
+      );
+
+      expect(() => runWorkflowPinChecker(tempDir)).toThrow(/actions\/checkout@v6 must use a 40-character commit SHA/);
+    } finally {
+      rmSync(tempDir, { force: true, recursive: true });
+    }
   });
 
   it("keeps release workflow permissions limited to release asset publishing", () => {
