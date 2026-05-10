@@ -197,6 +197,23 @@ fn update_latest_timestamp_usec(
     }
 }
 
+fn valid_sync_cursor_timestamp_usec(timestamp_usec: i64) -> Option<i64> {
+    if timestamp_usec < 0 {
+        return None;
+    }
+    let timestamp = chrono::DateTime::from_timestamp_micros(timestamp_usec)?;
+    if timestamp > chrono::Utc::now() {
+        return None;
+    }
+    Some(timestamp_usec)
+}
+
+fn sync_state_timestamp_usec(state: Option<&SyncState>) -> Option<i64> {
+    state
+        .and_then(|state| state.timestamp_usec)
+        .and_then(valid_sync_cursor_timestamp_usec)
+}
+
 fn update_latest_timestamp_usec_from_entries(
     latest_timestamp_usec: &mut Option<i64>,
     entries: &[RemoteEntry],
@@ -205,6 +222,7 @@ fn update_latest_timestamp_usec_from_entries(
         .iter()
         .filter_map(|entry| entry.updated_at.or(entry.published_at))
         .map(|timestamp| timestamp.timestamp_micros())
+        .filter_map(valid_sync_cursor_timestamp_usec)
         .max()
     {
         *latest_timestamp_usec = Some(
@@ -431,11 +449,23 @@ pub(super) async fn sync_greader_account(
         let db_guard = lock_db(db)?;
         let folder_repo = SqliteFolderRepository::new(db_guard.writer());
         for rf in &remote_folders {
-            let existing_id = folder_repo
+            let existing_remote_id = folder_repo
                 .find_by_remote_id(&account.id, &rf.remote_id)?
                 .map(|f| f.id);
+            let existing_name_id = if existing_remote_id.is_none() {
+                let remote_name_key = folder_name_case_key(&rf.name);
+                folder_repo
+                    .find_by_account(&account.id)?
+                    .into_iter()
+                    .find(|folder| folder_name_case_key(&folder.name) == remote_name_key)
+                    .map(|folder| folder.id)
+            } else {
+                None
+            };
             let folder = Folder {
-                id: existing_id.unwrap_or_else(FolderId::new),
+                id: existing_remote_id
+                    .or(existing_name_id)
+                    .unwrap_or_else(FolderId::new),
                 account_id: account.id.clone(),
                 remote_id: Some(rf.remote_id.clone()),
                 name: rf.name.clone(),
@@ -624,6 +654,10 @@ fn resolve_greader_subscription_folder_id(
         .or_else(|| existing_feed.and_then(|feed| feed.folder_id.clone()))
 }
 
+fn folder_name_case_key(name: &str) -> String {
+    name.trim().to_lowercase()
+}
+
 fn pending_mutation_targets_provider_managed_greader_feed(
     db: &Mutex<DbManager>,
     pending_mutation_id: i64,
@@ -660,7 +694,7 @@ async fn sync_greader_account_entries(
     let saved_state = load_sync_state(db, &account.id, &account_scope_key)?;
 
     let mut cursor = cursor_from_state(saved_state.as_ref());
-    let mut latest_timestamp_usec = saved_state.as_ref().and_then(|state| state.timestamp_usec);
+    let mut latest_timestamp_usec = sync_state_timestamp_usec(saved_state.as_ref());
     let mut skipped_entries = 0usize;
     let mut entries_upserted = 0usize;
     let mut delta_pages = 0usize;
@@ -1303,8 +1337,7 @@ fn cursor_from_state(state: Option<&SyncState>) -> Option<SyncCursor> {
         // Cross-sync resumes are timestamp-based. Continuation tokens are only
         // valid within a single pagination run and must not be revived later.
         continuation: None,
-        since: state
-            .timestamp_usec
+        since: sync_state_timestamp_usec(Some(state))
             .and_then(chrono::DateTime::from_timestamp_micros),
         etag: None,
         last_modified: None,
@@ -1329,7 +1362,7 @@ async fn sync_greader_feed_entries(
     };
     let initial_cursor = cursor_from_state(saved_state.as_ref());
     let mut cursor = initial_cursor.clone();
-    let mut latest_timestamp_usec = saved_state.as_ref().and_then(|state| state.timestamp_usec);
+    let mut latest_timestamp_usec = sync_state_timestamp_usec(saved_state.as_ref());
     let mut skipped_entries = 0usize;
 
     loop {
@@ -1637,6 +1670,41 @@ mod tests {
         }
 
         assert!(should_pull_remote_state(&db, &account.id, now).unwrap());
+    }
+
+    #[test]
+    fn greader_cursor_timestamp_policy_ignores_invalid_saved_and_entry_values() {
+        let future = chrono::Utc::now() + chrono::Duration::hours(1);
+        let saved_state = SyncState {
+            account_id: AccountId("account".to_string()),
+            scope_key: feed_scope_key("feed/remote").as_string(),
+            timestamp_usec: Some(future.timestamp_micros()),
+            continuation: Some("stale-page".to_string()),
+            etag: Some("etag".to_string()),
+            last_modified: Some("Wed, 01 Jan 2025 00:00:00 GMT".to_string()),
+            last_success_at: None,
+            last_error: None,
+            error_count: 0,
+            next_retry_at: None,
+        };
+        let cursor = cursor_from_state(Some(&saved_state))
+            .expect("existing sync state should still build a cursor");
+
+        assert_eq!(cursor.continuation, None);
+        assert_eq!(cursor.since, None);
+        assert_eq!(sync_state_timestamp_usec(Some(&saved_state)), None);
+
+        let mut latest_timestamp_usec = Some(1_700_000_000_000_000);
+        update_latest_timestamp_usec(
+            &mut latest_timestamp_usec,
+            Some(&SyncCursor {
+                continuation: None,
+                since: Some(future),
+                etag: None,
+                last_modified: None,
+            }),
+        );
+        assert_eq!(latest_timestamp_usec, Some(1_700_000_000_000_000));
     }
 
     #[test]

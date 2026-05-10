@@ -602,12 +602,83 @@ fn is_supported_browser_preview_script_action(action: &str) -> bool {
 }
 
 #[cfg_attr(not(any(test, windows)), allow(dead_code))]
+fn normalize_browser_preview_bridge_url(url: &str) -> Option<String> {
+    let mut parsed = reqwest::Url::parse(url).ok()?;
+    parsed.set_fragment(None);
+    Some(normalize_unreserved_percent_encoding(parsed.as_str()))
+}
+
+#[cfg_attr(not(any(test, windows)), allow(dead_code))]
+fn normalize_unreserved_percent_encoding(value: &str) -> String {
+    let mut normalized = String::with_capacity(value.len());
+    let bytes = value.as_bytes();
+    let mut index = 0;
+
+    while index < bytes.len() {
+        if bytes[index] == b'%' && index + 2 < bytes.len() {
+            let high = bytes[index + 1];
+            let low = bytes[index + 2];
+            if let (Some(high), Some(low)) = (hex_value(high), hex_value(low)) {
+                let decoded = (high << 4) | low;
+                if decoded.is_ascii_alphanumeric()
+                    || matches!(decoded, b'-' | b'.' | b'_' | b'~')
+                {
+                    normalized.push(decoded as char);
+                } else {
+                    normalized.push('%');
+                    normalized.push(hex_digit(high));
+                    normalized.push(hex_digit(low));
+                }
+                index += 3;
+                continue;
+            }
+        }
+
+        normalized.push(bytes[index] as char);
+        index += 1;
+    }
+
+    normalized
+}
+
+#[cfg_attr(not(any(test, windows)), allow(dead_code))]
+fn hex_value(value: u8) -> Option<u8> {
+    match value {
+        b'0'..=b'9' => Some(value - b'0'),
+        b'a'..=b'f' => Some(value - b'a' + 10),
+        b'A'..=b'F' => Some(value - b'A' + 10),
+        _ => None,
+    }
+}
+
+#[cfg_attr(not(any(test, windows)), allow(dead_code))]
+fn hex_digit(value: u8) -> char {
+    match value {
+        0..=9 => (b'0' + value) as char,
+        10..=15 => (b'A' + (value - 10)) as char,
+        _ => unreachable!("hex digit should be in range"),
+    }
+}
+
+#[cfg_attr(not(any(test, windows)), allow(dead_code))]
+fn browser_preview_bridge_url_matches(message_url: &str, snapshot_url: &str) -> bool {
+    if message_url == snapshot_url {
+        return true;
+    }
+
+    normalize_browser_preview_bridge_url(message_url)
+        .zip(normalize_browser_preview_bridge_url(snapshot_url))
+        .is_some_and(|(message_url, snapshot_url)| message_url == snapshot_url)
+}
+
+#[cfg_attr(not(any(test, windows)), allow(dead_code))]
 fn should_accept_browser_preview_bridge_message(
     message: &BrowserPreviewBridgeMessage,
     snapshot: Option<&BrowserWebviewState>,
 ) -> bool {
     is_supported_browser_preview_script_action(&message.action)
-        && snapshot.is_some_and(|state| state.url == message.url)
+        && snapshot
+            .is_some_and(|state| browser_preview_bridge_url_matches(&message.url, &state.url))
 }
 
 #[cfg_attr(not(any(test, windows)), allow(dead_code))]

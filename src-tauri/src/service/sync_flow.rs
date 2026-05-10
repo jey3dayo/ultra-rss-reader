@@ -53,12 +53,23 @@ pub async fn sync_account(
     if caps.supports_folders {
         let remote_folders = provider.get_folders().await?;
         for rf in remote_folders {
-            let folder_id = folder_repo
+            let existing_remote_id = folder_repo
                 .find_by_remote_id(account_id, &rf.remote_id)?
-                .map(|folder| folder.id)
-                .unwrap_or_else(crate::domain::types::FolderId::new);
+                .map(|folder| folder.id);
+            let existing_name_id = if existing_remote_id.is_none() {
+                let remote_name_key = folder_name_case_key(&rf.name);
+                folder_repo
+                    .find_by_account(account_id)?
+                    .into_iter()
+                    .find(|folder| folder_name_case_key(&folder.name) == remote_name_key)
+                    .map(|folder| folder.id)
+            } else {
+                None
+            };
             let folder = crate::domain::folder::Folder {
-                id: folder_id,
+                id: existing_remote_id
+                    .or(existing_name_id)
+                    .unwrap_or_else(crate::domain::types::FolderId::new),
                 account_id: account_id.clone(),
                 remote_id: Some(rf.remote_id),
                 name: rf.name,
@@ -189,6 +200,10 @@ pub async fn sync_account(
     }
 
     Ok(updated_feeds)
+}
+
+fn folder_name_case_key(name: &str) -> String {
+    name.trim().to_lowercase()
 }
 
 fn pending_to_provider_mutation(
@@ -964,6 +979,55 @@ mod tests {
         assert_eq!(folders.len(), 1);
         assert_eq!(folders[0].id, existing_folder_id);
         assert_eq!(folders[0].name, "Tech");
+        assert_eq!(folders[0].sort_order, 1);
+    }
+
+    #[tokio::test]
+    async fn sync_account_reuses_existing_local_folder_on_name_collision() {
+        let db = DbManager::new_in_memory().unwrap();
+        let account = test_account();
+        let account_repo = SqliteAccountRepository::new(db.writer());
+        let folder_repo = SqliteFolderRepository::new(db.writer());
+        account_repo.save(&account).unwrap();
+
+        let existing_folder_id = FolderId::new();
+        folder_repo
+            .save(&Folder {
+                id: existing_folder_id.clone(),
+                account_id: account.id.clone(),
+                remote_id: None,
+                name: "Tech".to_string(),
+                sort_order: 3,
+            })
+            .unwrap();
+
+        let provider = FolderSyncProvider {
+            folders: vec![RemoteFolder {
+                remote_id: "user/-/label/Tech".to_string(),
+                name: " tech ".to_string(),
+                sort_order: Some(1),
+            }],
+        };
+        let article_repo = SqliteArticleRepository::new(db.writer());
+        let feed_repo = SqliteFeedRepository::new(db.writer());
+        let pending_repo = SqlitePendingMutationRepository::new(db.writer());
+
+        sync_account(
+            &account.id,
+            &provider,
+            &article_repo,
+            &feed_repo,
+            &folder_repo,
+            &pending_repo,
+        )
+        .await
+        .unwrap();
+
+        let folders = folder_repo.find_by_account(&account.id).unwrap();
+        assert_eq!(folders.len(), 1);
+        assert_eq!(folders[0].id, existing_folder_id);
+        assert_eq!(folders[0].remote_id.as_deref(), Some("user/-/label/Tech"));
+        assert_eq!(folders[0].name, " tech ");
         assert_eq!(folders[0].sort_order, 1);
     }
 
