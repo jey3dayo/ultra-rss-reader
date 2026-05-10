@@ -1470,16 +1470,6 @@
   - vacuum、sync、update install が同じ AtomicBool を使うため、UI には sync 中なのか maintenance/update 中なのか区別できない busy error が出やすい
   - vacuum中sync、sync中vacuum、install中sync、restart guard、busy message category、settings button disabled state の integration test を追加する
 
-- [ ] P2 vacuum 実行後の WAL checkpoint / file size reporting を platform 差で固定する
-  - 対象: `src-tauri/src/infra/db/connection.rs`, `src-tauri/src/commands/database_commands.rs`, `src/components/settings/debug-settings.tsx`
-  - WAL mode のまま vacuum すると file size の見え方が platform / open connection に依存し、debug settings の DB size 表示が misleading になりやすい
-  - WAL checkpoint 前後、VACUUM failure、reader connection open、Windows file lock、size refresh timing の Rust/component test を追加する
-
-- [ ] P2 startup reconcile の article content / unread count repair を migration cost として計測する
-  - 対象: `src-tauri/src/infra/db/connection.rs`, `src-tauri/src/infra/db/sqlite_article.rs`, `src-tauri/src/infra/db/sqlite_feed.rs`
-  - DB open 後に content_text と unread_count を repair するため、大きい DB では起動時間や first window 表示に影響しやすい
-  - large article set、empty content_text、mute keyword tableあり/なし、updated rows log、timeout/telemetry、batch化方針を追加する
-
 - [ ] P2 updater pending handle clear と manual check/download の race を contract 化する
   - 対象: `src-tauri/src/commands/updater_commands.rs`, `src/hooks/use-updater.ts`, `src/__tests__/hooks/use-updater.test.ts`
   - check 開始時に pending update を clear するため、manual check と download が近接すると cached handle が消える/古くなる race が起きやすい
@@ -1675,11 +1665,6 @@
   - feed folder 移動は全 feeds query を optimistic に書き換えるため、account 切替や refetch と重なると別 account の feed まで rollback される risk がある
   - multiple account feeds queries、account switch during mutate、folder deleted、feed deleted、rollback after refetch、success invalidation failure の test を追加する
 
-- [ ] P2 update_feed_folder target validation の reader/writer connection race を整理する
-  - 対象: `src-tauri/src/commands/feed_commands.rs`, `src-tauri/src/infra/db/sqlite_feed.rs`, `src-tauri/src/infra/db/sqlite_folder.rs`
-  - feed/folder 所属確認を reader connection で行った後に writer で更新するため、確認後に feed/folder/account が消えた場合の error 分類が揺れやすい
-  - feed deleted after validation、folder deleted after validation、folder moved account、foreign key failure、classification fallback の Rust test を追加する
-
 - [ ] P2 folder delete renumber と feed tree expanded state pruning を同じ account scope で固定する
   - 対象: `src-tauri/src/infra/db/sqlite_folder.rs`, `src/components/reader/hooks/sidebar/use-sidebar-startup-folder-expansion.ts`, `src/stores/ui-store.ts`
   - folder delete 後に DB sort_order は renumber されるが、localStorage の expanded folder ids や UI selection が stale folder を保持しやすい
@@ -1694,11 +1679,6 @@
   - 対象: `src/components/reader/feed-folder-flow.ts`, `src/components/reader/hooks/feed-dialogs/use-add-feed-dialog-actions.ts`, `src/components/reader/add-feed-dialog.tsx`
   - add feed flow で folder 作成と feed 作成が連続するため、folder 作成成功後に feed 作成が失敗した時の再実行で duplicate folder を作りやすい
   - create folder success + add feed failure、retry same name、selectedFolderId changed、account switch、folder create validation error の flow test を追加する
-
-- [ ] P2 storage key cleanup policy を settings data reset / private data export と接続する
-  - 対象: `src/constants/storage.ts`, `src/schemas/storage.ts`, `src/components/settings/data-settings.tsx`
-  - storage key の owner/cleanup policy はあるが、user clearable keys をどこで消すかが UI と結びついていないと command history や sidebar state が残り続ける
-  - user-clearable cleanup、mirror-retained保持、startup-window-expiring cleanup、legacy alias cleanup、settings reset action の contract を追加する
 
 - [ ] P2 sidebar expanded folders storage の oversized JSON cleanup failure を diagnostics 化する
   - 対象: `src/components/reader/hooks/sidebar/use-sidebar-startup-folder-expansion.ts`, `src/schemas/storage.ts`, `src/constants/storage.ts`
