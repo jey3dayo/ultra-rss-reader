@@ -1,6 +1,7 @@
 import i18n from "i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 import { initReactI18next } from "react-i18next";
+import { registerCountFormatter } from "@/lib/i18n-count";
 import { i18nResourceLocales, i18nResourceNamespaces, i18nResources } from "@/lib/i18n-resources";
 
 export const supportedLanguages = i18nResourceLocales;
@@ -19,5 +20,7 @@ i18n
       caches: [],
     },
   });
+
+registerCountFormatter(i18n);
 
 export default i18n;

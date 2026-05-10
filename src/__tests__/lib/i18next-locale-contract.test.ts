@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import i18n, { supportedLanguages } from "@/lib/i18n";
 import i18nSource from "@/lib/i18n.ts?raw";
+import { formatDisplayCount, normalizeDisplayCount, resolveCountLocale } from "@/lib/i18n-count";
 import { i18nResourceFiles, i18nResourceLocales, i18nResourceNamespaces, i18nResources } from "@/lib/i18n-resources";
 import type { ShortcutCategoryKey, ShortcutLabelKey } from "@/lib/keyboard/keyboard-shortcuts";
 import { shortcutDefinitions } from "@/lib/keyboard/keyboard-shortcuts";
@@ -507,6 +508,65 @@ describe("i18next locale contract", () => {
         expect(i18n.t(key, { count: 1 })).toBe(expected.one);
         expect(i18n.t(key, { count: 2 })).toBe(expected.other);
         expect(i18n.t(key, { count: 2 })).not.toBe(key);
+      }
+    }
+  });
+
+  it("formats unread, feed, and article counts with locale-aware display fallbacks", async () => {
+    expect(normalizeDisplayCount(-1)).toBe(0);
+    expect(resolveCountLocale("not a locale")).toBe("en");
+    expect(formatDisplayCount(1234.8, "en")).toBe("1,234");
+
+    const countCases = [
+      {
+        key: "reader:unread_items",
+        count: 0,
+        en: "0 Unread Items",
+        ja: "未読 0 件",
+      },
+      {
+        key: "reader:unread_items",
+        count: 1,
+        en: "1 Unread Item",
+        ja: "未読 1 件",
+      },
+      {
+        key: "reader:unread_items",
+        count: 1234,
+        en: "1,234 Unread Items",
+        ja: "未読 1,234 件",
+      },
+      {
+        key: "reader:feeds_found",
+        count: 1234,
+        en: "1,234 feeds found:",
+        ja: "1,234 件のフィードが見つかりました:",
+      },
+      {
+        key: "reader:confirm_mark_read",
+        count: 1234,
+        en: "Mark 1,234 articles as read?",
+        ja: "1,234件の記事を既読にしますか？",
+      },
+      {
+        key: "subscriptions:meta_unread_count",
+        count: -1,
+        en: "Unread 0",
+        ja: "未読 0件",
+      },
+      {
+        key: "common:mark_as_read_count_action",
+        count: 1234,
+        en: "Mark 1,234 as Read",
+        ja: "1,234件を既読にする",
+      },
+    ] as const;
+
+    for (const locale of ["en", "ja"] as const) {
+      await i18n.changeLanguage(locale);
+
+      for (const countCase of countCases) {
+        expect(i18n.t(countCase.key, { count: countCase.count })).toBe(countCase[locale]);
       }
     }
   });
