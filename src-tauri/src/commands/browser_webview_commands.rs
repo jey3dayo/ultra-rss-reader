@@ -372,8 +372,11 @@ fn timeout_fallback_emissions(
     emissions
 }
 
-fn should_accept_page_load_finish(snapshot: Option<&BrowserWebviewState>) -> bool {
-    snapshot.is_some()
+fn should_accept_page_load_finish(
+    snapshot: Option<&BrowserWebviewState>,
+    finished_url: &str,
+) -> bool {
+    snapshot.is_some_and(|state| state.is_loading && state.url == finished_url)
 }
 
 fn external_url(url: &str) -> Result<Url, AppError> {
@@ -410,7 +413,7 @@ fn tracker_finish(
     let mut tracker = state.browser_webview.lock().map_err(|error| {
         browser_webview_error(format!("Browser webview state lock error: {error}"))
     })?;
-    if !should_accept_page_load_finish(tracker.snapshot().as_ref()) {
+    if !should_accept_page_load_finish(tracker.snapshot().as_ref(), &url) {
         return Err(browser_webview_not_open_error());
     }
     let next_state = tracker.finish(url, availability);
@@ -1084,8 +1087,38 @@ mod tests {
             load_generation: 1,
         };
 
-        assert!(should_accept_page_load_finish(Some(&loading)));
-        assert!(!should_accept_page_load_finish(None));
+        assert!(should_accept_page_load_finish(
+            Some(&loading),
+            "https://example.com/article"
+        ));
+        assert!(!should_accept_page_load_finish(
+            None,
+            "https://example.com/article"
+        ));
+    }
+
+    #[test]
+    fn page_load_finish_is_ignored_when_it_is_not_the_current_loading_url() {
+        let loading = BrowserWebviewState {
+            url: "https://example.com/current".to_string(),
+            can_go_back: true,
+            can_go_forward: false,
+            is_loading: true,
+            load_generation: 2,
+        };
+        let finished = BrowserWebviewState {
+            is_loading: false,
+            ..loading.clone()
+        };
+
+        assert!(!should_accept_page_load_finish(
+            Some(&loading),
+            "https://example.com/previous"
+        ));
+        assert!(!should_accept_page_load_finish(
+            Some(&finished),
+            "https://example.com/current"
+        ));
     }
 
     #[test]
