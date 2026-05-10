@@ -284,35 +284,108 @@ mod tests {
         DbManager::new_in_memory().unwrap()
     }
 
+    struct AccountFixture {
+        id: AccountId,
+    }
+
+    impl AccountFixture {
+        fn new(id: impl Into<String>) -> Self {
+            Self {
+                id: AccountId(id.into()),
+            }
+        }
+
+        fn insert(&self, db: &DbManager) {
+            db.writer()
+                .execute(
+                    "INSERT INTO accounts (id, kind, name) VALUES (?1, ?2, ?3)",
+                    params![self.id.0, "Local", "Test"],
+                )
+                .unwrap();
+        }
+    }
+
+    struct FeedFixture {
+        id: FeedId,
+        account_id: AccountId,
+    }
+
+    impl FeedFixture {
+        fn new(account_id: &AccountId, id: impl Into<String>) -> Self {
+            Self {
+                id: FeedId(id.into()),
+                account_id: account_id.clone(),
+            }
+        }
+
+        fn insert(&self, db: &DbManager) {
+            db.writer()
+                .execute(
+                    "INSERT INTO feeds (id, account_id, title, url) VALUES (?1, ?2, ?3, ?4)",
+                    params![self.id.0, self.account_id.0, "Feed", "http://f.com"],
+                )
+                .unwrap();
+        }
+    }
+
+    struct ArticleFixture {
+        id: ArticleId,
+        feed_id: FeedId,
+    }
+
+    impl ArticleFixture {
+        fn new(feed_id: &FeedId, id: impl Into<String>) -> Self {
+            Self {
+                id: ArticleId(id.into()),
+                feed_id: feed_id.clone(),
+            }
+        }
+
+        fn insert(&self, db: &DbManager) {
+            let now = chrono::Utc::now().to_rfc3339();
+            db.writer()
+                .execute(
+                    "INSERT INTO articles (id, feed_id, title, content_raw, content_sanitized, sanitizer_version, published_at, is_read, is_starred, fetched_at) \
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+                    params![self.id.0, self.feed_id.0, "Test Article", "", "", 1, now, false, false, now],
+                )
+                .unwrap();
+        }
+    }
+
+    struct TagFixture {
+        id: TagId,
+        name: String,
+    }
+
+    impl TagFixture {
+        fn new(id: impl Into<String>, name: impl Into<String>) -> Self {
+            Self {
+                id: TagId(id.into()),
+                name: name.into(),
+            }
+        }
+
+        fn insert(&self, db: &DbManager) {
+            db.writer()
+                .execute(
+                    "INSERT INTO tags (id, name) VALUES (?1, ?2)",
+                    params![self.id.0, self.name],
+                )
+                .unwrap();
+        }
+    }
+
     fn insert_test_data(db: &DbManager) -> (AccountId, FeedId, ArticleId) {
-        let account_id = AccountId::new();
-        let feed_id = FeedId::new();
-        let article_id = ArticleId("art-1".to_string());
+        let account = AccountFixture::new(AccountId::new().0);
+        let feed = FeedFixture::new(&account.id, FeedId::new().0);
+        let article = ArticleFixture::new(&feed.id, "art-1");
 
-        db.writer()
-            .execute(
-                "INSERT INTO accounts (id, kind, name) VALUES (?1, ?2, ?3)",
-                params![account_id.0, "Local", "Test"],
-            )
-            .unwrap();
+        account.insert(db);
+        feed.insert(db);
+        article.insert(db);
 
-        db.writer()
-            .execute(
-                "INSERT INTO feeds (id, account_id, title, url) VALUES (?1, ?2, ?3, ?4)",
-                params![feed_id.0, account_id.0, "Feed", "http://f.com"],
-            )
-            .unwrap();
-
-        let now = chrono::Utc::now().to_rfc3339();
-        db.writer()
-            .execute(
-                "INSERT INTO articles (id, feed_id, title, content_raw, content_sanitized, sanitizer_version, published_at, is_read, is_starred, fetched_at) \
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
-                params![article_id.0, feed_id.0, "Test Article", "", "", 1, now, false, false, now],
-            )
-            .unwrap();
-
-        (account_id, feed_id, article_id)
+        (account.id, feed.id, article.id)
     }
 
     fn insert_mute_keyword(db: &DbManager, keyword: &str, scope: &str) {
@@ -731,18 +804,42 @@ mod tests {
         let (_, _, article_id) = insert_test_data(&db);
         let repo = SqliteTagRepository::new(db.writer());
 
-        let tag = Tag {
-            id: TagId::new(),
-            name: "test".to_string(),
-            color: None,
-        };
-        repo.save(&tag).unwrap();
+        let tag = TagFixture::new(TagId::new().0, "test");
+        tag.insert(&db);
 
         repo.tag_article(&article_id, &tag.id).unwrap();
         assert_eq!(count_article_tag_links(&db, &article_id, &tag.id), 1);
 
         repo.tag_article(&article_id, &tag.id).unwrap();
 
+        assert_eq!(count_article_tag_links(&db, &article_id, &tag.id), 1);
+    }
+
+    #[test]
+    fn article_tags_table_rejects_duplicate_article_tag_pairs() {
+        let db = test_db();
+        let (_, _, article_id) = insert_test_data(&db);
+        let tag = TagFixture::new("tag-duplicate", "duplicate");
+        tag.insert(&db);
+
+        db.writer()
+            .execute(
+                "INSERT INTO article_tags (article_id, tag_id) VALUES (?1, ?2)",
+                params![article_id.0, tag.id.0],
+            )
+            .unwrap();
+        let error = db
+            .writer()
+            .execute(
+                "INSERT INTO article_tags (article_id, tag_id) VALUES (?1, ?2)",
+                params![article_id.0, tag.id.0],
+            )
+            .expect_err("duplicate article tag pair should violate the DB constraint");
+
+        assert!(
+            matches!(error, rusqlite::Error::SqliteFailure(sqlite_error, _)
+                if sqlite_error.extended_code == rusqlite::ffi::SQLITE_CONSTRAINT_PRIMARYKEY)
+        );
         assert_eq!(count_article_tag_links(&db, &article_id, &tag.id), 1);
     }
 
