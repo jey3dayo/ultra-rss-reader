@@ -118,26 +118,48 @@ fn is_prerelease_version(version: &str) -> bool {
         .is_some_and(|(_, pre)| !pre.is_empty())
 }
 
-fn semantic_version_parts(version: &str) -> Option<[u64; 3]> {
-    let core = version.split_once('-').map_or(version, |(core, _)| core);
+fn parse_semantic_version_parts(version: &str) -> Option<[u64; 3]> {
+    let without_build = match version.split_once('+') {
+        Some((core, build)) if is_semantic_version_identifier_list(build) => core,
+        Some(_) => return None,
+        None => version,
+    };
+    let core = without_build
+        .split_once('-')
+        .map_or(Some(without_build), |(core, prerelease)| {
+            is_semantic_version_identifier_list(prerelease).then_some(core)
+        })?;
     let mut parts = core.split('.');
-    let major = parts.next()?.parse().ok()?;
-    let minor = parts.next()?.parse().ok()?;
-    let patch = parts.next()?.parse().ok()?;
+    let major = parse_semantic_version_number(parts.next()?)?;
+    let minor = parse_semantic_version_number(parts.next()?)?;
+    let patch = parse_semantic_version_number(parts.next()?)?;
     if parts.next().is_some() {
         return None;
     }
     Some([major, minor, patch])
 }
 
-fn is_strictly_newer_version(candidate: &str, current: &str) -> bool {
-    match (
-        semantic_version_parts(candidate),
-        semantic_version_parts(current),
-    ) {
-        (Some(candidate_parts), Some(current_parts)) => candidate_parts > current_parts,
-        _ => candidate > current,
+fn is_semantic_version_identifier_list(value: &str) -> bool {
+    !value.is_empty()
+        && value.split('.').all(|part| {
+            !part.is_empty()
+                && part
+                    .chars()
+                    .all(|character| character.is_ascii_alphanumeric() || character == '-')
+        })
+}
+
+fn parse_semantic_version_number(part: &str) -> Option<u64> {
+    if part.is_empty() || (part.len() > 1 && part.starts_with('0')) {
+        return None;
     }
+    part.parse().ok()
+}
+
+fn is_strictly_newer_version(candidate: &str, current: &str) -> Option<bool> {
+    let candidate_parts = parse_semantic_version_parts(candidate)?;
+    let current_parts = parse_semantic_version_parts(current)?;
+    Some(candidate_parts > current_parts)
 }
 
 fn update_channel(update: &Update) -> String {
@@ -191,7 +213,13 @@ fn update_policy_error_parts(
         return Some(format!("Prerelease update is not allowed: {version}"));
     }
 
-    if !is_strictly_newer_version(version, current_version) {
+    let Some(is_newer_version) = is_strictly_newer_version(version, current_version) else {
+        return Some(format!(
+            "Malformed semantic update version is not allowed: {version} <= {current_version}",
+        ));
+    };
+
+    if !is_newer_version {
         return Some(format!(
             "Downgrade or same-version update is not allowed: {version} <= {current_version}",
         ));
@@ -345,8 +373,9 @@ mod tests {
 
     use super::{
         clear_pending_update, is_prerelease_version, is_strictly_newer_version,
-        next_download_session_id, update_event_emit_warning, update_policy_error_parts,
-        DownloadGuard, SyncInstallGuard, DOWNLOADING, DOWNLOAD_SESSION_ID,
+        next_download_session_id, parse_semantic_version_parts, update_event_emit_warning,
+        update_policy_error_parts, DownloadGuard, SyncInstallGuard, DOWNLOADING,
+        DOWNLOAD_SESSION_ID,
     };
     use std::sync::atomic::AtomicBool;
     use std::sync::atomic::Ordering;
@@ -382,9 +411,40 @@ mod tests {
 
     #[test]
     fn semantic_version_policy_rejects_same_version_and_downgrade() {
-        assert!(is_strictly_newer_version("1.10.0", "1.9.9"));
-        assert!(!is_strictly_newer_version("1.2.3", "1.2.3"));
-        assert!(!is_strictly_newer_version("1.2.2", "1.2.3"));
+        assert_eq!(is_strictly_newer_version("1.10.0", "1.9.9"), Some(true));
+        assert_eq!(is_strictly_newer_version("1.2.3", "1.2.3"), Some(false));
+        assert_eq!(is_strictly_newer_version("1.2.2", "1.2.3"), Some(false));
+    }
+
+    #[test]
+    fn semantic_version_policy_ignores_build_metadata_for_precedence() {
+        assert_eq!(
+            parse_semantic_version_parts("1.2.3+build.7"),
+            Some([1, 2, 3])
+        );
+        assert_eq!(
+            is_strictly_newer_version("1.2.3+build.7", "1.2.3"),
+            Some(false)
+        );
+        assert_eq!(
+            is_strictly_newer_version("1.2.4+build.7", "1.2.3"),
+            Some(true)
+        );
+    }
+
+    #[test]
+    fn semantic_version_policy_rejects_malformed_versions_instead_of_string_fallback() {
+        for version in [
+            "v1.2.3", "1.2", "1.2.3.4", "01.2.3", "1.02.3", "1.2.03", "1.2.3+", "1.2.3-",
+        ] {
+            assert_eq!(parse_semantic_version_parts(version), None);
+            assert_eq!(
+                update_policy_error_parts(version, "1.2.3", "stable", false),
+                Some(format!(
+                    "Malformed semantic update version is not allowed: {version} <= 1.2.3"
+                ))
+            );
+        }
     }
 
     #[test]

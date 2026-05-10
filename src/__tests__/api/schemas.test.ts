@@ -868,14 +868,14 @@ describe("DTO schemas", () => {
   it("parses valid UpdateInfoDto", () => {
     expect(
       UpdateInfoDtoSchema.parse({
-        version: " 1.0.0 ",
+        version: " 1.0.0+build.7 ",
         body: "Release notes",
         channel: "stable",
         prerelease: false,
         source: " github-latest-json ",
       }),
     ).toEqual({
-      version: "1.0.0",
+      version: "1.0.0+build.7",
       body: "Release notes",
       channel: "stable",
       prerelease: false,
@@ -923,6 +923,17 @@ describe("DTO schemas", () => {
     };
     expect(() => UpdateInfoDtoSchema.parse({ ...stableUpdate, version: "" })).toThrow();
     expect(() => UpdateInfoDtoSchema.parse({ ...stableUpdate, version: "   " })).toThrow();
+  });
+  it("rejects malformed UpdateInfoDto semantic versions", () => {
+    const stableUpdate = {
+      body: null,
+      channel: "stable",
+      prerelease: false,
+      source: "github-latest-json",
+    };
+    for (const version of ["v1.2.3", "1.2", "1.2.3.4", "01.2.3", "1.02.3", "1.2.03", "1.2.3+", "1.2.3-"]) {
+      expect(() => UpdateInfoDtoSchema.parse({ ...stableUpdate, version })).toThrow();
+    }
   });
   it("rejects UpdateInfoDto with blank source", () => {
     const stableUpdate = {
