@@ -1,6 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { type RefObject, useEffect, useReducer, useRef } from "react";
 import { copyToClipboard, testAccountConnection, updateAccountCredentials } from "@/api/tauri-commands";
+import { invalidateQueryKeysLogOnly } from "@/lib/query/query-invalidation";
 import { getErrorMessage } from "@/lib/ui/errors";
 import { useUiStore } from "@/stores/ui-store";
 import { updateCachedAccount } from "../../account-detail/query-cache";
@@ -55,7 +56,11 @@ type AccountDetailCredentialsEditorAction =
   | { type: "set-cred-password"; value: string | null }
   | { type: "set-testing-connection"; value: boolean }
   | { type: "sync-saved-password-presence"; value: boolean }
-  | { type: "clear-credential-drafts"; passwordWasSaved: boolean; draftRevision: number }
+  | {
+      type: "clear-credential-drafts";
+      passwordWasSaved: boolean;
+      draftRevision: number;
+    }
   | { type: "clear-password-input" };
 
 function accountHasMissingSavedPassword(account: AccountDetailCredentialsEditorParams["account"]): boolean {
@@ -88,11 +93,23 @@ function accountDetailCredentialsEditorReducer(
 ): AccountDetailCredentialsEditorState {
   switch (action.type) {
     case "set-cred-server-url":
-      return { ...state, credServerUrl: action.value, draftRevision: state.draftRevision + 1 };
+      return {
+        ...state,
+        credServerUrl: action.value,
+        draftRevision: state.draftRevision + 1,
+      };
     case "set-cred-username":
-      return { ...state, credUsername: action.value, draftRevision: state.draftRevision + 1 };
+      return {
+        ...state,
+        credUsername: action.value,
+        draftRevision: state.draftRevision + 1,
+      };
     case "set-cred-password":
-      return { ...state, credPassword: action.value, draftRevision: state.draftRevision + 1 };
+      return {
+        ...state,
+        credPassword: action.value,
+        draftRevision: state.draftRevision + 1,
+      };
     case "set-testing-connection":
       return { ...state, testingConnection: action.value };
     case "sync-saved-password-presence":
@@ -134,6 +151,7 @@ export function useAccountDetailCredentialsEditor({
   const pendingConnectionTestRef = useRef(false);
   const activeAccountIdRef = useRef(account.id);
   const draftRevisionRef = useRef(state.draftRevision);
+  const mountedRef = useRef(true);
   const serverUrlInputRef = useRef<HTMLInputElement>(null);
   const usernameInputRef = useRef<HTMLInputElement>(null);
   const showCredentialSaveError = createAccountDetailErrorToast(t, "account.failed_to_update_sync");
@@ -145,8 +163,18 @@ export function useAccountDetailCredentialsEditor({
   draftRevisionRef.current = state.draftRevision;
 
   useEffect(() => {
-    dispatch({ type: "sync-saved-password-presence", value: savedPasswordPresence });
+    dispatch({
+      type: "sync-saved-password-presence",
+      value: savedPasswordPresence,
+    });
   }, [savedPasswordPresence]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const commitCredentials = async (): Promise<boolean> => {
     if (pendingCredentialSaveRef.current) {
@@ -180,14 +208,22 @@ export function useAccountDetailCredentialsEditor({
       try {
         saveResult = await updateAccountCredentials(account.id, serverUrl, username, password);
       } catch (error) {
-        if (activeAccountIdRef.current !== account.id || draftRevisionRef.current !== draftRevision) {
+        if (
+          !mountedRef.current ||
+          activeAccountIdRef.current !== account.id ||
+          draftRevisionRef.current !== draftRevision
+        ) {
           return false;
         }
         showCredentialSaveError({ message: getErrorMessage(error) });
         return false;
       }
 
-      if (activeAccountIdRef.current !== account.id || draftRevisionRef.current !== draftRevision) {
+      if (
+        !mountedRef.current ||
+        activeAccountIdRef.current !== account.id ||
+        draftRevisionRef.current !== draftRevision
+      ) {
         return false;
       }
 
@@ -197,7 +233,12 @@ export function useAccountDetailCredentialsEditor({
         Result.inspect((updated) => {
           saved = true;
           updateCachedAccount(queryClient, updated);
-          dispatch({ type: "clear-credential-drafts", passwordWasSaved: passwordChanged, draftRevision });
+          invalidateQueryKeysLogOnly(queryClient, [["accounts"]]);
+          dispatch({
+            type: "clear-credential-drafts",
+            passwordWasSaved: passwordChanged,
+            draftRevision,
+          });
           useUiStore.getState().showToast(t("account.credentials_saved"));
         }),
       );
@@ -254,7 +295,9 @@ export function useAccountDetailCredentialsEditor({
   const handleCopyServerUrl = async () => {
     const value = (credServerUrl ?? account.server_url ?? "").trim();
     if (!value) {
-      showCopyServerUrlError({ message: t("account.error_server_url_required") });
+      showCopyServerUrlError({
+        message: t("account.error_server_url_required"),
+      });
       return;
     }
 
@@ -274,6 +317,11 @@ export function useAccountDetailCredentialsEditor({
   };
 
   const focusCredentialsEditor = () => {
+    const requestAccountId = account.id;
+    if (!mountedRef.current || activeAccountIdRef.current !== requestAccountId) {
+      return;
+    }
+
     focusFirstAccountDetailInput([serverUrlInputRef, usernameInputRef]);
   };
 
