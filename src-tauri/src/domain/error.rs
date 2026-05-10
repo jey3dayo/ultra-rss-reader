@@ -105,6 +105,31 @@ pub fn app_recovery_actions_for_error(error: &DomainError) -> &'static [AppRecov
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StorageBoundaryOwner {
+    Preferences,
+    Sidebar,
+    History,
+    Debug,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct StorageQuotaFailureContract {
+    pub owner: StorageBoundaryOwner,
+    pub persist_after_quota_failure: bool,
+    pub emits_warning_once: bool,
+    pub blocks_recovery_ui: bool,
+}
+
+pub fn storage_quota_failure_contract(owner: StorageBoundaryOwner) -> StorageQuotaFailureContract {
+    StorageQuotaFailureContract {
+        owner,
+        persist_after_quota_failure: false,
+        emits_warning_once: matches!(owner, StorageBoundaryOwner::Debug),
+        blocks_recovery_ui: false,
+    }
+}
+
 const LOOPBACK_CONNECT_PROBE_TIMEOUT: Duration = Duration::from_millis(200);
 const DNS_RESOLUTION_ERROR_MARKERS: &[&str] = &[
     "dns error",
@@ -389,7 +414,7 @@ mod tests {
         any_loopback_socket_accepts_connection, app_recovery_actions_for_error,
         classify_network_error, error_recovery_category, redact_sensitive_network_error_message,
         AppRecoveryAction, DestructiveActionFallback, DomainError, ErrorRecoveryCategory,
-        NetworkErrorClassificationInput,
+        NetworkErrorClassificationInput, StorageBoundaryOwner,
     };
     use crate::commands::dto::AppError;
     use reqwest::{
@@ -581,6 +606,44 @@ mod tests {
         assert_eq!(
             fallback.disabled_reason,
             "Action unavailable while recovery state is unknown"
+        );
+    }
+
+    #[test]
+    fn diagnostics_storage_boundary_contract_prevents_quota_cascade() {
+        for owner in [
+            StorageBoundaryOwner::Preferences,
+            StorageBoundaryOwner::Sidebar,
+            StorageBoundaryOwner::History,
+            StorageBoundaryOwner::Debug,
+        ] {
+            let contract = super::storage_quota_failure_contract(owner);
+
+            assert_eq!(contract.owner, owner);
+            assert!(
+                !contract.persist_after_quota_failure,
+                "quota failure must not trigger a secondary storage write for {owner:?}"
+            );
+            assert!(
+                !contract.blocks_recovery_ui,
+                "quota failure must not hide recovery UI for {owner:?}"
+            );
+        }
+
+        assert!(
+            !super::storage_quota_failure_contract(StorageBoundaryOwner::Preferences)
+                .emits_warning_once
+        );
+        assert!(
+            !super::storage_quota_failure_contract(StorageBoundaryOwner::Sidebar)
+                .emits_warning_once
+        );
+        assert!(
+            !super::storage_quota_failure_contract(StorageBoundaryOwner::History)
+                .emits_warning_once
+        );
+        assert!(
+            super::storage_quota_failure_contract(StorageBoundaryOwner::Debug).emits_warning_once
         );
     }
 

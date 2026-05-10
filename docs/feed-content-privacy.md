@@ -115,6 +115,27 @@ The preview must list the artifact classes that will be included, the redaction 
 
 Bug report attachments follow the same privacy boundary. Public issues should prefer redacted log excerpts, screenshots with private fields hidden, or copied support codes. Raw database backups, full app data directories, keychain exports, and unreviewed support dumps must stay out of public issue attachments.
 
+Diagnostics size contract:
+
+- Support/debug copy must cap a single diagnostics event at 16 KiB before it is added to any preview or export.
+- Runtime diagnostics history must use a 256 KiB ring buffer. Oldest diagnostics are dropped before newest diagnostics are rejected.
+- Release log collection must assume a 35 MB maximum retained log surface from 5 MB files retained for 7 days.
+- Emergency truncation must insert `[ultra-rss-reader:diagnostics-truncated]` and keep the consent, redaction preview, and artifact class list visible.
+- If clipboard copy or support dump generation fails after truncation, the fallback is a manually redacted app.log excerpt, not an unbounded retry or raw app data directory.
+
+Clipboard support-copy contract:
+
+- Clipboard payloads are plain text only and must be rejected when empty, whitespace-only, over 2048 user-visible characters, over 8192 UTF-8 bytes, or containing control characters.
+- Newlines, carriage returns, tabs, and NUL/control characters are rejected rather than normalized for clipboard support copy.
+- Clipboard permission denial must use action-specific recovery copy and must not include raw payload text in the user-visible error.
+- Clipboard failure diagnostics must record failure class and payload size class only. They must not store the copied payload, feed URLs, article URLs, server URLs, credentials, tokens, cookies, local paths, or account names.
+
+Storage quota contract:
+
+- Browser storage quota exhaustion must not cascade into additional local storage writes for preferences, sidebar expanded-folder state, command history, or debug diagnostics.
+- Preferences, sidebar, history, and debug surfaces must continue with in-memory fallback and preserve recovery UI when persistence fails.
+- A warning-once diagnostic may be emitted only by the diagnostics owner and must not require a successful local storage write to suppress repeats.
+
 ### User-Facing Error Correlation
 
 Decision: user-facing copy may show a stable support code for the error category, but diagnostics identifiers are ephemeral log-correlation values and must not be treated as stable user or device identifiers.

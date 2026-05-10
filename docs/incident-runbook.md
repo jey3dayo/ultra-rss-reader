@@ -49,6 +49,21 @@ Attachment contract:
 - If a database backup set or support dump is needed, share it only through a private support channel after confirming consent and redaction preview requirements from [feed-content-privacy.md](./feed-content-privacy.md).
 - Screenshots of OS prompts, SmartScreen, Gatekeeper, or permission dialogs must hide local usernames, local paths, account names, feed URLs, and server URLs.
 
+Size and truncation contract:
+
+- Packaged release logs are capped at 5 MB per file and retained for 7 days, so the effective maximum retained release-log surface is 35 MB.
+- Runtime diagnostics events must be capped at 16 KiB per event before they enter support/debug copy.
+- In-memory diagnostics history must behave as a 256 KiB ring buffer and evict oldest entries before writing new diagnostics.
+- If support/debug copy still exceeds the cap or cannot be copied, truncate from the middle, include `[ultra-rss-reader:diagnostics-truncated]`, and direct the user to share a manually redacted app.log excerpt instead.
+- Truncation must not remove the redaction preview, artifact class list, or warning that support artifacts are private.
+
+Storage pressure contract:
+
+- Treat browser storage quota exhaustion as a diagnostics boundary failure, not as a reason to write more warning state into browser storage.
+- Preferences, sidebar expanded-folder state, command history, and debug diagnostics must all continue with in-memory fallback when local storage writes fail.
+- Only the diagnostics owner may emit a warning-once event for storage quota exhaustion, and that warning-once state must not depend on another local storage write.
+- Recovery UI and destructive-action fallback copy must remain visible even when preferences, sidebar state, command history, or debug storage persistence failed.
+
 ### Database Backups
 
 - Migration recovery keeps the relevant backup artifacts for manual investigation.
