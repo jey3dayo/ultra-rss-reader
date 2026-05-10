@@ -3109,11 +3109,6 @@
   - permission denied を generic error にすると、macOS privacy settings や Windows policy の復旧案が出せない
   - file access denied、dialog denied、keyring denied、clipboard denied、action-specific copy の matrix を作る
 
-- [ ] P2 updater downloaded artifact cleanup を cancel / failed install / app restart で固定する
-  - 対象: updater hook、updater commands、release docs
-  - download 済み artifact が cancel や failed install 後に残ると、次回 check/install が stale artifact を使う可能性がある
-  - cancel、download failure、install failure、restart before install、cleanup diagnostics の contract を追加する
-
 - [ ] P2 Tauri event listener leak を route transition / settings modal / browser overlay で計測する
   - 対象: `src/lib/runtime/tauri-event-listeners.ts`, app shell hooks, browser overlay hooks
   - route/modal/overlay の開閉で listener が積み上がると、sync progress や browser event が重複処理される
@@ -3240,11 +3235,6 @@
   - Authorization redaction、Set-Cookie ignored、Cookie not persisted、redirect strips auth、retry diagnostics の contract を追加する
   - superseded by: P1-Q2e (covered by provider auth token/server URL redaction and no-store policy; kept verification: Authorization redaction, Set-Cookie ignored, retry diagnostics)
 
-- [ ] P1 stale update install と DB migration version の compatibility gate を作る
-  - 対象: updater flow、DB migration、release metadata
-  - 古い downloaded update を後で install すると、現在 DB schema と想定 migration path がずれる可能性がある
-  - downloaded version age、current app newer、DB schema newer、install blocked、redownload required の contract を追加する
-
 - [ ] P2 sync result warning cap と aggregation order を many-feed failure で固定する
   - 対象: sync result DTO、frontend sync feedback、diagnostics
   - 数百 feed の失敗を全部 toast/log に出すと UI と log が埋まり、逆に cap すると重要エラーが落ちる
@@ -3254,16 +3244,6 @@
   - 対象: tag repository、article tag picker、tests
   - 同じ article/tag relation が二重登録されると count、picker chips、remove 操作が壊れる
   - duplicate tag_article、optimistic duplicate、untag one of duplicates、count query、DB unique constraint の contract を追加する
-
-- [ ] P2 command palette / menu / shortcut action availability を capability matrix にする
-  - 対象: command palette actions、native menu、keyboard shortcuts、app action dispatcher
-  - 同じ action が surface ごとに enabled/disabled 条件を持つと、modal中・browser中・no account 時の動きがずれる
-  - no account、browser open、modal open、syncing、dirty form、offline の matrix を作る
-
-- [ ] P2 keyboard shortcut persistence の migration path を renamed action id で固定する
-  - 対象: shortcut preferences、app action ids、settings shortcuts
-  - action id rename 後に古い custom shortcut が残ると、表示されない shortcut が発火するか、発火しなくなる
-  - renamed action、deleted action、new default conflict、reset all、migration warning の contract を追加する
 
 - [ ] P2 window drag region と file drop region の pointer event priority を検証する
   - 対象: app shell CSS、native titlebar overlay、drag/drop handlers
@@ -3320,21 +3300,6 @@
   - TODO が増え続けると同じ risk を別名で積みやすくなり、優先度判断が鈍る
   - normalized heading、priority bucket、file target overlap、similarity threshold、completed task pruning の report を追加する
 
-- [ ] P1 release rollback / downgrade install を DB schema compatibility として禁止または明示復旧にする
-  - 対象: updater flow、release metadata、DB migration
-  - 新しい DB schema を触った後に古い app を起動すると、migration downgrade 非対応で data loss や起動不能になる
-  - app downgrade detection、schema newer than app、rollback blocked copy、manual restore path、support message の contract を追加する
-
-- [ ] P1 provider response trust boundary を `trusted backend` / `untrusted feed` で型と sanitizer に分ける
-  - 対象: provider DTO、article sanitizer、schema-boundary rule
-  - FreshRSS/GReader API response と任意 RSS/Atom response を同じ trust level で扱うと、validation/sanitization の責務が曖昧になる
-  - trusted API DTO、untrusted feed HTML、provider metadata、error payload、schema strictness の decision を書く
-
-- [ ] P1 credential-bearing URL を persistence boundary で reject する
-  - 対象: feed URL、server URL、article URL、history、OPML export
-  - `https://user:pass@example.com/feed` のような URL が DB/OPML/history に保存されると、redaction 以前に漏洩面が増える
-  - feed add、OPML import、article link、browser history、debug dump、export の reject/redact policy を固定する
-
 - [ ] P1 app log / diagnostics の maximum total size と emergency truncation を固定する
   - 対象: log plugin setup、runtime diagnostics、support dump
   - 連続 failure で log/diagnostics が肥大化すると disk pressure と support copy failure が起きる
@@ -3349,16 +3314,6 @@
   - 対象: reader article list、settings forms、command palette、dialogs
   - desktop webview の zoom/text scaling で固定高さ row や toolbar button が重なると、accessibility と操作性が落ちる
   - 125/150/200% zoom、large font、narrow width、toolbar icons、form labels の visual smoke を追加する
-
-- [ ] P2 reduced data / low power mode 相当の remote image・background sync 方針を決める
-  - 対象: article image loading、sync scheduler、settings
-  - OS や user preference で低通信/省電力を求める場合、remote images と background sync をどう抑えるか未固定
-  - remote image load、favicon fetch、automatic sync、manual override、settings copy の decision を追加する
-
-- [ ] P2 privacy-preserving feed favicon fetch の referer / user-agent / cache policy を固定する
-  - 対象: favicon helpers、feed metadata display、HTTP defaults
-  - favicon 取得が article/feed fetch と別経路になると、referer・user-agent・private host guard がずれる
-  - no referer、user-agent、private host reject、cache TTL、failure cache、manual refresh の contract を追加する
 
 - [ ] P2 imported OPML account ownership を cross-account duplicate / move flow で固定する
   - 対象: OPML import、feed repository、settings account selection
@@ -3506,11 +3461,6 @@
   - 長い feed/account/tag 名が layout を押し広げるか、省略されすぎると action target の識別が難しくなる
   - max width、ellipsis、tooltip/title、middle truncation、bidi-safe display の policy を追加する
 
-- [ ] P2 command/action id の public persistence boundary を preference/history/debug で分類する
-  - 対象: app action ids、shortcut preferences、command history、debug traces
-  - action id を rename すると preference/history/debug が壊れるため、永続化される id と内部 id を分ける必要がある
-  - persisted ids、internal-only ids、migration map、debug label、removed action の contract を追加する
-
 - [ ] P2 stale query cache after app version upgrade を schema version / query key version で検出する
   - 対象: React Query keys、startup boot、schema migrations
   - reload 前後や future persistence 導入時に古い query shape が残ると、view model parse が壊れる
@@ -3540,11 +3490,6 @@
   - 対象: `TODO.md`, task triage tooling, subagent workflow
   - TODO が増えた後に手作業で worker へ渡すと、優先度・検証・スコープが落ちやすい
   - markdown section parser、P1/P2 filter、target files、test plan inference、worker prompt template の task を追加する
-
-- [ ] P1 update/install failure 後の app binary / DB schema / pending update state の三者整合を固定する
-  - 対象: updater hook、updater commands、DB migration、startup boot
-  - binary は旧版のまま DB だけ migration 済み、または pending update state だけ残ると復旧不能に見える
-  - install failure、restart failure、schema migrated、pending update cleared、manual redownload の contract を追加する
 
 - [ ] P1 support dump 生成前に user consent / redaction preview を必須にするか決める
   - 対象: Debug HUD、diagnostics export、support workflow
@@ -3602,11 +3547,6 @@
   - 対象: `open_in_browser`, app actions, keyboard/menu handlers
   - 同じ article を連打すると複数 browser tab や duplicate Reading List action が出て、ユーザー操作の副作用が大きい
   - double click、key repeat、menu+shortcut race、same URL dedupe window、failure retry の policy を追加する
-
-- [ ] P2 keyboard shortcut help の generated content と actual bindings を snapshot 化する
-  - 対象: shortcuts help view、shortcut settings、app action registry
-  - help に古い binding が残ると、custom shortcut や platform modifier の変更後に操作案内が嘘になる
-  - default binding、custom binding、disabled action、platform modifier、locale copy の snapshot を追加する
 
 - [ ] P2 screen reader announcement for sync/update progress を noisy queue にならないよう固定する
   - 対象: sync progress UI、updater UI、toast/live region
