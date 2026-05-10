@@ -1603,16 +1603,6 @@
   - add feed flow で folder 作成と feed 作成が連続するため、folder 作成成功後に feed 作成が失敗した時の再実行で duplicate folder を作りやすい
   - create folder success + add feed failure、retry same name、selectedFolderId changed、account switch、folder create validation error の flow test を追加する
 
-- [ ] P2 sidebar expanded folders storage の oversized JSON cleanup failure を diagnostics 化する
-  - 対象: `src/components/reader/hooks/sidebar/use-sidebar-startup-folder-expansion.ts`, `src/schemas/storage.ts`, `src/constants/storage.ts`
-  - oversized / malformed storage は remove されるが remove/setItem failure は黙殺されるため、復旧不能な storage corruption が続いても見えにくい
-  - getItem throw、removeItem throw、setItem quota、oversized payload、version mismatch、diagnostics once warning の test を追加する
-
-- [ ] P2 sidebar expanded folders storage の account insertion order / pruning priority を明文化する
-  - 対象: `src/components/reader/hooks/sidebar/use-sidebar-startup-folder-expansion.ts`, `src/schemas/storage.ts`
-  - expanded folders storage は current account を先頭にして account 数上限で切るため、長期利用時にどの account の state が失われるかが実装依存になりやすい
-  - LRU/current-first policy、100 account cap、500 folder cap、deleted account prune、same account overwrite の unit test を追加する
-
 - [ ] P2 JSON parse helper の throwing/null boundary を CLAUDE rules と test で固定する
   - 対象: `src/schemas/parse.ts`, `src/schemas/storage.ts`, `src/api/tauri-commands.ts`, `CLAUDE.md`
   - `parseJsonWithSchema` と `parseJsonWithSchemaOrNull` が共存しており、runtime boundary で throwing helper を使うと unhandled exception になりやすい
@@ -1927,11 +1917,6 @@
   - tag pattern は prerelease/build metadata を許可するが release action は `prerelease: false` 固定で、実 release の公開種別が曖昧
   - `v1.2.3-alpha.1`、`v1.2.3+build.1`、stable、draft/pre-release flag、release note template の repo contract を追加する
 
-- [ ] P2 bulk article mutation の missing / mixed-account ID policy を固定する
-  - 対象: `src-tauri/src/commands/article_commands.rs`, `src/hooks/use-articles.ts`, `src/components/reader/hooks/article-list`
-  - 複数 article id の更新が存在しない id や別 account 混在を明示せず部分成功にでき、stale selection 時の UI feedback が曖昧
-  - missing id、mixed account、deleted feed、partial update count、rollback/refetch policy の test を追加する
-
 - [ ] P2 old unread command の missing target を 0 件成功にするか validation error にするか決める
   - 対象: `src-tauri/src/commands/article_commands.rs`, `src/components/reader/hooks/feed-actions/use-old-unread-read-action.ts`
   - missing feed/folder/account target が 0 件成功に見えると、削除済み target への操作や account drift が user-visible にならない
@@ -2102,11 +2087,6 @@
   - `setPref` が失敗しても UI 値を維持するため、永続値との差分が settings close / app restart まで見えなくなりやすい
   - save reject、schema failure、latest-only failure、rollback/dirty badge、retry action、toast copy の store/component test を追加する
 
-- [ ] P1 mute keyword 追加/更新 race と duplicate 正規化を UI/backend で一本化する
-  - 対象: `src/components/settings/mute-settings.tsx`, `src/hooks/use-mute-keywords.ts`, `src/api/schemas/mute-keyword.ts`, `src-tauri/src/infra/db/sqlite_mute_keyword.rs`
-  - keyword trim、case、scope 更新、backend duplicate failure が分散しており、同時操作で表示復元や auto-mark-read の対象が揺れやすい
-  - duplicate create、scope update race、trim/case collision、backend failure rollback、auto-mark-read invalidation の test を追加する
-
 - [ ] P2 discovery と local provider の private-host validation helper を共有化する
   - 対象: `src-tauri/src/infra/feed_discovery.rs`, `src-tauri/src/infra/provider/local.rs`, `src-tauri/src/infra/http_client.rs`
   - DNS/IP 判定が別々に増えると、片側だけ DNS rebinding や IPv6 private range 対応が進む risk がある
@@ -2116,11 +2096,6 @@
   - 対象: `src-tauri/src/infra/sanitizer.rs`, `tests/fixtures/sanitizer`
   - 独自 srcset split は data URL comma や異常 descriptor に弱く、safe/unsafe candidate の保持境界が将来変更で崩れやすい
   - comma in URL、empty descriptor、duplicate descriptor、control char、uppercase scheme、huge srcset の sanitizer fixture を追加する
-
-- [ ] P2 dev credential store lock の stale lock recovery 方針を決める
-  - 対象: `src-tauri/src/infra/keyring_store.rs`, `src-tauri/src/commands/account_commands.rs`
-  - dev credentials の lock file が異常終了で残ると timeout で止まるだけになり、開発環境復旧手順が属人化しやすい
-  - stale pid、mtime timeout、manual cleanup message、concurrent writer、corrupted lock file の Rust test を追加する
 
 - [ ] P2 platform capability と dev runtime option の env snapshot helper を共有する
   - 対象: `src-tauri/src/commands/platform_commands.rs`, `src-tauri/src/platform/mod.rs`, `src/dev/intent.ts`
@@ -2277,16 +2252,6 @@
   - query/userinfo/fragment は落としても path に token や signed URL 風の値が入ると timeout/fallback logs へ残る可能性がある
   - signed path token、UUID path、safe host only、multiline URL、redaction snapshot の Rust/TS test を追加する
 
-- [ ] P2 old unread count/mark の `Utc::now()` 境界 drift を固定する
-  - 対象: `src-tauri/src/commands/article_commands.rs`, `src/components/reader/hooks/feed-actions/use-old-unread-read-action.ts`
-  - count と mark が別 command でそれぞれ `now` を取るため、境界時刻付近の記事で確認件数と実 mark 件数がずれる可能性がある
-  - fixed clock injection、count/mark shared cutoff、article exactly at cutoff、DST/timezone、confirmation copy の test を追加する
-
-- [ ] P2 old unread の `published_at` 文字列比較を timestamp normalization contract にする
-  - 対象: `src-tauri/src/commands/article_commands.rs`, `src-tauri/src/infra/db/sqlite_article.rs`
-  - SQL が `published_at < ?` の文字列比較なので、fractional seconds、timezone offset、invalid legacy value の ordering が暗黙
-  - RFC3339 nano、offset timezone、invalid string、null legacy、migration repair の Rust test を追加する
-
 - [ ] P2 feed integrity report を sync/maintenance 中に読んでよいか policy 化する
   - 対象: `src-tauri/src/commands/article_commands.rs`, `src/components/settings/data-settings.tsx`
   - cleanup は maintenance guard を取るが report は reader lock だけで読み、sync 中の transient orphan count を UI に出すかが曖昧
@@ -2387,11 +2352,6 @@
   - create tag mutation の failure path が view contract に出ておらず、duplicate/network/schema failure 時の入力保持と通知が曖昧
   - duplicate、network failure、schema failure、input retention、toast、pending state の test を追加する
 
-- [ ] P1 tag create + assign の two-step partial success policy を決める
-  - 対象: `src/components/article/article-tag-chips.tsx`, `src/hooks/use-tags.tsx`, `src-tauri/src/commands/tag_commands.rs`
-  - tag 作成成功後に article への assignment が失敗すると、tag だけ残って未紐付けになる状態の UI/再試行方針が未契約
-  - create success assign failure、retry assign、newTagName reset、picker close、toast copy の test を追加する
-
 - [ ] P2 Data settings `setSettingsLoading` と modal common loading を同期する
   - 対象: `src/components/settings/hooks/use-data-settings-controller.ts`, `src/components/settings/settings-modal-view.tsx`, `src/stores/ui-store.ts`
   - controller param は存在するが db info/vacuum/open log の進行状態と modal 共通 loading 表示が連動していない
@@ -2482,16 +2442,6 @@
   - `handleAdd` に in-flight ref がなく、view disabled だけでは Enter spam や double click を完全には防げない
   - Enter spam、double click、slow mutation、duplicate backend failure、input reset の test を追加する
 
-- [ ] P2 createQuery diagnostics の raw queryId redaction を追加する
-  - 対象: `src/hooks/create-query.ts`, `src/lib/runtime/diagnostics.ts`
-  - error message/diagnostic に raw `queryId` が入り、将来 URL/token/private id を query id にした時に漏洩し得る
-  - URL id、token-like id、account id、disabled refetch、redaction snapshot の test を追加する
-
-- [ ] P2 createMutation が error classification を保持するようにする
-  - 対象: `src/hooks/create-mutation.ts`, `src/api/schemas/error.ts`, `src/lib/ui-errors.ts`
-  - `Result.fail` が `Error(message)` に潰されると、category/user-visible/diagnostics/locale key の情報を失う
-  - AppError failure、schema failure、runtime failure、toast category、mutation error surface の test を追加する
-
 - [ ] P2 createMutation invalidation failure diagnostics に owner/query key を含める
   - 対象: `src/hooks/create-mutation.ts`, `src/lib/query/query-invalidation.ts`, `src/__tests__/hooks`
   - invalidation rejection が mutation error になっても、どの owner/query key が壊れたか診断しづらい
@@ -2508,25 +2458,10 @@
   - policy に `toast: user-action-only` があるが logger は console 中心で、ユーザー通知される条件が実装 contract になっていない
   - user action diagnostics、background diagnostics、toast suppression、policy test、UI store dependency を追加する
 
-- [ ] P2 runtime diagnostics once suppression set growth を `once=false` で抑える
-  - 対象: `src/lib/runtime/diagnostics.ts`
-  - `once:false` の diagnostic でも once key を set に追加しており、高カーディナリティ detail で grow し続ける可能性がある
-  - once false repeated details、memory cap、reset helper、background spam、policy test を追加する
-
 - [ ] P2 command history storage warning を diagnostics/redaction に統合する
   - 対象: `src/hooks/use-command-history.ts`, `src/lib/runtime/diagnostics.ts`
   - DEV-only console warning が runtime diagnostics と分かれており、production behavior と redaction 方針が揺れやすい
   - localStorage unavailable、quota、malformed JSON、redaction、production behavior の test を追加する
-
-- [ ] P2 sidebar expanded folders storage schema の prototype key hardening を行う
-  - 対象: `src/schemas/storage.ts`
-  - localStorage 由来の account id を plain object に入れるため、`__proto__`/`constructor` key の扱いを明文化していない
-  - proto key、constructor key、null-prototype output、JSON parse、account cap の test を追加する
-
-- [ ] P2 storage/preference control char policy を揃える
-  - 対象: `src/schemas/storage.ts`, `src/schemas/preferences.ts`
-  - storage は C0/DEL 除去、preferences は C1 も reject するなど、control char の normalize/reject 方針が drift している
-  - C0、DEL、C1、normalize vs reject、migration/cleanup の test を追加する
 
 - [ ] P3 SettingsPageView inline text action の aria-label required contract を決める
   - 対象: `src/components/settings/settings-page-view.tsx`, `src/components/settings/settings-page.types.ts`
@@ -2552,11 +2487,6 @@
   - 対象: `src/lib/i18n-resources.ts`, `src/schemas/preferences.ts`, `src/components/settings/hooks/use-general-settings-view-props.ts`
   - UI option は supported languages、schema は hard-coded enum のため、locale 追加時に保存値と fallback がずれやすい
   - add locale fixture、schema enum、settings option、resources、fallback の test を追加する
-
-- [ ] P1 feed 単体 sync 成功時に account scheduler backoff を消す契約を分ける
-  - 対象: `src-tauri/src/commands/sync_commands.rs`, `src-tauri/src/service/sync_scheduler.rs`
-  - `trigger_sync_feed` 成功で account 全体の scheduler status を clear すると、同一 account の別 feed に残る failure backoff まで消し得る
-  - scheduler error state、feed A single sync success、feed B failure retained、account sync success clears、feed sync warning retains status の test を追加する
 
 - [ ] P1 `keep_read_items_days` purge の実行契約を manual/startup/scheduler で揃える
   - 対象: `src-tauri/src/commands/sync_commands.rs`, `src-tauri/src/service/sync_scheduler.rs`
@@ -2598,11 +2528,6 @@
   - due account snapshot の `sync_interval_secs` で成功後 `next_sync` を更新するため、sync 中の interval 変更・account 削除・sync 無効化が古い schedule で上書きされ得る
   - interval changed during sync、account deleted during sync、interval shortened/lengthened、load-after-sync refresh、schedule prune の test を追加する
 
-- [ ] P2 scheduler retry-scheduled warning と provider warning の dedupe/cap を固定する
-  - 対象: `src-tauri/src/service/sync_scheduler.rs`, `src/lib/sync/sync-result-feedback.ts`
-  - 失敗ごとに RetryScheduled warning を積むと provider warning と重なり、background failure で UI/toast が騒がしくなる可能性がある
-  - retry warning dedupe、provider warning + retry warning、same account repeated tick、multi-account warning cap、retry_at更新時のみ通知 の test を追加する
-
 - [ ] P2 remote subscription URL fallback merge が別 remote feed を上書きしない契約を作る
   - 対象: `src-tauri/src/service/sync_flow.rs`
   - `find_by_remote_id` が外れた後に `find_by_url` で既存 feed を再利用するため、remote_id 変更や同 URL 別 subscription が混ざると意図しない merge になり得る
@@ -2612,16 +2537,6 @@
   - 対象: `src-tauri/src/service/sync_flow.rs`
   - `folder_remote_id` が存在するのに folder 解決できない場合に `folder_id=None` へ落ちると、一時的な folder API 欠落で feed が root へ移動し得る
   - folder sync omitted、folder API failure後subscription sync、unknown folder_remote_id、existing folder保持、explicit remote folder removal の test を追加する
-
-- [ ] P2 `add_local_feed` の fetch 待ち中 account drift を固定する
-  - 対象: `src-tauri/src/commands/feed_commands.rs`
-  - account kind/local 存在確認後に外部 fetch を待って保存するため、待機中の account 削除・kind 変更時の error/rollback が揺れやすい
-  - account deleted after validation、account kind changed、FK failure message、no orphan feed、retry after account recreated の test を追加する
-
-- [ ] P2 OPML import の duplicate URL skip を URL 正規化単位で固定する
-  - 対象: `src-tauri/src/commands/opml_commands.rs`
-  - duplicate 判定が保存済み URL との文字列一致に寄ると、scheme/host case、default port、trailing slash、percent encoding 差で重複登録し得る
-  - host case、default port、trailing slash、query order、percent-encoded path、existing normalized local feed の test を追加する
 
 - [ ] P2 main-stage portal target missing 時の browser fallback geometry を固定する
   - 対象: `src/components/reader/browser-view.tsx`, `src/components/reader/browser-webview-sync-helpers.ts`
@@ -2782,31 +2697,6 @@
   - 対象: `src/components/settings/shortcuts-settings.tsx`, `src/components/settings/hooks/use-shortcuts-settings-view-props.ts`
   - conflict message は保存時点の translated label / platform display を文字列で保持するため、言語や platform kind が変わると stale 表示になり得る
   - conflict then language change、platform kind change、recording restart、reset shortcut、message recompute policy の test を追加する
-
-- [ ] P2 dev credential store の account id key validation を DB id contract と揃える
-  - 対象: `src-tauri/src/infra/keyring_store.rs`, `src-tauri/src/commands/account_commands.rs`
-  - dev JSON store は account id をそのまま object key にするため、空文字/control char/巨大 id/特殊 key を credential boundary でどう扱うか未契約
-  - empty account id、control char、very long id、`__proto__`-like key、normal generated id、missing password error の Rust test を追加する
-
-- [ ] P2 keyring force-delete fallback warning の stderr redaction を追加する
-  - 対象: `src-tauri/src/infra/keyring_store.rs`
-  - macOS `security` fallback の stderr を warning に含めるため、将来 command stderr に user path/account detail が混ざった時に log privacy boundary が弱くなる
-  - stderr with account id、user path、quoted service、non-UTF8 stderr、status only message の test を追加する
-
-- [ ] P2 dev credential lock file の stale owner diagnostics を redacted にする
-  - 対象: `src-tauri/src/infra/keyring_store.rs`
-  - lock timeout message が lock path をそのまま出すため、HOME/user name や temp dir layout が diagnostics/log に残る
-  - timeout path redaction、relative path、Windows path、permission error、support log copy の test を追加する
-
-- [ ] P2 `open_log_dir` の non-UTF8 path / opener argument policy を固定する
-  - 対象: `src-tauri/src/commands/log_commands.rs`
-  - `dir.to_string_lossy()` を opener に渡すため、non-UTF8 path を含む環境で開く場所や error message が曖昧になる
-  - non-UTF8 app_log_dir、lossy path warning、open failure、redacted path、user-visible recovery copy の Rust test を追加する
-
-- [ ] P2 `open_log_dir` の symlink / file collision handling を固定する
-  - 対象: `src-tauri/src/commands/log_commands.rs`
-  - log dir path に既存 file や symlink がある場合、create/open の error surface と support message が OS ごとにずれやすい
-  - existing file at log dir、symlink dir、permission denied、create_dir_all race、opener failure の test を追加する
 
 - [ ] P2 feed favicon external endpoint privacy policy を設定/ドキュメントと同期する
   - 対象: `src/components/shared/feed-favicon.tsx`, `src/lib/feed/feed.ts`, `DESIGN.md`
