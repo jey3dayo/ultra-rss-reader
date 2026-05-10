@@ -3,16 +3,12 @@ import { normalizeHttpCommandUrl } from "@/api/schemas/commands";
 import { type AppError, addToReadingList, openInBrowser } from "@/api/tauri-commands";
 import { copyTextToClipboard } from "@/lib/runtime/clipboard";
 import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
+import { classifyRuntimeActionErrorCategory, type RuntimeActionErrorCategory } from "@/lib/ui-errors";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import type { ArticleStatusToast, ArticleToastActionParams } from "./article-actions.types";
 
-export type ArticleActionErrorCategory =
-  | "runtime_unavailable"
-  | "permission_denied"
-  | "invalid_text"
-  | "invalid_url"
-  | "unknown";
+export type ArticleActionErrorCategory = RuntimeActionErrorCategory;
 
 export type ArticleActionErrorLocaleKey =
   | "article_actions.errors.runtime_unavailable"
@@ -115,31 +111,7 @@ export function normalizeArticleExternalBrowserUrl(url: string): Result.Result<s
 }
 
 export function resolveArticleActionErrorCategory(message: string): ArticleActionErrorCategory {
-  const normalized = message.toLowerCase();
-
-  if (normalized.includes("permission") || normalized.includes("denied") || normalized.includes("not allowed")) {
-    return "permission_denied";
-  }
-  if (
-    normalized.includes("unavailable") ||
-    normalized.includes("not available") ||
-    normalized.includes("plugin") ||
-    normalized.includes("unknown command")
-  ) {
-    return "runtime_unavailable";
-  }
-  if (
-    normalized.includes("invalid url") ||
-    normalized.includes("invalid uri") ||
-    normalized.includes("only http:// and https:// urls")
-  ) {
-    return "invalid_url";
-  }
-  if (normalized.includes("invalid") || normalized.includes("validation") || normalized.includes("text")) {
-    return "invalid_text";
-  }
-
-  return "unknown";
+  return classifyRuntimeActionErrorCategory(message, { validationCategory: "invalid_text" });
 }
 
 export function resolveArticleActionErrorLocaleKey(category: ArticleActionErrorCategory): ArticleActionErrorLocaleKey {

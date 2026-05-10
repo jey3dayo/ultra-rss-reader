@@ -75,55 +75,67 @@ export function useBrowserWebviewEvents({
     let cancelled = false;
     warnedMalformedEventNamesRef.current.clear();
     const listenerGroup = createTauriListenerGroup([
-      listen<unknown>(BROWSER_WINDOW_EVENTS.stateChanged, ({ payload }) => {
-        if (cancelled) return;
-        const nextState = parseBrowserWebviewStatePayload(payload);
-        if (!nextState) {
-          warnMalformedBrowserWebviewEvent(
-            warnedMalformedEventNamesRef.current,
-            BROWSER_WINDOW_EVENTS.stateChanged,
-            payload,
-          );
-          return;
-        }
-        onStateChanged(nextState);
-      }),
-      listen<unknown>(BROWSER_WINDOW_EVENTS.fallback, ({ payload }) => {
-        if (cancelled) return;
-        const fallbackPayload = parseBrowserWebviewFallbackPayload(payload);
-        if (!fallbackPayload) {
-          warnMalformedBrowserWebviewEvent(
-            warnedMalformedEventNamesRef.current,
-            BROWSER_WINDOW_EVENTS.fallback,
-            payload,
-          );
-          return;
-        }
-        const requestedUrl = useUiStore.getState().browserUrl;
-        if (requestedUrl && !isBrowserWebviewFallbackForRequestedUrl(fallbackPayload, requestedUrl)) {
-          return;
-        }
-        onFallback(fallbackPayload);
-      }),
-      listen(BROWSER_WINDOW_EVENTS.closed, () => {
-        if (cancelled) return;
-        onClosed();
-      }),
+      {
+        owner: "browser-webview-events:state-changed",
+        subscription: listen<unknown>(BROWSER_WINDOW_EVENTS.stateChanged, ({ payload }) => {
+          if (cancelled) return;
+          const nextState = parseBrowserWebviewStatePayload(payload);
+          if (!nextState) {
+            warnMalformedBrowserWebviewEvent(
+              warnedMalformedEventNamesRef.current,
+              BROWSER_WINDOW_EVENTS.stateChanged,
+              payload,
+            );
+            return;
+          }
+          onStateChanged(nextState);
+        }),
+      },
+      {
+        owner: "browser-webview-events:fallback",
+        subscription: listen<unknown>(BROWSER_WINDOW_EVENTS.fallback, ({ payload }) => {
+          if (cancelled) return;
+          const fallbackPayload = parseBrowserWebviewFallbackPayload(payload);
+          if (!fallbackPayload) {
+            warnMalformedBrowserWebviewEvent(
+              warnedMalformedEventNamesRef.current,
+              BROWSER_WINDOW_EVENTS.fallback,
+              payload,
+            );
+            return;
+          }
+          const requestedUrl = useUiStore.getState().browserUrl;
+          if (requestedUrl && !isBrowserWebviewFallbackForRequestedUrl(fallbackPayload, requestedUrl)) {
+            return;
+          }
+          onFallback(fallbackPayload);
+        }),
+      },
+      {
+        owner: "browser-webview-events:closed",
+        subscription: listen(BROWSER_WINDOW_EVENTS.closed, () => {
+          if (cancelled) return;
+          onClosed();
+        }),
+      },
       ...(showDiagnostics
         ? [
-            listen<unknown>(BROWSER_WINDOW_EVENTS.diagnostics, ({ payload }) => {
-              if (cancelled) return;
-              const diagnosticsPayload = parseBrowserWebviewDiagnosticsPayload(payload);
-              if (!diagnosticsPayload) {
-                warnMalformedBrowserWebviewEvent(
-                  warnedMalformedEventNamesRef.current,
-                  BROWSER_WINDOW_EVENTS.diagnostics,
-                  payload,
-                );
-                return;
-              }
-              onDiagnostics(diagnosticsPayload);
-            }),
+            {
+              owner: "browser-webview-events:diagnostics",
+              subscription: listen<unknown>(BROWSER_WINDOW_EVENTS.diagnostics, ({ payload }) => {
+                if (cancelled) return;
+                const diagnosticsPayload = parseBrowserWebviewDiagnosticsPayload(payload);
+                if (!diagnosticsPayload) {
+                  warnMalformedBrowserWebviewEvent(
+                    warnedMalformedEventNamesRef.current,
+                    BROWSER_WINDOW_EVENTS.diagnostics,
+                    payload,
+                  );
+                  return;
+                }
+                onDiagnostics(diagnosticsPayload);
+              }),
+            },
           ]
         : []),
     ]);

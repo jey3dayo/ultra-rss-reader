@@ -13,6 +13,7 @@ import {
   openUrlInExternalBrowser,
   resolveArticleActionErrorCategory,
 } from "@/components/reader/article-browser-actions";
+import { resolveClipboardErrorCategory } from "@/lib/runtime/clipboard";
 import { usePreferencesStore } from "@/stores/preferences-store";
 
 describe("article-browser-actions", () => {
@@ -125,7 +126,7 @@ describe("article-browser-actions", () => {
     expect(categorizeArticleActionError(error)).toBe(error);
   });
 
-  it("projects invalid clipboard text without invoking Tauri", async () => {
+  it("projects blank clipboard text without invoking Tauri", async () => {
     await copyArticleLink("", {
       showToast,
       successMessage: "Link copied",
@@ -146,7 +147,7 @@ describe("article-browser-actions", () => {
     });
 
     expect(calls).toEqual([]);
-    expect(showToast).toHaveBeenCalledWith("Invalid clipboard text");
+    expect(showToast).toHaveBeenCalledWith("Only http:// and https:// URLs are supported");
   });
 
   it("shows a success toast after adding a link to the reading list", async () => {
@@ -440,13 +441,31 @@ describe("article-browser-actions", () => {
 
   it("classifies action error categories shared by copy and open actions", () => {
     expect(resolveArticleActionErrorCategory("Clipboard unavailable")).toBe("runtime_unavailable");
+    expect(resolveArticleActionErrorCategory("unknown command open_in_browser")).toBe("runtime_unavailable");
+    expect(resolveArticleActionErrorCategory("browser plugin not available")).toBe("runtime_unavailable");
     expect(resolveArticleActionErrorCategory("Clipboard permission denied")).toBe("permission_denied");
+    expect(resolveArticleActionErrorCategory("Clipboard requires a secure context")).toBe("permission_denied");
     expect(resolveArticleActionErrorCategory("Only http:// and https:// URLs are supported")).toBe("invalid_url");
     expect(resolveArticleActionErrorCategory("Only http:// and https:// URLs without newlines are supported")).toBe(
       "invalid_url",
     );
+    expect(resolveArticleActionErrorCategory("URL validation failed")).toBe("invalid_text");
     expect(resolveArticleActionErrorCategory("Invalid clipboard text")).toBe("invalid_text");
     expect(resolveArticleActionErrorCategory("Unexpected failure")).toBe("unknown");
+  });
+
+  it.each([
+    ["unknown command: copy_to_clipboard", "runtime_unavailable"],
+    ["clipboard plugin not available", "runtime_unavailable"],
+    ["Clipboard write failed in an insecure context", "permission_denied"],
+    ["Clipboard permission denied", "permission_denied"],
+    ["Only http:// and https:// URLs are supported", "invalid_url"],
+    ["Invalid clipboard text", "invalid_text"],
+    ["Clipboard text validation failed", "invalid_text"],
+    ["Unexpected failure", "unknown"],
+  ] as const)("keeps clipboard and article action category parity for %j", (message, category) => {
+    expect(resolveArticleActionErrorCategory(message)).toBe(category);
+    expect(resolveClipboardErrorCategory(message)).toBe(category);
   });
 
   it("attaches locale keys to categorized action errors", () => {

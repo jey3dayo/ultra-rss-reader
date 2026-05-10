@@ -2,7 +2,9 @@ import { Result } from "@praha/byethrow";
 import { renderHook } from "@testing-library/react";
 import { type TestUserVisibleAppError, testRetryableAppError, testUserVisibleAppError } from "@tests/helpers/app-error";
 import { flushMicrotasksAndRealTimer } from "@tests/helpers/async-flush";
+import { resetTauriRuntimeFlags, setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { TAURI_EVENT_LISTENER_FAILURE_EVENT } from "@/lib/runtime/tauri-event-listeners";
 
 const mockCheckForUpdate = vi.hoisted(() => vi.fn());
 const mockDownloadAndInstallUpdate = vi.hoisted(() => vi.fn());
@@ -71,6 +73,7 @@ describe("performUpdateCheck", () => {
     mockListen.mockReset().mockResolvedValue(() => {});
     delete window.__DEV_BROWSER_MOCKS__;
     delete window.__ULTRA_RSS_BROWSER_MOCKS__;
+    resetTauriRuntimeFlags();
     await changeTestLanguage("ja");
   });
 
@@ -514,6 +517,32 @@ describe("performUpdateCheck", () => {
 
     expect(disposeProgressListener).toHaveBeenCalledTimes(1);
     expect(disposeReadyListener).toHaveBeenCalledTimes(1);
+  });
+
+  it("surfaces updater listener registration failures with the listener owner", async () => {
+    setTauriRuntimePresent();
+    const error = new Error("updater listener failed");
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const onFailure = vi.fn();
+    mockCheckForUpdate.mockResolvedValue(Result.succeed(null));
+    mockListen.mockRejectedValue(error);
+    window.addEventListener(TAURI_EVENT_LISTENER_FAILURE_EVENT, onFailure);
+
+    const {
+      updaterModule: { useUpdater },
+    } = await getUpdaterModuleAndUiStore();
+
+    renderHook(() => useUpdater());
+    await flushMicrotasksAndRealTimer();
+
+    expect(warnSpy).toHaveBeenCalledTimes(2);
+    expect(onFailure).toHaveBeenCalledTimes(2);
+    expect(onFailure).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ detail: { owner: "updater:download-progress" } }),
+    );
+    expect(onFailure).toHaveBeenNthCalledWith(2, expect.objectContaining({ detail: { owner: "updater:ready" } }));
+    window.removeEventListener(TAURI_EVENT_LISTENER_FAILURE_EVENT, onFailure);
   });
 
   it("skips update checks in browser dev mock preview", async () => {

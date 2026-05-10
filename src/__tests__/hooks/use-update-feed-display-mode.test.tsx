@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { FeedDto } from "@/api/tauri-commands";
 import * as tauriCommands from "@/api/tauri-commands";
 import { useUpdateFeedDisplaySettings } from "@/hooks/use-update-feed-display-mode";
+import { queryKeys } from "@/lib/query/query-invalidation";
 import type { ToastData } from "@/lib/ui/toast.types";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -36,23 +37,20 @@ describe("useUpdateFeedDisplaySettings", () => {
   });
 
   function seedFeeds() {
-    queryClient.setQueryData<FeedDto[]>(
-      ["feeds", "acc-1"],
-      [
-        {
-          id: "feed-1",
-          account_id: "acc-1",
-          folder_id: null,
-          remote_id: null,
-          title: "Tech Blog",
-          url: "https://example.com/feed.xml",
-          site_url: "https://example.com",
-          unread_count: 5,
-          reader_mode: "inherit",
-          web_preview_mode: "inherit",
-        },
-      ],
-    );
+    queryClient.setQueryData<FeedDto[]>(queryKeys.feeds.byAccount("acc-1"), [
+      {
+        id: "feed-1",
+        account_id: "acc-1",
+        folder_id: null,
+        remote_id: null,
+        title: "Tech Blog",
+        url: "https://example.com/feed.xml",
+        site_url: "https://example.com",
+        unread_count: 5,
+        reader_mode: "inherit",
+        web_preview_mode: "inherit",
+      },
+    ]);
   }
 
   function createHook() {
@@ -78,7 +76,7 @@ describe("useUpdateFeedDisplaySettings", () => {
     await expect(result.current("feed-1", "on", "on")).resolves.toBe(true);
 
     expect(updateFeedDisplaySettingsSpy).toHaveBeenCalledWith("feed-1", "on", "on");
-    expect(queryClient.getQueryData<FeedDto[]>(["feeds", "acc-1"])).toEqual([
+    expect(queryClient.getQueryData<FeedDto[]>(queryKeys.feeds.byAccount("acc-1"))).toEqual([
       expect.objectContaining({
         id: "feed-1",
         reader_mode: "on",
@@ -86,7 +84,7 @@ describe("useUpdateFeedDisplaySettings", () => {
       }),
     ]);
     await waitFor(() => {
-      expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ["feeds"] });
+      expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: queryKeys.feeds.root });
     });
   });
 
@@ -100,14 +98,15 @@ describe("useUpdateFeedDisplaySettings", () => {
 
     await expect(result.current("feed-1", "on", "on")).resolves.toBe(false);
 
-    expect(queryClient.getQueryData<FeedDto[]>(["feeds", "acc-1"])).toEqual([
+    expect(queryClient.getQueryData<FeedDto[]>(queryKeys.feeds.byAccount("acc-1"))).toEqual([
       expect.objectContaining({
         id: "feed-1",
         reader_mode: "inherit",
         web_preview_mode: "inherit",
       }),
     ]);
-    expect(cancelQueriesSpy).toHaveBeenCalledWith({ queryKey: ["feeds"] });
+    expect(cancelQueriesSpy).toHaveBeenCalledWith({ queryKey: queryKeys.feeds.root });
+    expect(cancelQueriesSpy.mock.calls[0]?.[0]?.queryKey).toStrictEqual(queryKeys.feeds.root);
     expect(showToastMock).toHaveBeenCalledWith("failed_to_update_display_settings:boom");
   });
 
@@ -122,7 +121,7 @@ describe("useUpdateFeedDisplaySettings", () => {
     await expect(result.current("feed-1", "on", "on")).rejects.toThrow("cancel boom");
 
     expect(updateFeedDisplaySettingsSpy).not.toHaveBeenCalled();
-    expect(queryClient.getQueryData<FeedDto[]>(["feeds", "acc-1"])).toEqual([
+    expect(queryClient.getQueryData<FeedDto[]>(queryKeys.feeds.byAccount("acc-1"))).toEqual([
       expect.objectContaining({
         id: "feed-1",
         reader_mode: "inherit",
@@ -149,10 +148,10 @@ describe("useUpdateFeedDisplaySettings", () => {
       },
     ];
     const deferredRefetch = createDeferred<FeedDto[]>();
-    await queryClient.invalidateQueries({ queryKey: ["feeds", "acc-1"] });
+    await queryClient.invalidateQueries({ queryKey: queryKeys.feeds.byAccount("acc-1") });
     let refetchStarted = false;
     const staleRefetch = queryClient.fetchQuery({
-      queryKey: ["feeds", "acc-1"],
+      queryKey: queryKeys.feeds.byAccount("acc-1"),
       queryFn: ({ signal }) =>
         new Promise<FeedDto[]>((resolve, reject) => {
           refetchStarted = true;
@@ -171,7 +170,7 @@ describe("useUpdateFeedDisplaySettings", () => {
     deferredRefetch.resolve(staleFeeds);
     await expect(staleRefetch).resolves.toEqual(staleFeeds);
 
-    expect(queryClient.getQueryData<FeedDto[]>(["feeds", "acc-1"])).toEqual([
+    expect(queryClient.getQueryData<FeedDto[]>(queryKeys.feeds.byAccount("acc-1"))).toEqual([
       expect.objectContaining({
         id: "feed-1",
         reader_mode: "on",
@@ -194,7 +193,7 @@ describe("useUpdateFeedDisplaySettings", () => {
     const promise = result.current("feed-1", "on", "on");
 
     await waitFor(() => {
-      expect(queryClient.getQueryData<FeedDto[]>(["feeds", "acc-1"])).toEqual([
+      expect(queryClient.getQueryData<FeedDto[]>(queryKeys.feeds.byAccount("acc-1"))).toEqual([
         expect.objectContaining({
           id: "feed-1",
           reader_mode: "on",
@@ -206,8 +205,8 @@ describe("useUpdateFeedDisplaySettings", () => {
     resolveUpdate(Result.fail({ type: "UserVisible", message: "boom" }));
     await expect(promise).resolves.toBe(false);
 
-    expect(cancelQueriesSpy).toHaveBeenCalledWith({ queryKey: ["feeds"] });
-    expect(queryClient.getQueryData<FeedDto[]>(["feeds", "acc-1"])).toEqual([
+    expect(cancelQueriesSpy).toHaveBeenCalledWith({ queryKey: queryKeys.feeds.root });
+    expect(queryClient.getQueryData<FeedDto[]>(queryKeys.feeds.byAccount("acc-1"))).toEqual([
       expect.objectContaining({
         id: "feed-1",
         reader_mode: "inherit",
@@ -227,7 +226,7 @@ describe("useUpdateFeedDisplaySettings", () => {
 
     const firstPromise = result.current("feed-1", "on", "on");
     await waitFor(() => {
-      expect(queryClient.getQueryData<FeedDto[]>(["feeds", "acc-1"])).toEqual([
+      expect(queryClient.getQueryData<FeedDto[]>(queryKeys.feeds.byAccount("acc-1"))).toEqual([
         expect.objectContaining({
           id: "feed-1",
           reader_mode: "on",
@@ -238,7 +237,7 @@ describe("useUpdateFeedDisplaySettings", () => {
 
     const secondPromise = result.current("feed-1", "off", "off");
     await waitFor(() => {
-      expect(queryClient.getQueryData<FeedDto[]>(["feeds", "acc-1"])).toEqual([
+      expect(queryClient.getQueryData<FeedDto[]>(queryKeys.feeds.byAccount("acc-1"))).toEqual([
         expect.objectContaining({
           id: "feed-1",
           reader_mode: "off",
@@ -253,7 +252,7 @@ describe("useUpdateFeedDisplaySettings", () => {
     firstUpdate.resolve(Result.fail({ type: "UserVisible", message: "stale boom" }));
     await expect(firstPromise).resolves.toBe(false);
 
-    expect(queryClient.getQueryData<FeedDto[]>(["feeds", "acc-1"])).toEqual([
+    expect(queryClient.getQueryData<FeedDto[]>(queryKeys.feeds.byAccount("acc-1"))).toEqual([
       expect.objectContaining({
         id: "feed-1",
         reader_mode: "off",

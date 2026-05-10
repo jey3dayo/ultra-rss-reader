@@ -395,38 +395,44 @@ export function useUpdater(): void {
 
     const disposeTauriListeners = attachTauriListeners(
       [
-        listen("update-download-progress", (event) => {
-          if (!listenerActive) {
-            return;
-          }
+        {
+          owner: "updater:download-progress",
+          subscription: listen("update-download-progress", (event) => {
+            if (!listenerActive) {
+              return;
+            }
 
-          const store = useUiStore.getState();
-          const percent = readDownloadProgressPercent(event.payload);
-          if (percent === undefined) {
-            return;
-          }
-          const message =
-            percent != null ? i18n.t("updater.downloading_percent", { percent }) : i18n.t("updater.downloading");
-          store.showToast({
-            message,
-            persistent: true,
-            progress: percent,
-            variant: "update",
-          });
-        }),
-        listen("update-ready", (event) => {
-          if (!listenerActive) {
-            return;
-          }
+            const store = useUiStore.getState();
+            const percent = readDownloadProgressPercent(event.payload);
+            if (percent === undefined) {
+              return;
+            }
+            const message =
+              percent != null ? i18n.t("updater.downloading_percent", { percent }) : i18n.t("updater.downloading");
+            store.showToast({
+              message,
+              persistent: true,
+              progress: percent,
+              variant: "update",
+            });
+          }),
+        },
+        {
+          owner: "updater:ready",
+          subscription: listen("update-ready", (event) => {
+            if (!listenerActive) {
+              return;
+            }
 
-          if (!isCurrentDownloadReady(event.payload)) {
-            return;
-          }
-          if (activeDownloadRequestId === null) {
-            return;
-          }
-          completeActiveDownloadAsReady(activeDownloadRequestId);
-        }),
+            if (!isCurrentDownloadReady(event.payload)) {
+              return;
+            }
+            if (activeDownloadRequestId === null) {
+              return;
+            }
+            completeActiveDownloadAsReady(activeDownloadRequestId);
+          }),
+        },
       ],
       { onUnavailable: () => {} },
     );

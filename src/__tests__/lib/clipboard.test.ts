@@ -92,6 +92,7 @@ describe("clipboard", () => {
   it("classifies clipboard runtime unavailable and permission errors", async () => {
     expect(resolveClipboardErrorCategory("Clipboard unavailable")).toBe("runtime_unavailable");
     expect(resolveClipboardErrorCategory("clipboard plugin not available")).toBe("runtime_unavailable");
+    expect(resolveClipboardErrorCategory("unknown command copy_to_clipboard")).toBe("runtime_unavailable");
     expect(resolveClipboardErrorCategory("Clipboard permission denied")).toBe("permission_denied");
     expect(resolveClipboardErrorCategory("Clipboard write not allowed")).toBe("permission_denied");
     expect(resolveClipboardErrorCategory("Clipboard write failed in an insecure context")).toBe("permission_denied");
@@ -103,6 +104,10 @@ describe("clipboard", () => {
     "clipboard text is empty",
   ])("classifies known invalid text clipboard errors: %j", (message) => {
     expect(resolveClipboardErrorCategory(message)).toBe("invalid_text");
+  });
+
+  it("classifies known invalid URL clipboard errors", () => {
+    expect(resolveClipboardErrorCategory("Only http:// and https:// URLs are supported")).toBe("invalid_url");
   });
 
   it.each([
@@ -197,19 +202,28 @@ describe("clipboard", () => {
 
   it("rejects non-http article link clipboard values before invoking native or frontend writes", async () => {
     await Promise.all(
-      ["mailto:hello@example.com", "file:///tmp/article.html", "https://example.com/article\nnext"].map(
-        async (value) => {
-          const result = await copyTextToClipboard(value, { category: "article_link" });
+      ["mailto:hello@example.com", "file:///tmp/article.html"].map(async (value) => {
+        const result = await copyTextToClipboard(value, { category: "article_link" });
 
-          expect(Result.isFailure(result)).toBe(true);
-          expect(Result.unwrapError(result)).toMatchObject({
-            message: "Invalid clipboard text",
-            category: "invalid_text",
-          });
-        },
-      ),
+        expect(Result.isFailure(result)).toBe(true);
+        expect(Result.unwrapError(result)).toMatchObject({
+          message: "Only http:// and https:// URLs are supported",
+          category: "invalid_url",
+        });
+      }),
     );
 
+    expect(copyToClipboardMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects multiline article link clipboard values as invalid URLs", async () => {
+    const result = await copyTextToClipboard("https://example.com/article\nnext", { category: "article_link" });
+
+    expect(Result.isFailure(result)).toBe(true);
+    expect(Result.unwrapError(result)).toMatchObject({
+      message: "Only http:// and https:// URLs are supported",
+      category: "invalid_url",
+    });
     expect(copyToClipboardMock).not.toHaveBeenCalled();
   });
 

@@ -1,10 +1,12 @@
 import { act, renderHook } from "@testing-library/react";
+import { resetTauriRuntimeFlags, setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { BrowserWebviewState } from "@/api/tauri-commands";
 import type { BrowserWebviewFallbackPayload } from "@/components/reader/browser-webview-state";
 import { useBrowserWebviewEvents } from "@/components/reader/hooks/browser/use-browser-webview-events";
 import { BROWSER_WINDOW_EVENTS } from "@/constants/browser";
 import type { BrowserDebugGeometryNativeDiagnostics } from "@/lib/browser/browser-debug-geometry";
+import { TAURI_EVENT_LISTENER_FAILURE_EVENT } from "@/lib/runtime/tauri-event-listeners";
 
 type EventCallback = (event: { payload: unknown }) => void;
 type Cleanup = () => void;
@@ -21,6 +23,7 @@ describe("useBrowserWebviewEvents", () => {
   });
 
   afterEach(() => {
+    resetTauriRuntimeFlags();
     vi.restoreAllMocks();
   });
 
@@ -158,6 +161,45 @@ describe("useBrowserWebviewEvents", () => {
       BROWSER_WINDOW_EVENTS.closed,
     ]);
     expect(cleanups.every((cleanup) => cleanup.mock.calls.length === 1)).toBe(true);
+  });
+
+  it("surfaces browser webview listener registration failures with the listener owner", async () => {
+    setTauriRuntimePresent();
+    const error = new Error("browser webview listener failed");
+    const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const onFailure = vi.fn();
+    listenMock.mockRejectedValue(error);
+    window.addEventListener(TAURI_EVENT_LISTENER_FAILURE_EVENT, onFailure);
+
+    const { result } = renderHook(() =>
+      useBrowserWebviewEvents({
+        showDiagnostics: false,
+        onStateChanged: vi.fn(),
+        onFallback: vi.fn(),
+        onClosed: vi.fn(),
+        onDiagnostics: vi.fn(),
+      }),
+    );
+
+    await act(async () => {
+      await result.current();
+    });
+
+    expect(consoleWarn).toHaveBeenCalledTimes(3);
+    expect(onFailure).toHaveBeenCalledTimes(3);
+    expect(onFailure).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ detail: { owner: "browser-webview-events:state-changed" } }),
+    );
+    expect(onFailure).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ detail: { owner: "browser-webview-events:fallback" } }),
+    );
+    expect(onFailure).toHaveBeenNthCalledWith(
+      3,
+      expect.objectContaining({ detail: { owner: "browser-webview-events:closed" } }),
+    );
+    window.removeEventListener(TAURI_EVENT_LISTENER_FAILURE_EVENT, onFailure);
   });
 
   it("passes valid native payloads to the matching browser webview handlers", async () => {

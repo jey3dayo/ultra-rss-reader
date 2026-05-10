@@ -156,8 +156,9 @@ export const RUNTIME_DIAGNOSTIC_POLICIES = {
   },
 } as const satisfies Record<RuntimeDiagnosticPolicyId, RuntimeDiagnosticPolicy>;
 
-const URL_LIKE_TOKEN_PATTERN = /https?:\/\/[^\s<>"'`]+/gi;
-const PROVIDER_SERVER_URL_TOKEN_PATTERN = /https?:\/\/[^\s<>"'`]*\/api\/greader\.php[^\s<>"'`]*/gi;
+const URL_LIKE_TOKEN_PATTERN = /https?:\/\/[^\s<>"'`。、，．；：！？]+/gi;
+const PROVIDER_SERVER_URL_TOKEN_PATTERN =
+  /https?:\/\/[^\s<>"'`。、，．；：！？]*\/api\/greader\.php[^\s<>"'`。、，．；：！？]*/gi;
 const SECRET_ASSIGNMENT_PATTERN =
   /\b([A-Z0-9_]*(?:TOKEN|SECRET|PASSWORD|CREDENTIAL|PRIVATE_KEY|API_KEY)[A-Z0-9_]*)=([^\s,;]+)/gi;
 const AUTH_HEADER_PATTERN = /\b(Bearer|Basic)\s+[A-Za-z0-9._~+/-]+=*/gi;
@@ -184,14 +185,26 @@ const SECRET_OBJECT_KEYS = new Set([
   "username",
 ]);
 const SECRET_URL_PATH_SEGMENT_PATTERN = /(?:token|secret|password|credential|private[-_]?key|api[-_]?key)/i;
+const URL_TOKEN_TRAILING_PUNCTUATION_PATTERN = /[\])}>,.;!?。、，．；：！？]+$/;
 const UNSUPPORTED_DIAGNOSTICS_PAYLOAD = "[Unsupported diagnostics payload]";
 const RUNTIME_DIAGNOSTIC_PAYLOAD_MAX_CHARS = 200;
 const RUNTIME_DIAGNOSTIC_PAYLOAD_TRUNCATED_SUFFIX = "...[truncated]";
 
 const emittedRuntimeDiagnosticKeys = new Set<string>();
 
+function redactInvalidUrlToken(value: string): string {
+  const withoutCredentials = value.replace(/^(https?:\/\/)(?:[^/?#\s@]+@)/i, "$1");
+  const hashIndex = withoutCredentials.indexOf("#");
+  const hashRedacted = hashIndex >= 0;
+  const beforeHash = hashRedacted ? withoutCredentials.slice(0, hashIndex) : withoutCredentials;
+  const queryIndex = beforeHash.indexOf("?");
+  const beforeHashRedacted = queryIndex >= 0 ? `${beforeHash.slice(0, queryIndex)}?redacted` : beforeHash;
+
+  return hashRedacted ? `${beforeHashRedacted}#redacted` : beforeHashRedacted;
+}
+
 function redactUrlToken(value: string): string {
-  const trailingPunctuation = value.match(/[),.;!?]+$/)?.[0] ?? "";
+  const trailingPunctuation = value.match(URL_TOKEN_TRAILING_PUNCTUATION_PATTERN)?.[0] ?? "";
   const urlToken = trailingPunctuation ? value.slice(0, -trailingPunctuation.length) : value;
 
   try {
@@ -212,7 +225,7 @@ function redactUrlToken(value: string): string {
     }
     return `${url.toString()}${trailingPunctuation}`;
   } catch {
-    return value;
+    return `${redactInvalidUrlToken(urlToken)}${trailingPunctuation}`;
   }
 }
 

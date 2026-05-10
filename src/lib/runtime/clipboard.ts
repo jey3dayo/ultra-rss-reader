@@ -2,9 +2,10 @@ import { Result } from "@praha/byethrow";
 import type { AppError } from "@/api/schemas";
 import { normalizeHttpCommandUrl, SHARE_COMMAND_TEXT_MAX_CHARS } from "@/api/schemas/commands";
 import { copyToClipboard } from "@/api/tauri-commands";
+import { classifyRuntimeActionErrorCategory, type RuntimeActionErrorCategory } from "@/lib/ui-errors";
 import { hasTauriRuntime } from "@/lib/window/window-chrome";
 
-export type ClipboardErrorCategory = "runtime_unavailable" | "permission_denied" | "invalid_text" | "unknown";
+export type ClipboardErrorCategory = RuntimeActionErrorCategory;
 
 export type ClipboardCopyError = AppError & {
   category: ClipboardErrorCategory;
@@ -24,37 +25,8 @@ type CopyValueToClipboardCallbacks = {
   onError: (message: string, error: ClipboardCopyError) => void;
 };
 
-function hasClipboardErrorToken(message: string, token: string): boolean {
-  return message.split(/[^a-z0-9]+/).includes(token);
-}
-
 export function resolveClipboardErrorCategory(message: string): ClipboardErrorCategory {
-  const normalized = message.toLowerCase();
-  if (
-    normalized.includes("permission") ||
-    normalized.includes("denied") ||
-    normalized.includes("not allowed") ||
-    normalized.includes("insecure context") ||
-    normalized.includes("secure context")
-  ) {
-    return "permission_denied";
-  }
-  if (
-    normalized.includes("unavailable") ||
-    normalized.includes("not available") ||
-    normalized.includes("plugin") ||
-    normalized.includes("unknown command")
-  ) {
-    return "runtime_unavailable";
-  }
-  if (
-    normalized.includes("invalid") ||
-    normalized.includes("validation") ||
-    hasClipboardErrorToken(normalized, "text")
-  ) {
-    return "invalid_text";
-  }
-  return "unknown";
+  return classifyRuntimeActionErrorCategory(message, { validationCategory: "invalid_text" });
 }
 
 function categorizeClipboardError(error: AppError): ClipboardCopyError {
@@ -90,11 +62,14 @@ function toClipboardCopyError(error: unknown): ClipboardCopyError {
   };
 }
 
-function invalidClipboardTextError(): ClipboardCopyError {
+function invalidClipboardTextError(
+  message = INVALID_CLIPBOARD_TEXT_MESSAGE,
+  category: ClipboardErrorCategory = "invalid_text",
+): ClipboardCopyError {
   return {
     type: "UserVisible",
-    message: INVALID_CLIPBOARD_TEXT_MESSAGE,
-    category: "invalid_text",
+    message,
+    category,
   };
 }
 
@@ -104,7 +79,7 @@ function validateClipboardText(value: string, category: ClipboardTextCategory): 
   }
 
   if (category === "article_link" && !normalizeHttpCommandUrl(value)) {
-    return invalidClipboardTextError();
+    return invalidClipboardTextError("Only http:// and https:// URLs are supported", "invalid_url");
   }
 
   return null;

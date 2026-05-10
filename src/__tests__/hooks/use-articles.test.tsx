@@ -527,6 +527,59 @@ describe("useToggleStar", () => {
     expect(queryClient.getQueryData(queryKeys.starredArticles.byAccount("acc-2"))).toBeUndefined();
   });
 
+  it("does not synthesize scoped account caches when a cached article account cannot be inferred", async () => {
+    vi.spyOn(tauriCommands, "toggleArticleStar").mockResolvedValue(Result.succeed(null));
+
+    queryClient.setQueryData(queryKeys.articles.byFeed("feed-1", "all"), [sampleArticles[0]]);
+    queryClient.setQueryData(queryKeys.accountArticles.byAccount("acc-2", "all"), [
+      {
+        ...sampleArticles[1],
+        id: "acc-2-article",
+      },
+    ]);
+    queryClient.setQueryData(queryKeys.starredArticles.byAccount("acc-2"), []);
+
+    const { result } = renderHook(() => useToggleStar(), { wrapper });
+
+    await result.current.mutateAsync({ id: "art-1", starred: true });
+
+    await waitFor(() => {
+      expect(queryClient.getQueryData(queryKeys.articles.byFeed("feed-1", "all"))).toEqual([
+        expect.objectContaining({ id: "art-1", is_starred: true }),
+      ]);
+    });
+    expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-2", "all"))).toEqual([
+      expect.objectContaining({ id: "acc-2-article" }),
+    ]);
+    expect(queryClient.getQueryData(queryKeys.starredArticles.byAccount("acc-2"))).toEqual([]);
+  });
+
+  it("inserts missing account articles only into matching mode caches when the account is known", async () => {
+    vi.spyOn(tauriCommands, "toggleArticleStar").mockResolvedValue(Result.succeed(null));
+
+    queryClient.setQueryData(queryKeys.feeds.byAccount("acc-1"), sampleFeedsForAccountOne);
+    queryClient.setQueryData(queryKeys.articles.byFeed("feed-1", "all"), [sampleArticles[0]]);
+    queryClient.setQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"), []);
+    queryClient.setQueryData(queryKeys.accountArticles.byAccount("acc-1", "unread"), []);
+    queryClient.setQueryData(queryKeys.accountArticles.byAccount("acc-1", "starred"), []);
+
+    const { result } = renderHook(() => useToggleStar(), { wrapper });
+
+    await result.current.mutateAsync({ id: "art-1", starred: true });
+
+    await waitFor(() => {
+      expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"))).toEqual([
+        expect.objectContaining({ id: "art-1", is_starred: true }),
+      ]);
+      expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "unread"))).toEqual([
+        expect.objectContaining({ id: "art-1", is_starred: true }),
+      ]);
+      expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "starred"))).toEqual([
+        expect.objectContaining({ id: "art-1", is_starred: true }),
+      ]);
+    });
+  });
+
   it("does not let an older star mutation success overwrite the latest cache patch", async () => {
     const firstToggle = createDeferred<Awaited<ReturnType<typeof tauriCommands.toggleArticleStar>>>();
     const secondToggle = createDeferred<Awaited<ReturnType<typeof tauriCommands.toggleArticleStar>>>();

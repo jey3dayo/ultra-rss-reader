@@ -167,7 +167,7 @@ describe("tauri-event-listeners", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const onFailure = vi.fn();
     window.addEventListener(TAURI_EVENT_LISTENER_FAILURE_EVENT, onFailure);
-    const group = createTauriListenerGroup([Promise.reject(error)]);
+    const group = createTauriListenerGroup([Promise.reject(error)], { owner: "test-owner" });
 
     await group.ready;
 
@@ -176,6 +176,26 @@ describe("tauri-event-listeners", () => {
       error,
     );
     expect(onFailure).toHaveBeenCalledTimes(1);
+    expect(onFailure).toHaveBeenCalledWith(expect.objectContaining({ detail: { owner: "test-owner" } }));
+    window.removeEventListener(TAURI_EVENT_LISTENER_FAILURE_EVENT, onFailure);
+  });
+
+  it("surfaces partial listener registration failures once per subscription owner", async () => {
+    setTauriRuntimePresent();
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const onFailure = vi.fn();
+    window.addEventListener(TAURI_EVENT_LISTENER_FAILURE_EVENT, onFailure);
+
+    await createTauriListenerGroup([
+      { owner: "first-owner", subscription: Promise.reject(new Error("first listen failed")) },
+      { owner: "second-owner", subscription: Promise.reject(new Error("second listen failed")) },
+      Promise.resolve(vi.fn()),
+      { owner: "first-owner", subscription: Promise.reject(new Error("duplicate first listen failed")) },
+    ]).ready;
+
+    expect(onFailure).toHaveBeenCalledTimes(2);
+    expect(onFailure).toHaveBeenNthCalledWith(1, expect.objectContaining({ detail: { owner: "first-owner" } }));
+    expect(onFailure).toHaveBeenNthCalledWith(2, expect.objectContaining({ detail: { owner: "second-owner" } }));
     window.removeEventListener(TAURI_EVENT_LISTENER_FAILURE_EVENT, onFailure);
   });
 
@@ -187,13 +207,13 @@ describe("tauri-event-listeners", () => {
     const onFailure = vi.fn();
     window.addEventListener(TAURI_EVENT_LISTENER_FAILURE_EVENT, onFailure);
 
-    await createTauriListenerGroup([Promise.reject(firstError)]).ready;
-    await createTauriListenerGroup([Promise.reject(secondError)]).ready;
+    await createTauriListenerGroup([Promise.reject(firstError)], { owner: "test-owner" }).ready;
+    await createTauriListenerGroup([Promise.reject(secondError)], { owner: "test-owner" }).ready;
 
     expect(onFailure).toHaveBeenCalledTimes(1);
 
     resetTauriEventListenerFailureReportForRuntimeRecovery();
-    await createTauriListenerGroup([Promise.reject(secondError)]).ready;
+    await createTauriListenerGroup([Promise.reject(secondError)], { owner: "test-owner" }).ready;
 
     expect(warn).toHaveBeenCalledTimes(3);
     expect(onFailure).toHaveBeenCalledTimes(2);

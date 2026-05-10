@@ -200,6 +200,34 @@ describe("runtime diagnostics redaction", () => {
     );
   });
 
+  it("keeps markdown and log punctuation outside redacted http URL tokens", () => {
+    const redacted = redactRuntimeDiagnosticText(
+      [
+        "[article](https://user:pass@example.com/feed.xml?token=raw#frag)",
+        "(https://example.com/path?secret=raw),",
+        "next=https://example.net/a?api_key=raw。",
+        "multi https://example.org/one?token=raw、https://example.org/two?token=raw!",
+      ].join(" "),
+    );
+
+    expect(redacted).toContain("[article](https://example.com/feed.xml?redacted#redacted)");
+    expect(redacted).toContain("(https://example.com/path?redacted),");
+    expect(redacted).toContain("next=https://example.net/a?redacted。");
+    expect(redacted).toContain("https://example.org/one?redacted、https://example.org/two?redacted!");
+    expect(redacted).not.toContain("user:pass");
+    expect(redacted).not.toContain("token=raw");
+    expect(redacted).not.toContain("api_key=raw");
+  });
+
+  it("redacts query, fragment, and userinfo on invalid URL-like tokens", () => {
+    const redacted = redactRuntimeDiagnosticText("bad https://user:pass@[bad-host]?token=raw#frag)");
+
+    expect(redacted).toBe("bad https://[bad-host]?redacted#redacted)");
+    expect(redacted).not.toContain("user:pass");
+    expect(redacted).not.toContain("token=raw");
+    expect(redacted).not.toContain("#frag");
+  });
+
   it("redacts sanitizer discovery OPML export and log fixture corpus", () => {
     const supportCopy = redactRuntimeDiagnosticSupportCopy({
       sanitizer: "dropped https://alice:secret@example.com/private-token/feed.xml?api_key=raw",

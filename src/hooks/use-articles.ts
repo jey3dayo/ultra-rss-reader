@@ -285,6 +285,64 @@ function shouldInsertMissingAccountArticle(queryKey: QueryKey, nextArticle: Arti
   return true;
 }
 
+function updateCachedStarredArticleArray(
+  current: unknown,
+  nextArticle: ArticleDto,
+  options: { insertIfMissing: boolean },
+) {
+  if (!Array.isArray(current)) {
+    if (nextArticle.is_starred) {
+      return options.insertIfMissing ? [nextArticle] : current;
+    }
+
+    return options.insertIfMissing ? [] : current;
+  }
+
+  const starredArticles = current.filter(isArticleDto);
+  const hasArticle = starredArticles.some((article) => article.id === nextArticle.id);
+
+  if (!nextArticle.is_starred) {
+    return starredArticles.filter((article) => article.id !== nextArticle.id);
+  }
+
+  if (hasArticle) {
+    return starredArticles.map((article) => (article.id === nextArticle.id ? nextArticle : article));
+  }
+
+  return options.insertIfMissing ? [nextArticle, ...starredArticles] : starredArticles;
+}
+
+function patchKnownAccountArticleCaches(qc: QueryClient, accountId: string, nextArticle: ArticleDto) {
+  const accountArticleQueries = qc.getQueriesData<unknown>({
+    queryKey: queryKeys.accountArticles.byAccountPrefix(accountId),
+  });
+
+  if (accountArticleQueries.length === 0) {
+    qc.setQueryData(queryKeys.accountArticles.byAccount(accountId, "all"), [nextArticle]);
+  } else {
+    for (const [queryKey] of accountArticleQueries) {
+      qc.setQueryData(queryKey, (current: unknown) =>
+        updateCachedArticleArray(current, nextArticle, {
+          insertIfMissing: shouldInsertMissingAccountArticle(queryKey, nextArticle),
+        }),
+      );
+    }
+  }
+
+  qc.setQueryData(queryKeys.starredArticles.byAccount(accountId), (current: unknown) =>
+    updateCachedStarredArticleArray(current, nextArticle, { insertIfMissing: true }),
+  );
+}
+
+function patchUnknownAccountArticleCaches(qc: QueryClient, nextArticle: ArticleDto) {
+  qc.setQueriesData({ queryKey: queryKeys.accountArticles.root }, (current: unknown) =>
+    updateCachedArticleArray(current, nextArticle, { insertIfMissing: false }),
+  );
+  qc.setQueriesData({ queryKey: queryKeys.starredArticles.root }, (current: unknown) =>
+    updateCachedStarredArticleArray(current, nextArticle, { insertIfMissing: false }),
+  );
+}
+
 function patchCachedArticleStarState(qc: QueryClient, articleId: string, starred: boolean) {
   const cachedArticle = findCachedArticle(qc, articleId);
   if (cachedArticle === null) {
@@ -305,72 +363,12 @@ function patchCachedArticleStarState(qc: QueryClient, articleId: string, starred
 
   if (accountIds.length > 0) {
     for (const accountId of accountIds) {
-      const accountArticleQueries = qc.getQueriesData<unknown>({
-        queryKey: queryKeys.accountArticles.byAccountPrefix(accountId),
-      });
-
-      if (accountArticleQueries.length === 0) {
-        qc.setQueryData(queryKeys.accountArticles.byAccount(accountId, "all"), [nextArticle]);
-      } else {
-        for (const [queryKey] of accountArticleQueries) {
-          qc.setQueryData(queryKey, (current: unknown) =>
-            updateCachedArticleArray(current, nextArticle, {
-              insertIfMissing: shouldInsertMissingAccountArticle(queryKey, nextArticle),
-            }),
-          );
-        }
-      }
-
-      qc.setQueryData(queryKeys.starredArticles.byAccount(accountId), (current: unknown) => {
-        if (!Array.isArray(current)) {
-          return starred ? [nextArticle] : [];
-        }
-
-        const starredArticles = current.filter(isArticleDto);
-        const hasArticle = starredArticles.some((article) => article.id === articleId);
-
-        if (!starred) {
-          return starredArticles.filter((article) => article.id !== articleId);
-        }
-
-        if (hasArticle) {
-          return starredArticles.map((article) => (article.id === articleId ? nextArticle : article));
-        }
-
-        return [nextArticle, ...starredArticles];
-      });
+      patchKnownAccountArticleCaches(qc, accountId, nextArticle);
     }
     return;
   }
 
-  for (const [queryKey] of qc.getQueriesData<unknown>({
-    queryKey: queryKeys.accountArticles.root,
-  })) {
-    qc.setQueryData(queryKey, (current: unknown) =>
-      updateCachedArticleArray(current, nextArticle, {
-        insertIfMissing: shouldInsertMissingAccountArticle(queryKey, nextArticle),
-      }),
-    );
-  }
-
-  qc.setQueriesData({ queryKey: queryKeys.starredArticles.root }, (current: unknown) => {
-    if (!Array.isArray(current)) {
-      return starred ? [nextArticle] : [];
-    }
-
-    const starredArticles = current.filter(isArticleDto);
-    const hasArticle = starredArticles.some((article) => article.id === articleId);
-
-    if (!starred) {
-      return starredArticles.filter((article) => article.id !== articleId);
-    }
-
-    if (hasArticle) {
-      return starredArticles.map((article) => (article.id === articleId ? nextArticle : article));
-    }
-
-    return [nextArticle, ...starredArticles];
-  });
+  patchUnknownAccountArticleCaches(qc, nextArticle);
 }
 
 export function useArticles(feedId: string | null, options?: ArticleQueryOptions) {

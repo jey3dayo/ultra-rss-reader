@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { getErrorMessage, projectUiErrorToast } from "@/lib/ui/errors";
 import {
   classifyQueryTransientFailureUx,
+  classifyRuntimeActionErrorCategory,
   classifySchemaParseErrorSurface,
   createSchemaParseAppError,
 } from "@/lib/ui-errors";
@@ -30,6 +31,18 @@ describe("ui error projection", () => {
     ).toBe("manual-retry");
     expect(classifyQueryTransientFailureUx({ type: "Diagnostics", message: "schema mismatch" })).toBe("diagnostics");
     expect(classifyQueryTransientFailureUx({ type: "UserVisible", message: "Feed not found" })).toBe("none");
+  });
+
+  it("classifies runtime action errors shared by clipboard and article actions", () => {
+    expect(classifyRuntimeActionErrorCategory("unknown command copy_to_clipboard")).toBe("runtime_unavailable");
+    expect(classifyRuntimeActionErrorCategory("clipboard plugin not available")).toBe("runtime_unavailable");
+    expect(classifyRuntimeActionErrorCategory("Browser permission denied")).toBe("permission_denied");
+    expect(classifyRuntimeActionErrorCategory("Only http:// and https:// URLs are supported")).toBe("invalid_url");
+    expect(classifyRuntimeActionErrorCategory("Clipboard text validation failed")).toBe("invalid_text");
+    expect(classifyRuntimeActionErrorCategory("URL validation failed", { validationCategory: "invalid_url" })).toBe(
+      "invalid_url",
+    );
+    expect(classifyRuntimeActionErrorCategory("Unexpected failure")).toBe("unknown");
   });
 
   it("normalizes unknown error messages for caller fallbacks", () => {
