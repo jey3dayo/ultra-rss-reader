@@ -611,4 +611,79 @@ describe("useSidebarStartupFolderExpansion", () => {
       },
     });
   });
+
+  it("prunes restored folders only for the selected account when folder data is account scoped", async () => {
+    window.localStorage.setItem(
+      STORAGE_KEYS.sidebarExpandedFolders,
+      JSON.stringify({
+        version: SIDEBAR_EXPANDED_FOLDERS_STORAGE_VERSION,
+        accounts: {
+          "acc-1": ["folder-restored", "folder-missing", "folder-acc-2"],
+          "acc-2": ["folder-acc-2"],
+        },
+      }),
+    );
+
+    const selectedAccountFolders = folders.filter((folder) => folder.account_id === "acc-1");
+    const { result } = renderHook(() => {
+      const [expandedFolderIds, setExpandedFolderIds] = useState(new Set<string>());
+      useSidebarStartupFolderExpansion({
+        selectedAccountId: "acc-1",
+        expandedFolderIds,
+        feedList: [],
+        folderList: selectedAccountFolders,
+        startupFolderExpansion: "restore_previous",
+        feedsReady: true,
+        foldersReady: true,
+        setExpandedFolders: (folderIds) => setExpandedFolderIds(new Set(folderIds)),
+      });
+
+      return expandedFolderIds;
+    });
+
+    await waitFor(() => {
+      expect(result.current).toEqual(new Set(["folder-restored"]));
+    });
+    expect(readStoredExpansion()).toEqual({
+      version: SIDEBAR_EXPANDED_FOLDERS_STORAGE_VERSION,
+      accounts: {
+        "acc-1": ["folder-restored"],
+        "acc-2": ["folder-acc-2"],
+      },
+    });
+  });
+
+  it("prunes deleted folders from active expansion state in the selected account scope", async () => {
+    const selectedAccountFolders = folders.filter((folder) => folder.account_id === "acc-1");
+    const { result, rerender } = renderHook(
+      ({ folderList }: { folderList: FolderDto[] }) => {
+        const [expandedFolderIds, setExpandedFolderIds] = useState(new Set(["folder-restored", "folder-read"]));
+        useSidebarStartupFolderExpansion({
+          selectedAccountId: "acc-1",
+          expandedFolderIds,
+          feedList: [],
+          folderList,
+          startupFolderExpansion: "unread_folders",
+          feedsReady: true,
+          foldersReady: true,
+          setExpandedFolders: (folderIds) => setExpandedFolderIds(new Set(folderIds)),
+        });
+
+        return expandedFolderIds;
+      },
+      { initialProps: { folderList: selectedAccountFolders } },
+    );
+
+    await waitFor(() => {
+      expect(result.current).toEqual(new Set(["folder-restored", "folder-read"]));
+    });
+
+    rerender({
+      folderList: selectedAccountFolders.filter((folder) => folder.id !== "folder-restored"),
+    });
+
+    await waitFor(() => {
+      expect(result.current).toEqual(new Set(["folder-read"]));
+    });
+  });
 });

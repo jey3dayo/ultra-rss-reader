@@ -113,36 +113,72 @@ function buildSidebarFolderIdentity(folderList: StartupFolderExpansionFolder[]):
   return accountFolderIds;
 }
 
+function pruneSidebarExpandedFoldersForKnownAccounts(
+  accounts: StoredSidebarExpandedFolders,
+  accountFolderIds: ReadonlyMap<string, ReadonlySet<string>>,
+  excludedAccountId: string,
+): void {
+  for (const [storedAccountId, folderIds] of Object.entries(accounts)) {
+    if (storedAccountId === excludedAccountId) {
+      continue;
+    }
+
+    const storedAccountFolderIds = accountFolderIds.get(storedAccountId);
+    if (!storedAccountFolderIds) {
+      delete accounts[storedAccountId];
+      continue;
+    }
+
+    const storedAccountPrunedFolderIds = folderIds.filter((folderId) => storedAccountFolderIds.has(folderId));
+    if (storedAccountPrunedFolderIds.length === 0) {
+      delete accounts[storedAccountId];
+    } else {
+      accounts[storedAccountId] = storedAccountPrunedFolderIds.slice(
+        0,
+        MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_PER_ACCOUNT,
+      );
+    }
+  }
+}
+
 function pruneStoredSidebarExpandedFolders(
   storage: SidebarExpandedFoldersStorage,
+  accountId: string,
   folderList: StartupFolderExpansionFolder[],
 ): SidebarExpandedFoldersStorage {
   const accountFolderIds = buildSidebarFolderIdentity(folderList);
-  const accounts: StoredSidebarExpandedFolders = {};
+  const validFolderIds = accountFolderIds.get(accountId);
+  const accounts: StoredSidebarExpandedFolders = { ...storage.accounts };
+  const hasOnlySelectedAccountFolders = folderList.every((folder) => folder.account_id === accountId);
 
-  for (const [accountId, folderIds] of Object.entries(storage.accounts)) {
-    const validFolderIds = accountFolderIds.get(accountId);
-    if (!validFolderIds) {
-      continue;
+  if (!validFolderIds) {
+    delete accounts[accountId];
+    if (!hasOnlySelectedAccountFolders) {
+      pruneSidebarExpandedFoldersForKnownAccounts(accounts, accountFolderIds, accountId);
     }
 
-    const prunedFolderIds = folderIds.filter((folderId) => validFolderIds.has(folderId));
-    if (prunedFolderIds.length === 0) {
-      continue;
-    }
-
-    accounts[accountId] = prunedFolderIds.slice(0, MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_PER_ACCOUNT);
-
-    if (Object.keys(accounts).length >= MAX_STORED_SIDEBAR_EXPANDED_ACCOUNTS) {
-      break;
-    }
+    return normalizeStoredSidebarExpandedFolders(StoredSidebarExpandedFoldersSchema.parse(accounts));
   }
 
-  return normalizeStoredSidebarExpandedFolders(accounts);
+  const prunedFolderIds = (accounts[accountId] ?? []).filter((folderId) => validFolderIds.has(folderId));
+  if (prunedFolderIds.length === 0) {
+    delete accounts[accountId];
+  } else {
+    accounts[accountId] = prunedFolderIds.slice(0, MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_PER_ACCOUNT);
+  }
+
+  if (!hasOnlySelectedAccountFolders) {
+    pruneSidebarExpandedFoldersForKnownAccounts(accounts, accountFolderIds, accountId);
+  }
+
+  return normalizeStoredSidebarExpandedFolders(StoredSidebarExpandedFoldersSchema.parse(accounts));
 }
 
-function getStoredSidebarExpandedFolders(accountId: string, folderList: StartupFolderExpansionFolder[]): string[] {
-  const storage = pruneStoredSidebarExpandedFolders(readStoredSidebarExpandedFolders(), folderList);
+function getStoredSidebarExpandedFolders(
+  accountId: string,
+  folderList: StartupFolderExpansionFolder[],
+): SidebarExpandedFoldersStorage {
+  const storage = pruneStoredSidebarExpandedFolders(readStoredSidebarExpandedFolders(), accountId, folderList);
   try {
     writeNormalizedSidebarExpandedFoldersStorage(
       window.localStorage.getItem(STORAGE_KEYS.sidebarExpandedFolders),
@@ -152,7 +188,7 @@ function getStoredSidebarExpandedFolders(accountId: string, folderList: StartupF
     // Ignore storage cleanup failures; restore still uses the in-memory parsed state.
   }
 
-  return storage.accounts[accountId] ?? [];
+  return storage;
 }
 
 function setStoredSidebarExpandedFolders(
@@ -161,7 +197,7 @@ function setStoredSidebarExpandedFolders(
   folderList: StartupFolderExpansionFolder[],
 ): void {
   try {
-    const currentState = pruneStoredSidebarExpandedFolders(readStoredSidebarExpandedFolders(), folderList);
+    const currentState = pruneStoredSidebarExpandedFolders(readStoredSidebarExpandedFolders(), accountId, folderList);
     const accountFolderIds = buildSidebarFolderIdentity(folderList);
     const validFolderIds = accountFolderIds.get(accountId);
     const nextFolderIds = validFolderIds
@@ -188,6 +224,10 @@ function collectValidFolderIds(folderList: StartupFolderExpansionFolder[]): Set<
   }
 
   return folderIds;
+}
+
+function collectValidFolderIdsForAccount(accountId: string, folderList: StartupFolderExpansionFolder[]): Set<string> {
+  return buildSidebarFolderIdentity(folderList).get(accountId) ?? new Set<string>();
 }
 
 function collectUnreadFolderIds(
@@ -234,12 +274,14 @@ export function useSidebarStartupFolderExpansion({
   setExpandedFolders,
 }: SidebarStartupFolderExpansionParams) {
   const startupExpansionTokenRef = useRef<string | null>(null);
+  const skipActivePruneTokenRef = useRef<string | null>(null);
   const skipPersistenceTokenRef = useRef<string | null>(null);
   const startupExpansionToken = selectedAccountId ? `${selectedAccountId}:${startupFolderExpansion}` : null;
 
   useEffect(() => {
     if (!selectedAccountId) {
       startupExpansionTokenRef.current = null;
+      skipActivePruneTokenRef.current = null;
       skipPersistenceTokenRef.current = null;
       return;
     }
@@ -261,11 +303,12 @@ export function useSidebarStartupFolderExpansion({
       startupFolderExpansion,
       feedList,
       folderList,
-      storedFolderIds: getStoredSidebarExpandedFolders(selectedAccountId, folderList),
+      storedFolderIds: getStoredSidebarExpandedFolders(selectedAccountId, folderList).accounts[selectedAccountId] ?? [],
     });
 
     setExpandedFolders(nextExpandedFolderIds);
     startupExpansionTokenRef.current = startupExpansionToken;
+    skipActivePruneTokenRef.current = startupExpansionToken;
     skipPersistenceTokenRef.current = startupExpansionToken;
   }, [
     expandedFolderIds,
@@ -280,8 +323,38 @@ export function useSidebarStartupFolderExpansion({
   ]);
 
   useEffect(() => {
+    if (!selectedAccountId || !foldersReady) {
+      return;
+    }
+
+    if (startupFolderExpansion === "restore_previous" && startupExpansionTokenRef.current !== startupExpansionToken) {
+      return;
+    }
+
+    if (skipActivePruneTokenRef.current === startupExpansionToken) {
+      skipActivePruneTokenRef.current = null;
+      return;
+    }
+
+    const validFolderIds = collectValidFolderIdsForAccount(selectedAccountId, folderList);
+    const prunedExpandedFolderIds = [...expandedFolderIds].filter((folderId) => validFolderIds.has(folderId));
+    if (prunedExpandedFolderIds.length !== expandedFolderIds.size) {
+      setExpandedFolders(prunedExpandedFolderIds);
+    }
+  }, [
+    expandedFolderIds,
+    folderList,
+    foldersReady,
+    selectedAccountId,
+    setExpandedFolders,
+    startupFolderExpansion,
+    startupExpansionToken,
+  ]);
+
+  useEffect(() => {
     if (!selectedAccountId) {
       startupExpansionTokenRef.current = null;
+      skipActivePruneTokenRef.current = null;
       skipPersistenceTokenRef.current = null;
       return;
     }
