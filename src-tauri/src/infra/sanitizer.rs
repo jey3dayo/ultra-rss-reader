@@ -146,6 +146,107 @@ pub fn extract_visible_text(raw: &str) -> String {
 mod tests {
     use super::*;
 
+    struct SanitizerCorpusCase {
+        label: &'static str,
+        raw: &'static str,
+        expected_text: &'static str,
+        required_fragments: &'static [&'static str],
+        forbidden_fragments: &'static [&'static str],
+    }
+
+    const SANITIZER_FIXTURE_POLICY_VERSION: u32 = 2;
+
+    const SANITIZER_CORPUS: &[SanitizerCorpusCase] = &[
+        SanitizerCorpusCase {
+            label: "untrusted feed html strips executable content",
+            raw: r#"
+                <article>
+                  <h1 onclick="evil()">Feed title</h1>
+                  <p>Trusted <strong>body</strong></p>
+                  <script>alert('xss')</script>
+                  <style>body { display: none; }</style>
+                </article>
+            "#,
+            expected_text: "Feed title Trusted body",
+            required_fragments: &["Feed title", "<strong>body</strong>"],
+            forbidden_fragments: &["onclick", "<script", "<style", "alert('xss')"],
+        },
+        SanitizerCorpusCase {
+            label: "tracking link attributes are removed",
+            raw: r#"
+                <p>
+                  <a href="https://publisher.example.com/read?utm_source=feed"
+                     ping="https://tracker.example.com/ping"
+                     target="_blank"
+                     rel="opener"
+                     referrerpolicy="origin">
+                    Read article
+                  </a>
+                </p>
+            "#,
+            expected_text: "Read article",
+            required_fragments: &[
+                r#"href="https://publisher.example.com/read?utm_source=feed""#,
+                r#"rel="noopener noreferrer""#,
+            ],
+            forbidden_fragments: &[
+                "ping=",
+                "target=",
+                "referrerpolicy=",
+                "tracker.example.com",
+            ],
+        },
+        SanitizerCorpusCase {
+            label: "tracking media keeps only absolute http candidates",
+            raw: r#"
+                <picture>
+                  <source
+                    src="https://cdn.example.com/hero.webp"
+                    srcset="https://cdn.example.com/hero.webp 1x, data:image/svg+xml,evil 2x, javascript:alert(1) 3x"
+                    sizes="100vw"
+                    type="image/webp"
+                    referrerpolicy="origin">
+                  <img
+                    src="//cdn.example.com/protocol-relative.jpg"
+                    srcset="https://cdn.example.com/hero.jpg 800w, /relative.jpg 1200w"
+                    alt="Hero"
+                    loading="lazy"
+                    onerror="evil()">
+                </picture>
+            "#,
+            expected_text: "",
+            required_fragments: &[
+                r#"src="https://cdn.example.com/hero.webp""#,
+                r#"srcset="https://cdn.example.com/hero.webp 1x""#,
+                r#"srcset="https://cdn.example.com/hero.jpg 800w""#,
+                r#"sizes="100vw""#,
+                r#"type="image/webp""#,
+                r#"alt="Hero""#,
+            ],
+            forbidden_fragments: &[
+                r#"src="//cdn.example.com/protocol-relative.jpg""#,
+                "data:image",
+                "javascript:",
+                "/relative.jpg",
+                "referrerpolicy=",
+                "loading=",
+                "onerror",
+            ],
+        },
+        SanitizerCorpusCase {
+            label: "malformed saved article markup is repaired before text extraction",
+            raw: "<article><p>Lead <strong>body</article>Trailing<img src=\"https://cdn.example.com/body.jpg\" alt=\"Body\">",
+            expected_text: "Lead body Trailing",
+            required_fragments: &[
+                "Lead",
+                "body",
+                "Trailing",
+                r#"src="https://cdn.example.com/body.jpg""#,
+            ],
+            forbidden_fragments: &["<script", "onclick"],
+        },
+    ];
+
     #[test]
     fn strips_script_tags() {
         let input = "<p>Hello</p><script>alert('xss')</script>";
@@ -223,6 +324,60 @@ mod tests {
     #[test]
     fn records_current_sanitizer_contract_version() {
         assert_eq!(SANITIZER_VERSION, 2);
+    }
+
+    #[test]
+    fn untrusted_feed_html_fixture_corpus_matches_sanitizer_contract() {
+        for fixture in SANITIZER_CORPUS {
+            let sanitized = sanitize_html(fixture.raw);
+
+            for fragment in fixture.required_fragments {
+                assert!(
+                    sanitized.contains(fragment),
+                    "{} should keep required fragment {fragment:?}: {sanitized}",
+                    fixture.label,
+                );
+            }
+
+            for fragment in fixture.forbidden_fragments {
+                assert!(
+                    !sanitized.contains(fragment),
+                    "{} should remove forbidden fragment {fragment:?}: {sanitized}",
+                    fixture.label,
+                );
+            }
+
+            assert_eq!(
+                extract_visible_text(&sanitized),
+                fixture.expected_text,
+                "{}",
+                fixture.label,
+            );
+        }
+    }
+
+    #[test]
+    fn saved_article_repair_gate_tracks_policy_version_and_fixture_corpus() {
+        assert_eq!(
+            SANITIZER_VERSION, SANITIZER_FIXTURE_POLICY_VERSION,
+            "bump the saved article repair gate fixture policy version when sanitizer policy changes",
+        );
+
+        let stale_saved_article_version = SANITIZER_VERSION - 1;
+        assert!(
+            stale_saved_article_version < SANITIZER_VERSION,
+            "saved articles below the current sanitizer version must be repair candidates",
+        );
+
+        for fixture in SANITIZER_CORPUS {
+            let sanitized = sanitize_html(fixture.raw);
+            assert_eq!(
+                extract_visible_text(&sanitized),
+                fixture.expected_text,
+                "{} should remain explainable by the saved article repair corpus",
+                fixture.label,
+            );
+        }
     }
 
     #[test]

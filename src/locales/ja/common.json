@@ -12,6 +12,7 @@
   "confirm": "確認",
   "ok": "OK",
   "mark_as_read_action": "既読にする",
+  "mark_as_read_count_action": "{{count}}件を既読にする",
   "back": "戻る",
   "failed_to_save_setting": "設定の保存に失敗しました: {{message}}",
   "connection_testing": "接続を確認中…",

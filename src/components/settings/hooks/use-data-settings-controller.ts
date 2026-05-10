@@ -43,11 +43,18 @@ const initialDataSettingsControllerState: DataSettingsControllerState = {
   openingLogDir: false,
 };
 
-type DataSettingsActionLifecycle = Pick<DataSettingsControllerState, DataSettingsActionKey>;
+type DataSettingsActionOwnerId = symbol;
+
+type DataSettingsActionLifecycle = Pick<DataSettingsControllerState, DataSettingsActionKey> & {
+  vacuumingOwnerId: DataSettingsActionOwnerId | null;
+  lastCompletedVacuumOwnerId: DataSettingsActionOwnerId | null;
+};
 
 const dataSettingsActionLifecycle: DataSettingsActionLifecycle = {
   vacuuming: false,
   openingLogDir: false,
+  vacuumingOwnerId: null,
+  lastCompletedVacuumOwnerId: null,
 };
 
 const dataSettingsActionLifecycleListeners = new Set<(lifecycle: DataSettingsActionLifecycle) => void>();
@@ -60,18 +67,28 @@ function isDataSettingsActionInFlight(): boolean {
   return dataSettingsActionLifecycle.vacuuming || dataSettingsActionLifecycle.openingLogDir;
 }
 
-function subscribeToDataSettingsActionLifecycle(listener: (lifecycle: DataSettingsActionLifecycle) => void): () => void {
+function subscribeToDataSettingsActionLifecycle(
+  listener: (lifecycle: DataSettingsActionLifecycle) => void,
+): () => void {
   dataSettingsActionLifecycleListeners.add(listener);
   return () => {
     dataSettingsActionLifecycleListeners.delete(listener);
   };
 }
 
-function setDataSettingsActionLifecycle(actionKey: DataSettingsActionKey, value: boolean): void {
+function setDataSettingsActionLifecycle(
+  actionKey: DataSettingsActionKey,
+  value: boolean,
+  ownerId?: DataSettingsActionOwnerId,
+): void {
   if (dataSettingsActionLifecycle[actionKey] === value) {
     return;
   }
   dataSettingsActionLifecycle[actionKey] = value;
+  if (actionKey === "vacuuming") {
+    dataSettingsActionLifecycle.vacuumingOwnerId = value ? (ownerId ?? null) : null;
+    dataSettingsActionLifecycle.lastCompletedVacuumOwnerId = value ? null : (ownerId ?? null);
+  }
   const lifecycle = getDataSettingsActionLifecycle();
   for (const listener of dataSettingsActionLifecycleListeners) {
     listener(lifecycle);
@@ -123,6 +140,7 @@ export function useDataSettingsController({
     ...getDataSettingsActionLifecycle(),
   });
   const { databaseSizeStatus, totalSize, vacuuming, openingLogDir } = state;
+  const controllerIdRef = useRef<DataSettingsActionOwnerId>(Symbol("data-settings-controller"));
   const databaseSizeRequestRevisionRef = useRef(0);
   const mountedRef = useRef(false);
 
@@ -164,9 +182,18 @@ export function useDataSettingsController({
 
   useEffect(() => {
     mountedRef.current = true;
+    let previousLifecycle = getDataSettingsActionLifecycle();
     const unsubscribeFromActionLifecycle = subscribeToDataSettingsActionLifecycle((lifecycle) => {
       dispatch({ type: "set-vacuuming", value: lifecycle.vacuuming });
       dispatch({ type: "set-opening-log-dir", value: lifecycle.openingLogDir });
+      if (
+        previousLifecycle.vacuuming &&
+        !lifecycle.vacuuming &&
+        lifecycle.lastCompletedVacuumOwnerId !== controllerIdRef.current
+      ) {
+        void fetchDbInfo();
+      }
+      previousLifecycle = lifecycle;
     });
     void fetchDbInfo();
     return () => {
@@ -181,7 +208,7 @@ export function useDataSettingsController({
       return;
     }
 
-    setDataSettingsActionLifecycle("vacuuming", true);
+    setDataSettingsActionLifecycle("vacuuming", true, controllerIdRef.current);
     const sizeBefore = totalSize;
     databaseSizeRequestRevisionRef.current += 1;
     const requestRevision = databaseSizeRequestRevisionRef.current;
@@ -219,7 +246,7 @@ export function useDataSettingsController({
         showToast(t("data.vacuum_failed", { message: getErrorMessage(error) }));
       }
     } finally {
-      setDataSettingsActionLifecycle("vacuuming", false);
+      setDataSettingsActionLifecycle("vacuuming", false, controllerIdRef.current);
       setSettingsLoading?.(false);
     }
   };

@@ -172,6 +172,7 @@
   "delete_ellipsis": "Delete…",
   "delete_tag": "Delete Tag",
   "confirm_delete_tag": "Are you sure you want to delete <strong>{{name}}</strong>? This tag will be removed from all articles.",
+  "delete_tag_accessible_label": "Delete \"{{name}}\". This cannot be undone.",
   "failed_to_rename_tag": "Failed to rename tag: {{message}}",
   "failed_to_delete_tag": "Failed to delete tag: {{message}}",
   "confirm_unsubscribe": "Are you sure you want to unsubscribe from <strong>{{title}}</strong>? All articles from this feed will be deleted.",

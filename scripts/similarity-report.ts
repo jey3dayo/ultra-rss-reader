@@ -90,15 +90,15 @@ export function parseSimilarityPairs(output: string): SimilarityPair[] {
   const pairs: SimilarityPair[] = [];
 
   for (let index = 0; index < lines.length; index += 1) {
-    const similarity = lines[index]?.match(
-      /^Similarity: ([0-9.]+)%, Score: ([0-9.]+) points \(lines \d+~\d+, avg: ([0-9.]+)\)$/,
-    );
+    const similarity = lines[index]
+      ?.trim()
+      .match(/^Similarity: ([0-9.]+)%, Score: ([0-9.]+) points \(lines \d+~\d+, avg: ([0-9.]+)\)$/);
     if (!similarity) {
       continue;
     }
 
-    const first = lines[index + 1]?.trim().match(/^(.+):\d+-\d+ (.+)$/);
-    const second = lines[index + 2]?.trim().match(/^(.+):\d+-\d+ (.+)$/);
+    const first = parseSimilarityPairLine(lines[index + 1]);
+    const second = parseSimilarityPairLine(lines[index + 2]);
     if (!first || !second) {
       continue;
     }
@@ -107,14 +107,26 @@ export function parseSimilarityPairs(output: string): SimilarityPair[] {
       similarityPercent: Number(similarity[1]),
       score: Number(similarity[2]),
       averageLines: Number(similarity[3]),
-      firstPath: first[1] ?? "",
-      firstSymbol: first[2] ?? "",
-      secondPath: second[1] ?? "",
-      secondSymbol: second[2] ?? "",
+      firstPath: first.path,
+      firstSymbol: first.symbol,
+      secondPath: second.path,
+      secondSymbol: second.symbol,
     });
   }
 
   return pairs;
+}
+
+function parseSimilarityPairLine(line: string | undefined): { path: string; symbol: string } | null {
+  const match = line?.trim().match(/^(.+):\d+-\d+(?:\s+(.*))?$/);
+  if (!match) {
+    return null;
+  }
+
+  return {
+    path: match[1] ?? "",
+    symbol: match[2] ?? "",
+  };
 }
 
 export function findFalsePositiveMatch(pair: SimilarityPair): SimilarityFalsePositive | null {
@@ -216,7 +228,11 @@ export function runSimilarityReport(args: readonly string[] = process.argv.slice
   process.stdout.write("\n");
 }
 
-const isMainModule = typeof process.argv[1] === "string" && import.meta.url === pathToFileURL(process.argv[1]).href;
+export function isSimilarityReportEntrypoint(importMetaUrl: string, argvPath: string | undefined): boolean {
+  return typeof argvPath === "string" && importMetaUrl === pathToFileURL(argvPath).href;
+}
+
+const isMainModule = isSimilarityReportEntrypoint(import.meta.url, process.argv[1]);
 
 if (isMainModule) {
   runSimilarityReport();

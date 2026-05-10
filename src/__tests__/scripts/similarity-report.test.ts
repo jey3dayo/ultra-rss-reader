@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { pathToFileURL } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   buildSimilarityCommandArgs,
@@ -6,6 +7,7 @@ import {
   defaultPath,
   defaultThreshold,
   findFalsePositiveMatch,
+  isSimilarityReportEntrypoint,
   parseSimilarityPairs,
   readThreshold,
   similarityFalsePositiveBaseline,
@@ -67,6 +69,27 @@ Similarity: 95.01%, Score: 42.5 points (lines 20~30, avg: 25.0)
     ]);
   });
 
+  it("parses space paths, missing symbols, and CRLF output from similarity-ts output", () => {
+    const report = [
+      "Similarity: 90.00%, Score: 12.3 points (lines 4~6, avg: 5.0)",
+      "  /tmp/work tree/src/alpha.ts:4-8",
+      "  /tmp/work tree/src/beta.ts:9-13 useBeta",
+      "",
+    ].join("\r\n");
+
+    expect(parseSimilarityPairs(report)).toEqual([
+      {
+        similarityPercent: 90,
+        score: 12.3,
+        averageLines: 5,
+        firstPath: "/tmp/work tree/src/alpha.ts",
+        firstSymbol: "",
+        secondPath: "/tmp/work tree/src/beta.ts",
+        secondSymbol: "useBeta",
+      },
+    ]);
+  });
+
   it("classifies account cache updater and hook lifecycle pairs as false positives", () => {
     const pairs = parseSimilarityPairs(sampleReport);
 
@@ -117,6 +140,15 @@ Similarity: 95.01%, Score: 42.5 points (lines 20~30, avg: 25.0)
       "0.87",
       "src/lib",
     ]);
+  });
+
+  it("uses pathToFileURL semantics for direct execution detection", () => {
+    const scriptPath = "/tmp/work tree/ユニコード/scripts/similarity-report.ts";
+    const scriptUrl = pathToFileURL(scriptPath).href;
+
+    expect(isSimilarityReportEntrypoint(scriptUrl, scriptPath)).toBe(true);
+    expect(isSimilarityReportEntrypoint(scriptUrl, "/tmp/work tree/ユニコード/src/importer.ts")).toBe(false);
+    expect(isSimilarityReportEntrypoint(scriptUrl, undefined)).toBe(false);
   });
 
   it("keeps mise report task routed through the package script entrypoint", () => {

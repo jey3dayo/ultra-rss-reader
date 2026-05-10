@@ -27,13 +27,18 @@ describe("DestructiveDialogFooter", () => {
       <DestructiveDialogFooter
         cancelLabel="Cancel"
         confirmLabel="Delete"
+        confirmAccessibleLabel='Delete "Work". This cannot be undone.'
         pending={true}
         onCancel={onCancel}
         onConfirm={onConfirm}
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Delete" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: 'Delete "Work". This cannot be undone.' })).toBeDisabled();
+    expect(screen.getByRole("button", { name: 'Delete "Work". This cannot be undone.' })).toHaveAttribute(
+      "aria-busy",
+      "true",
+    );
     expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
   });
 });

@@ -55,7 +55,7 @@ describe("useConfirmMarkAllRead", () => {
     });
 
     expect(showConfirm).toHaveBeenCalledWith("confirm_mark_read:3", onConfirm, {
-      actionLabel: "mark_as_read_action",
+      actionLabel: "mark_as_read_count_action",
       variant: "warning",
     });
     expect(onConfirm).not.toHaveBeenCalled();

@@ -14,11 +14,11 @@ describe("DeleteTagDialogView", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.getByText("Delete Tag")).toBeInTheDocument();
     expect(screen.getByText(/Work/)).toBeInTheDocument();
-    expect(screen.getByText(/Work/).closest("div")).toHaveClass("text-foreground-soft");
-    expect(screen.getByRole("button", { name: "Delete" })).toHaveClass("min-h-11");
+    expect(screen.getByText(/Work/).closest("p")).toHaveClass("text-foreground-soft");
+    expect(screen.getByRole("button", { name: 'Delete "Work". This cannot be undone.' })).toHaveClass("min-h-11");
     expect(screen.getByRole("button", { name: "Cancel" })).toHaveClass("min-h-11");
 
-    await user.click(screen.getByRole("button", { name: "Delete" }));
+    await user.click(screen.getByRole("button", { name: 'Delete "Work". This cannot be undone.' }));
     await user.click(screen.getByRole("button", { name: "Cancel" }));
 
     expect(onConfirm).toHaveBeenCalledTimes(1);
@@ -34,7 +34,7 @@ describe("DeleteTagDialogView", () => {
       <DeleteTagDialogView open={true} tagName="Work" onOpenChange={onOpenChange} onConfirm={onConfirm} />,
     );
 
-    await user.click(screen.getByRole("button", { name: "Delete" }));
+    await user.click(screen.getByRole("button", { name: 'Delete "Work". This cannot be undone.' }));
 
     expect(onConfirm).toHaveBeenCalledTimes(1);
     expect(onOpenChange).not.toHaveBeenCalled();

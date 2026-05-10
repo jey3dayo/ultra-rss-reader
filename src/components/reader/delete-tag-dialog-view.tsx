@@ -17,14 +17,13 @@ export function DeleteTagDialogView({ open, tagName, onOpenChange, onConfirm }: 
       open={open}
       title={t("delete_tag")}
       description={
-        <p className="text-sm">
-          <Trans i18nKey="confirm_delete_tag" ns="reader" values={{ name: tagName }}>
-            Are you sure you want to delete <strong>{tagName}</strong>? This tag will be removed from all articles.
-          </Trans>
-        </p>
+        <Trans i18nKey="confirm_delete_tag" ns="reader" values={{ name: tagName }}>
+          Are you sure you want to delete <strong>{tagName}</strong>? This tag will be removed from all articles.
+        </Trans>
       }
       cancelLabel={tc("cancel")}
       confirmLabel={tc("delete")}
+      confirmAccessibleLabel={t("delete_tag_accessible_label", { name: tagName })}
       onOpenChange={onOpenChange}
       onConfirm={onConfirm}
     />

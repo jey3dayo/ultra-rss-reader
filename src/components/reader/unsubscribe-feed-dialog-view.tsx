@@ -22,7 +22,7 @@ export function UnsubscribeFeedDialogView({
     <DestructiveConfirmDialogView
       open={open}
       title={title}
-      description={<p className="text-sm">{description}</p>}
+      description={description}
       cancelLabel={cancelLabel}
       confirmLabel={confirmLabel}
       pending={pending}

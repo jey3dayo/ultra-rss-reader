@@ -19,7 +19,7 @@ export function useConfirmMarkAllRead() {
       if (!Number.isFinite(count) || count <= 0) return;
       if (askBeforeMarkAll === "true") {
         showConfirm(t("confirm_mark_read", { count }), onConfirm, {
-          actionLabel: tc("mark_as_read_action"),
+          actionLabel: tc("mark_as_read_count_action", { count }),
           variant: "warning",
         });
         return;

@@ -303,6 +303,96 @@ describe("useDataSettingsController", () => {
     expect(second.result.current.vacuuming).toBe(false);
   });
 
+  it("refreshes reopened database size after a pending vacuum completes", async () => {
+    let resolveFirstDatabaseInfo: ((value: Awaited<ReturnType<typeof getDatabaseInfo>>) => void) | undefined;
+    let resolveReopenedDatabaseInfo: ((value: Awaited<ReturnType<typeof getDatabaseInfo>>) => void) | undefined;
+    let resolvePostVacuumDatabaseInfo: ((value: Awaited<ReturnType<typeof getDatabaseInfo>>) => void) | undefined;
+    let resolveVacuum: (() => void) | undefined;
+    vi.mocked(getDatabaseInfo)
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveFirstDatabaseInfo = resolve;
+        }),
+      )
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveReopenedDatabaseInfo = resolve;
+        }),
+      )
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolvePostVacuumDatabaseInfo = resolve;
+        }),
+      );
+    vi.mocked(vacuumDatabase).mockReturnValue(
+      new Promise((resolve) => {
+        resolveVacuum = () =>
+          resolve(
+            Result.succeed({
+              db_size_bytes: 512,
+              wal_size_bytes: 0,
+              shm_size_bytes: 0,
+              total_size_bytes: 512,
+            }),
+          );
+      }),
+    );
+    const first = renderDataSettingsController();
+
+    await act(async () => {
+      resolveFirstDatabaseInfo?.(
+        Result.succeed({
+          db_size_bytes: 1024,
+          wal_size_bytes: 0,
+          shm_size_bytes: 0,
+          total_size_bytes: 1024,
+        }),
+      );
+    });
+
+    await act(async () => {
+      void first.result.current.handleVacuum();
+    });
+
+    first.unmount();
+    const second = renderDataSettingsController();
+
+    expect(second.result.current.vacuuming).toBe(true);
+
+    await act(async () => {
+      resolveReopenedDatabaseInfo?.(
+        Result.succeed({
+          db_size_bytes: 1024,
+          wal_size_bytes: 0,
+          shm_size_bytes: 0,
+          total_size_bytes: 1024,
+        }),
+      );
+    });
+
+    expect(second.result.current.databaseSizeValue).toBe("1.0 KB");
+
+    await act(async () => {
+      resolveVacuum?.();
+    });
+
+    expect(second.result.current.vacuuming).toBe(false);
+    expect(getDatabaseInfo).toHaveBeenCalledTimes(3);
+
+    await act(async () => {
+      resolvePostVacuumDatabaseInfo?.(
+        Result.succeed({
+          db_size_bytes: 512,
+          wal_size_bytes: 0,
+          shm_size_bytes: 0,
+          total_size_bytes: 512,
+        }),
+      );
+    });
+
+    expect(second.result.current.databaseSizeValue).toBe("512 B");
+  });
+
   it("ignores stale database size fetch responses after cleanup updates the size", async () => {
     let resolveDatabaseInfo: ((value: Awaited<ReturnType<typeof getDatabaseInfo>>) => void) | undefined;
     vi.mocked(getDatabaseInfo).mockReturnValue(
