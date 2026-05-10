@@ -32,6 +32,79 @@ impl From<DatabaseInfo> for DatabaseInfoDto {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DatabaseMaintenanceAction {
+    Vacuum,
+    SearchIndexRebuild,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DatabaseMaintenanceTrigger {
+    UserInitiated,
+    Automatic,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AppActivityState {
+    Foreground,
+    Background,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DatabaseMaintenanceScheduleDecision {
+    StartNow,
+    DeferUntilBackground,
+    RejectWhileSyncing,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub struct SearchIndexRebuildMaintenanceContract {
+    pub action: DatabaseMaintenanceAction,
+    pub reports_progress: bool,
+    pub supports_cancellation: bool,
+    pub retries_after_cancellation: bool,
+}
+
+pub(crate) fn schedule_database_maintenance_action(
+    action: DatabaseMaintenanceAction,
+    trigger: DatabaseMaintenanceTrigger,
+    app_activity: AppActivityState,
+    sync_in_flight: bool,
+) -> DatabaseMaintenanceScheduleDecision {
+    match action {
+        DatabaseMaintenanceAction::Vacuum | DatabaseMaintenanceAction::SearchIndexRebuild => {}
+    }
+
+    if sync_in_flight {
+        return DatabaseMaintenanceScheduleDecision::RejectWhileSyncing;
+    }
+
+    match (trigger, app_activity) {
+        (DatabaseMaintenanceTrigger::UserInitiated, _) => {
+            DatabaseMaintenanceScheduleDecision::StartNow
+        }
+        (DatabaseMaintenanceTrigger::Automatic, AppActivityState::Background) => {
+            DatabaseMaintenanceScheduleDecision::StartNow
+        }
+        (DatabaseMaintenanceTrigger::Automatic, AppActivityState::Foreground) => {
+            DatabaseMaintenanceScheduleDecision::DeferUntilBackground
+        }
+    }
+}
+
+pub(crate) fn search_index_rebuild_maintenance_contract() -> SearchIndexRebuildMaintenanceContract {
+    SearchIndexRebuildMaintenanceContract {
+        action: DatabaseMaintenanceAction::SearchIndexRebuild,
+        reports_progress: true,
+        supports_cancellation: true,
+        retries_after_cancellation: true,
+    }
+}
+
 #[tauri::command]
 pub fn get_database_info(state: State<'_, AppState>) -> Result<DatabaseInfoDto, AppError> {
     get_database_info_inner(&state.db)
@@ -63,7 +136,10 @@ mod tests {
     use std::sync::Mutex;
 
     use crate::commands::database_commands::{
-        get_database_info_inner, vacuum_database_inner, DatabaseInfoDto,
+        get_database_info_inner, schedule_database_maintenance_action,
+        search_index_rebuild_maintenance_contract, vacuum_database_inner, AppActivityState,
+        DatabaseInfoDto, DatabaseMaintenanceAction, DatabaseMaintenanceScheduleDecision,
+        DatabaseMaintenanceTrigger,
     };
     use crate::commands::dto::AppError;
     use crate::commands::start_database_maintenance;
@@ -182,6 +258,72 @@ mod tests {
         assert!(
             syncing.load(Ordering::SeqCst),
             "failed maintenance start should not clear another operation's flag"
+        );
+    }
+
+    #[test]
+    fn automatic_large_maintenance_runs_only_in_background_without_sync() {
+        assert_eq!(
+            schedule_database_maintenance_action(
+                DatabaseMaintenanceAction::Vacuum,
+                DatabaseMaintenanceTrigger::Automatic,
+                AppActivityState::Foreground,
+                false,
+            ),
+            DatabaseMaintenanceScheduleDecision::DeferUntilBackground
+        );
+        assert_eq!(
+            schedule_database_maintenance_action(
+                DatabaseMaintenanceAction::Vacuum,
+                DatabaseMaintenanceTrigger::Automatic,
+                AppActivityState::Background,
+                false,
+            ),
+            DatabaseMaintenanceScheduleDecision::StartNow
+        );
+        assert_eq!(
+            schedule_database_maintenance_action(
+                DatabaseMaintenanceAction::Vacuum,
+                DatabaseMaintenanceTrigger::Automatic,
+                AppActivityState::Background,
+                true,
+            ),
+            DatabaseMaintenanceScheduleDecision::RejectWhileSyncing
+        );
+    }
+
+    #[test]
+    fn user_initiated_large_maintenance_can_run_in_foreground_when_idle() {
+        assert_eq!(
+            schedule_database_maintenance_action(
+                DatabaseMaintenanceAction::Vacuum,
+                DatabaseMaintenanceTrigger::UserInitiated,
+                AppActivityState::Foreground,
+                false,
+            ),
+            DatabaseMaintenanceScheduleDecision::StartNow
+        );
+    }
+
+    #[test]
+    fn search_index_rebuild_is_large_maintenance_with_progress_and_cancel_contract() {
+        let contract = search_index_rebuild_maintenance_contract();
+
+        assert_eq!(
+            contract.action,
+            DatabaseMaintenanceAction::SearchIndexRebuild
+        );
+        assert!(contract.reports_progress);
+        assert!(contract.supports_cancellation);
+        assert!(contract.retries_after_cancellation);
+        assert_eq!(
+            schedule_database_maintenance_action(
+                contract.action,
+                DatabaseMaintenanceTrigger::Automatic,
+                AppActivityState::Foreground,
+                false,
+            ),
+            DatabaseMaintenanceScheduleDecision::DeferUntilBackground
         );
     }
 }

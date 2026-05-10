@@ -1,9 +1,13 @@
 use std::cmp::Ordering;
+use std::sync::atomic::AtomicBool;
+use std::sync::Mutex;
 
 use tauri::State;
 
 use crate::commands::dto::{AppError, FeedDto};
 use crate::commands::feed_commands::{normalize_folder_name, validate_feed_title};
+use crate::commands::start_database_maintenance;
+use crate::commands::try_lock_db;
 use crate::commands::AppState;
 use crate::domain::error::DomainError;
 use crate::domain::feed::Feed;
@@ -30,11 +34,19 @@ pub fn import_opml(
     opml_content: String,
     account_id: String,
 ) -> Result<Vec<FeedDto>, AppError> {
+    import_opml_inner(&state.db, &state.syncing, &opml_content, account_id)
+}
+
+fn import_opml_inner(
+    db: &Mutex<DbManager>,
+    syncing: &AtomicBool,
+    opml_content: &str,
+    account_id: String,
+) -> Result<Vec<FeedDto>, AppError> {
+    let _maintenance_guard = start_database_maintenance(syncing)?;
     let parsed_feeds = parse_import_opml(&opml_content)?;
 
-    let db = state.db.lock().map_err(|e| AppError::UserVisible {
-        message: format!("Lock error: {e}"),
-    })?;
+    let db = try_lock_db(db)?;
 
     import_opml_in_db(&db, &parsed_feeds, account_id)
 }
@@ -130,6 +142,9 @@ fn import_opml_in_db(
     }
 
     tx.commit().map_err(DomainError::from)?;
+    if !created_feeds.is_empty() {
+        db.refresh_query_statistics()?;
+    }
     Ok(created_feeds)
 }
 
@@ -303,7 +318,10 @@ fn opml_generate_log_error_for_test() -> &'static str {
 mod tests {
     use super::*;
     use rusqlite::params;
+    use std::sync::atomic::{AtomicBool, Ordering as AtomicOrdering};
+    use std::sync::Mutex;
 
+    use crate::commands::DATABASE_MAINTENANCE_BUSY_ERROR;
     use crate::infra::db::connection::DbManager;
 
     fn test_db() -> DbManager {
@@ -581,6 +599,34 @@ mod tests {
     }
 
     #[test]
+    fn import_opml_command_uses_maintenance_guard_before_db_lock() {
+        let db = Mutex::new(test_db());
+        let account_id = {
+            let db_guard = db.lock().unwrap();
+            insert_test_account(&db_guard, "Primary")
+        };
+        let syncing = AtomicBool::new(true);
+        let opml = r#"<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <body>
+    <outline text="Rust Blog" type="rss" xmlUrl="https://blog.rust-lang.org/feed.xml"/>
+  </body>
+</opml>"#;
+
+        let error = import_opml_inner(&db, &syncing, opml, account_id.0)
+            .expect_err("syncing should block OPML import before writes");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message } if message == DATABASE_MAINTENANCE_BUSY_ERROR
+        ));
+        assert!(
+            syncing.load(AtomicOrdering::SeqCst),
+            "failed maintenance start should not clear the active sync flag"
+        );
+    }
+
+    #[test]
     fn import_reuses_existing_folder_case_insensitively() {
         let db = test_db();
         let account_id = insert_test_account(&db, "Primary");
@@ -609,6 +655,34 @@ mod tests {
             .unwrap();
         assert_eq!(folder_count, 1);
         assert_eq!(saved_folder_id, existing_folder_id.0);
+    }
+
+    #[test]
+    fn import_refreshes_query_statistics_after_creating_feeds() {
+        let db = test_db();
+        let account_id = insert_test_account(&db, "Primary");
+        let parsed_feeds = vec![OpmlFeed {
+            title: "Rust Blog".to_string(),
+            xml_url: "https://blog.rust-lang.org/feed.xml".to_string(),
+            html_url: None,
+            folder: Some("Engineering".to_string()),
+        }];
+
+        let feeds = import_opml_in_db(&db, &parsed_feeds, account_id.0.clone()).unwrap();
+
+        assert_eq!(feeds.len(), 1);
+        let stats_rows: i64 = db
+            .reader()
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_stat1 WHERE tbl IN ('feeds', 'folders')",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert!(
+            stats_rows > 0,
+            "OPML import should refresh planner statistics after writing feeds"
+        );
     }
 
     #[test]
