@@ -128,6 +128,16 @@ Similarity: 90.00%, Score: 12.3 points (lines 4~6, avg: 5.0)
     expect(buildSimilaritySummary(driftedReport)).toContain("unparsed similarity blocks: 2");
   });
 
+  it("reports type-pair count drift from similarity-ts output", () => {
+    const report = [
+      "Total similar type pairs found: 3",
+      "  src/types/a.ts:1-2 A (type)",
+      "  src/types/b.ts:3-4 B (type)",
+    ].join("\n");
+
+    expect(buildSimilaritySummary(report)).toContain("type pair report drift: 2");
+  });
+
   it("reports stale false-positive TODO references when TODO content is provided", () => {
     const todoContent = [
       "P2 similarity 90.42%: browser overlay close と sidebar smart view builder の structural false positive を guard する",
@@ -169,6 +179,7 @@ Similarity: 90.00%, Score: 12.3 points (lines 4~6, avg: 5.0)
     expect(readThreshold(undefined)).toBe(defaultThreshold);
     expect(readThreshold("0.95")).toBe(0.95);
     expect(() => readThreshold("0.5")).toThrow("Unsupported similarity threshold: 0.5. Use 0.95, 0.9, 0.87.");
+    expect(() => readThreshold("0.90")).toThrow("Unsupported similarity threshold: 0.90. Use 0.95, 0.9, 0.87.");
     expect(buildSimilarityCommandArgs(0.87, "src/lib")).toEqual([
       "exec",
       "similarity-ts",

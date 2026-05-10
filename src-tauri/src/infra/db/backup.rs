@@ -944,6 +944,36 @@ mod tests {
     }
 
     #[test]
+    fn restore_backup_rejects_corrupt_backup_before_replacing_current_db() {
+        let dir = tempfile::tempdir().unwrap();
+        let db_path = dir.path().join("current.db");
+        let backup_path = dir.path().join("corrupt-backup.db");
+        {
+            let conn = Connection::open(&db_path).unwrap();
+            conn.execute_batch(
+                "CREATE TABLE probe (id INTEGER PRIMARY KEY, payload TEXT NOT NULL);
+                 INSERT INTO probe (id, payload) VALUES (1, 'current database content');",
+            )
+            .unwrap();
+        }
+        fs::write(&backup_path, b"not sqlite").unwrap();
+
+        let error = restore_backup(&db_path, &backup_path)
+            .expect_err("corrupt backup should fail before replacing current DB")
+            .to_string();
+
+        assert!(
+            error.contains("SQLite integrity_check failed before restore")
+                || error.contains("Failed to run SQLite integrity_check before restore")
+                || error.contains("file is not a database"),
+            "restore should report the preflight integrity failure: {error}"
+        );
+        assert_eq!(read_probe_payload(&db_path), "current database content");
+        assert!(!temp_backup_path(&db_path).exists());
+        assert!(!restore_old_path(&db_path).exists());
+    }
+
+    #[test]
     fn restore_backup_replaces_db_wal_and_shm_as_one_set() {
         let (_dir, db_path) = setup_temp_db();
         let wal_path = PathBuf::from(format!("{}-wal", db_path.display()));

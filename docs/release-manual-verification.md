@@ -97,6 +97,10 @@ platforms or surfaces that did not change.
 
 ## Checklist
 
+Use the currently published release, workflow run, and packaged artifact names
+as observed evidence. Do not treat examples in this document as required file
+names or workflow internals unless the release contract already requires them.
+
 ### 1. FreshRSS Live Verification
 
 Run `mise run test:live`.
@@ -115,11 +119,13 @@ Install the published release artifact downloaded from GitHub Releases. Do not u
 Confirm and record:
 
 - Release artifact name and source release URL
+- Published release artifact name and release URL
 - Release asset digest, for example `sha256:<digest>`
 - Updater signature sidecar asset name, source release URL, and whether the
   sidecar matches the published artifact being installed
 - Codesign result, for example `codesign --verify --deep --strict --verbose=2 <app>`
 - Gatekeeper result, for example `spctl --assess --type execute --verbose <app>`
+- Gatekeeper assessment result
 - Installed app identifier or bundle identifier observed from the packaged app
 - Installed app version shown by the packaged app
 - Quarantine and first-launch result from the published artifact path, or the
@@ -136,17 +142,24 @@ Record this for every release before publishing the draft release.
 Confirm and record:
 
 - Release tag and tag target SHA.
-- Source commit SHA checked out by the release workflow.
+- Source commit SHA and the PR, merge commit, or release note that explains the
+  user-visible change set.
 - PR number or merge commit subject for the source commit.
+- Source commit SHA checked out by the release workflow.
+- Release automation run id or URL, including the triggering ref when available.
 - GitHub workflow run id and run URL.
-- Release workflow path, ref, and whether the run came from tag push or manual dispatch.
-- Published artifact name, release URL, and SHA-256 digest.
-- Updater checksum sidecar asset name, release URL, and digest content.
-- Updater signature sidecar asset name and release URL.
-- Dependency provenance assets attached by the release workflow: `pnpm-licenses-<platform>.json` and `cargo-licenses-<platform>.json`.
-- Release provenance asset attached by the release workflow: `release-provenance-<platform>.json`.
-- SBOM or dependency provenance record, such as the attached pnpm and Cargo provenance assets, an attached SBOM, or the explicit reason a full SBOM artifact was not generated for this release.
-- Draft release attachment list before publishing, including app artifact, updater signature, checksum sidecar, release provenance record, and provenance/SBOM record.
+- For each published app artifact: target platform, release URL, SHA-256 digest,
+  and the matching updater checksum/signature evidence when the platform uses
+  updater sidecars.
+- Updater checksum sidecar asset.
+- Updater signature sidecar asset.
+- Provenance, license, dependency, or SBOM evidence attached to the release, or
+  the explicit reason that no such record exists for this release.
+- SBOM or dependency provenance record.
+- Draft release attachment inventory before publishing, grouped by platform and
+  evidence type so missing or mismatched artifacts are visible without relying
+  on hard-coded file names.
+- Draft release attachment list before publishing.
 
 ### 2b. Release Dev-Only Contamination Record
 
@@ -293,6 +306,8 @@ Confirm:
 - Manual update check smoke from the installed published artifact reaches a
   terminal state: no update available, expected update available, or a
   user-visible safe failure.
+- Record whether packaged updater verification passed, failed safely, or was
+  skipped with a release-surface reason.
 - Download starts and completes without a stuck progress state.
 - If OS sleep is introduced during download, resume does not leave a partial artifact, stale progress, or stale success state; manual recheck starts a fresh flow.
 - Install/restart applies the new version successfully.
@@ -447,24 +462,17 @@ Hotfix record:
 
 Write down:
 
-- OS and build version verified
-- Published release artifact name and release URL
-- Release asset digest
-- Updater signature sidecar asset and app artifact pairing
-- Installed app identifier or bundle identifier
-- Codesign verification result
-- Gatekeeper assessment result
-- Quarantine and first-launch result, if in scope
-- Whether `mise run test:live` passed
-- Whether native keyring verification passed
-- Whether update check smoke from the installed published artifact passed
-- Whether packaged updater verification passed
-- Whether packaged app icon and badge verification passed
-- Whether Windows installer signing and SmartScreen verification passed, if in scope
-- Whether macOS sandbox entitlement/access verification passed, if in scope
-- Whether uninstall/private data reset/support artifact retention verification passed, if in scope
-- Whether this was a normal release or hotfix release
-- Where the supporting logs or screenshots were saved, if any
-- OS timezone and local offset for any shared release logs
+- Release path: normal, hotfix, rollback/republish, or manual native smoke only.
+- Platforms verified, app version observed, and the published artifact URL and
+  digest for each platform.
+- Artifact pairing evidence for updater checksum/signature sidecars when the
+  platform uses them.
+- Installed app identifier, signing/notarization or installer signature result,
+  and first-launch result for each platform in scope.
+- Live service, native keyring, updater, packaged startup, icon/badge, uninstall
+  or data-reset, and permission-prompt results that were in scope.
+- Checks intentionally skipped, with the reason and owner for any follow-up.
+- Supporting log or screenshot location, with OS timezone and local offset for
+  shared release logs.
 
 If something fails during this checklist, continue from [incident-runbook.md](./incident-runbook.md) instead of improvising ad-hoc recovery steps.

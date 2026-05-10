@@ -24,6 +24,10 @@ pub fn sanitize_html(raw: &str) -> String {
         .add_tag_attributes("source", &["src", "srcset", "sizes", "type", "media"])
         .url_schemes(std::collections::HashSet::from(["http", "https"]))
         .attribute_filter(|_, attribute, value| {
+            if attribute.eq_ignore_ascii_case("href") {
+                return is_absolute_http_url(value).then_some(Cow::Borrowed(value));
+            }
+
             if attribute.eq_ignore_ascii_case("src") {
                 return is_absolute_http_url(value).then_some(Cow::Borrowed(value));
             }
@@ -97,12 +101,11 @@ fn is_safe_srcset_url(url: &str) -> bool {
 }
 
 fn is_absolute_http_url(url: &str) -> bool {
-    matches!(url_scheme(url).as_deref(), Some("http" | "https"))
-}
-
-fn url_scheme(url: &str) -> Option<String> {
-    let scheme_end = url.find([':', '/', '?', '#'])?;
-    (url.as_bytes()[scheme_end] == b':').then(|| url[..scheme_end].to_ascii_lowercase())
+    reqwest::Url::parse(url).is_ok_and(|parsed| {
+        matches!(parsed.scheme(), "http" | "https")
+            && parsed.username().is_empty()
+            && parsed.password().is_none()
+    })
 }
 
 pub fn extract_visible_text(raw: &str) -> String {
@@ -244,6 +247,24 @@ mod tests {
                 r#"src="https://cdn.example.com/body.jpg""#,
             ],
             forbidden_fragments: &["<script", "onclick"],
+        },
+        SanitizerCorpusCase {
+            label: "secret-bearing article urls keep text without preserving credentials",
+            raw: r#"
+                <p>
+                  <a href="https://alice:secret@example.com/private-token/feed.xml?api_key=raw">Private link</a>
+                  <img src="https://alice:secret@cdn.example.com/private-token/image.jpg?token=raw" alt="Private image">
+                </p>
+            "#,
+            expected_text: "Private link",
+            required_fragments: &["Private link", r#"alt="Private image""#],
+            forbidden_fragments: &[
+                "alice:secret",
+                "api_key=raw",
+                "token=raw",
+                "private-token/feed.xml",
+                "private-token/image.jpg",
+            ],
         },
     ];
 

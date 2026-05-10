@@ -218,6 +218,38 @@ Command availability matrix:
 | Native menu | Rust `resolve_menu_action` emits `AppAction` strings through `menu-action`. | Native menu availability lives in Rust menu construction. `accounts-sync` owns `CmdOrCtrl+R`; item menu shortcut hints are fixed display labels and do not read user shortcut preferences. | Does not write shortcut preferences or command history. |
 | Browser preview shortcut bridge | Rust browser shortcut specs keyed by selected `shortcut_*` preferences. | Only bridge-owned browser preview actions are available inside the native browser overlay. | Reads preferences to build the bridge script; write ownership remains shortcut settings. |
 
+## A11y Baseline Checklist
+
+Use this baseline before changing dialog, popover, keyboard shortcut, focus, or landmark behavior. It intentionally describes outcomes instead of component internals so implementation work can choose the smallest fitting surface.
+
+Top-layer and focus containment:
+
+- Modal dialogs, command surfaces, destructive confirmations, popovers, and embedded browser overlays define which surface is currently topmost.
+- `Tab` and `Shift+Tab` stay within the topmost modal surface when focus trapping is expected, and they return to the invoking or stable pane context when it closes.
+- `Escape` closes only the current transient surface before falling back to pane navigation or global shortcut behavior.
+- Background panes do not expose actionable controls to keyboard or assistive technology while a modal surface owns interaction.
+
+Keyboard and IME handling:
+
+- Global shortcuts are skipped while text input, editable content, composition, or IME candidate selection is active.
+- Shortcut handling distinguishes app commands from text editing keys, native menu shortcuts, and browser overlay shortcuts.
+- Keyboard-only users can reach the same primary reader, settings, command palette, and overlay actions that pointer users can reach.
+- A focused test or manual pass records the event path when behavior depends on composition, platform shortcut ownership, or native WebView behavior.
+
+Landmark, heading, and status structure:
+
+- Reader, settings, subscriptions, and overlay surfaces expose one clear primary landmark or dialog context for the active task.
+- Pane, section, empty, loading, and error states have stable programmatic labels without duplicate hidden headings.
+- Sync, update, save, delete, and failure states provide non-color status text, structural state, or accessible announcements.
+- Live-region or toast announcements avoid duplicate messages for the same operation.
+
+Focus visible and recovery:
+
+- The current keyboard operation target is visible without hover and remains distinct from selected or checked state.
+- Focus recovery after close, cancel, save, route change, account switch, or refetch returns to a stable pane target rather than `body`.
+- Disabled actions are skipped unless they intentionally expose an unavailable reason.
+- Manual verification notes may record surface names and user-visible flows, but should not lock future helper names, file names, or component structure.
+
 ## Review Checklist
 
 Use this checklist when changing reader keyboard behavior:

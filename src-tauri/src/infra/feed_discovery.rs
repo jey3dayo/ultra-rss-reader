@@ -972,6 +972,31 @@ mod tests {
     }
 
     #[test]
+    fn extract_feed_links_skips_private_and_credential_bearing_fixture_corpus() {
+        let html = r#"
+            <html><head>
+            <base href="https://example.com/articles/">
+            <link rel="alternate" type="application/rss+xml" title="Private Host" href="http://127.0.0.1/feed.xml">
+            <link rel="alternate" type="application/rss+xml" title="Credential URL" href="https://alice:secret@example.com/feed.xml?token=raw">
+            <link rel="alternate" type="application/rss+xml" title="Public Feed" href="feed.xml?token=raw">
+            </head><body></body></html>
+        "#;
+
+        let feeds = extract_feed_links(html, "https://example.com/index.html");
+
+        assert_eq!(
+            feeds
+                .iter()
+                .map(|feed| (feed.title.as_str(), feed.url.as_str()))
+                .collect::<Vec<_>>(),
+            vec![(
+                "Public Feed",
+                "https://example.com/articles/feed.xml?token=raw"
+            )],
+        );
+    }
+
+    #[test]
     fn discover_feeds_rejects_private_and_unsupported_initial_urls_before_network() {
         let runtime = tokio::runtime::Runtime::new().unwrap();
 

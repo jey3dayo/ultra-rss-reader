@@ -541,6 +541,11 @@ describe("useDataSettingsController", () => {
       }),
     );
     const { result } = renderDataSettingsController();
+
+    await waitFor(() => {
+      expect(result.current.databaseSizeStatus).toBe("ready");
+    });
+
     const { handleVacuum } = result.current;
 
     await act(async () => {
@@ -571,6 +576,10 @@ describe("useDataSettingsController", () => {
       }),
     );
     const first = renderDataSettingsController();
+
+    await waitFor(() => {
+      expect(first.result.current.databaseSizeStatus).toBe("ready");
+    });
 
     await act(async () => {
       void first.result.current.handleVacuum();
@@ -686,19 +695,11 @@ describe("useDataSettingsController", () => {
     expect(second.result.current.databaseSizeValue).toBe("512 B");
   });
 
-  it("ignores stale database size fetch responses after cleanup updates the size", async () => {
+  it("does not run vacuum until database size has loaded", async () => {
     let resolveDatabaseInfo: ((value: Awaited<ReturnType<typeof getDatabaseInfo>>) => void) | undefined;
     vi.mocked(getDatabaseInfo).mockReturnValue(
       new Promise((resolve) => {
         resolveDatabaseInfo = resolve;
-      }),
-    );
-    vi.mocked(vacuumDatabase).mockResolvedValue(
-      Result.succeed({
-        db_size_bytes: 512,
-        wal_size_bytes: 0,
-        shm_size_bytes: 0,
-        total_size_bytes: 512,
       }),
     );
     const { result } = renderDataSettingsController();
@@ -707,22 +708,22 @@ describe("useDataSettingsController", () => {
       await result.current.handleVacuum();
     });
 
-    expect(result.current.databaseSizeStatus).toBe("ready");
-    expect(result.current.databaseSizeValue).toBe("512 B");
+    expect(vacuumDatabase).not.toHaveBeenCalled();
+    expect(result.current.databaseSizeStatus).toBe("loading");
 
     await act(async () => {
       resolveDatabaseInfo?.(
         Result.succeed({
-          db_size_bytes: 4096,
+          db_size_bytes: 1024,
           wal_size_bytes: 0,
           shm_size_bytes: 0,
-          total_size_bytes: 4096,
+          total_size_bytes: 1024,
         }),
       );
     });
 
     expect(result.current.databaseSizeStatus).toBe("ready");
-    expect(result.current.databaseSizeValue).toBe("512 B");
+    expect(result.current.databaseSizeValue).toBe("1.0 KiB");
   });
 
   it("suppresses duplicate open log directory commands from the same render closure", async () => {
@@ -812,6 +813,10 @@ describe("useDataSettingsController", () => {
     const setSettingsLoading = vi.fn();
     const { result, unmount } = renderDataSettingsController({
       setSettingsLoading,
+    });
+
+    await waitFor(() => {
+      expect(result.current.databaseSizeStatus).toBe("ready");
     });
 
     await act(async () => {

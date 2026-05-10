@@ -28,6 +28,7 @@ export type SimilarityTypeSummary = {
   similarTypePairs: number;
   typeLiteralPairs: number;
   totalTypePairs: number;
+  reportedTypePairDrift: number;
 };
 
 export type SimilarityParseDiagnostics = {
@@ -181,6 +182,7 @@ export function buildSimilaritySummary(output: string, todoContent?: string): st
     `unparsed similarity blocks: ${diagnostics.skippedSimilarityBlocks}`,
     `TODO baseline function pairs: ${todoSimilarityBaseline.functionPairs}`,
     `type pairs: ${typeSummary.totalTypePairs} (types: ${typeSummary.similarTypePairs}, type literals: ${typeSummary.typeLiteralPairs})`,
+    `type pair report drift: ${typeSummary.reportedTypePairDrift}`,
     `TODO baseline type pairs: ${todoSimilarityBaseline.similarTypePairs + todoSimilarityBaseline.typeLiteralPairs} (types: ${todoSimilarityBaseline.similarTypePairs}, type literals: ${todoSimilarityBaseline.typeLiteralPairs})`,
     `allowlisted false positives present: ${matchedFalsePositives.length}`,
     `allowlisted false positives absent: ${unmatchedFalsePositives.length}`,
@@ -205,6 +207,7 @@ export function parseSimilarityTypeSummary(output: string): SimilarityTypeSummar
     similarTypePairs,
     typeLiteralPairs,
     totalTypePairs,
+    reportedTypePairDrift: totalTypePairs - similarTypePairs - typeLiteralPairs,
   };
 }
 
@@ -222,12 +225,15 @@ export function readThreshold(rawValue: string | undefined): SimilarityThreshold
     return defaultThreshold;
   }
 
-  const parsed = Number(rawValue);
-  if (similarityThresholds.includes(parsed as SimilarityThreshold)) {
-    return parsed as SimilarityThreshold;
+  if (isSimilarityThreshold(rawValue)) {
+    return Number(rawValue) as SimilarityThreshold;
   }
 
   throw new Error(`Unsupported similarity threshold: ${rawValue}. Use ${similarityThresholds.join(", ")}.`);
+}
+
+function isSimilarityThreshold(rawValue: string): rawValue is `${SimilarityThreshold}` {
+  return similarityThresholds.some((threshold) => rawValue === String(threshold));
 }
 
 export function buildSimilarityCommandArgs(threshold: SimilarityThreshold, targetPath: string): string[] {

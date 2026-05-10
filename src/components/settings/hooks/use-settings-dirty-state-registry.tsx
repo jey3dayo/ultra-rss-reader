@@ -8,7 +8,7 @@ import {
   useSyncExternalStore,
 } from "react";
 
-export type SettingsDirtyStateOwner = "account" | "tag" | "shortcut" | "preferences";
+export type SettingsDirtyStateOwner = "account" | "tag" | "shortcut" | "preferences" | "data";
 
 export type SettingsDirtyStateEntry = {
   owner: SettingsDirtyStateOwner;

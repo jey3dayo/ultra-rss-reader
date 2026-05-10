@@ -205,6 +205,46 @@ describe("DataSettingsView", () => {
     expect(onVacuum).not.toHaveBeenCalled();
   });
 
+  it("disables vacuum with a visible reason until database size is ready", async () => {
+    const user = userEvent.setup();
+    const onVacuum = vi.fn();
+
+    render(
+      <DataSettingsView
+        title="Data"
+        databaseHeading="Database"
+        databaseSizeLabel="Database size"
+        databaseSizeStatus="loading"
+        databaseSizeValue=""
+        databaseSizeLoadingLabel="Loading database size"
+        databaseSizeErrorLabel="Database size unavailable"
+        safetyHeading="Backup and Restore"
+        safetyDescription="Confirm rollback before changing user data."
+        safetyChecklist={["Use OPML export.", "Quit before restoring backups."]}
+        optimizationHeading="Optimization"
+        vacuumDescription="Optimize the database."
+        vacuumLabel="Optimize now"
+        vacuuming={false}
+        logsHeading="Logs"
+        openLogDirDescription="Open the log directory."
+        openLogDirLabel="Open log directory"
+        openingLogDir={false}
+        onVacuum={onVacuum}
+        onOpenLogDir={vi.fn()}
+      />,
+    );
+
+    const optimizeButton = screen.getByRole("button", { name: "Optimize now" });
+    const fallbackReason = screen.getByText("Optimize the database. Loading database size");
+
+    expect(optimizeButton).toBeDisabled();
+    expect(optimizeButton).toHaveAttribute("aria-describedby", fallbackReason.id);
+
+    await user.click(optimizeButton);
+
+    expect(onVacuum).not.toHaveBeenCalled();
+  });
+
   it("renders distinct database size labels for loading, ready, and error states", () => {
     const props = {
       title: "Data",

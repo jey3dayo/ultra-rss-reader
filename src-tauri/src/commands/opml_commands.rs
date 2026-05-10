@@ -627,6 +627,43 @@ mod tests {
     }
 
     #[test]
+    fn import_parser_rejects_doctype_entity_and_credential_url_fixture_corpus() {
+        let doctype_entity = r#"<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE opml [
+  <!ENTITY private SYSTEM "file:///Users/alice/private.opml">
+]>
+<opml version="2.0">
+  <body>
+    <outline text="Feed" type="rss" xmlUrl="https://example.com/feed.xml"/>
+  </body>
+</opml>"#;
+        let credential_xml_url = r#"<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <body>
+    <outline text="Feed" type="rss" xmlUrl="https://alice:secret@example.com/feed.xml?token=raw"/>
+  </body>
+</opml>"#;
+        let credential_html_url = r#"<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <body>
+    <outline text="Feed" type="rss" xmlUrl="https://example.com/feed.xml" htmlUrl="https://alice:secret@example.com/article?api_key=raw"/>
+  </body>
+</opml>"#;
+
+        assert!(matches!(
+            parse_import_opml(doctype_entity),
+            Err(AppError::UserVisible { message }) if message == "OPML document is malformed XML"
+        ));
+
+        for opml in [credential_xml_url, credential_html_url] {
+            assert!(matches!(
+                parse_import_opml(opml),
+                Err(AppError::UserVisible { message }) if message == "URLs with embedded credentials are not allowed"
+            ));
+        }
+    }
+
+    #[test]
     fn import_parser_rejects_opml_private_feed_urls_like_regular_backend_policy() {
         let private_xml_url_loopback = r#"<?xml version="1.0" encoding="UTF-8"?>
 <opml version="2.0">

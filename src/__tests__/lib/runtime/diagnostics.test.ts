@@ -185,6 +185,31 @@ describe("runtime diagnostics redaction", () => {
     );
   });
 
+  it("redacts sanitizer discovery OPML export and log fixture corpus", () => {
+    const supportCopy = redactRuntimeDiagnosticSupportCopy({
+      sanitizer: "dropped https://alice:secret@example.com/private-token/feed.xml?api_key=raw",
+      feedDiscovery: "redirect https://example.com/start -> http://127.0.0.1/feed.xml?token=raw",
+      opmlImport: '<!DOCTYPE opml SYSTEM "file:///Users/alice/private.opml">',
+      opmlExport: {
+        suggestedFilename: "../Private Folder.opml",
+        sourceUrl: "https://example.com/articles/download?filename=remote-title.opml&token=raw",
+      },
+      logPath: "/Users/alice/Library/Application Support/Ultra RSS/app.log",
+    });
+
+    expect(supportCopy).toContain("https://example.com/redacted?redacted");
+    expect(supportCopy).toContain("http://127.0.0.1/feed.xml?redacted");
+    expect(supportCopy).toContain("<redacted-path>");
+    expect(supportCopy).toContain('"opmlExport": {');
+    expect(supportCopy).toContain('"suggestedFilename": "<redacted>"');
+    expect(supportCopy).not.toContain("alice:secret");
+    expect(supportCopy).not.toContain("api_key=raw");
+    expect(supportCopy).not.toContain("token=raw");
+    expect(supportCopy).not.toContain("../Private Folder.opml");
+    expect(supportCopy).not.toContain("file:///Users/alice/private.opml");
+    expect(supportCopy).not.toContain("/Users/alice/Library/Application Support/Ultra RSS/app.log");
+  });
+
   it("redacts provider adapter auth, cookie, server URL, username, and account identifiers", () => {
     const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const rawServerUrl = "https://reader.example.com/api/greader.php";

@@ -61,9 +61,9 @@ export function DataSettingsView({
       : databaseSizeStatus === "loading"
         ? databaseSizeLoadingLabel
         : databaseSizeErrorLabel;
-  const vacuumUnavailable = databaseSizeStatus === "error";
+  const vacuumUnavailable = databaseSizeStatus !== "ready";
   const vacuumDescriptionText =
-    databaseSizeStatus === "error" ? `${vacuumDescription} ${databaseSizeErrorLabel}` : vacuumDescription;
+    databaseSizeStatus === "ready" ? vacuumDescription : `${vacuumDescription} ${databaseSizeDisplayValue}`;
 
   return (
     <SettingsContentLayout title={title} outerTestId="data-settings-root">

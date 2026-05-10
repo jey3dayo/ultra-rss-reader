@@ -4,6 +4,7 @@ import { STORAGE_CLEANUP_POLICY_CONNECTIONS } from "@/constants/storage";
 import { StorageCleanupPolicyConnectionsSchema } from "@/schemas/storage";
 import { useUiStore } from "@/stores/ui-store";
 import { useDataSettingsController } from "./hooks/use-data-settings-controller";
+import { useRegisterSettingsDirtyState } from "./hooks/use-settings-dirty-state-registry";
 
 const storageCleanupPolicyConnections = StorageCleanupPolicyConnectionsSchema.parse(STORAGE_CLEANUP_POLICY_CONNECTIONS);
 
@@ -13,6 +14,14 @@ export function DataSettings() {
   const controller = useDataSettingsController({
     t,
     showToast,
+  });
+  const dataActionPending = controller.vacuuming || controller.openingLogDir;
+
+  useRegisterSettingsDirtyState({
+    owner: "data",
+    dirty: false,
+    pending: dataActionPending,
+    blockingReason: dataActionPending ? "data-action-pending" : null,
   });
 
   return (

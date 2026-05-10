@@ -471,7 +471,7 @@ export function useDataSettingsController({
   }, [fetchDbInfo]);
 
   const handleVacuum = async () => {
-    if (!mountedRef.current || databaseSizeStatus === "error" || isDataSettingsActionInFlight()) {
+    if (!mountedRef.current || databaseSizeStatus !== "ready" || isDataSettingsActionInFlight()) {
       return;
     }
 

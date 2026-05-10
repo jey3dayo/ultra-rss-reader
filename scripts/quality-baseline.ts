@@ -52,6 +52,7 @@ export type QualityToolDiagnosticKind =
   | "non-zero-exit"
   | "empty-report"
   | "malformed-report"
+  | "process-error"
   | "timeout"
   | "signal";
 
@@ -260,6 +261,17 @@ export function createProcessDiagnostic(
       message: `${tool} command timed out after ${qualityToolTimeoutMs}ms.`,
       signal: result.signal ?? undefined,
       stderr,
+      stdout,
+    };
+  }
+
+  if (result.error !== undefined) {
+    return {
+      kind: "process-error",
+      tool,
+      command,
+      message: `${tool} command failed before producing a report.`,
+      stderr: trimOptional(result.error.message) ?? stderr,
       stdout,
     };
   }

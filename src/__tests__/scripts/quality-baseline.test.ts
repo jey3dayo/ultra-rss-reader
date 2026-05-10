@@ -148,6 +148,17 @@ describe("quality-baseline", () => {
     });
   });
 
+  it("reports unexpected process errors before report parsing", () => {
+    const error = Object.assign(new Error("spawnSync pnpm EACCES"), {
+      code: "EACCES",
+    });
+
+    expect(createProcessDiagnostic("Knip", "pnpm exec knip", spawnResult({ error, status: null }))).toMatchObject({
+      kind: "process-error",
+      stderr: "spawnSync pnpm EACCES",
+    });
+  });
+
   it("reports signal termination while preserving captured output", () => {
     expect(
       createProcessDiagnostic(

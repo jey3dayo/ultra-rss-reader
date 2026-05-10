@@ -143,6 +143,8 @@ const SECRET_OBJECT_KEYS = new Set([
   "serverpath",
   "serverurl",
   "server_url",
+  "suggestedfilename",
+  "suggestedpath",
   "username",
 ]);
 const SECRET_URL_PATH_SEGMENT_PATTERN = /(?:token|secret|password|credential|private[-_]?key|api[-_]?key)/i;
