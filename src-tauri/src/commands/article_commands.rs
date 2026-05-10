@@ -135,12 +135,14 @@ fn has_blocking_frame_ancestors(headers: &HeaderMap) -> bool {
                 .split(';')
                 .map(str::trim)
                 .find_map(|directive| {
-                    directive
-                        .strip_prefix("frame-ancestors")
-                        .or_else(|| directive.strip_prefix("Frame-Ancestors"))
+                    let (name, value) = directive.split_once(char::is_whitespace)?;
+                    name.eq_ignore_ascii_case("frame-ancestors")
+                        .then_some(value)
                 })
                 .map(|value| {
-                    let sources = value.split_whitespace();
+                    let sources = value
+                        .split_whitespace()
+                        .map(|source| source.trim_matches('"').trim_matches('\''));
                     !sources.into_iter().any(|source| source == "*")
                 })
                 .unwrap_or(false)
@@ -1141,7 +1143,9 @@ mod tests {
     use crate::repository::article::{ArticleListMode, ArticleRepository, Pagination};
     use crate::repository::pending_mutation::{PendingMutationRepository, PendingMutationType};
     use mockito::Server;
-    use reqwest::header::{HeaderMap, HeaderValue, CONTENT_SECURITY_POLICY, X_FRAME_OPTIONS};
+    use reqwest::header::{
+        HeaderMap, HeaderName, HeaderValue, CONTENT_SECURITY_POLICY, X_FRAME_OPTIONS,
+    };
     use std::sync::atomic::AtomicBool;
     use std::sync::Mutex;
 
@@ -1175,6 +1179,67 @@ mod tests {
         );
 
         assert!(has_blocking_frame_ancestors(&headers));
+    }
+
+    #[test]
+    fn frame_ancestors_parser_handles_case_quotes_and_header_policy_fixtures() {
+        struct FrameAncestorsFixture {
+            name: &'static str,
+            enforced_policies: &'static [&'static str],
+            report_only_policies: &'static [&'static str],
+            blocks_embedding: bool,
+        }
+
+        let report_only_header = HeaderName::from_static("content-security-policy-report-only");
+        let fixtures = [
+            FrameAncestorsFixture {
+                name: "mixed-case directive blocks like lowercase frame-ancestors",
+                enforced_policies: &["default-src 'self'; FRAME-ANCESTORS 'self'"],
+                report_only_policies: &[],
+                blocks_embedding: true,
+            },
+            FrameAncestorsFixture {
+                name: "double-quoted wildcard keeps embedding available",
+                enforced_policies: &["default-src 'self'; frame-ancestors \"*\""],
+                report_only_policies: &[],
+                blocks_embedding: false,
+            },
+            FrameAncestorsFixture {
+                name: "single-quoted wildcard keeps embedding available",
+                enforced_policies: &["default-src 'self'; frame-ancestors '*'"],
+                report_only_policies: &[],
+                blocks_embedding: false,
+            },
+            FrameAncestorsFixture {
+                name: "blocking policy wins across multiple enforced CSP headers",
+                enforced_policies: &["default-src 'self'", "frame-ancestors https://example.com"],
+                report_only_policies: &[],
+                blocks_embedding: true,
+            },
+            FrameAncestorsFixture {
+                name: "report-only frame-ancestors does not block embedding",
+                enforced_policies: &["default-src 'self'"],
+                report_only_policies: &["frame-ancestors 'none'"],
+                blocks_embedding: false,
+            },
+        ];
+
+        for fixture in fixtures {
+            let mut headers = HeaderMap::new();
+            for policy in fixture.enforced_policies {
+                headers.append(CONTENT_SECURITY_POLICY, HeaderValue::from_static(policy));
+            }
+            for policy in fixture.report_only_policies {
+                headers.append(report_only_header.clone(), HeaderValue::from_static(policy));
+            }
+
+            assert_eq!(
+                has_blocking_frame_ancestors(&headers),
+                fixture.blocks_embedding,
+                "{}",
+                fixture.name
+            );
+        }
     }
 
     #[tokio::test]
