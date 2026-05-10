@@ -1,10 +1,16 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
+import {
+  generatedFixtureSnapshotSizeBudget,
+  isGeneratedReportArtifactPath,
+  markdownlintRepoContract,
+  qualityBaselineRepoScanIgnoredPathPrefixes,
+} from "../scripts/quality-baseline";
 import {
   extractIssueTemplateDoneWhenDescription,
   extractIssueTemplateDoneWhenPlaceholder,
@@ -444,6 +450,51 @@ const listTypeScriptSourceFiles = (dir: string): string[] =>
     .filter((entry): entry is string => typeof entry === "string")
     .filter((entry) => /\.(?:ts|tsx)$/.test(entry))
     .map((entry) => `${dir}/${entry}`);
+
+const repoWalkIgnoredDirectoryNames = new Set([
+  ".git",
+  ".worktrees",
+  "dist",
+  "node_modules",
+  "playwright-report",
+  "storybook-static",
+  "target",
+  "test-results",
+  "tmp",
+]);
+
+const normalizeRepoPath = (path: string): string => path.replaceAll("\\", "/").replace(/^\.\//, "");
+
+const listRepoFiles = (dir = "."): string[] =>
+  readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    if (repoWalkIgnoredDirectoryNames.has(entry.name)) {
+      return [];
+    }
+
+    const path = dir === "." ? entry.name : `${dir}/${entry.name}`;
+    if (entry.isDirectory()) {
+      return listRepoFiles(path);
+    }
+    return entry.isFile() ? [normalizeRepoPath(path)] : [];
+  });
+
+const isMarkdownlintIgnoredPath = (path: string): boolean => {
+  const normalizedPath = normalizeRepoPath(path);
+  const segments = normalizedPath.split("/");
+  return (
+    markdownlintRepoContract.ignorePatterns.some((pattern) => {
+      if (pattern.includes("/")) {
+        return normalizedPath === pattern || normalizedPath.startsWith(`${pattern}/`);
+      }
+      return segments.includes(pattern);
+    }) ||
+    markdownlintRepoContract.generatedMarkdownIgnorePatterns.some(
+      (pattern) => pattern === "src-tauri/gen/**" && normalizedPath.startsWith("src-tauri/gen/"),
+    )
+  );
+};
+
+const parseJsonc = (source: string): unknown => JSON.parse(source.replace(/,\s*([}\]])/g, "$1"));
 
 const parseMigrationFileName = (fileName: string): { description: string; version: number } => {
   const match = fileName.match(/^V(?<version>\d+)__(?<description>[a-z0-9]+(?:_[a-z0-9]+)*)\.sql$/);
@@ -1401,6 +1452,50 @@ describe("release repository contract", () => {
     expect(ciWorkflow).not.toMatch(/\b(?:pnpm|cargo)\s+audit\b/);
     expect(releaseWorkflow).not.toMatch(/\b(?:pnpm|cargo)\s+audit\b/);
     expect(miseToml).not.toMatch(/depends = \[[^\]]*"audit:deps"/);
+  });
+
+  it("keeps markdownlint target count and ignore patterns under a repo contract", () => {
+    const markdownlintConfig = parseJsonc(readText(".markdownlint-cli2.jsonc")) as {
+      globs?: string[];
+      ignores?: string[];
+    };
+    const markdownFiles = listRepoFiles()
+      .filter((path) => path.endsWith(".md"))
+      .filter((path) => !isMarkdownlintIgnoredPath(path))
+      .sort((left, right) => left.localeCompare(right));
+
+    expect(markdownlintConfig.globs).toEqual([markdownlintRepoContract.glob]);
+    expect(markdownlintConfig.ignores).toEqual([...markdownlintRepoContract.ignorePatterns]);
+    expect(markdownFiles).toHaveLength(markdownlintRepoContract.targetFileCount);
+    expect(markdownlintRepoContract.rootMarkdownFiles.every((path) => markdownFiles.includes(path))).toBe(true);
+    expect(markdownFiles.some((path) => path.startsWith("src-tauri/gen/"))).toBe(false);
+    expect(miseToml).toContain('[tasks."quality:markdownlint-contract"]');
+    expect(miseToml).toContain(`expected ${markdownlintRepoContract.targetFileCount}`);
+    expect(miseToml).toContain("src-tauri/gen/**");
+  });
+
+  it("keeps generated fixture, snapshot, and report artifact size budgets under a repo contract", () => {
+    const repoFiles = listRepoFiles();
+    const fixtureFiles = repoFiles.filter((path) =>
+      generatedFixtureSnapshotSizeBudget.fixturePathPrefixes.some((prefix) => path.startsWith(prefix)),
+    );
+    const snapshotFiles = repoFiles.filter((path) => /(?:^|\/)__snapshots__\/|\.snap(?:\.|$)/.test(path));
+    const oversizedFixtureFiles = fixtureFiles.filter(
+      (path) => statSync(path).size > generatedFixtureSnapshotSizeBudget.maxCheckedInFixtureBytes,
+    );
+
+    expect(fixtureFiles.length).toBeGreaterThan(0);
+    expect(oversizedFixtureFiles).toEqual([]);
+    expect(snapshotFiles).toHaveLength(generatedFixtureSnapshotSizeBudget.maxSnapshotFileCount);
+    expect(
+      generatedFixtureSnapshotSizeBudget.generatedReportIgnoredPathPrefixes.every((prefix) =>
+        qualityBaselineRepoScanIgnoredPathPrefixes.includes(prefix),
+      ),
+    ).toBe(true);
+    expect(isGeneratedReportArtifactPath("tmp/release-debug-feature-flags.json")).toBe(true);
+    expect(isGeneratedReportArtifactPath("tests/fixtures/opml/generated-basic.opml")).toBe(false);
+    expect(generatedFixtureSnapshotSizeBudget.largeCorpusDirectoryPrefixes).toEqual(["tests/fixtures/"]);
+    expect(generatedFixtureSnapshotSizeBudget.reviewExceptionPolicy).toContain("repo-contract update");
   });
 
   it("documents schema, test fixture, dependency update, and reproducibility gates", () => {

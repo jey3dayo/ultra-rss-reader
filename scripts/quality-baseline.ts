@@ -18,6 +18,34 @@ export const qualityBaselineRepoScanIgnoredPathPrefixes = [
   "src-tauri/gen/schemas/",
 ] as const;
 
+export const markdownlintRepoContract = {
+  targetFileCount: 158,
+  glob: "**/*.md",
+  ignorePatterns: [
+    "node_modules",
+    "dist",
+    "tmp",
+    "test-results",
+    "target",
+    "src-tauri/target",
+    ".worktrees",
+    ".kiro",
+    ".plans",
+  ],
+  generatedMarkdownIgnorePatterns: ["src-tauri/gen/**"],
+  rootMarkdownFiles: ["AGENTS.md", "CLAUDE.md", "README.md", "TODO.md"],
+} as const;
+
+export const generatedFixtureSnapshotSizeBudget = {
+  maxCheckedInFixtureBytes: 20_000,
+  maxSnapshotFileCount: 0,
+  fixturePathPrefixes: ["tests/fixtures/", "tests/helpers/"],
+  generatedReportIgnoredPathPrefixes: ["tmp/", "test-results/", "playwright-report/", "storybook-static/"],
+  largeCorpusDirectoryPrefixes: ["tests/fixtures/"],
+  reviewExceptionPolicy:
+    "Checked-in fixture or snapshot budget increases require a repo-contract update with a focused test.",
+} as const;
+
 const reactDoctorBaselines = {
   diff: {
     score: 100,
@@ -586,6 +614,13 @@ export function readJsonPayload(stdout: string): string {
 export function isQualityBaselineRepoScanIgnoredPath(filePath: string): boolean {
   const normalizedPath = normalizeRepoScanPath(filePath);
   return qualityBaselineRepoScanIgnoredPathPrefixes.some((prefix) => normalizedPath.startsWith(prefix));
+}
+
+export function isGeneratedReportArtifactPath(filePath: string): boolean {
+  const normalizedPath = normalizeRepoScanPath(filePath);
+  return generatedFixtureSnapshotSizeBudget.generatedReportIgnoredPathPrefixes.some((prefix) =>
+    normalizedPath.startsWith(prefix),
+  );
 }
 
 export function partitionQualityBaselineRepoScanPaths(paths: readonly string[]): {
