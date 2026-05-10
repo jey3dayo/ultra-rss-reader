@@ -34,6 +34,15 @@ use repository::preference::PreferenceRepository;
 #[cfg(not(test))]
 use tauri::Manager;
 
+#[cfg(any(not(debug_assertions), test))]
+const RELEASE_LOG_MAX_FILE_SIZE_BYTES: u64 = 5_000_000;
+#[cfg(any(not(debug_assertions), test))]
+const RELEASE_LOG_RETENTION_DAYS: u64 = 7;
+#[cfg(test)]
+const RELEASE_LOG_ROTATION_STRATEGY: &str = "KeepAll";
+#[cfg(test)]
+const RELEASE_LOG_TIMEZONE_STRATEGY: &str = "UseLocal";
+
 fn main_window_title_bar_uses_overlay() -> bool {
     cfg!(target_os = "macos")
 }
@@ -458,7 +467,7 @@ fn cleanup_old_logs(log_dir: &std::path::Path, max_age_days: u64) {
 fn cleanup_old_logs_read_dir_warning(log_dir: &std::path::Path, error: &std::io::Error) -> String {
     format!(
         "Failed to read log directory {} during cleanup: {error}",
-        log_dir.display()
+        redacted_path_label(log_dir)
     )
 }
 
@@ -466,13 +475,16 @@ fn cleanup_old_logs_read_dir_warning(log_dir: &std::path::Path, error: &std::io:
 fn cleanup_old_logs_metadata_debug(path: &std::path::Path, error: &std::io::Error) -> String {
     format!(
         "Failed to read log file metadata for {}: {error}",
-        path.display()
+        redacted_path_label(path)
     )
 }
 
 #[cfg(any(not(debug_assertions), test))]
 fn cleanup_old_logs_remove_warning(path: &std::path::Path, error: &std::io::Error) -> String {
-    format!("Failed to remove old log file {}: {error}", path.display())
+    format!(
+        "Failed to remove old log file {}: {error}",
+        redacted_path_label(path)
+    )
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -501,8 +513,8 @@ pub fn run() {
                     file_name: Some("app".into()),
                 },
             ))
-            .max_file_size(5_000_000) // ~5 MB
-            .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepOne)
+            .max_file_size(RELEASE_LOG_MAX_FILE_SIZE_BYTES)
+            .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepAll)
             .level(log::LevelFilter::Info)
             .timezone_strategy(tauri_plugin_log::TimezoneStrategy::UseLocal)
             .build(),
@@ -589,7 +601,7 @@ pub fn run() {
             #[cfg(not(debug_assertions))]
             {
                 if let Ok(log_dir) = app.path().app_log_dir() {
-                    cleanup_old_logs(&log_dir, 7);
+                    cleanup_old_logs(&log_dir, RELEASE_LOG_RETENTION_DAYS);
                 }
             }
 
@@ -702,7 +714,8 @@ mod tests {
         startup_preferences_or_default, startup_preferences_read_warning_message,
         tracing_init_status, updater_endpoint_startup_failure_mode,
         updater_plugin_startup_failure_mode, StartupFocusRestoreDecision, StartupPluginFailureMode,
-        TracingInitStatus,
+        TracingInitStatus, RELEASE_LOG_MAX_FILE_SIZE_BYTES, RELEASE_LOG_RETENTION_DAYS,
+        RELEASE_LOG_ROTATION_STRATEGY, RELEASE_LOG_TIMEZONE_STRATEGY,
     };
     use crate::domain::error::DomainError;
 
@@ -909,11 +922,31 @@ mod tests {
     fn cleanup_old_logs_read_dir_failure_keeps_cleanup_non_fatal() {
         let missing_dir = Path::new("/tmp/ultra-rss-reader-missing-log-dir");
 
-        cleanup_old_logs(missing_dir, 7);
+        cleanup_old_logs(missing_dir, RELEASE_LOG_RETENTION_DAYS);
     }
 
     #[test]
-    fn cleanup_old_logs_observability_messages_include_path_and_reason() {
+    fn release_log_rotation_contract_matches_support_docs() {
+        let lib_rs = include_str!("lib.rs");
+        let file_logging_design =
+            include_str!("../../docs/superpowers/specs/2026-03-30-file-logging-design.md");
+
+        assert_eq!(RELEASE_LOG_MAX_FILE_SIZE_BYTES, 5_000_000);
+        assert_eq!(RELEASE_LOG_RETENTION_DAYS, 7);
+        assert_eq!(RELEASE_LOG_ROTATION_STRATEGY, "KeepAll");
+        assert_eq!(RELEASE_LOG_TIMEZONE_STRATEGY, "UseLocal");
+        assert!(lib_rs.contains(".max_file_size(RELEASE_LOG_MAX_FILE_SIZE_BYTES)"));
+        assert!(lib_rs.contains("RotationStrategy::KeepAll"));
+        assert!(lib_rs.contains("TimezoneStrategy::UseLocal"));
+        assert!(lib_rs.contains("cleanup_old_logs(&log_dir, RELEASE_LOG_RETENTION_DAYS)"));
+        assert!(file_logging_design.contains("max_file_size = 5_000_000"));
+        assert!(file_logging_design.contains("7 days"));
+        assert!(file_logging_design.contains("KeepAll"));
+        assert!(file_logging_design.contains("TimezoneStrategy::UseLocal"));
+    }
+
+    #[test]
+    fn cleanup_old_logs_observability_messages_redact_paths_and_include_reason() {
         let read_dir_error = std::io::Error::new(std::io::ErrorKind::NotFound, "missing directory");
         let metadata_error =
             std::io::Error::new(std::io::ErrorKind::PermissionDenied, "metadata denied");
@@ -927,12 +960,15 @@ mod tests {
         let remove_warning =
             cleanup_old_logs_remove_warning(Path::new("/tmp/logs/old.log"), &remove_error);
 
-        assert!(read_dir_warning.contains("/tmp/logs"));
+        assert!(read_dir_warning.contains("[redacted parent]/logs"));
         assert!(read_dir_warning.contains("missing directory"));
-        assert!(metadata_debug.contains("/tmp/logs/old.log"));
+        assert!(!read_dir_warning.contains("/tmp"));
+        assert!(metadata_debug.contains("[redacted parent]/old.log"));
         assert!(metadata_debug.contains("metadata denied"));
-        assert!(remove_warning.contains("/tmp/logs/old.log"));
+        assert!(!metadata_debug.contains("/tmp"));
+        assert!(remove_warning.contains("[redacted parent]/old.log"));
         assert!(remove_warning.contains("remove denied"));
+        assert!(!remove_warning.contains("/tmp"));
     }
 
     #[test]
