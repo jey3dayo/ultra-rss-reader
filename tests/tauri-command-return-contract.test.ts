@@ -11,7 +11,13 @@ const FRONTEND_ONLY_OPTIONAL_ARGS: Readonly<Record<string, readonly string[]>> =
   add_account: ["appId", "appKey"],
 };
 
-const extractNullResponseCommands = (source: string): string[] => {
+const COUNT_RESPONSE_SCHEMA_NAMES = [
+  "CountResponseSchema",
+  "NonnegativeIntResponseSchema",
+  "NullableStarredCountSchema",
+] as const;
+
+const extractResponseSchemaCommands = (source: string, schemaNames: readonly string[]): string[] => {
   const commands = new Set<string>();
   let searchFrom = 0;
 
@@ -32,7 +38,7 @@ const extractNullResponseCommands = (source: string): string[] => {
         if (depth === 0) {
           const call = source.slice(start, end + 1);
           const command = call.match(/safeInvoke\(\s*"([^"]+)"/)?.[1];
-          if (command && call.includes("response: NullResponseSchema")) {
+          if (command && schemaNames.some((schemaName) => call.includes(`response: ${schemaName}`))) {
             commands.add(command);
           }
           break;
@@ -46,10 +52,17 @@ const extractNullResponseCommands = (source: string): string[] => {
   return [...commands].sort();
 };
 
-const extractRustUnitResultCommands = (source: string): string[] => {
+const extractRustResultCommands = (source: string, returnTypes: readonly string[]): string[] => {
   const commandPattern =
-    /#\[tauri::command\]\s+(?:#\[[^\]]+\]\s+)*(?:pub\s+)?(?:async\s+)?fn\s+([a-zA-Z0-9_]+)\s*\([^)]*\)\s*->\s*Result\s*<\s*\(\s*\)\s*,\s*AppError\s*>/g;
-  return [...new Set([...source.matchAll(commandPattern)].map((match) => match[1] ?? ""))].sort();
+    /#\[tauri::command\]\s+(?:#\[[^\]]+\]\s+)*(?:pub\s+)?(?:async\s+)?fn\s+([a-zA-Z0-9_]+)\s*\([^)]*\)\s*->\s*Result\s*<\s*([^,>]+)\s*,\s*AppError\s*>/g;
+  return sortedUnique(
+    [...source.matchAll(commandPattern)]
+      .filter((match) => {
+        const returnType = match[2]?.trim();
+        return returnType ? returnTypes.includes(returnType) : false;
+      })
+      .map((match) => match[1] ?? ""),
+  );
 };
 
 const snakeToCamel = (value: string): string => value.replace(/_([a-z])/g, (_, char: string) => char.toUpperCase());
@@ -121,8 +134,46 @@ describe("tauri command return contract", () => {
       .map((fileName) => readText(`src-tauri/src/commands/${fileName}`))
       .join("\n");
 
-    expect(extractNullResponseCommands(tauriCommands).filter((command) => !command.startsWith("plugin:"))).toEqual(
-      extractRustUnitResultCommands(rustCommandSources),
+    expect(
+      extractResponseSchemaCommands(tauriCommands, ["NullResponseSchema"]).filter(
+        (command) => !command.startsWith("plugin:"),
+      ),
+    ).toEqual(extractRustResultCommands(rustCommandSources, ["()"]));
+  });
+
+  it("keeps frontend string-response commands aligned with Rust string-result commands", () => {
+    const tauriCommands = readText("src/api/tauri-commands.ts");
+    const rustCommandSources = readdirSync("src-tauri/src/commands")
+      .filter((fileName) => fileName.endsWith(".rs"))
+      .map((fileName) => readText(`src-tauri/src/commands/${fileName}`))
+      .join("\n");
+
+    expect(extractResponseSchemaCommands(tauriCommands, ["StringResponseSchema"])).toEqual(
+      extractRustResultCommands(rustCommandSources, ["String"]),
+    );
+  });
+
+  it("keeps frontend boolean-response commands aligned with Rust bool-result commands", () => {
+    const tauriCommands = readText("src/api/tauri-commands.ts");
+    const rustCommandSources = readdirSync("src-tauri/src/commands")
+      .filter((fileName) => fileName.endsWith(".rs"))
+      .map((fileName) => readText(`src-tauri/src/commands/${fileName}`))
+      .join("\n");
+
+    expect(extractResponseSchemaCommands(tauriCommands, ["BooleanResponseSchema"])).toEqual(
+      extractRustResultCommands(rustCommandSources, ["bool"]),
+    );
+  });
+
+  it("keeps frontend count-response commands aligned with Rust numeric count-result commands", () => {
+    const tauriCommands = readText("src/api/tauri-commands.ts");
+    const rustCommandSources = readdirSync("src-tauri/src/commands")
+      .filter((fileName) => fileName.endsWith(".rs"))
+      .map((fileName) => readText(`src-tauri/src/commands/${fileName}`))
+      .join("\n");
+
+    expect(extractResponseSchemaCommands(tauriCommands, COUNT_RESPONSE_SCHEMA_NAMES)).toEqual(
+      extractRustResultCommands(rustCommandSources, ["i32", "i64", "u64", "usize"]),
     );
   });
 
