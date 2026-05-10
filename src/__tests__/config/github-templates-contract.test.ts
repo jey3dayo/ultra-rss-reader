@@ -146,7 +146,8 @@ describe("GitHub templates contract", () => {
   });
 
   it("keeps write-permission labeler workflows scoped to same-repository pull requests", () => {
-    const sameRepositoryPullRequestOnly = "${{ github.event.pull_request.head.repo.full_name == github.repository }}";
+    const sameRepositoryPullRequestOnly =
+      "$" + "{{ github.event.pull_request.head.repo.full_name == github.repository }}";
     const workflows = [".github/workflows/labeler.yml", ".github/workflows/pr-insights-labeler.yml"] as const;
 
     for (const path of workflows) {

@@ -511,7 +511,8 @@ describe("release repository contract", () => {
 
   it("checks release source and version parity before artifact creation", () => {
     expect(releaseWorkflow).toContain("Validate release source");
-    expect(releaseWorkflow).toContain("ref: $" + "{{ github.ref }}");
+    expect(releaseWorkflow).toContain("ref: >-");
+    expect(releaseWorkflow).toContain("format('refs/tags/{0}', inputs.release_tag) || github.ref");
     expect(releaseWorkflow).toContain('if [[ "$EVENT_NAME" == "push" ]]; then');
     expect(releaseWorkflow).toContain('if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then');
     expect(releaseWorkflow).toContain("tag push ref $WORKFLOW_REF does not match release tag $RELEASE_TAG");
@@ -519,9 +520,7 @@ describe("release repository contract", () => {
     expect(releaseWorkflow).toContain(
       'git fetch --force --tags origin "refs/tags/$RELEASE_TAG:refs/tags/$RELEASE_TAG"',
     );
-    expect(releaseWorkflow).toContain(
-      'git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_TAG"',
-    );
+    expect(releaseWorkflow).toContain('git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_TAG"');
     expect(releaseWorkflow).toContain("git fetch --force origin main:refs/remotes/origin/main");
     expect(releaseWorkflow).toContain('tag_object_type="$(git cat-file -t "refs/tags/$RELEASE_TAG")"');
     expect(releaseWorkflow).toContain("must be an annotated tag object");
@@ -578,8 +577,23 @@ describe("release repository contract", () => {
 
     expect(ciCacheBlocks.length).toBeGreaterThan(0);
     for (const cacheBlock of ciCacheBlocks) {
-      expect(cacheBlock).toContain("key: $" + "{{ runner.os }}-pnpm-store-$" + "{{ hashFiles('pnpm-lock.yaml') }}");
+      expect(cacheBlock).toContain(
+        "key: $" +
+          "{{ runner.os }}-pnpm-store-$" +
+          "{{ hashFiles('pnpm-lock.yaml') }}-node-$" +
+          "{{ steps.toolchain-cache.outputs.node }}-pnpm-$" +
+          "{{ steps.toolchain-cache.outputs.pnpm }}-mise-$" +
+          "{{ steps.toolchain-cache.outputs.mise }}",
+      );
       expect(cacheBlock).toContain("restore-keys:");
+      expect(cacheBlock).toContain(
+        "$" +
+          "{{ runner.os }}-pnpm-store-$" +
+          "{{ hashFiles('pnpm-lock.yaml') }}-node-$" +
+          "{{ steps.toolchain-cache.outputs.node }}-pnpm-$" +
+          "{{ steps.toolchain-cache.outputs.pnpm }}-mise-$" +
+          "{{ steps.toolchain-cache.outputs.mise }}-",
+      );
       expect(cacheBlock).toContain("$" + "{{ runner.os }}-pnpm-store-");
     }
     expect(ciWorkflow.match(/pnpm install --frozen-lockfile/g)).toHaveLength(ciCacheBlocks.length);
@@ -922,12 +936,16 @@ describe("release repository contract", () => {
     const signingPreflightStep = extractReleaseStepBlock(releaseWorkflow, "Validate release signing preflight");
 
     expect(releaseWorkflow).toContain("dry_run:");
-    expect(signingPreflightStep).toContain("DRY_RUN: $" + "{{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}");
+    expect(signingPreflightStep).toContain(
+      "DRY_RUN: $" + "{{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}",
+    );
     expect(signingPreflightStep).toContain('echo "should_publish=false" >> "$GITHUB_OUTPUT"');
     expect(signingPreflightStep).toContain("release dry run validated source, versions, cache, and signing preflight");
     expect(signingPreflightStep).toContain('missing+=("TAURI_SIGNING_PRIVATE_KEY")');
     expect(signingPreflightStep).toContain('missing+=("TAURI_SIGNING_PRIVATE_KEY_PASSWORD")');
-    expect(signingPreflightStep).toContain("release signing secrets are required before artifact build or draft release upload");
+    expect(signingPreflightStep).toContain(
+      "release signing secrets are required before artifact build or draft release upload",
+    );
     expect(signingPreflightStep).toContain("rerun workflow_dispatch with dry_run=true");
     expect(signingPreflightStep).toContain('echo "should_publish=true" >> "$GITHUB_OUTPUT"');
     for (const stepName of [

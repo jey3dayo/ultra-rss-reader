@@ -32,6 +32,35 @@ jobs:
 
       - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151
 
+      - name: Resolve toolchain cache versions
+        id: toolchain-cache
+        shell: bash
+        run: |
+          {
+            echo "node=$(node --version)"
+            echo "pnpm=$(pnpm --version)"
+            echo "mise=$(mise --version | tr ' /' '--')"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Resolve pnpm store path
+        id: pnpm-store
+        shell: bash
+        run: |
+          pnpm config set store-dir .pnpm-store
+          store_path="$(pnpm store path --silent)"
+          mkdir -p "$store_path"
+          echo "path=$store_path" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}-node-${{ steps.toolchain-cache.outputs.node }}-pnpm-${{ steps.toolchain-cache.outputs.pnpm }}-mise-${{ steps.toolchain-cache.outputs.mise }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}-node-${{ steps.toolchain-cache.outputs.node }}-pnpm-${{ steps.toolchain-cache.outputs.pnpm }}-mise-${{ steps.toolchain-cache.outputs.mise }}-
+            ${{ runner.os }}-pnpm-store-
+
+      - run: pnpm install --frozen-lockfile
+
       - run: mise run quality:toolchain
 
       - name: Verify CI image toolchain contract
@@ -43,12 +72,22 @@ jobs:
           import { readFileSync } from "node:fs";
 
           const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
+          const miseToml = readFileSync("mise.toml", "utf8");
           const expectedNodeMajor = String(packageJson.engines?.node ?? "");
           const expectedPnpm = String(packageJson.engines?.pnpm ?? "");
+          const packageManagerPnpm = packageJson.packageManager?.match(/^pnpm@(.+)$/)?.[1] ?? "";
+          const miseNode = miseToml.match(/^node = "([^"]+)"$/m)?.[1] ?? "";
+          const misePnpm = miseToml.match(/^"npm:pnpm" = "([^"]+)"$/m)?.[1] ?? "";
           const actualNodeMajor = process.versions.node.split(".")[0];
           const actualPnpm = execFileSync("pnpm", ["--version"], { encoding: "utf8" }).trim();
           const failures = [];
 
+          if (expectedNodeMajor !== miseNode) {
+            failures.push(`local mise Node version drift: package.json engines.node=${expectedNodeMajor}, mise.toml=${miseNode}`);
+          }
+          if (expectedPnpm !== packageManagerPnpm || expectedPnpm !== misePnpm) {
+            failures.push(`local pnpm version drift: engines.pnpm=${expectedPnpm}, packageManager=${packageManagerPnpm}, mise.toml=${misePnpm}`);
+          }
           if (actualNodeMajor !== expectedNodeMajor) {
             failures.push(`CI Node version drift: expected major ${expectedNodeMajor}, got ${process.versions.node}`);
           }
@@ -95,9 +134,9 @@ jobs:
       - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
         with:
           path: ${{ steps.pnpm-store.outputs.path }}
-          key: ${{ runner.os }}-pnpm-store-node-${{ steps.toolchain-cache.outputs.node }}-pnpm-${{ steps.toolchain-cache.outputs.pnpm }}-mise-${{ steps.toolchain-cache.outputs.mise }}-${{ hashFiles('pnpm-lock.yaml') }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}-node-${{ steps.toolchain-cache.outputs.node }}-pnpm-${{ steps.toolchain-cache.outputs.pnpm }}-mise-${{ steps.toolchain-cache.outputs.mise }}
           restore-keys: |
-            ${{ runner.os }}-pnpm-store-node-${{ steps.toolchain-cache.outputs.node }}-pnpm-${{ steps.toolchain-cache.outputs.pnpm }}-mise-${{ steps.toolchain-cache.outputs.mise }}-
+            ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}-node-${{ steps.toolchain-cache.outputs.node }}-pnpm-${{ steps.toolchain-cache.outputs.pnpm }}-mise-${{ steps.toolchain-cache.outputs.mise }}-
             ${{ runner.os }}-pnpm-store-
 
       - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8
@@ -150,9 +189,9 @@ jobs:
       - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
         with:
           path: ${{ steps.pnpm-store.outputs.path }}
-          key: ${{ runner.os }}-pnpm-store-node-${{ steps.toolchain-cache.outputs.node }}-pnpm-${{ steps.toolchain-cache.outputs.pnpm }}-mise-${{ steps.toolchain-cache.outputs.mise }}-${{ hashFiles('pnpm-lock.yaml') }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}-node-${{ steps.toolchain-cache.outputs.node }}-pnpm-${{ steps.toolchain-cache.outputs.pnpm }}-mise-${{ steps.toolchain-cache.outputs.mise }}
           restore-keys: |
-            ${{ runner.os }}-pnpm-store-node-${{ steps.toolchain-cache.outputs.node }}-pnpm-${{ steps.toolchain-cache.outputs.pnpm }}-mise-${{ steps.toolchain-cache.outputs.mise }}-
+            ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}-node-${{ steps.toolchain-cache.outputs.node }}-pnpm-${{ steps.toolchain-cache.outputs.pnpm }}-mise-${{ steps.toolchain-cache.outputs.mise }}-
             ${{ runner.os }}-pnpm-store-
 
       - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8
@@ -233,9 +272,9 @@ jobs:
       - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
         with:
           path: ${{ steps.pnpm-store.outputs.path }}
-          key: ${{ runner.os }}-pnpm-store-node-${{ steps.toolchain-cache.outputs.node }}-pnpm-${{ steps.toolchain-cache.outputs.pnpm }}-mise-${{ steps.toolchain-cache.outputs.mise }}-${{ hashFiles('pnpm-lock.yaml') }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}-node-${{ steps.toolchain-cache.outputs.node }}-pnpm-${{ steps.toolchain-cache.outputs.pnpm }}-mise-${{ steps.toolchain-cache.outputs.mise }}
           restore-keys: |
-            ${{ runner.os }}-pnpm-store-node-${{ steps.toolchain-cache.outputs.node }}-pnpm-${{ steps.toolchain-cache.outputs.pnpm }}-mise-${{ steps.toolchain-cache.outputs.mise }}-
+            ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}-node-${{ steps.toolchain-cache.outputs.node }}-pnpm-${{ steps.toolchain-cache.outputs.pnpm }}-mise-${{ steps.toolchain-cache.outputs.mise }}-
             ${{ runner.os }}-pnpm-store-
 
       - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8
@@ -308,9 +347,9 @@ jobs:
       - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
         with:
           path: ${{ steps.pnpm-store.outputs.path }}
-          key: ${{ runner.os }}-pnpm-store-node-${{ steps.toolchain-cache.outputs.node }}-pnpm-${{ steps.toolchain-cache.outputs.pnpm }}-mise-${{ steps.toolchain-cache.outputs.mise }}-${{ hashFiles('pnpm-lock.yaml') }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}-node-${{ steps.toolchain-cache.outputs.node }}-pnpm-${{ steps.toolchain-cache.outputs.pnpm }}-mise-${{ steps.toolchain-cache.outputs.mise }}
           restore-keys: |
-            ${{ runner.os }}-pnpm-store-node-${{ steps.toolchain-cache.outputs.node }}-pnpm-${{ steps.toolchain-cache.outputs.pnpm }}-mise-${{ steps.toolchain-cache.outputs.mise }}-
+            ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}-node-${{ steps.toolchain-cache.outputs.node }}-pnpm-${{ steps.toolchain-cache.outputs.pnpm }}-mise-${{ steps.toolchain-cache.outputs.mise }}-
             ${{ runner.os }}-pnpm-store-
 
       - run: pnpm install --frozen-lockfile
@@ -367,9 +406,9 @@ jobs:
       - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
         with:
           path: ${{ steps.pnpm-store.outputs.path }}
-          key: ${{ runner.os }}-pnpm-store-node-${{ steps.toolchain-cache.outputs.node }}-pnpm-${{ steps.toolchain-cache.outputs.pnpm }}-mise-${{ steps.toolchain-cache.outputs.mise }}-${{ hashFiles('pnpm-lock.yaml') }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}-node-${{ steps.toolchain-cache.outputs.node }}-pnpm-${{ steps.toolchain-cache.outputs.pnpm }}-mise-${{ steps.toolchain-cache.outputs.mise }}
           restore-keys: |
-            ${{ runner.os }}-pnpm-store-node-${{ steps.toolchain-cache.outputs.node }}-pnpm-${{ steps.toolchain-cache.outputs.pnpm }}-mise-${{ steps.toolchain-cache.outputs.mise }}-
+            ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}-node-${{ steps.toolchain-cache.outputs.node }}-pnpm-${{ steps.toolchain-cache.outputs.pnpm }}-mise-${{ steps.toolchain-cache.outputs.mise }}-
             ${{ runner.os }}-pnpm-store-
 
       - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8
