@@ -7,6 +7,11 @@ use tokio::sync::Semaphore;
 
 use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::provider::*;
+use crate::domain::url_policy::{
+    is_private_ip, validate_http_url_without_credentials, validate_public_http_url,
+    CREDENTIAL_URL_VALIDATION_MESSAGE, PRIVATE_URL_VALIDATION_MESSAGE,
+    UNSUPPORTED_URL_VALIDATION_MESSAGE,
+};
 use crate::repository::sync_state::{
     normalize_http_etag_validator, normalize_http_last_modified_validator,
 };
@@ -15,9 +20,6 @@ use super::http_defaults::{self, http_client_builder};
 use super::normalizer;
 use super::traits::{Credentials, FeedProvider};
 
-const PRIVATE_URL_VALIDATION_MESSAGE: &str =
-    "Requests to private/loopback addresses are not allowed";
-const UNSUPPORTED_URL_VALIDATION_MESSAGE: &str = "Only http:// and https:// URLs are supported";
 const DOWNGRADE_REDIRECT_VALIDATION_MESSAGE: &str = "HTTPS to HTTP redirects are not allowed";
 const FEED_RESPONSE_BODY_INCOMPLETE_MESSAGE: &str =
     "Feed response body ended before the declared response length";
@@ -98,7 +100,9 @@ impl LocalProvider {
         let url = reqwest::Url::parse(feed_url)
             .map_err(|_| DomainError::Validation(UNSUPPORTED_URL_VALIDATION_MESSAGE.to_string()))?;
 
-        if !self.allow_private_feed_urls {
+        if self.allow_private_feed_urls {
+            validate_http_url_without_credentials(&url)?;
+        } else {
             validate_external_feed_url(&url)?;
         }
 
@@ -276,18 +280,7 @@ fn feed_response_body_read_error(error: reqwest::Error) -> DomainError {
 }
 
 fn validate_external_feed_url(url: &reqwest::Url) -> DomainResult<()> {
-    if url.scheme() != "http" && url.scheme() != "https" {
-        return Err(DomainError::Validation(
-            UNSUPPORTED_URL_VALIDATION_MESSAGE.to_string(),
-        ));
-    }
-
-    if url.host_str().is_some_and(is_private_host) {
-        return Err(DomainError::Validation(
-            PRIVATE_URL_VALIDATION_MESSAGE.to_string(),
-        ));
-    }
-
+    validate_public_http_url(url)?;
     validate_resolved_host_is_public(url)?;
 
     Ok(())
@@ -377,35 +370,6 @@ fn looks_like_json_feed(body: &[u8]) -> bool {
     trimmed.starts_with('{') && trimmed.contains("\"version\"") && trimmed.contains("jsonfeed.org")
 }
 
-fn is_private_host(host: &str) -> bool {
-    let host_lower = host.to_lowercase();
-
-    if host_lower == "localhost" {
-        return true;
-    }
-
-    let ip_str = host_lower.trim_start_matches('[').trim_end_matches(']');
-    if let Ok(ip) = ip_str.parse::<IpAddr>() {
-        return is_private_ip(ip);
-    }
-
-    false
-}
-
-fn is_private_ip(ip: IpAddr) -> bool {
-    match ip {
-        IpAddr::V4(v4) => {
-            v4.is_loopback() || v4.is_private() || v4.is_unspecified() || v4.is_link_local()
-        }
-        IpAddr::V6(v6) => {
-            v6.is_loopback()
-                || v6.is_unspecified()
-                || (v6.segments()[0] & 0xfe00) == 0xfc00
-                || (v6.segments()[0] & 0xffc0) == 0xfe80
-        }
-    }
-}
-
 fn map_local_provider_request_error(error: reqwest::Error) -> DomainError {
     let message = error.to_string();
     if message.contains(PRIVATE_URL_VALIDATION_MESSAGE) {
@@ -413,6 +377,9 @@ fn map_local_provider_request_error(error: reqwest::Error) -> DomainError {
     }
     if message.contains(UNSUPPORTED_URL_VALIDATION_MESSAGE) {
         return DomainError::Validation(UNSUPPORTED_URL_VALIDATION_MESSAGE.to_string());
+    }
+    if message.contains(CREDENTIAL_URL_VALIDATION_MESSAGE) {
+        return DomainError::Validation(CREDENTIAL_URL_VALIDATION_MESSAGE.to_string());
     }
     if message.contains(DOWNGRADE_REDIRECT_VALIDATION_MESSAGE) {
         return DomainError::Validation(DOWNGRADE_REDIRECT_VALIDATION_MESSAGE.to_string());
@@ -1726,6 +1693,30 @@ mod tests {
             .expect_err("loopback feed URL should be rejected before request");
 
         assert!(matches!(error, DomainError::Validation(_)));
+        assert!(!mock.matched_async().await);
+    }
+
+    #[tokio::test]
+    async fn create_subscription_rejects_credential_feed_url_before_http_request() {
+        let mut server = mockito::Server::new_async().await;
+        let mock = server
+            .mock("GET", "/feed.xml")
+            .with_body(SAMPLE_RSS)
+            .with_header("content-type", "application/rss+xml")
+            .create_async()
+            .await;
+        let feed_url = server.url().replacen("http://", "http://alice:secret@", 1) + "/feed.xml";
+
+        let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
+        let error = provider
+            .create_subscription(&feed_url, None)
+            .await
+            .expect_err("credential-bearing feed URL should be rejected before request");
+
+        assert!(matches!(
+            error,
+            DomainError::Validation(message) if message == CREDENTIAL_URL_VALIDATION_MESSAGE
+        ));
         assert!(!mock.matched_async().await);
     }
 

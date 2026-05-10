@@ -2,11 +2,12 @@ use std::collections::HashSet;
 use std::net::{IpAddr, ToSocketAddrs};
 
 use crate::domain::error::{DomainError, DomainResult};
+use crate::domain::url_policy::{
+    is_private_ip, validate_public_http_url, PRIVATE_URL_VALIDATION_MESSAGE,
+    UNSUPPORTED_URL_VALIDATION_MESSAGE,
+};
 use crate::infra::provider::http_defaults;
 
-const PRIVATE_URL_VALIDATION_MESSAGE: &str =
-    "Requests to private/loopback addresses are not allowed";
-const UNSUPPORTED_URL_VALIDATION_MESSAGE: &str = "Only http:// and https:// URLs are supported";
 const DOWNGRADE_REDIRECT_VALIDATION_MESSAGE: &str = "HTTPS to HTTP redirects are not allowed";
 
 /// A discovered feed from an HTML page.
@@ -99,19 +100,7 @@ fn validate_discovery_redirect(
 }
 
 pub(crate) fn validate_discovery_url(url: &reqwest::Url) -> DomainResult<()> {
-    if url.scheme() != "http" && url.scheme() != "https" {
-        return Err(DomainError::Validation(
-            UNSUPPORTED_URL_VALIDATION_MESSAGE.to_string(),
-        ));
-    }
-
-    if url.host_str().is_some_and(is_private_host) {
-        return Err(DomainError::Validation(
-            PRIVATE_URL_VALIDATION_MESSAGE.to_string(),
-        ));
-    }
-
-    Ok(())
+    validate_public_http_url(url)
 }
 
 fn validate_discovery_request_url(url: &reqwest::Url) -> DomainResult<()> {
@@ -184,48 +173,6 @@ fn unsupported_discovery_content_type_error(content_type: &str) -> DomainError {
 
 fn decode_discovery_response_body(body: &[u8]) -> String {
     String::from_utf8_lossy(body).into_owned()
-}
-
-/// Check if a host string refers to a loopback or private network address.
-fn is_private_host(host: &str) -> bool {
-    let host_lower = host.to_lowercase();
-
-    // Named loopback
-    if host_lower == "localhost" {
-        return true;
-    }
-
-    // Try parsing as IP address (strip [] for IPv6)
-    let ip_str = host_lower.trim_start_matches('[').trim_end_matches(']');
-    let ip_str = ip_str.split_once('%').map_or(ip_str, |(addr, _zone)| addr);
-    if let Ok(ip) = ip_str.parse::<IpAddr>() {
-        return is_private_ip(ip);
-    }
-
-    false
-}
-
-fn is_private_ip(ip: IpAddr) -> bool {
-    match ip {
-        IpAddr::V4(v4) => {
-            v4.is_loopback()           // 127.0.0.0/8
-                    || v4.is_private()     // 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16
-                    || v4.is_unspecified() // 0.0.0.0
-                    || v4.is_link_local() // 169.254.0.0/16
-        }
-        IpAddr::V6(v6) => {
-            if let Some(v4) = v6.to_ipv4_mapped() {
-                return is_private_ip(IpAddr::V4(v4));
-            }
-
-            v6.is_loopback()       // ::1
-                    || v6.is_unspecified() // ::
-                    // Unique local (fc00::/7)
-                    || (v6.segments()[0] & 0xfe00) == 0xfc00
-                    // Link-local (fe80::/10)
-                    || (v6.segments()[0] & 0xffc0) == 0xfe80
-        }
-    }
 }
 
 fn is_feed_content_type(ct: &str) -> bool {
@@ -989,6 +936,13 @@ mod tests {
             assert_eq!(url.host_str(), Some(expected_host));
             assert!(validate_discovery_url(&url).is_ok());
         }
+    }
+
+    #[test]
+    fn validate_discovery_url_rejects_credential_bearing_urls() {
+        let url = reqwest::Url::parse("https://alice:secret@example.com/feed.xml").unwrap();
+
+        assert!(validate_discovery_url(&url).is_err());
     }
 
     #[test]

@@ -1,30 +1,11 @@
 use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::provider::{FeedIdentifier, RemoteEntry};
+use crate::domain::url_policy::{has_url_credentials, is_private_host};
 
 const MAX_PROVIDER_METADATA_URL_BYTES: usize = 2048;
 
 fn contains_control_char(value: &str) -> bool {
     value.chars().any(char::is_control)
-}
-
-fn is_private_metadata_host(host: &str) -> bool {
-    let host = host.to_ascii_lowercase();
-    if host == "localhost" {
-        return true;
-    }
-
-    let ip_str = host.trim_start_matches('[').trim_end_matches(']');
-    ip_str.parse::<std::net::IpAddr>().is_ok_and(|ip| match ip {
-        std::net::IpAddr::V4(v4) => {
-            v4.is_loopback() || v4.is_private() || v4.is_unspecified() || v4.is_link_local()
-        }
-        std::net::IpAddr::V6(v6) => {
-            v6.is_loopback()
-                || v6.is_unspecified()
-                || (v6.segments()[0] & 0xfe00) == 0xfc00
-                || (v6.segments()[0] & 0xffc0) == 0xfe80
-        }
-    })
 }
 
 pub fn normalize_provider_metadata_url(raw_url: &str) -> Option<String> {
@@ -40,10 +21,10 @@ pub fn normalize_provider_metadata_url(raw_url: &str) -> Option<String> {
     if url.scheme() != "http" && url.scheme() != "https" {
         return None;
     }
-    if url.host_str().is_some_and(is_private_metadata_host) {
+    if url.host_str().is_some_and(is_private_host) {
         return None;
     }
-    if !url.username().is_empty() || url.password().is_some() {
+    if has_url_credentials(&url) {
         return None;
     }
     url.set_fragment(None);
@@ -51,6 +32,23 @@ pub fn normalize_provider_metadata_url(raw_url: &str) -> Option<String> {
 }
 
 pub fn normalize_provider_article_url(raw_url: &str) -> Option<String> {
+    normalize_http_article_url(raw_url, ArticleUrlCredentialPolicy::Reject)
+}
+
+pub fn normalize_trusted_backend_article_url(raw_url: &str) -> Option<String> {
+    normalize_http_article_url(raw_url, ArticleUrlCredentialPolicy::Strip)
+}
+
+#[derive(Debug, Clone, Copy)]
+enum ArticleUrlCredentialPolicy {
+    Reject,
+    Strip,
+}
+
+fn normalize_http_article_url(
+    raw_url: &str,
+    credential_policy: ArticleUrlCredentialPolicy,
+) -> Option<String> {
     let trimmed = raw_url.trim();
     if trimmed.is_empty()
         || trimmed.len() > MAX_PROVIDER_METADATA_URL_BYTES
@@ -63,8 +61,15 @@ pub fn normalize_provider_article_url(raw_url: &str) -> Option<String> {
     if url.scheme() != "http" && url.scheme() != "https" {
         return None;
     }
-    let _ = url.set_username("");
-    let _ = url.set_password(None);
+    if has_url_credentials(&url) {
+        match credential_policy {
+            ArticleUrlCredentialPolicy::Reject => return None,
+            ArticleUrlCredentialPolicy::Strip => {
+                let _ = url.set_username("");
+                let _ = url.set_password(None);
+            }
+        }
+    }
     url.set_fragment(None);
     Some(url.to_string())
 }
@@ -347,7 +352,7 @@ mod tests {
     }
 
     #[test]
-    fn article_url_strips_credentials_and_fragment() {
+    fn untrusted_feed_article_url_rejects_credentials_and_strips_fragment() {
         let atom = r#"<?xml version="1.0" encoding="UTF-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
   <title>Atom Feed</title>
@@ -359,12 +364,19 @@ mod tests {
     <updated>2026-03-27T12:00:00Z</updated>
     <link href="https://alice:secret@example.com/article#token"/>
   </entry>
+  <entry>
+    <title>Fragment Link</title>
+    <id>atom-fragment-link</id>
+    <updated>2026-03-27T12:00:00Z</updated>
+    <link href="https://example.com/article#token"/>
+  </entry>
 </feed>"#;
 
         let entries = normalize_feed(atom.as_bytes(), "https://example.com/feed.xml").unwrap();
 
+        assert_eq!(entries[0].url, None);
         assert_eq!(
-            entries[0].url,
+            entries[1].url,
             Some("https://example.com/article".to_string())
         );
     }
@@ -438,10 +450,44 @@ mod tests {
     }
 
     #[test]
+    fn feed_parser_boundary_does_not_expand_nested_xml_entities() {
+        let feed = r#"<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE rss [
+  <!ENTITY a "boom">
+  <!ENTITY b "&a;&a;&a;&a;&a;">
+  <!ENTITY c "&b;&b;&b;&b;&b;">
+]>
+<rss version="2.0">
+  <channel>
+    <title>Entity Feed</title>
+    <link>https://example.com/</link>
+    <item>
+      <title>&c;</title>
+      <link>https://example.com/entity</link>
+      <guid>entity-1</guid>
+    </item>
+  </channel>
+</rss>"#;
+
+        let entries = normalize_feed(feed.as_bytes(), "https://example.com/feed.xml").unwrap();
+
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].title, "");
+    }
+
+    #[test]
     fn article_url_rejects_control_characters_before_parsing() {
         assert_eq!(
             normalize_provider_article_url("https://example.com/article\u{8}"),
             None
+        );
+    }
+
+    #[test]
+    fn trusted_backend_article_url_strips_credentials_and_fragment() {
+        assert_eq!(
+            normalize_trusted_backend_article_url("https://alice:secret@example.com/article#token"),
+            Some("https://example.com/article".to_string())
         );
     }
 

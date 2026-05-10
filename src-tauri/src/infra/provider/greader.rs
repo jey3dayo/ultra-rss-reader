@@ -9,7 +9,7 @@ use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::provider::*;
 
 use super::http_defaults::http_client_builder;
-use super::normalizer::{normalize_provider_article_url, normalize_provider_metadata_url};
+use super::normalizer::{normalize_provider_metadata_url, normalize_trusted_backend_article_url};
 use super::traits::{Credentials, FeedProvider};
 
 // --- Google Reader API response types ---
@@ -454,7 +454,7 @@ impl GReaderProvider {
     fn first_non_empty_link_href(links: Option<&[GReaderLink]>) -> Option<String> {
         links?
             .iter()
-            .find_map(|link| normalize_provider_article_url(&link.href))
+            .find_map(|link| normalize_trusted_backend_article_url(&link.href))
     }
 
     fn item_url(item: &GReaderItem) -> Option<String> {
