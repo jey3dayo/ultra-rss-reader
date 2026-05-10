@@ -1,4 +1,5 @@
 use std::cmp::Ordering;
+use std::collections::HashSet;
 use std::sync::atomic::AtomicBool;
 use std::sync::Mutex;
 
@@ -83,6 +84,13 @@ fn import_opml_in_db(
     let mut created_feeds = Vec::new();
     let mut folder_cache: std::collections::HashMap<String, FolderId> =
         std::collections::HashMap::new();
+    let existing_feeds = feed_repo
+        .find_by_account(&account_id)
+        .map_err(AppError::from)?;
+    let mut imported_feed_url_keys: HashSet<String> = existing_feeds
+        .iter()
+        .filter_map(|feed| normalized_feed_url_key(&feed.url))
+        .collect();
 
     // Pre-populate cache with existing folders
     for f in &existing_folders {
@@ -92,12 +100,11 @@ fn import_opml_in_db(
     let mut sort_order = next_import_folder_sort_order(&existing_folders);
 
     for opml_feed in parsed_feeds {
-        // Skip if feed with same URL already exists
-        if feed_repo
-            .find_by_url(&account_id, &opml_feed.xml_url)
-            .map_err(AppError::from)?
-            .is_some()
-        {
+        let Some(feed_url_key) = normalized_feed_url_key(&opml_feed.xml_url) else {
+            continue;
+        };
+
+        if !imported_feed_url_keys.insert(feed_url_key) {
             continue;
         }
 
@@ -197,6 +204,82 @@ fn validate_opml_feed_url(url: &str) -> Result<String, AppError> {
     })?;
 
     Ok(url.to_string())
+}
+
+fn normalized_feed_url_key(raw_url: &str) -> Option<String> {
+    let mut url = reqwest::Url::parse(raw_url).ok()?;
+    if url.scheme() != "http" && url.scheme() != "https" {
+        return None;
+    }
+
+    url.set_fragment(None);
+
+    let mut query_pairs: Vec<(String, String)> = url.query_pairs().into_owned().collect();
+    query_pairs.sort();
+    url.set_query(None);
+    if !query_pairs.is_empty() {
+        let mut pairs = url.query_pairs_mut();
+        for (key, value) in &query_pairs {
+            pairs.append_pair(key, value);
+        }
+    }
+
+    let host = url.host_str()?.to_ascii_lowercase();
+    let host = if host.contains(':') {
+        format!("[{host}]")
+    } else {
+        host
+    };
+    let port = url.port().map_or(String::new(), |port| format!(":{port}"));
+    let path = normalize_feed_url_key_path(url.path());
+    let query = url
+        .query()
+        .map_or(String::new(), |query| format!("?{query}"));
+
+    Some(format!("{}://{host}{port}{path}{query}", url.scheme()))
+}
+
+fn normalize_feed_url_key_path(path: &str) -> String {
+    let mut normalized = normalize_unreserved_percent_encoding(path);
+    while normalized.len() > 1 && normalized.ends_with('/') {
+        normalized.pop();
+    }
+    normalized
+}
+
+fn normalize_unreserved_percent_encoding(value: &str) -> String {
+    let bytes = value.as_bytes();
+    let mut normalized = String::with_capacity(value.len());
+    let mut index = 0;
+
+    while index < bytes.len() {
+        if bytes[index] == b'%' && index + 2 < bytes.len() {
+            let high = bytes[index + 1];
+            let low = bytes[index + 2];
+            if let (Some(high), Some(low)) = (hex_value(high), hex_value(low)) {
+                let byte = (high << 4) | low;
+                if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'.' | b'_' | b'~') {
+                    normalized.push(byte as char);
+                    index += 3;
+                    continue;
+                }
+            }
+        }
+
+        normalized.push(bytes[index] as char);
+        index += 1;
+    }
+
+    normalized
+}
+
+fn hex_value(byte: u8) -> Option<u8> {
+    match byte {
+        b'0'..=b'9' => Some(byte - b'0'),
+        b'a'..=b'f' => Some(byte - b'a' + 10),
+        b'A'..=b'F' => Some(byte - b'A' + 10),
+        _ => None,
+    }
 }
 
 #[tauri::command]
@@ -880,6 +963,42 @@ mod tests {
     }
 
     #[test]
+    fn import_skips_duplicate_urls_within_same_file_by_normalized_url_key() {
+        let db = test_db();
+        let account_id = insert_test_account(&db, "Primary");
+        let parsed_feeds = vec![
+            OpmlFeed {
+                title: "First Title".to_string(),
+                xml_url: "HTTPS://EXAMPLE.COM:443/%7Efeed/?b=2&a=1".to_string(),
+                html_url: Some("https://example.com/first".to_string()),
+                folder: Some("First Folder".to_string()),
+            },
+            OpmlFeed {
+                title: "Second Title".to_string(),
+                xml_url: "https://example.com/~feed?a=1&b=2".to_string(),
+                html_url: Some("https://example.com/second".to_string()),
+                folder: Some("Second Folder".to_string()),
+            },
+        ];
+
+        let feeds = import_opml_in_db(&db, &parsed_feeds, account_id.0.clone()).unwrap();
+
+        assert_eq!(feeds.len(), 1);
+        assert_eq!(feeds[0].title, "First Title");
+        assert_eq!(feeds[0].url, "HTTPS://EXAMPLE.COM:443/%7Efeed/?b=2&a=1");
+        let folder_names = db
+            .reader()
+            .prepare("SELECT name FROM folders ORDER BY name")
+            .unwrap()
+            .query_map([], |row| row.get::<_, String>(0))
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
+
+        assert_eq!(folder_names, vec!["First Folder"]);
+    }
+
+    #[test]
     fn import_skips_existing_url_without_overwriting_or_moving_folder() {
         let db = test_db();
         let account_id = insert_test_account(&db, "Primary");
@@ -909,6 +1028,61 @@ mod tests {
                  LEFT JOIN folders ON feeds.folder_id = folders.id
                  WHERE feeds.url = ?1",
                 params!["https://example.com/shared.xml"],
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, String>(2)?,
+                    ))
+                },
+            )
+            .unwrap();
+        let folder_count: i64 = db
+            .reader()
+            .query_row("SELECT COUNT(*) FROM folders", [], |row| row.get(0))
+            .unwrap();
+
+        assert_eq!(
+            saved,
+            (
+                "Existing Title".to_string(),
+                String::new(),
+                "Existing Folder".to_string()
+            )
+        );
+        assert_eq!(folder_count, 1);
+    }
+
+    #[test]
+    fn import_skips_existing_url_by_normalized_url_key_without_overwriting_or_moving_folder() {
+        let db = test_db();
+        let account_id = insert_test_account(&db, "Primary");
+        let existing_folder_id = insert_test_folder(&db, &account_id, "Existing Folder");
+        insert_test_feed(
+            &db,
+            &account_id,
+            Some(&existing_folder_id),
+            "Existing Title",
+            "https://example.com/~feed?a=1&b=2",
+        );
+        let parsed_feeds = vec![OpmlFeed {
+            title: "Imported Title".to_string(),
+            xml_url: "HTTPS://EXAMPLE.COM:443/%7Efeed/?b=2&a=1".to_string(),
+            html_url: Some("https://example.com/imported".to_string()),
+            folder: Some("Imported Folder".to_string()),
+        }];
+
+        let feeds = import_opml_in_db(&db, &parsed_feeds, account_id.0.clone()).unwrap();
+
+        assert!(feeds.is_empty());
+        let saved = db
+            .reader()
+            .query_row(
+                "SELECT feeds.title, feeds.site_url, folders.name
+                 FROM feeds
+                 LEFT JOIN folders ON feeds.folder_id = folders.id
+                 WHERE feeds.url = ?1",
+                params!["https://example.com/~feed?a=1&b=2"],
                 |row| {
                     Ok((
                         row.get::<_, String>(0)?,
