@@ -23,6 +23,7 @@
     "quality:knip": "node ./scripts/quality-baseline.ts knip",
     "report:similarity": "node ./scripts/similarity-report.ts",
     "test": "pnpm exec vitest run",
+    "test:release-repo-contract": "pnpm exec vitest run tests/release-repo-contract.test.ts",
     "test:storybook:e2e": "pnpm exec playwright test --config playwright.storybook.config.ts",
     "test:watch": "pnpm exec vitest",
     "dev:portless": "portless ultra-rss-reader pnpm exec vite",
