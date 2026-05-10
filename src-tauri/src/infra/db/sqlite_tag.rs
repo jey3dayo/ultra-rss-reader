@@ -243,36 +243,32 @@ impl TagRepository for SqliteTagRepository<'_> {
         &self,
         account_id: Option<&AccountId>,
     ) -> DomainResult<Vec<(TagId, usize)>> {
-        let (sql, use_account) = match account_id {
-            Some(_) => (
-                "SELECT at.tag_id, COUNT(*) FROM article_tags at \
-                 JOIN articles a ON at.article_id = a.id \
-                 JOIN feeds f ON a.feed_id = f.id \
-                 WHERE f.account_id = ?1 \
-                 GROUP BY at.tag_id",
-                true,
-            ),
-            None => (
-                "SELECT tag_id, COUNT(*) FROM article_tags GROUP BY tag_id",
-                false,
-            ),
-        };
-        let mut stmt = self.conn.prepare(sql)?;
-        let counts = if use_account {
-            stmt.query_map(params![account_id.unwrap().0], |row| {
+        let mut filters = vec!["(?1 IS NULL OR f.account_id = ?1)".to_string()];
+
+        if SqliteMuteKeywordRepository::new(self.conn).has_any()? {
+            filters.push(build_mute_keyword_exclusion_clause(
+                "a.title",
+                "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
+            ));
+        }
+
+        let where_clause = filters.join(" AND ");
+        let sql = format!(
+            "SELECT at.tag_id, COUNT(*) FROM article_tags at \
+             JOIN articles a ON at.article_id = a.id \
+             JOIN feeds f ON a.feed_id = f.id \
+             WHERE {where_clause} \
+             GROUP BY at.tag_id"
+        );
+        let mut stmt = self.conn.prepare(&sql)?;
+        let account_id_param = account_id.map(|aid| aid.0.as_str());
+        let counts = stmt
+            .query_map(params![account_id_param], |row| {
                 let tag_id: String = row.get(0)?;
                 let count: i64 = row.get(1)?;
                 Ok((TagId(tag_id), count as usize))
             })?
-            .collect::<Result<Vec<_>, _>>()?
-        } else {
-            stmt.query_map([], |row| {
-                let tag_id: String = row.get(0)?;
-                let count: i64 = row.get(1)?;
-                Ok((TagId(tag_id), count as usize))
-            })?
-            .collect::<Result<Vec<_>, _>>()?
-        };
+            .collect::<Result<Vec<_>, _>>()?;
         Ok(counts)
     }
 }
@@ -676,7 +672,7 @@ mod tests {
     }
 
     #[test]
-    fn count_articles_per_tag_includes_muted_articles_without_account_filter() {
+    fn count_articles_per_tag_filters_muted_articles_without_account_filter() {
         let db = test_db();
         let (_, _, article_id) = insert_test_data(&db);
         let repo = SqliteTagRepository::new(db.writer());
@@ -699,11 +695,11 @@ mod tests {
 
         let counts = repo.count_articles_per_tag(None).unwrap();
 
-        assert_eq!(counts.iter().find(|(id, _)| id == &tag.id).unwrap().1, 1);
+        assert!(counts.iter().all(|(id, _)| id != &tag.id));
     }
 
     #[test]
-    fn count_articles_per_tag_includes_muted_articles_with_account_filter() {
+    fn count_articles_per_tag_filters_muted_articles_with_account_filter() {
         let db = test_db();
         let (account_id, _, article_id) = insert_test_data(&db);
         let repo = SqliteTagRepository::new(db.writer());
@@ -726,7 +722,7 @@ mod tests {
 
         let counts = repo.count_articles_per_tag(Some(&account_id)).unwrap();
 
-        assert_eq!(counts.iter().find(|(id, _)| id == &tag.id).unwrap().1, 1);
+        assert!(counts.iter().all(|(id, _)| id != &tag.id));
     }
 
     #[test]
@@ -1024,6 +1020,38 @@ mod tests {
         let counts = repo.count_articles_per_tag(Some(&account_id2)).unwrap();
         let count = counts.iter().find(|(id, _)| id == &tag.id).unwrap().1;
         assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn count_articles_per_tag_ignores_orphaned_article_tag_rows() {
+        let db = test_db();
+        let (_, _, article_id) = insert_test_data(&db);
+        let repo = SqliteTagRepository::new(db.writer());
+
+        let tag = Tag {
+            id: TagId::new(),
+            name: "orphan-safe".to_string(),
+            color: None,
+        };
+        repo.save(&tag).unwrap();
+        repo.tag_article(&article_id, &tag.id).unwrap();
+
+        db.writer()
+            .execute_batch("PRAGMA foreign_keys = OFF")
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO article_tags (article_id, tag_id) VALUES (?1, ?2)",
+                params!["missing-article", tag.id.0],
+            )
+            .unwrap();
+        db.writer()
+            .execute_batch("PRAGMA foreign_keys = ON")
+            .unwrap();
+
+        let counts = repo.count_articles_per_tag(None).unwrap();
+
+        assert_eq!(counts.iter().find(|(id, _)| id == &tag.id).unwrap().1, 1);
     }
 
     #[test]
