@@ -1180,11 +1180,6 @@
 
 ### Rust Provider / DB / Scheduler
 
-- [ ] P2 preference repository の unknown key retention と frontend cleanup policy を揃える
-  - 対象: `src-tauri/src/infra/db/sqlite_preference.rs`, `src/schemas/preferences.ts`, `src/components/settings`
-  - frontend schema にない preference key を backend が保持するのか cleanup するのか決めないと、古い設定や実験フラグが UI 保存時に消える可能性がある
-  - unknown key round-trip、known key update、schema migration、settings save 後の retention/cleanup contract test を追加する
-
 - [ ] P3 repository fixture builder を account/feed/article/tag ごとに最小化する
   - 対象: `src-tauri/tests`, `src-tauri/src/infra/db/*_test.rs`
   - DB test fixture が ad hoc に増えると、account id や remote id、sort_order、timestamps の前提がテストごとに揺れて regression の原因を追いにくい
@@ -1712,11 +1707,6 @@
 
 ### Browser WebView / Runtime Diagnostics
 
-- [ ] P1 browser webview timeout fallback と late page-load finish の generation guard を強化する
-  - 対象: `src-tauri/src/commands/browser_webview_commands.rs`, `src-tauri/src/browser_webview.rs`, `src/components/reader/hooks/browser`
-  - timeout で tracker を clear した後に古い page-load Finished が来ると、closed/fallback 済み webview の state event が復活する可能性がある
-  - timeout trigger、late Started/Finished、same URL reload、new URL before timeout、fallback emit failure、closed event ordering の Rust/frontend test を追加する
-
 - [ ] P1 browser webview initialization script の user preference injection safety を contract 化する
   - 対象: `src-tauri/src/browser_webview.rs`, `src/schemas/preferences.ts`, `src/components/settings/shortcuts-settings.tsx`
   - shortcut preference から initialization script の JSON/string を組み立てるため、quote/newline/control char が script boundary を壊さない保証が必要
@@ -1726,11 +1716,6 @@
   - 対象: `src-tauri/src/commands/browser_webview_commands.rs`, `src-tauri/src/browser_webview.rs`, `src/components/reader/browser-webview-state.ts`
   - Windows では initial URL に `about:blank` を使うため、current_url と snapshot.url の比較が他 platform と違い、navigate skip/duplicate history が起きやすい
   - placeholder initial URL、navigate same target、about:blank page-load ignore、history back/forward、platform mock parity の test を追加する
-
-- [ ] P2 browser webview tracker history の reload/back/forward 判定を redirect URL で固定する
-  - 対象: `src-tauri/src/browser_webview.rs`, `src-tauri/src/commands/browser_webview_commands.rs`, `src/lib/browser/webview-history.ts`
-  - start URL と finish URL が redirect で違う場合、pending_navigation と history_index が想定外に書き換わり back/forward availability が壊れやすい
-  - redirect on new navigation、redirect on back、redirect on reload、same URL with fragment、canonicalized URL の tracker test を追加する
 
 - [ ] P2 browser webview focus restore failure を close flow / pending action queue と同期する
   - 対象: `src-tauri/src/commands/browser_webview_commands.rs`, `src/lib/actions.ts`, `src/components/reader/hooks/browser/use-browser-view-runtime.ts`
@@ -1827,30 +1812,10 @@
   - OPML import は host string ベースで private/loopback を判定するため、DNS rebinding、encoded IP、IPv4-mapped IPv6、punycode で SSRF guard が抜ける可能性がある
   - decimal/octal IPv4、IPv4-mapped IPv6、punycode localhost、DNS public-to-private、redirect後private host の shared validation test を追加する
 
-- [ ] P1 OPML import transaction が duplicate feed skip / folder create / feed save failure で atomic か固定する
-  - 対象: `src-tauri/src/commands/opml_commands.rs`, `src-tauri/src/infra/db/sqlite_feed.rs`, `src-tauri/src/infra/db/sqlite_folder.rs`
-  - import は1 transaction で folder/feed を作るため、途中の folder save/feed save failure で「作成済み folder だけ残る」事故を避ける contract が必要
-  - duplicate URL skip、folder create success then feed failure、feed unique violation、commit failure、rollback後の folder/feed count の Rust test を追加する
-
-- [ ] P2 OPML import folder cache key の ASCII lowercase と folder duplicate policy を揃える
-  - 対象: `src-tauri/src/commands/opml_commands.rs`, `src-tauri/src/commands/feed_commands.rs`, `src-tauri/src/infra/db/sqlite_folder.rs`
-  - folder cache key は trim + ASCII lowercase のため、`validate_folder_name` の duplicate 判定や SQLite の collation とズレると同名に見える folder が増える
-  - ASCII case、全角英数、accent、Turkish I、leading/trailing whitespace、existing folder collision の import test を追加する
-
 - [ ] P2 OPML import nested folder の flattening policy を UI copy と test で明文化する
   - 対象: `src-tauri/src/infra/opml.rs`, `src-tauri/src/commands/opml_commands.rs`, `src/components/settings/data-settings-view.tsx`
   - parser は outline stack の直近 folder だけを使うため、nested folder 階層は flatten されるが user には失われる情報が見えにくい
   - nested folder、empty folder outline、feed outline with children、deep hierarchy、import summary warning の policy test を追加する
-
-- [ ] P2 OPML parser の duplicate attributes / case variants / namespace handling を fixture 化する
-  - 対象: `src-tauri/src/infra/opml.rs`
-  - attribute map は後勝ちで `xmlUrl/xmlurl` を見るため、duplicate attributes や namespace 付き OPML で importer の結果が環境依存になりやすい
-  - duplicate xmlUrl、XMLURL、namespace outline、invalid attribute UTF-8、attribute entity、text/title precedence の parser test を追加する
-
-- [ ] P2 preference allowlist と frontend preference schema の drift を自動検出する
-  - 対象: `src-tauri/src/commands/preference_commands.rs`, `src/schemas/preferences.ts`, `src/__tests__/schemas/preferences-schema-contract.test.ts`
-  - backend `ALLOWED_KEYS` と frontend schema/defaults が別 source なので、新 preference 追加時に保存だけ失敗する risk が高い
-  - allowed key inventory、shortcut id inventory、frontend default parity、deprecated key allowlist、unknown key rejection の repo contract を追加する
 
 - [ ] P2 preference value byte limit と frontend validation の UTF-8 boundary を揃える
   - 対象: `src-tauri/src/commands/preference_commands.rs`, `src/schemas/preferences.ts`, `src/components/settings`
