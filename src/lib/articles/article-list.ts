@@ -6,6 +6,7 @@ import {
   formatLocalHourMinute,
   formatLongDate,
   getCurrentDate,
+  getDateInputTimeMs,
   getStartOfLocalDay,
   parseDateInput,
 } from "@/lib/datetime";
@@ -155,6 +156,37 @@ function filterByViewMode(
   return [...filtered];
 }
 
+function shouldPreserveArticleListSourceOrder(params: {
+  preservesSourceOrder: boolean | undefined;
+  isActiveSearch: boolean;
+}): boolean {
+  return params.preservesSourceOrder === true || params.isActiveSearch;
+}
+
+function compareArticlesByPublishedAt(params: {
+  left: ArticleDto;
+  right: ArticleDto;
+  direction: 1 | -1;
+}): number {
+  const { left, right, direction } = params;
+  const leftTime = getDateInputTimeMs(left.published_at);
+  const rightTime = getDateInputTimeMs(right.published_at);
+
+  if (leftTime !== null && rightTime !== null && leftTime !== rightTime) {
+    return compareDateInputsAsc(left.published_at, right.published_at) * direction;
+  }
+
+  if (leftTime !== null && rightTime === null) {
+    return -1;
+  }
+
+  if (leftTime === null && rightTime !== null) {
+    return 1;
+  }
+
+  return left.id.localeCompare(right.id);
+}
+
 export function areArticleListsEquivalent(left: ArticleDto[], right: ArticleDto[]): boolean {
   if (left.length !== right.length) {
     return false;
@@ -291,7 +323,8 @@ export function selectVisibleArticles(params: SelectVisibleArticlesParams): Arti
   } = params;
 
   let list: ArticleDto[];
-  if (showSearch && searchQuery.length > 0) {
+  const isActiveSearch = showSearch && searchQuery.length > 0;
+  if (isActiveSearch) {
     list = filterByViewMode(
       filterByTagArticles(
         filterByFeedId(filterByFolderFeedIds([...(searchResults ?? [])], folderFeedIds), feedId),
@@ -313,12 +346,17 @@ export function selectVisibleArticles(params: SelectVisibleArticlesParams): Arti
     );
   }
 
-  if (preservesSourceOrder) {
+  if (
+    shouldPreserveArticleListSourceOrder({
+      preservesSourceOrder,
+      isActiveSearch,
+    })
+  ) {
     return list;
   }
 
   const direction = sortUnread === "oldest_first" ? 1 : -1;
-  list.sort((a, b) => compareDateInputsAsc(a.published_at, b.published_at) * direction);
+  list.sort((left, right) => compareArticlesByPublishedAt({ left, right, direction }));
   return list;
 }
 

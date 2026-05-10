@@ -6,7 +6,7 @@ import {
   requireSampleStarredArticle,
   requireSampleUnreadArticle,
 } from "@tests/helpers/reader-fixtures";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ArticleDto } from "@/api/tauri-commands";
 import {
   areArticleListsEquivalent,
@@ -31,6 +31,10 @@ import {
   selectVisibleArticles,
 } from "@/lib/articles/article-list";
 import type { ReaderFilter, ReaderSourcePlan } from "@/lib/reader/reader-query";
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 function buildTestSourcePlan(params: {
   sourceFilter: ReaderFilter;
@@ -109,6 +113,70 @@ describe("article-list utils", () => {
     expect(result).toEqual([sampleArticles[1]]);
   });
 
+  it("preserves search result source order instead of applying unread date sort", () => {
+    const result = selectVisibleArticles({
+      articles: [],
+      accountArticles: [],
+      tagArticles: [],
+      searchResults: [
+        {
+          ...sampleArticles[0],
+          id: "ranked-first-older",
+          is_read: false,
+          published_at: "2026-03-24T10:00:00Z",
+        },
+        {
+          ...sampleArticles[1],
+          id: "ranked-second-newer",
+          is_read: false,
+          published_at: "2026-03-25T10:00:00Z",
+        },
+      ],
+      feedId: null,
+      tagId: null,
+      viewMode: "unread",
+      sourceFilter: null,
+      showSearch: true,
+      searchQuery: "Article",
+      sortUnread: "newest_first",
+      retainedArticleIds: new Set(),
+    });
+
+    expect(result.map((article) => article.id)).toEqual(["ranked-first-older", "ranked-second-newer"]);
+  });
+
+  it("keeps retained read search results in source order for unread searches", () => {
+    const result = selectVisibleArticles({
+      articles: [],
+      accountArticles: [],
+      tagArticles: [],
+      searchResults: [
+        {
+          ...sampleArticles[0],
+          id: "retained-read-result",
+          is_read: true,
+          published_at: "2026-03-24T10:00:00Z",
+        },
+        {
+          ...sampleArticles[1],
+          id: "unread-result",
+          is_read: false,
+          published_at: "2026-03-25T10:00:00Z",
+        },
+      ],
+      feedId: null,
+      tagId: null,
+      viewMode: "unread",
+      sourceFilter: null,
+      showSearch: true,
+      searchQuery: "Article",
+      sortUnread: "newest_first",
+      retainedArticleIds: new Set(["retained-read-result"]),
+    });
+
+    expect(result.map((article) => article.id)).toEqual(["retained-read-result", "unread-result"]);
+  });
+
   it("keeps the normal article source when search is open with an empty query", () => {
     const result = selectVisibleArticles({
       articles: sampleArticles,
@@ -125,6 +193,38 @@ describe("article-list utils", () => {
     });
 
     expect(result.map((article) => article.id)).toEqual(["art-1", "art-2"]);
+  });
+
+  it("applies unread date sort when search is not active", () => {
+    const result = selectVisibleArticles({
+      articles: [],
+      accountArticles: [
+        {
+          ...sampleArticles[0],
+          id: "older-unread",
+          is_read: false,
+          published_at: "2026-03-24T10:00:00Z",
+        },
+        {
+          ...sampleArticles[1],
+          id: "newer-unread",
+          is_read: false,
+          published_at: "2026-03-25T10:00:00Z",
+        },
+      ],
+      tagArticles: [],
+      searchResults: [],
+      feedId: null,
+      tagId: null,
+      viewMode: "unread",
+      sourceFilter: null,
+      showSearch: false,
+      searchQuery: "",
+      sortUnread: "newest_first",
+      retainedArticleIds: new Set(),
+    });
+
+    expect(result.map((article) => article.id)).toEqual(["newer-unread", "older-unread"]);
   });
 
   it("filters account articles to the selected folder feed ids before unread filtering", () => {
@@ -589,6 +689,78 @@ describe("article-list utils", () => {
     });
 
     expect(Object.keys(result)[0]).toContain("2026");
+  });
+
+  it("groups invalid article dates under their original fallback label", () => {
+    const result = groupArticles({
+      articles: [{ ...sampleArticles[0], id: "invalid-date", published_at: "not-a-date" }],
+      groupBy: "date",
+      feedNameMap: new Map(),
+    });
+
+    expect(Object.keys(result)).toEqual(["not-a-date"]);
+    expect(result["not-a-date"]?.map((article) => article.id)).toEqual(["invalid-date"]);
+  });
+
+  it("groups UTC timestamp inputs by local day boundaries", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 4, 10, 1, 0, 0));
+
+    const result = groupArticles({
+      articles: [
+        {
+          ...sampleArticles[0],
+          id: "local-today",
+          published_at: new Date(2026, 4, 10, 0, 30, 0).toISOString(),
+        },
+        {
+          ...sampleArticles[1],
+          id: "local-yesterday",
+          published_at: new Date(2026, 4, 9, 23, 30, 0).toISOString(),
+        },
+      ],
+      groupBy: "date",
+      feedNameMap: new Map(),
+    });
+
+    expect(Object.keys(result)).toEqual(["TODAY", "YESTERDAY"]);
+    expect(result.TODAY?.map((article) => article.id)).toEqual(["local-today"]);
+    expect(result.YESTERDAY?.map((article) => article.id)).toEqual(["local-yesterday"]);
+  });
+
+  it("sorts same timestamps and invalid dates deterministically", () => {
+    const result = selectVisibleArticles({
+      articles: [],
+      accountArticles: [
+        {
+          ...sampleArticles[0],
+          id: "same-b",
+          published_at: "2026-03-25T10:00:00Z",
+        },
+        {
+          ...sampleArticles[1],
+          id: "invalid-a",
+          published_at: "not-a-date",
+        },
+        {
+          ...sampleArticles[2],
+          id: "same-a",
+          published_at: "2026-03-25T10:00:00Z",
+        },
+      ],
+      tagArticles: [],
+      searchResults: [],
+      feedId: null,
+      tagId: null,
+      viewMode: "all",
+      sourceFilter: null,
+      showSearch: false,
+      searchQuery: "",
+      sortUnread: "newest_first",
+      retainedArticleIds: new Set(),
+    });
+
+    expect(result.map((article) => article.id)).toEqual(["same-a", "same-b", "invalid-a"]);
   });
 
   it("resolves built-in article group label translation tokens", () => {
