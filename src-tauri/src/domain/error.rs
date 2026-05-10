@@ -464,6 +464,14 @@ mod tests {
                 true,
             ),
             (
+                DomainError::RateLimit(
+                    "HTTP 429 Too Many Requests; retry_after_seconds=120".to_string(),
+                ),
+                "Rate limit error: HTTP 429 Too Many Requests; retry_after_seconds=120",
+                true,
+                false,
+            ),
+            (
                 DomainError::Auth("HTTP 401 Unauthorized".to_string()),
                 "Auth error: HTTP 401 Unauthorized",
                 false,
@@ -481,16 +489,28 @@ mod tests {
                 false,
                 false,
             ),
+            (
+                DomainError::Persistence("Query returned no rows".to_string()),
+                "Persistence error: Query returned no rows",
+                false,
+                false,
+            ),
         ];
 
         for (domain_error, expected_message, expected_retryable, expected_recovery_guidance) in
             cases
         {
             assert_eq!(domain_error.to_string(), expected_message);
-            assert_eq!(
-                matches!(AppError::from(domain_error), AppError::Retryable { .. }),
-                expected_retryable
-            );
+            match (AppError::from(domain_error), expected_retryable) {
+                (AppError::Retryable { message }, true) => assert_eq!(message, expected_message),
+                (AppError::UserVisible { message }, false) => assert_eq!(message, expected_message),
+                (AppError::Retryable { message }, false) => {
+                    panic!("provider boundary error became unexpectedly retryable: {message}");
+                }
+                (AppError::UserVisible { message }, true) => {
+                    panic!("provider boundary error stopped being retryable: {message}");
+                }
+            }
             assert_eq!(
                 expected_message.contains("Check "),
                 expected_recovery_guidance,

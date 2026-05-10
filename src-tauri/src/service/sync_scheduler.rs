@@ -1128,6 +1128,79 @@ mod tests {
     }
 
     #[test]
+    fn scheduler_backoff_keeps_retryable_classification_snapshot() {
+        let cases = [
+            (
+                "network",
+                AppError::Retryable {
+                    message: "Network error: Request timed out. Check the server URL or your network connection."
+                        .to_string(),
+                },
+                calculate_backoff_secs(&test_account(60), 1),
+            ),
+            (
+                "rate-limit",
+                AppError::Retryable {
+                    message: "Rate limit error: HTTP 429 Too Many Requests; retry_after_seconds=600"
+                        .to_string(),
+                },
+                600,
+            ),
+            (
+                "auth",
+                AppError::UserVisible {
+                    message: "Auth error: HTTP 401 Unauthorized".to_string(),
+                },
+                calculate_backoff_secs(&test_account(60), 1),
+            ),
+            (
+                "sqlite",
+                AppError::UserVisible {
+                    message: "Persistence error: Query returned no rows".to_string(),
+                },
+                calculate_backoff_secs(&test_account(60), 1),
+            ),
+            (
+                "malformed-provider-payload",
+                AppError::UserVisible {
+                    message: "Parse error: malformed provider response".to_string(),
+                },
+                calculate_backoff_secs(&test_account(60), 1),
+            ),
+        ];
+
+        for (case_name, error, expected_retry_in_seconds) in cases {
+            let db = std::sync::Mutex::new(test_db());
+            let mut account = test_account(60);
+            account.id = AccountId(format!("backoff-{case_name}"));
+            {
+                let db_guard = db.lock().unwrap();
+                insert_test_account(&db_guard, &account.id);
+            }
+            let mut warnings = Vec::new();
+
+            let backoff = complete_failed_account_sync(&db, &account, &error, &mut warnings);
+
+            assert_eq!(
+                backoff,
+                Duration::from_secs(expected_retry_in_seconds),
+                "backoff changed for {case_name}"
+            );
+            assert_eq!(warnings.len(), 1, "warning count changed for {case_name}");
+            assert_eq!(warnings[0].kind, AccountSyncWarningKind::RetryScheduled);
+            assert_eq!(
+                warnings[0].retry_in_seconds,
+                Some(expected_retry_in_seconds),
+                "retry warning changed for {case_name}"
+            );
+            assert!(
+                is_in_backoff(&db, &account.id),
+                "backoff missing for {case_name}"
+            );
+        }
+    }
+
+    #[test]
     fn is_in_backoff_clears_invalid_next_retry_at_and_allows_retry() {
         let db = std::sync::Mutex::new(test_db());
         let account = test_account(60);
