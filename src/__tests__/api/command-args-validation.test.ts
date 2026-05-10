@@ -7,7 +7,9 @@ import { TagDtoSchema } from "@/api/schemas";
 import {
   ACCOUNT_NAME_MAX_CHARS,
   addAccountArgs,
+  addToReadingListArgs,
   addLocalFeedArgs,
+  copyToClipboardArgs,
   createFolderArgs,
   createTagArgs,
   discoverFeedsArgs,
@@ -20,6 +22,9 @@ import {
   renameAccountArgs,
   renameFeedArgs,
   renameTagArgs,
+  READING_LIST_URL_MAX_BYTES,
+  SHARE_COMMAND_TEXT_MAX_BYTES,
+  SHARE_COMMAND_TEXT_MAX_CHARS,
   TAG_COLOR_VALIDATION_MESSAGE,
   TAG_NAME_MAX_CHARS,
 } from "@/api/schemas/commands";
@@ -371,5 +376,54 @@ describe("command args validation parity", () => {
     expect(() => openExternalUrlArgs.parse({ url: "javascript:alert(1)" })).toThrow();
     expect(() => openExternalUrlArgs.parse({ url: "https://example.com/\rarticle" })).toThrow();
     expect(() => openInBrowserArgs.parse({ url: "MAILTO:reader@example.com" })).toThrow();
+  });
+
+  it("fixes Safari Reading List URL control, whitespace, credential, and length policy", () => {
+    expect(addToReadingListArgs.parse({ url: " HTTPS://example.com/article " })).toEqual({
+      url: "HTTPS://example.com/article",
+    });
+
+    const maxUrl = `https://example.com/article?token=${"x".repeat(
+      READING_LIST_URL_MAX_BYTES - "https://example.com/article?token=".length,
+    )}`;
+    expect(addToReadingListArgs.parse({ url: maxUrl })).toEqual({
+      url: maxUrl,
+    });
+
+    for (const url of [
+      "https://example.com/a\tb",
+      "https://example.com/a\u0000b",
+      "https://example.com/a b",
+      "https://user@example.com/article",
+      "https://user:pass@example.com/article",
+      `${maxUrl}x`,
+    ]) {
+      expect(() => addToReadingListArgs.parse({ url })).toThrow();
+    }
+  });
+
+  it("fixes clipboard text policy by control characters, graphemes, and UTF-8 bytes", () => {
+    expect(
+      copyToClipboardArgs.parse({
+        text: "🙂".repeat(SHARE_COMMAND_TEXT_MAX_CHARS),
+      }).text,
+    ).toBe("🙂".repeat(SHARE_COMMAND_TEXT_MAX_CHARS));
+    expect(copyToClipboardArgs.parse({ text: `e${"\u0301".repeat(16)}` }).text).toBe(`e${"\u0301".repeat(16)}`);
+    expect(copyToClipboardArgs.parse({ text: "👨‍👩‍👧‍👦" }).text).toBe("👨‍👩‍👧‍👦");
+
+    for (const text of ["hello\u0000", "hello\tworld", "hello\nworld"]) {
+      expect(() => copyToClipboardArgs.parse({ text })).toThrow();
+    }
+
+    expect(() =>
+      copyToClipboardArgs.parse({
+        text: "x".repeat(SHARE_COMMAND_TEXT_MAX_CHARS + 1),
+      }),
+    ).toThrow();
+    expect(() =>
+      copyToClipboardArgs.parse({
+        text: `e${"\u0301".repeat(SHARE_COMMAND_TEXT_MAX_BYTES / 2 + 1)}`,
+      }),
+    ).toThrow();
   });
 });

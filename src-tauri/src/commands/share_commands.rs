@@ -8,13 +8,22 @@ const READING_LIST_COMMAND_ERROR: &str =
     "Failed to add to Reading List. Please try again from Safari.";
 const CLIPBOARD_TEXT_ERROR: &str = "Invalid clipboard text";
 pub(crate) const CLIPBOARD_TEXT_MAX_CHARS: usize = 2048;
+pub(crate) const CLIPBOARD_TEXT_MAX_BYTES: usize = CLIPBOARD_TEXT_MAX_CHARS * 4;
+#[cfg(any(target_os = "macos", test))]
+pub(crate) const READING_LIST_URL_MAX_BYTES: usize = 16 * 1024;
 
 #[cfg(any(target_os = "macos", test))]
 fn normalize_reading_list_url(url: &str) -> Option<&str> {
     let trimmed = url.trim();
     let lower = trimmed.to_lowercase();
-    if trimmed.contains(['\n', '\r'])
+    let has_credentials = reqwest::Url::parse(trimmed)
+        .map(|url| !url.username().is_empty() || url.password().is_some())
+        .unwrap_or(false);
+    if trimmed.len() > READING_LIST_URL_MAX_BYTES
+        || trimmed.chars().any(char::is_control)
+        || trimmed.chars().any(char::is_whitespace)
         || !(lower.starts_with("http://") || lower.starts_with("https://"))
+        || has_credentials
     {
         return None;
     }
@@ -73,8 +82,45 @@ fn redacted_reading_list_diagnostic_token(token: &str) -> String {
     }
 }
 
+fn is_grapheme_extend_like(c: char) -> bool {
+    matches!(
+        c,
+        '\u{0300}'..='\u{036f}'
+            | '\u{1ab0}'..='\u{1aff}'
+            | '\u{1dc0}'..='\u{1dff}'
+            | '\u{20d0}'..='\u{20ff}'
+            | '\u{fe00}'..='\u{fe0f}'
+            | '\u{fe20}'..='\u{fe2f}'
+            | '\u{1f3fb}'..='\u{1f3ff}'
+    )
+}
+
+fn approximate_grapheme_count(value: &str) -> usize {
+    let mut count = 0;
+    let mut joins_next = false;
+
+    for c in value.chars() {
+        if c == '\u{200d}' {
+            joins_next = count > 0;
+            continue;
+        }
+        if joins_next || is_grapheme_extend_like(c) {
+            joins_next = false;
+            continue;
+        }
+        joins_next = false;
+        count += 1;
+    }
+
+    count
+}
+
 fn validate_clipboard_text(text: &str) -> Result<(), AppError> {
-    if text.trim().is_empty() || text.chars().count() > CLIPBOARD_TEXT_MAX_CHARS {
+    if text.trim().is_empty()
+        || text.chars().any(char::is_control)
+        || approximate_grapheme_count(text) > CLIPBOARD_TEXT_MAX_CHARS
+        || text.len() > CLIPBOARD_TEXT_MAX_BYTES
+    {
         return Err(AppError::UserVisible {
             message: CLIPBOARD_TEXT_ERROR.to_string(),
         });
@@ -139,7 +185,8 @@ mod tests {
     use super::{
         normalize_reading_list_url, reading_list_command_error, reading_list_script,
         redacted_reading_list_diagnostic_text, validate_clipboard_text, CLIPBOARD_TEXT_ERROR,
-        CLIPBOARD_TEXT_MAX_CHARS, READING_LIST_COMMAND_ERROR, READING_LIST_URL_ERROR,
+        CLIPBOARD_TEXT_MAX_BYTES, CLIPBOARD_TEXT_MAX_CHARS, READING_LIST_COMMAND_ERROR,
+        READING_LIST_URL_ERROR, READING_LIST_URL_MAX_BYTES,
     };
 
     #[test]
@@ -197,7 +244,7 @@ mod tests {
     }
 
     #[test]
-    fn preserves_very_long_reading_list_urls_inside_one_applescript_argument() {
+    fn preserves_reading_list_urls_up_to_the_16kb_applescript_argument_limit() {
         let long_url = format!("https://example.com/article?token={}", "x".repeat(4096));
         let script = reading_list_script(&long_url).unwrap();
 
@@ -205,6 +252,27 @@ mod tests {
             script,
             format!(r#"tell application "Safari" to add reading list item "{long_url}""#)
         );
+
+        let max_url = format!(
+            "https://example.com/article?token={}",
+            "x".repeat(READING_LIST_URL_MAX_BYTES - "https://example.com/article?token=".len())
+        );
+        let script = reading_list_script(&max_url).unwrap();
+        assert_eq!(
+            script,
+            format!(r#"tell application "Safari" to add reading list item "{max_url}""#)
+        );
+    }
+
+    #[test]
+    fn rejects_reading_list_urls_over_the_16kb_applescript_argument_limit() {
+        let long_url = format!(
+            "https://example.com/article?token={}",
+            "x".repeat(READING_LIST_URL_MAX_BYTES - "https://example.com/article?token=".len() + 1)
+        );
+        let error = reading_list_script(&long_url).unwrap_err();
+
+        assert_eq!(error.to_string(), READING_LIST_URL_ERROR);
     }
 
     #[test]
@@ -225,6 +293,21 @@ mod tests {
         assert!(normalize_reading_list_url("mailto:hello@example.com").is_none());
         assert!(normalize_reading_list_url("file:///tmp/article.html").is_none());
         assert!(normalize_reading_list_url("").is_none());
+    }
+
+    #[test]
+    fn rejects_reading_list_urls_with_control_whitespace_or_credentials() {
+        for url in [
+            "https://example.com/a\tb",
+            "https://example.com/a\u{0000}b",
+            "https://user@example.com/article",
+            "https://user:pass@example.com/article",
+            "https://example.com/a b",
+        ] {
+            let error = reading_list_script(url).unwrap_err();
+
+            assert_eq!(error.to_string(), READING_LIST_URL_ERROR);
+        }
     }
 
     #[test]
@@ -278,14 +361,32 @@ mod tests {
     fn validates_clipboard_text_before_native_write() {
         validate_clipboard_text("https://example.com/article").unwrap();
         validate_clipboard_text(&"x".repeat(CLIPBOARD_TEXT_MAX_CHARS)).unwrap();
+        validate_clipboard_text(&"🙂".repeat(CLIPBOARD_TEXT_MAX_CHARS)).unwrap();
+        validate_clipboard_text(&format!("e{}", "\u{0301}".repeat(16))).unwrap();
+        validate_clipboard_text("👨‍👩‍👧‍👦").unwrap();
 
-        for text in ["", "   ", "\n\t"] {
+        for text in [
+            "",
+            "   ",
+            "\n\t",
+            "hello\u{0000}",
+            "hello\tworld",
+            "hello\nworld",
+        ] {
             let error = validate_clipboard_text(text).unwrap_err();
 
             assert_eq!(error.to_string(), CLIPBOARD_TEXT_ERROR);
         }
 
         let error = validate_clipboard_text(&"x".repeat(CLIPBOARD_TEXT_MAX_CHARS + 1)).unwrap_err();
+
+        assert_eq!(error.to_string(), CLIPBOARD_TEXT_ERROR);
+
+        let error = validate_clipboard_text(&format!(
+            "e{}",
+            "\u{0301}".repeat(CLIPBOARD_TEXT_MAX_BYTES / 2 + 1)
+        ))
+        .unwrap_err();
 
         assert_eq!(error.to_string(), CLIPBOARD_TEXT_ERROR);
     }

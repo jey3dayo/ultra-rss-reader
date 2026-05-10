@@ -12,6 +12,8 @@ export const FEED_TITLE_MAX_CHARS = 200;
 export const FOLDER_NAME_MAX_CHARS = 100;
 export const TAG_NAME_MAX_CHARS = 50;
 export const SHARE_COMMAND_TEXT_MAX_CHARS = 2048;
+export const SHARE_COMMAND_TEXT_MAX_BYTES = SHARE_COMMAND_TEXT_MAX_CHARS * 4;
+export const READING_LIST_URL_MAX_BYTES = 16 * 1024;
 export const TAG_COLOR_VALIDATION_MESSAGE = "Color must be a valid hex color (e.g. #ff0000)";
 const paginationOffsetSchema = z.number().int().nonnegative().max(MAX_IPC_PAGINATION_OFFSET);
 const paginationLimitSchema = z.number().int().positive().max(MAX_IPC_PAGINATION_LIMIT);
@@ -68,6 +70,25 @@ const nullableBlankStringToNullSchema = z.preprocess((value) => {
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
 }, z.string().nullable());
+const controlCharPattern = /[\u0000-\u001f\u007f]/u;
+const whitespacePattern = /\s/u;
+const graphemeSegmenter = new Intl.Segmenter(undefined, {
+  granularity: "grapheme",
+});
+
+function countGraphemes(value: string): number {
+  return Array.from(graphemeSegmenter.segment(value)).length;
+}
+
+function hasHttpUrlCredentials(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.username.length > 0 || url.password.length > 0;
+  } catch {
+    return false;
+  }
+}
+
 export const httpCommandUrlSchema = z
   .string()
   .trim()
@@ -76,6 +97,19 @@ export const httpCommandUrlSchema = z
   })
   .refine((url) => !url.includes("\n") && !url.includes("\r"), {
     message: "HTTP URLs must not contain newlines",
+  });
+const safariReadingListUrlSchema = httpCommandUrlSchema
+  .refine((url) => textEncoder.encode(url).length <= READING_LIST_URL_MAX_BYTES, {
+    message: `Reading List URL must be ${READING_LIST_URL_MAX_BYTES} UTF-8 bytes or less`,
+  })
+  .refine((url) => !controlCharPattern.test(url), {
+    message: "Reading List URL must not contain control characters",
+  })
+  .refine((url) => !whitespacePattern.test(url), {
+    message: "Reading List URL must not contain whitespace",
+  })
+  .refine((url) => !hasHttpUrlCredentials(url), {
+    message: "Reading List URL must not contain credentials",
   });
 
 export function normalizeHttpCommandUrl(value: string): string | null {
@@ -404,8 +438,14 @@ export const copyToClipboardArgs = z.object({
     .refine((value) => value.trim().length > 0, {
       message: "Clipboard text must not be blank",
     })
-    .refine((value) => Array.from(value).length <= SHARE_COMMAND_TEXT_MAX_CHARS, {
-      message: `Clipboard text must be ${SHARE_COMMAND_TEXT_MAX_CHARS} characters or less`,
+    .refine((value) => !controlCharPattern.test(value), {
+      message: "Clipboard text must not contain control characters",
+    })
+    .refine((value) => countGraphemes(value) <= SHARE_COMMAND_TEXT_MAX_CHARS, {
+      message: `Clipboard text must be ${SHARE_COMMAND_TEXT_MAX_CHARS} graphemes or less`,
+    })
+    .refine((value) => textEncoder.encode(value).length <= SHARE_COMMAND_TEXT_MAX_BYTES, {
+      message: `Clipboard text must be ${SHARE_COMMAND_TEXT_MAX_BYTES} UTF-8 bytes or less`,
     }),
 });
 
@@ -416,7 +456,9 @@ export const openInBrowserArgs = z.object({
 });
 
 // --- addToReadingList ---
-export const addToReadingListArgs = z.object({ url: readingListUrlSchema });
+export const addToReadingListArgs = z.object({
+  url: safariReadingListUrlSchema,
+});
 
 // --- createTag ---
 export const createTagArgs = z.object({
