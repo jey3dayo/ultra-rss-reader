@@ -43,12 +43,21 @@ const faviconSizeClassNames: Record<FeedFaviconSize, FaviconSizeClassNames> = {
   },
 };
 
+const fallbackLabelSegmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+
 function resolveGoogleFaviconSrc(host: string, requestSize: number): string {
   const params = new URLSearchParams({
     domain: host,
     sz: String(requestSize),
   });
   return `${GOOGLE_FAVICON_ENDPOINT}?${params.toString()}`;
+}
+
+function resolveFallbackLabel(title: string): string {
+  const trimmedTitle = title.trim().normalize("NFC");
+  const firstGrapheme = fallbackLabelSegmenter.segment(trimmedTitle)[Symbol.iterator]().next().value?.segment;
+
+  return firstGrapheme?.toLocaleUpperCase() || "?";
 }
 
 export function FeedFavicon({ title, url, siteUrl, grayscale = false, size = "sm" }: FeedFaviconProps) {
@@ -61,7 +70,7 @@ export function FeedFavicon({ title, url, siteUrl, grayscale = false, size = "sm
     }),
   );
   const sizeClassName = faviconSizeClassNames[size];
-  const fallbackLabel = title.trim().charAt(0).toUpperCase() || "?";
+  const fallbackLabel = resolveFallbackLabel(title);
   const faviconSrc = resolvedHost ? resolveGoogleFaviconSrc(resolvedHost, sizeClassName.requestSize) : null;
 
   return faviconSrc === null || failedFaviconSrc === faviconSrc ? (

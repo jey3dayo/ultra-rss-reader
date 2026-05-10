@@ -30,6 +30,21 @@ describe("FeedFavicon", () => {
     expect(screen.getByText("?")).toHaveAttribute("aria-hidden", "true");
   });
 
+  it("uses the first grapheme as the fallback label without splitting CJK, emoji, or combining marks", () => {
+    const { rerender } = render(<FeedFavicon title="漢字フィード" url="" siteUrl="" />);
+
+    expect(screen.getByText("漢")).toHaveAttribute("aria-hidden", "true");
+
+    rerender(<FeedFavicon title="👨‍👩‍👧‍👦 family feed" url="" siteUrl="" />);
+    expect(screen.getByText("👨‍👩‍👧‍👦")).toHaveAttribute("aria-hidden", "true");
+
+    rerender(<FeedFavicon title={"e\u0301clair feed"} url="" siteUrl="" />);
+    expect(screen.getByText("É")).toHaveAttribute("aria-hidden", "true");
+
+    rerender(<FeedFavicon title="שלום feed" url="" siteUrl="" />);
+    expect(screen.getByText("ש")).toHaveAttribute("aria-hidden", "true");
+  });
+
   it("keeps image and fallback glyphs out of accessible names", () => {
     render(
       <>

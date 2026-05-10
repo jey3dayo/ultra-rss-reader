@@ -233,6 +233,7 @@
     "open_settings": "設定を開く",
     "category_navigation": "ナビゲーション",
     "category_actions": "アクション",
-    "category_global": "全体"
+    "category_global": "全体",
+    "category_unknown": "その他"
   }
 }

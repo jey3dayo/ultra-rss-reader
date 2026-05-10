@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   buildShortcutCategoryOrder,
+  resolveShortcutCategoryHeading,
   useShortcutsSettingsViewProps,
 } from "@/components/settings/hooks/use-shortcuts-settings-view-props";
 import type { ShortcutsSettingsViewProps } from "@/components/settings/shortcuts-settings-view";
@@ -33,6 +34,20 @@ describe("useShortcutsSettingsViewProps", () => {
         { categoryKey: "shortcuts.category_navigation" },
       ]),
     ).toEqual(["shortcuts.category_actions", "shortcuts.category_navigation", "shortcuts.category_global"]);
+  });
+
+  it("falls back to the locale-owned unknown heading for missing or empty category labels", () => {
+    const tReaderWithMissingCategory = i18n.getFixedT("en", "reader");
+    const tReaderWithEmptyCategory = ((key: string, options?: { defaultValue?: string }) => {
+      if (key === "shortcuts.category_empty") {
+        return " ";
+      }
+
+      return tReaderWithMissingCategory(key, options);
+    }) satisfies typeof tReaderWithMissingCategory;
+
+    expect(resolveShortcutCategoryHeading(tReaderWithMissingCategory, "shortcuts.category_future")).toBe("Other");
+    expect(resolveShortcutCategoryHeading(tReaderWithEmptyCategory, "shortcuts.category_empty")).toBe("Other");
   });
 
   it("maps reset state, shortcut display, conflicts, and static bindings", () => {

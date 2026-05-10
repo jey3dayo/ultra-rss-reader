@@ -233,6 +233,7 @@
     "open_settings": "Open settings",
     "category_navigation": "Navigation",
     "category_actions": "Actions",
-    "category_global": "Global"
+    "category_global": "Global",
+    "category_unknown": "Other"
   }
 }

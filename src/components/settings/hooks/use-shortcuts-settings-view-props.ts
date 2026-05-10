@@ -45,6 +45,13 @@ export function buildShortcutCategoryOrder(
   return categories;
 }
 
+export function resolveShortcutCategoryHeading(tReader: TFunction<"reader">, category: string): string {
+  const fallbackHeading = tReader("shortcuts.category_unknown");
+  const heading = tReader(category, { defaultValue: fallbackHeading });
+
+  return heading.trim() ? heading : fallbackHeading;
+}
+
 function buildShortcutCategories(
   definitions: readonly ShortcutDefinition[],
   buildItem: (definition: ShortcutDefinition) => ShortcutCategoryItem,
@@ -117,7 +124,7 @@ export function useShortcutsSettingsViewProps({
           onKeyDown: (event: globalThis.KeyboardEvent) => onBadgeKeyDown(definition.id, event),
         };
       },
-      (category) => tReader(category),
+      (category) => resolveShortcutCategoryHeading(tReader, category),
     ),
   };
 }
