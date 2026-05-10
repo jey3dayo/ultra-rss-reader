@@ -11,6 +11,58 @@ use crate::infra::keyring_store;
 use crate::infra::provider::greader::GReaderProvider;
 use crate::infra::provider::traits::{Credentials, FeedProvider};
 use crate::repository::account::AccountRepository;
+use std::net::IpAddr;
+
+fn is_private_freshrss_ip(ip: IpAddr) -> bool {
+    match ip {
+        IpAddr::V4(ip) => {
+            ip.is_private()
+                || ip.is_loopback()
+                || ip.is_link_local()
+                || ip.is_broadcast()
+                || ip.is_documentation()
+                || ip.is_unspecified()
+        }
+        IpAddr::V6(ip) => {
+            ip.is_loopback()
+                || ip.is_unspecified()
+                || ip.is_unique_local()
+                || ip.is_unicast_link_local()
+        }
+    }
+}
+
+fn normalize_new_freshrss_server_url(server_url: &str) -> Result<String, AppError> {
+    let trimmed = server_url.trim();
+    let url = reqwest::Url::parse(trimmed).map_err(|_| AppError::UserVisible {
+        message: "FreshRSS server URL must be a valid URL".into(),
+    })?;
+
+    if url.scheme() != "http" && url.scheme() != "https" {
+        return Err(AppError::UserVisible {
+            message: "FreshRSS server URL must use http or https".into(),
+        });
+    }
+    if !url.username().is_empty() || url.password().is_some() {
+        return Err(AppError::UserVisible {
+            message: "FreshRSS server URL must not include userinfo".into(),
+        });
+    }
+
+    let host = url.host_str().ok_or_else(|| AppError::UserVisible {
+        message: "FreshRSS server URL must include a host".into(),
+    })?;
+    let ip_host = host.trim_start_matches('[').trim_end_matches(']');
+    if host.eq_ignore_ascii_case("localhost")
+        || ip_host.parse::<IpAddr>().is_ok_and(is_private_freshrss_ip)
+    {
+        return Err(AppError::UserVisible {
+            message: "FreshRSS server URL must not use a private host".into(),
+        });
+    }
+
+    Ok(url.to_string())
+}
 
 fn validate_add_account_args(
     kind: &str,
@@ -36,6 +88,7 @@ fn validate_add_account_args(
                     message: "FreshRSS password is required".into(),
                 });
             }
+            normalize_new_freshrss_server_url(server_url.unwrap())?;
 
             Ok(ProviderKind::FreshRss)
         }
@@ -222,10 +275,10 @@ where
 #[cfg(test)]
 mod tests {
     use super::{
-        delete_account_then_password, save_account_after_optional_password,
-        update_account_credentials_after_optional_password, validate_account_name,
-        validate_account_name_with_excluded_id, validate_account_sync_settings,
-        validate_add_account_args, validate_freshrss_server_url,
+        delete_account_then_password, normalize_new_freshrss_server_url,
+        save_account_after_optional_password, update_account_credentials_after_optional_password,
+        validate_account_name, validate_account_name_with_excluded_id,
+        validate_account_sync_settings, validate_add_account_args, validate_freshrss_server_url,
     };
     use crate::commands::dto::AppError;
     use crate::domain::account::{Account, ConnectionVerificationStatus};
@@ -296,6 +349,31 @@ mod tests {
         )
         .is_err());
         assert!(validate_add_account_args("Unknown", None, None, None).is_err());
+    }
+
+    #[test]
+    fn validates_new_freshrss_server_url_policy() {
+        assert_eq!(
+            normalize_new_freshrss_server_url(" https://rss.example.com/root ").unwrap(),
+            "https://rss.example.com/root"
+        );
+
+        for server_url in [
+            "ftp://rss.example.com",
+            "https://alice:secret@rss.example.com",
+            "https://localhost",
+            "http://127.0.0.1:8080",
+            "https://10.0.0.1",
+            "https://172.16.0.1",
+            "https://192.168.0.1",
+            "https://[::1]",
+            "https://[fd00::1]",
+        ] {
+            assert!(
+                normalize_new_freshrss_server_url(server_url).is_err(),
+                "{server_url} should be rejected"
+            );
+        }
     }
 
     #[test]
@@ -756,11 +834,18 @@ pub async fn add_account(
         validate_account_name(&name, &accounts)?
     };
 
+    let normalized_server_url = match provider_kind {
+        ProviderKind::FreshRss => Some(normalize_new_freshrss_server_url(
+            server_url.as_deref().unwrap_or_default(),
+        )?),
+        ProviderKind::Local => server_url,
+    };
+
     let mut account = Account {
         id: AccountId::new(),
         kind: provider_kind,
         name,
-        server_url,
+        server_url: normalized_server_url,
         username,
         sync_interval_secs: 3600,
         sync_on_startup: true,

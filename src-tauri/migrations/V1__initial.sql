@@ -4,9 +4,9 @@ CREATE TABLE accounts (
     name TEXT NOT NULL,
     server_url TEXT,
     username TEXT,
-    sync_interval_secs INTEGER NOT NULL DEFAULT 3600,
+    sync_interval_secs INTEGER NOT NULL DEFAULT 3600 CHECK (sync_interval_secs BETWEEN 60 AND 86400),
     sync_on_wake INTEGER NOT NULL DEFAULT 0,
-    keep_read_items_days INTEGER NOT NULL DEFAULT 30
+    keep_read_items_days INTEGER NOT NULL DEFAULT 30 CHECK (keep_read_items_days BETWEEN 1 AND 3650)
 );
 
 CREATE TABLE folders (

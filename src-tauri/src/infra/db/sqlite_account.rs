@@ -64,6 +64,20 @@ fn require_account_row_affected(rows_affected: usize, id: &AccountId) -> DomainR
     Ok(())
 }
 
+fn validate_sync_settings(sync_interval_secs: i64, keep_read_items_days: i64) -> DomainResult<()> {
+    if !(60..=86_400).contains(&sync_interval_secs) {
+        return Err(DomainError::Validation(
+            "Sync interval must be between 60 and 86400 seconds".into(),
+        ));
+    }
+    if !(1..=3650).contains(&keep_read_items_days) {
+        return Err(DomainError::Validation(
+            "Keep read items days must be between 1 and 3650".into(),
+        ));
+    }
+    Ok(())
+}
+
 fn row_to_account(row: &rusqlite::Row) -> rusqlite::Result<Account> {
     let kind_str: String = row.get(1)?;
     let verification_status: String = row.get(9)?;
@@ -113,6 +127,8 @@ impl AccountRepository for SqliteAccountRepository<'_> {
     }
 
     fn save(&self, account: &Account) -> DomainResult<()> {
+        validate_sync_settings(account.sync_interval_secs, account.keep_read_items_days)?;
+
         self.conn.execute(
             "INSERT INTO accounts (
                 id,
@@ -167,6 +183,8 @@ impl AccountRepository for SqliteAccountRepository<'_> {
         sync_on_wake: bool,
         keep_read_items_days: i64,
     ) -> DomainResult<()> {
+        validate_sync_settings(sync_interval_secs, keep_read_items_days)?;
+
         let rows_affected = self.conn.execute(
             "UPDATE accounts SET sync_interval_secs = ?1, sync_on_startup = ?2, sync_on_wake = ?3, keep_read_items_days = ?4 WHERE id = ?5",
             params![sync_interval_secs, sync_on_startup, sync_on_wake, keep_read_items_days, id.0],
@@ -590,6 +608,80 @@ mod tests {
         assert!(!saved.sync_on_startup);
         assert!(saved.sync_on_wake);
         assert_eq!(saved.keep_read_items_days, 90);
+    }
+
+    #[test]
+    fn save_rejects_out_of_range_sync_settings() {
+        let db = test_db();
+        let repo = SqliteAccountRepository::new(db.writer());
+
+        for (sync_interval_secs, keep_read_items_days) in
+            [(59, 30), (86_401, 30), (3600, 0), (3600, 3651)]
+        {
+            let account = Account {
+                sync_interval_secs,
+                keep_read_items_days,
+                ..make_account("Invalid")
+            };
+
+            assert!(
+                repo.save(&account).is_err(),
+                "sync_interval_secs={sync_interval_secs}, keep_read_items_days={keep_read_items_days} should be rejected"
+            );
+        }
+    }
+
+    #[test]
+    fn accounts_table_rejects_out_of_range_sync_settings() {
+        let db = test_db();
+
+        for (sync_interval_secs, keep_read_items_days) in
+            [(59, 30), (86_401, 30), (3600, 0), (3600, 3651)]
+        {
+            let result = db.writer().execute(
+                "INSERT INTO accounts (id, kind, name, sync_interval_secs, keep_read_items_days)
+                 VALUES (?1, 'Local', 'Invalid', ?2, ?3)",
+                params![
+                    format!("invalid-{sync_interval_secs}-{keep_read_items_days}"),
+                    sync_interval_secs,
+                    keep_read_items_days
+                ],
+            );
+
+            assert!(
+                result.is_err(),
+                "sync_interval_secs={sync_interval_secs}, keep_read_items_days={keep_read_items_days} should be rejected"
+            );
+        }
+    }
+
+    #[test]
+    fn update_sync_settings_rejects_out_of_range_values() {
+        let db = test_db();
+        let repo = SqliteAccountRepository::new(db.writer());
+
+        let account = make_account("Startup");
+        repo.save(&account).unwrap();
+
+        for (sync_interval_secs, keep_read_items_days) in
+            [(59, 30), (86_401, 30), (3600, 0), (3600, 3651)]
+        {
+            assert!(
+                repo.update_sync_settings(
+                    &account.id,
+                    sync_interval_secs,
+                    false,
+                    true,
+                    keep_read_items_days,
+                )
+                .is_err(),
+                "sync_interval_secs={sync_interval_secs}, keep_read_items_days={keep_read_items_days} should be rejected"
+            );
+        }
+
+        let saved = repo.find_by_id(&account.id).unwrap().unwrap();
+        assert_eq!(saved.sync_interval_secs, 3600);
+        assert_eq!(saved.keep_read_items_days, 30);
     }
 
     #[test]
