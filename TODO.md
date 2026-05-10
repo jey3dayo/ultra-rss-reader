@@ -1522,16 +1522,6 @@
   - retained ids は selection 維持に効く一方、account/feed/tag 切替後に古い id が残ると invisible article や memory growth の原因になりやすい
   - account switch、feed delete、tag delete、search clear、max retained ids、selected article deleted の test を追加する
 
-- [ ] P2 article grouping の timezone / invalid date / stable order contract を強化する
-  - 対象: `src/lib/articles/article-list.ts`, `src/__tests__/lib/article-list.test.ts`, `src/components/reader/article-list-body.tsx`
-  - group by day/feed は published_at の date parsing と sort order に依存するため、invalid date や timezone boundary で見出し順が揺れやすい
-  - invalid date、UTC/JST day boundary、same timestamp tie-breaker、missing feed name、locale date label の unit/component test を追加する
-
-- [ ] P2 search result source order と unread sort の組み合わせを explicit policy にする
-  - 対象: `src/lib/articles/article-list.ts`, `src/components/reader/hooks/article-list/use-article-list-data.ts`, `src/__tests__/lib/article-list.test.ts`
-  - search results は source order を保持したい一方、unread sort や retained id が入ると search ranking と reader ordering が競合しやすい
-  - search ranking preserved、unread sort enabled、retained selected article、missing search result article、folder scoped search の test を追加する
-
 - [ ] P2 schema barrel export と per-schema test の追加漏れを repo contract で検出する
   - 対象: `src/api/schemas/index.ts`, `src/__tests__/api/schema-barrel-public-api.test.ts`, `src/__tests__/api/schemas`
   - 新しい schema file を足しても barrel export や schema-specific test を忘れると、runtime validation はあるが public import surface が揺れやすい
@@ -1557,11 +1547,6 @@
   - platform info が未知 OS/arch や runtime unavailable の時、browser embed、shortcut display、release support copy がばらばらに fallback しやすい
   - unknown OS、unknown arch、Tauri unavailable、mock parity、feature flag fallback、debug display の component test を追加する
 
-- [ ] P2 webview history の max length / duplicate URL normalization を browser close queue と合わせる
-  - 対象: `src/lib/browser/webview-history.ts`, `src/lib/actions.ts`, `src/components/reader/hooks/browser`
-  - browser history と pending close action が別 state なので、rapid navigation や close/reopen で back/forward availability が stale になりやすい
-  - duplicate URL、hash-only change、max length overflow、close during navigation、reopen same URL、history reset の test を追加する
-
 - [ ] P2 browser webview command schema の geometry integer rounding を DPI/zoom で固定する
   - 対象: `src/api/schemas/browser-webview.ts`, `src/api/schemas/commands.ts`, `src/components/reader/hooks/browser/use-browser-webview-bounds-sync.ts`
   - DOMRect は fractional pixel を返すが native webview bounds は integer に寄りやすく、DPI/zoom で 1px gap や overlap が出やすい
@@ -1582,20 +1567,10 @@
   - article list の hook params/results と view props/helper types が近い場所に集まり、次の local props cleanup で衝突しやすい
   - controller contract、view-local props、pure helper input/output、test helper fixture type の配置方針を TODO から実装計画へ落とす
 
-- [ ] P1 mute keyword の ASCII-only matching contract を UI copy / validation と同期する
-  - 対象: `src-tauri/src/infra/db/sqlite_mute_keyword.rs`, `src/components/settings/mute-settings-view.tsx`, `src/api/schemas/mute-keyword.ts`
-  - Rust 側は SQLite `lower()` と同じ ASCII-only 方針だが、UI が日本語/全角/Unicode case folding も効くように見えると user expectation と実挙動がずれる
-  - ASCII case、全角英数、濁点、emoji、Turkish I、半角/全角スペース、UI help copy の contract を追加する
-
 - [ ] P1 mute auto-mark-read の既存 article 一括更新を account scope / transaction cost で固定する
   - 対象: `src-tauri/src/commands/mute_keyword_commands.rs`, `src-tauri/src/infra/db/sqlite_article.rs`, `src/hooks/use-mute-keywords.ts`
   - keyword 作成・scope 変更・設定有効化時に全 account の既存 muted unread を mark read するため、大量記事や account 切替時に予想外の unread count 変化が起きやすい
   - selected account、all account、large dataset、partial failure、unread count repair、toast copy、query invalidation の integration test を追加する
-
-- [ ] P2 mute keyword duplicate 判定を DB unique constraint / app validation / schema で一本化する
-  - 対象: `src-tauri/src/infra/db/sqlite_mute_keyword.rs`, `src-tauri/migrations/V12__mute_keywords.sql`, `src/components/settings/mute-settings.tsx`
-  - repository は trim + ASCII lowercase + scope で duplicate 判定するが、DB constraint と UI validation が同じ粒度でなければ race や import で重複 row が入りやすい
-  - trim差、case差、scope差、concurrent create、corrupt duplicate row、unique constraint message の contract test を追加する
 
 - [ ] P2 mute keyword SQL clause builder の expression injection safety を repo contract にする
   - 対象: `src-tauri/src/infra/db/sqlite_mute_keyword.rs`, `src-tauri/src/infra/db/sqlite_article.rs`, `src-tauri/src/infra/db/sqlite_tag.rs`
