@@ -44,9 +44,10 @@ describe("createQuery", () => {
   it("disables the generated query again when the account id disappears", async () => {
     const fetcher = vi.fn((id: string) => Promise.resolve(Result.succeed({ id })));
     const useGeneratedQuery = createQuery("items", fetcher);
+    const initialProps: GeneratedQueryProps = { id: "acc-1" };
 
     const { rerender, result } = renderHook(({ id }: GeneratedQueryProps) => useGeneratedQuery(id), {
-      initialProps: { id: "acc-1" },
+      initialProps,
       wrapper,
     });
 
