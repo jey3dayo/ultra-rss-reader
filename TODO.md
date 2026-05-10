@@ -1927,11 +1927,6 @@
   - tag pattern は prerelease/build metadata を許可するが release action は `prerelease: false` 固定で、実 release の公開種別が曖昧
   - `v1.2.3-alpha.1`、`v1.2.3+build.1`、stable、draft/pre-release flag、release note template の repo contract を追加する
 
-- [ ] P2 feed display mode を DB constraint / repository contract でも検証する
-  - 対象: `src-tauri/src/commands/feed_commands.rs`, `src-tauri/src/infra/db/sqlite_feed.rs`, `src-tauri/migrations/V8__feed_reader_preview_modes.sql`
-  - command は mode を検証するが repository/migration は任意文字列を許し、DB 直書きや migration drift で invalid mode が reader に流れ得る
-  - invalid reader mode、invalid preview mode、legacy row repair、repository update、migration CHECK policy の Rust test を追加する
-
 - [ ] P2 account sync settings を DB/repository 側でも範囲制約する
   - 対象: `src-tauri/src/commands/account_commands.rs`, `src-tauri/src/infra/db/sqlite_account.rs`, `src-tauri/migrations/V1__initial.sql`
   - command では interval/days を検証するが repository はそのまま保存できるため、scheduler に invalid interval が入る経路が残る
@@ -2117,11 +2112,6 @@
   - FreshRSS URL は provider 側で userinfo を落とす一方、add account の保存前 validation と private host / http policy がずれると危険な URL が credential flow に残りやすい
   - loopback、private IP、userinfo付きURL、http/https、trailing slash、frontend schema error copy の contract test を追加する
 
-- [ ] P1 SQLite feed save の URL conflict と remote_id conflict の優先順位を固定する
-  - 対象: `src-tauri/src/infra/db/sqlite_feed.rs`, `src-tauri/src/repository/feed.rs`, `src-tauri/tests`
-  - `ON CONFLICT(account_id, url)` と `ON CONFLICT(account_id, remote_id)` が別既存行を指すと、どの feed に merge するかが読み取りにくい
-  - URL conflict、remote_id conflict、両方 conflict、deleted feed revive、unread count owner の integration test を追加する
-
 - [ ] P1 seed-dev-db-from-prod の install failure 時に backup restore する contract を作る
   - 対象: `scripts/seed-dev-db-from-prod.ts`, `src/__tests__/scripts/seed-dev-db-from-prod.test.ts`
   - Dev DB destination を削除した後に staging copy が失敗すると、backup はあるが自動復元されず Dev DB が欠ける可能性がある
@@ -2141,31 +2131,6 @@
   - 対象: `src/components/settings/mute-settings.tsx`, `src/hooks/use-mute-keywords.ts`, `src/api/schemas/mute-keyword.ts`, `src-tauri/src/infra/db/sqlite_mute_keyword.rs`
   - keyword trim、case、scope 更新、backend duplicate failure が分散しており、同時操作で表示復元や auto-mark-read の対象が揺れやすい
   - duplicate create、scope update race、trim/case collision、backend failure rollback、auto-mark-read invalidation の test を追加する
-
-- [ ] P2 GReader quickadd 後の subscription 照合を requested/final/html URL で固定する
-  - 対象: `src-tauri/src/infra/provider/greader.rs`, `src-tauri/src/infra/provider/normalizer.rs`
-  - quickadd response の URL と requested URL の fragment 除去比較だけだと、redirect 後 feed URL や site URL を返す provider で subscription 未検出になりやすい
-  - redirect final URL、feed URL vs site URL、fragment/query normalization、duplicate subscription、diagnostics warning の provider test を追加する
-
-- [ ] P2 GReader stream continuation と `ot` cursor fallback を同一 timestamp 大量 item で固定する
-  - 対象: `src-tauri/src/infra/provider/greader.rs`, `src-tauri/src/service/sync_flow.rs`
-  - repeated continuation は止めているが、同一 timestamp の大量 item や空 page continuation で delta sync が欠けるか重複する可能性がある
-  - same timestamp page、empty page with continuation、repeated continuation、cursor fallback、sync_state update timing の provider test を追加する
-
-- [ ] P2 FreshRSS label normalization の Unicode / case collision を folder sync contract にする
-  - 対象: `src-tauri/src/infra/provider/greader.rs`, `src-tauri/src/infra/db/sqlite_folder.rs`
-  - label 優先で folder remote_id を作るため、同名に見える Unicode や case 差が別 folder として同期される可能性がある
-  - NFC/NFD、case collision、slash含み label、empty label、rename conflict の sync fixture を追加する
-
-- [ ] P2 local provider site_url の相対 URL 解決方針を feed discovery と揃える
-  - 対象: `src-tauri/src/infra/provider/local.rs`, `src-tauri/src/infra/feed_discovery.rs`
-  - local feed metadata の site link が相対 URL の場合、feed URL fallback になり provider 間で website URL 表示が揺れやすい
-  - relative link、scheme-relative link、invalid link、base feed URL、metadata URL normalization の provider test を追加する
-
-- [ ] P2 local feed 追加時の二重 fetch 結果差を create/pull contract にする
-  - 対象: `src-tauri/src/infra/provider/local.rs`, `src-tauri/src/commands/feed_commands.rs`
-  - create_subscription と pull_entries が同じ feed を別々に fetch するため、title/url は1回目、article は2回目という不整合が起き得る
-  - first fetch title、second fetch articles、etag差、network failure between fetches、rollback/invalidation の integration test を追加する
 
 - [ ] P2 discovery と local provider の private-host validation helper を共有化する
   - 対象: `src-tauri/src/infra/feed_discovery.rs`, `src-tauri/src/infra/provider/local.rs`, `src-tauri/src/infra/http_client.rs`
