@@ -3631,11 +3631,6 @@
   - RTL override、zero-width、confusable 文字が入ると feed name や action target が spoof され、delete/rename 確認で誤認しやすい
   - bidi control、zero-width joiner、NFKC confusable、trim display、confirmation label の policy を追加する
 
-- [ ] P2 SQL article list query plan / index drift を representative dataset で検出する
-  - 対象: `src-tauri/src/infra/db/sqlite_article.rs`, migrations, article list repository tests
-  - filter/sort/search 条件が増えると index を使わず large DB で急に遅くなる
-  - unread/starred/feed/folder/search/sort combinations、`EXPLAIN QUERY PLAN` snapshot、large fixture の check を追加する
-
 - [ ] P2 article pagination cursor stability を same timestamp / same order key で固定する
   - 対象: article repository pagination、reader article list hooks
   - `LIMIT/OFFSET` や timestamp sort だけだと同一日時の大量記事で重複/欠落が出る
@@ -3880,11 +3875,6 @@
   - 対象: sync result DTO、frontend sync feedback、diagnostics
   - 数百 feed の失敗を全部 toast/log に出すと UI と log が埋まり、逆に cap すると重要エラーが落ちる
   - warning cap、first error priority、auth vs parse order、per-feed summary、details drilldown の contract を追加する
-
-- [ ] P2 feed integrity cleanup の SQL foreign key cascade と manual delete の差を contract 化する
-  - 対象: feed integrity report/cleanup、SQLite repositories、migration constraints
-  - orphan cleanup と delete feed/account の cascade が別経路だと、article/tag/history の残り方が変わる
-  - delete feed、delete account、cleanup orphan feed、tag relation cleanup、history cleanup の matrix を作る
 
 - [ ] P2 article tag relation uniqueness を DB constraint / frontend optimistic state で固定する
   - 対象: tag repository、article tag picker、tests
