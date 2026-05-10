@@ -1279,11 +1279,6 @@
   - 実日付 fixture が現在日に近づくと stale day、grouping、review warning の期待値が時間で変わる
   - frozen clock、relative date builder、timezone fixture、future date、DST boundary の migration plan を作る
 
-- [ ] P2 release notes と in-app updater message の user-visible change classification を同期する
-  - 対象: release notes workflow、updater UI、CHANGELOG
-  - release note では修正済みでも updater UI が generic だと、ユーザーが update urgency を判断できない
-  - security/privacy fix、data migration、manual action required、known issue、rollback impossible の copy policy を追加する
-
 - [ ] P3 dependency update review を runtime / dev-only / build-only / transitive risk に分類する
   - 対象: `package.json`, `pnpm-lock.yaml`, `src-tauri/Cargo.lock`
   - dependency 更新を一律に見ると、runtime security と test-only churn の優先度が混ざる
@@ -1523,11 +1518,6 @@
   - 対象: reader search UI、FTS query builder、locale copy
   - ユーザーが quote/operator を入力した時の扱いが不明だと、検索失敗を bug と誤解する
   - literal search、phrase search、operator escaped、syntax error copy、help text の contract を追加する
-
-- [ ] P2 release note known-issue と TODO risk のリンク方針を決める
-  - 対象: release notes、CHANGELOG、TODO.md
-  - 未解決の P1/P2 を抱えた release で known issue を書くべきか、internal TODO に留めるべきか判断基準が必要
-  - user-visible risk、internal-only risk、data loss risk、workaround exists、TODO reference の policy を追加する
 
 - [ ] P3 TODO.md の優先度と実装順を machine-readable に抽出する script を追加する
   - 対象: `TODO.md`, task triage tooling
