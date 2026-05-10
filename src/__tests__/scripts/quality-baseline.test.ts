@@ -2,14 +2,18 @@ import type { SpawnSyncReturns } from "node:child_process";
 import { describe, expect, it } from "vitest";
 import {
   buildLockfileDuplicateMajorReport,
+  buildTailwindArbitraryValueInventory,
+  classifyTailwindArbitraryValue,
   createProcessDiagnostic,
   createReportDiagnostic,
+  isTailwindArbitraryValueInventorySourcePath,
   isQualityBaselineRepoScanIgnoredPath,
   parseKnipReport,
   parseReactDoctorReport,
   partitionQualityBaselineRepoScanPaths,
   qualityBaselineRepoScanIgnoredPathPrefixes,
   readJsonPayload,
+  tailwindArbitraryValuesInventoryContract,
 } from "../../../scripts/quality-baseline";
 
 describe("quality-baseline", () => {
@@ -264,6 +268,58 @@ describe("quality-baseline", () => {
         },
       ],
     });
+  });
+
+  it("classifies Tailwind arbitrary values into review buckets", () => {
+    expect(classifyTailwindArbitraryValue("max-w-[24ch]")).toBe("layout-critical");
+    expect(classifyTailwindArbitraryValue("motion-safe:duration-[180ms]")).toBe("motion-critical");
+    expect(classifyTailwindArbitraryValue("z-[60]")).toBe("z-index");
+    expect(classifyTailwindArbitraryValue("text-[color:var(--section-heading-color)]")).toBe("token-candidate");
+    expect(classifyTailwindArbitraryValue("supports-[backdrop-filter]:bg-background/80")).toBe("one-off-allowed");
+  });
+
+  it("builds a Tailwind arbitrary value inventory without scanning unrelated ownership scopes", () => {
+    expect(tailwindArbitraryValuesInventoryContract.categories).toEqual([
+      "layout-critical",
+      "motion-critical",
+      "z-index",
+      "token-candidate",
+      "one-off-allowed",
+    ]);
+    expect(isTailwindArbitraryValueInventorySourcePath("src/components/app-shell.tsx")).toBe(true);
+    expect(isTailwindArbitraryValueInventorySourcePath("src/components/reader/article-list.tsx")).toBe(false);
+    expect(isTailwindArbitraryValueInventorySourcePath("src/components/settings/account-view.tsx")).toBe(false);
+    expect(isTailwindArbitraryValueInventorySourcePath("src/__tests__/components/app.test.tsx")).toBe(false);
+
+    const inventory = buildTailwindArbitraryValueInventory([
+      {
+        path: "src/components/app-shell.tsx",
+        source: [
+          '<div className="grid max-w-[24ch] text-[color:var(--shell-label)] z-[60]">',
+          '<span className="motion-safe:duration-[180ms] supports-[backdrop-filter]:bg-background/80 [&_[cmdk-item]]:px-2" />',
+        ].join("\n"),
+      },
+      {
+        path: "src/components/reader/article-list.tsx",
+        source: '<div className="max-w-[88ch]" />',
+      },
+    ]);
+
+    expect(inventory.summary).toEqual({
+      "layout-critical": 1,
+      "motion-critical": 1,
+      "z-index": 1,
+      "token-candidate": 1,
+      "one-off-allowed": 2,
+    });
+    expect(inventory.entries.map((entry) => `${entry.category}:${entry.line}:${entry.className}`)).toEqual([
+      "layout-critical:1:max-w-[24ch]",
+      "token-candidate:1:text-[color:var(--shell-label)]",
+      "z-index:1:z-[60]",
+      "motion-critical:2:motion-safe:duration-[180ms]",
+      "one-off-allowed:2:supports-[backdrop-filter]:bg-background/80",
+      "one-off-allowed:2:[&_[cmdk-item]]:px-2",
+    ]);
   });
 });
 

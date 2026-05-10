@@ -73,6 +73,15 @@ const lockfileDuplicateMajorBaseline = {
   unreviewedDuplicatePackageCount: 36,
 } as const;
 
+export const tailwindArbitraryValuesInventoryContract = {
+  sourcePathPrefixes: ["src/"],
+  sourceFileExtensions: [".tsx", ".css"],
+  ignoredPathPrefixes: ["src/__tests__/", "src/components/reader/", "src/components/settings/"],
+  categories: ["layout-critical", "motion-critical", "z-index", "token-candidate", "one-off-allowed"],
+  reviewPolicy:
+    "Classify arbitrary values before tokenizing; repeated semantic color, elevation, spacing, and z-index values should become token candidates.",
+} as const;
+
 const knownAcceptableLockfileDuplicateMajors = [
   {
     name: "@vitest/expect",
@@ -145,6 +154,23 @@ export type LockfileDuplicateMajorReport = {
   entries: LockfileDuplicateMajorEntry[];
 };
 
+export type TailwindArbitraryValueCategory = (typeof tailwindArbitraryValuesInventoryContract.categories)[number];
+
+export type TailwindArbitraryValueEntry = {
+  path: string;
+  line: number;
+  className: string;
+  value: string;
+  category: TailwindArbitraryValueCategory;
+};
+
+export type TailwindArbitraryValueSummary = Record<TailwindArbitraryValueCategory, number>;
+
+export type TailwindArbitraryValueInventory = {
+  summary: TailwindArbitraryValueSummary;
+  entries: TailwindArbitraryValueEntry[];
+};
+
 export type QualityToolDiagnosticKind =
   | "missing-command"
   | "non-zero-exit"
@@ -170,10 +196,11 @@ export function runQualityBaseline(command: string | undefined = process.argv[2]
     command !== "react-doctor:diff" &&
     command !== "react-doctor:full" &&
     command !== "knip" &&
-    command !== "lockfile-duplicate-majors"
+    command !== "lockfile-duplicate-majors" &&
+    command !== "tailwind-arbitrary-values"
   ) {
     console.error(
-      "Usage: node scripts/quality-baseline.ts react-doctor:diff|react-doctor:full|knip|lockfile-duplicate-majors",
+      "Usage: node scripts/quality-baseline.ts react-doctor:diff|react-doctor:full|knip|lockfile-duplicate-majors|tailwind-arbitrary-values",
     );
     process.exit(2);
   }
@@ -184,8 +211,10 @@ export function runQualityBaseline(command: string | undefined = process.argv[2]
     runReactDoctor("full", false);
   } else if (command === "knip") {
     runKnip();
-  } else {
+  } else if (command === "lockfile-duplicate-majors") {
     runLockfileDuplicateMajorReport();
+  } else {
+    runTailwindArbitraryValuesInventory();
   }
 }
 
@@ -310,6 +339,39 @@ function runLockfileDuplicateMajorReport(): void {
   }
 }
 
+function runTailwindArbitraryValuesInventory(): void {
+  const result = spawnSync("git", ["ls-files", "src/**/*.tsx", "src/**/*.css"], {
+    encoding: "utf8",
+    timeout: qualityToolTimeoutMs,
+  });
+  const processDiagnostic = createProcessDiagnostic("Tailwind arbitrary values inventory", "git ls-files", result);
+  if (processDiagnostic !== null) {
+    writeToolDiagnostic(processDiagnostic);
+    process.exit(exitCodeForDiagnostic(processDiagnostic));
+  }
+
+  const files = result.stdout
+    .split("\n")
+    .map((path) => path.trim())
+    .filter((path) => path.length > 0)
+    .filter(isTailwindArbitraryValueInventorySourcePath)
+    .map((path) => ({ path, source: readFileSync(path, "utf8") }));
+  const inventory = buildTailwindArbitraryValueInventory(files);
+
+  console.log(
+    [
+      `Tailwind arbitrary values: total=${inventory.entries.length}`,
+      ...tailwindArbitraryValuesInventoryContract.categories.map(
+        (category) => `${category}=${inventory.summary[category]}`,
+      ),
+    ].join(" "),
+  );
+
+  for (const entry of inventory.entries) {
+    console.log(`${entry.category}: ${entry.path}:${entry.line} ${entry.className}`);
+  }
+}
+
 export function buildLockfileDuplicateMajorReport(
   lockfile: string,
   manifest: PackageManifest,
@@ -350,6 +412,61 @@ export function buildLockfileDuplicateMajorReport(
     unreviewedDuplicatePackageCount: entries.filter((entry) => !entry.allowed).length,
     entries,
   };
+}
+
+export function buildTailwindArbitraryValueInventory(
+  files: readonly { path: string; source: string }[],
+): TailwindArbitraryValueInventory {
+  const entries = files
+    .filter((file) => isTailwindArbitraryValueInventorySourcePath(file.path))
+    .flatMap((file) => readTailwindArbitraryValueEntries(file.path, file.source))
+    .sort((left, right) => left.path.localeCompare(right.path) || left.line - right.line);
+
+  const summary = createEmptyTailwindArbitraryValueSummary();
+  for (const entry of entries) {
+    summary[entry.category] += 1;
+  }
+
+  return { summary, entries };
+}
+
+export function isTailwindArbitraryValueInventorySourcePath(filePath: string): boolean {
+  const normalizedPath = normalizeRepoScanPath(filePath);
+  return (
+    tailwindArbitraryValuesInventoryContract.sourcePathPrefixes.some((prefix) => normalizedPath.startsWith(prefix)) &&
+    tailwindArbitraryValuesInventoryContract.sourceFileExtensions.some((extension) =>
+      normalizedPath.endsWith(extension),
+    ) &&
+    !tailwindArbitraryValuesInventoryContract.ignoredPathPrefixes.some((prefix) => normalizedPath.startsWith(prefix)) &&
+    !isQualityBaselineRepoScanIgnoredPath(normalizedPath)
+  );
+}
+
+export function classifyTailwindArbitraryValue(className: string): TailwindArbitraryValueCategory {
+  const normalizedClassName = stripTailwindVariants(className);
+  const value = readTailwindArbitraryValue(className);
+
+  if (/^z-\[/.test(normalizedClassName)) {
+    return "z-index";
+  }
+  if (/^(?:duration|delay|ease|animate)-\[/.test(normalizedClassName)) {
+    return "motion-critical";
+  }
+  if (/^(?:bg|text|border|ring|fill|stroke|shadow|accent|caret|decoration)-\[/.test(normalizedClassName)) {
+    return "token-candidate";
+  }
+  if (/var\(--|color-mix\(|oklch\(|rgba?\(|hsla?\(/.test(value)) {
+    return "token-candidate";
+  }
+  if (
+    /^(?:w|h|size|min-w|min-h|max-w|max-h|inset|top|right|bottom|left|translate-x|translate-y|grid-cols|grid-rows|col|row|gap|space|m|mx|my|mt|mr|mb|ml|p|px|py|pt|pr|pb|pl|basis|aspect|leading|tracking|rounded)-\[/.test(
+      normalizedClassName,
+    )
+  ) {
+    return "layout-critical";
+  }
+
+  return "one-off-allowed";
 }
 
 function readKnipVersion(): string {
@@ -639,6 +756,78 @@ export function partitionQualityBaselineRepoScanPaths(paths: readonly string[]):
   }
 
   return { includedPaths, ignoredPaths };
+}
+
+function readTailwindArbitraryValueEntries(path: string, source: string): TailwindArbitraryValueEntry[] {
+  const entries: TailwindArbitraryValueEntry[] = [];
+  const tokenPattern = /[^\s"'`<>]+/g;
+
+  for (const match of source.matchAll(tokenPattern)) {
+    const className = cleanPotentialTailwindToken(match[0]);
+    if (!isTailwindArbitraryToken(className)) {
+      continue;
+    }
+    const offset = match.index ?? 0;
+    entries.push({
+      path: normalizeRepoScanPath(path),
+      line: countLinesBeforeOffset(source, offset) + 1,
+      className,
+      value: readTailwindArbitraryValue(className),
+      category: classifyTailwindArbitraryValue(className),
+    });
+  }
+
+  return entries;
+}
+
+function cleanPotentialTailwindToken(token: string): string {
+  const cleanedToken = token.replace(/^[{(]+/, "").replace(/[}),;]+$/, "");
+  const closingBracketIndex = cleanedToken.indexOf("]");
+  if (closingBracketIndex === -1) {
+    return cleanedToken;
+  }
+  return cleanedToken.slice(0, closingBracketIndex + 1);
+}
+
+function isTailwindArbitraryToken(token: string): boolean {
+  if (!token.includes("[") || !token.includes("]")) {
+    return false;
+  }
+  return stripTailwindVariants(token).includes("-[") || token.includes("]:");
+}
+
+function stripTailwindVariants(className: string): string {
+  const bracketDepthAwareSeparator = /:(?![^\[]*\])/g;
+  return className.split(bracketDepthAwareSeparator).at(-1) ?? className;
+}
+
+function readTailwindArbitraryValue(className: string): string {
+  const start = className.indexOf("[");
+  const end = className.lastIndexOf("]");
+  if (start === -1 || end <= start) {
+    return "";
+  }
+  return className.slice(start + 1, end);
+}
+
+function createEmptyTailwindArbitraryValueSummary(): TailwindArbitraryValueSummary {
+  return {
+    "layout-critical": 0,
+    "motion-critical": 0,
+    "z-index": 0,
+    "token-candidate": 0,
+    "one-off-allowed": 0,
+  };
+}
+
+function countLinesBeforeOffset(source: string, offset: number): number {
+  let lines = 0;
+  for (let index = 0; index < offset; index += 1) {
+    if (source[index] === "\n") {
+      lines += 1;
+    }
+  }
+  return lines;
 }
 
 function normalizeRepoScanPath(filePath: string): string {

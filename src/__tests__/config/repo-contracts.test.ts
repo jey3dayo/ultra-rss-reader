@@ -28,6 +28,8 @@ import releaseNotesConfig from "../../../.github/release.yml?raw";
 import prInsightsLabelerWorkflow from "../../../.github/workflows/pr-insights-labeler.yml?raw";
 import storybookConfig from "../../../.storybook/main";
 import {
+  STORYBOOK_A11Y_TEST_MODE,
+  STORYBOOK_A11Y_TEST_TODO_ALLOWLIST,
   STORYBOOK_PREVIEW_BACKGROUND_TOKEN,
   STORYBOOK_PREVIEW_BACKGROUND_VALUES,
   STORYBOOK_PREVIEW_BACKGROUNDS,
@@ -1325,6 +1327,18 @@ describe("repository static contracts", () => {
     expect(storybookMainSource).toContain("return mergeConfig(config, {");
     expect(storybookMainSource).toContain('"@": path.resolve(import.meta.dirname, "../src")');
     expect(storybookMainSource).toContain('"@tests": path.resolve(import.meta.dirname, "../tests")');
+  });
+
+  it("keeps Storybook a11y addon violations gated with an explicit allowlist", () => {
+    const storySourcesWithA11yTodo = storyFilesUnderSrc().filter((filePath) => {
+      const source = readRepoFile(filePath);
+      return /a11y\s*:\s*\{[^}]*test\s*:\s*["'](?:todo|off)["']/s.test(source);
+    });
+
+    expect(STORYBOOK_A11Y_TEST_MODE).toBe("error");
+    expect(storybookConfig.addons).toContain("@storybook/addon-a11y");
+    expect(STORYBOOK_A11Y_TEST_TODO_ALLOWLIST).toEqual([]);
+    expect(storySourcesWithA11yTodo).toEqual([...STORYBOOK_A11Y_TEST_TODO_ALLOWLIST]);
   });
 
   it("keeps Storybook preview backgrounds aligned with CSS theme canvas tokens", () => {

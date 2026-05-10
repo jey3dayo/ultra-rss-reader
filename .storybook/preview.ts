@@ -27,6 +27,9 @@ export const STORYBOOK_PREVIEW_BACKGROUNDS: StorybookPreviewBackground[] = [
   },
 ];
 
+export const STORYBOOK_A11Y_TEST_MODE = "error";
+export const STORYBOOK_A11Y_TEST_TODO_ALLOWLIST: readonly string[] = [];
+
 i18n.options.parseMissingKeyHandler = (key: string): never => {
   throw new Error(`Missing i18n key in Storybook runtime: ${key}`);
 };
@@ -36,6 +39,9 @@ const preview: Preview = {
     backgrounds: {
       default: "dark",
       values: STORYBOOK_PREVIEW_BACKGROUNDS,
+    },
+    a11y: {
+      test: STORYBOOK_A11Y_TEST_MODE,
     },
     options: {
       storySort: {
