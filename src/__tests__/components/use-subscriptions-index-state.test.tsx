@@ -132,8 +132,8 @@ describe("useSubscriptionsIndexState", () => {
     const { result } = renderHook(() =>
       useSubscriptionsIndexState([makeRow("feed-first")], {
         initialExpandedGroups: {
-          "folder-a": false,
-          "folder-b": true,
+          "group:folder-a": false,
+          "group:folder-b": true,
         },
       }),
     );
@@ -149,6 +149,20 @@ describe("useSubscriptionsIndexState", () => {
     expect(result.current.isGroupExpanded("folder-a")).toBe(false);
     expect(result.current.isGroupExpanded("folder-b")).toBe(false);
     expect(result.current.isGroupExpanded("folder-c")).toBe(true);
+  });
+
+  it("ignores non-namespaced returned group disclosure keys", () => {
+    const { result } = renderHook(() =>
+      useSubscriptionsIndexState([makeRow("feed-first")], {
+        initialExpandedGroups: {
+          "group:folder-a": false,
+          all: false,
+        },
+      }),
+    );
+
+    expect(result.current.isGroupExpanded("folder-a")).toBe(false);
+    expect(result.current.isGroupExpanded("all")).toBe(true);
   });
 
   it("applies return-state summary filter and kept feeds before restoring selection", async () => {
@@ -175,19 +189,91 @@ describe("useSubscriptionsIndexState", () => {
   });
 
   it("restores the returned list scroll position until the summary filter changes", () => {
+    const row = makeRow("feed-first");
     const { result } = renderHook(() =>
-      useSubscriptionsIndexState([makeRow("feed-first")], {
-        initialListScrollTop: 48,
+      useSubscriptionsIndexState([row], {
+        initialListScrollState: {
+          scrollTop: 48,
+          layoutGeneration: row.feed.id,
+          viewportHeight: 640,
+        },
+        viewportHeight: 640,
       }),
     );
 
     expect(result.current.listScrollTop).toBe(48);
+    expect(result.current.listScrollState).toEqual({
+      scrollTop: 48,
+      layoutGeneration: "feed-first",
+      viewportHeight: 640,
+    });
 
     act(() => {
       result.current.setActiveSummaryFilter("review");
     });
 
     expect(result.current.activeSummaryFilter).toBe("review");
+    expect(result.current.listScrollTop).toBe(0);
+  });
+
+  it("drops returned list scroll when the layout generation or viewport height changed", () => {
+    const firstRow = makeRow("feed-first");
+    const secondRow = makeRow("feed-second");
+    const { result, rerender } = renderHook(
+      ({ rows, viewportHeight }: { rows: SubscriptionListRow[]; viewportHeight: number }) =>
+        useSubscriptionsIndexState(rows, {
+          initialListScrollState: {
+            scrollTop: 120,
+            layoutGeneration: "feed-missing",
+            viewportHeight: 640,
+          },
+          viewportHeight,
+        }),
+      {
+        initialProps: { rows: [firstRow], viewportHeight: 640 },
+      },
+    );
+
+    expect(result.current.listScrollTop).toBe(0);
+
+    act(() => {
+      result.current.setListScrollTop(96);
+    });
+
+    expect(result.current.listScrollTop).toBe(96);
+
+    rerender({ rows: [firstRow, secondRow], viewportHeight: 640 });
+
+    expect(result.current.listScrollTop).toBe(0);
+
+    act(() => {
+      result.current.setListScrollTop(72);
+    });
+
+    rerender({ rows: [firstRow, secondRow], viewportHeight: 700 });
+
+    expect(result.current.listScrollTop).toBe(0);
+  });
+
+  it("normalizes negative list scroll updates and returned scroll state", () => {
+    const row = makeRow("feed-first");
+    const { result } = renderHook(() =>
+      useSubscriptionsIndexState([row], {
+        initialListScrollState: {
+          scrollTop: -1,
+          layoutGeneration: row.feed.id,
+          viewportHeight: 640,
+        },
+        viewportHeight: 640,
+      }),
+    );
+
+    expect(result.current.listScrollTop).toBe(0);
+
+    act(() => {
+      result.current.setListScrollTop(-10);
+    });
+
     expect(result.current.listScrollTop).toBe(0);
   });
 
@@ -249,7 +335,12 @@ describe("useSubscriptionsIndexState", () => {
           initialSelectedFeedId: "feed-review",
           initialKeptFeedIds: ["feed-review"],
           initialDeferredFeedIds: [],
-          initialListScrollTop: 64,
+          initialListScrollState: {
+            scrollTop: 64,
+            layoutGeneration: "feed-review",
+            viewportHeight: 640,
+          },
+          viewportHeight: 640,
         }),
       {
         initialProps: { accountId: "acc-1" },

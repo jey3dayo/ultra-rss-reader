@@ -2,6 +2,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { SubscriptionSummaryFilterKey } from "@/lib/subscriptions/subscription-summary-filter.types";
 import { buildVisibleSubscriptionRows, type SubscriptionSortKey } from "@/lib/subscriptions/subscriptions-index";
 import type { SubscriptionListRow } from "@/lib/subscriptions/subscriptions-index.types";
+import type {
+  SubscriptionsWorkspaceExpandedGroupKey,
+  SubscriptionsWorkspaceListScrollState,
+} from "@/lib/subscriptions/subscriptions-workspace.types";
+
+const EXPANDED_GROUP_KEY_PREFIX = "group:";
 
 function findSelectedSubscriptionRow(
   rows: SubscriptionListRow[],
@@ -34,6 +40,57 @@ function updateSelectedFeedDecision(params: {
   setSecondary((current) => removeFeedIdFromSet(current, selectedFeedId));
 }
 
+function namespaceExpandedGroupKey(groupKey: string): SubscriptionsWorkspaceExpandedGroupKey {
+  return `${EXPANDED_GROUP_KEY_PREFIX}${groupKey}`;
+}
+
+function isExpandedGroupKey(groupKey: string): groupKey is SubscriptionsWorkspaceExpandedGroupKey {
+  return groupKey.startsWith(EXPANDED_GROUP_KEY_PREFIX);
+}
+
+function sanitizeExpandedGroups(
+  expandedGroups: Record<string, boolean> | undefined,
+): Record<SubscriptionsWorkspaceExpandedGroupKey, boolean> {
+  if (!expandedGroups) {
+    return {};
+  }
+
+  const sanitized: Record<SubscriptionsWorkspaceExpandedGroupKey, boolean> = {};
+  for (const [groupKey, expanded] of Object.entries(expandedGroups)) {
+    if (isExpandedGroupKey(groupKey) && typeof expanded === "boolean") {
+      sanitized[groupKey] = expanded;
+    }
+  }
+  return sanitized;
+}
+
+function resolveInitialListScrollState(params: {
+  initialListScrollState?: SubscriptionsWorkspaceListScrollState;
+  listLayoutGeneration: string;
+  listLayoutReady: boolean;
+  viewportHeight: number;
+}): SubscriptionsWorkspaceListScrollState {
+  const { initialListScrollState, listLayoutGeneration, listLayoutReady, viewportHeight } = params;
+  if (
+    !initialListScrollState ||
+    (listLayoutReady && initialListScrollState.layoutGeneration !== listLayoutGeneration) ||
+    initialListScrollState.viewportHeight !== viewportHeight ||
+    initialListScrollState.scrollTop < 0
+  ) {
+    return {
+      scrollTop: 0,
+      layoutGeneration: listLayoutGeneration,
+      viewportHeight,
+    };
+  }
+
+  return initialListScrollState;
+}
+
+function buildListLayoutGeneration(visibleRows: SubscriptionListRow[]): string {
+  return visibleRows.map((row) => row.feed.id).join("\n");
+}
+
 type SubscriptionsIndexStateOptions = {
   accountId?: string | null;
   initialSummaryFilter?: SubscriptionSummaryFilterKey;
@@ -41,10 +98,12 @@ type SubscriptionsIndexStateOptions = {
   initialExpandedGroups?: Record<string, boolean>;
   initialKeptFeedIds?: string[];
   initialDeferredFeedIds?: string[];
-  initialListScrollTop?: number;
+  initialListScrollState?: SubscriptionsWorkspaceListScrollState;
+  viewportHeight?: number;
 };
 
 export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?: SubscriptionsIndexStateOptions) {
+  const viewportHeight = options?.viewportHeight ?? 0;
   const [activeAccountId, setActiveAccountId] = useState(options?.accountId ?? null);
   const [selectedFeedId, setSelectedFeedId] = useState<string | null>(options?.initialSelectedFeedId ?? null);
   const [keptFeedIds, setKeptFeedIds] = useState<Set<string>>(() => new Set(options?.initialKeptFeedIds ?? []));
@@ -53,11 +112,32 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [sortKey, setSortKey] = useState<SubscriptionSortKey>("title");
-  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(options?.initialExpandedGroups ?? {});
+  const [expandedGroups, setExpandedGroups] = useState<Record<SubscriptionsWorkspaceExpandedGroupKey, boolean>>(() =>
+    sanitizeExpandedGroups(options?.initialExpandedGroups),
+  );
   const [activeSummaryFilter, setActiveSummaryFilter] = useState<SubscriptionSummaryFilterKey>(
     options?.initialSummaryFilter ?? "all",
   );
-  const [listScrollTop, setListScrollTop] = useState(options?.initialListScrollTop ?? 0);
+  const visibleRows = useMemo(() => {
+    return buildVisibleSubscriptionRows({
+      rows,
+      activeSummaryFilter,
+      keptFeedIds,
+      deferredFeedIds,
+      searchQuery,
+      sortKey,
+    });
+  }, [activeSummaryFilter, deferredFeedIds, keptFeedIds, rows, searchQuery, sortKey]);
+  const listLayoutGeneration = useMemo(() => buildListLayoutGeneration(visibleRows), [visibleRows]);
+  const listLayoutReady = rows.length > 0;
+  const [listScrollState, setListScrollState] = useState<SubscriptionsWorkspaceListScrollState>(() =>
+    resolveInitialListScrollState({
+      initialListScrollState: options?.initialListScrollState,
+      listLayoutGeneration,
+      listLayoutReady,
+      viewportHeight,
+    }),
+  );
 
   useEffect(() => {
     const nextAccountId = options?.accountId ?? null;
@@ -73,29 +153,47 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
     setSortKey("title");
     setExpandedGroups({});
     setActiveSummaryFilter("all");
-    setListScrollTop(0);
-  }, [activeAccountId, options?.accountId]);
+    setListScrollState({
+      scrollTop: 0,
+      layoutGeneration: listLayoutGeneration,
+      viewportHeight,
+    });
+  }, [activeAccountId, listLayoutGeneration, options?.accountId, viewportHeight]);
 
   const selectSummaryFilter = useCallback((filterKey: SubscriptionSummaryFilterKey) => {
     setActiveSummaryFilter(filterKey);
-    setListScrollTop(0);
-  }, []);
+    setListScrollState({
+      scrollTop: 0,
+      layoutGeneration: listLayoutGeneration,
+      viewportHeight,
+    });
+  }, [listLayoutGeneration, viewportHeight]);
 
   const updateSearchQuery = useCallback((query: string) => {
     setSearchQuery(query);
-    setListScrollTop(0);
-  }, []);
-
-  const visibleRows = useMemo(() => {
-    return buildVisibleSubscriptionRows({
-      rows,
-      activeSummaryFilter,
-      keptFeedIds,
-      deferredFeedIds,
-      searchQuery,
-      sortKey,
+    setListScrollState({
+      scrollTop: 0,
+      layoutGeneration: listLayoutGeneration,
+      viewportHeight,
     });
-  }, [activeSummaryFilter, deferredFeedIds, keptFeedIds, rows, searchQuery, sortKey]);
+  }, [listLayoutGeneration, viewportHeight]);
+
+  useEffect(() => {
+    setListScrollState((current) => {
+      if (!listLayoutReady) {
+        return current;
+      }
+      if (current.layoutGeneration === listLayoutGeneration && current.viewportHeight === viewportHeight) {
+        return current;
+      }
+
+      return {
+        scrollTop: 0,
+        layoutGeneration: listLayoutGeneration,
+        viewportHeight,
+      };
+    });
+  }, [listLayoutGeneration, listLayoutReady, viewportHeight]);
 
   const selectedRow = findSelectedSubscriptionRow(visibleRows, selectedFeedId);
 
@@ -117,15 +215,21 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
     deferredFeedIds,
     expandedGroups,
     keptFeedIds,
-    listScrollTop,
+    listScrollState,
+    listScrollTop: listScrollState.scrollTop,
     searchQuery,
     selectedFeedId,
     selectedRow,
     sortKey,
     visibleRows,
-    isGroupExpanded: (groupKey: string) => expandedGroups[groupKey] ?? true,
+    isGroupExpanded: (groupKey: string) => expandedGroups[namespaceExpandedGroupKey(groupKey)] ?? true,
     setActiveSummaryFilter: selectSummaryFilter,
-    setListScrollTop,
+    setListScrollTop: (scrollTop: number) =>
+      setListScrollState({
+        scrollTop: Math.max(0, scrollTop),
+        layoutGeneration: listLayoutGeneration,
+        viewportHeight,
+      }),
     setSearchQuery: updateSearchQuery,
     setSelectedFeedId,
     setSortKey,
@@ -144,9 +248,12 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
       });
     },
     toggleGroup: (groupKey: string) =>
-      setExpandedGroups((current) => ({
-        ...current,
-        [groupKey]: !(current[groupKey] ?? true),
-      })),
+      setExpandedGroups((current) => {
+        const expandedGroupKey = namespaceExpandedGroupKey(groupKey);
+        return {
+          ...current,
+          [expandedGroupKey]: !(current[expandedGroupKey] ?? true),
+        };
+      }),
   };
 }

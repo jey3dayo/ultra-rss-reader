@@ -43,6 +43,10 @@ import { useSubscriptionsIndexState } from "./use-subscriptions-index-state";
 
 const REVIEW_CLOCK_REFRESH_INTERVAL_MS = 60 * 60 * 1000;
 
+function getViewportHeight(): number {
+  return typeof window === "undefined" ? 0 : window.innerHeight;
+}
+
 function hasOpenNestedEscapeLayer(): boolean {
   return document.querySelector('[role="dialog"], [data-radix-popper-content-wrapper]') !== null;
 }
@@ -68,6 +72,7 @@ export function SubscriptionsIndexPage() {
   const scopedIndexReturnState =
     indexReturnState && indexReturnState.accountId === selectedAccountId ? indexReturnState : null;
   const [reviewClock, setReviewClock] = useState(() => getCurrentDate());
+  const [viewportHeight, setViewportHeight] = useState(() => getViewportHeight());
 
   const candidates = useMemo(
     () =>
@@ -96,7 +101,8 @@ export function SubscriptionsIndexPage() {
     initialExpandedGroups: scopedIndexReturnState?.expandedGroups,
     initialKeptFeedIds: scopedIndexReturnState?.keptFeedIds,
     initialDeferredFeedIds: scopedIndexReturnState?.deferredFeedIds,
-    initialListScrollTop: scopedIndexReturnState?.listScrollTop,
+    initialListScrollState: scopedIndexReturnState?.listScrollTop,
+    viewportHeight,
   });
   const selectedMetrics = resolveSelectedSubscriptionDetailMetrics({
     selectedRow: state.selectedRow,
@@ -230,6 +236,17 @@ export function SubscriptionsIndexPage() {
 
     return () => {
       window.clearInterval(timerId);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setViewportHeight(getViewportHeight());
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
     };
   }, []);
 

@@ -2,12 +2,20 @@ import type { SubscriptionSummaryFilterKey } from "@/lib/subscriptions/subscript
 
 export type SubscriptionSummaryFilterState = SubscriptionSummaryFilterKey;
 
+export type SubscriptionsWorkspaceExpandedGroupKey = `group:${string}`;
+
+export type SubscriptionsWorkspaceListScrollState = {
+  scrollTop: number;
+  layoutGeneration: string;
+  viewportHeight: number;
+};
+
 export type SubscriptionsWorkspaceReturnState = {
   accountId: string | null;
   activeSummaryFilter: SubscriptionSummaryFilterState;
   selectedFeedId: string | null;
-  expandedGroups: Record<string, boolean>;
-  listScrollTop: number;
+  expandedGroups: Record<SubscriptionsWorkspaceExpandedGroupKey, boolean>;
+  listScrollTop: SubscriptionsWorkspaceListScrollState;
   keptFeedIds: string[];
   deferredFeedIds: string[];
 };
