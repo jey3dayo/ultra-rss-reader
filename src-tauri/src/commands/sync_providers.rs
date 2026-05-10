@@ -8,7 +8,9 @@ use crate::commands::dto::{AccountSyncWarningKind, AppError};
 use crate::domain::account::Account;
 use crate::domain::article::{generate_entry_id, Article};
 use crate::domain::feed::Feed;
-use crate::domain::provider::{FeedIdentifier, Mutation, PullResult, PullScope, SyncCursor};
+use crate::domain::provider::{
+    FeedIdentifier, Mutation, PullResult, PullScope, RemoteEntry, SyncCursor,
+};
 use crate::domain::types::{AccountId, ArticleId, FeedId, FolderId};
 use crate::infra::db::connection::DbManager;
 use crate::infra::db::sqlite_article::mark_muted_unread_as_read_with_conn;
@@ -180,6 +182,24 @@ fn update_latest_timestamp_usec(
     if let Some(next_timestamp_usec) = next_cursor
         .and_then(|cursor| cursor.since)
         .map(|ts| ts.timestamp_micros())
+    {
+        *latest_timestamp_usec = Some(
+            latest_timestamp_usec
+                .map(|current| current.max(next_timestamp_usec))
+                .unwrap_or(next_timestamp_usec),
+        );
+    }
+}
+
+fn update_latest_timestamp_usec_from_entries(
+    latest_timestamp_usec: &mut Option<i64>,
+    entries: &[RemoteEntry],
+) {
+    if let Some(next_timestamp_usec) = entries
+        .iter()
+        .filter_map(|entry| entry.updated_at.or(entry.published_at))
+        .map(|timestamp| timestamp.timestamp_micros())
+        .max()
     {
         *latest_timestamp_usec = Some(
             latest_timestamp_usec
@@ -598,16 +618,19 @@ fn pending_mutation_targets_provider_managed_greader_feed(
 ) -> Result<bool, AppError> {
     let db_guard = lock_db(db)?;
     match db_guard.reader().query_row(
-        "SELECT f.remote_id
-             FROM pending_mutations pm
-             JOIN articles a ON a.remote_id = pm.remote_entry_id
-             JOIN feeds f ON f.id = a.feed_id
-             WHERE pm.id = ?1 AND f.account_id = pm.account_id
-             LIMIT 1",
+        "SELECT EXISTS (
+                 SELECT 1
+                 FROM pending_mutations pm
+                 JOIN articles a ON a.remote_id = pm.remote_entry_id
+                 JOIN feeds f ON f.id = a.feed_id
+                 WHERE pm.id = ?1
+                   AND f.account_id = pm.account_id
+                   AND f.remote_id LIKE 'feed/%'
+             )",
         rusqlite::params![pending_mutation_id],
-        |row| row.get::<_, Option<String>>(0),
+        |row| row.get::<_, bool>(0),
     ) {
-        Ok(feed_remote_id) => Ok(is_provider_managed_greader_feed(feed_remote_id.as_deref())),
+        Ok(targets_provider_feed) => Ok(targets_provider_feed),
         Err(rusqlite::Error::QueryReturnedNoRows) => Ok(false),
         Err(error) => Err(AppError::from(crate::domain::error::DomainError::from(
             error,
@@ -638,6 +661,7 @@ async fn sync_greader_account_entries(
         delta_pages += 1;
         skipped_entries += result.skipped_entries;
         update_latest_timestamp_usec(&mut latest_timestamp_usec, result.next_cursor.as_ref());
+        update_latest_timestamp_usec_from_entries(&mut latest_timestamp_usec, &result.entries);
 
         let mut articles = Vec::with_capacity(result.entries.len());
         for entry in &result.entries {
@@ -1101,6 +1125,7 @@ async fn reconcile_greader_unread_state_for_feed(
         pending_repo
             .find_by_account(&account.id)?
             .into_iter()
+            .filter(|mutation| mutation.mutation_type.axis() == PendingMutationAxis::ReadState)
             .map(|mutation| mutation.remote_entry_id)
             .collect::<HashSet<_>>()
     };
@@ -1302,15 +1327,8 @@ async fn sync_greader_feed_entries(
         let result = provider.pull_entries(scope, cursor.clone()).await?;
         skipped_entries += result.skipped_entries;
 
-        if let Some(next_cursor) = result.next_cursor.as_ref() {
-            if let Some(next_timestamp_usec) = next_cursor.since.map(|ts| ts.timestamp_micros()) {
-                latest_timestamp_usec = Some(
-                    latest_timestamp_usec
-                        .map(|current| current.max(next_timestamp_usec))
-                        .unwrap_or(next_timestamp_usec),
-                );
-            }
-        }
+        update_latest_timestamp_usec(&mut latest_timestamp_usec, result.next_cursor.as_ref());
+        update_latest_timestamp_usec_from_entries(&mut latest_timestamp_usec, &result.entries);
 
         let articles: Vec<Article> = result
             .entries
@@ -1651,6 +1669,92 @@ mod tests {
                 .unwrap();
 
         assert!(!targets_greader);
+    }
+
+    #[test]
+    fn pending_mutation_target_lookup_uses_remote_entry_id_collision_across_feeds() {
+        let db = test_db();
+        let (account, feeds) = insert_account_and_feeds(
+            &db,
+            "https://rss.example.com",
+            &[
+                (
+                    "",
+                    "Local Collision",
+                    "https://example.com/local.xml",
+                    "https://example.com/local",
+                ),
+                (
+                    "feed/https://example.com/remote.xml",
+                    "Remote Collision",
+                    "https://example.com/remote.xml",
+                    "https://example.com/remote",
+                ),
+            ],
+        );
+        let remote_entry_id = "duplicate-entry";
+        let pending_mutation_id = {
+            let db_guard = db.lock().unwrap();
+            let article_repo = SqliteArticleRepository::new(db_guard.writer());
+            article_repo
+                .upsert(&[
+                    Article {
+                        id: ArticleId("local-duplicate-entry".to_string()),
+                        feed_id: feeds[0].id.clone(),
+                        remote_id: Some(remote_entry_id.to_string()),
+                        title: "Local Collision".to_string(),
+                        content_raw: "body".to_string(),
+                        content_sanitized: "body".to_string(),
+                        sanitizer_version: sanitizer::SANITIZER_VERSION,
+                        summary: None,
+                        url: Some("https://example.com/local-entry".to_string()),
+                        author: None,
+                        published_at: chrono::Utc::now(),
+                        thumbnail: None,
+                        is_read: false,
+                        is_starred: false,
+                        fetched_at: chrono::Utc::now(),
+                    },
+                    Article {
+                        id: ArticleId("remote-duplicate-entry".to_string()),
+                        feed_id: feeds[1].id.clone(),
+                        remote_id: Some(remote_entry_id.to_string()),
+                        title: "Remote Collision".to_string(),
+                        content_raw: "body".to_string(),
+                        content_sanitized: "body".to_string(),
+                        sanitizer_version: sanitizer::SANITIZER_VERSION,
+                        summary: None,
+                        url: Some("https://example.com/remote-entry".to_string()),
+                        author: None,
+                        published_at: chrono::Utc::now(),
+                        thumbnail: None,
+                        is_read: false,
+                        is_starred: false,
+                        fetched_at: chrono::Utc::now(),
+                    },
+                ])
+                .unwrap();
+            db_guard
+                .writer()
+                .execute(
+                    "INSERT INTO pending_mutations (account_id, mutation_type, remote_entry_id, created_at)
+                     VALUES (?1, ?2, ?3, ?4)",
+                    rusqlite::params![
+                        account.id.as_ref(),
+                        PendingMutationType::MarkRead.as_str(),
+                        remote_entry_id,
+                        "2024-01-01T00:00:00Z"
+                    ],
+                )
+                .unwrap();
+            db_guard.writer().last_insert_rowid()
+        };
+
+        let targets_greader =
+            pending_mutation_targets_provider_managed_greader_feed(&db, pending_mutation_id)
+                .unwrap();
+
+        assert!(targets_greader);
     }
 
     fn test_feed(account_id: &AccountId) -> Feed {
@@ -2251,6 +2355,105 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn reconcile_greader_unread_counts_does_not_treat_star_pending_as_read_pending() {
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(200)
+            .with_body("Auth=tok\n")
+            .create_async()
+            .await;
+
+        let unread_stream_mock = server
+            .mock(
+                "GET",
+                "/api/greader.php/reader/api/0/stream/contents/feed%2Fhttps%3A%2F%2Fexample.com%2Frss",
+            )
+            .match_query(Matcher::AllOf(vec![
+                Matcher::UrlEncoded("output".into(), "json".into()),
+                Matcher::UrlEncoded("n".into(), "200".into()),
+                Matcher::UrlEncoded("xt".into(), "user/-/state/com.google/read".into()),
+            ]))
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_status(200)
+            .with_body(r#"{ "items": [] }"#)
+            .create_async()
+            .await;
+
+        let db = test_db();
+        let (account, feed) = insert_account_and_feed(&db, &server.url());
+        let remote_entry_id = "tag:google.com,2005:reader/item/star-pending-only";
+        {
+            let db_guard = db.lock().unwrap();
+            let article_repo = SqliteArticleRepository::new(db_guard.writer());
+            let feed_repo = SqliteFeedRepository::new(db_guard.writer());
+            article_repo
+                .upsert(&[Article {
+                    id: generate_entry_id(
+                        account.id.as_ref(),
+                        Some(remote_entry_id),
+                        &feed.url,
+                        Some("https://example.com/star-pending"),
+                        Some("Star Pending Only"),
+                    ),
+                    feed_id: feed.id.clone(),
+                    remote_id: Some(remote_entry_id.to_string()),
+                    title: "Star Pending Only".to_string(),
+                    content_raw: "body".to_string(),
+                    content_sanitized: "body".to_string(),
+                    sanitizer_version: sanitizer::SANITIZER_VERSION,
+                    summary: None,
+                    url: Some("https://example.com/star-pending".to_string()),
+                    author: None,
+                    published_at: chrono::Utc::now(),
+                    thumbnail: None,
+                    is_read: false,
+                    is_starred: false,
+                    fetched_at: chrono::Utc::now(),
+                }])
+                .unwrap();
+            feed_repo.update_unread_count(&feed.id, 1).unwrap();
+            db_guard
+                .writer()
+                .execute(
+                    "INSERT INTO pending_mutations (account_id, mutation_type, remote_entry_id, created_at)
+                     VALUES (?1, ?2, ?3, ?4)",
+                    rusqlite::params![
+                        account.id.as_ref(),
+                        PendingMutationType::Star.as_str(),
+                        remote_entry_id,
+                        "2024-01-01T00:00:00Z"
+                    ],
+                )
+                .unwrap();
+        }
+
+        let provider = authenticated_provider(&server.url()).await;
+        let server_unread_counts = HashMap::from([(FEED_REMOTE_ID.to_string(), 0)]);
+
+        reconcile_greader_unread_counts(
+            &db,
+            &provider,
+            &account,
+            std::slice::from_ref(&feed),
+            &server_unread_counts,
+        )
+        .await
+        .unwrap();
+
+        unread_stream_mock.assert_async().await;
+
+        let db_guard = db.lock().unwrap();
+        let article_repo = SqliteArticleRepository::new(db_guard.reader());
+        let articles = article_repo
+            .find_by_feed(&feed.id, &Pagination::default())
+            .unwrap();
+
+        assert_eq!(articles[0].remote_id.as_deref(), Some(remote_entry_id));
+        assert!(articles[0].is_read);
+    }
+
+    #[tokio::test]
     async fn sync_greader_account_uses_account_sync_state_for_incremental_sync() {
         let mut server = mockito::Server::new_async().await;
         server
@@ -2754,6 +2957,64 @@ mod tests {
         assert_eq!(state.error_count, 0);
         assert_eq!(state.next_retry_at, None);
         assert!(state.last_success_at.is_some());
+    }
+
+    #[tokio::test]
+    async fn sync_greader_feed_entries_advances_timestamp_from_entries_without_next_cursor() {
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(200)
+            .with_body("Auth=tok\n")
+            .create_async()
+            .await;
+
+        let stream_mock = server
+            .mock(
+                "GET",
+                Matcher::Regex(r"/api/greader.php/reader/api/0/stream/contents/.*".to_string()),
+            )
+            .match_query(Matcher::Regex("^output=json&n=200$".to_string()))
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_status(200)
+            .with_body(
+                r#"{
+                    "items": [
+                        {
+                            "id": "entry-without-provider-cursor",
+                            "title": "No Cursor",
+                            "alternate": [{"href": "https://example.com/no-cursor"}],
+                            "published": 1700000100,
+                            "origin": {
+                                "streamId": "feed/https://example.com/rss",
+                                "title": "Example"
+                            },
+                            "categories": []
+                        }
+                    ]
+                }"#,
+            )
+            .create_async()
+            .await;
+
+        let db = test_db();
+        let (account, feed) = insert_account_and_feed(&db, &server.url());
+        let provider = authenticated_provider(&server.url()).await;
+
+        sync_greader_feed_entries(&db, &provider, &account, &feed)
+            .await
+            .unwrap();
+
+        stream_mock.assert_async().await;
+
+        let db_guard = db.lock().unwrap();
+        let sync_state_repo = SqliteSyncStateRepository::new(db_guard.reader());
+        let state = sync_state_repo
+            .get(&account.id, &feed_scope_key(FEED_REMOTE_ID))
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(state.timestamp_usec, Some(1_700_000_100_000_000));
     }
 
     #[tokio::test]
