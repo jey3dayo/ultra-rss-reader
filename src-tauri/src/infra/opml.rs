@@ -532,6 +532,80 @@ mod tests {
     }
 
     #[test]
+    fn rejects_duplicate_outline_attributes_as_malformed_input() {
+        let xml = r#"<?xml version="1.0"?>
+<opml version="2.0">
+  <body>
+    <outline text="First" text="Second" xmlUrl="https://example.com/rss"/>
+  </body>
+</opml>"#;
+
+        let error = parse_opml(xml).unwrap_err();
+
+        assert!(
+            error.starts_with("OPML parse error: invalid outline attribute:"),
+            "unexpected error: {error}"
+        );
+    }
+
+    #[test]
+    fn keeps_attribute_case_policy_to_supported_opml_variants() {
+        let xml = r#"<?xml version="1.0"?>
+<opml version="2.0">
+  <body>
+    <outline text="Supported camel" xmlUrl="https://example.com/camel.xml" htmlUrl="https://example.com/camel"/>
+    <outline text="Supported lowercase" xmlurl="https://example.com/lower.xml" htmlurl="https://example.com/lower"/>
+    <outline text="Unsupported uppercase" XMLURL="https://example.com/upper.xml"/>
+  </body>
+</opml>"#;
+
+        let feeds = parse_opml(xml).unwrap();
+
+        assert_eq!(feeds.len(), 2);
+        assert_eq!(feeds[0].title, "Supported camel");
+        assert_eq!(feeds[0].xml_url, "https://example.com/camel.xml");
+        assert_eq!(
+            feeds[0].html_url,
+            Some("https://example.com/camel".to_string())
+        );
+        assert_eq!(feeds[1].title, "Supported lowercase");
+        assert_eq!(feeds[1].xml_url, "https://example.com/lower.xml");
+        assert_eq!(
+            feeds[1].html_url,
+            Some("https://example.com/lower".to_string())
+        );
+    }
+
+    #[test]
+    fn keeps_element_namespace_and_case_policy_strict() {
+        let namespaced_root =
+            r#"<?xml version="1.0"?><opml:opml xmlns:opml="urn:test"><body /></opml:opml>"#;
+        let uppercase_root = r#"<?xml version="1.0"?><OPML><body /></OPML>"#;
+        let namespaced_outline = r#"<?xml version="1.0"?>
+<opml version="2.0">
+  <body>
+    <opml:outline xmlns:opml="urn:test" text="Namespaced" xmlUrl="https://example.com/ns.xml"/>
+    <OUTLINE text="Uppercase" xmlUrl="https://example.com/upper.xml"/>
+    <outline text="Regular" xmlUrl="https://example.com/regular.xml"/>
+  </body>
+</opml>"#;
+
+        assert_eq!(
+            parse_opml(namespaced_root).unwrap_err(),
+            OPML_ROOT_ERROR_MESSAGE
+        );
+        assert_eq!(
+            parse_opml(uppercase_root).unwrap_err(),
+            OPML_ROOT_ERROR_MESSAGE
+        );
+
+        let feeds = parse_opml(namespaced_outline).unwrap();
+        assert_eq!(feeds.len(), 1);
+        assert_eq!(feeds[0].title, "Regular");
+        assert_eq!(feeds[0].xml_url, "https://example.com/regular.xml");
+    }
+
+    #[test]
     fn generate_opml_produces_valid_xml() {
         let feeds = vec![
             OpmlFeed {

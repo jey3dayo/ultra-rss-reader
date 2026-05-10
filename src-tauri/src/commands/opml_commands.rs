@@ -658,6 +658,101 @@ mod tests {
     }
 
     #[test]
+    fn import_folder_cache_uses_ascii_lowercase_and_trimmed_names() {
+        let db = test_db();
+        let account_id = insert_test_account(&db, "Primary");
+        let ascii_folder_id =
+            insert_test_folder_with_sort_order(&db, &account_id, "Engineering", 0);
+        let accent_folder_id = insert_test_folder_with_sort_order(&db, &account_id, "Cafe", 1);
+        insert_test_folder_with_sort_order(&db, &account_id, "ＡＢＣ", 2);
+        insert_test_folder_with_sort_order(&db, &account_id, "İstanbul", 3);
+        let parsed_feeds = vec![
+            OpmlFeed {
+                title: "ASCII".to_string(),
+                xml_url: "https://example.com/ascii.xml".to_string(),
+                html_url: None,
+                folder: Some("  engineering  ".to_string()),
+            },
+            OpmlFeed {
+                title: "Accent".to_string(),
+                xml_url: "https://example.com/accent.xml".to_string(),
+                html_url: None,
+                folder: Some("cafe".to_string()),
+            },
+            OpmlFeed {
+                title: "Fullwidth".to_string(),
+                xml_url: "https://example.com/fullwidth.xml".to_string(),
+                html_url: None,
+                folder: Some("ａｂｃ".to_string()),
+            },
+            OpmlFeed {
+                title: "Turkish".to_string(),
+                xml_url: "https://example.com/turkish.xml".to_string(),
+                html_url: None,
+                folder: Some("istanbul".to_string()),
+            },
+        ];
+
+        let feeds = import_opml_in_db(&db, &parsed_feeds, account_id.0.clone()).unwrap();
+
+        assert_eq!(feeds.len(), 4);
+        let folder_names = db
+            .reader()
+            .prepare("SELECT name FROM folders ORDER BY name")
+            .unwrap()
+            .query_map([], |row| row.get::<_, String>(0))
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
+        let feed_folders = db
+            .reader()
+            .prepare(
+                "SELECT feeds.title, folders.id, folders.name
+                 FROM feeds
+                 JOIN folders ON feeds.folder_id = folders.id
+                 ORDER BY feeds.title",
+            )
+            .unwrap()
+            .query_map([], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
+            })
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
+        let feed_folder_names = feed_folders
+            .iter()
+            .map(|(title, _, folder_name)| (title.as_str(), folder_name.as_str()))
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            folder_names,
+            vec![
+                "Cafe",
+                "Engineering",
+                "istanbul",
+                "İstanbul",
+                "ＡＢＣ",
+                "ａｂｃ"
+            ]
+        );
+        assert_eq!(
+            feed_folder_names,
+            vec![
+                ("ASCII", "Engineering"),
+                ("Accent", "Cafe"),
+                ("Fullwidth", "ａｂｃ"),
+                ("Turkish", "istanbul"),
+            ]
+        );
+        assert_eq!(feed_folders[0].1, ascii_folder_id.0);
+        assert_eq!(feed_folders[1].1, accent_folder_id.0);
+    }
+
+    #[test]
     fn import_refreshes_query_statistics_after_creating_feeds() {
         let db = test_db();
         let account_id = insert_test_account(&db, "Primary");
@@ -914,6 +1009,118 @@ mod tests {
         assert!(matches!(
             error,
             AppError::UserVisible { message } if message.contains("feed save failed")
+        ));
+        let folder_count: i64 = db
+            .reader()
+            .query_row("SELECT COUNT(*) FROM folders", [], |row| row.get(0))
+            .unwrap();
+        let feed_count: i64 = db
+            .reader()
+            .query_row("SELECT COUNT(*) FROM feeds", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(folder_count, 0);
+        assert_eq!(feed_count, 0);
+    }
+
+    #[test]
+    fn import_rolls_back_new_folder_after_duplicate_skip_when_feed_save_fails() {
+        let db = test_db();
+        let account_id = insert_test_account(&db, "Primary");
+        let existing_folder_id = insert_test_folder(&db, &account_id, "Existing Folder");
+        insert_test_feed(
+            &db,
+            &account_id,
+            Some(&existing_folder_id),
+            "Existing Title",
+            "https://example.com/existing.xml",
+        );
+        db.writer()
+            .execute_batch(
+                "CREATE TEMP TRIGGER fail_opml_feed_insert
+                 BEFORE INSERT ON feeds
+                 WHEN NEW.url = 'https://example.com/new.xml'
+                 BEGIN
+                   SELECT RAISE(FAIL, 'feed save failed');
+                 END;",
+            )
+            .unwrap();
+        let parsed_feeds = vec![
+            OpmlFeed {
+                title: "Duplicate".to_string(),
+                xml_url: "https://example.com/existing.xml".to_string(),
+                html_url: None,
+                folder: Some("Skipped Folder".to_string()),
+            },
+            OpmlFeed {
+                title: "New".to_string(),
+                xml_url: "https://example.com/new.xml".to_string(),
+                html_url: None,
+                folder: Some("New Folder".to_string()),
+            },
+        ];
+
+        let error = import_opml_in_db(&db, &parsed_feeds, account_id.0.clone())
+            .expect_err("feed save failure should reject OPML import");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message } if message.contains("feed save failed")
+        ));
+        let folders = db
+            .reader()
+            .prepare("SELECT name FROM folders ORDER BY name")
+            .unwrap()
+            .query_map([], |row| row.get::<_, String>(0))
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
+        let feeds = db
+            .reader()
+            .prepare("SELECT title, url FROM feeds ORDER BY title")
+            .unwrap()
+            .query_map([], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+            })
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
+
+        assert_eq!(folders, vec!["Existing Folder"]);
+        assert_eq!(
+            feeds,
+            vec![(
+                "Existing Title".to_string(),
+                "https://example.com/existing.xml".to_string()
+            )]
+        );
+    }
+
+    #[test]
+    fn import_rolls_back_when_folder_save_fails_before_any_feed_is_saved() {
+        let db = test_db();
+        let account_id = insert_test_account(&db, "Primary");
+        db.writer()
+            .execute_batch(
+                "CREATE TEMP TRIGGER fail_opml_folder_insert
+                 BEFORE INSERT ON folders
+                 BEGIN
+                   SELECT RAISE(FAIL, 'folder save failed');
+                 END;",
+            )
+            .unwrap();
+        let parsed_feeds = vec![OpmlFeed {
+            title: "New".to_string(),
+            xml_url: "https://example.com/new.xml".to_string(),
+            html_url: None,
+            folder: Some("New Folder".to_string()),
+        }];
+
+        let error = import_opml_in_db(&db, &parsed_feeds, account_id.0.clone())
+            .expect_err("folder save failure should reject OPML import");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message } if message.contains("folder save failed")
         ));
         let folder_count: i64 = db
             .reader()
