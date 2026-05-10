@@ -248,6 +248,9 @@ export function getLikelyPreferenceKeyTypo(key: string): string | null {
   if (isKnownPreferenceKey(key) || isShortcutPreferenceKey(key) || key === "selected_account_id") {
     return null;
   }
+  if (key.length > preferenceKeyMaxLength) {
+    return null;
+  }
 
   let likelyCandidate: string | null = null;
   let likelyCandidateDistance = preferenceTypoDetectionDistance + 1;
@@ -335,7 +338,16 @@ export function normalizePreferenceValue(key: string, value: string): string {
 }
 
 export function normalizePreferenceRecord(prefs: PreferenceRecord): PreferenceRecord {
-  return Object.fromEntries(Object.entries(prefs).map(([key, value]) => [key, normalizePreferenceValue(key, value)]));
+  const normalizedPrefs: Record<string, string> = Object.create(null);
+  for (const [key, value] of Object.entries(prefs)) {
+    Object.defineProperty(normalizedPrefs, key, {
+      configurable: true,
+      enumerable: true,
+      value: normalizePreferenceValue(key, value),
+      writable: true,
+    });
+  }
+  return normalizedPrefs;
 }
 
 export function parseThemePreference(value: string): Theme | null {

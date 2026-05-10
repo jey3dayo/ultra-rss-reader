@@ -214,6 +214,24 @@ describe("preference contract", () => {
     });
   });
 
+  it("normalizes preference records into prototype-pollution-safe passthrough output", () => {
+    const normalized = normalizePreferenceRecord({
+      theme: "dark",
+      ["__proto__"]: "polluted",
+      constructor: "preserved",
+    });
+
+    expect(Object.getPrototypeOf(normalized)).toBeNull();
+    expect(Object.getOwnPropertyDescriptor(normalized, "__proto__")).toMatchObject({
+      enumerable: true,
+      value: "polluted",
+    });
+    expect(normalized.theme).toBe("dark");
+    expect(normalized.__proto__).toBe("polluted");
+    expect(normalized.constructor).toBe("preserved");
+    expect(Object.prototype).not.toHaveProperty("polluted");
+  });
+
   it("keeps key-specific freeform preference string limits and control-character policy stable", () => {
     const selectedAccountIdSchema = getPreferenceValueSchema("selected_account_id");
     const debugWebPreviewUrlSchema = getPreferenceValueSchema("debug_web_preview_url");
@@ -249,6 +267,7 @@ describe("preference contract", () => {
   it("keeps typo suggestions bounded by edit-distance cost as preference key sets grow", () => {
     expect(getLikelyPreferenceKeyTypo("show_sidebar_recent_article")).toBe("show_sidebar_recent_articles");
     expect(getLikelyPreferenceKeyTypo("shortcut_prev_articl")).toBe("shortcut_prev_article");
+    expect(getLikelyPreferenceKeyTypo(`theme_${"x".repeat(123)}`)).toBeNull();
     expect(getLikelyPreferenceKeyTypo(`theme_${"x".repeat(128)}`)).toBeNull();
   });
 

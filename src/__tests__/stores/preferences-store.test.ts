@@ -661,6 +661,22 @@ describe("usePreferencesStore preferences", () => {
     }
   });
 
+  it("preserves large passthrough preference keys without typo diagnostics", async () => {
+    const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const largePassthroughKey = `theme_${"x".repeat(128)}`;
+    vi.mocked(getPreferences).mockResolvedValue(Result.succeed({ [largePassthroughKey]: "preserved" }));
+
+    try {
+      await usePreferencesStore.getState().loadPreferences();
+
+      expect(getLikelyPreferenceKeyTypo(largePassthroughKey)).toBeNull();
+      expect(consoleWarn).not.toHaveBeenCalled();
+      expect(usePreferencesStore.getState().prefs[largePassthroughKey]).toBe("preserved");
+    } finally {
+      consoleWarn.mockRestore();
+    }
+  });
+
   it("dedupes concurrent failed preference loads and applies the default language fallback", async () => {
     const changeLanguage = vi.spyOn(i18n, "changeLanguage");
     const languageDescriptor = Object.getOwnPropertyDescriptor(Navigator.prototype, "language");
