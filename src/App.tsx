@@ -70,14 +70,27 @@ function AppInner() {
   // Sync on wake: trigger sync when returning from sleep/suspend if any account has sync_on_wake enabled
   const lastHiddenAt = useRef<number>(0);
   const syncOnWakeInFlight = useRef(false);
+  const syncOnWakeRunToken = useRef(0);
   const runSyncOnWake = useCallback(async () => {
     if (syncOnWakeInFlight.current) {
       return;
     }
 
+    const runToken = syncOnWakeRunToken.current + 1;
+    const isCurrentRun = () => syncOnWakeRunToken.current === runToken;
+    syncOnWakeRunToken.current = runToken;
     syncOnWakeInFlight.current = true;
     try {
-      const accountsResult = await listAccounts();
+      const accountsResult = await listAccounts().catch((error: unknown) => {
+        if (isCurrentRun()) {
+          logRuntimeDiagnostic("sync-on-wake", "Sync on wake rejected at app boundary:", error);
+        }
+        return null;
+      });
+      if (!accountsResult || !isCurrentRun()) {
+        return;
+      }
+
       if (Result.isFailure(accountsResult)) {
         logRuntimeDiagnostic(
           "sync-on-wake",
@@ -88,12 +101,16 @@ function AppInner() {
       }
 
       const accounts = Result.unwrap(accountsResult);
+      const syncOnWakeAccountIds = extractSyncOnWakeAccountIds(accounts);
       const syncResults = await Promise.allSettled(
-        extractSyncOnWakeAccountIds(accounts).map(async (accountId) => ({
+        syncOnWakeAccountIds.map(async (accountId) => ({
           accountId,
           result: await syncAccount(accountId),
         })),
       );
+      if (!isCurrentRun()) {
+        return;
+      }
 
       for (const syncResult of syncResults) {
         if (syncResult.status === "rejected") {
@@ -107,7 +124,9 @@ function AppInner() {
         }
       }
     } finally {
-      syncOnWakeInFlight.current = false;
+      if (isCurrentRun()) {
+        syncOnWakeInFlight.current = false;
+      }
     }
   }, []);
   const runSyncOnWakeRef = useRef(runSyncOnWake);
@@ -132,7 +151,10 @@ function AppInner() {
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      syncOnWakeRunToken.current += 1;
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, []);
 
   // Keep background sync invalidation scoped to data that can change during sync.
