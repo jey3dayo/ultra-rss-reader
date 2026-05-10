@@ -1002,13 +1002,27 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
     }
 
     fn update_sanitized(&self, id: &ArticleId, sanitized: &str, version: u32) -> DomainResult<()> {
+        let summary = self
+            .conn
+            .query_row(
+                "SELECT summary FROM articles WHERE id = ?1",
+                params![id.0],
+                |row| row.get::<_, Option<String>>(0),
+            )
+            .optional()?
+            .flatten();
         self.conn.execute(
             "UPDATE articles
              SET content_sanitized = ?1,
                  content_text = ?2,
                  sanitizer_version = ?3
              WHERE id = ?4",
-            params![sanitized, article_body_text(sanitized, None), version, id.0],
+            params![
+                sanitized,
+                article_body_text(sanitized, summary.as_deref()),
+                version,
+                id.0
+            ],
         )?;
         Ok(())
     }
@@ -3013,7 +3027,7 @@ mod tests {
     }
 
     #[test]
-    fn update_sanitized_does_not_use_summary_fallback_when_sanitized_html_is_empty() {
+    fn update_sanitized_preserves_summary_fallback_when_sanitized_html_is_empty() {
         let db = test_db();
         let account_id = insert_test_account(&db);
         let feed_id = insert_test_feed(&db, &account_id);
@@ -3034,7 +3048,7 @@ mod tests {
             )
             .unwrap();
 
-        assert_eq!(content_text, "");
+        assert_eq!(content_text, "Existing summary body");
     }
 
     #[test]

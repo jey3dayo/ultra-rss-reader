@@ -93,6 +93,7 @@ fn save_local_feed_sync_result_in_current_transaction(
     articles: &[Article],
     next_states: &[SyncState],
 ) -> Result<(), AppError> {
+    let feed_repo = SqliteFeedRepository::new(conn);
     if !articles.is_empty() {
         upsert_articles_in_current_transaction(conn, articles)?;
         let candidate_ids = articles
@@ -100,9 +101,10 @@ fn save_local_feed_sync_result_in_current_transaction(
             .map(|article| article.id.clone())
             .collect::<Vec<ArticleId>>();
         mark_muted_unread_as_read_with_conn(conn, account_id, Some(&candidate_ids))?;
-        let feed_repo = SqliteFeedRepository::new(conn);
-        feed_repo.recalculate_unread_count(&feed.id)?;
+    } else {
+        mark_muted_unread_as_read_with_conn(conn, account_id, None)?;
     }
+    feed_repo.recalculate_unread_count(&feed.id)?;
 
     let sync_state_repo = SqliteSyncStateRepository::new(conn);
     for next_state in next_states {
@@ -240,11 +242,13 @@ fn should_pull_remote_state(
     let Ok(last_success_at) = chrono::DateTime::parse_from_rfc3339(&last_success_at) else {
         return Ok(true);
     };
+    let last_success_at = last_success_at.with_timezone(&chrono::Utc);
+    if last_success_at > now {
+        return Ok(true);
+    }
 
-    Ok(
-        now.signed_duration_since(last_success_at.with_timezone(&chrono::Utc))
-            >= chrono::Duration::minutes(GREADER_REMOTE_STATE_PULL_COOLDOWN_MINUTES),
-    )
+    Ok(now.signed_duration_since(last_success_at)
+        >= chrono::Duration::minutes(GREADER_REMOTE_STATE_PULL_COOLDOWN_MINUTES))
 }
 
 fn mark_remote_state_sync_completed(
@@ -1594,6 +1598,37 @@ mod tests {
         assert_eq!(warnings.len(), 1);
         assert_eq!(warnings[0].kind, AccountSyncWarningKind::Generic);
         assert!(warnings[0].message.contains("Stale"));
+    }
+
+    #[test]
+    fn should_pull_remote_state_ignores_future_success_timestamp() {
+        let db = test_db();
+        let account = test_account("https://rss.example.com");
+        let now = chrono::DateTime::parse_from_rfc3339("2026-05-10T00:00:00Z")
+            .unwrap()
+            .with_timezone(&chrono::Utc);
+        {
+            let db_guard = db.lock().unwrap();
+            let account_repo = SqliteAccountRepository::new(db_guard.writer());
+            let sync_state_repo = SqliteSyncStateRepository::new(db_guard.writer());
+            account_repo.save(&account).unwrap();
+            sync_state_repo
+                .save(&SyncState {
+                    account_id: account.id.clone(),
+                    scope_key: SyncStateScopeKey::greader_remote_state_full().as_string(),
+                    timestamp_usec: Some((now + chrono::Duration::hours(1)).timestamp_micros()),
+                    continuation: None,
+                    etag: None,
+                    last_modified: None,
+                    last_success_at: Some((now + chrono::Duration::hours(1)).to_rfc3339()),
+                    last_error: None,
+                    error_count: 0,
+                    next_retry_at: None,
+                })
+                .unwrap();
+        }
+
+        assert!(should_pull_remote_state(&db, &account.id, now).unwrap());
     }
 
     #[test]
@@ -3817,6 +3852,116 @@ mod tests {
         assert_eq!(state.last_error, None);
         assert_eq!(state.next_retry_at, None);
         assert!(state.last_success_at.is_some());
+    }
+
+    #[tokio::test]
+    async fn sync_local_feed_repairs_mute_and_unread_count_on_not_modified() {
+        let mut server = mockito::Server::new_async().await;
+        let feed_url = format!("{}/feed.xml", server.url());
+        let mock = server
+            .mock("GET", "/feed.xml")
+            .match_header("if-none-match", LOCAL_ETAG_OLD)
+            .match_header("if-modified-since", LOCAL_LAST_MODIFIED_OLD)
+            .with_status(304)
+            .create_async()
+            .await;
+
+        let db = test_db();
+        let (account, feed) = insert_local_account_and_feed(&db, &feed_url);
+        let mut existing_article = Article {
+            id: ArticleId("local-muted-article".to_string()),
+            feed_id: feed.id.clone(),
+            remote_id: Some("local-guid-muted".to_string()),
+            title: "Kindle Unlimited local".to_string(),
+            content_raw: "old".to_string(),
+            content_sanitized: "old".to_string(),
+            sanitizer_version: sanitizer::SANITIZER_VERSION,
+            summary: None,
+            url: Some("https://example.com/muted".to_string()),
+            author: None,
+            published_at: chrono::Utc::now(),
+            thumbnail: None,
+            is_read: false,
+            is_starred: false,
+            fetched_at: chrono::Utc::now(),
+        };
+        existing_article.id = generate_entry_id(
+            account.id.as_ref(),
+            existing_article.remote_id.as_deref(),
+            &feed.url,
+            existing_article.url.as_deref(),
+            Some(&existing_article.title),
+        );
+        {
+            let db_guard = db.lock().unwrap();
+            let article_repo = SqliteArticleRepository::new(db_guard.writer());
+            let feed_repo = SqliteFeedRepository::new(db_guard.writer());
+            let sync_state_repo = SqliteSyncStateRepository::new(db_guard.writer());
+            article_repo.upsert(&[existing_article.clone()]).unwrap();
+            feed_repo.update_unread_count(&feed.id, 99).unwrap();
+            db_guard
+                .writer()
+                .execute(
+                    "INSERT INTO preferences (key, value) VALUES ('mute_auto_mark_read', 'true')",
+                    [],
+                )
+                .unwrap();
+            db_guard
+                .writer()
+                .execute(
+                    "INSERT INTO mute_keywords (id, keyword, scope, created_at, updated_at)
+                     VALUES (?1, ?2, ?3, ?4, ?4)",
+                    rusqlite::params![
+                        uuid::Uuid::new_v4().to_string(),
+                        "kindle unlimited",
+                        "title",
+                        chrono::Utc::now().to_rfc3339()
+                    ],
+                )
+                .unwrap();
+            sync_state_repo
+                .save(&SyncState {
+                    account_id: account.id.clone(),
+                    scope_key: local_feed_scope_key(&feed.url).as_string(),
+                    timestamp_usec: None,
+                    continuation: None,
+                    etag: Some(LOCAL_ETAG_OLD.to_string()),
+                    last_modified: Some(LOCAL_LAST_MODIFIED_OLD.to_string()),
+                    last_success_at: Some("2025-01-01T00:00:00Z".to_string()),
+                    last_error: None,
+                    error_count: 0,
+                    next_retry_at: None,
+                })
+                .unwrap();
+        }
+
+        let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
+        sync_local_feed(&db, &provider, &account.id, &feed)
+            .await
+            .unwrap();
+
+        mock.assert_async().await;
+
+        let db_guard = db.lock().unwrap();
+        let article_is_read: bool = db_guard
+            .reader()
+            .query_row(
+                "SELECT is_read FROM articles WHERE id = ?1",
+                rusqlite::params![existing_article.id.as_ref()],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let unread_count: i64 = db_guard
+            .reader()
+            .query_row(
+                "SELECT unread_count FROM feeds WHERE id = ?1",
+                rusqlite::params![feed.id.as_ref()],
+                |row| row.get(0),
+            )
+            .unwrap();
+
+        assert!(article_is_read);
+        assert_eq!(unread_count, 0);
     }
 
     #[tokio::test]
