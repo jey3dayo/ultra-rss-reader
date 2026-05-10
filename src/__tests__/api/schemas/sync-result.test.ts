@@ -87,4 +87,36 @@ describe("SyncResultSchema", () => {
     }
     expect(result.data[collection][0]?.account_name).toBe("");
   });
+
+  it("accepts account, feed, credential, and scheduler issue owners", () => {
+    const result = SyncResultSchema.safeParse({
+      ...syncResult,
+      failed: [
+        { ...syncResult.failed[0], action_owner: "account" },
+        { ...syncResult.failed[0], action_owner: "feed" },
+        { ...syncResult.failed[0], action_owner: "credential" },
+      ],
+      warnings: [
+        { ...syncResult.warnings[0], action_owner: "scheduler" },
+        { ...syncResult.warnings[0], action_owner: "feed" },
+      ],
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects unknown issue owners before feedback aggregation", () => {
+    expect(
+      SyncResultSchema.safeParse({
+        ...syncResult,
+        failed: [{ ...syncResult.failed[0], action_owner: "article" }],
+      }).success,
+    ).toBe(false);
+    expect(
+      SyncResultSchema.safeParse({
+        ...syncResult,
+        warnings: [{ ...syncResult.warnings[0], action_owner: "mutation" }],
+      }).success,
+    ).toBe(false);
+  });
 });

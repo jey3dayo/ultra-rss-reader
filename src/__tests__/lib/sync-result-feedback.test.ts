@@ -130,6 +130,95 @@ describe("sync-result-feedback", () => {
     ).toEqual({ kind: "warnings", accounts: "FreshRSS" });
   });
 
+  it("keeps warning aggregation distinct by account and action owner", () => {
+    expect(
+      summarizeSyncResult({
+        synced: true,
+        total: 4,
+        succeeded: 4,
+        failed: [],
+        warnings: [
+          {
+            account_id: "acc-1",
+            account_name: "FreshRSS",
+            action_owner: "feed",
+            message: "Feed skipped",
+          },
+          {
+            account_id: "acc-1",
+            account_name: "FreshRSS",
+            action_owner: "feed",
+            message: "Feed skipped",
+          },
+          {
+            account_id: "acc-1",
+            account_name: "FreshRSS",
+            action_owner: "credential",
+            message: "Credential refresh failed",
+          },
+          {
+            account_id: "scheduler",
+            account_name: "Scheduler",
+            action_owner: "scheduler",
+            message: "Background scheduler skipped",
+          },
+        ],
+      }),
+    ).toEqual({
+      kind: "warnings",
+      accounts: "FreshRSS (feed), FreshRSS (credentials), Scheduler (scheduler)",
+    });
+  });
+
+  it("keeps failed aggregation distinct for feed-level and credential errors", () => {
+    expect(
+      summarizeSyncResult({
+        synced: true,
+        total: 3,
+        succeeded: 1,
+        failed: [
+          {
+            account_id: "acc-1",
+            account_name: "FreshRSS",
+            action_owner: "feed",
+            message: "Feed failed",
+          },
+          {
+            account_id: "acc-1",
+            account_name: "FreshRSS",
+            action_owner: "credential",
+            message: "Credential failed",
+          },
+          {
+            account_id: "acc-1",
+            account_name: "FreshRSS",
+            action_owner: "feed",
+            message: "Another feed failed",
+          },
+        ],
+        warnings: [],
+      }),
+    ).toEqual({
+      kind: "partial-failure",
+      accounts: "FreshRSS (feed), FreshRSS (credentials)",
+    });
+  });
+
+  it("truncates long warning account lists after grouping by action owner", () => {
+    expect(
+      summarizeSyncWarnings([
+        { account_id: "acc-1", account_name: "Account 1", message: "warn 1" },
+        { account_id: "acc-2", account_name: "Account 2", action_owner: "feed", message: "warn 2" },
+        { account_id: "acc-3", account_name: "Account 3", message: "warn 3" },
+        { account_id: "acc-4", account_name: "Account 4", action_owner: "credential", message: "warn 4" },
+        { account_id: "acc-5", account_name: "Account 5", message: "warn 5" },
+      ]),
+    ).toEqual({
+      kind: "warnings",
+      accounts: "Account 1, Account 2 (feed), Account 3, Account 4 (credentials) +1 more",
+    });
+  });
+
   it("prefers retry-pending when warnings include a queued retry", () => {
     expect(
       summarizeSyncResult({

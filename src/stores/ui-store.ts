@@ -580,6 +580,30 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
         Object.assign(nextState, { accountSetupSession: null });
       }
 
+      if (state.syncProgress.activeAccountIds.has(deletedAccountId)) {
+        const activeAccountIds = new Set(state.syncProgress.activeAccountIds);
+        activeAccountIds.delete(deletedAccountId);
+
+        Object.assign(nextState, {
+          syncProgress:
+            activeAccountIds.size > 0
+              ? {
+                  ...state.syncProgress,
+                  currentAccountName: null,
+                  activeAccountIds,
+                }
+              : {
+                  active: false,
+                  kind: null,
+                  stage: null,
+                  total: 0,
+                  completed: 0,
+                  currentAccountName: null,
+                  activeAccountIds,
+                },
+        });
+      }
+
       return nextState;
     }),
   restoreAccountSelection: (id, options) =>

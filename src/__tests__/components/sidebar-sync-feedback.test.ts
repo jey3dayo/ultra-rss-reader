@@ -38,4 +38,13 @@ describe("sidebar-sync-feedback", () => {
       "Sync completed with warnings for: FreshRSS, Local",
     );
   });
+
+  it("formats partial failure feedback with the affected account list", () => {
+    const feedback: SyncFeedback = {
+      kind: "partial-failure",
+      accounts: "FreshRSS, Local",
+    };
+
+    expect(resolveSidebarSyncFeedbackMessage(getSidebarT(), feedback)).toBe("Sync failed for: FreshRSS, Local");
+  });
 });

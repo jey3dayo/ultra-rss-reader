@@ -293,6 +293,66 @@ describe("useUiStore", () => {
     expect(useUiStore.getState().syncProgress.activeAccountIds).toEqual(new Set(["acc-1", "acc-2"]));
   });
 
+  it("updates renamed account labels from progress events without remapping the account id", () => {
+    useUiStore.getState().applySyncProgress({
+      stage: "account_started",
+      kind: "manual_account",
+      total: 1,
+      completed: 0,
+      account_id: "acc-1",
+      account_name: "FreshRSS",
+    });
+
+    useUiStore.getState().applySyncProgress({
+      stage: "account_started",
+      kind: "manual_account",
+      total: 1,
+      completed: 0,
+      account_id: "acc-1",
+      account_name: "Renamed FreshRSS",
+    });
+
+    expect(useUiStore.getState().syncProgress).toEqual(
+      expect.objectContaining({
+        currentAccountName: "Renamed FreshRSS",
+      }),
+    );
+    expect(useUiStore.getState().syncProgress.activeAccountIds).toEqual(new Set(["acc-1"]));
+  });
+
+  it("tracks unknown account ids from progress events until a completion event cleans them up", () => {
+    useUiStore.getState().applySyncProgress({
+      stage: "account_started",
+      kind: "manual_account",
+      total: 1,
+      completed: 0,
+      account_id: "acc-unknown",
+      account_name: "Unknown Account",
+    });
+
+    expect(useUiStore.getState().syncProgress.activeAccountIds).toEqual(new Set(["acc-unknown"]));
+
+    useUiStore.getState().applySyncProgress({
+      stage: "finished",
+      kind: "manual_account",
+      total: 1,
+      completed: 1,
+      account_id: "acc-unknown",
+      account_name: "Unknown Account",
+      success: true,
+    });
+
+    expect(useUiStore.getState().syncProgress).toEqual({
+      active: false,
+      kind: null,
+      stage: null,
+      total: 0,
+      completed: 0,
+      currentAccountName: null,
+      activeAccountIds: new Set(),
+    });
+  });
+
   it("keeps sync active account ids unchanged when account progress omits the account id", () => {
     useUiStore.getState().applySyncProgress({
       stage: "account_started",
@@ -320,6 +380,54 @@ describe("useUiStore", () => {
       }),
     );
     expect(useUiStore.getState().syncProgress.activeAccountIds).toEqual(new Set(["acc-1"]));
+  });
+
+  it("keeps all-account progress without an account id detached from account selection", () => {
+    useUiStore.setState({ selectedAccountId: "acc-1" });
+
+    useUiStore.getState().applySyncProgress({
+      stage: "started",
+      kind: "manual_all",
+      total: 2,
+      completed: 0,
+    });
+
+    expect(useUiStore.getState()).toEqual(
+      expect.objectContaining({
+        selectedAccountId: "acc-1",
+        syncProgress: expect.objectContaining({
+          active: true,
+          kind: "manual_all",
+          currentAccountName: null,
+          activeAccountIds: new Set(),
+        }),
+      }),
+    );
+  });
+
+  it("removes deleted accounts from active sync progress and clears orphan progress", () => {
+    useUiStore.getState().applySyncProgress({
+      stage: "account_started",
+      kind: "manual_all",
+      total: 2,
+      completed: 0,
+      account_id: "acc-1",
+      account_name: "Deleted Account",
+    });
+
+    useUiStore.getState().handleAccountDeleted("acc-1", ["acc-2"]);
+
+    expect(useUiStore.getState().syncProgress).toEqual(
+      expect.objectContaining({
+        active: false,
+        kind: null,
+        stage: null,
+        total: 0,
+        completed: 0,
+        currentAccountName: null,
+      }),
+    );
+    expect(useUiStore.getState().syncProgress.activeAccountIds).toEqual(new Set());
   });
 
   it("openCommandPalette sets true", () => {
