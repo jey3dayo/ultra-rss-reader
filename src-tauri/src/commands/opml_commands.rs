@@ -1534,4 +1534,42 @@ mod tests {
         assert_eq!(parsed[0].title, format!("Alpha{replacement}Friends"));
         assert_eq!(parsed[0].folder, Some(format!("News{replacement}Research")));
     }
+
+    #[test]
+    fn export_keeps_remote_feed_content_out_of_filename_or_path_suggestions() {
+        let folder_news = folder("folder-news", "../Private Folder", 0);
+        let feeds = vec![
+            feed(
+                "folder-alpha",
+                Some(&folder_news.id),
+                "../../from-feed-title.opml",
+            ),
+            Feed {
+                site_url: "https://example.com/articles/download?filename=remote-title.opml"
+                    .to_string(),
+                ..feed("top-beta", None, "C:\\Users\\alice\\feed-title.xml")
+            },
+        ];
+
+        let opml_feeds = build_export_opml_feeds(feeds, vec![folder_news]);
+        let xml = opml::generate_opml("../Account Name.opml", &opml_feeds).unwrap();
+        let parsed = opml::parse_opml(&xml).unwrap();
+
+        assert_eq!(parsed, opml_feeds);
+        for forbidden in [
+            "suggestedFilename",
+            "suggestedPath",
+            "savePath",
+            "downloadPath",
+        ] {
+            assert!(
+                !xml.contains(forbidden),
+                "OPML export must not add filename/path suggestion metadata: {forbidden}"
+            );
+        }
+        assert!(
+            !xml.contains("<!--"),
+            "OPML export must not put path-like remote content in comments"
+        );
+    }
 }
