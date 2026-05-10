@@ -424,26 +424,6 @@
 
 ### Feed / Folder / Storage / Settings Data
 
-- [ ] P1 feed folder optimistic update の rollback を multi-query / account switch で固定する
-  - 対象: `src/hooks/use-update-feed-folder.ts`, `src/lib/query/query-invalidation.ts`, `src/components/reader/feed-tree`
-  - feed folder 移動は全 feeds query を optimistic に書き換えるため、account 切替や refetch と重なると別 account の feed まで rollback される risk がある
-  - multiple account feeds queries、account switch during mutate、folder deleted、feed deleted、rollback after refetch、success invalidation failure の test を追加する
-
-- [ ] P2 createFolderIfNeeded の duplicate create retry / selectedFolderId drift を fixed point にする
-  - 対象: `src/components/reader/feed-folder-flow.ts`, `src/components/reader/hooks/feed-dialogs/use-add-feed-dialog-actions.ts`, `src/components/reader/add-feed-dialog.tsx`
-  - add feed flow で folder 作成と feed 作成が連続するため、folder 作成成功後に feed 作成が失敗した時の再実行で duplicate folder を作りやすい
-  - create folder success + add feed failure、retry same name、selectedFolderId changed、account switch、folder create validation error の flow test を追加する
-
-- [ ] P2 JSON parse helper の throwing/null boundary を CLAUDE rules と test で固定する
-  - 対象: `src/schemas/parse.ts`, `src/schemas/storage.ts`, `src/api/tauri-commands.ts`, `CLAUDE.md`
-  - `parseJsonWithSchema` と `parseJsonWithSchemaOrNull` が共存しており、runtime boundary で throwing helper を使うと unhandled exception になりやすい
-  - localStorage recovery、IPC response validation、test fixture strict parse、invalid schema、malformed JSON、rule doc の usage matrix を追加する
-
-- [ ] P2 settings action button の disabled-only feedback を destructive/data actions で補う
-  - 対象: `src/components/settings/shared/settings-action-button.tsx`, `src/components/settings/data-settings-view.tsx`, `src/components/settings/account-detail/danger-zone-view.tsx`
-  - destructive/data action が disabled の時に理由が UI に出ないと、sync/vacuum/update 中の操作不可が failure と誤認されやすい
-  - disabled reason label、aria-describedby、busy state、tooltip/inline note、keyboard focus behavior の component test を追加する
-
 ### GReader / Sync Flow / Account Setup
 
 - [ ] P1 GReader pagination continuation loop の incomplete sync recovery を sync_state と接続する
@@ -512,11 +492,6 @@
   - status fixture、header fixture、JSON malformed fixture、pagination fixture、token redaction fixture の builder を用意する
 
 ### Browser WebView / Runtime Diagnostics
-
-- [ ] P1 browser webview initialization script の user preference injection safety を contract 化する
-  - 対象: `src-tauri/src/browser_webview.rs`, `src/schemas/preferences.ts`, `src/components/settings/shortcuts-settings.tsx`
-  - shortcut preference から initialization script の JSON/string を組み立てるため、quote/newline/control char が script boundary を壊さない保証が必要
-  - shortcut with quote、newline、backslash、unicode、invalid binding、script JSON escaping、bridge installed sentinel の test を追加する
 
 - [ ] P2 browser webview placeholder URL path の Windows-only navigation state を parity 化する
   - 対象: `src-tauri/src/commands/browser_webview_commands.rs`, `src-tauri/src/browser_webview.rs`, `src/components/reader/browser-webview-state.ts`
