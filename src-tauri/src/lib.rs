@@ -674,6 +674,7 @@ pub fn run() {
             commands::tag_commands::create_tag,
             commands::tag_commands::rename_tag,
             commands::tag_commands::delete_tag,
+            commands::tag_commands::create_tag_and_assign_article,
             commands::tag_commands::tag_article,
             commands::tag_commands::untag_article,
             commands::tag_commands::get_article_tags,

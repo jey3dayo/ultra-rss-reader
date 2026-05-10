@@ -53,7 +53,7 @@ fn import_opml_inner(
 }
 
 fn folder_cache_key(name: &str) -> String {
-    name.trim().to_ascii_lowercase()
+    name.trim().to_lowercase()
 }
 
 fn import_opml_in_db(
@@ -813,21 +813,14 @@ mod tests {
 
         assert_eq!(
             folder_names,
-            vec![
-                "Cafe",
-                "Engineering",
-                "istanbul",
-                "İstanbul",
-                "ＡＢＣ",
-                "ａｂｃ"
-            ]
+            vec!["Cafe", "Engineering", "istanbul", "İstanbul", "ＡＢＣ"]
         );
         assert_eq!(
             feed_folder_names,
             vec![
                 ("ASCII", "Engineering"),
                 ("Accent", "Cafe"),
-                ("Fullwidth", "ａｂｃ"),
+                ("Fullwidth", "ＡＢＣ"),
                 ("Turkish", "istanbul"),
             ]
         );
