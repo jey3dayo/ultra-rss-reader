@@ -35,6 +35,7 @@ export async function submitFeedEdits({
     selectedFolderId: folderSelection.selectedFolderId,
     isCreatingFolder: folderSelection.isCreatingFolder,
     newFolderName: folderSelection.newFolderName,
+    availableFolderIds: folderSelection.availableFolderIds,
   });
 
   if (Result.isFailure(folderResult)) {

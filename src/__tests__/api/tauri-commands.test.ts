@@ -104,6 +104,7 @@ const sampleAcc1Feeds = sampleFeeds.filter((feed) => feed.account_id === "acc-1"
 const sampleAcc1Articles = sampleArticles.filter((article) =>
   sampleAcc1Feeds.some((feed) => feed.id === article.feed_id),
 );
+const sampleFeed1Articles = sampleArticles.filter((article) => article.feed_id === "feed-1");
 
 async function runCommandCases<
   TCommand extends readonly [string, () => Promise<Result.Result<unknown, CommandValidationError>>],
@@ -177,7 +178,7 @@ describe("tauri-commands with mockIPC", () => {
 
     expect(Result.unwrap(accountsResult)).toEqual(sampleAccounts);
     expect(Result.unwrap(feedsResult)).toEqual(sampleAcc1Feeds);
-    expect(Result.unwrap(articlesResult)).toEqual(sampleArticles);
+    expect(Result.unwrap(articlesResult)).toEqual(sampleFeed1Articles);
     expect(Result.unwrap(recentArticlesResult).map((article) => article.id)).toEqual(["art-2", "art-1"]);
     expect(Result.unwrap(platformInfoResult).kind).toBe("windows");
     expect(Result.unwrap(syncResult)).toMatchObject({
@@ -241,7 +242,7 @@ describe("tauri-commands with mockIPC", () => {
 
     expect(freshAccounts).toEqual(sampleAccounts);
     expect(freshFeeds).toEqual(sampleAcc1Feeds);
-    expect(freshArticles).toEqual(sampleArticles);
+    expect(freshArticles).toEqual(sampleFeed1Articles);
   });
 
   describe("listAccounts", () => {
@@ -306,7 +307,7 @@ describe("tauri-commands with mockIPC", () => {
   describe("listArticles", () => {
     it("returns articles for a given feed", async () => {
       const value = Result.unwrap(await listArticles("feed-1"));
-      expect(value).toEqual(sampleArticles);
+      expect(value).toEqual(sampleFeed1Articles);
       expect(value).toHaveLength(2);
     });
 
@@ -785,6 +786,31 @@ describe("tauri-commands with custom handler", () => {
     expect(JSON.stringify(consoleError.mock.calls)).not.toContain("private-key/feed");
     expect(JSON.stringify(consoleError.mock.calls)).not.toContain("raw-token");
     expect(JSON.stringify(consoleError.mock.calls)).not.toContain("auth-fragment");
+  });
+
+  it("maps unknown runtime failures to redacted user-visible command errors", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const thrownCases = [
+      [{ message: "Plugin missing for TOKEN=raw-token" }, "Plugin missing for TOKEN=<redacted>"],
+      ["", ""],
+      [null, "null"],
+    ] as const;
+
+    for (const [thrown, expectedMessage] of thrownCases) {
+      setupTauriMocks((cmd) => {
+        if (cmd === "list_accounts") {
+          throw thrown;
+        }
+        return null;
+      });
+
+      expect(Result.unwrapError(await listAccounts())).toEqual({
+        type: "UserVisible",
+        message: expectedMessage,
+      });
+    }
+
+    expect(JSON.stringify(consoleError.mock.calls)).not.toContain("raw-token");
   });
 
   it("uses the runtime diagnostics redaction policy for user-facing command errors and logs", async () => {

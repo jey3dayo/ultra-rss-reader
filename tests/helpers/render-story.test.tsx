@@ -370,4 +370,39 @@ describe("renderStory", () => {
       ),
     ).toThrowError("renderStory third argument must be Testing Library RenderOptions.");
   });
+
+  it("passes valid Testing Library options through to render", () => {
+    const wrapperText = "render wrapper";
+    const { baseElement } = renderStory(
+      {
+        component: ({ label }: { label: string }) => createElement("span", null, label),
+        args: { label: "base" },
+      },
+      {
+        args: { label: "story" },
+      },
+      {
+        baseElement: document.createElement("section"),
+        wrapper: ({ children }) => createElement("div", { "aria-label": wrapperText }, children),
+      },
+    );
+
+    expect(baseElement.tagName).toBe("SECTION");
+    expect(baseElement.querySelector(`[aria-label="${wrapperText}"]`)).not.toBeNull();
+    expect(baseElement).toHaveTextContent("story");
+  });
+
+  it("owns the Storybook helper export and import smoke coverage in this suite", () => {
+    const meta = {
+      component: ({ label }: { label: string }) => createElement("span", null, label),
+      args: { label: "meta" },
+    } satisfies StoryMeta<{ label: string }>;
+    const story = {
+      args: { label: "story" },
+    } satisfies StoryLike<{ label: string }>;
+
+    const { baseElement } = renderStory(meta, story);
+
+    expect(baseElement).toHaveTextContent("story");
+  });
 });

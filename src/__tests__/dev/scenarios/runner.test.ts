@@ -41,6 +41,37 @@ type MockInvocation = {
   index: number;
 };
 
+type Deferred<T> = {
+  promise: Promise<T>;
+  resolve(value: T): void;
+  reject(error: unknown): void;
+};
+
+function createDeferred<T>(): Deferred<T> {
+  let resolve: ((value: T) => void) | null = null;
+  let reject: ((error: unknown) => void) | null = null;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+
+  return {
+    promise,
+    resolve(value) {
+      if (!resolve) {
+        throw new Error("Deferred resolve was not captured.");
+      }
+      resolve(value);
+    },
+    reject(error) {
+      if (!reject) {
+        throw new Error("Deferred reject was not captured.");
+      }
+      reject(error);
+    },
+  };
+}
+
 function firstInvocation(mock: InvocationOrderMock): MockInvocation {
   return { mock, index: 0 };
 }
@@ -679,6 +710,67 @@ describe("runDevScenario", () => {
     );
   });
 
+  it("suppresses stale feed-first UI and cache writes after a newer scenario starts", async () => {
+    const { queryClient } = createQueryClientStub();
+    const ui = createUiStub();
+    const staleAccounts = createDeferred<AccountDto[]>();
+    const context: DevScenarioContext = {
+      ui,
+      queryClient,
+      actions: createActions({
+        executeAction: vi.fn(),
+        listAccounts: vi
+          .fn()
+          .mockImplementationOnce(() => staleAccounts.promise)
+          .mockResolvedValueOnce([account]),
+        listFeeds: vi.fn(async () => [mangaFeed]),
+        listArticles: vi.fn(async () => [landingNewestArticle]),
+        listTags: vi.fn(async () => [primaryTag]),
+        getTagArticleCounts: vi.fn(async () => ({ [primaryTag.id]: 1 })),
+        listArticlesByTag: vi.fn(async () => [landingNewestArticle]),
+      }),
+    };
+
+    const staleRun = runDevScenario("open-feed-first-article", { context });
+    await runDevScenario("open-tag-view", { context });
+    staleAccounts.resolve([account]);
+    await staleRun;
+
+    expectCachedQuery(queryClient, ["accounts"], [account]);
+    expectCachedQuery(queryClient, queryKeys.feeds.byAccount(mangaFeed.account_id), undefined);
+    expectCachedQuery(queryClient, queryKeys.articles.byFeed(mangaFeed.id, "all"), undefined);
+    expect(ui.selectFeed).not.toHaveBeenCalled();
+    expect(ui.selectArticle).not.toHaveBeenCalled();
+    expect(ui.selectTag).toHaveBeenCalledWith(primaryTag.id);
+    expect(ui.showToast).not.toHaveBeenCalled();
+  });
+
+  it("rolls back feed-first query cache seeding when a later seed step fails", async () => {
+    const { queryClient } = createQueryClientStub();
+    const context: DevScenarioContext = {
+      ui: createUiStub(),
+      queryClient,
+      actions: createActions({
+        executeAction: vi.fn(),
+        listAccounts: vi.fn(async () => [account]),
+        listFeeds: vi.fn(async () => [mangaFeed]),
+        listArticles: vi.fn(async () => {
+          throw new Error("articles failed");
+        }),
+      }),
+    };
+
+    await runDevScenario("open-feed-first-article", { context });
+
+    expectCachedQuery(queryClient, ["accounts"], undefined);
+    expectCachedQuery(queryClient, queryKeys.feeds.byAccount(account.id), undefined);
+    expectCachedQuery(queryClient, queryKeys.articles.byFeed(mangaFeed.id, "all"), undefined);
+    expect(context.ui.selectFeed).not.toHaveBeenCalled();
+    expect(context.ui.showToast).toHaveBeenCalledWith(
+      'Dev scenario "open-feed-first-article" failed to open a feed article.',
+    );
+  });
+
   it("reproduces tag navigation state for the currently selected account without opening an article", async () => {
     const { queryClient } = createQueryClientStub();
     const ui = createUiStub({ selectedAccountId: otherAccount.id });
@@ -796,6 +888,30 @@ describe("runDevScenario", () => {
     await runDevScenario("open-tag-view", { context });
 
     expect(context.ui.showToast).toHaveBeenCalledWith('Dev scenario "open-tag-view" could not find any articles.');
+  });
+
+  it("rolls back tag-view query cache seeding when tag count loading fails", async () => {
+    const { queryClient } = createQueryClientStub();
+    const context: DevScenarioContext = {
+      ui: createUiStub(),
+      queryClient,
+      actions: createActions({
+        executeAction: vi.fn(),
+        listAccounts: vi.fn(async () => [account]),
+        listTags: vi.fn(async () => [primaryTag]),
+        getTagArticleCounts: vi.fn(async () => {
+          throw new Error("tag counts failed");
+        }),
+      }),
+    };
+
+    await runDevScenario("open-tag-view", { context });
+
+    expectCachedQuery(queryClient, ["accounts"], undefined);
+    expectCachedQuery(queryClient, tagQueryKeys.tags.root, undefined);
+    expectCachedQuery(queryClient, tagQueryKeys.tagArticleCounts.byAccount(account.id), undefined);
+    expect(context.ui.selectTag).not.toHaveBeenCalled();
+    expect(context.ui.showToast).toHaveBeenCalledWith('Dev scenario "open-tag-view" failed to open the tag view.');
   });
 
   it("runs the add-feed dialog scenario through the app action dispatcher", async () => {

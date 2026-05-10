@@ -166,6 +166,16 @@ describe("runtime diagnostics redaction", () => {
     expect(toJSON).not.toHaveBeenCalled();
   });
 
+  it("keeps mute keyword scope select diagnostics repeatable and production visible", () => {
+    expect(RUNTIME_DIAGNOSTIC_POLICIES["mute-keyword-scope-select"]).toMatchObject({
+      console: "warn",
+      devOnlyConsole: false,
+      productionDiagnostics: true,
+      once: false,
+      redactSecrets: true,
+    });
+  });
+
   it("suppresses repeated sidebar storage quota diagnostics after the first warning", () => {
     const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
 

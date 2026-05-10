@@ -16,6 +16,7 @@ export type RuntimeDiagnosticPolicyId =
   | "article-action"
   | "database-runtime-recovery"
   | "mutation-invalidation"
+  | "mute-keyword-scope-select"
   | "command-history-storage"
   | "sidebar-expanded-folders-storage"
   | "window-always-on-top"
@@ -149,11 +150,18 @@ export const RUNTIME_DIAGNOSTIC_POLICIES = {
     once: false,
     redactSecrets: true,
   },
-  "command-history-storage": {
+  "mute-keyword-scope-select": {
     console: "warn",
     devOnlyConsole: false,
     productionDiagnostics: true,
     once: false,
+    redactSecrets: true,
+  },
+  "command-history-storage": {
+    console: "warn",
+    devOnlyConsole: false,
+    productionDiagnostics: true,
+    once: true,
     redactSecrets: true,
   },
   "sidebar-expanded-folders-storage": {

@@ -21,6 +21,7 @@ import {
   scheduleReaderFocusFrame,
 } from "@/lib/reader-focus";
 import { bindWindowEvents, createKeyboardEventListener } from "@/lib/window/window-events";
+import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "../stores/ui-store";
 
@@ -73,6 +74,7 @@ export function useKeyboard() {
   const toggleSidebar = useUiStore((state) => state.toggleSidebar);
   const openSidebar = useUiStore((state) => state.openSidebar);
   const prefs = usePreferencesStore((s) => s.prefs);
+  const platformKind = usePlatformStore((state) => state.platform.kind);
   const pendingRepeatNavigationRef = useRef<RepeatNavigationAction | null>(null);
   const repeatNavigationCleanupRef = useRef<(() => void) | null>(null);
 
@@ -225,6 +227,7 @@ export function useKeyboard() {
         viewMode,
         subscriptionsWorkspaceOpen,
         keyToAction,
+        platformKind,
       });
 
       if (Result.isFailure(action)) {
@@ -301,5 +304,6 @@ export function useKeyboard() {
     subscriptionsWorkspaceOpen,
     toggleSidebar,
     viewMode,
+    platformKind,
   ]);
 }

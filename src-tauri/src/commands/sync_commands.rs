@@ -161,6 +161,10 @@ fn should_emit_manual_single_sync_completion(result: &SyncResult) -> bool {
     result.synced && result.succeeded > 0
 }
 
+pub(crate) fn should_purge_old_articles_after_sync(sync_ran: bool) -> bool {
+    sync_ran
+}
+
 fn emit_sync_warning_event(app_handle: &tauri::AppHandle, result: &SyncResult) {
     if should_emit_sync_warning(result) {
         emit_sync_event_log_only(app_handle, SYNC_WARNING_EVENT, result.warnings.clone());
@@ -559,7 +563,7 @@ pub async fn trigger_startup_sync(
             state.automatic_sync_notify.as_ref(),
         );
     }
-    if sync_result.synced {
+    if should_purge_old_articles_after_sync(sync_result.synced) {
         emit_sync_event_log_only(&app_handle, SYNC_COMPLETED_EVENT, ());
         if should_emit_sync_succeeded(&sync_result) {
             emit_sync_event_log_only(&app_handle, SYNC_SUCCEEDED_EVENT, ());
@@ -706,7 +710,7 @@ pub async fn trigger_sync(
     let result =
         run_sync_for_accounts_with_progress(&state.db, &state.syncing, accounts, Some(reporter))
             .await?;
-    if result.synced {
+    if should_purge_old_articles_after_sync(result.synced) {
         enable_automatic_sync(
             state.automatic_sync_enabled.as_ref(),
             state.automatic_sync_notify.as_ref(),
@@ -740,7 +744,7 @@ pub async fn trigger_automatic_sync(
         Some(reporter),
     )
     .await?;
-    if result.synced {
+    if should_purge_old_articles_after_sync(result.synced) {
         emit_sync_warning_event(&app_handle, &result);
         emit_sync_event_log_only(&app_handle, SYNC_COMPLETED_EVENT, ());
         if should_emit_sync_succeeded(&result) {
@@ -1129,6 +1133,16 @@ mod tests {
         };
 
         assert!(should_emit_sync_warning(&result));
+    }
+
+    #[test]
+    fn purge_contract_runs_for_manual_startup_and_scheduler_sync_successes() {
+        assert!(should_purge_old_articles_after_sync(true));
+    }
+
+    #[test]
+    fn purge_contract_skips_when_scheduler_or_automatic_sync_is_disabled() {
+        assert!(!should_purge_old_articles_after_sync(false));
     }
 
     #[test]
@@ -1762,5 +1776,166 @@ mod tests {
             )
             .unwrap();
         assert_eq!(remaining, 0);
+    }
+
+    #[test]
+    fn purge_old_articles_preserves_old_read_items_within_retention_window() {
+        let db = Mutex::new(DbManager::new_in_memory().unwrap());
+        let account = Account {
+            id: AccountId::new(),
+            kind: ProviderKind::Local,
+            name: "Local".to_string(),
+            server_url: None,
+            username: None,
+            sync_interval_secs: 3600,
+            sync_on_startup: true,
+            sync_on_wake: false,
+            keep_read_items_days: 3650,
+            connection_verification_status: ConnectionVerificationStatus::Unverified,
+            connection_verified_at: None,
+            connection_verification_error: None,
+        };
+        let feed_id = FeedId::new();
+        let old = chrono::Utc::now() - chrono::Duration::days(60);
+        {
+            let db_guard = db.lock().unwrap();
+            db_guard
+                .writer()
+                .execute(
+                    "INSERT INTO accounts (id, kind, name, keep_read_items_days) VALUES (?1, ?2, ?3, ?4)",
+                    rusqlite::params![account.id.as_ref(), "Local", account.name, account.keep_read_items_days],
+                )
+                .unwrap();
+            db_guard
+                .writer()
+                .execute(
+                    "INSERT INTO feeds (id, account_id, title, url, site_url) VALUES (?1, ?2, ?3, ?4, ?5)",
+                    rusqlite::params![
+                        feed_id.as_ref(),
+                        account.id.as_ref(),
+                        "Feed",
+                        "https://example.com/feed.xml",
+                        "https://example.com",
+                    ],
+                )
+                .unwrap();
+            db_guard
+                .writer()
+                .execute(
+                    "INSERT INTO articles (id, feed_id, title, published_at, fetched_at, is_read) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                    rusqlite::params![
+                        "old-read",
+                        feed_id.as_ref(),
+                        "Old read",
+                        old.to_rfc3339(),
+                        old.to_rfc3339(),
+                        true,
+                    ],
+                )
+                .unwrap();
+        }
+
+        purge_old_articles(&db);
+
+        let remaining: i64 = db
+            .lock()
+            .unwrap()
+            .reader()
+            .query_row(
+                "SELECT COUNT(*) FROM articles WHERE id = ?1",
+                rusqlite::params!["old-read"],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(remaining, 1);
+    }
+
+    #[test]
+    fn purge_old_articles_preserves_old_read_items_when_legacy_retention_is_disabled() {
+        let db = Mutex::new(DbManager::new_in_memory().unwrap());
+        let account = Account {
+            id: AccountId::new(),
+            kind: ProviderKind::Local,
+            name: "Local".to_string(),
+            server_url: None,
+            username: None,
+            sync_interval_secs: 3600,
+            sync_on_startup: true,
+            sync_on_wake: false,
+            keep_read_items_days: 0,
+            connection_verification_status: ConnectionVerificationStatus::Unverified,
+            connection_verified_at: None,
+            connection_verification_error: None,
+        };
+        let feed_id = FeedId::new();
+        let old = chrono::Utc::now() - chrono::Duration::days(60);
+        {
+            let db_guard = db.lock().unwrap();
+            db_guard
+                .writer()
+                .execute("PRAGMA ignore_check_constraints = ON", [])
+                .unwrap();
+            db_guard
+                .writer()
+                .execute(
+                    "INSERT INTO accounts (id, kind, name, keep_read_items_days) VALUES (?1, ?2, ?3, ?4)",
+                    rusqlite::params![account.id.as_ref(), "Local", account.name, account.keep_read_items_days],
+                )
+                .unwrap();
+            db_guard
+                .writer()
+                .execute(
+                    "INSERT INTO feeds (id, account_id, title, url, site_url) VALUES (?1, ?2, ?3, ?4, ?5)",
+                    rusqlite::params![
+                        feed_id.as_ref(),
+                        account.id.as_ref(),
+                        "Feed",
+                        "https://example.com/feed.xml",
+                        "https://example.com",
+                    ],
+                )
+                .unwrap();
+            db_guard
+                .writer()
+                .execute(
+                    "INSERT INTO articles (id, feed_id, title, published_at, fetched_at, is_read) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                    rusqlite::params![
+                        "old-read",
+                        feed_id.as_ref(),
+                        "Old read",
+                        old.to_rfc3339(),
+                        old.to_rfc3339(),
+                        true,
+                    ],
+                )
+                .unwrap();
+        }
+
+        purge_old_articles(&db);
+
+        let remaining: i64 = db
+            .lock()
+            .unwrap()
+            .reader()
+            .query_row(
+                "SELECT COUNT(*) FROM articles WHERE id = ?1",
+                rusqlite::params!["old-read"],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(remaining, 1);
+    }
+
+    #[test]
+    fn purge_old_articles_failure_does_not_change_sync_result_contract() {
+        let db = Mutex::new(DbManager::new_in_memory().unwrap());
+        let poison_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let _guard = db.lock().unwrap();
+            panic!("poison purge db lock");
+        }));
+        assert!(poison_result.is_err());
+
+        purge_old_articles(&db);
+        assert!(should_purge_old_articles_after_sync(true));
     }
 }

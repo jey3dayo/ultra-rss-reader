@@ -493,6 +493,10 @@ describe("DTO schemas", () => {
       ...data,
       keep_read_items_days: 3650,
     });
+    expect(AccountDtoSchema.parse({ ...data, keep_read_items_days: 0 })).toEqual({
+      ...data,
+      keep_read_items_days: 0,
+    });
     expect(() => AccountDtoSchema.parse({ ...data, sync_interval_secs: 59 })).toThrow();
     expect(() => AccountDtoSchema.parse({ ...data, sync_interval_secs: 86_401 })).toThrow();
     expect(() => AccountDtoSchema.parse({ ...data, sync_interval_secs: 60.5 })).toThrow();
@@ -502,7 +506,7 @@ describe("DTO schemas", () => {
         sync_interval_secs: Number.POSITIVE_INFINITY,
       }),
     ).toThrow();
-    expect(() => AccountDtoSchema.parse({ ...data, keep_read_items_days: 0 })).toThrow();
+    expect(() => AccountDtoSchema.parse({ ...data, keep_read_items_days: -1 })).toThrow();
     expect(() => AccountDtoSchema.parse({ ...data, keep_read_items_days: 3651 })).toThrow();
     expect(() => AccountDtoSchema.parse({ ...data, keep_read_items_days: 30.5 })).toThrow();
     expect(() =>
@@ -2300,7 +2304,7 @@ describe("command args schemas", () => {
   it("keeps sync result numeric fields nonnegative integers", () => {
     const valid = {
       synced: true,
-      total: 2,
+      total: 1,
       succeeded: 1,
       failed: [],
       warnings: [
@@ -2317,6 +2321,7 @@ describe("command args schemas", () => {
     expect(
       SyncResultSchema.parse({
         ...valid,
+        total: 2,
         failed: [
           {
             account_id: "acc-2",
@@ -2334,6 +2339,7 @@ describe("command args schemas", () => {
       }),
     ).toEqual({
       ...valid,
+      total: 2,
       failed: [
         {
           account_id: "acc-2",
@@ -2355,6 +2361,7 @@ describe("command args schemas", () => {
     expect(
       SyncResultSchema.parse({
         ...valid,
+        total: 2,
         failed: [
           {
             account_id: "acc-2",

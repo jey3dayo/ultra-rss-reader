@@ -38,7 +38,7 @@ describe("AccountSyncWarningSchema", () => {
 describe("SyncResultSchema", () => {
   const syncResult = {
     synced: false,
-    total: 2,
+    total: 1,
     succeeded: 0,
     failed: [
       {
@@ -91,6 +91,7 @@ describe("SyncResultSchema", () => {
   it("accepts account, feed, credential, and scheduler issue owners", () => {
     const result = SyncResultSchema.safeParse({
       ...syncResult,
+      total: 3,
       failed: [
         { ...syncResult.failed[0], action_owner: "account" },
         { ...syncResult.failed[0], action_owner: "feed" },
@@ -116,6 +117,30 @@ describe("SyncResultSchema", () => {
       SyncResultSchema.safeParse({
         ...syncResult,
         warnings: [{ ...syncResult.warnings[0], action_owner: "mutation" }],
+      }).success,
+    ).toBe(false);
+  });
+
+  it("requires total to match succeeded plus failed account count", () => {
+    expect(
+      SyncResultSchema.safeParse({
+        ...syncResult,
+        total: 2,
+        succeeded: 1,
+      }).success,
+    ).toBe(true);
+    expect(
+      SyncResultSchema.safeParse({
+        ...syncResult,
+        total: 3,
+        succeeded: 1,
+      }).success,
+    ).toBe(false);
+    expect(
+      SyncResultSchema.safeParse({
+        ...syncResult,
+        total: 1,
+        succeeded: 1,
       }).success,
     ).toBe(false);
   });

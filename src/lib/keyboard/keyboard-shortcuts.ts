@@ -390,9 +390,34 @@ export function buildKeyToActionMap(prefs: KeyboardShortcutPrefs): KeyToActionMa
 }
 
 /** Normalize a KeyboardEvent into the key string format used in shortcut definitions. */
+function isPrimaryModifierActive(platformKind: PlatformKind, e: { metaKey: boolean; ctrlKey: boolean }): boolean {
+  return platformKind === "macos" ? e.metaKey : e.ctrlKey;
+}
+
+function hasNonPrimaryModifier(platformKind: PlatformKind, e: { metaKey: boolean; ctrlKey: boolean }): boolean {
+  return (platformKind === "macos" && e.ctrlKey) || (platformKind !== "macos" && e.metaKey);
+}
+
 function normalizeKeyFromEvent(e: { key: string; metaKey: boolean; ctrlKey: boolean; shiftKey: boolean }): string {
   const parts: string[] = [];
   if (e.metaKey || e.ctrlKey) parts.push("\u2318");
+  if (e.shiftKey && e.key !== "Shift") parts.push("Shift");
+  parts.push(e.key.length === 1 && e.shiftKey ? e.key.toUpperCase() : e.key);
+  return parts.join("+");
+}
+
+function normalizeKeyFromRuntimeEvent(
+  e: { key: string; metaKey: boolean; ctrlKey: boolean; shiftKey: boolean },
+  platformKind: PlatformKind,
+): string {
+  const parts: string[] = [];
+  if (isPrimaryModifierActive(platformKind, e)) {
+    parts.push("\u2318");
+  } else if (e.metaKey) {
+    parts.push("Meta");
+  } else if (e.ctrlKey) {
+    parts.push("Ctrl");
+  }
   if (e.shiftKey && e.key !== "Shift") parts.push("Shift");
   parts.push(e.key.length === 1 && e.shiftKey ? e.key.toUpperCase() : e.key);
   return parts.join("+");
@@ -438,6 +463,7 @@ type KeyboardContext = {
   viewMode: ViewMode;
   subscriptionsWorkspaceOpen?: boolean;
   keyToAction?: KeyToActionMap;
+  platformKind?: PlatformKind;
 };
 
 function nextViewMode(current: ViewMode): ViewMode {
@@ -549,14 +575,18 @@ export function resolveKeyboardAction(
     viewMode,
     subscriptionsWorkspaceOpen,
     keyToAction,
+    platformKind = "macos",
   } = context;
 
   if (shouldIgnoreGlobalShortcutKeyboardEvent({ key, altKey, isComposing })) {
     return Result.fail("no_action");
   }
 
-  const normalized = normalizeKeyFromEvent({ key, metaKey, ctrlKey, shiftKey });
-  const normalizedActionKey = normalizeShortcutMapKey(normalized) ?? normalized;
+  const runtimeEvent = { key, metaKey, ctrlKey, shiftKey };
+  const normalized = normalizeKeyFromRuntimeEvent(runtimeEvent, platformKind);
+  const normalizedActionKey = hasNonPrimaryModifier(platformKind, runtimeEvent)
+    ? normalized
+    : (normalizeShortcutMapKey(normalized) ?? normalized);
 
   // Use custom mapping if provided, otherwise use defaults
   const map = keyToAction ?? buildKeyToActionMap({});

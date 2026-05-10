@@ -7,6 +7,7 @@ export type { DevScenarioId };
 export { DEV_SCENARIO_ID, DEV_SCENARIO_IDS };
 
 export type DevScenarioContext = {
+  readonly isCurrentRun?: () => boolean;
   readonly ui: {
     selectedAccountId: string | null;
     showToast(message: string): void;

@@ -18,6 +18,8 @@ type RunDevScenarioOptions = {
   context?: DevScenarioContext;
 };
 
+let devScenarioRunGeneration = 0;
+
 function toDevScenarioActionError(action: string, error: unknown): Error {
   const message = error instanceof Error ? error.message : String(error);
   return new Error(`Dev scenario action "${action}" failed: ${message}`);
@@ -60,7 +62,13 @@ function createDefaultDevScenarioContext(): DevScenarioContext {
 }
 
 export async function runDevScenario(id: DevScenarioId, options?: RunDevScenarioOptions): Promise<void> {
-  const context = options?.context ?? createDefaultDevScenarioContext();
+  devScenarioRunGeneration += 1;
+  const runGeneration = devScenarioRunGeneration;
+  const baseContext = options?.context ?? createDefaultDevScenarioContext();
+  const context: DevScenarioContext = {
+    ...baseContext,
+    isCurrentRun: () => runGeneration === devScenarioRunGeneration,
+  };
   const scenario = getDevScenario(id);
   if (!scenario) {
     context.ui.showToast(`Unknown dev scenario "${id}".`);

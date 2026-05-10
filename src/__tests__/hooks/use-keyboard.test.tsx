@@ -8,6 +8,7 @@ import { AppShell } from "@/components/app-shell";
 import { APP_EVENTS } from "@/constants/events";
 import { useKeyboard } from "@/hooks/use-keyboard";
 import { keyboardEvents } from "@/lib/keyboard/keyboard-shortcuts";
+import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -20,6 +21,8 @@ function renderAppShell(calls: MockTauriCommandCall[]) {
     calls.push({ cmd, args });
 
     switch (cmd) {
+      case "get_platform_info":
+        return usePlatformStore.getState().platform;
       case "list_accounts":
         return sampleAccounts;
       case "list_feeds":
@@ -89,6 +92,13 @@ describe("useKeyboard", () => {
     Element.prototype.scrollIntoView = vi.fn();
     useUiStore.setState(useUiStore.getInitialState());
     usePreferencesStore.setState({ prefs: {}, loaded: false });
+    usePlatformStore.setState({
+      ...usePlatformStore.getInitialState(),
+      platform: {
+        ...usePlatformStore.getInitialState().platform,
+        kind: "macos",
+      },
+    });
     Object.defineProperty(window, "innerWidth", {
       configurable: true,
       writable: true,
@@ -98,6 +108,7 @@ describe("useKeyboard", () => {
 
   afterEach(() => {
     useUiStore.setState(useUiStore.getInitialState());
+    usePlatformStore.setState(usePlatformStore.getInitialState());
   });
 
   it("pressing m toggles the selected article to read", async () => {
@@ -674,6 +685,30 @@ describe("useKeyboard", () => {
     await screen.findByRole("heading", { level: 1, name: "First Article" });
 
     fireEvent.keyDown(window, { key: "k", metaKey: true });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().commandPaletteOpen).toBe(true);
+    });
+    expect(await screen.findByPlaceholderText("Search commands…")).toBeInTheDocument();
+  });
+
+  it("uses Ctrl+K instead of Meta+K for the command palette on Windows", async () => {
+    usePlatformStore.setState({
+      ...usePlatformStore.getInitialState(),
+      platform: {
+        ...usePlatformStore.getInitialState().platform,
+        kind: "windows",
+      },
+    });
+    const calls: MockTauriCommandCall[] = [];
+    renderAppShell(calls);
+
+    await screen.findByRole("heading", { level: 1, name: "First Article" });
+
+    fireEvent.keyDown(window, { key: "k", metaKey: true });
+    expect(useUiStore.getState().commandPaletteOpen).toBe(false);
+
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
 
     await waitFor(() => {
       expect(useUiStore.getState().commandPaletteOpen).toBe(true);

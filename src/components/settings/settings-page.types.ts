@@ -21,12 +21,12 @@ type SettingsPageActionSize = "text" | "compact";
 
 type SettingsPageInlineAction = {
   actionLabel: string;
-  actionAriaLabel?: string;
   onAction: () => void;
   actionSize?: SettingsPageActionSize;
 };
 
 type SettingsPageTextAction = SettingsPageInlineAction & {
+  actionAriaLabel: string;
   actionDisabled?: boolean;
 };
 
@@ -63,6 +63,7 @@ export type SettingsPageTextControl = SettingsPageTextFieldControl &
 
 export type SettingsPageActionControl = SettingsPageControlHeader<"action"> &
   SettingsPageInlineAction & {
+    actionAriaLabel?: string;
     rowClassName?: string;
     labelClassName?: string;
   };

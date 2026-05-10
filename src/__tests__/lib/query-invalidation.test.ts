@@ -109,6 +109,21 @@ describe("query-invalidation", () => {
     expect(queryClient.getQueryCache().findAll({ queryKey: queryKeys.articlesByTag.root })).toHaveLength(1);
   });
 
+  it("keeps composite query keys in typed manual helpers instead of generated single-id hooks", () => {
+    expect(queryKeys.accountArticles.byAccount("acc-1", "unread")).toEqual([
+      "accountArticles",
+      "acc-1",
+      { mode: "unread" },
+    ]);
+    expect(queryKeys.articlesByTag.byTagAndAccount("tag-1", "acc-1", "starred")).toEqual([
+      "articlesByTag",
+      "tag-1",
+      "acc-1",
+      { mode: "starred" },
+    ]);
+    expect(queryKeys.search.byAccountAndQuery("acc-1", "news")).toEqual(["search", "acc-1", "news"]);
+  });
+
   it("normalizes account ids used in query keys", () => {
     expect(normalizeQueryAccountId(" acc-1\n")).toBe("acc-1");
     expect(normalizeQueryAccountId(" \t\n")).toBeNull();

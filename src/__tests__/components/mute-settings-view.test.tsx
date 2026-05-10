@@ -1,7 +1,30 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
-import { MuteSettingsView } from "@/components/settings/mute-settings-view";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { handleMuteKeywordScopeSelectValue, MuteSettingsView } from "@/components/settings/mute-settings-view";
+
+describe("mute keyword scope select policy", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("emits diagnostics and ignores invalid scope select values", () => {
+    const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const onScopeChange = vi.fn();
+
+    handleMuteKeywordScopeSelectValue("surprise", onScopeChange, {
+      source: "saved-rule",
+      ruleId: "rule-1",
+    });
+
+    expect(onScopeChange).not.toHaveBeenCalled();
+    expect(consoleWarn).toHaveBeenCalledWith("Ignored invalid mute keyword scope select value", {
+      source: "saved-rule",
+      ruleId: "rule-1",
+      value: "surprise",
+    });
+  });
+});
 
 describe("MuteSettingsView", () => {
   it("uses softened helper tones for coming-soon and empty-state support copy", () => {

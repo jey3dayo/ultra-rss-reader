@@ -30,6 +30,26 @@ describe("feed-folder-flow", () => {
     expect(calls).not.toContainEqual(expect.objectContaining({ cmd: "create_folder" }));
   });
 
+  it("falls back to no folder when the selected folder was removed before submit", async () => {
+    const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+      return undefined;
+    });
+
+    const result = await createFolderIfNeededResult({
+      accountId: "acc-1",
+      selectedFolderId: "folder-deleted",
+      isCreatingFolder: false,
+      newFolderName: "",
+      availableFolderIds: ["folder-1", "folder-2"],
+    });
+
+    expect(Result.isSuccess(result)).toBe(true);
+    expect(Result.unwrap(result)).toBeNull();
+    expect(calls).not.toContainEqual(expect.objectContaining({ cmd: "create_folder" }));
+  });
+
   it("returns the created folder id when creating a folder succeeds", async () => {
     setupTauriMocks((cmd, args) => {
       if (cmd === "create_folder") {

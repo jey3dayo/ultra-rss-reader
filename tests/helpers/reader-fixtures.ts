@@ -99,6 +99,32 @@ export const sampleArticleSeeds: ReadonlyFixtureSeed<ArticleFixture> = [
     is_read: true,
     is_starred: true,
   },
+  {
+    id: "art-3",
+    feed_id: "feed-2",
+    title: "Foldered FreshRSS Article",
+    content_sanitized: "<p>Folder scoped article</p>",
+    summary: "A FreshRSS article inside a folder",
+    url: "https://example.com/news/3",
+    author: "Bob",
+    published_at: "2026-03-23T07:00:00Z",
+    thumbnail: null,
+    is_read: false,
+    is_starred: true,
+  },
+  {
+    id: "art-4",
+    feed_id: "feed-3",
+    title: "Fresh Inbox Article",
+    content_sanitized: "<p>Unfoldered FreshRSS article</p>",
+    summary: null,
+    url: "https://example.com/fresh/4",
+    author: null,
+    published_at: "2026-03-22T06:00:00Z",
+    thumbnail: null,
+    is_read: true,
+    is_starred: false,
+  },
 ];
 
 export const sampleArticleTagSeeds: ReadonlyFixtureSeed<ArticleTagFixture> = [
@@ -108,6 +134,14 @@ export const sampleArticleTagSeeds: ReadonlyFixtureSeed<ArticleTagFixture> = [
   },
   {
     article_id: "art-2",
+    tag_id: "tag-2",
+  },
+  {
+    article_id: "art-3",
+    tag_id: "tag-1",
+  },
+  {
+    article_id: "art-4",
     tag_id: "tag-2",
   },
 ];

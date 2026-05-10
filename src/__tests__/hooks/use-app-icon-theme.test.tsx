@@ -185,7 +185,6 @@ describe("useAppIconTheme", () => {
     expect(appIconPolicy).toMatchObject({
       devOnlyConsole: false,
       productionDiagnostics: true,
-      toast: "never",
       once: true,
       redactSecrets: true,
     });

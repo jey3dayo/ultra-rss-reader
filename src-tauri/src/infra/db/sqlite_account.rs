@@ -71,9 +71,9 @@ fn validate_sync_settings(sync_interval_secs: i64, keep_read_items_days: i64) ->
             "Sync interval must be between 60 and 86400 seconds".into(),
         ));
     }
-    if !(1..=3650).contains(&keep_read_items_days) {
+    if !(0..=3650).contains(&keep_read_items_days) {
         return Err(DomainError::Validation(
-            "Keep read items days must be between 1 and 3650".into(),
+            "Keep read items days must be between 0 and 3650".into(),
         ));
     }
     Ok(())
@@ -841,7 +841,7 @@ mod tests {
         let repo = SqliteAccountRepository::new(db.writer());
 
         for (sync_interval_secs, keep_read_items_days) in
-            [(59, 30), (86_401, 30), (3600, 0), (3600, 3651)]
+            [(59, 30), (86_401, 30), (3600, -1), (3600, 3651)]
         {
             let account = Account {
                 sync_interval_secs,
@@ -861,7 +861,7 @@ mod tests {
         let db = test_db();
 
         for (sync_interval_secs, keep_read_items_days) in
-            [(59, 30), (86_401, 30), (3600, 0), (3600, 3651)]
+            [(59, 30), (86_401, 30), (3600, -1), (3600, 3651)]
         {
             let result = db.writer().execute(
                 "INSERT INTO accounts (id, kind, name, sync_interval_secs, keep_read_items_days)
@@ -889,7 +889,7 @@ mod tests {
         repo.save(&account).unwrap();
 
         for (sync_interval_secs, keep_read_items_days) in
-            [(59, 30), (86_401, 30), (3600, 0), (3600, 3651)]
+            [(59, 30), (86_401, 30), (3600, -1), (3600, 3651)]
         {
             assert!(
                 repo.update_sync_settings(

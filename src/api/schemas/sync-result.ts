@@ -35,6 +35,10 @@ export const SyncResultSchema = z
     failed: z.array(AccountSyncErrorSchema),
     warnings: z.array(AccountSyncWarningSchema),
   })
+  .refine((result) => result.total === result.succeeded + result.failed.length, {
+    message: "total must match succeeded plus failed count",
+    path: ["total"],
+  })
   .strict();
 
 export type AccountSyncError = z.output<typeof AccountSyncErrorSchema>;

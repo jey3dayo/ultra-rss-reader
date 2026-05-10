@@ -6,7 +6,7 @@ CREATE TABLE accounts (
     username TEXT,
     sync_interval_secs INTEGER NOT NULL DEFAULT 3600 CHECK (sync_interval_secs BETWEEN 60 AND 86400),
     sync_on_wake INTEGER NOT NULL DEFAULT 0,
-    keep_read_items_days INTEGER NOT NULL DEFAULT 30 CHECK (keep_read_items_days BETWEEN 1 AND 3650)
+    keep_read_items_days INTEGER NOT NULL DEFAULT 30 CHECK (keep_read_items_days BETWEEN 0 AND 3650)
 );
 
 CREATE TABLE folders (

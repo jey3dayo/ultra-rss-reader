@@ -15,7 +15,9 @@ type FeedEditErrorLike = {
   message: string;
 };
 
-type FeedEditFolderSelectionParams = FeedDialogFolderSelectionParams;
+type FeedEditFolderSelectionParams = FeedDialogFolderSelectionParams & {
+  availableFolderIds?: readonly string[];
+};
 
 export type SubmitFeedEditsParams = {
   feed: FeedDto;

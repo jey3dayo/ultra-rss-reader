@@ -50,6 +50,8 @@ export function useAddFeedDialogController({
     isCreatingFolder,
     newFolderName,
   };
+  const folderOptions = buildFolderOptions(folders, noFolderLabel);
+  const availableFolderIds = folderOptions.flatMap((option) => (option.value === "" ? [] : [option.value]));
   const derived = resolveAddFeedDialogDerived({
     state,
     folderSelection,
@@ -65,6 +67,7 @@ export function useAddFeedDialogController({
     derived,
     trimmedUrl,
     folderSelection,
+    availableFolderIds,
     queryClient: qc,
     onOpenChange,
     showToast,
@@ -91,7 +94,7 @@ export function useAddFeedDialogController({
     handleSubmit,
     folderSelectProps: {
       folderSelectValue,
-      folderOptions: buildFolderOptions(folders, noFolderLabel),
+      folderOptions,
       isCreatingFolder,
       newFolderName,
       newFolderInputRef,

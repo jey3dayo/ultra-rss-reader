@@ -12,8 +12,8 @@ use crate::commands::dto::{
     AccountSyncWarning, AccountSyncWarningKind, AppError, SyncProgressKind,
 };
 use crate::commands::sync_commands::{
-    purge_old_articles, sync_account, SyncProgressReporter, SYNC_COMPLETED_EVENT,
-    SYNC_SUCCEEDED_EVENT, SYNC_WARNING_EVENT,
+    purge_old_articles, should_purge_old_articles_after_sync, sync_account, SyncProgressReporter,
+    SYNC_COMPLETED_EVENT, SYNC_SUCCEEDED_EVENT, SYNC_WARNING_EVENT,
 };
 use crate::domain::account::Account;
 use crate::domain::error::{DomainError, DomainResult};
@@ -447,7 +447,7 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
                 all_succeeded = false;
             }
 
-            if any_synced {
+            if should_purge_old_articles_after_sync(any_synced) {
                 if let Err(e) = app_handle.emit(SYNC_COMPLETED_EVENT, ()) {
                     tracing::warn!("Failed to emit sync-completed event: {e}");
                 }

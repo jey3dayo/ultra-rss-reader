@@ -10,6 +10,7 @@ import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { Input } from "@/components/ui/input";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
+import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
 import { getOptionLabelByValue } from "@/lib/ui/options";
 
 type MuteSettingsScopeOption = {
@@ -19,6 +20,23 @@ type MuteSettingsScopeOption = {
 
 function isMuteKeywordScope(value: string | null): value is MuteKeywordScope {
   return value === "title" || value === "body" || value === "title_and_body";
+}
+
+export function handleMuteKeywordScopeSelectValue(
+  value: string | null,
+  onValidScopeChange: (scope: MuteKeywordScope) => void,
+  context: { source: "add-row" | "saved-rule"; ruleId?: string },
+) {
+  if (isMuteKeywordScope(value)) {
+    onValidScopeChange(value);
+    return;
+  }
+
+  logRuntimeDiagnostic("mute-keyword-scope-select", "Ignored invalid mute keyword scope select value", {
+    source: context.source,
+    ruleId: context.ruleId,
+    value,
+  });
 }
 
 type MuteSettingsKeywordRow = {
@@ -129,7 +147,14 @@ export function MuteSettingsView({
                 placeholder={keywordPlaceholder}
                 className="h-10 w-full sm:w-[220px] sm:flex-none"
               />
-              <Select value={scopeValue} onValueChange={(value) => isMuteKeywordScope(value) && onScopeChange(value)}>
+              <Select
+                value={scopeValue}
+                onValueChange={(value) =>
+                  handleMuteKeywordScopeSelectValue(value, onScopeChange, {
+                    source: "add-row",
+                  })
+                }
+              >
                 <SelectTrigger aria-label={scopeAriaLabel} className="h-10 w-full sm:w-[192px]">
                   <SelectValue>
                     {(selectedValue: string | null) => getOptionLabelByValue(scopeOptions, selectedValue ?? scopeValue)}
@@ -179,7 +204,12 @@ export function MuteSettingsView({
                 <div className="flex w-full flex-col gap-2 sm:max-w-[30rem] sm:flex-row sm:items-center sm:justify-end">
                   <Select
                     value={rule.scope}
-                    onValueChange={(value) => isMuteKeywordScope(value) && onRuleScopeChange(rule.id, value)}
+                    onValueChange={(value) =>
+                      handleMuteKeywordScopeSelectValue(value, (scope) => onRuleScopeChange(rule.id, scope), {
+                        source: "saved-rule",
+                        ruleId: rule.id,
+                      })
+                    }
                   >
                     <SelectTrigger aria-label={savedScopeAriaLabel(rule.keyword)} className="h-10 w-full sm:flex-1">
                       <SelectValue>

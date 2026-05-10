@@ -6,6 +6,7 @@ export type CreateFolderIfNeededResultParams = {
   selectedFolderId: string | null;
   isCreatingFolder: boolean;
   newFolderName: string;
+  availableFolderIds?: readonly string[];
 };
 
 export type CreateFolderIfNeededParams = CreateFolderIfNeededResultParams & {
@@ -17,9 +18,14 @@ export async function createFolderIfNeededResult({
   selectedFolderId,
   isCreatingFolder,
   newFolderName,
+  availableFolderIds,
 }: CreateFolderIfNeededResultParams): Result.ResultAsync<string | null, AppError> {
   if (!isCreatingFolder || !newFolderName.trim()) {
-    return Result.succeed(selectedFolderId);
+    if (!selectedFolderId || !availableFolderIds || availableFolderIds.includes(selectedFolderId)) {
+      return Result.succeed(selectedFolderId);
+    }
+
+    return Result.succeed(null);
   }
 
   const result = await createFolder(accountId, newFolderName.trim());

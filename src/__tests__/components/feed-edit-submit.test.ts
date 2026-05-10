@@ -129,6 +129,30 @@ describe("submitFeedEdits", () => {
     });
   });
 
+  it("moves the feed to no folder when the selected folder disappears before submit", async () => {
+    const updateFeedFolder = vi.fn(async () => true);
+    setupTauriMocks(recorder.handler);
+
+    await expect(
+      submitFeedEdits(
+        createParams({
+          folderSelection: {
+            selectedFolderId: "folder-deleted",
+            isCreatingFolder: false,
+            newFolderName: "",
+            availableFolderIds: ["folder-2"],
+          },
+          updateFeedFolder,
+        }),
+      ),
+    ).resolves.toBe(true);
+
+    expect(updateFeedFolder).toHaveBeenCalledWith({
+      feedId: feed.id,
+      folderId: null,
+    });
+  });
+
   it("returns false when only the folder move fails", async () => {
     const queryClient = createTestQueryClient();
     const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");

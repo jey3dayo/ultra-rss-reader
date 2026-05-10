@@ -228,4 +228,20 @@ describe("createQuery", () => {
     expect(queryWrapper.queryClient.getQueryState(["items", "item-1"])).toBeDefined();
     expect(queryWrapper.queryClient.getQueryState(["items", " item-1\n"])).toBeUndefined();
   });
+
+  it("keeps generated queries scoped to a single normalized id segment", async () => {
+    const queryWrapper = createQueryWrapper();
+    const fetcher = vi.fn((id: string) => Promise.resolve(Result.succeed({ id })));
+    const useGeneratedQuery = createQuery("items", fetcher);
+
+    renderHook(() => useGeneratedQuery("acc-1:mode-unread"), {
+      wrapper: queryWrapper.wrapper,
+    });
+
+    await waitFor(() => {
+      expect(fetcher).toHaveBeenCalledWith("acc-1:mode-unread");
+    });
+    expect(queryWrapper.queryClient.getQueryState(["items", "acc-1:mode-unread"])).toBeDefined();
+    expect(queryWrapper.queryClient.getQueryState(["items", "acc-1", { mode: "unread" }])).toBeUndefined();
+  });
 });

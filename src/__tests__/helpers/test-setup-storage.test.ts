@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { ensureWorkingStorage, MemoryStorage, restoreStorageDescriptors } from "../../../tests/setup";
+import {
+  ensureWorkingStorage,
+  MEMORY_STORAGE_BROWSER_SPEC_DIFFERENCES,
+  MemoryStorage,
+  restoreStorageDescriptors,
+} from "../../../tests/setup";
 
 const originalWindowLocalStorageDescriptor = Object.getOwnPropertyDescriptor(window, "localStorage");
 const originalWindowSessionStorageDescriptor = Object.getOwnPropertyDescriptor(window, "sessionStorage");
@@ -199,5 +204,13 @@ describe("test setup storage fallback", () => {
     expect(readStorageProperty(storage, "getItem")).toBe(storage.getItem);
     expect(storage.getItem("length")).toBe("5");
     expect(storage.getItem("getItem")).toBe("value");
+  });
+
+  it("documents the intentional MemoryStorage browser Storage spec differences", () => {
+    expect(MEMORY_STORAGE_BROWSER_SPEC_DIFFERENCES).toEqual([
+      "MemoryStorage is a Vitest fallback for blocked or unavailable browser storage, not a full Storage host object.",
+      "MemoryStorage exposes named item properties through accessors but does not implement Storage named property deletion semantics for direct assignment.",
+      "MemoryStorage preserves existing Storage API members when item keys collide with methods or length.",
+    ]);
   });
 });

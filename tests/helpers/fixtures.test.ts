@@ -1,5 +1,4 @@
 import type { Result } from "@praha/byethrow";
-import { createElement } from "react";
 import { describe, expect, expectTypeOf, it } from "vitest";
 import {
   AccountDtoSchema,
@@ -23,7 +22,6 @@ import type {
   MuteKeywordDto,
   TagDto,
 } from "@/api/tauri-commands";
-import preview from "../../.storybook/preview";
 import {
   buildArticleTagFixtures,
   cloneFixtureSeed,
@@ -53,7 +51,6 @@ import {
   sampleTagSeeds,
   sampleTags,
 } from "./fixtures";
-import { renderStory, type StoryDecorator, type StoryLike, type StoryMeta } from "./render-story";
 
 type CommandSuccess<TCommand> = TCommand extends (...args: infer _Args) => Result.ResultAsync<infer Output, unknown>
   ? Output
@@ -66,19 +63,6 @@ function expectUniqueIds(items: readonly { id: string }[]) {
 
 function expectNonBlank(value: string | null | undefined, message: string) {
   expect(value?.trim().length ?? 0, message).toBeGreaterThan(0);
-}
-
-function renderStoryFromUntypedCallBoundary<TArgs extends Record<string, unknown>>(
-  meta: StoryMeta<TArgs>,
-  story: StoryLike<TArgs>,
-  options: unknown,
-): ReturnType<typeof renderStory<TArgs>> {
-  const renderWithUnknownOptions = renderStory as (
-    meta: StoryMeta<TArgs>,
-    story: StoryLike<TArgs>,
-    options: unknown,
-  ) => ReturnType<typeof renderStory<TArgs>>;
-  return renderWithUnknownOptions(meta, story, options);
 }
 
 describe("test fixtures", () => {
@@ -165,6 +149,34 @@ describe("test fixtures", () => {
       expect(feed, `Missing feed ${article.feed_id} for article ${article.id}`).toBeDefined();
       expect(accountsById.has(feed?.account_id ?? ""), `Missing account for article ${article.id}`).toBe(true);
     }
+  });
+
+  it("covers reader articles across local, cross-account, foldered, and tagged sample scopes", () => {
+    const feedsById = new Map(sampleFeeds.map((feed) => [feed.id, feed]));
+    const foldersById = new Map(sampleFolders.map((folder) => [folder.id, folder]));
+    const articleTagsByArticleId = new Map<string, string[]>();
+
+    for (const articleTag of sampleArticleTags) {
+      articleTagsByArticleId.set(articleTag.article_id, [
+        ...(articleTagsByArticleId.get(articleTag.article_id) ?? []),
+        articleTag.tag_id,
+      ]);
+    }
+
+    const accountIdsWithArticles = new Set(
+      sampleArticles.map((article) => feedsById.get(article.feed_id)?.account_id).filter((accountId) => accountId),
+    );
+    const folderedArticles = sampleArticles.filter((article) => {
+      const feed = feedsById.get(article.feed_id);
+      return feed?.folder_id !== null && foldersById.get(feed?.folder_id ?? "")?.account_id === feed?.account_id;
+    });
+    const taggedArticleIds = new Set(sampleArticleTags.map((articleTag) => articleTag.article_id));
+
+    expect(accountIdsWithArticles).toEqual(new Set(sampleAccounts.map((account) => account.id)));
+    expect(folderedArticles.map((article) => article.id)).toContain("art-3");
+    expect(sampleArticles.every((article) => taggedArticleIds.has(article.id))).toBe(true);
+    expect(articleTagsByArticleId.get("art-3")).toEqual(["tag-1"]);
+    expect(articleTagsByArticleId.get("art-4")).toEqual(["tag-2"]);
   });
 
   it("keeps sample account, feed, article, mute keyword, and tag fixtures compatible with DTO schemas", () => {
@@ -348,195 +360,5 @@ describe("test fixtures", () => {
     expectTypeOf(createSampleTags()).toEqualTypeOf<MutableTestFixture<TagDto>>();
 
     expect(createSampleAccounts()).toEqual(sampleAccounts);
-  });
-});
-
-describe("renderStory", () => {
-  it("merges args, parameters, globals, and decorators for render and decorator contexts", () => {
-    const calls: string[] = [];
-    const snapshots: Array<{
-      source: string;
-      args: { label: string; tone: string };
-      parameters: Record<string, unknown>;
-      globals: Record<string, unknown>;
-    }> = [];
-    const capture =
-      (source: string): StoryDecorator<{ label: string; tone: string }> =>
-      (Story, context) => {
-        calls.push(source);
-        snapshots.push({
-          source,
-          args: context.args,
-          parameters: context.parameters,
-          globals: context.globals,
-        });
-        return Story();
-      };
-
-    const meta = {
-      component: ({ label }: { label: string; tone: string }) => createElement("span", null, label),
-      args: { label: "meta", tone: "neutral" },
-      parameters: { layout: "centered", viewport: "desktop" },
-      globals: { locale: "en", theme: "light" },
-      render: (args, context) => {
-        calls.push("render");
-        snapshots.push({
-          source: "render",
-          args,
-          parameters: context.parameters,
-          globals: context.globals,
-        });
-        return createElement("span", null, `${args.label}:${args.tone}`);
-      },
-      decorators: capture("meta"),
-    } satisfies StoryMeta<{ label: string; tone: string }>;
-
-    renderStory<{ label: string; tone: string }>(meta, {
-      args: { label: "story" },
-      parameters: { viewport: "mobile" },
-      globals: { theme: "dark" },
-      decorators: [undefined, capture("story"), null],
-    });
-
-    expect(calls).toEqual(["meta", "story", "render"]);
-    expect(snapshots).toEqual([
-      {
-        source: "meta",
-        args: { label: "story", tone: "neutral" },
-        parameters: { ...preview.parameters, layout: "centered", viewport: "mobile" },
-        globals: { locale: "en", theme: "dark" },
-      },
-      {
-        source: "story",
-        args: { label: "story", tone: "neutral" },
-        parameters: { ...preview.parameters, layout: "centered", viewport: "mobile" },
-        globals: { locale: "en", theme: "dark" },
-      },
-      {
-        source: "render",
-        args: { label: "story", tone: "neutral" },
-        parameters: { ...preview.parameters, layout: "centered", viewport: "mobile" },
-        globals: { locale: "en", theme: "dark" },
-      },
-    ]);
-  });
-
-  it("passes composed parameters and globals into decorator context", () => {
-    const contexts: Array<{
-      parameters: Record<string, unknown>;
-      globals: Record<string, unknown>;
-    }> = [];
-    const decorator: StoryDecorator<{ label: string }> = (Story, context) => {
-      contexts.push({
-        parameters: context.parameters,
-        globals: context.globals,
-      });
-      return Story();
-    };
-
-    renderStory(
-      {
-        component: ({ label }: { label: string }) => createElement("span", null, label),
-        args: { label: "base" },
-        parameters: { layout: "centered", viewport: "desktop" },
-        globals: { locale: "en", theme: "light" },
-        decorators: [decorator],
-      },
-      {
-        args: { label: "story" },
-        parameters: { viewport: "mobile" },
-        globals: { theme: "dark" },
-      },
-    );
-
-    expect(contexts).toEqual([
-      {
-        parameters: { ...preview.parameters, layout: "centered", viewport: "mobile" },
-        globals: { locale: "en", theme: "dark" },
-      },
-    ]);
-  });
-
-  it("applies meta decorators outside story decorators with merged story args", () => {
-    const calls: string[] = [];
-    const contexts: Array<{ label: string }> = [];
-    const createDecorator =
-      (name: string): StoryDecorator<{ label: string }> =>
-      (Story, context) => {
-        calls.push(`${name}:before`);
-        contexts.push({ label: context.args.label });
-        const output = Story();
-        calls.push(`${name}:after`);
-        return createElement("div", { "data-decorator": name }, output);
-      };
-
-    const { container } = renderStory(
-      {
-        component: ({ label }: { label: string }) => {
-          calls.push(`component:${label}`);
-          return createElement("span", null, label);
-        },
-        args: { label: "meta" },
-        decorators: [createDecorator("meta-outer"), createDecorator("meta-inner")],
-      },
-      {
-        args: { label: "story" },
-        decorators: [createDecorator("story-outer"), createDecorator("story-inner")],
-      },
-    );
-
-    expect(calls).toEqual([
-      "meta-outer:before",
-      "meta-inner:before",
-      "story-outer:before",
-      "story-inner:before",
-      "story-inner:after",
-      "story-outer:after",
-      "meta-inner:after",
-      "meta-outer:after",
-      "component:story",
-    ]);
-    expect(contexts).toEqual([{ label: "story" }, { label: "story" }, { label: "story" }, { label: "story" }]);
-    expect(
-      Array.from(container.querySelectorAll("[data-decorator]")).map((node) => node.getAttribute("data-decorator")),
-    ).toEqual(["meta-outer", "meta-inner", "story-outer", "story-inner"]);
-  });
-
-  it("rejects non-options values passed as the third argument", () => {
-    const meta = {
-      component: ({ label }: { label: string }) => createElement("span", null, label),
-      args: { label: "base" },
-    };
-
-    expect(() =>
-      renderStoryFromUntypedCallBoundary(
-        meta,
-        {
-          args: { label: "story" },
-        },
-        true,
-      ),
-    ).toThrowError("renderStory third argument must be Testing Library RenderOptions.");
-  });
-
-  it("passes valid Testing Library options through to render", () => {
-    const wrapperText = "render wrapper";
-    const { baseElement } = renderStory(
-      {
-        component: ({ label }: { label: string }) => createElement("span", null, label),
-        args: { label: "base" },
-      },
-      {
-        args: { label: "story" },
-      },
-      {
-        baseElement: document.createElement("section"),
-        wrapper: ({ children }) => createElement("div", { "aria-label": wrapperText }, children),
-      },
-    );
-
-    expect(baseElement.tagName).toBe("SECTION");
-    expect(baseElement.querySelector(`[aria-label="${wrapperText}"]`)).not.toBeNull();
-    expect(baseElement).toHaveTextContent("story");
   });
 });

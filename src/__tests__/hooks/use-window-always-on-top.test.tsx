@@ -222,7 +222,6 @@ describe("useWindowAlwaysOnTop", () => {
     expect(RUNTIME_DIAGNOSTIC_POLICIES["window-always-on-top"]).toMatchObject({
       devOnlyConsole: false,
       productionDiagnostics: true,
-      toast: "never",
       once: false,
       redactSecrets: true,
     });

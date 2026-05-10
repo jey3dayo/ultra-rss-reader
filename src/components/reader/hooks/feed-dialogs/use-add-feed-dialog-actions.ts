@@ -24,6 +24,7 @@ type UseAddFeedDialogActionsParams = {
   derived: AddFeedDialogControllerDerived;
   trimmedUrl: string;
   folderSelection: AddFeedDialogFolderSelectionParams;
+  availableFolderIds?: readonly string[];
   queryClient: QueryClient;
   onOpenChange: (open: boolean) => void;
   showToast: (message: string) => void;
@@ -58,6 +59,7 @@ export function useAddFeedDialogActions({
   derived,
   trimmedUrl,
   folderSelection,
+  availableFolderIds,
   queryClient,
   onOpenChange,
   showToast,
@@ -166,6 +168,7 @@ export function useAddFeedDialogActions({
           selectedFolderId: folderSelection.selectedFolderId,
           isCreatingFolder: folderSelection.isCreatingFolder,
           newFolderName: folderSelection.newFolderName,
+          availableFolderIds,
         });
         if (Result.isFailure(folderResult)) {
           const error = Result.unwrapError(folderResult);
@@ -224,6 +227,7 @@ export function useAddFeedDialogActions({
     });
   }, [
     accountId,
+    availableFolderIds,
     derived.isManualUrlValid,
     dispatch,
     folderSelection.isCreatingFolder,

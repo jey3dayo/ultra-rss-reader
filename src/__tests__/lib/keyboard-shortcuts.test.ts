@@ -92,6 +92,62 @@ describe("keyboard shortcut resolver", () => {
     expect(Result.unwrap(result)).toEqual({ type: "open-command-palette" });
   });
 
+  it("uses Cmd as the macOS runtime primary modifier", () => {
+    const cmdResult = resolveKeyboardAction({
+      key: "k",
+      metaKey: true,
+      ctrlKey: false,
+      shiftKey: false,
+      targetTag: "DIV",
+      selectedArticleId: null,
+      contentMode: "empty",
+      viewMode: "all",
+      platformKind: "macos",
+    });
+    const ctrlResult = resolveKeyboardAction({
+      key: "k",
+      metaKey: false,
+      ctrlKey: true,
+      shiftKey: false,
+      targetTag: "DIV",
+      selectedArticleId: null,
+      contentMode: "empty",
+      viewMode: "all",
+      platformKind: "macos",
+    });
+
+    expect(Result.unwrap(cmdResult)).toEqual({ type: "open-command-palette" });
+    expect(Result.unwrapError(ctrlResult)).toBe("no_action");
+  });
+
+  it.each(["windows", "linux"] as const)("uses Ctrl as the %s runtime primary modifier", (platformKind) => {
+    const ctrlResult = resolveKeyboardAction({
+      key: "k",
+      metaKey: false,
+      ctrlKey: true,
+      shiftKey: false,
+      targetTag: "DIV",
+      selectedArticleId: null,
+      contentMode: "empty",
+      viewMode: "all",
+      platformKind,
+    });
+    const metaResult = resolveKeyboardAction({
+      key: "k",
+      metaKey: true,
+      ctrlKey: false,
+      shiftKey: false,
+      targetTag: "DIV",
+      selectedArticleId: null,
+      contentMode: "empty",
+      viewMode: "all",
+      platformKind,
+    });
+
+    expect(Result.unwrap(ctrlResult)).toEqual({ type: "open-command-palette" });
+    expect(Result.unwrapError(metaResult)).toBe("no_action");
+  });
+
   it("does not reserve Cmd+Shift+R in dev builds", () => {
     vi.stubEnv("DEV", true);
 
@@ -677,9 +733,14 @@ describe("keyboard shortcut resolver", () => {
   });
 
   it.each([
-    { modifier: "Cmd", metaKey: true, ctrlKey: false },
-    { modifier: "Ctrl", metaKey: false, ctrlKey: true },
-  ])("lets the native menu own $modifier+R even when Web Preview reload is remapped to it", ({ metaKey, ctrlKey }) => {
+    { platformKind: "macos", modifier: "Cmd", metaKey: true, ctrlKey: false },
+    { platformKind: "windows", modifier: "Ctrl", metaKey: false, ctrlKey: true },
+    { platformKind: "linux", modifier: "Ctrl", metaKey: false, ctrlKey: true },
+  ] as const)("lets the native menu own $modifier+R on $platformKind even when Web Preview reload is remapped to it", ({
+    platformKind,
+    metaKey,
+    ctrlKey,
+  }) => {
     const result = resolveKeyboardAction({
       key: "r",
       metaKey,
@@ -689,6 +750,7 @@ describe("keyboard shortcut resolver", () => {
       selectedArticleId: "art-1",
       contentMode: "browser",
       viewMode: "all",
+      platformKind,
       keyToAction: buildKeyToActionMap({
         shortcut_reload_webview: "⌘+r",
       }),

@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { SettingsPageView } from "@/components/settings/settings-page-view";
 
@@ -183,6 +184,25 @@ describe("SettingsPageView", () => {
 
     expect(screen.getByRole("button", { name: "Reset reader display name" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Reset: Display name" })).toBeNull();
+  });
+
+  it("requires inline text actions to provide an explicit aria label at the view contract", () => {
+    type TextControl = ComponentProps<typeof SettingsPageView>["sections"][number]["controls"][number];
+    type InlineTextControl = Extract<TextControl, { type: "text"; actionLabel: string }>;
+
+    const validInlineTextControl = {
+      id: "display-name",
+      type: "text",
+      name: "display_name",
+      label: "Display name",
+      value: "Main reader",
+      onChange: vi.fn(),
+      actionLabel: "Reset",
+      actionAriaLabel: "Reset display name",
+      onAction: vi.fn(),
+    } satisfies InlineTextControl;
+
+    expect(validInlineTextControl.actionAriaLabel).toBe("Reset display name");
   });
 
   it("prefers explicit action row aria labels", () => {

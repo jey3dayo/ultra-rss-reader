@@ -110,6 +110,9 @@ export function useRenameFeedDialogController({
       selectedFolderId,
       isCreatingFolder,
       newFolderName,
+      availableFolderIds: buildFolderOptions(folders, t("no_folder")).flatMap((option) =>
+        option.value === "" ? [] : [option.value],
+      ),
     };
 
     dispatch({ type: "set-loading", value: true });

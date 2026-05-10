@@ -110,9 +110,9 @@ fn validate_account_sync_settings(
             message: "Sync interval must be between 60 and 86400 seconds".into(),
         });
     }
-    if !(1..=3650).contains(&keep_read_items_days) {
+    if !(0..=3650).contains(&keep_read_items_days) {
         return Err(AppError::UserVisible {
-            message: "Keep read items days must be between 1 and 3650".into(),
+            message: "Keep read items days must be between 0 and 3650".into(),
         });
     }
     Ok(())
@@ -382,10 +382,11 @@ mod tests {
     #[test]
     fn validates_sync_settings_range() {
         assert!(validate_account_sync_settings(60, 1).is_ok());
+        assert!(validate_account_sync_settings(3600, 0).is_ok());
         assert!(validate_account_sync_settings(86_400, 3650).is_ok());
         assert!(validate_account_sync_settings(59, 30).is_err());
         assert!(validate_account_sync_settings(86_401, 30).is_err());
-        assert!(validate_account_sync_settings(3600, 0).is_err());
+        assert!(validate_account_sync_settings(3600, -1).is_err());
         assert!(validate_account_sync_settings(3600, 3651).is_err());
     }
 
