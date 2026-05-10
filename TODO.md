@@ -98,11 +98,6 @@
 
 ### Rust Provider / DB / Scheduler
 
-- [ ] P3 repository fixture builder を account/feed/article/tag ごとに最小化する
-  - 対象: `src-tauri/tests`, `src-tauri/src/infra/db/*_test.rs`
-  - DB test fixture が ad hoc に増えると、account id や remote id、sort_order、timestamps の前提がテストごとに揺れて regression の原因を追いにくい
-  - account/feed/article/tag/pending mutation の最小 fixture builder と、明示的に壊れた row を作る corruption helper を分ける
-
 ### Query / Store / Browser Runtime
 
 ### Reader Content / Feed Discovery / Security
@@ -157,25 +152,10 @@
   - pending mutation は1件ずつ push 成功後に削除するため、途中 failure で前半だけ remote 適用済みになるが、UI には partial push 状態が見えにくい
   - first success second failure、delete failure after push、duplicate retry、remote id missing、axis別 partial success の integration test を追加する
 
-- [ ] P2 article search normalization と backend search SQL の Unicode/length parity を固定する
-  - 対象: `src/hooks/use-articles.ts`, `src/components/reader/hooks/article-list/use-article-list-search.ts`, `src-tauri/src/commands/article_commands.rs`
-  - frontend は NFKC + whitespace collapse + 128文字 cap を持つが、backend search 側の normalization と違うと日本語/全角検索で結果が揺れやすい
-  - full-width text、combining mark、emoji、multiple spaces、128文字超、backend raw query cap の parity test を追加する
-
 - [ ] P2 article read/star mutation の optimistic insertIfMissing policy を mode/filter と同期する
   - 対象: `src/hooks/use-articles.ts`, `src/lib/query/query-invalidation.ts`, `src/components/reader/article-list-body.tsx`
   - read/star mutation が missing article を cache に挿入する場合、unread/starred/recent/search の query mode に合わない item が混ざる可能性がある
   - unread mode read=true、starred mode unstar、recent query insert、search query insert、tag query insert の cache contract を追加する
-
-- [ ] P2 sync progress event account id と account selection の stale mapping を UI adapter で検証する
-  - 対象: `src/lib/sync/sync-progress-event.types.ts`, `src/stores/ui-store.ts`, `src/components/reader/sidebar-sync-feedback.ts`
-  - sync progress は account id を含むが、進行中に account が rename/delete されると sidebar feedback が orphan progress を表示し続ける可能性がある
-  - account rename、account delete、unknown account id、all-account sync、partial failure、progress completion cleanup の test を追加する
-
-- [ ] P2 sync result feedback の warnings/errors aggregation を account/action owner 別に整理する
-  - 対象: `src/lib/sync/sync-result-feedback.ts`, `src/components/reader/hooks/sidebar/use-sidebar-sync.ts`, `src/api/schemas/sync-result.ts`
-  - sync result の warnings/errors が account 単位と feed 単位で混ざると、toast が長くなり原因 account を特定しにくい
-  - multiple accounts、same warning dedupe、feed-level error、credential error、scheduler warning、toast truncation の test を追加する
 
 - [ ] P3 sync/provider test fixture の HTTP response builder を status/header/body 別に標準化する
   - 対象: `src-tauri/src/infra/provider/greader.rs`, `src-tauri/src/commands/sync_providers.rs`, `src-tauri/tests`
@@ -183,11 +163,6 @@
   - status fixture、header fixture、JSON malformed fixture、pagination fixture、token redaction fixture の builder を用意する
 
 ### Browser WebView / Runtime Diagnostics
-
-- [ ] P2 browser webview placeholder URL path の Windows-only navigation state を parity 化する
-  - 対象: `src-tauri/src/commands/browser_webview_commands.rs`, `src-tauri/src/browser_webview.rs`, `src/components/reader/browser-webview-state.ts`
-  - Windows では initial URL に `about:blank` を使うため、current_url と snapshot.url の比較が他 platform と違い、navigate skip/duplicate history が起きやすい
-  - placeholder initial URL、navigate same target、about:blank page-load ignore、history back/forward、platform mock parity の test を追加する
 
 - [ ] P2 browser webview focus restore failure を close flow / pending action queue と同期する
   - 対象: `src-tauri/src/commands/browser_webview_commands.rs`, `src/lib/actions.ts`, `src/components/reader/hooks/browser/use-browser-view-runtime.ts`
