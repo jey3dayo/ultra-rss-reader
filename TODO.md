@@ -3342,21 +3342,6 @@
   - OS の close button は frontend navigation guard を通らないため、dirty form や pending mutation を落とす可能性がある
   - native close requested、dirty settings、add feed pending、sync pending、restart requested、force close の flow を固定する
 
-- [ ] P2 release app first-run permission prompts を manual verification checklist に入れる
-  - 対象: `docs/release-manual-verification.md`, packaged app smoke
-  - file dialog、keyring、clipboard、network などの初回 permission prompt を見ないと、配布後の初回 UX が確認できない
-  - first keyring access、first file dialog、first clipboard copy、first network sync、denied permission の checklist を追加する
-
-- [ ] P2 release artifact quarantine path と app translocation の data dir / log dir 影響を検証する
-  - 対象: macOS packaged app verification, app path/log path helpers
-  - 未 notarized/未移動 app が translocation されると、resource path や log/app data dir の見え方が変わる可能性がある
-  - DMG direct launch、Applications launch、quarantine present、translocated path、log dir open の check を追加する
-
-- [ ] P2 Windows hidden console policy と crash visibility の両立を検証する
-  - 対象: `src-tauri/src/main.rs`, Windows release smoke, logging
-  - release で console window を消す設定は必要だが、startup panic 時の recovery surface が log/UI にないと完全に無音で落ちる
-  - hidden console、startup panic、log written、message box/fallback UI、exit code の manual check を追加する
-
 - [ ] P3 Windows dispatch env allowlist を dev credential 以外の future env 追加に備えて schema 化する
   - 対象: `scripts/lib/windows-dispatch.ts`, dev scripts
   - env forwarding が ad hoc だと、future secret env を WSL->Windows へ漏らすか、必要 env を渡し忘れる
@@ -3542,16 +3527,6 @@
   - compact UI でクリック target が小さすぎると、desktop でも誤操作が増える
   - icon button size、row action affordance、tag chip remove、dense sidebar、touch trackpad tolerance の matrix を作る
 
-- [ ] P2 destructive action undo unavailable warning を delete account/feed/tag/history で揃える
-  - 対象: destructive dialogs、settings/subscriptions/tag flows
-  - rollback 不能な削除で copy がばらつくと、ユーザーが recoverable と誤解する
-  - delete account、delete feed、delete tag、clear history、cleanup orphans、backup recommendation の copy contract を追加する
-
-- [ ] P2 user-created names の maximum display width と tooltip policy を dense list で決める
-  - 対象: feed tree、account switcher、tag chips、settings lists
-  - 長い feed/account/tag 名が layout を押し広げるか、省略されすぎると action target の識別が難しくなる
-  - max width、ellipsis、tooltip/title、middle truncation、bidi-safe display の policy を追加する
-
 - [ ] P2 command/action id の public persistence boundary を preference/history/debug で分類する
   - 対象: app action ids、shortcut preferences、command history、debug traces
   - action id を rename すると preference/history/debug が壊れるため、永続化される id と内部 id を分ける必要がある
@@ -3654,11 +3629,6 @@
   - 復旧導線が mouse 前提だと、キーボード操作ユーザーが backup restore/open log/retry に到達できない
   - retry button、open settings、open log dir、restore backup、dismiss toast、focus restore の E2E check を追加する
 
-- [ ] P2 screen reader labels for destructive dialogs に対象名と不可逆性を必ず含める
-  - 対象: delete account/feed/tag/history dialogs
-  - 見出しや本文に対象名があっても、button label だけでは screen reader の action が曖昧になる
-  - accessible name、target name、irreversible warning、loading state、failure retry の contract を追加する
-
 - [ ] P2 internal dev mock data が product metrics / screenshots に混ざらないよう source label を出す
   - 対象: dev mocks、debug HUD、screenshots/storybook
   - mock data と実データが画面上で区別できないと、レビューやドキュメントで誤解される
@@ -3688,11 +3658,6 @@
   - 対象: rename account/feed/tag flows、repository validation、query cache
   - frontend 表示名と backend normalized name が違う場合、保存直後にちらつきや duplicate 判定ずれが起きる
   - trim、case fold、Unicode normalization、duplicate after normalization、optimistic rollback の contract を追加する
-
-- [ ] P2 article action undo を導入しない場合の accidental action recovery copy を揃える
-  - 対象: mark read/star/tag/mute actions、reader toolbar、context menu
-  - 既読・スター・タグ操作は軽いが、undo がないと誤操作時の戻し方が UI surface ごとに違う
-  - mark read reversal、star toggle、tag remove/add、bulk mark read、toast copy の policy を追加する
 
 - [ ] P2 context menu target drift を right-click position / keyboard context menu で固定する
   - 対象: article list、feed tree、tag list context menus
