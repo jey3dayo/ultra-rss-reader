@@ -81,9 +81,9 @@ impl Drop for EnvVarRestore {
     }
 }
 
-fn with_locked_db<T>(db: &Mutex<DbManager>, f: impl FnOnce(&DbManager) -> T) -> T {
+fn with_locked_db(db: &Mutex<DbManager>, f: impl FnOnce(&DbManager)) {
     let db_guard = db.lock().unwrap();
-    f(&db_guard)
+    f(&db_guard);
 }
 
 #[tokio::test]
