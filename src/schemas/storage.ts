@@ -4,6 +4,7 @@ import {
   MAX_COMMAND_HISTORY_ENTRY_LENGTH,
   MAX_STORED_SIDEBAR_EXPANDED_ACCOUNTS,
   MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_PER_ACCOUNT,
+  STORAGE_KEYS,
 } from "@/constants/storage";
 
 const CONTROL_CHARACTER_RANGES = "\\u0000-\\u001F\\u007F";
@@ -85,3 +86,17 @@ export const StoredSidebarExpandedFoldersSchema = z
   });
 
 export type StoredSidebarExpandedFolders = z.output<typeof StoredSidebarExpandedFoldersSchema>;
+
+const StorageKeySchema = z.enum([
+  STORAGE_KEYS.theme,
+  STORAGE_KEYS.commandHistory,
+  STORAGE_KEYS.sidebarExpandedFolders,
+  STORAGE_KEYS.startupSyncLastTriggeredAt,
+]);
+
+export const StorageCleanupPolicyConnectionsSchema = z.object({
+  settingsDataResetKeys: z.array(StorageKeySchema).readonly(),
+  privateDataExportKeys: z.array(StorageKeySchema).readonly(),
+});
+
+export type StorageCleanupPolicyConnections = z.output<typeof StorageCleanupPolicyConnectionsSchema>;

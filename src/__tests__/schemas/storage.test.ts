@@ -4,9 +4,15 @@ import {
   MAX_COMMAND_HISTORY_ENTRY_LENGTH,
   MAX_STORED_SIDEBAR_EXPANDED_ACCOUNTS,
   MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_PER_ACCOUNT,
+  STORAGE_CLEANUP_POLICY_CONNECTIONS,
+  STORAGE_KEYS,
 } from "@/constants/storage";
 import { parseJsonWithSchemaOrNull } from "@/schemas/parse";
-import { CommandHistoryStorageSchema, StoredSidebarExpandedFoldersSchema } from "@/schemas/storage";
+import {
+  CommandHistoryStorageSchema,
+  StorageCleanupPolicyConnectionsSchema,
+  StoredSidebarExpandedFoldersSchema,
+} from "@/schemas/storage";
 
 describe("storage schemas", () => {
   it("drops non-string and blank command history entries while preserving string order", () => {
@@ -90,5 +96,27 @@ describe("storage schemas", () => {
     expect(result.success).toBe(false);
     expect(parseJsonWithSchemaOrNull('["folder-1"]', StoredSidebarExpandedFoldersSchema) ?? {}).toEqual({});
     expect(parseJsonWithSchemaOrNull("not-json", StoredSidebarExpandedFoldersSchema) ?? {}).toEqual({});
+  });
+
+  it("validates storage cleanup policy connections for settings reset and private export", () => {
+    expect(StorageCleanupPolicyConnectionsSchema.parse(STORAGE_CLEANUP_POLICY_CONNECTIONS)).toEqual({
+      settingsDataResetKeys: [
+        STORAGE_KEYS.commandHistory,
+        STORAGE_KEYS.sidebarExpandedFolders,
+        STORAGE_KEYS.startupSyncLastTriggeredAt,
+      ],
+      privateDataExportKeys: [
+        STORAGE_KEYS.theme,
+        STORAGE_KEYS.commandHistory,
+        STORAGE_KEYS.sidebarExpandedFolders,
+        STORAGE_KEYS.startupSyncLastTriggeredAt,
+      ],
+    });
+    expect(
+      StorageCleanupPolicyConnectionsSchema.safeParse({
+        settingsDataResetKeys: ["unknown"],
+        privateDataExportKeys: [STORAGE_KEYS.theme],
+      }).success,
+    ).toBe(false);
   });
 });

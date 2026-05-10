@@ -55,6 +55,27 @@ export const LEGACY_STORAGE_KEYS = {
 export type LegacyStorageKeyName = keyof typeof LEGACY_STORAGE_KEYS;
 export type LegacyStorageKey = (typeof LEGACY_STORAGE_KEYS)[LegacyStorageKeyName];
 
+export const SETTINGS_DATA_RESET_STORAGE_CLEANUP_POLICIES = [
+  "user-clearable",
+  "startup-window-expiring",
+] as const satisfies readonly StorageKeyCleanupPolicy[];
+
+export const PRIVATE_DATA_EXPORT_STORAGE_CLEANUP_POLICIES = [
+  "mirror-retained",
+  "user-clearable",
+  "startup-window-expiring",
+] as const satisfies readonly StorageKeyCleanupPolicy[];
+
+function storageKeysForCleanupPolicies(
+  cleanupPolicies: readonly StorageKeyCleanupPolicy[],
+): readonly StorageKey[] {
+  const cleanupPolicySet = new Set<StorageKeyCleanupPolicy>(cleanupPolicies);
+
+  return Object.entries(STORAGE_KEYS).flatMap(([name, key]) =>
+    cleanupPolicySet.has(STORAGE_KEY_POLICIES[name as StorageKeyName].cleanup) ? [key] : [],
+  );
+}
+
 export const STORAGE_RUNTIME_KEY_CONTRACT = {
   privateStorageKeys: [
     STORAGE_KEYS.theme,
@@ -68,6 +89,14 @@ export const STORAGE_RUNTIME_KEY_CONTRACT = {
   privateStorageKeys: readonly StorageKey[];
   testFixtureKeys: readonly string[];
   deprecatedAliases: readonly LegacyStorageKey[];
+};
+
+export const STORAGE_CLEANUP_POLICY_CONNECTIONS = {
+  settingsDataResetKeys: storageKeysForCleanupPolicies(SETTINGS_DATA_RESET_STORAGE_CLEANUP_POLICIES),
+  privateDataExportKeys: storageKeysForCleanupPolicies(PRIVATE_DATA_EXPORT_STORAGE_CLEANUP_POLICIES),
+} as const satisfies {
+  settingsDataResetKeys: readonly StorageKey[];
+  privateDataExportKeys: readonly StorageKey[];
 };
 
 export const MAX_COMMAND_HISTORY = 10;

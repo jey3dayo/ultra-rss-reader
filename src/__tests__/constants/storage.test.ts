@@ -6,6 +6,9 @@ import {
   MAX_STORED_SIDEBAR_EXPANDED_ACCOUNTS,
   MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_PER_ACCOUNT,
   MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_STORAGE_LENGTH,
+  PRIVATE_DATA_EXPORT_STORAGE_CLEANUP_POLICIES,
+  SETTINGS_DATA_RESET_STORAGE_CLEANUP_POLICIES,
+  STORAGE_CLEANUP_POLICY_CONNECTIONS,
   STORAGE_KEY_POLICIES,
   STORAGE_KEYS,
 } from "@/constants/storage";
@@ -44,6 +47,28 @@ describe("storage constants", () => {
         cleanup: "startup-window-expiring",
       },
     ]);
+  });
+
+  it("connects cleanup policy buckets to settings data reset and private data export", () => {
+    expect(SETTINGS_DATA_RESET_STORAGE_CLEANUP_POLICIES).toEqual(["user-clearable", "startup-window-expiring"]);
+    expect(PRIVATE_DATA_EXPORT_STORAGE_CLEANUP_POLICIES).toEqual([
+      "mirror-retained",
+      "user-clearable",
+      "startup-window-expiring",
+    ]);
+    expect(STORAGE_CLEANUP_POLICY_CONNECTIONS).toEqual({
+      settingsDataResetKeys: [
+        STORAGE_KEYS.commandHistory,
+        STORAGE_KEYS.sidebarExpandedFolders,
+        STORAGE_KEYS.startupSyncLastTriggeredAt,
+      ],
+      privateDataExportKeys: [
+        STORAGE_KEYS.theme,
+        STORAGE_KEYS.commandHistory,
+        STORAGE_KEYS.sidebarExpandedFolders,
+        STORAGE_KEYS.startupSyncLastTriggeredAt,
+      ],
+    });
   });
 
   it("keeps storage normalization limits positive and bounded", () => {

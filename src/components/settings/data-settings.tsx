@@ -1,7 +1,11 @@
 import { useTranslation } from "react-i18next";
 import { DataSettingsView } from "@/components/settings/data-settings-view";
+import { STORAGE_CLEANUP_POLICY_CONNECTIONS } from "@/constants/storage";
+import { StorageCleanupPolicyConnectionsSchema } from "@/schemas/storage";
 import { useUiStore } from "@/stores/ui-store";
 import { useDataSettingsController } from "./hooks/use-data-settings-controller";
+
+const storageCleanupPolicyConnections = StorageCleanupPolicyConnectionsSchema.parse(STORAGE_CLEANUP_POLICY_CONNECTIONS);
 
 export function DataSettings() {
   const { t } = useTranslation("settings");
@@ -22,7 +26,11 @@ export function DataSettings() {
       databaseSizeErrorLabel={t("data.database_size_error")}
       safetyHeading={t("data.safety")}
       safetyDescription={t("data.safety_description")}
-      safetyChecklist={t("data.safety_checklist", { returnObjects: true })}
+      safetyChecklist={t("data.safety_checklist", {
+        returnObjects: true,
+        settingsDataResetStorageKeys: storageCleanupPolicyConnections.settingsDataResetKeys,
+        privateDataExportStorageKeys: storageCleanupPolicyConnections.privateDataExportKeys,
+      })}
       optimizationHeading={t("data.optimization")}
       vacuumDescription={t("data.vacuum_description")}
       vacuumLabel={controller.vacuuming ? t("data.vacuuming") : t("data.vacuum")}
