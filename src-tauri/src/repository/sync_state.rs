@@ -2,6 +2,7 @@ use crate::domain::error::DomainResult;
 use crate::domain::types::AccountId;
 
 const WEAK_ETAG_PREFIX: &str = "W/";
+pub const HTTP_CACHE_VALIDATOR_MAX_BYTES: usize = 1024;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SyncStateScopeKey {
@@ -73,7 +74,10 @@ fn normalize_local_feed_scope_url(feed_url: &str) -> String {
 
 pub fn normalize_http_etag_validator(value: Option<String>) -> Option<String> {
     let value = value?.trim().to_string();
-    if value.is_empty() || value.contains(['\r', '\n']) {
+    if value.is_empty()
+        || value.len() > HTTP_CACHE_VALIDATOR_MAX_BYTES
+        || value.contains(['\r', '\n'])
+    {
         return None;
     }
 
@@ -90,7 +94,10 @@ pub fn normalize_http_etag_validator(value: Option<String>) -> Option<String> {
 
 pub fn normalize_http_last_modified_validator(value: Option<String>) -> Option<String> {
     let value = value?.trim().to_string();
-    if value.is_empty() || value.contains(['\r', '\n']) {
+    if value.is_empty()
+        || value.len() > HTTP_CACHE_VALIDATOR_MAX_BYTES
+        || value.contains(['\r', '\n'])
+    {
         return None;
     }
 
@@ -156,6 +163,13 @@ mod tests {
     }
 
     #[test]
+    fn http_etag_validator_rejects_values_above_persistence_limit() {
+        let oversized = format!("\"{}\"", "a".repeat(HTTP_CACHE_VALIDATOR_MAX_BYTES));
+
+        assert_eq!(normalize_http_etag_validator(Some(oversized)), None);
+    }
+
+    #[test]
     fn http_last_modified_validator_requires_rfc2822_http_date() {
         assert_eq!(
             normalize_http_last_modified_validator(Some(
@@ -166,6 +180,16 @@ mod tests {
         );
         assert_eq!(
             normalize_http_last_modified_validator(Some("not-a-date".to_string())),
+            None
+        );
+    }
+
+    #[test]
+    fn http_last_modified_validator_rejects_values_above_persistence_limit() {
+        let oversized = "a".repeat(HTTP_CACHE_VALIDATOR_MAX_BYTES + 1);
+
+        assert_eq!(
+            normalize_http_last_modified_validator(Some(oversized)),
             None
         );
     }

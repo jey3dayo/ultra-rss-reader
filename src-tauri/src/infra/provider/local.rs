@@ -5,6 +5,9 @@ use std::net::{IpAddr, ToSocketAddrs};
 
 use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::provider::*;
+use crate::repository::sync_state::{
+    normalize_http_etag_validator, normalize_http_last_modified_validator,
+};
 
 use super::http_defaults::{self, http_client_builder};
 use super::normalizer;
@@ -16,10 +19,20 @@ const UNSUPPORTED_URL_VALIDATION_MESSAGE: &str = "Only http:// and https:// URLs
 const DOWNGRADE_REDIRECT_VALIDATION_MESSAGE: &str = "HTTPS to HTTP redirects are not allowed";
 const FEED_RESPONSE_BODY_INCOMPLETE_MESSAGE: &str =
     "Feed response body ended before the declared response length";
+const JSON_FEED_SUPPORT_DECISION: &str =
+    "JSON Feed is supported only at explicit application/feed+json parser boundaries";
 
 pub struct LocalProvider {
     http_client: reqwest::Client,
     allow_private_feed_urls: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum FeedResponseContentType {
+    XmlOrFeed,
+    JsonFeed,
+    HtmlFallback,
+    MissingFallback,
 }
 
 impl Default for LocalProvider {
@@ -88,6 +101,14 @@ impl LocalProvider {
             .get(name)
             .and_then(|value| value.to_str().ok())
             .map(ToString::to_string)
+    }
+
+    fn response_etag_validator(headers: &reqwest::header::HeaderMap) -> Option<String> {
+        normalize_http_etag_validator(Self::header_value_to_string(headers, ETAG))
+    }
+
+    fn response_last_modified_validator(headers: &reqwest::header::HeaderMap) -> Option<String> {
+        normalize_http_last_modified_validator(Self::header_value_to_string(headers, LAST_MODIFIED))
     }
 
     fn resolve_feed_site_url(feed_url: &str, raw_site_url: &str) -> Option<String> {
@@ -188,16 +209,21 @@ impl LocalProvider {
         (!link.is_empty()).then(|| link.to_string())
     }
 
-    async fn response_bytes_with_limit(response: reqwest::Response) -> DomainResult<Vec<u8>> {
-        validate_feed_response_content_type(response.headers())?;
+    async fn response_bytes_with_limit(
+        response: reqwest::Response,
+    ) -> DomainResult<(Vec<u8>, FeedResponseContentType)> {
+        let content_type = feed_response_content_type(response.headers())?;
 
-        http_defaults::response_bytes_with_decoded_cap(
+        let bytes = http_defaults::response_bytes_with_decoded_cap(
             response,
             http_defaults::PROVIDER_RESPONSE_BODY_CAP_BYTES,
             feed_body_too_large_error,
             feed_response_body_read_error,
         )
-        .await
+        .await?;
+        validate_feed_response_body_against_content_type(&bytes, content_type)?;
+
+        Ok((bytes, content_type))
     }
 }
 
@@ -278,9 +304,14 @@ fn validate_external_feed_redirect(
     Ok(())
 }
 
-fn is_supported_feed_response_content_type(content_type: Option<&str>) -> bool {
+fn feed_response_content_type(
+    headers: &reqwest::header::HeaderMap,
+) -> DomainResult<FeedResponseContentType> {
+    let content_type = headers
+        .get(reqwest::header::CONTENT_TYPE)
+        .and_then(|value| value.to_str().ok());
     let Some(content_type) = content_type else {
-        return true;
+        return Ok(FeedResponseContentType::MissingFallback);
     };
     let media_type = content_type
         .split(';')
@@ -289,29 +320,43 @@ fn is_supported_feed_response_content_type(content_type: Option<&str>) -> bool {
         .trim()
         .to_ascii_lowercase();
 
-    matches!(
-        media_type.as_str(),
-        "application/rss+xml"
-            | "application/atom+xml"
-            | "application/feed+json"
-            | "application/xml"
-            | "text/xml"
-            | "text/html"
-    )
+    match media_type.as_str() {
+        "application/feed+json" => Ok(FeedResponseContentType::JsonFeed),
+        "application/rss+xml" | "application/atom+xml" | "application/xml" | "text/xml" => {
+            Ok(FeedResponseContentType::XmlOrFeed)
+        }
+        "text/html" => Ok(FeedResponseContentType::HtmlFallback),
+        _ => Err(unsupported_feed_content_type_error(content_type)),
+    }
 }
 
-fn validate_feed_response_content_type(headers: &reqwest::header::HeaderMap) -> DomainResult<()> {
-    let content_type = headers
-        .get(reqwest::header::CONTENT_TYPE)
-        .and_then(|value| value.to_str().ok());
-
-    if !is_supported_feed_response_content_type(content_type) {
-        return Err(unsupported_feed_content_type_error(
-            content_type.unwrap_or("<invalid>"),
-        ));
+fn is_supported_feed_response_content_type(content_type: Option<&str>) -> bool {
+    let mut headers = reqwest::header::HeaderMap::new();
+    if let Some(content_type) = content_type {
+        let Ok(value) = reqwest::header::HeaderValue::from_str(content_type) else {
+            return false;
+        };
+        headers.insert(reqwest::header::CONTENT_TYPE, value);
     }
 
-    Ok(())
+    feed_response_content_type(&headers).is_ok()
+}
+
+fn validate_feed_response_body_against_content_type(
+    body: &[u8],
+    content_type: FeedResponseContentType,
+) -> DomainResult<()> {
+    if content_type == FeedResponseContentType::JsonFeed || !looks_like_json_feed(body) {
+        return Ok(());
+    }
+
+    Err(DomainError::Parse(JSON_FEED_SUPPORT_DECISION.to_string()))
+}
+
+fn looks_like_json_feed(body: &[u8]) -> bool {
+    let body = String::from_utf8_lossy(body);
+    let trimmed = body.trim_start_matches('\u{feff}').trim_start();
+    trimmed.starts_with('{') && trimmed.contains("\"version\"") && trimmed.contains("jsonfeed.org")
 }
 
 fn is_private_host(host: &str) -> bool {
@@ -410,9 +455,8 @@ impl FeedProvider for LocalProvider {
             .await
             .map_err(map_local_provider_request_error)?;
         let status = response.status();
-        let response_etag = Self::header_value_to_string(response.headers(), ETAG);
-        let response_last_modified =
-            Self::header_value_to_string(response.headers(), LAST_MODIFIED);
+        let response_etag = Self::response_etag_validator(response.headers());
+        let response_last_modified = Self::response_last_modified_validator(response.headers());
         let next_cursor = Some(SyncCursor {
             continuation: None,
             since: None,
@@ -447,7 +491,7 @@ impl FeedProvider for LocalProvider {
         }
 
         let response_url = response.url().to_string();
-        let bytes = Self::response_bytes_with_limit(response).await?;
+        let (bytes, _) = Self::response_bytes_with_limit(response).await?;
         let entries = normalizer::normalize_feed(&bytes, response_url.as_str())?;
 
         Ok(PullResult {
@@ -482,7 +526,7 @@ impl FeedProvider for LocalProvider {
             .map_err(map_local_provider_request_error)?
             .error_for_status()
             .map_err(DomainError::from_provider_http_error)?;
-        let bytes = Self::response_bytes_with_limit(response).await?;
+        let (bytes, _) = Self::response_bytes_with_limit(response).await?;
         let feed =
             feed_rs::parser::parse(&bytes[..]).map_err(|e| DomainError::Parse(e.to_string()))?;
 
@@ -733,6 +777,39 @@ mod tests {
             Some(response_last_modified)
         );
         assert!(!result.not_modified);
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn pull_entries_persists_bounded_validators_and_ignores_vary() {
+        let mut server = mockito::Server::new_async().await;
+        let oversized_etag = format!("\"{}\"", "a".repeat(1024));
+        let response_last_modified = "Thu, 02 Jan 2025 00:00:00 GMT";
+        let mock = server
+            .mock("GET", "/feed.xml")
+            .with_body(SAMPLE_RSS)
+            .with_header("content-type", "application/rss+xml")
+            .with_header("etag", &oversized_etag)
+            .with_header("last-modified", response_last_modified)
+            .with_header("vary", "Accept-Encoding, User-Agent")
+            .create_async()
+            .await;
+
+        let provider = local_provider_allowing_private_feed_urls();
+        let scope = PullScope::Feed(FeedIdentifier::Local {
+            feed_url: format!("{}/feed.xml", server.url()),
+        });
+
+        let result = provider.pull_entries(scope, None).await.unwrap();
+        let cursor = result
+            .next_cursor
+            .expect("local feeds should return cache cursor state");
+
+        assert_eq!(cursor.etag, None);
+        assert_eq!(
+            cursor.last_modified.as_deref(),
+            Some(response_last_modified)
+        );
         mock.assert_async().await;
     }
 
@@ -1103,6 +1180,41 @@ mod tests {
         assert!(!is_supported_feed_response_content_type(Some(
             "application/octet-stream"
         )));
+    }
+
+    #[test]
+    fn json_feed_support_decision_is_explicit_content_type_only() {
+        assert_eq!(
+            JSON_FEED_SUPPORT_DECISION,
+            "JSON Feed is supported only at explicit application/feed+json parser boundaries"
+        );
+        assert_eq!(
+            feed_response_content_type(&headers_with_content_type("application/feed+json"))
+                .unwrap(),
+            FeedResponseContentType::JsonFeed
+        );
+        assert!(validate_feed_response_body_against_content_type(
+            br#"{"version":"https://jsonfeed.org/version/1.1","items":[]}"#,
+            FeedResponseContentType::JsonFeed,
+        )
+        .is_ok());
+        assert!(matches!(
+            validate_feed_response_body_against_content_type(
+                br#"{"version":"https://jsonfeed.org/version/1.1","items":[]}"#,
+                FeedResponseContentType::HtmlFallback,
+            ),
+            Err(DomainError::Parse(message))
+                if message == JSON_FEED_SUPPORT_DECISION
+        ));
+    }
+
+    fn headers_with_content_type(content_type: &str) -> reqwest::header::HeaderMap {
+        let mut headers = reqwest::header::HeaderMap::new();
+        headers.insert(
+            reqwest::header::CONTENT_TYPE,
+            reqwest::header::HeaderValue::from_str(content_type).unwrap(),
+        );
+        headers
     }
 
     #[tokio::test]
@@ -1511,6 +1623,58 @@ mod tests {
         json_mock.assert_async().await;
         html_mock.assert_async().await;
         missing_type_mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn feed_parser_boundary_rejects_text_plain_and_json_feed_without_explicit_type() {
+        let json_feed = r#"{"version":"https://jsonfeed.org/version/1.1","items":[]}"#;
+        let mut server = mockito::Server::new_async().await;
+        let text_plain_url = format!("{}/plain", server.url());
+        let html_json_url = format!("{}/html-json", server.url());
+        let missing_json_url = format!("{}/missing-json", server.url());
+        let text_plain_mock = server
+            .mock("GET", "/plain")
+            .with_body(SAMPLE_RSS)
+            .with_header("content-type", "text/plain")
+            .create_async()
+            .await;
+        let html_json_mock = server
+            .mock("GET", "/html-json")
+            .with_body(json_feed)
+            .with_header("content-type", "text/html; charset=utf-8")
+            .create_async()
+            .await;
+        let missing_json_mock = server
+            .mock("GET", "/missing-json")
+            .with_body(json_feed)
+            .create_async()
+            .await;
+
+        let provider = local_provider_allowing_private_feed_urls();
+
+        let text_plain_error = provider
+            .create_subscription(&text_plain_url, None)
+            .await
+            .expect_err("text/plain must not be sniffed as XML feed");
+        assert!(
+            matches!(text_plain_error, DomainError::Network(message) if message.contains("Unsupported feed response content type"))
+        );
+
+        for url in [html_json_url, missing_json_url] {
+            let error = provider
+                .create_subscription(&url, None)
+                .await
+                .expect_err("JSON Feed must require explicit application/feed+json");
+            assert!(matches!(
+                error,
+                DomainError::Parse(message)
+                    if message == JSON_FEED_SUPPORT_DECISION
+            ));
+        }
+
+        text_plain_mock.assert_async().await;
+        html_json_mock.assert_async().await;
+        missing_json_mock.assert_async().await;
     }
 
     #[tokio::test]

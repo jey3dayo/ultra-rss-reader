@@ -232,11 +232,21 @@ fn is_private_ip(ip: IpAddr) -> bool {
 }
 
 fn is_feed_content_type(ct: &str) -> bool {
-    ct.contains("application/rss+xml")
-        || ct.contains("application/atom+xml")
-        || ct.contains("application/feed+json")
-        || ct.contains("application/xml")
-        || ct.contains("text/xml")
+    let media_type = ct
+        .split(';')
+        .next()
+        .unwrap_or(ct)
+        .trim()
+        .to_ascii_lowercase();
+
+    matches!(
+        media_type.as_str(),
+        "application/rss+xml"
+            | "application/atom+xml"
+            | "application/feed+json"
+            | "application/xml"
+            | "text/xml"
+    )
 }
 
 fn is_html_content_type(ct: &str) -> bool {
@@ -1032,6 +1042,9 @@ mod tests {
         assert!(is_feed_content_type("application/feed+json"));
         assert!(is_feed_content_type("text/xml"));
         assert!(!is_feed_content_type("text/html; charset=utf-8"));
+        assert!(!is_feed_content_type(
+            "text/plain; note=application/rss+xml"
+        ));
     }
 
     #[test]
@@ -1044,6 +1057,15 @@ mod tests {
     fn validate_discovery_response_content_type_rejects_binary_type() {
         assert!(matches!(
             validate_discovery_response_content_type("application/octet-stream"),
+            Err(DomainError::Validation(message))
+                if message.contains("Unsupported feed discovery response content type")
+        ));
+    }
+
+    #[test]
+    fn validate_discovery_response_content_type_rejects_text_plain_xml_sniffing() {
+        assert!(matches!(
+            validate_discovery_response_content_type("text/plain; charset=utf-8"),
             Err(DomainError::Validation(message))
                 if message.contains("Unsupported feed discovery response content type")
         ));
