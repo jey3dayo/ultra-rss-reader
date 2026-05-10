@@ -2,11 +2,7 @@ import { Result } from "@praha/byethrow";
 import { QueryClient } from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  addLocalFeed,
-  discoverFeeds,
-  updateFeedFolder,
-} from "@/api/tauri-commands";
+import { addLocalFeed, discoverFeeds, updateFeedFolder } from "@/api/tauri-commands";
 import {
   getAddFeedDialogRestartBlockerSnapshot,
   resolveAddFeedDiscoveryAction,
@@ -67,18 +63,13 @@ describe("useAddFeedDialogActions", () => {
         requestId: 7,
       },
     },
-  ])(
-    "resolves discovery fallback action for %# feed result",
-    ({ feeds, expected }) => {
-      expect(resolveAddFeedDiscoveryAction(feeds, 7)).toEqual(expected);
-    },
-  );
+  ])("resolves discovery fallback action for %# feed result", ({ feeds, expected }) => {
+    expect(resolveAddFeedDiscoveryAction(feeds, 7)).toEqual(expected);
+  });
 
   it("normalizes manual URLs before discovery", async () => {
     vi.mocked(discoverFeeds).mockResolvedValue(
-      Result.succeed([
-        { url: "https://example.com/feed.xml", title: "Example Feed" },
-      ]),
+      Result.succeed([{ url: "https://example.com/feed.xml", title: "Example Feed" }]),
     );
 
     const dispatch = vi.fn();
@@ -131,66 +122,63 @@ describe("useAddFeedDialogActions", () => {
     );
   });
 
-  it.each(["not-a-url", "//example.com/feed.xml", "https://[malformed"])(
-    "keeps malformed manual URL failures on the invalid URL copy without discovering: %s",
-    async (url) => {
-      const dispatch = vi.fn();
-      const { result } = renderHook(() =>
-        useAddFeedDialogActions({
-          accountId: "account-1",
-          state: {
-            url,
-            error: null,
-            successMessage: null,
-            loading: false,
-            discovering: false,
-            discoveryRequestId: null,
-            discoveredFeeds: [],
-            selectedFeedUrl: null,
-          },
-          dispatch,
-          derived: {
-            hasManualUrl: true,
-            isManualUrlValid: false,
-            urlHint: t("invalid_feed_url"),
-            urlHintTone: "error",
-            isSubmitDisabled: true,
-            isDiscoverDisabled: true,
-            discoveredFeedOptions: [],
-          },
-          trimmedUrl: url,
-          folderSelection: {
-            selectedFolderId: null,
-            isCreatingFolder: false,
-            newFolderName: "",
-          },
-          queryClient: new QueryClient(),
-          onOpenChange: vi.fn(),
-          showToast: vi.fn(),
-          t,
-        }),
-      );
+  it.each([
+    "not-a-url",
+    "//example.com/feed.xml",
+    "https://[malformed",
+  ])("keeps malformed manual URL failures on the invalid URL copy without discovering: %s", async (url) => {
+    const dispatch = vi.fn();
+    const { result } = renderHook(() =>
+      useAddFeedDialogActions({
+        accountId: "account-1",
+        state: {
+          url,
+          error: null,
+          successMessage: null,
+          loading: false,
+          discovering: false,
+          discoveryRequestId: null,
+          discoveredFeeds: [],
+          selectedFeedUrl: null,
+        },
+        dispatch,
+        derived: {
+          hasManualUrl: true,
+          isManualUrlValid: false,
+          urlHint: t("invalid_feed_url"),
+          urlHintTone: "error",
+          isSubmitDisabled: true,
+          isDiscoverDisabled: true,
+          discoveredFeedOptions: [],
+        },
+        trimmedUrl: url,
+        folderSelection: {
+          selectedFolderId: null,
+          isCreatingFolder: false,
+          newFolderName: "",
+        },
+        queryClient: new QueryClient(),
+        onOpenChange: vi.fn(),
+        showToast: vi.fn(),
+        t,
+      }),
+    );
 
-      await act(async () => {
-        await result.current.handleDiscover();
-      });
+    await act(async () => {
+      await result.current.handleDiscover();
+    });
 
-      expect(discoverFeeds).not.toHaveBeenCalled();
-      expect(dispatch).toHaveBeenCalledWith({
-        type: "set-invalid-url-error",
-        error: t("invalid_feed_url"),
-      });
-    },
-  );
+    expect(discoverFeeds).not.toHaveBeenCalled();
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "set-invalid-url-error",
+      error: t("invalid_feed_url"),
+    });
+  });
 
   it("ignores stale discovery responses after a newer URL discovery starts", async () => {
-    const firstDiscovery =
-      createDeferred<Awaited<ReturnType<typeof discoverFeeds>>>();
-    const secondDiscovery =
-      createDeferred<Awaited<ReturnType<typeof discoverFeeds>>>();
-    vi.mocked(discoverFeeds)
-      .mockReturnValueOnce(firstDiscovery.promise)
-      .mockReturnValueOnce(secondDiscovery.promise);
+    const firstDiscovery = createDeferred<Awaited<ReturnType<typeof discoverFeeds>>>();
+    const secondDiscovery = createDeferred<Awaited<ReturnType<typeof discoverFeeds>>>();
+    vi.mocked(discoverFeeds).mockReturnValueOnce(firstDiscovery.promise).mockReturnValueOnce(secondDiscovery.promise);
 
     const dispatch = vi.fn();
     const createProps = (url: string, trimmedUrl: string) => ({
@@ -227,8 +215,7 @@ describe("useAddFeedDialogActions", () => {
       t,
     });
     const { result, rerender } = renderHook(
-      ({ url, trimmedUrl }) =>
-        useAddFeedDialogActions(createProps(url, trimmedUrl)),
+      ({ url, trimmedUrl }) => useAddFeedDialogActions(createProps(url, trimmedUrl)),
       {
         initialProps: {
           url: "https://old.example.com",
@@ -245,19 +232,11 @@ describe("useAddFeedDialogActions", () => {
     const secondRequest = result.current.handleDiscover();
 
     await act(async () => {
-      secondDiscovery.resolve(
-        Result.succeed([
-          { url: "https://new.example.com/feed.xml", title: "New Feed" },
-        ]),
-      );
+      secondDiscovery.resolve(Result.succeed([{ url: "https://new.example.com/feed.xml", title: "New Feed" }]));
       await secondRequest;
     });
     await act(async () => {
-      firstDiscovery.resolve(
-        Result.succeed([
-          { url: "https://old.example.com/feed.xml", title: "Old Feed" },
-        ]),
-      );
+      firstDiscovery.resolve(Result.succeed([{ url: "https://old.example.com/feed.xml", title: "Old Feed" }]));
       await firstRequest;
     });
 
@@ -278,8 +257,7 @@ describe("useAddFeedDialogActions", () => {
   });
 
   it("ignores a discovery response after the URL changes before another discovery starts", async () => {
-    const discovery =
-      createDeferred<Awaited<ReturnType<typeof discoverFeeds>>>();
+    const discovery = createDeferred<Awaited<ReturnType<typeof discoverFeeds>>>();
     vi.mocked(discoverFeeds).mockReturnValue(discovery.promise);
 
     const dispatch = vi.fn();
@@ -317,8 +295,7 @@ describe("useAddFeedDialogActions", () => {
       t,
     });
     const { result, rerender } = renderHook(
-      ({ url, trimmedUrl }) =>
-        useAddFeedDialogActions(createProps(url, trimmedUrl)),
+      ({ url, trimmedUrl }) => useAddFeedDialogActions(createProps(url, trimmedUrl)),
       {
         initialProps: {
           url: "https://old.example.com",
@@ -334,18 +311,12 @@ describe("useAddFeedDialogActions", () => {
     });
 
     await act(async () => {
-      discovery.resolve(
-        Result.succeed([
-          { url: "https://old.example.com/feed.xml", title: "Old Feed" },
-        ]),
-      );
+      discovery.resolve(Result.succeed([{ url: "https://old.example.com/feed.xml", title: "Old Feed" }]));
       await request;
     });
 
     expect(discoverFeeds).toHaveBeenCalledWith("https://old.example.com");
-    expect(dispatch).toHaveBeenCalledWith(
-      expect.objectContaining({ type: "start-discover" }),
-    );
+    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "start-discover" }));
     expect(dispatch).not.toHaveBeenCalledWith(
       expect.objectContaining({
         type: "discover-single",
@@ -355,13 +326,9 @@ describe("useAddFeedDialogActions", () => {
   });
 
   it("ignores same-URL discovery responses after the dialog closes and reopens", async () => {
-    const staleDiscovery =
-      createDeferred<Awaited<ReturnType<typeof discoverFeeds>>>();
-    const latestDiscovery =
-      createDeferred<Awaited<ReturnType<typeof discoverFeeds>>>();
-    vi.mocked(discoverFeeds)
-      .mockReturnValueOnce(staleDiscovery.promise)
-      .mockReturnValueOnce(latestDiscovery.promise);
+    const staleDiscovery = createDeferred<Awaited<ReturnType<typeof discoverFeeds>>>();
+    const latestDiscovery = createDeferred<Awaited<ReturnType<typeof discoverFeeds>>>();
+    vi.mocked(discoverFeeds).mockReturnValueOnce(staleDiscovery.promise).mockReturnValueOnce(latestDiscovery.promise);
 
     const dispatch = vi.fn();
     const createProps = (open: boolean) => ({
@@ -398,12 +365,9 @@ describe("useAddFeedDialogActions", () => {
       showToast: vi.fn(),
       t,
     });
-    const { result, rerender } = renderHook(
-      ({ open }) => useAddFeedDialogActions(createProps(open)),
-      {
-        initialProps: { open: true },
-      },
-    );
+    const { result, rerender } = renderHook(({ open }) => useAddFeedDialogActions(createProps(open)), {
+      initialProps: { open: true },
+    });
 
     const staleRequest = result.current.handleDiscover();
     rerender({ open: false });
@@ -411,28 +375,18 @@ describe("useAddFeedDialogActions", () => {
     const latestRequest = result.current.handleDiscover();
 
     await act(async () => {
-      latestDiscovery.resolve(
-        Result.succeed([
-          { url: "https://example.com/latest.xml", title: "Latest Feed" },
-        ]),
-      );
+      latestDiscovery.resolve(Result.succeed([{ url: "https://example.com/latest.xml", title: "Latest Feed" }]));
       await latestRequest;
     });
     await act(async () => {
-      staleDiscovery.resolve(
-        Result.succeed([
-          { url: "https://example.com/stale.xml", title: "Stale Feed" },
-        ]),
-      );
+      staleDiscovery.resolve(Result.succeed([{ url: "https://example.com/stale.xml", title: "Stale Feed" }]));
       await staleRequest;
     });
 
     expect(dispatch).toHaveBeenCalledWith(
       expect.objectContaining({
         type: "discover-single",
-        feeds: [
-          { url: "https://example.com/latest.xml", title: "Latest Feed" },
-        ],
+        feeds: [{ url: "https://example.com/latest.xml", title: "Latest Feed" }],
       }),
     );
     expect(dispatch).not.toHaveBeenCalledWith(
@@ -567,15 +521,10 @@ describe("useAddFeedDialogActions", () => {
       await result.current.handleSubmit();
     });
 
-    expect(addLocalFeed).toHaveBeenCalledWith(
-      "account-1",
-      "https://example.com/atom.xml",
-    );
+    expect(addLocalFeed).toHaveBeenCalledWith("account-1", "https://example.com/atom.xml");
     expect(updateFeedFolder).toHaveBeenCalledWith("feed-new", "folder-1");
     expect(invalidateQueriesSpy.mock.calls.map(([options]) => options)).toEqual(
-      resolveAddFeedInvalidationQueryKeys({ accountId: "account-1" }).map(
-        (queryKey) => ({ queryKey }),
-      ),
+      resolveAddFeedInvalidationQueryKeys({ accountId: "account-1" }).map((queryKey) => ({ queryKey })),
     );
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
@@ -646,14 +595,9 @@ describe("useAddFeedDialogActions", () => {
       await result.current.handleSubmit();
     });
 
-    expect(addLocalFeed).toHaveBeenCalledWith(
-      "account-1",
-      "https://example.com/feed.xml",
-    );
+    expect(addLocalFeed).toHaveBeenCalledWith("account-1", "https://example.com/feed.xml");
     expect(updateFeedFolder).toHaveBeenCalledWith("feed-new", "folder-1");
-    expect(showToast).toHaveBeenCalledWith(
-      t("feed_added_folder_failed", { message: "folder was deleted" }),
-    );
+    expect(showToast).toHaveBeenCalledWith(t("feed_added_folder_failed", { message: "folder was deleted" }));
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
@@ -941,12 +885,9 @@ describe("useAddFeedDialogActions", () => {
       showToast,
       t,
     });
-    const { result, rerender } = renderHook(
-      ({ open }) => useAddFeedDialogActions(createProps(open)),
-      {
-        initialProps: { open: true },
-      },
-    );
+    const { result, rerender } = renderHook(({ open }) => useAddFeedDialogActions(createProps(open)), {
+      initialProps: { open: true },
+    });
 
     const submit = result.current.handleSubmit();
     rerender({ open: false });

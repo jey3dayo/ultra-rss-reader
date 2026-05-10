@@ -154,7 +154,7 @@ fn resolve_host_addresses(host: &str, port: u16) -> DomainResult<Vec<IpAddr>> {
 fn resolve_host_addresses(host: &str, _port: u16) -> DomainResult<Vec<IpAddr>> {
     match host {
         "localhost" | "localhost." => Ok(vec![IpAddr::from([127, 0, 0, 1])]),
-        "blog.rust-lang.org" | "example.com" | "example.org" => {
+        "blog.rust-lang.org" | "example.com" | "example.org" | "xn--r8jz45g.xn--zckzah" => {
             Ok(vec![IpAddr::from([93, 184, 216, 34])])
         }
         "private.test.invalid" => Ok(vec![IpAddr::from([127, 0, 0, 1])]),

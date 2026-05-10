@@ -4,11 +4,7 @@ import type { TFunction } from "i18next";
 import type { Dispatch } from "react";
 import { useCallback, useEffect, useRef } from "react";
 import type { DiscoveredFeedDto } from "@/api/tauri-commands";
-import {
-  addLocalFeed,
-  discoverFeeds,
-  updateFeedFolder,
-} from "@/api/tauri-commands";
+import { addLocalFeed, discoverFeeds, updateFeedFolder } from "@/api/tauri-commands";
 import { useAsyncCommandLifecycle } from "@/components/reader/hooks/browser/use-browser-url-effect";
 import { invalidateAddFeedQueries } from "@/lib/query/query-invalidation";
 import type {
@@ -45,14 +41,12 @@ export type AddFeedDialogRestartBlockerSnapshot = {
   pending: boolean;
 };
 
-const EMPTY_ADD_FEED_RESTART_BLOCKER_SNAPSHOT: AddFeedDialogRestartBlockerSnapshot =
-  {
-    dirty: false,
-    pending: false,
-  };
+const EMPTY_ADD_FEED_RESTART_BLOCKER_SNAPSHOT: AddFeedDialogRestartBlockerSnapshot = {
+  dirty: false,
+  pending: false,
+};
 
-let latestAddFeedRestartBlockerSnapshot =
-  EMPTY_ADD_FEED_RESTART_BLOCKER_SNAPSHOT;
+let latestAddFeedRestartBlockerSnapshot = EMPTY_ADD_FEED_RESTART_BLOCKER_SNAPSHOT;
 
 export function getAddFeedDialogRestartBlockerSnapshot(): AddFeedDialogRestartBlockerSnapshot {
   return latestAddFeedRestartBlockerSnapshot;
@@ -61,10 +55,7 @@ export function getAddFeedDialogRestartBlockerSnapshot(): AddFeedDialogRestartBl
 export function resolveAddFeedDiscoveryAction(
   feeds: DiscoveredFeedDto[],
   requestId: number,
-): Extract<
-  AddFeedDialogAction,
-  { type: "discover-empty" | "discover-single" | "discover-multiple" }
-> {
+): Extract<AddFeedDialogAction, { type: "discover-empty" | "discover-single" | "discover-multiple" }> {
   if (feeds.length === 0) {
     return { type: "discover-empty", requestId };
   }
@@ -99,26 +90,18 @@ export function useAddFeedDialogActions({
 
   useEffect(() => {
     if (!open) {
-      latestAddFeedRestartBlockerSnapshot =
-        EMPTY_ADD_FEED_RESTART_BLOCKER_SNAPSHOT;
+      latestAddFeedRestartBlockerSnapshot = EMPTY_ADD_FEED_RESTART_BLOCKER_SNAPSHOT;
       return;
     }
 
     latestAddFeedRestartBlockerSnapshot = {
       dirty:
-        state.url.trim().length > 0 ||
-        folderSelection.isCreatingFolder ||
-        folderSelection.selectedFolderId !== null,
-      pending:
-        state.loading ||
-        state.discovering ||
-        submitLifecycle.isInFlight() ||
-        discoveryLifecycle.isInFlight(),
+        state.url.trim().length > 0 || folderSelection.isCreatingFolder || folderSelection.selectedFolderId !== null,
+      pending: state.loading || state.discovering || submitLifecycle.isInFlight() || discoveryLifecycle.isInFlight(),
     };
 
     return () => {
-      latestAddFeedRestartBlockerSnapshot =
-        EMPTY_ADD_FEED_RESTART_BLOCKER_SNAPSHOT;
+      latestAddFeedRestartBlockerSnapshot = EMPTY_ADD_FEED_RESTART_BLOCKER_SNAPSHOT;
     };
   }, [
     discoveryLifecycle,
@@ -155,8 +138,7 @@ export function useAddFeedDialogActions({
     const requestUrl = trimmedUrl;
     dispatch({ type: "start-discover", requestId });
 
-    const isLatestDiscovery = () =>
-      discoveryRun.isLatest() && requestUrl === latestDiscoveryUrlRef.current;
+    const isLatestDiscovery = () => discoveryRun.isLatest() && requestUrl === latestDiscoveryUrlRef.current;
 
     const handleDiscoveryError = (message: string) => {
       if (!isLatestDiscovery()) {
@@ -174,9 +156,7 @@ export function useAddFeedDialogActions({
     try {
       discoveryResult = await discoverFeeds(requestUrl);
     } catch (error) {
-      handleDiscoveryError(
-        error instanceof Error ? error.message : String(error),
-      );
+      handleDiscoveryError(error instanceof Error ? error.message : String(error));
       discoveryRun.finish();
       return;
     }
@@ -195,14 +175,7 @@ export function useAddFeedDialogActions({
       }),
     );
     discoveryRun.finish();
-  }, [
-    derived.hasManualUrl,
-    derived.isManualUrlValid,
-    dispatch,
-    discoveryLifecycle,
-    t,
-    trimmedUrl,
-  ]);
+  }, [derived.hasManualUrl, derived.isManualUrlValid, dispatch, discoveryLifecycle, t, trimmedUrl]);
 
   const handleSubmit = useCallback(async () => {
     const feedUrl = state.selectedFeedUrl ?? state.url.trim();
@@ -281,9 +254,7 @@ export function useAddFeedDialogActions({
             Result.inspectError((error) => {
               console.error("Failed to assign folder:", error);
               if (isLatestSubmit()) {
-                showToast(
-                  t("feed_added_folder_failed", { message: error.message }),
-                );
+                showToast(t("feed_added_folder_failed", { message: error.message }));
               }
             }),
           );

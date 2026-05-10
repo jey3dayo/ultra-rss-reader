@@ -8,12 +8,7 @@ import {
   useSyncExternalStore,
 } from "react";
 
-export type SettingsDirtyStateOwner =
-  | "account"
-  | "tag"
-  | "shortcut"
-  | "preferences"
-  | "data";
+export type SettingsDirtyStateOwner = "account" | "tag" | "shortcut" | "preferences" | "data";
 
 export type SettingsDirtyStateEntry = {
   owner: SettingsDirtyStateOwner;
@@ -43,26 +38,19 @@ const EMPTY_SETTINGS_DIRTY_STATE_SNAPSHOT: SettingsDirtyStateSnapshot = {
   entries: [],
 };
 
-const SettingsDirtyStateRegistryContext =
-  createContext<SettingsDirtyStateRegistry | null>(null);
+const SettingsDirtyStateRegistryContext = createContext<SettingsDirtyStateRegistry | null>(null);
 let latestSettingsDirtyStateSnapshot = EMPTY_SETTINGS_DIRTY_STATE_SNAPSHOT;
 
 export function getSettingsDirtyStateSnapshot(): SettingsDirtyStateSnapshot {
   return latestSettingsDirtyStateSnapshot;
 }
 
-export function createSettingsDirtyStateSnapshot(
-  entries: SettingsDirtyStateEntry[],
-): SettingsDirtyStateSnapshot {
-  const activeEntries = entries.filter(
-    (entry) => entry.dirty || entry.pending || entry.blockingReason !== null,
-  );
+export function createSettingsDirtyStateSnapshot(entries: SettingsDirtyStateEntry[]): SettingsDirtyStateSnapshot {
+  const activeEntries = entries.filter((entry) => entry.dirty || entry.pending || entry.blockingReason !== null);
   return {
     dirty: activeEntries.some((entry) => entry.dirty),
     pending: activeEntries.some((entry) => entry.pending),
-    blockingReasons: activeEntries.flatMap((entry) =>
-      entry.blockingReason === null ? [] : [entry.blockingReason],
-    ),
+    blockingReasons: activeEntries.flatMap((entry) => (entry.blockingReason === null ? [] : [entry.blockingReason])),
     entries: activeEntries,
   };
 }
@@ -99,9 +87,7 @@ function createSettingsDirtyStateRegistry(): SettingsDirtyStateRegistry {
   };
 }
 
-export function SettingsDirtyStateRegistryProvider({
-  children,
-}: PropsWithChildren) {
+export function SettingsDirtyStateRegistryProvider({ children }: PropsWithChildren) {
   const registryRef = useRef<SettingsDirtyStateRegistry | null>(null);
   registryRef.current ??= createSettingsDirtyStateRegistry();
 
@@ -112,9 +98,7 @@ export function SettingsDirtyStateRegistryProvider({
   );
 }
 
-export function useRegisterSettingsDirtyState(
-  entry: SettingsDirtyStateEntry,
-): void {
+export function useRegisterSettingsDirtyState(entry: SettingsDirtyStateEntry): void {
   const registry = useContext(SettingsDirtyStateRegistryContext);
   const { owner, dirty, pending, blockingReason } = entry;
   const stableEntry = useMemo(

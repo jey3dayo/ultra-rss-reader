@@ -11,11 +11,7 @@ import {
 } from "@/components/settings/hooks/use-settings-dirty-state-registry";
 
 function wrapper({ children }: PropsWithChildren) {
-  return (
-    <SettingsDirtyStateRegistryProvider>
-      {children}
-    </SettingsDirtyStateRegistryProvider>
-  );
+  return <SettingsDirtyStateRegistryProvider>{children}</SettingsDirtyStateRegistryProvider>;
 }
 
 describe("settings dirty-state registry", () => {
@@ -117,12 +113,7 @@ describe("settings dirty-state registry", () => {
         "preferences-save-pending",
       ],
     });
-    expect(result.current.entries.map((entry) => entry.owner)).toEqual([
-      "account",
-      "tag",
-      "shortcut",
-      "preferences",
-    ]);
+    expect(result.current.entries.map((entry) => entry.owner)).toEqual(["account", "tag", "shortcut", "preferences"]);
     expect(getSettingsDirtyStateSnapshot()).toMatchObject({
       dirty: true,
       pending: true,

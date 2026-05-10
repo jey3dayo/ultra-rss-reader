@@ -95,9 +95,8 @@ if (tauriReleaseConfig.build?.devUrl) {
 
 const bridgePermissions = normalizeCapabilities(defaultCapability).flatMap(
   (capability) =>
-    capability.permissions
-      ?.map(permissionIdentifier)
-      .filter((permission) => permission.startsWith("mcp-bridge:")) ?? [],
+    capability.permissions?.map(permissionIdentifier).filter((permission) => permission.startsWith("mcp-bridge:")) ??
+    [],
 );
 if (bridgePermissions.length > 0) {
   errors.push("release capability must not include debug-only MCP bridge permissions");
@@ -111,7 +110,9 @@ if (
   errors.push("release build must keep the MCP bridge plugin behind cfg(debug_assertions)");
 }
 
-if (!devMocks.includes("if (window.__TAURI_INTERNALS__ && !window.__DEV_BROWSER_MOCKS__) return restoreWindowGlobals;")) {
+if (
+  !devMocks.includes("if (window.__TAURI_INTERNALS__ && !window.__DEV_BROWSER_MOCKS__) return restoreWindowGlobals;")
+) {
   errors.push("release build must keep dev browser mocks disabled inside Tauri");
 }
 

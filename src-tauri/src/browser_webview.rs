@@ -2299,7 +2299,8 @@ mod tests {
         let script = browser_preview_focus_override_source(&prefs)
             .expect("focus override script should exist when preference is enabled");
 
-        assert!(script.contains("Object.defineProperty(window, '__ULTRA_RSS_FOCUS_OVERRIDE_INSTALLED__'"));
+        assert!(script
+            .contains("Object.defineProperty(window, '__ULTRA_RSS_FOCUS_OVERRIDE_INSTALLED__'"));
         assert!(script.contains("configurable: false"));
         assert!(script.contains("const defineGetter = (target, property, value) => {"));
         assert!(script.contains("const defineValue = (target, property, value) => {"));

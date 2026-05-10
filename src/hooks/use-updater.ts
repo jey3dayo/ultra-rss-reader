@@ -6,12 +6,7 @@ import {
   type UpdateInfoDto,
   UpdateReadyEventPayloadSchema,
 } from "@/api/schemas/update-info";
-import {
-  type AppError,
-  checkForUpdate,
-  downloadAndInstallUpdate,
-  restartApp,
-} from "@/api/tauri-commands";
+import { type AppError, checkForUpdate, downloadAndInstallUpdate, restartApp } from "@/api/tauri-commands";
 import { getAddFeedDialogRestartBlockerSnapshot } from "@/components/reader/hooks/feed-dialogs/use-add-feed-dialog-actions";
 import { getSettingsDirtyStateSnapshot } from "@/components/settings/hooks/use-settings-dirty-state-registry";
 import i18n from "@/lib/i18n";
@@ -22,8 +17,7 @@ import { useUiStore } from "@/stores/ui-store";
 type UpdateInfo = UpdateInfoDto;
 
 /** Share a single in-flight update check across startup and manual triggers. */
-let checkInFlight: Result.ResultAsync<UpdateInfo | null, AppError> | null =
-  null;
+let checkInFlight: Result.ResultAsync<UpdateInfo | null, AppError> | null = null;
 let downloadInFlight = false;
 let activeDownloadSessionId: number | null = null;
 let activeDownloadRequestId: number | null = null;
@@ -87,9 +81,7 @@ export function showUpdateAvailableToast(version: string): void {
 }
 
 function getUpdateFailureToastMessage(message: string): string {
-  return message === SHARED_OPERATION_BUSY_ERROR
-    ? message
-    : i18n.t("updater.download_failed_keep_current");
+  return message === SHARED_OPERATION_BUSY_ERROR ? message : i18n.t("updater.download_failed_keep_current");
 }
 
 function showUpdateFailureToast(message: string): void {
@@ -188,9 +180,7 @@ function startDownload(ownerToast?: ToastData): void {
     });
 }
 
-function normalizeDownloadProgressPercent(
-  percent: number | null,
-): number | null {
+function normalizeDownloadProgressPercent(percent: number | null): number | null {
   if (percent === null) {
     return null;
   }
@@ -202,9 +192,7 @@ function normalizeDownloadProgressPercent(
   return Math.min(100, Math.max(0, Math.round(percent)));
 }
 
-function readDownloadProgressPercent(
-  payload: unknown,
-): number | null | undefined {
+function readDownloadProgressPercent(payload: unknown): number | null | undefined {
   const result = UpdateDownloadProgressEventPayloadSchema.safeParse(payload);
   if (!result.success) {
     return undefined;
@@ -239,10 +227,7 @@ function isCurrentDownloadReady(payload: unknown): boolean {
     return false;
   }
 
-  if (
-    activeDownloadSessionId !== null &&
-    result.data.session_id !== activeDownloadSessionId
-  ) {
+  if (activeDownloadSessionId !== null && result.data.session_id !== activeDownloadSessionId) {
     return false;
   }
 
@@ -261,9 +246,7 @@ function restartPreparedUpdate(ownerToast?: ToastData): void {
         }
 
         const message =
-          error.message === SHARED_OPERATION_BUSY_ERROR
-            ? error.message
-            : i18n.t("updater.restart_failed_ready");
+          error.message === SHARED_OPERATION_BUSY_ERROR ? error.message : i18n.t("updater.restart_failed_ready");
         console.error("App restart failed:", error);
         const failureToast: ToastData = {
           message,
@@ -295,16 +278,11 @@ function isPreparedUpdateRestartBlocked(): boolean {
   const settingsDirtyState = getSettingsDirtyStateSnapshot();
   const addFeedRestartBlocker = getAddFeedDialogRestartBlockerSnapshot();
   const setupSyncPending =
-    store.accountSetupSession?.state === "verifying" ||
-    store.accountSetupSession?.state === "syncing";
+    store.accountSetupSession?.state === "verifying" || store.accountSetupSession?.state === "syncing";
 
   return (
-    (store.settingsOpen &&
-      (settingsDirtyState.dirty ||
-        settingsDirtyState.pending ||
-        setupSyncPending)) ||
-    (store.isAddFeedDialogOpen &&
-      (addFeedRestartBlocker.dirty || addFeedRestartBlocker.pending))
+    (store.settingsOpen && (settingsDirtyState.dirty || settingsDirtyState.pending || setupSyncPending)) ||
+    (store.isAddFeedDialogOpen && (addFeedRestartBlocker.dirty || addFeedRestartBlocker.pending))
   );
 }
 
@@ -348,8 +326,7 @@ function requestPreparedUpdateRestart(ownerToast: ToastData): void {
 function isUpdaterRuntimeUnavailable(): boolean {
   return (
     typeof window !== "undefined" &&
-    (window.__DEV_BROWSER_MOCKS__ === true ||
-      window.__ULTRA_RSS_BROWSER_MOCKS__ === true)
+    (window.__DEV_BROWSER_MOCKS__ === true || window.__ULTRA_RSS_BROWSER_MOCKS__ === true)
   );
 }
 
@@ -381,10 +358,7 @@ export function showRestartToast(): void {
   store.showToast(toast);
 }
 
-export async function performUpdateCheckResult(): Result.ResultAsync<
-  UpdateInfo | null,
-  AppError
-> {
+export async function performUpdateCheckResult(): Result.ResultAsync<UpdateInfo | null, AppError> {
   if (checkInFlight) return checkInFlight;
 
   checkInFlight = (async () => {
@@ -481,9 +455,7 @@ export function useUpdater(): void {
               return;
             }
             const message =
-              percent != null
-                ? i18n.t("updater.downloading_percent", { percent })
-                : i18n.t("updater.downloading");
+              percent != null ? i18n.t("updater.downloading_percent", { percent }) : i18n.t("updater.downloading");
             store.showToast({
               message,
               persistent: true,
