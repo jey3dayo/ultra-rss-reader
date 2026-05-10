@@ -1540,7 +1540,9 @@ describe("Sidebar", () => {
 
     render(<Sidebar />, { wrapper: createWrapper() });
 
-    await screen.findByText("Alpha Feed");
+    await waitFor(() => {
+      expect(queryFeedButton("feed-1")).not.toBeNull();
+    });
     const alphaFeed = queryFeedButton("feed-1");
     expect(alphaFeed).not.toBeNull();
     if (!alphaFeed) {

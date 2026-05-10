@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
     handleOpenLogDir: vi.fn(),
   })),
   showToast: vi.fn(),
+  setSettingsLoading: vi.fn(),
   useRegisterSettingsDirtyState: vi.fn(),
   translationCalls: [] as { key: string; options: unknown }[],
 }));
@@ -31,8 +32,12 @@ vi.mock("@/components/settings/hooks/use-settings-dirty-state-registry", () => (
 }));
 
 vi.mock("@/stores/ui-store", () => ({
-  useUiStore: (selector: (state: { showToast: typeof mocks.showToast }) => unknown) =>
-    selector({ showToast: mocks.showToast }),
+  useUiStore: (
+    selector: (state: {
+      showToast: typeof mocks.showToast;
+      setSettingsLoading: typeof mocks.setSettingsLoading;
+    }) => unknown,
+  ) => selector({ showToast: mocks.showToast, setSettingsLoading: mocks.setSettingsLoading }),
 }));
 
 vi.mock("react-i18next", () => ({
@@ -49,6 +54,7 @@ describe("DataSettings", () => {
     mocks.dataSettingsView.mockClear();
     mocks.useDataSettingsController.mockClear();
     mocks.showToast.mockClear();
+    mocks.setSettingsLoading.mockClear();
     mocks.useRegisterSettingsDirtyState.mockClear();
     mocks.translationCalls.length = 0;
   });
@@ -89,5 +95,37 @@ describe("DataSettings", () => {
       pending: true,
       blockingReason: "data-action-pending",
     });
+  });
+
+  it("wires settings-wide loading into the data settings controller", () => {
+    render(<DataSettings />);
+
+    expect(mocks.useDataSettingsController).toHaveBeenCalledWith(
+      expect.objectContaining({
+        setSettingsLoading: mocks.setSettingsLoading,
+      }),
+    );
+  });
+
+  it("keeps action row labels stable while passing pending labels to actions", () => {
+    mocks.useDataSettingsController.mockReturnValueOnce({
+      databaseSizeStatus: "ready",
+      databaseSizeValue: "1.0 KB",
+      vacuuming: true,
+      openingLogDir: true,
+      handleVacuum: vi.fn(),
+      handleOpenLogDir: vi.fn(),
+    });
+
+    render(<DataSettings />);
+
+    expect(mocks.dataSettingsView).toHaveBeenCalledWith(
+      expect.objectContaining({
+        vacuumLabel: "data.vacuum",
+        vacuumActionLabel: "data.vacuuming",
+        openLogDirLabel: "data.open_log_dir",
+        openLogDirActionLabel: "data.opening_log_dir",
+      }),
+    );
   });
 });

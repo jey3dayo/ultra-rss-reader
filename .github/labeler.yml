@@ -90,3 +90,10 @@ i18n:
   - changed-files:
       - any-glob-to-any-file:
           - "src/locales/**"
+
+release-readiness:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/release.yml"
+          - ".github/workflows/release.yml"
+          - "src-tauri/tauri.release.conf.json"

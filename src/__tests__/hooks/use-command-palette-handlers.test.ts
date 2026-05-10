@@ -1,3 +1,4 @@
+import { Result } from "@praha/byethrow";
 import { renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -90,6 +91,24 @@ describe("useCommandPaletteHandlers", () => {
     expect(closePalette).toHaveBeenCalledOnce();
     await waitFor(() => {
       expect(showToast).toHaveBeenCalledWith('Failed to run dev scenario "open-add-feed-dialog": boom');
+    });
+  });
+
+  it("writes feed history and closes the palette without a success toast for feed landing", async () => {
+    const closePalette = vi.fn();
+    const showToast = vi.fn();
+    const openFeedLanding = vi
+      .fn()
+      .mockResolvedValue(Result.succeed({ type: "feed_selected", feedId: "feed-1", articleId: "art-1" }));
+    const handlers = createHandlers({ closePalette, showToast, openFeedLanding });
+
+    handlers.handleFeedSelect("feed-1");
+
+    expect(addToHistoryMock).toHaveBeenCalledWith("feed:feed-1");
+    expect(openFeedLanding).toHaveBeenCalledWith("feed-1");
+    expect(closePalette).toHaveBeenCalledOnce();
+    await waitFor(() => {
+      expect(showToast).not.toHaveBeenCalled();
     });
   });
 

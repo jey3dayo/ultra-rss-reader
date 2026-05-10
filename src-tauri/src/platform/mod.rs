@@ -21,6 +21,57 @@ pub struct PlatformInfo {
     pub capabilities: PlatformCapabilities,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EnvSnapshot<'a> {
+    values: Vec<(&'a str, Option<String>)>,
+}
+
+impl<'a> EnvSnapshot<'a> {
+    pub fn capture<F>(keys: &'a [&'a str], get_env: F) -> Self
+    where
+        F: Fn(&str) -> Option<String>,
+    {
+        Self {
+            values: keys.iter().map(|key| (*key, get_env(key))).collect(),
+        }
+    }
+
+    pub fn first_non_empty(&self) -> Option<String> {
+        self.values.iter().find_map(|(_, value)| {
+            value
+                .as_deref()
+                .map(str::trim)
+                .filter(|trimmed| !trimmed.is_empty())
+                .map(ToOwned::to_owned)
+        })
+    }
+
+    pub fn first_truthy(&self) -> bool {
+        self.first_non_empty()
+            .is_some_and(|value| is_truthy_env_value(&value))
+    }
+
+    pub fn first_valid<F>(&self, is_valid: F) -> Option<String>
+    where
+        F: Fn(&str) -> bool,
+    {
+        self.values.iter().find_map(|(_, value)| {
+            value
+                .as_deref()
+                .map(str::trim)
+                .filter(|trimmed| !trimmed.is_empty() && is_valid(trimmed))
+                .map(ToOwned::to_owned)
+        })
+    }
+}
+
+pub fn is_truthy_env_value(value: &str) -> bool {
+    matches!(
+        value.trim().to_ascii_lowercase().as_str(),
+        "1" | "true" | "yes" | "on"
+    )
+}
+
 pub fn platform_info_for_kind(kind: PlatformKind) -> PlatformInfo {
     let capabilities = match kind {
         PlatformKind::Macos => PlatformCapabilities {
@@ -53,15 +104,7 @@ fn uses_dev_file_credentials_from_env<F>(get_env: F) -> bool
 where
     F: Fn(&str) -> Option<String>,
 {
-    fn is_truthy(value: &str) -> bool {
-        matches!(
-            value.trim().to_ascii_lowercase().as_str(),
-            "1" | "true" | "yes" | "on"
-        )
-    }
-
-    get_env("DEV_CREDENTIALS").is_some_and(|value| is_truthy(&value))
-        || get_env("ULTRA_RSS_DEV_CREDENTIALS").is_some_and(|value| is_truthy(&value))
+    EnvSnapshot::capture(&["DEV_CREDENTIALS", "ULTRA_RSS_DEV_CREDENTIALS"], get_env).first_truthy()
 }
 
 impl PlatformInfo {
@@ -85,7 +128,9 @@ impl PlatformInfo {
 
 #[cfg(test)]
 mod tests {
-    use super::{platform_info_for_kind, uses_dev_file_credentials_from_env, PlatformKind};
+    use super::{
+        platform_info_for_kind, uses_dev_file_credentials_from_env, EnvSnapshot, PlatformKind,
+    };
 
     #[test]
     fn macos_capabilities_enable_reading_list_and_background_open() {
@@ -196,5 +241,37 @@ mod tests {
         });
         assert!(legacy_enabled);
         assert!(!uses_dev_file_credentials_from_env(|_| None));
+    }
+
+    #[test]
+    fn env_snapshot_uses_alias_order_for_truthy_values() {
+        let disabled_by_primary = uses_dev_file_credentials_from_env(|key| match key {
+            "DEV_CREDENTIALS" => Some("false".to_string()),
+            "ULTRA_RSS_DEV_CREDENTIALS" => Some("true".to_string()),
+            _ => None,
+        });
+        assert!(!disabled_by_primary);
+
+        let enabled_by_alias_after_blank_primary =
+            uses_dev_file_credentials_from_env(|key| match key {
+                "DEV_CREDENTIALS" => Some("   ".to_string()),
+                "ULTRA_RSS_DEV_CREDENTIALS" => Some("yes".to_string()),
+                _ => None,
+            });
+        assert!(enabled_by_alias_after_blank_primary);
+    }
+
+    #[test]
+    fn env_snapshot_falls_through_until_valid_value() {
+        let snapshot = EnvSnapshot::capture(&["PRIMARY_URL", "ALIAS_URL"], |key| match key {
+            "PRIMARY_URL" => Some("file:///tmp/article.html".to_string()),
+            "ALIAS_URL" => Some(" https://example.com/preview ".to_string()),
+            _ => None,
+        });
+
+        assert_eq!(
+            snapshot.first_valid(|value| value.starts_with("https://")),
+            Some("https://example.com/preview".to_string())
+        );
     }
 }

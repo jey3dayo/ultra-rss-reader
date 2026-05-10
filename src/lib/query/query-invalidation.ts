@@ -77,8 +77,12 @@ export function setQueryInvalidationFailureReporterForDiagnostics(
 ) {
   queryInvalidationFailureReporter = reporter;
   return () => {
-    queryInvalidationFailureReporter = reportQueryInvalidationFailures;
+    resetQueryInvalidationFailureReporterForTests();
   };
+}
+
+export function resetQueryInvalidationFailureReporterForTests(): void {
+  queryInvalidationFailureReporter = reportQueryInvalidationFailures;
 }
 
 function readerArticleModeOptions(mode: ReaderFilter): ReaderArticleModeOptions {

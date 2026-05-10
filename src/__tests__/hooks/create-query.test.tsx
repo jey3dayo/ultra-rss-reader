@@ -1,22 +1,26 @@
 import { Result } from "@praha/byethrow";
 import { renderHook, waitFor } from "@testing-library/react";
 import { createQueryWrapper } from "@tests/helpers/create-wrapper";
+import { resetDiagnosticsReporterModuleGlobalsForTests } from "@tests/helpers/diagnostics-reporters";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createQuery, setCreateQueryDiagnosticsReporterForDiagnostics } from "@/hooks/create-query";
+import {
+  createQuery,
+  resetCreateQueryDiagnosticsReporterForTests,
+  setCreateQueryDiagnosticsReporterForDiagnostics,
+} from "@/hooks/create-query";
 
 describe("createQuery", () => {
   let wrapper: ReturnType<typeof createQueryWrapper>["wrapper"];
-  let restoreDiagnosticsReporter: (() => void) | null = null;
   type GeneratedQueryProps = { id: string | null };
 
   beforeEach(() => {
+    resetDiagnosticsReporterModuleGlobalsForTests();
     const queryWrapper = createQueryWrapper();
     wrapper = queryWrapper.wrapper;
   });
 
   afterEach(() => {
-    restoreDiagnosticsReporter?.();
-    restoreDiagnosticsReporter = null;
+    resetDiagnosticsReporterModuleGlobalsForTests();
   });
 
   it("keeps nullable id queries disabled and calls the fetcher for string ids", async () => {
@@ -81,7 +85,7 @@ describe("createQuery", () => {
     const fetcher = vi.fn(async () => Result.fail({ message: "load failed" }));
     const useGeneratedQuery = createQuery("items", fetcher);
     const diagnosticsReporter = vi.fn();
-    restoreDiagnosticsReporter = setCreateQueryDiagnosticsReporterForDiagnostics(diagnosticsReporter);
+    setCreateQueryDiagnosticsReporterForDiagnostics(diagnosticsReporter);
 
     const { result } = renderHook(({ id }: GeneratedQueryProps) => useGeneratedQuery(id), {
       initialProps: { id: "item-1" },
@@ -100,6 +104,34 @@ describe("createQuery", () => {
       queryId: "item-1",
       error: expect.objectContaining({ message: "[items:item-1] load failed" }),
     });
+  });
+
+  it("restores the default reporter when a custom reporter leaks past a test boundary", async () => {
+    const leakedDiagnosticsReporter = vi.fn();
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    setCreateQueryDiagnosticsReporterForDiagnostics(leakedDiagnosticsReporter);
+    resetCreateQueryDiagnosticsReporterForTests();
+
+    const fetcher = vi.fn(async () => Result.fail({ message: "load failed" }));
+    const useGeneratedQuery = createQuery("items", fetcher);
+
+    const { result } = renderHook(() => useGeneratedQuery("account-secret-1"), {
+      wrapper,
+    });
+
+    await waitFor(() => {
+      expect(result.current.isError).toBe(true);
+    });
+
+    expect(leakedDiagnosticsReporter).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledWith("[createQuery] generated queryFn rejected:", {
+      queryKey: "items",
+      queryId: "<redacted>",
+      error: expect.objectContaining({ message: "[items:<redacted>] load failed" }),
+    });
+
+    warnSpy.mockRestore();
   });
 
   it("redacts the query id from default query rejection diagnostics", async () => {

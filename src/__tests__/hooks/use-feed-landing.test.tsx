@@ -454,6 +454,62 @@ describe("useFeedLanding", () => {
     expect(useUiStore.getState().selectedArticleId).toBe("art-next");
   });
 
+  it("does not let an older successful landing select or open browser over the latest feed landing", async () => {
+    const firstArticles = createDeferred<typeof sampleArticles>();
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_feeds":
+          return [
+            { ...sampleFeeds[0], reader_mode: "on", web_preview_mode: "on" },
+            { ...sampleFeeds[0], id: "feed-next", title: "Next Feed", reader_mode: "on", web_preview_mode: "off" },
+          ];
+        case "list_articles":
+          if (args.feedId === "feed-1") {
+            return firstArticles.promise;
+          }
+          return [{ ...sampleArticles[0], id: "art-next", feed_id: "feed-next", url: "https://example.com/next" }];
+        default:
+          return undefined;
+      }
+    });
+
+    const { result } = renderHook(() => useFeedLanding(), {
+      wrapper: createWrapper(),
+    });
+
+    const firstPromise = result.current("feed-1");
+    await waitFor(() => {
+      expect(useUiStore.getState().selection).toEqual({
+        type: "feed",
+        feedId: "feed-1",
+      });
+    });
+
+    await act(async () => {
+      await result.current("feed-next");
+    });
+    await waitFor(() => {
+      expect(useUiStore.getState().selection).toEqual({
+        type: "feed",
+        feedId: "feed-next",
+      });
+      expect(useUiStore.getState().selectedArticleId).toBe("art-next");
+      expect(useUiStore.getState().browserUrl).toBeNull();
+    });
+
+    await act(async () => {
+      firstArticles.resolve([{ ...sampleArticles[0], url: "https://example.com/stale" }]);
+      await firstPromise;
+    });
+
+    expect(useUiStore.getState().selection).toEqual({
+      type: "feed",
+      feedId: "feed-next",
+    });
+    expect(useUiStore.getState().selectedArticleId).toBe("art-next");
+    expect(useUiStore.getState().browserUrl).toBeNull();
+  });
+
   it("does not let an older feed list response select over the latest feed landing", async () => {
     const firstFeeds = createDeferred<typeof sampleFeeds>();
     setupTauriMocks((cmd, args) => {

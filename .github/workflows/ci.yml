@@ -22,6 +22,47 @@ env:
     patchelf
 
 jobs:
+  toolchain:
+    name: "Check: Toolchain"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151
+
+      - run: mise run quality:toolchain
+
+      - name: Verify CI image toolchain contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { execFileSync } from "node:child_process";
+          import { readFileSync } from "node:fs";
+
+          const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
+          const expectedNodeMajor = String(packageJson.engines?.node ?? "");
+          const expectedPnpm = String(packageJson.engines?.pnpm ?? "");
+          const actualNodeMajor = process.versions.node.split(".")[0];
+          const actualPnpm = execFileSync("pnpm", ["--version"], { encoding: "utf8" }).trim();
+          const failures = [];
+
+          if (actualNodeMajor !== expectedNodeMajor) {
+            failures.push(`CI Node version drift: expected major ${expectedNodeMajor}, got ${process.versions.node}`);
+          }
+          if (actualPnpm !== expectedPnpm) {
+            failures.push(`CI pnpm version drift: expected ${expectedPnpm}, got ${actualPnpm}`);
+          }
+          if (failures.length > 0) {
+            console.error(failures.join("\n"));
+            process.exit(1);
+          }
+
+          console.log(`CI image toolchain contract ok: node ${process.versions.node}, pnpm ${actualPnpm}`);
+          NODE
+
   format:
     name: "Check: Format"
     runs-on: ubuntu-latest
@@ -31,6 +72,16 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
       - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151
+
+      - name: Resolve toolchain cache versions
+        id: toolchain-cache
+        shell: bash
+        run: |
+          {
+            echo "node=$(node --version)"
+            echo "pnpm=$(pnpm --version)"
+            echo "mise=$(mise --version | tr ' /' '--')"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Resolve pnpm store path
         id: pnpm-store
@@ -44,8 +95,9 @@ jobs:
       - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
         with:
           path: ${{ steps.pnpm-store.outputs.path }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          key: ${{ runner.os }}-pnpm-store-node-${{ steps.toolchain-cache.outputs.node }}-pnpm-${{ steps.toolchain-cache.outputs.pnpm }}-mise-${{ steps.toolchain-cache.outputs.mise }}-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
+            ${{ runner.os }}-pnpm-store-node-${{ steps.toolchain-cache.outputs.node }}-pnpm-${{ steps.toolchain-cache.outputs.pnpm }}-mise-${{ steps.toolchain-cache.outputs.mise }}-
             ${{ runner.os }}-pnpm-store-
 
       - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8
@@ -76,6 +128,16 @@ jobs:
 
       - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151
 
+      - name: Resolve toolchain cache versions
+        id: toolchain-cache
+        shell: bash
+        run: |
+          {
+            echo "node=$(node --version)"
+            echo "pnpm=$(pnpm --version)"
+            echo "mise=$(mise --version | tr ' /' '--')"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Resolve pnpm store path
         id: pnpm-store
         shell: bash
@@ -88,8 +150,9 @@ jobs:
       - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
         with:
           path: ${{ steps.pnpm-store.outputs.path }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          key: ${{ runner.os }}-pnpm-store-node-${{ steps.toolchain-cache.outputs.node }}-pnpm-${{ steps.toolchain-cache.outputs.pnpm }}-mise-${{ steps.toolchain-cache.outputs.mise }}-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
+            ${{ runner.os }}-pnpm-store-node-${{ steps.toolchain-cache.outputs.node }}-pnpm-${{ steps.toolchain-cache.outputs.pnpm }}-mise-${{ steps.toolchain-cache.outputs.mise }}-
             ${{ runner.os }}-pnpm-store-
 
       - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8
@@ -102,7 +165,31 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: mise run lint
+      - name: Run lint
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p tmp/ci-artifacts/frontend tmp/ci-artifacts/rust
+          mise run lint 2>&1 | tee tmp/ci-artifacts/frontend/lint.log
+          cp tmp/ci-artifacts/frontend/lint.log tmp/ci-artifacts/rust/lint.log
+
+      - name: Upload frontend failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: frontend-${{ matrix.os }}-lint-log
+          path: tmp/ci-artifacts/frontend/lint.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Upload Rust failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rust-${{ matrix.os }}-lint-log
+          path: tmp/ci-artifacts/rust/lint.log
+          if-no-files-found: ignore
+          retention-days: 14
 
   test:
     name: "Check: Test"
@@ -124,6 +211,16 @@ jobs:
 
       - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151
 
+      - name: Resolve toolchain cache versions
+        id: toolchain-cache
+        shell: bash
+        run: |
+          {
+            echo "node=$(node --version)"
+            echo "pnpm=$(pnpm --version)"
+            echo "mise=$(mise --version | tr ' /' '--')"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Resolve pnpm store path
         id: pnpm-store
         shell: bash
@@ -136,8 +233,9 @@ jobs:
       - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
         with:
           path: ${{ steps.pnpm-store.outputs.path }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          key: ${{ runner.os }}-pnpm-store-node-${{ steps.toolchain-cache.outputs.node }}-pnpm-${{ steps.toolchain-cache.outputs.pnpm }}-mise-${{ steps.toolchain-cache.outputs.mise }}-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
+            ${{ runner.os }}-pnpm-store-node-${{ steps.toolchain-cache.outputs.node }}-pnpm-${{ steps.toolchain-cache.outputs.pnpm }}-mise-${{ steps.toolchain-cache.outputs.mise }}-
             ${{ runner.os }}-pnpm-store-
 
       - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8
@@ -148,7 +246,31 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: mise run test:ci
+      - name: Run tests
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p tmp/ci-artifacts/frontend tmp/ci-artifacts/rust
+          mise run test:ci 2>&1 | tee tmp/ci-artifacts/frontend/test.log
+          cp tmp/ci-artifacts/frontend/test.log tmp/ci-artifacts/rust/test.log
+
+      - name: Upload frontend failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: frontend-${{ matrix.os }}-test-log
+          path: tmp/ci-artifacts/frontend/test.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Upload Rust failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rust-${{ matrix.os }}-test-log
+          path: tmp/ci-artifacts/rust/test.log
+          if-no-files-found: ignore
+          retention-days: 14
 
   build:
     name: "Check: Build"
@@ -164,6 +286,16 @@ jobs:
 
       - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151
 
+      - name: Resolve toolchain cache versions
+        id: toolchain-cache
+        shell: bash
+        run: |
+          {
+            echo "node=$(node --version)"
+            echo "pnpm=$(pnpm --version)"
+            echo "mise=$(mise --version | tr ' /' '--')"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Resolve pnpm store path
         id: pnpm-store
         shell: bash
@@ -176,13 +308,28 @@ jobs:
       - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
         with:
           path: ${{ steps.pnpm-store.outputs.path }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          key: ${{ runner.os }}-pnpm-store-node-${{ steps.toolchain-cache.outputs.node }}-pnpm-${{ steps.toolchain-cache.outputs.pnpm }}-mise-${{ steps.toolchain-cache.outputs.mise }}-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
+            ${{ runner.os }}-pnpm-store-node-${{ steps.toolchain-cache.outputs.node }}-pnpm-${{ steps.toolchain-cache.outputs.pnpm }}-mise-${{ steps.toolchain-cache.outputs.mise }}-
             ${{ runner.os }}-pnpm-store-
 
       - run: pnpm install --frozen-lockfile
 
-      - run: mise run build
+      - name: Run frontend build
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p tmp/ci-artifacts/frontend
+          mise run build 2>&1 | tee tmp/ci-artifacts/frontend/build.log
+
+      - name: Upload frontend failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: frontend-${{ matrix.os }}-build-log
+          path: tmp/ci-artifacts/frontend/build.log
+          if-no-files-found: ignore
+          retention-days: 7
 
   native-smoke:
     name: "Check: Native Smoke"
@@ -198,6 +345,16 @@ jobs:
 
       - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151
 
+      - name: Resolve toolchain cache versions
+        id: toolchain-cache
+        shell: bash
+        run: |
+          {
+            echo "node=$(node --version)"
+            echo "pnpm=$(pnpm --version)"
+            echo "mise=$(mise --version | tr ' /' '--')"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Resolve pnpm store path
         id: pnpm-store
         shell: bash
@@ -210,8 +367,9 @@ jobs:
       - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
         with:
           path: ${{ steps.pnpm-store.outputs.path }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          key: ${{ runner.os }}-pnpm-store-node-${{ steps.toolchain-cache.outputs.node }}-pnpm-${{ steps.toolchain-cache.outputs.pnpm }}-mise-${{ steps.toolchain-cache.outputs.mise }}-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
+            ${{ runner.os }}-pnpm-store-node-${{ steps.toolchain-cache.outputs.node }}-pnpm-${{ steps.toolchain-cache.outputs.pnpm }}-mise-${{ steps.toolchain-cache.outputs.mise }}-
             ${{ runner.os }}-pnpm-store-
 
       - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8
@@ -222,18 +380,45 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: mise run app:build:debug
+      - name: Run native smoke debug build
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p tmp/ci-artifacts/native-smoke
+          mise run app:build:debug 2>&1 | tee tmp/ci-artifacts/native-smoke/debug-build.log
+
+      - name: Upload native smoke failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: native-smoke-${{ matrix.os }}-debug-log
+          path: tmp/ci-artifacts/native-smoke/debug-build.log
+          if-no-files-found: ignore
+          retention-days: 21
+
+      - name: Upload native smoke debug build artifacts
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: native-smoke-${{ matrix.os }}-debug-build-artifacts
+          path: |
+            src-tauri/target/debug/bundle/
+            src-tauri/target/debug/*.exe
+            src-tauri/target/debug/ultra-rss-reader
+          if-no-files-found: ignore
+          retention-days: 21
 
   quality-gate:
     name: Quality Gate
     runs-on: ubuntu-latest
-    needs: [format, lint, test, build, native-smoke]
+    needs: [toolchain, format, lint, test, build, native-smoke]
     if: always()
 
     steps:
       - name: Determine overall result
         env:
           FORMAT_RESULT: ${{ needs.format.result }}
+          TOOLCHAIN_RESULT: ${{ needs.toolchain.result }}
           LINT_RESULT: ${{ needs.lint.result }}
           TEST_RESULT: ${{ needs.test.result }}
           BUILD_RESULT: ${{ needs.build.result }}
@@ -243,24 +428,35 @@ jobs:
           set -euo pipefail
 
           failed=0
+          report_required_check() {
+            local label="$1"
+            local result="$2"
+
+            if [ "$result" = "success" ]; then
+              echo "- ${label}: success" >> "$GITHUB_STEP_SUMMARY"
+              return
+            fi
+
+            echo "::error::${label} FAILED (${result})"
+            failed=1
+
+            if [ "$result" = "skipped" ] || [ "$result" = "cancelled" ]; then
+              echo "- ${label}: ${result} -> failure because every required CI matrix must complete successfully before merge." >> "$GITHUB_STEP_SUMMARY"
+              return
+            fi
+
+            echo "- ${label}: ${result}" >> "$GITHUB_STEP_SUMMARY"
+          }
+
+          echo "## Quality Gate Result Inputs" >> "$GITHUB_STEP_SUMMARY"
+          report_required_check "Toolchain" "$TOOLCHAIN_RESULT"
+          report_required_check "Format" "$FORMAT_RESULT"
+          report_required_check "Lint" "$LINT_RESULT"
+          report_required_check "Test" "$TEST_RESULT"
+          report_required_check "Build" "$BUILD_RESULT"
+          report_required_check "Native Smoke" "$NATIVE_SMOKE_RESULT"
+
           if [ "$FORMAT_RESULT" != "success" ]; then
-            echo "::error::Format FAILED ($FORMAT_RESULT)"
-            failed=1
-          fi
-          if [ "$LINT_RESULT" != "success" ]; then
-            echo "::error::Lint FAILED ($LINT_RESULT)"
-            failed=1
-          fi
-          if [ "$TEST_RESULT" != "success" ]; then
-            echo "::error::Test FAILED ($TEST_RESULT)"
-            failed=1
-          fi
-          if [ "$BUILD_RESULT" != "success" ]; then
-            echo "::error::Build FAILED ($BUILD_RESULT)"
-            failed=1
-          fi
-          if [ "$NATIVE_SMOKE_RESULT" != "success" ]; then
-            echo "::error::Native Smoke FAILED ($NATIVE_SMOKE_RESULT)"
             failed=1
           fi
 

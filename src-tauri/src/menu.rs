@@ -1,4 +1,5 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use std::sync::{Mutex, OnceLock};
 
 use tauri::menu::{
     AboutMetadataBuilder, CheckMenuItemBuilder, MenuBuilder, MenuItemBuilder, PredefinedMenuItem,
@@ -6,6 +7,7 @@ use tauri::menu::{
 };
 use tauri::{menu::Menu, AppHandle, Emitter, Manager};
 
+use crate::commands::updater_commands::is_updater_enabled_by_release_config;
 use crate::menu_i18n;
 
 pub(crate) const MENU_ACTION_EVENT: &str = "menu-action";
@@ -105,7 +107,7 @@ fn item_menu_label(label: &str, menu_id: &str) -> String {
 }
 
 fn is_check_for_updates_menu_available(_updater_initialization_available: bool) -> bool {
-    true
+    _updater_initialization_available
 }
 
 fn is_reading_list_menu_available() -> bool {
@@ -114,6 +116,57 @@ fn is_reading_list_menu_available() -> bool {
 
 fn menu_action_emit_failure_diagnostic(action: &str, error: &impl std::fmt::Display) -> String {
     format!("Frontend action diagnostics: native menu failed to emit action '{action}': {error}")
+}
+
+fn unknown_menu_id_diagnostic(menu_id: &str) -> String {
+    format!(
+        "Frontend action diagnostics: unknown native menu id ignored: {}",
+        redact_menu_id_for_diagnostics(menu_id)
+    )
+}
+
+fn redact_menu_id_for_diagnostics(menu_id: &str) -> String {
+    const MAX_DIAGNOSTIC_MENU_ID_LEN: usize = 64;
+
+    if !menu_id.chars().all(|character| {
+        character.is_ascii_alphanumeric() || matches!(character, '-' | '_' | '.' | ':')
+    }) {
+        return "<redacted-menu-id>".to_string();
+    }
+
+    let mut redacted = String::new();
+    for character in menu_id.chars().take(MAX_DIAGNOSTIC_MENU_ID_LEN) {
+        redacted.push(character);
+    }
+
+    if menu_id.chars().count() > MAX_DIAGNOSTIC_MENU_ID_LEN {
+        redacted.push_str("...");
+    }
+
+    redacted
+}
+
+fn unknown_menu_id_once_set() -> &'static Mutex<HashSet<String>> {
+    static UNKNOWN_MENU_IDS: OnceLock<Mutex<HashSet<String>>> = OnceLock::new();
+    UNKNOWN_MENU_IDS.get_or_init(|| Mutex::new(HashSet::new()))
+}
+
+fn should_emit_unknown_menu_id_diagnostic_once(menu_id: &str) -> bool {
+    match unknown_menu_id_once_set().lock() {
+        Ok(mut seen) => seen.insert(redact_menu_id_for_diagnostics(menu_id)),
+        Err(error) => {
+            tracing::warn!(
+                "Failed to update unknown native menu id diagnostics suppression: {error}"
+            );
+            true
+        }
+    }
+}
+
+fn emit_unknown_menu_id_diagnostic_once(menu_id: &str) {
+    if should_emit_unknown_menu_id_diagnostic_once(menu_id) {
+        tracing::warn!("{}", unknown_menu_id_diagnostic(menu_id));
+    }
 }
 
 fn should_rollback_check_toggle_after_emit(toggled_check_item: bool, emit_failed: bool) -> bool {
@@ -153,7 +206,9 @@ pub fn build(app: &AppHandle, prefs: &HashMap<String, String>) -> tauri::Result<
 
     let check_updates_item =
         MenuItemBuilder::with_id(CHECK_FOR_UPDATES_MENU_ID, labels.check_for_updates)
-            .enabled(is_check_for_updates_menu_available(false))
+            .enabled(is_check_for_updates_menu_available(
+                is_updater_enabled_by_release_config(app.config()),
+            ))
             .build(app)?;
 
     let app_submenu = SubmenuBuilder::new(app, labels.app_submenu_title)
@@ -360,6 +415,7 @@ fn toggle_check_menu_item(app: &AppHandle, menu_id: &str) -> bool {
 pub fn handle_event(app: &AppHandle, event: tauri::menu::MenuEvent) {
     let menu_id = event.id();
     let Some(action) = resolve_menu_action(menu_id.as_ref()) else {
+        emit_unknown_menu_id_diagnostic_once(menu_id.as_ref());
         return;
     };
 
@@ -385,8 +441,9 @@ mod tests {
         is_check_for_updates_menu_available, is_group_by_feed_checked,
         is_reading_list_menu_available, is_sort_unread_checked, is_toggle_check_menu_item,
         item_menu_label, item_menu_shortcut_hint, menu_action_emit_failure_diagnostic,
-        native_menu_accelerator, resolve_menu_action, should_rollback_check_toggle_after_emit,
-        MENU_ACTION_EVENT,
+        native_menu_accelerator, redact_menu_id_for_diagnostics, resolve_menu_action,
+        should_emit_unknown_menu_id_diagnostic_once, should_rollback_check_toggle_after_emit,
+        unknown_menu_id_diagnostic, unknown_menu_id_once_set, MENU_ACTION_EVENT,
     };
 
     #[test]
@@ -620,6 +677,34 @@ mod tests {
     }
 
     #[test]
+    fn unknown_menu_id_diagnostics_are_once_per_redacted_menu_id() {
+        let _ = unknown_menu_id_once_set()
+            .lock()
+            .map(|mut seen| seen.clear());
+
+        assert!(should_emit_unknown_menu_id_diagnostic_once(
+            "unknown-menu-id"
+        ));
+        assert!(!should_emit_unknown_menu_id_diagnostic_once(
+            "unknown-menu-id"
+        ));
+        assert!(should_emit_unknown_menu_id_diagnostic_once(
+            "unknown-other-id"
+        ));
+    }
+
+    #[test]
+    fn unknown_menu_id_diagnostic_redacts_unexpected_payload_shape() {
+        let redacted = redact_menu_id_for_diagnostics("unknown\nmenu?id=secret&token=abc");
+
+        assert_eq!(redacted, "<redacted-menu-id>");
+        assert_eq!(
+            unknown_menu_id_diagnostic("unknown\nmenu?id=secret&token=abc"),
+            "Frontend action diagnostics: unknown native menu id ignored: <redacted-menu-id>"
+        );
+    }
+
+    #[test]
     fn toggle_check_menu_items_are_limited_to_preference_toggles() {
         assert!(is_toggle_check_menu_item("view-sort-unread"));
         assert!(is_toggle_check_menu_item("view-group-by-feed"));
@@ -662,9 +747,9 @@ mod tests {
     }
 
     #[test]
-    fn check_for_updates_menu_availability_ignores_updater_initialization_availability() {
+    fn check_for_updates_menu_availability_follows_release_updater_config_availability() {
         assert!(is_check_for_updates_menu_available(true));
-        assert!(is_check_for_updates_menu_available(false));
+        assert!(!is_check_for_updates_menu_available(false));
         assert_eq!(
             resolve_menu_action("check-for-updates"),
             Some("check-for-updates")

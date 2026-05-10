@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import {
   type BrowserWebviewState,
   focusBrowserWebview,
@@ -44,6 +44,7 @@ export function useBrowserViewActions({
   initialBrowserState,
   fallbackInFlightRef,
 }: UseBrowserViewActionsParams): UseBrowserViewActionsResult {
+  const browserWebviewCommandGenerationRef = useRef(0);
   const keepWebPreviewFocus = usePreferencesStore(
     (state) => resolvePreferenceValue(state.prefs, "web_preview_keep_focus") === "true",
   );
@@ -83,11 +84,20 @@ export function useBrowserViewActions({
 
   const runBrowserWebviewCommand = useCallback(
     async (command: BrowserWebviewCommand, errorLabel: string) => {
+      const commandGeneration = browserWebviewCommandGenerationRef.current + 1;
+      browserWebviewCommandGenerationRef.current = commandGeneration;
       const result = await command();
+      if (browserWebviewCommandGenerationRef.current !== commandGeneration) {
+        return;
+      }
+
       if (Result.isSuccess(result)) {
         applyBrowserState(Result.unwrap(result));
         if (keepWebPreviewFocus) {
           const focusResult = await focusBrowserWebview();
+          if (browserWebviewCommandGenerationRef.current !== commandGeneration) {
+            return;
+          }
           if (Result.isFailure(focusResult)) {
             console.error("Failed to restore embedded browser focus:", Result.unwrapError(focusResult));
           }
@@ -124,6 +134,7 @@ export function useBrowserViewActions({
       return;
     }
 
+    browserWebviewCommandGenerationRef.current += 1;
     fallbackInFlightRef.current = false;
     resetBrowserWebviewSyncState();
     clearSurfaceIssue();

@@ -24,10 +24,12 @@ type DataSettingsViewProps = {
   optimizationHeading: string;
   vacuumDescription: string;
   vacuumLabel: string;
+  vacuumActionLabel?: string;
   vacuuming: boolean;
   logsHeading: string;
   openLogDirDescription: string;
   openLogDirLabel: string;
+  openLogDirActionLabel?: string;
   openingLogDir: boolean;
   onVacuum: () => void;
   onOpenLogDir: () => void;
@@ -50,10 +52,12 @@ export function DataSettingsView({
   optimizationHeading,
   vacuumDescription,
   vacuumLabel,
+  vacuumActionLabel,
   vacuuming,
   logsHeading,
   openLogDirDescription,
   openLogDirLabel,
+  openLogDirActionLabel,
   openingLogDir,
   onVacuum,
   onOpenLogDir,
@@ -112,7 +116,7 @@ export function DataSettingsView({
               disabled={vacuuming || openingLogDir || vacuumUnavailable}
               onClick={onVacuum}
             >
-              {vacuumLabel}
+              {vacuumActionLabel ?? vacuumLabel}
             </SettingsActionButton>
           )}
         </LabeledControlRow>
@@ -120,7 +124,7 @@ export function DataSettingsView({
       <SettingsSection heading={logsHeading} surface="flat">
         <LabeledControlRow label={openLogDirLabel} description={openLogDirDescription}>
           <SettingsActionButton disabled={openingLogDir || vacuuming} onClick={onOpenLogDir}>
-            {openLogDirLabel}
+            {openLogDirActionLabel ?? openLogDirLabel}
           </SettingsActionButton>
         </LabeledControlRow>
       </SettingsSection>

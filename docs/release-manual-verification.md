@@ -142,6 +142,8 @@ Record this for every release before publishing the draft release.
 Confirm and record:
 
 - Release tag and tag target SHA.
+- Annotated tag object SHA, tag target SHA, and confirmation that the tag exists
+  on `origin` before the workflow creates artifacts.
 - Source commit SHA and the PR, merge commit, or release note that explains the
   user-visible change set.
 - PR number or merge commit subject for the source commit.
@@ -160,6 +162,10 @@ Confirm and record:
   evidence type so missing or mismatched artifacts are visible without relying
   on hard-coded file names.
 - Draft release attachment list before publishing.
+- If release signing secrets are unavailable, the workflow must stop before
+  artifact build or draft Release upload. Record the missing secret names shown
+  by the workflow copy, or record that `workflow_dispatch` used `dry_run=true`
+  and intentionally skipped artifact publication.
 
 ### 2b. Release Dev-Only Contamination Record
 

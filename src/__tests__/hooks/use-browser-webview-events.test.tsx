@@ -339,7 +339,7 @@ describe("useBrowserWebviewEvents", () => {
     expect(consoleWarn).toHaveBeenCalledTimes(3);
   });
 
-  it("warns once per malformed native event type to avoid noisy payload floods", async () => {
+  it("warns once per malformed native event payload shape to keep diagnostics specific without floods", async () => {
     const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => {});
     listenMock.mockResolvedValue(vi.fn());
 
@@ -367,9 +367,12 @@ describe("useBrowserWebviewEvents", () => {
     }, []);
 
     expect(malformedPayloadMessages).toEqual([
-      `Ignored malformed embedded browser webview ${BROWSER_WINDOW_EVENTS.stateChanged} payload: payloadType=null`,
-      `Ignored malformed embedded browser webview ${BROWSER_WINDOW_EVENTS.fallback} payload: payloadType=null`,
-      `Ignored malformed embedded browser webview ${BROWSER_WINDOW_EVENTS.diagnostics} payload: payloadType=null`,
+      `Ignored malformed embedded browser webview ${BROWSER_WINDOW_EVENTS.stateChanged} payload: payloadType=null; issues=invalid_type:<root>`,
+      `Ignored malformed embedded browser webview ${BROWSER_WINDOW_EVENTS.stateChanged} payload: payloadType=string; issues=invalid_type:<root>`,
+      `Ignored malformed embedded browser webview ${BROWSER_WINDOW_EVENTS.fallback} payload: payloadType=null; issues=invalid_type:<root>`,
+      `Ignored malformed embedded browser webview ${BROWSER_WINDOW_EVENTS.fallback} payload: payloadType=array; issues=invalid_type:<root>`,
+      `Ignored malformed embedded browser webview ${BROWSER_WINDOW_EVENTS.diagnostics} payload: payloadType=null; issues=invalid_type:<root>`,
+      `Ignored malformed embedded browser webview ${BROWSER_WINDOW_EVENTS.diagnostics} payload: payloadType=array; issues=invalid_type:<root>`,
     ]);
   });
 

@@ -11,9 +11,11 @@ const storageCleanupPolicyConnections = StorageCleanupPolicyConnectionsSchema.pa
 export function DataSettings() {
   const { t } = useTranslation("settings");
   const showToast = useUiStore((s) => s.showToast);
+  const setSettingsLoading = useUiStore((s) => s.setSettingsLoading);
   const controller = useDataSettingsController({
     t,
     showToast,
+    setSettingsLoading,
   });
   const dataActionPending = controller.vacuuming || controller.openingLogDir;
 
@@ -45,11 +47,13 @@ export function DataSettings() {
       destructiveRecoveryCriteria={controller.destructiveRecoveryCriteria}
       optimizationHeading={t("data.optimization")}
       vacuumDescription={t("data.vacuum_description")}
-      vacuumLabel={controller.vacuuming ? t("data.vacuuming") : t("data.vacuum")}
+      vacuumLabel={t("data.vacuum")}
+      vacuumActionLabel={controller.vacuuming ? t("data.vacuuming") : t("data.vacuum")}
       vacuuming={controller.vacuuming}
       logsHeading={t("data.logs")}
       openLogDirDescription={t("data.open_log_dir_description")}
-      openLogDirLabel={controller.openingLogDir ? t("data.opening_log_dir") : t("data.open_log_dir")}
+      openLogDirLabel={t("data.open_log_dir")}
+      openLogDirActionLabel={controller.openingLogDir ? t("data.opening_log_dir") : t("data.open_log_dir")}
       openingLogDir={controller.openingLogDir}
       onVacuum={() => void controller.handleVacuum()}
       onOpenLogDir={() => void controller.handleOpenLogDir()}

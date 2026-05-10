@@ -17,13 +17,8 @@ const KEYRING_PERMISSION_DENIED_COPY: &str =
 const CLIPBOARD_PERMISSION_DENIED_COPY: &str =
     "Clipboard access was denied. Allow clipboard access for Ultra RSS Reader and try again.";
 
-fn read_first_non_empty_env(keys: &[&str]) -> Option<String> {
-    keys.iter().find_map(|key| {
-        std::env::var(key)
-            .ok()
-            .map(|value| value.trim().to_string())
-            .filter(|value| !value.is_empty())
-    })
+fn read_first_non_empty_env(keys: &[&'static str]) -> Option<String> {
+    crate::platform::EnvSnapshot::capture(keys, |key| std::env::var(key).ok()).first_non_empty()
 }
 
 fn parse_optional_positive_u32(value: Option<String>) -> Option<u32> {
@@ -32,17 +27,9 @@ fn parse_optional_positive_u32(value: Option<String>) -> Option<u32> {
         .filter(|value| *value > 0 && *value <= MAX_DEV_WINDOW_DIMENSION_PX)
 }
 
-fn read_first_valid_dev_web_url(keys: &[&str]) -> Option<String> {
-    keys.iter().find_map(|key| {
-        std::env::var(key).ok().and_then(|value| {
-            let trimmed = value.trim();
-            if trimmed.is_empty() || crate::commands::parse_browser_http_url(trimmed).is_err() {
-                None
-            } else {
-                Some(trimmed.to_string())
-            }
-        })
-    })
+fn read_first_valid_dev_web_url(keys: &[&'static str]) -> Option<String> {
+    crate::platform::EnvSnapshot::capture(keys, |key| std::env::var(key).ok())
+        .first_valid(|value| crate::commands::parse_browser_http_url(value).is_ok())
 }
 
 #[tauri::command]

@@ -32,8 +32,12 @@ function reportCreateQueryDiagnostic(diagnostic: CreateQueryDiagnostic) {
 export function setCreateQueryDiagnosticsReporterForDiagnostics(reporter: (diagnostic: CreateQueryDiagnostic) => void) {
   createQueryDiagnosticsReporter = reporter;
   return () => {
-    createQueryDiagnosticsReporter = reportCreateQueryDiagnostic;
+    resetCreateQueryDiagnosticsReporterForTests();
   };
+}
+
+export function resetCreateQueryDiagnosticsReporterForTests(): void {
+  createQueryDiagnosticsReporter = reportCreateQueryDiagnostic;
 }
 
 function normalizeQueryId(id: string | null): string | null {

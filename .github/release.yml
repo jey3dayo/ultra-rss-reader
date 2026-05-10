@@ -1,3 +1,6 @@
+# Release Drafter only owns PR-label changelog grouping for draft note scaffolding.
+# .github/workflows/release.yml owns tag validation, artifact builds, updater
+# sidecars, provenance, and draft Release asset publication.
 changelog:
   exclude:
     labels:

@@ -1,5 +1,6 @@
 import { listen } from "@tauri-apps/api/event";
 import { useCallback, useLayoutEffect, useRef } from "react";
+import type { ZodError } from "zod";
 import {
   BrowserWebviewDiagnosticsPayloadSchema,
   BrowserWebviewFallbackPayloadSchema,
@@ -25,19 +26,33 @@ type UseBrowserWebviewEventsParams = {
 
 type UseBrowserWebviewEventsResult = () => Promise<void>;
 
-function parseBrowserWebviewStatePayload(payload: unknown): BrowserWebviewState | null {
+type BrowserWebviewPayloadParseResult<T> =
+  | {
+      success: true;
+      data: T;
+    }
+  | {
+      success: false;
+      error: ZodError;
+    };
+
+function parseBrowserWebviewStatePayload(payload: unknown): BrowserWebviewPayloadParseResult<BrowserWebviewState> {
   const result = BrowserWebviewStateSchema.safeParse(payload);
-  return result.success ? result.data : null;
+  return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
 }
 
-function parseBrowserWebviewFallbackPayload(payload: unknown): BrowserWebviewFallbackPayload | null {
+function parseBrowserWebviewFallbackPayload(
+  payload: unknown,
+): BrowserWebviewPayloadParseResult<BrowserWebviewFallbackPayload> {
   const result = BrowserWebviewFallbackPayloadSchema.safeParse(payload);
-  return result.success ? result.data : null;
+  return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
 }
 
-function parseBrowserWebviewDiagnosticsPayload(payload: unknown): BrowserDebugGeometryNativeDiagnostics | null {
+function parseBrowserWebviewDiagnosticsPayload(
+  payload: unknown,
+): BrowserWebviewPayloadParseResult<BrowserDebugGeometryNativeDiagnostics> {
   const result = BrowserWebviewDiagnosticsPayloadSchema.safeParse(payload);
-  return result.success ? result.data : null;
+  return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
 }
 
 function malformedPayloadSummary(payload: unknown) {
@@ -47,17 +62,35 @@ function malformedPayloadSummary(payload: unknown) {
   if (payload === null) {
     return "null";
   }
+  if (typeof payload === "object") {
+    return `object(keys=${Object.keys(payload).toSorted().join(",")})`;
+  }
   return typeof payload;
 }
 
-function warnMalformedBrowserWebviewEvent(warnedMalformedEventNames: Set<string>, eventName: string, payload: unknown) {
-  if (warnedMalformedEventNames.has(eventName)) {
+function malformedPayloadIssueSummary(error: ZodError) {
+  return error.issues
+    .map((issue) => `${issue.code}:${issue.path.length > 0 ? issue.path.join(".") : "<root>"}`)
+    .toSorted()
+    .join(",");
+}
+
+function warnMalformedBrowserWebviewEvent(
+  warnedMalformedPayloadShapes: Set<string>,
+  eventName: string,
+  payload: unknown,
+  error: ZodError,
+) {
+  const payloadSummary = malformedPayloadSummary(payload);
+  const issueSummary = malformedPayloadIssueSummary(error);
+  const warningKey = `${eventName}:${payloadSummary}:${issueSummary}`;
+  if (warnedMalformedPayloadShapes.has(warningKey)) {
     return;
   }
 
-  warnedMalformedEventNames.add(eventName);
+  warnedMalformedPayloadShapes.add(warningKey);
   console.warn(
-    `Ignored malformed embedded browser webview ${eventName} payload: payloadType=${malformedPayloadSummary(payload)}`,
+    `Ignored malformed embedded browser webview ${eventName} payload: payloadType=${payloadSummary}; issues=${issueSummary}`,
   );
 }
 
@@ -69,41 +102,44 @@ export function useBrowserWebviewEvents({
   onDiagnostics,
 }: UseBrowserWebviewEventsParams): UseBrowserWebviewEventsResult {
   const listenerReadyRef = useRef<Promise<void> | null>(null);
-  const warnedMalformedEventNamesRef = useRef<Set<string>>(new Set());
+  const warnedMalformedPayloadShapesRef = useRef<Set<string>>(new Set());
 
   useLayoutEffect(() => {
     let cancelled = false;
-    warnedMalformedEventNamesRef.current.clear();
+    warnedMalformedPayloadShapesRef.current.clear();
     const listenerGroup = createTauriListenerGroup([
       {
         owner: "browser-webview-events:state-changed",
         subscription: listen<unknown>(BROWSER_WINDOW_EVENTS.stateChanged, ({ payload }) => {
           if (cancelled) return;
-          const nextState = parseBrowserWebviewStatePayload(payload);
-          if (!nextState) {
+          const result = parseBrowserWebviewStatePayload(payload);
+          if (!result.success) {
             warnMalformedBrowserWebviewEvent(
-              warnedMalformedEventNamesRef.current,
+              warnedMalformedPayloadShapesRef.current,
               BROWSER_WINDOW_EVENTS.stateChanged,
               payload,
+              result.error,
             );
             return;
           }
-          onStateChanged(nextState);
+          onStateChanged(result.data);
         }),
       },
       {
         owner: "browser-webview-events:fallback",
         subscription: listen<unknown>(BROWSER_WINDOW_EVENTS.fallback, ({ payload }) => {
           if (cancelled) return;
-          const fallbackPayload = parseBrowserWebviewFallbackPayload(payload);
-          if (!fallbackPayload) {
+          const result = parseBrowserWebviewFallbackPayload(payload);
+          if (!result.success) {
             warnMalformedBrowserWebviewEvent(
-              warnedMalformedEventNamesRef.current,
+              warnedMalformedPayloadShapesRef.current,
               BROWSER_WINDOW_EVENTS.fallback,
               payload,
+              result.error,
             );
             return;
           }
+          const fallbackPayload = result.data;
           const requestedUrl = useUiStore.getState().browserUrl;
           if (requestedUrl && !isBrowserWebviewFallbackForRequestedUrl(fallbackPayload, requestedUrl)) {
             return;
@@ -124,16 +160,17 @@ export function useBrowserWebviewEvents({
               owner: "browser-webview-events:diagnostics",
               subscription: listen<unknown>(BROWSER_WINDOW_EVENTS.diagnostics, ({ payload }) => {
                 if (cancelled) return;
-                const diagnosticsPayload = parseBrowserWebviewDiagnosticsPayload(payload);
-                if (!diagnosticsPayload) {
+                const result = parseBrowserWebviewDiagnosticsPayload(payload);
+                if (!result.success) {
                   warnMalformedBrowserWebviewEvent(
-                    warnedMalformedEventNamesRef.current,
+                    warnedMalformedPayloadShapesRef.current,
                     BROWSER_WINDOW_EVENTS.diagnostics,
                     payload,
+                    result.error,
                   );
                   return;
                 }
-                onDiagnostics(diagnosticsPayload);
+                onDiagnostics(result.data);
               }),
             },
           ]

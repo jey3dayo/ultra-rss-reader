@@ -1,6 +1,7 @@
 import { hashKey } from "@tanstack/react-query";
 import { createTestQueryClient } from "@tests/helpers/create-wrapper";
-import { describe, expect, it, vi } from "vitest";
+import { resetDiagnosticsReporterModuleGlobalsForTests } from "@tests/helpers/diagnostics-reporters";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   ARTICLE_CACHE_QUERY_ROOTS,
   getReaderArticleQueryMode,
@@ -12,6 +13,7 @@ import {
   invalidateSyncCompletedQueries,
   normalizeQueryAccountId,
   queryKeys,
+  resetQueryInvalidationFailureReporterForTests,
   resolveAddFeedInvalidationQueryKeys,
   resolveArticleInvalidationQueryKeys,
   resolveArticleMutationInvalidationQueryKeys,
@@ -28,6 +30,14 @@ function createInvalidateSpy() {
 }
 
 describe("query-invalidation", () => {
+  beforeEach(() => {
+    resetDiagnosticsReporterModuleGlobalsForTests();
+  });
+
+  afterEach(() => {
+    resetDiagnosticsReporterModuleGlobalsForTests();
+  });
+
   it("keeps typed query key helpers aligned with existing tuple shapes", () => {
     expect(queryKeys.accounts.root).toEqual(["accounts"]);
     expect(queryKeys.feeds.byAccount("acc-1")).toEqual(["feeds", "acc-1"]);
@@ -511,6 +521,30 @@ describe("query-invalidation", () => {
     ]);
 
     restoreDiagnosticsReporter();
+  });
+
+  it("restores the default reporter when a custom invalidation reporter leaks past a test boundary", async () => {
+    const { invalidateQueries, queryClient } = createInvalidateSpy();
+    const leakedDiagnosticsReporter = vi.fn();
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const rejection = new Error("invalidate failed");
+
+    setQueryInvalidationFailureReporterForDiagnostics(leakedDiagnosticsReporter);
+    resetQueryInvalidationFailureReporterForTests();
+    invalidateQueries.mockRejectedValueOnce(rejection);
+
+    invalidateFeedQueries(queryClient, {
+      includeFolders: false,
+    });
+
+    await vi.waitFor(() => {
+      expect(warnSpy).toHaveBeenCalledWith("Query invalidation failed:", {
+        failures: [{ actionOwner: "unknown", queryKey: ["feeds"], error: rejection }],
+      });
+    });
+
+    expect(leakedDiagnosticsReporter).not.toHaveBeenCalled();
+    warnSpy.mockRestore();
   });
 
   it("tags log-only invalidation failures with the user action owner", async () => {

@@ -189,8 +189,10 @@ Then verify that the exact remote tag exists in `git ls-remote --tags origin`. I
 - For annotated tags, `refs/tags/v{new_version}` is the tag object and `refs/tags/v{new_version}^{}` is the peeled release commit. Verify both refs exist when possible, and compare the peeled `^{}` ref to the release commit hash.
 - Use a command shaped like `git ls-remote --tags origin "v{new_version}" "v{new_version}^{}"` so the tag object and peeled commit are visible in one check.
 - The release workflow concurrency group is keyed by the release tag for both tag push and manual dispatch, with `cancel-in-progress: false`. Do not manually dispatch the same tag while a tag-push run is still active unless you intentionally want it queued behind the active run.
-- The release workflow preflight requires the release tag target to match the checkout commit and be reachable from `origin/main`.
+- The release workflow preflight requires the release tag to exist on `origin`, be an annotated tag object, have tag metadata distinct from the peeled commit, match the checkout commit, and be reachable from `origin/main`.
+- The release workflow signing preflight stops before `mise run ci`, Tauri artifact creation, updater sidecar upload, or draft Release asset publication when `TAURI_SIGNING_PRIVATE_KEY` or `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` is missing. Use manual dispatch with `dry_run=true` only to validate release preflight without publishing artifacts.
 - The release workflow keeps Releases as drafts. Stable tags use `prerelease=false`; semver prerelease tags such as `v1.2.3-alpha.1` use `prerelease=true`; build metadata alone such as `v1.2.3+build.1` does not make the Release a prerelease.
+- `.github/release.yml` only owns Release Drafter PR-label changelog grouping. The release workflow and this skill own release notes publication, tag validation, artifact builds, updater sidecars, provenance, and draft Release asset publication.
 - If rerunning the same tag after a cancellation or failed artifact upload, first inspect the draft Release assets and delete any partial assets for that tag before rerunning. The workflow preflight will stop before artifact creation if the checkout commit, tag target commit, main ancestry, or version files do not match.
 
 ### Update GitHub Release Notes

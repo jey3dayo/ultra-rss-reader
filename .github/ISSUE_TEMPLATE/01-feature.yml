@@ -11,7 +11,8 @@ body:
         この form は `feature` 系 issue のベースです。
         `frontend`, `backend`, `docs`, `ci`, `dependencies`, `i18n` などの領域ラベルは `.github/labeler.yml` の自動付与を source of truth にします。
         `size/*`, `risk/*` は PR insights と maintainer 確認を source of truth にします。
-        `manual-verification`, `release-readiness`, `product` などの運用ラベルは、起票後に maintainer が補完します。
+        `release-readiness` は release 設定変更では `.github/labeler.yml` が付与し、それ以外の release 準備 issue は起票後に maintainer が補完します。
+        `manual-verification`, `product` などの運用ラベルは、起票後に maintainer が補完します。
   - type: textarea
     id: summary
     attributes:
@@ -94,6 +95,22 @@ body:
         - [ ] PR 作成時は PR template の確認済み DoD を満たす
     validations:
       required: true
+  - type: checkboxes
+    id: quality-gate
+    attributes:
+      label: Quality Gate
+      description: PR 作成時は PR template の確認済み DoD と同じ gate を満たしてください
+      options:
+        - label: 型エラー 0 件 (`mise run check` の `lint:types`)
+          required: true
+        - label: リント違反 0 件 (`mise run check` の `lint`)
+          required: true
+        - label: 全テスト成功 (`mise run check` の `test`)
+          required: true
+        - label: フォーマッター適用済み (`mise run check` の `format`)
+          required: true
+        - label: release / native / Storybook / manual verification / release readiness 影響時は `mise run ci` または focused test を確認内容へ記録
+          required: true
   - type: textarea
     id: notes
     attributes:

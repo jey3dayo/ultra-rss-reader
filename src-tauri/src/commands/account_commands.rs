@@ -616,6 +616,51 @@ mod tests {
     }
 
     #[test]
+    fn update_account_credentials_keeps_new_password_when_db_update_succeeds() {
+        let account = fresh_rss_account();
+        let read_passwords = RefCell::new(Vec::new());
+        let saved_passwords = RefCell::new(Vec::new());
+        let updated_accounts = RefCell::new(Vec::new());
+
+        let updated = update_account_credentials_after_optional_password(
+            &account.id,
+            Some("new-secret"),
+            |_| Ok(Some(account.clone())),
+            |account_id| {
+                updated_accounts
+                    .borrow_mut()
+                    .push(account_id.as_ref().to_string());
+                Ok(())
+            },
+            |account_id| {
+                read_passwords.borrow_mut().push(account_id.to_string());
+                Ok("old-secret".to_string())
+            },
+            |account_id, password| {
+                saved_passwords
+                    .borrow_mut()
+                    .push((account_id.to_string(), password.to_string()));
+                Ok(())
+            },
+        )
+        .expect("successful credential update should keep the new keyring password");
+
+        assert_eq!(updated.id, account.id);
+        assert_eq!(
+            read_passwords.borrow().as_slice(),
+            &[account.id.as_ref().to_string()]
+        );
+        assert_eq!(
+            updated_accounts.borrow().as_slice(),
+            &[account.id.as_ref().to_string()]
+        );
+        assert_eq!(
+            saved_passwords.borrow().as_slice(),
+            &[(account.id.as_ref().to_string(), "new-secret".to_string())]
+        );
+    }
+
+    #[test]
     fn update_account_credentials_keeps_existing_keyring_entry_for_empty_password() {
         let account = fresh_rss_account();
         let read_passwords = RefCell::new(Vec::new());

@@ -53,6 +53,17 @@ function createInitialBrowserState(url: string): BrowserWebviewState {
   };
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((promiseResolve) => {
+    resolve = promiseResolve;
+  });
+  return {
+    promise,
+    resolve: (value: T) => resolve(value),
+  };
+}
+
 describe("useBrowserViewActions", () => {
   beforeEach(() => {
     focusBrowserWebviewMock.mockReset();
@@ -363,6 +374,65 @@ describe("useBrowserViewActions", () => {
 
     expect(goBackBrowserWebviewMock).not.toHaveBeenCalled();
     expect(goForwardBrowserWebviewMock).not.toHaveBeenCalled();
+  });
+
+  it("ignores stale browser navigation command results after a newer command settles", async () => {
+    const slowBack = deferred<Awaited<ReturnType<typeof goBackBrowserWebviewMock>>>();
+    const fastBackState = createBrowserState({
+      url: "https://example.com/fast-back",
+      can_go_back: true,
+      can_go_forward: true,
+      load_generation: 2,
+    });
+    const slowBackState = createBrowserState({
+      url: "https://example.com/slow-back",
+      can_go_back: false,
+      can_go_forward: true,
+      load_generation: 3,
+    });
+    goBackBrowserWebviewMock.mockReturnValueOnce(slowBack.promise).mockResolvedValueOnce(Result.succeed(fastBackState));
+
+    const clearSurfaceIssue = vi.fn();
+    const { result } = renderHook(() => {
+      const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(() => createBrowserState());
+      const browserStateRef = useRef(browserState);
+      browserStateRef.current = browserState;
+      const fallbackInFlightRef = useRef(true);
+
+      const actions = useBrowserViewActions({
+        browserUrl: "https://example.com/article",
+        browserStateRef,
+        setBrowserState,
+        resetBrowserWebviewSyncState: vi.fn(),
+        clearSurfaceIssue,
+        showToast: vi.fn(),
+        syncBrowserWebview: vi.fn(async () => {}),
+        initialBrowserState: createInitialBrowserState,
+        fallbackInFlightRef,
+      });
+
+      return { ...actions, browserState, fallbackInFlightRef };
+    });
+
+    let firstBack: Promise<void> | null = null;
+    await act(async () => {
+      firstBack = result.current.handleGoBack();
+      await result.current.handleGoBack();
+    });
+
+    expect(result.current.browserState).toEqual(fastBackState);
+    expect(result.current.fallbackInFlightRef.current).toBe(false);
+
+    await act(async () => {
+      slowBack.resolve(Result.succeed(slowBackState));
+      if (!firstBack) {
+        throw new Error("Missing first back command promise");
+      }
+      await firstBack;
+    });
+
+    expect(result.current.browserState).toEqual(fastBackState);
+    expect(clearSurfaceIssue).toHaveBeenCalledTimes(1);
   });
 
   it("keeps reload and open-external availability gated by the overlay browser URL", async () => {

@@ -9,6 +9,11 @@ on:
         description: "Release tag to publish. Must start with v."
         required: true
         type: string
+      dry_run:
+        description: "Validate release preflight without building or publishing artifacts."
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -27,8 +32,18 @@ jobs:
       matrix:
         include:
           - platform: macos-latest
+            artifact_platform: darwin
+            artifact_arch: aarch64
+            updater_platform: darwin-aarch64
+            updater_asset_pattern: .app.tar.gz
+            updater_signature_pattern: .app.tar.gz.sig
             args: --target aarch64-apple-darwin
           - platform: windows-latest
+            artifact_platform: windows
+            artifact_arch: x86_64
+            updater_platform: windows-x86_64
+            updater_asset_pattern: -setup.exe
+            updater_signature_pattern: -setup.exe.sig
             args: ""
 
     runs-on: ${{ matrix.platform }}
@@ -38,9 +53,7 @@ jobs:
       # actions/checkout@v6.0.2
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
-          ref: >-
-            ${{ github.event_name == 'workflow_dispatch' &&
-            format('refs/tags/{0}', inputs.release_tag) || github.ref }}
+          ref: ${{ github.ref }}
 
       - name: Validate manual release tag
         if: github.event_name == 'workflow_dispatch'
@@ -83,11 +96,29 @@ jobs:
             exit 1
           fi
 
+          if ! git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_TAG" >/dev/null; then
+            echo "::error::release tag $RELEASE_TAG does not exist on origin; create and push an annotated tag before manual dispatch"
+            exit 1
+          fi
+
           git fetch --force --tags origin "refs/tags/$RELEASE_TAG:refs/tags/$RELEASE_TAG"
           git fetch --force origin main:refs/remotes/origin/main
 
+          tag_object_type="$(git cat-file -t "refs/tags/$RELEASE_TAG")"
+          if [[ "$tag_object_type" != "tag" ]]; then
+            echo "::error::release tag $RELEASE_TAG must be an annotated tag object, got $tag_object_type"
+            exit 1
+          fi
+          tag_object_sha="$(git rev-parse "refs/tags/$RELEASE_TAG")"
           tag_target_sha="$(git rev-parse "refs/tags/$RELEASE_TAG^{}")"
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            git checkout --detach "$tag_target_sha"
+          fi
           checkout_sha="$(git rev-parse HEAD)"
+          if [[ "$tag_object_sha" == "$tag_target_sha" ]]; then
+            echo "::error::release tag $RELEASE_TAG tag object matches peeled commit; expected annotated tag metadata"
+            exit 1
+          fi
           if [[ "$tag_target_sha" != "$checkout_sha" ]]; then
             echo "::error::release tag $RELEASE_TAG points at $tag_target_sha, but checkout is $checkout_sha"
             exit 1
@@ -113,7 +144,7 @@ jobs:
       - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
         with:
           path: ${{ steps.pnpm-store.outputs.path }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          key: ${{ runner.os }}-pnpm-store-toolchain-${{ hashFiles('mise.toml', 'package.json', 'pnpm-lock.yaml') }}
 
       # dtolnay/rust-toolchain@stable
       - uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9
@@ -153,6 +184,8 @@ jobs:
           const updaterAssetContract = [
             {
               platformKey: "darwin-aarch64",
+              artifactPlatform: "darwin",
+              artifactArch: "aarch64",
               matrixPlatform: "macos-latest",
               matrixArgs: "--target aarch64-apple-darwin",
               assetPattern: ".app.tar.gz",
@@ -161,6 +194,8 @@ jobs:
             },
             {
               platformKey: "windows-x86_64",
+              artifactPlatform: "windows",
+              artifactArch: "x86_64",
               matrixPlatform: "windows-latest",
               matrixArgs: "\"\"",
               assetPattern: "-setup.exe",
@@ -234,6 +269,21 @@ jobs:
             if (!releaseWorkflow.includes(`platform: ${contract.matrixPlatform}`)) {
               errors.push(`release workflow matrix is missing ${contract.matrixPlatform} for updater platform ${contract.platformKey}`);
             }
+            if (!releaseWorkflow.includes(`updater_platform: ${contract.platformKey}`)) {
+              errors.push(`release workflow matrix is missing updater_platform ${contract.platformKey}`);
+            }
+            if (!releaseWorkflow.includes(`artifact_platform: ${contract.artifactPlatform}`)) {
+              errors.push(`release workflow matrix is missing artifact_platform ${contract.artifactPlatform}`);
+            }
+            if (!releaseWorkflow.includes(`artifact_arch: ${contract.artifactArch}`)) {
+              errors.push(`release workflow matrix is missing artifact_arch ${contract.artifactArch}`);
+            }
+            if (!releaseWorkflow.includes(`updater_asset_pattern: ${contract.assetPattern}`)) {
+              errors.push(`release workflow matrix is missing updater_asset_pattern ${contract.assetPattern}`);
+            }
+            if (!releaseWorkflow.includes(`updater_signature_pattern: ${contract.signaturePattern}`)) {
+              errors.push(`release workflow matrix is missing updater_signature_pattern ${contract.signaturePattern}`);
+            }
             if (!releaseWorkflow.includes(`args: ${contract.matrixArgs}`)) {
               errors.push(`release workflow matrix is missing args ${contract.matrixArgs} for updater platform ${contract.platformKey}`);
             }
@@ -261,10 +311,43 @@ jobs:
           }
           NODE
 
+      - name: Validate release signing preflight
+        id: signing-preflight
+        shell: bash
+        env:
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
+          TAURI_SIGNING_PRIVATE_KEY_SET: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD_SET: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD != '' }}
+        run: |
+          set -euo pipefail
+
+          if [[ "$DRY_RUN" == "true" ]]; then
+            echo "should_publish=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::release dry run validated source, versions, cache, and signing preflight; artifact build and draft release upload are skipped"
+            exit 0
+          fi
+
+          missing=()
+          if [[ "$TAURI_SIGNING_PRIVATE_KEY_SET" != "true" ]]; then
+            missing+=("TAURI_SIGNING_PRIVATE_KEY")
+          fi
+          if [[ "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD_SET" != "true" ]]; then
+            missing+=("TAURI_SIGNING_PRIVATE_KEY_PASSWORD")
+          fi
+          if (( ${#missing[@]} > 0 )); then
+            printf '::error::release signing secrets are required before artifact build or draft release upload: %s\n' "$(IFS=,; echo "${missing[*]}")"
+            echo "::error::rerun workflow_dispatch with dry_run=true to validate release preflight without publishing artifacts"
+            exit 1
+          fi
+
+          echo "should_publish=true" >> "$GITHUB_OUTPUT"
+
       - name: Preflight release build
+        if: steps.signing-preflight.outputs.should_publish == 'true'
         run: mise run ci
 
       - name: Validate release build contamination contract
+        if: steps.signing-preflight.outputs.should_publish == 'true'
         shell: bash
         run: |
           node <<'NODE'
@@ -340,6 +423,7 @@ jobs:
           NODE
 
       - name: Resolve release semver policy
+        if: steps.signing-preflight.outputs.should_publish == 'true'
         id: release-policy
         shell: bash
         env:
@@ -358,6 +442,7 @@ jobs:
 
       # tauri-apps/tauri-action@v0.6.2
       - uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5
+        if: steps.signing-preflight.outputs.should_publish == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -374,6 +459,7 @@ jobs:
             --ci
 
       - name: Validate updater manifest asset contract
+        if: steps.signing-preflight.outputs.should_publish == 'true'
         shell: bash
         run: |
           node <<'NODE'
@@ -383,6 +469,8 @@ jobs:
           const updaterAssetContract = [
             {
               platformKey: "darwin-aarch64",
+              artifactPlatform: "darwin",
+              artifactArch: "aarch64",
               matrixPlatform: "macos-latest",
               matrixArgs: "--target aarch64-apple-darwin",
               assetPattern: ".app.tar.gz",
@@ -391,6 +479,8 @@ jobs:
             },
             {
               platformKey: "windows-x86_64",
+              artifactPlatform: "windows",
+              artifactArch: "x86_64",
               matrixPlatform: "windows-latest",
               matrixArgs: "\"\"",
               assetPattern: "-setup.exe",
@@ -458,6 +548,7 @@ jobs:
           NODE
 
       - name: Generate updater asset checksums
+        if: steps.signing-preflight.outputs.should_publish == 'true'
         shell: bash
         run: |
           node <<'NODE'
@@ -469,6 +560,8 @@ jobs:
           const updaterAssetContract = [
             {
               platformKey: "darwin-aarch64",
+              artifactPlatform: "darwin",
+              artifactArch: "aarch64",
               matrixPlatform: "macos-latest",
               matrixArgs: "--target aarch64-apple-darwin",
               assetPattern: ".app.tar.gz",
@@ -477,6 +570,8 @@ jobs:
             },
             {
               platformKey: "windows-x86_64",
+              artifactPlatform: "windows",
+              artifactArch: "x86_64",
               matrixPlatform: "windows-latest",
               matrixArgs: "\"\"",
               assetPattern: "-setup.exe",
@@ -533,6 +628,7 @@ jobs:
           NODE
 
       - name: Generate release dependency provenance
+        if: steps.signing-preflight.outputs.should_publish == 'true'
         shell: bash
         run: |
           mise run report:licenses
@@ -571,6 +667,7 @@ jobs:
           NODE
 
       - name: Generate release provenance record
+        if: steps.signing-preflight.outputs.should_publish == 'true'
         shell: bash
         env:
           RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
@@ -677,6 +774,7 @@ jobs:
           NODE
 
       - name: Upload updater asset checksums
+        if: steps.signing-preflight.outputs.should_publish == 'true'
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -704,6 +802,7 @@ jobs:
           NODE
 
       - name: Upload release provenance assets
+        if: steps.signing-preflight.outputs.should_publish == 'true'
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

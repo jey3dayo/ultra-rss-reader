@@ -103,6 +103,8 @@ const UPDATER_PUBKEY_PLACEHOLDER_PATTERN = /(?:placeholder|change[_-]?me|todo)/i
 const RELEASE_UPDATER_ASSET_CONTRACT = [
   {
     assetPattern: ".app.tar.gz",
+    artifactArch: "aarch64",
+    artifactPlatform: "darwin",
     checksumPattern: ".app.tar.gz.sha256",
     matrixArgs: "--target aarch64-apple-darwin",
     matrixPlatform: "macos-latest",
@@ -111,6 +113,8 @@ const RELEASE_UPDATER_ASSET_CONTRACT = [
   },
   {
     assetPattern: "-setup.exe",
+    artifactArch: "x86_64",
+    artifactPlatform: "windows",
     checksumPattern: "-setup.exe.sha256",
     matrixArgs: '""',
     matrixPlatform: "windows-latest",
@@ -507,8 +511,7 @@ describe("release repository contract", () => {
 
   it("checks release source and version parity before artifact creation", () => {
     expect(releaseWorkflow).toContain("Validate release source");
-    expect(releaseWorkflow).toContain("ref: >-");
-    expect(releaseWorkflow).toContain("format('refs/tags/{0}', inputs.release_tag) || github.ref");
+    expect(releaseWorkflow).toContain("ref: $" + "{{ github.ref }}");
     expect(releaseWorkflow).toContain('if [[ "$EVENT_NAME" == "push" ]]; then');
     expect(releaseWorkflow).toContain('if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then');
     expect(releaseWorkflow).toContain("tag push ref $WORKFLOW_REF does not match release tag $RELEASE_TAG");
@@ -516,9 +519,17 @@ describe("release repository contract", () => {
     expect(releaseWorkflow).toContain(
       'git fetch --force --tags origin "refs/tags/$RELEASE_TAG:refs/tags/$RELEASE_TAG"',
     );
+    expect(releaseWorkflow).toContain(
+      'git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_TAG"',
+    );
     expect(releaseWorkflow).toContain("git fetch --force origin main:refs/remotes/origin/main");
+    expect(releaseWorkflow).toContain('tag_object_type="$(git cat-file -t "refs/tags/$RELEASE_TAG")"');
+    expect(releaseWorkflow).toContain("must be an annotated tag object");
+    expect(releaseWorkflow).toContain('tag_object_sha="$(git rev-parse "refs/tags/$RELEASE_TAG")"');
     expect(releaseWorkflow).toContain('tag_target_sha="$(git rev-parse "refs/tags/$RELEASE_TAG^{}")"');
+    expect(releaseWorkflow).toContain('git checkout --detach "$tag_target_sha"');
     expect(releaseWorkflow).toContain('checkout_sha="$(git rev-parse HEAD)"');
+    expect(releaseWorkflow).toContain("expected annotated tag metadata");
     expect(releaseWorkflow).toContain('git merge-base --is-ancestor "$tag_target_sha" refs/remotes/origin/main');
     expect(releaseWorkflow).toContain("is not reachable from origin/main");
     expect(releaseWorkflow.indexOf("Validate release source")).toBeLessThan(
@@ -551,11 +562,13 @@ describe("release repository contract", () => {
     );
   });
 
-  it("keeps release dependency cache exact-lockfile only", () => {
+  it("keeps release dependency cache keyed by lockfile and toolchain drift", () => {
     const releaseCacheBlock = extractReleaseCacheBlock(releaseWorkflow);
 
     expect(releaseCacheBlock).toContain(
-      "key: $" + "{{ runner.os }}-pnpm-store-$" + "{{ hashFiles('pnpm-lock.yaml') }}",
+      "key: $" +
+        "{{ runner.os }}-pnpm-store-toolchain-$" +
+        "{{ hashFiles('mise.toml', 'package.json', 'pnpm-lock.yaml') }}",
     );
     expect(releaseCacheBlock).not.toContain("restore-keys:");
   });
@@ -669,6 +682,15 @@ describe("release repository contract", () => {
     expect(releaseWorkflow).not.toContain("actions/upload-artifact");
     expect(releaseWorkflow.match(/secrets\.GITHUB_TOKEN/g)).toHaveLength(3);
     expect(extractTauriActionBlock(releaseWorkflow)).toContain("GITHUB_TOKEN: $" + "{{ secrets.GITHUB_TOKEN }}");
+    expect(extractReleaseStepBlock(releaseWorkflow, "Validate release signing preflight")).toContain(
+      "TAURI_SIGNING_PRIVATE_KEY_SET: $" + "{{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}",
+    );
+    expect(extractReleaseStepBlock(releaseWorkflow, "Validate release signing preflight")).toContain(
+      "TAURI_SIGNING_PRIVATE_KEY_PASSWORD_SET: $" + "{{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD != '' }}",
+    );
+    expect(extractTauriActionBlock(releaseWorkflow)).toContain(
+      "if: steps.signing-preflight.outputs.should_publish == 'true'",
+    );
     expect(extractReleaseStepBlock(releaseWorkflow, "Upload updater asset checksums")).toContain(
       "GH_TOKEN: $" + "{{ secrets.GITHUB_TOKEN }}",
     );
@@ -820,12 +842,19 @@ describe("release repository contract", () => {
 
     for (const contract of RELEASE_UPDATER_ASSET_CONTRACT) {
       expect(releaseWorkflow).toContain(`platformKey: "${contract.platformKey}"`);
+      expect(releaseWorkflow).toContain(`artifactPlatform: "${contract.artifactPlatform}"`);
+      expect(releaseWorkflow).toContain(`artifactArch: "${contract.artifactArch}"`);
       expect(releaseWorkflow).toContain(`matrixPlatform: "${contract.matrixPlatform}"`);
       expect(releaseWorkflow).toContain(`matrixArgs: ${JSON.stringify(contract.matrixArgs)}`);
       expect(releaseWorkflow).toContain(`assetPattern: "${contract.assetPattern}"`);
       expect(releaseWorkflow).toContain(`signaturePattern: "${contract.signaturePattern}"`);
       expect(releaseWorkflow).toContain(`checksumPattern: "${contract.checksumPattern}"`);
       expect(releaseWorkflow).toContain(`platform: ${contract.matrixPlatform}`);
+      expect(releaseWorkflow).toContain(`artifact_platform: ${contract.artifactPlatform}`);
+      expect(releaseWorkflow).toContain(`artifact_arch: ${contract.artifactArch}`);
+      expect(releaseWorkflow).toContain(`updater_platform: ${contract.platformKey}`);
+      expect(releaseWorkflow).toContain(`updater_asset_pattern: ${contract.assetPattern}`);
+      expect(releaseWorkflow).toContain(`updater_signature_pattern: ${contract.signaturePattern}`);
       expect(releaseWorkflow).toContain(`args: ${contract.matrixArgs}`);
       expect(contract.signaturePattern).toBe(`${contract.assetPattern}.sig`);
       expect(contract.checksumPattern).toBe(`${contract.assetPattern}.sha256`);
@@ -839,6 +868,7 @@ describe("release repository contract", () => {
 
   it("keeps release artifact provenance evidence tied to tag, workflow, checksum, and SBOM records", () => {
     expect(releaseWorkflow).toContain("Validate release source");
+    expect(releaseWorkflow).toContain('tag_object_sha="$(git rev-parse "refs/tags/$RELEASE_TAG")"');
     expect(releaseWorkflow).toContain('tag_target_sha="$(git rev-parse "refs/tags/$RELEASE_TAG^{}")"');
     expect(releaseWorkflow).toContain('checkout_sha="$(git rev-parse HEAD)"');
     expect(releaseWorkflow).toContain("Generate updater asset checksums");
@@ -872,6 +902,7 @@ describe("release repository contract", () => {
       releaseWorkflow.indexOf("Upload release provenance assets"),
     );
     expect(releaseManualVerification).toContain("Release Provenance And SBOM Record");
+    expect(releaseManualVerification).toContain("Annotated tag object SHA");
     expect(releaseManualVerification).toContain("Release tag and tag target SHA");
     expect(releaseManualVerification).toContain("PR number or merge commit subject for the source commit");
     expect(releaseManualVerification).toContain("Source commit SHA checked out by the release workflow");
@@ -885,6 +916,55 @@ describe("release repository contract", () => {
     expect(releaseManualVerification).toContain("SBOM or dependency provenance record");
     expect(releaseManualVerification).toContain("Draft release attachment list before publishing");
     expect(docsReadme).toContain("Release provenance checklist");
+  });
+
+  it("stops release artifact publication when signing secrets are missing and keeps dry-run preflight explicit", () => {
+    const signingPreflightStep = extractReleaseStepBlock(releaseWorkflow, "Validate release signing preflight");
+
+    expect(releaseWorkflow).toContain("dry_run:");
+    expect(signingPreflightStep).toContain("DRY_RUN: $" + "{{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}");
+    expect(signingPreflightStep).toContain('echo "should_publish=false" >> "$GITHUB_OUTPUT"');
+    expect(signingPreflightStep).toContain("release dry run validated source, versions, cache, and signing preflight");
+    expect(signingPreflightStep).toContain('missing+=("TAURI_SIGNING_PRIVATE_KEY")');
+    expect(signingPreflightStep).toContain('missing+=("TAURI_SIGNING_PRIVATE_KEY_PASSWORD")');
+    expect(signingPreflightStep).toContain("release signing secrets are required before artifact build or draft release upload");
+    expect(signingPreflightStep).toContain("rerun workflow_dispatch with dry_run=true");
+    expect(signingPreflightStep).toContain('echo "should_publish=true" >> "$GITHUB_OUTPUT"');
+    for (const stepName of [
+      "Preflight release build",
+      "Validate release build contamination contract",
+      "Resolve release semver policy",
+      "Validate updater manifest asset contract",
+      "Generate updater asset checksums",
+      "Generate release dependency provenance",
+      "Generate release provenance record",
+      "Upload updater asset checksums",
+      "Upload release provenance assets",
+    ]) {
+      expect(extractReleaseStepBlock(releaseWorkflow, stepName)).toContain(
+        "if: steps.signing-preflight.outputs.should_publish == 'true'",
+      );
+    }
+    expect(releaseWorkflow.indexOf("Validate release signing preflight")).toBeLessThan(
+      releaseWorkflow.indexOf("Preflight release build"),
+    );
+    expect(releaseWorkflow.indexOf("Validate release signing preflight")).toBeLessThan(
+      releaseWorkflow.indexOf("tauri-apps/tauri-action"),
+    );
+    expect(releaseManualVerification).toContain("workflow_dispatch` used `dry_run=true`");
+  });
+
+  it("keeps Release Drafter config separate from release workflow publishing responsibilities", () => {
+    expect(releaseConfig).toContain("Release Drafter only owns PR-label changelog grouping");
+    expect(releaseConfig).toContain(".github/workflows/release.yml owns tag validation");
+    expect(releaseConfig).not.toContain("artifacts:");
+    expect(releaseConfig).not.toContain("tag-template:");
+    expect(releaseConfig).not.toContain("version-template:");
+    expect(releaseWorkflow).toContain("generateReleaseNotes: false");
+    expect(releaseWorkflow).toContain("releaseDraft: $" + "{{ steps.release-policy.outputs.draft }}");
+    expect(readText(".codex/skills/release/SKILL.md")).toContain(
+      ".github/release.yml` only owns Release Drafter PR-label changelog grouping",
+    );
   });
 
   it("keeps release builds from using dev Tauri config or dev credentials", () => {

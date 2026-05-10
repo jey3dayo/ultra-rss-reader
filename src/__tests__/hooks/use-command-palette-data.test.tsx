@@ -66,6 +66,32 @@ describe("useCommandPaletteData", () => {
     expect(result.current.hasVisibleResults).toBe(true);
   });
 
+  it("treats command history resource ids as scoped by the current account resource projection", () => {
+    localStorage.setItem(
+      STORAGE_KEYS.commandHistory,
+      JSON.stringify(["feed:feed-2", "feed:feed-1", "article:art-2", "article:art-1"]),
+    );
+    vi.mocked(useFeeds).mockReturnValue(createHookDataResult<ReturnType<typeof useFeeds>>([sampleFeeds[0]]));
+    vi.mocked(useRecentArticles).mockReturnValue(
+      createHookDataResult<ReturnType<typeof useRecentArticles>>([sampleArticles[0]]),
+    );
+
+    const { result } = renderHook(() =>
+      useCommandPaletteData({
+        actions: [action],
+        deferredQuery: "",
+        devScenarios: [],
+        prefix: null,
+        query: "",
+        selectedAccountId: "acc-1",
+      }),
+    );
+
+    expect(result.current.recentFeeds.map((feed) => feed.id)).toEqual(["feed-1"]);
+    expect(result.current.recentArticles.map((article) => article.id)).toEqual(["art-1"]);
+    expect(localStorage.getItem(STORAGE_KEYS.commandHistory)).toBe(JSON.stringify(["feed:feed-1", "article:art-1"]));
+  });
+
   it("keeps recent resources hidden once the user enters a query or resource prefix", () => {
     localStorage.setItem(STORAGE_KEYS.commandHistory, JSON.stringify(["feed:feed-1", "tag:tag-1", "article:art-1"]));
 
