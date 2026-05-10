@@ -1655,21 +1655,6 @@
   - `parseJsonWithSchema` と `parseJsonWithSchemaOrNull` が共存しており、runtime boundary で throwing helper を使うと unhandled exception になりやすい
   - localStorage recovery、IPC response validation、test fixture strict parse、invalid schema、malformed JSON、rule doc の usage matrix を追加する
 
-- [ ] P2 date/time helper の invalid date fallback を UI copy ごとに整理する
-  - 対象: `src/lib/datetime.ts`, `src/lib/articles/article-view.ts`, `src/lib/subscriptions/subscription-review-candidates.ts`
-  - invalid date は `null`、元文字列、dash のいずれかに fallback しており、画面ごとに「壊れた日付を見せる/隠す」が揺れやすい
-  - article date、subscription stale days、debug timestamp、settings sync time、invalid Date object、empty string、timezone boundary の policy test を追加する
-
-- [ ] P2 `compareDateInputsAsc` の invalid date tie handling を sort helper から明示する
-  - 対象: `src/lib/datetime.ts`, `src/lib/articles/article-list.ts`, `src/__tests__/lib/article-list.test.ts`
-  - invalid date があると compare が 0 を返すため、sort が input order 依存になり、同じ dataset でも fetch order で UI 順が変わる可能性がある
-  - invalid-left/right、both invalid、tie-breaker id/fetched_at、stable sort、large list の unit test を追加する
-
-- [ ] P2 locale fallback の `Intl.DateTimeFormat.supportedLocalesOf` failure を i18n state と同期する
-  - 対象: `src/lib/datetime.ts`, `src/lib/articles/article-view.ts`, `src/stores/preferences-store.ts`
-  - locale helper は invalid locale を undefined/en-US へ落とすが、i18n language と日付 locale が別々に fallback すると UI が混在言語になりやすい
-  - invalid locale、ja-JP、en-US、unsupported locale、language change failure、date formatter exception の contract test を追加する
-
 - [ ] P2 feed website href の invalid URL fallback を opener validation と近づける
   - 対象: `src/lib/feed/feed.ts`, `src/components/shared/feed-detail-panel.tsx`, `src/components/reader/article-browser-actions.ts`
   - feed website action は site_url/feed_url を trim して返すだけなので、invalid URL は opener 側で落ちるまで UI 上は clickable に見える
@@ -1679,16 +1664,6 @@
   - 対象: `src/lib/feed/feed.ts`, `src/components/shared/feed-favicon.tsx`, `src/components/shared/feed-detail-card.tsx`
   - host extraction が全 URL invalid の時に invalid value を label として返すため、長い URL や token 付き URL が UI に出る可能性がある
   - query token、userinfo、long invalid URL、newline、unicode host、redacted fallback label の policy test を追加する
-
-- [ ] P2 subscription review duplicate feed summary の last-wins policy を explicit にする
-  - 対象: `src/lib/subscriptions/subscription-review-candidates.ts`, `src/__tests__/lib/subscription-review-candidates.test.ts`
-  - feedArticleSummaries を Map に詰めるため duplicate feed_id は後勝ちになり、backend duplication や stale query merge 時に review reason が変わる
-  - duplicate summary、missing summary、negative counts、nonfinite counts、deleted feed summary、diagnostics or deterministic sort の policy test を追加する
-
-- [ ] P2 subscription review stale day calculation を future dates / DST / timezone で固定する
-  - 対象: `src/lib/subscriptions/subscription-review-candidates.ts`, `src/lib/datetime.ts`
-  - staleDays は local date-fns difference に依存し future date を 0 clamp するため、provider clock skew や timezone boundary で review candidate が変わりやすい
-  - future latest_article_at、DST boundary、UTC/JST boundary、invalid date、exact 90 days、now injection の unit test を追加する
 
 - [ ] P2 subscriptions return state の `expandedGroups` key namespace を filter/account と衝突しないようにする
   - 対象: `src/lib/subscriptions/subscriptions-workspace.types.ts`, `src/components/subscriptions-index/use-subscriptions-index-state.ts`
@@ -1756,16 +1731,6 @@
   - 対象: `src-tauri/src/service/sync_flow.rs`, `src-tauri/src/repository/pending_mutation.rs`, `src-tauri/src/infra/provider/traits.rs`
   - pending mutation は1件ずつ push 成功後に削除するため、途中 failure で前半だけ remote 適用済みになるが、UI には partial push 状態が見えにくい
   - first success second failure、delete failure after push、duplicate retry、remote id missing、axis別 partial success の integration test を追加する
-
-- [ ] P2 pending mutation created_at ordering を invalid date / same timestamp で deterministic にする
-  - 対象: `src-tauri/src/infra/db/sqlite_pending_mutation.rs`, `src-tauri/src/repository/pending_mutation.rs`
-  - `ORDER BY created_at` だけだと same timestamp や malformed timestamp で push order が DB 実装依存になり、read/star の最終状態が揺れやすい
-  - same created_at、invalid created_at、id tie-breaker、legacy row、replacement insert の ordering test を追加する
-
-- [ ] P2 pending mutation replacement SQL の dynamic placeholders を empty replacement set で守る
-  - 対象: `src-tauri/src/infra/db/sqlite_pending_mutation.rs`, `src-tauri/src/repository/pending_mutation.rs`
-  - replacement type list が将来空になる mutation type を足すと `IN ()` SQL になり得るため、新しい mutation axis 追加時の footgun になる
-  - every mutation type replacement set、future mutation fixture、empty replacement guard、SQL string snapshot の unit test を追加する
 
 - [ ] P2 sync_flow sanitizer repair batch が毎回同じ 500 件で詰まらない ordering を固定する
   - 対象: `src-tauri/src/service/sync_flow.rs`, `src-tauri/src/infra/db/sqlite_article.rs`, `src-tauri/src/infra/sanitizer.rs`
