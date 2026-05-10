@@ -575,6 +575,7 @@ pub fn run() {
                         event,
                         tauri::WindowEvent::CloseRequested { .. } | tauri::WindowEvent::Destroyed
                     ) {
+                        service::sync_scheduler::request_sync_scheduler_shutdown();
                         mark_startup_focus_restore_stopped(
                             &startup_focus_restore_active_for_window,
                         );

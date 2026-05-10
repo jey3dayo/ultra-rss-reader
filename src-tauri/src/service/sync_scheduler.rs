@@ -1,10 +1,11 @@
 use std::collections::{HashMap, HashSet};
 use std::panic::AssertUnwindSafe;
-use std::sync::atomic::Ordering;
-use std::sync::{Mutex, OnceLock};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
 use futures::FutureExt;
+use tauri::async_runtime::JoinHandle;
 use tauri::{AppHandle, Emitter, Manager};
 
 use crate::commands::dto::{
@@ -31,6 +32,7 @@ const MAX_BACKOFF_MULTIPLIER: u64 = 1 << MAX_BACKOFF_SHIFT_BITS;
 const TICK_INTERVAL: Duration = Duration::from_secs(SCHEDULER_TICK_INTERVAL_SECS);
 const MAX_BACKOFF: Duration = Duration::from_secs(DEFAULT_SYNC_INTERVAL_SECS);
 static INVALID_NEXT_RETRY_CLEANUP_FAILURES: OnceLock<Mutex<HashSet<String>>> = OnceLock::new();
+static SCHEDULER_LIFECYCLE: OnceLock<Mutex<SchedulerLifecycle>> = OnceLock::new();
 
 /// Per-account scheduling state kept in memory.
 struct AccountSchedule {
@@ -55,6 +57,75 @@ impl Drop for SchedulerSyncGuard<'_> {
     }
 }
 
+#[derive(Clone)]
+struct SchedulerShutdown {
+    requested: Arc<AtomicBool>,
+    notify: Arc<tokio::sync::Notify>,
+}
+
+impl SchedulerShutdown {
+    fn new() -> Self {
+        Self {
+            requested: Arc::new(AtomicBool::new(false)),
+            notify: Arc::new(tokio::sync::Notify::new()),
+        }
+    }
+
+    fn request(&self) {
+        self.requested.store(true, Ordering::SeqCst);
+        self.notify.notify_waiters();
+    }
+
+    fn is_requested(&self) -> bool {
+        self.requested.load(Ordering::SeqCst)
+    }
+
+    async fn wait(&self) {
+        while !self.is_requested() {
+            self.notify.notified().await;
+        }
+    }
+}
+
+struct SchedulerLifecycle {
+    task: Option<JoinHandle<()>>,
+    shutdown: SchedulerShutdown,
+}
+
+impl Default for SchedulerLifecycle {
+    fn default() -> Self {
+        Self {
+            task: None,
+            shutdown: SchedulerShutdown::new(),
+        }
+    }
+}
+
+fn scheduler_lifecycle() -> &'static Mutex<SchedulerLifecycle> {
+    SCHEDULER_LIFECYCLE.get_or_init(|| Mutex::new(SchedulerLifecycle::default()))
+}
+
+fn prepare_scheduler_start(lifecycle: &mut SchedulerLifecycle) -> Option<SchedulerShutdown> {
+    if lifecycle.task.is_some() {
+        return None;
+    }
+
+    lifecycle.shutdown = SchedulerShutdown::new();
+    Some(lifecycle.shutdown.clone())
+}
+
+fn register_scheduler_task(lifecycle: &mut SchedulerLifecycle, task: JoinHandle<()>) {
+    lifecycle.task = Some(task);
+}
+
+pub fn request_sync_scheduler_shutdown() {
+    let Ok(lifecycle) = scheduler_lifecycle().lock() else {
+        tracing::warn!("Background sync scheduler shutdown skipped: lifecycle lock poisoned");
+        return;
+    };
+    lifecycle.shutdown.request();
+}
+
 /// Start a background task that periodically syncs accounts based on their
 /// individual `sync_interval_secs` settings.
 ///
@@ -64,20 +135,43 @@ impl Drop for SchedulerSyncGuard<'_> {
 pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
     tracing::info!("Starting background sync scheduler");
 
-    tauri::async_runtime::spawn(async move {
+    let shutdown = {
+        let Ok(mut lifecycle) = scheduler_lifecycle().lock() else {
+            tracing::warn!("Background sync scheduler start skipped: lifecycle lock poisoned");
+            return;
+        };
+        let Some(shutdown) = prepare_scheduler_start(&mut lifecycle) else {
+            tracing::warn!("Background sync scheduler already running; duplicate start skipped");
+            return;
+        };
+        shutdown
+    };
+
+    let task = tauri::async_runtime::spawn(async move {
         let state = app_handle.state::<crate::commands::AppState>();
         tracing::info!("Background sync is locked until the first manual sync completes");
 
-        wait_for_automatic_sync_enabled(
-            state.automatic_sync_enabled.as_ref(),
-            state.automatic_sync_notify.as_ref(),
-        )
-        .await;
+        tokio::select! {
+            () = wait_for_automatic_sync_enabled(
+                state.automatic_sync_enabled.as_ref(),
+                state.automatic_sync_notify.as_ref(),
+            ) => {}
+            () = shutdown.wait() => {
+                tracing::info!("Background sync scheduler stopped before automatic sync was enabled");
+                return;
+            }
+        }
 
         let mut schedules: HashMap<String, AccountSchedule> = HashMap::new();
 
         loop {
-            tokio::time::sleep(TICK_INTERVAL).await;
+            tokio::select! {
+                () = tokio::time::sleep(TICK_INTERVAL) => {}
+                () = shutdown.wait() => {
+                    tracing::info!("Background sync scheduler stopped");
+                    return;
+                }
+            }
 
             if !state.automatic_sync_enabled.load(Ordering::SeqCst) {
                 continue;
@@ -245,6 +339,13 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
             }
         }
     });
+
+    let Ok(mut lifecycle) = scheduler_lifecycle().lock() else {
+        tracing::warn!("Background sync scheduler start skipped: lifecycle lock poisoned");
+        task.abort();
+        return;
+    };
+    register_scheduler_task(&mut lifecycle, task);
 }
 
 fn account_interval(account: &Account) -> Duration {
@@ -831,6 +932,67 @@ mod tests {
         }
 
         assert!(!syncing.load(Ordering::SeqCst));
+    }
+
+    #[test]
+    fn scheduler_sync_guard_releases_syncing_flag_when_sync_panics() {
+        let syncing = AtomicBool::new(false);
+
+        let panic_result = std::panic::catch_unwind(|| {
+            let _guard = acquire_scheduler_sync_guard(&syncing)
+                .expect("scheduler should acquire an idle sync flag");
+            panic!("simulated background sync panic");
+        });
+
+        assert!(panic_result.is_err());
+        assert!(
+            !syncing.load(Ordering::SeqCst),
+            "scheduler guard should release the sync flag during panic unwinding"
+        );
+    }
+
+    #[tokio::test]
+    async fn scheduler_shutdown_wakes_waiting_lifecycle_task() {
+        let shutdown = SchedulerShutdown::new();
+        let waiter_shutdown = shutdown.clone();
+        let waiter = tokio::spawn(async move {
+            waiter_shutdown.wait().await;
+        });
+
+        tokio::time::sleep(Duration::from_millis(10)).await;
+        shutdown.request();
+
+        tokio::time::timeout(Duration::from_millis(50), waiter)
+            .await
+            .expect("shutdown waiter should complete after request")
+            .expect("shutdown waiter task should not panic");
+    }
+
+    #[tokio::test]
+    async fn scheduler_lifecycle_rejects_duplicate_running_task_start() {
+        let mut lifecycle = SchedulerLifecycle::default();
+        let first_shutdown =
+            prepare_scheduler_start(&mut lifecycle).expect("first start should be accepted");
+        let first_task = tauri::async_runtime::spawn(async move {
+            first_shutdown.wait().await;
+        });
+        register_scheduler_task(&mut lifecycle, first_task);
+
+        let duplicate_start = prepare_scheduler_start(&mut lifecycle);
+
+        assert!(
+            duplicate_start.is_none(),
+            "running scheduler task should make duplicate start a no-op"
+        );
+        lifecycle.shutdown.request();
+        let task = lifecycle
+            .task
+            .take()
+            .expect("registered scheduler task should remain available for shutdown drain");
+        tokio::time::timeout(Duration::from_millis(50), task)
+            .await
+            .expect("registered scheduler task should drain after shutdown request")
+            .expect("registered scheduler task should not panic");
     }
 
     #[test]
