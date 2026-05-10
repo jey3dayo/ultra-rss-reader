@@ -1,15 +1,12 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import { z } from "zod";
 import { type PackageJson, PackageJsonSchema } from "@/schemas/app-config";
 import { parseJsonWithSchema } from "@/schemas/parse";
 
 function parsePackageJson(value: string): PackageJson {
-  try {
-    return parseJsonWithSchema(value, PackageJsonSchema);
-  } catch {
-    return {};
-  }
+  return parseJsonWithSchema(value, PackageJsonSchema);
 }
 
 function readPackageJson(): PackageJson {
@@ -119,6 +116,10 @@ function extractReadmeMiseCommands(readme: string): string[] {
 }
 
 describe("package scripts", () => {
+  it("surfaces package schema failures instead of falling back to an empty package contract", () => {
+    expect(() => parsePackageJson('{"scripts":{"dev":false}}')).toThrow(z.ZodError);
+  });
+
   it("parses static package contract fields without mixing engine parity checks", () => {
     const packageJson = readPackageJson();
 

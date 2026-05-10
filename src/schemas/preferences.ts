@@ -26,13 +26,16 @@ const persistedBooleanPreferenceSchema = z.enum(["true", "false"]);
 export const preferenceKeyMaxLength = 128;
 export const preferenceValueMaxUtf8Bytes = 1024;
 export const reservedUnknownPreferenceKeyPrefixes = ["shortcut_"] as const;
+const textEncoder = new TextEncoder();
 const hasControlCharacter = (value: string): boolean =>
   Array.from(value).some((character) => {
     const codePoint = character.codePointAt(0);
     return codePoint !== undefined && ((codePoint >= 0 && codePoint <= 31) || (codePoint >= 127 && codePoint <= 159));
   });
 const freeformPreferenceStringSchema = z.string().refine((value) => !hasControlCharacter(value));
-const debugWebPreviewUrlSchema = freeformPreferenceStringSchema.max(preferenceValueMaxUtf8Bytes);
+const utf8ByteLimitedStringSchema = (maxBytes: number) =>
+  freeformPreferenceStringSchema.refine((value) => textEncoder.encode(value).length <= maxBytes);
+const debugWebPreviewUrlSchema = utf8ByteLimitedStringSchema(preferenceValueMaxUtf8Bytes);
 const selectedAccountIdSchema = freeformPreferenceStringSchema
   .transform((value) => value.trim())
   .pipe(z.string().min(1).max(256));
@@ -40,7 +43,12 @@ export const shortcutPreferenceValueSchema = z
   .string()
   .refine((value) => !hasControlCharacter(value))
   .transform((value) => value.trim())
-  .pipe(z.string().min(1).max(128));
+  .pipe(
+    z
+      .string()
+      .min(1)
+      .refine((value) => textEncoder.encode(value).length <= 128),
+  );
 
 export type Theme = z.infer<typeof themeSchema>;
 export type LanguagePreference = z.infer<typeof languageSchema>;

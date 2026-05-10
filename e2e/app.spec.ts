@@ -3,7 +3,7 @@ import { expectMeasurableBox } from "./helpers/measurable-box";
 import {
   disposeRuntimeErrorGuard,
   expectNoRuntimeErrors,
-  installRuntimeErrorGuard,
+  installAppRuntimeErrorGuard,
 } from "./helpers/runtime-error-guard";
 
 const starredSmartViewButtonName = /^(starred|スター)(\s+\d+)?$/i;
@@ -162,7 +162,7 @@ async function expectVisibleSlidingPaneFocusRestored(page: Page, visiblePaneLabe
 
 test.describe("Ultra RSS Reader - mobile single-pane focus contract", () => {
   test("restores mobile single-pane tab order after sidebar, list, and content pane switches", async ({ page }) => {
-    installRuntimeErrorGuard(page);
+    installAppRuntimeErrorGuard(page);
     await routeImagesToEmptyResponses(page);
 
     try {
@@ -195,7 +195,7 @@ test.describe("Ultra RSS Reader - mobile single-pane focus contract", () => {
 
 test.describe("Ultra RSS Reader - basic rendering", () => {
   test.beforeEach(async ({ page }) => {
-    installRuntimeErrorGuard(page);
+    installAppRuntimeErrorGuard(page);
     await routeImagesToEmptyResponses(page);
     await page.goto("/");
   });

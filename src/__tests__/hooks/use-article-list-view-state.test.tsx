@@ -1,7 +1,7 @@
 import { renderHook } from "@testing-library/react";
 import type { TFunction } from "i18next";
 import { describe, expect, it } from "vitest";
-import type { UseArticleListViewStateParams } from "@/components/reader/article-list.types";
+import type { UseArticleListViewStateParams } from "@/components/reader/hooks/article-list/article-list-controller.types";
 import { useArticleListViewState } from "@/components/reader/hooks/article-list/use-article-list-view-state";
 
 describe("useArticleListViewState", () => {

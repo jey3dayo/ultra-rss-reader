@@ -1,6 +1,9 @@
 import { useCallback, useMemo } from "react";
-import type { UseArticleListHeaderControlsParams, UseArticleListHeaderControlsResult } from "../../article-list.types";
 import { ArticleListFeedModeControl } from "../../article-list-feed-mode-control";
+import type {
+  UseArticleListHeaderControlsParams,
+  UseArticleListHeaderControlsResult,
+} from "./article-list-controller.types";
 
 export type ArticleListHeaderControlAvailabilityInput = {
   layoutMode: UseArticleListHeaderControlsParams["layoutMode"];

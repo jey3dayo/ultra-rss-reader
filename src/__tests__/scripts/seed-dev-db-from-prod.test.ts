@@ -196,6 +196,62 @@ describe("seedDevDatabaseFromProdPlan", () => {
     ).rejects.toThrow("Refusing to clean up an artifact outside the Dev app data directory");
   });
 
+  it("rejects backup artifacts outside the selected backup directory before cleanup", async () => {
+    const plan = buildSeedPlan({
+      prodAppDataDir: "/prod",
+      devAppDataDir: "/dev",
+      timestamp: "20260501T123456",
+    });
+    const unsafePlan = {
+      ...plan,
+      artifacts: plan.artifacts.map((artifact, index) =>
+        index === 0 ? { ...artifact, backup: "/other/ultra-rss-reader.db" } : artifact,
+      ),
+    };
+
+    await expect(
+      seedDevDatabaseFromProdPlan(unsafePlan, {
+        accessImpl: async () => {},
+        copyFileImpl: async () => {},
+        lstatImpl: async () => {
+          throw new Error("lstat should not run for an invalid plan");
+        },
+        mkdirImpl: async () => {},
+        rmImpl: async () => {
+          throw new Error("rm should not run for an invalid plan");
+        },
+      }),
+    ).rejects.toThrow("Refusing to write a backup artifact outside the selected backup directory");
+  });
+
+  it("rejects staging artifacts outside the selected staging directory before cleanup", async () => {
+    const plan = buildSeedPlan({
+      prodAppDataDir: "/prod",
+      devAppDataDir: "/dev",
+      timestamp: "20260501T123456",
+    });
+    const unsafePlan = {
+      ...plan,
+      artifacts: plan.artifacts.map((artifact, index) =>
+        index === 0 ? { ...artifact, staging: "/other/ultra-rss-reader.db" } : artifact,
+      ),
+    };
+
+    await expect(
+      seedDevDatabaseFromProdPlan(unsafePlan, {
+        accessImpl: async () => {},
+        copyFileImpl: async () => {},
+        lstatImpl: async () => {
+          throw new Error("lstat should not run for an invalid plan");
+        },
+        mkdirImpl: async () => {},
+        rmImpl: async () => {
+          throw new Error("rm should not run for an invalid plan");
+        },
+      }),
+    ).rejects.toThrow("Refusing to write a staging artifact outside the selected staging directory");
+  });
+
   it("rejects non-database artifacts so credentials are not copied", async () => {
     const plan = buildSeedPlan({
       prodAppDataDir: "/prod",
@@ -250,6 +306,68 @@ describe("seedDevDatabaseFromProdPlan", () => {
       ).rejects.toThrow("Refusing to seed through a symlink");
 
       await expect(readFile(path.join(devDir, "ultra-rss-reader.db"), "utf8")).resolves.toBe("dev-db");
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects a symlinked staging directory before cleanup", async () => {
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), "ultra-rss-seed-test-"));
+    try {
+      const prodDir = path.join(tempDir, "prod");
+      const devDir = path.join(tempDir, "dev");
+      const outsideDir = path.join(tempDir, "outside");
+      const plan = buildSeedPlan({
+        prodAppDataDir: prodDir,
+        devAppDataDir: devDir,
+        timestamp: "20260501T123456",
+      });
+      await Promise.all([
+        mkdir(prodDir, { recursive: true }),
+        mkdir(devDir, { recursive: true }),
+        mkdir(path.dirname(plan.stagingDir), { recursive: true }),
+        mkdir(outsideDir, { recursive: true }),
+      ]);
+      await Promise.all([
+        writeFile(path.join(prodDir, "ultra-rss-reader.db"), "prod-db"),
+        writeFile(path.join(devDir, "ultra-rss-reader.db"), "dev-db"),
+        symlink(outsideDir, plan.stagingDir),
+      ]);
+
+      await expect(seedDevDatabaseFromProdPlan(plan)).rejects.toThrow("Refusing to seed through a symlink");
+
+      await expect(readFile(path.join(devDir, "ultra-rss-reader.db"), "utf8")).resolves.toBe("dev-db");
+      await expect(readFile(path.join(outsideDir, "ultra-rss-reader.db"), "utf8")).rejects.toThrow();
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects an existing backup directory to prevent timestamp collisions", async () => {
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), "ultra-rss-seed-test-"));
+    try {
+      const prodDir = path.join(tempDir, "prod");
+      const devDir = path.join(tempDir, "dev");
+      const plan = buildSeedPlan({
+        prodAppDataDir: prodDir,
+        devAppDataDir: devDir,
+        timestamp: "20260501T123456",
+      });
+      await Promise.all([
+        mkdir(prodDir, { recursive: true }),
+        mkdir(devDir, { recursive: true }),
+        mkdir(plan.backupDir, { recursive: true }),
+      ]);
+      await Promise.all([
+        writeFile(path.join(prodDir, "ultra-rss-reader.db"), "prod-db"),
+        writeFile(path.join(devDir, "ultra-rss-reader.db"), "dev-db"),
+        writeFile(path.join(plan.backupDir, "ultra-rss-reader.db"), "previous-backup"),
+      ]);
+
+      await expect(seedDevDatabaseFromProdPlan(plan)).rejects.toThrow("Backup directory already exists");
+
+      await expect(readFile(path.join(devDir, "ultra-rss-reader.db"), "utf8")).resolves.toBe("dev-db");
+      await expect(readFile(path.join(plan.backupDir, "ultra-rss-reader.db"), "utf8")).resolves.toBe("previous-backup");
     } finally {
       await rm(tempDir, { recursive: true, force: true });
     }
@@ -376,7 +494,13 @@ describe("seedDevDatabaseFromProdPlan", () => {
 
     await expect(
       seedDevDatabaseFromProdPlan(plan, {
-        accessImpl: async () => {},
+        accessImpl: async (targetPath) => {
+          if (toPortablePath(String(targetPath)) === "/dev/backups/seed-from-prod-20260501T123456") {
+            const error = new Error("not found") as NodeJS.ErrnoException;
+            error.code = "ENOENT";
+            throw error;
+          }
+        },
         lstatImpl: async () => createNonSymlinkStats(),
         copyFileImpl: async (source, _destination) => {
           if (hasPortablePathSuffix(String(source), "staging/ultra-rss-reader.db")) {
@@ -412,6 +536,11 @@ describe("seedDevDatabaseFromProdPlan", () => {
     const resultPromise = seedDevDatabaseFromProdPlan(plan, {
       accessImpl: async (targetPath) => {
         const pathText = toPortablePath(String(targetPath));
+        if (pathText === "/dev/backups/seed-from-prod-20260501T123456") {
+          const error = new Error("not found") as NodeJS.ErrnoException;
+          error.code = "ENOENT";
+          throw error;
+        }
         accessRequests.push(pathText);
       },
       lstatImpl: async () => createNonSymlinkStats(),
@@ -456,7 +585,13 @@ describe("seedDevDatabaseFromProdPlan", () => {
     const releaseBackupCopies = new Map<string, () => void>();
 
     const resultPromise = seedDevDatabaseFromProdPlan(plan, {
-      accessImpl: async () => {},
+      accessImpl: async (targetPath) => {
+        if (toPortablePath(String(targetPath)) === "/dev/backups/seed-from-prod-20260501T123456") {
+          const error = new Error("not found") as NodeJS.ErrnoException;
+          error.code = "ENOENT";
+          throw error;
+        }
+      },
       copyFileImpl: async (source, destination) => {
         const sourcePath = toPortablePath(String(source));
         const destinationPath = toPortablePath(String(destination));

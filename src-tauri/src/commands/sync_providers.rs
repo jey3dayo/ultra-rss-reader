@@ -1573,6 +1573,7 @@ mod tests {
     use crate::repository::account::AccountRepository;
     use crate::repository::article::{ArticleRepository, Pagination};
     use mockito::Matcher;
+    use std::borrow::Cow;
 
     const FEED_REMOTE_ID: &str = "feed/https://example.com/rss";
     const LOCAL_ETAG_OLD: &str = "\"etag-old\"";
@@ -1581,6 +1582,62 @@ mod tests {
     const LOCAL_LAST_MODIFIED_NEW: &str = "Thu, 02 Jan 2025 00:00:00 GMT";
     static DEV_CREDENTIALS_ENV_LOCK: std::sync::LazyLock<tokio::sync::Mutex<()>> =
         std::sync::LazyLock::new(|| tokio::sync::Mutex::new(()));
+
+    struct ProviderHttpResponseFixture<'a> {
+        status: usize,
+        headers: &'a [(&'a str, &'a str)],
+        body: Cow<'a, str>,
+    }
+
+    impl<'a> ProviderHttpResponseFixture<'a> {
+        fn status(status: usize) -> Self {
+            Self {
+                status,
+                headers: &[],
+                body: Cow::Borrowed(""),
+            }
+        }
+
+        fn body(mut self, body: impl Into<Cow<'a, str>>) -> Self {
+            self.body = body.into();
+            self
+        }
+
+        fn headers(mut self, headers: &'a [(&'a str, &'a str)]) -> Self {
+            self.headers = headers;
+            self
+        }
+
+        fn ok(body: &'static str) -> ProviderHttpResponseFixture<'static> {
+            ProviderHttpResponseFixture::status(200).body(body)
+        }
+
+        fn json(body: &'static str) -> ProviderHttpResponseFixture<'static> {
+            Self::ok(body).headers(&[("content-type", "application/json")])
+        }
+
+        fn auth_token() -> ProviderHttpResponseFixture<'static> {
+            Self::ok("Auth=tok\n")
+        }
+
+        fn empty_item_refs() -> ProviderHttpResponseFixture<'static> {
+            Self::json(r#"{ "itemRefs": [] }"#)
+        }
+    }
+
+    trait ProviderMockResponseExt {
+        fn with_provider_response(self, response: ProviderHttpResponseFixture<'_>) -> Self;
+    }
+
+    impl ProviderMockResponseExt for mockito::Mock {
+        fn with_provider_response(self, response: ProviderHttpResponseFixture<'_>) -> Self {
+            response.headers.iter().fold(
+                self.with_status(response.status)
+                    .with_body(response.body.as_ref()),
+                |mock, (name, value)| mock.with_header(*name, value),
+            )
+        }
+    }
 
     struct DevCredentialsContext {
         _guard: tokio::sync::MutexGuard<'static, ()>,
@@ -2130,8 +2187,7 @@ mod tests {
         let mut server = mockito::Server::new_async().await;
         server
             .mock("POST", "/api/greader.php/accounts/ClientLogin")
-            .with_status(200)
-            .with_body("Auth=tok\n")
+            .with_provider_response(ProviderHttpResponseFixture::auth_token())
             .create_async()
             .await;
 
@@ -2139,8 +2195,7 @@ mod tests {
             .mock("GET", "/api/greader.php/reader/api/0/tag/list")
             .match_query(Matcher::UrlEncoded("output".into(), "json".into()))
             .match_header("Authorization", "GoogleLogin auth=tok")
-            .with_status(200)
-            .with_body(r#"{ "tags": [] }"#)
+            .with_provider_response(ProviderHttpResponseFixture::json(r#"{ "tags": [] }"#))
             .create_async()
             .await;
 
@@ -2148,8 +2203,7 @@ mod tests {
             .mock("GET", "/api/greader.php/reader/api/0/subscription/list")
             .match_query(Matcher::UrlEncoded("output".into(), "json".into()))
             .match_header("Authorization", "GoogleLogin auth=tok")
-            .with_status(200)
-            .with_body(
+            .with_provider_response(ProviderHttpResponseFixture::json(
                 r#"{
                     "subscriptions": [
                         {
@@ -2169,7 +2223,7 @@ mod tests {
                         }
                     ]
                 }"#,
-            )
+            ))
             .create_async()
             .await;
 
@@ -2183,8 +2237,7 @@ mod tests {
                 Matcher::UrlEncoded("n".into(), "200".into()),
             ]))
             .match_header("Authorization", "GoogleLogin auth=tok")
-            .with_status(200)
-            .with_body(
+            .with_provider_response(ProviderHttpResponseFixture::json(
                 r#"{
                     "items": [
                         {
@@ -2219,7 +2272,7 @@ mod tests {
                         }
                     ]
                 }"#,
-            )
+            ))
             .create_async()
             .await;
 
@@ -2248,8 +2301,7 @@ mod tests {
                 Matcher::UrlEncoded("s".into(), "user/-/state/com.google/read".into()),
             ]))
             .match_header("Authorization", "GoogleLogin auth=tok")
-            .with_status(200)
-            .with_body(r#"{ "itemRefs": [] }"#)
+            .with_provider_response(ProviderHttpResponseFixture::empty_item_refs())
             .create_async()
             .await;
         server
@@ -2260,8 +2312,7 @@ mod tests {
                 Matcher::UrlEncoded("s".into(), "user/-/state/com.google/starred".into()),
             ]))
             .match_header("Authorization", "GoogleLogin auth=tok")
-            .with_status(200)
-            .with_body(r#"{ "itemRefs": [] }"#)
+            .with_provider_response(ProviderHttpResponseFixture::empty_item_refs())
             .create_async()
             .await;
         server
@@ -2271,15 +2322,14 @@ mod tests {
                 Matcher::UrlEncoded("all".into(), "true".into()),
             ]))
             .match_header("Authorization", "GoogleLogin auth=tok")
-            .with_status(200)
-            .with_body(
+            .with_provider_response(ProviderHttpResponseFixture::json(
                 r#"{
                     "unreadcounts": [
                         { "id": "feed/https://example.com/feed-1.xml", "count": 1 },
                         { "id": "feed/https://example.com/feed-2.xml", "count": 1 }
                     ]
                 }"#,
-            )
+            ))
             .create_async()
             .await;
 

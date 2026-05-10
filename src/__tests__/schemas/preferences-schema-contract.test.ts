@@ -230,13 +230,22 @@ describe("preference contract", () => {
     expect(debugWebPreviewUrlSchema?.safeParse("https://example.com/path?q=1").success).toBe(true);
     expect(debugWebPreviewUrlSchema?.safeParse("a".repeat(1024)).success).toBe(true);
     expect(debugWebPreviewUrlSchema?.safeParse("a".repeat(1025)).success).toBe(false);
+    expect(debugWebPreviewUrlSchema?.safeParse("あ".repeat(341)).success).toBe(true);
+    expect(debugWebPreviewUrlSchema?.safeParse("あ".repeat(342)).success).toBe(false);
+    expect(debugWebPreviewUrlSchema?.safeParse("😀".repeat(256)).success).toBe(true);
+    expect(debugWebPreviewUrlSchema?.safeParse("😀".repeat(257)).success).toBe(false);
     expect(debugWebPreviewUrlSchema?.safeParse("https://example.com/\u0000").success).toBe(false);
     expect(debugWebPreviewUrlSchema?.safeParse("https://example.com/\u0085").success).toBe(false);
     expect(normalizePreferenceValue("debug_web_preview_url", "a".repeat(1025))).toBe("");
+    expect(normalizePreferenceValue("debug_web_preview_url", "あ".repeat(342))).toBe("");
 
     expect(shortcutSchema?.safeParse(" Shift+J ").data).toBe("Shift+J");
     expect(shortcutSchema?.safeParse("a".repeat(128)).success).toBe(true);
     expect(shortcutSchema?.safeParse("a".repeat(129)).success).toBe(false);
+    expect(shortcutSchema?.safeParse("あ".repeat(42)).success).toBe(true);
+    expect(shortcutSchema?.safeParse("あ".repeat(43)).success).toBe(false);
+    expect(shortcutSchema?.safeParse("😀".repeat(32)).success).toBe(true);
+    expect(shortcutSchema?.safeParse("😀".repeat(33)).success).toBe(false);
     expect(shortcutSchema?.safeParse("Shift+\nJ").success).toBe(false);
     expect(shortcutSchema?.safeParse("Shift+\u009fJ").success).toBe(false);
   });

@@ -3,7 +3,7 @@ import { useArticleListData } from "@/components/reader/hooks/article-list/use-a
 import { useArticleListPresentation } from "@/components/reader/hooks/article-list/use-article-list-presentation";
 import { useArticleListRuntime } from "@/components/reader/hooks/article-list/use-article-list-runtime";
 import { useAccounts } from "@/hooks/use-accounts";
-import type { UseArticleListViewPropsResult } from "../../article-list.types";
+import type { UseArticleListViewPropsResult } from "./article-list-controller.types";
 
 export function useArticleListController(): UseArticleListViewPropsResult {
   const { t } = useTranslation("reader");

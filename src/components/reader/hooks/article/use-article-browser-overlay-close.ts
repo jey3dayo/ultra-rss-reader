@@ -55,6 +55,14 @@ function waitForBrowserOverlayCloseMotion() {
   };
 }
 
+function focusSelectedArticleRowAfterClose(focusSelectedArticleRow: () => void): void {
+  try {
+    focusSelectedArticleRow();
+  } catch (error) {
+    console.warn("Failed to restore article row focus after closing browser overlay.", error);
+  }
+}
+
 export function useArticleBrowserOverlayClose({
   closeBrowser,
   focusSelectedArticleRow,
@@ -76,12 +84,15 @@ export function useArticleBrowserOverlayClose({
 
   const finalizeCloseBrowserOverlay = useCallback(() => {
     useUiStore.getState().setFocusedPane("list");
-    focusSelectedArticleRow();
+    focusSelectedArticleRowAfterClose(focusSelectedArticleRow);
     setBrowserOverlayClosedPreference();
     closeBrowser();
     scheduleReaderFocusFrame(() => {
-      focusSelectedArticleRow();
-      flushPendingBrowserCloseAction();
+      try {
+        focusSelectedArticleRowAfterClose(focusSelectedArticleRow);
+      } finally {
+        flushPendingBrowserCloseAction();
+      }
     });
   }, [closeBrowser, focusSelectedArticleRow, setBrowserOverlayClosedPreference]);
 

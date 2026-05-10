@@ -11,7 +11,10 @@ import {
 } from "@/lib/articles/article-display";
 import { getUnreadArticleIds, resolveArticleListMarkAllReadCount } from "@/lib/articles/article-list";
 import { countUnreadFeedsInFolder } from "@/lib/sidebar/sidebar";
-import type { UseArticleListHeaderActionsParams, UseArticleListHeaderActionsResult } from "../../article-list.types";
+import type {
+  UseArticleListHeaderActionsParams,
+  UseArticleListHeaderActionsResult,
+} from "./article-list-controller.types";
 
 export function useArticleListHeaderActions({
   selection,
@@ -87,7 +90,10 @@ export function useArticleListHeaderActions({
       case "all":
       case "smart":
       case "tag": {
-        confirmMarkAllRead({ count: markAllReadCount, onConfirm: doMarkAllRead });
+        confirmMarkAllRead({
+          count: markAllReadCount,
+          onConfirm: doMarkAllRead,
+        });
         return;
       }
     }

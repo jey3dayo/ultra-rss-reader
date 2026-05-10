@@ -18,7 +18,7 @@ import {
   shouldRecoverUnavailableReaderSelection,
 } from "@/lib/reader/reader-query";
 import { useUiStore } from "@/stores/ui-store";
-import type { UseArticleListSourcesParams, UseArticleListSourcesResult } from "../../article-list.types";
+import type { UseArticleListSourcesParams, UseArticleListSourcesResult } from "./article-list-controller.types";
 
 type ArticleListPrimarySourceSnapshot = {
   contextKey: string;

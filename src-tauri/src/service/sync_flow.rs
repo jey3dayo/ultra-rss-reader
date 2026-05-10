@@ -294,6 +294,11 @@ mod tests {
         pushed: Mutex<Vec<Mutation>>,
     }
 
+    struct DeleteFailurePendingMutationRepository {
+        pending: Vec<PendingMutation>,
+        deleted_ids: Mutex<Vec<Vec<i64>>>,
+    }
+
     struct RemoteSubscriptionProvider {
         subscriptions: Vec<RemoteSubscription>,
     }
@@ -794,6 +799,40 @@ mod tests {
         }
     }
 
+    impl PendingMutationRepository for DeleteFailurePendingMutationRepository {
+        fn find_by_account(&self, _account_id: &AccountId) -> DomainResult<Vec<PendingMutation>> {
+            Ok(self.pending.clone())
+        }
+
+        fn save(&self, _mutation: &PendingMutation) -> DomainResult<()> {
+            Ok(())
+        }
+
+        fn delete(&self, ids: &[i64]) -> DomainResult<()> {
+            self.deleted_ids.lock().unwrap().push(ids.to_vec());
+            Err(DomainError::Persistence("delete failed".to_string()))
+        }
+
+        fn delete_by_account_remote_entry_ids_and_axis(
+            &self,
+            _account_id: &AccountId,
+            remote_entry_ids: &[String],
+            axis: PendingMutationAxis,
+        ) -> DomainResult<()> {
+            let ids = self
+                .pending
+                .iter()
+                .filter(|pending| {
+                    remote_entry_ids.contains(&pending.remote_entry_id)
+                        && pending.mutation_type.axis() == axis
+                })
+                .filter_map(|pending| pending.id)
+                .collect::<Vec<_>>();
+            self.deleted_ids.lock().unwrap().push(ids);
+            Err(DomainError::Persistence("delete failed".to_string()))
+        }
+    }
+
     fn test_account() -> Account {
         Account {
             id: AccountId::new(),
@@ -1288,6 +1327,104 @@ mod tests {
         )
         .await
         .expect_err("second remote push should fail");
+
+        assert_eq!(error.to_string(), "Network error: second push failed");
+        assert_eq!(provider.pushed.lock().unwrap().len(), 1);
+        assert_eq!(*pending_repo.deleted_ids.lock().unwrap(), vec![vec![10]]);
+    }
+
+    #[tokio::test]
+    async fn sync_account_stops_when_delete_after_remote_push_fails() {
+        let db = DbManager::new_in_memory().unwrap();
+        let account = test_account();
+        let account_repo = SqliteAccountRepository::new(db.writer());
+        account_repo.save(&account).unwrap();
+
+        let provider = RemoteStateProvider {
+            pushed: Mutex::new(Vec::new()),
+        };
+        let article_repo = SqliteArticleRepository::new(db.writer());
+        let feed_repo = SqliteFeedRepository::new(db.writer());
+        let folder_repo = SqliteFolderRepository::new(db.writer());
+        let pending_repo = DeleteFailurePendingMutationRepository {
+            pending: vec![
+                PendingMutation {
+                    id: Some(10),
+                    account_id: account.id.clone(),
+                    mutation_type: PendingMutationType::MarkRead,
+                    remote_entry_id: "remote-entry-1".to_string(),
+                    created_at: "2024-01-01T00:00:00Z".to_string(),
+                },
+                PendingMutation {
+                    id: Some(11),
+                    account_id: account.id.clone(),
+                    mutation_type: PendingMutationType::Star,
+                    remote_entry_id: "remote-entry-2".to_string(),
+                    created_at: "2024-01-01T00:00:01Z".to_string(),
+                },
+            ],
+            deleted_ids: Mutex::new(Vec::new()),
+        };
+
+        let error = sync_account(
+            &account.id,
+            &provider,
+            &article_repo,
+            &feed_repo,
+            &folder_repo,
+            &pending_repo,
+        )
+        .await
+        .expect_err("delete failure after remote push should stop sync");
+
+        assert_eq!(error.to_string(), "Persistence error: delete failed");
+        assert_eq!(provider.pushed.lock().unwrap().len(), 1);
+        assert_eq!(*pending_repo.deleted_ids.lock().unwrap(), vec![vec![10]]);
+    }
+
+    #[tokio::test]
+    async fn sync_account_deletes_pushed_pending_mutation_by_remote_id_and_axis() {
+        let db = DbManager::new_in_memory().unwrap();
+        let account = test_account();
+        let account_repo = SqliteAccountRepository::new(db.writer());
+        account_repo.save(&account).unwrap();
+
+        let provider = FailingSecondPushProvider {
+            pushed: Mutex::new(Vec::new()),
+        };
+        let article_repo = SqliteArticleRepository::new(db.writer());
+        let feed_repo = SqliteFeedRepository::new(db.writer());
+        let folder_repo = SqliteFolderRepository::new(db.writer());
+        let pending_repo = FakePendingMutationRepository {
+            pending: vec![
+                PendingMutation {
+                    id: Some(10),
+                    account_id: account.id.clone(),
+                    mutation_type: PendingMutationType::MarkRead,
+                    remote_entry_id: "remote-entry-1".to_string(),
+                    created_at: "2024-01-01T00:00:00Z".to_string(),
+                },
+                PendingMutation {
+                    id: Some(11),
+                    account_id: account.id.clone(),
+                    mutation_type: PendingMutationType::Star,
+                    remote_entry_id: "remote-entry-1".to_string(),
+                    created_at: "2024-01-01T00:00:01Z".to_string(),
+                },
+            ],
+            deleted_ids: Mutex::new(Vec::new()),
+        };
+
+        let error = sync_account(
+            &account.id,
+            &provider,
+            &article_repo,
+            &feed_repo,
+            &folder_repo,
+            &pending_repo,
+        )
+        .await
+        .expect_err("second axis push should fail");
 
         assert_eq!(error.to_string(), "Network error: second push failed");
         assert_eq!(provider.pushed.lock().unwrap().len(), 1);

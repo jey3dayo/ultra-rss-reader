@@ -22,8 +22,7 @@ fn maybe_mark_existing_muted_articles_as_read(conn: &rusqlite::Connection) -> Re
         return Ok(());
     }
 
-    let account_ids = account_ids_with_feeds(conn)?;
-    for account_id in account_ids {
+    if let Some(account_id) = selected_account_id_with_feeds(conn)? {
         mark_muted_unread_as_read_with_conn(conn, &account_id, None)?;
     }
 
@@ -38,16 +37,26 @@ fn is_mute_auto_mark_read_enabled(conn: &rusqlite::Connection) -> Result<bool, A
         .is_some_and(|value| value == "true"))
 }
 
-fn account_ids_with_feeds(conn: &rusqlite::Connection) -> Result<Vec<AccountId>, AppError> {
-    let mut stmt = conn
-        .prepare("SELECT DISTINCT account_id FROM feeds")
+fn selected_account_id_with_feeds(
+    conn: &rusqlite::Connection,
+) -> Result<Option<AccountId>, AppError> {
+    let selected_account_id = SqlitePreferenceRepository::new(conn).get("selected_account_id")?;
+    let Some(selected_account_id) = selected_account_id else {
+        return Ok(None);
+    };
+    let selected_account_id = selected_account_id.trim();
+    if selected_account_id.is_empty() {
+        return Ok(None);
+    }
+
+    let has_feed = conn
+        .query_row(
+            "SELECT EXISTS(SELECT 1 FROM feeds WHERE account_id = ?1)",
+            rusqlite::params![selected_account_id],
+            |row| row.get::<_, bool>(0),
+        )
         .map_err(crate::domain::error::DomainError::from)?;
-    let account_ids = stmt
-        .query_map([], |row| row.get::<_, String>(0))
-        .map_err(crate::domain::error::DomainError::from)?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(crate::domain::error::DomainError::from)?;
-    Ok(account_ids.into_iter().map(AccountId).collect())
+    Ok(has_feed.then(|| AccountId(selected_account_id.to_string())))
 }
 
 fn set_mute_auto_mark_read_impl(
@@ -66,8 +75,7 @@ fn set_mute_auto_mark_read_impl(
     )?;
 
     if enabled {
-        let account_ids = account_ids_with_feeds(&tx)?;
-        for account_id in account_ids {
+        if let Some(account_id) = selected_account_id_with_feeds(&tx)? {
             mark_muted_unread_as_read_with_conn(&tx, &account_id, None)?;
         }
     }
@@ -202,6 +210,12 @@ mod tests {
         id
     }
 
+    fn set_selected_account(db: &DbManager, account_id: &AccountId) {
+        SqlitePreferenceRepository::new(db.writer())
+            .set("selected_account_id", account_id.as_ref())
+            .unwrap();
+    }
+
     fn insert_unread_article(db: &DbManager, feed_id: &FeedId, title: &str) {
         let article_repo = SqliteArticleRepository::new(db.writer());
         let article = crate::domain::article::Article {
@@ -230,6 +244,7 @@ mod tests {
         let guard = db.lock().unwrap();
         let account_id = insert_test_account(&guard);
         let feed_id = insert_test_feed(&guard, &account_id);
+        set_selected_account(&guard, &account_id);
         guard
             .writer()
             .execute(
@@ -272,6 +287,7 @@ mod tests {
         let guard = db.lock().unwrap();
         let account_id = insert_test_account(&guard);
         let feed_id = insert_test_feed(&guard, &account_id);
+        set_selected_account(&guard, &account_id);
         guard
             .writer()
             .execute(
@@ -316,6 +332,7 @@ mod tests {
         let guard = db.lock().unwrap();
         let account_id = insert_test_account(&guard);
         let feed_id = insert_test_feed(&guard, &account_id);
+        set_selected_account(&guard, &account_id);
         insert_unread_article(&guard, &feed_id, "Kindle Unlimited campaign");
         drop(guard);
 
@@ -358,6 +375,7 @@ mod tests {
         let guard = db.lock().unwrap();
         let account_id = insert_test_account(&guard);
         let feed_id = insert_test_feed(&guard, &account_id);
+        set_selected_account(&guard, &account_id);
         let pref_repo = SqlitePreferenceRepository::new(guard.writer());
         pref_repo.set("mute_auto_mark_read", "true").unwrap();
         insert_unread_article(&guard, &feed_id, "Kindle Unlimited campaign");
@@ -424,6 +442,7 @@ mod tests {
         let guard = db.lock().unwrap();
         let account_id = insert_test_account(&guard);
         let feed_id = insert_test_feed(&guard, &account_id);
+        set_selected_account(&guard, &account_id);
         let pref_repo = SqlitePreferenceRepository::new(guard.writer());
         pref_repo.set("mute_auto_mark_read", "true").unwrap();
         let created = SqliteMuteKeywordRepository::new(guard.writer())
@@ -469,16 +488,105 @@ mod tests {
     }
 
     #[test]
-    fn account_ids_with_feeds_returns_each_account_once() {
+    fn selected_account_id_with_feeds_returns_selected_account_only_when_it_has_feeds() {
         let db = test_db();
         let guard = db.lock().unwrap();
         let account_id = insert_test_account(&guard);
+        let other_account_id = insert_test_account(&guard);
         insert_test_feed(&guard, &account_id);
         insert_test_feed(&guard, &account_id);
+        insert_test_feed(&guard, &other_account_id);
+        set_selected_account(&guard, &account_id);
 
-        let account_ids = account_ids_with_feeds(guard.reader()).unwrap();
+        let account_id_with_feeds = selected_account_id_with_feeds(guard.reader()).unwrap();
 
-        assert_eq!(account_ids, vec![account_id]);
+        assert_eq!(account_id_with_feeds, Some(account_id));
+    }
+
+    #[test]
+    fn set_mute_auto_mark_read_marks_selected_account_only() {
+        let db = test_db();
+        let guard = db.lock().unwrap();
+        let selected_account_id = insert_test_account(&guard);
+        let other_account_id = insert_test_account(&guard);
+        let selected_feed_id = insert_test_feed(&guard, &selected_account_id);
+        let other_feed_id = insert_test_feed(&guard, &other_account_id);
+        set_selected_account(&guard, &selected_account_id);
+        guard
+            .writer()
+            .execute(
+                "INSERT INTO mute_keywords (id, keyword, scope, created_at, updated_at) VALUES (?1, ?2, ?3, datetime('now'), datetime('now'))",
+                params![uuid::Uuid::new_v4().to_string(), "Kindle Unlimited", "title"],
+            )
+            .unwrap();
+
+        insert_unread_article(&guard, &selected_feed_id, "Kindle Unlimited selected");
+        insert_unread_article(&guard, &other_feed_id, "Kindle Unlimited other");
+        drop(guard);
+
+        set_mute_auto_mark_read_impl(&db, true).unwrap();
+
+        let guard = db.lock().unwrap();
+        let selected_is_read: bool = guard
+            .reader()
+            .query_row(
+                "SELECT is_read FROM articles WHERE feed_id = ?1",
+                params![selected_feed_id.0],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let other_is_read: bool = guard
+            .reader()
+            .query_row(
+                "SELECT is_read FROM articles WHERE feed_id = ?1",
+                params![other_feed_id.0],
+                |row| row.get(0),
+            )
+            .unwrap();
+
+        assert!(selected_is_read);
+        assert!(!other_is_read);
+    }
+
+    #[test]
+    fn create_mute_keyword_marks_selected_account_existing_matches_only() {
+        let db = test_db();
+        let guard = db.lock().unwrap();
+        let selected_account_id = insert_test_account(&guard);
+        let other_account_id = insert_test_account(&guard);
+        let selected_feed_id = insert_test_feed(&guard, &selected_account_id);
+        let other_feed_id = insert_test_feed(&guard, &other_account_id);
+        set_selected_account(&guard, &selected_account_id);
+        SqlitePreferenceRepository::new(guard.writer())
+            .set("mute_auto_mark_read", "true")
+            .unwrap();
+
+        insert_unread_article(&guard, &selected_feed_id, "Kindle Unlimited selected");
+        insert_unread_article(&guard, &other_feed_id, "Kindle Unlimited other");
+        drop(guard);
+
+        create_mute_keyword_impl(&db, "Kindle Unlimited".to_string(), "title".to_string()).unwrap();
+
+        let guard = db.lock().unwrap();
+        let selected_is_read: bool = guard
+            .reader()
+            .query_row(
+                "SELECT is_read FROM articles WHERE feed_id = ?1",
+                params![selected_feed_id.0],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let other_is_read: bool = guard
+            .reader()
+            .query_row(
+                "SELECT is_read FROM articles WHERE feed_id = ?1",
+                params![other_feed_id.0],
+                |row| row.get(0),
+            )
+            .unwrap();
+
+        assert!(selected_is_read);
+        assert!(!other_is_read);
     }
 
     #[test]

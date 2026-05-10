@@ -4,6 +4,9 @@ import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import type { DatabaseSizeStatus, DestructiveRecoveryCriterion } from "./hooks/use-data-settings-controller";
 
+const OPML_IMPORT_FOLDER_POLICY_COPY =
+  "OPML import flattens nested folders to the deepest folder name for each feed. Empty folder outlines are skipped.";
+
 type DataSettingsViewProps = {
   title: string;
   databaseHeading: string;
@@ -76,6 +79,7 @@ export function DataSettingsView({
       </SettingsSection>
       <SettingsSection heading={safetyHeading} surface="flat" className="mb-6 sm:mb-7">
         <p className="mb-3 font-serif text-sm text-foreground-soft">{safetyDescription}</p>
+        <p className="mb-3 font-serif text-sm text-foreground-soft">{OPML_IMPORT_FOLDER_POLICY_COPY}</p>
         <ul className="list-disc space-y-1 pl-5 font-serif text-sm text-foreground-soft">
           {safetyChecklist.map((item) => (
             <li key={item}>{item}</li>

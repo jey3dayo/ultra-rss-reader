@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
-import type { UseArticleListViewStateParams, UseArticleListViewStateResult } from "../../article-list.types";
+import type { UseArticleListViewStateParams, UseArticleListViewStateResult } from "./article-list-controller.types";
 
 export function useArticleListViewState({
   selection,
@@ -28,11 +28,19 @@ export function useArticleListViewState({
     }
 
     if (selection.kind === "unread") {
-      return { primaryLabel: t("unread"), secondaryLabel: null, tone: "unread" };
+      return {
+        primaryLabel: t("unread"),
+        secondaryLabel: null,
+        tone: "unread",
+      };
     }
 
     if (selection.kind === "recent") {
-      return { primaryLabel: t("recent_articles"), secondaryLabel: null, tone: null };
+      return {
+        primaryLabel: t("recent_articles"),
+        secondaryLabel: null,
+        tone: null,
+      };
     }
 
     return {

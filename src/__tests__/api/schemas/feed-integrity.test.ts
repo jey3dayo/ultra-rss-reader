@@ -160,4 +160,38 @@ describe("FeedIntegrityCleanupDtoSchema", () => {
       }),
     ).toEqual([]);
   });
+
+  it("keeps dry-run counts informational and reserves mismatch warnings for destructive cleanup results", () => {
+    expect(
+      getFeedIntegrityCleanupWarningKinds({
+        dry_run: true,
+        orphaned_article_count: 4,
+        deleted_article_count: 0,
+      }),
+    ).toEqual([]);
+    expect(
+      getFeedIntegrityCleanupWarningKinds({
+        dry_run: false,
+        orphaned_article_count: 4,
+        deleted_article_count: 0,
+      }),
+    ).toEqual(["count_mismatch"]);
+  });
+
+  it("keeps undo-unavailable warnings tied to actual destructive deletion count", () => {
+    expect(
+      getFeedIntegrityCleanupWarningKinds({
+        dry_run: false,
+        orphaned_article_count: 2,
+        deleted_article_count: 2,
+      }),
+    ).toEqual(["undo_unavailable"]);
+    expect(
+      getFeedIntegrityCleanupWarningKinds({
+        dry_run: false,
+        orphaned_article_count: 2,
+        deleted_article_count: 0,
+      }),
+    ).not.toContain("undo_unavailable");
+  });
 });

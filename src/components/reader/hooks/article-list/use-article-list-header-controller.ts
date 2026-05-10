@@ -4,7 +4,7 @@ import type { FeedDisplayPresetOption } from "@/lib/articles/article-display";
 import type {
   UseArticleListHeaderControllerParams,
   UseArticleListHeaderControllerResult,
-} from "../../article-list.types";
+} from "./article-list-controller.types";
 
 export function useArticleListHeaderController({
   selection,

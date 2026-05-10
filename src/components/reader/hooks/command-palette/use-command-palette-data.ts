@@ -1,8 +1,9 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import type { ArticleDto, FeedDto, TagDto } from "@/api/tauri-commands";
 import {
   getHistory,
-  normalizeCommandHistoryForExistingEntries,
+  projectCommandHistoryForExistingEntries,
+  writeNormalizedHistoryAfterResourceProjection,
 } from "@/components/reader/hooks/command-palette/use-command-history";
 import type { RuntimeDevScenario } from "@/dev/scenario-runtime";
 import { useRecentArticles, useSearchArticles } from "@/hooks/use-articles";
@@ -162,7 +163,7 @@ export function useCommandPaletteData({
     [tags, query],
   );
 
-  const { recentActions, recentFeeds, recentTags, recentArticles } = useMemo(() => {
+  const { recentActions, recentFeeds, recentTags, recentArticles, historyProjection } = useMemo(() => {
     const resourcesReady =
       hasFetchedData(feedsQuery) && hasFetchedData(tagsQuery) && hasFetchedData(recentArticlesQuery);
 
@@ -170,8 +171,10 @@ export function useCommandPaletteData({
     const feedMap = new Map(feeds.map((feed) => [feed.id, feed]));
     const tagMap = new Map(tags.map((tag) => [tag.id, tag]));
     const articleMap = new Map(recentArticleCandidates.map((article) => [article.id, article]));
+    const history = getHistory();
     const historyEntries = resourcesReady
-      ? normalizeCommandHistoryForExistingEntries(
+      ? projectCommandHistoryForExistingEntries(
+          history,
           new Set<string>([
             ...actions.map((action) => `action:${action.id}`),
             ...feeds.map((feed) => `feed:${feed.id}`),
@@ -179,7 +182,8 @@ export function useCommandPaletteData({
             ...recentArticleCandidates.map((article) => `article:${article.id}`),
           ]),
         )
-      : getHistory();
+      : history;
+    const historyProjection = resourcesReady ? { previous: history, next: historyEntries } : null;
     const entries: CommandPaletteHistoryEntry[] = [];
     for (const historyEntry of historyEntries) {
       const entry = parseCommandPaletteHistoryEntry(historyEntry);
@@ -235,8 +239,16 @@ export function useCommandPaletteData({
       }
     }
 
-    return { recentActions, recentFeeds, recentTags, recentArticles };
+    return { recentActions, recentFeeds, recentTags, recentArticles, historyProjection };
   }, [actions, feeds, feedsQuery, recentArticleCandidates, recentArticlesQuery, tags, tagsQuery]);
+
+  useEffect(() => {
+    if (!historyProjection) {
+      return;
+    }
+
+    writeNormalizedHistoryAfterResourceProjection(historyProjection.previous, historyProjection.next);
+  }, [historyProjection]);
 
   const showRecentActions = prefix === null && query.length === 0 && recentActions.length > 0;
   const recentResourcesCount = recentFeeds.length + recentTags.length + recentArticles.length;

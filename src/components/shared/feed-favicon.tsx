@@ -20,6 +20,12 @@ type FaviconSizeClassNames = {
   requestSize: number;
 };
 
+type FailedFaviconKey = {
+  host: string;
+  siteUrl: string;
+  src: string;
+};
+
 const GOOGLE_FAVICON_ENDPOINT = "https://www.google.com/s2/favicons";
 
 const faviconSizeClassNames: Record<FeedFaviconSize, FaviconSizeClassNames> = {
@@ -43,7 +49,9 @@ const faviconSizeClassNames: Record<FeedFaviconSize, FaviconSizeClassNames> = {
   },
 };
 
-const fallbackLabelSegmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+const fallbackLabelSegmenter = new Intl.Segmenter(undefined, {
+  granularity: "grapheme",
+});
 
 function resolveGoogleFaviconSrc(host: string, requestSize: number): string {
   const params = new URLSearchParams({
@@ -61,7 +69,7 @@ function resolveFallbackLabel(title: string): string {
 }
 
 export function FeedFavicon({ title, url, siteUrl, grayscale = false, size = "sm" }: FeedFaviconProps) {
-  const [failedFaviconSrc, setFailedFaviconSrc] = useState<string | null>(null);
+  const [failedFaviconKey, setFailedFaviconKey] = useState<FailedFaviconKey | null>(null);
   let resolvedHost: string | null = null;
   Result.pipe(
     extractSiteHost(siteUrl, url),
@@ -72,27 +80,38 @@ export function FeedFavicon({ title, url, siteUrl, grayscale = false, size = "sm
   const sizeClassName = faviconSizeClassNames[size];
   const fallbackLabel = resolveFallbackLabel(title);
   const faviconSrc = resolvedHost ? resolveGoogleFaviconSrc(resolvedHost, sizeClassName.requestSize) : null;
+  const currentFaviconKey = resolvedHost && faviconSrc ? { host: resolvedHost, siteUrl, src: faviconSrc } : null;
+  const isFailedFavicon =
+    currentFaviconKey !== null &&
+    failedFaviconKey !== null &&
+    failedFaviconKey.src === currentFaviconKey.src &&
+    failedFaviconKey.host === currentFaviconKey.host &&
+    failedFaviconKey.siteUrl === currentFaviconKey.siteUrl;
 
-  return faviconSrc === null || failedFaviconSrc === faviconSrc ? (
-    <span
-      aria-hidden="true"
-      className={cn(
-        "flex shrink-0 items-center justify-center rounded bg-surface-1/72 font-bold text-foreground-soft",
-        sizeClassName.fallback,
-      )}
-    >
-      {fallbackLabel}
-    </span>
-  ) : (
+  if (currentFaviconKey === null || isFailedFavicon) {
+    return (
+      <span
+        aria-hidden="true"
+        className={cn(
+          "flex shrink-0 items-center justify-center rounded bg-surface-1/72 font-bold text-foreground-soft",
+          sizeClassName.fallback,
+        )}
+      >
+        {fallbackLabel}
+      </span>
+    );
+  }
+
+  return (
     <img
-      src={faviconSrc}
+      src={currentFaviconKey.src}
       alt=""
       className={cn(sizeClassName.image, "shrink-0 rounded", grayscale && "grayscale")}
       width={sizeClassName.pixels}
       height={sizeClassName.pixels}
       referrerPolicy="no-referrer"
       onError={() => {
-        setFailedFaviconSrc(faviconSrc);
+        setFailedFaviconKey(currentFaviconKey);
       }}
     />
   );

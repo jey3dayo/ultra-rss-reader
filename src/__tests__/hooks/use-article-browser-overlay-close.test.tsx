@@ -169,6 +169,67 @@ describe("useArticleBrowserOverlayClose", () => {
     expect(closeBrowser).toHaveBeenCalledTimes(1);
   });
 
+  it("flushes pending close actions when article row focus restore fails", async () => {
+    const focusError = new Error("focus failed");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    closeBrowserWebviewMock.mockResolvedValue(Result.succeed(null));
+    const navigateArticleSpy = vi.fn();
+    window.addEventListener(APP_EVENTS.navigateArticle, navigateArticleSpy);
+    const originalSetFocusedPane = useUiStore.getState().setFocusedPane;
+    const setFocusedPane = vi.fn((pane: "sidebar" | "list" | "content") => originalSetFocusedPane(pane));
+    useUiStore.setState({
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserCloseInFlight: false,
+      pendingBrowserCloseAction: "next-article",
+      setFocusedPane,
+    });
+    const closeBrowser = vi.fn();
+    const focusSelectedArticleRow = vi.fn(() => {
+      throw focusError;
+    });
+    const setBrowserOverlayClosedPreference = vi.fn();
+
+    const { result } = renderHook(() =>
+      useArticleBrowserOverlayClose({
+        closeBrowser,
+        focusSelectedArticleRow,
+        setBrowserCloseInFlight: useUiStore.getState().setBrowserCloseInFlight,
+        setBrowserOverlayClosedPreference,
+      }),
+    );
+
+    try {
+      act(() => {
+        result.current();
+      });
+
+      await act(async () => {
+        await Promise.resolve();
+        await vi.advanceTimersByTimeAsync(BROWSER_OVERLAY_CLOSE_DELAY_MS);
+        await Promise.resolve();
+        await vi.runOnlyPendingTimersAsync();
+      });
+
+      expect(setFocusedPane).toHaveBeenCalledWith("list");
+      expect(focusSelectedArticleRow).toHaveBeenCalledTimes(2);
+      expect(setBrowserOverlayClosedPreference).toHaveBeenCalledTimes(1);
+      expect(closeBrowser).toHaveBeenCalledTimes(1);
+      expect(navigateArticleSpy).toHaveBeenCalledOnce();
+      expect(navigateArticleSpy.mock.calls[0]?.[0]).toMatchObject({
+        detail: 1,
+      });
+      expect(useUiStore.getState().browserCloseInFlight).toBe(false);
+      expect(useUiStore.getState().pendingBrowserCloseAction).toBeNull();
+      expect(warn).toHaveBeenCalledWith(
+        "Failed to restore article row focus after closing browser overlay.",
+        focusError,
+      );
+    } finally {
+      window.removeEventListener(APP_EVENTS.navigateArticle, navigateArticleSpy);
+    }
+  });
+
   it("does not finalize a pending close motion after unmount", async () => {
     let resolveClose: (value: Result.Result<null, { type: "UserVisible"; message: string }>) => void = () => {};
     closeBrowserWebviewMock.mockReturnValue(

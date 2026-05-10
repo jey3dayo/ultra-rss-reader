@@ -5,7 +5,9 @@ import {
   compactCommandHistory,
   getHistory,
   normalizeCommandHistoryForExistingEntries,
+  projectCommandHistoryForExistingEntries,
   resetCommandHistoryStorageFailureWarnings,
+  writeNormalizedHistoryAfterResourceProjection,
 } from "@/components/reader/hooks/command-palette/use-command-history";
 import { MAX_COMMAND_HISTORY, MAX_COMMAND_HISTORY_STORAGE_LENGTH, STORAGE_KEYS } from "@/constants/storage";
 
@@ -166,6 +168,32 @@ describe("use-command-history", () => {
     expect(localStorage.getItem(STORAGE_KEYS.commandHistory)).toBe(
       JSON.stringify(["feed:feed-1", "article:art-1", "action:open-settings"]),
     );
+  });
+
+  it("projects history against existing command palette resources without writing storage", () => {
+    localStorage.setItem(
+      STORAGE_KEYS.commandHistory,
+      JSON.stringify(["feed:feed-1", "tag:deleted-tag", "action:open-settings"]),
+    );
+    const setItem = vi.spyOn(Storage.prototype, "setItem");
+
+    const projected = projectCommandHistoryForExistingEntries(getHistory(), new Set(["feed:feed-1"]));
+
+    expect(projected).toEqual(["feed:feed-1"]);
+    expect(localStorage.getItem(STORAGE_KEYS.commandHistory)).toBe(
+      JSON.stringify(["feed:feed-1", "tag:deleted-tag", "action:open-settings"]),
+    );
+    expect(setItem).not.toHaveBeenCalled();
+  });
+
+  it("writes projected resource history from an explicit effect boundary call", () => {
+    const previous = ["feed:feed-1", "tag:deleted-tag", "feed:feed-1", "action:open-settings"];
+    const next = ["feed:feed-1", "action:open-settings"];
+    localStorage.setItem(STORAGE_KEYS.commandHistory, JSON.stringify(previous));
+
+    writeNormalizedHistoryAfterResourceProjection(previous, next);
+
+    expect(localStorage.getItem(STORAGE_KEYS.commandHistory)).toBe(JSON.stringify(next));
   });
 
   it("returns normalized resource history in memory when resource cleanup write fails", () => {

@@ -1067,7 +1067,7 @@ describe("repository static contracts", () => {
     const runtimeGuardImports = [
       "disposeRuntimeErrorGuard",
       "expectNoRuntimeErrors",
-      "installRuntimeErrorGuard",
+      "installAppRuntimeErrorGuard",
     ] as const;
 
     for (const importedName of runtimeGuardImports) {
@@ -1076,7 +1076,7 @@ describe("repository static contracts", () => {
     }
 
     expect(appE2eSpec).toContain("test.beforeEach(async ({ page }) => {");
-    expect(appE2eSpec).toContain("installRuntimeErrorGuard(page);");
+    expect(appE2eSpec).toContain("installAppRuntimeErrorGuard(page);");
     expect(appE2eSpec).toContain("test.afterEach(async ({ page }) => {");
     expect(appE2eSpec).toContain("expectNoRuntimeErrors(page);");
     expect(appE2eSpec).toContain("disposeRuntimeErrorGuard(page);");

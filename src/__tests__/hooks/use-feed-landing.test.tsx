@@ -454,6 +454,74 @@ describe("useFeedLanding", () => {
     expect(useUiStore.getState().selectedArticleId).toBe("art-next");
   });
 
+  it("does not let an older feed list response select over the latest feed landing", async () => {
+    const firstFeeds = createDeferred<typeof sampleFeeds>();
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_feeds":
+          if (args.accountId === "acc-1") {
+            return firstFeeds.promise;
+          }
+          return listSampleFeedsByAccountId(args.accountId);
+        case "list_articles":
+          return [{ ...sampleArticles[0], id: "art-next", feed_id: args.feedId }];
+        default:
+          return undefined;
+      }
+    });
+
+    const { result, rerender } = renderHook(() => useFeedLanding(), {
+      wrapper: createWrapper(),
+    });
+
+    const firstPromise = result.current("feed-1");
+    await waitFor(() => {
+      expect(useUiStore.getState().selection).toEqual({ type: "all" });
+    });
+
+    useUiStore.setState({ selectedAccountId: "acc-2" });
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_feeds":
+          return [
+            {
+              ...sampleFeeds[0],
+              account_id: args.accountId,
+              id: "feed-next",
+              title: "Next Feed",
+            },
+          ];
+        case "list_articles":
+          return [{ ...sampleArticles[0], id: "art-next", feed_id: args.feedId }];
+        default:
+          return undefined;
+      }
+    });
+    rerender();
+
+    await act(async () => {
+      await result.current("feed-next");
+    });
+    await waitFor(() => {
+      expect(useUiStore.getState().selection).toEqual({
+        type: "feed",
+        feedId: "feed-next",
+      });
+      expect(useUiStore.getState().selectedArticleId).toBe("art-next");
+    });
+
+    await act(async () => {
+      firstFeeds.resolve(listSampleFeedsByAccountId("acc-1"));
+      await firstPromise;
+    });
+
+    expect(useUiStore.getState().selection).toEqual({
+      type: "feed",
+      feedId: "feed-next",
+    });
+    expect(useUiStore.getState().selectedArticleId).toBe("art-next");
+  });
+
   it("returns a fallback failure message when the fetch error message getter throws", async () => {
     const unsafeError = {
       type: "UserVisible",

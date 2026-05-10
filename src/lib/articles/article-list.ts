@@ -16,7 +16,7 @@ import type { ViewMode } from "@/lib/reader/view-mode.types";
 
 export const MAX_RETAINED_ARTICLES_SNAPSHOT_SIZE = 50;
 
-type SelectVisibleArticlesParams = {
+export type SelectVisibleArticlesParams = {
   articles: ArticleDto[] | undefined;
   accountArticles: ArticleDto[] | undefined;
   tagArticles: ArticleDto[] | undefined;
@@ -33,7 +33,7 @@ type SelectVisibleArticlesParams = {
   retainedArticleIds?: ReadonlySet<string>;
 };
 
-type GroupArticlesParams = {
+export type GroupArticlesParams = {
   articles: ArticleDto[];
   groupBy: string;
   feedNameMap: Map<string, string>;
@@ -41,7 +41,7 @@ type GroupArticlesParams = {
 
 export type ArticleGroupLabelToken = "today" | "yesterday" | "unknown_feed" | null;
 
-type CalculateArticleNavigationScrollTopParams = {
+export type CalculateArticleNavigationScrollTopParams = {
   currentScrollTop: number;
   viewportTop: number;
   viewportHeight: number;
@@ -58,7 +58,7 @@ export type RetainedArticlesSnapshot = {
   articles: ArticleDto[];
 };
 
-type ArticleListMarkAllReadCountParams = {
+export type ArticleListMarkAllReadCountParams = {
   selection: ReaderSelection;
   selectedFeedUnreadCount: number;
   folderUnreadCount: number;
@@ -213,10 +213,41 @@ export function areArticleListsEquivalent(left: ArticleDto[], right: ArticleDto[
   });
 }
 
-export function collectRetainedArticlesFromSources(params: {
+export type CollectRetainedArticlesFromSourcesParams = {
   retainedArticleIds: ReadonlySet<string>;
   sources: Array<ArticleDto[] | undefined>;
-}): ArticleDto[] {
+};
+
+export type MergeRetainedArticlesSnapshotParams = {
+  previous: RetainedArticlesSnapshot | null;
+  contextKey: string;
+  retainedArticleIds: ReadonlySet<string>;
+  currentRetainedArticles: ArticleDto[];
+};
+
+export type MergeResolvedArticlesWithRetainedParams = {
+  resolvedPrimarySourceArticles: ArticleDto[] | undefined;
+  retainedArticlesSnapshot: RetainedArticlesSnapshot | null;
+  retainedArticleIds: ReadonlySet<string>;
+  contextKey: string;
+};
+
+export type ResolveEffectiveRetainedArticleIdsParams = {
+  sourcePlan?: ReaderSourcePlan;
+  sourceFilter?: ViewMode | null;
+  effectiveViewMode?: ViewMode;
+  retainedArticleIds: ReadonlySet<string>;
+  selectedArticleId: string | null;
+};
+
+export type BuildArticleGroupItemsParams = {
+  articles: ArticleDto[];
+  feedNameMap: Map<string, string>;
+  selectedArticleId: string | null;
+  recentlyReadIds: ReadonlySet<string>;
+};
+
+export function collectRetainedArticlesFromSources(params: CollectRetainedArticlesFromSourcesParams): ArticleDto[] {
   const { retainedArticleIds, sources } = params;
   if (retainedArticleIds.size === 0) {
     return [];
@@ -237,12 +268,9 @@ export function collectRetainedArticlesFromSources(params: {
   return [...merged.values()];
 }
 
-export function mergeRetainedArticlesSnapshot(params: {
-  previous: RetainedArticlesSnapshot | null;
-  contextKey: string;
-  retainedArticleIds: ReadonlySet<string>;
-  currentRetainedArticles: ArticleDto[];
-}): RetainedArticlesSnapshot | null {
+export function mergeRetainedArticlesSnapshot(
+  params: MergeRetainedArticlesSnapshotParams,
+): RetainedArticlesSnapshot | null {
   const { previous, contextKey, retainedArticleIds, currentRetainedArticles } = params;
   const cappedRetainedArticleIds = [...retainedArticleIds].slice(-MAX_RETAINED_ARTICLES_SNAPSHOT_SIZE);
   const preservedArticles =
@@ -287,12 +315,9 @@ export function buildArticleListSourcePlanKey(sourcePlan: ReaderSourcePlan): str
   );
 }
 
-export function mergeResolvedArticlesWithRetained(params: {
-  resolvedPrimarySourceArticles: ArticleDto[] | undefined;
-  retainedArticlesSnapshot: RetainedArticlesSnapshot | null;
-  retainedArticleIds: ReadonlySet<string>;
-  contextKey: string;
-}): ArticleDto[] | undefined {
+export function mergeResolvedArticlesWithRetained(
+  params: MergeResolvedArticlesWithRetainedParams,
+): ArticleDto[] | undefined {
   const { resolvedPrimarySourceArticles, retainedArticlesSnapshot, retainedArticleIds, contextKey } = params;
   if (retainedArticleIds.size === 0 || resolvedPrimarySourceArticles === undefined) {
     return resolvedPrimarySourceArticles;
@@ -413,13 +438,9 @@ export function resolveArticleListMarkAllReadCount(params: ArticleListMarkAllRea
   return getUnreadArticleIds(filteredArticles).length;
 }
 
-export function resolveEffectiveRetainedArticleIds(params: {
-  sourcePlan?: ReaderSourcePlan;
-  sourceFilter?: ViewMode | null;
-  effectiveViewMode?: ViewMode;
-  retainedArticleIds: ReadonlySet<string>;
-  selectedArticleId: string | null;
-}): ReadonlySet<string> {
+export function resolveEffectiveRetainedArticleIds(
+  params: ResolveEffectiveRetainedArticleIdsParams,
+): ReadonlySet<string> {
   const sourceFilter = params.sourceFilter ?? params.sourcePlan?.query?.filter ?? null;
   const effectiveViewMode = params.effectiveViewMode ?? params.sourcePlan?.effectiveViewMode;
   const { retainedArticleIds, selectedArticleId } = params;
@@ -466,12 +487,7 @@ export function resolveArticleGroupLabelToken(groupLabel: string): ArticleGroupL
   return null;
 }
 
-export function buildArticleGroupItems(params: {
-  articles: ArticleDto[];
-  feedNameMap: Map<string, string>;
-  selectedArticleId: string | null;
-  recentlyReadIds: ReadonlySet<string>;
-}) {
+export function buildArticleGroupItems(params: BuildArticleGroupItemsParams) {
   const { articles, feedNameMap, selectedArticleId, recentlyReadIds } = params;
 
   return articles.map((article) => ({

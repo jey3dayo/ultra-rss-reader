@@ -544,6 +544,60 @@ mod tests {
     }
 
     #[test]
+    fn flattens_nested_folder_policy_to_nearest_folder_and_skips_empty_folders() {
+        let xml = r#"<?xml version="1.0"?>
+<opml version="2.0">
+  <body>
+    <outline text="Root">
+      <outline text="Empty Folder"/>
+      <outline text="Child">
+        <outline text="Grandchild">
+          <outline text="Deep Feed" xmlUrl="https://example.com/deep.xml"/>
+        </outline>
+        <outline text="Feed With Children" xmlUrl="https://example.com/with-children.xml">
+          <outline text="Ignored Child" xmlUrl="https://example.com/ignored-child.xml"/>
+        </outline>
+      </outline>
+    </outline>
+    <outline text="Top Feed" xmlUrl="https://example.com/top.xml"/>
+  </body>
+</opml>"#;
+
+        let feeds = parse_opml(xml).unwrap();
+
+        assert_eq!(
+            feeds
+                .iter()
+                .map(|feed| {
+                    (
+                        feed.title.as_str(),
+                        feed.xml_url.as_str(),
+                        feed.folder.as_deref(),
+                    )
+                })
+                .collect::<Vec<_>>(),
+            vec![
+                (
+                    "Deep Feed",
+                    "https://example.com/deep.xml",
+                    Some("Grandchild"),
+                ),
+                (
+                    "Feed With Children",
+                    "https://example.com/with-children.xml",
+                    Some("Child"),
+                ),
+                (
+                    "Ignored Child",
+                    "https://example.com/ignored-child.xml",
+                    Some("Child"),
+                ),
+                ("Top Feed", "https://example.com/top.xml", None),
+            ],
+        );
+    }
+
+    #[test]
     fn keeps_folder_for_sibling_after_non_empty_feed_outline() {
         let xml = r#"<?xml version="1.0"?>
 <opml version="2.0">

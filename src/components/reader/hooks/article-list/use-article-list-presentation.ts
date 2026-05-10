@@ -4,7 +4,7 @@ import { useArticleListHeaderController } from "@/components/reader/hooks/articl
 import { useArticleListInteractions } from "@/components/reader/hooks/article-list/use-article-list-interactions";
 import { useArticleListViewProps } from "@/components/reader/hooks/article-list/use-article-list-view-props";
 import { useArticleListViewState } from "@/components/reader/hooks/article-list/use-article-list-view-state";
-import type { UseArticleListPresentationParams, UseArticleListViewPropsResult } from "../../article-list.types";
+import type { UseArticleListPresentationParams, UseArticleListViewPropsResult } from "./article-list-controller.types";
 
 export function useArticleListPresentation({
   t,

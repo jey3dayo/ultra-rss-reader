@@ -962,19 +962,47 @@ fn normalize_item_id(id: &str) -> String {
 mod tests {
     use super::*;
     use crate::commands::dto::AppError;
+    use std::borrow::Cow;
 
     struct ProviderHttpResponseFixture<'a> {
         status: usize,
         headers: &'a [(&'a str, &'a str)],
-        body: &'static str,
+        body: Cow<'a, str>,
     }
 
-    impl ProviderHttpResponseFixture<'_> {
+    impl<'a> ProviderHttpResponseFixture<'a> {
         fn ok(body: &'static str) -> ProviderHttpResponseFixture<'static> {
             ProviderHttpResponseFixture {
                 status: 200,
                 headers: &[],
-                body,
+                body: Cow::Borrowed(body),
+            }
+        }
+
+        fn json(body: &'static str) -> ProviderHttpResponseFixture<'static> {
+            Self::ok(body).with_headers(&[("content-type", "application/json")])
+        }
+
+        fn malformed_json() -> ProviderHttpResponseFixture<'static> {
+            Self::json(r#"{ "items": ["#)
+        }
+
+        fn item_refs_page(
+            item_ids: &[&str],
+            continuation: Option<&str>,
+        ) -> ProviderHttpResponseFixture<'static> {
+            let item_refs = item_ids
+                .iter()
+                .map(|id| format!(r#"{{ "id": "{id}" }}"#))
+                .collect::<Vec<_>>()
+                .join(", ");
+            let continuation = continuation
+                .map(|value| format!(r#", "continuation": "{value}""#))
+                .unwrap_or_default();
+            ProviderHttpResponseFixture {
+                status: 200,
+                headers: &[("content-type", "application/json")],
+                body: Cow::Owned(format!(r#"{{ "itemRefs": [{item_refs}]{continuation} }}"#)),
             }
         }
 
@@ -982,14 +1010,11 @@ mod tests {
             ProviderHttpResponseFixture {
                 status,
                 headers: &[],
-                body: "",
+                body: Cow::Borrowed(""),
             }
         }
 
-        fn with_headers<'a>(
-            self,
-            headers: &'a [(&'a str, &'a str)],
-        ) -> ProviderHttpResponseFixture<'a> {
+        fn with_headers(self, headers: &'a [(&'a str, &'a str)]) -> Self {
             ProviderHttpResponseFixture {
                 status: self.status,
                 headers,
@@ -1013,7 +1038,8 @@ mod tests {
         response: ProviderHttpResponseFixture<'_>,
     ) -> mockito::Mock {
         response.headers.iter().fold(
-            mock.with_status(response.status).with_body(response.body),
+            mock.with_status(response.status)
+                .with_body(response.body.as_ref()),
             |mock, (name, value)| mock.with_header(*name, value),
         )
     }
@@ -1890,8 +1916,7 @@ mod tests {
                 ),
             )
             .match_header("Authorization", "GoogleLogin auth=tok")
-            .with_status(200)
-            .with_body(
+            .with_greader_response(ProviderHttpResponseFixture::json(
                 r#"{
                     "items": [
                         {
@@ -1921,7 +1946,7 @@ mod tests {
                     ],
                     "continuation": "page2token"
                 }"#,
-            )
+            ))
             .create_async()
             .await;
 
@@ -2520,8 +2545,9 @@ mod tests {
                 mockito::Matcher::UrlEncoded("c".into(), "same-page".into()),
             ]))
             .match_header("Authorization", "GoogleLogin auth=tok")
-            .with_status(200)
-            .with_body(r#"{ "items": [], "continuation": "same-page" }"#)
+            .with_greader_response(ProviderHttpResponseFixture::json(
+                r#"{ "items": [], "continuation": "same-page" }"#,
+            ))
             .create_async()
             .await;
 
@@ -2552,6 +2578,47 @@ mod tests {
             result.next_cursor.and_then(|cursor| cursor.continuation),
             None
         );
+        stream_mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn pull_entries_surfaces_malformed_json_fixture_error() {
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_greader_response(ProviderHttpResponseFixture::ok("Auth=tok\n"))
+            .create_async()
+            .await;
+
+        let stream_mock = server
+            .mock(
+                "GET",
+                mockito::Matcher::Regex(
+                    r"/api/greader.php/reader/api/0/stream/contents/.*".to_string(),
+                ),
+            )
+            .match_query(mockito::Matcher::AllOf(vec![
+                mockito::Matcher::UrlEncoded("output".into(), "json".into()),
+                mockito::Matcher::UrlEncoded("n".into(), "200".into()),
+            ]))
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_greader_response(ProviderHttpResponseFixture::malformed_json())
+            .create_async()
+            .await;
+
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
+        provider
+            .authenticate(&Credentials {
+                password: Some("p".into()),
+                token: Some("u".into()),
+            })
+            .await
+            .unwrap();
+
+        provider
+            .pull_entries(PullScope::All, None)
+            .await
+            .expect_err("malformed provider JSON should surface a parse error");
         stream_mock.assert_async().await;
     }
 
@@ -2626,8 +2693,10 @@ mod tests {
                 mockito::Matcher::UrlEncoded("s".into(), STATE_READ.into()),
             ]))
             .match_header("Authorization", "GoogleLogin auth=tok")
-            .with_status(200)
-            .with_body(r#"{ "itemRefs": [{ "id": "1" }], "continuation": "read-next" }"#)
+            .with_greader_response(ProviderHttpResponseFixture::item_refs_page(
+                &["1"],
+                Some("read-next"),
+            ))
             .create_async()
             .await;
 
@@ -2640,8 +2709,7 @@ mod tests {
                 mockito::Matcher::UrlEncoded("c".into(), "read-next".into()),
             ]))
             .match_header("Authorization", "GoogleLogin auth=tok")
-            .with_status(200)
-            .with_body(r#"{ "itemRefs": [{ "id": "2" }] }"#)
+            .with_greader_response(ProviderHttpResponseFixture::item_refs_page(&["2"], None))
             .create_async()
             .await;
 
@@ -2653,8 +2721,10 @@ mod tests {
                 mockito::Matcher::UrlEncoded("s".into(), STATE_STARRED.into()),
             ]))
             .match_header("Authorization", "GoogleLogin auth=tok")
-            .with_status(200)
-            .with_body(r#"{ "itemRefs": [{ "id": "3" }], "continuation": "star-next" }"#)
+            .with_greader_response(ProviderHttpResponseFixture::item_refs_page(
+                &["3"],
+                Some("star-next"),
+            ))
             .create_async()
             .await;
 
@@ -2667,8 +2737,7 @@ mod tests {
                 mockito::Matcher::UrlEncoded("c".into(), "star-next".into()),
             ]))
             .match_header("Authorization", "GoogleLogin auth=tok")
-            .with_status(200)
-            .with_body(r#"{ "itemRefs": [{ "id": "4" }] }"#)
+            .with_greader_response(ProviderHttpResponseFixture::item_refs_page(&["4"], None))
             .create_async()
             .await;
 

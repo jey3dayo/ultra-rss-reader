@@ -23,9 +23,23 @@ fn should_rebuild_menu_after_saved_preference(key: &str) -> bool {
     key == "language"
 }
 
-fn saved_language_menu_update_error(error: impl std::fmt::Display) -> AppError {
-    AppError::UserVisible {
-        message: format!("Saved language, but failed to update the application menu: {error}"),
+fn saved_preference_apply_after_save_error(key: &str, error: impl std::fmt::Display) -> AppError {
+    let message = match key {
+        "language" => format!("Saved language, but failed to update the application menu: {error}"),
+        "debug_browser_hud" => {
+            format!("Saved debug browser HUD preference, but failed to update browser diagnostics: {error}")
+        }
+        _ => {
+            format!("Saved preference {key}, but failed to apply its runtime side effect: {error}")
+        }
+    };
+
+    AppError::UserVisible { message }
+}
+
+fn apply_saved_preference_runtime_side_effect(key: &str, value: &str) {
+    if key == "debug_browser_hud" {
+        set_browser_webview_diagnostics_enabled(value == "true");
     }
 }
 
@@ -44,17 +58,11 @@ fn save_preference_value(
     }
 }
 
-fn apply_saved_preference_runtime_side_effect(key: &str, value: &str) {
-    if key == "debug_browser_hud" {
-        set_browser_webview_diagnostics_enabled(value == "true");
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::{
         apply_saved_preference_runtime_side_effect, save_preference_value,
-        saved_language_menu_update_error, should_rebuild_menu_after_saved_preference,
+        saved_preference_apply_after_save_error, should_rebuild_menu_after_saved_preference,
         validate_preference_input,
     };
     use crate::browser_webview::{
@@ -103,6 +111,24 @@ mod tests {
     }
 
     #[test]
+    fn save_preference_accepts_duplicate_shortcut_values_as_settings_collision_responsibility() {
+        let db = DbManager::new_in_memory().unwrap();
+        let repo = SqlitePreferenceRepository::new(db.writer());
+
+        save_preference_value(&repo, "shortcut_next_article", "x").unwrap();
+        save_preference_value(&repo, "shortcut_prev_article", "x").unwrap();
+
+        assert_eq!(
+            repo.get("shortcut_next_article").unwrap().as_deref(),
+            Some("x")
+        );
+        assert_eq!(
+            repo.get("shortcut_prev_article").unwrap().as_deref(),
+            Some("x")
+        );
+    }
+
+    #[test]
     fn allows_known_shortcut_preference_keys() {
         assert!(is_allowed_preference_key("shortcut_next_article"));
         assert!(is_allowed_preference_key("shortcut_open_command_palette"));
@@ -111,6 +137,7 @@ mod tests {
     #[test]
     fn rejects_unknown_shortcut_preference_keys() {
         assert!(!is_allowed_preference_key("shortcut_unknown_action"));
+        assert!(!is_allowed_preference_key("shortcut_view_in_browser"));
         assert!(!is_allowed_preference_key("shortcut_"));
     }
 
@@ -203,18 +230,29 @@ mod tests {
     }
 
     #[test]
-    fn language_menu_update_failure_reports_saved_preference_context() {
-        let error = saved_language_menu_update_error("menu unavailable");
+    fn apply_after_save_failure_message_is_classified_by_preference_key() {
+        let language_error =
+            saved_preference_apply_after_save_error("language", "menu unavailable");
+        let debug_hud_error =
+            saved_preference_apply_after_save_error("debug_browser_hud", "diagnostics unavailable");
+        let future_error =
+            saved_preference_apply_after_save_error("future_runtime_pref", "runtime unavailable");
 
-        match error {
-            AppError::UserVisible { message } => {
-                assert_eq!(
-                    message,
-                    "Saved language, but failed to update the application menu: menu unavailable"
-                );
-            }
-            other => panic!("unexpected error category: {other:?}"),
-        }
+        assert!(matches!(
+            language_error,
+            AppError::UserVisible { ref message }
+                if message == "Saved language, but failed to update the application menu: menu unavailable"
+        ));
+        assert!(matches!(
+            debug_hud_error,
+            AppError::UserVisible { ref message }
+                if message == "Saved debug browser HUD preference, but failed to update browser diagnostics: diagnostics unavailable"
+        ));
+        assert!(matches!(
+            future_error,
+            AppError::UserVisible { ref message }
+                if message == "Saved preference future_runtime_pref, but failed to apply its runtime side effect: runtime unavailable"
+        ));
     }
 }
 
@@ -239,7 +277,8 @@ pub fn set_preference(
     drop(db);
 
     if let Some(prefs) = prefs {
-        crate::menu::rebuild(&app, &prefs).map_err(saved_language_menu_update_error)?;
+        crate::menu::rebuild(&app, &prefs)
+            .map_err(|error| saved_preference_apply_after_save_error(&key, error))?;
     }
 
     apply_saved_preference_runtime_side_effect(&key, &value);

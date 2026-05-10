@@ -1,5 +1,6 @@
 //! End-to-end integration test: add local feed -> sync -> read articles
 
+use std::borrow::Cow;
 use std::sync::atomic::AtomicBool;
 use std::sync::Mutex;
 
@@ -31,6 +32,62 @@ use ultra_rss_reader_lib::service::sync_flow;
 struct PasswordCleanup {
     account_id: String,
     expected_password: String,
+}
+
+struct ProviderHttpResponseFixture<'a> {
+    status: usize,
+    headers: &'a [(&'a str, &'a str)],
+    body: Cow<'a, str>,
+}
+
+impl<'a> ProviderHttpResponseFixture<'a> {
+    fn status(status: usize) -> Self {
+        Self {
+            status,
+            headers: &[],
+            body: Cow::Borrowed(""),
+        }
+    }
+
+    fn body(mut self, body: impl Into<Cow<'a, str>>) -> Self {
+        self.body = body.into();
+        self
+    }
+
+    fn headers(mut self, headers: &'a [(&'a str, &'a str)]) -> Self {
+        self.headers = headers;
+        self
+    }
+
+    fn ok(body: &'static str) -> ProviderHttpResponseFixture<'static> {
+        ProviderHttpResponseFixture::status(200).body(body)
+    }
+
+    fn json(body: &'static str) -> ProviderHttpResponseFixture<'static> {
+        Self::ok(body).headers(&[("content-type", "application/json")])
+    }
+
+    fn auth_token() -> ProviderHttpResponseFixture<'static> {
+        Self::ok("Auth=tok\n")
+    }
+
+    fn empty_item_refs() -> ProviderHttpResponseFixture<'static> {
+        Self::json(r#"{ "itemRefs": [] }"#)
+    }
+}
+
+trait ProviderMockResponseExt {
+    fn with_provider_response(self, response: ProviderHttpResponseFixture<'_>) -> Self;
+}
+
+impl ProviderMockResponseExt for mockito::Mock {
+    fn with_provider_response(self, response: ProviderHttpResponseFixture<'_>) -> Self {
+        response.headers.iter().fold(
+            self.with_status(response.status)
+                .with_body(response.body.as_ref()),
+            |mock, (name, value)| mock.with_header(*name, value),
+        )
+    }
 }
 
 impl Drop for PasswordCleanup {
@@ -262,24 +319,23 @@ async fn freshrss_sync_preserves_local_like_feed_read_state() {
 
     server
         .mock("POST", "/api/greader.php/accounts/ClientLogin")
-        .with_status(200)
-        .with_body("Auth=tok\n")
+        .with_provider_response(ProviderHttpResponseFixture::auth_token())
         .create_async()
         .await;
 
     let folders_mock = server
         .mock("GET", "/api/greader.php/reader/api/0/tag/list")
         .match_query(Matcher::UrlEncoded("output".into(), "json".into()))
-        .with_status(200)
-        .with_body(r#"{ "tags": [] }"#)
+        .with_provider_response(ProviderHttpResponseFixture::json(r#"{ "tags": [] }"#))
         .create_async()
         .await;
 
     let subscriptions_mock = server
         .mock("GET", "/api/greader.php/reader/api/0/subscription/list")
         .match_query(Matcher::UrlEncoded("output".into(), "json".into()))
-        .with_status(200)
-        .with_body(r#"{ "subscriptions": [] }"#)
+        .with_provider_response(ProviderHttpResponseFixture::json(
+            r#"{ "subscriptions": [] }"#,
+        ))
         .create_async()
         .await;
 
@@ -290,8 +346,7 @@ async fn freshrss_sync_preserves_local_like_feed_read_state() {
             Matcher::UrlEncoded("n".into(), "10000".into()),
             Matcher::UrlEncoded("s".into(), "user/-/state/com.google/read".into()),
         ]))
-        .with_status(200)
-        .with_body(r#"{ "itemRefs": [] }"#)
+        .with_provider_response(ProviderHttpResponseFixture::empty_item_refs())
         .create_async()
         .await;
 
@@ -302,8 +357,7 @@ async fn freshrss_sync_preserves_local_like_feed_read_state() {
             Matcher::UrlEncoded("n".into(), "10000".into()),
             Matcher::UrlEncoded("s".into(), "user/-/state/com.google/starred".into()),
         ]))
-        .with_status(200)
-        .with_body(r#"{ "itemRefs": [] }"#)
+        .with_provider_response(ProviderHttpResponseFixture::empty_item_refs())
         .create_async()
         .await;
 
@@ -313,8 +367,9 @@ async fn freshrss_sync_preserves_local_like_feed_read_state() {
             Matcher::UrlEncoded("output".into(), "json".into()),
             Matcher::UrlEncoded("all".into(), "true".into()),
         ]))
-        .with_status(200)
-        .with_body(r#"{ "unreadcounts": [] }"#)
+        .with_provider_response(ProviderHttpResponseFixture::json(
+            r#"{ "unreadcounts": [] }"#,
+        ))
         .create_async()
         .await;
 

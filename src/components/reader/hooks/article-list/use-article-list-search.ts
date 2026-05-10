@@ -2,7 +2,7 @@ import { useCallback, useEffect, useReducer, useRef } from "react";
 import { ARTICLE_SEARCH_DEBOUNCE_MS } from "@/constants/reader";
 import { resolveArticleSearchQueryOwner, useSearchArticles } from "@/hooks/use-articles";
 import { scheduleReaderFocusFrame } from "@/lib/reader-focus";
-import type { UseArticleListSearchParams, UseArticleListSearchResult } from "../../article-list.types";
+import type { UseArticleListSearchParams, UseArticleListSearchResult } from "./article-list-controller.types";
 
 type ArticleListSearchState = {
   showSearch: boolean;

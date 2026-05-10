@@ -124,6 +124,14 @@ export function useFeedLanding() {
             } satisfies FeedLandingFailure);
           }
 
+          if (!isLatestFeedMutation({ latestRequestIdRef }, requestId)) {
+            return Result.fail({
+              type: "landing_fetch_failed",
+              feedId,
+              message: "Stale feed landing request",
+            } satisfies FeedLandingFailure);
+          }
+
           const preserveStarredContext =
             store.viewMode === "starred" || (store.selection.type === "smart" && store.selection.kind === "starred");
 

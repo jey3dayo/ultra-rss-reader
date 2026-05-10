@@ -319,6 +319,9 @@ async function detectOpenDevDatabaseHandles(options: {
 function assertSafeDevTarget(plan: SeedPlan): void {
   const prodBaseName = path.basename(path.resolve(plan.prodAppDataDir));
   const devBaseName = path.basename(path.resolve(plan.devAppDataDir));
+  const backupBaseDir = path.resolve(plan.devAppDataDir, "backups");
+  const backupDir = path.resolve(plan.backupDir);
+  const stagingDir = path.resolve(plan.stagingDir);
 
   if (prodBaseName === DEV_APP_IDENTIFIER) {
     throw new Error("Refusing to seed from a Dev app data directory.");
@@ -332,6 +335,14 @@ function assertSafeDevTarget(plan: SeedPlan): void {
     throw new Error("Refusing to seed when source and destination artifacts overlap.");
   }
 
+  if (path.dirname(backupDir) !== backupBaseDir) {
+    throw new Error("Refusing to write backups outside the Dev backup directory.");
+  }
+
+  if (path.dirname(stagingDir) !== backupBaseDir) {
+    throw new Error("Refusing to stage artifacts outside the Dev backup directory.");
+  }
+
   for (const artifact of plan.artifacts) {
     if (path.dirname(path.resolve(artifact.source)) !== path.resolve(plan.prodAppDataDir)) {
       throw new Error("Refusing to seed from an artifact outside the production app data directory.");
@@ -341,12 +352,28 @@ function assertSafeDevTarget(plan: SeedPlan): void {
       throw new Error("Refusing to clean up an artifact outside the Dev app data directory.");
     }
 
+    if (path.dirname(path.resolve(artifact.backup)) !== backupDir) {
+      throw new Error("Refusing to write a backup artifact outside the selected backup directory.");
+    }
+
+    if (path.dirname(path.resolve(artifact.staging)) !== stagingDir) {
+      throw new Error("Refusing to write a staging artifact outside the selected staging directory.");
+    }
+
     if (!artifact.source.endsWith(`${DATABASE_FILE_NAME}${artifact.suffix}`)) {
       throw new Error("Refusing to copy a non-database source artifact.");
     }
 
     if (!artifact.destination.endsWith(`${DATABASE_FILE_NAME}${artifact.suffix}`)) {
       throw new Error("Refusing to replace a non-database Dev artifact.");
+    }
+
+    if (!artifact.backup.endsWith(`${DATABASE_FILE_NAME}${artifact.suffix}`)) {
+      throw new Error("Refusing to back up a non-database Dev artifact.");
+    }
+
+    if (!artifact.staging.endsWith(`${DATABASE_FILE_NAME}${artifact.suffix}`)) {
+      throw new Error("Refusing to stage a non-database source artifact.");
     }
   }
 }
@@ -404,6 +431,12 @@ async function seedDevDatabaseFromProdPlan(
 
   await assertNotSymlink(plan.prodAppDataDir, accessImpl, lstatImpl);
   await assertNotSymlink(plan.devAppDataDir, accessImpl, lstatImpl);
+  await assertNotSymlink(plan.backupDir, accessImpl, lstatImpl);
+  await assertNotSymlink(plan.stagingDir, accessImpl, lstatImpl);
+
+  if (await fileExists(plan.backupDir, accessImpl)) {
+    throw new Error(`Backup directory already exists, refusing to overwrite it: ${plan.backupDir}`);
+  }
 
   const sourceArtifacts = (
     await Promise.all(
@@ -440,6 +473,7 @@ async function seedDevDatabaseFromProdPlan(
           }
 
           await assertNotSymlink(artifact.destination, accessImpl, lstatImpl);
+          await assertNotSymlink(artifact.backup, accessImpl, lstatImpl);
           await accessImpl(artifact.destination, fsConstants.R_OK);
           await copyFileImpl(artifact.destination, artifact.backup);
           return artifact;

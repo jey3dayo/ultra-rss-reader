@@ -2,7 +2,7 @@ import { renderHook } from "@testing-library/react";
 import { sampleArticles, sampleFeeds } from "@tests/helpers/fixtures";
 import { describe, expect, it } from "vitest";
 import type { ArticleDto } from "@/api/tauri-commands";
-import type { UseArticleListDataParams } from "@/components/reader/article-list.types";
+import type { UseArticleListDataParams } from "@/components/reader/hooks/article-list/article-list-controller.types";
 import { useArticleListData } from "@/components/reader/hooks/article-list/use-article-list-data";
 import type { ReaderFilter, ReaderSourcePlan } from "@/lib/reader/reader-query";
 

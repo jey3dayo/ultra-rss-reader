@@ -58,6 +58,11 @@ describe("DataSettingsView", () => {
     expect(screen.getByRole("heading", { name: "Data" })).toBeInTheDocument();
     expect(screen.getByText("1.50 MB")).toHaveClass("text-foreground-soft");
     expect(screen.getByRole("heading", { name: "Backup and Restore" })).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "OPML import flattens nested folders to the deepest folder name for each feed. Empty folder outlines are skipped.",
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByText("Use OPML export.")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Recovery action criteria" })).toBeInTheDocument();
     expect(screen.getByText(/Clean up orphaned data/)).toHaveClass("font-medium");

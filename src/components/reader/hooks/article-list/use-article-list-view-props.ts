@@ -1,5 +1,5 @@
 import { useArticleListBodyProps } from "@/components/reader/hooks/article-list/use-article-list-body-props";
-import type { UseArticleListViewPropsParams, UseArticleListViewPropsResult } from "../../article-list.types";
+import type { UseArticleListViewPropsParams, UseArticleListViewPropsResult } from "./article-list-controller.types";
 
 export function useArticleListViewProps({
   t,

@@ -7,7 +7,7 @@ import {
   selectVisibleArticles,
 } from "@/lib/articles/article-list";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
-import type { UseArticleListDataParams, UseArticleListDataResult } from "../../article-list.types";
+import type { UseArticleListDataParams, UseArticleListDataResult } from "./article-list-controller.types";
 
 export function useArticleListData({
   feedId,

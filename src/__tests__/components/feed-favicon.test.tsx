@@ -147,6 +147,24 @@ describe("FeedFavicon", () => {
     expect(retryImage).toHaveAttribute("src", "https://www.google.com/s2/favicons?domain=next.example.com&sz=32");
   });
 
+  it("retries favicon loading when the site URL changes after a failure even if the host is unchanged", () => {
+    const { container, rerender } = render(
+      <FeedFavicon title="Gamma" url="https://example.com/feed.xml" siteUrl="https://example.com" />,
+    );
+
+    const image = container.querySelector("img");
+    expect(image).toHaveAttribute("src", "https://www.google.com/s2/favicons?domain=example.com&sz=32");
+
+    fireEvent.error(image as HTMLImageElement);
+
+    expect(screen.getByText("G")).toHaveAttribute("aria-hidden", "true");
+
+    rerender(<FeedFavicon title="Gamma" url="https://example.com/feed.xml" siteUrl="https://example.com/updated" />);
+
+    const retryImage = container.querySelector("img");
+    expect(retryImage).toHaveAttribute("src", "https://www.google.com/s2/favicons?domain=example.com&sz=32");
+  });
+
   it("applies grayscale only to resolved favicon images", () => {
     const { container } = render(
       <FeedFavicon title="Delta" url="https://example.com/feed.xml" siteUrl="https://example.com" grayscale />,

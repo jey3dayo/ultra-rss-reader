@@ -127,6 +127,16 @@ export function compactCommandHistory(entries: readonly string[], id: string): s
 
 export function normalizeCommandHistoryForExistingEntries(existingEntryKeys: ReadonlySet<string>): string[] {
   const history = getHistory();
+  const next = projectCommandHistoryForExistingEntries(history, existingEntryKeys);
+
+  writeNormalizedHistoryAfterResourceProjection(history, next);
+  return next;
+}
+
+export function projectCommandHistoryForExistingEntries(
+  history: readonly string[],
+  existingEntryKeys: ReadonlySet<string>,
+): string[] {
   const next: string[] = [];
   const projectedEntryKeys = new Set<string>();
 
@@ -145,11 +155,13 @@ export function normalizeCommandHistoryForExistingEntries(existingEntryKeys: Rea
     next.push(historyEntry);
   }
 
-  writeNormalizedHistoryAfterResourceProjection(history, next);
   return next;
 }
 
-function writeNormalizedHistoryAfterResourceProjection(previous: readonly string[], next: readonly string[]): void {
+export function writeNormalizedHistoryAfterResourceProjection(
+  previous: readonly string[],
+  next: readonly string[],
+): void {
   if (previous.length === next.length && previous.every((entry, index) => entry === next[index])) {
     return;
   }
