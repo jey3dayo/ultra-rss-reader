@@ -75,11 +75,24 @@ Start the packaged app from a clean user data profile when possible, then repeat
 Confirm:
 
 - The first window appears without requiring a dev server or dev credentials path.
+- The main window opens on a visible display after disconnecting any external monitor used by the previous run.
+- Saved negative or off-screen window coordinates are not restored; the fallback is the platform default visible placement.
 - Existing accounts, preferences, and last selected reader state load without schema errors.
 - A migration failure message points to the backup location and tells the verifier to preserve logs before retrying.
 - Quitting and reopening the app does not require manual cleanup of `-wal` or `-shm` files.
 
-### 6. Packaged App Icon and Badge Verification
+### 6. App Data and Bundle Identifier Migration Policy
+
+Keep the release bundle identifier stable at `com.jey3dayo.ultra-rss-reader`.
+Changing it changes the OS-owned app data, log, and credential namespaces, so a release that changes the identifier must not ship without an explicit migration plan.
+
+Confirm before release:
+
+- `src-tauri/tauri.conf.json` and `src-tauri/tauri.release.conf.json` both use `com.jey3dayo.ultra-rss-reader`.
+- No automatic app data directory rename is attempted during normal startup.
+- If a future identifier change is required, the release plan documents old identifier detection, database copy or backup guidance, the fact that OS keyring credentials may need user re-entry, log path changes, and rollback steps.
+
+### 7. Packaged App Icon and Badge Verification
 
 Run the packaged app on the target OS. This is a visual OS integration check; do not change icon assets or icon design as part of this pass.
 
@@ -90,13 +103,14 @@ Confirm:
 - Runtime window icon replacement follows the selected light, dark, or system theme when the platform reports support for it.
 - Runtime icon or badge failures do not block startup, account sync, article reading, or later badge/theme updates.
 
-### 7. Log and Recovery Sanity Check
+### 8. Log and Recovery Sanity Check
 
 From the packaged build, use the in-app log-directory flow or `get_log_dir`.
 
 Confirm:
 
 - Release logs are written to disk.
+- Release log timestamps use the packaged app's local timezone policy (`TimezoneStrategy::UseLocal`). When sharing logs across timezones, record the verifier's OS timezone and local offset together with the log.
 - You can locate the logs needed for updater or sync troubleshooting.
 - The log-directory action opens the native folder without showing a raw path in the webview.
 - Any shared logs are redacted for credentials, tokens, cookies, and passwords.
@@ -116,5 +130,6 @@ Write down:
 - Whether packaged updater verification passed
 - Whether packaged app icon and badge verification passed
 - Where the supporting logs or screenshots were saved, if any
+- OS timezone and local offset for any shared release logs
 
 If something fails during this checklist, continue from [incident-runbook.md](./incident-runbook.md) instead of improvising ad-hoc recovery steps.

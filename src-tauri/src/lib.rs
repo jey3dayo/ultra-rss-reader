@@ -961,6 +961,7 @@ mod tests {
         let lib_rs = include_str!("lib.rs");
         let file_logging_design =
             include_str!("../../docs/superpowers/specs/2026-03-30-file-logging-design.md");
+        let release_manual = include_str!("../../docs/release-manual-verification.md");
 
         assert_eq!(RELEASE_LOG_MAX_FILE_SIZE_BYTES, 5_000_000);
         assert_eq!(RELEASE_LOG_RETENTION_DAYS, 7);
@@ -974,6 +975,8 @@ mod tests {
         assert!(file_logging_design.contains("7 days"));
         assert!(file_logging_design.contains("KeepAll"));
         assert!(file_logging_design.contains("TimezoneStrategy::UseLocal"));
+        assert!(release_manual.contains("TimezoneStrategy::UseLocal"));
+        assert!(release_manual.contains("OS timezone and local offset"));
     }
 
     #[test]
@@ -1074,6 +1077,7 @@ mod tests {
         let tauri_config = include_str!("../tauri.conf.json");
         let dev_tauri_config = include_str!("../tauri.dev.conf.json");
         let cargo_toml = include_str!("../Cargo.toml");
+        let release_manual = include_str!("../../docs/release-manual-verification.md");
 
         for config in [tauri_config, dev_tauri_config] {
             assert!(
@@ -1093,6 +1097,21 @@ mod tests {
             !cargo_toml.contains("tauri-plugin-window-state"),
             "window-state plugin would need monitor-safe restore guards before enabling"
         );
+        assert!(release_manual.contains("disconnecting any external monitor"));
+        assert!(release_manual.contains("Saved negative or off-screen window coordinates"));
+    }
+
+    #[test]
+    fn release_bundle_identifier_contract_matches_app_data_migration_policy() {
+        let tauri_config = include_str!("../tauri.conf.json");
+        let release_tauri_config = include_str!("../tauri.release.conf.json");
+        let release_manual = include_str!("../../docs/release-manual-verification.md");
+
+        assert!(tauri_config.contains("\"identifier\": \"com.jey3dayo.ultra-rss-reader\""));
+        assert!(release_tauri_config.contains("\"identifier\": \"com.jey3dayo.ultra-rss-reader\""));
+        assert!(release_manual.contains("Keep the release bundle identifier stable"));
+        assert!(release_manual.contains("No automatic app data directory rename"));
+        assert!(release_manual.contains("OS keyring credentials may need user re-entry"));
     }
 
     #[test]
