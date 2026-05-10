@@ -84,6 +84,23 @@ describe("DebugSettings", () => {
     expect(useUiStore.getState().settingsOpen).toBe(true);
   });
 
+  it("keeps debug recovery actions keyboard reachable and surfaces toast feedback", async () => {
+    const user = userEvent.setup();
+    const geometryCheckUrl = new URL("/dev-web-preview-geometry.html", window.location.origin).toString();
+
+    useUiStore.setState({ settingsOpen: true });
+
+    render(<DebugSettings />, { wrapper: createWrapper() });
+
+    screen.getByRole("button", { name: "Open toast check" }).focus();
+    await user.keyboard("{Enter}");
+
+    expect(useUiStore.getState().browserUrl).toBe(geometryCheckUrl);
+    expect(useUiStore.getState().contentMode).toBe("browser");
+    expect(useUiStore.getState().settingsOpen).toBe(false);
+    expect(useUiStore.getState().toastMessage).toEqual({ message: "Link copied" });
+  });
+
   it("opens the geometry check page instead of the old image viewer overlay flow", async () => {
     const user = userEvent.setup();
     const geometryCheckUrl = new URL("/dev-web-preview-geometry.html", window.location.origin).toString();

@@ -72,8 +72,10 @@ describe("ConfirmDialogView", () => {
           title="Confirm action"
           message="Run this action?"
           actionLabel="Run"
+          actionAccessibleLabel='Run "Work". This cannot be undone.'
           cancelLabel="Cancel"
           variant={variant}
+          confirmDisabled={variant === "destructive"}
           onOpenChange={vi.fn()}
           onConfirm={vi.fn()}
           onCancel={vi.fn()}
@@ -81,7 +83,12 @@ describe("ConfirmDialogView", () => {
       );
 
       expect(screen.getByTestId("confirm-dialog-icon-svg")).toHaveClass(iconClassName);
-      expect(screen.getByRole("button", { name: "Run" })).toHaveClass(actionClassName);
+      const actionButton = screen.getByRole("button", { name: 'Run "Work". This cannot be undone.' });
+      expect(actionButton).toHaveClass(actionClassName);
+      if (variant === "destructive") {
+        expect(actionButton).toBeDisabled();
+        expect(actionButton).toHaveAttribute("aria-busy", "true");
+      }
 
       unmount();
     });

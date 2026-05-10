@@ -12,6 +12,7 @@ type ConfirmDialogViewProps = {
   title: string;
   message: string;
   actionLabel: string;
+  actionAccessibleLabel?: string;
   cancelLabel: string;
   variant?: ConfirmDialogVariant;
   icon?: ConfirmDialogIcon;
@@ -60,6 +61,7 @@ export function ConfirmDialogView({
   title,
   message,
   actionLabel,
+  actionAccessibleLabel,
   cancelLabel,
   variant = "default",
   icon,
@@ -91,6 +93,8 @@ export function ConfirmDialogView({
             <Button
               onClick={onConfirm}
               disabled={confirmDisabled}
+              aria-label={actionAccessibleLabel}
+              aria-busy={confirmDisabled || undefined}
               variant={tone.actionButtonVariant}
               className={cn("min-h-11 w-full", tone.actionButtonClassName)}
             >

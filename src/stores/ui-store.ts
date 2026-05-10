@@ -133,9 +133,10 @@ type UiState = {
     open: boolean;
     message: string;
     actionLabel: string | null;
+    actionAccessibleLabel: string | null;
     variant: ConfirmDialogVariant;
     icon: ComponentType<{ className?: string }> | null;
-    onConfirm: (() => void) | null;
+    onConfirm: (() => void | Promise<void>) | null;
   };
 };
 
@@ -209,9 +210,10 @@ type UiActions = {
   clearRetainedArticles: () => void;
   showConfirm: (
     message: string,
-    onConfirm: () => void,
+    onConfirm: () => void | Promise<void>,
     options?: {
       actionLabel?: string;
+      actionAccessibleLabel?: string;
       variant?: ConfirmDialogVariant;
       icon?: ComponentType<{ className?: string }>;
     },
@@ -481,6 +483,7 @@ const initialState: UiState = {
     open: false,
     message: "",
     actionLabel: null,
+    actionAccessibleLabel: null,
     variant: "default",
     icon: null,
     onConfirm: null,
@@ -942,6 +945,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
         open: true,
         message,
         actionLabel: options?.actionLabel ?? null,
+        actionAccessibleLabel: options?.actionAccessibleLabel ?? null,
         variant: options?.variant ?? "default",
         icon: options?.icon ?? null,
         onConfirm,
@@ -953,6 +957,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
         open: false,
         message: "",
         actionLabel: null,
+        actionAccessibleLabel: null,
         variant: "default",
         icon: null,
         onConfirm: null,

@@ -9,19 +9,36 @@ export function AppConfirmDialog() {
   const closeConfirm = useUiStore((s) => s.closeConfirm);
   const [confirmInFlight, setConfirmInFlight] = useState(false);
   const confirmInFlightRef = useRef(false);
+  const restoreFocusElementRef = useRef<HTMLElement | null>(null);
+  const wasOpenRef = useRef(false);
 
   useEffect(() => {
+    if (confirmDialog.open && !wasOpenRef.current) {
+      restoreFocusElementRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    }
+
     if (!confirmDialog.open) {
       confirmInFlightRef.current = false;
       setConfirmInFlight(false);
+
+      if (wasOpenRef.current) {
+        const restoreFocusElement = restoreFocusElementRef.current;
+        queueMicrotask(() => {
+          if (restoreFocusElement && document.contains(restoreFocusElement)) {
+            restoreFocusElement.focus();
+          }
+        });
+      }
     }
+
+    wasOpenRef.current = confirmDialog.open;
   }, [confirmDialog.open]);
 
   const handleClose = useCallback(() => {
-    if (!confirmInFlight) {
+    if (!confirmInFlightRef.current) {
       closeConfirm();
     }
-  }, [closeConfirm, confirmInFlight]);
+  }, [closeConfirm]);
 
   const handleConfirm = useCallback(async () => {
     if (confirmInFlightRef.current) {
@@ -53,6 +70,7 @@ export function AppConfirmDialog() {
       title={t("confirm")}
       message={confirmDialog.message}
       actionLabel={confirmDialog.actionLabel ?? t("ok")}
+      actionAccessibleLabel={confirmDialog.actionAccessibleLabel ?? undefined}
       cancelLabel={t("cancel")}
       variant={confirmDialog.variant}
       icon={confirmDialog.icon}
