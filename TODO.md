@@ -239,16 +239,6 @@
   - dev/prod identifier が近く、seed script や keyring service 名が依存するため、config drift がデータ破壊につながりやすい
   - dev identifier、release identifier、app name、keyring service、data dir resolver の test を追加する
 
-- [ ] P2 Android/iOS icon assets の stale generated set を release smoke で検出する
-  - 対象: `src-tauri/icons`, `src-tauri/tauri.conf.json`, `tests/release-repo-contract.test.ts`
-  - desktop app でも mobile icon set が repo にあり、source icon 更新時に一部解像度だけ古いまま残ると package metadata が不整合になる
-  - required icon list、missing density、stale timestamp/hash policy、unused icon cleanup、tauri icon command note の contract を追加する
-
-- [ ] P2 CSS token と Storybook reference specimen の required token coverage を固定する
-  - 対象: `src/styles/global.css`, `src/components/storybook`, `src/__tests__/components/ui-reference-specimen-registry.test.ts`
-  - token 追加時に reference canvas へ specimen がないと、UI review で semantic token の実見た目を確認できない
-  - new semantic token、removed token、state token、surface token、reference specimen mapping の test を追加する
-
 - [ ] P2 Base UI wrapper の `data-slot` contract を primitive ごとに固定する
   - 対象: `src/components/ui`, `src/__tests__/components/ui-reference-settings-canvas.test.tsx`
   - UI reference tests が一部 slot を見るだけだと、wrapper refactor 時に `data-slot` が消えて design/debug tooling が壊れやすい

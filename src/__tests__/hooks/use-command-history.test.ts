@@ -10,15 +10,18 @@ import {
   writeNormalizedHistoryAfterResourceProjection,
 } from "@/components/reader/hooks/command-palette/use-command-history";
 import { MAX_COMMAND_HISTORY, MAX_COMMAND_HISTORY_STORAGE_LENGTH, STORAGE_KEYS } from "@/constants/storage";
+import { resetRuntimeDiagnosticOnceSuppressionForTests } from "@/lib/runtime/diagnostics";
 
 describe("use-command-history", () => {
   beforeEach(() => {
     resetCommandHistoryStorageFailureWarnings();
+    resetRuntimeDiagnosticOnceSuppressionForTests();
     localStorage.clear();
   });
 
   afterEach(() => {
     resetCommandHistoryStorageFailureWarnings();
+    resetRuntimeDiagnosticOnceSuppressionForTests();
     vi.restoreAllMocks();
   });
 
@@ -273,11 +276,17 @@ describe("use-command-history", () => {
 
     addToHistory("feed-1");
     addToHistory("feed-2");
+
+    expect(warn).toHaveBeenCalledWith("Failed to write command history to localStorage.", expect.any(Error));
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockClear();
+
     resetCommandHistoryStorageFailureWarnings();
+    resetRuntimeDiagnosticOnceSuppressionForTests();
     addToHistory("feed-3");
 
     expect(warn).toHaveBeenCalledWith("Failed to write command history to localStorage.", expect.any(Error));
-    expect(warn).toHaveBeenCalledTimes(2);
+    expect(warn).toHaveBeenCalledTimes(1);
   });
 
   it("warns once while repeated storage reads fail", () => {
