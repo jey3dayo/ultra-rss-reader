@@ -1,10 +1,21 @@
-use crate::commands::dto::{DevRuntimeOptionsDto, PlatformInfoDto};
+use crate::commands::dto::{
+    DevRuntimeOptionsDto, PlatformInfoDto, PlatformPermissionDeniedRecoveryDto,
+    PlatformPermissionDeniedSurfaceDto,
+};
 
 const DEV_INTENT_ENV_KEYS: [&str; 2] = ["VITE_DEV_INTENT", "VITE_ULTRA_RSS_DEV_INTENT"];
 const DEV_WEB_URL_ENV_KEYS: [&str; 2] = ["VITE_DEV_WEB_URL", "VITE_ULTRA_RSS_DEV_WEB_URL"];
 const DEV_WINDOW_WIDTH_ENV_KEYS: [&str; 1] = ["VITE_DEV_WINDOW_WIDTH"];
 const DEV_WINDOW_HEIGHT_ENV_KEYS: [&str; 1] = ["VITE_DEV_WINDOW_HEIGHT"];
 const MAX_DEV_WINDOW_DIMENSION_PX: u32 = 10_000;
+const FILE_PERMISSION_DENIED_COPY: &str =
+    "File access was denied. Choose a user-accessible folder and check OS privacy settings.";
+const DIALOG_PERMISSION_DENIED_COPY: &str =
+    "File dialog access was denied. Allow file dialog access in OS privacy settings and try again.";
+const KEYRING_PERMISSION_DENIED_COPY: &str =
+    "Credential storage access was denied. Unlock the OS keyring or allow Ultra RSS Reader access.";
+const CLIPBOARD_PERMISSION_DENIED_COPY: &str =
+    "Clipboard access was denied. Allow clipboard access for Ultra RSS Reader and try again.";
 
 fn read_first_non_empty_env(keys: &[&str]) -> Option<String> {
     keys.iter().find_map(|key| {
@@ -51,6 +62,32 @@ pub fn get_dev_runtime_options() -> DevRuntimeOptionsDto {
             &DEV_WINDOW_HEIGHT_ENV_KEYS,
         )),
     }
+}
+
+fn platform_permission_denied_recovery_matrix() -> Vec<PlatformPermissionDeniedRecoveryDto> {
+    vec![
+        PlatformPermissionDeniedRecoveryDto {
+            surface: PlatformPermissionDeniedSurfaceDto::File,
+            user_action_copy: FILE_PERMISSION_DENIED_COPY.to_string(),
+        },
+        PlatformPermissionDeniedRecoveryDto {
+            surface: PlatformPermissionDeniedSurfaceDto::Dialog,
+            user_action_copy: DIALOG_PERMISSION_DENIED_COPY.to_string(),
+        },
+        PlatformPermissionDeniedRecoveryDto {
+            surface: PlatformPermissionDeniedSurfaceDto::Keyring,
+            user_action_copy: KEYRING_PERMISSION_DENIED_COPY.to_string(),
+        },
+        PlatformPermissionDeniedRecoveryDto {
+            surface: PlatformPermissionDeniedSurfaceDto::Clipboard,
+            user_action_copy: CLIPBOARD_PERMISSION_DENIED_COPY.to_string(),
+        },
+    ]
+}
+
+#[tauri::command]
+pub fn get_platform_permission_denied_recovery() -> Vec<PlatformPermissionDeniedRecoveryDto> {
+    platform_permission_denied_recovery_matrix()
 }
 
 #[cfg(test)]
@@ -230,5 +267,28 @@ mod tests {
 
         assert_eq!(options.dev_window_width, None);
         assert_eq!(options.dev_window_height, None);
+    }
+
+    #[test]
+    fn platform_permission_denied_recovery_copy_is_action_specific() {
+        let recoveries = get_platform_permission_denied_recovery();
+        let surfaces = recoveries
+            .iter()
+            .map(|recovery| recovery.surface.clone())
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            surfaces,
+            vec![
+                PlatformPermissionDeniedSurfaceDto::File,
+                PlatformPermissionDeniedSurfaceDto::Dialog,
+                PlatformPermissionDeniedSurfaceDto::Keyring,
+                PlatformPermissionDeniedSurfaceDto::Clipboard,
+            ]
+        );
+        for recovery in recoveries {
+            assert!(recovery.user_action_copy.contains("denied"));
+            assert!(!recovery.user_action_copy.trim().is_empty());
+        }
     }
 }

@@ -66,6 +66,21 @@ pub struct DevRuntimeOptionsDto {
     pub dev_window_height: Option<u32>,
 }
 
+#[derive(Debug, Serialize, Clone, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum PlatformPermissionDeniedSurfaceDto {
+    File,
+    Dialog,
+    Keyring,
+    Clipboard,
+}
+
+#[derive(Debug, Serialize, Clone, PartialEq, Eq)]
+pub struct PlatformPermissionDeniedRecoveryDto {
+    pub surface: PlatformPermissionDeniedSurfaceDto,
+    pub user_action_copy: String,
+}
+
 impl From<crate::platform::PlatformInfo> for PlatformInfoDto {
     fn from(info: crate::platform::PlatformInfo) -> Self {
         let kind = match info.kind {

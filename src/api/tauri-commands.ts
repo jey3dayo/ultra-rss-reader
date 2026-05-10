@@ -83,6 +83,8 @@ import {
   oldUnreadArticlesArgs,
   openExternalUrlArgs,
   openInBrowserArgs,
+  type PlatformPermissionDeniedRecovery,
+  PlatformPermissionDeniedRecoveryListSchema,
   type PlatformInfo,
   PlatformInfoSchema,
   type PreferencesDto,
@@ -138,6 +140,7 @@ export type {
   MuteKeywordDto,
   OldUnreadDays,
   OldUnreadScopeKind,
+  PlatformPermissionDeniedRecovery,
   PlatformInfo,
   PreferencesDto,
   TagDto,
@@ -724,6 +727,8 @@ export const addToReadingList = (url: string) =>
 
 export const getPlatformInfo = () => safeInvoke("get_platform_info", { response: PlatformInfoSchema });
 export const getDevRuntimeOptions = () => safeInvoke("get_dev_runtime_options", { response: DevRuntimeOptionsSchema });
+export const getPlatformPermissionDeniedRecovery = () =>
+  safeInvoke("get_platform_permission_denied_recovery", { response: PlatformPermissionDeniedRecoveryListSchema });
 
 // Updater
 export const checkForUpdate = () => safeInvoke("check_for_update", { response: UpdateInfoDtoSchema.nullable() });

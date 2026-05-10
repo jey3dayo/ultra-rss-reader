@@ -130,6 +130,9 @@ export {
 export {
   type DevRuntimeOptions,
   DevRuntimeOptionsSchema,
+  type PlatformPermissionDeniedRecovery,
+  PlatformPermissionDeniedRecoveryListSchema,
+  PlatformPermissionDeniedRecoverySchema,
   type PlatformInfo,
   PlatformInfoSchema,
 } from "./platform-info";

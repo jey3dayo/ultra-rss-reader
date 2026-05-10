@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { DEFAULT_PLATFORM_INFO, PLATFORM_KINDS, type PlatformKind } from "@/constants/platform";
+import {
+  DEFAULT_PLATFORM_INFO,
+  PLATFORM_KINDS,
+  type PlatformKind,
+} from "@/constants/platform";
 
 // Capabilities are part of PlatformInfo; keep the nested schema local until callers need a standalone contract.
 const PlatformCapabilitiesSchema = z
@@ -34,14 +38,42 @@ export const PlatformInfoSchema = z
   });
 
 export const MAX_DEV_WINDOW_DIMENSION_PX = 10_000;
-const devWindowDimensionSchema = z.number().int().positive().max(MAX_DEV_WINDOW_DIMENSION_PX).nullable();
+const devWindowDimensionSchema = z
+  .number()
+  .int()
+  .positive()
+  .max(MAX_DEV_WINDOW_DIMENSION_PX)
+  .nullable();
 
-export const DevRuntimeOptionsSchema = z.object({
-  dev_intent: z.string().nullable(),
-  dev_web_url: z.string().nullable(),
-  dev_window_width: devWindowDimensionSchema,
-  dev_window_height: devWindowDimensionSchema,
-});
+export const DevRuntimeOptionsSchema = z
+  .object({
+    dev_intent: z.string().nullable(),
+    dev_web_url: z.string().nullable(),
+    dev_window_width: devWindowDimensionSchema,
+    dev_window_height: devWindowDimensionSchema,
+  })
+  .strict();
+
+const PlatformPermissionDeniedSurfaceSchema = z.enum([
+  "file",
+  "dialog",
+  "keyring",
+  "clipboard",
+]);
+
+export const PlatformPermissionDeniedRecoverySchema = z
+  .object({
+    surface: PlatformPermissionDeniedSurfaceSchema,
+    user_action_copy: z.string().trim().min(1),
+  })
+  .strict();
+
+export const PlatformPermissionDeniedRecoveryListSchema = z.array(
+  PlatformPermissionDeniedRecoverySchema,
+);
 
 export type PlatformInfo = z.output<typeof PlatformInfoSchema>;
 export type DevRuntimeOptions = z.output<typeof DevRuntimeOptionsSchema>;
+export type PlatformPermissionDeniedRecovery = z.output<
+  typeof PlatformPermissionDeniedRecoverySchema
+>;

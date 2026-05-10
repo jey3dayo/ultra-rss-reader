@@ -507,6 +507,7 @@ pub fn run() {
             commands::share_commands::add_to_reading_list,
             commands::platform_commands::get_platform_info,
             commands::platform_commands::get_dev_runtime_options,
+            commands::platform_commands::get_platform_permission_denied_recovery,
             commands::updater_commands::check_for_update,
             commands::updater_commands::download_and_install_update,
             commands::updater_commands::restart_app,
