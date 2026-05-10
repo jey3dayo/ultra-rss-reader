@@ -46,22 +46,11 @@
 
 ### Browser WebView / Runtime Diagnostics
 
-- [ ] P2 browser preview focus override script の site compatibility / security boundary を検証する
-  - 対象: `src-tauri/src/browser_webview.rs`, `src/components/settings/reading-settings-view.tsx`, `src/__tests__/schemas/preferences-schema-contract.test.ts`
-  - superseded by: `P2-A11Y1` top-layer/focus trap
-  - focus override は embedded page の visibility/focus APIs を差し替えるため、サイト側の media playback/analytics/keyboard handling を壊す可能性がある
-  - keep focus on/off、visibilitychange listener、non-configurable property、site script error、setting copy、disable fallback の test/実機検証 TODO にする
-
 - [ ] P2 invalid account row quarantine を diagnostics / recovery action へ出す
   - 対象: `src-tauri/src/infra/db/sqlite_account.rs`, `src-tauri/src/commands/account_commands.rs`, `src/components/settings/accounts-nav-view.tsx`
   - superseded by: `P1-Q4c` runtime corruption
   - invalid row を warn で隠すと UI 上は account が消えたように見え、復旧導線や support log との接続が弱い
   - invalid kind、missing name、quarantine count、diagnostics event、settings recovery copy の contract test を追加する
-
-- [ ] P2 app update restart prompt と dirty form / pending mutation の衝突を防ぐ
-  - 対象: `src/hooks/use-updater.ts`, `src/components/settings`, `src/components/add-feed`
-  - update restart が add feed、credential edit、settings setup sync の途中で走ると入力や mutation 結果を失う
-  - add feed pending、credential draft dirty、settings setup sync、restart confirm、cancel flow の期待値を固定する
 
 - [ ] P2 private data reset order を credentials / DB / localStorage / query cache で固定する
   - 対象: settings data reset flow、credential commands、query client
@@ -143,16 +132,6 @@
   - scenario は便利だが、command schema や route rename から遅れるとデバッグ時だけ壊れる
   - scenario id registry、command coverage、route existence、mock data owner、screenshot smoke の task に分ける
 
-- [ ] P1 IDNA / punycode / IPv6 zone identifier の private host 判定を URL schema 全体で固定する
-  - 対象: URL schema、feed discovery、OPML import、external opener
-  - `xn--` host、Unicode host、IPv6 zone id、mixed-case host が command ごとに違うと SSRF guard と opener policy がずれる
-  - IDNA host、Unicode host、IPv6 zone id、localhost alias、percent-encoded host、trailing dot の contract を追加する
-
-- [ ] P1 release build で `DEV_CREDENTIALS` / dev mock / debug scenario が有効化されない gate を作る
-  - 対象: `scripts/lib/windows-dispatch.ts`, `src/dev`, Tauri release config
-  - dev credential や dev scenario が release artifact に到達すると credential handling と privacy boundary が壊れる
-  - release env、dev config、debug scenario import、mock runtime install、artifact smoke の check を追加する
-
 - [ ] P2 article/feed/folder/tag/account name の Unicode bidi / confusable display policy を決める
   - 対象: domain validation、settings forms、reader/sidebar display
   - RTL override、zero-width、confusable 文字が入ると feed name や action target が spoof され、delete/rename 確認で誤認しやすい
@@ -227,11 +206,6 @@
   - 対象: `src-tauri/src/lib.rs`, DB init, startup fallback UI
   - `panic!` で起動失敗するとログを読めないユーザーに復旧手順が届かず、migration/permission/disk full の切り分けができない
   - migration error、permission denied、disk full、backup exists、redacted path、support copy の期待値を固定する
-
-- [ ] P1 release build に debug-only MCP bridge plugin が混入しない repo contract を追加する
-  - 対象: `src-tauri/src/lib.rs`, Tauri release config, release smoke
-  - debug 専用 plugin が release artifact に入ると、不要な local port や inspection surface を配布してしまう
-  - debug build includes bridge、release build excludes bridge、capability diff、open port smoke、artifact symbol/config check を追加する
 
 - [ ] P1 Tauri command blocking DB work を `spawn_blocking` / async boundary で分類する
   - 対象: `src-tauri/src/commands`, repository access, `AppState` DB mutex
