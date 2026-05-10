@@ -299,6 +299,34 @@ mod tests {
     }
 
     #[test]
+    fn save_rejects_quarantined_accounts_before_replay_capability_semantics() {
+        let db = test_db();
+        let account_id = insert_test_account_with_kind(&db, "Quarantined");
+        let repo = SqlitePendingMutationRepository::new(db.writer());
+
+        let error = repo
+            .save(&PendingMutation {
+                id: None,
+                account_id,
+                mutation_type: PendingMutationType::Star,
+                remote_entry_id: "entry-1".to_string(),
+                created_at: "2024-01-01T00:00:00Z".to_string(),
+            })
+            .expect_err("quarantined accounts must not accept remote pending mutations");
+
+        assert!(
+            matches!(error, DomainError::Validation(message) if message == "pending mutations require a remote account")
+        );
+        let count: i64 = db
+            .reader()
+            .query_row("SELECT COUNT(*) FROM pending_mutations", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        assert_eq!(count, 0);
+    }
+
+    #[test]
     fn save_persists_canonical_mutation_type_values() {
         let db = test_db();
         let account_id = insert_test_account(&db);

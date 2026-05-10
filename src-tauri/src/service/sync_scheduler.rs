@@ -1397,6 +1397,20 @@ mod tests {
     }
 
     #[test]
+    fn scheduler_sync_guard_respects_credential_rotation_pause_contract() {
+        let syncing = AtomicBool::new(true);
+
+        assert!(
+            acquire_scheduler_sync_guard(&syncing).is_none(),
+            "credential rotation reserves the shared sync flag so automatic sync and pending mutation replay stay paused"
+        );
+        assert!(
+            syncing.load(Ordering::SeqCst),
+            "scheduler must not release a pause it did not acquire"
+        );
+    }
+
+    #[test]
     fn scheduler_sync_guard_releases_syncing_flag_when_sync_panics() {
         let syncing = AtomicBool::new(false);
 

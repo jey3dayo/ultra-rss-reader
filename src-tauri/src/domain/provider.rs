@@ -101,6 +101,30 @@ pub struct ProviderCapabilities {
     pub supports_remote_state: bool,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ProviderSideDeletionRetention {
+    NotApplicable,
+    RetainLocal,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ProviderDeletionRetentionPolicy {
+    pub missing_remote_feed: ProviderSideDeletionRetention,
+    pub missing_remote_folder: ProviderSideDeletionRetention,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RemoteDeleteOptimisticMutationConflict {
+    NotApplicable,
+    KeepPendingLocalMutation,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ProviderOptimisticMutationConflictPolicy {
+    pub read_state: RemoteDeleteOptimisticMutationConflict,
+    pub star_state: RemoteDeleteOptimisticMutationConflict,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProviderApiIdentity {
     pub protocol: &'static str,
@@ -220,6 +244,32 @@ impl ProviderKind {
             },
         }
     }
+
+    pub fn deletion_retention_policy(&self) -> ProviderDeletionRetentionPolicy {
+        match self {
+            Self::Local | Self::Quarantined => ProviderDeletionRetentionPolicy {
+                missing_remote_feed: ProviderSideDeletionRetention::NotApplicable,
+                missing_remote_folder: ProviderSideDeletionRetention::NotApplicable,
+            },
+            Self::FreshRss => ProviderDeletionRetentionPolicy {
+                missing_remote_feed: ProviderSideDeletionRetention::RetainLocal,
+                missing_remote_folder: ProviderSideDeletionRetention::RetainLocal,
+            },
+        }
+    }
+
+    pub fn optimistic_mutation_conflict_policy(&self) -> ProviderOptimisticMutationConflictPolicy {
+        match self {
+            Self::Local | Self::Quarantined => ProviderOptimisticMutationConflictPolicy {
+                read_state: RemoteDeleteOptimisticMutationConflict::NotApplicable,
+                star_state: RemoteDeleteOptimisticMutationConflict::NotApplicable,
+            },
+            Self::FreshRss => ProviderOptimisticMutationConflictPolicy {
+                read_state: RemoteDeleteOptimisticMutationConflict::KeepPendingLocalMutation,
+                star_state: RemoteDeleteOptimisticMutationConflict::KeepPendingLocalMutation,
+            },
+        }
+    }
 }
 
 #[cfg(test)]
@@ -282,6 +332,64 @@ mod tests {
         assert_eq!(
             freshrss.skew_policy,
             "use_provider_item_time_only_for_cursor_never_for_retry_schedule"
+        );
+    }
+
+    #[test]
+    fn provider_side_deletion_retention_policy_is_fixed_by_account_kind() {
+        assert_eq!(
+            ProviderKind::Local.deletion_retention_policy(),
+            ProviderDeletionRetentionPolicy {
+                missing_remote_feed: ProviderSideDeletionRetention::NotApplicable,
+                missing_remote_folder: ProviderSideDeletionRetention::NotApplicable,
+            }
+        );
+        assert_eq!(
+            ProviderKind::FreshRss.deletion_retention_policy(),
+            ProviderDeletionRetentionPolicy {
+                missing_remote_feed: ProviderSideDeletionRetention::RetainLocal,
+                missing_remote_folder: ProviderSideDeletionRetention::RetainLocal,
+            }
+        );
+        assert_eq!(
+            ProviderKind::Quarantined.deletion_retention_policy(),
+            ProviderDeletionRetentionPolicy {
+                missing_remote_feed: ProviderSideDeletionRetention::NotApplicable,
+                missing_remote_folder: ProviderSideDeletionRetention::NotApplicable,
+            }
+        );
+    }
+
+    #[test]
+    fn remote_delete_optimistic_mutation_conflict_policy_follows_provider_capability() {
+        let local = ProviderKind::Local.optimistic_mutation_conflict_policy();
+        assert_eq!(
+            local.read_state,
+            RemoteDeleteOptimisticMutationConflict::NotApplicable
+        );
+        assert_eq!(
+            local.star_state,
+            RemoteDeleteOptimisticMutationConflict::NotApplicable
+        );
+
+        let freshrss = ProviderKind::FreshRss.optimistic_mutation_conflict_policy();
+        assert_eq!(
+            freshrss.read_state,
+            RemoteDeleteOptimisticMutationConflict::KeepPendingLocalMutation
+        );
+        assert_eq!(
+            freshrss.star_state,
+            RemoteDeleteOptimisticMutationConflict::KeepPendingLocalMutation
+        );
+
+        let quarantined = ProviderKind::Quarantined.optimistic_mutation_conflict_policy();
+        assert_eq!(
+            quarantined.read_state,
+            RemoteDeleteOptimisticMutationConflict::NotApplicable
+        );
+        assert_eq!(
+            quarantined.star_state,
+            RemoteDeleteOptimisticMutationConflict::NotApplicable
         );
     }
 }
