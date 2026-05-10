@@ -810,7 +810,7 @@ mod tests {
     }
 
     #[test]
-    fn delete_cascades_to_articles() {
+    fn delete_cascades_feed_retention_matrix_for_starred_read_tag_history() {
         let db = test_db();
         let account_id = insert_test_account(&db);
         let repo = SqliteFeedRepository::new(db.writer());
@@ -818,18 +818,43 @@ mod tests {
         let feed = make_feed(&account_id, "Feed", "http://f.com/rss");
         repo.save(&feed).unwrap();
 
-        // Insert articles
         let now = chrono::Utc::now().to_rfc3339();
         for i in 1..=3 {
             db.writer()
                 .execute(
-                    "INSERT INTO articles (id, feed_id, title, published_at, fetched_at) VALUES (?1, ?2, ?3, ?4, ?5)",
-                    params![format!("a{i}"), feed.id.0, format!("Article {i}"), now, now],
+                    "INSERT INTO articles (id, feed_id, title, published_at, fetched_at, is_read, is_starred) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                    params![
+                        format!("a{i}"),
+                        feed.id.0,
+                        format!("Article {i}"),
+                        now,
+                        now,
+                        i % 2,
+                        (i + 1) % 2,
+                    ],
                 )
                 .unwrap();
         }
+        db.writer()
+            .execute(
+                "INSERT INTO tags (id, name) VALUES ('tag-1', 'Feed Tag')",
+                [],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO article_tags (article_id, tag_id) VALUES ('a1', 'tag-1')",
+                [],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO article_view_history (account_id, article_id, viewed_at)
+                 VALUES (?1, 'a1', ?2)",
+                params![account_id.0, now],
+            )
+            .unwrap();
 
-        // Verify articles exist
         let article_count: i64 = db
             .reader()
             .query_row(
@@ -840,14 +865,11 @@ mod tests {
             .unwrap();
         assert_eq!(article_count, 3);
 
-        // Delete feed (should cascade to articles via foreign key)
         repo.delete(&feed.id).unwrap();
 
-        // Verify feed is gone
         let feeds = repo.find_by_account(&account_id).unwrap();
         assert_eq!(feeds.len(), 0);
 
-        // Verify articles are cascaded away
         let article_count: i64 = db
             .reader()
             .query_row(
@@ -856,7 +878,42 @@ mod tests {
                 |row| row.get(0),
             )
             .unwrap();
+        let read_count: i64 = db
+            .reader()
+            .query_row(
+                "SELECT COUNT(*) FROM articles WHERE is_read = 1",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let starred_count: i64 = db
+            .reader()
+            .query_row(
+                "SELECT COUNT(*) FROM articles WHERE is_starred = 1",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let article_tag_count: i64 = db
+            .reader()
+            .query_row("SELECT COUNT(*) FROM article_tags", [], |row| row.get(0))
+            .unwrap();
+        let tag_count: i64 = db
+            .reader()
+            .query_row("SELECT COUNT(*) FROM tags", [], |row| row.get(0))
+            .unwrap();
+        let history_count: i64 = db
+            .reader()
+            .query_row("SELECT COUNT(*) FROM article_view_history", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
         assert_eq!(article_count, 0);
+        assert_eq!(read_count, 0);
+        assert_eq!(starred_count, 0);
+        assert_eq!(article_tag_count, 0);
+        assert_eq!(tag_count, 1);
+        assert_eq!(history_count, 0);
     }
 
     #[test]

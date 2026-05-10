@@ -6,6 +6,36 @@ use crate::repository::pending_mutation::{
     PendingMutation, PendingMutationAxis, PendingMutationRepository, PendingMutationType,
 };
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum PendingMutationAccountScope {
+    LocalOnly,
+    Remote,
+}
+
+impl PendingMutationAccountScope {
+    fn from_provider_kind(kind: &str) -> DomainResult<Self> {
+        match kind {
+            "Local" => Ok(Self::LocalOnly),
+            "FreshRss" => Ok(Self::Remote),
+            other => Err(DomainError::Persistence(format!(
+                "Unknown account provider kind for pending mutation: {other}"
+            ))),
+        }
+    }
+}
+
+fn pending_mutation_account_scope(
+    conn: &Connection,
+    account_id: &AccountId,
+) -> DomainResult<PendingMutationAccountScope> {
+    let kind = conn.query_row(
+        "SELECT kind FROM accounts WHERE id = ?1",
+        params![account_id.0],
+        |row| row.get::<_, String>(0),
+    )?;
+    PendingMutationAccountScope::from_provider_kind(&kind)
+}
+
 fn delete_replaced_mutations(
     conn: &Connection,
     account_id: &AccountId,
@@ -72,6 +102,13 @@ impl PendingMutationRepository for SqlitePendingMutationRepository<'_> {
         if mutation.remote_entry_id.trim().is_empty() {
             return Err(DomainError::Validation(
                 "pending mutation remote_entry_id cannot be blank".to_string(),
+            ));
+        }
+        if pending_mutation_account_scope(self.conn, &mutation.account_id)?
+            == PendingMutationAccountScope::LocalOnly
+        {
+            return Err(DomainError::Validation(
+                "pending mutations require a remote account".to_string(),
             ));
         }
 
@@ -168,11 +205,15 @@ mod tests {
     }
 
     fn insert_test_account(db: &DbManager) -> AccountId {
+        insert_test_account_with_kind(db, "FreshRss")
+    }
+
+    fn insert_test_account_with_kind(db: &DbManager, kind: &str) -> AccountId {
         let id = AccountId::new();
         db.writer()
             .execute(
                 "INSERT INTO accounts (id, kind, name) VALUES (?1, ?2, ?3)",
-                params![id.0, "Local", "Test"],
+                params![id.0, kind, "Test"],
             )
             .unwrap();
         id
@@ -219,6 +260,34 @@ mod tests {
             assert!(error.to_string().contains("remote_entry_id"));
         }
 
+        let count: i64 = db
+            .reader()
+            .query_row("SELECT COUNT(*) FROM pending_mutations", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        assert_eq!(count, 0);
+    }
+
+    #[test]
+    fn save_rejects_local_only_accounts_before_remote_queue_semantics() {
+        let db = test_db();
+        let account_id = insert_test_account_with_kind(&db, "Local");
+        let repo = SqlitePendingMutationRepository::new(db.writer());
+
+        let error = repo
+            .save(&PendingMutation {
+                id: None,
+                account_id,
+                mutation_type: PendingMutationType::MarkRead,
+                remote_entry_id: "entry-1".to_string(),
+                created_at: "2024-01-01T00:00:00Z".to_string(),
+            })
+            .expect_err("local-only accounts must not accept remote pending mutations");
+
+        assert!(
+            matches!(error, DomainError::Validation(message) if message == "pending mutations require a remote account")
+        );
         let count: i64 = db
             .reader()
             .query_row("SELECT COUNT(*) FROM pending_mutations", [], |row| {

@@ -355,7 +355,7 @@ mod tests {
     }
 
     #[test]
-    fn delete_cascades_account_owned_rows_in_one_db_operation() {
+    fn delete_cascades_account_retention_matrix_for_articles_tags_history_backoff() {
         let db = test_db();
         let repo = SqliteAccountRepository::new(db.writer());
 
@@ -380,6 +380,25 @@ mod tests {
                 "INSERT INTO articles (id, feed_id, remote_id, title, published_at, fetched_at)
                  VALUES ('article-1', 'feed-1', 'remote-1', 'Article', '2026-05-09T00:00:00Z', '2026-05-09T00:01:00Z')",
                 [],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO tags (id, name) VALUES ('tag-1', 'Retained Tag')",
+                [],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO article_tags (article_id, tag_id) VALUES ('article-1', 'tag-1')",
+                [],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO article_view_history (account_id, article_id, viewed_at)
+                 VALUES (?1, 'article-1', '2026-05-09T00:03:00Z')",
+                params![account.id.0],
             )
             .unwrap();
         db.writer()
@@ -420,10 +439,27 @@ mod tests {
                 row.get(0)
             })
             .unwrap();
+        let article_tag_count: i32 = db
+            .reader()
+            .query_row("SELECT COUNT(*) FROM article_tags", [], |row| row.get(0))
+            .unwrap();
+        let tag_count: i32 = db
+            .reader()
+            .query_row("SELECT COUNT(*) FROM tags", [], |row| row.get(0))
+            .unwrap();
+        let history_count: i32 = db
+            .reader()
+            .query_row("SELECT COUNT(*) FROM article_view_history", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
 
         assert_eq!(folder_count, 0);
         assert_eq!(feed_count, 0);
         assert_eq!(article_count, 0);
+        assert_eq!(article_tag_count, 0);
+        assert_eq!(tag_count, 1);
+        assert_eq!(history_count, 0);
         assert_eq!(sync_state_count, 0);
         assert_eq!(pending_count, 0);
     }
