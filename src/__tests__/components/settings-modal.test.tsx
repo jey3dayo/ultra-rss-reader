@@ -581,9 +581,9 @@ describe("SettingsModal", () => {
       queryClient?.setQueryData(["accounts"], [sampleAccounts[1]]);
     });
 
-    expect(screen.queryByRole("heading", { level: 2, name: "Local" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Local/i })).not.toBeInTheDocument();
     await waitFor(() => {
+      expect(screen.queryByRole("heading", { level: 2, name: "Local" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /Local/i })).not.toBeInTheDocument();
       expect(useUiStore.getState().settingsAccountId).toBe("acc-2");
     });
     expect(screen.getByRole("heading", { level: 2, name: "FreshRSS" })).toBeInTheDocument();

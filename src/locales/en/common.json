@@ -26,6 +26,7 @@
     "downloading_percent": "Downloading… {{percent}}%",
     "restart_failed_ready": "Restart failed. The update is ready.",
     "restart_again": "Restart again",
+    "restart_blocked_dirty_or_pending": "Finish or save the current change before restarting.",
     "ready": "Update is ready",
     "restart": "Restart",
     "check_failed": "Failed to check for updates",

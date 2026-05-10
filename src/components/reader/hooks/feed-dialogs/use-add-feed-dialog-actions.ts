@@ -36,6 +36,22 @@ type UseAddFeedDialogActionsResult = {
   handleSubmit: () => Promise<void>;
 };
 
+export type AddFeedDialogRestartBlockerSnapshot = {
+  dirty: boolean;
+  pending: boolean;
+};
+
+const EMPTY_ADD_FEED_RESTART_BLOCKER_SNAPSHOT: AddFeedDialogRestartBlockerSnapshot = {
+  dirty: false,
+  pending: false,
+};
+
+let latestAddFeedRestartBlockerSnapshot = EMPTY_ADD_FEED_RESTART_BLOCKER_SNAPSHOT;
+
+export function getAddFeedDialogRestartBlockerSnapshot(): AddFeedDialogRestartBlockerSnapshot {
+  return latestAddFeedRestartBlockerSnapshot;
+}
+
 export function resolveAddFeedDiscoveryAction(
   feeds: DiscoveredFeedDto[],
   requestId: number,
@@ -71,6 +87,31 @@ export function useAddFeedDialogActions({
   const submitLifecycle = useAsyncCommandLifecycle();
   latestDiscoveryUrlRef.current = trimmedUrl;
   openRef.current = open;
+
+  useEffect(() => {
+    if (!open) {
+      latestAddFeedRestartBlockerSnapshot = EMPTY_ADD_FEED_RESTART_BLOCKER_SNAPSHOT;
+      return;
+    }
+
+    latestAddFeedRestartBlockerSnapshot = {
+      dirty: state.url.trim().length > 0 || folderSelection.isCreatingFolder || folderSelection.selectedFolderId !== null,
+      pending: state.loading || state.discovering || submitLifecycle.isInFlight() || discoveryLifecycle.isInFlight(),
+    };
+
+    return () => {
+      latestAddFeedRestartBlockerSnapshot = EMPTY_ADD_FEED_RESTART_BLOCKER_SNAPSHOT;
+    };
+  }, [
+    discoveryLifecycle,
+    folderSelection.isCreatingFolder,
+    folderSelection.selectedFolderId,
+    open,
+    state.discovering,
+    state.loading,
+    state.url,
+    submitLifecycle,
+  ]);
 
   useEffect(() => {
     if (!open) {

@@ -39,6 +39,11 @@ const EMPTY_SETTINGS_DIRTY_STATE_SNAPSHOT: SettingsDirtyStateSnapshot = {
 };
 
 const SettingsDirtyStateRegistryContext = createContext<SettingsDirtyStateRegistry | null>(null);
+let latestSettingsDirtyStateSnapshot = EMPTY_SETTINGS_DIRTY_STATE_SNAPSHOT;
+
+export function getSettingsDirtyStateSnapshot(): SettingsDirtyStateSnapshot {
+  return latestSettingsDirtyStateSnapshot;
+}
 
 export function createSettingsDirtyStateSnapshot(entries: SettingsDirtyStateEntry[]): SettingsDirtyStateSnapshot {
   const activeEntries = entries.filter((entry) => entry.dirty || entry.pending || entry.blockingReason !== null);
@@ -57,6 +62,7 @@ function createSettingsDirtyStateRegistry(): SettingsDirtyStateRegistry {
 
   const notify = () => {
     snapshot = createSettingsDirtyStateSnapshot([...entries.values()]);
+    latestSettingsDirtyStateSnapshot = snapshot;
     for (const listener of listeners) {
       listener();
     }

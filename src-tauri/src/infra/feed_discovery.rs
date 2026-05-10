@@ -985,6 +985,7 @@ mod tests {
     #[test]
     fn validate_discovery_request_url_rejects_private_initial_boundary_corpus() {
         for raw_url in [
+            "http://LOCALHOST./feed.xml",
             "http://localhost./feed.xml",
             "http://0.0.0.0/feed.xml",
             "http://169.254.1.1/feed.xml",
@@ -1192,6 +1193,7 @@ mod tests {
         let previous = vec![reqwest::Url::parse("https://example.com/page").unwrap()];
 
         for raw_url in [
+            "https://LOCALHOST./feed.xml",
             "https://localhost./feed.xml",
             "https://0.0.0.0/feed.xml",
             "https://169.254.1.1/feed.xml",

@@ -80,6 +80,7 @@ mod tests {
     #[test]
     fn private_host_policy_covers_idna_ipv6_zone_and_trailing_dot() {
         for raw_url in [
+            "http://LOCALHOST/feed.xml",
             "http://localhost./feed.xml",
             "http://[::1]/feed.xml",
             "http://[::ffff:7f00:1]/feed.xml",
@@ -103,6 +104,9 @@ mod tests {
         }
 
         assert!(is_private_host("fe80::1%en0"));
+        assert!(is_private_host("[fe80::1%en0]"));
+        assert!(is_private_host("LOCALHOST."));
+        assert!(!is_private_host("xn--r8jz45g.xn--zckzah"));
     }
 
     #[test]

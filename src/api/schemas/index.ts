@@ -49,6 +49,7 @@ export {
   getArticleTagsArgs,
   getCommandArgsSchema,
   getTagArticleCountsArgs,
+  importOpmlArgs,
   isCommandWithArgs,
   listAccountArticlesArgs,
   listArticlesArgs,

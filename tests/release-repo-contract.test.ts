@@ -1192,6 +1192,10 @@ describe("release repository contract", () => {
       return devOnlyImportPattern.test(readText(filePath)) ? [filePath] : [];
     });
 
+    execFileSync("node", ["./scripts/check-release-build-contamination.ts"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    });
     expect(tauriDevConfig.identifier).not.toBe(tauriReleaseConfig.identifier);
     expect(tauriDevConfig.productName).not.toBe(tauriConfig.productName);
     expect(tauriDevConfig.build?.devUrl).toBe("http://127.0.0.1:1420");
@@ -1202,6 +1206,9 @@ describe("release repository contract", () => {
     expect(releaseWorkflow).toContain("release build must keep the MCP bridge plugin behind cfg(debug_assertions)");
     expect(releaseWorkflow).toContain("release build must keep dev browser mocks disabled inside Tauri");
     expect(releaseWorkflow).toContain("release source must not import dev-only mock data or scenario modules");
+    expect(packageJson.scripts).toMatchObject({
+      "check:release-contamination": "node ./scripts/check-release-build-contamination.ts",
+    });
     expect(tauriLib).toMatch(
       /#\[cfg\(debug_assertions\)\]\s*let builder = builder\.plugin\(\s*tauri_plugin_mcp_bridge::Builder::new\(\)/,
     );

@@ -96,14 +96,97 @@ function hasEncodedNewline(value: string): boolean {
   return /%(?:0a|0d)/iu.test(value);
 }
 
+function parseHttpUrl(value: string): URL | null {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:" ? url : null;
+  } catch {
+    return null;
+  }
+}
+
+function isValidHttpUrl(value: string): boolean {
+  return parseHttpUrl(value) != null;
+}
+
+function isValidSupportedExternalUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:" || url.protocol === "mailto:";
+  } catch {
+    return false;
+  }
+}
+
+function isPrivateIpv4Host(host: string): boolean {
+  const octets = host.split(".");
+  if (octets.length !== 4) {
+    return false;
+  }
+  const values = octets.map((octet) => (/^\d{1,3}$/u.test(octet) ? Number(octet) : Number.NaN));
+  if (values.some((octet) => !Number.isInteger(octet) || octet < 0 || octet > 255)) {
+    return false;
+  }
+  const [first = 0, second = 0] = values;
+  return (
+    first === 0 ||
+    first === 10 ||
+    first === 127 ||
+    (first === 169 && second === 254) ||
+    (first === 172 && second >= 16 && second <= 31) ||
+    (first === 192 && second === 168)
+  );
+}
+
+function isPrivateIpv6Host(host: string): boolean {
+  const normalized = host.replace(/^\[/u, "").replace(/\]$/u, "").split("%", 1)[0]?.toLowerCase() ?? "";
+  if (!normalized.includes(":")) {
+    return false;
+  }
+  return (
+    normalized === "::" ||
+    normalized === "::1" ||
+    normalized.startsWith("fc") ||
+    normalized.startsWith("fd") ||
+    normalized.startsWith("fe80:") ||
+    normalized.startsWith("fe8") ||
+    normalized.startsWith("fe9") ||
+    normalized.startsWith("fea") ||
+    normalized.startsWith("feb") ||
+    normalized.startsWith("::ffff:127.") ||
+    normalized.startsWith("::ffff:7f") ||
+    normalized.startsWith("::ffff:10.") ||
+    normalized.startsWith("::ffff:a") ||
+    normalized.startsWith("::ffff:169.254.") ||
+    normalized.startsWith("::ffff:a9fe:") ||
+    normalized.startsWith("::ffff:192.168.") ||
+    normalized.startsWith("::ffff:c0a8:")
+  );
+}
+
+function hasPrivateHttpHost(value: string): boolean {
+  const url = parseHttpUrl(value);
+  if (url == null) {
+    return false;
+  }
+  const host = url.hostname.toLowerCase().replace(/\.+$/u, "");
+  return host === "localhost" || isPrivateIpv4Host(host) || isPrivateIpv6Host(host);
+}
+
 export const httpCommandUrlSchema = z
   .string()
   .trim()
   .refine((url) => url.toLowerCase().startsWith("http://") || url.toLowerCase().startsWith("https://"), {
     message: "Only http:// and https:// URLs are supported",
   })
+  .refine(isValidHttpUrl, {
+    message: "Only http:// and https:// URLs are supported",
+  })
   .refine((url) => !url.includes("\n") && !url.includes("\r"), {
     message: "HTTP URLs must not contain newlines",
+  })
+  .refine((url) => !hasPrivateHttpHost(url), {
+    message: "Requests to private/loopback addresses are not allowed",
   });
 const safariReadingListUrlSchema = httpCommandUrlSchema
   .refine((url) => textEncoder.encode(url).length <= READING_LIST_URL_MAX_BYTES, {
@@ -376,6 +459,9 @@ const externalUrlSchema = z
       message: "Only http://, https://, and mailto: URLs are supported",
     },
   )
+  .refine(isValidSupportedExternalUrl, {
+    message: "Only http://, https://, and mailto: URLs are supported",
+  })
   .refine((url) => !url.includes("\n") && !url.includes("\r"), {
     message: "External URLs must not contain newlines",
   })
@@ -390,6 +476,9 @@ const externalUrlSchema = z
   })
   .refine((url) => !hasHttpUrlCredentials(url), {
     message: "External URLs must not contain credentials",
+  })
+  .refine((url) => !hasPrivateHttpHost(url), {
+    message: "External URLs must not target private/loopback addresses",
   });
 export const openExternalUrlArgs = z.object({ url: externalUrlSchema });
 

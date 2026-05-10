@@ -2293,6 +2293,23 @@ mod tests {
     }
 
     #[test]
+    fn browser_preview_focus_override_tolerates_site_property_descriptor_failures() {
+        let prefs = HashMap::from([("web_preview_keep_focus".to_string(), "true".to_string())]);
+
+        let script = browser_preview_focus_override_source(&prefs)
+            .expect("focus override script should exist when preference is enabled");
+
+        assert!(script.contains("Object.defineProperty(window, '__ULTRA_RSS_FOCUS_OVERRIDE_INSTALLED__'"));
+        assert!(script.contains("configurable: false"));
+        assert!(script.contains("const defineGetter = (target, property, value) => {"));
+        assert!(script.contains("const defineValue = (target, property, value) => {"));
+        assert!(script.contains("try {"));
+        assert!(script.contains("} catch (_) {}"));
+        assert!(script.contains("defineGetter(document, 'hidden', false);"));
+        assert!(script.contains("defineValue(document, 'hasFocus', () => true);"));
+    }
+
+    #[test]
     fn browser_preview_script_bridge_source_snapshot_keeps_minimal_command_contract() {
         let prefs = HashMap::from([("shortcut_toggle_read".to_string(), "x".to_string())]);
 

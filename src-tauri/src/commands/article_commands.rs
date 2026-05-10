@@ -17,6 +17,7 @@ use crate::commands::AppState;
 use crate::commands::{start_database_maintenance, try_lock_db};
 use crate::domain::error::DomainError;
 use crate::domain::types::{AccountId, ArticleId, FeedId, FolderId};
+use crate::domain::url_policy::validate_public_http_url;
 use crate::infra::db::sqlite_article::SqliteArticleRepository;
 use crate::infra::db::sqlite_feed::SqliteFeedRepository;
 use crate::repository::article::{ArticleListMode, ArticleRepository, Pagination};
@@ -76,7 +77,7 @@ impl Drop for BrowserOpenQueueGuard<'_> {
 
 #[tauri::command]
 pub fn open_in_browser(url: String, background: Option<bool>) -> Result<(), AppError> {
-    let parsed_url = crate::commands::parse_browser_http_url(&url)?;
+    let parsed_url = parse_public_browser_http_url(&url)?;
     let platform_info = crate::platform::PlatformInfo::current();
     let background =
         should_use_background_browser_open(background.unwrap_or(false), &platform_info);
@@ -98,6 +99,15 @@ pub fn open_in_browser(url: String, background: Option<bool>) -> Result<(), AppE
         })?;
     }
     Ok(())
+}
+
+fn parse_public_browser_http_url(url: &str) -> Result<reqwest::Url, AppError> {
+    let parsed_url = crate::commands::parse_browser_http_url(url)?;
+    validate_public_http_url(&parsed_url).map_err(|error| match error {
+        DomainError::Validation(message) => AppError::UserVisible { message },
+        other => AppError::from(other),
+    })?;
+    Ok(parsed_url)
 }
 
 fn acquire_browser_open_queue_guard(
@@ -756,7 +766,7 @@ async fn check_browser_embed_support_with_timeout(
     url: String,
     timeout: Duration,
 ) -> Result<bool, AppError> {
-    let url = crate::commands::parse_browser_http_url(&url)?;
+    let url = parse_public_browser_http_url(&url)?;
     let client = reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::limited(5))
         .timeout(timeout)
@@ -1213,6 +1223,8 @@ pub fn search_articles(
 
 #[cfg(test)]
 mod tests {
+    use crate::domain::url_policy::PRIVATE_URL_VALIDATION_MESSAGE;
+
     use super::check_browser_embed_support;
     use super::check_browser_embed_support_with_timeout;
     use super::{
@@ -1551,6 +1563,26 @@ mod tests {
         }
     }
 
+    #[tokio::test]
+    async fn embed_support_rejects_private_hosts_before_requesting() {
+        for url in [
+            "http://LOCALHOST./article",
+            "http://127.0.0.1/article",
+            "http://[fe80::1]/article",
+            "http://[::ffff:7f00:1]/article",
+        ] {
+            let error = check_browser_embed_support(url.to_string())
+                .await
+                .expect_err("private browser embed URL should be rejected before request");
+
+            assert!(matches!(
+                error,
+                AppError::UserVisible { ref message }
+                    if message == PRIVATE_URL_VALIDATION_MESSAGE
+            ));
+        }
+    }
+
     #[test]
     fn open_in_browser_rejects_non_http_urls_before_native_opener() {
         for url in [
@@ -1567,6 +1599,25 @@ mod tests {
                 error,
                 AppError::UserVisible { ref message }
                     if message == "Only http:// and https:// URLs are supported"
+            ));
+        }
+    }
+
+    #[test]
+    fn open_in_browser_rejects_private_hosts_before_native_opener() {
+        for url in [
+            "http://LOCALHOST./article",
+            "http://127.0.0.1/article",
+            "http://[fe80::1]/article",
+            "http://[::ffff:7f00:1]/article",
+        ] {
+            let error = super::open_in_browser(url.to_string(), Some(true))
+                .expect_err("private browser open URL should be rejected before native opener");
+
+            assert!(matches!(
+                error,
+                AppError::UserVisible { ref message }
+                    if message == PRIVATE_URL_VALIDATION_MESSAGE
             ));
         }
     }

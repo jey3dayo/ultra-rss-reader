@@ -4,6 +4,7 @@ import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { addLocalFeed, discoverFeeds, updateFeedFolder } from "@/api/tauri-commands";
 import {
+  getAddFeedDialogRestartBlockerSnapshot,
   resolveAddFeedDiscoveryAction,
   useAddFeedDialogActions,
 } from "@/components/reader/hooks/feed-dialogs/use-add-feed-dialog-actions";
@@ -676,6 +677,98 @@ describe("useAddFeedDialogActions", () => {
     expect(dispatch).toHaveBeenLastCalledWith({
       type: "set-loading",
       loading: false,
+    });
+  });
+
+  it("exposes dirty and pending add feed state for restart guards", async () => {
+    const addFeed = createDeferred<Awaited<ReturnType<typeof addLocalFeed>>>();
+    vi.mocked(addLocalFeed).mockReturnValue(addFeed.promise);
+
+    const { result, rerender, unmount } = renderHook(
+      ({ loading, url }) =>
+        useAddFeedDialogActions({
+          accountId: "account-1",
+          open: true,
+          state: {
+            url,
+            error: null,
+            successMessage: null,
+            loading,
+            discovering: false,
+            discoveryRequestId: null,
+            discoveredFeeds: [],
+            selectedFeedUrl: null,
+          },
+          dispatch: vi.fn(),
+          derived: {
+            hasManualUrl: true,
+            isManualUrlValid: true,
+            urlHint: null,
+            urlHintTone: "muted",
+            isSubmitDisabled: false,
+            isDiscoverDisabled: false,
+            discoveredFeedOptions: [],
+          },
+          trimmedUrl: url.trim(),
+          folderSelection: {
+            selectedFolderId: null,
+            isCreatingFolder: false,
+            newFolderName: "",
+          },
+          queryClient: new QueryClient(),
+          onOpenChange: vi.fn(),
+          showToast: vi.fn(),
+          t,
+        }),
+      {
+        initialProps: {
+          loading: false,
+          url: " https://example.com/feed.xml ",
+        },
+      },
+    );
+
+    expect(getAddFeedDialogRestartBlockerSnapshot()).toEqual({
+      dirty: true,
+      pending: false,
+    });
+
+    const submit = result.current.handleSubmit();
+    await vi.waitFor(() => {
+      expect(addLocalFeed).toHaveBeenCalledTimes(1);
+    });
+    rerender({
+      loading: true,
+      url: " https://example.com/feed.xml ",
+    });
+
+    expect(getAddFeedDialogRestartBlockerSnapshot()).toEqual({
+      dirty: true,
+      pending: true,
+    });
+
+    await act(async () => {
+      addFeed.resolve(
+        Result.succeed({
+          id: "feed-new",
+          account_id: "account-1",
+          folder_id: null,
+          remote_id: null,
+          title: "Example Feed",
+          url: "https://example.com/feed.xml",
+          site_url: "https://example.com",
+          unread_count: 0,
+          reader_mode: "inherit",
+          web_preview_mode: "inherit",
+        }),
+      );
+      await submit;
+    });
+    unmount();
+
+    expect(getAddFeedDialogRestartBlockerSnapshot()).toEqual({
+      dirty: false,
+      pending: false,
     });
   });
 

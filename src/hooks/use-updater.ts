@@ -7,6 +7,8 @@ import {
   UpdateReadyEventPayloadSchema,
 } from "@/api/schemas/update-info";
 import { type AppError, checkForUpdate, downloadAndInstallUpdate, restartApp } from "@/api/tauri-commands";
+import { getAddFeedDialogRestartBlockerSnapshot } from "@/components/reader/hooks/feed-dialogs/use-add-feed-dialog-actions";
+import { getSettingsDirtyStateSnapshot } from "@/components/settings/hooks/use-settings-dirty-state-registry";
 import i18n from "@/lib/i18n";
 import { attachTauriListeners } from "@/lib/runtime/tauri-event-listeners";
 import type { ToastData } from "@/lib/ui/toast.types";
@@ -271,7 +273,38 @@ function restartPreparedUpdate(ownerToast?: ToastData): void {
   );
 }
 
+function isPreparedUpdateRestartBlocked(): boolean {
+  const store = useUiStore.getState();
+  const settingsDirtyState = getSettingsDirtyStateSnapshot();
+  const addFeedRestartBlocker = getAddFeedDialogRestartBlockerSnapshot();
+  const setupSyncPending =
+    store.accountSetupSession?.state === "verifying" || store.accountSetupSession?.state === "syncing";
+
+  return (
+    (store.settingsOpen && (settingsDirtyState.dirty || settingsDirtyState.pending || setupSyncPending)) ||
+    (store.isAddFeedDialogOpen && (addFeedRestartBlocker.dirty || addFeedRestartBlocker.pending))
+  );
+}
+
 function requestPreparedUpdateRestart(ownerToast: ToastData): void {
+  if (isPreparedUpdateRestartBlocked()) {
+    const blockedToast: ToastData = {
+      message: i18n.t("updater.restart_blocked_dirty_or_pending"),
+      persistent: true,
+      variant: "update",
+      actions: [
+        {
+          label: i18n.t("updater.later"),
+          onClick: () => {
+            clearToastIfCurrent(blockedToast);
+          },
+        },
+      ],
+    };
+    useUiStore.getState().showToast(blockedToast);
+    return;
+  }
+
   useUiStore.getState().showConfirm(
     i18n.t("updater.ready"),
     () => {

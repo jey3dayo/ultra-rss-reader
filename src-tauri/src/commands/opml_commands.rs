@@ -751,6 +751,18 @@ mod tests {
     <outline text="Feed" type="rss" xmlUrl="https://example.com/feed.xml" htmlUrl="http://[::1]/"/>
   </body>
 </opml>"#;
+        let private_xml_url_mixed_case_localhost = r#"<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <body>
+    <outline text="Feed" type="rss" xmlUrl="http://LOCALHOST./feed.xml"/>
+  </body>
+</opml>"#;
+        let private_xml_url_ipv6_zone = r#"<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <body>
+    <outline text="Feed" type="rss" xmlUrl="http://[fe80::1%25en0]/feed.xml"/>
+  </body>
+</opml>"#;
 
         for opml in [
             private_xml_url_loopback,
@@ -761,12 +773,37 @@ mod tests {
             private_xml_url_dns,
             private_html_url_localhost,
             private_html_url_ipv6,
+            private_xml_url_mixed_case_localhost,
         ] {
             assert!(matches!(
                 parse_import_opml(opml),
                 Err(AppError::UserVisible { message }) if message == "Requests to private/loopback addresses are not allowed"
             ));
         }
+
+        assert!(matches!(
+            parse_import_opml(private_xml_url_ipv6_zone),
+            Err(AppError::UserVisible { message }) if message == "Only http:// and https:// URLs are supported"
+        ));
+    }
+
+    #[test]
+    fn import_parser_allows_public_idna_and_punycode_feed_urls() {
+        let idna_opml = r#"<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <body>
+    <outline text="IDNA" type="rss" xmlUrl="https://例え.テスト/feed.xml" htmlUrl="https://xn--r8jz45g.xn--zckzah/"/>
+  </body>
+</opml>"#;
+
+        let feeds = parse_import_opml(idna_opml).expect("public IDNA OPML should parse");
+
+        assert_eq!(feeds.len(), 1);
+        assert_eq!(feeds[0].xml_url, "https://例え.テスト/feed.xml");
+        assert_eq!(
+            feeds[0].html_url.as_deref(),
+            Some("https://xn--r8jz45g.xn--zckzah/")
+        );
     }
 
     #[test]

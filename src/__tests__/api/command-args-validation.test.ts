@@ -355,6 +355,22 @@ describe("command args validation parity", () => {
       { label: "ftp URL", input: "ftp://example.com/feed.xml", valid: false },
       { label: "mailto URL", input: "mailto:reader@example.com", valid: false },
       { label: "newline URL", input: "https://example.com/\nfeed.xml", valid: false },
+      { label: "mixed-case localhost", input: "http://LOCALHOST./feed.xml", valid: false },
+      { label: "private IPv4", input: "http://192.168.1.2/feed.xml", valid: false },
+      { label: "IPv6 zone identifier", input: "http://[fe80::1%25en0]/feed.xml", valid: false },
+      { label: "IPv4-mapped loopback", input: "http://[::ffff:7f00:1]/feed.xml", valid: false },
+      {
+        label: "Unicode IDNA public URL",
+        input: "https://例え.テスト/feed.xml",
+        expected: "https://例え.テスト/feed.xml",
+        valid: true,
+      },
+      {
+        label: "punycode public URL",
+        input: "https://xn--r8jz45g.xn--zckzah/feed.xml",
+        expected: "https://xn--r8jz45g.xn--zckzah/feed.xml",
+        valid: true,
+      },
     ] satisfies Array<{ label: string; input: string; expected?: string; valid: boolean }>;
 
     for (const { input, expected, valid } of cases) {
@@ -394,6 +410,22 @@ describe("command args validation parity", () => {
       { label: "encoded newline URL", input: "https://example.com/%0Aarticle", valid: false },
       { label: "encoded carriage return URL", input: "https://example.com/%0darticle", valid: false },
       { label: "userinfo URL", input: "https://user:secret@example.com/article", valid: false },
+      { label: "mixed-case localhost", input: "http://LOCALHOST./article", valid: false },
+      { label: "private IPv4", input: "http://10.0.0.2/article", valid: false },
+      { label: "IPv6 zone identifier", input: "http://[fe80::1%25en0]/article", valid: false },
+      { label: "IPv4-mapped loopback", input: "http://[::ffff:7f00:1]/article", valid: false },
+      {
+        label: "Unicode IDNA public URL",
+        input: "https://例え.テスト/article",
+        expected: "https://例え.テスト/article",
+        valid: true,
+      },
+      {
+        label: "punycode public URL",
+        input: "https://xn--r8jz45g.xn--zckzah/article",
+        expected: "https://xn--r8jz45g.xn--zckzah/article",
+        valid: true,
+      },
     ] satisfies Array<{ label: string; input: string; expected?: string; valid: boolean }>;
 
     for (const { input, expected, valid } of cases) {

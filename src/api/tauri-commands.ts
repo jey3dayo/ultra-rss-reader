@@ -56,6 +56,7 @@ import {
   getAccountSyncStatusArgs,
   getArticleTagsArgs,
   getTagArticleCountsArgs,
+  importOpmlArgs,
   listAccountArticlesArgs,
   listArticlesArgs,
   listArticlesByTagArgs,
@@ -722,6 +723,9 @@ export const syncFeed = (feedId: string) =>
 
 export const exportOpml = (accountId: string) =>
   safeInvoke("export_opml", { response: StringResponseSchema, args: exportOpmlArgs }, { accountId });
+
+export const importOpml = (accountId: string, opmlContent: string) =>
+  safeInvoke("import_opml", { response: FeedDtoListSchema, args: importOpmlArgs }, { accountId, opmlContent });
 
 export const getPreferences = () => safeInvoke("get_preferences", { response: PreferencesDtoSchema });
 

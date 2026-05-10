@@ -1258,6 +1258,7 @@ export function setupDevMocks(): RestoreDevMocks {
           warnings: [],
         };
       case "import_opml":
+        parseBrowserMockArgs("import_opml", rawIpcPayload);
         return null;
       case "copy_to_clipboard":
         parseBrowserMockArgs("copy_to_clipboard", rawIpcPayload);

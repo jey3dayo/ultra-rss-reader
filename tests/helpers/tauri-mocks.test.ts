@@ -54,6 +54,7 @@ const INTENTIONALLY_UNHANDLED_DEFAULT_MOCK_COMMANDS = [
   "export_opml",
   "get_article_tags",
   "get_platform_permission_denied_recovery",
+  "import_opml",
   "list_articles_by_tag",
   "mark_feed_read",
   "mark_folder_read",

@@ -1,8 +1,10 @@
 import { Result } from "@praha/byethrow";
+import { QueryClient } from "@tanstack/react-query";
 import { renderHook } from "@testing-library/react";
 import { type TestUserVisibleAppError, testRetryableAppError, testUserVisibleAppError } from "@tests/helpers/app-error";
 import { flushMicrotasksAndRealTimer } from "@tests/helpers/async-flush";
 import { resetTauriRuntimeFlags, setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
+import { createElement, type PropsWithChildren } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TAURI_EVENT_LISTENER_FAILURE_EVENT } from "@/lib/runtime/tauri-event-listeners";
 
@@ -699,6 +701,120 @@ describe("performUpdateCheck", () => {
       "もう一度再起動",
       "後で",
     ]);
+  });
+
+  it("blocks prepared update restart while settings have dirty or pending changes", async () => {
+    mockRestartApp.mockResolvedValue(Result.succeed(null));
+
+    const {
+      updaterModule: { showRestartToast },
+      useUiStore,
+    } = await getUpdaterModuleAndUiStore();
+    const { SettingsDirtyStateRegistryProvider, useRegisterSettingsDirtyState } = await import(
+      "@/components/settings/hooks/use-settings-dirty-state-registry"
+    );
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      settingsOpen: true,
+    });
+
+    const wrapper = ({ children }: PropsWithChildren) =>
+      createElement(SettingsDirtyStateRegistryProvider, null, children);
+    const registryHook = renderHook(
+      () =>
+        useRegisterSettingsDirtyState({
+          owner: "account",
+          dirty: true,
+          pending: false,
+          blockingReason: "account-credentials-dirty",
+        }),
+      { wrapper },
+    );
+
+    showRestartToast();
+    useUiStore
+      .getState()
+      .toastMessage?.actions?.find((action) => action.label === "再起動")
+      ?.onClick();
+
+    expect(mockRestartApp).not.toHaveBeenCalled();
+    expect(useUiStore.getState().confirmDialog.open).toBe(false);
+    expect(useUiStore.getState().toastMessage).toMatchObject({
+      message: "編集中または保存中の変更があるため、再起動できません。",
+      persistent: true,
+      variant: "update",
+    });
+
+    registryHook.unmount();
+  });
+
+  it("blocks prepared update restart while add feed is dirty or pending", async () => {
+    mockRestartApp.mockResolvedValue(Result.succeed(null));
+
+    const {
+      updaterModule: { showRestartToast },
+      useUiStore,
+    } = await getUpdaterModuleAndUiStore();
+    const { useAddFeedDialogActions } = await import(
+      "@/components/reader/hooks/feed-dialogs/use-add-feed-dialog-actions"
+    );
+    const { default: i18n } = await import("@/lib/i18n");
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      isAddFeedDialogOpen: true,
+    });
+
+    const addFeedHook = renderHook(() =>
+      useAddFeedDialogActions({
+        accountId: "account-1",
+        open: true,
+        state: {
+          url: "https://example.com/feed.xml",
+          error: null,
+          successMessage: null,
+          loading: false,
+          discovering: false,
+          discoveryRequestId: null,
+          discoveredFeeds: [],
+          selectedFeedUrl: null,
+        },
+        dispatch: vi.fn(),
+        derived: {
+          hasManualUrl: true,
+          isManualUrlValid: true,
+          urlHint: null,
+          urlHintTone: "muted",
+          isSubmitDisabled: false,
+          isDiscoverDisabled: false,
+          discoveredFeedOptions: [],
+        },
+        trimmedUrl: "https://example.com/feed.xml",
+        folderSelection: {
+          selectedFolderId: null,
+          isCreatingFolder: false,
+          newFolderName: "",
+        },
+        availableFolderIds: [],
+        queryClient: new QueryClient(),
+        onOpenChange: vi.fn(),
+        showToast: vi.fn(),
+        t: i18n.getFixedT("en", "reader"),
+      }),
+    );
+
+    showRestartToast();
+    useUiStore
+      .getState()
+      .toastMessage?.actions?.find((action) => action.label === "再起動")
+      ?.onClick();
+
+    expect(mockRestartApp).not.toHaveBeenCalled();
+    expect(useUiStore.getState().confirmDialog.open).toBe(false);
+    expect(useUiStore.getState().toastMessage?.message).toBe(
+      "編集中または保存中の変更があるため、再起動できません。",
+    );
+
+    addFeedHook.unmount();
   });
 
   it("keeps the prepared update pending when restart runtime is unavailable", async () => {

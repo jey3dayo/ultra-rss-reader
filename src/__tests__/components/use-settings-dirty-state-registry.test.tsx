@@ -3,6 +3,7 @@ import type { PropsWithChildren } from "react";
 import { describe, expect, it } from "vitest";
 import {
   createSettingsDirtyStateSnapshot,
+  getSettingsDirtyStateSnapshot,
   type SettingsDirtyStateEntry,
   SettingsDirtyStateRegistryProvider,
   useRegisterSettingsDirtyState,
@@ -113,6 +114,16 @@ describe("settings dirty-state registry", () => {
       ],
     });
     expect(result.current.entries.map((entry) => entry.owner)).toEqual(["account", "tag", "shortcut", "preferences"]);
+    expect(getSettingsDirtyStateSnapshot()).toMatchObject({
+      dirty: true,
+      pending: true,
+      blockingReasons: [
+        "account-credentials-dirty",
+        "tag-save-pending",
+        "shortcut-recording",
+        "preferences-save-pending",
+      ],
+    });
 
     act(() => {
       rerender({
@@ -128,6 +139,12 @@ describe("settings dirty-state registry", () => {
     });
 
     expect(result.current).toEqual({
+      dirty: false,
+      pending: false,
+      blockingReasons: [],
+      entries: [],
+    });
+    expect(getSettingsDirtyStateSnapshot()).toEqual({
       dirty: false,
       pending: false,
       blockingReasons: [],
