@@ -1011,13 +1011,6 @@
 
 #### P1-Q4 実装 tranche
 
-- [ ] P1-Q4b backup / restore 前後の integrity_check と WAL checkpoint 方針を固定する
-  - worker prompt: DB backup/restore の前後に integrity_check、WAL checkpoint、read-only DB、corrupt DB、permission failure をどう扱うか database command contract として固定する
-  - 対象: `src-tauri/src/commands/database_commands.rs`, `src-tauri/src/infra/db/connection.rs`, backup/restore flow
-  - 完了条件: backup 成功 toast 後に壊れた DB/WAL mismatch が残らず、restore failure は rollback/retry/manual instruction のどれかに分類される
-  - 検証: database command Rust tests、backup/restore focused tests
-  - supersedes: `P1 DB backup / restore 前後の integrity_check と WAL checkpoint 方針を固定する`, `P2 DB backup cleanup の retention / path redaction / restore message を migration fixture で固定する`
-
 - [ ] P1-Q4c startup 後に検出した DB corruption を runtime recovery surface へ出す
   - worker prompt: 起動時は通ったが repository read/write で corruption を検出した場合に、単なる command error ではなく read-only degraded mode、integrity check action、backup restore suggestion へ分類する
   - 対象: repository error handling、`src-tauri/src/commands/database_commands.rs`, settings data page、runtime diagnostics
@@ -1652,16 +1645,6 @@
   - label id を percent decode して display label に寄せるため、slash を含む label、同名 label、encoded Unicode で remote folder id と local folder が衝突しやすい
   - encoded slash、invalid percent、empty label、duplicate labels、Unicode label、existing local folder name collision の sync test を追加する
 
-- [ ] P2 GReader unread count map の negative/duplicate entry policy を feed count repair と同期する
-  - 対象: `src-tauri/src/infra/provider/greader.rs`, `src-tauri/src/commands/sync_providers.rs`, `src-tauri/src/infra/db/sqlite_feed.rs`
-  - unread count response は HashMap 後勝ちで、negative count も i32 として入るため、provider 異常値で sidebar count が壊れる可能性がある
-  - duplicate unread count、negative count、missing feed id、large count、unknown stream id、DB repair後の count parity test を追加する
-
-- [ ] P2 GReader item mapping の missing origin / fallback stream id を skipped_entries diagnostics と同期する
-  - 対象: `src-tauri/src/infra/provider/greader.rs`, `src-tauri/src/commands/sync_providers.rs`, `src/lib/sync/sync-result-feedback.ts`
-  - item に origin がない場合 fallback stream id がないと entry を捨てるため、provider payload 変化で記事欠落しても user には成功に見えやすい
-  - missing origin、fallback stream idあり/なし、missing title/content/url、skipped_entries warning、sync result copy の test を追加する
-
 - [ ] P2 provider metadata URL normalizer と frontend URL policy の差分を providerごとに fixture 化する
   - 対象: `src-tauri/src/infra/provider/normalizer.rs`, `src/lib/feed/feed.ts`, `src/components/shared/feed-favicon.tsx`
   - provider 側で site/icon/article URL を normalize し、frontend でも host/open policy を持つため、片側だけ URL を受け入れる状態が増えやすい
@@ -1701,16 +1684,6 @@
   - 対象: `src/hooks/use-articles.ts`, `src/lib/query/query-invalidation.ts`, `src/components/reader/article-list-body.tsx`
   - read/star mutation が missing article を cache に挿入する場合、unread/starred/recent/search の query mode に合わない item が混ざる可能性がある
   - unread mode read=true、starred mode unstar、recent query insert、search query insert、tag query insert の cache contract を追加する
-
-- [ ] P2 account setup session と credential store の partial create rollback を明文化する
-  - 対象: `src-tauri/src/commands/account_commands.rs`, `src-tauri/src/infra/keyring_store.rs`, `src/lib/account/account-setup-session.types.ts`
-  - account row 作成、credential 保存、connection verification の順序で failure すると account だけ残る/credential だけ残る半端状態になりやすい
-  - DB insert success + keyring failure、keyring success + verification failure、retry create、delete orphan credential、setup session resume の integration test を追加する
-
-- [ ] P2 account credential update の old credential retention / rollback 方針を keyring error で固定する
-  - 対象: `src-tauri/src/commands/account_commands.rs`, `src-tauri/src/infra/keyring_store.rs`, `src/components/settings/hooks/account-detail/use-account-detail-credentials-editor.ts`
-  - credential update 失敗時に旧 credential を保持するのか消すのかが曖昧だと、次回 sync が auth failure になりやすい
-  - update token failure、update password failure、test connection failure、old credential restore、cache/toast consistency の test を追加する
 
 - [ ] P2 account selection fallback と query enabled state を deleted/disabled account で固定する
   - 対象: `src/lib/account/account-selection.ts`, `src/stores/ui-store.ts`, `src/hooks/use-accounts.ts`, `src/hooks/create-query.ts`
