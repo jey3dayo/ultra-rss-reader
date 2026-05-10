@@ -93,6 +93,8 @@ Decision: any support dump or diagnostics export must require explicit user cons
 
 The preview must list the artifact classes that will be included, the redaction classes that were applied, and the items the user must review manually before sharing. It must not expose raw local paths, account names, feed URLs, article URLs, server URLs, credentials, tokens, cookies, hostname, OS username, or a stable device identifier. If the preview cannot be produced, support dump generation must fail closed and direct the user to share a manually redacted app.log excerpt instead.
 
+Bug report attachments follow the same privacy boundary. Public issues should prefer redacted log excerpts, screenshots with private fields hidden, or copied support codes. Raw database backups, full app data directories, keychain exports, and unreviewed support dumps must stay out of public issue attachments.
+
 ### User-Facing Error Correlation
 
 Decision: user-facing copy may show a stable support code for the error category, but diagnostics identifiers are ephemeral log-correlation values and must not be treated as stable user or device identifiers.

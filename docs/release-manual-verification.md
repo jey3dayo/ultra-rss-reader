@@ -1,7 +1,9 @@
 # Release Manual Verification
 
 `mise run ci` is the repository gate, but it intentionally stops before live-service and packaged-app checks.
-Use this checklist before cutting a release tag or shipping a packaged build to someone else.
+Use this checklist before cutting a normal release tag or shipping a packaged build to someone else.
+
+For an urgent patch that only fixes a released regression, use the [Hotfix Release Checklist](#hotfix-release-checklist) first, then run only the manual checks that match the changed surface.
 
 ## When to Run It
 
@@ -44,6 +46,22 @@ Confirm and record:
 - Installed app version shown by the packaged app
 
 `mise run app:install` is only a local build/install helper. It rebuilds from the current checkout and may re-sign the local macOS app after copying it into `/Applications`; it is not evidence that the published release artifact, notarization, or Gatekeeper path works.
+
+### 2a. Windows Installer Signing And SmartScreen Verification
+
+Run this on a clean Windows profile or VM before publishing a Windows installer broadly. This is a manual reputation and trust-path check; do not treat local CI success as evidence that SmartScreen behavior is acceptable.
+
+Confirm and record:
+
+- Installer artifact name, release URL, and SHA-256 digest.
+- Authenticode signature result, for example `Get-AuthenticodeSignature <installer>`.
+- Publisher name, certificate subject, certificate issuer, and timestamp status shown by Windows.
+- Whether SmartScreen shows no prompt, a reputation warning, or an unknown-publisher warning.
+- Screenshot of any SmartScreen or Windows Security prompt, with usernames, local paths, account names, feed URLs, and server URLs redacted.
+- Whether installing from the signed artifact completes without requiring developer mode, bypass scripts, or local rebuild steps.
+- Whether the installed app launches, reports the expected version, and can be uninstalled through the normal Windows app flow.
+
+If SmartScreen reputation is missing but the signature is valid, record it as a release risk instead of re-signing locally. Future policy work should define the EV/OV certificate, timestamping, and publisher reputation strategy before changing installer signing behavior.
 
 ### 3. Native Keyring Verification
 
@@ -94,6 +112,26 @@ Confirm before release:
 - No automatic app data directory rename is attempted during normal startup.
 - If a future identifier change is required, the release plan documents old identifier detection, database copy or backup guidance, the fact that OS keyring credentials may need user re-entry, log path changes, and rollback steps.
 
+### 6a. macOS Sandbox Entitlements And Access Policy
+
+Current policy: Ultra RSS Reader does not expand macOS sandbox entitlements opportunistically. Any future change to file, network, or keychain access must be reviewed as a release-native contract change before shipping.
+
+Confirm before a release that changes Tauri configuration, signing, keyring behavior, import/export, diagnostics, or local file access:
+
+- The intended macOS sandbox mode and entitlements are documented in the release plan.
+- Network access is limited to the app's RSS/provider, update, favicon, article media, and Web Preview behavior described by current product policy.
+- File access remains user-initiated or app-owned unless a reviewed feature explicitly needs broader paths.
+- Keychain access remains limited to provider credentials and does not create a new shared access group without migration and rollback notes.
+- Diagnostics, support dumps, and logs do not require broad filesystem access to collect private data by default.
+- Any new entitlement lists the user-visible feature, expected prompt or OS behavior, fallback behavior when denied, and manual verification evidence.
+
+Evidence to save:
+
+- Signed packaged app path and build version.
+- Relevant entitlements output, for example `codesign -d --entitlements :- <app>`.
+- Screenshot or log note for any macOS permission prompt.
+- Result of adding, restarting, editing, and removing an account through the packaged app when keychain behavior changed.
+
 ### 7. Packaged App Icon and Badge Verification
 
 Run the packaged app on the target OS. This is a visual OS integration check; do not change icon assets or icon design as part of this pass.
@@ -135,6 +173,28 @@ Confirm and record:
 - Support/debug copy does not automatically include hostname, local filesystem paths, OS username, account names, feed URLs, article URLs, server URLs, credentials, tokens, cookies, or a stable device identifier.
 - If support needs environment context, ask for app version, OS family, CPU architecture, locale, and timezone offset as separate non-secret fields instead of adding a stable fingerprint to default debug copy.
 
+## Hotfix Release Checklist
+
+Use this checklist only for a patch that fixes a released regression and should avoid unrelated release scope. Normal feature releases should use the full checklist above.
+
+1. Define the hotfix scope in one sentence: affected version, regression, user impact, and rollback option.
+2. Confirm the patch branch contains only the fix, required tests, and release notes for that regression.
+3. Run the repo quality gate required by the PR template. If time forces a narrower gate, record the skipped gate and the reason in the release notes or handoff.
+4. Re-run focused tests for the changed surface and one packaged smoke for each affected OS.
+5. If the regression affects installer, updater, notarization, keyring, file access, network access, or app startup, run the matching section from this manual checklist.
+6. If the hotfix replaces a broken release artifact, preserve the old release URL, old artifact digest, replacement artifact digest, and user-facing rollback or upgrade guidance.
+7. If the hotfix is abandoned, leave the existing release untouched and continue from [incident-runbook.md](./incident-runbook.md).
+
+Hotfix record:
+
+- affected release version
+- fixed commit and tag
+- changed files or packages
+- focused tests run
+- manual checks run or intentionally skipped
+- artifact digest and signature/notarization evidence for replaced artifacts
+- rollback or republish decision
+
 ## Record the Result
 
 Write down:
@@ -148,7 +208,10 @@ Write down:
 - Whether native keyring verification passed
 - Whether packaged updater verification passed
 - Whether packaged app icon and badge verification passed
+- Whether Windows installer signing and SmartScreen verification passed, if in scope
+- Whether macOS sandbox entitlement/access verification passed, if in scope
 - Whether uninstall/private data reset/support artifact retention verification passed, if in scope
+- Whether this was a normal release or hotfix release
 - Where the supporting logs or screenshots were saved, if any
 - OS timezone and local offset for any shared release logs
 

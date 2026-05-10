@@ -15,6 +15,7 @@ Use this page when the app is already failing and you need the fastest path to t
    - whether this is a dev build or packaged build
 3. If this is a packaged build, open the log directory first.
 4. Do not paste secrets into tickets or chat. Mask credentials, tokens, cookie values, and account passwords before sharing logs.
+5. Attach diagnostics only after redacting usernames, hostnames, local filesystem paths, account names, feed URLs, article URLs, server URLs, credentials, tokens, cookies, and stable device identifiers.
 
 ## Where To Look
 
@@ -40,6 +41,13 @@ Use the source that matches the failure mode before collecting broader artifacts
 | WebView / browser preview | Debug HUD geometry rows plus packaged release log when available | Native and layout bounds disagree, content is blank, or the embedded preview cannot be recreated |
 
 Do not mix app UI debug actions with log collection in the same note. Record which button or command was used, then attach the corresponding diagnostic source separately.
+
+Attachment contract:
+
+- Prefer the smallest artifact that proves the failure: a redacted log excerpt, a screenshot of the prompt, or a copied support code.
+- Do not attach raw app data directories, full database backups, keychain exports, or unreviewed support dumps to public issues.
+- If a database backup set or support dump is needed, share it only through a private support channel after confirming consent and redaction preview requirements from [feed-content-privacy.md](./feed-content-privacy.md).
+- Screenshots of OS prompts, SmartScreen, Gatekeeper, or permission dialogs must hide local usernames, local paths, account names, feed URLs, and server URLs.
 
 ### Database Backups
 
@@ -151,3 +159,4 @@ When handing the issue off, include:
 - path to saved logs
 - path to backup artifacts, if migration was involved
 - whether stale support/debug logs or support dumps were created and whether they were deleted after the incident
+- whether each attached diagnostic artifact was redacted before sharing

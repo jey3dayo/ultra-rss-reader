@@ -78,7 +78,7 @@ body:
     id: logs
     attributes:
       label: Relevant Logs / Evidence
-      description: ログ、エラーメッセージ、関連コード、参考資料
+      description: ログ、エラーメッセージ、関連コード、参考資料。公開 issue には redacted log excerpt、private fields を隠した screenshot、support code など最小証跡だけを添付してください。raw database backup、app data directory、keychain export、unreviewed support dump は添付しないでください。
       render: shell
     validations:
       required: false
