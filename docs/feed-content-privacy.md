@@ -196,6 +196,7 @@ Before these flows claim sleep/resume support, the contract must define:
 
 - an operation generation or cancellation token that is checked before writing completion state, toast copy, or diagnostics
 - partial artifact cleanup or quarantine for updater downloads, OPML exports, and database backups
+- updater artifact invalidation on user cancel, failed install, failed restart, and app restart, so a stale downloaded artifact cannot become pending install state without fresh manifest, signature, and database compatibility validation
 - progress reset behavior after sleep, cancellation, failed write, failed install, and app restart
 - retry rules that distinguish user cancellation, OS sleep interruption, network failure, permission denied, and disk full
 - database backup consistency requirements, including complete `.db` plus matching `-wal` / `-shm` handling where relevant
@@ -255,6 +256,34 @@ The current same-origin assumptions are:
 
 Future changes that merge reader and browser state, add cross-origin messaging, or expose webview navigation data to app actions must update this contract before implementation.
 
+### Provider Response Trust Boundary
+
+Decision: provider responses have two trust classes. Authenticated provider API
+DTOs are trusted backend data only after provider-specific parsing and schema
+validation. Feed HTML, feed entry content, discovered metadata, article URLs,
+favicon URLs, and error payload text remain untrusted feed data even when they
+arrive through a trusted backend connection.
+
+Trust boundary contract:
+
+- Trusted backend DTO types may represent account-scoped provider state such as
+  subscription ids, folder ids, sync cursors, read/star flags, and capability
+  snapshots after strict provider parsing.
+- Trusted backend DTO types must not carry unsanitized article HTML as trusted
+  display content. Entry content from RSS, Atom, GReader, or FreshRSS remains
+  untrusted feed HTML until the Rust sanitizer produces `content_sanitized`.
+- Provider metadata such as title, author, feed title, category, icon URL, and
+  alternate article URL is publisher-controlled display data. It must be
+  escaped or sanitized at the display boundary and must not drive destructive
+  actions without stable app ids or validated URLs.
+- Provider error payloads are untrusted diagnostics input. User-visible errors
+  and logs may use status class, refusal class, capability class, and redacted
+  URL/server class, but must not persist raw provider error bodies.
+- Schema strictness belongs at the provider/backend DTO boundary. HTML
+  sanitization belongs at the untrusted feed content boundary. A type named or
+  documented as trusted must not be used as proof that feed content is safe to
+  render.
+
 ### Article Link Opener Policy
 
 Decision: article links are untrusted publisher-controlled URLs and must be opened without granting an opener relationship, leaking full private URLs through diagnostics, or bypassing the same private-host policy used by feed discovery and feed fetch.
@@ -265,6 +294,35 @@ Link opener contract:
 - Article URLs, feed URLs, server URLs, and link tooltips must use redacted display and redacted diagnostics. Query strings, fragments, userinfo, credentials, tokens, cookies, and private path segments must not appear in logs, support copy, `title` attributes, or error toasts.
 - Private, loopback, link-local, unspecified, credentialed, malformed, and unsupported-scheme article links must not be auto-opened from reader content. If a future UI allows the user to override a blocked article link, it must show a distinct warning state before navigation and must not store the raw blocked URL in diagnostics.
 - Link policy changes must be verified against sanitized article content and external opener behavior separately from embedded Web Preview navigation.
+
+### Credential-Bearing URL Persistence Policy
+
+Decision: URLs containing userinfo or credential-like material are rejected at
+persistence boundaries. Redaction is a diagnostics fallback, not permission to
+store secret-bearing URLs.
+
+Persistence boundary contract:
+
+- Feed add, OPML import, provider server URL save, article URL normalization,
+  browser history persistence, support dump generation, database backup/export
+  metadata, and OPML export must reject or strip credential-bearing URLs before
+  writing durable state.
+- `http:` / `https:` URLs with `username:password@host` or any non-empty
+  userinfo are credential-bearing and must not be stored as feed URLs, server
+  URLs, article URLs, favicon URLs, history entries, or export metadata.
+- Query parameters or fragments that are known credential carriers, including
+  token, access token, auth, key, password, session, cookie, and signature
+  fields, must not be copied into diagnostics or support copy. If a feature
+  needs to persist such a URL for compatibility, it requires a separate reviewed
+  allowlist and user-facing warning before implementation.
+- OPML export must omit any feed whose persisted URL validation fails closed at
+  export time rather than serializing a raw credential-bearing URL.
+- Browser history may keep only a redacted display URL or failure class for a
+  rejected credential-bearing navigation candidate. It must not persist the raw
+  rejected URL for later retry.
+- Database backups can contain historical rows from older builds, so backup and
+  support guidance must continue to treat backups as private even after the
+  current write path rejects credential-bearing URLs.
 
 ### Article Content Image Loading Policy
 
@@ -277,6 +335,65 @@ Image loading contract:
 - Reader image rendering must not introduce script execution, app-action dispatch, Tauri IPC access, or same-origin assumptions with the embedded Web Preview.
 - Broken, blocked, oversized, or slow images must leave text content readable and must not trigger unbounded retry loops.
 - Future reader-only privacy modes may block remote images or tracking-pixel candidates, but they must be measured with the privacy hardening checklist before changing sanitizer, CSP, or frontend rendering behavior.
+
+### Reduced Data And Low Power Policy
+
+Decision: Ultra RSS Reader does not currently integrate with OS reduced-data or
+low-power signals. Until an OS/user preference contract exists, the app must
+keep compatibility-first reader image behavior, suppress automatic background
+work only when an explicit app setting or scheduler policy says so, and keep
+manual user actions available.
+
+Reduced-data contract:
+
+- Reader remote images continue to load in the default mode so saved articles
+  remain readable. A future reduced-data setting may block reader remote images,
+  but it must not change Web Preview behavior unless that separate browser
+  surface is explicitly included in the setting copy.
+- Feed favicon fetching is non-essential remote metadata. A future reduced-data
+  or low-power mode should skip automatic favicon fetches and use local fallback
+  initials/icons until the user manually refreshes metadata.
+- Automatic background sync may be delayed or skipped while low-power,
+  reduced-data, offline, repeated-failure, or many-account guardrails are active.
+  Manual sync remains a user override and must record the native provider
+  result instead of being silently suppressed.
+- Suppressed automatic sync must surface as stale or suppressed state in-app,
+  not as a successful fresh sync. Diagnostics should record suppression class
+  without account names, feed URLs, or raw provider URLs.
+- Settings copy must describe reduced-data behavior as "limits automatic remote
+  loading and background work" rather than "offline", "tracker-free", or
+  "private browsing".
+
+### Feed Favicon Fetch Policy
+
+Decision: feed favicons are optional remote metadata and must use a stricter
+privacy contract than article content. Favicon fetch behavior must not inherit
+browser defaults accidentally.
+
+Favicon fetch contract:
+
+- Favicon requests must send no `Referer` header. Frontend image rendering must
+  use a no-referrer policy, and any native/proxy fetcher must set the equivalent
+  no-referrer behavior explicitly.
+- The user agent must be the app provider user agent declared in
+  `src-tauri/src/infra/provider/http_defaults.rs` when native code fetches the
+  favicon. Frontend-only image loading must not spoof browser, search-engine, or
+  provider-specific crawler identities.
+- Private, loopback, link-local, unspecified, malformed, unsupported-scheme,
+  credential-bearing, and redirect-to-private favicon URLs must be rejected
+  before fetch and before persistence.
+- Favicon lookup must avoid sending feed path/query data to third-party
+  endpoints. Prefer origin-level site URLs or a reviewed privacy-preserving
+  proxy contract over raw feed URLs.
+- Favicon cache entries must be scoped by normalized account/feed or normalized
+  site origin, use a bounded TTL, and be evicted or ignored after feed deletion,
+  account deletion, site URL change, or feed URL change.
+- Failure cache must be bounded and resettable. A failed favicon must fall back
+  without retry loops, and manual refresh may clear the failure entry for that
+  feed/site origin only.
+- Favicon diagnostics may record fetch class, status class, and redacted host
+  class, but must not record raw feed paths, query strings, credentials, tokens,
+  cookies, or account names.
 
 ### Feed Discovery Result Trust Levels
 

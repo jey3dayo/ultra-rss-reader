@@ -63,6 +63,7 @@ Storage pressure contract:
 - Preferences, sidebar expanded-folder state, command history, and debug diagnostics must all continue with in-memory fallback when local storage writes fail.
 - Only the diagnostics owner may emit a warning-once event for storage quota exhaustion, and that warning-once state must not depend on another local storage write.
 - Recovery UI and destructive-action fallback copy must remain visible even when preferences, sidebar state, command history, or debug storage persistence failed.
+- When triaging command/action persistence failures, classify the failing surface before recovery: `shortcut_*` preference keys require preference migration or quarantine handling, command palette recent actions require history cleanup or explicit stale-entry ignore behavior, and debug input trace strings are evidence for the current build rather than data that should be migrated.
 
 ### Database Backups
 
@@ -132,6 +133,33 @@ Account recovery contract:
 - For release validation or packaged-build handoff, use [release-manual-verification.md](./release-manual-verification.md).
 - That checklist is the source of truth for FreshRSS live verification, native keyring verification, and packaged updater verification.
 
+### Release / Update Safety Contract
+
+Treat the app binary version, database schema version, and pending updater state as one recovery boundary. A user profile is safe to continue only when all three agree on the same completed release state or when the app stops in a user-visible recovery state before opening the database for normal writes.
+
+Database schema compatibility:
+
+- Starting an older app against a newer database schema is a downgrade attempt and must be blocked before normal startup writes. Do not describe this as a repairable migration.
+- The supported recovery paths for a newer schema are installing an app version that supports that schema or restoring a compatible private database backup set with the app closed.
+- A release rollback is allowed only when the rollback app declares compatibility with the existing schema version or when the rollback instructions include an explicit backup restore path.
+- Stale update install must be rejected or surfaced as recovery-required when the update artifact's app version cannot support the profile's current database schema version.
+- If migration starts and then fails, preserve the pre-migration backup, restore it when the app-created backup path is available, and keep the schema version at the pre-migration value.
+
+Update/install failure consistency:
+
+- After download failure or cancellation, the current app binary and database schema must remain unchanged, and pending update state must be cleared or marked retry-only so install cannot use a stale artifact.
+- After install or restart failure, confirm the app binary version first, then check whether a schema migration ran. If the binary stayed old but the schema is newer, stop normal use and follow the newer-app-or-compatible-backup recovery path.
+- If the binary changed but pending update state remains, clear the pending state before another check/download so the next install uses a freshly verified artifact.
+- If pending update state exists but the downloaded artifact is missing, partial, unsigned, or from a different release than the manifest being tested, ignore it and redownload after preserving logs.
+- Never retry a failed install by manually editing `schema_version`, deleting updater state, or copying only part of a database backup set.
+
+Downloaded artifact cleanup:
+
+- Canceling an updater download must leave no installable pending artifact. A partial file may be deleted or quarantined, but it must not be reused by install.
+- Failed install must clear or invalidate the downloaded artifact before another install attempt unless the updater can prove the exact same signed artifact is still complete and matches the current manifest.
+- App restart must not resurrect an old downloaded artifact as pending install state. On startup, stale updater artifacts are cleanup candidates unless they are revalidated against the current manifest, signature, and app/database compatibility gate.
+- Preserve logs before cleanup when the failure is being investigated; downloaded release artifacts themselves are not a substitute for logs, signatures, or manifest evidence.
+
 ## Failure-Specific Steps
 
 ### 1. Startup / Migration Failure
@@ -143,6 +171,7 @@ Account recovery contract:
 5. Confirm whether a matching `-wal` or `-shm` file exists for either the current database or the backup.
 6. If manual restore is needed, restore the complete backup set with the app closed, then reopen once and capture the result.
 7. If needed, continue from the migration recovery docs and issue tracking instead of improvising manual DB edits.
+8. If the error says the database schema is newer than the app supports, treat it as a blocked downgrade. Install a newer compatible app or restore a compatible backup; do not edit `schema_version`.
 
 ### 2. Runtime Database Recovery
 
@@ -167,6 +196,8 @@ Use this path when startup succeeded but a later read or write command reports c
 5. If OS sleep or restart happened during download, confirm any downloaded artifact was cleaned up or ignored before retrying.
 6. Re-run the updater path only after confirming the signed release and packaged build pair you are testing.
 7. If restart failed, capture the toast/error message and log output together.
+8. After any failed install/restart, record the app binary version, database schema version, and pending update state before retrying.
+9. If those three states disagree, stop normal update retry and follow the release/update safety contract above.
 
 ### 4. Account Credentials / Keyring Failure
 
@@ -201,6 +232,7 @@ Use this path when startup succeeded but a later read or write command reports c
    - If frontend and native signals disagree, preserve both signals in the incident notes and use the native provider error for recovery category and retry/backoff decisions.
 8. If sync behavior changed after OS sleep, app resume, or a manual clock change, record whether the retry window had already expired, whether many accounts were due at once, and whether manual sync succeeded after resume.
 9. If stale content is still readable, capture whether a stale content banner was shown in the account, feed, or article view. Do not report readable stale articles as a successful fresh sync.
+10. If automatic sync was suppressed for low-power, reduced-data, offline, repeated-failure, or many-account guardrails, record the suppression class and whether manual sync was attempted. Do not treat suppressed automatic sync as fresh content.
 
 ## Escalation Notes
 
