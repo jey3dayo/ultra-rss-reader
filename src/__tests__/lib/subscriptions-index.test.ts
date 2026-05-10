@@ -193,6 +193,28 @@ describe("subscriptions index helpers", () => {
     });
   });
 
+  it("calculates stale days from UTC calendar days across timezone offsets", () => {
+    const [candidate] = buildSubscriptionReviewCandidates({
+      feeds: [{ ...feeds[0], unread_count: 1 }],
+      folders,
+      feedArticleSummaries: [
+        {
+          feed_id: "feed-stale",
+          latest_article_at: "2026-01-01T23:30:00-02:00",
+          starred_count: 1,
+        },
+      ],
+      now: new Date("2026-04-02T00:30:00+02:00"),
+      hiddenFeedIds: new Set(),
+    });
+
+    expect(candidate).toMatchObject({
+      feedId: "feed-stale",
+      staleDays: 89,
+      reasonKeys: [],
+    });
+  });
+
   it("uses the last duplicate review candidate feed id while summary counts preserve caller input", () => {
     const firstCandidate: SubscriptionReviewCandidate = {
       feedId: "feed-stale",

@@ -230,12 +230,21 @@ export function SubscriptionsIndexPage() {
   };
 
   useEffect(() => {
-    const timerId = window.setInterval(() => {
+    const refreshReviewClock = () => {
       setReviewClock(getCurrentDate());
-    }, REVIEW_CLOCK_REFRESH_INTERVAL_MS);
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        refreshReviewClock();
+      }
+    };
+
+    const timerId = window.setInterval(refreshReviewClock, REVIEW_CLOCK_REFRESH_INTERVAL_MS);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       window.clearInterval(timerId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, []);
 

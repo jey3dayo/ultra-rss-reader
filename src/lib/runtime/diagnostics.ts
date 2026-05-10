@@ -185,6 +185,8 @@ const SECRET_OBJECT_KEYS = new Set([
 ]);
 const SECRET_URL_PATH_SEGMENT_PATTERN = /(?:token|secret|password|credential|private[-_]?key|api[-_]?key)/i;
 const UNSUPPORTED_DIAGNOSTICS_PAYLOAD = "[Unsupported diagnostics payload]";
+const RUNTIME_DIAGNOSTIC_PAYLOAD_MAX_CHARS = 200;
+const RUNTIME_DIAGNOSTIC_PAYLOAD_TRUNCATED_SUFFIX = "...[truncated]";
 
 const emittedRuntimeDiagnosticKeys = new Set<string>();
 
@@ -339,6 +341,36 @@ export function redactRuntimeDiagnosticSupportCopy(payload: unknown): string {
 
   try {
     return JSON.stringify(redactedPayload, null, 2) ?? UNSUPPORTED_DIAGNOSTICS_PAYLOAD;
+  } catch {
+    return UNSUPPORTED_DIAGNOSTICS_PAYLOAD;
+  }
+}
+
+function truncateRuntimeDiagnosticPayload(value: string): string {
+  if (value.length <= RUNTIME_DIAGNOSTIC_PAYLOAD_MAX_CHARS) {
+    return value;
+  }
+  return `${value.slice(0, RUNTIME_DIAGNOSTIC_PAYLOAD_MAX_CHARS)}${RUNTIME_DIAGNOSTIC_PAYLOAD_TRUNCATED_SUFFIX}`;
+}
+
+export function formatRuntimeDiagnosticPayload(payload: unknown): string {
+  const redactedPayload = serializeRuntimeDiagnosticSupportCopyPayload(redactRuntimeDiagnosticDetail(payload, true));
+
+  if (typeof redactedPayload === "string") {
+    return truncateRuntimeDiagnosticPayload(redactedPayload);
+  }
+
+  if (
+    typeof redactedPayload === "undefined" ||
+    typeof redactedPayload === "function" ||
+    typeof redactedPayload === "symbol" ||
+    typeof redactedPayload === "bigint"
+  ) {
+    return UNSUPPORTED_DIAGNOSTICS_PAYLOAD;
+  }
+
+  try {
+    return truncateRuntimeDiagnosticPayload(JSON.stringify(redactedPayload) ?? UNSUPPORTED_DIAGNOSTICS_PAYLOAD);
   } catch {
     return UNSUPPORTED_DIAGNOSTICS_PAYLOAD;
   }

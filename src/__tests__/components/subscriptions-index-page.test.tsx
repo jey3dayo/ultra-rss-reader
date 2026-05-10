@@ -29,6 +29,15 @@ function getRequiredHTMLElement(element: Element | null, description: string) {
 let deleteFeedHandler: (() => unknown) | null = null;
 let deleteFeedCalls: string[] = [];
 let feedRows: FeedDto[] = [];
+let documentVisibilityState = "visible";
+
+function setDocumentVisibilityState(visibilityState: DocumentVisibilityState) {
+  documentVisibilityState = visibilityState;
+  Object.defineProperty(document, "visibilityState", {
+    configurable: true,
+    get: () => documentVisibilityState,
+  });
+}
 
 describe("SubscriptionsIndexPage", () => {
   beforeEach(async () => {
@@ -42,6 +51,7 @@ describe("SubscriptionsIndexPage", () => {
     usePreferencesStore.setState({ prefs: {}, loaded: true });
     deleteFeedHandler = null;
     deleteFeedCalls = [];
+    setDocumentVisibilityState("visible");
     feedRows = [
       {
         id: "feed-1",
@@ -187,6 +197,7 @@ describe("SubscriptionsIndexPage", () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    setDocumentVisibilityState("visible");
   });
 
   it("renders summary cards and selects the first feed by default", async () => {
@@ -700,6 +711,78 @@ describe("SubscriptionsIndexPage", () => {
     await vi.advanceTimersByTimeAsync(24 * 60 * 60 * 1000);
 
     expect(await screen.findByRole("button", { name: /Boundary Feed/ })).toBeInTheDocument();
+  });
+
+  it("refreshes stale review labels on visibility return and cleans up the review clock", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date("2026-03-31T00:00:00Z"));
+    const clearIntervalSpy = vi.spyOn(window, "clearInterval");
+    const removeEventListenerSpy = vi.spyOn(document, "removeEventListener");
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_feeds":
+          return [
+            {
+              id: "feed-boundary",
+              account_id: "acc-1",
+              folder_id: null,
+              remote_id: null,
+              title: "Boundary Feed",
+              url: "https://example.com/boundary.xml",
+              site_url: "https://example.com/boundary",
+              unread_count: 1,
+              reader_mode: "inherit",
+              web_preview_mode: "inherit",
+            },
+          ];
+        case "list_folders":
+          return [];
+        case "list_account_articles":
+          return [];
+        case "list_feed_article_summaries":
+          return [
+            {
+              feed_id: "feed-boundary",
+              latest_article_at: "2026-01-01T00:00:00Z",
+              starred_count: 1,
+            },
+          ];
+        case "get_feed_integrity_report":
+          return { orphaned_article_count: 0, orphaned_feeds: [] };
+        case "list_tags":
+          return [];
+        case "get_tag_article_counts":
+          return {};
+        case "delete_feed":
+          deleteFeedCalls.push(String(args.feedId));
+          return null;
+        default:
+          return undefined;
+      }
+    });
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+    const { unmount } = render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: /90日更新なし/ }));
+    expect(await screen.findByText("一致する購読はありません。")).toBeInTheDocument();
+
+    vi.setSystemTime(new Date("2026-04-01T00:00:00Z"));
+    setDocumentVisibilityState("hidden");
+    fireEvent(document, new Event("visibilitychange"));
+    expect(screen.queryByRole("button", { name: /Boundary Feed/ })).not.toBeInTheDocument();
+
+    setDocumentVisibilityState("visible");
+    fireEvent(document, new Event("visibilitychange"));
+    expect(await screen.findByRole("button", { name: /Boundary Feed/ })).toBeInTheDocument();
+
+    const clearIntervalCallCountBeforeUnmount = clearIntervalSpy.mock.calls.length;
+    unmount();
+
+    expect(clearIntervalSpy).toHaveBeenCalledTimes(clearIntervalCallCountBeforeUnmount + 1);
+    expect(removeEventListenerSpy).toHaveBeenCalledWith("visibilitychange", expect.any(Function));
+    clearIntervalSpy.mockRestore();
+    removeEventListenerSpy.mockRestore();
   });
 
   it("keeps the empty detail surface on the rounded-md baseline", async () => {

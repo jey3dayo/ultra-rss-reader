@@ -5,16 +5,9 @@ import { executeAction } from "@/lib/actions";
 import { isAppAction } from "@/lib/app-actions";
 import { emitDebugInputTrace } from "@/lib/debug/debug-input-trace";
 import { isModalBlockedMenuAction } from "@/lib/keyboard/global-shortcut-targets";
+import { formatRuntimeDiagnosticPayload } from "@/lib/runtime/diagnostics";
 import { attachTauriListeners } from "@/lib/runtime/tauri-event-listeners";
 import { useUiStore } from "@/stores/ui-store";
-
-function formatMenuActionPayload(payload: unknown): string {
-  try {
-    return String(payload);
-  } catch {
-    return "[unformattable payload]";
-  }
-}
 
 function isMenuActionBlockedByModal(): boolean {
   const state = useUiStore.getState();
@@ -26,7 +19,7 @@ export function useMenuEvents(): void {
     return attachTauriListeners(
       [
         listen<unknown>(APP_EVENTS.menuAction, (event) => {
-          const formattedPayload = formatMenuActionPayload(event.payload);
+          const formattedPayload = formatRuntimeDiagnosticPayload(event.payload);
           emitDebugInputTrace(`${APP_EVENTS.menuAction} ${formattedPayload}`);
           if (isAppAction(event.payload)) {
             if (isMenuActionBlockedByModal() && isModalBlockedMenuAction(event.payload)) {

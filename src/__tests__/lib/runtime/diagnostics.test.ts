@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  formatRuntimeDiagnosticPayload,
   logRuntimeDiagnostic,
   RUNTIME_DIAGNOSTIC_POLICIES,
   redactProviderRuntimeDiagnosticText,
@@ -137,6 +138,19 @@ describe("runtime diagnostics redaction", () => {
   it("keeps support copy safe for unknown payload shapes", () => {
     expect(redactRuntimeDiagnosticSupportCopy(Symbol("TOKEN=raw"))).toBe("[Unsupported diagnostics payload]");
     expect(redactRuntimeDiagnosticSupportCopy(undefined)).toBe("[Unsupported diagnostics payload]");
+  });
+
+  it("formats redacted and truncated runtime diagnostic payloads", () => {
+    const formatted = formatRuntimeDiagnosticPayload({
+      token: "raw-token",
+      url: `https://example.com/secret-token/feed.xml?token=raw#frag ${"x".repeat(320)}`,
+    });
+
+    expect(formatted).toHaveLength(214);
+    expect(formatted).toContain('{"token":"<redacted>","url":"https://example.com/redacted?redacted#redacted ');
+    expect(formatted).toMatch(/\.\.\.\[truncated\]$/);
+    expect(formatted).not.toContain("raw-token");
+    expect(formatted).not.toContain("token=raw");
   });
 
   it("does not build once suppression keys for repeatable diagnostics", () => {

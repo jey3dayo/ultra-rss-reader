@@ -482,11 +482,6 @@
 
 ### Query / Store / Browser Runtime
 
-- [ ] P2 subscriptions index の review clock interval を page visibility / fake timer contract にする
-  - 対象: `src/components/subscriptions-index/subscriptions-index-page.tsx`, `src/lib/subscriptions/subscription-review-candidates.ts`
-  - 1時間 interval で review status を更新するため、長時間 sleep 復帰や background tab で stale review labels が残りやすい
-  - sleep 復帰、visibilitychange、fake timer、unmount cleanup、timezone/day boundary の component test を追加する
-
 - [ ] P2 subscriptions index return state の account scope と scroll restore を schema 化する
   - 対象: `src/lib/subscriptions/subscriptions-workspace.types.ts`, `src/components/subscriptions-index/use-subscriptions-index-state.ts`, `src/stores/ui-store.ts`
   - return state は account id、selected feed、expanded groups、scrollTop を含むため、別 account に復帰した時の discard/restore ルールがずれやすい
@@ -566,11 +561,6 @@
   - browser webview が main webview と同じ permission 群を持つと、将来 browser 側 script や navigation surface が増えた時に影響範囲を判断しづらい
   - webview 別 capability、window commands、clipboard/opener permission、browser geometry command の必要最小権限を snapshot 化する
 
-- [ ] P2 native menu action id と frontend `AppAction` の parity test を追加する
-  - 対象: `src-tauri/src/menu.rs`, `src/lib/app-actions.ts`, `src/lib/keyboard/keyboard-shortcuts.ts`
-  - native menu 経由の action と keyboard/global action が別定義なので、片方だけ rename/追加されると menu click が no-op になりやすい
-  - menu id、resolved frontend action、unknown action payload、disabled runtime action、shortcut definition の parity test を追加する
-
 - [ ] P2 native menu shortcut hint と user customizable shortcut の表示方針を固定する
   - 対象: `src-tauri/src/menu.rs`, `src/lib/keyboard/keyboard-shortcuts.ts`, `src/components/settings/shortcuts-settings.tsx`
   - menu label に default shortcut hint が含まれる一方、settings 側で shortcut を変更できるため、表示と実動作がずれる可能性がある
@@ -580,11 +570,6 @@
   - 対象: `src-tauri/src/menu.rs`, `src/schemas/preferences.ts`, `src/stores/preferences-store.ts`
   - sort/view/filter の menu checked state は preference payload に依存するため、旧 key や unknown value が混ざると UI と native menu の選択状態がずれやすい
   - old key migration、unknown sort、unchecked fallback、preference save failure、native menu rebuild の parity test を追加する
-
-- [ ] P2 menu event payload diagnostics の redaction / truncation を固定する
-  - 対象: `src/hooks/use-menu-events.ts`, `src/lib/runtime/diagnostics.ts`, `src/__tests__/hooks/use-menu-events.test.tsx`
-  - menu event payload は `String(payload)` で diagnostics に載るため、長大 payload や URL/token を含む custom object が debug trace に漏れる可能性がある
-  - throwing `toString`、long string、URL query token、object payload、unknown action、once key の redaction test を追加する
 
 - [ ] P2 custom keyboard shortcut collision detection を settings save 前に入れる
   - 対象: `src/lib/keyboard/keyboard-shortcuts.ts`, `src/schemas/preferences.ts`, `src/components/settings/shortcuts-settings.tsx`

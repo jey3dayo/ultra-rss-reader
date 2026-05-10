@@ -100,12 +100,52 @@ describe("useMenuEvents", () => {
     expectMenuActionHandler(handler)({ payload: { action: "open-settings" } });
 
     expect(executeActionMock).not.toHaveBeenCalled();
-    expect(emitDebugInputTraceMock).toHaveBeenCalledWith("menu-action [object Object]");
-    expect(warnSpy).toHaveBeenCalledWith("[menu-events] Unknown action: [object Object]");
+    expect(emitDebugInputTraceMock).toHaveBeenCalledWith('menu-action {"action":"open-settings"}');
+    expect(warnSpy).toHaveBeenCalledWith('[menu-events] Unknown action: {"action":"open-settings"}');
     warnSpy.mockRestore();
   });
 
-  it("safely traces and warns for unknown menu action payloads with unsafe formatting", async () => {
+  it("redacts and truncates unknown menu action payload diagnostics", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    let handler: MenuActionHandler | null = null;
+    listenMock.mockImplementation((_eventName: string, nextHandler: MenuActionHandler) => {
+      handler = nextHandler;
+      return Promise.resolve(vi.fn());
+    });
+
+    render(<MenuEventsProbe />);
+
+    await waitFor(() => {
+      expect(listenMock).toHaveBeenCalledWith(APP_EVENTS.menuAction, expect.any(Function));
+    });
+    expectMenuActionHandler(handler)({
+      payload: {
+        action: "open-feed-cleanup",
+        token: "raw-token",
+        url: `https://example.com/secret-token/feed.xml?token=raw#frag ${"x".repeat(320)}`,
+      },
+    });
+
+    const debugPayload = emitDebugInputTraceMock.mock.calls[0]?.[0] ?? "";
+    const warningPayload = warnSpy.mock.calls[0]?.[0] ?? "";
+
+    expect(executeActionMock).not.toHaveBeenCalled();
+    expect(debugPayload).toContain(
+      'menu-action {"action":"open-feed-cleanup","token":"<redacted>","url":"https://example.com/redacted?redacted#redacted ',
+    );
+    expect(debugPayload).toHaveLength("menu-action ".length + 214);
+    expect(debugPayload).toMatch(/\.\.\.\[truncated\]$/);
+    expect(warningPayload).toContain(
+      '[menu-events] Unknown action: {"action":"open-feed-cleanup","token":"<redacted>","url":"https://example.com/redacted?redacted#redacted ',
+    );
+    expect(warningPayload).toHaveLength("[menu-events] Unknown action: ".length + 214);
+    expect(warningPayload).toMatch(/\.\.\.\[truncated\]$/);
+    expect(JSON.stringify(warnSpy.mock.calls)).not.toContain("raw-token");
+    expect(JSON.stringify(warnSpy.mock.calls)).not.toContain("token=raw");
+    warnSpy.mockRestore();
+  });
+
+  it("safely traces and warns for unknown menu action payloads with unsupported formatting", async () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     let handler: MenuActionHandler | null = null;
     const unsafePayload = {
@@ -129,10 +169,10 @@ describe("useMenuEvents", () => {
     expectMenuActionHandler(handler)({ payload: Symbol("open-settings") });
 
     expect(executeActionMock).not.toHaveBeenCalled();
-    expect(emitDebugInputTraceMock).toHaveBeenCalledWith("menu-action [unformattable payload]");
-    expect(emitDebugInputTraceMock).toHaveBeenCalledWith("menu-action Symbol(open-settings)");
-    expect(warnSpy).toHaveBeenCalledWith("[menu-events] Unknown action: [unformattable payload]");
-    expect(warnSpy).toHaveBeenCalledWith("[menu-events] Unknown action: Symbol(open-settings)");
+    expect(emitDebugInputTraceMock).toHaveBeenCalledWith("menu-action {}");
+    expect(emitDebugInputTraceMock).toHaveBeenCalledWith("menu-action [Unsupported diagnostics payload]");
+    expect(warnSpy).toHaveBeenCalledWith("[menu-events] Unknown action: {}");
+    expect(warnSpy).toHaveBeenCalledWith("[menu-events] Unknown action: [Unsupported diagnostics payload]");
     warnSpy.mockRestore();
   });
 
