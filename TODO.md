@@ -62,12 +62,6 @@
 
 #### P2 Settings 実装 tranche
 
-- [ ] P2-S2 settings form save handlers を form revision で guard する
-  - worker prompt: account name/credential、shortcut、tag/mute、preference form の save promise が返る前に draft が変わった場合、古い success/failure が新しい draft/dirty state を上書きしないようにする
-  - 対象: settings form hooks、`src/components/settings/hooks/account-detail/*`, `src/components/settings/shortcuts-settings.tsx`, tags/mute settings hooks
-  - 完了条件: edit while saving、save success stale、save failure stale、retry latest draft、dirty state が form ごとに同じ revision pattern を使う
-  - 検証: account detail/shortcuts/tags/mute focused vitest
-  - supersedes: `P2 stale closure in settings save handlers を form revision で guard する`, `P2 account credentials editor の draft revision と pending save 再帰を contract 化する`
 
 - [ ] P2-S4 settings dirty-state registry を account/tag/shortcut/preferences で共通化する
   - worker prompt: settings modal close/navigation/update restart の前に見る dirty-state registry を作る前提で、account credentials、tag edit、shortcut edit、sync preferences、preferences save pending の owner を整理する
@@ -76,12 +70,6 @@
   - 検証: settings modal/account/tag/shortcut focused tests
   - supersedes: `P2 settings form dirty-state registry を account/tag/shortcut/preferences で共通化する`
 
-- [ ] P2-S5 settings fallback が failure を empty state と誤表示しないようにする
-  - worker prompt: account/feed/tag/preference parse/load failure を空配列や default state に潰した時、destructive action が enabled にならず、理由付き disabled / recovery action へ落ちる contract を作る
-  - 対象: settings data actions、account/feed/tag destructive dialogs、query/schema parse fallback、settings empty states
-  - 完了条件: true empty、auth failure、network failure、schema parse failure、permission denied が UI state と disabled reason で区別される
-  - 検証: settings/account detail/tags/data settings focused tests、schema parse fallback tests
-  - supersedes: `P1 error fallback が destructive action を隠さず disabled にする共通 contract を作る`, `P2 empty state が permission/auth/network/schema failure を同じ「空」として見せないようにする`
 
 - [ ] P2 Reader stale state / focus / search バッチを組む
   - 親バッチ: article list sourcePlan stable key、retained article ids、search result source order、selection not-found、auto-mark timer、reader focus retry を束ねる
@@ -122,12 +110,6 @@
 
 #### P2 A11y / Keyboard 実装 tranche
 
-- [ ] P2-A11Y1 dialog / popover / browser overlay の top-layer stack contract を固定する
-  - worker prompt: settings modal、confirm dialog、command palette、tag picker、browser overlay が重なった時の aria-hidden/inert、Escape order、Tab wrap、restore focus を shared top-layer contract として固定する
-  - 対象: `src/components/ui/dialog.tsx`, settings modal、command palette、article tag picker、browser overlay shortcuts/focus hooks
-  - 完了条件: nested dialog、popover inside dialog、browser overlay then dialog、modal then palette の背後 tab stop と screen reader exposure が復活しない
-  - 検証: `pnpm exec vitest run src/__tests__/components/dialog.test.tsx src/__tests__/components/settings-modal.test.tsx src/__tests__/components/command-palette.test.tsx src/__tests__/hooks/use-browser-overlay-shortcuts.test.tsx`
-  - supersedes: `P2 dialog / popover の aria-hidden / inert stack contract を追加する`, `P2 focus trap escape hatch を modal/popover/browser overlay の nested top-layer で検証する`, `P2 browser overlay Escape と global keyboard の priority contract を作る`
 
 - [ ] P2-A11Y4 global/native keyboard shortcut と IME composition の block policy を統一する
   - worker prompt: global keyboard、native menu action、shortcut recorder、shortcut help、browser overlay shortcut が modal/top-layer、input/combobox、IME composing、Alt/Option、Dead/Unidentified key を同じ policy で扱うようにする
@@ -704,26 +686,8 @@
 
 #### P1-Q1 実装 tranche
 
-- [ ] P1-Q1b feed discovery SSRF / redirect / private host guard を URL corpus 化する
-  - worker prompt: IDNA、punycode、IPv4-mapped IPv6、IPv6 zone identifier、DNS rebinding、redirect 後 private host、`<base>` href を shared URL validation fixture で固定する
-  - 対象: `src-tauri/src/infra/feed_discovery.rs`, provider HTTP URL validation helpers, feed discovery tests
-  - 完了条件: initial URL、redirect URL、base-resolved feed URL の private host policy が同じ helper と fixture を使う
-  - 検証: feed discovery Rust tests、URL schema/private host fixture tests
-  - supersedes: `P1 feed discovery SSRF guard を DNS rebinding / redirect / base tag で再検証する`, `P1 feed fetch redirect policy を cross-scheme / private host / loop で固定する`
 
-- [ ] P1-Q1c OPML import/export の private URL / XML entity / escaping boundary を固定する
-  - worker prompt: OPML import URL validation を discovery と同じ private host policy に寄せ、XML entity/DOCTYPE/deep nesting/escaping/stable ordering を import/export round-trip fixture で固定する
-  - 対象: `src-tauri/src/infra/opml.rs`, `src-tauri/src/commands/opml_commands.rs`, OPML import/export tests
-  - 完了条件: RSS/Atom/OPML の XML entity expansion policy、OPML private URL reject、export escaping/stable ordering が同じ fixture directory で検証できる
-  - 検証: OPML Rust tests、import/export round-trip fixtures、large/deep OPML fixture tests
-  - supersedes: `P1 OPML import URL validation を discovery URL validation と同じ private host policy に寄せる`, `P1 XML entity expansion / external entity policy を feed parser boundary で固定する`
 
-- [ ] P1-Q1e reader content link/image privacy と tooltip/title redaction を同期する
-  - worker prompt: article content links/images、thumbnail URL、external opener、tooltip/title attribute が sanitizer media/link policy と同じ redaction/private host/userinfo policy を使うようにする
-  - 対象: `src/components/reader/article-content-view.tsx`, `src/lib/content/html.ts`, feed URL/account detail tooltip surfaces
-  - 完了条件: link opener、image loading、thumbnail display、tooltip/title、copy action のすべてで secret-bearing URL と private host URL の表示/遷移 policy が揃う
-  - 検証: `pnpm exec vitest run src/__tests__/components/article-content-view.test.tsx src/__tests__/lib/html.test.ts`, tooltip/redaction focused tests
-  - supersedes: `P1 reader content privacy policy の frontend post-process を sanitizer contract と同期する`, `P2 tooltip / title attribute に secret or full URL を出さない privacy contract を作る`
 
 - [ ] P1-Q2 Provider auth storm / credential rotation safety
   - 目的: 壊れた credential や server URL 変更中に auto sync / pending mutation replay が走り続ける事故を止める
@@ -778,12 +742,6 @@
   - 検証: release workflow static contract、release manual verification docs、必要なら `mise run ci`
   - supersedes: `P1 release artifact SBOM / provenance / checksum を生成・検証する gate を作る`, `P2 release artifact provenance を PR / tag / workflow run の三点で照合する`
 
-- [ ] P1-Q3c updater manifest と release asset の signature / checksum / platform mapping を双方向検証する
-  - worker prompt: latest.json/updater manifest が macOS arm64、Windows x64、Linux future scope の asset filename、signature sidecar、checksum、platform mapping と一致することを contract 化する
-  - 対象: release workflow、updater manifest generation、`tests/release-repo-contract.test.ts`, release manual verification
-  - 完了条件: manifest が別 arch/別 asset/欠落 signature を指す場合に CI または manual checklist で止まる
-  - 検証: release repo contract、updater config schema tests、manual verification checklist
-  - supersedes: `P1 updater manifest と release asset の signature / checksum / platform mapping を双方向検証する`, `P2 release workflow matrix artifact naming を platform/arch/signature で固定する`
 
 - [ ] P1-Q3d release build の dev-only contamination gate を作る
   - worker prompt: `DEV_CREDENTIALS`、dev mocks、debug scenario、MCP bridge plugin、dev-only capability/config が production artifact に混入しない static/smoke gate を追加する
