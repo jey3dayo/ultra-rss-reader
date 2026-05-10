@@ -134,6 +134,19 @@ describe("quality-baseline", () => {
     });
   });
 
+  it("reports malformed version probes with the probed command and captured stdout", () => {
+    expect(
+      createReportDiagnostic("Knip", "pnpm exec knip --version", "knip dev build", "Could not read Knip version."),
+    ).toEqual({
+      kind: "malformed-report",
+      tool: "Knip",
+      command: "pnpm exec knip --version",
+      message: "Knip returned output, but no valid report JSON could be parsed.",
+      stdout: "knip dev build",
+      stderr: undefined,
+    });
+  });
+
   it("reports timeouts from the process error code", () => {
     const error = Object.assign(new Error("spawnSync pnpm ETIMEDOUT"), {
       code: "ETIMEDOUT",

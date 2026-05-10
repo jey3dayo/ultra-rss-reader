@@ -186,7 +186,14 @@ function readKnipVersion(): string {
     .filter(Boolean);
   const version = lines.find((line) => /^\d+\.\d+\.\d+$/.test(line));
   if (version === undefined) {
-    throw new Error("Could not read Knip version.");
+    const diagnostic = createReportDiagnostic(
+      "Knip",
+      "pnpm exec knip --version",
+      result.stdout,
+      "Could not read Knip version.",
+    );
+    writeToolDiagnostic(diagnostic);
+    process.exit(exitCodeForDiagnostic(diagnostic));
   }
   return version;
 }

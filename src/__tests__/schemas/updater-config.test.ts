@@ -12,6 +12,8 @@ import tauriReleaseConfigSource from "../../../src-tauri/tauri.release.conf.json
 
 const latestUpdaterUrl = "https://github.com/jey3dayo/ultra-rss-reader/releases/latest/download/latest.json";
 const productionIdentifier = "com.jey3dayo.ultra-rss-reader";
+const releaseTauriConfigPath = "src-tauri/tauri.release.conf.json";
+const devTauriConfigPath = "src-tauri/tauri.dev.conf.json";
 const releaseUpdaterAssetContract = [
   {
     assetPattern: ".app.tar.gz",
@@ -94,7 +96,10 @@ test("release workflow exports updater signing secrets", async () => {
   expect(tauriActionBlock).toContain("TAURI_SIGNING_PRIVATE_KEY:");
   expect(tauriActionBlock).toContain("TAURI_SIGNING_PRIVATE_KEY_PASSWORD:");
   expect(releaseConfig.bundle.createUpdaterArtifacts).toBe(true);
-  expect(tauriActionBlock).toContain("--config src-tauri/tauri.release.conf.json");
+  expect(tauriActionBlock).toContain(`--config ${releaseTauriConfigPath}`);
+  expect(tauriActionBlock).not.toContain(`--config ${devTauriConfigPath}`);
+  expect(workflow).toContain(`const releaseConfigPath = "${releaseTauriConfigPath}";`);
+  expect(workflow).toContain(`const devConfigPath = "${devTauriConfigPath}";`);
 });
 
 test("release workflow keeps the supported artifact matrix", async () => {

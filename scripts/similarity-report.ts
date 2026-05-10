@@ -46,6 +46,11 @@ export type SimilarityParseDiagnostics = {
   skippedSimilarityBlocks: number;
 };
 
+export type SimilarityReportGateDiagnostic = {
+  exitCode: number;
+  message: string;
+};
+
 type SimilarityFalsePositive = {
   id: string;
   todoName: string;
@@ -205,6 +210,29 @@ export function buildSimilaritySummary(output: string, todoContent?: string): st
   ].join("\n");
 }
 
+export function evaluateSimilarityReportGate(output: string): SimilarityReportGateDiagnostic | null {
+  const parseDiagnostics = parseSimilarityOutput(output);
+  const typeSummary = parseSimilarityTypeSummary(output);
+  const messages: string[] = [];
+
+  if (parseDiagnostics.skippedSimilarityBlocks > 0) {
+    messages.push(`unparsed similarity blocks: ${parseDiagnostics.skippedSimilarityBlocks}`);
+  }
+
+  if (typeSummary.reportedTypePairDrift !== 0) {
+    messages.push(`type pair report drift: ${typeSummary.reportedTypePairDrift}`);
+  }
+
+  if (messages.length === 0) {
+    return null;
+  }
+
+  return {
+    exitCode: 1,
+    message: `Similarity report gate failed: ${messages.join("; ")}`,
+  };
+}
+
 export function findStaleFalsePositiveTodoRefs(todoContent: string): SimilarityFalsePositive[] {
   return similarityFalsePositiveBaseline.filter((item) => !todoContent.includes(item.todoName));
 }
@@ -271,7 +299,13 @@ export function runSimilarityReport(args: readonly string[] = process.argv.slice
     encoding: "utf8",
   });
 
+  if (result.error !== undefined) {
+    process.stderr.write(`Failed to run similarity-ts via pnpm: ${result.error.message}\n`);
+    process.exit(1);
+  }
+
   if (result.status !== 0) {
+    process.stderr.write(`similarity-ts exited with status ${result.status ?? "unknown"}.\n`);
     process.stderr.write(result.stderr);
     process.stderr.write(result.stdout);
     process.exit(result.status ?? 1);
@@ -279,8 +313,15 @@ export function runSimilarityReport(args: readonly string[] = process.argv.slice
 
   process.stdout.write(result.stdout);
   process.stdout.write("\n");
-  process.stdout.write(buildSimilaritySummary(result.stdout, readTodoContent()));
+  const summary = buildSimilaritySummary(result.stdout, readTodoContent());
+  process.stdout.write(summary);
   process.stdout.write("\n");
+
+  const gateDiagnostic = evaluateSimilarityReportGate(result.stdout);
+  if (gateDiagnostic !== null) {
+    process.stderr.write(`${gateDiagnostic.message}\n`);
+    process.exit(gateDiagnostic.exitCode);
+  }
 }
 
 function readTodoContent(): string | undefined {

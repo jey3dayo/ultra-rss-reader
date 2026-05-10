@@ -54,6 +54,8 @@ type TauriCapabilityFile =
     };
 
 const RELEASE_UPDATER_ENDPOINT = "https://github.com/jey3dayo/ultra-rss-reader/releases/latest/download/latest.json";
+const RELEASE_TAURI_CONFIG_PATH = "src-tauri/tauri.release.conf.json";
+const DEV_TAURI_CONFIG_PATH = "src-tauri/tauri.dev.conf.json";
 const UPDATER_PUBKEY_PLACEHOLDER_PATTERN = /(?:placeholder|change[_-]?me|todo)/i;
 const RELEASE_UPDATER_ASSET_CONTRACT = [
   {
@@ -553,8 +555,14 @@ describe("release repository contract", () => {
   it("requires the release workflow to build with the release updater config", () => {
     const tauriActionBlock = extractTauriActionBlock(releaseWorkflow);
 
-    expect(tauriActionBlock).toContain("--config src-tauri/tauri.release.conf.json");
+    expect(tauriActionBlock).toContain(`--config ${RELEASE_TAURI_CONFIG_PATH}`);
+    expect(tauriActionBlock).not.toContain(`--config ${DEV_TAURI_CONFIG_PATH}`);
     expect(tauriActionBlock).not.toContain('--config \'{"identifier"');
+    expect(releaseWorkflow).toContain(
+      `const tauriReleaseConfig = JSON.parse(fs.readFileSync("${RELEASE_TAURI_CONFIG_PATH}", "utf8"));`,
+    );
+    expect(releaseWorkflow).toContain(`const releaseConfigPath = "${RELEASE_TAURI_CONFIG_PATH}";`);
+    expect(releaseWorkflow).toContain(`const devConfigPath = "${DEV_TAURI_CONFIG_PATH}";`);
     expect(releaseWorkflow).toContain("src-tauri/tauri.release.conf.json must enable updater artifacts");
     expect(releaseWorkflow).toContain("release workflow must pass src-tauri/tauri.release.conf.json to tauri-action");
     expect(releaseWorkflow.indexOf("Validate release version parity")).toBeLessThan(
