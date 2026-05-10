@@ -47,9 +47,7 @@ const makeFeed = (overrides: Partial<FeedDto>): FeedDto => ({
 });
 
 const readStoredExpansion = (): unknown =>
-  JSON.parse(
-    window.localStorage.getItem(STORAGE_KEYS.sidebarExpandedFolders) ?? "{}",
-  );
+  JSON.parse(window.localStorage.getItem(STORAGE_KEYS.sidebarExpandedFolders) ?? "{}");
 
 afterEach(() => {
   window.localStorage.clear();
@@ -172,9 +170,7 @@ describe("resolveSidebarStartupExpandedFolderIds", () => {
 describe("useSidebarStartupFolderExpansion", () => {
   it("expands unread folders on startup", async () => {
     const { result } = renderHook(() => {
-      const [expandedFolderIds, setExpandedFolderIds] = useState(
-        new Set<string>(),
-      );
+      const [expandedFolderIds, setExpandedFolderIds] = useState(new Set<string>());
       useSidebarStartupFolderExpansion({
         selectedAccountId: "acc-1",
         expandedFolderIds,
@@ -189,8 +185,7 @@ describe("useSidebarStartupFolderExpansion", () => {
         startupFolderExpansion: "unread_folders",
         feedsReady: true,
         foldersReady: true,
-        setExpandedFolders: (folderIds) =>
-          setExpandedFolderIds(new Set(folderIds)),
+        setExpandedFolders: (folderIds) => setExpandedFolderIds(new Set(folderIds)),
       });
 
       return expandedFolderIds;
@@ -203,16 +198,8 @@ describe("useSidebarStartupFolderExpansion", () => {
 
   it("waits for last selected account feeds and folders before applying startup expansion", async () => {
     const { result, rerender } = renderHook(
-      ({
-        feedsReady,
-        foldersReady,
-      }: {
-        feedsReady: boolean;
-        foldersReady: boolean;
-      }) => {
-        const [expandedFolderIds, setExpandedFolderIds] = useState(
-          new Set<string>(),
-        );
+      ({ feedsReady, foldersReady }: { feedsReady: boolean; foldersReady: boolean }) => {
+        const [expandedFolderIds, setExpandedFolderIds] = useState(new Set<string>());
         useSidebarStartupFolderExpansion({
           selectedAccountId: "acc-1",
           expandedFolderIds,
@@ -229,8 +216,7 @@ describe("useSidebarStartupFolderExpansion", () => {
           startupFolderExpansion: "unread_folders",
           feedsReady,
           foldersReady,
-          setExpandedFolders: (folderIds) =>
-            setExpandedFolderIds(new Set(folderIds)),
+          setExpandedFolders: (folderIds) => setExpandedFolderIds(new Set(folderIds)),
         });
 
         return expandedFolderIds;
@@ -249,9 +235,7 @@ describe("useSidebarStartupFolderExpansion", () => {
 
   it("does not reopen an unread folder after the user has manually changed expansion", async () => {
     const { result } = renderHook(() => {
-      const [expandedFolderIds, setExpandedFolderIds] = useState(
-        new Set(["folder-read"]),
-      );
+      const [expandedFolderIds, setExpandedFolderIds] = useState(new Set(["folder-read"]));
       useSidebarStartupFolderExpansion({
         selectedAccountId: "acc-1",
         expandedFolderIds,
@@ -266,8 +250,7 @@ describe("useSidebarStartupFolderExpansion", () => {
         startupFolderExpansion: "unread_folders",
         feedsReady: true,
         foldersReady: true,
-        setExpandedFolders: (folderIds) =>
-          setExpandedFolderIds(new Set(folderIds)),
+        setExpandedFolders: (folderIds) => setExpandedFolderIds(new Set(folderIds)),
       });
 
       return expandedFolderIds;
@@ -289,9 +272,7 @@ describe("useSidebarStartupFolderExpansion", () => {
 
     const { result, rerender } = renderHook(
       ({ selectedAccountId }: { selectedAccountId: string }) => {
-        const [expandedFolderIds, setExpandedFolderIds] = useState(
-          new Set<string>(),
-        );
+        const [expandedFolderIds, setExpandedFolderIds] = useState(new Set<string>());
         useSidebarStartupFolderExpansion({
           selectedAccountId,
           expandedFolderIds,
@@ -300,8 +281,7 @@ describe("useSidebarStartupFolderExpansion", () => {
           startupFolderExpansion: "restore_previous",
           feedsReady: true,
           foldersReady: true,
-          setExpandedFolders: (folderIds) =>
-            setExpandedFolderIds(new Set(folderIds)),
+          setExpandedFolders: (folderIds) => setExpandedFolderIds(new Set(folderIds)),
         });
 
         return expandedFolderIds;
@@ -375,9 +355,7 @@ describe("useSidebarStartupFolderExpansion", () => {
     });
 
     const { result } = renderHook(() => {
-      const [expandedFolderIds, setExpandedFolderIds] = useState(
-        new Set<string>(),
-      );
+      const [expandedFolderIds, setExpandedFolderIds] = useState(new Set<string>());
       useSidebarStartupFolderExpansion({
         selectedAccountId: "acc-1",
         expandedFolderIds,
@@ -392,8 +370,7 @@ describe("useSidebarStartupFolderExpansion", () => {
         startupFolderExpansion: "unread_folders",
         feedsReady: true,
         foldersReady: true,
-        setExpandedFolders: (folderIds) =>
-          setExpandedFolderIds(new Set(folderIds)),
+        setExpandedFolders: (folderIds) => setExpandedFolderIds(new Set(folderIds)),
       });
 
       return expandedFolderIds;
@@ -411,9 +388,7 @@ describe("useSidebarStartupFolderExpansion", () => {
     });
 
     const { result } = renderHook(() => {
-      const [expandedFolderIds, setExpandedFolderIds] = useState(
-        new Set<string>(),
-      );
+      const [expandedFolderIds, setExpandedFolderIds] = useState(new Set<string>());
       useSidebarStartupFolderExpansion({
         selectedAccountId: "acc-1",
         expandedFolderIds,
@@ -422,8 +397,7 @@ describe("useSidebarStartupFolderExpansion", () => {
         startupFolderExpansion: "restore_previous",
         feedsReady: true,
         foldersReady: true,
-        setExpandedFolders: (folderIds) =>
-          setExpandedFolderIds(new Set(folderIds)),
+        setExpandedFolders: (folderIds) => setExpandedFolderIds(new Set(folderIds)),
       });
 
       return expandedFolderIds;
@@ -443,10 +417,7 @@ describe("useSidebarStartupFolderExpansion", () => {
       { length: MAX_STORED_SIDEBAR_EXPANDED_ACCOUNTS + 5 },
       (_, index): [string, string[]] => [`stale-account-${index}`, folderIds],
     );
-    window.localStorage.setItem(
-      STORAGE_KEYS.sidebarExpandedFolders,
-      JSON.stringify(Object.fromEntries(storedEntries)),
-    );
+    window.localStorage.setItem(STORAGE_KEYS.sidebarExpandedFolders, JSON.stringify(Object.fromEntries(storedEntries)));
 
     const { rerender } = renderHook(
       ({ expandedFolderIds }: { expandedFolderIds: Set<string> }) => {
@@ -480,21 +451,13 @@ describe("useSidebarStartupFolderExpansion", () => {
     window.localStorage.setItem(
       STORAGE_KEYS.sidebarExpandedFolders,
       JSON.stringify({
-        "acc-1": [
-          "folder-restored",
-          "",
-          null,
-          "folder-missing",
-          "folder-restored",
-        ],
+        "acc-1": ["folder-restored", "", null, "folder-missing", "folder-restored"],
         "acc-2": "folder-acc-2",
       }),
     );
 
     const { result } = renderHook(() => {
-      const [expandedFolderIds, setExpandedFolderIds] = useState(
-        new Set<string>(),
-      );
+      const [expandedFolderIds, setExpandedFolderIds] = useState(new Set<string>());
       useSidebarStartupFolderExpansion({
         selectedAccountId: "acc-1",
         expandedFolderIds,
@@ -503,8 +466,7 @@ describe("useSidebarStartupFolderExpansion", () => {
         startupFolderExpansion: "restore_previous",
         feedsReady: true,
         foldersReady: true,
-        setExpandedFolders: (folderIds) =>
-          setExpandedFolderIds(new Set(folderIds)),
+        setExpandedFolders: (folderIds) => setExpandedFolderIds(new Set(folderIds)),
       });
 
       return expandedFolderIds;
@@ -522,18 +484,11 @@ describe("useSidebarStartupFolderExpansion", () => {
   });
 
   it("cleans corrupted sidebar expansion storage before restoring folders", async () => {
-    const warnSpy = vi
-      .spyOn(console, "warn")
-      .mockImplementation(() => undefined);
-    window.localStorage.setItem(
-      STORAGE_KEYS.sidebarExpandedFolders,
-      "not-json",
-    );
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    window.localStorage.setItem(STORAGE_KEYS.sidebarExpandedFolders, "not-json");
 
     const { result } = renderHook(() => {
-      const [expandedFolderIds, setExpandedFolderIds] = useState(
-        new Set<string>(),
-      );
+      const [expandedFolderIds, setExpandedFolderIds] = useState(new Set<string>());
       useSidebarStartupFolderExpansion({
         selectedAccountId: "acc-1",
         expandedFolderIds,
@@ -542,8 +497,7 @@ describe("useSidebarStartupFolderExpansion", () => {
         startupFolderExpansion: "restore_previous",
         feedsReady: true,
         foldersReady: true,
-        setExpandedFolders: (folderIds) =>
-          setExpandedFolderIds(new Set(folderIds)),
+        setExpandedFolders: (folderIds) => setExpandedFolderIds(new Set(folderIds)),
       });
 
       return expandedFolderIds;
@@ -572,9 +526,7 @@ describe("useSidebarStartupFolderExpansion", () => {
     );
 
     const { result } = renderHook(() => {
-      const [expandedFolderIds, setExpandedFolderIds] = useState(
-        new Set<string>(),
-      );
+      const [expandedFolderIds, setExpandedFolderIds] = useState(new Set<string>());
       useSidebarStartupFolderExpansion({
         selectedAccountId: "acc-1",
         expandedFolderIds,
@@ -583,8 +535,7 @@ describe("useSidebarStartupFolderExpansion", () => {
         startupFolderExpansion: "restore_previous",
         feedsReady: true,
         foldersReady: true,
-        setExpandedFolders: (folderIds) =>
-          setExpandedFolderIds(new Set(folderIds)),
+        setExpandedFolders: (folderIds) => setExpandedFolderIds(new Set(folderIds)),
       });
 
       return expandedFolderIds;
@@ -600,9 +551,7 @@ describe("useSidebarStartupFolderExpansion", () => {
   });
 
   it("diagnoses sidebar expansion storage cleanup failures once", async () => {
-    const warnSpy = vi
-      .spyOn(console, "warn")
-      .mockImplementation(() => undefined);
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     vi.spyOn(Storage.prototype, "getItem").mockReturnValue(
       `"${"x".repeat(MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_STORAGE_LENGTH + 1)}"`,
     );
@@ -612,9 +561,7 @@ describe("useSidebarStartupFolderExpansion", () => {
 
     const renderRestoreHook = () =>
       renderHook(() => {
-        const [expandedFolderIds, setExpandedFolderIds] = useState(
-          new Set<string>(),
-        );
+        const [expandedFolderIds, setExpandedFolderIds] = useState(new Set<string>());
         useSidebarStartupFolderExpansion({
           selectedAccountId: "acc-1",
           expandedFolderIds,
@@ -623,8 +570,7 @@ describe("useSidebarStartupFolderExpansion", () => {
           startupFolderExpansion: "restore_previous",
           feedsReady: true,
           foldersReady: true,
-          setExpandedFolders: (folderIds) =>
-            setExpandedFolderIds(new Set(folderIds)),
+          setExpandedFolders: (folderIds) => setExpandedFolderIds(new Set(folderIds)),
         });
 
         return expandedFolderIds;
@@ -653,18 +599,14 @@ describe("useSidebarStartupFolderExpansion", () => {
   });
 
   it("diagnoses sidebar expansion storage read, invalid cleanup, and write failures", async () => {
-    const warnSpy = vi
-      .spyOn(console, "warn")
-      .mockImplementation(() => undefined);
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
 
     vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
       throw new DOMException("read failed", "SecurityError");
     });
 
     const readFailure = renderHook(() => {
-      const [expandedFolderIds, setExpandedFolderIds] = useState(
-        new Set<string>(),
-      );
+      const [expandedFolderIds, setExpandedFolderIds] = useState(new Set<string>());
       useSidebarStartupFolderExpansion({
         selectedAccountId: "acc-1",
         expandedFolderIds,
@@ -673,8 +615,7 @@ describe("useSidebarStartupFolderExpansion", () => {
         startupFolderExpansion: "restore_previous",
         feedsReady: true,
         foldersReady: true,
-        setExpandedFolders: (folderIds) =>
-          setExpandedFolderIds(new Set(folderIds)),
+        setExpandedFolders: (folderIds) => setExpandedFolderIds(new Set(folderIds)),
       });
 
       return expandedFolderIds;
@@ -691,9 +632,7 @@ describe("useSidebarStartupFolderExpansion", () => {
 
     vi.restoreAllMocks();
     resetRuntimeDiagnosticOnceSuppressionForTests();
-    const nextWarnSpy = vi
-      .spyOn(console, "warn")
-      .mockImplementation(() => undefined);
+    const nextWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     window.localStorage.setItem(
       STORAGE_KEYS.sidebarExpandedFolders,
       JSON.stringify({
@@ -706,9 +645,7 @@ describe("useSidebarStartupFolderExpansion", () => {
     });
 
     const invalidCleanupFailure = renderHook(() => {
-      const [expandedFolderIds, setExpandedFolderIds] = useState(
-        new Set<string>(),
-      );
+      const [expandedFolderIds, setExpandedFolderIds] = useState(new Set<string>());
       useSidebarStartupFolderExpansion({
         selectedAccountId: "acc-1",
         expandedFolderIds,
@@ -717,8 +654,7 @@ describe("useSidebarStartupFolderExpansion", () => {
         startupFolderExpansion: "restore_previous",
         feedsReady: true,
         foldersReady: true,
-        setExpandedFolders: (folderIds) =>
-          setExpandedFolderIds(new Set(folderIds)),
+        setExpandedFolders: (folderIds) => setExpandedFolderIds(new Set(folderIds)),
       });
 
       return expandedFolderIds;
@@ -739,9 +675,7 @@ describe("useSidebarStartupFolderExpansion", () => {
 
     vi.restoreAllMocks();
     resetRuntimeDiagnosticOnceSuppressionForTests();
-    const writeWarnSpy = vi
-      .spyOn(console, "warn")
-      .mockImplementation(() => undefined);
+    const writeWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
       throw new DOMException("quota exceeded", "QuotaExceededError");
     });
@@ -776,15 +710,9 @@ describe("useSidebarStartupFolderExpansion", () => {
   it("keeps the active account inside oversized sidebar expansion storage", async () => {
     const storedEntries = Array.from(
       { length: MAX_STORED_SIDEBAR_EXPANDED_ACCOUNTS },
-      (_, index): [string, string[]] => [
-        `stale-account-${index}`,
-        [`stale-folder-${index}`],
-      ],
+      (_, index): [string, string[]] => [`stale-account-${index}`, [`stale-folder-${index}`]],
     );
-    window.localStorage.setItem(
-      STORAGE_KEYS.sidebarExpandedFolders,
-      JSON.stringify(Object.fromEntries(storedEntries)),
-    );
+    window.localStorage.setItem(STORAGE_KEYS.sidebarExpandedFolders, JSON.stringify(Object.fromEntries(storedEntries)));
 
     const { rerender } = renderHook(
       ({ expandedFolderIds }: { expandedFolderIds: Set<string> }) => {
@@ -827,9 +755,7 @@ describe("useSidebarStartupFolderExpansion", () => {
     );
 
     const { result } = renderHook(() => {
-      const [expandedFolderIds, setExpandedFolderIds] = useState(
-        new Set<string>(),
-      );
+      const [expandedFolderIds, setExpandedFolderIds] = useState(new Set<string>());
       useSidebarStartupFolderExpansion({
         selectedAccountId: "acc-1",
         expandedFolderIds,
@@ -838,8 +764,7 @@ describe("useSidebarStartupFolderExpansion", () => {
         startupFolderExpansion: "restore_previous",
         feedsReady: true,
         foldersReady: true,
-        setExpandedFolders: (folderIds) =>
-          setExpandedFolderIds(new Set(folderIds)),
+        setExpandedFolders: (folderIds) => setExpandedFolderIds(new Set(folderIds)),
       });
 
       return expandedFolderIds;
@@ -868,13 +793,9 @@ describe("useSidebarStartupFolderExpansion", () => {
       }),
     );
 
-    const selectedAccountFolders = folders.filter(
-      (folder) => folder.account_id === "acc-1",
-    );
+    const selectedAccountFolders = folders.filter((folder) => folder.account_id === "acc-1");
     const { result } = renderHook(() => {
-      const [expandedFolderIds, setExpandedFolderIds] = useState(
-        new Set<string>(),
-      );
+      const [expandedFolderIds, setExpandedFolderIds] = useState(new Set<string>());
       useSidebarStartupFolderExpansion({
         selectedAccountId: "acc-1",
         expandedFolderIds,
@@ -883,8 +804,7 @@ describe("useSidebarStartupFolderExpansion", () => {
         startupFolderExpansion: "restore_previous",
         feedsReady: true,
         foldersReady: true,
-        setExpandedFolders: (folderIds) =>
-          setExpandedFolderIds(new Set(folderIds)),
+        setExpandedFolders: (folderIds) => setExpandedFolderIds(new Set(folderIds)),
       });
 
       return expandedFolderIds;
@@ -903,14 +823,10 @@ describe("useSidebarStartupFolderExpansion", () => {
   });
 
   it("prunes deleted folders from active expansion state in the selected account scope", async () => {
-    const selectedAccountFolders = folders.filter(
-      (folder) => folder.account_id === "acc-1",
-    );
+    const selectedAccountFolders = folders.filter((folder) => folder.account_id === "acc-1");
     const { result, rerender } = renderHook(
       ({ folderList }: { folderList: FolderDto[] }) => {
-        const [expandedFolderIds, setExpandedFolderIds] = useState(
-          new Set(["folder-restored", "folder-read"]),
-        );
+        const [expandedFolderIds, setExpandedFolderIds] = useState(new Set(["folder-restored", "folder-read"]));
         useSidebarStartupFolderExpansion({
           selectedAccountId: "acc-1",
           expandedFolderIds,
@@ -919,8 +835,7 @@ describe("useSidebarStartupFolderExpansion", () => {
           startupFolderExpansion: "unread_folders",
           feedsReady: true,
           foldersReady: true,
-          setExpandedFolders: (folderIds) =>
-            setExpandedFolderIds(new Set(folderIds)),
+          setExpandedFolders: (folderIds) => setExpandedFolderIds(new Set(folderIds)),
         });
 
         return expandedFolderIds;
@@ -929,15 +844,11 @@ describe("useSidebarStartupFolderExpansion", () => {
     );
 
     await waitFor(() => {
-      expect(result.current).toEqual(
-        new Set(["folder-restored", "folder-read"]),
-      );
+      expect(result.current).toEqual(new Set(["folder-restored", "folder-read"]));
     });
 
     rerender({
-      folderList: selectedAccountFolders.filter(
-        (folder) => folder.id !== "folder-restored",
-      ),
+      folderList: selectedAccountFolders.filter((folder) => folder.id !== "folder-restored"),
     });
 
     await waitFor(() => {

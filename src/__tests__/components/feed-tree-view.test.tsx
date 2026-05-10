@@ -77,38 +77,19 @@ describe("FeedTreeView", () => {
     expect(screen.getByText("Alpha")).toBeInTheDocument();
     expect(screen.getByText("Beta")).toBeInTheDocument();
     expect(screen.getByText("No folder")).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Toggle folder Work" }),
-    ).toHaveAttribute("aria-expanded", "true");
-    expect(
-      screen.getByRole("button", { name: "Toggle folder Work" }),
-    ).toHaveClass("h-8");
-    expect(
-      screen.getByRole("button", { name: "Toggle folder Work" }),
-    ).toHaveClass("w-8");
-    expect(
-      screen.getByRole("button", { name: "Select folder Work" }),
-    ).toHaveClass("min-h-9");
-    expect(
-      screen.getByRole("button", { name: "Select folder Work" }),
-    ).toHaveClass("motion-contextual-surface");
-    expect(screen.getByRole("button", { name: /Alpha/ })).toHaveClass(
-      "min-h-9",
-    );
-    expect(screen.getByRole("button", { name: /Alpha/ })).toHaveClass(
-      "motion-contextual-surface",
-    );
+    expect(screen.getByRole("button", { name: "Toggle folder Work" })).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("button", { name: "Toggle folder Work" })).toHaveClass("h-8");
+    expect(screen.getByRole("button", { name: "Toggle folder Work" })).toHaveClass("w-8");
+    expect(screen.getByRole("button", { name: "Select folder Work" })).toHaveClass("min-h-9");
+    expect(screen.getByRole("button", { name: "Select folder Work" })).toHaveClass("motion-contextual-surface");
+    expect(screen.getByRole("button", { name: /Alpha/ })).toHaveClass("min-h-9");
+    expect(screen.getByRole("button", { name: /Alpha/ })).toHaveClass("motion-contextual-surface");
     expect(screen.getByRole("button", { name: /Beta/ })).toHaveClass("min-h-9");
 
-    await user.click(
-      screen.getByRole("button", { name: "Toggle folder Work" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Toggle folder Work" }));
     await user.click(screen.getByRole("button", { name: /Alpha/ }));
     await user.click(screen.getByRole("button", { name: /Beta/ }));
-    fireEvent.mouseDown(
-      screen.getByRole("button", { name: "Select folder Work" }),
-      { button: 1 },
-    );
+    fireEvent.mouseDown(screen.getByRole("button", { name: "Select folder Work" }), { button: 1 });
     fireEvent.mouseDown(screen.getByRole("button", { name: /Alpha/ }), {
       button: 1,
     });
@@ -116,18 +97,10 @@ describe("FeedTreeView", () => {
     expect(onToggleFolder).toHaveBeenCalledWith("folder-1");
     expect(onSelectFeed).toHaveBeenNthCalledWith(1, "feed-1");
     expect(onSelectFeed).toHaveBeenNthCalledWith(2, "feed-2");
-    expect(onMarkFolderRead).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "folder-1", unreadCount: 4 }),
-    );
-    expect(onMarkFeedRead).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "feed-1", unreadCount: 4 }),
-    );
-    expect(renderFeedContextMenu).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "feed-1", folderId: "folder-1" }),
-    );
-    expect(renderFeedContextMenu).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "feed-2", folderId: null }),
-    );
+    expect(onMarkFolderRead).toHaveBeenCalledWith(expect.objectContaining({ id: "folder-1", unreadCount: 4 }));
+    expect(onMarkFeedRead).toHaveBeenCalledWith(expect.objectContaining({ id: "feed-1", unreadCount: 4 }));
+    expect(renderFeedContextMenu).toHaveBeenCalledWith(expect.objectContaining({ id: "feed-1", folderId: "folder-1" }));
+    expect(renderFeedContextMenu).toHaveBeenCalledWith(expect.objectContaining({ id: "feed-2", folderId: null }));
   });
 
   it("renders nested feeds only for expanded folders", () => {
@@ -207,9 +180,7 @@ describe("FeedTreeView", () => {
 
     expect(screen.getByRole("button", { name: /Alpha/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Beta/ })).toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: /Gamma/ }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Gamma/ })).not.toBeInTheDocument();
   });
 
   it("separates folder selection from folder expansion", async () => {
@@ -241,12 +212,8 @@ describe("FeedTreeView", () => {
       />,
     );
 
-    await user.click(
-      screen.getByRole("button", { name: "Select folder Work" }),
-    );
-    await user.click(
-      screen.getByRole("button", { name: "Toggle folder Work" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Select folder Work" }));
+    await user.click(screen.getByRole("button", { name: "Toggle folder Work" }));
 
     expect(onSelectFolder).toHaveBeenCalledWith("folder-1");
     expect(onToggleFolder).toHaveBeenCalledWith("folder-1");
@@ -280,9 +247,7 @@ describe("FeedTreeView", () => {
     const folderButton = screen.getByRole("button", {
       name: "Select folder Work",
     });
-    const selectedIndicator = container.querySelector<HTMLElement>(
-      "[data-folder-row-selected-indicator='folder-1']",
-    );
+    const selectedIndicator = container.querySelector<HTMLElement>("[data-folder-row-selected-indicator='folder-1']");
 
     expect(selectedIndicator).not.toBeNull();
     expect(selectedIndicator).toHaveClass("left-0");
@@ -385,21 +350,12 @@ describe("FeedTreeView", () => {
     expect(feedButton).not.toBeNull();
     expect(feedButton).not.toHaveClass("pl-7");
     const folderTarget = screen.getByRole("button", { name: "Move to Empty" });
-    expect(folderTarget).toHaveClass(
-      "absolute",
-      "inset-y-0",
-      "right-0",
-      "left-8",
-      "z-10",
-      "rounded-r-md",
-    );
+    expect(folderTarget).toHaveClass("absolute", "inset-y-0", "right-0", "left-8", "z-10", "rounded-r-md");
     expect(folderTarget).not.toHaveClass("motion-contextual-surface");
     fireEvent.click(handle);
     fireEvent.click(folderTarget);
 
-    expect(onDragStartFeed).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "feed-2" }),
-    );
+    expect(onDragStartFeed).toHaveBeenCalledWith(expect.objectContaining({ id: "feed-2" }));
     expect(onDropToFolder).toHaveBeenCalledWith("folder-empty");
   });
 
@@ -451,21 +407,11 @@ describe("FeedTreeView", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Drag Beta" })).toHaveClass(
-      "h-8",
-    );
-    expect(screen.getByRole("button", { name: "Drag Beta" })).toHaveClass(
-      "w-8",
-    );
-    expect(document.querySelector('[data-feed-id="feed-2"]')).not.toHaveClass(
-      "pl-8",
-    );
-    expect(document.querySelector('[data-feed-id="feed-2"]')).toHaveClass(
-      "px-1.5",
-    );
-    expect(
-      screen.getByRole("button", { name: "Toggle folder Empty" }),
-    ).toHaveClass("h-8");
+    expect(screen.getByRole("button", { name: "Drag Beta" })).toHaveClass("h-8");
+    expect(screen.getByRole("button", { name: "Drag Beta" })).toHaveClass("w-8");
+    expect(document.querySelector('[data-feed-id="feed-2"]')).not.toHaveClass("pl-8");
+    expect(document.querySelector('[data-feed-id="feed-2"]')).toHaveClass("px-1.5");
+    expect(screen.getByRole("button", { name: "Toggle folder Empty" })).toHaveClass("h-8");
   });
 
   it("accepts folder moves anywhere inside an expanded folder section", () => {
@@ -615,15 +561,12 @@ describe("FeedTreeView", () => {
         value: vi.fn(() => targetButton),
       });
 
-      fireEvent.pointerDown(
-        screen.getByRole("button", { name: "Drag Alpha" }),
-        {
-          button: 0,
-          clientX: 10,
-          clientY: 10,
-          pointerId: 1,
-        },
-      );
+      fireEvent.pointerDown(screen.getByRole("button", { name: "Drag Alpha" }), {
+        button: 0,
+        clientX: 10,
+        clientY: 10,
+        pointerId: 1,
+      });
       fireEvent.pointerMove(window, {
         clientX: 28,
         clientY: 28,
@@ -635,16 +578,10 @@ describe("FeedTreeView", () => {
         pointerId: 1,
       });
 
-      expect(onDragStartFeed).toHaveBeenCalledWith(
-        expect.objectContaining({ id: "feed-1" }),
-      );
+      expect(onDragStartFeed).toHaveBeenCalledWith(expect.objectContaining({ id: "feed-1" }));
       expect(onDragEnterFolder).toHaveBeenCalledWith("folder-target");
       expect(onDropToFolder).toHaveBeenCalledWith("folder-target");
-      expect(callSequence).toEqual([
-        "start:feed-1",
-        "enter:folder-target",
-        "drop:folder-target",
-      ]);
+      expect(callSequence).toEqual(["start:feed-1", "enter:folder-target", "drop:folder-target"]);
     } finally {
       Object.defineProperty(document, "elementFromPoint", {
         configurable: true,
@@ -718,21 +655,11 @@ describe("FeedTreeView", () => {
   it("keeps pointer drag window listeners stable while preview state changes", () => {
     const addEventListenerSpy = vi.spyOn(window, "addEventListener");
     const removeEventListenerSpy = vi.spyOn(window, "removeEventListener");
-    const dragWindowEventTypes = new Set([
-      "pointermove",
-      "pointerup",
-      "pointercancel",
-      "keydown",
-      "blur",
-    ]);
+    const dragWindowEventTypes = new Set(["pointermove", "pointerup", "pointercancel", "keydown", "blur"]);
     const getDragListenerAdds = () =>
-      addEventListenerSpy.mock.calls.filter(([type]) =>
-        dragWindowEventTypes.has(String(type)),
-      ).length;
+      addEventListenerSpy.mock.calls.filter(([type]) => dragWindowEventTypes.has(String(type))).length;
     const getDragListenerRemoves = () =>
-      removeEventListenerSpy.mock.calls.filter(([type]) =>
-        dragWindowEventTypes.has(String(type)),
-      ).length;
+      removeEventListenerSpy.mock.calls.filter(([type]) => dragWindowEventTypes.has(String(type))).length;
 
     try {
       render(
@@ -768,15 +695,12 @@ describe("FeedTreeView", () => {
         />,
       );
 
-      fireEvent.pointerDown(
-        screen.getByRole("button", { name: "Drag Alpha" }),
-        {
-          button: 0,
-          clientX: 12,
-          clientY: 16,
-          pointerId: 1,
-        },
-      );
+      fireEvent.pointerDown(screen.getByRole("button", { name: "Drag Alpha" }), {
+        button: 0,
+        clientX: 12,
+        clientY: 16,
+        pointerId: 1,
+      });
 
       const listenerAddsAfterSessionStart = getDragListenerAdds();
       const listenerRemovesAfterSessionStart = getDragListenerRemoves();
@@ -788,9 +712,7 @@ describe("FeedTreeView", () => {
         pointerId: 1,
       });
 
-      expect(screen.getByTestId("feed-tree-drag-overlay")).toHaveTextContent(
-        "Alpha",
-      );
+      expect(screen.getByTestId("feed-tree-drag-overlay")).toHaveTextContent("Alpha");
       expect(getDragListenerAdds()).toBe(listenerAddsAfterSessionStart);
       expect(getDragListenerRemoves()).toBe(listenerRemovesAfterSessionStart);
 
@@ -860,9 +782,7 @@ describe("FeedTreeView", () => {
     expect(dropTarget).toHaveAttribute("tabIndex", "-1");
     fireEvent.click(dropTarget);
 
-    expect(onDragStartFeed).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "feed-1" }),
-    );
+    expect(onDragStartFeed).toHaveBeenCalledWith(expect.objectContaining({ id: "feed-1" }));
     expect(onDropToFolder).toHaveBeenCalledWith("folder-target");
   });
 
@@ -968,9 +888,7 @@ describe("FeedTreeView", () => {
       />,
     );
 
-    expect(
-      screen.queryByTestId("unfoldered-drop-zone"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId("unfoldered-drop-zone")).not.toBeInTheDocument();
   });
 
   it("does not treat an undefined dragged feed id as an active drag", () => {
@@ -1019,12 +937,8 @@ describe("FeedTreeView", () => {
       />,
     );
 
-    expect(
-      screen.queryByTestId("unfoldered-drop-zone"),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "Move to Work" }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId("unfoldered-drop-zone")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Move to Work" })).not.toBeInTheDocument();
   });
 
   it("switches pointer hover callbacks between folder and unfoldered targets", () => {
@@ -1091,15 +1005,12 @@ describe("FeedTreeView", () => {
         }),
       });
 
-      fireEvent.pointerDown(
-        screen.getByRole("button", { name: "Drag Alpha" }),
-        {
-          button: 0,
-          clientX: 10,
-          clientY: 10,
-          pointerId: 1,
-        },
-      );
+      fireEvent.pointerDown(screen.getByRole("button", { name: "Drag Alpha" }), {
+        button: 0,
+        clientX: 10,
+        clientY: 10,
+        pointerId: 1,
+      });
       fireEvent.pointerMove(window, {
         clientX: 28,
         clientY: 28,
@@ -1113,9 +1024,7 @@ describe("FeedTreeView", () => {
 
       expect(onDragEnterFolder).toHaveBeenCalledWith("folder-target");
       expect(onDragEnterUnfoldered).toHaveBeenCalledTimes(1);
-      expect(screen.getByTestId("unfoldered-drop-zone")).toHaveClass(
-        "bg-[var(--feed-tree-drop-target-surface)]",
-      );
+      expect(screen.getByTestId("unfoldered-drop-zone")).toHaveClass("bg-[var(--feed-tree-drop-target-surface)]");
     } finally {
       Object.defineProperty(document, "elementFromPoint", {
         configurable: true,
@@ -1176,12 +1085,8 @@ describe("FeedTreeView", () => {
     fireEvent.keyDown(window, { key: "Escape" });
 
     expect(onDragEnd).toHaveBeenCalledTimes(1);
-    expect(
-      screen.queryByTestId("feed-tree-drag-overlay"),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByTestId("unfoldered-drop-zone"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId("feed-tree-drag-overlay")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("unfoldered-drop-zone")).not.toBeInTheDocument();
   });
 
   it("tears down pointer drag state when the window loses focus", () => {
@@ -1236,12 +1141,8 @@ describe("FeedTreeView", () => {
     fireEvent.blur(window);
 
     expect(onDragEnd).toHaveBeenCalledTimes(1);
-    expect(
-      screen.queryByTestId("feed-tree-drag-overlay"),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByTestId("unfoldered-drop-zone"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId("feed-tree-drag-overlay")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("unfoldered-drop-zone")).not.toBeInTheDocument();
   });
 
   it("hides the unfoldered drop zone when dragging is disabled", () => {
@@ -1291,9 +1192,7 @@ describe("FeedTreeView", () => {
       />,
     );
 
-    expect(
-      screen.queryByTestId("unfoldered-drop-zone"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId("unfoldered-drop-zone")).not.toBeInTheDocument();
   });
 
   it("localizes drag-and-drop labels in Japanese", async () => {
@@ -1345,17 +1244,11 @@ describe("FeedTreeView", () => {
       />,
     );
 
-    expect(
-      screen.getByRole("button", { name: "仕事 フォルダを選択" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "仕事 に移動" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "アルファ をドラッグ" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "フォルダなしへ移動" }),
-    ).toHaveTextContent("ここにドロップしてフォルダから外す");
+    expect(screen.getByRole("button", { name: "仕事 フォルダを選択" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "仕事 に移動" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "アルファ をドラッグ" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "フォルダなしへ移動" })).toHaveTextContent(
+      "ここにドロップしてフォルダから外す",
+    );
   });
 });

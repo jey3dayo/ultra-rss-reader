@@ -1,5 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
-import { createDevScenarioRegistryIndex, getDevScenario, listDevScenarios } from "@/dev/scenarios/registry";
+import {
+  createDevScenarioRegistryDiagnostics,
+  createDevScenarioRegistryIndex,
+  formatDevScenarioRegistryDiagnosticsReport,
+  getDevScenario,
+  getDevScenarioRegistryDiagnostics,
+  listDevScenarios,
+} from "@/dev/scenarios/registry";
 import type { DevScenarioContext } from "@/dev/scenarios/types";
 import { DEV_SCENARIO_ID, DEV_SCENARIO_IDS } from "@/dev/scenarios/types";
 
@@ -54,6 +61,55 @@ describe("dev scenario registry", () => {
 
   it("keeps keywords unique within each scenario", () => {
     expect(createDevScenarioRegistryIndex(listDevScenarios()).duplicateKeywordsByScenarioId).toEqual([]);
+  });
+
+  it("exposes registry diagnostics for report output and CI contracts", () => {
+    const diagnostics = getDevScenarioRegistryDiagnostics();
+
+    expect(diagnostics).toEqual({
+      scenarioCount: DEV_SCENARIO_IDS.length,
+      registeredIds: DEV_SCENARIO_IDS,
+      duplicateIds: [],
+      duplicateTitles: [],
+      duplicateKeywordsByScenarioId: [],
+      ok: true,
+    });
+    expect(formatDevScenarioRegistryDiagnosticsReport(diagnostics)).toBe(
+      [
+        "Dev scenario registry diagnostics",
+        "status: ok",
+        `scenarioCount: ${DEV_SCENARIO_IDS.length}`,
+        `registeredIds: ${DEV_SCENARIO_IDS.join(", ")}`,
+        "duplicateIds: none",
+        "duplicateTitles: none",
+        "duplicateKeywords: none",
+      ].join("\n"),
+    );
+  });
+
+  it("reports duplicate registry diagnostics without hiding actionable entries", () => {
+    const [baseScenario] = listDevScenarios();
+    const registryIndex = createDevScenarioRegistryIndex([
+      baseScenario,
+      {
+        ...baseScenario,
+        keywords: ["duplicate", "duplicate", "zebra", "zebra"],
+      },
+    ]);
+
+    expect(createDevScenarioRegistryDiagnostics(registryIndex)).toEqual({
+      scenarioCount: 2,
+      registeredIds: [baseScenario.id],
+      duplicateIds: [baseScenario.id],
+      duplicateTitles: [baseScenario.title],
+      duplicateKeywordsByScenarioId: [
+        {
+          id: baseScenario.id,
+          duplicates: ["duplicate", "zebra"],
+        },
+      ],
+      ok: false,
+    });
   });
 
   it("builds a stable scenario id index for registry lookups and diagnostics", () => {

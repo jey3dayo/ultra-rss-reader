@@ -1,9 +1,7 @@
 import { fireEvent, renderHook } from "@testing-library/react";
 import type { MutableRefObject } from "react";
 import { describe, expect, it, vi } from "vitest";
-import type { UseFeedTreePointerDragEventsParams } from "@/components/reader/hooks/feed-tree/feed-tree-drag.types";
-import { useFeedTreePointerDragEvents } from "@/components/reader/hooks/feed-tree/use-feed-tree-pointer-drag-events";
-import type { ActiveDropTarget, FeedTreeFeedViewModel } from "@/components/reader/feed-tree.types";
+import type { FeedTreeFeedViewModel } from "@/components/reader/feed-tree.types";
 import {
   createFeedTreePointerDragSession,
   type FeedTreePointerDragSession,
@@ -12,14 +10,10 @@ import {
   FEED_DROP_TARGET_ID_ATTRIBUTE,
   FEED_DROP_TARGET_KIND_ATTRIBUTE,
 } from "@/components/reader/feed-tree-drop-target";
+import type { UseFeedTreePointerDragEventsParams } from "@/components/reader/hooks/feed-tree/feed-tree-drag.types";
+import { useFeedTreePointerDragEvents } from "@/components/reader/hooks/feed-tree/use-feed-tree-pointer-drag-events";
 
-const dragWindowEventTypes = new Set([
-  "pointermove",
-  "pointerup",
-  "pointercancel",
-  "keydown",
-  "blur",
-]);
+const dragWindowEventTypes = new Set(["pointermove", "pointerup", "pointercancel", "keydown", "blur"]);
 
 function createFeed(overrides: Partial<FeedTreeFeedViewModel> = {}): FeedTreeFeedViewModel {
   return {
@@ -94,13 +88,9 @@ describe("useFeedTreePointerDragEvents", () => {
       pointerDragRef.current = null;
     });
     const getDragListenerAdds = () =>
-      addEventListenerSpy.mock.calls.filter(([type]) =>
-        dragWindowEventTypes.has(String(type)),
-      ).length;
+      addEventListenerSpy.mock.calls.filter(([type]) => dragWindowEventTypes.has(String(type))).length;
     const getDragListenerRemoves = () =>
-      removeEventListenerSpy.mock.calls.filter(([type]) =>
-        dragWindowEventTypes.has(String(type)),
-      ).length;
+      removeEventListenerSpy.mock.calls.filter(([type]) => dragWindowEventTypes.has(String(type))).length;
 
     try {
       Object.defineProperty(document, "elementFromPoint", {
@@ -109,8 +99,7 @@ describe("useFeedTreePointerDragEvents", () => {
       });
 
       const { rerender, unmount } = renderHook(
-        ({ params }: { params: UseFeedTreePointerDragEventsParams }) =>
-          useFeedTreePointerDragEvents(params),
+        ({ params }: { params: UseFeedTreePointerDragEventsParams }) => useFeedTreePointerDragEvents(params),
         {
           initialProps: {
             params: createParams(pointerDragRef, {

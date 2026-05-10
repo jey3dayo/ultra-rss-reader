@@ -21,6 +21,18 @@ export type DevScenarioRegistryIndex = {
   }>;
 };
 
+export type DevScenarioRegistryDiagnostics = {
+  readonly scenarioCount: number;
+  readonly registeredIds: readonly DevScenarioId[];
+  readonly duplicateIds: readonly DevScenarioId[];
+  readonly duplicateTitles: readonly string[];
+  readonly duplicateKeywordsByScenarioId: readonly {
+    readonly id: DevScenarioId;
+    readonly duplicates: readonly string[];
+  }[];
+  readonly ok: boolean;
+};
+
 function createActionBackedDevScenarioRunner(actionId: AppAction): DevScenario["run"] {
   return async ({ actions }: DevScenarioContext) => {
     await Promise.resolve(actions.executeAction(actionId));
@@ -191,6 +203,52 @@ export function createDevScenarioRegistryIndex(scenarios: readonly DevScenario[]
 }
 
 const DEV_SCENARIO_REGISTRY_INDEX = createDevScenarioRegistryIndex(DEV_SCENARIOS);
+
+export function createDevScenarioRegistryDiagnostics(
+  registryIndex: DevScenarioRegistryIndex,
+): DevScenarioRegistryDiagnostics {
+  return {
+    scenarioCount: registryIndex.scenarios.length,
+    registeredIds: [...registryIndex.ids],
+    duplicateIds: [...registryIndex.duplicateIds],
+    duplicateTitles: [...registryIndex.duplicateTitles],
+    duplicateKeywordsByScenarioId: registryIndex.duplicateKeywordsByScenarioId.map(({ id, duplicates }) => ({
+      id,
+      duplicates: [...duplicates],
+    })),
+    ok:
+      registryIndex.duplicateIds.length === 0 &&
+      registryIndex.duplicateTitles.length === 0 &&
+      registryIndex.duplicateKeywordsByScenarioId.length === 0,
+  };
+}
+
+export function getDevScenarioRegistryDiagnostics(): DevScenarioRegistryDiagnostics {
+  return createDevScenarioRegistryDiagnostics(DEV_SCENARIO_REGISTRY_INDEX);
+}
+
+export function formatDevScenarioRegistryDiagnosticsReport(diagnostics: DevScenarioRegistryDiagnostics): string {
+  const lines = [
+    "Dev scenario registry diagnostics",
+    `status: ${diagnostics.ok ? "ok" : "failed"}`,
+    `scenarioCount: ${diagnostics.scenarioCount}`,
+    `registeredIds: ${diagnostics.registeredIds.join(", ")}`,
+    `duplicateIds: ${diagnostics.duplicateIds.length === 0 ? "none" : diagnostics.duplicateIds.join(", ")}`,
+    `duplicateTitles: ${diagnostics.duplicateTitles.length === 0 ? "none" : diagnostics.duplicateTitles.join(", ")}`,
+  ];
+
+  if (diagnostics.duplicateKeywordsByScenarioId.length === 0) {
+    lines.push("duplicateKeywords: none");
+  } else {
+    lines.push(
+      `duplicateKeywords: ${diagnostics.duplicateKeywordsByScenarioId
+        .map(({ id, duplicates }) => `${id}=[${duplicates.join(", ")}]`)
+        .join("; ")}`,
+    );
+  }
+
+  return lines.join("\n");
+}
 
 export function listDevScenarios(): DevScenario[] {
   return [...DEV_SCENARIO_REGISTRY_INDEX.scenarios];
