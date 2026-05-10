@@ -284,9 +284,7 @@ fn hex_value(byte: u8) -> Option<u8> {
 
 #[tauri::command]
 pub fn export_opml(state: State<'_, AppState>, account_id: String) -> Result<String, AppError> {
-    let db = state.db.lock().map_err(|e| AppError::UserVisible {
-        message: format!("Lock error: {e}"),
-    })?;
+    let db = crate::commands::lock_db(&state.db)?;
 
     let account_id = AccountId(account_id);
 

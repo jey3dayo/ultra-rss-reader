@@ -261,9 +261,7 @@ fn log_browser_webview_bounds(
 }
 
 fn clear_browser_webview_tracker(state: &AppState) -> Result<bool, AppError> {
-    let mut tracker = state.browser_webview.lock().map_err(|error| {
-        browser_webview_error(format!("Browser webview state lock error: {error}"))
-    })?;
+    let mut tracker = crate::commands::lock_browser_webview(&state.browser_webview)?;
     let had_snapshot = tracker.snapshot().is_some();
     tracker.clear();
     Ok(had_snapshot)
@@ -335,7 +333,9 @@ fn schedule_browser_webview_timeout(
 
         let should_fallback = {
             let app_state = app_handle.state::<AppState>();
-            let decision = if let Ok(tracker) = app_state.browser_webview.lock() {
+            let decision = if let Ok(tracker) =
+                crate::commands::lock_browser_webview(&app_state.browser_webview)
+            {
                 should_trigger_timeout_fallback(tracker.snapshot().as_ref(), &url, load_generation)
             } else {
                 false
@@ -446,13 +446,7 @@ fn tracker_start(
     app_handle: &tauri::AppHandle,
     url: String,
 ) -> Result<BrowserWebviewState, AppError> {
-    let next_state = state
-        .browser_webview
-        .lock()
-        .map_err(|error| {
-            browser_webview_error(format!("Browser webview state lock error: {error}"))
-        })?
-        .start(url);
+    let next_state = crate::commands::lock_browser_webview(&state.browser_webview)?.start(url);
     emit_browser_webview_state(app_handle, &next_state);
     schedule_browser_webview_timeout(
         app_handle.clone(),
@@ -468,9 +462,7 @@ fn tracker_finish(
     url: String,
     availability: Option<BrowserNavigationAvailability>,
 ) -> Result<BrowserWebviewState, AppError> {
-    let mut tracker = state.browser_webview.lock().map_err(|error| {
-        browser_webview_error(format!("Browser webview state lock error: {error}"))
-    })?;
+    let mut tracker = crate::commands::lock_browser_webview(&state.browser_webview)?;
     if !should_accept_page_load_finish(tracker.snapshot().as_ref(), &url) {
         return Err(browser_webview_not_open_error());
     }
@@ -495,13 +487,7 @@ fn current_or_loading_state(
     app_handle: &tauri::AppHandle,
     fallback_url: String,
 ) -> Result<BrowserWebviewState, AppError> {
-    let snapshot = state
-        .browser_webview
-        .lock()
-        .map_err(|error| {
-            browser_webview_error(format!("Browser webview state lock error: {error}"))
-        })?
-        .snapshot();
+    let snapshot = crate::commands::lock_browser_webview(&state.browser_webview)?.snapshot();
 
     if let Some(snapshot) = snapshot {
         Ok(snapshot)
@@ -680,13 +666,7 @@ pub async fn create_or_update_browser_webview(
             .url()
             .map_err(|error| browser_webview_error(format!("Failed to read browser URL: {error}")))?
             .to_string();
-        let snapshot = state
-            .browser_webview
-            .lock()
-            .map_err(|error| {
-                browser_webview_error(format!("Browser webview state lock error: {error}"))
-            })?
-            .snapshot();
+        let snapshot = crate::commands::lock_browser_webview(&state.browser_webview)?.snapshot();
 
         if should_navigate_existing_browser_webview(
             &current_url,

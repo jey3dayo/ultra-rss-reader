@@ -33,9 +33,7 @@ const FOLDER_SORT_ORDER_UNIQUE_INDEX: &str = "idx_folders_account_sort_order_uni
 pub(super) fn lock_db(
     db: &Mutex<DbManager>,
 ) -> Result<std::sync::MutexGuard<'_, DbManager>, AppError> {
-    db.lock().map_err(|e| AppError::UserVisible {
-        message: format!("Lock error: {e}"),
-    })
+    crate::commands::lock_db(db)
 }
 
 pub(super) fn validate_feed_title(title: &str) -> Result<String, AppError> {

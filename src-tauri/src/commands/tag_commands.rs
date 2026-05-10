@@ -16,9 +16,7 @@ use crate::repository::tag::TagRepository;
 fn lock_db(
     db: &std::sync::Mutex<crate::infra::db::connection::DbManager>,
 ) -> Result<std::sync::MutexGuard<'_, crate::infra::db::connection::DbManager>, AppError> {
-    db.lock().map_err(|e| AppError::UserVisible {
-        message: format!("Lock error: {e}"),
-    })
+    crate::commands::lock_db(db)
 }
 
 #[tauri::command]

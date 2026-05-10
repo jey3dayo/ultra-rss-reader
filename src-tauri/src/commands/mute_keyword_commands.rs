@@ -14,9 +14,7 @@ use crate::repository::preference::PreferenceRepository;
 fn lock_db(
     db: &std::sync::Mutex<crate::infra::db::connection::DbManager>,
 ) -> Result<std::sync::MutexGuard<'_, crate::infra::db::connection::DbManager>, AppError> {
-    db.lock().map_err(|e| AppError::UserVisible {
-        message: format!("Lock error: {e}"),
-    })
+    crate::commands::lock_db(db)
 }
 
 fn maybe_mark_existing_muted_articles_as_read(conn: &rusqlite::Connection) -> Result<(), AppError> {

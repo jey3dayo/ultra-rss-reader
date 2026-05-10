@@ -320,9 +320,7 @@ mod tests {
 
 #[tauri::command]
 pub fn get_preferences(state: State<'_, AppState>) -> Result<HashMap<String, String>, AppError> {
-    let db = state.db.lock().map_err(|e| AppError::UserVisible {
-        message: format!("Lock error: {e}"),
-    })?;
+    let db = crate::commands::lock_db(&state.db)?;
     let repo = SqlitePreferenceRepository::new(db.reader());
     let prefs = repo.get_all()?;
     Ok(prefs)
@@ -335,9 +333,7 @@ pub fn set_preference(
     key: String,
     value: String,
 ) -> Result<(), AppError> {
-    let db = state.db.lock().map_err(|e| AppError::UserVisible {
-        message: format!("Lock error: {e}"),
-    })?;
+    let db = crate::commands::lock_db(&state.db)?;
     let repo = SqlitePreferenceRepository::new(db.writer());
     let prefs = save_preference_value(&repo, &key, &value)?;
     drop(db);

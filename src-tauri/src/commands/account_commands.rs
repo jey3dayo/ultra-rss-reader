@@ -801,9 +801,7 @@ mod tests {
 
 #[tauri::command]
 pub fn list_accounts(state: State<'_, AppState>) -> Result<Vec<AccountDto>, AppError> {
-    let db = state.db.lock().map_err(|e| AppError::UserVisible {
-        message: format!("Lock error: {e}"),
-    })?;
+    let db = crate::commands::lock_db(&state.db)?;
     let repo = SqliteAccountRepository::new(db.reader());
     let accounts = repo.find_all()?;
     Ok(accounts.into_iter().map(AccountDto::from).collect())
@@ -826,9 +824,7 @@ pub async fn add_account(
     )?;
 
     let name = {
-        let db = state.db.lock().map_err(|e| AppError::UserVisible {
-            message: format!("Lock error: {e}"),
-        })?;
+        let db = crate::commands::lock_db(&state.db)?;
         let repo = SqliteAccountRepository::new(db.reader());
         let accounts = repo.find_all()?;
         validate_account_name(&name, &accounts)?
@@ -871,9 +867,7 @@ pub async fn add_account(
         account.connection_verified_at = Some(chrono::Utc::now().to_rfc3339());
     }
 
-    let db = state.db.lock().map_err(|e| AppError::UserVisible {
-        message: format!("Lock error: {e}"),
-    })?;
+    let db = crate::commands::lock_db(&state.db)?;
     let repo = SqliteAccountRepository::new(db.writer());
     save_account_after_optional_password(
         &account,
@@ -896,9 +890,7 @@ pub fn update_account_sync(
     keep_read_items_days: i64,
 ) -> Result<AccountDto, AppError> {
     validate_account_sync_settings(sync_interval_secs, keep_read_items_days)?;
-    let db = state.db.lock().map_err(|e| AppError::UserVisible {
-        message: format!("Lock error: {e}"),
-    })?;
+    let db = crate::commands::lock_db(&state.db)?;
     let repo = SqliteAccountRepository::new(db.writer());
     let id = AccountId(account_id);
     repo.update_sync_settings(
@@ -924,9 +916,7 @@ pub fn update_account_credentials(
 ) -> Result<AccountDto, AppError> {
     let id = AccountId(account_id);
 
-    let db = state.db.lock().map_err(|e| AppError::UserVisible {
-        message: format!("Lock error: {e}"),
-    })?;
+    let db = crate::commands::lock_db(&state.db)?;
     let repo = SqliteAccountRepository::new(db.writer());
     let account = update_account_credentials_after_optional_password(
         &id,
@@ -948,9 +938,7 @@ pub fn rename_account(
     account_id: String,
     name: String,
 ) -> Result<AccountDto, AppError> {
-    let db = state.db.lock().map_err(|e| AppError::UserVisible {
-        message: format!("Lock error: {e}"),
-    })?;
+    let db = crate::commands::lock_db(&state.db)?;
     let repo = SqliteAccountRepository::new(db.writer());
     let id = AccountId(account_id);
     let all_accounts = repo.find_all()?;
@@ -970,9 +958,7 @@ pub async fn test_account_connection(
     let id = AccountId(account_id);
 
     let account = {
-        let db = state.db.lock().map_err(|e| AppError::UserVisible {
-            message: format!("Lock error: {e}"),
-        })?;
+        let db = crate::commands::lock_db(&state.db)?;
         let repo = SqliteAccountRepository::new(db.reader());
         repo.find_by_id(&id)?.ok_or_else(|| AppError::UserVisible {
             message: "Account not found".into(),
@@ -1004,9 +990,7 @@ pub async fn test_account_connection(
         .await
     {
         let error_message = error.to_string();
-        let db = state.db.lock().map_err(|e| AppError::UserVisible {
-            message: format!("Lock error: {e}"),
-        })?;
+        let db = crate::commands::lock_db(&state.db)?;
         let repo = SqliteAccountRepository::new(db.writer());
         repo.update_connection_verification(
             &id,
@@ -1018,9 +1002,7 @@ pub async fn test_account_connection(
     }
 
     let verified_at = chrono::Utc::now().to_rfc3339();
-    let db = state.db.lock().map_err(|e| AppError::UserVisible {
-        message: format!("Lock error: {e}"),
-    })?;
+    let db = crate::commands::lock_db(&state.db)?;
     let repo = SqliteAccountRepository::new(db.writer());
     repo.update_connection_verification(
         &id,
@@ -1037,9 +1019,7 @@ pub async fn test_account_connection(
 
 #[tauri::command]
 pub fn delete_account(state: State<'_, AppState>, account_id: String) -> Result<(), AppError> {
-    let db = state.db.lock().map_err(|e| AppError::UserVisible {
-        message: format!("Lock error: {e}"),
-    })?;
+    let db = crate::commands::lock_db(&state.db)?;
     let repo = SqliteAccountRepository::new(db.writer());
     let id = AccountId(account_id);
     delete_account_then_password(

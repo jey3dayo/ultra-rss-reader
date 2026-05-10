@@ -27,8 +27,8 @@ use crate::infra::db::connection::DbManager;
 const BROWSER_URL_SCHEME_ERROR: &str = "Only http:// and https:// URLs are supported";
 const DATABASE_BUSY_ERROR: &str =
     "Database is busy. Wait for the current operation to finish and try again.";
-const DATABASE_POISONED_ERROR: &str =
-    "Database state needs recovery. Restart the application and check diagnostics if it happens again.";
+const APP_STATE_POISONED_ERROR: &str =
+    "Application state needs recovery. Restart the application and check diagnostics if it happens again.";
 pub(crate) const DATABASE_MAINTENANCE_BUSY_ERROR: &str =
     "Database maintenance is unavailable while syncing. Try again after sync completes.";
 
@@ -173,10 +173,30 @@ pub(crate) fn try_lock_db(db: &Mutex<DbManager>) -> Result<MutexGuard<'_, DbMana
         Err(TryLockError::Poisoned(error)) => {
             tracing::error!("Database mutex poisoned: {error}");
             Err(AppError::UserVisible {
-                message: DATABASE_POISONED_ERROR.to_string(),
+                message: APP_STATE_POISONED_ERROR.to_string(),
             })
         }
     }
+}
+
+pub(crate) fn lock_db(db: &Mutex<DbManager>) -> Result<MutexGuard<'_, DbManager>, AppError> {
+    db.lock().map_err(|error| {
+        tracing::error!("Database mutex poisoned: {error}");
+        AppError::UserVisible {
+            message: APP_STATE_POISONED_ERROR.to_string(),
+        }
+    })
+}
+
+pub(crate) fn lock_browser_webview(
+    browser_webview: &Mutex<BrowserWebviewTracker>,
+) -> Result<MutexGuard<'_, BrowserWebviewTracker>, AppError> {
+    browser_webview.lock().map_err(|error| {
+        tracing::error!("Browser webview mutex poisoned: {error}");
+        AppError::UserVisible {
+            message: APP_STATE_POISONED_ERROR.to_string(),
+        }
+    })
 }
 
 pub struct AppState {
@@ -192,9 +212,10 @@ mod tests {
     use std::sync::Mutex;
 
     use super::{
-        command_db_lock_policy, try_lock_db, CommandDbLockPolicy, DATABASE_BUSY_ERROR,
-        DATABASE_POISONED_ERROR,
+        command_db_lock_policy, lock_browser_webview, lock_db, try_lock_db, CommandDbLockPolicy,
+        APP_STATE_POISONED_ERROR, DATABASE_BUSY_ERROR,
     };
+    use crate::browser_webview::BrowserWebviewTracker;
     use crate::commands::dto::AppError;
     use crate::infra::db::connection::DbManager;
 
@@ -232,7 +253,55 @@ mod tests {
 
         match error {
             AppError::UserVisible { message } => {
-                assert_eq!(message, DATABASE_POISONED_ERROR);
+                assert_eq!(message, APP_STATE_POISONED_ERROR);
+                assert!(!message.contains("poison"));
+                assert!(!message.contains("Lock error"));
+            }
+            other => panic!("expected user-visible error, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn lock_db_returns_recovery_message_when_poisoned() {
+        let db = Mutex::new(DbManager::new_in_memory().unwrap());
+        let poison_result = std::panic::catch_unwind(|| {
+            let _guard = db.lock().unwrap();
+            panic!("poison test database lock");
+        });
+        assert!(poison_result.is_err());
+
+        let error = match lock_db(&db) {
+            Ok(_) => panic!("poisoned DB should return an error"),
+            Err(error) => error,
+        };
+
+        match error {
+            AppError::UserVisible { message } => {
+                assert_eq!(message, APP_STATE_POISONED_ERROR);
+                assert!(!message.contains("poison"));
+                assert!(!message.contains("Lock error"));
+            }
+            other => panic!("expected user-visible error, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn lock_browser_webview_returns_same_recovery_message_when_poisoned() {
+        let browser_webview = Mutex::new(BrowserWebviewTracker::default());
+        let poison_result = std::panic::catch_unwind(|| {
+            let _guard = browser_webview.lock().unwrap();
+            panic!("poison test browser webview lock");
+        });
+        assert!(poison_result.is_err());
+
+        let error = match lock_browser_webview(&browser_webview) {
+            Ok(_) => panic!("poisoned browser webview should return an error"),
+            Err(error) => error,
+        };
+
+        match error {
+            AppError::UserVisible { message } => {
+                assert_eq!(message, APP_STATE_POISONED_ERROR);
                 assert!(!message.contains("poison"));
                 assert!(!message.contains("Lock error"));
             }
@@ -245,6 +314,12 @@ mod tests {
         let cases = [
             ("get_database_info", CommandDbLockPolicy::TryLockDb),
             ("vacuum_database", CommandDbLockPolicy::TryLockDb),
+            ("import_opml", CommandDbLockPolicy::BlockingLock),
+            ("export_opml", CommandDbLockPolicy::BlockingLock),
+            ("search_articles", CommandDbLockPolicy::BlockingLock),
+            ("list_articles", CommandDbLockPolicy::BlockingLock),
+            ("add_account", CommandDbLockPolicy::BlockingLock),
+            ("test_account_connection", CommandDbLockPolicy::BlockingLock),
             ("list_accounts", CommandDbLockPolicy::BlockingLock),
             ("delete_feed", CommandDbLockPolicy::BlockingLock),
             ("trigger_sync", CommandDbLockPolicy::BlockingLock),

@@ -700,9 +700,7 @@ pub fn list_articles(
     limit: Option<usize>,
 ) -> Result<Vec<ArticleDto>, AppError> {
     validate_feed_article_filters(unread_only, starred_only)?;
-    let db = state.db.lock().map_err(|e| AppError::UserVisible {
-        message: format!("Lock error: {e}"),
-    })?;
+    let db = crate::commands::lock_db(&state.db)?;
     let repo = SqliteArticleRepository::new(db.reader());
     let pagination = article_command_pagination(offset, limit, DEFAULT_ARTICLE_LIST_LIMIT)?;
     let articles = if starred_only.unwrap_or(false) {
@@ -723,9 +721,7 @@ pub fn list_account_articles(
     offset: Option<usize>,
     limit: Option<usize>,
 ) -> Result<Vec<ArticleDto>, AppError> {
-    let db = state.db.lock().map_err(|e| AppError::UserVisible {
-        message: format!("Lock error: {e}"),
-    })?;
+    let db = crate::commands::lock_db(&state.db)?;
     let repo = SqliteArticleRepository::new(db.reader());
     let pagination = article_command_pagination(offset, limit, DEFAULT_ARTICLE_LIST_LIMIT)?;
     let articles = if unread_only.unwrap_or(false) {
@@ -741,9 +737,7 @@ pub fn list_feed_article_summaries(
     state: State<'_, AppState>,
     account_id: String,
 ) -> Result<Vec<FeedArticleSummaryDto>, AppError> {
-    let db = state.db.lock().map_err(|e| AppError::UserVisible {
-        message: format!("Lock error: {e}"),
-    })?;
+    let db = crate::commands::lock_db(&state.db)?;
     let repo = SqliteArticleRepository::new(db.reader());
     let summaries = repo.list_feed_article_summaries_by_account(&AccountId(account_id))?;
     Ok(summaries
@@ -764,9 +758,7 @@ pub fn list_folder_articles(
     offset: Option<usize>,
     limit: Option<usize>,
 ) -> Result<Vec<ArticleDto>, AppError> {
-    let db = state.db.lock().map_err(|e| AppError::UserVisible {
-        message: format!("Lock error: {e}"),
-    })?;
+    let db = crate::commands::lock_db(&state.db)?;
     let repo = SqliteArticleRepository::new(db.reader());
     let pagination = article_command_pagination(offset, limit, DEFAULT_ARTICLE_LIST_LIMIT)?;
     let mode = parse_article_list_mode(mode.as_deref())?;
@@ -786,9 +778,7 @@ pub fn list_starred_articles(
     offset: Option<usize>,
     limit: Option<usize>,
 ) -> Result<Vec<ArticleDto>, AppError> {
-    let db = state.db.lock().map_err(|e| AppError::UserVisible {
-        message: format!("Lock error: {e}"),
-    })?;
+    let db = crate::commands::lock_db(&state.db)?;
     let repo = SqliteArticleRepository::new(db.reader());
     let pagination = article_command_pagination(offset, limit, DEFAULT_ARTICLE_LIST_LIMIT)?;
     let articles = repo.find_starred_by_account(&AccountId(account_id), &pagination)?;
@@ -803,9 +793,7 @@ pub fn list_recent_articles(
     offset: Option<usize>,
     limit: Option<usize>,
 ) -> Result<Vec<ArticleDto>, AppError> {
-    let db = state.db.lock().map_err(|e| AppError::UserVisible {
-        message: format!("Lock error: {e}"),
-    })?;
+    let db = crate::commands::lock_db(&state.db)?;
     let repo = SqliteArticleRepository::new(db.reader());
     let pagination = article_command_pagination(offset, limit, DEFAULT_RECENT_ARTICLE_LIST_LIMIT)?;
     let mode = parse_article_list_mode(mode.as_deref())?;
@@ -819,9 +807,7 @@ pub fn count_account_unread_articles(
     state: State<'_, AppState>,
     account_id: String,
 ) -> Result<i32, AppError> {
-    let db = state.db.lock().map_err(|e| AppError::UserVisible {
-        message: format!("Lock error: {e}"),
-    })?;
+    let db = crate::commands::lock_db(&state.db)?;
     let repo = SqliteArticleRepository::new(db.reader());
     let unread_count = repo.count_unread_by_account(&AccountId(account_id))?;
     Ok(unread_count)
@@ -832,9 +818,7 @@ pub fn count_account_starred_articles(
     state: State<'_, AppState>,
     account_id: String,
 ) -> Result<i32, AppError> {
-    let db = state.db.lock().map_err(|e| AppError::UserVisible {
-        message: format!("Lock error: {e}"),
-    })?;
+    let db = crate::commands::lock_db(&state.db)?;
     let repo = SqliteArticleRepository::new(db.reader());
     let starred_count = repo.count_starred_by_account(&AccountId(account_id))?;
     Ok(starred_count)
@@ -842,9 +826,7 @@ pub fn count_account_starred_articles(
 
 #[tauri::command]
 pub fn mark_account_read(state: State<'_, AppState>, account_id: String) -> Result<(), AppError> {
-    let db = state.db.lock().map_err(|e| AppError::UserVisible {
-        message: format!("Lock error: {e}"),
-    })?;
+    let db = crate::commands::lock_db(&state.db)?;
     bulk_mark_account_read(db.writer(), &AccountId(account_id))?;
     Ok(())
 }
@@ -854,9 +836,7 @@ pub fn mark_account_starred_read(
     state: State<'_, AppState>,
     account_id: String,
 ) -> Result<(), AppError> {
-    let db = state.db.lock().map_err(|e| AppError::UserVisible {
-        message: format!("Lock error: {e}"),
-    })?;
+    let db = crate::commands::lock_db(&state.db)?;
     bulk_mark_account_starred_read(db.writer(), &AccountId(account_id))?;
     Ok(())
 }
@@ -868,9 +848,7 @@ pub fn count_old_unread_articles(
     target_id: String,
     older_than_days: i64,
 ) -> Result<i64, AppError> {
-    let db = state.db.lock().map_err(|e| AppError::UserVisible {
-        message: format!("Lock error: {e}"),
-    })?;
+    let db = crate::commands::lock_db(&state.db)?;
     let scope = OldUnreadScope::parse(&scope_kind)?;
     let before = old_unread_before(older_than_days)?;
     let count = collect_old_unread_rows(db.reader(), scope, &target_id, before)?.len();
@@ -886,9 +864,7 @@ pub fn mark_old_unread_read(
     target_id: String,
     older_than_days: i64,
 ) -> Result<(), AppError> {
-    let db = state.db.lock().map_err(|e| AppError::UserVisible {
-        message: format!("Lock error: {e}"),
-    })?;
+    let db = crate::commands::lock_db(&state.db)?;
     let scope = OldUnreadScope::parse(&scope_kind)?;
     let before = old_unread_before(older_than_days)?;
     bulk_mark_old_unread_read(db.writer(), scope, &target_id, before)?;
@@ -900,9 +876,7 @@ pub fn unstar_account_articles(
     state: State<'_, AppState>,
     account_id: String,
 ) -> Result<(), AppError> {
-    let db = state.db.lock().map_err(|e| AppError::UserVisible {
-        message: format!("Lock error: {e}"),
-    })?;
+    let db = crate::commands::lock_db(&state.db)?;
     bulk_unstar_account_articles(db.writer(), &AccountId(account_id))?;
     Ok(())
 }
@@ -911,9 +885,7 @@ pub fn unstar_account_articles(
 pub fn get_feed_integrity_report(
     state: State<'_, AppState>,
 ) -> Result<FeedIntegrityReportDto, AppError> {
-    let db = state.db.lock().map_err(|e| AppError::UserVisible {
-        message: format!("Lock error: {e}"),
-    })?;
+    let db = crate::commands::lock_db(&state.db)?;
     let repo = SqliteArticleRepository::new(db.reader());
 
     Ok(FeedIntegrityReportDto {
@@ -970,9 +942,7 @@ pub fn mark_article_read(
     article_id: String,
     read: Option<bool>,
 ) -> Result<(), AppError> {
-    let db = state.db.lock().map_err(|e| AppError::UserVisible {
-        message: format!("Lock error: {e}"),
-    })?;
+    let db = crate::commands::lock_db(&state.db)?;
     let article_id = ArticleId(article_id);
     let read = read.unwrap_or(true);
     mark_article_read_with_conn(db.writer(), article_id, read)
@@ -984,9 +954,7 @@ pub fn record_article_view(
     account_id: String,
     article_id: String,
 ) -> Result<(), AppError> {
-    let db = state.db.lock().map_err(|e| AppError::UserVisible {
-        message: format!("Lock error: {e}"),
-    })?;
+    let db = crate::commands::lock_db(&state.db)?;
     record_article_view_with_conn(db.writer(), AccountId(account_id), ArticleId(article_id))
 }
 
@@ -995,9 +963,7 @@ pub fn clear_article_view_history(
     state: State<'_, AppState>,
     account_id: String,
 ) -> Result<u64, AppError> {
-    let db = state.db.lock().map_err(|e| AppError::UserVisible {
-        message: format!("Lock error: {e}"),
-    })?;
+    let db = crate::commands::lock_db(&state.db)?;
     let repo = SqliteArticleRepository::new(db.writer());
     Ok(repo.clear_view_history(&AccountId(account_id))?)
 }
@@ -1007,27 +973,21 @@ pub fn mark_articles_read(
     state: State<'_, AppState>,
     article_ids: Vec<String>,
 ) -> Result<(), AppError> {
-    let db = state.db.lock().map_err(|e| AppError::UserVisible {
-        message: format!("Lock error: {e}"),
-    })?;
+    let db = crate::commands::lock_db(&state.db)?;
     let ids: Vec<ArticleId> = article_ids.iter().map(|id| ArticleId(id.clone())).collect();
     mark_articles_read_with_conn(db.writer(), &ids)
 }
 
 #[tauri::command]
 pub fn mark_feed_read(state: State<'_, AppState>, feed_id: String) -> Result<(), AppError> {
-    let db = state.db.lock().map_err(|e| AppError::UserVisible {
-        message: format!("Lock error: {e}"),
-    })?;
+    let db = crate::commands::lock_db(&state.db)?;
     let feed_id = FeedId(feed_id);
     mark_feed_read_with_conn(db.writer(), feed_id)
 }
 
 #[tauri::command]
 pub fn mark_folder_read(state: State<'_, AppState>, folder_id: String) -> Result<(), AppError> {
-    let db = state.db.lock().map_err(|e| AppError::UserVisible {
-        message: format!("Lock error: {e}"),
-    })?;
+    let db = crate::commands::lock_db(&state.db)?;
     let folder_id = FolderId(folder_id);
     mark_folder_read_with_conn(db.writer(), folder_id)
 }
@@ -1038,9 +998,7 @@ pub fn toggle_article_star(
     article_id: String,
     starred: bool,
 ) -> Result<(), AppError> {
-    let db = state.db.lock().map_err(|e| AppError::UserVisible {
-        message: format!("Lock error: {e}"),
-    })?;
+    let db = crate::commands::lock_db(&state.db)?;
     let article_id = ArticleId(article_id);
     toggle_article_star_with_conn(db.writer(), article_id, starred)
 }
@@ -1142,9 +1100,7 @@ pub fn search_articles(
     offset: Option<usize>,
     limit: Option<usize>,
 ) -> Result<Vec<ArticleDto>, AppError> {
-    let db = state.db.lock().map_err(|e| AppError::UserVisible {
-        message: format!("Lock error: {e}"),
-    })?;
+    let db = crate::commands::lock_db(&state.db)?;
     let repo = SqliteArticleRepository::new(db.reader());
     let pagination = article_command_pagination(offset, limit, DEFAULT_ARTICLE_LIST_LIMIT)?;
     let articles = repo.search(&AccountId(account_id), &query, &pagination)?;
