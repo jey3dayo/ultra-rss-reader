@@ -70,7 +70,7 @@ function renderBrowserWebviewSync(hostElement: HTMLDivElement, showSurfaceFailur
     const browserStateRef = useRef(browserState);
     browserStateRef.current = browserState;
 
-    return useBrowserWebviewSync({
+    const webviewSync = useBrowserWebviewSync({
       hostRef,
       platformKind: "windows",
       browserStateRef,
@@ -79,6 +79,8 @@ function renderBrowserWebviewSync(hostElement: HTMLDivElement, showSurfaceFailur
       onMissingEmbeddedBrowserWebview: vi.fn(),
       showSurfaceFailure,
     });
+
+    return { ...webviewSync, browserState };
   });
 }
 
@@ -141,6 +143,8 @@ describe("useBrowserWebviewSync", () => {
     const consoleError = suppressConsoleError();
     const error = { type: "UserVisible" as const, message: "focus failed" };
     const showSurfaceFailure = vi.fn();
+    const createdState = createBrowserState({ is_loading: true });
+    createOrUpdateBrowserWebviewMock.mockResolvedValue(Result.succeed(createdState));
     focusBrowserWebviewMock.mockResolvedValue(Result.fail(error));
     const { element } = createHostElement();
     const { result } = renderBrowserWebviewSync(element, showSurfaceFailure);
@@ -149,8 +153,44 @@ describe("useBrowserWebviewSync", () => {
       await result.current.syncBrowserWebview(browserUrl, "create");
     });
 
+    expect(result.current.browserState).toEqual(createdState);
+    expect(useUiStore.getState().browserNavigationState).toEqual({
+      canGoBack: createdState.can_go_back,
+      canGoForward: createdState.can_go_forward,
+    });
     expect(showSurfaceFailure).toHaveBeenCalledWith(error);
     expect(consoleError).toHaveBeenCalledWith("Failed to focus embedded browser after create:", error);
+  });
+
+  it("keeps applied browser state while surfacing rejected focus-after-create failures", async () => {
+    const consoleError = suppressConsoleError();
+    const requestedUrl = "https://example.com/private-token";
+    const showSurfaceFailure = vi.fn();
+    const createdState = createBrowserState({ url: requestedUrl, can_go_back: true, is_loading: true });
+    createOrUpdateBrowserWebviewMock.mockResolvedValue(Result.succeed(createdState));
+    focusBrowserWebviewMock.mockRejectedValue(new Error(`focus failed for ${requestedUrl}`));
+    useUiStore.setState({ ...useUiStore.getInitialState(), browserUrl: requestedUrl });
+    const { element } = createHostElement();
+    const { result } = renderBrowserWebviewSync(element, showSurfaceFailure);
+
+    await act(async () => {
+      await result.current.syncBrowserWebview(requestedUrl, "create");
+    });
+
+    expect(result.current.browserState).toEqual(createdState);
+    expect(useUiStore.getState().browserNavigationState).toEqual({
+      canGoBack: true,
+      canGoForward: false,
+    });
+    expect(showSurfaceFailure).toHaveBeenCalledWith({
+      type: "UserVisible",
+      message: "Webプレビューの操作に失敗しました。再試行してください。",
+    });
+    expect(showSurfaceFailure.mock.calls[0]?.[0].message).not.toContain(requestedUrl);
+    expect(consoleError).toHaveBeenCalledWith("Failed to focus embedded browser after create:", {
+      type: "UserVisible",
+      message: "Webプレビューの操作に失敗しました。再試行してください。",
+    });
   });
 
   it("surfaces rejected native create calls without leaking the requested URL and allows retry", async () => {
@@ -426,6 +466,57 @@ describe("useBrowserWebviewSync", () => {
     });
     expect(syncBrowserWebview).not.toHaveBeenCalled();
     vi.useRealTimers();
+  });
+
+  it("keeps ResizeObserver listener-ready waits latest-only while preserving the create sync", async () => {
+    let resizeObserverCallback: ResizeObserverCallback | null = null;
+    class TestResizeObserver {
+      observe = vi.fn();
+      disconnect = vi.fn();
+
+      constructor(callback: ResizeObserverCallback) {
+        resizeObserverCallback = callback;
+      }
+    }
+    vi.stubGlobal("ResizeObserver", TestResizeObserver);
+    const listenerReady = createDeferred<void>();
+    const syncBrowserWebview = vi.fn().mockResolvedValue(undefined);
+    const showSurfaceFailure = vi.fn();
+    const { element } = createHostElement();
+
+    renderHook(() => {
+      const hostRef = useRef<HTMLDivElement | null>(element);
+
+      useBrowserWebviewBoundsSync({
+        browserUrl,
+        hostRef,
+        waitForBrowserWebviewListeners: () => listenerReady.promise,
+        syncBrowserWebview,
+        showSurfaceFailure,
+      });
+    });
+
+    await act(async () => {
+      resizeObserverCallback?.([], {} as ResizeObserver);
+      resizeObserverCallback?.([], {} as ResizeObserver);
+      resizeObserverCallback?.([], {} as ResizeObserver);
+    });
+
+    expect(syncBrowserWebview).not.toHaveBeenCalled();
+
+    await act(async () => {
+      listenerReady.resolve(undefined);
+      await listenerReady.promise;
+    });
+
+    await vi.waitFor(() => {
+      expect(syncBrowserWebview).toHaveBeenCalledTimes(2);
+    });
+    expect(syncBrowserWebview.mock.calls).toEqual([
+      [browserUrl, "create"],
+      [browserUrl, "resize"],
+    ]);
+    expect(showSurfaceFailure).not.toHaveBeenCalled();
   });
 
   it("surfaces rejected browser sync calls from layout observers", async () => {

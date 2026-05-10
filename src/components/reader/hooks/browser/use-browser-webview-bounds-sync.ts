@@ -79,16 +79,28 @@ export function useBrowserWebviewBoundsSync({
       }
 
       let cancelled = false;
+      let latestResizeRequestId = 0;
 
       const syncBounds = (mode: "create" | "resize") => {
+        const resizeRequestId = mode === "resize" ? latestResizeRequestId + 1 : null;
+        if (resizeRequestId !== null) {
+          latestResizeRequestId = resizeRequestId;
+        }
+
         void (async () => {
           await waitWithBrowserWebviewListenerReadyTimeout(waitForBrowserWebviewListeners);
+          if (resizeRequestId !== null && latestResizeRequestId !== resizeRequestId) {
+            return;
+          }
           if (cancelled || !isCurrent()) {
             return;
           }
 
           await syncBrowserWebview(activeBrowserUrl, mode);
         })().catch((caughtError: unknown) => {
+          if (resizeRequestId !== null && latestResizeRequestId !== resizeRequestId) {
+            return;
+          }
           if (cancelled || !isCurrent()) {
             return;
           }

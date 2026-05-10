@@ -274,9 +274,35 @@ function getShortcutKey(id: ShortcutActionId, prefs: KeyboardShortcutPrefs): str
   );
 }
 
+function normalizeModifierToken(token: string): string {
+  return /^(?:cmdorctrl|command|cmd|control|ctrl)$/i.test(token) ? "\u2318" : token;
+}
+
+function normalizeShortcutKeyForContract(key: string): string {
+  const compactKey = key.trim().replace(/\s*\+\s*/g, "+");
+  if (compactKey.length === 0) {
+    return "";
+  }
+
+  const parts =
+    !compactKey.includes("+") && compactKey.startsWith("\u2318") && compactKey.length > 1
+      ? ["\u2318", compactKey.slice(1)]
+      : compactKey.includes("+")
+        ? compactKey.split("+")
+        : [compactKey];
+  return parts
+    .map((part) => {
+      const normalizedPart = normalizeModifierToken(part);
+      return normalizedPart.length === 1 && normalizedPart.toLocaleUpperCase() !== normalizedPart.toLocaleLowerCase()
+        ? normalizedPart.toLocaleLowerCase()
+        : normalizedPart;
+    })
+    .join("+");
+}
+
 function normalizeShortcutMapKey(key: string): string | null {
   const trimmedKey = key.trim();
-  return trimmedKey.length > 0 ? trimmedKey : null;
+  return trimmedKey.length > 0 ? normalizeShortcutKeyForContract(trimmedKey) : null;
 }
 
 export function isNativeMenuOwnedShortcut(key: string): boolean {
@@ -357,6 +383,16 @@ export function formatKeyForDisplay(key: string, platformKind: PlatformKind): st
   const normalized = key.replace(/\u2318/g, modifier).replace(/\+/g, " + ");
   const modifierPattern = platformKind === "macos" ? /\u2318\s*\+?\s*/g : /Ctrl\s*\+?\s*/g;
   return normalized.replace(modifierPattern, `${modifier} `);
+}
+
+export function formatKeyAsNativeAccelerator(key: string): string {
+  return normalizeShortcutKeyForContract(key)
+    .replace(/\u2318/g, "CmdOrCtrl")
+    .split("+")
+    .map((part) =>
+      part.length === 1 && part.toLocaleUpperCase() !== part.toLocaleLowerCase() ? part.toUpperCase() : part,
+    )
+    .join("+");
 }
 
 export function getShortcutDisplay(
@@ -499,6 +535,7 @@ export function resolveKeyboardAction(
   }
 
   const normalized = normalizeKeyFromEvent({ key, metaKey, ctrlKey, shiftKey });
+  const normalizedActionKey = normalizeShortcutMapKey(normalized) ?? normalized;
 
   // Use custom mapping if provided, otherwise use defaults
   const map = keyToAction ?? buildKeyToActionMap({});
@@ -506,9 +543,9 @@ export function resolveKeyboardAction(
   const textInputTarget = isTextInputTarget(targetTag, targetIsTextEditing);
 
   // The platform settings shortcut must work even in text inputs.
-  const settingsActionId = map.get(normalized);
+  const settingsActionId = map.get(normalizedActionKey);
   if (settingsActionId === "open_settings") {
-    if (textInputTarget && normalized !== "\u2318,") {
+    if (textInputTarget && normalizedActionKey !== normalizeShortcutMapKey("\u2318,")) {
       return Result.fail("ignored_input");
     }
     return Result.succeed({ type: "open-settings" });
@@ -518,7 +555,7 @@ export function resolveKeyboardAction(
     return Result.succeed({ type: "open-settings" });
   }
 
-  if (nativeMenuOwnedShortcuts.has(normalized)) {
+  if (nativeMenuOwnedShortcuts.has(normalizedActionKey)) {
     return Result.fail("no_action");
   }
 
@@ -531,7 +568,7 @@ export function resolveKeyboardAction(
   }
 
   // Modifier shortcuts should not fall back to plain single-key bindings.
-  const actionId = metaKey || ctrlKey ? map.get(normalized) : (map.get(normalized) ?? map.get(key));
+  const actionId = metaKey || ctrlKey ? map.get(normalizedActionKey) : (map.get(normalizedActionKey) ?? map.get(key));
   if (actionId && actionId !== "open_settings") {
     return resolveActionForId(actionId, {
       selectedArticleId,

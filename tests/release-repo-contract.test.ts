@@ -182,6 +182,57 @@ const extractWorkflowUses = (source: string): string[] => {
   return [...source.matchAll(usesPattern)].map((match) => match[1] ?? "");
 };
 
+const extractRustStringConstants = (source: string, suffix: string): Map<string, string> => {
+  const constants = new Map<string, string>();
+  const pattern = new RegExp(`^const\\s+([A-Z0-9_]+${escapeRegExp(suffix)}):\\s*&str\\s*=\\s*"([^"]+)";`, "gm");
+  for (const match of source.matchAll(pattern)) {
+    const name = match[1];
+    const value = match[2];
+    if (name && value) {
+      constants.set(name, value);
+    }
+  }
+  return constants;
+};
+
+const extractNativeMenuActionContracts = (source: string): Map<string, string> => {
+  const menuIds = extractRustStringConstants(source, "_MENU_ID");
+  const contracts = new Map<string, string>();
+  const pattern = /^\s+([A-Z0-9_]+_MENU_ID)\s*=>\s*Some\("([^"]+)"\),$/gm;
+  for (const match of source.matchAll(pattern)) {
+    const menuIdConst = match[1];
+    const action = match[2];
+    const menuId = menuIdConst ? menuIds.get(menuIdConst) : undefined;
+    if (menuId && action) {
+      contracts.set(menuId, action);
+    }
+  }
+  return contracts;
+};
+
+const extractAppActions = (source: string): Set<string> => {
+  const registry = source.match(/export const APP_ACTION_REGISTRY = \{(?<body>[\s\S]*?)\n\} as const;/)?.groups?.body;
+  if (!registry) {
+    throw new Error("Missing APP_ACTION_REGISTRY");
+  }
+  return new Set(
+    [...registry.matchAll(/"([^"]+)"/g)].map((match) => match[1]).filter((value): value is string => !!value),
+  );
+};
+
+const extractShortcutActionIds = (source: string): Set<string> => {
+  const definitions = source.match(/export const shortcutDefinitions: ShortcutDefinition\[] = \[(?<body>[\s\S]*?)\n\];/)
+    ?.groups?.body;
+  if (!definitions) {
+    throw new Error("Missing shortcutDefinitions");
+  }
+  return new Set(
+    [...definitions.matchAll(/^\s+id:\s*"([^"]+)",$/gm)]
+      .map((match) => match[1])
+      .filter((value): value is string => !!value),
+  );
+};
+
 const extractTopLevelYamlBlock = (source: string, key: string): string => {
   const value = source.match(new RegExp(`^${escapeRegExp(key)}:\\n(?<block>(?: {2}\\S.*\\n?)*)`, "m"))?.groups?.block;
   if (!value) {
@@ -241,6 +292,9 @@ describe("release repository contract", () => {
     (fileName) => fileName.endsWith(".yml") && fileName !== "config.yml",
   );
   const miseToml = readText("mise.toml");
+  const nativeMenuSource = readText("src-tauri/src/menu.rs");
+  const appActionsSource = readText("src/lib/app-actions.ts");
+  const keyboardShortcutsSource = readText("src/lib/keyboard/keyboard-shortcuts.ts");
 
   it("parses TOML string values with quoted and multiline forms used by release contracts", () => {
     const toml = [
@@ -537,6 +591,68 @@ describe("release repository contract", () => {
     expect(releaseManualVerification).toContain("DEV_CREDENTIALS");
     expect(releaseManualVerification).toMatch(/dev mocks/i);
     expect(releaseManualVerification).toContain("debug-only MCP bridge permissions");
+  });
+
+  it("keeps native menu action payloads aligned with frontend AppAction ids", () => {
+    const nativeMenuActions = extractNativeMenuActionContracts(nativeMenuSource);
+    const appActions = extractAppActions(appActionsSource);
+
+    expect([...nativeMenuActions.keys()].sort()).toEqual([
+      "accounts-add",
+      "accounts-show",
+      "accounts-sync",
+      "check-for-updates",
+      "item-browser",
+      "item-mark-all-read",
+      "item-next",
+      "item-prev",
+      "item-reader",
+      "item-toggle-read",
+      "item-toggle-star",
+      "settings",
+      "share-copy-link",
+      "share-open-browser",
+      "share-reading-list",
+      "subs-add",
+      "subs-next",
+      "subs-prev",
+      "view-all",
+      "view-fullscreen",
+      "view-group-by-feed",
+      "view-sort-unread",
+      "view-starred",
+      "view-unread",
+    ]);
+    expect(nativeMenuActions.get("unknown-menu-id")).toBeUndefined();
+
+    for (const [menuId, action] of nativeMenuActions) {
+      expect(appActions.has(action), `${menuId} emits ${action}, but APP_ACTIONS does not accept it`).toBe(true);
+    }
+    expect(appActions.has("unknown-action-payload")).toBe(false);
+    expect(appActions.has("disabled-runtime-action")).toBe(false);
+    expect(appActionsSource).toContain('export type AppActionSurface = "commandPalette" | "nativeMenu"');
+    expect(appActionsSource).toContain("APP_ACTION_CAPABILITY_MATRIX");
+  });
+
+  it("keeps native menu item action ids aligned with customizable shortcut definitions", () => {
+    const nativeMenuActions = extractNativeMenuActionContracts(nativeMenuSource);
+    const shortcutActionIds = extractShortcutActionIds(keyboardShortcutsSource);
+    const menuActionShortcutContracts = [
+      ["item-prev", "prev-article", "prev_article"],
+      ["item-next", "next-article", "next_article"],
+      ["item-reader", "open-in-reader", "open_in_app_browser"],
+      ["item-browser", "open-in-browser", "open_external_browser"],
+      ["item-toggle-star", "toggle-star", "toggle_star"],
+      ["item-toggle-read", "toggle-read", "toggle_read"],
+      ["item-mark-all-read", "mark-all-read", "mark_all_read"],
+    ] as const;
+
+    for (const [menuId, action, shortcutActionId] of menuActionShortcutContracts) {
+      expect(nativeMenuActions.get(menuId)).toBe(action);
+      expect(shortcutActionIds.has(shortcutActionId)).toBe(true);
+    }
+    expect(keyboardShortcutsSource).toContain('const nativeMenuOwnedShortcuts = new Set(["\\u2318+r"])');
+    expect(nativeMenuActions.get("accounts-sync")).toBe("sync-all");
   });
 
   it("generates a release/debug feature flag inventory report", () => {
