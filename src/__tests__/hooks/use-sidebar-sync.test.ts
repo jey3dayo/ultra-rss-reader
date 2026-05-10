@@ -167,9 +167,13 @@ describe("resolveSidebarLastSyncedLabel", () => {
 
     await waitFor(() => {
       expect(warn).toHaveBeenCalledWith("Query invalidation failed:", {
-        actionOwner: "manual-sync-completed",
-        queryKey: accountSyncStatusQueryKey(),
-        error: invalidationError,
+        failures: [
+          {
+            actionOwner: "manual-sync-completed",
+            queryKey: accountSyncStatusQueryKey(),
+            error: invalidationError,
+          },
+        ],
       });
     });
     expect(consoleErrorSpy).toHaveBeenCalledWith("Sync failed:", {
@@ -359,9 +363,13 @@ describe("resolveSidebarLastSyncedLabel", () => {
     expect(clearSyncProgress).toHaveBeenCalledTimes(1);
     await waitFor(() => {
       expect(warn).toHaveBeenCalledWith("Query invalidation failed:", {
-        actionOwner: "background-sync-completed",
-        queryKey: accountSyncStatusQueryKey(),
-        error: invalidationError,
+        failures: [
+          {
+            actionOwner: "background-sync-completed",
+            queryKey: accountSyncStatusQueryKey(),
+            error: invalidationError,
+          },
+        ],
       });
     });
   });
