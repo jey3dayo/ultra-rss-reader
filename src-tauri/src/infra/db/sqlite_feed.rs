@@ -174,6 +174,8 @@ impl FeedRepository for SqliteFeedRepository<'_> {
              ON CONFLICT(account_id, url) DO UPDATE SET
                folder_id = excluded.folder_id,
                remote_id = excluded.remote_id,
+               title = excluded.title,
+               site_url = excluded.site_url,
                icon = excluded.icon,
                unread_count = excluded.unread_count
              ON CONFLICT(account_id, remote_id) DO UPDATE SET
@@ -1082,7 +1084,7 @@ mod tests {
     }
 
     #[test]
-    fn save_duplicate_account_url_preserves_existing_id_and_user_display_metadata() {
+    fn save_duplicate_account_url_preserves_existing_id_and_local_display_modes() {
         let db = test_db();
         let account_id = insert_test_account(&db);
         let repo = SqliteFeedRepository::new(db.writer());
@@ -1124,8 +1126,8 @@ mod tests {
 
         assert_eq!(saved_feed.id, existing_feed.id);
         assert_ne!(saved_feed.id, incoming_feed.id);
-        assert_eq!(saved_feed.title, "Original Feed");
-        assert_eq!(saved_feed.site_url, "http://example.com");
+        assert_eq!(saved_feed.title, "Updated Feed");
+        assert_eq!(saved_feed.site_url, "https://example.com/articles");
         assert_eq!(saved_feed.icon.as_deref(), Some(&[9, 8, 7][..]));
         assert_eq!(saved_feed.reader_mode, "inherit");
         assert_eq!(saved_feed.web_preview_mode, "inherit");

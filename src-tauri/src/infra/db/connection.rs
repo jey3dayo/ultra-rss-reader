@@ -697,7 +697,8 @@ mod tests {
             "VACUUM should truncate WAL before reporting refreshed file sizes"
         );
         assert_eq!(
-            after.total_size_bytes, after.db_size_bytes,
+            after.total_size_bytes,
+            after.db_size_bytes + after.shm_size_bytes,
             "VACUUM size report should not include stale WAL bytes after checkpoint"
         );
         assert_eq!(count, 2, "DB should remain writable/readable after VACUUM");
@@ -737,7 +738,8 @@ mod tests {
             "VACUUM should report a checkpointed WAL size across platform file semantics"
         );
         assert_eq!(
-            after.total_size_bytes, after.db_size_bytes,
+            after.total_size_bytes,
+            after.db_size_bytes + after.shm_size_bytes,
             "reported total should be stable after WAL checkpoint/truncate"
         );
     }
