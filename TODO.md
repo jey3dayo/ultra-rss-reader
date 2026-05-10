@@ -1460,11 +1460,6 @@
   - DB size、count、timestamp usec など Rust 側が `u64` の値を frontend で `number` として扱うと、`Number.MAX_SAFE_INTEGER` 超過時に丸められる
   - safe integer 上限、string 化する DTO、BigInt を使わない範囲、Zod `safe()`、Rust test fixture の parity を整理する
 
-- [ ] P1 database info DTO の `shm_size_bytes` / `total_size_bytes` parity を Rust/TS で固定する
-  - 対象: `src-tauri/src/commands/database_commands.rs`, `src-tauri/src/infra/db/connection.rs`, `src/api/schemas/database-info.ts`
-  - Rust DTO は `shm_size_bytes` を 0 にしているが TS schema は `total = db + wal + shm` を要求するため、将来 SHM 計測を足した時に片側だけ変わりやすい
-  - db/wal/shm missing、WAL enabled/disabled、file stat failure、total mismatch、large file size の command/schema contract test を追加する
-
 - [ ] P1 database maintenance と updater install が共有する `syncing` flag の user-facing state を統一する
   - 対象: `src-tauri/src/commands/database_commands.rs`, `src-tauri/src/commands/updater_commands.rs`, `src-tauri/src/commands/sync_commands.rs`, `src/hooks/use-updater.ts`
   - vacuum、sync、update install が同じ AtomicBool を使うため、UI には sync 中なのか maintenance/update 中なのか区別できない busy error が出やすい
@@ -2970,11 +2965,6 @@
   - `failedFaviconSrc` は component state なので、同じ row が別 feed に再利用された時の failure cache reset 契約が必要
   - same component new feed、same host same src、different host、size change requestSize、error then success の test を追加する
 
-- [ ] P3 database info command の SHM/WAL unavailable warning surface を固定する
-  - 対象: `src-tauri/src/commands/database_commands.rs`, `src-tauri/src/infra/db/connection.rs`
-  - `shm_size_bytes` は DTO で 0 固定に近く、WAL/SHM の取得失敗が size 表示にどう現れるかがユーザーに見えにくい
-  - missing WAL、permission denied SHM、non-file DB、in-memory DB、warning/no-warning policy の test を追加する
-
 - [ ] P1 GReader unread reconcile の pending mutation 判定を axis 別にする
   - 対象: `src-tauri/src/commands/sync_providers.rs`
   - `pending_remote_ids` が read/star mutation をまとめると、star だけ pending の記事まで unread reconcile から除外され得る
@@ -2984,11 +2974,6 @@
   - 対象: `src-tauri/src/commands/sync_providers.rs`, `src-tauri/src/infra/db/sqlite_article.rs`
   - `articles.remote_id = pending.remote_entry_id LIMIT 1` だと、同一 remote id が複数 feed にある時に GReader 対象 mutation を誤って drop し得る
   - same remote_entry_id in local/GReader feeds、multiple GReader feeds、missing article、account scoped collision の test を追加する
-
-- [ ] P1 feed save の primary-key conflict が account/url conflict と混ざらない contract を作る
-  - 対象: `src-tauri/src/infra/db/sqlite_feed.rs`
-  - `ON CONFLICT(id)` で `account_id` まで更新されると、id 衝突時に feed が別 account へ移動する事故が見えにくい
-  - same id different account、same id different url、same account url conflict、remote_id conflict の保存結果 test を追加する
 
 - [ ] P1 `clearArticle` 後に mobile/compact が空の content pane に残らないようにする
   - 対象: `src/stores/ui-store.ts`, `src/hooks/use-layout.ts`
@@ -3009,11 +2994,6 @@
   - 対象: `src-tauri/src/commands/sync_providers.rs`, `src-tauri/src/infra/db/sqlite_article.rs`
   - `not_modified` では articles が空になり、mute rule 変更後の auto-mark や unread count repair が走らない可能性がある
   - 304 with new mute rule、auto-mark on/off、existing muted unread、etag preserved、unread count after sync の test を追加する
-
-- [ ] P2 account list の invalid row quarantine を sync/UI diagnostics と揃える
-  - 対象: `src-tauri/src/infra/db/sqlite_account.rs`, `src-tauri/src/commands/account_commands.rs`, `src-tauri/src/commands/sync_commands.rs`
-  - `find_all` は invalid row を warn で skip するが、`find_by_id` は error になり、list/sync/repair の見え方がずれる
-  - unknown provider kind、unknown verification status、list_accounts warning、sync target skip、repair command visibility の test を追加する
 
 - [ ] P2 sanitizer reprocess で summary fallback search text を失わない契約を決める
   - 対象: `src-tauri/src/infra/db/sqlite_article.rs`
