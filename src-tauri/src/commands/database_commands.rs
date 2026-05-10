@@ -26,7 +26,7 @@ impl From<DatabaseInfo> for DatabaseInfoDto {
         Self {
             db_size_bytes: info.db_size_bytes,
             wal_size_bytes: info.wal_size_bytes,
-            shm_size_bytes: 0,
+            shm_size_bytes: info.shm_size_bytes,
             total_size_bytes: info.total_size_bytes,
         }
     }
@@ -62,11 +62,13 @@ mod tests {
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::Mutex;
 
-    use crate::commands::database_commands::{get_database_info_inner, vacuum_database_inner};
+    use crate::commands::database_commands::{
+        get_database_info_inner, vacuum_database_inner, DatabaseInfoDto,
+    };
     use crate::commands::dto::AppError;
     use crate::commands::start_database_maintenance;
     use crate::commands::DATABASE_MAINTENANCE_BUSY_ERROR;
-    use crate::infra::db::connection::DbManager;
+    use crate::infra::db::connection::{DatabaseInfo, DbManager};
 
     #[test]
     fn vacuum_database_returns_syncing_error_before_trying_db_lock() {
@@ -101,6 +103,24 @@ mod tests {
             }
             other => panic!("expected user-visible busy error, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn database_info_dto_preserves_shm_size_and_total_parity() {
+        let dto = DatabaseInfoDto::from(DatabaseInfo {
+            db_size_bytes: 13,
+            wal_size_bytes: 7,
+            shm_size_bytes: 11,
+            total_size_bytes: 31,
+        });
+
+        assert_eq!(dto.db_size_bytes, 13);
+        assert_eq!(dto.wal_size_bytes, 7);
+        assert_eq!(dto.shm_size_bytes, 11);
+        assert_eq!(
+            dto.total_size_bytes,
+            dto.db_size_bytes + dto.wal_size_bytes + dto.shm_size_bytes
+        );
     }
 
     #[test]

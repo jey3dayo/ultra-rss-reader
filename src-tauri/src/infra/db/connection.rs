@@ -12,6 +12,7 @@ static IN_MEMORY_COUNTER: AtomicU64 = AtomicU64::new(0);
 pub struct DatabaseInfo {
     pub db_size_bytes: u64,
     pub wal_size_bytes: u64,
+    pub shm_size_bytes: u64,
     pub total_size_bytes: u64,
 }
 
@@ -286,16 +287,15 @@ impl DbManager {
     }
 
     fn database_info_from_path(path: &Path) -> DatabaseInfo {
-        let db_size_bytes = path.metadata().map(|metadata| metadata.len()).unwrap_or(0);
-        let wal_size_bytes = Self::wal_path(path)
-            .metadata()
-            .map(|metadata| metadata.len())
-            .unwrap_or(0);
+        let db_size_bytes = Self::sidecar_size_bytes(path, "database");
+        let wal_size_bytes = Self::sidecar_size_bytes(&Self::wal_path(path), "WAL");
+        let shm_size_bytes = Self::sidecar_size_bytes(&Self::shm_path(path), "SHM");
 
         DatabaseInfo {
             db_size_bytes,
             wal_size_bytes,
-            total_size_bytes: db_size_bytes + wal_size_bytes,
+            shm_size_bytes,
+            total_size_bytes: db_size_bytes + wal_size_bytes + shm_size_bytes,
         }
     }
 
@@ -308,14 +308,36 @@ impl DbManager {
         Ok(DatabaseInfo {
             db_size_bytes,
             wal_size_bytes: 0,
+            shm_size_bytes: 0,
             total_size_bytes: db_size_bytes,
         })
+    }
+
+    fn sidecar_size_bytes(path: &Path, label: &str) -> u64 {
+        match path.metadata() {
+            Ok(metadata) => metadata.len(),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => 0,
+            Err(error) => {
+                tracing::warn!(
+                    path = %path.display(),
+                    error = %error,
+                    "Failed to read {label} file size for database info"
+                );
+                0
+            }
+        }
     }
 
     fn wal_path(path: &Path) -> PathBuf {
         let mut wal_path = path.as_os_str().to_os_string();
         wal_path.push("-wal");
         PathBuf::from(wal_path)
+    }
+
+    fn shm_path(path: &Path) -> PathBuf {
+        let mut shm_path = path.as_os_str().to_os_string();
+        shm_path.push("-shm");
+        PathBuf::from(shm_path)
     }
 
     fn replace_with_in_memory_connections(&mut self) -> DomainResult<()> {
@@ -721,13 +743,11 @@ mod tests {
     }
 
     #[test]
-    fn database_info_total_includes_db_and_wal_but_not_shm_sidecar() {
+    fn database_info_total_includes_db_wal_and_shm_sidecars() {
         let dir = tempfile::tempdir().unwrap();
         let db_path = dir.path().join("size-contract.db");
         let wal_path = DbManager::wal_path(&db_path);
-        let mut shm_path = db_path.as_os_str().to_os_string();
-        shm_path.push("-shm");
-        let shm_path = PathBuf::from(shm_path);
+        let shm_path = DbManager::shm_path(&db_path);
 
         std::fs::write(&db_path, [0_u8; 13]).unwrap();
         std::fs::write(&wal_path, [0_u8; 7]).unwrap();
@@ -737,7 +757,35 @@ mod tests {
 
         assert_eq!(info.db_size_bytes, 13);
         assert_eq!(info.wal_size_bytes, 7);
-        assert_eq!(info.total_size_bytes, 20);
+        assert_eq!(info.shm_size_bytes, 11);
+        assert_eq!(info.total_size_bytes, 31);
+    }
+
+    #[test]
+    fn database_info_missing_wal_and_shm_sidecars_reports_zero_without_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let db_path = dir.path().join("missing-sidecars.db");
+
+        std::fs::write(&db_path, [0_u8; 13]).unwrap();
+
+        let info = DbManager::database_info_from_path(&db_path);
+
+        assert_eq!(info.db_size_bytes, 13);
+        assert_eq!(info.wal_size_bytes, 0);
+        assert_eq!(info.shm_size_bytes, 0);
+        assert_eq!(info.total_size_bytes, 13);
+    }
+
+    #[test]
+    fn in_memory_database_info_reports_zero_sidecars() {
+        let db = DbManager::new_in_memory().unwrap();
+
+        let info = db.database_info().unwrap();
+
+        assert!(info.db_size_bytes > 0);
+        assert_eq!(info.wal_size_bytes, 0);
+        assert_eq!(info.shm_size_bytes, 0);
+        assert_eq!(info.total_size_bytes, info.db_size_bytes);
     }
 
     #[test]
