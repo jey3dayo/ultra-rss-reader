@@ -1985,12 +1985,6 @@
   - resolver が `metaKey || ctrlKey` を同じ modifier と扱うため、macOS Ctrl/Cmd、Windows/Linux Meta/Ctrl の実動作と表示・native menu がずれやすい
   - mac Ctrl+K vs Cmd+K、Windows Ctrl+K vs Meta+K、custom shortcut modifier、native-menu-owned shortcut parity の test を追加する
 
-- [ ] P2 article list row auto-focus の late focus を active editing target で再検証する
-  - 対象: `src/components/reader/hooks/article-list/use-article-list-effects.ts`
-  - rAF 登録前には入力中判定していても、frame 実行までに検索 input などへ focus が移ると記事 row が focus を奪う可能性がある
-  - focusedPane=list、frame 前 INPUT/TEXTAREA/contenteditable focus、row unmount、selected article change の test を追加する
-  - superseded by: P2-R5 (covered by reader focus retry cancellation contract; kept verification: active editing target before frame, row unmount, selected article change)
-
 - [ ] P2 article list stale selected article cleanup を loading transition と empty source で固定する
   - 対象: `src/components/reader/hooks/article-list/use-article-list-effects.ts`, `src/components/reader/hooks/article-list/use-article-list-sources.ts`
   - loading が false になった瞬間に selected id が `filteredArticles` から消えると、retained article/refetch transition の順序次第で選択が落ちやすい
@@ -2837,16 +2831,6 @@
   - 同じ article/tag relation が二重登録されると count、picker chips、remove 操作が壊れる
   - duplicate tag_article、optimistic duplicate、untag one of duplicates、count query、DB unique constraint の contract を追加する
 
-- [ ] P2 command palette / menu / shortcut action availability を capability matrix にする
-  - 対象: command palette actions、native menu、keyboard shortcuts、app action dispatcher
-  - 同じ action が surface ごとに enabled/disabled 条件を持つと、modal中・browser中・no account 時の動きがずれる
-  - no account、browser open、modal open、syncing、dirty form、offline の matrix を作る
-
-- [ ] P2 keyboard shortcut persistence の migration path を renamed action id で固定する
-  - 対象: shortcut preferences、app action ids、settings shortcuts
-  - action id rename 後に古い custom shortcut が残ると、表示されない shortcut が発火するか、発火しなくなる
-  - renamed action、deleted action、new default conflict、reset all、migration warning の contract を追加する
-
 - [ ] P2 window drag region と file drop region の pointer event priority を検証する
   - 対象: app shell CSS、native titlebar overlay、drag/drop handlers
   - titlebar drag、browser overlay、file drop overlay が同じ上部領域を使うと、クリック/ドラッグ/drop の優先順位が壊れる
@@ -3156,11 +3140,6 @@
   - 対象: `open_in_browser`, app actions, keyboard/menu handlers
   - 同じ article を連打すると複数 browser tab や duplicate Reading List action が出て、ユーザー操作の副作用が大きい
   - double click、key repeat、menu+shortcut race、same URL dedupe window、failure retry の policy を追加する
-
-- [ ] P2 keyboard shortcut help の generated content と actual bindings を snapshot 化する
-  - 対象: shortcuts help view、shortcut settings、app action registry
-  - help に古い binding が残ると、custom shortcut や platform modifier の変更後に操作案内が嘘になる
-  - default binding、custom binding、disabled action、platform modifier、locale copy の snapshot を追加する
 
 - [ ] P2 long article virtualization を導入する前の selection/search highlight contract を作る
   - 対象: article content view、search highlight、reader scroll restoration
