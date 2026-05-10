@@ -103,17 +103,18 @@ impl DbManager {
                     if let Err(restore_err) = super::backup::restore_backup(db_path, backup_file) {
                         return Err(DomainError::Migration(format!(
                             "Migration failed ({e}) and automatic restore failed ({restore_err}). \
-                             Close the application and restore the backup manually from the backup directory to the database file."
+                             {}",
+                            super::backup::manual_restore_instruction()
                         )));
                     }
 
                     // Restore succeeded but return error — don't run with old schema
                     Err(DomainError::Migration(format!(
                         "Migration to v{} failed: {e}. Database restored to v{backup_version}. \
-                         Backup: {}. If the application still does not start, close it and restore \
-                         the newest backup over the database file manually.",
+                         Backup: {}. If the application still does not start, {}",
                         super::migration::LATEST_VERSION,
-                        super::backup::redacted_path_label(backup_file)
+                        super::backup::redacted_path_label(backup_file),
+                        super::backup::manual_restore_instruction()
                     )))
                 } else {
                     Err(DomainError::Migration(format!(
@@ -658,6 +659,18 @@ mod tests {
         assert!(
             !err_msg.contains(dir.path().to_string_lossy().as_ref()),
             "Error should not include the full backup path: {err_msg}"
+        );
+        assert!(
+            err_msg.contains("macOS: copy the newest backup"),
+            "Error should include macOS manual restore path copy instructions: {err_msg}"
+        );
+        assert!(
+            err_msg.contains("Windows: copy the newest backup"),
+            "Error should include Windows manual restore path copy instructions: {err_msg}"
+        );
+        assert!(
+            err_msg.contains("while the app is closed"),
+            "Error should tell users to copy files while the app is closed: {err_msg}"
         );
 
         // Verify backup was restored — data should be intact

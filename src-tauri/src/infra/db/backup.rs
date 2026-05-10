@@ -1,13 +1,43 @@
 use std::collections::BTreeSet;
 use std::fs;
+use std::io::Read;
 use std::path::{Path, PathBuf};
 
 use chrono::Local;
+use rusqlite::{params, Connection, OpenFlags, OptionalExtension};
+use sha2::{Digest, Sha256};
 use tracing::{info, warn};
 
 use crate::domain::error::{DomainError, DomainResult};
 
 const SQLITE_AUXILIARY_SUFFIXES: [&str; 2] = ["wal", "shm"];
+const BACKUP_METADATA_FORMAT_VERSION: i32 = 1;
+const SOURCE_APP_IDENTIFIER: &str = "com.jey3dayo.ultra-rss-reader";
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BackupMetadata {
+    pub metadata_format_version: i32,
+    pub app_version: String,
+    pub schema_version: i32,
+    pub created_at: String,
+    pub source_app_identifier: String,
+    pub data_checksum_sha256: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BackupContentSummary {
+    pub account_count: i64,
+    pub feed_count: i64,
+    pub article_count: i64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BackupRestorePreview {
+    pub metadata: BackupMetadata,
+    pub current: BackupContentSummary,
+    pub backup: BackupContentSummary,
+    pub schema_compatible: bool,
+}
 
 /// Return the `backups/` subdirectory next to the DB file.
 fn backups_dir(db_path: &Path) -> DomainResult<PathBuf> {
@@ -86,6 +116,149 @@ fn restore_old_path(final_path: &Path) -> PathBuf {
     PathBuf::from(name)
 }
 
+fn backup_checksum(path: &Path) -> DomainResult<String> {
+    let mut file = fs::File::open(path).map_err(|e| {
+        DomainError::Migration(format!(
+            "Failed to read backup checksum {}: {e}",
+            redacted_path_label(path)
+        ))
+    })?;
+    let mut hasher = Sha256::new();
+    let mut buffer = [0_u8; 8192];
+    loop {
+        let read = file.read(&mut buffer).map_err(|e| {
+            DomainError::Migration(format!(
+                "Failed to read backup checksum {}: {e}",
+                redacted_path_label(path)
+            ))
+        })?;
+        if read == 0 {
+            break;
+        }
+        hasher.update(&buffer[..read]);
+    }
+    Ok(hex::encode(hasher.finalize()))
+}
+
+fn write_backup_metadata(backup_path: &Path, schema_version: i32) -> DomainResult<()> {
+    let checksum = backup_checksum(backup_path)?;
+    let conn = Connection::open(backup_path)?;
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS __ultra_rss_backup_metadata (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            metadata_format_version INTEGER NOT NULL,
+            app_version TEXT NOT NULL,
+            schema_version INTEGER NOT NULL,
+            created_at TEXT NOT NULL,
+            source_app_identifier TEXT NOT NULL,
+            data_checksum_sha256 TEXT NOT NULL
+        );",
+    )?;
+    conn.execute(
+        "INSERT OR REPLACE INTO __ultra_rss_backup_metadata (
+            id,
+            metadata_format_version,
+            app_version,
+            schema_version,
+            created_at,
+            source_app_identifier,
+            data_checksum_sha256
+        ) VALUES (1, ?1, ?2, ?3, ?4, ?5, ?6)",
+        params![
+            BACKUP_METADATA_FORMAT_VERSION,
+            env!("CARGO_PKG_VERSION"),
+            schema_version,
+            Local::now().to_rfc3339(),
+            SOURCE_APP_IDENTIFIER,
+            checksum,
+        ],
+    )?;
+    Ok(())
+}
+
+pub fn read_backup_metadata(backup_path: &Path) -> DomainResult<BackupMetadata> {
+    let conn = Connection::open_with_flags(backup_path, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
+    let metadata = conn
+        .query_row(
+            "SELECT
+                metadata_format_version,
+                app_version,
+                schema_version,
+                created_at,
+                source_app_identifier,
+                data_checksum_sha256
+             FROM __ultra_rss_backup_metadata
+             WHERE id = 1",
+            [],
+            |row| {
+                Ok(BackupMetadata {
+                    metadata_format_version: row.get(0)?,
+                    app_version: row.get(1)?,
+                    schema_version: row.get(2)?,
+                    created_at: row.get(3)?,
+                    source_app_identifier: row.get(4)?,
+                    data_checksum_sha256: row.get(5)?,
+                })
+            },
+        )
+        .optional()
+        .map_err(|e| {
+            DomainError::Migration(format!(
+                "Failed to parse backup metadata from {}: {e}",
+                redacted_path_label(backup_path)
+            ))
+        })?;
+
+    metadata.ok_or_else(|| {
+        DomainError::Migration(format!(
+            "Backup metadata is missing from {}",
+            redacted_path_label(backup_path)
+        ))
+    })
+}
+
+fn count_table_rows(conn: &Connection, table: &str) -> DomainResult<i64> {
+    let exists: bool = conn.query_row(
+        "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?1)",
+        [table],
+        |row| row.get(0),
+    )?;
+    if !exists {
+        return Ok(0);
+    }
+
+    let sql = format!("SELECT COUNT(*) FROM {table}");
+    Ok(conn.query_row(&sql, [], |row| row.get(0))?)
+}
+
+fn backup_content_summary(conn: &Connection) -> DomainResult<BackupContentSummary> {
+    Ok(BackupContentSummary {
+        account_count: count_table_rows(conn, "accounts")?,
+        feed_count: count_table_rows(conn, "feeds")?,
+        article_count: count_table_rows(conn, "articles")?,
+    })
+}
+
+pub fn preview_restore(
+    current_db_path: &Path,
+    backup_path: &Path,
+    latest_schema_version: i32,
+) -> DomainResult<BackupRestorePreview> {
+    let current_conn =
+        Connection::open_with_flags(current_db_path, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
+    let backup_conn = Connection::open_with_flags(backup_path, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
+    let metadata = read_backup_metadata(backup_path)?;
+    let current = backup_content_summary(&current_conn)?;
+    let backup = backup_content_summary(&backup_conn)?;
+
+    Ok(BackupRestorePreview {
+        schema_compatible: metadata.schema_version <= latest_schema_version,
+        metadata,
+        current,
+        backup,
+    })
+}
+
 pub(crate) fn redacted_path_label(path: &Path) -> String {
     path.file_name()
         .and_then(|name| name.to_str())
@@ -141,6 +314,7 @@ pub fn create_backup(db_path: &Path, schema_version: i32) -> DomainResult<PathBu
     );
 
     copy_backup_file_atomic(db_path, &dest)?;
+    write_backup_metadata(&dest, schema_version)?;
 
     // Copy WAL and SHM if they exist (SQLite WAL mode)
     for suffix in SQLITE_AUXILIARY_SUFFIXES {
@@ -154,6 +328,10 @@ pub fn create_backup(db_path: &Path, schema_version: i32) -> DomainResult<PathBu
     }
 
     Ok(dest)
+}
+
+pub(crate) fn manual_restore_instruction() -> &'static str {
+    "Close the application before copying files. macOS: copy the newest backup from ~/Library/Application Support/com.jey3dayo.ultra-rss-reader/backups/ over ~/Library/Application Support/com.jey3dayo.ultra-rss-reader/ultra-rss-reader.db. Windows: copy the newest backup from %APPDATA%\\com.jey3dayo.ultra-rss-reader\\backups\\ over %APPDATA%\\com.jey3dayo.ultra-rss-reader\\ultra-rss-reader.db. If permission is denied, check file ownership and try again while the app is closed."
 }
 
 /// Restore the database from a backup file, replacing the current DB.
@@ -365,8 +543,22 @@ mod tests {
     fn setup_temp_db() -> (tempfile::TempDir, PathBuf) {
         let dir = tempfile::tempdir().unwrap();
         let db_path = dir.path().join("test.db");
-        fs::write(&db_path, b"test database content").unwrap();
+        let conn = Connection::open(&db_path).unwrap();
+        conn.execute_batch(
+            "CREATE TABLE probe (id INTEGER PRIMARY KEY, payload TEXT NOT NULL);
+             INSERT INTO probe (id, payload) VALUES (1, 'test database content');",
+        )
+        .unwrap();
+        drop(conn);
         (dir, db_path)
+    }
+
+    fn read_probe_payload(db_path: &Path) -> String {
+        let conn = Connection::open(db_path).unwrap();
+        conn.query_row("SELECT payload FROM probe WHERE id = 1", [], |row| {
+            row.get(0)
+        })
+        .unwrap()
     }
 
     #[test]
@@ -420,8 +612,122 @@ mod tests {
         let (_dir, db_path) = setup_temp_db();
         let bp = create_backup(&db_path, 1).unwrap();
         assert!(bp.exists());
-        assert_eq!(fs::read(&bp).unwrap(), b"test database content");
+        assert_eq!(read_probe_payload(&bp), "test database content");
         assert!(!temp_backup_path(&bp).exists());
+    }
+
+    #[test]
+    fn create_backup_writes_metadata_into_backup_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let db_path = dir.path().join("metadata.db");
+        {
+            let db = crate::infra::db::connection::DbManager::new(&db_path).unwrap();
+            db.writer()
+                .execute(
+                    "INSERT INTO accounts (id, kind, name) VALUES ('a1', 'Local', 'Test')",
+                    [],
+                )
+                .unwrap();
+        }
+
+        let backup = create_backup(&db_path, 18).unwrap();
+        let metadata = read_backup_metadata(&backup).unwrap();
+
+        assert_eq!(metadata.metadata_format_version, 1);
+        assert_eq!(metadata.app_version, env!("CARGO_PKG_VERSION"));
+        assert_eq!(metadata.schema_version, 18);
+        assert_eq!(metadata.source_app_identifier, SOURCE_APP_IDENTIFIER);
+        assert_eq!(metadata.data_checksum_sha256.len(), 64);
+        assert!(metadata.created_at.contains('T'));
+    }
+
+    #[test]
+    fn read_backup_metadata_reports_parse_failures() {
+        let dir = tempfile::tempdir().unwrap();
+        let backup = dir.path().join("malformed.db");
+        let conn = Connection::open(&backup).unwrap();
+        conn.execute_batch(
+            "CREATE TABLE __ultra_rss_backup_metadata (
+                id INTEGER PRIMARY KEY,
+                metadata_format_version TEXT NOT NULL,
+                app_version TEXT NOT NULL,
+                schema_version TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                source_app_identifier TEXT NOT NULL,
+                data_checksum_sha256 TEXT NOT NULL
+            );
+            INSERT INTO __ultra_rss_backup_metadata (
+                id,
+                metadata_format_version,
+                app_version,
+                schema_version,
+                created_at,
+                source_app_identifier,
+                data_checksum_sha256
+            ) VALUES (1, 'not-integer', '0.1.0', 'not-integer', 'bad-date', 'app', 'checksum');",
+        )
+        .unwrap();
+        drop(conn);
+
+        let error = read_backup_metadata(&backup).unwrap_err().to_string();
+
+        assert!(
+            error.contains("Failed to parse backup metadata"),
+            "metadata parse failure should be explicit: {error}"
+        );
+        assert!(
+            error.contains("[redacted parent]/malformed.db"),
+            "metadata parse failure should keep path redacted: {error}"
+        );
+    }
+
+    #[test]
+    fn preview_restore_returns_metadata_counts_and_schema_compatibility() {
+        let dir = tempfile::tempdir().unwrap();
+        let current_db_path = dir.path().join("current.db");
+        let backup_source_path = dir.path().join("backup-source.db");
+        {
+            let db = crate::infra::db::connection::DbManager::new(&current_db_path).unwrap();
+            db.writer()
+                .execute(
+                    "INSERT INTO accounts (id, kind, name) VALUES ('current-a1', 'Local', 'Current')",
+                    [],
+                )
+                .unwrap();
+        }
+        {
+            let db = crate::infra::db::connection::DbManager::new(&backup_source_path).unwrap();
+            db.writer()
+                .execute(
+                    "INSERT INTO accounts (id, kind, name) VALUES ('backup-a1', 'Local', 'Backup')",
+                    [],
+                )
+                .unwrap();
+            db.writer()
+                .execute(
+                    "INSERT INTO feeds (id, account_id, title, url) VALUES ('backup-f1', 'backup-a1', 'Feed', 'https://example.com/feed.xml')",
+                    [],
+                )
+                .unwrap();
+            db.writer()
+                .execute(
+                    "INSERT INTO articles (id, feed_id, title, content_raw, content_sanitized, sanitizer_version, published_at, fetched_at) VALUES ('backup-art1', 'backup-f1', 'Article', '', '', 1, '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')",
+                    [],
+                )
+                .unwrap();
+        }
+
+        let backup = create_backup(&backup_source_path, 18).unwrap();
+        let preview = preview_restore(&current_db_path, &backup, 18).unwrap();
+
+        assert_eq!(preview.metadata.schema_version, 18);
+        assert!(preview.schema_compatible);
+        assert_eq!(preview.current.account_count, 1);
+        assert_eq!(preview.current.feed_count, 0);
+        assert_eq!(preview.current.article_count, 0);
+        assert_eq!(preview.backup.account_count, 1);
+        assert_eq!(preview.backup.feed_count, 1);
+        assert_eq!(preview.backup.article_count, 1);
     }
 
     #[test]
@@ -455,15 +761,21 @@ mod tests {
     fn create_backup_uses_unique_name_when_timestamp_collides() {
         let (_dir, db_path) = setup_temp_db();
         let first = create_backup(&db_path, 1).unwrap();
-        fs::write(&db_path, b"second database content").unwrap();
+        let conn = Connection::open(&db_path).unwrap();
+        conn.execute(
+            "UPDATE probe SET payload = 'second database content' WHERE id = 1",
+            [],
+        )
+        .unwrap();
+        drop(conn);
 
         let second = create_backup(&db_path, 1).unwrap();
 
         assert_ne!(first, second);
         assert!(first.exists());
         assert!(second.exists());
-        assert_eq!(fs::read(first).unwrap(), b"test database content");
-        assert_eq!(fs::read(second).unwrap(), b"second database content");
+        assert_eq!(read_probe_payload(&first), "test database content");
+        assert_eq!(read_probe_payload(&second), "second database content");
     }
 
     #[test]
@@ -493,9 +805,12 @@ mod tests {
         let (_dir, db_path) = setup_temp_db();
         let bp = create_backup(&db_path, 1).unwrap();
         // Corrupt the original
-        fs::write(&db_path, b"corrupted").unwrap();
+        let conn = Connection::open(&db_path).unwrap();
+        conn.execute("UPDATE probe SET payload = 'corrupted' WHERE id = 1", [])
+            .unwrap();
+        drop(conn);
         restore_backup(&db_path, &bp).unwrap();
-        assert_eq!(fs::read(&db_path).unwrap(), b"test database content");
+        assert_eq!(read_probe_payload(&db_path), "test database content");
     }
 
     #[test]
@@ -508,15 +823,21 @@ mod tests {
 
         let bp = create_backup(&db_path, 1).unwrap();
 
-        fs::write(&db_path, b"current database content").unwrap();
+        let conn = Connection::open(&db_path).unwrap();
+        conn.execute(
+            "UPDATE probe SET payload = 'current database content' WHERE id = 1",
+            [],
+        )
+        .unwrap();
+        drop(conn);
         fs::write(&wal_path, b"current wal").unwrap();
         fs::write(&shm_path, b"current shm").unwrap();
 
         restore_backup(&db_path, &bp).unwrap();
 
-        assert_eq!(fs::read(&db_path).unwrap(), b"test database content");
         assert_eq!(fs::read(&wal_path).unwrap(), b"backup wal");
         assert_eq!(fs::read(&shm_path).unwrap(), b"backup shm");
+        assert_eq!(read_probe_payload(&db_path), "test database content");
         assert!(!temp_backup_path(&db_path).exists());
         assert!(!restore_old_path(&db_path).exists());
         assert!(!temp_backup_path(&wal_path).exists());
