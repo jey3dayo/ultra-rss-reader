@@ -1311,11 +1311,6 @@
   - discovery は initial URL と redirect URL の private host を検証するが、DNS rebinding、same-origin `<base>`、protocol-relative feed URL の扱いが security boundary になっている
   - public-to-private DNS、HTTPS->HTTP downgrade、same-origin base、cross-origin base ignore、protocol-relative URL、IPv6/private range の test を追加する
 
-- [ ] P1 OPML import URL validation を discovery URL validation と同じ private host policy に寄せる
-  - 対象: `src-tauri/src/commands/opml_commands.rs`, `src-tauri/src/infra/feed_discovery.rs`, `src-tauri/src/infra/opml.rs`
-  - OPML import と feed discovery が別々に private host 判定を持つため、一方だけ IPv6/localhost/encoded host の扱いが抜ける可能性がある
-  - localhost、127.0.0.1、IPv6 loopback、unique local、link-local、protocol-relative、punycode host の shared validation fixture を追加する
-
 - [ ] P2 external URL schema の `mailto:` と native opener の redaction/validation contract を固定する
   - 対象: `src/api/schemas/commands.ts`, `src/api/tauri-commands.ts`, `src/components/reader/article-browser-actions.ts`
   - external opener は `mailto:` を許可し、browser webview/Reading List は http(s) のみなので、action ごとの URL policy が混ざると意図しない scheme を native に渡しやすい
@@ -1346,11 +1341,6 @@
   - content HTML 内 media は sanitizer が http(s) absolute のみ許可する一方、thumbnail は別 helper で normalize されるため、relative/data/private URL policy がずれやすい
   - relative URL、data URL、javascript URL、uppercase HTTP、userinfo URL、empty/whitespace URL の display contract を追加する
 
-- [ ] P2 dev file credential store の lock/temp/permission failure を corruption recovery として固定する
-  - 対象: `src-tauri/src/infra/keyring_store.rs`, `src-tauri/src/commands/account_commands.rs`, `src/__tests__/components/debug-settings.test.tsx`
-  - dev credential JSON は file lock と temp rename を使うため、lock timeout、partial temp、permission failure、oversized JSON の復旧方針が重要になる
-  - lock timeout、stale temp file、oversized store、invalid JSON、non-string value、chmod failure、rename failure の Rust test を追加する
-
 - [ ] P2 seed-dev-db-from-prod の backup/staging cleanup を crash-safe contract にする
   - 対象: `scripts/seed-dev-db-from-prod.ts`, `src/__tests__/scripts/seed-dev-db-from-prod.test.ts`
   - production DB copy は staging、backup、destination cleanup、install の順序に依存するため、途中失敗時の backup 残存と dev DB 復旧可能性を固定しておきたい
@@ -1365,11 +1355,6 @@
   - 対象: `src-tauri/src/commands/log_commands.rs`, `src/lib/runtime/diagnostics.ts`, `src/components/settings/debug-settings.tsx`
   - log dir を開く操作は user が app.log を共有する導線になるため、account/feed/article URL や local path の redaction policy が UI に見えないと事故りやすい
   - open failure、permission failure、privacy checklist 表示、URL/user path redaction、backup DB warning の component/Rust contract を追加する
-
-- [ ] P2 feed export OPML の XML escaping / stable ordering を import round-trip で固定する
-  - 対象: `src-tauri/src/commands/opml_commands.rs`, `src-tauri/src/infra/opml.rs`
-  - OPML export は account/feed/folder title と URL を XML に戻すため、特殊文字や同名 folder/feed の ordering が変わると import round-trip が不安定になる
-  - `&<>"'` を含む title、空 site_url、同名 feed、folder sort_order tie、deleted folder reference、export->import round-trip の test を追加する
 
 - [ ] P3 feed discovery User-Agent / timeout constants を provider HTTP defaults と重複しないよう整理する
   - 対象: `src-tauri/src/infra/feed_discovery.rs`, `src-tauri/src/infra/provider/http_defaults.rs`
@@ -4270,16 +4255,6 @@
   - 対象: local provider parser、feed discovery、add feed validation
   - `.json` feed URL が mock や実 feed に混ざる場合、unsupported とするのか parser を足すのかが未固定だと add/sync 期待値が揺れる
   - JSON Feed accepted/unsupported、content-type、extension heuristic、UI copy、future parser task の decision を書く
-
-- [ ] P2 feed title/site title update policy を provider sync と user rename で分ける
-  - 対象: feed repository、sync flow、rename feed dialog
-  - provider 側 title が変わった時に user rename を上書きするかが曖昧だと、同期後に手動名が消える
-  - user-renamed feed、provider title changed、blank provider title、site title changed、manual reset の contract を追加する
-
-- [ ] P2 feed URL canonical change / permanent redirect を保存 URL へ反映するか決める
-  - 対象: local provider sync、feed repository、HTTP redirect policy
-  - 301/308 後の final URL を保存しないと毎回 redirect、保存すると OPML/export や duplicate 判定が変わる
-  - permanent redirect、temporary redirect、canonical URL conflict、OPML export URL、duplicate feed detection の policy を追加する
 
 - [ ] P2 sync result warning cap と aggregation order を many-feed failure で固定する
   - 対象: sync result DTO、frontend sync feedback、diagnostics
