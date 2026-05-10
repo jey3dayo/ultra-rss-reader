@@ -82,6 +82,13 @@ Before telling a user that private data has been cleared, verify each surface se
 
 If any surface cannot be removed because of OS permissions, file locks, or an unknown platform path, report the reset as incomplete and preserve the error plus the remaining artifact type. Do not ask users to share raw app data directories as proof of deletion.
 
+Destructive recovery copy contract:
+
+- Before private data reset, clear history, cleanup orphans, or delete account recovery actions, show the target scope, whether undo is unavailable, and whether a backup should be preserved first.
+- If the action has a dry-run or preview mode, present the preview before the destructive run and keep the destructive run as a separate confirmation.
+- If the app cannot identify the target account/feed/tag/history scope, disable the destructive action and show a recovery reason instead of allowing a generic delete.
+- Retry copy after a failed destructive action must say whether nothing changed, the result is unknown, or a partial result may require backup restore.
+
 ### Export And Settings Portability
 
 - OPML export is a subscription list export. It should not contain credentials, tokens, cookies, article content, read/star state, sync metadata, local paths, or database backup metadata, but feed titles, folder names, and feed URLs can still be private.

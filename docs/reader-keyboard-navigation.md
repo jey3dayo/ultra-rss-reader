@@ -100,6 +100,24 @@ Rules:
 - Avoid `focus-visible:ring-ring/*` for reader navigation rows, section headers, and footer tabs.
 - Keep orange or primary rings for form controls and dialog controls where a conventional focus ring is still appropriate.
 
+## Screen Reader Action Labels
+
+Dialog and row action labels must carry the same target and recovery meaning that sighted users get from nearby text.
+
+Destructive dialog contract:
+
+- Delete account, delete feed, delete tag, and clear history dialogs must include the target name in the accessible name for the primary destructive action when a target is known.
+- The destructive action's accessible name or description must include that the operation cannot be undone.
+- Loading labels must preserve the target and destructive meaning. Do not collapse to a generic "Deleting" label.
+- Failure retry labels must preserve the target name and must not imply undo or recovery unless the app can actually roll back the operation.
+- If the target name is unavailable, the destructive action should be disabled with a reason instead of using an ambiguous screen reader label.
+
+Dense row action contract:
+
+- Icon-only actions in account, sidebar, tag, and article rows need accessible labels that include the row target when the visible control does not.
+- Truncated row text must not be the only source of the action target. The full safe display name should be available to assistive technology.
+- Tooltip copy can supplement pointer users, but the accessible label or description is the required contract for keyboard and screen reader users.
+
 ## Review Checklist
 
 Use this checklist when changing reader keyboard behavior:
@@ -113,6 +131,8 @@ Use this checklist when changing reader keyboard behavior:
 - Article content `ArrowLeft` returns to the article list.
 - Recent smart view navigation keeps history order stable and does not re-record articles while moving through the list.
 - Focus styling uses tonal backgrounds for reader navigation controls and does not reintroduce orange rings.
+- Destructive dialog labels include target name and undo-unavailable meaning for screen readers.
+- Dense row action labels identify the full safe target even when visible text is truncated.
 - Tests cover changed key paths at the component or hook level.
 
 ## Current Review

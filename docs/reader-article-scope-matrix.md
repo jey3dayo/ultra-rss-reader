@@ -62,6 +62,19 @@
 - フィード、フォルダ、タグでは、絞り込み前に account articles の先頭 50 件へ切り詰めない。
 - フォルダは `sourceKind: folder` として扱う。`accountArticles` に混ぜて後段で folder filter しない。
 
+## Article Action Recovery Copy
+
+Decision: article read, star, and tag actions do not require a general undo stack in this contract. If undo is not introduced, every surface that can trigger the same article action must explain the direct recovery action consistently.
+
+Recovery copy contract:
+
+- Mark read and mark unread copy must use the same recovery wording in the row action, command palette, keyboard shortcut feedback, and toast/status surface.
+- Star and unstar copy must name the inverse action instead of saying undo is available.
+- Add tag and remove tag copy must identify the article and tag when both names are safely available; otherwise it must describe the recovery path by action class.
+- Failure copy must distinguish "not changed" from "change may have been applied but refresh failed".
+- Article action copy must not suggest restoring from backup for normal read/star/tag mistakes. Backup restore is reserved for destructive data recovery.
+- Recent-history navigation is not an article action undo path and must not be described as a way to recover article state.
+
 ## Freshness And Stale Content Contract
 
 Reader の freshness 表示は、account、feed、article list で同じ sync result model を使う。表示対象が違っても、同じ状態を別の severity や別ラベルにしない。
@@ -116,4 +129,5 @@ Stale content banner policy:
 - `selectedAccountId === null` で API が呼ばれていないか。
 - partial sync success、all failed、offline detected で account/feed/article list の freshness 表示が同じ状態分類を使っているか。
 - stale content banner と error toast が別の役割として表示され、古い記事一覧を空状態に置き換えていないか。
+- read/star/tag action copy が undo ではなく直接の戻し操作を案内しているか。
 - 画面確認は `debug` アカウントで行う。

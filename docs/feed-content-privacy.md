@@ -121,6 +121,28 @@ Decision: user-facing copy may show a stable support code for the error category
 
 Support codes should identify broad recovery areas such as network, account auth, keyring, database recovery, or migration recovery. Diagnostics IDs may be generated per event or per export for support correlation, but they must not encode private data and must not be reused across unrelated support tickets. User-facing copy must keep recovery guidance separate from raw diagnostic detail.
 
+### Destructive Action Copy And Private Names
+
+Decision: destructive delete/reset copy must consistently say when undo is unavailable, and dense lists must not expose more private user-created names through tooltips than the visible UI already justifies.
+
+Destructive copy contract:
+
+- Delete account, delete feed, delete tag, clear history, private data reset, and orphan cleanup prompts must include the target name when one is known.
+- The same prompt must state that undo is unavailable when the operation cannot be rolled back by the app.
+- Delete account and clear history copy must recommend making or preserving a private backup first when the operation can remove private reading or subscription history.
+- Cleanup orphans copy must distinguish dry-run preview from destructive cleanup and must not imply undo when only a backup restore could recover data.
+- When the target name cannot be loaded or parsed safely, the destructive action must be disabled or shown as a recovery-only action with the unavailable reason, not enabled with a generic target.
+
+Dense list name display contract:
+
+- User-created names include account names, folders, tags, feeds renamed by the user, and future user-authored list labels.
+- Dense rows may truncate these names with an ellipsis, but the action's accessible name still needs the full target name when the action is destructive or ambiguous.
+- Tooltips and `title` attributes must not reveal credentials, tokens, cookies, full local paths, or full private URLs.
+- A tooltip for a truncated user-created name may show the full name only when that same full name is already necessary to identify the row and does not include a secret-bearing URL or local path.
+- Feed URLs, server URLs, log paths, and article URLs use redacted display and redacted tooltip copy; do not use a tooltip as a hidden full-value escape hatch.
+- Middle truncation is preferred for URL-like values where both host and suffix are useful after redaction. End truncation is acceptable for normal names.
+- Bidi control characters and isolated direction changes in user-created names must be sanitized or isolated for display so truncation cannot spoof adjacent action text.
+
 ## Future Feature Contracts
 
 ### System Tray And Background Resident Mode
