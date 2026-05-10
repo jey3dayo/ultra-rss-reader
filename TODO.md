@@ -494,11 +494,6 @@
   - lazy chunk error は console.error と closeSettings に寄っており、user が再オープンできる状態か、diagnostics へ残すべき状態かが曖昧になっている
   - render throw、dynamic import reject、retry after close、settings state reset、toast/diagnostics 方針を固定する
 
-- [ ] P2 Debug HUD copy failure を clipboard runtime category と統合する
-  - 対象: `src/components/app-shell.tsx`, `src/lib/runtime/clipboard.ts`, `src/components/debug/*`
-  - Debug HUD copy は独自 onError と console.error を持つため、article copy / share command と error category がずれると diagnostics 調査が分断される
-  - invalid payload、large trace、clipboard unavailable、permission denied、sensitive target redaction の component test を追加する
-
 - [ ] P2 dev scenario runner の fire-and-forget window resize / preview state を cancellation-aware にする
   - 対象: `src/dev/scenarios/helpers.ts`, `src/dev/use-dev-intent.ts`, `src/dev/scenarios/runner.ts`
   - dev scenario は `void applyDevWindowSize` や delayed preview state を持ち、scenario切替や app unmount 後に古い state を適用しやすい
@@ -533,26 +528,6 @@
   - dev intent parser は Result.unwrap を複数使っており、parse済み前提が崩れた時に dev-only console warning なのか scenario skip なのか分かりにくい
   - malformed JSON、unknown scenario、invalid window size、runtime options unavailable、partial option の Result surface を固定する
 
-- [ ] P2 Storybook index payload parser の URL id extraction を malformed iframe URL で固定する
-  - 対象: `e2e/storybook/storybook-index-payload.ts`, `src/__tests__/components/storybook-explorer-organization.test.ts`
-  - Storybook index helper は iframe URL の id query を必須にしており、Storybook 側の payload形式変更で organization test が壊れた時に原因が分かりにくい
-  - missing id、empty id、duplicate id、encoded id、non-string story fields、Storybook version drift の helper test を追加する
-
-- [ ] P2 E2E runtime error guard が expected console.error と real regression を分けられるようにする
-  - 対象: `e2e/helpers/runtime-error-guard.spec.ts`, `e2e/app.spec.ts`, `tests/helpers/app-error.ts`
-  - pageerror / console.error を拾う guard は有用だが、意図的 error fixture と本物の runtime regression が混ざると E2E failure の triage が遅れる
-  - allowlist scope、test-local expected error、unhandled rejection、console.warn扱い、screenshot添付の policy を追加する
-
-- [ ] P2 measurable box helper の zero-size diagnostics を locator / viewport 情報付きにする
-  - 対象: `e2e/helpers/measurable-box.ts`, `e2e/storybook/update-toast.spec.ts`, `e2e/app.spec.ts`
-  - measurable box assertion は UI overlap / invisible state を検出する一方、failure message が対象 locator や viewport を持たないと再現に時間がかかる
-  - locator label、viewport、boundingBox null、zero width/height、detached element の diagnostics を追加する
-
-- [ ] P2 Tauri mocks の unhandled command failure を schema coverage と接続する
-  - 対象: `tests/helpers/tauri-mocks.ts`, `tests/helpers/tauri-mocks.test.ts`, `src/api/schemas/commands.ts`
-  - mock command 未実装時は `Unhandled Tauri mock command` で落ちるが、schema coverage / Rust command registry と同期しないと test helper だけ古くなる
-  - missing mock、extra mock、schema missing、null response command、Result error response の contract test を追加する
-
 - [ ] P2 app-error test helper を user-visible / retryable / diagnostics categories へ広げる
   - 対象: `tests/helpers/app-error.ts`, `src/lib/ui-errors.ts`, `src/api/tauri-commands.ts`
   - helper は UserVisible / Retryable だけを期待しており、diagnostics-only や validation category が増えると各 test が ad hoc assertion になりやすい
@@ -571,11 +546,6 @@
   - account/feed/article/tag/pending mutation の最小 fixture builder と、明示的に壊れた row を作る corruption helper を分ける
 
 ### Query / Store / Browser Runtime
-
-- [ ] P2 global action dispatcher の fire-and-forget error を action category 別 diagnostics に揃える
-  - 対象: `src/lib/actions.ts`, `src/lib/runtime/diagnostics.ts`, `src/__tests__/lib/actions.test.ts`
-  - `executeAction` は updater/browser/sync/window 操作を `void` で起動する箇所が多く、console.error だけだと native menu 起点の失敗が後から追いにくい
-  - `sync-all`、`reload-webview`、`mouse-back`、`check-for-updates`、`toggle-fullscreen` の failure category と toast 有無を固定する
 
 - [ ] P2 manual sync cooldown を wall-clock drift / trigger failure / subscriber cleanup で固定する
   - 対象: `src/lib/sync/manual-sync.ts`, `src/hooks/use-sidebar-sync.ts`, `src/__tests__/lib/manual-sync.test.ts`
@@ -673,11 +643,6 @@
   - 対象: `src-tauri/src/infra/feed_discovery.rs`, `src-tauri/src/commands/feed_commands.rs`, `src/__tests__/components/add-feed-dialog.test.tsx`
   - discovery は initial URL と redirect URL の private host を検証するが、DNS rebinding、same-origin `<base>`、protocol-relative feed URL の扱いが security boundary になっている
   - public-to-private DNS、HTTPS->HTTP downgrade、same-origin base、cross-origin base ignore、protocol-relative URL、IPv6/private range の test を追加する
-
-- [ ] P2 external URL schema の `mailto:` と native opener の redaction/validation contract を固定する
-  - 対象: `src/api/schemas/commands.ts`, `src/api/tauri-commands.ts`, `src/components/reader/article-browser-actions.ts`
-  - external opener は `mailto:` を許可し、browser webview/Reading List は http(s) のみなので、action ごとの URL policy が混ざると意図しない scheme を native に渡しやすい
-  - `mailto:`、encoded newline、tab、uppercase scheme、userinfo URL、query token redaction、plugin opener error の test を追加する
 
 - [ ] P2 `safeInvoke` response validation detail の secret redaction を nested issue と URL path で固定する
   - 対象: `src/api/tauri-commands.ts`, `src/__tests__/api/tauri-commands.test.ts`, `src/__tests__/api/command-args-validation.test.ts`
@@ -855,11 +820,6 @@
   - 対象: `src/api/schemas/index.ts`, `src/__tests__/api/schema-barrel-public-api.test.ts`, `src/__tests__/api/schemas`
   - 新しい schema file を足しても barrel export や schema-specific test を忘れると、runtime validation はあるが public import surface が揺れやすい
   - schema file inventory、barrel export、test file presence、intentional internal schema allowlist の repo contract を追加する
-
-- [ ] P2 command schema registry と Rust command registry の missing/extra を双方向に検出する
-  - 対象: `src/api/schemas/commands.ts`, `src-tauri/src/commands/mod.rs`, `src/__tests__/api/command-args-validation.test.ts`
-  - Tauri command の追加時に TS args schema か mock handler を忘れると、frontend call まで drift が見えない
-  - Rust command list抽出、TS registry、mock registry、no-args command allowlist、deprecated command の parity test を追加する
 
 - [ ] P2 generated schema / target artifact が repo scan に混ざらない tooling boundary を整える
   - 対象: `.gitignore`, `.ignore`, `mise.toml`, `scripts/quality-baseline.ts`
@@ -1091,11 +1051,6 @@
   - 対象: `src/lib/runtime/tauri-event-listeners.ts`, `tests/helpers/tauri-runtime.ts`, `src/__tests__/lib/tauri-event-listeners.test.ts`
   - listener failure は once event で通知されるため、runtime が復旧した後や test 間で flag が残ると本来の warning を見落としやすい
   - reset helper、runtime becomes available、runtime becomes unavailable、multiple listener groups、afterEach cleanup の contract を追加する
-
-- [ ] P2 safeInvoke response validation redaction を command name / args detail と切り分ける
-  - 対象: `src/api/tauri-commands.ts`, `src/lib/ui-errors.ts`, `src/__tests__/api/tauri-commands.test.ts`
-  - response validation error は Zod issue detail を含むため、schema path と runtime value のどこまでを user/log に出すか明確にしないと data leak と調査不能の両方が起きる
-  - command name、args validation、response validation、nested path、URL token、omitted issues、console vs toast detail の test を追加する
 
 - [ ] P2 safeInvoke args validation が `args` undefined の時に schema を bypass する方針を contract 化する
   - 対象: `src/api/tauri-commands.ts`, `src/api/schemas/commands.ts`, `src/__tests__/api/command-args-validation.test.ts`
