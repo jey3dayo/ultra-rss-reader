@@ -1,5 +1,7 @@
 export type Deferred<T> = {
   promise: Promise<T>;
+  isPending: () => boolean;
+  isSettled: () => boolean;
   resolve: (value: T | PromiseLike<T>) => void;
   reject: (reason?: unknown) => void;
   cleanup: (reason?: unknown) => void;
@@ -24,9 +26,13 @@ export function createDeferred<T>(): Deferred<T> {
 
   return {
     promise,
+    isPending: () => !settled,
+    isSettled: () => settled,
     resolve: resolveDeferred,
     reject: rejectDeferred,
-    cleanup: (reason = new Error("Deferred promise was cleaned up before settling")) => {
+    cleanup: (
+      reason = new Error("Deferred promise was cleaned up before settling"),
+    ) => {
       if (!settled) {
         rejectDeferred(reason);
       }
