@@ -448,6 +448,8 @@ mod tests {
     use chrono::Utc;
     use tokio::io::AsyncWriteExt;
     use tokio::net::TcpListener;
+    use tokio::task::JoinHandle;
+    use tokio::time::{timeout, Duration};
 
     const SAMPLE_RSS: &str = r#"<?xml version="1.0" encoding="UTF-8"?>
     <rss version="2.0">
@@ -463,6 +465,46 @@ mod tests {
 
     fn local_provider_allowing_private_feed_urls() -> LocalProvider {
         LocalProvider::new_allowing_private_feed_urls_for_tests()
+    }
+
+    struct OneShotHttpServer {
+        address: std::net::SocketAddr,
+        task: JoinHandle<()>,
+    }
+
+    impl OneShotHttpServer {
+        async fn bind(response: &'static str) -> Self {
+            let listener = TcpListener::bind("127.0.0.1:0")
+                .await
+                .expect("test server should bind an isolated ephemeral port");
+            let address = listener
+                .local_addr()
+                .expect("test server should expose local address");
+            let task = tokio::spawn(async move {
+                let (mut stream, _) = listener
+                    .accept()
+                    .await
+                    .expect("test server should accept one request");
+                stream
+                    .write_all(response.as_bytes())
+                    .await
+                    .expect("test response should be written");
+                stream.shutdown().await.expect("test stream should close");
+            });
+
+            Self { address, task }
+        }
+
+        fn url(&self, path: &str) -> String {
+            format!("http://{}{}", self.address, path)
+        }
+
+        async fn shutdown(self) {
+            timeout(Duration::from_secs(2), self.task)
+                .await
+                .expect("test server should shut down after serving one request")
+                .expect("test server task should finish");
+        }
     }
 
     #[tokio::test]
@@ -773,46 +815,63 @@ mod tests {
 
     #[tokio::test]
     async fn pull_entries_classifies_short_content_length_body_as_network_error() {
-        let listener = TcpListener::bind("127.0.0.1:0")
-            .await
-            .expect("test server should bind");
-        let address = listener
-            .local_addr()
-            .expect("test server should expose local address");
-        let server = tokio::spawn(async move {
-            let (mut stream, _) = listener
-                .accept()
-                .await
-                .expect("test server should accept one request");
-            let response = concat!(
-                "HTTP/1.1 200 OK\r\n",
-                "Content-Type: application/rss+xml\r\n",
-                "Content-Length: 1024\r\n",
-                "\r\n",
-                "<?xml version=\"1.0\"?><rss version=\"2.0\"><channel>"
-            );
-            stream
-                .write_all(response.as_bytes())
-                .await
-                .expect("test response should be written");
-            stream.shutdown().await.expect("test stream should close");
-        });
+        let server = OneShotHttpServer::bind(concat!(
+            "HTTP/1.1 200 OK\r\n",
+            "Content-Type: application/rss+xml\r\n",
+            "Content-Length: 1024\r\n",
+            "\r\n",
+            "<?xml version=\"1.0\"?><rss version=\"2.0\"><channel>"
+        ))
+        .await;
 
         let provider = local_provider_allowing_private_feed_urls();
         let scope = PullScope::Feed(FeedIdentifier::Local {
-            feed_url: format!("http://{address}/feed.xml"),
+            feed_url: server.url("/feed.xml"),
         });
 
         let error = provider
             .pull_entries(scope, None)
             .await
             .expect_err("short response body should not become a parse error");
-        server.await.expect("test server task should finish");
+        server.shutdown().await;
 
         assert!(matches!(
             error,
             DomainError::Network(message) if message == FEED_RESPONSE_BODY_INCOMPLETE_MESSAGE
         ));
+    }
+
+    #[tokio::test]
+    async fn provider_test_http_server_uses_ephemeral_ports_and_explicit_shutdown() {
+        let server_a =
+            OneShotHttpServer::bind("HTTP/1.1 204 No Content\r\nContent-Length: 0\r\n\r\n").await;
+        let server_b =
+            OneShotHttpServer::bind("HTTP/1.1 204 No Content\r\nContent-Length: 0\r\n\r\n").await;
+
+        assert_ne!(
+            server_a.address.port(),
+            server_b.address.port(),
+            "provider test HTTP servers should not share a fixed port"
+        );
+
+        let client = reqwest::Client::new();
+        let status_a = client
+            .get(server_a.url("/probe-a"))
+            .send()
+            .await
+            .expect("server A should respond")
+            .status();
+        let status_b = client
+            .get(server_b.url("/probe-b"))
+            .send()
+            .await
+            .expect("server B should respond")
+            .status();
+
+        assert_eq!(status_a, reqwest::StatusCode::NO_CONTENT);
+        assert_eq!(status_b, reqwest::StatusCode::NO_CONTENT);
+        server_a.shutdown().await;
+        server_b.shutdown().await;
     }
 
     #[tokio::test]

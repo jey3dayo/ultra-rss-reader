@@ -5,6 +5,7 @@ use std::sync::Mutex;
 
 use chrono::Utc;
 use mockito::Matcher;
+use tempfile::TempDir;
 use ultra_rss_reader_lib::commands::sync_commands::run_full_sync;
 use ultra_rss_reader_lib::domain::account::{Account, ConnectionVerificationStatus};
 use ultra_rss_reader_lib::domain::article::{generate_entry_id, Article};
@@ -79,6 +80,53 @@ impl Drop for EnvVarRestore {
             None => std::env::remove_var(self.key),
         }
     }
+}
+
+struct DiagnosticTempDir {
+    owner: &'static str,
+    dir: Option<TempDir>,
+}
+
+impl DiagnosticTempDir {
+    fn new(owner: &'static str) -> Self {
+        Self {
+            owner,
+            dir: Some(tempfile::tempdir().unwrap()),
+        }
+    }
+
+    fn path(&self) -> &std::path::Path {
+        self.dir
+            .as_ref()
+            .expect("diagnostic temp dir should be present")
+            .path()
+    }
+}
+
+impl Drop for DiagnosticTempDir {
+    fn drop(&mut self) {
+        let Some(dir) = self.dir.take() else {
+            return;
+        };
+        let path = dir.path().to_path_buf();
+        if let Err(error) = dir.close() {
+            eprintln!(
+                "{}",
+                temp_dir_cleanup_failure_diagnostic(self.owner, &path, &error)
+            );
+        }
+    }
+}
+
+fn temp_dir_cleanup_failure_diagnostic(
+    owner: &str,
+    path: &std::path::Path,
+    error: &std::io::Error,
+) -> String {
+    format!(
+        "integration test temp dir cleanup failure: owner={owner} path={} error={error}",
+        path.display()
+    )
 }
 
 fn with_locked_db(db: &Mutex<DbManager>, f: impl FnOnce(&DbManager)) {
@@ -185,7 +233,8 @@ async fn local_feed_e2e() {
 async fn freshrss_sync_preserves_local_like_feed_read_state() {
     std::env::set_var("DEV_CREDENTIALS", "1");
     let _env_cleanup = EnvVarCleanup("DEV_CREDENTIALS");
-    let credentials_dir = tempfile::tempdir().unwrap();
+    let credentials_dir =
+        DiagnosticTempDir::new("freshrss_sync_preserves_local_like_feed_read_state credentials");
     let _xdg_cleanup = EnvVarRestore::set("XDG_DATA_HOME", credentials_dir.path());
     let _home_cleanup = EnvVarRestore::set("HOME", credentials_dir.path());
     std::fs::create_dir_all(credentials_dir.path().join("ultra-rss-reader")).unwrap();
@@ -409,6 +458,21 @@ async fn freshrss_sync_preserves_local_like_feed_read_state() {
             .unwrap()
             .is_empty());
     });
+}
+
+#[test]
+fn integration_temp_dir_cleanup_failure_diagnostic_identifies_owner_and_path() {
+    let error = std::io::Error::new(std::io::ErrorKind::PermissionDenied, "cleanup denied");
+    let message = temp_dir_cleanup_failure_diagnostic(
+        "credentials fixture",
+        std::path::Path::new("/tmp/ultra-rss-reader-test"),
+        &error,
+    );
+
+    assert!(message.contains("integration test temp dir cleanup failure"));
+    assert!(message.contains("owner=credentials fixture"));
+    assert!(message.contains("path=/tmp/ultra-rss-reader-test"));
+    assert!(message.contains("cleanup denied"));
 }
 
 #[test]
