@@ -46,6 +46,12 @@
 
 ### Browser WebView / Runtime Diagnostics
 
+- [ ] P2 browser preview focus override script の site compatibility / security boundary を検証する
+  - 対象: `src-tauri/src/browser_webview.rs`, `src/components/settings/reading-settings-view.tsx`, `src/__tests__/schemas/preferences-schema-contract.test.ts`
+  - superseded by: `P2-A11Y1` top-layer/focus trap
+  - focus override は embedded page の visibility/focus APIs を差し替えるため、サイト側の media playback/analytics/keyboard handling を壊す可能性がある
+  - keep focus on/off、visibilitychange listener、non-configurable property、site script error、setting copy、disable fallback の test/実機検証 TODO にする
+
 - [ ] P2 invalid account row quarantine を diagnostics / recovery action へ出す
   - 対象: `src-tauri/src/infra/db/sqlite_account.rs`, `src-tauri/src/commands/account_commands.rs`, `src/components/settings/accounts-nav-view.tsx`
   - superseded by: `P1-Q4c` runtime corruption
