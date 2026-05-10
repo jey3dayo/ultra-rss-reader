@@ -2,8 +2,10 @@ import { z } from "zod";
 import {
   MAX_COMMAND_HISTORY,
   MAX_COMMAND_HISTORY_ENTRY_LENGTH,
+  MAX_COMMAND_HISTORY_STORAGE_LENGTH,
   MAX_STORED_SIDEBAR_EXPANDED_ACCOUNTS,
   MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_PER_ACCOUNT,
+  MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_STORAGE_LENGTH,
   STORAGE_KEYS,
 } from "@/constants/storage";
 
@@ -86,6 +88,33 @@ export const StoredSidebarExpandedFoldersSchema = z
   });
 
 export type StoredSidebarExpandedFolders = z.output<typeof StoredSidebarExpandedFoldersSchema>;
+
+export const STORAGE_SCHEMA_CAPACITY_FIXTURES = {
+  commandHistory: {
+    storageKey: STORAGE_KEYS.commandHistory,
+    schemaName: "CommandHistoryStorageSchema",
+    entryCountCap: MAX_COMMAND_HISTORY,
+    entryLengthCap: MAX_COMMAND_HISTORY_ENTRY_LENGTH,
+    rawJsonByteCap: MAX_COMMAND_HISTORY_STORAGE_LENGTH,
+    unitPolicy: {
+      entryCountCap: "entries",
+      entryLengthCap: "UTF-16 code units after control-character stripping and trimming",
+      rawJsonByteCap: "JSON string length before parsing",
+    },
+  },
+  sidebarExpandedFolders: {
+    storageKey: STORAGE_KEYS.sidebarExpandedFolders,
+    schemaName: "StoredSidebarExpandedFoldersSchema",
+    accountEntryCountCap: MAX_STORED_SIDEBAR_EXPANDED_ACCOUNTS,
+    folderEntryCountCap: MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_PER_ACCOUNT,
+    rawJsonByteCap: MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_STORAGE_LENGTH,
+    unitPolicy: {
+      accountEntryCountCap: "account map entries after account id normalization",
+      folderEntryCountCap: "folder id entries per account after folder id normalization",
+      rawJsonByteCap: "JSON string length before parsing",
+    },
+  },
+} as const;
 
 const StorageKeySchema = z.enum([
   STORAGE_KEYS.theme,

@@ -12,6 +12,7 @@ import {
   STORAGE_KEY_POLICIES,
   STORAGE_KEYS,
 } from "@/constants/storage";
+import { STORAGE_SCHEMA_CAPACITY_FIXTURES } from "@/schemas/storage";
 
 describe("storage constants", () => {
   it("keeps writable localStorage keys under the ultra-rss prefix", () => {
@@ -74,11 +75,42 @@ describe("storage constants", () => {
   it("keeps storage normalization limits positive and bounded", () => {
     expect(MAX_COMMAND_HISTORY).toBeGreaterThan(0);
     expect(MAX_COMMAND_HISTORY_ENTRY_LENGTH).toBeGreaterThan(0);
-    expect(MAX_COMMAND_HISTORY_STORAGE_LENGTH).toBeGreaterThan(MAX_COMMAND_HISTORY * MAX_COMMAND_HISTORY_ENTRY_LENGTH);
+    expect(MAX_COMMAND_HISTORY_STORAGE_LENGTH).toBeGreaterThan(
+      MAX_COMMAND_HISTORY * MAX_COMMAND_HISTORY_ENTRY_LENGTH,
+    );
     expect(MAX_STORED_SIDEBAR_EXPANDED_ACCOUNTS).toBeGreaterThan(0);
     expect(MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_PER_ACCOUNT).toBeGreaterThan(0);
     expect(MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_STORAGE_LENGTH).toBeGreaterThan(
       MAX_STORED_SIDEBAR_EXPANDED_ACCOUNTS * MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_PER_ACCOUNT,
     );
+  });
+
+  it("documents storage schema entry and raw JSON caps in fixture form", () => {
+    expect(STORAGE_SCHEMA_CAPACITY_FIXTURES).toEqual({
+      commandHistory: {
+        storageKey: STORAGE_KEYS.commandHistory,
+        schemaName: "CommandHistoryStorageSchema",
+        entryCountCap: MAX_COMMAND_HISTORY,
+        entryLengthCap: MAX_COMMAND_HISTORY_ENTRY_LENGTH,
+        rawJsonByteCap: MAX_COMMAND_HISTORY_STORAGE_LENGTH,
+        unitPolicy: {
+          entryCountCap: "entries",
+          entryLengthCap: "UTF-16 code units after control-character stripping and trimming",
+          rawJsonByteCap: "JSON string length before parsing",
+        },
+      },
+      sidebarExpandedFolders: {
+        storageKey: STORAGE_KEYS.sidebarExpandedFolders,
+        schemaName: "StoredSidebarExpandedFoldersSchema",
+        accountEntryCountCap: MAX_STORED_SIDEBAR_EXPANDED_ACCOUNTS,
+        folderEntryCountCap: MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_PER_ACCOUNT,
+        rawJsonByteCap: MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_STORAGE_LENGTH,
+        unitPolicy: {
+          accountEntryCountCap: "account map entries after account id normalization",
+          folderEntryCountCap: "folder id entries per account after folder id normalization",
+          rawJsonByteCap: "JSON string length before parsing",
+        },
+      },
+    });
   });
 });

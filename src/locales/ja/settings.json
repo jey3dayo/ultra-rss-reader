@@ -304,7 +304,7 @@
   "data": {
     "heading": "データ管理",
     "database": "データベース",
-    "database_size": "データベースサイズ",
+    "database_size": "データベースサイズ (KiB/MiB)",
     "database_size_loading": "読み込み中…",
     "database_size_error": "取得できません",
     "safety": "バックアップと復元",

@@ -40,9 +40,9 @@ beforeEach(() => {
 describe("formatBytes", () => {
   it("formats byte, kibibyte, and mebibyte values for data settings", () => {
     expect(formatBytes(512)).toBe("512 B");
-    expect(formatBytes(1024)).toBe("1.0 KB");
-    expect(formatBytes(1536)).toBe("1.5 KB");
-    expect(formatBytes(1024 * 1024)).toBe("1.0 MB");
+    expect(formatBytes(1024)).toBe("1.0 KiB");
+    expect(formatBytes(1536)).toBe("1.5 KiB");
+    expect(formatBytes(1024 * 1024)).toBe("1.0 MiB");
   });
 
   it("falls back to 0 B for invalid database size DTO values", () => {
@@ -78,7 +78,7 @@ describe("useDataSettingsController", () => {
       expect(result.current.databaseSizeStatus).toBe("ready");
     });
 
-    expect(result.current.databaseSizeValue).toBe("1.0 KB");
+    expect(result.current.databaseSizeValue).toBe("1.0 KiB");
   });
 
   it("uses schema-validated total size including WAL and SHM for display and vacuum saved copy", async () => {
@@ -108,13 +108,13 @@ describe("useDataSettingsController", () => {
     await waitFor(() => {
       expect(result.current.databaseSizeStatus).toBe("ready");
     });
-    expect(result.current.databaseSizeValue).toBe("1.4 KB");
+    expect(result.current.databaseSizeValue).toBe("1.4 KiB");
 
     await act(async () => {
       await result.current.handleVacuum();
     });
 
-    expect(result.current.databaseSizeValue).toBe("1.0 KB");
+    expect(result.current.databaseSizeValue).toBe("1.0 KiB");
     expect(showToast).toHaveBeenCalledWith("Saved -384 B");
   });
 
@@ -150,7 +150,7 @@ describe("useDataSettingsController", () => {
       await result.current.handleVacuum();
     });
 
-    expect(result.current.databaseSizeValue).toBe("2.0 KB");
+    expect(result.current.databaseSizeValue).toBe("2.0 KiB");
     expect(showToast).toHaveBeenCalledWith("Saved 0 B");
   });
 
@@ -370,7 +370,7 @@ describe("useDataSettingsController", () => {
       );
     });
 
-    expect(second.result.current.databaseSizeValue).toBe("1.0 KB");
+    expect(second.result.current.databaseSizeValue).toBe("1.0 KiB");
 
     await act(async () => {
       resolveVacuum?.();

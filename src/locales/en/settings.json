@@ -304,7 +304,7 @@
   "data": {
     "heading": "Data Management",
     "database": "Database",
-    "database_size": "Database size",
+    "database_size": "Database size (KiB/MiB)",
     "database_size_loading": "Loading…",
     "database_size_error": "Unavailable",
     "safety": "Backup and Restore",

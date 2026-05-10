@@ -2,7 +2,12 @@ import { Result } from "@praha/byethrow";
 import type { TFunction } from "i18next";
 import { useCallback, useEffect, useReducer, useRef } from "react";
 import { getDatabaseInfo, openLogDir, vacuumDatabase } from "@/api/tauri-commands";
-import { BYTES_PER_KIBIBYTE, BYTES_PER_MEBIBYTE, DATA_SIZE_FRACTION_DIGITS } from "@/constants/data-size";
+import {
+  BYTES_PER_KIBIBYTE,
+  BYTES_PER_MEBIBYTE,
+  DATA_SIZE_FRACTION_DIGITS,
+  DATA_SIZE_UNIT_LABELS,
+} from "@/constants/data-size";
 
 type UseDataSettingsControllerParams = {
   t: TFunction<"settings">;
@@ -119,15 +124,15 @@ function getErrorMessage(error: unknown): string {
 
 export function formatBytes(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes < 0) {
-    return "0 B";
+    return `0 ${DATA_SIZE_UNIT_LABELS.byte}`;
   }
   if (bytes < BYTES_PER_KIBIBYTE) {
-    return `${bytes} B`;
+    return `${bytes} ${DATA_SIZE_UNIT_LABELS.byte}`;
   }
   if (bytes < BYTES_PER_MEBIBYTE) {
-    return `${(bytes / BYTES_PER_KIBIBYTE).toFixed(DATA_SIZE_FRACTION_DIGITS)} KB`;
+    return `${(bytes / BYTES_PER_KIBIBYTE).toFixed(DATA_SIZE_FRACTION_DIGITS)} ${DATA_SIZE_UNIT_LABELS.kibibyte}`;
   }
-  return `${(bytes / BYTES_PER_MEBIBYTE).toFixed(DATA_SIZE_FRACTION_DIGITS)} MB`;
+  return `${(bytes / BYTES_PER_MEBIBYTE).toFixed(DATA_SIZE_FRACTION_DIGITS)} ${DATA_SIZE_UNIT_LABELS.mebibyte}`;
 }
 
 export function useDataSettingsController({
