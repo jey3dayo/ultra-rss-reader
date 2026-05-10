@@ -724,11 +724,6 @@
   - sanitizer dependency 更新で allowed tags/attrs が変わると article 表示・privacy・search text が同時に変わる
   - allowed tags、allowed attrs、blocked protocol、style stripping、search text parity の fixture を追加する
 
-- [ ] P2 docs / skills path references の link resolution check を追加する
-  - 対象: `CLAUDE.md`, `.claude/rules`, `.codex/skills`, `.agents/skills`
-  - agent-facing docs が古い skill path や存在しない rule を参照すると、次の自動実装で誤った手順に流れる
-  - local skill path、rule link、relative path、moved file、thin router docs の check を追加する
-
 - [ ] P2 bundled icon / asset provenance と third-party attribution を棚卸しする
   - 対象: `src-tauri/icons`, app assets, release docs
   - generated asset や外部 asset の source/license が不明なままだと release review で止まりやすい
