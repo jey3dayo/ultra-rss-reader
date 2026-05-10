@@ -3264,11 +3264,6 @@
   - RTL override、zero-width、confusable 文字が入ると feed name や action target が spoof され、delete/rename 確認で誤認しやすい
   - bidi control、zero-width joiner、NFKC confusable、trim display、confirmation label の policy を追加する
 
-- [ ] P2 article pagination cursor stability を same timestamp / same order key で固定する
-  - 対象: article repository pagination、reader article list hooks
-  - `LIMIT/OFFSET` や timestamp sort だけだと同一日時の大量記事で重複/欠落が出る
-  - same `published_at`、same title、deleted row between pages、new row inserted、search page boundary の contract を追加する
-
 - [ ] P2 batch read/star/mute mutations の transaction chunking policy を決める
   - 対象: article commands、repository mutation methods、reader bulk actions
   - 大量記事を一括更新する時に 1 transaction/分割/partial success の方針が曖昧だと UI と DB がずれる
