@@ -105,22 +105,12 @@
 
 ### Query / Store / Browser Runtime
 
-- [ ] P3 query invalidation target matrix を repo contract test で drift 検出する
-  - 対象: `src/lib/query/query-invalidation.ts`, `src/__tests__/lib/query-invalidation.test.ts`, `src/__tests__/config/repo-contracts.test.ts`
-  - query root が増えた時に invalidation target へ入れ忘れると、機能追加時の stale cache が後から発覚しやすい
-  - `QUERY_KEY_ROOTS` と feed/article/sync completed invalidation matrix の snapshot を作り、意図的に除外する key は理由付き allowlist にする
-
 ### Reader Content / Feed Discovery / Security
 
 - [ ] P1 Rust sanitizer version bump と saved article repair の release gate を作る
   - 対象: `src-tauri/src/infra/sanitizer.rs`, `src-tauri/src/service/sync_flow.rs`, `src-tauri/src/infra/db/sqlite_article.rs`
   - sanitizer policy を変えても `SANITIZER_VERSION` bump や repair path を忘れると、保存済み article が古い HTML policy のまま表示される
   - allowed tag/attribute 変更、version bump 漏れ、repair batch limit、repair failure retry、partial repair 後の起動の integration test を追加する
-
-- [ ] P3 content sanitizer fixtures を web-platform-ish corpus として追加する
-  - 対象: `src-tauri/src/infra/sanitizer.rs`, `src/__tests__/lib/html.test.ts`, `tests/fixtures`
-  - sanitizer の個別 unit test は増えているが、実 feed 由来の壊れた HTML / media / tracking link の corpus がないと regression を検出しづらい
-  - malformed publisher HTML、tracking link、responsive image、video/source、code block、Japanese text、emoji/entity の fixture corpus を用意する
 
 ### Release / Native / Keyboard / I18n / A11y
 
@@ -141,16 +131,6 @@
 
 ### Database / Updater / Window
 
-- [ ] P1 database maintenance と updater install が共有する `syncing` flag の user-facing state を統一する
-  - 対象: `src-tauri/src/commands/database_commands.rs`, `src-tauri/src/commands/updater_commands.rs`, `src-tauri/src/commands/sync_commands.rs`, `src/hooks/use-updater.ts`
-  - vacuum、sync、update install が同じ AtomicBool を使うため、UI には sync 中なのか maintenance/update 中なのか区別できない busy error が出やすい
-  - vacuum中sync、sync中vacuum、install中sync、restart guard、busy message category、settings button disabled state の integration test を追加する
-
-- [ ] P2 restart app command の sync/update guard と user confirmation を整理する
-  - 対象: `src-tauri/src/commands/updater_commands.rs`, `src/lib/actions.ts`, `src/hooks/use-updater.ts`, `src/components/app-confirm-dialog.tsx`
-  - `restart_app` は sync/update guard を取るが、frontend 側の pending mutation / unsaved settings / browser open の確認と切り離れている
-  - update ready restart、manual restart action、settings dirty state、sync running、install running、restart failure の UX contract を追加する
-
 - [ ] P2 window icon path の packaging / platform fallback を release smoke に入れる
   - 対象: `src/lib/window/windows.ts`, `src-tauri/tauri.conf.json`, `src-tauri/icons`, `tests/release-repo-contract.test.ts`
   - `setWindowIcon` は path 文字列を native に渡すため、packaged app と dev app で icon path 解決が違うと no-op/失敗になりやすい
@@ -162,11 +142,6 @@
   - 対象: `src/components/reader/hooks/article-list/use-article-list-data.ts`, `src/components/reader/hooks/article-list/use-article-list-view-state.ts`, `src/lib/articles/article-list.ts`
   - retained ids は selection 維持に効く一方、account/feed/tag 切替後に古い id が残ると invisible article や memory growth の原因になりやすい
   - account switch、feed delete、tag delete、search clear、max retained ids、selected article deleted の test を追加する
-
-- [ ] P2 preferences API schema と app schema の duplicate source-of-truth を縮める
-  - 対象: `src/api/schemas/preferences.ts`, `src/schemas/preferences.ts`, `src/__tests__/schemas/preferences-schema-contract.test.ts`
-  - command DTO schema と app preference schema が別ファイルにあるため、option追加時に DTO は通るが store/UI validation が落ちる drift が起きやすい
-  - schema-derived type、default preference parity、unknown key、legacy value migration、settings option fixture の contract を追加する
 
 - [ ] P2 browser webview command schema の geometry integer rounding を DPI/zoom で固定する
   - 対象: `src/api/schemas/browser-webview.ts`, `src/api/schemas/commands.ts`, `src/components/reader/hooks/browser/use-browser-webview-bounds-sync.ts`
@@ -208,30 +183,10 @@
   - tag 削除時に selection は all に戻すが、tag picker や article tag chips 側に stale tag id が残ると次の assignment が失敗しやすい
   - selected tag delete、picker open中delete、article tags refetch、delete mutation failure、undo不可 toast の component/hook test を追加する
 
-- [ ] P2 article selection not-found state を browser-only fallback と account switch で固定する
-  - 対象: `src/components/reader/hooks/article/use-article-view-selection.ts`, `src/components/reader/article-view-state.tsx`, `src/stores/ui-store.ts`
-  - selectedArticleId が filteredArticles から消えた時に not-found / browser-only / empty summary が分岐するため、account/feed/tag/search 切替で一瞬誤 state が出やすい
-  - account switch、feed delete、tag filter、browser mode with stale article、retained ids、refetch loading の component test を追加する
-
-- [ ] P2 article view summary の latest article / feed count を muted/search/filter state と分離する
-  - 対象: `src/lib/articles/article-view.ts`, `src/components/reader/hooks/article/use-article-view-selection.ts`, `src/__tests__/lib/article-view.test.ts`
-  - empty state summary は filteredArticles 由来なので、mute/search/filter 適用後に feed/folder/tag 全体 summary なのか visible summary なのか意味が曖昧になりやすい
-  - muted article、search active、read filter、folder empty、tag empty、latest invalid date、summary label copy の test を追加する
-
 - [ ] P2 article remote image URL policy と mail/share URL policy の差を明文化する
   - 対象: `src/lib/articles/article-view.ts`, `src/components/reader/article-share-menu.tsx`, `src/components/reader/article-content-view.tsx`
   - remote image は https only、share/open は http(s)、mailto は mailto を使うため、URL policy が機能ごとに違う理由を test と copy に残さないと修正時に混ざりやすい
   - https image、http article URL、protocol-relative image、credential URL、mailto share、invalid URL toast の policy test を追加する
-
-- [ ] P3 story export registry と shared component stories の required coverage を repo contract にする
-  - 対象: `tests/helpers/storybook-story-export-registry.ts`, `src/components/shared/*.stories.tsx`, `src/__tests__/components/shared-stories.test.tsx`
-  - shared component を追加しても story/test registry へ載せ忘れると、visual/a11y smoke の対象から漏れやすい
-  - shared component inventory、story presence、required states、intentional no-story allowlist、renamed story id の contract を追加する
-
-- [ ] P3 settings fixture と schema option fixture の owner を一本化する
-  - 対象: `tests/helpers/settings-fixtures.ts`, `src/__tests__/components/settings-preference-option-schema-parity.test.tsx`, `src/schemas/preferences.ts`
-  - settings option の fixture が test helper と schema test に分散すると、新しい preference 追加時に片方だけ更新されやすい
-  - option id、default value、UI label、schema enum、legacy key、fixture owner の repo contract を追加する
 
 - [ ] P3 migration file numbering / feature ownership を generated changelog で検出する
   - 対象: `src-tauri/migrations`, `tests/release-repo-contract.test.ts`
@@ -314,25 +269,10 @@
   - diagnostics は bounds/scale/native bounds を event/log に出すため、巨大値や画面構成情報を support log へ載せる範囲を決める必要がある
   - huge coordinate、negative coordinate、multi-monitor scale、native bounds unavailable、payload truncation、diagnostics toggle の test を追加する
 
-- [ ] P2 app stacking z-index constants の modal/toast/browser overlay collision を contract 化する
-  - 対象: `src/lib/window/window-chrome.ts`, `src/components/app-shell.tsx`, `src/components/shared/app-toast-view.tsx`
-  - browser overlay z-40、dialog/command palette z-50、toast z-100 が定数化されているが、Debug HUD や future popover が入ると collision しやすい
-  - browser overlay + settings modal、command palette + toast、debug hud + dialog、native titlebar drag region、popover z-index の visual smoke を追加する
-
 - [ ] P2 runtime error guard の browser webview fallback events を expected failure と区別する
   - 対象: `e2e/helpers/runtime-error-guard.ts`, `e2e/app.spec.ts`, `src/components/reader/hooks/browser`
   - browser fallback は意図的に console warn/error を出す場面があるため、E2E guard が本物の regression と expected fallback を混同しやすい
   - expected fallback scope、unexpected pageerror、console warn allowlist、attached diagnostics payload、screenshot timing の E2E policy を追加する
-
-- [ ] P2 tauri dev config と release config の capability/window drift を schema test で固定する
-  - 対象: `src-tauri/tauri.dev.conf.json`, `src-tauri/tauri.conf.json`, `src-tauri/tauri.release.conf.json`, `src/__tests__/schemas/tauri-config-identifiers.test.ts`
-  - dev/release config が増えると window label、capability、security、updater 設定が片方だけ変わり、dev で動くが release で壊れる状態になりやすい
-  - main window label、browser webview label、CSP、capability path、updater active、identifier parity の test を追加する
-
-- [ ] P3 browser webview command tests の platform matrix を generated fixtures へ寄せる
-  - 対象: `src/__tests__/api/browser-webview-command-contract.test.ts`, `src/__tests__/components/browser-webview-sync-helpers.test.ts`, `tests/helpers/navigator-platform.ts`
-  - Windows/macOS/unknown platform の fixture が散ると placeholder URL、bounds unit、titlebar inset の test が抜けやすい
-  - platform fixture builder、bounds unit cases、placeholder URL cases、navigator mock cleanup、DPI fixture を追加する
 
 - [ ] P3 diagnostics event names / payload schema を central registry 化する
   - 対象: `src-tauri/src/browser_webview.rs`, `src/lib/runtime/diagnostics.ts`, `src/api/schemas/browser-webview.ts`
@@ -573,11 +513,6 @@
   - 対象: `scripts/seed-dev-db-from-prod.ts`, `src/__tests__/scripts/seed-dev-db-from-prod.test.ts`
   - `ULTRA_RSS_DEV_APP_DATA_DIR` が任意の非 production 風 directory を指せるため、誤設定時に別データを置換する事故を防ぎにくい
   - dev basename required、marker file、explicit force flag、prod/dev overlap、symlink parent の script test を追加する
-
-- [ ] P1 preference 保存失敗時の optimistic UI rollback / dirty state policy を固定する
-  - 対象: `src/stores/preferences-store.ts`, `src/components/settings`, `src/__tests__/stores/preferences-store.test.ts`
-  - `setPref` が失敗しても UI 値を維持するため、永続値との差分が settings close / app restart まで見えなくなりやすい
-  - save reject、schema failure、latest-only failure、rollback/dirty badge、retry action、toast copy の store/component test を追加する
 
 - [ ] P2 discovery と local provider の private-host validation helper を共有化する
   - 対象: `src-tauri/src/infra/feed_discovery.rs`, `src-tauri/src/infra/provider/local.rs`, `src-tauri/src/infra/http_client.rs`
