@@ -20,6 +20,14 @@ struct SubscriptionListResponse {
 }
 
 #[derive(Deserialize)]
+struct QuickAddResponse {
+    #[serde(rename = "streamId")]
+    stream_id: Option<String>,
+    #[serde(rename = "query")]
+    query: Option<String>,
+}
+
+#[derive(Deserialize)]
 struct GReaderSubscription {
     id: String,
     title: String,
@@ -219,6 +227,60 @@ fn normalized_url_match_key(raw_url: &str) -> Option<String> {
     Some(url.to_string())
 }
 
+fn feed_stream_url(stream_id: &str) -> Option<&str> {
+    stream_id.strip_prefix("feed/")
+}
+
+fn quickadd_match_keys(requested_url: &str, response_body: &str) -> HashSet<String> {
+    let mut keys = HashSet::new();
+    if let Some(key) = normalized_url_match_key(requested_url) {
+        keys.insert(key);
+    }
+
+    if let Ok(response) = serde_json::from_str::<QuickAddResponse>(response_body) {
+        for candidate in [
+            response.query.as_deref(),
+            response.stream_id.as_deref().and_then(feed_stream_url),
+        ]
+        .into_iter()
+        .flatten()
+        {
+            if let Some(key) = normalized_url_match_key(candidate) {
+                keys.insert(key);
+            }
+        }
+    }
+
+    keys
+}
+
+fn subscription_matches_quickadd_keys(
+    subscription: &RemoteSubscription,
+    quickadd_keys: &HashSet<String>,
+) -> bool {
+    [
+        subscription.url.as_str(),
+        subscription.site_url.as_str(),
+        feed_stream_url(&subscription.remote_id).unwrap_or_default(),
+    ]
+    .into_iter()
+    .filter_map(normalized_url_match_key)
+    .any(|candidate_key| quickadd_keys.contains(&candidate_key))
+}
+
+fn next_ot_timestamp_usec(
+    item_timestamps: &[i64],
+    has_continuation: bool,
+    raw_item_count: usize,
+) -> Option<i64> {
+    let oldest_timestamp = item_timestamps.iter().min().copied()?;
+    if has_continuation || raw_item_count < STREAM_CONTENTS_LIMIT as usize {
+        return Some(oldest_timestamp);
+    }
+
+    oldest_timestamp.checked_add(1).or(Some(oldest_timestamp))
+}
+
 impl GReaderProvider {
     /// Create a provider configured for FreshRSS.
     pub fn for_freshrss(server_url: &str) -> Self {
@@ -321,11 +383,11 @@ impl GReaderProvider {
             .await?;
 
         let raw_item_count = resp.items.len();
-        let next_since_usec = resp
+        let item_timestamps = resp
             .items
             .iter()
             .filter_map(Self::item_cursor_timestamp_usec)
-            .max();
+            .collect::<Vec<_>>();
         let repeated_continuation = resp.continuation.as_ref().is_some_and(|next| {
             cursor
                 .as_ref()
@@ -333,6 +395,7 @@ impl GReaderProvider {
                 == Some(next)
         });
         let has_more = resp.continuation.is_some() && !repeated_continuation;
+        let next_since_usec = next_ot_timestamp_usec(&item_timestamps, has_more, raw_item_count);
         let next_cursor =
             if resp.continuation.is_some() || next_since_usec.is_some() || cursor.is_some() {
                 Some(SyncCursor {
@@ -773,18 +836,14 @@ impl FeedProvider for GReaderProvider {
             .map_err(DomainError::from_provider_http_error)
             .and_then(Self::ensure_success_response)?;
 
-        let _text = resp.text().await?;
+        let response_body = resp.text().await?;
 
         // After quickadd, fetch subscriptions to find the new one
         let subs = self.get_subscriptions().await?;
-        let requested_key = normalized_url_match_key(url).unwrap_or_else(|| url.to_string());
+        let quickadd_keys = quickadd_match_keys(url, &response_body);
         let mut matches = subs
             .into_iter()
-            .filter(|subscription| {
-                normalized_url_match_key(&subscription.url)
-                    .map(|candidate_key| candidate_key == requested_key)
-                    .unwrap_or(false)
-            })
+            .filter(|subscription| subscription_matches_quickadd_keys(subscription, &quickadd_keys))
             .collect::<Vec<_>>();
 
         match matches.len() {
@@ -1011,6 +1070,14 @@ mod tests {
         );
         assert_eq!(normalize_label_remote_id("user/-/label/%20%20", None), None);
         assert_eq!(normalize_label_remote_id(STATE_READ, None), None);
+    }
+
+    #[test]
+    fn normalize_label_remote_id_trims_unicode_label_for_folder_contract() {
+        assert_eq!(
+            normalize_label_remote_id("user/-/label/%E9%96%8B%E7%99%BA", Some(" 開発 ")),
+            Some(("user/-/label/開発".to_string(), "開発".to_string()))
+        );
     }
 
     #[tokio::test]
@@ -2129,6 +2196,127 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn pull_entries_uses_oldest_timestamp_for_ot_cursor_fallback() {
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(200)
+            .with_body("Auth=tok\n")
+            .create_async()
+            .await;
+
+        let stream_mock = server
+            .mock(
+                "GET",
+                mockito::Matcher::Regex(
+                    r"/api/greader.php/reader/api/0/stream/contents/.*".to_string(),
+                ),
+            )
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_status(200)
+            .with_body(
+                r#"{
+                    "items": [
+                        {
+                            "id": "newer",
+                            "title": "Newer",
+                            "timestampUsec": "1700000200000000",
+                            "origin": { "streamId": "feed/https://example.com/rss" }
+                        },
+                        {
+                            "id": "older",
+                            "title": "Older",
+                            "timestampUsec": "1700000100000000",
+                            "origin": { "streamId": "feed/https://example.com/rss" }
+                        }
+                    ]
+                }"#,
+            )
+            .create_async()
+            .await;
+
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
+        provider
+            .authenticate(&Credentials {
+                password: Some("p".into()),
+                token: Some("u".into()),
+            })
+            .await
+            .unwrap();
+
+        let result = provider.pull_entries(PullScope::All, None).await.unwrap();
+
+        assert_eq!(
+            result
+                .next_cursor
+                .and_then(|cursor| cursor.since)
+                .map(|timestamp| timestamp.timestamp_micros()),
+            Some(1_700_000_100_000_000)
+        );
+        stream_mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn pull_entries_keeps_equal_timestamp_reachable_when_ot_fallback_page_is_full() {
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(200)
+            .with_body("Auth=tok\n")
+            .create_async()
+            .await;
+
+        let items = (0..STREAM_CONTENTS_LIMIT)
+            .map(|index| {
+                format!(
+                    r#"{{
+                        "id": "entry-{index}",
+                        "title": "Entry {index}",
+                        "timestampUsec": "1700000100000000",
+                        "origin": {{ "streamId": "feed/https://example.com/rss" }}
+                    }}"#
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(",");
+        let body = format!(r#"{{ "items": [{items}] }}"#);
+
+        let stream_mock = server
+            .mock(
+                "GET",
+                mockito::Matcher::Regex(
+                    r"/api/greader.php/reader/api/0/stream/contents/.*".to_string(),
+                ),
+            )
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_status(200)
+            .with_body(body)
+            .create_async()
+            .await;
+
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
+        provider
+            .authenticate(&Credentials {
+                password: Some("p".into()),
+                token: Some("u".into()),
+            })
+            .await
+            .unwrap();
+
+        let result = provider.pull_entries(PullScope::All, None).await.unwrap();
+
+        assert_eq!(result.entries.len(), STREAM_CONTENTS_LIMIT as usize);
+        assert_eq!(
+            result
+                .next_cursor
+                .and_then(|cursor| cursor.since)
+                .map(|timestamp| timestamp.timestamp_micros()),
+            Some(1_700_000_100_000_001)
+        );
+        stream_mock.assert_async().await;
+    }
+
+    #[tokio::test]
     async fn pull_entries_stops_when_continuation_repeats() {
         let mut server = mockito::Server::new_async().await;
         server
@@ -2753,6 +2941,80 @@ mod tests {
             .unwrap();
 
         assert_eq!(subscription.remote_id, "feed/opaque-remote-id");
+        quickadd_mock.assert_async().await;
+        sub_mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn create_subscription_matches_quickadd_stream_and_html_url_after_redirect() {
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(200)
+            .with_body("Auth=tok\n")
+            .create_async()
+            .await;
+
+        let quickadd_mock = server
+            .mock(
+                "POST",
+                "/api/greader.php/reader/api/0/subscription/quickadd",
+            )
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_status(200)
+            .with_body(
+                r#"{
+                    "numResults": 1,
+                    "query": "https://example.com/start",
+                    "streamId": "feed/https://feeds.example.com/final.xml"
+                }"#,
+            )
+            .create_async()
+            .await;
+
+        let sub_mock = server
+            .mock(
+                "GET",
+                "/api/greader.php/reader/api/0/subscription/list?output=json",
+            )
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_status(200)
+            .with_body(
+                r#"{
+                    "subscriptions": [
+                        {
+                            "id": "feed/https://other.example.com/rss",
+                            "title": "Other",
+                            "url": "https://other.example.com/rss",
+                            "htmlUrl": "https://example.com/other"
+                        },
+                        {
+                            "id": "feed/opaque-final-id",
+                            "title": "Final",
+                            "url": "https://feeds.example.com/final.xml",
+                            "htmlUrl": "https://example.com/final"
+                        }
+                    ]
+                }"#,
+            )
+            .create_async()
+            .await;
+
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
+        provider
+            .authenticate(&Credentials {
+                password: Some("p".into()),
+                token: Some("u".into()),
+            })
+            .await
+            .unwrap();
+
+        let subscription = provider
+            .create_subscription("https://example.com/start", None)
+            .await
+            .unwrap();
+
+        assert_eq!(subscription.remote_id, "feed/opaque-final-id");
         quickadd_mock.assert_async().await;
         sub_mock.assert_async().await;
     }

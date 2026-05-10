@@ -23,6 +23,34 @@ impl<'a> SqliteFolderRepository<'a> {
         )?;
         Ok(())
     }
+
+    fn ensure_name_case_contract(&self, folder: &Folder) -> DomainResult<()> {
+        let incoming_name_key = folder_name_case_key(&folder.name);
+        let mut stmt = self
+            .conn
+            .prepare("SELECT id, name FROM folders WHERE account_id = ?1 AND id != ?2")?;
+        let existing_folders = stmt
+            .query_map(params![folder.account_id.0, folder.id.0], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+
+        if existing_folders
+            .iter()
+            .any(|(_, name)| folder_name_case_key(name) == incoming_name_key)
+        {
+            return Err(crate::domain::error::DomainError::Validation(format!(
+                "Folder name already exists for account: {}",
+                folder.name
+            )));
+        }
+
+        Ok(())
+    }
+}
+
+fn folder_name_case_key(name: &str) -> String {
+    name.trim().to_lowercase()
 }
 
 fn row_to_folder(row: &rusqlite::Row) -> rusqlite::Result<Folder> {
@@ -48,6 +76,7 @@ impl FolderRepository for SqliteFolderRepository<'_> {
 
     fn save(&self, folder: &Folder) -> DomainResult<()> {
         self.ensure_order_contract()?;
+        self.ensure_name_case_contract(folder)?;
         self.conn.execute(
             "INSERT INTO folders (id, account_id, remote_id, name, sort_order)
              VALUES (?1, ?2, ?3, ?4, ?5)
@@ -485,6 +514,32 @@ mod tests {
             account_id,
             remote_id: None,
             name: "tech".to_string(),
+            sort_order: 1,
+        });
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn save_rejects_unicode_case_collision_within_account() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let repo = SqliteFolderRepository::new(db.writer());
+
+        repo.save(&Folder {
+            id: FolderId("folder-a".to_string()),
+            account_id: account_id.clone(),
+            remote_id: Some("user/-/label/İstanbul".to_string()),
+            name: "İstanbul".to_string(),
+            sort_order: 0,
+        })
+        .unwrap();
+
+        let result = repo.save(&Folder {
+            id: FolderId("folder-b".to_string()),
+            account_id,
+            remote_id: Some("user/-/label/i\u{307}stanbul".to_string()),
+            name: "i\u{307}stanbul".to_string(),
             sort_order: 1,
         });
 
