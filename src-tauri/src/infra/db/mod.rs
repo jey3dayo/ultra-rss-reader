@@ -21,8 +21,10 @@ mod tests {
     }
 
     fn repository_trait_method_names(source: &str) -> Vec<&str> {
+        use std::collections::BTreeSet;
+
         let mut in_trait = false;
-        let mut names = Vec::new();
+        let mut names = BTreeSet::new();
 
         for line in source.lines() {
             let trimmed = line.trim();
@@ -38,15 +40,15 @@ mod tests {
                 continue;
             }
 
-            let method_name_end = trimmed
-                .find('(')
-                .or_else(|| trimmed.find('<'))
+            let method_name_end = [trimmed.find('('), trimmed.find('<')]
+                .into_iter()
+                .flatten()
+                .min()
                 .expect("repository trait method should include params or generics");
-            names.push(&trimmed["fn ".len()..method_name_end]);
+            names.insert(&trimmed["fn ".len()..method_name_end]);
         }
 
-        names.sort_unstable();
-        names
+        names.into_iter().collect()
     }
 
     #[test]
