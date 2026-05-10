@@ -1012,6 +1012,32 @@ describe("release repository contract", () => {
     expect(releaseSkill).toContain("Do not generate release notes after the release commit has been created");
   });
 
+  it("keeps release notes and updater messages classified from the same user-visible change set", () => {
+    expect(releaseManualVerification).toContain(
+      "classify the release notes, `CHANGELOG.md`\nentry, and in-app updater message",
+    );
+    expect(releaseManualVerification).toContain("same user-visible change set");
+    expect(releaseManualVerification).toContain("must not\nhide a change that affects update urgency");
+    expect(releaseManualVerification).toContain("Security or privacy fix");
+    expect(releaseManualVerification).toContain("Data migration or storage compatibility change");
+    expect(releaseManualVerification).toContain("Manual action required");
+    expect(releaseManualVerification).toContain("Rollback impossible or unsafe");
+    expect(releaseManualVerification).toContain("Internal-only maintenance");
+  });
+
+  it("keeps public known-issue copy separate from internal TODO risk tracking", () => {
+    expect(releaseManualVerification).toContain("Known-issue policy:");
+    expect(releaseManualVerification).toContain(
+      "User-visible risk, data-loss risk, privacy risk, failed migration risk",
+    );
+    expect(releaseManualVerification).toContain("Internal-only risk may stay in `TODO.md`");
+    expect(releaseManualVerification).toContain("Do not link release\n  notes directly to `TODO.md`");
+    expect(releaseManualVerification).toContain(
+      "record the\n  internal TODO name in the release handoff or verification notes",
+    );
+    expect(releaseManualVerification).toContain("A known issue should include a workaround when one exists");
+  });
+
   it("keeps published macOS artifact notarization, quarantine, and translocation manual checks explicit", () => {
     expect(releaseManualVerification).toContain("published macOS artifact downloaded through the normal browser");
     expect(releaseManualVerification).toContain("not a locally rebuilt or re-signed app");
