@@ -581,6 +581,30 @@ describe("useToggleStar", () => {
     });
   });
 
+  it("removes unstarred articles from mode-filtered article caches", async () => {
+    vi.spyOn(tauriCommands, "toggleArticleStar").mockResolvedValue(Result.succeed(null));
+
+    queryClient.setQueryData(queryKeys.accountArticles.byAccount("acc-1", "starred"), [sampleArticles[1]]);
+    queryClient.setQueryData(queryKeys.articlesByTag.byTagAndAccount("tag-2", "acc-1", "starred"), [sampleArticles[1]]);
+    queryClient.setQueryData(queryKeys.recentArticles.byAccount("acc-1", "starred"), [sampleArticles[1]]);
+    queryClient.setQueryData(queryKeys.search.byAccountAndQuery("acc-1", "Second"), [sampleArticles[1]]);
+
+    const { result } = renderHook(() => useToggleStar(), { wrapper });
+
+    await result.current.mutateAsync({ id: "art-2", starred: false });
+
+    await waitFor(() => {
+      expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "starred"))).toEqual([]);
+      expect(queryClient.getQueryData(queryKeys.articlesByTag.byTagAndAccount("tag-2", "acc-1", "starred"))).toEqual(
+        [],
+      );
+      expect(queryClient.getQueryData(queryKeys.recentArticles.byAccount("acc-1", "starred"))).toEqual([]);
+      expect(queryClient.getQueryData(queryKeys.search.byAccountAndQuery("acc-1", "Second"))).toEqual([
+        expect.objectContaining({ id: "art-2", is_starred: false }),
+      ]);
+    });
+  });
+
   it("does not let an older star mutation success overwrite the latest cache patch", async () => {
     const firstToggle = createDeferred<Awaited<ReturnType<typeof tauriCommands.toggleArticleStar>>>();
     const secondToggle = createDeferred<Awaited<ReturnType<typeof tauriCommands.toggleArticleStar>>>();
@@ -642,7 +666,7 @@ describe("useSetRead", () => {
     vi.restoreAllMocks();
   });
 
-  it("marks filtered article caches read while preserving optimistic membership", async () => {
+  it("removes read articles from unread mode caches while preserving unfiltered search membership", async () => {
     vi.spyOn(tauriCommands, "markArticleRead").mockResolvedValue(Result.succeed(null));
 
     queryClient.setQueryData(
@@ -667,18 +691,38 @@ describe("useSetRead", () => {
     await result.current.mutateAsync({ id: "art-1", read: true });
 
     await waitFor(() => {
-      expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "unread"))).toEqual([
-        expect.objectContaining({ id: "art-1", is_read: true }),
-      ]);
-      expect(queryClient.getQueryData(queryKeys.articlesByTag.byTagAndAccount("tag-1", "acc-1", "unread"))).toEqual([
-        expect.objectContaining({ id: "art-1", is_read: true }),
-      ]);
-      expect(queryClient.getQueryData(queryKeys.recentArticles.byAccount("acc-1", "unread"))).toEqual([
-        expect.objectContaining({ id: "art-1", is_read: true }),
-      ]);
+      expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "unread"))).toEqual([]);
+      expect(queryClient.getQueryData(queryKeys.articlesByTag.byTagAndAccount("tag-1", "acc-1", "unread"))).toEqual([]);
+      expect(queryClient.getQueryData(queryKeys.recentArticles.byAccount("acc-1", "unread"))).toEqual([]);
       expect(queryClient.getQueryData(queryKeys.search.byAccountAndQuery("acc-1", "fresh"))).toEqual([
         expect.objectContaining({ id: "art-1", is_read: true }),
         expect.objectContaining({ id: "art-2", is_read: true }),
+      ]);
+    });
+  });
+
+  it("inserts missing read-state patches only into matching account mode caches when the account is known", async () => {
+    vi.spyOn(tauriCommands, "markArticleRead").mockResolvedValue(Result.succeed(null));
+
+    queryClient.setQueryData(queryKeys.feeds.byAccount("acc-1"), sampleFeedsForAccountOne);
+    queryClient.setQueryData(queryKeys.articles.byFeed("feed-1", "all"), [sampleArticles[1]]);
+    queryClient.setQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"), []);
+    queryClient.setQueryData(queryKeys.accountArticles.byAccount("acc-1", "unread"), []);
+    queryClient.setQueryData(queryKeys.accountArticles.byAccount("acc-1", "starred"), []);
+
+    const { result } = renderHook(() => useSetRead(), { wrapper });
+
+    await result.current.mutateAsync({ id: "art-2", read: false });
+
+    await waitFor(() => {
+      expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"))).toEqual([
+        expect.objectContaining({ id: "art-2", is_read: false }),
+      ]);
+      expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "unread"))).toEqual([
+        expect.objectContaining({ id: "art-2", is_read: false }),
+      ]);
+      expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "starred"))).toEqual([
+        expect.objectContaining({ id: "art-2", is_read: false, is_starred: true }),
       ]);
     });
   });

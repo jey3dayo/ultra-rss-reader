@@ -63,7 +63,7 @@ describe("ShortcutsHelpModal", () => {
     const option = await screen.findByRole("option", {
       name: /open settings/i,
     });
-    expect(option).toHaveTextContent("Ctrl .");
+    expect(option).toHaveTextContent("Ctrl ,");
     expect(screen.getByText("?").closest("kbd")).toHaveClass("text-foreground-soft", "bg-surface-1/72");
     expect(screen.getByText("?").closest("p")).toHaveClass("flex-wrap");
     expect(option).toHaveClass("flex-col");
@@ -176,7 +176,7 @@ describe("ShortcutsHelpModal", () => {
           "label": "Close Web Preview / clear selection",
         },
         {
-          "binding": "Ctrl .",
+          "binding": "Ctrl ,",
           "label": "Open settings",
         },
       ]

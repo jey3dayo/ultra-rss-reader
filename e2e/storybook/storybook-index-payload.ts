@@ -17,6 +17,15 @@ export const uiReferenceCanvasStoryIds = [
   "ui-reference-view-specimens-canvas--default",
 ] as const;
 
+export const denseNarrowViewportId = "mobile2";
+export const denseNarrowViewportStoryIds = [
+  "reader-sidebar-sidebarheaderview--dense-narrow-viewport",
+  "reader-article-articlelistscreenview--dense-narrow-viewport",
+  "settings-page-settingsmodalview--dense-narrow-viewport",
+] as const;
+export const storybookViewportMaxDimensionPx = 10_000;
+export const storybookSmokeStoryIds = [...uiReferenceCanvasStoryIds, ...denseNarrowViewportStoryIds] as const;
+
 const storybookIndexEntriesErrorMessage = "Storybook index payload must be an object with an object entries field";
 const storybookIndexEntryIdErrorMessage = "Storybook index entries must contain story objects with string id fields";
 const storybookIframeStoryIdErrorMessage = "Storybook iframe URL must include a non-empty id query parameter";

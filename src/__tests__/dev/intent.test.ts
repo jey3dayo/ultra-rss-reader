@@ -91,6 +91,13 @@ describe("dev-intent helpers", () => {
     expect(readDevIntent()).toBe("open-web-preview-url");
   });
 
+  it("falls through to the legacy dev intent alias when the short env name is blank", () => {
+    vi.stubEnv("VITE_DEV_INTENT", "   ");
+    vi.stubEnv("VITE_ULTRA_RSS_DEV_INTENT", "open-settings-general");
+
+    expect(readDevIntent()).toBe("open-settings-general");
+  });
+
   it("reads the legacy dev intent alias when the short env name is unset", () => {
     vi.stubEnv("VITE_ULTRA_RSS_DEV_INTENT", "open-settings-general");
 
@@ -104,10 +111,48 @@ describe("dev-intent helpers", () => {
     expect(readDevWebUrl()).toBe("https://example.com/short");
   });
 
+  it("falls through to the legacy dev web url alias when the short env name is invalid", () => {
+    vi.stubEnv("VITE_DEV_WEB_URL", "file:///tmp/article.html");
+    vi.stubEnv("VITE_ULTRA_RSS_DEV_WEB_URL", " http://localhost:1420/preview ");
+
+    expect(readDevWebUrl()).toBe("http://localhost:1420/preview");
+  });
+
   it("reads the legacy dev web url alias when the short env name is unset", () => {
     vi.stubEnv("VITE_ULTRA_RSS_DEV_WEB_URL", "https://example.com/legacy");
 
     expect(readDevWebUrl()).toBe("https://example.com/legacy");
+  });
+
+  it.each([
+    "http://localhost:1420/preview",
+    "http://127.0.0.1:1420/preview",
+    "http://[::1]:1420/preview",
+  ])("accepts private dev web URL hosts allowed by browser/open URL schema: %s", (url) => {
+    vi.stubEnv("VITE_DEV_WEB_URL", url);
+
+    expect(readDevWebUrl()).toBe(url);
+  });
+
+  it.each([
+    "",
+    "   ",
+    "file:///tmp/article.html",
+    "mailto:test@example.com",
+    "/relative/path",
+  ])("ignores invalid dev web URL env values before runtime fallback: %j", async (url) => {
+    vi.stubEnv("VITE_DEV_WEB_URL", url);
+    getDevRuntimeOptionsMock.mockResolvedValueOnce(
+      Result.succeed({
+        dev_intent: null,
+        dev_web_url: "https://example.com/runtime",
+        dev_window_width: null,
+        dev_window_height: null,
+      }),
+    );
+
+    expect(Result.isSuccess(await loadDevRuntimeOptionsResult())).toBe(true);
+    expect(readDevWebUrl()).toBe("https://example.com/runtime");
   });
 
   it("reads a short dev window size for scenario verification", () => {
@@ -132,6 +177,7 @@ describe("dev-intent helpers", () => {
   it.each([
     ["zero", "0", "0"],
     ["negative", "-1", "-200"],
+    ["float", "520.5", "900.1"],
     ["non-numeric", "wide", "tall"],
     ["overlarge", "10001", "10001"],
   ] as const)("drops %s dev window dimensions from env", (_label, width, height) => {
@@ -150,6 +196,27 @@ describe("dev-intent helpers", () => {
     expect(readDevWindowSize()).toEqual({
       width: 520,
       height: null,
+    });
+  });
+
+  it("keeps valid dev window dimension sides independently", () => {
+    vi.stubEnv("DEV", true);
+    vi.stubEnv("VITE_DEV_WINDOW_HEIGHT", "900");
+
+    expect(readDevWindowSize()).toEqual({
+      width: null,
+      height: 900,
+    });
+  });
+
+  it("accepts the dev window dimension max boundary from env", () => {
+    vi.stubEnv("DEV", true);
+    vi.stubEnv("VITE_DEV_WINDOW_WIDTH", "10000");
+    vi.stubEnv("VITE_DEV_WINDOW_HEIGHT", "10000");
+
+    expect(readDevWindowSize()).toEqual({
+      width: 10000,
+      height: 10000,
     });
   });
 

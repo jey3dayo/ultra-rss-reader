@@ -18,6 +18,11 @@ import pullRequestTemplate from "../../../.github/PULL_REQUEST_TEMPLATE.md?raw";
 import releaseNotesConfig from "../../../.github/release.yml?raw";
 import prInsightsLabelerWorkflow from "../../../.github/workflows/pr-insights-labeler.yml?raw";
 import storybookConfig from "../../../.storybook/main";
+import {
+  STORYBOOK_PREVIEW_BACKGROUND_TOKEN,
+  STORYBOOK_PREVIEW_BACKGROUND_VALUES,
+  STORYBOOK_PREVIEW_BACKGROUNDS,
+} from "../../../.storybook/preview";
 import appE2eSpec from "../../../e2e/app.spec.ts?raw";
 import runtimeErrorGuardHelper from "../../../e2e/helpers/runtime-error-guard.ts?raw";
 import { uiReferenceCanvasStoryIds } from "../../../e2e/storybook/storybook-index-payload";
@@ -34,8 +39,11 @@ type CapabilityPermission =
       allow?: Array<{ url: string }>;
       deny?: Array<{ url: string }>;
     };
-const defaultCapability: Array<{ identifier?: string; webviews?: string[]; permissions?: CapabilityPermission[] }> =
-  JSON.parse(readFileSync(join(repoRoot, "src-tauri/capabilities/default.json"), "utf8"));
+const defaultCapability: Array<{
+  identifier?: string;
+  webviews?: string[];
+  permissions?: CapabilityPermission[];
+}> = JSON.parse(readFileSync(join(repoRoot, "src-tauri/capabilities/default.json"), "utf8"));
 
 function permissionIdentifier(permission: CapabilityPermission): string {
   return typeof permission === "string" ? permission : permission.identifier;
@@ -82,6 +90,12 @@ function expectPackageJsonKnipEntryConfig(): { entry?: string[] } {
 
 function readRepoFile(path: string) {
   return readFileSync(join(repoRoot, path), "utf8");
+}
+
+function extractCssCustomProperty(source: string, selector: string, property: string) {
+  const selectorMatch = source.match(new RegExp(`${selector.replaceAll(".", "\\.")}\\s*\\{(?<body>[\\s\\S]*?)\\}`));
+  const body = selectorMatch?.groups?.body ?? "";
+  return body.match(new RegExp(`${property}:\\s*([^;]+);`))?.[1]?.trim() ?? "";
 }
 
 function readDirectoryFileStems(path: string) {
@@ -1176,6 +1190,33 @@ describe("repository static contracts", () => {
     expect(storybookMainSource).toContain("return mergeConfig(config, {");
     expect(storybookMainSource).toContain('"@": path.resolve(import.meta.dirname, "../src")');
     expect(storybookMainSource).toContain('"@tests": path.resolve(import.meta.dirname, "../tests")');
+  });
+
+  it("keeps Storybook preview backgrounds aligned with CSS theme canvas tokens", () => {
+    const globalCss = readRepoFile("src/styles/global.css");
+    const previewBackgroundsByName = new Map(
+      STORYBOOK_PREVIEW_BACKGROUNDS.map(({ name, value }) => [name, value] as const),
+    );
+
+    expect(STORYBOOK_PREVIEW_BACKGROUND_TOKEN).toBe("--theme-canvas");
+    expect(STORYBOOK_PREVIEW_BACKGROUND_VALUES).toEqual({
+      dark: extractCssCustomProperty(globalCss, ":root.dark", STORYBOOK_PREVIEW_BACKGROUND_TOKEN),
+      light: extractCssCustomProperty(globalCss, ":root", STORYBOOK_PREVIEW_BACKGROUND_TOKEN),
+    });
+    expect(previewBackgroundsByName).toEqual(
+      new Map([
+        ["dark", STORYBOOK_PREVIEW_BACKGROUND_VALUES.dark],
+        ["light", STORYBOOK_PREVIEW_BACKGROUND_VALUES.light],
+      ]),
+    );
+  });
+
+  it("keeps renderStory scoped to Storybook global preview parameters and decorators", () => {
+    const renderStoryHelperSource = readRepoFile("tests/helpers/render-story.tsx");
+
+    expect(renderStoryHelperSource).toContain('import preview from "../../.storybook/preview"');
+    expect(renderStoryHelperSource).toContain("...(preview.parameters ?? {})");
+    expect(renderStoryHelperSource).toContain("...collectStoryDecorators<TArgs>(preview.decorators)");
   });
 
   it("keeps Storybook config changes covered by labeler", () => {

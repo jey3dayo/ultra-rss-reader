@@ -112,6 +112,9 @@ fn parse_outline_attrs(
             .unescape_value()
             .map_err(|error| format!("OPML parse error: invalid outline attribute value: {error}"))?
             .to_string();
+        if !value.chars().all(is_xml_10_char) {
+            return Err(OPML_MALFORMED_XML_ERROR_MESSAGE.to_string());
+        }
         map.insert(key, value);
     }
     Ok(map)
@@ -594,6 +597,104 @@ mod tests {
                 ),
                 ("Top Feed", "https://example.com/top.xml", None),
             ],
+        );
+    }
+
+    #[test]
+    fn parses_reader_opml_fixture_corpus() {
+        let cases = [
+            (
+                include_str!("../../../tests/fixtures/opml/freshrss.opml"),
+                vec![
+                    OpmlFeed {
+                        title: "Example News".to_string(),
+                        xml_url: "https://news.example.com/rss".to_string(),
+                        html_url: Some("https://news.example.com/".to_string()),
+                        folder: Some("News".to_string()),
+                    },
+                    OpmlFeed {
+                        title: "No Folder Feed".to_string(),
+                        xml_url: "https://feeds.example.com/no-folder.atom".to_string(),
+                        html_url: None,
+                        folder: None,
+                    },
+                ],
+            ),
+            (
+                include_str!("../../../tests/fixtures/opml/feedly.opml"),
+                vec![
+                    OpmlFeed {
+                        title: "Rust Blog".to_string(),
+                        xml_url: "https://blog.rust-lang.org/feed.xml".to_string(),
+                        html_url: Some("https://blog.rust-lang.org/".to_string()),
+                        folder: Some("Engineering".to_string()),
+                    },
+                    OpmlFeed {
+                        title: "Web Platform".to_string(),
+                        xml_url: "https://web.dev/feed.xml".to_string(),
+                        html_url: None,
+                        folder: Some("Engineering".to_string()),
+                    },
+                    OpmlFeed {
+                        title: "Top Level".to_string(),
+                        xml_url: "https://example.com/top.xml".to_string(),
+                        html_url: Some("https://example.com/".to_string()),
+                        folder: None,
+                    },
+                ],
+            ),
+            (
+                include_str!("../../../tests/fixtures/opml/inoreader-legacy.opml"),
+                vec![
+                    OpmlFeed {
+                        title: "Legacy Title Fallback".to_string(),
+                        xml_url: "https://legacy.example.com/rss.xml".to_string(),
+                        html_url: Some("https://legacy.example.com/".to_string()),
+                        folder: Some("Legacy".to_string()),
+                    },
+                    OpmlFeed {
+                        title: "Title Only".to_string(),
+                        xml_url: "https://legacy.example.com/title-only.xml".to_string(),
+                        html_url: None,
+                        folder: Some("Legacy".to_string()),
+                    },
+                ],
+            ),
+            (
+                include_str!("../../../tests/fixtures/opml/netnewswire.opml"),
+                vec![
+                    OpmlFeed {
+                        title: "Swift.org".to_string(),
+                        xml_url: "https://www.swift.org/atom.xml".to_string(),
+                        html_url: Some("https://www.swift.org/".to_string()),
+                        folder: Some("Apple".to_string()),
+                    },
+                    OpmlFeed {
+                        title: "Deep Feed".to_string(),
+                        xml_url: "https://deep.example.com/feed.xml".to_string(),
+                        html_url: None,
+                        folder: Some("Nested".to_string()),
+                    },
+                ],
+            ),
+        ];
+
+        for (fixture, expected) in cases {
+            assert_eq!(parse_opml(fixture).unwrap(), expected);
+        }
+    }
+
+    #[test]
+    fn rejects_reader_opml_fixture_with_invalid_xml_char() {
+        let error = parse_opml(include_str!(
+            "../../../tests/fixtures/opml/invalid-control-char.opml"
+        ))
+        .unwrap_err();
+
+        assert!(
+            error == OPML_MALFORMED_XML_ERROR_MESSAGE
+                || error.starts_with("OPML parse error: invalid outline attribute value:"),
+            "unexpected error: {error}"
         );
     }
 

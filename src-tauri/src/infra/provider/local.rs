@@ -1,17 +1,16 @@
 use async_trait::async_trait;
 use reqwest::header::{ETAG, IF_MODIFIED_SINCE, IF_NONE_MATCH, LAST_MODIFIED};
 use reqwest::StatusCode;
-use std::net::{IpAddr, ToSocketAddrs};
 use std::sync::Arc;
 use tokio::sync::Semaphore;
 
 use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::provider::*;
 use crate::domain::url_policy::{
-    is_private_ip, validate_http_url_without_credentials, validate_public_http_url,
-    CREDENTIAL_URL_VALIDATION_MESSAGE, PRIVATE_URL_VALIDATION_MESSAGE,
-    UNSUPPORTED_URL_VALIDATION_MESSAGE,
+    validate_http_url_without_credentials, CREDENTIAL_URL_VALIDATION_MESSAGE,
+    PRIVATE_URL_VALIDATION_MESSAGE, UNSUPPORTED_URL_VALIDATION_MESSAGE,
 };
+use crate::infra::feed_discovery::validate_discovery_request_url;
 use crate::repository::sync_state::{
     normalize_http_etag_validator, normalize_http_last_modified_validator,
 };
@@ -280,33 +279,7 @@ fn feed_response_body_read_error(error: reqwest::Error) -> DomainError {
 }
 
 fn validate_external_feed_url(url: &reqwest::Url) -> DomainResult<()> {
-    validate_public_http_url(url)?;
-    validate_resolved_host_is_public(url)?;
-
-    Ok(())
-}
-
-fn validate_resolved_host_is_public(url: &reqwest::Url) -> DomainResult<()> {
-    let Some(host) = url.host_str() else {
-        return Ok(());
-    };
-    if host.parse::<IpAddr>().is_ok() {
-        return Ok(());
-    }
-    let port = url.port_or_known_default().unwrap_or(80);
-    let addresses = (host, port)
-        .to_socket_addrs()
-        .map_err(|error| DomainError::Network(error.to_string()))?;
-
-    for address in addresses {
-        if is_private_ip(address.ip()) {
-            return Err(DomainError::Validation(
-                PRIVATE_URL_VALIDATION_MESSAGE.to_string(),
-            ));
-        }
-    }
-
-    Ok(())
+    validate_discovery_request_url(url)
 }
 
 fn validate_external_feed_redirect(
@@ -1180,16 +1153,6 @@ mod tests {
         );
         assert!(result.not_modified);
         mock.assert_async().await;
-    }
-
-    #[test]
-    fn validate_resolved_host_rejects_dns_answers_to_private_ip() {
-        let url = reqwest::Url::parse("http://localhost/feed.xml").unwrap();
-
-        assert!(matches!(
-            validate_resolved_host_is_public(&url),
-            Err(DomainError::Validation(message)) if message == PRIVATE_URL_VALIDATION_MESSAGE
-        ));
     }
 
     #[test]

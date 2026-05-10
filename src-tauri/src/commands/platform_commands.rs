@@ -138,6 +138,28 @@ mod tests {
     }
 
     #[test]
+    fn dev_runtime_options_prefers_primary_intent_over_alias() {
+        let _lock = ENV_LOCK.lock().expect("env lock poisoned");
+        let _primary = EnvVarGuard::set("VITE_DEV_INTENT", " open-web-preview-url ");
+        let _alias = EnvVarGuard::set("VITE_ULTRA_RSS_DEV_INTENT", "open-settings-general");
+
+        let options = get_dev_runtime_options();
+
+        assert_eq!(options.dev_intent, Some("open-web-preview-url".to_string()));
+    }
+
+    #[test]
+    fn dev_runtime_options_leaves_unknown_intent_for_frontend_parser_fallback() {
+        let _lock = ENV_LOCK.lock().expect("env lock poisoned");
+        let _primary = EnvVarGuard::set("VITE_DEV_INTENT", "removed-dev-intent");
+        let _alias = EnvVarGuard::set("VITE_ULTRA_RSS_DEV_INTENT", "open-settings-general");
+
+        let options = get_dev_runtime_options();
+
+        assert_eq!(options.dev_intent, Some("removed-dev-intent".to_string()));
+    }
+
+    #[test]
     fn dev_runtime_options_accept_http_dev_web_urls() {
         let _lock = ENV_LOCK.lock().expect("env lock poisoned");
         let _primary = EnvVarGuard::set("VITE_DEV_WEB_URL", " https://example.com/preview ");
@@ -192,6 +214,29 @@ mod tests {
     }
 
     #[test]
+    fn dev_runtime_options_accept_private_hosts_allowed_by_browser_url_schema() {
+        let _lock = ENV_LOCK.lock().expect("env lock poisoned");
+        let cases = [
+            "http://localhost:1420/preview",
+            "http://127.0.0.1:1420/preview",
+            "http://[::1]:1420/preview",
+        ];
+
+        for value in cases {
+            let _primary = EnvVarGuard::set("VITE_DEV_WEB_URL", value);
+            let _alias = EnvVarGuard::remove("VITE_ULTRA_RSS_DEV_WEB_URL");
+
+            let options = get_dev_runtime_options();
+
+            assert_eq!(
+                options.dev_web_url,
+                Some(value.to_string()),
+                "dev web URL private host {value:?} should be accepted"
+            );
+        }
+    }
+
+    #[test]
     fn dev_runtime_options_include_positive_integer_window_env() {
         let _lock = ENV_LOCK.lock().expect("env lock poisoned");
         let _width = EnvVarGuard::set("VITE_DEV_WINDOW_WIDTH", " 520 ");
@@ -212,6 +257,7 @@ mod tests {
             ("0", "0"),
             (" -1 ", " -900 "),
             ("-1", "-900"),
+            ("520.5", "900.1"),
             ("wide", "tall"),
             ("520px", "900px"),
         ];
@@ -243,6 +289,18 @@ mod tests {
 
         assert_eq!(options.dev_window_width, Some(640));
         assert_eq!(options.dev_window_height, None);
+    }
+
+    #[test]
+    fn dev_runtime_options_keep_height_when_width_is_unset() {
+        let _lock = ENV_LOCK.lock().expect("env lock poisoned");
+        let _width = EnvVarGuard::remove("VITE_DEV_WINDOW_WIDTH");
+        let _height = EnvVarGuard::set("VITE_DEV_WINDOW_HEIGHT", "900");
+
+        let options = get_dev_runtime_options();
+
+        assert_eq!(options.dev_window_width, None);
+        assert_eq!(options.dev_window_height, Some(900));
     }
 
     #[test]

@@ -42,10 +42,14 @@ export function subscribeMatchMediaChange(mediaQuery: MediaQueryList, listener: 
   }
 
   if (typeof legacyMediaQuery.addListener === "function") {
-    legacyMediaQuery.addListener(listener);
-    return createSafeCleanup(() => {
-      legacyMediaQuery.removeListener?.(listener);
-    });
+    try {
+      legacyMediaQuery.addListener(listener);
+      return createSafeCleanup(() => {
+        legacyMediaQuery.removeListener?.(listener);
+      });
+    } catch {
+      return () => {};
+    }
   }
 
   return () => {};

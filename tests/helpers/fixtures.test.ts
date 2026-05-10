@@ -23,6 +23,7 @@ import type {
   MuteKeywordDto,
   TagDto,
 } from "@/api/tauri-commands";
+import preview from "../../.storybook/preview";
 import {
   cloneFixtureSeed,
   createSampleAccounts,
@@ -327,19 +328,19 @@ describe("renderStory", () => {
       {
         source: "meta",
         args: { label: "story", tone: "neutral" },
-        parameters: { layout: "centered", viewport: "mobile" },
+        parameters: { ...preview.parameters, layout: "centered", viewport: "mobile" },
         globals: { locale: "en", theme: "dark" },
       },
       {
         source: "story",
         args: { label: "story", tone: "neutral" },
-        parameters: { layout: "centered", viewport: "mobile" },
+        parameters: { ...preview.parameters, layout: "centered", viewport: "mobile" },
         globals: { locale: "en", theme: "dark" },
       },
       {
         source: "render",
         args: { label: "story", tone: "neutral" },
-        parameters: { layout: "centered", viewport: "mobile" },
+        parameters: { ...preview.parameters, layout: "centered", viewport: "mobile" },
         globals: { locale: "en", theme: "dark" },
       },
     ]);
@@ -375,7 +376,7 @@ describe("renderStory", () => {
 
     expect(contexts).toEqual([
       {
-        parameters: { layout: "centered", viewport: "mobile" },
+        parameters: { ...preview.parameters, layout: "centered", viewport: "mobile" },
         globals: { locale: "en", theme: "dark" },
       },
     ]);

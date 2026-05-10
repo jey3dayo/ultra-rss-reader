@@ -1,5 +1,7 @@
 use std::collections::HashSet;
-use std::net::{IpAddr, ToSocketAddrs};
+use std::net::IpAddr;
+#[cfg(not(test))]
+use std::net::ToSocketAddrs;
 
 use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::url_policy::{
@@ -114,7 +116,7 @@ pub(crate) fn validate_discovery_url(url: &reqwest::Url) -> DomainResult<()> {
     validate_public_http_url(url)
 }
 
-fn validate_discovery_request_url(url: &reqwest::Url) -> DomainResult<()> {
+pub(crate) fn validate_discovery_request_url(url: &reqwest::Url) -> DomainResult<()> {
     validate_discovery_url(url)?;
     validate_resolved_host_is_public(url)
 }
@@ -127,12 +129,10 @@ fn validate_resolved_host_is_public(url: &reqwest::Url) -> DomainResult<()> {
         return Ok(());
     }
     let port = url.port_or_known_default().unwrap_or(80);
-    let addresses = (host, port)
-        .to_socket_addrs()
-        .map_err(|error| DomainError::Network(error.to_string()))?;
+    let addresses = resolve_host_addresses(host, port)?;
 
     for address in addresses {
-        if is_private_ip(address.ip()) {
+        if is_private_ip(address) {
             return Err(DomainError::Validation(
                 PRIVATE_URL_VALIDATION_MESSAGE.to_string(),
             ));
@@ -140,6 +140,29 @@ fn validate_resolved_host_is_public(url: &reqwest::Url) -> DomainResult<()> {
     }
 
     Ok(())
+}
+
+#[cfg(not(test))]
+fn resolve_host_addresses(host: &str, port: u16) -> DomainResult<Vec<IpAddr>> {
+    (host, port)
+        .to_socket_addrs()
+        .map(|addresses| addresses.map(|address| address.ip()).collect())
+        .map_err(|error| DomainError::Network(error.to_string()))
+}
+
+#[cfg(test)]
+fn resolve_host_addresses(host: &str, _port: u16) -> DomainResult<Vec<IpAddr>> {
+    match host {
+        "localhost" | "localhost." => Ok(vec![IpAddr::from([127, 0, 0, 1])]),
+        "blog.rust-lang.org" | "example.com" | "example.org" => {
+            Ok(vec![IpAddr::from([93, 184, 216, 34])])
+        }
+        "private.test.invalid" => Ok(vec![IpAddr::from([127, 0, 0, 1])]),
+        "public.test.invalid" => Ok(vec![IpAddr::from([93, 184, 216, 34])]),
+        _ => Err(DomainError::Network(format!(
+            "failed to resolve test host: {host}"
+        ))),
+    }
 }
 
 fn map_feed_discovery_request_error(error: reqwest::Error) -> DomainError {
@@ -909,6 +932,41 @@ mod tests {
 
         assert!(matches!(
             validate_resolved_host_is_public(&url),
+            Err(DomainError::Validation(message)) if message == PRIVATE_URL_VALIDATION_MESSAGE
+        ));
+    }
+
+    #[test]
+    fn validate_discovery_request_url_maps_unknown_test_hosts_to_dns_failure() {
+        let url = reqwest::Url::parse("https://unknown.test.invalid/feed.xml").unwrap();
+
+        assert!(matches!(
+            validate_discovery_request_url(&url),
+            Err(DomainError::Network(message))
+                if message.contains("failed to resolve test host")
+                    && message.contains("unknown.test.invalid")
+        ));
+    }
+
+    #[test]
+    fn validate_discovery_request_url_allows_known_public_fixture_hosts() {
+        for raw_url in [
+            "https://public.test.invalid/feed.xml",
+            "https://example.com/feed.xml",
+            "https://example.org/feed.xml",
+        ] {
+            let url = reqwest::Url::parse(raw_url).unwrap();
+
+            assert!(validate_discovery_request_url(&url).is_ok(), "{raw_url}");
+        }
+    }
+
+    #[test]
+    fn validate_discovery_request_url_rejects_known_private_fixture_hosts() {
+        let url = reqwest::Url::parse("https://private.test.invalid/feed.xml").unwrap();
+
+        assert!(matches!(
+            validate_discovery_request_url(&url),
             Err(DomainError::Validation(message)) if message == PRIVATE_URL_VALIDATION_MESSAGE
         ));
     }

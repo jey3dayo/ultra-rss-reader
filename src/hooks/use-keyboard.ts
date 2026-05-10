@@ -272,6 +272,10 @@ export function useKeyboard() {
           break;
         case "focus-sidebar":
           openSidebar();
+          focusSelectedSidebarTarget();
+          scheduleReaderFocusFrame(() => {
+            focusSelectedSidebarTarget();
+          });
           break;
         case "navigate-article":
           executeAction(resolvedAction.direction === 1 ? "next-article" : "prev-article");

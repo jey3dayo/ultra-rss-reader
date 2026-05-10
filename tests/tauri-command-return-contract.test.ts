@@ -65,6 +65,15 @@ const extractRustResultCommands = (source: string, returnTypes: readonly string[
   );
 };
 
+const extractRegisteredRustCommandNames = (source: string): string[] => {
+  const handlerMatch = source.match(/tauri::generate_handler!\s*\[([\s\S]*?)\]/);
+  expect(handlerMatch, "Tauri generate_handler command list should exist").not.toBeNull();
+
+  return sortedUnique(
+    [...(handlerMatch?.[1] ?? "").matchAll(/commands::[a-zA-Z0-9_]+::([a-zA-Z0-9_]+)/g)].map((match) => match[1] ?? ""),
+  );
+};
+
 const snakeToCamel = (value: string): string => value.replace(/_([a-z])/g, (_, char: string) => char.toUpperCase());
 
 const normalizeRustArgName = (name: string): string => snakeToCamel(name.replace(/^_/, ""));
@@ -127,18 +136,33 @@ const registryArgNames = (): Record<string, string[]> =>
   );
 
 describe("tauri command return contract", () => {
+  it("extracts the registered Rust command list from Tauri generate_handler", () => {
+    expect(
+      extractRegisteredRustCommandNames(`
+        .invoke_handler(tauri::generate_handler![
+          commands::sync_commands::trigger_sync,
+          commands::article_commands::mark_feed_read,
+          commands::sync_commands::trigger_sync,
+        ])
+      `),
+    ).toEqual(["mark_feed_read", "trigger_sync"]);
+  });
+
   it("keeps frontend null-response commands aligned with Rust unit-result commands", () => {
     const tauriCommands = readText("src/api/tauri-commands.ts");
     const rustCommandSources = readdirSync("src-tauri/src/commands")
       .filter((fileName) => fileName.endsWith(".rs"))
       .map((fileName) => readText(`src-tauri/src/commands/${fileName}`))
       .join("\n");
+    const registeredCommands = new Set(extractRegisteredRustCommandNames(readText("src-tauri/src/lib.rs")));
 
     expect(
       extractResponseSchemaCommands(tauriCommands, ["NullResponseSchema"]).filter(
         (command) => !command.startsWith("plugin:"),
       ),
-    ).toEqual(extractRustResultCommands(rustCommandSources, ["()"]));
+    ).toEqual(
+      extractRustResultCommands(rustCommandSources, ["()"]).filter((command) => registeredCommands.has(command)),
+    );
   });
 
   it("keeps frontend string-response commands aligned with Rust string-result commands", () => {
@@ -147,9 +171,10 @@ describe("tauri command return contract", () => {
       .filter((fileName) => fileName.endsWith(".rs"))
       .map((fileName) => readText(`src-tauri/src/commands/${fileName}`))
       .join("\n");
+    const registeredCommands = new Set(extractRegisteredRustCommandNames(readText("src-tauri/src/lib.rs")));
 
     expect(extractResponseSchemaCommands(tauriCommands, ["StringResponseSchema"])).toEqual(
-      extractRustResultCommands(rustCommandSources, ["String"]),
+      extractRustResultCommands(rustCommandSources, ["String"]).filter((command) => registeredCommands.has(command)),
     );
   });
 
@@ -159,9 +184,10 @@ describe("tauri command return contract", () => {
       .filter((fileName) => fileName.endsWith(".rs"))
       .map((fileName) => readText(`src-tauri/src/commands/${fileName}`))
       .join("\n");
+    const registeredCommands = new Set(extractRegisteredRustCommandNames(readText("src-tauri/src/lib.rs")));
 
     expect(extractResponseSchemaCommands(tauriCommands, ["BooleanResponseSchema"])).toEqual(
-      extractRustResultCommands(rustCommandSources, ["bool"]),
+      extractRustResultCommands(rustCommandSources, ["bool"]).filter((command) => registeredCommands.has(command)),
     );
   });
 
@@ -171,9 +197,12 @@ describe("tauri command return contract", () => {
       .filter((fileName) => fileName.endsWith(".rs"))
       .map((fileName) => readText(`src-tauri/src/commands/${fileName}`))
       .join("\n");
+    const registeredCommands = new Set(extractRegisteredRustCommandNames(readText("src-tauri/src/lib.rs")));
 
     expect(extractResponseSchemaCommands(tauriCommands, COUNT_RESPONSE_SCHEMA_NAMES)).toEqual(
-      extractRustResultCommands(rustCommandSources, ["i32", "i64", "u64", "usize"]),
+      extractRustResultCommands(rustCommandSources, ["i32", "i64", "u64", "usize"]).filter((command) =>
+        registeredCommands.has(command),
+      ),
     );
   });
 

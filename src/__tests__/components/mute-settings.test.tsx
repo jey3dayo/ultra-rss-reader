@@ -8,7 +8,7 @@ const updateMuteKeywordMutateAsyncMock = vi.fn();
 const createMuteKeywordMutateAsyncMock = vi.fn();
 const deleteMuteKeywordMutateAsyncMock = vi.fn();
 const setMuteAutoMarkReadMutateAsyncMock = vi.fn();
-const muteKeywordRules = [
+const initialMuteKeywordRules = [
   {
     id: "mute-1",
     keyword: "spoiler",
@@ -24,6 +24,7 @@ const muteKeywordRules = [
     updated_at: "2026-04-30T00:00:00.000Z",
   },
 ];
+let muteKeywordRules = [...initialMuteKeywordRules];
 
 vi.mock("@/hooks/use-mute-keywords", () => ({
   useMuteKeywords: () => ({
@@ -90,6 +91,7 @@ describe("MuteSettings", () => {
     createMuteKeywordMutateAsyncMock.mockResolvedValue(undefined);
     deleteMuteKeywordMutateAsyncMock.mockResolvedValue(undefined);
     setMuteAutoMarkReadMutateAsyncMock.mockResolvedValue(undefined);
+    muteKeywordRules = [...initialMuteKeywordRules];
     useUiStore.setState(useUiStore.getInitialState());
   });
 
@@ -320,6 +322,22 @@ describe("MuteSettings", () => {
     await waitFor(() => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
+  });
+
+  it("closes stale delete confirmation without deleting when the target rule disappears", async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(<MuteSettings />);
+
+    await user.click(getDeleteButtonAt(0));
+    expect(within(screen.getByRole("dialog")).getAllByText(/spoiler/).length).toBeGreaterThan(0);
+
+    muteKeywordRules = [getElementAt(initialMuteKeywordRules, 1, "initial mute keyword rule")];
+    rerender(<MuteSettings />);
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+    expect(deleteMuteKeywordMutateAsyncMock).not.toHaveBeenCalled();
   });
 
   it("keeps the delete target snapshot and ignores duplicate confirms while deletion is pending", async () => {

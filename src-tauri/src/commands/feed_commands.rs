@@ -390,11 +390,17 @@ async fn add_local_feed_with_provider(
     let persisted_feed = {
         let db = lock_db(db)?;
         let feed_repo = SqliteFeedRepository::new(db.reader());
-        feed_repo
+        let persisted_feed = feed_repo
             .find_by_url(&account_id, &feed.url)?
             .ok_or_else(|| AppError::UserVisible {
                 message: "Saved feed could not be reloaded".into(),
-            })?
+            })?;
+        if persisted_feed.id != feed.id {
+            return Err(AppError::UserVisible {
+                message: "Feed URL is already subscribed".into(),
+            });
+        }
+        persisted_feed
     };
 
     // 3. Fetch initial articles for the new feed
@@ -1447,6 +1453,76 @@ mod tests {
                 .unwrap()
         };
         assert_eq!(saved_feed_count, 1);
+    }
+
+    #[tokio::test]
+    async fn add_local_feed_duplicate_race_does_not_roll_back_existing_feed() {
+        let mut server = mockito::Server::new_async().await;
+        let feed_url = format!("{}/feed.xml", server.url());
+        let mock = server
+            .mock("GET", "/feed.xml")
+            .with_status(200)
+            .with_header("content-type", "application/rss+xml")
+            .with_body(SAMPLE_RSS)
+            .expect(1)
+            .create_async()
+            .await;
+
+        let db = Mutex::new(test_db());
+        let account_id = {
+            let db_guard = db.lock().unwrap();
+            let account_id = insert_test_account(&db_guard, "Primary");
+            db_guard
+                .writer()
+                .execute(
+                    "CREATE TRIGGER simulate_duplicate_feed_race
+                     BEFORE INSERT ON feeds
+                     WHEN NEW.url LIKE 'http://127.0.0.1:%/feed.xml'
+                     BEGIN
+                       INSERT OR IGNORE INTO feeds (id, account_id, title, url)
+                       VALUES ('race-existing-feed', NEW.account_id, 'Existing', NEW.url);
+                     END",
+                    [],
+                )
+                .unwrap();
+            db_guard
+                .writer()
+                .execute(
+                    "CREATE TRIGGER fail_if_duplicate_race_reaches_initial_sync
+                     BEFORE INSERT ON articles
+                     BEGIN
+                       SELECT RAISE(FAIL, 'duplicate race reached initial sync');
+                     END",
+                    [],
+                )
+                .unwrap();
+            account_id
+        };
+
+        let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
+        let error =
+            add_local_feed_with_provider(&db, account_id.0.clone(), feed_url.clone(), &provider)
+                .await
+                .expect_err("duplicate URL race should reject add feed");
+
+        mock.assert_async().await;
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message } if message == "Feed URL is already subscribed"
+        ));
+
+        let saved_feed_id: String = {
+            let db_guard = db.lock().unwrap();
+            db_guard
+                .reader()
+                .query_row(
+                    "SELECT id FROM feeds WHERE account_id = ?1 AND url = ?2",
+                    params![account_id.0, feed_url],
+                    |row| row.get(0),
+                )
+                .unwrap()
+        };
+        assert_eq!(saved_feed_id, "race-existing-feed");
     }
 
     #[test]

@@ -119,26 +119,24 @@ export function resolveArticleSearchQueryOwner(
 }
 
 function patchCachedArticleReadState(qc: QueryClient, articleId: string, read: boolean) {
-  const updateArticleArray = (current: unknown) => {
-    if (!Array.isArray(current)) {
-      return current;
+  const cachedArticle = findCachedArticle(qc, articleId);
+  if (cachedArticle === null) {
+    return;
+  }
+
+  const nextArticle = { ...cachedArticle, is_read: read };
+  const accountIds = resolveAccountIdsForArticle(qc, cachedArticle);
+
+  patchArticleListQueries(qc, nextArticle, { insertIfMissing: false });
+
+  if (accountIds.length > 0) {
+    for (const accountId of accountIds) {
+      patchKnownAccountArticleCaches(qc, accountId, nextArticle);
     }
+    return;
+  }
 
-    return current.map((candidate) => {
-      if (isArticleDto(candidate)) {
-        return candidate.id === articleId ? { ...candidate, is_read: read } : candidate;
-      }
-
-      return candidate;
-    });
-  };
-
-  qc.setQueriesData({ queryKey: queryKeys.articles.root }, updateArticleArray);
-  qc.setQueriesData({ queryKey: queryKeys.accountArticles.root }, updateArticleArray);
-  qc.setQueriesData({ queryKey: queryKeys.starredArticles.root }, updateArticleArray);
-  qc.setQueriesData({ queryKey: queryKeys.recentArticles.root }, updateArticleArray);
-  qc.setQueriesData({ queryKey: queryKeys.articlesByTag.root }, updateArticleArray);
-  qc.setQueriesData({ queryKey: queryKeys.search.root }, updateArticleArray);
+  patchUnknownAccountArticleCaches(qc, nextArticle);
 }
 
 export function resolveArticleMutationInvalidationQueryKeys() {
@@ -249,29 +247,7 @@ function resolveAccountIdsForArticle(qc: QueryClient, article: ArticleDto): stri
   return Array.from(accountIds);
 }
 
-function updateCachedArticleArray(current: unknown, nextArticle: ArticleDto, options?: { insertIfMissing?: boolean }) {
-  if (!Array.isArray(current)) {
-    return options?.insertIfMissing ? [nextArticle] : current;
-  }
-
-  let found = false;
-  const nextArray = current.map((candidate) => {
-    if (isArticleDto(candidate) && candidate.id === nextArticle.id) {
-      found = true;
-      return nextArticle;
-    }
-
-    return candidate;
-  });
-
-  if (!found && options?.insertIfMissing) {
-    return [nextArticle, ...nextArray];
-  }
-
-  return nextArray;
-}
-
-function shouldInsertMissingAccountArticle(queryKey: QueryKey, nextArticle: ArticleDto): boolean {
+function shouldKeepArticleInQuery(queryKey: QueryKey, nextArticle: ArticleDto): boolean {
   const mode = getReaderArticleQueryMode(queryKey);
 
   if (mode === "unread" && nextArticle.is_read) {
@@ -283,6 +259,38 @@ function shouldInsertMissingAccountArticle(queryKey: QueryKey, nextArticle: Arti
   }
 
   return true;
+}
+
+function updateCachedArticleArray(
+  current: unknown,
+  nextArticle: ArticleDto,
+  options?: { insertIfMissing?: boolean; queryKey?: QueryKey },
+) {
+  const shouldKeepArticle = options?.queryKey ? shouldKeepArticleInQuery(options.queryKey, nextArticle) : true;
+
+  if (!Array.isArray(current)) {
+    return options?.insertIfMissing && shouldKeepArticle ? [nextArticle] : current;
+  }
+
+  let found = false;
+  const nextArray = current.flatMap((candidate) => {
+    if (isArticleDto(candidate) && candidate.id === nextArticle.id) {
+      found = true;
+      return shouldKeepArticle ? [nextArticle] : [];
+    }
+
+    return [candidate];
+  });
+
+  if (!found && options?.insertIfMissing && shouldKeepArticle) {
+    return [nextArticle, ...nextArray];
+  }
+
+  return nextArray;
+}
+
+function shouldInsertMissingAccountArticle(queryKey: QueryKey, nextArticle: ArticleDto): boolean {
+  return shouldKeepArticleInQuery(queryKey, nextArticle);
 }
 
 function updateCachedStarredArticleArray(
@@ -324,6 +332,7 @@ function patchKnownAccountArticleCaches(qc: QueryClient, accountId: string, next
       qc.setQueryData(queryKey, (current: unknown) =>
         updateCachedArticleArray(current, nextArticle, {
           insertIfMissing: shouldInsertMissingAccountArticle(queryKey, nextArticle),
+          queryKey,
         }),
       );
     }
@@ -335,12 +344,32 @@ function patchKnownAccountArticleCaches(qc: QueryClient, accountId: string, next
 }
 
 function patchUnknownAccountArticleCaches(qc: QueryClient, nextArticle: ArticleDto) {
-  qc.setQueriesData({ queryKey: queryKeys.accountArticles.root }, (current: unknown) =>
-    updateCachedArticleArray(current, nextArticle, { insertIfMissing: false }),
-  );
+  for (const [queryKey] of qc.getQueriesData<unknown>({ queryKey: queryKeys.accountArticles.root })) {
+    qc.setQueryData(queryKey, (current: unknown) =>
+      updateCachedArticleArray(current, nextArticle, { insertIfMissing: false, queryKey }),
+    );
+  }
   qc.setQueriesData({ queryKey: queryKeys.starredArticles.root }, (current: unknown) =>
     updateCachedStarredArticleArray(current, nextArticle, { insertIfMissing: false }),
   );
+}
+
+function patchArticleListQueries(qc: QueryClient, nextArticle: ArticleDto, options: { insertIfMissing: boolean }) {
+  for (const queryRoot of [
+    queryKeys.articles.root,
+    queryKeys.articlesByTag.root,
+    queryKeys.search.root,
+    queryKeys.recentArticles.root,
+  ] as const) {
+    for (const [queryKey] of qc.getQueriesData<unknown>({ queryKey: queryRoot })) {
+      qc.setQueryData(queryKey, (current: unknown) =>
+        updateCachedArticleArray(current, nextArticle, {
+          insertIfMissing: options.insertIfMissing,
+          queryKey,
+        }),
+      );
+    }
+  }
 }
 
 function patchCachedArticleStarState(qc: QueryClient, articleId: string, starred: boolean) {
@@ -352,14 +381,7 @@ function patchCachedArticleStarState(qc: QueryClient, articleId: string, starred
   const nextArticle = { ...cachedArticle, is_starred: starred };
   const accountIds = resolveAccountIdsForArticle(qc, cachedArticle);
 
-  qc.setQueriesData({ queryKey: queryKeys.articles.root }, (current) => updateCachedArticleArray(current, nextArticle));
-  qc.setQueriesData({ queryKey: queryKeys.articlesByTag.root }, (current) =>
-    updateCachedArticleArray(current, nextArticle),
-  );
-  qc.setQueriesData({ queryKey: queryKeys.search.root }, (current) => updateCachedArticleArray(current, nextArticle));
-  qc.setQueriesData({ queryKey: queryKeys.recentArticles.root }, (current) =>
-    updateCachedArticleArray(current, nextArticle),
-  );
+  patchArticleListQueries(qc, nextArticle, { insertIfMissing: false });
 
   if (accountIds.length > 0) {
     for (const accountId of accountIds) {

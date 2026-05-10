@@ -247,7 +247,8 @@ export type ShortcutConflict =
       type: "native_menu";
     };
 
-const nativeMenuOwnedShortcuts = new Set(["\u2318+r"]);
+const platformSettingsShortcut = "\u2318+,";
+const nativeMenuOwnedShortcuts = new Set(["\u2318+r", platformSettingsShortcut]);
 const renamedShortcutPreferenceEntries = [
   ["shortcut_view_in_browser", "shortcut_open_in_app_browser"],
   ["shortcut_open_browser", "shortcut_open_external_browser"],
@@ -263,6 +264,10 @@ export function getRenamedShortcutPreferenceKey(key: string): ShortcutPreference
 
 function getShortcutKey(id: ShortcutActionId, prefs: KeyboardShortcutPrefs): string {
   const definition = shortcutDefinitionById.get(id);
+  if (id === "open_settings") {
+    return definition?.defaultKey ?? "\u2318,";
+  }
+
   const preferenceKey = shortcutPrefKey(id);
   const renamedPreference = renamedShortcutPreferenceEntries.find(([, currentKey]) => currentKey === preferenceKey);
 
@@ -542,16 +547,16 @@ export function resolveKeyboardAction(
 
   const textInputTarget = isTextInputTarget(targetTag, targetIsTextEditing);
 
-  // The platform settings shortcut must work even in text inputs.
-  const settingsActionId = map.get(normalizedActionKey);
-  if (settingsActionId === "open_settings") {
-    if (textInputTarget && normalizedActionKey !== normalizeShortcutMapKey("\u2318,")) {
-      return Result.fail("ignored_input");
-    }
+  // The platform settings shortcut is fixed to match the native menu accelerator and works in text inputs.
+  if (normalizedActionKey === platformSettingsShortcut) {
     return Result.succeed({ type: "open-settings" });
   }
-  // Also keep legacy check for ⌘, (always works regardless of mapping)
-  if (key === "," && (metaKey || ctrlKey)) {
+
+  const settingsActionId = map.get(normalizedActionKey);
+  if (settingsActionId === "open_settings") {
+    if (textInputTarget) {
+      return Result.fail("ignored_input");
+    }
     return Result.succeed({ type: "open-settings" });
   }
 

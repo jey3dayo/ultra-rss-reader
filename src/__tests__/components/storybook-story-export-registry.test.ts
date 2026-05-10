@@ -51,6 +51,11 @@ describe("Storybook story export registry", () => {
         default: { component: "div" },
         Broken: [],
       },
+      "/src/components/non-csf-object-export.stories.tsx": {
+        default: { component: "div" },
+        Default: {},
+        helperConfig: { fixtureName: "dense" },
+      },
       "/src/components/no-story.stories.tsx": { default: { component: "div" } },
     });
 
@@ -58,6 +63,7 @@ describe("Storybook story export registry", () => {
       "/src/components/bad-array-story-export.stories.tsx",
       "/src/components/bad-story-export.stories.tsx",
       "/src/components/no-story.stories.tsx",
+      "/src/components/non-csf-object-export.stories.tsx",
     ]);
     expect(issues).toEqual([
       '/src/components/bad-array-story-export.stories.tsx: named export "Broken" must be a story object or an allowlisted helper',
@@ -68,6 +74,7 @@ describe("Storybook story export registry", () => {
       "/src/components/bad-story-export.stories.tsx: expected at least one named story object export",
       "/src/components/bad-undefined-component.stories.tsx: default export must be a Storybook meta-like object with component (missing component)",
       "/src/components/no-story.stories.tsx: expected at least one named story object export",
+      '/src/components/non-csf-object-export.stories.tsx: named export "helperConfig" must be a story object or an allowlisted helper',
     ]);
   });
 });

@@ -1,6 +1,7 @@
-import type { StoryContext } from "@storybook/react-vite";
+import type { Decorator, StoryContext } from "@storybook/react-vite";
 import { createElement } from "react";
 import { describe, expect, it } from "vitest";
+import preview from "../../.storybook/preview";
 import { renderStory, type StoryDecorator, type StoryLike, type StoryMeta } from "./render-story";
 
 function renderStoryFromUntypedCallBoundary<TArgs extends Record<string, unknown>>(
@@ -17,6 +18,84 @@ function renderStoryFromUntypedCallBoundary<TArgs extends Record<string, unknown
 }
 
 describe("renderStory", () => {
+  it("applies global preview parameters before meta and story parameters", () => {
+    const snapshots: Array<Record<string, unknown>> = [];
+
+    renderStory<{ label: string }>(
+      {
+        component: ({ label }: { label: string }) => createElement("span", null, label),
+        args: { label: "base" },
+        parameters: {
+          layout: "centered",
+        },
+      },
+      {
+        parameters: {
+          backgrounds: {
+            default: "light",
+          },
+        },
+        render: (args, context) => {
+          snapshots.push(context.parameters);
+          return createElement("span", null, args.label);
+        },
+      },
+    );
+
+    expect(snapshots[0]).toMatchObject({
+      ...preview.parameters,
+      layout: "centered",
+      backgrounds: {
+        default: "light",
+      },
+    });
+  });
+
+  it("applies global preview decorators outside meta and story decorators when configured", () => {
+    const originalDecorators = preview.decorators;
+    const calls: string[] = [];
+    const createDecorator =
+      (name: string): StoryDecorator<{ label: string }> =>
+      (Story) => {
+        calls.push(`${name}:before`);
+        const output = Story();
+        calls.push(`${name}:after`);
+        return output;
+      };
+    const globalDecorator: Decorator = (Story) => {
+      calls.push("global:before");
+      const output = Story();
+      calls.push("global:after");
+      return output;
+    };
+
+    preview.decorators = [globalDecorator];
+
+    try {
+      renderStory(
+        {
+          component: ({ label }: { label: string }) => createElement("span", null, label),
+          args: { label: "decorated" },
+          decorators: [createDecorator("meta")],
+        },
+        {
+          decorators: [createDecorator("story")],
+        },
+      );
+    } finally {
+      preview.decorators = originalDecorators;
+    }
+
+    expect(calls).toEqual([
+      "global:before",
+      "meta:before",
+      "story:before",
+      "story:after",
+      "meta:after",
+      "global:after",
+    ]);
+  });
+
   it("composes meta decorators outside story decorators in Storybook order", () => {
     const calls: string[] = [];
     const createDecorator =
@@ -117,21 +196,33 @@ describe("renderStory", () => {
       {
         source: "meta",
         args: { label: "story", tone: "neutral" },
-        parameters: { layout: "centered", viewport: "mobile" },
+        parameters: {
+          ...preview.parameters,
+          layout: "centered",
+          viewport: "mobile",
+        },
         globals: { locale: "en", theme: "dark" },
         context: snapshots[0]?.context,
       },
       {
         source: "story",
         args: { label: "story", tone: "neutral" },
-        parameters: { layout: "centered", viewport: "mobile" },
+        parameters: {
+          ...preview.parameters,
+          layout: "centered",
+          viewport: "mobile",
+        },
         globals: { locale: "en", theme: "dark" },
         context: snapshots[0]?.context,
       },
       {
         source: "render",
         args: { label: "decorated", tone: "neutral" },
-        parameters: { layout: "centered", viewport: "narrow" },
+        parameters: {
+          ...preview.parameters,
+          layout: "centered",
+          viewport: "narrow",
+        },
         globals: { locale: "en", theme: "contrast" },
         context: snapshots[2]?.context,
       },

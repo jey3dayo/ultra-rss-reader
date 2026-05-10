@@ -989,7 +989,9 @@ describe("release repository contract", () => {
       expect(nativeMenuActions.get(menuId)).toBe(action);
       expect(shortcutActionIds.has(shortcutActionId)).toBe(true);
     }
-    expect(keyboardShortcutsSource).toContain('const nativeMenuOwnedShortcuts = new Set(["\\u2318+r"])');
+    expect(keyboardShortcutsSource).toContain(
+      'const nativeMenuOwnedShortcuts = new Set(["\\u2318+r", platformSettingsShortcut])',
+    );
     expect(nativeMenuActions.get("accounts-sync")).toBe("sync-all");
   });
 

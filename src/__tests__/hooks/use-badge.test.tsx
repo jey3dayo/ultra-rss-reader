@@ -159,6 +159,47 @@ describe("useBadge", () => {
     consoleErrorSpy.mockRestore();
   });
 
+  it("normalizes decimal only_inbox unread counts to a cleared badge", async () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    setupTauriMocks((cmd) => {
+      if (cmd === "count_account_unread_articles") {
+        return 1.5;
+      }
+
+      return undefined;
+    });
+    usePreferencesStore.setState({ prefs: { unread_badge: "only_inbox" }, loaded: true });
+
+    render(<HookHarness />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(consoleErrorSpy).toHaveBeenCalled();
+    });
+    expect(setBadgeCountMock).toHaveBeenLastCalledWith(undefined);
+
+    consoleErrorSpy.mockRestore();
+  });
+
+  it("caps oversized all_unread feed sums at the safe integer badge boundary", async () => {
+    setupTauriMocks((cmd) => {
+      if (cmd === "list_feeds") {
+        return [
+          { ...sampleFeeds[0], id: "feed-safe-a", unread_count: Number.MAX_SAFE_INTEGER },
+          { ...sampleFeeds[1], id: "feed-safe-b", unread_count: 1 },
+        ];
+      }
+
+      return undefined;
+    });
+    usePreferencesStore.setState({ prefs: { unread_badge: "all_unread" }, loaded: true });
+
+    render(<HookHarness />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(setBadgeCountMock).toHaveBeenCalledWith(Number.MAX_SAFE_INTEGER);
+    });
+  });
+
   it("keeps only_inbox badge reads on the account unread endpoint", async () => {
     const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
     setupTauriMocks((cmd, args) => {

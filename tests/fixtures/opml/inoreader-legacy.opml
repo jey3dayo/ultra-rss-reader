@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="1.0">
+  <head>
+    <title>Inoreader subscriptions</title>
+  </head>
+  <body>
+    <outline text="Legacy">
+      <outline text="Legacy Title Fallback" type="rss" xmlurl="https://legacy.example.com/rss.xml" htmlurl="https://legacy.example.com/"/>
+      <outline title="Title Only" type="rss" xmlUrl="https://legacy.example.com/title-only.xml"/>
+    </outline>
+  </body>
+</opml>

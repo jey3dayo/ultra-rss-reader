@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <head>
+    <title>Feedly Subscriptions</title>
+  </head>
+  <body>
+    <outline text="Engineering" title="Engineering">
+      <outline type="rss" text="Rust Blog" title="Rust Blog" xmlUrl="https://blog.rust-lang.org/feed.xml" htmlUrl="https://blog.rust-lang.org/"/>
+      <outline type="rss" text="Web Platform" title="Web Platform" xmlUrl="https://web.dev/feed.xml"/>
+    </outline>
+    <outline type="rss" text="Top Level" title="Top Level" xmlUrl="https://example.com/top.xml" htmlUrl="https://example.com/"/>
+  </body>
+</opml>

@@ -199,11 +199,12 @@ export const ARTICLE_CACHE_QUERY_ROOTS = [
 ] as const satisfies ReadonlyArray<QueryInvalidationKey>;
 
 export function getReaderArticleQueryMode(queryKey: QueryKey): ReaderFilter | null {
-  const options = queryKey[2];
-  if (options && typeof options === "object" && "mode" in options) {
-    const mode = Reflect.get(options, "mode");
-    if (mode === "all" || mode === "unread" || mode === "starred") {
-      return mode;
+  for (const item of queryKey) {
+    if (item && typeof item === "object" && "mode" in item) {
+      const mode = Reflect.get(item, "mode");
+      if (mode === "all" || mode === "unread" || mode === "starred") {
+        return mode;
+      }
     }
   }
 

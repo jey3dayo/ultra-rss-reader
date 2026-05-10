@@ -1,7 +1,6 @@
 import { useReducer, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { MuteKeywordScope } from "@/api/schemas";
-import type { MuteKeywordDto } from "@/api/tauri-commands";
 import { useMuteSettingsViewProps } from "@/components/settings/hooks/use-mute-settings-view-props";
 import { MuteSettingsView } from "@/components/settings/mute-settings-view";
 import {
@@ -19,19 +18,19 @@ import { useUiStore } from "@/stores/ui-store";
 type MuteSettingsState = {
   keyword: string;
   scope: MuteKeywordScope;
-  confirmRule: MuteKeywordDto | null;
+  confirmRuleId: string | null;
 };
 
 type MuteSettingsAction =
   | { type: "set-keyword"; value: string }
   | { type: "reset-keyword" }
   | { type: "set-scope"; value: MuteKeywordScope }
-  | { type: "set-confirm-rule"; value: MuteKeywordDto | null };
+  | { type: "set-confirm-rule-id"; value: string | null };
 
 const initialMuteSettingsState: MuteSettingsState = {
   keyword: "",
   scope: "title_and_body",
-  confirmRule: null,
+  confirmRuleId: null,
 };
 
 function muteSettingsReducer(state: MuteSettingsState, action: MuteSettingsAction): MuteSettingsState {
@@ -42,8 +41,8 @@ function muteSettingsReducer(state: MuteSettingsState, action: MuteSettingsActio
       return { ...state, keyword: "" };
     case "set-scope":
       return { ...state, scope: action.value };
-    case "set-confirm-rule":
-      return { ...state, confirmRule: action.value };
+    case "set-confirm-rule-id":
+      return { ...state, confirmRuleId: action.value };
     default:
       return state;
   }
@@ -63,7 +62,8 @@ export function MuteSettings() {
   const confirmDeleteInFlightRef = useRef(false);
   const [confirmDeleteInFlight, setConfirmDeleteInFlight] = useState(false);
   const [state, dispatch] = useReducer(muteSettingsReducer, initialMuteSettingsState);
-  const { keyword, scope, confirmRule } = state;
+  const { keyword, scope, confirmRuleId } = state;
+  const confirmRule = confirmRuleId ? (rules.find((candidate) => candidate.id === confirmRuleId) ?? null) : null;
   const autoMarkReadEnabled = resolvePreferenceValue(prefs, "mute_auto_mark_read") === "true";
   const keywordLength = Array.from(keyword.trim()).length;
 
@@ -85,11 +85,17 @@ export function MuteSettings() {
     const rule = rules.find((candidate) => candidate.id === ruleId) ?? null;
     confirmDeleteInFlightRef.current = false;
     setConfirmDeleteInFlight(false);
-    dispatch({ type: "set-confirm-rule", value: rule });
+    dispatch({ type: "set-confirm-rule-id", value: rule?.id ?? null });
   };
 
   const handleConfirmDelete = async () => {
-    if (!confirmRule || confirmDeleteInFlightRef.current) {
+    if (!confirmRuleId || confirmDeleteInFlightRef.current) {
+      return;
+    }
+
+    const currentRule = rules.find((candidate) => candidate.id === confirmRuleId);
+    if (!currentRule) {
+      dispatch({ type: "set-confirm-rule-id", value: null });
       return;
     }
 
@@ -97,10 +103,10 @@ export function MuteSettings() {
     setConfirmDeleteInFlight(true);
     try {
       await deleteMuteKeyword.mutateAsync({
-        muteKeywordId: confirmRule.id,
+        muteKeywordId: currentRule.id,
       });
       showToast(t("mute.delete_success"));
-      dispatch({ type: "set-confirm-rule", value: null });
+      dispatch({ type: "set-confirm-rule-id", value: null });
       confirmDeleteInFlightRef.current = false;
       setConfirmDeleteInFlight(false);
     } catch (error) {
@@ -181,7 +187,7 @@ export function MuteSettings() {
       if (confirmDeleteInFlightRef.current) {
         return;
       }
-      dispatch({ type: "set-confirm-rule", value: null });
+      dispatch({ type: "set-confirm-rule-id", value: null });
     },
   });
 

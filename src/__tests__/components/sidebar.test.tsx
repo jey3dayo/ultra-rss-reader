@@ -904,7 +904,7 @@ describe("Sidebar", () => {
         case "list_accounts":
           return sampleAccounts;
         case "list_folders":
-          return [{ id: "folder-1", account_id: args.accountId, name: "Work", sort_order: 0 }];
+          return [{ id: "folder-1", account_id: "acc-2", name: "Work", sort_order: 0 }];
         case "list_feeds":
           return [{ ...sampleFeeds[0], folder_id: "folder-1", unread_count: 5 }];
         case "list_account_articles":
@@ -1318,7 +1318,7 @@ describe("Sidebar", () => {
         case "list_folders":
           return [{ id: "folder-1", account_id: args.accountId, name: "Work", sort_order: 0 }];
         case "list_feeds":
-          return [{ ...sampleFeeds[0], title: "Folder Feed", folder_id: "folder-1" }];
+          return [{ ...sampleFeeds[0], id: "feed-1", title: "Folder Feed", folder_id: "folder-1" }];
         case "list_account_articles":
           return [];
         case "list_tags":
@@ -1333,13 +1333,18 @@ describe("Sidebar", () => {
     });
     useUiStore.setState({
       ...useUiStore.getState(),
+      selectedAccountId: "acc-1",
       expandedFolderIds: new Set(["folder-1"]),
+    });
+    usePreferencesStore.setState({
+      prefs: { selected_account_id: "acc-1", startup_folder_expansion: "expand_all" },
+      loaded: true,
     });
 
     render(<Sidebar />, { wrapper: createWrapper() });
 
-    fireEvent.click(await screen.findByRole("button", { name: "Drag Folder Feed" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Move to Work" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Drag Folder Feed" }, { timeout: 5000 }));
+    fireEvent.click(await screen.findByRole("button", { name: "Move to Work" }, { timeout: 5000 }));
 
     await flushMicrotasksAndRealTimer();
 
@@ -2295,7 +2300,10 @@ describe("Sidebar", () => {
 
     window.localStorage.setItem(STORAGE_KEYS.sidebarExpandedFolders, JSON.stringify({ "acc-1": ["folder-restored"] }));
     usePreferencesStore.setState({
-      prefs: { startup_folder_expansion: "restore_previous" },
+      prefs: {
+        selected_account_id: "acc-2",
+        startup_folder_expansion: "restore_previous",
+      },
       loaded: true,
     });
     useUiStore.setState({

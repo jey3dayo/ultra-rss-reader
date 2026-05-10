@@ -134,11 +134,15 @@ describe("Storybook Explorer organization", () => {
   it("keeps Storybook index payload public helpers explicit", () => {
     expect(Object.keys(storybookIndexPayload).toSorted()).toEqual([
       "createStorybookStoryIdIndex",
+      "denseNarrowViewportId",
+      "denseNarrowViewportStoryIds",
       "getDuplicateStorybookStoryIdDiagnostics",
       "getStorybookIframeStoryId",
       "getStorybookIframeUrl",
       "getStorybookIndexStoryIds",
       "sortedStorybookStoryIds",
+      "storybookSmokeStoryIds",
+      "storybookViewportMaxDimensionPx",
       "uiReferenceCanvasStoryIds",
     ]);
   });

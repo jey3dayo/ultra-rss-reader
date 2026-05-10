@@ -64,41 +64,50 @@ function readRustBrowserWebviewSource() {
 }
 
 function extractRustStructFields(source: string, structName: string) {
-  const structMatch = source.match(new RegExp(`pub struct ${structName} \\{([\\s\\S]*?)\\n\\}`));
+  const structMatch = source.match(
+    new RegExp(`((?:#\\[[^\\]]+\\]\\s*)*)pub struct ${structName} \\{([\\s\\S]*?)\\n\\}`),
+  );
   expect(structMatch, `${structName} should exist in Rust browser_webview.rs`).not.toBeNull();
 
+  const renameAll = structMatch?.[1]?.match(/#\[serde\(rename_all = "([^"]+)"\)\]/)?.[1];
+  const body = structMatch?.[2] ?? "";
   const fields: string[] = [];
-  let skipNextField = false;
+  let fieldAttributes: string[] = [];
 
-  for (const line of (structMatch?.[1] ?? "").split("\n")) {
-    if (line.includes("#[serde(skip")) {
-      skipNextField = true;
+  for (const line of body.split("\n")) {
+    const attributeMatch = line.trim().match(/^#\[(.+)\]$/);
+    if (attributeMatch?.[1]) {
+      fieldAttributes.push(attributeMatch[1]);
       continue;
     }
 
     const fieldMatch = line.match(/^ {4}pub ([a-zA-Z0-9_]+):/);
-    if (!fieldMatch) {
+    if (!fieldMatch?.[1]) {
       continue;
     }
-    if (skipNextField) {
-      skipNextField = false;
+    if (fieldAttributes.some((attribute) => attribute.startsWith("serde(skip"))) {
+      fieldAttributes = [];
       continue;
     }
 
-    fields.push(
-      fieldMatch[1] === "requested_logical"
-        ? "requestedLogical"
-        : fieldMatch[1] === "applied_logical"
-          ? "appliedLogical"
-          : fieldMatch[1] === "scale_factor"
-            ? "scaleFactor"
-            : fieldMatch[1] === "native_webview_bounds"
-              ? "nativeWebviewBounds"
-              : fieldMatch[1],
-    );
+    fields.push(serializedRustFieldName(fieldMatch[1], fieldAttributes, renameAll));
+    fieldAttributes = [];
   }
 
   return fields.toSorted();
+}
+
+function snakeToCamel(value: string) {
+  return value.replace(/_([a-z])/g, (_, char: string) => char.toUpperCase());
+}
+
+function serializedRustFieldName(fieldName: string, attributes: readonly string[], renameAll?: string) {
+  const renamed = attributes.map((attribute) => attribute.match(/serde\(rename = "([^"]+)"/)?.[1]).find(Boolean);
+  if (renamed) {
+    return renamed;
+  }
+
+  return renameAll === "camelCase" ? snakeToCamel(fieldName) : fieldName;
 }
 
 describe("browser webview command contract", () => {

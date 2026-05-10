@@ -18,7 +18,7 @@ use crate::infra::db::connection::DbManager;
 use crate::infra::db::sqlite_account::SqliteAccountRepository;
 use crate::infra::db::sqlite_feed::SqliteFeedRepository;
 use crate::infra::db::sqlite_folder::SqliteFolderRepository;
-use crate::infra::feed_discovery::validate_discovery_url;
+use crate::infra::feed_discovery::validate_discovery_request_url;
 use crate::infra::opml;
 use crate::infra::opml::OpmlFeed;
 use crate::repository::account::AccountRepository;
@@ -198,7 +198,7 @@ fn validate_opml_feed_url(url: &str) -> Result<String, AppError> {
         });
     }
 
-    validate_discovery_url(&parsed).map_err(|error| match error {
+    validate_discovery_request_url(&parsed).map_err(|error| match error {
         DomainError::Validation(message) => AppError::UserVisible { message },
         other => AppError::from(other),
     })?;
@@ -689,6 +689,18 @@ mod tests {
     <outline text="Feed" type="rss" xmlUrl="http://[fc00::1]/feed.xml"/>
   </body>
 </opml>"#;
+        let private_xml_url_encoded_ipv4 = r#"<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <body>
+    <outline text="Feed" type="rss" xmlUrl="http://%31%32%37.0.0.1/feed.xml"/>
+  </body>
+</opml>"#;
+        let private_xml_url_dns = r#"<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <body>
+    <outline text="Feed" type="rss" xmlUrl="http://private.test.invalid/feed.xml"/>
+  </body>
+</opml>"#;
         let private_html_url_localhost = r#"<?xml version="1.0" encoding="UTF-8"?>
 <opml version="2.0">
   <body>
@@ -707,6 +719,8 @@ mod tests {
             private_xml_url_rfc1918,
             private_xml_url_link_local,
             private_xml_url_ipv6,
+            private_xml_url_encoded_ipv4,
+            private_xml_url_dns,
             private_html_url_localhost,
             private_html_url_ipv6,
         ] {

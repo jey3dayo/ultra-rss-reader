@@ -18,6 +18,10 @@ type StorybookNamedStoryLike = {
   globals?: unknown;
   render?: unknown;
   decorators?: unknown;
+  loaders?: unknown;
+  name?: unknown;
+  play?: unknown;
+  tags?: unknown;
 };
 
 export type StorybookStoryExportRegistryEntry = {
@@ -74,9 +78,20 @@ const STORYBOOK_HELPER_EXPORT_ALLOWLIST_IDS = new Set(
 const storyModules = import.meta.glob<unknown>("/src/**/*.stories.tsx", {
   eager: true,
 });
+const STORYBOOK_NAMED_STORY_KEYS = new Set([
+  "args",
+  "decorators",
+  "globals",
+  "loaders",
+  "name",
+  "parameters",
+  "play",
+  "render",
+  "tags",
+]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function describeStorybookValue(value: unknown) {
@@ -125,8 +140,16 @@ function describeStorybookStoryModuleIssue(value: unknown) {
   )})`;
 }
 
-function isStorybookNamedStoryLike(value: unknown): value is StorybookNamedStoryLike {
-  return isRecord(value) && !Array.isArray(value);
+function isStorybookNamedStoryLike(exportName: string, value: unknown): value is StorybookNamedStoryLike {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  const exportKeys = Object.keys(value);
+  return (
+    /^[A-Z]/.test(exportName) &&
+    (exportKeys.length === 0 || exportKeys.some((key) => STORYBOOK_NAMED_STORY_KEYS.has(key)))
+  );
 }
 
 function isAllowlistedStorybookHelperExport(filePath: string, helperExportName: string) {
@@ -156,7 +179,7 @@ export function collectStorybookStoryExportRegistry(storyModulesByPath: Record<s
         continue;
       }
 
-      if (isStorybookNamedStoryLike(exportValue)) {
+      if (isStorybookNamedStoryLike(exportName, exportValue)) {
         storyExportNames.push(exportName);
         continue;
       }

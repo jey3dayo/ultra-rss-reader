@@ -2,6 +2,7 @@ import type { StoryContext } from "@storybook/react-vite";
 import { type RenderOptions, render } from "@testing-library/react";
 import type { ElementType, ReactNode } from "react";
 import { createElement } from "react";
+import preview from "../../.storybook/preview";
 
 export type StoryArgs = Record<string, unknown>;
 type StoryParameters = Record<string, unknown>;
@@ -62,7 +63,7 @@ function isStoryDecorator<TArgs extends StoryArgs>(decorator: unknown): decorato
 }
 
 function collectStoryDecorators<TArgs extends StoryArgs>(
-  decorators: StoryMeta<TArgs>["decorators"],
+  decorators: StoryMeta<TArgs>["decorators"] | unknown,
 ): StoryDecorator<TArgs>[] {
   const candidateDecorators = Array.isArray(decorators) ? decorators : decorators ? [decorators] : [];
   const storyDecorators: StoryDecorator<TArgs>[] = [];
@@ -82,6 +83,7 @@ function resolveStoryFromStorybookBoundary<TArgs extends StoryArgs>(
 ): ResolvedStoryFromStorybookBoundary<TArgs> {
   const args = mergePartialStoryArgsShape(meta.args, story.args) as TArgs;
   const parameters = {
+    ...(preview.parameters ?? {}),
     ...(meta.parameters ?? {}),
     ...(story.parameters ?? {}),
   };
@@ -91,7 +93,11 @@ function resolveStoryFromStorybookBoundary<TArgs extends StoryArgs>(
   return {
     args,
     context,
-    decorators: [...collectStoryDecorators<TArgs>(meta.decorators), ...collectStoryDecorators<TArgs>(story.decorators)],
+    decorators: [
+      ...collectStoryDecorators<TArgs>(preview.decorators),
+      ...collectStoryDecorators<TArgs>(meta.decorators),
+      ...collectStoryDecorators<TArgs>(story.decorators),
+    ],
   } satisfies ResolvedStoryFromStorybookBoundary<TArgs>;
 }
 

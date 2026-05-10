@@ -32,6 +32,32 @@ describe("keyboard shortcut resolver", () => {
     expect(Result.unwrap(result)).toEqual({ type: "open-settings" });
   });
 
+  it.each([
+    "x",
+    "",
+  ] as const)("keeps Cmd+Comma as the fixed settings shortcut when open_settings has custom binding %j", (shortcut) => {
+    const keyToAction = buildKeyToActionMap({
+      shortcut_open_settings: shortcut,
+    });
+
+    expect(keyToAction.get("x")).toBeUndefined();
+    expect(keyToAction.get("⌘,")).toBeUndefined();
+
+    const result = resolveKeyboardAction({
+      key: ",",
+      metaKey: true,
+      ctrlKey: false,
+      shiftKey: false,
+      targetTag: "INPUT",
+      selectedArticleId: null,
+      contentMode: "empty",
+      viewMode: "all",
+      keyToAction,
+    });
+
+    expect(Result.unwrap(result)).toEqual({ type: "open-settings" });
+  });
+
   it("ignores a single-key open settings remap when an input is focused", () => {
     const result = resolveKeyboardAction({
       key: "o",
@@ -667,6 +693,12 @@ describe("keyboard shortcut resolver", () => {
 
   it("reports native menu owned shortcut conflicts", () => {
     expect(getShortcutConflict("reload_webview", "⌘+r", {})).toEqual({
+      type: "native_menu",
+    });
+  });
+
+  it("reports the fixed settings shortcut as native menu owned for other custom shortcuts", () => {
+    expect(getShortcutConflict("open_command_palette", "⌘,", {})).toEqual({
       type: "native_menu",
     });
   });

@@ -1,4 +1,5 @@
 import { Result } from "@praha/byethrow";
+import { normalizeHttpCommandUrl } from "@/api/schemas/commands";
 import { DevRuntimeOptionsSchema, MAX_DEV_WINDOW_DIMENSION_PX } from "@/api/schemas/platform-info";
 import type { DevRuntimeOptions } from "@/api/tauri-commands";
 import { getDevRuntimeOptions } from "@/api/tauri-commands";
@@ -43,6 +44,22 @@ function readFirstNonEmptyEnv(keys: readonly string[]): string | undefined {
     const value = import.meta.env[key];
     if (typeof value === "string" && value.trim().length > 0) {
       return value.trim();
+    }
+  }
+
+  return undefined;
+}
+
+function readFirstValidDevWebUrlEnv(keys: readonly string[]): string | undefined {
+  for (const key of keys) {
+    const value = import.meta.env[key];
+    if (typeof value !== "string") {
+      continue;
+    }
+
+    const normalized = normalizeHttpCommandUrl(value);
+    if (normalized !== null) {
+      return normalized;
     }
   }
 
@@ -185,7 +202,7 @@ export function readDevWebUrl(): string | null {
     return null;
   }
 
-  return readFirstNonEmptyEnv(DEV_RUNTIME_ENV_KEYS.webUrl) ?? readRuntimeDevWebUrl();
+  return readFirstValidDevWebUrlEnv(DEV_RUNTIME_ENV_KEYS.webUrl) ?? readRuntimeDevWebUrl();
 }
 
 export function readDevWindowSize(): DevWindowSize | null {

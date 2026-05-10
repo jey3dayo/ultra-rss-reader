@@ -729,6 +729,46 @@ describe("useKeyboard", () => {
     });
   });
 
+  it("pressing the focus-sidebar shortcut opens the sidebar and focuses the selected feed", () => {
+    document.body.innerHTML = '<button data-sidebar-selected-target="true" data-feed-id="feed-1">Feed</button>';
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      sidebarOpen: false,
+      focusedPane: "content",
+      selection: { type: "feed", feedId: "feed-1" },
+      contentMode: "reader",
+    });
+
+    const { unmount } = renderHook(() => useKeyboard());
+
+    fireEvent.keyDown(window, { key: "u" });
+
+    expect(useUiStore.getState().sidebarOpen).toBe(true);
+    expect(useUiStore.getState().focusedPane).toBe("sidebar");
+    expect(document.querySelector('[data-feed-id="feed-1"]')).toHaveFocus();
+
+    unmount();
+  });
+
+  it("pressing the focus-sidebar shortcut falls back to the sidebar fallback target", () => {
+    document.body.innerHTML = '<button data-sidebar-fallback-target="true">All feeds</button>';
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      sidebarOpen: true,
+      focusedPane: "content",
+      contentMode: "reader",
+    });
+
+    const { unmount } = renderHook(() => useKeyboard());
+
+    fireEvent.keyDown(window, { key: "u" });
+
+    expect(useUiStore.getState().focusedPane).toBe("sidebar");
+    expect(screen.getByRole("button", { name: "All feeds" })).toHaveFocus();
+
+    unmount();
+  });
+
   it("pressing ArrowLeft in the article pane returns focus to the article list", async () => {
     const calls: MockTauriCommandCall[] = [];
     renderAppShell(calls);

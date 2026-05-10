@@ -543,7 +543,7 @@ describe("CommandPalette", () => {
     });
 
     expect(openSettings.querySelector('[data-slot="command-shortcut"]')).toHaveClass("text-foreground-soft");
-    expect(openSettings).toHaveTextContent("⌘ .");
+    expect(openSettings).toHaveTextContent("⌘ ,");
     expect(markAllRead).toHaveTextContent("Shift + A");
   });
 

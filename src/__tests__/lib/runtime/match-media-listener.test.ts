@@ -116,6 +116,22 @@ describe("match-media-listener", () => {
     expect(removeListener).toHaveBeenCalledWith(listener);
   });
 
+  it("keeps legacy listener registration failures non-fatal", () => {
+    const mediaQuery = createMediaQueryList({
+      addEventListener: undefined,
+      removeEventListener: undefined,
+      addListener: vi.fn(() => {
+        throw new Error("legacy listener unavailable");
+      }),
+    });
+    const listener = vi.fn();
+
+    const cleanup = subscribeMatchMediaChange(mediaQuery, listener);
+
+    expect(() => cleanup()).not.toThrow();
+    expect(mediaQuery.addListener).toHaveBeenCalledWith(listener);
+  });
+
   it("keeps cleanup non-fatal when modern listener removal throws", () => {
     const listener = vi.fn();
     const mediaQuery = createMediaQueryList({

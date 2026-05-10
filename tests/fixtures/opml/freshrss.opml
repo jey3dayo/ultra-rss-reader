@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <head>
+    <title>FreshRSS export</title>
+  </head>
+  <body>
+    <outline text="News">
+      <outline type="rss" text="Example News" xmlUrl="https://news.example.com/rss" htmlUrl="https://news.example.com/"/>
+    </outline>
+    <outline text="Empty Folder"/>
+    <outline type="rss" text="No Folder Feed" xmlUrl="https://feeds.example.com/no-folder.atom"/>
+  </body>
+</opml>

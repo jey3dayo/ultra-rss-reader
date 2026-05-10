@@ -1,6 +1,7 @@
 import { cleanup, screen } from "@testing-library/react";
 import { renderStory } from "@tests/helpers/render-story";
 import { describe, expect, it } from "vitest";
+import { MAX_DEV_WINDOW_DIMENSION_PX } from "@/api/schemas/platform-info";
 import articleListScreenMeta, {
   DenseNarrowViewport as ArticleListDenseNarrowViewport,
 } from "@/components/reader/article-list-screen-view.stories";
@@ -10,7 +11,13 @@ import sidebarHeaderMeta, {
 import settingsModalMeta, {
   DenseNarrowViewport as SettingsModalDenseNarrowViewport,
 } from "@/components/settings/settings-modal-view.stories";
-import { denseNarrowViewportId, denseNarrowViewportParameters } from "@/components/storybook/viewport-fixtures";
+import {
+  denseNarrowViewportId,
+  denseNarrowViewportParameters,
+  denseNarrowViewportStoryIds,
+  storybookViewportMaxDimensionPx,
+} from "@/components/storybook/viewport-fixtures";
+import { storybookSmokeStoryIds } from "../../../e2e/storybook/storybook-index-payload";
 
 describe("Storybook viewport density fixtures", () => {
   it("uses one narrow viewport baseline for all density fixtures", () => {
@@ -18,6 +25,14 @@ describe("Storybook viewport density fixtures", () => {
     expect(ArticleListDenseNarrowViewport.parameters?.viewport).toBe(denseNarrowViewportParameters.viewport);
     expect(SettingsModalDenseNarrowViewport.parameters?.viewport).toBe(denseNarrowViewportParameters.viewport);
     expect(denseNarrowViewportParameters.viewport.defaultViewport).toBe(denseNarrowViewportId);
+  });
+
+  it("keeps Storybook viewport fixtures aligned with the dev window dimension cap", () => {
+    expect(storybookViewportMaxDimensionPx).toBe(MAX_DEV_WINDOW_DIMENSION_PX);
+  });
+
+  it("connects dense narrow viewport fixtures to the Storybook smoke matrix", () => {
+    expect(storybookSmokeStoryIds).toEqual(expect.arrayContaining([...denseNarrowViewportStoryIds]));
   });
 
   it("keeps the sidebar header narrow fixture focused on primary toolbar actions", () => {

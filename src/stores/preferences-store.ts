@@ -3,6 +3,7 @@ import i18n from "i18next";
 import { create } from "zustand";
 import { getPreferences, setPreference } from "@/api/tauri-commands";
 import { STORAGE_KEYS } from "@/constants/storage";
+import { subscribeMatchMediaChange } from "@/lib/runtime/match-media-listener";
 import { resolveUiLanguage } from "@/lib/ui/ui-language";
 import {
   type AfterReadingPreference,
@@ -204,43 +205,6 @@ function applyResolvedTheme(root: HTMLElement, resolvedTheme: "light" | "dark", 
   }
 }
 
-function tryAddSystemThemeListener(
-  mediaQuery: MediaQueryList,
-  handler: (event: MediaQueryListEvent) => void,
-): (() => void) | null {
-  if (typeof mediaQuery.addEventListener === "function") {
-    try {
-      mediaQuery.addEventListener("change", handler);
-      return () => {
-        try {
-          mediaQuery.removeEventListener("change", handler);
-        } catch {
-          // Runtime listener cleanup is best-effort for older WebViews/mocks.
-        }
-      };
-    } catch {
-      // Fall through to the legacy API below.
-    }
-  }
-
-  if (typeof mediaQuery.addListener === "function") {
-    try {
-      mediaQuery.addListener(handler);
-      return () => {
-        try {
-          mediaQuery.removeListener(handler);
-        } catch {
-          // Runtime listener cleanup is best-effort for older WebViews/mocks.
-        }
-      };
-    } catch {
-      return null;
-    }
-  }
-
-  return null;
-}
-
 function applyTheme(theme: Theme, options?: { withTransition?: boolean }): void {
   // Clean up previous system theme listener
   systemThemeCleanup?.();
@@ -262,7 +226,7 @@ function applyTheme(theme: Theme, options?: { withTransition?: boolean }): void 
     const handler = (e: MediaQueryListEvent) => {
       applyResolvedTheme(root, e.matches ? "dark" : "light", true);
     };
-    systemThemeCleanup = tryAddSystemThemeListener(mq, handler);
+    systemThemeCleanup = subscribeMatchMediaChange(mq, handler);
   } else {
     applyResolvedTheme(root, theme === "dark" ? "dark" : "light", withTransition);
   }

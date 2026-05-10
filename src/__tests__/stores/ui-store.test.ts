@@ -454,6 +454,24 @@ describe("useUiStore", () => {
     expect(useUiStore.getState().commandPaletteOpen).toBe(false);
   });
 
+  it("resets expanded folders when the selected account context changes", () => {
+    useUiStore.setState({ expandedFolderIds: new Set(["folder-1"]) });
+    useUiStore.getState().selectAccount("acc-1");
+    expect(useUiStore.getState().expandedFolderIds).toEqual(new Set());
+
+    useUiStore.setState({ expandedFolderIds: new Set(["folder-2"]) });
+    useUiStore.getState().restoreAccountSelection("acc-2");
+    expect(useUiStore.getState().expandedFolderIds).toEqual(new Set());
+
+    useUiStore.setState({ expandedFolderIds: new Set(["folder-3"]) });
+    useUiStore.getState().clearSelectedAccount();
+    expect(useUiStore.getState().expandedFolderIds).toEqual(new Set());
+
+    useUiStore.setState({ selectedAccountId: "acc-3", expandedFolderIds: new Set(["folder-4"]) });
+    useUiStore.getState().handleAccountDeleted("acc-3", ["acc-4"]);
+    expect(useUiStore.getState().expandedFolderIds).toEqual(new Set());
+  });
+
   it("does not fall back to the deleted account id when handling account deletion", () => {
     setStaleBrowserState();
     useUiStore.setState({

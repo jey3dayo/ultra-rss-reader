@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <head>
+    <title>NetNewsWire Subscriptions</title>
+  </head>
+  <body>
+    <outline text="Apple">
+      <outline text="Swift.org" title="Swift.org" type="rss" xmlUrl="https://www.swift.org/atom.xml" htmlUrl="https://www.swift.org/"/>
+      <outline text="Nested">
+        <outline text="Deep Feed" title="Deep Feed" type="rss" xmlUrl="https://deep.example.com/feed.xml"/>
+      </outline>
+    </outline>
+  </body>
+</opml>

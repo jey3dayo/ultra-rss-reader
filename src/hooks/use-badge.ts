@@ -7,8 +7,14 @@ import type { UnreadBadgePreference } from "@/schemas/preferences";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
+const MAX_BADGE_COUNT = Number.MAX_SAFE_INTEGER;
+
 function unreadCountToBadgeCount(count: number | undefined): number | undefined {
-  return count !== undefined && Number.isFinite(count) && count > 0 ? count : undefined;
+  if (count === undefined || !Number.isFinite(count) || count <= 0 || !Number.isInteger(count)) {
+    return undefined;
+  }
+
+  return Math.min(count, MAX_BADGE_COUNT);
 }
 
 function resolveUnreadBadgePreference(value: string | undefined): UnreadBadgePreference {
