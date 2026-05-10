@@ -35,7 +35,11 @@ jobs:
       - name: Resolve pnpm store path
         id: pnpm-store
         shell: bash
-        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+        run: |
+          pnpm config set store-dir .pnpm-store
+          store_path="$(pnpm store path --silent)"
+          mkdir -p "$store_path"
+          echo "path=$store_path" >> "$GITHUB_OUTPUT"
 
       - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
         with:
@@ -75,7 +79,11 @@ jobs:
       - name: Resolve pnpm store path
         id: pnpm-store
         shell: bash
-        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+        run: |
+          pnpm config set store-dir .pnpm-store
+          store_path="$(pnpm store path --silent)"
+          mkdir -p "$store_path"
+          echo "path=$store_path" >> "$GITHUB_OUTPUT"
 
       - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
         with:
@@ -119,7 +127,11 @@ jobs:
       - name: Resolve pnpm store path
         id: pnpm-store
         shell: bash
-        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+        run: |
+          pnpm config set store-dir .pnpm-store
+          store_path="$(pnpm store path --silent)"
+          mkdir -p "$store_path"
+          echo "path=$store_path" >> "$GITHUB_OUTPUT"
 
       - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
         with:
@@ -155,7 +167,11 @@ jobs:
       - name: Resolve pnpm store path
         id: pnpm-store
         shell: bash
-        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+        run: |
+          pnpm config set store-dir .pnpm-store
+          store_path="$(pnpm store path --silent)"
+          mkdir -p "$store_path"
+          echo "path=$store_path" >> "$GITHUB_OUTPUT"
 
       - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
         with:
@@ -185,7 +201,11 @@ jobs:
       - name: Resolve pnpm store path
         id: pnpm-store
         shell: bash
-        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+        run: |
+          pnpm config set store-dir .pnpm-store
+          store_path="$(pnpm store path --silent)"
+          mkdir -p "$store_path"
+          echo "path=$store_path" >> "$GITHUB_OUTPUT"
 
       - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
         with:
