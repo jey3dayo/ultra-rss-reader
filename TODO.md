@@ -2810,6 +2810,11 @@
   - 多数 account が失敗し続けると backoff があっても wake/check/log が増えて desktop app の常駐負荷になる
   - many accounts、continuous auth failure、network offline、scheduler sleep、log rate limit の contract を追加する
 
+- [ ] P2 offline/online signal と native network error classification の関係を決める
+  - 対象: frontend runtime boundary、sync trigger UI、domain network error
+  - `navigator.onLine` と Rust HTTP error が食い違うと、manual sync button や toast が誤った復旧案を出す
+  - online false、online true but DNS failure、captive portal、manual retry、sync scheduler の期待値を固定する
+
 - [ ] P2 CSP dev/prod drift を script/style/connect/font で release gate 化する
   - 対象: Tauri config、Vite dev config、release smoke
   - dev HMR 用 CSP と production CSP がずれると、release だけ blank screen または不要に広い permission になる
@@ -2829,6 +2834,11 @@
   - 対象: i18n setup、settings language actions、app shell fallback
   - locale JSON load/parse failure 時に raw key 表示、blank UI、old locale 維持のどれにするか未固定だと復旧しにくい
   - missing locale file、invalid JSON、switch failure、old locale retention、diagnostics once の test を追加する
+
+- [ ] P2 platform permission denied を file/dialog/keyring/clipboard ごとに user action copy へ落とす
+  - 対象: Tauri command wrappers、runtime error taxonomy、settings/debug UI
+  - permission denied を generic error にすると、macOS privacy settings や Windows policy の復旧案が出せない
+  - file access denied、dialog denied、keyring denied、clipboard denied、action-specific copy の matrix を作る
 
 - [ ] P2 updater downloaded artifact cleanup を cancel / failed install / app restart で固定する
   - 対象: updater hook、updater commands、release docs
@@ -2955,6 +2965,12 @@
   - 2 回目起動時に既存 window を focus するだけか、URL/action を渡すかが未固定だと、sync 中や dirty form 中に state が壊れる
   - second launch、hidden/minimized window、dirty settings、sync in-flight、update pending、focus failure の contract を追加する
 
+- [ ] P1 provider auth header / cookie persistence を no-store policy として固定する
+  - 対象: GReader/FreshRSS provider HTTP client、debug logging、HTTP fixtures
+  - auth header や cookie が redirect/log/cache/retry error に残ると credential leak につながる
+  - Authorization redaction、Set-Cookie ignored、Cookie not persisted、redirect strips auth、retry diagnostics の contract を追加する
+  - superseded by: P1-Q2e (covered by provider auth token/server URL redaction and no-store policy; kept verification: Authorization redaction, Set-Cookie ignored, retry diagnostics)
+
 - [ ] P1 stale update install と DB migration version の compatibility gate を作る
   - 対象: updater flow、DB migration、release metadata
   - 古い downloaded update を後で install すると、現在 DB schema と想定 migration path がずれる可能性がある
@@ -3015,6 +3031,11 @@
   - action failure の再現には sequence が必要だが、telemetry なし方針なら local-only・redacted・size-capped の設計が必要
   - local-only log、redaction、size cap、action id、account/feed omission、support copy の decision を追加する
 
+- [ ] P2 user-facing error copy の support code / diagnostics id 方針を決める
+  - 対象: `AppError` schema、toasts、dialogs、runtime diagnostics
+  - 詳細を隠すほど問い合わせ時の特定が難しくなるため、secret を出さずに照合できる短い code/id が必要か判断する
+  - stable error code、diagnostics id、copy in ja/en、log correlation、no secret detail の policy を追加する
+
 - [ ] P3 repository method naming と SQL operation kind の suffix を整理する
   - 対象: `src-tauri/src/repository`, `src-tauri/src/infra/db`
   - `list/find/get/count/save/update` の境界が揺れると、transaction/read-write classification と test naming が追いにくい
@@ -3044,6 +3065,11 @@
   - 対象: feed URL、server URL、article URL、history、OPML export
   - `https://user:pass@example.com/feed` のような URL が DB/OPML/history に保存されると、redaction 以前に漏洩面が増える
   - feed add、OPML import、article link、browser history、debug dump、export の reject/redact policy を固定する
+
+- [ ] P1 app log / diagnostics の maximum total size と emergency truncation を固定する
+  - 対象: log plugin setup、runtime diagnostics、support dump
+  - 連続 failure で log/diagnostics が肥大化すると disk pressure と support copy failure が起きる
+  - total log cap、per-event cap、diagnostics ring buffer、truncation marker、copy failure fallback の contract を追加する
 
 - [ ] P2 OS accessibility settings の high contrast / forced colors / increased contrast を design token と同期する
   - 対象: `DESIGN.md`, CSS tokens, app shell, settings/reader views
@@ -3105,10 +3131,20 @@
   - quota exceeded が一箇所で起きた後に warning storage も書けず、同じ failure が連鎖する可能性がある
   - preferences save、sidebar expanded folders、command history、diagnostics warning-once、recovery UI の contract を追加する
 
+- [ ] P2 frontend schema parse failure の fallback data が UI action を enable しない contract を作る
+  - 対象: `src/schemas`, Tauri command wrappers, view models
+  - parse failure 時に empty fallback を使うと、本来 disabled にすべき destructive action が enabled になる可能性がある
+  - account list parse failure、feed list parse failure、preference parse failure、empty fallback、disabled action の test を追加する
+
 - [ ] P2 Rust test `cfg(test)` と production-only code path の coverage gap を inventory 化する
   - 対象: `src-tauri/src/lib.rs`, `cfg(not(test))` blocks, integration tests
   - plugin setup、startup lifecycle、log setup などが `cfg(not(test))` で外れると unit test だけでは release regression を拾えない
   - plugin setup、log setup、focus restore、scheduler start、cleanup logs、release smoke owner の inventory を作る
+
+- [ ] P2 generated schema drift を PR review comment ではなく failing gate へ昇格する条件を決める
+  - 対象: generated Tauri schemas、API schemas、CI
+  - generated artifact drift が review 依存だと、release 直前に capability/schema mismatch が出る
+  - generated file changed、source changed no generated update、CI failure, intentional update label、regeneration command の policy を追加する
 
 - [ ] P3 TODO priority aging policy を作る
   - 対象: `TODO.md`, `.claude/rules/quality-policy.md`
@@ -3149,6 +3185,21 @@
   - 対象: release workflow、Windows packaged artifact、release docs
   - Windows では署名状態や SmartScreen 表示が初回導入率に直結するが、CI green だけでは見えない
   - signature details、publisher name、SmartScreen prompt、install path、uninstall entry、upgrade install の check を追加する
+
+- [ ] P2 per-domain sync politeness / concurrency cap を local RSS provider で固定する
+  - 対象: local provider sync、sync scheduler、HTTP defaults
+  - 同じ host の feed を多数購読していると、manual/all sync で短時間に大量 request を投げる可能性がある
+  - same-host concurrency、global concurrency、manual sync override、backoff sharing、user-agent contact docs の policy を追加する
+
+- [ ] P2 provider redirect chain の auth header stripping を same-origin / cross-origin で固定する
+  - 対象: GReader/FreshRSS HTTP client、local provider HTTP client
+  - redirect 先に Authorization header が残ると、provider credential が別 origin に送られる
+  - same-origin redirect、cross-origin redirect、scheme downgrade、userinfo URL、diagnostics redaction の contract を追加する
+
+- [ ] P2 DNS cache / repeated private host resolution の time-of-check/time-of-use policy を決める
+  - 対象: private host guard、feed discovery、local provider fetch
+  - validation 時と実 fetch 時で DNS 結果が変わると、private host guard が bypass される
+  - resolve before fetch、redirect re-resolve、TTL/caching、DNS failure retry、rebinding fixture の policy を追加する
 
 - [ ] P2 local DB encryption at rest を採用しない/する decision record を作る
   - 対象: DB storage、credential storage、privacy docs
@@ -3191,10 +3242,30 @@
   - action id を rename すると preference/history/debug が壊れるため、永続化される id と内部 id を分ける必要がある
   - persisted ids、internal-only ids、migration map、debug label、removed action の contract を追加する
 
+- [ ] P2 stale query cache after app version upgrade を schema version / query key version で検出する
+  - 対象: React Query keys、startup boot、schema migrations
+  - reload 前後や future persistence 導入時に古い query shape が残ると、view model parse が壊れる
+  - app version bump、schema version bump、query key version、cache clear、fallback disabled UI の policy を追加する
+
+- [ ] P2 test fixture real date values を frozen clock / relative date policy へ寄せる
+  - 対象: tests fixtures、reader/subscription review tests、Rust fixtures
+  - 実日付 fixture が現在日に近づくと stale day、grouping、review warning の期待値が時間で変わる
+  - frozen clock、relative date builder、timezone fixture、future date、DST boundary の migration plan を作る
+
 - [ ] P2 release notes と in-app updater message の user-visible change classification を同期する
   - 対象: release notes workflow、updater UI、CHANGELOG
   - release note では修正済みでも updater UI が generic だと、ユーザーが update urgency を判断できない
   - security/privacy fix、data migration、manual action required、known issue、rollback impossible の copy policy を追加する
+
+- [ ] P3 dependency update review を runtime / dev-only / build-only / transitive risk に分類する
+  - 対象: `package.json`, `pnpm-lock.yaml`, `src-tauri/Cargo.lock`
+  - dependency 更新を一律に見ると、runtime security と test-only churn の優先度が混ざる
+  - runtime dependency、dev tool、build tool、transitive duplicate、security advisory の review checklist を作る
+
+- [ ] P3 local developer machine state を check に混ぜない reproducibility audit を行う
+  - 対象: `mise.toml`, scripts, test setup, release scripts
+  - local app running、ports occupied、existing DB、env vars、global pnpm store が check 成否に影響すると第三者再現性が落ちる
+  - port state、app process、env vars、home directory files、global cache、timezone/locale の audit を追加する
 
 - [ ] P3 TODO.md から issue / worker prompt を生成する export format を決める
   - 対象: `TODO.md`, task triage tooling, subagent workflow
@@ -3246,6 +3317,11 @@
   - 対象: local provider parser、diagnostics、support dump
   - parse failure の再現には response sample が有効だが、記事本文や private feed content を保存すると privacy risk になる
   - no sample、redacted prefix、hash only、content-type/status only、user opt-in の decision を追加する
+
+- [ ] P2 provider credential verification request の side effect を account create/update と分離する
+  - 対象: account setup、test connection commands、provider HTTP client
+  - 接続確認が remote server 側で session/cookie/last-login を更新する場合、保存前の試行が side effect になる
+  - verify before save、verify after save、cookie discarded、rate limit、failed verify logging の contract を追加する
 
 - [ ] P2 account/server URL change 時の existing sync_state / pending mutation migration policy を決める
   - 対象: account commands、sync_state repository、pending mutation repository
@@ -3406,6 +3482,11 @@
   - 対象: `TODO.md`, future task generator
   - TODO が多くなるほど「完了条件」が曖昧な項目が増え、実装 worker が scope を広げすぎる
   - 対象、問題、分割、focused test、manual verification、defer 明記の template を作る
+
+- [ ] P1 error fallback が destructive action を隠さず disabled にする共通 contract を作る
+  - 対象: settings data actions、account/feed/tag destructive dialogs、query parse fallback
+  - エラー時に空配列や default state へ倒すと、対象不明の delete/reset が enabled になる危険がある
+  - account load failure、feed load failure、tag load failure、settings parse failure、disabled action reason の test を追加する
 
 - [ ] P1 DB corruption detected after startup success の runtime recovery surface を設計する
   - 対象: repository error handling、settings data page、runtime diagnostics
