@@ -1480,11 +1480,6 @@
   - DB open 後に content_text と unread_count を repair するため、大きい DB では起動時間や first window 表示に影響しやすい
   - large article set、empty content_text、mute keyword tableあり/なし、updated rows log、timeout/telemetry、batch化方針を追加する
 
-- [ ] P2 updater semantic version policy を build metadata / malformed semver で固定する
-  - 対象: `src-tauri/src/commands/updater_commands.rs`, `src/api/schemas/update-info.ts`, `src/__tests__/hooks/use-updater.test.ts`
-  - semantic parse に失敗した場合は文字列比較へ落ちるため、`1.2.10` 風以外の version や build metadata で downgrade 判定が揺れやすい
-  - `1.2.3+build`、`v1.2.3`、`1.2`、`1.2.3.4`、leading zero、malformed latest.json の policy test を追加する
-
 - [ ] P2 updater pending handle clear と manual check/download の race を contract 化する
   - 対象: `src-tauri/src/commands/updater_commands.rs`, `src/hooks/use-updater.ts`, `src/__tests__/hooks/use-updater.test.ts`
   - check 開始時に pending update を clear するため、manual check と download が近接すると cached handle が消える/古くなる race が起きやすい
@@ -1499,11 +1494,6 @@
   - 対象: `src-tauri/src/commands/updater_commands.rs`, `src/lib/actions.ts`, `src/hooks/use-updater.ts`, `src/components/app-confirm-dialog.tsx`
   - `restart_app` は sync/update guard を取るが、frontend 側の pending mutation / unsaved settings / browser open の確認と切り離れている
   - update ready restart、manual restart action、settings dirty state、sync running、install running、restart failure の UX contract を追加する
-
-- [ ] P2 window runtime error normalization が object detail を潰しすぎないよう diagnostics contract を追加する
-  - 対象: `src/lib/window/windows.ts`, `src/lib/actions.ts`, `src/lib/runtime/diagnostics.ts`
-  - Tauri window API の object error は `Unknown window error` に丸められるため、runtime unavailable / permission denied / platform unsupported の区別が消えやすい
-  - Error object、message getter throw、DOMException-like object、string error、permission error、unsupported platform の redacted diagnostics test を追加する
 
 - [ ] P2 always-on-top / fullscreen window state の preference と runtime drift を検出する
   - 対象: `src/lib/window/windows.ts`, `src/hooks/use-window-always-on-top.ts`, `src/stores/preferences-store.ts`
@@ -1541,11 +1531,6 @@
   - 対象: `src/api/schemas/preferences.ts`, `src/schemas/preferences.ts`, `src/__tests__/schemas/preferences-schema-contract.test.ts`
   - command DTO schema と app preference schema が別ファイルにあるため、option追加時に DTO は通るが store/UI validation が落ちる drift が起きやすい
   - schema-derived type、default preference parity、unknown key、legacy value migration、settings option fixture の contract を追加する
-
-- [ ] P2 platform info schema の OS/arch/runtime unavailable fallback を feature flags と連動させる
-  - 対象: `src/api/schemas/platform-info.ts`, `src/lib/runtime/platform.ts`, `src/components/settings/debug-settings.tsx`
-  - platform info が未知 OS/arch や runtime unavailable の時、browser embed、shortcut display、release support copy がばらばらに fallback しやすい
-  - unknown OS、unknown arch、Tauri unavailable、mock parity、feature flag fallback、debug display の component test を追加する
 
 - [ ] P2 browser webview command schema の geometry integer rounding を DPI/zoom で固定する
   - 対象: `src/api/schemas/browser-webview.ts`, `src/api/schemas/commands.ts`, `src/components/reader/hooks/browser/use-browser-webview-bounds-sync.ts`
