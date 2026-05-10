@@ -3121,31 +3121,10 @@
   - observer mock の cleanup が test ごとに違うと、後続 test の resize/layout 判定が flake する
   - setup helper、afterEach cleanup、observer callback ordering、fake timers、StrictMode double invoke の確認を追加する
 
-- [ ] P1 DB backup / restore 前後の `integrity_check` と WAL checkpoint 方針を固定する
-  - 対象: `src-tauri/src/commands/database_commands.rs`, `src-tauri/src/infra/db/connection.rs`, backup flow
-  - WAL 未 checkpoint や破損 DB を backup/restore すると、成功 toast 後に次回起動で壊れる
-  - pre-backup integrity、post-restore integrity、WAL checkpoint failure、read-only DB、corrupt DB の復旧方針を追加する
-  - superseded by: P1-Q4b (covered by backup/restore integrity_check and WAL checkpoint policy; kept verification: pre-backup integrity, post-restore integrity, read-only DB)
-
 - [ ] P1 OS keyring orphan credential cleanup を account delete / rename / reset と同期する
   - 対象: `src-tauri/src/infra/keyring_store.rs`, account commands, settings data reset
   - account 削除や rename 後に古い credential entry が残ると、復元・debug・reset の時に ghost account として再浮上する
   - delete success、delete keyring failure、rename rollback、reset partial failure、orphan inventory の contract を追加する
-
-- [ ] P1 article link opener の `rel` / URL redaction / private host policy を固定する
-  - 対象: article content rendering、external opener、URL schemas
-  - sanitized HTML 内の link が opener policy を迂回すると、token URL や private host を外部に開く可能性がある
-  - `target=_blank`、`rel=noopener noreferrer`、credential URL、private host、malformed href、relative href の fixture を追加する
-
-- [ ] P2 feed discovery robots.txt / user-agent 方針を明文化する
-  - 対象: `src-tauri/src/infra/feed_discovery.rs`, provider HTTP defaults, docs
-  - desktop app として robots.txt を読む/読まない、User-Agent をどう名乗るかが曖昧だと provider 側 block や運用問い合わせに弱い
-  - user-agent string、robots ignored/checked policy、403 handling、docs wording、test fixture の task に分ける
-
-- [ ] P2 `robots` / provider block response を sync backoff と user action で分ける
-  - 対象: local provider sync、`src-tauri/src/service/sync_scheduler.rs`, sync result UI
-  - 403/429/451/503 を同じ failure として扱うと、backoff・toast・manual retry の意味がずれる
-  - 403 forbidden、429 retry-after、451 unavailable legal、503 temporary、manual retry allowed の期待値を固定する
 
 - [ ] P2 feed item GUID collision policy を account/feed boundary で固定する
   - 対象: article repository、local provider normalizer、sync flow
@@ -3172,16 +3151,6 @@
   - 巨大 text、改行混在、権限拒否、runtime unavailable を generic failure にすると復旧と redaction が難しい
   - size cap、CRLF normalization、permission denied、runtime unavailable、redacted diagnostics を追加する
 
-- [ ] P2 filesystem path normalization を log/backup/export/settings で共通化する
-  - 対象: log commands、database backup/export commands、Tauri path helpers
-  - symlink、non-UTF8 path、reserved name、case-insensitive collision の扱いが command ごとに違うと platform bug になる
-  - symlink、non-UTF8、Windows reserved name、case collision、path redaction の matrix を作る
-
-- [ ] P2 atomic file write policy を export / backup / dev credential store で揃える
-  - 対象: OPML export、DB backup、dev credential file store
-  - 途中失敗で target file を半端に残すと、次回 import/restore/debug で正常ファイルとして扱われる
-  - temp file、fsync、rename failure、existing file collision、cleanup failure の contract を追加する
-
 - [ ] P2 Node / pnpm / mise toolchain drift を local gate で検出する
   - 対象: `mise.toml`, `package.json`, CI workflow, setup docs
   - Node 24 前提なのに Node 25 で warning のまま進むと、local green と CI green がずれる
@@ -3201,11 +3170,6 @@
   - 対象: `src/locales/*`, reader/sidebar/settings count labels
   - interpolation parity だけでは 0/1/2/large count、日本語/英語の複数形、桁区切りが検出できない
   - zero、one、many、large number、negative fallback、locale switch の copy test を追加する
-
-- [ ] P2 article content image loading policy を privacy / performance として固定する
-  - 対象: article renderer、sanitizer、browser/external opener policy
-  - remote image を即読みするか、lazy/load block するかが曖昧だと IP leak と巨大画像 performance 問題になる
-  - `loading=lazy`、referrer policy、blocked private image URL、broken image、huge dimensions の fixture を追加する
 
 - [ ] P2 mock data に実在ドメインを使う場合の network isolation policy を決める
   - 対象: `src/dev/mock-data.ts`, dev mocks, storybook
@@ -3242,11 +3206,6 @@
   - `xn--` host、Unicode host、IPv6 zone id、mixed-case host が command ごとに違うと SSRF guard と opener policy がずれる
   - IDNA host、Unicode host、IPv6 zone id、localhost alias、percent-encoded host、trailing dot の contract を追加する
 
-- [ ] P1 release build で `DEV_CREDENTIALS` / dev mock / debug scenario が有効化されない gate を作る
-  - 対象: `scripts/lib/windows-dispatch.ts`, `src/dev`, Tauri release config
-  - dev credential や dev scenario が release artifact に到達すると credential handling と privacy boundary が壊れる
-  - release env、dev config、debug scenario import、mock runtime install、artifact smoke の check を追加する
-
 - [ ] P1 global error / unhandled rejection の redaction と user-facing recovery を固定する
   - 対象: `src/main.tsx`, `src/lib/runtime/diagnostics.ts`, app shell error boundary
   - render 外の promise rejection や event handler throw が console だけに流れると、blank UI や secret 混入 log を検出できない
@@ -3256,11 +3215,6 @@
   - 対象: domain validation、settings forms、reader/sidebar display
   - RTL override、zero-width、confusable 文字が入ると feed name や action target が spoof され、delete/rename 確認で誤認しやすい
   - bidi control、zero-width joiner、NFKC confusable、trim display、confirmation label の policy を追加する
-
-- [ ] P2 migration transactional DDL / partial migration failure recovery を明文化する
-  - 対象: `src-tauri/src/infra/db/migration.rs`, migration files
-  - SQLite DDL と data migration の途中失敗後に再起動しても安全かが曖昧だと、復旧不能な半端 schema が残る
-  - DDL failure、data copy failure、schema_version unchanged、backup rollback、retry migration の fixture を追加する
 
 - [ ] P2 background sync battery / CPU guard を repeated failure と many-account で固定する
   - 対象: `src-tauri/src/service/sync_scheduler.rs`, sync settings, diagnostics
