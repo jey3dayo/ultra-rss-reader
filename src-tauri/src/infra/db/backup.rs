@@ -140,6 +140,31 @@ fn backup_checksum(path: &Path) -> DomainResult<String> {
     Ok(hex::encode(hasher.finalize()))
 }
 
+fn checkpoint_wal(db_path: &Path) -> DomainResult<()> {
+    let conn = Connection::open(db_path)?;
+    conn.query_row("PRAGMA wal_checkpoint(TRUNCATE)", [], |_| Ok(()))
+        .map_err(|e| {
+            DomainError::Migration(format!(
+                "Failed to checkpoint WAL for {}: {e}",
+                redacted_path_label(db_path)
+            ))
+        })?;
+    Ok(())
+}
+
+fn ensure_integrity_ok(db_path: &Path, operation: &str) -> DomainResult<()> {
+    let conn = Connection::open_with_flags(db_path, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
+    let result: String = conn.query_row("PRAGMA integrity_check", [], |row| row.get(0))?;
+    if result == "ok" {
+        return Ok(());
+    }
+
+    Err(DomainError::Migration(format!(
+        "SQLite integrity_check failed {operation} for {}: {result}",
+        redacted_path_label(db_path)
+    )))
+}
+
 fn write_backup_metadata(backup_path: &Path, schema_version: i32) -> DomainResult<()> {
     let checksum = backup_checksum(backup_path)?;
     let conn = Connection::open(backup_path)?;
@@ -307,6 +332,9 @@ pub fn create_backup(db_path: &Path, schema_version: i32) -> DomainResult<PathBu
 
     let dest = available_backup_path(db_path, schema_version);
 
+    ensure_integrity_ok(db_path, "before backup")?;
+    checkpoint_wal(db_path)?;
+
     info!(
         "Creating DB backup: {} -> {}",
         db_path.display(),
@@ -315,6 +343,7 @@ pub fn create_backup(db_path: &Path, schema_version: i32) -> DomainResult<PathBu
 
     copy_backup_file_atomic(db_path, &dest)?;
     write_backup_metadata(&dest, schema_version)?;
+    ensure_integrity_ok(&dest, "after backup")?;
 
     // Copy WAL and SHM if they exist (SQLite WAL mode)
     for suffix in SQLITE_AUXILIARY_SUFFIXES {
@@ -341,6 +370,8 @@ pub fn restore_backup(db_path: &Path, backup: &Path) -> DomainResult<()> {
         backup.display(),
         db_path.display()
     );
+
+    ensure_integrity_ok(backup, "before restore")?;
 
     let mut restore_set = vec![(backup.to_path_buf(), db_path.to_path_buf())];
     let mut remove_if_missing = Vec::new();
@@ -437,6 +468,9 @@ pub fn restore_backup(db_path: &Path, backup: &Path) -> DomainResult<()> {
     for (_, old_path) in old_paths {
         let _ = fs::remove_file(old_path);
     }
+
+    checkpoint_wal(db_path)?;
+    ensure_integrity_ok(db_path, "after restore")?;
 
     Ok(())
 }
@@ -731,27 +765,32 @@ mod tests {
     }
 
     #[test]
-    fn create_backup_copies_wal_and_shm() {
+    fn create_backup_checkpoints_wal_before_copying() {
         let (_dir, db_path) = setup_temp_db();
-        // SQLite appends -wal/-shm to the full filename
-        let mut wal_name = db_path.as_os_str().to_owned();
-        wal_name.push("-wal");
-        let wal_path = PathBuf::from(wal_name);
-        let mut shm_name = db_path.as_os_str().to_owned();
-        shm_name.push("-shm");
-        let shm_path = PathBuf::from(shm_name);
-        fs::write(&wal_path, b"wal data").unwrap();
-        fs::write(&shm_path, b"shm data").unwrap();
+        let wal_path = PathBuf::from(format!("{}-wal", db_path.display()));
+        let conn = Connection::open(&db_path).unwrap();
+        conn.execute_batch(
+            "PRAGMA journal_mode = WAL;
+             INSERT INTO probe (id, payload) VALUES (2, 'pending wal content');",
+        )
+        .unwrap();
+        assert!(wal_path.exists(), "fixture should create a WAL sidecar");
+        drop(conn);
 
         let bp = create_backup(&db_path, 2).unwrap();
+
         assert!(bp.exists());
+        assert_eq!(read_probe_payload(&bp), "test database content");
+        let row_count: i64 = Connection::open(&bp)
+            .unwrap()
+            .query_row("SELECT COUNT(*) FROM probe", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(row_count, 2);
         assert_eq!(
-            fs::read(auxiliary_backup_path(&bp, "wal")).unwrap(),
-            b"wal data"
-        );
-        assert_eq!(
-            fs::read(auxiliary_backup_path(&bp, "shm")).unwrap(),
-            b"shm data"
+            fs::metadata(&wal_path)
+                .map(|metadata| metadata.len())
+                .unwrap_or(0),
+            0
         );
         assert!(!temp_backup_path(&auxiliary_backup_path(&bp, "wal")).exists());
         assert!(!temp_backup_path(&auxiliary_backup_path(&bp, "shm")).exists());
@@ -818,8 +857,8 @@ mod tests {
         let (_dir, db_path) = setup_temp_db();
         let wal_path = PathBuf::from(format!("{}-wal", db_path.display()));
         let shm_path = PathBuf::from(format!("{}-shm", db_path.display()));
-        fs::write(&wal_path, b"backup wal").unwrap();
-        fs::write(&shm_path, b"backup shm").unwrap();
+        fs::write(&wal_path, []).unwrap();
+        fs::write(&shm_path, []).unwrap();
 
         let bp = create_backup(&db_path, 1).unwrap();
 
@@ -835,8 +874,8 @@ mod tests {
 
         restore_backup(&db_path, &bp).unwrap();
 
-        assert_eq!(fs::read(&wal_path).unwrap(), b"backup wal");
-        assert_eq!(fs::read(&shm_path).unwrap(), b"backup shm");
+        assert_eq!(fs::read(&wal_path).unwrap_or_default(), b"");
+        assert_eq!(fs::read(&shm_path).unwrap_or_default(), b"");
         assert_eq!(read_probe_payload(&db_path), "test database content");
         assert!(!temp_backup_path(&db_path).exists());
         assert!(!restore_old_path(&db_path).exists());
