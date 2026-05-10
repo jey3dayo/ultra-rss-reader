@@ -126,46 +126,7 @@ run = "actionlint"
 
 [tasks."lint:workflow-pins"]
 description = "Workflow action references must be pinned to commit SHAs"
-run = '''
-node <<'NODE'
-const fs = require("node:fs");
-const path = require("node:path");
-
-const usesPattern = /^\s*-\s+uses:\s+([^\s#]+)$/gm;
-const errors = [];
-const workflowsDir = ".github/workflows";
-const workflowPaths = fs
-  .readdirSync(workflowsDir)
-  .filter((fileName) => fileName.endsWith(".yml") || fileName.endsWith(".yaml"))
-  .map((fileName) => path.join(workflowsDir, fileName))
-  .sort();
-
-for (const workflowPath of workflowPaths) {
-  const workflow = fs.readFileSync(workflowPath, "utf8");
-
-  for (const match of workflow.matchAll(usesPattern)) {
-    const usesValue = match[1];
-    const line = workflow.slice(0, match.index).split("\n").length;
-    const atIndex = usesValue.lastIndexOf("@");
-    const ref = atIndex === -1 ? "" : usesValue.slice(atIndex + 1);
-
-    if (!/^[0-9a-f]{40}$/i.test(ref)) {
-      errors.push(`${workflowPath}:${line}: ${usesValue} must use a 40-character commit SHA`);
-    }
-  }
-}
-
-if (errors.length > 0) {
-  for (const error of errors) {
-    console.error(error);
-  }
-  process.exit(1);
-}
-NODE
-'''
-run_windows = '''
-node -e "const fs=require('node:fs');const path=require('node:path');const d='.github/workflows';const r=/^\s*-\s+uses:\s+([^\s#]+)$/gm;const e=[];for(const p of fs.readdirSync(d).filter(f=>f.endsWith('.yml')||f.endsWith('.yaml')).map(f=>path.join(d,f)).sort()){const w=fs.readFileSync(p,'utf8');for(const m of w.matchAll(r)){const v=m[1];const l=w.slice(0,m.index).split('\n').length;const i=v.lastIndexOf('@');const ref=i===-1?'':v.slice(i+1);if(!/^[0-9a-f]{40}$/i.test(ref)){e.push(`${p}:${l}: ${v} must use a 40-character commit SHA`);}}}if(e.length){console.error(e.join('\n'));process.exit(1);}"
-'''
+run = "node scripts/check-workflow-pins.mjs"
 
 [tasks."audit:deps"]
 description = "Manual dependency security audit; not part of CI or release preflight until advisory policy is defined"
