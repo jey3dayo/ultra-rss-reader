@@ -1233,6 +1233,79 @@ mod tests {
     }
 
     #[test]
+    fn select_due_accounts_for_tick_drains_sleep_resume_without_bursting_all_accounts() {
+        let pre_sleep = Instant::now();
+        let resume = pre_sleep + Duration::from_secs(3_600);
+        let accounts = (0..4)
+            .map(|index| {
+                let mut account = test_account(60);
+                account.id = AccountId(format!("account-{index}"));
+                account
+            })
+            .collect::<Vec<_>>();
+        let schedules = accounts
+            .iter()
+            .map(|account| {
+                (
+                    account.id.as_ref().to_string(),
+                    AccountSchedule {
+                        next_sync: pre_sleep + Duration::from_secs(60),
+                        interval: Duration::from_secs(60),
+                    },
+                )
+            })
+            .collect::<HashMap<_, _>>();
+
+        let selected = select_due_accounts_for_tick(
+            &accounts,
+            &schedules,
+            resume,
+            MAX_ACCOUNTS_PER_SCHEDULER_TICK,
+        );
+
+        assert_eq!(
+            selected.len(),
+            1,
+            "resume after sleep must drain overdue accounts one per tick to protect battery and CPU"
+        );
+        assert_eq!(
+            selected[0].id.as_ref(),
+            "account-0",
+            "oldest/tie-broken due account should run first after sleep"
+        );
+    }
+
+    #[test]
+    fn upsert_account_schedule_clamps_clock_jump_like_far_future_in_memory_schedule() {
+        let mut account = test_account(60);
+        account.id = AccountId("clock-forward-recovery".to_string());
+        let now = Instant::now();
+        let mut schedules = HashMap::from([(
+            account.id.as_ref().to_string(),
+            AccountSchedule {
+                next_sync: now + Duration::from_secs(86_400),
+                interval: Duration::from_secs(60),
+            },
+        )]);
+
+        upsert_account_schedule(
+            &mut schedules,
+            account.id.as_ref().to_string(),
+            &account,
+            now,
+        );
+
+        let schedule = schedules
+            .get(account.id.as_ref())
+            .expect("schedule should remain");
+        assert_eq!(
+            schedule.next_sync,
+            now + Duration::from_secs(60),
+            "scheduler must not keep an in-memory next_sync farther out than the current interval"
+        );
+    }
+
+    #[test]
     fn completed_sync_reschedule_uses_refreshed_account_interval() {
         let db = std::sync::Mutex::new(test_db());
         let mut stale_account = test_account(3_600);
@@ -1794,6 +1867,27 @@ mod tests {
         assert_eq!(warnings[0].retry_in_seconds, Some(600));
         assert!(warnings[0].retry_at.is_some());
         assert!(is_in_backoff(&db, &account.id));
+    }
+
+    #[test]
+    fn expired_retry_after_during_sleep_allows_sync_after_resume() {
+        let db = std::sync::Mutex::new(test_db());
+        let account = test_account(60);
+        {
+            let db_guard = db.lock().unwrap();
+            insert_test_account(&db_guard, &account.id);
+            insert_scheduler_sync_state(
+                &db_guard,
+                &account.id,
+                1,
+                Some(&(chrono::Utc::now() - chrono::Duration::seconds(1)).to_rfc3339()),
+            );
+        }
+
+        assert!(
+            !is_in_backoff(&db, &account.id),
+            "retry windows that expire while the system sleeps must be eligible on resume"
+        );
     }
 
     #[test]

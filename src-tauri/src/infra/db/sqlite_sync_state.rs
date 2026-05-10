@@ -327,6 +327,88 @@ mod tests {
     }
 
     #[test]
+    fn scheduler_time_fields_persist_utc_rfc3339_and_epoch_microseconds_by_contract() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let repo = SqliteSyncStateRepository::new(db.writer());
+
+        repo.save(&SyncState {
+            account_id: account_id.clone(),
+            scope_key: SyncStateScopeKey::scheduler().as_string(),
+            timestamp_usec: Some(1_767_225_599_123_456),
+            continuation: None,
+            etag: None,
+            last_modified: None,
+            last_success_at: Some("2026-12-31T23:59:59Z".to_string()),
+            last_error: None,
+            error_count: 1,
+            next_retry_at: Some("2027-01-01T00:00:59Z".to_string()),
+        })
+        .unwrap();
+
+        let found = repo
+            .get(&account_id, SyncStateScopeKey::scheduler())
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(found.timestamp_usec, Some(1_767_225_599_123_456));
+        for value in [
+            found.last_success_at.as_deref(),
+            found.next_retry_at.as_deref(),
+        ] {
+            let value = value.expect("scheduler time field should be present");
+            let parsed = chrono::DateTime::parse_from_rfc3339(value)
+                .expect("scheduler TEXT time fields must be RFC3339");
+            assert_eq!(
+                parsed.offset().local_minus_utc(),
+                0,
+                "scheduler TEXT time fields must persist as UTC, not local time"
+            );
+        }
+    }
+
+    #[test]
+    fn local_feed_validator_time_fields_keep_remote_http_date_separate_from_app_utc_time() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let repo = SqliteSyncStateRepository::new(db.writer());
+
+        repo.save(&SyncState {
+            account_id: account_id.clone(),
+            scope_key: SyncStateScopeKey::local_feed("https://example.com/rss").as_string(),
+            timestamp_usec: Some(1_767_225_599_000_000),
+            continuation: None,
+            etag: Some("\"etag-local\"".to_string()),
+            last_modified: Some("Wed, 01 Jan 2025 00:00:00 GMT".to_string()),
+            last_success_at: Some("2026-12-31T23:59:59Z".to_string()),
+            last_error: None,
+            error_count: 0,
+            next_retry_at: None,
+        })
+        .unwrap();
+
+        let found = repo
+            .get(
+                &account_id,
+                SyncStateScopeKey::local_feed("https://example.com/rss"),
+            )
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(
+            found.last_modified.as_deref(),
+            Some("Wed, 01 Jan 2025 00:00:00 GMT"),
+            "HTTP validator fields must preserve provider header strings"
+        );
+        let last_success_at = found
+            .last_success_at
+            .expect("last_success_at should be present");
+        let parsed = chrono::DateTime::parse_from_rfc3339(&last_success_at)
+            .expect("app-owned sync success time must be RFC3339");
+        assert_eq!(parsed.offset().local_minus_utc(), 0);
+    }
+
+    #[test]
     fn get_keeps_same_scope_key_isolated_by_account_on_migration_applied_db() {
         let db = test_db();
         let account_a = insert_test_account(&db);

@@ -180,7 +180,12 @@ Use this path when startup succeeded but a later read or write command reports c
 6. Separate automatic sync backoff from user-action-required refusal:
    - HTTP 429 or `Retry-After` is backoff input.
    - HTTP 401/403, robots disallow, and explicit provider block require credential/account/server review or a visible blocked state.
-7. If stale content is still readable, capture whether a stale content banner was shown in the account, feed, or article view. Do not report readable stale articles as a successful fresh sync.
+7. Treat frontend offline/online state as a trigger hint, not as the native network failure category:
+   - `online === false` may suppress automatic background attempts or label stale content as offline, but manual retry should still record the native command result.
+   - `online === true` does not prove provider reachability. DNS failure, timeout, TLS failure, connection reset, captive portal, and HTTP status classification come from the native provider error.
+   - If frontend and native signals disagree, preserve both signals in the incident notes and use the native provider error for recovery category and retry/backoff decisions.
+8. If sync behavior changed after OS sleep, app resume, or a manual clock change, record whether the retry window had already expired, whether many accounts were due at once, and whether manual sync succeeded after resume.
+9. If stale content is still readable, capture whether a stale content banner was shown in the account, feed, or article view. Do not report readable stale articles as a successful fresh sync.
 
 ## Escalation Notes
 
