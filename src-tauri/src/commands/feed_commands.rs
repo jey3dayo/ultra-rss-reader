@@ -7,6 +7,7 @@ use crate::commands::dto::{AppError, FeedDto, FolderDto};
 use crate::commands::AppState;
 use crate::domain::error::DomainError;
 use crate::domain::feed::Feed;
+use crate::domain::folder::normalize_folder_name as normalize_folder_domain_name;
 use crate::domain::provider::ProviderKind;
 use crate::domain::types::{AccountId, FeedId, FolderId};
 use crate::infra::db::connection::DbManager;
@@ -23,7 +24,7 @@ use crate::infra::feed_discovery;
 use crate::repository::account::AccountRepository;
 
 const FEED_TITLE_MAX_CHARS: usize = 200;
-const FOLDER_NAME_MAX_CHARS: usize = 100;
+const FOLDER_NAME_MAX_CHARS: usize = crate::domain::folder::FOLDER_NAME_MAX_CHARS;
 const UPDATE_FEED_FOLDER_TARGET_VALIDATION_MESSAGE: &str =
     "feed not found or folder does not belong to feed account";
 const FOLDER_NAME_UNIQUE_INDEX: &str = "idx_folders_account_name_nocase_unique";
@@ -53,18 +54,10 @@ pub(super) fn validate_feed_title(title: &str) -> Result<String, AppError> {
 }
 
 pub(super) fn normalize_folder_name(name: &str) -> Result<String, AppError> {
-    let name = name.trim();
-    if name.is_empty() {
-        return Err(AppError::UserVisible {
-            message: "Folder name cannot be empty".into(),
-        });
-    }
-    if name.chars().count() > FOLDER_NAME_MAX_CHARS {
-        return Err(AppError::UserVisible {
-            message: format!("Folder name must be {FOLDER_NAME_MAX_CHARS} characters or less"),
-        });
-    }
-    Ok(name.to_string())
+    normalize_folder_domain_name(name).map_err(|error| match error {
+        DomainError::Validation(message) => AppError::UserVisible { message },
+        error => AppError::from(error),
+    })
 }
 
 fn validate_folder_name(name: &str, existing_names: &[String]) -> Result<String, AppError> {
@@ -487,6 +480,18 @@ mod validation_tests {
     fn validates_folder_create_name() {
         let existing = vec!["Tech".to_string()];
         assert_eq!(validate_folder_name("  News  ", &existing).unwrap(), "News");
+        assert_eq!(
+            validate_folder_name("\u{3000}News\u{00a0}", &existing).unwrap(),
+            "News"
+        );
+        assert_eq!(
+            validate_folder_name("Dev\u{3000}\tNews", &existing).unwrap(),
+            "Dev\u{3000}\tNews"
+        );
+        assert_eq!(
+            validate_folder_name("Ｆｅｅｄ", &existing).unwrap(),
+            "Ｆｅｅｄ"
+        );
         assert!(validate_folder_name("   ", &existing).is_err());
         assert!(validate_folder_name(&"a".repeat(101), &existing).is_err());
         assert!(validate_folder_name("tech", &existing).is_err());
