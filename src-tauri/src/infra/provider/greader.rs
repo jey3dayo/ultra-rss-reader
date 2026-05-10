@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use chrono::DateTime;
+use chrono::{DateTime, Utc};
 use reqwest::header::HeaderValue;
 use serde::{Deserialize, Deserializer};
 use std::collections::{HashMap, HashSet};
@@ -281,6 +281,17 @@ fn next_ot_timestamp_usec(
     oldest_timestamp.checked_add(1).or(Some(oldest_timestamp))
 }
 
+fn valid_item_cursor_timestamp_usec(timestamp_usec: i64) -> Option<i64> {
+    if timestamp_usec < 0 {
+        return None;
+    }
+    let timestamp = DateTime::from_timestamp_micros(timestamp_usec)?;
+    if timestamp > Utc::now() {
+        return None;
+    }
+    Some(timestamp_usec)
+}
+
 impl GReaderProvider {
     /// Create a provider configured for FreshRSS.
     pub fn for_freshrss(server_url: &str) -> Self {
@@ -447,8 +458,17 @@ impl GReaderProvider {
 
     fn item_cursor_timestamp_usec(item: &GReaderItem) -> Option<i64> {
         item.timestamp_usec
-            .or_else(|| item.updated.map(|ts| ts.saturating_mul(1_000_000)))
-            .or_else(|| item.published.map(|ts| ts.saturating_mul(1_000_000)))
+            .and_then(valid_item_cursor_timestamp_usec)
+            .or_else(|| {
+                item.updated
+                    .and_then(|ts| ts.checked_mul(1_000_000))
+                    .and_then(valid_item_cursor_timestamp_usec)
+            })
+            .or_else(|| {
+                item.published
+                    .and_then(|ts| ts.checked_mul(1_000_000))
+                    .and_then(valid_item_cursor_timestamp_usec)
+            })
     }
 
     fn first_non_empty_link_href(links: Option<&[GReaderLink]>) -> Option<String> {
@@ -1077,6 +1097,19 @@ mod tests {
         assert_eq!(
             normalize_label_remote_id("user/-/label/%E9%96%8B%E7%99%BA", Some(" 開発 ")),
             Some(("user/-/label/開発".to_string(), "開発".to_string()))
+        );
+    }
+
+    #[test]
+    fn item_cursor_timestamp_policy_ignores_invalid_clock_values() {
+        let future_usec = (Utc::now() + chrono::Duration::hours(1)).timestamp_micros();
+
+        assert_eq!(valid_item_cursor_timestamp_usec(-1), None);
+        assert_eq!(valid_item_cursor_timestamp_usec(i64::MAX), None);
+        assert_eq!(valid_item_cursor_timestamp_usec(future_usec), None);
+        assert_eq!(
+            valid_item_cursor_timestamp_usec(1_700_000_000_000_000),
+            Some(1_700_000_000_000_000)
         );
     }
 

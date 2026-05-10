@@ -620,9 +620,7 @@ fn normalize_unreserved_percent_encoding(value: &str) -> String {
             let low = bytes[index + 2];
             if let (Some(high), Some(low)) = (hex_value(high), hex_value(low)) {
                 let decoded = (high << 4) | low;
-                if decoded.is_ascii_alphanumeric()
-                    || matches!(decoded, b'-' | b'.' | b'_' | b'~')
-                {
+                if decoded.is_ascii_alphanumeric() || matches!(decoded, b'-' | b'.' | b'_' | b'~') {
                     normalized.push(decoded as char);
                 } else {
                     normalized.push('%');
@@ -2086,6 +2084,77 @@ mod tests {
     }
 
     #[test]
+    fn browser_preview_script_bridge_message_accepts_canonical_current_url_payloads() {
+        let redirected_state = BrowserWebviewState {
+            url: "https://example.com/redirected".to_string(),
+            can_go_back: false,
+            can_go_forward: false,
+            is_loading: false,
+            load_generation: 2,
+        };
+        let trailing_slash_state = BrowserWebviewState {
+            url: "https://example.com/".to_string(),
+            ..redirected_state.clone()
+        };
+        let percent_encoded_state = BrowserWebviewState {
+            url: "https://example.com/~reader/%2Farticle".to_string(),
+            ..redirected_state.clone()
+        };
+        let hash_changed_state = BrowserWebviewState {
+            url: "https://example.com/article".to_string(),
+            ..redirected_state.clone()
+        };
+
+        assert_eq!(
+            browser_preview_bridge_message_action(
+                r#"{"action":"toggle-read","url":"https://example.com/redirected"}"#,
+                Some(&redirected_state)
+            ),
+            Some("toggle-read".to_string())
+        );
+        assert_eq!(
+            browser_preview_bridge_message_action(
+                r#"{"action":"toggle-read","url":"https://example.com"}"#,
+                Some(&trailing_slash_state)
+            ),
+            Some("toggle-read".to_string())
+        );
+        assert_eq!(
+            browser_preview_bridge_message_action(
+                r#"{"action":"toggle-read","url":"https://example.com/%7ereader/%2farticle"}"#,
+                Some(&percent_encoded_state)
+            ),
+            Some("toggle-read".to_string())
+        );
+        assert_eq!(
+            browser_preview_bridge_message_action(
+                r##"{"action":"toggle-read","url":"https://example.com/article#comments"}"##,
+                Some(&hash_changed_state)
+            ),
+            Some("toggle-read".to_string())
+        );
+    }
+
+    #[test]
+    fn browser_preview_script_bridge_message_rejects_stale_url_after_redirect() {
+        let redirected_state = BrowserWebviewState {
+            url: "https://example.com/redirected".to_string(),
+            can_go_back: false,
+            can_go_forward: false,
+            is_loading: false,
+            load_generation: 2,
+        };
+
+        assert_eq!(
+            browser_preview_bridge_message_action(
+                r#"{"action":"toggle-read","url":"https://example.com/requested"}"#,
+                Some(&redirected_state)
+            ),
+            None
+        );
+    }
+
+    #[test]
     fn browser_preview_script_bridge_message_rejects_unknown_or_malformed_payloads() {
         let current_state = BrowserWebviewState {
             url: "https://example.com/current".to_string(),
@@ -2154,6 +2223,20 @@ mod tests {
             .expect("saved close bridge script should exist");
 
         assert!(script.contains("\"Shift+X\""));
+    }
+
+    #[test]
+    fn browser_preview_close_bridge_json_escapes_saved_shortcut_preferences() {
+        let prefs = HashMap::from([(
+            "shortcut_close_or_clear".to_string(),
+            "Escape\";window.__ultraRssInjected=true;//".to_string(),
+        )]);
+
+        let script = browser_preview_close_bridge_source(&prefs)
+            .expect("saved close bridge script should exist");
+
+        assert!(script.contains(r#""Escape\";window.__ultraRssInjected=true;//""#));
+        assert!(!script.contains(r#""Escape";window.__ultraRssInjected=true;//""#));
     }
 
     #[test]
@@ -2244,6 +2327,27 @@ mod tests {
         assert!(!missing_script.contains("__ULTRA_RSS_FOCUS_OVERRIDE_INSTALLED__"));
         assert!(!disabled_script.contains("Document.prototype, 'visibilityState', 'visible'"));
         assert!(!missing_script.contains("Document.prototype, 'visibilityState', 'visible'"));
+    }
+
+    #[test]
+    fn browser_preview_initialization_script_uses_only_explicit_preview_preferences() {
+        let prefs = HashMap::from([
+            (
+                "web_preview_keep_focus".to_string(),
+                "true;window.__ultraRssInjected=true".to_string(),
+            ),
+            (
+                "unknown_browser_preview_script".to_string(),
+                "window.__ultraRssInjected=true".to_string(),
+            ),
+        ]);
+
+        let script = browser_preview_initialization_script(&prefs)
+            .expect("close bridge script should still exist without focus override");
+
+        assert!(!script.contains("__ULTRA_RSS_FOCUS_OVERRIDE_INSTALLED__"));
+        assert!(!script.contains("window.__ultraRssInjected=true"));
+        assert!(script.contains("close_browser_webview"));
     }
 
     #[test]
