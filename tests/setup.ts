@@ -1,8 +1,25 @@
 import { cleanup, configure } from "@testing-library/react";
-import { afterEach } from "vitest";
+import { afterEach, beforeEach } from "vitest";
 import "@testing-library/jest-dom/vitest";
 import { resetCommandHistoryStorageFailureWarnings } from "@/components/reader/hooks/command-palette/use-command-history";
 import { resetStartupSyncStorageFailureWarnings } from "@/lib/sync/startup-sync-storage";
+import {
+  flushMutationObservers as flushTestMutationObservers,
+  flushResizeObservers as flushTestResizeObservers,
+  getMutationObserverMocks as getTestMutationObservers,
+  getResizeObserverMocks as getTestResizeObservers,
+  installTestObserverMocks,
+  resetTestObserverMocks,
+} from "./helpers/observer-mocks";
+
+export {
+  flushTestMutationObservers,
+  flushTestResizeObservers,
+  getTestMutationObservers,
+  getTestResizeObservers,
+  installTestObserverMocks,
+  resetTestObserverMocks,
+};
 
 const originalWindowLocalStorageDescriptor = Object.getOwnPropertyDescriptor(window, "localStorage");
 const originalWindowSessionStorageDescriptor = Object.getOwnPropertyDescriptor(window, "sessionStorage");
@@ -151,11 +168,17 @@ function ensureGetAnimations() {
 }
 
 ensureGetAnimations();
+
 import "./helpers/i18n-setup";
 import { teardownTauriMocks } from "./helpers/tauri-mocks";
 import { resetTauriRuntimeFlags } from "./helpers/tauri-runtime";
 
 configure({ asyncUtilTimeout: 10_000 });
+installTestObserverMocks();
+
+beforeEach(() => {
+  installTestObserverMocks();
+});
 
 afterEach(() => {
   cleanup();
@@ -163,6 +186,8 @@ afterEach(() => {
   resetTauriRuntimeFlags();
   resetCommandHistoryStorageFailureWarnings();
   resetStartupSyncStorageFailureWarnings();
+  resetTestObserverMocks();
   restoreStorageDescriptors();
   ensureWorkingStorage();
+  installTestObserverMocks();
 });

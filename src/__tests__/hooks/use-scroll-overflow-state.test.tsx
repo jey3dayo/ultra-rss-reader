@@ -3,7 +3,19 @@ import { mockObserverConstructors } from "@tests/helpers/typed-test-factories";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useScrollOverflowState } from "@/components/settings/hooks/use-scroll-overflow-state";
 
-function setScrollMetrics(element: HTMLElement, clientHeight: number, scrollHeight: number) {
+let cleanupObserverMocks: (() => void) | null = null;
+
+function mockScrollObservers() {
+  const mocks = mockObserverConstructors();
+  cleanupObserverMocks = mocks.cleanupObservers;
+  return mocks;
+}
+
+function setScrollMetrics(
+  element: HTMLElement,
+  clientHeight: number,
+  scrollHeight: number,
+) {
   Object.defineProperty(element, "clientHeight", {
     configurable: true,
     value: clientHeight,
@@ -14,7 +26,11 @@ function setScrollMetrics(element: HTMLElement, clientHeight: number, scrollHeig
   });
 }
 
-function setTrackedScrollMetrics(element: HTMLElement, clientHeight: number, scrollHeight: number) {
+function setTrackedScrollMetrics(
+  element: HTMLElement,
+  clientHeight: number,
+  scrollHeight: number,
+) {
   const readCounts = {
     clientHeight: 0,
     scrollHeight: 0,
@@ -40,6 +56,8 @@ function setTrackedScrollMetrics(element: HTMLElement, clientHeight: number, scr
 
 describe("useScrollOverflowState", () => {
   afterEach(() => {
+    cleanupObserverMocks?.();
+    cleanupObserverMocks = null;
     vi.useRealTimers();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
@@ -53,11 +71,15 @@ describe("useScrollOverflowState", () => {
       animationFrameCallback = callback;
       return 1;
     });
-    const cancelAnimationFrameSpy = vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
+    const cancelAnimationFrameSpy = vi
+      .spyOn(window, "cancelAnimationFrame")
+      .mockImplementation(() => {});
     const viewport = document.createElement("div");
     setScrollMetrics(viewport, 100, 100);
 
-    const { result, unmount } = renderHook(() => useScrollOverflowState("settings"));
+    const { result, unmount } = renderHook(() =>
+      useScrollOverflowState("settings"),
+    );
 
     act(() => {
       result.current.viewportRef(viewport);
@@ -92,7 +114,9 @@ describe("useScrollOverflowState", () => {
     const viewport = document.createElement("div");
     setScrollMetrics(viewport, 100, 100);
 
-    const { result, unmount } = renderHook(() => useScrollOverflowState("settings"));
+    const { result, unmount } = renderHook(() =>
+      useScrollOverflowState("settings"),
+    );
 
     act(() => {
       result.current.viewportRef(viewport);
@@ -121,11 +145,15 @@ describe("useScrollOverflowState", () => {
       animationFrameCallback = callback;
       return 7;
     });
-    const cancelAnimationFrameSpy = vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
+    const cancelAnimationFrameSpy = vi
+      .spyOn(window, "cancelAnimationFrame")
+      .mockImplementation(() => {});
     const viewport = document.createElement("div");
     setScrollMetrics(viewport, 100, 100);
 
-    const { result, unmount } = renderHook(() => useScrollOverflowState("settings"));
+    const { result, unmount } = renderHook(() =>
+      useScrollOverflowState("settings"),
+    );
 
     act(() => {
       result.current.viewportRef(viewport);
@@ -144,7 +172,7 @@ describe("useScrollOverflowState", () => {
   });
 
   it("disconnects observers when the dependency changes", () => {
-    const { resizeObservers, mutationObservers } = mockObserverConstructors();
+    const { resizeObservers, mutationObservers } = mockScrollObservers();
     vi.spyOn(window, "requestAnimationFrame").mockImplementation(() => 1);
     vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
     const viewport = document.createElement("div");
@@ -152,7 +180,8 @@ describe("useScrollOverflowState", () => {
     setScrollMetrics(viewport, 100, 140);
 
     const { result, rerender } = renderHook(
-      ({ dependency }: { dependency: string }) => useScrollOverflowState(dependency),
+      ({ dependency }: { dependency: string }) =>
+        useScrollOverflowState(dependency),
       {
         initialProps: { dependency: "settings" },
       },
@@ -175,7 +204,7 @@ describe("useScrollOverflowState", () => {
   });
 
   it("disconnects observers when the viewport node changes and on unmount", () => {
-    const { resizeObservers, mutationObservers } = mockObserverConstructors();
+    const { resizeObservers, mutationObservers } = mockScrollObservers();
     vi.spyOn(window, "requestAnimationFrame").mockImplementation(() => 1);
     vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
     const firstViewport = document.createElement("div");
@@ -183,7 +212,9 @@ describe("useScrollOverflowState", () => {
     setScrollMetrics(firstViewport, 100, 140);
     setScrollMetrics(secondViewport, 100, 100);
 
-    const { result, unmount } = renderHook(() => useScrollOverflowState("settings"));
+    const { result, unmount } = renderHook(() =>
+      useScrollOverflowState("settings"),
+    );
 
     act(() => {
       result.current.viewportRef(firstViewport);
@@ -209,7 +240,7 @@ describe("useScrollOverflowState", () => {
   });
 
   it("observes content children added after observer setup", () => {
-    const { resizeObservers, mutationObservers } = mockObserverConstructors();
+    const { resizeObservers, mutationObservers } = mockScrollObservers();
     let animationFrameCallback: FrameRequestCallback | null = null;
     vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
       animationFrameCallback = callback;
@@ -219,7 +250,9 @@ describe("useScrollOverflowState", () => {
     const viewport = document.createElement("div");
     setScrollMetrics(viewport, 100, 100);
 
-    const { result, unmount } = renderHook(() => useScrollOverflowState("settings"));
+    const { result, unmount } = renderHook(() =>
+      useScrollOverflowState("settings"),
+    );
 
     act(() => {
       result.current.viewportRef(viewport);
@@ -248,7 +281,7 @@ describe("useScrollOverflowState", () => {
   });
 
   it("updates overflow when content child is added and then resized", () => {
-    const { resizeObservers } = mockObserverConstructors();
+    const { resizeObservers } = mockScrollObservers();
     let animationFrameCallback: FrameRequestCallback | null = null;
     vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
       animationFrameCallback = callback;
@@ -280,7 +313,7 @@ describe("useScrollOverflowState", () => {
   });
 
   it("updates overflow when content child is replaced and then resized", () => {
-    const { resizeObservers, mutationObservers } = mockObserverConstructors();
+    const { resizeObservers, mutationObservers } = mockScrollObservers();
     let animationFrameCallback: FrameRequestCallback | null = null;
     vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
       animationFrameCallback = callback;
@@ -313,7 +346,9 @@ describe("useScrollOverflowState", () => {
     });
 
     expect(resizeObservers[0]?.unobserve).toHaveBeenCalledWith(initialContent);
-    expect(resizeObservers[0]?.observe).toHaveBeenCalledWith(replacementContent);
+    expect(resizeObservers[0]?.observe).toHaveBeenCalledWith(
+      replacementContent,
+    );
     expect(result.current.hasOverflow).toBe(false);
 
     setScrollMetrics(viewport, 100, 150);
@@ -329,7 +364,7 @@ describe("useScrollOverflowState", () => {
   });
 
   it("coalesces high-frequency mutation overflow reads into one scheduled measurement", () => {
-    const { mutationObservers } = mockObserverConstructors();
+    const { mutationObservers } = mockScrollObservers();
     let animationFrameCallback: FrameRequestCallback | null = null;
     vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
       animationFrameCallback = callback;
