@@ -153,11 +153,6 @@
   - JS/Rust の片方だけ license 棚卸しすると、release review や store 配布で抜ける
   - pnpm licenses、cargo licenses、unknown license、dual license、generated report location の task に分ける
 
-- [ ] P3 markdownlint 対象 file count / ignore pattern drift を repo contract にする
-  - 対象: markdownlint config、`TODO.md`, docs, generated dirs
-  - generated markdown や temporary docs が lint 対象に混ざると、TODO 追加だけで unrelated lint が落ちる
-  - target file count、ignore dirs、generated docs、skill docs、root markdown の check を追加する
-
 - [ ] P3 dev scenario fixture freshness を UI route / command schema と同期する
   - 対象: `src/dev/scenarios`, dev mocks, command schemas
   - scenario は便利だが、command schema や route rename から遅れるとデバッグ時だけ壊れる
@@ -242,11 +237,6 @@
   - 対象: `package.json`, `pnpm-lock.yaml`, `src-tauri/Cargo.lock`, quality baseline
   - lockfile 更新で runtime behavior が変わる dependency と pure dev dependency を同じ扱いにすると review が粗くなる
   - query caching、store equality、Tauri API、Vite dev server、test runner の smoke task に分ける
-
-- [ ] P3 generated fixture / snapshot size budget を repo contract にする
-  - 対象: tests fixtures、storybook snapshots、report outputs
-  - fixture や report が肥大化すると lint/check が遅くなり、TODO 追加や small refactor の feedback loop が悪化する
-  - max fixture size、snapshot count、report artifact ignore、large corpus directory、review exception の policy を追加する
 
 - [ ] P1 app shutdown 中の background sync / DB write / browser webview cleanup を drain する contract を作る
   - 対象: `src-tauri/src/lib.rs`, `src-tauri/src/service/sync_scheduler.rs`, browser webview tracker, DB commands
