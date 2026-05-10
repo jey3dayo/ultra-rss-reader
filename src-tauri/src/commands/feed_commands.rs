@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 
-use rusqlite::{params, OptionalExtension};
+use rusqlite::{params, Connection, OptionalExtension};
 use tauri::State;
 
 use crate::commands::dto::{AppError, FeedDto, FolderDto};
@@ -235,22 +235,27 @@ fn update_feed_folder_in_db(
     feed_id: String,
     folder_id: Option<String>,
 ) -> Result<(), AppError> {
-    validate_update_feed_folder_target(db, &feed_id, folder_id.as_deref())?;
-    let repo = SqliteFeedRepository::new(db.writer());
+    let tx = db
+        .writer()
+        .unchecked_transaction()
+        .map_err(DomainError::from)?;
+    validate_update_feed_folder_target(&tx, &feed_id, folder_id.as_deref())?;
+    let repo = SqliteFeedRepository::new(&tx);
     let fid = folder_id.as_ref().map(|id| FolderId(id.clone()));
     if let Err(error) = repo.update_folder(&FeedId(feed_id.clone()), fid.as_ref()) {
         return Err(classify_update_feed_folder_error(
-            db,
+            &tx,
             &feed_id,
             folder_id.as_deref(),
             error,
         ));
     }
+    tx.commit().map_err(DomainError::from)?;
     Ok(())
 }
 
 fn classify_update_feed_folder_error(
-    db: &DbManager,
+    conn: &Connection,
     feed_id: &str,
     folder_id: Option<&str>,
     error: DomainError,
@@ -264,18 +269,18 @@ fn classify_update_feed_folder_error(
         return error.into();
     }
 
-    match validate_update_feed_folder_target(db, feed_id, folder_id) {
+    match validate_update_feed_folder_target(conn, feed_id, folder_id) {
         Ok(()) => error.into(),
         Err(classified_error) => classified_error,
     }
 }
 
 fn validate_update_feed_folder_target(
-    db: &DbManager,
+    conn: &Connection,
     feed_id: &str,
     folder_id: Option<&str>,
 ) -> Result<(), AppError> {
-    let feed_repo = SqliteFeedRepository::new(db.reader());
+    let feed_repo = SqliteFeedRepository::new(conn);
     let feed = feed_repo
         .find_by_id(&FeedId(feed_id.to_string()))?
         .ok_or_else(|| AppError::UserVisible {
@@ -286,8 +291,7 @@ fn validate_update_feed_folder_target(
         return Ok(());
     };
 
-    let folder_account_id = db
-        .reader()
+    let folder_account_id = conn
         .query_row(
             "SELECT account_id FROM folders WHERE id = ?1",
             params![folder_id],
@@ -704,7 +708,7 @@ mod tests {
             .unwrap();
 
         let error = classify_update_feed_folder_error(
-            &db,
+            db.writer(),
             &feed_id.0,
             Some(&folder_id.0),
             DomainError::Validation(UPDATE_FEED_FOLDER_TARGET_VALIDATION_MESSAGE.to_string()),
