@@ -1042,6 +1042,21 @@ describe("repository static contracts", () => {
     );
   });
 
+  it("keeps quality baseline diagnostics routed through the pinned script gate", () => {
+    const packageScripts = expectPackageJsonStringRecord("scripts");
+    const devDependencies = expectPackageJsonStringRecord("devDependencies");
+    const miseSource = readRepoFile("mise.toml");
+
+    expect(devDependencies["react-doctor"]).toBe("0.1.4");
+    expect(devDependencies.knip).toBe("6.12.2");
+    expect(packageScripts["quality:react-doctor:diff"]).toBe("node ./scripts/quality-baseline.ts react-doctor:diff");
+    expect(packageScripts["quality:react-doctor:full"]).toBe("node ./scripts/quality-baseline.ts react-doctor:full");
+    expect(packageScripts["quality:knip"]).toBe("node ./scripts/quality-baseline.ts knip");
+    expect(extractMiseTaskCommand(miseSource, "quality:react-doctor:diff")).toBe("pnpm run quality:react-doctor:diff");
+    expect(extractMiseTaskCommand(miseSource, "quality:react-doctor:full")).toBe("pnpm run quality:react-doctor:full");
+    expect(extractMiseTaskCommand(miseSource, "quality:knip")).toBe("pnpm run quality:knip");
+  });
+
   it("classifies knip file-level cleanup candidates by their runtime owner", () => {
     const packageScripts = expectPackageJsonStringRecord("scripts");
     const knipConfig = expectPackageJsonKnipEntryConfig();

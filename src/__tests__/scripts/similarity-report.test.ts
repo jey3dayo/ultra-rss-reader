@@ -6,6 +6,7 @@ import {
   buildSimilaritySummary,
   defaultPath,
   defaultThreshold,
+  evaluateSimilarityReportGate,
   findFalsePositiveMatch,
   findStaleFalsePositiveTodoRefs,
   isSimilarityReportEntrypoint,
@@ -128,6 +129,10 @@ Similarity: 90.00%, Score: 12.3 points (lines 4~6, avg: 5.0)
       skippedSimilarityBlocks: 2,
     });
     expect(buildSimilaritySummary(driftedReport)).toContain("unparsed similarity blocks: 2");
+    expect(evaluateSimilarityReportGate(driftedReport)).toEqual({
+      exitCode: 1,
+      message: "Similarity report gate failed: unparsed similarity blocks: 2",
+    });
   });
 
   it("reports type-pair count drift from similarity-ts output", () => {
@@ -138,6 +143,14 @@ Similarity: 90.00%, Score: 12.3 points (lines 4~6, avg: 5.0)
     ].join("\n");
 
     expect(buildSimilaritySummary(report)).toContain("type pair report drift: 2");
+    expect(evaluateSimilarityReportGate(report)).toEqual({
+      exitCode: 1,
+      message: "Similarity report gate failed: type pair report drift: 2",
+    });
+  });
+
+  it("keeps the report gate green when similarity-ts output matches the parser contract", () => {
+    expect(evaluateSimilarityReportGate(sampleReport)).toBeNull();
   });
 
   it("reports stale false-positive TODO references when TODO content is provided", () => {
