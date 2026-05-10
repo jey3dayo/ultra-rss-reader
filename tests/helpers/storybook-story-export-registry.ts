@@ -38,7 +38,7 @@ type StorybookHelperExportAllowlistEntry = {
 
 // UI Reference canvases are exported so component-level registry tests can assert specimen coverage.
 // Normal story files must keep helper components private and expose only Storybook story objects.
-const STORYBOOK_HELPER_EXPORT_ALLOWLIST: StorybookHelperExportAllowlistEntry[] = [
+export const STORYBOOK_HELPER_EXPORT_ALLOWLIST: StorybookHelperExportAllowlistEntry[] = [
   {
     storyFilePath: "/src/components/storybook/ui-reference-button-controls-canvas.stories.tsx",
     helperExportName: "ButtonControlsCanvas",
@@ -69,7 +69,7 @@ const STORYBOOK_HELPER_EXPORT_ALLOWLIST: StorybookHelperExportAllowlistEntry[] =
   },
 ];
 
-const STORYBOOK_HELPER_EXPORT_ALLOWLIST_IDS = new Set(
+export const STORYBOOK_HELPER_EXPORT_ALLOWLIST_IDS = new Set(
   STORYBOOK_HELPER_EXPORT_ALLOWLIST.map(
     ({ storyFilePath, helperExportName }) => `${storyFilePath}#${helperExportName}`,
   ),

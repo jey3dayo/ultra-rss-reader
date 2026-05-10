@@ -245,6 +245,9 @@ export type ShortcutConflict =
     }
   | {
       type: "native_menu";
+    }
+  | {
+      type: "shortcuts_help";
     };
 
 const platformSettingsShortcut = "\u2318+,";
@@ -310,6 +313,15 @@ function normalizeShortcutMapKey(key: string): string | null {
   return trimmedKey.length > 0 ? normalizeShortcutKeyForContract(trimmedKey) : null;
 }
 
+export function normalizeRecordedShortcutKey(e: {
+  key: string;
+  metaKey: boolean;
+  ctrlKey: boolean;
+  shiftKey: boolean;
+}): string {
+  return normalizeShortcutKeyForContract(normalizeKeyFromEvent(e));
+}
+
 export function isNativeMenuOwnedShortcut(key: string): boolean {
   const normalizedKey = normalizeShortcutMapKey(key);
   return normalizedKey !== null && nativeMenuOwnedShortcuts.has(normalizedKey);
@@ -327,6 +339,10 @@ export function getShortcutConflict(
 
   if (isNativeMenuOwnedShortcut(normalizedKey)) {
     return { type: "native_menu" };
+  }
+
+  if (normalizedKey === "?" || normalizedKey === "Shift+?") {
+    return { type: "shortcuts_help" };
   }
 
   for (const definition of shortcutDefinitions) {

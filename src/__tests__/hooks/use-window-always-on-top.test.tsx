@@ -2,6 +2,7 @@ import { act, render, waitFor } from "@testing-library/react";
 import { resetTauriRuntimeFlags, setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useWindowAlwaysOnTop } from "@/hooks/use-window-always-on-top";
+import { RUNTIME_DIAGNOSTIC_POLICIES, resetRuntimeDiagnosticOnceSuppressionForTests } from "@/lib/runtime/diagnostics";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -39,6 +40,7 @@ describe("useWindowAlwaysOnTop", () => {
 
   beforeEach(() => {
     resetTauriRuntimeFlags();
+    resetRuntimeDiagnosticOnceSuppressionForTests();
     setTauriRuntimePresent();
     isAlwaysOnTopMock.mockReset();
     isAlwaysOnTopMock.mockResolvedValue(false);
@@ -102,7 +104,10 @@ describe("useWindowAlwaysOnTop", () => {
 
     await waitFor(() => {
       expect(setAlwaysOnTopMock).toHaveBeenCalledWith(true);
-      expect(consoleWarnSpy).toHaveBeenCalledWith("Failed to update window always-on-top state:", "permission denied");
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        "Failed to update window always-on-top state",
+        new Error("permission denied"),
+      );
     });
   });
 
@@ -117,7 +122,10 @@ describe("useWindowAlwaysOnTop", () => {
 
     await waitFor(() => {
       expect(setAlwaysOnTopMock).toHaveBeenCalledWith(true);
-      expect(consoleWarnSpy).toHaveBeenCalledWith("Failed to update window always-on-top state:", "permission denied");
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        "Failed to update window always-on-top state",
+        new Error("permission denied"),
+      );
     });
     expect(usePreferencesStore.getState().prefs.window_always_on_top).toBe("true");
     expect(useUiStore.getState().toastMessage).toBeNull();
@@ -151,7 +159,7 @@ describe("useWindowAlwaysOnTop", () => {
       expect(setAlwaysOnTopMock).toHaveBeenCalledWith(true);
       expect(isAlwaysOnTopMock).toHaveBeenCalledOnce();
       expect(consoleWarnSpy).toHaveBeenCalledWith(
-        "Window always-on-top preference drift detected:",
+        "Window always-on-top preference drift detected",
         "preferred=true",
         "actual=false",
       );
@@ -172,7 +180,7 @@ describe("useWindowAlwaysOnTop", () => {
       expect(setAlwaysOnTopMock).toHaveBeenCalledWith(true);
       expect(isFullscreenMock).toHaveBeenCalledOnce();
       expect(consoleWarnSpy).toHaveBeenCalledWith(
-        "Window always-on-top preference is enabled while fullscreen is active.",
+        "Window always-on-top preference is enabled while fullscreen is active",
       );
     });
   });
@@ -188,7 +196,35 @@ describe("useWindowAlwaysOnTop", () => {
 
     await waitFor(() => {
       expect(setAlwaysOnTopMock).toHaveBeenCalledWith(true);
-      expect(consoleWarnSpy).toHaveBeenCalledWith("Failed to read window always-on-top state:", "state unavailable");
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        "Failed to read window always-on-top state",
+        new Error("state unavailable"),
+      );
+    });
+  });
+
+  it("connects always-on-top failures to the runtime diagnostics policy", async () => {
+    usePreferencesStore.setState({
+      prefs: { window_always_on_top: "true" },
+      loaded: true,
+    });
+    setAlwaysOnTopMock.mockRejectedValue(new Error("TOKEN=secret"));
+
+    render(<HookHarness />);
+
+    await waitFor(() => {
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        "Failed to update window always-on-top state",
+        expect.objectContaining({ message: "TOKEN=<redacted>" }),
+      );
+    });
+
+    expect(RUNTIME_DIAGNOSTIC_POLICIES["window-always-on-top"]).toMatchObject({
+      devOnlyConsole: false,
+      productionDiagnostics: true,
+      toast: "never",
+      once: false,
+      redactSecrets: true,
     });
   });
 

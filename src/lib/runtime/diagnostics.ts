@@ -7,13 +7,17 @@ export type RuntimeDiagnosticPolicyId =
   | "startup-sync"
   | "sync-on-wake"
   | "manual-sync-cooldown-listener"
+  | "menu-action"
   | "platform-info-load"
   | "app-icon-theme"
   | "unread-badge"
+  | "unread-badge-runtime-unavailable"
+  | "unread-badge-command-failure"
   | "article-action"
   | "database-runtime-recovery"
   | "mutation-invalidation"
   | "sidebar-expanded-folders-storage"
+  | "window-always-on-top"
   | "window-runtime-error";
 
 export type RuntimeDiagnosticPolicy = {
@@ -90,6 +94,14 @@ export const RUNTIME_DIAGNOSTIC_POLICIES = {
     once: false,
     redactSecrets: true,
   },
+  "menu-action": {
+    console: "error",
+    devOnlyConsole: false,
+    productionDiagnostics: true,
+    toast: "never",
+    once: false,
+    redactSecrets: true,
+  },
   "platform-info-load": {
     console: "error",
     devOnlyConsole: false,
@@ -107,6 +119,22 @@ export const RUNTIME_DIAGNOSTIC_POLICIES = {
     redactSecrets: true,
   },
   "unread-badge": {
+    console: "error",
+    devOnlyConsole: false,
+    productionDiagnostics: true,
+    toast: "never",
+    once: true,
+    redactSecrets: true,
+  },
+  "unread-badge-runtime-unavailable": {
+    console: "warn",
+    devOnlyConsole: false,
+    productionDiagnostics: true,
+    toast: "never",
+    once: true,
+    redactSecrets: true,
+  },
+  "unread-badge-command-failure": {
     console: "error",
     devOnlyConsole: false,
     productionDiagnostics: true,
@@ -144,6 +172,14 @@ export const RUNTIME_DIAGNOSTIC_POLICIES = {
     productionDiagnostics: true,
     toast: "never",
     once: true,
+    redactSecrets: true,
+  },
+  "window-always-on-top": {
+    console: "warn",
+    devOnlyConsole: false,
+    productionDiagnostics: true,
+    toast: "never",
+    once: false,
     redactSecrets: true,
   },
   "window-runtime-error": {

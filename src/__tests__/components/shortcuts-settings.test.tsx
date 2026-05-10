@@ -234,6 +234,29 @@ describe("ShortcutsSettings", () => {
     expect(screen.getByText(/"Ctrl r" is already assigned to "native menu"/)).toBeInTheDocument();
   });
 
+  it("shows the shortcuts help collision when recording Shift+Slash", async () => {
+    const user = userEvent.setup();
+    const setPref = vi.fn();
+    usePreferencesStore.setState({
+      prefs: {
+        shortcut_next_article: "j",
+      },
+      loaded: true,
+      setPref,
+    });
+
+    render(<ShortcutsSettings />, { wrapper: createWrapper() });
+
+    await user.click(screen.getByTestId("shortcut-badge-next_article"));
+    fireEvent.keyDown(screen.getByTestId("shortcut-badge-next_article"), {
+      key: "?",
+      shiftKey: true,
+    });
+
+    expect(setPref).not.toHaveBeenCalled();
+    expect(screen.getByText(/"Shift \+ \?" is already assigned to "Open shortcuts help"/)).toBeInTheDocument();
+  });
+
   it("resets one shortcut row without resetting all bindings", async () => {
     const user = userEvent.setup();
     const setPref = vi.fn();

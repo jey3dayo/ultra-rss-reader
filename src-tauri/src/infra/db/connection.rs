@@ -96,7 +96,10 @@ impl DbManager {
             Err(e) => {
                 tracing::error!("Migration failed: {e}");
                 if backup_file.exists() {
-                    tracing::info!("Attempting restore from backup: {}", backup_file.display());
+                    tracing::info!(
+                        "Attempting restore from backup: {}",
+                        super::backup::redacted_path_label(backup_file)
+                    );
                     // Release DB connections before file operations
                     let writer = Connection::open(":memory:").unwrap();
                     let reader = Connection::open(":memory:").unwrap();
@@ -1326,6 +1329,104 @@ mod tests {
         assert_eq!(
             html_tag_hit_count, 0,
             "FTS rebuild should index visible content_text, not sanitized HTML tags"
+        );
+    }
+
+    #[test]
+    fn migration_success_keeps_latest_three_backups_and_reconciles_startup_repairs() {
+        let dir = tempfile::tempdir().unwrap();
+        let db_path = dir.path().join("retention-reconcile.db");
+
+        {
+            let db = DbManager::new(&db_path).unwrap();
+            db.writer()
+                .execute("DROP INDEX idx_pending_mutations_unique_entry_type", [])
+                .unwrap();
+            db.writer()
+                .execute("DELETE FROM schema_version", [])
+                .unwrap();
+            db.writer()
+                .execute("INSERT INTO schema_version (version) VALUES (17)", [])
+                .unwrap();
+            db.writer()
+                .execute(
+                    "INSERT INTO accounts (id, kind, name) VALUES ('a1', 'Local', 'Test')",
+                    [],
+                )
+                .unwrap();
+            db.writer()
+                .execute(
+                    "INSERT INTO feeds (id, account_id, title, url, unread_count) VALUES ('f1', 'a1', 'Feed', 'https://example.com/feed.xml', 0)",
+                    [],
+                )
+                .unwrap();
+            db.writer()
+                .execute(
+                    "INSERT INTO articles (
+                        id, feed_id, title, content_raw, content_sanitized, content_text,
+                        sanitizer_version, published_at, fetched_at, is_read
+                     ) VALUES (
+                        'art-1', 'f1', 'Unread', '', '<p>Readable body</p>', '',
+                        1, '2026-04-14T00:00:00Z', '2026-04-14T00:00:00Z', 0
+                     )",
+                    [],
+                )
+                .unwrap();
+        }
+
+        let backup_dir = crate::infra::db::backup::backup_path(&db_path, 17)
+            .parent()
+            .unwrap()
+            .to_path_buf();
+        std::fs::create_dir_all(&backup_dir).unwrap();
+        for backup in [
+            "retention-reconcile_v17_20240101T000001.db",
+            "retention-reconcile_v17_20240101T000002.db",
+            "retention-reconcile_v17_20240101T000003.db",
+        ] {
+            std::fs::write(backup_dir.join(backup), backup).unwrap();
+        }
+
+        let repaired = DbManager::new(&db_path).unwrap();
+        let (schema_version, content_text, unread_count): (i32, String, i32) = repaired
+            .reader()
+            .query_row(
+                "SELECT
+                   (SELECT version FROM schema_version),
+                   (SELECT content_text FROM articles WHERE id = 'art-1'),
+                   (SELECT unread_count FROM feeds WHERE id = 'f1')",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .unwrap();
+        let mut backup_names = std::fs::read_dir(&backup_dir)
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
+            .filter(|name| !name.ends_with("-wal") && !name.ends_with("-shm"))
+            .collect::<Vec<_>>();
+        backup_names.sort();
+
+        assert_eq!(schema_version, super::super::migration::LATEST_VERSION);
+        assert_eq!(
+            content_text,
+            super::super::sqlite_article::article_body_text("<p>Readable body</p>", None)
+        );
+        assert_eq!(unread_count, 1);
+        assert_eq!(
+            backup_names.len(),
+            3,
+            "migration cleanup should retain only the latest three backup generations: {backup_names:?}"
+        );
+        assert!(
+            !backup_names.contains(&"retention-reconcile_v17_20240101T000001.db".to_string()),
+            "oldest backup should be removed by migration-success cleanup: {backup_names:?}"
+        );
+        assert!(
+            backup_names
+                .iter()
+                .any(|name| name.starts_with("retention-reconcile_v17_")
+                    && !name.starts_with("retention-reconcile_v17_20240101")),
+            "new migration backup should be retained alongside recent historical backups: {backup_names:?}"
         );
     }
 

@@ -25,6 +25,7 @@ import type {
 } from "@/api/tauri-commands";
 import preview from "../../.storybook/preview";
 import {
+  buildArticleTagFixtures,
   cloneFixtureSeed,
   createSampleAccounts,
   createSampleArticles,
@@ -41,6 +42,7 @@ import {
   sampleAccounts,
   sampleArticleSeeds,
   sampleArticles,
+  sampleArticleTagSeeds,
   sampleArticleTags,
   sampleFeedSeeds,
   sampleFeeds,
@@ -98,6 +100,35 @@ describe("test fixtures", () => {
     expect(sampleArticles.every((article) => feedIds.has(article.feed_id))).toBe(true);
     expect(sampleArticleTags.every((articleTag) => articleIds.has(articleTag.article_id))).toBe(true);
     expect(sampleArticleTags.every((articleTag) => tagIds.has(articleTag.tag_id))).toBe(true);
+  });
+
+  it("deduplicates article-tag pairs and drops orphan article/tag relations while preserving stable order", () => {
+    const articleTags = buildArticleTagFixtures({
+      articleTags: [
+        { article_id: "art-2", tag_id: "tag-2" },
+        { article_id: "art-2", tag_id: "tag-2" },
+        { article_id: "missing-article", tag_id: "tag-1" },
+        { article_id: "art-1", tag_id: "missing-tag" },
+        { article_id: "art-1", tag_id: "tag-1" },
+      ],
+      articles: sampleArticles,
+      tags: sampleTags,
+    });
+
+    expect(articleTags).toEqual([
+      { article_id: "art-2", tag_id: "tag-2" },
+      { article_id: "art-1", tag_id: "tag-1" },
+    ]);
+  });
+
+  it("keeps sample article-tag builders aligned with the relation cleanup invariant", () => {
+    expect(createSampleArticleTags()).toEqual(
+      buildArticleTagFixtures({
+        articleTags: sampleArticleTagSeeds,
+        articles: sampleArticles,
+        tags: sampleTags,
+      }),
+    );
   });
 
   it("keeps sample feed folder references resolvable within the same account", () => {
@@ -230,6 +261,50 @@ describe("test fixtures", () => {
     expect(sampleAccounts[0]?.name).toBe("Local");
     expect(sampleAccounts[0]?.capabilities?.supports_search).toBe(false);
     expect(sampleFeeds[0]?.title).toBe("Tech Blog");
+  });
+
+  it("rejects non JSON-like fixture seed values before cloning", () => {
+    const dateSeed = [{ value: new Date("2026-01-01T00:00:00Z") }] as unknown as ReadonlyFixtureSeed<{
+      value: string;
+    }>;
+    const mapSeed = [{ value: new Map([["key", "value"]]) }] as unknown as ReadonlyFixtureSeed<{
+      value: string;
+    }>;
+    const functionSeed = [{ value: () => "value" }] as unknown as ReadonlyFixtureSeed<{ value: string }>;
+    const undefinedSeed = [{ value: undefined }] as unknown as ReadonlyFixtureSeed<{ value: string }>;
+
+    expect(() => cloneFixtureSeed(dateSeed)).toThrow(
+      "Fixture seed must contain JSON-like values only. Unsupported Date at $[0].value",
+    );
+    expect(() => cloneFixtureSeed(mapSeed)).toThrow(
+      "Fixture seed must contain JSON-like values only. Unsupported Map at $[0].value",
+    );
+    expect(() => cloneFixtureSeed(functionSeed)).toThrow(
+      "Fixture seed must contain JSON-like values only. Unsupported function at $[0].value",
+    );
+    expect(() => cloneFixtureSeed(undefinedSeed)).toThrow(
+      "Fixture seed must contain JSON-like values only. Unsupported undefined at $[0].value",
+    );
+  });
+
+  it("allows JSON-like fixture seed values", () => {
+    const seed: ReadonlyFixtureSeed<{
+      id: string;
+      enabled: boolean;
+      count: number;
+      label: string | null;
+      nested: { items: readonly string[] };
+    }> = [
+      {
+        id: "json-like",
+        enabled: true,
+        count: 1,
+        label: null,
+        nested: { items: ["one", "two"] },
+      },
+    ];
+
+    expect(cloneFixtureSeed(seed)).toEqual(seed);
   });
 
   it("exposes readonly seeds and mutable clone helpers at the type boundary", () => {

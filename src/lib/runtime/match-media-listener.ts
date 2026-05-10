@@ -54,3 +54,15 @@ export function subscribeMatchMediaChange(mediaQuery: MediaQueryList, listener: 
 
   return () => {};
 }
+
+export function readMatchMedia(query: string): MediaQueryList | null {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+    return null;
+  }
+
+  try {
+    return window.matchMedia(query);
+  } catch {
+    return null;
+  }
+}

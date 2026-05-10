@@ -1,5 +1,6 @@
 type StorybookIndexEntry = {
   id: string;
+  type: "story";
 };
 
 type DuplicateStorybookIndexStoryIdDiagnostic = {
@@ -27,7 +28,7 @@ export const storybookViewportMaxDimensionPx = 10_000;
 export const storybookSmokeStoryIds = [...uiReferenceCanvasStoryIds, ...denseNarrowViewportStoryIds] as const;
 
 const storybookIndexEntriesErrorMessage = "Storybook index payload must be an object with an object entries field";
-const storybookIndexEntryIdErrorMessage = "Storybook index entries must contain story objects with string id fields";
+const storybookIndexEntryIdErrorMessage = 'Storybook index entries with type "story" must contain string id fields';
 const storybookIframeStoryIdErrorMessage = "Storybook iframe URL must include a non-empty id query parameter";
 const storybookIframeStoryIdCountErrorMessage = "Storybook iframe URL must include exactly one id query parameter";
 
@@ -44,11 +45,19 @@ function getStorybookIndexEntries(payload: unknown): Record<string, unknown> {
 }
 
 function isStorybookIndexEntry(value: unknown): value is StorybookIndexEntry {
-  return isRecord(value) && typeof value.id === "string";
+  return isRecord(value) && value.type === "story" && typeof value.id === "string";
+}
+
+function isStorybookIndexStoryEntryCandidate(value: unknown): value is Record<string, unknown> {
+  return isRecord(value) && value.type === "story";
 }
 
 function getStorybookIndexStoryIdsFromEntries(entries: Record<string, unknown>): string[] {
   return Object.values(entries).flatMap((entry) => {
+    if (!isStorybookIndexStoryEntryCandidate(entry)) {
+      return [];
+    }
+
     if (!isStorybookIndexEntry(entry)) {
       throw new Error(storybookIndexEntryIdErrorMessage);
     }

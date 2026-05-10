@@ -1,5 +1,6 @@
 import {
   collectStorybookStoryExportRegistry,
+  STORYBOOK_HELPER_EXPORT_ALLOWLIST_IDS,
   storybookStoryExportRegistry,
   storybookStoryRegistryIssues,
 } from "@tests/helpers/storybook-story-export-registry";
@@ -16,17 +17,7 @@ describe("Storybook story export registry", () => {
       entry.allowedNonStoryExportNames.map((exportName) => `${entry.filePath}#${exportName}`),
     );
 
-    expect(allowedNonStoryExports).toEqual(
-      expect.arrayContaining([
-        "/src/components/storybook/ui-reference-button-controls-canvas.stories.tsx#ButtonControlsCanvas",
-        "/src/components/storybook/ui-reference-foundations-canvas.stories.tsx#FoundationsCanvas",
-        "/src/components/storybook/ui-reference-navigation-collections-canvas.stories.tsx#NavigationCollectionsCanvas",
-        "/src/components/storybook/ui-reference-settings-canvas.stories.tsx#InputControlsCanvas",
-        "/src/components/storybook/ui-reference-settings-workspace-canvas.stories.tsx#SettingsWorkspaceCanvas",
-        "/src/components/storybook/ui-reference-shell-overlay-canvas.stories.tsx#ShellOverlayCanvas",
-        "/src/components/storybook/ui-reference-workspace-patterns-canvas.stories.tsx#ViewSpecimensCanvas",
-      ]),
-    );
+    expect(allowedNonStoryExports).toEqual(expect.arrayContaining([...STORYBOOK_HELPER_EXPORT_ALLOWLIST_IDS]));
     expect(allowedNonStoryExports).toEqual(
       allowedNonStoryExports.filter((exportId) => exportId.startsWith("/src/components/storybook/ui-reference-")),
     );

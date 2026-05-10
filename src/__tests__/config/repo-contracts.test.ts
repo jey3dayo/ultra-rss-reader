@@ -1,5 +1,14 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, normalize, resolve } from "node:path";
+import {
+  extractMarkdownCheckboxLabels,
+  extractMarkdownInlineCode,
+  extractMarkdownLinks,
+  extractMarkdownRelativeLinks,
+  extractYamlInlineListValues,
+  extractYamlLabelsFields,
+  extractYamlTopLevelKeys,
+} from "@tests/helpers/repo-contract-parser";
 import { describe, expect, it } from "vitest";
 import {
   queryKeys,
@@ -30,6 +39,7 @@ import packageJson from "../../../package.json";
 import { qualityBaselineRepoScanIgnoredPathPrefixes } from "../../../scripts/quality-baseline";
 import tauriConfig from "../../../src-tauri/tauri.conf.json";
 import tauriReleaseConfig from "../../../src-tauri/tauri.release.conf.json";
+import { STORYBOOK_HELPER_EXPORT_ALLOWLIST } from "../../../tests/helpers/storybook-story-export-registry";
 
 const repoRoot = process.cwd();
 type CapabilityPermission =
@@ -275,6 +285,15 @@ function extractPlaywrightReuseExistingServerExpression(source: string) {
   return source.match(/\breuseExistingServer:\s*(true|false)/)?.[1] ?? "";
 }
 
+function extractPlaywrightWebServerTimeout(source: string) {
+  const timeoutExpression = source.match(/\bwebServer:\s*{[^}]*\btimeout:\s*([^,\n]+)/s)?.[1]?.trim() ?? "";
+  const timeoutValue =
+    timeoutExpression.match(/^\d+$/)?.[0] ??
+    source.match(new RegExp(`\\bconst\\s+${timeoutExpression}\\s*=\\s*(\\d+)`))?.[1];
+
+  return Number(timeoutValue ?? Number.NaN);
+}
+
 function extractStorybookCanvasIds(source: string) {
   return [...source.matchAll(/title:\s*"([^"]+)"/g)]
     .map(
@@ -307,18 +326,17 @@ function extractCargoPackageVersion(source: string) {
   return packageSection.match(/^version\s*=\s*"([^"]+)"/m)?.[1] ?? null;
 }
 
+function markdownFilesUnderDirectory(path: string) {
+  return readdirSync(join(repoRoot, path), { recursive: true })
+    .filter((entry): entry is string => typeof entry === "string")
+    .map((entry) => toPosixPath(join(path, entry)))
+    .filter((filePath) => statSync(join(repoRoot, filePath)).isFile() && filePath.endsWith(".md"));
+}
+
 function markdownFilesUnderDocs() {
   const topLevelDocs = ["AGENTS.md", "README.md", "CLAUDE.md", ".claude/rules/README.md", "docs/README.md"];
-  const docsFiles = readdirSync(join(repoRoot, "docs")).flatMap((entry) => {
-    const path = join("docs", entry);
-    const fullPath = join(repoRoot, path);
-    return statSync(fullPath).isFile() && path.endsWith(".md") ? [path] : [];
-  });
-  const ruleFiles = readdirSync(join(repoRoot, ".claude/rules")).flatMap((entry) => {
-    const path = join(".claude/rules", entry);
-    const fullPath = join(repoRoot, path);
-    return statSync(fullPath).isFile() && path.endsWith(".md") ? [path] : [];
-  });
+  const docsFiles = markdownFilesUnderDirectory("docs");
+  const ruleFiles = markdownFilesUnderDirectory(".claude/rules");
 
   return [...new Set([...topLevelDocs, ...docsFiles, ...ruleFiles])].toSorted();
 }
@@ -336,14 +354,6 @@ function extractStoryFileNamedExports(source: string) {
     kind: match[1] ?? "",
     name: match[2] ?? "",
   }));
-}
-
-function extractMarkdownLinks(source: string) {
-  return [...source.matchAll(/(?<!!)\[[^\]]+\]\(([^)]+)\)/g)].map((match) => match[1]);
-}
-
-function extractMarkdownRelativeLinks(source: string) {
-  return [...source.matchAll(/(?<!!)\[[^\]]+\]\((\.\/[^)#]+)(?:#[^)]+)?\)/g)].map((match) => match[1] ?? "");
 }
 
 function isRepositoryRelativeLink(link: string) {
@@ -370,24 +380,8 @@ function extractRustLatestMigrationVersion(source: string) {
   return Number(source.match(/pub const LATEST_VERSION: i32 = (\d+);/)?.[1] ?? Number.NaN);
 }
 
-function extractMarkdownInlineCode(source: string) {
-  return [...source.matchAll(/`([^`]+)`/g)].map((match) => match[1]);
-}
-
-function extractMarkdownCheckboxLabels(source: string, sectionHeading: string) {
-  const sectionStart = source.indexOf(`## ${sectionHeading}`);
-  if (sectionStart === -1) {
-    return [];
-  }
-
-  const nextSectionStart = source.indexOf("\n## ", sectionStart + 1);
-  const section = source.slice(sectionStart, nextSectionStart === -1 ? undefined : nextSectionStart);
-  return [...section.matchAll(/^- \[ \] (.+)$/gm)].map((match) => match[1] ?? "");
-}
-
 function extractIssueTemplateDefaultLabels(source: string) {
-  const labelsLine = source.match(/^labels:\s*\[(.*)\]$/m)?.[1] ?? "";
-  return [...labelsLine.matchAll(/"([^"]+)"/g)].map((match) => match[1]);
+  return extractYamlInlineListValues(source, "labels");
 }
 
 function extractIssueTemplateCheckboxLabels(source: string, checkboxId: string) {
@@ -453,21 +447,19 @@ function extractLabelerLabelsForPath(source: string, path: string) {
 }
 
 function extractLabelerRuleLabels(source: string) {
-  return [...source.matchAll(/^([A-Za-z0-9_/-]+):$/gm)].map((match) => match[1]);
+  return extractYamlTopLevelKeys(source);
 }
 
 function extractReleaseNoteCategoryLabels(source: string) {
   const categoriesSection = source.match(/^\s+categories:\n([\s\S]*)$/m)?.[1] ?? "";
-  return [...categoriesSection.matchAll(/^\s+- title: .*\n\s+labels: \[([^\]]+)\]/gm)]
-    .flatMap((match) => match[1]?.split(",") ?? [])
-    .map((label) => label.trim().replace(/^"|"$/g, ""))
+  return extractYamlLabelsFields(categoriesSection)
     .filter((label) => label !== "*")
     .toSorted();
 }
 
 function extractReleaseNoteExcludedLabels(source: string) {
   const excludeLabelsSection = source.match(/^\s+exclude:\n\s+labels:\n((?:\s+- .+\n)+)/m)?.[1] ?? "";
-  return [...excludeLabelsSection.matchAll(/^\s+- "?([^"\n]+)"?$/gm)].map((match) => match[1]).toSorted();
+  return extractYamlInlineListValues(`labels:\n${excludeLabelsSection}`, "labels").toSorted();
 }
 
 const issueTemplates = [issueFeatureTemplate, issueBugTemplate, issueTestTemplate, issueMaintenanceTemplate] as const;
@@ -497,16 +489,11 @@ const releaseNoteLabelParityLabels = [
   "fix",
   "refactor",
 ] as const;
-const storybookStoryHelperExportAllowlist = new Set([
-  "src/components/reader/sidebar-selection-review.stories.tsx:SidebarSelectionReviewCanvas",
-  "src/components/storybook/ui-reference-button-controls-canvas.stories.tsx:ButtonControlsCanvas",
-  "src/components/storybook/ui-reference-foundations-canvas.stories.tsx:FoundationsCanvas",
-  "src/components/storybook/ui-reference-navigation-collections-canvas.stories.tsx:NavigationCollectionsCanvas",
-  "src/components/storybook/ui-reference-settings-canvas.stories.tsx:InputControlsCanvas",
-  "src/components/storybook/ui-reference-settings-workspace-canvas.stories.tsx:SettingsWorkspaceCanvas",
-  "src/components/storybook/ui-reference-shell-overlay-canvas.stories.tsx:ShellOverlayCanvas",
-  "src/components/storybook/ui-reference-workspace-patterns-canvas.stories.tsx:ViewSpecimensCanvas",
-]);
+const storybookStoryHelperExportAllowlist = new Set(
+  STORYBOOK_HELPER_EXPORT_ALLOWLIST.map(
+    ({ storyFilePath, helperExportName }) => `${storyFilePath.replace(/^\/+/, "")}:${helperExportName}`,
+  ),
+);
 const officialTauriV2ConfigSchemaUrl = "https://schema.tauri.app/config/2";
 const workflowUsesRefAllowlist = new Set(["dtolnay/rust-toolchain@stable"]);
 const workflowLocalReusableActionAllowlist = new Set<string>();
@@ -1334,6 +1321,7 @@ describe("repository static contracts", () => {
     expect(storybookWebServerUrl).toBe(storybookBaseUrl);
     expect(extractUrlPort(storybookWebServerUrl)).toBe(storybookPort);
     expect(storybookReuseExistingServer).toBe("false");
+    expect(extractPlaywrightWebServerTimeout(storybookPlaywrightConfig)).toBe(120000);
     expect([...uiReferenceCanvasStoryIds].toSorted()).toEqual(
       storySources.flatMap(extractStorybookCanvasIds).toSorted(),
     );

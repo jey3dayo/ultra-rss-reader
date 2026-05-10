@@ -8,6 +8,7 @@ import {
   getRenamedShortcutPreferenceKey,
   getShortcutConflict,
   keyboardEvents,
+  normalizeRecordedShortcutKey,
   resolveKeyboardAction,
   shortcutDefinitions,
 } from "@/lib/keyboard/keyboard-shortcuts";
@@ -500,6 +501,19 @@ describe("keyboard shortcut resolver", () => {
     expect(buildKeyToActionMap(prefs).get("⌘+k")).toBe("open_command_palette");
   });
 
+  it.each([
+    ["uppercase shifted letter", { key: "J", metaKey: false, ctrlKey: false, shiftKey: true }, "Shift+j"],
+    ["lowercase letter with command", { key: "K", metaKey: true, ctrlKey: false, shiftKey: true }, "⌘+Shift+k"],
+    ["shift slash question mark", { key: "?", metaKey: false, ctrlKey: false, shiftKey: true }, "Shift+?"],
+  ] as const)("normalizes recorded %s shortcut values like runtime map keys", (_label, event, expected) => {
+    expect(normalizeRecordedShortcutKey(event)).toBe(expected);
+    expect(
+      buildKeyToActionMap({
+        shortcut_next_article: normalizeRecordedShortcutKey(event),
+      }).get(expected),
+    ).toBe("next_article");
+  });
+
   it.each(["", "   "] as const)("treats a blank next-article shortcut override as disabled: %j", (shortcut) => {
     const keyToAction = buildKeyToActionMap({
       shortcut_next_article: shortcut,
@@ -701,6 +715,34 @@ describe("keyboard shortcut resolver", () => {
     expect(getShortcutConflict("open_command_palette", "⌘,", {})).toEqual({
       type: "native_menu",
     });
+  });
+
+  it.each([
+    "?",
+    "Shift+?",
+  ] as const)("reports %s as owned by shortcuts help and keeps help resolution ahead of custom bindings", (shortcut) => {
+    const keyToAction = buildKeyToActionMap({
+      shortcut_next_article: shortcut,
+    });
+
+    expect(getShortcutConflict("next_article", shortcut, {})).toEqual({
+      type: "shortcuts_help",
+    });
+    expect(keyToAction.get(shortcut)).toBe("next_article");
+
+    const result = resolveKeyboardAction({
+      key: "?",
+      metaKey: false,
+      ctrlKey: false,
+      shiftKey: false,
+      targetTag: "DIV",
+      selectedArticleId: "art-1",
+      contentMode: "reader",
+      viewMode: "all",
+      keyToAction,
+    });
+
+    expect(Result.unwrap(result)).toEqual({ type: "open-shortcuts-help" });
   });
 
   it("lets Web Preview reload use a non-native custom shortcut", () => {

@@ -1,7 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { useCallback, useEffect, useRef } from "react";
 import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
-import { subscribeMatchMediaChange } from "@/lib/runtime/match-media-listener";
+import { readMatchMedia, subscribeMatchMediaChange } from "@/lib/runtime/match-media-listener";
 import { setWindowIcon } from "@/lib/window/windows";
 import { resolvePreferenceValue } from "@/schemas/preferences";
 import { usePlatformStore } from "@/stores/platform-store";
@@ -85,11 +85,7 @@ export function useAppIconTheme() {
     applyingRef.current = true;
 
     try {
-      const applyPendingRequest = async (): Promise<void> => {
-        if (!mountedRef.current || pendingRequestRef.current === null) {
-          return;
-        }
-
+      while (mountedRef.current && pendingRequestRef.current !== null) {
         const request = pendingRequestRef.current;
         pendingRequestRef.current = null;
 
@@ -101,11 +97,7 @@ export function useAppIconTheme() {
         if (pendingRequestRef.current !== null && isSameAppIconRequest(request, pendingRequestRef.current)) {
           pendingRequestRef.current = null;
         }
-
-        await applyPendingRequest();
-      };
-
-      await applyPendingRequest();
+      }
     } finally {
       applyingRef.current = false;
     }
@@ -139,11 +131,11 @@ export function useAppIconTheme() {
       return;
     }
 
-    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+    const mediaQuery = readMatchMedia("(prefers-color-scheme: dark)");
+    if (mediaQuery === null) {
       return;
     }
 
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
     const apply = (matches: boolean) => {
       requestAppIcon({
         theme: matches ? "dark" : "light",

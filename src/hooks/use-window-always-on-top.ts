@@ -1,5 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { useEffect, useRef } from "react";
+import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
 import { hasTauriRuntime } from "@/lib/window/window-chrome";
 import { isWindowAlwaysOnTop, isWindowFullscreen, setWindowAlwaysOnTop } from "@/lib/window/windows";
 import { resolvePreferenceValue } from "@/schemas/preferences";
@@ -14,7 +15,7 @@ function logAlwaysOnTopFailure(error: Error): void {
     return;
   }
 
-  console.warn("Failed to update window always-on-top state:", error.message);
+  logRuntimeDiagnostic("window-always-on-top", "Failed to update window always-on-top state", error);
 }
 
 async function verifyWindowAlwaysOnTopRuntimeState(enabled: boolean, isLatestRequest: () => boolean): Promise<void> {
@@ -24,14 +25,19 @@ async function verifyWindowAlwaysOnTopRuntimeState(enabled: boolean, isLatestReq
   }
 
   if (Result.isFailure(alwaysOnTopResult)) {
-    console.warn("Failed to read window always-on-top state:", Result.unwrapError(alwaysOnTopResult).message);
+    logRuntimeDiagnostic(
+      "window-always-on-top",
+      "Failed to read window always-on-top state",
+      Result.unwrapError(alwaysOnTopResult),
+    );
     return;
   }
 
   const actualAlwaysOnTop = Result.unwrap(alwaysOnTopResult);
   if (actualAlwaysOnTop !== enabled) {
-    console.warn(
-      "Window always-on-top preference drift detected:",
+    logRuntimeDiagnostic(
+      "window-always-on-top",
+      "Window always-on-top preference drift detected",
       `preferred=${String(enabled)}`,
       `actual=${String(actualAlwaysOnTop)}`,
     );
@@ -47,12 +53,19 @@ async function verifyWindowAlwaysOnTopRuntimeState(enabled: boolean, isLatestReq
   }
 
   if (Result.isFailure(fullscreenResult)) {
-    console.warn("Failed to read window fullscreen state:", Result.unwrapError(fullscreenResult).message);
+    logRuntimeDiagnostic(
+      "window-always-on-top",
+      "Failed to read window fullscreen state",
+      Result.unwrapError(fullscreenResult),
+    );
     return;
   }
 
   if (Result.unwrap(fullscreenResult)) {
-    console.warn("Window always-on-top preference is enabled while fullscreen is active.");
+    logRuntimeDiagnostic(
+      "window-always-on-top",
+      "Window always-on-top preference is enabled while fullscreen is active",
+    );
   }
 }
 
@@ -98,7 +111,7 @@ export function useWindowAlwaysOnTop() {
           return;
         }
 
-        console.warn("Window always-on-top command rejected:", error);
+        logRuntimeDiagnostic("window-always-on-top", "Window always-on-top command rejected", error);
       });
 
     return () => {

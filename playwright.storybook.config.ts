@@ -4,6 +4,7 @@ const isWindows = process.platform === "win32";
 const storybookCommand = isWindows
   ? "pwsh -NoProfile -ExecutionPolicy Bypass -File node_modules/.bin/storybook.ps1 dev -p 6006 --no-open"
   : "pnpm storybook";
+const storybookWebServerTimeoutMs = 120000;
 
 export default defineConfig({
   testDir: "./e2e/storybook",
@@ -21,6 +22,6 @@ export default defineConfig({
     command: storybookCommand,
     url: "http://127.0.0.1:6006",
     reuseExistingServer: false,
-    timeout: 120000,
+    timeout: storybookWebServerTimeoutMs,
   },
 });

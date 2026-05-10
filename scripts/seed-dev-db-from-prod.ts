@@ -19,6 +19,7 @@ type AccessImpl = (targetPath: string, mode?: number) => Promise<void>;
 type CopyFileImpl = (source: string, destination: string) => Promise<void>;
 type MkdirImpl = (targetPath: string, options: { recursive: true }) => Promise<string | undefined>;
 type RmImpl = (targetPath: string, options: { recursive?: boolean; force?: boolean }) => Promise<void>;
+type BeforeReplaceImpl = () => Promise<void>;
 type SymlinkStats = Pick<Stats, "isSymbolicLink">;
 type LstatImpl = (targetPath: string) => Promise<SymlinkStats>;
 
@@ -40,6 +41,7 @@ type SeedPlan = {
 
 const PROD_APP_IDENTIFIER = "com.jey3dayo.ultra-rss-reader";
 const DEV_APP_IDENTIFIER = "com.ultra-rss-reader.dev";
+const DEV_APP_DATA_MARKER_FILE_NAME = ".ultra-rss-reader-dev-app-data";
 const DATABASE_FILE_NAME = "ultra-rss-reader.db";
 const DATABASE_SUFFIXES = ["", "-wal", "-shm"] as const;
 
@@ -93,6 +95,10 @@ function buildDatabaseArtifactPaths(appDataDir: string): string[] {
 
 function resolveBackupDirName(timestamp: string): string {
   return `seed-from-prod-${timestamp}`;
+}
+
+function resolveDevAppDataMarkerPath(appDataDir: string): string {
+  return path.join(appDataDir, DEV_APP_DATA_MARKER_FILE_NAME);
 }
 
 function buildSeedPlan(options: { prodAppDataDir: string; devAppDataDir: string; timestamp?: string }): SeedPlan {
@@ -211,7 +217,8 @@ async function detectLikelyRunningAppProcesses(
       return Result.succeed(
         stdout
           .split(/\r?\n/)
-          .filter((line) => /Ultra RSS Reader(?: Dev)?\.exe/i.test(line) || /ultra-rss-reader\.exe/i.test(line)),
+          .map((line) => parseTasklistCsvLine(line)[0]?.trim() ?? "")
+          .filter(isLikelyWindowsAppProcessName),
       );
     } catch (error) {
       return Result.fail(processDetectionError(error));
@@ -219,6 +226,46 @@ async function detectLikelyRunningAppProcesses(
   }
 
   return Result.succeed([]);
+}
+
+function parseTasklistCsvLine(line: string): string[] {
+  const columns: string[] = [];
+  let currentColumn = "";
+  let isQuoted = false;
+
+  for (let index = 0; index < line.length; index += 1) {
+    const character = line[index];
+    const nextCharacter = line[index + 1];
+
+    if (character === '"' && isQuoted && nextCharacter === '"') {
+      currentColumn += character;
+      index += 1;
+      continue;
+    }
+
+    if (character === '"') {
+      isQuoted = !isQuoted;
+      continue;
+    }
+
+    if (character === "," && !isQuoted) {
+      columns.push(currentColumn);
+      currentColumn = "";
+      continue;
+    }
+
+    currentColumn += character;
+  }
+
+  if (line.length > 0 || currentColumn.length > 0) {
+    columns.push(currentColumn);
+  }
+
+  return columns;
+}
+
+function isLikelyWindowsAppProcessName(processName: string): boolean {
+  return /^(?:Ultra RSS Reader(?: Dev)?|ultra-rss-reader)\.exe$/i.test(processName);
 }
 
 async function checkUnixProcessName(
@@ -239,7 +286,9 @@ async function checkUnixProcessName(
   }
 
   try {
-    const { stdout } = await execFileImpl("ps", ["-axo", "pid=,command="], { encoding: "utf8" });
+    const { stdout } = await execFileImpl("ps", ["-axo", "pid=,command="], {
+      encoding: "utf8",
+    });
     if (hasLikelyUnixAppCommandLine(stdout, processName)) {
       return { processName, error: null };
     }
@@ -268,7 +317,16 @@ function hasLikelyUnixAppCommandLine(stdout: string, processName: string): boole
   return stdout
     .split(/\r?\n/)
     .map((line) => line.trim())
-    .some((line) => line.includes(processName) && likelyPathPatterns.some((pattern) => line.includes(pattern)));
+    .some((line) => {
+      const commandLine = line.replace(/^\d+\s+/, "");
+      return (
+        commandLine.includes(processName) &&
+        likelyPathPatterns.some((pattern) => {
+          const patternIndex = commandLine.indexOf(pattern);
+          return patternIndex >= 0 && !/\s/.test(commandLine.slice(0, patternIndex));
+        })
+      );
+    });
 }
 
 function isProcessNotFoundError(error: unknown): boolean {
@@ -316,7 +374,7 @@ async function detectOpenDevDatabaseHandles(options: {
   );
 }
 
-function assertSafeDevTarget(plan: SeedPlan): void {
+async function assertSafeDevTarget(plan: SeedPlan, accessImpl: AccessImpl): Promise<void> {
   const prodBaseName = path.basename(path.resolve(plan.prodAppDataDir));
   const devBaseName = path.basename(path.resolve(plan.devAppDataDir));
   const backupBaseDir = path.resolve(plan.devAppDataDir, "backups");
@@ -329,6 +387,16 @@ function assertSafeDevTarget(plan: SeedPlan): void {
 
   if (devBaseName === PROD_APP_IDENTIFIER) {
     throw new Error("Refusing to seed a non-Dev app data directory.");
+  }
+
+  if (
+    devBaseName !== DEV_APP_IDENTIFIER &&
+    devBaseName !== "dev" &&
+    !(await fileExists(resolveDevAppDataMarkerPath(plan.devAppDataDir), accessImpl))
+  ) {
+    throw new Error(
+      `Refusing to seed an unmarked Dev app data directory. Create ${DEV_APP_DATA_MARKER_FILE_NAME} in the target directory to allow this override.`,
+    );
   }
 
   if (plan.artifacts.some((artifact) => artifact.destination === artifact.source)) {
@@ -406,6 +474,7 @@ async function seedDevDatabaseFromProdPlan(
   plan: SeedPlan,
   options: {
     accessImpl?: AccessImpl;
+    beforeReplaceImpl?: BeforeReplaceImpl;
     copyFileImpl?: CopyFileImpl;
     lstatImpl?: LstatImpl;
     mkdirImpl?: MkdirImpl;
@@ -413,6 +482,7 @@ async function seedDevDatabaseFromProdPlan(
   } = {},
 ): Promise<{ copied: string[]; backedUp: string[]; backupDir: string }> {
   const accessImpl = options.accessImpl ?? access;
+  const beforeReplaceImpl = options.beforeReplaceImpl ?? (async () => {});
   const copyFileImpl = options.copyFileImpl ?? copyFile;
   const lstatImpl = options.lstatImpl ?? lstat;
   const mkdirImpl = options.mkdirImpl ?? mkdir;
@@ -427,7 +497,7 @@ async function seedDevDatabaseFromProdPlan(
     throw new Error("Production and Dev app data directories resolve to the same path.");
   }
 
-  assertSafeDevTarget(plan);
+  await assertSafeDevTarget(plan, accessImpl);
 
   await assertNotSymlink(plan.prodAppDataDir, accessImpl, lstatImpl);
   await assertNotSymlink(plan.devAppDataDir, accessImpl, lstatImpl);
@@ -481,6 +551,8 @@ async function seedDevDatabaseFromProdPlan(
       )
     ).filter((artifact): artifact is SeedArtifact => artifact !== null);
 
+    await beforeReplaceImpl();
+
     await mkdirImpl(plan.devAppDataDir, { recursive: true });
     await Promise.all(plan.artifacts.map((artifact) => rmImpl(artifact.destination, { force: true })));
 
@@ -514,14 +586,33 @@ export async function seedDevDatabaseFromProd(
   const platform = options.platform ?? process.platform;
   const dirs = resolveSeedAppDataDirs(options);
   const plan = buildSeedPlan(dirs);
+  const artifactPaths = plan.artifacts.map((artifact) => artifact.destination);
+  const guardOptions = {
+    platform,
+    artifactPaths,
+    execFileImpl: options.execFileImpl,
+  };
+
+  await assertDevDatabaseSafeToReplace(guardOptions);
+
+  return seedDevDatabaseFromProdPlan(plan, {
+    beforeReplaceImpl: () => assertDevDatabaseSafeToReplace(guardOptions),
+  });
+}
+
+async function assertDevDatabaseSafeToReplace(options: {
+  platform: SeedPlatform;
+  artifactPaths: readonly string[];
+  execFileImpl?: ExecFileAsync;
+}): Promise<void> {
   const [runningProcessesResult, openHandlesResult] = await Promise.all([
     detectLikelyRunningAppProcesses({
-      platform,
+      platform: options.platform,
       execFileImpl: options.execFileImpl,
     }),
     detectOpenDevDatabaseHandles({
-      platform,
-      artifactPaths: plan.artifacts.map((artifact) => artifact.destination),
+      platform: options.platform,
+      artifactPaths: options.artifactPaths,
       execFileImpl: options.execFileImpl,
     }),
   ]);
@@ -546,8 +637,6 @@ export async function seedDevDatabaseFromProd(
   if (openHandles.length > 0) {
     throw new Error(`Dev database appears to be open (${openHandles.join(", ")}). Close the app before replacing it.`);
   }
-
-  return seedDevDatabaseFromProdPlan(plan);
 }
 
 export const seedDevDatabaseFromProdTestBoundary = {

@@ -7,6 +7,7 @@ import { shouldIgnoreGlobalShortcutKeyboardEvent } from "@/lib/keyboard/global-s
 import {
   formatKeyForDisplay,
   getShortcutConflict,
+  normalizeRecordedShortcutKey,
   type ShortcutActionId,
   shortcutDefinitions,
   shortcutPrefKey,
@@ -28,11 +29,7 @@ function normalizeRecordedKey(
   if (["Shift", "Control", "Alt", "Meta"].includes(e.key)) return null;
   if (shouldIgnoreGlobalShortcutKeyboardEvent(e)) return null;
 
-  const parts: string[] = [];
-  if (e.metaKey || e.ctrlKey) parts.push("\u2318");
-  if (e.shiftKey) parts.push("Shift");
-  parts.push(e.key.length === 1 && e.shiftKey ? e.key.toUpperCase() : e.key);
-  return parts.join("+");
+  return normalizeRecordedShortcutKey(e);
 }
 
 export function ShortcutsSettings() {
@@ -66,6 +63,10 @@ export function ShortcutsSettings() {
 
       if (conflict?.type === "native_menu") {
         return "native menu";
+      }
+
+      if (conflict?.type === "shortcuts_help") {
+        return tReader("shortcuts.open_shortcuts_help");
       }
 
       if (conflict?.type === "duplicate") {

@@ -199,7 +199,7 @@ describe("Storybook Explorer organization", () => {
           },
         },
       }),
-    ).toEqual(["reader-sidebar--default", "ui-reference-foundations-canvas--default"]);
+    ).toEqual(["reader-sidebar--default"]);
     expect(
       getDuplicateStorybookStoryIdDiagnostics([
         "reader-sidebar--default",
@@ -215,10 +215,15 @@ describe("Storybook Explorer organization", () => {
         entries: {
           "reader-sidebar--default": {
             id: 123,
+            type: "story",
+          },
+          "reader-sidebar--docs": {
+            id: 123,
+            type: "docs",
           },
         },
       }),
-    ).toThrow("Storybook index entries must contain story objects with string id fields");
+    ).toThrow('Storybook index entries with type "story" must contain string id fields');
     expect(() =>
       storybookIndexPayload.getStorybookIndexStoryIds({
         stories: {

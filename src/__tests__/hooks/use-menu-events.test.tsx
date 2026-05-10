@@ -84,6 +84,37 @@ describe("useMenuEvents", () => {
     warnSpy.mockRestore();
   });
 
+  it("contains synchronous menu action failures inside the diagnostics boundary", async () => {
+    const error = new Error("action failed token=raw");
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    let handler: MenuActionHandler | null = null;
+    listenMock.mockImplementation((_eventName: string, nextHandler: MenuActionHandler) => {
+      handler = nextHandler;
+      return Promise.resolve(vi.fn());
+    });
+    executeActionMock.mockImplementationOnce(() => {
+      throw error;
+    });
+
+    render(<MenuEventsProbe />);
+
+    await waitFor(() => {
+      expect(listenMock).toHaveBeenCalledWith(APP_EVENTS.menuAction, expect.any(Function));
+    });
+
+    expect(() => {
+      expectMenuActionHandler(handler)({ payload: "open-settings" });
+    }).not.toThrow();
+    expectMenuActionHandler(handler)({ payload: "open-command-palette" });
+
+    expect(executeActionMock).toHaveBeenCalledWith("open-settings");
+    expect(executeActionMock).toHaveBeenCalledWith("open-command-palette");
+    expect(emitDebugInputTraceMock).toHaveBeenCalledWith("menu-action failed open-settings");
+    expect(errorSpy).toHaveBeenCalledWith("[menu-events] open-settings failed.", expect.any(Error));
+    expect(JSON.stringify(errorSpy.mock.calls)).not.toContain("token=raw");
+    errorSpy.mockRestore();
+  });
+
   it("does not dispatch menu actions with non-string payloads", async () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     let handler: MenuActionHandler | null = null;

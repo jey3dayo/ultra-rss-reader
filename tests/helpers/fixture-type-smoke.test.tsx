@@ -24,6 +24,18 @@ describe("fixture type smoke", () => {
       }
       // @ts-expect-error negative type contract: ReadonlyFixtureSeed<AccountDto> rejects collection mutation.
       sampleAccountSeeds.push(...createSampleAccounts());
+      // @ts-expect-error negative type contract: fixture seeds reject Date values.
+      const _dateSeed: ReadonlyFixtureSeed<{ value: Date }> = [{ value: new Date() }];
+      // @ts-expect-error negative type contract: fixture seeds reject Map values.
+      const _mapSeed: ReadonlyFixtureSeed<{ value: Map<string, string> }> = [{ value: new Map() }];
+      // @ts-expect-error negative type contract: fixture seeds reject function values.
+      const _functionSeed: ReadonlyFixtureSeed<{ value: () => string }> = [{ value: () => "value" }];
+      // @ts-expect-error negative type contract: fixture seeds reject undefined fields.
+      const _undefinedSeed: ReadonlyFixtureSeed<{ value: undefined }> = [{ value: undefined }];
+      void _dateSeed;
+      void _mapSeed;
+      void _functionSeed;
+      void _undefinedSeed;
       const mutableAccounts = createSampleAccounts();
       const mutableAccount = mutableAccounts[0];
       if (mutableAccount?.capabilities) {

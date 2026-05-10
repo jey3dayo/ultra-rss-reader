@@ -5,6 +5,7 @@ import {
   type MutableTestFixture,
   type ReadonlyFixtureSeed,
 } from "./fixture-types";
+import { sampleTags } from "./settings-fixtures";
 
 type FolderFixture = CommandListItem<typeof listFolders>;
 type FeedFixture = CommandListItem<typeof listFeeds>;
@@ -111,10 +112,45 @@ export const sampleArticleTagSeeds: ReadonlyFixtureSeed<ArticleTagFixture> = [
   },
 ];
 
+export function buildArticleTagFixtures({
+  articleTags,
+  articles,
+  tags,
+}: {
+  articleTags: ReadonlyFixtureSeed<ArticleTagFixture>;
+  articles: readonly ArticleFixture[];
+  tags: readonly TagFixture[];
+}): MutableTestFixture<ArticleTagFixture> {
+  const articleIds = new Set(articles.map((article) => article.id));
+  const tagIds = new Set(tags.map((tag) => tag.id));
+  const seenPairs = new Set<string>();
+  const selectedArticleTags: ArticleTagFixture[] = [];
+
+  for (const articleTag of articleTags) {
+    if (!articleIds.has(articleTag.article_id) || !tagIds.has(articleTag.tag_id)) {
+      continue;
+    }
+
+    const pairKey = `${articleTag.article_id}\u0000${articleTag.tag_id}`;
+    if (seenPairs.has(pairKey)) {
+      continue;
+    }
+
+    seenPairs.add(pairKey);
+    selectedArticleTags.push(articleTag);
+  }
+
+  return cloneFixtureSeed(selectedArticleTags);
+}
+
 export const sampleFolders: MutableTestFixture<FolderFixture> = cloneFixtureSeed(sampleFolderSeeds);
 export const sampleFeeds: MutableTestFixture<FeedFixture> = cloneFixtureSeed(sampleFeedSeeds);
 export const sampleArticles: MutableTestFixture<ArticleFixture> = cloneFixtureSeed(sampleArticleSeeds);
-export const sampleArticleTags: MutableTestFixture<ArticleTagFixture> = cloneFixtureSeed(sampleArticleTagSeeds);
+export const sampleArticleTags: MutableTestFixture<ArticleTagFixture> = buildArticleTagFixtures({
+  articleTags: sampleArticleTagSeeds,
+  articles: sampleArticles,
+  tags: sampleTags,
+});
 
 export function createSampleFeeds(): MutableTestFixture<FeedFixture> {
   return cloneFixtureSeed(sampleFeedSeeds);
@@ -129,7 +165,11 @@ export function createSampleArticles(): MutableTestFixture<ArticleFixture> {
 }
 
 export function createSampleArticleTags(): MutableTestFixture<ArticleTagFixture> {
-  return cloneFixtureSeed(sampleArticleTagSeeds);
+  return buildArticleTagFixtures({
+    articleTags: sampleArticleTagSeeds,
+    articles: sampleArticles,
+    tags: sampleTags,
+  });
 }
 
 export function requireSampleFeed(feedId: FeedFixture["id"]): FeedFixture {

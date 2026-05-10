@@ -4,6 +4,7 @@ import { sampleFeeds } from "@tests/helpers/fixtures";
 import { setupTauriMocks, teardownTauriMocks } from "@tests/helpers/tauri-mocks";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useBadge } from "@/hooks/use-badge";
+import { resetRuntimeDiagnosticOnceSuppressionForTests } from "@/lib/runtime/diagnostics";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -45,6 +46,7 @@ describe("useBadge", () => {
     setupTauriMocks();
     setBadgeCountMock.mockReset();
     getCurrentWindowMock.mockReset();
+    resetRuntimeDiagnosticOnceSuppressionForTests();
     getCurrentWindowMock.mockReturnValue({
       setBadgeCount: setBadgeCountMock,
     });
@@ -267,6 +269,45 @@ describe("useBadge", () => {
     });
   });
 
+  it("retains the previous only_inbox badge while the next account unread count is loading", async () => {
+    const secondAccountUnreadCount = createDeferred<number>();
+    setupTauriMocks((cmd, args) => {
+      if (cmd === "count_account_unread_articles") {
+        return args.accountId === "acc-2" ? secondAccountUnreadCount.promise : 7;
+      }
+
+      return undefined;
+    });
+    usePreferencesStore.setState({ prefs: { unread_badge: "only_inbox" }, loaded: true });
+
+    render(<HookHarness />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(setBadgeCountMock).toHaveBeenCalledWith(7);
+    });
+    const clearCountBeforeAccountSwitch = setBadgeCountMock.mock.calls.filter(([count]) => count === undefined).length;
+
+    act(() => {
+      useUiStore.setState({ selectedAccountId: "acc-2" });
+    });
+
+    await waitFor(() => {
+      expect(setBadgeCountMock).toHaveBeenLastCalledWith(7);
+    });
+    expect(setBadgeCountMock.mock.calls.filter(([count]) => count === undefined)).toHaveLength(
+      clearCountBeforeAccountSwitch,
+    );
+
+    secondAccountUnreadCount.resolve(9);
+    await act(async () => {
+      await secondAccountUnreadCount.promise;
+    });
+
+    await waitFor(() => {
+      expect(setBadgeCountMock).toHaveBeenLastCalledWith(9);
+    });
+  });
+
   it("keeps only_inbox badge writes latest-only when the account changes during a pending apply", async () => {
     const firstAccountWindow = {
       setBadgeCount: vi.fn(),
@@ -408,6 +449,7 @@ describe("useBadge", () => {
   });
 
   it("replays the latest badge count when an older pending native window has no badge API", async () => {
+    const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     const unavailableWindowReady = createDeferred<BadgeWindowMock>();
     getCurrentWindowMock.mockReturnValueOnce(unavailableWindowReady.promise).mockReturnValue({
       setBadgeCount: setBadgeCountMock,
@@ -432,6 +474,9 @@ describe("useBadge", () => {
     await waitFor(() => {
       expect(setBadgeCountMock).toHaveBeenLastCalledWith(5);
     });
+    expect(consoleWarnSpy).toHaveBeenCalledWith("Unread badge command is unavailable on this window.");
+
+    consoleWarnSpy.mockRestore();
   });
 
   it("attempts a final clear when badge support is unavailable before the preference is disabled", async () => {
@@ -462,6 +507,8 @@ describe("useBadge", () => {
   });
 
   it("attempts a final clear after unavailable support, command rejection, rapid count changes, and preference off", async () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     const unavailableWindowReady = createDeferred<BadgeWindowMock>();
     const unavailableWindow: BadgeWindowMock = {};
     setupTauriMocks((cmd, args) => {
@@ -522,6 +569,14 @@ describe("useBadge", () => {
       );
     });
     expect(setBadgeCountMock).toHaveBeenLastCalledWith(undefined);
+    expect(consoleWarnSpy).toHaveBeenCalledWith("Unread badge command is unavailable on this window.");
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      "Failed to apply unread badge count:",
+      expect.objectContaining({ message: "badge command rejected" }),
+    );
+
+    consoleErrorSpy.mockRestore();
+    consoleWarnSpy.mockRestore();
   });
 
   it("skips a deferred native badge write after the hook unmounts", async () => {

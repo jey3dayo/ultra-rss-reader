@@ -8,6 +8,22 @@ import {
   isWindowNavigationDirection,
 } from "@/lib/window/window-events";
 
+function createIframeWindow() {
+  const iframe = document.createElement("iframe");
+  document.body.append(iframe);
+
+  const frameWindow = iframe.contentWindow;
+  if (frameWindow === null) {
+    iframe.remove();
+    throw new Error("iframe window is unavailable");
+  }
+
+  return {
+    frameWindow,
+    cleanup: () => iframe.remove(),
+  };
+}
+
 describe("window-events", () => {
   it("forwards keyboard events only to keyboard listeners", () => {
     const onKey = vi.fn();
@@ -57,6 +73,23 @@ describe("window-events", () => {
     expect(onPointer).toHaveBeenCalledWith(pointerEvent);
   });
 
+  it("forwards cross-realm keyboard events from iframes", () => {
+    const { frameWindow, cleanup } = createIframeWindow();
+    const onKey = vi.fn();
+    const keyboardEvent = new frameWindow.KeyboardEvent("keydown", { key: "Enter" });
+
+    try {
+      expect(keyboardEvent instanceof KeyboardEvent).toBe(false);
+
+      createKeyboardEventListener(onKey)(keyboardEvent);
+
+      expect(onKey).toHaveBeenCalledOnce();
+      expect(onKey).toHaveBeenCalledWith(keyboardEvent);
+    } finally {
+      cleanup();
+    }
+  });
+
   it("ignores plain events for typed keyboard, mouse, and pointer listeners", () => {
     const onKey = vi.fn();
     const onMouse = vi.fn();
@@ -91,6 +124,31 @@ describe("window-events", () => {
     expect(onDetail).toHaveBeenCalledWith({ direction: 1 });
   });
 
+  it("forwards cross-realm custom event details from iframes", () => {
+    const { frameWindow, cleanup } = createIframeWindow();
+    const onDetail = vi.fn();
+    const listener = createCustomEventDetailListener(
+      (detail): detail is { direction: 1 | -1 } =>
+        typeof detail === "object" &&
+        detail !== null &&
+        "direction" in detail &&
+        (detail.direction === 1 || detail.direction === -1),
+      onDetail,
+    );
+    const customEvent = new frameWindow.CustomEvent("navigate", { detail: { direction: -1 } });
+
+    try {
+      expect(customEvent instanceof CustomEvent).toBe(false);
+
+      listener(customEvent);
+
+      expect(onDetail).toHaveBeenCalledOnce();
+      expect(onDetail).toHaveBeenCalledWith({ direction: -1 });
+    } finally {
+      cleanup();
+    }
+  });
+
   it("ignores custom event details when the detail guard throws", () => {
     const guardError = new Error("malformed detail");
     const onDetail = vi.fn();
@@ -99,6 +157,29 @@ describe("window-events", () => {
     }, onDetail);
 
     expect(() => listener(new CustomEvent("navigate", { detail: { direction: 1 } }))).not.toThrow();
+
+    expect(onDetail).not.toHaveBeenCalled();
+  });
+
+  it("ignores custom events when reading the detail throws", () => {
+    const detailError = new Error("detail is inaccessible");
+    const onDetail = vi.fn();
+    const event = new Event("navigate");
+    Object.defineProperty(event, "detail", {
+      get() {
+        throw detailError;
+      },
+    });
+    const listener = createCustomEventDetailListener(
+      (detail): detail is { direction: 1 | -1 } =>
+        typeof detail === "object" &&
+        detail !== null &&
+        "direction" in detail &&
+        (detail.direction === 1 || detail.direction === -1),
+      onDetail,
+    );
+
+    expect(() => listener(event)).not.toThrow();
 
     expect(onDetail).not.toHaveBeenCalled();
   });

@@ -28,9 +28,25 @@ function hasRegisteredWindowEventBinding(
   );
 }
 
+function hasKeyboardEventShape(event: Event): event is KeyboardEvent {
+  return event instanceof KeyboardEvent || "key" in event;
+}
+
+function hasMouseEventShape(event: Event): event is MouseEvent {
+  return event instanceof MouseEvent || ("button" in event && "clientX" in event && "clientY" in event);
+}
+
+function hasPointerEventShape(event: Event): event is PointerEvent {
+  return typeof PointerEvent !== "undefined" && (event instanceof PointerEvent || "pointerId" in event);
+}
+
+function hasCustomEventShape(event: Event): event is CustomEvent<unknown> {
+  return event instanceof CustomEvent || "detail" in event;
+}
+
 export function createKeyboardEventListener(handleEvent: (event: KeyboardEvent) => void): EventListener {
   return (event) => {
-    if (event instanceof KeyboardEvent) {
+    if (hasKeyboardEventShape(event)) {
       handleEvent(event);
     }
   };
@@ -38,8 +54,7 @@ export function createKeyboardEventListener(handleEvent: (event: KeyboardEvent) 
 
 export function createMouseEventListener(handleEvent: (event: MouseEvent) => void): EventListener {
   return (event) => {
-    const isPointerEvent = typeof PointerEvent !== "undefined" && event instanceof PointerEvent;
-    if (event instanceof MouseEvent && !isPointerEvent) {
+    if (hasMouseEventShape(event) && !hasPointerEventShape(event)) {
       handleEvent(event);
     }
   };
@@ -47,7 +62,7 @@ export function createMouseEventListener(handleEvent: (event: MouseEvent) => voi
 
 export function createPointerEventListener(handleEvent: (event: PointerEvent) => void): EventListener {
   return (event) => {
-    if (event instanceof PointerEvent) {
+    if (hasPointerEventShape(event)) {
       handleEvent(event);
     }
   };
@@ -58,13 +73,13 @@ export function createCustomEventDetailListener<T>(
   handleEvent: (detail: T) => void,
 ): EventListener {
   return (event) => {
-    if (!(event instanceof CustomEvent)) {
+    if (!hasCustomEventShape(event)) {
       return;
     }
 
-    const detail: unknown = event.detail;
     let acceptedDetail: T;
     try {
+      const detail: unknown = event.detail;
       if (!isDetail(detail)) {
         return;
       }

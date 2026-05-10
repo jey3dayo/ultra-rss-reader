@@ -374,8 +374,8 @@ pub fn create_backup(db_path: &Path, schema_version: i32) -> DomainResult<PathBu
 
     info!(
         "Creating DB backup: {} -> {}",
-        db_path.display(),
-        dest.display()
+        redacted_path_label(db_path),
+        redacted_path_label(&dest)
     );
 
     copy_backup_file_atomic(db_path, &dest)?;
@@ -404,8 +404,8 @@ pub(crate) fn manual_restore_instruction() -> &'static str {
 pub fn restore_backup(db_path: &Path, backup: &Path) -> DomainResult<()> {
     info!(
         "Restoring DB from backup: {} -> {}",
-        backup.display(),
-        db_path.display()
+        redacted_path_label(backup),
+        redacted_path_label(db_path)
     );
 
     ensure_integrity_ok(backup, "before restore")?;
@@ -556,7 +556,10 @@ pub fn cleanup_old_backups(db_path: &Path, keep: usize) -> DomainResult<()> {
     for name in to_remove {
         let bp = dir.join(name);
         if let Err(e) = fs::remove_file(&bp) {
-            let message = format!("Failed to remove old backup {}: {e}", bp.display());
+            let message = format!(
+                "Failed to remove old backup {}: {e}",
+                redacted_path_label(&bp)
+            );
             warn!("{message}");
             removal_errors.push(message);
         }
@@ -588,7 +591,7 @@ pub fn cleanup_old_backups(db_path: &Path, keep: usize) -> DomainResult<()> {
         if let Err(e) = fs::remove_file(&aux_path) {
             let message = format!(
                 "Failed to remove {reason} auxiliary backup {}: {e}",
-                aux_path.display()
+                redacted_path_label(&aux_path)
             );
             warn!("{message}");
             removal_errors.push(message);
@@ -1100,5 +1103,27 @@ mod tests {
         assert!(auxiliary_backup_path(&kept, "shm").exists());
         assert!(!auxiliary_backup_path(&orphan, "wal").exists());
         assert!(!auxiliary_backup_path(&orphan, "shm").exists());
+    }
+
+    #[test]
+    fn cleanup_failure_message_redacts_backup_path() {
+        let (dir, db_path) = setup_temp_db();
+        let backup_dir = backups_dir(&db_path).unwrap();
+        fs::create_dir_all(&backup_dir).unwrap();
+
+        let blocked_backup = backup_dir.join("test_v1_20240101T000001.db");
+        fs::create_dir(&blocked_backup).unwrap();
+        fs::write(backup_dir.join("test_v2_20240101T000002.db"), b"newer").unwrap();
+
+        let error = cleanup_old_backups(&db_path, 1).unwrap_err().to_string();
+
+        assert!(
+            error.contains("[redacted parent]/test_v1_20240101T000001.db"),
+            "cleanup failure should identify the backup filename without leaking its directory: {error}"
+        );
+        assert!(
+            !error.contains(dir.path().to_string_lossy().as_ref()),
+            "cleanup failure should not include the temp directory path: {error}"
+        );
     }
 }

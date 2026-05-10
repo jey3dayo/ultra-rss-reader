@@ -5,7 +5,7 @@ import { executeAction } from "@/lib/actions";
 import { isAppAction } from "@/lib/app-actions";
 import { emitDebugInputTrace } from "@/lib/debug/debug-input-trace";
 import { isModalBlockedMenuAction } from "@/lib/keyboard/global-shortcut-targets";
-import { formatRuntimeDiagnosticPayload } from "@/lib/runtime/diagnostics";
+import { formatRuntimeDiagnosticPayload, logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
 import { attachTauriListeners } from "@/lib/runtime/tauri-event-listeners";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -26,7 +26,12 @@ export function useMenuEvents(): void {
               emitDebugInputTrace(`${APP_EVENTS.menuAction} blocked ${formattedPayload}`);
               return;
             }
-            executeAction(event.payload);
+            try {
+              executeAction(event.payload);
+            } catch (error) {
+              logRuntimeDiagnostic("menu-action", `[menu-events] ${event.payload} failed.`, error);
+              emitDebugInputTrace(`${APP_EVENTS.menuAction} failed ${formattedPayload}`);
+            }
           } else {
             console.warn(`[menu-events] Unknown action: ${formattedPayload}`);
           }

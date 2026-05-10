@@ -58,20 +58,33 @@ async function applyBadgeCountCommand(
 
   try {
     ({ getCurrentWindow } = await import("@tauri-apps/api/window"));
-  } catch {
-    // Non-Tauri context (browser dev mode) — no-op
+  } catch (error: unknown) {
+    logRuntimeDiagnostic("unread-badge-runtime-unavailable", "Unread badge runtime is unavailable:", error);
     return "unavailable";
   }
 
+  let currentWindow: Awaited<ReturnType<typeof getCurrentWindow>>;
   try {
-    const currentWindow = await getCurrentWindow();
-    if (!shouldApplyRequest()) {
-      return "skipped";
-    }
+    currentWindow = await getCurrentWindow();
+  } catch (error: unknown) {
+    logRuntimeDiagnostic("unread-badge-runtime-unavailable", "Unread badge window runtime is unavailable:", error);
+    return "unavailable";
+  }
+
+  if (typeof currentWindow.setBadgeCount !== "function") {
+    logRuntimeDiagnostic("unread-badge-runtime-unavailable", "Unread badge command is unavailable on this window.");
+    return "unavailable";
+  }
+
+  if (!shouldApplyRequest()) {
+    return "skipped";
+  }
+
+  try {
     await currentWindow.setBadgeCount(count);
     return "applied";
   } catch (error: unknown) {
-    logRuntimeDiagnostic("unread-badge", "Failed to apply unread badge count:", error);
+    logRuntimeDiagnostic("unread-badge-command-failure", "Failed to apply unread badge count:", error);
     return "unavailable";
   }
 }
@@ -83,21 +96,27 @@ export function useBadge() {
   const selectedAccountId = useUiStore((s) => s.selectedAccountId);
   const badgePref = usePreferencesStore((s) => resolveUnreadBadgePreference(s.prefs.unread_badge));
   const feedAccountId = badgePref === "all_unread" ? selectedAccountId : null;
-  const { data: feeds } = useFeeds(feedAccountId);
-  const { data: accountUnreadCount } = useAccountUnreadCount(
+  const { data: feeds, isFetching: feedsFetching } = useFeeds(feedAccountId);
+  const { data: accountUnreadCount, isFetching: accountUnreadCountFetching } = useAccountUnreadCount(
     selectedAccountId,
     badgePref === "only_inbox" && selectedAccountId !== null,
   );
-  const badgeCount = useMemo(
-    () =>
-      resolveBadgeCount({
-        accountUnreadCount,
-        badgePref,
-        feeds,
-        selectedAccountId,
-      }),
-    [accountUnreadCount, badgePref, feeds, selectedAccountId],
-  );
+  const badgeCount = useMemo(() => {
+    const isWaitingForAllUnread = badgePref === "all_unread" && feeds === undefined && feedsFetching;
+    const isWaitingForOnlyInbox =
+      badgePref === "only_inbox" && accountUnreadCount === undefined && accountUnreadCountFetching;
+
+    if (selectedAccountId !== null && (isWaitingForAllUnread || isWaitingForOnlyInbox)) {
+      return latestBadgeCountRef.current;
+    }
+
+    return resolveBadgeCount({
+      accountUnreadCount,
+      badgePref,
+      feeds,
+      selectedAccountId,
+    });
+  }, [accountUnreadCount, accountUnreadCountFetching, badgePref, feeds, feedsFetching, selectedAccountId]);
 
   useEffect(() => {
     return () => {

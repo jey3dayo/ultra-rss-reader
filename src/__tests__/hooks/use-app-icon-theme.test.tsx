@@ -344,6 +344,26 @@ describe("useAppIconTheme", () => {
     expect(setIconMock).not.toHaveBeenCalled();
   });
 
+  it("falls back without throwing when matchMedia itself throws", async () => {
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => {
+        throw new Error("matchMedia unavailable");
+      }),
+    );
+    usePreferencesStore.setState({ prefs: { theme: "system" }, loaded: true });
+    setPlatformState({
+      loaded: true,
+      supportsRuntimeWindowIconReplacement: true,
+    });
+
+    expect(() => render(<HookHarness />)).not.toThrow();
+
+    await flushMicrotasksAndRealTimer();
+
+    expect(setIconMock).not.toHaveBeenCalled();
+  });
+
   it("uses legacy system theme listeners and ignores cleanup failures", async () => {
     const mql = createLegacyMatchMedia(true, { throwOnRemove: true });
     vi.stubGlobal(

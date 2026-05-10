@@ -157,6 +157,12 @@ mod tests {
         forbidden_fragments: &'static [&'static str],
     }
 
+    struct SrcsetContractCase {
+        label: &'static str,
+        srcset: &'static str,
+        expected: Option<&'static str>,
+    }
+
     const SANITIZER_FIXTURE_POLICY_VERSION: u32 = 2;
 
     const SANITIZER_CORPUS: &[SanitizerCorpusCase] = &[
@@ -445,6 +451,66 @@ mod tests {
         assert!(!output.contains("vbscript:"));
         assert!(!output.contains("data:image"));
         assert!(!output.contains("evil 3x"));
+    }
+
+    #[test]
+    fn filters_srcset_parser_edge_case_corpus_by_url_safety_boundary() {
+        let huge_srcset = (0..64)
+            .map(|index| format!("https://example.com/hero-{index}.jpg {index}w"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let expected_huge_srcset = huge_srcset.clone();
+        let cases = [
+            SrcsetContractCase {
+                label: "comma in absolute http url stays inside the same candidate",
+                srcset: "https://example.com/image,name.jpg 1x, https://example.com/next.jpg 2x",
+                expected: Some(
+                    "https://example.com/image,name.jpg 1x, https://example.com/next.jpg 2x",
+                ),
+            },
+            SrcsetContractCase {
+                label: "empty descriptor keeps safe url because descriptor validation is not enforced",
+                srcset: "https://example.com/empty.jpg , https://example.com/valid.jpg 2x",
+                expected: Some("https://example.com/empty.jpg, https://example.com/valid.jpg 2x"),
+            },
+            SrcsetContractCase {
+                label: "duplicate descriptor keeps safe url because descriptor validation is not enforced",
+                srcset: "https://example.com/duplicate.jpg 1x 2x, https://example.com/valid.jpg 2x",
+                expected: Some(
+                    "https://example.com/duplicate.jpg 1x 2x, https://example.com/valid.jpg 2x",
+                ),
+            },
+            SrcsetContractCase {
+                label: "control character in url removes only that candidate",
+                srcset: "https://example.com/\u{0008}bad.jpg 1x, https://example.com/good.jpg 2x",
+                expected: Some("https://example.com/good.jpg 2x"),
+            },
+            SrcsetContractCase {
+                label: "uppercase http scheme remains accepted by url parser normalization",
+                srcset: "HTTPS://example.com/upper.jpg 1x, HTTP://example.com/plain.jpg 2x",
+                expected: Some("HTTPS://example.com/upper.jpg 1x, HTTP://example.com/plain.jpg 2x"),
+            },
+            SrcsetContractCase {
+                label: "unsafe huge srcset removes the attribute when no candidate survives",
+                srcset: "javascript:alert(1) 1x, data:image/svg+xml,evil 2x, /relative.jpg 3x",
+                expected: None,
+            },
+        ];
+
+        for case in cases {
+            assert_eq!(
+                filter_srcset(case.srcset).as_deref(),
+                case.expected,
+                "{}",
+                case.label
+            );
+        }
+
+        assert_eq!(
+            filter_srcset(&huge_srcset).as_deref(),
+            Some(expected_huge_srcset.as_str()),
+            "huge safe srcset should remain unchanged across candidate splitting",
+        );
     }
 
     #[test]
