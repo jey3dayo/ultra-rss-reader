@@ -544,7 +544,17 @@ fn load_scheduler_accounts(db: &Mutex<DbManager>) -> DomainResult<Vec<Account>> 
         .lock()
         .map_err(|error| DomainError::Persistence(format!("Lock error: {error}")))?;
     let repo = SqliteAccountRepository::new(db_guard.reader());
-    repo.find_all()
+    repo.find_all().map(|accounts| {
+        accounts
+            .into_iter()
+            .filter(|account| {
+                !matches!(
+                    account.kind,
+                    crate::domain::provider::ProviderKind::Quarantined
+                )
+            })
+            .collect()
+    })
 }
 
 fn load_scheduler_account(
@@ -1371,6 +1381,7 @@ mod tests {
             .take()
             .expect("registered scheduler task should remain available after abort");
         task.await.expect_err("aborted scheduler task should stop");
+        lifecycle.running.store(false, Ordering::SeqCst);
 
         assert!(
             prepare_scheduler_start(&mut lifecycle).is_some(),

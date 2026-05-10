@@ -142,7 +142,11 @@ fn is_automatic_sync_enabled(automatic_sync_enabled: &AtomicBool) -> bool {
 fn load_all_accounts(db: &Mutex<DbManager>) -> Result<Vec<Account>, AppError> {
     let db_guard = lock_db(db)?;
     let account_repo = SqliteAccountRepository::new(db_guard.reader());
-    Ok(account_repo.find_all()?)
+    Ok(account_repo
+        .find_all()?
+        .into_iter()
+        .filter(|account| !matches!(account.kind, ProviderKind::Quarantined))
+        .collect())
 }
 
 pub(crate) fn should_emit_sync_succeeded(result: &SyncResult) -> bool {
