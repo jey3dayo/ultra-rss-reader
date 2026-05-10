@@ -4,7 +4,7 @@ import { renderHook } from "@testing-library/react";
 import { type TestUserVisibleAppError, testRetryableAppError, testUserVisibleAppError } from "@tests/helpers/app-error";
 import { flushMicrotasksAndRealTimer } from "@tests/helpers/async-flush";
 import { resetTauriRuntimeFlags, setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
-import { createElement, StrictMode, type PropsWithChildren } from "react";
+import { createElement, type PropsWithChildren, StrictMode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TAURI_EVENT_LISTENER_FAILURE_EVENT } from "@/lib/runtime/tauri-event-listeners";
 
