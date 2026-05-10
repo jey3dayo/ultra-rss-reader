@@ -1,3 +1,4 @@
+-- destructive-migration: removes duplicate pending mutations before adding the uniqueness contract.
 DELETE FROM pending_mutations
 WHERE id NOT IN (
     SELECT MIN(id)

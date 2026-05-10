@@ -21,6 +21,8 @@ use crate::platform::PlatformKind;
 
 const BROWSER_WEBVIEW_LOAD_TIMEOUT_MS: u64 = 10_000;
 const MAX_BROWSER_WEBVIEW_BOUND_VALUE: f64 = i32::MAX as f64;
+const BROWSER_WEBVIEW_DIAGNOSTICS_COORDINATE_BUCKET: f64 = 8.0;
+const BROWSER_WEBVIEW_DIAGNOSTICS_MAX_RECT_VALUE: f64 = 10_000.0;
 const INVALID_BROWSER_BOUNDS_ERROR: &str =
     "Embedded browser bounds must be finite, within supported coordinate limits, and have positive width/height";
 const BROWSER_WEBVIEW_NOT_OPEN_ERROR: &str = "Embedded browser webview is not open";
@@ -183,6 +185,27 @@ fn browser_webview_log_url(url: &str) -> String {
     }
 }
 
+fn browser_webview_diagnostics_number(value: f64) -> f64 {
+    let bucketed = (value / BROWSER_WEBVIEW_DIAGNOSTICS_COORDINATE_BUCKET).round()
+        * BROWSER_WEBVIEW_DIAGNOSTICS_COORDINATE_BUCKET;
+    bucketed.clamp(
+        -BROWSER_WEBVIEW_DIAGNOSTICS_MAX_RECT_VALUE,
+        BROWSER_WEBVIEW_DIAGNOSTICS_MAX_RECT_VALUE,
+    )
+}
+
+fn browser_webview_diagnostics_rect(
+    position: LogicalPosition<f64>,
+    size: LogicalSize<f64>,
+) -> BrowserWebviewLogicalRect {
+    BrowserWebviewLogicalRect {
+        x: browser_webview_diagnostics_number(position.x),
+        y: browser_webview_diagnostics_number(position.y),
+        width: browser_webview_diagnostics_number(size.width),
+        height: browser_webview_diagnostics_number(size.height),
+    }
+}
+
 fn browser_webview_bounds_diagnostics_payload(
     action: &str,
     bounds: BrowserWebviewBounds,
@@ -198,20 +221,18 @@ fn browser_webview_bounds_diagnostics_payload(
     let applied_size = rect.size.to_logical::<f64>(scale_factor);
     Some(BrowserWebviewDiagnosticsPayload {
         action: action.to_string(),
-        requested_logical: BrowserWebviewLogicalRect {
-            x: bounds.x,
-            y: bounds.y,
-            width: bounds.width,
-            height: bounds.height,
-        },
-        applied_logical: BrowserWebviewLogicalRect {
-            x: applied_position.x,
-            y: applied_position.y,
-            width: applied_size.width,
-            height: applied_size.height,
-        },
+        requested_logical: browser_webview_diagnostics_rect(
+            bounds.logical_position(),
+            bounds.logical_size(),
+        ),
+        applied_logical: browser_webview_diagnostics_rect(applied_position, applied_size),
         scale_factor,
-        native_webview_bounds,
+        native_webview_bounds: native_webview_bounds.map(|bounds| {
+            browser_webview_diagnostics_rect(
+                LogicalPosition::new(bounds.x, bounds.y),
+                LogicalSize::new(bounds.width, bounds.height),
+            )
+        }),
     })
 }
 
@@ -1135,8 +1156,8 @@ mod tests {
         assert_eq!(
             payload.requested_logical,
             BrowserWebviewLogicalRect {
-                x: 12.0,
-                y: 34.0,
+                x: 16.0,
+                y: 32.0,
                 width: 560.0,
                 height: 320.0,
             }
@@ -1144,14 +1165,73 @@ mod tests {
         assert_eq!(
             payload.applied_logical,
             BrowserWebviewLogicalRect {
-                x: 12.0,
-                y: 34.0,
+                x: 16.0,
+                y: 32.0,
                 width: 560.0,
                 height: 320.0,
             }
         );
         assert_eq!(payload.scale_factor, 2.0);
-        assert_eq!(payload.native_webview_bounds, Some(native_bounds));
+        assert_eq!(
+            payload.native_webview_bounds,
+            Some(BrowserWebviewLogicalRect {
+                x: 16.0,
+                y: 40.0,
+                width: 560.0,
+                height: 320.0,
+            })
+        );
+
+        set_browser_webview_diagnostics_enabled(false);
+    }
+
+    #[test]
+    fn diagnostics_payload_buckets_coordinates_and_caps_rect_values_when_enabled() {
+        let _guard = BROWSER_WEBVIEW_DIAGNOSTICS_TEST_LOCK.lock().unwrap();
+
+        set_browser_webview_diagnostics_enabled(true);
+        let bounds = BrowserWebviewBounds {
+            x: -12_345.0,
+            y: -6.0,
+            width: 20_001.0,
+            height: 319.0,
+            unit: BrowserWebviewBoundsUnit::Logical,
+        };
+        let rect = child_webview_rect_from_browser_bounds(bounds);
+        let native_bounds = BrowserWebviewLogicalRect {
+            x: 18.0,
+            y: 34.0,
+            width: 1_234_567.0,
+            height: 321.0,
+        };
+
+        let payload = browser_webview_bounds_diagnostics_payload(
+            "resize",
+            bounds,
+            &rect,
+            1.5,
+            Some(native_bounds),
+        )
+        .expect("enabled diagnostics should build a payload");
+
+        assert_eq!(
+            payload.requested_logical,
+            BrowserWebviewLogicalRect {
+                x: -10_000.0,
+                y: -8.0,
+                width: 10_000.0,
+                height: 320.0,
+            }
+        );
+        assert_eq!(
+            payload.native_webview_bounds,
+            Some(BrowserWebviewLogicalRect {
+                x: 16.0,
+                y: 32.0,
+                width: 10_000.0,
+                height: 320.0,
+            })
+        );
 
         set_browser_webview_diagnostics_enabled(false);
     }

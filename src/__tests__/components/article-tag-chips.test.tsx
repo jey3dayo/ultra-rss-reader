@@ -76,6 +76,24 @@ describe("ArticleTagChips", () => {
     });
   });
 
+  it("drops stale assigned tags after the active tag list no longer contains them", () => {
+    expect(
+      buildArticleTagPickerLists({
+        articleTags: [
+          { id: "tag-review", name: "Review", color: null },
+          { id: "tag-deleted", name: "Deleted", color: "#f97316" },
+        ],
+        allTags: [
+          { id: "tag-review", name: "Review", color: null },
+          { id: "tag-inbox", name: "Inbox", color: null },
+        ],
+      }),
+    ).toEqual({
+      assignedTags: [{ id: "tag-review", name: "Review", color: null }],
+      availableTags: [{ id: "tag-inbox", name: "Inbox", color: null }],
+    });
+  });
+
   it("removes earlier available candidates when they are assigned later in the same projection", () => {
     expect(
       buildArticleTagPickerLists({
@@ -85,6 +103,7 @@ describe("ArticleTagChips", () => {
         ],
         allTags: [
           { id: "tag-later", name: "Later", color: "#3b82f6" },
+          { id: "tag-review", name: "Review", color: null },
           { id: "tag-inbox", name: "Inbox", color: null },
           { id: "tag-important", name: "Important", color: "#ef4444" },
         ],

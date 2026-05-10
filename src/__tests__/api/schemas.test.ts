@@ -1400,6 +1400,27 @@ describe("BrowserWebviewDiagnosticsPayloadSchema", () => {
       }),
     ).toThrow();
   });
+
+  it("rejects native diagnostics coordinates outside the support-safe cap", () => {
+    expect(() =>
+      BrowserWebviewDiagnosticsPayloadSchema.parse({
+        action: "resize",
+        requestedLogical: { x: -10001, y: 2, width: 300, height: 200 },
+        appliedLogical: { x: 1, y: 2, width: 300, height: 200 },
+        scaleFactor: 2,
+        nativeWebviewBounds: null,
+      }),
+    ).toThrow();
+    expect(() =>
+      BrowserWebviewDiagnosticsPayloadSchema.parse({
+        action: "resize",
+        requestedLogical: { x: 1, y: 2, width: 300, height: 200 },
+        appliedLogical: { x: 1, y: 2, width: 300, height: 200 },
+        scaleFactor: 2,
+        nativeWebviewBounds: { x: 1, y: 2, width: 10001, height: 200 },
+      }),
+    ).toThrow();
+  });
 });
 
 describe("command args schemas", () => {

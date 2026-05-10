@@ -1,20 +1,31 @@
-export function getPreferredAccountId<T extends { id: string }>(
+type SelectableAccountLike = {
+  id: string;
+  disabled?: boolean;
+  enabled?: boolean;
+};
+
+function isSelectableAccount(account: SelectableAccountLike): boolean {
+  return account.disabled !== true && account.enabled !== false;
+}
+
+export function getPreferredAccountId<T extends SelectableAccountLike>(
   accounts: readonly T[],
   savedAccountId: string | null | undefined,
 ): string | null {
-  if (accounts.length === 0) {
+  const selectableAccounts = accounts.filter(isSelectableAccount);
+  if (selectableAccounts.length === 0) {
     return null;
   }
 
   const normalizedSavedAccountId = savedAccountId?.trim();
-  if (normalizedSavedAccountId && accounts.some((account) => account.id === normalizedSavedAccountId)) {
+  if (normalizedSavedAccountId && selectableAccounts.some((account) => account.id === normalizedSavedAccountId)) {
     return normalizedSavedAccountId;
   }
 
-  return accounts[0].id;
+  return selectableAccounts[0].id;
 }
 
-type RestoredAccountSelectionParams<T extends { id: string }> = {
+type RestoredAccountSelectionParams<T extends SelectableAccountLike> = {
   accounts: readonly T[];
   selectedAccountId: string | null | undefined;
   savedAccountId: string | null | undefined;
@@ -30,16 +41,19 @@ function normalizeAccountId(value: string | null | undefined): string | null {
   return normalizedValue && normalizedValue.length > 0 ? normalizedValue : null;
 }
 
-function hasAccountId<T extends { id: string }>(accounts: readonly T[], accountId: string | null): accountId is string {
-  return accountId !== null && accounts.some((account) => account.id === accountId);
+function hasAccountId<T extends SelectableAccountLike>(
+  accounts: readonly T[],
+  accountId: string | null,
+): accountId is string {
+  return accountId !== null && accounts.some((account) => account.id === accountId && isSelectableAccount(account));
 }
 
-export function resolveRestoredAccountSelection<T extends { id: string }>({
+export function resolveRestoredAccountSelection<T extends SelectableAccountLike>({
   accounts,
   selectedAccountId,
   savedAccountId,
 }: RestoredAccountSelectionParams<T>): RestoredAccountSelection {
-  if (accounts.length === 0) {
+  if (!accounts.some(isSelectableAccount)) {
     return {
       accountId: null,
       preferenceAccountId: "",

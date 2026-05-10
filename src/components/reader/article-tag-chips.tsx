@@ -79,13 +79,14 @@ export function buildArticleTagPickerLists(params: {
 } {
   const { articleTags, allTags } = params;
   const tagsLength = Math.max(articleTags?.length ?? 0, allTags?.length ?? 0);
+  const activeTagIds = allTags ? new Set(allTags.map((tag) => tag.id).filter((tagId) => tagId.length > 0)) : null;
   const assignedTagIds = new Set<string>();
   const assignedTags: ArticleTagPickerTagView[] = [];
   const availableTagsById = new Map<string, ArticleTagPickerTagView>();
 
   for (let index = 0; index < tagsLength; index += 1) {
     const articleTag = articleTags?.[index];
-    if (articleTag?.id && !assignedTagIds.has(articleTag.id)) {
+    if (articleTag?.id && activeTagIds?.has(articleTag.id) !== false && !assignedTagIds.has(articleTag.id)) {
       assignedTagIds.add(articleTag.id);
       assignedTags.push(toArticleTagPickerTagView(articleTag));
       availableTagsById.delete(articleTag.id);

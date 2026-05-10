@@ -151,6 +151,7 @@ describe("useUiStore", () => {
         | "selectSmartView"
         | "selectTag"
         | "selectTagFromCurrentContext"
+        | "handleTagDeleted"
         | "selectAll"
         | "selectArticle"
         | "clearArticle"
@@ -343,6 +344,60 @@ describe("useUiStore", () => {
     useUiStore.getState().openCommandPalette();
     useUiStore.getState().handleAccountDeleted("acc-3", ["acc-4"]);
     expect(useUiStore.getState().commandPaletteOpen).toBe(false);
+  });
+
+  it("does not fall back to the deleted account id when handling account deletion", () => {
+    setStaleBrowserState();
+    useUiStore.setState({
+      selectedAccountId: "acc-1",
+      settingsAccountId: "acc-1",
+      selection: { type: "feed", feedId: "feed-1" },
+      selectedArticleId: "article-1",
+      accountSetupSession: {
+        accountId: "acc-1",
+        owner: "account-detail",
+        state: "syncing",
+      },
+      recentlyReadIds: new Set(["article-1"]),
+      retainedArticleIds: new Set(["article-1"]),
+    });
+
+    useUiStore.getState().handleAccountDeleted("acc-1", ["acc-1", " acc-2 "]);
+
+    expect(useUiStore.getState()).toEqual(
+      expect.objectContaining({
+        selectedAccountId: "acc-2",
+        settingsAccountId: "acc-2",
+        selection: { type: "all" },
+        selectedArticleId: null,
+        focusedPane: "list",
+        accountSetupSession: null,
+      }),
+    );
+    expect(useUiStore.getState().recentlyReadIds).toEqual(new Set());
+    expect(useUiStore.getState().retainedArticleIds).toEqual(new Set());
+    expectBrowserStateReset();
+  });
+
+  it("clears selected account state when deletion leaves no fallback account", () => {
+    useUiStore.setState({
+      selectedAccountId: "acc-1",
+      settingsAccountId: "acc-1",
+      selection: { type: "feed", feedId: "feed-1" },
+      selectedArticleId: "article-1",
+    });
+
+    useUiStore.getState().handleAccountDeleted("acc-1", ["acc-1", "   "]);
+
+    expect(useUiStore.getState()).toEqual(
+      expect.objectContaining({
+        selectedAccountId: null,
+        settingsAccountId: null,
+        selection: { type: "all" },
+        selectedArticleId: null,
+        focusedPane: "sidebar",
+      }),
+    );
   });
 
   it("tracks account setup verification before an account id exists", () => {
@@ -645,6 +700,23 @@ describe("useUiStore", () => {
     useUiStore.getState().setViewMode("starred");
     useUiStore.getState().selectAll();
     expect(useUiStore.getState().viewMode).toBe("starred");
+  });
+
+  it("falls back from a deleted selected tag and ignores unrelated deleted tags", () => {
+    useUiStore.getState().selectTag("tag-1");
+    useUiStore.getState().selectArticle("article-1");
+    setStaleBrowserState();
+
+    useUiStore.getState().handleTagDeleted("tag-2");
+
+    expect(useUiStore.getState().selection).toEqual({ type: "tag", tagId: "tag-1" });
+    expect(useUiStore.getState().browserUrl).toBe("https://example.com/preview");
+
+    useUiStore.getState().handleTagDeleted("tag-1");
+
+    expect(useUiStore.getState().selection).toEqual({ type: "all" });
+    expect(useUiStore.getState().selectedArticleId).toBeNull();
+    expectBrowserStateReset();
   });
 
   it("clears stale browser state when switching reader scopes", () => {

@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import { create } from "zustand";
 import type { ConfirmDialogVariant } from "@/components/shared/dialog.types";
+import { getPreferredAccountId } from "@/lib/account/account-selection";
 import type { AccountSetupSession, AccountSetupSessionOwner } from "@/lib/account/account-setup-session.types";
 import type { AddAccountProviderKind } from "@/lib/account/add-account-form";
 import { addRetainedArticle, getRetainedArticleIdsAfterSelectingArticle } from "@/lib/articles/article-retention";
@@ -161,6 +162,7 @@ type UiActions = {
   selectSmartView: (kind: SmartViewKind) => void;
   selectTag: (tagId: string) => void;
   selectTagFromCurrentContext: (tagId: string) => void;
+  handleTagDeleted: (deletedTagId: string) => void;
   selectAll: () => void;
   selectArticle: (id: string, options?: { navigationDirection?: ArticleNavigationDirection | null }) => void;
   clearArticle: () => void;
@@ -333,6 +335,7 @@ export type UiStoreReaderActions = Pick<
   | "selectSmartView"
   | "selectTag"
   | "selectTagFromCurrentContext"
+  | "handleTagDeleted"
   | "selectAll"
   | "selectArticle"
   | "clearArticle"
@@ -367,6 +370,7 @@ export type UiStoreReaderSelectionActions = Pick<
   | "selectSmartView"
   | "selectTag"
   | "selectTagFromCurrentContext"
+  | "handleTagDeleted"
   | "selectAll"
   | "selectArticle"
   | "clearArticle"
@@ -539,7 +543,13 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
     }),
   handleAccountDeleted: (deletedAccountId, remainingAccountIds) =>
     set((state) => {
-      const fallbackAccountId = remainingAccountIds[0] ?? null;
+      const fallbackAccountId = getPreferredAccountId(
+        remainingAccountIds
+          .map((accountId) => accountId.trim())
+          .filter((accountId) => accountId.length > 0 && accountId !== deletedAccountId)
+          .map((accountId) => ({ id: accountId })),
+        null,
+      );
       const nextState: Partial<UiState> = {};
 
       if (state.selectedAccountId === deletedAccountId) {
@@ -683,6 +693,23 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       recentlyReadIds: new Set(),
       retainedArticleIds: new Set(),
     })),
+  handleTagDeleted: (deletedTagId) =>
+    set((state) => {
+      if (state.selection.type !== "tag" || state.selection.tagId !== deletedTagId) {
+        return state;
+      }
+
+      return {
+        accountPaneOpen: false,
+        selection: { type: "all" },
+        selectedArticleId: null,
+        contentMode: "empty",
+        focusedPane: "list",
+        ...getResetBrowserState(),
+        recentlyReadIds: new Set(),
+        retainedArticleIds: new Set(),
+      };
+    }),
   selectAll: () =>
     set({
       accountPaneOpen: false,

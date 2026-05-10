@@ -1,3 +1,4 @@
+-- destructive-migration: removes unsupported Inoreader accounts and obsolete credentials.
 DELETE FROM accounts WHERE kind = 'Inoreader';
 
 DELETE FROM preferences

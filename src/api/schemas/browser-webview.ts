@@ -22,12 +22,20 @@ export const BrowserWebviewFallbackPayloadSchema = z
 
 export type BrowserWebviewFallbackPayload = z.output<typeof BrowserWebviewFallbackPayloadSchema>;
 
+const BROWSER_WEBVIEW_DIAGNOSTICS_MAX_RECT_VALUE = 10_000;
+
+const BrowserWebviewDiagnosticsNumberSchema = z
+  .number()
+  .finite()
+  .min(-BROWSER_WEBVIEW_DIAGNOSTICS_MAX_RECT_VALUE)
+  .max(BROWSER_WEBVIEW_DIAGNOSTICS_MAX_RECT_VALUE);
+
 const BrowserWebviewLogicalRectSchema = z
   .object({
-    x: z.number().finite(),
-    y: z.number().finite(),
-    width: z.number().finite(),
-    height: z.number().finite(),
+    x: BrowserWebviewDiagnosticsNumberSchema,
+    y: BrowserWebviewDiagnosticsNumberSchema,
+    width: BrowserWebviewDiagnosticsNumberSchema,
+    height: BrowserWebviewDiagnosticsNumberSchema,
   })
   .strict();
 

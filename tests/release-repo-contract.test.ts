@@ -62,9 +62,34 @@ type TauriCapabilityFile =
       capabilities: TauriCapability[];
     };
 
+type MigrationChangelogEntry = {
+  description: string;
+  destructive: boolean;
+  fileName: string;
+  owner: string;
+  version: number;
+};
+
 const RELEASE_UPDATER_ENDPOINT = "https://github.com/jey3dayo/ultra-rss-reader/releases/latest/download/latest.json";
 const RELEASE_TAURI_CONFIG_PATH = "src-tauri/tauri.release.conf.json";
 const DEV_TAURI_CONFIG_PATH = "src-tauri/tauri.dev.conf.json";
+const MIGRATION_DIR = "src-tauri/migrations";
+const INLINE_MIGRATION_VERSIONS = [10] as const;
+const DESTRUCTIVE_MIGRATION_MARKER = "-- destructive-migration:";
+const MIGRATION_OWNER_BY_DESCRIPTION_PATTERN = [
+  [/^initial$/, "db"],
+  [/^db_/, "db"],
+  [/^fts5$/, "article-search"],
+  [/^preferences$|_preferences$/, "preferences"],
+  [/^tags$|tag_/, "tags"],
+  [/^feed_/, "feeds"],
+  [/^reader_/, "reader"],
+  [/^account_/, "accounts"],
+  [/^sync_/, "sync"],
+  [/^mute_/, "mute-keywords"],
+  [/^article_/, "articles"],
+  [/^remove_inoreader$/, "accounts"],
+] as const;
 const PACKAGED_WINDOW_ICON_PATHS = [
   "icons/32x32.png",
   "icons/128x128.png",
@@ -300,6 +325,22 @@ const extractShortcutActionIds = (source: string): Set<string> => {
   );
 };
 
+const extractRustEnumVariants = (source: string, enumName: string): string[] => {
+  const body = source.match(new RegExp(`pub enum ${escapeRegExp(enumName)} \\{(?<body>[\\s\\S]*?)\\n\\}`))?.groups?.body;
+  if (!body) {
+    throw new Error(`Missing Rust enum: ${enumName}`);
+  }
+  return body
+    .split(/\r?\n/)
+    .map((line) => line.trim().replace(/,$/, ""))
+    .filter((line) => /^[A-Z][A-Za-z0-9]*$/.test(line));
+};
+
+const extractEnabledServiceKinds = (source: string): string[] =>
+  [...source.matchAll(/kind:\s*"(?<kind>Local|FreshRss)",/g)]
+    .map((match) => match.groups?.kind)
+    .filter((kind): kind is string => !!kind);
+
 const extractTopLevelYamlBlock = (source: string, key: string): string => {
   const value = source.match(new RegExp(`^${escapeRegExp(key)}:\\n(?<block>(?: {2}\\S.*\\n?)*)`, "m"))?.groups?.block;
   if (!value) {
@@ -337,6 +378,49 @@ const listTypeScriptSourceFiles = (dir: string): string[] =>
     .filter((entry) => /\.(?:ts|tsx)$/.test(entry))
     .map((entry) => `${dir}/${entry}`);
 
+const parseMigrationFileName = (fileName: string): { description: string; version: number } => {
+  const match = fileName.match(/^V(?<version>\d+)__(?<description>[a-z0-9]+(?:_[a-z0-9]+)*)\.sql$/);
+  if (!match?.groups) {
+    throw new Error(`Invalid migration file name: ${fileName}`);
+  }
+
+  return {
+    description: match.groups.description,
+    version: Number.parseInt(match.groups.version, 10),
+  };
+};
+
+const migrationOwnerForDescription = (description: string): string => {
+  const owner = MIGRATION_OWNER_BY_DESCRIPTION_PATTERN.find(([pattern]) => pattern.test(description))?.[1];
+  if (!owner) {
+    throw new Error(`Missing migration owner mapping for: ${description}`);
+  }
+  return owner;
+};
+
+const hasDestructiveMigrationSql = (source: string): boolean => {
+  const withoutSchemaVersionMetadata = source.replace(/DELETE\s+FROM\s+schema_version\b[^;]*;/gi, "");
+  return /\b(?:DROP|DELETE\s+FROM|TRUNCATE)\b/i.test(withoutSchemaVersionMetadata);
+};
+
+const generateMigrationChangelog = (): MigrationChangelogEntry[] =>
+  readdirSync(MIGRATION_DIR)
+    .filter((fileName) => fileName.endsWith(".sql"))
+    .map((fileName) => {
+      const { description, version } = parseMigrationFileName(fileName);
+      const source = readText(`${MIGRATION_DIR}/${fileName}`);
+      const destructive = hasDestructiveMigrationSql(source);
+
+      return {
+        description,
+        destructive,
+        fileName,
+        owner: migrationOwnerForDescription(description),
+        version,
+      };
+    })
+    .sort((a, b) => a.version - b.version);
+
 describe("release repository contract", () => {
   const packageJson: PackageJson = JSON.parse(readText("package.json"));
   const tauriConfig: TauriConfig = JSON.parse(readText("src-tauri/tauri.conf.json"));
@@ -366,6 +450,9 @@ describe("release repository contract", () => {
   const keyboardShortcutsSource = readText("src/lib/keyboard/keyboard-shortcuts.ts");
   const preferencesSchemaSource = readText("src/schemas/preferences.ts");
   const preferencesStoreSource = readText("src/stores/preferences-store.ts");
+  const providerSource = readText("src-tauri/src/domain/provider.rs");
+  const addAccountFormSource = readText("src/lib/account/add-account-form.ts");
+  const addAccountServicesSource = readText("src/components/settings/add-account/services.ts");
 
   it("parses TOML string values with quoted and multiline forms used by release contracts", () => {
     const toml = [
@@ -781,6 +868,66 @@ describe("release repository contract", () => {
     expect(releaseManualVerification).toContain("DEV_CREDENTIALS");
     expect(releaseManualVerification).toMatch(/dev mocks/i);
     expect(releaseManualVerification).toContain("debug-only MCP bridge permissions");
+  });
+
+  it("requires provider account kind additions to update capability and add-account contracts", () => {
+    const providerKinds = extractRustEnumVariants(providerSource, "ProviderKind");
+    const enabledServiceKinds = extractEnabledServiceKinds(addAccountServicesSource);
+
+    expect(providerKinds).toEqual(["Local", "FreshRss", "Quarantined"]);
+    expect(enabledServiceKinds).toEqual(["Local", "FreshRss"]);
+    expect(providerSource).toContain("provider_capability_matrix_is_fixed_by_account_kind");
+    expect(providerSource).toContain("supports_read_state_mutations");
+    expect(providerSource).toContain("supports_star_state_mutations");
+    expect(providerSource).toContain("optimistic_mutation_conflict_policy");
+    expect(providerSource).toContain("ProviderSideDeletionRetention::RetainLocal");
+    expect(addAccountFormSource).toContain('export type AddAccountProviderKind = "Local" | "FreshRss"');
+    expect(addAccountFormSource).toContain('case "FreshRss":');
+    expect(addAccountFormSource).toContain("requiresCredentials: true");
+    expect(addAccountServicesSource).toContain('nameKey: "account.freshrss"');
+    expect(addAccountServicesSource).toContain('descKey: "account.freshrss_desc"');
+  });
+
+  it("generates a migration changelog with numbering, ownership, and destructive markers", () => {
+    const migrationChangelog = generateMigrationChangelog();
+    const migrationVersions = migrationChangelog.map((entry) => entry.version);
+    const latestMigrationVersion = Math.max(...migrationVersions, ...INLINE_MIGRATION_VERSIONS);
+
+    expect(migrationChangelog.map((entry) => entry.fileName)).toEqual([
+      "V1__initial.sql",
+      "V2__preferences.sql",
+      "V3__fts5.sql",
+      "V4__tags.sql",
+      "V5__feed_display_mode.sql",
+      "V6__sync_state_timestamp_usec.sql",
+      "V7__feed_display_mode_inherit.sql",
+      "V8__feed_reader_preview_modes.sql",
+      "V9__reader_preview_default_preferences.sql",
+      "V11__account_sync_on_startup.sql",
+      "V12__mute_keywords.sql",
+      "V13__tag_color_palette_refresh.sql",
+      "V14__article_content_text.sql",
+      "V15__remove_inoreader.sql",
+      "V16__account_connection_verification.sql",
+      "V17__article_view_history.sql",
+      "V18__db_repository_contracts.sql",
+    ]);
+    expect(new Set(migrationVersions).size).toBe(migrationVersions.length);
+    for (let version = 1; version <= latestMigrationVersion; version += 1) {
+      expect(
+        migrationVersions.includes(version) || INLINE_MIGRATION_VERSIONS.includes(version),
+        `migration v${version} must have a file or an inline repair owner`,
+      ).toBe(true);
+    }
+    for (const entry of migrationChangelog) {
+      expect(entry.description, entry.fileName).toMatch(/^[a-z0-9]+(?:_[a-z0-9]+)*$/);
+      expect(entry.owner, entry.fileName).not.toBe("");
+      if (entry.destructive) {
+        expect(readText(`${MIGRATION_DIR}/${entry.fileName}`), entry.fileName).toContain(DESTRUCTIVE_MIGRATION_MARKER);
+      }
+    }
+    expect(tauriLib).toContain("fn migration_error_message_includes_restore_steps()");
+    expect(readText("src-tauri/src/infra/db/migration.rs")).toContain("fn fresh_db_migrates_to_latest()");
   });
 
   it("keeps native menu action payloads aligned with frontend AppAction ids", () => {

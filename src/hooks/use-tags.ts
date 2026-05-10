@@ -186,9 +186,6 @@ export const useDeleteTag = createMutation(
   ({ tagId }: DeleteTagMutationInput) => deleteTag(tagId),
   (qc, args) => {
     invalidateTagQueries(qc);
-    const { selection, selectAll } = useUiStore.getState();
-    if (selection.type === "tag" && selection.tagId === args.tagId) {
-      selectAll();
-    }
+    useUiStore.getState().handleTagDeleted(args.tagId);
   },
 );

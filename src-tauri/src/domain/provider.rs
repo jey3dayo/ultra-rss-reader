@@ -92,7 +92,7 @@ pub enum Mutation {
     },
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProviderCapabilities {
     pub supports_folders: bool,
     pub supports_starring: bool,
@@ -285,6 +285,72 @@ impl ProviderKind {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn provider_capability_matrix_is_fixed_by_account_kind() {
+        let matrix = [
+            (
+                ProviderKind::Local,
+                ProviderCapabilities {
+                    supports_folders: false,
+                    supports_starring: false,
+                    supports_search: false,
+                    supports_delta_sync: false,
+                    supports_remote_state: false,
+                },
+                ProviderDeletionRetentionPolicy {
+                    missing_remote_feed: ProviderSideDeletionRetention::NotApplicable,
+                    missing_remote_folder: ProviderSideDeletionRetention::NotApplicable,
+                },
+                ProviderOptimisticMutationConflictPolicy {
+                    read_state: RemoteDeleteOptimisticMutationConflict::NotApplicable,
+                    star_state: RemoteDeleteOptimisticMutationConflict::NotApplicable,
+                },
+            ),
+            (
+                ProviderKind::FreshRss,
+                ProviderCapabilities {
+                    supports_folders: true,
+                    supports_starring: true,
+                    supports_search: true,
+                    supports_delta_sync: true,
+                    supports_remote_state: true,
+                },
+                ProviderDeletionRetentionPolicy {
+                    missing_remote_feed: ProviderSideDeletionRetention::RetainLocal,
+                    missing_remote_folder: ProviderSideDeletionRetention::RetainLocal,
+                },
+                ProviderOptimisticMutationConflictPolicy {
+                    read_state: RemoteDeleteOptimisticMutationConflict::KeepPendingLocalMutation,
+                    star_state: RemoteDeleteOptimisticMutationConflict::KeepPendingLocalMutation,
+                },
+            ),
+            (
+                ProviderKind::Quarantined,
+                ProviderCapabilities {
+                    supports_folders: false,
+                    supports_starring: false,
+                    supports_search: false,
+                    supports_delta_sync: false,
+                    supports_remote_state: false,
+                },
+                ProviderDeletionRetentionPolicy {
+                    missing_remote_feed: ProviderSideDeletionRetention::NotApplicable,
+                    missing_remote_folder: ProviderSideDeletionRetention::NotApplicable,
+                },
+                ProviderOptimisticMutationConflictPolicy {
+                    read_state: RemoteDeleteOptimisticMutationConflict::NotApplicable,
+                    star_state: RemoteDeleteOptimisticMutationConflict::NotApplicable,
+                },
+            ),
+        ];
+
+        for (kind, capabilities, deletion_policy, mutation_policy) in matrix {
+            assert_eq!(kind.capabilities(), capabilities);
+            assert_eq!(kind.deletion_retention_policy(), deletion_policy);
+            assert_eq!(kind.optimistic_mutation_conflict_policy(), mutation_policy);
+        }
+    }
 
     #[test]
     fn freshrss_capability_is_connected_to_greader_product_diagnostics() {

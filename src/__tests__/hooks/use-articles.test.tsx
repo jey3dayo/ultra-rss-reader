@@ -181,13 +181,14 @@ describe("useToggleStar", () => {
       .spyOn(tauriCommands, "searchArticles")
       .mockResolvedValue(Result.succeed(sampleArticles));
     const longSuffix = "長".repeat(150);
-    const query = `　ＦＴＳ "quoted" OR emoji😀\n${longSuffix}`;
+    const query = `　ＦＴＳ "quoted" OR emoji😀  が\n${longSuffix}`;
     const normalizedQuery = normalizeArticleSearchQuery(query);
 
     expect(Array.from(normalizedQuery)).toHaveLength(128);
-    expect(normalizedQuery).toMatch(/^FTS "quoted" OR emoji😀 長+/u);
+    expect(normalizedQuery).toMatch(/^FTS "quoted" OR emoji😀 が 長+/u);
     expect(normalizedQuery).not.toContain("　");
     expect(normalizedQuery).not.toContain("\n");
+    expect(normalizedQuery).not.toContain("が");
 
     renderHook(() => useSearchArticles("acc-1", query), { wrapper });
 

@@ -25,11 +25,22 @@ use crate::repository::pending_mutation::{PendingMutation, PendingMutationType};
 pub(crate) const DEFAULT_ARTICLE_LIST_LIMIT: usize = 50;
 pub(crate) const DEFAULT_RECENT_ARTICLE_LIST_LIMIT: usize = 20;
 pub(crate) const MAX_ARTICLE_COMMAND_LIST_LIMIT: usize = 200;
+const ARTICLE_SEARCH_QUERY_MAX_CHARS: usize = 128;
 const BROWSER_EMBED_SUPPORT_REQUEST_TIMEOUT: Duration = Duration::from_secs(5);
 // Offset pagination is a best-effort UI contract: page boundaries may shift if
 // articles are inserted, deleted, or reclassified between page requests.
 pub(crate) const MAX_ARTICLE_COMMAND_LIST_OFFSET: usize = 10_000;
 static BROWSER_OPEN_QUEUE: OnceLock<Mutex<HashSet<BrowserOpenQueueKey>>> = OnceLock::new();
+
+fn normalize_backend_article_search_query(query: &str) -> String {
+    query
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .chars()
+        .take(ARTICLE_SEARCH_QUERY_MAX_CHARS)
+        .collect()
+}
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 struct BrowserOpenQueueKey {
@@ -1184,7 +1195,8 @@ pub fn search_articles(
     let db = crate::commands::lock_db(&state.db)?;
     let repo = SqliteArticleRepository::new(db.reader());
     let pagination = article_command_pagination(offset, limit, DEFAULT_ARTICLE_LIST_LIMIT)?;
-    let articles = repo.search(&AccountId(account_id), &query, &pagination)?;
+    let normalized_query = normalize_backend_article_search_query(&query);
+    let articles = repo.search(&AccountId(account_id), &normalized_query, &pagination)?;
     Ok(articles.into_iter().map(ArticleDto::from).collect())
 }
 
@@ -1206,8 +1218,9 @@ mod tests {
         record_article_view_with_conn, should_use_background_browser_open,
         supports_remote_mutations, toggle_article_star_with_conn, validate_feed_article_filters,
         validate_older_than_days, BrowserOpenQueueKey, BulkArticleMutationRow, OldUnreadScope,
-        DEFAULT_ARTICLE_LIST_LIMIT, DEFAULT_RECENT_ARTICLE_LIST_LIMIT,
-        MAX_ARTICLE_COMMAND_LIST_LIMIT, MAX_ARTICLE_COMMAND_LIST_OFFSET,
+        ARTICLE_SEARCH_QUERY_MAX_CHARS, DEFAULT_ARTICLE_LIST_LIMIT,
+        DEFAULT_RECENT_ARTICLE_LIST_LIMIT, MAX_ARTICLE_COMMAND_LIST_LIMIT,
+        MAX_ARTICLE_COMMAND_LIST_OFFSET,
     };
     use crate::commands::dto::AppError;
     use crate::commands::DATABASE_MAINTENANCE_BUSY_ERROR;
@@ -1247,6 +1260,18 @@ mod tests {
         });
 
         format!("http://{addr}{path}")
+    }
+
+    #[test]
+    fn backend_article_search_query_normalization_collapses_whitespace_and_caps_length() {
+        let query = format!("　Rust\t\t検索\nemoji😀  {}", "長".repeat(150));
+        let normalized = super::normalize_backend_article_search_query(&query);
+
+        assert_eq!(normalized.chars().count(), ARTICLE_SEARCH_QUERY_MAX_CHARS);
+        assert!(normalized.starts_with("Rust 検索 emoji😀 長"));
+        assert!(!normalized.contains('　'));
+        assert!(!normalized.contains('\n'));
+        assert!(!normalized.contains('\t'));
     }
 
     async fn head_rejected_then_stalled_get_url(path: &str) -> String {

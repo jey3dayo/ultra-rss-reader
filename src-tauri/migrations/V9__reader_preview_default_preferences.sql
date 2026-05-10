@@ -12,6 +12,7 @@ SELECT
 FROM preferences
 WHERE key = 'reader_view';
 
+-- destructive-migration: removes the legacy reader_view preference after copying it to split defaults.
 DELETE FROM preferences WHERE key = 'reader_view';
 
 DELETE FROM schema_version WHERE version < 9;

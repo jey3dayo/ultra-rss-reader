@@ -41,6 +41,25 @@ describe("createQuery", () => {
     expect(fetcher).toHaveBeenCalledWith("item-1");
   });
 
+  it("disables the generated query again when the account id disappears", async () => {
+    const fetcher = vi.fn((id: string) => Promise.resolve(Result.succeed({ id })));
+    const useGeneratedQuery = createQuery("items", fetcher);
+
+    const { rerender, result } = renderHook(({ id }: GeneratedQueryProps) => useGeneratedQuery(id), {
+      initialProps: { id: "acc-1" },
+      wrapper,
+    });
+
+    await waitFor(() => {
+      expect(result.current.data).toEqual({ id: "acc-1" });
+    });
+
+    rerender({ id: null });
+
+    expect(result.current.fetchStatus).toBe("idle");
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
   it("keeps generated query retry disabled at the hook boundary", async () => {
     const fetcher = vi.fn(async () => Result.fail({ message: "temporary load failure" }));
     const useGeneratedQuery = createQuery("items", fetcher);

@@ -4,6 +4,7 @@ import {
   getDisabledServiceDefinitions,
   getEnabledServiceDefinitions,
 } from "@/components/settings/add-account/services";
+import { getAddAccountFormConfig } from "@/lib/account/add-account-form";
 
 describe("add-account-services", () => {
   it("keeps enabled add account providers discoverable", () => {
@@ -28,5 +29,44 @@ describe("add-account-services", () => {
     const disabledKinds = getDisabledServiceDefinitions().map((service) => service.kind);
 
     expect(disabledKinds).toEqual(["Fever", "Inoreader", "Feedly", "NewsBlur", "Feedbin"]);
+  });
+
+  it("keeps enabled service picker options aligned with credential field requirements", () => {
+    const enabledProviderMatrix = getEnabledServiceDefinitions().map((service) => ({
+      kind: service.kind,
+      config: getAddAccountFormConfig(service.kind),
+      service,
+    }));
+
+    expect(enabledProviderMatrix).toMatchObject([
+      {
+        kind: "Local",
+        config: {
+          sectionHeading: "Account",
+          showServerUrl: false,
+          credentialLabel: null,
+          credentialName: null,
+          requiresCredentials: false,
+        },
+        service: {
+          nameKey: "account.local_feeds",
+          descKey: "account.local_desc",
+        },
+      },
+      {
+        kind: "FreshRss",
+        config: {
+          sectionHeading: "Server",
+          showServerUrl: true,
+          credentialLabel: "Username",
+          credentialName: "username",
+          requiresCredentials: true,
+        },
+        service: {
+          nameKey: "account.freshrss",
+          descKey: "account.freshrss_desc",
+        },
+      },
+    ]);
   });
 });
