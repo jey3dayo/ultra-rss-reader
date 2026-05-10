@@ -1,9 +1,19 @@
 import { Result } from "@praha/byethrow";
 import type { QueryClient } from "@tanstack/react-query";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { AppError } from "@/api/schemas/error";
+import { AppErrorClassificationError } from "@/lib/ui-errors";
 
-function unwrapGeneratedMutationResult<TData>(result: Result.Result<TData, { message: string }>): TData {
+type GeneratedMutationError = { message: string; type?: AppError["type"] };
+
+function unwrapGeneratedMutationResult<TData>(result: Result.Result<TData, GeneratedMutationError>): TData {
   if (Result.isFailure(result)) {
+    if (result.error.type !== undefined) {
+      throw new AppErrorClassificationError({
+        type: result.error.type,
+        message: result.error.message,
+      });
+    }
     throw new Error(result.error.message);
   }
 
@@ -11,7 +21,7 @@ function unwrapGeneratedMutationResult<TData>(result: Result.Result<TData, { mes
 }
 
 export function createMutation<TArgs, TData = void>(
-  mutationFn: (args: TArgs) => Result.ResultAsync<TData, { message: string }>,
+  mutationFn: (args: TArgs) => Result.ResultAsync<TData, GeneratedMutationError>,
   invalidate: (qc: QueryClient, args: TArgs, data: TData) => void | Promise<void>,
 ) {
   return function useGeneratedMutation() {

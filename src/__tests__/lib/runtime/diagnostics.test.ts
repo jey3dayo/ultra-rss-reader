@@ -84,6 +84,19 @@ describe("runtime diagnostics redaction", () => {
     });
   });
 
+  it("does not build once suppression keys for repeatable diagnostics", () => {
+    const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const toJSON = vi.fn(() => ({ message: "serialized" }));
+
+    logRuntimeDiagnostic("window-runtime-error", "Window runtime failed", {
+      message: "repeatable detail",
+      toJSON,
+    });
+
+    expect(consoleWarn).toHaveBeenCalledTimes(1);
+    expect(toJSON).not.toHaveBeenCalled();
+  });
+
   it("redacts URL path segments only when they look credential-like", () => {
     expect(redactRuntimeDiagnosticText("https://example.com/feed.xml?token=raw")).toBe(
       "https://example.com/feed.xml?redacted",

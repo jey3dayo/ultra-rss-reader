@@ -82,6 +82,30 @@ describe("createQuery", () => {
     });
   });
 
+  it("redacts the query id from default query rejection diagnostics", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const fetcher = vi.fn(async () => Result.fail({ message: "load failed" }));
+    const useGeneratedQuery = createQuery("items", fetcher);
+
+    const { result } = renderHook(() => useGeneratedQuery("account-secret-1"), {
+      wrapper,
+    });
+
+    await waitFor(() => {
+      expect(result.current.isError).toBe(true);
+    });
+
+    expect(result.current.error).toMatchObject({ message: "[items:account-secret-1] load failed" });
+    expect(warnSpy).toHaveBeenCalledWith("[createQuery] generated queryFn rejected:", {
+      queryKey: "items",
+      queryId: "<redacted>",
+      error: expect.objectContaining({ message: "[items:<redacted>] load failed" }),
+    });
+    expect(JSON.stringify(warnSpy.mock.calls)).not.toContain("account-secret-1");
+
+    warnSpy.mockRestore();
+  });
+
   it("does not pass missing or invalid disabled ids to the fetcher", () => {
     const fetcher = vi.fn((id: string) => Promise.resolve(Result.succeed({ id })));
     const useGeneratedQuery = createQuery("items", fetcher);

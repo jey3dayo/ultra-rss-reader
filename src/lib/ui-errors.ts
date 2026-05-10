@@ -27,6 +27,16 @@ export function createSchemaParseAppError(
   };
 }
 
+export class AppErrorClassificationError extends Error {
+  readonly type: AppError["type"];
+
+  constructor(error: AppError) {
+    super(error.message);
+    this.name = "AppErrorClassificationError";
+    this.type = error.type;
+  }
+}
+
 export type QueryTransientFailureUx = "manual-retry" | "diagnostics" | "none";
 
 const TRANSIENT_USER_VISIBLE_PATTERNS = [

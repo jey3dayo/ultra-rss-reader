@@ -24,8 +24,8 @@ function reportCreateQueryDiagnostic(diagnostic: CreateQueryDiagnostic) {
 
   console.warn("[createQuery] generated queryFn rejected:", {
     queryKey: diagnostic.queryKey,
-    queryId: diagnostic.queryId,
-    error: diagnostic.error,
+    queryId: redactDiagnosticQueryId(diagnostic.queryId),
+    error: redactDiagnosticError(diagnostic.error, diagnostic.queryKey, diagnostic.queryId),
   });
 }
 
@@ -38,6 +38,26 @@ export function setCreateQueryDiagnosticsReporterForDiagnostics(reporter: (diagn
 
 function normalizeQueryId(id: string | null): string | null {
   return normalizeQueryAccountId(id);
+}
+
+function redactDiagnosticQueryId(queryId: string): string {
+  return queryId.length > 0 ? "<redacted>" : queryId;
+}
+
+function redactDiagnosticError(error: unknown, queryKey: string, queryId: string): unknown {
+  if (!(error instanceof Error)) {
+    return error;
+  }
+
+  const redactedMessage = error.message.replace(`[${queryKey}:${queryId}]`, `[${queryKey}:<redacted>]`);
+  if (redactedMessage === error.message) {
+    return error;
+  }
+
+  const redactedError =
+    "cause" in error ? new Error(redactedMessage, { cause: error.cause }) : new Error(redactedMessage);
+  redactedError.name = error.name;
+  return redactedError;
 }
 
 function unwrapGeneratedQueryResult<TData>(

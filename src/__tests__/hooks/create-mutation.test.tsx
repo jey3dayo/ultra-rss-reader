@@ -3,6 +3,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import { renderHook } from "@testing-library/react";
 import { createQueryWrapper } from "@tests/helpers/create-wrapper";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AppError } from "@/api/schemas/error";
 import { createMutation } from "@/hooks/create-mutation";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -23,7 +24,7 @@ describe("createMutation", () => {
     mutationFn,
     invalidate,
   }: {
-    mutationFn: (args: TestArgs) => Result.ResultAsync<TestData, { message: string }>;
+    mutationFn: (args: TestArgs) => Result.ResultAsync<TestData, { message: string; type?: AppError["type"] }>;
     invalidate: (qc: QueryClient, args: TestArgs, data: TestData) => void | Promise<void>;
   }) {
     const { queryClient, wrapper } = createQueryWrapper({
@@ -61,6 +62,23 @@ describe("createMutation", () => {
     });
 
     await expect(result.current.mutateAsync({ id: "item-1" })).rejects.toBeDefined();
+
+    expect(invalidate).not.toHaveBeenCalled();
+    expect(useUiStore.getState().toastMessage).toBeNull();
+  });
+
+  it("preserves AppError classification when the mutation returns Result.fail", async () => {
+    const mutationFn = vi.fn(async () => Result.fail({ type: "Retryable", message: "network timeout" } as const));
+    const invalidate = vi.fn();
+    const { result } = renderGeneratedMutation({
+      mutationFn,
+      invalidate,
+    });
+
+    await expect(result.current.mutateAsync({ id: "item-1" })).rejects.toMatchObject({
+      type: "Retryable",
+      message: "network timeout",
+    });
 
     expect(invalidate).not.toHaveBeenCalled();
     expect(useUiStore.getState().toastMessage).toBeNull();

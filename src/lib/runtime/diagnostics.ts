@@ -251,16 +251,16 @@ export function logRuntimeDiagnostic(
   const redactedDetails = details.map((detail) =>
     redactRuntimeDiagnosticDetail(detail, policy.redactSecrets),
   );
-  const onceKey = runtimeDiagnosticOnceKey(
-    policyId,
-    redactedMessage,
-    redactedDetails,
-  );
 
-  if (policy.once && emittedRuntimeDiagnosticKeys.has(onceKey)) {
-    return;
-  }
   if (policy.once) {
+    const onceKey = runtimeDiagnosticOnceKey(
+      policyId,
+      redactedMessage,
+      redactedDetails,
+    );
+    if (emittedRuntimeDiagnosticKeys.has(onceKey)) {
+      return;
+    }
     emittedRuntimeDiagnosticKeys.add(onceKey);
   }
 
