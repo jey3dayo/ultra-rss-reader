@@ -3589,21 +3589,6 @@
   - Windows では署名状態や SmartScreen 表示が初回導入率に直結するが、CI green だけでは見えない
   - signature details、publisher name、SmartScreen prompt、install path、uninstall entry、upgrade install の check を追加する
 
-- [ ] P2 per-domain sync politeness / concurrency cap を local RSS provider で固定する
-  - 対象: local provider sync、sync scheduler、HTTP defaults
-  - 同じ host の feed を多数購読していると、manual/all sync で短時間に大量 request を投げる可能性がある
-  - same-host concurrency、global concurrency、manual sync override、backoff sharing、user-agent contact docs の policy を追加する
-
-- [ ] P2 provider redirect chain の auth header stripping を same-origin / cross-origin で固定する
-  - 対象: GReader/FreshRSS HTTP client、local provider HTTP client
-  - redirect 先に Authorization header が残ると、provider credential が別 origin に送られる
-  - same-origin redirect、cross-origin redirect、scheme downgrade、userinfo URL、diagnostics redaction の contract を追加する
-
-- [ ] P2 DNS cache / repeated private host resolution の time-of-check/time-of-use policy を決める
-  - 対象: private host guard、feed discovery、local provider fetch
-  - validation 時と実 fetch 時で DNS 結果が変わると、private host guard が bypass される
-  - resolve before fetch、redirect re-resolve、TTL/caching、DNS failure retry、rebinding fixture の policy を追加する
-
 - [ ] P2 local DB encryption at rest を採用しない/する decision record を作る
   - 対象: DB storage、credential storage、privacy docs
   - keyring は credential を守るが、DB には feed/article/history が残るため、暗号化しない理由または将来方針を明文化する必要がある
@@ -3683,11 +3668,6 @@
   - 対象: local provider HTTP client、feed discovery、sync scheduler
   - discovery と sync が同じ host に集中すると、ユーザー操作でも provider 側から abuse と見なされる可能性がある
   - per-host rate、manual burst、auto sync batch、discovery retry、429/403 suppression の contract を追加する
-
-- [ ] P1 corrupted preference row が startup/menu/settings を連鎖的に壊さない quarantine policy を作る
-  - 対象: preference repository、startup menu prefs、settings store
-  - 1 行の不正 preference で menu rebuild や settings 全体が fallback すると、ユーザーが修復できない
-  - unknown key、invalid value、oversized value、menu fallback、settings quarantine/reset の contract を追加する
 
 - [ ] P2 installer upgrade 前後の app data backup recommendation を user-facing flow にする
   - 対象: release notes、manual verification、settings data export
@@ -3788,11 +3768,6 @@
   - repeated 401/403、manual override、auto sync disabled、user notification、credential update reset の contract を追加する
   - superseded by: P1-Q2a (covered by auth failure storm backoff/circuit breaker; kept verification: repeated 401/403 and credential update reset)
 
-- [ ] P1 remote feed content 由来の filename/path suggestion を絶対に使わない contract を作る
-  - 対象: OPML export、backup/export dialogs、article share future scope
-  - feed title や article title を file name suggestion に使うと、path separator/control char/RTL spoof で危険な保存名になる
-  - feed title、account name、article title、control chars、path separators、safe default filename の policy を追加する
-
 - [ ] P2 account recovery flow を credential reset / server URL fix / cache clear の三系統に分ける
   - 対象: account detail settings、sync error UI、diagnostics
   - すべての account failure を「認証情報更新」に寄せると、server URL typo や stale cache の復旧が遠回りになる
@@ -3878,11 +3853,6 @@
   - 対象: `TODO.md`, future task generator
   - TODO が多くなるほど「完了条件」が曖昧な項目が増え、実装 worker が scope を広げすぎる
   - 対象、問題、分割、focused test、manual verification、defer 明記の template を作る
-
-- [ ] P1 error fallback が destructive action を隠さず disabled にする共通 contract を作る
-  - 対象: settings data actions、account/feed/tag destructive dialogs、query parse fallback
-  - エラー時に空配列や default state へ倒すと、対象不明の delete/reset が enabled になる危険がある
-  - account load failure、feed load failure、tag load failure、settings parse failure、disabled action reason の test を追加する
 
 - [ ] P1 account credential rotation 中の sync/pending mutation を一時停止する contract を作る
   - 対象: account credentials editor、sync scheduler、pending mutation replay
