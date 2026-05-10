@@ -282,12 +282,6 @@
   - confirm callback が async failure や throw を起こした時、dialog close、focus restore、toast 表示の owner が曖昧になりやすい
   - confirm throw、reject、double click、Escape during pending、target removed、focus ref null の component test を追加する
 
-- [ ] P2 feed tree / account switcher / tag list の roving focus 境界を hidden/disabled row で固定する
-  - 対象: `src/components/reader/feed-tree`, `src/components/reader/sidebar-account-switcher.tsx`, `src/components/reader/article-tag-picker-view.tsx`
-  - keyboard navigation が hidden/disabled/deleted row を跨ぐと、focus と selected state が別 row を指す flake が起きやすい
-  - hidden row、disabled account、deleted tag、collapsed folder、virtual row absence、Home/End/Arrow navigation の test を追加する
-  - superseded by: P2-A11Y3 (covered by roving focus boundary contract; kept verification: hidden row, disabled account, deleted tag, Home/End navigation)
-
 - [ ] P2 mobile single-pane layout の hidden pane tab order / focus restore を E2E contract にする
   - 対象: `e2e/app.spec.ts`, `src/components/app-shell.tsx`, `src/stores/ui-store.ts`
   - mobile single-pane で sidebar/settings/article/account pane を切り替える時、hidden pane に tab stop が残ると keyboard/a11y 操作が壊れる
