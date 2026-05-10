@@ -3068,11 +3068,6 @@
   - compact layout や browser overlay 中に drag strip が toolbar/settings/browser controls を覆うとクリック不能になる
   - settings open、browser overlay、compact account pane、top toolbar controls、pointer-events の実機確認を追加する
 
-- [ ] P2 `menu_i18n` missing key fallback と locale switch timing を contract 化する
-  - 対象: `src-tauri/src/menu_i18n.rs`, `src-tauri/src/menu.rs`, frontend locale actions
-  - native menu rebuild が locale switch と競合すると旧 locale 表示や raw key 表示が残る
-  - missing key、ja/en switch、menu rebuild failure、fallback language、checked item label を固定する
-
 - [ ] P2 app update restart prompt と dirty form / pending mutation の衝突を防ぐ
   - 対象: `src/hooks/use-updater.ts`, `src/components/settings`, `src/components/add-feed`
   - update restart が add feed、credential edit、settings setup sync の途中で走ると入力や mutation 結果を失う
@@ -3409,11 +3404,6 @@
   - release で console window を消す設定は必要だが、startup panic 時の recovery surface が log/UI にないと完全に無音で落ちる
   - hidden console、startup panic、log written、message box/fallback UI、exit code の manual check を追加する
 
-- [ ] P2 native menu rebuild failure 後の menu state rollback / stale checked item を固定する
-  - 対象: `src-tauri/src/menu.rs`, preference update flows
-  - menu rebuild の途中失敗で checked state だけ古く残ると、frontend preference と native menu 表示がずれる
-  - rebuild failure、partial menu update、checked item stale、locale switch、preference rollback の contract を追加する
-
 - [ ] P3 Windows dispatch env allowlist を dev credential 以外の future env 追加に備えて schema 化する
   - 対象: `scripts/lib/windows-dispatch.ts`, dev scripts
   - env forwarding が ad hoc だと、future secret env を WSL->Windows へ漏らすか、必要 env を渡し忘れる
@@ -3443,16 +3433,6 @@
   - 対象: updater flow、DB migration、release metadata
   - 古い downloaded update を後で install すると、現在 DB schema と想定 migration path がずれる可能性がある
   - downloaded version age、current app newer、DB schema newer、install blocked、redownload required の contract を追加する
-
-- [ ] P2 provider HTTP `Vary` / cache validator persistence の保存上限を決める
-  - 対象: `src-tauri/src/domain/provider.rs`, sync state repository, local provider
-  - ETag/Last-Modified 以外の cache-related header を将来扱う場合、保存長や header injection policy がないと DB/log を汚染する
-  - long ETag、newline in header、weak validator、Vary ignored、validator truncation の policy を追加する
-
-- [ ] P2 JSON Feed support を入れる/入れない decision record と parser guard を作る
-  - 対象: local provider parser、feed discovery、add feed validation
-  - `.json` feed URL が mock や実 feed に混ざる場合、unsupported とするのか parser を足すのかが未固定だと add/sync 期待値が揺れる
-  - JSON Feed accepted/unsupported、content-type、extension heuristic、UI copy、future parser task の decision を書く
 
 - [ ] P2 sync result warning cap と aggregation order を many-feed failure で固定する
   - 対象: sync result DTO、frontend sync feedback、diagnostics
