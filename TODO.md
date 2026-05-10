@@ -3264,11 +3264,6 @@
   - RTL override、zero-width、confusable 文字が入ると feed name や action target が spoof され、delete/rename 確認で誤認しやすい
   - bidi control、zero-width joiner、NFKC confusable、trim display、confirmation label の policy を追加する
 
-- [ ] P2 batch read/star/mute mutations の transaction chunking policy を決める
-  - 対象: article commands、repository mutation methods、reader bulk actions
-  - 大量記事を一括更新する時に 1 transaction/分割/partial success の方針が曖昧だと UI と DB がずれる
-  - large batch、chunk failure、partial rollback、query invalidation、progress feedback の task に分ける
-
 - [ ] P2 migration transactional DDL / partial migration failure recovery を明文化する
   - 対象: `src-tauri/src/infra/db/migration.rs`, migration files
   - SQLite DDL と data migration の途中失敗後に再起動しても安全かが曖昧だと、復旧不能な半端 schema が残る
@@ -3349,11 +3344,6 @@
   - debug 専用 plugin が release artifact に入ると、不要な local port や inspection surface を配布してしまう
   - debug build includes bridge、release build excludes bridge、capability diff、open port smoke、artifact symbol/config check を追加する
 
-- [ ] P1 Tauri command blocking DB work を `spawn_blocking` / async boundary で分類する
-  - 対象: `src-tauri/src/commands`, repository access, `AppState` DB mutex
-  - async command 内で重い SQLite 処理を直接実行すると、runtime worker を詰まらせて sync・updater・webview events が遅延する
-  - list/search/export/vacuum/import/repair command の blocking classification と focused benchmark を追加する
-
 - [ ] P2 main window close confirmation と dirty/pending state registry を native close event へ接続する
   - 対象: `src-tauri/src/lib.rs`, app shell dirty-state registry, settings/add-feed flows
   - OS の close button は frontend navigation guard を通らないため、dirty form や pending mutation を落とす可能性がある
@@ -3363,21 +3353,6 @@
   - 対象: OPML import/export、DB backup/restore UI、Tauri dialog usage
   - open/save dialog の拡張子・既存 file overwrite・cancel handling がばらつくと、ユーザーデータを誤上書きしやすい
   - `.opml`/`.xml` filter、existing file overwrite、cancel result、directory selected、extension auto-append の policy を追加する
-
-- [ ] P2 app data directory rename / bundle identifier migration path を明文化する
-  - 対象: `src-tauri/tauri*.conf.json`, startup data dir, release docs
-  - bundle identifier を変えると OS app data dir が変わり、既存 DB/credentials/log が見えなくなる
-  - old identifier detection、DB migration prompt、credential migration impossible copy、log path note、rollback の contract を追加する
-
-- [ ] P2 `AppState` mutex poisoning を command surface 全体で同じ error に揃える
-  - 対象: `commands::*`, `AppState`, DB/browser tracker mutex access
-  - 一部 command だけ poisoned mutex を panic/unwrap すると、単一 command failure が app 全体 failure に広がる
-  - DB mutex、browser tracker mutex、pending update mutex、syncing flag、diagnostics category の matrix を作る
-
-- [ ] P2 recent article history limit と persistent storage / DB history の役割を整理する
-  - 対象: `src-tauri/src/domain/constants.rs`, `record_article_view`, reader history UI
-  - hardcoded 50 件の意味が未明確だと、履歴 UI や storage cleanup で期待がずれる
-  - max count、duplicate article revisit、account delete、feed delete、clear history、migration の contract を追加する
 
 - [ ] P2 release app first-run permission prompts を manual verification checklist に入れる
   - 対象: `docs/release-manual-verification.md`, packaged app smoke
