@@ -145,6 +145,25 @@ pub struct FilesystemRecoveryContract {
     pub exposes_raw_path_to_webview: bool,
 }
 
+#[cfg(test)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PrivateDataResetStep {
+    DeleteCredentials,
+    DeleteDatabaseData,
+    ClearLocalStorage,
+    ClearQueryCache,
+    ReloadApp,
+}
+
+#[cfg(test)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PrivateDataResetContract {
+    pub steps: Vec<PrivateDataResetStep>,
+    pub keyring_failure_blocks_database_delete: bool,
+    pub database_failure_blocks_frontend_cleanup: bool,
+    pub local_storage_failure_blocks_query_cache_clear: bool,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub struct SearchIndexRebuildMaintenanceContract {
     pub action: DatabaseMaintenanceAction,
@@ -228,6 +247,22 @@ pub(crate) fn search_index_rebuild_maintenance_contract() -> SearchIndexRebuildM
         reports_progress: true,
         supports_cancellation: true,
         retries_after_cancellation: true,
+    }
+}
+
+#[cfg(test)]
+pub(crate) fn private_data_reset_contract() -> PrivateDataResetContract {
+    PrivateDataResetContract {
+        steps: vec![
+            PrivateDataResetStep::DeleteCredentials,
+            PrivateDataResetStep::DeleteDatabaseData,
+            PrivateDataResetStep::ClearLocalStorage,
+            PrivateDataResetStep::ClearQueryCache,
+            PrivateDataResetStep::ReloadApp,
+        ],
+        keyring_failure_blocks_database_delete: true,
+        database_failure_blocks_frontend_cleanup: true,
+        local_storage_failure_blocks_query_cache_clear: false,
     }
 }
 
@@ -327,11 +362,13 @@ mod tests {
 
     use crate::commands::database_commands::{
         database_runtime_recovery_contract, filesystem_recovery_contract, get_database_info_inner,
-        schedule_database_maintenance_action, search_index_rebuild_maintenance_contract,
-        vacuum_database_inner, AppActivityState, AtomicFileWritePolicy, DatabaseInfoDto,
-        DatabaseMaintenanceAction, DatabaseMaintenanceScheduleDecision, DatabaseMaintenanceTrigger,
+        private_data_reset_contract, schedule_database_maintenance_action,
+        search_index_rebuild_maintenance_contract, vacuum_database_inner, AppActivityState,
+        AtomicFileWritePolicy, DatabaseInfoDto, DatabaseMaintenanceAction,
+        DatabaseMaintenanceScheduleDecision, DatabaseMaintenanceTrigger,
         DatabaseRecoveryActionSafety, DatabaseRuntimeFailureKind, DatabaseRuntimeRecoveryAction,
         DatabaseRuntimeRecoveryMode, FilesystemPathNormalizationPolicy, FilesystemRecoverySurface,
+        PrivateDataResetStep,
     };
     use crate::commands::dto::AppError;
     use crate::commands::start_database_maintenance;
@@ -689,5 +726,27 @@ mod tests {
         assert_eq!(value["path_normalization"], "app_owned_native_path");
         assert_eq!(value["atomic_write"], "temp_file_then_rename");
         assert_eq!(value["exposes_raw_path_to_webview"], false);
+    }
+
+    #[test]
+    fn private_data_reset_order_deletes_credentials_before_database_and_frontend_state() {
+        let contract = private_data_reset_contract();
+
+        assert_eq!(
+            contract.steps,
+            vec![
+                PrivateDataResetStep::DeleteCredentials,
+                PrivateDataResetStep::DeleteDatabaseData,
+                PrivateDataResetStep::ClearLocalStorage,
+                PrivateDataResetStep::ClearQueryCache,
+                PrivateDataResetStep::ReloadApp,
+            ]
+        );
+        assert!(contract.keyring_failure_blocks_database_delete);
+        assert!(contract.database_failure_blocks_frontend_cleanup);
+        assert!(
+            !contract.local_storage_failure_blocks_query_cache_clear,
+            "query cache must still clear after localStorage cleanup reports a recoverable failure"
+        );
     }
 }

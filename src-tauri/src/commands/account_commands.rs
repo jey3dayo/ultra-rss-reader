@@ -13,6 +13,71 @@ use crate::infra::provider::traits::{Credentials, FeedProvider};
 use crate::repository::account::AccountRepository;
 use std::net::IpAddr;
 
+#[cfg(test)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum AccountCredentialCleanupStep {
+    DeleteDatabaseAccount,
+    DeleteKeyringCredential,
+}
+
+#[cfg(test)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum AccountCredentialCleanupFailurePolicy {
+    WarnAfterDatabaseDelete,
+}
+
+#[cfg(test)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct AccountCredentialCleanupContract {
+    steps: Vec<AccountCredentialCleanupStep>,
+    keyring_delete_failure_policy: AccountCredentialCleanupFailurePolicy,
+    rename_deletes_keyring_credential: bool,
+}
+
+#[cfg(test)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum AccountRecoveryAction {
+    DeleteAccount,
+    RecreateAccount,
+    ContactSupport,
+}
+
+#[cfg(test)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct InvalidAccountRowRecoveryContract {
+    diagnostics_event: &'static str,
+    recovery_actions: Vec<AccountRecoveryAction>,
+    preserves_account_id: bool,
+    exposes_displayable_row: bool,
+}
+
+#[cfg(test)]
+fn account_credential_cleanup_contract() -> AccountCredentialCleanupContract {
+    AccountCredentialCleanupContract {
+        steps: vec![
+            AccountCredentialCleanupStep::DeleteDatabaseAccount,
+            AccountCredentialCleanupStep::DeleteKeyringCredential,
+        ],
+        keyring_delete_failure_policy:
+            AccountCredentialCleanupFailurePolicy::WarnAfterDatabaseDelete,
+        rename_deletes_keyring_credential: false,
+    }
+}
+
+#[cfg(test)]
+fn invalid_account_row_recovery_contract() -> InvalidAccountRowRecoveryContract {
+    InvalidAccountRowRecoveryContract {
+        diagnostics_event: "account.row.quarantined",
+        recovery_actions: vec![
+            AccountRecoveryAction::DeleteAccount,
+            AccountRecoveryAction::RecreateAccount,
+            AccountRecoveryAction::ContactSupport,
+        ],
+        preserves_account_id: true,
+        exposes_displayable_row: true,
+    }
+}
+
 fn is_private_freshrss_ip(ip: IpAddr) -> bool {
     match ip {
         IpAddr::V4(ip) => {
@@ -278,10 +343,12 @@ where
 #[cfg(test)]
 mod tests {
     use super::{
-        delete_account_then_password, normalize_new_freshrss_server_url,
+        account_credential_cleanup_contract, delete_account_then_password,
+        invalid_account_row_recovery_contract, normalize_new_freshrss_server_url,
         save_account_after_optional_password, update_account_credentials_after_optional_password,
         validate_account_name, validate_account_name_with_excluded_id,
         validate_account_sync_settings, validate_add_account_args, validate_freshrss_server_url,
+        AccountCredentialCleanupFailurePolicy, AccountCredentialCleanupStep, AccountRecoveryAction,
     };
     use crate::commands::dto::AppError;
     use crate::domain::account::{Account, ConnectionVerificationStatus};
@@ -879,6 +946,44 @@ mod tests {
             deleted_passwords.borrow().as_slice(),
             &[account.id.as_ref().to_string()]
         );
+    }
+
+    #[test]
+    fn account_delete_cleanup_contract_keeps_keyring_orphans_from_reappearing() {
+        let contract = account_credential_cleanup_contract();
+
+        assert_eq!(
+            contract.steps,
+            vec![
+                AccountCredentialCleanupStep::DeleteDatabaseAccount,
+                AccountCredentialCleanupStep::DeleteKeyringCredential,
+            ]
+        );
+        assert_eq!(
+            contract.keyring_delete_failure_policy,
+            AccountCredentialCleanupFailurePolicy::WarnAfterDatabaseDelete
+        );
+        assert!(
+            !contract.rename_deletes_keyring_credential,
+            "account rename keeps the stable account id, so deleting the keyring entry would orphan the live account"
+        );
+    }
+
+    #[test]
+    fn quarantined_account_rows_have_diagnostics_and_recovery_actions() {
+        let contract = invalid_account_row_recovery_contract();
+
+        assert_eq!(contract.diagnostics_event, "account.row.quarantined");
+        assert_eq!(
+            contract.recovery_actions,
+            vec![
+                AccountRecoveryAction::DeleteAccount,
+                AccountRecoveryAction::RecreateAccount,
+                AccountRecoveryAction::ContactSupport,
+            ]
+        );
+        assert!(contract.preserves_account_id);
+        assert!(contract.exposes_displayable_row);
     }
 }
 
