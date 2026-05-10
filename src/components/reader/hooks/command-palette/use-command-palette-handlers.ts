@@ -24,7 +24,7 @@ type UseCommandPaletteHandlersParams = {
   selectArticle: (articleId: string) => void;
   openFeedLanding: (feedId: string) => Promise<FeedLandingResult>;
   paletteSessionId: number;
-  commandPaletteOpen: boolean;
+  commandPaletteOpen?: boolean;
   canSelectArticle: (feedId: string, articleId: string) => boolean;
 };
 
@@ -100,7 +100,7 @@ export function useCommandPaletteHandlers({
   selectArticle,
   openFeedLanding,
   paletteSessionId,
-  commandPaletteOpen,
+  commandPaletteOpen = true,
   canSelectArticle,
 }: UseCommandPaletteHandlersParams): UseCommandPaletteHandlersResult {
   const feedLandingRequestIdRef = useRef(0);

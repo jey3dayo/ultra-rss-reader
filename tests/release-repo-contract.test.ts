@@ -1306,7 +1306,9 @@ describe("release repository contract", () => {
     expect(releaseManualVerification).toContain("Normal launch does not leave an unexpected console window");
     expect(releaseManualVerification).toContain("release logs without requiring a visible console");
     expect(releaseManualVerification).toContain("user-visible failure surface");
-    expect(releaseManualVerification).toContain("support path that does not require the user to run the app from PowerShell");
+    expect(releaseManualVerification).toContain(
+      "support path that does not require the user to run the app from PowerShell",
+    );
     expect(releaseManualVerification).toContain(
       "skip that part for the current release and record the missing behavior as release risk",
     );
