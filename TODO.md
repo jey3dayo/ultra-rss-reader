@@ -78,27 +78,11 @@
   - preference 追加時の手順が暗黙だと backend allowlist、frontend schema、settings UI、i18n、tests の更新漏れが繰り返される
   - add preference checklist、allowed key生成、schema default、locale key、settings option parity を rules 化する
 
-- [ ] P1 FreshRSS 認証情報更新を connection verification 必須 contract にする
-  - 対象: `src-tauri/src/commands/account_commands.rs`, `src/components/settings/hooks/account-detail/use-account-detail-credentials-editor.ts`
-  - superseded by: `P1-Q2b` credential rotation
-  - `update_account_credentials` と `test_account_connection` が分離しているため、壊れた server_url/username/password を保存して次回 sync まで failure が遅延しやすい
-  - save-before-test、test-before-save、keyring unavailable、verification stale、settings toast の contract を追加する
-
 - [ ] P1 Keyring credential rollback を旧 password 復元 policy にする
   - 対象: `src-tauri/src/commands/account_commands.rs`, `src-tauri/src/infra/keyring_store.rs`
   - superseded by: `P1-Q2b` credential rotation
   - credential update 後に DB update が失敗すると rollback が delete になり、既存 credential を失う可能性がある
   - old password read success、old password read failure、set new success + DB failure、rollback failure warning、retry UX の Rust test を追加する
-
-- [ ] P2 feed tree pointer drag の window listener 再登録を drag session lifecycle で固定する
-  - 対象: `src/components/reader/hooks/feed-tree/use-feed-tree-drag.ts`, `src/components/reader/hooks/feed-tree/use-feed-tree-pointer-drag-events.ts`
-  - pointer drag callback が preview/hover state に依存し、drag 中に window listener が再登録されやすい
-  - drag start、hover folder、preview update、drop/cancel、listener add/remove count、pointer capture loss の hook test を追加する
-
-- [ ] P3 sidebar expanded folder storage failure を warning-once diagnostics に接続する
-  - 対象: `src/components/reader/hooks/sidebar/use-sidebar-startup-folder-expansion.ts`, `src/lib/runtime/diagnostics.ts`
-  - startup sync / command history storage には failure warning があるが、sidebar expanded folder storage は silent fallback になりやすい
-  - localStorage unavailable、parse failure、write quota exceeded、warning once reset、diagnostics redaction の test を追加する
 
 - [ ] P3 diagnostics reporter module globals の reset helper coverage を棚卸しする
   - 対象: `src/hooks/create-query.ts`, `src/lib/query/query-invalidation.ts`, `src/lib/runtime/diagnostics.ts`, `tests/helpers`
@@ -121,21 +105,6 @@
   - invalid row を warn で隠すと UI 上は account が消えたように見え、復旧導線や support log との接続が弱い
   - invalid kind、missing name、quarantine count、diagnostics event、settings recovery copy の contract test を追加する
 
-- [ ] P2 Windows tasklist CSV parser を quoted/localized output で固定する
-  - 対象: `scripts/seed-dev-db-from-prod.ts`, `src/__tests__/scripts/seed-dev-db-from-prod.test.ts`
-  - `tasklist /FO CSV` の行 regex だけだと quoted CSV、localized header、似た exe 名の誤検知/見落としが起きやすい
-  - quoted app name、localized output、Ultra RSS Reader Helper、case variant、empty tasklist の script test を追加する
-
-- [ ] P2 Unix `pgrep -f` fallback の false positive を command line boundary で固定する
-  - 対象: `scripts/seed-dev-db-from-prod.ts`, `src/__tests__/scripts/seed-dev-db-from-prod.test.ts`
-  - script 引数や unrelated install path に app 名が含まれるだけで running app と誤検知すると、seed 操作が不要に止まる
-  - app bundle path、script argument、deleted process、exact name miss、full command match boundary の script test を追加する
-
-- [ ] P3 root-level YAML 追加時に lint 対象へ入るかの repo contract を決める
-  - 対象: `.yamllint`, `mise.toml`, `src/__tests__/config/repo-contracts.test.ts`
-  - YAML gate が `.github/` と `.yamllint` 中心だと、将来 root-level yaml を足した時に lint 対象外のまま残りやすい
-  - root yaml、nested yaml、generated yaml exclude、mise lint task、CI parity の contract を追加する
-
 - [ ] P2 command history entry に account scope / feed context を含めるか決める
   - 対象: `src/components/reader/hooks/command-palette/use-command-history.ts`, `src/components/reader/hooks/command-palette/use-command-palette-data.ts`, `src/components/reader/command-palette-history.ts`
   - `article:<id>` だけの保存だと account switch や feed移動後の recent article 復元が current context 依存になる
@@ -157,11 +126,6 @@
   - superseded by: `P1-Q1d` runtime diagnostics redaction
   - malformed payload が eventName 単位の once warning だけだと、state/fallback/diagnostics どの payload が欠けたか調査しにくい
   - malformed state、malformed fallback、malformed diagnostics、once key、redacted payload summary の hook test を追加する
-
-- [ ] P2 account credentials editor の draft revision と pending save 再帰を contract 化する
-  - 対象: `src/components/settings/hooks/account-detail/use-account-detail-credentials-editor.ts`
-  - pending save 中に draft が変わると promise 後に再帰 commit するため、account switch/unmount/test connection との絡みで古い draft を保存しやすい
-  - draft change during save、account switch、unmount、test connection pending、save failure retry の hook test を追加する
 
 - [ ] P2 account delete 後の selected account preference 保存失敗 surface を固定する
   - 対象: `src/components/settings/hooks/account-detail/use-account-detail-danger-zone.ts`, `src/stores/preferences-store.ts`, `src/stores/ui-store.ts`
