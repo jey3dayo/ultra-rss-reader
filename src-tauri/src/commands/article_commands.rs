@@ -4,6 +4,7 @@ use rusqlite::OptionalExtension;
 use std::process::Command;
 use std::sync::atomic::AtomicBool;
 use std::sync::Mutex;
+use std::time::Duration;
 use tauri::State;
 
 use crate::commands::dto::{
@@ -23,6 +24,7 @@ use crate::repository::pending_mutation::{PendingMutation, PendingMutationType};
 pub(crate) const DEFAULT_ARTICLE_LIST_LIMIT: usize = 50;
 pub(crate) const DEFAULT_RECENT_ARTICLE_LIST_LIMIT: usize = 20;
 pub(crate) const MAX_ARTICLE_COMMAND_LIST_LIMIT: usize = 200;
+const BROWSER_EMBED_SUPPORT_REQUEST_TIMEOUT: Duration = Duration::from_secs(5);
 // Offset pagination is a best-effort UI contract: page boundaries may shift if
 // articles are inserted, deleted, or reclassified between page requests.
 pub(crate) const MAX_ARTICLE_COMMAND_LIST_OFFSET: usize = 10_000;
@@ -649,9 +651,17 @@ fn record_article_view_with_conn(
 
 #[tauri::command]
 pub async fn check_browser_embed_support(url: String) -> Result<bool, AppError> {
+    check_browser_embed_support_with_timeout(url, BROWSER_EMBED_SUPPORT_REQUEST_TIMEOUT).await
+}
+
+async fn check_browser_embed_support_with_timeout(
+    url: String,
+    timeout: Duration,
+) -> Result<bool, AppError> {
     let url = crate::commands::parse_browser_http_url(&url)?;
     let client = reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::limited(5))
+        .timeout(timeout)
         .build()
         .map_err(DomainError::from)?;
 
@@ -668,6 +678,10 @@ pub async fn check_browser_embed_support(url: String) -> Result<bool, AppError> 
             .await
             .map_err(DomainError::from)?,
     };
+
+    if !response.status().is_success() {
+        return Ok(false);
+    }
 
     let headers = response.headers();
     Ok(!(has_blocking_x_frame_options(headers) || has_blocking_frame_ancestors(headers)))
@@ -1137,6 +1151,7 @@ pub fn search_articles(
 #[cfg(test)]
 mod tests {
     use super::check_browser_embed_support;
+    use super::check_browser_embed_support_with_timeout;
     use super::cleanup_feed_integrity_orphans_inner;
     use super::{
         article_command_pagination, background_browser_open_failure_message,
@@ -1170,6 +1185,56 @@ mod tests {
     };
     use std::sync::atomic::AtomicBool;
     use std::sync::Mutex;
+    use std::time::Duration;
+    use tokio::io::AsyncWriteExt;
+    use tokio::net::TcpListener;
+
+    async fn stalled_http_url(path: &str) -> String {
+        let listener = TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("stalled server should bind");
+        let addr = listener
+            .local_addr()
+            .expect("stalled server should expose local address");
+        tokio::spawn(async move {
+            if let Ok((socket, _)) = listener.accept().await {
+                let mut request_buffer = [0_u8; 1024];
+                let _ = socket.readable().await;
+                let _ = socket.try_read(&mut request_buffer);
+                tokio::time::sleep(Duration::from_millis(200)).await;
+            }
+        });
+
+        format!("http://{addr}{path}")
+    }
+
+    async fn head_rejected_then_stalled_get_url(path: &str) -> String {
+        let listener = TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("fallback server should bind");
+        let addr = listener
+            .local_addr()
+            .expect("fallback server should expose local address");
+        tokio::spawn(async move {
+            if let Ok((mut head_socket, _)) = listener.accept().await {
+                let mut request_buffer = [0_u8; 1024];
+                let _ = head_socket.readable().await;
+                let _ = head_socket.try_read(&mut request_buffer);
+                let _ = head_socket
+                    .write_all(b"HTTP/1.1 405 Method Not Allowed\r\nConnection: close\r\nContent-Length: 0\r\n\r\n")
+                    .await;
+            }
+
+            if let Ok((get_socket, _)) = listener.accept().await {
+                let mut request_buffer = [0_u8; 1024];
+                let _ = get_socket.readable().await;
+                let _ = get_socket.try_read(&mut request_buffer);
+                tokio::time::sleep(Duration::from_millis(200)).await;
+            }
+        });
+
+        format!("http://{addr}{path}")
+    }
 
     #[test]
     fn x_frame_options_blocks_embedding() {
@@ -1303,6 +1368,87 @@ mod tests {
         assert!(supported);
         head_mock.assert_async().await;
         get_mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn embed_support_rejects_non_success_get_responses_after_head_fallback() {
+        for status in [403, 404, 500] {
+            let mut server = Server::new_async().await;
+            let head_mock = server
+                .mock("HEAD", "/article")
+                .with_status(405)
+                .create_async()
+                .await;
+            let get_mock = server
+                .mock("GET", "/article")
+                .with_status(status)
+                .create_async()
+                .await;
+
+            let supported = check_browser_embed_support(format!("{}/article", server.url()))
+                .await
+                .expect("embed check should resolve non-success GET responses");
+
+            assert!(!supported, "GET {status} should not be embeddable");
+            head_mock.assert_async().await;
+            get_mock.assert_async().await;
+        }
+    }
+
+    #[tokio::test]
+    async fn embed_support_keeps_success_get_response_policy_after_head_fallback() {
+        let mut server = Server::new_async().await;
+        let head_mock = server
+            .mock("HEAD", "/article")
+            .with_status(405)
+            .with_header("x-frame-options", "SAMEORIGIN")
+            .create_async()
+            .await;
+        let get_mock = server
+            .mock("GET", "/article")
+            .with_status(204)
+            .create_async()
+            .await;
+
+        let supported = check_browser_embed_support(format!("{}/article", server.url()))
+            .await
+            .expect("embed check should accept success GET responses");
+
+        assert!(supported);
+        head_mock.assert_async().await;
+        get_mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn embed_support_surfaces_head_request_timeout() {
+        let error = check_browser_embed_support_with_timeout(
+            stalled_http_url("/article").await,
+            Duration::from_millis(20),
+        )
+        .await
+        .expect_err("stalled HEAD response should time out");
+
+        assert!(matches!(
+            error,
+            AppError::Retryable { ref message }
+                if message == "Network error: Request timed out. Check the server URL or your network connection."
+        ));
+    }
+
+    #[tokio::test]
+    async fn embed_support_surfaces_get_fallback_timeout() {
+        let error = check_browser_embed_support_with_timeout(
+            head_rejected_then_stalled_get_url("/article").await,
+            Duration::from_millis(20),
+        )
+        .await
+        .expect_err("stalled GET fallback response should time out");
+
+        assert!(matches!(
+            error,
+            AppError::Retryable { ref message }
+                if message == "Network error: Request timed out. Check the server URL or your network connection."
+        ));
     }
 
     #[tokio::test]
