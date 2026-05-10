@@ -142,6 +142,14 @@ Decision: user-facing copy may show a stable support code for the error category
 
 Support codes should identify broad recovery areas such as network, account auth, keyring, database recovery, or migration recovery. Diagnostics IDs may be generated per event or per export for support correlation, but they must not encode private data and must not be reused across unrelated support tickets. User-facing copy must keep recovery guidance separate from raw diagnostic detail.
 
+### Local App Action Diagnostics
+
+Decision: do not add telemetry for app actions. A local-only, redacted, size-capped action sequence may be kept as runtime diagnostics for support correlation, but it must remain inside the existing diagnostics/support-copy consent and redaction boundary.
+
+Action diagnostics may record action id, surface class, success/failure class, and coarse timing/order. They must not store account names, feed names, article titles, raw URLs, server URLs, local paths, credentials, tokens, cookies, clipboard payloads, or raw menu/shortcut payloads. Support copy may include the redacted action sequence only after explicit consent and preview, and it must follow the same 16 KiB per-event and 256 KiB history caps as other runtime diagnostics.
+
+If action sequencing is needed before a diagnostics export exists, support should ask for a manually redacted app.log excerpt or reproduction steps rather than adding remote telemetry.
+
 ### Destructive Action Copy And Private Names
 
 Decision: destructive delete/reset copy must consistently say when undo is unavailable, and dense lists must not expose more private user-created names through tooltips than the visible UI already justifies.

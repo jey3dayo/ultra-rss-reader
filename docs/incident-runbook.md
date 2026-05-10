@@ -24,6 +24,7 @@ Use this page when the app is already failing and you need the fastest path to t
 - Packaged builds write file logs.
 - Use the in-app "Open log directory" flow or `get_log_dir`.
 - `open_log_dir` opens the native folder picker and intentionally does not expose the resolved filesystem path to the webview.
+- Packaged release log timestamps use local time. When escalating logs across timezones, record the OS timezone and UTC offset with the log excerpt instead of converting timestamps in place.
 - Keep the log bundle before retrying destructive recovery steps.
 - When escalating, share the saved log file or redacted snippets, not an unredacted full user data directory.
 - Treat old release logs, support/debug logs, and support dumps as private data even after the database or credentials have been reset.
@@ -88,6 +89,7 @@ Retention contract:
 - Uninstall or app binary deletion removes the application bundle only; it must not be described as deleting local app data.
 - Reinstalling the same version or a newer version may reuse the existing app data, database, preferences, logs, and OS keyring credentials.
 - App data removal is a separate privacy operation that must verify each retained surface below.
+- A bundle identifier change creates a different OS app data, log, and keyring namespace. Treat any apparent "missing data after update" report after an identifier change as a migration-path incident, not as a private data reset.
 - A reset is complete only when all applicable surfaces are removed or intentionally preserved for an active incident. If any surface cannot be checked or removed, the result is incomplete.
 
 Before telling a user that private data has been cleared, verify each surface separately:
@@ -115,6 +117,13 @@ Account recovery contract:
 - Cache clear means removing stale account-scoped sync state or pending mutations, not rewriting credentials. If the UI cannot expose a separate cache clear action, describe it as unavailable rather than folding it into credential reset.
 - Delete account removes the database account first, then attempts to remove the matching OS keyring entry by account id. A keyring cleanup failure makes privacy cleanup incomplete, but must not resurrect the deleted database account.
 - Rename account does not rename keyring entries because credentials are keyed by stable account id, not display name.
+
+App data namespace migration contract:
+
+- The current production bundle identifier is `com.jey3dayo.ultra-rss-reader`; normal startup must not rename the app data directory automatically.
+- If a future release changes the identifier, triage must check the old identifier's app data, log, and keyring namespace before declaring data lost.
+- Database migration across identifiers requires an explicit release plan with user-visible backup or copy guidance, rollback steps, and clear copy that OS keyring credentials may need to be re-entered.
+- Do not move logs, backups, support dumps, or credentials between identifier namespaces during incident response unless the release plan says exactly which artifact class is safe to copy.
 
 ### Export And Settings Portability
 

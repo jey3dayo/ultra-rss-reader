@@ -277,6 +277,7 @@ Confirm before release:
 - `src-tauri/tauri.conf.json` and `src-tauri/tauri.release.conf.json` both use `com.jey3dayo.ultra-rss-reader`.
 - No automatic app data directory rename is attempted during normal startup.
 - If a future identifier change is required, the release plan documents old identifier detection, database copy or backup guidance, the fact that OS keyring credentials may need user re-entry, log path changes, and rollback steps.
+- If a release changes the identifier, manual verification must prove the old app data directory remains preserved until the user accepts the documented copy or backup path. Skipping native migration is acceptable only when the release notes and support handoff explicitly say data and credentials remain in the old namespace.
 
 ### 6a. macOS Sandbox Entitlements And Access Policy
 
@@ -337,6 +338,7 @@ Confirm:
 
 - Release logs are written to disk.
 - Release log timestamps use the packaged app's local timezone policy (`TimezoneStrategy::UseLocal`). When sharing logs across timezones, record the verifier's OS timezone and local offset together with the log.
+- Do not convert local release log timestamps to UTC in support notes unless the converted value is labeled separately; keep the original local timestamp available for comparison with the user's app UI and OS event history.
 - You can locate the logs needed for updater or sync troubleshooting.
 - The log-directory action opens the native folder without showing a raw path in the webview.
 - Any shared logs are redacted for credentials, tokens, cookies, and passwords.
@@ -358,6 +360,7 @@ Confirm and record:
 - If any artifact cannot be removed because of OS permissions, file locks, or an unknown path, the user-facing result says the reset is incomplete.
 - Support/debug copy does not automatically include hostname, local filesystem paths, OS username, account names, feed URLs, article URLs, server URLs, credentials, tokens, cookies, or a stable device identifier.
 - If support needs environment context, ask for app version, OS family, CPU architecture, locale, and timezone offset as separate non-secret fields instead of adding a stable fingerprint to default debug copy.
+- App action sequencing must stay telemetry-free. If a release adds action diagnostics, verify it is local-only, redacted, size-capped, and included in support copy only after consent and preview.
 
 ### 9a. Import/Export Cancellation Verification
 
