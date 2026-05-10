@@ -711,7 +711,9 @@ describe("executeAction", () => {
     });
 
     it("does not write fullscreen state when reading fullscreen fails", async () => {
-      isWindowFullscreenMock.mockResolvedValueOnce(Result.fail({ type: "UserVisible", message: "unavailable" }));
+      const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+      const error = new Error("unavailable", { cause: { code: "runtime_unavailable" } });
+      isWindowFullscreenMock.mockResolvedValueOnce(Result.fail(error));
 
       executeAction("toggle-fullscreen");
 
@@ -719,16 +721,26 @@ describe("executeAction", () => {
         expect(isWindowFullscreenMock).toHaveBeenCalledOnce();
       });
       expect(setWindowFullscreenMock).not.toHaveBeenCalled();
+      const detail = consoleWarn.mock.calls[0]?.[1] as Error;
+      expect(consoleWarn.mock.calls[0]?.[0]).toBe("Failed to read fullscreen state.");
+      expect(detail.message).toBe(error.message);
+      expect(detail.cause).toEqual({ code: "runtime_unavailable" });
     });
 
     it("swallows fullscreen write failures from Result-based window helpers", async () => {
-      setWindowFullscreenMock.mockResolvedValueOnce(Result.fail({ type: "UserVisible", message: "denied" }));
+      const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+      const error = new Error("denied", { cause: { code: "permission_denied" } });
+      setWindowFullscreenMock.mockResolvedValueOnce(Result.fail(error));
 
       executeAction("toggle-fullscreen");
 
       await waitFor(() => {
         expect(setWindowFullscreenMock).toHaveBeenCalledWith(true);
       });
+      const detail = consoleWarn.mock.calls[0]?.[1] as Error;
+      expect(consoleWarn.mock.calls[0]?.[0]).toBe("Failed to update fullscreen state.");
+      expect(detail.message).toBe(error.message);
+      expect(detail.cause).toEqual({ code: "permission_denied" });
     });
 
     it("absorbs rejected fullscreen reads at the global action boundary", async () => {

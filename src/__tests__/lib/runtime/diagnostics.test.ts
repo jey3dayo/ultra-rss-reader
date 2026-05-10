@@ -58,6 +58,32 @@ describe("runtime diagnostics redaction", () => {
     expect(consoleError).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps window runtime object error causes as structured diagnostics detail", () => {
+    const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const cause = {
+      code: "permission_denied",
+      apiToken: "raw-token",
+      nested: {
+        url: "https://user:pass@example.com/secret-token/window?token=raw",
+      },
+    };
+    const error = new Error("Window update failed TOKEN=raw", { cause });
+
+    logRuntimeDiagnostic("window-runtime-error", "Window runtime failed", error);
+
+    expect(consoleWarn).toHaveBeenCalledTimes(1);
+    const detail = consoleWarn.mock.calls[0]?.[1] as Error;
+    expect(detail).toBeInstanceOf(Error);
+    expect(detail.message).toBe("Window update failed TOKEN=<redacted>");
+    expect(detail.cause).toEqual({
+      code: "permission_denied",
+      apiToken: "<redacted>",
+      nested: {
+        url: "https://example.com/redacted?redacted",
+      },
+    });
+  });
+
   it("redacts URL path segments only when they look credential-like", () => {
     expect(redactRuntimeDiagnosticText("https://example.com/feed.xml?token=raw")).toBe(
       "https://example.com/feed.xml?redacted",

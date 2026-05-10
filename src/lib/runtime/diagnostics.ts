@@ -5,7 +5,8 @@ export type RuntimeDiagnosticPolicyId =
   | "manual-sync-cooldown-listener"
   | "platform-info-load"
   | "app-icon-theme"
-  | "unread-badge";
+  | "unread-badge"
+  | "window-runtime-error";
 
 export type RuntimeDiagnosticPolicy = {
   console: "warn" | "error";
@@ -71,6 +72,14 @@ export const RUNTIME_DIAGNOSTIC_POLICIES = {
     productionDiagnostics: true,
     toast: "never",
     once: true,
+    redactSecrets: true,
+  },
+  "window-runtime-error": {
+    console: "warn",
+    devOnlyConsole: false,
+    productionDiagnostics: true,
+    toast: "never",
+    once: false,
     redactSecrets: true,
   },
 } as const satisfies Record<RuntimeDiagnosticPolicyId, RuntimeDiagnosticPolicy>;

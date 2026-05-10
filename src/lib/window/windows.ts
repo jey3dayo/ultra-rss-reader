@@ -30,7 +30,7 @@ function toError(error: unknown): Error {
 
   if (error !== null && typeof error === "object") {
     const message = readErrorLikeMessage(error);
-    return new Error(message ?? stringifyUnknownError(error));
+    return new Error(message ?? stringifyUnknownError(error), { cause: error });
   }
 
   return new Error(stringifyUnknownError(error));

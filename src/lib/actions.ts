@@ -7,6 +7,7 @@ import { emitDebugInputTrace } from "@/lib/debug/debug-input-trace";
 import i18n from "@/lib/i18n";
 import { keyboardEvents } from "@/lib/keyboard/keyboard-shortcuts";
 import { focusArticleListTarget, focusSelectedSidebarTarget } from "@/lib/reader-focus";
+import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
 import { triggerManualSyncWithCooldown } from "@/lib/sync/manual-sync";
 import { resolveSyncFeedbackMessage, summarizeSyncResult } from "@/lib/sync/sync-result-feedback";
 import { isWindowFullscreen, setWindowFullscreen } from "@/lib/window/windows";
@@ -149,10 +150,14 @@ export function flushPendingBrowserCloseAction(): void {
 async function toggleFullscreen(): Promise<void> {
   const fullscreenResult = await isWindowFullscreen();
   if (Result.isFailure(fullscreenResult)) {
+    logRuntimeDiagnostic("window-runtime-error", "Failed to read fullscreen state.", Result.unwrapError(fullscreenResult));
     return;
   }
 
-  await setWindowFullscreen(!Result.unwrap(fullscreenResult));
+  const setFullscreenResult = await setWindowFullscreen(!Result.unwrap(fullscreenResult));
+  if (Result.isFailure(setFullscreenResult)) {
+    logRuntimeDiagnostic("window-runtime-error", "Failed to update fullscreen state.", Result.unwrapError(setFullscreenResult));
+  }
 }
 
 /**

@@ -85,19 +85,25 @@ describe("windows", () => {
   });
 
   it("preserves structured non-error Tauri failure messages", async () => {
-    setFullscreenMock.mockRejectedValue({ message: "denied" });
+    const detail = { message: "denied", code: "permission_denied" };
+    setFullscreenMock.mockRejectedValue(detail);
 
     const result = await setWindowFullscreen(true);
 
-    expect(Result.unwrapError(result)).toEqual(new Error("denied"));
+    const error = Result.unwrapError(result);
+    expect(error.message).toBe("denied");
+    expect(error.cause).toBe(detail);
   });
 
   it("wraps non-error object Tauri failures with a stable fallback message", async () => {
-    setFullscreenMock.mockRejectedValue({ code: "permission_denied" });
+    const detail = { code: "permission_denied" };
+    setFullscreenMock.mockRejectedValue(detail);
 
     const result = await setWindowFullscreen(true);
 
-    expect(Result.unwrapError(result)).toEqual(new Error("Unknown window error"));
+    const error = Result.unwrapError(result);
+    expect(error.message).toBe("Unknown window error");
+    expect(error.cause).toBe(detail);
   });
 
   it("wraps symbol Tauri failures as readable Error values", async () => {
@@ -120,7 +126,9 @@ describe("windows", () => {
 
     const result = await setWindowFullscreen(true);
 
-    expect(Result.unwrapError(result)).toEqual(new Error("Unknown window error"));
+    const error = Result.unwrapError(result);
+    expect(error.message).toBe("Unknown window error");
+    expect(error.cause).toBe(errorLike);
   });
 
   it("wraps non-error dynamic import failures as Error values", async () => {
