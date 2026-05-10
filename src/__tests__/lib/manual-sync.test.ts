@@ -13,11 +13,13 @@ import {
   triggerManualSyncWithCooldownResult,
 } from "@/lib/sync/manual-sync";
 
-const { triggerSyncMock } = vi.hoisted(() => ({
+const { syncAccountMock, triggerSyncMock } = vi.hoisted(() => ({
+  syncAccountMock: vi.fn(),
   triggerSyncMock: vi.fn(),
 }));
 
 vi.mock("@/api/tauri-commands", () => ({
+  syncAccount: syncAccountMock,
   triggerSync: triggerSyncMock,
 }));
 
@@ -33,6 +35,8 @@ describe("manual-sync", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-04-30T00:00:00.000Z"));
+    syncAccountMock.mockReset();
+    syncAccountMock.mockResolvedValue(Result.succeed(syncResult));
     triggerSyncMock.mockReset();
     triggerSyncMock.mockResolvedValue(Result.succeed(syncResult));
     resetRuntimeDiagnosticOnceSuppressionForTests();
@@ -78,7 +82,10 @@ describe("manual-sync", () => {
     });
     const onListenerErrors = vi.fn();
 
-    notifyManualSyncCooldownListeners([firstListener, secondListener, thirdListener], onListenerErrors);
+    notifyManualSyncCooldownListeners(
+      [firstListener, secondListener, thirdListener],
+      onListenerErrors,
+    );
 
     expect(firstListener).toHaveBeenCalledTimes(1);
     expect(secondListener).toHaveBeenCalledTimes(1);
@@ -119,12 +126,15 @@ describe("manual-sync", () => {
     expect(isManualSyncCoolingDown()).toBe(false);
     expect(getManualSyncCooldownUntil()).toBe(0);
     expect(consoleWarn).toHaveBeenCalledTimes(2);
-    expect(consoleWarn).toHaveBeenCalledWith("Manual sync cooldown listeners failed:", [
-      {
-        subscriberId: "manual-sync-cooldown-listener:1",
-        error: listenerError,
-      },
-    ]);
+    expect(consoleWarn).toHaveBeenCalledWith(
+      "Manual sync cooldown listeners failed:",
+      [
+        {
+          subscriberId: "manual-sync-cooldown-listener:1",
+          error: listenerError,
+        },
+      ],
+    );
 
     consoleWarn.mockRestore();
   });
@@ -136,7 +146,9 @@ describe("manual-sync", () => {
     });
     const diagnosticsReporter = vi.fn();
 
-    setManualSyncCooldownListenerErrorReporterForDiagnostics(diagnosticsReporter);
+    setManualSyncCooldownListenerErrorReporterForDiagnostics(
+      diagnosticsReporter,
+    );
     subscribeManualSyncCooldown(throwingListener);
 
     await triggerManualSyncWithCooldown({
@@ -264,6 +276,14 @@ describe("manual-sync", () => {
     expect(onError).not.toHaveBeenCalled();
   });
 
+  it("uses account sync when a selected account id is provided", async () => {
+    const result = await triggerManualSyncWithCooldownResult("acc-1");
+
+    expect(Result.isSuccess(result)).toBe(true);
+    expect(syncAccountMock).toHaveBeenCalledWith("acc-1");
+    expect(triggerSyncMock).not.toHaveBeenCalled();
+  });
+
   it("routes command errors through error callback only", async () => {
     const appError = { type: "UserVisible", message: "sync failed" };
     const onSuccess = vi.fn();
@@ -310,7 +330,9 @@ describe("manual-sync", () => {
     const syncError = new Error("sync command rejected");
     triggerSyncMock.mockRejectedValue(syncError);
 
-    await expect(triggerManualSyncWithCooldownResult()).rejects.toThrow(syncError);
+    await expect(triggerManualSyncWithCooldownResult()).rejects.toThrow(
+      syncError,
+    );
 
     expect(isManualSyncCoolingDown()).toBe(false);
     expect(getManualSyncCooldownUntil()).toBe(0);

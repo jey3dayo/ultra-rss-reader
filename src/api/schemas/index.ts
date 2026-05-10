@@ -145,6 +145,11 @@ export {
   SyncResultSchema,
 } from "./sync-result";
 export {
+  type SyncProgressEventDto,
+  SyncProgressEventSchema,
+  type SyncProgressRuntimeEventDto,
+} from "./sync-progress";
+export {
   TagArticleCountsSchema,
   type TagDto,
   TagDtoListSchema,

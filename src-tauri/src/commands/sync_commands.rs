@@ -814,7 +814,11 @@ pub async fn trigger_sync_account(
         }
     }
     reporter.emit_finished(result.failed.is_empty());
-    if result.succeeded > 0 {
+    if result.synced {
+        enable_automatic_sync(
+            state.automatic_sync_enabled.as_ref(),
+            state.automatic_sync_notify.as_ref(),
+        );
         emit_sync_warning_event(&app_handle, &result);
         emit_sync_event_log_only(&app_handle, SYNC_COMPLETED_EVENT, ());
         if should_emit_sync_succeeded(&result) {

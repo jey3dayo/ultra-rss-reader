@@ -21,6 +21,8 @@ import type {
   OldUnreadDays,
   OldUnreadScopeKind,
   PlatformInfo,
+  SyncProgressEventDto,
+  SyncProgressRuntimeEventDto,
   SyncResultDto,
   TagDto,
   UpdateInfoDto,
@@ -72,6 +74,7 @@ const publicSchemaRuntimeExports = [
   "PlatformInfoSchema",
   "PreferencesDtoSchema",
   "StringResponseSchema",
+  "SyncProgressEventSchema",
   "SyncResultSchema",
   "TagArticleCountsSchema",
   "TagDtoListSchema",
@@ -99,12 +102,16 @@ const toCommandArgExportName = (commandName: string): string => {
     return override;
   }
 
-  const camelName = commandName.replace(/_([a-z])/g, (_, char: string) => char.toUpperCase());
+  const camelName = commandName.replace(/_([a-z])/g, (_, char: string) =>
+    char.toUpperCase(),
+  );
   return `${camelName}Args`;
 };
 
 const publicCommandArgSchemaExports = [
-  ...new Set(Object.keys(apiSchemas.commandArgsSchemas).map(toCommandArgExportName)),
+  ...new Set(
+    Object.keys(apiSchemas.commandArgsSchemas).map(toCommandArgExportName),
+  ),
 ];
 
 const publicTauriCommandSchemaBoundaryExports = [
@@ -139,6 +146,8 @@ type PublicSchemaTypeContracts = readonly [
   OldUnreadDays,
   OldUnreadScopeKind,
   PlatformInfo,
+  SyncProgressEventDto,
+  SyncProgressRuntimeEventDto,
   SyncResultDto,
   TagDto,
   UpdateInfoDto,
@@ -153,7 +162,11 @@ describe("schema barrel public API", () => {
   });
 
   it("keeps Tauri command schema boundary exports intentionally public", () => {
-    expect(publicTauriCommandSchemaBoundaryExports.every((exportName) => exportName in apiSchemas)).toBe(true);
+    expect(
+      publicTauriCommandSchemaBoundaryExports.every(
+        (exportName) => exportName in apiSchemas,
+      ),
+    ).toBe(true);
   });
 
   it("keeps shared nonnegative integer schema internal while preserving public response schemas", () => {
@@ -161,14 +174,18 @@ describe("schema barrel public API", () => {
     expect(apiSchemas.CountResponseSchema.parse(0)).toBe(0);
     expect(apiSchemas.NonnegativeIntResponseSchema.parse(0)).toBe(0);
     expect(NonnegativeIntegerSchema.parse(0)).toBe(0);
-    expect(apiSchemas.CountResponseSchema).not.toBe(apiSchemas.NonnegativeIntResponseSchema);
+    expect(apiSchemas.CountResponseSchema).not.toBe(
+      apiSchemas.NonnegativeIntResponseSchema,
+    );
     expect(apiSchemas.CountResponseSchema).not.toBe(NonnegativeIntegerSchema);
   });
 
   it("keeps response schema names available through both public schema import paths", () => {
     expect(apiSchemas.NullResponseSchema).toBe(NullResponseSchema);
     expect(apiSchemas.IntResponseSchema).toBe(IntResponseSchema);
-    expect(apiSchemas.NonnegativeIntResponseSchema).toBe(NonnegativeIntResponseSchema);
+    expect(apiSchemas.NonnegativeIntResponseSchema).toBe(
+      NonnegativeIntResponseSchema,
+    );
     expect(apiSchemas.CountResponseSchema).toBe(CountResponseSchema);
     expect(apiSchemas.StringResponseSchema).toBe(StringResponseSchema);
     expect(apiSchemas.BooleanResponseSchema).toBe(BooleanResponseSchema);

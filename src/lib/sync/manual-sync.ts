@@ -1,11 +1,12 @@
 import { Result } from "@praha/byethrow";
 import type { SyncResultDto } from "@/api/schemas";
-import { type AppError, triggerSync } from "@/api/tauri-commands";
+import { type AppError, syncAccount, triggerSync } from "@/api/tauri-commands";
 import { getCurrentTimeMs } from "@/lib/datetime";
 import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
 
 const MANUAL_SYNC_COOLDOWN_MS = 15_000;
-const MANUAL_SYNC_COOLDOWN_SUBSCRIBER_ID_PREFIX = "manual-sync-cooldown-listener";
+const MANUAL_SYNC_COOLDOWN_SUBSCRIBER_ID_PREFIX =
+  "manual-sync-cooldown-listener";
 
 let manualSyncCooldownUntil = 0;
 let manualSyncCooldownTimer: ReturnType<typeof setTimeout> | null = null;
@@ -25,8 +26,14 @@ export type ManualSyncCooldownListenerErrorReport = {
   error: unknown;
 };
 
-function reportManualSyncCooldownListenerErrors(reports: readonly ManualSyncCooldownListenerErrorReport[]) {
-  logRuntimeDiagnostic("manual-sync-cooldown-listener", "Manual sync cooldown listeners failed:", reports);
+function reportManualSyncCooldownListenerErrors(
+  reports: readonly ManualSyncCooldownListenerErrorReport[],
+) {
+  logRuntimeDiagnostic(
+    "manual-sync-cooldown-listener",
+    "Manual sync cooldown listeners failed:",
+    reports,
+  );
   manualSyncCooldownListenerDiagnosticsReporter?.(reports);
 }
 
@@ -118,30 +125,49 @@ export function isManualSyncCoolingDown() {
 }
 
 type TriggerManualSyncWithCooldownParams = {
+  selectedAccountId?: string | null;
   onRequestStart?: () => void;
   onCooldown: () => void;
   onSuccess: (syncResult: SyncResultDto) => void;
   onError: (error: AppError) => void;
 };
 
-export type TriggerManualSyncWithCooldownError = AppError | { type: "cooling_down" };
+export type TriggerManualSyncWithCooldownError =
+  | AppError
+  | { type: "cooling_down" };
 
-function shouldStartManualSyncCooldown(result: Result.Result<SyncResultDto, AppError>) {
+function shouldStartManualSyncCooldown(
+  result: Result.Result<SyncResultDto, AppError>,
+) {
   // Retryable failures still mean native sync accepted user intent and may have
   // scheduled provider backoff. Keep cooldown aligned with successful triggers
   // to avoid tight manual retry loops.
-  return Result.isSuccess(result) || Result.unwrapError(result).type === "Retryable";
+  return (
+    Result.isSuccess(result) || Result.unwrapError(result).type === "Retryable"
+  );
 }
 
 export async function triggerManualSyncWithCooldownResult(
+  selectedAccountIdOrOnRequestStart?: string | null | (() => void),
   onRequestStart?: () => void,
 ): Result.ResultAsync<SyncResultDto, TriggerManualSyncWithCooldownError> {
   if (isManualSyncCoolingDown()) {
     return Result.fail({ type: "cooling_down" });
   }
 
-  onRequestStart?.();
-  const result = await triggerSync();
+  const selectedAccountId =
+    typeof selectedAccountIdOrOnRequestStart === "function"
+      ? null
+      : selectedAccountIdOrOnRequestStart;
+  const resolvedOnRequestStart =
+    typeof selectedAccountIdOrOnRequestStart === "function"
+      ? selectedAccountIdOrOnRequestStart
+      : onRequestStart;
+
+  resolvedOnRequestStart?.();
+  const result = selectedAccountId
+    ? await syncAccount(selectedAccountId)
+    : await triggerSync();
   if (shouldStartManualSyncCooldown(result)) {
     setManualSyncCooldownUntil(getCurrentTimeMs() + MANUAL_SYNC_COOLDOWN_MS);
   }
@@ -149,12 +175,16 @@ export async function triggerManualSyncWithCooldownResult(
 }
 
 export async function triggerManualSyncWithCooldown({
+  selectedAccountId,
   onRequestStart,
   onCooldown,
   onSuccess,
   onError,
 }: TriggerManualSyncWithCooldownParams) {
-  const result = await triggerManualSyncWithCooldownResult(onRequestStart);
+  const result = await triggerManualSyncWithCooldownResult(
+    selectedAccountId,
+    onRequestStart,
+  );
 
   if (Result.isFailure(result)) {
     const error = Result.unwrapError(result);

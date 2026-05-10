@@ -1,7 +1,15 @@
-import { afterEach, beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  expectTypeOf,
+  it,
+  vi,
+} from "vitest";
 import { TOAST_AUTO_DISMISS_TIMEOUT_MS } from "@/constants/ui-runtime";
+import type { SyncProgressRuntimeEventDto } from "@/api/schemas";
 import type { ReaderSelection } from "@/lib/reader/reader-selection.types";
-import type { SyncProgressRuntimeEventDto } from "@/lib/sync/sync-progress-event.types";
 import type {
   SyncProgressEventDto,
   SyncProgressUiState,
@@ -171,8 +179,12 @@ describe("useUiStore", () => {
     >();
     expectTypeOf<UiStoreSettingsModalState>().toEqualTypeOf<UiStoreSettingsState>();
     expectTypeOf<UiStoreSettingsModalActions>().toEqualTypeOf<UiStoreSettingsActions>();
-    expectTypeOf<UiStoreReaderState>().toHaveProperty("selection").toEqualTypeOf<ReaderSelection>();
-    expectTypeOf<UiStoreState>().toHaveProperty("selection").toEqualTypeOf<ReaderSelection>();
+    expectTypeOf<UiStoreReaderState>()
+      .toHaveProperty("selection")
+      .toEqualTypeOf<ReaderSelection>();
+    expectTypeOf<UiStoreState>()
+      .toHaveProperty("selection")
+      .toEqualTypeOf<ReaderSelection>();
 
     const state = useUiStore.getState();
     const shellState: UiStoreShellState = state;
@@ -218,12 +230,18 @@ describe("useUiStore", () => {
 
   it("keeps sync progress runtime DTO and UI state type boundaries separate", () => {
     expectTypeOf<SyncProgressEventDto>().toEqualTypeOf<SyncProgressRuntimeEventDto>();
-    expectTypeOf<SyncProgressRuntimeEventDto>().toHaveProperty("account_id").toEqualTypeOf<string | null | undefined>();
+    expectTypeOf<SyncProgressRuntimeEventDto>()
+      .toHaveProperty("account_id")
+      .toEqualTypeOf<string | null | undefined>();
     expectTypeOf<SyncProgressRuntimeEventDto>()
       .toHaveProperty("account_name")
       .toEqualTypeOf<string | null | undefined>();
-    expectTypeOf<SyncProgressUiState>().toHaveProperty("currentAccountName").toEqualTypeOf<string | null>();
-    expectTypeOf<SyncProgressUiState>().toHaveProperty("activeAccountIds").toEqualTypeOf<Set<string>>();
+    expectTypeOf<SyncProgressUiState>()
+      .toHaveProperty("currentAccountName")
+      .toEqualTypeOf<string | null>();
+    expectTypeOf<SyncProgressUiState>()
+      .toHaveProperty("activeAccountIds")
+      .toEqualTypeOf<Set<string>>();
 
     const runtimeEvent = {
       stage: "account_started",
@@ -269,7 +287,9 @@ describe("useUiStore", () => {
         currentAccountName: "FreshRSS",
       }),
     );
-    expect(useUiStore.getState().syncProgress.activeAccountIds).toEqual(new Set(["acc-1"]));
+    expect(useUiStore.getState().syncProgress.activeAccountIds).toEqual(
+      new Set(["acc-1"]),
+    );
 
     useUiStore.getState().applySyncProgress({
       stage: "account_started",
@@ -288,7 +308,9 @@ describe("useUiStore", () => {
         currentAccountName: "FreshRSS",
       }),
     );
-    expect(useUiStore.getState().syncProgress.activeAccountIds).toEqual(new Set(["acc-1", "acc-2"]));
+    expect(useUiStore.getState().syncProgress.activeAccountIds).toEqual(
+      new Set(["acc-1", "acc-2"]),
+    );
   });
 
   it("keeps sync active account ids unchanged when account progress omits the account id", () => {
@@ -317,7 +339,9 @@ describe("useUiStore", () => {
         currentAccountName: "FreshRSS",
       }),
     );
-    expect(useUiStore.getState().syncProgress.activeAccountIds).toEqual(new Set(["acc-1"]));
+    expect(useUiStore.getState().syncProgress.activeAccountIds).toEqual(
+      new Set(["acc-1"]),
+    );
   });
 
   it("openCommandPalette sets true", () => {
@@ -392,8 +416,12 @@ describe("useUiStore", () => {
       state: "syncing",
     });
 
-    useUiStore.getState().startAccountSetup("acc-detail", { owner: "account-detail" });
-    useUiStore.getState().markAccountSetupFailed("acc-add", "stale add-account result");
+    useUiStore
+      .getState()
+      .startAccountSetup("acc-detail", { owner: "account-detail" });
+    useUiStore
+      .getState()
+      .markAccountSetupFailed("acc-add", "stale add-account result");
 
     expect(useUiStore.getState().accountSetupSession).toEqual({
       accountId: "acc-detail",
@@ -401,7 +429,9 @@ describe("useUiStore", () => {
       state: "syncing",
     });
 
-    useUiStore.getState().markAccountSetupFailed("acc-detail", "detail sync failed");
+    useUiStore
+      .getState()
+      .markAccountSetupFailed("acc-detail", "detail sync failed");
 
     expect(useUiStore.getState().accountSetupSession).toEqual({
       accountId: "acc-detail",
@@ -577,10 +607,19 @@ describe("useUiStore", () => {
     const cases = [
       ["selectAccount", () => useUiStore.getState().selectAccount("acc-1")],
       ["selectFeed", () => useUiStore.getState().selectFeed("feed-1")],
-      ["selectFeedFromCurrentContext", () => useUiStore.getState().selectFeedFromCurrentContext("feed-1")],
-      ["selectSmartView", () => useUiStore.getState().selectSmartView("unread")],
+      [
+        "selectFeedFromCurrentContext",
+        () => useUiStore.getState().selectFeedFromCurrentContext("feed-1"),
+      ],
+      [
+        "selectSmartView",
+        () => useUiStore.getState().selectSmartView("unread"),
+      ],
       ["selectTag", () => useUiStore.getState().selectTag("tag-1")],
-      ["selectTagFromCurrentContext", () => useUiStore.getState().selectTagFromCurrentContext("tag-1")],
+      [
+        "selectTagFromCurrentContext",
+        () => useUiStore.getState().selectTagFromCurrentContext("tag-1"),
+      ],
     ] as const;
 
     for (const [name, runAction] of cases) {
@@ -603,10 +642,14 @@ describe("useUiStore", () => {
   it("keeps selected articles retained in unread mode until the screen changes", () => {
     useUiStore.getState().retainArticle("art-1");
     useUiStore.getState().selectArticle("art-1");
-    expect(useUiStore.getState().retainedArticleIds).toEqual(new Set(["art-1"]));
+    expect(useUiStore.getState().retainedArticleIds).toEqual(
+      new Set(["art-1"]),
+    );
 
     useUiStore.getState().selectArticle("art-2");
-    expect(useUiStore.getState().retainedArticleIds).toEqual(new Set(["art-1", "art-2"]));
+    expect(useUiStore.getState().retainedArticleIds).toEqual(
+      new Set(["art-1", "art-2"]),
+    );
   });
 
   it("does not change retained articles when selecting in all mode", () => {
@@ -615,7 +658,9 @@ describe("useUiStore", () => {
 
     useUiStore.getState().selectArticle("art-2");
 
-    expect(useUiStore.getState().retainedArticleIds).toEqual(new Set(["art-1"]));
+    expect(useUiStore.getState().retainedArticleIds).toEqual(
+      new Set(["art-1"]),
+    );
   });
 
   it("openBrowser switches mode", () => {
@@ -759,7 +804,9 @@ describe("useUiStore", () => {
 
   it("clears retained articles when the user changes the current screen", () => {
     useUiStore.getState().retainArticle("art-1");
-    expect(useUiStore.getState().retainedArticleIds).toEqual(new Set(["art-1"]));
+    expect(useUiStore.getState().retainedArticleIds).toEqual(
+      new Set(["art-1"]),
+    );
 
     useUiStore.getState().setViewMode("starred");
     expect(useUiStore.getState().retainedArticleIds).toEqual(new Set());
@@ -915,7 +962,9 @@ describe("useUiStore", () => {
   it("does not schedule dismiss timers for persistent toasts", () => {
     vi.useFakeTimers();
 
-    useUiStore.getState().showToast({ message: "Downloading", persistent: true });
+    useUiStore
+      .getState()
+      .showToast({ message: "Downloading", persistent: true });
     vi.advanceTimersByTime(TOAST_AUTO_DISMISS_TIMEOUT_MS * 2);
 
     expect(useUiStore.getState().toastMessage).toEqual({
@@ -929,7 +978,9 @@ describe("useUiStore", () => {
 
     useUiStore.getState().showToast("Temporary");
     useUiStore.getState().clearToast();
-    useUiStore.getState().showToast({ message: "Persistent", persistent: true });
+    useUiStore
+      .getState()
+      .showToast({ message: "Persistent", persistent: true });
     vi.advanceTimersByTime(TOAST_AUTO_DISMISS_TIMEOUT_MS);
 
     expect(useUiStore.getState().toastMessage).toEqual({
@@ -943,7 +994,9 @@ describe("useUiStore", () => {
 
     useUiStore.getState().showToast("Temporary");
     useUiStore.setState(useUiStore.getInitialState());
-    useUiStore.getState().showToast({ message: "Persistent", persistent: true });
+    useUiStore
+      .getState()
+      .showToast({ message: "Persistent", persistent: true });
     vi.advanceTimersByTime(TOAST_AUTO_DISMISS_TIMEOUT_MS);
 
     expect(useUiStore.getState().toastMessage).toEqual({
