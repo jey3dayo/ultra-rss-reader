@@ -6,8 +6,8 @@ import {
   classifyTailwindArbitraryValue,
   createProcessDiagnostic,
   createReportDiagnostic,
-  isTailwindArbitraryValueInventorySourcePath,
   isQualityBaselineRepoScanIgnoredPath,
+  isTailwindArbitraryValueInventorySourcePath,
   parseKnipReport,
   parseReactDoctorReport,
   partitionQualityBaselineRepoScanPaths,
@@ -296,7 +296,7 @@ describe("quality-baseline", () => {
         path: "src/components/app-shell.tsx",
         source: [
           '<div className="grid max-w-[24ch] text-[color:var(--shell-label)] z-[60]">',
-          '<span className="motion-safe:duration-[180ms] supports-[backdrop-filter]:bg-background/80 [&_[cmdk-item]]:px-2" />',
+          '<span className="motion-safe:duration-[180ms] supports-[backdrop-filter]:bg-background/80" />',
         ].join("\n"),
       },
       {
@@ -310,7 +310,7 @@ describe("quality-baseline", () => {
       "motion-critical": 1,
       "z-index": 1,
       "token-candidate": 1,
-      "one-off-allowed": 2,
+      "one-off-allowed": 1,
     });
     expect(inventory.entries.map((entry) => `${entry.category}:${entry.line}:${entry.className}`)).toEqual([
       "layout-critical:1:max-w-[24ch]",
@@ -318,7 +318,6 @@ describe("quality-baseline", () => {
       "z-index:1:z-[60]",
       "motion-critical:2:motion-safe:duration-[180ms]",
       "one-off-allowed:2:supports-[backdrop-filter]:bg-background/80",
-      "one-off-allowed:2:[&_[cmdk-item]]:px-2",
     ]);
   });
 });

@@ -781,12 +781,7 @@ function readTailwindArbitraryValueEntries(path: string, source: string): Tailwi
 }
 
 function cleanPotentialTailwindToken(token: string): string {
-  const cleanedToken = token.replace(/^[{(]+/, "").replace(/[}),;]+$/, "");
-  const closingBracketIndex = cleanedToken.indexOf("]");
-  if (closingBracketIndex === -1) {
-    return cleanedToken;
-  }
-  return cleanedToken.slice(0, closingBracketIndex + 1);
+  return token.replace(/^[{(]+/, "").replace(/[}),;]+$/, "");
 }
 
 function isTailwindArbitraryToken(token: string): boolean {
@@ -797,7 +792,7 @@ function isTailwindArbitraryToken(token: string): boolean {
 }
 
 function stripTailwindVariants(className: string): string {
-  const bracketDepthAwareSeparator = /:(?![^\[]*\])/g;
+  const bracketDepthAwareSeparator = /:(?![^[]*\])/g;
   return className.split(bracketDepthAwareSeparator).at(-1) ?? className;
 }
 
