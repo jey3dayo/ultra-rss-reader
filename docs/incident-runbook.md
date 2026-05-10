@@ -54,6 +54,12 @@ Attachment contract:
 - If a database backup set or support dump is needed, share it only through a private support channel after confirming consent and redaction preview requirements from [feed-content-privacy.md](./feed-content-privacy.md).
 - Screenshots of OS prompts, SmartScreen, Gatekeeper, or permission dialogs must hide local usernames, local paths, account names, feed URLs, and server URLs.
 
+User-facing error correlation contract:
+
+- User-facing copy may show a stable support code for the broad recovery area, such as network, account auth, keyring, database recovery, or migration recovery.
+- Diagnostics IDs are ephemeral log-correlation values generated per event or export. They must not encode private data and must not be reused as stable user, device, account, or environment identifiers.
+- Recovery guidance must stay separate from raw diagnostic detail. If a support code or diagnostics ID is shown, the visible copy still needs an action the user can take.
+
 CI failure artifact contract:
 
 - Frontend gate artifacts are UI evidence. Keep Vitest logs, browser console output, and Playwright screenshots/videos/traces scoped to the failed gate; browser-mode E2E and Storybook smoke artifacts must stay in separate directories.
@@ -77,6 +83,14 @@ Storage pressure contract:
 - Only the diagnostics owner may emit a warning-once event for storage quota exhaustion, and that warning-once state must not depend on another local storage write.
 - Recovery UI and destructive-action fallback copy must remain visible even when preferences, sidebar state, command history, or debug storage persistence failed.
 - When triaging command/action persistence failures, classify the failing surface before recovery: `shortcut_*` preference keys require preference migration or quarantine handling, command palette recent actions require history cleanup or explicit stale-entry ignore behavior, and debug input trace strings are evidence for the current build rather than data that should be migrated.
+
+Platform permission denied copy contract:
+
+- File permission denied: ask the user to choose a writable location or allow file access in the OS privacy settings.
+- Dialog permission denied: ask the user to allow the OS file dialog and choose the file again.
+- Keyring permission denied: ask the user to allow keyring access, then save or reconnect the account again.
+- Clipboard permission denied: ask the user to allow clipboard access, or copy the redacted log excerpt manually.
+- Permission errors must record only the failure class and artifact class needed for support. They must not expose raw local paths, credentials, clipboard payloads, account names, feed URLs, article URLs, or server URLs in user-facing copy.
 
 ### Database Backups
 

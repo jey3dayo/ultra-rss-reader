@@ -106,6 +106,59 @@ pub fn app_recovery_actions_for_error(error: &DomainError) -> &'static [AppRecov
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PlatformPermissionDeniedSurface {
+    File,
+    Dialog,
+    Keyring,
+    Clipboard,
+}
+
+pub fn platform_permission_denied_user_action(
+    surface: PlatformPermissionDeniedSurface,
+) -> &'static str {
+    match surface {
+        PlatformPermissionDeniedSurface::File => {
+            "Choose a writable location or allow file access in the OS privacy settings."
+        }
+        PlatformPermissionDeniedSurface::Dialog => {
+            "Allow the OS file dialog and choose the file again."
+        }
+        PlatformPermissionDeniedSurface::Keyring => {
+            "Allow keyring access, then save or reconnect the account again."
+        }
+        PlatformPermissionDeniedSurface::Clipboard => {
+            "Allow clipboard access, or copy the redacted log excerpt manually."
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FrontendNetworkSignal {
+    Offline,
+    Online,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct NetworkSignalContract {
+    pub frontend_signal: FrontendNetworkSignal,
+    pub native_error_classification_is_authoritative: bool,
+    pub suppresses_automatic_background_attempts: bool,
+    pub allows_manual_retry: bool,
+}
+
+pub fn network_signal_contract(frontend_signal: FrontendNetworkSignal) -> NetworkSignalContract {
+    NetworkSignalContract {
+        frontend_signal,
+        native_error_classification_is_authoritative: true,
+        suppresses_automatic_background_attempts: matches!(
+            frontend_signal,
+            FrontendNetworkSignal::Offline
+        ),
+        allows_manual_retry: true,
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StorageBoundaryOwner {
     Preferences,
     Sidebar,
@@ -414,7 +467,8 @@ mod tests {
         any_loopback_socket_accepts_connection, app_recovery_actions_for_error,
         classify_network_error, error_recovery_category, redact_sensitive_network_error_message,
         AppRecoveryAction, DestructiveActionFallback, DomainError, ErrorRecoveryCategory,
-        NetworkErrorClassificationInput, StorageBoundaryOwner,
+        FrontendNetworkSignal, NetworkErrorClassificationInput, PlatformPermissionDeniedSurface,
+        StorageBoundaryOwner,
     };
     use crate::commands::dto::AppError;
     use reqwest::{
@@ -901,6 +955,109 @@ mod tests {
         for (error, expected_category, expected_actions) in cases {
             assert_eq!(error_recovery_category(&error), expected_category);
             assert_eq!(app_recovery_actions_for_error(&error), expected_actions);
+        }
+    }
+
+    #[test]
+    fn platform_permission_denied_copy_is_action_specific() {
+        let cases = [
+            (
+                PlatformPermissionDeniedSurface::File,
+                "Choose a writable location or allow file access in the OS privacy settings.",
+            ),
+            (
+                PlatformPermissionDeniedSurface::Dialog,
+                "Allow the OS file dialog and choose the file again.",
+            ),
+            (
+                PlatformPermissionDeniedSurface::Keyring,
+                "Allow keyring access, then save or reconnect the account again.",
+            ),
+            (
+                PlatformPermissionDeniedSurface::Clipboard,
+                "Allow clipboard access, or copy the redacted log excerpt manually.",
+            ),
+        ];
+
+        for (surface, expected_copy) in cases {
+            assert_eq!(
+                super::platform_permission_denied_user_action(surface),
+                expected_copy
+            );
+        }
+
+        let docs = include_str!("../../../docs/incident-runbook.md");
+        for required in [
+            "File permission denied",
+            "Dialog permission denied",
+            "Keyring permission denied",
+            "Clipboard permission denied",
+            "failure class and artifact class",
+        ] {
+            assert!(
+                docs.contains(required),
+                "missing permission denied support copy contract: {required}"
+            );
+        }
+    }
+
+    #[test]
+    fn frontend_offline_online_signal_is_only_a_hint_for_native_network_errors() {
+        let docs = include_str!("../../../docs/incident-runbook.md");
+
+        let offline = super::network_signal_contract(FrontendNetworkSignal::Offline);
+        assert_eq!(offline.frontend_signal, FrontendNetworkSignal::Offline);
+        assert!(offline.native_error_classification_is_authoritative);
+        assert!(offline.suppresses_automatic_background_attempts);
+        assert!(offline.allows_manual_retry);
+
+        let online = super::network_signal_contract(FrontendNetworkSignal::Online);
+        assert_eq!(online.frontend_signal, FrontendNetworkSignal::Online);
+        assert!(online.native_error_classification_is_authoritative);
+        assert!(!online.suppresses_automatic_background_attempts);
+        assert!(online.allows_manual_retry);
+
+        assert_eq!(
+            classify_network_error(NetworkErrorClassificationInput {
+                message: "dns error while browser reported online",
+                has_dns_error_marker: true,
+                ..NetworkErrorClassificationInput::default()
+            }),
+            "Could not resolve the server name. Check the server URL or your DNS/network settings."
+        );
+
+        for required in [
+            "frontend offline/online state as a trigger hint",
+            "online === true",
+            "native provider error for recovery category and retry/backoff decisions",
+        ] {
+            assert!(
+                docs.contains(required),
+                "missing offline/native network contract text: {required}"
+            );
+        }
+    }
+
+    #[test]
+    fn user_facing_error_correlation_contract_keeps_support_code_stable_and_diagnostics_ephemeral()
+    {
+        let docs = [
+            include_str!("../../../docs/incident-runbook.md"),
+            include_str!("../../../docs/feed-content-privacy.md"),
+        ]
+        .join("\n");
+
+        for required in [
+            "stable support code for the broad recovery area",
+            "Diagnostics IDs are ephemeral log-correlation values",
+            "must not encode private data",
+            "must not be reused as stable user, device, account, or environment identifiers",
+            "Recovery guidance must stay separate from raw diagnostic detail",
+        ] {
+            assert!(
+                docs.contains(required),
+                "missing user-facing error correlation contract: {required}"
+            );
         }
     }
 
