@@ -748,6 +748,29 @@ mod tests {
         }
     }
 
+    fn stale_saved_article(feed: &Feed, index: usize) -> Article {
+        let timestamp = Utc::now() + chrono::Duration::seconds(index as i64);
+        Article {
+            id: crate::domain::types::ArticleId(format!("saved-old-policy-{index:03}")),
+            feed_id: feed.id.clone(),
+            remote_id: Some(format!("remote-saved-old-policy-{index:03}")),
+            title: format!("Saved article {index}"),
+            content_raw: format!(
+                r#"<article><p onclick="evil()">Lead {index}</p><img src="https://cdn.example.com/body-{index}.jpg" onerror="evil()" alt="Body"><script>alert(1)</script></article>"#
+            ),
+            content_sanitized: "<script>stale saved html</script>".to_string(),
+            sanitizer_version: sanitizer::SANITIZER_VERSION - 1,
+            summary: None,
+            url: Some(format!("https://publisher.example.com/read/{index}")),
+            author: None,
+            published_at: timestamp,
+            thumbnail: None,
+            is_read: false,
+            is_starred: false,
+            fetched_at: timestamp,
+        }
+    }
+
     #[tokio::test]
     async fn sync_account_rejects_delta_sync_providers() {
         let db = DbManager::new_in_memory().unwrap();
@@ -932,6 +955,76 @@ mod tests {
         assert!(!saved.content_sanitized.contains("onclick"));
         assert!(!saved.content_sanitized.contains("onerror"));
         assert!(!saved.content_sanitized.contains("ping="));
+    }
+
+    #[tokio::test]
+    async fn sync_account_repairs_saved_articles_in_bounded_batches_across_launches() {
+        let db = DbManager::new_in_memory().unwrap();
+        let account = test_account();
+        let feed = test_feed(&account.id);
+        let account_repo = SqliteAccountRepository::new(db.writer());
+        let feed_repo = SqliteFeedRepository::new(db.writer());
+        let article_repo = SqliteArticleRepository::new(db.writer());
+        let folder_repo = SqliteFolderRepository::new(db.writer());
+        let pending_repo = SqlitePendingMutationRepository::new(db.writer());
+        account_repo.save(&account).unwrap();
+        feed_repo.save(&feed).unwrap();
+
+        let stale_articles = (0..501)
+            .map(|index| stale_saved_article(&feed, index))
+            .collect::<Vec<_>>();
+        article_repo.upsert(&stale_articles).unwrap();
+
+        let provider = FailingPullProvider {
+            failure: ProviderFailureKind::Network,
+        };
+
+        let first_error = sync_account(
+            &account.id,
+            &provider,
+            &article_repo,
+            &feed_repo,
+            &folder_repo,
+            &pending_repo,
+        )
+        .await
+        .expect_err("provider pull fails after first repair batch");
+        assert_eq!(
+            first_error.to_string(),
+            "Network error: network unavailable"
+        );
+
+        let remaining_after_first_batch = article_repo
+            .find_by_sanitizer_version_below(sanitizer::SANITIZER_VERSION, 1_000)
+            .unwrap();
+        assert_eq!(
+            remaining_after_first_batch.len(),
+            1,
+            "repair should process at most one 500-row batch before provider work"
+        );
+
+        let second_error = sync_account(
+            &account.id,
+            &provider,
+            &article_repo,
+            &feed_repo,
+            &folder_repo,
+            &pending_repo,
+        )
+        .await
+        .expect_err("provider pull fails after second repair batch");
+        assert_eq!(
+            second_error.to_string(),
+            "Network error: network unavailable"
+        );
+
+        let remaining_after_second_batch = article_repo
+            .find_by_sanitizer_version_below(sanitizer::SANITIZER_VERSION, 1_000)
+            .unwrap();
+        assert!(
+            remaining_after_second_batch.is_empty(),
+            "next launch should continue repairing saved articles left by the previous batch"
+        );
     }
 
     #[tokio::test]

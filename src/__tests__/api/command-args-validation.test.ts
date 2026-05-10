@@ -356,6 +356,38 @@ describe("command args validation parity", () => {
     }
   });
 
+  it("keeps external opener URL schema aligned with the Tauri capability scope", () => {
+    const cases = [
+      { label: "http URL", input: "http://example.com/article", expected: "http://example.com/article", valid: true },
+      {
+        label: "https URL",
+        input: " https://example.com/article ",
+        expected: "https://example.com/article",
+        valid: true,
+      },
+      {
+        label: "mailto URL",
+        input: "mailto:?subject=First&body=https%3A%2F%2Fexample.com",
+        expected: "mailto:?subject=First&body=https%3A%2F%2Fexample.com",
+        valid: true,
+      },
+      { label: "file URL", input: "file:///tmp/article.html", valid: false },
+      { label: "custom scheme URL", input: "reader://article/1", valid: false },
+      { label: "encoded newline URL", input: "https://example.com/%0Aarticle", valid: false },
+      { label: "encoded carriage return URL", input: "https://example.com/%0darticle", valid: false },
+      { label: "userinfo URL", input: "https://user:secret@example.com/article", valid: false },
+    ] satisfies Array<{ label: string; input: string; expected?: string; valid: boolean }>;
+
+    for (const { input, expected, valid } of cases) {
+      if (valid) {
+        expect(openExternalUrlArgs.parse({ url: input }).url).toBe(expected);
+        continue;
+      }
+
+      expect(() => openExternalUrlArgs.parse({ url: input })).toThrow();
+    }
+  });
+
   it("aligns external URL uppercase scheme policy with browser/open commands", () => {
     expect(openExternalUrlArgs.parse({ url: " HTTPS://example.com/article " })).toEqual({
       url: "HTTPS://example.com/article",

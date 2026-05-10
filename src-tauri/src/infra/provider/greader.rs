@@ -963,6 +963,61 @@ mod tests {
     use super::*;
     use crate::commands::dto::AppError;
 
+    struct ProviderHttpResponseFixture<'a> {
+        status: usize,
+        headers: &'a [(&'a str, &'a str)],
+        body: &'static str,
+    }
+
+    impl ProviderHttpResponseFixture<'_> {
+        fn ok(body: &'static str) -> ProviderHttpResponseFixture<'static> {
+            ProviderHttpResponseFixture {
+                status: 200,
+                headers: &[],
+                body,
+            }
+        }
+
+        fn status(status: usize) -> ProviderHttpResponseFixture<'static> {
+            ProviderHttpResponseFixture {
+                status,
+                headers: &[],
+                body: "",
+            }
+        }
+
+        fn with_headers<'a>(
+            self,
+            headers: &'a [(&'a str, &'a str)],
+        ) -> ProviderHttpResponseFixture<'a> {
+            ProviderHttpResponseFixture {
+                status: self.status,
+                headers,
+                body: self.body,
+            }
+        }
+    }
+
+    trait ProviderMockResponseExt {
+        fn with_greader_response(self, response: ProviderHttpResponseFixture<'_>) -> Self;
+    }
+
+    impl ProviderMockResponseExt for mockito::Mock {
+        fn with_greader_response(self, response: ProviderHttpResponseFixture<'_>) -> Self {
+            apply_provider_response(self, response)
+        }
+    }
+
+    fn apply_provider_response(
+        mock: mockito::Mock,
+        response: ProviderHttpResponseFixture<'_>,
+    ) -> mockito::Mock {
+        response.headers.iter().fold(
+            mock.with_status(response.status).with_body(response.body),
+            |mock, (name, value)| mock.with_header(*name, value),
+        )
+    }
+
     #[test]
     fn for_freshrss_appends_greader_endpoint_to_base_url() {
         let provider = GReaderProvider::for_freshrss("https://freshrss.example.com");
@@ -1118,8 +1173,7 @@ mod tests {
         let mut server = mockito::Server::new_async().await;
         server
             .mock("POST", "/api/greader.php/accounts/ClientLogin")
-            .with_status(200)
-            .with_body("Auth=tok\n")
+            .with_greader_response(ProviderHttpResponseFixture::ok("Auth=tok\n"))
             .create_async()
             .await;
 
@@ -1130,8 +1184,7 @@ mod tests {
                 mockito::Matcher::UrlEncoded("all".into(), "true".into()),
             ]))
             .match_header("Authorization", "GoogleLogin auth=tok")
-            .with_status(200)
-            .with_body(
+            .with_greader_response(ProviderHttpResponseFixture::ok(
                 r#"{
                     "unreadcounts": [
                         { "id": "feed/https://example.com/rss", "count": 4 },
@@ -1140,7 +1193,7 @@ mod tests {
                         { "id": "feed/https://example.com/rss", "count": 7 }
                     ]
                 }"#,
-            )
+            ))
             .create_async()
             .await;
 
@@ -1171,8 +1224,7 @@ mod tests {
         let mut server = mockito::Server::new_async().await;
         server
             .mock("POST", "/api/greader.php/accounts/ClientLogin")
-            .with_status(200)
-            .with_body("Auth=tok\n")
+            .with_greader_response(ProviderHttpResponseFixture::ok("Auth=tok\n"))
             .create_async()
             .await;
 
@@ -1180,8 +1232,9 @@ mod tests {
             .mock("GET", "/api/greader.php/reader/api/0/subscription/list")
             .match_query(mockito::Matcher::UrlEncoded("output".into(), "json".into()))
             .match_header("Authorization", "GoogleLogin auth=tok")
-            .with_status(429)
-            .with_header("retry-after", "120")
+            .with_greader_response(
+                ProviderHttpResponseFixture::status(429).with_headers(&[("retry-after", "120")]),
+            )
             .create_async()
             .await;
 
@@ -1524,12 +1577,11 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_subscriptions_normalizes_metadata_url_schemes() {
+    async fn get_subscriptions_applies_metadata_url_policy_fixtures() {
         let mut server = mockito::Server::new_async().await;
         server
             .mock("POST", "/api/greader.php/accounts/ClientLogin")
-            .with_status(200)
-            .with_body("Auth=tok\n")
+            .with_greader_response(ProviderHttpResponseFixture::ok("Auth=tok\n"))
             .create_async()
             .await;
 
@@ -1539,14 +1591,13 @@ mod tests {
                 "/api/greader.php/reader/api/0/subscription/list?output=json",
             )
             .match_header("Authorization", "GoogleLogin auth=tok")
-            .with_status(200)
-            .with_body(
+            .with_greader_response(ProviderHttpResponseFixture::ok(
                 r#"{
                     "subscriptions": [
                         {
-                            "id": "feed/https://example.com/rss",
-                            "title": "Example Feed",
-                            "url": "https://example.com/rss",
+                            "id": "feed/https://example.com/javascript",
+                            "title": "JavaScript URL",
+                            "url": "https://example.com/javascript",
                             "htmlUrl": "javascript:alert(1)",
                             "iconUrl": "data:image/png;base64,abc"
                         },
@@ -1556,10 +1607,31 @@ mod tests {
                             "url": "https://example.com/ok",
                             "htmlUrl": " https://example.com/home#section ",
                             "iconUrl": "https://example.com/icon.png"
+                        },
+                        {
+                            "id": "feed/https://example.com/relative",
+                            "title": "Relative URL",
+                            "url": "https://example.com/relative",
+                            "htmlUrl": "//example.com/home",
+                            "iconUrl": "/icon.png"
+                        },
+                        {
+                            "id": "feed/https://example.com/userinfo",
+                            "title": "Credential URL",
+                            "url": "https://example.com/userinfo",
+                            "htmlUrl": "https://alice:secret@example.com/home",
+                            "iconUrl": "https://alice:secret@example.com/icon.png"
+                        },
+                        {
+                            "id": "feed/https://example.com/unicode",
+                            "title": "Unicode Host",
+                            "url": "https://example.com/unicode",
+                            "htmlUrl": "https://例え.テスト/home",
+                            "iconUrl": "https://例え.テスト/icon.png#private"
                         }
                     ]
                 }"#,
-            )
+            ))
             .create_async()
             .await;
 
@@ -1580,6 +1652,15 @@ mod tests {
         assert_eq!(
             subs[1].icon_url.as_deref(),
             Some("https://example.com/icon.png")
+        );
+        assert_eq!(subs[2].site_url, "");
+        assert_eq!(subs[2].icon_url, None);
+        assert_eq!(subs[3].site_url, "");
+        assert_eq!(subs[3].icon_url, None);
+        assert_eq!(subs[4].site_url, "https://xn--r8jz45g.xn--zckzah/home");
+        assert_eq!(
+            subs[4].icon_url.as_deref(),
+            Some("https://xn--r8jz45g.xn--zckzah/icon.png")
         );
         sub_mock.assert_async().await;
     }

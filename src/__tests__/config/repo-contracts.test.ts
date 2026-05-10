@@ -14,13 +14,24 @@ import appE2eSpec from "../../../e2e/app.spec.ts?raw";
 import runtimeErrorGuardHelper from "../../../e2e/helpers/runtime-error-guard.ts?raw";
 import { uiReferenceCanvasStoryIds } from "../../../e2e/storybook/storybook-index-payload";
 import packageJson from "../../../package.json";
+import { qualityBaselineRepoScanIgnoredPathPrefixes } from "../../../scripts/quality-baseline";
 import tauriConfig from "../../../src-tauri/tauri.conf.json";
 import tauriReleaseConfig from "../../../src-tauri/tauri.release.conf.json";
 
 const repoRoot = process.cwd();
-const defaultCapability: Array<{ identifier?: string; webviews?: string[]; permissions?: string[] }> = JSON.parse(
-  readFileSync(join(repoRoot, "src-tauri/capabilities/default.json"), "utf8"),
-);
+type CapabilityPermission =
+  | string
+  | {
+      identifier: string;
+      allow?: Array<{ url: string }>;
+      deny?: Array<{ url: string }>;
+    };
+const defaultCapability: Array<{ identifier?: string; webviews?: string[]; permissions?: CapabilityPermission[] }> =
+  JSON.parse(readFileSync(join(repoRoot, "src-tauri/capabilities/default.json"), "utf8"));
+
+function permissionIdentifier(permission: CapabilityPermission): string {
+  return typeof permission === "string" ? permission : permission.identifier;
+}
 
 function isStringRecord(value: unknown): value is Record<string, string> {
   return (
@@ -65,8 +76,23 @@ function readRepoFile(path: string) {
   return readFileSync(join(repoRoot, path), "utf8");
 }
 
+function readDirectoryFileStems(path: string) {
+  return readdirSync(join(repoRoot, path))
+    .filter((fileName) => fileName.endsWith(".ts"))
+    .map((fileName) => fileName.replace(/\.ts$/, ""))
+    .filter((fileName) => fileName !== "index")
+    .toSorted();
+}
+
 function toPosixPath(path: string) {
   return path.replaceAll("\\", "/");
+}
+
+function extractSchemaBarrelExportTargets(source: string) {
+  return [...source.matchAll(/from "\.\/([^"]+)";/g)]
+    .map((match) => match[1])
+    .filter(Boolean)
+    .toSorted();
 }
 
 function extractMiseTaskNames(source: string) {
@@ -886,6 +912,69 @@ describe("repository static contracts", () => {
     );
   });
 
+  it("keeps API schema files covered by barrel exports and schema tests", () => {
+    const schemaFileStems = readDirectoryFileStems("src/api/schemas");
+    const schemaBarrelExportTargets = extractSchemaBarrelExportTargets(readRepoFile("src/api/schemas/index.ts"));
+    const dedicatedSchemaTestStems = readDirectoryFileStems("src/__tests__/api/schemas").map((fileName) =>
+      fileName.replace(/\.test$/, ""),
+    );
+    const aggregateSchemaTestSource = readRepoFile("src/__tests__/api/schema-barrel-public-api.test.ts");
+
+    expect(schemaFileStems).toEqual([
+      "account",
+      "account-sync-status",
+      "article",
+      "browser-webview",
+      "commands",
+      "common",
+      "database-info",
+      "discovered-feed",
+      "error",
+      "feed",
+      "feed-article-summary",
+      "feed-integrity",
+      "folder",
+      "mute-keyword",
+      "platform-info",
+      "preferences",
+      "runtime-contracts",
+      "starred-articles",
+      "sync-progress",
+      "sync-result",
+      "tag",
+      "update-info",
+    ]);
+    expect(schemaBarrelExportTargets).toEqual(schemaFileStems);
+    expect(dedicatedSchemaTestStems).toEqual(["database-info", "feed-integrity", "platform-info", "sync-result"]);
+
+    for (const schemaFileStem of schemaFileStems) {
+      const hasDedicatedTest = dedicatedSchemaTestStems.includes(schemaFileStem);
+      const hasAggregateCoverage = aggregateSchemaTestSource.includes(`"${schemaFileStem}"`);
+
+      expect(hasDedicatedTest || hasAggregateCoverage, `${schemaFileStem} must have schema test coverage`).toBe(true);
+    }
+  });
+
+  it("keeps generated schema and target artifacts outside repo scan inventories", () => {
+    const gitignoreSource = readRepoFile(".gitignore");
+    const ripgrepIgnoreSource = readRepoFile(".ignore");
+    const ignoredArtifactPrefixes = [
+      "dist/",
+      "src-tauri/target/",
+      "tmp/",
+      "storybook-static/",
+      "test-results/",
+      "playwright-report/",
+      "src-tauri/gen/schemas/",
+    ] as const;
+
+    for (const ignoredArtifactPrefix of ignoredArtifactPrefixes) {
+      expect(gitignoreSource).toContain(ignoredArtifactPrefix);
+      expect(ripgrepIgnoreSource).toContain(ignoredArtifactPrefix);
+      expect(qualityBaselineRepoScanIgnoredPathPrefixes).toContain(ignoredArtifactPrefix);
+    }
+  });
+
   it("keeps app E2E Playwright and package dev scripts aligned with the Vite port", () => {
     const playwrightConfig = readRepoFile("playwright.config.ts");
     const viteConfig = readRepoFile("vite.config.ts");
@@ -1277,7 +1366,7 @@ describe("repository static contracts", () => {
   it("allows the embedded browser child webview to invoke its native commands", () => {
     const capabilities = defaultCapability as Array<{
       identifier?: string;
-      permissions?: string[];
+      permissions?: CapabilityPermission[];
       webviews?: string[];
     }>;
     const mainCapability = capabilities.find((capability) => capability.identifier === "main");
@@ -1293,6 +1382,11 @@ describe("repository static contracts", () => {
         "core:window:allow-set-size",
       ]),
     );
+    expect(mainCapability?.permissions?.map(permissionIdentifier)).not.toContain("opener:allow-default-urls");
+    expect(mainCapability?.permissions).toContainEqual({
+      identifier: "opener:allow-open-url",
+      allow: [{ url: "http://*" }, { url: "https://*" }, { url: "mailto:*" }],
+    });
     expect(tauriConfig.app.security.csp).toContain("connect-src ipc: http://ipc.localhost");
   });
 

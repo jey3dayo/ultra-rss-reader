@@ -1034,8 +1034,12 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
         version: u32,
         limit: usize,
     ) -> DomainResult<Vec<Article>> {
-        let sql =
-            format!("SELECT {SELECT_COLS} FROM articles WHERE sanitizer_version < ?1 LIMIT ?2");
+        let sql = format!(
+            "SELECT {SELECT_COLS} FROM articles
+             WHERE sanitizer_version < ?1
+             ORDER BY sanitizer_version ASC, fetched_at ASC, id ASC
+             LIMIT ?2"
+        );
         let mut stmt = self.conn.prepare(&sql)?;
         let articles = stmt
             .query_map(params![version, limit as i64], row_to_article)?
@@ -3281,6 +3285,52 @@ mod tests {
         assert!(
             html_tag_results.is_empty(),
             "sanitizer repair should refresh FTS from content_text, not sanitized HTML tags"
+        );
+    }
+
+    #[test]
+    fn find_by_sanitizer_version_below_uses_deterministic_policy_then_oldest_batches() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+        let base_time = DateTime::parse_from_rfc3339("2024-01-01T00:00:00Z")
+            .unwrap()
+            .with_timezone(&Utc);
+
+        let mut old_later = make_article(&feed_id, "Old later");
+        old_later.id = ArticleId("old-later".to_string());
+        old_later.sanitizer_version = 1;
+        old_later.fetched_at = base_time + chrono::Duration::seconds(20);
+        let mut older_same_time_b = make_article(&feed_id, "Older same time B");
+        older_same_time_b.id = ArticleId("older-same-time-b".to_string());
+        older_same_time_b.sanitizer_version = 0;
+        older_same_time_b.fetched_at = base_time;
+        let mut older_same_time_a = make_article(&feed_id, "Older same time A");
+        older_same_time_a.id = ArticleId("older-same-time-a".to_string());
+        older_same_time_a.sanitizer_version = 0;
+        older_same_time_a.fetched_at = base_time;
+        let mut current = make_article(&feed_id, "Current");
+        current.id = ArticleId("current".to_string());
+        current.sanitizer_version = 2;
+        current.fetched_at = base_time - chrono::Duration::seconds(20);
+
+        repo.upsert(&[
+            old_later.clone(),
+            older_same_time_b.clone(),
+            current,
+            older_same_time_a.clone(),
+        ])
+        .unwrap();
+
+        let batch = repo.find_by_sanitizer_version_below(2, 2).unwrap();
+
+        assert_eq!(
+            batch
+                .iter()
+                .map(|article| article.id.0.as_str())
+                .collect::<Vec<_>>(),
+            vec!["older-same-time-a", "older-same-time-b"]
         );
     }
 

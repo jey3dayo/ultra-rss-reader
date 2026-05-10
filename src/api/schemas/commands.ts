@@ -90,6 +90,10 @@ function hasHttpUrlCredentials(value: string): boolean {
   }
 }
 
+function hasEncodedNewline(value: string): boolean {
+  return /%(?:0a|0d)/iu.test(value);
+}
+
 export const httpCommandUrlSchema = z
   .string()
   .trim()
@@ -373,11 +377,17 @@ const externalUrlSchema = z
   .refine((url) => !url.includes("\n") && !url.includes("\r"), {
     message: "External URLs must not contain newlines",
   })
+  .refine((url) => !hasEncodedNewline(url), {
+    message: "External URLs must not contain encoded newlines",
+  })
   .refine((url) => !controlCharPattern.test(url), {
     message: "External URLs must not contain control characters",
   })
   .refine((url) => !whitespacePattern.test(url), {
     message: "External URLs must not contain whitespace",
+  })
+  .refine((url) => !hasHttpUrlCredentials(url), {
+    message: "External URLs must not contain credentials",
   });
 export const openExternalUrlArgs = z.object({ url: externalUrlSchema });
 

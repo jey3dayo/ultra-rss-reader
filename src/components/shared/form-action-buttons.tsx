@@ -40,7 +40,13 @@ export function FormActionButtons({
       <Button type={cancelType} variant="outline" onClick={onCancel} disabled={cancelDisabled} className="min-h-11">
         {cancelLabel}
       </Button>
-      <Button type={submitType} onClick={handleSubmit} disabled={submitBlocked} className="min-h-11">
+      <Button
+        type={submitType}
+        onClick={handleSubmit}
+        disabled={submitBlocked}
+        aria-busy={loading || undefined}
+        className="min-h-11"
+      >
         {loading && submittingLabel ? submittingLabel : submitLabel}
       </Button>
     </>

@@ -250,6 +250,34 @@ fn save_sync_state(db: &Mutex<DbManager>, state: &SyncState) -> Result<(), AppEr
     Ok(())
 }
 
+fn save_greader_sync_failure_state(
+    db: &Mutex<DbManager>,
+    account_id: &AccountId,
+    scope_key: &SyncStateScopeKey,
+    saved_state: Option<&SyncState>,
+    latest_timestamp_usec: Option<i64>,
+    error: &AppError,
+) -> Result<(), AppError> {
+    save_sync_state(
+        db,
+        &SyncState {
+            account_id: account_id.clone(),
+            scope_key: scope_key.as_string(),
+            timestamp_usec: latest_timestamp_usec
+                .or_else(|| saved_state.and_then(|state| state.timestamp_usec)),
+            continuation: None,
+            etag: None,
+            last_modified: None,
+            last_success_at: saved_state.and_then(|state| state.last_success_at.clone()),
+            last_error: Some(error.to_string()),
+            error_count: saved_state
+                .map(|state| state.error_count.saturating_add(1))
+                .unwrap_or(1),
+            next_retry_at: None,
+        },
+    )
+}
+
 fn should_pull_remote_state(
     db: &Mutex<DbManager>,
     account_id: &AccountId,
@@ -701,9 +729,21 @@ async fn sync_greader_account_entries(
     let mut seen_feed_ids = HashSet::new();
 
     loop {
-        let result = provider
-            .pull_entries(PullScope::All, cursor.clone())
-            .await?;
+        let result = match provider.pull_entries(PullScope::All, cursor.clone()).await {
+            Ok(result) => result,
+            Err(error) => {
+                let app_error = AppError::from(error);
+                save_greader_sync_failure_state(
+                    db,
+                    &account.id,
+                    &account_scope_key,
+                    saved_state.as_ref(),
+                    latest_timestamp_usec,
+                    &app_error,
+                )?;
+                return Err(app_error);
+            }
+        };
         delta_pages += 1;
         skipped_entries += result.skipped_entries;
         update_latest_timestamp_usec(&mut latest_timestamp_usec, result.next_cursor.as_ref());
@@ -1369,7 +1409,21 @@ async fn sync_greader_feed_entries(
         let scope = PullScope::Feed(FeedIdentifier::Remote {
             remote_id: remote_id.clone(),
         });
-        let result = provider.pull_entries(scope, cursor.clone()).await?;
+        let result = match provider.pull_entries(scope, cursor.clone()).await {
+            Ok(result) => result,
+            Err(error) => {
+                let app_error = AppError::from(error);
+                save_greader_sync_failure_state(
+                    db,
+                    &account.id,
+                    &scope_key,
+                    saved_state.as_ref(),
+                    latest_timestamp_usec,
+                    &app_error,
+                )?;
+                return Err(app_error);
+            }
+        };
         skipped_entries += result.skipped_entries;
 
         update_latest_timestamp_usec(&mut latest_timestamp_usec, result.next_cursor.as_ref());
@@ -2707,6 +2761,123 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn sync_greader_account_entries_records_failure_state_when_later_page_fails() {
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(200)
+            .with_body("Auth=tok\n")
+            .create_async()
+            .await;
+
+        let page1_mock = server
+            .mock(
+                "GET",
+                "/api/greader.php/reader/api/0/stream/contents/user%2F-%2Fstate%2Fcom.google%2Freading-list",
+            )
+            .match_query(Matcher::AllOf(vec![
+                Matcher::UrlEncoded("output".into(), "json".into()),
+                Matcher::UrlEncoded("n".into(), "200".into()),
+                Matcher::UrlEncoded("ot".into(), "1700000000000000".into()),
+            ]))
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_status(200)
+            .with_body(
+                r#"{
+                    "items": [
+                        {
+                            "id": "entry-1",
+                            "title": "Page 1",
+                            "alternate": [{"href": "https://example.com/1"}],
+                            "summary": {"content": "Summary 1"},
+                            "timestampUsec": "1700000100000000",
+                            "published": 1700000100,
+                            "origin": {
+                                "streamId": "feed/https://example.com/rss",
+                                "title": "Example"
+                            },
+                            "categories": []
+                        }
+                    ],
+                    "continuation": "page-2"
+                }"#,
+            )
+            .create_async()
+            .await;
+
+        let page2_mock = server
+            .mock(
+                "GET",
+                "/api/greader.php/reader/api/0/stream/contents/user%2F-%2Fstate%2Fcom.google%2Freading-list",
+            )
+            .match_query(Matcher::AllOf(vec![
+                Matcher::UrlEncoded("output".into(), "json".into()),
+                Matcher::UrlEncoded("n".into(), "200".into()),
+                Matcher::UrlEncoded("c".into(), "page-2".into()),
+                Matcher::UrlEncoded("ot".into(), "1700000100000000".into()),
+            ]))
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_status(500)
+            .with_body("boom")
+            .create_async()
+            .await;
+
+        let db = test_db();
+        let (account, feed) = insert_account_and_feed(&db, &server.url());
+        let saved_state = SyncState {
+            account_id: account.id.clone(),
+            scope_key: SyncStateScopeKey::greader_account_all().as_string(),
+            timestamp_usec: Some(1_700_000_000_000_000),
+            continuation: None,
+            etag: Some("etag-old".to_string()),
+            last_modified: Some("Wed, 01 Jan 2025 00:00:00 GMT".to_string()),
+            last_success_at: Some("2025-01-01T00:00:00Z".to_string()),
+            last_error: Some("old error".to_string()),
+            error_count: 1,
+            next_retry_at: Some("2025-01-01T01:00:00Z".to_string()),
+        };
+        {
+            let db_guard = db.lock().unwrap();
+            let sync_state_repo = SqliteSyncStateRepository::new(db_guard.writer());
+            sync_state_repo.save(&saved_state).unwrap();
+        }
+
+        let provider = authenticated_provider(&server.url()).await;
+        let feeds_by_remote_id = HashMap::from([(FEED_REMOTE_ID.to_string(), feed.clone())]);
+        let error = sync_greader_account_entries(&db, &provider, &account, &feeds_by_remote_id)
+            .await
+            .unwrap_err();
+
+        page1_mock.assert_async().await;
+        page2_mock.assert_async().await;
+        assert!(error.to_string().contains("500"));
+
+        let db_guard = db.lock().unwrap();
+        let article_repo = SqliteArticleRepository::new(db_guard.reader());
+        let sync_state_repo = SqliteSyncStateRepository::new(db_guard.reader());
+        let articles = article_repo
+            .find_by_feed(&feed.id, &Pagination::default())
+            .unwrap();
+        let state = sync_state_repo
+            .get(&account.id, &SyncStateScopeKey::greader_account_all())
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(articles.len(), 1);
+        assert_eq!(state.timestamp_usec, Some(1_700_000_100_000_000));
+        assert_eq!(state.continuation, None);
+        assert_eq!(state.etag, None);
+        assert_eq!(state.last_modified, None);
+        assert_eq!(state.last_success_at, saved_state.last_success_at);
+        assert!(state
+            .last_error
+            .as_deref()
+            .is_some_and(|message| message.contains("500")));
+        assert_eq!(state.error_count, 2);
+        assert_eq!(state.next_retry_at, None);
+    }
+
+    #[tokio::test]
     async fn sync_greader_account_turns_account_level_skips_into_warnings() {
         let mut server = mockito::Server::new_async().await;
         server
@@ -3249,7 +3420,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn sync_greader_feed_entries_keeps_previous_state_when_later_page_fails() {
+    async fn sync_greader_feed_entries_records_failure_state_when_later_page_fails() {
         let mut server = mockito::Server::new_async().await;
         server
             .mock("POST", "/api/greader.php/accounts/ClientLogin")
@@ -3341,14 +3512,17 @@ mod tests {
             .unwrap()
             .unwrap();
 
-        assert_eq!(state.timestamp_usec, saved_state.timestamp_usec);
-        assert_eq!(state.continuation, saved_state.continuation);
-        assert_eq!(state.etag, saved_state.etag);
-        assert_eq!(state.last_modified, saved_state.last_modified);
+        assert_eq!(state.timestamp_usec, Some(1_700_000_100_000_000));
+        assert_eq!(state.continuation, None);
+        assert_eq!(state.etag, None);
+        assert_eq!(state.last_modified, None);
         assert_eq!(state.last_success_at, saved_state.last_success_at);
-        assert_eq!(state.last_error, saved_state.last_error);
-        assert_eq!(state.error_count, saved_state.error_count);
-        assert_eq!(state.next_retry_at, saved_state.next_retry_at);
+        assert!(state
+            .last_error
+            .as_deref()
+            .is_some_and(|message| message.contains("500")));
+        assert_eq!(state.error_count, 2);
+        assert_eq!(state.next_retry_at, None);
     }
 
     #[tokio::test]

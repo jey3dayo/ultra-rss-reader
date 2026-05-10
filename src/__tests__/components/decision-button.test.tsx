@@ -41,12 +41,15 @@ describe("DecisionButton", () => {
 
   it("keeps disabled state on all intents", () => {
     render(
-      <DecisionButton intent="delete" disabled>
+      <DecisionButton intent="delete" disabled aria-busy="true">
         Delete disabled
       </DecisionButton>,
     );
 
-    expect(screen.getByRole("button", { name: "Delete disabled" })).toBeDisabled();
+    const button = screen.getByRole("button", { name: "Delete disabled" });
+
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute("aria-busy", "true");
   });
 
   it("defaults to a non-submit button inside forms", async () => {

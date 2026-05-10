@@ -43,8 +43,16 @@ type TauriConfig = {
 type TauriCapability = {
   identifier: string;
   webviews?: string[];
-  permissions?: string[];
+  permissions?: CapabilityPermission[];
 };
+
+type CapabilityPermission =
+  | string
+  | {
+      identifier: string;
+      allow?: Array<{ url: string }>;
+      deny?: Array<{ url: string }>;
+    };
 
 type TauriCapabilityFile =
   | TauriCapability
@@ -229,6 +237,9 @@ const capabilityByIdentifier = (source: TauriCapabilityFile, identifier: string)
   }
   return capability;
 };
+
+const permissionIdentifier = (permission: CapabilityPermission): string =>
+  typeof permission === "string" ? permission : permission.identifier;
 
 const extractRustStringConstants = (source: string, suffix: string): Map<string, string> => {
   const constants = new Map<string, string>();
@@ -719,7 +730,10 @@ describe("release repository contract", () => {
     );
     expect(
       normalizeCapabilities(defaultCapability).flatMap(
-        (capability) => capability.permissions?.filter((permission) => permission.startsWith("mcp-bridge:")) ?? [],
+        (capability) =>
+          capability.permissions
+            ?.map(permissionIdentifier)
+            .filter((permission) => permission.startsWith("mcp-bridge:")) ?? [],
       ),
     ).toEqual([]);
     expect(releaseSourceDevOnlyImports).toEqual([]);
@@ -797,17 +811,29 @@ describe("release repository contract", () => {
   it("keeps browser webview capability on a minimal command surface", () => {
     const mainCapability = capabilityByIdentifier(defaultCapability, "main");
     const browserCapability = capabilityByIdentifier(defaultCapability, "browser-webview");
+    const browserPermissionIds = browserCapability.permissions?.map(permissionIdentifier) ?? [];
 
     expect(mainCapability.webviews).toEqual(["main"]);
     expect(browserCapability.webviews).toEqual(["browser-webview"]);
     expect(browserCapability.permissions).toEqual(["core:event:default"]);
     expect(browserCapability.permissions).not.toContain("core:default");
-    expect(browserCapability.permissions?.some((permission) => permission.startsWith("opener:"))).toBe(false);
-    expect(browserCapability.permissions?.some((permission) => permission.startsWith("clipboard-manager:"))).toBe(
-      false,
+    expect(browserPermissionIds.some((permission) => permission.startsWith("opener:"))).toBe(false);
+    expect(browserPermissionIds.some((permission) => permission.startsWith("clipboard-manager:"))).toBe(false);
+    expect(browserPermissionIds.some((permission) => permission.startsWith("core:window:"))).toBe(false);
+    expect(browserPermissionIds.some((permission) => permission.startsWith("mcp-bridge:"))).toBe(false);
+  });
+
+  it("keeps external opener capability scope aligned with the frontend URL schema", () => {
+    const mainCapability = capabilityByIdentifier(defaultCapability, "main");
+    const openerPermission = mainCapability.permissions?.find(
+      (permission) => permissionIdentifier(permission) === "opener:allow-open-url",
     );
-    expect(browserCapability.permissions?.some((permission) => permission.startsWith("core:window:"))).toBe(false);
-    expect(browserCapability.permissions?.some((permission) => permission.startsWith("mcp-bridge:"))).toBe(false);
+
+    expect(mainCapability.permissions?.map(permissionIdentifier)).not.toContain("opener:allow-default-urls");
+    expect(openerPermission).toEqual({
+      identifier: "opener:allow-open-url",
+      allow: [{ url: "http://*" }, { url: "https://*" }, { url: "mailto:*" }],
+    });
   });
 
   it("keeps native checked menu preferences compatible with frontend preference migration", () => {

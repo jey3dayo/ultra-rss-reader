@@ -484,6 +484,62 @@ mod tests {
     }
 
     #[test]
+    fn provider_metadata_url_policy_fixture_matches_frontend_url_policy_cases() {
+        struct MetadataUrlPolicyFixture {
+            name: &'static str,
+            raw_url: &'static str,
+            expected_metadata_url: Option<&'static str>,
+        }
+
+        let fixtures = [
+            MetadataUrlPolicyFixture {
+                name: "http",
+                raw_url: "http://example.com/feed.xml",
+                expected_metadata_url: Some("http://example.com/feed.xml"),
+            },
+            MetadataUrlPolicyFixture {
+                name: "https with tracking query",
+                raw_url: " https://example.com/feed.xml?utm_source=reader#section ",
+                expected_metadata_url: Some("https://example.com/feed.xml?utm_source=reader"),
+            },
+            MetadataUrlPolicyFixture {
+                name: "protocol relative",
+                raw_url: "//example.com/feed.xml",
+                expected_metadata_url: None,
+            },
+            MetadataUrlPolicyFixture {
+                name: "relative path",
+                raw_url: "/feed.xml",
+                expected_metadata_url: None,
+            },
+            MetadataUrlPolicyFixture {
+                name: "userinfo",
+                raw_url: "https://alice:secret@example.com/feed.xml",
+                expected_metadata_url: None,
+            },
+            MetadataUrlPolicyFixture {
+                name: "unicode host",
+                raw_url: "https://例え.テスト/feed.xml",
+                expected_metadata_url: Some("https://xn--r8jz45g.xn--zckzah/feed.xml"),
+            },
+            MetadataUrlPolicyFixture {
+                name: "icon url",
+                raw_url: "https://cdn.example.com/icon.png#private",
+                expected_metadata_url: Some("https://cdn.example.com/icon.png"),
+            },
+        ];
+
+        for fixture in fixtures {
+            assert_eq!(
+                normalize_provider_metadata_url(fixture.raw_url).as_deref(),
+                fixture.expected_metadata_url,
+                "{}",
+                fixture.name
+            );
+        }
+    }
+
+    #[test]
     fn trusted_backend_article_url_strips_credentials_and_fragment() {
         assert_eq!(
             normalize_trusted_backend_article_url("https://alice:secret@example.com/article#token"),

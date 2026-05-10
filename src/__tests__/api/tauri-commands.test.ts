@@ -1881,7 +1881,10 @@ describe("safeInvoke args validation", () => {
     "mailto:?subject=Hello world",
     "mailto:?subject=Hello\tworld",
     "mailto:?subject=Hello\nworld",
-  ])("rejects unsafe mailto external URLs before invoking Tauri: %j", async (url) => {
+    "mailto:?subject=Hello%0Aworld",
+    "https://example.com/%0darticle",
+    "https://user:secret@example.com/article",
+  ])("rejects unsafe external URLs before invoking Tauri: %j", async (url) => {
     const consoleError = suppressConsoleError();
     let invoked = false;
     setupTauriMocks((cmd) => {
@@ -1944,6 +1947,24 @@ describe("safeInvoke args validation", () => {
     });
 
     const result = await openExternalUrl("file:///tmp/article.html");
+
+    expect(Result.isFailure(result)).toBe(true);
+    expect(Result.unwrapError(result).message).toContain("validation failed");
+    expect(invoked).toBe(false);
+    expectTauriCommandValidationError(consoleError, "plugin:opener|open_url", "args");
+  });
+
+  it("rejects custom scheme external URLs before invoking Tauri", async () => {
+    const consoleError = suppressConsoleError();
+    let invoked = false;
+    setupTauriMocks((cmd) => {
+      if (cmd === "plugin:opener|open_url") {
+        invoked = true;
+      }
+      return null;
+    });
+
+    const result = await openExternalUrl("reader://article/1");
 
     expect(Result.isFailure(result)).toBe(true);
     expect(Result.unwrapError(result).message).toContain("validation failed");

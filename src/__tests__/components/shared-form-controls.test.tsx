@@ -50,6 +50,7 @@ describe("shared form controls", () => {
 
     expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Saving" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Saving" })).toHaveAttribute("aria-busy", "true");
   });
 
   it("uses the submitting label only while loading and a submitting label is provided", () => {
@@ -93,6 +94,7 @@ describe("shared form controls", () => {
     const submitButton = screen.getByRole("button", { name: "Saving" });
 
     expect(submitButton).toBeDisabled();
+    expect(submitButton).toHaveAttribute("aria-busy", "true");
 
     await user.click(submitButton);
 

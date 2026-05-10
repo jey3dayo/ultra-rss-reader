@@ -13,7 +13,6 @@ type TauriConfig = {
 
 const expectedMainWebviewPermissions = [
   "core:default",
-  "opener:allow-default-urls",
   "opener:allow-open-url",
   "clipboard-manager:allow-write-text",
   "core:window:allow-center",
@@ -26,12 +25,33 @@ const expectedMainWebviewPermissions = [
   "core:window:allow-unmaximize",
 ] as const;
 
+type CapabilityPermission =
+  | string
+  | {
+      identifier: string;
+      allow?: Array<{ url: string }>;
+      deny?: Array<{ url: string }>;
+    };
+
 const TauriCapabilityContractSchema = z.object({
   identifier: z.string().optional(),
-  permissions: z.array(z.string()),
+  permissions: z.array(
+    z.union([
+      z.string(),
+      z.object({
+        identifier: z.string(),
+        allow: z.array(z.object({ url: z.string() })).optional(),
+        deny: z.array(z.object({ url: z.string() })).optional(),
+      }),
+    ]),
+  ),
 });
 type TauriCapability = z.output<typeof TauriCapabilityContractSchema>;
 const TauriCapabilityFileSchema = z.union([TauriCapabilityContractSchema, z.array(TauriCapabilityContractSchema)]);
+
+function permissionIdentifier(permission: CapabilityPermission): string {
+  return typeof permission === "string" ? permission : permission.identifier;
+}
 
 function readDefaultCapability(identifier = "main"): TauriCapability {
   const currentFile = fileURLToPath(import.meta.url);
@@ -59,17 +79,26 @@ describe("tauri window capability contract", () => {
   it("keeps the main webview permission matrix minimal and feature-backed", () => {
     const capability = readDefaultCapability();
 
-    expect(capability.permissions).toEqual(expectedMainWebviewPermissions);
-    expect(capability.permissions).not.toContain("opener:default");
-    expect(capability.permissions).not.toContain("opener:allow-open-path");
-    expect(capability.permissions).not.toContain("opener:allow-reveal-item-in-dir");
-    expect(capability.permissions).not.toContain("updater:default");
+    const permissionIds = capability.permissions.map(permissionIdentifier);
+
+    expect(permissionIds).toEqual(expectedMainWebviewPermissions);
+    expect(permissionIds).not.toContain("opener:default");
+    expect(permissionIds).not.toContain("opener:allow-default-urls");
+    expect(permissionIds).not.toContain("opener:allow-open-path");
+    expect(permissionIds).not.toContain("opener:allow-reveal-item-in-dir");
+    expect(permissionIds).not.toContain("updater:default");
+    expect(capability.permissions).toContainEqual({
+      identifier: "opener:allow-open-url",
+      allow: [{ url: "http://*" }, { url: "https://*" }, { url: "mailto:*" }],
+    });
   });
 
   it("does not ship debug-only MCP bridge permissions in the default release capability", () => {
     const capability = readDefaultCapability();
 
-    expect(capability.permissions.filter((permission) => permission.startsWith("mcp-bridge:"))).toEqual([]);
+    expect(
+      capability.permissions.map(permissionIdentifier).filter((permission) => permission.startsWith("mcp-bridge:")),
+    ).toEqual([]);
   });
 
   it("keeps browser-mode fallback independent from the global Tauri runtime object", () => {
