@@ -109,6 +109,14 @@ function readRepoFile(path: string) {
   return readFileSync(join(repoRoot, path), "utf8");
 }
 
+function githubExpression(expression: string) {
+  return `${"$"}{{ ${expression} }}`;
+}
+
+function matrixArtifactName(prefix: string, suffix: string) {
+  return `name: ${prefix}-${githubExpression("matrix.os")}-${suffix}`;
+}
+
 function extractCssCustomProperty(source: string, selector: string, property: string) {
   const selectorMatch = source.match(new RegExp(`${selector.replaceAll(".", "\\.")}\\s*\\{(?<body>[\\s\\S]*?)\\}`));
   const body = selectorMatch?.groups?.body ?? "";
@@ -1152,18 +1160,20 @@ describe("repository static contracts", () => {
     const pnpmStorePathExpression = "$" + "{{ steps.pnpm-store.outputs.path }}";
     const pnpmStoreKeyExpression =
       "$" +
-      "{{ runner.os }}-pnpm-store-node-" +
+      "{{ runner.os }}-pnpm-store-" +
+      "$" +
+      "{{ hashFiles('pnpm-lock.yaml') }}-node-" +
       "$" +
       "{{ steps.toolchain-cache.outputs.node }}-pnpm-" +
       "$" +
       "{{ steps.toolchain-cache.outputs.pnpm }}-mise-" +
       "$" +
-      "{{ steps.toolchain-cache.outputs.mise }}-" +
-      "$" +
-      "{{ hashFiles('pnpm-lock.yaml') }}";
+      "{{ steps.toolchain-cache.outputs.mise }}";
     const pnpmStoreVersionedRestoreKeyExpression =
       "$" +
-      "{{ runner.os }}-pnpm-store-node-" +
+      "{{ runner.os }}-pnpm-store-" +
+      "$" +
+      "{{ hashFiles('pnpm-lock.yaml') }}-node-" +
       "$" +
       "{{ steps.toolchain-cache.outputs.node }}-pnpm-" +
       "$" +
@@ -1195,7 +1205,9 @@ describe("repository static contracts", () => {
 
   it("keeps CI verifying package manager and engine contracts through mise and the CI image", () => {
     const ciWorkflow = readRepoFile(".github/workflows/ci.yml");
-    const toolchainSection = extractWorkflowCheckJobSections(ciWorkflow).find(({ jobId }) => jobId === "toolchain")?.section;
+    const toolchainSection = extractWorkflowCheckJobSections(ciWorkflow).find(
+      ({ jobId }) => jobId === "toolchain",
+    )?.section;
     const miseSource = readRepoFile("mise.toml");
     const packageJsonSource = readRepoFile("package.json");
 
@@ -1213,22 +1225,20 @@ describe("repository static contracts", () => {
     const ciWorkflow = readRepoFile(".github/workflows/ci.yml");
 
     expect(ciWorkflow).toContain("Quality Gate Result Inputs");
-    expect(ciWorkflow).toContain(
-      "failure because every required CI matrix must complete successfully before merge.",
-    );
+    expect(ciWorkflow).toContain("failure because every required CI matrix must complete successfully before merge.");
     expect(ciWorkflow).toContain('[ "$result" = "skipped" ] || [ "$result" = "cancelled" ]');
   });
 
   it("keeps CI failure artifacts classified by frontend, Rust, and native smoke families", () => {
     const ciWorkflow = readRepoFile(".github/workflows/ci.yml");
 
-    expect(ciWorkflow).toContain("name: frontend-${{ matrix.os }}-lint-log");
-    expect(ciWorkflow).toContain("name: frontend-${{ matrix.os }}-test-log");
-    expect(ciWorkflow).toContain("name: frontend-${{ matrix.os }}-build-log");
-    expect(ciWorkflow).toContain("name: rust-${{ matrix.os }}-lint-log");
-    expect(ciWorkflow).toContain("name: rust-${{ matrix.os }}-test-log");
-    expect(ciWorkflow).toContain("name: native-smoke-${{ matrix.os }}-debug-log");
-    expect(ciWorkflow).toContain("name: native-smoke-${{ matrix.os }}-debug-build-artifacts");
+    expect(ciWorkflow).toContain(matrixArtifactName("frontend", "lint-log"));
+    expect(ciWorkflow).toContain(matrixArtifactName("frontend", "test-log"));
+    expect(ciWorkflow).toContain(matrixArtifactName("frontend", "build-log"));
+    expect(ciWorkflow).toContain(matrixArtifactName("rust", "lint-log"));
+    expect(ciWorkflow).toContain(matrixArtifactName("rust", "test-log"));
+    expect(ciWorkflow).toContain(matrixArtifactName("native-smoke", "debug-log"));
+    expect(ciWorkflow).toContain(matrixArtifactName("native-smoke", "debug-build-artifacts"));
     expect(ciWorkflow.match(/retention-days: 7/g)?.length ?? 0).toBeGreaterThanOrEqual(3);
     expect(ciWorkflow.match(/retention-days: 14/g)?.length ?? 0).toBeGreaterThanOrEqual(2);
     expect(ciWorkflow.match(/retention-days: 21/g)?.length ?? 0).toBeGreaterThanOrEqual(2);
