@@ -2,6 +2,7 @@ use std::collections::HashSet;
 use std::net::{IpAddr, ToSocketAddrs};
 
 use crate::domain::error::{DomainError, DomainResult};
+use crate::infra::provider::http_defaults;
 
 const PRIVATE_URL_VALIDATION_MESSAGE: &str =
     "Requests to private/loopback addresses are not allowed";
@@ -25,15 +26,13 @@ pub async fn discover_feeds(url: &str) -> DomainResult<Vec<DiscoveredFeed>> {
         .map_err(|_| DomainError::Validation(UNSUPPORTED_URL_VALIDATION_MESSAGE.to_string()))?;
     validate_discovery_request_url(&initial_url)?;
 
-    let client = reqwest::Client::builder()
+    let client = http_defaults::http_client_builder()
         .redirect(discovery_redirect_policy())
-        .timeout(std::time::Duration::from_secs(15))
         .build()
         .map_err(|e| DomainError::Network(e.to_string()))?;
 
     let response = client
         .get(initial_url)
-        .header("User-Agent", "UltraRSSReader/0.1")
         .send()
         .await
         .map_err(map_feed_discovery_request_error)?;
