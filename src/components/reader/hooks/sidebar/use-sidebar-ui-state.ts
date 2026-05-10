@@ -22,6 +22,10 @@ export function useSidebarUiState(): SidebarUiStateResult {
   const selectTagFromCurrentContext = useUiStore((s) => s.selectTagFromCurrentContext);
   const setViewMode = useUiStore((s) => s.setViewMode);
   const expandedFolderIds = useUiStore((s) => s.expandedFolderIds);
+  const isFeedsSectionOpen = useUiStore((s) => s.isFeedsSectionOpen);
+  const setIsFeedsSectionOpen = useUiStore((s) => s.setIsFeedsSectionOpen);
+  const isTagsSectionOpen = useUiStore((s) => s.isTagsSectionOpen);
+  const setIsTagsSectionOpen = useUiStore((s) => s.setIsTagsSectionOpen);
   const setExpandedFolders = useUiStore((s) => s.setExpandedFolders);
   const toggleFolder = useUiStore((s) => s.toggleFolder);
   const openSettings = useUiStore((s) => s.openSettings);
@@ -79,6 +83,10 @@ export function useSidebarUiState(): SidebarUiStateResult {
     selectTagFromCurrentContext,
     setViewMode,
     expandedFolderIds,
+    isFeedsSectionOpen,
+    setIsFeedsSectionOpen,
+    isTagsSectionOpen,
+    setIsTagsSectionOpen,
     setExpandedFolders,
     toggleFolder,
     openSettings,

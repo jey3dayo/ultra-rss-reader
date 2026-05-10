@@ -1417,6 +1417,9 @@ describe("repository static contracts", () => {
     expect(packageScripts["quality:react-doctor:diff"]).toBe("node ./scripts/quality-baseline.ts react-doctor:diff");
     expect(packageScripts["quality:react-doctor:full"]).toBe("node ./scripts/quality-baseline.ts react-doctor:full");
     expect(packageScripts["quality:knip"]).toBe("node ./scripts/quality-baseline.ts knip");
+    expect(packageScripts["quality:lockfile-duplicate-majors"]).toBe(
+      "node ./scripts/quality-baseline.ts lockfile-duplicate-majors",
+    );
     expect(extractMiseTaskCommand(miseSource, "quality:react-doctor:diff")).toBe("pnpm run quality:react-doctor:diff");
     expect(extractMiseTaskCommand(miseSource, "quality:react-doctor:full")).toBe("pnpm run quality:react-doctor:full");
     expect(extractMiseTaskCommand(miseSource, "quality:knip")).toBe("pnpm run quality:knip");

@@ -1,4 +1,4 @@
-import type { Dispatch, RefObject, SetStateAction } from "react";
+import type { RefObject } from "react";
 import type { DevIntent } from "@/dev/intent";
 import type { PreferenceWritableKey, SortSubscriptions, StartupFolderExpansionPreference } from "@/schemas/preferences";
 import type { UiStoreState } from "@/stores/ui-store";
@@ -36,6 +36,10 @@ export type SidebarUiStateResult = Pick<
   | "selectTagFromCurrentContext"
   | "setViewMode"
   | "expandedFolderIds"
+  | "isFeedsSectionOpen"
+  | "setIsFeedsSectionOpen"
+  | "isTagsSectionOpen"
+  | "setIsTagsSectionOpen"
   | "setExpandedFolders"
   | "toggleFolder"
   | "openSettings"
@@ -71,10 +75,6 @@ export type SidebarRuntimeResult = SidebarAccountSwitcherResult &
   SidebarUiStateResult &
   SidebarSourcesResult &
   SidebarSyncResult & {
-    isFeedsSectionOpen: boolean;
-    setIsFeedsSectionOpen: Dispatch<SetStateAction<boolean>>;
-    isTagsSectionOpen: boolean;
-    setIsTagsSectionOpen: Dispatch<SetStateAction<boolean>>;
     feedViewportRef: RefObject<HTMLDivElement | null>;
     activeDevIntent: DevIntent;
   };

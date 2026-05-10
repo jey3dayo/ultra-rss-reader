@@ -37,6 +37,8 @@ function getReaderStateSnapshot(state: UiStoreReaderState) {
     viewMode: state.viewMode,
     contentMode: state.contentMode,
     browserUrl: state.browserUrl,
+    isFeedsSectionOpen: state.isFeedsSectionOpen,
+    isTagsSectionOpen: state.isTagsSectionOpen,
   };
 }
 
@@ -136,6 +138,8 @@ describe("useUiStore", () => {
         | "articleNavigationDirection"
         | "searchQuery"
         | "expandedFolderIds"
+        | "isFeedsSectionOpen"
+        | "isTagsSectionOpen"
         | "recentlyReadIds"
         | "retainedArticleIds"
       >
@@ -167,6 +171,8 @@ describe("useUiStore", () => {
         | "setSearchQuery"
         | "toggleFolder"
         | "setExpandedFolders"
+        | "setIsFeedsSectionOpen"
+        | "setIsTagsSectionOpen"
         | "addRecentlyRead"
         | "removeRecentlyRead"
         | "clearRecentlyRead"

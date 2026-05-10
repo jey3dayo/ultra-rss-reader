@@ -315,6 +315,50 @@ describe("tauri-commands with mockIPC", () => {
       const value = Result.unwrap(await listArticles("nonexistent"));
       expect(value).toEqual([]);
     });
+
+    it("keeps positional pagination and unread overloads explicit", async () => {
+      const listArticleArgs: unknown[] = [];
+      setupTauriMocks((cmd, args) => {
+        if (cmd === "list_articles") {
+          listArticleArgs.push(args);
+          return sampleFeed1Articles;
+        }
+        return undefined;
+      });
+
+      Result.unwrap(await listArticles("feed-1", 20, 50));
+      Result.unwrap(await listArticles("feed-1", true, 20, 50));
+
+      expect(listArticleArgs).toEqual([
+        { feedId: "feed-1", offset: 20, limit: 50 },
+        { feedId: "feed-1", unreadOnly: true, offset: 20, limit: 50 },
+      ]);
+    });
+
+    it("accepts object params so offset and limit are not positional-only", async () => {
+      const listArticleArgs: unknown[] = [];
+      setupTauriMocks((cmd, args) => {
+        if (cmd === "list_articles") {
+          listArticleArgs.push(args);
+          return sampleFeed1Articles;
+        }
+        return undefined;
+      });
+
+      const value = Result.unwrap(await listArticles({ feedId: "feed-1", unreadOnly: true, offset: 5, limit: 25 }));
+
+      expect(value).toEqual(sampleFeed1Articles);
+      expect(listArticleArgs).toEqual([{ feedId: "feed-1", unreadOnly: true, offset: 5, limit: 25 }]);
+    });
+
+    it("rejects invalid negative object-param offsets before invoking list_articles", async () => {
+      const consoleError = suppressConsoleError();
+      const result = await listArticles({ feedId: "feed-1", offset: -1, limit: 25 });
+
+      expect(Result.isFailure(result)).toBe(true);
+      expect(Result.unwrapError(result).message).toContain("validation failed");
+      expectTauriCommandValidationError(consoleError, "list_articles", "args");
+    });
   });
 
   describe("listAccountArticles", () => {
@@ -322,6 +366,24 @@ describe("tauri-commands with mockIPC", () => {
       const value = Result.unwrap(await listAccountArticles("acc-1"));
       expect(value).toEqual(sampleAcc1Articles);
       expect(value).toHaveLength(2);
+    });
+
+    it("accepts object params for account-wide unread pagination", async () => {
+      const listAccountArticleArgs: unknown[] = [];
+      setupTauriMocks((cmd, args) => {
+        if (cmd === "list_account_articles") {
+          listAccountArticleArgs.push(args);
+          return sampleAcc1Articles;
+        }
+        return undefined;
+      });
+
+      const value = Result.unwrap(
+        await listAccountArticles({ accountId: "acc-1", unreadOnly: true, offset: 10, limit: 30 }),
+      );
+
+      expect(value).toEqual(sampleAcc1Articles);
+      expect(listAccountArticleArgs).toEqual([{ accountId: "acc-1", unreadOnly: true, offset: 10, limit: 30 }]);
     });
   });
 

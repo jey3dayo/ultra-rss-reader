@@ -291,20 +291,7 @@ fn is_xml_10_char(ch: char) -> bool {
 mod tests {
     use super::*;
 
-    const SAMPLE_OPML: &str = r#"<?xml version="1.0" encoding="UTF-8"?>
-<opml version="2.0">
-  <head><title>My Feeds</title></head>
-  <body>
-    <outline text="Tech" title="Tech">
-      <outline text="Ars Technica" title="Ars Technica" type="rss" xmlUrl="https://feeds.arstechnica.com/arstechnica/index" htmlUrl="https://arstechnica.com"/>
-      <outline text="Hacker News" title="Hacker News" type="rss" xmlUrl="https://news.ycombinator.com/rss" htmlUrl="https://news.ycombinator.com"/>
-    </outline>
-    <outline text="News" title="News">
-      <outline text="NHK" type="rss" xmlUrl="https://www.nhk.or.jp/rss/news/cat0.xml"/>
-    </outline>
-    <outline text="Standalone Feed" type="rss" xmlUrl="https://example.com/feed.xml"/>
-  </body>
-</opml>"#;
+    const SAMPLE_OPML: &str = include_str!("../../../tests/fixtures/opml/sample-folders.opml");
 
     #[test]
     fn parses_feeds_with_folders() {
@@ -950,13 +937,9 @@ mod tests {
         ];
 
         let xml = generate_opml("My Feeds", &feeds).unwrap();
+        let expected = include_str!("../../../tests/fixtures/opml/generated-basic.opml");
 
-        // Basic structure checks
-        assert!(xml.contains(r#"<?xml version="1.0" encoding="UTF-8"?>"#));
-        assert!(xml.contains(r#"<opml version="2.0">"#));
-        assert!(xml.contains("<title>My Feeds</title>"));
-        assert!(xml.contains(r#"xmlUrl="https://feeds.arstechnica.com/arstechnica/index""#));
-        assert!(xml.contains(r#"xmlUrl="https://example.com/feed.xml""#));
+        assert_eq!(xml, expected.trim_end());
     }
 
     #[test]

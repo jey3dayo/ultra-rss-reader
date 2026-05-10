@@ -179,6 +179,31 @@ describe("ArticleContentView", () => {
     expect(container.querySelector("[onclick]")).toBeNull();
   });
 
+  it("keeps tables and code blocks inside the reader content layout", () => {
+    const { container } = render(
+      <ArticleContentView
+        contentHtml={fromSanitizedArticleHtmlDto({
+          content_sanitized:
+            "<p>Metrics</p><table><thead><tr><th>Key</th><th>Value</th></tr></thead><tbody><tr><td>very_long_metric_name_without_breaks</td><td>1234567890</td></tr></tbody></table><pre><code>const veryLongIdentifierWithoutBreaks = 'abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz';</code></pre><p><code>inline_identifier_without_breaks</code></p>",
+        })}
+      />,
+    );
+
+    const prose = container.querySelector(".prose");
+    expect(prose).not.toBeNull();
+    expect(prose).toHaveClass("min-w-0");
+    expect(prose).toHaveClass("overflow-x-hidden");
+    expect(prose).toHaveClass("prose-table:block");
+    expect(prose).toHaveClass("prose-table:max-w-full");
+    expect(prose).toHaveClass("prose-table:overflow-x-auto");
+    expect(prose).toHaveClass("prose-pre:max-w-full");
+    expect(prose).toHaveClass("prose-pre:overflow-x-auto");
+    expect(prose).toHaveClass("prose-code:break-words");
+    expect(screen.getByText("very_long_metric_name_without_breaks")).toBeInTheDocument();
+    expect(screen.getByText("const veryLongIdentifierWithoutBreaks", { exact: false })).toBeInTheDocument();
+    expect(screen.getByText("inline_identifier_without_breaks")).toBeInTheDocument();
+  });
+
   it("keeps reader remote images separate from Web Preview frame behavior", () => {
     const { container } = render(
       <ArticleContentView

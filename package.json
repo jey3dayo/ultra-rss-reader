@@ -21,6 +21,7 @@
     "quality:react-doctor:diff": "node ./scripts/quality-baseline.ts react-doctor:diff",
     "quality:react-doctor:full": "node ./scripts/quality-baseline.ts react-doctor:full",
     "quality:knip": "node ./scripts/quality-baseline.ts knip",
+    "quality:lockfile-duplicate-majors": "node ./scripts/quality-baseline.ts lockfile-duplicate-majors",
     "report:release-debug-flags": "node ./scripts/release-debug-feature-flags-report.ts",
     "report:similarity": "node ./scripts/similarity-report.ts",
     "test": "pnpm exec vitest run",

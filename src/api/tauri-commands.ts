@@ -151,6 +151,18 @@ export type {
 // --- safeInvoke infrastructure ---
 
 type InvokeArgsRecord = Record<string, unknown>;
+type ListArticlesParams = {
+  feedId: string;
+  unreadOnly?: boolean;
+  offset?: number;
+  limit?: number;
+};
+type ListAccountArticlesParams = {
+  accountId: string;
+  unreadOnly?: boolean;
+  offset?: number;
+  limit?: number;
+};
 
 type InvokeArgsSchema = z.ZodType<InvokeArgsRecord>;
 
@@ -332,22 +344,43 @@ export const listFolders = (accountId: string) =>
 export const listFeeds = (accountId: string) =>
   safeInvoke("list_feeds", { response: FeedDtoListSchema, args: listFeedsArgs }, { accountId });
 
-export const listArticles = (
-  feedId: string,
+function resolveListArticlesArgs(
+  feedIdOrParams: string | ListArticlesParams,
   unreadOnlyOrOffset?: boolean | number,
   offsetOrLimit?: number,
   limit?: number,
-) => {
+): ListArticlesParams {
+  if (typeof feedIdOrParams !== "string") {
+    return feedIdOrParams;
+  }
   const unreadOnly = typeof unreadOnlyOrOffset === "boolean" ? unreadOnlyOrOffset : undefined;
   const offset = typeof unreadOnlyOrOffset === "number" ? unreadOnlyOrOffset : offsetOrLimit;
   const resolvedLimit = typeof unreadOnlyOrOffset === "number" ? offsetOrLimit : limit;
+  return { feedId: feedIdOrParams, unreadOnly, offset, limit: resolvedLimit };
+}
 
-  return safeInvoke(
-    "list_articles",
-    { response: ArticleDtoListSchema, args: listArticlesArgs },
-    { feedId, unreadOnly, offset, limit: resolvedLimit },
-  );
-};
+export function listArticles(
+  feedId: string,
+  unreadOnly?: boolean,
+  offset?: number,
+  limit?: number,
+): Result.ResultAsync<ArticleDto[], AppError>;
+export function listArticles(
+  feedId: string,
+  offset?: number,
+  limit?: number,
+): Result.ResultAsync<ArticleDto[], AppError>;
+export function listArticles(params: ListArticlesParams): Result.ResultAsync<ArticleDto[], AppError>;
+export function listArticles(
+  feedIdOrParams: string | ListArticlesParams,
+  unreadOnlyOrOffset?: boolean | number,
+  offsetOrLimit?: number,
+  limit?: number,
+) {
+  const args = resolveListArticlesArgs(feedIdOrParams, unreadOnlyOrOffset, offsetOrLimit, limit);
+
+  return safeInvoke("list_articles", { response: ArticleDtoListSchema, args: listArticlesArgs }, args);
+}
 
 export const listFeedStarredArticles = (feedId: string, offset?: number, limit?: number) =>
   safeInvoke(
@@ -356,22 +389,43 @@ export const listFeedStarredArticles = (feedId: string, offset?: number, limit?:
     { feedId, starredOnly: true, offset, limit },
   );
 
-export const listAccountArticles = (
-  accountId: string,
+function resolveListAccountArticlesArgs(
+  accountIdOrParams: string | ListAccountArticlesParams,
   unreadOnlyOrOffset?: boolean | number,
   offsetOrLimit?: number,
   limit?: number,
-) => {
+): ListAccountArticlesParams {
+  if (typeof accountIdOrParams !== "string") {
+    return accountIdOrParams;
+  }
   const unreadOnly = typeof unreadOnlyOrOffset === "boolean" ? unreadOnlyOrOffset : undefined;
   const offset = typeof unreadOnlyOrOffset === "number" ? unreadOnlyOrOffset : offsetOrLimit;
   const resolvedLimit = typeof unreadOnlyOrOffset === "number" ? offsetOrLimit : limit;
+  return { accountId: accountIdOrParams, unreadOnly, offset, limit: resolvedLimit };
+}
 
-  return safeInvoke(
-    "list_account_articles",
-    { response: ArticleDtoListSchema, args: listAccountArticlesArgs },
-    { accountId, unreadOnly, offset, limit: resolvedLimit },
-  );
-};
+export function listAccountArticles(
+  accountId: string,
+  unreadOnly?: boolean,
+  offset?: number,
+  limit?: number,
+): Result.ResultAsync<ArticleDto[], AppError>;
+export function listAccountArticles(
+  accountId: string,
+  offset?: number,
+  limit?: number,
+): Result.ResultAsync<ArticleDto[], AppError>;
+export function listAccountArticles(params: ListAccountArticlesParams): Result.ResultAsync<ArticleDto[], AppError>;
+export function listAccountArticles(
+  accountIdOrParams: string | ListAccountArticlesParams,
+  unreadOnlyOrOffset?: boolean | number,
+  offsetOrLimit?: number,
+  limit?: number,
+) {
+  const args = resolveListAccountArticlesArgs(accountIdOrParams, unreadOnlyOrOffset, offsetOrLimit, limit);
+
+  return safeInvoke("list_account_articles", { response: ArticleDtoListSchema, args: listAccountArticlesArgs }, args);
+}
 
 export const listFeedArticleSummaries = (accountId: string) =>
   safeInvoke(

@@ -31,3 +31,12 @@ export const TextOnly: Story = {
     thumbnailUrl: null,
   },
 };
+
+export const OverflowContent: Story = {
+  args: {
+    thumbnailUrl: null,
+    contentHtml: fromSanitizedArticleHtml(
+      "<p>Layout stress fixture.</p><table><thead><tr><th>Column</th><th>Long value</th></tr></thead><tbody><tr><td>Reader contract</td><td>very_long_table_cell_value_without_breaks_abcdefghijklmnopqrstuvwxyz_abcdefghijklmnopqrstuvwxyz</td></tr></tbody></table><pre><code>const veryLongIdentifierWithoutBreaks = 'abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz';</code></pre><p><code>inline_identifier_without_breaks_abcdefghijklmnopqrstuvwxyz</code></p>",
+    ),
+  },
+};

@@ -1,6 +1,7 @@
 import type { Decorator, Meta, StoryObj } from "@storybook/react-vite";
 import { type ReactNode, useEffect, useState } from "react";
 import { fn } from "storybook/test";
+import { denseNarrowViewportParameters } from "@/components/storybook/viewport-fixtures";
 import { useUiStore } from "@/stores/ui-store";
 import { ArticleToolbarView } from "./article-toolbar-view";
 
@@ -176,6 +177,64 @@ export const MobileDisabledActions: Story = {
   parameters: {
     viewport: { defaultViewport: "mobile1" },
   },
+};
+
+export const MobileJapaneseLongLabels: Story = {
+  args: {
+    layoutMode: "mobile",
+    articleState: {
+      ...meta.args.articleState,
+      isRead: false,
+      isStarred: true,
+      isBrowserOpen: false,
+    },
+    labels: {
+      closeView: "記事ビューを閉じる",
+      toggleRead: "この記事を既読または未読に切り替える",
+      toggleReadShort: "未読にする",
+      toggleStar: "この記事にスターを付けるまたは外す",
+      toggleStarShort: "スター付き",
+      previewToggleOff: "Webプレビューを開く",
+      previewToggleOffShort: "プレビューを開く",
+      previewToggleOn: "Webプレビューを閉じる",
+      previewToggleOnShort: "閉じる",
+      copyLink: "記事のリンクをコピーする",
+      openInExternalBrowser: "外部ブラウザーで開く",
+      moreActions: "その他の記事操作",
+    },
+  },
+  decorators: [mobileDecorator],
+  parameters: denseNarrowViewportParameters,
+};
+
+export const MobileA11yDisabledState: Story = {
+  args: {
+    layoutMode: "mobile",
+    showCloseButton: false,
+    articleState: {
+      ...meta.args.articleState,
+      hasArticle: false,
+      isRead: true,
+      isStarred: false,
+      isBrowserOpen: false,
+    },
+    actionOptions: {
+      ...meta.args.actionOptions,
+      canToggleRead: false,
+      canToggleStar: false,
+      canCopyLink: false,
+      canOpenInBrowser: false,
+      canOpenInExternalBrowser: false,
+    },
+    labels: {
+      ...meta.args.labels,
+      toggleReadShort: "既読状態",
+      toggleStarShort: "スター",
+      previewToggleOffShort: "プレビュー",
+    },
+  },
+  decorators: [mobileDecorator],
+  parameters: denseNarrowViewportParameters,
 };
 
 export const PreviewOpen: Story = {

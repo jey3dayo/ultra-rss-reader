@@ -161,6 +161,8 @@ type UiState = {
   pendingBrowserCloseActionQueue: PendingBrowserCloseAction[];
   articleNavigationDirection: ArticleNavigationDirection | null;
   expandedFolderIds: Set<string>;
+  isFeedsSectionOpen: boolean;
+  isTagsSectionOpen: boolean;
   settingsOpen: boolean;
   settingsCategory: SettingsCategory;
   settingsAccountId: string | null;
@@ -220,6 +222,8 @@ type UiActions = {
   setSearchQuery: (query: string) => void;
   toggleFolder: (folderId: string) => void;
   setExpandedFolders: (folderIds: Iterable<string>) => void;
+  setIsFeedsSectionOpen: (open: boolean | ((current: boolean) => boolean)) => void;
+  setIsTagsSectionOpen: (open: boolean | ((current: boolean) => boolean)) => void;
   openSettings: (tab?: SettingsCategory) => void;
   closeSettings: () => void;
   openAddFeedDialog: () => void;
@@ -296,6 +300,8 @@ export type UiStoreReaderState = Pick<
   | "articleNavigationDirection"
   | "searchQuery"
   | "expandedFolderIds"
+  | "isFeedsSectionOpen"
+  | "isTagsSectionOpen"
   | "recentlyReadIds"
   | "retainedArticleIds"
 >;
@@ -315,6 +321,8 @@ export type UiStoreReaderSelectionState = Pick<
   | "articleNavigationDirection"
   | "searchQuery"
   | "expandedFolderIds"
+  | "isFeedsSectionOpen"
+  | "isTagsSectionOpen"
   | "recentlyReadIds"
   | "retainedArticleIds"
 >;
@@ -395,6 +403,8 @@ export type UiStoreReaderActions = Pick<
   | "setSearchQuery"
   | "toggleFolder"
   | "setExpandedFolders"
+  | "setIsFeedsSectionOpen"
+  | "setIsTagsSectionOpen"
   | "openSubscriptionsIndex"
   | "closeSubscriptionsWorkspace"
   | "addRecentlyRead"
@@ -430,6 +440,8 @@ export type UiStoreReaderSelectionActions = Pick<
   | "setSearchQuery"
   | "toggleFolder"
   | "setExpandedFolders"
+  | "setIsFeedsSectionOpen"
+  | "setIsTagsSectionOpen"
   | "addRecentlyRead"
   | "removeRecentlyRead"
   | "clearRecentlyRead"
@@ -509,6 +521,8 @@ const initialState: UiState = {
   pendingBrowserCloseActionQueue: [],
   articleNavigationDirection: null,
   expandedFolderIds: new Set(),
+  isFeedsSectionOpen: true,
+  isTagsSectionOpen: true,
   settingsOpen: false,
   settingsCategory: "general",
   settingsAccountId: null,
@@ -871,6 +885,14 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       return { expandedFolderIds: next };
     }),
   setExpandedFolders: (folderIds) => set({ expandedFolderIds: new Set(folderIds) }),
+  setIsFeedsSectionOpen: (open) =>
+    set((state) => ({
+      isFeedsSectionOpen: typeof open === "function" ? open(state.isFeedsSectionOpen) : open,
+    })),
+  setIsTagsSectionOpen: (open) =>
+    set((state) => ({
+      isTagsSectionOpen: typeof open === "function" ? open(state.isTagsSectionOpen) : open,
+    })),
   openSettings: (tab?: SettingsCategory) =>
     set((s) => ({
       settingsOpen: true,

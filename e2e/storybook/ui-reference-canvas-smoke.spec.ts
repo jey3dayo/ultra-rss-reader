@@ -16,6 +16,7 @@ import {
 const storybookIndexUrl = "/index.json";
 const storybookSmokeUrls = storybookSmokeStoryIds.map(getStorybookIframeUrl);
 const expectedStorybookSmokeStoryIdSet = new Set<string>(storybookSmokeStoryIds);
+const storybookRenderedSurfaceSelector = "#storybook-root > *, [role='dialog']";
 const denseNarrowSmokeViewport = {
   width: 390,
   height: 844,
@@ -52,7 +53,7 @@ async function openUiReferenceCanvas(page: Page, url: string) {
     await expect(async () => {
       runtimeErrors.clear();
       await page.goto(url, { waitUntil: "domcontentloaded", timeout: 15000 });
-      await expect(page.locator("#storybook-root")).not.toBeEmpty({
+      await expect(page.locator(storybookRenderedSurfaceSelector).first()).toBeVisible({
         timeout: 15000,
       });
     }).toPass({ timeout: 120000, intervals: [1000, 2000, 5000] });

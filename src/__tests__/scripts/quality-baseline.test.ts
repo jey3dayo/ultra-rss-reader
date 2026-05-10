@@ -1,6 +1,7 @@
 import type { SpawnSyncReturns } from "node:child_process";
 import { describe, expect, it } from "vitest";
 import {
+  buildLockfileDuplicateMajorReport,
   createProcessDiagnostic,
   createReportDiagnostic,
   isQualityBaselineRepoScanIgnoredPath,
@@ -217,6 +218,51 @@ describe("quality-baseline", () => {
     ).toEqual({
       includedPaths: ["src/api/schemas.ts", "src-tauri/capabilities/default.json"],
       ignoredPaths: ["src-tauri/gen/schemas/capabilities.json", "src-tauri/target/debug/app"],
+    });
+  });
+
+  it("classifies duplicate lockfile majors by direct dependency and allowlist status", () => {
+    const lockfile = [
+      "lockfileVersion: '9.0'",
+      "",
+      "packages:",
+      "  '@vitest/expect@3.2.4':",
+      "    resolution: {integrity: sha512-old}",
+      "  '@vitest/expect@4.1.5':",
+      "    resolution: {integrity: sha512-new}",
+      "  'direct-lib@1.0.0':",
+      "    resolution: {integrity: sha512-one}",
+      "  'direct-lib@2.0.0':",
+      "    resolution: {integrity: sha512-two}",
+    ].join("\n");
+
+    expect(
+      buildLockfileDuplicateMajorReport(lockfile, {
+        dependencies: { "direct-lib": "^2.0.0" },
+      }),
+    ).toEqual({
+      duplicatePackageCount: 2,
+      duplicateMajorCount: 4,
+      directDuplicatePackageCount: 1,
+      unreviewedDuplicatePackageCount: 1,
+      entries: [
+        {
+          name: "@vitest/expect",
+          majors: [3, 4],
+          versions: ["3.2.4", "4.1.5"],
+          dependencyType: "transitive",
+          allowed: true,
+          reason: expect.any(String),
+        },
+        {
+          name: "direct-lib",
+          majors: [1, 2],
+          versions: ["1.0.0", "2.0.0"],
+          dependencyType: "direct",
+          allowed: false,
+          reason: undefined,
+        },
+      ],
     });
   });
 });
