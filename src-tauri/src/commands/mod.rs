@@ -32,6 +32,105 @@ const DATABASE_POISONED_ERROR: &str =
 pub(crate) const DATABASE_MAINTENANCE_BUSY_ERROR: &str =
     "Database maintenance is unavailable while syncing. Try again after sync completes.";
 
+#[cfg(test)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum CommandDbLockPolicy {
+    TryLockDb,
+    BlockingLock,
+    NoDatabaseLock,
+}
+
+#[cfg(test)]
+pub(crate) fn command_db_lock_policy(command_name: &str) -> Option<CommandDbLockPolicy> {
+    let policy = match command_name {
+        "get_database_info" | "vacuum_database" => CommandDbLockPolicy::TryLockDb,
+        "open_in_browser"
+        | "check_browser_embed_support"
+        | "create_or_update_browser_webview"
+        | "set_browser_webview_bounds"
+        | "focus_browser_webview"
+        | "go_back_browser_webview"
+        | "go_forward_browser_webview"
+        | "reload_browser_webview"
+        | "close_browser_webview"
+        | "copy_to_clipboard"
+        | "add_to_reading_list"
+        | "get_platform_info"
+        | "get_dev_runtime_options"
+        | "get_platform_permission_denied_recovery"
+        | "check_for_update"
+        | "download_and_install_update"
+        | "restart_app"
+        | "open_log_dir" => CommandDbLockPolicy::NoDatabaseLock,
+        "list_accounts"
+        | "add_account"
+        | "update_account_sync"
+        | "update_account_credentials"
+        | "rename_account"
+        | "test_account_connection"
+        | "delete_account"
+        | "list_folders"
+        | "create_folder"
+        | "list_feeds"
+        | "add_local_feed"
+        | "delete_feed"
+        | "rename_feed"
+        | "update_feed_folder"
+        | "update_feed_display_settings"
+        | "discover_feeds"
+        | "trigger_sync"
+        | "trigger_startup_sync"
+        | "get_account_sync_status"
+        | "trigger_sync_account"
+        | "trigger_sync_feed"
+        | "trigger_automatic_sync"
+        | "list_articles"
+        | "list_account_articles"
+        | "list_feed_article_summaries"
+        | "list_folder_articles"
+        | "list_starred_articles"
+        | "list_recent_articles"
+        | "count_account_unread_articles"
+        | "count_account_starred_articles"
+        | "mark_account_read"
+        | "mark_account_starred_read"
+        | "count_old_unread_articles"
+        | "mark_old_unread_read"
+        | "unstar_account_articles"
+        | "get_feed_integrity_report"
+        | "cleanup_feed_integrity_orphans"
+        | "mark_article_read"
+        | "record_article_view"
+        | "clear_article_view_history"
+        | "mark_articles_read"
+        | "mark_feed_read"
+        | "mark_folder_read"
+        | "toggle_article_star"
+        | "import_opml"
+        | "export_opml"
+        | "search_articles"
+        | "list_mute_keywords"
+        | "create_mute_keyword"
+        | "update_mute_keyword"
+        | "delete_mute_keyword"
+        | "set_mute_auto_mark_read"
+        | "get_preferences"
+        | "set_preference"
+        | "list_tags"
+        | "create_tag"
+        | "rename_tag"
+        | "delete_tag"
+        | "create_tag_and_assign_article"
+        | "tag_article"
+        | "untag_article"
+        | "get_article_tags"
+        | "list_articles_by_tag"
+        | "get_tag_article_counts" => CommandDbLockPolicy::BlockingLock,
+        _ => return None,
+    };
+    Some(policy)
+}
+
 #[derive(Debug)]
 pub(crate) struct DatabaseMaintenanceGuard<'a>(&'a AtomicBool);
 
@@ -92,7 +191,10 @@ pub struct AppState {
 mod tests {
     use std::sync::Mutex;
 
-    use super::{try_lock_db, DATABASE_BUSY_ERROR, DATABASE_POISONED_ERROR};
+    use super::{
+        command_db_lock_policy, try_lock_db, CommandDbLockPolicy, DATABASE_BUSY_ERROR,
+        DATABASE_POISONED_ERROR,
+    };
     use crate::commands::dto::AppError;
     use crate::infra::db::connection::DbManager;
 
@@ -136,5 +238,31 @@ mod tests {
             }
             other => panic!("expected user-visible error, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn command_db_lock_policy_classifies_command_categories() {
+        let cases = [
+            ("get_database_info", CommandDbLockPolicy::TryLockDb),
+            ("vacuum_database", CommandDbLockPolicy::TryLockDb),
+            ("list_accounts", CommandDbLockPolicy::BlockingLock),
+            ("delete_feed", CommandDbLockPolicy::BlockingLock),
+            ("trigger_sync", CommandDbLockPolicy::BlockingLock),
+            ("open_in_browser", CommandDbLockPolicy::NoDatabaseLock),
+            ("check_for_update", CommandDbLockPolicy::NoDatabaseLock),
+        ];
+
+        for (command_name, expected_policy) in cases {
+            assert_eq!(
+                command_db_lock_policy(command_name),
+                Some(expected_policy),
+                "{command_name} should keep the documented DB lock policy"
+            );
+        }
+    }
+
+    #[test]
+    fn command_db_lock_policy_rejects_unclassified_commands() {
+        assert_eq!(command_db_lock_policy("unknown_command"), None);
     }
 }
