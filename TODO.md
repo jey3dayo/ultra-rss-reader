@@ -3121,41 +3121,6 @@
   - observer mock の cleanup が test ごとに違うと、後続 test の resize/layout 判定が flake する
   - setup helper、afterEach cleanup、observer callback ordering、fake timers、StrictMode double invoke の確認を追加する
 
-- [ ] P1 OS keyring orphan credential cleanup を account delete / rename / reset と同期する
-  - 対象: `src-tauri/src/infra/keyring_store.rs`, account commands, settings data reset
-  - account 削除や rename 後に古い credential entry が残ると、復元・debug・reset の時に ghost account として再浮上する
-  - delete success、delete keyring failure、rename rollback、reset partial failure、orphan inventory の contract を追加する
-
-- [ ] P2 feed item GUID collision policy を account/feed boundary で固定する
-  - 対象: article repository、local provider normalizer、sync flow
-  - 異なる feed で同じ GUID、空 GUID、URL 変更があると article merge や unread/star が壊れる
-  - same GUID different feed、empty GUID fallback、URL-only identity、title-only feed、feed URL changed の contract を追加する
-
-- [ ] P2 article canonical URL と feed entry link の normalization policy を決める
-  - 対象: provider normalizer、article schemas、external opener
-  - tracking query、fragment、relative link、HTML entity decode の扱いが未固定だと dedupe と opener がずれる
-  - query retention、fragment retention、relative link base、HTML entity decode、invalid URL fallback を固定する
-
-- [ ] P2 sync scheduler system sleep / clock jump recovery を contract 化する
-  - 対象: `src-tauri/src/service/sync_scheduler.rs`, startup/sync-on-wake
-  - macOS sleep や手動時刻変更後に next_sync/backoff が過去・未来へ飛ぶと sync が止まるか連打される
-  - sleep resume、clock backward、clock forward、backoff expired during sleep、manual sync after resume を固定する
-
-- [ ] P2 app local time / UTC persistence の boundary を DB fields ごとに棚卸しする
-  - 対象: domain models、SQLite repositories、date helpers
-  - DB persisted date が UTC なのか local string なのか混在すると sort、sync、review stale day が環境依存になる
-  - `created_at`、`updated_at`、`published_at`、`last_sync_at`、`next_retry_at` の timezone contract を書く
-
-- [ ] P2 clipboard copy payload の size cap / permission denied / newline policy を固定する
-  - 対象: `src/lib/runtime/clipboard.ts`, `copy_to_clipboard` command, share actions
-  - 巨大 text、改行混在、権限拒否、runtime unavailable を generic failure にすると復旧と redaction が難しい
-  - size cap、CRLF normalization、permission denied、runtime unavailable、redacted diagnostics を追加する
-
-- [ ] P2 Node / pnpm / mise toolchain drift を local gate で検出する
-  - 対象: `mise.toml`, `package.json`, CI workflow, setup docs
-  - Node 24 前提なのに Node 25 で warning のまま進むと、local green と CI green がずれる
-  - Node version、pnpm version、Corepack behavior、CI cache key、developer warning の check を追加する
-
 - [ ] P2 React StrictMode double invoke で native command wrapper が二重実行されないか棚卸しする
   - 対象: hooks that invoke Tauri commands in effects、query/mutation wrappers
   - effect mount 時の command 実行が StrictMode で二重になり、sync/check/update/open が重複する可能性がある
@@ -3186,16 +3151,6 @@
   - dmg を download した後の quarantine、Gatekeeper、notarization 表示を見ないと配布後に初回起動で止まる
   - downloaded dmg、first launch、Gatekeeper dialog、codesign detail、notarization status の check を追加する
 
-- [ ] P3 dependency license inventory を pnpm/Cargo 両方で生成可能にする
-  - 対象: `package.json`, `src-tauri/Cargo.toml`, release docs
-  - JS/Rust の片方だけ license 棚卸しすると、release review や store 配布で抜ける
-  - pnpm licenses、cargo licenses、unknown license、dual license、generated report location の task に分ける
-
-- [ ] P3 markdownlint 対象 file count / ignore pattern drift を repo contract にする
-  - 対象: markdownlint config、`TODO.md`, docs, generated dirs
-  - generated markdown や temporary docs が lint 対象に混ざると、TODO 追加だけで unrelated lint が落ちる
-  - target file count、ignore dirs、generated docs、skill docs、root markdown の check を追加する
-
 - [ ] P3 dev scenario fixture freshness を UI route / command schema と同期する
   - 対象: `src/dev/scenarios`, dev mocks, command schemas
   - scenario は便利だが、command schema や route rename から遅れるとデバッグ時だけ壊れる
@@ -3210,21 +3165,6 @@
   - 対象: `src/main.tsx`, `src/lib/runtime/diagnostics.ts`, app shell error boundary
   - render 外の promise rejection や event handler throw が console だけに流れると、blank UI や secret 混入 log を検出できない
   - unhandled rejection、window error、throwing reason、redaction、toast/reload fallback の contract を追加する
-
-- [ ] P2 article/feed/folder/tag/account name の Unicode bidi / confusable display policy を決める
-  - 対象: domain validation、settings forms、reader/sidebar display
-  - RTL override、zero-width、confusable 文字が入ると feed name や action target が spoof され、delete/rename 確認で誤認しやすい
-  - bidi control、zero-width joiner、NFKC confusable、trim display、confirmation label の policy を追加する
-
-- [ ] P2 background sync battery / CPU guard を repeated failure と many-account で固定する
-  - 対象: `src-tauri/src/service/sync_scheduler.rs`, sync settings, diagnostics
-  - 多数 account が失敗し続けると backoff があっても wake/check/log が増えて desktop app の常駐負荷になる
-  - many accounts、continuous auth failure、network offline、scheduler sleep、log rate limit の contract を追加する
-
-- [ ] P2 offline/online signal と native network error classification の関係を決める
-  - 対象: frontend runtime boundary、sync trigger UI、domain network error
-  - `navigator.onLine` と Rust HTTP error が食い違うと、manual sync button や toast が誤った復旧案を出す
-  - online false、online true but DNS failure、captive portal、manual retry、sync scheduler の期待値を固定する
 
 - [ ] P2 CSP dev/prod drift を script/style/connect/font で release gate 化する
   - 対象: Tauri config、Vite dev config、release smoke
@@ -3265,11 +3205,6 @@
   - 対象: settings forms、update restart guard、navigation guard
   - form ごとに dirty 判定が違うと、restart/update/account switch 時に保存前変更を落とす
   - account credentials、tag edit、shortcut edit、sync preferences、modal close/navigation の matrix を作る
-
-- [ ] P3 dependency update smoke を React Query / Zustand / Tauri / Vite の breaking behavior ごとに分類する
-  - 対象: `package.json`, `pnpm-lock.yaml`, `src-tauri/Cargo.lock`, quality baseline
-  - lockfile 更新で runtime behavior が変わる dependency と pure dev dependency を同じ扱いにすると review が粗くなる
-  - query caching、store equality、Tauri API、Vite dev server、test runner の smoke task に分ける
 
 - [ ] P3 generated fixture / snapshot size budget を repo contract にする
   - 対象: tests fixtures、storybook snapshots、report outputs
@@ -3391,11 +3326,6 @@
   - `https://user:pass@example.com/feed` のような URL が DB/OPML/history に保存されると、redaction 以前に漏洩面が増える
   - feed add、OPML import、article link、browser history、debug dump、export の reject/redact policy を固定する
 
-- [ ] P1 app log / diagnostics の maximum total size と emergency truncation を固定する
-  - 対象: log plugin setup、runtime diagnostics、support dump
-  - 連続 failure で log/diagnostics が肥大化すると disk pressure と support copy failure が起きる
-  - total log cap、per-event cap、diagnostics ring buffer、truncation marker、copy failure fallback の contract を追加する
-
 - [ ] P2 OS accessibility settings の high contrast / forced colors / increased contrast を design token と同期する
   - 対象: `DESIGN.md`, CSS tokens, app shell, settings/reader views
   - dark/light と reduced-motion だけだと、OS high contrast や forced colors で操作要素の境界が消える
@@ -3430,11 +3360,6 @@
   - 対象: FTS search SQL、reader search UI、locale copy
   - FTS syntax error、phrase query、prefix query、snippet escaping の方針が未固定だと search UX が壊れる
   - quote query、special operators、prefix query、empty result, snippet escaped HTML、ranking tie の contract を追加する
-
-- [ ] P2 storage quota exhausted 時の cascading failure を preferences/sidebar/history/debug で検証する
-  - 対象: localStorage-backed helpers、preferences store、runtime diagnostics
-  - quota exceeded が一箇所で起きた後に warning storage も書けず、同じ failure が連鎖する可能性がある
-  - preferences save、sidebar expanded folders、command history、diagnostics warning-once、recovery UI の contract を追加する
 
 - [ ] P2 frontend schema parse failure の fallback data が UI action を enable しない contract を作る
   - 対象: `src/schemas`, Tauri command wrappers, view models
@@ -3566,11 +3491,6 @@
   - 対象: `TODO.md`, future task files
   - 1 ファイルに全 risk が積み上がると、reader/settings/release/provider の担当ごとの実行単位が見えにくい
   - reader、settings、provider、release、quality、security/privacy の shard policy と移行手順を決める
-
-- [ ] P2 account recovery flow を credential reset / server URL fix / cache clear の三系統に分ける
-  - 対象: account detail settings、sync error UI、diagnostics
-  - すべての account failure を「認証情報更新」に寄せると、server URL typo や stale cache の復旧が遠回りになる
-  - credential reset、server URL edit、test connection、sync_state clear、pending mutation quarantine の flow を整理する
 
 - [ ] P2 provider capability downgrade を account settings / pending mutation queue と同期する
   - 対象: provider traits、pending mutation repository、settings account detail
