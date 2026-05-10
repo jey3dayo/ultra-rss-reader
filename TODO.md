@@ -1326,16 +1326,6 @@
   - account/feed/folder/tag/clipboard/preference の上限値が TS と Rust に分散しており、片側だけ変えると frontend では通るが backend で落ちる入力が増える
   - `ACCOUNT_NAME_MAX_CHARS`、`FEED_TITLE_MAX_CHARS`、`FOLDER_NAME_MAX_CHARS`、`TAG_NAME_MAX_CHARS`、clipboard max、preference bytes の parity test を追加する
 
-- [ ] P2 `stripHtmlTags` regex fallback を malformed entity / huge HTML で性能・安全性検証する
-  - 対象: `src/lib/content/html.ts`, `src/__tests__/lib/html.test.ts`
-  - DOMParser unavailable 時の regex fallback は tests/runtime fallback 用だが、巨大 HTML や未閉じタグで過剰に遅くなると diagnostics や preview 生成で詰まる
-  - huge text、unterminated comment、unterminated script、malformed numeric entity、invalid code point、nested tags の performance-oriented test を追加する
-
-- [ ] P2 duplicate leading label strip が media/link-only article を削らない contract を広げる
-  - 対象: `src/lib/content/html.ts`, `src/components/reader/article-content-view.tsx`, `src/__tests__/lib/article-display.test.ts`
-  - feed name と同じ先頭 label を削る処理は DOMParser に依存し、画像/link/video を含む先頭 block を誤って削ると本文の主 content が消える
-  - link-only、image-only、picture/video、feed label + real content、全角区切り、DOMParser unavailable の fixture を追加する
-
 - [ ] P2 article thumbnail URL normalization を sanitizer media URL policy と合わせる
   - 対象: `src/lib/articles/article-view.ts`, `src/components/reader/article-content-view.tsx`, `src/__tests__/lib/article-view.test.ts`
   - content HTML 内 media は sanitizer が http(s) absolute のみ許可する一方、thumbnail は別 helper で normalize されるため、relative/data/private URL policy がずれやすい
@@ -1355,11 +1345,6 @@
   - 対象: `src-tauri/src/commands/log_commands.rs`, `src/lib/runtime/diagnostics.ts`, `src/components/settings/debug-settings.tsx`
   - log dir を開く操作は user が app.log を共有する導線になるため、account/feed/article URL や local path の redaction policy が UI に見えないと事故りやすい
   - open failure、permission failure、privacy checklist 表示、URL/user path redaction、backup DB warning の component/Rust contract を追加する
-
-- [ ] P3 feed discovery User-Agent / timeout constants を provider HTTP defaults と重複しないよう整理する
-  - 対象: `src-tauri/src/infra/feed_discovery.rs`, `src-tauri/src/infra/provider/http_defaults.rs`
-  - discovery client が独自 User-Agent と timeout を持つため、provider fetch と挙動がずれて問い合わせ先から別クライアント扱いされる可能性がある
-  - shared defaults 化、timeout override、redirect limit、body limit、test fixture の owner を決める
 
 - [ ] P3 content sanitizer fixtures を web-platform-ish corpus として追加する
   - 対象: `src-tauri/src/infra/sanitizer.rs`, `src/__tests__/lib/html.test.ts`, `tests/fixtures`
@@ -1422,16 +1407,6 @@
   - 対象: `src/hooks/use-keyboard.ts`, `src/components/subscriptions-index/subscriptions-index-page.tsx`, `src/lib/keyboard/keyboard-shortcuts.ts`
   - 一部 handler は `isComposing` を見るが global keyboard path は target 判定中心なので、日本語入力中に Vim-like shortcut が発火する risk がある
   - compositionstart/end、keydown `isComposing`、account pane route、sidebar route、contenteditable/input/textarea の test を追加する
-
-- [ ] P2 i18n interpolation variables の locale 間 parity test を追加する
-  - 対象: `src/lib/i18n-resources.ts`, `src/locales/en`, `src/locales/ja`, `src/__tests__/lib/i18next-locale-contract.test.ts`
-  - key parity はあるが `{{count}}` 以外の interpolation variable が locale 間でずれると、片方の言語だけ runtime 表示が壊れやすい
-  - `{{name}}`、`{{count}}`、nested namespace、unused variable、missing variable、escaped variable の parity check を追加する
-
-- [ ] P2 component の `t()` usage と locale resource key の静的 drift 検出を追加する
-  - 対象: `src/components`, `src/hooks`, `src/locales`, `src/__tests__/lib/i18next-locale-contract.test.ts`
-  - resource key 同士は揃っていても、component 側の namespace/key typo は runtime で key 文字列表示になるまで検出しづらい
-  - literal key usage scan、namespace prefix、dynamic key allowlist、test fixture key、missing key failure を contract 化する
 
 - [ ] P2 Rust native menu i18n と frontend locale copy の意味 drift を検出する
   - 対象: `src-tauri/src/menu_i18n.rs`, `src/locales/en`, `src/locales/ja`, `src/__tests__/lib/i18next-locale-contract.test.ts`
