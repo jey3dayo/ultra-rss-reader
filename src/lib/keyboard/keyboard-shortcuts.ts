@@ -237,7 +237,6 @@ export function isShortcutPreferenceKey(key: string): key is ShortcutPreferenceK
   return key.startsWith("shortcut_") && isShortcutActionId(key.slice("shortcut_".length));
 }
 
-export type KeyboardShortcutPrefs = Partial<Record<ShortcutPreferenceKey, string>>;
 export type KeyToActionMap = Map<string, ShortcutActionId>;
 export type ShortcutConflict =
   | {
@@ -249,10 +248,30 @@ export type ShortcutConflict =
     };
 
 const nativeMenuOwnedShortcuts = new Set(["\u2318+r"]);
+const renamedShortcutPreferenceEntries = [
+  ["shortcut_view_in_browser", "shortcut_open_in_app_browser"],
+  ["shortcut_open_browser", "shortcut_open_external_browser"],
+] as const satisfies readonly (readonly [string, ShortcutPreferenceKey])[];
+type RenamedShortcutPreferenceKey = (typeof renamedShortcutPreferenceEntries)[number][0];
+
+export type KeyboardShortcutPrefs = Partial<Record<ShortcutPreferenceKey, string>> &
+  Partial<Record<RenamedShortcutPreferenceKey, string>>;
+
+export function getRenamedShortcutPreferenceKey(key: string): ShortcutPreferenceKey | null {
+  return renamedShortcutPreferenceEntries.find(([legacyKey]) => legacyKey === key)?.[1] ?? null;
+}
 
 function getShortcutKey(id: ShortcutActionId, prefs: KeyboardShortcutPrefs): string {
   const definition = shortcutDefinitionById.get(id);
-  return prefs[shortcutPrefKey(id)] ?? definition?.defaultKey ?? "";
+  const preferenceKey = shortcutPrefKey(id);
+  const renamedPreference = renamedShortcutPreferenceEntries.find(([, currentKey]) => currentKey === preferenceKey);
+
+  return (
+    prefs[preferenceKey] ??
+    (renamedPreference ? prefs[renamedPreference[0]] : undefined) ??
+    definition?.defaultKey ??
+    ""
+  );
 }
 
 function normalizeShortcutMapKey(key: string): string | null {

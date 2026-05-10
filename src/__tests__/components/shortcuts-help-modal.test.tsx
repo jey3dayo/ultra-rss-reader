@@ -60,7 +60,9 @@ describe("ShortcutsHelpModal", () => {
     const input = screen.getByPlaceholderText("Search shortcuts…");
     await user.type(input, "settings");
 
-    const option = await screen.findByRole("option", { name: /open settings/i });
+    const option = await screen.findByRole("option", {
+      name: /open settings/i,
+    });
     expect(option).toHaveTextContent("Ctrl .");
     expect(screen.getByText("?").closest("kbd")).toHaveClass("text-foreground-soft", "bg-surface-1/72");
     expect(screen.getByText("?").closest("p")).toHaveClass("flex-wrap");
@@ -83,6 +85,102 @@ describe("ShortcutsHelpModal", () => {
     await waitFor(() => {
       expect(screen.queryByRole("status")).not.toBeInTheDocument();
     });
+  });
+
+  it("snapshots generated help content from the actual shortcut bindings", async () => {
+    renderShortcutsHelpModal(<ShortcutsHelpModal open={true} onOpenChange={() => {}} />);
+
+    await screen.findByRole("dialog", { name: "Keyboard shortcuts" });
+
+    expect(
+      screen.getAllByRole("option").map((option) => ({
+        label: option.querySelector("span")?.textContent,
+        binding: option.querySelector("[data-slot='command-shortcut']")?.textContent,
+      })),
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "binding": "j",
+          "label": "Next article",
+        },
+        {
+          "binding": "k",
+          "label": "Previous article",
+        },
+        {
+          "binding": "l",
+          "label": "Next feed",
+        },
+        {
+          "binding": "h",
+          "label": "Previous feed",
+        },
+        {
+          "binding": "u",
+          "label": "Focus sidebar",
+        },
+        {
+          "binding": "Ctrl \\",
+          "label": "Toggle sidebar",
+        },
+        {
+          "binding": "r",
+          "label": "Reload Web Preview",
+        },
+        {
+          "binding": "m",
+          "label": "Toggle read / unread",
+        },
+        {
+          "binding": "s",
+          "label": "Toggle star",
+        },
+        {
+          "binding": "v",
+          "label": "Open Web Preview",
+        },
+        {
+          "binding": "b",
+          "label": "Open in external browser",
+        },
+        {
+          "binding": "a",
+          "label": "Mark all as read",
+        },
+        {
+          "binding": "Ctrl 1",
+          "label": "Show unread articles",
+        },
+        {
+          "binding": "Ctrl 2",
+          "label": "Show all articles",
+        },
+        {
+          "binding": "Ctrl 3",
+          "label": "Show starred articles",
+        },
+        {
+          "binding": "f",
+          "label": "Cycle filter (All / Unread / Starred)",
+        },
+        {
+          "binding": "/",
+          "label": "Search",
+        },
+        {
+          "binding": "Ctrl k",
+          "label": "Open command palette",
+        },
+        {
+          "binding": "Escape",
+          "label": "Close Web Preview / clear selection",
+        },
+        {
+          "binding": "Ctrl .",
+          "label": "Open settings",
+        },
+      ]
+    `);
   });
 
   it("closes when escape is pressed", async () => {
@@ -156,7 +254,9 @@ describe("ShortcutsHelpModal", () => {
     const reopenedInput = await screen.findByPlaceholderText("Search shortcuts…");
     await waitFor(() => expect(reopenedInput).toHaveFocus());
     expect(reopenedInput).toHaveValue("");
-    const selectedShortcut = await screen.findByRole("option", { name: /next article/i });
+    const selectedShortcut = await screen.findByRole("option", {
+      name: /next article/i,
+    });
     await waitFor(() => expect(selectedShortcut).toHaveAttribute("aria-selected", "true"));
     expect(scrollIntoView).toHaveBeenCalled();
   });

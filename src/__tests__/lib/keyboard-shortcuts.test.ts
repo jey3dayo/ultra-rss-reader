@@ -1,8 +1,14 @@
 import { Result } from "@praha/byethrow";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  APP_ACTIONS,
+  type AppActionAvailabilityContext,
+  isAppActionAvailable,
+} from "@/lib/app-actions";
+import {
   buildKeyToActionMap,
   formatKeyForDisplay,
+  getRenamedShortcutPreferenceKey,
   getShortcutConflict,
   keyboardEvents,
   resolveKeyboardAction,
@@ -358,6 +364,73 @@ describe("keyboard shortcut resolver", () => {
     expect(map.get("⌘+\\")).toBe("toggle_sidebar");
   });
 
+  it("keeps renamed shortcut action ids on the current binding path", () => {
+    const keyToAction = buildKeyToActionMap({
+      shortcut_view_in_browser: "x",
+      shortcut_open_browser: "y",
+    });
+
+    expect(getRenamedShortcutPreferenceKey("shortcut_view_in_browser")).toBe(
+      "shortcut_open_in_app_browser",
+    );
+    expect(getRenamedShortcutPreferenceKey("shortcut_open_browser")).toBe(
+      "shortcut_open_external_browser",
+    );
+    expect(keyToAction.get("x")).toBe("open_in_app_browser");
+    expect(keyToAction.get("y")).toBe("open_external_browser");
+  });
+
+  it("keeps action availability in one capability matrix for command, menu, shortcut, and dispatcher surfaces", () => {
+    const baseContext: AppActionAvailabilityContext = {
+      selectedAccountId: "acc-1",
+      selectedArticleId: "art-1",
+      contentMode: "reader",
+      commandPaletteOpen: false,
+      settingsOpen: false,
+      shortcutsHelpOpen: false,
+      isAddFeedDialogOpen: false,
+      isSyncing: false,
+    };
+
+    expect(APP_ACTIONS).toContain("sync-all");
+    expect(isAppActionAvailable("sync-all", "dispatcher", baseContext)).toBe(
+      true,
+    );
+    expect(
+      isAppActionAvailable("sync-all", "commandPalette", {
+        ...baseContext,
+        selectedAccountId: null,
+      }),
+    ).toBe(false);
+    expect(
+      isAppActionAvailable("sync-all", "nativeMenu", {
+        ...baseContext,
+        isSyncing: true,
+      }),
+    ).toBe(false);
+    expect(
+      isAppActionAvailable("toggle-star", "keyboardShortcut", {
+        ...baseContext,
+        selectedArticleId: null,
+      }),
+    ).toBe(false);
+    expect(
+      isAppActionAvailable("reload-webview", "keyboardShortcut", baseContext),
+    ).toBe(false);
+    expect(
+      isAppActionAvailable("mark-all-read", "commandPalette", {
+        ...baseContext,
+        settingsOpen: true,
+      }),
+    ).toBe(false);
+    expect(
+      isAppActionAvailable("open-settings", "nativeMenu", {
+        ...baseContext,
+        settingsOpen: true,
+      }),
+    ).toBe(true);
+  });
+
   it("disables a duplicate custom shortcut key instead of dispatching an ambiguous action", () => {
     const keyToAction = buildKeyToActionMap({
       shortcut_next_article: "x",
@@ -394,44 +467,50 @@ describe("keyboard shortcut resolver", () => {
     expect(buildKeyToActionMap(prefs).get("x")).toBeUndefined();
   });
 
-  it.each(["", "   "] as const)("treats a blank next-article shortcut override as disabled: %j", (shortcut) => {
-    const keyToAction = buildKeyToActionMap({
-      shortcut_next_article: shortcut,
-    });
+  it.each(["", "   "] as const)(
+    "treats a blank next-article shortcut override as disabled: %j",
+    (shortcut) => {
+      const keyToAction = buildKeyToActionMap({
+        shortcut_next_article: shortcut,
+      });
 
-    expect(keyToAction.get(shortcut)).toBeUndefined();
-    expect(keyToAction.get("j")).toBeUndefined();
+      expect(keyToAction.get(shortcut)).toBeUndefined();
+      expect(keyToAction.get("j")).toBeUndefined();
 
-    const result = resolveKeyboardAction({
-      key: "j",
-      metaKey: false,
-      ctrlKey: false,
-      shiftKey: false,
-      targetTag: "DIV",
-      selectedArticleId: "art-1",
-      contentMode: "reader",
-      viewMode: "all",
-      keyToAction,
-    });
+      const result = resolveKeyboardAction({
+        key: "j",
+        metaKey: false,
+        ctrlKey: false,
+        shiftKey: false,
+        targetTag: "DIV",
+        selectedArticleId: "art-1",
+        contentMode: "reader",
+        viewMode: "all",
+        keyToAction,
+      });
 
-    expect(Result.unwrapError(result)).toBe("no_action");
-  });
+      expect(Result.unwrapError(result)).toBe("no_action");
+    },
+  );
 
-  it.each(["input", "textarea"] as const)("ignores shortcuts for lowercase %s target tags", (targetTag) => {
-    const result = resolveKeyboardAction({
-      key: "m",
-      metaKey: false,
-      ctrlKey: false,
-      shiftKey: false,
-      targetTag,
-      targetIsTextEditing: false,
-      selectedArticleId: "art-1",
-      contentMode: "reader",
-      viewMode: "all",
-    });
+  it.each(["input", "textarea"] as const)(
+    "ignores shortcuts for lowercase %s target tags",
+    (targetTag) => {
+      const result = resolveKeyboardAction({
+        key: "m",
+        metaKey: false,
+        ctrlKey: false,
+        shiftKey: false,
+        targetTag,
+        targetIsTextEditing: false,
+        selectedArticleId: "art-1",
+        contentMode: "reader",
+        viewMode: "all",
+      });
 
-    expect(Result.unwrapError(result)).toBe("ignored_input");
-  });
+      expect(Result.unwrapError(result)).toBe("ignored_input");
+    },
+  );
 
   it("treats targetIsTextEditing as text input even when the target tag is not editable", () => {
     const result = resolveKeyboardAction({
@@ -500,22 +579,25 @@ describe("keyboard shortcut resolver", () => {
     ["dead key", { key: "Dead" }],
     ["unidentified key", { key: "Unidentified" }],
     ["process key", { key: "Process" }],
-  ] as const)("does not resolve reader shortcuts during %s", (_label, event) => {
-    const result = resolveKeyboardAction({
-      key: event.key,
-      metaKey: false,
-      ctrlKey: false,
-      shiftKey: false,
-      altKey: "altKey" in event ? event.altKey : undefined,
-      isComposing: "isComposing" in event ? event.isComposing : undefined,
-      targetTag: "DIV",
-      selectedArticleId: "art-1",
-      contentMode: "reader",
-      viewMode: "all",
-    });
+  ] as const)(
+    "does not resolve reader shortcuts during %s",
+    (_label, event) => {
+      const result = resolveKeyboardAction({
+        key: event.key,
+        metaKey: false,
+        ctrlKey: false,
+        shiftKey: false,
+        altKey: "altKey" in event ? event.altKey : undefined,
+        isComposing: "isComposing" in event ? event.isComposing : undefined,
+        targetTag: "DIV",
+        selectedArticleId: "art-1",
+        contentMode: "reader",
+        viewMode: "all",
+      });
 
-    expect(Result.unwrapError(result)).toBe("no_action");
-  });
+      expect(Result.unwrapError(result)).toBe("no_action");
+    },
+  );
 
   it("resolves mapped modifier shortcuts without using the plain-key fallback", () => {
     const result = resolveKeyboardAction({
@@ -550,7 +632,9 @@ describe("keyboard shortcut resolver", () => {
     ] as const;
 
     for (const [actionId, nativeMenuHint] of contracts) {
-      const definition = shortcutDefinitions.find((item) => item.id === actionId);
+      const definition = shortcutDefinitions.find(
+        (item) => item.id === actionId,
+      );
 
       expect(definition?.defaultKey.toUpperCase()).toBe(nativeMenuHint);
     }
@@ -559,23 +643,26 @@ describe("keyboard shortcut resolver", () => {
   it.each([
     { modifier: "Cmd", metaKey: true, ctrlKey: false },
     { modifier: "Ctrl", metaKey: false, ctrlKey: true },
-  ])("lets the native menu own $modifier+R even when Web Preview reload is remapped to it", ({ metaKey, ctrlKey }) => {
-    const result = resolveKeyboardAction({
-      key: "r",
-      metaKey,
-      ctrlKey,
-      shiftKey: false,
-      targetTag: "DIV",
-      selectedArticleId: "art-1",
-      contentMode: "browser",
-      viewMode: "all",
-      keyToAction: buildKeyToActionMap({
-        shortcut_reload_webview: "⌘+r",
-      }),
-    });
+  ])(
+    "lets the native menu own $modifier+R even when Web Preview reload is remapped to it",
+    ({ metaKey, ctrlKey }) => {
+      const result = resolveKeyboardAction({
+        key: "r",
+        metaKey,
+        ctrlKey,
+        shiftKey: false,
+        targetTag: "DIV",
+        selectedArticleId: "art-1",
+        contentMode: "browser",
+        viewMode: "all",
+        keyToAction: buildKeyToActionMap({
+          shortcut_reload_webview: "⌘+r",
+        }),
+      });
 
-    expect(Result.unwrapError(result)).toBe("no_action");
-  });
+      expect(Result.unwrapError(result)).toBe("no_action");
+    },
+  );
 
   it("does not include native menu owned shortcuts in the runtime key map", () => {
     expect(
@@ -614,57 +701,65 @@ describe("keyboard shortcut resolver", () => {
     ["toggle_star", "s", keyboardEvents.toggleStar],
     ["open_in_app_browser", "v", keyboardEvents.openInAppBrowser],
     ["open_external_browser", "b", keyboardEvents.openExternalBrowser],
-  ] as const)("skips %s when there is no selected article and emits %s when selected", (actionId, key, eventName) => {
-    const keyToAction = buildKeyToActionMap({
-      [`shortcut_${actionId}`]: key,
-    });
-    const missingArticleResult = resolveKeyboardAction({
-      key,
-      metaKey: false,
-      ctrlKey: false,
-      shiftKey: false,
-      targetTag: "DIV",
-      selectedArticleId: null,
-      contentMode: "reader",
-      viewMode: "all",
-      keyToAction,
-    });
-    const selectedArticleResult = resolveKeyboardAction({
-      key,
-      metaKey: false,
-      ctrlKey: false,
-      shiftKey: false,
-      targetTag: "DIV",
-      selectedArticleId: "art-1",
-      contentMode: "reader",
-      viewMode: "all",
-      keyToAction,
-    });
+  ] as const)(
+    "skips %s when there is no selected article and emits %s when selected",
+    (actionId, key, eventName) => {
+      const keyToAction = buildKeyToActionMap({
+        [`shortcut_${actionId}`]: key,
+      });
+      const missingArticleResult = resolveKeyboardAction({
+        key,
+        metaKey: false,
+        ctrlKey: false,
+        shiftKey: false,
+        targetTag: "DIV",
+        selectedArticleId: null,
+        contentMode: "reader",
+        viewMode: "all",
+        keyToAction,
+      });
+      const selectedArticleResult = resolveKeyboardAction({
+        key,
+        metaKey: false,
+        ctrlKey: false,
+        shiftKey: false,
+        targetTag: "DIV",
+        selectedArticleId: "art-1",
+        contentMode: "reader",
+        viewMode: "all",
+        keyToAction,
+      });
 
-    expect(Result.unwrapError(missingArticleResult)).toBe("missing_selected_article");
-    expect(Result.unwrap(selectedArticleResult)).toEqual({
-      type: "emit",
-      eventName,
-    });
-  });
+      expect(Result.unwrapError(missingArticleResult)).toBe(
+        "missing_selected_article",
+      );
+      expect(Result.unwrap(selectedArticleResult)).toEqual({
+        type: "emit",
+        eventName,
+      });
+    },
+  );
 
   it.each([
     ["browser mode", "browser", "art-1"],
     ["selected article", "reader", "art-1"],
     ["no selected article", "reader", null],
-  ] as const)("keeps close_or_clear as a noop while subscriptions workspace is open with %s", (_label, contentMode, selectedArticleId) => {
-    const result = resolveKeyboardAction({
-      key: "Escape",
-      metaKey: false,
-      ctrlKey: false,
-      shiftKey: false,
-      targetTag: "DIV",
-      selectedArticleId,
-      contentMode,
-      viewMode: "all",
-      subscriptionsWorkspaceOpen: true,
-    });
+  ] as const)(
+    "keeps close_or_clear as a noop while subscriptions workspace is open with %s",
+    (_label, contentMode, selectedArticleId) => {
+      const result = resolveKeyboardAction({
+        key: "Escape",
+        metaKey: false,
+        ctrlKey: false,
+        shiftKey: false,
+        targetTag: "DIV",
+        selectedArticleId,
+        contentMode,
+        viewMode: "all",
+        subscriptionsWorkspaceOpen: true,
+      });
 
-    expect(Result.unwrapError(result)).toBe("no_action");
-  });
+      expect(Result.unwrapError(result)).toBe("no_action");
+    },
+  );
 });

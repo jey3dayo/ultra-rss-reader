@@ -1,3 +1,4 @@
+import type { ContentMode } from "@/lib/layout/layout-state.types";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
 
 /** All valid action identifiers dispatched via executeAction. */
@@ -52,6 +53,83 @@ export const APP_ACTIONS = [
   ...APP_ACTION_REGISTRY.article,
   ...APP_ACTION_REGISTRY.updates,
 ] as const satisfies readonly AppAction[];
+
+export type AppActionSurface = "commandPalette" | "nativeMenu" | "keyboardShortcut" | "dispatcher";
+
+export type AppActionAvailabilityContext = {
+  selectedAccountId: string | null;
+  selectedArticleId: string | null;
+  contentMode: ContentMode;
+  commandPaletteOpen: boolean;
+  settingsOpen: boolean;
+  shortcutsHelpOpen: boolean;
+  isAddFeedDialogOpen: boolean;
+  isSyncing: boolean;
+};
+
+type AppActionAvailabilityRule = {
+  surfaces: readonly AppActionSurface[];
+  requiresAccount?: boolean;
+  requiresArticle?: boolean;
+  requiresBrowser?: boolean;
+  blocksWhenSyncing?: boolean;
+  blocksWhenModalOpen?: boolean;
+};
+
+const accountScopedActions = ["sync-all", "open-add-feed", "mark-all-read"] as const satisfies readonly AppAction[];
+const accountScopedActionSet: ReadonlySet<AppAction> = new Set(accountScopedActions);
+const articleScopedActions = [
+  "open-in-reader",
+  "open-in-browser",
+  "toggle-star",
+  "toggle-read",
+  "copy-link",
+  "open-in-default-browser",
+  "add-to-reading-list",
+] as const satisfies readonly AppAction[];
+const articleScopedActionSet: ReadonlySet<AppAction> = new Set(articleScopedActions);
+
+const allSurfaces = ["commandPalette", "nativeMenu", "keyboardShortcut", "dispatcher"] as const;
+
+export const APP_ACTION_CAPABILITY_MATRIX: ReadonlyMap<AppAction, AppActionAvailabilityRule> = new Map(
+  APP_ACTIONS.map((action) => [
+    action,
+    {
+      surfaces: allSurfaces,
+      requiresAccount: accountScopedActionSet.has(action),
+      requiresArticle: articleScopedActionSet.has(action),
+      requiresBrowser: action === "reload-webview" || action === "close-browser",
+      blocksWhenSyncing: action === "sync-all",
+      blocksWhenModalOpen:
+        action !== "open-settings" && action !== "open-command-palette" && action !== "check-for-updates",
+    },
+  ]),
+);
+
+export function isAppActionAvailable(
+  action: AppAction,
+  surface: AppActionSurface,
+  context: AppActionAvailabilityContext,
+): boolean {
+  const rule = APP_ACTION_CAPABILITY_MATRIX.get(action);
+  if (!rule) {
+    return false;
+  }
+  const modalOpen =
+    context.settingsOpen ||
+    context.shortcutsHelpOpen ||
+    context.isAddFeedDialogOpen ||
+    (surface !== "commandPalette" && context.commandPaletteOpen);
+
+  return (
+    rule.surfaces.includes(surface) &&
+    (!rule.requiresAccount || context.selectedAccountId !== null) &&
+    (!rule.requiresArticle || context.selectedArticleId !== null) &&
+    (!rule.requiresBrowser || context.contentMode === "browser") &&
+    (!rule.blocksWhenSyncing || !context.isSyncing) &&
+    (!rule.blocksWhenModalOpen || !modalOpen)
+  );
+}
 
 /** Set of all valid action strings, used for runtime validation at IPC boundaries. */
 const appActions: ReadonlySet<string> = new Set(APP_ACTIONS);
