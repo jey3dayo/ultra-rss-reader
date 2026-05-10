@@ -202,6 +202,30 @@ mod tests {
     }
 
     #[test]
+    fn unsupported_preference_falls_back_to_system_locale() {
+        assert_eq!(
+            resolve_menu_language(Some("fr"), Some("ja-JP")),
+            ResolvedMenuLanguage::Ja
+        );
+        assert_eq!(
+            resolve_menu_language(Some("fr"), Some("en-US")),
+            ResolvedMenuLanguage::En
+        );
+    }
+
+    #[test]
+    fn explicit_language_preference_wins_at_menu_rebuild_time() {
+        assert_eq!(
+            labels(resolve_menu_language(Some("ja"), Some("en-US"))).settings,
+            "設定..."
+        );
+        assert_eq!(
+            labels(resolve_menu_language(Some("en"), Some("ja-JP"))).settings,
+            "Settings..."
+        );
+    }
+
+    #[test]
     fn english_labels_use_preview_and_external_browser_wording() {
         let labels = labels(ResolvedMenuLanguage::En);
         assert_eq!(labels.open_web_preview, "Open Web Preview");
@@ -237,5 +261,48 @@ mod tests {
         assert!(contracts.iter().any(|contract| {
             contract.en_menu_label == "Copy Link" && contract.ja_menu_label == "リンクをコピー"
         }));
+    }
+
+    #[test]
+    fn supported_locales_have_no_missing_menu_labels() {
+        for language in [ResolvedMenuLanguage::En, ResolvedMenuLanguage::Ja] {
+            let labels = labels(language);
+            let values = [
+                labels.app_submenu_title,
+                labels.edit_menu,
+                labels.view_menu,
+                labels.accounts_menu,
+                labels.subscriptions_menu,
+                labels.item_menu,
+                labels.share_menu,
+                labels.settings,
+                labels.check_for_updates,
+                labels.unread,
+                labels.all,
+                labels.starred,
+                labels.sort_unread_to_top,
+                labels.group_by_feed,
+                labels.full_screen,
+                labels.sync_all,
+                labels.show_accounts,
+                labels.add_account,
+                labels.add_subscription,
+                labels.previous_feed,
+                labels.next_feed,
+                labels.previous_item,
+                labels.next_item,
+                labels.open_web_preview,
+                labels.open_external_browser,
+                labels.toggle_star,
+                labels.mark_as_read_unread,
+                labels.mark_all_as_read,
+                labels.copy_link,
+                labels.add_to_reading_list,
+            ];
+
+            for value in values {
+                assert!(!value.trim().is_empty(), "{language:?}");
+            }
+        }
     }
 }

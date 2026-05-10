@@ -1476,6 +1476,25 @@ mod tests {
     }
 
     #[test]
+    fn open_in_browser_rejects_non_http_urls_before_native_opener() {
+        for url in [
+            "mailto:hello@example.com",
+            "file:///tmp/article.html",
+            "javascript:alert(1)",
+            "localhost:1420",
+        ] {
+            let error = super::open_in_browser(url.to_string(), Some(true))
+                .expect_err("browser open should validate URL scheme before native opener");
+
+            assert!(matches!(
+                error,
+                AppError::UserVisible { ref message }
+                    if message == "Only http:// and https:// URLs are supported"
+            ));
+        }
+    }
+
+    #[test]
     fn background_open_is_used_only_when_requested_and_supported() {
         let info = platform_info_for_kind(PlatformKind::Macos);
 

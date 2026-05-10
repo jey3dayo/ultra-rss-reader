@@ -116,6 +116,10 @@ fn menu_action_emit_failure_diagnostic(action: &str, error: &impl std::fmt::Disp
     format!("Frontend action diagnostics: native menu failed to emit action '{action}': {error}")
 }
 
+fn should_rollback_check_toggle_after_emit(toggled_check_item: bool, emit_failed: bool) -> bool {
+    toggled_check_item && emit_failed
+}
+
 fn is_sort_unread_checked(prefs: &HashMap<String, String>) -> bool {
     prefs
         .get("reading_sort")
@@ -326,14 +330,14 @@ pub fn rebuild(app: &AppHandle, prefs: &HashMap<String, String>) -> tauri::Resul
 }
 
 /// Toggle the checked state of a `CheckMenuItem` identified by `menu_id`.
-fn toggle_check_menu_item(app: &AppHandle, menu_id: &str) {
+fn toggle_check_menu_item(app: &AppHandle, menu_id: &str) -> bool {
     let Some(window) = app.get_webview_window("main") else {
         tracing::warn!("Cannot toggle menu item '{menu_id}': main window not found");
-        return;
+        return false;
     };
     let Some(menu) = window.menu() else {
         tracing::warn!("Cannot toggle menu item '{menu_id}': no menu on main window");
-        return;
+        return false;
     };
     if let Some(item) = menu.get(menu_id) {
         if let Some(check_item) = item.as_check_menuitem() {
@@ -341,12 +345,15 @@ fn toggle_check_menu_item(app: &AppHandle, menu_id: &str) {
                 Ok(checked) => {
                     if let Err(e) = check_item.set_checked(!checked) {
                         tracing::warn!("Failed to set_checked for '{menu_id}': {e}");
+                        return false;
                     }
+                    return true;
                 }
                 Err(e) => tracing::warn!("Failed to read checked state for '{menu_id}': {e}"),
             }
         }
     }
+    false
 }
 
 /// Handle menu events by emitting a `menu-action` event to the frontend.
@@ -357,12 +364,14 @@ pub fn handle_event(app: &AppHandle, event: tauri::menu::MenuEvent) {
     };
 
     // Toggle checked state for CheckMenuItem entries
-    if is_toggle_check_menu_item(menu_id.as_ref()) {
-        toggle_check_menu_item(app, menu_id.as_ref());
-    }
+    let toggled_check_item = is_toggle_check_menu_item(menu_id.as_ref())
+        && toggle_check_menu_item(app, menu_id.as_ref());
 
     if let Err(e) = app.emit(MENU_ACTION_EVENT, action) {
         tracing::error!("{}", menu_action_emit_failure_diagnostic(action, &e));
+        if should_rollback_check_toggle_after_emit(toggled_check_item, true) {
+            toggle_check_menu_item(app, menu_id.as_ref());
+        }
     }
 }
 
@@ -376,7 +385,8 @@ mod tests {
         is_check_for_updates_menu_available, is_group_by_feed_checked,
         is_reading_list_menu_available, is_sort_unread_checked, is_toggle_check_menu_item,
         item_menu_label, item_menu_shortcut_hint, menu_action_emit_failure_diagnostic,
-        native_menu_accelerator, resolve_menu_action, MENU_ACTION_EVENT,
+        native_menu_accelerator, resolve_menu_action, should_rollback_check_toggle_after_emit,
+        MENU_ACTION_EVENT,
     };
 
     #[test]
@@ -629,6 +639,26 @@ mod tests {
             assert!(is_toggle_check_menu_item(menu_id), "{menu_id}");
             assert_eq!(resolve_menu_action(menu_id), Some(action_id), "{menu_id}");
         }
+    }
+
+    #[test]
+    fn checked_menu_items_are_rolled_back_when_frontend_emit_fails() {
+        let contracts = [
+            ("view-sort-unread", "toggle-sort-unread"),
+            ("view-group-by-feed", "toggle-group-by-feed"),
+        ];
+
+        for (menu_id, action_id) in contracts {
+            assert!(is_toggle_check_menu_item(menu_id), "{menu_id}");
+            assert_eq!(resolve_menu_action(menu_id), Some(action_id), "{menu_id}");
+
+            let diagnostic = menu_action_emit_failure_diagnostic(action_id, &"emit failed");
+            assert!(diagnostic.contains("native menu failed to emit action"));
+            assert!(should_rollback_check_toggle_after_emit(true, true));
+        }
+
+        assert!(!should_rollback_check_toggle_after_emit(false, true));
+        assert!(!should_rollback_check_toggle_after_emit(true, false));
     }
 
     #[test]
