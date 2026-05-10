@@ -57,16 +57,6 @@
   - reset が途中失敗すると keyring、DB、localStorage、query cache のどれかだけ残り、次回起動で ghost state になる
   - keyring delete failure、DB cleanup failure、storage cleanup、query cache clear、app reload の contract を追加する
 
-- [ ] P3 Tailwind arbitrary values inventory と token 化候補を整理する
-  - 対象: `src/**/*.tsx`, CSS
-  - arbitrary width/height/z-index/color が増えると design token と responsive constraints のレビューが効かなくなる
-  - layout-critical、motion-critical、z-index、one-off allowed、token candidate に分類する
-
-- [ ] P3 Storybook a11y addon violations を focused allowlist 付き gate にする
-  - 対象: `.storybook`, storybook tests
-  - addon を入れていても allowlist と focused story がないと、違反検知が noise になって CI gate へ上げられない
-  - known violation allowlist、critical components、dialog stories、keyboard stories、CI smoke の単位に分ける
-
 - [ ] P1 OS keyring orphan credential cleanup を account delete / rename / reset と同期する
   - 対象: `src-tauri/src/infra/keyring_store.rs`, account commands, settings data reset
   - account 削除や rename 後に古い credential entry が残ると、復元・debug・reset の時に ghost account として再浮上する
@@ -102,36 +92,6 @@
   - 途中失敗で target file を半端に残すと、次回 import/restore/debug で正常ファイルとして扱われる
   - temp file、fsync、rename failure、existing file collision、cleanup failure の contract を追加する
 
-- [ ] P2 React StrictMode double invoke で native command wrapper が二重実行されないか棚卸しする
-  - 対象: hooks that invoke Tauri commands in effects、query/mutation wrappers
-  - effect mount 時の command 実行が StrictMode で二重になり、sync/check/update/open が重複する可能性がある
-  - startup sync、updater check、platform info、log dir opener、browser webview create の inventory を作る
-
-- [ ] P2 React Query cache persistence しない前提を reload/boot contract として固定する
-  - 対象: query client、startup loaders、settings/account state
-  - reload 後に query cache が空になる前提が implicit だと、future persistence 導入時に stale account/feed が混ざる
-  - reload empty cache、startup refetch、account deleted、offline boot、query key versioning の contract を追加する
-
-- [ ] P2 mock data に実在ドメインを使う場合の network isolation policy を決める
-  - 対象: `src/dev/mock-data.ts`, dev mocks, storybook
-  - mock URL が実在ドメインだと、画像・favicon・browser open が accidental network access になる
-  - example domain、real domain allowlist、favicon mock、external opener stub、storybook isolation の方針を固定する
-
-- [ ] P2 Tauri permission/capability の generated allowlist を command ownership ごとに分割する
-  - 対象: Tauri capabilities、command registry、release contract
-  - 1 つの capability snapshot だけだと、reader/browser/settings/debug のどの機能が権限を必要とするか追えない
-  - browser、settings、debug/log、database、updater、share command group に分けて drift test を追加する
-
-- [ ] P3 dependency license inventory を pnpm/Cargo 両方で生成可能にする
-  - 対象: `package.json`, `src-tauri/Cargo.toml`, release docs
-  - JS/Rust の片方だけ license 棚卸しすると、release review や store 配布で抜ける
-  - pnpm licenses、cargo licenses、unknown license、dual license、generated report location の task に分ける
-
-- [ ] P3 dev scenario fixture freshness を UI route / command schema と同期する
-  - 対象: `src/dev/scenarios`, dev mocks, command schemas
-  - scenario は便利だが、command schema や route rename から遅れるとデバッグ時だけ壊れる
-  - scenario id registry、command coverage、route existence、mock data owner、screenshot smoke の task に分ける
-
 - [ ] P2 article/feed/folder/tag/account name の Unicode bidi / confusable display policy を決める
   - 対象: domain validation、settings forms、reader/sidebar display
   - RTL override、zero-width、confusable 文字が入ると feed name や action target が spoof され、delete/rename 確認で誤認しやすい
@@ -157,20 +117,10 @@
   - `navigator.onLine` と Rust HTTP error が食い違うと、manual sync button や toast が誤った復旧案を出す
   - online false、online true but DNS failure、captive portal、manual retry、sync scheduler の期待値を固定する
 
-- [ ] P2 CSP dev/prod drift を script/style/connect/font で release gate 化する
-  - 対象: Tauri config、Vite dev config、release smoke
-  - dev HMR 用 CSP と production CSP がずれると、release だけ blank screen または不要に広い permission になる
-  - script-src、style-src、connect-src、font-src、dev HMR exception、release artifact CSP の check を追加する
-
 - [ ] P2 image/fallback favicon cache eviction を account/feed deletion と同期する
   - 対象: favicon/image cache helpers、feed deletion flow、storage cleanup
   - feed 削除後に favicon/image failure cache が残ると、同じ URL 再追加時に古い失敗状態を引き継ぐ
   - feed delete、feed URL change、account delete、cache TTL、manual refresh の contract を追加する
-
-- [ ] P2 locale resource lazy load failure を app boot / settings language switch で固定する
-  - 対象: i18n setup、settings language actions、app shell fallback
-  - locale JSON load/parse failure 時に raw key 表示、blank UI、old locale 維持のどれにするか未固定だと復旧しにくい
-  - missing locale file、invalid JSON、switch failure、old locale retention、diagnostics once の test を追加する
 
 - [ ] P2 platform permission denied を file/dialog/keyring/clipboard ごとに user action copy へ落とす
   - 対象: Tauri command wrappers、runtime error taxonomy、settings/debug UI
@@ -181,11 +131,6 @@
   - 対象: updater hook、updater commands、release docs
   - download 済み artifact が cancel や failed install 後に残ると、次回 check/install が stale artifact を使う可能性がある
   - cancel、download failure、install failure、restart before install、cleanup diagnostics の contract を追加する
-
-- [ ] P2 Tauri event listener leak を route transition / settings modal / browser overlay で計測する
-  - 対象: `src/lib/runtime/tauri-event-listeners.ts`, app shell hooks, browser overlay hooks
-  - route/modal/overlay の開閉で listener が積み上がると、sync progress や browser event が重複処理される
-  - route transition、settings open/close、browser open/close、account switch、StrictMode の listener count test を追加する
 
 - [ ] P2 command palette action execution を stale selection / closed palette / modal open で固定する
   - 対象: command palette controller/actions、global action dispatcher
