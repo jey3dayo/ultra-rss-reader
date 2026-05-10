@@ -53,24 +53,18 @@ impl PendingMutationRepository for SqlitePendingMutationRepository<'_> {
              WHERE account_id = ?1
              ORDER BY datetime(created_at) IS NULL, datetime(created_at), id",
         )?;
-        let mutations = stmt
-            .query_map(params![account_id.0], |row| {
-                let mutation_type = row.get::<_, String>(2)?;
-                Ok(PendingMutation {
-                    id: row.get(0)?,
-                    account_id: AccountId(row.get(1)?),
-                    mutation_type: PendingMutationType::parse(&mutation_type).map_err(|error| {
-                        rusqlite::Error::FromSqlConversionFailure(
-                            2,
-                            rusqlite::types::Type::Text,
-                            Box::new(error),
-                        )
-                    })?,
-                    remote_entry_id: row.get(3)?,
-                    created_at: row.get(4)?,
-                })
-            })?
-            .collect::<Result<Vec<_>, _>>()?;
+        let mut rows = stmt.query(params![account_id.0])?;
+        let mut mutations = Vec::new();
+        while let Some(row) = rows.next()? {
+            let mutation_type = row.get::<_, String>(2)?;
+            mutations.push(PendingMutation {
+                id: row.get(0)?,
+                account_id: AccountId(row.get(1)?),
+                mutation_type: PendingMutationType::parse(&mutation_type)?,
+                remote_entry_id: row.get(3)?,
+                created_at: row.get(4)?,
+            });
+        }
         Ok(mutations)
     }
 
@@ -645,7 +639,7 @@ mod tests {
     }
 
     #[test]
-    fn find_by_account_projects_invalid_stored_mutation_type_as_error() {
+    fn find_by_account_fails_account_sync_for_invalid_stored_mutation_type() {
         let db = test_db();
         let account_id = insert_test_account(&db);
         db.writer()
@@ -659,9 +653,9 @@ mod tests {
         let repo = SqlitePendingMutationRepository::new(db.reader());
         let error = repo.find_by_account(&account_id).unwrap_err();
 
-        assert!(error
-            .to_string()
-            .contains("Unknown pending mutation type: delete_remote_entry"));
+        assert!(
+            matches!(error, DomainError::Validation(message) if message == "Unknown pending mutation type: delete_remote_entry")
+        );
     }
 
     #[test]
