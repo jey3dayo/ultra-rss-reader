@@ -6,15 +6,31 @@ import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
 const SECRET_ENV_SUFFIXES = ["_KEY", "_TOKEN", "_PASSWORD", "_SECRET", "_CREDENTIALS"];
-const EXPLICIT_FORWARDED_ENV_KEYS = new Set([
-  "DEV_CREDENTIALS",
-  "RUST_BACKTRACE",
-  "RUST_LOG",
-  "TAURI_DEV_PORT",
-  "VITE_DEV_INTENT",
-  "VITE_DEV_WEB_URL",
-]);
+const WINDOWS_DISPATCH_ENV_ALLOWLIST = [
+  { key: "DEV_CREDENTIALS", kind: "devCredential" },
+  { key: "RUST_BACKTRACE", kind: "passthrough" },
+  { key: "RUST_LOG", kind: "passthrough" },
+  { key: "TAURI_DEV_PORT", kind: "passthrough" },
+  { key: "VITE_DEV_INTENT", kind: "passthrough" },
+  { key: "VITE_DEV_WEB_URL", kind: "passthrough" },
+] as const satisfies readonly WindowsDispatchEnvRule[];
+const EXPLICIT_FORWARDED_ENV_KEYS = new Map(WINDOWS_DISPATCH_ENV_ALLOWLIST.map((rule) => [rule.key, rule]));
 const SECRET_LIKE_VALUE_PATTERN = /(?:^|[^a-z0-9])(?:ghp|github_pat|sk|xox[baprs]|AKIA)[a-z0-9_-]{8,}/i;
+
+type WindowsDispatchEnvRule = {
+  key: string;
+  kind: "devCredential" | "passthrough";
+};
+
+export type WindowsDispatchEnvKey = (typeof WINDOWS_DISPATCH_ENV_ALLOWLIST)[number]["key"];
+
+export const WINDOWS_DISPATCH_ENV_SCHEMA: Readonly<Record<WindowsDispatchEnvKey, WindowsDispatchEnvRule["kind"]>> =
+  Object.freeze(
+    Object.fromEntries(WINDOWS_DISPATCH_ENV_ALLOWLIST.map((rule) => [rule.key, rule.kind])) as Record<
+      WindowsDispatchEnvKey,
+      WindowsDispatchEnvRule["kind"]
+    >,
+  );
 
 export type SpawnSpec = {
   command: string;
@@ -41,10 +57,11 @@ export function pickWindowsEnvOverrides(env: NodeJS.ProcessEnv = process.env): R
   const overrides: Record<string, string> = {};
 
   for (const [key, value] of Object.entries(env)) {
+    const rule = EXPLICIT_FORWARDED_ENV_KEYS.get(key);
     if (
       typeof value === "string" &&
-      EXPLICIT_FORWARDED_ENV_KEYS.has(key) &&
-      (key === "DEV_CREDENTIALS" ||
+      rule &&
+      (rule.kind === "devCredential" ||
         (!SECRET_ENV_SUFFIXES.some((suffix) => key.endsWith(suffix)) && !isSecretLikeEnvValue(value)))
     ) {
       overrides[key] = value;

@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
@@ -12,6 +13,7 @@ import {
 type PackageJson = {
   name: string;
   private: boolean;
+  scripts: Record<string, string>;
   version: string;
 };
 
@@ -395,6 +397,32 @@ describe("release repository contract", () => {
     expect(releaseManualVerification).toContain("DEV_CREDENTIALS");
     expect(releaseManualVerification).toMatch(/dev mocks/i);
     expect(releaseManualVerification).toContain("debug-only MCP bridge permissions");
+  });
+
+  it("generates a release/debug feature flag inventory report", () => {
+    execFileSync("node", ["./scripts/release-debug-feature-flags-report.ts"], { encoding: "utf8" });
+    const report: {
+      generatedBy: string;
+      inventory: { area: string; flag: string; debugBehavior: string; releaseBehavior: string; evidence: string[] }[];
+    } = JSON.parse(readText("tmp/release-debug-feature-flags.json"));
+
+    expect(packageJson.scripts).toMatchObject({
+      "report:release-debug-flags": "node ./scripts/release-debug-feature-flags-report.ts",
+    });
+    expect(report.generatedBy).toBe("scripts/release-debug-feature-flags-report.ts");
+    expect(report.inventory.map((item) => item.flag)).toEqual([
+      "debug_assertions",
+      "VITE_DEV_INTENT",
+      "@/dev/scenarios",
+      "@/dev/mock-data",
+      "src-tauri/tauri.dev.conf.json",
+      "DEV_CREDENTIALS",
+    ]);
+    for (const item of report.inventory) {
+      expect(item.evidence.length, item.flag).toBeGreaterThan(0);
+      expect(item.debugBehavior, item.flag).not.toBe("");
+      expect(item.releaseBehavior, item.flag).not.toBe("");
+    }
   });
 
   it("keeps dependency audit manual until advisory policy is defined", () => {
