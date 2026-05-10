@@ -8,6 +8,7 @@ import {
 } from "@/api/schemas";
 import {
   DEV_MOCK_FIXTURE_BOUNDARIES,
+  DEV_MOCK_NETWORK_ISOLATION_POLICY,
   listDevMockFixtureBoundaryKeys,
   mockAccounts,
   mockArticles,
@@ -44,6 +45,25 @@ describe("dev mock data", () => {
     const blockedUrl = "https://images.unsplash.com/photo-1529927120475-1f638e42f5c3?w=400&h=300&fit=crop";
 
     expect(mockArticles.some((article) => article.thumbnail === blockedUrl)).toBe(false);
+  });
+
+  it("keeps real-domain dev fixtures isolated from accidental asset network requests", () => {
+    expect(DEV_MOCK_NETWORK_ISOLATION_POLICY).toMatchObject({
+      realDomainUrls: "allowed-for-text-and-recorded-navigation-only",
+      remoteAssetUrls: "forbidden",
+      faviconRequests: "use-runtime-mocks-or-local-rendering-only",
+      externalOpen: "record-only",
+      browserWebview: "state-only",
+      feedDiscovery: "synthetic",
+    });
+
+    expect(mockFeeds.some((feed) => new URL(feed.url).hostname !== "example.com")).toBe(true);
+    expect(
+      mockArticles.some(
+        (article) => typeof article.url === "string" && new URL(article.url).hostname !== "example.com",
+      ),
+    ).toBe(true);
+    expect(mockArticles.map((article) => article.thumbnail).filter(Boolean)).toEqual([]);
   });
 
   it("keeps initial unread counts in sync with unread mock articles", () => {

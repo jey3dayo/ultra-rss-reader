@@ -9,6 +9,15 @@ import { addLocalDays, createLocalDateTime, getCurrentDate, toIsoTimestamp } fro
 const now = getCurrentDate();
 const yesterday = addLocalDays(now, -1);
 
+export const DEV_MOCK_NETWORK_ISOLATION_POLICY = {
+  realDomainUrls: "allowed-for-text-and-recorded-navigation-only",
+  remoteAssetUrls: "forbidden",
+  faviconRequests: "use-runtime-mocks-or-local-rendering-only",
+  externalOpen: "record-only",
+  browserWebview: "state-only",
+  feedDiscovery: "synthetic",
+} as const;
+
 function mockArticlePublishedAt(baseDate: Date, hours: number, minutes: number): string {
   return toIsoTimestamp(createLocalDateTime(baseDate, hours, minutes));
 }
@@ -431,7 +440,7 @@ const generatedMockArticles = [
     date: now,
     hours: 8,
     minutes: 18,
-    thumbnail: "https://images.unsplash.com/photo-1495020689067-958852a7765e?w=400&h=300&fit=crop",
+    thumbnail: null,
   }),
   createMockArticle({
     id: "art-17",
@@ -443,7 +452,7 @@ const generatedMockArticles = [
     date: now,
     hours: 7,
     minutes: 46,
-    thumbnail: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400&h=300&fit=crop",
+    thumbnail: null,
   }),
   createMockArticle({
     id: "art-18",
@@ -455,7 +464,7 @@ const generatedMockArticles = [
     date: now,
     hours: 7,
     minutes: 19,
-    thumbnail: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=400&h=300&fit=crop",
+    thumbnail: null,
   }),
   createMockArticle({
     id: "art-19",
@@ -467,7 +476,7 @@ const generatedMockArticles = [
     date: now,
     hours: 6,
     minutes: 45,
-    thumbnail: "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=400&h=300&fit=crop",
+    thumbnail: null,
   }),
   createMockArticle({
     id: "art-20",
@@ -535,7 +544,7 @@ const generatedMockArticles = [
     date: yesterday,
     hours: 11,
     minutes: 10,
-    thumbnail: "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=400&h=300&fit=crop",
+    thumbnail: null,
   }),
   createMockArticle({
     id: "art-26",
@@ -547,7 +556,7 @@ const generatedMockArticles = [
     date: yesterday,
     hours: 10,
     minutes: 42,
-    thumbnail: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&h=300&fit=crop",
+    thumbnail: null,
   }),
 ] satisfies readonly ArticleDto[];
 
@@ -563,7 +572,7 @@ const mockArticleSeeds = [
     url: "https://automaton-media.com/articles/interviewsjp/saros-interview/",
     author: "TAKAYUKI SAWAHATA",
     published_at: mockArticlePublishedAt(now, 9, 7),
-    thumbnail: "https://images.unsplash.com/photo-1614732414444-096e5f1122d5?w=400&h=300&fit=crop",
+    thumbnail: null,
     is_read: false,
     is_starred: false,
   },
@@ -577,7 +586,7 @@ const mockArticleSeeds = [
     url: "https://automaton-media.com/articles/newsjp/havendock-free/",
     author: "AUTOMATON編集部",
     published_at: mockArticlePublishedAt(now, 8, 30),
-    thumbnail: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&h=300&fit=crop",
+    thumbnail: null,
     is_read: false,
     is_starred: false,
   },
@@ -591,7 +600,7 @@ const mockArticleSeeds = [
     url: "https://automaton-media.com/articles/newsjp/crimson-desert-tree/",
     author: "AUTOMATON編集部",
     published_at: mockArticlePublishedAt(yesterday, 18, 24),
-    thumbnail: "https://images.unsplash.com/photo-1448375240586-882707db888b?w=400&h=300&fit=crop",
+    thumbnail: null,
     is_read: false,
     is_starred: false,
   },
@@ -606,7 +615,7 @@ const mockArticleSeeds = [
     url: "https://www.publickey1.jp/blog/26/postgresql_18.html",
     author: "Publickey編集部",
     published_at: mockArticlePublishedAt(yesterday, 10, 0),
-    thumbnail: "https://images.unsplash.com/photo-1544383835-bda2bc66a55d?w=400&h=300&fit=crop",
+    thumbnail: null,
     is_read: false,
     is_starred: true,
   },
@@ -633,7 +642,7 @@ const mockArticleSeeds = [
     url: "https://example.com/keiba",
     author: null,
     published_at: mockArticlePublishedAt(now, 15, 56),
-    thumbnail: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&h=300&fit=crop",
+    thumbnail: null,
     is_read: true,
     is_starred: false,
   },

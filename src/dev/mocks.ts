@@ -36,6 +36,11 @@ import { stripHtmlTags } from "@/lib/content/html";
 import { addHours, getCurrentDate, getCurrentIsoTimestamp, toIsoTimestamp } from "@/lib/datetime";
 
 export const DEV_MOCK_PLATFORM_INFO = DEFAULT_PLATFORM_INFO;
+export const DEV_MOCK_NETWORK_BOUNDARY = {
+  externalOpen: "record-only",
+  browserWebview: "state-only",
+  feedDiscovery: "synthetic",
+} as const;
 
 type MockCommandArgsSchema = z.ZodType<Record<string, unknown>>;
 const browserMockCommandArgsSchemas: CommandArgsSchemaRegistry = commandArgsSchemas satisfies Record<

@@ -92,7 +92,7 @@ import {
 } from "@/api/tauri-commands";
 import { DEFAULT_PLATFORM_INFO } from "@/constants/platform";
 import { mockArticles } from "@/dev/mock-data";
-import { DEV_MOCK_PLATFORM_INFO, setupDevMocks } from "@/dev/mocks";
+import { DEV_MOCK_NETWORK_BOUNDARY, DEV_MOCK_PLATFORM_INFO, setupDevMocks } from "@/dev/mocks";
 import type { BrowserWebviewBounds } from "@/lib/browser/browser-webview";
 
 type DevMockDiagnosticsTestWindow = Window & {
@@ -466,6 +466,26 @@ describe("setupDevMocks", () => {
       { command: "add_to_reading_list", url: "https://example.com/read-later", target: "reading-list" },
     ]);
     windowOpenSpy.mockRestore();
+  });
+
+  it("documents browser-only network boundaries for real-domain mock URLs", async () => {
+    setupDevMocks();
+
+    expect(DEV_MOCK_NETWORK_BOUNDARY).toEqual({
+      externalOpen: "record-only",
+      browserWebview: "state-only",
+      feedDiscovery: "synthetic",
+    });
+    expect(
+      Result.unwrap(await createOrUpdateBrowserWebview("https://www3.nhk.or.jp/news/html/mock.html", browserBounds)),
+    ).toMatchObject({
+      url: "https://www3.nhk.or.jp/news/html/mock.html",
+      is_loading: false,
+    });
+    expect(Result.unwrap(await discoverFeeds("https://www3.nhk.or.jp"))).toEqual([
+      { url: "https://www3.nhk.or.jp/feed", title: "Main Feed" },
+      { url: "https://www3.nhk.or.jp/comments/feed", title: "Comments Feed" },
+    ]);
   });
 
   it("keeps browser-only browser embed URL fallback aligned with command URL policy", async () => {
