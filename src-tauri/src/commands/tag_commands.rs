@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use rusqlite::{params, OptionalExtension};
+use rusqlite::{params, Connection, OptionalExtension, Transaction, TransactionBehavior};
 use tauri::State;
 
 use crate::commands::article_commands::{article_command_pagination, DEFAULT_ARTICLE_LIST_LIMIT};
@@ -63,12 +63,11 @@ fn has_duplicate_tag_name(tags: &[Tag], tag_id: &str, name: &str) -> bool {
 }
 
 fn validate_article_tag_targets(
-    db: &crate::infra::db::connection::DbManager,
+    conn: &Connection,
     article_id: &str,
     tag_id: &str,
 ) -> Result<(), AppError> {
-    let article_exists = db
-        .reader()
+    let article_exists = conn
         .query_row(
             "SELECT 1 FROM articles WHERE id = ?1",
             params![article_id],
@@ -83,8 +82,7 @@ fn validate_article_tag_targets(
         });
     }
 
-    let tag_exists = db
-        .reader()
+    let tag_exists = conn
         .query_row("SELECT 1 FROM tags WHERE id = ?1", params![tag_id], |_| {
             Ok(())
         })
@@ -98,6 +96,12 @@ fn validate_article_tag_targets(
     }
 
     Ok(())
+}
+
+fn begin_immediate_transaction(conn: &Connection) -> Result<Transaction<'_>, AppError> {
+    Transaction::new_unchecked(conn, TransactionBehavior::Immediate)
+        .map_err(DomainError::from)
+        .map_err(AppError::from)
 }
 
 fn parse_article_list_mode(mode: Option<&str>) -> Result<ArticleListMode, AppError> {
@@ -209,8 +213,11 @@ fn delete_tag_impl(
     tag_id: String,
 ) -> Result<(), AppError> {
     let db = lock_db(db)?;
-    let repo = SqliteTagRepository::new(db.writer());
+    let tx = begin_immediate_transaction(db.writer())?;
+    let repo = SqliteTagRepository::new(&tx);
     repo.delete(&TagId(tag_id))?;
+    drop(repo);
+    tx.commit().map_err(DomainError::from)?;
     Ok(())
 }
 
@@ -234,9 +241,12 @@ fn tag_article_impl(
     tag_id: String,
 ) -> Result<(), AppError> {
     let db = lock_db(db)?;
-    validate_article_tag_targets(&db, &article_id, &tag_id)?;
-    let repo = SqliteTagRepository::new(db.writer());
+    let tx = begin_immediate_transaction(db.writer())?;
+    validate_article_tag_targets(&tx, &article_id, &tag_id)?;
+    let repo = SqliteTagRepository::new(&tx);
     repo.tag_article(&ArticleId(article_id), &TagId(tag_id))?;
+    drop(repo);
+    tx.commit().map_err(DomainError::from)?;
     Ok(())
 }
 
@@ -255,9 +265,12 @@ fn untag_article_impl(
     tag_id: String,
 ) -> Result<(), AppError> {
     let db = lock_db(db)?;
-    validate_article_tag_targets(&db, &article_id, &tag_id)?;
-    let repo = SqliteTagRepository::new(db.writer());
+    let tx = begin_immediate_transaction(db.writer())?;
+    validate_article_tag_targets(&tx, &article_id, &tag_id)?;
+    let repo = SqliteTagRepository::new(&tx);
     repo.untag_article(&ArticleId(article_id), &TagId(tag_id))?;
+    drop(repo);
+    tx.commit().map_err(DomainError::from)?;
     Ok(())
 }
 
@@ -647,6 +660,58 @@ mod tests {
             error,
             AppError::UserVisible { message } if message == "Tag not found"
         ));
+    }
+
+    #[test]
+    fn tag_article_transaction_blocks_tag_delete_after_validation() {
+        let db = test_db();
+        let db = db.lock().unwrap();
+        let (article_id, tag_id) = insert_article_and_tag(&db);
+        let tx = begin_immediate_transaction(db.writer()).unwrap();
+
+        validate_article_tag_targets(&tx, &article_id.0, &tag_id.0).unwrap();
+
+        let delete_error = db
+            .reader()
+            .execute("DELETE FROM tags WHERE id = ?1", params![tag_id.0])
+            .expect_err(
+                "tag delete from another connection should wait until tag transaction ends",
+            );
+        assert!(
+            delete_error.to_string().contains("locked"),
+            "unexpected delete error: {delete_error}"
+        );
+
+        let repo = SqliteTagRepository::new(&tx);
+        repo.tag_article(&article_id, &tag_id).unwrap();
+        drop(repo);
+        tx.commit().unwrap();
+    }
+
+    #[test]
+    fn tag_article_transaction_blocks_article_delete_after_validation() {
+        let db = test_db();
+        let db = db.lock().unwrap();
+        let (article_id, tag_id) = insert_article_and_tag(&db);
+        let tx = begin_immediate_transaction(db.writer()).unwrap();
+
+        validate_article_tag_targets(&tx, &article_id.0, &tag_id.0).unwrap();
+
+        let delete_error = db
+            .reader()
+            .execute("DELETE FROM articles WHERE id = ?1", params![article_id.0])
+            .expect_err(
+                "article delete from another connection should wait until tag transaction ends",
+            );
+        assert!(
+            delete_error.to_string().contains("locked"),
+            "unexpected delete error: {delete_error}"
+        );
+
+        let repo = SqliteTagRepository::new(&tx);
+        repo.tag_article(&article_id, &tag_id).unwrap();
+        drop(repo);
+        tx.commit().unwrap();
     }
 
     #[test]
