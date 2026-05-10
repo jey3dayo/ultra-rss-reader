@@ -3127,11 +3127,6 @@
   - open/save dialog の拡張子・既存 file overwrite・cancel handling がばらつくと、ユーザーデータを誤上書きしやすい
   - `.opml`/`.xml` filter、existing file overwrite、cancel result、directory selected、extension auto-append の policy を追加する
 
-- [ ] P2 app data directory rename / bundle identifier migration path を明文化する
-  - 対象: `src-tauri/tauri*.conf.json`, startup data dir, release docs
-  - bundle identifier を変えると OS app data dir が変わり、既存 DB/credentials/log が見えなくなる
-  - old identifier detection、DB migration prompt、credential migration impossible copy、log path note、rollback の contract を追加する
-
 - [ ] P2 `AppState` mutex poisoning を command surface 全体で同じ error に揃える
   - 対象: `commands::*`, `AppState`, DB/browser tracker mutex access
   - 一部 command だけ poisoned mutex を panic/unwrap すると、単一 command failure が app 全体 failure に広がる
@@ -3141,11 +3136,6 @@
   - 対象: `src-tauri/src/domain/constants.rs`, `record_article_view`, reader history UI
   - hardcoded 50 件の意味が未明確だと、履歴 UI や storage cleanup で期待がずれる
   - max count、duplicate article revisit、account delete、feed delete、clear history、migration の contract を追加する
-
-- [ ] P2 production log timezone strategy を UTC/local のどちらにするか support docs と同期する
-  - 対象: `src-tauri/src/lib.rs`, log docs, support workflow
-  - release log が local time だと timezone をまたぐ報告で sync/update 時刻の突合が難しくなる
-  - local timezone、UTC alternative、DST boundary、log filename/time display、support copy の policy を決める
 
 - [ ] P3 Windows dispatch env allowlist を dev credential 以外の future env 追加に備えて schema 化する
   - 対象: `scripts/lib/windows-dispatch.ts`, dev scripts
@@ -3198,26 +3188,6 @@
   - 巨大 feed や巨大 HTML を parse/render した時に body cap だけでは JS/Rust memory pressure を検出できない
   - large feed entries、large article HTML、many images、large OPML、render abort/fallback の smoke を追加する
 
-- [ ] P2 test suite parallelism と shared global state の isolation policy を明文化する
-  - 対象: Vitest setup、Rust tests、global diagnostics/reset helpers
-  - parallel test が localStorage、window globals、OnceLock、env vars を共有すると flake が増える
-  - env var isolation、OnceLock reset、localStorage reset、fake timers、Rust test threads の policy を追加する
-
-- [ ] P2 Rust integration tests の filesystem temp dir cleanup failure を diagnostics 化する
-  - 対象: `src-tauri/tests`, temp DB/keyring fixtures
-  - temp dir cleanup が失敗しても見えないと、次回 test や disk usage に影響する
-  - temp dir owner、Windows open handle、cleanup failure warning、test retry、artifact retention の task に分ける
-
-- [ ] P2 CI failure artifact retention を frontend/Rust/native smoke ごとに分類する
-  - 対象: `.github/workflows/ci.yml`, release workflow, test outputs
-  - 失敗時に必要な log/screenshot/DB fixture が残らないと、remote failure を再現できない
-  - Vitest logs、Rust test logs、native app logs、screenshots、DB backup artifact、retention days の matrix を作る
-
-- [ ] P2 app action telemetry-free audit log を local diagnostics として持つか決める
-  - 対象: app action dispatcher、diagnostics reporter、debug HUD
-  - action failure の再現には sequence が必要だが、telemetry なし方針なら local-only・redacted・size-capped の設計が必要
-  - local-only log、redaction、size cap、action id、account/feed omission、support copy の decision を追加する
-
 - [ ] P2 user-facing error copy の support code / diagnostics id 方針を決める
   - 対象: `AppError` schema、toasts、dialogs、runtime diagnostics
   - 詳細を隠すほど問い合わせ時の特定が難しくなるため、secret を出さずに照合できる短い code/id が必要か判断する
@@ -3227,11 +3197,6 @@
   - 対象: `src-tauri/src/repository`, `src-tauri/src/infra/db`
   - `list/find/get/count/save/update` の境界が揺れると、transaction/read-write classification と test naming が追いにくい
   - read-only、write、upsert、bulk、maintenance、raw SQL owner の naming inventory を作る
-
-- [ ] P3 fixture domain names を RFC reserved domains へ寄せる移行計画を作る
-  - 対象: `src/dev/mock-data.ts`, tests fixtures, docs screenshots
-  - 実在ドメイン fixture が多いと accidental network access と権利/表示変更の影響を受ける
-  - `example.com`、`example.jp`、`.test`、allowed real domains、screenshot text の migration plan を作る
 
 - [ ] P1 app log / diagnostics の maximum total size と emergency truncation を固定する
   - 対象: log plugin setup、runtime diagnostics、support dump
@@ -3247,11 +3212,6 @@
   - 対象: reader article list、settings forms、command palette、dialogs
   - desktop webview の zoom/text scaling で固定高さ row や toolbar button が重なると、accessibility と操作性が落ちる
   - 125/150/200% zoom、large font、narrow width、toolbar icons、form labels の visual smoke を追加する
-
-- [ ] P2 imported OPML account ownership を cross-account duplicate / move flow で固定する
-  - 対象: OPML import、feed repository、settings account selection
-  - 別 account に同じ feed URL を import する時の duplicate 判定と folder ownership が曖昧だと feed が欠落する
-  - same URL different account、same URL same account、folder same name different account、account switch during import、export scope の contract を追加する
 
 - [ ] P2 provider account kind 追加時の migration checklist を template 化する
   - 対象: provider traits、account settings、schema/tests
@@ -3307,11 +3267,6 @@
   - 対象: DB storage、credential storage、privacy docs
   - keyring は credential を守るが、DB には feed/article/history が残るため、暗号化しない理由または将来方針を明文化する必要がある
   - threat model、OS disk encryption reliance、portable backup、search performance、migration cost の decision を追加する
-
-- [ ] P2 OPML export に privacy summary comment を入れる/入れない decision を作る
-  - 対象: OPML generator、export docs
-  - OPML は共有されやすいが購読傾向や folder 名を含むため、生成物に注意書きを入れるか決めておく
-  - comment included/omitted、round-trip compatibility、reader import tolerance、locale copy、user warning の decision を追加する
 
 - [ ] P2 stale query cache after app version upgrade を schema version / query key version で検出する
   - 対象: React Query keys、startup boot、schema migrations
@@ -3384,11 +3339,6 @@
   - 対象: `src-tauri/src/infra/db`, migrations, repo contract tests
   - column rename や migration 追加後に raw SQL string が古いままでも compiler が拾えない
   - table names、column names、index names、raw SQL parser limits、intentional dynamic SQL allowlist の report を追加する
-
-- [ ] P1 remote feed content 由来の filename/path suggestion を絶対に使わない contract を作る
-  - 対象: OPML export、backup/export dialogs、article share future scope
-  - feed title や article title を file name suggestion に使うと、path separator/control char/RTL spoof で危険な保存名になる
-  - feed title、account name、article title、control chars、path separators、safe default filename の policy を追加する
 
 - [ ] P2 account recovery flow を credential reset / server URL fix / cache clear の三系統に分ける
   - 対象: account detail settings、sync error UI、diagnostics
