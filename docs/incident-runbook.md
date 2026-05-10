@@ -92,6 +92,14 @@ Destructive recovery copy contract:
 - If the app cannot identify the target account/feed/tag/history scope, disable the destructive action and show a recovery reason instead of allowing a generic delete.
 - Retry copy after a failed destructive action must say whether nothing changed, the result is unknown, or a partial result may require backup restore.
 
+Account recovery contract:
+
+- Credential reset means re-entering and saving the account password. If saving the account update fails after writing the new credential, restore the previous keyring entry; if the previous credential cannot be read, leave the account unchanged and ask the user to re-enter credentials.
+- Server URL or username fix means updating account credentials metadata and then testing the connection. When either value changes, clear account-scoped `sync_state` and `pending_mutations`; when they do not change, keep the cache and pending queue.
+- Cache clear means removing stale account-scoped sync state or pending mutations, not rewriting credentials. If the UI cannot expose a separate cache clear action, describe it as unavailable rather than folding it into credential reset.
+- Delete account removes the database account first, then attempts to remove the matching OS keyring entry by account id. A keyring cleanup failure makes privacy cleanup incomplete, but must not resurrect the deleted database account.
+- Rename account does not rename keyring entries because credentials are keyed by stable account id, not display name.
+
 ### Export And Settings Portability
 
 - OPML export is a subscription list export. It should not contain credentials, tokens, cookies, article content, read/star state, sync metadata, local paths, or database backup metadata, but feed titles, folder names, and feed URLs can still be private.

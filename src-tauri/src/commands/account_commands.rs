@@ -769,6 +769,38 @@ mod tests {
     }
 
     #[test]
+    fn delete_account_deletes_password_after_db_delete_success() {
+        let account = fresh_rss_account();
+        let deleted_accounts = RefCell::new(Vec::new());
+        let deleted_passwords = RefCell::new(Vec::new());
+
+        delete_account_then_password(
+            &account.id,
+            |account_id| {
+                assert!(deleted_passwords.borrow().is_empty());
+                deleted_accounts
+                    .borrow_mut()
+                    .push(account_id.as_ref().to_string());
+                Ok(())
+            },
+            |account_id| {
+                deleted_passwords.borrow_mut().push(account_id.to_string());
+                Ok(())
+            },
+        )
+        .expect("successful account delete should clean up the keyring entry");
+
+        assert_eq!(
+            deleted_accounts.borrow().as_slice(),
+            &[account.id.as_ref().to_string()]
+        );
+        assert_eq!(
+            deleted_passwords.borrow().as_slice(),
+            &[account.id.as_ref().to_string()]
+        );
+    }
+
+    #[test]
     fn delete_account_keeps_db_delete_when_password_delete_fails() {
         let account = fresh_rss_account();
         let deleted_accounts = RefCell::new(Vec::new());

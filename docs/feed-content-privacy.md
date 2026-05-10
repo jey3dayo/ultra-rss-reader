@@ -132,6 +132,8 @@ Destructive copy contract:
 - Delete account and clear history copy must recommend making or preserving a private backup first when the operation can remove private reading or subscription history.
 - Cleanup orphans copy must distinguish dry-run preview from destructive cleanup and must not imply undo when only a backup restore could recover data.
 - When the target name cannot be loaded or parsed safely, the destructive action must be disabled or shown as a recovery-only action with the unavailable reason, not enabled with a generic target.
+- Account recovery copy must keep credential reset, server URL or username fix, and account-scoped cache clear as separate recovery paths. Credential reset handles keyring material, server URL or username fix handles connection metadata and verification, and cache clear handles stale `sync_state` or `pending_mutations`.
+- Account delete copy must treat the database account and OS keyring credential as separate privacy surfaces. If the database account is deleted but credential cleanup fails, report partial cleanup instead of claiming a complete reset.
 
 Dense list name display contract:
 
