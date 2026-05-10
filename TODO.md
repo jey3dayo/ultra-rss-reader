@@ -217,20 +217,6 @@
 
 #### TODO expansion stop / implementation switch gates
 
-- [ ] P2-C2av Wave 1 実装開始の go/no-go gate を固定する
-  - go condition: `P2-C2ap`〜`P2-C2at` の readiness check が満たされ、既存 dirty files と worker write scope が分離されている
-  - no-go condition: focused test が実在しない、helper owner が決まらない、dirty worktree の owner が不明、do-not-run-with に衝突する worker が既に動いている
-  - output: go の場合は `P2-C2ab` の parallel group か solo group へ移り、no-go の場合は missing prerequisite を該当 readiness item に追記する
-  - verification: `git status --short`, `rg --files`, focused test dry run または test availability rationale
-  - defer: Wave 2/3/4 の実装判断は Wave 1 の completed marker が入ってから行う
-
-- [ ] P2-C2aw first implementation candidate を 1 件だけ選んで実装へ移す
-  - candidates: `P2-C2g` (`P1-Q3a`), `P2-C2h` (`P2-QT1`), `P2-C2i` (`P2-QT2`)
-  - selection rule: write scope が最小、focused test が実在、既存 dirty files と衝突しない、helper owner が brief-local で済むものを選ぶ
-  - reject: query/cache solo group の `P2-C2f` を他 Wave 1 helper と同時に始める、または `P2-C2j` が DB command semantics に触れる状態で始める
-  - output: 選んだ candidate の handoff packet、expected files、focused test command、fallback plan
-  - verification: 実装前に candidate brief と `P2-C2ag` の packet fields が一致すること
-
 #### First implementation candidate selection
 
 ### TODO shard 方針
