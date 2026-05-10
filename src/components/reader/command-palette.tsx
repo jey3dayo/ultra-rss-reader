@@ -24,6 +24,7 @@ export function CommandPalette() {
         className="overflow-hidden rounded-2xl border border-border/70 bg-surface-2/96 p-0 shadow-elevation-3"
         overlayPreset="readable"
         showCloseButton={false}
+        stackLayer="commandPalette"
       >
         <DialogHeader className="sr-only">
           <DialogTitle>{title}</DialogTitle>

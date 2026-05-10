@@ -69,6 +69,48 @@ describe("DialogContent", () => {
     expect(screen.getByRole("dialog", { name: "Test dialog" })).toHaveAttribute("data-stack-layer", "dialog");
   });
 
+  it("keeps background content hidden and inert while the modal dialog owns the top layer", () => {
+    render(
+      <>
+        <main data-testid="background-shell">
+          <button type="button">Background action</button>
+        </main>
+        <Dialog open>
+          <DialogContent>
+            <DialogTitle>Test dialog</DialogTitle>
+          </DialogContent>
+        </Dialog>
+      </>,
+    );
+
+    expect(screen.getByTestId("background-shell")).toHaveAttribute("aria-hidden", "true");
+    expect(screen.getByTestId("background-shell")).toHaveAttribute("inert");
+    expect(screen.getByRole("dialog", { name: "Test dialog" })).not.toHaveAttribute("aria-hidden");
+    expect(screen.getByRole("dialog", { name: "Test dialog" })).not.toHaveAttribute("inert");
+  });
+
+  it("keeps the trap-focus escape hatch from hiding sibling top-layer surfaces", () => {
+    render(
+      <>
+        <main data-testid="background-shell">
+          <button type="button">Background action</button>
+        </main>
+        <div data-browser-overlay-root="" data-testid="browser-overlay-root" />
+        <Dialog open modal="trap-focus">
+          <DialogContent stackLayer="commandPalette">
+            <DialogTitle>Test dialog</DialogTitle>
+          </DialogContent>
+        </Dialog>
+      </>,
+    );
+
+    expect(screen.getByTestId("background-shell")).not.toHaveAttribute("aria-hidden", "true");
+    expect(screen.getByTestId("background-shell")).not.toHaveAttribute("inert");
+    expect(screen.getByTestId("browser-overlay-root")).not.toHaveAttribute("aria-hidden", "true");
+    expect(screen.getByTestId("browser-overlay-root")).not.toHaveAttribute("inert");
+    expect(screen.getByRole("dialog", { name: "Test dialog" })).toHaveAttribute("data-stack-layer", "commandPalette");
+  });
+
   it("uses the shared dialog close locale label in the footer", async () => {
     await i18n.changeLanguage("ja");
 

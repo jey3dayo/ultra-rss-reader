@@ -2,7 +2,7 @@
 
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { XIcon } from "lucide-react";
-import type * as React from "react";
+import * as React from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { MOTION_POPUP_DIALOG_CLASS_NAME, MOTION_POPUP_OVERLAY_CLASS_NAME } from "@/constants";
@@ -31,8 +31,62 @@ export type DialogFooterProps = React.ComponentProps<"div"> & {
 export type DialogTitleProps = DialogPrimitive.Title.Props;
 export type DialogDescriptionProps = DialogPrimitive.Description.Props;
 
-function Dialog({ ...props }: DialogProps) {
-  return <DialogPrimitive.Root data-slot="dialog" {...props} />;
+const DialogModalContext = React.createContext<DialogProps["modal"]>(true);
+
+function hideElementsOutsideDialog(dialogId: string) {
+  const dialogElements = Array.from(document.querySelectorAll(`[data-dialog-stack-id="${dialogId}"]`));
+  const hiddenElements: Array<{
+    element: HTMLElement;
+    ariaHidden: string | null;
+    inertAttribute: string | null;
+    inert: boolean;
+  }> = [];
+  const allElements = Array.from(document.body.querySelectorAll<HTMLElement>("*"));
+
+  for (const element of allElements) {
+    const isDialogElement = dialogElements.some(
+      (dialogElement) =>
+        element === dialogElement || element.contains(dialogElement) || dialogElement.contains(element),
+    );
+
+    if (isDialogElement) {
+      continue;
+    }
+
+    hiddenElements.push({
+      element,
+      ariaHidden: element.getAttribute("aria-hidden"),
+      inertAttribute: element.getAttribute("inert"),
+      inert: element.inert,
+    });
+    element.setAttribute("aria-hidden", "true");
+    element.setAttribute("inert", "");
+    element.inert = true;
+  }
+
+  return () => {
+    for (const { element, ariaHidden, inertAttribute, inert } of hiddenElements) {
+      if (ariaHidden === null) {
+        element.removeAttribute("aria-hidden");
+      } else {
+        element.setAttribute("aria-hidden", ariaHidden);
+      }
+      if (inertAttribute === null) {
+        element.removeAttribute("inert");
+      } else {
+        element.setAttribute("inert", inertAttribute);
+      }
+      element.inert = inert;
+    }
+  };
+}
+
+function Dialog({ modal = true, ...props }: DialogProps) {
+  return (
+    <DialogModalContext value={modal}>
+      <DialogPrimitive.Root data-slot="dialog" modal={modal} {...props} />
+    </DialogModalContext>
+  );
 }
 
 function DialogTrigger({ ...props }: DialogTriggerProps) {
@@ -83,17 +137,28 @@ function DialogContent({
   ...props
 }: DialogContentProps) {
   const { t } = useTranslation();
+  const modal = React.useContext(DialogModalContext);
+  const dialogId = React.useId();
   const resolvedOverlayClassName = [getDialogOverlayPresetClass(overlayPreset), overlayClassName]
     .filter(Boolean)
     .join(" ");
   const resolvedCloseLabel = resolveDialogCloseLabel(closeLabel, t(["dialog_close", "close"]));
   const stackClassName = getDialogStackClass(stackLayer);
 
+  React.useEffect(() => {
+    if (modal !== true) {
+      return undefined;
+    }
+
+    return hideElementsOutsideDialog(dialogId);
+  }, [dialogId, modal]);
+
   return (
     <DialogPortal>
-      <DialogOverlay className={[stackClassName, resolvedOverlayClassName].join(" ")} />
+      <DialogOverlay className={[stackClassName, resolvedOverlayClassName].join(" ")} data-dialog-stack-id={dialogId} />
       <DialogPrimitive.Popup
         data-slot="dialog-content"
+        data-dialog-stack-id={dialogId}
         data-stack-layer={stackLayer}
         className={cn(
           MOTION_POPUP_DIALOG_CLASS_NAME,

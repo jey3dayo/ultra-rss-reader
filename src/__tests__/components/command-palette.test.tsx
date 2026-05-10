@@ -143,6 +143,20 @@ describe("CommandPalette", () => {
     expect(screen.queryByRole("option", { name: /Tech Blog/ })).not.toBeInTheDocument();
   });
 
+  it("uses the command palette top-layer stack contract", async () => {
+    render(<CommandPalette />, { wrapper: createWrapper() });
+
+    const dialog = screen.getByRole("dialog", {
+      name: "Open command palette",
+      description: "Search commands…",
+    });
+    const overlay = document.querySelector('[data-slot="dialog-overlay"]');
+
+    expect(dialog).toHaveAttribute("data-stack-layer", "commandPalette");
+    expect(dialog).toHaveClass("z-50");
+    expect(overlay).toHaveClass("z-50");
+  });
+
   it("shows recent resources without duplicating persisted history entries", async () => {
     seedCommandHistory(["feed:feed-1", "feed:feed-1", "tag:tag-1", "tag:tag-1", "article:art-1", "article:art-1"]);
 
