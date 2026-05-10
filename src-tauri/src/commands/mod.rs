@@ -253,6 +253,7 @@ pub(crate) fn lock_browser_webview(
 pub struct AppState {
     pub db: Mutex<DbManager>,
     pub syncing: Arc<AtomicBool>,
+    pub shutdown_draining: Arc<AtomicBool>,
     pub automatic_sync_enabled: Arc<AtomicBool>,
     pub automatic_sync_notify: Arc<tokio::sync::Notify>,
     pub browser_webview: Mutex<BrowserWebviewTracker>,

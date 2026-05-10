@@ -34,6 +34,8 @@ use repository::preference::PreferenceRepository;
 #[cfg(not(test))]
 use tauri::Manager;
 
+#[cfg(not(test))]
+const SHUTDOWN_DRAIN_TIMEOUT: Duration = Duration::from_secs(5);
 #[cfg(any(not(debug_assertions), test))]
 const RELEASE_LOG_MAX_FILE_SIZE_BYTES: u64 = 5_000_000;
 #[cfg(any(not(debug_assertions), test))]
@@ -220,16 +222,8 @@ fn database_init_error_message(error: &DomainError, db_path: &std::path::Path) -
     }
 }
 
-fn database_init_panic_message(error: &DomainError, db_path: &std::path::Path) -> String {
-    match error {
-        DomainError::Migration(_) => database_init_error_message(error, db_path),
-        _ => format!(
-            "Failed to initialize database during startup filesystem access: {error}\n\
-             Database file: {}\n\
-             Check OS permissions and available disk space, then restart the application.",
-            redacted_path_label(db_path)
-        ),
-    }
+fn database_init_startup_error_message(error: &DomainError, db_path: &std::path::Path) -> String {
+    database_init_error_message(error, db_path)
 }
 
 fn startup_app_data_dir_error_message(error: &impl std::fmt::Display) -> String {
@@ -512,7 +506,7 @@ pub fn run() {
                 Ok(db) => db,
                 Err(e) => {
                     tracing::error!("Database initialization failed: {e}");
-                    panic!("{}", database_init_panic_message(&e, &db_path));
+                    return Err(database_init_startup_error_message(&e, &db_path).into());
                 }
             };
 
@@ -544,16 +538,41 @@ pub fn run() {
                     .expect("Failed to configure main window title bar style");
 
                 let startup_focus_restore_active_for_window = startup_focus_restore_active.clone();
-                window.on_window_event(move |event| {
-                    if matches!(
-                        event,
-                        tauri::WindowEvent::CloseRequested { .. } | tauri::WindowEvent::Destroyed
-                    ) {
+                window.on_window_event(move |event| match event {
+                    tauri::WindowEvent::CloseRequested { api, .. } => {
+                        service::sync_scheduler::request_sync_scheduler_shutdown();
+                        mark_startup_focus_restore_stopped(
+                            &startup_focus_restore_active_for_window,
+                        );
+                        let Some(state) = handle.try_state::<AppState>() else {
+                            return;
+                        };
+                        if state
+                            .shutdown_draining
+                            .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+                            .is_err()
+                        {
+                            api.prevent_close();
+                            return;
+                        }
+                        api.prevent_close();
+                        let app_handle = handle.clone();
+                        tauri::async_runtime::spawn(async move {
+                            browser_webview::cleanup_browser_webview_for_shutdown(&app_handle);
+                            service::sync_scheduler::drain_sync_scheduler_shutdown(
+                                SHUTDOWN_DRAIN_TIMEOUT,
+                            )
+                            .await;
+                            app_handle.exit(0);
+                        });
+                    }
+                    tauri::WindowEvent::Destroyed => {
                         service::sync_scheduler::request_sync_scheduler_shutdown();
                         mark_startup_focus_restore_stopped(
                             &startup_focus_restore_active_for_window,
                         );
                     }
+                    _ => {}
                 });
             }
 
@@ -562,6 +581,7 @@ pub fn run() {
             app.manage(AppState {
                 db: Mutex::new(db),
                 syncing: Arc::new(AtomicBool::new(false)),
+                shutdown_draining: Arc::new(AtomicBool::new(false)),
                 automatic_sync_enabled: Arc::new(AtomicBool::new(false)),
                 automatic_sync_notify: Arc::new(tokio::sync::Notify::new()),
                 browser_webview: Mutex::new(browser_webview::BrowserWebviewTracker::default()),
@@ -683,17 +703,17 @@ mod tests {
     use super::{
         cleanup_old_logs, cleanup_old_logs_entry_debug, cleanup_old_logs_metadata_debug,
         cleanup_old_logs_modified_debug, cleanup_old_logs_read_dir_warning,
-        cleanup_old_logs_remove_warning, database_init_error_message, database_init_panic_message,
-        main_window_title_bar_uses_overlay, mark_startup_focus_restore_stopped, panic_payload_text,
-        redact_sensitive_panic_text, redacted_path_label,
-        startup_app_data_dir_create_error_message, startup_app_data_dir_error_message,
-        startup_focus_main_thread_warning, startup_focus_restore_decision,
-        startup_focus_restore_is_active, startup_main_webview_focus_warning,
-        startup_main_window_focus_warning, startup_main_window_show_warning,
-        startup_preferences_or_default, startup_preferences_read_warning_message,
-        tracing_init_status, StartupFocusRestoreDecision, TracingInitStatus,
-        RELEASE_LOG_MAX_FILE_SIZE_BYTES, RELEASE_LOG_RETENTION_DAYS, RELEASE_LOG_ROTATION_STRATEGY,
-        RELEASE_LOG_TIMEZONE_STRATEGY,
+        cleanup_old_logs_remove_warning, database_init_error_message,
+        database_init_startup_error_message, main_window_title_bar_uses_overlay,
+        mark_startup_focus_restore_stopped, panic_payload_text, redact_sensitive_panic_text,
+        redacted_path_label, startup_app_data_dir_create_error_message,
+        startup_app_data_dir_error_message, startup_focus_main_thread_warning,
+        startup_focus_restore_decision, startup_focus_restore_is_active,
+        startup_main_webview_focus_warning, startup_main_window_focus_warning,
+        startup_main_window_show_warning, startup_preferences_or_default,
+        startup_preferences_read_warning_message, tracing_init_status, StartupFocusRestoreDecision,
+        TracingInitStatus, RELEASE_LOG_MAX_FILE_SIZE_BYTES, RELEASE_LOG_RETENTION_DAYS,
+        RELEASE_LOG_ROTATION_STRATEGY, RELEASE_LOG_TIMEZONE_STRATEGY,
     };
     use crate::domain::error::DomainError;
 
@@ -754,20 +774,20 @@ mod tests {
     }
 
     #[test]
-    fn database_init_panic_classifies_migration_and_filesystem_failures() {
+    fn database_init_startup_error_classifies_migration_and_filesystem_failures() {
         let db_path = Path::new("/Users/example/app/ultra-rss-reader.db");
-        let migration = database_init_panic_message(
+        let migration = database_init_startup_error_message(
             &DomainError::Migration("duplicate column".to_string()),
             db_path,
         );
-        let persistence = database_init_panic_message(
+        let persistence = database_init_startup_error_message(
             &DomainError::Persistence("permission denied".to_string()),
             db_path,
         );
 
         assert!(migration.contains("restore the newest backup"));
         assert!(!migration.contains("startup filesystem access"));
-        assert!(persistence.contains("startup filesystem access"));
+        assert!(persistence.contains("Check OS permissions and available disk space"));
         assert!(persistence.contains("permission denied"));
         assert!(!persistence.contains("/Users/example"));
     }

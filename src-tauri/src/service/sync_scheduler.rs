@@ -161,6 +161,36 @@ pub fn request_sync_scheduler_shutdown() {
     lifecycle.shutdown.request();
 }
 
+pub async fn drain_sync_scheduler_shutdown(timeout: Duration) -> bool {
+    let task = {
+        let Ok(mut lifecycle) = scheduler_lifecycle().lock() else {
+            tracing::warn!(
+                "Background sync scheduler shutdown drain skipped: lifecycle lock poisoned"
+            );
+            return false;
+        };
+        clear_inactive_scheduler_task(&mut lifecycle);
+        lifecycle.shutdown.request();
+        lifecycle.task.take()
+    };
+
+    let Some(task) = task else {
+        return true;
+    };
+
+    match tokio::time::timeout(timeout, task).await {
+        Ok(Ok(())) => true,
+        Ok(Err(error)) => {
+            tracing::warn!("Background sync scheduler shutdown drain failed: {error}");
+            false
+        }
+        Err(_) => {
+            tracing::warn!("Background sync scheduler shutdown drain timed out");
+            false
+        }
+    }
+}
+
 /// Start a background task that periodically syncs accounts based on their
 /// individual `sync_interval_secs` settings.
 ///
@@ -1545,6 +1575,32 @@ mod tests {
             .await
             .expect("registered scheduler task should drain after shutdown request")
             .expect("registered scheduler task should not panic");
+    }
+
+    #[tokio::test]
+    async fn scheduler_shutdown_drain_requests_and_awaits_registered_task() {
+        let mut lifecycle = scheduler_lifecycle()
+            .lock()
+            .expect("scheduler lifecycle test lock should be available");
+        *lifecycle = SchedulerLifecycle::default();
+        let scheduler_start =
+            prepare_scheduler_start(&mut lifecycle).expect("test scheduler should start");
+        let shutdown = scheduler_start.shutdown;
+        let running = scheduler_start.running;
+        let task = tauri::async_runtime::spawn(async move {
+            let _running_guard = SchedulerTaskRunningGuard(running);
+            shutdown.wait().await;
+        });
+        register_scheduler_task(&mut lifecycle, task);
+        drop(lifecycle);
+
+        assert!(drain_sync_scheduler_shutdown(Duration::from_millis(50)).await);
+
+        let mut lifecycle = scheduler_lifecycle()
+            .lock()
+            .expect("scheduler lifecycle test lock should be available after drain");
+        assert!(lifecycle.task.is_none());
+        *lifecycle = SchedulerLifecycle::default();
     }
 
     #[tokio::test]
