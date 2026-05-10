@@ -80,6 +80,7 @@ describe("useDeleteFeed", () => {
 
   it("keeps a successful delete successful when the optional success callback throws", async () => {
     const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const deleteFeedSpy = vi.spyOn(tauriCommands, "deleteFeed").mockResolvedValue(Result.succeed(null));
     const onSuccess = vi.fn(() => {
       throw new Error("callback boom");
@@ -98,6 +99,8 @@ describe("useDeleteFeed", () => {
 
     expect(deleteFeedSpy).toHaveBeenCalledWith("feed-1");
     expect(showToastMock).toHaveBeenCalledWith("Unsubscribed from Tech Blog");
+    expect(showToastMock).toHaveBeenCalledWith("Unsubscribe completed, but UI cleanup failed: callback boom");
+    expect(consoleErrorSpy).toHaveBeenCalledWith("Delete feed success callback failed", expect.any(Error));
     expect(onSuccess).toHaveBeenCalledTimes(1);
     await waitFor(() => {
       expect(invalidateQueriesSpy).toHaveBeenCalledWith({
@@ -159,6 +162,7 @@ describe("useDeleteFeed", () => {
   });
 
   it("keeps the delete failure reason when the optional error callback throws", async () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     vi.spyOn(tauriCommands, "deleteFeed").mockResolvedValue(Result.fail({ type: "UserVisible", message: "boom" }));
     const onError = vi.fn(() => {
       throw new Error("callback boom");
@@ -176,6 +180,8 @@ describe("useDeleteFeed", () => {
     ).rejects.toMatchObject({ message: "boom" });
 
     expect(showToastMock).toHaveBeenCalledWith("Failed to unsubscribe: boom");
+    expect(showToastMock).toHaveBeenCalledWith("Unsubscribe failed, and UI cleanup failed: callback boom");
+    expect(consoleErrorSpy).toHaveBeenCalledWith("Delete feed error callback failed", expect.any(Error));
     expect(onError).toHaveBeenCalledTimes(1);
   });
 

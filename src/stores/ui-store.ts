@@ -907,10 +907,13 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
     const data: ToastData = typeof message === "string" ? { message } : message;
     set({ toastMessage: data });
     if (!data.persistent) {
-      toastTimer = setTimeout(() => {
-        set({ toastMessage: null });
-        toastTimer = null;
+      const dismissTimer = setTimeout(() => {
+        set((state) => (state.toastMessage === data ? { toastMessage: null } : state));
+        if (toastTimer === dismissTimer) {
+          toastTimer = null;
+        }
       }, TOAST_AUTO_DISMISS_TIMEOUT_MS);
+      toastTimer = dismissTimer;
     }
   },
   clearToast: () => {
@@ -978,6 +981,27 @@ function setUiStoreStateWithToastCleanup(
   partial: UiStoreState | Partial<UiStoreState> | ((state: UiStoreState) => UiStoreState | Partial<UiStoreState>),
   replace?: boolean,
 ): void {
+  if (typeof partial === "function") {
+    const partialWithToastCleanup = (state: UiStoreState) => {
+      const nextState = partial(state);
+      if (
+        typeof nextState === "object" &&
+        nextState !== null &&
+        "toastMessage" in nextState &&
+        nextState.toastMessage === null
+      ) {
+        clearToastDismissTimer();
+      }
+      return nextState;
+    };
+    if (replace === true) {
+      setUiStoreState(partialWithToastCleanup as (state: UiStoreState) => UiStoreState, true);
+      return;
+    }
+    setUiStoreState(partialWithToastCleanup, false);
+    return;
+  }
+
   if (typeof partial === "object" && partial !== null && "toastMessage" in partial && partial.toastMessage === null) {
     clearToastDismissTimer();
   }

@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { APP_ACTIONS, type AppActionAvailabilityContext, isAppActionAvailable } from "@/lib/app-actions";
 import {
   buildKeyToActionMap,
+  formatKeyAsNativeAccelerator,
   formatKeyForDisplay,
   getRenamedShortcutPreferenceKey,
   getShortcutConflict,
@@ -311,6 +312,12 @@ describe("keyboard shortcut resolver", () => {
     expect(formatKeyForDisplay("⌘,", "windows")).toBe("Ctrl ,");
   });
 
+  it("formats frontend platform modifiers as native accelerators", () => {
+    expect(formatKeyAsNativeAccelerator("⌘+k")).toBe("CmdOrCtrl+K");
+    expect(formatKeyAsNativeAccelerator("⌘,")).toBe("CmdOrCtrl+,");
+    expect(formatKeyAsNativeAccelerator("Shift+⌘+\\")).toBe("Shift+CmdOrCtrl+\\");
+  });
+
   it("builds h/l as the default feed navigation bindings", () => {
     const map = buildKeyToActionMap({});
 
@@ -453,6 +460,18 @@ describe("keyboard shortcut resolver", () => {
       actionId: "next_article",
     });
     expect(buildKeyToActionMap(prefs).get("x")).toBeUndefined();
+  });
+
+  it("treats platform modifier aliases as the same shortcut before saving", () => {
+    const prefs = {
+      shortcut_open_command_palette: "CmdOrCtrl+K",
+    };
+
+    expect(getShortcutConflict("search", "Ctrl+k", prefs)).toEqual({
+      type: "duplicate",
+      actionId: "open_command_palette",
+    });
+    expect(buildKeyToActionMap(prefs).get("⌘+k")).toBe("open_command_palette");
   });
 
   it.each(["", "   "] as const)("treats a blank next-article shortcut override as disabled: %j", (shortcut) => {

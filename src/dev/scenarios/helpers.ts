@@ -54,6 +54,15 @@ export function cancelOpenWebPreviewUrlScenarioReplay(): void {
   openWebPreviewUrlReplayTimerIds = [];
 }
 
+function beginOpenWebPreviewUrlScenarioReplay(): number {
+  cancelOpenWebPreviewUrlScenarioReplay();
+  return openWebPreviewUrlReplayGeneration;
+}
+
+function isCurrentOpenWebPreviewUrlScenarioReplay(generation: number): boolean {
+  return generation === openWebPreviewUrlReplayGeneration;
+}
+
 async function cacheAccounts(ctx: DevScenarioContext): Promise<AccountDto[]> {
   const accounts = await Promise.resolve(ctx.actions.listAccounts());
   ctx.queryClient.setQueryData(["accounts"], accounts);
@@ -199,17 +208,24 @@ export async function runOpenWebPreviewUrlScenario(ctx: DevScenarioContext): Pro
     return;
   }
 
-  await applyDevWindowSize(ctx.ui.showToast);
-  cancelOpenWebPreviewUrlScenarioReplay();
-  const replayGeneration = openWebPreviewUrlReplayGeneration;
+  const replayGeneration = beginOpenWebPreviewUrlScenarioReplay();
+  const isCurrentReplay = () => isCurrentOpenWebPreviewUrlScenarioReplay(replayGeneration);
+
+  await applyDevWindowSize(ctx.ui.showToast, isCurrentReplay);
+  if (!isCurrentReplay()) {
+    return;
+  }
 
   const applyPreviewState = () => {
-    if (replayGeneration !== openWebPreviewUrlReplayGeneration) {
+    if (!isCurrentReplay()) {
       return;
     }
 
-    void applyDevWindowSize(ctx.ui.showToast);
-    ctx.ui.openBrowser(webUrl);
+    void applyDevWindowSize(ctx.ui.showToast, isCurrentReplay).then(() => {
+      if (isCurrentReplay()) {
+        ctx.ui.openBrowser(webUrl);
+      }
+    });
   };
 
   applyPreviewState();
@@ -297,18 +313,28 @@ async function applyVerifiedDevWindowResizeAttempt<TSize>(
   LogicalSize: LogicalSizeConstructor<TSize>,
   targetSize: WindowSizeLike,
   delayMs: number,
+  shouldContinue: () => boolean,
 ): Promise<boolean> {
   if (delayMs > 0) {
     await wait(delayMs);
   }
+  if (!shouldContinue()) {
+    return true;
+  }
 
   const verification = await verifyCurrentLogicalWindowSize(win, targetSize);
+  if (!shouldContinue()) {
+    return true;
+  }
   if (verification.isWithinTolerance) {
     await win.center();
     return true;
   }
 
   await win.setSize(new LogicalSize(targetSize.width, targetSize.height));
+  if (!shouldContinue()) {
+    return true;
+  }
   await win.center();
   return false;
 }
@@ -319,9 +345,12 @@ function wait(ms: number): Promise<void> {
   });
 }
 
-async function applyDevWindowSize(showToast: (message: string) => void): Promise<void> {
+async function applyDevWindowSize(
+  showToast: (message: string) => void,
+  shouldContinue: () => boolean = () => true,
+): Promise<void> {
   const requestedSize = readDevWindowSize();
-  if (!requestedSize) {
+  if (!requestedSize || !shouldContinue()) {
     return;
   }
 
@@ -330,31 +359,51 @@ async function applyDevWindowSize(showToast: (message: string) => void): Promise
       import("@tauri-apps/api/dpi"),
       import("@tauri-apps/api/window"),
     ]);
+    if (!shouldContinue()) {
+      return;
+    }
     const win = getCurrentWindow();
 
     if (await win.isMaximized()) {
       await win.unmaximize();
       await wait(DEV_WINDOW_UNMAXIMIZE_SETTLE_DELAY_MS);
-    }
-
-    const targetSize = await resolveTargetLogicalWindowSize(win, requestedSize);
-
-    // Resize retries are sequential because each pass depends on the previous size, center, and settle delay.
-    for (const delayMs of DEV_WINDOW_RESIZE_RETRY_DELAYS_MS) {
-      if (await applyVerifiedDevWindowResizeAttempt(win, LogicalSize, targetSize, delayMs)) {
+      if (!shouldContinue()) {
         return;
       }
     }
 
+    const targetSize = await resolveTargetLogicalWindowSize(win, requestedSize);
+    if (!shouldContinue()) {
+      return;
+    }
+
+    // Resize retries are sequential because each pass depends on the previous size, center, and settle delay.
+    for (const delayMs of DEV_WINDOW_RESIZE_RETRY_DELAYS_MS) {
+      if (!shouldContinue()) {
+        return;
+      }
+      if (await applyVerifiedDevWindowResizeAttempt(win, LogicalSize, targetSize, delayMs, shouldContinue)) {
+        return;
+      }
+    }
+
+    if (!shouldContinue()) {
+      return;
+    }
     const finalVerification = await verifyCurrentLogicalWindowSize(win, targetSize);
     if (!finalVerification.isWithinTolerance) {
       console.warn(`Dev scenario "${DEV_SCENARIO_ID.openWebPreviewUrl}" did not reach the requested window size.`, {
         targetSize,
         finalSize: finalVerification.currentSize,
       });
-      showToast(`Dev scenario "${DEV_SCENARIO_ID.openWebPreviewUrl}" could not verify the requested window size.`);
+      if (shouldContinue()) {
+        showToast(`Dev scenario "${DEV_SCENARIO_ID.openWebPreviewUrl}" could not verify the requested window size.`);
+      }
     }
   } catch (error) {
+    if (!shouldContinue()) {
+      return;
+    }
     console.warn(
       `Dev scenario "${DEV_SCENARIO_ID.openWebPreviewUrl}" could not apply the requested window size.`,
       error,

@@ -325,6 +325,82 @@ describe("seedDevDatabaseFromProdPlan", () => {
     }
   });
 
+  it("restores the backed up Dev database when install copy fails after destination cleanup", async () => {
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), "ultra-rss-seed-test-"));
+    try {
+      const prodDir = path.join(tempDir, "prod");
+      const devDir = path.join(tempDir, "dev");
+      await Promise.all([mkdir(prodDir, { recursive: true }), mkdir(devDir, { recursive: true })]);
+      await Promise.all([
+        writeFile(path.join(prodDir, "ultra-rss-reader.db"), "prod-db"),
+        writeFile(path.join(devDir, "ultra-rss-reader.db"), "dev-db"),
+      ]);
+
+      await expect(
+        seedDevDatabaseFromProdPlan(
+          buildSeedPlan({
+            prodAppDataDir: prodDir,
+            devAppDataDir: devDir,
+            timestamp: "20260501T123456",
+          }),
+          {
+            copyFileImpl: async (source, destination) => {
+              if (
+                hasPortablePathSuffix(String(source), "seed-from-prod-20260501T123456.staging/ultra-rss-reader.db") &&
+                hasPortablePathSuffix(String(destination), "dev/ultra-rss-reader.db")
+              ) {
+                throw new Error("install failed");
+              }
+              await copyFile(source, destination);
+            },
+          },
+        ),
+      ).rejects.toThrow("install failed");
+
+      await expect(readFile(path.join(devDir, "ultra-rss-reader.db"), "utf8")).resolves.toBe("dev-db");
+      await expect(
+        readFile(path.join(devDir, "backups", "seed-from-prod-20260501T123456", "ultra-rss-reader.db"), "utf8"),
+      ).resolves.toBe("dev-db");
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("preserves the primary failure when staging cleanup also fails", async () => {
+    const plan = buildSeedPlan({
+      prodAppDataDir: "/prod",
+      devAppDataDir: "/dev",
+      timestamp: "20260501T123456",
+    });
+    const rmRequests: string[] = [];
+
+    await expect(
+      seedDevDatabaseFromProdPlan(plan, {
+        accessImpl: async () => {},
+        lstatImpl: async () => createNonSymlinkStats(),
+        copyFileImpl: async (source, _destination) => {
+          if (hasPortablePathSuffix(String(source), "staging/ultra-rss-reader.db")) {
+            throw new Error("install failed");
+          }
+          if (hasPortablePathSuffix(String(source), "seed-from-prod-20260501T123456.staging/ultra-rss-reader.db")) {
+            throw new Error("install failed");
+          }
+        },
+        mkdirImpl: async () => {},
+        rmImpl: async (targetPath) => {
+          const portableTargetPath = toPortablePath(String(targetPath));
+          rmRequests.push(portableTargetPath);
+          if (
+            portableTargetPath === "/dev/backups/seed-from-prod-20260501T123456.staging" &&
+            rmRequests.filter((request) => request === portableTargetPath).length > 1
+          ) {
+            throw new Error("cleanup failed");
+          }
+        },
+      }),
+    ).rejects.toThrow("install failed");
+  });
+
   it("checks source artifacts concurrently while preserving copy result order", async () => {
     const plan = buildSeedPlan({
       prodAppDataDir: "/prod",
@@ -437,7 +513,7 @@ describe("seedDevDatabaseFromProd", () => {
     const detectionPromise = detectLikelyRunningAppProcesses({
       platform: "darwin",
       execFileImpl: async (_command, args) => {
-        const processName = args[1];
+        const processName = args.join(" ");
         requestedProcessNames.push(processName);
         await new Promise<void>((resolve) => {
           releaseChecks.set(processName, resolve);
@@ -447,7 +523,7 @@ describe("seedDevDatabaseFromProd", () => {
     });
 
     await Promise.resolve();
-    expect(requestedProcessNames).toEqual(["Ultra RSS Reader", "Ultra RSS Reader Dev", "ultra-rss-reader"]);
+    expect(requestedProcessNames).toEqual(["-x Ultra RSS Reader", "-x Ultra RSS Reader Dev", "-x ultra-rss-reader"]);
 
     for (const releaseCheck of releaseChecks.values()) {
       releaseCheck();
@@ -463,10 +539,8 @@ describe("seedDevDatabaseFromProd", () => {
   it("detects long Unix app process names from full command lines when exact name checks miss", async () => {
     const result = await detectLikelyRunningAppProcesses({
       platform: "linux",
-      execFileImpl: async (_command, args) => {
-        const mode = args[0];
-        const processName = args[1];
-        if (mode === "-f" && processName === "Ultra RSS Reader Dev") {
+      execFileImpl: async (_command, _args) => {
+        if (_command === "ps") {
           return {
             stdout: "123 /opt/Ultra RSS Reader Dev/ultra-rss-reader\n",
             stderr: "",
@@ -479,6 +553,25 @@ describe("seedDevDatabaseFromProd", () => {
     });
 
     expect(Result.unwrap(result)).toEqual(["Ultra RSS Reader Dev"]);
+  });
+
+  it("ignores Unix full command line matches that only contain the app name as an argument", async () => {
+    const result = await detectLikelyRunningAppProcesses({
+      platform: "linux",
+      execFileImpl: async (_command, _args) => {
+        if (_command === "ps") {
+          return {
+            stdout: "123 /usr/bin/logger Ultra RSS Reader Dev\n",
+            stderr: "",
+          };
+        }
+        const error = new Error("not found") as NodeJS.ErrnoException;
+        error.code = "1";
+        throw error;
+      },
+    });
+
+    expect(Result.unwrap(result)).toEqual([]);
   });
 
   it("does not replace the Dev database when the Unix full command line guard detects a running app", async () => {
@@ -499,10 +592,8 @@ describe("seedDevDatabaseFromProd", () => {
             ULTRA_RSS_DEV_APP_DATA_DIR: devDir,
           },
           platform: "linux",
-          execFileImpl: async (_command, args) => {
-            const mode = args[0];
-            const processName = args[1];
-            if (mode === "-f" && processName === "Ultra RSS Reader Dev") {
+          execFileImpl: async (_command, _args) => {
+            if (_command === "ps") {
               return {
                 stdout: "123 /opt/Ultra RSS Reader Dev/ultra-rss-reader\n",
                 stderr: "",
@@ -591,6 +682,9 @@ describe("seedDevDatabaseFromProd", () => {
               const error = new Error("not found") as NodeJS.ErrnoException;
               error.code = "1";
               throw error;
+            }
+            if (command === "ps") {
+              return { stdout: "", stderr: "" };
             }
             if (command === "lsof") {
               return { stdout: String(args[args.length - 1]), stderr: "" };

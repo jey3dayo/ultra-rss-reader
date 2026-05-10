@@ -24,6 +24,7 @@ vi.mock("@/lib/window/window-chrome", () => ({
 
 import { resetDevRuntimeOptionsCacheForTests } from "@/dev/intent";
 import { useDevIntent } from "@/dev/use-dev-intent";
+import { useResolvedDevIntent } from "@/dev/use-resolved-dev-intent";
 import { useUiStore } from "@/stores/ui-store";
 
 describe("useDevIntent", () => {
@@ -247,6 +248,60 @@ describe("useDevIntent", () => {
     await vi.runAllTimersAsync();
 
     expect(runRuntimeDevScenarioMock).not.toHaveBeenCalled();
+  });
+
+  it("ignores a stale runtime fallback when the env intent generation changes while options load", async () => {
+    let resolveOptions: (result: Result.Result<DevRuntimeOptions, never>) => void = () => {};
+    getDevRuntimeOptionsMock.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveOptions = resolve;
+      }),
+    );
+
+    renderHook(() => useDevIntent(), {
+      wrapper: ({ children }: { children: ReactNode }) => <>{children}</>,
+    });
+
+    vi.stubEnv("VITE_DEV_INTENT", "open-command-palette");
+    resolveOptions(
+      Result.succeed({
+        dev_intent: "open-web-preview-url",
+        dev_web_url: "https://example.com",
+        dev_window_width: null,
+        dev_window_height: null,
+      }),
+    );
+    await vi.runAllTimersAsync();
+
+    expect(runRuntimeDevScenarioMock).not.toHaveBeenCalled();
+  });
+
+  it("ignores a stale resolved intent load when the env intent generation changes while options load", async () => {
+    let resolveOptions: (result: Result.Result<DevRuntimeOptions, never>) => void = () => {};
+    getDevRuntimeOptionsMock.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveOptions = resolve;
+      }),
+    );
+
+    const hook = renderHook(() => useResolvedDevIntent(), {
+      wrapper: ({ children }: { children: ReactNode }) => <>{children}</>,
+    });
+
+    expect(hook.result.current).toEqual({ intent: null, ready: false });
+
+    vi.stubEnv("VITE_DEV_INTENT", "open-command-palette");
+    resolveOptions(
+      Result.succeed({
+        dev_intent: "open-web-preview-url",
+        dev_web_url: "https://example.com",
+        dev_window_width: null,
+        dev_window_height: null,
+      }),
+    );
+    await vi.runAllTimersAsync();
+
+    expect(hook.result.current).toEqual({ intent: null, ready: false });
   });
 
   it("cancels a queued runtime scenario before the timeout fires", async () => {

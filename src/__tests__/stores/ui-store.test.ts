@@ -952,6 +952,75 @@ describe("useUiStore", () => {
     });
   });
 
+  it("does not let a stale transient toast timer clear a later update toast", () => {
+    vi.useFakeTimers();
+
+    useUiStore.getState().showToast("Temporary");
+    useUiStore.setState((state) => ({
+      ...state,
+      toastMessage: null,
+    }));
+    useUiStore.getState().showToast({
+      message: "Update ready",
+      persistent: true,
+      variant: "update",
+      actions: [
+        {
+          label: "Restart",
+          onClick: () => {
+            useUiStore.getState().showToast("Restarting");
+          },
+        },
+      ],
+    });
+
+    vi.advanceTimersByTime(TOAST_AUTO_DISMISS_TIMEOUT_MS);
+
+    expect(useUiStore.getState().toastMessage).toEqual(
+      expect.objectContaining({
+        message: "Update ready",
+        persistent: true,
+        variant: "update",
+        actions: [
+          {
+            label: "Restart",
+            onClick: expect.any(Function),
+          },
+        ],
+      }),
+    );
+  });
+
+  it("keeps dialog action toasts from being cleared by older toast dismiss timers", () => {
+    vi.useFakeTimers();
+    const dialogToastAction = vi.fn(() => {
+      useUiStore.getState().showToast({
+        message: "Delete failed",
+        persistent: true,
+      });
+    });
+
+    useUiStore.getState().showToast({
+      message: "Delete feed?",
+      actions: [
+        {
+          label: "Undo",
+          onClick: dialogToastAction,
+        },
+      ],
+    });
+    const action = useUiStore.getState().toastMessage?.actions?.[0];
+    action?.onClick();
+
+    vi.advanceTimersByTime(TOAST_AUTO_DISMISS_TIMEOUT_MS);
+
+    expect(dialogToastAction).toHaveBeenCalledTimes(1);
+    expect(useUiStore.getState().toastMessage).toEqual({
+      message: "Delete failed",
+      persistent: true,
+    });
+  });
+
   it("replaces confirm dialog content and callbacks completely", () => {
     const FirstIcon = () => null;
     const SecondIcon = () => null;

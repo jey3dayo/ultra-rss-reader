@@ -25,6 +25,7 @@ import {
   resetDevRuntimeOptionsCacheForTests,
 } from "@/dev/intent";
 import { DEV_SCENARIO_IDS } from "@/dev/scenario-ids";
+import { RESPONSE_VALIDATION_MESSAGE } from "@/lib/ui-errors";
 
 function expectResultValue<T, E>(result: Result.Result<T, E>): T {
   if (Result.isFailure(result)) {
@@ -316,36 +317,6 @@ describe("dev-intent helpers", () => {
     expect(readDevIntent()).toBeNull();
   });
 
-  it("rounds positive runtime window dimensions and drops invalid runtime values", async () => {
-    getDevRuntimeOptionsMock.mockResolvedValueOnce(
-      Result.succeed({
-        dev_intent: null,
-        dev_web_url: null,
-        dev_window_width: 640.4,
-        dev_window_height: 0,
-      }),
-    );
-
-    expect(Result.isSuccess(await loadDevRuntimeOptionsResult())).toBe(true);
-
-    expect(readDevWindowSize()).toEqual({ width: 640, height: null });
-  });
-
-  it("drops overlarge runtime window dimensions", async () => {
-    getDevRuntimeOptionsMock.mockResolvedValueOnce(
-      Result.succeed({
-        dev_intent: null,
-        dev_web_url: null,
-        dev_window_width: 10_001,
-        dev_window_height: 900,
-      }),
-    );
-
-    expect(Result.isSuccess(await loadDevRuntimeOptionsResult())).toBe(true);
-
-    expect(readDevWindowSize()).toEqual({ width: null, height: 900 });
-  });
-
   it("returns typed runtime option failures for unavailable contexts", async () => {
     vi.stubEnv("DEV", false);
     expect(expectResultError(await loadDevRuntimeOptionsResult())).toBe("not_dev_build");
@@ -366,6 +337,68 @@ describe("dev-intent helpers", () => {
 
     expect(expectResultError(result)).toBe("request_failed");
     expect(getDevRuntimeOptionsMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns a typed runtime option failure when response validation reports malformed JSON", async () => {
+    getDevRuntimeOptionsMock.mockResolvedValueOnce(
+      Result.fail({ type: "Diagnostics", message: RESPONSE_VALIDATION_MESSAGE }),
+    );
+
+    const result = await loadDevRuntimeOptionsResult();
+
+    expect(expectResultError(result)).toBe("malformed_runtime_options");
+    expect(getDevRuntimeOptionsMock).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    [
+      "partial option",
+      {
+        dev_intent: null,
+        dev_web_url: null,
+        dev_window_width: null,
+      },
+      "malformed_runtime_options",
+    ],
+    [
+      "non-integer window size",
+      {
+        dev_intent: null,
+        dev_web_url: null,
+        dev_window_width: 640.4,
+        dev_window_height: null,
+      },
+      "malformed_runtime_options",
+    ],
+    [
+      "invalid window size",
+      {
+        dev_intent: null,
+        dev_web_url: null,
+        dev_window_width: 10_001,
+        dev_window_height: null,
+      },
+      "malformed_runtime_options",
+    ],
+    [
+      "unknown scenario",
+      {
+        dev_intent: "removed-dev-intent",
+        dev_web_url: null,
+        dev_window_width: null,
+        dev_window_height: null,
+      },
+      "unknown_dev_intent",
+    ],
+  ] as const)("returns a typed runtime option failure for %s", async (_label, runtimeOptions, expectedError) => {
+    getDevRuntimeOptionsMock.mockResolvedValueOnce(Result.succeed(runtimeOptions));
+
+    const result = await loadDevRuntimeOptionsResult();
+
+    expect(expectResultError(result)).toBe(expectedError);
+    expect(readDevIntent()).toBeNull();
+    expect(readDevWebUrl()).toBeNull();
+    expect(readDevWindowSize()).toBeNull();
   });
 
   it("clears a failed runtime option promise so the next request can refresh dev intent", async () => {

@@ -94,10 +94,15 @@ describe("article-view utils", () => {
     );
     expect(normalizeArticleRemoteImageUrl("/fixtures/article-thumbnail.png")).toBe("/fixtures/article-thumbnail.png");
     expect(normalizeArticleRemoteImageUrl("http://cdn.example.com/thumb.jpg")).toBeNull();
+    expect(normalizeArticleRemoteImageUrl("HTTP://cdn.example.com/thumb.jpg")).toBeNull();
     expect(normalizeArticleRemoteImageUrl("//cdn.example.com/thumb.jpg")).toBeNull();
     expect(normalizeArticleRemoteImageUrl("data:image/svg+xml,<svg></svg>")).toBeNull();
+    expect(normalizeArticleRemoteImageUrl("javascript:alert(1)")).toBeNull();
     expect(normalizeArticleRemoteImageUrl("https://user:pass@cdn.example.com/thumb.jpg")).toBeNull();
+    expect(normalizeArticleRemoteImageUrl("https://localhost/thumb.jpg")).toBeNull();
+    expect(normalizeArticleRemoteImageUrl("https://127.0.0.1/thumb.jpg")).toBeNull();
     expect(normalizeArticleRemoteImageUrl("not a url")).toBeNull();
+    expect(normalizeArticleRemoteImageUrl("   ")).toBeNull();
   });
 
   it("keeps article titles in the web preview on a regular click when configured", () => {

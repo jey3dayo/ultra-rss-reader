@@ -1581,6 +1581,24 @@ describe("safeInvoke args validation", () => {
     Result.unwrap(await triggerStartupSync("   "));
   });
 
+  it("bypasses args schema validation when schema-backed startup sync args are omitted", async () => {
+    setupTauriMocks((cmd, args) => {
+      if (cmd === "trigger_startup_sync") {
+        expect(args).not.toHaveProperty("preferredAccountId");
+        return {
+          synced: false,
+          total: 0,
+          succeeded: 0,
+          failed: [],
+          warnings: [],
+        };
+      }
+      return null;
+    });
+
+    Result.unwrap(await triggerStartupSync());
+  });
+
   it("trims startup sync preferred account ids before invoking Tauri", async () => {
     setupTauriMocks((cmd, args) => {
       if (cmd === "trigger_startup_sync") {

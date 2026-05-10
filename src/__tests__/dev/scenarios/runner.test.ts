@@ -299,6 +299,48 @@ describe("runDevScenario", () => {
     expect(context.actions.executeAction).toHaveBeenCalledWith("sync-all");
   });
 
+  it("cancels a stale web preview while its initial window resize is still in flight", async () => {
+    vi.stubEnv("DEV", true);
+    vi.stubEnv("VITE_DEV_WEB_URL", "https://example.com/stale-preview");
+    vi.stubEnv("VITE_DEV_WINDOW_WIDTH", "520");
+    vi.stubEnv("VITE_DEV_WINDOW_HEIGHT", "900");
+    const staleResize = { resolve: null as null | (() => void) };
+    mockWindow.setSize.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          staleResize.resolve = resolve;
+        }),
+    );
+    const context = createContext({
+      actions: createActions({
+        executeAction: vi.fn(),
+      }),
+    });
+
+    const staleScenario = runDevScenario("open-web-preview-url", { context });
+
+    await vi.waitFor(() => {
+      expect(mockWindow.setSize).toHaveBeenCalledTimes(1);
+    });
+
+    vi.stubEnv("VITE_DEV_WEB_URL", "");
+    vi.stubEnv("VITE_DEV_WINDOW_WIDTH", "");
+    vi.stubEnv("VITE_DEV_WINDOW_HEIGHT", "");
+    await runDevScenario("sync-all-smoke", { context });
+
+    const releaseStaleResize = staleResize.resolve;
+    if (typeof releaseStaleResize !== "function") {
+      throw new Error("Expected stale resize promise to be captured.");
+    }
+    releaseStaleResize();
+    await vi.runAllTimersAsync();
+    await staleScenario;
+
+    expect(context.ui.openBrowser).not.toHaveBeenCalled();
+    expect(context.ui.showToast).not.toHaveBeenCalled();
+    expect(context.actions.executeAction).toHaveBeenCalledWith("sync-all");
+  });
+
   it("keeps delayed web preview replay latest-only across repeated runs", async () => {
     vi.stubEnv("DEV", true);
     vi.stubEnv("VITE_DEV_WEB_URL", "https://example.com/first-preview");

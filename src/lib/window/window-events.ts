@@ -9,6 +9,25 @@ type RegisteredWindowEventBinding = Omit<WindowEventBinding, "target"> & {
   target: Pick<Window, "addEventListener" | "removeEventListener">;
 };
 
+function getEventListenerCaptureOption(options: WindowEventBinding["options"]) {
+  return typeof options === "boolean" ? options : Boolean(options?.capture);
+}
+
+function hasRegisteredWindowEventBinding(
+  registeredBindings: readonly RegisteredWindowEventBinding[],
+  binding: RegisteredWindowEventBinding,
+) {
+  const bindingCapture = getEventListenerCaptureOption(binding.options);
+
+  return registeredBindings.some(
+    (registeredBinding) =>
+      registeredBinding.target === binding.target &&
+      registeredBinding.type === binding.type &&
+      registeredBinding.listener === binding.listener &&
+      getEventListenerCaptureOption(registeredBinding.options) === bindingCapture,
+  );
+}
+
 export function createKeyboardEventListener(handleEvent: (event: KeyboardEvent) => void): EventListener {
   return (event) => {
     if (event instanceof KeyboardEvent) {
@@ -66,7 +85,8 @@ export function bindWindowEvents(bindings: readonly WindowEventBinding[]) {
   const registeredBindings: RegisteredWindowEventBinding[] = [];
 
   const cleanupRegisteredBindings = (options: { reverse?: boolean } = {}) => {
-    const bindingsToCleanup = options.reverse ? registeredBindings.slice().reverse() : registeredBindings;
+    const bindingsToCleanup = options.reverse ? registeredBindings.slice().reverse() : registeredBindings.slice();
+    registeredBindings.length = 0;
 
     for (const { target, type, listener, options } of bindingsToCleanup) {
       try {
@@ -79,8 +99,12 @@ export function bindWindowEvents(bindings: readonly WindowEventBinding[]) {
 
   try {
     for (const { target = window, type, listener, options } of bindings) {
+      const registeredBinding = { target, type, listener, options };
+      if (hasRegisteredWindowEventBinding(registeredBindings, registeredBinding)) {
+        continue;
+      }
       target.addEventListener(type, listener, options);
-      registeredBindings.push({ target, type, listener, options });
+      registeredBindings.push(registeredBinding);
     }
   } catch (error) {
     try {

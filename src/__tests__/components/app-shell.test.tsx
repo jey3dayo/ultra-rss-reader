@@ -120,7 +120,7 @@ describe("AppShell", () => {
     expect(screen.queryByText("Settings Modal")).not.toBeInTheDocument();
   });
 
-  it("keeps the app shell mounted when the settings modal fails to render", async () => {
+  it("keeps settings modal recovery separate from telemetry when the modal fails to render", async () => {
     settingsModalState.shouldThrow = true;
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
     useUiStore.setState({ settingsOpen: true });
@@ -139,7 +139,7 @@ describe("AppShell", () => {
     }
   });
 
-  it("keeps lazy chunk telemetry separate from recovery side effects", async () => {
+  it("keeps lazy chunk telemetry separate from user recovery side effects", async () => {
     commandPaletteState.shouldThrow = true;
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
     useUiStore.setState({ commandPaletteOpen: true });
@@ -155,6 +155,36 @@ describe("AppShell", () => {
       });
       expect(useUiStore.getState().commandPaletteOpen).toBe(true);
       expect(consoleError).toHaveBeenCalledWith("Failed to render lazy app shell surface.", expect.any(Error));
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+
+  it("reports repeated lazy boundary failures across separate app shell surfaces", async () => {
+    commandPaletteState.shouldThrow = true;
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    try {
+      useUiStore.setState({ commandPaletteOpen: true });
+      const { rerender } = render(<AppShell />, { wrapper: createWrapper() });
+
+      await waitFor(() => {
+        expect(consoleError).toHaveBeenCalledWith("Failed to render lazy app shell surface.", expect.any(Error));
+      });
+      const firstFailureReportCount = consoleError.mock.calls.length;
+
+      useUiStore.setState({ commandPaletteOpen: false });
+      rerender(<AppShell />);
+      useUiStore.setState({ commandPaletteOpen: true });
+      rerender(<AppShell />);
+
+      await waitFor(() => {
+        expect(consoleError.mock.calls.length).toBeGreaterThan(firstFailureReportCount);
+      });
+      expect(consoleError).toHaveBeenCalledWith("Failed to render lazy app shell surface.", expect.any(Error));
+      expect(useUiStore.getState().toastMessage).toEqual({
+        message: "画面の読み込みに失敗しました。アプリの再読み込みを試してください。",
+      });
     } finally {
       consoleError.mockRestore();
     }
@@ -198,6 +228,36 @@ describe("AppShell", () => {
       expect(consoleError).toHaveBeenCalledWith("Failed to retry settings modal preload.", retryError);
       preloadSettingsModalModuleForDev(loadModule);
       expect(loadModule).toHaveBeenCalledTimes(2);
+      consoleError.mockRestore();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("marks settings modal preload retry success as terminal for the current generation", async () => {
+    vi.stubEnv("DEV", true);
+    vi.useFakeTimers();
+    try {
+      const error = new Error("settings modal preload failed");
+      const loadModule = vi
+        .fn()
+        .mockRejectedValueOnce(error)
+        .mockResolvedValueOnce({ SettingsModal: () => null });
+      const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+      preloadSettingsModalModuleForDev(loadModule);
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(loadModule).toHaveBeenCalledTimes(1);
+      expect(consoleError).toHaveBeenCalledWith("Failed to preload settings modal.", error);
+
+      await vi.advanceTimersByTimeAsync(250);
+
+      expect(loadModule).toHaveBeenCalledTimes(2);
+      preloadSettingsModalModuleForDev(loadModule);
+      expect(loadModule).toHaveBeenCalledTimes(2);
+      expect(consoleError).not.toHaveBeenCalledWith("Failed to retry settings modal preload.", expect.any(Error));
       consoleError.mockRestore();
     } finally {
       vi.useRealTimers();

@@ -1,9 +1,10 @@
 import { Result } from "@praha/byethrow";
-import { MAX_DEV_WINDOW_DIMENSION_PX } from "@/api/schemas/platform-info";
+import { DevRuntimeOptionsSchema, MAX_DEV_WINDOW_DIMENSION_PX } from "@/api/schemas/platform-info";
 import type { DevRuntimeOptions } from "@/api/tauri-commands";
 import { getDevRuntimeOptions } from "@/api/tauri-commands";
 import { type DevScenarioId, isDevScenarioId } from "@/dev/scenario-ids";
 import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
+import { RESPONSE_VALIDATION_MESSAGE } from "@/lib/ui-errors";
 import { hasTauriRuntime } from "@/lib/window/window-chrome";
 
 export type DevIntent = DevScenarioId | null;
@@ -24,7 +25,12 @@ let runtimeDevOptionsPromise: Result.ResultAsync<DevRuntimeOptions, LoadDevRunti
 
 type ParsePositiveIntegerError = "missing_value" | "invalid_integer" | "non_positive_integer" | "integer_too_large";
 type ParseDevIntentError = "missing_value" | "unknown_dev_intent";
-export type LoadDevRuntimeOptionsError = "not_dev_build" | "tauri_unavailable" | "request_failed";
+export type LoadDevRuntimeOptionsError =
+  | "not_dev_build"
+  | "tauri_unavailable"
+  | "request_failed"
+  | "malformed_runtime_options"
+  | "unknown_dev_intent";
 type ReadDevWindowSizeFieldState =
   | { kind: "missing" }
   | { kind: "invalid"; reason: ParsePositiveIntegerError }
@@ -41,6 +47,10 @@ function readFirstNonEmptyEnv(keys: readonly string[]): string | undefined {
   }
 
   return undefined;
+}
+
+function readDevIntentEnvSnapshot(): string | undefined {
+  return readFirstNonEmptyEnv(DEV_RUNTIME_ENV_KEYS.intent);
 }
 
 function parsePositiveIntegerResult(value: string | undefined): Result.Result<number, ParsePositiveIntegerError> {
@@ -124,10 +134,25 @@ function resolveLoadedDevRuntimeOptions(
 ): Result.Result<DevRuntimeOptions, LoadDevRuntimeOptionsError> {
   if (Result.isFailure(result)) {
     logRuntimeDiagnostic("dev-runtime-options-load", "Failed to load runtime dev options:", result.error);
+    if (result.error.type === "Diagnostics" && result.error.message === RESPONSE_VALIDATION_MESSAGE) {
+      return Result.fail("malformed_runtime_options");
+    }
     return Result.fail("request_failed");
   }
 
-  return Result.succeed(result.value);
+  const parsed = DevRuntimeOptionsSchema.safeParse(result.value);
+  if (!parsed.success) {
+    logRuntimeDiagnostic("dev-runtime-options-load", "Ignored malformed runtime dev options:", parsed.error);
+    return Result.fail("malformed_runtime_options");
+  }
+
+  const runtimeIntent = parseDevIntentResult(parsed.data.dev_intent ?? undefined);
+  if (Result.isFailure(runtimeIntent) && runtimeIntent.error !== "missing_value") {
+    logRuntimeDiagnostic("dev-runtime-options-load", "Ignored unknown runtime dev intent:", parsed.data.dev_intent);
+    return Result.fail(runtimeIntent.error);
+  }
+
+  return Result.succeed(parsed.data);
 }
 
 function shouldRetryDevRuntimeOptionsLoad(error: LoadDevRuntimeOptionsError | null): boolean {
@@ -144,7 +169,15 @@ export function readDevIntent(): DevIntent {
     return null;
   }
 
-  return parseDevIntent(readFirstNonEmptyEnv(DEV_RUNTIME_ENV_KEYS.intent)) ?? readRuntimeDevIntent();
+  return parseDevIntent(readDevIntentEnvSnapshot()) ?? readRuntimeDevIntent();
+}
+
+export function createDevIntentGenerationSnapshot(): string | undefined {
+  return readDevIntentEnvSnapshot();
+}
+
+export function isCurrentDevIntentGeneration(snapshot: string | undefined): boolean {
+  return readDevIntentEnvSnapshot() === snapshot;
 }
 
 export function readDevWebUrl(): string | null {

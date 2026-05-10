@@ -329,6 +329,62 @@ describe("performUpdateCheck", () => {
     errorSpy.mockRestore();
   });
 
+  it("keeps manual failure feedback when sharing the startup in-flight check", async () => {
+    const error = testUserVisibleAppError("network down");
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const deferred = createDeferred<ReturnType<typeof Result.fail<TestUserVisibleAppError>>>();
+    mockCheckForUpdate.mockReturnValue(deferred.promise);
+
+    const {
+      updaterModule: { runManualUpdateCheck, useUpdater },
+      useUiStore,
+    } = await getUpdaterModuleAndUiStore();
+    useUiStore.setState(useUiStore.getInitialState());
+
+    renderHook(() => useUpdater());
+    const manualCheck = runManualUpdateCheck();
+
+    expect(mockCheckForUpdate).toHaveBeenCalledTimes(1);
+
+    deferred.resolve(Result.fail(error));
+    await manualCheck;
+    await flushMicrotasksAndRealTimer();
+
+    expect(warnSpy).toHaveBeenCalledWith("Startup update check failed (silent):", error);
+    expect(errorSpy).toHaveBeenCalledWith("Manual update check failed:", error);
+    expect(useUiStore.getState().toastMessage?.message).toBe("アップデートの確認に失敗しました");
+
+    warnSpy.mockRestore();
+    errorSpy.mockRestore();
+  });
+
+  it("keeps manual success feedback for each caller while sharing the in-flight check", async () => {
+    const deferred = createDeferred<ReturnType<typeof Result.succeed<UpdateInfo>>>();
+    mockCheckForUpdate.mockReturnValue(deferred.promise);
+
+    const {
+      updaterModule: { runManualUpdateCheck },
+      useUiStore,
+    } = await getUpdaterModuleAndUiStore();
+    useUiStore.setState(useUiStore.getInitialState());
+    const showToast = vi.fn(useUiStore.getState().showToast);
+    useUiStore.setState({ showToast });
+
+    const firstManualCheck = runManualUpdateCheck();
+    const secondManualCheck = runManualUpdateCheck();
+
+    expect(mockCheckForUpdate).toHaveBeenCalledTimes(1);
+
+    deferred.resolve(Result.succeed(null));
+    await Promise.all([firstManualCheck, secondManualCheck]);
+
+    expect(showToast).toHaveBeenCalledTimes(2);
+    expect(showToast).toHaveBeenNthCalledWith(1, "最新バージョンです");
+    expect(showToast).toHaveBeenNthCalledWith(2, "最新バージョンです");
+    expect(useUiStore.getState().toastMessage?.message).toBe("最新バージョンです");
+  });
+
   it("does not show an update toast when the startup check resolves after unmount", async () => {
     const deferred = createDeferred<ReturnType<typeof Result.succeed<UpdateInfo>>>();
     mockCheckForUpdate.mockReturnValue(deferred.promise);
@@ -524,6 +580,33 @@ describe("performUpdateCheck", () => {
     expect(mockRestartApp).toHaveBeenCalledTimes(1);
   });
 
+  it("does not let a stale restart failure overwrite a newer update toast", async () => {
+    const restart = createDeferred<ReturnType<typeof Result.fail<TestUserVisibleAppError>>>();
+    mockRestartApp.mockReturnValue(restart.promise);
+
+    const {
+      updaterModule: { showRestartToast, showUpdateAvailableToast },
+      useUiStore,
+    } = await getUpdaterModuleAndUiStore();
+    useUiStore.setState(useUiStore.getInitialState());
+
+    showRestartToast();
+    useUiStore
+      .getState()
+      .toastMessage?.actions?.find((action) => action.label === "再起動")
+      ?.onClick();
+
+    showUpdateAvailableToast("1.2.4");
+
+    restart.resolve(Result.fail(testUserVisibleAppError("restart failed")));
+    await flushMicrotasksAndRealTimer();
+
+    expect(useUiStore.getState().toastMessage).toMatchObject({
+      message: "v1.2.4 が利用可能です",
+      variant: "update",
+    });
+  });
+
   it("normalizes download progress event percent before updating the toast", async () => {
     const deferredDownload = createDeferred<ReturnType<typeof Result.succeed<null>>>();
     const progressListeners: Array<(event: { payload: unknown }) => void> = [];
@@ -688,6 +771,173 @@ describe("performUpdateCheck", () => {
     expect(useUiStore.getState().toastMessage).toMatchObject({
       message: "更新の準備ができました",
       variant: "update",
+    });
+
+    deferredDownload.resolve(Result.succeed(null));
+  });
+
+  it("ignores stale update toast actions after a newer update toast replaces them", async () => {
+    const firstDownload = createDeferred<ReturnType<typeof Result.succeed<null>>>();
+    mockDownloadAndInstallUpdate.mockReturnValue(firstDownload.promise);
+
+    const {
+      updaterModule: { showUpdateAvailableToast },
+      useUiStore,
+    } = await getUpdaterModuleAndUiStore();
+    useUiStore.setState(useUiStore.getInitialState());
+
+    showUpdateAvailableToast("1.2.3");
+    const staleStartAction = useUiStore
+      .getState()
+      .toastMessage?.actions?.find((action) => action.label === "今すぐ更新");
+
+    showUpdateAvailableToast("1.2.4");
+    staleStartAction?.onClick();
+
+    expect(mockDownloadAndInstallUpdate).not.toHaveBeenCalled();
+    expect(useUiStore.getState().toastMessage).toMatchObject({
+      message: "v1.2.4 が利用可能です",
+      variant: "update",
+    });
+
+    useUiStore
+      .getState()
+      .toastMessage?.actions?.find((action) => action.label === "今すぐ更新")
+      ?.onClick();
+
+    expect(mockDownloadAndInstallUpdate).toHaveBeenCalledTimes(1);
+
+    firstDownload.resolve(Result.succeed(null));
+  });
+
+  it("does not let a stale download failure overwrite the ready-to-restart toast", async () => {
+    const deferredDownload = createDeferred<ReturnType<typeof Result.fail<TestUserVisibleAppError>>>();
+    const readyListeners: Array<(event: { payload: unknown }) => void> = [];
+    mockCheckForUpdate.mockResolvedValue(Result.succeed(null));
+    mockDownloadAndInstallUpdate.mockReturnValue(deferredDownload.promise);
+    mockListen.mockImplementation(async (eventName: string, callback: (event: { payload: unknown }) => void) => {
+      if (eventName === "update-ready") {
+        readyListeners.push(callback);
+      }
+      return () => {};
+    });
+
+    const {
+      updaterModule: { showUpdateAvailableToast, useUpdater },
+      useUiStore,
+    } = await getUpdaterModuleAndUiStore();
+    useUiStore.setState(useUiStore.getInitialState());
+
+    renderHook(() => useUpdater());
+    await flushMicrotasksAndRealTimer();
+
+    showUpdateAvailableToast("1.2.3");
+    useUiStore
+      .getState()
+      .toastMessage?.actions?.find((action) => action.label === "今すぐ更新")
+      ?.onClick();
+
+    readyListeners[0]?.({ payload: { session_id: 9 } });
+    expect(useUiStore.getState().toastMessage?.message).toBe("更新の準備ができました");
+
+    deferredDownload.resolve(Result.fail(testUserVisibleAppError("late download failure")));
+    await flushMicrotasksAndRealTimer();
+
+    expect(useUiStore.getState().toastMessage?.message).toBe("更新の準備ができました");
+  });
+
+  it("does not bind stale progress from a failed session to a retried download", async () => {
+    const firstDownload = createDeferred<ReturnType<typeof Result.fail<TestUserVisibleAppError>>>();
+    const secondDownload = createDeferred<ReturnType<typeof Result.succeed<null>>>();
+    const progressListeners: Array<(event: { payload: unknown }) => void> = [];
+    mockCheckForUpdate.mockResolvedValue(Result.succeed(null));
+    mockDownloadAndInstallUpdate.mockReturnValueOnce(firstDownload.promise).mockReturnValueOnce(secondDownload.promise);
+    mockListen.mockImplementation(async (eventName: string, callback: (event: { payload: unknown }) => void) => {
+      if (eventName === "update-download-progress") {
+        progressListeners.push(callback);
+      }
+      return () => {};
+    });
+
+    const {
+      updaterModule: { showUpdateAvailableToast, useUpdater },
+      useUiStore,
+    } = await getUpdaterModuleAndUiStore();
+    useUiStore.setState(useUiStore.getInitialState());
+
+    renderHook(() => useUpdater());
+    await flushMicrotasksAndRealTimer();
+
+    showUpdateAvailableToast("1.2.3");
+    useUiStore
+      .getState()
+      .toastMessage?.actions?.find((action) => action.label === "今すぐ更新")
+      ?.onClick();
+    progressListeners[0]?.({ payload: { session_id: 10, percent: 25 } });
+
+    firstDownload.resolve(Result.fail(testUserVisibleAppError("network down")));
+    await flushMicrotasksAndRealTimer();
+    expect(useUiStore.getState().toastMessage?.message).toContain("現在のバージョンを引き続き使用します");
+
+    showUpdateAvailableToast("1.2.4");
+    useUiStore
+      .getState()
+      .toastMessage?.actions?.find((action) => action.label === "今すぐ更新")
+      ?.onClick();
+
+    progressListeners[0]?.({ payload: { session_id: 10, percent: 90 } });
+    expect(useUiStore.getState().toastMessage).toMatchObject({
+      message: "ダウンロード中… 0%",
+      progress: 0,
+    });
+
+    progressListeners[0]?.({ payload: { session_id: 11, percent: 40 } });
+    expect(useUiStore.getState().toastMessage).toMatchObject({
+      message: "ダウンロード中… 40%",
+      progress: 40,
+    });
+
+    secondDownload.resolve(Result.succeed(null));
+  });
+
+  it("ignores updater events after listener disposal", async () => {
+    const deferredDownload = createDeferred<ReturnType<typeof Result.succeed<null>>>();
+    const progressListeners: Array<(event: { payload: unknown }) => void> = [];
+    const readyListeners: Array<(event: { payload: unknown }) => void> = [];
+    mockCheckForUpdate.mockResolvedValue(Result.succeed(null));
+    mockDownloadAndInstallUpdate.mockReturnValue(deferredDownload.promise);
+    mockListen.mockImplementation(async (eventName: string, callback: (event: { payload: unknown }) => void) => {
+      if (eventName === "update-download-progress") {
+        progressListeners.push(callback);
+      }
+      if (eventName === "update-ready") {
+        readyListeners.push(callback);
+      }
+      return () => {};
+    });
+
+    const {
+      updaterModule: { showUpdateAvailableToast, useUpdater },
+      useUiStore,
+    } = await getUpdaterModuleAndUiStore();
+    useUiStore.setState(useUiStore.getInitialState());
+
+    const { unmount } = renderHook(() => useUpdater());
+    await flushMicrotasksAndRealTimer();
+
+    showUpdateAvailableToast("1.2.3");
+    useUiStore
+      .getState()
+      .toastMessage?.actions?.find((action) => action.label === "今すぐ更新")
+      ?.onClick();
+    unmount();
+
+    progressListeners[0]?.({ payload: { session_id: 12, percent: 60 } });
+    readyListeners[0]?.({ payload: { session_id: 12 } });
+
+    expect(useUiStore.getState().toastMessage).toMatchObject({
+      message: "ダウンロード中… 0%",
+      progress: 0,
     });
 
     deferredDownload.resolve(Result.succeed(null));

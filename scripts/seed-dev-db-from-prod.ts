@@ -239,11 +239,36 @@ async function checkUnixProcessName(
   }
 
   try {
-    await execFileImpl("pgrep", ["-f", processName], { encoding: "utf8" });
-    return { processName, error: null };
+    const { stdout } = await execFileImpl("ps", ["-axo", "pid=,command="], { encoding: "utf8" });
+    if (hasLikelyUnixAppCommandLine(stdout, processName)) {
+      return { processName, error: null };
+    }
+
+    const notFoundError = new Error("not found") as NodeJS.ErrnoException;
+    notFoundError.code = "1";
+    return { processName, error: notFoundError };
   } catch (fullCommandLineError) {
     return { processName, error: fullCommandLineError };
   }
+}
+
+function hasLikelyUnixAppCommandLine(stdout: string, processName: string): boolean {
+  const likelyPathPatterns =
+    processName === "Ultra RSS Reader"
+      ? ["/Ultra RSS Reader/", "/Ultra RSS Reader.app/", "\\Ultra RSS Reader\\", "\\Ultra RSS Reader.app\\"]
+      : processName === "Ultra RSS Reader Dev"
+        ? [
+            "/Ultra RSS Reader Dev/",
+            "/Ultra RSS Reader Dev.app/",
+            "\\Ultra RSS Reader Dev\\",
+            "\\Ultra RSS Reader Dev.app\\",
+          ]
+        : ["/ultra-rss-reader", "\\ultra-rss-reader"];
+
+  return stdout
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .some((line) => line.includes(processName) && likelyPathPatterns.some((pattern) => line.includes(pattern)));
 }
 
 function isProcessNotFoundError(error: unknown): boolean {
@@ -400,12 +425,14 @@ async function seedDevDatabaseFromProdPlan(
   await rmImpl(plan.stagingDir, { recursive: true, force: true });
   await mkdirImpl(plan.stagingDir, { recursive: true });
 
+  let primaryError: unknown;
+
   try {
     await Promise.all(sourceArtifacts.map((artifact) => copyFileImpl(artifact.source, artifact.staging)));
 
     // Keep replacement phases ordered: staging copy, backup, destination cleanup, then install.
     await mkdirImpl(plan.backupDir, { recursive: true });
-    const backedUp = (
+    const backedUpArtifacts = (
       await Promise.all(
         plan.artifacts.map(async (artifact) => {
           if (!(await fileExists(artifact.destination, accessImpl))) {
@@ -415,23 +442,35 @@ async function seedDevDatabaseFromProdPlan(
           await assertNotSymlink(artifact.destination, accessImpl, lstatImpl);
           await accessImpl(artifact.destination, fsConstants.R_OK);
           await copyFileImpl(artifact.destination, artifact.backup);
-          return artifact.destination;
+          return artifact;
         }),
       )
-    ).filter((destination): destination is string => destination !== null);
+    ).filter((artifact): artifact is SeedArtifact => artifact !== null);
 
     await mkdirImpl(plan.devAppDataDir, { recursive: true });
     await Promise.all(plan.artifacts.map((artifact) => rmImpl(artifact.destination, { force: true })));
 
-    await Promise.all(sourceArtifacts.map((artifact) => copyFileImpl(artifact.staging, artifact.destination)));
+    try {
+      await Promise.all(sourceArtifacts.map((artifact) => copyFileImpl(artifact.staging, artifact.destination)));
+    } catch (error) {
+      await Promise.all(backedUpArtifacts.map((artifact) => copyFileImpl(artifact.backup, artifact.destination)));
+      throw error;
+    }
 
     return {
       copied: sourceArtifacts.map((artifact) => artifact.destination),
-      backedUp,
+      backedUp: backedUpArtifacts.map((artifact) => artifact.destination),
       backupDir: plan.backupDir,
     };
+  } catch (error) {
+    primaryError = error;
+    throw error;
   } finally {
-    await rmImpl(plan.stagingDir, { recursive: true, force: true });
+    if (primaryError !== undefined) {
+      await rmImpl(plan.stagingDir, { recursive: true, force: true }).catch(() => undefined);
+    } else {
+      await rmImpl(plan.stagingDir, { recursive: true, force: true });
+    }
   }
 }
 

@@ -424,24 +424,6 @@
 
 ### 先行実装 queue
 
-- [ ] P1-Q2 Provider auth storm / credential rotation safety
-  - 目的: 壊れた credential や server URL 変更中に auto sync / pending mutation replay が走り続ける事故を止める
-  - worker prompt: provider auth failure storm、credential edit pending、capability downgrade、server URL change を sync scheduler と queue contract で固定する
-  - 対象: `src-tauri/src/infra/provider`, `src-tauri/src/service/sync_scheduler.rs`, account commands/settings、pending mutation repository
-  - 禁止: provider kind 追加、UI redesign、per-domain crawl politeness へ広げない
-  - 検証: provider Rust tests、sync scheduler focused tests、account settings/account detail focused tests
-
-#### P1-Q2 実装 tranche
-
-- [ ] P1-Q3 Release artifact provenance / dev-only contamination gate
-  - 目的: release asset、manifest、checksum、platform mapping、debug-only config の drift を static contract で止める
-  - worker prompt: release workflow と Tauri config から release artifact mapping を抽出し、MCP bridge/dev mock/dev credential が production artifact に混入しない gate を作る
-  - 対象: `.github/workflows/release.yml`, `tests/release-repo-contract.test.ts`, `src-tauri/tauri*.conf.json`, release docs
-  - 禁止: notarization/SmartScreen/manual installer UX をこの worker で実装しない
-  - 検証: `pnpm exec vitest run tests/release-repo-contract.test.ts`, workflow static contract、必要なら `mise run ci`
-
-#### P1-Q3 実装 tranche
-
 - [ ] P1-Q4 DB migration / runtime corruption recovery contract
   - 目的: failed migration、downgrade、startup 後 corruption、restore 後 stale cache を recovery state として扱う
   - worker prompt: DB migration/runtime DB error を user-visible recovery category に分類し、destructive recovery は dry-run / confirmation 基準を先に固定する
@@ -477,34 +459,9 @@
 
 ### App Shell / Command Palette / Dev Intent
 
-- [ ] P2 SettingsModalBoundary / LazyChunkBoundary error recovery を user action と telemetry に分ける
-  - 対象: `src/components/app-shell.tsx`, `src/components/settings/settings-modal-view.tsx`
-  - lazy chunk error は console.error と closeSettings に寄っており、user が再オープンできる状態か、diagnostics へ残すべき状態かが曖昧になっている
-  - render throw、dynamic import reject、retry after close、settings state reset、toast/diagnostics 方針を固定する
-
-- [ ] P2 dev scenario runner の fire-and-forget window resize / preview state を cancellation-aware にする
-  - 対象: `src/dev/scenarios/helpers.ts`, `src/dev/use-dev-intent.ts`, `src/dev/scenarios/runner.ts`
-  - dev scenario は `void applyDevWindowSize` や delayed preview state を持ち、scenario切替や app unmount 後に古い state を適用しやすい
-  - scenario generation、window resize failure、delayed preview cancel、runner action error、toast dedupe の dev test を追加する
-
 ### Reader UI / Account Settings
 
-- [ ] P2 delete feed callback failure を mutation result と user-visible failure に分ける
-  - 対象: `src/hooks/use-delete-feed.ts`, `src/__tests__/hooks/use-delete-feed.test.tsx`, `src/components/reader/feed-context-menu.tsx`
-  - delete 自体の成功後に optional callback が throw した場合、mutation failure と UI cleanup failure のどちらとして扱うかが曖昧になっている
-  - onSuccess throw、onError throw、invalidation reject、delete reject、dialog close callback の result contract を固定する
-
 ### Dev / Tooling / E2E / Test Helpers
-
-- [ ] P2 resolved dev intent loader の late result を current intent generation で guard する
-  - 対象: `src/dev/use-resolved-dev-intent.ts`, `src/dev/use-dev-intent.ts`, `src/dev/intent.ts`
-  - runtime dev options load が fire-and-forget で走るため、URL intent や env intent が切り替わった後に古い load result が現在 state へ混ざる可能性がある
-  - rapid intent change、load failure、unmount、delayed scenario run、toast dedupe の hook test を追加する
-
-- [ ] P2 dev intent parser の Result.unwrap usage を malformed runtime option の failure surface にする
-  - 対象: `src/dev/intent.ts`, `src/dev/use-resolved-dev-intent.ts`, `src/__tests__/dev/intent.test.ts`
-  - dev intent parser は Result.unwrap を複数使っており、parse済み前提が崩れた時に dev-only console warning なのか scenario skip なのか分かりにくい
-  - malformed JSON、unknown scenario、invalid window size、runtime options unavailable、partial option の Result surface を固定する
 
 - [ ] P2 app-error test helper を user-visible / retryable / diagnostics categories へ広げる
   - 対象: `tests/helpers/app-error.ts`, `src/lib/ui-errors.ts`, `src/api/tauri-commands.ts`
@@ -525,50 +482,15 @@
 
 ### Query / Store / Browser Runtime
 
-- [ ] P2 updater download session と toast action の stale session guard を強化する
-  - 対象: `src/hooks/use-updater.ts`, `src/api/schemas/update-info.ts`, `src/__tests__/hooks/use-updater.test.tsx`
-  - update download は module-level `downloadInFlight` と `activeDownloadSessionId` に依存するため、古い progress/ready event や manual retry が現在 toast を上書きしやすい
-  - stale session progress、ready before progress、download failure then retry、restart failure、listener dispose 後 event の hook test を追加する
-
-- [ ] P2 updater startup check と manual check の shared in-flight result を caller 別 feedback に分ける
-  - 対象: `src/hooks/use-updater.ts`, `src/lib/actions.ts`, `src/__tests__/hooks/use-updater.test.tsx`
-  - startup check は silent failure、manual check は toast failure だが、同じ `checkInFlight` を共有するため、どちらの caller が結果を受け取るかで feedback が揺れやすい
-  - startup+manual concurrent、manual+manual concurrent、startup failure、manual cancellation、runtime unavailable の test を追加する
-
-- [ ] P2 window event binding cleanup を partial registration failure / duplicate binding で固定する
-  - 対象: `src/lib/window/window-events.ts`, `src/hooks/use-keyboard.ts`, `src/components/subscriptions-index/subscriptions-index-page.tsx`
-  - 複数 event listener をまとめて登録する helper は途中失敗時に cleanup するが、duplicate binding や remove failure の挙動が contract 化されていない
-  - addEventListener throw、removeEventListener throw、duplicate listener、capture option mismatch、cleanup twice の test を追加する
-
-- [ ] P2 browser webview bounds sync の listener-ready timeout と ResizeObserver storm を latest-only にする
-  - 対象: `src/components/reader/hooks/browser/use-browser-webview-bounds-sync.ts`, `src/components/reader/hooks/browser/use-browser-webview-sync.ts`
-  - listener ready 待ち、resize event、ResizeObserver が並ぶと、古い URL の resize が現在 URL の native webview に適用される可能性がある
-  - listener timeout、rapid resize、URL switch during wait、ResizeObserver unavailable、cleanup after reject の hook test を追加する
-
-- [ ] P2 browser webview focus-after-create failure を state applied / surface failure に分ける
-  - 対象: `src/components/reader/hooks/browser/use-browser-webview-sync.ts`, `src/components/reader/browser-webview-state.ts`
-  - create 成功後に focus だけ失敗した場合、browser state は適用済みなのに surface failure を出すため、retry/close の UX が不明瞭になりやすい
-  - create success + focus failure、missing webview after focus、state apply skipped、pending bounds flush failure の contract test を追加する
-
 - [ ] P2 subscriptions index の review clock interval を page visibility / fake timer contract にする
   - 対象: `src/components/subscriptions-index/subscriptions-index-page.tsx`, `src/lib/subscriptions/subscription-review-candidates.ts`
   - 1時間 interval で review status を更新するため、長時間 sleep 復帰や background tab で stale review labels が残りやすい
   - sleep 復帰、visibilitychange、fake timer、unmount cleanup、timezone/day boundary の component test を追加する
 
-- [ ] P2 subscriptions index delete dialog の selected account/feed drift を mutation result と揃える
-  - 対象: `src/components/subscriptions-index/subscriptions-index-page.tsx`, `src/hooks/use-delete-feed.ts`
-  - delete dialog を開いた後に account switch や feed list refetch が入ると、dialog target と current rows の整合性が崩れやすい
-  - account switch while dialog open、feed deleted by refetch、delete pending中の close、mutation success後の selected row restore をテストする
-
 - [ ] P2 subscriptions index return state の account scope と scroll restore を schema 化する
   - 対象: `src/lib/subscriptions/subscriptions-workspace.types.ts`, `src/components/subscriptions-index/use-subscriptions-index-state.ts`, `src/stores/ui-store.ts`
   - return state は account id、selected feed、expanded groups、scrollTop を含むため、別 account に復帰した時の discard/restore ルールがずれやすい
   - account mismatch、deleted feed、collapsed group、negative scrollTop、large scrollTop、empty kept/deferred ids の test を追加する
-
-- [ ] P2 UI store toast timer と persistent toast の競合を update/dialog toast で固定する
-  - 対象: `src/stores/ui-store.ts`, `src/components/app-shell.tsx`, `src/hooks/use-updater.ts`
-  - toast は module-level timer を持つため、persistent update toast と通常 toast が連続すると auto dismiss timer が古い toast を消す可能性がある
-  - persistent toast後の通常 toast、通常 toast後のpersistent toast、clearToast、action click、store reset の test を追加する
 
 - [ ] P2 UI store `handleAccountDeleted` の settings/account setup/browser state cleanup を contract 化する
   - 対象: `src/stores/ui-store.ts`, `src/components/settings`, `src/components/reader/hooks/browser`
@@ -616,21 +538,6 @@
   - 対象: `src/api/schemas/commands.ts`, `src-tauri/src/commands/feed_commands.rs`, `src-tauri/src/commands/share_commands.rs`, `tests/tauri-command-return-contract.test.ts`
   - account/feed/folder/tag/clipboard/preference の上限値が TS と Rust に分散しており、片側だけ変えると frontend では通るが backend で落ちる入力が増える
   - `ACCOUNT_NAME_MAX_CHARS`、`FEED_TITLE_MAX_CHARS`、`FOLDER_NAME_MAX_CHARS`、`TAG_NAME_MAX_CHARS`、clipboard max、preference bytes の parity test を追加する
-
-- [ ] P2 article thumbnail URL normalization を sanitizer media URL policy と合わせる
-  - 対象: `src/lib/articles/article-view.ts`, `src/components/reader/article-content-view.tsx`, `src/__tests__/lib/article-view.test.ts`
-  - content HTML 内 media は sanitizer が http(s) absolute のみ許可する一方、thumbnail は別 helper で normalize されるため、relative/data/private URL policy がずれやすい
-  - relative URL、data URL、javascript URL、uppercase HTTP、userinfo URL、empty/whitespace URL の display contract を追加する
-
-- [ ] P2 seed-dev-db-from-prod の backup/staging cleanup を crash-safe contract にする
-  - 対象: `scripts/seed-dev-db-from-prod.ts`, `src/__tests__/scripts/seed-dev-db-from-prod.test.ts`
-  - production DB copy は staging、backup、destination cleanup、install の順序に依存するため、途中失敗時の backup 残存と dev DB 復旧可能性を固定しておきたい
-  - staging copy failure、backup copy failure、destination rm failure、install copy failure、staging cleanup failure、symlink race の script test を追加する
-
-- [ ] P2 seed-dev-db-from-prod の running process / open handle detection を false positive/negative で固定する
-  - 対象: `scripts/seed-dev-db-from-prod.ts`
-  - app 起動中や DB handle open 中の copy を避ける guard は `pgrep` / `tasklist` / `lsof` に依存するため、platform ごとの失敗を安全側に倒す必要がある
-  - pgrep permission error、process not found、tasklist localized output、lsof timeout、WAL/SHM handle、foreign process name collision の test を追加する
 
 - [ ] P2 log directory opener の privacy checklist と diagnostics redaction を support workflow へ接続する
   - 対象: `src-tauri/src/commands/log_commands.rs`, `src/lib/runtime/diagnostics.ts`, `src/components/settings/debug-settings.tsx`
@@ -683,11 +590,6 @@
   - 対象: `src/lib/keyboard/keyboard-shortcuts.ts`, `src/schemas/preferences.ts`, `src/components/settings/shortcuts-settings.tsx`
   - 同じ key/modifier を複数 action に割り当てられると、global handler の探索順に依存して user intent と違う action が発火しやすい
   - duplicate shortcut、reserved shortcut、empty shortcut、platform modifier、reset-to-default の validation / UI contract を追加する
-
-- [ ] P2 keyboard shortcut の platform modifier 表示と native accelerator 表記を同期する
-  - 対象: `src/lib/keyboard/keyboard-shortcuts.ts`, `src-tauri/src/menu.rs`, `src/components/settings/shortcuts-settings.tsx`
-  - frontend は `⌘` などの表示、native menu は `CmdOrCtrl` などの accelerator 表記を使うため、macOS/Windows/Linux で説明と実動作がずれやすい
-  - mac/win/linux display、CmdOrCtrl parsing、Option/Alt、Shift case、menu label hint の snapshot を追加する
 
 - [ ] P2 global keyboard handler の modal/top-layer block 判定を store state 依存から contract 化する
   - 対象: `src/hooks/use-keyboard.ts`, `src/components/settings`, `src/components/reader/command-palette.tsx`
@@ -1014,11 +916,6 @@
   - 対象: `src/lib/runtime/tauri-event-listeners.ts`, `tests/helpers/tauri-runtime.ts`, `src/__tests__/lib/tauri-event-listeners.test.ts`
   - listener failure は once event で通知されるため、runtime が復旧した後や test 間で flag が残ると本来の warning を見落としやすい
   - reset helper、runtime becomes available、runtime becomes unavailable、multiple listener groups、afterEach cleanup の contract を追加する
-
-- [ ] P2 safeInvoke args validation が `args` undefined の時に schema を bypass する方針を contract 化する
-  - 対象: `src/api/tauri-commands.ts`, `src/api/schemas/commands.ts`, `src/__tests__/api/command-args-validation.test.ts`
-  - `options.args && args ? ... : args` のため、schema 付き command に undefined args を渡すと validation を通らず invoke へ進む可能性がある
-  - schema required args + undefined、empty object、optional args command、no-args command、runtime invoke error の test を追加する
 
 - [ ] P2 URL redaction regex の http token 境界を markdown/log punctuation で強化する
   - 対象: `src/api/tauri-commands.ts`, `src/lib/runtime/diagnostics.ts`, `src-tauri/src/domain/error.rs`

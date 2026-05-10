@@ -1,5 +1,10 @@
 import { useEffect } from "react";
-import { loadDevRuntimeOptions, readDevIntent } from "@/dev/intent";
+import {
+  createDevIntentGenerationSnapshot,
+  isCurrentDevIntentGeneration,
+  loadDevRuntimeOptions,
+  readDevIntent,
+} from "@/dev/intent";
 import { runRuntimeDevScenario } from "@/dev/scenario-runtime";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -11,8 +16,9 @@ export function useDevIntent() {
     void (async () => {
       let intent = readDevIntent();
       if (!intent) {
+        const intentGeneration = createDevIntentGenerationSnapshot();
         await loadDevRuntimeOptions();
-        if (cancelled) {
+        if (cancelled || !isCurrentDevIntentGeneration(intentGeneration)) {
           return;
         }
         intent = readDevIntent();

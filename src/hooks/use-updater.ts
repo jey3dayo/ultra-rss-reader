@@ -9,6 +9,7 @@ import {
 import { type AppError, checkForUpdate, downloadAndInstallUpdate, restartApp } from "@/api/tauri-commands";
 import i18n from "@/lib/i18n";
 import { attachTauriListeners } from "@/lib/runtime/tauri-event-listeners";
+import type { ToastData } from "@/lib/ui/toast.types";
 import { useUiStore } from "@/stores/ui-store";
 
 type UpdateInfo = UpdateInfoDto;
@@ -17,10 +18,31 @@ type UpdateInfo = UpdateInfoDto;
 let checkInFlight: Result.ResultAsync<UpdateInfo | null, AppError> | null = null;
 let downloadInFlight = false;
 let activeDownloadSessionId: number | null = null;
+let activeDownloadRequestId: number | null = null;
+let nextDownloadRequestId = 0;
+const staleDownloadSessionIds = new Set<number>();
+
+function isCurrentToast(toast: ToastData): boolean {
+  return useUiStore.getState().toastMessage === toast;
+}
+
+function clearToastIfCurrent(toast: ToastData): void {
+  if (!isCurrentToast(toast)) {
+    return;
+  }
+
+  useUiStore.getState().clearToast();
+}
+
+function rememberStaleDownloadSession(): void {
+  if (activeDownloadSessionId !== null) {
+    staleDownloadSessionIds.add(activeDownloadSessionId);
+  }
+}
 
 export function showUpdateAvailableToast(version: string): void {
   const store = useUiStore.getState();
-  store.showToast({
+  const toast: ToastData = {
     message: i18n.t("updater.available", { version }),
     persistent: true,
     variant: "update",
@@ -28,23 +50,24 @@ export function showUpdateAvailableToast(version: string): void {
       {
         label: i18n.t("updater.update_now"),
         onClick: () => {
-          startDownload();
+          startDownload(toast);
         },
       },
       {
         label: i18n.t("updater.later"),
         onClick: () => {
-          store.clearToast();
+          clearToastIfCurrent(toast);
         },
       },
     ],
-  });
+  };
+  store.showToast(toast);
 }
 
 function showUpdateFailureToast(message: string): void {
   const store = useUiStore.getState();
   console.error("Update download failed:", message);
-  store.showToast({
+  const toast: ToastData = {
     message: i18n.t("updater.download_failed_keep_current"),
     persistent: true,
     variant: "update",
@@ -52,17 +75,22 @@ function showUpdateFailureToast(message: string): void {
       {
         label: i18n.t("updater.check_again"),
         onClick: () => {
+          if (!isCurrentToast(toast)) {
+            return;
+          }
+
           void runManualUpdateCheck();
         },
       },
       {
         label: i18n.t("close"),
         onClick: () => {
-          store.clearToast();
+          clearToastIfCurrent(toast);
         },
       },
     ],
-  });
+  };
+  store.showToast(toast);
 }
 
 function getErrorMessage(error: unknown): string {
@@ -77,13 +105,20 @@ function getErrorMessage(error: unknown): string {
   return "Unknown update download failure";
 }
 
-function startDownload(): void {
+function startDownload(ownerToast?: ToastData): void {
+  if (ownerToast && !isCurrentToast(ownerToast)) {
+    return;
+  }
+
   if (downloadInFlight) {
     return;
   }
 
   downloadInFlight = true;
   activeDownloadSessionId = null;
+  activeDownloadRequestId = nextDownloadRequestId + 1;
+  nextDownloadRequestId = activeDownloadRequestId;
+  const downloadRequestId = activeDownloadRequestId;
   const store = useUiStore.getState();
   store.showToast({
     message: i18n.t("updater.downloading_percent", { percent: 0 }),
@@ -97,16 +132,28 @@ function startDownload(): void {
       Result.pipe(
         result,
         Result.inspectError((e) => {
+          if (activeDownloadRequestId !== downloadRequestId) {
+            return;
+          }
+
+          rememberStaleDownloadSession();
           showUpdateFailureToast(e.message);
           downloadInFlight = false;
           activeDownloadSessionId = null;
+          activeDownloadRequestId = null;
         }),
       ),
     )
     .catch((error: unknown) => {
+      if (activeDownloadRequestId !== downloadRequestId) {
+        return;
+      }
+
+      rememberStaleDownloadSession();
       showUpdateFailureToast(getErrorMessage(error));
       downloadInFlight = false;
       activeDownloadSessionId = null;
+      activeDownloadRequestId = null;
     });
 }
 
@@ -132,6 +179,10 @@ function readDownloadProgressPercent(payload: unknown): number | null | undefine
     return undefined;
   }
 
+  if (staleDownloadSessionIds.has(result.data.session_id)) {
+    return undefined;
+  }
+
   if (activeDownloadSessionId === null) {
     activeDownloadSessionId = result.data.session_id;
   }
@@ -149,6 +200,10 @@ function isCurrentDownloadReady(payload: unknown): boolean {
     return false;
   }
 
+  if (staleDownloadSessionIds.has(result.data.session_id)) {
+    return false;
+  }
+
   if (activeDownloadSessionId !== null && result.data.session_id !== activeDownloadSessionId) {
     return false;
   }
@@ -157,30 +212,37 @@ function isCurrentDownloadReady(payload: unknown): boolean {
   return true;
 }
 
-function restartPreparedUpdate(): void {
+function restartPreparedUpdate(ownerToast?: ToastData): void {
   const store = useUiStore.getState();
   void restartApp().then((result) =>
     Result.pipe(
       result,
       Result.inspectError((error) => {
+        if (ownerToast && !isCurrentToast(ownerToast)) {
+          return;
+        }
+
         console.error("App restart failed:", error);
-        store.showToast({
+        const failureToast: ToastData = {
           message: i18n.t("updater.restart_failed_ready"),
           persistent: true,
           variant: "update",
           actions: [
             {
               label: i18n.t("updater.restart_again"),
-              onClick: restartPreparedUpdate,
+              onClick: () => {
+                restartPreparedUpdate(failureToast);
+              },
             },
             {
               label: i18n.t("updater.later"),
               onClick: () => {
-                store.clearToast();
+                clearToastIfCurrent(failureToast);
               },
             },
           ],
-        });
+        };
+        store.showToast(failureToast);
       }),
     ),
   );
@@ -195,23 +257,30 @@ function isUpdaterRuntimeUnavailable(): boolean {
 
 export function showRestartToast(): void {
   const store = useUiStore.getState();
-  store.showToast({
+  const toast: ToastData = {
     message: i18n.t("updater.ready"),
     persistent: true,
     variant: "update",
     actions: [
       {
         label: i18n.t("updater.restart"),
-        onClick: restartPreparedUpdate,
+        onClick: () => {
+          if (!isCurrentToast(toast)) {
+            return;
+          }
+
+          restartPreparedUpdate(toast);
+        },
       },
       {
         label: i18n.t("updater.later"),
         onClick: () => {
-          store.clearToast();
+          clearToastIfCurrent(toast);
         },
       },
     ],
-  });
+  };
+  store.showToast(toast);
 }
 
 export async function performUpdateCheckResult(): Result.ResultAsync<UpdateInfo | null, AppError> {
@@ -269,6 +338,7 @@ export function useUpdater(): void {
   // updater startup check and Tauri event listener disposal, not shared UI state.
   useEffect(() => {
     let cancelled = false;
+    let listenerActive = true;
 
     // Startup check (silent on failure)
     if (!isUpdaterRuntimeUnavailable()) {
@@ -294,6 +364,10 @@ export function useUpdater(): void {
     const disposeTauriListeners = attachTauriListeners(
       [
         listen("update-download-progress", (event) => {
+          if (!listenerActive) {
+            return;
+          }
+
           const store = useUiStore.getState();
           const percent = readDownloadProgressPercent(event.payload);
           if (percent === undefined) {
@@ -309,11 +383,16 @@ export function useUpdater(): void {
           });
         }),
         listen("update-ready", (event) => {
+          if (!listenerActive) {
+            return;
+          }
+
           if (!isCurrentDownloadReady(event.payload)) {
             return;
           }
           downloadInFlight = false;
           activeDownloadSessionId = null;
+          activeDownloadRequestId = null;
           showRestartToast();
         }),
       ],
@@ -322,6 +401,7 @@ export function useUpdater(): void {
 
     return () => {
       cancelled = true;
+      listenerActive = false;
       disposeTauriListeners();
     };
   }, []);

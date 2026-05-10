@@ -1,6 +1,7 @@
 import { Result } from "@praha/byethrow";
 import type { ArticleDto, FeedDto, FolderDto, TagDto } from "@/api/tauri-commands";
 import { countUnreadArticles } from "@/lib/articles/article-list";
+import { normalizeReaderContentImageUrl } from "@/lib/content/html";
 import { formatMediumDateOrDash, getDateInputTimeMs, parseDateInput, resolveDateTimeLocale } from "@/lib/datetime";
 import { resolveFeedWebsiteHref, resolveSiteHostLabel } from "@/lib/feed/feed";
 import type { ReaderSelection } from "@/lib/reader/reader-selection.types";
@@ -143,25 +144,7 @@ export function shouldOpenArticleTitleInExternalBrowser(params: LinkNavigationPa
 }
 
 export function normalizeArticleRemoteImageUrl(value: string | null | undefined): string | null {
-  const normalizedValue = value?.trim();
-  if (!normalizedValue) {
-    return null;
-  }
-
-  if (normalizedValue.startsWith("/") && !normalizedValue.startsWith("//")) {
-    return normalizedValue;
-  }
-
-  try {
-    const url = new URL(normalizedValue);
-    if (url.protocol !== "https:" || url.username || url.password) {
-      return null;
-    }
-
-    return url.href;
-  } catch {
-    return null;
-  }
+  return normalizeReaderContentImageUrl(value);
 }
 
 export function resolveArticleDateLocale(locale: string | undefined): string {

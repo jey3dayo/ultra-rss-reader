@@ -266,6 +266,7 @@ function toAppError(cmd: string, error: unknown): AppError {
 }
 
 function validateInvokeArgs(options: InvokeArgsOptions, args?: InvokeArgsRecord): InvokeArgsRecord | undefined {
+  // Missing args intentionally bypass schema parsing for schema-backed no-arg calls.
   // Throwing is contained here because safeInvoke converts ZodError into AppError Result.
   return options.args && args ? parseWithSchema(options.args, args) : args;
 }
@@ -660,7 +661,11 @@ export const closeBrowserWebview = () => safeInvoke("close_browser_webview", { r
 export const triggerSync = () => safeInvoke("trigger_sync", { response: SyncResultSchema });
 
 export const triggerStartupSync = (preferredAccountId?: string) =>
-  safeInvoke("trigger_startup_sync", { response: SyncResultSchema, args: startupSyncArgs }, { preferredAccountId });
+  safeInvoke(
+    "trigger_startup_sync",
+    { response: SyncResultSchema, args: startupSyncArgs },
+    preferredAccountId === undefined ? undefined : { preferredAccountId },
+  );
 
 export const triggerAutomaticSync = () => safeInvoke("trigger_automatic_sync", { response: SyncResultSchema });
 

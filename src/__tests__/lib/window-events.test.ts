@@ -177,6 +177,78 @@ describe("window-events", () => {
     expect(target.removeEventListener).toHaveBeenCalledWith("first-event", firstListener, firstOptions);
   });
 
+  it("preserves the registration error when rollback cleanup fails", () => {
+    const registrationError = new Error("second listener failed");
+    const cleanupError = new Error("rollback cleanup failed");
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const target = {
+      addEventListener: vi.fn((type: string) => {
+        if (type === "second-event") {
+          throw registrationError;
+        }
+      }),
+      removeEventListener: vi.fn(() => {
+        throw cleanupError;
+      }),
+    };
+    const firstListener = vi.fn();
+    const secondListener = vi.fn();
+
+    expect(() =>
+      bindWindowEvents([
+        { target, type: "first-event", listener: firstListener },
+        { target, type: "second-event", listener: secondListener },
+      ]),
+    ).toThrow(registrationError);
+
+    expect(target.removeEventListener).toHaveBeenCalledOnce();
+    expect(target.removeEventListener).toHaveBeenCalledWith("first-event", firstListener, undefined);
+    expect(consoleErrorSpy).toHaveBeenCalledWith("Failed to remove window event listener.", cleanupError);
+  });
+
+  it("deduplicates listener registrations with the same target, type, listener, and capture option", () => {
+    const target = {
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    };
+    const listener = vi.fn();
+    const options = { capture: false, passive: true };
+
+    const cleanup = bindWindowEvents([
+      { target, type: "duplicate-event", listener, options },
+      { target, type: "duplicate-event", listener, options: { capture: false, passive: false } },
+      { target, type: "duplicate-event", listener, options: false },
+      { target, type: "duplicate-event", listener },
+    ]);
+    cleanup();
+
+    expect(target.addEventListener).toHaveBeenCalledOnce();
+    expect(target.addEventListener).toHaveBeenCalledWith("duplicate-event", listener, options);
+    expect(target.removeEventListener).toHaveBeenCalledOnce();
+    expect(target.removeEventListener).toHaveBeenCalledWith("duplicate-event", listener, options);
+  });
+
+  it("keeps registrations separate when the same listener uses different capture options", () => {
+    const target = {
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    };
+    const listener = vi.fn();
+    const bubbleOptions = { passive: true };
+    const captureOptions = { capture: true, passive: true };
+
+    const cleanup = bindWindowEvents([
+      { target, type: "capture-mismatch-event", listener, options: bubbleOptions },
+      { target, type: "capture-mismatch-event", listener, options: captureOptions },
+    ]);
+    cleanup();
+
+    expect(target.addEventListener).toHaveBeenNthCalledWith(1, "capture-mismatch-event", listener, bubbleOptions);
+    expect(target.addEventListener).toHaveBeenNthCalledWith(2, "capture-mismatch-event", listener, captureOptions);
+    expect(target.removeEventListener).toHaveBeenNthCalledWith(1, "capture-mismatch-event", listener, bubbleOptions);
+    expect(target.removeEventListener).toHaveBeenNthCalledWith(2, "capture-mismatch-event", listener, captureOptions);
+  });
+
   it("adds and removes typed helper listeners with matching target, type, listener, and options", () => {
     const target = {
       addEventListener: vi.fn(),
@@ -232,5 +304,20 @@ describe("window-events", () => {
     expect(target.removeEventListener).toHaveBeenNthCalledWith(1, "first-event", firstListener, undefined);
     expect(target.removeEventListener).toHaveBeenNthCalledWith(2, "second-event", secondListener, undefined);
     expect(consoleErrorSpy).toHaveBeenCalledWith("Failed to remove window event listener.", cleanupError);
+  });
+
+  it("does not remove listeners again when cleanup is called twice", () => {
+    const target = {
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    };
+    const listener = vi.fn();
+    const cleanup = bindWindowEvents([{ target, type: "cleanup-twice-event", listener }]);
+
+    cleanup();
+    cleanup();
+
+    expect(target.removeEventListener).toHaveBeenCalledOnce();
+    expect(target.removeEventListener).toHaveBeenCalledWith("cleanup-twice-event", listener, undefined);
   });
 });

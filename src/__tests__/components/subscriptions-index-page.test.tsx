@@ -1,9 +1,10 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createWrapper } from "@tests/helpers/create-wrapper";
+import { createQueryWrapper, createWrapper } from "@tests/helpers/create-wrapper";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import type { ComponentProps } from "react";
 import { afterEach, beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest";
+import type { FeedDto } from "@/api/tauri-commands";
 import { SubscriptionsIndexPage } from "@/components/subscriptions-index/subscriptions-index-page";
 import type { SubscriptionsIndexPageView } from "@/components/subscriptions-index/subscriptions-index-page-view";
 import i18n from "@/lib/i18n";
@@ -27,6 +28,7 @@ function getRequiredHTMLElement(element: Element | null, description: string) {
 
 let deleteFeedHandler: (() => unknown) | null = null;
 let deleteFeedCalls: string[] = [];
+let feedRows: FeedDto[] = [];
 
 describe("SubscriptionsIndexPage", () => {
   beforeEach(async () => {
@@ -40,48 +42,49 @@ describe("SubscriptionsIndexPage", () => {
     usePreferencesStore.setState({ prefs: {}, loaded: true });
     deleteFeedHandler = null;
     deleteFeedCalls = [];
+    feedRows = [
+      {
+        id: "feed-1",
+        account_id: "acc-1",
+        folder_id: "folder-1",
+        remote_id: null,
+        title: "Example Feed",
+        url: "https://example.com/feed.xml",
+        site_url: "https://example.com",
+        unread_count: 0,
+        reader_mode: "inherit",
+        web_preview_mode: "inherit",
+      },
+      {
+        id: "feed-2",
+        account_id: "acc-1",
+        folder_id: "folder-2",
+        remote_id: null,
+        title: "Fresh Feed",
+        url: "https://example.com/fresh.xml",
+        site_url: "https://example.com/fresh",
+        unread_count: 3,
+        reader_mode: "inherit",
+        web_preview_mode: "inherit",
+      },
+      {
+        id: "feed-3",
+        account_id: "acc-1",
+        folder_id: null,
+        remote_id: null,
+        title: "Loose Feed",
+        url: "https://example.com/loose.xml",
+        site_url: "https://example.com/loose",
+        unread_count: 1,
+        reader_mode: "inherit",
+        web_preview_mode: "inherit",
+      },
+    ];
 
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_feeds":
-          return [
-            {
-              id: "feed-1",
-              account_id: "acc-1",
-              folder_id: "folder-1",
-              remote_id: null,
-              title: "Example Feed",
-              url: "https://example.com/feed.xml",
-              site_url: "https://example.com",
-              unread_count: 0,
-              reader_mode: "inherit",
-              web_preview_mode: "inherit",
-            },
-            {
-              id: "feed-2",
-              account_id: "acc-1",
-              folder_id: "folder-2",
-              remote_id: null,
-              title: "Fresh Feed",
-              url: "https://example.com/fresh.xml",
-              site_url: "https://example.com/fresh",
-              unread_count: 3,
-              reader_mode: "inherit",
-              web_preview_mode: "inherit",
-            },
-            {
-              id: "feed-3",
-              account_id: "acc-1",
-              folder_id: null,
-              remote_id: null,
-              title: "Loose Feed",
-              url: "https://example.com/loose.xml",
-              site_url: "https://example.com/loose",
-              unread_count: 1,
-              reader_mode: "inherit",
-              web_preview_mode: "inherit",
-            },
-          ];
+          return feedRows;
         case "list_folders":
           return [
             {
@@ -944,6 +947,26 @@ describe("SubscriptionsIndexPage", () => {
       ...useUiStore.getState(),
       selectedAccountId: "acc-2",
     });
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+    expect(deleteFeedCalls).toEqual([]);
+  });
+
+  it("closes stale unsubscribe targets after the feed list refetch removes the target", async () => {
+    const user = userEvent.setup();
+    const { queryClient, wrapper } = createQueryWrapper({ includeToastHost: true });
+
+    render(<SubscriptionsIndexPage />, { wrapper });
+
+    await user.click(await screen.findByRole("button", { name: /Example Feed/ }));
+    const detailPane = screen.getByTestId("subscriptions-detail-pane");
+    await user.click(within(detailPane).getByRole("button", { name: /^(削除|delete)$/ }));
+    await screen.findByRole("dialog");
+
+    feedRows = feedRows.filter((feed) => feed.id !== "feed-1");
+    await queryClient.invalidateQueries({ queryKey: ["feeds"] });
 
     await waitFor(() => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();

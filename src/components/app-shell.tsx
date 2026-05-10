@@ -161,8 +161,8 @@ const TAURI_EVENT_LISTENER_FAILURE_TOAST = "デスクトップ連携の一部を
 
 type SettingsModalBoundaryProps = {
   children: ReactNode;
-  onRecoverFromError: () => void;
-  onReportError: (error: Error) => void;
+  onTelemetryError: (error: Error) => void;
+  onUserRecoveryRequired: () => void;
 };
 
 type SettingsModalBoundaryState = {
@@ -179,8 +179,8 @@ class SettingsModalBoundary extends Component<SettingsModalBoundaryProps, Settin
   }
 
   componentDidCatch(error: Error) {
-    this.props.onReportError(error);
-    this.props.onRecoverFromError();
+    this.props.onTelemetryError(error);
+    this.props.onUserRecoveryRequired();
   }
 
   render() {
@@ -195,8 +195,8 @@ class SettingsModalBoundary extends Component<SettingsModalBoundaryProps, Settin
 type LazyChunkBoundaryProps = {
   children: ReactNode;
   fallback?: ReactNode;
-  onRecoverFromError?: () => void;
-  onReportError?: (error: Error) => void;
+  onTelemetryError?: (error: Error) => void;
+  onUserRecoveryRequired?: () => void;
 };
 
 type LazyChunkBoundaryState = {
@@ -213,8 +213,8 @@ class LazyChunkBoundary extends Component<LazyChunkBoundaryProps, LazyChunkBound
   }
 
   componentDidCatch(error: Error) {
-    this.props.onReportError?.(error);
-    this.props.onRecoverFromError?.();
+    this.props.onTelemetryError?.(error);
+    this.props.onUserRecoveryRequired?.();
   }
 
   render() {
@@ -594,8 +594,11 @@ export function AppShell() {
         <AppLayout />
       </div>
       {settingsOpen ? (
-        <LazyChunkBoundary onRecoverFromError={closeSettings} onReportError={reportLazyChunkBoundaryError}>
-          <SettingsModalBoundary onRecoverFromError={closeSettings} onReportError={reportSettingsModalBoundaryError}>
+        <LazyChunkBoundary onTelemetryError={reportLazyChunkBoundaryError} onUserRecoveryRequired={closeSettings}>
+          <SettingsModalBoundary
+            onTelemetryError={reportSettingsModalBoundaryError}
+            onUserRecoveryRequired={closeSettings}
+          >
             <Suspense fallback={null}>
               <LazySettingsModal />
             </Suspense>
@@ -613,7 +616,7 @@ export function AppShell() {
       ) : null}
       <Toast />
       {commandPaletteOpen ? (
-        <LazyChunkBoundary onReportError={reportLazyChunkBoundaryError}>
+        <LazyChunkBoundary onTelemetryError={reportLazyChunkBoundaryError}>
           <Suspense fallback={null}>
             <LazyCommandPalette />
           </Suspense>

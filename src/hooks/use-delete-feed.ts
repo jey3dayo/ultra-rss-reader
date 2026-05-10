@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { deleteFeed } from "@/api/tauri-commands";
 import { invalidateDeleteFeedQueries } from "@/lib/query/query-invalidation";
+import { getErrorMessage } from "@/lib/ui/errors";
 import { useUiStore } from "@/stores/ui-store";
 
 type DeleteFeedArgs = {
@@ -13,11 +14,13 @@ type DeleteFeedArgs = {
   onError?: () => void;
 };
 
-function callOptionalCallback(callback: (() => void) | undefined) {
+function callOptionalCallback(callback: (() => void) | undefined, failureMessage: string) {
   try {
     callback?.();
+    return null;
   } catch (error) {
-    console.error("Delete feed callback failed", error);
+    console.error(failureMessage, error);
+    return getErrorMessage(error);
   }
 }
 
@@ -43,11 +46,17 @@ export function useDeleteFeed() {
         accountId: variables.accountId,
       });
       showToast(t("unsubscribed_from", { title: getDeletedFeedTitle(variables) }));
-      callOptionalCallback(variables.onSuccess);
+      const callbackErrorMessage = callOptionalCallback(variables.onSuccess, "Delete feed success callback failed");
+      if (callbackErrorMessage !== null) {
+        showToast(`Unsubscribe completed, but UI cleanup failed: ${callbackErrorMessage}`);
+      }
     },
     onError: (error, variables) => {
       showToast(t("failed_to_unsubscribe", { message: error.message }));
-      callOptionalCallback(variables.onError);
+      const callbackErrorMessage = callOptionalCallback(variables.onError, "Delete feed error callback failed");
+      if (callbackErrorMessage !== null) {
+        showToast(`Unsubscribe failed, and UI cleanup failed: ${callbackErrorMessage}`);
+      }
     },
   });
 }
