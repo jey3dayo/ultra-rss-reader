@@ -100,6 +100,64 @@ Rules:
 - Avoid `focus-visible:ring-ring/*` for reader navigation rows, section headers, and footer tabs.
 - Keep orange or primary rings for form controls and dialog controls where a conventional focus ring is still appropriate.
 
+Dense control keyboard contract:
+
+- Toolbar buttons, feed tree rows, article rows, settings form controls, command palette items, and browser overlay controls must expose a visible `:focus-visible` state without requiring prior hover.
+- Keyboard-only operation must reach the same primary actions as pointer operation: pane movement, row selection, article read/star actions, feed/tag selection, settings save/cancel actions, and command palette execution.
+- Selected and focused states must remain visually distinct. Selection may show current app context; focus must show the current keyboard operation target.
+- Disabled dense controls must remain focus-skipped unless they need to expose a reason. If a disabled control is reachable for explanation, its label or description must include why the action is unavailable.
+- Focus styles must not depend on color alone. Pair tone changes with an outline, inset indicator, underline, icon change, or text label when the control carries state.
+
+Pointer target inventory:
+
+| Surface | Minimum target contract | Notes |
+| --- | --- | --- |
+| Compact toolbar icon buttons | At least 32px square on desktop and 44px square on touch-oriented/mobile layouts. | The visual glyph may be smaller, but the interactive hit area must meet the target. |
+| Feed tree and sidebar rows | Full row height is the pointer target; row actions must keep at least a 32px hit area. | Disclosure toggles and inline actions must not require pixel-precise clicks. |
+| Tag chips and chip remove actions | The chip body must be at least 32px high; remove affordances must keep at least a 32px target or use the whole chip as the action. | Do not rely on a tiny icon-only remove target inside dense chips. |
+| Settings action buttons | At least 32px high in desktop settings rows, with 44px reserved for mobile or touch layouts. | Adjacent buttons need enough gap that the target areas do not overlap. |
+
+Pointer target verification should inventory compact toolbar buttons, feed tree rows, tag chips, settings action buttons, and browser overlay controls together. A smaller visual treatment is acceptable only when padding or row geometry preserves the interactive target.
+
+## Landmark And Heading Contract
+
+Reader, settings, and subscriptions surfaces need a stable screen reader outline even when the visual layout is pane-based.
+
+| Surface | Required structure |
+| --- | --- |
+| Reader app shell | One primary `main` landmark owns the active reader workspace. Sidebar navigation uses `nav`; secondary article metadata or feed detail panels use `complementary` only when they are not the primary reading target. |
+| Reader panes | Account, sidebar, article list, and article content panes each need a programmatic label. The article content pane must expose the article heading when an article is selected; empty and loading states need labeled status text. |
+| Settings | Settings modal/dialog content must have a modal heading. Each settings section needs a heading or an equivalent accessible label tied to its controls. Hidden settings panels must not remain in the screen reader traversal order. |
+| Subscriptions index | The subscriptions workspace uses a single page heading, labeled review/list regions, and row/group labels that identify account, feed, folder, or tag context. |
+
+Hidden panes and collapsed sections must not expose duplicate headings or stale row actions to assistive technology. When a pane is visually present but inactive, keep its landmark or region label stable and let focus/selection state explain whether it is the active keyboard target.
+
+## Color And Status Contract
+
+Sync, account, feed, and tag status must never be communicated by color alone.
+
+| State class | Required non-color signal |
+| --- | --- |
+| Syncing or updating | Text such as "Syncing" / "Updating", a progress label, or an accessible live-region announcement. |
+| Sync failure, auth failure, or stale content | Error/warning text or icon with an accessible label. Feed/account names must be included when safe. |
+| Selected account, feed, article, or tag | `aria-current`, `aria-selected`, checked/pressed state, or equivalent text/icon treatment in addition to color. |
+| Muted, filtered, starred, unread, or tagged state | Icon, text, count, or accessible label that names the state. |
+| High contrast or forced-colors mode | State must remain detectable through text, icon shape, border, underline, or system color mapping. |
+
+Color may reinforce severity or selection, but it is secondary evidence. Review dense controls by turning off color-dependent assumptions: if the state cannot be named from text, icon, accessible label, or structural state, the contract is not met.
+
+## Sync And Update Announcement Contract
+
+Sync and update progress announcements must be useful without creating a noisy screen reader queue.
+
+- Announce operation start once per user-visible sync/update operation.
+- Do not announce every progress tick. Progress announcements should be throttled to meaningful milestones, phase changes, or a minimum interval.
+- Completion and failure must be announced once with the operation class and outcome.
+- Cancellation must be announced once when the user cancels or the app suppresses background sync/update work.
+- Background sync suppressed by offline, disabled, locked, or already-running state should use one concise announcement or status update, not repeated queue entries.
+- Visual progress bars need an accessible name and bounded value when progress is determinate. Indeterminate progress needs a status label instead of fake percentages.
+- Toasts and live regions must not duplicate the same message at the same time. Prefer one live-region owner for sync/update progress.
+
 ## Screen Reader Action Labels
 
 Dialog and row action labels must carry the same target and recovery meaning that sighted users get from nearby text.
@@ -173,6 +231,11 @@ Use this checklist when changing reader keyboard behavior:
 - Article content `ArrowLeft` returns to the article list.
 - Recent smart view navigation keeps history order stable and does not re-record articles while moving through the list.
 - Focus styling uses tonal backgrounds for reader navigation controls and does not reintroduce orange rings.
+- Landmark and heading structure is stable for reader, settings, and subscriptions surfaces.
+- Keyboard-only operation reaches dense toolbar, tree, list, settings, command palette, and browser overlay actions with visible focus.
+- Compact toolbar, tree row, tag chip, and settings action targets meet the pointer target inventory.
+- Sync/account/feed/tag states are not color-only and have text, icon, accessible state, or structural state.
+- Sync/update progress announcements are throttled and announce start, meaningful progress, completion, failure, cancellation, and suppression without duplicate live-region noise.
 - Destructive dialog labels include target name and undo-unavailable meaning for screen readers.
 - Dense row action labels identify the full safe target even when visible text is truncated.
 - Public shortcut/action ids are classified as preference, history, or debug before renaming.
