@@ -3,6 +3,8 @@ use rusqlite::types::Type;
 use rusqlite::{params, Connection, OptionalExtension};
 
 use crate::domain::article::{Article, ArticleViewHistoryItem};
+#[cfg(test)]
+use crate::domain::constants::ARTICLE_MUTATION_TRANSACTION_CHUNK_SIZE;
 use crate::domain::constants::RECENT_ARTICLE_HISTORY_LIMIT;
 use crate::domain::error::DomainResult;
 use crate::domain::types::{AccountId, ArticleId, FeedId, FolderId};
@@ -2326,6 +2328,8 @@ mod tests {
 
     #[test]
     fn mark_muted_unread_as_read_rolls_back_all_changes_on_mid_batch_failure() {
+        assert_eq!(ARTICLE_MUTATION_TRANSACTION_CHUNK_SIZE, None);
+
         let db = test_db();
         let account_id = insert_test_account(&db);
         let feed_id = insert_test_feed(&db, &account_id);
@@ -2505,6 +2509,32 @@ mod tests {
         assert!(recent_a.iter().all(|item| item.account_id == account_a));
         assert_eq!(recent_b.len(), 1);
         assert_eq!(recent_b[0].article.id, article_b.id);
+    }
+
+    #[test]
+    fn article_view_history_is_database_backed_between_repository_instances() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let article = make_article(&feed_id, "Persistent history article");
+        SqliteArticleRepository::new(db.writer())
+            .upsert(std::slice::from_ref(&article))
+            .unwrap();
+
+        SqliteArticleRepository::new(db.writer())
+            .record_view(&account_id, &article.id)
+            .unwrap();
+
+        let recent = SqliteArticleRepository::new(db.reader())
+            .find_recently_viewed_by_account(
+                &account_id,
+                &Pagination::default(),
+                ArticleListMode::All,
+            )
+            .unwrap();
+
+        assert_eq!(recent.len(), 1);
+        assert_eq!(recent[0].article.id, article.id);
     }
 
     #[test]
