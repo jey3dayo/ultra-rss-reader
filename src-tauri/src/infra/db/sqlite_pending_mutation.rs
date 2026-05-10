@@ -6,6 +6,35 @@ use crate::repository::pending_mutation::{
     PendingMutation, PendingMutationAxis, PendingMutationRepository, PendingMutationType,
 };
 
+fn delete_replaced_mutations(
+    conn: &Connection,
+    account_id: &AccountId,
+    remote_entry_id: &str,
+    replacement_types: &[&str],
+) -> DomainResult<()> {
+    if replacement_types.is_empty() {
+        return Ok(());
+    }
+
+    let placeholders = std::iter::repeat_n("?", replacement_types.len())
+        .collect::<Vec<_>>()
+        .join(", ");
+    let delete_sql = format!(
+        "DELETE FROM pending_mutations
+         WHERE account_id = ?1 AND remote_entry_id = ?2 AND mutation_type IN ({placeholders})"
+    );
+    let mut delete_params: Vec<&dyn rusqlite::types::ToSql> =
+        Vec::with_capacity(2 + replacement_types.len());
+    delete_params.push(&account_id.0);
+    delete_params.push(&remote_entry_id);
+    for mutation_type in replacement_types {
+        delete_params.push(mutation_type);
+    }
+
+    conn.execute(&delete_sql, rusqlite::params_from_iter(delete_params))?;
+    Ok(())
+}
+
 pub struct SqlitePendingMutationRepository<'a> {
     conn: &'a Connection,
 }
@@ -19,7 +48,10 @@ impl<'a> SqlitePendingMutationRepository<'a> {
 impl PendingMutationRepository for SqlitePendingMutationRepository<'_> {
     fn find_by_account(&self, account_id: &AccountId) -> DomainResult<Vec<PendingMutation>> {
         let mut stmt = self.conn.prepare(
-            "SELECT id, account_id, mutation_type, remote_entry_id, created_at FROM pending_mutations WHERE account_id = ?1 ORDER BY created_at",
+            "SELECT id, account_id, mutation_type, remote_entry_id, created_at
+             FROM pending_mutations
+             WHERE account_id = ?1
+             ORDER BY datetime(created_at) IS NULL, datetime(created_at), id",
         )?;
         let mutations = stmt
             .query_map(params![account_id.0], |row| {
@@ -51,21 +83,12 @@ impl PendingMutationRepository for SqlitePendingMutationRepository<'_> {
 
         let tx = self.conn.unchecked_transaction()?;
         let replacement_types = mutation.mutation_type.replacement_type_values();
-        let placeholders = std::iter::repeat_n("?", replacement_types.len())
-            .collect::<Vec<_>>()
-            .join(", ");
-        let delete_sql = format!(
-            "DELETE FROM pending_mutations
-             WHERE account_id = ?1 AND remote_entry_id = ?2 AND mutation_type IN ({placeholders})"
-        );
-        let mut delete_params: Vec<&dyn rusqlite::types::ToSql> =
-            Vec::with_capacity(2 + replacement_types.len());
-        delete_params.push(&mutation.account_id.0);
-        delete_params.push(&mutation.remote_entry_id);
-        for mutation_type in replacement_types {
-            delete_params.push(mutation_type);
-        }
-        tx.execute(&delete_sql, rusqlite::params_from_iter(delete_params))?;
+        delete_replaced_mutations(
+            &tx,
+            &mutation.account_id,
+            &mutation.remote_entry_id,
+            replacement_types,
+        )?;
         tx.execute(
             "INSERT INTO pending_mutations (account_id, mutation_type, remote_entry_id, created_at) VALUES (?1, ?2, ?3, ?4)",
             params![
@@ -328,6 +351,38 @@ mod tests {
     }
 
     #[test]
+    fn find_by_account_orders_same_and_invalid_created_at_deterministically() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        db.writer()
+            .execute(
+                "INSERT INTO pending_mutations (account_id, mutation_type, remote_entry_id, created_at)
+                 VALUES (?1, 'star', 'entry-invalid-first', 'not-a-date'),
+                        (?1, 'mark_read', 'entry-same-first', '2024-01-01T00:00:00Z'),
+                        (?1, 'unstar', 'entry-same-second', '2024-01-01T00:00:00Z'),
+                        (?1, 'mark_unread', 'entry-invalid-second', 'invalid timestamp')",
+                params![account_id.0],
+            )
+            .unwrap();
+
+        let repo = SqlitePendingMutationRepository::new(db.reader());
+        let found = repo.find_by_account(&account_id).unwrap();
+
+        assert_eq!(
+            found
+                .iter()
+                .map(|mutation| mutation.remote_entry_id.as_str())
+                .collect::<Vec<_>>(),
+            [
+                "entry-same-first",
+                "entry-same-second",
+                "entry-invalid-first",
+                "entry-invalid-second"
+            ]
+        );
+    }
+
+    #[test]
     fn delete_removes_by_ids() {
         let db = test_db();
         let account_id = insert_test_account(&db);
@@ -564,6 +619,29 @@ mod tests {
         assert_eq!(found_a[0].mutation_type, PendingMutationType::MarkRead);
         assert_eq!(found_b.len(), 1);
         assert_eq!(found_b[0].mutation_type, PendingMutationType::Star);
+    }
+
+    #[test]
+    fn empty_replacement_type_set_skips_delete_sql() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        db.writer()
+            .execute(
+                "INSERT INTO pending_mutations (account_id, mutation_type, remote_entry_id, created_at)
+                 VALUES (?1, 'mark_read', 'entry-1', '2024-01-01T00:00:00Z')",
+                params![account_id.0],
+            )
+            .unwrap();
+
+        delete_replaced_mutations(db.writer(), &account_id, "entry-1", &[]).unwrap();
+
+        let count: i64 = db
+            .reader()
+            .query_row("SELECT COUNT(*) FROM pending_mutations", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        assert_eq!(count, 1);
     }
 
     #[test]
