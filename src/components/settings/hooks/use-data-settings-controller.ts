@@ -21,6 +21,8 @@ type UseDataSettingsControllerResult = {
 
 export type DatabaseSizeStatus = "loading" | "ready" | "error";
 
+type DataSettingsActionKey = "vacuuming" | "openingLogDir";
+
 type DataSettingsControllerState = {
   databaseSizeStatus: DatabaseSizeStatus;
   totalSize: number | null;
@@ -40,6 +42,41 @@ const initialDataSettingsControllerState: DataSettingsControllerState = {
   vacuuming: false,
   openingLogDir: false,
 };
+
+type DataSettingsActionLifecycle = Pick<DataSettingsControllerState, DataSettingsActionKey>;
+
+const dataSettingsActionLifecycle: DataSettingsActionLifecycle = {
+  vacuuming: false,
+  openingLogDir: false,
+};
+
+const dataSettingsActionLifecycleListeners = new Set<(lifecycle: DataSettingsActionLifecycle) => void>();
+
+function getDataSettingsActionLifecycle(): DataSettingsActionLifecycle {
+  return { ...dataSettingsActionLifecycle };
+}
+
+function isDataSettingsActionInFlight(): boolean {
+  return dataSettingsActionLifecycle.vacuuming || dataSettingsActionLifecycle.openingLogDir;
+}
+
+function subscribeToDataSettingsActionLifecycle(listener: (lifecycle: DataSettingsActionLifecycle) => void): () => void {
+  dataSettingsActionLifecycleListeners.add(listener);
+  return () => {
+    dataSettingsActionLifecycleListeners.delete(listener);
+  };
+}
+
+function setDataSettingsActionLifecycle(actionKey: DataSettingsActionKey, value: boolean): void {
+  if (dataSettingsActionLifecycle[actionKey] === value) {
+    return;
+  }
+  dataSettingsActionLifecycle[actionKey] = value;
+  const lifecycle = getDataSettingsActionLifecycle();
+  for (const listener of dataSettingsActionLifecycleListeners) {
+    listener(lifecycle);
+  }
+}
 
 function dataSettingsControllerReducer(
   state: DataSettingsControllerState,
@@ -79,11 +116,13 @@ export function formatBytes(bytes: number): string {
 export function useDataSettingsController({
   t,
   showToast,
+  setSettingsLoading,
 }: UseDataSettingsControllerParams): UseDataSettingsControllerResult {
-  const [state, dispatch] = useReducer(dataSettingsControllerReducer, initialDataSettingsControllerState);
+  const [state, dispatch] = useReducer(dataSettingsControllerReducer, {
+    ...initialDataSettingsControllerState,
+    ...getDataSettingsActionLifecycle(),
+  });
   const { databaseSizeStatus, totalSize, vacuuming, openingLogDir } = state;
-  const vacuumingRef = useRef(false);
-  const openingLogDirRef = useRef(false);
   const databaseSizeRequestRevisionRef = useRef(0);
   const mountedRef = useRef(false);
 
@@ -125,24 +164,28 @@ export function useDataSettingsController({
 
   useEffect(() => {
     mountedRef.current = true;
+    const unsubscribeFromActionLifecycle = subscribeToDataSettingsActionLifecycle((lifecycle) => {
+      dispatch({ type: "set-vacuuming", value: lifecycle.vacuuming });
+      dispatch({ type: "set-opening-log-dir", value: lifecycle.openingLogDir });
+    });
     void fetchDbInfo();
     return () => {
       mountedRef.current = false;
       databaseSizeRequestRevisionRef.current += 1;
-      vacuumingRef.current = false;
-      openingLogDirRef.current = false;
+      unsubscribeFromActionLifecycle();
     };
   }, [fetchDbInfo]);
 
   const handleVacuum = async () => {
-    if (!mountedRef.current || vacuumingRef.current || openingLogDirRef.current) {
+    if (!mountedRef.current || isDataSettingsActionInFlight()) {
       return;
     }
 
-    vacuumingRef.current = true;
+    setDataSettingsActionLifecycle("vacuuming", true);
     const sizeBefore = totalSize;
     databaseSizeRequestRevisionRef.current += 1;
     const requestRevision = databaseSizeRequestRevisionRef.current;
+    setSettingsLoading?.(true);
     dispatch({ type: "set-vacuuming", value: true });
     try {
       Result.pipe(
@@ -176,19 +219,18 @@ export function useDataSettingsController({
         showToast(t("data.vacuum_failed", { message: getErrorMessage(error) }));
       }
     } finally {
-      vacuumingRef.current = false;
-      if (mountedRef.current) {
-        dispatch({ type: "set-vacuuming", value: false });
-      }
+      setDataSettingsActionLifecycle("vacuuming", false);
+      setSettingsLoading?.(false);
     }
   };
 
   const handleOpenLogDir = async () => {
-    if (!mountedRef.current || openingLogDirRef.current || vacuumingRef.current) {
+    if (!mountedRef.current || isDataSettingsActionInFlight()) {
       return;
     }
 
-    openingLogDirRef.current = true;
+    setDataSettingsActionLifecycle("openingLogDir", true);
+    setSettingsLoading?.(true);
     dispatch({ type: "set-opening-log-dir", value: true });
     try {
       Result.pipe(
@@ -207,10 +249,8 @@ export function useDataSettingsController({
         showToast(t("data.open_log_dir_failed", { message: getErrorMessage(error) }));
       }
     } finally {
-      openingLogDirRef.current = false;
-      if (mountedRef.current) {
-        dispatch({ type: "set-opening-log-dir", value: false });
-      }
+      setDataSettingsActionLifecycle("openingLogDir", false);
+      setSettingsLoading?.(false);
     }
   };
 

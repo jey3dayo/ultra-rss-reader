@@ -118,6 +118,42 @@ describe("useDataSettingsController", () => {
     expect(showToast).toHaveBeenCalledWith("Saved -384 B");
   });
 
+  it("clamps vacuum saved copy when the database grows after cleanup", async () => {
+    const initialInfo = DatabaseInfoDtoSchema.parse({
+      db_size_bytes: 1024,
+      wal_size_bytes: 0,
+      shm_size_bytes: 0,
+      total_size_bytes: 1024,
+    });
+    const vacuumedInfo = DatabaseInfoDtoSchema.parse({
+      db_size_bytes: 2048,
+      wal_size_bytes: 0,
+      shm_size_bytes: 0,
+      total_size_bytes: 2048,
+    });
+    vi.mocked(getDatabaseInfo).mockResolvedValue(Result.succeed(initialInfo));
+    vi.mocked(vacuumDatabase).mockResolvedValue(Result.succeed(vacuumedInfo));
+    const showToast = vi.fn();
+    const { result } = renderHook(() =>
+      useDataSettingsController({
+        t: ((key: string, options?: { saved?: string }) =>
+          key === "data.vacuum_success" ? `Saved ${options?.saved ?? ""}` : key) as never,
+        showToast,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.databaseSizeStatus).toBe("ready");
+    });
+
+    await act(async () => {
+      await result.current.handleVacuum();
+    });
+
+    expect(result.current.databaseSizeValue).toBe("2.0 KB");
+    expect(showToast).toHaveBeenCalledWith("Saved 0 B");
+  });
+
   it("reports database size failures separately from loading", async () => {
     vi.mocked(getDatabaseInfo).mockResolvedValue(Result.fail({ type: "UserVisible", message: "db unavailable" }));
 
@@ -224,6 +260,47 @@ describe("useDataSettingsController", () => {
     await act(async () => {
       resolveVacuum?.();
     });
+  });
+
+  it("keeps vacuum action in flight across settings close and reopen", async () => {
+    let resolveVacuum: (() => void) | undefined;
+    vi.mocked(vacuumDatabase).mockReturnValue(
+      new Promise((resolve) => {
+        resolveVacuum = () =>
+          resolve(
+            Result.succeed({
+              db_size_bytes: 512,
+              wal_size_bytes: 0,
+              shm_size_bytes: 0,
+              total_size_bytes: 512,
+            }),
+          );
+      }),
+    );
+    const first = renderDataSettingsController();
+
+    await act(async () => {
+      void first.result.current.handleVacuum();
+    });
+
+    expect(first.result.current.vacuuming).toBe(true);
+    first.unmount();
+
+    const second = renderDataSettingsController();
+
+    expect(second.result.current.vacuuming).toBe(true);
+
+    await act(async () => {
+      void second.result.current.handleVacuum();
+    });
+
+    expect(vacuumDatabase).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolveVacuum?.();
+    });
+
+    expect(second.result.current.vacuuming).toBe(false);
   });
 
   it("ignores stale database size fetch responses after cleanup updates the size", async () => {
@@ -334,7 +411,7 @@ describe("useDataSettingsController", () => {
     consoleError.mockRestore();
   });
 
-  it("keeps vacuum loading local when vacuum is still pending during unmount", async () => {
+  it("syncs vacuum loading with settings-wide loading while pending across unmount", async () => {
     let resolveVacuum: (() => void) | undefined;
     vi.mocked(vacuumDatabase).mockReturnValue(
       new Promise((resolve) => {
@@ -358,20 +435,20 @@ describe("useDataSettingsController", () => {
       void result.current.handleVacuum();
     });
     expect(result.current.vacuuming).toBe(true);
-    expect(setSettingsLoading).not.toHaveBeenCalled();
+    expect(setSettingsLoading).toHaveBeenCalledWith(true);
 
     unmount();
 
-    expect(setSettingsLoading).not.toHaveBeenCalled();
+    expect(setSettingsLoading).toHaveBeenCalledTimes(1);
 
     await act(async () => {
       resolveVacuum?.();
     });
 
-    expect(setSettingsLoading).not.toHaveBeenCalled();
+    expect(setSettingsLoading).toHaveBeenLastCalledWith(false);
   });
 
-  it("keeps open log loading local and suppresses errors when open log directory rejects post-unmount", async () => {
+  it("syncs open log loading with settings-wide loading and suppresses post-unmount errors", async () => {
     let rejectOpenLogDir: ((error: Error) => void) | undefined;
     vi.mocked(openLogDir).mockReturnValue(
       new Promise((_, reject) => {
@@ -390,17 +467,17 @@ describe("useDataSettingsController", () => {
       void result.current.handleOpenLogDir();
     });
     expect(result.current.openingLogDir).toBe(true);
-    expect(setSettingsLoading).not.toHaveBeenCalled();
+    expect(setSettingsLoading).toHaveBeenCalledWith(true);
 
     unmount();
 
-    expect(setSettingsLoading).not.toHaveBeenCalled();
+    expect(setSettingsLoading).toHaveBeenCalledTimes(1);
 
     await act(async () => {
       rejectOpenLogDir?.(new Error("open log failed"));
     });
 
-    expect(setSettingsLoading).not.toHaveBeenCalled();
+    expect(setSettingsLoading).toHaveBeenLastCalledWith(false);
     expect(showToast).not.toHaveBeenCalled();
     expect(consoleError).not.toHaveBeenCalled();
     consoleError.mockRestore();
