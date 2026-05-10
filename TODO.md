@@ -451,11 +451,6 @@
 
 ### Dev / Tooling / E2E / Test Helpers
 
-- [ ] P3 fixture negative type tests を compile-time smoke gate として切り出す
-  - 対象: `tests/helpers/fixtures.test.ts`, `tests/helpers/render-story.test.tsx`, `tsconfig.json`
-  - `ts-expect-error` を runtime test 内に置くと、型 contract なのか runtime behavior なのか読み取りにくい
-  - type-only smoke test、runtime fixture test、legacy escape の配置を分け、不要になった suppression を検出しやすくする
-
 ### Rust Provider / DB / Scheduler
 
 - [ ] P3 repository fixture builder を account/feed/article/tag ごとに最小化する
@@ -465,57 +460,17 @@
 
 ### Query / Store / Browser Runtime
 
-- [ ] P2 subscriptions index return state の account scope と scroll restore を schema 化する
-  - 対象: `src/lib/subscriptions/subscriptions-workspace.types.ts`, `src/components/subscriptions-index/use-subscriptions-index-state.ts`, `src/stores/ui-store.ts`
-  - return state は account id、selected feed、expanded groups、scrollTop を含むため、別 account に復帰した時の discard/restore ルールがずれやすい
-  - account mismatch、deleted feed、collapsed group、negative scrollTop、large scrollTop、empty kept/deferred ids の test を追加する
-
-- [ ] P2 UI store `handleAccountDeleted` の settings/account setup/browser state cleanup を contract 化する
-  - 対象: `src/stores/ui-store.ts`, `src/components/settings`, `src/components/reader/hooks/browser`
-  - account delete 時に selected account、settings detail、account setup session、browser state を同時に更新するため、どれかだけ古い account を参照しやすい
-  - selected account delete、settings account delete、setup session account delete、browser open account delete、remaining account fallback の store test を追加する
-
 - [ ] P3 query invalidation target matrix を repo contract test で drift 検出する
   - 対象: `src/lib/query/query-invalidation.ts`, `src/__tests__/lib/query-invalidation.test.ts`, `src/__tests__/config/repo-contracts.test.ts`
   - query root が増えた時に invalidation target へ入れ忘れると、機能追加時の stale cache が後から発覚しやすい
   - `QUERY_KEY_ROOTS` と feed/article/sync completed invalidation matrix の snapshot を作り、意図的に除外する key は理由付き allowlist にする
 
-- [ ] P3 global store module-level runtime state の reset helper coverage を棚卸しする
-  - 対象: `src/stores/ui-store.ts`, `src/stores/preferences-store.ts`, `src/lib/sync/manual-sync.ts`, `src/hooks/use-updater.ts`
-  - module-level timer / in-flight promise / listener set が複数あり、test reset helper の漏れが別 test の flake として出やすい
-  - toast timer、theme listener、preferences load promise、manual sync timer、update in-flight/download session の reset coverage を一覧化する
-
 ### Reader Content / Feed Discovery / Security
-
-- [ ] P1 `ArticleContentView` の sanitized HTML brand 境界を runtime schema と repo contract で固定する
-  - 対象: `src/components/reader/article-content-view.tsx`, `src/lib/content/html.ts`, `src/api/schemas/article.ts`, `src/__tests__/components/article-content-view.test.tsx`
-  - `dangerouslySetInnerHTML` は `SanitizedArticleHtml` brand に依存しており、DTO 以外の string helper が広がると sanitizer boundary を迂回しやすい
-  - `fromSanitizedArticleHtmlDto` 経由のみを原則にし、legacy test helper、mock data、article DTO schema、repo contract で unsafe string 流入を検出する
 
 - [ ] P1 Rust sanitizer version bump と saved article repair の release gate を作る
   - 対象: `src-tauri/src/infra/sanitizer.rs`, `src-tauri/src/service/sync_flow.rs`, `src-tauri/src/infra/db/sqlite_article.rs`
   - sanitizer policy を変えても `SANITIZER_VERSION` bump や repair path を忘れると、保存済み article が古い HTML policy のまま表示される
   - allowed tag/attribute 変更、version bump 漏れ、repair batch limit、repair failure retry、partial repair 後の起動の integration test を追加する
-
-- [ ] P1 reader content privacy policy の frontend post-process を sanitizer contract と同期する
-  - 対象: `src/lib/content/html.ts`, `src-tauri/src/infra/sanitizer.rs`, `src/__tests__/lib/html.test.ts`
-  - Rust sanitizer 後に React 側で `referrerpolicy` や `rel` を付け直しているため、片側だけ変更されると link/image privacy contract が崩れやすい
-  - `a[href]`、`img[src]`、`picture/source`、malformed HTML、DOMParser unavailable、already-set rel/referrerpolicy の parity test を追加する
-
-- [ ] P1 feed discovery SSRF guard を DNS rebinding / redirect / base tag で再検証する
-  - 対象: `src-tauri/src/infra/feed_discovery.rs`, `src-tauri/src/commands/feed_commands.rs`, `src/__tests__/components/add-feed-dialog.test.tsx`
-  - discovery は initial URL と redirect URL の private host を検証するが、DNS rebinding、same-origin `<base>`、protocol-relative feed URL の扱いが security boundary になっている
-  - public-to-private DNS、HTTPS->HTTP downgrade、same-origin base、cross-origin base ignore、protocol-relative URL、IPv6/private range の test を追加する
-
-- [ ] P2 `safeInvoke` response validation detail の secret redaction を nested issue と URL path で固定する
-  - 対象: `src/api/tauri-commands.ts`, `src/__tests__/api/tauri-commands.test.ts`, `src/__tests__/api/command-args-validation.test.ts`
-  - Zod issue detail を user-visible error に変換するため、path/message に URL token や credential-like value が入ると error toast に漏れる可能性がある
-  - nested path、multiple issue truncation、URL userinfo、query token、Bearer/Basic header-like string、non-Error throwing value の redaction test を追加する
-
-- [ ] P2 log directory opener の privacy checklist と diagnostics redaction を support workflow へ接続する
-  - 対象: `src-tauri/src/commands/log_commands.rs`, `src/lib/runtime/diagnostics.ts`, `src/components/settings/debug-settings.tsx`
-  - log dir を開く操作は user が app.log を共有する導線になるため、account/feed/article URL や local path の redaction policy が UI に見えないと事故りやすい
-  - open failure、permission failure、privacy checklist 表示、URL/user path redaction、backup DB warning の component/Rust contract を追加する
 
 - [ ] P3 content sanitizer fixtures を web-platform-ish corpus として追加する
   - 対象: `src-tauri/src/infra/sanitizer.rs`, `src/__tests__/lib/html.test.ts`, `tests/fixtures`
@@ -528,36 +483,6 @@
   - 対象: `src-tauri/capabilities/default.json`, `src/api/schemas/commands.ts`, `src/api/tauri-commands.ts`
   - `opener:allow-open-url` と `browser-webview` が同じ default capability にいるため、URL validation と permission scope がずれると外部 opener surface が広がりやすい
   - `http:`、`https:`、`mailto:`、`file:`、custom scheme、encoded newline、userinfo URL の allow/deny contract と capability snapshot を追加する
-
-- [ ] P1 CSP の `img-src http:` を reader privacy policy として明文化する
-  - 対象: `src-tauri/tauri.conf.json`, `src-tauri/src/infra/sanitizer.rs`, `src/components/reader/article-content-view.tsx`
-  - 記事画像のために `http:` image load を許すなら、mixed content / referrer / tracking image の扱いを sanitizer と frontend post-process で揃える必要がある
-  - http image allowed/blocked 方針、`referrerpolicy`、tracking pixel、upgrade-insecure の扱い、CSP drift の repo contract test を追加する
-
-- [ ] P2 native menu shortcut hint と user customizable shortcut の表示方針を固定する
-  - 対象: `src-tauri/src/menu.rs`, `src/lib/keyboard/keyboard-shortcuts.ts`, `src/components/settings/shortcuts-settings.tsx`
-  - menu label に default shortcut hint が含まれる一方、settings 側で shortcut を変更できるため、表示と実動作がずれる可能性がある
-  - default-only 表示にするか runtime rebuild するか決め、custom shortcut 設定後の menu hint / keyboard action parity を検証する
-
-- [ ] P2 custom keyboard shortcut collision detection を settings save 前に入れる
-  - 対象: `src/lib/keyboard/keyboard-shortcuts.ts`, `src/schemas/preferences.ts`, `src/components/settings/shortcuts-settings.tsx`
-  - 同じ key/modifier を複数 action に割り当てられると、global handler の探索順に依存して user intent と違う action が発火しやすい
-  - duplicate shortcut、reserved shortcut、empty shortcut、platform modifier、reset-to-default の validation / UI contract を追加する
-
-- [ ] P2 global keyboard handler の modal/top-layer block 判定を store state 依存から contract 化する
-  - 対象: `src/hooks/use-keyboard.ts`, `src/components/settings`, `src/components/reader/command-palette.tsx`
-  - settings/confirm/command palette の store flag だけで block すると、nested popover や future dialog が開いた時に背後の reader action が動く可能性がある
-  - modal stack、popover open、confirm dialog、tag picker、Escape propagation、top-layer fallback の component test を追加する
-
-- [ ] P2 Rust native menu i18n と frontend locale copy の意味 drift を検出する
-  - 対象: `src-tauri/src/menu_i18n.rs`, `src/locales/en`, `src/locales/ja`, `src/__tests__/lib/i18next-locale-contract.test.ts`
-  - native menu label は Rust 側、settings/shortcut help は frontend 側にあり、同じ action の日本語/英語表現が別々にずれやすい
-  - menu action label、shortcut label、sync/settings/browser action copy、locale fallback の review snapshot を追加する
-
-- [ ] P2 Storybook / test i18n setup が missing key を fail-fast にできる範囲を決める
-  - 対象: `tests/helpers/i18n-setup.ts`, `.storybook`, `src/__tests__/components`
-  - Storybook や component test で missing key が key 文字列のまま通ると、locale regression を視覚確認まで見逃しやすい
-  - strict i18n wrapper、expected missing key allowlist、story smoke、test-local namespace setup の方針を追加する
 
 - [ ] P2 destructive confirm dialog の pending state / focus restore / thrown callback を固定する
   - 対象: `src/components/app-confirm-dialog.tsx`, `src/stores/ui-store.ts`, `src/hooks/use-delete-feed.ts`
@@ -587,35 +512,15 @@
 
 ### Database / Updater / Window
 
-- [ ] P1 Rust `u64` DTO を TS `number` で受ける schema の safe integer policy を決める
-  - 対象: `src/api/schemas/database-info.ts`, `src/api/schemas/common.ts`, `src/api/schemas/*`, `src-tauri/src/commands/*`
-  - DB size、count、timestamp usec など Rust 側が `u64` の値を frontend で `number` として扱うと、`Number.MAX_SAFE_INTEGER` 超過時に丸められる
-  - safe integer 上限、string 化する DTO、BigInt を使わない範囲、Zod `safe()`、Rust test fixture の parity を整理する
-
 - [ ] P1 database maintenance と updater install が共有する `syncing` flag の user-facing state を統一する
   - 対象: `src-tauri/src/commands/database_commands.rs`, `src-tauri/src/commands/updater_commands.rs`, `src-tauri/src/commands/sync_commands.rs`, `src/hooks/use-updater.ts`
   - vacuum、sync、update install が同じ AtomicBool を使うため、UI には sync 中なのか maintenance/update 中なのか区別できない busy error が出やすい
   - vacuum中sync、sync中vacuum、install中sync、restart guard、busy message category、settings button disabled state の integration test を追加する
 
-- [ ] P2 updater pending handle clear と manual check/download の race を contract 化する
-  - 対象: `src-tauri/src/commands/updater_commands.rs`, `src/hooks/use-updater.ts`, `src/__tests__/hooks/use-updater.test.ts`
-  - check 開始時に pending update を clear するため、manual check と download が近接すると cached handle が消える/古くなる race が起きやすい
-  - check中download、download中check、stale pending metadata、no update after cached update、retry after failure の Rust/frontend test を追加する
-
-- [ ] P2 update event emit failure の log-only 方針を frontend session recovery と合わせる
-  - 対象: `src-tauri/src/commands/updater_commands.rs`, `src/hooks/use-updater.ts`, `src/lib/runtime/diagnostics.ts`
-  - progress/ready event emit は log-only なので、listener dispose や window close で event が落ちても frontend が download state を回復できる必要がある
-  - progress emit failure、ready emit failure、listener disposed、app restart before ready、session id mismatch、manual status refresh の test を追加する
-
 - [ ] P2 restart app command の sync/update guard と user confirmation を整理する
   - 対象: `src-tauri/src/commands/updater_commands.rs`, `src/lib/actions.ts`, `src/hooks/use-updater.ts`, `src/components/app-confirm-dialog.tsx`
   - `restart_app` は sync/update guard を取るが、frontend 側の pending mutation / unsaved settings / browser open の確認と切り離れている
   - update ready restart、manual restart action、settings dirty state、sync running、install running、restart failure の UX contract を追加する
-
-- [ ] P2 always-on-top / fullscreen window state の preference と runtime drift を検出する
-  - 対象: `src/lib/window/windows.ts`, `src/hooks/use-window-always-on-top.ts`, `src/stores/preferences-store.ts`
-  - preference 保存と native window state 適用が別々に失敗すると、settings 表示と実 window state がずれる可能性がある
-  - set failure、get failure、startup apply、manual toggle、fullscreen conflict、runtime unavailable の hook/store test を追加する
 
 - [ ] P2 window icon path の packaging / platform fallback を release smoke に入れる
   - 対象: `src/lib/window/windows.ts`, `src-tauri/tauri.conf.json`, `src-tauri/icons`, `tests/release-repo-contract.test.ts`
@@ -970,11 +875,6 @@
   - command 追加時に response schema が Null/String/Bool/Count のどれか間違っていても、runtime まで気づきにくい
   - command registry extraction、response schema mapping、no-args command、renamed command、deprecated command allowlist を追加する
 
-- [ ] P2 build.rs / Windows manifest / generated schema の release-only failure を local gate へ寄せる
-  - 対象: `src-tauri/build.rs`, `src-tauri/windows-test-manifest.xml`, `tests/release-repo-contract.test.ts`
-  - build script や Windows manifest は macOS dev では見えにくく、release/CI でだけ壊れる設定 drift になりやすい
-  - manifest path、Windows resource metadata、schema generation input、release config include、cross-platform smoke の contract を追加する
-
 - [ ] P2 DB backup cleanup の retention / path redaction / restore message を migration fixture で固定する
   - 対象: `src-tauri/src/infra/db/backup.rs`, `src-tauri/src/infra/db/connection.rs`, `src-tauri/src/infra/db/migration.rs`
   - migration backup は失敗時の最後の復旧手段なので、cleanup retention や error message に local path/token が出ない保証が必要
@@ -1019,16 +919,6 @@
   - 対象: `src/hooks/use-feed-landing.ts`, `src/stores/ui-store.ts`, `src/__tests__/hooks/use-feed-landing.test.tsx`
   - stale 判定前に selection update が走る経路があり、遅い古い request が新しい landing 後に selected feed だけ上書きし得る
   - slow old request、fast new request、account switch、missing feed fallback、toast suppression の hook test を追加する
-
-- [ ] P1 release tag が `main` 由来であることを workflow gate にする
-  - 対象: `.github/workflows/release.yml`, `.codex/skills/release/SKILL.md`, `.claude/commands/release.md`
-  - workflow は tag SHA の一致を見るが、tag target が `origin/main` に含まれるかは固定していないため、手元 release 手順と CI 実行条件がずれ得る
-  - annotated tag、lightweight tag、non-main tag、main fast-forward、workflow failure message の contract を追加する
-
-- [ ] P1 release workflow の prerelease/build metadata と draft 設定を semver policy に合わせる
-  - 対象: `.github/workflows/release.yml`, `.codex/skills/release/SKILL.md`, `tests/release-repo-contract.test.ts`
-  - tag pattern は prerelease/build metadata を許可するが release action は `prerelease: false` 固定で、実 release の公開種別が曖昧
-  - `v1.2.3-alpha.1`、`v1.2.3+build.1`、stable、draft/pre-release flag、release note template の repo contract を追加する
 
 - [ ] P2 `update_feed_display_settings` の raw query key usage を query key helper に寄せる
   - 対象: `src/hooks/use-update-feed-display-mode.ts`, `src/lib/query/query-invalidation.ts`
@@ -2169,11 +2059,6 @@
   - 対象: article content rendering、external opener、URL schemas
   - sanitized HTML 内の link が opener policy を迂回すると、token URL や private host を外部に開く可能性がある
   - `target=_blank`、`rel=noopener noreferrer`、credential URL、private host、malformed href、relative href の fixture を追加する
-
-- [ ] P2 feed discovery robots.txt / user-agent 方針を明文化する
-  - 対象: `src-tauri/src/infra/feed_discovery.rs`, provider HTTP defaults, docs
-  - desktop app として robots.txt を読む/読まない、User-Agent をどう名乗るかが曖昧だと provider 側 block や運用問い合わせに弱い
-  - user-agent string、robots ignored/checked policy、403 handling、docs wording、test fixture の task に分ける
 
 - [ ] P2 `robots` / provider block response を sync backoff と user action で分ける
   - 対象: local provider sync、`src-tauri/src/service/sync_scheduler.rs`, sync result UI
