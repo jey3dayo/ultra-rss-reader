@@ -397,14 +397,18 @@ const readingListUrlSchema = httpCommandUrlSchema;
 export const checkBrowserEmbedSupportArgs = z.object({ url: readingListUrlSchema });
 
 // --- browser webview ---
-const finiteNumberSchema = z.number().finite();
-const positiveFiniteNumberSchema = finiteNumberSchema.positive();
+const geometryIntegerSchema = z
+  .number()
+  .finite()
+  .int()
+  .transform((value) => (Object.is(value, -0) ? 0 : value));
+const positiveGeometryIntegerSchema = geometryIntegerSchema.pipe(z.number().positive());
 
 export const browserWebviewBoundsArgs = z.object({
-  x: finiteNumberSchema,
-  y: finiteNumberSchema,
-  width: positiveFiniteNumberSchema,
-  height: positiveFiniteNumberSchema,
+  x: geometryIntegerSchema,
+  y: geometryIntegerSchema,
+  width: positiveGeometryIntegerSchema,
+  height: positiveGeometryIntegerSchema,
   unit: z.enum(["logical", "physical"]).optional(),
 });
 export const createOrUpdateBrowserWebviewArgs = z.object({

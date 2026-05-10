@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Result } from "@praha/byethrow";
 import { expectTauriCommandValidationError, suppressConsoleError } from "@tests/helpers/console-spies";
-import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
+import { createTauriMockCallRecorder, setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { describe, expect, it } from "vitest";
 import {
   BrowserWebviewDiagnosticsPayloadSchema,
@@ -166,5 +166,53 @@ describe("browser webview command contract", () => {
       expect(Result.isFailure(result), command).toBe(true);
       expect(Result.unwrapError(result).message).toContain("validation failed");
     }
+  });
+
+  it("validates browser webview command bounds as integer geometry", async () => {
+    const consoleError = suppressConsoleError();
+    setupTauriMocks(() => null);
+
+    const result = await setBrowserWebviewBounds({
+      x: 10.5,
+      y: 20,
+      width: 320,
+      height: 240,
+    });
+
+    expect(Result.isFailure(result)).toBe(true);
+    expect(Result.unwrapError(result).message).toContain("validation failed");
+    expectTauriCommandValidationError(consoleError, "set_browser_webview_bounds", "args");
+  });
+
+  it("normalizes negative zero before invoking browser webview geometry commands", async () => {
+    const recorder = createTauriMockCallRecorder((cmd) => {
+      if (cmd === "set_browser_webview_bounds") {
+        return null;
+      }
+      return undefined;
+    });
+    setupTauriMocks(recorder.handler);
+
+    const result = await setBrowserWebviewBounds({
+      x: -0,
+      y: -0,
+      width: 320,
+      height: 240,
+    });
+
+    expect(Result.isSuccess(result)).toBe(true);
+    expect(recorder.calls).toEqual([
+      {
+        cmd: "set_browser_webview_bounds",
+        args: {
+          bounds: {
+            x: 0,
+            y: 0,
+            width: 320,
+            height: 240,
+          },
+        },
+      },
+    ]);
   });
 });

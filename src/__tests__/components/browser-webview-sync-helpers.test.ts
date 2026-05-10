@@ -89,6 +89,38 @@ describe("browser-webview-sync-helpers", () => {
     });
   });
 
+  it("rounds fractional browser webview bounds after applying Windows DPI scale", () => {
+    const originalDevicePixelRatio = window.devicePixelRatio;
+    Object.defineProperty(window, "devicePixelRatio", { configurable: true, value: 1.25 });
+
+    try {
+      expect(
+        resolveBrowserWebviewBounds(createHostRef({ left: 10.4, top: 20.4, width: 300.4, height: 200.4 }), "windows"),
+      ).toEqual({
+        x: 13,
+        y: 26,
+        width: 376,
+        height: 251,
+        unit: "physical",
+      });
+    } finally {
+      Object.defineProperty(window, "devicePixelRatio", {
+        configurable: true,
+        value: originalDevicePixelRatio,
+      });
+    }
+  });
+
+  it("keeps subpixel browser webview min size aligned with the rounding policy", () => {
+    expect(resolveBrowserWebviewBounds(createHostRef({ width: 0.49, height: 200 }), "macos")).toBeNull();
+    expect(resolveBrowserWebviewBounds(createHostRef({ width: 0.5, height: 0.5 }), "macos")).toEqual({
+      x: 10,
+      y: 20,
+      width: 1,
+      height: 1,
+    });
+  });
+
   it("skips empty host bounds", () => {
     expect(resolveBrowserWebviewBounds(createHostRef({ width: 0 }), "linux")).toBeNull();
     expect(resolveBrowserWebviewBounds({ current: null }, "linux")).toBeNull();

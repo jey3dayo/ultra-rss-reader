@@ -412,11 +412,61 @@ mod tests {
     }
 
     #[test]
+    fn sql_clause_builder_callers_are_limited_to_repository_sql_surfaces() {
+        let caller_inventory = [
+            ("sqlite_article.rs", include_str!("sqlite_article.rs"), 12),
+            ("sqlite_tag.rs", include_str!("sqlite_tag.rs"), 2),
+            ("sqlite_feed.rs", include_str!("sqlite_feed.rs"), 2),
+        ];
+
+        for (owner, source, expected_exclusion_calls) in caller_inventory {
+            assert_eq!(
+                source
+                    .matches("build_mute_keyword_exclusion_clause(")
+                    .count(),
+                expected_exclusion_calls,
+                "{owner} mute keyword exclusion caller inventory changed; verify expressions are repository-owned literals before updating this contract"
+            );
+        }
+
+        assert_eq!(
+            include_str!("sqlite_article.rs")
+                .matches("build_mute_keyword_match_clause(")
+                .count(),
+            1,
+            "sqlite_article.rs should be the only repository caller that builds the positive mute match clause"
+        );
+        assert_eq!(
+            include_str!("sqlite_tag.rs")
+                .matches("build_mute_keyword_match_clause(")
+                .count(),
+            0,
+            "sqlite_tag.rs should only use the exclusion clause wrapper"
+        );
+        assert_eq!(
+            include_str!("sqlite_feed.rs")
+                .matches("build_mute_keyword_match_clause(")
+                .count(),
+            0,
+            "sqlite_feed.rs should only use the exclusion clause wrapper"
+        );
+    }
+
+    #[test]
     #[should_panic(expected = "repository-owned literal")]
     fn sql_clause_builder_rejects_malformed_expression_input() {
         let _ = build_mute_keyword_match_clause(
             "a.title) OR 1 = 1 --",
             "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "repository-owned literal")]
+    fn sql_clause_builder_rejects_malformed_body_expression_input() {
+        let _ = build_mute_keyword_match_clause(
+            "a.title",
+            "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END) OR 1 = 1 --",
         );
     }
 

@@ -1965,17 +1965,25 @@ describe("command args schemas", () => {
   it("parses finite browser webview bounds and rejects invalid dimensions", () => {
     expect(
       browserWebviewBoundsArgs.parse({
-        x: 0.5,
+        x: 0,
         y: -12,
         width: 320,
         height: 240,
       }),
     ).toEqual({
-      x: 0.5,
+      x: 0,
       y: -12,
       width: 320,
       height: 240,
     });
+    expect(() =>
+      browserWebviewBoundsArgs.parse({
+        x: 0.5,
+        y: -12,
+        width: 320,
+        height: 240,
+      }),
+    ).toThrow();
     expect(() =>
       browserWebviewBoundsArgs.parse({
         x: Number.NaN,

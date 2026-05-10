@@ -15,10 +15,14 @@ const { addArticleToReadingListMock, copyArticleLinkMock, openExternalUrlMock, o
   openInBrowserMock: vi.fn(),
 }));
 
-vi.mock("@/components/reader/article-browser-actions", () => ({
-  addArticleToReadingList: addArticleToReadingListMock,
-  copyArticleLink: copyArticleLinkMock,
-}));
+vi.mock("@/components/reader/article-browser-actions", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/components/reader/article-browser-actions")>();
+  return {
+    ...actual,
+    addArticleToReadingList: addArticleToReadingListMock,
+    copyArticleLink: copyArticleLinkMock,
+  };
+});
 
 vi.mock("@/api/tauri-commands", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/api/tauri-commands")>();
@@ -108,6 +112,30 @@ describe("ArticleShareMenu", () => {
     expect(copyArticleLinkMock).not.toHaveBeenCalled();
   });
 
+  it("accepts http article URLs for mail share while still opening a mailto URL", async () => {
+    const user = userEvent.setup();
+    const showToast = vi.fn();
+    openExternalUrlMock.mockResolvedValue(Result.succeed(undefined));
+
+    renderShareMenu({
+      article: {
+        ...article,
+        url: " http://example.com/article ",
+      },
+      showToast,
+    });
+
+    await user.click(screen.getByRole("button", { name: "Share" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Share via Email" }));
+
+    await waitFor(() => {
+      expect(openExternalUrlMock).toHaveBeenCalledWith(
+        "mailto:?subject=First%20Article&body=http%3A%2F%2Fexample.com%2Farticle",
+      );
+    });
+    expect(showToast).not.toHaveBeenCalled();
+  });
+
   it("does not open email share when the article URL is unavailable", async () => {
     const user = userEvent.setup();
     const showToast = vi.fn();
@@ -127,6 +155,25 @@ describe("ArticleShareMenu", () => {
 
     expect(openExternalUrlMock).not.toHaveBeenCalled();
     expect(showToast).not.toHaveBeenCalled();
+  });
+
+  it("shows the article URL policy toast before email share when the article URL contains credentials", async () => {
+    const user = userEvent.setup();
+    const showToast = vi.fn();
+
+    renderShareMenu({
+      article: {
+        ...article,
+        url: "https://user:pass@example.com/article",
+      },
+      showToast,
+    });
+
+    await user.click(screen.getByRole("button", { name: "Share" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Share via Email" }));
+
+    expect(openExternalUrlMock).not.toHaveBeenCalled();
+    expect(showToast).toHaveBeenCalledWith("Article URLs must not include credentials");
   });
 
   it("encodes and trims long email share subject and body inputs before opening mail", async () => {

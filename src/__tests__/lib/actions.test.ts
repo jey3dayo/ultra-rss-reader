@@ -173,6 +173,14 @@ function shortcutActionToAppAction(shortcutAction: string): string {
   }
 }
 
+function isKebabCase(value: string): boolean {
+  return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value);
+}
+
+function isSnakeCase(value: string): boolean {
+  return /^[a-z0-9]+(?:_[a-z0-9]+)*$/.test(value);
+}
+
 vi.mock("@/api/tauri-commands", () => ({
   goBackBrowserWebview: goBackBrowserWebviewMock,
   goForwardBrowserWebview: goForwardBrowserWebviewMock,
@@ -1217,6 +1225,42 @@ describe("executeAction", () => {
         expect(actionIds.has(action)).toBe(true);
         expect(isAppAction(action)).toBe(true);
       }
+    });
+
+    it("keeps action, shortcut, and native menu ids in their owning naming styles", () => {
+      const menuActionContracts = extractMenuActionContracts(menuSource);
+      const shortcutToActionAliasAllowlist = new Map([
+        ["show_unread", "set-filter-unread"],
+        ["show_all", "set-filter-all"],
+        ["show_starred", "set-filter-starred"],
+        ["open_in_app_browser", "open-in-reader"],
+        ["open_external_browser", "open-in-browser"],
+        ["close_or_clear", "close-browser"],
+      ]);
+
+      for (const action of APP_ACTIONS) {
+        expect(action, `AppAction must be kebab-case: ${action}`).toSatisfy(isKebabCase);
+      }
+
+      for (const definition of shortcutDefinitions) {
+        const expectedAction = definition.id.replaceAll("_", "-");
+        const appAction = shortcutActionToAppAction(definition.id);
+
+        expect(definition.id, `shortcut id must be snake_case: ${definition.id}`).toSatisfy(isSnakeCase);
+        expect(appAction, `shortcut action mapping must resolve to kebab-case: ${definition.id}`).toSatisfy(
+          isKebabCase,
+        );
+        expect(appAction).toBe(shortcutToActionAliasAllowlist.get(definition.id) ?? expectedAction);
+      }
+
+      for (const { menuId, action } of menuActionContracts) {
+        expect(menuId, `native menu id must be kebab-case: ${menuId}`).toSatisfy(isKebabCase);
+        expect(action, `native menu action payload must be kebab-case: ${action}`).toSatisfy(isKebabCase);
+      }
+
+      expect(APP_ACTIONS).toContain("sync-all");
+      expect(shortcutDefinitions.map((definition) => definition.id)).not.toContain("sync_all");
+      expect(menuActionContracts).toContainEqual({ menuId: "accounts-sync", action: "sync-all" });
     });
 
     it("snapshots the native menu action payload list for frontend registry drift detection", () => {

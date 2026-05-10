@@ -4,6 +4,7 @@ import {
   FeedIntegrityCleanupDtoSchema,
   type FeedIntegrityReportDto,
   FeedIntegrityReportDtoSchema,
+  getFeedIntegrityCleanupWarningKinds,
 } from "@/api/schemas/feed-integrity";
 
 const getFeedIntegrityReportResponseFixture = {
@@ -140,5 +141,23 @@ describe("FeedIntegrityCleanupDtoSchema", () => {
         deleted_article_count: 3,
       }).success,
     ).toBe(false);
+  });
+
+  it("maps destructive cleanup count drift and irreversible deletion to UI warning kinds", () => {
+    expect(getFeedIntegrityCleanupWarningKinds(cleanupDryRunFixture)).toEqual([]);
+    expect(
+      getFeedIntegrityCleanupWarningKinds({
+        dry_run: false,
+        orphaned_article_count: 2,
+        deleted_article_count: 1,
+      }),
+    ).toEqual(["count_mismatch", "undo_unavailable"]);
+    expect(
+      getFeedIntegrityCleanupWarningKinds({
+        dry_run: false,
+        orphaned_article_count: 0,
+        deleted_article_count: 0,
+      }),
+    ).toEqual([]);
   });
 });

@@ -37,18 +37,20 @@ afterEach(() => {
 });
 
 function buildTestSourcePlan(params: {
+  accountId?: string;
   sourceFilter: ReaderFilter;
   effectiveViewMode: ReaderFilter;
 }): ReaderSourcePlan {
+  const accountId = params.accountId ?? "acc-1";
   return {
     query: {
       source: "articles",
-      scope: { type: "account", accountId: "acc-1" },
+      scope: { type: "account", accountId },
       filter: params.sourceFilter,
     },
     sourceKind: "account",
-    sourceKey: `account:acc-1:articles:${params.sourceFilter}`,
-    accountId: "acc-1",
+    sourceKey: `account:${accountId}:articles:${params.sourceFilter}`,
+    accountId,
     folderId: null,
     feedId: null,
     tagId: null,
@@ -1016,6 +1018,25 @@ describe("article-list utils", () => {
     expect(result).not.toBe(retainedArticleIds);
   });
 
+  it("caps retained article ids when adding the selected starred smart-view row", () => {
+    const retainedArticleIds = new Set(
+      Array.from({ length: MAX_RETAINED_ARTICLES_SNAPSHOT_SIZE }, (_, index) => `retained-${index}`),
+    );
+    const selectedArticleId = "selected-starred";
+
+    const result = resolveEffectiveRetainedArticleIds({
+      sourcePlan: buildTestSourcePlan({
+        sourceFilter: "starred",
+        effectiveViewMode: "all",
+      }),
+      retainedArticleIds,
+      selectedArticleId,
+    });
+
+    expect(result).toHaveLength(MAX_RETAINED_ARTICLES_SNAPSHOT_SIZE);
+    expect([...result]).toEqual([...retainedArticleIds].slice(1).concat(selectedArticleId));
+  });
+
   it("builds a stable article list source plan key from semantic fields", () => {
     const firstPlan = buildTestSourcePlan({
       sourceFilter: "starred",
@@ -1032,6 +1053,21 @@ describe("article-list utils", () => {
 
     expect(buildArticleListSourcePlanKey(firstPlan)).toBe(buildArticleListSourcePlanKey(equivalentPlan));
     expect(buildArticleListSourcePlanKey(firstPlan)).not.toBe(buildArticleListSourcePlanKey(changedPlan));
+  });
+
+  it("scopes article list source plan keys by account switch context", () => {
+    const firstAccountPlan = buildTestSourcePlan({
+      accountId: "acc-1",
+      sourceFilter: "unread",
+      effectiveViewMode: "unread",
+    });
+    const secondAccountPlan = buildTestSourcePlan({
+      accountId: "acc-2",
+      sourceFilter: "unread",
+      effectiveViewMode: "unread",
+    });
+
+    expect(buildArticleListSourcePlanKey(firstAccountPlan)).not.toBe(buildArticleListSourcePlanKey(secondAccountPlan));
   });
 
   it("reuses retained article ids when selected row retention is unnecessary", () => {

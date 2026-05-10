@@ -1,10 +1,14 @@
 import { Menu } from "@base-ui/react/menu";
 import { Result } from "@praha/byethrow";
 import { BookmarkPlus, Copy, Mail, Share } from "lucide-react";
-import { normalizeHttpCommandUrl, SHARE_COMMAND_TEXT_MAX_CHARS } from "@/api/schemas/commands";
+import { SHARE_COMMAND_TEXT_MAX_CHARS } from "@/api/schemas/commands";
 import { type ArticleDto, openExternalUrl } from "@/api/tauri-commands";
 import { IconToolbarMenuTrigger } from "@/components/shared/icon-toolbar-control";
-import { addArticleToReadingList, copyArticleLink } from "./article-browser-actions";
+import {
+  addArticleToReadingList,
+  copyArticleLink,
+  normalizeArticleExternalBrowserUrl,
+} from "./article-browser-actions";
 import { contextMenuStyles } from "./context-menu-styles";
 
 const articleShareMenuUnavailableClassName =
@@ -21,18 +25,19 @@ function resolveMailtoValue(value: string | null, fallback: string, maxLength: n
 
 function buildArticleMailto(article: ArticleDto) {
   const rawUrl = article.url;
-  if (!rawUrl) {
-    return null;
+  if (!rawUrl?.trim()) {
+    return Result.fail(null);
   }
 
-  const normalizedUrl = normalizeHttpCommandUrl(rawUrl);
-  if (!normalizedUrl) {
-    return null;
+  const normalizedUrlResult = normalizeArticleExternalBrowserUrl(rawUrl);
+  if (Result.isFailure(normalizedUrlResult)) {
+    return normalizedUrlResult;
   }
 
+  const normalizedUrl = Result.unwrap(normalizedUrlResult);
   const subject = resolveMailtoValue(article.title, MAILTO_FALLBACK_SUBJECT, MAILTO_SUBJECT_MAX_LENGTH);
   const body = resolveMailtoValue(normalizedUrl, normalizedUrl, MAILTO_BODY_MAX_LENGTH);
-  return `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  return Result.succeed(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
 }
 
 type ArticleShareMenuLabels = {
@@ -97,8 +102,16 @@ export function ArticleShareMenu({ article, supportsReadingList, showToast, labe
               className={contextMenuStyles.item}
               onClick={async () => {
                 if (!article) return;
-                const mailto = buildArticleMailto(article);
-                if (!mailto) return;
+                const mailtoResult = buildArticleMailto(article);
+                if (Result.isFailure(mailtoResult)) {
+                  const error = Result.unwrapError(mailtoResult);
+                  if (error) {
+                    showToast(error.message);
+                  }
+                  return;
+                }
+
+                const mailto = Result.unwrap(mailtoResult);
                 Result.pipe(
                   await openExternalUrl(mailto),
                   Result.inspectError((error) => {

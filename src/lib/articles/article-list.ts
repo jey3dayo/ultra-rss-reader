@@ -424,7 +424,8 @@ export function resolveEffectiveRetainedArticleIds(params: {
   const effectiveViewMode = params.effectiveViewMode ?? params.sourcePlan?.effectiveViewMode;
   const { retainedArticleIds, selectedArticleId } = params;
   if (sourceFilter === "starred" && effectiveViewMode === "all" && selectedArticleId) {
-    return new Set([...retainedArticleIds, selectedArticleId]);
+    const retainedSnapshot = [...retainedArticleIds].slice(-Math.max(0, MAX_RETAINED_ARTICLES_SNAPSHOT_SIZE - 1));
+    return new Set([...retainedSnapshot, selectedArticleId]);
   }
 
   return retainedArticleIds;

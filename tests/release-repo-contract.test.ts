@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -31,6 +31,7 @@ type TauriConfig = {
   };
   bundle?: {
     createUpdaterArtifacts?: boolean;
+    icon?: string[];
   };
   plugins?: {
     updater?: {
@@ -64,6 +65,13 @@ type TauriCapabilityFile =
 const RELEASE_UPDATER_ENDPOINT = "https://github.com/jey3dayo/ultra-rss-reader/releases/latest/download/latest.json";
 const RELEASE_TAURI_CONFIG_PATH = "src-tauri/tauri.release.conf.json";
 const DEV_TAURI_CONFIG_PATH = "src-tauri/tauri.dev.conf.json";
+const PACKAGED_WINDOW_ICON_PATHS = [
+  "icons/32x32.png",
+  "icons/128x128.png",
+  "icons/128x128@2x.png",
+  "icons/icon.icns",
+  "icons/icon.ico",
+] as const;
 const UPDATER_PUBKEY_PLACEHOLDER_PATTERN = /(?:placeholder|change[_-]?me|todo)/i;
 const RELEASE_UPDATER_ASSET_CONTRACT = [
   {
@@ -353,6 +361,8 @@ describe("release repository contract", () => {
   const miseToml = readText("mise.toml");
   const nativeMenuSource = readText("src-tauri/src/menu.rs");
   const appActionsSource = readText("src/lib/app-actions.ts");
+  const appIconThemeSource = readText("src/hooks/use-app-icon-theme.ts");
+  const platformSource = readText("src-tauri/src/platform/mod.rs");
   const keyboardShortcutsSource = readText("src/lib/keyboard/keyboard-shortcuts.ts");
   const preferencesSchemaSource = readText("src/schemas/preferences.ts");
   const preferencesStoreSource = readText("src/stores/preferences-store.ts");
@@ -624,6 +634,33 @@ describe("release repository contract", () => {
     expect(tauriConfig.plugins?.updater?.pubkey).not.toMatch(UPDATER_PUBKEY_PLACEHOLDER_PATTERN);
     expect(releaseWorkflow).toContain(RELEASE_UPDATER_ENDPOINT);
     expect(releaseWorkflow).toContain("src-tauri/tauri.conf.json updater pubkey must be configured");
+  });
+
+  it("keeps packaged window icon paths and runtime platform fallback in the release smoke contract", () => {
+    expect(tauriConfig.bundle?.icon).toEqual([...PACKAGED_WINDOW_ICON_PATHS]);
+    expect(tauriDevConfig.bundle?.icon).toBeUndefined();
+    expect(tauriReleaseConfig.bundle?.icon).toBeUndefined();
+
+    for (const iconPath of PACKAGED_WINDOW_ICON_PATHS) {
+      expect(iconPath, iconPath).toMatch(/^icons\//);
+      expect(iconPath, iconPath).not.toMatch(/^\/|^\.\.|\\/);
+      expect(existsSync(`src-tauri/${iconPath}`), iconPath).toBe(true);
+    }
+
+    expect(PACKAGED_WINDOW_ICON_PATHS.some((iconPath) => iconPath.endsWith(".icns"))).toBe(true);
+    expect(PACKAGED_WINDOW_ICON_PATHS.some((iconPath) => iconPath.endsWith(".ico"))).toBe(true);
+    expect(PACKAGED_WINDOW_ICON_PATHS.some((iconPath) => iconPath.endsWith(".png"))).toBe(true);
+    expect(platformSource).toMatch(
+      /PlatformKind::Macos => PlatformCapabilities \{[\s\S]*?supports_runtime_window_icon_replacement: false,/,
+    );
+    expect(platformSource).toMatch(
+      /PlatformKind::Windows => PlatformCapabilities \{[\s\S]*?supports_runtime_window_icon_replacement: true,/,
+    );
+    expect(platformSource).toMatch(
+      /PlatformKind::Linux \| PlatformKind::Unknown => PlatformCapabilities \{[\s\S]*?supports_runtime_window_icon_replacement: false,/,
+    );
+    expect(appIconThemeSource).toContain("shouldSkipRuntimeIconReplacement");
+    expect(appIconThemeSource).toContain('logRuntimeDiagnostic("app-icon-theme"');
   });
 
   it("keeps updater manifest platforms mapped back to release assets and checksums", () => {

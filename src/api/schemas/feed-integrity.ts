@@ -45,3 +45,26 @@ export const FeedIntegrityCleanupDtoSchema = z
 
 export type FeedIntegrityReportDto = z.output<typeof FeedIntegrityReportDtoSchema>;
 export type FeedIntegrityCleanupDto = z.output<typeof FeedIntegrityCleanupDtoSchema>;
+
+export type FeedIntegrityCleanupWarningKind = "count_mismatch" | "undo_unavailable";
+
+export function getFeedIntegrityCleanupWarningKinds({
+  dry_run,
+  orphaned_article_count,
+  deleted_article_count,
+}: FeedIntegrityCleanupDto): FeedIntegrityCleanupWarningKind[] {
+  if (dry_run) {
+    return [];
+  }
+
+  const warnings: FeedIntegrityCleanupWarningKind[] = [];
+
+  if (deleted_article_count !== orphaned_article_count) {
+    warnings.push("count_mismatch");
+  }
+  if (deleted_article_count > 0) {
+    warnings.push("undo_unavailable");
+  }
+
+  return warnings;
+}
