@@ -133,6 +133,88 @@ description = "Manual dependency security audit; not part of CI or release prefl
 run = "pnpm audit --audit-level high"
 run_windows = "pnpm.CMD audit --audit-level high"
 
+[tasks."quality:toolchain"]
+description = "Check Node, pnpm, and mise toolchain version contract"
+run = """
+node --input-type=module <<'NODE'
+import { readFileSync } from "node:fs";
+
+const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
+const miseToml = readFileSync("mise.toml", "utf8");
+
+const expectedNode = packageJson.engines?.node;
+const expectedPnpm = packageJson.engines?.pnpm;
+const packageManagerPnpm = packageJson.packageManager?.match(/^pnpm@(.+)$/)?.[1];
+const miseNode = miseToml.match(/^node = "([^"]+)"$/m)?.[1];
+const misePnpm = miseToml.match(/^"npm:pnpm" = "([^"]+)"$/m)?.[1];
+
+const failures = [];
+if (!expectedNode || !expectedPnpm || !packageManagerPnpm) {
+  failures.push("package.json must define engines.node, engines.pnpm, and packageManager pnpm@version");
+}
+if (expectedNode !== miseNode) {
+  failures.push(`Node version drift: package.json engines.node=${expectedNode} mise.toml tools.node=${miseNode}`);
+}
+if (expectedPnpm !== packageManagerPnpm || expectedPnpm !== misePnpm) {
+  failures.push(
+    `pnpm version drift: engines.pnpm=${expectedPnpm} packageManager=${packageManagerPnpm} mise.toml=${misePnpm}`,
+  );
+}
+
+if (failures.length > 0) {
+  console.error(failures.join("\\n"));
+  process.exit(1);
+}
+
+console.log(`toolchain contract ok: node ${expectedNode}, pnpm ${expectedPnpm}`);
+NODE
+"""
+run_windows = """
+node --input-type=module -e "import { readFileSync } from 'node:fs'; const packageJson = JSON.parse(readFileSync('package.json', 'utf8')); const miseToml = readFileSync('mise.toml', 'utf8'); const expectedNode = packageJson.engines?.node; const expectedPnpm = packageJson.engines?.pnpm; const packageManagerPnpm = packageJson.packageManager?.match(/^pnpm@(.+)$/)?.[1]; const miseNode = miseToml.match(/^node = \"([^\"]+)\"$/m)?.[1]; const misePnpm = miseToml.match(/^\"npm:pnpm\" = \"([^\"]+)\"$/m)?.[1]; const failures = []; if (!expectedNode || !expectedPnpm || !packageManagerPnpm) failures.push('package.json must define engines.node, engines.pnpm, and packageManager pnpm@version'); if (expectedNode !== miseNode) failures.push(`Node version drift: package.json engines.node=${expectedNode} mise.toml tools.node=${miseNode}`); if (expectedPnpm !== packageManagerPnpm || expectedPnpm !== misePnpm) failures.push(`pnpm version drift: engines.pnpm=${expectedPnpm} packageManager=${packageManagerPnpm} mise.toml=${misePnpm}`); if (failures.length) { console.error(failures.join('\\n')); process.exit(1); } console.log(`toolchain contract ok: node ${expectedNode}, pnpm ${expectedPnpm}`);"
+"""
+
+[tasks."quality:markdownlint-contract"]
+description = "Check markdownlint target count and ignore pattern contract"
+run = """
+COUNT=$(rg --files -g '*.md' -g '!**/node_modules/**' -g '!**/.worktrees/**' -g '!**/target/**' | wc -l | tr -d ' ')
+if [ "$COUNT" != "158" ]; then
+  echo "markdownlint target count drift: expected 158, got $COUNT" >&2
+  exit 1
+fi
+pnpm markdownlint-cli2 "$MD_GLOB" "$MD_EXCLUDE_NODE_MODULES" "$MD_EXCLUDE_WORKTREES" "$MD_EXCLUDE_TARGET"
+"""
+run_windows = """
+node --input-type=module -e "import { execFileSync } from 'node:child_process'; const list = execFileSync('rg', ['--files', '-g', '*.md', '-g', '!**/node_modules/**', '-g', '!**/.worktrees/**', '-g', '!**/target/**'], { encoding: 'utf8' }).trim().split(/\\r?\\n/).filter(Boolean); if (list.length !== 158) { console.error(`markdownlint target count drift: expected 158, got ${list.length}`); process.exit(1); }"
+markdownlint-cli2.CMD %MD_GLOB% %MD_EXCLUDE_NODE_MODULES% %MD_EXCLUDE_WORKTREES% %MD_EXCLUDE_TARGET%
+"""
+
+[tasks."report:licenses"]
+description = "Generate pnpm and Cargo dependency license inventory reports under tmp/dependency-licenses"
+run = """
+mkdir -p tmp/dependency-licenses
+pnpm licenses list --json > tmp/dependency-licenses/pnpm-licenses.json
+cargo metadata --manifest-path src-tauri/Cargo.toml --format-version=1 --locked > tmp/dependency-licenses/cargo-metadata.json
+node --input-type=module <<'NODE'
+import { readFileSync, writeFileSync } from "node:fs";
+
+const metadata = JSON.parse(readFileSync("tmp/dependency-licenses/cargo-metadata.json", "utf8"));
+const packages = metadata.packages.map((pkg) => ({
+  name: pkg.name,
+  version: pkg.version,
+  license: pkg.license ?? null,
+  license_file: pkg.license_file ?? null,
+  repository: pkg.repository ?? null,
+}));
+writeFileSync("tmp/dependency-licenses/cargo-licenses.json", `${JSON.stringify(packages, null, 2)}\\n`);
+NODE
+"""
+run_windows = """
+if not exist tmp\\dependency-licenses mkdir tmp\\dependency-licenses
+pnpm.CMD licenses list --json > tmp\\dependency-licenses\\pnpm-licenses.json
+cargo metadata --manifest-path src-tauri\\Cargo.toml --format-version=1 --locked > tmp\\dependency-licenses\\cargo-metadata.json
+node --input-type=module -e "import { readFileSync, writeFileSync } from 'node:fs'; const metadata = JSON.parse(readFileSync('tmp/dependency-licenses/cargo-metadata.json', 'utf8')); const packages = metadata.packages.map((pkg) => ({ name: pkg.name, version: pkg.version, license: pkg.license ?? null, license_file: pkg.license_file ?? null, repository: pkg.repository ?? null })); writeFileSync('tmp/dependency-licenses/cargo-licenses.json', `${JSON.stringify(packages, null, 2)}\\n`);"
+"""
+
 # ========================================
 # ローカル品質ゲート / レポート
 # ========================================
