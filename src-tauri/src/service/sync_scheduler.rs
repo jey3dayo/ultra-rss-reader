@@ -342,8 +342,7 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
                     }
                     Err(_) => {
                         tracing::error!(
-                            "Background sync panicked for account '{}', scheduler continues",
-                            account.name
+                            "Background sync panicked for account [redacted account], scheduler continues"
                         );
                         reporter.emit_account_finished(account, false);
                         let panic_error = AppError::UserVisible {
@@ -366,15 +365,13 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
                             }
                             Ok(None) => {
                                 tracing::info!(
-                                    "Background sync panicked for deleted account '{}'; pruning schedule",
-                                    account.name
+                                    "Background sync panicked for deleted account [redacted account]; pruning schedule"
                                 );
                                 schedules.remove(&account_id_str);
                             }
                             Err(error) => {
                                 tracing::warn!(
-                                    "Background sync could not refresh account '{}' before scheduling retry after panic: {error}",
-                                    account.name
+                                    "Background sync could not refresh account [redacted account] before scheduling retry after panic: {error}"
                                 );
                             }
                         }

@@ -422,10 +422,7 @@ fn cleanup_old_logs(log_dir: &std::path::Path, max_age_days: u64) {
         let entry = match entry_result {
             Ok(entry) => entry,
             Err(error) => {
-                tracing::debug!(
-                    "Failed to inspect log directory entry in {}: {error}",
-                    log_dir.display()
-                );
+                tracing::debug!("{}", cleanup_old_logs_entry_debug(log_dir, &error));
                 continue;
             }
         };
@@ -446,10 +443,7 @@ fn cleanup_old_logs(log_dir: &std::path::Path, max_age_days: u64) {
         let modified = match meta.modified() {
             Ok(modified) => modified,
             Err(error) => {
-                tracing::debug!(
-                    "Failed to read log file modified time for {}: {error}",
-                    path.display()
-                );
+                tracing::debug!("{}", cleanup_old_logs_modified_debug(&path, &error));
                 continue;
             }
         };
@@ -470,9 +464,25 @@ fn cleanup_old_logs_read_dir_warning(log_dir: &std::path::Path, error: &std::io:
 }
 
 #[cfg(any(not(debug_assertions), test))]
+fn cleanup_old_logs_entry_debug(log_dir: &std::path::Path, error: &std::io::Error) -> String {
+    format!(
+        "Failed to inspect log directory entry in {}: {error}",
+        redacted_path_label(log_dir)
+    )
+}
+
+#[cfg(any(not(debug_assertions), test))]
 fn cleanup_old_logs_metadata_debug(path: &std::path::Path, error: &std::io::Error) -> String {
     format!(
         "Failed to read log file metadata for {}: {error}",
+        redacted_path_label(path)
+    )
+}
+
+#[cfg(any(not(debug_assertions), test))]
+fn cleanup_old_logs_modified_debug(path: &std::path::Path, error: &std::io::Error) -> String {
+    format!(
+        "Failed to read log file modified time for {}: {error}",
         redacted_path_label(path)
     )
 }
@@ -705,7 +715,8 @@ mod tests {
     use std::sync::Arc;
 
     use super::{
-        cleanup_old_logs, cleanup_old_logs_metadata_debug, cleanup_old_logs_read_dir_warning,
+        cleanup_old_logs, cleanup_old_logs_entry_debug, cleanup_old_logs_metadata_debug,
+        cleanup_old_logs_modified_debug, cleanup_old_logs_read_dir_warning,
         cleanup_old_logs_remove_warning, clipboard_plugin_startup_failure_mode,
         database_init_error_message, database_init_panic_message,
         main_window_title_bar_uses_overlay, mark_startup_focus_restore_stopped, panic_payload_text,
@@ -929,6 +940,23 @@ mod tests {
     }
 
     #[test]
+    fn cleanup_old_logs_removes_expired_files_and_preserves_current_app_log() {
+        let temp_dir = tempfile::tempdir().expect("log tempdir should be created");
+        let old_log = temp_dir.path().join("app.log.1");
+        let current_log = temp_dir.path().join("app.log");
+        std::fs::write(&old_log, "old").expect("old rotated log should be written");
+        std::fs::write(&current_log, "current").expect("current app log should be written");
+
+        cleanup_old_logs(temp_dir.path(), 0);
+
+        assert!(!old_log.exists(), "expired rotated log should be removed");
+        assert!(
+            current_log.exists(),
+            "current app.log should never be removed"
+        );
+    }
+
+    #[test]
     fn release_log_rotation_contract_matches_support_docs() {
         let lib_rs = include_str!("lib.rs");
         let file_logging_design =
@@ -958,17 +986,26 @@ mod tests {
 
         let read_dir_warning =
             cleanup_old_logs_read_dir_warning(Path::new("/tmp/logs"), &read_dir_error);
+        let entry_debug = cleanup_old_logs_entry_debug(Path::new("/tmp/logs"), &metadata_error);
         let metadata_debug =
             cleanup_old_logs_metadata_debug(Path::new("/tmp/logs/old.log"), &metadata_error);
+        let modified_debug =
+            cleanup_old_logs_modified_debug(Path::new("/tmp/logs/old.log"), &metadata_error);
         let remove_warning =
             cleanup_old_logs_remove_warning(Path::new("/tmp/logs/old.log"), &remove_error);
 
         assert!(read_dir_warning.contains("[redacted parent]/logs"));
         assert!(read_dir_warning.contains("missing directory"));
         assert!(!read_dir_warning.contains("/tmp"));
+        assert!(entry_debug.contains("[redacted parent]/logs"));
+        assert!(entry_debug.contains("metadata denied"));
+        assert!(!entry_debug.contains("/tmp"));
         assert!(metadata_debug.contains("[redacted parent]/old.log"));
         assert!(metadata_debug.contains("metadata denied"));
         assert!(!metadata_debug.contains("/tmp"));
+        assert!(modified_debug.contains("[redacted parent]/old.log"));
+        assert!(modified_debug.contains("metadata denied"));
+        assert!(!modified_debug.contains("/tmp"));
         assert!(remove_warning.contains("[redacted parent]/old.log"));
         assert!(remove_warning.contains("remove denied"));
         assert!(!remove_warning.contains("/tmp"));
