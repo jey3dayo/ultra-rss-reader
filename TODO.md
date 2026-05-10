@@ -1573,21 +1573,6 @@
   - tag 削除時に selection は all に戻すが、tag picker や article tag chips 側に stale tag id が残ると次の assignment が失敗しやすい
   - selected tag delete、picker open中delete、article tags refetch、delete mutation failure、undo不可 toast の component/hook test を追加する
 
-- [ ] P2 tag count query の account scope と muted article exclusion を reader filter と揃える
-  - 対象: `src-tauri/src/infra/db/sqlite_tag.rs`, `src/hooks/use-tags.ts`, `src/components/reader/sidebar-tag-section.tsx`
-  - tag count は account scope を受けるが mute keyword exclusion や read filter と意味がずれると sidebar count と article list が一致しなくなる
-  - account all/selected、muted article、read/unread mode、deleted feed、orphan article_tag、count overflow の contract test を追加する
-
-- [ ] P2 clipboard max length と share mailto max length の source-of-truth を揃える
-  - 対象: `src-tauri/src/commands/share_commands.rs`, `src/lib/runtime/clipboard.ts`, `src/components/reader/article-share-menu.tsx`, `src/api/schemas/commands.ts`
-  - clipboard は 2048 chars、mailto body は 2000 chars など上限が分散しており、article URL/title がどこで truncate/reject されるか分かりにくい
-  - URL length、title length、emoji char count、surrogate pair、mailto encoded length、Rust/TS max parity の test を追加する
-
-- [ ] P2 share via email の `mailto:` body が article URL unavailable の時も opener policy と一致するか固定する
-  - 対象: `src/components/reader/article-share-menu.tsx`, `src/api/schemas/commands.ts`, `src/api/tauri-commands.ts`
-  - menu trigger は `article.url` がないと disabled だが mailto builder は fallback body を持つため、将来 trigger条件が変わると URLなし mailto が送られる可能性がある
-  - no URL article、empty title、long title、mailto encode、openExternalUrl reject、toast category の component test を追加する
-
 - [ ] P2 article external browser error category と clipboard error category の taxonomy を共通化する
   - 対象: `src/components/reader/article-browser-actions.ts`, `src/lib/runtime/clipboard.ts`, `src/lib/ui-errors.ts`
   - runtime unavailable / permission denied / invalid url / invalid text の分類が複数箇所にあり、copy/open/reading list で同じ error が違う toast になりやすい
@@ -1649,11 +1634,6 @@
   - 対象: `src/hooks/use-update-feed-folder.ts`, `src/lib/query/query-invalidation.ts`, `src/components/reader/feed-tree`
   - feed folder 移動は全 feeds query を optimistic に書き換えるため、account 切替や refetch と重なると別 account の feed まで rollback される risk がある
   - multiple account feeds queries、account switch during mutate、folder deleted、feed deleted、rollback after refetch、success invalidation failure の test を追加する
-
-- [ ] P2 folder delete renumber と feed tree expanded state pruning を同じ account scope で固定する
-  - 対象: `src-tauri/src/infra/db/sqlite_folder.rs`, `src/components/reader/hooks/sidebar/use-sidebar-startup-folder-expansion.ts`, `src/stores/ui-store.ts`
-  - folder delete 後に DB sort_order は renumber されるが、localStorage の expanded folder ids や UI selection が stale folder を保持しやすい
-  - deleted folder expanded、other account folder preserved、renumber rollback、selection fallback、restore_previous storage prune の test を追加する
 
 - [ ] P2 createFolderIfNeeded の duplicate create retry / selectedFolderId drift を fixed point にする
   - 対象: `src/components/reader/feed-folder-flow.ts`, `src/components/reader/hooks/feed-dialogs/use-add-feed-dialog-actions.ts`, `src/components/reader/add-feed-dialog.tsx`
