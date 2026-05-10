@@ -1366,7 +1366,11 @@ mod tests {
             .as_ref()
             .expect("registered scheduler task should exist")
             .abort();
-        tokio::time::sleep(Duration::from_millis(10)).await;
+        let task = lifecycle
+            .task
+            .take()
+            .expect("registered scheduler task should remain available after abort");
+        task.await.expect_err("aborted scheduler task should stop");
 
         assert!(
             prepare_scheduler_start(&mut lifecycle).is_some(),
@@ -1386,7 +1390,11 @@ mod tests {
         });
         register_scheduler_task(&mut lifecycle, task);
 
-        tokio::time::sleep(Duration::from_millis(10)).await;
+        let task = lifecycle
+            .task
+            .take()
+            .expect("registered scheduler task should remain available after panic");
+        task.await.expect_err("panicked scheduler task should stop");
 
         assert!(
             prepare_scheduler_start(&mut lifecycle).is_some(),
