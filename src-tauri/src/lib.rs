@@ -8,7 +8,10 @@ pub mod platform;
 pub mod repository;
 pub mod service;
 
+use std::any::Any;
 use std::collections::HashMap;
+#[cfg(not(test))]
+use std::panic::PanicHookInfo;
 #[cfg(not(test))]
 use std::sync::atomic::{AtomicBool, Ordering};
 #[cfg(not(test))]
@@ -49,6 +52,154 @@ fn redacted_path_label(path: &std::path::Path) -> String {
         .and_then(|name| name.to_str())
         .map(|name| format!("[redacted parent]/{name}"))
         .unwrap_or_else(|| "[redacted path]".to_string())
+}
+
+fn redact_sensitive_url_token(token: &str) -> String {
+    let trimmed_start = token.trim_start_matches(['"', '\'', '(', '[']);
+    let prefix_len = token.len() - trimmed_start.len();
+    let trimmed = trimmed_start.trim_end_matches(|c| {
+        matches!(
+            c,
+            '"' | '\''
+                | ')'
+                | ']'
+                | ','
+                | '.'
+                | ';'
+                | ':'
+                | '。'
+                | '、'
+                | '，'
+                | '．'
+                | '！'
+                | '？'
+        )
+    });
+    let suffix_len = trimmed_start.len() - trimmed.len();
+
+    let Ok(mut url) = reqwest::Url::parse(trimmed) else {
+        return token.to_string();
+    };
+
+    if url.scheme() != "http" && url.scheme() != "https" {
+        return token.to_string();
+    }
+
+    if !url.username().is_empty() || url.password().is_some() {
+        let _ = url.set_username("");
+        let _ = url.set_password(None);
+    }
+    url.set_query(url.query().map(|_| "redacted"));
+    if url.fragment().is_some() {
+        url.set_fragment(Some("redacted"));
+    }
+
+    format!(
+        "{}{}{}",
+        &token[..prefix_len],
+        url,
+        &token[token.len() - suffix_len..]
+    )
+}
+
+fn redact_sensitive_path_token(token: &str) -> String {
+    let trimmed_start = token.trim_start_matches(['"', '\'', '(', '[']);
+    let prefix_len = token.len() - trimmed_start.len();
+    let trimmed = trimmed_start
+        .trim_end_matches(|c| matches!(c, '"' | '\'' | ')' | ']' | ',' | '.' | ';' | ':' | '。'));
+    let suffix_len = trimmed_start.len() - trimmed.len();
+
+    if !(trimmed.starts_with('/') || trimmed.starts_with("~/") || trimmed.contains(":\\"))
+        || trimmed.len() <= 1
+    {
+        return token.to_string();
+    }
+
+    format!(
+        "{}{}{}",
+        &token[..prefix_len],
+        redacted_path_label(std::path::Path::new(trimmed)),
+        &token[token.len() - suffix_len..]
+    )
+}
+
+fn redact_sensitive_panic_text(message: &str) -> String {
+    let mut redact_next_account_value = false;
+
+    message
+        .split_whitespace()
+        .map(redact_sensitive_url_token)
+        .map(|token| redact_sensitive_path_token(&token))
+        .map(|token| {
+            if redact_next_account_value {
+                redact_next_account_value = false;
+                "[redacted account]".to_string()
+            } else {
+                let normalized = token.trim_end_matches(':').to_ascii_lowercase();
+                redact_next_account_value = normalized == "account" || normalized == "account_name";
+                token
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+fn panic_payload_text(payload: &(dyn Any + Send)) -> String {
+    if let Some(message) = payload.downcast_ref::<&str>() {
+        (*message).to_string()
+    } else if let Some(message) = payload.downcast_ref::<String>() {
+        message.clone()
+    } else {
+        "[non-string panic payload]".to_string()
+    }
+}
+
+#[cfg(not(test))]
+fn redacted_panic_hook_message(info: &PanicHookInfo<'_>) -> String {
+    let message = redact_sensitive_panic_text(&panic_payload_text(info.payload()));
+    match info.location() {
+        Some(location) => format!(
+            "Rust panic captured at {}:{}: {message}",
+            location.file(),
+            location.line()
+        ),
+        None => format!("Rust panic captured: {message}"),
+    }
+}
+
+#[cfg(not(test))]
+fn install_redacting_panic_hook() {
+    std::panic::set_hook(Box::new(|info| {
+        let message = redacted_panic_hook_message(info);
+        tracing::error!("{message}");
+        eprintln!("{message}");
+    }));
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum TracingInitStatus {
+    Installed,
+    AlreadyInstalled,
+}
+
+fn tracing_init_status(installed: bool) -> TracingInitStatus {
+    match installed {
+        true => TracingInitStatus::Installed,
+        false => TracingInitStatus::AlreadyInstalled,
+    }
+}
+
+#[cfg(not(test))]
+#[cfg(debug_assertions)]
+fn init_debug_tracing_subscriber() -> TracingInitStatus {
+    let result = tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("warn")),
+        )
+        .try_init();
+
+    tracing_init_status(result.is_ok())
 }
 
 fn database_init_error_message(error: &DomainError, db_path: &std::path::Path) -> String {
@@ -329,13 +480,9 @@ fn cleanup_old_logs_remove_warning(path: &std::path::Path, error: &std::io::Erro
 pub fn run() {
     #[cfg(debug_assertions)]
     {
-        tracing_subscriber::fmt()
-            .with_env_filter(
-                tracing_subscriber::EnvFilter::try_from_default_env()
-                    .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("warn")),
-            )
-            .init();
+        let _ = init_debug_tracing_subscriber();
     }
+    install_redacting_panic_hook();
 
     let builder = tauri::Builder::default();
 
@@ -547,13 +694,15 @@ mod tests {
         cleanup_old_logs, cleanup_old_logs_metadata_debug, cleanup_old_logs_read_dir_warning,
         cleanup_old_logs_remove_warning, clipboard_plugin_startup_failure_mode,
         database_init_error_message, database_init_panic_message,
-        main_window_title_bar_uses_overlay, redacted_path_label,
-        startup_app_data_dir_create_error_message, startup_app_data_dir_error_message,
-        startup_focus_main_thread_warning, startup_focus_restore_decision,
-        startup_main_webview_focus_warning, startup_main_window_focus_warning,
-        startup_main_window_show_warning, startup_preferences_or_default,
-        startup_preferences_read_warning_message, updater_endpoint_startup_failure_mode,
+        main_window_title_bar_uses_overlay, panic_payload_text, redact_sensitive_panic_text,
+        redacted_path_label, startup_app_data_dir_create_error_message,
+        startup_app_data_dir_error_message, startup_focus_main_thread_warning,
+        startup_focus_restore_decision, startup_main_webview_focus_warning,
+        startup_main_window_focus_warning, startup_main_window_show_warning,
+        startup_preferences_or_default, startup_preferences_read_warning_message,
+        tracing_init_status, updater_endpoint_startup_failure_mode,
         updater_plugin_startup_failure_mode, StartupFocusRestoreDecision, StartupPluginFailureMode,
+        TracingInitStatus,
     };
     use crate::domain::error::DomainError;
 
@@ -630,6 +779,55 @@ mod tests {
         assert!(persistence.contains("startup filesystem access"));
         assert!(persistence.contains("permission denied"));
         assert!(!persistence.contains("/Users/example"));
+    }
+
+    #[test]
+    fn runtime_boundary_tracing_init_conflict_is_non_fatal() {
+        let first = tracing_init_status(true);
+        let conflict = tracing_init_status(false);
+
+        assert_eq!(first, TracingInitStatus::Installed);
+        assert!(
+            matches!(
+                conflict,
+                TracingInitStatus::Installed | TracingInitStatus::AlreadyInstalled
+            ),
+            "test-global subscriber state should never force a panic"
+        );
+    }
+
+    #[test]
+    fn runtime_boundary_panic_redaction_covers_startup_and_background_sync_payloads() {
+        let message = redact_sensitive_panic_text(
+            "startup failed at https://user:token@example.com/feed?api_key=secret#frag and /Users/example/app/ultra-rss-reader.db",
+        );
+
+        assert!(message.contains("https://example.com/feed?redacted#redacted"));
+        assert!(message.contains("[redacted parent]/ultra-rss-reader.db"));
+        assert!(!message.contains("user:token"));
+        assert!(!message.contains("api_key=secret"));
+        assert!(!message.contains("/Users/example"));
+
+        let background_message = redact_sensitive_panic_text(
+            "background sync panicked for account Personal at https://secret@example.com/rss?token=raw",
+        );
+
+        assert!(background_message.contains("[redacted account]"));
+        assert!(background_message.contains("https://example.com/rss?redacted"));
+        assert!(!background_message.contains("Personal"));
+        assert!(!background_message.contains("secret@"));
+        assert!(!background_message.contains("token=raw"));
+    }
+
+    #[test]
+    fn runtime_boundary_panic_payload_text_does_not_debug_format_non_string_payloads() {
+        let payload = 42_i32;
+
+        assert_eq!(
+            panic_payload_text(&payload),
+            "[non-string panic payload]",
+            "panic hook should not expose arbitrary payload debug output"
+        );
     }
 
     #[test]
