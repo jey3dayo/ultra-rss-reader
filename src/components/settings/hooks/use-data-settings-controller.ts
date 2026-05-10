@@ -2,8 +2,8 @@ import { Result } from "@praha/byethrow";
 import type { QueryClient } from "@tanstack/react-query";
 import type { TFunction } from "i18next";
 import { useCallback, useEffect, useReducer, useRef } from "react";
-import { getDatabaseInfo, openLogDir, vacuumDatabase } from "@/api/tauri-commands";
 import type { AppError } from "@/api/tauri-commands";
+import { getDatabaseInfo, openLogDir, vacuumDatabase } from "@/api/tauri-commands";
 import {
   BYTES_PER_KIBIBYTE,
   BYTES_PER_MEBIBYTE,

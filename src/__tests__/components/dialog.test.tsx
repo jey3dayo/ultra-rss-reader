@@ -180,7 +180,7 @@ describe("DialogContent", () => {
     );
 
     const firstAction = screen.getByRole("button", { name: "First action" });
-    const secondAction = screen.getByRole("button", { name: "Second action" });
+    const _secondAction = screen.getByRole("button", { name: "Second action" });
     const closeAction = screen.getByRole("button", { name: "Close dialog" });
     const backgroundAction = screen.getByRole("button", { name: "Background action", hidden: true });
 
@@ -194,9 +194,10 @@ describe("DialogContent", () => {
     expect(closeAction).toHaveFocus();
 
     await user.tab();
+    const activeElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     expect(
-      screen.getByRole("dialog", { name: "Keyboard dialog" }).contains(document.activeElement) ||
-        (document.activeElement instanceof HTMLElement && document.activeElement.hasAttribute("data-base-ui-focus-guard")),
+      screen.getByRole("dialog", { name: "Keyboard dialog" }).contains(activeElement) ||
+        activeElement?.hasAttribute("data-base-ui-focus-guard"),
     ).toBe(true);
     expect(backgroundAction).not.toHaveFocus();
   });

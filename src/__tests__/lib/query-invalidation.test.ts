@@ -12,8 +12,8 @@ import {
   invalidateSyncCompletedQueries,
   normalizeQueryAccountId,
   queryKeys,
-  resolveArticleMutationInvalidationQueryKeys,
   resolveArticleInvalidationQueryKeys,
+  resolveArticleMutationInvalidationQueryKeys,
   resolveFeedInvalidationQueryKeys,
   setQueryInvalidationFailureReporterForDiagnostics,
 } from "@/lib/query/query-invalidation";

@@ -58,11 +58,7 @@ type FeedMutationInvalidationOwnerMatrixEntry = {
   includeAccountScopedFeedArticleSummaries: boolean;
 };
 
-type ArticleMutationInvalidationKind =
-  | "article-read-star"
-  | "mute-keyword"
-  | "tag-article-assignment"
-  | "tag-metadata";
+type ArticleMutationInvalidationKind = "article-read-star" | "mute-keyword" | "tag-article-assignment" | "tag-metadata";
 
 type ArticleMutationInvalidationMatrixEntry = {
   actionOwner: Extract<QueryInvalidationActionOwner, "article-mutation" | "mute-keyword-mutation" | "tag-mutation">;

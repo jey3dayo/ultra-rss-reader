@@ -222,7 +222,10 @@ function redactRuntimeDiagnosticDetail(
   return detail;
 }
 
-function serializeRuntimeDiagnosticSupportCopyPayload(payload: unknown, seen: WeakSet<object> = new WeakSet()): unknown {
+function serializeRuntimeDiagnosticSupportCopyPayload(
+  payload: unknown,
+  seen: WeakSet<object> = new WeakSet(),
+): unknown {
   if (payload instanceof Error) {
     return {
       name: payload.name,
