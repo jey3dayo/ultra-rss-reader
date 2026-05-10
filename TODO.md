@@ -84,11 +84,6 @@
   - invalid row を warn で隠すと UI 上は account が消えたように見え、復旧導線や support log との接続が弱い
   - invalid kind、missing name、quarantine count、diagnostics event、settings recovery copy の contract test を追加する
 
-- [ ] P2 scheduler `retry_after_seconds` を error message parse から構造化 metadata へ寄せる
-  - 対象: `src-tauri/src/service/sync_scheduler.rs`, `src-tauri/src/domain/error.rs`
-  - backoff が `retry_after_seconds=` という message 断片に依存し、provider copy 変更や user-visible 文言混入で retry timing が壊れやすい
-  - markerなし、複数marker、巨大値、数字以外suffix、偶然marker、structured retry metadata 優先の test を追加する
-
 - [ ] P2 remote subscription URL fallback merge が別 remote feed を上書きしない契約を作る
   - 対象: `src-tauri/src/service/sync_flow.rs`
   - `find_by_remote_id` が外れた後に `find_by_url` で既存 feed を再利用するため、remote_id 変更や同 URL 別 subscription が混ざると意図しない merge になり得る
@@ -99,40 +94,10 @@
   - `folder_remote_id` が存在するのに folder 解決できない場合に `folder_id=None` へ落ちると、一時的な folder API 欠落で feed が root へ移動し得る
   - folder sync omitted、folder API failure後subscription sync、unknown folder_remote_id、existing folder保持、explicit remote folder removal の test を追加する
 
-- [ ] P2 sidebar feed drop target の folder ownership を contract 化する
-  - 対象: `src/components/reader/hooks/sidebar/use-sidebar-feed-drag-state.ts`, `src/components/reader/hooks/sidebar/use-sidebar-feed-tree-props.ts`
-  - drag/drop が stale render や test helper 経由で別 account folder/missing folder id を `moveFeedToFolder` へ渡せる可能性がある
-  - missing folder id、same account folder、different account folder、folder list refetch 中、drop failure feedback の test を追加する
-
-- [ ] P2 sidebar feed selection の open-first-article failure surface を決める
-  - 対象: `src/components/reader/hooks/sidebar/use-sidebar-feed-section-controller.ts`
-  - `open_first_article_on_feed_selection` 有効時の `void openFeedLanding(feedId)` failure が hook 内で見えず、削除済み feed や記事 0 件の UX が揺れやすい
-  - feed not found、no article、landing fetch reject、starred tree context、account switch 中 request owner の test を追加する
-
-- [ ] P2 command palette article selection を account/feed freshness で guard する
-  - 対象: `src/components/reader/hooks/command-palette/use-command-palette-handlers.ts`, `src/components/reader/hooks/command-palette/use-command-palette-data.ts`
-  - palette 検索結果や recent article が account switch 直前のものだと、現在 account に存在しない feed/article を選び得る
-  - account switch while palette open、stale search result、recent article missing feed、feed deleted by refetch、select no-op/toast policy の test を追加する
-
 - [ ] P3 OPML export の large account performance を snapshot/limit で見える化する
   - 対象: `src-tauri/src/commands/opml_commands.rs`
   - folder ごとに `remaining_feeds.remove(index)` する構造は大きい feed 数で O(n^2) 寄りになり、large OPML export の UI 固まりにつながりやすい
   - 1k/5k feeds export smoke、many folders、all orphan feeds、stable order、time budget/allocation regression guard を追加する
-
-- [ ] P2 preferences load と `setPref` optimistic update の race を latest-only にする
-  - 対象: `src/stores/preferences-store.ts`, `src/schemas/preferences.ts`, `src/__tests__/stores`
-  - `loadPreferences()` の取得中に user が設定を変更すると、遅れて返った backend prefs が optimistic state を上書きする可能性がある
-  - load pending中setPref、same key update、different key update、backend stale response、persist failure、theme/language side effect の test を追加する
-
-- [ ] P2 preferences load failure 後の fallback state と persisted mirror の整合を固定する
-  - 対象: `src/stores/preferences-store.ts`, `src/constants/storage.ts`, `src/schemas/preferences.ts`
-  - load failure 時に fallback side effect は適用するが `prefs` は空のまま loaded になり、UI 表示・theme mirror・次回 setPref の起点が揺れやすい
-  - getPreferences reject、mirrored theme present、empty prefs loaded、first setPref after failure、reload recovery の test を追加する
-
-- [ ] P2 language preference apply を request generation で latest-only にする
-  - 対象: `src/stores/preferences-store.ts`, `src/lib/ui/ui-language.ts`, `src/lib/i18n.ts`
-  - `i18n.changeLanguage()` は async なので、language を連続変更した時に古い promise の reject/log が最新操作の failure に見えやすい
-  - ja->en rapid change、system->ja rapid change、old promise reject、navigator language change、latest-only diagnostics の test を追加する
 
 - [ ] P2 shortcut reset-all と locked `open_settings` の bypassed custom value policy を決める
   - 対象: `src/components/settings/shortcuts-settings.tsx`, `src/lib/keyboard/keyboard-shortcuts.ts`, `src/schemas/preferences.ts`
@@ -149,11 +114,6 @@
   - Google favicon endpoint に feed/site host を送るため、privacy-sensitive mode や offline/use-proxy 方針が未定だとユーザーの購読先が外部へ漏れ得る
   - favicon enabled/disabled policy、private host、localhost、grayscale option、offline fallback、docs/settings copy の task に分割する
 
-- [ ] P2 `DevRuntimeOptionsSchema` の strictness / future option policy を決める
-  - 対象: `src/api/schemas/platform-info.ts`, `src-tauri/src/commands/platform_commands.rs`
-  - dev runtime options だけ余剰 key を許すと、Rust 側 dev-only option 追加や typo が silently accepted になり drift を検知しづらい
-  - extra key rejection/allow policy、missing required key、null dimension、invalid dimension、future option drift の test を追加する
-
 - [ ] P2 Storybook QueryClient provider の unmount cache cleanup を固定する
   - 対象: `src/components/storybook/story-query-client-provider.tsx`, `src/__tests__/components/story-query-client-provider.test.tsx`
   - Storybook 用 QueryClient が unmount 時に `clear()` されないと、Canvas remount や decorator nesting で cache/timer が残り得る
@@ -163,11 +123,6 @@
   - 対象: `src/dev/mocks.ts`, `src-tauri/src/infra/db/sqlite_mute_keyword.rs`, `src-tauri/src/infra/db/sqlite_article.rs`
   - dev mock が sanitized HTML 文字列をそのまま lower-case includes すると、backend の本文抽出/summary fallback とずれて browser preview だけ通る
   - HTML tag text、entity encoded text、summary fallback、title/body/title_and_body parity の test を追加する
-
-- [ ] P2 dev scenario module validation を metadata shape まで広げる
-  - 対象: `src/dev/scenario-runtime.ts`, `src/dev/scenarios/types.ts`, `src/dev/scenarios/registry.ts`
-  - dev scenario module validation が function 有無中心だと、壊れた scenario metadata が command palette へ流れやすい
-  - invalid scenario id、blank title、non-array keywords、throwing list、partial module の test を追加する
 
 - [ ] P2 subscriptions workspace 中の article/feed navigation が背後の reader state を更新する方針を決める
   - 対象: `src/stores/ui-store.ts`, `src/components/app-layout.tsx`, `src/lib/actions.ts`
