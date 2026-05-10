@@ -46,22 +46,6 @@
 
 ### Browser WebView / Runtime Diagnostics
 
-- [ ] P2 invalid account row quarantine を diagnostics / recovery action へ出す
-  - 対象: `src-tauri/src/infra/db/sqlite_account.rs`, `src-tauri/src/commands/account_commands.rs`, `src/components/settings/accounts-nav-view.tsx`
-  - superseded by: `P1-Q4c` runtime corruption
-  - invalid row を warn で隠すと UI 上は account が消えたように見え、復旧導線や support log との接続が弱い
-  - invalid kind、missing name、quarantine count、diagnostics event、settings recovery copy の contract test を追加する
-
-- [ ] P2 private data reset order を credentials / DB / localStorage / query cache で固定する
-  - 対象: settings data reset flow、credential commands、query client
-  - reset が途中失敗すると keyring、DB、localStorage、query cache のどれかだけ残り、次回起動で ghost state になる
-  - keyring delete failure、DB cleanup failure、storage cleanup、query cache clear、app reload の contract を追加する
-
-- [ ] P1 OS keyring orphan credential cleanup を account delete / rename / reset と同期する
-  - 対象: `src-tauri/src/infra/keyring_store.rs`, account commands, settings data reset
-  - account 削除や rename 後に古い credential entry が残ると、復元・debug・reset の時に ghost account として再浮上する
-  - delete success、delete keyring failure、rename rollback、reset partial failure、orphan inventory の contract を追加する
-
 - [ ] P2 `robots` / provider block response を sync backoff と user action で分ける
   - 対象: local provider sync、`src-tauri/src/service/sync_scheduler.rs`, sync result UI
   - 403/429/451/503 を同じ failure として扱うと、backoff・toast・manual retry の意味がずれる
@@ -122,25 +106,10 @@
   - feed 削除後に favicon/image failure cache が残ると、同じ URL 再追加時に古い失敗状態を引き継ぐ
   - feed delete、feed URL change、account delete、cache TTL、manual refresh の contract を追加する
 
-- [ ] P2 platform permission denied を file/dialog/keyring/clipboard ごとに user action copy へ落とす
-  - 対象: Tauri command wrappers、runtime error taxonomy、settings/debug UI
-  - permission denied を generic error にすると、macOS privacy settings や Windows policy の復旧案が出せない
-  - file access denied、dialog denied、keyring denied、clipboard denied、action-specific copy の matrix を作る
-
 - [ ] P2 updater downloaded artifact cleanup を cancel / failed install / app restart で固定する
   - 対象: updater hook、updater commands、release docs
   - download 済み artifact が cancel や failed install 後に残ると、次回 check/install が stale artifact を使う可能性がある
   - cancel、download failure、install failure、restart before install、cleanup diagnostics の contract を追加する
-
-- [ ] P2 command palette action execution を stale selection / closed palette / modal open で固定する
-  - 対象: command palette controller/actions、global action dispatcher
-  - palette close と action 実行の間に selection や modal state が変わると、意図しない account/feed/action が走る
-  - stale selection、palette closed before resolve、modal already open、async action failure、focus restore の contract を追加する
-
-- [ ] P3 dependency update smoke を React Query / Zustand / Tauri / Vite の breaking behavior ごとに分類する
-  - 対象: `package.json`, `pnpm-lock.yaml`, `src-tauri/Cargo.lock`, quality baseline
-  - lockfile 更新で runtime behavior が変わる dependency と pure dev dependency を同じ扱いにすると review が粗くなる
-  - query caching、store equality、Tauri API、Vite dev server、test runner の smoke task に分ける
 
 - [ ] P1 app shutdown 中の background sync / DB write / browser webview cleanup を drain する contract を作る
   - 対象: `src-tauri/src/lib.rs`, `src-tauri/src/service/sync_scheduler.rs`, browser webview tracker, DB commands
@@ -187,20 +156,10 @@
   - hardcoded 50 件の意味が未明確だと、履歴 UI や storage cleanup で期待がずれる
   - max count、duplicate article revisit、account delete、feed delete、clear history、migration の contract を追加する
 
-- [ ] P2 release app first-run permission prompts を manual verification checklist に入れる
-  - 対象: `docs/release-manual-verification.md`, packaged app smoke
-  - file dialog、keyring、clipboard、network などの初回 permission prompt を見ないと、配布後の初回 UX が確認できない
-  - first keyring access、first file dialog、first clipboard copy、first network sync、denied permission の checklist を追加する
-
 - [ ] P2 OS sleep中の updater download / file export / DB backup を cancellation-aware にする
   - 対象: updater hook、export/backup commands、runtime lifecycle
   - laptop sleep で long-running file/network operation が中断すると、partial artifact や stale progress が残る
   - sleep during download、sleep during export、sleep during backup、resume cleanup、progress reset の contract を追加する
-
-- [ ] P2 Windows hidden console policy と crash visibility の両立を検証する
-  - 対象: `src-tauri/src/main.rs`, Windows release smoke, logging
-  - release で console window を消す設定は必要だが、startup panic 時の recovery surface が log/UI にないと完全に無音で落ちる
-  - hidden console、startup panic、log written、message box/fallback UI、exit code の manual check を追加する
 
 - [ ] P2 production log timezone strategy を UTC/local のどちらにするか support docs と同期する
   - 対象: `src-tauri/src/lib.rs`, log docs, support workflow
