@@ -30,7 +30,7 @@ impl SyncStateScopeKey {
     }
 
     pub fn local_feed(feed_url: impl Into<String>) -> Self {
-        Self::LocalFeed(feed_url.into())
+        Self::LocalFeed(normalize_local_feed_scope_url(&feed_url.into()))
     }
 
     pub fn raw(scope_key: impl Into<String>) -> Self {
@@ -50,6 +50,58 @@ impl SyncStateScopeKey {
     }
 }
 
+fn normalize_local_feed_scope_url(feed_url: &str) -> String {
+    let Ok(mut url) = reqwest::Url::parse(feed_url) else {
+        return feed_url.to_string();
+    };
+
+    url.set_fragment(None);
+
+    if url.query().is_some() {
+        let mut pairs = url
+            .query_pairs()
+            .map(|(key, value)| (key.into_owned(), value.into_owned()))
+            .collect::<Vec<_>>();
+        pairs.sort();
+        url.query_pairs_mut().clear().extend_pairs(pairs);
+    }
+
+    url.to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn local_feed_scope_key_normalizes_url_for_validator_lookup() {
+        let normalized = SyncStateScopeKey::local_feed(
+            "HTTPS://Example.COM:443/feed.xml?z=last&a=first&a=again#fragment",
+        );
+
+        assert_eq!(
+            normalized.as_string(),
+            "local_feed:https://example.com/feed.xml?a=again&a=first&z=last"
+        );
+    }
+
+    #[test]
+    fn local_feed_scope_key_keeps_http_and_https_distinct() {
+        assert_ne!(
+            SyncStateScopeKey::local_feed("http://example.com/feed.xml").as_string(),
+            SyncStateScopeKey::local_feed("https://example.com/feed.xml").as_string()
+        );
+    }
+
+    #[test]
+    fn local_feed_scope_key_keeps_unparseable_legacy_value() {
+        assert_eq!(
+            SyncStateScopeKey::local_feed("not a url").as_string(),
+            "local_feed:not a url"
+        );
+    }
+}
+
 impl From<&str> for SyncStateScopeKey {
     fn from(value: &str) -> Self {
         match value {
@@ -59,11 +111,7 @@ impl From<&str> for SyncStateScopeKey {
             value => value
                 .strip_prefix("feed:")
                 .map(|remote_id| Self::Feed(remote_id.to_string()))
-                .or_else(|| {
-                    value
-                        .strip_prefix("local_feed:")
-                        .map(|feed_url| Self::LocalFeed(feed_url.to_string()))
-                })
+                .or_else(|| value.strip_prefix("local_feed:").map(Self::local_feed))
                 .or_else(|| {
                     value
                         .strip_prefix("raw:")

@@ -8,7 +8,7 @@ use crate::commands::dto::{AccountSyncWarningKind, AppError};
 use crate::domain::account::Account;
 use crate::domain::article::{generate_entry_id, Article};
 use crate::domain::feed::Feed;
-use crate::domain::provider::{FeedIdentifier, Mutation, PullScope, SyncCursor};
+use crate::domain::provider::{FeedIdentifier, Mutation, PullResult, PullScope, SyncCursor};
 use crate::domain::types::{AccountId, ArticleId, FeedId, FolderId};
 use crate::infra::db::connection::DbManager;
 use crate::infra::db::sqlite_article::mark_muted_unread_as_read_with_conn;
@@ -89,7 +89,7 @@ fn save_local_feed_sync_result_in_current_transaction(
     account_id: &AccountId,
     feed: &Feed,
     articles: &[Article],
-    next_state: &SyncState,
+    next_states: &[SyncState],
 ) -> Result<(), AppError> {
     if !articles.is_empty() {
         upsert_articles_in_current_transaction(conn, articles)?;
@@ -103,7 +103,9 @@ fn save_local_feed_sync_result_in_current_transaction(
     }
 
     let sync_state_repo = SqliteSyncStateRepository::new(conn);
-    sync_state_repo.save(next_state)?;
+    for next_state in next_states {
+        sync_state_repo.save(next_state)?;
+    }
     Ok(())
 }
 
@@ -312,9 +314,10 @@ pub(super) async fn sync_local_feed(
             .collect()
     };
 
+    let effective_scope_key = local_feed_effective_scope_key(&scope_key, &result);
     let next_state = SyncState {
         account_id: account_id.clone(),
-        scope_key: scope_key.as_string(),
+        scope_key: effective_scope_key.as_string(),
         timestamp_usec: None,
         continuation: None,
         etag: result
@@ -330,6 +333,7 @@ pub(super) async fn sync_local_feed(
         error_count: 0,
         next_retry_at: None,
     };
+    let next_states = local_feed_validator_states_for_scope_keys(next_state, &scope_key);
     let db_guard = lock_db(db)?;
     let tx = db_guard
         .writer()
@@ -341,7 +345,7 @@ pub(super) async fn sync_local_feed(
         account_id,
         feed,
         &articles,
-        &next_state,
+        &next_states,
     )?;
     tx.commit()
         .map_err(crate::domain::error::DomainError::from)
@@ -1213,6 +1217,34 @@ fn feed_scope_key(remote_id: &str) -> SyncStateScopeKey {
 
 fn local_feed_scope_key(feed_url: &str) -> SyncStateScopeKey {
     SyncStateScopeKey::local_feed(feed_url)
+}
+
+fn local_feed_effective_scope_key(
+    requested_scope_key: &SyncStateScopeKey,
+    result: &PullResult,
+) -> SyncStateScopeKey {
+    result
+        .entries
+        .iter()
+        .find_map(|entry| match &entry.source_feed_id {
+            FeedIdentifier::Local { feed_url } => Some(local_feed_scope_key(feed_url)),
+            FeedIdentifier::Remote { .. } => None,
+        })
+        .unwrap_or_else(|| requested_scope_key.clone())
+}
+
+fn local_feed_validator_states_for_scope_keys(
+    next_state: SyncState,
+    requested_scope_key: &SyncStateScopeKey,
+) -> Vec<SyncState> {
+    let requested_scope_key = requested_scope_key.as_string();
+    if requested_scope_key == next_state.scope_key {
+        return vec![next_state];
+    }
+
+    let mut requested_state = next_state.clone();
+    requested_state.scope_key = requested_scope_key;
+    vec![next_state, requested_state]
 }
 
 fn article_count_for_feed(db: &Mutex<DbManager>, feed_id: &FeedId) -> Result<usize, AppError> {
@@ -3096,6 +3128,71 @@ mod tests {
         assert_eq!(state.timestamp_usec, None);
         assert_eq!(state.error_count, 0);
         assert!(state.last_success_at.is_some());
+    }
+
+    #[tokio::test]
+    async fn sync_local_feed_saves_validators_under_requested_and_redirect_final_scope_keys() {
+        let mut server = mockito::Server::new_async().await;
+        let requested_feed_url = format!("{}/old-feed.xml?z=last&a=first", server.url());
+        let redirect = server
+            .mock("GET", "/old-feed.xml")
+            .match_query(mockito::Matcher::AllOf(vec![
+                mockito::Matcher::UrlEncoded("z".into(), "last".into()),
+                mockito::Matcher::UrlEncoded("a".into(), "first".into()),
+            ]))
+            .with_status(308)
+            .with_header("location", "/feed.xml?b=2&a=1")
+            .create_async()
+            .await;
+        let final_feed = server
+            .mock("GET", "/feed.xml")
+            .match_query(mockito::Matcher::AllOf(vec![
+                mockito::Matcher::UrlEncoded("b".into(), "2".into()),
+                mockito::Matcher::UrlEncoded("a".into(), "1".into()),
+            ]))
+            .with_status(200)
+            .with_header("content-type", "application/rss+xml")
+            .with_header("etag", LOCAL_ETAG_NEW)
+            .with_header("last-modified", LOCAL_LAST_MODIFIED_NEW)
+            .with_body(LOCAL_RSS_INITIAL)
+            .create_async()
+            .await;
+
+        let db = test_db();
+        let (account, feed) = insert_local_account_and_feed(&db, &requested_feed_url);
+        let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
+
+        sync_local_feed(&db, &provider, &account.id, &feed)
+            .await
+            .unwrap();
+
+        redirect.assert_async().await;
+        final_feed.assert_async().await;
+
+        let db_guard = db.lock().unwrap();
+        let sync_state_repo = SqliteSyncStateRepository::new(db_guard.reader());
+        let requested_state = sync_state_repo
+            .get(&account.id, local_feed_scope_key(&requested_feed_url))
+            .unwrap()
+            .unwrap();
+        let final_state = sync_state_repo
+            .get(
+                &account.id,
+                local_feed_scope_key(&format!("{}/feed.xml?a=1&b=2", server.url())),
+            )
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(requested_state.etag.as_deref(), Some(LOCAL_ETAG_NEW));
+        assert_eq!(final_state.etag.as_deref(), Some(LOCAL_ETAG_NEW));
+        assert_eq!(
+            requested_state.last_modified.as_deref(),
+            Some(LOCAL_LAST_MODIFIED_NEW)
+        );
+        assert_eq!(
+            final_state.last_modified.as_deref(),
+            Some(LOCAL_LAST_MODIFIED_NEW)
+        );
     }
 
     #[tokio::test]

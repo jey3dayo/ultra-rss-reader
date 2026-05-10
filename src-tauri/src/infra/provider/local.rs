@@ -365,8 +365,9 @@ impl FeedProvider for LocalProvider {
             return Err(DomainError::from_provider_http_status(status));
         }
 
+        let response_url = response.url().to_string();
         let bytes = Self::response_bytes_with_limit(response).await?;
-        let entries = normalizer::normalize_feed(&bytes, feed_url.as_str())?;
+        let entries = normalizer::normalize_feed(&bytes, response_url.as_str())?;
 
         Ok(PullResult {
             entries,
@@ -473,6 +474,47 @@ mod tests {
         assert!(!result.not_modified);
         assert!(!result.has_more);
         mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn pull_entries_uses_redirect_final_url_as_entry_source() {
+        let mut server = mockito::Server::new_async().await;
+        let redirect = server
+            .mock("GET", "/old-feed.xml")
+            .with_status(308)
+            .with_header("location", "/feed.xml?b=2&a=1")
+            .create_async()
+            .await;
+        let final_feed = server
+            .mock("GET", "/feed.xml")
+            .match_query(mockito::Matcher::AllOf(vec![
+                mockito::Matcher::UrlEncoded("b".to_string(), "2".to_string()),
+                mockito::Matcher::UrlEncoded("a".to_string(), "1".to_string()),
+            ]))
+            .with_body(SAMPLE_RSS)
+            .with_header("content-type", "application/rss+xml")
+            .create_async()
+            .await;
+
+        let provider = local_provider_allowing_private_feed_urls();
+        let result = provider
+            .pull_entries(
+                PullScope::Feed(FeedIdentifier::Local {
+                    feed_url: format!("{}/old-feed.xml", server.url()),
+                }),
+                None,
+            )
+            .await
+            .unwrap();
+
+        match &result.entries[0].source_feed_id {
+            FeedIdentifier::Local { feed_url } => {
+                assert_eq!(feed_url, &format!("{}/feed.xml?b=2&a=1", server.url()));
+            }
+            FeedIdentifier::Remote { .. } => panic!("local feed should stay local-scoped"),
+        }
+        redirect.assert_async().await;
+        final_feed.assert_async().await;
     }
 
     #[tokio::test]
