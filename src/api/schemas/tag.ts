@@ -5,6 +5,7 @@ const nonBlankTrimmedStringSchema = z.string().trim().min(1);
 const tagColorSchema = z
   .string()
   .regex(/^#[0-9a-fA-F]{6}$/)
+  .transform((value) => value.toLowerCase())
   .nullable();
 
 export const TagDtoSchema = z
@@ -16,6 +17,9 @@ export const TagDtoSchema = z
   .strict();
 
 export const TagDtoListSchema = z.array(TagDtoSchema);
-export const TagArticleCountsSchema = z.record(z.string(), NonnegativeIntegerSchema);
+export const TagArticleCountsSchema = z.record(
+  z.string(),
+  NonnegativeIntegerSchema,
+);
 
 export type TagDto = z.output<typeof TagDtoSchema>;

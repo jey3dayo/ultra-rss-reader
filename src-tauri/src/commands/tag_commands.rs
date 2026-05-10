@@ -57,6 +57,7 @@ fn normalize_color(color: Option<String>) -> Result<Option<String>, AppError> {
 }
 
 fn has_duplicate_tag_name(tags: &[Tag], tag_id: &str, name: &str) -> bool {
+    // Match repository find_by_name / SQLite NOCASE policy: ASCII case-insensitive only.
     tags.iter()
         .any(|tag| tag.id.0 != tag_id && tag.name.eq_ignore_ascii_case(name))
 }
@@ -154,6 +155,15 @@ pub fn rename_tag(
     name: String,
     color: Option<String>,
 ) -> Result<TagDto, AppError> {
+    rename_tag_impl(&state.db, tag_id, name, color)
+}
+
+fn rename_tag_impl(
+    db: &std::sync::Mutex<crate::infra::db::connection::DbManager>,
+    tag_id: String,
+    name: String,
+    color: Option<String>,
+) -> Result<TagDto, AppError> {
     let name = name.trim().to_string();
     if name.is_empty() {
         return Err(AppError::UserVisible {
@@ -167,7 +177,7 @@ pub fn rename_tag(
     }
     let color = normalize_color(color)?;
 
-    let db = lock_db(&state.db)?;
+    let db = lock_db(db)?;
     let repo = SqliteTagRepository::new(db.writer());
 
     // Find current tag
@@ -453,6 +463,50 @@ mod tests {
         let tag = create_tag_impl(&db, "Accent".to_string(), Some("#Cf7868".to_string())).unwrap();
 
         assert_eq!(tag.color.as_deref(), Some("#cf7868"));
+    }
+
+    #[test]
+    fn rename_tag_trims_name_rejects_case_duplicate_and_clears_color() {
+        let db = test_db();
+        let current =
+            create_tag_impl(&db, "Inbox".to_string(), Some("#Cf7868".to_string())).unwrap();
+        create_tag_impl(&db, "Read Later".to_string(), None).unwrap();
+
+        let duplicate_error = rename_tag_impl(
+            &db,
+            current.id.clone(),
+            " read later ".to_string(),
+            Some("#6F8EB8".to_string()),
+        )
+        .expect_err("rename should reject another tag with the same ASCII case-insensitive name");
+
+        assert!(matches!(
+            duplicate_error,
+            AppError::UserVisible { message } if message == "Tag name \"read later\" already exists"
+        ));
+
+        let renamed = rename_tag_impl(
+            &db,
+            current.id,
+            " Inbox ".to_string(),
+            Some("   ".to_string()),
+        )
+        .expect("same-name rename and color clear should be allowed");
+
+        assert_eq!(renamed.name, "Inbox");
+        assert_eq!(renamed.color, None);
+    }
+
+    #[test]
+    fn duplicate_tag_name_check_uses_ascii_case_only_policy() {
+        let tags = vec![Tag {
+            id: TagId("tag-other".to_string()),
+            name: "İnbox".to_string(),
+            color: None,
+        }];
+
+        assert!(has_duplicate_tag_name(&tags, "tag-current", "İNBOX"));
+        assert!(!has_duplicate_tag_name(&tags, "tag-current", "inbox"));
     }
 
     #[test]

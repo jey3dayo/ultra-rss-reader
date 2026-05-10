@@ -6,6 +6,8 @@ use crate::repository::article::{ArticleListMode, Pagination};
 
 pub trait TagRepository {
     fn find_all(&self) -> DomainResult<Vec<Tag>>;
+    /// Finds tags using SQLite NOCASE semantics.
+    /// This is intentionally ASCII case-insensitive; Unicode folding is not applied.
     fn find_by_name(&self, name: &str) -> DomainResult<Option<Tag>>;
     fn save(&self, tag: &Tag) -> DomainResult<()>;
     fn find_or_create(&self, tag: &Tag) -> DomainResult<Tag>;

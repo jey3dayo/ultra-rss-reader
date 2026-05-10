@@ -36,13 +36,19 @@ describe("TagColorPicker", () => {
     expect(selectedColorButton).toHaveAttribute("tabindex", "0");
     expect(noColorSwatch).toHaveClass("motion-interactive-surface");
     expect(selectedColorSwatch).toHaveClass("motion-interactive-surface");
-    expect(noColorSwatch).not.toHaveClass("bg-surface-2", "border-border-strong", "text-foreground");
+    expect(noColorSwatch).not.toHaveClass(
+      "bg-surface-2",
+      "border-border-strong",
+      "text-foreground",
+    );
     expect(selectedColorSwatch).toHaveClass(
       "scale-110",
       "border-white/85",
       "shadow-[var(--tag-color-selected-shadow)]",
     );
-    expect(selectedColorSwatch?.querySelector("svg")).toHaveClass("drop-shadow-[var(--tag-color-check-shadow)]");
+    expect(selectedColorSwatch?.querySelector("svg")).toHaveClass(
+      "drop-shadow-[var(--tag-color-check-shadow)]",
+    );
 
     await user.click(screen.getByRole("radio", { name: "Select #cf7868" }));
 
@@ -62,9 +68,57 @@ describe("TagColorPicker", () => {
       />,
     );
 
-    expect(screen.getAllByRole("radio", { name: "Select #6f8eb8" })).toHaveLength(1);
+    expect(
+      screen.getAllByRole("radio", { name: "Select #6f8eb8" }),
+    ).toHaveLength(1);
     expect(screen.getByRole("radio", { name: "No color" })).toBeChecked();
-    expect(screen.getByRole("radio", { name: "Select #6f8eb8" })).not.toBeChecked();
+    expect(
+      screen.getByRole("radio", { name: "Select #6f8eb8" }),
+    ).not.toBeChecked();
+  });
+
+  it("normalizes uppercase colors and keeps palette-outside hex values selectable", () => {
+    const onChange = vi.fn();
+
+    render(
+      <TagColorPicker
+        color="#ABCDEF"
+        colorOptions={["#6f8eb8", "#ABCDEF"]}
+        noColorLabel="No color"
+        optionAriaLabel={(color) => `Select ${color}`}
+        onChange={onChange}
+      />,
+    );
+
+    expect(
+      screen.getAllByRole("radio", { name: "Select #abcdef" }),
+    ).toHaveLength(1);
+    expect(screen.getByRole("radio", { name: "Select #abcdef" })).toBeChecked();
+    expect(
+      screen.getByRole("radio", { name: "Select #6f8eb8" }),
+    ).not.toBeChecked();
+  });
+
+  it("shows the current palette-outside color before preset colors", () => {
+    const onChange = vi.fn();
+
+    render(
+      <TagColorPicker
+        color="#123456"
+        colorOptions={["#6f8eb8", "#cf7868"]}
+        noColorLabel="No color"
+        optionAriaLabel={(color) => `Select ${color}`}
+        onChange={onChange}
+      />,
+    );
+
+    expect(screen.getByRole("radio", { name: "Select #123456" })).toBeChecked();
+    expect(
+      screen.getByRole("radio", { name: "Select #6f8eb8" }),
+    ).not.toBeChecked();
+    expect(
+      screen.getByRole("radio", { name: "Select #cf7868" }),
+    ).not.toBeChecked();
   });
 
   it("updates radio checked state from keyboard selection", async () => {
