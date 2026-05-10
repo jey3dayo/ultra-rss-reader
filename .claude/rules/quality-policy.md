@@ -11,6 +11,17 @@ React Doctor / Knip / similarity / TODO priority rules that are too durable for 
 
 When a TODO item becomes a durable rule, move the rule into `CLAUDE.md` or `.claude/rules/` and let the main session remove the corresponding `TODO.md` item after verifying the rule is discoverable.
 
+## TODO Priority Aging
+
+TODO aging is review pressure, not automatic priority mutation. Use `node scripts/todo-triage.ts aging TODO.md` when triaging backlog age or preparing worker batches.
+
+- Add `created batch: YYYY-MM-DD ...` when introducing a new risk TODO batch, and `last reviewed: YYYY-MM-DD ...` when intentionally keeping an older item.
+- Treat a `P1` with no review for 30 days as escalation input: either start it, split it into a ready tranche, or explicitly downgrade with a reason.
+- Treat a `P2` with no review for 60 days as stale triage input: refresh owner/domain/verification, merge it into an existing tranche, or defer it with a concrete blocker.
+- Treat a `P3` with no review for 90 days as an archive candidate unless it still prevents concrete drift through tooling, policy, or contract-test planning.
+- Move completed user-visible work to `CHANGELOG.md` only after the implementation lands; keep `completed by` only as a short transition marker until that move is done.
+- Missing `created batch` / `last reviewed` markers should trigger review, not deletion.
+
 ## React Compiler Adoption
 
 React Compiler is not enabled in this repository. Do not add `babel-plugin-react-compiler`, Vite compiler wiring, or compiler-driven memoization changes as incidental cleanup.

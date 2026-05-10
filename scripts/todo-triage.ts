@@ -28,6 +28,8 @@ export type TodoItem = {
   parallelSafeHint: string | null;
   dependencyHints: string[];
   defer: string | null;
+  createdBatch: string | null;
+  lastReviewed: string | null;
   supersedes: string[];
   supersededBy: string[];
   completedBy: string[];
@@ -72,6 +74,27 @@ export type WorkerIssueExport = {
   focusedVerification: string[];
   parallelSafeHint: string | null;
   supersedes: string[];
+};
+
+export type TodoAgingAction = "escalate" | "review" | "archive-candidate" | "changelog-candidate" | "none";
+
+export type TodoAgingEntry = {
+  id: string;
+  title: string;
+  priority: TodoPriority;
+  createdBatch: string | null;
+  lastReviewed: string | null;
+  action: TodoAgingAction;
+  reason: string;
+};
+
+export type TodoAgingReport = {
+  entries: TodoAgingEntry[];
+  policy: {
+    staleP1Days: number;
+    staleP2Days: number;
+    staleP3Days: number;
+  };
 };
 
 const todoItemPattern = /^- \[[ xX]\] (?<title>P[0-3](?:-[A-Z0-9]+)?\b.*)$/;
@@ -290,8 +313,32 @@ export function runTodoTriage(args: readonly string[] = process.argv.slice(2)): 
     return;
   }
 
-  process.stderr.write("Usage: node scripts/todo-triage.ts [json|duplicates|shards|export-json|export-md] [TODO.md]\n");
+  if (command === "aging") {
+    process.stdout.write(`${JSON.stringify(buildTodoAgingReport(items), null, 2)}\n`);
+    return;
+  }
+
+  process.stderr.write(
+    "Usage: node scripts/todo-triage.ts [json|duplicates|shards|export-json|export-md|aging] [TODO.md]\n",
+  );
   process.exit(2);
+}
+
+export function buildTodoAgingReport(
+  items: readonly TodoItem[],
+  options: { now?: Date; staleP1Days?: number; staleP2Days?: number; staleP3Days?: number } = {},
+): TodoAgingReport {
+  const policy = {
+    staleP1Days: options.staleP1Days ?? 30,
+    staleP2Days: options.staleP2Days ?? 60,
+    staleP3Days: options.staleP3Days ?? 90,
+  };
+  const now = options.now ?? new Date();
+
+  return {
+    entries: items.map((item) => buildTodoAgingEntry(item, now, policy)),
+    policy,
+  };
 }
 
 function createTodoItem(title: string, sectionPath: string[]): MutableTodoItem {
@@ -318,6 +365,8 @@ function createTodoItem(title: string, sectionPath: string[]): MutableTodoItem {
     parallelSafeHint: null,
     dependencyHints: [],
     defer: null,
+    createdBatch: null,
+    lastReviewed: null,
     supersedes: [],
     supersededBy: [],
     completedBy: [],
@@ -349,6 +398,10 @@ function addDetail(item: MutableTodoItem, rawKey: string, value: string): void {
   } else if (key === "defer") {
     item.defer = value;
     item.dependencyHints.push(value);
+  } else if (key === "created batch" || key === "created") {
+    item.createdBatch = value;
+  } else if (key === "last reviewed" || key === "reviewed") {
+    item.lastReviewed = value;
   } else if (key === "supersedes") {
     item.supersedes.push(...readList(value));
   } else if (key === "superseded by") {
@@ -463,6 +516,95 @@ function buildDuplicateReason(items: readonly TodoItem[]): string {
   ]
     .filter((part) => part !== null)
     .join("; ");
+}
+
+function buildTodoAgingEntry(item: TodoItem, now: Date, policy: TodoAgingReport["policy"]): TodoAgingEntry {
+  if (item.completedBy.length > 0) {
+    return {
+      id: item.id,
+      title: item.title,
+      priority: item.priority,
+      createdBatch: item.createdBatch,
+      lastReviewed: item.lastReviewed,
+      action: "changelog-candidate",
+      reason: "Completed TODOs should move to CHANGELOG after verifying the implementation landed.",
+    };
+  }
+
+  const reviewedDate = parseTodoDate(item.lastReviewed ?? item.createdBatch);
+  if (reviewedDate === null) {
+    return {
+      id: item.id,
+      title: item.title,
+      priority: item.priority,
+      createdBatch: item.createdBatch,
+      lastReviewed: item.lastReviewed,
+      action: "review",
+      reason: "Missing created batch or last reviewed marker.",
+    };
+  }
+
+  const ageDays = daysBetween(reviewedDate, now);
+  if (item.priority === "P1" && ageDays >= policy.staleP1Days) {
+    return {
+      id: item.id,
+      title: item.title,
+      priority: item.priority,
+      createdBatch: item.createdBatch,
+      lastReviewed: item.lastReviewed,
+      action: "escalate",
+      reason: `P1 has not been reviewed for ${ageDays} days.`,
+    };
+  }
+  if (item.priority === "P2" && ageDays >= policy.staleP2Days) {
+    return {
+      id: item.id,
+      title: item.title,
+      priority: item.priority,
+      createdBatch: item.createdBatch,
+      lastReviewed: item.lastReviewed,
+      action: "review",
+      reason: `P2 has not been reviewed for ${ageDays} days.`,
+    };
+  }
+  if (item.priority === "P3" && ageDays >= policy.staleP3Days) {
+    return {
+      id: item.id,
+      title: item.title,
+      priority: item.priority,
+      createdBatch: item.createdBatch,
+      lastReviewed: item.lastReviewed,
+      action: "archive-candidate",
+      reason: `P3 has not been reviewed for ${ageDays} days.`,
+    };
+  }
+
+  return {
+    id: item.id,
+    title: item.title,
+    priority: item.priority,
+    createdBatch: item.createdBatch,
+    lastReviewed: item.lastReviewed,
+    action: "none",
+    reason: "Within review window.",
+  };
+}
+
+function parseTodoDate(value: string | null): Date | null {
+  if (value === null) {
+    return null;
+  }
+  const match = value.match(/\d{4}-\d{2}-\d{2}/);
+  if (match?.[0] === undefined) {
+    return null;
+  }
+  const date = new Date(`${match[0]}T00:00:00.000Z`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function daysBetween(start: Date, end: Date): number {
+  const millisecondsPerDay = 24 * 60 * 60 * 1000;
+  return Math.floor((end.getTime() - start.getTime()) / millisecondsPerDay);
 }
 
 function selectMergeTarget(items: readonly TodoItem[]): string | null {
