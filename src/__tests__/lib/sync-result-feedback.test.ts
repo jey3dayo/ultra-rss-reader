@@ -63,7 +63,7 @@ describe("sync-result-feedback", () => {
     ).toEqual({ kind: "partial-failure", accounts: "FreshRSS, Local" });
   });
 
-  it("uses account ids for blank failed account names while preserving duplicate name dedupe", () => {
+  it("uses public fallback copy for blank failed account names while preserving duplicate name dedupe", () => {
     expect(
       summarizeSyncResult({
         synced: true,
@@ -81,7 +81,7 @@ describe("sync-result-feedback", () => {
         ],
         warnings: [],
       }),
-    ).toEqual({ kind: "partial-failure", accounts: "FreshRSS, acc-2, acc-3" });
+    ).toEqual({ kind: "partial-failure", accounts: "FreshRSS, Unknown account" });
   });
 
   it("trims failed account names before projecting them to feedback text", () => {
@@ -248,14 +248,14 @@ describe("sync-result-feedback", () => {
     ).toBe("FreshRSS, Local");
   });
 
-  it("uses account ids for blank warning account names", () => {
+  it("uses public fallback copy for blank warning account names", () => {
     expect(
       getSyncWarningAccountNames([
         { account_id: "acc-1", account_name: "", message: "warn 1" },
         { account_id: "acc-2", account_name: "  ", message: "warn 2" },
         { account_id: "acc-3", account_name: "Local", message: "warn 3" },
       ]),
-    ).toBe("acc-1, acc-2, Local");
+    ).toBe("Unknown account, Local");
   });
 
   it("summarizes warning payloads for event-driven retry notifications", () => {

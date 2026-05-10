@@ -29,10 +29,11 @@ const ACTION_OWNER_LABELS: Record<Exclude<SyncIssueOwner, "account">, string> = 
 };
 
 const MAX_SYNC_FEEDBACK_ACCOUNT_LABELS = 4;
+const UNKNOWN_ACCOUNT_LABEL = "Unknown account";
 
 function getIssueAccountName(item: AccountSyncError | AccountSyncWarning): string {
   const accountName = item.account_name.trim();
-  return accountName.length > 0 ? accountName : item.account_id;
+  return accountName.length > 0 ? accountName : UNKNOWN_ACCOUNT_LABEL;
 }
 
 function getIssueOwner(item: AccountSyncError | AccountSyncWarning): SyncIssueOwner {
