@@ -186,13 +186,13 @@ fn validate_discovery_body_size(length: u64) -> DomainResult<()> {
 }
 
 fn discovery_body_too_large_error() -> DomainError {
-    DomainError::Network(format!(
+    DomainError::Validation(format!(
         "Feed discovery response body exceeds {MAX_DISCOVERY_BODY_BYTES} bytes"
     ))
 }
 
 fn unsupported_discovery_content_type_error(content_type: &str) -> DomainError {
-    DomainError::Network(format!(
+    DomainError::Validation(format!(
         "Unsupported feed discovery response content type: {content_type}"
     ))
 }
@@ -742,6 +742,44 @@ mod tests {
     }
 
     #[test]
+    fn test_extract_feed_links_decodes_numeric_html_attribute_entities_before_resolution() {
+        let html = r#"
+            <html><head>
+            <link rel="alternate" type="application/rss+xml" title="Tom &#38; Jerry" href="/feed.xml?format=rss&#x26;lang=ja&#X26;variant=full">
+            </head><body></body></html>
+        "#;
+
+        let feeds = extract_feed_links(html, "https://example.com/articles/index.html");
+
+        assert_eq!(feeds.len(), 1);
+        assert_eq!(
+            feeds[0].url,
+            "https://example.com/feed.xml?format=rss&lang=ja&variant=full"
+        );
+        assert_eq!(feeds[0].title, "Tom & Jerry");
+    }
+
+    #[test]
+    fn test_extract_feed_links_skips_malformed_link_tag_and_continues() {
+        let html = r#"
+            <html><head>
+            <link rel="alternate" type="application/rss+xml href="/broken.xml">
+            <link rel="alternate" type="application/atom+xml" title="Atom" href="/atom.xml">
+            </head><body></body></html>
+        "#;
+
+        let feeds = extract_feed_links(html, "https://example.com/articles/index.html");
+
+        assert_eq!(
+            feeds
+                .iter()
+                .map(|feed| (feed.url.as_str(), feed.title.as_str()))
+                .collect::<Vec<_>>(),
+            vec![("https://example.com/atom.xml", "Atom")],
+        );
+    }
+
+    #[test]
     fn test_extract_feed_links_ignores_cross_origin_base_href() {
         let html = r#"
             <html><head>
@@ -864,7 +902,7 @@ mod tests {
         assert!(validate_discovery_body_size(MAX_DISCOVERY_BODY_BYTES).is_ok());
         assert!(matches!(
             validate_discovery_body_size(MAX_DISCOVERY_BODY_BYTES + 1),
-            Err(DomainError::Network(message))
+            Err(DomainError::Validation(message))
                 if message.contains("Feed discovery response body exceeds")
         ));
     }
@@ -933,7 +971,7 @@ mod tests {
     fn validate_discovery_response_content_type_rejects_binary_type() {
         assert!(matches!(
             validate_discovery_response_content_type("application/octet-stream"),
-            Err(DomainError::Network(message))
+            Err(DomainError::Validation(message))
                 if message.contains("Unsupported feed discovery response content type")
         ));
     }
