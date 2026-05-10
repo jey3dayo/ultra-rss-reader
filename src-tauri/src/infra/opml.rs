@@ -7,6 +7,7 @@ use quick_xml::{Reader, Writer};
 
 const OPML_ROOT_ERROR_MESSAGE: &str = "OPML document must contain an <opml> root element";
 const OPML_MALFORMED_XML_ERROR_MESSAGE: &str = "OPML document is malformed XML";
+const INCLUDE_PRIVACY_SUMMARY_COMMENT: bool = false;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OpmlFeed {
@@ -159,6 +160,15 @@ pub fn generate_opml(title: &str, feeds: &[OpmlFeed]) -> Result<String, String> 
     writer
         .write_event(Event::Start(BytesStart::new("body")))
         .map_err(|error| format!("OPML generate error: write body start failed: {error}"))?;
+    if INCLUDE_PRIVACY_SUMMARY_COMMENT {
+        writer
+            .write_event(Event::Comment(BytesText::new(
+                "This OPML file contains feed and folder names.",
+            )))
+            .map_err(|error| {
+                format!("OPML generate error: write privacy comment failed: {error}")
+            })?;
+    }
 
     // Group feeds: folder_name -> feeds, preserving insertion order
     let mut folder_order: Vec<String> = Vec::new();
@@ -702,5 +712,24 @@ mod tests {
             parsed[1_999].xml_url,
             "https://example.com/feed-1999.xml?a=1&b=2"
         );
+    }
+
+    #[test]
+    fn generate_opml_omits_privacy_summary_comment_for_round_trip_compatibility() {
+        let feeds = vec![OpmlFeed {
+            title: "Private Topic".to_string(),
+            xml_url: "https://example.com/private.xml".to_string(),
+            html_url: None,
+            folder: Some("Sensitive Folder".to_string()),
+        }];
+
+        let xml = generate_opml("Personal Account", &feeds).unwrap();
+        let parsed = parse_opml(&xml).unwrap();
+
+        assert!(
+            !xml.contains("<!--"),
+            "OPML export intentionally omits privacy summary comments"
+        );
+        assert_eq!(parsed, feeds);
     }
 }

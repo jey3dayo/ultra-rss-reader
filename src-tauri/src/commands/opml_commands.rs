@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use tauri::State;
 
 use crate::commands::dto::{AppError, FeedDto};
@@ -20,6 +22,7 @@ use crate::repository::folder::FolderRepository;
 
 const UNSUPPORTED_URL_VALIDATION_MESSAGE: &str = "Only http:// and https:// URLs are supported";
 const OPML_GENERATE_ERROR_MESSAGE: &str = "Failed to generate OPML export";
+const OPML_GENERATE_LOG_ERROR: &str = "redacted";
 
 #[tauri::command]
 pub fn import_opml(
@@ -213,8 +216,11 @@ pub fn export_opml(state: State<'_, AppState>, account_id: String) -> Result<Str
 
     let opml_feeds = build_export_opml_feeds(feeds, folders);
 
-    opml::generate_opml(&title, &opml_feeds).map_err(|message| {
-        tracing::error!(error = %message, "failed to generate OPML export");
+    opml::generate_opml(&title, &opml_feeds).map_err(|_message| {
+        tracing::error!(
+            error = OPML_GENERATE_LOG_ERROR,
+            "failed to generate OPML export"
+        );
         AppError::UserVisible {
             message: OPML_GENERATE_ERROR_MESSAGE.to_string(),
         }
@@ -241,7 +247,7 @@ fn build_export_opml_feeds(feeds: Vec<Feed>, folders: Vec<Folder>) -> Vec<OpmlFe
         .map(|f| (f.id.clone(), f.name.clone()))
         .collect();
     let mut remaining_feeds = feeds;
-    remaining_feeds.sort_by(|a, b| a.title.cmp(&b.title).then_with(|| a.id.0.cmp(&b.id.0)));
+    remaining_feeds.sort_by(compare_export_feeds);
     let mut opml_feeds = Vec::with_capacity(remaining_feeds.len());
 
     for folder in folders {
@@ -279,6 +285,18 @@ fn feed_to_opml_feed(feed: Feed, folder: Option<String>) -> OpmlFeed {
         },
         folder,
     }
+}
+
+fn compare_export_feeds(a: &Feed, b: &Feed) -> Ordering {
+    a.title
+        .as_bytes()
+        .cmp(b.title.as_bytes())
+        .then_with(|| a.id.0.cmp(&b.id.0))
+}
+
+#[cfg(test)]
+fn opml_generate_log_error_for_test() -> &'static str {
+    OPML_GENERATE_LOG_ERROR
 }
 
 #[cfg(test)]
@@ -903,6 +921,112 @@ mod tests {
                 ("Alpha", "https://example.com/top-a2.xml", None),
                 ("Zulu", "https://example.com/top-z.xml", None),
             ],
+        );
+    }
+
+    #[test]
+    fn export_feed_order_is_locale_independent_utf8_order_with_id_tie_breaker() {
+        let folder_news = folder("folder-news", "News", 0);
+        let feeds = vec![
+            feed("folder-emoji", Some(&folder_news.id), "🍎"),
+            feed("folder-lower", Some(&folder_news.id), "alpha"),
+            feed("folder-japanese", Some(&folder_news.id), "あ"),
+            feed("folder-upper", Some(&folder_news.id), "Alpha"),
+            feed("folder-alpha-2", Some(&folder_news.id), "Alpha"),
+            feed("folder-alpha-1", Some(&folder_news.id), "Alpha"),
+            feed(
+                "top-orphan",
+                Some(&FolderId("missing-folder".to_string())),
+                "Orphan",
+            ),
+        ];
+
+        let opml_feeds = build_export_opml_feeds(feeds, vec![folder_news]);
+
+        let order = opml_feeds
+            .iter()
+            .map(|feed| {
+                (
+                    feed.title.as_str(),
+                    feed.xml_url.as_str(),
+                    feed.folder.as_deref(),
+                )
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            order,
+            vec![
+                (
+                    "Alpha",
+                    "https://example.com/folder-alpha-1.xml",
+                    Some("News"),
+                ),
+                (
+                    "Alpha",
+                    "https://example.com/folder-alpha-2.xml",
+                    Some("News"),
+                ),
+                (
+                    "Alpha",
+                    "https://example.com/folder-upper.xml",
+                    Some("News"),
+                ),
+                (
+                    "alpha",
+                    "https://example.com/folder-lower.xml",
+                    Some("News"),
+                ),
+                (
+                    "あ",
+                    "https://example.com/folder-japanese.xml",
+                    Some("News")
+                ),
+                ("🍎", "https://example.com/folder-emoji.xml", Some("News")),
+                ("Orphan", "https://example.com/top-orphan.xml", None),
+            ],
+        );
+    }
+
+    #[test]
+    fn export_folder_order_tie_breaks_by_id_without_locale_collation() {
+        let folder_beta = folder("folder-beta", "beta", 0);
+        let folder_alpha = folder("folder-alpha", "Alpha", 0);
+        let folder_japanese = folder("folder-japanese", "あ", 0);
+        let feeds = vec![
+            feed("japanese", Some(&folder_japanese.id), "Japanese feed"),
+            feed("beta", Some(&folder_beta.id), "Beta feed"),
+            feed("alpha", Some(&folder_alpha.id), "Alpha feed"),
+        ];
+
+        let opml_feeds = build_export_opml_feeds(
+            feeds,
+            vec![
+                folder_beta.clone(),
+                folder_japanese.clone(),
+                folder_alpha.clone(),
+            ],
+        );
+
+        let order = opml_feeds
+            .iter()
+            .map(|feed| feed.folder.as_deref())
+            .collect::<Vec<_>>();
+        assert_eq!(
+            order,
+            vec![
+                Some(folder_alpha.name.as_str()),
+                Some(folder_beta.name.as_str()),
+                Some(folder_japanese.name.as_str()),
+            ],
+        );
+    }
+
+    #[test]
+    fn export_generate_error_log_uses_redacted_sentinel() {
+        assert_eq!(opml_generate_log_error_for_test(), "redacted");
+        assert_ne!(
+            opml_generate_log_error_for_test(),
+            "Primary Account With Token https://example.com/?token=secret"
         );
     }
 
