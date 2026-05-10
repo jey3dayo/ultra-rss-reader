@@ -817,7 +817,13 @@ describe("Sidebar", () => {
 
     render(<Sidebar />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("button", { name: /Starred/ }));
+    const starredSmartViewButton = (await screen.findAllByRole("button", { name: /Starred/ })).find(
+      (button) => button.getAttribute("data-sidebar-smart-view-kind") === "starred",
+    );
+    if (!starredSmartViewButton) {
+      throw new Error("Expected the starred smart view button to be rendered");
+    }
+    await user.click(starredSmartViewButton);
 
     expect(await screen.findByRole("button", { name: "Select folder Starred Folder" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Select folder Plain Folder" })).not.toBeInTheDocument();
@@ -857,7 +863,7 @@ describe("Sidebar", () => {
 
     render(<Sidebar />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("button", { name: /Starred/ }));
+    await user.click(await screen.findByRole("button", { name: /^Starred$/ }));
 
     expect(await screen.findByRole("button", { name: /Tech Blog/ })).toHaveTextContent("1");
     expect(screen.queryByText(/Press \+ to add a feed|\+ でフィードを追加/)).not.toBeInTheDocument();
@@ -893,10 +899,16 @@ describe("Sidebar", () => {
 
     const { rerender } = render(<Sidebar />, { wrapper });
 
-    expect(await screen.findByRole("button", { name: /Local/ })).toBeInTheDocument();
-    await user.click(await screen.findByRole("button", { name: /Starred/ }));
+    expect(await screen.findByRole("heading", { name: "Local" })).toBeInTheDocument();
+    const starredSmartViewButton = document.querySelector<HTMLButtonElement>(
+      '[data-sidebar-smart-view-kind="starred"]',
+    );
+    if (!starredSmartViewButton) {
+      throw new Error("Expected the starred smart view button to be rendered");
+    }
+    await user.click(starredSmartViewButton);
     const adoptedFeedButton = await screen.findByRole("button", { name: /Snapshot Starred Feed/ });
-    const adoptedFeedLabel = adoptedFeedButton.textContent;
+    expect(adoptedFeedButton).toHaveTextContent("1");
 
     sidebarSourceOverrides.feedsData = undefined;
     sidebarSourceOverrides.foldersData = undefined;
@@ -904,8 +916,8 @@ describe("Sidebar", () => {
     queryClient.setQueryData(["accounts"], undefined);
     rerender(<Sidebar />);
 
-    expect(screen.getByRole("button", { name: /Local/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Snapshot Starred Feed/ })).toHaveTextContent(adoptedFeedLabel ?? "");
+    expect(screen.getByRole("heading", { name: "Local" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Snapshot Starred Feed/ })).toHaveTextContent("1");
     expect(screen.queryByTestId("sidebar-feed-tree-skeleton")).not.toBeInTheDocument();
   });
 
