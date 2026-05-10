@@ -424,13 +424,6 @@
 
 ### 先行実装 queue
 
-- [ ] P1-Q4 DB migration / runtime corruption recovery contract
-  - 目的: failed migration、downgrade、startup 後 corruption、restore 後 stale cache を recovery state として扱う
-  - worker prompt: DB migration/runtime DB error を user-visible recovery category に分類し、destructive recovery は dry-run / confirmation 基準を先に固定する
-  - 対象: `src-tauri/src/infra/db/migration.rs`, DB commands、startup DB error handling、settings data page
-  - 禁止: DB encryption、uninstall retention、settings export/import の将来機能へ広げない
-  - 検証: migration integration tests、database command tests、settings data focused tests
-
 #### P1-Q4 実装 tranche
 
 ### TODO shard 方針
@@ -452,21 +445,11 @@
 
 ### Sync / App Runtime
 
-- [ ] P1 sync-on-wake の visibilitychange listener を account snapshot / stale promise で固定する
-  - 対象: `src/App.tsx`, `src/hooks/use-sidebar-sync.ts`, `src/lib/sync/startup-sync-storage.ts`
-  - `visibilitychange` から sync-on-wake を fire-and-forget で起動しており、account list 更新や app unmount 後の late rejection が current UI state とずれやすい
-  - hidden->visible 連打、account削除後の復帰、sync中の再復帰、late reject、listener cleanup の app test を追加する
-
 ### App Shell / Command Palette / Dev Intent
 
 ### Reader UI / Account Settings
 
 ### Dev / Tooling / E2E / Test Helpers
-
-- [ ] P2 app-error test helper を user-visible / retryable / diagnostics categories へ広げる
-  - 対象: `tests/helpers/app-error.ts`, `src/lib/ui-errors.ts`, `src/api/tauri-commands.ts`
-  - helper は UserVisible / Retryable だけを期待しており、diagnostics-only や validation category が増えると各 test が ad hoc assertion になりやすい
-  - user-visible、retryable、diagnostics-only、validation、runtime-unavailable の helperを揃える
 
 - [ ] P3 fixture negative type tests を compile-time smoke gate として切り出す
   - 対象: `tests/helpers/fixtures.test.ts`, `tests/helpers/render-story.test.tsx`, `tsconfig.json`
@@ -529,11 +512,6 @@
   - Zod issue detail を user-visible error に変換するため、path/message に URL token や credential-like value が入ると error toast に漏れる可能性がある
   - nested path、multiple issue truncation、URL userinfo、query token、Bearer/Basic header-like string、non-Error throwing value の redaction test を追加する
 
-- [ ] P2 command args schema と Rust command validation の max length parity を contract 化する
-  - 対象: `src/api/schemas/commands.ts`, `src-tauri/src/commands/feed_commands.rs`, `src-tauri/src/commands/share_commands.rs`, `tests/tauri-command-return-contract.test.ts`
-  - account/feed/folder/tag/clipboard/preference の上限値が TS と Rust に分散しており、片側だけ変えると frontend では通るが backend で落ちる入力が増える
-  - `ACCOUNT_NAME_MAX_CHARS`、`FEED_TITLE_MAX_CHARS`、`FOLDER_NAME_MAX_CHARS`、`TAG_NAME_MAX_CHARS`、clipboard max、preference bytes の parity test を追加する
-
 - [ ] P2 log directory opener の privacy checklist と diagnostics redaction を support workflow へ接続する
   - 対象: `src-tauri/src/commands/log_commands.rs`, `src/lib/runtime/diagnostics.ts`, `src/components/settings/debug-settings.tsx`
   - log dir を開く操作は user が app.log を共有する導線になるため、account/feed/article URL や local path の redaction policy が UI に見えないと事故りやすい
@@ -556,20 +534,10 @@
   - 記事画像のために `http:` image load を許すなら、mixed content / referrer / tracking image の扱いを sanitizer と frontend post-process で揃える必要がある
   - http image allowed/blocked 方針、`referrerpolicy`、tracking pixel、upgrade-insecure の扱い、CSP drift の repo contract test を追加する
 
-- [ ] P2 `browser-webview` capability の command surface を最小権限 snapshot にする
-  - 対象: `src-tauri/capabilities/default.json`, `src/components/reader/hooks/browser`, `tests/release-repo-contract.test.ts`
-  - browser webview が main webview と同じ permission 群を持つと、将来 browser 側 script や navigation surface が増えた時に影響範囲を判断しづらい
-  - webview 別 capability、window commands、clipboard/opener permission、browser geometry command の必要最小権限を snapshot 化する
-
 - [ ] P2 native menu shortcut hint と user customizable shortcut の表示方針を固定する
   - 対象: `src-tauri/src/menu.rs`, `src/lib/keyboard/keyboard-shortcuts.ts`, `src/components/settings/shortcuts-settings.tsx`
   - menu label に default shortcut hint が含まれる一方、settings 側で shortcut を変更できるため、表示と実動作がずれる可能性がある
   - default-only 表示にするか runtime rebuild するか決め、custom shortcut 設定後の menu hint / keyboard action parity を検証する
-
-- [ ] P2 native menu checked state と frontend preference migration の互換性を contract 化する
-  - 対象: `src-tauri/src/menu.rs`, `src/schemas/preferences.ts`, `src/stores/preferences-store.ts`
-  - sort/view/filter の menu checked state は preference payload に依存するため、旧 key や unknown value が混ざると UI と native menu の選択状態がずれやすい
-  - old key migration、unknown sort、unchecked fallback、preference save failure、native menu rebuild の parity test を追加する
 
 - [ ] P2 custom keyboard shortcut collision detection を settings save 前に入れる
   - 対象: `src/lib/keyboard/keyboard-shortcuts.ts`, `src/schemas/preferences.ts`, `src/components/settings/shortcuts-settings.tsx`
@@ -606,11 +574,6 @@
   - 対象: `e2e/app.spec.ts`, `src/components/app-shell.tsx`, `src/stores/ui-store.ts`
   - mobile single-pane で sidebar/settings/article/account pane を切り替える時、hidden pane に tab stop が残ると keyboard/a11y 操作が壊れる
   - pane switch、account setup、settings close、browser overlay close、back navigation、tab order snapshot の E2E を追加する
-
-- [ ] P2 release workflow permission / action pinning の drift gate を増やす
-  - 対象: `.github/workflows`, `tests/release-repo-contract.test.ts`
-  - release/update artifact を扱う workflow は権限と action pinning の drift が supply-chain risk になりやすく、通常 lint だけでは検出しづらい
-  - `permissions` minimum、third-party action SHA pinning、upload artifact scope、release token scope、cache key drift の contract を追加する
 
 - [ ] P3 Japanese long-label screenshot smoke を settings / article toolbar / account detail に追加する
   - 対象: `e2e/storybook`, `src/locales/ja`, `src/components/settings`, `src/components/reader/article-toolbar-view.tsx`
@@ -1141,11 +1104,6 @@
   - 対象: `src/__tests__/api/schemas.test.ts`, `src/__tests__/api/browser-webview-command-contract.test.ts`, `src-tauri/src/commands/dto.rs`
   - Rust struct field を regex で拾う contract は serde rename や nested DTO 追加時に false positive/negative になりやすい
   - serde rename、flatten/nested DTO、optional field、renamed field、camelCase transform の schema contract を追加する
-
-- [ ] P2 command args registry と Rust command 引数名の parity を追加する
-  - 対象: `src/api/schemas/commands.ts`, `tests/helpers/tauri-command-contract.ts`, `src-tauri/src/commands/*_commands.rs`
-  - frontend args registry と Rust command 関数の引数名対応が未固定で、rename 時に safeInvoke validation だけ通って runtime で missing args になり得る
-  - snake_case/camelCase、optional args、no-args command、renamed command、deprecated allowlist の contract を追加する
 
 - [ ] P3 sidebar expanded folder storage failure を warning-once diagnostics に接続する
   - 対象: `src/components/reader/hooks/sidebar/use-sidebar-startup-folder-expansion.ts`, `src/lib/runtime/diagnostics.ts`
