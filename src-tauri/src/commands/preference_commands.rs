@@ -188,6 +188,21 @@ mod tests {
     }
 
     #[test]
+    fn saving_known_preference_retains_existing_backend_passthrough_keys() {
+        let db = DbManager::new_in_memory().unwrap();
+        let repo = SqlitePreferenceRepository::new(db.writer());
+        repo.set("custom_backend_preference", "preserved").unwrap();
+
+        save_preference_value(&repo, "theme", "dark").unwrap();
+
+        assert_eq!(
+            repo.get("custom_backend_preference").unwrap().as_deref(),
+            Some("preserved")
+        );
+        assert_eq!(repo.get("theme").unwrap().as_deref(), Some("dark"));
+    }
+
+    #[test]
     fn allows_known_shortcut_preference_keys() {
         assert!(is_allowed_preference_key("shortcut_next_article"));
         assert!(is_allowed_preference_key("shortcut_open_command_palette"));

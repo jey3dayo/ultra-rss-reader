@@ -31,13 +31,21 @@ function hasOwnKey(value: object, key: string): boolean {
 }
 
 function extractFrontendPreferenceKeys(source: string): string[] {
-  const block = extractBlock(source, /const preferenceSchemas = \{([\s\S]*?)\};/, "frontend preferenceSchemas block");
+  const block = extractBlock(
+    source,
+    /const preferenceSchemas = \{([\s\S]*?)\};/,
+    "frontend preferenceSchemas block",
+  );
 
   return [...block.matchAll(/^\s*([a-z_]+):/gm)].map((match) => match[1]);
 }
 
 function extractBackendAllowedKeys(source: string): string[] {
-  const block = extractBlock(source, /const ALLOWED_KEYS: &\[&str\] = &\[([\s\S]*?)\];/, "backend ALLOWED_KEYS block");
+  const block = extractBlock(
+    source,
+    /const ALLOWED_KEYS: &\[&str\] = &\[([\s\S]*?)\];/,
+    "backend ALLOWED_KEYS block",
+  );
 
   return [...block.matchAll(/"([a-z_]+)"/g)].map((match) => match[1]);
 }
@@ -112,14 +120,18 @@ const settingsPreferenceLabelKeys = {
   reading_sort: "reading.sort",
   after_reading: "reading.after_reading",
   scroll_to_top_on_change: "reading.scroll_to_top_on_feed_change",
-  open_first_article_on_feed_selection: "reading.open_first_article_on_feed_selection",
+  open_first_article_on_feed_selection:
+    "reading.open_first_article_on_feed_selection",
   sync_on_startup: "general.sync_on_startup",
   action_copy_link: "actions.copy_link",
   debug_browser_hud: "debug.web_preview_hud",
   debug_web_preview_url: "debug.web_preview_url",
   mute_auto_mark_read: "mute.auto_mark_read",
   recent_articles_history_enabled: "reading.recent_articles_history_enabled",
-} as const satisfies Record<Exclude<VisiblePreferenceDefaultKey, `shortcut_${string}`>, string>;
+} as const satisfies Record<
+  Exclude<VisiblePreferenceDefaultKey, `shortcut_${string}`>,
+  string
+>;
 
 const afterReadingStoredValueCases = [
   { stored: "mark_as_read", normalized: "immediately" },
@@ -137,7 +149,9 @@ describe("preference contract", () => {
     const frontendKeys = extractFrontendPreferenceKeys(frontendSource);
     const backendAllowedKeys = extractBackendAllowedKeys(backendSource);
 
-    const missingInBackend = frontendKeys.filter((key) => !backendAllowedKeys.includes(key));
+    const missingInBackend = frontendKeys.filter(
+      (key) => !backendAllowedKeys.includes(key),
+    );
 
     expect(missingInBackend).toEqual([]);
   });
@@ -145,11 +159,25 @@ describe("preference contract", () => {
   it("keeps backend preference keys unique and limited to frontend or backend-only keys", () => {
     const frontendKeys = extractFrontendPreferenceKeys(frontendSource);
     const backendAllowedKeys = extractBackendAllowedKeys(backendSource);
-    const allowedBackendKeys = new Set([...frontendKeys, ...backendOnlyPreferenceKeys]);
-    const unexpectedBackendKeys = backendAllowedKeys.filter((key) => !allowedBackendKeys.has(key));
+    const allowedBackendKeys = new Set([
+      ...frontendKeys,
+      ...backendOnlyPreferenceKeys,
+    ]);
+    const unexpectedBackendKeys = backendAllowedKeys.filter(
+      (key) => !allowedBackendKeys.has(key),
+    );
 
     expect(collectDuplicates(backendAllowedKeys)).toEqual([]);
     expect(unexpectedBackendKeys).toEqual([]);
+  });
+
+  it("keeps backend preference allowlist exactly aligned with frontend schema plus backend-owned keys", () => {
+    const frontendKeys = extractFrontendPreferenceKeys(frontendSource);
+    const backendAllowedKeys = extractBackendAllowedKeys(backendSource);
+
+    expect(backendAllowedKeys.toSorted()).toEqual(
+      [...frontendKeys, ...backendOnlyPreferenceKeys].toSorted(),
+    );
   });
 
   it("does not expose removed Inoreader preference keys", () => {
@@ -164,19 +192,36 @@ describe("preference contract", () => {
 
   it("excludes hidden defaults while still resolving their fallback values", () => {
     expect(preferenceDefaults).not.toHaveProperty("sort_subscriptions");
-    expect(resolvePreferenceValue({}, "sort_subscriptions")).toBe("folders_first");
-    expect(resolvePreferenceValue({ sort_subscriptions: "unexpected" }, "sort_subscriptions")).toBe("folders_first");
+    expect(resolvePreferenceValue({}, "sort_subscriptions")).toBe(
+      "folders_first",
+    );
+    expect(
+      resolvePreferenceValue(
+        { sort_subscriptions: "unexpected" },
+        "sort_subscriptions",
+      ),
+    ).toBe("folders_first");
   });
 
   it("keeps visible, hidden, and shortcut default key types separated", () => {
-    expectTypeOf<HiddenPreferenceKey>().toEqualTypeOf<"sort_subscriptions" | "action_open_browser">();
-    expectTypeOf<Extract<VisiblePreferenceDefaultKey, "sort_subscriptions">>().toEqualTypeOf<never>();
-    expectTypeOf<Extract<VisiblePreferenceDefaultKey, "action_open_browser">>().toEqualTypeOf<never>();
-    expectTypeOf<Extract<VisiblePreferenceDefaultKey, "after_reading">>().toEqualTypeOf<"after_reading">();
+    expectTypeOf<HiddenPreferenceKey>().toEqualTypeOf<
+      "sort_subscriptions" | "action_open_browser"
+    >();
+    expectTypeOf<
+      Extract<VisiblePreferenceDefaultKey, "sort_subscriptions">
+    >().toEqualTypeOf<never>();
+    expectTypeOf<
+      Extract<VisiblePreferenceDefaultKey, "action_open_browser">
+    >().toEqualTypeOf<never>();
+    expectTypeOf<
+      Extract<VisiblePreferenceDefaultKey, "after_reading">
+    >().toEqualTypeOf<"after_reading">();
     expectTypeOf<
       Extract<VisiblePreferenceDefaultKey, "shortcut_next_article">
     >().toEqualTypeOf<"shortcut_next_article">();
-    expectTypeOf<Extract<keyof PreferenceDefaultsRecord, "selected_account_id">>().toEqualTypeOf<never>();
+    expectTypeOf<
+      Extract<keyof PreferenceDefaultsRecord, "selected_account_id">
+    >().toEqualTypeOf<never>();
   });
 
   it("keeps after-reading defaults and stored-value migrations parse compatible", () => {
@@ -184,11 +229,17 @@ describe("preference contract", () => {
 
     expect(preferenceDefaults.after_reading).toBe("after_0_3s");
     expect(resolvePreferenceValue({}, "after_reading")).toBe("after_0_3s");
-    expect(resolvePreferenceValue({ after_reading: "unexpected" }, "after_reading")).toBe("after_0_3s");
+    expect(
+      resolvePreferenceValue({ after_reading: "unexpected" }, "after_reading"),
+    ).toBe("after_0_3s");
 
     for (const { stored, normalized } of afterReadingStoredValueCases) {
-      expect(normalizePreferenceValue("after_reading", stored)).toBe(normalized);
-      expect(resolvePreferenceValue({ after_reading: stored }, "after_reading")).toBe(normalized);
+      expect(normalizePreferenceValue("after_reading", stored)).toBe(
+        normalized,
+      );
+      expect(
+        resolvePreferenceValue({ after_reading: stored }, "after_reading"),
+      ).toBe(normalized);
       expect(afterReadingSchema?.safeParse(normalized).success).toBe(true);
     }
   });
@@ -197,9 +248,15 @@ describe("preference contract", () => {
     expect(normalizePreferenceValue("theme", "dark")).toBe("dark");
     expect(normalizePreferenceValue("theme", "sepia")).toBe("light");
     expect(normalizePreferenceValue("debug_web_preview_url", "")).toBe("");
-    expect(normalizePreferenceValue("custom_backend_preference", "  preserved  ")).toBe("  preserved  ");
-    expect(normalizePreferenceValue("shortcut_next_article", " Shift+J ")).toBe("Shift+J");
-    expect(normalizePreferenceValue("shortcut_next_article", "   ")).toBe(preferenceDefaults.shortcut_next_article);
+    expect(
+      normalizePreferenceValue("custom_backend_preference", "  preserved  "),
+    ).toBe("  preserved  ");
+    expect(normalizePreferenceValue("shortcut_next_article", " Shift+J ")).toBe(
+      "Shift+J",
+    );
+    expect(normalizePreferenceValue("shortcut_next_article", "   ")).toBe(
+      preferenceDefaults.shortcut_next_article,
+    );
 
     expect(
       normalizePreferenceRecord({
@@ -222,7 +279,9 @@ describe("preference contract", () => {
     });
 
     expect(Object.getPrototypeOf(normalized)).toBeNull();
-    expect(Object.getOwnPropertyDescriptor(normalized, "__proto__")).toMatchObject({
+    expect(
+      Object.getOwnPropertyDescriptor(normalized, "__proto__"),
+    ).toMatchObject({
       enumerable: true,
       value: "polluted",
     });
@@ -233,22 +292,49 @@ describe("preference contract", () => {
   });
 
   it("keeps key-specific freeform preference string limits and control-character policy stable", () => {
-    const selectedAccountIdSchema = getPreferenceValueSchema("selected_account_id");
-    const debugWebPreviewUrlSchema = getPreferenceValueSchema("debug_web_preview_url");
+    const selectedAccountIdSchema = getPreferenceValueSchema(
+      "selected_account_id",
+    );
+    const debugWebPreviewUrlSchema = getPreferenceValueSchema(
+      "debug_web_preview_url",
+    );
     const shortcutSchema = getPreferenceValueSchema("shortcut_next_article");
 
-    expect(selectedAccountIdSchema?.safeParse(" account-1 ").data).toBe("account-1");
-    expect(selectedAccountIdSchema?.safeParse("a".repeat(256)).success).toBe(true);
-    expect(selectedAccountIdSchema?.safeParse("a".repeat(257)).success).toBe(false);
-    expect(selectedAccountIdSchema?.safeParse("account\n1").success).toBe(false);
-    expect(normalizePreferenceValue("selected_account_id", " account-1 ")).toBe("account-1");
-    expect(normalizePreferenceValue("selected_account_id", "account\n1")).toBe("");
+    expect(selectedAccountIdSchema?.safeParse(" account-1 ").data).toBe(
+      "account-1",
+    );
+    expect(selectedAccountIdSchema?.safeParse("a".repeat(256)).success).toBe(
+      true,
+    );
+    expect(selectedAccountIdSchema?.safeParse("a".repeat(257)).success).toBe(
+      false,
+    );
+    expect(selectedAccountIdSchema?.safeParse("account\n1").success).toBe(
+      false,
+    );
+    expect(normalizePreferenceValue("selected_account_id", " account-1 ")).toBe(
+      "account-1",
+    );
+    expect(normalizePreferenceValue("selected_account_id", "account\n1")).toBe(
+      "",
+    );
 
-    expect(debugWebPreviewUrlSchema?.safeParse("https://example.com/path?q=1").success).toBe(true);
-    expect(debugWebPreviewUrlSchema?.safeParse("a".repeat(1024)).success).toBe(true);
-    expect(debugWebPreviewUrlSchema?.safeParse("a".repeat(1025)).success).toBe(false);
-    expect(debugWebPreviewUrlSchema?.safeParse("https://example.com/\u0000").success).toBe(false);
-    expect(normalizePreferenceValue("debug_web_preview_url", "a".repeat(1025))).toBe("");
+    expect(
+      debugWebPreviewUrlSchema?.safeParse("https://example.com/path?q=1")
+        .success,
+    ).toBe(true);
+    expect(debugWebPreviewUrlSchema?.safeParse("a".repeat(1024)).success).toBe(
+      true,
+    );
+    expect(debugWebPreviewUrlSchema?.safeParse("a".repeat(1025)).success).toBe(
+      false,
+    );
+    expect(
+      debugWebPreviewUrlSchema?.safeParse("https://example.com/\u0000").success,
+    ).toBe(false);
+    expect(
+      normalizePreferenceValue("debug_web_preview_url", "a".repeat(1025)),
+    ).toBe("");
 
     expect(shortcutSchema?.safeParse(" Shift+J ").data).toBe("Shift+J");
     expect(shortcutSchema?.safeParse("a".repeat(128)).success).toBe(true);
@@ -258,15 +344,23 @@ describe("preference contract", () => {
 
   it("classifies likely unknown passthrough typos without rejecting backend-owned keys", () => {
     expect(getLikelyPreferenceKeyTypo("them")).toBe("theme");
-    expect(getLikelyPreferenceKeyTypo("shortcut_next_articl")).toBe("shortcut_next_article");
+    expect(getLikelyPreferenceKeyTypo("shortcut_next_articl")).toBe(
+      "shortcut_next_article",
+    );
     expect(getLikelyPreferenceKeyTypo("selected_account_id")).toBeNull();
     expect(getLikelyPreferenceKeyTypo("custom_backend_preference")).toBeNull();
-    expect(isRetiredBackendPassthroughPreferenceKey("custom_backend_preference")).toBe(false);
+    expect(
+      isRetiredBackendPassthroughPreferenceKey("custom_backend_preference"),
+    ).toBe(false);
   });
 
   it("keeps typo suggestions bounded by edit-distance cost as preference key sets grow", () => {
-    expect(getLikelyPreferenceKeyTypo("show_sidebar_recent_article")).toBe("show_sidebar_recent_articles");
-    expect(getLikelyPreferenceKeyTypo("shortcut_prev_articl")).toBe("shortcut_prev_article");
+    expect(getLikelyPreferenceKeyTypo("show_sidebar_recent_article")).toBe(
+      "show_sidebar_recent_articles",
+    );
+    expect(getLikelyPreferenceKeyTypo("shortcut_prev_articl")).toBe(
+      "shortcut_prev_article",
+    );
     expect(getLikelyPreferenceKeyTypo(`theme_${"x".repeat(123)}`)).toBeNull();
     expect(getLikelyPreferenceKeyTypo(`theme_${"x".repeat(128)}`)).toBeNull();
   });
@@ -274,15 +368,21 @@ describe("preference contract", () => {
   it("keeps preference typo diagnostics locale-independent for reserved, long, and CJK keys", () => {
     expect(getLikelyPreferenceKeyTypo("shortcut_")).toBeNull();
     expect(getLikelyPreferenceKeyTypo("shortcut_next_article")).toBeNull();
-    expect(getLikelyPreferenceKeyTypo("selected_account_i")).toBe("selected_account_id");
-    expect(getLikelyPreferenceKeyTypo("action_open_browse")).toBe("action_open_browser");
+    expect(getLikelyPreferenceKeyTypo("selected_account_i")).toBe(
+      "selected_account_id",
+    );
+    expect(getLikelyPreferenceKeyTypo("action_open_browse")).toBe(
+      "action_open_browser",
+    );
     expect(getLikelyPreferenceKeyTypo("テーマ")).toBeNull();
     expect(getLikelyPreferenceKeyTypo("テーマ_theme")).toBeNull();
     expect(getLikelyPreferenceKeyTypo("x".repeat(512))).toBeNull();
   });
 
   it("keeps dynamic shortcut preference ids aligned with backend validation", () => {
-    const frontendShortcutIds = extractShortcutDefinitionIds(keyboardShortcutsSource);
+    const frontendShortcutIds = extractShortcutDefinitionIds(
+      keyboardShortcutsSource,
+    );
     const backendShortcutIds = extractBackendAllowedShortcutIds(backendSource);
 
     expect(collectDuplicates(frontendShortcutIds)).toEqual([]);
@@ -293,7 +393,10 @@ describe("preference contract", () => {
   it("keeps visible preference defaults covered by settings locale labels", () => {
     const localeSettings = [enSettings, jaSettings];
     const nonShortcutDefaultKeys = Object.keys(preferenceDefaults).filter(
-      (key): key is Exclude<VisiblePreferenceDefaultKey, `shortcut_${string}`> => !key.startsWith("shortcut_"),
+      (
+        key,
+      ): key is Exclude<VisiblePreferenceDefaultKey, `shortcut_${string}`> =>
+        !key.startsWith("shortcut_"),
     );
 
     expectSortedKeysForTarget(
@@ -307,11 +410,16 @@ describe("preference contract", () => {
         let value: unknown = settings;
         for (const segment of path) {
           value =
-            typeof value === "object" && value !== null && hasOwnKey(value, segment)
+            typeof value === "object" &&
+            value !== null &&
+            hasOwnKey(value, segment)
               ? value[segment as keyof typeof value]
               : undefined;
         }
-        expect(typeof value === "string" && value.length > 0, `${labelKey} should exist`).toBe(true);
+        expect(
+          typeof value === "string" && value.length > 0,
+          `${labelKey} should exist`,
+        ).toBe(true);
       }
     }
   });

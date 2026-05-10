@@ -106,11 +106,16 @@ mod tests {
 
         repo.set("theme", "dark").unwrap();
         repo.set("font_size", "medium").unwrap();
+        repo.set("custom_backend_preference", "preserved").unwrap();
 
         let all = repo.get_all().unwrap();
-        assert_eq!(all.len(), 2);
+        assert_eq!(all.len(), 3);
         assert_eq!(all.get("theme"), Some(&"dark".to_string()));
         assert_eq!(all.get("font_size"), Some(&"medium".to_string()));
+        assert_eq!(
+            all.get("custom_backend_preference"),
+            Some(&"preserved".to_string())
+        );
     }
 
     #[test]
