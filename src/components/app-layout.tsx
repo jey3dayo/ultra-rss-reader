@@ -316,7 +316,7 @@ function WideLayout({
           </div>
         </>
       )}
-      <div data-testid="main-stage" className="flex min-w-0 flex-1">
+      <main data-testid="main-stage" className="flex min-w-0 flex-1">
         {panes.includes("list") && (
           <div className="shrink-0" style={{ width: `${ARTICLE_LIST_PANE_WIDTH_PX}px` }}>
             <ArticleList />
@@ -327,7 +327,7 @@ function WideLayout({
             <ArticleView />
           </div>
         )}
-      </div>
+      </main>
       {!panes.includes("list") && !panes.includes("content") && (
         <div className="min-w-0 flex-1">
           <ArticleView />

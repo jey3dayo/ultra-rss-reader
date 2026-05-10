@@ -190,6 +190,7 @@ describe("BrowserOverlayChrome", () => {
     expect(closeButton.querySelector(".lucide-x")).not.toBeNull();
     expect(backButton).toBeEnabled();
     expect(forwardButton).toBeDisabled();
+    expect(forwardButton).not.toHaveAttribute("aria-disabled");
 
     await user.click(closeButton);
     await user.click(backButton);
@@ -228,6 +229,36 @@ describe("BrowserOverlayChrome", () => {
 
     expect(controller.handleCloseOverlay).toHaveBeenCalledTimes(1);
     expect(controller.handleGoBack).not.toHaveBeenCalled();
+  });
+
+  it("keeps browser overlay toolbar controls in deterministic tab order with text labels", () => {
+    const controller = createController({
+      browserState: {
+        url: "https://example.com/article",
+        can_go_back: true,
+        can_go_forward: true,
+        is_loading: false,
+        load_generation: 1,
+      },
+    });
+
+    render(
+      <BrowserOverlayChrome
+        controller={controller}
+        presentation={createSurfacePresentation()}
+        closeWebPreviewLabel="Close Web Preview"
+        toolbarActions={shareToolbarActions}
+      />,
+    );
+
+    expect(screen.getAllByRole("button").map((button) => button.getAttribute("aria-label"))).toEqual([
+      "Close Web Preview",
+      "Web back",
+      "Web forward",
+      "Reload page",
+      "Open in External Browser",
+      "Share",
+    ]);
   });
 
   it("keeps the macOS overlay leading action outside the traffic-light safe gutter", () => {

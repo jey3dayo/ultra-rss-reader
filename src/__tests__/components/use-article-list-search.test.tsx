@@ -137,6 +137,43 @@ describe("useArticleListSearch", () => {
     expect(result.current.showSearch).toBe(true);
   });
 
+  it("keeps search open when requestAnimationFrame throws during focus retry scheduling", () => {
+    const requestError = new Error("frame unavailable");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.stubGlobal("requestAnimationFrame", () => {
+      throw requestError;
+    });
+    const { result } = renderHook(() => useArticleListSearch({ selectedAccountId: "acc-1" }));
+
+    expect(() => {
+      act(() => {
+        result.current.openSearch();
+      });
+    }).not.toThrow();
+
+    expect(warn).toHaveBeenCalledWith("Failed to schedule reader focus frame.", requestError);
+    expect(result.current.showSearch).toBe(true);
+  });
+
+  it("keeps search open when a stale search input focus throws", () => {
+    const focus = vi.fn(() => {
+      throw new Error("focus failed");
+    });
+    const { result } = renderHook(() => useArticleListSearch({ selectedAccountId: "acc-1" }));
+    const input = document.createElement("input");
+    input.focus = focus;
+    result.current.searchInputRef.current = input;
+
+    expect(() => {
+      act(() => {
+        result.current.openSearch();
+        vi.advanceTimersByTime(0);
+      });
+    }).not.toThrow();
+
+    expect(result.current.showSearch).toBe(true);
+  });
+
   it("does not throw when search opens before the input is mounted", () => {
     const { result } = renderHook(() => useArticleListSearch({ selectedAccountId: "acc-1" }));
 

@@ -281,9 +281,13 @@ describe("useUpdateFeedFolder", () => {
 
     await waitFor(() => {
       expect(consoleWarn).toHaveBeenCalledWith("Query invalidation failed:", {
-        actionOwner: "unknown",
-        queryKey: queryKeys.feeds.root,
-        error: expect.any(Error),
+        failures: expect.arrayContaining([
+          expect.objectContaining({
+            actionOwner: "unknown",
+            queryKey: queryKeys.feeds.root,
+            error: expect.any(Error),
+          }),
+        ]),
       });
     });
     expect(showToastMock).not.toHaveBeenCalled();

@@ -4,6 +4,7 @@ import { closeBrowserWebview } from "@/api/tauri-commands";
 import { BROWSER_OVERLAY_CLOSE_DELAY_MS } from "@/constants/motion";
 import { flushPendingBrowserCloseAction } from "@/lib/actions";
 import { emitDebugInputTrace } from "@/lib/debug/debug-input-trace";
+import { scheduleReaderFocusFrame } from "@/lib/reader-focus";
 import { useUiStore } from "@/stores/ui-store";
 
 type UseArticleBrowserOverlayCloseParams = {
@@ -78,7 +79,7 @@ export function useArticleBrowserOverlayClose({
     focusSelectedArticleRow();
     setBrowserOverlayClosedPreference();
     closeBrowser();
-    requestAnimationFrame(() => {
+    scheduleReaderFocusFrame(() => {
       focusSelectedArticleRow();
       flushPendingBrowserCloseAction();
     });

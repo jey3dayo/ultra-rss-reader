@@ -153,6 +153,7 @@ describe("App", () => {
     expect(screen.getByTestId("main-stage").firstElementChild).toHaveStyle({
       width: `${ARTICLE_LIST_PANE_WIDTH_PX}px`,
     });
+    expect(screen.getByRole("main")).toBe(screen.getByTestId("main-stage"));
   });
 
   it("wide: keeps the sidebar shell mounted and animates it closed when the desktop toggle is off", () => {

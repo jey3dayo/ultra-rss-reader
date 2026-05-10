@@ -1,4 +1,4 @@
-import { type CSSProperties, createContext, type ReactNode, use } from "react";
+import { type CSSProperties, createContext, type ReactNode, use, useId } from "react";
 import { useScrollOverflowState } from "@/components/settings/hooks/use-scroll-overflow-state";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
@@ -46,6 +46,7 @@ export function SettingsContentLayout({
   contentTestId,
   scrollBehavior,
 }: SettingsContentLayoutProps) {
+  const titleId = useId();
   const inheritedScrollBehavior = use(SettingsContentScrollBehaviorContext);
   const resolvedScrollBehavior = scrollBehavior ?? inheritedScrollBehavior;
   const contentOverflow = useScrollOverflowState(children);
@@ -68,7 +69,12 @@ export function SettingsContentLayout({
   );
 
   return (
-    <div data-testid={outerTestId} style={toneVariables} className="flex h-full min-h-0 flex-col">
+    <section
+      data-testid={outerTestId}
+      aria-labelledby={titleId}
+      style={toneVariables}
+      className="flex h-full min-h-0 flex-col"
+    >
       {titleLayout === "sticky-centered" ? (
         <header
           data-testid="settings-content-header"
@@ -76,6 +82,7 @@ export function SettingsContentLayout({
           style={{ backgroundColor: "var(--settings-shell-content-header)" }}
         >
           <h2
+            id={titleId}
             data-testid="settings-content-title"
             className="font-sans text-[19px] font-medium tracking-[-0.02em] text-[color:var(--settings-shell-content-title)]"
           >
@@ -96,6 +103,7 @@ export function SettingsContentLayout({
           >
             <div className="min-w-0">
               <h2
+                id={titleId}
                 data-testid="settings-content-title"
                 className="font-sans text-[22px] font-medium tracking-[-0.03em] text-[color:var(--settings-shell-content-title)] sm:text-[24px]"
               >
@@ -137,6 +145,6 @@ export function SettingsContentLayout({
           />
         ) : null}
       </div>
-    </div>
+    </section>
   );
 }

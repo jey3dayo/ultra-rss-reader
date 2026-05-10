@@ -3,6 +3,7 @@ import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeBrowserWebview } from "@/api/tauri-commands";
 import { useArticleBrowserOverlayClose } from "@/components/reader/hooks/article/use-article-browser-overlay-close";
+import { APP_EVENTS } from "@/constants/events";
 import { BROWSER_OVERLAY_CLOSE_DELAY_MS } from "@/constants/motion";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -78,7 +79,10 @@ describe("useArticleBrowserOverlayClose", () => {
   });
 
   it("logs Result.fail and still returns to reader mode", async () => {
-    const closeError = { type: "UserVisible" as const, message: "close failed" };
+    const closeError = {
+      type: "UserVisible" as const,
+      message: "close failed",
+    };
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
     closeBrowserWebviewMock.mockResolvedValue(Result.fail(closeError));
     const originalSetFocusedPane = useUiStore.getState().setFocusedPane;
@@ -256,6 +260,78 @@ describe("useArticleBrowserOverlayClose", () => {
     expect(setFocusedPane).toHaveBeenCalledWith("list");
     expect(setBrowserOverlayClosedPreference).toHaveBeenCalledTimes(1);
     expect(closeBrowser).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ["unavailable", () => undefined],
+    [
+      "throwing",
+      () => {
+        const error = new Error("frame unavailable");
+        vi.stubGlobal("requestAnimationFrame", () => {
+          throw error;
+        });
+        return error;
+      },
+    ],
+  ])("finalizes pending close actions when requestAnimationFrame is %s", async (_label, setupFrameFailure) => {
+    const frameError = setupFrameFailure();
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    if (!frameError) {
+      vi.stubGlobal("requestAnimationFrame", undefined);
+    }
+    closeBrowserWebviewMock.mockResolvedValue(Result.succeed(null));
+    const navigateArticleSpy = vi.fn();
+    window.addEventListener(APP_EVENTS.navigateArticle, navigateArticleSpy);
+    const originalSetFocusedPane = useUiStore.getState().setFocusedPane;
+    const setFocusedPane = vi.fn((pane: "sidebar" | "list" | "content") => originalSetFocusedPane(pane));
+    useUiStore.setState({
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserCloseInFlight: false,
+      pendingBrowserCloseAction: "next-article",
+      setFocusedPane,
+    });
+    const closeBrowser = vi.fn();
+    const focusSelectedArticleRow = vi.fn();
+    const setBrowserOverlayClosedPreference = vi.fn();
+
+    const { result } = renderHook(() =>
+      useArticleBrowserOverlayClose({
+        closeBrowser,
+        focusSelectedArticleRow,
+        setBrowserCloseInFlight: useUiStore.getState().setBrowserCloseInFlight,
+        setBrowserOverlayClosedPreference,
+      }),
+    );
+
+    try {
+      act(() => {
+        result.current();
+      });
+
+      await act(async () => {
+        await Promise.resolve();
+        await vi.advanceTimersByTimeAsync(BROWSER_OVERLAY_CLOSE_DELAY_MS);
+        await Promise.resolve();
+        await vi.runOnlyPendingTimersAsync();
+      });
+
+      expect(setFocusedPane).toHaveBeenCalledWith("list");
+      expect(focusSelectedArticleRow).toHaveBeenCalledTimes(2);
+      expect(setBrowserOverlayClosedPreference).toHaveBeenCalledTimes(1);
+      expect(closeBrowser).toHaveBeenCalledTimes(1);
+      expect(navigateArticleSpy).toHaveBeenCalledOnce();
+      expect(navigateArticleSpy.mock.calls[0]?.[0]).toMatchObject({
+        detail: 1,
+      });
+      expect(useUiStore.getState().browserCloseInFlight).toBe(false);
+      if (frameError) {
+        expect(warn).toHaveBeenCalledWith("Failed to schedule reader focus frame.", frameError);
+      }
+    } finally {
+      window.removeEventListener(APP_EVENTS.navigateArticle, navigateArticleSpy);
+    }
   });
 
   it("logs close motion timer cleanup failures without finalizing after unmount", async () => {

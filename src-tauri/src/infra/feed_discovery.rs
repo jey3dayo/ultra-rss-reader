@@ -843,6 +843,10 @@ mod tests {
         let html = r#"
             <html><head>
             <link rel="alternate" type="application/rss+xml" title="Loopback Relative" href="//127.0.0.1/rss.xml">
+            <link rel="alternate" type="application/rss+xml" title="Localhost Trailing Dot" href="http://localhost./rss.xml">
+            <link rel="alternate" type="application/rss+xml" title="Unspecified IPv4" href="http://0.0.0.0/rss.xml">
+            <link rel="alternate" type="application/rss+xml" title="Link Local IPv4" href="http://169.254.1.1/rss.xml">
+            <link rel="alternate" type="application/rss+xml" title="Unique Local IPv6" href="http://[fd00::1]/rss.xml">
             <link rel="alternate" type="application/atom+xml" title="Mapped IPv6" href="http://[::ffff:7f00:1]/atom.xml">
             <link rel="alternate" type="application/feed+json" title="Zone IPv6" href="http://[fe80::1%25en0]/feed.json">
             <link rel="alternate" type="application/rss+xml" title="Public IDNA" href="https://例え.テスト/feed.xml">
@@ -872,6 +876,28 @@ mod tests {
             validate_resolved_host_is_public(&url),
             Err(DomainError::Validation(message)) if message == PRIVATE_URL_VALIDATION_MESSAGE
         ));
+    }
+
+    #[test]
+    fn validate_discovery_request_url_rejects_private_initial_boundary_corpus() {
+        for raw_url in [
+            "http://localhost./feed.xml",
+            "http://0.0.0.0/feed.xml",
+            "http://169.254.1.1/feed.xml",
+            "http://[fd00::1]/feed.xml",
+            "http://[fe80::1]/feed.xml",
+            "http://[::ffff:a9fe:101]/feed.xml",
+        ] {
+            let url = reqwest::Url::parse(raw_url).unwrap();
+
+            assert!(
+                matches!(
+                    validate_discovery_request_url(&url),
+                    Err(DomainError::Validation(message)) if message == PRIVATE_URL_VALIDATION_MESSAGE
+                ),
+                "{raw_url}"
+            );
+        }
     }
 
     #[test]
@@ -1029,6 +1055,30 @@ mod tests {
                 validate_discovery_redirect(&previous, &next),
                 Err(DomainError::Validation(message)) if message == PRIVATE_URL_VALIDATION_MESSAGE
             ));
+        }
+    }
+
+    #[test]
+    fn validate_discovery_redirect_rejects_private_boundary_corpus() {
+        let previous = vec![reqwest::Url::parse("https://example.com/page").unwrap()];
+
+        for raw_url in [
+            "https://localhost./feed.xml",
+            "https://0.0.0.0/feed.xml",
+            "https://169.254.1.1/feed.xml",
+            "https://[fd00::1]/feed.xml",
+            "https://[fe80::1]/feed.xml",
+            "https://[::ffff:a9fe:101]/feed.xml",
+        ] {
+            let next = reqwest::Url::parse(raw_url).unwrap();
+
+            assert!(
+                matches!(
+                    validate_discovery_redirect(&previous, &next),
+                    Err(DomainError::Validation(message)) if message == PRIVATE_URL_VALIDATION_MESSAGE
+                ),
+                "{raw_url}"
+            );
         }
     }
 

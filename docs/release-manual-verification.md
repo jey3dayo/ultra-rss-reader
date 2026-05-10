@@ -116,9 +116,16 @@ Confirm and record:
 
 - Release artifact name and source release URL
 - Release asset digest, for example `sha256:<digest>`
+- Updater signature sidecar asset name, source release URL, and whether the
+  sidecar matches the published artifact being installed
 - Codesign result, for example `codesign --verify --deep --strict --verbose=2 <app>`
 - Gatekeeper result, for example `spctl --assess --type execute --verbose <app>`
+- Installed app identifier or bundle identifier observed from the packaged app
 - Installed app version shown by the packaged app
+- Quarantine and first-launch result from the published artifact path, or the
+  reason those checks are not in scope for the target OS
+- Update check smoke result from the installed published artifact, including
+  whether it reports no update, offers the expected update, or fails safely
 
 `mise run app:install` is only a local build/install helper. It rebuilds from the current checkout and may re-sign the local macOS app after copying it into `/Applications`; it is not evidence that the published release artifact, notarization, or Gatekeeper path works.
 
@@ -278,7 +285,14 @@ Known-issue policy:
 Confirm:
 
 - Before testing against an existing profile, the verifier has preserved a private OS-level copy of the app data directory or complete database backup set.
+- The installed app reports the expected app identifier and release update
+  endpoint for the platform being verified.
+- The updater signature sidecar from the draft or published release belongs to
+  the target app artifact and is not reused from another artifact or platform.
 - The app can detect the new version from the packaged build.
+- Manual update check smoke from the installed published artifact reaches a
+  terminal state: no update available, expected update available, or a
+  user-visible safe failure.
 - Download starts and completes without a stuck progress state.
 - If OS sleep is introduced during download, resume does not leave a partial artifact, stale progress, or stale success state; manual recheck starts a fresh flow.
 - Install/restart applies the new version successfully.
@@ -436,10 +450,14 @@ Write down:
 - OS and build version verified
 - Published release artifact name and release URL
 - Release asset digest
+- Updater signature sidecar asset and app artifact pairing
+- Installed app identifier or bundle identifier
 - Codesign verification result
 - Gatekeeper assessment result
+- Quarantine and first-launch result, if in scope
 - Whether `mise run test:live` passed
 - Whether native keyring verification passed
+- Whether update check smoke from the installed published artifact passed
 - Whether packaged updater verification passed
 - Whether packaged app icon and badge verification passed
 - Whether Windows installer signing and SmartScreen verification passed, if in scope

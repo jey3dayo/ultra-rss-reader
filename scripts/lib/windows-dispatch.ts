@@ -14,7 +14,10 @@ const WINDOWS_DISPATCH_ENV_ALLOWLIST = [
   { key: "VITE_DEV_INTENT", kind: "passthrough" },
   { key: "VITE_DEV_WEB_URL", kind: "passthrough" },
 ] as const satisfies readonly WindowsDispatchEnvRule[];
-const EXPLICIT_FORWARDED_ENV_KEYS = new Map(WINDOWS_DISPATCH_ENV_ALLOWLIST.map((rule) => [rule.key, rule]));
+const EXPLICIT_FORWARDED_ENV_KEYS: ReadonlyMap<string, WindowsDispatchEnvRule> = new Map<
+  string,
+  WindowsDispatchEnvRule
+>(WINDOWS_DISPATCH_ENV_ALLOWLIST.map((rule) => [rule.key, rule]));
 const SECRET_LIKE_VALUE_PATTERN = /(?:^|[^a-z0-9])(?:ghp|github_pat|sk|xox[baprs]|AKIA)[a-z0-9_-]{8,}/i;
 
 type WindowsDispatchEnvRule = {

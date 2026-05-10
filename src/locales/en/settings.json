@@ -3,6 +3,10 @@
   "close_preferences": "Close preferences",
   "accounts_heading": "Accounts",
   "add_account_ellipsis": "Add account…",
+  "dirty_state": {
+    "dirty_lock_message": "Finish or discard the current edit before leaving settings.",
+    "pending_lock_message": "Saving changes. Please wait before leaving settings."
+  },
   "nav": {
     "general": "General",
     "appearance": "Appearance",

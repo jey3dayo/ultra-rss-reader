@@ -152,6 +152,8 @@ describe("AccountSyncSectionView", () => {
     );
 
     expect(screen.getByRole("progressbar", { name: "1 of 3 completed" })).toHaveAttribute("aria-valuenow", "33");
+    expect(screen.getByRole("status")).toHaveAttribute("aria-live", "polite");
+    expect(screen.getByRole("status")).toHaveAttribute("aria-atomic", "true");
     expect(screen.getByText("1 of 3 completed")).toBeInTheDocument();
     expect(screen.getByText("Syncing: FreshRSS")).toBeInTheDocument();
   });

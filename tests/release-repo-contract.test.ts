@@ -361,6 +361,11 @@ describe("release repository contract", () => {
     expect(releaseManualVerification).toContain("Source commit SHA checked out by the release workflow");
     expect(releaseManualVerification).toContain("GitHub workflow run id and run URL");
     expect(releaseManualVerification).toContain("Updater checksum sidecar asset");
+    expect(releaseManualVerification).toContain("Updater signature sidecar asset");
+    expect(releaseManualVerification).toContain("Installed app identifier or bundle identifier");
+    expect(releaseManualVerification).toContain("Quarantine and first-launch result");
+    expect(releaseManualVerification).toContain("Update check smoke result from the installed published artifact");
+    expect(releaseManualVerification).toContain("Windows Installer Signing And SmartScreen Verification");
     expect(releaseManualVerification).toContain("SBOM or dependency provenance record");
     expect(releaseManualVerification).toContain("Draft release attachment list before publishing");
     expect(docsReadme).toContain("Release provenance checklist");

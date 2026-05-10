@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   logRuntimeDiagnostic,
+  redactProviderRuntimeDiagnosticText,
   redactRuntimeDiagnosticSupportCopy,
   redactRuntimeDiagnosticText,
   resetRuntimeDiagnosticOnceSuppressionForTests,
@@ -182,5 +183,53 @@ describe("runtime diagnostics redaction", () => {
     expect(redactRuntimeDiagnosticText("log=/Users/demo/Library/Application Support/Ultra RSS/private.sqlite")).toBe(
       "log=<redacted-path>",
     );
+  });
+
+  it("redacts provider adapter auth, cookie, server URL, username, and account identifiers", () => {
+    const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const rawServerUrl = "https://reader.example.com/api/greader.php";
+    const rawUsername = "secret-user@example.com";
+    const rawAccountId = "acc-provider-secret";
+    const rawToken = "provider-auth-token";
+    const rawCookie = "provider_session=raw-cookie";
+
+    logRuntimeDiagnostic("startup-sync", "Provider sync failed", {
+      serverUrl: rawServerUrl,
+      username: rawUsername,
+      accountId: rawAccountId,
+      headers: {
+        Authorization: `GoogleLogin auth=${rawToken}`,
+        Cookie: rawCookie,
+      },
+      message: `GET ${rawServerUrl}?token=${rawToken} Cookie: ${rawCookie}`,
+    });
+
+    const serialized = JSON.stringify(consoleWarn.mock.calls);
+    expect(serialized).toContain("<redacted>");
+    expect(serialized).toContain("GoogleLogin auth=<redacted>");
+    expect(serialized).toContain("Cookie: <redacted>");
+    expect(serialized).not.toContain(rawServerUrl);
+    expect(serialized).not.toContain(rawUsername);
+    expect(serialized).not.toContain(rawAccountId);
+    expect(serialized).not.toContain(rawToken);
+    expect(serialized).not.toContain(rawCookie);
+  });
+
+  it("redacts provider server URLs and identifiers for toast adapter text", () => {
+    const rawServerUrl = "https://reader.example.com/api/greader.php";
+    const redacted = redactProviderRuntimeDiagnosticText(
+      `Connection failed server_url=${rawServerUrl} username=secret-user@example.com account_id=acc-provider-secret GoogleLogin auth=provider-auth-token Cookie: provider_session=raw-cookie`,
+    );
+
+    expect(redacted).toContain("server_url=<redacted>");
+    expect(redacted).toContain("username=<redacted>");
+    expect(redacted).toContain("account_id=<redacted>");
+    expect(redacted).toContain("GoogleLogin auth=<redacted>");
+    expect(redacted).toContain("Cookie: <redacted>");
+    expect(redacted).not.toContain(rawServerUrl);
+    expect(redacted).not.toContain("secret-user@example.com");
+    expect(redacted).not.toContain("acc-provider-secret");
+    expect(redacted).not.toContain("provider-auth-token");
+    expect(redacted).not.toContain("provider_session=raw-cookie");
   });
 });

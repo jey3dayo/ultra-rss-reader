@@ -124,9 +124,13 @@ describe("useDeleteFeed", () => {
 
     await waitFor(() => {
       expect(warnSpy).toHaveBeenCalledWith("Query invalidation failed:", {
-        actionOwner: "delete-feed",
-        queryKey: ["feeds"],
-        error: invalidationError,
+        failures: expect.arrayContaining([
+          {
+            actionOwner: "delete-feed",
+            queryKey: ["feeds"],
+            error: invalidationError,
+          },
+        ]),
       });
     });
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ["feeds"] });

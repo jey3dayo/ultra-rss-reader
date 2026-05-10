@@ -395,6 +395,61 @@ mod tests {
     }
 
     #[test]
+    fn keeps_parser_option_boundary_for_comments_processing_instructions_and_cdata() {
+        let xml = r#"<?xml version="1.0"?>
+<?reader hint="ignored"?>
+<!--reader metadata should not affect import-->
+<opml version="2.0">
+  <head>
+    <title><![CDATA[Ignored <Title>]]></title>
+  </head>
+  <body>
+    <![CDATA[ignored body text]]>
+    <outline text="Fixture Feed" xmlUrl="https://example.com/feed.xml"/>
+  </body>
+</opml>"#;
+
+        let feeds = parse_opml(xml).unwrap();
+
+        assert_eq!(
+            feeds,
+            vec![OpmlFeed {
+                title: "Fixture Feed".to_string(),
+                xml_url: "https://example.com/feed.xml".to_string(),
+                html_url: None,
+                folder: None,
+            }],
+        );
+    }
+
+    #[test]
+    fn decodes_predefined_xml_entities_without_custom_entity_expansion() {
+        let xml = r#"<?xml version="1.0"?>
+<opml version="2.0">
+  <body>
+    <outline
+      text="Research &amp; &lt;Daily&gt; &quot;Feed&quot;"
+      title="Research &amp; &lt;Daily&gt; &quot;Feed&quot;"
+      xmlUrl="https://example.com/feed.xml?tag=research&amp;sort=latest"
+      htmlUrl="https://example.com/articles?title=&quot;daily&quot;&amp;topic=&lt;rss&gt;"/>
+  </body>
+</opml>"#;
+
+        let feeds = parse_opml(xml).unwrap();
+
+        assert_eq!(feeds.len(), 1);
+        assert_eq!(feeds[0].title, "Research & <Daily> \"Feed\"");
+        assert_eq!(
+            feeds[0].xml_url,
+            "https://example.com/feed.xml?tag=research&sort=latest"
+        );
+        assert_eq!(
+            feeds[0].html_url,
+            Some("https://example.com/articles?title=\"daily\"&topic=<rss>".to_string())
+        );
+    }
+
+    #[test]
     fn rejects_unknown_xml_entity_in_outline_attribute() {
         let xml = r#"<?xml version="1.0"?>
 <opml version="2.0">

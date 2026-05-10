@@ -16,6 +16,7 @@ describe("SettingsContentLayout", () => {
     expect(screen.getByRole("heading", { name: "General" })).toHaveClass(
       "text-[color:var(--settings-shell-content-title)]",
     );
+    expect(screen.getByRole("region", { name: "General" })).toBeInTheDocument();
     expect(screen.getByTestId("settings-content-header")).toHaveClass("min-h-[4.5rem]", "py-0", "items-center");
     expect(screen.getByRole("heading", { name: "General" })).toHaveClass("text-[22px]", "sm:text-[24px]");
     expect(screen.getByText("Tune reading behavior.")).toHaveClass("text-[color:var(--settings-shell-section-label)]");

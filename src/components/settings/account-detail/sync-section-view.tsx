@@ -89,6 +89,9 @@ export function AccountSyncSectionView({
       <AccountSelectRow control={keepReadItems} />
       {progressLabel ? (
         <div
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
           className={cn(
             CONTROL_RAIL_CLASS,
             "mt-4 space-y-2 rounded-lg border border-border/70 bg-surface-1/72 px-4 py-3",

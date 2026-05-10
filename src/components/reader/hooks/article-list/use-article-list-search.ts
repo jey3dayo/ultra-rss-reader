@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useReducer, useRef } from "react";
 import { ARTICLE_SEARCH_DEBOUNCE_MS } from "@/constants/reader";
 import { resolveArticleSearchQueryOwner, useSearchArticles } from "@/hooks/use-articles";
+import { scheduleReaderFocusFrame } from "@/lib/reader-focus";
 import type { UseArticleListSearchParams, UseArticleListSearchResult } from "../../article-list.types";
 
 type ArticleListSearchState = {
@@ -23,12 +24,8 @@ const initialArticleListSearchState: ArticleListSearchState = {
 };
 
 function scheduleSearchFocusRetry(focus: () => void): () => void {
-  let frameId: number | null = null;
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
-
-  if (typeof requestAnimationFrame === "function") {
-    frameId = requestAnimationFrame(focus);
-  }
+  const cleanupFrame = scheduleReaderFocusFrame(focus);
 
   const scheduleTimeout =
     typeof window !== "undefined" && typeof window.setTimeout === "function"
@@ -39,9 +36,7 @@ function scheduleSearchFocusRetry(focus: () => void): () => void {
   timeoutId = scheduleTimeout?.(focus, 0) ?? null;
 
   return () => {
-    if (frameId !== null && typeof cancelAnimationFrame === "function") {
-      cancelAnimationFrame(frameId);
-    }
+    cleanupFrame();
     if (timeoutId !== null) {
       clearTimeout(timeoutId);
     }
@@ -148,7 +143,11 @@ export function useArticleListSearch({ selectedAccountId }: UseArticleListSearch
         return;
       }
 
-      searchInputRef.current?.focus({ preventScroll: true });
+      try {
+        searchInputRef.current?.focus({ preventScroll: true });
+      } catch {
+        // A stale or detached focus target should not block opening or closing search.
+      }
     };
     focus();
     focusRetryCleanupRef.current = scheduleSearchFocusRetry(focus);

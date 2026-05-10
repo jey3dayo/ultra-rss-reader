@@ -121,12 +121,30 @@ export const RUNTIME_DIAGNOSTIC_POLICIES = {
 } as const satisfies Record<RuntimeDiagnosticPolicyId, RuntimeDiagnosticPolicy>;
 
 const URL_LIKE_TOKEN_PATTERN = /https?:\/\/[^\s<>"'`]+/gi;
+const PROVIDER_SERVER_URL_TOKEN_PATTERN = /https?:\/\/[^\s<>"'`]*\/api\/greader\.php[^\s<>"'`]*/gi;
 const SECRET_ASSIGNMENT_PATTERN =
   /\b([A-Z0-9_]*(?:TOKEN|SECRET|PASSWORD|CREDENTIAL|PRIVATE_KEY|API_KEY)[A-Z0-9_]*)=([^\s,;]+)/gi;
 const AUTH_HEADER_PATTERN = /\b(Bearer|Basic)\s+[A-Za-z0-9._~+/-]+=*/gi;
+const PROVIDER_AUTH_HEADER_PATTERN = /\bGoogleLogin\s+auth=[^\s,;]+/gi;
+const COOKIE_HEADER_PATTERN = /\b(Cookie|Set-Cookie):\s*[^\n\r]+/gi;
+const PROVIDER_IDENTIFIER_ASSIGNMENT_PATTERN =
+  /\b((?:account[_-]?id|account[_-]?identifier|username|email|server[_-]?url|cookie))=([^\s,;]+)/gi;
 const LOCAL_PATH_PATTERN = /(?:\/Users\/.*?(?=$|[\n\r,;'"`<>])|[A-Za-z]:\\.*?(?=$|[\n\r,;'"`<>]))/g;
 const SECRET_OBJECT_KEY_PATTERN = /(?:token|secret|password|credential|privatekey|apikey)/i;
-const SECRET_OBJECT_KEYS = new Set(["accountname", "filepath", "logpath", "path", "rawpayload", "serverpath"]);
+const SECRET_OBJECT_KEYS = new Set([
+  "accountid",
+  "accountidentifier",
+  "accountname",
+  "cookie",
+  "filepath",
+  "logpath",
+  "path",
+  "rawpayload",
+  "serverpath",
+  "serverurl",
+  "server_url",
+  "username",
+]);
 const SECRET_URL_PATH_SEGMENT_PATTERN = /(?:token|secret|password|credential|private[-_]?key|api[-_]?key)/i;
 const UNSUPPORTED_DIAGNOSTICS_PAYLOAD = "[Unsupported diagnostics payload]";
 
@@ -160,10 +178,19 @@ function redactUrlToken(value: string): string {
 
 export function redactRuntimeDiagnosticText(message: string): string {
   return message
+    .replace(PROVIDER_SERVER_URL_TOKEN_PATTERN, "[redacted-provider-url]")
     .replace(URL_LIKE_TOKEN_PATTERN, redactUrlToken)
     .replace(SECRET_ASSIGNMENT_PATTERN, "$1=<redacted>")
     .replace(AUTH_HEADER_PATTERN, "$1 <redacted>")
+    .replace(PROVIDER_AUTH_HEADER_PATTERN, "GoogleLogin auth=<redacted>")
+    .replace(COOKIE_HEADER_PATTERN, "$1: <redacted>")
     .replace(LOCAL_PATH_PATTERN, "<redacted-path>");
+}
+
+export function redactProviderRuntimeDiagnosticText(message: string): string {
+  return redactRuntimeDiagnosticText(message)
+    .replace(URL_LIKE_TOKEN_PATTERN, "[redacted-provider-url]")
+    .replace(PROVIDER_IDENTIFIER_ASSIGNMENT_PATTERN, "$1=<redacted>");
 }
 
 function isMessageRecord(value: unknown): value is { message: string } & Record<string, unknown> {
@@ -230,7 +257,11 @@ function serializeRuntimeDiagnosticSupportCopyPayload(
     return {
       name: payload.name,
       message: payload.message,
-      ...("cause" in payload ? { cause: serializeRuntimeDiagnosticSupportCopyPayload(payload.cause, seen) } : {}),
+      ...("cause" in payload
+        ? {
+            cause: serializeRuntimeDiagnosticSupportCopyPayload(payload.cause, seen),
+          }
+        : {}),
     };
   }
 
