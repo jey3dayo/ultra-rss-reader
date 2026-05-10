@@ -670,7 +670,7 @@ describe("article-list utils", () => {
       feedNameMap,
     });
 
-    expect(Object.keys(result)).toEqual(["Tech Blog"]);
+    expect(Object.keys(result)).toEqual(["Tech Blog", "News", "Fresh Inbox"]);
   });
 
   it("groups articles with missing feed titles under the unknown-feed sentinel", () => {

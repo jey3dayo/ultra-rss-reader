@@ -92,7 +92,7 @@ const requiredReferenceTokenCoverage = [
   {
     token: "--surface-2",
     specimenSource: "ui-reference-foundation-specimens.tsx",
-    sourceSnippet: "<SurfaceCard variant=\"section\">",
+    sourceSnippet: '<SurfaceCard variant="section">',
   },
   {
     token: "--surface-3",
@@ -132,7 +132,7 @@ const requiredReferenceTokenCoverage = [
   {
     token: "--semantic-tone-unread-surface",
     specimenSource: "ui-reference-control-specimens.tsx",
-    sourceSnippet: "\"--semantic-tone-unread-surface\"",
+    sourceSnippet: '"--semantic-tone-unread-surface"',
   },
   {
     token: "--semantic-tone-starred-surface",
