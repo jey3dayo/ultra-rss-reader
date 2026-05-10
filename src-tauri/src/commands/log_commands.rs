@@ -12,6 +12,7 @@ fn log_dir_privacy_checklist() -> &'static [&'static str] {
     &[
         "Share only the relevant app.log excerpt.",
         "Remove account names, feed URLs, article URLs, and local user paths before sharing.",
+        "Delete stale support/debug logs and support dumps after the incident is resolved.",
         "Do not share backup database files unless explicitly requested for support.",
     ]
 }
@@ -97,6 +98,8 @@ mod tests {
         assert!(checklist.contains("feed URLs"));
         assert!(checklist.contains("article URLs"));
         assert!(checklist.contains("local user paths"));
+        assert!(checklist.contains("stale support/debug logs"));
+        assert!(checklist.contains("support dumps"));
         assert!(checklist.contains("backup database files"));
     }
 

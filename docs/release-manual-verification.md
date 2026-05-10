@@ -8,6 +8,7 @@ Use this checklist before cutting a release tag or shipping a packaged build to 
 - Before tagging `v*`
 - Before sharing a packaged build for external verification
 - After changing updater, keyring, account auth, or packaged-app startup behavior
+- After changing uninstall, private data reset, support dump, or diagnostics retention behavior
 
 ## Prerequisites
 
@@ -116,6 +117,20 @@ Confirm:
 - Any shared logs are redacted for credentials, tokens, cookies, and passwords.
 - Any failure observed during this checklist leaves enough logs to debug it later.
 
+### 9. Uninstall, Private Data Reset, and Support Artifact Retention
+
+Verify this when a release changes installer/uninstaller behavior, private data reset, diagnostics export, support/debug copy, or app data paths.
+
+Confirm and record:
+
+- Uninstalling or deleting the app binary does not get described as deleting all private data unless app data, credentials, logs, support/debug logs, support dumps, and backups were checked separately.
+- Reinstalling the same or a newer version does not silently depend on stale support/debug logs or support dumps.
+- Private data reset guidance covers the local database, `-wal` / `-shm` sidecars, OS keyring credentials, preferences/local app state, release logs, stale support/debug logs, support dumps, and migration backups.
+- Manual log deletion and support dump deletion are documented as separate cleanup steps after an incident is resolved.
+- If any artifact cannot be removed because of OS permissions, file locks, or an unknown path, the user-facing result says the reset is incomplete.
+- Support/debug copy does not automatically include hostname, local filesystem paths, OS username, account names, feed URLs, article URLs, server URLs, credentials, tokens, cookies, or a stable device identifier.
+- If support needs environment context, ask for app version, OS family, CPU architecture, locale, and timezone offset as separate non-secret fields instead of adding a stable fingerprint to default debug copy.
+
 ## Record the Result
 
 Write down:
@@ -129,6 +144,7 @@ Write down:
 - Whether native keyring verification passed
 - Whether packaged updater verification passed
 - Whether packaged app icon and badge verification passed
+- Whether uninstall/private data reset/support artifact retention verification passed, if in scope
 - Where the supporting logs or screenshots were saved, if any
 - OS timezone and local offset for any shared release logs
 

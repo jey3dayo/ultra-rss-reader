@@ -25,6 +25,7 @@ Use this page when the app is already failing and you need the fastest path to t
 - `open_log_dir` opens the native folder picker and intentionally does not expose the resolved filesystem path to the webview.
 - Keep the log bundle before retrying destructive recovery steps.
 - When escalating, share the saved log file or redacted snippets, not an unredacted full user data directory.
+- Treat old release logs, support/debug logs, and support dumps as private data even after the database or credentials have been reset.
 
 ### Diagnostic Sources
 
@@ -47,6 +48,21 @@ Do not mix app UI debug actions with log collection in the same note. Record whi
 - Treat the main `.db` file and any matching `-wal` / `-shm` sidecars as a backup set.
 - On Windows, close the app before copying or replacing any database files; file locks can make partial restores look successful.
 - If restore fails, preserve the failed database, backup set, and release log before trying another restore path.
+
+### Private Data Reset And Uninstall
+
+Use private data reset only after preserving any logs or backups needed for an active incident. Reset and uninstall are not the same privacy operation: removing the app binary may leave app data, credentials, logs, support/debug logs, support dumps, and backups behind.
+
+Before telling a user that private data has been cleared, verify each surface separately:
+
+- local app database and any `-wal` / `-shm` sidecars
+- OS keyring credentials
+- preferences, window state, and local app settings
+- release logs opened by the in-app log-directory flow
+- stale support/debug logs and support dumps created during troubleshooting
+- migration backups or manually copied database backup sets
+
+If any surface cannot be removed because of OS permissions, file locks, or an unknown platform path, report the reset as incomplete and preserve the error plus the remaining artifact type. Do not ask users to share raw app data directories as proof of deletion.
 
 ### Manual Verification Checklist
 
@@ -106,3 +122,4 @@ When handing the issue off, include:
 - relevant account name
 - path to saved logs
 - path to backup artifacts, if migration was involved
+- whether stale support/debug logs or support dumps were created and whether they were deleted after the incident

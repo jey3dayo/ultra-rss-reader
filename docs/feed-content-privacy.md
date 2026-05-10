@@ -10,6 +10,8 @@ Ultra RSS Reader is currently compatibility-first for feed content.
 - App scripts remain locked to `'self'`.
 - Remote `http:` / `https:` images are allowed so normal article bodies and thumbnails can render.
 - Remote `http:` / `https:` frames are allowed because Web Preview is an explicit embedded-browser feature.
+- The local app database is not encrypted by Ultra RSS Reader at rest in this release.
+- Support/debug copy must not include a stable app or environment fingerprint by default.
 
 This means the app does not currently promise that opening an article avoids all third-party network requests.
 
@@ -30,11 +32,38 @@ Blanket blocking of remote images or frames would currently risk:
 - degraded Web Preview behavior
 - provider-specific regressions that are hard to detect from CI alone
 
+## Local Data Privacy Decisions
+
+### Local Database Encryption At Rest
+
+Decision: do not add app-managed local database encryption at rest for this release.
+
+Ultra RSS Reader stores feed, article, folder, tag, read/star state, and sync metadata in the local app database. Credentials remain outside the database in the OS keyring for production builds. The current local database privacy boundary relies on OS account isolation and OS disk encryption such as FileVault or BitLocker, not an app-managed database key.
+
+Rationale:
+
+- App-managed encryption would require key generation, recovery, migration, backup, and cross-platform keyring behavior that are not yet designed.
+- Search, sync, migration recovery, and support backup flows would all need new failure modes and performance checks.
+- Portable database backups would still need separate sharing guidance because decrypting or exporting them can expose the same private feed/article history.
+- Adding encryption without a clear recovery model risks making user data unrecoverable during migration or keyring failures.
+
+Future work may revisit this decision with a scoped threat model, backup/export encryption rules, migration tests, and user-facing recovery copy. Until then, privacy docs and support flows must describe the local database as private user data that may remain on disk after uninstall or reset steps unless explicitly removed.
+
+### Support/Debug Environment Fingerprint
+
+Decision: do not include a stable app/environment fingerprint in support or debug copy by default.
+
+Support handoff may ask the user to provide app version, OS family, CPU architecture, locale, and timezone offset as separate fields. It must not automatically include hostname, local filesystem paths, OS username, account names, feed URLs, article URLs, server URLs, credentials, tokens, cookies, or a stable device identifier.
+
+A future diagnostics dump may include a non-secret environment summary only after a user consent and redaction preview flow exists. That summary should be generated per export, avoid stable cross-ticket identifiers, and keep hostname and local paths excluded.
+
 ## Guardrails
 
 - Reader HTML must continue to come from sanitized `content_sanitized` fields.
 - Any future CSP tightening must preserve `script-src 'self'` unless there is an explicit, reviewed reason to change it.
 - Privacy changes that affect remote images, frames, or preview loading must be verified in reader mode, preview mode, and packaged Tauri builds before release.
+- Private data reset and uninstall guidance must cover database, credentials, preferences/local app state, release logs, stale support/debug logs, support dumps, and backups as separate retention surfaces.
+- Support artifacts must be redacted before sharing and deleted manually when they are no longer needed.
 
 ## Follow-Up Direction
 
