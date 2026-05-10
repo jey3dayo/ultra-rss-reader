@@ -1,0 +1,7 @@
+[[permission]]
+identifier = "database-commands"
+description = "Allows database maintenance commands owned by the settings and diagnostics surfaces."
+commands.allow = [
+  "get_database_info",
+  "vacuum_database",
+]

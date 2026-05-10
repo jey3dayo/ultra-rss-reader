@@ -1,0 +1,14 @@
+[[permission]]
+identifier = "browser-commands"
+description = "Allows browser preview and external browser commands owned by the reader/browser surfaces."
+commands.allow = [
+  "open_in_browser",
+  "check_browser_embed_support",
+  "create_or_update_browser_webview",
+  "set_browser_webview_bounds",
+  "focus_browser_webview",
+  "go_back_browser_webview",
+  "go_forward_browser_webview",
+  "reload_browser_webview",
+  "close_browser_webview",
+]

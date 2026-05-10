@@ -6,6 +6,7 @@ import { pathToFileURL } from "node:url";
 const reactDoctorVersion = "0.1.4";
 const knipVersion = "6.12.2";
 const qualityToolTimeoutMs = 120_000;
+const qualityToolMaxBufferBytes = 64 * 1024 * 1024;
 
 export const qualityBaselineRepoScanIgnoredPathPrefixes = [
   "node_modules/",
@@ -76,7 +77,7 @@ const lockfileDuplicateMajorBaseline = {
 export const dependencyLicenseInventoryContract = {
   reportPath: "tmp/dependency-license-inventory.json",
   pnpmCommand: ["pnpm", "licenses", "list", "--json"],
-  cargoCommand: ["cargo", "metadata", "--manifest-path", "src-tauri/Cargo.toml", "--format-version", "1"],
+  cargoCommand: ["cargo", "metadata", "--manifest-path", "src-tauri/Cargo.toml", "--format-version", "1", "--locked"],
   requiredEcosystems: ["pnpm", "cargo"],
   reviewPolicy:
     "Review unknown and dual-license entries before release distribution; generated inventory artifacts stay under tmp/.",
@@ -407,7 +408,7 @@ function runDependencyLicenseInventory(): void {
   const pnpmResult = spawnSync(
     dependencyLicenseInventoryContract.pnpmCommand[0],
     dependencyLicenseInventoryContract.pnpmCommand.slice(1),
-    { encoding: "utf8", timeout: qualityToolTimeoutMs },
+    { encoding: "utf8", maxBuffer: qualityToolMaxBufferBytes, timeout: qualityToolTimeoutMs },
   );
   const pnpmDiagnostic = createProcessDiagnostic("pnpm license inventory", "pnpm licenses list --json", pnpmResult);
   if (pnpmDiagnostic !== null) {
@@ -418,11 +419,11 @@ function runDependencyLicenseInventory(): void {
   const cargoResult = spawnSync(
     dependencyLicenseInventoryContract.cargoCommand[0],
     dependencyLicenseInventoryContract.cargoCommand.slice(1),
-    { encoding: "utf8", timeout: qualityToolTimeoutMs },
+    { encoding: "utf8", maxBuffer: qualityToolMaxBufferBytes, timeout: qualityToolTimeoutMs },
   );
   const cargoDiagnostic = createProcessDiagnostic(
     "Cargo license inventory",
-    "cargo metadata --manifest-path src-tauri/Cargo.toml --format-version 1",
+    "cargo metadata --manifest-path src-tauri/Cargo.toml --format-version 1 --locked",
     cargoResult,
   );
   if (cargoDiagnostic !== null) {
@@ -439,7 +440,7 @@ function runDependencyLicenseInventory(): void {
   } catch (error) {
     const diagnostic = createReportDiagnostic(
       "Dependency license inventory",
-      "pnpm licenses list --json && cargo metadata --manifest-path src-tauri/Cargo.toml --format-version 1",
+      "pnpm licenses list --json && cargo metadata --manifest-path src-tauri/Cargo.toml --format-version 1 --locked",
       `${pnpmResult.stdout}\n${cargoResult.stdout}`,
       error,
     );
@@ -569,13 +570,17 @@ function readPnpmLicenseFindings(report: unknown): DependencyLicenseFinding[] {
 }
 
 function readCargoLicenseFindings(report: unknown): DependencyLicenseFinding[] {
-  const packages = Array.isArray(report) ? report : isObject(report) && Array.isArray(report.packages) ? report.packages : null;
+  const packages = Array.isArray(report)
+    ? report
+    : isObject(report) && Array.isArray(report.packages)
+      ? report.packages
+      : null;
   if (packages === null) {
-    throw new Error("cargo metadata did not return a packages array.");
+    throw new Error("Cargo metadata did not return a packages array.");
   }
 
   return packages.filter(isObject).map((entry) => {
-    const license = readOptionalString(entry, "license") ?? "UNKNOWN";
+    const license = readOptionalString(entry, "license") ?? readOptionalString(entry, "license_file") ?? "UNKNOWN";
     return {
       ecosystem: "cargo" as const,
       packageName: readString(entry, "name"),

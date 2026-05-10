@@ -1,0 +1,8 @@
+[[permission]]
+identifier = "updater-commands"
+description = "Allows application updater commands."
+commands.allow = [
+  "check_for_update",
+  "download_and_install_update",
+  "restart_app",
+]

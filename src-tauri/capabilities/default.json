@@ -18,7 +18,14 @@
       "core:window:allow-set-fullscreen",
       "core:window:allow-set-icon",
       "core:window:allow-set-size",
-      "core:window:allow-unmaximize"
+      "core:window:allow-unmaximize",
+      "reader-commands",
+      "browser-commands",
+      "settings-commands",
+      "debug-log-commands",
+      "database-commands",
+      "updater-commands",
+      "share-commands"
     ]
   },
   {

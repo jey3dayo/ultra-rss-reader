@@ -243,6 +243,14 @@ describe("package scripts", () => {
     expect(miseToml).toContain("pnpm run build-storybook");
   });
 
+  it("exposes dependency license inventory generation through package scripts", () => {
+    const packageJson = readPackageJson();
+
+    expect(packageJson.scripts?.["quality:dependency-licenses"]).toBe(
+      "node ./scripts/quality-baseline.ts dependency-licenses",
+    );
+  });
+
   it("keeps mise test:all semantics aligned with Storybook E2E", () => {
     const miseToml = readWorkspaceFile("mise.toml");
 

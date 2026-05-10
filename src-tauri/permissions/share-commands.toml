@@ -1,0 +1,7 @@
+[[permission]]
+identifier = "share-commands"
+description = "Allows share surface commands."
+commands.allow = [
+  "copy_to_clipboard",
+  "add_to_reading_list",
+]

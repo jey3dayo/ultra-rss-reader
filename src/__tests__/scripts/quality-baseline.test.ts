@@ -333,6 +333,7 @@ describe("quality-baseline", () => {
       "src-tauri/Cargo.toml",
       "--format-version",
       "1",
+      "--locked",
     ]);
 
     const inventory = buildDependencyLicenseInventory({
