@@ -3,6 +3,7 @@ import { StackedInputField } from "@/components/shared/stacked-input-field";
 import { StackedSelectField } from "@/components/shared/stacked-select-field";
 
 export const NEW_FOLDER_VALUE = "__new__";
+const FOLDER_OPTION_VALUE_PREFIX = "folder:";
 
 export type FolderSelectOption = {
   value: string;
@@ -26,6 +27,18 @@ export type FolderSelectViewProps = {
   newFolderInputRef?: RefObject<HTMLInputElement | null>;
 };
 
+function encodeFolderOptionValue(value: string) {
+  return value === "" ? value : `${FOLDER_OPTION_VALUE_PREFIX}${value}`;
+}
+
+function decodeFolderSelectValue(value: string) {
+  if (value === NEW_FOLDER_VALUE || value === "") {
+    return value;
+  }
+
+  return value.startsWith(FOLDER_OPTION_VALUE_PREFIX) ? value.slice(FOLDER_OPTION_VALUE_PREFIX.length) : value;
+}
+
 export function FolderSelectView({
   labelId,
   label,
@@ -44,12 +57,13 @@ export function FolderSelectView({
 }: FolderSelectViewProps) {
   const hasSelectedValue = value !== "" && value !== NEW_FOLDER_VALUE;
   const hasSelectedOption = options.some((option) => option.value === value);
-  const resolvedOptions = [
-    ...options.filter((option) => canCreateFolder || option.value !== NEW_FOLDER_VALUE),
-    ...(hasSelectedValue && !hasSelectedOption ? [{ value, label: value }] : []),
-    ...(canCreateFolder && !options.some((option) => option.value === NEW_FOLDER_VALUE)
-      ? [{ value: NEW_FOLDER_VALUE, label: newFolderOptionLabel }]
-      : []),
+  const resolvedOptions = [...options, ...(hasSelectedValue && !hasSelectedOption ? [{ value, label: value }] : [])];
+  const selectOptions = [
+    ...resolvedOptions.map((option) => ({
+      value: encodeFolderOptionValue(option.value),
+      label: option.label,
+    })),
+    ...(canCreateFolder ? [{ value: NEW_FOLDER_VALUE, label: newFolderOptionLabel }] : []),
   ];
 
   return (
@@ -58,12 +72,9 @@ export function FolderSelectView({
         labelId={labelId}
         label={label}
         name="feed-folder"
-        value={value}
-        options={resolvedOptions.map((option) => ({
-          value: option.value,
-          label: option.label,
-        }))}
-        onChange={onValueChange}
+        value={isCreatingFolder && value === NEW_FOLDER_VALUE ? NEW_FOLDER_VALUE : encodeFolderOptionValue(value)}
+        options={selectOptions}
+        onChange={(nextValue) => onValueChange(decodeFolderSelectValue(nextValue))}
         disabled={disabled}
         triggerClassName="mt-1 w-full"
       />

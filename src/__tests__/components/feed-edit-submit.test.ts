@@ -64,7 +64,10 @@ describe("submitFeedEdits", () => {
 
   it("returns false and shows a toast when rename fails", async () => {
     const consoleError = suppressConsoleError();
-    const appError: AppError = { type: "UserVisible", message: "Name already exists" };
+    const appError: AppError = {
+      type: "UserVisible",
+      message: "Name already exists",
+    };
     const showToast = vi.fn();
     recorder = createTauriMockCallRecorder((cmd) => {
       if (cmd === "rename_feed") {
@@ -123,6 +126,36 @@ describe("submitFeedEdits", () => {
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ["feeds"] });
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({
       queryKey: ["folders"],
+    });
+  });
+
+  it("returns false when only the folder move fails", async () => {
+    const queryClient = createTestQueryClient();
+    const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const updateFeedFolder = vi.fn(async () => false);
+    setupTauriMocks(recorder.handler);
+
+    await expect(
+      submitFeedEdits(
+        createParams({
+          queryClient,
+          folderSelection: {
+            selectedFolderId: "folder-2",
+            isCreatingFolder: false,
+            newFolderName: "",
+          },
+          updateFeedFolder,
+        }),
+      ),
+    ).resolves.toBe(false);
+
+    expect(recorder.calls).not.toContainEqual(expect.objectContaining({ cmd: "rename_feed" }));
+    expect(updateFeedFolder).toHaveBeenCalledWith({
+      feedId: feed.id,
+      folderId: "folder-2",
+    });
+    expect(invalidateQueriesSpy).not.toHaveBeenCalledWith({
+      queryKey: ["feeds"],
     });
   });
 });

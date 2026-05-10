@@ -219,7 +219,7 @@ describe("RenameDialog", () => {
       });
       expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["feeds"] });
       expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["folders"] });
-      expect(onOpenChange).toHaveBeenCalledWith(false);
+      expect(onOpenChange).not.toHaveBeenCalled();
     });
 
     expectTauriCommandError(consoleError, "update_feed_folder", {

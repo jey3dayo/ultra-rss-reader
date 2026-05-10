@@ -178,13 +178,48 @@ describe("useBrowserWebviewStateChanged", () => {
 
     expect(result.current.browserState).toEqual({
       url: "https://example.com/new",
-      can_go_back: true,
+      can_go_back: false,
       can_go_forward: false,
       is_loading: true,
       load_generation: 1,
     });
     expect(result.current.browserStateRef.current).toEqual(result.current.browserState);
-    expect(clearSurfaceIssue).toHaveBeenCalledTimes(1);
+    expect(clearSurfaceIssue).not.toHaveBeenCalled();
+  });
+
+  it("ignores state changes after the overlay has already closed", () => {
+    const clearSurfaceIssue = vi.fn();
+    const { result } = renderHook(() => {
+      const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(null);
+      const browserStateRef = useRef<BrowserWebviewState | null>(browserState);
+      browserStateRef.current = browserState;
+      const fallbackInFlightRef = useRef(true);
+
+      const handleStateChanged = useBrowserWebviewStateChanged({
+        browserStateRef,
+        fallbackInFlightRef,
+        setBrowserState,
+        clearSurfaceIssue,
+        getRequestedUrl: () => "",
+      });
+
+      return { browserState, browserStateRef, fallbackInFlightRef, handleStateChanged };
+    });
+
+    act(() => {
+      result.current.handleStateChanged({
+        url: "https://example.com/closed",
+        can_go_back: true,
+        can_go_forward: true,
+        is_loading: false,
+        load_generation: 3,
+      });
+    });
+
+    expect(result.current.browserState).toBeNull();
+    expect(result.current.browserStateRef.current).toBeNull();
+    expect(result.current.fallbackInFlightRef.current).toBe(true);
+    expect(clearSurfaceIssue).not.toHaveBeenCalled();
   });
 
   it("treats a late loaded event as recovery after a load timeout surface failure", () => {

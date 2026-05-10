@@ -324,6 +324,78 @@ describe("useAddFeedDialogActions", () => {
     );
   });
 
+  it("ignores same-URL discovery responses after the dialog closes and reopens", async () => {
+    const staleDiscovery = createDeferred<Awaited<ReturnType<typeof discoverFeeds>>>();
+    const latestDiscovery = createDeferred<Awaited<ReturnType<typeof discoverFeeds>>>();
+    vi.mocked(discoverFeeds).mockReturnValueOnce(staleDiscovery.promise).mockReturnValueOnce(latestDiscovery.promise);
+
+    const dispatch = vi.fn();
+    const createProps = (open: boolean) => ({
+      accountId: "account-1",
+      open,
+      state: {
+        url: "https://example.com",
+        error: null,
+        successMessage: null,
+        loading: false,
+        discovering: false,
+        discoveryRequestId: null,
+        discoveredFeeds: [],
+        selectedFeedUrl: null,
+      },
+      dispatch,
+      derived: {
+        hasManualUrl: true,
+        isManualUrlValid: true,
+        urlHint: null,
+        urlHintTone: "muted" as const,
+        isSubmitDisabled: false,
+        isDiscoverDisabled: false,
+        discoveredFeedOptions: [],
+      },
+      trimmedUrl: "https://example.com",
+      folderSelection: {
+        selectedFolderId: null,
+        isCreatingFolder: false,
+        newFolderName: "",
+      },
+      queryClient: new QueryClient(),
+      onOpenChange: vi.fn(),
+      showToast: vi.fn(),
+      t,
+    });
+    const { result, rerender } = renderHook(({ open }) => useAddFeedDialogActions(createProps(open)), {
+      initialProps: { open: true },
+    });
+
+    const staleRequest = result.current.handleDiscover();
+    rerender({ open: false });
+    rerender({ open: true });
+    const latestRequest = result.current.handleDiscover();
+
+    await act(async () => {
+      latestDiscovery.resolve(Result.succeed([{ url: "https://example.com/latest.xml", title: "Latest Feed" }]));
+      await latestRequest;
+    });
+    await act(async () => {
+      staleDiscovery.resolve(Result.succeed([{ url: "https://example.com/stale.xml", title: "Stale Feed" }]));
+      await staleRequest;
+    });
+
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "discover-single",
+        feeds: [{ url: "https://example.com/latest.xml", title: "Latest Feed" }],
+      }),
+    );
+    expect(dispatch).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "discover-single",
+        feeds: [{ url: "https://example.com/stale.xml", title: "Stale Feed" }],
+      }),
+    );
+  });
+
   it("clears discovering with an error when the latest discovery request rejects", async () => {
     vi.mocked(discoverFeeds).mockRejectedValue(new Error("network down"));
 
@@ -674,5 +746,84 @@ describe("useAddFeedDialogActions", () => {
     });
     expect(onOpenChange).not.toHaveBeenCalled();
     expect(showToast).not.toHaveBeenCalled();
+  });
+
+  it("keeps late submit success quiet after the dialog is externally closed while pending", async () => {
+    const addFeed = createDeferred<Awaited<ReturnType<typeof addLocalFeed>>>();
+    vi.mocked(addLocalFeed).mockReturnValue(addFeed.promise);
+
+    const dispatch = vi.fn();
+    const onOpenChange = vi.fn();
+    const showToast = vi.fn();
+    const queryClient = new QueryClient();
+    const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
+
+    const createProps = (open: boolean) => ({
+      accountId: "account-1",
+      open,
+      state: {
+        url: "https://example.com/feed.xml",
+        error: null,
+        successMessage: null,
+        loading: false,
+        discovering: false,
+        discoveryRequestId: null,
+        discoveredFeeds: [],
+        selectedFeedUrl: null,
+      },
+      dispatch,
+      derived: {
+        hasManualUrl: true,
+        isManualUrlValid: true,
+        urlHint: null,
+        urlHintTone: "muted" as const,
+        isSubmitDisabled: false,
+        isDiscoverDisabled: false,
+        discoveredFeedOptions: [],
+      },
+      trimmedUrl: "https://example.com/feed.xml",
+      folderSelection: {
+        selectedFolderId: null,
+        isCreatingFolder: false,
+        newFolderName: "",
+      },
+      queryClient,
+      onOpenChange,
+      showToast,
+      t,
+    });
+    const { result, rerender } = renderHook(({ open }) => useAddFeedDialogActions(createProps(open)), {
+      initialProps: { open: true },
+    });
+
+    const submit = result.current.handleSubmit();
+    rerender({ open: false });
+
+    await act(async () => {
+      addFeed.resolve(
+        Result.succeed({
+          id: "feed-new",
+          account_id: "account-1",
+          folder_id: null,
+          remote_id: null,
+          title: "Example Feed",
+          url: "https://example.com/feed.xml",
+          site_url: "https://example.com",
+          unread_count: 0,
+          reader_mode: "inherit",
+          web_preview_mode: "inherit",
+        }),
+      );
+      await submit;
+    });
+
+    expect(invalidateQueriesSpy).toHaveBeenCalled();
+    expect(onOpenChange).not.toHaveBeenCalled();
+    expect(showToast).not.toHaveBeenCalled();
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "set-loading",
+      loading: true,
+    });
   });
 });

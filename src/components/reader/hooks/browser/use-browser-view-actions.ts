@@ -10,6 +10,7 @@ import {
 } from "@/api/tauri-commands";
 import { resolvePreferenceValue } from "@/schemas/preferences";
 import { usePreferencesStore } from "@/stores/preferences-store";
+import { useUiStore } from "@/stores/ui-store";
 import { openUrlInExternalBrowser } from "../../article-browser-actions";
 import type { BrowserViewController } from "../../browser-view.types";
 import { isMissingEmbeddedBrowserWebviewError, setBrowserStateWithRef } from "../../browser-webview-state";
@@ -135,12 +136,21 @@ export function useBrowserViewActions({
     }
 
     browserWebviewCommandGenerationRef.current += 1;
+    const retryGeneration = browserWebviewCommandGenerationRef.current;
+    const requestedUrl = browserUrl;
     fallbackInFlightRef.current = false;
     resetBrowserWebviewSyncState();
     clearSurfaceIssue();
-    const nextState = initialBrowserState(browserUrl);
+    const nextState = initialBrowserState(requestedUrl);
     setBrowserStateWithRef(browserStateRef, setBrowserState, nextState);
-    void syncBrowserWebview(browserUrl, "create").catch((error: unknown) => {
+    void syncBrowserWebview(requestedUrl, "create").catch((error: unknown) => {
+      if (
+        browserWebviewCommandGenerationRef.current !== retryGeneration ||
+        useUiStore.getState().browserUrl !== requestedUrl
+      ) {
+        return;
+      }
+
       console.error("Failed to retry embedded browser webview:", error);
       showToast(error instanceof Error ? error.message : "Failed to retry embedded browser webview.");
     });

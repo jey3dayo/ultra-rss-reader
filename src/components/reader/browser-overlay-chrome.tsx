@@ -1,6 +1,6 @@
 import { ChevronLeft, ChevronRight, ExternalLink, RotateCw, X } from "lucide-react";
 import type { ReactNode } from "react";
-import { cloneElement, isValidElement, useEffect, useRef, useState } from "react";
+import { cloneElement, isValidElement, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { IconToolbarSurfaceButton } from "@/components/shared/icon-toolbar-control";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -89,13 +89,24 @@ export function BrowserOverlayChrome(props: BrowserOverlayChromeProps) {
   const [activeFeedbackAction, setActiveFeedbackAction] = useState<string | null>(null);
   const feedbackTimerRef = useRef<number | null>(null);
 
+  const clearAcceptedFeedbackTimer = useCallback(() => {
+    if (feedbackTimerRef.current === null) {
+      return;
+    }
+
+    try {
+      window.clearTimeout(feedbackTimerRef.current);
+    } catch {
+      // Timer cleanup should not make browser chrome controls unusable.
+    }
+    feedbackTimerRef.current = null;
+  }, []);
+
   useEffect(() => {
     return () => {
-      if (feedbackTimerRef.current !== null) {
-        window.clearTimeout(feedbackTimerRef.current);
-      }
+      clearAcceptedFeedbackTimer();
     };
-  }, []);
+  }, [clearAcceptedFeedbackTimer]);
 
   if (isCloseOnlyProps(props)) {
     return <BrowserOverlayCloseOnlyChrome {...props} />;
@@ -106,15 +117,17 @@ export function BrowserOverlayChrome(props: BrowserOverlayChromeProps) {
 
   const startAcceptedFeedback = (actionKey: string) => {
     setActiveFeedbackAction(actionKey);
+    clearAcceptedFeedbackTimer();
 
-    if (feedbackTimerRef.current !== null) {
-      window.clearTimeout(feedbackTimerRef.current);
-    }
-
-    feedbackTimerRef.current = window.setTimeout(() => {
+    try {
+      feedbackTimerRef.current = window.setTimeout(() => {
+        setActiveFeedbackAction(null);
+        feedbackTimerRef.current = null;
+      }, ACCEPTED_ACTION_SPIN_MS);
+    } catch {
       setActiveFeedbackAction(null);
       feedbackTimerRef.current = null;
-    }, ACCEPTED_ACTION_SPIN_MS);
+    }
   };
 
   return (

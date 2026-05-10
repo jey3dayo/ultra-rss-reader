@@ -2,7 +2,7 @@ import { Result } from "@praha/byethrow";
 import type { QueryClient } from "@tanstack/react-query";
 import type { TFunction } from "i18next";
 import type { Dispatch } from "react";
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import type { DiscoveredFeedDto } from "@/api/tauri-commands";
 import { addLocalFeed, discoverFeeds, updateFeedFolder } from "@/api/tauri-commands";
 import { useAsyncCommandLifecycle } from "@/components/reader/hooks/browser/use-browser-url-effect";
@@ -18,6 +18,7 @@ import { runFeedMutationWithOptimisticRollback } from "../../feed-query-cache";
 
 type UseAddFeedDialogActionsParams = {
   accountId: string;
+  open?: boolean;
   state: AddFeedDialogState;
   dispatch: Dispatch<AddFeedDialogAction>;
   derived: AddFeedDialogControllerDerived;
@@ -51,6 +52,7 @@ export function resolveAddFeedDiscoveryAction(
 
 export function useAddFeedDialogActions({
   accountId,
+  open = true,
   state,
   dispatch,
   derived,
@@ -63,8 +65,23 @@ export function useAddFeedDialogActions({
 }: UseAddFeedDialogActionsParams): UseAddFeedDialogActionsResult {
   const discoveryLifecycle = useAsyncCommandLifecycle();
   const latestDiscoveryUrlRef = useRef(trimmedUrl);
+  const openRef = useRef(open);
   const submitLifecycle = useAsyncCommandLifecycle();
   latestDiscoveryUrlRef.current = trimmedUrl;
+  openRef.current = open;
+
+  useEffect(() => {
+    if (!open) {
+      discoveryLifecycle.reset();
+      submitLifecycle.reset();
+      return;
+    }
+
+    return () => {
+      discoveryLifecycle.reset();
+      submitLifecycle.reset();
+    };
+  }, [discoveryLifecycle, open, submitLifecycle]);
 
   const handleDiscover = useCallback(async () => {
     if (!derived.hasManualUrl || !derived.isManualUrlValid) {
@@ -132,10 +149,13 @@ export function useAddFeedDialogActions({
     }
 
     const submitRun = submitLifecycle.start();
+    const isLatestSubmit = () => openRef.current && submitRun.isLatest();
     await runFeedMutationWithOptimisticRollback({
       rollback: () => {
         submitRun.finish();
-        dispatch({ type: "set-loading", loading: false });
+        if (isLatestSubmit()) {
+          dispatch({ type: "set-loading", loading: false });
+        }
       },
       shouldRollback: () => true,
       run: async () => {
@@ -152,8 +172,10 @@ export function useAddFeedDialogActions({
           const message = t("failed_to_create_folder", {
             message: error.message,
           });
-          dispatch({ type: "set-submit-error", error: message });
-          showToast(message);
+          if (isLatestSubmit()) {
+            dispatch({ type: "set-submit-error", error: message });
+            showToast(message);
+          }
           return;
         }
 
@@ -168,10 +190,12 @@ export function useAddFeedDialogActions({
           }),
           Result.inspectError((error) => {
             hasError = true;
-            dispatch({
-              type: "set-submit-error",
-              error: t("failed_to_add_feed", { message: error.message }),
-            });
+            if (isLatestSubmit()) {
+              dispatch({
+                type: "set-submit-error",
+                error: t("failed_to_add_feed", { message: error.message }),
+              });
+            }
           }),
         );
 
@@ -184,13 +208,17 @@ export function useAddFeedDialogActions({
             await updateFeedFolder(feedId, folderId),
             Result.inspectError((error) => {
               console.error("Failed to assign folder:", error);
-              showToast(t("feed_added_folder_failed", { message: error.message }));
+              if (isLatestSubmit()) {
+                showToast(t("feed_added_folder_failed", { message: error.message }));
+              }
             }),
           );
         }
 
         invalidateAddFeedQueries(queryClient, { accountId });
-        onOpenChange(false);
+        if (isLatestSubmit()) {
+          onOpenChange(false);
+        }
         submitRun.finish();
       },
     });

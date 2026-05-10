@@ -172,6 +172,32 @@ describe("formatArticleDate", () => {
     expect(formatArticleDate("not-a-date")).toBe("not-a-date");
   });
 
+  it("returns the raw string for a blank date", () => {
+    expect(formatArticleDate("")).toBe("");
+  });
+
+  it("formats future article dates instead of clamping them", () => {
+    const result = formatArticleDate("2027-01-15T14:30:00Z");
+
+    expect(result).toContain("2027");
+    expect(result).toContain("JANUARY");
+    expect(result).toContain("AT");
+  });
+
+  it("formats article dates using the local timezone from the runtime", () => {
+    const originalTimezone = process.env.TZ;
+    process.env.TZ = "Asia/Tokyo";
+
+    try {
+      const result = formatArticleDate("2026-03-25T15:30:00Z", "en-US");
+
+      expect(result).toContain("THURSDAY");
+      expect(result).toContain("MARCH 26, 2026");
+    } finally {
+      process.env.TZ = originalTimezone;
+    }
+  });
+
   it("formats time with hours and minutes", () => {
     // Force a known locale-independent check
     const result = formatArticleDate("2026-06-01T00:00:00Z");

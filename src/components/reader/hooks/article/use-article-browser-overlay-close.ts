@@ -15,11 +15,16 @@ type UseArticleBrowserOverlayCloseParams = {
 };
 
 function prefersReducedMotion() {
-  return (
-    typeof window !== "undefined" &&
-    typeof window.matchMedia === "function" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches
-  );
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+    return false;
+  }
+
+  try {
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  } catch (error) {
+    console.warn("Failed to read reduced motion preference for browser overlay close.", error);
+    return false;
+  }
 }
 
 function waitForBrowserOverlayCloseMotion() {

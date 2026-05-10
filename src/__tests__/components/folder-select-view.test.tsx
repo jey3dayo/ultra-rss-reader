@@ -122,4 +122,38 @@ describe("FolderSelectView", () => {
 
     expect(screen.getByRole("combobox", { name: "Folder" })).toHaveTextContent("deleted-folder");
   });
+
+  it("keeps a backend folder id matching the new-folder sentinel selectable as a folder", async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+
+    render(
+      <FolderSelectView
+        labelId="folder-label"
+        label="Folder"
+        value="__new__"
+        options={[
+          { value: "", label: "No folder" },
+          { value: "__new__", label: "Backend folder" },
+        ]}
+        canCreateFolder={true}
+        disabled={false}
+        isCreatingFolder={false}
+        newFolderOptionLabel="New folder"
+        newFolderLabel="Folder name"
+        newFolderName=""
+        newFolderPlaceholder="Enter folder name"
+        onValueChange={onValueChange}
+        onNewFolderNameChange={vi.fn()}
+      />,
+    );
+
+    const folderSelect = screen.getByRole("combobox", { name: "Folder" });
+    expect(folderSelect).toHaveTextContent("Backend folder");
+
+    await user.click(folderSelect);
+    await user.click(await screen.findByRole("option", { name: "New folder" }));
+
+    expect(onValueChange).toHaveBeenCalledWith("__new__");
+  });
 });

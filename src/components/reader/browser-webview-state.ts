@@ -42,6 +42,18 @@ export function isBrowserWebviewFallbackForRequestedUrl(
   return requestedUrl.length > 0 && payload.url === requestedUrl;
 }
 
+export function shouldIgnoreBrowserWebviewStateChangedPayload(
+  currentState: BrowserWebviewState | null,
+  payload: BrowserWebviewState,
+  requestedUrl: string,
+): boolean {
+  if (!requestedUrl) {
+    return true;
+  }
+
+  return Boolean(currentState?.is_loading && currentState.url === requestedUrl && payload.url !== requestedUrl);
+}
+
 export function isMissingEmbeddedBrowserWebviewError(error: AppError) {
   return error.message === MISSING_EMBEDDED_BROWSER_WEBVIEW_ERROR;
 }

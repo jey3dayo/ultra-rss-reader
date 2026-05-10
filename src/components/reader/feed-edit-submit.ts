@@ -48,6 +48,7 @@ export async function submitFeedEdits({
   const currentDisplayPreset = resolveFeedDisplayPreset(feed);
   const didUpdateDisplayMode = displayPreset !== currentDisplayPreset;
   let renameSucceeded = true;
+  let folderMoveSucceeded = true;
   let displaySettingsSucceeded = true;
 
   if (didRename) {
@@ -64,7 +65,7 @@ export async function submitFeedEdits({
   }
 
   if (didMoveFolder) {
-    await updateFeedFolder({
+    folderMoveSucceeded = await updateFeedFolder({
       feedId: feed.id,
       folderId: resolvedFolderId,
     });
@@ -76,8 +77,11 @@ export async function submitFeedEdits({
   }
 
   invalidateFeedQueries(queryClient, {
-    includeFeeds: didMoveFolder || (didRename && renameSucceeded) || (didUpdateDisplayMode && displaySettingsSucceeded),
+    includeFeeds:
+      (didMoveFolder && folderMoveSucceeded) ||
+      (didRename && renameSucceeded) ||
+      (didUpdateDisplayMode && displaySettingsSucceeded),
   });
 
-  return renameSucceeded && displaySettingsSucceeded;
+  return renameSucceeded && folderMoveSucceeded && displaySettingsSucceeded;
 }

@@ -18,6 +18,7 @@ import {
   collectRetainedArticlesFromSources,
   countStarredArticles,
   countUnreadArticles,
+  formatArticleTime,
   getAdjacentArticleId,
   getAdjacentItemId,
   getUnreadArticleIds,
@@ -704,6 +705,31 @@ describe("article-list utils", () => {
     expect(result["not-a-date"]?.map((article) => article.id)).toEqual(["invalid-date"]);
   });
 
+  it("groups blank article dates under the raw fallback label", () => {
+    const result = groupArticles({
+      articles: [{ ...sampleArticles[0], id: "blank-date", published_at: "" }],
+      groupBy: "date",
+      feedNameMap: new Map(),
+    });
+
+    expect(Object.keys(result)).toEqual([""]);
+    expect(result[""]?.map((article) => article.id)).toEqual(["blank-date"]);
+  });
+
+  it("treats future article dates as today-or-newer group labels", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 4, 10, 12, 0, 0));
+
+    const result = groupArticles({
+      articles: [{ ...sampleArticles[0], id: "future-date", published_at: "2026-05-11T00:00:00Z" }],
+      groupBy: "date",
+      feedNameMap: new Map(),
+    });
+
+    expect(Object.keys(result)).toEqual(["TODAY"]);
+    expect(result.TODAY?.map((article) => article.id)).toEqual(["future-date"]);
+  });
+
   it("groups UTC timestamp inputs by local day boundaries", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(2026, 4, 10, 1, 0, 0));
@@ -728,6 +754,11 @@ describe("article-list utils", () => {
     expect(Object.keys(result)).toEqual(["TODAY", "YESTERDAY"]);
     expect(result.TODAY?.map((article) => article.id)).toEqual(["local-today"]);
     expect(result.YESTERDAY?.map((article) => article.id)).toEqual(["local-yesterday"]);
+  });
+
+  it("formats invalid and blank article times with raw fallback labels", () => {
+    expect(formatArticleTime("not-a-date")).toBe("not-a-date");
+    expect(formatArticleTime("")).toBe("");
   });
 
   it("sorts same timestamps and invalid dates deterministically", () => {
@@ -882,6 +913,34 @@ describe("article-list utils", () => {
       },
       contextKey: "feed:feed-1:unread",
       retainedArticleIds: new Set(["retained-duplicate"]),
+      currentRetainedArticles: [currentRetainedArticle],
+    });
+
+    expect(next?.articles).toEqual([currentRetainedArticle]);
+  });
+
+  it("refreshes retained snapshot title, read, and star fields from the latest source row", () => {
+    const staleRetainedArticle = {
+      ...sampleArticles[0],
+      id: "retained-freshness",
+      title: "Stale title",
+      is_read: false,
+      is_starred: false,
+    };
+    const currentRetainedArticle = {
+      ...staleRetainedArticle,
+      title: "Fresh title",
+      is_read: true,
+      is_starred: true,
+    };
+
+    const next = mergeRetainedArticlesSnapshot({
+      previous: {
+        contextKey: "account:acc-1:articles:unread",
+        articles: [staleRetainedArticle],
+      },
+      contextKey: "account:acc-1:articles:unread",
+      retainedArticleIds: new Set(["retained-freshness"]),
       currentRetainedArticles: [currentRetainedArticle],
     });
 

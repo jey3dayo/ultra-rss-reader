@@ -59,6 +59,7 @@ export function useAddFeedDialogController({
 
   const { handleDiscover, handleSubmit } = useAddFeedDialogActions({
     accountId,
+    open,
     state,
     dispatch,
     derived,

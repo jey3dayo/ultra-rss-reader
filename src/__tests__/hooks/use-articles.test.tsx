@@ -341,6 +341,25 @@ describe("useToggleStar", () => {
     });
   });
 
+  it("leaves cached star state unchanged when a star mutation fails", async () => {
+    vi.spyOn(tauriCommands, "toggleArticleStar").mockRejectedValue(new Error("star failed"));
+
+    queryClient.setQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"), sampleArticles);
+    queryClient.setQueryData(
+      queryKeys.starredArticles.byAccount("acc-1"),
+      sampleArticles.filter((article) => article.is_starred),
+    );
+
+    const { result } = renderHook(() => useToggleStar(), { wrapper });
+
+    await expect(result.current.mutateAsync({ id: "art-1", starred: true })).rejects.toThrow("star failed");
+
+    expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"))).toEqual(sampleArticles);
+    expect(queryClient.getQueryData(queryKeys.starredArticles.byAccount("acc-1"))).toEqual(
+      sampleArticles.filter((article) => article.is_starred),
+    );
+  });
+
   it("injects the updated article into account caches when unstarring a starred-only selection", async () => {
     vi.spyOn(tauriCommands, "toggleArticleStar").mockResolvedValue(Result.succeed(null));
 
@@ -739,6 +758,20 @@ describe("useSetRead", () => {
 
     expect(queryClient.getQueryState(["articlesByTag", "tag-1", "acc-1", { mode: "all" }])?.isInvalidated).toBe(true);
     expect(queryClient.getQueryState(["tagArticleCounts", "acc-1"])?.isInvalidated).toBe(true);
+  });
+
+  it("leaves cached read state unchanged when a read mutation fails", async () => {
+    vi.spyOn(tauriCommands, "markArticleRead").mockRejectedValue(new Error("read failed"));
+
+    queryClient.setQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"), sampleArticles);
+    queryClient.setQueryData(queryKeys.search.byAccountAndQuery("acc-1", "fresh"), sampleArticles);
+
+    const { result } = renderHook(() => useSetRead(), { wrapper });
+
+    await expect(result.current.mutateAsync({ id: "art-1", read: true })).rejects.toThrow("read failed");
+
+    expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"))).toEqual(sampleArticles);
+    expect(queryClient.getQueryData(queryKeys.search.byAccountAndQuery("acc-1", "fresh"))).toEqual(sampleArticles);
   });
 
   it("marks visible article, search, tag count, and unread count caches stale after old-unread mutations", async () => {

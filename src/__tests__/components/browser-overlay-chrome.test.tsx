@@ -458,4 +458,69 @@ describe("BrowserOverlayChrome", () => {
     expect(controller.handleReload).not.toHaveBeenCalled();
     expect(icon).not.toHaveClass("animate-spin");
   });
+
+  it("clears active feedback when the timer cannot be scheduled", () => {
+    vi.useFakeTimers();
+    const setTimeoutSpy = vi.spyOn(window, "setTimeout").mockImplementation(() => {
+      throw new Error("timer unavailable");
+    });
+    const controller = createController({
+      browserState: {
+        url: "https://example.com/article",
+        can_go_back: true,
+        can_go_forward: false,
+        is_loading: false,
+        load_generation: 1,
+      },
+    });
+
+    render(
+      <BrowserOverlayChrome
+        controller={controller}
+        presentation={createSurfacePresentation()}
+        closeWebPreviewLabel="Close Web Preview"
+      />,
+    );
+
+    const backButton = screen.getByRole("button", { name: "Web back" });
+    const icon = backButton.querySelector("svg");
+
+    fireEvent.click(backButton);
+
+    expect(controller.handleGoBack).toHaveBeenCalledTimes(1);
+    expect(icon).not.toHaveClass("animate-spin");
+
+    setTimeoutSpy.mockRestore();
+  });
+
+  it("keeps unmount cleanup quiet when clearing the feedback timer fails", () => {
+    vi.useFakeTimers();
+    const clearTimeoutSpy = vi.spyOn(window, "clearTimeout").mockImplementation(() => {
+      throw new Error("clear unavailable");
+    });
+    const controller = createController({
+      browserState: {
+        url: "https://example.com/article",
+        can_go_back: true,
+        can_go_forward: false,
+        is_loading: false,
+        load_generation: 1,
+      },
+    });
+
+    const { unmount } = render(
+      <BrowserOverlayChrome
+        controller={controller}
+        presentation={createSurfacePresentation()}
+        closeWebPreviewLabel="Close Web Preview"
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Web back" }));
+
+    expect(() => unmount()).not.toThrow();
+    expect(clearTimeoutSpy).toHaveBeenCalled();
+
+    clearTimeoutSpy.mockRestore();
+  });
 });

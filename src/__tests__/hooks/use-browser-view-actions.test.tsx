@@ -6,6 +6,7 @@ import type { BrowserWebviewState } from "@/api/tauri-commands";
 import { useBrowserViewActions } from "@/components/reader/hooks/browser/use-browser-view-actions";
 
 import { usePreferencesStore } from "@/stores/preferences-store";
+import { useUiStore } from "@/stores/ui-store";
 
 const {
   focusBrowserWebviewMock,
@@ -55,12 +56,15 @@ function createInitialBrowserState(url: string): BrowserWebviewState {
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
-  const promise = new Promise<T>((promiseResolve) => {
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
     resolve = promiseResolve;
+    reject = promiseReject;
   });
   return {
     promise,
     resolve: (value: T) => resolve(value),
+    reject: (reason?: unknown) => reject(reason),
   };
 }
 
@@ -72,10 +76,12 @@ describe("useBrowserViewActions", () => {
     openUrlInExternalBrowserMock.mockReset();
     reloadBrowserWebviewMock.mockReset();
     usePreferencesStore.setState({ prefs: {}, loaded: true });
+    useUiStore.setState(useUiStore.getInitialState());
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+    useUiStore.setState(useUiStore.getInitialState());
   });
 
   it("recreates the embedded webview when back navigation reports that it is missing", async () => {
@@ -543,6 +549,7 @@ describe("useBrowserViewActions", () => {
     const syncBrowserWebview = vi.fn(async () => {
       throw error;
     });
+    useUiStore.getState().openBrowser("https://example.com/article");
 
     const { result } = renderHook(() => {
       const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(null);
@@ -579,5 +586,50 @@ describe("useBrowserViewActions", () => {
     expect(syncBrowserWebview).toHaveBeenCalledWith("https://example.com/article", "create");
     expect(consoleError).toHaveBeenCalledWith("Failed to retry embedded browser webview:", error);
     expect(showToast).toHaveBeenCalledWith("retry rejected");
+  });
+
+  it("ignores late retry rejections after the overlay URL changes", async () => {
+    const error = new Error("late retry rejected");
+    const retrySync = deferred<void>();
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const showToast = vi.fn();
+    const syncBrowserWebview = vi.fn(() => retrySync.promise);
+    useUiStore.getState().openBrowser("https://example.com/article");
+
+    const { result } = renderHook(() => {
+      const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(null);
+      const browserStateRef = useRef(browserState);
+      browserStateRef.current = browserState;
+      const fallbackInFlightRef = useRef(true);
+
+      const actions = useBrowserViewActions({
+        browserUrl: "https://example.com/article",
+        browserStateRef,
+        setBrowserState,
+        resetBrowserWebviewSyncState: vi.fn(),
+        clearSurfaceIssue: vi.fn(),
+        showToast,
+        syncBrowserWebview,
+        initialBrowserState: createInitialBrowserState,
+        fallbackInFlightRef,
+      });
+
+      return { ...actions, browserState };
+    });
+
+    act(() => {
+      result.current.handleRetry();
+      useUiStore.getState().openBrowser("https://example.com/next");
+    });
+
+    await act(async () => {
+      retrySync.reject(error);
+      await retrySync.promise.catch(() => undefined);
+    });
+
+    expect(result.current.browserState).toEqual(createInitialBrowserState("https://example.com/article"));
+    expect(syncBrowserWebview).toHaveBeenCalledWith("https://example.com/article", "create");
+    expect(consoleError).not.toHaveBeenCalled();
+    expect(showToast).not.toHaveBeenCalled();
   });
 });
