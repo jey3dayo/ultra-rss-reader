@@ -1,5 +1,6 @@
 import { Result } from "@praha/byethrow";
 import type { AppError } from "@/api/schemas";
+import { normalizeHttpCommandUrl, SHARE_COMMAND_TEXT_MAX_CHARS } from "@/api/schemas/commands";
 import { copyToClipboard } from "@/api/tauri-commands";
 import { hasTauriRuntime } from "@/lib/window/window-chrome";
 
@@ -9,7 +10,7 @@ export type ClipboardCopyError = AppError & {
   category: ClipboardErrorCategory;
 };
 
-export const CLIPBOARD_TEXT_MAX_CHARS = 2048;
+export const CLIPBOARD_TEXT_MAX_CHARS = SHARE_COMMAND_TEXT_MAX_CHARS;
 const INVALID_CLIPBOARD_TEXT_MESSAGE = "Invalid clipboard text";
 
 type ClipboardTextCategory = "plain_text" | "article_link";
@@ -97,25 +98,12 @@ function invalidClipboardTextError(): ClipboardCopyError {
   };
 }
 
-function isHttpUrlText(value: string): boolean {
-  if (value.includes("\n") || value.includes("\r")) {
-    return false;
-  }
-
-  try {
-    const url = new URL(value);
-    return url.protocol === "http:" || url.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
-
 function validateClipboardText(value: string, category: ClipboardTextCategory): ClipboardCopyError | null {
   if (value.trim().length === 0 || Array.from(value).length > CLIPBOARD_TEXT_MAX_CHARS) {
     return invalidClipboardTextError();
   }
 
-  if (category === "article_link" && !isHttpUrlText(value)) {
+  if (category === "article_link" && !normalizeHttpCommandUrl(value)) {
     return invalidClipboardTextError();
   }
 

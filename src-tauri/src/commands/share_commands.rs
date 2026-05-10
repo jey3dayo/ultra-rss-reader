@@ -5,7 +5,7 @@ const READING_LIST_URL_ERROR: &str =
 const READING_LIST_COMMAND_ERROR: &str =
     "Failed to add to Reading List. Please try again from Safari.";
 const CLIPBOARD_TEXT_ERROR: &str = "Invalid clipboard text";
-const CLIPBOARD_TEXT_MAX_CHARS: usize = 2048;
+pub(crate) const CLIPBOARD_TEXT_MAX_CHARS: usize = 2048;
 
 fn is_reading_list_url(url: &str) -> bool {
     if url.contains(['\n', '\r']) {
@@ -141,6 +141,17 @@ mod tests {
         assert_eq!(
             script,
             r#"tell application "Safari" to add reading list item "https://example.com/a\"b\\c""#
+        );
+    }
+
+    #[test]
+    fn preserves_very_long_reading_list_urls_inside_one_applescript_argument() {
+        let long_url = format!("https://example.com/article?token={}", "x".repeat(4096));
+        let script = reading_list_script(&long_url).unwrap();
+
+        assert_eq!(
+            script,
+            format!(r#"tell application "Safari" to add reading list item "{long_url}""#)
         );
     }
 

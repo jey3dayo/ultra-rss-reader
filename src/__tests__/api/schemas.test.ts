@@ -20,6 +20,7 @@ import {
   CountResponseSchema,
   clearArticleViewHistoryArgs,
   commandArgsSchemas,
+  copyToClipboardArgs,
   countAccountStarredArticlesArgs,
   createFolderArgs,
   createMuteKeywordArgs,
@@ -82,7 +83,7 @@ import {
   updateFeedFolderArgs,
   updateMuteKeywordArgs,
 } from "@/api/schemas";
-import { MAX_IPC_PAGINATION_OFFSET } from "@/api/schemas/commands";
+import { MAX_IPC_PAGINATION_OFFSET, SHARE_COMMAND_TEXT_MAX_CHARS } from "@/api/schemas/commands";
 import { MAX_DEV_WINDOW_DIMENSION_PX } from "@/api/schemas/platform-info";
 import { UpdateDownloadProgressEventPayloadSchema, UpdateReadyEventPayloadSchema } from "@/api/schemas/update-info";
 
@@ -1988,6 +1989,32 @@ describe("command args schemas", () => {
     expect(() => addToReadingListArgs.parse({ url: "https://example.com/article\nnext" })).toThrow();
     expect(() => addToReadingListArgs.parse({ url: "https://example.com/article\rnext" })).toThrow();
   });
+  it("keeps share command args covered by generated schemas", () => {
+    expect(commandArgsSchemas.copy_to_clipboard).toBe(copyToClipboardArgs);
+    expect(commandArgsSchemas.add_to_reading_list).toBe(addToReadingListArgs);
+    expect(getCommandArgsSchema("copy_to_clipboard")).toBe(copyToClipboardArgs);
+    expect(getCommandArgsSchema("add_to_reading_list")).toBe(addToReadingListArgs);
+  });
+  it("keeps share command validation aligned with native command boundaries", () => {
+    const rustShareCommandSource = readFileSync(
+      join(process.cwd(), "src-tauri/src/commands/share_commands.rs"),
+      "utf8",
+    );
+
+    expect(extractRustUsizeConst(rustShareCommandSource, "CLIPBOARD_TEXT_MAX_CHARS")).toBe(
+      SHARE_COMMAND_TEXT_MAX_CHARS,
+    );
+    expect(copyToClipboardArgs.parse({ text: "first line\nsecond line" })).toEqual({
+      text: "first line\nsecond line",
+    });
+    expect(copyToClipboardArgs.parse({ text: "x".repeat(SHARE_COMMAND_TEXT_MAX_CHARS) })).toEqual({
+      text: "x".repeat(SHARE_COMMAND_TEXT_MAX_CHARS),
+    });
+    expect(() => copyToClipboardArgs.parse({ text: "" })).toThrow();
+    expect(() => copyToClipboardArgs.parse({ text: "   " })).toThrow();
+    expect(() => copyToClipboardArgs.parse({ text: "x".repeat(SHARE_COMMAND_TEXT_MAX_CHARS + 1) })).toThrow();
+    expect(() => addToReadingListArgs.parse({ url: "mailto:hello@example.com" })).toThrow();
+  });
   it("accepts mailto only at the external URL command boundary", () => {
     expect(
       openExternalUrlArgs.parse({
@@ -2241,6 +2268,8 @@ describe("command args schemas", () => {
     expect(commandArgsSchemas.create_mute_keyword).toBeDefined();
     expect(commandArgsSchemas.delete_mute_keyword).toBeDefined();
     expect(commandArgsSchemas.set_mute_auto_mark_read).toBeDefined();
+    expect(commandArgsSchemas.copy_to_clipboard).toBe(copyToClipboardArgs);
+    expect(commandArgsSchemas.add_to_reading_list).toBe(addToReadingListArgs);
     expect(getCommandArgsSchema("list_accounts")).toBeUndefined(); // no args
   });
 

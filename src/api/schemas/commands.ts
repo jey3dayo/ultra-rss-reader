@@ -11,6 +11,7 @@ export const ACCOUNT_NAME_MAX_CHARS = 100;
 export const FEED_TITLE_MAX_CHARS = 200;
 export const FOLDER_NAME_MAX_CHARS = 100;
 export const TAG_NAME_MAX_CHARS = 50;
+export const SHARE_COMMAND_TEXT_MAX_CHARS = 2048;
 export const TAG_COLOR_VALIDATION_MESSAGE = "Color must be a valid hex color (e.g. #ff0000)";
 const paginationOffsetSchema = z.number().int().nonnegative().max(MAX_IPC_PAGINATION_OFFSET);
 const paginationLimitSchema = z.number().int().positive().max(MAX_IPC_PAGINATION_LIMIT);
@@ -67,15 +68,21 @@ const nullableBlankStringToNullSchema = z.preprocess((value) => {
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
 }, z.string().nullable());
-const httpUrlSchema = z
+export const httpCommandUrlSchema = z
   .string()
   .trim()
-  .refine((url) => url.startsWith("http://") || url.startsWith("https://"), {
+  .refine((url) => url.toLowerCase().startsWith("http://") || url.toLowerCase().startsWith("https://"), {
     message: "Only http:// and https:// URLs are supported",
   })
   .refine((url) => !url.includes("\n") && !url.includes("\r"), {
     message: "HTTP URLs must not contain newlines",
   });
+
+export function normalizeHttpCommandUrl(value: string): string | null {
+  const result = httpCommandUrlSchema.safeParse(value);
+
+  return result.success ? result.data : null;
+}
 
 export function normalizeTagColorForCommand(value: string | null | undefined): string | null {
   if (value == null) {
@@ -327,7 +334,7 @@ const externalUrlSchema = z
   });
 export const openExternalUrlArgs = z.object({ url: externalUrlSchema });
 
-const readingListUrlSchema = httpUrlSchema;
+const readingListUrlSchema = httpCommandUrlSchema;
 
 // --- checkBrowserEmbedSupport ---
 export const checkBrowserEmbedSupportArgs = z.object({ url: readingListUrlSchema });
@@ -386,9 +393,14 @@ export const setPreferenceArgs = z
 
 // --- copyToClipboard ---
 export const copyToClipboardArgs = z.object({
-  text: z.string().refine((value) => value.trim().length > 0, {
-    message: "Clipboard text must not be blank",
-  }),
+  text: z
+    .string()
+    .refine((value) => value.trim().length > 0, {
+      message: "Clipboard text must not be blank",
+    })
+    .refine((value) => Array.from(value).length <= SHARE_COMMAND_TEXT_MAX_CHARS, {
+      message: `Clipboard text must be ${SHARE_COMMAND_TEXT_MAX_CHARS} characters or less`,
+    }),
 });
 
 // --- openInBrowser ---

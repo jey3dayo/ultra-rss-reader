@@ -50,6 +50,30 @@ describe("article-browser-actions", () => {
     expect(showToast).toHaveBeenCalledWith("Link copied");
   });
 
+  it("normalizes article links before copying", async () => {
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      switch (cmd) {
+        case "copy_to_clipboard":
+          return null;
+        default:
+          return undefined;
+      }
+    });
+
+    await copyArticleLink(" https://example.com/article ", {
+      showToast,
+      successMessage: "Link copied",
+    });
+
+    expect(calls).toContainEqual({
+      cmd: "copy_to_clipboard",
+      args: { text: "https://example.com/article" },
+    });
+    expect(showToast).toHaveBeenCalledWith("Link copied");
+  });
+
   it("shows the command error when copying fails", async () => {
     setupTauriMocks((cmd) => {
       if (cmd === "copy_to_clipboard") {
@@ -147,6 +171,46 @@ describe("article-browser-actions", () => {
       args: { url: "https://example.com/article" },
     });
     expect(showToast).toHaveBeenCalledWith("Added to reading list");
+  });
+
+  it("normalizes Reading List URLs before invoking Tauri", async () => {
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      switch (cmd) {
+        case "add_to_reading_list":
+          return null;
+        default:
+          return undefined;
+      }
+    });
+
+    await addArticleToReadingList(" https://example.com/article ", {
+      showToast,
+      successMessage: "Added to reading list",
+    });
+
+    expect(calls).toContainEqual({
+      cmd: "add_to_reading_list",
+      args: { url: "https://example.com/article" },
+    });
+    expect(showToast).toHaveBeenCalledWith("Added to reading list");
+  });
+
+  it("rejects invalid Reading List URLs before invoking Tauri", async () => {
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+      return undefined;
+    });
+
+    const result = await addArticleToReadingList("mailto:hello@example.com", {
+      showToast,
+      successMessage: "Added to reading list",
+    });
+
+    expect(result).toSatisfy(Result.isFailure);
+    expect(calls).toEqual([]);
+    expect(showToast).toHaveBeenCalledWith("Only http:// and https:// URLs are supported");
   });
 
   it("shows the command error when adding to the reading list fails", async () => {

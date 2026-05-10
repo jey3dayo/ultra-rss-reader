@@ -1,4 +1,5 @@
 import { Result } from "@praha/byethrow";
+import { normalizeHttpCommandUrl } from "@/api/schemas/commands";
 import { type AppError, addToReadingList, openInBrowser } from "@/api/tauri-commands";
 import { copyTextToClipboard } from "@/lib/runtime/clipboard";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -31,7 +32,6 @@ type OpenExternalBrowserParams = {
   errorLabel: string;
 };
 
-const ARTICLE_EXTERNAL_BROWSER_ALLOWED_PROTOCOLS = new Set(["http:", "https:"]);
 const ARTICLE_EXTERNAL_BROWSER_INVALID_URL_MESSAGE = "Only http:// and https:// URLs are supported";
 const ARTICLE_EXTERNAL_BROWSER_CREDENTIAL_URL_MESSAGE = "Article URLs must not include credentials";
 const ARTICLE_ACTION_ERROR_LOCALE_KEYS = {
@@ -92,21 +92,18 @@ function toInvalidArticleUrlError(message = ARTICLE_EXTERNAL_BROWSER_INVALID_URL
 }
 
 export function normalizeArticleExternalBrowserUrl(url: string): Result.Result<string, ArticleActionError> {
-  const trimmedUrl = url.trim();
-  if (!trimmedUrl) {
+  const normalizedUrl = normalizeHttpCommandUrl(url);
+  if (!normalizedUrl) {
     return Result.fail(toInvalidArticleUrlError());
   }
 
   try {
-    const parsedUrl = new URL(trimmedUrl);
-    if (!ARTICLE_EXTERNAL_BROWSER_ALLOWED_PROTOCOLS.has(parsedUrl.protocol)) {
-      return Result.fail(toInvalidArticleUrlError());
-    }
+    const parsedUrl = new URL(normalizedUrl);
     if (parsedUrl.username || parsedUrl.password) {
       return Result.fail(toInvalidArticleUrlError(ARTICLE_EXTERNAL_BROWSER_CREDENTIAL_URL_MESSAGE));
     }
 
-    return Result.succeed(parsedUrl.href);
+    return Result.succeed(normalizedUrl);
   } catch {
     return Result.fail(toInvalidArticleUrlError());
   }
@@ -243,13 +240,27 @@ export function openUrlInExternalBrowser(
 }
 
 export function copyArticleLink(url: string, { showToast, successMessage }: ArticleToastActionParams) {
+  const normalizedUrl = normalizeHttpCommandUrl(url) ?? url;
+
   return runToastOperation(
-    () => copyTextToClipboard(url, { category: "article_link" }),
+    () => copyTextToClipboard(normalizedUrl, { category: "article_link" }),
     { showToast, successMessage },
     "Copy failed",
   );
 }
 
 export function addArticleToReadingList(url: string, { showToast, successMessage }: ArticleToastActionParams) {
-  return runToastOperation(() => addToReadingList(url), { showToast, successMessage }, "Add to reading list failed");
+  const normalizedUrl = normalizeHttpCommandUrl(url);
+  if (!normalizedUrl) {
+    const actionError = toInvalidArticleUrlError();
+    console.error("Add to reading list failed:", actionError);
+    showToast(actionError.message);
+    return Promise.resolve(Result.fail(actionError));
+  }
+
+  return runToastOperation(
+    () => addToReadingList(normalizedUrl),
+    { showToast, successMessage },
+    "Add to reading list failed",
+  );
 }
