@@ -93,6 +93,7 @@ impl SchedulerShutdown {
 struct SchedulerLifecycle {
     task: Option<JoinHandle<()>>,
     shutdown: SchedulerShutdown,
+    running: Arc<AtomicBool>,
 }
 
 impl Default for SchedulerLifecycle {
@@ -100,7 +101,21 @@ impl Default for SchedulerLifecycle {
         Self {
             task: None,
             shutdown: SchedulerShutdown::new(),
+            running: Arc::new(AtomicBool::new(false)),
         }
+    }
+}
+
+struct SchedulerStart {
+    shutdown: SchedulerShutdown,
+    running: Arc<AtomicBool>,
+}
+
+struct SchedulerTaskRunningGuard(Arc<AtomicBool>);
+
+impl Drop for SchedulerTaskRunningGuard {
+    fn drop(&mut self) {
+        self.0.store(false, Ordering::SeqCst);
     }
 }
 
@@ -108,13 +123,28 @@ fn scheduler_lifecycle() -> &'static Mutex<SchedulerLifecycle> {
     SCHEDULER_LIFECYCLE.get_or_init(|| Mutex::new(SchedulerLifecycle::default()))
 }
 
-fn prepare_scheduler_start(lifecycle: &mut SchedulerLifecycle) -> Option<SchedulerShutdown> {
-    if lifecycle.task.is_some() {
+fn clear_inactive_scheduler_task(lifecycle: &mut SchedulerLifecycle) {
+    if lifecycle.task.is_some() && !lifecycle.running.load(Ordering::SeqCst) {
+        lifecycle.task = None;
+    }
+}
+
+fn prepare_scheduler_start(lifecycle: &mut SchedulerLifecycle) -> Option<SchedulerStart> {
+    clear_inactive_scheduler_task(lifecycle);
+
+    if lifecycle
+        .running
+        .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+        .is_err()
+    {
         return None;
     }
 
     lifecycle.shutdown = SchedulerShutdown::new();
-    Some(lifecycle.shutdown.clone())
+    Some(SchedulerStart {
+        shutdown: lifecycle.shutdown.clone(),
+        running: lifecycle.running.clone(),
+    })
 }
 
 fn register_scheduler_task(lifecycle: &mut SchedulerLifecycle, task: JoinHandle<()>) {
@@ -122,10 +152,11 @@ fn register_scheduler_task(lifecycle: &mut SchedulerLifecycle, task: JoinHandle<
 }
 
 pub fn request_sync_scheduler_shutdown() {
-    let Ok(lifecycle) = scheduler_lifecycle().lock() else {
+    let Ok(mut lifecycle) = scheduler_lifecycle().lock() else {
         tracing::warn!("Background sync scheduler shutdown skipped: lifecycle lock poisoned");
         return;
     };
+    clear_inactive_scheduler_task(&mut lifecycle);
     lifecycle.shutdown.request();
 }
 
@@ -138,19 +169,22 @@ pub fn request_sync_scheduler_shutdown() {
 pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
     tracing::info!("Starting background sync scheduler");
 
-    let shutdown = {
+    let scheduler_start = {
         let Ok(mut lifecycle) = scheduler_lifecycle().lock() else {
             tracing::warn!("Background sync scheduler start skipped: lifecycle lock poisoned");
             return;
         };
-        let Some(shutdown) = prepare_scheduler_start(&mut lifecycle) else {
+        let Some(scheduler_start) = prepare_scheduler_start(&mut lifecycle) else {
             tracing::warn!("Background sync scheduler already running; duplicate start skipped");
             return;
         };
-        shutdown
+        scheduler_start
     };
 
+    let shutdown = scheduler_start.shutdown;
+    let running = scheduler_start.running;
     let task = tauri::async_runtime::spawn(async move {
+        let _running_guard = SchedulerTaskRunningGuard(running);
         let state = app_handle.state::<crate::commands::AppState>();
         tracing::info!("Background sync is locked until the first manual sync completes");
 
@@ -1287,9 +1321,12 @@ mod tests {
     #[tokio::test]
     async fn scheduler_lifecycle_rejects_duplicate_running_task_start() {
         let mut lifecycle = SchedulerLifecycle::default();
-        let first_shutdown =
+        let first_start =
             prepare_scheduler_start(&mut lifecycle).expect("first start should be accepted");
+        let first_shutdown = first_start.shutdown;
+        let first_running = first_start.running;
         let first_task = tauri::async_runtime::spawn(async move {
+            let _running_guard = SchedulerTaskRunningGuard(first_running);
             first_shutdown.wait().await;
         });
         register_scheduler_task(&mut lifecycle, first_task);
@@ -1309,6 +1346,52 @@ mod tests {
             .await
             .expect("registered scheduler task should drain after shutdown request")
             .expect("registered scheduler task should not panic");
+    }
+
+    #[tokio::test]
+    async fn scheduler_lifecycle_allows_restart_after_task_cancellation() {
+        let mut lifecycle = SchedulerLifecycle::default();
+        let scheduler_start =
+            prepare_scheduler_start(&mut lifecycle).expect("first start should be accepted");
+        let shutdown = scheduler_start.shutdown;
+        let running = scheduler_start.running;
+        let task = tauri::async_runtime::spawn(async move {
+            let _running_guard = SchedulerTaskRunningGuard(running);
+            shutdown.wait().await;
+        });
+        register_scheduler_task(&mut lifecycle, task);
+
+        lifecycle
+            .task
+            .as_ref()
+            .expect("registered scheduler task should exist")
+            .abort();
+        tokio::time::sleep(Duration::from_millis(10)).await;
+
+        assert!(
+            prepare_scheduler_start(&mut lifecycle).is_some(),
+            "aborted scheduler task should not permanently block restart"
+        );
+    }
+
+    #[tokio::test]
+    async fn scheduler_lifecycle_allows_restart_after_task_panic() {
+        let mut lifecycle = SchedulerLifecycle::default();
+        let scheduler_start =
+            prepare_scheduler_start(&mut lifecycle).expect("first start should be accepted");
+        let running = scheduler_start.running;
+        let task = tauri::async_runtime::spawn(async move {
+            let _running_guard = SchedulerTaskRunningGuard(running);
+            panic!("simulated scheduler task panic");
+        });
+        register_scheduler_task(&mut lifecycle, task);
+
+        tokio::time::sleep(Duration::from_millis(10)).await;
+
+        assert!(
+            prepare_scheduler_start(&mut lifecycle).is_some(),
+            "panicked scheduler task should be cleared before duplicate-start checks"
+        );
     }
 
     #[test]
