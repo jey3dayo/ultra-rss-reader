@@ -2,15 +2,17 @@ use crate::domain::error::{DomainError, DomainResult};
 use crate::platform::{PlatformInfo, PlatformKind};
 use std::collections::HashMap;
 use std::fs::{File, OpenOptions};
-use std::io::ErrorKind;
+use std::io::{ErrorKind, Write};
 use std::path::{Path, PathBuf};
 use std::sync::{LazyLock, Mutex};
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 const SERVICE: &str = "ultra-rss-reader";
 const DEV_CREDENTIALS_MAX_BYTES: u64 = 64 * 1024;
 const DEV_CREDENTIALS_LOCK_TIMEOUT: Duration = Duration::from_secs(10);
 const DEV_CREDENTIALS_LOCK_RETRY_DELAY: Duration = Duration::from_millis(25);
+const DEV_CREDENTIALS_STALE_LOCK_AFTER: Duration = Duration::from_secs(5 * 60);
+const DEV_CREDENTIALS_ACCOUNT_ID_MAX_BYTES: usize = 128;
 const DEV_CREDENTIALS_RECOVERY_HINT: &str =
     "Dev credential store may be corrupted or inaccessible. Close Ultra RSS Reader, remove the dev credentials store and adjacent .tmp/.lock files, then restart the application.";
 static DEV_CREDENTIALS_STORE_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
@@ -189,6 +191,7 @@ fn parse_dev_store_json(content: &str) -> DomainResult<HashMap<String, String>> 
     })?;
     let mut store = HashMap::with_capacity(object.len());
     for (key, value) in object {
+        validate_dev_credential_account_id(key)?;
         let password = value.as_str().ok_or_else(|| {
             dev_store_recovery_error(format!(
                 "Failed to parse dev store: value for key '{key}' must be a string"
@@ -199,7 +202,29 @@ fn parse_dev_store_json(content: &str) -> DomainResult<HashMap<String, String>> 
     Ok(store)
 }
 
+fn validate_dev_credential_account_id(account_id: &str) -> DomainResult<()> {
+    if account_id.is_empty() {
+        return Err(dev_store_recovery_error(
+            "Failed to validate dev store account id: account id cannot be empty",
+        ));
+    }
+    if account_id.len() > DEV_CREDENTIALS_ACCOUNT_ID_MAX_BYTES {
+        return Err(dev_store_recovery_error(format!(
+            "Failed to validate dev store account id: account id must be {DEV_CREDENTIALS_ACCOUNT_ID_MAX_BYTES} bytes or less"
+        )));
+    }
+    if account_id.chars().any(char::is_control) {
+        return Err(dev_store_recovery_error(
+            "Failed to validate dev store account id: account id cannot contain control characters",
+        ));
+    }
+    Ok(())
+}
+
 fn write_dev_store(path: &Path, store: &HashMap<String, String>) -> DomainResult<()> {
+    for account_id in store.keys() {
+        validate_dev_credential_account_id(account_id)?;
+    }
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent)
             .map_err(|e| DomainError::Keychain(format!("Failed to create dev store dir: {e}")))?;
@@ -276,17 +301,33 @@ struct DevStoreFileLock {
 
 impl DevStoreFileLock {
     fn acquire(store_path: &Path) -> DomainResult<Self> {
-        Self::acquire_with_timeout(
+        Self::acquire_with_timeout_and_stale_after(
             store_path,
             DEV_CREDENTIALS_LOCK_TIMEOUT,
             DEV_CREDENTIALS_LOCK_RETRY_DELAY,
+            DEV_CREDENTIALS_STALE_LOCK_AFTER,
         )
     }
 
+    #[cfg(test)]
     fn acquire_with_timeout(
         store_path: &Path,
         timeout: Duration,
         retry_delay: Duration,
+    ) -> DomainResult<Self> {
+        Self::acquire_with_timeout_and_stale_after(
+            store_path,
+            timeout,
+            retry_delay,
+            DEV_CREDENTIALS_STALE_LOCK_AFTER,
+        )
+    }
+
+    fn acquire_with_timeout_and_stale_after(
+        store_path: &Path,
+        timeout: Duration,
+        retry_delay: Duration,
+        stale_after: Duration,
     ) -> DomainResult<Self> {
         let lock_path = dev_store_lock_path(store_path);
         if let Some(parent) = lock_path.parent() {
@@ -302,17 +343,41 @@ impl DevStoreFileLock {
                 .create_new(true)
                 .open(&lock_path)
             {
-                Ok(file) => {
+                Ok(mut file) => {
+                    let owner = dev_store_lock_owner_diagnostics();
+                    file.write_all(owner.as_bytes()).map_err(|error| {
+                        dev_store_recovery_error(format!(
+                            "Failed to write dev store lock diagnostics: {error}"
+                        ))
+                    })?;
                     return Ok(Self {
                         path: lock_path,
                         _file: file,
-                    })
+                    });
                 }
                 Err(error) if error.kind() == ErrorKind::AlreadyExists => {
+                    if dev_store_lock_is_stale(&lock_path, stale_after)? {
+                        tracing::warn!(
+                            "Recovering stale dev credentials store lock {} owner={}",
+                            redacted_dev_store_path(&lock_path),
+                            read_redacted_dev_store_lock_owner(&lock_path)
+                        );
+                        match std::fs::remove_file(&lock_path) {
+                            Ok(()) => continue,
+                            Err(error) if error.kind() == ErrorKind::NotFound => continue,
+                            Err(error) => {
+                                return Err(dev_store_recovery_error(format!(
+                                    "Failed to recover stale dev store lock {}: {error}",
+                                    redacted_dev_store_path(&lock_path)
+                                )));
+                            }
+                        }
+                    }
                     if Instant::now() >= deadline {
                         return Err(dev_store_recovery_error(format!(
-                            "Timed out waiting for dev store lock: {}",
-                            lock_path.display()
+                            "Timed out waiting for dev store lock {} owner={}",
+                            redacted_dev_store_path(&lock_path),
+                            read_redacted_dev_store_lock_owner(&lock_path)
                         )));
                     }
                     std::thread::sleep(retry_delay);
@@ -324,6 +389,44 @@ impl DevStoreFileLock {
                 }
             }
         }
+    }
+}
+
+fn dev_store_lock_owner_diagnostics() -> String {
+    let created_unix_ms = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_millis())
+        .unwrap_or_default();
+    format!(
+        "pid={}\ncreated_unix_ms={created_unix_ms}\n",
+        std::process::id()
+    )
+}
+
+fn read_redacted_dev_store_lock_owner(path: &Path) -> String {
+    match std::fs::read_to_string(path) {
+        Ok(content) => redact_diagnostic_text(&content),
+        Err(error) if error.kind() == ErrorKind::NotFound => "<missing>".to_string(),
+        Err(error) => redact_diagnostic_text(&format!("unreadable:{error}")),
+    }
+}
+
+fn dev_store_lock_is_stale(path: &Path, stale_after: Duration) -> DomainResult<bool> {
+    let metadata = std::fs::metadata(path).map_err(|error| {
+        dev_store_recovery_error(format!(
+            "Failed to read dev store lock metadata {}: {error}",
+            redacted_dev_store_path(path)
+        ))
+    })?;
+    let modified = metadata.modified().map_err(|error| {
+        dev_store_recovery_error(format!(
+            "Failed to read dev store lock age {}: {error}",
+            redacted_dev_store_path(path)
+        ))
+    })?;
+    match modified.elapsed() {
+        Ok(age) => Ok(age >= stale_after),
+        Err(_) => Ok(false),
     }
 }
 
@@ -370,9 +473,37 @@ where
 }
 
 fn delete_dev_password_at_path(path: &Path, account_id: &str) -> DomainResult<()> {
+    validate_dev_credential_account_id(account_id)?;
     let mut store = read_dev_store(path)?;
     store.remove(account_id);
     write_dev_store(path, &store)
+}
+
+fn redacted_dev_store_path(path: &Path) -> String {
+    path.file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("<dev-store-path>")
+        .to_string()
+}
+
+fn redact_diagnostic_text(value: &str) -> String {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        return "<empty>".to_string();
+    }
+    trimmed
+        .chars()
+        .map(|c| match c {
+            '\n' | '\r' | '\t' => ' ',
+            '/' | '\\' => '?',
+            c if c.is_ascii_graphic() || c == ' ' => c,
+            _ => '?',
+        })
+        .collect()
+}
+
+fn redact_stderr_text(value: &str) -> String {
+    format!("<redacted stderr bytes={}>", value.len())
 }
 
 // ---------------------------------------------------------------------------
@@ -383,8 +514,8 @@ fn delete_dev_password_at_path(path: &Path, account_id: &str) -> DomainResult<()
 fn keyring_force_delete_fallback_warning(status: &str, stderr: &str) -> String {
     format!(
         "keyring force-delete fallback failed status={} stderr={}",
-        status,
-        stderr.trim()
+        redact_diagnostic_text(status),
+        redact_stderr_text(stderr)
     )
 }
 
@@ -448,6 +579,7 @@ fn verify_saved_password(account_id: &str, expected_password: &str) -> DomainRes
 
 pub fn set_password(account_id: &str, password: &str) -> DomainResult<()> {
     if let Some(path) = dev_credentials_path() {
+        validate_dev_credential_account_id(account_id)?;
         with_dev_store_lock(&path, || {
             let mut store = read_dev_store(&path)?;
             store.insert(account_id.to_string(), password.to_string());
@@ -474,6 +606,7 @@ pub fn set_password(account_id: &str, password: &str) -> DomainResult<()> {
 
 pub fn get_password(account_id: &str) -> DomainResult<String> {
     if let Some(path) = dev_credentials_path() {
+        validate_dev_credential_account_id(account_id)?;
         let store = read_dev_store(&path)?;
         return store
             .get(account_id)
@@ -753,7 +886,18 @@ mod tests {
 
         assert_eq!(
             warning,
-            "keyring force-delete fallback failed status=exit status: 44 stderr=denied"
+            "keyring force-delete fallback failed status=exit status: 44 stderr=<redacted stderr bytes=8>"
+        );
+    }
+
+    #[test]
+    fn keyring_force_delete_fallback_warning_redacts_control_characters() {
+        let warning =
+            super::keyring_force_delete_fallback_warning("exit status: 44", " denied\u{7}\nsecret");
+
+        assert_eq!(
+            warning,
+            "keyring force-delete fallback failed status=exit status: 44 stderr=<redacted stderr bytes=15>"
         );
     }
 
@@ -849,6 +993,32 @@ mod tests {
             Some(&"secret-b".to_string())
         );
         assert_eq!(restarted_process_store.get("missing-account"), None);
+    }
+
+    #[test]
+    fn dev_credentials_store_rejects_invalid_account_id_keys() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("dev-credentials.json");
+        std::fs::write(&path, r#"{"": "secret"}"#).unwrap();
+
+        let error =
+            super::read_dev_store(&path).expect_err("empty account id key should be rejected");
+
+        assert!(error.to_string().contains(
+            "Keychain error: Failed to validate dev store account id: account id cannot be empty"
+        ));
+        assert!(error
+            .to_string()
+            .contains(super::DEV_CREDENTIALS_RECOVERY_HINT));
+
+        let mut store = HashMap::new();
+        store.insert("account\nid".to_string(), "secret".to_string());
+        let error = super::write_dev_store(&path, &store)
+            .expect_err("control characters should be rejected before writing");
+
+        assert!(error.to_string().contains(
+            "Keychain error: Failed to validate dev store account id: account id cannot contain control characters"
+        ));
     }
 
     #[cfg(unix)]
@@ -991,16 +1161,44 @@ mod tests {
         )
         .expect_err("second process should observe the existing lock");
 
-        assert!(error.to_string().contains(&format!(
-            "Keychain error: Timed out waiting for dev store lock: {}",
-            super::dev_store_lock_path(&path).display()
-        )));
+        assert!(error.to_string().contains(
+            "Keychain error: Timed out waiting for dev store lock .dev-credentials.json.lock owner=pid="
+        ));
+        assert!(
+            !error
+                .to_string()
+                .contains(dir.path().to_string_lossy().as_ref()),
+            "lock timeout diagnostics should not expose the store directory"
+        );
         assert!(error
             .to_string()
             .contains(super::DEV_CREDENTIALS_RECOVERY_HINT));
         drop(first_lock);
         super::DevStoreFileLock::acquire(&path)
             .expect("dev store lock should be reusable after release");
+    }
+
+    #[test]
+    fn dev_store_file_lock_recovers_stale_lock_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("dev-credentials.json");
+        let lock_path = super::dev_store_lock_path(&path);
+        std::fs::write(&lock_path, "pid=/Users/alice/secret\ncreated_unix_ms=1\n").unwrap();
+
+        let lock = super::DevStoreFileLock::acquire_with_timeout_and_stale_after(
+            &path,
+            std::time::Duration::from_millis(5),
+            std::time::Duration::from_millis(1),
+            std::time::Duration::ZERO,
+        )
+        .expect("stale dev store lock should be recovered");
+
+        assert!(lock_path.exists());
+        let owner = std::fs::read_to_string(&lock_path).unwrap();
+        assert!(owner.contains("pid="));
+        assert!(!owner.contains("/Users/alice/secret"));
+        drop(lock);
+        assert!(!lock_path.exists());
     }
 
     #[test]
