@@ -27,7 +27,7 @@ impl DbManager {
         // Phase 1: Open writer and check schema version
         let writer = Connection::open(db_path)?;
         Self::apply_pragmas(&writer)?;
-        let current_version = super::migration::get_schema_version(&writer);
+        let current_version = super::migration::read_schema_version(&writer)?;
         let needs_migration = super::migration::schema_needs_migration(&writer)?;
 
         // Phase 2: Backup before migration (skip for fresh/empty DB)
@@ -477,6 +477,47 @@ mod tests {
         assert!(
             !backup_for_outdated_schema.exists(),
             "No backup when schema is current"
+        );
+    }
+
+    #[test]
+    fn new_blocks_future_schema_version_as_downgrade() {
+        let dir = tempfile::tempdir().unwrap();
+        let db_path = dir.path().join("future-schema.db");
+
+        {
+            let db = DbManager::new(&db_path).unwrap();
+            db.writer()
+                .execute("DELETE FROM schema_version", [])
+                .unwrap();
+            db.writer()
+                .execute(
+                    "INSERT INTO schema_version (version) VALUES (?1)",
+                    [super::super::migration::LATEST_VERSION + 1],
+                )
+                .unwrap();
+        }
+
+        let Err(error) = DbManager::new(&db_path) else {
+            panic!("future schema should block startup");
+        };
+        let message = error.to_string();
+
+        assert!(
+            message.contains("newer than this application supports"),
+            "future schema should be a recoverable downgrade block: {message}"
+        );
+        assert!(
+            message.contains("Downgrade startup is blocked"),
+            "downgrade error should explain why startup is blocked: {message}"
+        );
+        assert!(
+            !crate::infra::db::backup::backup_path(
+                &db_path,
+                super::super::migration::LATEST_VERSION + 1
+            )
+            .exists(),
+            "downgrade block should not create a migration backup"
         );
     }
 

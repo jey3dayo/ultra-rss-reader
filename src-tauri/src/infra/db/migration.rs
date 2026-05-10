@@ -1,7 +1,7 @@
 use rusqlite::{params, Connection};
 use tracing::info;
 
-use crate::domain::error::DomainResult;
+use crate::domain::error::{DomainError, DomainResult};
 
 const MIGRATION_V1: &str = include_str!("../../../migrations/V1__initial.sql");
 const MIGRATION_V2: &str = include_str!("../../../migrations/V2__preferences.sql");
@@ -55,8 +55,15 @@ pub const LATEST_VERSION: i32 = 18;
 
 pub fn run_migrations(conn: &mut Connection) -> DomainResult<MigrationResult> {
     let tx = conn.transaction()?;
-    let from_version = get_schema_version(&tx);
+    let from_version = read_schema_version(&tx)?;
     let mut repaired_schema = false;
+
+    if from_version > LATEST_VERSION {
+        return Err(DomainError::Migration(format!(
+            "Database schema version {from_version} is newer than this application supports (v{LATEST_VERSION}). \
+             Downgrade startup is blocked to avoid data loss. Install a newer application version or restore a compatible backup."
+        )));
+    }
 
     if from_version < 1 {
         tx.execute_batch(MIGRATION_V1)?;
@@ -114,7 +121,7 @@ pub fn run_migrations(conn: &mut Connection) -> DomainResult<MigrationResult> {
         tx.execute_batch(MIGRATION_V18)?;
     }
 
-    let to_version = get_schema_version(&tx);
+    let to_version = read_schema_version(&tx)?;
     tx.commit()?;
 
     if from_version < to_version {
@@ -133,16 +140,82 @@ pub fn run_migrations(conn: &mut Connection) -> DomainResult<MigrationResult> {
 }
 
 pub fn get_schema_version(conn: &Connection) -> i32 {
-    conn.query_row(
-        "SELECT version FROM schema_version ORDER BY version DESC LIMIT 1",
+    read_schema_version(conn).unwrap_or(0)
+}
+
+pub fn read_schema_version(conn: &Connection) -> DomainResult<i32> {
+    if !table_exists(conn, "schema_version")? {
+        if user_table_count(conn)? == 0 {
+            return Ok(0);
+        }
+
+        return Err(DomainError::Migration(
+            "schema_version table is missing from an existing database. Restore a compatible backup or recreate the database.".to_string(),
+        ));
+    }
+
+    let row_count: i64 =
+        conn.query_row("SELECT COUNT(*) FROM schema_version", [], |row| row.get(0))?;
+    if row_count == 0 {
+        return Err(DomainError::Migration(
+            "schema_version table is empty. Restore a compatible backup or recreate the database."
+                .to_string(),
+        ));
+    }
+
+    let invalid_type_count: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM schema_version WHERE typeof(version) != 'integer'",
         [],
         |row| row.get(0),
-    )
-    .unwrap_or(0)
+    )?;
+    if invalid_type_count != 0 {
+        return Err(DomainError::Migration(
+            "schema_version contains a non-integer version. Restore a compatible backup or recreate the database.".to_string(),
+        ));
+    }
+
+    let (min_version, max_version): (i32, i32) = conn.query_row(
+        "SELECT MIN(version), MAX(version) FROM schema_version",
+        [],
+        |row| Ok((row.get(0)?, row.get(1)?)),
+    )?;
+
+    if min_version < 0 {
+        return Err(DomainError::Migration(
+            "schema_version contains a negative version. Restore a compatible backup or recreate the database.".to_string(),
+        ));
+    }
+
+    if row_count > 1 && min_version == max_version {
+        return Err(DomainError::Migration(format!(
+            "schema_version contains duplicate v{max_version} rows. Restore a compatible backup or recreate the database."
+        )));
+    }
+
+    Ok(max_version)
+}
+
+fn user_table_count(conn: &Connection) -> DomainResult<i64> {
+    Ok(conn.query_row(
+        "SELECT COUNT(*)
+         FROM sqlite_master
+         WHERE type = 'table'
+           AND name NOT LIKE 'sqlite_%'",
+        [],
+        |row| row.get(0),
+    )?)
 }
 
 pub fn schema_needs_migration(conn: &Connection) -> DomainResult<bool> {
-    Ok(get_schema_version(conn) < LATEST_VERSION || feed_mode_columns_need_repair(conn)?)
+    let version = read_schema_version(conn)?;
+    if version > LATEST_VERSION {
+        return Err(DomainError::Migration(format!(
+            "Database schema version {version} is newer than this application supports (v{LATEST_VERSION}). \
+             Downgrade startup is blocked to avoid data loss. Install a newer application version or restore a compatible backup."
+        )));
+    }
+
+    Ok(version < LATEST_VERSION || feed_mode_columns_need_repair(conn)?)
 }
 
 fn feed_mode_columns_need_repair(conn: &Connection) -> DomainResult<bool> {
@@ -529,6 +602,98 @@ mod tests {
         run_migrations(&mut conn).unwrap();
 
         assert_single_schema_version_row(&conn, LATEST_VERSION);
+    }
+
+    #[test]
+    fn schema_version_reader_allows_only_truly_fresh_missing_table() {
+        let conn = open_in_memory();
+        assert_eq!(read_schema_version(&conn).unwrap(), 0);
+
+        conn.execute("CREATE TABLE accounts (id TEXT PRIMARY KEY)", [])
+            .unwrap();
+        let error = read_schema_version(&conn).unwrap_err();
+
+        assert!(
+            error
+                .to_string()
+                .contains("schema_version table is missing"),
+            "existing DB without schema_version should be recoverable corruption: {error}"
+        );
+    }
+
+    #[test]
+    fn schema_version_reader_rejects_corrupted_metadata_rows() {
+        let conn = open_in_memory();
+        conn.execute("CREATE TABLE schema_version (version)", [])
+            .unwrap();
+
+        let empty_error = read_schema_version(&conn).unwrap_err();
+        assert!(
+            empty_error
+                .to_string()
+                .contains("schema_version table is empty"),
+            "empty schema_version should be corrupted metadata: {empty_error}"
+        );
+
+        conn.execute(
+            "INSERT INTO schema_version (version) VALUES ('invalid')",
+            [],
+        )
+        .unwrap();
+        let invalid_type_error = read_schema_version(&conn).unwrap_err();
+        assert!(
+            invalid_type_error
+                .to_string()
+                .contains("non-integer version"),
+            "invalid version type should be corrupted metadata: {invalid_type_error}"
+        );
+
+        conn.execute("DELETE FROM schema_version", []).unwrap();
+        conn.execute(
+            "INSERT INTO schema_version (version) VALUES (?1), (?1)",
+            [LATEST_VERSION],
+        )
+        .unwrap();
+        let duplicate_error = read_schema_version(&conn).unwrap_err();
+        assert!(
+            duplicate_error.to_string().contains("duplicate"),
+            "duplicate identical schema rows should be corrupted metadata: {duplicate_error}"
+        );
+    }
+
+    #[test]
+    fn schema_version_reader_preserves_legacy_incremental_rows() {
+        let conn = open_in_memory();
+        conn.execute("CREATE TABLE schema_version (version INTEGER NOT NULL)", [])
+            .unwrap();
+        conn.execute(
+            "INSERT INTO schema_version (version) VALUES (5), (6), (7)",
+            [],
+        )
+        .unwrap();
+
+        assert_eq!(read_schema_version(&conn).unwrap(), 7);
+    }
+
+    #[test]
+    fn future_schema_version_blocks_downgrade_migration() {
+        let mut conn = open_in_memory();
+        run_migrations(&mut conn).unwrap();
+        set_schema_version(&conn, LATEST_VERSION + 1).unwrap();
+
+        let Err(error) = run_migrations(&mut conn) else {
+            panic!("future schema should block migration");
+        };
+        let message = error.to_string();
+
+        assert!(
+            message.contains("newer than this application supports"),
+            "future schema should be treated as downgrade block: {message}"
+        );
+        assert!(
+            message.contains("Downgrade startup is blocked"),
+            "downgrade error should explain recovery direction: {message}"
+        );
     }
 
     #[test]
