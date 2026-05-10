@@ -62,7 +62,10 @@ type ExpectedViteOwner = {
 };
 
 function normalizePathForComparison(value: string): string {
-  const slashPath = value.replaceAll("\\", "/").replace(/\/+$/, "");
+  const slashPath = value
+    .replaceAll("\\", "/")
+    .replace(/^\/([a-zA-Z]:\/)/, "$1")
+    .replace(/\/+$/, "");
   if (/^[a-zA-Z]:\//.test(slashPath)) {
     return slashPath.toLowerCase();
   }

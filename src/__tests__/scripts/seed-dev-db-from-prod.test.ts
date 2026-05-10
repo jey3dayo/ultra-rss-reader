@@ -344,7 +344,11 @@ describe("seedDevDatabaseFromProdPlan", () => {
       rmImpl: async () => {},
     });
 
-    await expect(resultPromise).resolves.toMatchObject({
+    const result = await resultPromise;
+    expect({
+      copied: result.copied.map(toPortablePath),
+      backedUp: result.backedUp.map(toPortablePath),
+    }).toMatchObject({
       copied: ["/dev/ultra-rss-reader.db", "/dev/ultra-rss-reader.db-wal", "/dev/ultra-rss-reader.db-shm"],
       backedUp: ["/dev/ultra-rss-reader.db", "/dev/ultra-rss-reader.db-wal", "/dev/ultra-rss-reader.db-shm"],
     });
@@ -404,7 +408,8 @@ describe("seedDevDatabaseFromProdPlan", () => {
       releaseBackupCopy();
     }
 
-    await expect(resultPromise).resolves.toMatchObject({
+    const result = await resultPromise;
+    expect({ backedUp: result.backedUp.map(toPortablePath) }).toMatchObject({
       backedUp: ["/dev/ultra-rss-reader.db", "/dev/ultra-rss-reader.db-wal", "/dev/ultra-rss-reader.db-shm"],
     });
     expect(copyRequests).toEqual(
