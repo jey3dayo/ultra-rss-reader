@@ -798,6 +798,15 @@ describe("release repository contract", () => {
     expect(buildScript).toContain("cargo:rustc-link-arg=/MANIFEST:EMBED");
     expect(buildScript).toContain("cargo:rustc-link-arg=/MANIFESTINPUT:{}");
     expect(buildScript).toContain("cargo:rustc-link-arg=/WX");
+    expect(buildScript).toContain("copy_webview2_loader()");
+    expect(buildScript).toContain('expect("failed to copy WebView2Loader.dll for Windows release smoke")');
+    expect(buildScript).toContain("Could not find WebView2Loader.dll to copy");
+    expect(buildScript).toContain("Unsupported target arch for WebView2 loader copy");
+    expect(buildScript).toContain("Failed to copy WebView2Loader.dll to");
+    expect(buildScript).not.toContain("cargo:warning=Could not find WebView2Loader.dll to copy");
+    expect(buildScript).not.toContain("cargo:warning=Failed to copy WebView2Loader.dll");
+    expect(releaseWorkflow).toContain("Preflight release build");
+    expect(releaseWorkflow).toContain("run: mise run ci");
     expect(buildScript).toContain("WindowsAttributes::new_without_app_manifest()");
     expect(windowsManifest).toContain('xmlns="urn:schemas-microsoft-com:asm.v1"');
     expect(windowsManifest).toContain('name="Microsoft.Windows.Common-Controls"');
