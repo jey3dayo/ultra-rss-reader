@@ -94,11 +94,6 @@
   - 削除 account が `selected_account_id` の場合に preference 保存へ進むが、保存失敗時の fallback account と UI state の整合が未固定
   - selected account delete、setPref failure、fallback account missing、settings close、toast copy の component/store test を追加する
 
-- [ ] P2 article list selected-row clear の loading/refetch race を guard する
-  - 対象: `src/components/reader/hooks/article-list/use-article-list-effects.ts`, `src/components/reader/hooks/article/use-article-view-selection.ts`
-  - `filteredArticles` に選択記事が一瞬いないだけで clear すると、search/tag/account refetch 中に not-found 表示へ飛びやすい
-  - loading true、refetch success、account switch、search clear、stale selection guard の hook test を追加する
-
 - [ ] P2 retained article snapshot の title/read/star 鮮度更新方針を固定する
   - 対象: `src/lib/articles/article-list.ts`, `src/components/reader/hooks/article/use-article-status-actions.ts`, `src/hooks/use-articles.ts`
   - retained article は missing source の snapshot を戻すため、mutation 後の title/read/star が source 再取得まで古いまま残る可能性がある
@@ -108,11 +103,6 @@
   - 対象: `src/lib/articles/article-list.ts`, `src/lib/articles/article-view.ts`, `src/lib/datetime.ts`
   - parse不能な `published_at` が raw group/表示へ流れると provider payload drift 時に UI 表示が不安定になる
   - invalid date、blank date、future date、timezone fallback、group label copy の helper/component test を追加する
-
-- [ ] P3 actions settings の hidden preference と UI 表示 parity を棚卸しする
-  - 対象: `src/components/settings/hooks/use-actions-settings-view-props.tsx`, `src/schemas/preferences.ts`, `src/components/reader/article-toolbar-view.tsx`
-  - hidden default にある action preference と settings UI に出る項目がずれると、toolbar action 追加時に schema/default/UI の差分が残りやすい
-  - hidden action preference、visible copy action、toolbar action追加、default reset、schema option parity の test を追加する
 
 - [ ] P2 browser webview navigation failure 後に bounds だけ適用済みになる挙動を固定する
   - 対象: `src-tauri/src/commands/browser_webview_commands.rs`, `src/components/reader/hooks/browser/use-browser-webview-sync.ts`
@@ -158,21 +148,6 @@
   - 対象: `src/components/add-feed/hooks/use-add-feed-dialog-actions.ts`, `src/lib/feed-folder-flow.ts`, `src/lib/feed-query-cache.ts`
   - `addLocalFeed` 成功後に `updateFeedFolder` が失敗すると、feed は作られるが期待 folder に入らない状態で dialog が閉じ得る
   - add success + folder failure、refetch display、toast、retry/move action、query invalidation の contract test を追加する
-
-- [ ] P1 article tag picker createTag failure の notification/input retention を固定する
-  - 対象: `src/components/article/article-tag-chips.tsx`, `src/components/article/article-tag-picker-view.tsx`, `src/hooks/use-tags.tsx`
-  - create tag mutation の failure path が view contract に出ておらず、duplicate/network/schema failure 時の入力保持と通知が曖昧
-  - duplicate、network failure、schema failure、input retention、toast、pending state の test を追加する
-
-- [ ] P2 Actions settings switch に per-row aria label contract を追加する
-  - 対象: `src/components/settings/actions-settings-view.tsx`, `src/components/settings/hooks/use-actions-settings-view-props.tsx`
-  - 全 row が共通 `toggleLabel` に依存しており、action が増えた時に accessible name が曖昧になる
-  - copy link、open browser、multiple toggles、accessible name、locale parity の test を追加する
-
-- [ ] P2 Actions settings registry と toolbar visibility の parity を固定する
-  - 対象: `src/components/settings/hooks/use-actions-settings-view-props.tsx`, `src/components/article/hooks/use-article-toolbar-controls.tsx`, `src/schemas/preferences.ts`
-  - settings に出る action と toolbar が参照する action が分かれており、schema/default/hidden action の drift が起きやすい
-  - registry、hidden/default、toolbar action、locale option、test parity を追加する
 
 - [ ] P2 Settings modal setup lock を store action boundary にも適用する
   - 対象: `src/components/settings/hooks/use-settings-modal-view-props.tsx`, `src/stores/ui-store.ts`, `src/lib/actions.ts`
@@ -284,16 +259,6 @@
   - purge が scheduler path 中心だと、manual sync 中心・scheduler 未解禁・startup only の利用で既読記事が溜まり続ける可能性がある
   - manual all sync後purge、startup sync後purge、scheduler disabled、keep_read_items_days=0、purge failure result の test を追加する
 
-- [ ] P1 native browser `closed` event を URL/generation で current overlay に紐づける
-  - 対象: `src/components/reader/hooks/browser/use-browser-webview-events.ts`, `src/components/reader/hooks/browser/use-browser-view-event-bridge.ts`
-  - `closed` event に current owner 判定がないと、旧 child webview の遅延 close event が新しい overlay を閉じる可能性がある
-  - A open -> B switch -> A close event ignored、current close accepted、malformed close payload、missing payload policy の test を追加する
-
-- [ ] P1 browser unmount cleanup の `closeBrowserWebview` を stale controller から守る
-  - 対象: `src/components/reader/hooks/browser/use-browser-webview-cleanup.ts`
-  - controller unmount 時の close が無条件だと、portal/scope remount や StrictMode 的な再作成で新しい webview を閉じるリスクがある
-  - stale controller cleanup、StrictMode double mount、already-closed error、new URL after unmount、close suppression の test を追加する
-
 - [ ] P2 scheduler `retry_after_seconds` を error message parse から構造化 metadata へ寄せる
   - 対象: `src-tauri/src/service/sync_scheduler.rs`, `src-tauri/src/domain/error.rs`
   - backoff が `retry_after_seconds=` という message 断片に依存し、provider copy 変更や user-visible 文言混入で retry timing が壊れやすい
@@ -353,11 +318,6 @@
   - 対象: `src/lib/keyboard/keyboard-shortcuts.ts`, `src/hooks/use-keyboard.ts`
   - resolver が `metaKey || ctrlKey` を同じ modifier と扱うため、macOS Ctrl/Cmd、Windows/Linux Meta/Ctrl の実動作と表示・native menu がずれやすい
   - mac Ctrl+K vs Cmd+K、Windows Ctrl+K vs Meta+K、custom shortcut modifier、native-menu-owned shortcut parity の test を追加する
-
-- [ ] P2 article list stale selected article cleanup を loading transition と empty source で固定する
-  - 対象: `src/components/reader/hooks/article-list/use-article-list-effects.ts`, `src/components/reader/hooks/article-list/use-article-list-sources.ts`
-  - loading が false になった瞬間に selected id が `filteredArticles` から消えると、retained article/refetch transition の順序次第で選択が落ちやすい
-  - source refetch中、empty feed、retained selected article、search on/off、feed delete後 clear timing の test を追加する
 
 - [ ] P2 sidebar feed drop target の folder ownership を contract 化する
   - 対象: `src/components/reader/hooks/sidebar/use-sidebar-feed-drag-state.ts`, `src/components/reader/hooks/sidebar/use-sidebar-feed-tree-props.ts`
@@ -564,40 +524,10 @@
   - capability を編集しても generated schema / permission description が更新されないと、release build まで権限差分を見落としやすい
   - capability permission追加、schema stale、platform-specific schema差分、release config include、CI failure message の contract を追加する
 
-- [ ] P1 updater signing secret missing 時の artifact publish stop 条件を固定する
-  - 対象: `.github/workflows/release.yml`, `src-tauri/tauri.release.conf.json`, `tests/release-repo-contract.test.ts`
-  - signing secret が無い状態で build artifact や draft release が部分作成されると、install できない release が公開手前に残りやすい
-  - missing private key、missing password、matrix partial failure、draft release cleanup、preflight failure message の workflow contract を追加する
-
-- [ ] P1 labeler / PR insights workflow の write permission を fork PR policy で見直す
-  - 対象: `.github/workflows/labeler.yml`, `.github/workflows/pr-insights-labeler.yml`, `.github/labeler.yml`
-  - PR 由来 workflow に write 権限があるため、fork PR や bot PR の実行条件を固定しないと運用・security review のたびに判断が揺れる
-  - fork PR、dependabot PR、same-repo PR、permissions minimum、label write failure の repo contract を追加する
-
-- [ ] P1 issue template の release-readiness label 運用と GitHub labeler を同期する
-  - 対象: `.github/ISSUE_TEMPLATE/*.yml`, `.github/labeler.yml`, `.github/workflows/labeler.yml`
-  - template では release-readiness を案内するが labeler/source-of-truth と連動していないと、起票時点の分類が保守者依存になる
-  - feature/bug/test/maintenance template、label existence、labeler glob、manual label note、missing label failure の contract を追加する
-
-- [ ] P2 GitHub Actions cache key に Node/pnpm/mise version drift を含める
-  - 対象: `.github/workflows/ci.yml`, `.github/workflows/release.yml`, `mise.toml`, `package.json`
-  - cache key が lockfile 中心だと Node 24 固定や pnpm version 変更後に古い store が残り、engine warning や install failure の切り分けが遅れる
-  - node version change、pnpm version change、mise tool change、lockfile unchanged、cache restore key の repo contract を追加する
-
 - [ ] P2 `pnpm-lock.yaml` の transitive duplicate major を supply-chain TODO として棚卸しする
   - 対象: `pnpm-lock.yaml`, `package.json`, `scripts/quality-baseline.ts`
   - `lru-cache` や `signal-exit` など複数 major が残ると、依存更新時の CVE triage と bundle size 判断が属人化しやすい
   - duplicate major inventory、direct/transitive分類、known acceptable allowlist、lockfile drift report の script task を追加する
-
-- [ ] P2 package manager / engine contract を CI image と local mise の両方で検証する
-  - 対象: `package.json`, `mise.toml`, `.github/workflows/ci.yml`, `src/__tests__/config/repo-contracts.test.ts`
-  - local Node 24 と CI setup がずれると engine warning は出ても lint/test が通り、後続 agent が別 Node で作業しやすい
-  - node major mismatch、pnpm mismatch、mise missing、CI setup-node version、engine-strict policy の contract を追加する
-
-- [ ] P2 release workflow matrix artifact naming を platform/arch/signature で固定する
-  - 対象: `.github/workflows/release.yml`, `src-tauri/tauri.release.conf.json`, `tests/release-repo-contract.test.ts`
-  - macOS/Windows/Linux artifact 名が action default に寄ると、install verification や updater manifest 対応で対象 artifact を取り違えやすい
-  - mac arm64/x64、Windows installer、signature sidecar、draft asset name、manual verification checklist の contract を追加する
 
 - [ ] P2 release note generation が prerelease / build metadata を本文に反映する contract を作る
   - 対象: `.codex/skills/release/SKILL.md`, `.github/workflows/release.yml`, `CHANGELOG.md`
@@ -668,16 +598,6 @@
   - 対象: `tests/helpers/type-surface.ts`, `tests/type-surface-contract.test.ts`, reader/settings/subscriptions の `.types.ts`
   - type surface helper が入った後も allowlist が広いままだと、view-local props や hook-private params が再び shared `.types.ts` に戻りやすい
   - current allowlist snapshot、new exported Props/Params/Result rejection、intentional public contract annotation、TODO link required の repo contract を追加する
-
-- [ ] P3 `.github/release.yml` と release workflow の responsibilities を整理する
-  - 対象: `.github/release.yml`, `.github/workflows/release.yml`, `.codex/skills/release/SKILL.md`
-  - GitHub release drafter config と actual release workflow の責務が近く、どちらが notes/categories/assets を持つかが曖昧になりやすい
-  - release notes owner、category labels、manual draft flow、unused config detection の docs/contract task を追加する
-
-- [ ] P3 issue template body の required checkbox と PR template quality gate を同期する
-  - 対象: `.github/ISSUE_TEMPLATE/*.yml`, `.github/PULL_REQUEST_TEMPLATE.md`, `AGENTS.md`
-  - issue 側の verification items と PR template/DoD がずれると、task 起票時と完了時の期待値が違うものになる
-  - typecheck/lint/test/format labels、manual verification、release impact、Storybook impact の repo contract を追加する
 
 - [ ] P3 generated Tauri schema files を source edit しないルールを repo contract にする
   - 対象: `src-tauri/gen/schemas`, `CLAUDE.md`, `src/__tests__/config/repo-contracts.test.ts`
@@ -754,26 +674,6 @@
   - XML 1.0 invalid char を U+FFFD に置換するため、export -> import で title/url が変わることを user-visible summary と test に残す必要がある
   - invalid title char、invalid folder char、invalid URL char、round-trip title changed、export warning/summary policy の test を追加する
 
-- [ ] P2 CI quality-gate が skipped/cancelled matrix job を failure とする理由を step summary に出す
-  - 対象: `.github/workflows/ci.yml`, `tests/release-repo-contract.test.ts`
-  - matrix job が skipped/cancelled/timed_out の時に summary が粗いと、どの OS/phase の failure か triage が遅れやすい
-  - skipped job、cancelled job、timed_out job、matrix OS label、summary markdown の workflow contract を追加する
-
-- [ ] P2 CI native-smoke の debug build artifact/log retention を failure 時だけ収集する
-  - 対象: `.github/workflows/ci.yml`, `docs/incident-runbook.md`
-  - native smoke が macOS/Windows で落ちた時に debug app/log artifact が残らないと、再現が CI runner 依存になりやすい
-  - failure-only upload、log redaction、artifact retention days、macOS/windows path、no artifact on success の contract を追加する
-
-- [ ] P2 release workflow manual dispatch tag existence / annotated tag object を明示検証する
-  - 対象: `.github/workflows/release.yml`, `.codex/skills/release/SKILL.md`, `tests/release-repo-contract.test.ts`
-  - manual dispatch は tag fetch 後に dereference するが、annotated tag object metadata や missing tag の error copy が明確でない
-  - missing tag、annotated tag、lightweight tag、tag object mismatch、error message の workflow fixture を追加する
-
-- [ ] P2 release workflow signing secret missing 時の failure copy / dry-run path を整理する
-  - 対象: `.github/workflows/release.yml`, `docs/release-manual-verification.md`
-  - signing secrets がない fork/maintainer run で tauri-action まで進むと、失敗理由が signing なのか build なのか分かりにくい
-  - missing private key、missing password、fork event、dry-run preflight、masked error copy の workflow contract を追加する
-
 - [ ] P2 Base UI menu item async onClick の rejection handling を shared menu policy にする
   - 対象: `src/components/reader/article-share-menu.tsx`, `src/components/reader/*context-menu*.tsx`, `src/lib/runtime/diagnostics.ts`
   - async `onClick` が component ごとに try/catch されるため、Base UI 側で rejection が握り潰される path の user feedback が揺れやすい
@@ -838,11 +738,6 @@
   - 対象: article sanitizer、`ammonia` dependency 周辺
   - sanitizer dependency 更新で allowed tags/attrs が変わると article 表示・privacy・search text が同時に変わる
   - allowed tags、allowed attrs、blocked protocol、style stripping、search text parity の fixture を追加する
-
-- [ ] P2 GitHub issue templates の YAML schema / required fields contract を追加する
-  - 対象: `.github/ISSUE_TEMPLATE`, repo automation
-  - issue template の dropdown/options/labels が壊れると triage と TODO 取り込みの品質が落ちる
-  - required fields、dropdown options、label mentions、blank template、YAML parse の lightweight check を追加する
 
 - [ ] P2 docs / skills path references の link resolution check を追加する
   - 対象: `CLAUDE.md`, `.claude/rules`, `.codex/skills`, `.agents/skills`
@@ -1218,11 +1113,6 @@
   - 対象: `src-tauri/tests`, temp DB/keyring fixtures
   - temp dir cleanup が失敗しても見えないと、次回 test や disk usage に影響する
   - temp dir owner、Windows open handle、cleanup failure warning、test retry、artifact retention の task に分ける
-
-- [ ] P2 CI failure artifact retention を frontend/Rust/native smoke ごとに分類する
-  - 対象: `.github/workflows/ci.yml`, release workflow, test outputs
-  - 失敗時に必要な log/screenshot/DB fixture が残らないと、remote failure を再現できない
-  - Vitest logs、Rust test logs、native app logs、screenshots、DB backup artifact、retention days の matrix を作る
 
 - [ ] P2 app action telemetry-free audit log を local diagnostics として持つか決める
   - 対象: app action dispatcher、diagnostics reporter、debug HUD
@@ -1603,11 +1493,6 @@
   - 対象: release skill/docs、release workflow、CHANGELOG
   - 緊急修正では検証を短縮しがちなので、最低限落とせない gate を通常 release と分ける
   - security hotfix、data corruption hotfix、CI minimum gates、manual smoke、rollback note の checklist を追加する
-
-- [ ] P2 bug report issue template に privacy-safe diagnostics attachment guidance を追加する
-  - 対象: `.github/ISSUE_TEMPLATE/02-bug.yml`, support docs
-  - ユーザーが log や DB をそのまま添付すると subscription/credential 周辺が漏れる可能性がある
-  - attach logs guidance、do not attach DB、redaction steps、support dump preferred、private contact note の copy を追加する
 
 - [ ] P2 internal dev mock data が product metrics / screenshots に混ざらないよう source label を出す
   - 対象: dev mocks、debug HUD、screenshots/storybook
