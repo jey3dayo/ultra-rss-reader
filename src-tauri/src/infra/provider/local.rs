@@ -543,7 +543,7 @@ mod tests {
 
     struct OneShotHttpServer {
         address: std::net::SocketAddr,
-        task: JoinHandle<()>,
+        task: Option<JoinHandle<()>>,
     }
 
     impl OneShotHttpServer {
@@ -566,18 +566,33 @@ mod tests {
                 stream.shutdown().await.expect("test stream should close");
             });
 
-            Self { address, task }
+            Self {
+                address,
+                task: Some(task),
+            }
         }
 
         fn url(&self, path: &str) -> String {
             format!("http://{}{}", self.address, path)
         }
 
-        async fn shutdown(self) {
-            timeout(Duration::from_secs(2), self.task)
+        async fn shutdown(mut self) {
+            let task = self
+                .task
+                .take()
+                .expect("test server shutdown should only be called once");
+            timeout(Duration::from_secs(2), task)
                 .await
                 .expect("test server should shut down after serving one request")
                 .expect("test server task should finish");
+        }
+    }
+
+    impl Drop for OneShotHttpServer {
+        fn drop(&mut self) {
+            if let Some(task) = self.task.take() {
+                task.abort();
+            }
         }
     }
 
