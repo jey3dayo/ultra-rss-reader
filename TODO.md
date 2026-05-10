@@ -182,11 +182,6 @@
   - stale bundle cleanup の `rm` failure が dev command 全体の failure になり、権限/ロックで古い app bundle を消せないだけで開発起動が止まる
   - cleanup permission denied、locked bundle、warning-only policy、explicit strict mode、dev start continuation の script test を追加する
 
-- [ ] P2 `seed-dev-db-from-prod` の process/DB handle check 後 race を再確認する
-  - 対象: `scripts/seed-dev-db-from-prod.ts`, `src/__tests__/scripts`
-  - 起動中/handle check 後から DB copy までに app が起動すると、dev DB 置換と runtime open handle が競合し得る
-  - check-then-open race、copy failure restore、second handle check、retry message、dry-run parity の script test を追加する
-
 - [ ] P2 `tests/helpers/tauri-mocks` の mutation commands を stateful fixture にする範囲を決める
   - 対象: `tests/helpers/tauri-mocks.ts`, `tests/helpers/fixtures.ts`
   - list 系が毎回 sample fixture を返し mutation 系は null を返すだけなので、mark/read/star 後の再取得や count 変化を helper が隠す可能性がある
@@ -196,11 +191,6 @@
   - 対象: `src-tauri/src/menu.rs`, `src/hooks/use-menu-events.ts`, `src/lib/runtime/diagnostics.ts`
   - `resolve_menu_action` が `None` の場合 silent return するため、menu id rename や platform 差で click no-op になった原因を追いにくい
   - unknown menu id、known id、diagnostics once、redacted payload、release log level の Rust/TS contract を追加する
-
-- [ ] P3 dev scenario registry diagnostics を test/report に露出する
-  - 対象: `src/dev/scenarios/registry.ts`, `src/dev/scenarios/import-registry.ts`, `src/__tests__/dev`
-  - duplicate id/title/keyword diagnostics を計算しているが list/get flow で使われず、scenario 追加時の診断が死蔵されやすい
-  - duplicate id、duplicate title、duplicate keyword、report output、CI contract の test を追加する
 
 - [ ] P1 Data settings VACUUM in-flight を modal lifecycle から切り離す
   - 対象: `src/components/settings/hooks/use-data-settings-controller.ts`, `src/components/settings/data-settings.tsx`, `src-tauri/src/commands/database_commands.rs`
