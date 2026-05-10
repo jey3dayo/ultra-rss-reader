@@ -3589,11 +3589,6 @@
   - Windows では署名状態や SmartScreen 表示が初回導入率に直結するが、CI green だけでは見えない
   - signature details、publisher name、SmartScreen prompt、install path、uninstall entry、upgrade install の check を追加する
 
-- [ ] P2 local DB encryption at rest を採用しない/する decision record を作る
-  - 対象: DB storage、credential storage、privacy docs
-  - keyring は credential を守るが、DB には feed/article/history が残るため、暗号化しない理由または将来方針を明文化する必要がある
-  - threat model、OS disk encryption reliance、portable backup、search performance、migration cost の decision を追加する
-
 - [ ] P2 screen reader landmark / heading structure を reader/settings/subscriptions で固定する
   - 対象: app shell、reader panes、settings modal、subscriptions index
   - visual pane 構造が複雑なため、landmark と heading がないと screen reader で現在位置が分かりにくい
@@ -3690,22 +3685,6 @@
   - selected account missing、expanded folder missing、query cache clear、command history cleanup、restart required の contract を追加する
   - superseded by: P1-Q4e (covered by DB restore frontend reconciliation; kept verification: selected account missing, query cache clear, restart required)
 
-- [ ] P2 provider credential verification request の side effect を account create/update と分離する
-  - 対象: account setup、test connection commands、provider HTTP client
-  - 接続確認が remote server 側で session/cookie/last-login を更新する場合、保存前の試行が side effect になる
-  - verify before save、verify after save、cookie discarded、rate limit、failed verify logging の contract を追加する
-
-- [ ] P2 account/server URL change 時の existing sync_state / pending mutation migration policy を決める
-  - 対象: account commands、sync_state repository、pending mutation repository
-  - server URL を変えた account に古い cursor/backoff/pending mutation が残ると、別サーバーへ古い状態を送る可能性がある
-  - server URL changed、provider kind changed、cursor cleared、pending mutation cleared/quarantined、backoff reset の contract を追加する
-  - superseded by: P1-Q2c (covered by account server URL/provider kind migration; kept verification: cursor cleared, pending mutation quarantined, backoff reset)
-
-- [ ] P2 external browser open queue を rapid clicks / double shortcuts で idempotent にする
-  - 対象: `open_in_browser`, app actions, keyboard/menu handlers
-  - 同じ article を連打すると複数 browser tab や duplicate Reading List action が出て、ユーザー操作の副作用が大きい
-  - double click、key repeat、menu+shortcut race、same URL dedupe window、failure retry の policy を追加する
-
 - [ ] P2 keyboard shortcut help の generated content と actual bindings を snapshot 化する
   - 対象: shortcuts help view、shortcut settings、app action registry
   - help に古い binding が残ると、custom shortcut や platform modifier の変更後に操作案内が嘘になる
@@ -3730,11 +3709,6 @@
   - 対象: `AppError`, toasts/dialogs, settings debug actions
   - すべての失敗が「再試行」だけだと、permission denied、auth failure、corrupt DB、network offline の復旧が混ざる
   - retry、open settings、open log dir、restore backup、reset local state、contact support の action matrix を作る
-
-- [ ] P2 stale support/debug logs を private data reset と uninstall docs に接続する
-  - 対象: log dir、settings data reset、docs
-  - DB/credentials を消しても古い logs/support dumps が残ると privacy reset として不完全になる
-  - private data reset、manual log deletion、support dump deletion、uninstall docs、failure warning の contract を追加する
 
 - [ ] P2 provider-specific max feed count / article count assumptions を account settings に出すか決める
   - 対象: provider traits、sync scheduler、settings account detail
@@ -3794,11 +3768,6 @@
   - 一部 feed だけ成功した時に account 全体を fresh と見せると、ユーザーが未更新 feed に気づけない
   - all success、partial success、all failed、stale feed count、last successful feed sync の display policy を追加する
 
-- [ ] P2 support/debug copy に stable app/environment fingerprint を secretなしで含めるか決める
-  - 対象: diagnostics dump、support workflow、runtime platform info
-  - OS/version/app build がないと問い合わせ再現が難しいが、hostname/path/user名を含めると privacy risk になる
-  - app version、commit hash、OS family、arch、locale、timezone offset、excluded hostname の decision を追加する
-
 - [ ] P2 offline-first stale content banner を account/feed/article view で出すか決める
   - 対象: reader UI、sync status、network error taxonomy
   - network failure 中でも古い記事は読めるため、error toast だけでは stale content を見ていることが分かりにくい
@@ -3823,11 +3792,6 @@
   - 対象: feed discovery、add feed dialog、URL validation
   - discovery で見つかった title/url をそのまま trusted と扱うと、spoofed title や mixed-content URL を add してしまう
   - discovered title display、final URL validation、private URL reject、duplicate URL, user confirmation の contract を追加する
-
-- [ ] P2 malformed provider account config を settings 表示可能な quarantine state にする
-  - 対象: account repository、settings account detail、sync scheduler
-  - account row が壊れた時に list failure で settings に入れないと、ユーザーが削除/修復できない
-  - invalid provider kind、invalid server URL、missing credential ref、settings read-only view、delete/quarantine action の contract を追加する
 
 - [ ] P2 release hotfix flow を normal release と別 checklist にする
   - 対象: release skill/docs、release workflow、CHANGELOG
@@ -3910,11 +3874,6 @@
   - 対象: article list、feed tree、tag list context menus
   - context menu を開いた後に selection/refetch が変わると、表示対象と実行対象がずれる
   - pointer target snapshot、keyboard context target、refetch while open、target deleted、action disabled の contract を追加する
-
-- [ ] P2 tooltip / title attribute に secret or full URL を出さない privacy contract を作る
-  - 対象: feed URL display、account detail、debug/settings tooltips
-  - visible text を redaction しても tooltip/title に full URL や path が残ると漏れる
-  - feed URL tooltip、server URL tooltip、log path tooltip、article URL tooltip、copy action の redaction test を追加する
 
 - [ ] P2 stale closure in settings save handlers を form revision で guard する
   - 対象: settings forms、account credentials editor、shortcut settings
