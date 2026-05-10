@@ -50,6 +50,7 @@ This file stays intentionally short and focuses on agent-facing workflow guidanc
 - Keep cross-pane DOM focus helpers at `src/lib/reader-focus.ts`; `src/lib/reader/` is for pure reader query/source planning.
 - Put frontend-owned runtime schemas in `src/schemas/` when they validate local config, localStorage, preferences, or other non-IPC data.
 - Keep Tauri IPC request/response schemas in `src/api/schemas/`; do not mix them with local storage or app-config schemas.
+- Treat `src-tauri/gen/schemas/` as generated Tauri capability schema output, not source. Do not hand-edit files there; change `src-tauri/capabilities/` or the owning Tauri permission/config source, rerun the Tauri CLI command that generated the schema drift, and review the resulting schema diff as generated output before committing.
 - Put cross-feature literals in `src/constants/`, and shared type-only contracts in `src/lib/*.types.ts` unless an existing feature-local type file is narrower.
 - Do not keep `.types.ts` files as dumping grounds for view-local props or hook-internal params/results. When a type is only consumed by one component or one hook, co-locate it in that file; keep `.types.ts` for contracts shared across views, hooks, stories, tests, stores, or runtime boundaries.
 - Do not move React props or hook params/results to `src/schemas/` unless they validate runtime input. Schemas are for runtime validation boundaries; component and hook types are compile-time contracts.

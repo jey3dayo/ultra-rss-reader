@@ -1043,6 +1043,7 @@ describe("repository static contracts", () => {
   it("keeps generated schema and target artifacts outside repo scan inventories", () => {
     const gitignoreSource = readRepoFile(".gitignore");
     const ripgrepIgnoreSource = readRepoFile(".ignore");
+    const claudeGuidance = readRepoFile("CLAUDE.md");
     const ignoredArtifactPrefixes = [
       "dist/",
       "src-tauri/target/",
@@ -1058,6 +1059,12 @@ describe("repository static contracts", () => {
       expect(ripgrepIgnoreSource).toContain(ignoredArtifactPrefix);
       expect(qualityBaselineRepoScanIgnoredPathPrefixes).toContain(ignoredArtifactPrefix);
     }
+
+    expect(claudeGuidance).toContain("Treat `src-tauri/gen/schemas/` as generated Tauri capability schema output");
+    expect(claudeGuidance).toContain("Do not hand-edit files there");
+    expect(claudeGuidance).toContain("change `src-tauri/capabilities/` or the owning Tauri permission/config source");
+    expect(claudeGuidance).toContain("rerun the Tauri CLI command that generated the schema drift");
+    expect(claudeGuidance).toContain("review the resulting schema diff as generated output before committing");
   });
 
   it("keeps app E2E Playwright and package dev scripts aligned with the Vite port", () => {
