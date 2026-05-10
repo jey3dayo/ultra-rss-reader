@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { testRetryableAppError, testUserVisibleAppError } from "./app-error";
+import { testDiagnosticsAppError, testRetryableAppError, testUserVisibleAppError } from "./app-error";
 
 describe("app-error test fixtures", () => {
   it("creates UserVisible app errors for nonblank messages", () => {
@@ -17,10 +17,19 @@ describe("app-error test fixtures", () => {
     });
   });
 
+  it("creates Diagnostics app errors for nonblank messages", () => {
+    expect(testDiagnosticsAppError("response validation failed")).toEqual({
+      type: "Diagnostics",
+      message: "response validation failed",
+    });
+  });
+
   it("rejects blank or whitespace-only messages", () => {
     expect(() => testUserVisibleAppError("")).toThrow("AppError message must not be empty");
     expect(() => testUserVisibleAppError("   ")).toThrow("AppError message must not be empty");
     expect(() => testRetryableAppError("")).toThrow("AppError message must not be empty");
     expect(() => testRetryableAppError("   ")).toThrow("AppError message must not be empty");
+    expect(() => testDiagnosticsAppError("")).toThrow("AppError message must not be empty");
+    expect(() => testDiagnosticsAppError("   ")).toThrow("AppError message must not be empty");
   });
 });
