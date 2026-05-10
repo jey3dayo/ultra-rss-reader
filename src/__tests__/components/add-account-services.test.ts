@@ -8,7 +8,9 @@ import { getAddAccountFormConfig } from "@/lib/account/add-account-form";
 
 describe("add-account-services", () => {
   it("keeps enabled add account providers discoverable", () => {
-    expect(getEnabledServiceDefinitions().map((service) => service.kind)).toEqual(["Local", "FreshRss"]);
+    expect(
+      getEnabledServiceDefinitions().map((service) => service.kind),
+    ).toEqual(["Local", "FreshRss"]);
     expect(findServiceDefinition("Local")).toEqual(
       expect.objectContaining({
         kind: "Local",
@@ -26,17 +28,27 @@ describe("add-account-services", () => {
   });
 
   it("keeps disabled services listed but not discoverable as enabled providers", () => {
-    const disabledKinds = getDisabledServiceDefinitions().map((service) => service.kind);
+    const disabledKinds = getDisabledServiceDefinitions().map(
+      (service) => service.kind,
+    );
 
-    expect(disabledKinds).toEqual(["Fever", "Inoreader", "Feedly", "NewsBlur", "Feedbin"]);
+    expect(disabledKinds).toEqual([
+      "Fever",
+      "Inoreader",
+      "Feedly",
+      "NewsBlur",
+      "Feedbin",
+    ]);
   });
 
   it("keeps enabled service picker options aligned with credential field requirements", () => {
-    const enabledProviderMatrix = getEnabledServiceDefinitions().map((service) => ({
-      kind: service.kind,
-      config: getAddAccountFormConfig(service.kind),
-      service,
-    }));
+    const enabledProviderMatrix = getEnabledServiceDefinitions().map(
+      (service) => ({
+        kind: service.kind,
+        config: getAddAccountFormConfig(service.kind),
+        service,
+      }),
+    );
 
     expect(enabledProviderMatrix).toMatchObject([
       {
