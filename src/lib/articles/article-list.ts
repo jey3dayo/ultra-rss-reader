@@ -13,6 +13,8 @@ import type { ReaderSourcePlan } from "@/lib/reader/reader-query";
 import type { ReaderSelection } from "@/lib/reader/reader-selection.types";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
 
+export const MAX_RETAINED_ARTICLES_SNAPSHOT_SIZE = 50;
+
 type SelectVisibleArticlesParams = {
   articles: ArticleDto[] | undefined;
   accountArticles: ArticleDto[] | undefined;
@@ -201,22 +203,28 @@ export function mergeRetainedArticlesSnapshot(params: {
   currentRetainedArticles: ArticleDto[];
 }): RetainedArticlesSnapshot | null {
   const { previous, contextKey, retainedArticleIds, currentRetainedArticles } = params;
+  const cappedRetainedArticleIds = [...retainedArticleIds].slice(-MAX_RETAINED_ARTICLES_SNAPSHOT_SIZE);
   const preservedArticles =
     previous?.contextKey === contextKey
-      ? previous.articles.filter((article) => retainedArticleIds.has(article.id))
+      ? previous.articles.filter((article) => cappedRetainedArticleIds.includes(article.id))
       : [];
   const merged = new Map(preservedArticles.map((article) => [article.id, article]));
   for (const article of currentRetainedArticles) {
-    merged.set(article.id, article);
+    if (retainedArticleIds.has(article.id)) {
+      merged.set(article.id, article);
+    }
   }
+  const cappedArticles = cappedRetainedArticleIds
+    .map((articleId) => merged.get(articleId))
+    .filter((article): article is ArticleDto => article !== undefined);
 
-  if (merged.size === 0) {
+  if (cappedArticles.length === 0) {
     return null;
   }
 
   const nextSnapshot = {
     contextKey,
-    articles: [...merged.values()],
+    articles: cappedArticles,
   };
 
   if (
@@ -227,6 +235,15 @@ export function mergeRetainedArticlesSnapshot(params: {
   }
 
   return nextSnapshot;
+}
+
+export function buildArticleListSourcePlanKey(sourcePlan: ReaderSourcePlan): string {
+  const sourceFilter = sourcePlan.query?.filter ?? "none";
+  const sourceOrder = sourcePlan.preservesRecentOrder ? "source" : "sorted";
+
+  return [sourcePlan.sourceKey, sourcePlan.sourceKind, sourceFilter, sourcePlan.effectiveViewMode, sourceOrder].join(
+    "|",
+  );
 }
 
 export function mergeResolvedArticlesWithRetained(params: {
@@ -350,12 +367,16 @@ export function resolveArticleListMarkAllReadCount(params: ArticleListMarkAllRea
 }
 
 export function resolveEffectiveRetainedArticleIds(params: {
-  sourcePlan: ReaderSourcePlan;
+  sourcePlan?: ReaderSourcePlan;
+  sourceFilter?: ViewMode | null;
+  effectiveViewMode?: ViewMode;
   retainedArticleIds: ReadonlySet<string>;
   selectedArticleId: string | null;
 }): ReadonlySet<string> {
-  const { sourcePlan, retainedArticleIds, selectedArticleId } = params;
-  if (sourcePlan.query?.filter === "starred" && sourcePlan.effectiveViewMode === "all" && selectedArticleId) {
+  const sourceFilter = params.sourceFilter ?? params.sourcePlan?.query?.filter ?? null;
+  const effectiveViewMode = params.effectiveViewMode ?? params.sourcePlan?.effectiveViewMode;
+  const { retainedArticleIds, selectedArticleId } = params;
+  if (sourceFilter === "starred" && effectiveViewMode === "all" && selectedArticleId) {
     return new Set([...retainedArticleIds, selectedArticleId]);
   }
 

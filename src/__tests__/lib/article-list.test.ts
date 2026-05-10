@@ -12,6 +12,7 @@ import {
   areArticleListsEquivalent,
   buildArticleGroupItems,
   buildArticleListFeedNameMap,
+  buildArticleListSourcePlanKey,
   buildFolderFeedIdSet,
   calculateArticleNavigationScrollTop,
   collectRetainedArticlesFromSources,
@@ -21,6 +22,7 @@ import {
   getAdjacentItemId,
   getUnreadArticleIds,
   groupArticles,
+  MAX_RETAINED_ARTICLES_SNAPSHOT_SIZE,
   mergeResolvedArticlesWithRetained,
   mergeRetainedArticlesSnapshot,
   resolveArticleGroupLabelToken,
@@ -842,6 +844,24 @@ describe("article-list utils", () => {
     expect(result).not.toBe(retainedArticleIds);
   });
 
+  it("builds a stable article list source plan key from semantic fields", () => {
+    const firstPlan = buildTestSourcePlan({
+      sourceFilter: "starred",
+      effectiveViewMode: "all",
+    });
+    const equivalentPlan = buildTestSourcePlan({
+      sourceFilter: "starred",
+      effectiveViewMode: "all",
+    });
+    const changedPlan = buildTestSourcePlan({
+      sourceFilter: "unread",
+      effectiveViewMode: "unread",
+    });
+
+    expect(buildArticleListSourcePlanKey(firstPlan)).toBe(buildArticleListSourcePlanKey(equivalentPlan));
+    expect(buildArticleListSourcePlanKey(firstPlan)).not.toBe(buildArticleListSourcePlanKey(changedPlan));
+  });
+
   it("reuses retained article ids when selected row retention is unnecessary", () => {
     const retainedArticleIds = new Set([requireSampleUnreadArticle().id]);
     const selectedArticle = requireSampleReadArticle();
@@ -866,6 +886,42 @@ describe("article-list utils", () => {
         selectedArticleId: selectedArticle.id,
       }),
     ).toBe(retainedArticleIds);
+  });
+
+  it("drops retained article snapshots when the source context changes", () => {
+    const previous = {
+      contextKey: "account:acc-1:articles:unread",
+      articles: [{ ...requireSampleUnreadArticle(), id: "retained-1" }],
+    };
+
+    const result = mergeRetainedArticlesSnapshot({
+      previous,
+      contextKey: "account:acc-2:articles:unread",
+      retainedArticleIds: new Set(["retained-1"]),
+      currentRetainedArticles: [],
+    });
+
+    expect(result).toBeNull();
+  });
+
+  it("caps retained article snapshots to the newest retained ids", () => {
+    const retainedArticles = Array.from({ length: MAX_RETAINED_ARTICLES_SNAPSHOT_SIZE + 2 }, (_, index) => ({
+      ...requireSampleUnreadArticle(),
+      id: `retained-${index}`,
+    }));
+    const retainedArticleIds = new Set(retainedArticles.map((article) => article.id));
+
+    const result = mergeRetainedArticlesSnapshot({
+      previous: null,
+      contextKey: "account:acc-1:articles:unread",
+      retainedArticleIds,
+      currentRetainedArticles: retainedArticles,
+    });
+
+    expect(result?.articles).toHaveLength(MAX_RETAINED_ARTICLES_SNAPSHOT_SIZE);
+    expect(result?.articles.map((article) => article.id)).toEqual(
+      retainedArticles.slice(2).map((article) => article.id),
+    );
   });
 
   it("returns the adjacent article id", () => {

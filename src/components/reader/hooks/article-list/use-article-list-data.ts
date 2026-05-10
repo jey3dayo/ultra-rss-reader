@@ -27,17 +27,19 @@ export function useArticleListData({
   sortUnread,
   groupBy,
 }: UseArticleListDataParams): UseArticleListDataResult {
+  const sourceFilter = sourcePlan.query?.filter ?? null;
   const effectiveViewMode = useMemo<ViewMode>(() => {
     return sourcePlan.effectiveViewMode;
   }, [sourcePlan.effectiveViewMode]);
 
   const effectiveRetainedArticleIds = useMemo(() => {
     return resolveEffectiveRetainedArticleIds({
-      sourcePlan,
+      sourceFilter,
+      effectiveViewMode,
       retainedArticleIds,
       selectedArticleId,
     });
-  }, [retainedArticleIds, selectedArticleId, sourcePlan]);
+  }, [effectiveViewMode, retainedArticleIds, selectedArticleId, sourceFilter]);
 
   const feedNameMap = useMemo(() => {
     return buildArticleListFeedNameMap(feeds);
@@ -57,7 +59,7 @@ export function useArticleListData({
       tagId,
       folderFeedIds: showSearch ? folderFeedIds : null,
       viewMode: effectiveViewMode,
-      sourceFilter: sourcePlan.query?.filter ?? null,
+      sourceFilter,
       preservesSourceOrder: sourcePlan.preservesRecentOrder,
       showSearch,
       searchQuery: trimmedDebouncedQuery,
@@ -73,7 +75,8 @@ export function useArticleListData({
     tagArticles,
     tagId,
     effectiveViewMode,
-    sourcePlan,
+    sourceFilter,
+    sourcePlan.preservesRecentOrder,
     showSearch,
     trimmedDebouncedQuery,
     searchResults,
