@@ -350,10 +350,12 @@ function markdownFilesUnderDirectory(path: string) {
 
 function markdownFilesUnderDocs() {
   const topLevelDocs = ["AGENTS.md", "README.md", "CLAUDE.md", ".claude/rules/README.md", "docs/README.md"];
+  const commandFiles = markdownFilesUnderDirectory(".claude/commands");
+  const codexSkillFiles = markdownFilesUnderDirectory(".codex/skills");
   const docsFiles = markdownFilesUnderDirectory("docs");
   const ruleFiles = markdownFilesUnderDirectory(".claude/rules");
 
-  return [...new Set([...topLevelDocs, ...docsFiles, ...ruleFiles])].toSorted();
+  return [...new Set([...topLevelDocs, ...commandFiles, ...codexSkillFiles, ...docsFiles, ...ruleFiles])].toSorted();
 }
 
 function storyFilesUnderSrc() {
@@ -1441,6 +1443,9 @@ describe("repository static contracts", () => {
       .toSorted();
 
     expect(markdownFilesUnderDocs()).toEqual(expect.arrayContaining(ruleMarkdownFiles));
+    expect(markdownFilesUnderDocs()).toEqual(
+      expect.arrayContaining([".claude/commands/release.md", ".codex/skills/release/SKILL.md"]),
+    );
 
     const brokenLinks = markdownFilesUnderDocs().flatMap((filePath) => {
       const source = readRepoFile(filePath);
@@ -1455,6 +1460,15 @@ describe("repository static contracts", () => {
     });
 
     expect(brokenLinks).toEqual([]);
+  });
+
+  it("keeps agent-facing docs independent from machine-local external skill paths", () => {
+    const localSkillPathReferences = markdownFilesUnderDocs().flatMap((filePath) => {
+      const source = readRepoFile(filePath);
+      return source.includes(".agents/skills") ? [filePath] : [];
+    });
+
+    expect(localSkillPathReferences).toEqual([]);
   });
 
   it("keeps the .claude/rules index complete for every project rule", () => {
