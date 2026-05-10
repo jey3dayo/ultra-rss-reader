@@ -83,6 +83,21 @@ export const dependencyLicenseInventoryContract = {
     "Review unknown and dual-license entries before release distribution; generated inventory artifacts stay under tmp/.",
 } as const;
 
+export const dependencyUpdateSmokeContract = {
+  categories: ["query-caching", "store-equality", "tauri-api", "vite-dev-server", "test-runner"] as const,
+  reviewPolicy:
+    "Classify lockfile updates by runtime behavior before review; pure dev dependency updates need only the matching test-runner or Vite smoke.",
+  packages: [
+    { name: "@tanstack/react-query", category: "query-caching", smoke: "query cache boot/reload contract" },
+    { name: "zustand", category: "store-equality", smoke: "store selector equality and persistence contract" },
+    { name: "@tauri-apps/api", category: "tauri-api", smoke: "Tauri command/event wrapper contract" },
+    { name: "@tauri-apps/plugin-updater", category: "tauri-api", smoke: "updater hook command boundary contract" },
+    { name: "vite", category: "vite-dev-server", smoke: "Tauri dev Vite port and HMR contract" },
+    { name: "vitest", category: "test-runner", smoke: "unit test environment and setup contract" },
+    { name: "@vitest/browser", category: "test-runner", smoke: "browser-mode test runner contract" },
+  ],
+} as const;
+
 export const tailwindArbitraryValuesInventoryContract = {
   sourcePathPrefixes: ["src/"],
   sourceFileExtensions: [".tsx", ".css"],

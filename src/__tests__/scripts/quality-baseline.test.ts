@@ -8,6 +8,7 @@ import {
   createProcessDiagnostic,
   createReportDiagnostic,
   dependencyLicenseInventoryContract,
+  dependencyUpdateSmokeContract,
   isQualityBaselineRepoScanIgnoredPath,
   isTailwindArbitraryValueInventorySourcePath,
   parseKnipReport,
@@ -385,6 +386,47 @@ describe("quality-baseline", () => {
         review: "ok",
       },
     ]);
+  });
+
+  it("classifies dependency update smoke by runtime behavior family", () => {
+    expect(dependencyUpdateSmokeContract.categories).toEqual([
+      "query-caching",
+      "store-equality",
+      "tauri-api",
+      "vite-dev-server",
+      "test-runner",
+    ]);
+    expect(dependencyUpdateSmokeContract.reviewPolicy).toContain("Classify lockfile updates by runtime behavior");
+
+    expect(dependencyUpdateSmokeContract.packages).toEqual(
+      expect.arrayContaining([
+        {
+          name: "@tanstack/react-query",
+          category: "query-caching",
+          smoke: "query cache boot/reload contract",
+        },
+        {
+          name: "zustand",
+          category: "store-equality",
+          smoke: "store selector equality and persistence contract",
+        },
+        {
+          name: "@tauri-apps/api",
+          category: "tauri-api",
+          smoke: "Tauri command/event wrapper contract",
+        },
+        {
+          name: "vite",
+          category: "vite-dev-server",
+          smoke: "Tauri dev Vite port and HMR contract",
+        },
+        {
+          name: "vitest",
+          category: "test-runner",
+          smoke: "unit test environment and setup contract",
+        },
+      ]),
+    );
   });
 });
 
