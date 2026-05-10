@@ -15,6 +15,7 @@ import {
   useArticles,
   useClearArticleViewHistory,
   useFolderArticles,
+  useMarkOldUnreadRead,
   useRecentArticles,
   useRecordArticleView,
   useSearchArticles,
@@ -618,6 +619,34 @@ describe("useSetRead", () => {
 
     expect(queryClient.getQueryState(["articlesByTag", "tag-1", "acc-1", { mode: "all" }])?.isInvalidated).toBe(true);
     expect(queryClient.getQueryState(["tagArticleCounts", "acc-1"])?.isInvalidated).toBe(true);
+  });
+
+  it("marks visible article, search, tag count, and unread count caches stale after old-unread mutations", async () => {
+    vi.spyOn(tauriCommands, "markOldUnreadRead").mockResolvedValue(Result.succeed(null));
+
+    queryClient.setQueryData(queryKeys.folderArticles.byFolder("folder-1", "unread"), sampleArticles);
+    queryClient.setQueryData(queryKeys.articlesByTag.byTagAndAccount("tag-1", "acc-1", "unread"), sampleArticles);
+    queryClient.setQueryData(queryKeys.search.byAccountAndQuery("acc-1", "fresh"), sampleArticles);
+    queryClient.setQueryData(queryKeys.accountUnreadCount.byAccount("acc-1"), 2);
+    queryClient.setQueryData(queryKeys.tagArticleCounts.byAccount("acc-1"), { "tag-1": 2 });
+
+    const { result } = renderHook(() => useMarkOldUnreadRead(), { wrapper });
+
+    await result.current.mutateAsync({
+      scopeKind: "folder",
+      targetId: "folder-1",
+      olderThanDays: 30,
+    });
+
+    expect(queryClient.getQueryState(queryKeys.folderArticles.byFolder("folder-1", "unread"))?.isInvalidated).toBe(
+      true,
+    );
+    expect(
+      queryClient.getQueryState(queryKeys.articlesByTag.byTagAndAccount("tag-1", "acc-1", "unread"))?.isInvalidated,
+    ).toBe(true);
+    expect(queryClient.getQueryState(queryKeys.search.byAccountAndQuery("acc-1", "fresh"))?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(queryKeys.accountUnreadCount.byAccount("acc-1"))?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(queryKeys.tagArticleCounts.byAccount("acc-1"))?.isInvalidated).toBe(true);
   });
 
   it("does not let an older read mutation success overwrite the latest cache patch", async () => {

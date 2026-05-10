@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { describe, expect, expectTypeOf, it, vi } from "vitest";
 import type { SettingsModalViewProps } from "@/components/settings/settings-modal.types";
@@ -118,6 +119,31 @@ describe("SettingsModalView", () => {
     fireEvent.click(screen.getByRole("button", { name: "Close preferences" }));
 
     expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it("lets Escape request closing through the dialog top-layer owner", async () => {
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+
+    render(
+      <SettingsModalView
+        open={true}
+        title="Preferences"
+        closeLabel="Close preferences"
+        navigation={<button type="button">General</button>}
+        accountsHeading="Accounts"
+        accountsNavigation={<button type="button">Local account</button>}
+        content={settingsContent(<button type="button">Save settings</button>)}
+        contentResetKey="general::false"
+        onClose={vi.fn()}
+        onOpenChange={onOpenChange}
+      />,
+    );
+
+    screen.getByRole("button", { name: "Save settings" }).focus();
+    await user.keyboard("{Escape}");
+
+    expect(onOpenChange).toHaveBeenCalledWith(false, expect.anything());
   });
 
   it("disables closing and shows the lock reason while setup is in progress", () => {

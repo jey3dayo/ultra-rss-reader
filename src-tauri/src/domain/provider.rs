@@ -101,6 +101,16 @@ pub struct ProviderCapabilities {
     pub supports_remote_state: bool,
 }
 
+impl ProviderCapabilities {
+    pub fn supports_read_state_mutations(&self) -> bool {
+        self.supports_remote_state
+    }
+
+    pub fn supports_star_state_mutations(&self) -> bool {
+        self.supports_remote_state && self.supports_starring
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ProviderSideDeletionRetention {
     NotApplicable,
@@ -281,6 +291,8 @@ mod tests {
         let capabilities = ProviderKind::FreshRss.capabilities();
         let identity = ProviderKind::FreshRss.api_identity();
 
+        assert!(capabilities.supports_read_state_mutations());
+        assert!(capabilities.supports_star_state_mutations());
         assert!(capabilities.supports_delta_sync);
         assert!(capabilities.supports_remote_state);
         assert_eq!(identity.protocol, "greader");
@@ -290,6 +302,18 @@ mod tests {
             "unsupported_by_greader_contract"
         );
         assert_eq!(identity.diagnostics_product_label, "freshrss-greader");
+    }
+
+    #[test]
+    fn local_and_quarantined_capabilities_disable_remote_mutation_actions() {
+        for kind in [ProviderKind::Local, ProviderKind::Quarantined] {
+            let capabilities = kind.capabilities();
+
+            assert!(!capabilities.supports_read_state_mutations());
+            assert!(!capabilities.supports_star_state_mutations());
+            assert!(!capabilities.supports_remote_state);
+            assert!(!capabilities.supports_starring);
+        }
     }
 
     #[test]

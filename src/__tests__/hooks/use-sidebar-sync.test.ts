@@ -149,6 +149,35 @@ describe("resolveSidebarLastSyncedLabel", () => {
     });
   });
 
+  it("logs manual account sync status invalidation failures with the manual sync owner", async () => {
+    const { queryClient, wrapper } = createQueryWrapper();
+    const invalidationError = new Error("manual sync status cache refresh failed");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(queryClient, "invalidateQueries").mockRejectedValue(invalidationError);
+    vi.mocked(triggerManualSyncWithCooldown).mockImplementation(async (params) => {
+      params.onError({ type: "UserVisible", message: "boom" });
+    });
+
+    const { result } = renderHook(() => useSidebarSync(createSyncHookParams()), { wrapper });
+
+    await act(async () => {
+      await result.current.handleSync();
+    });
+
+    await waitFor(() => {
+      expect(warn).toHaveBeenCalledWith("Query invalidation failed:", {
+        actionOwner: "manual-sync-completed",
+        queryKey: accountSyncStatusQueryKey(),
+        error: invalidationError,
+      });
+    });
+    expect(consoleErrorSpy).toHaveBeenCalledWith("Sync failed:", {
+      type: "UserVisible",
+      message: "boom",
+    });
+  });
+
   it("passes the selected account id to manual sync", async () => {
     const { wrapper } = createQueryWrapper();
     vi.mocked(triggerManualSyncWithCooldown).mockImplementation(async (params) => {
@@ -330,7 +359,7 @@ describe("resolveSidebarLastSyncedLabel", () => {
     expect(clearSyncProgress).toHaveBeenCalledTimes(1);
     await waitFor(() => {
       expect(warn).toHaveBeenCalledWith("Query invalidation failed:", {
-        actionOwner: "unknown",
+        actionOwner: "background-sync-completed",
         queryKey: accountSyncStatusQueryKey(),
         error: invalidationError,
       });

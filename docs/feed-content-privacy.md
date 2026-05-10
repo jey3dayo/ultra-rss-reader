@@ -317,6 +317,99 @@ Trust boundary contract:
   joined into a path, normalized into a save filename, or used to decide where
   an import/export/backup artifact is written.
 
+### Provider Request Security Boundary
+
+Decision: provider HTTP clients use a no-store request policy and must not
+persist provider cookies.
+
+Provider request contract:
+
+- Provider requests send `Cache-Control: no-store` and `Pragma: no-cache`.
+- Provider clients must not enable a persistent cookie store or reuse
+  `Set-Cookie` response values as provider session state.
+- Provider auth state is explicit provider state, such as a FreshRSS
+  GoogleReader token held by the provider instance, not hidden HTTP cache or
+  cookie state.
+- Redirect handling must preserve authorization only for same-origin redirects
+  and strip authorization on cross-origin redirects.
+- Local RSS provider sync and discovery requests are capped at one in-flight
+  request each. This cap is the current per-domain politeness baseline until a
+  host-keyed scheduler exists.
+- Private-host DNS validation is checked for each validated local feed URL and
+  redirect target. Do not cache a previous public DNS answer as authorization
+  for a later provider request.
+- Credential verification is a separate account action. Creating or updating
+  account credentials may save database/keyring state, but verification network
+  requests must run only through the explicit connection-test flow and update
+  only verification status fields.
+
+### Provider Account Kind Migration Checklist
+
+Decision: every new provider account kind requires a migration checklist before
+the account kind is exposed in settings or sync. The checklist is a release
+contract, not a best-effort implementation note.
+
+Checklist template:
+
+- Account identity: declare the provider kind id, display label, stable account
+  id source, server URL requirements, and whether changing server URL or
+  username clears account-scoped sync state.
+- Credentials: define where credentials live, how test connection reads them,
+  how credential replacement rolls back after partial failure, and which
+  diagnostic classes may be logged without secrets.
+- Capabilities: document read, star, tag, folder, feed add/delete, article
+  delete, and server-side search support as explicit supported, unsupported, or
+  unknown states.
+- Sync cursor: define initial sync, incremental sync, cursor reset, clock skew,
+  deleted remote item handling, and retry/backoff behavior for auth, network,
+  provider refusal, and rate-limit failures.
+- Folder and tag semantics: define ownership, rename/delete behavior, duplicate
+  names, remote deletion retention, and whether local optimistic mutations can
+  be replayed safely.
+- Schema and migration: add or confirm runtime DTO schemas, database migrations,
+  migration rollback behavior, fixture coverage, and downgrade compatibility
+  notes for the provider kind.
+- Settings surface: show provider kind, connection state, capability summary,
+  cache-clear or credential-reset actions, and any provider-specific guidance
+  needed for safe operation.
+- Privacy boundary: confirm server URLs, feed URLs, article URLs, account names,
+  credentials, tokens, cookies, and raw provider error payloads stay out of
+  support copy unless redacted by the support-dump preview contract.
+
+If any checklist item cannot be answered for a provider, keep the provider kind
+behind development-only fixtures or a reviewed experimental flag and do not
+ship it as a normal account type.
+
+### Provider Count Guidance In Account Settings
+
+Decision: account settings may show provider-specific feed and article count
+guidance as soft operational guidance, but must not present those values as hard
+limits unless the provider API enforces a documented limit.
+
+Count guidance contract:
+
+- Provider traits may expose optional guidance fields such as recommended feed
+  count range, recommended retained article count range, warning threshold, and
+  diagnostics class.
+- Account settings should show the current feed count, approximate retained
+  article count, stale feed count, and sync warning state when those values are
+  already available without starting extra provider requests.
+- Warning copy must say whether the count is an app performance warning, a
+  provider documented limit, or an unknown provider-specific assumption.
+- Guidance must not block sync, import, or account save by itself. Blocking
+  requires a provider error, local storage failure, schema failure, or an
+  explicit user-confirmed destructive action.
+- Diagnostics may record count bucket and warning class, but must not store raw
+  account names, feed URLs, article URLs, server URLs, credentials, tokens, or
+  cookies.
+- Provider-specific assumptions must be reviewed when adding a provider account
+  kind, changing sync pagination, changing retention defaults, or adding a new
+  account settings summary.
+
+Until this surface exists, release notes and support copy must avoid promising
+provider-specific max feed or article counts. They may describe large accounts
+as potentially slower and ask for redacted count buckets during triage.
+
 ### Feed Parser Error Sample Policy
 
 Decision: do not save feed parser response samples in support-safe diagnostics

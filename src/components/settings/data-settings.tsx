@@ -31,6 +31,9 @@ export function DataSettings() {
         settingsDataResetStorageKeys: storageCleanupPolicyConnections.settingsDataResetKeys,
         privateDataExportStorageKeys: storageCleanupPolicyConnections.privateDataExportKeys,
       })}
+      recoveryCriteriaHeading={t("data.recovery_criteria")}
+      recoveryCriteriaTargetUnknownLabel={t("data.recovery_criteria_target_unknown_disabled")}
+      destructiveRecoveryCriteria={controller.destructiveRecoveryCriteria}
       optimizationHeading={t("data.optimization")}
       vacuumDescription={t("data.vacuum_description")}
       vacuumLabel={controller.vacuuming ? t("data.vacuuming") : t("data.vacuum")}

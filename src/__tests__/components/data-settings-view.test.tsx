@@ -28,6 +28,20 @@ describe("DataSettingsView", () => {
         safetyHeading="Backup and Restore"
         safetyDescription="Confirm rollback before changing user data."
         safetyChecklist={["Use OPML export.", "Quit before restoring backups."]}
+        recoveryCriteriaHeading="Recovery action criteria"
+        recoveryCriteriaTargetUnknownLabel="Disabled until the target is known."
+        destructiveRecoveryCriteria={[
+          {
+            action: "Clean up orphaned data",
+            requirement: "Show dry-run counts before cleanup.",
+            disabledWhenTargetUnknown: true,
+          },
+          {
+            action: "Open logs",
+            requirement: "No destructive confirmation required.",
+            disabledWhenTargetUnknown: false,
+          },
+        ]}
         optimizationHeading="Optimization"
         vacuumDescription="Optimize the database."
         vacuumLabel="Optimize now"
@@ -45,6 +59,13 @@ describe("DataSettingsView", () => {
     expect(screen.getByText("1.50 MB")).toHaveClass("text-foreground-soft");
     expect(screen.getByRole("heading", { name: "Backup and Restore" })).toBeInTheDocument();
     expect(screen.getByText("Use OPML export.")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Recovery action criteria" })).toBeInTheDocument();
+    expect(screen.getByText(/Clean up orphaned data/)).toHaveClass("font-medium");
+    expect(screen.getByText(/Show dry-run counts before cleanup/)).toBeInTheDocument();
+    expect(screen.getByText(/Disabled until the target is known/)).toBeInTheDocument();
+    expect(
+      screen.queryByText(/No destructive confirmation required.*Disabled until the target is known/),
+    ).not.toBeInTheDocument();
     expect(screen.getByText("Optimize the database.")).toHaveClass("font-serif", "text-foreground-soft");
     expect(screen.getByText("Open the log directory.")).toHaveClass("font-serif", "text-foreground-soft");
 

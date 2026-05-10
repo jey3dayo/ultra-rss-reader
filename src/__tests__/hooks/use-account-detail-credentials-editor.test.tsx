@@ -415,6 +415,84 @@ describe("useAccountDetailCredentialsEditor", () => {
     expect(result.current.credUsername).toBe("current-draft");
   });
 
+  it("reuses an in-flight credential save for the same draft", async () => {
+    const account = sampleAccounts[1];
+    const pendingSave = createDeferred<ReturnType<typeof updateAccountCredentialsMock>>();
+    updateAccountCredentialsMock.mockReturnValue(pendingSave.promise);
+
+    const { result } = renderHook(() =>
+      useAccountDetailCredentialsEditor({
+        account,
+        queryClient: createTestQueryClient(),
+        t,
+      }),
+    );
+
+    act(() => {
+      result.current.setCredUsername("alice");
+    });
+
+    const firstSave = result.current.commitCredentials();
+    const secondSave = result.current.commitCredentials();
+
+    expect(updateAccountCredentialsMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      pendingSave.resolve(Result.succeed({ ...account, username: "alice" }));
+      await expect(firstSave).resolves.toBe(true);
+      await expect(secondSave).resolves.toBe(true);
+    });
+  });
+
+  it("queues a changed credential draft until the in-flight save settles", async () => {
+    const account = sampleAccounts[1];
+    const queryClient = createTestQueryClient();
+    queryClient.setQueryData(["accounts"], [account]);
+    const firstSave = createDeferred<ReturnType<typeof updateAccountCredentialsMock>>();
+    updateAccountCredentialsMock.mockReturnValueOnce(firstSave.promise).mockResolvedValueOnce(
+      Result.succeed({
+        ...account,
+        username: "current-draft",
+      }),
+    );
+
+    const { result } = renderHook(() =>
+      useAccountDetailCredentialsEditor({
+        account,
+        queryClient,
+        t,
+      }),
+    );
+
+    act(() => {
+      result.current.setCredUsername("stale-user");
+    });
+    const staleSave = result.current.commitCredentials();
+
+    act(() => {
+      result.current.setCredUsername("current-draft");
+    });
+    const currentSave = result.current.commitCredentials();
+
+    expect(updateAccountCredentialsMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      firstSave.resolve(Result.succeed({ ...account, username: "stale-user" }));
+      await staleSave;
+      await currentSave;
+    });
+
+    expect(updateAccountCredentialsMock).toHaveBeenCalledTimes(2);
+    expect(updateAccountCredentialsMock).toHaveBeenLastCalledWith(
+      account.id,
+      account.server_url,
+      "current-draft",
+      undefined,
+    );
+    expect(queryClient.getQueryData(["accounts"])).toEqual([{ ...account, username: "current-draft" }]);
+    expect(result.current.credUsername).toBeNull();
+  });
+
   it("does not test a stale account after credential persistence finishes on a previous account", async () => {
     const firstAccount = {
       ...sampleAccounts[1],
@@ -525,9 +603,13 @@ describe("useAccountDetailCredentialsEditor", () => {
     expect(consoleWarn).toHaveBeenCalledWith(
       "Query invalidation failed:",
       expect.objectContaining({
-        actionOwner: "unknown",
-        queryKey: ["accounts"],
-        error: expect.any(Error),
+        failures: [
+          expect.objectContaining({
+            actionOwner: "unknown",
+            queryKey: ["accounts"],
+            error: expect.any(Error),
+          }),
+        ],
       }),
     );
     expect(queryClient.getQueryData(["accounts"])).toEqual([updated]);

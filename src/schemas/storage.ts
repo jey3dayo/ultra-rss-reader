@@ -99,6 +99,35 @@ export const StoredSidebarExpandedFoldersSchema = z
 
 export type StoredSidebarExpandedFolders = z.output<typeof StoredSidebarExpandedFoldersSchema>;
 
+const DatabaseRestoreStorageReconciliationPolicySchemaBase = z
+  .object({
+    removeKeys: z.tuple([
+      z.literal(STORAGE_KEYS.commandHistory),
+      z.literal(STORAGE_KEYS.sidebarExpandedFolders),
+      z.literal(STORAGE_KEYS.startupSyncLastTriggeredAt),
+    ]),
+    retainKeys: z.tuple([z.literal(STORAGE_KEYS.theme)]),
+  })
+  .strict();
+
+export const DATABASE_RESTORE_STORAGE_RECONCILIATION_POLICY: z.input<
+  typeof DatabaseRestoreStorageReconciliationPolicySchemaBase
+> = {
+  removeKeys: [
+    STORAGE_KEYS.commandHistory,
+    STORAGE_KEYS.sidebarExpandedFolders,
+    STORAGE_KEYS.startupSyncLastTriggeredAt,
+  ],
+  retainKeys: [STORAGE_KEYS.theme],
+};
+
+export const DatabaseRestoreStorageReconciliationPolicySchema =
+  DatabaseRestoreStorageReconciliationPolicySchemaBase.default(DATABASE_RESTORE_STORAGE_RECONCILIATION_POLICY);
+
+export type DatabaseRestoreStorageReconciliationPolicy = z.output<
+  typeof DatabaseRestoreStorageReconciliationPolicySchema
+>;
+
 export const STORAGE_SCHEMA_CAPACITY_FIXTURES = {
   commandHistory: {
     storageKey: STORAGE_KEYS.commandHistory,

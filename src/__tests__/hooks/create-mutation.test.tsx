@@ -2,7 +2,7 @@ import { Result } from "@praha/byethrow";
 import type { QueryClient } from "@tanstack/react-query";
 import { renderHook } from "@testing-library/react";
 import { createQueryWrapper } from "@tests/helpers/create-wrapper";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppError } from "@/api/schemas/error";
 import { createMutation } from "@/hooks/create-mutation";
 import { useUiStore } from "@/stores/ui-store";
@@ -20,17 +20,23 @@ describe("createMutation", () => {
     useUiStore.setState(useUiStore.getInitialState());
   });
 
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   function renderGeneratedMutation({
     mutationFn,
     invalidate,
+    invalidationDiagnostics,
   }: {
     mutationFn: (args: TestArgs) => Result.ResultAsync<TestData, { message: string; type?: AppError["type"] }>;
     invalidate: (qc: QueryClient, args: TestArgs, data: TestData) => void | Promise<void>;
+    invalidationDiagnostics?: Parameters<typeof createMutation<TestArgs, TestData>>[2];
   }) {
     const { queryClient, wrapper } = createQueryWrapper({
       queryClientConfig: { defaultOptions: { mutations: { retry: false } } },
     });
-    const useGeneratedMutation = createMutation(mutationFn, invalidate);
+    const useGeneratedMutation = createMutation(mutationFn, invalidate, invalidationDiagnostics);
     const rendered = renderHook(() => useGeneratedMutation(), { wrapper });
 
     return { queryClient, ...rendered };
@@ -136,6 +142,34 @@ describe("createMutation", () => {
 
     expect(mutationFn).toHaveBeenCalledWith(args);
     expect(invalidate).toHaveBeenCalledTimes(1);
+    expect(useUiStore.getState().toastMessage).toBeNull();
+  });
+
+  it("emits invalidation diagnostics with owner and query keys when configured invalidation rejects", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const args = { id: "item-1" };
+    const data = { savedId: "saved-1" };
+    const mutationFn = vi.fn(async () => Result.succeed(data));
+    const invalidateError = new Error("articles invalidate failed");
+    const invalidate = vi.fn(async () => {
+      throw invalidateError;
+    });
+    const { result } = renderGeneratedMutation({
+      mutationFn,
+      invalidate,
+      invalidationDiagnostics: {
+        actionOwner: "article-mutation",
+        queryKeys: [["articles"], ["accountArticles"]],
+      },
+    });
+
+    await expect(result.current.mutateAsync(args)).rejects.toThrow("articles invalidate failed");
+
+    expect(warnSpy).toHaveBeenCalledWith("[createMutation] invalidation failed:", {
+      actionOwner: "article-mutation",
+      queryKeys: [["articles"], ["accountArticles"]],
+      error: invalidateError,
+    });
     expect(useUiStore.getState().toastMessage).toBeNull();
   });
 });

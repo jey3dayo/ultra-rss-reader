@@ -1200,6 +1200,7 @@ mod tests {
     async fn authenticate_maps_provider_http_status_categories() {
         let cases = [
             (401, "Auth error: HTTP 401 Unauthorized"),
+            (403, "Auth error: HTTP 403 Forbidden"),
             (429, "Rate limit error: HTTP 429 Too Many Requests"),
             (502, "Network error: HTTP 502 Bad Gateway"),
         ];

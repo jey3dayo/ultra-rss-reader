@@ -5,12 +5,14 @@ import {
   ARTICLE_CACHE_QUERY_ROOTS,
   getReaderArticleQueryMode,
   invalidateAddFeedQueries,
+  invalidateArticleMutationQueries,
   invalidateArticleQueries,
   invalidateDeleteFeedQueries,
   invalidateFeedQueries,
   invalidateSyncCompletedQueries,
   normalizeQueryAccountId,
   queryKeys,
+  resolveArticleMutationInvalidationQueryKeys,
   resolveArticleInvalidationQueryKeys,
   resolveFeedInvalidationQueryKeys,
   setQueryInvalidationFailureReporterForDiagnostics,
@@ -204,6 +206,82 @@ describe("query-invalidation", () => {
     ).toEqual([["feeds"], ["accountUnreadCount"]]);
   });
 
+  it("keeps mute, tag, and article mutation invalidation matrix explicit", () => {
+    const articleVisibleListMatrix = [
+      queryKeys.articles.root,
+      queryKeys.accountArticles.root,
+      queryKeys.folderArticles.root,
+      queryKeys.starredArticles.root,
+      queryKeys.accountUnreadCount.root,
+      queryKeys.accountStarredCount.root,
+      queryKeys.feeds.root,
+      queryKeys.articlesByTag.root,
+      queryKeys.tagArticleCounts.root,
+      queryKeys.search.root,
+      queryKeys.recentArticles.root,
+      queryKeys.feedArticleSummaries.root,
+    ];
+
+    expect(resolveArticleMutationInvalidationQueryKeys("article-read-star")).toEqual(articleVisibleListMatrix);
+    expect(resolveArticleMutationInvalidationQueryKeys("mute-keyword")).toEqual(articleVisibleListMatrix);
+    expect(resolveArticleMutationInvalidationQueryKeys("tag-article-assignment")).toEqual([
+      queryKeys.articles.root,
+      queryKeys.accountArticles.root,
+      queryKeys.folderArticles.root,
+      queryKeys.starredArticles.root,
+      queryKeys.accountUnreadCount.root,
+      queryKeys.accountStarredCount.root,
+      queryKeys.feeds.root,
+      queryKeys.search.root,
+      queryKeys.recentArticles.root,
+      queryKeys.feedArticleSummaries.root,
+    ]);
+    expect(resolveArticleMutationInvalidationQueryKeys("tag-metadata")).toEqual([
+      queryKeys.articlesByTag.root,
+      queryKeys.tagArticleCounts.root,
+    ]);
+  });
+
+  it("tags article mutation invalidation failures by matrix owner", async () => {
+    const { invalidateQueries, queryClient } = createInvalidateSpy();
+    const articleRejection = new Error("article mutation invalidation failed");
+    const muteRejection = new Error("mute mutation invalidation failed");
+    const tagRejection = new Error("tag mutation invalidation failed");
+    const diagnosticsReporter = vi.fn();
+    const restoreDiagnosticsReporter = setQueryInvalidationFailureReporterForDiagnostics(diagnosticsReporter);
+
+    invalidateQueries.mockRejectedValueOnce(articleRejection);
+    invalidateArticleMutationQueries(queryClient, "article-read-star");
+
+    await vi.waitFor(() => {
+      expect(diagnosticsReporter).toHaveBeenCalledWith([
+        { actionOwner: "article-mutation", queryKey: ["articles"], error: articleRejection },
+      ]);
+    });
+
+    invalidateQueries.mockReset();
+    invalidateQueries.mockRejectedValueOnce(muteRejection);
+    invalidateArticleMutationQueries(queryClient, "mute-keyword");
+
+    await vi.waitFor(() => {
+      expect(diagnosticsReporter).toHaveBeenCalledWith([
+        { actionOwner: "mute-keyword-mutation", queryKey: ["articles"], error: muteRejection },
+      ]);
+    });
+
+    invalidateQueries.mockReset();
+    invalidateQueries.mockRejectedValueOnce(tagRejection);
+    invalidateArticleMutationQueries(queryClient, "tag-article-assignment");
+
+    await vi.waitFor(() => {
+      expect(diagnosticsReporter).toHaveBeenCalledWith([
+        { actionOwner: "tag-mutation", queryKey: ["articles"], error: tagRejection },
+      ]);
+    });
+
+    restoreDiagnosticsReporter();
+  });
+
   it("keeps add and delete feed invalidation on the shared feed mutation matrix", () => {
     const { invalidateQueries, queryClient } = createInvalidateSpy();
 
@@ -372,9 +450,13 @@ describe("query-invalidation", () => {
 
     await vi.waitFor(() => {
       expect(warnSpy).toHaveBeenCalledWith("Query invalidation failed:", {
-        actionOwner: "unknown",
-        queryKey: ["feeds"],
-        error: rejection,
+        failures: [
+          {
+            actionOwner: "unknown",
+            queryKey: ["feeds"],
+            error: rejection,
+          },
+        ],
       });
     });
     expect(invalidateQueries.mock.calls.map(([options]) => options)).toEqual([
@@ -467,5 +549,36 @@ describe("query-invalidation", () => {
       { queryKey: ["recentArticles"] },
       { queryKey: ["feedArticleSummaries"] },
     ]);
+  });
+
+  it("tags sync completed invalidation failures by background and manual owner", async () => {
+    const { invalidateQueries, queryClient } = createInvalidateSpy();
+    const backgroundRejection = new Error("background sync invalidation failed");
+    const manualRejection = new Error("manual sync invalidation failed");
+    const diagnosticsReporter = vi.fn();
+    const restoreDiagnosticsReporter = setQueryInvalidationFailureReporterForDiagnostics(diagnosticsReporter);
+
+    invalidateQueries.mockRejectedValueOnce(backgroundRejection);
+
+    invalidateSyncCompletedQueries(queryClient);
+
+    await vi.waitFor(() => {
+      expect(diagnosticsReporter).toHaveBeenCalledWith([
+        { actionOwner: "background-sync-completed", queryKey: ["feeds"], error: backgroundRejection },
+      ]);
+    });
+
+    invalidateQueries.mockReset();
+    invalidateQueries.mockRejectedValueOnce(manualRejection);
+
+    invalidateSyncCompletedQueries(queryClient, { actionOwner: "manual-sync-completed" });
+
+    await vi.waitFor(() => {
+      expect(diagnosticsReporter).toHaveBeenCalledWith([
+        { actionOwner: "manual-sync-completed", queryKey: ["feeds"], error: manualRejection },
+      ]);
+    });
+
+    restoreDiagnosticsReporter();
   });
 });

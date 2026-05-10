@@ -1,13 +1,21 @@
 import { Result } from "@praha/byethrow";
+import type { QueryClient } from "@tanstack/react-query";
 import type { TFunction } from "i18next";
 import { useCallback, useEffect, useReducer, useRef } from "react";
 import { getDatabaseInfo, openLogDir, vacuumDatabase } from "@/api/tauri-commands";
+import type { AppError } from "@/api/tauri-commands";
 import {
   BYTES_PER_KIBIBYTE,
   BYTES_PER_MEBIBYTE,
   DATA_SIZE_FRACTION_DIGITS,
   DATA_SIZE_UNIT_LABELS,
 } from "@/constants/data-size";
+import { resolveRestoredAccountSelection } from "@/lib/account/account-selection";
+import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
+import {
+  DATABASE_RESTORE_STORAGE_RECONCILIATION_POLICY,
+  type DatabaseRestoreStorageReconciliationPolicy,
+} from "@/schemas/storage";
 
 type UseDataSettingsControllerParams = {
   t: TFunction<"settings">;
@@ -18,6 +26,8 @@ type UseDataSettingsControllerParams = {
 type UseDataSettingsControllerResult = {
   databaseSizeStatus: DatabaseSizeStatus;
   databaseSizeValue: string;
+  databaseRuntimeRecoverySurface: DatabaseRuntimeRecoverySurface | null;
+  destructiveRecoveryCriteria: readonly DestructiveRecoveryCriterion[];
   vacuuming: boolean;
   openingLogDir: boolean;
   handleVacuum: () => Promise<void>;
@@ -28,22 +38,101 @@ export type DatabaseSizeStatus = "loading" | "ready" | "error";
 
 type DataSettingsActionKey = "vacuuming" | "openingLogDir";
 
+export type DestructiveRecoveryCriterion = {
+  action: string;
+  requirement: string;
+  disabledWhenTargetUnknown: boolean;
+};
+
+export type DatabaseRuntimeFailureKind =
+  | "read_corruption"
+  | "write_corruption"
+  | "locked"
+  | "permission_denied"
+  | "disk_full";
+
+export type DatabaseRuntimeRecoveryMode =
+  | "read_only_degraded"
+  | "retry_when_idle"
+  | "user_permission_fix"
+  | "free_disk_space";
+
+export type DatabaseRuntimeRecoveryAction =
+  | "run_integrity_check"
+  | "restore_backup"
+  | "retry"
+  | "check_os_permissions"
+  | "free_disk_space";
+
+export type DatabaseRecoveryActionSafety = "read_only" | "requires_explicit_confirmation";
+
+export type DatabaseRuntimeRecoverySurface = {
+  failureKind: DatabaseRuntimeFailureKind;
+  mode: DatabaseRuntimeRecoveryMode;
+  actions: readonly DatabaseRuntimeRecoveryAction[];
+  actionSafety: readonly DatabaseRecoveryActionSafety[];
+  diagnosticsIdRequired: true;
+};
+
+type DatabaseRuntimeOperation = "read" | "write";
+
+type DataSettingsRecoveryTranslationKey =
+  | "data.recovery_criteria_restore_backup_action"
+  | "data.recovery_criteria_restore_backup_requirement"
+  | "data.recovery_criteria_private_data_reset_action"
+  | "data.recovery_criteria_private_data_reset_requirement"
+  | "data.recovery_criteria_cleanup_orphans_action"
+  | "data.recovery_criteria_cleanup_orphans_requirement"
+  | "data.recovery_criteria_clear_history_action"
+  | "data.recovery_criteria_clear_history_requirement"
+  | "data.recovery_criteria_delete_account_action"
+  | "data.recovery_criteria_delete_account_requirement";
+
+type DataSettingsRecoveryTranslation = (key: DataSettingsRecoveryTranslationKey) => string;
+
+type DatabaseRestoreAccount = {
+  id: string;
+};
+
+type DatabaseRestoreFrontendStateReconciliationParams<T extends DatabaseRestoreAccount> = {
+  accounts: readonly T[];
+  selectedAccountId: string | null | undefined;
+  savedAccountId: string | null | undefined;
+  queryClient: Pick<QueryClient, "clear">;
+  storage: Pick<Storage, "removeItem">;
+  restoreAccountSelection: (accountId: string, options: { focusedPane: "list" }) => void;
+  clearSelectedAccount: () => void;
+  setSelectedAccountPreference: (accountId: string) => void;
+  storagePolicy?: DatabaseRestoreStorageReconciliationPolicy;
+};
+
+type DatabaseRestoreFrontendStateReconciliationResult = {
+  queryCacheCleared: boolean;
+  removedStorageKeys: readonly string[];
+  selectedAccountId: string | null;
+  preferenceAccountId: string;
+  restartRequired: true;
+};
+
 type DataSettingsControllerState = {
   databaseSizeStatus: DatabaseSizeStatus;
   totalSize: number | null;
+  databaseRuntimeRecoverySurface: DatabaseRuntimeRecoverySurface | null;
   vacuuming: boolean;
   openingLogDir: boolean;
 };
 
 type DataSettingsControllerAction =
   | { type: "set-database-size-ready"; value: number }
-  | { type: "set-database-size-error" }
+  | { type: "set-database-size-error"; recoverySurface: DatabaseRuntimeRecoverySurface | null }
+  | { type: "set-database-runtime-recovery-surface"; recoverySurface: DatabaseRuntimeRecoverySurface | null }
   | { type: "set-vacuuming"; value: boolean }
   | { type: "set-opening-log-dir"; value: boolean };
 
 const initialDataSettingsControllerState: DataSettingsControllerState = {
   databaseSizeStatus: "loading",
   totalSize: null,
+  databaseRuntimeRecoverySurface: null,
   vacuuming: false,
   openingLogDir: false,
 };
@@ -106,9 +195,21 @@ function dataSettingsControllerReducer(
 ): DataSettingsControllerState {
   switch (action.type) {
     case "set-database-size-ready":
-      return { ...state, databaseSizeStatus: "ready", totalSize: action.value };
+      return {
+        ...state,
+        databaseSizeStatus: "ready",
+        totalSize: action.value,
+        databaseRuntimeRecoverySurface: null,
+      };
     case "set-database-size-error":
-      return { ...state, databaseSizeStatus: "error", totalSize: null };
+      return {
+        ...state,
+        databaseSizeStatus: "error",
+        totalSize: null,
+        databaseRuntimeRecoverySurface: action.recoverySurface,
+      };
+    case "set-database-runtime-recovery-surface":
+      return { ...state, databaseRuntimeRecoverySurface: action.recoverySurface };
     case "set-vacuuming":
       return { ...state, vacuuming: action.value };
     case "set-opening-log-dir":
@@ -120,6 +221,88 @@ function dataSettingsControllerReducer(
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function getAppErrorMessage(error: AppError): string {
+  return error.message;
+}
+
+function isDatabaseLockedMessage(message: string): boolean {
+  return /\b(database is )?(busy|locked)\b/i.test(message);
+}
+
+function isPermissionDeniedMessage(message: string): boolean {
+  return /permission denied|access denied|readonly database|read-only database/i.test(message);
+}
+
+function isDiskFullMessage(message: string): boolean {
+  return /disk full|database or disk is full|no space left/i.test(message);
+}
+
+function isDatabaseCorruptionMessage(message: string): boolean {
+  return /corrupt|malformed|not a database|file is not a database|database disk image is malformed/i.test(message);
+}
+
+export function classifyDatabaseRuntimeRecoverySurface(
+  error: AppError,
+  operation: DatabaseRuntimeOperation,
+): DatabaseRuntimeRecoverySurface | null {
+  const message = getAppErrorMessage(error);
+  if (isDatabaseLockedMessage(message)) {
+    return {
+      failureKind: "locked",
+      mode: "retry_when_idle",
+      actions: ["retry"],
+      actionSafety: ["read_only"],
+      diagnosticsIdRequired: true,
+    };
+  }
+  if (isPermissionDeniedMessage(message)) {
+    return {
+      failureKind: "permission_denied",
+      mode: "user_permission_fix",
+      actions: ["check_os_permissions"],
+      actionSafety: ["read_only"],
+      diagnosticsIdRequired: true,
+    };
+  }
+  if (isDiskFullMessage(message)) {
+    return {
+      failureKind: "disk_full",
+      mode: "free_disk_space",
+      actions: ["free_disk_space"],
+      actionSafety: ["read_only"],
+      diagnosticsIdRequired: true,
+    };
+  }
+  if (isDatabaseCorruptionMessage(message)) {
+    return {
+      failureKind: operation === "read" ? "read_corruption" : "write_corruption",
+      mode: "read_only_degraded",
+      actions: ["run_integrity_check", "restore_backup"],
+      actionSafety: ["read_only", "requires_explicit_confirmation"],
+      diagnosticsIdRequired: true,
+    };
+  }
+  return null;
+}
+
+function logDatabaseRuntimeRecoverySurface(
+  recoverySurface: DatabaseRuntimeRecoverySurface | null,
+  operation: DatabaseRuntimeOperation,
+  error: AppError,
+): void {
+  if (recoverySurface === null) {
+    return;
+  }
+  logRuntimeDiagnostic("database-runtime-recovery", "Database runtime recovery surface detected", {
+    operation,
+    failureKind: recoverySurface.failureKind,
+    mode: recoverySurface.mode,
+    actions: recoverySurface.actions,
+    diagnosticsIdRequired: recoverySurface.diagnosticsIdRequired,
+    message: error.message,
+  });
 }
 
 export function formatBytes(bytes: number): string {
@@ -135,6 +318,83 @@ export function formatBytes(bytes: number): string {
   return `${(bytes / BYTES_PER_MEBIBYTE).toFixed(DATA_SIZE_FRACTION_DIGITS)} ${DATA_SIZE_UNIT_LABELS.mebibyte}`;
 }
 
+export function buildDestructiveRecoveryCriteria(
+  t: DataSettingsRecoveryTranslation,
+): readonly DestructiveRecoveryCriterion[] {
+  return [
+    {
+      action: t("data.recovery_criteria_restore_backup_action"),
+      requirement: t("data.recovery_criteria_restore_backup_requirement"),
+      disabledWhenTargetUnknown: true,
+    },
+    {
+      action: t("data.recovery_criteria_private_data_reset_action"),
+      requirement: t("data.recovery_criteria_private_data_reset_requirement"),
+      disabledWhenTargetUnknown: true,
+    },
+    {
+      action: t("data.recovery_criteria_cleanup_orphans_action"),
+      requirement: t("data.recovery_criteria_cleanup_orphans_requirement"),
+      disabledWhenTargetUnknown: true,
+    },
+    {
+      action: t("data.recovery_criteria_clear_history_action"),
+      requirement: t("data.recovery_criteria_clear_history_requirement"),
+      disabledWhenTargetUnknown: true,
+    },
+    {
+      action: t("data.recovery_criteria_delete_account_action"),
+      requirement: t("data.recovery_criteria_delete_account_requirement"),
+      disabledWhenTargetUnknown: true,
+    },
+  ];
+}
+
+export function reconcileDatabaseRestoreFrontendState<T extends DatabaseRestoreAccount>({
+  accounts,
+  selectedAccountId,
+  savedAccountId,
+  queryClient,
+  storage,
+  restoreAccountSelection,
+  clearSelectedAccount,
+  setSelectedAccountPreference,
+  storagePolicy = DATABASE_RESTORE_STORAGE_RECONCILIATION_POLICY,
+}: DatabaseRestoreFrontendStateReconciliationParams<T>): DatabaseRestoreFrontendStateReconciliationResult {
+  queryClient.clear();
+
+  const removedStorageKeys: string[] = [];
+  for (const storageKey of storagePolicy.removeKeys) {
+    try {
+      storage.removeItem(storageKey);
+      removedStorageKeys.push(storageKey);
+    } catch {
+      // Restore reconciliation must still repair selection even when localStorage is unavailable.
+    }
+  }
+
+  const accountSelection = resolveRestoredAccountSelection({
+    accounts,
+    selectedAccountId,
+    savedAccountId,
+  });
+
+  if (accountSelection.accountId === null) {
+    clearSelectedAccount();
+  } else {
+    restoreAccountSelection(accountSelection.accountId, { focusedPane: "list" });
+  }
+  setSelectedAccountPreference(accountSelection.preferenceAccountId);
+
+  return {
+    queryCacheCleared: true,
+    removedStorageKeys,
+    selectedAccountId: accountSelection.accountId,
+    preferenceAccountId: accountSelection.preferenceAccountId,
+    restartRequired: true,
+  };
+}
+
 export function useDataSettingsController({
   t,
   showToast,
@@ -144,7 +404,7 @@ export function useDataSettingsController({
     ...initialDataSettingsControllerState,
     ...getDataSettingsActionLifecycle(),
   });
-  const { databaseSizeStatus, totalSize, vacuuming, openingLogDir } = state;
+  const { databaseSizeStatus, totalSize, databaseRuntimeRecoverySurface, vacuuming, openingLogDir } = state;
   const controllerIdRef = useRef<DataSettingsActionOwnerId>(Symbol("data-settings-controller"));
   const databaseSizeRequestRevisionRef = useRef(0);
   const mountedRef = useRef(false);
@@ -172,8 +432,10 @@ export function useDataSettingsController({
           if (!isActiveDatabaseSizeRequest(requestRevision)) {
             return;
           }
+          const recoverySurface = classifyDatabaseRuntimeRecoverySurface(error, "read");
+          logDatabaseRuntimeRecoverySurface(recoverySurface, "read", error);
           console.error("Failed to get database info:", error);
-          dispatch({ type: "set-database-size-error" });
+          dispatch({ type: "set-database-size-error", recoverySurface });
         }),
       );
     } catch (error) {
@@ -181,7 +443,7 @@ export function useDataSettingsController({
         return;
       }
       console.error("Failed to get database info:", error);
-      dispatch({ type: "set-database-size-error" });
+      dispatch({ type: "set-database-size-error", recoverySurface: null });
     }
   }, [isActiveDatabaseSizeRequest]);
 
@@ -241,6 +503,9 @@ export function useDataSettingsController({
           if (!mountedRef.current) {
             return;
           }
+          const recoverySurface = classifyDatabaseRuntimeRecoverySurface(error, "write");
+          logDatabaseRuntimeRecoverySurface(recoverySurface, "write", error);
+          dispatch({ type: "set-database-runtime-recovery-surface", recoverySurface });
           console.error("VACUUM failed:", error);
           showToast(t("data.vacuum_failed", { message: error.message }));
         }),
@@ -289,6 +554,8 @@ export function useDataSettingsController({
   return {
     databaseSizeStatus,
     databaseSizeValue: totalSize != null ? formatBytes(totalSize) : "",
+    databaseRuntimeRecoverySurface,
+    destructiveRecoveryCriteria: buildDestructiveRecoveryCriteria(t),
     vacuuming,
     openingLogDir,
     handleVacuum,

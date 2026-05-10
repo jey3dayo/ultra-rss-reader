@@ -1,15 +1,16 @@
 use rusqlite::{params, Connection};
 
 use crate::domain::error::{DomainError, DomainResult};
+use crate::domain::provider::ProviderKind;
 use crate::domain::types::AccountId;
 use crate::repository::pending_mutation::{
     PendingMutation, PendingMutationAxis, PendingMutationRepository, PendingMutationType,
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum PendingMutationAccountScope {
     LocalOnly,
-    Remote,
+    Remote(ProviderKind),
 }
 
 impl PendingMutationAccountScope {
@@ -17,7 +18,7 @@ impl PendingMutationAccountScope {
         match kind {
             "Local" => Ok(Self::LocalOnly),
             "Quarantined" => Ok(Self::LocalOnly),
-            "FreshRss" => Ok(Self::Remote),
+            "FreshRss" => Ok(Self::Remote(ProviderKind::FreshRss)),
             other => Err(DomainError::Persistence(format!(
                 "Unknown account provider kind for pending mutation: {other}"
             ))),
@@ -78,6 +79,12 @@ impl<'a> SqlitePendingMutationRepository<'a> {
 
 impl PendingMutationRepository for SqlitePendingMutationRepository<'_> {
     fn find_by_account(&self, account_id: &AccountId) -> DomainResult<Vec<PendingMutation>> {
+        if pending_mutation_account_scope(self.conn, account_id)?
+            == PendingMutationAccountScope::LocalOnly
+        {
+            return Ok(Vec::new());
+        }
+
         let mut stmt = self.conn.prepare(
             "SELECT id, account_id, mutation_type, remote_entry_id, created_at
              FROM pending_mutations
@@ -105,12 +112,21 @@ impl PendingMutationRepository for SqlitePendingMutationRepository<'_> {
                 "pending mutation remote_entry_id cannot be blank".to_string(),
             ));
         }
-        if pending_mutation_account_scope(self.conn, &mutation.account_id)?
-            == PendingMutationAccountScope::LocalOnly
-        {
-            return Err(DomainError::Validation(
-                "pending mutations require a remote account".to_string(),
-            ));
+        match pending_mutation_account_scope(self.conn, &mutation.account_id)? {
+            PendingMutationAccountScope::LocalOnly => {
+                return Err(DomainError::Validation(
+                    "pending mutations require a remote account".to_string(),
+                ));
+            }
+            PendingMutationAccountScope::Remote(kind) => {
+                let capabilities = kind.capabilities();
+                if !mutation.mutation_type.is_supported_by(&capabilities) {
+                    return Err(DomainError::Validation(format!(
+                        "pending mutation {} is not supported by account provider capabilities",
+                        mutation.mutation_type
+                    )));
+                }
+            }
         }
 
         let tx = self.conn.unchecked_transaction()?;
@@ -754,6 +770,31 @@ mod tests {
         assert!(
             matches!(error, DomainError::Validation(message) if message == "Unknown pending mutation type: delete_remote_entry")
         );
+    }
+
+    #[test]
+    fn find_by_account_hides_stale_mutations_after_capability_downgrade() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        db.writer()
+            .execute(
+                "INSERT INTO pending_mutations (account_id, mutation_type, remote_entry_id, created_at)
+                 VALUES (?1, 'mark_read', 'entry-read', '2024-01-01T00:00:00Z'),
+                        (?1, 'star', 'entry-star', '2024-01-01T00:00:01Z')",
+                params![account_id.0],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "UPDATE accounts SET kind = 'Quarantined' WHERE id = ?1",
+                params![account_id.0],
+            )
+            .unwrap();
+
+        let repo = SqlitePendingMutationRepository::new(db.reader());
+        let found = repo.find_by_account(&account_id).unwrap();
+
+        assert!(found.is_empty());
     }
 
     #[test]

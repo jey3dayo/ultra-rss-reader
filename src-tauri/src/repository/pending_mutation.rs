@@ -1,4 +1,5 @@
 use crate::domain::error::{DomainError, DomainResult};
+use crate::domain::provider::ProviderCapabilities;
 use crate::domain::types::AccountId;
 use std::fmt;
 
@@ -62,6 +63,13 @@ impl PendingMutationType {
             ],
         }
     }
+
+    pub fn is_supported_by(self, capabilities: &ProviderCapabilities) -> bool {
+        match self.axis() {
+            PendingMutationAxis::ReadState => capabilities.supports_read_state_mutations(),
+            PendingMutationAxis::StarState => capabilities.supports_star_state_mutations(),
+        }
+    }
 }
 
 impl fmt::Display for PendingMutationType {
@@ -89,4 +97,40 @@ pub trait PendingMutationRepository {
         remote_entry_ids: &[String],
         axis: PendingMutationAxis,
     ) -> DomainResult<()>;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn capabilities(supports_remote_state: bool, supports_starring: bool) -> ProviderCapabilities {
+        ProviderCapabilities {
+            supports_folders: false,
+            supports_starring,
+            supports_search: false,
+            supports_delta_sync: false,
+            supports_remote_state,
+        }
+    }
+
+    #[test]
+    fn mutation_type_support_follows_provider_read_and_star_capabilities() {
+        let no_remote_state = capabilities(false, true);
+        assert!(!PendingMutationType::MarkRead.is_supported_by(&no_remote_state));
+        assert!(!PendingMutationType::MarkUnread.is_supported_by(&no_remote_state));
+        assert!(!PendingMutationType::Star.is_supported_by(&no_remote_state));
+        assert!(!PendingMutationType::Unstar.is_supported_by(&no_remote_state));
+
+        let read_only_remote_state = capabilities(true, false);
+        assert!(PendingMutationType::MarkRead.is_supported_by(&read_only_remote_state));
+        assert!(PendingMutationType::MarkUnread.is_supported_by(&read_only_remote_state));
+        assert!(!PendingMutationType::Star.is_supported_by(&read_only_remote_state));
+        assert!(!PendingMutationType::Unstar.is_supported_by(&read_only_remote_state));
+
+        let full_remote_state = capabilities(true, true);
+        assert!(PendingMutationType::MarkRead.is_supported_by(&full_remote_state));
+        assert!(PendingMutationType::MarkUnread.is_supported_by(&full_remote_state));
+        assert!(PendingMutationType::Star.is_supported_by(&full_remote_state));
+        assert!(PendingMutationType::Unstar.is_supported_by(&full_remote_state));
+    }
 }

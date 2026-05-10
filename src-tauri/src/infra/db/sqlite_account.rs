@@ -163,7 +163,28 @@ impl AccountRepository for SqliteAccountRepository<'_> {
     fn save(&self, account: &Account) -> DomainResult<()> {
         validate_sync_settings(account.sync_interval_secs, account.keep_read_items_days)?;
 
-        self.conn.execute(
+        let tx = self.conn.unchecked_transaction()?;
+        let existing_remote_identity = tx
+            .query_row(
+                "SELECT kind, server_url, username FROM accounts WHERE id = ?1",
+                params![account.id.0],
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, Option<String>>(1)?,
+                        row.get::<_, Option<String>>(2)?,
+                    ))
+                },
+            )
+            .optional()?;
+        let remote_identity_changed =
+            existing_remote_identity.is_some_and(|(kind, server_url, username)| {
+                kind != provider_kind_to_str(&account.kind)
+                    || server_url.as_deref() != account.server_url.as_deref()
+                    || username.as_deref() != account.username.as_deref()
+            });
+
+        tx.execute(
             "INSERT INTO accounts (
                 id,
                 kind,
@@ -206,6 +227,17 @@ impl AccountRepository for SqliteAccountRepository<'_> {
                 account.connection_verification_error,
             ],
         )?;
+        if remote_identity_changed {
+            tx.execute(
+                "DELETE FROM sync_state WHERE account_id = ?1",
+                params![account.id.0],
+            )?;
+            tx.execute(
+                "DELETE FROM pending_mutations WHERE account_id = ?1",
+                params![account.id.0],
+            )?;
+        }
+        tx.commit()?;
         Ok(())
     }
 
@@ -659,6 +691,98 @@ mod tests {
         assert_eq!(folder_count, 1);
         assert_eq!(feed_count, 1);
         assert_eq!(article_count, 1);
+    }
+
+    #[test]
+    fn save_clears_remote_sync_state_and_pending_mutations_when_provider_identity_changes() {
+        let db = test_db();
+        let repo = SqliteAccountRepository::new(db.writer());
+
+        let mut account = make_account("FreshRSS");
+        account.kind = ProviderKind::FreshRss;
+        account.server_url = Some("https://old.example.com".to_string());
+        account.username = Some("old-user".to_string());
+        repo.save(&account).unwrap();
+
+        db.writer()
+            .execute(
+                "INSERT INTO sync_state (account_id, scope_key, continuation, last_error, error_count, next_retry_at)
+                 VALUES (?1, 'account:greader:all', 'cursor', 'backoff', 3, '2026-05-10T00:00:00Z')",
+                params![account.id.0],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO pending_mutations (account_id, mutation_type, remote_entry_id, created_at)
+                 VALUES (?1, 'mark_read', 'remote-1', '2026-05-09T00:02:00Z')",
+                params![account.id.0],
+            )
+            .unwrap();
+
+        account.kind = ProviderKind::Local;
+        account.server_url = None;
+        account.username = None;
+        repo.save(&account).unwrap();
+
+        let sync_state_count: i32 = db
+            .reader()
+            .query_row("SELECT COUNT(*) FROM sync_state", [], |row| row.get(0))
+            .unwrap();
+        let pending_count: i32 = db
+            .reader()
+            .query_row("SELECT COUNT(*) FROM pending_mutations", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        let updated = repo.find_by_id(&account.id).unwrap().unwrap();
+
+        assert_eq!(updated.kind, ProviderKind::Local);
+        assert_eq!(sync_state_count, 0);
+        assert_eq!(pending_count, 0);
+    }
+
+    #[test]
+    fn save_keeps_remote_sync_state_and_pending_mutations_when_provider_identity_is_unchanged() {
+        let db = test_db();
+        let repo = SqliteAccountRepository::new(db.writer());
+
+        let mut account = make_account("FreshRSS");
+        account.kind = ProviderKind::FreshRss;
+        account.server_url = Some("https://same.example.com".to_string());
+        account.username = Some("same-user".to_string());
+        repo.save(&account).unwrap();
+
+        db.writer()
+            .execute(
+                "INSERT INTO sync_state (account_id, scope_key, continuation, last_error, error_count, next_retry_at)
+                 VALUES (?1, 'account:greader:all', 'cursor', 'backoff', 3, '2026-05-10T00:00:00Z')",
+                params![account.id.0],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO pending_mutations (account_id, mutation_type, remote_entry_id, created_at)
+                 VALUES (?1, 'mark_read', 'remote-1', '2026-05-09T00:02:00Z')",
+                params![account.id.0],
+            )
+            .unwrap();
+
+        account.name = "Renamed FreshRSS".to_string();
+        repo.save(&account).unwrap();
+
+        let sync_state_count: i32 = db
+            .reader()
+            .query_row("SELECT COUNT(*) FROM sync_state", [], |row| row.get(0))
+            .unwrap();
+        let pending_count: i32 = db
+            .reader()
+            .query_row("SELECT COUNT(*) FROM pending_mutations", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+
+        assert_eq!(sync_state_count, 1);
+        assert_eq!(pending_count, 1);
     }
 
     #[test]

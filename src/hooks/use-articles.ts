@@ -32,9 +32,10 @@ import {
   ARTICLE_CACHE_QUERY_ROOTS,
   getReaderArticleQueryMode,
   invalidateArticleQueries,
+  invalidateArticleMutationQueries,
   normalizeQueryAccountId,
   queryKeys,
-  resolveArticleInvalidationQueryKeys,
+  resolveArticleMutationInvalidationQueryKeys as resolveArticleMutationInvalidationQueryKeysFromMatrix,
 } from "@/lib/query/query-invalidation";
 import type { ReaderFilter } from "@/lib/reader/reader-query";
 
@@ -141,14 +142,7 @@ function patchCachedArticleReadState(qc: QueryClient, articleId: string, read: b
 }
 
 export function resolveArticleMutationInvalidationQueryKeys() {
-  return resolveArticleInvalidationQueryKeys({ includeTagArticleCounts: true });
-}
-
-function invalidateArticleMutationQueries(qc: QueryClient) {
-  invalidateArticleQueries(qc, {
-    actionOwner: "article-mutation",
-    includeTagArticleCounts: true,
-  });
+  return resolveArticleMutationInvalidationQueryKeysFromMatrix("article-read-star");
 }
 
 function isArticleDto(candidate: unknown): candidate is ArticleDto {
@@ -469,27 +463,33 @@ export function useSetRead() {
       if (latestRequestIdsRef.current.get(variables.id) === context.requestId) {
         patchCachedArticleReadState(qc, variables.id, variables.read);
       }
-      invalidateArticleMutationQueries(qc);
+      invalidateArticleMutationQueries(qc, "article-read-star");
     },
   });
 }
 
 export const useMarkAllRead = createMutation(
   (articleIds: string[]) => markArticlesRead(articleIds),
-  invalidateArticleMutationQueries,
+  (qc) => invalidateArticleMutationQueries(qc, "article-read-star"),
 );
 
-export const useMarkAccountRead = createMutation(markAccountRead, invalidateArticleMutationQueries);
+export const useMarkAccountRead = createMutation(markAccountRead, (qc) =>
+  invalidateArticleMutationQueries(qc, "article-read-star"),
+);
 
-export const useMarkAccountStarredRead = createMutation(markAccountStarredRead, invalidateArticleMutationQueries);
+export const useMarkAccountStarredRead = createMutation(markAccountStarredRead, (qc) =>
+  invalidateArticleMutationQueries(qc, "article-read-star"),
+);
 
 export const useMarkOldUnreadRead = createMutation(
   ({ scopeKind, targetId, olderThanDays }: MarkOldUnreadReadMutationInput) =>
     markOldUnreadRead(scopeKind, targetId, olderThanDays),
-  invalidateArticleMutationQueries,
+  (qc) => invalidateArticleMutationQueries(qc, "article-read-star"),
 );
 
-export const useUnstarAccountArticles = createMutation(unstarAccountArticles, invalidateArticleMutationQueries);
+export const useUnstarAccountArticles = createMutation(unstarAccountArticles, (qc) =>
+  invalidateArticleMutationQueries(qc, "article-read-star"),
+);
 
 export function useRecordArticleView() {
   const qc = useQueryClient();
@@ -541,9 +541,13 @@ export const useClearArticleViewHistory = createMutation(clearArticleViewHistory
   }),
 );
 
-export const useMarkFeedRead = createMutation(markFeedRead, invalidateArticleMutationQueries);
+export const useMarkFeedRead = createMutation(markFeedRead, (qc) =>
+  invalidateArticleMutationQueries(qc, "article-read-star"),
+);
 
-export const useMarkFolderRead = createMutation(markFolderRead, invalidateArticleMutationQueries);
+export const useMarkFolderRead = createMutation(markFolderRead, (qc) =>
+  invalidateArticleMutationQueries(qc, "article-read-star"),
+);
 
 export function useSearchArticles(accountId: string | null, query: string) {
   const normalizedAccountId = normalizeQueryAccountId(accountId);
@@ -584,7 +588,7 @@ export function useToggleStar() {
       if (latestRequestIdsRef.current.get(variables.id) === context.requestId) {
         patchCachedArticleStarState(qc, variables.id, variables.starred);
       }
-      invalidateArticleMutationQueries(qc);
+      invalidateArticleMutationQueries(qc, "article-read-star");
     },
   });
 }

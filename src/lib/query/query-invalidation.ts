@@ -1,5 +1,6 @@
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
 import type { ReaderFilter } from "@/lib/reader/reader-query";
+import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
 
 type InvalidateFeedQueriesOptions = {
   includeFeeds?: boolean;
@@ -22,7 +23,15 @@ type InvalidateArticleQueriesOptions = {
   includeFeedArticleSummaries?: boolean;
 };
 
-type QueryInvalidationActionOwner = "add-feed" | "article-mutation" | "delete-feed" | "sync-completed" | "unknown";
+type QueryInvalidationActionOwner =
+  | "add-feed"
+  | "article-mutation"
+  | "background-sync-completed"
+  | "delete-feed"
+  | "manual-sync-completed"
+  | "mute-keyword-mutation"
+  | "tag-mutation"
+  | "unknown";
 type QueryInvalidationKey = readonly [string];
 type ReaderArticleModeOptions = Readonly<{ mode: ReaderFilter }>;
 type QueryInvalidationFailure = {
@@ -39,19 +48,32 @@ type InvalidateFeedMutationQueriesOptions = {
   accountId?: string | null;
 };
 
+type InvalidateSyncCompletedQueriesOptions = {
+  actionOwner?: Extract<QueryInvalidationActionOwner, "background-sync-completed" | "manual-sync-completed">;
+};
+
 type FeedMutationInvalidationOwnerMatrixEntry = {
   feedOptions: InvalidateFeedQueriesOptions;
   articleOptions: InvalidateArticleQueriesOptions;
   includeAccountScopedFeedArticleSummaries: boolean;
 };
 
+type ArticleMutationInvalidationKind =
+  | "article-read-star"
+  | "mute-keyword"
+  | "tag-article-assignment"
+  | "tag-metadata";
+
+type ArticleMutationInvalidationMatrixEntry = {
+  actionOwner: Extract<QueryInvalidationActionOwner, "article-mutation" | "mute-keyword-mutation" | "tag-mutation">;
+  articleOptions: InvalidateArticleQueriesOptions;
+};
+
 let queryInvalidationFailureReporter: (failures: readonly QueryInvalidationFailure[]) => void =
   reportQueryInvalidationFailures;
 
 function reportQueryInvalidationFailures(failures: readonly QueryInvalidationFailure[]) {
-  for (const failure of failures) {
-    console.warn("Query invalidation failed:", failure);
-  }
+  logRuntimeDiagnostic("mutation-invalidation", "Query invalidation failed:", { failures });
 }
 
 export function setQueryInvalidationFailureReporterForDiagnostics(
@@ -306,6 +328,44 @@ const FEED_MUTATION_INVALIDATION_OWNER_MATRIX = {
   FeedMutationInvalidationOwnerMatrixEntry
 >;
 
+const ARTICLE_MUTATION_INVALIDATION_MATRIX = {
+  "article-read-star": {
+    actionOwner: "article-mutation",
+    articleOptions: {
+      includeTagArticleCounts: true,
+    },
+  },
+  "mute-keyword": {
+    actionOwner: "mute-keyword-mutation",
+    articleOptions: {
+      includeTagArticleCounts: true,
+    },
+  },
+  "tag-article-assignment": {
+    actionOwner: "tag-mutation",
+    articleOptions: {
+      includeArticlesByTag: false,
+      includeTagArticleCounts: false,
+    },
+  },
+  "tag-metadata": {
+    actionOwner: "tag-mutation",
+    articleOptions: {
+      includeArticles: false,
+      includeAccountArticles: false,
+      includeStarredArticles: false,
+      includeAccountUnreadCount: false,
+      includeAccountStarredCount: false,
+      includeFeeds: false,
+      includeArticlesByTag: true,
+      includeTagArticleCounts: true,
+      includeSearch: false,
+      includeFeedArticleSummaries: false,
+      includeRecentArticles: false,
+    },
+  },
+} as const satisfies Record<ArticleMutationInvalidationKind, ArticleMutationInvalidationMatrixEntry>;
+
 function resolveInvalidationQueryKeys<TOption extends string>(
   targets: ReadonlyArray<InvalidationTarget<TOption>>,
   options: Partial<Record<TOption, boolean>>,
@@ -331,6 +391,18 @@ export function resolveArticleInvalidationQueryKeys(
   options: InvalidateArticleQueriesOptions = {},
 ): ReadonlyArray<QueryInvalidationKey> {
   return resolveInvalidationQueryKeys(ARTICLE_INVALIDATION_TARGETS, options);
+}
+
+export function resolveArticleMutationInvalidationQueryKeys(kind: ArticleMutationInvalidationKind) {
+  return resolveArticleInvalidationQueryKeys(ARTICLE_MUTATION_INVALIDATION_MATRIX[kind].articleOptions);
+}
+
+export function invalidateArticleMutationQueries(queryClient: QueryClient, kind: ArticleMutationInvalidationKind) {
+  const matrixEntry = ARTICLE_MUTATION_INVALIDATION_MATRIX[kind];
+
+  invalidateQueryKeysLogOnly(queryClient, resolveArticleInvalidationQueryKeys(matrixEntry.articleOptions), {
+    actionOwner: matrixEntry.actionOwner,
+  });
 }
 
 export function invalidateQueryKeysLogOnly(
@@ -404,13 +476,18 @@ export function invalidateDeleteFeedQueries(
   invalidateFeedMutationQueries(queryClient, "delete-feed", options);
 }
 
-export function invalidateSyncCompletedQueries(queryClient: QueryClient) {
+export function invalidateSyncCompletedQueries(
+  queryClient: QueryClient,
+  options: InvalidateSyncCompletedQueriesOptions = {},
+) {
+  const actionOwner = options.actionOwner ?? "background-sync-completed";
+
   invalidateFeedQueries(queryClient, {
-    actionOwner: "sync-completed",
+    actionOwner,
     includeAccountUnreadCount: true,
   });
   invalidateArticleQueries(queryClient, {
-    actionOwner: "sync-completed",
+    actionOwner,
     includeAccountUnreadCount: false,
     includeFeeds: false,
     includeFeedIntegrityReport: true,
@@ -418,4 +495,9 @@ export function invalidateSyncCompletedQueries(queryClient: QueryClient) {
   });
 }
 
-export type { InvalidateArticleQueriesOptions, InvalidateFeedQueriesOptions };
+export type {
+  InvalidateArticleQueriesOptions,
+  InvalidateFeedQueriesOptions,
+  QueryInvalidationActionOwner,
+  QueryInvalidationFailure,
+};

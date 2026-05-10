@@ -106,6 +106,12 @@ const extractTauriActionBlock = (source: string): string => {
   return value;
 };
 
+const listTypeScriptSourceFiles = (dir: string): string[] =>
+  readdirSync(dir, { recursive: true })
+    .filter((entry): entry is string => typeof entry === "string")
+    .filter((entry) => /\.(?:ts|tsx)$/.test(entry))
+    .map((entry) => `${dir}/${entry}`);
+
 describe("release repository contract", () => {
   const packageJson: PackageJson = JSON.parse(readText("package.json"));
   const tauriConfig: TauriConfig = JSON.parse(readText("src-tauri/tauri.conf.json"));
@@ -114,6 +120,8 @@ describe("release repository contract", () => {
   const defaultCapability: { permissions?: string[] } = JSON.parse(readText("src-tauri/capabilities/default.json"));
   const cargoToml = readText("src-tauri/Cargo.toml");
   const releaseWorkflow = readText(".github/workflows/release.yml");
+  const tauriLib = readText("src-tauri/src/lib.rs");
+  const devMocks = readText("src/dev/mocks.ts");
   const releaseManualVerification = readText("docs/release-manual-verification.md");
   const docsReadme = readText("docs/README.md");
   const ciWorkflow = readText(".github/workflows/ci.yml");
@@ -318,7 +326,7 @@ describe("release repository contract", () => {
     expect(releaseWorkflow).toContain("Generate updater asset checksums");
     expect(releaseWorkflow).toContain("Upload updater asset checksums");
     expect(releaseWorkflow).toContain("releaseDraft: true");
-    expect(releaseManualVerification).toContain("Release provenance and SBOM record");
+    expect(releaseManualVerification).toContain("Release Provenance And SBOM Record");
     expect(releaseManualVerification).toContain("Release tag and tag target SHA");
     expect(releaseManualVerification).toContain("Source commit SHA checked out by the release workflow");
     expect(releaseManualVerification).toContain("GitHub workflow run id and run URL");
@@ -330,6 +338,13 @@ describe("release repository contract", () => {
 
   it("keeps release builds from using dev Tauri config or dev credentials", () => {
     const tauriActionBlock = extractTauriActionBlock(releaseWorkflow);
+    const devOnlyImportPattern = /(?:from\s+|import\()\s*["']@\/dev\/(?:mock-data|scenarios)(?:\/|["'])/;
+    const releaseSourceDevOnlyImports = listTypeScriptSourceFiles("src").flatMap((filePath) => {
+      if (filePath.startsWith("src/dev/") || filePath.startsWith("src/__tests__/")) {
+        return [];
+      }
+      return devOnlyImportPattern.test(readText(filePath)) ? [filePath] : [];
+    });
 
     expect(tauriDevConfig.identifier).not.toBe(tauriReleaseConfig.identifier);
     expect(tauriDevConfig.productName).not.toBe(tauriConfig.productName);
@@ -338,13 +353,23 @@ describe("release repository contract", () => {
     expect(releaseWorkflow).toContain("src-tauri/tauri.release.conf.json must not use the dev Tauri product name");
     expect(releaseWorkflow).toContain("Validate release build contamination contract");
     expect(releaseWorkflow).toContain("release capability must not include debug-only MCP bridge permissions");
+    expect(releaseWorkflow).toContain("release build must keep the MCP bridge plugin behind cfg(debug_assertions)");
+    expect(releaseWorkflow).toContain("release build must keep dev browser mocks disabled inside Tauri");
+    expect(releaseWorkflow).toContain("release source must not import dev-only mock data or scenario modules");
+    expect(tauriLib).toMatch(
+      /#\[cfg\(debug_assertions\)\]\s*let builder = builder\.plugin\(\s*tauri_plugin_mcp_bridge::Builder::new\(\)/,
+    );
+    expect(devMocks).toContain(
+      "if (window.__TAURI_INTERNALS__ && !window.__DEV_BROWSER_MOCKS__) return restoreWindowGlobals;",
+    );
     expect(defaultCapability.permissions?.filter((permission) => permission.startsWith("mcp-bridge:"))).toEqual([]);
+    expect(releaseSourceDevOnlyImports).toEqual([]);
     expect(tauriActionBlock).not.toContain("--config src-tauri/tauri.dev.conf.json");
     expect(releaseWorkflow).not.toMatch(/\bDEV_CREDENTIALS\s*:/);
     expect(releaseWorkflow).not.toMatch(/\bULTRA_RSS_DEV_CREDENTIALS\s*:/);
-    expect(releaseManualVerification).toContain("Release dev-only contamination record");
+    expect(releaseManualVerification).toContain("Release Dev-Only Contamination Record");
     expect(releaseManualVerification).toContain("DEV_CREDENTIALS");
-    expect(releaseManualVerification).toContain("dev mocks");
+    expect(releaseManualVerification).toMatch(/dev mocks/i);
     expect(releaseManualVerification).toContain("debug-only MCP bridge permissions");
   });
 

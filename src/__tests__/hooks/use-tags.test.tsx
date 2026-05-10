@@ -302,9 +302,13 @@ describe("article tag mutations", () => {
     });
     await waitFor(() => {
       expect(warn).toHaveBeenCalledWith("Query invalidation failed:", {
-        actionOwner: "unknown",
-        queryKey: ["tags"],
-        error: invalidationError,
+        failures: [
+          {
+            actionOwner: "tag-mutation",
+            queryKey: ["tags"],
+            error: invalidationError,
+          },
+        ],
       });
     });
   });
@@ -341,11 +345,18 @@ describe("article tag mutations", () => {
 
     await expect(result.current.mutateAsync({ articleId: "art-1", tagId: "tag-1" })).resolves.toBeNull();
     await waitFor(() => {
-      expect(warn).toHaveBeenCalledWith("Query invalidation failed:", {
-        actionOwner: "unknown",
-        queryKey: ["articleTags"],
-        error: invalidationError,
-      });
+      expect(warn).toHaveBeenCalledWith(
+        "Query invalidation failed:",
+        expect.objectContaining({
+          failures: expect.arrayContaining([
+            {
+              actionOwner: "tag-mutation",
+              queryKey: ["articleTags"],
+              error: invalidationError,
+            },
+          ]),
+        }),
+      );
     });
   });
 
@@ -400,11 +411,18 @@ describe("article tag mutations", () => {
 
     await expect(result.current.mutateAsync({ articleId: "art-1", tagId: "tag-1" })).resolves.toBeNull();
     await waitFor(() => {
-      expect(warn).toHaveBeenCalledWith("Query invalidation failed:", {
-        actionOwner: "unknown",
-        queryKey: ["articleTags"],
-        error: invalidationError,
-      });
+      expect(warn).toHaveBeenCalledWith(
+        "Query invalidation failed:",
+        expect.objectContaining({
+          failures: expect.arrayContaining([
+            {
+              actionOwner: "tag-mutation",
+              queryKey: ["articleTags"],
+              error: invalidationError,
+            },
+          ]),
+        }),
+      );
     });
   });
 

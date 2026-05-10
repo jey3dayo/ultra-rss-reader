@@ -2054,6 +2054,45 @@ mod tests {
 
     #[test]
     fn auth_failure_storm_is_capped_by_scheduler_backoff() {
+        for status in ["401 Unauthorized", "403 Forbidden"] {
+            let db = std::sync::Mutex::new(test_db());
+            let mut account = test_account(60);
+            account.id = AccountId(format!("auth-storm-{status}"));
+            {
+                let db_guard = db.lock().unwrap();
+                insert_test_account(&db_guard, &account.id);
+            }
+            let auth_error = AppError::UserVisible {
+                message: format!("Auth error: HTTP {status}"),
+            };
+            let mut last_backoff = Duration::ZERO;
+
+            for _ in 0..20 {
+                let mut warnings = Vec::new();
+                last_backoff =
+                    complete_failed_account_sync(&db, &account, &auth_error, &mut warnings);
+                assert_eq!(
+                    warnings.len(),
+                    1,
+                    "auth failure should emit one retry warning per persisted retry change"
+                );
+            }
+
+            assert_eq!(last_backoff, MAX_BACKOFF);
+            assert!(is_in_backoff(&db, &account.id));
+            let db_guard = db.lock().unwrap();
+            let repo = SqliteSyncStateRepository::new(db_guard.reader());
+            let state = repo
+                .get(&account.id, SyncStateScopeKey::scheduler())
+                .expect("sync state lookup should succeed")
+                .expect("sync state should exist");
+            assert_eq!(state.error_count, (MAX_BACKOFF_SHIFT_BITS as i32) + 1);
+            assert!(state.next_retry_at.is_some());
+        }
+    }
+
+    #[test]
+    fn scheduler_backoff_reset_reopens_auth_failure_circuit() {
         let db = std::sync::Mutex::new(test_db());
         let account = test_account(60);
         {
@@ -2063,28 +2102,24 @@ mod tests {
         let auth_error = AppError::UserVisible {
             message: "Auth error: HTTP 401 Unauthorized".to_string(),
         };
-        let mut last_backoff = Duration::ZERO;
+        let mut warnings = Vec::new();
 
-        for _ in 0..20 {
-            let mut warnings = Vec::new();
-            last_backoff = complete_failed_account_sync(&db, &account, &auth_error, &mut warnings);
-            assert_eq!(
-                warnings.len(),
-                1,
-                "auth failure should emit one retry warning per persisted retry change"
-            );
-        }
-
-        assert_eq!(last_backoff, MAX_BACKOFF);
+        complete_failed_account_sync(&db, &account, &auth_error, &mut warnings);
         assert!(is_in_backoff(&db, &account.id));
+
+        reset_error_count(&db, &account.id).expect("auth recovery should reset scheduler backoff");
+
+        assert!(!is_in_backoff(&db, &account.id));
         let db_guard = db.lock().unwrap();
         let repo = SqliteSyncStateRepository::new(db_guard.reader());
         let state = repo
             .get(&account.id, SyncStateScopeKey::scheduler())
             .expect("sync state lookup should succeed")
             .expect("sync state should exist");
-        assert_eq!(state.error_count, (MAX_BACKOFF_SHIFT_BITS as i32) + 1);
-        assert!(state.next_retry_at.is_some());
+        assert_eq!(state.error_count, 0);
+        assert_eq!(state.last_error, None);
+        assert_eq!(state.next_retry_at, None);
+        assert!(state.last_success_at.is_some());
     }
 
     #[test]

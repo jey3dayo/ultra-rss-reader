@@ -32,6 +32,7 @@ export type SidebarSyncResult = {
 type SidebarSyncProgressPayload = SyncProgressEventDto;
 type SidebarSyncWarningPayload = AccountSyncWarning[];
 type SidebarSyncCompletedPayload = null;
+type SidebarSyncStatusInvalidationOwner = "background-sync-completed" | "manual-sync-completed";
 
 type SidebarSyncParams = {
   selectedAccountId: string | null;
@@ -223,9 +224,12 @@ export function useSidebarSync({
   );
   const [state, dispatch] = useReducer(sidebarSyncReducer, undefined, createInitialSidebarSyncState);
   const { cooldownTick } = state;
-  const invalidateAccountSyncStatuses = useCallback(() => {
-    invalidateQueryKeysLogOnly(queryClient, [accountSyncStatusQueryKey()]);
-  }, [queryClient]);
+  const invalidateAccountSyncStatuses = useCallback(
+    (actionOwner: SidebarSyncStatusInvalidationOwner) => {
+      invalidateQueryKeysLogOnly(queryClient, [accountSyncStatusQueryKey()], { actionOwner });
+    },
+    [queryClient],
+  );
 
   useEffect(() => {
     if (manualSyncCooldownUntil <= getCurrentTimeMs()) {
@@ -279,7 +283,7 @@ export function useSidebarSync({
     const timer = window.setTimeout(() => {
       reportStuckSyncProgressRecovery(syncProgress);
       clearSyncProgress();
-      invalidateAccountSyncStatuses();
+      invalidateAccountSyncStatuses("background-sync-completed");
     }, SYNC_PROGRESS_STUCK_RECOVERY_MS);
 
     return () => {
@@ -301,7 +305,7 @@ export function useSidebarSync({
           return;
         }
         clearSyncProgress();
-        invalidateAccountSyncStatuses();
+        invalidateAccountSyncStatuses("background-sync-completed");
       }),
       listen<SidebarSyncWarningPayload>("sync-warning", (event) => {
         const payload = resolveSidebarSyncWarningPayload(event);
@@ -309,7 +313,7 @@ export function useSidebarSync({
           return;
         }
         if (payload.length > 0) {
-          invalidateAccountSyncStatuses();
+          invalidateAccountSyncStatuses("background-sync-completed");
           showToast(resolveSidebarSyncFeedbackMessage(t, summarizeSyncWarnings(payload)));
         }
       }),
@@ -327,11 +331,11 @@ export function useSidebarSync({
         showToast(t("sync_cooldown_active"));
       },
       onSuccess: (syncResult) => {
-        invalidateAccountSyncStatuses();
+        invalidateAccountSyncStatuses("manual-sync-completed");
         showToast(resolveSidebarSyncFeedbackMessage(t, summarizeSyncResult(syncResult)));
       },
       onError: (error) => {
-        invalidateAccountSyncStatuses();
+        invalidateAccountSyncStatuses("manual-sync-completed");
         console.error("Sync failed:", error);
         showToast(t("sync_failed"));
       },

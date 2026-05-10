@@ -126,3 +126,19 @@ test("release workflow maps updater manifest platforms to asset signatures and c
     expect(workflow).toContain(`args: ${contract.matrixArgs}`);
   }
 });
+
+test("release workflow keeps provenance and dev-only contamination gates before artifact upload", async () => {
+  const workflow = releaseWorkflowSource;
+
+  expect(workflow).toContain("Validate release source");
+  expect(workflow).toContain("Validate release build contamination contract");
+  expect(workflow).toContain("tag_target_sha");
+  expect(workflow).toContain("checkout_sha");
+  expect(workflow).toContain("release capability must not include debug-only MCP bridge permissions");
+  expect(workflow.indexOf("Generate updater asset checksums")).toBeLessThan(
+    workflow.indexOf("Upload updater asset checksums"),
+  );
+  expect(workflow.indexOf("Validate release build contamination contract")).toBeLessThan(
+    workflow.indexOf("tauri-apps/tauri-action"),
+  );
+});

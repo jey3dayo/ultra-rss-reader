@@ -10,6 +10,7 @@ import {
   useCreateMuteKeyword,
   useDeleteMuteKeyword,
   useMuteKeywords,
+  useSetMuteAutoMarkRead,
   useUpdateMuteKeyword,
 } from "@/hooks/use-mute-keywords";
 
@@ -112,11 +113,18 @@ describe("mute keyword mutations", () => {
       updated_at: "2026-05-09T00:00:00Z",
     });
     await waitFor(() => {
-      expect(warn).toHaveBeenCalledWith("Query invalidation failed:", {
-        actionOwner: "unknown",
-        queryKey: ["muteKeywords"],
-        error: invalidationError,
-      });
+      expect(warn).toHaveBeenCalledWith(
+        "Query invalidation failed:",
+        expect.objectContaining({
+          failures: expect.arrayContaining([
+            {
+              actionOwner: "mute-keyword-mutation",
+              queryKey: ["muteKeywords"],
+              error: invalidationError,
+            },
+          ]),
+        }),
+      );
     });
   });
 
@@ -149,6 +157,18 @@ describe("mute keyword mutations", () => {
     const { result } = renderHook(() => useDeleteMuteKeyword(), { wrapper });
 
     await result.current.mutateAsync({ muteKeywordId: "mute-1" });
+
+    await waitFor(() => {
+      expectMuteKeywordArticleCacheInvalidation(invalidateQueriesSpy);
+    });
+  });
+
+  it("invalidates mute keyword and article caches after changing auto-mark-read", async () => {
+    vi.spyOn(tauriCommands, "setMuteAutoMarkRead").mockResolvedValue(Result.succeed(null));
+
+    const { result } = renderHook(() => useSetMuteAutoMarkRead(), { wrapper });
+
+    await result.current.mutateAsync({ enabled: true });
 
     await waitFor(() => {
       expectMuteKeywordArticleCacheInvalidation(invalidateQueriesSpy);

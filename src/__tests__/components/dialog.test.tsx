@@ -1,4 +1,5 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { Dialog, DialogContent, DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import i18n from "@/lib/i18n";
@@ -134,6 +135,96 @@ describe("DialogContent", () => {
     });
     expect(screen.getByRole("dialog", { name: "Outer dialog" })).not.toHaveAttribute("aria-hidden");
     expect(screen.getByRole("dialog", { name: "Outer dialog" })).not.toHaveAttribute("inert");
+  });
+
+  it("keeps a modal dialog above command and popover surfaces and hides the lower top layer", async () => {
+    render(
+      <>
+        <div data-testid="command-popover-surface" data-stack-layer="commandPalette">
+          <button type="button">Run command</button>
+        </div>
+        <Dialog open>
+          <DialogContent>
+            <DialogTitle>Settings modal</DialogTitle>
+            <button type="button">Save settings</button>
+          </DialogContent>
+        </Dialog>
+      </>,
+    );
+
+    await waitFor(() => {
+      const hiddenCommandLayer = screen.getByTestId("command-popover-surface").closest("[aria-hidden='true']");
+      expect(hiddenCommandLayer).toHaveAttribute("data-base-ui-inert");
+    });
+
+    expect(screen.getByTestId("command-popover-surface")).toHaveAttribute("data-stack-layer", "commandPalette");
+    expect(screen.getByRole("dialog", { name: "Settings modal" })).toHaveAttribute("data-stack-layer", "dialog");
+    expect(screen.getByRole("dialog", { name: "Settings modal" })).not.toHaveAttribute("aria-hidden");
+    expect(screen.getByRole("dialog", { name: "Settings modal" })).not.toHaveAttribute("inert");
+  });
+
+  it("traps Tab navigation inside the active modal dialog", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <>
+        <button type="button">Background action</button>
+        <Dialog open>
+          <DialogContent>
+            <DialogTitle>Keyboard dialog</DialogTitle>
+            <button type="button">First action</button>
+            <button type="button">Second action</button>
+          </DialogContent>
+        </Dialog>
+      </>,
+    );
+
+    const firstAction = screen.getByRole("button", { name: "First action" });
+    const secondAction = screen.getByRole("button", { name: "Second action" });
+    const closeAction = screen.getByRole("button", { name: "Close dialog" });
+    const backgroundAction = screen.getByRole("button", { name: "Background action", hidden: true });
+
+    firstAction.focus();
+    expect(firstAction).toHaveFocus();
+
+    await user.tab();
+    expect(screen.getByRole("dialog", { name: "Keyboard dialog" })).toContainElement(document.activeElement);
+
+    closeAction.focus();
+    expect(closeAction).toHaveFocus();
+
+    await user.tab();
+    expect(
+      screen.getByRole("dialog", { name: "Keyboard dialog" }).contains(document.activeElement) ||
+        (document.activeElement instanceof HTMLElement && document.activeElement.hasAttribute("data-base-ui-focus-guard")),
+    ).toBe(true);
+    expect(backgroundAction).not.toHaveFocus();
+  });
+
+  it("hides the browser overlay root while a modal dialog owns the top layer", async () => {
+    render(
+      <>
+        <main data-testid="reader-shell">
+          <button type="button">Reader action</button>
+        </main>
+        <div data-browser-overlay-root="" data-testid="browser-overlay-root">
+          <button type="button">Browser action</button>
+        </div>
+        <Dialog open>
+          <DialogContent>
+            <DialogTitle>Settings modal</DialogTitle>
+          </DialogContent>
+        </Dialog>
+      </>,
+    );
+
+    await waitFor(() => {
+      const hiddenBrowserLayer = screen.getByTestId("browser-overlay-root").closest("[aria-hidden='true']");
+      expect(hiddenBrowserLayer).toHaveAttribute("inert");
+    });
+    expect(screen.getByTestId("reader-shell").closest("[aria-hidden='true']")).toHaveAttribute("inert");
+    expect(screen.getByRole("dialog", { name: "Settings modal" })).not.toHaveAttribute("aria-hidden");
+    expect(screen.getByRole("dialog", { name: "Settings modal" })).not.toHaveAttribute("inert");
   });
 
   it("keeps the trap-focus escape hatch from hiding sibling top-layer surfaces", () => {

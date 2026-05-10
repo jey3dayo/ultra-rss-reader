@@ -15,7 +15,7 @@ import {
 import { createMutation } from "@/hooks/create-mutation";
 import { createQuery } from "@/hooks/create-query";
 import {
-  invalidateArticleQueries,
+  invalidateArticleMutationQueries,
   invalidateQueryKeysLogOnly,
   normalizeQueryAccountId,
   queryKeys,
@@ -92,7 +92,7 @@ export function resolveTagMutationInvalidationQueryKeys(
 }
 
 function invalidateTagQueryKeys(qc: QueryClient, queryKeys: ReadonlyArray<TagQueryKey>) {
-  invalidateQueryKeysLogOnly(qc, queryKeys);
+  invalidateQueryKeysLogOnly(qc, queryKeys, { actionOwner: "tag-mutation" });
 }
 
 export function useTags() {
@@ -160,10 +160,7 @@ export function useCreateTag() {
 
 function invalidateArticleTagQueries(qc: QueryClient) {
   invalidateTagQueryKeys(qc, resolveTagMutationInvalidationQueryKeys("articleAssignment"));
-  invalidateArticleQueries(qc, {
-    includeArticlesByTag: false,
-    includeTagArticleCounts: false,
-  });
+  invalidateArticleMutationQueries(qc, "tag-article-assignment");
 }
 
 export const useTagArticle = createMutation(

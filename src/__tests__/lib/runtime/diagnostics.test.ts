@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   logRuntimeDiagnostic,
+  redactRuntimeDiagnosticSupportCopy,
   redactRuntimeDiagnosticText,
   resetRuntimeDiagnosticOnceSuppressionForTests,
 } from "@/lib/runtime/diagnostics";
@@ -41,6 +42,7 @@ describe("runtime diagnostics redaction", () => {
     expect(serialized).not.toContain("user:pass");
     expect(serialized).not.toContain("api_key=raw");
     expect(serialized).not.toContain("secret-token/feed");
+    expect(serialized).not.toContain("/Users/demo/Library/Application Support/Ultra RSS/private.sqlite");
   });
 
   it("uses redacted structured details for once suppression keys", () => {
@@ -84,6 +86,57 @@ describe("runtime diagnostics redaction", () => {
     });
   });
 
+  it("redacts structured support details that identify server paths, account names, and raw payloads", () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    logRuntimeDiagnostic("article-action", "Support diagnostics failed", {
+      serverPath: "/Users/demo/Library/Application Support/Ultra RSS/accounts/private.sqlite",
+      accountName: "Personal FreshRSS",
+      rawPayload: {
+        status: "failed",
+        body: "https://reader.example.com/api/greader.php/accounts/Personal%20FreshRSS?token=raw",
+      },
+      urlToken: "https://reader.example.com/feed.xml?token=raw",
+    });
+
+    expect(consoleError).toHaveBeenCalledTimes(1);
+    expect(consoleError.mock.calls[0]?.[1]).toEqual({
+      serverPath: "<redacted>",
+      accountName: "<redacted>",
+      rawPayload: "<redacted>",
+      urlToken: "<redacted>",
+    });
+  });
+
+  it("builds redacted support copy for string messages and structured payloads", () => {
+    const supportCopy = redactRuntimeDiagnosticSupportCopy({
+      message:
+        "Failed TOKEN=raw at https://user:pass@example.com/secret-token/feed?token=raw#frag in /Users/demo/Library/Application Support/Ultra RSS/private.sqlite",
+      path: "/Users/demo/Library/Application Support/Ultra RSS/private.sqlite",
+      nested: {
+        error: new Error("Bearer raw-token https://example.com/feed.xml?api_key=raw"),
+        rawPayload: { body: "raw response body" },
+      },
+    });
+
+    expect(supportCopy).toContain("TOKEN=<redacted>");
+    expect(supportCopy).toContain("https://example.com/redacted?redacted#redacted");
+    expect(supportCopy).toContain("<redacted-path>");
+    expect(supportCopy).toContain('"path": "<redacted>"');
+    expect(supportCopy).toContain('"rawPayload": "<redacted>"');
+    expect(supportCopy).not.toContain("raw-token");
+    expect(supportCopy).not.toContain("user:pass");
+    expect(supportCopy).not.toContain("token=raw");
+    expect(supportCopy).not.toContain("api_key=raw");
+    expect(supportCopy).not.toContain("raw response body");
+    expect(supportCopy).not.toContain("/Users/demo/Library/Application Support/Ultra RSS/private.sqlite");
+  });
+
+  it("keeps support copy safe for unknown payload shapes", () => {
+    expect(redactRuntimeDiagnosticSupportCopy(Symbol("TOKEN=raw"))).toBe("[Unsupported diagnostics payload]");
+    expect(redactRuntimeDiagnosticSupportCopy(undefined)).toBe("[Unsupported diagnostics payload]");
+  });
+
   it("does not build once suppression keys for repeatable diagnostics", () => {
     const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const toJSON = vi.fn(() => ({ message: "serialized" }));
@@ -103,6 +156,9 @@ describe("runtime diagnostics redaction", () => {
     );
     expect(redactRuntimeDiagnosticText("https://example.com/token-secret/feed.xml?token=raw")).toBe(
       "https://example.com/redacted?redacted",
+    );
+    expect(redactRuntimeDiagnosticText("log=/Users/demo/Library/Application Support/Ultra RSS/private.sqlite")).toBe(
+      "log=<redacted-path>",
     );
   });
 });

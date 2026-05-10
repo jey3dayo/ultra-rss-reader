@@ -122,7 +122,37 @@ Confirm and record:
 
 `mise run app:install` is only a local build/install helper. It rebuilds from the current checkout and may re-sign the local macOS app after copying it into `/Applications`; it is not evidence that the published release artifact, notarization, or Gatekeeper path works.
 
-### 2a. Windows Installer Signing And SmartScreen Verification
+### 2a. Release Provenance And SBOM Record
+
+Record this for every release before publishing the draft release.
+
+Confirm and record:
+
+- Release tag and tag target SHA.
+- Source commit SHA checked out by the release workflow.
+- GitHub workflow run id and run URL.
+- Release workflow path, ref, and whether the run came from tag push or manual dispatch.
+- Published artifact name, release URL, and SHA-256 digest.
+- Updater checksum sidecar asset name, release URL, and digest content.
+- Updater signature sidecar asset name and release URL.
+- Dependency provenance assets attached by the release workflow: `pnpm-licenses-<platform>.json` and `cargo-licenses-<platform>.json`.
+- Release provenance asset attached by the release workflow: `release-provenance-<platform>.json`.
+- SBOM or dependency provenance record, such as the attached pnpm and Cargo provenance assets, an attached SBOM, or the explicit reason a full SBOM artifact was not generated for this release.
+- Draft release attachment list before publishing, including app artifact, updater signature, checksum sidecar, release provenance record, and provenance/SBOM record.
+
+### 2b. Release Dev-Only Contamination Record
+
+Confirm this from the release workflow static gate and, when inspecting packaged artifacts, from the release artifact being published.
+
+Confirm and record:
+
+- The release workflow used `src-tauri/tauri.release.conf.json`, not `src-tauri/tauri.dev.conf.json`.
+- The release workflow did not set `DEV_CREDENTIALS` or `ULTRA_RSS_DEV_CREDENTIALS`.
+- The release capability did not include debug-only MCP bridge permissions.
+- dev mocks were not used as evidence for release install, updater, signing, or startup verification.
+- Debug scenario state was either absent from the packaged release path or explicitly user-gated as a normal app debug setting, not preloaded release state.
+
+### 2c. Windows Installer Signing And SmartScreen Verification
 
 Run this on a clean Windows profile or VM before publishing a Windows installer broadly. This is a manual reputation and trust-path check; do not treat local CI success as evidence that SmartScreen behavior is acceptable.
 
@@ -138,7 +168,7 @@ Confirm and record:
 
 If SmartScreen reputation is missing but the signature is valid, record it as a release risk instead of re-signing locally. Future policy work should define the EV/OV certificate, timestamping, and publisher reputation strategy before changing installer signing behavior.
 
-### 2b. macOS Quarantine And App Translocation Verification
+### 2d. macOS Quarantine And App Translocation Verification
 
 Run this with the published macOS artifact downloaded through the normal browser or GitHub Releases flow, before manually clearing quarantine attributes or moving support files. This verifies the path users get after downloading the release, not a locally rebuilt or re-signed app.
 
@@ -155,7 +185,7 @@ Confirm and record:
 
 If translocation changes resource resolution, log directory behavior, or app data visibility, stop the release handoff and treat it as a packaged-startup issue. Do not work around it by clearing quarantine on the verifier machine.
 
-### 2c. First-Run Permission Prompt Verification
+### 2e. First-Run Permission Prompt Verification
 
 Run this from a clean OS profile or after resetting only the relevant OS permissions and app data for the packaged app. The goal is to record the first-run user experience for release artifacts, not development builds.
 
@@ -171,7 +201,7 @@ Confirm and record:
 
 If a release adds a new permission prompt, record the user-visible feature that triggers it, the fallback when denied, and whether the prompt appears before the user takes an action that explains why access is needed.
 
-### 2d. Windows Hidden Console And Crash Visibility Verification
+### 2f. Windows Hidden Console And Crash Visibility Verification
 
 Run this on the Windows packaged release artifact. This is a manual packaged-app check for the production window subsystem and startup failure surface; do not use a dev build as evidence.
 

@@ -2,7 +2,7 @@ import { SettingsActionButton } from "@/components/settings/shared/settings-acti
 import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
-import type { DatabaseSizeStatus } from "./hooks/use-data-settings-controller";
+import type { DatabaseSizeStatus, DestructiveRecoveryCriterion } from "./hooks/use-data-settings-controller";
 
 type DataSettingsViewProps = {
   title: string;
@@ -15,6 +15,9 @@ type DataSettingsViewProps = {
   safetyHeading: string;
   safetyDescription: string;
   safetyChecklist: readonly string[];
+  recoveryCriteriaHeading?: string;
+  recoveryCriteriaTargetUnknownLabel?: string;
+  destructiveRecoveryCriteria?: readonly DestructiveRecoveryCriterion[];
   optimizationHeading: string;
   vacuumDescription: string;
   vacuumLabel: string;
@@ -38,6 +41,9 @@ export function DataSettingsView({
   safetyHeading,
   safetyDescription,
   safetyChecklist,
+  recoveryCriteriaHeading,
+  recoveryCriteriaTargetUnknownLabel,
+  destructiveRecoveryCriteria = [],
   optimizationHeading,
   vacuumDescription,
   vacuumLabel,
@@ -75,6 +81,24 @@ export function DataSettingsView({
             <li key={item}>{item}</li>
           ))}
         </ul>
+        {destructiveRecoveryCriteria.length > 0 ? (
+          <div className="mt-4">
+            {recoveryCriteriaHeading != null ? (
+              <h3 className="mb-2 text-sm font-semibold text-foreground">{recoveryCriteriaHeading}</h3>
+            ) : null}
+            <ul className="space-y-2 font-serif text-sm text-foreground-soft">
+              {destructiveRecoveryCriteria.map((criterion) => (
+                <li key={criterion.action}>
+                  <span className="font-sans font-medium text-foreground">{criterion.action}</span>
+                  <span> - {criterion.requirement}</span>
+                  {criterion.disabledWhenTargetUnknown && recoveryCriteriaTargetUnknownLabel != null ? (
+                    <span> {recoveryCriteriaTargetUnknownLabel}</span>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
       </SettingsSection>
       <SettingsSection heading={optimizationHeading} surface="flat" className="mb-6 sm:mb-7">
         <LabeledControlRow label={vacuumLabel} description={vacuumDescriptionText}>

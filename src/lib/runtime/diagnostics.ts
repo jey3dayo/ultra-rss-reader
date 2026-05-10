@@ -7,6 +7,8 @@ export type RuntimeDiagnosticPolicyId =
   | "app-icon-theme"
   | "unread-badge"
   | "article-action"
+  | "database-runtime-recovery"
+  | "mutation-invalidation"
   | "sidebar-expanded-folders-storage"
   | "window-runtime-error";
 
@@ -84,6 +86,22 @@ export const RUNTIME_DIAGNOSTIC_POLICIES = {
     once: false,
     redactSecrets: true,
   },
+  "database-runtime-recovery": {
+    console: "warn",
+    devOnlyConsole: false,
+    productionDiagnostics: true,
+    toast: "never",
+    once: false,
+    redactSecrets: true,
+  },
+  "mutation-invalidation": {
+    console: "warn",
+    devOnlyConsole: false,
+    productionDiagnostics: true,
+    toast: "never",
+    once: false,
+    redactSecrets: true,
+  },
   "sidebar-expanded-folders-storage": {
     console: "warn",
     devOnlyConsole: false,
@@ -106,8 +124,11 @@ const URL_LIKE_TOKEN_PATTERN = /https?:\/\/[^\s<>"'`]+/gi;
 const SECRET_ASSIGNMENT_PATTERN =
   /\b([A-Z0-9_]*(?:TOKEN|SECRET|PASSWORD|CREDENTIAL|PRIVATE_KEY|API_KEY)[A-Z0-9_]*)=([^\s,;]+)/gi;
 const AUTH_HEADER_PATTERN = /\b(Bearer|Basic)\s+[A-Za-z0-9._~+/-]+=*/gi;
-const SECRET_OBJECT_KEY_PATTERN = /(?:token|secret|password|credential|privateKey|apiKey)/i;
+const LOCAL_PATH_PATTERN = /(?:\/Users\/.*?(?=$|[\n\r,;'"`<>])|[A-Za-z]:\\.*?(?=$|[\n\r,;'"`<>]))/g;
+const SECRET_OBJECT_KEY_PATTERN = /(?:token|secret|password|credential|privatekey|apikey)/i;
+const SECRET_OBJECT_KEYS = new Set(["accountname", "filepath", "logpath", "path", "rawpayload", "serverpath"]);
 const SECRET_URL_PATH_SEGMENT_PATTERN = /(?:token|secret|password|credential|private[-_]?key|api[-_]?key)/i;
+const UNSUPPORTED_DIAGNOSTICS_PAYLOAD = "[Unsupported diagnostics payload]";
 
 const emittedRuntimeDiagnosticKeys = new Set<string>();
 
@@ -141,11 +162,16 @@ export function redactRuntimeDiagnosticText(message: string): string {
   return message
     .replace(URL_LIKE_TOKEN_PATTERN, redactUrlToken)
     .replace(SECRET_ASSIGNMENT_PATTERN, "$1=<redacted>")
-    .replace(AUTH_HEADER_PATTERN, "$1 <redacted>");
+    .replace(AUTH_HEADER_PATTERN, "$1 <redacted>")
+    .replace(LOCAL_PATH_PATTERN, "<redacted-path>");
 }
 
 function isMessageRecord(value: unknown): value is { message: string } & Record<string, unknown> {
   return typeof value === "object" && value !== null && "message" in value && typeof value.message === "string";
+}
+
+function isSecretObjectKey(key: string): boolean {
+  return SECRET_OBJECT_KEYS.has(key.toLowerCase()) || SECRET_OBJECT_KEY_PATTERN.test(key);
 }
 
 function redactRuntimeDiagnosticDetail(
@@ -188,12 +214,62 @@ function redactRuntimeDiagnosticDetail(
     return Object.fromEntries(
       Object.entries(detail).map(([key, value]) => [
         key,
-        SECRET_OBJECT_KEY_PATTERN.test(key) ? "<redacted>" : redactRuntimeDiagnosticDetail(value, shouldRedact, seen),
+        isSecretObjectKey(key) ? "<redacted>" : redactRuntimeDiagnosticDetail(value, shouldRedact, seen),
       ]),
     );
   }
 
   return detail;
+}
+
+function serializeRuntimeDiagnosticSupportCopyPayload(payload: unknown, seen: WeakSet<object> = new WeakSet()): unknown {
+  if (payload instanceof Error) {
+    return {
+      name: payload.name,
+      message: payload.message,
+      ...("cause" in payload ? { cause: serializeRuntimeDiagnosticSupportCopyPayload(payload.cause, seen) } : {}),
+    };
+  }
+
+  if (typeof payload === "object" && payload !== null) {
+    if (seen.has(payload)) {
+      return "[Circular]";
+    }
+    seen.add(payload);
+
+    if (Array.isArray(payload)) {
+      return payload.map((item) => serializeRuntimeDiagnosticSupportCopyPayload(item, seen));
+    }
+
+    return Object.fromEntries(
+      Object.entries(payload).map(([key, value]) => [key, serializeRuntimeDiagnosticSupportCopyPayload(value, seen)]),
+    );
+  }
+
+  return payload;
+}
+
+export function redactRuntimeDiagnosticSupportCopy(payload: unknown): string {
+  const redactedPayload = serializeRuntimeDiagnosticSupportCopyPayload(redactRuntimeDiagnosticDetail(payload, true));
+
+  if (typeof redactedPayload === "string") {
+    return redactedPayload;
+  }
+
+  if (
+    typeof redactedPayload === "undefined" ||
+    typeof redactedPayload === "function" ||
+    typeof redactedPayload === "symbol" ||
+    typeof redactedPayload === "bigint"
+  ) {
+    return UNSUPPORTED_DIAGNOSTICS_PAYLOAD;
+  }
+
+  try {
+    return JSON.stringify(redactedPayload, null, 2) ?? UNSUPPORTED_DIAGNOSTICS_PAYLOAD;
+  } catch {
+    return UNSUPPORTED_DIAGNOSTICS_PAYLOAD;
+  }
 }
 
 function shouldEmitRuntimeDiagnostic(policy: RuntimeDiagnosticPolicy): boolean {

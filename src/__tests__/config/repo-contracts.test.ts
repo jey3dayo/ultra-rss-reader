@@ -1323,6 +1323,10 @@ describe("repository static contracts", () => {
     expect(releaseManualVerification).toContain("Release asset digest");
     expect(releaseManualVerification).toContain("codesign --verify --deep --strict --verbose=2");
     expect(releaseManualVerification).toContain("spctl --assess --type execute --verbose");
+    expect(releaseManualVerification).toContain("Release Provenance And SBOM Record");
+    expect(releaseManualVerification).toContain("GitHub workflow run id and run URL");
+    expect(releaseManualVerification).toContain("Release Dev-Only Contamination Record");
+    expect(releaseManualVerification).toContain("debug-only MCP bridge permissions");
     expect(releaseManualVerification).toContain("Published release artifact name and release URL");
     expect(releaseManualVerification).toContain("Gatekeeper assessment result");
     expect(readme).toContain("Published release install verification must use the artifact from GitHub Releases");

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AccountDto } from "@/api/tauri-commands";
-import { getPreferredAccountId } from "@/lib/account/account-selection";
+import { getPreferredAccountId, resolveRestoredAccountSelection } from "@/lib/account/account-selection";
 
 const accounts: AccountDto[] = [
   {
@@ -52,5 +52,59 @@ describe("getPreferredAccountId", () => {
 
   it("returns null when there are no accounts", () => {
     expect(getPreferredAccountId([], "acc-2")).toBeNull();
+  });
+});
+
+describe("resolveRestoredAccountSelection", () => {
+  it("keeps a selected account that still exists after DB restore and repairs a stale saved preference", () => {
+    expect(
+      resolveRestoredAccountSelection({
+        accounts,
+        selectedAccountId: " acc-2 ",
+        savedAccountId: "missing",
+      }),
+    ).toEqual({
+      accountId: "acc-2",
+      preferenceAccountId: "acc-2",
+    });
+  });
+
+  it("restores the saved account when the selected account no longer exists after DB restore", () => {
+    expect(
+      resolveRestoredAccountSelection({
+        accounts,
+        selectedAccountId: "deleted-account",
+        savedAccountId: "acc-2",
+      }),
+    ).toEqual({
+      accountId: "acc-2",
+      preferenceAccountId: "acc-2",
+    });
+  });
+
+  it("falls back to the first restored account and persists it when both selected and saved accounts are stale", () => {
+    expect(
+      resolveRestoredAccountSelection({
+        accounts,
+        selectedAccountId: "deleted-account",
+        savedAccountId: "also-deleted",
+      }),
+    ).toEqual({
+      accountId: "acc-1",
+      preferenceAccountId: "acc-1",
+    });
+  });
+
+  it("clears selection and saved preference when restore leaves no accounts", () => {
+    expect(
+      resolveRestoredAccountSelection({
+        accounts: [],
+        selectedAccountId: "deleted-account",
+        savedAccountId: "also-deleted",
+      }),
+    ).toEqual({
+      accountId: null,
+      preferenceAccountId: "",
+    });
   });
 });

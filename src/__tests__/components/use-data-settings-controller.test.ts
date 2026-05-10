@@ -3,7 +3,14 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DatabaseInfoDtoSchema } from "@/api/schemas/database-info";
 import { getDatabaseInfo, openLogDir, vacuumDatabase } from "@/api/tauri-commands";
-import { formatBytes, useDataSettingsController } from "@/components/settings/hooks/use-data-settings-controller";
+import {
+  buildDestructiveRecoveryCriteria,
+  classifyDatabaseRuntimeRecoverySurface,
+  formatBytes,
+  reconcileDatabaseRestoreFrontendState,
+  useDataSettingsController,
+} from "@/components/settings/hooks/use-data-settings-controller";
+import { STORAGE_KEYS } from "@/constants/storage";
 
 vi.mock("@/api/tauri-commands", () => ({
   getDatabaseInfo: vi.fn(async () =>
@@ -49,6 +56,205 @@ describe("formatBytes", () => {
     expect(formatBytes(-1)).toBe("0 B");
     expect(formatBytes(Number.NaN)).toBe("0 B");
     expect(formatBytes(Number.POSITIVE_INFINITY)).toBe("0 B");
+  });
+});
+
+describe("buildDestructiveRecoveryCriteria", () => {
+  it("requires target-known disabled state and confirmation criteria for destructive recovery actions", () => {
+    const translations = new Map([
+      ["data.recovery_criteria_restore_backup_action", "Restore backup"],
+      ["data.recovery_criteria_restore_backup_requirement", "Recommend backup and undo unavailable confirmation"],
+      ["data.recovery_criteria_private_data_reset_action", "Reset private data"],
+      ["data.recovery_criteria_private_data_reset_requirement", "Require target counts and second confirmation"],
+      ["data.recovery_criteria_cleanup_orphans_action", "Clean up orphaned data"],
+      ["data.recovery_criteria_cleanup_orphans_requirement", "Show dry-run counts before cleanup"],
+      ["data.recovery_criteria_clear_history_action", "Clear history"],
+      ["data.recovery_criteria_clear_history_requirement", "Show scope and undo unavailable confirmation"],
+      ["data.recovery_criteria_delete_account_action", "Delete account"],
+      ["data.recovery_criteria_delete_account_requirement", "Confirm account name and related data deletion"],
+    ]);
+
+    const criteria = buildDestructiveRecoveryCriteria((key) => translations.get(key) ?? key);
+
+    expect(criteria).toEqual([
+      {
+        action: "Restore backup",
+        requirement: "Recommend backup and undo unavailable confirmation",
+        disabledWhenTargetUnknown: true,
+      },
+      {
+        action: "Reset private data",
+        requirement: "Require target counts and second confirmation",
+        disabledWhenTargetUnknown: true,
+      },
+      {
+        action: "Clean up orphaned data",
+        requirement: "Show dry-run counts before cleanup",
+        disabledWhenTargetUnknown: true,
+      },
+      {
+        action: "Clear history",
+        requirement: "Show scope and undo unavailable confirmation",
+        disabledWhenTargetUnknown: true,
+      },
+      {
+        action: "Delete account",
+        requirement: "Confirm account name and related data deletion",
+        disabledWhenTargetUnknown: true,
+      },
+    ]);
+  });
+});
+
+describe("classifyDatabaseRuntimeRecoverySurface", () => {
+  it("maps runtime database failures to recovery categories and user actions", () => {
+    expect(
+      classifyDatabaseRuntimeRecoverySurface(
+        { type: "UserVisible", message: "database disk image is malformed" },
+        "read",
+      ),
+    ).toEqual({
+      failureKind: "read_corruption",
+      mode: "read_only_degraded",
+      actions: ["run_integrity_check", "restore_backup"],
+      actionSafety: ["read_only", "requires_explicit_confirmation"],
+      diagnosticsIdRequired: true,
+    });
+    expect(
+      classifyDatabaseRuntimeRecoverySurface(
+        { type: "UserVisible", message: "SQLITE_CORRUPT: database disk image is malformed" },
+        "write",
+      )?.failureKind,
+    ).toBe("write_corruption");
+    expect(
+      classifyDatabaseRuntimeRecoverySurface({ type: "UserVisible", message: "Database is busy" }, "read"),
+    ).toMatchObject({
+      failureKind: "locked",
+      mode: "retry_when_idle",
+      actions: ["retry"],
+    });
+    expect(
+      classifyDatabaseRuntimeRecoverySurface({ type: "UserVisible", message: "permission denied" }, "read"),
+    ).toMatchObject({
+      failureKind: "permission_denied",
+      mode: "user_permission_fix",
+      actions: ["check_os_permissions"],
+    });
+    expect(
+      classifyDatabaseRuntimeRecoverySurface({ type: "UserVisible", message: "database or disk is full" }, "write"),
+    ).toMatchObject({
+      failureKind: "disk_full",
+      mode: "free_disk_space",
+      actions: ["free_disk_space"],
+    });
+  });
+
+  it("leaves unrelated command failures out of the database recovery surface", () => {
+    expect(
+      classifyDatabaseRuntimeRecoverySurface({ type: "UserVisible", message: "Account not found" }, "read"),
+    ).toBeNull();
+  });
+});
+
+describe("reconcileDatabaseRestoreFrontendState", () => {
+  it("clears query cache, removes DB-derived localStorage, and repairs selected account state", () => {
+    const queryClient = { clear: vi.fn() };
+    const storage = {
+      removeItem: vi.fn(),
+    };
+    const restoreAccountSelection = vi.fn();
+    const clearSelectedAccount = vi.fn();
+    const setSelectedAccountPreference = vi.fn();
+
+    const result = reconcileDatabaseRestoreFrontendState({
+      accounts: [{ id: "acc-restored" }],
+      selectedAccountId: "acc-deleted",
+      savedAccountId: "acc-deleted",
+      queryClient,
+      storage,
+      restoreAccountSelection,
+      clearSelectedAccount,
+      setSelectedAccountPreference,
+    });
+
+    expect(queryClient.clear).toHaveBeenCalledTimes(1);
+    expect(storage.removeItem).toHaveBeenCalledTimes(3);
+    expect(storage.removeItem).toHaveBeenNthCalledWith(1, STORAGE_KEYS.commandHistory);
+    expect(storage.removeItem).toHaveBeenNthCalledWith(2, STORAGE_KEYS.sidebarExpandedFolders);
+    expect(storage.removeItem).toHaveBeenNthCalledWith(3, STORAGE_KEYS.startupSyncLastTriggeredAt);
+    expect(restoreAccountSelection).toHaveBeenCalledWith("acc-restored", { focusedPane: "list" });
+    expect(setSelectedAccountPreference).toHaveBeenCalledWith("acc-restored");
+    expect(clearSelectedAccount).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      queryCacheCleared: true,
+      removedStorageKeys: [
+        STORAGE_KEYS.commandHistory,
+        STORAGE_KEYS.sidebarExpandedFolders,
+        STORAGE_KEYS.startupSyncLastTriggeredAt,
+      ],
+      selectedAccountId: "acc-restored",
+      preferenceAccountId: "acc-restored",
+      restartRequired: true,
+    });
+  });
+
+  it("clears selected account and saved preference when restored DB has no accounts", () => {
+    const queryClient = { clear: vi.fn() };
+    const storage = {
+      removeItem: vi.fn(),
+    };
+    const restoreAccountSelection = vi.fn();
+    const clearSelectedAccount = vi.fn();
+    const setSelectedAccountPreference = vi.fn();
+
+    const result = reconcileDatabaseRestoreFrontendState({
+      accounts: [],
+      selectedAccountId: "acc-deleted",
+      savedAccountId: "acc-deleted",
+      queryClient,
+      storage,
+      restoreAccountSelection,
+      clearSelectedAccount,
+      setSelectedAccountPreference,
+    });
+
+    expect(queryClient.clear).toHaveBeenCalledTimes(1);
+    expect(clearSelectedAccount).toHaveBeenCalledTimes(1);
+    expect(setSelectedAccountPreference).toHaveBeenCalledWith("");
+    expect(restoreAccountSelection).not.toHaveBeenCalled();
+    expect(result.selectedAccountId).toBeNull();
+    expect(result.preferenceAccountId).toBe("");
+    expect(result.restartRequired).toBe(true);
+  });
+
+  it("continues account reconciliation when localStorage cleanup is unavailable", () => {
+    const queryClient = { clear: vi.fn() };
+    const storage = {
+      removeItem: vi.fn(() => {
+        throw new DOMException("localStorage blocked", "SecurityError");
+      }),
+    };
+    const restoreAccountSelection = vi.fn();
+    const clearSelectedAccount = vi.fn();
+    const setSelectedAccountPreference = vi.fn();
+
+    const result = reconcileDatabaseRestoreFrontendState({
+      accounts: [{ id: "acc-restored" }],
+      selectedAccountId: "acc-deleted",
+      savedAccountId: "acc-deleted",
+      queryClient,
+      storage,
+      restoreAccountSelection,
+      clearSelectedAccount,
+      setSelectedAccountPreference,
+    });
+
+    expect(queryClient.clear).toHaveBeenCalledTimes(1);
+    expect(storage.removeItem).toHaveBeenCalledTimes(3);
+    expect(restoreAccountSelection).toHaveBeenCalledWith("acc-restored", { focusedPane: "list" });
+    expect(setSelectedAccountPreference).toHaveBeenCalledWith("acc-restored");
+    expect(clearSelectedAccount).not.toHaveBeenCalled();
+    expect(result.removedStorageKeys).toEqual([]);
   });
 });
 
@@ -154,6 +360,47 @@ describe("useDataSettingsController", () => {
     expect(showToast).toHaveBeenCalledWith("Saved 0 B");
   });
 
+  it("exposes write corruption from vacuum as runtime recovery surface", async () => {
+    const initialInfo = DatabaseInfoDtoSchema.parse({
+      db_size_bytes: 1024,
+      wal_size_bytes: 0,
+      shm_size_bytes: 0,
+      total_size_bytes: 1024,
+    });
+    vi.mocked(getDatabaseInfo).mockResolvedValue(Result.succeed(initialInfo));
+    vi.mocked(vacuumDatabase).mockResolvedValue(
+      Result.fail({ type: "UserVisible", message: "SQLITE_CORRUPT: database disk image is malformed" }),
+    );
+    const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const showToast = vi.fn();
+    const { result } = renderDataSettingsController({ showToast });
+
+    await waitFor(() => {
+      expect(result.current.databaseSizeStatus).toBe("ready");
+    });
+
+    await act(async () => {
+      await result.current.handleVacuum();
+    });
+
+    expect(result.current.databaseRuntimeRecoverySurface).toMatchObject({
+      failureKind: "write_corruption",
+      mode: "read_only_degraded",
+      actions: ["run_integrity_check", "restore_backup"],
+    });
+    expect(showToast).toHaveBeenCalledWith("data.vacuum_failed");
+    expect(consoleWarn).toHaveBeenCalledWith(
+      "Database runtime recovery surface detected",
+      expect.objectContaining({
+        operation: "write",
+        failureKind: "write_corruption",
+      }),
+    );
+    consoleWarn.mockRestore();
+    consoleError.mockRestore();
+  });
+
   it("reports database size failures separately from loading", async () => {
     vi.mocked(getDatabaseInfo).mockResolvedValue(Result.fail({ type: "UserVisible", message: "db unavailable" }));
 
@@ -164,6 +411,37 @@ describe("useDataSettingsController", () => {
     });
 
     expect(result.current.databaseSizeValue).toBe("");
+  });
+
+  it("exposes read corruption as runtime recovery surface with diagnostics", async () => {
+    vi.mocked(getDatabaseInfo).mockResolvedValue(
+      Result.fail({ type: "UserVisible", message: "database disk image is malformed" }),
+    );
+    const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    const { result } = renderDataSettingsController();
+
+    await waitFor(() => {
+      expect(result.current.databaseRuntimeRecoverySurface?.failureKind).toBe("read_corruption");
+    });
+
+    expect(result.current.databaseRuntimeRecoverySurface).toMatchObject({
+      mode: "read_only_degraded",
+      actions: ["run_integrity_check", "restore_backup"],
+      actionSafety: ["read_only", "requires_explicit_confirmation"],
+      diagnosticsIdRequired: true,
+    });
+    expect(consoleWarn).toHaveBeenCalledWith(
+      "Database runtime recovery surface detected",
+      expect.objectContaining({
+        operation: "read",
+        failureKind: "read_corruption",
+        mode: "read_only_degraded",
+      }),
+    );
+    consoleWarn.mockRestore();
+    consoleError.mockRestore();
   });
 
   it("does not run vacuum while database size is unavailable", async () => {
