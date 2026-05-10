@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import type { ArticleDto } from "@/api/tauri-commands";
+import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import { useAccountArticles, useArticles, useFolderArticles, useRecentArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useFolders } from "@/hooks/use-folders";
@@ -24,6 +24,40 @@ type ArticleListPrimarySourceSnapshot = {
   contextKey: string;
   articles: ArticleDto[] | undefined;
 };
+
+function resolveLatestFeedsForAccount(feeds: FeedDto[] | undefined, selectedAccountId: string | null) {
+  if (feeds === undefined || selectedAccountId === null) {
+    return feeds;
+  }
+
+  return feeds.filter((feed) => feed.account_id === selectedAccountId);
+}
+
+function resolveLatestFeedArticles(articles: ArticleDto[] | undefined, feedId: string | null) {
+  if (articles === undefined || feedId === null) {
+    return articles;
+  }
+
+  return articles.every((article) => article.feed_id === feedId) ? articles : undefined;
+}
+
+function resolveLatestAccountArticles(params: {
+  articles: ArticleDto[] | undefined;
+  sourceKind: ReaderSourceKind;
+  feeds: FeedDto[] | undefined;
+}) {
+  const { articles, sourceKind, feeds } = params;
+  if (articles === undefined || sourceKind === "feed" || sourceKind === "tag") {
+    return articles;
+  }
+
+  if (feeds === undefined) {
+    return undefined;
+  }
+
+  const feedIds = new Set(feeds.map((feed) => feed.id));
+  return articles.filter((article) => feedIds.has(article.feed_id));
+}
 
 function recoverStaleReaderSelection(selection: UseArticleListSourcesParams["selection"]): void {
   const currentSelection = useUiStore.getState().selection;
@@ -143,18 +177,66 @@ export function useArticleListSources({
   const { data: tagArticles, isLoading: isLoadingTagArticles } = useArticlesByTag(sourcePlan.tagId, selectedAccountId, {
     mode: sourcePlan.tagMode,
   });
+  const latestFeeds = useMemo(() => resolveLatestFeedsForAccount(feeds, selectedAccountId), [feeds, selectedAccountId]);
+  const latestFeedArticles = useMemo(
+    () => resolveLatestFeedArticles(articles, sourcePlan.feedId),
+    [articles, sourcePlan.feedId],
+  );
+  const latestAllFeedArticles = useMemo(
+    () => resolveLatestFeedArticles(allFeedArticles, sourcePlan.feedId),
+    [allFeedArticles, sourcePlan.feedId],
+  );
+  const latestAccountArticles = useMemo(
+    () =>
+      resolveLatestAccountArticles({
+        articles: accountArticles,
+        sourceKind: sourcePlan.sourceKind,
+        feeds: latestFeeds,
+      }),
+    [accountArticles, latestFeeds, sourcePlan.sourceKind],
+  );
+  const latestAllAccountArticles = useMemo(
+    () =>
+      resolveLatestAccountArticles({
+        articles: allAccountArticles,
+        sourceKind: sourcePlan.sourceKind,
+        feeds: latestFeeds,
+      }),
+    [allAccountArticles, latestFeeds, sourcePlan.sourceKind],
+  );
+  const latestRecentArticles = useMemo(
+    () =>
+      resolveLatestAccountArticles({
+        articles: recentArticles,
+        sourceKind: sourcePlan.sourceKind,
+        feeds: latestFeeds,
+      }),
+    [latestFeeds, recentArticles, sourcePlan.sourceKind],
+  );
+  const latestFolderArticles = useMemo(
+    () =>
+      resolveLatestAccountArticles({
+        articles: folderArticles,
+        sourceKind: sourcePlan.sourceKind,
+        feeds: latestFeeds,
+      }),
+    [folderArticles, latestFeeds, sourcePlan.sourceKind],
+  );
   const feedsSnapshotCandidate = useMemo(
-    () => (selectedAccountId !== null && feeds !== undefined ? { accountId: selectedAccountId, feeds } : null),
-    [feeds, selectedAccountId],
+    () =>
+      selectedAccountId !== null && latestFeeds !== undefined
+        ? { accountId: selectedAccountId, feeds: latestFeeds }
+        : null,
+    [latestFeeds, selectedAccountId],
   );
   const { snapshot: feedsSnapshot } = useScreenSnapshot(feedsSnapshotCandidate, feedsSnapshotCandidate !== null);
   const adoptedFeedsSnapshot = adoptSnapshotByKey(feedsSnapshot, "accountId", selectedAccountId);
-  const resolvedFeeds = adoptedFeedsSnapshot?.feeds ?? feeds;
+  const resolvedFeeds = adoptedFeedsSnapshot?.feeds ?? latestFeeds;
 
   useEffect(() => {
     const selectedSourceHasLoadedArticles =
-      (selection.type === "feed" && articles !== undefined && articles.length > 0) ||
-      (selection.type === "folder" && folderArticles !== undefined && folderArticles.length > 0) ||
+      (selection.type === "feed" && latestFeedArticles !== undefined && latestFeedArticles.length > 0) ||
+      (selection.type === "folder" && latestFolderArticles !== undefined && latestFolderArticles.length > 0) ||
       (selection.type === "tag" && tagArticles !== undefined && tagArticles.length > 0);
     const selectedSourceIsLoading =
       (selection.type === "feed" && isLoadingFeedArticles) ||
@@ -168,11 +250,11 @@ export function useArticleListSources({
       folders !== undefined
         ? new Set([
             ...folders.map((folder) => folder.id),
-            ...(feeds ?? []).flatMap((feed) => (feed.folder_id ? [feed.folder_id] : [])),
+            ...(latestFeeds ?? []).flatMap((feed) => (feed.folder_id ? [feed.folder_id] : [])),
           ])
         : undefined;
     const availability: ReaderSelectionAvailability = {
-      ...(feeds !== undefined ? { feedIds: new Set(feeds.map((feed) => feed.id)) } : {}),
+      ...(latestFeeds !== undefined ? { feedIds: new Set(latestFeeds.map((feed) => feed.id)) } : {}),
       ...(folderIds !== undefined ? { folderIds } : {}),
       ...(tags !== undefined ? { tagIds: new Set(tags.map((tag) => tag.id)) } : {}),
     };
@@ -180,24 +262,24 @@ export function useArticleListSources({
       recoverStaleReaderSelection(selection);
     }
   }, [
-    articles,
-    feeds,
-    folderArticles,
     folders,
     isLoadingFeedArticles,
     isLoadingFolderArticles,
     isLoadingTagArticles,
+    latestFeedArticles,
+    latestFeeds,
+    latestFolderArticles,
     selection,
     tagArticles,
     tags,
   ]);
 
-  const accountSelectionArticles = sourcePlan.sourceKind === "recent" ? recentArticles : accountArticles;
+  const accountSelectionArticles = sourcePlan.sourceKind === "recent" ? latestRecentArticles : latestAccountArticles;
   const primarySourceArticles = resolvePrimarySourceArticles({
     sourceKind: sourcePlan.sourceKind,
-    articles,
+    articles: latestFeedArticles,
     tagArticles,
-    folderArticles,
+    folderArticles: latestFolderArticles,
     accountSelectionArticles,
   });
   const primarySourceLoading = resolvePrimarySourceLoading({
@@ -229,23 +311,23 @@ export function useArticleListSources({
       retainedArticleIds,
       sources: [
         primarySourceArticles,
-        accountArticles,
-        folderArticles,
-        recentArticles,
-        articles,
-        allFeedArticles,
-        allAccountArticles,
+        latestAccountArticles,
+        latestFolderArticles,
+        latestRecentArticles,
+        latestFeedArticles,
+        latestAllFeedArticles,
+        latestAllAccountArticles,
         tagArticles,
       ],
     });
   }, [
-    accountArticles,
-    articles,
-    allFeedArticles,
-    allAccountArticles,
-    folderArticles,
+    latestAccountArticles,
+    latestFeedArticles,
+    latestAllFeedArticles,
+    latestAllAccountArticles,
+    latestFolderArticles,
     primarySourceArticles,
-    recentArticles,
+    latestRecentArticles,
     retainedArticleIds,
     tagArticles,
   ]);
@@ -286,11 +368,11 @@ export function useArticleListSources({
         ? sourcePlan.sourceKey
         : null,
     feeds: resolvedFeeds,
-    articles: sourcePlan.sourceKind === "feed" ? resolvedPrimarySourceArticlesWithRetained : articles,
+    articles: sourcePlan.sourceKind === "feed" ? resolvedPrimarySourceArticlesWithRetained : latestFeedArticles,
     accountArticles:
       sourcePlan.sourceKind === "account" || sourcePlan.sourceKind === "folder" || sourcePlan.sourceKind === "recent"
         ? resolvedPrimarySourceArticlesWithRetained
-        : accountArticles,
+        : latestAccountArticles,
     tagArticles: sourcePlan.sourceKind === "tag" ? resolvedPrimarySourceArticlesWithRetained : tagArticles,
     isLoadingFeedArticles: sourcePlan.sourceKind === "feed" ? isPrimarySourceLoading : isLoadingFeedArticles,
     isLoadingAccountArticles: sourcePlan.sourceKind === "account" ? isPrimarySourceLoading : isLoadingAccountArticles,

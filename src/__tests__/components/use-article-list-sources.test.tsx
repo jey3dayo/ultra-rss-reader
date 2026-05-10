@@ -653,6 +653,51 @@ describe("useArticleListSources", () => {
     }
   });
 
+  it("does not adopt stale feed articles for a newly selected feed", () => {
+    useFeedsMock.mockReturnValue({ data: createMatrixFeeds().filter((feed) => feed.account_id === "acc-1") });
+    useArticlesMock.mockReturnValue({
+      data: [matrixArticle("stale-feed-result", "feed-2", false, false)],
+      isLoading: false,
+    });
+
+    const { result } = renderHook(
+      () =>
+        useArticleListSources({
+          selection: { type: "feed", feedId: "feed-1" },
+          selectedAccountId: "acc-1",
+          selectedArticleId: null,
+          retainedArticleIds: new Set(),
+          viewMode: "all",
+        }),
+      { wrapper: createWrapper() },
+    );
+
+    expect(result.current.articles).toBeUndefined();
+  });
+
+  it("does not adopt stale account feeds or account articles for a newly selected account", () => {
+    useFeedsMock.mockReturnValue({ data: createMatrixFeeds().filter((feed) => feed.account_id === "acc-2") });
+    useAccountArticlesMock.mockReturnValue({
+      data: [matrixArticle("stale-account-result", "feed-other-account", false, false)],
+      isLoading: false,
+    });
+
+    const { result } = renderHook(
+      () =>
+        useArticleListSources({
+          selection: { type: "all" },
+          selectedAccountId: "acc-1",
+          selectedArticleId: null,
+          retainedArticleIds: new Set(),
+          viewMode: "all",
+        }),
+      { wrapper: createWrapper() },
+    );
+
+    expect(result.current.feeds).toEqual([]);
+    expect(result.current.accountArticles).toEqual([]);
+  });
+
   it("keeps a retained selected article in the feed source after unread refetch removes it", () => {
     let currentArticles = [sampleArticles[0]];
     useArticlesMock.mockImplementation((_feedId: string | null, options?: { mode?: ViewMode }) => ({

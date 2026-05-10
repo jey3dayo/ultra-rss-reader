@@ -9,7 +9,11 @@ import type { BrowserWebviewState } from "@/api/tauri-commands";
 import { BROWSER_WINDOW_EVENTS } from "@/constants/browser";
 import type { BrowserDebugGeometryNativeDiagnostics } from "@/lib/browser/browser-debug-geometry";
 import { createTauriListenerGroup } from "@/lib/runtime/tauri-event-listeners";
-import type { BrowserWebviewFallbackPayload } from "../../browser-webview-state";
+import { useUiStore } from "@/stores/ui-store";
+import {
+  type BrowserWebviewFallbackPayload,
+  isBrowserWebviewFallbackForRequestedUrl,
+} from "../../browser-webview-state";
 
 type UseBrowserWebviewEventsParams = {
   showDiagnostics: boolean;
@@ -93,6 +97,9 @@ export function useBrowserWebviewEvents({
             BROWSER_WINDOW_EVENTS.fallback,
             payload,
           );
+          return;
+        }
+        if (!isBrowserWebviewFallbackForRequestedUrl(fallbackPayload, useUiStore.getState().browserUrl ?? "")) {
           return;
         }
         onFallback(fallbackPayload);

@@ -2,6 +2,7 @@ import { act, renderHook } from "@testing-library/react";
 import { useRef, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { BrowserWebviewState } from "@/api/tauri-commands";
+import { isBrowserWebviewFallbackForRequestedUrl } from "@/components/reader/browser-webview-state";
 import { useBrowserWebviewStateChanged } from "@/components/reader/hooks/browser/use-browser-webview-state-changed";
 
 function createState(url: string, isLoading: boolean): BrowserWebviewState {
@@ -15,6 +16,39 @@ function createState(url: string, isLoading: boolean): BrowserWebviewState {
 }
 
 describe("useBrowserWebviewStateChanged", () => {
+  it("accepts fallback payloads only for the currently requested URL", () => {
+    expect(
+      isBrowserWebviewFallbackForRequestedUrl(
+        {
+          url: "https://example.com/current",
+          opened_external: true,
+          error_message: null,
+        },
+        "https://example.com/current",
+      ),
+    ).toBe(true);
+    expect(
+      isBrowserWebviewFallbackForRequestedUrl(
+        {
+          url: "https://example.com/previous",
+          opened_external: true,
+          error_message: null,
+        },
+        "https://example.com/current",
+      ),
+    ).toBe(false);
+    expect(
+      isBrowserWebviewFallbackForRequestedUrl(
+        {
+          url: "https://example.com/current",
+          opened_external: true,
+          error_message: null,
+        },
+        "",
+      ),
+    ).toBe(false);
+  });
+
   it("clears fallback recovery markers when a loading state change arrives", () => {
     const clearSurfaceIssue = vi.fn();
     const { result } = renderHook(() => {

@@ -35,6 +35,13 @@ export function resolveBrowserStateForRequestedUrl(
   return previousState?.url === requestedUrl ? previousState : initialBrowserState(requestedUrl);
 }
 
+export function isBrowserWebviewFallbackForRequestedUrl(
+  payload: BrowserWebviewFallbackPayload,
+  requestedUrl: string,
+): boolean {
+  return requestedUrl.length > 0 && payload.url === requestedUrl;
+}
+
 export function isMissingEmbeddedBrowserWebviewError(error: AppError) {
   return error.message === MISSING_EMBEDDED_BROWSER_WEBVIEW_ERROR;
 }
