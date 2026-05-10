@@ -1134,6 +1134,47 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn greader_rate_limit_preserves_retry_after_seconds_as_structured_error() {
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(200)
+            .with_body("Auth=tok\n")
+            .create_async()
+            .await;
+
+        let subscriptions = server
+            .mock("GET", "/api/greader.php/reader/api/0/subscription/list")
+            .match_query(mockito::Matcher::UrlEncoded("output".into(), "json".into()))
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_status(429)
+            .with_header("retry-after", "120")
+            .create_async()
+            .await;
+
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
+        provider
+            .authenticate(&Credentials {
+                password: Some("p".into()),
+                token: Some("u".into()),
+            })
+            .await
+            .unwrap();
+
+        let error = provider
+            .get_subscriptions()
+            .await
+            .expect_err("429 should surface as rate limit");
+
+        assert!(matches!(
+            error,
+            DomainError::RateLimit(message)
+                if message == "HTTP 429 Too Many Requests; retry_after_seconds=120"
+        ));
+        subscriptions.assert_async().await;
+    }
+
+    #[tokio::test]
     async fn authenticate_successful() {
         let mut server = mockito::Server::new_async().await;
         let mock = server

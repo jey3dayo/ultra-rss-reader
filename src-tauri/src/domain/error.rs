@@ -37,6 +37,25 @@ const DNS_RESOLUTION_ERROR_MARKERS: &[&str] = &[
 ];
 const DNS_RESOLUTION_ERROR_MESSAGE: &str =
     "Could not resolve the server name. Check the server URL or your DNS/network settings.";
+const TLS_CERTIFICATE_ERROR_MARKERS: &[&str] = &[
+    "certificate has expired",
+    "cert has expired",
+    "certificate expired",
+    "self signed certificate",
+    "self-signed certificate",
+    "unknown issuer",
+    "certificate verify failed",
+    "invalid certificate",
+];
+const TLS_CERTIFICATE_ERROR_MESSAGE: &str =
+    "Could not verify the server certificate. Check the server certificate or account URL.";
+const CONNECTION_RESET_ERROR_MARKERS: &[&str] = &[
+    "connection reset",
+    "connection aborted",
+    "connection closed before message completed",
+];
+const CONNECTION_RESET_ERROR_MESSAGE: &str =
+    "The server closed the connection unexpectedly. Check the server status and try again.";
 const CONNECTIVITY_ERROR_MESSAGE: &str =
     "Could not connect to the server. Check the server URL and whether the server is reachable.";
 const TIMEOUT_ERROR_MESSAGE: &str =
@@ -87,11 +106,25 @@ fn contains_dns_error_marker(normalized_message: &str) -> bool {
         .any(|marker| normalized_message.contains(marker))
 }
 
+fn contains_tls_certificate_error_marker(normalized_message: &str) -> bool {
+    TLS_CERTIFICATE_ERROR_MARKERS
+        .iter()
+        .any(|marker| normalized_message.contains(marker))
+}
+
+fn contains_connection_reset_error_marker(normalized_message: &str) -> bool {
+    CONNECTION_RESET_ERROR_MARKERS
+        .iter()
+        .any(|marker| normalized_message.contains(marker))
+}
+
 #[derive(Debug, Default)]
 struct NetworkErrorClassificationInput<'a> {
     message: &'a str,
     has_resolution_failed: bool,
     has_dns_error_marker: bool,
+    has_tls_certificate_error_marker: bool,
+    has_connection_reset_error_marker: bool,
     is_loopback_connectivity_timeout: bool,
     is_timeout: bool,
     is_connect: bool,
@@ -100,6 +133,14 @@ struct NetworkErrorClassificationInput<'a> {
 fn classify_network_error(input: NetworkErrorClassificationInput<'_>) -> String {
     if input.has_resolution_failed || input.has_dns_error_marker {
         return DNS_RESOLUTION_ERROR_MESSAGE.to_string();
+    }
+
+    if input.has_tls_certificate_error_marker {
+        return TLS_CERTIFICATE_ERROR_MESSAGE.to_string();
+    }
+
+    if input.has_connection_reset_error_marker {
+        return CONNECTION_RESET_ERROR_MESSAGE.to_string();
     }
 
     if input.is_loopback_connectivity_timeout {
@@ -125,6 +166,8 @@ fn classify_reqwest_network_error(error: &reqwest::Error) -> String {
         message: &message,
         has_resolution_failed: false,
         has_dns_error_marker: contains_dns_error_marker(&normalized),
+        has_tls_certificate_error_marker: contains_tls_certificate_error_marker(&normalized),
+        has_connection_reset_error_marker: contains_connection_reset_error_marker(&normalized),
         is_loopback_connectivity_timeout: is_loopback_connectivity_timeout(error),
         is_timeout: error.is_timeout(),
         is_connect: error.is_connect(),
@@ -297,6 +340,38 @@ mod tests {
     }
 
     #[test]
+    fn network_error_classification_maps_tls_certificate_failures_to_actionable_message() {
+        assert_eq!(
+            classify_network_error(NetworkErrorClassificationInput {
+                message: "certificate has expired",
+                has_tls_certificate_error_marker: true,
+                ..NetworkErrorClassificationInput::default()
+            }),
+            "Could not verify the server certificate. Check the server certificate or account URL."
+        );
+        assert_eq!(
+            classify_network_error(NetworkErrorClassificationInput {
+                message: "self signed certificate",
+                has_tls_certificate_error_marker: true,
+                ..NetworkErrorClassificationInput::default()
+            }),
+            "Could not verify the server certificate. Check the server certificate or account URL."
+        );
+    }
+
+    #[test]
+    fn network_error_classification_maps_connection_reset_to_actionable_message() {
+        assert_eq!(
+            classify_network_error(NetworkErrorClassificationInput {
+                message: "connection reset by peer",
+                has_connection_reset_error_marker: true,
+                ..NetworkErrorClassificationInput::default()
+            }),
+            "The server closed the connection unexpectedly. Check the server status and try again."
+        );
+    }
+
+    #[test]
     fn network_error_classification_keeps_loopback_connectivity_timeout_as_connectivity_failure() {
         assert_eq!(
             classify_network_error(NetworkErrorClassificationInput {
@@ -460,6 +535,24 @@ mod tests {
                         .to_string(),
                 ),
                 "Network error: Request timed out. Check the server URL or your network connection.",
+                true,
+                true,
+            ),
+            (
+                DomainError::Network(
+                    "Could not verify the server certificate. Check the server certificate or account URL."
+                        .to_string(),
+                ),
+                "Network error: Could not verify the server certificate. Check the server certificate or account URL.",
+                true,
+                true,
+            ),
+            (
+                DomainError::Network(
+                    "The server closed the connection unexpectedly. Check the server status and try again."
+                        .to_string(),
+                ),
+                "Network error: The server closed the connection unexpectedly. Check the server status and try again.",
                 true,
                 true,
             ),

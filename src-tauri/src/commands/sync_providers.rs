@@ -30,7 +30,10 @@ use crate::repository::folder::FolderRepository;
 use crate::repository::pending_mutation::{
     PendingMutationAxis, PendingMutationRepository, PendingMutationType,
 };
-use crate::repository::sync_state::{SyncState, SyncStateRepository, SyncStateScopeKey};
+use crate::repository::sync_state::{
+    normalize_http_etag_validator, normalize_http_last_modified_validator, SyncState,
+    SyncStateRepository, SyncStateScopeKey,
+};
 
 use super::feed_commands::lock_db;
 
@@ -297,8 +300,8 @@ pub(super) async fn sync_local_feed(
             saved_state.as_ref().map(|state| SyncCursor {
                 continuation: None,
                 since: None,
-                etag: state.etag.clone(),
-                last_modified: state.last_modified.clone(),
+                etag: normalize_http_etag_validator(state.etag.clone()),
+                last_modified: normalize_http_last_modified_validator(state.last_modified.clone()),
             }),
         )
         .await?;
@@ -344,14 +347,18 @@ pub(super) async fn sync_local_feed(
         scope_key: effective_scope_key.as_string(),
         timestamp_usec: None,
         continuation: None,
-        etag: result
-            .next_cursor
-            .as_ref()
-            .and_then(|cursor| cursor.etag.clone()),
-        last_modified: result
-            .next_cursor
-            .as_ref()
-            .and_then(|cursor| cursor.last_modified.clone()),
+        etag: normalize_http_etag_validator(
+            result
+                .next_cursor
+                .as_ref()
+                .and_then(|cursor| cursor.etag.clone()),
+        ),
+        last_modified: normalize_http_last_modified_validator(
+            result
+                .next_cursor
+                .as_ref()
+                .and_then(|cursor| cursor.last_modified.clone()),
+        ),
         last_success_at: Some(chrono::Utc::now().to_rfc3339()),
         last_error: None,
         error_count: 0,
@@ -3384,6 +3391,8 @@ mod tests {
         let feed_url = format!("{}/feed.xml", server.url());
         let mock = server
             .mock("GET", "/feed.xml")
+            .match_header("if-none-match", Matcher::Missing)
+            .match_header("if-modified-since", Matcher::Missing)
             .with_status(200)
             .with_header("content-type", "application/rss+xml")
             .with_header("etag", LOCAL_ETAG_NEW)
@@ -3761,6 +3770,85 @@ mod tests {
         assert_eq!(state.last_error, None);
         assert_eq!(state.next_retry_at, None);
         assert!(state.last_success_at.is_some());
+    }
+
+    #[tokio::test]
+    async fn sync_local_feed_preserves_weak_etag_and_drops_invalid_last_modified() {
+        let mut server = mockito::Server::new_async().await;
+        let feed_url = format!("{}/feed.xml", server.url());
+        let mock = server
+            .mock("GET", "/feed.xml")
+            .with_status(200)
+            .with_header("content-type", "application/rss+xml")
+            .with_header("etag", "W/\"weak-etag\"")
+            .with_header("last-modified", "not-a-date")
+            .with_body(LOCAL_RSS_INITIAL)
+            .create_async()
+            .await;
+
+        let db = test_db();
+        let (account, feed) = insert_local_account_and_feed(&db, &feed_url);
+        let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
+
+        sync_local_feed(&db, &provider, &account.id, &feed)
+            .await
+            .unwrap();
+
+        mock.assert_async().await;
+
+        let db_guard = db.lock().unwrap();
+        let sync_state_repo = SqliteSyncStateRepository::new(db_guard.reader());
+        let state = sync_state_repo
+            .get(&account.id, &local_feed_scope_key(&feed.url))
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(state.etag.as_deref(), Some("W/\"weak-etag\""));
+        assert_eq!(state.last_modified, None);
+    }
+
+    #[tokio::test]
+    async fn sync_local_feed_drops_invalid_saved_validators_before_request() {
+        let mut server = mockito::Server::new_async().await;
+        let feed_url = format!("{}/feed.xml", server.url());
+        let mock = server
+            .mock("GET", "/feed.xml")
+            .with_status(200)
+            .with_header("content-type", "application/rss+xml")
+            .with_header("etag", LOCAL_ETAG_NEW)
+            .with_header("last-modified", LOCAL_LAST_MODIFIED_NEW)
+            .with_body(LOCAL_RSS_INITIAL)
+            .expect(1)
+            .create_async()
+            .await;
+
+        let db = test_db();
+        let (account, feed) = insert_local_account_and_feed(&db, &feed_url);
+        {
+            let db_guard = db.lock().unwrap();
+            let sync_state_repo = SqliteSyncStateRepository::new(db_guard.writer());
+            sync_state_repo
+                .save(&SyncState {
+                    account_id: account.id.clone(),
+                    scope_key: local_feed_scope_key(&feed.url).as_string(),
+                    timestamp_usec: None,
+                    continuation: None,
+                    etag: Some("unquoted-etag".to_string()),
+                    last_modified: Some("invalid-date".to_string()),
+                    last_success_at: Some("2025-01-01T00:00:00Z".to_string()),
+                    last_error: None,
+                    error_count: 0,
+                    next_retry_at: None,
+                })
+                .unwrap();
+        }
+
+        let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
+        sync_local_feed(&db, &provider, &account.id, &feed)
+            .await
+            .unwrap();
+
+        mock.assert_async().await;
     }
 
     #[tokio::test]

@@ -1,6 +1,8 @@
 use crate::domain::error::DomainResult;
 use crate::domain::types::AccountId;
 
+const WEAK_ETAG_PREFIX: &str = "W/";
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SyncStateScopeKey {
     Scheduler,
@@ -69,6 +71,34 @@ fn normalize_local_feed_scope_url(feed_url: &str) -> String {
     url.to_string()
 }
 
+pub fn normalize_http_etag_validator(value: Option<String>) -> Option<String> {
+    let value = value?.trim().to_string();
+    if value.is_empty() || value.contains(['\r', '\n']) {
+        return None;
+    }
+
+    let strong = value
+        .strip_prefix(WEAK_ETAG_PREFIX)
+        .or_else(|| value.strip_prefix("w/"))
+        .unwrap_or(value.as_str());
+    if strong.len() >= 2 && strong.starts_with('"') && strong.ends_with('"') {
+        return Some(value);
+    }
+
+    None
+}
+
+pub fn normalize_http_last_modified_validator(value: Option<String>) -> Option<String> {
+    let value = value?.trim().to_string();
+    if value.is_empty() || value.contains(['\r', '\n']) {
+        return None;
+    }
+
+    chrono::DateTime::parse_from_rfc2822(&value)
+        .ok()
+        .map(|_| value)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -98,6 +128,45 @@ mod tests {
         assert_eq!(
             SyncStateScopeKey::local_feed("not a url").as_string(),
             "local_feed:not a url"
+        );
+    }
+
+    #[test]
+    fn http_etag_validator_accepts_quoted_strong_and_weak_values() {
+        assert_eq!(
+            normalize_http_etag_validator(Some(" \"strong\" ".to_string())).as_deref(),
+            Some("\"strong\"")
+        );
+        assert_eq!(
+            normalize_http_etag_validator(Some("W/\"weak\"".to_string())).as_deref(),
+            Some("W/\"weak\"")
+        );
+    }
+
+    #[test]
+    fn http_etag_validator_rejects_unquoted_or_injected_values() {
+        assert_eq!(
+            normalize_http_etag_validator(Some("unquoted".to_string())),
+            None
+        );
+        assert_eq!(
+            normalize_http_etag_validator(Some("\"ok\"\r\nx: y".to_string())),
+            None
+        );
+    }
+
+    #[test]
+    fn http_last_modified_validator_requires_rfc2822_http_date() {
+        assert_eq!(
+            normalize_http_last_modified_validator(Some(
+                "Thu, 02 Jan 2025 00:00:00 GMT".to_string()
+            ))
+            .as_deref(),
+            Some("Thu, 02 Jan 2025 00:00:00 GMT")
+        );
+        assert_eq!(
+            normalize_http_last_modified_validator(Some("not-a-date".to_string())),
+            None
         );
     }
 }
