@@ -3,6 +3,7 @@ import type { PreferenceRecord, PreferenceWritableKey, Theme } from "@/schemas/p
 export type PreferencesState = {
   prefs: PreferenceRecord;
   loaded: boolean;
+  pendingPreferenceSaves: number;
 };
 
 export type PreferencesActions = {

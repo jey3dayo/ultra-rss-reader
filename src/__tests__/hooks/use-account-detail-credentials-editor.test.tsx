@@ -127,6 +127,35 @@ describe("useAccountDetailCredentialsEditor", () => {
     );
   });
 
+  it("returns the shared dirty-state shape for credential drafts", () => {
+    const account = sampleAccounts[1];
+    const { result } = renderHook(() =>
+      useAccountDetailCredentialsEditor({
+        account,
+        queryClient: createTestQueryClient(),
+        t,
+      }),
+    );
+
+    expect(result.current.dirtyState).toEqual({
+      owner: "account",
+      dirty: false,
+      pending: false,
+      blockingReason: null,
+    });
+
+    act(() => {
+      result.current.setCredUsername("alice");
+    });
+
+    expect(result.current.dirtyState).toEqual({
+      owner: "account",
+      dirty: true,
+      pending: false,
+      blockingReason: "account-credentials-dirty",
+    });
+  });
+
   it("trims the copied server URL and skips whitespace-only drafts", async () => {
     const account = {
       ...sampleAccounts[1],

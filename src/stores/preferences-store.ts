@@ -403,6 +403,7 @@ function applyPreferenceRuntimeEffect(key: string, normalizedValue: string): voi
 export const usePreferencesStore = create<PreferencesState & PreferencesActions>()((set, getState) => ({
   prefs: {},
   loaded: false,
+  pendingPreferenceSaves: 0,
 
   loadPreferences: async () => {
     if (preferencesLoadPromise) {
@@ -465,6 +466,7 @@ export const usePreferencesStore = create<PreferencesState & PreferencesActions>
     preferencePersistRequestIds.set(key, requestId);
     set((state) => ({
       prefs: { ...state.prefs, [key]: normalizedValue },
+      pendingPreferenceSaves: state.pendingPreferenceSaves + 1,
     }));
 
     applyPreferenceRuntimeEffect(key, normalizedValue);
@@ -473,12 +475,21 @@ export const usePreferencesStore = create<PreferencesState & PreferencesActions>
       if (preferencePersistRequestIds.get(key) === requestId) {
         preferencePersistRequestIds.delete(key);
       }
+      set((state) => ({
+        pendingPreferenceSaves: Math.max(0, state.pendingPreferenceSaves - 1),
+      }));
     };
     const notifyLatestPersistFailure = (error: unknown) => {
       if (preferencePersistRequestIds.get(key) !== requestId) {
+        set((state) => ({
+          pendingPreferenceSaves: Math.max(0, state.pendingPreferenceSaves - 1),
+        }));
         return;
       }
       preferencePersistRequestIds.delete(key);
+      set((state) => ({
+        pendingPreferenceSaves: Math.max(0, state.pendingPreferenceSaves - 1),
+      }));
       notifyPreferencePersistFailure(key, error);
     };
 

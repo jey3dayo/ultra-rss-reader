@@ -148,6 +148,29 @@ describe("TagsSettings", () => {
     expect(nameInput).toHaveValue("Current Draft");
     expect(showToast).not.toHaveBeenCalled();
   });
+
+  it("trims tag rename drafts before saving", async () => {
+    const user = userEvent.setup();
+    tagHooks.tagsData = [{ id: "tag-1", name: "Review", color: null }];
+    tagHooks.renameTagMutateAsync.mockResolvedValueOnce({});
+
+    render(<TagsSettings />);
+
+    await user.click(screen.getByRole("button", { name: /Edit/ }));
+    const dialog = screen.getByRole("dialog");
+    const nameInput = within(dialog).getByRole("textbox");
+    await user.clear(nameInput);
+    await user.type(nameInput, "  Reading  ");
+    await user.click(within(dialog).getByRole("button", { name: /^(Save|common\.save)$/ }));
+
+    await waitFor(() => {
+      expect(tagHooks.renameTagMutateAsync).toHaveBeenCalledWith({
+        tagId: "tag-1",
+        name: "Reading",
+        color: null,
+      });
+    });
+  });
 });
 
 function createDeferred<T>() {

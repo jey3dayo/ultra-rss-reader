@@ -7,6 +7,7 @@ import { useUiStore } from "@/stores/ui-store";
 import { updateCachedAccount } from "../../account-detail/query-cache";
 import { createAccountDetailErrorToast } from "../../account-detail/toast";
 import type { AccountDetailEditorContext } from "../../account-detail/types";
+import { type SettingsDirtyStateEntry, useRegisterSettingsDirtyState } from "../use-settings-dirty-state-registry";
 import { focusFirstAccountDetailInput } from "./account-detail-editor-focus";
 
 type AccountDetailCredentialsEditorParams = AccountDetailEditorContext;
@@ -17,6 +18,7 @@ export type AccountDetailCredentialsEditorResult = {
   credPassword: string | null;
   passwordDisplayValue: string;
   testingConnection: boolean;
+  dirtyState: SettingsDirtyStateEntry;
   serverUrlInputRef: RefObject<HTMLInputElement | null>;
   usernameInputRef: RefObject<HTMLInputElement | null>;
   setCredServerUrl: (value: string | null) => void;
@@ -47,6 +49,7 @@ type AccountDetailCredentialsEditorState = {
   credPassword: string | null;
   hasSavedPassword: boolean;
   testingConnection: boolean;
+  credentialSavePending: boolean;
   draftRevision: number;
 };
 
@@ -55,6 +58,7 @@ type AccountDetailCredentialsEditorAction =
   | { type: "set-cred-username"; value: string | null }
   | { type: "set-cred-password"; value: string | null }
   | { type: "set-testing-connection"; value: boolean }
+  | { type: "set-credential-save-pending"; value: boolean }
   | { type: "sync-saved-password-presence"; value: boolean }
   | {
       type: "clear-credential-drafts";
@@ -83,6 +87,7 @@ function createInitialAccountDetailCredentialsEditorState(
     credPassword: null,
     hasSavedPassword: accountMayHaveSavedPassword(account),
     testingConnection: false,
+    credentialSavePending: false,
     draftRevision: 0,
   };
 }
@@ -112,6 +117,8 @@ function accountDetailCredentialsEditorReducer(
       };
     case "set-testing-connection":
       return { ...state, testingConnection: action.value };
+    case "set-credential-save-pending":
+      return { ...state, credentialSavePending: action.value };
     case "sync-saved-password-presence":
       return { ...state, hasSavedPassword: action.value };
     case "clear-credential-drafts":
@@ -145,7 +152,8 @@ export function useAccountDetailCredentialsEditor({
     account,
     createInitialAccountDetailCredentialsEditorState,
   );
-  const { credServerUrl, credUsername, credPassword, hasSavedPassword, testingConnection } = state;
+  const { credServerUrl, credUsername, credPassword, hasSavedPassword, testingConnection, credentialSavePending } =
+    state;
   const pendingCredentialSaveRef = useRef<Promise<boolean> | null>(null);
   const pendingCredentialSaveRevisionRef = useRef<number | null>(null);
   const pendingConnectionTestRef = useRef(false);
@@ -159,8 +167,22 @@ export function useAccountDetailCredentialsEditor({
   const showCopyServerUrlError = createAccountDetailErrorToast(t, "account.copy_server_url_failed");
   const savedPasswordPresence = accountMayHaveSavedPassword(account);
   const passwordDisplayValue = credPassword ?? (hasSavedPassword ? MASKED_PASSWORD_VALUE : "");
+  const credentialsDirty =
+    credServerUrl !== null || credUsername !== null || (credPassword !== null && credPassword !== "");
+  const dirtyState: SettingsDirtyStateEntry = {
+    owner: "account",
+    dirty: credentialsDirty,
+    pending: credentialSavePending || testingConnection,
+    blockingReason:
+      credentialSavePending || testingConnection
+        ? "account-credentials-pending"
+        : credentialsDirty
+          ? "account-credentials-dirty"
+          : null,
+  };
   activeAccountIdRef.current = account.id;
   draftRevisionRef.current = state.draftRevision;
+  useRegisterSettingsDirtyState(dirtyState);
 
   useEffect(() => {
     dispatch({
@@ -247,9 +269,11 @@ export function useAccountDetailCredentialsEditor({
     })();
 
     pendingCredentialSaveRevisionRef.current = draftRevision;
+    dispatch({ type: "set-credential-save-pending", value: true });
     pendingCredentialSaveRef.current = saveTask.finally(() => {
       pendingCredentialSaveRef.current = null;
       pendingCredentialSaveRevisionRef.current = null;
+      dispatch({ type: "set-credential-save-pending", value: false });
     });
 
     return pendingCredentialSaveRef.current;
@@ -331,6 +355,7 @@ export function useAccountDetailCredentialsEditor({
     credPassword,
     passwordDisplayValue,
     testingConnection,
+    dirtyState,
     serverUrlInputRef,
     usernameInputRef,
     setCredServerUrl: (value) => dispatch({ type: "set-cred-server-url", value }),

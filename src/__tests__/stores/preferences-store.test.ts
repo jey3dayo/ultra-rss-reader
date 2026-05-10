@@ -191,7 +191,11 @@ describe("usePreferencesStore preferences", () => {
     vi.clearAllMocks();
     resetPreferencesStoreRuntimeForTests();
     vi.mocked(setPreference).mockResolvedValue(Result.succeed(null));
-    usePreferencesStore.setState({ prefs: {}, loaded: false });
+    usePreferencesStore.setState({
+      prefs: {},
+      loaded: false,
+      pendingPreferenceSaves: 0,
+    });
     useUiStore.setState({ toastMessage: null });
     document.documentElement.classList.remove("dark", "theme-transitioning", "vertical-wipe-transition");
     document.documentElement.style.colorScheme = "";
@@ -1183,6 +1187,21 @@ describe("usePreferencesStore preferences", () => {
     } finally {
       consoleError.mockRestore();
     }
+  });
+
+  it("exposes pending preference saves for settings lifecycle guards", async () => {
+    const pendingSave = createResultDeferred<Awaited<ReturnType<typeof setPreference>>>();
+    vi.mocked(setPreference).mockReturnValueOnce(pendingSave.promise);
+
+    usePreferencesStore.getState().setPref("language", "en");
+
+    expect(usePreferencesStore.getState().pendingPreferenceSaves).toBe(1);
+
+    pendingSave.resolve(Result.succeed(null));
+    await pendingSave.promise;
+    await Promise.resolve();
+
+    expect(usePreferencesStore.getState().pendingPreferenceSaves).toBe(0);
   });
 
   it("reports synchronous latest manual preference persist failures", async () => {

@@ -12,6 +12,11 @@ import { GeneralSettings } from "@/components/settings/general-settings";
 import { useAccountDetailController } from "@/components/settings/hooks/account-detail/use-account-detail-controller";
 import { useAccountDetailSyncStatusRows } from "@/components/settings/hooks/account-detail/use-account-detail-sync-status-rows";
 import { useAccountDetailViewProps } from "@/components/settings/hooks/account-detail/use-account-detail-view-props";
+import {
+  SettingsDirtyStateRegistryProvider,
+  useRegisterSettingsDirtyState,
+  useSettingsDirtyStateRegistrySnapshot,
+} from "@/components/settings/hooks/use-settings-dirty-state-registry";
 import { useSettingsModalViewProps } from "@/components/settings/hooks/use-settings-modal-view-props";
 import { MuteSettings } from "@/components/settings/mute-settings";
 import { ReadingSettings } from "@/components/settings/reading-settings";
@@ -167,6 +172,14 @@ function SettingsContent({
 }
 
 export function SettingsModal() {
+  return (
+    <SettingsDirtyStateRegistryProvider>
+      <SettingsModalContent />
+    </SettingsDirtyStateRegistryProvider>
+  );
+}
+
+function SettingsModalContent() {
   const { t } = useTranslation("settings");
   const devBuild = import.meta.env.DEV;
   const settingsOpen = useUiStore((s) => s.settingsOpen);
@@ -182,6 +195,7 @@ export function SettingsModal() {
   const setSettingsAccountsView = useUiStore((s) => s.setSettingsAccountsView);
   const settingsLoading = useUiStore((s) => s.settingsLoading);
   const accountSetupSession = useUiStore((s) => s.accountSetupSession);
+  const pendingPreferenceSaves = usePreferencesStore((s) => s.pendingPreferenceSaves);
   const [deletedAccountIds, setDeletedAccountIds] = useState<string[]>([]);
   const { data: accounts } = useAccounts();
   const savedAccountId = usePreferencesStore((s) => s.prefs.selected_account_id ?? "");
@@ -235,6 +249,22 @@ export function SettingsModal() {
   });
   const transitionAccountId = settingsAccountsViewTransition?.accountId;
   const transitionAddAccount = settingsAccountsViewTransition?.addAccount;
+  const dirtyStateSnapshot = useSettingsDirtyStateRegistrySnapshot();
+  useRegisterSettingsDirtyState({
+    owner: "preferences",
+    dirty: false,
+    pending: pendingPreferenceSaves > 0,
+    blockingReason: pendingPreferenceSaves > 0 ? "preferences-save-pending" : null,
+  });
+  const dirtyStateLockReason = dirtyStateSnapshot.pending
+    ? t("dirty_state.pending_lock_message", {
+        defaultValue: "Saving changes. Please wait before leaving settings.",
+      })
+    : dirtyStateSnapshot.dirty
+      ? t("dirty_state.dirty_lock_message", {
+          defaultValue: "Finish or discard the current edit before leaving settings.",
+        })
+      : null;
 
   useEffect(() => {
     if (deletedAccountIds.length === 0 || accounts === undefined) {
@@ -294,7 +324,7 @@ export function SettingsModal() {
     setSettingsCategory,
     openSettingsAccount,
     openSettingsAddAccount,
-    setupLockReason: isSetupLocked ? t("account.setup_lock_reason") : null,
+    setupLockReason: isSetupLocked ? t("account.setup_lock_reason") : dirtyStateLockReason,
   });
 
   return <SettingsModalView {...viewProps} />;

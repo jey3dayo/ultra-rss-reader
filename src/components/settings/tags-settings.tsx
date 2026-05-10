@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { TagDto } from "@/api/tauri-commands";
 import { DeleteTagDialogView } from "@/components/reader/delete-tag-dialog-view";
 import { RenameTagDialogView } from "@/components/reader/rename-tag-dialog-view";
+import { useRegisterSettingsDirtyState } from "@/components/settings/hooks/use-settings-dirty-state-registry";
 import { TagsSettingsView } from "@/components/settings/tags-settings-view";
 import { TAG_COLOR_PRESETS } from "@/components/shared/exception-palettes";
 import { useCreateTag, useDeleteTag, useRenameTag, useTags } from "@/hooks/use-tags";
@@ -45,11 +46,24 @@ const initialTagsSettingsState: TagsSettingsState = {
 function tagsSettingsReducer(state: TagsSettingsState, action: TagsSettingsAction): TagsSettingsState {
   switch (action.type) {
     case "set-name":
-      return { ...state, name: action.value, createRevision: state.createRevision + 1 };
+      return {
+        ...state,
+        name: action.value,
+        createRevision: state.createRevision + 1,
+      };
     case "set-color":
-      return { ...state, color: action.value, createRevision: state.createRevision + 1 };
+      return {
+        ...state,
+        color: action.value,
+        createRevision: state.createRevision + 1,
+      };
     case "reset-create":
-      return { ...state, name: "", color: null, createRevision: state.createRevision + 1 };
+      return {
+        ...state,
+        name: "",
+        color: null,
+        createRevision: state.createRevision + 1,
+      };
     case "start-edit":
       return {
         ...state,
@@ -59,11 +73,25 @@ function tagsSettingsReducer(state: TagsSettingsState, action: TagsSettingsActio
         renameColor: action.tag?.color ?? null,
       };
     case "close-edit":
-      return { ...state, editingTag: null, editRevision: state.editRevision + 1, renameName: "", renameColor: null };
+      return {
+        ...state,
+        editingTag: null,
+        editRevision: state.editRevision + 1,
+        renameName: "",
+        renameColor: null,
+      };
     case "set-rename-name":
-      return { ...state, renameName: action.value, editRevision: state.editRevision + 1 };
+      return {
+        ...state,
+        renameName: action.value,
+        editRevision: state.editRevision + 1,
+      };
     case "set-rename-color":
-      return { ...state, renameColor: action.value, editRevision: state.editRevision + 1 };
+      return {
+        ...state,
+        renameColor: action.value,
+        editRevision: state.editRevision + 1,
+      };
     case "start-delete":
       return { ...state, deletingTag: action.tag };
     case "close-delete":
@@ -87,6 +115,15 @@ export function TagsSettings() {
   const stateRef = useRef(state);
   stateRef.current = state;
   const { name, color, createRevision, editingTag, editRevision, deletingTag, renameName, renameColor } = state;
+  const createDirty = name.trim().length > 0 || color !== null;
+  const editDirty = editingTag !== null && (renameName.trim() !== editingTag.name || renameColor !== editingTag.color);
+  const tagPending = createTag.isPending || renameTag.isPending || deleteTag.isPending;
+  useRegisterSettingsDirtyState({
+    owner: "tag",
+    dirty: createDirty || editDirty,
+    pending: tagPending,
+    blockingReason: tagPending ? "tag-save-pending" : createDirty || editDirty ? "tag-form-dirty" : null,
+  });
 
   const handleCreate = async () => {
     const trimmedName = name.trim();
@@ -97,7 +134,10 @@ export function TagsSettings() {
     const requestRevision = createRevision;
     createInFlightRef.current = true;
     try {
-      await createTag.mutateAsync({ name: trimmedName, color: color ?? undefined });
+      await createTag.mutateAsync({
+        name: trimmedName,
+        color: color ?? undefined,
+      });
       if (stateRef.current.createRevision !== requestRevision) {
         return;
       }
@@ -188,8 +228,18 @@ export function TagsSettings() {
         editAriaLabel={(tagName) => t("tags.edit_aria_label", { name: tagName })}
         deleteLabel={t("tags.delete")}
         deleteAriaLabel={(tagName) => t("tags.delete_aria_label", { name: tagName })}
-        onEdit={(tagId) => dispatch({ type: "start-edit", tag: tags.find((tag) => tag.id === tagId) ?? null })}
-        onDelete={(tagId) => dispatch({ type: "start-delete", tag: tags.find((tag) => tag.id === tagId) ?? null })}
+        onEdit={(tagId) =>
+          dispatch({
+            type: "start-edit",
+            tag: tags.find((tag) => tag.id === tagId) ?? null,
+          })
+        }
+        onDelete={(tagId) =>
+          dispatch({
+            type: "start-delete",
+            tag: tags.find((tag) => tag.id === tagId) ?? null,
+          })
+        }
       />
       <RenameTagDialogView
         open={editingTag !== null}

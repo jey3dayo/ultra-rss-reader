@@ -1,6 +1,7 @@
 import { RotateCcw } from "lucide-react";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useRegisterSettingsDirtyState } from "@/components/settings/hooks/use-settings-dirty-state-registry";
 import { ShortcutsSettingsView } from "@/components/settings/shortcuts-settings-view";
 import { shouldIgnoreGlobalShortcutKeyboardEvent } from "@/lib/keyboard/global-shortcut-targets";
 import {
@@ -39,9 +40,17 @@ export function ShortcutsSettings() {
   const { t: tReader } = useTranslation("reader");
   const setPref = usePreferencesStore((s) => s.setPref);
   const prefs = usePreferencesStore((s) => s.prefs);
+  const pendingPreferenceSaves = usePreferencesStore((s) => s.pendingPreferenceSaves);
   const platformKind = usePlatformStore((state) => state.platform.kind);
 
   const [recordingId, setRecordingId] = useState<ShortcutActionId | null>(null);
+  useRegisterSettingsDirtyState({
+    owner: "shortcut",
+    dirty: recordingId !== null,
+    pending: pendingPreferenceSaves > 0,
+    blockingReason:
+      pendingPreferenceSaves > 0 ? "shortcut-save-pending" : recordingId !== null ? "shortcut-recording" : null,
+  });
 
   const getKey = useCallback(
     (id: ShortcutActionId) => {

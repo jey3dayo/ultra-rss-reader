@@ -1575,7 +1575,7 @@ describe("AccountDetail", () => {
     await user.click(await screen.findByRole("button", { name: "FreshRSS" }));
     const input = await screen.findByRole("textbox", { name: "Account name" });
     await user.clear(input);
-    await user.type(input, "Team FreshRSS");
+    await user.type(input, "  Team FreshRSS  ");
     fireEvent.blur(input);
 
     await waitFor(() => {
