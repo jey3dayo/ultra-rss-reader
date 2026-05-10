@@ -1655,26 +1655,6 @@
   - `parseJsonWithSchema` と `parseJsonWithSchemaOrNull` が共存しており、runtime boundary で throwing helper を使うと unhandled exception になりやすい
   - localStorage recovery、IPC response validation、test fixture strict parse、invalid schema、malformed JSON、rule doc の usage matrix を追加する
 
-- [ ] P2 feed website href の invalid URL fallback を opener validation と近づける
-  - 対象: `src/lib/feed/feed.ts`, `src/components/shared/feed-detail-panel.tsx`, `src/components/reader/article-browser-actions.ts`
-  - feed website action は site_url/feed_url を trim して返すだけなので、invalid URL は opener 側で落ちるまで UI 上は clickable に見える
-  - invalid site_url valid feed_url、both invalid、mailto/feed URL、javascript URL、credential URL、host label fallback の component test を追加する
-
-- [ ] P2 feed host label に invalid URL 文字列をそのまま出す方針を privacy review する
-  - 対象: `src/lib/feed/feed.ts`, `src/components/shared/feed-favicon.tsx`, `src/components/shared/feed-detail-card.tsx`
-  - host extraction が全 URL invalid の時に invalid value を label として返すため、長い URL や token 付き URL が UI に出る可能性がある
-  - query token、userinfo、long invalid URL、newline、unicode host、redacted fallback label の policy test を追加する
-
-- [ ] P2 subscriptions return state の `expandedGroups` key namespace を filter/account と衝突しないようにする
-  - 対象: `src/lib/subscriptions/subscriptions-workspace.types.ts`, `src/components/subscriptions-index/use-subscriptions-index-state.ts`
-  - return state の expandedGroups は plain record なので、filter名や folder/feed id が衝突すると別 view の開閉 state が混ざる可能性がある
-  - account scoped key、filter scoped key、deleted group、malformed persisted return state、large group record の test を追加する
-
-- [ ] P2 subscriptions return state scrollTop を layout generation / viewport height と結びつける
-  - 対象: `src/lib/subscriptions/subscriptions-workspace.types.ts`, `src/components/subscriptions-index/subscriptions-index-page.tsx`
-  - return state の scrollTop は number だけなので、viewport サイズや filter 結果が変わると過大 scroll に復帰して空白/見失いが起きやすい
-  - negative scroll、huge scroll、filter changed、account changed、viewport changed、target row deleted の restore test を追加する
-
 - [ ] P2 settings action button の disabled-only feedback を destructive/data actions で補う
   - 対象: `src/components/settings/shared/settings-action-button.tsx`, `src/components/settings/data-settings-view.tsx`, `src/components/settings/account-detail/danger-zone-view.tsx`
   - destructive/data action が disabled の時に理由が UI に出ないと、sync/vacuum/update 中の操作不可が failure と誤認されやすい
@@ -1721,11 +1701,6 @@
   - 対象: `src-tauri/src/infra/provider/normalizer.rs`, `src/lib/feed/feed.ts`, `src/components/shared/feed-favicon.tsx`
   - provider 側で site/icon/article URL を normalize し、frontend でも host/open policy を持つため、片側だけ URL を受け入れる状態が増えやすい
   - http/https、protocol-relative、relative URL、userinfo、unicode host、tracking query、icon URL の parity fixture を追加する
-
-- [ ] P2 pending mutation invalid stored type を account sync 全体 failure にするか quarantine するか決める
-  - 対象: `src-tauri/src/infra/db/sqlite_pending_mutation.rs`, `src-tauri/src/service/sync_flow.rs`, `src-tauri/src/commands/sync_providers.rs`
-  - 1件の未知 mutation_type で `find_by_account` が落ちると、その account の全 sync が止まり、UI からは credential/network failure と区別しづらい
-  - unknown type row、delete broken mutation、skip with warning、diagnostics、account detail repair action の方針を固定する
 
 - [ ] P2 pending mutation push の per-mutation delete timing を remote partial failure で固定する
   - 対象: `src-tauri/src/service/sync_flow.rs`, `src-tauri/src/repository/pending_mutation.rs`, `src-tauri/src/infra/provider/traits.rs`
