@@ -451,16 +451,6 @@
   - continuation が繰り返す・page limit に到達する場合に Network error で止まるが、次回 sync で cursor を進める/戻す方針が曖昧だと feed が永久に stale になりやすい
   - repeated continuation、max pages、max stream ids、partial ids、cursor保存/破棄、次回 retry warning の integration test を追加する
 
-- [ ] P1 GReader item timestamp usec の overflow / negative / future clock を cursor policy にする
-  - 対象: `src-tauri/src/infra/provider/greader.rs`, `src-tauri/src/commands/sync_providers.rs`, `src-tauri/src/infra/db/sqlite_sync_state.rs`
-  - `timestampUsec` / updated / published から cursor を作るため、provider の異常値で since cursor が壊れると以降の delta sync が欠落しやすい
-  - negative usec、i64 max近辺、future timestamp、missing timestamp、published fallback、cursor rollback の contract test を追加する
-
-- [ ] P2 GReader label remote id normalization と folder duplicate policy を folder sync と揃える
-  - 対象: `src-tauri/src/infra/provider/greader.rs`, `src-tauri/src/service/sync_flow.rs`, `src-tauri/src/infra/db/sqlite_folder.rs`
-  - label id を percent decode して display label に寄せるため、slash を含む label、同名 label、encoded Unicode で remote folder id と local folder が衝突しやすい
-  - encoded slash、invalid percent、empty label、duplicate labels、Unicode label、existing local folder name collision の sync test を追加する
-
 - [ ] P2 provider metadata URL normalizer と frontend URL policy の差分を providerごとに fixture 化する
   - 対象: `src-tauri/src/infra/provider/normalizer.rs`, `src/lib/feed/feed.ts`, `src/components/shared/feed-favicon.tsx`
   - provider 側で site/icon/article URL を normalize し、frontend でも host/open policy を持つため、片側だけ URL を受け入れる状態が増えやすい
@@ -537,11 +527,6 @@
   - 対象: `src-tauri/src/commands/browser_webview_commands.rs`, `src/lib/actions.ts`, `src/components/reader/hooks/browser/use-browser-view-runtime.ts`
   - close 時に host window focus restore が失敗しても close を継続するため、pending next/prev action が keyboard focus 不在のまま流れる可能性がある
   - focus host failure、webview close failure、pending action flush、Windows grace window、main webview missing の integration test を追加する
-
-- [ ] P2 browser preview bridge message の URL equality を redirect/canonical URL で再検証する
-  - 対象: `src-tauri/src/browser_webview.rs`, `src/lib/keyboard/keyboard-shortcuts.ts`, `src/components/reader/hooks/browser`
-  - bridge message は action と URL が snapshot と一致する時だけ受けるため、redirect 後 URL や percent encoding 差で shortcut が効かなくなる可能性がある
-  - redirected URL、trailing slash、percent encoding、hash change、unsupported action、stale URL の bridge test を追加する
 
 - [ ] P2 browser preview focus override script の site compatibility / security boundary を検証する
   - 対象: `src-tauri/src/browser_webview.rs`, `src/components/settings/reading-settings-view.tsx`, `src/__tests__/schemas/preferences-schema-contract.test.ts`
