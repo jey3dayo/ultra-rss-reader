@@ -7,6 +7,10 @@
 - 次に大きな UI バッチを始めるときは、必要な write scope ごとにここへ再追加する
 - 同じカテゴリ内は原則同時に走らせない。並列化する場合は `対象:` の write scope が重ならないことを確認する
 - Rust DB/provider、reader UI/hooks、schema/storage、E2E/tooling は競合しやすいので別カテゴリを優先して組み合わせる
+- domain shard は `security-privacy`, `provider-sync`, `release-native`, `db-recovery`, `query-cache`, `reader-state`, `settings-state`, `a11y-keyboard`, `quality-tooling` のいずれかに寄せる
+- 各 TODO は priority、domain、work type、write scope、focused verification を読める形で残す
+- Rust DB/provider と query/store は同時投入しない。reader state と a11y keyboard も同時投入しない。release/native と frontend-only tooling は並列可
+- leaf task を親 tranche へ寄せる場合は、leaf 側に `superseded by: <parent>`、残す検証観点、削除理由、CHANGELOG へ移す条件を残してから削除判断する
 
 ### TODO intake stop rules
 
@@ -15,23 +19,6 @@
 - 発見方法がない懸念は TODO 化しない。`code audit`、`focused test`、`manual native verification`、`implementation-time checklist`、CI/release gate のどれで見つけるかを明記する
 - 既存 TODO と重なる場合は新しい項目を増やさず、該当 tranche の `supersedes` か検証条件へ統合する
 - backlog が過密な domain は追加列挙を止め、first tranche 実装、重複 merge、parallel-safe shard 化のどれかへ切り替える
-
-### TODO shard 方針
-
-- [ ] P2 TODO shard の domain taxonomy を固定する
-  - shard: `security-privacy`, `provider-sync`, `release-native`, `db-recovery`, `query-cache`, `reader-state`, `settings-state`, `a11y-keyboard`, `quality-tooling`
-  - 完了条件: 各 TODO が priority、domain、work type、write scope、focused verification を持つ
-  - 検証: 手動分類なら `rg -n "^- \\[ \\] P[123]" TODO.md` で未分類を確認し、script 化する場合は fixture test を追加する
-
-- [ ] P2 shard 間の並列投入ルールを TODO.md 冒頭へ昇格する
-  - ルール: Rust DB/provider と query/store は同時投入しない、reader state と a11y keyboard は同時投入しない、release/native と frontend-only tooling は並列可にする
-  - 完了条件: 各先行 queue が parallel-safe / blocked-by / blocks を持ち、subagent へ渡す順序が明確になる
-  - 検証: `TODO.md` の先行 queue から同じ write scope の同時 worker が出ないことを確認する
-
-- [ ] P2 shard へ移した leaf TODO の `superseded by` 記法を決める
-  - 目的: 重複 task を消す時に、検証観点や過去の判断理由を失わないようにする
-  - 完了条件: leaf task を削る場合は親バッチ名、残す観点、削除理由、CHANGELOG へ移す条件を残す
-  - 検証: query invalidation/auth failure/recovery/diagnostics/focus 系から 1 domain を選び、試験的に merge する
 
 ### Sync / App Runtime
 
@@ -1551,6 +1538,16 @@
   - 対象: `src-tauri/src/commands/sync_providers.rs`, sync warning DTO、sidebar/account sync warning tests
   - pending mutation retry warning が remote_entry_id を user-facing message に含むと、provider 固有 ID や URL-like id が toast/sidebar に露出し、diagnostics redaction と責務がずれる
   - retry pending、dropped mutation、provider id with URL/token-like text、diagnostics detail vs public copy、sidebar warning rendering の contract を追加する
+
+- [ ] P2 sync feedback の blank account name fallback を user-facing copy と diagnostics detail に分ける
+  - 対象: `src/lib/sync/sync-result-feedback.ts`, `src/__tests__/lib/sync-result-feedback.test.ts`, sidebar/account sync warning UI
+  - account_name が blank の時に account_id を表示名として使うと、内部 ID が toast/sidebar に出る一方、support diagnostics では account_id が必要になる
+  - blank account name、deleted account、unknown scheduler owner、public unknown-account copy、diagnostics account_id retention の contract を追加する
+
+- [ ] P2 sync feedback action owner label を i18n / public copy source に寄せる
+  - 対象: `src/lib/sync/sync-result-feedback.ts`, reader/sidebar i18n、sync feedback tests
+  - action owner label が `credentials` / `feed` / `scheduler` の hardcoded English だと、locale 変更や user-facing copy policy とずれやすい
+  - ja/en owner label、unknown owner fallback、account owner no suffix、snapshot copy、translator key coverage の test を追加する
 
 - [ ] P2 dropped pending mutation を user-visible sync warning / diagnostics summary に接続する
   - 対象: `src-tauri/src/commands/sync_providers.rs`, sync result warning aggregation、pending mutation repository tests
