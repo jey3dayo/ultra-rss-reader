@@ -118,6 +118,48 @@ Dense row action contract:
 - Truncated row text must not be the only source of the action target. The full safe display name should be available to assistive technology.
 - Tooltip copy can supplement pointer users, but the accessible label or description is the required contract for keyboard and screen reader users.
 
+## Command And Shortcut Persistence Contract
+
+Action identifiers are public only at the boundary where another surface stores or emits them. Internal helper names, locale keys, and UI component names may change without migration only when they are not persisted or emitted across a runtime boundary.
+
+Public persistence boundary:
+
+| Boundary class | Persistent or external surface | Stable identifier contract |
+| --- | --- | --- |
+| Preference | Shortcut overrides are stored as `shortcut_${ShortcutActionId}`. The allowed action id suffixes are the `ShortcutActionId` values in `src/lib/keyboard/keyboard-shortcuts.ts`, and Rust preferences accept the same suffix list. | Rename only by keeping the old key readable until a migration copies it to the new key. Unknown `shortcut_*` keys are invalid and must not silently become defaults. |
+| History | Command palette recent action history stores values created from `{ kind: "action", id }`. The action id is either an `AppAction` or the palette-only `open-shortcuts-help`. | Rename only by migrating or ignoring old history entries explicitly. Do not persist labels, translated text, or menu ids as history ids. |
+| Debug | Debug input trace records resolved action strings such as `window-key / -> emit`, `menu-action open-settings`, and `queue next-article`. | Debug trace strings are diagnostic evidence, not preferences. They may change for clarity, but incident notes must record the exact string observed for that build. |
+
+Keyboard shortcut migration path:
+
+- A renamed customizable shortcut action must keep the old `shortcut_<old_id>` accepted long enough to read existing user preferences.
+- Migration must copy the old value to `shortcut_<new_id>` only when the new key is absent, then stop writing the old key.
+- The TypeScript `ShortcutActionId` union, `shortcutDefinitions`, frontend schemas, Rust `ALLOWED_SHORTCUT_IDS`, and preference command tests must move together.
+- Browser preview shortcut bridge coverage must be updated when the renamed action is one of the bridge-owned keys: `shortcut_close_or_clear`, `shortcut_toggle_read`, `shortcut_toggle_star`, `shortcut_open_external_browser`, `shortcut_next_article`, `shortcut_prev_article`, `shortcut_next_feed`, `shortcut_prev_feed`, or `shortcut_reload_webview`.
+- A pure label rename does not require preference migration when the `ShortcutActionId` suffix stays unchanged.
+
+Shortcut help content contract:
+
+- The shortcut help modal is generated from `shortcutDefinitions`, current preference values, platform display formatting, and locale labels.
+- Settings shortcut rows are generated from the same `shortcutDefinitions` source.
+- A change to shortcut ids, default keys, category order, or displayed labels must update focused snapshots or equivalent contract assertions for:
+  - the help modal generated content,
+  - the settings shortcut rows,
+  - `buildKeyToActionMap` / `resolveKeyboardAction`,
+  - locale coverage for every shortcut label and category key.
+- Actual bindings are the resolved preference value for each `shortcut_${id}` when present, otherwise the `defaultKey`. Duplicate bindings and native-menu-owned bindings are omitted from the active key map.
+
+Command availability matrix:
+
+| Surface | Source of available ids | Availability gate | Persistence behavior |
+| --- | --- | --- | --- |
+| Global keyboard | `shortcutDefinitions` plus `resolveKeyboardAction` | Blocks in text editing targets, IME composition, unsupported keys, top-layer UI, missing selected article, non-browser `reload_webview`, and `close_or_clear` with no current close/clear target. | Stores only shortcut override preferences. It does not write command history. |
+| Shortcut help | `shortcutDefinitions` | Shows configured/default bindings even when the current runtime state would skip an action. | Reads preferences only. |
+| Shortcut settings | `shortcutDefinitions` | Rejects duplicate active bindings and native-menu-owned shortcuts such as `⌘+r`. | Writes `shortcut_${id}` preference keys. |
+| Command palette | `useCommandPaletteActions` | Hides or no-ops unavailable account-scoped actions when no account is selected; no-ops `sync-all` while sync is already running; `open-shortcuts-help` is palette-only and bypasses `executeAction`. | Writes command history for executed actions and selected resources. |
+| Native menu | Rust `resolve_menu_action` emits `AppAction` strings through `menu-action`. | Native menu availability lives in Rust menu construction. `accounts-sync` owns `CmdOrCtrl+R`; item menu shortcut hints are fixed display labels and do not read user shortcut preferences. | Does not write shortcut preferences or command history. |
+| Browser preview shortcut bridge | Rust browser shortcut specs keyed by selected `shortcut_*` preferences. | Only bridge-owned browser preview actions are available inside the native browser overlay. | Reads preferences to build the bridge script; write ownership remains shortcut settings. |
+
 ## Review Checklist
 
 Use this checklist when changing reader keyboard behavior:
@@ -133,6 +175,10 @@ Use this checklist when changing reader keyboard behavior:
 - Focus styling uses tonal backgrounds for reader navigation controls and does not reintroduce orange rings.
 - Destructive dialog labels include target name and undo-unavailable meaning for screen readers.
 - Dense row action labels identify the full safe target even when visible text is truncated.
+- Public shortcut/action ids are classified as preference, history, or debug before renaming.
+- Renamed shortcut ids include a read-and-copy migration path for existing `shortcut_<old_id>` preferences.
+- Shortcut help generated content and actual bindings stay covered by focused snapshots or equivalent contract assertions.
+- Command palette, native menu, global keyboard, shortcut help, shortcut settings, and browser preview availability are checked against the command availability matrix.
 - Tests cover changed key paths at the component or hook level.
 
 ## Current Review
