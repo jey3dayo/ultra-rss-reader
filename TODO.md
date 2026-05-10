@@ -104,11 +104,6 @@
   - reset が途中失敗すると keyring、DB、localStorage、query cache のどれかだけ残り、次回起動で ghost state になる
   - keyring delete failure、DB cleanup failure、storage cleanup、query cache clear、app reload の contract を追加する
 
-- [ ] P2 Rust provider test HTTP server の port isolation / shutdown contract を作る
-  - 対象: `src-tauri/src/infra/provider/*` tests
-  - fixed port や server shutdown 漏れがあると parallel test で flake し、provider boundary の regression を隠す
-  - port `0` binding、parallel tests、shutdown、request timeout、panic cleanup の helper 化を行う
-
 - [ ] P3 Tailwind arbitrary values inventory と token 化候補を整理する
   - 対象: `src/**/*.tsx`, CSS
   - arbitrary width/height/z-index/color が増えると design token と responsive constraints のレビューが効かなくなる
