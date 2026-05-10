@@ -383,6 +383,7 @@ mod tests {
             SyncStateScopeKey::greader_remote_state_full().as_string(),
             SyncStateScopeKey::feed("feed/1").as_string(),
             SyncStateScopeKey::local_feed("https://example.com/rss").as_string(),
+            SyncStateScopeKey::raw("legacy").as_string(),
             SyncStateScopeKey::from("legacy").as_string(),
         ];
 
@@ -391,9 +392,135 @@ mod tests {
         assert_eq!(keys[2], "account:greader:remote-state-full");
         assert_eq!(keys[3], "feed:feed/1");
         assert_eq!(keys[4], "local_feed:https://example.com/rss");
-        assert_eq!(keys[5], "legacy");
+        assert_eq!(keys[5], "raw:legacy");
+        assert_eq!(keys[6], "legacy");
 
         let unique = keys.iter().collect::<std::collections::HashSet<_>>();
         assert_eq!(unique.len(), keys.len());
+    }
+
+    #[test]
+    fn scope_key_round_trips_prefix_like_values_without_collision() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let repo = SqliteSyncStateRepository::new(db.writer());
+        let feed_scope_key = SyncStateScopeKey::feed("feed:provider-id").as_string();
+        let local_feed_scope_key =
+            SyncStateScopeKey::local_feed("https://example.com/local_feed:feed.xml").as_string();
+        let raw_scope_key = SyncStateScopeKey::raw("feed:provider-id").as_string();
+
+        for (scope_key, timestamp_usec) in [
+            (feed_scope_key.clone(), 100),
+            (local_feed_scope_key.clone(), 200),
+            (raw_scope_key.clone(), 300),
+        ] {
+            repo.save(&SyncState {
+                account_id: account_id.clone(),
+                scope_key,
+                timestamp_usec: Some(timestamp_usec),
+                continuation: None,
+                etag: None,
+                last_modified: None,
+                last_success_at: None,
+                last_error: None,
+                error_count: 0,
+                next_retry_at: None,
+            })
+            .unwrap();
+        }
+
+        let feed_state = repo
+            .get(&account_id, SyncStateScopeKey::feed("feed:provider-id"))
+            .unwrap()
+            .unwrap();
+        let local_feed_state = repo
+            .get(
+                &account_id,
+                SyncStateScopeKey::local_feed("https://example.com/local_feed:feed.xml"),
+            )
+            .unwrap()
+            .unwrap();
+        let raw_state = repo
+            .get(&account_id, SyncStateScopeKey::raw("feed:provider-id"))
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(feed_state.scope_key, feed_scope_key);
+        assert_eq!(feed_state.timestamp_usec, Some(100));
+        assert_eq!(local_feed_state.scope_key, local_feed_scope_key);
+        assert_eq!(local_feed_state.timestamp_usec, Some(200));
+        assert_eq!(raw_state.scope_key, raw_scope_key);
+        assert_eq!(raw_state.timestamp_usec, Some(300));
+    }
+
+    #[test]
+    fn retry_and_validator_metadata_stay_isolated_by_scope_owner() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let repo = SqliteSyncStateRepository::new(db.writer());
+        let scheduler_scope_key = SyncStateScopeKey::scheduler().as_string();
+        let local_feed_scope_key =
+            SyncStateScopeKey::local_feed("https://example.com/rss").as_string();
+
+        repo.save(&SyncState {
+            account_id: account_id.clone(),
+            scope_key: scheduler_scope_key.clone(),
+            timestamp_usec: None,
+            continuation: None,
+            etag: None,
+            last_modified: None,
+            last_success_at: None,
+            last_error: Some("temporary scheduler failure".to_string()),
+            error_count: 2,
+            next_retry_at: Some("2026-05-09T12:30:00Z".to_string()),
+        })
+        .unwrap();
+        let scheduler_rowid = sync_state_rowid(&db, &account_id, &scheduler_scope_key);
+
+        repo.save(&SyncState {
+            account_id: account_id.clone(),
+            scope_key: local_feed_scope_key.clone(),
+            timestamp_usec: None,
+            continuation: None,
+            etag: Some("\"etag-local\"".to_string()),
+            last_modified: Some("Wed, 01 Jan 2025 00:00:00 GMT".to_string()),
+            last_success_at: Some("2026-05-09T12:00:00Z".to_string()),
+            last_error: None,
+            error_count: 0,
+            next_retry_at: None,
+        })
+        .unwrap();
+
+        let scheduler_state = repo
+            .get(&account_id, SyncStateScopeKey::scheduler())
+            .unwrap()
+            .unwrap();
+        let local_feed_state = repo
+            .get(
+                &account_id,
+                SyncStateScopeKey::local_feed("https://example.com/rss"),
+            )
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(
+            sync_state_rowid(&db, &account_id, &scheduler_scope_key),
+            scheduler_rowid
+        );
+        assert_eq!(
+            scheduler_state.last_error,
+            Some("temporary scheduler failure".to_string())
+        );
+        assert_eq!(scheduler_state.error_count, 2);
+        assert_eq!(
+            scheduler_state.next_retry_at,
+            Some("2026-05-09T12:30:00Z".to_string())
+        );
+        assert_eq!(local_feed_state.etag, Some("\"etag-local\"".to_string()));
+        assert_eq!(
+            local_feed_state.last_modified,
+            Some("Wed, 01 Jan 2025 00:00:00 GMT".to_string())
+        );
+        assert_eq!(local_feed_state.next_retry_at, None);
     }
 }

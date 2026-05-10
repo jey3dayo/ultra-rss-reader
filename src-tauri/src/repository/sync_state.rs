@@ -9,6 +9,7 @@ pub enum SyncStateScopeKey {
     Feed(String),
     LocalFeed(String),
     Raw(String),
+    LegacyRaw(String),
 }
 
 impl SyncStateScopeKey {
@@ -43,7 +44,8 @@ impl SyncStateScopeKey {
             Self::GReaderRemoteStateFull => "account:greader:remote-state-full".to_string(),
             Self::Feed(remote_id) => format!("feed:{remote_id}"),
             Self::LocalFeed(feed_url) => format!("local_feed:{feed_url}"),
-            Self::Raw(scope_key) => scope_key.clone(),
+            Self::Raw(scope_key) => format!("raw:{scope_key}"),
+            Self::LegacyRaw(scope_key) => scope_key.clone(),
         }
     }
 }
@@ -62,7 +64,12 @@ impl From<&str> for SyncStateScopeKey {
                         .strip_prefix("local_feed:")
                         .map(|feed_url| Self::LocalFeed(feed_url.to_string()))
                 })
-                .unwrap_or_else(|| Self::Raw(value.to_string())),
+                .or_else(|| {
+                    value
+                        .strip_prefix("raw:")
+                        .map(|scope_key| Self::Raw(scope_key.to_string()))
+                })
+                .unwrap_or_else(|| Self::LegacyRaw(value.to_string())),
         }
     }
 }
