@@ -162,7 +162,6 @@ impl FeedRepository for SqliteFeedRepository<'_> {
             "INSERT INTO feeds (id, account_id, folder_id, remote_id, title, url, site_url, icon, unread_count, reader_mode, web_preview_mode)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
              ON CONFLICT(id) DO UPDATE SET
-               account_id = excluded.account_id,
                folder_id = excluded.folder_id,
                remote_id = excluded.remote_id,
                title = excluded.title,
@@ -976,6 +975,46 @@ mod tests {
         assert_eq!(feeds[0].folder_id.as_ref(), Some(&remote_folder_id));
         assert_eq!(feeds[0].reader_mode, "on");
         assert_eq!(feeds[0].web_preview_mode, "off");
+    }
+
+    #[test]
+    fn save_primary_key_conflict_does_not_move_feed_to_incoming_account() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let other_account_id = insert_test_account(&db);
+        let repo = SqliteFeedRepository::new(db.writer());
+
+        let existing_feed = make_feed(&account_id, "Original Feed", "http://example.com/rss");
+        repo.save(&existing_feed).unwrap();
+
+        let incoming_feed = Feed {
+            id: existing_feed.id.clone(),
+            account_id: other_account_id.clone(),
+            folder_id: None,
+            remote_id: Some("other-remote".to_string()),
+            title: "Incoming Feed".to_string(),
+            url: "https://other.example/rss".to_string(),
+            site_url: "https://other.example".to_string(),
+            icon: Some(vec![1, 2, 3]),
+            unread_count: 3,
+            reader_mode: "off".to_string(),
+            web_preview_mode: "on".to_string(),
+        };
+
+        repo.save(&incoming_feed).unwrap();
+
+        let original_account_feeds = repo.find_by_account(&account_id).unwrap();
+        let other_account_feeds = repo.find_by_account(&other_account_id).unwrap();
+
+        assert_eq!(original_account_feeds.len(), 1);
+        assert_eq!(other_account_feeds.len(), 0);
+        assert_eq!(original_account_feeds[0].id, existing_feed.id);
+        assert_eq!(original_account_feeds[0].account_id, account_id);
+        assert_eq!(
+            original_account_feeds[0].remote_id.as_deref(),
+            Some("other-remote")
+        );
+        assert_eq!(original_account_feeds[0].url, "https://other.example/rss");
     }
 
     #[test]

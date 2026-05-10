@@ -1002,6 +1002,33 @@ mod tests {
         assert!(result.warnings.is_empty());
     }
 
+    #[tokio::test]
+    async fn run_full_sync_quarantines_invalid_account_rows_like_account_list() {
+        let db = Mutex::new(DbManager::new_in_memory().unwrap());
+        let syncing = AtomicBool::new(false);
+
+        {
+            let db_guard = db.lock().unwrap();
+            db_guard
+                .writer()
+                .execute(
+                    "INSERT INTO accounts (id, kind, name) VALUES (?1, ?2, ?3)",
+                    rusqlite::params!["invalid-provider-account", "InvalidProvider", "Invalid"],
+                )
+                .unwrap();
+        }
+
+        let result = run_full_sync(&db, &syncing)
+            .await
+            .expect("invalid account rows should be quarantined from sync");
+
+        assert!(result.synced);
+        assert_eq!(result.total, 0);
+        assert_eq!(result.succeeded, 0);
+        assert!(result.failed.is_empty());
+        assert!(result.warnings.is_empty());
+    }
+
     #[test]
     fn should_emit_sync_succeeded_when_sync_finishes_without_failures_or_warnings() {
         let result = SyncResult {
