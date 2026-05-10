@@ -66,6 +66,8 @@ pub enum DatabaseMaintenanceScheduleDecision {
 pub enum DatabaseRuntimeFailureKind {
     ReadCorruption,
     WriteCorruption,
+    MigrationFailed,
+    DowngradeBlocked,
     Locked,
     PermissionDenied,
     DiskFull,
@@ -75,6 +77,7 @@ pub enum DatabaseRuntimeFailureKind {
 #[serde(rename_all = "snake_case")]
 pub enum DatabaseRuntimeRecoveryMode {
     ReadOnlyDegraded,
+    StartupBlocked,
     RetryWhenIdle,
     UserPermissionFix,
     FreeDiskSpace,
@@ -85,6 +88,7 @@ pub enum DatabaseRuntimeRecoveryMode {
 pub enum DatabaseRuntimeRecoveryAction {
     RunIntegrityCheck,
     RestoreBackup,
+    PreserveBackupAndRestart,
     Retry,
     CheckOsPermissions,
     FreeDiskSpace,
@@ -246,6 +250,14 @@ pub(crate) fn database_runtime_recovery_contract(
                 DatabaseRuntimeRecoveryAction::RestoreBackup,
             ],
         ),
+        DatabaseRuntimeFailureKind::MigrationFailed
+        | DatabaseRuntimeFailureKind::DowngradeBlocked => (
+            DatabaseRuntimeRecoveryMode::StartupBlocked,
+            vec![
+                DatabaseRuntimeRecoveryAction::PreserveBackupAndRestart,
+                DatabaseRuntimeRecoveryAction::RestoreBackup,
+            ],
+        ),
         DatabaseRuntimeFailureKind::Locked => (
             DatabaseRuntimeRecoveryMode::RetryWhenIdle,
             vec![DatabaseRuntimeRecoveryAction::Retry],
@@ -267,6 +279,7 @@ pub(crate) fn database_runtime_recovery_contract(
             .iter()
             .map(|action| match action {
                 DatabaseRuntimeRecoveryAction::RunIntegrityCheck
+                | DatabaseRuntimeRecoveryAction::PreserveBackupAndRestart
                 | DatabaseRuntimeRecoveryAction::Retry
                 | DatabaseRuntimeRecoveryAction::CheckOsPermissions
                 | DatabaseRuntimeRecoveryAction::FreeDiskSpace => {
@@ -519,6 +532,33 @@ mod tests {
                 contract.actions,
                 vec![
                     DatabaseRuntimeRecoveryAction::RunIntegrityCheck,
+                    DatabaseRuntimeRecoveryAction::RestoreBackup,
+                ]
+            );
+            assert_eq!(
+                contract.action_safety,
+                vec![
+                    DatabaseRecoveryActionSafety::ReadOnly,
+                    DatabaseRecoveryActionSafety::RequiresExplicitConfirmation,
+                ]
+            );
+            assert!(contract.diagnostics_id_required);
+        }
+    }
+
+    #[test]
+    fn migration_startup_recovery_surface_blocks_startup_without_destructive_auto_repair() {
+        for failure_kind in [
+            DatabaseRuntimeFailureKind::MigrationFailed,
+            DatabaseRuntimeFailureKind::DowngradeBlocked,
+        ] {
+            let contract = database_runtime_recovery_contract(failure_kind);
+
+            assert_eq!(contract.mode, DatabaseRuntimeRecoveryMode::StartupBlocked);
+            assert_eq!(
+                contract.actions,
+                vec![
+                    DatabaseRuntimeRecoveryAction::PreserveBackupAndRestart,
                     DatabaseRuntimeRecoveryAction::RestoreBackup,
                 ]
             );
