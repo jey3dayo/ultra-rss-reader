@@ -178,6 +178,20 @@ describe("Storybook Explorer organization", () => {
     expect(getDuplicateStorybookStoryIdDiagnostics(storyIds)).toEqual([{ id: "reader-sidebar--default", count: 2 }]);
   });
 
+  it("extracts Storybook iframe story ids with malformed URL diagnostics", () => {
+    expect(
+      storybookIndexPayload.getStorybookIframeStoryId(
+        storybookIndexPayload.getStorybookIframeUrl("ui-reference-foundations-canvas--default"),
+      ),
+    ).toBe("ui-reference-foundations-canvas--default");
+    expect(() => storybookIndexPayload.getStorybookIframeStoryId("/iframe.html")).toThrow(
+      "Storybook iframe URL must include a non-empty id query parameter",
+    );
+    expect(() => storybookIndexPayload.getStorybookIframeStoryId("http://[::1")).toThrow(
+      "Storybook iframe URL must include a non-empty id query parameter",
+    );
+  });
+
   it("uses document-aligned UI Reference story names", () => {
     expect(sortedStoryTitlesUnder(STORYBOOK_EXPLORER_GROUPS.uiReference)).toEqual(
       sortedStoryTitles(STORYBOOK_EXPLORER_UI_REFERENCE_TITLES),

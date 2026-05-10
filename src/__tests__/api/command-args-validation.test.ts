@@ -313,6 +313,8 @@ describe("command args validation parity", () => {
 
     expect(() => openExternalUrlArgs.parse({ url: "javascript:alert(1)" })).toThrow();
     expect(() => openExternalUrlArgs.parse({ url: "https://example.com/\rarticle" })).toThrow();
+    expect(() => openExternalUrlArgs.parse({ url: "mailto:?subject=Hello world" })).toThrow();
+    expect(() => openExternalUrlArgs.parse({ url: "mailto:?subject=Hello\tworld" })).toThrow();
     expect(() => openInBrowserArgs.parse({ url: "MAILTO:reader@example.com" })).toThrow();
   });
 

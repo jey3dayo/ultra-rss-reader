@@ -13,6 +13,7 @@ import {
   parseSimilarityPairs,
   readThreshold,
   similarityFalsePositiveBaseline,
+  similarityScanExcludePatterns,
   similarityThresholds,
   similarityUsage,
 } from "../../../scripts/similarity-report";
@@ -105,6 +106,7 @@ Similarity: 95.01%, Score: 42.5 points (lines 20~30, avg: 25.0)
     const summary = buildSimilaritySummary(sampleReport);
 
     expect(summary).toContain("thresholds: 0.95 / 0.9 / 0.87");
+    expect(summary).toContain("scan excludes: node_modules / dist / src-tauri/target");
     expect(summary).toContain("unparsed similarity blocks: 0");
     expect(summary).toContain("allowlisted false positives present: 2");
     expect(summary).toContain("allowlisted false positives absent: 2");
@@ -185,8 +187,30 @@ Similarity: 90.00%, Score: 12.3 points (lines 4~6, avg: 5.0)
       "similarity-ts",
       "--threshold",
       "0.87",
+      "--exclude",
+      "node_modules",
+      "--exclude",
+      "dist",
+      "--exclude",
+      "src-tauri/target",
+      "--exclude",
+      "tmp",
+      "--exclude",
+      "storybook-static",
+      "--exclude",
+      "test-results",
+      "--exclude",
+      "playwright-report",
+      "--exclude",
+      "src-tauri/gen/schemas",
       "src/lib",
     ]);
+  });
+
+  it("keeps generated schemas and target artifacts outside similarity scans", () => {
+    expect(similarityScanExcludePatterns).toEqual(
+      expect.arrayContaining(["src-tauri/target", "src-tauri/gen/schemas"]),
+    );
   });
 
   it("uses pathToFileURL semantics for direct execution detection", () => {

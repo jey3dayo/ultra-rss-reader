@@ -3,8 +3,11 @@ import { describe, expect, it } from "vitest";
 import {
   createProcessDiagnostic,
   createReportDiagnostic,
+  isQualityBaselineRepoScanIgnoredPath,
   parseKnipReport,
   parseReactDoctorReport,
+  partitionQualityBaselineRepoScanPaths,
+  qualityBaselineRepoScanIgnoredPathPrefixes,
   readJsonPayload,
 } from "../../../scripts/quality-baseline";
 
@@ -176,6 +179,31 @@ describe("quality-baseline", () => {
       signal: "SIGKILL",
       stdout: "partial json",
       stderr: "killed",
+    });
+  });
+
+  it("keeps generated schemas and target artifacts out of quality repo scans", () => {
+    expect(qualityBaselineRepoScanIgnoredPathPrefixes).toEqual(
+      expect.arrayContaining(["src-tauri/target/", "src-tauri/gen/schemas/"]),
+    );
+
+    expect(isQualityBaselineRepoScanIgnoredPath("src-tauri/target/debug/build.rs")).toBe(true);
+    expect(isQualityBaselineRepoScanIgnoredPath(".\\src-tauri\\gen\\schemas\\desktop-schema.json")).toBe(true);
+    expect(isQualityBaselineRepoScanIgnoredPath("src-tauri/capabilities/default.json")).toBe(false);
+    expect(isQualityBaselineRepoScanIgnoredPath("src/api/schemas.ts")).toBe(false);
+  });
+
+  it("partitions quality repo scan paths without hiding source-owned schemas", () => {
+    expect(
+      partitionQualityBaselineRepoScanPaths([
+        "src/api/schemas.ts",
+        "src-tauri/gen/schemas/capabilities.json",
+        "src-tauri/capabilities/default.json",
+        "src-tauri/target/debug/app",
+      ]),
+    ).toEqual({
+      includedPaths: ["src/api/schemas.ts", "src-tauri/capabilities/default.json"],
+      ignoredPaths: ["src-tauri/gen/schemas/capabilities.json", "src-tauri/target/debug/app"],
     });
   });
 });

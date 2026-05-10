@@ -830,6 +830,8 @@ describe("safeInvoke response validation", () => {
         return [
           {
             ...account,
+            "Authorization: Bearer raw-response-token": true,
+            "https://user:pass@example.com/api-token/account?token=raw#frag": true,
             capabilities: {
               ...account.capabilities,
               supports_search: "https://user:pass@example.com/token-secret/capability?token=raw#frag",
@@ -850,7 +852,9 @@ describe("safeInvoke response validation", () => {
     const diagnosticDetail = errorSpy.mock.calls[0]?.[1];
     expect(diagnosticDetail).toEqual(expect.stringContaining("0.capabilities.supports_search"));
     expect(JSON.stringify(errorSpy.mock.calls)).not.toContain("user:pass");
+    expect(JSON.stringify(errorSpy.mock.calls)).not.toContain("raw-response-token");
     expect(JSON.stringify(errorSpy.mock.calls)).not.toContain("token-secret/capability");
+    expect(JSON.stringify(errorSpy.mock.calls)).not.toContain("api-token/account");
     expect(JSON.stringify(errorSpy.mock.calls)).not.toContain("token=raw");
     errorSpy.mockRestore();
   });
@@ -1812,6 +1816,47 @@ describe("safeInvoke args validation", () => {
     });
 
     Result.unwrap(await openExternalUrl("mailto:?subject=First&body=https%3A%2F%2Fexample.com"));
+  });
+
+  it.each(["mailto:?subject=Hello world", "mailto:?subject=Hello\tworld", "mailto:?subject=Hello\nworld"])(
+    "rejects unsafe mailto external URLs before invoking Tauri: %j",
+    async (url) => {
+      const consoleError = suppressConsoleError();
+      let invoked = false;
+      setupTauriMocks((cmd) => {
+        if (cmd === "plugin:opener|open_url") {
+          invoked = true;
+        }
+        return null;
+      });
+
+      const result = await openExternalUrl(url);
+
+      expect(Result.isFailure(result)).toBe(true);
+      expect(Result.unwrapError(result).message).toContain("validation failed");
+      expect(invoked).toBe(false);
+      expectTauriCommandValidationError(consoleError, "plugin:opener|open_url", "args");
+    },
+  );
+
+  it("redacts native opener URL tokens before logging or returning them", async () => {
+    const consoleError = suppressConsoleError();
+    setupTauriMocks((cmd) => {
+      if (cmd === "plugin:opener|open_url") {
+        throw {
+          type: "UserVisible",
+          message: "Open failed for https://user:secret@example.com/mail?token=raw-token#auth-fragment",
+        };
+      }
+      return null;
+    });
+
+    const error = Result.unwrapError(await openExternalUrl("mailto:?subject=First&body=https%3A%2F%2Fexample.com"));
+
+    expect(error.message).toBe("Open failed for https://example.com/mail?redacted#redacted");
+    expect(JSON.stringify(consoleError.mock.calls)).not.toContain("secret");
+    expect(JSON.stringify(consoleError.mock.calls)).not.toContain("raw-token");
+    expect(JSON.stringify(consoleError.mock.calls)).not.toContain("auth-fragment");
   });
 
   it("trims external URL command args before invoking Tauri", async () => {

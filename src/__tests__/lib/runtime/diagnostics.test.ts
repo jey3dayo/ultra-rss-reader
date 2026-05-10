@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   logRuntimeDiagnostic,
+  RUNTIME_DIAGNOSTIC_POLICIES,
   redactProviderRuntimeDiagnosticText,
   redactRuntimeDiagnosticSupportCopy,
   redactRuntimeDiagnosticText,
@@ -256,5 +257,19 @@ describe("runtime diagnostics redaction", () => {
     expect(redacted).not.toContain("acc-provider-secret");
     expect(redacted).not.toContain("provider-auth-token");
     expect(redacted).not.toContain("provider_session=raw-cookie");
+  });
+
+  it("keeps runtime diagnostics as diagnostics-only logging with redaction enabled", () => {
+    expect(Object.values(RUNTIME_DIAGNOSTIC_POLICIES)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          toast: "never",
+          redactSecrets: true,
+        }),
+      ]),
+    );
+    expect(Object.values(RUNTIME_DIAGNOSTIC_POLICIES)).toHaveLength(12);
+    expect(Object.values(RUNTIME_DIAGNOSTIC_POLICIES).every((policy) => policy.toast === "never")).toBe(true);
+    expect(Object.values(RUNTIME_DIAGNOSTIC_POLICIES).every((policy) => policy.redactSecrets)).toBe(true);
   });
 });

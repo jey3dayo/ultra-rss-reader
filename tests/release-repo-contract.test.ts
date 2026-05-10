@@ -59,12 +59,96 @@ const UNSUPPORTED_UPDATER_PLATFORM_KEYS = ["linux-x86_64", "linux-aarch64"] as c
 
 const readText = (path: string): string => readFileSync(path, "utf8");
 
-const extractTomlString = (source: string, key: string): string => {
-  const value = source.match(new RegExp(`^${key} = "([^"]+)"$`, "m"))?.[1];
-  if (!value) {
-    throw new Error(`Missing TOML string: ${key}`);
+const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const decodeTomlBasicString = (value: string): string =>
+  value.replace(/\\(u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8}|["\\btnfr])/g, (match, token: string) => {
+    if (token === "b") return "\b";
+    if (token === "t") return "\t";
+    if (token === "n") return "\n";
+    if (token === "f") return "\f";
+    if (token === "r") return "\r";
+    if (token === '"') return '"';
+    if (token === "\\") return "\\";
+    if (token.startsWith("u") || token.startsWith("U")) {
+      return String.fromCodePoint(Number.parseInt(token.slice(1), 16));
+    }
+    return match;
+  });
+
+const readTomlMultilineString = (
+  lines: string[],
+  startLineIndex: number,
+  rest: string,
+  delimiter: '"""' | "'''",
+): string => {
+  let value = rest.slice(delimiter.length);
+  let lineIndex = startLineIndex;
+
+  while (lineIndex < lines.length) {
+    const closeIndex = value.indexOf(delimiter);
+    if (closeIndex >= 0) {
+      const content = value.slice(0, closeIndex);
+      return content.startsWith("\n") ? content.slice(1) : content;
+    }
+
+    lineIndex += 1;
+    if (lineIndex < lines.length) {
+      value += `\n${lines[lineIndex]}`;
+    }
   }
-  return value;
+
+  throw new Error("Unterminated TOML multiline string");
+};
+
+const readTomlBasicString = (rest: string): string => {
+  let escaped = false;
+  for (let index = 1; index < rest.length; index += 1) {
+    const char = rest[index];
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (char === "\\") {
+      escaped = true;
+      continue;
+    }
+    if (char === '"') {
+      return rest.slice(1, index);
+    }
+  }
+
+  throw new Error("Unterminated TOML basic string");
+};
+
+const extractTomlString = (source: string, key: string): string => {
+  const lines = source.split(/\r?\n/);
+  const keyPattern = new RegExp(`^${escapeRegExp(key)}\\s*=\\s*(?<rest>.*)$`);
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const rest = lines[index].match(keyPattern)?.groups?.rest.trimStart();
+    if (!rest) {
+      continue;
+    }
+    if (rest.startsWith('"""')) {
+      return decodeTomlBasicString(readTomlMultilineString(lines, index, rest, '"""'));
+    }
+    if (rest.startsWith("'''")) {
+      return readTomlMultilineString(lines, index, rest, "'''");
+    }
+    if (rest.startsWith('"')) {
+      return decodeTomlBasicString(readTomlBasicString(rest));
+    }
+    if (rest.startsWith("'")) {
+      const closeIndex = rest.indexOf("'", 1);
+      if (closeIndex < 0) {
+        throw new Error(`Unterminated TOML literal string: ${key}`);
+      }
+      return rest.slice(1, closeIndex);
+    }
+  }
+
+  throw new Error(`Missing TOML string: ${key}`);
 };
 
 const extractReleaseCacheBlock = (source: string): string => {
@@ -78,7 +162,7 @@ const extractReleaseCacheBlock = (source: string): string => {
 };
 
 const extractTaskBlock = (source: string, taskName: string): string => {
-  const escapedTaskName = taskName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const escapedTaskName = escapeRegExp(taskName);
   const value = source.match(
     new RegExp(`\\[tasks\\."${escapedTaskName}"\\]\\n(?<block>[\\s\\S]*?)(?=\\n\\[tasks\\.|$)`),
   )?.groups?.block;
@@ -94,8 +178,29 @@ const extractCacheBlocks = (source: string): string[] => {
 };
 
 const extractWorkflowUses = (source: string): string[] => {
-  const usesPattern = /^\s*-\s+uses:\s+([^\s#]+)$/gm;
+  const usesPattern = /^\s*(?:-\s+)?uses:\s+([^\s#]+)\s*$/gm;
   return [...source.matchAll(usesPattern)].map((match) => match[1] ?? "");
+};
+
+const extractTopLevelYamlBlock = (source: string, key: string): string => {
+  const value = source.match(new RegExp(`^${escapeRegExp(key)}:\\n(?<block>(?: {2}\\S.*\\n?)*)`, "m"))?.groups?.block;
+  if (!value) {
+    throw new Error(`Missing top-level YAML block: ${key}`);
+  }
+  return value;
+};
+
+const extractYamlScalarBlockEntries = (block: string): Record<string, string> => {
+  const entries: Record<string, string> = {};
+  for (const line of block.split(/\r?\n/)) {
+    const match = line.match(/^ {2}(?<key>[\w-]+):\s*(?<value>\S.*)$/);
+    const key = match?.groups?.key;
+    const value = match?.groups?.value;
+    if (key && value) {
+      entries[key] = value;
+    }
+  }
+  return entries;
 };
 
 const extractTauriActionBlock = (source: string): string => {
@@ -136,6 +241,22 @@ describe("release repository contract", () => {
     (fileName) => fileName.endsWith(".yml") && fileName !== "config.yml",
   );
   const miseToml = readText("mise.toml");
+
+  it("parses TOML string values with quoted and multiline forms used by release contracts", () => {
+    const toml = [
+      'name = "ultra-\\"rss\\"-reader"',
+      "description = '''",
+      "A Tauri-based RSS reader",
+      "with release provenance",
+      "'''",
+      'version = """1.2.3',
+      'build"""',
+    ].join("\n");
+
+    expect(extractTomlString(toml, "name")).toBe('ultra-"rss"-reader');
+    expect(extractTomlString(toml, "description")).toBe("A Tauri-based RSS reader\nwith release provenance\n");
+    expect(extractTomlString(toml, "version")).toBe("1.2.3\nbuild");
+  });
 
   it("keeps release tag, package, Tauri, and Cargo versions in one parity contract", () => {
     expect(packageJson.version).toBe(tauriConfig.version);
@@ -224,8 +345,18 @@ describe("release repository contract", () => {
       }
     }
 
+    expect(extractWorkflowUses(prInsightsLabelerWorkflow)).toContain(
+      "jey3dayo/pr-insights-labeler@e9bccb2e8c9ed048d6022d6ae2e5c85eeed80f16",
+    );
     expect(extractTaskBlock(miseToml, "lint:workflow-pins")).toContain("node scripts/check-workflow-pins.mjs");
     expect(readText("scripts/check-workflow-pins.mjs")).toContain('const workflowsDir = ".github/workflows"');
+  });
+
+  it("keeps release workflow permissions limited to release asset publishing", () => {
+    const releasePermissions = extractYamlScalarBlockEntries(extractTopLevelYamlBlock(releaseWorkflow, "permissions"));
+
+    expect(releasePermissions).toEqual({ contents: "write" });
+    expect(releaseWorkflow).not.toMatch(/^ {4}permissions:/m);
   });
 
   it("keeps CI apt mirror failures bounded by an explicit retry policy", () => {
@@ -409,10 +540,18 @@ describe("release repository contract", () => {
   });
 
   it("generates a release/debug feature flag inventory report", () => {
-    execFileSync("node", ["./scripts/release-debug-feature-flags-report.ts"], { encoding: "utf8" });
+    execFileSync("node", ["./scripts/release-debug-feature-flags-report.ts"], {
+      encoding: "utf8",
+    });
     const report: {
       generatedBy: string;
-      inventory: { area: string; flag: string; debugBehavior: string; releaseBehavior: string; evidence: string[] }[];
+      inventory: {
+        area: string;
+        flag: string;
+        debugBehavior: string;
+        releaseBehavior: string;
+        evidence: string[];
+      }[];
     } = JSON.parse(readText("tmp/release-debug-feature-flags.json"));
 
     expect(packageJson.scripts).toMatchObject({

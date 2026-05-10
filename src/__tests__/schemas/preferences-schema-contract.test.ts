@@ -1,5 +1,6 @@
 import { expectSortedKeysForTarget } from "@tests/helpers/repo-contract-parser";
 import { describe, expect, expectTypeOf, it } from "vitest";
+import { PreferencesDtoSchema } from "@/api/schemas/preferences";
 import keyboardShortcutsSource from "@/lib/keyboard/keyboard-shortcuts.ts?raw";
 import enSettings from "@/locales/en/settings.json";
 import jaSettings from "@/locales/ja/settings.json";
@@ -219,6 +220,24 @@ describe("preference contract", () => {
       shortcut_next_article: "Shift+J",
       custom_backend_preference: "  preserved  ",
     });
+  });
+
+  it("keeps app default and current preference values accepted by the API DTO schema", () => {
+    const currentPreferenceValues = {
+      ...preferenceDefaults,
+      selected_account_id: "account-1",
+      sort_subscriptions: resolvePreferenceValue({}, "sort_subscriptions"),
+      action_open_browser: resolvePreferenceValue({}, "action_open_browser"),
+      after_reading: normalizePreferenceValue("after_reading", "mark_as_read"),
+    };
+
+    expect(PreferencesDtoSchema.parse(currentPreferenceValues)).toEqual(currentPreferenceValues);
+    expect(PreferencesDtoSchema.parse({ custom_backend_preference: "preserved" })).toEqual({
+      custom_backend_preference: "preserved",
+    });
+    expect(PreferencesDtoSchema.safeParse({ theme: "midnight" }).success).toBe(false);
+    expect(PreferencesDtoSchema.safeParse({ after_reading: "mark_as_read" }).success).toBe(false);
+    expect(PreferencesDtoSchema.safeParse({ shortcut_unknown_action: "Shift+X" }).success).toBe(false);
   });
 
   it("normalizes preference records into prototype-pollution-safe passthrough output", () => {

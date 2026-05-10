@@ -22,4 +22,23 @@ test.describe("runtime error guard", () => {
       runtimeErrors.dispose();
     }
   });
+
+  test("keeps expected console.error separate from runtime regressions", async ({ page }) => {
+    const runtimeErrors = installRuntimeErrorGuard(page, {
+      expectedConsoleErrors: [/expected fixture failure/i],
+    });
+
+    try {
+      await page.evaluate(() => {
+        console.error("expected fixture failure");
+        console.error("real runtime regression");
+      });
+
+      expect(runtimeErrors.expectedConsoleErrors).toEqual(["expected fixture failure"]);
+      expect(runtimeErrors.consoleErrors).toEqual(["real runtime regression"]);
+      expect(runtimeErrors.pageErrors).toEqual([]);
+    } finally {
+      runtimeErrors.dispose();
+    }
+  });
 });

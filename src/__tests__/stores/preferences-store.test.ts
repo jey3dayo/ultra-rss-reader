@@ -1163,6 +1163,7 @@ describe("usePreferencesStore preferences", () => {
         });
       });
       expect(consoleError).toHaveBeenCalledWith("Failed to persist preference language:", expect.any(Error));
+      expect(usePreferencesStore.getState().prefs.language).toBe("ja");
     } finally {
       consoleError.mockRestore();
     }

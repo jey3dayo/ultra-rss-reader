@@ -372,6 +372,12 @@ const externalUrlSchema = z
   )
   .refine((url) => !url.includes("\n") && !url.includes("\r"), {
     message: "External URLs must not contain newlines",
+  })
+  .refine((url) => !controlCharPattern.test(url), {
+    message: "External URLs must not contain control characters",
+  })
+  .refine((url) => !whitespacePattern.test(url), {
+    message: "External URLs must not contain whitespace",
   });
 export const openExternalUrlArgs = z.object({ url: externalUrlSchema });
 

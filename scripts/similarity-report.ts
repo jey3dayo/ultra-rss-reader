@@ -6,6 +6,16 @@ export const similarityThresholds = [0.95, 0.9, 0.87] as const;
 export const defaultThreshold = 0.9;
 export const defaultPath = "src/";
 export const similarityUsage = `Usage: node scripts/similarity-report.ts [${similarityThresholds.join("|")}] [path]`;
+export const similarityScanExcludePatterns = [
+  "node_modules",
+  "dist",
+  "src-tauri/target",
+  "tmp",
+  "storybook-static",
+  "test-results",
+  "playwright-report",
+  "src-tauri/gen/schemas",
+] as const;
 const todoSimilarityBaseline = {
   functionPairs: 32,
   similarTypePairs: 1,
@@ -176,6 +186,7 @@ export function buildSimilaritySummary(output: string, todoContent?: string): st
     "Similarity scan baseline",
     `thresholds: ${similarityThresholds.join(" / ")}`,
     `current command: similarity-ts --threshold ${defaultThreshold} ${defaultPath}`,
+    `scan excludes: ${similarityScanExcludePatterns.join(" / ")}`,
     "reading rule: use 0.95 for near-copy candidates, 0.9 for TODO triage, and 0.87 for broad discovery.",
     "filtering rule: raise --min-lines/--min-tokens before extracting helpers from tiny callback-shape matches.",
     `function pairs: ${pairs.length}`,
@@ -237,7 +248,14 @@ function isSimilarityThreshold(rawValue: string): rawValue is `${SimilarityThres
 }
 
 export function buildSimilarityCommandArgs(threshold: SimilarityThreshold, targetPath: string): string[] {
-  return ["exec", "similarity-ts", "--threshold", String(threshold), targetPath];
+  return [
+    "exec",
+    "similarity-ts",
+    "--threshold",
+    String(threshold),
+    ...similarityScanExcludePatterns.flatMap((pattern) => ["--exclude", pattern]),
+    targetPath,
+  ];
 }
 
 export function runSimilarityReport(args: readonly string[] = process.argv.slice(2)): void {

@@ -19,6 +19,7 @@ export const uiReferenceCanvasStoryIds = [
 
 const storybookIndexEntriesErrorMessage = "Storybook index payload must be an object with an object entries field";
 const storybookIndexEntryIdErrorMessage = "Storybook index entries must contain story objects with string id fields";
+const storybookIframeStoryIdErrorMessage = "Storybook iframe URL must include a non-empty id query parameter";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -81,11 +82,18 @@ export function getStorybookIframeUrl(storyId: string): string {
 }
 
 export function getStorybookIframeStoryId(iframeUrl: string): string {
-  const url = new URL(iframeUrl, "http://storybook.local");
+  let url: URL;
+
+  try {
+    url = new URL(iframeUrl, "http://storybook.local");
+  } catch {
+    throw new Error(storybookIframeStoryIdErrorMessage);
+  }
+
   const storyId = url.searchParams.get("id");
 
   if (storyId === null || storyId.length === 0) {
-    throw new Error("Storybook iframe URL must include a non-empty id query parameter");
+    throw new Error(storybookIframeStoryIdErrorMessage);
   }
 
   return storyId;

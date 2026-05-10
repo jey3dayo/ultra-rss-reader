@@ -501,7 +501,8 @@ export const usePreferencesStore = create<PreferencesState & PreferencesActions>
       return;
     }
 
-    // Fire and forget — notify user on latest failure only.
+    // Fire and forget: only the latest persist failure is user-visible, and the
+    // optimistic UI value remains the source of truth until a later load or edit.
     persistPreferenceResult.then(
       (result) =>
         Result.pipe(

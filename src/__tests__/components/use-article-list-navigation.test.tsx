@@ -466,4 +466,51 @@ describe("useArticleListEffects", () => {
     expect(cancelAnimationFrame).toHaveBeenCalled();
     expect(clearArticle).not.toHaveBeenCalled();
   });
+
+  it("does not clear the selected article when it returns before the stale missing frame runs", () => {
+    const list = document.createElement("div");
+    const viewport = document.createElement("div");
+    const clearArticle = vi.fn();
+    const requestAnimationFrameCallbacks: FrameRequestCallback[] = [];
+    const cancelAnimationFrame = vi.fn();
+
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+      requestAnimationFrameCallbacks.push(callback);
+      return requestAnimationFrameCallbacks.length;
+    });
+    vi.stubGlobal("cancelAnimationFrame", cancelAnimationFrame);
+
+    const { rerender } = renderHook(
+      ({ filteredArticles }) =>
+        useArticleListEffects({
+          selection: { type: "all" },
+          scrollToTopOnChange: "false",
+          listRef: { current: list },
+          viewportRef: { current: viewport },
+          filteredArticles,
+          focusedPane: "list",
+          selectedArticleId: sampleArticles[1].id,
+          isPrimarySourceLoading: false,
+          clearArticle,
+        }),
+      {
+        initialProps: {
+          filteredArticles: [sampleArticles[0], sampleArticles[1]],
+        },
+      },
+    );
+
+    rerender({
+      filteredArticles: [sampleArticles[0]],
+    });
+    rerender({
+      filteredArticles: [sampleArticles[1], sampleArticles[0]],
+    });
+    requestAnimationFrameCallbacks.forEach((callback) => {
+      callback(0);
+    });
+
+    expect(cancelAnimationFrame).toHaveBeenCalled();
+    expect(clearArticle).not.toHaveBeenCalled();
+  });
 });

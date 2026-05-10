@@ -164,6 +164,7 @@ type SchemaBackedInvokeOptions<R extends z.ZodType> = InvokeArgsOptions & {
 type GenericInvokeOptions = InvokeArgsOptions;
 
 const URL_LIKE_TOKEN_PATTERN = /https?:\/\/[^\s<>"'`]+/gi;
+const AUTHORIZATION_HEADER_TOKEN_PATTERN = /\b(Bearer|Basic)\s+[A-Za-z0-9._~+/=-]+/gi;
 const SECRET_URL_PATH_SEGMENT_PATTERN = /(?:token|secret|password|credential|private[-_]?key|api[-_]?key)/i;
 const VALIDATION_ISSUE_LIMIT = 3;
 const VALIDATION_DETAIL_MAX_LENGTH = 240;
@@ -205,7 +206,9 @@ function redactUrlToken(value: string): string {
 }
 
 function redactSensitiveRuntimeMessage(message: string): string {
-  return message.replace(URL_LIKE_TOKEN_PATTERN, redactUrlToken);
+  return message
+    .replace(URL_LIKE_TOKEN_PATTERN, redactUrlToken)
+    .replace(AUTHORIZATION_HEADER_TOKEN_PATTERN, "$1 redacted");
 }
 
 function runtimeErrorMessage(error: unknown): string {

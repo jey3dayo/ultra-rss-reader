@@ -6,6 +6,17 @@ const reactDoctorVersion = "0.1.4";
 const knipVersion = "6.12.2";
 const qualityToolTimeoutMs = 120_000;
 
+export const qualityBaselineRepoScanIgnoredPathPrefixes = [
+  "node_modules/",
+  "dist/",
+  "src-tauri/target/",
+  "tmp/",
+  "storybook-static/",
+  "test-results/",
+  "playwright-report/",
+  "src-tauri/gen/schemas/",
+] as const;
+
 const reactDoctorBaselines = {
   diff: {
     score: 100,
@@ -338,6 +349,33 @@ export function readJsonPayload(stdout: string): string {
   }
 
   throw new Error("Tool output did not contain a JSON object.");
+}
+
+export function isQualityBaselineRepoScanIgnoredPath(filePath: string): boolean {
+  const normalizedPath = normalizeRepoScanPath(filePath);
+  return qualityBaselineRepoScanIgnoredPathPrefixes.some((prefix) => normalizedPath.startsWith(prefix));
+}
+
+export function partitionQualityBaselineRepoScanPaths(paths: readonly string[]): {
+  includedPaths: string[];
+  ignoredPaths: string[];
+} {
+  const includedPaths: string[] = [];
+  const ignoredPaths: string[] = [];
+
+  for (const path of paths) {
+    if (isQualityBaselineRepoScanIgnoredPath(path)) {
+      ignoredPaths.push(path);
+    } else {
+      includedPaths.push(path);
+    }
+  }
+
+  return { includedPaths, ignoredPaths };
+}
+
+function normalizeRepoScanPath(filePath: string): string {
+  return filePath.replaceAll("\\", "/").replace(/^\.\/+/, "");
 }
 
 function readJsonPayloads(stdout: string): string[] {

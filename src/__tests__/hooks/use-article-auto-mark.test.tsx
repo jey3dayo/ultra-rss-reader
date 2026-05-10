@@ -163,6 +163,61 @@ describe("useArticleAutoMark", () => {
     );
   });
 
+  it("cancels a delayed mark when view mode changes before the timer fires", () => {
+    const setRead: UseArticleAutoMarkParams["setRead"] = {
+      mutate: vi.fn(),
+    };
+    const retainArticle = vi.fn();
+
+    const { rerender } = renderHook(
+      (props: UseArticleAutoMarkParams) => {
+        useArticleAutoMark(props);
+      },
+      {
+        initialProps: createParams({
+          articleId: "art-1",
+          viewMode: "unread",
+          retainArticle,
+          setRead,
+        }),
+      },
+    );
+
+    act(() => {
+      vi.advanceTimersByTime(999);
+    });
+
+    rerender(
+      createParams({
+        articleId: "art-1",
+        viewMode: "all",
+        retainArticle,
+        setRead,
+      }),
+    );
+
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+
+    expect(setRead.mutate).not.toHaveBeenCalled();
+    expect(retainArticle).not.toHaveBeenCalled();
+
+    act(() => {
+      vi.advanceTimersByTime(999);
+    });
+
+    expect(setRead.mutate).toHaveBeenCalledTimes(1);
+    expect(setRead.mutate).toHaveBeenCalledWith(
+      { id: "art-1", read: true },
+      expect.objectContaining({
+        onSuccess: expect.any(Function),
+        onError: expect.any(Function),
+      }),
+    );
+    expect(retainArticle).not.toHaveBeenCalled();
+  });
+
   it("cancels a delayed mark when unmounted", () => {
     const setRead: UseArticleAutoMarkParams["setRead"] = {
       mutate: vi.fn(),
@@ -538,6 +593,51 @@ describe("useArticleAutoMark", () => {
 
     expect(useUiStore.getState().retainedArticleIds).toEqual(new Set(["art-1"]));
     expect(showToast).not.toHaveBeenCalled();
+  });
+
+  it("ignores stale mutation success after view mode changes", () => {
+    const addRecentlyRead = vi.fn();
+    let onSuccess: NonNullable<NonNullable<Parameters<AutoMarkMutate>[1]>["onSuccess"]> | null = null;
+    const mutate: AutoMarkMutate = (_variables, options) => {
+      onSuccess = options?.onSuccess ?? null;
+    };
+    const setRead: UseArticleAutoMarkParams["setRead"] = {
+      mutate: vi.fn(mutate),
+    };
+
+    const { rerender } = renderHook(
+      (props: UseArticleAutoMarkParams) => {
+        useArticleAutoMark(props);
+      },
+      {
+        initialProps: createParams({
+          articleId: "art-1",
+          viewMode: "unread",
+          retainArticle: useUiStore.getState().retainArticle,
+          setRead,
+          addRecentlyRead,
+        }),
+      },
+    );
+
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+    rerender(
+      createParams({
+        articleId: "art-1",
+        viewMode: "all",
+        retainArticle: useUiStore.getState().retainArticle,
+        setRead,
+        addRecentlyRead,
+      }),
+    );
+
+    act(() => {
+      onSuccess?.(undefined, { id: "art-1", read: true }, undefined, createMutationContext());
+    });
+
+    expect(addRecentlyRead).not.toHaveBeenCalled();
   });
 
   it("ignores stale mutation success after the mutation owner changes", () => {
