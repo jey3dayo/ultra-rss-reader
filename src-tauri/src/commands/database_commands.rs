@@ -579,6 +579,11 @@ mod tests {
         assert_eq!(value["action_safety"][0], "read_only");
         assert_eq!(value["actions"][1], "restore_backup");
         assert_eq!(value["action_safety"][1], "requires_explicit_confirmation");
+        assert_eq!(
+            serde_json::to_value(DatabaseRecoveryActionSafety::RequiresDryRun)
+                .expect("dry-run safety should serialize"),
+            "requires_dry_run"
+        );
     }
 
     #[test]

@@ -3,6 +3,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DatabaseInfoDtoSchema } from "@/api/schemas/database-info";
 import { getDatabaseInfo, openLogDir, vacuumDatabase } from "@/api/tauri-commands";
+import type { DatabaseRecoveryActionSafety } from "@/components/settings/hooks/use-data-settings-controller";
 import {
   buildDestructiveRecoveryCriteria,
   classifyDatabaseRuntimeRecoverySurface,
@@ -103,6 +104,16 @@ describe("buildDestructiveRecoveryCriteria", () => {
         disabledWhenTargetUnknown: true,
       },
     ]);
+  });
+
+  it("keeps dry-run safety representable in the settings data recovery contract", () => {
+    const safety: readonly DatabaseRecoveryActionSafety[] = [
+      "read_only",
+      "requires_dry_run",
+      "requires_explicit_confirmation",
+    ];
+
+    expect(safety).toContain("requires_dry_run");
   });
 });
 
