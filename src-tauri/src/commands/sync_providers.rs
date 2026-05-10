@@ -3170,7 +3170,9 @@ mod tests {
         final_feed.assert_async().await;
 
         let db_guard = db.lock().unwrap();
+        let feed_repo = SqliteFeedRepository::new(db_guard.reader());
         let sync_state_repo = SqliteSyncStateRepository::new(db_guard.reader());
+        let saved_feed = feed_repo.find_by_id(&feed.id).unwrap().unwrap();
         let requested_state = sync_state_repo
             .get(&account.id, local_feed_scope_key(&requested_feed_url))
             .unwrap()
@@ -3193,6 +3195,7 @@ mod tests {
             final_state.last_modified.as_deref(),
             Some(LOCAL_LAST_MODIFIED_NEW)
         );
+        assert_eq!(saved_feed.url, requested_feed_url);
     }
 
     #[tokio::test]

@@ -175,15 +175,11 @@ impl FeedRepository for SqliteFeedRepository<'_> {
              ON CONFLICT(account_id, url) DO UPDATE SET
                folder_id = excluded.folder_id,
                remote_id = excluded.remote_id,
-               title = excluded.title,
-               site_url = excluded.site_url,
                icon = excluded.icon,
                unread_count = excluded.unread_count
              ON CONFLICT(account_id, remote_id) DO UPDATE SET
                folder_id = excluded.folder_id,
-               title = excluded.title,
                url = excluded.url,
-               site_url = excluded.site_url,
                icon = excluded.icon,
                unread_count = excluded.unread_count",
             params![
@@ -1047,7 +1043,7 @@ mod tests {
     }
 
     #[test]
-    fn save_duplicate_account_url_preserves_existing_id_and_updates_display_metadata() {
+    fn save_duplicate_account_url_preserves_existing_id_and_user_display_metadata() {
         let db = test_db();
         let account_id = insert_test_account(&db);
         let repo = SqliteFeedRepository::new(db.writer());
@@ -1089,15 +1085,15 @@ mod tests {
 
         assert_eq!(saved_feed.id, existing_feed.id);
         assert_ne!(saved_feed.id, incoming_feed.id);
-        assert_eq!(saved_feed.title, "Updated Feed");
-        assert_eq!(saved_feed.site_url, "https://example.com/articles");
+        assert_eq!(saved_feed.title, "Original Feed");
+        assert_eq!(saved_feed.site_url, "http://example.com");
         assert_eq!(saved_feed.icon.as_deref(), Some(&[9, 8, 7][..]));
         assert_eq!(saved_feed.reader_mode, "inherit");
         assert_eq!(saved_feed.web_preview_mode, "inherit");
     }
 
     #[test]
-    fn save_duplicate_account_remote_id_preserves_existing_id_and_updates_remote_url() {
+    fn save_duplicate_account_remote_id_preserves_user_display_metadata_and_updates_remote_url() {
         let db = test_db();
         let account_id = insert_test_account(&db);
         let repo = SqliteFeedRepository::new(db.writer());
@@ -1126,8 +1122,8 @@ mod tests {
         assert_ne!(saved_feed.id, incoming_feed.id);
         assert_eq!(saved_feed.remote_id.as_deref(), Some("feed/remote"));
         assert_eq!(saved_feed.url, "https://new.example/rss");
-        assert_eq!(saved_feed.title, "Updated Feed");
-        assert_eq!(saved_feed.site_url, "https://new.example");
+        assert_eq!(saved_feed.title, "Original Feed");
+        assert_eq!(saved_feed.site_url, "https://old.example");
         assert_eq!(saved_feed.icon.as_deref(), Some(&[4, 5, 6][..]));
         assert_eq!(saved_feed.unread_count, 9);
         assert_eq!(saved_feed.reader_mode, "on");
