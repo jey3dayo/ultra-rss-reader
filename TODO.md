@@ -735,14 +735,6 @@
 
 #### P1-Q3 実装 tranche
 
-- [ ] P1-Q3b release artifact provenance を tag / workflow / checksum / SBOM で固定する
-  - worker prompt: tag SHA、workflow run id、source commit、artifact checksum、JS/Rust dependency provenance、draft release attachment の contract を追加する
-  - 対象: `.github/workflows/release.yml`, `package.json`, `src-tauri/Cargo.lock`, release docs
-  - 完了条件: どの commit からどの artifact を作ったか、checksum/SBOM/provenance を release 後に追跡できる
-  - 検証: release workflow static contract、release manual verification docs、必要なら `mise run ci`
-  - supersedes: `P1 release artifact SBOM / provenance / checksum を生成・検証する gate を作る`, `P2 release artifact provenance を PR / tag / workflow run の三点で照合する`
-
-
 - [ ] P1-Q3d release build の dev-only contamination gate を作る
   - worker prompt: `DEV_CREDENTIALS`、dev mocks、debug scenario、MCP bridge plugin、dev-only capability/config が production artifact に混入しない static/smoke gate を追加する
   - 対象: `src-tauri/src/lib.rs`, `src/dev`, `scripts/lib/windows-dispatch.ts`, Tauri release config, release contract tests
@@ -3122,11 +3114,6 @@
   - 外部 monitor を外した後の保存位置や negative coordinate を復元すると、window が画面外に出る
   - disconnected monitor、negative x/y、DPI change、maximized state、fullscreen state、safe fallback center の contract を追加する
 
-- [ ] P2 native file dialog extension / overwrite confirmation policy を import/export/backup で揃える
-  - 対象: OPML import/export、DB backup/restore UI、Tauri dialog usage
-  - open/save dialog の拡張子・既存 file overwrite・cancel handling がばらつくと、ユーザーデータを誤上書きしやすい
-  - `.opml`/`.xml` filter、existing file overwrite、cancel result、directory selected、extension auto-append の policy を追加する
-
 - [ ] P2 `AppState` mutex poisoning を command surface 全体で同じ error に揃える
   - 対象: `commands::*`, `AppState`, DB/browser tracker mutex access
   - 一部 command だけ poisoned mutex を panic/unwrap すると、単一 command failure が app 全体 failure に広がる
@@ -3213,11 +3200,6 @@
   - desktop webview の zoom/text scaling で固定高さ row や toolbar button が重なると、accessibility と操作性が落ちる
   - 125/150/200% zoom、large font、narrow width、toolbar icons、form labels の visual smoke を追加する
 
-- [ ] P2 provider account kind 追加時の migration checklist を template 化する
-  - 対象: provider traits、account settings、schema/tests
-  - 新 provider を足す時に credential、capability、sync cursor、folder/tag semantics の漏れが出やすい
-  - credential model、folder model、tag model、read/star support、cursor support、test fixture checklist を追加する
-
 - [ ] P2 reader search ranking / snippet policy を FTS query syntax と user copy で固定する
   - 対象: FTS search SQL、reader search UI、locale copy
   - FTS syntax error、phrase query、prefix query、snippet escaping の方針が未固定だと search UX が壊れる
@@ -3243,11 +3225,6 @@
   - 署名だけでは依存関係や生成元を追えず、配布後の supply-chain 問い合わせに答えにくい
   - JS/Rust SBOM、artifact checksum、workflow run id、source commit、draft release attachment の contract を追加する
 
-- [ ] P1 updater manifest と release asset の signature / checksum / platform mapping を双方向検証する
-  - 対象: updater manifest、release workflow、release manual verification
-  - manifest が別 asset や別 arch を指すと、署名済みでも誤 artifact を配る可能性がある
-  - macOS arm64、Windows x64、asset filename、signature file、checksum mismatch、missing platform の gate を追加する
-
 - [ ] P2 per-domain sync politeness / concurrency cap を local RSS provider で固定する
   - 対象: local provider sync、sync scheduler、HTTP defaults
   - 同じ host の feed を多数購読していると、manual/all sync で短時間に大量 request を投げる可能性がある
@@ -3262,11 +3239,6 @@
   - 対象: private host guard、feed discovery、local provider fetch
   - validation 時と実 fetch 時で DNS 結果が変わると、private host guard が bypass される
   - resolve before fetch、redirect re-resolve、TTL/caching、DNS failure retry、rebinding fixture の policy を追加する
-
-- [ ] P2 local DB encryption at rest を採用しない/する decision record を作る
-  - 対象: DB storage、credential storage、privacy docs
-  - keyring は credential を守るが、DB には feed/article/history が残るため、暗号化しない理由または将来方針を明文化する必要がある
-  - threat model、OS disk encryption reliance、portable backup、search performance、migration cost の decision を追加する
 
 - [ ] P2 stale query cache after app version upgrade を schema version / query key version で検出する
   - 対象: React Query keys、startup boot、schema migrations
@@ -3324,11 +3296,6 @@
   - 対象: article content view、search highlight、reader scroll restoration
   - 将来 virtualization を入れると scroll restore、text selection、search highlight、image loading の前提が変わる
   - selection preservation、find-in-article、scroll anchor、image lazy load、print/share future scope の decision を追加する
-
-- [ ] P2 provider-specific max feed count / article count assumptions を account settings に出すか決める
-  - 対象: provider traits、sync scheduler、settings account detail
-  - 大量 feed/account で性能が落ちる場合、暗黙 limit のままだと user support が難しい
-  - max feeds guidance、max articles guidance、warning threshold、performance diagnostics、no hard limit copy の decision を追加する
 
 - [ ] P3 Rust/TS cross-language enum drift を generated table で見える化する
   - 対象: domain enums、API schemas、frontend constants
