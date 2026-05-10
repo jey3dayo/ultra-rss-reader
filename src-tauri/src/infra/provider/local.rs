@@ -990,6 +990,35 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn pull_entries_classifies_premature_chunked_body_eof_as_network_error() {
+        let server = OneShotHttpServer::bind(concat!(
+            "HTTP/1.1 200 OK\r\n",
+            "Content-Type: application/rss+xml\r\n",
+            "Transfer-Encoding: chunked\r\n",
+            "\r\n",
+            "400\r\n",
+            "<?xml version=\"1.0\"?><rss version=\"2.0\"><channel>"
+        ))
+        .await;
+
+        let provider = local_provider_allowing_private_feed_urls();
+        let scope = PullScope::Feed(FeedIdentifier::Local {
+            feed_url: server.url("/feed.xml"),
+        });
+
+        let error = provider
+            .pull_entries(scope, None)
+            .await
+            .expect_err("premature EOF should not become a parse error");
+        server.shutdown().await;
+
+        assert!(matches!(
+            error,
+            DomainError::Network(message) if message == FEED_RESPONSE_BODY_INCOMPLETE_MESSAGE
+        ));
+    }
+
+    #[tokio::test]
     async fn provider_test_http_server_uses_ephemeral_ports_and_explicit_shutdown() {
         let server_a =
             OneShotHttpServer::bind("HTTP/1.1 204 No Content\r\nContent-Length: 0\r\n\r\n").await;
