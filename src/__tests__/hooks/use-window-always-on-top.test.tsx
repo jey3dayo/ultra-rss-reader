@@ -3,6 +3,7 @@ import { resetTauriRuntimeFlags, setTauriRuntimePresent } from "@tests/helpers/t
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useWindowAlwaysOnTop } from "@/hooks/use-window-always-on-top";
 import { usePreferencesStore } from "@/stores/preferences-store";
+import { useUiStore } from "@/stores/ui-store";
 
 const { setAlwaysOnTopMock } = vi.hoisted(() => ({
   setAlwaysOnTopMock: vi.fn(),
@@ -39,6 +40,7 @@ describe("useWindowAlwaysOnTop", () => {
     setAlwaysOnTopMock.mockResolvedValue(undefined);
     consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     usePreferencesStore.setState({ prefs: {}, loaded: true });
+    useUiStore.setState({ toastMessage: null });
   });
 
   afterEach(() => {
@@ -96,7 +98,7 @@ describe("useWindowAlwaysOnTop", () => {
     });
   });
 
-  it("keeps the optimistic preference when the native always-on-top command fails", async () => {
+  it("keeps the optimistic preference and does not toast when the native always-on-top command fails", async () => {
     usePreferencesStore.setState({
       prefs: { window_always_on_top: "true" },
       loaded: true,
@@ -110,6 +112,7 @@ describe("useWindowAlwaysOnTop", () => {
       expect(consoleWarnSpy).toHaveBeenCalledWith("Failed to update window always-on-top state:", "permission denied");
     });
     expect(usePreferencesStore.getState().prefs.window_always_on_top).toBe("true");
+    expect(useUiStore.getState().toastMessage).toBeNull();
   });
 
   it("treats unsupported platform failures as a no-op", async () => {

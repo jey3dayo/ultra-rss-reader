@@ -114,6 +114,23 @@ describe("windows", () => {
     expect(Result.unwrapError(result)).toEqual(new Error("Symbol(window denied)"));
   });
 
+  it("wraps object Tauri failures with throwing stringifiers as stable Error values", async () => {
+    const error = Object.create(null, {
+      toString: {
+        value: () => {
+          throw new Error("stringify failed");
+        },
+      },
+    });
+    setFullscreenMock.mockRejectedValue(error);
+
+    const result = await setWindowFullscreen(true);
+
+    const wrappedError = Result.unwrapError(result);
+    expect(wrappedError.message).toBe("Unknown window error");
+    expect(wrappedError.cause).toBe(error);
+  });
+
   it("wraps Tauri failures with throwing message getters as readable Error values", async () => {
     const errorLike = Object.create(null, {
       message: {

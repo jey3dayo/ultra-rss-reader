@@ -16,6 +16,8 @@ type PlatformActions = {
   loadPlatformInfo: () => Promise<void>;
 };
 
+let platformInfoLoadRequestId = 0;
+
 export function supportsReadingListNativeMenu(platform: PlatformInfo): boolean {
   return platform.kind === "macos" && platform.capabilities.supports_reading_list;
 }
@@ -38,8 +40,14 @@ export const usePlatformStore = create<PlatformState & PlatformActions>()((set, 
       return state.inFlightLoad;
     }
 
+    const requestId = platformInfoLoadRequestId + 1;
+    platformInfoLoadRequestId = requestId;
     const request = getPlatformInfo()
       .then((result) => {
+        if (platformInfoLoadRequestId !== requestId) {
+          return;
+        }
+
         Result.pipe(
           result,
           Result.inspect((platform) => {
@@ -56,6 +64,10 @@ export const usePlatformStore = create<PlatformState & PlatformActions>()((set, 
         );
       })
       .catch((error: unknown) => {
+        if (platformInfoLoadRequestId !== requestId) {
+          return;
+        }
+
         logRuntimeDiagnostic("platform-info-load", "Failed to load platform info:", error);
         set({
           platform: DEFAULT_PLATFORM_INFO,
@@ -64,7 +76,9 @@ export const usePlatformStore = create<PlatformState & PlatformActions>()((set, 
         });
       })
       .finally(() => {
-        set({ inFlightLoad: null });
+        if (platformInfoLoadRequestId === requestId) {
+          set({ inFlightLoad: null });
+        }
       });
 
     set({ inFlightLoad: request });

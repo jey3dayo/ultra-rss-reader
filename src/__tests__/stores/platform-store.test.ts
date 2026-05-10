@@ -142,4 +142,32 @@ describe("usePlatformStore", () => {
     expect(usePlatformStore.getState().loadError).toBe(false);
     expect(usePlatformStore.getState().inFlightLoad).toBeNull();
   });
+
+  it("ignores stale in-flight failures after a newer retry succeeds", async () => {
+    const staleLoad = createDeferred<Awaited<ReturnType<typeof mockGetPlatformInfo>>>();
+    mockGetPlatformInfo
+      .mockReturnValueOnce(staleLoad.promise)
+      .mockResolvedValueOnce(Result.succeed(windowsPlatformInfo));
+
+    const firstLoad = usePlatformStore.getState().loadPlatformInfo();
+    usePlatformStore.setState({
+      ...usePlatformStore.getInitialState(),
+      loaded: true,
+      loadError: true,
+      inFlightLoad: null,
+    });
+
+    await usePlatformStore.getState().loadPlatformInfo();
+
+    expect(usePlatformStore.getState().platform.kind).toBe("windows");
+    expect(usePlatformStore.getState().loadError).toBe(false);
+
+    staleLoad.reject(new Error("stale transport failure"));
+    await firstLoad;
+
+    expect(usePlatformStore.getState().platform.kind).toBe("windows");
+    expect(usePlatformStore.getState().loadError).toBe(false);
+    expect(usePlatformStore.getState().inFlightLoad).toBeNull();
+    expect(mockGetPlatformInfo).toHaveBeenCalledTimes(2);
+  });
 });
