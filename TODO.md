@@ -18,28 +18,12 @@
 
 ### 実装投入用 圧縮バッチ
 
-- [ ] P1 Security / Privacy fixture corpus gate を作る
-  - 親バッチ: sanitizer、URL private host、XML entity、tooltip/title redaction、backup/export privacy を個別 TODO から束ねる
-  - 対象: `src-tauri/src/infra/sanitizer.rs`, `src-tauri/src/infra/feed_discovery.rs`, `src-tauri/src/commands/opml_commands.rs`, `src/lib/runtime/diagnostics.ts`, article content tests
-  - 完了条件: untrusted feed HTML、IDNA/IPv6/private host、DOCTYPE/entity、URL token、backup/export privacy level が fixture corpus として再利用できる
-  - 検証: sanitizer Rust tests、OPML/feed discovery URL validation tests、`pnpm exec vitest run src/__tests__/components/article-content-view.test.tsx`
-  - defer: DB restore UI、release artifact signing、future notification/tray/deep link は別バッチへ残す
-
 - [ ] P1 DB migration / rollback / runtime recovery を復旧導線として設計する
   - 親バッチ: downgrade install、stale update install、startup DB init panic、runtime corruption、restore preview、destructive recovery dry-run を束ねる
   - 対象: `src-tauri/src/infra/db/migration.rs`, DB commands、startup DB error handling、settings data page
   - 完了条件: future schema/failed migration/downgrade/corruption が user-visible recovery state へ落ち、restore 後に query cache/localStorage/selected account が整合する
   - 検証: migration integration tests、database command tests、settings data focused tests
   - defer: DB encryption decision と uninstall/reinstall retention は privacy/docs バッチへ残す
-
-- [ ] P2 Settings latest-only / dirty-state / destructive fallback バッチを組む
-  - 親バッチ: preferences optimistic rollback、settings save stale closure、credential rotation、VACUUM in-flight、error fallback destructive action disabled、empty state failure 分離を束ねる
-  - 対象: settings forms、account credentials editor、settings data actions、preferences store
-  - 完了条件: revision/generation で latest-only が固定され、load/parse failure 時は destructive action が理由付き disabled になる
-  - 検証: settings/account detail focused vitest、data settings action tests、preferences store tests
-  - defer: native close confirmation と update restart dirty form guard は app lifecycle バッチへ残す
-
-#### P2 Settings 実装 tranche
 
 - [ ] P2 Reader stale state / focus / search バッチを組む
   - 親バッチ: article list sourcePlan stable key、retained article ids、search result source order、selection not-found、auto-mark timer、reader focus retry を束ねる
@@ -301,25 +285,9 @@
 
 #### Blocked tranche unblock briefs
 
-- [ ] P2-C2u `P1-Q4b` backup/restore integrity unblock audit を固定する
-  - task id: `P1-Q4b`
-  - domain shard: `db-recovery`
-  - unblock scope: backup command、restore command、SQLite integrity_check、WAL checkpoint、restore preview/error handling
-  - audit prompt: backup/restore 前後にどの integrity/WAL/foreign key check が走るか、失敗時に DB と UI state がどう残るかを code audit する
-  - unblock condition: preflight、post-restore validation、rollback/reopen policy、frontend reconciliation owner が決まる
-  - do-not-run-with: `P1-Q4a`, `P1-Q4d`, DB recovery UI implementation
-  - output: command current behavior、missing fixture DB、restore failure matrix、first focused test 候補
-
 #### Independent docs / manual verification briefs
 
 #### Parallel dispatch wave plan
-
-- [ ] P2-C2aa Wave 0 docs/checklist lane を先に投げる
-  - queue: `P2-C2x`, `P2-C2y`
-  - purpose: release manual verification と a11y baseline を、実装差分を先取りしない checklist として固める
-  - parallel-safe: `P1-Q3a`, `P2-A11Y1`, quality-tooling 実装と並列可
-  - do-not-run-with: large release workflow rewrite、broad visual redesign、CLAUDE.md 大改修
-  - merge gate: markdownlint、diff check、docs/checklist が実ファイル名を過剰に固定していないこと
 
 - [ ] P2-C2ab Wave 1 first implementation lane を 3 並列 + 1 単独で投げる
   - parallel group: `P2-C2g` (`P1-Q3a`), `P2-C2h` (`P2-QT1`), `P2-C2i` (`P2-QT2`)
@@ -506,15 +474,6 @@
 
 ### 先行実装 queue
 
-- [ ] P1-Q1 Security / Privacy fixture corpus gate
-  - 目的: untrusted feed HTML、private host URL、XML entity、secret-bearing URL、backup/export privacy を同じ fixture corpus で固定する
-  - worker prompt: sanitizer/feed discovery/OPML/export/log redaction の fixture を作り、成功系追加ではなく reject/redact/diagnostics の contract test を先に増やす
-  - 対象: `src-tauri/src/infra/sanitizer.rs`, `src-tauri/src/infra/feed_discovery.rs`, `src-tauri/src/commands/opml_commands.rs`, `src/lib/runtime/diagnostics.ts`, article content tests
-  - 禁止: UI 表示変更、DB restore UI、release signing、future notification/tray/deep link へ広げない
-  - 検証: sanitizer/feed discovery/OPML focused tests、`pnpm exec vitest run src/__tests__/components/article-content-view.test.tsx`
-
-#### P1-Q1 実装 tranche
-
 - [ ] P1-Q2 Provider auth storm / credential rotation safety
   - 目的: 壊れた credential や server URL 変更中に auto sync / pending mutation replay が走り続ける事故を止める
   - worker prompt: provider auth failure storm、credential edit pending、capability downgrade、server URL change を sync scheduler と queue contract で固定する
@@ -541,15 +500,6 @@
   - 検証: migration integration tests、database command tests、settings data focused tests
 
 #### P1-Q4 実装 tranche
-
-- [ ] P1-Q5 Query invalidation owner / diagnostics unification
-  - 目的: mutation 後の cache stale と fire-and-forget invalidation failure を owner 別 diagnostics に寄せる
-  - worker prompt: add/delete feed、tag update、article read/star、mute keyword、sync completed を query key helper 経由に寄せ、account scope/all account/deleted account の失敗を分類する
-  - 対象: `src/lib/query`, `src/hooks`, reader feed/tag/article mutation hooks
-  - 禁止: reader selection/search stale state、settings dirty-state、query UI redesign へ広げない
-  - 検証: add feed/delete feed/tag update/article read-star/mute keyword/sync completed の focused vitest
-
-#### P1-Q5 実装 tranche
 
 ### TODO shard 方針
 
