@@ -46,22 +46,11 @@
 
 ### Browser WebView / Runtime Diagnostics
 
-- [ ] P2 browser preview focus override script の site compatibility / security boundary を検証する
-  - 対象: `src-tauri/src/browser_webview.rs`, `src/components/settings/reading-settings-view.tsx`, `src/__tests__/schemas/preferences-schema-contract.test.ts`
-  - superseded by: `P2-A11Y1` top-layer/focus trap
-  - focus override は embedded page の visibility/focus APIs を差し替えるため、サイト側の media playback/analytics/keyboard handling を壊す可能性がある
-  - keep focus on/off、visibilitychange listener、non-configurable property、site script error、setting copy、disable fallback の test/実機検証 TODO にする
-
 - [ ] P2 invalid account row quarantine を diagnostics / recovery action へ出す
   - 対象: `src-tauri/src/infra/db/sqlite_account.rs`, `src-tauri/src/commands/account_commands.rs`, `src/components/settings/accounts-nav-view.tsx`
   - superseded by: `P1-Q4c` runtime corruption
   - invalid row を warn で隠すと UI 上は account が消えたように見え、復旧導線や support log との接続が弱い
   - invalid kind、missing name、quarantine count、diagnostics event、settings recovery copy の contract test を追加する
-
-- [ ] P2 native titlebar drag region と interactive controls の overlap を検証する
-  - 対象: `src/components/app-shell.tsx`, `src/components/reader/browser-overlay-chrome.tsx`, global CSS
-  - compact layout や browser overlay 中に drag strip が toolbar/settings/browser controls を覆うとクリック不能になる
-  - settings open、browser overlay、compact account pane、top toolbar controls、pointer-events の実機確認を追加する
 
 - [ ] P2 app update restart prompt と dirty form / pending mutation の衝突を防ぐ
   - 対象: `src/hooks/use-updater.ts`, `src/components/settings`, `src/components/add-feed`
