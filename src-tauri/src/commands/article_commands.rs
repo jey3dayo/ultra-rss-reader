@@ -1716,6 +1716,14 @@ mod tests {
             .expect("feed unread count query should succeed")
     }
 
+    fn pending_mutation_count(db: &DbManager) -> i64 {
+        db.reader()
+            .query_row("SELECT COUNT(*) FROM pending_mutations", [], |row| {
+                row.get(0)
+            })
+            .expect("pending mutation count query should succeed")
+    }
+
     fn article_is_read(db: &DbManager, article_id: &str) -> bool {
         db.reader()
             .query_row(
@@ -1749,6 +1757,67 @@ mod tests {
     }
 
     #[test]
+    fn article_read_and_star_commands_queue_pending_mutations_for_remote_feeds() {
+        let db = DbManager::new_in_memory().expect("in-memory DB should initialize");
+        insert_bulk_account(&db, "acc-a", "FreshRss");
+        insert_bulk_feed(&db, "feed-a", "acc-a", None, Some("feed/a"));
+        insert_bulk_article(
+            &db,
+            "article-a",
+            "feed-a",
+            Some("remote-a"),
+            "2026-04-01T00:00:00Z",
+            false,
+            false,
+        );
+
+        mark_article_read_with_conn(db.writer(), ArticleId("article-a".to_string()), true)
+            .expect("read mutation should succeed");
+        toggle_article_star_with_conn(db.writer(), ArticleId("article-a".to_string()), true)
+            .expect("star mutation should succeed");
+
+        let pending_repo = SqlitePendingMutationRepository::new(db.reader());
+        let pending = pending_repo
+            .find_by_account(&AccountId("acc-a".to_string()))
+            .expect("pending mutation query should succeed");
+        let pending_types = pending
+            .iter()
+            .map(|mutation| mutation.mutation_type)
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            pending_types,
+            vec![PendingMutationType::MarkRead, PendingMutationType::Star]
+        );
+        assert!(pending
+            .iter()
+            .all(|mutation| mutation.remote_entry_id == "remote-a"));
+    }
+
+    #[test]
+    fn article_read_and_star_commands_do_not_queue_pending_mutations_for_local_feeds() {
+        let db = DbManager::new_in_memory().expect("in-memory DB should initialize");
+        insert_bulk_account(&db, "acc-a", "Local");
+        insert_bulk_feed(&db, "feed-a", "acc-a", None, None);
+        insert_bulk_article(
+            &db,
+            "article-a",
+            "feed-a",
+            None,
+            "2026-04-01T00:00:00Z",
+            false,
+            false,
+        );
+
+        mark_article_read_with_conn(db.writer(), ArticleId("article-a".to_string()), true)
+            .expect("local read mutation should succeed");
+        toggle_article_star_with_conn(db.writer(), ArticleId("article-a".to_string()), true)
+            .expect("local star mutation should succeed");
+
+        assert_eq!(pending_mutation_count(&db), 0);
+    }
+
+    #[test]
     fn mark_article_read_rolls_back_local_state_when_pending_mutation_queue_fails() {
         let db = DbManager::new_in_memory().expect("in-memory DB should initialize");
         insert_bulk_account(&db, "acc-a", "FreshRss");
@@ -1778,6 +1847,7 @@ mod tests {
         ));
         assert!(!article_is_read(&db, "article-a"));
         assert_eq!(feed_unread_count(&db, "feed-a"), 1);
+        assert_eq!(pending_mutation_count(&db), 0);
     }
 
     #[test]
@@ -1825,6 +1895,7 @@ mod tests {
         assert!(!article_is_read(&db, "article-a"));
         assert!(!article_is_read(&db, "article-b"));
         assert_eq!(feed_unread_count(&db, "feed-a"), 2);
+        assert_eq!(pending_mutation_count(&db), 0);
     }
 
     #[test]
@@ -1856,6 +1927,7 @@ mod tests {
         ));
         assert!(!article_is_read(&db, "article-a"));
         assert_eq!(feed_unread_count(&db, "feed-a"), 1);
+        assert_eq!(pending_mutation_count(&db), 0);
     }
 
     #[test]
@@ -1893,6 +1965,7 @@ mod tests {
         ));
         assert!(!article_is_read(&db, "article-a"));
         assert_eq!(feed_unread_count(&db, "feed-a"), 1);
+        assert_eq!(pending_mutation_count(&db), 0);
     }
 
     #[test]
@@ -1953,6 +2026,7 @@ mod tests {
             assert!(!article_is_read(&db, "article-a"), "{name}");
             assert!(article_is_starred(&db, "article-a"), "{name}");
             assert_eq!(feed_unread_count(&db, "feed-a"), 1, "{name}");
+            assert_eq!(pending_mutation_count(&db), 0, "{name}");
         }
     }
 
@@ -1982,6 +2056,7 @@ mod tests {
                 if message.contains("pending mutation insert failed")
         ));
         assert!(!article_is_starred(&db, "article-a"));
+        assert_eq!(pending_mutation_count(&db), 0);
     }
 
     #[test]

@@ -377,6 +377,46 @@ mod tests {
     }
 
     #[test]
+    fn duplicate_url_save_merges_title_site_url_and_folder_into_existing_row() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let repo = SqliteFeedRepository::new(db.writer());
+        let existing = Feed {
+            id: FeedId("existing-feed".to_string()),
+            site_url: "https://example.com/old".to_string(),
+            ..make_feed(&account_id, "Old Title", "https://example.com/rss.xml")
+        };
+        repo.save(&existing).unwrap();
+        let folder_id = FolderId::new();
+        db.writer()
+            .execute(
+                "INSERT INTO folders (id, account_id, name, sort_order) VALUES (?1, ?2, ?3, ?4)",
+                params![folder_id.0, account_id.0, "Imported", 0],
+            )
+            .unwrap();
+
+        let duplicate = Feed {
+            id: FeedId("ignored-new-feed-id".to_string()),
+            folder_id: Some(folder_id.clone()),
+            title: "Imported Title".to_string(),
+            site_url: "https://example.com/new".to_string(),
+            ..make_feed(&account_id, "Duplicate", "https://example.com/rss.xml")
+        };
+        repo.save(&duplicate).unwrap();
+
+        let saved = repo
+            .find_by_url(&account_id, "https://example.com/rss.xml")
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(saved.id, existing.id);
+        assert_eq!(saved.folder_id, Some(folder_id));
+        assert_eq!(saved.title, "Imported Title");
+        assert_eq!(saved.site_url, "https://example.com/new");
+        assert_eq!(repo.find_by_account(&account_id).unwrap().len(), 1);
+    }
+
+    #[test]
     fn duplicate_url_save_is_scoped_to_account() {
         let db = test_db();
         let account_a_id = insert_test_account(&db);

@@ -19,8 +19,7 @@ pub struct OpmlFeed {
 pub fn parse_opml(xml: &str) -> Result<Vec<OpmlFeed>, String> {
     let mut reader = Reader::from_str(xml);
     let mut feeds = Vec::new();
-    let mut folder_stack: Vec<String> = Vec::new();
-    let mut depth: usize = 0;
+    let mut outline_stack: Vec<Option<String>> = Vec::new();
     let mut saw_opml_root = false;
     let mut saw_root_element = false;
 
@@ -44,9 +43,9 @@ pub fn parse_opml(xml: &str) -> Result<Vec<OpmlFeed>, String> {
                         title: outline_title_or_url(&attrs, xml_url),
                         xml_url: xml_url.clone(),
                         html_url: attrs.get("htmlUrl").or(attrs.get("htmlurl")).cloned(),
-                        folder: folder_stack.last().cloned(),
+                        folder: current_folder(&outline_stack),
                     });
-                    depth += 1;
+                    outline_stack.push(None);
                 } else {
                     // Folder outline (has children via Start event)
                     let name = attrs
@@ -54,8 +53,7 @@ pub fn parse_opml(xml: &str) -> Result<Vec<OpmlFeed>, String> {
                         .or(attrs.get("text"))
                         .cloned()
                         .unwrap_or_default();
-                    folder_stack.push(name);
-                    depth += 1;
+                    outline_stack.push(Some(name));
                 }
             }
             Ok(Event::Empty(ref e)) if e.name().as_ref() == b"outline" => {
@@ -65,16 +63,14 @@ pub fn parse_opml(xml: &str) -> Result<Vec<OpmlFeed>, String> {
                         title: outline_title_or_url(&attrs, xml_url),
                         xml_url: xml_url.clone(),
                         html_url: attrs.get("htmlUrl").or(attrs.get("htmlurl")).cloned(),
-                        folder: folder_stack.last().cloned(),
+                        folder: current_folder(&outline_stack),
                     });
                 }
                 // Empty element without xmlUrl is just ignored (no children)
             }
             Ok(Event::End(ref e)) if e.name().as_ref() == b"outline" => {
-                depth = depth.saturating_sub(1);
-                // If depth matches folder_stack, pop the folder
-                if folder_stack.len() > depth {
-                    folder_stack.pop();
+                if outline_stack.pop().is_none() {
+                    return Err(OPML_MALFORMED_XML_ERROR_MESSAGE.to_string());
                 }
             }
             Ok(Event::Eof) => break,
@@ -83,7 +79,7 @@ pub fn parse_opml(xml: &str) -> Result<Vec<OpmlFeed>, String> {
         }
     }
 
-    if depth > 0 {
+    if !outline_stack.is_empty() {
         return Err(OPML_MALFORMED_XML_ERROR_MESSAGE.to_string());
     }
 
@@ -92,6 +88,10 @@ pub fn parse_opml(xml: &str) -> Result<Vec<OpmlFeed>, String> {
     }
 
     Ok(feeds)
+}
+
+fn current_folder(outline_stack: &[Option<String>]) -> Option<String> {
+    outline_stack.iter().rev().find_map(Clone::clone)
 }
 
 fn parse_outline_attrs(
@@ -423,6 +423,49 @@ mod tests {
     }
 
     #[test]
+    fn keeps_folder_for_sibling_after_non_empty_feed_outline() {
+        let xml = r#"<?xml version="1.0"?>
+<opml version="2.0">
+  <body>
+    <outline text="Folder">
+      <outline text="Feed With Close" xmlUrl="https://example.com/with-close.xml">
+      </outline>
+      <outline text="Sibling Feed" xmlUrl="https://example.com/sibling.xml"/>
+    </outline>
+  </body>
+</opml>"#;
+
+        let feeds = parse_opml(xml).unwrap();
+
+        assert_eq!(feeds.len(), 2);
+        assert_eq!(feeds[0].folder, Some("Folder".to_string()));
+        assert_eq!(feeds[1].folder, Some("Folder".to_string()));
+    }
+
+    #[test]
+    fn keeps_sibling_folder_assignment_after_nested_folder_closes() {
+        let xml = r#"<?xml version="1.0"?>
+<opml version="2.0">
+  <body>
+    <outline text="First">
+      <outline text="Nested">
+        <outline text="Nested Feed" xmlUrl="https://example.com/nested.xml"/>
+      </outline>
+    </outline>
+    <outline text="Second">
+      <outline text="Second Feed" xmlUrl="https://example.com/second.xml"/>
+    </outline>
+  </body>
+</opml>"#;
+
+        let feeds = parse_opml(xml).unwrap();
+
+        assert_eq!(feeds.len(), 2);
+        assert_eq!(feeds[0].folder, Some("Nested".to_string()));
+        assert_eq!(feeds[1].folder, Some("Second".to_string()));
+    }
+
+    #[test]
     fn uses_text_when_title_missing() {
         let xml = r#"<?xml version="1.0"?>
 <opml version="2.0">
@@ -443,8 +486,12 @@ mod tests {
         let xml = r#"<?xml version="1.0"?>
 <opml version="2.0">
   <body>
-    <outline text="First" xmlUrl="https://example.com/rss"/>
-    <outline text="Second" xmlUrl="https://example.com/rss"/>
+    <outline text="First Folder">
+      <outline text="First" xmlUrl="https://example.com/rss"/>
+    </outline>
+    <outline text="Second Folder">
+      <outline text="Second" xmlUrl="https://example.com/rss"/>
+    </outline>
   </body>
 </opml>"#;
 
@@ -453,8 +500,10 @@ mod tests {
         assert_eq!(feeds.len(), 2);
         assert_eq!(feeds[0].title, "First");
         assert_eq!(feeds[0].xml_url, "https://example.com/rss");
+        assert_eq!(feeds[0].folder, Some("First Folder".to_string()));
         assert_eq!(feeds[1].title, "Second");
         assert_eq!(feeds[1].xml_url, "https://example.com/rss");
+        assert_eq!(feeds[1].folder, Some("Second Folder".to_string()));
     }
 
     #[test]
