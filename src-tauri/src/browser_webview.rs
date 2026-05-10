@@ -1753,20 +1753,32 @@ mod tests {
 
     #[test]
     fn default_capability_includes_child_webview_for_injected_command_invokes() {
-        let capability: serde_json::Value =
+        let capabilities: serde_json::Value =
             serde_json::from_str(include_str!("../capabilities/default.json"))
                 .expect("default capability should be valid JSON");
-        let webviews = capability["webviews"]
+        let capabilities = capabilities
             .as_array()
-            .expect("default capability webviews should be an array");
+            .expect("default capability should be an array");
+        let main_webviews = capabilities
+            .iter()
+            .find(|capability| capability["identifier"] == "main")
+            .and_then(|capability| capability["webviews"].as_array())
+            .expect("main capability webviews should be an array");
+        let browser_webviews = capabilities
+            .iter()
+            .find(|capability| capability["identifier"] == BROWSER_WEBVIEW_LABEL)
+            .and_then(|capability| capability["webviews"].as_array())
+            .expect("browser webview capability webviews should be an array");
 
         assert!(
-            webviews.iter().any(|value| value == "main"),
+            main_webviews.iter().any(|value| value == "main"),
             "main webview must keep command/plugin permissions"
         );
         assert!(
-            webviews.iter().any(|value| value == BROWSER_WEBVIEW_LABEL),
-            "{BROWSER_WEBVIEW_LABEL} must share the default capability so injected browser preview scripts can invoke commands"
+            browser_webviews
+                .iter()
+                .any(|value| value == BROWSER_WEBVIEW_LABEL),
+            "{BROWSER_WEBVIEW_LABEL} must keep a capability entry so injected browser preview scripts can invoke its own commands"
         );
     }
 

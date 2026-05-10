@@ -1473,6 +1473,31 @@ describe("usePreferencesStore preferences", () => {
     expect(resolvePreferenceValue({ after_reading: "after_1s" }, "after_reading")).toBe("after_1s");
   });
 
+  it("migrates legacy sort_unread only when current reading_sort is absent", () => {
+    expect(resolvePreferenceValue({ sort_unread: "oldest_first" }, "reading_sort")).toBe("oldest_first");
+    expect(resolvePreferenceValue({ sort_unread: "newest_first" }, "reading_sort")).toBe("newest_first");
+    expect(resolvePreferenceValue({ reading_sort: "newest_first", sort_unread: "oldest_first" }, "reading_sort")).toBe(
+      "newest_first",
+    );
+    expect(resolvePreferenceValue({ reading_sort: "unexpected", sort_unread: "oldest_first" }, "reading_sort")).toBe(
+      "newest_first",
+    );
+  });
+
+  it("keeps preference store sortUnread aligned with migrated reading_sort", () => {
+    usePreferencesStore.setState({
+      prefs: { sort_unread: "oldest_first" },
+      loaded: true,
+    });
+    expect(usePreferencesStore.getState().sortUnread()).toBe("oldest_first");
+
+    usePreferencesStore.setState({
+      prefs: { reading_sort: "unexpected", sort_unread: "oldest_first" },
+      loaded: true,
+    });
+    expect(usePreferencesStore.getState().sortUnread()).toBe("newest_first");
+  });
+
   it("defaults sidebar section visibility preferences to true", () => {
     expect(resolvePreferenceValue({}, "show_sidebar_unread")).toBe("true");
     expect(resolvePreferenceValue({}, "show_sidebar_starred")).toBe("true");

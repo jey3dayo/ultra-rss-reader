@@ -19,6 +19,7 @@ import {
   normalizeTagColorForView,
   openExternalUrlArgs,
   openInBrowserArgs,
+  PREFERENCE_VALUE_MAX_BYTES,
   READING_LIST_URL_MAX_BYTES,
   renameAccountArgs,
   renameFeedArgs,
@@ -43,9 +44,24 @@ function readApiSource(fileName: string) {
 }
 
 function extractRustUsizeConst(source: string, constName: string) {
-  const match = source.match(new RegExp(`(?:pub )?const ${constName}: usize = (\\d+);`));
+  const match = source.match(
+    new RegExp(`(?:pub(?:\\(crate\\))? )?const ${constName}: usize = (\\d+)(?: \\* (\\d+))?;`),
+  );
   expect(match, `${constName} should exist`).not.toBeNull();
-  return Number(match?.[1]);
+  return Number(match?.[1]) * Number(match?.[2] ?? 1);
+}
+
+function extractRustComputedUsizeConst(
+  source: string,
+  constName: string,
+  dependencyName: string,
+  dependencyValue: number,
+) {
+  const match = source.match(
+    new RegExp(`(?:pub\\(crate\\) |pub )?const ${constName}: usize = ${dependencyName} \\* (\\d+);`),
+  );
+  expect(match, `${constName} computed max length const should exist`).not.toBeNull();
+  return dependencyValue * Number(match?.[1]);
 }
 
 function extractRustValidationLimit(source: string, messagePrefix: string) {
@@ -135,6 +151,35 @@ describe("command args validation parity", () => {
       FOLDER_NAME_MAX_CHARS,
     );
     expect(extractRustValidationLimit(readRustCommandSource("tag_commands.rs"), "Tag name")).toBe(TAG_NAME_MAX_CHARS);
+  });
+
+  it("keeps frontend byte and share command limits aligned with Rust validation", () => {
+    const shareCommands = readRustCommandSource("share_commands.rs");
+    const preferenceDomain = readRustDomainSource("preference.rs");
+
+    expect(extractRustUsizeConst(shareCommands, "CLIPBOARD_TEXT_MAX_CHARS")).toBe(SHARE_COMMAND_TEXT_MAX_CHARS);
+    expect(
+      extractRustComputedUsizeConst(
+        shareCommands,
+        "CLIPBOARD_TEXT_MAX_BYTES",
+        "CLIPBOARD_TEXT_MAX_CHARS",
+        SHARE_COMMAND_TEXT_MAX_CHARS,
+      ),
+    ).toBe(SHARE_COMMAND_TEXT_MAX_BYTES);
+    expect(extractRustUsizeConst(shareCommands, "READING_LIST_URL_MAX_BYTES")).toBe(READING_LIST_URL_MAX_BYTES);
+    expect(extractRustUsizeConst(preferenceDomain, "PREFERENCE_VALUE_MAX_BYTES")).toBe(PREFERENCE_VALUE_MAX_BYTES);
+
+    expect(addToReadingListArgs.parse({ url: "https://example.com/" }).url).toBe("https://example.com/");
+    expect(
+      copyToClipboardArgs.parse({
+        text: "x".repeat(SHARE_COMMAND_TEXT_MAX_CHARS),
+      }).text,
+    ).toBe("x".repeat(SHARE_COMMAND_TEXT_MAX_CHARS));
+    expect(() =>
+      copyToClipboardArgs.parse({
+        text: "x".repeat(SHARE_COMMAND_TEXT_MAX_CHARS + 1),
+      }),
+    ).toThrow(`Clipboard text must be ${SHARE_COMMAND_TEXT_MAX_CHARS} graphemes or less`);
   });
 
   it("normalizes tag colors with the same command and view helper contract", () => {

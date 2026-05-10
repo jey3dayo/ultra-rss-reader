@@ -35,6 +35,19 @@ type TauriConfig = {
   };
 };
 
+type TauriCapability = {
+  identifier: string;
+  webviews?: string[];
+  permissions?: string[];
+};
+
+type TauriCapabilityFile =
+  | TauriCapability
+  | TauriCapability[]
+  | {
+      capabilities: TauriCapability[];
+    };
+
 const RELEASE_UPDATER_ENDPOINT = "https://github.com/jey3dayo/ultra-rss-reader/releases/latest/download/latest.json";
 const UPDATER_PUBKEY_PLACEHOLDER_PATTERN = /(?:placeholder|change[_-]?me|todo)/i;
 const RELEASE_UPDATER_ASSET_CONTRACT = [
@@ -182,6 +195,34 @@ const extractWorkflowUses = (source: string): string[] => {
   return [...source.matchAll(usesPattern)].map((match) => match[1] ?? "");
 };
 
+const extractReleaseStepBlock = (source: string, stepName: string): string => {
+  const value = source.match(
+    new RegExp(`- name: ${escapeRegExp(stepName)}\\n(?<block>[\\s\\S]*?)(?=\\n {6}- (?:name|uses|run):|$)`),
+  )?.groups?.block;
+  if (!value) {
+    throw new Error(`Missing release workflow step: ${stepName}`);
+  }
+  return value;
+};
+
+const normalizeCapabilities = (source: TauriCapabilityFile): TauriCapability[] => {
+  if (Array.isArray(source)) {
+    return source;
+  }
+  if ("capabilities" in source) {
+    return source.capabilities;
+  }
+  return [source];
+};
+
+const capabilityByIdentifier = (source: TauriCapabilityFile, identifier: string): TauriCapability => {
+  const capability = normalizeCapabilities(source).find((entry) => entry.identifier === identifier);
+  if (!capability) {
+    throw new Error(`Missing Tauri capability: ${identifier}`);
+  }
+  return capability;
+};
+
 const extractRustStringConstants = (source: string, suffix: string): Map<string, string> => {
   const constants = new Map<string, string>();
   const pattern = new RegExp(`^const\\s+([A-Z0-9_]+${escapeRegExp(suffix)}):\\s*&str\\s*=\\s*"([^"]+)";`, "gm");
@@ -275,7 +316,7 @@ describe("release repository contract", () => {
   const tauriConfig: TauriConfig = JSON.parse(readText("src-tauri/tauri.conf.json"));
   const tauriReleaseConfig: TauriConfig = JSON.parse(readText("src-tauri/tauri.release.conf.json"));
   const tauriDevConfig: TauriConfig = JSON.parse(readText("src-tauri/tauri.dev.conf.json"));
-  const defaultCapability: { permissions?: string[] } = JSON.parse(readText("src-tauri/capabilities/default.json"));
+  const defaultCapability: TauriCapabilityFile = JSON.parse(readText("src-tauri/capabilities/default.json"));
   const cargoToml = readText("src-tauri/Cargo.toml");
   const releaseWorkflow = readText(".github/workflows/release.yml");
   const tauriLib = readText("src-tauri/src/lib.rs");
@@ -295,6 +336,8 @@ describe("release repository contract", () => {
   const nativeMenuSource = readText("src-tauri/src/menu.rs");
   const appActionsSource = readText("src/lib/app-actions.ts");
   const keyboardShortcutsSource = readText("src/lib/keyboard/keyboard-shortcuts.ts");
+  const preferencesSchemaSource = readText("src/schemas/preferences.ts");
+  const preferencesStoreSource = readText("src/stores/preferences-store.ts");
 
   it("parses TOML string values with quoted and multiline forms used by release contracts", () => {
     const toml = [
@@ -411,6 +454,33 @@ describe("release repository contract", () => {
 
     expect(releasePermissions).toEqual({ contents: "write" });
     expect(releaseWorkflow).not.toMatch(/^ {4}permissions:/m);
+  });
+
+  it("keeps release workflow action, token, and cache surfaces pinned to the release asset scope", () => {
+    const releaseUsesValues = extractWorkflowUses(releaseWorkflow);
+    const expectedReleaseActions = [
+      "actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd",
+      "jdx/mise-action@1648a7812b9aeae629881980618f079932869151",
+      "actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae",
+      "dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9",
+      "Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4",
+      "tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5",
+    ];
+
+    expect(releaseUsesValues).toEqual(expectedReleaseActions);
+    for (const usesValue of releaseUsesValues) {
+      expect(usesValue).toMatch(/@[0-9a-f]{40}$/i);
+    }
+    expect(releaseWorkflow).not.toContain("actions/upload-artifact");
+    expect(releaseWorkflow.match(/secrets\.GITHUB_TOKEN/g)).toHaveLength(3);
+    expect(extractTauriActionBlock(releaseWorkflow)).toContain("GITHUB_TOKEN: $" + "{{ secrets.GITHUB_TOKEN }}");
+    expect(extractReleaseStepBlock(releaseWorkflow, "Upload updater asset checksums")).toContain(
+      "GH_TOKEN: $" + "{{ secrets.GITHUB_TOKEN }}",
+    );
+    expect(extractReleaseStepBlock(releaseWorkflow, "Upload release provenance assets")).toContain(
+      "GH_TOKEN: $" + "{{ secrets.GITHUB_TOKEN }}",
+    );
+    expect(extractReleaseCacheBlock(releaseWorkflow)).not.toContain("node_modules");
   });
 
   it("keeps CI apt mirror failures bounded by an explicit retry policy", () => {
@@ -582,7 +652,11 @@ describe("release repository contract", () => {
     expect(devMocks).toContain(
       "if (window.__TAURI_INTERNALS__ && !window.__DEV_BROWSER_MOCKS__) return restoreWindowGlobals;",
     );
-    expect(defaultCapability.permissions?.filter((permission) => permission.startsWith("mcp-bridge:"))).toEqual([]);
+    expect(
+      normalizeCapabilities(defaultCapability).flatMap(
+        (capability) => capability.permissions?.filter((permission) => permission.startsWith("mcp-bridge:")) ?? [],
+      ),
+    ).toEqual([]);
     expect(releaseSourceDevOnlyImports).toEqual([]);
     expect(tauriActionBlock).not.toContain("--config src-tauri/tauri.dev.conf.json");
     expect(releaseWorkflow).not.toMatch(/\bDEV_CREDENTIALS\s*:/);
@@ -653,6 +727,37 @@ describe("release repository contract", () => {
     }
     expect(keyboardShortcutsSource).toContain('const nativeMenuOwnedShortcuts = new Set(["\\u2318+r"])');
     expect(nativeMenuActions.get("accounts-sync")).toBe("sync-all");
+  });
+
+  it("keeps browser webview capability on a minimal command surface", () => {
+    const mainCapability = capabilityByIdentifier(defaultCapability, "main");
+    const browserCapability = capabilityByIdentifier(defaultCapability, "browser-webview");
+
+    expect(mainCapability.webviews).toEqual(["main"]);
+    expect(browserCapability.webviews).toEqual(["browser-webview"]);
+    expect(browserCapability.permissions).toEqual(["core:event:default"]);
+    expect(browserCapability.permissions).not.toContain("core:default");
+    expect(browserCapability.permissions?.some((permission) => permission.startsWith("opener:"))).toBe(false);
+    expect(browserCapability.permissions?.some((permission) => permission.startsWith("clipboard-manager:"))).toBe(
+      false,
+    );
+    expect(browserCapability.permissions?.some((permission) => permission.startsWith("core:window:"))).toBe(false);
+    expect(browserCapability.permissions?.some((permission) => permission.startsWith("mcp-bridge:"))).toBe(false);
+  });
+
+  it("keeps native checked menu preferences compatible with frontend preference migration", () => {
+    expect(nativeMenuSource).toMatch(
+      /fn is_sort_unread_checked\(prefs: &HashMap<String, String>\) -> bool \{\s+prefs\s+\.get\("reading_sort"\)\s+\.or_else\(\|\| prefs\.get\("sort_unread"\)\)\s+\.is_some_and\(\|v\| v == "oldest_first"\)\s+\}/,
+    );
+    expect(nativeMenuSource).toMatch(
+      /fn is_group_by_feed_checked\(prefs: &HashMap<String, String>\) -> bool \{\s+prefs\.get\("group_by"\)\.is_some_and\(\|v\| v == "feed"\)\s+\}/,
+    );
+    expect(nativeMenuSource).toContain("should_rollback_check_toggle_after_emit(toggled_check_item, true)");
+    expect(preferencesStoreSource).toContain(
+      'sortUnread: () => resolvePreferenceValue(getState().prefs, "reading_sort")',
+    );
+    expect(preferencesSchemaSource).toContain('key === "reading_sort"');
+    expect(preferencesSchemaSource).toContain('prefs.sort_unread ?? fallbackValue ?? ""');
   });
 
   it("generates a release/debug feature flag inventory report", () => {

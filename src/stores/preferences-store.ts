@@ -517,6 +517,6 @@ export const usePreferencesStore = create<PreferencesState & PreferencesActions>
   },
 
   theme: () => resolvePreferenceValue(getState().prefs, "theme"),
-  sortUnread: () => resolvePreferenceValue(getState().prefs, "sort_unread"),
+  sortUnread: () => resolvePreferenceValue(getState().prefs, "reading_sort"),
   groupBy: () => resolvePreferenceValue(getState().prefs, "group_by"),
 }));

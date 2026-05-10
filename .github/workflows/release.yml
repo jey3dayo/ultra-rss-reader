@@ -164,6 +164,13 @@ jobs:
             },
           ];
           const unsupportedUpdaterPlatformKeys = ["linux-x86_64", "linux-aarch64"];
+          const capabilities = Array.isArray(defaultCapability)
+            ? defaultCapability
+            : Array.isArray(defaultCapability.capabilities)
+              ? defaultCapability.capabilities
+              : [defaultCapability];
+          const mainCapability = capabilities.find((capability) => capability.identifier === "main");
+          const browserWebviewCapability = capabilities.find((capability) => capability.identifier === "browser-webview");
 
           const errors = [];
           if (releaseTag !== expectedTag) {
@@ -205,10 +212,18 @@ jobs:
           if (/\bDEV_CREDENTIALS\s*:/.test(releaseWorkflow) || /\bULTRA_RSS_DEV_CREDENTIALS\s*:/.test(releaseWorkflow)) {
             errors.push("release workflow must not set dev credential environment variables");
           }
-          if (!Array.isArray(defaultCapability.permissions)) {
-            errors.push("src-tauri/capabilities/default.json must declare release permissions explicitly");
-          } else if (defaultCapability.permissions.some((permission) => String(permission).startsWith("mcp-bridge:"))) {
+          if (!Array.isArray(mainCapability?.permissions)) {
+            errors.push("src-tauri/capabilities/default.json must declare main release permissions explicitly");
+          } else if (capabilities.flatMap((capability) => capability.permissions ?? []).some((permission) => String(permission).startsWith("mcp-bridge:"))) {
             errors.push("release capability must not include debug-only MCP bridge permissions");
+          }
+          if (!browserWebviewCapability) {
+            errors.push("src-tauri/capabilities/default.json must declare a browser-webview capability");
+          } else if (
+            JSON.stringify(browserWebviewCapability.webviews) !== JSON.stringify(["browser-webview"]) ||
+            JSON.stringify(browserWebviewCapability.permissions) !== JSON.stringify(["core:event:default"])
+          ) {
+            errors.push("browser-webview capability must stay on the minimal core event permission snapshot");
           }
           for (const contract of updaterAssetContract) {
             if (!releaseWorkflow.includes(`platform: ${contract.matrixPlatform}`)) {
@@ -258,6 +273,11 @@ jobs:
           const devMocks = fs.readFileSync("src/dev/mocks.ts", "utf8");
           const devConfigCliArg = ["--config", "src-tauri/tauri.dev.conf.json"].join(" ");
           const devOnlyImportPattern = /(?:from\s+|import\()\s*["']@\/dev\/(?:mock-data|scenarios)(?:\/|["'])/;
+          const capabilities = Array.isArray(defaultCapability)
+            ? defaultCapability
+            : Array.isArray(defaultCapability.capabilities)
+              ? defaultCapability.capabilities
+              : [defaultCapability];
 
           function listSourceFiles(dir) {
             const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -283,7 +303,7 @@ jobs:
           if (tauriReleaseConfig.productName === tauriDevConfig.productName) {
             errors.push("release build must not use the dev product name");
           }
-          if (defaultCapability.permissions?.some((permission) => String(permission).startsWith("mcp-bridge:"))) {
+          if (capabilities.flatMap((capability) => capability.permissions ?? []).some((permission) => String(permission).startsWith("mcp-bridge:"))) {
             errors.push("release capability must not include debug-only MCP bridge permissions");
           }
           if (

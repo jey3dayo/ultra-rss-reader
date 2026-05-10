@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { type TauriCapability, TauriCapabilitySchema } from "@/schemas/app-config";
+import { z } from "zod";
 import { parseJsonWithSchema } from "@/schemas/parse";
 
 type TauriConfig = {
@@ -26,11 +26,26 @@ const expectedMainWebviewPermissions = [
   "core:window:allow-unmaximize",
 ] as const;
 
-function readDefaultCapability(): TauriCapability {
+const TauriCapabilityContractSchema = z.object({
+  identifier: z.string().optional(),
+  permissions: z.array(z.string()),
+});
+type TauriCapability = z.output<typeof TauriCapabilityContractSchema>;
+const TauriCapabilityFileSchema = z.union([TauriCapabilityContractSchema, z.array(TauriCapabilityContractSchema)]);
+
+function readDefaultCapability(identifier = "main"): TauriCapability {
   const currentFile = fileURLToPath(import.meta.url);
   const currentDir = path.dirname(currentFile);
   const capabilityPath = path.resolve(currentDir, "../../../src-tauri/capabilities/default.json");
-  return parseJsonWithSchema(readFileSync(capabilityPath, "utf8"), TauriCapabilitySchema);
+  const capabilityFile = parseJsonWithSchema(readFileSync(capabilityPath, "utf8"), TauriCapabilityFileSchema);
+  if (!Array.isArray(capabilityFile)) {
+    return capabilityFile;
+  }
+  const capability = capabilityFile.find((entry) => entry.identifier === identifier);
+  if (!capability) {
+    throw new Error(`Missing Tauri capability: ${identifier}`);
+  }
+  return capability;
 }
 
 function readTauriConfig(): TauriConfig {

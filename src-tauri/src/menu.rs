@@ -124,7 +124,7 @@ fn is_sort_unread_checked(prefs: &HashMap<String, String>) -> bool {
     prefs
         .get("reading_sort")
         .or_else(|| prefs.get("sort_unread"))
-        .is_some_and(|v| v != "newest_first")
+        .is_some_and(|v| v == "oldest_first")
 }
 
 fn is_group_by_feed_checked(prefs: &HashMap<String, String>) -> bool {
@@ -706,6 +706,21 @@ mod tests {
 
         prefs.remove("reading_sort");
         assert!(is_sort_unread_checked(&prefs));
+    }
+
+    #[test]
+    fn sort_unread_checked_state_uses_unchecked_fallback_for_unknown_values() {
+        let mut prefs = HashMap::from([("reading_sort".to_string(), "unexpected".to_string())]);
+        assert!(!is_sort_unread_checked(&prefs));
+
+        prefs.insert("sort_unread".to_string(), "oldest_first".to_string());
+        assert!(!is_sort_unread_checked(&prefs));
+
+        prefs.remove("reading_sort");
+        assert!(is_sort_unread_checked(&prefs));
+
+        prefs.insert("sort_unread".to_string(), "unexpected".to_string());
+        assert!(!is_sort_unread_checked(&prefs));
     }
 
     #[test]

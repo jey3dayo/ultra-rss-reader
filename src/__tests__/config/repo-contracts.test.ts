@@ -14,11 +14,13 @@ import appE2eSpec from "../../../e2e/app.spec.ts?raw";
 import runtimeErrorGuardHelper from "../../../e2e/helpers/runtime-error-guard.ts?raw";
 import { uiReferenceCanvasStoryIds } from "../../../e2e/storybook/storybook-index-payload";
 import packageJson from "../../../package.json";
-import defaultCapability from "../../../src-tauri/capabilities/default.json";
 import tauriConfig from "../../../src-tauri/tauri.conf.json";
 import tauriReleaseConfig from "../../../src-tauri/tauri.release.conf.json";
 
 const repoRoot = process.cwd();
+const defaultCapability: Array<{ identifier?: string; webviews?: string[]; permissions?: string[] }> = JSON.parse(
+  readFileSync(join(repoRoot, "src-tauri/capabilities/default.json"), "utf8"),
+);
 
 function isStringRecord(value: unknown): value is Record<string, string> {
   return (
@@ -1258,8 +1260,17 @@ describe("repository static contracts", () => {
   });
 
   it("allows the embedded browser child webview to invoke its native commands", () => {
-    expect(defaultCapability.webviews).toEqual(["main", "browser-webview"]);
-    expect(defaultCapability.permissions).toEqual(
+    const capabilities = defaultCapability as Array<{
+      identifier?: string;
+      permissions?: string[];
+      webviews?: string[];
+    }>;
+    const mainCapability = capabilities.find((capability) => capability.identifier === "main");
+    const browserWebviewCapability = capabilities.find((capability) => capability.identifier === "browser-webview");
+
+    expect(mainCapability?.webviews).toEqual(["main"]);
+    expect(browserWebviewCapability?.webviews).toEqual(["browser-webview"]);
+    expect(mainCapability?.permissions).toEqual(
       expect.arrayContaining([
         "core:default",
         "core:window:allow-center",

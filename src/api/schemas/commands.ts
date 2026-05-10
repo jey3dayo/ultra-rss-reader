@@ -14,10 +14,10 @@ export const TAG_NAME_MAX_CHARS = 50;
 export const SHARE_COMMAND_TEXT_MAX_CHARS = 2048;
 export const SHARE_COMMAND_TEXT_MAX_BYTES = SHARE_COMMAND_TEXT_MAX_CHARS * 4;
 export const READING_LIST_URL_MAX_BYTES = 16 * 1024;
+export const PREFERENCE_VALUE_MAX_BYTES = 1024;
 export const TAG_COLOR_VALIDATION_MESSAGE = "Color must be a valid hex color (e.g. #ff0000)";
 const paginationOffsetSchema = z.number().int().nonnegative().max(MAX_IPC_PAGINATION_OFFSET);
 const paginationLimitSchema = z.number().int().positive().max(MAX_IPC_PAGINATION_LIMIT);
-const preferenceValueMaxBytes = 1024;
 const textEncoder = new TextEncoder();
 const nonBlankTrimmedStringSchema = z.string().trim().min(1);
 const nonBlankTrimmedIdSchema = z.string().trim().min(1, { message: "Command id must not be blank" });
@@ -412,8 +412,8 @@ export const exportOpmlArgs = z.object({ accountId: nonBlankTrimmedIdSchema });
 export const setPreferenceArgs = z
   .object({
     key: z.string(),
-    value: z.string().refine((value) => textEncoder.encode(value).length <= preferenceValueMaxBytes, {
-      message: `Preference value must be ${preferenceValueMaxBytes} UTF-8 bytes or less`,
+    value: z.string().refine((value) => textEncoder.encode(value).length <= PREFERENCE_VALUE_MAX_BYTES, {
+      message: `Preference value must be ${PREFERENCE_VALUE_MAX_BYTES} UTF-8 bytes or less`,
     }),
   })
   .superRefine(({ key, value }, ctx) => {

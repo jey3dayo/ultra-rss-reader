@@ -1,20 +1,28 @@
-{
-  "$schema": "../gen/schemas/desktop-schema.json",
-  "identifier": "default",
-  "description": "Capability for the main app webview",
-  "webviews": ["main", "browser-webview"],
-  "permissions": [
-    "core:default",
-    "opener:allow-default-urls",
-    "opener:allow-open-url",
-    "clipboard-manager:allow-write-text",
-    "core:window:allow-center",
-    "core:window:allow-is-fullscreen",
-    "core:window:allow-set-always-on-top",
-    "core:window:allow-set-badge-count",
-    "core:window:allow-set-fullscreen",
-    "core:window:allow-set-icon",
-    "core:window:allow-set-size",
-    "core:window:allow-unmaximize"
-  ]
-}
+[
+  {
+    "$schema": "../gen/schemas/desktop-schema.json",
+    "identifier": "main",
+    "description": "Capability for the main app webview",
+    "webviews": ["main"],
+    "permissions": [
+      "core:default",
+      "opener:allow-default-urls",
+      "opener:allow-open-url",
+      "clipboard-manager:allow-write-text",
+      "core:window:allow-center",
+      "core:window:allow-is-fullscreen",
+      "core:window:allow-set-always-on-top",
+      "core:window:allow-set-badge-count",
+      "core:window:allow-set-fullscreen",
+      "core:window:allow-set-icon",
+      "core:window:allow-set-size",
+      "core:window:allow-unmaximize"
+    ]
+  },
+  {
+    "identifier": "browser-webview",
+    "description": "Minimal capability for the embedded browser webview",
+    "webviews": ["browser-webview"],
+    "permissions": ["core:event:default"]
+  }
+]

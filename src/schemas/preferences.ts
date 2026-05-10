@@ -371,5 +371,11 @@ export function resolvePreferenceValue(prefs: PreferenceRecord, key: string): st
   } else {
     fallbackValue = resolveVisiblePreferenceDefault(key);
   }
-  return normalizePreferenceValue(key, prefs[key] ?? fallbackValue ?? "");
+  const rawValue: string =
+    key === "reading_sort" && objectHasOwnProperty.call(prefs, "reading_sort")
+      ? (prefs.reading_sort ?? "")
+      : key === "reading_sort"
+        ? (prefs.sort_unread ?? fallbackValue ?? "")
+        : (prefs[key] ?? fallbackValue ?? "");
+  return normalizePreferenceValue(key, rawValue);
 }
