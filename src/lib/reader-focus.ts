@@ -118,7 +118,7 @@ function focusTargetWhenReady(params: {
     if (readerFocusRetryGenerations[params.generationKey] === generation) {
       readerFocusRetryGenerations[params.generationKey] += 1;
     }
-    if (timeoutId !== null) {
+    if (timeoutId !== null && typeof window !== "undefined") {
       window.clearTimeout(timeoutId);
       timeoutId = null;
     }
@@ -129,6 +129,11 @@ function focusTargetWhenReady(params: {
   }
 
   if (params.attemptsRemaining <= 1) {
+    params.focusFallback();
+    return cleanup;
+  }
+
+  if (typeof window === "undefined" || typeof window.setTimeout !== "function") {
     params.focusFallback();
     return cleanup;
   }
