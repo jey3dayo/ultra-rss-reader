@@ -151,6 +151,7 @@
   "confirm_mark_read": "{{count}}件の記事を既読にしますか？",
   "edit_feed": "フィードを編集",
   "title": "タイトル",
+  "title_required": "タイトルを入力してください",
   "website_url": "サイトURL",
   "feed_url": "フィードのURL",
   "copy_website_url": "サイトURLをコピー",

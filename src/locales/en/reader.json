@@ -151,6 +151,7 @@
   "confirm_mark_read": "Mark {{count}} articles as read?",
   "edit_feed": "Edit Feed",
   "title": "Title",
+  "title_required": "Title is required",
   "website_url": "Website URL",
   "feed_url": "Feed URL",
   "copy_website_url": "Copy Website URL",

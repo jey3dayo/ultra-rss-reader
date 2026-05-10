@@ -15,6 +15,12 @@ type LocaleLeaf = string | readonly string[];
 type LocaleNode = LocaleLeaf | { readonly [key: string]: LocaleNode };
 type ShortcutLocaleKey = ShortcutLabelKey | ShortcutCategoryKey;
 
+const componentAndLibSourceFiles = import.meta.glob<string>("/src/{components,hooks,lib}/**/*.{ts,tsx}", {
+  eager: true,
+  import: "default",
+  query: "?raw",
+});
+
 function isLocaleObject(value: LocaleNode): value is { readonly [key: string]: LocaleNode } {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -39,6 +45,84 @@ function flattenLocaleKeys(value: LocaleNode, prefix = ""): string[] {
 function missingKeys(referenceKeys: readonly string[], candidateKeys: readonly string[]) {
   const candidateKeySet = new Set(candidateKeys);
   return referenceKeys.filter((key) => !candidateKeySet.has(key));
+}
+
+const interpolationTokenPattern = /{{\s*([^{}]*?)\s*}}/g;
+const interpolationNamePattern = /^[a-zA-Z0-9_]+$/;
+
+function extractInterpolationVariables(value: string): string[] {
+  const variables = new Set<string>();
+
+  for (const match of value.matchAll(interpolationTokenPattern)) {
+    const name = ((match[1] ?? "").trim().split(",", 1)[0] ?? "").trim();
+    if (interpolationNamePattern.test(name)) {
+      variables.add(name);
+    }
+  }
+
+  return [...variables].toSorted();
+}
+
+function getLocaleValue(resource: LocaleNode, keyPath: string): LocaleNode | undefined {
+  return keyPath.split(".").reduce<LocaleNode | undefined>((current, segment) => {
+    if (!isLocaleObject(current)) {
+      return undefined;
+    }
+    return current[segment];
+  }, resource);
+}
+
+function hasLocaleKey(namespace: (typeof i18nResourceNamespaces)[number], key: string): boolean {
+  return (
+    getLocaleValue(i18nResources.en[namespace], key) !== undefined ||
+    getLocaleValue(i18nResources.en[namespace], `${key}_one`) !== undefined ||
+    getLocaleValue(i18nResources.en[namespace], `${key}_other`) !== undefined
+  );
+}
+
+const namespaceAliasPattern =
+  /const\s*\{\s*t(?:\s*:\s*(?<alias>[A-Za-z_$][\w$]*))?\s*(?:,[^}]*)?\}\s*=\s*useTranslation\(\s*(?:"(?<double>[^"]+)"|'(?<single>[^']+)')?\s*\)/g;
+const staticTranslationCallPattern =
+  /\b(?<callee>[A-Za-z_$][\w$]*(?:\.t)?)\(\s*(?:"(?<double>[^"]+)"|'(?<single>[^']+)')/g;
+const staticTranslationArrayCallPattern =
+  /\b(?<callee>[A-Za-z_$][\w$]*(?:\.t)?)\(\s*\[\s*(?:"(?<double>[^"]+)"|'(?<single>[^']+)')/g;
+
+function collectStaticTranslationKeyProblems(filePath: string, source: string): string[] {
+  const namespacesByCallee = new Map<string, string>([["i18n.t", "common"]]);
+  const problems: string[] = [];
+
+  for (const match of source.matchAll(namespaceAliasPattern)) {
+    const alias = match.groups?.alias ?? "t";
+    const namespace = match.groups?.double ?? match.groups?.single ?? "common";
+    namespacesByCallee.set(alias, namespace);
+  }
+
+  for (const pattern of [staticTranslationCallPattern, staticTranslationArrayCallPattern]) {
+    for (const match of source.matchAll(pattern)) {
+      const callee = match.groups?.callee;
+      const rawKey = match.groups?.double ?? match.groups?.single;
+      if (callee === undefined || rawKey === undefined) {
+        continue;
+      }
+
+      const defaultNamespace = namespacesByCallee.get(callee);
+      if (defaultNamespace === undefined) {
+        continue;
+      }
+
+      const [namespace, key] = rawKey.includes(":") ? rawKey.split(":", 2) : [defaultNamespace, rawKey];
+      if (!i18nResourceNamespaces.includes(namespace as (typeof i18nResourceNamespaces)[number])) {
+        problems.push(`${filePath}: unknown namespace ${namespace} for ${rawKey}`);
+        continue;
+      }
+
+      if (!hasLocaleKey(namespace as (typeof i18nResourceNamespaces)[number], key)) {
+        problems.push(`${filePath}: missing ${namespace}.${key}`);
+      }
+    }
+  }
+
+  return problems.toSorted();
 }
 
 const readerBrowserMeaningKeys = [
@@ -163,6 +247,40 @@ describe("i18next locale contract", () => {
     }
 
     expect(missingByLocale).toEqual([]);
+  });
+
+  it("keeps interpolation variable names aligned across supported locales", () => {
+    const mismatches: string[] = [];
+
+    for (const namespace of i18nResourceNamespaces) {
+      const enKeys = flattenLocaleKeys(i18nResources.en[namespace]);
+      const jaKeys = flattenLocaleKeys(i18nResources.ja[namespace]);
+      const localeKeys = new Set([...enKeys, ...jaKeys]);
+
+      for (const key of [...localeKeys].toSorted()) {
+        const enValue = getLocaleValue(i18nResources.en[namespace], key);
+        const jaValue = getLocaleValue(i18nResources.ja[namespace], key);
+        if (typeof enValue !== "string" || typeof jaValue !== "string") {
+          continue;
+        }
+
+        const enVariables = extractInterpolationVariables(enValue);
+        const jaVariables = extractInterpolationVariables(jaValue);
+        if (enVariables.join("|") !== jaVariables.join("|")) {
+          mismatches.push(`${namespace}.${key}: en=${enVariables.join("|")} ja=${jaVariables.join("|")}`);
+        }
+      }
+    }
+
+    expect(mismatches).toEqual([]);
+  });
+
+  it("keeps static component translation calls backed by locale resource keys", () => {
+    const problems = Object.entries(componentAndLibSourceFiles).flatMap(([filePath, source]) =>
+      collectStaticTranslationKeyProblems(filePath, source),
+    );
+
+    expect(problems).toEqual([]);
   });
 
   it("keeps shortcut definition locale keys covered without orphan reader shortcut labels", () => {
