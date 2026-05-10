@@ -150,6 +150,28 @@ describe("runtime diagnostics redaction", () => {
     expect(toJSON).not.toHaveBeenCalled();
   });
 
+  it("suppresses repeated sidebar storage quota diagnostics after the first warning", () => {
+    const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    logRuntimeDiagnostic("sidebar-expanded-folders-storage", "Sidebar expanded folders storage failed", {
+      operation: "write",
+      storageKey: "ultra-rss:sidebar-expanded-folders",
+      error: new DOMException("quota exceeded", "QuotaExceededError"),
+    });
+    logRuntimeDiagnostic("sidebar-expanded-folders-storage", "Sidebar expanded folders storage failed", {
+      operation: "write",
+      storageKey: "ultra-rss:sidebar-expanded-folders",
+      error: new DOMException("quota exceeded", "QuotaExceededError"),
+    });
+
+    expect(consoleWarn).toHaveBeenCalledTimes(1);
+    expect(consoleWarn).toHaveBeenCalledWith("Sidebar expanded folders storage failed", {
+      operation: "write",
+      storageKey: "ultra-rss:sidebar-expanded-folders",
+      error: {},
+    });
+  });
+
   it("redacts URL path segments only when they look credential-like", () => {
     expect(redactRuntimeDiagnosticText("https://example.com/feed.xml?token=raw")).toBe(
       "https://example.com/feed.xml?redacted",

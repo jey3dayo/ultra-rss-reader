@@ -963,11 +963,6 @@
   - Storybook や component test で missing key が key 文字列のまま通ると、locale regression を視覚確認まで見逃しやすい
   - strict i18n wrapper、expected missing key allowlist、story smoke、test-local namespace setup の方針を追加する
 
-- [ ] P2 destructive confirm dialog の pending state / focus restore / thrown callback を固定する
-  - 対象: `src/components/app-confirm-dialog.tsx`, `src/stores/ui-store.ts`, `src/hooks/use-delete-feed.ts`
-  - confirm callback が async failure や throw を起こした時、dialog close、focus restore、toast 表示の owner が曖昧になりやすい
-  - confirm throw、reject、double click、Escape during pending、target removed、focus ref null の component test を追加する
-
 - [ ] P2 feed tree / account switcher / tag list の roving focus 境界を hidden/disabled row で固定する
   - 対象: `src/components/reader/feed-tree`, `src/components/reader/sidebar-account-switcher.tsx`, `src/components/reader/article-tag-picker-view.tsx`
   - keyboard navigation が hidden/disabled/deleted row を跨ぐと、focus と selected state が別 row を指す flake が起きやすい
@@ -1122,11 +1117,6 @@
   - 対象: `src/lib/articles/article-view.ts`, `src/components/reader/article-share-menu.tsx`, `src/components/reader/article-content-view.tsx`
   - remote image は https only、share/open は http(s)、mailto は mailto を使うため、URL policy が機能ごとに違う理由を test と copy に残さないと修正時に混ざりやすい
   - https image、http article URL、protocol-relative image、credential URL、mailto share、invalid URL toast の policy test を追加する
-
-- [ ] P2 shared form controls の disabled/loading aria contract を destructive actions と同期する
-  - 対象: `src/components/shared/form-action-buttons.tsx`, `src/components/shared/destructive-dialog-footer.tsx`, `src/components/shared/decision-button.tsx`
-  - loading 中の destructive action button が aria-disabled / disabled / focusable のどれになるか統一しないと keyboard 操作で二重 submit しやすい
-  - pending submit、double click、Enter key、Escape key、aria-busy、focus restore、tooltip label の shared component test を追加する
 
 - [ ] P3 story export registry と shared component stories の required coverage を repo contract にする
   - 対象: `tests/helpers/storybook-story-export-registry.ts`, `src/components/shared/*.stories.tsx`, `src/__tests__/components/shared-stories.test.tsx`
@@ -2748,16 +2738,6 @@
   - scenario は便利だが、command schema や route rename から遅れるとデバッグ時だけ壊れる
   - scenario id registry、command coverage、route existence、mock data owner、screenshot smoke の task に分ける
 
-- [ ] P1 XML entity expansion / external entity policy を feed parser boundary で固定する
-  - 対象: `src-tauri/src/infra/provider/local.rs`, feed parser dependency, parser fixtures
-  - RSS/Atom/OPML の XML parsing が entity expansion や external entity をどう扱うか未固定だと、巨大展開・外部参照・parse hang の原因になる
-  - nested entity、external entity、DOCTYPE、large text node、parser timeout/size cap の fixture を追加する
-
-- [ ] P1 IDNA / punycode / IPv6 zone identifier の private host 判定を URL schema 全体で固定する
-  - 対象: URL schema、feed discovery、OPML import、external opener
-  - `xn--` host、Unicode host、IPv6 zone id、mixed-case host が command ごとに違うと SSRF guard と opener policy がずれる
-  - IDNA host、Unicode host、IPv6 zone id、localhost alias、percent-encoded host、trailing dot の contract を追加する
-
 - [ ] P2 article/feed/folder/tag/account name の Unicode bidi / confusable display policy を決める
   - 対象: domain validation、settings forms、reader/sidebar display
   - RTL override、zero-width、confusable 文字が入ると feed name や action target が spoof され、delete/rename 確認で誤認しやすい
@@ -2984,16 +2964,6 @@
   - 新しい DB schema を触った後に古い app を起動すると、migration downgrade 非対応で data loss や起動不能になる
   - app downgrade detection、schema newer than app、rollback blocked copy、manual restore path、support message の contract を追加する
 
-- [ ] P1 provider response trust boundary を `trusted backend` / `untrusted feed` で型と sanitizer に分ける
-  - 対象: provider DTO、article sanitizer、schema-boundary rule
-  - FreshRSS/GReader API response と任意 RSS/Atom response を同じ trust level で扱うと、validation/sanitization の責務が曖昧になる
-  - trusted API DTO、untrusted feed HTML、provider metadata、error payload、schema strictness の decision を書く
-
-- [ ] P1 credential-bearing URL を persistence boundary で reject する
-  - 対象: feed URL、server URL、article URL、history、OPML export
-  - `https://user:pass@example.com/feed` のような URL が DB/OPML/history に保存されると、redaction 以前に漏洩面が増える
-  - feed add、OPML import、article link、browser history、debug dump、export の reject/redact policy を固定する
-
 - [ ] P1 app log / diagnostics の maximum total size と emergency truncation を固定する
   - 対象: log plugin setup、runtime diagnostics、support dump
   - 連続 failure で log/diagnostics が肥大化すると disk pressure と support copy failure が起きる
@@ -3074,16 +3044,6 @@
   - generated artifact drift が review 依存だと、release 直前に capability/schema mismatch が出る
   - generated file changed、source changed no generated update、CI failure, intentional update label、regeneration command の policy を追加する
 
-- [ ] P1 release artifact SBOM / provenance / checksum を生成・検証する gate を作る
-  - 対象: release workflow、`package.json`, `src-tauri/Cargo.lock`, release docs
-  - 署名だけでは依存関係や生成元を追えず、配布後の supply-chain 問い合わせに答えにくい
-  - JS/Rust SBOM、artifact checksum、workflow run id、source commit、draft release attachment の contract を追加する
-
-- [ ] P1 updater manifest と release asset の signature / checksum / platform mapping を双方向検証する
-  - 対象: updater manifest、release workflow、release manual verification
-  - manifest が別 asset や別 arch を指すと、署名済みでも誤 artifact を配る可能性がある
-  - macOS arm64、Windows x64、asset filename、signature file、checksum mismatch、missing platform の gate を追加する
-
 - [ ] P1 backup/export file の privacy level と encryption decision を明文化する
   - 対象: DB backup、OPML export、support dump、docs
   - DB backup や support dump は article/feed/account metadata を含むため、OPML と同じ感覚で共有されると privacy leak になる
@@ -3098,11 +3058,6 @@
   - 対象: Tauri config、release packaging、keyring/file/network commands
   - sandbox や store 配布を考えると、現状の file dialog・keyring・network access が entitlements と合うか早めに分けておく必要がある
   - network client、keychain/keyring、user-selected files、app data dir、external opener の entitlement matrix を作る
-
-- [ ] P2 Windows installer code signing / SmartScreen reputation の manual verification を追加する
-  - 対象: release workflow、Windows packaged artifact、release docs
-  - Windows では署名状態や SmartScreen 表示が初回導入率に直結するが、CI green だけでは見えない
-  - signature details、publisher name、SmartScreen prompt、install path、uninstall entry、upgrade install の check を追加する
 
 - [ ] P2 per-domain sync politeness / concurrency cap を local RSS provider で固定する
   - 対象: local provider sync、sync scheduler、HTTP defaults
@@ -3215,11 +3170,6 @@
   - data migration を含む release で事前 backup 導線がないと、失敗時にユーザーが戻れない
   - migration release、backup prompt、skip copy、backup failure、restore docs link の policy を追加する
 
-- [ ] P2 release artifact provenance を PR / tag / workflow run の三点で照合する
-  - 対象: release workflow、PR template、release manual verification
-  - tag と artifact の source commit、PR、workflow run がずれると、何を配ったか追跡できない
-  - tag SHA、workflow run id、PR merge commit、artifact checksum、release note commit range の gate を追加する
-
 - [ ] P2 app settings export/import を導入する前の schema version / secret exclusion policy を作る
   - 対象: preferences schema、settings data page、credential store
   - 設定 export に credentials や environment-specific paths が混ざると privacy leak と import 事故につながる
@@ -3321,16 +3271,6 @@
   - 対象: reader UI、sync status、network error taxonomy
   - network failure 中でも古い記事は読めるため、error toast だけでは stale content を見ていることが分かりにくい
   - offline detected、last sync age、manual sync failed、per-feed stale、banner dismiss の policy を追加する
-
-- [ ] P2 keyboard-only recovery actions を error dialog/toast/settings debug で検証する
-  - 対象: error surfaces、settings debug actions、toasts
-  - 復旧導線が mouse 前提だと、キーボード操作ユーザーが backup restore/open log/retry に到達できない
-  - retry button、open settings、open log dir、restore backup、dismiss toast、focus restore の E2E check を追加する
-
-- [ ] P2 screen reader labels for destructive dialogs に対象名と不可逆性を必ず含める
-  - 対象: delete account/feed/tag/history dialogs
-  - 見出しや本文に対象名があっても、button label だけでは screen reader の action が曖昧になる
-  - accessible name、target name、irreversible warning、loading state、failure retry の contract を追加する
 
 - [ ] P2 import/export progress cancellation の confirmation timing を固定する
   - 対象: OPML import/export、DB backup/restore、settings data future flow

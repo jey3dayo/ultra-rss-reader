@@ -794,6 +794,34 @@ describe("usePreferencesStore preferences", () => {
     }
   });
 
+  it("keeps preference saves independent when theme mirroring hits storage quota", () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const originalSetItem = Storage.prototype.setItem;
+    const setItem = vi.spyOn(Storage.prototype, "setItem").mockImplementation((key, value) => {
+      if (key === STORAGE_KEYS.theme) {
+        throw new DOMException("quota exceeded", "QuotaExceededError");
+      }
+
+      return Reflect.apply(originalSetItem, window.localStorage, [key, value]);
+    });
+
+    try {
+      expect(() => usePreferencesStore.getState().setPref("theme", "dark")).not.toThrow();
+      expect(() => usePreferencesStore.getState().setPref("show_sidebar_unread", "false")).not.toThrow();
+
+      expect(usePreferencesStore.getState().prefs).toMatchObject({
+        theme: "dark",
+        show_sidebar_unread: "false",
+      });
+      expect(setPreference).toHaveBeenNthCalledWith(1, "theme", "dark");
+      expect(setPreference).toHaveBeenNthCalledWith(2, "show_sidebar_unread", "false");
+      expect(consoleError).toHaveBeenCalledWith("Failed to mirror theme preference:", expect.any(DOMException));
+    } finally {
+      setItem.mockRestore();
+      consoleError.mockRestore();
+    }
+  });
+
   it("defaults omitted loaded theme when mirrored localStorage is unavailable", async () => {
     vi.mocked(getPreferences).mockResolvedValue(Result.succeed({}));
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);

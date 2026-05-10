@@ -35,6 +35,7 @@ const V16_CONNECTION_VERIFICATION_ERROR_SQL: &str =
     "ALTER TABLE accounts ADD COLUMN connection_verification_error TEXT";
 
 /// Result of a migration run.
+#[derive(Debug)]
 pub struct MigrationResult {
     /// Schema version before migration.
     pub from_version: i32,
@@ -694,6 +695,75 @@ mod tests {
             message.contains("Downgrade startup is blocked"),
             "downgrade error should explain recovery direction: {message}"
         );
+    }
+
+    #[test]
+    fn partial_migration_failure_rolls_back_ddl_and_preserves_schema_version_for_retry() {
+        let mut conn = open_in_memory();
+        conn.execute_batch(MIGRATION_V1).unwrap();
+        conn.execute_batch(MIGRATION_V2).unwrap();
+        conn.execute_batch(MIGRATION_V3).unwrap();
+        conn.execute_batch(MIGRATION_V4).unwrap();
+        conn.execute_batch(MIGRATION_V5).unwrap();
+        conn.execute_batch(MIGRATION_V6).unwrap();
+        conn.execute_batch(MIGRATION_V7).unwrap();
+        assert_eq!(get_schema_version(&conn), 7);
+
+        conn.execute(
+            "INSERT INTO accounts (id, kind, name) VALUES (?1, ?2, ?3)",
+            ("acc-1", "local", "Local"),
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO feeds (id, account_id, title, url, site_url, unread_count, display_mode)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            (
+                "feed-1",
+                "acc-1",
+                "Tech Blog",
+                "https://example.com/feed.xml",
+                "https://example.com",
+                0,
+                "normal",
+            ),
+        )
+        .unwrap();
+        conn.execute_batch(
+            "CREATE TRIGGER fail_v8_data_copy
+             BEFORE UPDATE ON feeds
+             BEGIN
+               SELECT RAISE(FAIL, 'fixture data copy failed');
+             END;",
+        )
+        .unwrap();
+
+        let error = run_migrations(&mut conn).unwrap_err();
+
+        assert!(
+            error.to_string().contains("fixture data copy failed"),
+            "migration should surface the failed data copy: {error}"
+        );
+        assert_eq!(
+            get_schema_version(&conn),
+            7,
+            "failed migration must leave schema_version unchanged for retry"
+        );
+        assert!(
+            !table_has_column(&conn, "feeds", V8_READER_MODE_COLUMN).unwrap(),
+            "transactional DDL must roll back the partially added reader_mode column"
+        );
+        assert!(
+            !table_has_column(&conn, "feeds", V8_WEB_PREVIEW_MODE_COLUMN).unwrap(),
+            "transactional DDL must roll back the partially added web_preview_mode column"
+        );
+
+        conn.execute("DROP TRIGGER fail_v8_data_copy", []).unwrap();
+        let result = run_migrations(&mut conn).unwrap();
+
+        assert_eq!(result.from_version, 7);
+        assert_eq!(result.to_version, LATEST_VERSION);
+        assert!(table_has_column(&conn, "feeds", V8_READER_MODE_COLUMN).unwrap());
+        assert!(table_has_column(&conn, "feeds", V8_WEB_PREVIEW_MODE_COLUMN).unwrap());
     }
 
     #[test]
