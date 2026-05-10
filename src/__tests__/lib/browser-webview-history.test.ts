@@ -15,7 +15,44 @@ describe("browser webview history helpers", () => {
   });
 
   it("keeps the frontend fallback helper limited to history navigation and reload", () => {
-    expect(Object.keys(webviewHistory).toSorted()).toEqual(["goBackInWebview", "goForwardInWebview", "reloadWebview"]);
+    expect(Object.keys(webviewHistory).toSorted()).toEqual([
+      "MAX_WEBVIEW_HISTORY_LENGTH",
+      "createWebviewHistorySnapshot",
+      "goBackInWebview",
+      "goForwardInWebview",
+      "normalizeWebviewHistoryUrl",
+      "reloadWebview",
+    ]);
+  });
+
+  it("normalizes duplicate and hash-only URL changes before computing fallback history availability", () => {
+    const snapshot = webviewHistory.createWebviewHistorySnapshot([
+      " https://example.com/article#comments ",
+      "https://example.com/article#latest",
+      "https://example.com/next",
+      "https://example.com/next#section",
+    ]);
+
+    expect(snapshot).toEqual({
+      entries: ["https://example.com/article", "https://example.com/next"],
+      index: 1,
+      canGoBack: true,
+      canGoForward: false,
+    });
+  });
+
+  it("keeps fallback history bounded to the same single pending close action shape", () => {
+    const urls = Array.from(
+      { length: webviewHistory.MAX_WEBVIEW_HISTORY_LENGTH + 2 },
+      (_, index) => `https://example.com/articles/${index}`,
+    );
+
+    const snapshot = webviewHistory.createWebviewHistorySnapshot(urls);
+
+    expect(snapshot.entries).toHaveLength(webviewHistory.MAX_WEBVIEW_HISTORY_LENGTH);
+    expect(snapshot.entries[0]).toBe("https://example.com/articles/2");
+    expect(snapshot.entries.at(-1)).toBe("https://example.com/articles/51");
+    expect(snapshot.index).toBe(webviewHistory.MAX_WEBVIEW_HISTORY_LENGTH - 1);
   });
 
   it("uses the iframe history stack for back and forward availability fallback", async () => {

@@ -1,10 +1,58 @@
 import { Result } from "@praha/byethrow";
 
+export const MAX_WEBVIEW_HISTORY_LENGTH = 50;
+
 const BROWSER_IFRAME_SELECTORS = [
   "iframe[data-browser-webview-iframe]",
   "iframe[data-browser-preview-iframe]",
   "iframe",
 ] as const;
+
+export type WebviewHistorySnapshot = {
+  entries: string[];
+  index: number;
+  canGoBack: boolean;
+  canGoForward: boolean;
+};
+
+export function normalizeWebviewHistoryUrl(url: string): string {
+  const trimmedUrl = url.trim();
+  if (trimmedUrl.length === 0) {
+    return "";
+  }
+
+  try {
+    const parsedUrl = new URL(trimmedUrl);
+    parsedUrl.hash = "";
+    return parsedUrl.toString();
+  } catch {
+    return trimmedUrl.replace(/#.*$/u, "");
+  }
+}
+
+export function createWebviewHistorySnapshot(urls: readonly string[]): WebviewHistorySnapshot {
+  const entries: string[] = [];
+
+  for (const url of urls) {
+    const normalizedUrl = normalizeWebviewHistoryUrl(url);
+    if (normalizedUrl.length === 0 || entries.at(-1) === normalizedUrl) {
+      continue;
+    }
+
+    entries.push(normalizedUrl);
+    if (entries.length > MAX_WEBVIEW_HISTORY_LENGTH) {
+      entries.shift();
+    }
+  }
+
+  const index = entries.length > 0 ? entries.length - 1 : 0;
+  return {
+    entries,
+    index,
+    canGoBack: index > 0,
+    canGoForward: false,
+  };
+}
 
 function getIframe(): Result.Result<HTMLIFrameElement, Error> {
   const iframe = BROWSER_IFRAME_SELECTORS.map((selector) => document.querySelector<HTMLIFrameElement>(selector)).find(
