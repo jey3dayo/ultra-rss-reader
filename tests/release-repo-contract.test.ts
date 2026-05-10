@@ -387,8 +387,11 @@ describe("release repository contract", () => {
     expect(releaseWorkflow).toContain(
       'git fetch --force --tags origin "refs/tags/$RELEASE_TAG:refs/tags/$RELEASE_TAG"',
     );
+    expect(releaseWorkflow).toContain("git fetch --force origin main:refs/remotes/origin/main");
     expect(releaseWorkflow).toContain('tag_target_sha="$(git rev-parse "refs/tags/$RELEASE_TAG^{}")"');
     expect(releaseWorkflow).toContain('checkout_sha="$(git rev-parse HEAD)"');
+    expect(releaseWorkflow).toContain('git merge-base --is-ancestor "$tag_target_sha" refs/remotes/origin/main');
+    expect(releaseWorkflow).toContain("is not reachable from origin/main");
     expect(releaseWorkflow.indexOf("Validate release source")).toBeLessThan(
       releaseWorkflow.indexOf("Resolve pnpm store path"),
     );
@@ -399,6 +402,22 @@ describe("release repository contract", () => {
       releaseWorkflow.indexOf("tauri-apps/tauri-action"),
     );
     expect(releaseWorkflow.indexOf("Validate release build contamination contract")).toBeLessThan(
+      releaseWorkflow.indexOf("tauri-apps/tauri-action"),
+    );
+  });
+
+  it("keeps release draft and prerelease flags derived from the semver tag policy", () => {
+    const releasePolicyStep = extractReleaseStepBlock(releaseWorkflow, "Resolve release semver policy");
+    const tauriActionBlock = extractTauriActionBlock(releaseWorkflow);
+
+    expect(releasePolicyStep).toContain('release_version="${RELEASE_TAG#v}"');
+    expect(releasePolicyStep).toContain('if [[ "$release_version" == *-* ]]; then');
+    expect(releasePolicyStep).toContain('echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"');
+    expect(releasePolicyStep).toContain('echo "draft=true" >> "$GITHUB_OUTPUT"');
+    expect(tauriActionBlock).toContain("releaseDraft: $" + "{{ steps.release-policy.outputs.draft }}");
+    expect(tauriActionBlock).toContain("prerelease: $" + "{{ steps.release-policy.outputs.prerelease }}");
+    expect(tauriActionBlock).not.toContain("prerelease: false");
+    expect(releaseWorkflow.indexOf("Resolve release semver policy")).toBeLessThan(
       releaseWorkflow.indexOf("tauri-apps/tauri-action"),
     );
   });
@@ -538,6 +557,30 @@ describe("release repository contract", () => {
     );
   });
 
+  it("keeps Windows manifest, build script, and generated capability schema in the local release gate", () => {
+    const buildScript = readText("src-tauri/build.rs");
+    const windowsManifest = readText("src-tauri/windows-test-manifest.xml");
+    const defaultCapabilitySource = readText("src-tauri/capabilities/default.json");
+    const desktopSchema = JSON.parse(readText("src-tauri/gen/schemas/desktop-schema.json")) as unknown;
+    const windowsSchema = JSON.parse(readText("src-tauri/gen/schemas/windows-schema.json")) as unknown;
+    const macosSchema = JSON.parse(readText("src-tauri/gen/schemas/macOS-schema.json")) as unknown;
+    const aclManifests = JSON.parse(readText("src-tauri/gen/schemas/acl-manifests.json")) as Record<string, unknown>;
+
+    expect(buildScript).toContain('join("windows-test-manifest.xml")');
+    expect(buildScript).toContain("cargo:rerun-if-changed={}");
+    expect(buildScript).toContain("cargo:rustc-link-arg=/MANIFEST:EMBED");
+    expect(buildScript).toContain("cargo:rustc-link-arg=/MANIFESTINPUT:{}");
+    expect(buildScript).toContain("cargo:rustc-link-arg=/WX");
+    expect(buildScript).toContain("WindowsAttributes::new_without_app_manifest()");
+    expect(windowsManifest).toContain('xmlns="urn:schemas-microsoft-com:asm.v1"');
+    expect(windowsManifest).toContain('name="Microsoft.Windows.Common-Controls"');
+    expect(windowsManifest).toContain('version="6.0.0.0"');
+    expect(defaultCapabilitySource).toContain('"$schema": "../gen/schemas/desktop-schema.json"');
+    expect(desktopSchema).toEqual(windowsSchema);
+    expect(desktopSchema).toEqual(macosSchema);
+    expect(Object.keys(aclManifests)).toEqual(expect.arrayContaining(["core", "opener", "updater"]));
+  });
+
   it("keeps bundle identifier, release updater artifacts, and updater endpoint in one release contract", () => {
     expect(tauriConfig.identifier).toBe("com.jey3dayo.ultra-rss-reader");
     expect(tauriReleaseConfig.identifier).toBe(tauriConfig.identifier);
@@ -603,7 +646,7 @@ describe("release repository contract", () => {
     expect(releaseWorkflow).toContain(
       "release provenance source $" + "{sourceSha} does not match tag target $" + "{tagTargetSha}",
     );
-    expect(releaseWorkflow).toContain("releaseDraft: true");
+    expect(releaseWorkflow).toContain("releaseDraft: $" + "{{ steps.release-policy.outputs.draft }}");
     expect(releaseWorkflow.indexOf("Generate updater asset checksums")).toBeLessThan(
       releaseWorkflow.indexOf("Generate release provenance record"),
     );

@@ -188,6 +188,8 @@ Release がまだ存在しない場合（GitHub Actions 未完了）は `gh rele
 
 責務分担: CLI がリリースノート本文を管理し、`release.yml` の `tauri-action` はアーティファクト添付のみを担当する。
 
+workflow gate: `release.yml` はタグ対象コミットが checkout と一致し、かつ `origin/main` から到達可能であることを artifact 作成前に検証する。Release は常に draft とし、`v1.2.3-alpha.1` のような semver prerelease tag のみ `prerelease=true`、`v1.2.3+build.1` のような build metadata だけの tag は `prerelease=false` として扱う。
+
 #### 3d. 完了報告
 
 - push したコミットとタグを報告
