@@ -4,6 +4,7 @@ import { createWrapper } from "@tests/helpers/create-wrapper";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { setTauriRuntimeMissing, setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
 import type { MockTauriCommandCall } from "@tests/helpers/tauri-types";
+import { flushTestResizeObservers } from "@tests/setup";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BrowserView } from "@/components/reader/browser-view";
 import type { BrowserOverlayToolbarAction } from "@/components/reader/browser-view.types";
@@ -45,34 +46,6 @@ type BrowserDebugGeometryDetail = {
     };
   };
 };
-
-const { ResizeObserverMock, resizeObserverCallbacks } = vi.hoisted(() => {
-  const callbacks = new Set<() => void>();
-
-  class ResizeObserverMock implements ResizeObserver {
-    private readonly callback: () => void;
-
-    constructor(callback: ResizeObserverCallback) {
-      this.callback = () => callback([], this);
-      callbacks.add(this.callback);
-    }
-
-    observe() {}
-
-    disconnect() {
-      callbacks.delete(this.callback);
-    }
-
-    unobserve() {}
-  }
-
-  return {
-    ResizeObserverMock,
-    resizeObserverCallbacks: callbacks,
-  };
-});
-
-vi.stubGlobal("ResizeObserver", ResizeObserverMock);
 
 vi.mock("@tauri-apps/api/event", () => ({
   listen: listenMock,
@@ -315,7 +288,6 @@ describe("BrowserView", () => {
     commands = [];
     listenMock.mockClear();
     registeredHandlers.clear();
-    resizeObserverCallbacks.clear();
     window.__DEV_BROWSER_MOCKS__ = false;
     window.__ULTRA_RSS_BROWSER_MOCKS__ = false;
     setWindowSize(1400, 900);
@@ -1065,6 +1037,7 @@ describe("BrowserView", () => {
       const stage = screen.getByTestId("browser-overlay-stage-shell");
       const leadingAction = screen.getByTestId("browser-overlay-leading-action");
       const topRail = screen.getByTestId("browser-overlay-top-rail");
+      const trailingActions = screen.getByTestId("browser-overlay-actions");
 
       expectInlineStyles(stage, {
         top: "40px",
@@ -1072,6 +1045,12 @@ describe("BrowserView", () => {
       expectInlineStyles(topRail, {
         height: "40px",
       });
+      expect(topRail).toHaveAttribute("data-tauri-drag-region");
+      expect(topRail).not.toHaveClass("pointer-events-none");
+      expect(leadingAction).toHaveClass("pointer-events-none");
+      expect(screen.getByTestId("browser-overlay-chrome")).toHaveClass("pointer-events-auto");
+      expect(trailingActions).toHaveClass("pointer-events-none");
+      expect(trailingActions.firstElementChild).toHaveClass("pointer-events-auto");
       expectInlineStyles(leadingAction, {
         left: "72px",
         top: "4px",
@@ -1473,9 +1452,7 @@ describe("BrowserView", () => {
     mockRootRect({ left: 0, top: 0, width: 1200, height: 800 });
 
     await act(async () => {
-      for (const callback of resizeObserverCallbacks) {
-        callback();
-      }
+      flushTestResizeObservers();
     });
 
     await waitFor(() => {
@@ -1536,9 +1513,7 @@ describe("BrowserView", () => {
     mockRootRect({ left: 0, top: 0, width: 1200, height: 800 });
 
     await act(async () => {
-      for (const callback of resizeObserverCallbacks) {
-        callback();
-      }
+      flushTestResizeObservers();
     });
 
     await waitFor(() => {

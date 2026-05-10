@@ -1,38 +1,11 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { flushTestResizeObservers } from "@tests/setup";
 import type { ReactNode } from "react";
 import { describe, expect, expectTypeOf, it, vi } from "vitest";
 import type { SettingsModalViewProps } from "@/components/settings/settings-modal.types";
 import { SettingsModalView } from "@/components/settings/settings-modal-view";
 import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
-
-const { ResizeObserverMock, resizeObserverCallbacks } = vi.hoisted(() => {
-  const callbacks = new Set<() => void>();
-
-  class ResizeObserverMock implements ResizeObserver {
-    private readonly callback: () => void;
-
-    constructor(callback: ResizeObserverCallback) {
-      this.callback = () => callback([], this);
-      callbacks.add(this.callback);
-    }
-
-    observe() {}
-
-    disconnect() {
-      callbacks.delete(this.callback);
-    }
-
-    unobserve() {}
-  }
-
-  return {
-    ResizeObserverMock,
-    resizeObserverCallbacks: callbacks,
-  };
-});
-
-vi.stubGlobal("ResizeObserver", ResizeObserverMock);
 
 function setScrollMetrics(scrollArea: HTMLElement, clientHeight: number, scrollHeight: number) {
   const viewport = getScrollViewport(scrollArea);
@@ -69,9 +42,7 @@ function getFirstElementChild(element: HTMLElement) {
 
 function notifyResizeObservers() {
   act(() => {
-    for (const callback of resizeObserverCallbacks) {
-      callback();
-    }
+    flushTestResizeObservers();
   });
 }
 

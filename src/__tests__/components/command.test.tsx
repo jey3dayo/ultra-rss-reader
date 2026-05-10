@@ -1,23 +1,11 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Command, CommandDialog, CommandEmpty, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 
 describe("Command primitives", () => {
   beforeEach(() => {
-    vi.stubGlobal(
-      "ResizeObserver",
-      class ResizeObserver {
-        observe() {}
-        unobserve() {}
-        disconnect() {}
-      },
-    );
     Element.prototype.scrollIntoView = vi.fn();
-  });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
   });
 
   it("exposes CommandEmpty as a polite status region only when filtered results are empty", async () => {

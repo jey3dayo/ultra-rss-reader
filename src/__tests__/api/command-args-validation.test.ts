@@ -15,8 +15,10 @@ import {
   discoverFeedsArgs,
   FEED_TITLE_MAX_CHARS,
   FOLDER_NAME_MAX_CHARS,
+  importOpmlArgs,
   normalizeTagColorForCommand,
   normalizeTagColorForView,
+  OPML_IMPORT_CONTENT_MAX_BYTES,
   openExternalUrlArgs,
   openInBrowserArgs,
   PREFERENCE_VALUE_MAX_BYTES,
@@ -168,6 +170,9 @@ describe("command args validation parity", () => {
     ).toBe(SHARE_COMMAND_TEXT_MAX_BYTES);
     expect(extractRustUsizeConst(shareCommands, "READING_LIST_URL_MAX_BYTES")).toBe(READING_LIST_URL_MAX_BYTES);
     expect(extractRustUsizeConst(preferenceDomain, "PREFERENCE_VALUE_MAX_BYTES")).toBe(PREFERENCE_VALUE_MAX_BYTES);
+    expect(extractRustUsizeConst(readRustCommandSource("opml_commands.rs"), "OPML_IMPORT_CONTENT_MAX_BYTES")).toBe(
+      OPML_IMPORT_CONTENT_MAX_BYTES,
+    );
 
     expect(addToReadingListArgs.parse({ url: "https://example.com/" }).url).toBe("https://example.com/");
     expect(
@@ -180,6 +185,19 @@ describe("command args validation parity", () => {
         text: "x".repeat(SHARE_COMMAND_TEXT_MAX_CHARS + 1),
       }),
     ).toThrow(`Clipboard text must be ${SHARE_COMMAND_TEXT_MAX_CHARS} graphemes or less`);
+  });
+
+  it("keeps OPML import command args bounded for large files", () => {
+    expect(importOpmlArgs.parse({ accountId: "acc-1", opmlContent: "<opml />" })).toEqual({
+      accountId: "acc-1",
+      opmlContent: "<opml />",
+    });
+    expect(() =>
+      importOpmlArgs.parse({
+        accountId: "acc-1",
+        opmlContent: "a".repeat(OPML_IMPORT_CONTENT_MAX_BYTES + 1),
+      }),
+    ).toThrow(`OPML import file must be ${OPML_IMPORT_CONTENT_MAX_BYTES} UTF-8 bytes or less`);
   });
 
   it("normalizes tag colors with the same command and view helper contract", () => {

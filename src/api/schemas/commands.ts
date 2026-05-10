@@ -15,6 +15,7 @@ export const SHARE_COMMAND_TEXT_MAX_CHARS = 2048;
 export const SHARE_COMMAND_TEXT_MAX_BYTES = SHARE_COMMAND_TEXT_MAX_CHARS * 4;
 export const READING_LIST_URL_MAX_BYTES = 16 * 1024;
 export const PREFERENCE_VALUE_MAX_BYTES = 1024;
+export const OPML_IMPORT_CONTENT_MAX_BYTES = 4 * 1024 * 1024;
 export const BROWSER_WEBVIEW_BOUNDS_MAX_VALUE = 10_000;
 export const TAG_COLOR_VALIDATION_MESSAGE = "Color must be a valid hex color (e.g. #ff0000)";
 const paginationOffsetSchema = z.number().int().nonnegative().max(MAX_IPC_PAGINATION_OFFSET);
@@ -427,6 +428,12 @@ export const setBrowserWebviewBoundsArgs = z.object({
 
 // --- exportOpml ---
 export const exportOpmlArgs = z.object({ accountId: nonBlankTrimmedIdSchema });
+export const importOpmlArgs = z.object({
+  accountId: nonBlankTrimmedIdSchema,
+  opmlContent: z.string().refine((value) => textEncoder.encode(value).length <= OPML_IMPORT_CONTENT_MAX_BYTES, {
+    message: `OPML import file must be ${OPML_IMPORT_CONTENT_MAX_BYTES} UTF-8 bytes or less`,
+  }),
+});
 
 // --- setPreference ---
 export const setPreferenceArgs = z
@@ -601,6 +608,7 @@ export const commandArgsSchemas = {
   check_browser_embed_support: checkBrowserEmbedSupportArgs,
   create_or_update_browser_webview: createOrUpdateBrowserWebviewArgs,
   set_browser_webview_bounds: setBrowserWebviewBoundsArgs,
+  import_opml: importOpmlArgs,
   export_opml: exportOpmlArgs,
   set_preference: setPreferenceArgs,
   copy_to_clipboard: copyToClipboardArgs,

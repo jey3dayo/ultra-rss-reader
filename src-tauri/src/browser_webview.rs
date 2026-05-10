@@ -21,6 +21,13 @@ pub const BROWSER_WEBVIEW_CLOSED_EVENT: &str = "browser-webview-closed";
 pub const BROWSER_WEBVIEW_FALLBACK_EVENT: &str = "browser-webview-fallback";
 pub const BROWSER_WEBVIEW_DIAGNOSTICS_EVENT: &str = "browser-webview-diagnostics";
 pub const BROWSER_WEBVIEW_DEBUG_INPUT_EVENT: &str = "browser-webview-debug-input";
+pub const BROWSER_WEBVIEW_EVENT_NAMES: &[&str] = &[
+    BROWSER_WEBVIEW_STATE_CHANGED_EVENT,
+    BROWSER_WEBVIEW_CLOSED_EVENT,
+    BROWSER_WEBVIEW_FALLBACK_EVENT,
+    BROWSER_WEBVIEW_DIAGNOSTICS_EVENT,
+    BROWSER_WEBVIEW_DEBUG_INPUT_EVENT,
+];
 
 static BROWSER_WEBVIEW_DIAGNOSTICS_ENABLED: AtomicBool = AtomicBool::new(false);
 #[cfg(test)]

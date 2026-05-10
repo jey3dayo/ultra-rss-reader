@@ -19,6 +19,7 @@ import {
   type VisiblePreferenceDefaultKey,
 } from "@/schemas/preferences";
 import frontendSource from "@/schemas/preferences.ts?raw";
+import claudeSource from "../../../CLAUDE.md?raw";
 import backendSource from "../../../src-tauri/src/domain/preference.rs?raw";
 
 function extractBlock(source: string, pattern: RegExp, label: string): string {
@@ -79,6 +80,16 @@ function collectDuplicates(keys: string[]): string[] {
   return [...duplicates].toSorted();
 }
 
+function extractPreferenceAllowlistTableKeys(source: string): string[] {
+  const block = extractBlock(
+    source,
+    /<!-- preference-allowlist:start -->([\s\S]*?)<!-- preference-allowlist:end -->/,
+    "CLAUDE preference allowlist table",
+  );
+
+  return [...block.matchAll(/^\| `([^`]+)` \|/gm)].map((match) => match[1]);
+}
+
 const afterReadingStoredValueCases = [
   { stored: "mark_as_read", normalized: "immediately" },
   { stored: "do_nothing", normalized: "never" },
@@ -115,6 +126,14 @@ describe("preference contract", () => {
     const backendAllowedKeys = extractBackendAllowedKeys(backendSource);
 
     expect(backendAllowedKeys.toSorted()).toEqual([...frontendKeys, ...backendOwnedPreferenceKeys].toSorted());
+  });
+
+  it("keeps CLAUDE preference allowlist table generated from schema and backend allowlists", () => {
+    const backendAllowedKeys = extractBackendAllowedKeys(backendSource);
+    const backendShortcutKeys = extractBackendAllowedShortcutIds(backendSource).map((id) => `shortcut_${id}`);
+    const documentedKeys = extractPreferenceAllowlistTableKeys(claudeSource);
+
+    expect(documentedKeys).toEqual([...backendAllowedKeys, ...backendShortcutKeys]);
   });
 
   it("does not expose removed Inoreader preference keys", () => {

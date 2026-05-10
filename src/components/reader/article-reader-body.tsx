@@ -65,6 +65,7 @@ export function ArticleReaderBody({ article, feedName, onOpenArticleTitleInWebPr
   const { i18n } = useTranslation();
   const openLinks = usePreferencesStore((s) => s.prefs.open_links ?? "in_app");
   const selectFeedFromCurrentContext = useUiStore((s) => s.selectFeedFromCurrentContext);
+  const setArticleReaderScrollPosition = useUiStore((s) => s.setArticleReaderScrollPosition);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const contentContainerRef = useRef<HTMLDivElement | null>(null);
   const contentContainerClickListenerRef = useRef<((event: globalThis.MouseEvent) => void) | null>(null);
@@ -73,23 +74,47 @@ export function ArticleReaderBody({ article, feedName, onOpenArticleTitleInWebPr
       contentContainerClickListenerRef.current?.(event);
     },
   );
-  const previousArticleIdRef = useRef(article.id);
+  const currentArticleIdRef = useRef(article.id);
   const articleUrl = article.url;
   const articleContentHtml = fromSanitizedArticleHtml(article.content_sanitized);
 
   useLayoutEffect(() => {
-    if (previousArticleIdRef.current === article.id) {
+    const viewport = viewportRef.current;
+    const previousArticleId = currentArticleIdRef.current;
+
+    if (previousArticleId === article.id) {
       return;
     }
 
-    previousArticleIdRef.current = article.id;
+    currentArticleIdRef.current = article.id;
+    if (!viewport) {
+      return;
+    }
+
+    setArticleReaderScrollPosition(previousArticleId, viewport.scrollTop);
+    viewport.scrollTop = useUiStore.getState().articleReaderScrollPositions.get(article.id) ?? 0;
+  }, [article.id, setArticleReaderScrollPosition]);
+
+  useLayoutEffect(() => {
+    currentArticleIdRef.current = article.id;
+  }, [article.id]);
+
+  useLayoutEffect(() => {
     const viewport = viewportRef.current;
     if (!viewport) {
       return;
     }
 
-    viewport.scrollTop = 0;
-  });
+    const handleScroll = () => {
+      setArticleReaderScrollPosition(currentArticleIdRef.current, viewport.scrollTop);
+    };
+
+    viewport.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      viewport.removeEventListener("scroll", handleScroll);
+      setArticleReaderScrollPosition(currentArticleIdRef.current, viewport.scrollTop);
+    };
+  }, [setArticleReaderScrollPosition]);
 
   const openArticleTitle = useCallback(
     (url: string, metaKey = false, ctrlKey = false) => {
@@ -163,21 +188,25 @@ export function ArticleReaderBody({ article, feedName, onOpenArticleTitleInWebPr
     };
   }, []);
 
-  const handleReaderKeyDown = useCallback((event: KeyboardEvent<HTMLDivElement>) => {
-    const direction = getReaderScrollDirection(event);
-    if (direction === null) {
-      return;
-    }
+  const handleReaderKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLDivElement>) => {
+      const direction = getReaderScrollDirection(event);
+      if (direction === null) {
+        return;
+      }
 
-    const viewport = viewportRef.current;
-    if (!viewport) {
-      return;
-    }
+      const viewport = viewportRef.current;
+      if (!viewport) {
+        return;
+      }
 
-    event.preventDefault();
-    const scrollAmount = Math.max(72, Math.round(viewport.clientHeight * 0.8));
-    viewport.scrollTop += direction * scrollAmount;
-  }, []);
+      event.preventDefault();
+      const scrollAmount = Math.max(72, Math.round(viewport.clientHeight * 0.8));
+      viewport.scrollTop += direction * scrollAmount;
+      setArticleReaderScrollPosition(article.id, viewport.scrollTop);
+    },
+    [article.id, setArticleReaderScrollPosition],
+  );
 
   return (
     <ScrollArea

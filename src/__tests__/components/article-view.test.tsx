@@ -2437,7 +2437,7 @@ describe("ArticleView", () => {
     expect(viewport.scrollTop).toBe(0);
   });
 
-  it("resets the reader viewport scroll position when the article changes", async () => {
+  it("retains scroll position for article revisits and resets unread positions for new articles", async () => {
     setupTauriMocks((cmd) => {
       switch (cmd) {
         case "list_tags":
@@ -2457,6 +2457,7 @@ describe("ArticleView", () => {
     await screen.findByRole("heading", { level: 1, name: "First Article" });
     const viewport = getArticleReaderViewport();
     viewport.scrollTop = 320;
+    fireEvent.scroll(viewport);
 
     rerender(
       <ArticlePane
@@ -2468,6 +2469,15 @@ describe("ArticleView", () => {
 
     await screen.findByRole("heading", { level: 1, name: "Next Article" });
     expect(viewport.scrollTop).toBe(0);
+    viewport.scrollTop = 120;
+    fireEvent.scroll(viewport);
+
+    rerender(
+      <ArticlePane article={primaryArticle} feed={{ ...primaryFeed, reader_mode: "on" }} feedName="Tech Blog" />,
+    );
+
+    await screen.findByRole("heading", { level: 1, name: "First Article" });
+    expect(viewport.scrollTop).toBe(320);
   });
 
   it("marks the reader body with the next-article slide direction", async () => {

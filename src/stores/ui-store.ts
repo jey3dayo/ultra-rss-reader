@@ -28,6 +28,12 @@ import type { ToastData } from "@/lib/ui/toast.types";
 import { TOAST_AUTO_DISMISS_TIMEOUT_MS } from "../constants/ui-runtime";
 
 let toastTimer: ReturnType<typeof setTimeout> | null = null;
+let toastAnnouncementId = 0;
+
+export type ToastAnnouncement = {
+  id: number;
+  message: string;
+};
 
 export type { SyncProgressEventDto } from "@/lib/sync/sync-progress-event.types";
 export type { SyncProgressUiState } from "@/lib/sync/sync-progress-state.types";
@@ -123,6 +129,12 @@ function getResetBrowserState() {
   };
 }
 
+function getResetArticleReaderScrollState() {
+  return {
+    articleReaderScrollPositions: new Map<string, number>(),
+  };
+}
+
 function normalizeAccountSetupAccountId(accountId: string) {
   const normalizedAccountId = accountId.trim();
   return normalizedAccountId.length > 0 ? normalizedAccountId : null;
@@ -176,8 +188,10 @@ type UiState = {
   shortcutsHelpOpen: boolean;
   isAddFeedDialogOpen: boolean;
   toastMessage: ToastData | null;
+  toastAnnouncements: ToastAnnouncement[];
   recentlyReadIds: Set<string>;
   retainedArticleIds: Set<string>;
+  articleReaderScrollPositions: Map<string, number>;
   confirmDialog: {
     open: boolean;
     message: string;
@@ -255,11 +269,13 @@ type UiActions = {
   closeShortcutsHelp: () => void;
   showToast: (message: string | ToastData) => void;
   clearToast: () => void;
+  clearToastAnnouncement: (id: number) => void;
   addRecentlyRead: (id: string) => void;
   removeRecentlyRead: (id: string) => void;
   clearRecentlyRead: () => void;
   retainArticle: (id: string) => void;
   clearRetainedArticles: () => void;
+  setArticleReaderScrollPosition: (articleId: string, scrollTop: number) => void;
   showConfirm: (
     message: string,
     onConfirm: () => void | Promise<void>,
@@ -304,6 +320,7 @@ export type UiStoreReaderState = Pick<
   | "isTagsSectionOpen"
   | "recentlyReadIds"
   | "retainedArticleIds"
+  | "articleReaderScrollPositions"
 >;
 
 export type UiStoreReaderSelectionState = Pick<
@@ -325,6 +342,7 @@ export type UiStoreReaderSelectionState = Pick<
   | "isTagsSectionOpen"
   | "recentlyReadIds"
   | "retainedArticleIds"
+  | "articleReaderScrollPositions"
 >;
 
 export type UiStoreSettingsState = Pick<
@@ -352,7 +370,7 @@ export type UiStoreDialogState = Pick<
   "isAddFeedDialogOpen" | "toastMessage" | "confirmDialog" | "accountSetupSession"
 >;
 
-export type UiStoreToastState = Pick<UiStoreState, "toastMessage">;
+export type UiStoreToastState = Pick<UiStoreState, "toastMessage" | "toastAnnouncements">;
 
 export type UiStoreSyncProgressState = Pick<UiStoreState, "syncProgress">;
 
@@ -412,6 +430,7 @@ export type UiStoreReaderActions = Pick<
   | "clearRecentlyRead"
   | "retainArticle"
   | "clearRetainedArticles"
+  | "setArticleReaderScrollPosition"
 >;
 
 export type UiStoreReaderSelectionActions = Pick<
@@ -447,6 +466,7 @@ export type UiStoreReaderSelectionActions = Pick<
   | "clearRecentlyRead"
   | "retainArticle"
   | "clearRetainedArticles"
+  | "setArticleReaderScrollPosition"
 >;
 
 export type UiStoreSettingsActions = Pick<
@@ -490,7 +510,7 @@ export type UiStoreDialogActions = Pick<
   | "closeConfirm"
 >;
 
-export type UiStoreToastActions = Pick<UiStoreState, "showToast" | "clearToast">;
+export type UiStoreToastActions = Pick<UiStoreState, "showToast" | "clearToast" | "clearToastAnnouncement">;
 
 export type UiStoreSyncProgressActions = Pick<UiStoreState, "applySyncProgress" | "clearSyncProgress">;
 
@@ -544,8 +564,10 @@ const initialState: UiState = {
   shortcutsHelpOpen: false,
   isAddFeedDialogOpen: false,
   toastMessage: null,
+  toastAnnouncements: [],
   recentlyReadIds: new Set(),
   retainedArticleIds: new Set(),
+  articleReaderScrollPositions: new Map(),
   confirmDialog: {
     open: false,
     message: "",
@@ -601,6 +623,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       focusedPane: "list",
       expandedFolderIds: new Set(),
       ...getResetBrowserState(),
+      ...getResetArticleReaderScrollState(),
       recentlyReadIds: new Set(),
       retainedArticleIds: new Set(),
     }),
@@ -627,6 +650,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
           focusedPane: fallbackAccountId ? "list" : "sidebar",
           expandedFolderIds: new Set(),
           ...getResetBrowserState(),
+          ...getResetArticleReaderScrollState(),
           recentlyReadIds: new Set(),
           retainedArticleIds: new Set(),
         });
@@ -682,6 +706,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       focusedPane: options?.focusedPane ?? "list",
       expandedFolderIds: new Set(),
       ...getResetBrowserState(),
+      ...getResetArticleReaderScrollState(),
       recentlyReadIds: new Set(),
       retainedArticleIds: new Set(),
     }),
@@ -697,6 +722,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       focusedPane: "list",
       expandedFolderIds: new Set(),
       ...getResetBrowserState(),
+      ...getResetArticleReaderScrollState(),
       recentlyReadIds: new Set(),
       retainedArticleIds: new Set(),
     }),
@@ -711,6 +737,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
             contentMode: "empty",
             focusedPane: "list",
             ...getResetBrowserState(),
+            ...getResetArticleReaderScrollState(),
             recentlyReadIds: new Set(),
             retainedArticleIds: new Set(),
           },
@@ -727,6 +754,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
             contentMode: "empty",
             focusedPane: "list",
             ...getResetBrowserState(),
+            ...getResetArticleReaderScrollState(),
             recentlyReadIds: new Set(),
             retainedArticleIds: new Set(),
           },
@@ -740,6 +768,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       focusedPane: "list",
       expandedFolderIds: new Set(state.expandedFolderIds).add(folderId),
       ...getResetBrowserState(),
+      ...getResetArticleReaderScrollState(),
       recentlyReadIds: new Set(),
       retainedArticleIds: new Set(),
     })),
@@ -753,6 +782,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       focusedPane: "list",
       expandedFolderIds: new Set(state.expandedFolderIds).add(folderId),
       ...getResetBrowserState(),
+      ...getResetArticleReaderScrollState(),
       recentlyReadIds: new Set(),
       retainedArticleIds: new Set(),
     })),
@@ -765,6 +795,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       contentMode: "empty",
       focusedPane: "list",
       ...getResetBrowserState(),
+      ...getResetArticleReaderScrollState(),
       recentlyReadIds: new Set(),
       retainedArticleIds: new Set(),
     }),
@@ -776,6 +807,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       contentMode: "empty",
       focusedPane: "list",
       ...getResetBrowserState(),
+      ...getResetArticleReaderScrollState(),
       recentlyReadIds: new Set(),
       retainedArticleIds: new Set(),
     }),
@@ -788,6 +820,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       contentMode: "empty",
       focusedPane: "list",
       ...getResetBrowserState(),
+      ...getResetArticleReaderScrollState(),
       recentlyReadIds: new Set(),
       retainedArticleIds: new Set(),
     })),
@@ -804,6 +837,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
         contentMode: "empty",
         focusedPane: "list",
         ...getResetBrowserState(),
+        ...getResetArticleReaderScrollState(),
         recentlyReadIds: new Set(),
         retainedArticleIds: new Set(),
       };
@@ -816,6 +850,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       contentMode: "empty",
       focusedPane: "list",
       ...getResetBrowserState(),
+      ...getResetArticleReaderScrollState(),
       recentlyReadIds: new Set(),
       retainedArticleIds: new Set(),
     }),
@@ -875,6 +910,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       viewMode: mode,
       recentlyReadIds: new Set(),
       retainedArticleIds: new Set(),
+      articleReaderScrollPositions: new Map(),
     }),
   setSearchQuery: (query) => set({ searchQuery: query }),
   toggleFolder: (folderId) =>
@@ -1094,7 +1130,13 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
   showToast: (message) => {
     clearToastDismissTimer();
     const data: ToastData = typeof message === "string" ? { message } : message;
-    set({ toastMessage: data });
+    set((state) => ({
+      toastMessage: data,
+      toastAnnouncements:
+        state.toastAnnouncements.at(-1)?.message === data.message
+          ? state.toastAnnouncements
+          : [...state.toastAnnouncements, { id: ++toastAnnouncementId, message: data.message }],
+    }));
     if (!data.persistent) {
       const dismissTimer = setTimeout(() => {
         set((state) => (state.toastMessage === data ? { toastMessage: null } : state));
@@ -1109,6 +1151,10 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
     clearToastDismissTimer();
     set({ toastMessage: null });
   },
+  clearToastAnnouncement: (id) =>
+    set((state) => ({
+      toastAnnouncements: state.toastAnnouncements.filter((announcement) => announcement.id !== id),
+    })),
   addRecentlyRead: (id) =>
     set((s) => {
       const next = new Set(s.recentlyReadIds);
@@ -1131,6 +1177,17 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       retainedArticleIds: addRetainedArticle(s.retainedArticleIds, id),
     })),
   clearRetainedArticles: () => set({ retainedArticleIds: new Set() }),
+  setArticleReaderScrollPosition: (articleId, scrollTop) =>
+    set((state) => {
+      const normalizedScrollTop = Math.max(0, Math.round(scrollTop));
+      if (state.articleReaderScrollPositions.get(articleId) === normalizedScrollTop) {
+        return state;
+      }
+
+      const articleReaderScrollPositions = new Map(state.articleReaderScrollPositions);
+      articleReaderScrollPositions.set(articleId, normalizedScrollTop);
+      return { articleReaderScrollPositions };
+    }),
   showConfirm: (message, onConfirm, options) =>
     set({
       confirmDialog: {

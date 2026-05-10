@@ -28,6 +28,8 @@ use crate::repository::folder::FolderRepository;
 const UNSUPPORTED_URL_VALIDATION_MESSAGE: &str = "Only http:// and https:// URLs are supported";
 const OPML_GENERATE_ERROR_MESSAGE: &str = "Failed to generate OPML export";
 const OPML_GENERATE_LOG_ERROR: &str = "redacted";
+pub(crate) const OPML_IMPORT_CONTENT_MAX_BYTES: usize = 4096 * 1024;
+const OPML_IMPORT_CONTENT_TOO_LARGE_MESSAGE: &str = "OPML import file is too large";
 
 #[tauri::command]
 pub fn import_opml(
@@ -156,6 +158,12 @@ fn import_opml_in_db(
 }
 
 fn parse_import_opml(opml_content: &str) -> Result<Vec<OpmlFeed>, AppError> {
+    if opml_content.len() > OPML_IMPORT_CONTENT_MAX_BYTES {
+        return Err(AppError::UserVisible {
+            message: OPML_IMPORT_CONTENT_TOO_LARGE_MESSAGE.to_string(),
+        });
+    }
+
     let feeds =
         opml::parse_opml(opml_content).map_err(|message| AppError::UserVisible { message })?;
     normalize_import_opml_feeds(feeds)
@@ -516,6 +524,21 @@ mod tests {
             }
             AppError::Retryable { message } | AppError::RetryableWithMetadata { message, .. } => {
                 panic!("OPML parser errors should not be retryable: {message}");
+            }
+        }
+    }
+
+    #[test]
+    fn import_parser_rejects_opml_content_over_large_file_limit() {
+        let error = parse_import_opml(&"a".repeat(OPML_IMPORT_CONTENT_MAX_BYTES + 1))
+            .expect_err("large OPML files should be rejected before parsing");
+
+        match error {
+            AppError::UserVisible { message } => {
+                assert_eq!(message, OPML_IMPORT_CONTENT_TOO_LARGE_MESSAGE);
+            }
+            AppError::Retryable { message } | AppError::RetryableWithMetadata { message, .. } => {
+                panic!("large OPML policy errors should not be retryable: {message}");
             }
         }
     }

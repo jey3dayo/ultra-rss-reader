@@ -64,7 +64,12 @@ describe("DataSettings", () => {
 
     expect(mocks.dataSettingsView).toHaveBeenCalledWith(
       expect.objectContaining({
-        safetyChecklist: ["safety"],
+        safetyChecklist: [
+          "safety",
+          "OPML import/export can take time on large subscription lists; keep the settings window open until the success or error summary appears.",
+          "OPML import/export is not cancelable after it starts. If the source file looks unusually large, make a backup first and wait for the command to finish.",
+          "Duplicate feeds are skipped during OPML import, and the completion summary should be treated as partial success when fewer feeds are added than the file contains.",
+        ],
       }),
     );
     expect(mocks.translationCalls).toContainEqual({

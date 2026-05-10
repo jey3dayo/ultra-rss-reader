@@ -1,5 +1,15 @@
 import { z } from "zod";
 
+export const BROWSER_WEBVIEW_EVENT_NAMES = {
+  stateChanged: "browser-webview-state-changed",
+  closed: "browser-webview-closed",
+  fallback: "browser-webview-fallback",
+  diagnostics: "browser-webview-diagnostics",
+  debugInput: "browser-webview-debug-input",
+} as const;
+
+export type BrowserWebviewEventName = (typeof BROWSER_WEBVIEW_EVENT_NAMES)[keyof typeof BROWSER_WEBVIEW_EVENT_NAMES];
+
 export const BrowserWebviewStateSchema = z
   .object({
     url: z.string(),
@@ -21,6 +31,15 @@ export const BrowserWebviewFallbackPayloadSchema = z
   .strict();
 
 export type BrowserWebviewFallbackPayload = z.output<typeof BrowserWebviewFallbackPayloadSchema>;
+
+export const BrowserWebviewClosedPayloadSchema = z
+  .object({
+    url: z.string(),
+    load_generation: z.number().int().nonnegative(),
+  })
+  .strict();
+
+export type BrowserWebviewClosedPayload = z.output<typeof BrowserWebviewClosedPayloadSchema>;
 
 const BROWSER_WEBVIEW_DIAGNOSTICS_MAX_RECT_VALUE = 10_000;
 
@@ -50,3 +69,15 @@ export const BrowserWebviewDiagnosticsPayloadSchema = z
   .strict();
 
 export type BrowserWebviewDiagnosticsPayload = z.output<typeof BrowserWebviewDiagnosticsPayloadSchema>;
+
+export const BrowserWebviewDebugInputPayloadSchema = z.string();
+
+export type BrowserWebviewDebugInputPayload = z.output<typeof BrowserWebviewDebugInputPayloadSchema>;
+
+export const BROWSER_WEBVIEW_EVENT_PAYLOAD_SCHEMAS = {
+  [BROWSER_WEBVIEW_EVENT_NAMES.stateChanged]: BrowserWebviewStateSchema,
+  [BROWSER_WEBVIEW_EVENT_NAMES.closed]: BrowserWebviewClosedPayloadSchema.nullish(),
+  [BROWSER_WEBVIEW_EVENT_NAMES.fallback]: BrowserWebviewFallbackPayloadSchema,
+  [BROWSER_WEBVIEW_EVENT_NAMES.diagnostics]: BrowserWebviewDiagnosticsPayloadSchema,
+  [BROWSER_WEBVIEW_EVENT_NAMES.debugInput]: BrowserWebviewDebugInputPayloadSchema,
+} as const satisfies Record<BrowserWebviewEventName, z.ZodType>;

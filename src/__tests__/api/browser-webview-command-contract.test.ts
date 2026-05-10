@@ -10,6 +10,12 @@ import {
   BrowserWebviewStateSchema,
 } from "@/api/schemas";
 import {
+  BROWSER_WEBVIEW_EVENT_NAMES,
+  BROWSER_WEBVIEW_EVENT_PAYLOAD_SCHEMAS,
+  BrowserWebviewClosedPayloadSchema,
+  BrowserWebviewDebugInputPayloadSchema,
+} from "@/api/schemas/browser-webview";
+import {
   closeBrowserWebview,
   createOrUpdateBrowserWebview,
   focusBrowserWebview,
@@ -18,6 +24,7 @@ import {
   reloadBrowserWebview,
   setBrowserWebviewBounds,
 } from "@/api/tauri-commands";
+import { BROWSER_WINDOW_EVENTS } from "@/constants/browser";
 import type { BrowserWebviewBounds } from "@/lib/browser/browser-webview";
 
 const browserBounds: BrowserWebviewBounds = {
@@ -61,6 +68,28 @@ async function runResponseValidationCommandCases<
 
 function readRustBrowserWebviewSource() {
   return readFileSync(join(process.cwd(), "src-tauri/src/browser_webview.rs"), "utf8");
+}
+
+function extractRustStringConst(source: string, constName: string) {
+  const constMatch = source.match(new RegExp(`pub const ${constName}: &str = "([^"]+)";`));
+  expect(constMatch, `${constName} should exist in Rust browser_webview.rs`).not.toBeNull();
+  if (!constMatch?.[1]) {
+    throw new Error(`${constName} should have a string literal value`);
+  }
+
+  return constMatch[1];
+}
+
+function extractRustEventNames(source: string) {
+  const eventNamesMatch = source.match(/pub const BROWSER_WEBVIEW_EVENT_NAMES: &\[&str\] = &\[([\s\S]*?)\];/);
+  expect(eventNamesMatch, "BROWSER_WEBVIEW_EVENT_NAMES should exist in Rust browser_webview.rs").not.toBeNull();
+
+  return (eventNamesMatch?.[1] ?? "")
+    .split("\n")
+    .map((line) => line.trim().replace(/,$/, ""))
+    .filter(Boolean)
+    .map((constName) => extractRustStringConst(source, constName))
+    .toSorted();
 }
 
 function extractRustStructFields(source: string, structName: string) {
@@ -111,6 +140,21 @@ function serializedRustFieldName(fieldName: string, attributes: readonly string[
 }
 
 describe("browser webview command contract", () => {
+  it("keeps browser webview event name registries aligned with Rust and frontend listeners", () => {
+    const eventNames = Object.values(BROWSER_WEBVIEW_EVENT_NAMES).toSorted();
+
+    expect(eventNames).toEqual(extractRustEventNames(readRustBrowserWebviewSource()));
+    expect(Object.keys(BROWSER_WEBVIEW_EVENT_PAYLOAD_SCHEMAS).toSorted()).toEqual(eventNames);
+    expect(Object.values(BROWSER_WINDOW_EVENTS).toSorted()).toEqual(
+      [
+        BROWSER_WEBVIEW_EVENT_NAMES.closed,
+        BROWSER_WEBVIEW_EVENT_NAMES.diagnostics,
+        BROWSER_WEBVIEW_EVENT_NAMES.fallback,
+        BROWSER_WEBVIEW_EVENT_NAMES.stateChanged,
+      ].toSorted(),
+    );
+  });
+
   it("keeps BrowserWebviewState schema fields aligned with the Rust DTO", () => {
     expect(Object.keys(BrowserWebviewStateSchema.shape).toSorted()).toEqual(
       extractRustStructFields(readRustBrowserWebviewSource(), "BrowserWebviewState"),
@@ -125,6 +169,10 @@ describe("browser webview command contract", () => {
     );
     expect(Object.keys(BrowserWebviewDiagnosticsPayloadSchema.shape).toSorted()).toEqual(
       extractRustStructFields(source, "BrowserWebviewDiagnosticsPayload"),
+    );
+    expect(Object.keys(BrowserWebviewClosedPayloadSchema.shape).toSorted()).toEqual(["load_generation", "url"]);
+    expect(BrowserWebviewDebugInputPayloadSchema.parse("native-click target=webview")).toBe(
+      "native-click target=webview",
     );
   });
 

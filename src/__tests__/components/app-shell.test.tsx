@@ -1,5 +1,5 @@
 import { listen } from "@tauri-apps/api/event";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { stubNavigatorPlatform } from "@tests/helpers/navigator-platform";
@@ -708,6 +708,25 @@ describe("AppShell", () => {
     expect(screen.getByTestId("app-toast")).toHaveClass("top-1", "right-20");
     expect(screen.getByTestId("app-toast")).not.toHaveClass("left-1/2");
     expect(screen.getByTestId("app-toast")).not.toHaveClass("bottom-4");
+  });
+
+  it("renders rapid toast replacements through a queued live region", () => {
+    setDebugHudUiState();
+
+    render(<AppShell />, { wrapper: createWrapper() });
+
+    act(() => {
+      useUiStore.getState().showToast({ message: "Downloading", persistent: true });
+      useUiStore.getState().showToast("Saved");
+      useUiStore.getState().showToast("Saved");
+    });
+
+    const liveRegion = screen.getByTestId("toast-live-region");
+    expect(liveRegion).toHaveAttribute("aria-live", "polite");
+    expect(liveRegion).toHaveAttribute("aria-atomic", "false");
+    expect(screen.getByTestId("app-toast")).toHaveTextContent("Saved");
+    expect(within(liveRegion).getByText("Downloading")).toBeInTheDocument();
+    expect(within(liveRegion).getAllByText("Saved")).toHaveLength(1);
   });
 
   it("applies a stable width to update toasts", () => {

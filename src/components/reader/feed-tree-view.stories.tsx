@@ -114,6 +114,7 @@ export const DenseNarrowA11yState: Story = {
   ],
   args: {
     canDragFeeds: true,
+    displayFavicons: false,
     draggedFeedId: "feed-dense-2",
     activeDropTarget: { kind: "folder", folderId: "folder-dense-2" },
     onDragStartFeed: fn(),

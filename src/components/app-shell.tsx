@@ -241,6 +241,36 @@ function Toast() {
   );
 }
 
+function ToastLiveRegion() {
+  const toastAnnouncements = useUiStore((state) => state.toastAnnouncements);
+  const clearToastAnnouncement = useUiStore((state) => state.clearToastAnnouncement);
+
+  useEffect(() => {
+    if (toastAnnouncements.length === 0) {
+      return;
+    }
+
+    const announcementIds = toastAnnouncements.map((announcement) => announcement.id);
+    const timer = window.setTimeout(() => {
+      for (const id of announcementIds) {
+        clearToastAnnouncement(id);
+      }
+    }, 1_000);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [clearToastAnnouncement, toastAnnouncements]);
+
+  return (
+    <div aria-live="polite" aria-atomic="false" className="sr-only" data-testid="toast-live-region" role="status">
+      {toastAnnouncements.map((announcement) => (
+        <div key={announcement.id}>{announcement.message}</div>
+      ))}
+    </div>
+  );
+}
+
 function isBrowserDebugGeometrySnapshot(value: unknown): value is BrowserDebugGeometrySnapshot {
   if (value === null || typeof value !== "object") {
     return false;
@@ -614,6 +644,7 @@ export function AppShell() {
           />
         </Suspense>
       ) : null}
+      <ToastLiveRegion />
       <Toast />
       {commandPaletteOpen ? (
         <LazyChunkBoundary onTelemetryError={reportLazyChunkBoundaryError}>

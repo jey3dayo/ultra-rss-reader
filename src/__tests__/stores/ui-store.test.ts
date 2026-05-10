@@ -142,6 +142,7 @@ describe("useUiStore", () => {
         | "isTagsSectionOpen"
         | "recentlyReadIds"
         | "retainedArticleIds"
+        | "articleReaderScrollPositions"
       >
     >();
     expectTypeOf<UiStoreReaderSelectionActions>().toEqualTypeOf<
@@ -178,6 +179,7 @@ describe("useUiStore", () => {
         | "clearRecentlyRead"
         | "retainArticle"
         | "clearRetainedArticles"
+        | "setArticleReaderScrollPosition"
       >
     >();
     expectTypeOf<UiStoreSettingsModalState>().toEqualTypeOf<UiStoreSettingsState>();
@@ -216,6 +218,7 @@ describe("useUiStore", () => {
     expect(syncProgressState.syncProgress.active).toBe(false);
     expect(accountSetupState.accountSetupSession).toBeNull();
     expect(toastState.toastMessage).toBeNull();
+    expect(toastState.toastAnnouncements).toEqual([]);
     expect(layoutActions.setFocusedPane).toBe(state.setFocusedPane);
     expect(readerActions.selectFeed).toBe(state.selectFeed);
     expect(readerSelectionActions.selectFeed).toBe(state.selectFeed);
@@ -812,6 +815,29 @@ describe("useUiStore", () => {
     expect(useUiStore.getState().selectedArticleId).toBeNull();
   });
 
+  it("keeps reader scroll through browser return but clears it across reader scope changes", () => {
+    useUiStore.setState({
+      selectedAccountId: "acc-1",
+      selectedArticleId: "article-1",
+      contentMode: "reader",
+      articleReaderScrollPositions: new Map([["article-1", 240]]),
+    });
+
+    useUiStore.getState().openBrowser("https://example.com/article-1");
+    useUiStore.getState().closeBrowser();
+    expect(useUiStore.getState().contentMode).toBe("reader");
+    expect(useUiStore.getState().articleReaderScrollPositions.get("article-1")).toBe(240);
+
+    useUiStore.getState().selectFeed("feed-2");
+    expect(useUiStore.getState().articleReaderScrollPositions.size).toBe(0);
+
+    useUiStore.setState({
+      articleReaderScrollPositions: new Map([["article-1", 240]]),
+    });
+    useUiStore.getState().selectAccount("acc-2");
+    expect(useUiStore.getState().articleReaderScrollPositions.size).toBe(0);
+  });
+
   it("context-aware subscription selection returns to unread outside starred context", () => {
     useUiStore.setState({ viewMode: "all", selection: { type: "all" } });
 
@@ -1347,6 +1373,36 @@ describe("useUiStore", () => {
 
     vi.advanceTimersByTime(1);
     expect(useUiStore.getState().toastMessage).toBeNull();
+  });
+
+  it("queues toast live-region announcements independently from the visible toast", () => {
+    useUiStore.getState().showToast({ message: "Downloading", persistent: true });
+    useUiStore.getState().showToast("Saved");
+
+    expect(useUiStore.getState().toastMessage).toEqual({ message: "Saved" });
+    expect(useUiStore.getState().toastAnnouncements.map((announcement) => announcement.message)).toEqual([
+      "Downloading",
+      "Saved",
+    ]);
+
+    useUiStore.getState().clearToast();
+
+    expect(useUiStore.getState().toastMessage).toBeNull();
+    expect(useUiStore.getState().toastAnnouncements.map((announcement) => announcement.message)).toEqual([
+      "Downloading",
+      "Saved",
+    ]);
+  });
+
+  it("suppresses duplicate adjacent toast announcements", () => {
+    useUiStore.getState().showToast("Saved");
+    useUiStore.getState().showToast("Saved");
+    useUiStore.getState().showToast("Copied");
+
+    expect(useUiStore.getState().toastAnnouncements.map((announcement) => announcement.message)).toEqual([
+      "Saved",
+      "Copied",
+    ]);
   });
 
   it("does not schedule dismiss timers for persistent toasts", () => {
