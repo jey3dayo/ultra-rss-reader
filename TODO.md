@@ -16,33 +16,6 @@
 - 既存 TODO と重なる場合は新しい項目を増やさず、該当 tranche の `supersedes` か検証条件へ統合する
 - backlog が過密な domain は追加列挙を止め、first tranche 実装、重複 merge、parallel-safe shard 化のどれかへ切り替える
 
-### 実装投入用 圧縮バッチ
-
-- [ ] P1 DB migration / rollback / runtime recovery を復旧導線として設計する
-  - 親バッチ: downgrade install、stale update install、startup DB init panic、runtime corruption、restore preview、destructive recovery dry-run を束ねる
-  - 対象: `src-tauri/src/infra/db/migration.rs`, DB commands、startup DB error handling、settings data page
-  - 完了条件: future schema/failed migration/downgrade/corruption が user-visible recovery state へ落ち、restore 後に query cache/localStorage/selected account が整合する
-  - 検証: migration integration tests、database command tests、settings data focused tests
-  - defer: DB encryption decision と uninstall/reinstall retention は privacy/docs バッチへ残す
-
-- [ ] P2 Reader stale state / focus / search バッチを組む
-  - 親バッチ: article list sourcePlan stable key、retained article ids、search result source order、selection not-found、auto-mark timer、reader focus retry を束ねる
-  - 対象: reader article list hooks、article selection/focus hooks、search hooks
-  - 完了条件: query A の結果が query B に見えず、account switch/refetch/search 中に旧 focus/timer/selection が current state を上書きしない
-  - 検証: article list/search/selection focused vitest、fake timer cleanup tests
-  - defer: long article virtualization と visual overflow は UI/a11y バッチへ残す
-
-#### P2 Reader 実装 tranche
-
-#### P2 A11y / Keyboard 実装 tranche
-
-- [ ] P2 Quality / TODO tooling バッチを実装する
-  - 親バッチ: quality-baseline JSON extraction、similarity threshold validation、toolchain drift、TODO priority/domain/work type extraction、重複 grouping、worker prompt export を束ねる
-  - 対象: `scripts/quality-baseline.ts`, `scripts/similarity-report.ts`, future TODO triage script, `mise.toml`
-  - 完了条件: P1/P2 の domain bucket と実装順を machine-readable に抽出でき、quality gate 自体の tool version/output drift を検出できる
-  - 検証: script fixture tests、`pnpm markdownlint-cli2 TODO.md`, `mise run quality:react-doctor:diff`, `mise run report:similarity`
-  - defer: TODO shard への実移行は、parser/export が安定してから別バッチで行う
-
 ### TODO 棚卸し収束バッチ
 
 - [ ] P1 P1/P2 backlog を domain shard へ分解して実装順を固定する
@@ -289,13 +262,6 @@
 
 #### Parallel dispatch wave plan
 
-- [ ] P2-C2ab Wave 1 first implementation lane を 3 並列 + 1 単独で投げる
-  - parallel group: `P2-C2g` (`P1-Q3a`), `P2-C2h` (`P2-QT1`), `P2-C2i` (`P2-QT2`)
-  - solo group: `P2-C2f` (`P1-Q5a`) は query helper owner なので単独で先に merge する
-  - optional group: `P2-C2j` (`P2-S3`) は DB command semantics に触らない前提なら parallel group と並列可
-  - do-not-run-with: `P1-Q5a` と `P1-Q5b`/`P1-Q5c`; `P1-Q3a` と `P1-Q3c`; `P2-S3` と `P1-Q4d`
-  - merge gate: 各 focused test、`pnpm markdownlint-cli2 TODO.md`, `git diff --check`; 2 件以上 merge した後に `mise run check`
-
 - [ ] P2-C2ac Wave 2 second implementation lane を first merge 後に投げる
   - parallel group: `P2-C2n` (`P2-R1`) と `P2-C2p` (`P2-S1`) は並列可
   - conditional group: `P2-C2k` (`P1-Q1a`) は `P1-Q1b`/`P1-Q1c` unblock fixture と同時に走らせない
@@ -463,15 +429,6 @@
 
 #### First implementation candidate selection
 
-- [ ] P2-C2az TODO-only loop はここで pause し、次は Wave 1 実装または leaf close pass に切り替える
-  - current coverage: TODO 追記でできる投入準備は 95% 以上。残りは実装中の発見、marker 実適用、CLAUDE.md 昇格判断
-  - next action: first tranche 実装済みの brief は削除済み。残る Wave 1 は query/cache solo group と optional settings group だけを dirty scope 確認後に扱う
-  - do-not-continue: 新しい risk TODO の大量追加、未分類 P2/P3 追加、Wave 1 readiness と無関係な設計メモ追加
-  - report template: coverage percent、selected candidate、known dirty files、go/no-go reason、next command を短く返す
-  - verification: `pnpm markdownlint-cli2 TODO.md`, `git diff --check`, `git status --short`
-  - current go/no-go: `P1-Q3a` / `P2-QT1` / `P2-QT2` / `P2-R1` は focused test で完了確認済み。query/cache implementation は query/manual-sync/reader-query files が dirty のため、次回も scope 確認してから着手する
-  - safe next: TODO-only 追加ではなく marker cleanup (`P2-C3n`)、unblock audit (`P2-C3m`)、または query/cache solo group の dirty owner 確認へ切り替える
-
 ### 先行実装 queue
 
 - [ ] P1-Q2 Provider auth storm / credential rotation safety
@@ -601,11 +558,6 @@
   - helper は UserVisible / Retryable だけを期待しており、diagnostics-only や validation category が増えると各 test が ad hoc assertion になりやすい
   - user-visible、retryable、diagnostics-only、validation、runtime-unavailable の helperを揃える
 
-- [ ] P3 release repo contract test の TOML parser を multiline / quoted value に強くする
-  - 対象: `tests/release-repo-contract.test.ts`, `mise.toml`, `.github/workflows/*`
-  - release contract test が簡易文字列抽出に寄ると、mise task や workflow の書式変更だけで false positive / false negative が出やすい
-  - multiline task、quoted string、missing pnpm cache、workflow name変更、Node version drift の fixture test を追加する
-
 - [ ] P3 fixture negative type tests を compile-time smoke gate として切り出す
   - 対象: `tests/helpers/fixtures.test.ts`, `tests/helpers/render-story.test.tsx`, `tsconfig.json`
   - `ts-expect-error` を runtime test 内に置くと、型 contract なのか runtime behavior なのか読み取りにくい
@@ -679,11 +631,6 @@
   - 対象: `src/stores/ui-store.ts`, `src/components/settings`, `src/components/reader/hooks/browser`
   - account delete 時に selected account、settings detail、account setup session、browser state を同時に更新するため、どれかだけ古い account を参照しやすい
   - selected account delete、settings account delete、setup session account delete、browser open account delete、remaining account fallback の store test を追加する
-
-- [ ] P2 preferences store の latest-only persist failure と optimistic UI rollback 方針を明文化する
-  - 対象: `src/stores/preferences-store.ts`, `src/schemas/preferences.ts`, `src/__tests__/stores/preferences-store.test.ts`
-  - preference save は optimistic UI を維持しつつ latest failure のみ toast するため、古い失敗を無視する方針と rollback しない方針を contract test で固定する必要がある
-  - rapid same-key update、older failure ignored、latest failure toast、sync success after failure、unknown key passthrough の test を追加する
 
 - [ ] P2 theme view transition cleanup を reduced-motion / thrown transition / late finished で固定する
   - 対象: `src/stores/preferences-store.ts`, `src/__tests__/lib/theme-appearance-state.test.ts`
@@ -2464,12 +2411,6 @@
   - 対象: `src/__tests__`, test setup
   - observer mock の cleanup が test ごとに違うと、後続 test の resize/layout 判定が flake する
   - setup helper、afterEach cleanup、observer callback ordering、fake timers、StrictMode double invoke の確認を追加する
-
-- [ ] P1 DB backup / restore 前後の `integrity_check` と WAL checkpoint 方針を固定する
-  - 対象: `src-tauri/src/commands/database_commands.rs`, `src-tauri/src/infra/db/connection.rs`, backup flow
-  - WAL 未 checkpoint や破損 DB を backup/restore すると、成功 toast 後に次回起動で壊れる
-  - pre-backup integrity、post-restore integrity、WAL checkpoint failure、read-only DB、corrupt DB の復旧方針を追加する
-  - superseded by: P1-Q4b (covered by backup/restore integrity_check and WAL checkpoint policy; kept verification: pre-backup integrity, post-restore integrity, read-only DB)
 
 - [ ] P1 OS keyring orphan credential cleanup を account delete / rename / reset と同期する
   - 対象: `src-tauri/src/infra/keyring_store.rs`, account commands, settings data reset
