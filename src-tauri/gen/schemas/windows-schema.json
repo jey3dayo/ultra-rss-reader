@@ -345,6 +345,48 @@
       "description": "Permission identifier",
       "oneOf": [
         {
+          "description": "Allows browser preview and external browser commands owned by the reader/browser surfaces.",
+          "type": "string",
+          "const": "browser-commands",
+          "markdownDescription": "Allows browser preview and external browser commands owned by the reader/browser surfaces."
+        },
+        {
+          "description": "Allows database maintenance commands owned by the settings and diagnostics surfaces.",
+          "type": "string",
+          "const": "database-commands",
+          "markdownDescription": "Allows database maintenance commands owned by the settings and diagnostics surfaces."
+        },
+        {
+          "description": "Allows debug, diagnostics, platform recovery, and support log commands.",
+          "type": "string",
+          "const": "debug-log-commands",
+          "markdownDescription": "Allows debug, diagnostics, platform recovery, and support log commands."
+        },
+        {
+          "description": "Allows reader data, account, feed, sync, article, OPML, mute keyword, and tag commands.",
+          "type": "string",
+          "const": "reader-commands",
+          "markdownDescription": "Allows reader data, account, feed, sync, article, OPML, mute keyword, and tag commands."
+        },
+        {
+          "description": "Allows settings and platform information commands.",
+          "type": "string",
+          "const": "settings-commands",
+          "markdownDescription": "Allows settings and platform information commands."
+        },
+        {
+          "description": "Allows share surface commands.",
+          "type": "string",
+          "const": "share-commands",
+          "markdownDescription": "Allows share surface commands."
+        },
+        {
+          "description": "Allows application updater commands.",
+          "type": "string",
+          "const": "updater-commands",
+          "markdownDescription": "Allows application updater commands."
+        },
+        {
           "description": "No features are enabled by default, as we believe\nthe clipboard can be inherently dangerous and it is \napplication specific if read and/or write access is needed.\n\nClipboard interaction needs to be explicitly enabled.\n",
           "type": "string",
           "const": "clipboard-manager:default",

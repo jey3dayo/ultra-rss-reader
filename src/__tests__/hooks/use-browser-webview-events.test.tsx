@@ -165,6 +165,49 @@ describe("useBrowserWebviewEvents", () => {
     expect(cleanups.every((cleanup) => cleanup.mock.calls.length === 1)).toBe(true);
   });
 
+  it("keeps browser overlay open and close transitions from leaking native event listeners", async () => {
+    const activeListeners = new Set<string>();
+    listenMock.mockImplementation((eventName) => {
+      const listenerKey = `${eventName}:${listenMock.mock.calls.length}`;
+      activeListeners.add(listenerKey);
+      return Promise.resolve(() => {
+        activeListeners.delete(listenerKey);
+      });
+    });
+
+    const { result, rerender, unmount } = renderHook(
+      ({ showDiagnostics }) =>
+        useBrowserWebviewEvents({
+          showDiagnostics,
+          onStateChanged: vi.fn(),
+          onFallback: vi.fn(),
+          onClosed: vi.fn(),
+          onDiagnostics: vi.fn(),
+        }),
+      { initialProps: { showDiagnostics: false } },
+    );
+
+    await act(async () => {
+      await result.current();
+    });
+    expect(activeListeners.size).toBe(3);
+
+    rerender({ showDiagnostics: true });
+    await act(async () => {
+      await result.current();
+    });
+    expect(activeListeners.size).toBe(4);
+
+    rerender({ showDiagnostics: false });
+    await act(async () => {
+      await result.current();
+    });
+    expect(activeListeners.size).toBe(3);
+
+    unmount();
+    expect(activeListeners.size).toBe(0);
+  });
+
   it("surfaces browser webview listener registration failures with the listener owner", async () => {
     setTauriRuntimePresent();
     const error = new Error("browser webview listener failed");

@@ -56,6 +56,11 @@ export const TauriConfigSchema = z.object({
     .optional(),
   app: z
     .object({
+      security: z
+        .object({
+          csp: z.string().optional(),
+        })
+        .optional(),
       windows: z
         .array(
           z.object({

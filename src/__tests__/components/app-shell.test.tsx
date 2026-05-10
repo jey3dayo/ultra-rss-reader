@@ -871,6 +871,8 @@ describe("AppShell", () => {
   });
 
   it("keeps native browser input traces scoped to the debug HUD lifecycle", async () => {
+    const cleanupBrowserInputTrace = vi.fn();
+    vi.mocked(listen).mockImplementation(() => Promise.resolve(cleanupBrowserInputTrace));
     const hiddenHudRender = render(<AppShell />, { wrapper: createWrapper() });
 
     expect(vi.mocked(listen)).not.toHaveBeenCalledWith("browser-webview-debug-input", expect.any(Function));
@@ -901,5 +903,43 @@ describe("AppShell", () => {
 
     unmount();
     expect(screen.queryByText("native-click target=webview")).not.toBeInTheDocument();
+    expect(cleanupBrowserInputTrace).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps route and settings modal transitions from accumulating debug HUD Tauri listeners", async () => {
+    const activeListeners = new Set<string>();
+    vi.mocked(listen).mockImplementation((eventName) => {
+      const listenerKey = `${eventName}:${vi.mocked(listen).mock.calls.length}`;
+      activeListeners.add(listenerKey);
+      return Promise.resolve(() => {
+        activeListeners.delete(listenerKey);
+      });
+    });
+
+    const { rerender, unmount } = renderAppShellWithDebugHud();
+
+    await waitFor(() => {
+      expect(activeListeners.size).toBe(1);
+    });
+
+    act(() => {
+      useUiStore.setState({ settingsOpen: true });
+    });
+    rerender(<AppShell />);
+    await waitFor(() => {
+      expect(screen.getByText("Settings Modal")).toBeInTheDocument();
+      expect(activeListeners.size).toBe(1);
+    });
+
+    act(() => {
+      useUiStore.setState({ settingsOpen: false, contentMode: "browser", browserUrl: "https://example.com" });
+    });
+    rerender(<AppShell />);
+    await waitFor(() => {
+      expect(activeListeners.size).toBe(1);
+    });
+
+    unmount();
+    expect(activeListeners.size).toBe(0);
   });
 });

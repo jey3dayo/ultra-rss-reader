@@ -459,6 +459,43 @@ describe("resolveSidebarLastSyncedLabel", () => {
     expect(restoreReporter).toHaveBeenCalledOnce();
   });
 
+  it("keeps account switches from accumulating sidebar Tauri sync listeners", async () => {
+    const activeListeners = new Set<string>();
+    listenMock.mockImplementation((eventName) => {
+      const listenerKey = `${eventName}:${listenMock.mock.calls.length}`;
+      activeListeners.add(listenerKey);
+      return Promise.resolve(() => {
+        activeListeners.delete(listenerKey);
+      });
+    });
+    const { wrapper } = createQueryWrapper();
+
+    const { rerender, unmount } = renderHook(
+      ({ selectedAccountId }) =>
+        useSidebarSync(
+          createSyncHookParams({
+            selectedAccountId,
+            applySyncProgress: vi.fn(),
+            clearSyncProgress: vi.fn(),
+            showToast: vi.fn(),
+          }),
+        ),
+      { initialProps: { selectedAccountId: "acc-1" }, wrapper },
+    );
+
+    await waitFor(() => {
+      expect(activeListeners.size).toBe(3);
+    });
+
+    rerender({ selectedAccountId: "acc-2" });
+    await waitFor(() => {
+      expect(activeListeners.size).toBe(3);
+    });
+
+    unmount();
+    expect(activeListeners.size).toBe(0);
+  });
+
   it("cleans up the sidebar cooldown interval on unmount", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-04-30T00:00:00.000Z"));

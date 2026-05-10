@@ -177,6 +177,20 @@ const RELEASE_UPDATER_ASSET_CONTRACT = [
   },
 ] as const;
 const UNSUPPORTED_UPDATER_PLATFORM_KEYS = ["linux-x86_64", "linux-aarch64"] as const;
+const REQUIRED_RELEASE_CSP_DIRECTIVES = {
+  "script-src": ["'self'"],
+  "style-src": ["'self'", "'unsafe-inline'"],
+  "connect-src": ["ipc:", "http://ipc.localhost"],
+  "font-src": ["'self'"],
+} as const;
+const RELEASE_CSP_FORBIDDEN_SOURCES = [
+  "*",
+  "'unsafe-eval'",
+  "http://localhost:1420",
+  "http://127.0.0.1:1420",
+  "ws://localhost:1421",
+  "ws://127.0.0.1:1421",
+] as const;
 
 const readText = (path: string): string => readFileSync(path, "utf8");
 const readSha256 = (path: string): string => createHash("sha256").update(readFileSync(path)).digest("hex");
@@ -282,6 +296,19 @@ const extractTomlString = (source: string, key: string): string => {
   }
 
   throw new Error(`Missing TOML string: ${key}`);
+};
+
+const parseCspDirectives = (csp: string): Map<string, string[]> => {
+  const directives = new Map<string, string[]>();
+
+  for (const directive of csp.split(";")) {
+    const [name, ...sources] = directive.trim().split(/\s+/);
+    if (name) {
+      directives.set(name, sources);
+    }
+  }
+
+  return directives;
 };
 
 const extractReleaseCacheBlock = (source: string): string => {
@@ -875,13 +902,28 @@ describe("release repository contract", () => {
     );
   });
 
-  it("keeps Tauri CSP http image access explicit for the reader privacy boundary", () => {
+  it("keeps Tauri CSP explicit across release and dev HMR boundaries", () => {
     const csp = tauriConfig.app?.security?.csp ?? "";
+    const directives = parseCspDirectives(csp);
+    const viteConfig = readText("vite.config.ts");
 
     expect(csp).toContain("img-src 'self' https: http:");
     expect(csp).not.toContain("upgrade-insecure-requests");
     expect(csp).not.toContain("default-src *");
     expect(csp).not.toContain("img-src *");
+    for (const [directive, requiredSources] of Object.entries(REQUIRED_RELEASE_CSP_DIRECTIVES)) {
+      expect(directives.get(directive)).toEqual(expect.arrayContaining([...requiredSources]));
+    }
+    for (const [directive, sources] of directives) {
+      for (const forbiddenSource of RELEASE_CSP_FORBIDDEN_SOURCES) {
+        expect(sources, `${directive} must not include ${forbiddenSource}`).not.toContain(forbiddenSource);
+      }
+    }
+    expect(tauriReleaseConfig.app?.security?.csp).toBeUndefined();
+    expect(tauriDevConfig.app?.security?.csp).toBeUndefined();
+    expect(tauriDevConfig.build?.devUrl).toBe("http://127.0.0.1:1420");
+    expect(viteConfig).toContain("port: 1420");
+    expect(viteConfig).toContain("port: 1421");
   });
 
   it("keeps Windows manifest, build script, and generated capability schema in the local release gate", () => {

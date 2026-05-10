@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 import {
   createDevScenarioRegistryDiagnostics,
   createDevScenarioRegistryIndex,
+  DEV_SCENARIO_ACTION_ROUTES,
+  DEV_SCENARIO_SETTINGS_ROUTES,
   formatDevScenarioRegistryDiagnosticsReport,
   getDevScenario,
   getDevScenarioRegistryDiagnostics,
@@ -9,6 +11,7 @@ import {
 } from "@/dev/scenarios/registry";
 import type { DevScenarioContext } from "@/dev/scenarios/types";
 import { DEV_SCENARIO_ID, DEV_SCENARIO_IDS } from "@/dev/scenarios/types";
+import { isAppAction } from "@/lib/app-actions";
 
 function createScenarioContext(): DevScenarioContext {
   return {
@@ -173,6 +176,53 @@ describe("dev scenario registry", () => {
 
     expect(context.actions.executeAction).toHaveBeenCalledWith("open-command-palette");
     expect(context.ui.openBrowser).not.toHaveBeenCalled();
+  });
+
+  it("keeps action-backed scenario routes aligned with the app action schema", async () => {
+    expect(DEV_SCENARIO_ACTION_ROUTES).toEqual({
+      [DEV_SCENARIO_ID.openSubscriptionsIndex]: "open-subscriptions-index",
+      [DEV_SCENARIO_ID.openSettingsAccountsAdd]: "open-settings-accounts-add",
+      [DEV_SCENARIO_ID.openSettingsAccountsAddFreshRss]: "open-settings-accounts-add-freshrss",
+      [DEV_SCENARIO_ID.openCommandPalette]: "open-command-palette",
+      [DEV_SCENARIO_ID.openAddFeedDialog]: "open-add-feed",
+      [DEV_SCENARIO_ID.syncAllSmoke]: "sync-all",
+    });
+
+    for (const [scenarioId, actionId] of Object.entries(DEV_SCENARIO_ACTION_ROUTES)) {
+      const context = createScenarioContext();
+
+      expect(isAppAction(actionId), `${scenarioId} must dispatch a registered AppAction`).toBe(true);
+
+      await getDevScenario(scenarioId)?.run(context);
+
+      expect(context.actions.executeAction).toHaveBeenCalledWith(actionId);
+      expect(context.ui.openSettings).not.toHaveBeenCalled();
+    }
+  });
+
+  it("keeps settings scenario routes aligned with UI settings categories", async () => {
+    expect(DEV_SCENARIO_SETTINGS_ROUTES).toEqual({
+      [DEV_SCENARIO_ID.openSettingsGeneral]: "general",
+      [DEV_SCENARIO_ID.openSettingsAppearance]: "appearance",
+      [DEV_SCENARIO_ID.openSettingsMute]: "mute",
+      [DEV_SCENARIO_ID.openSettingsReading]: "reading",
+      [DEV_SCENARIO_ID.openSettingsTags]: "tags",
+      [DEV_SCENARIO_ID.openSettingsShortcuts]: "shortcuts",
+      [DEV_SCENARIO_ID.openSettingsActions]: "actions",
+      [DEV_SCENARIO_ID.openSettingsData]: "data",
+      [DEV_SCENARIO_ID.openSettingsDebug]: "debug",
+      [DEV_SCENARIO_ID.openSettingsAccounts]: "accounts",
+      [DEV_SCENARIO_ID.openSettingsReadingDisplayMode]: "reading",
+    });
+
+    for (const [scenarioId, settingsCategory] of Object.entries(DEV_SCENARIO_SETTINGS_ROUTES)) {
+      const context = createScenarioContext();
+
+      await getDevScenario(scenarioId)?.run(context);
+
+      expect(context.ui.openSettings).toHaveBeenCalledWith(settingsCategory);
+      expect(context.actions.executeAction).not.toHaveBeenCalled();
+    }
   });
 
   it("keeps browser geometry scenario browser-backed and separate from command palette actions", async () => {
