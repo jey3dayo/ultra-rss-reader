@@ -72,6 +72,9 @@ fn validate_add_account_args(
 ) -> Result<ProviderKind, AppError> {
     match kind {
         "Local" => Ok(ProviderKind::Local),
+        "Quarantined" => Err(AppError::UserVisible {
+            message: "Quarantined provider accounts cannot be created".into(),
+        }),
         "FreshRss" => {
             if server_url.is_none_or(|value| value.trim().is_empty()) {
                 return Err(AppError::UserVisible {
@@ -835,9 +838,10 @@ pub async fn add_account(
             server_url.as_deref().unwrap_or_default(),
         )?),
         ProviderKind::Local => server_url,
+        ProviderKind::Quarantined => None,
     };
 
-    let mut account = Account {
+    let account = Account {
         id: AccountId::new(),
         kind: provider_kind,
         name,
@@ -851,21 +855,6 @@ pub async fn add_account(
         connection_verified_at: None,
         connection_verification_error: None,
     };
-
-    // Validate connection for remote providers (no DB lock held during .await)
-    if matches!(account.kind, ProviderKind::FreshRss) {
-        let mut provider = GReaderProvider::for_freshrss(validate_freshrss_server_url(&account)?);
-
-        provider
-            .authenticate(&Credentials {
-                token: account.username.clone(),
-                password: password.clone(),
-            })
-            .await?;
-
-        account.connection_verification_status = ConnectionVerificationStatus::Verified;
-        account.connection_verified_at = Some(chrono::Utc::now().to_rfc3339());
-    }
 
     let db = crate::commands::lock_db(&state.db)?;
     let repo = SqliteAccountRepository::new(db.writer());

@@ -1,4 +1,3 @@
-use rusqlite::types::Type;
 use rusqlite::{params, Connection, OptionalExtension};
 use tracing::warn;
 
@@ -22,6 +21,7 @@ fn provider_kind_to_str(kind: &ProviderKind) -> &'static str {
     match kind {
         ProviderKind::Local => "Local",
         ProviderKind::FreshRss => "FreshRss",
+        ProviderKind::Quarantined => "Quarantined",
     }
 }
 
@@ -40,6 +40,7 @@ fn verification_status_to_str(status: ConnectionVerificationStatus) -> &'static 
         ConnectionVerificationStatus::Verified => "verified",
         ConnectionVerificationStatus::Unverified => "unverified",
         ConnectionVerificationStatus::Error => "error",
+        ConnectionVerificationStatus::Quarantined => "quarantined",
     }
 }
 
@@ -81,11 +82,47 @@ fn validate_sync_settings(sync_interval_secs: i64, keep_read_items_days: i64) ->
 fn row_to_account(row: &rusqlite::Row) -> rusqlite::Result<Account> {
     let kind_str: String = row.get(1)?;
     let verification_status: String = row.get(9)?;
+    let kind = match provider_kind_from_str(&kind_str) {
+        Ok(kind) => kind,
+        Err(error) => {
+            return Ok(Account {
+                id: AccountId(row.get(0)?),
+                kind: ProviderKind::Quarantined,
+                name: row.get(2)?,
+                server_url: row.get(3)?,
+                username: row.get(4)?,
+                sync_interval_secs: row.get(5)?,
+                sync_on_startup: row.get::<_, bool>(6)?,
+                sync_on_wake: row.get::<_, bool>(7)?,
+                keep_read_items_days: row.get(8)?,
+                connection_verification_status: ConnectionVerificationStatus::Quarantined,
+                connection_verified_at: None,
+                connection_verification_error: Some(error.to_string()),
+            });
+        }
+    };
+    let connection_verification_status = match verification_status_from_str(&verification_status) {
+        Ok(status) => status,
+        Err(error) => {
+            return Ok(Account {
+                id: AccountId(row.get(0)?),
+                kind: ProviderKind::Quarantined,
+                name: row.get(2)?,
+                server_url: row.get(3)?,
+                username: row.get(4)?,
+                sync_interval_secs: row.get(5)?,
+                sync_on_startup: row.get::<_, bool>(6)?,
+                sync_on_wake: row.get::<_, bool>(7)?,
+                keep_read_items_days: row.get(8)?,
+                connection_verification_status: ConnectionVerificationStatus::Quarantined,
+                connection_verified_at: None,
+                connection_verification_error: Some(error.to_string()),
+            });
+        }
+    };
     Ok(Account {
         id: AccountId(row.get(0)?),
-        kind: provider_kind_from_str(&kind_str).map_err(|error| {
-            rusqlite::Error::FromSqlConversionFailure(1, Type::Text, Box::new(error))
-        })?,
+        kind,
         name: row.get(2)?,
         server_url: row.get(3)?,
         username: row.get(4)?,
@@ -93,10 +130,7 @@ fn row_to_account(row: &rusqlite::Row) -> rusqlite::Result<Account> {
         sync_on_startup: row.get::<_, bool>(6)?,
         sync_on_wake: row.get::<_, bool>(7)?,
         keep_read_items_days: row.get(8)?,
-        connection_verification_status: verification_status_from_str(&verification_status)
-            .map_err(|error| {
-                rusqlite::Error::FromSqlConversionFailure(9, Type::Text, Box::new(error))
-            })?,
+        connection_verification_status,
         connection_verified_at: row.get(10)?,
         connection_verification_error: row.get(11)?,
     })
@@ -198,6 +232,12 @@ impl AccountRepository for SqliteAccountRepository<'_> {
         server_url: Option<&str>,
         username: Option<&str>,
     ) -> DomainResult<()> {
+        let existing = self.find_by_id(id)?.ok_or_else(|| {
+            DomainError::Validation(format!("Account not found: {}", id.as_ref()))
+        })?;
+        let remote_identity_changed = existing.server_url.as_deref() != server_url
+            || existing.username.as_deref() != username;
+
         let rows_affected = self.conn.execute(
             "UPDATE accounts
              SET server_url = ?1,
@@ -208,7 +248,20 @@ impl AccountRepository for SqliteAccountRepository<'_> {
              WHERE id = ?3",
             params![server_url, username, id.0],
         )?;
-        require_account_row_affected(rows_affected, id)
+        require_account_row_affected(rows_affected, id)?;
+
+        if remote_identity_changed {
+            self.conn.execute(
+                "DELETE FROM sync_state WHERE account_id = ?1",
+                params![id.0],
+            )?;
+            self.conn.execute(
+                "DELETE FROM pending_mutations WHERE account_id = ?1",
+                params![id.0],
+            )?;
+        }
+
+        Ok(())
     }
 
     fn update_connection_verification(
@@ -291,7 +344,7 @@ mod tests {
     }
 
     #[test]
-    fn find_all_quarantines_unknown_provider_kind() {
+    fn find_all_returns_unknown_provider_kind_as_quarantined_account() {
         let db = test_db();
         let repo = SqliteAccountRepository::new(db.reader());
         let valid_account = make_account("Valid");
@@ -307,12 +360,27 @@ mod tests {
 
         let accounts = repo.find_all().unwrap();
 
-        assert_eq!(accounts.len(), 1);
-        assert_eq!(accounts[0].id, valid_account.id);
+        assert_eq!(accounts.len(), 2);
+        assert!(accounts
+            .iter()
+            .any(|account| account.id == valid_account.id));
+        let quarantined = accounts
+            .iter()
+            .find(|account| account.id == AccountId("acc-unknown".to_string()))
+            .expect("quarantined account should be listed");
+        assert_eq!(quarantined.kind, ProviderKind::Quarantined);
+        assert_eq!(
+            quarantined.connection_verification_status,
+            ConnectionVerificationStatus::Quarantined
+        );
+        assert!(quarantined
+            .connection_verification_error
+            .as_deref()
+            .is_some_and(|message| message.contains("UnknownProvider")));
     }
 
     #[test]
-    fn find_by_id_returns_error_for_unknown_provider_kind() {
+    fn find_by_id_returns_unknown_provider_kind_as_quarantined_account() {
         let db = test_db();
         let repo = SqliteAccountRepository::new(db.reader());
         let account_id = AccountId("acc-unknown".to_string());
@@ -323,15 +391,24 @@ mod tests {
             )
             .unwrap();
 
-        let error = repo
+        let account = repo
             .find_by_id(&account_id)
-            .expect_err("unknown provider kind should fail account decode");
+            .expect("unknown provider kind should stay displayable")
+            .expect("quarantined account should be returned");
 
-        assert!(error.to_string().contains("UnknownProvider"));
+        assert_eq!(account.kind, ProviderKind::Quarantined);
+        assert_eq!(
+            account.connection_verification_status,
+            ConnectionVerificationStatus::Quarantined
+        );
+        assert!(account
+            .connection_verification_error
+            .as_deref()
+            .is_some_and(|message| message.contains("UnknownProvider")));
     }
 
     #[test]
-    fn find_all_quarantines_unknown_verification_status() {
+    fn find_all_returns_unknown_verification_status_as_quarantined_account() {
         let db = test_db();
         let repo = SqliteAccountRepository::new(db.reader());
         let valid_account = make_account("Valid");
@@ -348,12 +425,27 @@ mod tests {
 
         let accounts = repo.find_all().unwrap();
 
-        assert_eq!(accounts.len(), 1);
-        assert_eq!(accounts[0].id, valid_account.id);
+        assert_eq!(accounts.len(), 2);
+        assert!(accounts
+            .iter()
+            .any(|account| account.id == valid_account.id));
+        let quarantined = accounts
+            .iter()
+            .find(|account| account.id == AccountId("acc-expired".to_string()))
+            .expect("quarantined account should be listed");
+        assert_eq!(quarantined.kind, ProviderKind::Quarantined);
+        assert_eq!(
+            quarantined.connection_verification_status,
+            ConnectionVerificationStatus::Quarantined
+        );
+        assert!(quarantined
+            .connection_verification_error
+            .as_deref()
+            .is_some_and(|message| message.contains("expired")));
     }
 
     #[test]
-    fn find_by_id_returns_error_for_unknown_verification_status() {
+    fn find_by_id_returns_unknown_verification_status_as_quarantined_account() {
         let db = test_db();
         let repo = SqliteAccountRepository::new(db.reader());
         let account_id = AccountId("acc-expired".to_string());
@@ -365,11 +457,20 @@ mod tests {
             )
             .unwrap();
 
-        let error = repo
+        let account = repo
             .find_by_id(&account_id)
-            .expect_err("unknown verification status should fail account decode");
+            .expect("unknown verification status should stay displayable")
+            .expect("quarantined account should be returned");
 
-        assert!(error.to_string().contains("expired"));
+        assert_eq!(account.kind, ProviderKind::Quarantined);
+        assert_eq!(
+            account.connection_verification_status,
+            ConnectionVerificationStatus::Quarantined
+        );
+        assert!(account
+            .connection_verification_error
+            .as_deref()
+            .is_some_and(|message| message.contains("expired")));
     }
 
     #[test]
@@ -777,6 +878,102 @@ mod tests {
         );
         assert_eq!(updated.connection_verified_at, None);
         assert_eq!(updated.connection_verification_error, None);
+    }
+
+    #[test]
+    fn update_credentials_clears_remote_sync_state_when_server_or_user_changes() {
+        let db = test_db();
+        let repo = SqliteAccountRepository::new(db.writer());
+
+        let mut account = make_account("FreshRSS");
+        account.kind = ProviderKind::FreshRss;
+        account.server_url = Some("https://old.example.com".to_string());
+        account.username = Some("old-user".to_string());
+        repo.save(&account).unwrap();
+
+        db.writer()
+            .execute(
+                "INSERT INTO sync_state (account_id, scope_key, continuation)
+                 VALUES (?1, 'account:greader:all', 'cursor')",
+                params![account.id.0],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO pending_mutations (account_id, mutation_type, remote_entry_id, created_at)
+                 VALUES (?1, 'mark_read', 'remote-1', '2026-05-09T00:02:00Z')",
+                params![account.id.0],
+            )
+            .unwrap();
+
+        repo.update_credentials(
+            &account.id,
+            Some("https://new.example.com"),
+            Some("old-user"),
+        )
+        .unwrap();
+
+        let sync_state_count: i32 = db
+            .reader()
+            .query_row("SELECT COUNT(*) FROM sync_state", [], |row| row.get(0))
+            .unwrap();
+        let pending_count: i32 = db
+            .reader()
+            .query_row("SELECT COUNT(*) FROM pending_mutations", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+
+        assert_eq!(sync_state_count, 0);
+        assert_eq!(pending_count, 0);
+    }
+
+    #[test]
+    fn update_credentials_keeps_remote_sync_state_when_identity_is_unchanged() {
+        let db = test_db();
+        let repo = SqliteAccountRepository::new(db.writer());
+
+        let mut account = make_account("FreshRSS");
+        account.kind = ProviderKind::FreshRss;
+        account.server_url = Some("https://same.example.com".to_string());
+        account.username = Some("same-user".to_string());
+        repo.save(&account).unwrap();
+
+        db.writer()
+            .execute(
+                "INSERT INTO sync_state (account_id, scope_key, continuation)
+                 VALUES (?1, 'account:greader:all', 'cursor')",
+                params![account.id.0],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO pending_mutations (account_id, mutation_type, remote_entry_id, created_at)
+                 VALUES (?1, 'mark_read', 'remote-1', '2026-05-09T00:02:00Z')",
+                params![account.id.0],
+            )
+            .unwrap();
+
+        repo.update_credentials(
+            &account.id,
+            Some("https://same.example.com"),
+            Some("same-user"),
+        )
+        .unwrap();
+
+        let sync_state_count: i32 = db
+            .reader()
+            .query_row("SELECT COUNT(*) FROM sync_state", [], |row| row.get(0))
+            .unwrap();
+        let pending_count: i32 = db
+            .reader()
+            .query_row("SELECT COUNT(*) FROM pending_mutations", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+
+        assert_eq!(sync_state_count, 1);
+        assert_eq!(pending_count, 1);
     }
 
     #[test]

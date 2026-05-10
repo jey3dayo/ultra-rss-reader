@@ -10,6 +10,7 @@ pub enum ConnectionVerificationStatus {
     #[default]
     Unverified,
     Error,
+    Quarantined,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

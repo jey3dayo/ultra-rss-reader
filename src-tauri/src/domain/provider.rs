@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 pub enum ProviderKind {
     Local,
     FreshRss,
+    Quarantined,
 }
 
 #[derive(Debug, Clone)]
@@ -116,6 +117,13 @@ impl ProviderKind {
                 supports_search: true,
                 supports_delta_sync: true,
                 supports_remote_state: true,
+            },
+            Self::Quarantined => ProviderCapabilities {
+                supports_folders: false,
+                supports_starring: false,
+                supports_search: false,
+                supports_delta_sync: false,
+                supports_remote_state: false,
             },
         }
     }

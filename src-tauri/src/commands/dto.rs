@@ -358,6 +358,7 @@ impl From<crate::domain::account::Account> for AccountDto {
                 crate::domain::account::ConnectionVerificationStatus::Verified => "verified",
                 crate::domain::account::ConnectionVerificationStatus::Unverified => "unverified",
                 crate::domain::account::ConnectionVerificationStatus::Error => "error",
+                crate::domain::account::ConnectionVerificationStatus::Quarantined => "quarantined",
             }
             .to_string(),
             connection_verified_at: a.connection_verified_at,

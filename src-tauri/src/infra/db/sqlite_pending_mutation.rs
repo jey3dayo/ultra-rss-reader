@@ -16,6 +16,7 @@ impl PendingMutationAccountScope {
     fn from_provider_kind(kind: &str) -> DomainResult<Self> {
         match kind {
             "Local" => Ok(Self::LocalOnly),
+            "Quarantined" => Ok(Self::LocalOnly),
             "FreshRss" => Ok(Self::Remote),
             other => Err(DomainError::Persistence(format!(
                 "Unknown account provider kind for pending mutation: {other}"

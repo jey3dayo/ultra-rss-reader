@@ -299,6 +299,9 @@ pub(crate) async fn sync_account(
             let provider = GReaderProvider::for_freshrss(server_url);
             sync_greader_account(db, account, provider).await
         }
+        ProviderKind::Quarantined => Err(AppError::UserVisible {
+            message: "Account configuration is quarantined".into(),
+        }),
     }
 }
 
@@ -318,6 +321,9 @@ pub(crate) async fn sync_feed(
             let provider = GReaderProvider::for_freshrss(server_url);
             sync_greader_feed(db, account, feed, provider).await
         }
+        ProviderKind::Quarantined => Err(AppError::UserVisible {
+            message: "Account configuration is quarantined".into(),
+        }),
     }
 }
 
