@@ -20,8 +20,9 @@ use crate::commands::AppState;
 use crate::platform::PlatformKind;
 
 const BROWSER_WEBVIEW_LOAD_TIMEOUT_MS: u64 = 10_000;
+const MAX_BROWSER_WEBVIEW_BOUND_VALUE: f64 = i32::MAX as f64;
 const INVALID_BROWSER_BOUNDS_ERROR: &str =
-    "Embedded browser bounds must be finite and have positive width/height";
+    "Embedded browser bounds must be finite, within supported coordinate limits, and have positive width/height";
 const BROWSER_WEBVIEW_NOT_OPEN_ERROR: &str = "Embedded browser webview is not open";
 const BROWSER_WEBVIEW_EMPTY_RELOAD_SOURCE_ERROR: &str =
     "Embedded browser webview has no current URL to reload";
@@ -61,6 +62,10 @@ impl BrowserWebviewBounds {
             || !self.height.is_finite()
             || self.width <= 0.0
             || self.height <= 0.0
+            || self.x.abs() > MAX_BROWSER_WEBVIEW_BOUND_VALUE
+            || self.y.abs() > MAX_BROWSER_WEBVIEW_BOUND_VALUE
+            || self.width > MAX_BROWSER_WEBVIEW_BOUND_VALUE
+            || self.height > MAX_BROWSER_WEBVIEW_BOUND_VALUE
         {
             return Err(browser_webview_error(INVALID_BROWSER_BOUNDS_ERROR));
         }
@@ -142,6 +147,27 @@ fn child_webview_rect_from_browser_bounds(bounds: BrowserWebviewBounds) -> Rect 
     // Child webviews use the browser overlay client root coordinate space.
     // Do not add native title bar or menu insets here.
     bounds.rect()
+}
+
+fn normalized_scale_factor(scale_factor: f64) -> f64 {
+    if scale_factor.is_finite() && scale_factor > 0.0 {
+        scale_factor
+    } else {
+        1.0
+    }
+}
+
+fn child_webview_add_child_bounds(
+    bounds: BrowserWebviewBounds,
+    scale_factor: f64,
+) -> (LogicalPosition<f64>, LogicalSize<f64>) {
+    let rect = child_webview_rect_from_browser_bounds(bounds);
+    let scale_factor = normalized_scale_factor(scale_factor);
+
+    (
+        rect.position.to_logical::<f64>(scale_factor),
+        rect.size.to_logical::<f64>(scale_factor),
+    )
 }
 
 fn browser_webview_log_url(url: &str) -> String {
@@ -372,6 +398,38 @@ fn timeout_fallback_emissions(
     emissions
 }
 
+fn navigation_failure_emissions(
+    had_tracked_state: bool,
+) -> Vec<BrowserWebviewTimeoutFallbackEmission> {
+    timeout_fallback_emissions(true, had_tracked_state)
+}
+
+fn emit_browser_webview_navigation_failure<R: tauri::Runtime>(
+    app_handle: &tauri::AppHandle<R>,
+    state: &AppState,
+    url: String,
+    error_message: String,
+) -> Result<(), AppError> {
+    let had_tracked_state = clear_browser_webview_tracker(state)?;
+    let payload = BrowserWebviewFallbackPayload {
+        url,
+        opened_external: false,
+        error_message: Some(error_message),
+    };
+    for emission in navigation_failure_emissions(had_tracked_state) {
+        match emission {
+            BrowserWebviewTimeoutFallbackEmission::ClearTracker => {}
+            BrowserWebviewTimeoutFallbackEmission::Fallback => {
+                emit_browser_webview_fallback(app_handle, &payload);
+            }
+            BrowserWebviewTimeoutFallbackEmission::Closed => {
+                emit_browser_webview_closed(app_handle);
+            }
+        }
+    }
+    Ok(())
+}
+
 fn should_accept_page_load_finish(
     snapshot: Option<&BrowserWebviewState>,
     finished_url: &str,
@@ -516,9 +574,12 @@ fn create_browser_webview(
                 return true;
             }
             let app_state = navigation_app_handle.state::<AppState>();
-            if let Ok(mut tracker) = app_state.browser_webview.lock() {
-                let next_state = tracker.start(target_url.to_string());
-                emit_browser_webview_state(&navigation_app_handle, &next_state);
+            if let Err(error) =
+                tracker_start(&app_state, &navigation_app_handle, target_url.to_string())
+            {
+                tracing::warn!(
+                    "Failed to start embedded browser navigation state on navigation: {error}"
+                );
             }
             true
         })
@@ -551,12 +612,10 @@ fn create_browser_webview(
         builder
     };
 
+    let (add_child_position, add_child_size) =
+        child_webview_add_child_bounds(bounds, window.scale_factor().unwrap_or(1.0));
     let browser_webview = window
-        .add_child(
-            builder,
-            rect.position.to_logical::<f64>(1.0),
-            rect.size.to_logical::<f64>(1.0),
-        )
+        .add_child(builder, add_child_position, add_child_size)
         .map_err(|error| {
             browser_webview_error(format!(
                 "Failed to create embedded browser webview: {error}"
@@ -580,11 +639,20 @@ fn create_browser_webview(
 
     if uses_placeholder_url {
         if let Err(error) = browser_webview.navigate(external_url(&url)?) {
-            let _ = clear_browser_webview_tracker(state);
+            let error_message =
+                format!("Failed to navigate embedded browser webview after create: {error}");
+            if let Err(emit_error) = emit_browser_webview_navigation_failure(
+                &app_handle,
+                state,
+                url.clone(),
+                error_message.clone(),
+            ) {
+                tracing::warn!(
+                    "Failed to emit embedded browser navigation failure events: {emit_error}"
+                );
+            }
             let _ = browser_webview.close();
-            return Err(browser_webview_error(format!(
-                "Failed to navigate embedded browser webview after create: {error}"
-            )));
+            return Err(browser_webview_error(error_message));
         }
     }
 
@@ -750,8 +818,9 @@ mod tests {
     use super::{
         browser_host_focus_failure_warning, browser_webview_bounds_diagnostics_payload,
         browser_webview_initial_url, browser_webview_log_url, browser_webview_not_open_error,
-        child_webview_rect_from_browser_bounds, empty_reload_source_error, external_url,
-        is_placeholder_browser_webview_url, should_accept_page_load_finish,
+        child_webview_add_child_bounds, child_webview_rect_from_browser_bounds,
+        empty_reload_source_error, external_url, is_placeholder_browser_webview_url,
+        navigation_failure_emissions, should_accept_page_load_finish,
         should_navigate_existing_browser_webview, should_use_placeholder_browser_webview_url,
         timeout_fallback_emissions, tracker_navigation_availability,
         validate_browser_webview_fallback_url, validated_bounds, BrowserNavigationAvailability,
@@ -790,6 +859,26 @@ mod tests {
     #[test]
     fn bounds_validation_rejects_invalid_geometry_values() {
         for (label, bounds) in [
+            (
+                "huge x",
+                BrowserWebviewBounds {
+                    x: f64::from(i32::MAX) + 1.0,
+                    y: 48.0,
+                    width: 900.0,
+                    height: 720.0,
+                    unit: BrowserWebviewBoundsUnit::Logical,
+                },
+            ),
+            (
+                "huge width",
+                BrowserWebviewBounds {
+                    x: 100.0,
+                    y: 48.0,
+                    width: f64::from(i32::MAX) + 1.0,
+                    height: 720.0,
+                    unit: BrowserWebviewBoundsUnit::Physical,
+                },
+            ),
             (
                 "nan x",
                 BrowserWebviewBounds {
@@ -976,6 +1065,44 @@ mod tests {
     }
 
     #[test]
+    fn add_child_bounds_convert_physical_pixels_to_logical_with_window_scale() {
+        let bounds = validated_bounds(BrowserWebviewBounds {
+            x: 460.0,
+            y: 84.0,
+            width: 1766.0,
+            height: 948.0,
+            unit: BrowserWebviewBoundsUnit::Physical,
+        })
+        .expect("valid physical bounds should pass");
+
+        let (position, size) = child_webview_add_child_bounds(bounds, 2.0);
+
+        assert_eq!(position.x, 230.0);
+        assert_eq!(position.y, 42.0);
+        assert_eq!(size.width, 883.0);
+        assert_eq!(size.height, 474.0);
+    }
+
+    #[test]
+    fn add_child_bounds_keep_logical_pixels_independent_from_window_scale() {
+        let bounds = validated_bounds(BrowserWebviewBounds {
+            x: 230.0,
+            y: 42.0,
+            width: 883.0,
+            height: 474.0,
+            unit: BrowserWebviewBoundsUnit::Logical,
+        })
+        .expect("valid logical bounds should pass");
+
+        let (position, size) = child_webview_add_child_bounds(bounds, 2.0);
+
+        assert_eq!(position.x, 230.0);
+        assert_eq!(position.y, 42.0);
+        assert_eq!(size.width, 883.0);
+        assert_eq!(size.height, 474.0);
+    }
+
+    #[test]
     fn diagnostics_payload_is_disabled_when_browser_webview_diagnostics_are_off() {
         let _guard = BROWSER_WEBVIEW_DIAGNOSTICS_TEST_LOCK.lock().unwrap();
 
@@ -1075,6 +1202,29 @@ mod tests {
     #[test]
     fn timeout_fallback_emits_nothing_when_timeout_is_stale() {
         assert_eq!(timeout_fallback_emissions(false, true), vec![]);
+    }
+
+    #[test]
+    fn navigation_failure_emits_tracker_clear_fallback_and_closed_in_order() {
+        assert_eq!(
+            navigation_failure_emissions(true),
+            vec![
+                BrowserWebviewTimeoutFallbackEmission::ClearTracker,
+                BrowserWebviewTimeoutFallbackEmission::Fallback,
+                BrowserWebviewTimeoutFallbackEmission::Closed,
+            ]
+        );
+    }
+
+    #[test]
+    fn navigation_failure_without_tracked_state_still_emits_fallback() {
+        assert_eq!(
+            navigation_failure_emissions(false),
+            vec![
+                BrowserWebviewTimeoutFallbackEmission::ClearTracker,
+                BrowserWebviewTimeoutFallbackEmission::Fallback,
+            ]
+        );
     }
 
     #[test]
