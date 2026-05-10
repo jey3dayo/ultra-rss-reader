@@ -29,6 +29,7 @@ type TagsSettingsViewProps = {
   createDisabled: boolean;
   savedHeading: string;
   emptyState: string;
+  loadFailureState?: string | null;
   tags: TagsSettingsListItem[];
   editLabel: string;
   editAriaLabel: (name: string) => string;
@@ -57,6 +58,7 @@ export function TagsSettingsView({
   createDisabled,
   savedHeading,
   emptyState,
+  loadFailureState,
   tags,
   editLabel: _editLabel,
   editAriaLabel,
@@ -114,7 +116,11 @@ export function TagsSettingsView({
       </form>
 
       <SettingsSection heading={savedHeading} surface="flat">
-        {tags.length === 0 ? (
+        {loadFailureState ? (
+          <p className="border-b border-border py-3 text-sm text-foreground-soft" data-tags-settings-state="error">
+            {loadFailureState}
+          </p>
+        ) : tags.length === 0 ? (
           <p className="border-b border-border py-3 text-sm text-foreground-soft">{emptyState}</p>
         ) : (
           <div className="border-t border-border/70">

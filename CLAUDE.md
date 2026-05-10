@@ -80,6 +80,7 @@ This file stays intentionally short and focuses on agent-facing workflow guidanc
 - `CHANGELOG.md` records completed user-visible changes.
 - Move finished TODO items into `CHANGELOG.md` once the work stabilizes.
 - Classify new TODO entries as implementation, contract test, rule update, manual verification, or type placement cleanup. If the durable answer is a rule, update `CLAUDE.md` or `.claude/rules/` instead of growing `TODO.md`.
+- Before adding risk TODOs, first check whether the finding belongs in an existing tranche, domain shard, supersedes merge, or focused verification update; keep duplicate and undiscoverable concerns out of `TODO.md`.
 - Use the P0/P1/P2/P3 taxonomy in [.claude/rules/quality-policy.md](.claude/rules/quality-policy.md) when adding or triaging TODO entries.
 - React Doctor / Knip baselines live in `scripts/quality-baseline.ts`; similarity false-positive baselines live in `scripts/similarity-report.ts`. Update those constants only after running the matching pinned task, reviewing whether the drift is expected, and keeping the tool versions pinned in `package.json` / `pnpm-lock.yaml`. Test `@latest` versions outside the baseline tasks.
 

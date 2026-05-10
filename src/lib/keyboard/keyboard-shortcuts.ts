@@ -1,5 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { type PlatformKind, SHORTCUT_MODIFIER_BY_PLATFORM } from "@/constants/platform";
+import { shouldIgnoreGlobalShortcutKeyboardEvent } from "@/lib/keyboard/global-shortcut-targets";
 import type { ContentMode } from "@/lib/layout/layout-state.types";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
 
@@ -352,6 +353,8 @@ type KeyboardContext = {
   metaKey: boolean;
   ctrlKey: boolean;
   shiftKey: boolean;
+  altKey?: boolean;
+  isComposing?: boolean;
   targetTag?: string | null;
   targetIsTextEditing?: boolean;
   selectedArticleId: string | null;
@@ -461,6 +464,8 @@ export function resolveKeyboardAction(
     metaKey,
     ctrlKey,
     shiftKey,
+    altKey,
+    isComposing,
     targetTag,
     targetIsTextEditing,
     selectedArticleId,
@@ -469,6 +474,10 @@ export function resolveKeyboardAction(
     subscriptionsWorkspaceOpen,
     keyToAction,
   } = context;
+
+  if (shouldIgnoreGlobalShortcutKeyboardEvent({ key, altKey, isComposing })) {
+    return Result.fail("no_action");
+  }
 
   const normalized = normalizeKeyFromEvent({ key, metaKey, ctrlKey, shiftKey });
 

@@ -7,7 +7,9 @@ import { useArticleListNavigation } from "@/components/reader/hooks/article-list
 
 describe("useArticleListNavigation", () => {
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
+    vi.useRealTimers();
     document.body.replaceChildren();
   });
 
@@ -106,6 +108,85 @@ describe("useArticleListNavigation", () => {
 
     expect(selectArticle).toHaveBeenCalledWith(nextArticle.id, { navigationDirection: 1 });
     expect(button).toHaveFocus();
+  });
+
+  it("falls back to a timer when delayed navigation frame scheduling throws", () => {
+    vi.useFakeTimers();
+    const nextArticle = sampleArticles[1];
+    const selectArticle = vi.fn();
+    const list = document.createElement("div");
+    const viewport = document.createElement("div");
+    const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    vi.stubGlobal(
+      "requestAnimationFrame",
+      vi.fn(() => {
+        throw new Error("frame failed");
+      }),
+    );
+    Object.defineProperty(viewport, "clientHeight", { value: 200 });
+    Object.defineProperty(viewport, "scrollHeight", { value: 400 });
+    document.body.append(list);
+
+    const { result } = renderHook(() =>
+      useArticleListNavigation({
+        filteredArticles: [sampleArticles[0], nextArticle],
+        selectedArticleId: sampleArticles[0].id,
+        selectArticle,
+        listRef: { current: list },
+        viewportRef: { current: viewport },
+      }),
+    );
+
+    result.current(1);
+    const button = document.createElement("button");
+    button.setAttribute("data-article-id", nextArticle.id);
+    list.append(button);
+    vi.runOnlyPendingTimers();
+
+    expect(selectArticle).toHaveBeenCalledWith(nextArticle.id, { navigationDirection: 1 });
+    expect(button).toHaveFocus();
+    expect(consoleWarn).toHaveBeenCalledOnce();
+  });
+
+  it("does not restore delayed navigation focus while text editing is active", () => {
+    const nextArticle = sampleArticles[1];
+    const selectArticle = vi.fn();
+    const list = document.createElement("div");
+    const viewport = document.createElement("div");
+    const textarea = document.createElement("textarea");
+    const requestAnimationFrameCallbacks: FrameRequestCallback[] = [];
+
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+      requestAnimationFrameCallbacks.push(callback);
+      return requestAnimationFrameCallbacks.length;
+    });
+    Object.defineProperty(viewport, "clientHeight", { value: 200 });
+    Object.defineProperty(viewport, "scrollHeight", { value: 400 });
+    document.body.append(list, textarea);
+
+    const { result } = renderHook(() =>
+      useArticleListNavigation({
+        filteredArticles: [sampleArticles[0], nextArticle],
+        selectedArticleId: sampleArticles[0].id,
+        selectArticle,
+        listRef: { current: list },
+        viewportRef: { current: viewport },
+      }),
+    );
+
+    result.current(1);
+    const button = document.createElement("button");
+    button.setAttribute("data-article-id", nextArticle.id);
+    list.append(button);
+    textarea.focus();
+    requestAnimationFrameCallbacks.forEach((callback) => {
+      callback(0);
+    });
+
+    expect(selectArticle).toHaveBeenCalledWith(nextArticle.id, { navigationDirection: 1 });
+    expect(textarea).toHaveFocus();
+    expect(button).not.toHaveFocus();
   });
 
   it("falls back to the first article for stale selections and does not wrap past the last article", () => {
@@ -334,5 +415,55 @@ describe("useArticleListEffects", () => {
     expect(clearArticle).toHaveBeenCalledTimes(1);
     expect(deletedButton).not.toHaveFocus();
     expect(fallbackButton).not.toHaveFocus();
+  });
+
+  it("does not clear the selected article when a missing row is followed by a loading transition", () => {
+    const list = document.createElement("div");
+    const viewport = document.createElement("div");
+    const clearArticle = vi.fn();
+    const requestAnimationFrameCallbacks: FrameRequestCallback[] = [];
+    const cancelAnimationFrame = vi.fn();
+
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+      requestAnimationFrameCallbacks.push(callback);
+      return requestAnimationFrameCallbacks.length;
+    });
+    vi.stubGlobal("cancelAnimationFrame", cancelAnimationFrame);
+
+    const { rerender } = renderHook(
+      ({ filteredArticles, isPrimarySourceLoading }) =>
+        useArticleListEffects({
+          selection: { type: "all" },
+          scrollToTopOnChange: "false",
+          listRef: { current: list },
+          viewportRef: { current: viewport },
+          filteredArticles,
+          focusedPane: "list",
+          selectedArticleId: sampleArticles[1].id,
+          isPrimarySourceLoading,
+          clearArticle,
+        }),
+      {
+        initialProps: {
+          filteredArticles: [sampleArticles[0], sampleArticles[1]],
+          isPrimarySourceLoading: false,
+        },
+      },
+    );
+
+    rerender({
+      filteredArticles: [sampleArticles[0]],
+      isPrimarySourceLoading: false,
+    });
+    rerender({
+      filteredArticles: [sampleArticles[0]],
+      isPrimarySourceLoading: true,
+    });
+    requestAnimationFrameCallbacks.forEach((callback) => {
+      callback(0);
+    });
+
+    expect(cancelAnimationFrame).toHaveBeenCalled();
+    expect(clearArticle).not.toHaveBeenCalled();
   });
 });

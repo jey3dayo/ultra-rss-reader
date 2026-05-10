@@ -2015,14 +2015,12 @@ describe("command args schemas", () => {
     expect(extractRustUsizeConst(rustShareCommandSource, "CLIPBOARD_TEXT_MAX_CHARS")).toBe(
       SHARE_COMMAND_TEXT_MAX_CHARS,
     );
-    expect(copyToClipboardArgs.parse({ text: "first line\nsecond line" })).toEqual({
-      text: "first line\nsecond line",
-    });
     expect(copyToClipboardArgs.parse({ text: "x".repeat(SHARE_COMMAND_TEXT_MAX_CHARS) })).toEqual({
       text: "x".repeat(SHARE_COMMAND_TEXT_MAX_CHARS),
     });
     expect(() => copyToClipboardArgs.parse({ text: "" })).toThrow();
     expect(() => copyToClipboardArgs.parse({ text: "   " })).toThrow();
+    expect(() => copyToClipboardArgs.parse({ text: "first line\nsecond line" })).toThrow();
     expect(() => copyToClipboardArgs.parse({ text: "x".repeat(SHARE_COMMAND_TEXT_MAX_CHARS + 1) })).toThrow();
     expect(() => addToReadingListArgs.parse({ url: "mailto:hello@example.com" })).toThrow();
   });

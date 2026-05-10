@@ -25,6 +25,20 @@ const readerFocusRetryGenerations: Record<ReaderFocusRetryGenerationKey, number>
   "sidebar-smart-view": 0,
 };
 
+function isTextEditingTarget(target: Element | null): boolean {
+  return (
+    target instanceof HTMLElement &&
+    (target.tagName === "INPUT" ||
+      target.tagName === "TEXTAREA" ||
+      target.isContentEditable ||
+      target.getAttribute("contenteditable") === "true")
+  );
+}
+
+function hasActiveTextEditingTarget(): boolean {
+  return typeof document !== "undefined" && isTextEditingTarget(document.activeElement);
+}
+
 export function getReaderFocusBooleanSelector(attribute: ReaderFocusTargetAttribute): string {
   return `[${attribute}="true"]`;
 }
@@ -44,7 +58,6 @@ export function getSidebarSmartViewKindSelector(kind: SmartViewKind): string {
 export function scheduleReaderFocusFrame(callback: () => void): ReaderFocusFrameCleanup {
   const timeoutFallback = () => {
     if (typeof window === "undefined" || typeof window.setTimeout !== "function") {
-      callback();
       return null;
     }
 
@@ -91,7 +104,7 @@ export function scrollReaderFocusTargetIntoView(target: HTMLElement): void {
 }
 
 function focusElement(target: HTMLElement): boolean {
-  if (isReaderFocusTargetDisabled(target)) {
+  if (isReaderFocusTargetDisabled(target) || (hasActiveTextEditingTarget() && document.activeElement !== target)) {
     return false;
   }
 

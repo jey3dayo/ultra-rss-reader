@@ -1296,7 +1296,7 @@ describe("subscriptions index helpers", () => {
       tone: "high",
       statusLabel: "stale_90d",
       summary: "stale_and_inactive",
-      reasonBoxBody: "stale_days:154 / unread_count:0",
+      reasonBoxBody: "stale_days:155 / unread_count:0",
       reasonLabels: ["stale_90d", "no_unread"],
     });
   });

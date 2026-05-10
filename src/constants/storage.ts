@@ -66,9 +66,7 @@ export const PRIVATE_DATA_EXPORT_STORAGE_CLEANUP_POLICIES = [
   "startup-window-expiring",
 ] as const satisfies readonly StorageKeyCleanupPolicy[];
 
-function storageKeysForCleanupPolicies(
-  cleanupPolicies: readonly StorageKeyCleanupPolicy[],
-): readonly StorageKey[] {
+function storageKeysForCleanupPolicies(cleanupPolicies: readonly StorageKeyCleanupPolicy[]): readonly StorageKey[] {
   const cleanupPolicySet = new Set<StorageKeyCleanupPolicy>(cleanupPolicies);
 
   return Object.entries(STORAGE_KEYS).flatMap(([name, key]) =>

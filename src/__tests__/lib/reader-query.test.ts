@@ -4,6 +4,7 @@ import {
   type ReaderQuery,
   type ReaderQuerySelection,
   resolveReaderQuery,
+  resolveReaderSearchResultPolicy,
   resolveReaderSourcePlan,
   shouldRecoverUnavailableReaderSelection,
 } from "@/lib/reader/reader-query";
@@ -493,6 +494,64 @@ describe("resolveReaderSourcePlan", () => {
       sourceKey: "account:acc-1:articles:unread",
       accountMode: "unread",
       effectiveViewMode: "unread",
+    });
+  });
+});
+
+describe("resolveReaderSearchResultPolicy", () => {
+  it("keeps search owner and result ordering policy explicit for account, folder, and unread searches", () => {
+    const retainedArticleIds = new Set(["art-selected"]);
+    const cases = [
+      {
+        sourcePlan: resolveReaderSourcePlan({ type: "all" }, "all", "acc-1"),
+        sortUnread: "newest_first",
+        expected: {
+          ownerSourceKey: "account:acc-1:articles:all",
+          preservesSearchRanking: true,
+          appliesUnreadSort: true,
+          includesRetainedSelectedArticle: true,
+          missingResultArticlePolicy: "exclude",
+        },
+      },
+      {
+        sourcePlan: resolveReaderSourcePlan({ type: "folder", folderId: "folder-1" }, "unread", "acc-1"),
+        sortUnread: "oldest_first",
+        expected: {
+          ownerSourceKey: "folder:folder-1:unread",
+          preservesSearchRanking: true,
+          appliesUnreadSort: true,
+          includesRetainedSelectedArticle: true,
+          missingResultArticlePolicy: "exclude",
+        },
+      },
+    ];
+
+    for (const testCase of cases) {
+      expect(
+        resolveReaderSearchResultPolicy({
+          sourcePlan: testCase.sourcePlan,
+          sortUnread: testCase.sortUnread,
+          retainedArticleIds,
+          selectedArticleId: "art-selected",
+        }),
+      ).toEqual(testCase.expected);
+    }
+  });
+
+  it("does not treat missing search results as retained selected articles", () => {
+    expect(
+      resolveReaderSearchResultPolicy({
+        sourcePlan: resolveReaderSourcePlan({ type: "all" }, "all", "acc-1"),
+        sortUnread: "custom",
+        retainedArticleIds: new Set(["art-other"]),
+        selectedArticleId: "art-selected",
+      }),
+    ).toEqual({
+      ownerSourceKey: "account:acc-1:articles:all",
+      preservesSearchRanking: true,
+      appliesUnreadSort: false,
+      includesRetainedSelectedArticle: false,
+      missingResultArticlePolicy: "exclude",
     });
   });
 });

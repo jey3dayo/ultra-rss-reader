@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { Dialog, DialogContent, DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import i18n from "@/lib/i18n";
@@ -69,7 +69,7 @@ describe("DialogContent", () => {
     expect(screen.getByRole("dialog", { name: "Test dialog" })).toHaveAttribute("data-stack-layer", "dialog");
   });
 
-  it("keeps background content hidden and inert while the modal dialog owns the top layer", () => {
+  it("keeps background content hidden and inert while the modal dialog owns the top layer", async () => {
     render(
       <>
         <main data-testid="background-shell">
@@ -83,10 +83,57 @@ describe("DialogContent", () => {
       </>,
     );
 
-    expect(screen.getByTestId("background-shell")).toHaveAttribute("aria-hidden", "true");
-    expect(screen.getByTestId("background-shell")).toHaveAttribute("inert");
+    await waitFor(() => {
+      const hiddenBackgroundRoot = screen.getByTestId("background-shell").closest("[aria-hidden='true']");
+      expect(hiddenBackgroundRoot).toHaveAttribute("aria-hidden", "true");
+      expect(hiddenBackgroundRoot).toHaveAttribute("inert");
+    });
     expect(screen.getByRole("dialog", { name: "Test dialog" })).not.toHaveAttribute("aria-hidden");
     expect(screen.getByRole("dialog", { name: "Test dialog" })).not.toHaveAttribute("inert");
+  });
+
+  it("restores only the top dialog layer while keeping background hidden for the remaining modal", async () => {
+    const { rerender } = render(
+      <>
+        <main data-testid="background-shell">
+          <button type="button">Background action</button>
+        </main>
+        <Dialog open>
+          <DialogContent>
+            <DialogTitle>Outer dialog</DialogTitle>
+          </DialogContent>
+        </Dialog>
+        <Dialog open>
+          <DialogContent>
+            <DialogTitle>Inner dialog</DialogTitle>
+          </DialogContent>
+        </Dialog>
+      </>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("background-shell").closest("[aria-hidden='true']")).toHaveAttribute("inert");
+    });
+
+    rerender(
+      <>
+        <main data-testid="background-shell">
+          <button type="button">Background action</button>
+        </main>
+        <Dialog open>
+          <DialogContent>
+            <DialogTitle>Outer dialog</DialogTitle>
+          </DialogContent>
+        </Dialog>
+      </>,
+    );
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: "Inner dialog" })).not.toBeInTheDocument();
+      expect(screen.getByTestId("background-shell").closest("[aria-hidden='true']")).toHaveAttribute("inert");
+    });
+    expect(screen.getByRole("dialog", { name: "Outer dialog" })).not.toHaveAttribute("aria-hidden");
+    expect(screen.getByRole("dialog", { name: "Outer dialog" })).not.toHaveAttribute("inert");
   });
 
   it("keeps the trap-focus escape hatch from hiding sibling top-layer surfaces", () => {

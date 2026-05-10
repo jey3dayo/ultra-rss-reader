@@ -25,19 +25,10 @@ export function TagColorPicker({
   const radioName = useId();
   const radioRefs = useRef<Array<HTMLInputElement | null>>([]);
   const normalizedColor = normalizePickerColor(color);
-  const uniqueColorOptions = [
-    ...new Set(
-      colorOptions
-        .map(normalizePickerColor)
-        .filter((option) => option !== null),
-    ),
-  ];
+  const uniqueColorOptions = normalizeUniquePickerColors(colorOptions);
   const radioValues = [
     null,
-    ...(normalizedColor !== null &&
-    !uniqueColorOptions.includes(normalizedColor)
-      ? [normalizedColor]
-      : []),
+    ...(normalizedColor !== null && !uniqueColorOptions.includes(normalizedColor) ? [normalizedColor] : []),
     ...uniqueColorOptions,
   ] as const;
   const colorRadioValues = radioValues.slice(1) as readonly string[];
@@ -50,16 +41,7 @@ export function TagColorPicker({
     }
   };
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (
-      ![
-        "ArrowRight",
-        "ArrowDown",
-        "ArrowLeft",
-        "ArrowUp",
-        "Home",
-        "End",
-      ].includes(event.key)
-    ) {
+    if (!["ArrowRight", "ArrowDown", "ArrowLeft", "ArrowUp", "Home", "End"].includes(event.key)) {
       return;
     }
 
@@ -73,21 +55,14 @@ export function TagColorPicker({
       return;
     }
 
-    const direction =
-      event.key === "ArrowRight" || event.key === "ArrowDown" ? 1 : -1;
-    selectByIndex(
-      (checkedIndex + direction + radioValues.length) % radioValues.length,
-      true,
-    );
+    const direction = event.key === "ArrowRight" || event.key === "ArrowDown" ? 1 : -1;
+    selectByIndex((checkedIndex + direction + radioValues.length) % radioValues.length, true);
   };
 
   return (
     <div className="space-y-3">
       {label ? (
-        <span
-          id={labelId}
-          className="block text-sm font-medium text-foreground-soft"
-        >
+        <span id={labelId} className="block text-sm font-medium text-foreground-soft">
           {label}
         </span>
       ) : null}
@@ -161,7 +136,21 @@ function normalizePickerColor(color: string | null): string | null {
     return null;
   }
   const trimmedColor = color.trim();
-  return HEX_COLOR_PATTERN.test(trimmedColor)
-    ? trimmedColor.toLowerCase()
-    : null;
+  return HEX_COLOR_PATTERN.test(trimmedColor) ? trimmedColor.toLowerCase() : null;
+}
+
+function normalizeUniquePickerColors(colors: readonly string[]): string[] {
+  const uniqueColors: string[] = [];
+  const seenColors = new Set<string>();
+
+  for (const color of colors) {
+    const normalizedColor = normalizePickerColor(color);
+    if (normalizedColor === null || seenColors.has(normalizedColor)) {
+      continue;
+    }
+    seenColors.add(normalizedColor);
+    uniqueColors.push(normalizedColor);
+  }
+
+  return uniqueColors;
 }

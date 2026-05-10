@@ -141,7 +141,10 @@ export function useAccountDetailNameEditor({
     editingName,
     savingName,
     nameDraft,
-    setNameDraft: (value) => dispatch({ type: "set-name-draft", value }),
+    setNameDraft: (value) => {
+      editSessionRef.current += 1;
+      dispatch({ type: "set-name-draft", value });
+    },
     nameInputRef,
     startEditingName,
     commitRename,

@@ -1,9 +1,10 @@
 import type { RefObject } from "react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { queryElementByDataAttribute } from "@/lib/dom/data-attribute";
 import type { FocusedPane } from "@/lib/layout/layout-state.types";
 import type { ReaderSelection } from "@/lib/reader/reader-selection.types";
+import { scheduleReaderFocusFrame } from "@/lib/reader-focus";
 
 type UseArticleListEffectsParams = {
   selection: ReaderSelection;
@@ -28,14 +29,31 @@ export function useArticleListEffects({
   isPrimarySourceLoading,
   clearArticle,
 }: UseArticleListEffectsParams) {
+  const selectedArticleClearGenerationRef = useRef(0);
+
   useEffect(() => {
+    selectedArticleClearGenerationRef.current += 1;
+    const selectedArticleClearGeneration = selectedArticleClearGenerationRef.current;
+
     if (!selectedArticleId || isPrimarySourceLoading) {
       return;
     }
 
     const isSelectedArticleVisible = filteredArticles.some((article) => article.id === selectedArticleId);
     if (!isSelectedArticleVisible) {
-      clearArticle();
+      return scheduleReaderFocusFrame(() => {
+        if (selectedArticleClearGenerationRef.current !== selectedArticleClearGeneration) {
+          return;
+        }
+
+        const currentSelectedArticleId = selectedArticleId;
+        const selectedArticleStillMissing = !filteredArticles.some(
+          (article) => article.id === currentSelectedArticleId,
+        );
+        if (!isPrimarySourceLoading && selectedArticleStillMissing) {
+          clearArticle();
+        }
+      });
     }
   }, [clearArticle, filteredArticles, isPrimarySourceLoading, selectedArticleId]);
 
@@ -71,7 +89,7 @@ export function useArticleListEffects({
       return;
     }
 
-    const focusTargetRow = requestAnimationFrame(() => {
+    const cleanupFocusTargetRow = scheduleReaderFocusFrame(() => {
       const currentTargetRow = listRef.current
         ? queryElementByDataAttribute<HTMLElement>(listRef.current, "data-article-id", targetArticleId)
         : null;
@@ -83,8 +101,6 @@ export function useArticleListEffects({
       currentTargetRow.scrollIntoView?.({ block: "nearest", inline: "nearest" });
     });
 
-    return () => {
-      cancelAnimationFrame(focusTargetRow);
-    };
+    return cleanupFocusTargetRow;
   }, [filteredArticles, focusedPane, isPrimarySourceLoading, listRef, selectedArticleId]);
 }

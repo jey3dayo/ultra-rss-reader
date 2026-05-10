@@ -148,6 +148,33 @@ describe("ShortcutsSettings", () => {
     expect(recordingButton).toHaveTextContent("Press a key");
   });
 
+  it.each([
+    ["IME composition", { key: "k", isComposing: true }],
+    ["dead key", { key: "Dead" }],
+    ["unidentified key", { key: "Unidentified" }],
+    ["process key", { key: "Process" }],
+  ] as const)("ignores %s while recording", async (_label, keyboardEvent) => {
+    const user = userEvent.setup();
+    const setPref = vi.fn();
+    usePreferencesStore.setState({
+      prefs: {
+        shortcut_next_article: "j",
+      },
+      loaded: true,
+      setPref,
+    });
+
+    render(<ShortcutsSettings />, { wrapper: createWrapper() });
+
+    await user.click(screen.getByTestId("shortcut-badge-next_article"));
+
+    const recordingButton = screen.getByTestId("shortcut-badge-next_article");
+    fireEvent.keyDown(recordingButton, keyboardEvent);
+
+    expect(setPref).not.toHaveBeenCalled();
+    expect(recordingButton).toHaveTextContent("Press a key");
+  });
+
   it("blocks native menu owned shortcuts while recording and formats the platform modifier in the warning", async () => {
     const user = userEvent.setup();
     const setPref = vi.fn();

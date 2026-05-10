@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useReducer, useRef } from "react";
 import { ARTICLE_SEARCH_DEBOUNCE_MS } from "@/constants/reader";
-import { useSearchArticles } from "@/hooks/use-articles";
+import { resolveArticleSearchQueryOwner, useSearchArticles } from "@/hooks/use-articles";
 import type { UseArticleListSearchParams, UseArticleListSearchResult } from "../../article-list.types";
 
 type ArticleListSearchState = {
@@ -128,7 +128,17 @@ export function useArticleListSearch({ selectedAccountId }: UseArticleListSearch
   }, [searchQuery]);
 
   const trimmedDebouncedQuery = showSearch ? debouncedQuery.trim() : "";
-  const { data: searchResults, isFetching: isSearching } = useSearchArticles(selectedAccountId, trimmedDebouncedQuery);
+  const currentSearchOwner = resolveArticleSearchQueryOwner(selectedAccountId, trimmedDebouncedQuery);
+  const {
+    data: ownedSearchResults,
+    isFetching: isSearchQueryFetching,
+    isPlaceholderData: isPlaceholderSearchData,
+    searchOwner,
+  } = useSearchArticles(selectedAccountId, trimmedDebouncedQuery);
+  const isCurrentSearchOwner =
+    currentSearchOwner !== null && searchOwner !== null && currentSearchOwner.key === searchOwner.key;
+  const searchResults = isCurrentSearchOwner && !isPlaceholderSearchData ? ownedSearchResults : undefined;
+  const isSearching = isCurrentSearchOwner && isSearchQueryFetching;
 
   const focusSearchInput = useCallback(() => {
     cancelSearchFocusRetry();

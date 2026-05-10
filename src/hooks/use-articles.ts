@@ -64,6 +64,12 @@ type ArticleQueryOptions = {
   unreadOnly?: boolean;
 };
 
+export type ArticleSearchQueryOwner = {
+  accountId: string;
+  query: string;
+  key: string;
+};
+
 const ARTICLE_SEARCH_QUERY_MAX_LENGTH = 128;
 const ARTICLE_SEARCH_QUERY_WHITESPACE_PATTERN = /\s+/gu;
 
@@ -91,6 +97,24 @@ export function normalizeArticleSearchQuery(query: string): string {
   return Array.from(query.normalize("NFKC").replace(ARTICLE_SEARCH_QUERY_WHITESPACE_PATTERN, " ").trim())
     .slice(0, ARTICLE_SEARCH_QUERY_MAX_LENGTH)
     .join("");
+}
+
+export function resolveArticleSearchQueryOwner(
+  accountId: string | null,
+  query: string,
+): ArticleSearchQueryOwner | null {
+  const normalizedAccountId = normalizeQueryAccountId(accountId);
+  const normalizedQuery = normalizeArticleSearchQuery(query);
+
+  if (normalizedAccountId === null || normalizedQuery.length === 0) {
+    return null;
+  }
+
+  return {
+    accountId: normalizedAccountId,
+    query: normalizedQuery,
+    key: `${normalizedAccountId}\0${normalizedQuery}`,
+  };
 }
 
 function patchCachedArticleReadState(qc: QueryClient, articleId: string, read: boolean) {
@@ -524,13 +548,23 @@ export const useMarkFolderRead = createMutation(markFolderRead, invalidateArticl
 export function useSearchArticles(accountId: string | null, query: string) {
   const normalizedAccountId = normalizeQueryAccountId(accountId);
   const normalizedQuery = normalizeArticleSearchQuery(query);
-
-  return useQuery({
+  const searchOwner = resolveArticleSearchQueryOwner(accountId, query);
+  const queryResult = useQuery({
     queryKey: queryKeys.search.byAccountAndQuery(normalizedAccountId, normalizedQuery),
     queryFn: () =>
-      searchArticles(requireEnabledQueryValue(normalizedAccountId, "accountId"), normalizedQuery).then(Result.unwrap()),
-    enabled: normalizedAccountId !== null && normalizedQuery.length > 0,
+      searchArticles(
+        requireEnabledQueryValue(searchOwner?.accountId ?? null, "accountId"),
+        searchOwner?.query ?? "",
+      ).then(Result.unwrap()),
+    enabled: searchOwner !== null,
+    placeholderData: undefined,
   });
+
+  return {
+    ...queryResult,
+    data: queryResult.isPlaceholderData ? undefined : queryResult.data,
+    searchOwner,
+  };
 }
 
 export function useToggleStar() {

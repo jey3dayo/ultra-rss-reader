@@ -21,10 +21,7 @@ type SpawnSpec = {
 type ManagedChildProcess = {
   killed: boolean;
   kill(signal: NodeJS.Signals): boolean;
-  on(
-    event: "exit",
-    listener: (code: number | null, signal: NodeJS.Signals | null) => void,
-  ): void;
+  on(event: "exit", listener: (code: number | null, signal: NodeJS.Signals | null) => void): void;
   on(event: "error", listener: (error: Error) => void): void;
 };
 
@@ -73,11 +70,7 @@ function normalizePathForComparison(value: string): string {
     return slashPath.toLowerCase();
   }
 
-  return path
-    .resolve(slashPath)
-    .replaceAll("\\", "/")
-    .replace(/\/+$/, "")
-    .toLowerCase();
+  return path.resolve(slashPath).replaceAll("\\", "/").replace(/\/+$/, "").toLowerCase();
 }
 
 function splitCommandLine(commandLine: string): string[] {
@@ -92,10 +85,7 @@ function splitCommandLine(commandLine: string): string[] {
   return args;
 }
 
-function hasExpectedVitePort(
-  commandArgs: readonly string[],
-  port: number,
-): boolean {
+function hasExpectedVitePort(commandArgs: readonly string[], port: number): boolean {
   const expectedPort = String(port);
 
   return commandArgs.some((arg, index) => {
@@ -107,10 +97,7 @@ function hasExpectedVitePort(
   });
 }
 
-function commandArgsReferencePackageRoot(
-  commandArgs: readonly string[],
-  packageRoot: string,
-): boolean {
+function commandArgsReferencePackageRoot(commandArgs: readonly string[], packageRoot: string): boolean {
   const normalizedPackageRoot = normalizePathForComparison(packageRoot);
 
   return commandArgs.some((arg) => {
@@ -127,9 +114,7 @@ function resolvePackageRoot(scriptUrl: string): string {
   return path.resolve(fileURLToPath(new URL("..", scriptUrl)));
 }
 
-export function classifyPortOwnerCommandLine(
-  commandLine: string,
-): PortOwnerKind {
+export function classifyPortOwnerCommandLine(commandLine: string): PortOwnerKind {
   const normalized = commandLine.trim().toLowerCase();
   if (!normalized) {
     return "unknown";
@@ -146,10 +131,7 @@ export function classifyPortOwnerCommandLine(
   return "foreign";
 }
 
-export function classifyPortOwner(
-  processInfo: PortOwnerProcess,
-  expectedOwner: ExpectedViteOwner,
-): PortOwnerKind {
+export function classifyPortOwner(processInfo: PortOwnerProcess, expectedOwner: ExpectedViteOwner): PortOwnerKind {
   const ownerKind = classifyPortOwnerCommandLine(processInfo.commandLine);
   if (ownerKind !== "vite") {
     return ownerKind;
@@ -157,15 +139,10 @@ export function classifyPortOwner(
 
   const commandArgs = splitCommandLine(processInfo.commandLine);
   if (processInfo.cwd) {
-    if (
-      normalizePathForComparison(processInfo.cwd) !==
-      normalizePathForComparison(expectedOwner.packageRoot)
-    ) {
+    if (normalizePathForComparison(processInfo.cwd) !== normalizePathForComparison(expectedOwner.packageRoot)) {
       return "foreign";
     }
-  } else if (
-    !commandArgsReferencePackageRoot(commandArgs, expectedOwner.packageRoot)
-  ) {
+  } else if (!commandArgsReferencePackageRoot(commandArgs, expectedOwner.packageRoot)) {
     return "foreign";
   }
 
@@ -176,10 +153,7 @@ export function classifyPortOwner(
   return "vite";
 }
 
-export function buildViteSpawnSpec(
-  scriptUrl: string = import.meta.url,
-  port: number = DEFAULT_DEV_PORT,
-): SpawnSpec {
+export function buildViteSpawnSpec(scriptUrl: string = import.meta.url, port: number = DEFAULT_DEV_PORT): SpawnSpec {
   return {
     command: process.execPath,
     args: [
@@ -193,9 +167,7 @@ export function buildViteSpawnSpec(
   };
 }
 
-export function resolveTauriDevPort(
-  env: NodeJS.ProcessEnv = process.env,
-): number {
+export function resolveTauriDevPort(env: NodeJS.ProcessEnv = process.env): number {
   const rawPort = env.TAURI_DEV_PORT;
   if (rawPort === undefined) {
     return DEFAULT_DEV_PORT;
@@ -203,12 +175,7 @@ export function resolveTauriDevPort(
 
   const trimmedPort = rawPort.trim();
   const port = Number(trimmedPort);
-  if (
-    !trimmedPort ||
-    !Number.isInteger(port) ||
-    port <= 0 ||
-    port > MAX_TCP_PORT
-  ) {
+  if (!trimmedPort || !Number.isInteger(port) || port <= 0 || port > MAX_TCP_PORT) {
     throw new Error("TAURI_DEV_PORT must be an integer between 1 and 65535.");
   }
 
@@ -225,19 +192,13 @@ function getExecErrorCode(error: unknown): number | string {
 }
 
 function getExecErrorExitCode(error: unknown): number {
-  return typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    typeof error.code === "number"
+  return typeof error === "object" && error !== null && "code" in error && typeof error.code === "number"
     ? error.code
     : -1;
 }
 
 function getExecErrorStdout(error: unknown): string {
-  return typeof error === "object" &&
-    error !== null &&
-    "stdout" in error &&
-    typeof error.stdout === "string"
+  return typeof error === "object" && error !== null && "stdout" in error && typeof error.stdout === "string"
     ? error.stdout
     : "";
 }
@@ -251,16 +212,12 @@ export function buildPortWaitTimeoutMessage(options: {
   const processDetail = options.lastProcess
     ? `last listener pid ${options.lastProcess.pid}: ${options.lastProcess.commandLine || "unknown command"}`
     : "no listener details were available";
-  const processSnapshots =
-    options.processSnapshots ??
-    (options.lastProcess ? [options.lastProcess] : []);
+  const processSnapshots = options.processSnapshots ?? (options.lastProcess ? [options.lastProcess] : []);
   const snapshotDetail =
     processSnapshots.length > 0
       ? processSnapshots
           .map((processInfo, index) => {
-            const cwd = processInfo.cwd
-              ? ` cwd ${processInfo.cwd}`
-              : " cwd unknown";
+            const cwd = processInfo.cwd ? ` cwd ${processInfo.cwd}` : " cwd unknown";
             return `#${index + 1} pid ${processInfo.pid}${cwd} command ${processInfo.commandLine || "unknown command"}`;
           })
           .join(" | ")
@@ -275,11 +232,7 @@ export function buildPortWaitTimeoutMessage(options: {
   ].join(". ");
 }
 
-async function capture(
-  command: string,
-  args: string[],
-  allowedExitCodes: number[] = [0],
-): Promise<string> {
+async function capture(command: string, args: string[], allowedExitCodes: number[] = [0]): Promise<string> {
   try {
     const { stdout } = await execFileAsync(command, args, { encoding: "utf8" });
     return stdout.trim();
@@ -293,9 +246,7 @@ async function capture(
   }
 }
 
-async function getListeningProcess(
-  port: number,
-): Promise<ListeningProcess | null> {
+async function getListeningProcess(port: number): Promise<ListeningProcess | null> {
   if (process.platform === "win32") {
     return getListeningProcessOnWindows(port);
   }
@@ -303,16 +254,10 @@ async function getListeningProcess(
   return getListeningProcessOnUnix(port);
 }
 
-async function getListeningProcessOnUnix(
-  port: number,
-): Promise<ListeningProcess | null> {
+async function getListeningProcessOnUnix(port: number): Promise<ListeningProcess | null> {
   let pidText = "";
   try {
-    pidText = await capture(
-      "lsof",
-      ["-nP", "-t", `-iTCP:${port}`, "-sTCP:LISTEN"],
-      [0, 1],
-    );
+    pidText = await capture("lsof", ["-nP", "-t", `-iTCP:${port}`, "-sTCP:LISTEN"], [0, 1]);
   } catch (error: unknown) {
     if (getExecErrorCode(error) !== "ENOENT") {
       throw error;
@@ -335,9 +280,7 @@ async function getListeningProcessOnUnix(
   return { pid, commandLine, cwd };
 }
 
-async function getListeningProcessFromSs(
-  port: number,
-): Promise<ListeningProcess | null> {
+async function getListeningProcessFromSs(port: number): Promise<ListeningProcess | null> {
   const output = await capture("ss", ["-ltnp", `sport = :${port}`], [0, 1]);
   const pidMatch = output.match(/pid=(\d+)/);
 
@@ -367,14 +310,8 @@ async function getProcessCwdOnUnix(pid: number): Promise<string | undefined> {
   }
 
   try {
-    const cwdOutput = await capture(
-      "lsof",
-      ["-a", "-p", String(pid), "-d", "cwd", "-Fn"],
-      [0, 1],
-    );
-    const cwdLine = cwdOutput
-      .split(/\r?\n/)
-      .find((line) => line.startsWith("n"));
+    const cwdOutput = await capture("lsof", ["-a", "-p", String(pid), "-d", "cwd", "-Fn"], [0, 1]);
+    const cwdLine = cwdOutput.split(/\r?\n/).find((line) => line.startsWith("n"));
     return cwdLine?.slice(1).trim() || undefined;
   } catch (error: unknown) {
     if (getExecErrorCode(error) !== "ENOENT") {
@@ -384,9 +321,7 @@ async function getProcessCwdOnUnix(pid: number): Promise<string | undefined> {
   }
 }
 
-async function getListeningProcessOnWindows(
-  port: number,
-): Promise<ListeningProcess | null> {
+async function getListeningProcessOnWindows(port: number): Promise<ListeningProcess | null> {
   const pidText = await capture(
     "powershell.exe",
     [
@@ -480,15 +415,11 @@ export async function runTauriDevViteManager({
     }
 
     if (checkMode) {
-      log(
-        `[tauri-dev-vite-manager] existing Vite dev server is ready on port ${port} (pid ${existingProcess.pid})`,
-      );
+      log(`[tauri-dev-vite-manager] existing Vite dev server is ready on port ${port} (pid ${existingProcess.pid})`);
       return "checked";
     }
 
-    log(
-      `[tauri-dev-vite-manager] stopping existing Vite dev server on port ${port} (pid ${existingProcess.pid})`,
-    );
+    log(`[tauri-dev-vite-manager] stopping existing Vite dev server on port ${port} (pid ${existingProcess.pid})`);
     stopProcessImpl(existingProcess.pid);
     try {
       await waitForPortToBeFreeImpl(port);
@@ -541,16 +472,11 @@ async function main(): Promise<void> {
   await runTauriDevViteManager();
 }
 
-const isMainModule =
-  typeof process.argv[1] === "string" &&
-  import.meta.url === pathToFileURL(process.argv[1]).href;
+const isMainModule = typeof process.argv[1] === "string" && import.meta.url === pathToFileURL(process.argv[1]).href;
 
 if (isMainModule) {
   main().catch((error: unknown) => {
-    console.error(
-      "[tauri-dev-vite-manager]",
-      error instanceof Error ? error.message : error,
-    );
+    console.error("[tauri-dev-vite-manager]", error instanceof Error ? error.message : error);
     process.exit(1);
   });
 }

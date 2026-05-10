@@ -55,6 +55,9 @@ export function DataSettingsView({
       : databaseSizeStatus === "loading"
         ? databaseSizeLoadingLabel
         : databaseSizeErrorLabel;
+  const vacuumUnavailable = databaseSizeStatus === "error";
+  const vacuumDescriptionText =
+    databaseSizeStatus === "error" ? `${vacuumDescription} ${databaseSizeErrorLabel}` : vacuumDescription;
 
   return (
     <SettingsContentLayout title={title} outerTestId="data-settings-root">
@@ -74,10 +77,16 @@ export function DataSettingsView({
         </ul>
       </SettingsSection>
       <SettingsSection heading={optimizationHeading} surface="flat" className="mb-6 sm:mb-7">
-        <LabeledControlRow label={vacuumLabel} description={vacuumDescription}>
-          <SettingsActionButton disabled={vacuuming || openingLogDir} onClick={onVacuum}>
-            {vacuumLabel}
-          </SettingsActionButton>
+        <LabeledControlRow label={vacuumLabel} description={vacuumDescriptionText}>
+          {({ descriptionId }) => (
+            <SettingsActionButton
+              aria-describedby={descriptionId}
+              disabled={vacuuming || openingLogDir || vacuumUnavailable}
+              onClick={onVacuum}
+            >
+              {vacuumLabel}
+            </SettingsActionButton>
+          )}
         </LabeledControlRow>
       </SettingsSection>
       <SettingsSection heading={logsHeading} surface="flat">

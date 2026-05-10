@@ -129,6 +129,34 @@ describe("useBrowserOverlayShortcuts", () => {
     window.removeEventListener(keyboardEvents.closeBrowserOverlay, closeBrowserShortcut);
   });
 
+  it("lets an open dialog top layer own Escape over the browser overlay", () => {
+    const handleCloseOverlay = vi.fn();
+    const laterWindowShortcut = vi.fn();
+    const dialogTopLayer = document.createElement("div");
+    dialogTopLayer.setAttribute("data-slot", "dialog-content");
+    dialogTopLayer.setAttribute("data-open", "");
+    document.body.appendChild(dialogTopLayer);
+    renderHook(() =>
+      useBrowserOverlayShortcuts({
+        browserUrl: "https://example.com/article",
+        handleCloseOverlay,
+      }),
+    );
+    window.addEventListener("keydown", laterWindowShortcut);
+
+    try {
+      const escapeEvent = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+      window.dispatchEvent(escapeEvent);
+
+      expect(handleCloseOverlay).not.toHaveBeenCalled();
+      expect(laterWindowShortcut).toHaveBeenCalledTimes(1);
+      expect(escapeEvent.defaultPrevented).toBe(false);
+    } finally {
+      window.removeEventListener("keydown", laterWindowShortcut);
+      dialogTopLayer.remove();
+    }
+  });
+
   it("binds Escape ownership with the same capture-phase ordering as the global keyboard handler", () => {
     const addEventListenerSpy = vi.spyOn(window, "addEventListener");
     const handleCloseOverlay = vi.fn();

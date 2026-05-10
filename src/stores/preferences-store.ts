@@ -365,6 +365,41 @@ function applyDefaultLoadFallback(): void {
   applyFontSize(resolvePreferenceValue({}, "font_size"));
 }
 
+function applyPreferenceRuntimeEffect(key: string, normalizedValue: string): void {
+  if (key === "theme") {
+    const theme = resolvePreferenceValue({ theme: normalizedValue }, "theme");
+    try {
+      applyTheme(theme, { withTransition: true });
+    } catch (error) {
+      logPreferenceRuntimeFailure("Failed to apply theme preference:", error);
+    }
+    mirrorThemePreference(theme);
+    return;
+  }
+
+  if (key === "language") {
+    applyLanguage(parseLanguagePreference(normalizedValue));
+    return;
+  }
+
+  if (key === "font_style") {
+    try {
+      applyFontStyle(normalizedValue);
+    } catch (error) {
+      logPreferenceRuntimeFailure("Failed to apply font style preference:", error);
+    }
+    return;
+  }
+
+  if (key === "font_size") {
+    try {
+      applyFontSize(normalizedValue);
+    } catch (error) {
+      logPreferenceRuntimeFailure("Failed to apply font size preference:", error);
+    }
+  }
+}
+
 export const usePreferencesStore = create<PreferencesState & PreferencesActions>()((set, getState) => ({
   prefs: {},
   loaded: false,
@@ -432,20 +467,7 @@ export const usePreferencesStore = create<PreferencesState & PreferencesActions>
       prefs: { ...state.prefs, [key]: normalizedValue },
     }));
 
-    if (key === "theme") {
-      const theme = resolvePreferenceValue({ theme: normalizedValue }, "theme");
-      applyTheme(theme, { withTransition: true });
-      mirrorThemePreference(theme);
-    }
-    if (key === "language") {
-      applyLanguage(parseLanguagePreference(normalizedValue));
-    }
-    if (key === "font_style") {
-      applyFontStyle(normalizedValue);
-    }
-    if (key === "font_size") {
-      applyFontSize(normalizedValue);
-    }
+    applyPreferenceRuntimeEffect(key, normalizedValue);
 
     const clearLatestPersistRequest = () => {
       if (preferencePersistRequestIds.get(key) === requestId) {

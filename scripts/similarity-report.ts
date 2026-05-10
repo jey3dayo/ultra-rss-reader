@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 export const similarityThresholds = [0.95, 0.9, 0.87] as const;
@@ -27,6 +28,11 @@ export type SimilarityTypeSummary = {
   similarTypePairs: number;
   typeLiteralPairs: number;
   totalTypePairs: number;
+};
+
+export type SimilarityParseDiagnostics = {
+  pairs: SimilarityPair[];
+  skippedSimilarityBlocks: number;
 };
 
 type SimilarityFalsePositive = {
@@ -86,20 +92,32 @@ export const similarityFalsePositiveBaseline = [
 ] as const satisfies readonly SimilarityFalsePositive[];
 
 export function parseSimilarityPairs(output: string): SimilarityPair[] {
+  return parseSimilarityOutput(output).pairs;
+}
+
+export function parseSimilarityOutput(output: string): SimilarityParseDiagnostics {
   const lines = output.split("\n");
   const pairs: SimilarityPair[] = [];
+  let skippedSimilarityBlocks = 0;
 
   for (let index = 0; index < lines.length; index += 1) {
-    const similarity = lines[index]
-      ?.trim()
-      .match(/^Similarity: ([0-9.]+)%, Score: ([0-9.]+) points \(lines \d+~\d+, avg: ([0-9.]+)\)$/);
+    const line = lines[index]?.trim();
+    if (!line?.startsWith("Similarity:")) {
+      continue;
+    }
+
+    const similarity = line.match(
+      /^Similarity: ([0-9.]+)%, Score: ([0-9.]+) points \(lines \d+~\d+, avg: ([0-9.]+)\)$/,
+    );
     if (!similarity) {
+      skippedSimilarityBlocks += 1;
       continue;
     }
 
     const first = parseSimilarityPairLine(lines[index + 1]);
     const second = parseSimilarityPairLine(lines[index + 2]);
     if (!first || !second) {
+      skippedSimilarityBlocks += 1;
       continue;
     }
 
@@ -114,7 +132,10 @@ export function parseSimilarityPairs(output: string): SimilarityPair[] {
     });
   }
 
-  return pairs;
+  return {
+    pairs,
+    skippedSimilarityBlocks,
+  };
 }
 
 function parseSimilarityPairLine(line: string | undefined): { path: string; symbol: string } | null {
@@ -141,28 +162,38 @@ export function findFalsePositiveMatch(pair: SimilarityPair): SimilarityFalsePos
   );
 }
 
-export function buildSimilaritySummary(output: string): string {
-  const pairs = parseSimilarityPairs(output);
+export function buildSimilaritySummary(output: string, todoContent?: string): string {
+  const diagnostics = parseSimilarityOutput(output);
+  const pairs = diagnostics.pairs;
   const typeSummary = parseSimilarityTypeSummary(output);
   const matchedFalsePositives = pairs.map(findFalsePositiveMatch).filter((item) => item !== null);
   const matchedIds = new Set(matchedFalsePositives.map((item) => item.id));
   const unmatchedFalsePositives = similarityFalsePositiveBaseline.filter((item) => !matchedIds.has(item.id));
+  const staleTodoRefs = todoContent === undefined ? [] : findStaleFalsePositiveTodoRefs(todoContent);
 
   return [
     "Similarity scan baseline",
     `thresholds: ${similarityThresholds.join(" / ")}`,
     `current command: similarity-ts --threshold ${defaultThreshold} ${defaultPath}`,
-    "reading rule: use 0.95 for near-copy candidates, 0.9 for TODO triage, 0.87 for broad discovery.",
+    "reading rule: use 0.95 for near-copy candidates, 0.9 for TODO triage, and 0.87 for broad discovery.",
     "filtering rule: raise --min-lines/--min-tokens before extracting helpers from tiny callback-shape matches.",
     `function pairs: ${pairs.length}`,
+    `unparsed similarity blocks: ${diagnostics.skippedSimilarityBlocks}`,
     `TODO baseline function pairs: ${todoSimilarityBaseline.functionPairs}`,
     `type pairs: ${typeSummary.totalTypePairs} (types: ${typeSummary.similarTypePairs}, type literals: ${typeSummary.typeLiteralPairs})`,
     `TODO baseline type pairs: ${todoSimilarityBaseline.similarTypePairs + todoSimilarityBaseline.typeLiteralPairs} (types: ${todoSimilarityBaseline.similarTypePairs}, type literals: ${todoSimilarityBaseline.typeLiteralPairs})`,
     `allowlisted false positives present: ${matchedFalsePositives.length}`,
     `allowlisted false positives absent: ${unmatchedFalsePositives.length}`,
+    `allowlisted TODO refs present: ${similarityFalsePositiveBaseline.length - staleTodoRefs.length}`,
+    `allowlisted TODO refs stale: ${staleTodoRefs.length}`,
     ...matchedFalsePositives.map((item) => `- present ${item.id}: ${item.decision}`),
     ...unmatchedFalsePositives.map((item) => `- absent ${item.id}: ${item.reviewUnit}`),
+    ...staleTodoRefs.map((item) => `- stale TODO ref ${item.id}: ${item.todoName}`),
   ].join("\n");
+}
+
+export function findStaleFalsePositiveTodoRefs(todoContent: string): SimilarityFalsePositive[] {
+  return similarityFalsePositiveBaseline.filter((item) => !todoContent.includes(item.todoName));
 }
 
 export function parseSimilarityTypeSummary(output: string): SimilarityTypeSummary {
@@ -224,8 +255,16 @@ export function runSimilarityReport(args: readonly string[] = process.argv.slice
 
   process.stdout.write(result.stdout);
   process.stdout.write("\n");
-  process.stdout.write(buildSimilaritySummary(result.stdout));
+  process.stdout.write(buildSimilaritySummary(result.stdout, readTodoContent()));
   process.stdout.write("\n");
+}
+
+function readTodoContent(): string | undefined {
+  try {
+    return readFileSync("TODO.md", "utf8");
+  } catch {
+    return undefined;
+  }
 }
 
 export function isSimilarityReportEntrypoint(importMetaUrl: string, argvPath: string | undefined): boolean {

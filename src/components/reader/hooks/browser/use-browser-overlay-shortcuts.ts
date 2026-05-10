@@ -6,12 +6,16 @@ type UseBrowserOverlayShortcutsParams = {
   handleCloseOverlay: () => void;
 };
 
+function hasOpenDialogTopLayer() {
+  return document.querySelector('[data-slot="dialog-content"][data-open]') !== null;
+}
+
 export function useBrowserOverlayShortcuts({ browserUrl, handleCloseOverlay }: UseBrowserOverlayShortcutsParams) {
   // Keep this separate from the similar lifecycle hooks: it owns only Escape
   // priority while a browser URL is active, not mouse or resize lifecycle.
   useBrowserUrlEffect(browserUrl, () => {
     const handleKeyDown = createKeyboardEventListener((event) => {
-      if (event.key !== "Escape" || event.defaultPrevented) {
+      if (event.key !== "Escape" || event.defaultPrevented || hasOpenDialogTopLayer()) {
         return;
       }
 

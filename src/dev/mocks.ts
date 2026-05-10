@@ -880,6 +880,26 @@ export function setupDevMocks(): RestoreDevMocks {
       case "get_platform_info":
         return cloneMockResponse(DEV_MOCK_PLATFORM_INFO);
 
+      case "get_platform_permission_denied_recovery":
+        return [
+          {
+            surface: "file",
+            user_action_copy: "Grant file access in System Settings, then retry the operation.",
+          },
+          {
+            surface: "dialog",
+            user_action_copy: "Allow dialog access when macOS prompts, then retry the operation.",
+          },
+          {
+            surface: "keyring",
+            user_action_copy: "Unlock the system keychain or restore keychain access, then retry the operation.",
+          },
+          {
+            surface: "clipboard",
+            user_action_copy: "Allow clipboard access when macOS prompts, then retry the operation.",
+          },
+        ];
+
       case "get_dev_runtime_options": {
         const devWindowSize = readDevWindowSize();
         return {

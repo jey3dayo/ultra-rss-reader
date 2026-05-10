@@ -156,6 +156,7 @@
     "create": "Create",
     "saved": "Saved tags",
     "empty_state": "No tags yet.",
+    "load_failed": "Tags unavailable.",
     "edit": "Edit",
     "edit_aria_label": "Edit {{name}}",
     "delete": "Delete",

@@ -69,11 +69,7 @@ describe("ArticleReaderBody", () => {
   });
 
   it("does not intercept modified content link clicks", () => {
-    render(
-      <ArticleReaderBody
-        article={{ ...baseArticle, content_sanitized: '<p><a href="mailto:test@example.com">Email</a></p>' }}
-      />,
-    );
+    render(<ArticleReaderBody article={{ ...baseArticle, content_sanitized: '<p><a href="#email">Email</a></p>' }} />);
     const event = new MouseEvent("click", { bubbles: true, cancelable: true, metaKey: true });
 
     const defaultAllowed = screen.getByRole("link", { name: "Email" }).dispatchEvent(event);

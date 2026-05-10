@@ -171,11 +171,7 @@ function shouldPreserveArticleListSourceOrder(params: {
   return params.preservesSourceOrder === true || params.isActiveSearch;
 }
 
-function compareArticlesByPublishedAt(params: {
-  left: ArticleDto;
-  right: ArticleDto;
-  direction: 1 | -1;
-}): number {
+function compareArticlesByPublishedAt(params: { left: ArticleDto; right: ArticleDto; direction: 1 | -1 }): number {
   const { left, right, direction } = params;
   const leftTime = getDateInputTimeMs(left.published_at);
   const rightTime = getDateInputTimeMs(right.published_at);

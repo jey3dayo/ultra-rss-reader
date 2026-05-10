@@ -65,6 +65,24 @@ describe("ArticleContentView", () => {
     );
 
     expect(container.querySelector("img")).toBeNull();
+
+    rerender(
+      <ArticleContentView
+        thumbnailUrl="https://user:pass@example.com/thumbnail.png"
+        contentHtml={dangerouslyBrandRawArticleHtmlForViewTest("<p>Only text</p>")}
+      />,
+    );
+
+    expect(container.querySelector("img")).toBeNull();
+
+    rerender(
+      <ArticleContentView
+        thumbnailUrl="https://127.0.0.1/thumbnail.png"
+        contentHtml={dangerouslyBrandRawArticleHtmlForViewTest("<p>Only text</p>")}
+      />,
+    );
+
+    expect(container.querySelector("img")).toBeNull();
   });
 
   it("hides a duplicated feed-name label at the start of article content", () => {
@@ -156,5 +174,29 @@ describe("ArticleContentView", () => {
     expect(screen.getByRole("img", { name: "Body image" })).toHaveAttribute("referrerpolicy", "no-referrer");
     expect(container.querySelector("iframe")).toBeNull();
     expect(container.querySelector("[data-browser-webview-iframe]")).toBeNull();
+  });
+
+  it("uses the reader content privacy policy for body links, images, and title tooltips", () => {
+    const { container } = render(
+      <ArticleContentView
+        contentHtml={fromSanitizedArticleHtmlDto({
+          content_sanitized:
+            '<p><a href="https://user:pass@example.com/private" title="https://user:pass@example.com/private?token=raw">Credential link</a><a href="https://example.com/article" title="https://example.com/article?token=raw">Public link</a></p><img src="https://localhost/private.jpg" title="https://localhost/private.jpg?token=raw" alt="Private image"><img src="https://cdn.example.com/body.jpg" alt="Body image">',
+        })}
+      />,
+    );
+
+    const credentialAnchor = screen.getByText("Credential link").closest("a");
+    expect(credentialAnchor).not.toBeNull();
+    expect(credentialAnchor).not.toHaveAttribute("href");
+    expect(credentialAnchor).toHaveAttribute("title", "External link");
+    expect(screen.getByRole("link", { name: "Public link" })).toHaveAttribute("href", "https://example.com/article");
+    expect(screen.getByRole("link", { name: "Public link" })).toHaveAttribute("title", "External link");
+    expect(screen.getByRole("img", { name: "Private image" })).not.toHaveAttribute("src");
+    expect(screen.getByRole("img", { name: "Private image" })).toHaveAttribute("title", "External image");
+    expect(screen.getByRole("img", { name: "Body image" })).toHaveAttribute("src", "https://cdn.example.com/body.jpg");
+    expect(container.innerHTML).not.toContain("user:pass");
+    expect(container.innerHTML).not.toContain("localhost/private.jpg");
+    expect(container.innerHTML).not.toContain("token=raw");
   });
 });

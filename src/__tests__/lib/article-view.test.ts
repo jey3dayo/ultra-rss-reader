@@ -226,11 +226,9 @@ describe("resolveArticleDateLocale", () => {
   });
 
   it("uses the i18n English fallback when Intl supported locale lookup fails", () => {
-    const supportedLocalesOfSpy = vi
-      .spyOn(Intl.DateTimeFormat, "supportedLocalesOf")
-      .mockImplementationOnce(() => {
-        throw new RangeError("invalid locale");
-      });
+    const supportedLocalesOfSpy = vi.spyOn(Intl.DateTimeFormat, "supportedLocalesOf").mockImplementationOnce(() => {
+      throw new RangeError("invalid locale");
+    });
 
     expect(resolveArticleDateLocale("en_US")).toBe("en-US");
     expect(supportedLocalesOfSpy).toHaveBeenCalledWith("en_US");

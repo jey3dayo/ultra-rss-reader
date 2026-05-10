@@ -294,6 +294,7 @@ describe("setupTauriMocks fixture isolation", () => {
       "download_and_install_update",
       "export_opml",
       "get_article_tags",
+      "get_platform_permission_denied_recovery",
       "list_articles_by_tag",
       "mark_feed_read",
       "mark_folder_read",
@@ -313,6 +314,9 @@ describe("setupTauriMocks fixture isolation", () => {
     expect(orderedCommandDifference(mockedCommandIndex, frontendCommandIndex)).toEqual([
       "plugin:event|listen",
       "plugin:event|unlisten",
+      "plugin:window|set_always_on_top",
+      "plugin:window|set_badge_count",
+      "plugin:window|set_icon",
     ]);
   });
 

@@ -130,11 +130,11 @@ export {
 export {
   type DevRuntimeOptions,
   DevRuntimeOptionsSchema,
+  type PlatformInfo,
+  PlatformInfoSchema,
   type PlatformPermissionDeniedRecovery,
   PlatformPermissionDeniedRecoveryListSchema,
   PlatformPermissionDeniedRecoverySchema,
-  type PlatformInfo,
-  PlatformInfoSchema,
 } from "./platform-info";
 export { type PreferencesDto, PreferencesDtoSchema } from "./preferences";
 export {
@@ -142,16 +142,16 @@ export {
   NullableStarredCountSchema,
 } from "./starred-articles";
 export {
+  type SyncProgressEventDto,
+  SyncProgressEventSchema,
+  type SyncProgressRuntimeEventDto,
+} from "./sync-progress";
+export {
   type AccountSyncError,
   type AccountSyncWarning,
   type SyncResultDto,
   SyncResultSchema,
 } from "./sync-result";
-export {
-  type SyncProgressEventDto,
-  SyncProgressEventSchema,
-  type SyncProgressRuntimeEventDto,
-} from "./sync-progress";
 export {
   TagArticleCountsSchema,
   type TagDto,

@@ -4,6 +4,7 @@ import type { ArticleDto } from "@/api/tauri-commands";
 import { calculateArticleNavigationScrollTop, getAdjacentArticleId } from "@/lib/articles/article-list";
 import { queryElementByDataAttribute } from "@/lib/dom/data-attribute";
 import type { ArticleNavigationDirection } from "@/lib/layout/layout-state.types";
+import { scheduleReaderFocusFrame } from "@/lib/reader-focus";
 import type { ArticleListBodyProps } from "../../article-list-body";
 
 type UseArticleListNavigationParams = {
@@ -22,7 +23,16 @@ export function useArticleListNavigation({
   viewportRef,
 }: UseArticleListNavigationParams) {
   const focusRequestGenerationRef = useRef(0);
+  const focusRequestCleanupRef = useRef<(() => void) | null>(null);
   const articleIdsSignatureRef = useRef(filteredArticles.map((article) => article.id).join("\0"));
+
+  useEffect(() => {
+    return () => {
+      focusRequestGenerationRef.current += 1;
+      focusRequestCleanupRef.current?.();
+      focusRequestCleanupRef.current = null;
+    };
+  }, []);
 
   useEffect(() => {
     const nextArticleIdsSignature = filteredArticles.map((article) => article.id).join("\0");
@@ -32,6 +42,8 @@ export function useArticleListNavigation({
 
     articleIdsSignatureRef.current = nextArticleIdsSignature;
     focusRequestGenerationRef.current += 1;
+    focusRequestCleanupRef.current?.();
+    focusRequestCleanupRef.current = null;
   }, [filteredArticles]);
 
   const focusArticleRow = useCallback(
@@ -42,6 +54,18 @@ export function useArticleListNavigation({
         : null;
 
       if (!viewport || !button) {
+        return false;
+      }
+
+      const activeElement = document.activeElement;
+      if (
+        activeElement instanceof HTMLElement &&
+        activeElement !== button &&
+        (activeElement.tagName === "INPUT" ||
+          activeElement.tagName === "TEXTAREA" ||
+          activeElement.isContentEditable ||
+          activeElement.getAttribute("contenteditable") === "true")
+      ) {
         return false;
       }
 
@@ -80,6 +104,8 @@ export function useArticleListNavigation({
       const articleId = Result.unwrap(nextArticleId);
       const focusRequestGeneration = focusRequestGenerationRef.current + 1;
       focusRequestGenerationRef.current = focusRequestGeneration;
+      focusRequestCleanupRef.current?.();
+      focusRequestCleanupRef.current = null;
 
       selectArticle(articleId, { navigationDirection: direction });
 
@@ -87,15 +113,12 @@ export function useArticleListNavigation({
         return;
       }
 
-      if (typeof window.requestAnimationFrame !== "function") {
-        return;
-      }
-
-      window.requestAnimationFrame(() => {
+      focusRequestCleanupRef.current = scheduleReaderFocusFrame(() => {
         if (focusRequestGenerationRef.current !== focusRequestGeneration) {
           return;
         }
 
+        focusRequestCleanupRef.current = null;
         focusArticleRow(articleId, direction);
       });
     },

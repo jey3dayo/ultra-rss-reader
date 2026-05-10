@@ -17,9 +17,6 @@ export const TagDtoSchema = z
   .strict();
 
 export const TagDtoListSchema = z.array(TagDtoSchema);
-export const TagArticleCountsSchema = z.record(
-  z.string(),
-  NonnegativeIntegerSchema,
-);
+export const TagArticleCountsSchema = z.record(z.string(), NonnegativeIntegerSchema);
 
 export type TagDto = z.output<typeof TagDtoSchema>;

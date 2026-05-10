@@ -1203,7 +1203,7 @@ describe("ArticleList", () => {
     });
 
     await user.click(screen.getByRole("button", { name: "Mark all as read" }));
-    await user.click(screen.getByRole("button", { name: "Mark as Read" }));
+    await user.click(screen.getByRole("button", { name: "Mark 1 as Read" }));
 
     await waitFor(() => {
       expect(screen.queryByText("First Article")).not.toBeInTheDocument();
@@ -1259,7 +1259,7 @@ describe("ArticleList", () => {
 
     await user.click(markAllReadButton);
     expect(screen.getAllByText("Mark 48 articles as read?").length).toBeGreaterThan(0);
-    await user.click(screen.getByRole("button", { name: "Mark as Read" }));
+    await user.click(screen.getByRole("button", { name: "Mark 48 as Read" }));
 
     await waitFor(() => {
       expect(commands).toContainEqual({
@@ -1318,7 +1318,7 @@ describe("ArticleList", () => {
 
     await user.click(markAllReadButton);
     expect(screen.getAllByText("Mark 7 articles as read?").length).toBeGreaterThan(0);
-    await user.click(screen.getByRole("button", { name: "Mark as Read" }));
+    await user.click(screen.getByRole("button", { name: "Mark 7 as Read" }));
 
     await waitFor(() => {
       expect(commands).toContainEqual({
@@ -1365,7 +1365,7 @@ describe("ArticleList", () => {
 
     await user.click(markAllReadButton);
 
-    expect(screen.queryByRole("button", { name: "Mark as Read" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Mark \d+ as Read/ })).not.toBeInTheDocument();
   });
 
   it("does not render read articles in unread view even when recentlyReadIds contains them", async () => {
@@ -1475,13 +1475,13 @@ describe("ArticleList", () => {
     });
 
     await waitFor(() => {
-      expect(within(list).getByRole("option", { name: "First Article" })).toBeInTheDocument();
+      expect(within(list).getByRole("option", { name: /First Article/ })).toBeInTheDocument();
     });
 
     await user.click(screen.getByRole("button", { name: "STARRED" }));
 
     await waitFor(() => {
-      expect(within(list).queryByRole("option", { name: "First Article" })).not.toBeInTheDocument();
+      expect(within(list).queryByRole("option", { name: /First Article/ })).not.toBeInTheDocument();
     });
   });
 
@@ -1615,7 +1615,7 @@ describe("ArticleList", () => {
 
     const list = await screen.findByRole("listbox", { name: "Article list" });
     await waitFor(() => {
-      expect(within(list).getByRole("option", { name: "First Article" })).toBeInTheDocument();
+      expect(within(list).getByRole("option", { name: /First Article/ })).toBeInTheDocument();
     });
 
     await user.click(await screen.findByRole("button", { name: "Open Web Preview" }));
@@ -1634,7 +1634,7 @@ describe("ArticleList", () => {
     await waitFor(() => {
       expect(useUiStore.getState().contentMode).toBe("reader");
       expect(useUiStore.getState().focusedPane).toBe("list");
-      expect(within(list).getByRole("option", { name: "First Article" })).toHaveFocus();
+      expect(within(list).getByRole("option", { name: "First Article (unread)" })).toHaveFocus();
     });
   });
 

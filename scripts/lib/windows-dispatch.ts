@@ -5,13 +5,7 @@ import process from "node:process";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
-const SECRET_ENV_SUFFIXES = [
-  "_KEY",
-  "_TOKEN",
-  "_PASSWORD",
-  "_SECRET",
-  "_CREDENTIALS",
-];
+const SECRET_ENV_SUFFIXES = ["_KEY", "_TOKEN", "_PASSWORD", "_SECRET", "_CREDENTIALS"];
 const EXPLICIT_FORWARDED_ENV_KEYS = new Set([
   "DEV_CREDENTIALS",
   "RUST_BACKTRACE",
@@ -20,8 +14,7 @@ const EXPLICIT_FORWARDED_ENV_KEYS = new Set([
   "VITE_DEV_INTENT",
   "VITE_DEV_WEB_URL",
 ]);
-const SECRET_LIKE_VALUE_PATTERN =
-  /(?:^|[^a-z0-9])(?:ghp|github_pat|sk|xox[baprs]|AKIA)[a-z0-9_-]{8,}/i;
+const SECRET_LIKE_VALUE_PATTERN = /(?:^|[^a-z0-9])(?:ghp|github_pat|sk|xox[baprs]|AKIA)[a-z0-9_-]{8,}/i;
 
 export type SpawnSpec = {
   command: string;
@@ -41,15 +34,10 @@ export function isWslEnvironment(options: WslEnvironmentOptions = {}): boolean {
   const env = options.env ?? process.env;
   const osRelease = options.osRelease ?? os.release();
 
-  return (
-    platform === "linux" &&
-    (Boolean(env.WSL_INTEROP) || /microsoft/i.test(osRelease))
-  );
+  return platform === "linux" && (Boolean(env.WSL_INTEROP) || /microsoft/i.test(osRelease));
 }
 
-export function pickWindowsEnvOverrides(
-  env: NodeJS.ProcessEnv = process.env,
-): Record<string, string> {
+export function pickWindowsEnvOverrides(env: NodeJS.ProcessEnv = process.env): Record<string, string> {
   const overrides: Record<string, string> = {};
 
   for (const [key, value] of Object.entries(env)) {
@@ -57,8 +45,7 @@ export function pickWindowsEnvOverrides(
       typeof value === "string" &&
       EXPLICIT_FORWARDED_ENV_KEYS.has(key) &&
       (key === "DEV_CREDENTIALS" ||
-        (!SECRET_ENV_SUFFIXES.some((suffix) => key.endsWith(suffix)) &&
-          !isSecretLikeEnvValue(value)))
+        (!SECRET_ENV_SUFFIXES.some((suffix) => key.endsWith(suffix)) && !isSecretLikeEnvValue(value)))
     ) {
       overrides[key] = value;
     }
@@ -71,10 +58,7 @@ export function isSecretLikeEnvValue(value: string): boolean {
   return SECRET_LIKE_VALUE_PATTERN.test(value);
 }
 
-function getErrorField(
-  error: unknown,
-  field: "code" | "path",
-): string | undefined {
+function getErrorField(error: unknown, field: "code" | "path"): string | undefined {
   if (typeof error !== "object" || error === null || !(field in error)) {
     return undefined;
   }
@@ -83,19 +67,12 @@ function getErrorField(
   return typeof value === "string" ? value : undefined;
 }
 
-function buildWindowsDispatchFailureMessage(
-  stage: string,
-  diagnostics: string[],
-  error: unknown,
-): string {
+function buildWindowsDispatchFailureMessage(stage: string, diagnostics: string[], error: unknown): string {
   const detail = error instanceof Error ? error.message : String(error);
   return `Windows dispatch failed (${[`stage: ${stage}`, ...diagnostics].join("; ")}): ${detail}`;
 }
 
-export function buildWindowsDispatchSpawnFailureMessage(
-  command: string,
-  error: unknown,
-): string {
+export function buildWindowsDispatchSpawnFailureMessage(command: string, error: unknown): string {
   const code = getErrorField(error, "code");
   const errorPath = getErrorField(error, "path");
   const diagnostics = [
@@ -108,20 +85,13 @@ export function buildWindowsDispatchSpawnFailureMessage(
   return buildWindowsDispatchFailureMessage("spawn", diagnostics, error);
 }
 
-export function buildWindowsPathConversionFailureMessage(
-  currentDirectory: string,
-  error: unknown,
-): string {
+export function buildWindowsPathConversionFailureMessage(currentDirectory: string, error: unknown): string {
   const diagnostics = [
     `cwd: ${currentDirectory}`,
     "next action: verify wslpath is installed and the current directory is accessible from Windows",
   ];
 
-  return buildWindowsDispatchFailureMessage(
-    "path conversion",
-    diagnostics,
-    error,
-  );
+  return buildWindowsDispatchFailureMessage("path conversion", diagnostics, error);
 }
 
 function quotePowerShellLiteral(value: string): string {
@@ -137,9 +107,7 @@ function buildPowerShellScript(
   const envAssignments = Object.entries(envOverrides).map(
     ([key, value]) => `$env:${key} = ${quotePowerShellLiteral(value)}`,
   );
-  const commandLine = [command, ...args]
-    .map((arg) => quotePowerShellLiteral(arg))
-    .join(" ");
+  const commandLine = [command, ...args].map((arg) => quotePowerShellLiteral(arg)).join(" ");
 
   return [
     "$ErrorActionPreference = 'Stop'",
@@ -162,15 +130,8 @@ export function buildWslWindowsSpawnSpec(
   windowsCwd: string,
   envOverrides: Record<string, string> = {},
 ): SpawnSpec {
-  const powerShellScript = buildPowerShellScript(
-    command,
-    args,
-    windowsCwd,
-    envOverrides,
-  );
-  const encodedCommand = Buffer.from(powerShellScript, "utf16le").toString(
-    "base64",
-  );
+  const powerShellScript = buildPowerShellScript(command, args, windowsCwd, envOverrides);
+  const encodedCommand = Buffer.from(powerShellScript, "utf16le").toString("base64");
   return {
     command: "sh",
     args: [
@@ -180,33 +141,21 @@ export function buildWslWindowsSpawnSpec(
   };
 }
 
-export async function convertWslPathToWindows(
-  currentDirectory: string,
-): Promise<string> {
+export async function convertWslPathToWindows(currentDirectory: string): Promise<string> {
   try {
-    const { stdout } = await execFileAsync(
-      "wslpath",
-      ["-w", currentDirectory],
-      { encoding: "utf8" },
-    );
+    const { stdout } = await execFileAsync("wslpath", ["-w", currentDirectory], { encoding: "utf8" });
     return stdout.trim();
   } catch (error) {
-    throw new Error(
-      buildWindowsPathConversionFailureMessage(currentDirectory, error),
-    );
+    throw new Error(buildWindowsPathConversionFailureMessage(currentDirectory, error));
   }
 }
 
 export async function canUseWindowsInterop(): Promise<boolean> {
   try {
-    await execFileAsync(
-      "sh",
-      ["-lc", 'powershell.exe -NoProfile -Command "exit 0"'],
-      {
-        timeout: 5_000,
-        encoding: "utf8",
-      },
-    );
+    await execFileAsync("sh", ["-lc", 'powershell.exe -NoProfile -Command "exit 0"'], {
+      timeout: 5_000,
+      encoding: "utf8",
+    });
     return true;
   } catch {
     return false;

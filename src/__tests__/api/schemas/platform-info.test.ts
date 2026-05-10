@@ -38,8 +38,7 @@ describe("platform-info schemas", () => {
     const recoveries = [
       {
         surface: "file",
-        user_action_copy:
-          "File access was denied. Choose a user-accessible folder and check OS privacy settings.",
+        user_action_copy: "File access was denied. Choose a user-accessible folder and check OS privacy settings.",
       },
       {
         surface: "dialog",
@@ -53,20 +52,12 @@ describe("platform-info schemas", () => {
       },
       {
         surface: "clipboard",
-        user_action_copy:
-          "Clipboard access was denied. Allow clipboard access for Ultra RSS Reader and try again.",
+        user_action_copy: "Clipboard access was denied. Allow clipboard access for Ultra RSS Reader and try again.",
       },
     ];
 
-    expect(
-      PlatformPermissionDeniedRecoveryListSchema.parse(recoveries),
-    ).toEqual(recoveries);
-    expect(recoveries.map((recovery) => recovery.surface)).toEqual([
-      "file",
-      "dialog",
-      "keyring",
-      "clipboard",
-    ]);
+    expect(PlatformPermissionDeniedRecoveryListSchema.parse(recoveries)).toEqual(recoveries);
+    expect(recoveries.map((recovery) => recovery.surface)).toEqual(["file", "dialog", "keyring", "clipboard"]);
   });
 
   it("keeps permission denied recovery entries narrow and non-empty", () => {

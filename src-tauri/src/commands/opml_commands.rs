@@ -628,20 +628,51 @@ mod tests {
 
     #[test]
     fn import_parser_rejects_opml_private_feed_urls_like_regular_backend_policy() {
-        let private_xml_url = r#"<?xml version="1.0" encoding="UTF-8"?>
+        let private_xml_url_loopback = r#"<?xml version="1.0" encoding="UTF-8"?>
 <opml version="2.0">
   <body>
     <outline text="Feed" type="rss" xmlUrl="http://127.0.0.1/feed.xml"/>
   </body>
 </opml>"#;
-        let private_html_url = r#"<?xml version="1.0" encoding="UTF-8"?>
+        let private_xml_url_rfc1918 = r#"<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <body>
+    <outline text="Feed" type="rss" xmlUrl="http://10.0.0.2/feed.xml"/>
+  </body>
+</opml>"#;
+        let private_xml_url_link_local = r#"<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <body>
+    <outline text="Feed" type="rss" xmlUrl="http://169.254.10.20/feed.xml"/>
+  </body>
+</opml>"#;
+        let private_xml_url_ipv6 = r#"<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <body>
+    <outline text="Feed" type="rss" xmlUrl="http://[fc00::1]/feed.xml"/>
+  </body>
+</opml>"#;
+        let private_html_url_localhost = r#"<?xml version="1.0" encoding="UTF-8"?>
 <opml version="2.0">
   <body>
     <outline text="Feed" type="rss" xmlUrl="https://example.com/feed.xml" htmlUrl="http://localhost/"/>
   </body>
 </opml>"#;
+        let private_html_url_ipv6 = r#"<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <body>
+    <outline text="Feed" type="rss" xmlUrl="https://example.com/feed.xml" htmlUrl="http://[::1]/"/>
+  </body>
+</opml>"#;
 
-        for opml in [private_xml_url, private_html_url] {
+        for opml in [
+            private_xml_url_loopback,
+            private_xml_url_rfc1918,
+            private_xml_url_link_local,
+            private_xml_url_ipv6,
+            private_html_url_localhost,
+            private_html_url_ipv6,
+        ] {
             assert!(matches!(
                 parse_import_opml(opml),
                 Err(AppError::UserVisible { message }) if message == "Requests to private/loopback addresses are not allowed"

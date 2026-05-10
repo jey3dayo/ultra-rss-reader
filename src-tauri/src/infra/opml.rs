@@ -8,6 +8,7 @@ use quick_xml::{Reader, Writer};
 const OPML_ROOT_ERROR_MESSAGE: &str = "OPML document must contain an <opml> root element";
 const OPML_MALFORMED_XML_ERROR_MESSAGE: &str = "OPML document is malformed XML";
 const INCLUDE_PRIVACY_SUMMARY_COMMENT: bool = false;
+const MAX_OUTLINE_DEPTH: usize = 64;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OpmlFeed {
@@ -38,6 +39,9 @@ pub fn parse_opml(xml: &str) -> Result<Vec<OpmlFeed>, String> {
                 return Err(OPML_ROOT_ERROR_MESSAGE.to_string());
             }
             Ok(Event::Start(ref e)) if e.name().as_ref() == b"outline" => {
+                if outline_stack.len() >= MAX_OUTLINE_DEPTH {
+                    return Err(OPML_MALFORMED_XML_ERROR_MESSAGE.to_string());
+                }
                 let attrs = parse_outline_attrs(e)?;
                 if let Some(xml_url) = attrs.get("xmlUrl").or(attrs.get("xmlurl")) {
                     feeds.push(OpmlFeed {
@@ -69,6 +73,7 @@ pub fn parse_opml(xml: &str) -> Result<Vec<OpmlFeed>, String> {
                 }
                 // Empty element without xmlUrl is just ignored (no children)
             }
+            Ok(Event::DocType(_)) => return Err(OPML_MALFORMED_XML_ERROR_MESSAGE.to_string()),
             Ok(Event::End(ref e)) if e.name().as_ref() == b"outline" => {
                 outline_stack
                     .pop()
@@ -369,6 +374,57 @@ mod tests {
     #[test]
     fn rejects_mismatched_xml_as_malformed_xml() {
         let result = parse_opml("<opml><body></opml>");
+        assert_eq!(result.unwrap_err(), OPML_MALFORMED_XML_ERROR_MESSAGE);
+    }
+
+    #[test]
+    fn rejects_doctype_before_entity_expansion_boundaries() {
+        let xml = r#"<?xml version="1.0"?>
+<!DOCTYPE opml [
+  <!ENTITY private "http://127.0.0.1/feed.xml">
+]>
+<opml version="2.0">
+  <body>
+    <outline text="Local" xmlUrl="&private;"/>
+  </body>
+</opml>"#;
+
+        let result = parse_opml(xml);
+
+        assert_eq!(result.unwrap_err(), OPML_MALFORMED_XML_ERROR_MESSAGE);
+    }
+
+    #[test]
+    fn rejects_unknown_xml_entity_in_outline_attribute() {
+        let xml = r#"<?xml version="1.0"?>
+<opml version="2.0">
+  <body>
+    <outline text="Entity" xmlUrl="https://example.com/&unknown;.xml"/>
+  </body>
+</opml>"#;
+
+        let error = parse_opml(xml).unwrap_err();
+
+        assert!(
+            error.starts_with("OPML parse error: invalid outline attribute value:"),
+            "unexpected error: {error}"
+        );
+    }
+
+    #[test]
+    fn rejects_overly_deep_outline_nesting_as_malformed_xml() {
+        let mut xml = String::from(r#"<?xml version="1.0"?><opml><body>"#);
+        for index in 0..=MAX_OUTLINE_DEPTH {
+            xml.push_str(&format!(r#"<outline text="Folder {index}">"#));
+        }
+        xml.push_str(r#"<outline text="Deep Feed" xmlUrl="https://example.com/deep.xml"/>"#);
+        for _ in 0..=MAX_OUTLINE_DEPTH {
+            xml.push_str("</outline>");
+        }
+        xml.push_str("</body></opml>");
+
+        let result = parse_opml(&xml);
+
         assert_eq!(result.unwrap_err(), OPML_MALFORMED_XML_ERROR_MESSAGE);
     }
 
@@ -698,21 +754,30 @@ mod tests {
     #[test]
     fn generate_opml_escapes_special_characters() {
         let feeds = vec![OpmlFeed {
-            title: "Feed & <Friends>".to_string(),
-            xml_url: "https://example.com/feed?a=1&b=2".to_string(),
-            html_url: None,
+            title: "Feed & <Friends> \"Daily\"".to_string(),
+            xml_url: "https://example.com/feed?a=1&b=2&quote=\"daily\"".to_string(),
+            html_url: Some("https://example.com/path?from=<opml>&q=\"daily\"".to_string()),
             folder: Some("Folder \"quotes\"".to_string()),
         }];
 
         let xml = generate_opml("Test & Title", &feeds).unwrap();
         assert!(xml.contains("<title>Test &amp; Title</title>"));
         assert!(!xml.contains("&amp;amp;"));
+        assert!(xml.contains("quote=&quot;daily&quot;"));
+        assert!(xml.contains("from=&lt;opml&gt;"));
 
         // Should not panic and should round-trip
         let parsed = parse_opml(&xml).unwrap();
         assert_eq!(parsed.len(), 1);
-        assert_eq!(parsed[0].title, "Feed & <Friends>");
-        assert_eq!(parsed[0].xml_url, "https://example.com/feed?a=1&b=2");
+        assert_eq!(parsed[0].title, "Feed & <Friends> \"Daily\"");
+        assert_eq!(
+            parsed[0].xml_url,
+            "https://example.com/feed?a=1&b=2&quote=\"daily\""
+        );
+        assert_eq!(
+            parsed[0].html_url,
+            Some("https://example.com/path?from=<opml>&q=\"daily\"".to_string())
+        );
         assert_eq!(parsed[0].folder, Some("Folder \"quotes\"".to_string()));
     }
 

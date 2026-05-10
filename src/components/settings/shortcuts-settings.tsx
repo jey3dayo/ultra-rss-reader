@@ -2,6 +2,7 @@ import { RotateCcw } from "lucide-react";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ShortcutsSettingsView } from "@/components/settings/shortcuts-settings-view";
+import { shouldIgnoreGlobalShortcutKeyboardEvent } from "@/lib/keyboard/global-shortcut-targets";
 import {
   formatKeyForDisplay,
   getShortcutConflict,
@@ -16,15 +17,15 @@ import { useShortcutsSettingsViewProps } from "./hooks/use-shortcuts-settings-vi
 
 type RecordedKeyEvent = Pick<
   globalThis.KeyboardEvent,
-  "key" | "metaKey" | "ctrlKey" | "shiftKey" | "altKey" | "preventDefault" | "stopPropagation"
+  "key" | "metaKey" | "ctrlKey" | "shiftKey" | "altKey" | "isComposing" | "preventDefault" | "stopPropagation"
 >;
 
 function normalizeRecordedKey(
-  e: Pick<RecordedKeyEvent, "key" | "metaKey" | "ctrlKey" | "shiftKey" | "altKey">,
+  e: Pick<RecordedKeyEvent, "key" | "metaKey" | "ctrlKey" | "shiftKey" | "altKey" | "isComposing">,
 ): string | null {
   // Ignore bare modifier keys
   if (["Shift", "Control", "Alt", "Meta"].includes(e.key)) return null;
-  if (e.altKey) return null;
+  if (shouldIgnoreGlobalShortcutKeyboardEvent(e)) return null;
 
   const parts: string[] = [];
   if (e.metaKey || e.ctrlKey) parts.push("\u2318");

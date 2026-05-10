@@ -42,6 +42,14 @@ export type ReaderSourcePlan = {
   preservesRecentOrder: boolean;
 };
 
+export type ReaderSearchResultPolicy = {
+  ownerSourceKey: string;
+  preservesSearchRanking: boolean;
+  appliesUnreadSort: boolean;
+  includesRetainedSelectedArticle: boolean;
+  missingResultArticlePolicy: "exclude";
+};
+
 export type ReaderSelectionAvailability = {
   feedIds?: ReadonlySet<string>;
   folderIds?: ReadonlySet<string>;
@@ -287,5 +295,21 @@ export function resolveReaderSourcePlan(
     recentMode: "all",
     effectiveViewMode,
     preservesRecentOrder: false,
+  };
+}
+
+export function resolveReaderSearchResultPolicy(params: {
+  sourcePlan: ReaderSourcePlan;
+  sortUnread: string;
+  retainedArticleIds: ReadonlySet<string>;
+  selectedArticleId: string | null;
+}): ReaderSearchResultPolicy {
+  return {
+    ownerSourceKey: params.sourcePlan.sourceKey,
+    preservesSearchRanking: true,
+    appliesUnreadSort: params.sortUnread === "oldest_first" || params.sortUnread === "newest_first",
+    includesRetainedSelectedArticle:
+      params.selectedArticleId !== null && params.retainedArticleIds.has(params.selectedArticleId),
+    missingResultArticlePolicy: "exclude",
   };
 }

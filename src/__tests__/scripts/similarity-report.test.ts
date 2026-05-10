@@ -7,7 +7,9 @@ import {
   defaultPath,
   defaultThreshold,
   findFalsePositiveMatch,
+  findStaleFalsePositiveTodoRefs,
   isSimilarityReportEntrypoint,
+  parseSimilarityOutput,
   parseSimilarityPairs,
   readThreshold,
   similarityFalsePositiveBaseline,
@@ -103,9 +105,43 @@ Similarity: 95.01%, Score: 42.5 points (lines 20~30, avg: 25.0)
     const summary = buildSimilaritySummary(sampleReport);
 
     expect(summary).toContain("thresholds: 0.95 / 0.9 / 0.87");
+    expect(summary).toContain("unparsed similarity blocks: 0");
     expect(summary).toContain("allowlisted false positives present: 2");
     expect(summary).toContain("allowlisted false positives absent: 2");
     expect(summary).toContain("absent browser-overlay-close-vs-sidebar-smart-view-builder");
+  });
+
+  it("reports unparsed similarity blocks so similarity-ts output drift is visible", () => {
+    const driftedReport = `
+Similarity: 91.00%, Score: 12.0 points (lines 4~6)
+  src/alpha.ts:4-8 useAlpha
+  src/beta.ts:9-13 useBeta
+
+Similarity: 90.00%, Score: 12.3 points (lines 4~6, avg: 5.0)
+  src/alpha.ts:4-8 useAlpha
+`;
+
+    expect(parseSimilarityOutput(driftedReport)).toEqual({
+      pairs: [],
+      skippedSimilarityBlocks: 2,
+    });
+    expect(buildSimilaritySummary(driftedReport)).toContain("unparsed similarity blocks: 2");
+  });
+
+  it("reports stale false-positive TODO references when TODO content is provided", () => {
+    const todoContent = [
+      "P2 similarity 90.42%: browser overlay close と sidebar smart view builder の structural false positive を guard する",
+      "P3 similarity 90.39%: account cache updater と hook lifecycle false positive を共通化しないよう分類する",
+    ].join("\n");
+
+    expect(findStaleFalsePositiveTodoRefs(todoContent)).toEqual([]);
+    expect(findStaleFalsePositiveTodoRefs("P2 renamed similarity cleanup")).toHaveLength(4);
+
+    const summary = buildSimilaritySummary(sampleReport, "P2 renamed similarity cleanup");
+
+    expect(summary).toContain("allowlisted TODO refs present: 0");
+    expect(summary).toContain("allowlisted TODO refs stale: 4");
+    expect(summary).toContain("stale TODO ref browser-overlay-close-vs-sidebar-smart-view-builder");
   });
 
   it("keeps baseline entries tied to TODO names and review units", () => {

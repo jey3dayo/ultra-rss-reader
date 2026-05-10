@@ -15,3 +15,14 @@ export type ConsoleWarnSpy = ReturnType<typeof suppressConsoleWarn>;
 export function expectTauriCommandError(consoleError: ConsoleErrorSpy, command: string, error: AppError): void {
   expect(consoleError).toHaveBeenCalledWith(`[tauri-commands] ${command} failed:`, error);
 }
+
+export function expectTauriCommandValidationError(
+  consoleError: ConsoleErrorSpy,
+  command: string,
+  boundary: "args" | "response",
+): void {
+  expect(consoleError).toHaveBeenCalledWith(
+    `[tauri-commands] ${command} ${boundary} validation failed:`,
+    expect.any(String),
+  );
+}

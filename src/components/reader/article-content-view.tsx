@@ -1,11 +1,11 @@
 // biome-ignore-all lint/security/noDangerouslySetInnerHtml: ArticleContentView is the sanitized HTML rendering boundary.
 import { useMemo } from "react";
-import { normalizeArticleRemoteImageUrl } from "@/lib/articles/article-view";
 import {
   applyReaderContentPrivacyPolicy,
   fromSanitizedArticleHtml,
   fromSanitizedArticleHtmlDto,
   normalizeArticleBodyHtml,
+  normalizeReaderContentImageUrl,
   type SanitizedArticleHtml,
 } from "@/lib/content/html";
 
@@ -28,7 +28,7 @@ export function ArticleContentView({ thumbnailUrl, contentHtml, feedName }: Arti
     () => applyReaderContentPrivacyPolicy(normalizeArticleBodyHtml(contentHtml, feedName)),
     [contentHtml, feedName],
   );
-  const normalizedThumbnailUrl = useMemo(() => normalizeArticleRemoteImageUrl(thumbnailUrl), [thumbnailUrl]);
+  const normalizedThumbnailUrl = useMemo(() => normalizeReaderContentImageUrl(thumbnailUrl), [thumbnailUrl]);
 
   return (
     <>

@@ -881,6 +881,42 @@ describe("usePreferencesStore preferences", () => {
     }
   });
 
+  it.each([
+    {
+      key: "font_style",
+      value: "serif",
+      errorMessage: "Failed to apply font style preference:",
+    },
+    {
+      key: "font_size",
+      value: "large",
+      errorMessage: "Failed to apply font size preference:",
+    },
+  ] satisfies Array<{
+    key: PreferenceWritableKey;
+    value: string;
+    errorMessage: string;
+  }>)("keeps $key optimistic and persists when runtime apply fails", async ({ key, value, errorMessage }) => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const classListAdd = vi.spyOn(document.documentElement.classList, "add").mockImplementationOnce(() => {
+      throw new Error("class list unavailable");
+    });
+
+    try {
+      expect(() => usePreferencesStore.getState().setPref(key, value)).not.toThrow();
+      await vi.waitFor(() => {
+        expect(setPreference).toHaveBeenCalledWith(key, value);
+      });
+
+      expect(usePreferencesStore.getState().prefs[key]).toBe(value);
+      expect(useUiStore.getState().toastMessage).toBeNull();
+      expect(consoleError).toHaveBeenCalledWith(errorMessage, expect.any(Error));
+    } finally {
+      classListAdd.mockRestore();
+      consoleError.mockRestore();
+    }
+  });
+
   it("falls back when a rejected preference persist has a throwing message getter", async () => {
     await i18n.changeLanguage("ja");
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);

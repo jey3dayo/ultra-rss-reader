@@ -136,6 +136,7 @@ jobs:
           const tauriConfig = JSON.parse(fs.readFileSync("src-tauri/tauri.conf.json", "utf8"));
           const tauriReleaseConfig = JSON.parse(fs.readFileSync("src-tauri/tauri.release.conf.json", "utf8"));
           const tauriDevConfig = JSON.parse(fs.readFileSync("src-tauri/tauri.dev.conf.json", "utf8"));
+          const defaultCapability = JSON.parse(fs.readFileSync("src-tauri/capabilities/default.json", "utf8"));
           const cargoToml = fs.readFileSync("src-tauri/Cargo.toml", "utf8");
           const releaseWorkflow = fs.readFileSync(".github/workflows/release.yml", "utf8");
           const cargoVersion = cargoToml.match(/^version = "([^"]+)"$/m)?.[1];
@@ -144,6 +145,25 @@ jobs:
           const devConfigPath = "src-tauri/tauri.dev.conf.json";
           const updaterEndpoint = tauriConfig.plugins?.updater?.endpoints?.[0];
           const updaterPubkey = tauriConfig.plugins?.updater?.pubkey;
+          const updaterAssetContract = [
+            {
+              platformKey: "darwin-aarch64",
+              matrixPlatform: "macos-latest",
+              matrixArgs: "--target aarch64-apple-darwin",
+              assetPattern: ".app.tar.gz",
+              signaturePattern: ".app.tar.gz.sig",
+              checksumPattern: ".app.tar.gz.sha256",
+            },
+            {
+              platformKey: "windows-x86_64",
+              matrixPlatform: "windows-latest",
+              matrixArgs: "\"\"",
+              assetPattern: "-setup.exe",
+              signaturePattern: "-setup.exe.sig",
+              checksumPattern: "-setup.exe.sha256",
+            },
+          ];
+          const unsupportedUpdaterPlatformKeys = ["linux-x86_64", "linux-aarch64"];
 
           const errors = [];
           if (releaseTag !== expectedTag) {
@@ -185,6 +205,33 @@ jobs:
           if (/\bDEV_CREDENTIALS\s*:/.test(releaseWorkflow) || /\bULTRA_RSS_DEV_CREDENTIALS\s*:/.test(releaseWorkflow)) {
             errors.push("release workflow must not set dev credential environment variables");
           }
+          if (!Array.isArray(defaultCapability.permissions)) {
+            errors.push("src-tauri/capabilities/default.json must declare release permissions explicitly");
+          } else if (defaultCapability.permissions.some((permission) => String(permission).startsWith("mcp-bridge:"))) {
+            errors.push("release capability must not include debug-only MCP bridge permissions");
+          }
+          for (const contract of updaterAssetContract) {
+            if (!releaseWorkflow.includes(`platform: ${contract.matrixPlatform}`)) {
+              errors.push(`release workflow matrix is missing ${contract.matrixPlatform} for updater platform ${contract.platformKey}`);
+            }
+            if (!releaseWorkflow.includes(`args: ${contract.matrixArgs}`)) {
+              errors.push(`release workflow matrix is missing args ${contract.matrixArgs} for updater platform ${contract.platformKey}`);
+            }
+            if (contract.signaturePattern !== `${contract.assetPattern}.sig`) {
+              errors.push(`updater platform ${contract.platformKey} signature sidecar must map to ${contract.assetPattern}.sig`);
+            }
+            if (contract.checksumPattern !== `${contract.assetPattern}.sha256`) {
+              errors.push(`updater platform ${contract.platformKey} checksum sidecar must map to ${contract.assetPattern}.sha256`);
+            }
+          }
+          for (const unsupportedPlatformKey of unsupportedUpdaterPlatformKeys) {
+            if (updaterAssetContract.some((contract) => contract.platformKey === unsupportedPlatformKey)) {
+              errors.push(`latest.json updater manifest must not include unsupported future platform ${unsupportedPlatformKey}`);
+            }
+          }
+          if (updaterAssetContract.length !== new Set(updaterAssetContract.map((contract) => contract.platformKey)).size) {
+            errors.push("latest.json updater manifest must map exactly to the release asset contract without duplicate platforms");
+          }
 
           if (errors.length > 0) {
             for (const error of errors) {
@@ -196,6 +243,42 @@ jobs:
 
       - name: Preflight release build
         run: mise run ci
+
+      - name: Validate release build contamination contract
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require("node:fs");
+
+          const releaseWorkflow = fs.readFileSync(".github/workflows/release.yml", "utf8");
+          const tauriReleaseConfig = JSON.parse(fs.readFileSync("src-tauri/tauri.release.conf.json", "utf8"));
+          const tauriDevConfig = JSON.parse(fs.readFileSync("src-tauri/tauri.dev.conf.json", "utf8"));
+          const defaultCapability = JSON.parse(fs.readFileSync("src-tauri/capabilities/default.json", "utf8"));
+
+          const errors = [];
+          if (releaseWorkflow.includes("--config src-tauri/tauri.dev.conf.json")) {
+            errors.push("release build must not use src-tauri/tauri.dev.conf.json");
+          }
+          if (/\bDEV_CREDENTIALS\s*:/.test(releaseWorkflow) || /\bULTRA_RSS_DEV_CREDENTIALS\s*:/.test(releaseWorkflow)) {
+            errors.push("release build must not set dev-only credential environment variables");
+          }
+          if (tauriReleaseConfig.identifier === tauriDevConfig.identifier) {
+            errors.push("release build must not use the dev bundle identifier");
+          }
+          if (tauriReleaseConfig.productName === tauriDevConfig.productName) {
+            errors.push("release build must not use the dev product name");
+          }
+          if (defaultCapability.permissions?.some((permission) => String(permission).startsWith("mcp-bridge:"))) {
+            errors.push("release capability must not include debug-only MCP bridge permissions");
+          }
+
+          if (errors.length > 0) {
+            for (const error of errors) {
+              console.error(`::error::${error}`);
+            }
+            process.exit(1);
+          }
+          NODE
 
       # tauri-apps/tauri-action@v0.6.2
       - uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5
@@ -213,3 +296,188 @@ jobs:
             ${{ matrix.args }}
             --config src-tauri/tauri.release.conf.json
             --ci
+
+      - name: Validate updater manifest asset contract
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require("node:fs");
+          const path = require("node:path");
+
+          const updaterAssetContract = [
+            {
+              platformKey: "darwin-aarch64",
+              matrixPlatform: "macos-latest",
+              matrixArgs: "--target aarch64-apple-darwin",
+              assetPattern: ".app.tar.gz",
+              signaturePattern: ".app.tar.gz.sig",
+              checksumPattern: ".app.tar.gz.sha256",
+            },
+            {
+              platformKey: "windows-x86_64",
+              matrixPlatform: "windows-latest",
+              matrixArgs: "\"\"",
+              assetPattern: "-setup.exe",
+              signaturePattern: "-setup.exe.sig",
+              checksumPattern: "-setup.exe.sha256",
+            },
+          ];
+          const unsupportedUpdaterPlatformKeys = ["linux-x86_64", "linux-aarch64"];
+          const runnerToMatrixPlatform = {
+            macOS: "macos-latest",
+            Windows: "windows-latest",
+          };
+          const expectedContract = updaterAssetContract.find(
+            (contract) => contract.matrixPlatform === runnerToMatrixPlatform[process.env.RUNNER_OS],
+          );
+
+          if (!expectedContract) {
+            console.error(`::error::missing updater asset contract for runner ${process.env.RUNNER_OS ?? "(unknown)"}`);
+            process.exit(1);
+          }
+
+          const bundleRoots = [
+            "src-tauri/target/release/bundle",
+            path.join("src-tauri/target", expectedContract.platformKey, "release/bundle"),
+          ];
+
+          const listFiles = (directory) => {
+            if (!fs.existsSync(directory)) {
+              return [];
+            }
+
+            return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+              const entryPath = path.join(directory, entry.name);
+              return entry.isDirectory() ? listFiles(entryPath) : [entryPath];
+            });
+          };
+          const bundleFiles = bundleRoots.flatMap(listFiles);
+          const updaterAssets = bundleFiles.filter(
+            (filePath) =>
+              filePath.endsWith(expectedContract.assetPattern) &&
+              !filePath.endsWith(expectedContract.signaturePattern) &&
+              !filePath.endsWith(expectedContract.checksumPattern),
+          );
+
+          if (updaterAssets.length !== 1) {
+            console.error(
+              `::error::updater platform ${expectedContract.platformKey} must produce exactly one ${expectedContract.assetPattern} asset, found ${updaterAssets.length}`,
+            );
+            process.exit(1);
+          }
+
+          const updaterAsset = updaterAssets[0];
+          const signatureAsset = `${updaterAsset}.sig`;
+          if (!fs.existsSync(signatureAsset)) {
+            console.error(`::error::updater platform ${expectedContract.platformKey} is missing signature sidecar ${signatureAsset}`);
+            process.exit(1);
+          }
+
+          for (const unsupportedPlatformKey of unsupportedUpdaterPlatformKeys) {
+            if (bundleFiles.some((filePath) => filePath.includes(unsupportedPlatformKey))) {
+              console.error(`::error::unexpected future updater platform artifact present: ${unsupportedPlatformKey}`);
+              process.exit(1);
+            }
+          }
+          NODE
+
+      - name: Generate updater asset checksums
+        shell: bash
+        run: |
+          node <<'NODE'
+          const crypto = require("node:crypto");
+          const fs = require("node:fs");
+          const path = require("node:path");
+
+          const updaterAssetContract = [
+            {
+              platformKey: "darwin-aarch64",
+              matrixPlatform: "macos-latest",
+              matrixArgs: "--target aarch64-apple-darwin",
+              assetPattern: ".app.tar.gz",
+              signaturePattern: ".app.tar.gz.sig",
+              checksumPattern: ".app.tar.gz.sha256",
+            },
+            {
+              platformKey: "windows-x86_64",
+              matrixPlatform: "windows-latest",
+              matrixArgs: "\"\"",
+              assetPattern: "-setup.exe",
+              signaturePattern: "-setup.exe.sig",
+              checksumPattern: "-setup.exe.sha256",
+            },
+          ];
+          const runnerToMatrixPlatform = {
+            macOS: "macos-latest",
+            Windows: "windows-latest",
+          };
+          const expectedContract = updaterAssetContract.find(
+            (contract) => contract.matrixPlatform === runnerToMatrixPlatform[process.env.RUNNER_OS],
+          );
+
+          if (!expectedContract) {
+            console.error(`::error::missing updater asset contract for runner ${process.env.RUNNER_OS ?? "(unknown)"}`);
+            process.exit(1);
+          }
+
+          const bundleRoots = [
+            "src-tauri/target/release/bundle",
+            path.join("src-tauri/target", expectedContract.platformKey, "release/bundle"),
+          ];
+          const listFiles = (directory) => {
+            if (!fs.existsSync(directory)) {
+              return [];
+            }
+
+            return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+              const entryPath = path.join(directory, entry.name);
+              return entry.isDirectory() ? listFiles(entryPath) : [entryPath];
+            });
+          };
+          const updaterAsset = bundleRoots
+            .flatMap(listFiles)
+            .find(
+              (filePath) =>
+                filePath.endsWith(expectedContract.assetPattern) &&
+                !filePath.endsWith(expectedContract.signaturePattern) &&
+                !filePath.endsWith(expectedContract.checksumPattern),
+            );
+
+          if (!updaterAsset) {
+            console.error(`::error::missing updater asset for ${expectedContract.platformKey}`);
+            process.exit(1);
+          }
+
+          const checksum = crypto.createHash("sha256").update(fs.readFileSync(updaterAsset)).digest("hex");
+          const checksumAsset = `${updaterAsset}.sha256`;
+          fs.writeFileSync(checksumAsset, `${checksum}  ${path.basename(updaterAsset)}\n`);
+          fs.mkdirSync("src-tauri/target", { recursive: true });
+          fs.writeFileSync("src-tauri/target/updater-checksum-assets.txt", `${checksumAsset}\n`);
+          NODE
+
+      - name: Upload updater asset checksums
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
+        run: |
+          node <<'NODE'
+          const { spawnSync } = require("node:child_process");
+          const fs = require("node:fs");
+
+          const checksumAssets = fs
+            .readFileSync("src-tauri/target/updater-checksum-assets.txt", "utf8")
+            .trim()
+            .split("\n")
+            .filter(Boolean);
+
+          if (checksumAssets.length !== 1) {
+            console.error(`::error::expected exactly one updater checksum asset, found ${checksumAssets.length}`);
+            process.exit(1);
+          }
+
+          const result = spawnSync("gh", ["release", "upload", process.env.RELEASE_TAG, ...checksumAssets, "--clobber"], {
+            stdio: "inherit",
+          });
+          process.exit(result.status ?? 1);
+          NODE

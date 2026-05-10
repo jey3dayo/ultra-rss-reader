@@ -166,6 +166,21 @@ describe("useDataSettingsController", () => {
     expect(result.current.databaseSizeValue).toBe("");
   });
 
+  it("does not run vacuum while database size is unavailable", async () => {
+    vi.mocked(getDatabaseInfo).mockResolvedValue(Result.fail({ type: "UserVisible", message: "db unavailable" }));
+    const { result } = renderDataSettingsController();
+
+    await waitFor(() => {
+      expect(result.current.databaseSizeStatus).toBe("error");
+    });
+
+    await act(async () => {
+      await result.current.handleVacuum();
+    });
+
+    expect(vacuumDatabase).not.toHaveBeenCalled();
+  });
+
   it("delegates log directory opening to the native command", async () => {
     const showToast = vi.fn();
     const { result } = renderDataSettingsController({ showToast });

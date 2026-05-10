@@ -156,6 +156,7 @@
     "create": "作成",
     "saved": "保存済みタグ",
     "empty_state": "まだタグはありません。",
+    "load_failed": "タグを読み込めません。",
     "edit": "編集",
     "edit_aria_label": "「{{name}}」を編集",
     "delete": "削除",

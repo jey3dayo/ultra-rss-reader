@@ -8,6 +8,17 @@ const { useSearchArticlesMock } = vi.hoisted(() => ({
 }));
 
 vi.mock("@/hooks/use-articles", () => ({
+  resolveArticleSearchQueryOwner: (accountId: string | null, query: string) => {
+    const normalizedAccountId = accountId?.trim() || null;
+    const normalizedQuery = query.normalize("NFKC").replace(/\s+/gu, " ").trim();
+    return normalizedAccountId && normalizedQuery
+      ? {
+          accountId: normalizedAccountId,
+          query: normalizedQuery,
+          key: `${normalizedAccountId}\0${normalizedQuery}`,
+        }
+      : null;
+  },
   useSearchArticles: (...args: unknown[]) => useSearchArticlesMock(...args),
 }));
 
@@ -21,6 +32,15 @@ describe("useArticleListSearch", () => {
     useSearchArticlesMock.mockImplementation((_accountId: string | null, query: string) => ({
       data: query ? [{ id: "search-result" }] : undefined,
       isFetching: false,
+      isPlaceholderData: false,
+      searchOwner:
+        _accountId && query
+          ? {
+              accountId: _accountId,
+              query,
+              key: `${_accountId}\0${query}`,
+            }
+          : null,
     }));
   });
 
@@ -254,5 +274,44 @@ describe("useArticleListSearch", () => {
     expect(result.current.searchQuery).toBe("");
     expect(result.current.trimmedDebouncedQuery).toBe("");
     expect(useSearchArticlesMock).toHaveBeenLastCalledWith("acc-1", "");
+  });
+
+  it("does not expose stale placeholder results as current search results while the next owner is fetching", () => {
+    useSearchArticlesMock.mockImplementation((_accountId: string | null, query: string) => ({
+      data: query === "query b" ? [{ id: "query-a-result" }] : [{ id: "query-a-result" }],
+      isFetching: query === "query b",
+      isPlaceholderData: query === "query b",
+      searchOwner:
+        _accountId && query
+          ? {
+              accountId: _accountId,
+              query,
+              key: `${_accountId}\0${query}`,
+            }
+          : null,
+    }));
+    const { result } = renderHook(() => useArticleListSearch({ selectedAccountId: "acc-1" }));
+
+    act(() => {
+      result.current.openSearch();
+      result.current.setSearchQuery("query a");
+    });
+    act(() => {
+      vi.advanceTimersByTime(ARTICLE_SEARCH_DEBOUNCE_MS);
+    });
+
+    expect(result.current.trimmedDebouncedQuery).toBe("query a");
+    expect(result.current.searchResults).toEqual([{ id: "query-a-result" }]);
+
+    act(() => {
+      result.current.setSearchQuery("query b");
+    });
+    act(() => {
+      vi.advanceTimersByTime(ARTICLE_SEARCH_DEBOUNCE_MS);
+    });
+
+    expect(result.current.trimmedDebouncedQuery).toBe("query b");
+    expect(result.current.searchResults).toBeUndefined();
+    expect(result.current.isSearching).toBe(true);
   });
 });

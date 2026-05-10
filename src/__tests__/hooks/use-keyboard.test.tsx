@@ -10,6 +10,10 @@ import { keyboardEvents } from "@/lib/keyboard/keyboard-shortcuts";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
+vi.mock("@/components/app-confirm-dialog", () => ({
+  AppConfirmDialog: () => null,
+}));
+
 function renderAppShell(calls: MockTauriCommandCall[]) {
   setupTauriMocks((cmd, args) => {
     calls.push({ cmd, args });
@@ -227,6 +231,36 @@ describe("useKeyboard", () => {
     } finally {
       window.removeEventListener(keyboardEvents.toggleRead, toggleReadSpy);
       window.removeEventListener(keyboardEvents.focusSearch, focusSearchSpy);
+    }
+  });
+
+  it.each([
+    ["IME composition", { key: "m", isComposing: true }],
+    ["Alt/Option modified key", { key: "m", altKey: true }],
+    ["dead key", { key: "Dead" }],
+    ["unidentified key", { key: "Unidentified" }],
+    ["process key", { key: "Process" }],
+  ] as const)("ignores global shortcuts during %s", (_label, keyboardEvent) => {
+    const toggleReadSpy = vi.fn();
+    window.addEventListener(keyboardEvents.toggleRead, toggleReadSpy);
+
+    try {
+      useUiStore.setState({
+        ...useUiStore.getInitialState(),
+        selectedArticleId: "art-1",
+        contentMode: "reader",
+        viewMode: "all",
+      });
+
+      const { unmount } = renderHook(() => useKeyboard());
+
+      fireEvent.keyDown(window, keyboardEvent);
+
+      expect(toggleReadSpy).not.toHaveBeenCalled();
+
+      unmount();
+    } finally {
+      window.removeEventListener(keyboardEvents.toggleRead, toggleReadSpy);
     }
   });
 

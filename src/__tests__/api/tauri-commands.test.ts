@@ -1,5 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { invoke } from "@tauri-apps/api/core";
+import { expectTauriCommandValidationError, suppressConsoleError } from "@tests/helpers/console-spies";
 import { sampleAccounts, sampleArticles, sampleFeeds } from "@tests/helpers/fixtures";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest";
@@ -115,6 +116,22 @@ async function runCommandCases<
       return [command, result] as const;
     }),
   );
+}
+
+async function runValidationCommandCases<
+  TCommand extends readonly [string, () => Promise<Result.Result<unknown, CommandValidationError>>],
+>(
+  commandCases: readonly TCommand[],
+  boundary: "args" | "response",
+): Promise<Array<readonly [string, Result.Result<unknown, CommandValidationError>]>> {
+  const consoleError = suppressConsoleError();
+  const results = await runCommandCases(commandCases);
+
+  for (const [command] of results) {
+    expectTauriCommandValidationError(consoleError, command, boundary);
+  }
+
+  return results;
 }
 
 describe("tauri-commands with mockIPC", () => {
@@ -267,6 +284,7 @@ describe("tauri-commands with mockIPC", () => {
     });
 
     it("rejects invalid discovered feed command response URLs", async () => {
+      const consoleError = suppressConsoleError();
       setupTauriMocks((cmd, args) => {
         if (cmd === "discover_feeds" && args.url === "https://example.com") {
           return [
@@ -281,6 +299,7 @@ describe("tauri-commands with mockIPC", () => {
 
       expect(Result.isFailure(result)).toBe(true);
       expect(Result.unwrapError(result).message).toContain("validation failed");
+      expectTauriCommandValidationError(consoleError, "discover_feeds", "response");
     });
   });
 
@@ -337,6 +356,7 @@ describe("tauri-commands with mockIPC", () => {
     });
 
     it("rejects negative clear history counts", async () => {
+      const consoleError = suppressConsoleError();
       setupTauriMocks((cmd) => {
         if (cmd === "clear_article_view_history") {
           return -1;
@@ -348,6 +368,7 @@ describe("tauri-commands with mockIPC", () => {
 
       expect(Result.isFailure(result)).toBe(true);
       expect(Result.unwrapError(result).message).toContain("validation failed");
+      expectTauriCommandValidationError(consoleError, "clear_article_view_history", "response");
     });
   });
 
@@ -403,7 +424,7 @@ describe("tauri-commands with mockIPC", () => {
         return undefined;
       });
 
-      for (const [command, result] of await runCommandCases(countCommandCases)) {
+      for (const [command, result] of await runValidationCommandCases(countCommandCases, "response")) {
         expect(Result.isFailure(result), command).toBe(true);
         expect(Result.unwrapError(result).message).toContain("validation failed");
       }
@@ -608,6 +629,7 @@ describe("tauri-commands with mockIPC", () => {
       "https://example.com/article\nnext",
       "https://example.com/article\rnext",
     ])("rejects invalid browser command URL %j before invoking Tauri", async (url) => {
+      const consoleError = suppressConsoleError();
       const invokedCommands: string[] = [];
       setupTauriMocks((cmd) => {
         if (cmd === "check_browser_embed_support" || cmd === "create_or_update_browser_webview") {
@@ -626,9 +648,12 @@ describe("tauri-commands with mockIPC", () => {
       expect(Result.isFailure(webviewResult)).toBe(true);
       expect(Result.unwrapError(webviewResult).message).toContain("validation failed");
       expect(invokedCommands).toEqual([]);
+      expectTauriCommandValidationError(consoleError, "check_browser_embed_support", "args");
+      expectTauriCommandValidationError(consoleError, "create_or_update_browser_webview", "args");
     });
 
     it("rejects invalid browser webview bounds before invoking Tauri", async () => {
+      const consoleError = suppressConsoleError();
       let invoked = false;
       setupTauriMocks((cmd) => {
         if (cmd === "create_or_update_browser_webview") {
@@ -645,6 +670,7 @@ describe("tauri-commands with mockIPC", () => {
       expect(Result.isFailure(result)).toBe(true);
       expect(Result.unwrapError(result).message).toContain("validation failed");
       expect(invoked).toBe(false);
+      expectTauriCommandValidationError(consoleError, "create_or_update_browser_webview", "args");
     });
 
     it("returns the updated navigation state after go back", async () => {
@@ -846,7 +872,7 @@ describe("safeInvoke response validation", () => {
       return null;
     });
 
-    for (const [command, result] of await runCommandCases(accountCommandCases)) {
+    for (const [command, result] of await runValidationCommandCases(accountCommandCases, "response")) {
       expect(Result.isFailure(result), command).toBe(true);
       const error = Result.unwrapError(result);
       expect(error.type).toBe("Diagnostics");
@@ -855,6 +881,7 @@ describe("safeInvoke response validation", () => {
   });
 
   it("validates account command group sync status responses", async () => {
+    const consoleError = suppressConsoleError();
     setupTauriMocks((cmd) => {
       if (cmd === "get_account_sync_status") {
         return {
@@ -873,9 +900,11 @@ describe("safeInvoke response validation", () => {
     const error = Result.unwrapError(result);
     expect(error.type).toBe("Diagnostics");
     expect(error.message).toContain("validation failed");
+    expectTauriCommandValidationError(consoleError, "get_account_sync_status", "response");
   });
 
   it("validates account command group null responses", async () => {
+    const consoleError = suppressConsoleError();
     setupTauriMocks((cmd) => {
       if (cmd === "delete_account") {
         return { ok: true };
@@ -889,6 +918,7 @@ describe("safeInvoke response validation", () => {
     const error = Result.unwrapError(result);
     expect(error.type).toBe("Diagnostics");
     expect(error.message).toContain("validation failed");
+    expectTauriCommandValidationError(consoleError, "delete_account", "response");
   });
 
   it("validates article command group ArticleDto responses", async () => {
@@ -922,7 +952,7 @@ describe("safeInvoke response validation", () => {
       return null;
     });
 
-    for (const [command, result] of await runCommandCases(articleCommandCases)) {
+    for (const [command, result] of await runValidationCommandCases(articleCommandCases, "response")) {
       expect(Result.isFailure(result), command).toBe(true);
       const error = Result.unwrapError(result);
       expect(error.type).toBe("Diagnostics");
@@ -948,7 +978,7 @@ describe("safeInvoke response validation", () => {
       return null;
     });
 
-    for (const [command, result] of await runCommandCases(articleNullCommandCases)) {
+    for (const [command, result] of await runValidationCommandCases(articleNullCommandCases, "response")) {
       expect(Result.isFailure(result), command).toBe(true);
       const error = Result.unwrapError(result);
       expect(error.type).toBe("Diagnostics");
@@ -974,7 +1004,7 @@ describe("safeInvoke response validation", () => {
       return null;
     });
 
-    for (const [command, result] of await runCommandCases(databaseCommandCases)) {
+    for (const [command, result] of await runValidationCommandCases(databaseCommandCases, "response")) {
       expect(Result.isFailure(result), command).toBe(true);
       const error = Result.unwrapError(result);
       expect(error.type).toBe("Diagnostics");
@@ -1010,7 +1040,7 @@ describe("safeInvoke response validation", () => {
       return null;
     });
 
-    for (const [command, result] of await runCommandCases(feedCommandCases)) {
+    for (const [command, result] of await runValidationCommandCases(feedCommandCases, "response")) {
       expect(Result.isFailure(result), command).toBe(true);
       const error = Result.unwrapError(result);
       expect(error.type).toBe("Diagnostics");
@@ -1033,7 +1063,7 @@ describe("safeInvoke response validation", () => {
       return null;
     });
 
-    for (const [command, result] of await runCommandCases(feedNullCommandCases)) {
+    for (const [command, result] of await runValidationCommandCases(feedNullCommandCases, "response")) {
       expect(Result.isFailure(result), command).toBe(true);
       const error = Result.unwrapError(result);
       expect(error.type).toBe("Diagnostics");
@@ -1063,7 +1093,7 @@ describe("safeInvoke response validation", () => {
       return null;
     });
 
-    for (const [command, result] of await runCommandCases(folderCommandCases)) {
+    for (const [command, result] of await runValidationCommandCases(folderCommandCases, "response")) {
       expect(Result.isFailure(result), command).toBe(true);
       const error = Result.unwrapError(result);
       expect(error.type).toBe("Diagnostics");
@@ -1095,7 +1125,7 @@ describe("safeInvoke response validation", () => {
       return null;
     });
 
-    for (const [command, result] of await runCommandCases(muteKeywordCommandCases)) {
+    for (const [command, result] of await runValidationCommandCases(muteKeywordCommandCases, "response")) {
       expect(Result.isFailure(result), command).toBe(true);
       const error = Result.unwrapError(result);
       expect(error.type).toBe("Diagnostics");
@@ -1126,7 +1156,7 @@ describe("safeInvoke response validation", () => {
       return null;
     });
 
-    for (const [command, result] of await runCommandCases(tagCommandCases)) {
+    for (const [command, result] of await runValidationCommandCases(tagCommandCases, "response")) {
       expect(Result.isFailure(result), command).toBe(true);
       const error = Result.unwrapError(result);
       expect(error.type).toBe("Diagnostics");
@@ -1148,7 +1178,7 @@ describe("safeInvoke response validation", () => {
       return null;
     });
 
-    for (const [command, result] of await runCommandCases(tagNullCommandCases)) {
+    for (const [command, result] of await runValidationCommandCases(tagNullCommandCases, "response")) {
       expect(Result.isFailure(result), command).toBe(true);
       const error = Result.unwrapError(result);
       expect(error.type).toBe("Diagnostics");
@@ -1179,7 +1209,7 @@ describe("safeInvoke response validation", () => {
       return null;
     });
 
-    for (const [command, result] of await runCommandCases(browserStateCommandCases)) {
+    for (const [command, result] of await runValidationCommandCases(browserStateCommandCases, "response")) {
       expect(Result.isFailure(result), command).toBe(true);
       const error = Result.unwrapError(result);
       expect(error.type).toBe("Diagnostics");
@@ -1201,7 +1231,7 @@ describe("safeInvoke response validation", () => {
       return null;
     });
 
-    for (const [command, result] of await runCommandCases(browserNullCommandCases)) {
+    for (const [command, result] of await runValidationCommandCases(browserNullCommandCases, "response")) {
       expect(Result.isFailure(result), command).toBe(true);
       const error = Result.unwrapError(result);
       expect(error.type).toBe("Diagnostics");
@@ -1229,6 +1259,7 @@ describe("safeInvoke response validation", () => {
   });
 
   it("rejects malformed getPreferences responses", async () => {
+    const consoleError = suppressConsoleError();
     setupTauriMocks((cmd) => {
       if (cmd === "get_preferences") {
         return {
@@ -1243,11 +1274,13 @@ describe("safeInvoke response validation", () => {
     expect(Result.isFailure(result)).toBe(true);
     expect(Result.unwrapError(result).type).toBe("Diagnostics");
     expect(Result.unwrapError(result).message).toContain("validation failed");
+    expectTauriCommandValidationError(consoleError, "get_preferences", "response");
   });
 });
 
 describe("safeInvoke args validation", () => {
   it("keeps args schema parse errors user-facing while response schema parse errors stay diagnostics-only", async () => {
+    const consoleError = suppressConsoleError();
     setupTauriMocks((cmd) => {
       if (cmd === "list_accounts") return [{ id: "acc-1" }];
       return null;
@@ -1264,9 +1297,12 @@ describe("safeInvoke args validation", () => {
       type: "Diagnostics",
       message: "Response validation failed. See diagnostics for details.",
     });
+    expectTauriCommandValidationError(consoleError, "list_feeds", "args");
+    expectTauriCommandValidationError(consoleError, "list_accounts", "response");
   });
 
   it("rejects blank command ids before invoking Tauri", async () => {
+    const consoleError = suppressConsoleError();
     let invoked = false;
     setupTauriMocks((cmd) => {
       if (cmd === "list_feeds") {
@@ -1283,6 +1319,7 @@ describe("safeInvoke args validation", () => {
       message: "Command validation failed: accountId: Command id must not be blank",
     });
     expect(invoked).toBe(false);
+    expectTauriCommandValidationError(consoleError, "list_feeds", "args");
   });
 
   it.each([
@@ -1334,6 +1371,7 @@ describe("safeInvoke args validation", () => {
     ["muteKeywordId", "update_mute_keyword", () => updateMuteKeyword("   ", "title")],
     ["muteKeywordId", "delete_mute_keyword", () => deleteMuteKeyword("   ")],
   ] as const)("rejects blank %s for %s before invoking Tauri", async (fieldName, commandName, runCommand) => {
+    const consoleError = suppressConsoleError();
     let invoked = false;
     setupTauriMocks((cmd) => {
       if (cmd === commandName) {
@@ -1350,6 +1388,7 @@ describe("safeInvoke args validation", () => {
       message: `Command validation failed: ${fieldName}: Command id must not be blank`,
     });
     expect(invoked).toBe(false);
+    expectTauriCommandValidationError(consoleError, commandName, "args");
   });
 
   it("accepts setPreference values that match known preference schemas", async () => {
@@ -1365,6 +1404,7 @@ describe("safeInvoke args validation", () => {
   });
 
   it("rejects invalid values for known preference keys before invoking Tauri", async () => {
+    const consoleError = suppressConsoleError();
     let invoked = false;
     setupTauriMocks((cmd) => {
       if (cmd === "set_preference") {
@@ -1378,6 +1418,7 @@ describe("safeInvoke args validation", () => {
     expect(Result.isFailure(result)).toBe(true);
     expect(Result.unwrapError(result).message).toContain("Invalid value for preference key: theme");
     expect(invoked).toBe(false);
+    expectTauriCommandValidationError(consoleError, "set_preference", "args");
   });
 
   it("keeps unknown preference keys as string passthrough for backend validation", async () => {
@@ -1408,6 +1449,7 @@ describe("safeInvoke args validation", () => {
   });
 
   it("rejects unknown shortcut preference keys before invoking Tauri", async () => {
+    const consoleError = suppressConsoleError();
     let invoked = false;
     setupTauriMocks((cmd) => {
       if (cmd === "set_preference") {
@@ -1421,9 +1463,11 @@ describe("safeInvoke args validation", () => {
     expect(Result.isFailure(result)).toBe(true);
     expect(Result.unwrapError(result).message).toContain("Invalid preference key: shortcut_unknown_action");
     expect(invoked).toBe(false);
+    expectTauriCommandValidationError(consoleError, "set_preference", "args");
   });
 
   it("rejects empty shortcut preference values before invoking Tauri", async () => {
+    const consoleError = suppressConsoleError();
     let invoked = false;
     setupTauriMocks((cmd) => {
       if (cmd === "set_preference") {
@@ -1437,6 +1481,7 @@ describe("safeInvoke args validation", () => {
     expect(Result.isFailure(result)).toBe(true);
     expect(Result.unwrapError(result).message).toContain("Invalid value for preference key: shortcut_next_article");
     expect(invoked).toBe(false);
+    expectTauriCommandValidationError(consoleError, "set_preference", "args");
   });
 
   it("accepts Reading List http URLs including quote characters", async () => {
@@ -1593,6 +1638,7 @@ describe("safeInvoke args validation", () => {
     ["serverUrl", () => updateAccountCredentials("acc-1", "   ", "user", "secret")],
     ["username", () => updateAccountCredentials("acc-1", "https://example.com", "   ", "secret")],
   ] as const)("rejects blank account credential %s before invoking Tauri", async (_field, runCommand) => {
+    const consoleError = suppressConsoleError();
     let invoked = false;
     setupTauriMocks((cmd) => {
       if (cmd === "update_account_credentials") {
@@ -1606,6 +1652,7 @@ describe("safeInvoke args validation", () => {
     expect(Result.isFailure(result)).toBe(true);
     expect(Result.unwrapError(result).message).toContain("validation failed");
     expect(invoked).toBe(false);
+    expectTauriCommandValidationError(consoleError, "update_account_credentials", "args");
   });
 
   it("passes nonblank clipboard text without trimming before invoking Tauri", async () => {
@@ -1623,6 +1670,7 @@ describe("safeInvoke args validation", () => {
   });
 
   it.each(["", "   "])("rejects blank clipboard text %j before invoking Tauri", async (text) => {
+    const consoleError = suppressConsoleError();
     let invoked = false;
     setupTauriMocks((cmd) => {
       if (cmd === "copy_to_clipboard") {
@@ -1636,6 +1684,7 @@ describe("safeInvoke args validation", () => {
     expect(Result.isFailure(result)).toBe(true);
     expect(Result.unwrapError(result).message).toContain("validation failed");
     expect(invoked).toBe(false);
+    expectTauriCommandValidationError(consoleError, "copy_to_clipboard", "args");
   });
 
   it.each([
@@ -1645,6 +1694,7 @@ describe("safeInvoke args validation", () => {
     "mailto:hello@example.com",
     "file:///tmp/article.html",
   ])("rejects invalid open-in-browser URL %j before invoking Tauri", async (url) => {
+    const consoleError = suppressConsoleError();
     let invoked = false;
     setupTauriMocks((cmd) => {
       if (cmd === "open_in_browser") {
@@ -1658,9 +1708,11 @@ describe("safeInvoke args validation", () => {
     expect(Result.isFailure(result)).toBe(true);
     expect(Result.unwrapError(result).message).toContain("validation failed");
     expect(invoked).toBe(false);
+    expectTauriCommandValidationError(consoleError, "open_in_browser", "args");
   });
 
   it("rejects blank create folder names before invoking Tauri", async () => {
+    const consoleError = suppressConsoleError();
     let invoked = false;
     setupTauriMocks((cmd) => {
       if (cmd === "create_folder") {
@@ -1674,9 +1726,11 @@ describe("safeInvoke args validation", () => {
     expect(Result.isFailure(result)).toBe(true);
     expect(Result.unwrapError(result).message).toContain("validation failed");
     expect(invoked).toBe(false);
+    expectTauriCommandValidationError(consoleError, "create_folder", "args");
   });
 
   it("rejects blank article search queries before invoking Tauri", async () => {
+    const consoleError = suppressConsoleError();
     let invoked = false;
     setupTauriMocks((cmd) => {
       if (cmd === "search_articles") {
@@ -1690,6 +1744,7 @@ describe("safeInvoke args validation", () => {
     expect(Result.isFailure(result)).toBe(true);
     expect(Result.unwrapError(result).message).toContain("validation failed");
     expect(invoked).toBe(false);
+    expectTauriCommandValidationError(consoleError, "search_articles", "args");
   });
 
   it("trims article search queries before invoking Tauri", async () => {
@@ -1710,6 +1765,7 @@ describe("safeInvoke args validation", () => {
   });
 
   it("rejects Reading List newline URLs before invoking Tauri", async () => {
+    const consoleError = suppressConsoleError();
     let invoked = false;
     setupTauriMocks((cmd) => {
       if (cmd === "add_to_reading_list") {
@@ -1723,9 +1779,11 @@ describe("safeInvoke args validation", () => {
     expect(Result.isFailure(result)).toBe(true);
     expect(Result.unwrapError(result).message).toContain("validation failed");
     expect(invoked).toBe(false);
+    expectTauriCommandValidationError(consoleError, "add_to_reading_list", "args");
   });
 
   it("rejects Reading List non-http URLs before invoking Tauri", async () => {
+    const consoleError = suppressConsoleError();
     let invoked = false;
     setupTauriMocks((cmd) => {
       if (cmd === "add_to_reading_list") {
@@ -1739,6 +1797,7 @@ describe("safeInvoke args validation", () => {
     expect(Result.isFailure(result)).toBe(true);
     expect(Result.unwrapError(result).message).toContain("validation failed");
     expect(invoked).toBe(false);
+    expectTauriCommandValidationError(consoleError, "add_to_reading_list", "args");
   });
 
   it("opens mailto links through the external URL command boundary", async () => {
@@ -1770,6 +1829,7 @@ describe("safeInvoke args validation", () => {
   });
 
   it("rejects unsupported external URL schemes before invoking Tauri", async () => {
+    const consoleError = suppressConsoleError();
     let invoked = false;
     setupTauriMocks((cmd) => {
       if (cmd === "plugin:opener|open_url") {
@@ -1783,6 +1843,7 @@ describe("safeInvoke args validation", () => {
     expect(Result.isFailure(result)).toBe(true);
     expect(Result.unwrapError(result).message).toContain("validation failed");
     expect(invoked).toBe(false);
+    expectTauriCommandValidationError(consoleError, "plugin:opener|open_url", "args");
   });
 });
 

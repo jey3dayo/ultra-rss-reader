@@ -82,10 +82,7 @@ describe("manual-sync", () => {
     });
     const onListenerErrors = vi.fn();
 
-    notifyManualSyncCooldownListeners(
-      [firstListener, secondListener, thirdListener],
-      onListenerErrors,
-    );
+    notifyManualSyncCooldownListeners([firstListener, secondListener, thirdListener], onListenerErrors);
 
     expect(firstListener).toHaveBeenCalledTimes(1);
     expect(secondListener).toHaveBeenCalledTimes(1);
@@ -126,15 +123,12 @@ describe("manual-sync", () => {
     expect(isManualSyncCoolingDown()).toBe(false);
     expect(getManualSyncCooldownUntil()).toBe(0);
     expect(consoleWarn).toHaveBeenCalledTimes(2);
-    expect(consoleWarn).toHaveBeenCalledWith(
-      "Manual sync cooldown listeners failed:",
-      [
-        {
-          subscriberId: "manual-sync-cooldown-listener:1",
-          error: listenerError,
-        },
-      ],
-    );
+    expect(consoleWarn).toHaveBeenCalledWith("Manual sync cooldown listeners failed:", [
+      {
+        subscriberId: "manual-sync-cooldown-listener:1",
+        error: listenerError,
+      },
+    ]);
 
     consoleWarn.mockRestore();
   });
@@ -146,9 +140,7 @@ describe("manual-sync", () => {
     });
     const diagnosticsReporter = vi.fn();
 
-    setManualSyncCooldownListenerErrorReporterForDiagnostics(
-      diagnosticsReporter,
-    );
+    setManualSyncCooldownListenerErrorReporterForDiagnostics(diagnosticsReporter);
     subscribeManualSyncCooldown(throwingListener);
 
     await triggerManualSyncWithCooldown({
@@ -330,9 +322,7 @@ describe("manual-sync", () => {
     const syncError = new Error("sync command rejected");
     triggerSyncMock.mockRejectedValue(syncError);
 
-    await expect(triggerManualSyncWithCooldownResult()).rejects.toThrow(
-      syncError,
-    );
+    await expect(triggerManualSyncWithCooldownResult()).rejects.toThrow(syncError);
 
     expect(isManualSyncCoolingDown()).toBe(false);
     expect(getManualSyncCooldownUntil()).toBe(0);

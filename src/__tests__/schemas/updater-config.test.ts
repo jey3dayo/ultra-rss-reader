@@ -12,6 +12,24 @@ import tauriReleaseConfigSource from "../../../src-tauri/tauri.release.conf.json
 
 const latestUpdaterUrl = "https://github.com/jey3dayo/ultra-rss-reader/releases/latest/download/latest.json";
 const productionIdentifier = "com.jey3dayo.ultra-rss-reader";
+const releaseUpdaterAssetContract = [
+  {
+    assetPattern: ".app.tar.gz",
+    checksumPattern: ".app.tar.gz.sha256",
+    matrixArgs: "--target aarch64-apple-darwin",
+    matrixPlatform: "macos-latest",
+    platformKey: "darwin-aarch64",
+    signaturePattern: ".app.tar.gz.sig",
+  },
+  {
+    assetPattern: "-setup.exe",
+    checksumPattern: "-setup.exe.sha256",
+    matrixArgs: '""',
+    matrixPlatform: "windows-latest",
+    platformKey: "windows-x86_64",
+    signaturePattern: "-setup.exe.sig",
+  },
+] as const;
 
 function readTauriUpdaterConfig(): TauriUpdaterConfig {
   return parseJsonWithSchema(tauriConfigSource, TauriUpdaterConfigSchema);
@@ -75,9 +93,8 @@ test("release workflow exports updater signing secrets", async () => {
   expect(tauriActionBlock).toMatch(/^\s+env:\s*$/m);
   expect(tauriActionBlock).toContain("TAURI_SIGNING_PRIVATE_KEY:");
   expect(tauriActionBlock).toContain("TAURI_SIGNING_PRIVATE_KEY_PASSWORD:");
-  expect(tauriActionBlock).toContain(
-    `--config '{"identifier":"${releaseConfig.identifier}","bundle":{"createUpdaterArtifacts":true}}'`,
-  );
+  expect(releaseConfig.bundle.createUpdaterArtifacts).toBe(true);
+  expect(tauriActionBlock).toContain("--config src-tauri/tauri.release.conf.json");
 });
 
 test("release workflow keeps the supported artifact matrix", async () => {
@@ -88,4 +105,24 @@ test("release workflow keeps the supported artifact matrix", async () => {
   expect(workflow).toContain("platform: windows-latest");
   expect(workflow).toMatch(/args:\s*""/);
   expect(workflow).toContain("releaseDraft: true");
+});
+
+test("release workflow maps updater manifest platforms to asset signatures and checksums", async () => {
+  const workflow = releaseWorkflowSource;
+
+  expect(workflow).toContain("Validate updater manifest asset contract");
+  expect(workflow).toContain("Generate updater asset checksums");
+  expect(workflow).toContain("Upload updater asset checksums");
+  expect(workflow).toContain('unsupportedUpdaterPlatformKeys = ["linux-x86_64", "linux-aarch64"]');
+
+  for (const contract of releaseUpdaterAssetContract) {
+    expect(workflow).toContain(`platformKey: "${contract.platformKey}"`);
+    expect(workflow).toContain(`matrixPlatform: "${contract.matrixPlatform}"`);
+    expect(workflow).toContain(`matrixArgs: ${JSON.stringify(contract.matrixArgs)}`);
+    expect(workflow).toContain(`assetPattern: "${contract.assetPattern}"`);
+    expect(workflow).toContain(`signaturePattern: "${contract.signaturePattern}"`);
+    expect(workflow).toContain(`checksumPattern: "${contract.checksumPattern}"`);
+    expect(workflow).toContain(`platform: ${contract.matrixPlatform}`);
+    expect(workflow).toContain(`args: ${contract.matrixArgs}`);
+  }
 });

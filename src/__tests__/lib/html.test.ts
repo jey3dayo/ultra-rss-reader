@@ -3,6 +3,7 @@ import {
   applyReaderContentPrivacyPolicy,
   fromSanitizedArticleHtmlDto,
   normalizeArticleBodyHtml,
+  normalizeReaderContentImageUrl,
   stripHtmlTags,
 } from "@/lib/content/html";
 
@@ -140,6 +141,31 @@ describe("applyReaderContentPrivacyPolicy", () => {
     }
   });
 
+  it("blocks secret-bearing and private-host reader content URLs before rendering", () => {
+    const normalized = applyReaderContentPrivacyPolicy(
+      [
+        '<a href="https://user:pass@example.com/article" title="https://user:pass@example.com/article?token=raw">Credential link</a>',
+        '<a href="http://127.0.0.1/admin">Private link</a>',
+        '<a href="../relative-article">Relative link</a>',
+        '<img src="https://192.168.1.20/image.jpg" title="https://192.168.1.20/image.jpg?token=raw" alt="Private image">',
+        '<picture><source srcset="https://cdn.example.com/hero.webp 1x, https://10.0.0.1/track.webp 2x"><img src="https://cdn.example.com/hero.jpg" alt="Hero"></picture>',
+      ].join(""),
+    );
+
+    expect(normalized).toContain('title="External link"');
+    expect(normalized).toContain('title="External image"');
+    expect(normalized).toContain('<a title="External link" rel="noopener noreferrer">Credential link</a>');
+    expect(normalized).toContain('<a rel="noopener noreferrer">Private link</a>');
+    expect(normalized).toContain('href="../relative-article"');
+    expect(normalized).not.toContain("user:pass");
+    expect(normalized).not.toContain("127.0.0.1");
+    expect(normalized).not.toContain("192.168.1.20");
+    expect(normalized).not.toContain("10.0.0.1");
+    expect(normalized).toContain('srcset="https://cdn.example.com/hero.webp 1x"');
+    expect(normalized).toContain('loading="lazy"');
+    expect(normalized).toContain('decoding="async"');
+  });
+
   it("keeps the frontend post-process aligned with the sanitizer link and media privacy corpus", () => {
     const corpus = [
       {
@@ -161,6 +187,17 @@ describe("applyReaderContentPrivacyPolicy", () => {
         expect(normalized, fixture.label).toContain(fragment);
       }
     }
+  });
+});
+
+describe("normalizeReaderContentImageUrl", () => {
+  it("keeps reader thumbnail and body image policy aligned", () => {
+    expect(normalizeReaderContentImageUrl("https://cdn.example.com/hero.jpg")).toBe("https://cdn.example.com/hero.jpg");
+    expect(normalizeReaderContentImageUrl("/fixture/hero.jpg")).toBe("/fixture/hero.jpg");
+    expect(normalizeReaderContentImageUrl("http://cdn.example.com/hero.jpg")).toBeNull();
+    expect(normalizeReaderContentImageUrl("https://user:pass@cdn.example.com/hero.jpg")).toBeNull();
+    expect(normalizeReaderContentImageUrl("https://localhost/hero.jpg")).toBeNull();
+    expect(normalizeReaderContentImageUrl("https://[::1]/hero.jpg")).toBeNull();
   });
 });
 

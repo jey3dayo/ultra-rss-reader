@@ -1,22 +1,10 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { listen } from "@tauri-apps/api/event";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useReducer,
-  useSyncExternalStore,
-} from "react";
+import { useCallback, useEffect, useMemo, useReducer, useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
-import {
-  type AccountSyncWarning,
-  AccountSyncWarningSchema,
-} from "@/api/schemas/sync-result";
-import {
-  accountSyncStatusQueryKey,
-  useAccountSyncStatus,
-} from "@/hooks/use-account-sync-status";
+import { type AccountSyncWarning, AccountSyncWarningSchema } from "@/api/schemas/sync-result";
+import { accountSyncStatusQueryKey, useAccountSyncStatus } from "@/hooks/use-account-sync-status";
 import { formatAccountLastSuccessLabel } from "@/lib/account/account-sync-status-format";
 import { getCurrentTimeMs } from "@/lib/datetime";
 import i18n from "@/lib/i18n";
@@ -28,15 +16,9 @@ import {
   subscribeManualSyncCooldown,
   triggerManualSyncWithCooldown,
 } from "@/lib/sync/manual-sync";
-import {
-  type SyncProgressEventDto,
-  SyncProgressEventSchema,
-} from "@/lib/sync/sync-progress-event.types";
+import { type SyncProgressEventDto, SyncProgressEventSchema } from "@/lib/sync/sync-progress-event.types";
 import type { SyncProgressUiState } from "@/lib/sync/sync-progress-state.types";
-import {
-  summarizeSyncResult,
-  summarizeSyncWarnings,
-} from "@/lib/sync/sync-result-feedback";
+import { summarizeSyncResult, summarizeSyncWarnings } from "@/lib/sync/sync-result-feedback";
 import { resolveSidebarSyncFeedbackMessage } from "../../sidebar-sync-feedback";
 
 export type SidebarSyncResult = {
@@ -76,10 +58,7 @@ function createInitialSidebarSyncState() {
   } satisfies SidebarSyncState;
 }
 
-function sidebarSyncReducer(
-  state: SidebarSyncState,
-  action: SidebarSyncAction,
-): SidebarSyncState {
+function sidebarSyncReducer(state: SidebarSyncState, action: SidebarSyncAction): SidebarSyncState {
   switch (action.type) {
     case "set-cooldown-tick":
       return { ...state, cooldownTick: action.value };
@@ -89,9 +68,7 @@ function sidebarSyncReducer(
 }
 
 function extractTauriEventPayload(event: unknown): unknown {
-  return typeof event === "object" && event !== null && "payload" in event
-    ? event.payload
-    : event;
+  return typeof event === "object" && event !== null && "payload" in event ? event.payload : event;
 }
 
 function getPayloadType(payload: unknown) {
@@ -104,11 +81,7 @@ function getPayloadType(payload: unknown) {
   return typeof payload;
 }
 
-function reportMalformedSyncEventOnce(
-  eventName: string,
-  payload: unknown,
-  error: z.ZodError,
-) {
+function reportMalformedSyncEventOnce(eventName: string, payload: unknown, error: z.ZodError) {
   const issuePath = error.issues[0]?.path.join(".");
   const issue = issuePath ? issuePath : "payload";
   const warningKey = `${eventName}:${issue}`;
@@ -116,27 +89,20 @@ function reportMalformedSyncEventOnce(
     return;
   }
   malformedSyncEventWarnings.add(warningKey);
-  console.warn(
-    `Ignored malformed ${eventName} payload: payloadType=${getPayloadType(payload)} issue=${issue}`,
-  );
+  console.warn(`Ignored malformed ${eventName} payload: payloadType=${getPayloadType(payload)} issue=${issue}`);
 }
 
 function reportStuckSyncProgressRecovery(syncProgress: SyncProgressUiState) {
-  console.warn(
-    "Cleared stuck sync progress after missing sync-completed event:",
-    {
-      kind: syncProgress.kind,
-      stage: syncProgress.stage,
-      total: syncProgress.total,
-      completed: syncProgress.completed,
-      activeAccountCount: syncProgress.activeAccountIds.size,
-    },
-  );
+  console.warn("Cleared stuck sync progress after missing sync-completed event:", {
+    kind: syncProgress.kind,
+    stage: syncProgress.stage,
+    total: syncProgress.total,
+    completed: syncProgress.completed,
+    activeAccountCount: syncProgress.activeAccountIds.size,
+  });
 }
 
-function reportManualSyncCooldownListenerDiagnostics(
-  errors: readonly unknown[],
-) {
+function reportManualSyncCooldownListenerDiagnostics(errors: readonly unknown[]) {
   console.warn("Manual sync cooldown listener diagnostics:", {
     errorCount: errors.length,
     errors,
@@ -150,10 +116,7 @@ function startSidebarCooldownInterval(onTick: () => void) {
 
   const setIntervalFn = window.setInterval;
   const clearIntervalFn = window.clearInterval;
-  if (
-    typeof setIntervalFn !== "function" ||
-    typeof clearIntervalFn !== "function"
-  ) {
+  if (typeof setIntervalFn !== "function" || typeof clearIntervalFn !== "function") {
     return undefined;
   }
 
@@ -168,9 +131,7 @@ function startSidebarCooldownInterval(onTick: () => void) {
   }
 }
 
-export function resolveSidebarSyncProgressPayload(
-  event: unknown,
-): SidebarSyncProgressPayload | null {
+export function resolveSidebarSyncProgressPayload(event: unknown): SidebarSyncProgressPayload | null {
   const payload = extractTauriEventPayload(event);
   const result = SyncProgressEventSchema.safeParse(payload);
   if (!result.success) {
@@ -180,9 +141,7 @@ export function resolveSidebarSyncProgressPayload(
   return result.data;
 }
 
-export function resolveSidebarSyncWarningPayload(
-  event: unknown,
-): SidebarSyncWarningPayload | null {
+export function resolveSidebarSyncWarningPayload(event: unknown): SidebarSyncWarningPayload | null {
   const payload = extractTauriEventPayload(event);
   const result = SyncWarningPayloadSchema.safeParse(payload);
   if (!result.success) {
@@ -227,10 +186,7 @@ export function resolveSidebarLastSyncedLabel({
     notSyncedYet: string;
   };
 }): string {
-  const lastSuccessLabel = formatAccountLastSuccessLabel(
-    lastSuccessAt ?? undefined,
-    language,
-  );
+  const lastSuccessLabel = formatAccountLastSuccessLabel(lastSuccessAt ?? undefined, language);
   if (lastSuccessLabel) {
     if (lastSuccessLabel.isToday) {
       return labels.todayAt(lastSuccessLabel.time);
@@ -265,11 +221,7 @@ export function useSidebarSync({
     getManualSyncCooldownUntil,
     getManualSyncCooldownUntil,
   );
-  const [state, dispatch] = useReducer(
-    sidebarSyncReducer,
-    undefined,
-    createInitialSidebarSyncState,
-  );
+  const [state, dispatch] = useReducer(sidebarSyncReducer, undefined, createInitialSidebarSyncState);
   const { cooldownTick } = state;
   const invalidateAccountSyncStatuses = useCallback(() => {
     invalidateQueryKeysLogOnly(queryClient, [accountSyncStatusQueryKey()]);
@@ -291,8 +243,7 @@ export function useSidebarSync({
     return resolveSidebarLastSyncedLabel({
       selectedAccountId,
       lastSuccessAt: syncStatusQuery.data?.last_success_at,
-      isPending:
-        syncStatusQuery.isPending && syncStatusQuery.data === undefined,
+      isPending: syncStatusQuery.isPending && syncStatusQuery.data === undefined,
       isError: syncStatusQuery.isError,
       language: i18n.language,
       labels: {
@@ -303,13 +254,7 @@ export function useSidebarSync({
         notSyncedYet: t("not_synced_yet"),
       },
     });
-  }, [
-    selectedAccountId,
-    syncStatusQuery.data,
-    syncStatusQuery.isError,
-    syncStatusQuery.isPending,
-    t,
-  ]);
+  }, [selectedAccountId, syncStatusQuery.data, syncStatusQuery.isError, syncStatusQuery.isPending, t]);
 
   const cooldownRemainingMs = manualSyncCooldownUntil - cooldownTick;
   const isSyncCoolingDown = cooldownRemainingMs > 0;
@@ -320,10 +265,9 @@ export function useSidebarSync({
     : null;
 
   useEffect(() => {
-    const restoreReporter =
-      setManualSyncCooldownListenerErrorReporterForDiagnostics(
-        reportManualSyncCooldownListenerDiagnostics,
-      );
+    const restoreReporter = setManualSyncCooldownListenerErrorReporterForDiagnostics(
+      reportManualSyncCooldownListenerDiagnostics,
+    );
     return restoreReporter;
   }, []);
 
@@ -366,22 +310,11 @@ export function useSidebarSync({
         }
         if (payload.length > 0) {
           invalidateAccountSyncStatuses();
-          showToast(
-            resolveSidebarSyncFeedbackMessage(
-              t,
-              summarizeSyncWarnings(payload),
-            ),
-          );
+          showToast(resolveSidebarSyncFeedbackMessage(t, summarizeSyncWarnings(payload)));
         }
       }),
     ]);
-  }, [
-    applySyncProgress,
-    clearSyncProgress,
-    invalidateAccountSyncStatuses,
-    showToast,
-    t,
-  ]);
+  }, [applySyncProgress, clearSyncProgress, invalidateAccountSyncStatuses, showToast, t]);
 
   const handleSync = useCallback(async () => {
     if (syncProgress.active) {
@@ -395,9 +328,7 @@ export function useSidebarSync({
       },
       onSuccess: (syncResult) => {
         invalidateAccountSyncStatuses();
-        showToast(
-          resolveSidebarSyncFeedbackMessage(t, summarizeSyncResult(syncResult)),
-        );
+        showToast(resolveSidebarSyncFeedbackMessage(t, summarizeSyncResult(syncResult)));
       },
       onError: (error) => {
         invalidateAccountSyncStatuses();
@@ -405,13 +336,7 @@ export function useSidebarSync({
         showToast(t("sync_failed"));
       },
     });
-  }, [
-    invalidateAccountSyncStatuses,
-    selectedAccountId,
-    showToast,
-    syncProgress.active,
-    t,
-  ]);
+  }, [invalidateAccountSyncStatuses, selectedAccountId, showToast, syncProgress.active, t]);
 
   return {
     handleSync,

@@ -494,6 +494,29 @@ describe("keyboard shortcut resolver", () => {
     expect(Result.unwrapError(result)).toBe("no_action");
   });
 
+  it.each([
+    ["Alt/Option modified key", { key: "j", altKey: true }],
+    ["IME composition", { key: "j", isComposing: true }],
+    ["dead key", { key: "Dead" }],
+    ["unidentified key", { key: "Unidentified" }],
+    ["process key", { key: "Process" }],
+  ] as const)("does not resolve reader shortcuts during %s", (_label, event) => {
+    const result = resolveKeyboardAction({
+      key: event.key,
+      metaKey: false,
+      ctrlKey: false,
+      shiftKey: false,
+      altKey: "altKey" in event ? event.altKey : undefined,
+      isComposing: "isComposing" in event ? event.isComposing : undefined,
+      targetTag: "DIV",
+      selectedArticleId: "art-1",
+      contentMode: "reader",
+      viewMode: "all",
+    });
+
+    expect(Result.unwrapError(result)).toBe("no_action");
+  });
+
   it("resolves mapped modifier shortcuts without using the plain-key fallback", () => {
     const result = resolveKeyboardAction({
       key: "j",

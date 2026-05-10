@@ -8,7 +8,10 @@ import {
 } from "@/lib/account/account-pane-navigation";
 import { executeAction } from "@/lib/actions";
 import { emitDebugInputTrace } from "@/lib/debug/debug-input-trace";
-import { isGlobalShortcutTextEditingTarget } from "@/lib/keyboard/global-shortcut-targets";
+import {
+  isGlobalShortcutTextEditingTarget,
+  shouldIgnoreGlobalShortcutKeyboardEvent,
+} from "@/lib/keyboard/global-shortcut-targets";
 import { buildKeyToActionMap, type keyboardEvents, resolveKeyboardAction } from "@/lib/keyboard/keyboard-shortcuts";
 import {
   focusArticleListRowTargetWhenReady,
@@ -53,6 +56,10 @@ export function useKeyboard() {
       }
 
       if (isGlobalShortcutBlockedByModal()) {
+        return;
+      }
+
+      if (shouldIgnoreGlobalShortcutKeyboardEvent(e)) {
         return;
       }
 
@@ -134,6 +141,8 @@ export function useKeyboard() {
         metaKey: e.metaKey,
         ctrlKey: e.ctrlKey,
         shiftKey: e.shiftKey,
+        altKey: e.altKey,
+        isComposing: e.isComposing,
         targetTag: targetElement?.tagName,
         targetIsTextEditing: isGlobalShortcutTextEditingTarget(targetElement),
         selectedArticleId,

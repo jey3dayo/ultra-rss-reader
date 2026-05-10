@@ -111,9 +111,7 @@ describe("buildWindowsDispatchSpawnFailureMessage", () => {
   });
 
   it("includes permission diagnostics for spawn EACCES failures", () => {
-    const error = new Error(
-      "spawn powershell.exe EACCES",
-    ) as NodeJS.ErrnoException;
+    const error = new Error("spawn powershell.exe EACCES") as NodeJS.ErrnoException;
     error.code = "EACCES";
     error.path = "powershell.exe";
 
@@ -130,10 +128,7 @@ describe("buildWindowsDispatchSpawnFailureMessage", () => {
 
 describe("buildWindowsPathConversionFailureMessage", () => {
   it("reports WSL cwd conversion failures without env diagnostics", () => {
-    const message = buildWindowsPathConversionFailureMessage(
-      "/home/dev/repo",
-      new Error("wslpath failed"),
-    );
+    const message = buildWindowsPathConversionFailureMessage("/home/dev/repo", new Error("wslpath failed"));
 
     expect(message).toContain("Windows dispatch failed");
     expect(message).toContain("stage: path conversion");
@@ -150,14 +145,9 @@ describe("buildWindowsPathConversionFailureMessage", () => {
       "/home/dev/repo",
       new Error("wslpath failed"),
     );
-    const spawnMessage = buildWindowsDispatchSpawnFailureMessage(
-      "pnpm",
-      new Error("spawn failed"),
-    );
+    const spawnMessage = buildWindowsDispatchSpawnFailureMessage("pnpm", new Error("spawn failed"));
 
-    expect(pathConversionMessage).toMatch(
-      /^Windows dispatch failed \(stage: path conversion; /,
-    );
+    expect(pathConversionMessage).toMatch(/^Windows dispatch failed \(stage: path conversion; /);
     expect(spawnMessage).toMatch(/^Windows dispatch failed \(stage: spawn; /);
   });
 });
@@ -178,23 +168,13 @@ describe("buildWslWindowsCommandSpawnSpec", () => {
     );
 
     const encodedCommand = spawnSpec.args[1].split(" -EncodedCommand ")[1];
-    const powerShellScript = Buffer.from(encodedCommand, "base64").toString(
-      "utf16le",
-    );
-    expect(powerShellScript).toContain(
-      "$ProgressPreference = 'SilentlyContinue'",
-    );
-    expect(powerShellScript).toContain(
-      "[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()",
-    );
+    const powerShellScript = Buffer.from(encodedCommand, "base64").toString("utf16le");
+    expect(powerShellScript).toContain("$ProgressPreference = 'SilentlyContinue'");
+    expect(powerShellScript).toContain("[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()");
     expect(powerShellScript).toContain("$env:HOME = $env:USERPROFILE");
-    expect(powerShellScript).toContain(
-      "[Environment]::GetEnvironmentVariable('Path', 'Machine')",
-    );
+    expect(powerShellScript).toContain("[Environment]::GetEnvironmentVariable('Path', 'Machine')");
     expect(powerShellScript).toContain("Set-Location -LiteralPath 'C:\\repo'");
-    expect(powerShellScript).toContain(
-      "& 'cargo' 'clippy' '--manifest-path' 'src-tauri/Cargo.toml'",
-    );
+    expect(powerShellScript).toContain("& 'cargo' 'clippy' '--manifest-path' 'src-tauri/Cargo.toml'");
     expect(powerShellScript).toContain("$env:RUST_LOG = 'info'");
   });
 
@@ -211,20 +191,12 @@ describe("buildWslWindowsCommandSpawnSpec", () => {
     );
 
     const encodedCommand = spawnSpec.args[1].split(" -EncodedCommand ")[1];
-    const powerShellScript = Buffer.from(encodedCommand, "base64").toString(
-      "utf16le",
-    );
+    const powerShellScript = Buffer.from(encodedCommand, "base64").toString("utf16le");
 
-    expect(powerShellScript).toContain(
-      "Set-Location -LiteralPath 'C:\\repo dir'",
-    );
+    expect(powerShellScript).toContain("Set-Location -LiteralPath 'C:\\repo dir'");
     expect(powerShellScript).toContain("$env:DEV_CREDENTIALS = 'windows user'");
-    expect(powerShellScript).toContain(
-      "$env:VITE_DEV_INTENT = 'open-subscriptions-index'",
-    );
+    expect(powerShellScript).toContain("$env:VITE_DEV_INTENT = 'open-subscriptions-index'");
     expect(powerShellScript).toContain("$env:RUST_LOG = 'debug''level'");
-    expect(powerShellScript).toContain(
-      "& 'pnpm' 'exec' 'tauri' 'dev' '--' 'O''Neil'",
-    );
+    expect(powerShellScript).toContain("& 'pnpm' 'exec' 'tauri' 'dev' '--' 'O''Neil'");
   });
 });

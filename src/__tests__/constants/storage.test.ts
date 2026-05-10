@@ -75,9 +75,7 @@ describe("storage constants", () => {
   it("keeps storage normalization limits positive and bounded", () => {
     expect(MAX_COMMAND_HISTORY).toBeGreaterThan(0);
     expect(MAX_COMMAND_HISTORY_ENTRY_LENGTH).toBeGreaterThan(0);
-    expect(MAX_COMMAND_HISTORY_STORAGE_LENGTH).toBeGreaterThan(
-      MAX_COMMAND_HISTORY * MAX_COMMAND_HISTORY_ENTRY_LENGTH,
-    );
+    expect(MAX_COMMAND_HISTORY_STORAGE_LENGTH).toBeGreaterThan(MAX_COMMAND_HISTORY * MAX_COMMAND_HISTORY_ENTRY_LENGTH);
     expect(MAX_STORED_SIDEBAR_EXPANDED_ACCOUNTS).toBeGreaterThan(0);
     expect(MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_PER_ACCOUNT).toBeGreaterThan(0);
     expect(MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_STORAGE_LENGTH).toBeGreaterThan(
@@ -109,6 +107,9 @@ describe("storage constants", () => {
           accountEntryCountCap: "account map entries after account id normalization",
           folderEntryCountCap: "folder id entries per account after folder id normalization",
           rawJsonByteCap: "JSON string length before parsing",
+          controlCharacterPolicy: "strip C0, DEL, and C1 controls from account and folder ids before trimming",
+          accountPruningPriority:
+            "schema preserves insertion order and caps after normalization; storage writes insert the active account first before stale accounts",
         },
       },
     });

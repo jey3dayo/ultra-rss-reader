@@ -9,6 +9,7 @@ import * as tauriCommands from "@/api/tauri-commands";
 import {
   normalizeArticleSearchQuery,
   resolveArticleMutationInvalidationQueryKeys,
+  resolveArticleSearchQueryOwner,
   useAccountArticles,
   useAccountStarredCount,
   useArticles,
@@ -196,6 +197,62 @@ describe("useToggleStar", () => {
       sampleArticles,
     );
     expect(queryClient.getQueryState(queryKeys.search.byAccountAndQuery("acc-1", query))).toBeUndefined();
+  });
+
+  it("resolves article search query owners from the same normalized account and query used by the query key", () => {
+    expect(resolveArticleSearchQueryOwner(" acc-1 ", "　ＦＴＳ\nquery  ")).toEqual({
+      accountId: "acc-1",
+      query: "FTS query",
+      key: "acc-1\0FTS query",
+    });
+    expect(resolveArticleSearchQueryOwner(null, "query")).toBeNull();
+    expect(resolveArticleSearchQueryOwner("acc-1", "   ")).toBeNull();
+  });
+
+  it("hides placeholder search data while the next search owner is fetching", async () => {
+    const firstSearch = createDeferred<Awaited<ReturnType<typeof tauriCommands.searchArticles>>>();
+    const secondSearch = createDeferred<Awaited<ReturnType<typeof tauriCommands.searchArticles>>>();
+    vi.spyOn(tauriCommands, "searchArticles")
+      .mockReturnValueOnce(firstSearch.promise)
+      .mockReturnValueOnce(secondSearch.promise);
+    const queryWrapper = createQueryWrapper({
+      queryClientConfig: {
+        defaultOptions: {
+          queries: {
+            placeholderData: (previousData: unknown) => previousData,
+          },
+        },
+      },
+    });
+
+    const { result, rerender } = renderHook(({ query }: { query: string }) => useSearchArticles("acc-1", query), {
+      initialProps: { query: "query a" },
+      wrapper: queryWrapper.wrapper,
+    });
+
+    await act(async () => {
+      firstSearch.resolve(Result.succeed(sampleArticles));
+      await waitFor(() => {
+        expect(result.current.data).toEqual(sampleArticles);
+      });
+    });
+
+    rerender({ query: "query b" });
+
+    expect(result.current.searchOwner).toEqual({
+      accountId: "acc-1",
+      query: "query b",
+      key: "acc-1\0query b",
+    });
+    expect(result.current.data).toBeUndefined();
+    expect(result.current.isPlaceholderData).toBe(false);
+
+    await act(async () => {
+      secondSearch.resolve(Result.succeed([sampleArticles[1]]));
+      await waitFor(() => {
+        expect(result.current.data).toEqual([sampleArticles[1]]);
+      });
+    });
   });
 
   it("treats whitespace-only manual article query ids as null-equivalent disabled ids", () => {

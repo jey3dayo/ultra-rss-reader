@@ -139,18 +139,15 @@ describe("article-browser-actions", () => {
     "mailto:hello@example.com",
     "file:///tmp/article.html",
     "https://example.com/article\nnext",
-  ])(
-    "projects invalid article link clipboard text without invoking Tauri: %j",
-    async (url) => {
-      await copyArticleLink(url, {
-        showToast,
-        successMessage: "Link copied",
-      });
+  ])("projects invalid article link clipboard text without invoking Tauri: %j", async (url) => {
+    await copyArticleLink(url, {
+      showToast,
+      successMessage: "Link copied",
+    });
 
-      expect(calls).toEqual([]);
-      expect(showToast).toHaveBeenCalledWith("Invalid clipboard text");
-    },
-  );
+    expect(calls).toEqual([]);
+    expect(showToast).toHaveBeenCalledWith("Invalid clipboard text");
+  });
 
   it("shows a success toast after adding a link to the reading list", async () => {
     setupTauriMocks((cmd, args) => {
@@ -213,9 +210,7 @@ describe("article-browser-actions", () => {
 
     expect(result).toSatisfy(Result.isFailure);
     expect(calls).toEqual([]);
-    expect(showToast).toHaveBeenCalledWith(
-      "Only http:// and https:// URLs are supported",
-    );
+    expect(showToast).toHaveBeenCalledWith("Only http:// and https:// URLs are supported");
   });
 
   it("shows the command error when adding to the reading list fails", async () => {
@@ -260,11 +255,7 @@ describe("article-browser-actions", () => {
     const consoleError = vi.mocked(console.error);
     const addToReadingListSpy = vi
       .spyOn(tauriCommands, "addToReadingList")
-      .mockRejectedValue(
-        new Error(
-          "osascript failed for https://user:pass@example.com/private?token=raw#frag",
-        ),
-      );
+      .mockRejectedValue(new Error("osascript failed for https://user:pass@example.com/private?token=raw#frag"));
 
     await addArticleToReadingList("https://example.com/article", {
       showToast,
@@ -272,15 +263,11 @@ describe("article-browser-actions", () => {
     });
 
     const serialized = JSON.stringify(consoleError.mock.calls);
-    expect(serialized).toContain(
-      "https://example.com/private?redacted#redacted",
-    );
+    expect(serialized).toContain("https://example.com/private?redacted#redacted");
     expect(serialized).not.toContain("user:pass");
     expect(serialized).not.toContain("token=raw");
     expect(serialized).not.toContain("#frag");
-    expect(showToast).toHaveBeenCalledWith(
-      "osascript failed for https://user:pass@example.com/private?token=raw#frag",
-    );
+    expect(showToast).toHaveBeenCalledWith("osascript failed for https://user:pass@example.com/private?token=raw#frag");
     addToReadingListSpy.mockRestore();
   });
 
@@ -324,27 +311,22 @@ describe("article-browser-actions", () => {
     "file:///tmp/article.html",
     "javascript:alert('owned')",
     "/relative",
-  ])(
-    "rejects non-http article external-browser URLs before invoking Tauri: %j",
-    async (url) => {
-      setupTauriMocks((cmd, args) => {
-        calls.push({ cmd, args });
-        return undefined;
-      });
+  ])("rejects non-http article external-browser URLs before invoking Tauri: %j", async (url) => {
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+      return undefined;
+    });
 
-      const result = await openUrlInExternalBrowser(url, {
-        background: false,
-        showToast,
-        errorLabel: "Failed to open in browser",
-      });
+    const result = await openUrlInExternalBrowser(url, {
+      background: false,
+      showToast,
+      errorLabel: "Failed to open in browser",
+    });
 
-      expect(result).toSatisfy(Result.isFailure);
-      expect(calls).toEqual([]);
-      expect(showToast).toHaveBeenCalledWith(
-        "Only http:// and https:// URLs are supported",
-      );
-    },
-  );
+    expect(result).toSatisfy(Result.isFailure);
+    expect(calls).toEqual([]);
+    expect(showToast).toHaveBeenCalledWith("Only http:// and https:// URLs are supported");
+  });
 
   it("rejects article external-browser URLs with credentials before invoking Tauri", async () => {
     setupTauriMocks((cmd, args) => {
@@ -352,20 +334,15 @@ describe("article-browser-actions", () => {
       return undefined;
     });
 
-    const result = await openUrlInExternalBrowser(
-      "https://user:pass@example.com/article",
-      {
-        background: false,
-        showToast,
-        errorLabel: "Failed to open in browser",
-      },
-    );
+    const result = await openUrlInExternalBrowser("https://user:pass@example.com/article", {
+      background: false,
+      showToast,
+      errorLabel: "Failed to open in browser",
+    });
 
     expect(result).toSatisfy(Result.isFailure);
     expect(calls).toEqual([]);
-    expect(showToast).toHaveBeenCalledWith(
-      "Article URLs must not include credentials",
-    );
+    expect(showToast).toHaveBeenCalledWith("Article URLs must not include credentials");
   });
 
   it("opens an article in the background when the background preference is enabled", async () => {
@@ -384,10 +361,7 @@ describe("article-browser-actions", () => {
       }
     });
 
-    await openArticleInExternalBrowser(
-      "https://example.com/article",
-      showToast,
-    );
+    await openArticleInExternalBrowser("https://example.com/article", showToast);
 
     expect(calls).toContainEqual({
       cmd: "open_in_browser",
@@ -461,34 +435,18 @@ describe("article-browser-actions", () => {
         message: "Only http:// and https:// URLs are supported",
       }),
     );
-    expect(showToast).toHaveBeenCalledWith(
-      "Only http:// and https:// URLs are supported",
-    );
+    expect(showToast).toHaveBeenCalledWith("Only http:// and https:// URLs are supported");
   });
 
   it("classifies action error categories shared by copy and open actions", () => {
-    expect(resolveArticleActionErrorCategory("Clipboard unavailable")).toBe(
-      "runtime_unavailable",
+    expect(resolveArticleActionErrorCategory("Clipboard unavailable")).toBe("runtime_unavailable");
+    expect(resolveArticleActionErrorCategory("Clipboard permission denied")).toBe("permission_denied");
+    expect(resolveArticleActionErrorCategory("Only http:// and https:// URLs are supported")).toBe("invalid_url");
+    expect(resolveArticleActionErrorCategory("Only http:// and https:// URLs without newlines are supported")).toBe(
+      "invalid_url",
     );
-    expect(
-      resolveArticleActionErrorCategory("Clipboard permission denied"),
-    ).toBe("permission_denied");
-    expect(
-      resolveArticleActionErrorCategory(
-        "Only http:// and https:// URLs are supported",
-      ),
-    ).toBe("invalid_url");
-    expect(
-      resolveArticleActionErrorCategory(
-        "Only http:// and https:// URLs without newlines are supported",
-      ),
-    ).toBe("invalid_url");
-    expect(resolveArticleActionErrorCategory("Invalid clipboard text")).toBe(
-      "invalid_text",
-    );
-    expect(resolveArticleActionErrorCategory("Unexpected failure")).toBe(
-      "unknown",
-    );
+    expect(resolveArticleActionErrorCategory("Invalid clipboard text")).toBe("invalid_text");
+    expect(resolveArticleActionErrorCategory("Unexpected failure")).toBe("unknown");
   });
 
   it("attaches locale keys to categorized action errors", () => {

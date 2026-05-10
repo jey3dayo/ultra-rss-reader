@@ -31,7 +31,12 @@ export type DialogFooterProps = React.ComponentProps<"div"> & {
 export type DialogTitleProps = DialogPrimitive.Title.Props;
 export type DialogDescriptionProps = DialogPrimitive.Description.Props;
 
-const DialogModalContext = React.createContext<DialogProps["modal"]>(true);
+type DialogTopLayerContextValue = {
+  modal: DialogProps["modal"];
+  open: DialogProps["open"];
+};
+
+const DialogTopLayerContext = React.createContext<DialogTopLayerContextValue>({ modal: true, open: undefined });
 
 function hideElementsOutsideDialog(dialogId: string) {
   const dialogElements = Array.from(document.querySelectorAll(`[data-dialog-stack-id="${dialogId}"]`));
@@ -41,18 +46,28 @@ function hideElementsOutsideDialog(dialogId: string) {
     inertAttribute: string | null;
     inert: boolean;
   }> = [];
-  const allElements = Array.from(document.body.querySelectorAll<HTMLElement>("*"));
 
-  for (const element of allElements) {
+  const collectOutsideElements = (element: HTMLElement): HTMLElement[] => {
     const isDialogElement = dialogElements.some(
       (dialogElement) =>
         element === dialogElement || element.contains(dialogElement) || dialogElement.contains(element),
     );
 
     if (isDialogElement) {
-      continue;
+      if (dialogElements.some((dialogElement) => element.contains(dialogElement) && element !== dialogElement)) {
+        return Array.from(element.children).flatMap((child) => collectOutsideElements(child as HTMLElement));
+      }
+      return [];
     }
 
+    return [element];
+  };
+
+  const outsideElements = Array.from(document.body.children).flatMap((child) =>
+    collectOutsideElements(child as HTMLElement),
+  );
+
+  for (const element of outsideElements) {
     hiddenElements.push({
       element,
       ariaHidden: element.getAttribute("aria-hidden"),
@@ -81,11 +96,11 @@ function hideElementsOutsideDialog(dialogId: string) {
   };
 }
 
-function Dialog({ modal = true, ...props }: DialogProps) {
+function Dialog({ modal = true, open, ...props }: DialogProps) {
   return (
-    <DialogModalContext value={modal}>
-      <DialogPrimitive.Root data-slot="dialog" modal={modal} {...props} />
-    </DialogModalContext>
+    <DialogTopLayerContext value={{ modal, open }}>
+      <DialogPrimitive.Root data-slot="dialog" modal={modal} open={open} {...props} />
+    </DialogTopLayerContext>
   );
 }
 
@@ -137,7 +152,7 @@ function DialogContent({
   ...props
 }: DialogContentProps) {
   const { t } = useTranslation();
-  const modal = React.useContext(DialogModalContext);
+  const { modal, open } = React.useContext(DialogTopLayerContext);
   const dialogId = React.useId();
   const resolvedOverlayClassName = [getDialogOverlayPresetClass(overlayPreset), overlayClassName]
     .filter(Boolean)
@@ -146,12 +161,21 @@ function DialogContent({
   const stackClassName = getDialogStackClass(stackLayer);
 
   React.useEffect(() => {
-    if (modal !== true) {
+    if (modal !== true || open === false) {
       return undefined;
     }
 
+    if (open !== true) {
+      const popupElement = document.querySelector<HTMLElement>(
+        `[data-dialog-stack-id="${dialogId}"][data-slot="dialog-content"]`,
+      );
+      if (popupElement === null || !popupElement.hasAttribute("data-open")) {
+        return undefined;
+      }
+    }
+
     return hideElementsOutsideDialog(dialogId);
-  }, [dialogId, modal]);
+  }, [dialogId, modal, open]);
 
   return (
     <DialogPortal>

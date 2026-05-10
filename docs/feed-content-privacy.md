@@ -70,6 +70,21 @@ Native file selection policy:
 - Dialog cancellation is a neutral result, not an error. It must not create, delete, or overwrite files and must leave progress state idle.
 - Database backup save locations must be treated as private user-chosen paths and must not be logged or shown in support copy unless redacted.
 
+OPML account ownership contract:
+
+- Imported OPML feeds are owned by the account selected for the import operation. The parser may read outline folders and feed metadata, but it must not infer or switch account ownership from OPML text, remote feed content, provider metadata, feed URLs, or duplicate feed titles.
+- Cross-account duplicate detection may warn that the same normalized feed URL already exists in another account, but it must not silently merge, move, overwrite, or de-duplicate across account boundaries.
+- Moving a subscription between accounts is a separate explicit move flow. It must show source account, destination account, affected feed/folder scope, and whether read/star/tag/history state is copied, moved, or left behind before mutation.
+- Same-account duplicate import should use the existing account-scoped duplicate policy. Cross-account duplicates remain separate subscriptions unless the user chooses a reviewed move flow.
+- Import diagnostics may record account-scope class and duplicate class, but must not log raw feed URLs, account names, local paths, credentials, tokens, or cookies.
+
+OPML export privacy comment decision:
+
+- OPML export must not add a privacy summary comment by default.
+- The export artifact should stay a subscription interchange file, not a support artifact or privacy report. Inserting a comment can reveal app identity, export timing, privacy assumptions, or account/export intent to downstream OPML consumers.
+- Privacy guidance belongs in the UI before export and in support docs, not as a generated XML comment inside the OPML file.
+- A future opt-in annotated export mode must be versioned separately and must keep comments free of account names, local paths, support codes, environment details, credentials, tokens, cookies, and raw private URLs.
+
 ### App Settings Export/Import Preconditions
 
 Decision: do not introduce app settings export/import until the export contract is versioned and excludes secrets by design.
@@ -291,6 +306,16 @@ Trust boundary contract:
   sanitization belongs at the untrusted feed content boundary. A type named or
   documented as trusted must not be used as proof that feed content is safe to
   render.
+- Remote feed content and provider metadata must never suggest filesystem
+  names, save paths, backup paths, export names, import destination names, or
+  temporary-file prefixes. Filename/path suggestions must come only from
+  app-owned constants, native dialog defaults, user-selected paths, or locally
+  generated timestamps/ids.
+- If a publisher title, feed title, article title, URL path segment, enclosure
+  filename, favicon URL, `Content-Disposition`, or parser error text resembles
+  a useful filename, it remains display-only untrusted text. It must not be
+  joined into a path, normalized into a save filename, or used to decide where
+  an import/export/backup artifact is written.
 
 ### Feed Parser Error Sample Policy
 
@@ -444,6 +469,20 @@ Display and action rules:
 - Add action must use the normalized feed URL selected by validation, not only the display label.
 - If validation changes the URL, follows a redirect, or rejects a private host, the user-visible result must explain that before storing the feed.
 - Debug logs and support copy must record discovery failure class without storing raw token-bearing URLs.
+
+### Fixture Domain Name Policy
+
+Decision: new fixtures, mock data, screenshots, and documentation examples should use RFC-reserved domains unless a real external service is the behavior under test.
+
+Reserved-domain migration plan:
+
+- Prefer `example.com`, `example.net`, `example.org`, `example.jp`, and `.test` hostnames for generic feeds, articles, thumbnails, favicons, and provider endpoints. Use `.test` for local fake services that must never resolve externally.
+- Keep real domains only when the test is explicitly about an integration allowlist, provider compatibility, public release metadata, or a documented user-facing external service. Such fixtures must name why the real domain is required.
+- Replace accidental real domains in dev mock data, frontend/Rust test fixtures, Storybook examples, and docs screenshots in small batches. Start with fixtures that can trigger network fetches, then display-only screenshots and static examples.
+- Migration must preserve fixture intent by mapping old host classes to reserved equivalents: public article host, private-host rejection candidate, provider server, favicon host, redirect target, and malformed URL candidate.
+- Screenshots should avoid showing real organizations, account names, feed URLs, or article URLs unless the screenshot is explicitly a redacted live-service verification artifact.
+- During migration, do not rewrite stored user data examples or release verification notes that intentionally document a live service. Redact or annotate them instead.
+- Any remaining real-domain fixture should be easy to inventory with a text search and should be reviewed before adding network-enabled tests or screenshots.
 
 ### Feed Discovery Crawl Policy
 

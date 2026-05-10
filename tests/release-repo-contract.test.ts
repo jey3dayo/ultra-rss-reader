@@ -35,6 +35,25 @@ type TauriConfig = {
 
 const RELEASE_UPDATER_ENDPOINT = "https://github.com/jey3dayo/ultra-rss-reader/releases/latest/download/latest.json";
 const UPDATER_PUBKEY_PLACEHOLDER_PATTERN = /(?:placeholder|change[_-]?me|todo)/i;
+const RELEASE_UPDATER_ASSET_CONTRACT = [
+  {
+    assetPattern: ".app.tar.gz",
+    checksumPattern: ".app.tar.gz.sha256",
+    matrixArgs: "--target aarch64-apple-darwin",
+    matrixPlatform: "macos-latest",
+    platformKey: "darwin-aarch64",
+    signaturePattern: ".app.tar.gz.sig",
+  },
+  {
+    assetPattern: "-setup.exe",
+    checksumPattern: "-setup.exe.sha256",
+    matrixArgs: '""',
+    matrixPlatform: "windows-latest",
+    platformKey: "windows-x86_64",
+    signaturePattern: "-setup.exe.sig",
+  },
+] as const;
+const UNSUPPORTED_UPDATER_PLATFORM_KEYS = ["linux-x86_64", "linux-aarch64"] as const;
 
 const readText = (path: string): string => readFileSync(path, "utf8");
 
@@ -92,8 +111,11 @@ describe("release repository contract", () => {
   const tauriConfig: TauriConfig = JSON.parse(readText("src-tauri/tauri.conf.json"));
   const tauriReleaseConfig: TauriConfig = JSON.parse(readText("src-tauri/tauri.release.conf.json"));
   const tauriDevConfig: TauriConfig = JSON.parse(readText("src-tauri/tauri.dev.conf.json"));
+  const defaultCapability: { permissions?: string[] } = JSON.parse(readText("src-tauri/capabilities/default.json"));
   const cargoToml = readText("src-tauri/Cargo.toml");
   const releaseWorkflow = readText(".github/workflows/release.yml");
+  const releaseManualVerification = readText("docs/release-manual-verification.md");
+  const docsReadme = readText("docs/README.md");
   const ciWorkflow = readText(".github/workflows/ci.yml");
   const labelerWorkflow = readText(".github/workflows/labeler.yml");
   const prInsightsLabelerWorkflow = readText(".github/workflows/pr-insights-labeler.yml");
@@ -146,6 +168,9 @@ describe("release repository contract", () => {
       releaseWorkflow.indexOf("tauri-apps/tauri-action"),
     );
     expect(releaseWorkflow.indexOf("Preflight release build")).toBeLessThan(
+      releaseWorkflow.indexOf("tauri-apps/tauri-action"),
+    );
+    expect(releaseWorkflow.indexOf("Validate release build contamination contract")).toBeLessThan(
       releaseWorkflow.indexOf("tauri-apps/tauri-action"),
     );
   });
@@ -260,6 +285,49 @@ describe("release repository contract", () => {
     expect(releaseWorkflow).toContain("src-tauri/tauri.conf.json updater pubkey must be configured");
   });
 
+  it("keeps updater manifest platforms mapped back to release assets and checksums", () => {
+    expect(tauriReleaseConfig.bundle?.createUpdaterArtifacts).toBe(true);
+    expect(releaseWorkflow).toContain("Validate updater manifest asset contract");
+    expect(releaseWorkflow).toContain("Generate updater asset checksums");
+    expect(releaseWorkflow).toContain("Upload updater asset checksums");
+    expect(releaseWorkflow).toContain("latest.json updater manifest must map exactly to the release asset contract");
+
+    for (const contract of RELEASE_UPDATER_ASSET_CONTRACT) {
+      expect(releaseWorkflow).toContain(`platformKey: "${contract.platformKey}"`);
+      expect(releaseWorkflow).toContain(`matrixPlatform: "${contract.matrixPlatform}"`);
+      expect(releaseWorkflow).toContain(`matrixArgs: ${JSON.stringify(contract.matrixArgs)}`);
+      expect(releaseWorkflow).toContain(`assetPattern: "${contract.assetPattern}"`);
+      expect(releaseWorkflow).toContain(`signaturePattern: "${contract.signaturePattern}"`);
+      expect(releaseWorkflow).toContain(`checksumPattern: "${contract.checksumPattern}"`);
+      expect(releaseWorkflow).toContain(`platform: ${contract.matrixPlatform}`);
+      expect(releaseWorkflow).toContain(`args: ${contract.matrixArgs}`);
+      expect(contract.signaturePattern).toBe(`${contract.assetPattern}.sig`);
+      expect(contract.checksumPattern).toBe(`${contract.assetPattern}.sha256`);
+    }
+
+    for (const unsupportedPlatformKey of UNSUPPORTED_UPDATER_PLATFORM_KEYS) {
+      expect(releaseWorkflow).toContain(`unsupportedUpdaterPlatformKeys = ["linux-x86_64", "linux-aarch64"]`);
+      expect(releaseWorkflow).not.toContain(`platformKey: "${unsupportedPlatformKey}"`);
+    }
+  });
+
+  it("keeps release artifact provenance evidence tied to tag, workflow, checksum, and SBOM records", () => {
+    expect(releaseWorkflow).toContain("Validate release source");
+    expect(releaseWorkflow).toContain('tag_target_sha="$(git rev-parse "refs/tags/$RELEASE_TAG^{}")"');
+    expect(releaseWorkflow).toContain('checkout_sha="$(git rev-parse HEAD)"');
+    expect(releaseWorkflow).toContain("Generate updater asset checksums");
+    expect(releaseWorkflow).toContain("Upload updater asset checksums");
+    expect(releaseWorkflow).toContain("releaseDraft: true");
+    expect(releaseManualVerification).toContain("Release provenance and SBOM record");
+    expect(releaseManualVerification).toContain("Release tag and tag target SHA");
+    expect(releaseManualVerification).toContain("Source commit SHA checked out by the release workflow");
+    expect(releaseManualVerification).toContain("GitHub workflow run id and run URL");
+    expect(releaseManualVerification).toContain("Updater checksum sidecar asset");
+    expect(releaseManualVerification).toContain("SBOM or dependency provenance record");
+    expect(releaseManualVerification).toContain("Draft release attachment list before publishing");
+    expect(docsReadme).toContain("Release provenance checklist");
+  });
+
   it("keeps release builds from using dev Tauri config or dev credentials", () => {
     const tauriActionBlock = extractTauriActionBlock(releaseWorkflow);
 
@@ -268,9 +336,16 @@ describe("release repository contract", () => {
     expect(tauriDevConfig.build?.devUrl).toBe("http://127.0.0.1:1420");
     expect(releaseWorkflow).toContain("src-tauri/tauri.release.conf.json must not use the dev Tauri identifier");
     expect(releaseWorkflow).toContain("src-tauri/tauri.release.conf.json must not use the dev Tauri product name");
+    expect(releaseWorkflow).toContain("Validate release build contamination contract");
+    expect(releaseWorkflow).toContain("release capability must not include debug-only MCP bridge permissions");
+    expect(defaultCapability.permissions?.filter((permission) => permission.startsWith("mcp-bridge:"))).toEqual([]);
     expect(tauriActionBlock).not.toContain("--config src-tauri/tauri.dev.conf.json");
     expect(releaseWorkflow).not.toMatch(/\bDEV_CREDENTIALS\s*:/);
     expect(releaseWorkflow).not.toMatch(/\bULTRA_RSS_DEV_CREDENTIALS\s*:/);
+    expect(releaseManualVerification).toContain("Release dev-only contamination record");
+    expect(releaseManualVerification).toContain("DEV_CREDENTIALS");
+    expect(releaseManualVerification).toContain("dev mocks");
+    expect(releaseManualVerification).toContain("debug-only MCP bridge permissions");
   });
 
   it("keeps dependency audit manual until advisory policy is defined", () => {

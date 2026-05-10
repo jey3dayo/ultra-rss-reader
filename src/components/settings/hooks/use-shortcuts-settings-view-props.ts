@@ -45,9 +45,17 @@ export function buildShortcutCategoryOrder(
   return categories;
 }
 
+function isShortcutCategoryKey(category: string): category is ShortcutCategoryKey {
+  return (
+    category === "shortcuts.category_navigation" ||
+    category === "shortcuts.category_actions" ||
+    category === "shortcuts.category_global"
+  );
+}
+
 export function resolveShortcutCategoryHeading(tReader: TFunction<"reader">, category: string): string {
-  const fallbackHeading = tReader("shortcuts.category_unknown");
-  const heading = tReader(category, { defaultValue: fallbackHeading });
+  const fallbackHeading = "Other";
+  const heading = isShortcutCategoryKey(category) ? tReader(category) : fallbackHeading;
 
   return heading.trim() ? heading : fallbackHeading;
 }

@@ -12,7 +12,9 @@ import { useUiStore } from "@/stores/ui-store";
 type TagsSettingsState = {
   name: string;
   color: string | null;
+  createRevision: number;
   editingTag: TagDto | null;
+  editRevision: number;
   deletingTag: TagDto | null;
   renameName: string;
   renameColor: string | null;
@@ -32,7 +34,9 @@ type TagsSettingsAction =
 const initialTagsSettingsState: TagsSettingsState = {
   name: "",
   color: null,
+  createRevision: 0,
   editingTag: null,
+  editRevision: 0,
   deletingTag: null,
   renameName: "",
   renameColor: null,
@@ -41,24 +45,25 @@ const initialTagsSettingsState: TagsSettingsState = {
 function tagsSettingsReducer(state: TagsSettingsState, action: TagsSettingsAction): TagsSettingsState {
   switch (action.type) {
     case "set-name":
-      return { ...state, name: action.value };
+      return { ...state, name: action.value, createRevision: state.createRevision + 1 };
     case "set-color":
-      return { ...state, color: action.value };
+      return { ...state, color: action.value, createRevision: state.createRevision + 1 };
     case "reset-create":
-      return { ...state, name: "", color: null };
+      return { ...state, name: "", color: null, createRevision: state.createRevision + 1 };
     case "start-edit":
       return {
         ...state,
         editingTag: action.tag,
+        editRevision: state.editRevision + 1,
         renameName: action.tag?.name ?? "",
         renameColor: action.tag?.color ?? null,
       };
     case "close-edit":
-      return { ...state, editingTag: null, renameName: "", renameColor: null };
+      return { ...state, editingTag: null, editRevision: state.editRevision + 1, renameName: "", renameColor: null };
     case "set-rename-name":
-      return { ...state, renameName: action.value };
+      return { ...state, renameName: action.value, editRevision: state.editRevision + 1 };
     case "set-rename-color":
-      return { ...state, renameColor: action.value };
+      return { ...state, renameColor: action.value, editRevision: state.editRevision + 1 };
     case "start-delete":
       return { ...state, deletingTag: action.tag };
     case "close-delete":
@@ -71,14 +76,17 @@ function tagsSettingsReducer(state: TagsSettingsState, action: TagsSettingsActio
 export function TagsSettings() {
   const { t } = useTranslation("settings");
   const { t: tr } = useTranslation("reader");
-  const { data: tags = [] } = useTags();
+  const tagsQuery = useTags();
+  const tags = tagsQuery.data ?? [];
   const createTag = useCreateTag();
   const renameTag = useRenameTag();
   const deleteTag = useDeleteTag();
   const showToast = useUiStore((state) => state.showToast);
   const [state, dispatch] = useReducer(tagsSettingsReducer, initialTagsSettingsState);
   const createInFlightRef = useRef(false);
-  const { name, color, editingTag, deletingTag, renameName, renameColor } = state;
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  const { name, color, createRevision, editingTag, editRevision, deletingTag, renameName, renameColor } = state;
 
   const handleCreate = async () => {
     const trimmedName = name.trim();
@@ -86,12 +94,19 @@ export function TagsSettings() {
       return;
     }
 
+    const requestRevision = createRevision;
     createInFlightRef.current = true;
     try {
       await createTag.mutateAsync({ name: trimmedName, color: color ?? undefined });
+      if (stateRef.current.createRevision !== requestRevision) {
+        return;
+      }
       dispatch({ type: "reset-create" });
       showToast(t("tags.create_success"));
     } catch (error) {
+      if (stateRef.current.createRevision !== requestRevision) {
+        return;
+      }
       showToast(t("tags.create_failed", { message: getErrorMessage(error) }));
     } finally {
       createInFlightRef.current = false;
@@ -111,15 +126,23 @@ export function TagsSettings() {
       return;
     }
 
+    const requestTagId = editingTag.id;
+    const requestRevision = editRevision;
     try {
       await renameTag.mutateAsync({
-        tagId: editingTag.id,
+        tagId: requestTagId,
         name: trimmed,
         color: renameColor,
       });
+      if (stateRef.current.editingTag?.id !== requestTagId || stateRef.current.editRevision !== requestRevision) {
+        return;
+      }
       dispatch({ type: "close-edit" });
       showToast(t("tags.rename_success"));
     } catch (error) {
+      if (stateRef.current.editingTag?.id !== requestTagId || stateRef.current.editRevision !== requestRevision) {
+        return;
+      }
       showToast(t("tags.rename_failed", { message: getErrorMessage(error) }));
     }
   };
@@ -159,6 +182,7 @@ export function TagsSettings() {
         createDisabled={createTag.isPending || name.trim().length === 0}
         savedHeading={t("tags.saved")}
         emptyState={t("tags.empty_state")}
+        loadFailureState={tagsQuery.isError ? t("tags.load_failed", { defaultValue: "Tags unavailable." }) : null}
         tags={tags}
         editLabel={t("tags.edit")}
         editAriaLabel={(tagName) => t("tags.edit_aria_label", { name: tagName })}

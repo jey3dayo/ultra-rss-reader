@@ -14,9 +14,7 @@ describe("classifyPortOwnerCommandLine", () => {
   });
 
   it("treats the vite node entrypoint as restartable", () => {
-    expect(
-      classifyPortOwnerCommandLine("node ./node_modules/vite/bin/vite.js"),
-    ).toBe("vite");
+    expect(classifyPortOwnerCommandLine("node ./node_modules/vite/bin/vite.js")).toBe("vite");
   });
 
   it("treats quoted Windows vite entrypoints with args as restartable", () => {
@@ -28,9 +26,7 @@ describe("classifyPortOwnerCommandLine", () => {
   });
 
   it("treats unrelated listeners as foreign", () => {
-    expect(classifyPortOwnerCommandLine("python -m http.server 1420")).toBe(
-      "foreign",
-    );
+    expect(classifyPortOwnerCommandLine("python -m http.server 1420")).toBe("foreign");
   });
 
   it("treats empty command lines as unknown", () => {
@@ -43,8 +39,7 @@ describe("classifyPortOwner", () => {
     expect(
       classifyPortOwner(
         {
-          commandLine:
-            "node ./node_modules/vite/bin/vite.js --host 127.0.0.1 --port 1432 --strictPort",
+          commandLine: "node ./node_modules/vite/bin/vite.js --host 127.0.0.1 --port 1432 --strictPort",
           cwd: "/repo",
         },
         { packageRoot: "/repo", port: 1432 },
@@ -56,8 +51,7 @@ describe("classifyPortOwner", () => {
     expect(
       classifyPortOwner(
         {
-          commandLine:
-            "node ./node_modules/vite/bin/vite.js --host 127.0.0.1 --port 1432 --strictPort",
+          commandLine: "node ./node_modules/vite/bin/vite.js --host 127.0.0.1 --port 1432 --strictPort",
           cwd: "/other-repo",
         },
         { packageRoot: "/repo", port: 1432 },
@@ -81,8 +75,7 @@ describe("classifyPortOwner", () => {
     expect(
       classifyPortOwner(
         {
-          commandLine:
-            "pnpm exec vite --host 127.0.0.1 --port 1432 --strictPort",
+          commandLine: "pnpm exec vite --host 127.0.0.1 --port 1432 --strictPort",
         },
         { packageRoot: "/repo", port: 1432 },
       ),
@@ -105,8 +98,7 @@ describe("classifyPortOwner", () => {
     expect(
       classifyPortOwner(
         {
-          commandLine:
-            "pnpm exec vite --host 127.0.0.1 --port 5173 --strictPort",
+          commandLine: "pnpm exec vite --host 127.0.0.1 --port 5173 --strictPort",
           cwd: "/repo",
         },
         { packageRoot: "/repo", port: 1432 },
@@ -117,37 +109,18 @@ describe("classifyPortOwner", () => {
 
 describe("buildViteSpawnSpec", () => {
   it("spawns the local Vite cli through the current Node executable", () => {
-    const spawnSpec = buildViteSpawnSpec(
-      "file:///C:/repo/scripts/tauri-dev-vite-manager.ts",
-    );
+    const spawnSpec = buildViteSpawnSpec("file:///C:/repo/scripts/tauri-dev-vite-manager.ts");
 
     expect(spawnSpec.command).toBe(process.execPath);
     expect(spawnSpec.args).toHaveLength(6);
-    expect(spawnSpec.args[0]).toMatch(
-      /node_modules[\\/]+vite[\\/]+bin[\\/]+vite\.js$/,
-    );
-    expect(spawnSpec.args.slice(1)).toEqual([
-      "--host",
-      "127.0.0.1",
-      "--port",
-      "1420",
-      "--strictPort",
-    ]);
+    expect(spawnSpec.args[0]).toMatch(/node_modules[\\/]+vite[\\/]+bin[\\/]+vite\.js$/);
+    expect(spawnSpec.args.slice(1)).toEqual(["--host", "127.0.0.1", "--port", "1420", "--strictPort"]);
   });
 
   it("uses the same explicit port that the manager checks before launch", () => {
-    const spawnSpec = buildViteSpawnSpec(
-      "file:///C:/repo/scripts/tauri-dev-vite-manager.ts",
-      1432,
-    );
+    const spawnSpec = buildViteSpawnSpec("file:///C:/repo/scripts/tauri-dev-vite-manager.ts", 1432);
 
-    expect(spawnSpec.args.slice(1)).toEqual([
-      "--host",
-      "127.0.0.1",
-      "--port",
-      "1432",
-      "--strictPort",
-    ]);
+    expect(spawnSpec.args.slice(1)).toEqual(["--host", "127.0.0.1", "--port", "1432", "--strictPort"]);
   });
 });
 
@@ -156,14 +129,9 @@ describe("resolveTauriDevPort", () => {
     expect(resolveTauriDevPort({})).toBe(1420);
   });
 
-  it.each(["", "  ", "1420.5", "0", "-1", "65536", "not-a-port"])(
-    "rejects invalid TAURI_DEV_PORT=%j",
-    (value) => {
-      expect(() => resolveTauriDevPort({ TAURI_DEV_PORT: value })).toThrow(
-        "TAURI_DEV_PORT",
-      );
-    },
-  );
+  it.each(["", "  ", "1420.5", "0", "-1", "65536", "not-a-port"])("rejects invalid TAURI_DEV_PORT=%j", (value) => {
+    expect(() => resolveTauriDevPort({ TAURI_DEV_PORT: value })).toThrow("TAURI_DEV_PORT");
+  });
 
   it("accepts positive integer TAURI_DEV_PORT values", () => {
     expect(resolveTauriDevPort({ TAURI_DEV_PORT: "1432" })).toBe(1432);
@@ -172,18 +140,9 @@ describe("resolveTauriDevPort", () => {
 
   it("keeps the static Vite startup port in sync with TAURI_DEV_PORT", () => {
     const port = resolveTauriDevPort({ TAURI_DEV_PORT: "1432" });
-    const spawnSpec = buildViteSpawnSpec(
-      "file:///C:/repo/scripts/tauri-dev-vite-manager.ts",
-      port,
-    );
+    const spawnSpec = buildViteSpawnSpec("file:///C:/repo/scripts/tauri-dev-vite-manager.ts", port);
 
-    expect(spawnSpec.args.slice(1)).toEqual([
-      "--host",
-      "127.0.0.1",
-      "--port",
-      "1432",
-      "--strictPort",
-    ]);
+    expect(spawnSpec.args.slice(1)).toEqual(["--host", "127.0.0.1", "--port", "1432", "--strictPort"]);
   });
 });
 

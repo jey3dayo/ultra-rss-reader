@@ -38,9 +38,7 @@ describe("tag settings and reader tag contracts", () => {
       color: "#6f8eb8",
     });
     expect(createTagArgs.parse({ name: "Review" })).toEqual({ name: "Review" });
-    expect(
-      renameTagArgs.parse({ tagId: "tag-1", name: "Later", color: null }),
-    ).toEqual({
+    expect(renameTagArgs.parse({ tagId: "tag-1", name: "Later", color: null })).toEqual({
       tagId: "tag-1",
       name: "Later",
       color: null,
@@ -61,17 +59,13 @@ describe("tag settings and reader tag contracts", () => {
       mode: "unread",
     });
 
-    expect(() =>
-      createTagArgs.parse({ name: "Review", color: null }),
-    ).toThrow();
+    expect(() => createTagArgs.parse({ name: "Review", color: null })).toThrow();
     expect(() => renameTagArgs.parse({ name: "Later" })).toThrow();
     expect(() => deleteTagArgs.parse({})).toThrow();
   });
 
   it("keeps tag response schemas compatible with settings, reader tag list, and picker views", () => {
-    expect(
-      TagDtoSchema.parse({ id: "tag-1", name: "Review", color: null }),
-    ).toEqual({
+    expect(TagDtoSchema.parse({ id: "tag-1", name: "Review", color: null })).toEqual({
       id: "tag-1",
       name: "Review",
       color: null,
@@ -85,25 +79,21 @@ describe("tag settings and reader tag contracts", () => {
   });
 
   it("keeps tag response names non-blank while preserving the nullable color contract", () => {
-    expect(
-      TagDtoSchema.parse({ id: "tag-1", name: "  Review  ", color: null }),
-    ).toEqual({
+    expect(TagDtoSchema.parse({ id: "tag-1", name: "  Review  ", color: null })).toEqual({
       id: "tag-1",
       name: "Review",
       color: null,
     });
-    expect(() =>
-      TagDtoSchema.parse({ id: "tag-1", name: "   ", color: null }),
-    ).toThrow();
+    expect(() => TagDtoSchema.parse({ id: "tag-1", name: "   ", color: null })).toThrow();
   });
 
   it("separates tag metadata and article assignment cache updates", () => {
-    expect(resolveTagMutationInvalidationQueryKeys("create")).toEqual([
-      ["tags"],
+    expect(resolveTagMutationInvalidationQueryKeys("create")).toEqual([["tags"]]);
+    expect(resolveTagMutationInvalidationQueryKeys("articleAssignment")).toEqual([
+      ["articleTags"],
+      ["articlesByTag"],
+      ["tagArticleCounts"],
     ]);
-    expect(
-      resolveTagMutationInvalidationQueryKeys("articleAssignment"),
-    ).toEqual([["articleTags"], ["articlesByTag"], ["tagArticleCounts"]]);
     expect(resolveTagMutationInvalidationQueryKeys("metadata")).toEqual([
       ["tags"],
       ["articleTags"],
@@ -115,15 +105,11 @@ describe("tag settings and reader tag contracts", () => {
 
 describe("mute settings contracts", () => {
   it("keeps create, update, delete, and auto-mark command schemas scoped to mute keyword payloads", () => {
-    expect(
-      createMuteKeywordArgs.parse({ keyword: "spoiler", scope: "title" }),
-    ).toEqual({
+    expect(createMuteKeywordArgs.parse({ keyword: "spoiler", scope: "title" })).toEqual({
       keyword: "spoiler",
       scope: "title",
     });
-    expect(
-      createMuteKeywordArgs.parse({ keyword: " spoiler ", scope: "title" }),
-    ).toEqual({
+    expect(createMuteKeywordArgs.parse({ keyword: " spoiler ", scope: "title" })).toEqual({
       keyword: "spoiler",
       scope: "title",
     });
@@ -143,18 +129,10 @@ describe("mute settings contracts", () => {
       enabled: true,
     });
 
-    expect(() =>
-      createMuteKeywordArgs.parse({ keyword: "spoiler", scope: "all" }),
-    ).toThrow();
-    expect(() =>
-      createMuteKeywordArgs.parse({ keyword: "", scope: "title" }),
-    ).toThrow();
-    expect(() =>
-      createMuteKeywordArgs.parse({ keyword: "   ", scope: "title" }),
-    ).toThrow();
-    expect(() =>
-      updateMuteKeywordArgs.parse({ muteKeywordId: "mute-1", scope: "all" }),
-    ).toThrow();
+    expect(() => createMuteKeywordArgs.parse({ keyword: "spoiler", scope: "all" })).toThrow();
+    expect(() => createMuteKeywordArgs.parse({ keyword: "", scope: "title" })).toThrow();
+    expect(() => createMuteKeywordArgs.parse({ keyword: "   ", scope: "title" })).toThrow();
+    expect(() => updateMuteKeywordArgs.parse({ muteKeywordId: "mute-1", scope: "all" })).toThrow();
     expect(() => deleteMuteKeywordArgs.parse({})).toThrow();
   });
 
@@ -169,11 +147,7 @@ describe("mute settings contracts", () => {
 
   it("keeps mute keyword response schemas independent from tag visual contracts", () => {
     expect(MuteKeywordScopeSchema.parse("body")).toBe("body");
-    expect(MuteKeywordScopeSchema.options).toEqual([
-      "title",
-      "body",
-      "title_and_body",
-    ]);
+    expect(MuteKeywordScopeSchema.options).toEqual(["title", "body", "title_and_body"]);
     expect(
       MuteKeywordDtoSchema.parse({
         id: "mute-1",
@@ -241,8 +215,7 @@ describe("mute settings contracts", () => {
 
     useMuteKeywords();
 
-    const invalidationRootQueryKey =
-      resolveMuteKeywordInvalidationQueryKeys()[0];
+    const invalidationRootQueryKey = resolveMuteKeywordInvalidationQueryKeys()[0];
     const queryOptions = useQueryMock.mock.calls[0]?.[0];
 
     expect(invalidationRootQueryKey).toBe(MUTE_KEYWORD_QUERY_KEY);

@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Result } from "@praha/byethrow";
+import { expectTauriCommandValidationError, suppressConsoleError } from "@tests/helpers/console-spies";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { describe, expect, it } from "vitest";
 import {
@@ -41,6 +42,21 @@ async function runCommandCases<
       return [command, result] as const;
     }),
   );
+}
+
+async function runResponseValidationCommandCases<
+  TCommand extends readonly [string, () => Promise<Result.Result<unknown, CommandValidationError>>],
+>(
+  commandCases: readonly TCommand[],
+): Promise<Array<readonly [string, Result.Result<unknown, CommandValidationError>]>> {
+  const consoleError = suppressConsoleError();
+  const results = await runCommandCases(commandCases);
+
+  for (const [command] of results) {
+    expectTauriCommandValidationError(consoleError, command, "response");
+  }
+
+  return results;
 }
 
 function readRustBrowserWebviewSource() {
@@ -126,7 +142,7 @@ describe("browser webview command contract", () => {
       return null;
     });
 
-    for (const [command, result] of await runCommandCases(stateCommandCases)) {
+    for (const [command, result] of await runResponseValidationCommandCases(stateCommandCases)) {
       expect(Result.isFailure(result), command).toBe(true);
       expect(Result.unwrapError(result).message).toContain("validation failed");
     }
@@ -146,7 +162,7 @@ describe("browser webview command contract", () => {
       return null;
     });
 
-    for (const [command, result] of await runCommandCases(nullCommandCases)) {
+    for (const [command, result] of await runResponseValidationCommandCases(nullCommandCases)) {
       expect(Result.isFailure(result), command).toBe(true);
       expect(Result.unwrapError(result).message).toContain("validation failed");
     }

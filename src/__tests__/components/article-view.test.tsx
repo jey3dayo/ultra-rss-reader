@@ -537,14 +537,11 @@ describe("ArticleView", () => {
     );
 
     calls.length = 0;
-    fireEvent.click(screen.getByRole("link", { name: "Email author" }));
+    expect(screen.getByText("Email author")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Email author" })).not.toBeInTheDocument();
 
-    await waitFor(() => {
-      expect(useUiStore.getState().toastMessage).toEqual({
-        message: "Only http:// and https:// URLs are supported",
-      });
-    });
     expect(calls.filter(({ cmd }) => cmd === "open_in_browser")).toHaveLength(0);
+    expect(useUiStore.getState().toastMessage).toBeNull();
   });
 
   it("keeps the embedded browser preview toggle available when action_open_browser is false", async () => {

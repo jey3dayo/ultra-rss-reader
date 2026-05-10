@@ -355,6 +355,9 @@ function createDefaultHandler(): MockHandler {
           warnings: [],
         };
       case "check_for_update":
+      case "plugin:window|set_always_on_top":
+      case "plugin:window|set_badge_count":
+      case "plugin:window|set_icon":
         return null;
       default:
         throw new Error(`Unhandled Tauri mock command: ${cmd}`);

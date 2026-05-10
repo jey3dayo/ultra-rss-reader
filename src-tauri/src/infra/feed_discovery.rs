@@ -197,6 +197,7 @@ fn is_private_host(host: &str) -> bool {
 
     // Try parsing as IP address (strip [] for IPv6)
     let ip_str = host_lower.trim_start_matches('[').trim_end_matches(']');
+    let ip_str = ip_str.split_once('%').map_or(ip_str, |(addr, _zone)| addr);
     if let Ok(ip) = ip_str.parse::<IpAddr>() {
         return is_private_ip(ip);
     }
@@ -213,6 +214,10 @@ fn is_private_ip(ip: IpAddr) -> bool {
                     || v4.is_link_local() // 169.254.0.0/16
         }
         IpAddr::V6(v6) => {
+            if let Some(v4) = v6.to_ipv4_mapped() {
+                return is_private_ip(IpAddr::V4(v4));
+            }
+
             v6.is_loopback()       // ::1
                     || v6.is_unspecified() // ::
                     // Unique local (fc00::/7)
@@ -887,6 +892,32 @@ mod tests {
     }
 
     #[test]
+    fn test_extract_feed_links_filters_private_url_corpus_after_base_resolution() {
+        let html = r#"
+            <html><head>
+            <link rel="alternate" type="application/rss+xml" title="Loopback Relative" href="//127.0.0.1/rss.xml">
+            <link rel="alternate" type="application/atom+xml" title="Mapped IPv6" href="http://[::ffff:7f00:1]/atom.xml">
+            <link rel="alternate" type="application/feed+json" title="Zone IPv6" href="http://[fe80::1%25en0]/feed.json">
+            <link rel="alternate" type="application/rss+xml" title="Public IDNA" href="https://例え.テスト/feed.xml">
+            <link rel="alternate" type="application/atom+xml" title="Punycode" href="https://xn--r8jz45g.xn--zckzah/atom.xml">
+            </head><body></body></html>
+        "#;
+
+        let feeds = extract_feed_links(html, "https://example.org/articles/index.html");
+
+        assert_eq!(
+            feeds
+                .iter()
+                .map(|feed| (feed.url.as_str(), feed.title.as_str()))
+                .collect::<Vec<_>>(),
+            vec![
+                ("https://xn--r8jz45g.xn--zckzah/feed.xml", "Public IDNA"),
+                ("https://xn--r8jz45g.xn--zckzah/atom.xml", "Punycode"),
+            ],
+        );
+    }
+
+    #[test]
     fn validate_resolved_host_rejects_dns_answers_to_private_ip() {
         let url = reqwest::Url::parse("http://localhost/feed.xml").unwrap();
 
@@ -921,11 +952,42 @@ mod tests {
             reqwest::Url::parse("http://127.0.0.1/feed.xml").unwrap(),
             reqwest::Url::parse("http://10.0.0.2/feed.xml").unwrap(),
             reqwest::Url::parse("http://[::1]/feed.xml").unwrap(),
+            reqwest::Url::parse("http://[::ffff:7f00:1]/feed.xml").unwrap(),
+            reqwest::Url::parse("http://[::ffff:a00:2]/feed.xml").unwrap(),
         ] {
             assert!(matches!(
                 validate_discovery_url(&url),
                 Err(DomainError::Validation(message)) if message == PRIVATE_URL_VALIDATION_MESSAGE
             ));
+        }
+    }
+
+    #[test]
+    fn discover_feeds_rejects_ipv6_zone_identifier_urls_before_network() {
+        let runtime = tokio::runtime::Runtime::new().unwrap();
+        let error = runtime
+            .block_on(discover_feeds("http://[fe80::1%25en0]/feed.xml"))
+            .expect_err("IPv6 zone identifier URL should be rejected before request");
+
+        assert!(matches!(
+            error,
+            DomainError::Validation(message) if message == UNSUPPORTED_URL_VALIDATION_MESSAGE
+        ));
+    }
+
+    #[test]
+    fn validate_discovery_url_allows_idna_and_punycode_public_hosts() {
+        for (raw_url, expected_host) in [
+            ("https://例え.テスト/feed.xml", "xn--r8jz45g.xn--zckzah"),
+            (
+                "https://xn--r8jz45g.xn--zckzah/feed.xml",
+                "xn--r8jz45g.xn--zckzah",
+            ),
+        ] {
+            let url = reqwest::Url::parse(raw_url).unwrap();
+
+            assert_eq!(url.host_str(), Some(expected_host));
+            assert!(validate_discovery_url(&url).is_ok());
         }
     }
 
@@ -1007,6 +1069,7 @@ mod tests {
             reqwest::Url::parse("https://localhost/feed.xml").unwrap(),
             reqwest::Url::parse("https://127.0.0.1/feed.xml").unwrap(),
             reqwest::Url::parse("https://10.0.0.2/feed.xml").unwrap(),
+            reqwest::Url::parse("https://[::ffff:7f00:1]/feed.xml").unwrap(),
         ] {
             assert!(matches!(
                 validate_discovery_redirect(&previous, &next),

@@ -24,7 +24,7 @@ import {
 } from "@/constants/motion";
 import {
   DEFAULT_PLATFORM_CAPABILITIES,
-  type DEFAULT_PLATFORM_INFO,
+  DEFAULT_PLATFORM_INFO,
   type DefaultPlatformInfo,
   PLATFORM_KINDS,
   type PlatformCapabilities,
@@ -159,12 +159,12 @@ describe("constants source of truth", () => {
         capabilities: DEFAULT_PLATFORM_CAPABILITIES,
       }).kind,
     ).toBe("macos");
-    expect(() =>
+    expect(
       PlatformInfoSchema.parse({
         kind: "ios",
         capabilities: DEFAULT_PLATFORM_CAPABILITIES,
       }),
-    ).toThrowError();
+    ).toEqual(DEFAULT_PLATFORM_INFO);
     expect(Object.keys(SHORTCUT_MODIFIER_BY_PLATFORM)).toEqual([...PLATFORM_KINDS]);
     expect(Object.keys(DEFAULT_PLATFORM_CAPABILITIES)).toEqual([
       "supports_reading_list",

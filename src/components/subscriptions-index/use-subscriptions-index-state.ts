@@ -160,23 +160,29 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
     });
   }, [activeAccountId, listLayoutGeneration, options?.accountId, viewportHeight]);
 
-  const selectSummaryFilter = useCallback((filterKey: SubscriptionSummaryFilterKey) => {
-    setActiveSummaryFilter(filterKey);
-    setListScrollState({
-      scrollTop: 0,
-      layoutGeneration: listLayoutGeneration,
-      viewportHeight,
-    });
-  }, [listLayoutGeneration, viewportHeight]);
+  const selectSummaryFilter = useCallback(
+    (filterKey: SubscriptionSummaryFilterKey) => {
+      setActiveSummaryFilter(filterKey);
+      setListScrollState({
+        scrollTop: 0,
+        layoutGeneration: listLayoutGeneration,
+        viewportHeight,
+      });
+    },
+    [listLayoutGeneration, viewportHeight],
+  );
 
-  const updateSearchQuery = useCallback((query: string) => {
-    setSearchQuery(query);
-    setListScrollState({
-      scrollTop: 0,
-      layoutGeneration: listLayoutGeneration,
-      viewportHeight,
-    });
-  }, [listLayoutGeneration, viewportHeight]);
+  const updateSearchQuery = useCallback(
+    (query: string) => {
+      setSearchQuery(query);
+      setListScrollState({
+        scrollTop: 0,
+        layoutGeneration: listLayoutGeneration,
+        viewportHeight,
+      });
+    },
+    [listLayoutGeneration, viewportHeight],
+  );
 
   useEffect(() => {
     setListScrollState((current) => {

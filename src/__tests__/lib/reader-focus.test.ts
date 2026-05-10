@@ -200,6 +200,33 @@ describe("reader-focus", () => {
     expect(row).not.toHaveFocus();
   });
 
+  it.each([
+    ["input", () => document.createElement("input")],
+    ["textarea", () => document.createElement("textarea")],
+    [
+      "contenteditable",
+      () => {
+        const element = document.createElement("div");
+        element.setAttribute("contenteditable", "true");
+        element.setAttribute("tabindex", "0");
+        return element;
+      },
+    ],
+  ])("does not steal focus from an active %s target during article row retry", (_label, createEditingTarget) => {
+    vi.useFakeTimers();
+    const editingTarget = createEditingTarget();
+    const row = createButton({ "data-article-id": "article-1", role: "option" });
+    document.body.append(editingTarget);
+    editingTarget.focus();
+
+    focusArticleListRowTargetWhenReady("article-1", 2);
+    document.body.append(row);
+    vi.advanceTimersByTime(50);
+
+    expect(editingTarget).toHaveFocus();
+    expect(row).not.toHaveFocus();
+  });
+
   it("falls back to a cancellable timeout when requestAnimationFrame is unavailable", () => {
     vi.useFakeTimers();
     const requestAnimationFrameDescriptor = Object.getOwnPropertyDescriptor(window, "requestAnimationFrame");
@@ -212,6 +239,20 @@ describe("reader-focus", () => {
 
     expect(callback).not.toHaveBeenCalled();
     restoreProperty(window, "requestAnimationFrame", requestAnimationFrameDescriptor);
+  });
+
+  it("skips delayed focus frames when both requestAnimationFrame and timer fallback are unavailable", () => {
+    const requestAnimationFrameDescriptor = Object.getOwnPropertyDescriptor(window, "requestAnimationFrame");
+    const setTimeoutDescriptor = Object.getOwnPropertyDescriptor(window, "setTimeout");
+    const callback = vi.fn();
+    Object.defineProperty(window, "requestAnimationFrame", { value: undefined, configurable: true });
+    Object.defineProperty(window, "setTimeout", { value: undefined, configurable: true });
+
+    scheduleReaderFocusFrame(callback);
+
+    expect(callback).not.toHaveBeenCalled();
+    restoreProperty(window, "requestAnimationFrame", requestAnimationFrameDescriptor);
+    restoreProperty(window, "setTimeout", setTimeoutDescriptor);
   });
 
   it("falls back to a timeout when requestAnimationFrame throws", () => {

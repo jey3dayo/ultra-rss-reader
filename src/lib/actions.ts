@@ -150,13 +150,21 @@ export function flushPendingBrowserCloseAction(): void {
 async function toggleFullscreen(): Promise<void> {
   const fullscreenResult = await isWindowFullscreen();
   if (Result.isFailure(fullscreenResult)) {
-    logRuntimeDiagnostic("window-runtime-error", "Failed to read fullscreen state.", Result.unwrapError(fullscreenResult));
+    logRuntimeDiagnostic(
+      "window-runtime-error",
+      "Failed to read fullscreen state.",
+      Result.unwrapError(fullscreenResult),
+    );
     return;
   }
 
   const setFullscreenResult = await setWindowFullscreen(!Result.unwrap(fullscreenResult));
   if (Result.isFailure(setFullscreenResult)) {
-    logRuntimeDiagnostic("window-runtime-error", "Failed to update fullscreen state.", Result.unwrapError(setFullscreenResult));
+    logRuntimeDiagnostic(
+      "window-runtime-error",
+      "Failed to update fullscreen state.",
+      Result.unwrapError(setFullscreenResult),
+    );
   }
 }
 

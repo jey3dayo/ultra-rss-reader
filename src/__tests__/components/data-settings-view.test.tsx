@@ -62,6 +62,46 @@ describe("DataSettingsView", () => {
     expect(onOpenLogDir).toHaveBeenCalledTimes(1);
   });
 
+  it("disables vacuum with a visible fallback reason when database size fails to load", async () => {
+    const user = userEvent.setup();
+    const onVacuum = vi.fn();
+
+    render(
+      <DataSettingsView
+        title="Data"
+        databaseHeading="Database"
+        databaseSizeLabel="Database size"
+        databaseSizeStatus="error"
+        databaseSizeValue=""
+        databaseSizeLoadingLabel="Loading..."
+        databaseSizeErrorLabel="Database size unavailable"
+        safetyHeading="Backup and Restore"
+        safetyDescription="Confirm rollback before changing user data."
+        safetyChecklist={["Use OPML export.", "Quit before restoring backups."]}
+        optimizationHeading="Optimization"
+        vacuumDescription="Optimize the database."
+        vacuumLabel="Optimize now"
+        vacuuming={false}
+        logsHeading="Logs"
+        openLogDirDescription="Open the log directory."
+        openLogDirLabel="Open log directory"
+        openingLogDir={false}
+        onVacuum={onVacuum}
+        onOpenLogDir={vi.fn()}
+      />,
+    );
+
+    const optimizeButton = screen.getByRole("button", { name: "Optimize now" });
+    const fallbackReason = screen.getByText("Optimize the database. Database size unavailable");
+
+    expect(optimizeButton).toBeDisabled();
+    expect(optimizeButton).toHaveAttribute("aria-describedby", fallbackReason.id);
+
+    await user.click(optimizeButton);
+
+    expect(onVacuum).not.toHaveBeenCalled();
+  });
+
   it("shows the loading label while vacuuming and keeps the action disabled", async () => {
     const user = userEvent.setup();
     const onVacuum = vi.fn();

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { isGlobalShortcutTextEditingTarget } from "@/lib/keyboard/global-shortcut-targets";
+import {
+  isGlobalShortcutTextEditingTarget,
+  isModalBlockedMenuAction,
+  shouldIgnoreGlobalShortcutKeyboardEvent,
+} from "@/lib/keyboard/global-shortcut-targets";
 
 function createElement(markup: string): Element {
   const wrapper = document.createElement("div");
@@ -34,5 +38,24 @@ describe("global shortcut targets", () => {
     ["button", "<button></button>"],
   ] as const)("does not treat %s as a text editing target", (_label, markup) => {
     expect(isGlobalShortcutTextEditingTarget(createElement(markup))).toBe(false);
+  });
+
+  it.each([
+    ["IME composition", { key: "m", isComposing: true }],
+    ["Alt/Option modified key", { key: "m", altKey: true }],
+    ["dead key", { key: "Dead" }],
+    ["unidentified key", { key: "Unidentified" }],
+    ["process key", { key: "Process" }],
+  ] as const)("ignores %s before resolving global shortcuts", (_label, event) => {
+    expect(shouldIgnoreGlobalShortcutKeyboardEvent(event)).toBe(true);
+  });
+
+  it("keeps native menu reader actions modal-blocked while allowing app-level actions", () => {
+    expect(isModalBlockedMenuAction("next-article")).toBe(true);
+    expect(isModalBlockedMenuAction("toggle-read")).toBe(true);
+    expect(isModalBlockedMenuAction("open-command-palette")).toBe(true);
+    expect(isModalBlockedMenuAction("sync-all")).toBe(false);
+    expect(isModalBlockedMenuAction("check-for-updates")).toBe(false);
+    expect(isModalBlockedMenuAction("toggle-fullscreen")).toBe(false);
   });
 });

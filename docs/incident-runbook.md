@@ -40,6 +40,10 @@ Use the source that matches the failure mode before collecting broader artifacts
 | account credentials / keyring | Packaged release log plus OS keyring behavior notes | Credentials cannot be saved or reloaded with `DEV_CREDENTIALS` disabled |
 | sync | Packaged release log plus account name and toast/warning text | The same account repeatedly reports failure, partial failure, or retry-pending warnings |
 | WebView / browser preview | Debug HUD geometry rows plus packaged release log when available | Native and layout bounds disagree, content is blank, or the embedded preview cannot be recreated |
+| test temp directory cleanup | Rust test output plus cleanup warning and redacted temp root class | A temp database, keyring fixture, or profile directory cannot be removed after retry |
+| CI frontend failure | Vitest or Playwright output plus gate-specific screenshot/log artifact | The failure cannot be reproduced locally from logs alone |
+| CI Rust failure | Rust test output plus `RUST_LOG` output and sanitized fixture class | The failure involves temp database state, filesystem permissions, or platform-only behavior |
+| CI native smoke failure | Native app log plus platform, bundle/executable class, and screenshot when relevant | The app starts differently on macOS or Windows CI than in local dev |
 
 Do not mix app UI debug actions with log collection in the same note. Record which button or command was used, then attach the corresponding diagnostic source separately.
 
@@ -49,6 +53,14 @@ Attachment contract:
 - Do not attach raw app data directories, full database backups, keychain exports, or unreviewed support dumps to public issues.
 - If a database backup set or support dump is needed, share it only through a private support channel after confirming consent and redaction preview requirements from [feed-content-privacy.md](./feed-content-privacy.md).
 - Screenshots of OS prompts, SmartScreen, Gatekeeper, or permission dialogs must hide local usernames, local paths, account names, feed URLs, and server URLs.
+
+CI failure artifact contract:
+
+- Frontend gate artifacts are UI evidence. Keep Vitest logs, browser console output, and Playwright screenshots/videos/traces scoped to the failed gate; browser-mode E2E and Storybook smoke artifacts must stay in separate directories.
+- Rust gate artifacts are diagnostics evidence. Keep test output, `RUST_LOG` output when enabled, sanitized fixture class names, and temp-dir cleanup warnings; avoid uploading raw temp databases or private-looking paths.
+- Native smoke artifacts are packaged-runtime evidence. Upload debug app logs, platform class, startup command class, and screenshots only on failure. Do not upload native smoke debug bundles on success.
+- Artifact names must include gate family (`frontend`, `rust`, or `native-smoke`), platform when relevant, and whether the artifact is a log, screenshot, report, or sanitized fixture.
+- Retention days must be declared at upload time. Increase retention only for release-blocking native smoke or packaging failures, not for routine frontend failures.
 
 Size and truncation contract:
 
@@ -128,8 +140,12 @@ App data namespace migration contract:
 ### Export And Settings Portability
 
 - OPML export is a subscription list export. It should not contain credentials, tokens, cookies, article content, read/star state, sync metadata, local paths, or database backup metadata, but feed titles, folder names, and feed URLs can still be private.
+- OPML export must not include a generated privacy summary comment by default. Privacy guidance belongs in the export UI and docs, not in the OPML artifact.
+- Imported OPML feeds are owned by the account selected for import. Cross-account duplicates may be reported, but they must not be silently merged, moved, overwritten, or de-duplicated across account boundaries.
+- A cross-account subscription move is a separate explicit recovery/action flow. Record source account, destination account, affected feed/folder scope, and whether read/star/tag/history state was copied, moved, or left behind.
 - Import/export/backup file dialogs must treat cancel as a neutral result, require explicit overwrite confirmation for existing targets, and reject unsupported extensions or directory selections before parsing or writing.
 - Filesystem paths must use native path APIs at their boundary: app-owned log, backup, and dev credential paths stay app-owned and are not exposed as raw webview recovery copy; user-selected export paths keep the selected native path only for the write surface; settings export/import remains unsupported until a versioned contract exists.
+- Remote feed content and provider metadata must never provide filename or path suggestions for import, export, backup, log, or temporary artifacts. Treat publisher titles, article titles, URL path segments, enclosure filenames, favicons, `Content-Disposition`, and parser error text as display-only untrusted data.
 - Atomic writes must use a temporary file in the target directory followed by rename for export, database backup/restore, and the dev credential store. A stale temporary file is not a successful artifact and must be ignored or cleaned before retry.
 - If OS sleep, app restart, permission denial, or disk full interrupts an updater download, export, or backup, preserve logs and treat any partial artifact as untrusted until the flow reports a clean retry or cleanup.
 - App settings export/import is not a supported recovery promise until a schema version, source app identifier, secret exclusion list, import conflict behavior, and encryption decision are defined.
@@ -192,6 +208,18 @@ Use this path when startup succeeded but a later read or write command reports c
 4. If corruption is confirmed, preserve the current database and matching `-wal` / `-shm` sidecars before restore.
 5. Restore only from a complete backup set, then restart the app and confirm the same command no longer reports corruption.
 6. Treat DB lock failure, permission denied, and disk full as separate recovery categories. Do not present them as corruption unless the integrity check confirms corruption.
+
+### 2a. Rust Test Temp Directory Cleanup Failure
+
+Use this path when a Rust integration test cannot remove its temporary database, keyring fixture, app profile, or nested temp directory.
+
+1. Record the owning test name, platform, temp artifact class, and cleanup phase.
+2. Preserve the first cleanup error, including permission denied, path not found, directory not empty, or open-handle style errors.
+3. Redact user names and full local paths before sharing diagnostics. Prefer temp root class and basename over absolute paths.
+4. Retry cleanup once after dropping test-owned handles and background tasks. Do not hide the first error if the retry succeeds.
+5. If retry fails, leave a warning in test output that names the artifact class, platform, cleanup attempt count, and suggested manual cleanup class.
+6. On Windows, treat open handles and delayed file release as their own cleanup category instead of collapsing them into generic filesystem failure.
+7. CI may retain cleanup diagnostics on failure, but it must not upload raw temp databases or keyring material.
 
 ### 3. Updater Failure
 

@@ -460,7 +460,7 @@ describe("SettingsModal", () => {
     await user.click(screen.getByRole("button", { name: "Delete Later" }));
 
     const deleteDialog = await screen.findByRole("dialog", { name: "Delete Tag" });
-    await user.click(within(deleteDialog).getByRole("button", { name: "Delete" }));
+    await user.click(within(deleteDialog).getByRole("button", { name: 'Delete "Later". This cannot be undone.' }));
 
     await waitFor(() => {
       expect(screen.queryByText("Later")).not.toBeInTheDocument();

@@ -5,11 +5,7 @@ export const MuteKeywordKeywordSchema = z.string().trim().min(3);
 
 const nonBlankTrimmedStringSchema = z.string().trim().min(1);
 
-export const MuteKeywordScopeSchema = z.enum([
-  "title",
-  "body",
-  "title_and_body",
-]);
+export const MuteKeywordScopeSchema = z.enum(["title", "body", "title_and_body"]);
 
 export const MuteKeywordDtoSchema = z
   .object({

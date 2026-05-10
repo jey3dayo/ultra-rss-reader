@@ -1252,9 +1252,7 @@ describe("repository static contracts", () => {
     expect(releaseWorkflow).toContain("platform: macos-latest");
     expect(releaseWorkflow).toContain("args: --target aarch64-apple-darwin");
     expect(releaseWorkflow).toContain("platform: windows-latest");
-    expect(releaseWorkflow).toContain(
-      `--config '{"identifier":"${tauriReleaseConfig.identifier}","bundle":{"createUpdaterArtifacts":true}}'`,
-    );
+    expect(releaseWorkflow).toContain("--config src-tauri/tauri.release.conf.json");
     expect(releaseWorkflow).toContain("--ci");
     expect(tauriReleaseConfig.bundle.createUpdaterArtifacts).toBe(true);
   });
@@ -1453,9 +1451,8 @@ describe("repository static contracts", () => {
     expect(updaterCommands).toContain("guard.take()");
     expect(updaterCommands).toContain("updater.check()");
     expect(updaterCommands).toContain('message: "No update available".to_string()');
-    expect(readRepoFile(".github/workflows/release.yml")).toContain(
-      `--config '{"identifier":"${tauriReleaseConfig.identifier}","bundle":{"createUpdaterArtifacts":true}}'`,
-    );
+    expect(tauriReleaseConfig.bundle.createUpdaterArtifacts).toBe(true);
+    expect(readRepoFile(".github/workflows/release.yml")).toContain("--config src-tauri/tauri.release.conf.json");
     expect(readRepoFile("docs/release-manual-verification.md")).toContain("packaged updater verification passed");
   });
 

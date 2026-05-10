@@ -568,7 +568,7 @@ function intersectMany(groups: readonly string[][]): string[] {
   return uniqueSorted(first.filter((item) => rest.every((group) => group.includes(item))));
 }
 
-function isNonEmptyString(value: string | undefined): value is string {
+function isNonEmptyString(value: string | null | undefined): value is string {
   return typeof value === "string" && value.length > 0;
 }
 
