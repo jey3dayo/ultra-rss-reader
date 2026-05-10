@@ -24,6 +24,7 @@ import {
   countAccountStarredArticlesArgs,
   createFolderArgs,
   createMuteKeywordArgs,
+  createSchemaVersionedQueryKey,
   DevRuntimeOptionsSchema,
   DiscoveredFeedDtoSchema,
   deleteAccountArgs,
@@ -34,6 +35,7 @@ import {
   FeedArticleSummaryDtoSchema,
   FeedDtoSchema,
   FolderDtoSchema,
+  FRONTEND_SCHEMA_CONTRACT_VERSION,
   getAccountSyncStatusArgs,
   getArticleTagsArgs,
   getCommandArgsSchema,
@@ -62,9 +64,11 @@ import {
   openExternalUrlArgs,
   PlatformInfoSchema,
   PreferencesDtoSchema,
+  QUERY_CACHE_KEY_VERSION,
   recordArticleViewArgs,
   renameFeedArgs,
   renameTagArgs,
+  SCHEMA_PARSE_FAILURE_ACTION_STATE,
   StringResponseSchema,
   SyncResultSchema,
   searchArticlesArgs,
@@ -1186,6 +1190,21 @@ describe("primitive command result schemas", () => {
     expect(() => NullableStarredCountSchema.parse(1.5)).toThrow();
     expect(() => NullableStarredCountSchema.parse(Number.NaN)).toThrow();
     expect(() => NullableStarredCountSchema.parse(Number.POSITIVE_INFINITY)).toThrow();
+  });
+});
+
+describe("frontend schema runtime contracts", () => {
+  it("keeps schema parse fallback action state disabled for UI actions", () => {
+    expect(SCHEMA_PARSE_FAILURE_ACTION_STATE).toEqual({
+      enabled: false,
+      reason: "schema-parse-failure",
+    });
+  });
+
+  it("versions schema-owned query cache roots so app upgrades do not reuse stale cache", () => {
+    expect(FRONTEND_SCHEMA_CONTRACT_VERSION).toBe(1);
+    expect(QUERY_CACHE_KEY_VERSION).toBe(`schema-v${FRONTEND_SCHEMA_CONTRACT_VERSION}`);
+    expect(createSchemaVersionedQueryKey("feeds")).toEqual([QUERY_CACHE_KEY_VERSION, "feeds"]);
   });
 });
 

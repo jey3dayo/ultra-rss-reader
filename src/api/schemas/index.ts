@@ -138,6 +138,13 @@ export {
 } from "./platform-info";
 export { type PreferencesDto, PreferencesDtoSchema } from "./preferences";
 export {
+  createSchemaVersionedQueryKey,
+  FRONTEND_SCHEMA_CONTRACT_VERSION,
+  QUERY_CACHE_KEY_VERSION,
+  SCHEMA_PARSE_FAILURE_ACTION_STATE,
+  type SchemaParseFailureActionState,
+} from "./runtime-contracts";
+export {
   NullableStarredArticlesSchema,
   NullableStarredCountSchema,
 } from "./starred-articles";

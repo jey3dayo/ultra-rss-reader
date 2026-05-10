@@ -325,7 +325,31 @@ describe("release repository contract", () => {
     expect(releaseWorkflow).toContain('checkout_sha="$(git rev-parse HEAD)"');
     expect(releaseWorkflow).toContain("Generate updater asset checksums");
     expect(releaseWorkflow).toContain("Upload updater asset checksums");
+    expect(releaseWorkflow).toContain("Generate release dependency provenance");
+    expect(releaseWorkflow).toContain("Generate release provenance record");
+    expect(releaseWorkflow).toContain("Upload release provenance assets");
+    expect(releaseWorkflow).toContain("mise run report:licenses");
+    expect(releaseWorkflow).toContain("pnpm-licenses-$" + "{assetPlatform}.json");
+    expect(releaseWorkflow).toContain("cargo-licenses-$" + "{assetPlatform}.json");
+    expect(releaseWorkflow).toContain("release-provenance-$" + "{assetPlatform}.json");
+    expect(releaseWorkflow).toContain("workflowRunUrl");
+    expect(releaseWorkflow).toContain("tagTargetSha");
+    expect(releaseWorkflow).toContain('execFileSync("git", ["rev-parse", "HEAD"]');
+    expect(releaseWorkflow).toContain(
+      'execFileSync("git", ["rev-parse", `refs/tags/$' + "{process.env.RELEASE_TAG}^{}`]",
+    );
+    expect(releaseWorkflow).toContain("checksumAssetName");
+    expect(releaseWorkflow).toContain("expected three release provenance assets");
+    expect(releaseWorkflow).toContain(
+      "release provenance source $" + "{sourceSha} does not match tag target $" + "{tagTargetSha}",
+    );
     expect(releaseWorkflow).toContain("releaseDraft: true");
+    expect(releaseWorkflow.indexOf("Generate updater asset checksums")).toBeLessThan(
+      releaseWorkflow.indexOf("Generate release provenance record"),
+    );
+    expect(releaseWorkflow.indexOf("Generate release provenance record")).toBeLessThan(
+      releaseWorkflow.indexOf("Upload release provenance assets"),
+    );
     expect(releaseManualVerification).toContain("Release Provenance And SBOM Record");
     expect(releaseManualVerification).toContain("Release tag and tag target SHA");
     expect(releaseManualVerification).toContain("Source commit SHA checked out by the release workflow");
@@ -379,6 +403,24 @@ describe("release repository contract", () => {
     expect(ciWorkflow).not.toMatch(/\b(?:pnpm|cargo)\s+audit\b/);
     expect(releaseWorkflow).not.toMatch(/\b(?:pnpm|cargo)\s+audit\b/);
     expect(miseToml).not.toMatch(/depends = \[[^\]]*"audit:deps"/);
+  });
+
+  it("documents schema, test fixture, dependency update, and reproducibility gates", () => {
+    expect(docsReadme).toContain("Schema and query-cache contracts");
+    expect(docsReadme).toContain(
+      "Schema parse failure fallbacks must not enable destructive, write, or navigation actions",
+    );
+    expect(docsReadme).toContain("must include a schema or query-key version segment");
+    expect(docsReadme).toContain("Generated schema drift becomes a failing gate");
+    expect(docsReadme).toContain("Date fixtures must use a frozen clock plus relative offsets");
+    expect(docsReadme).toContain("Reproducibility audit policy");
+    expect(docsReadme).toContain("must not depend on local app state");
+    expect(docsReadme).toContain("Runtime dependencies affect shipped code or native behavior");
+    expect(docsReadme).toContain(
+      "Build-only dependencies affect compilation, bundling, packaging, or generated assets",
+    );
+    expect(docsReadme).toContain("Dev-only dependencies affect lint, format, reports, or local-only tooling");
+    expect(docsReadme).toContain("Transitive-risk updates are indirect dependency changes");
   });
 
   it("keeps release note category labels covered by issue and PR label contracts", () => {

@@ -10,6 +10,7 @@ import {
 import { parseJsonWithSchemaOrNull } from "@/schemas/parse";
 import {
   CommandHistoryStorageSchema,
+  DatabaseRestoreStorageReconciliationPolicySchema,
   StorageCleanupPolicyConnectionsSchema,
   StoredSidebarExpandedFoldersSchema,
 } from "@/schemas/storage";
@@ -161,6 +162,24 @@ describe("storage schemas", () => {
       StorageCleanupPolicyConnectionsSchema.safeParse({
         settingsDataResetKeys: ["unknown"],
         privateDataExportKeys: [STORAGE_KEYS.theme],
+      }).success,
+    ).toBe(false);
+  });
+
+  it("fixes DB restore localStorage reconciliation to DB-derived user-clearable keys", () => {
+    expect(DatabaseRestoreStorageReconciliationPolicySchema.parse(undefined as unknown)).toEqual({
+      removeKeys: [
+        STORAGE_KEYS.commandHistory,
+        STORAGE_KEYS.sidebarExpandedFolders,
+        STORAGE_KEYS.startupSyncLastTriggeredAt,
+      ],
+      retainKeys: [STORAGE_KEYS.theme],
+    });
+
+    expect(
+      DatabaseRestoreStorageReconciliationPolicySchema.safeParse({
+        removeKeys: [STORAGE_KEYS.theme],
+        retainKeys: [STORAGE_KEYS.commandHistory],
       }).success,
     ).toBe(false);
   });

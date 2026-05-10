@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import {
   parseJsonWithSchema,
@@ -11,8 +11,19 @@ const userSchema = z.object({
   id: z.string(),
   unreadCount: z.number().int().nonnegative(),
 });
+const FROZEN_TEST_NOW = new Date("2026-04-15T00:00:00.000Z");
+
+function relativeIsoDate(daysFromFrozenNow: number): string {
+  const date = new Date(FROZEN_TEST_NOW);
+  date.setUTCDate(date.getUTCDate() + daysFromFrozenNow);
+  return date.toISOString();
+}
 
 describe("schema parse helpers", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("returns parsed data when the value matches the schema", () => {
     expect(parseWithSchema(userSchema, { id: "acc-1", unreadCount: 12 })).toEqual({
       id: "acc-1",
@@ -95,5 +106,26 @@ describe("schema parse helpers", () => {
       id: "acc-2",
       unreadCount: 0,
     });
+  });
+
+  it("keeps date fixtures relative to a frozen clock", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(FROZEN_TEST_NOW);
+
+    const dateFixtureSchema = z.object({
+      publishedAt: z.string().datetime({ offset: true }),
+      relativeDay: z.enum(["past", "future"]),
+    });
+
+    expect(
+      dateFixtureSchema.parse({
+        publishedAt: relativeIsoDate(-1),
+        relativeDay: "past",
+      }),
+    ).toEqual({
+      publishedAt: "2026-04-14T00:00:00.000Z",
+      relativeDay: "past",
+    });
+    expect(new Date(relativeIsoDate(1)).getTime()).toBeGreaterThan(Date.now());
   });
 });
