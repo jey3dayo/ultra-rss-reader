@@ -148,8 +148,8 @@ impl fmt::Debug for GReaderProvider {
         formatter
             .debug_struct("GReaderProvider")
             .field("kind", &self.kind)
-            .field("api_base", &self.api_base)
-            .field("auth_base", &self.auth_base)
+            .field("api_base", &"[redacted]")
+            .field("auth_base", &"[redacted]")
             .field(
                 "auth_token",
                 &self.auth_token.as_ref().map(|_| "[redacted]"),
@@ -1158,13 +1158,18 @@ mod tests {
 
     #[test]
     fn redaction_debug_output_redacts_greader_auth_token() {
-        let mut provider = GReaderProvider::for_freshrss("https://freshrss.example.com");
+        let mut provider = GReaderProvider::for_freshrss(
+            "https://secret-user:secret-password@freshrss.example.com",
+        );
         provider.auth_token = Some("secret-auth-token".into());
 
         let debug_output = format!("{provider:?}");
 
         assert!(debug_output.contains("[redacted]"));
         assert!(!debug_output.contains("secret-auth-token"));
+        assert!(!debug_output.contains("secret-user"));
+        assert!(!debug_output.contains("secret-password"));
+        assert!(!debug_output.contains("freshrss.example.com"));
     }
 
     #[test]

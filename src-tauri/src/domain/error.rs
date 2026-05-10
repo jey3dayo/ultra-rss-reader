@@ -142,7 +142,24 @@ fn redact_sensitive_network_error_message(message: &str) -> String {
 fn redact_sensitive_url_token(token: &str) -> String {
     let trimmed_start = token.trim_start_matches(['"', '\'', '(', '[']);
     let prefix_len = token.len() - trimmed_start.len();
-    let trimmed = trimmed_start.trim_end_matches(['"', '\'', ')', ']', ',', '.', ';', ':']);
+    let trimmed = trimmed_start.trim_end_matches(|c| {
+        matches!(
+            c,
+            '"' | '\''
+                | ')'
+                | ']'
+                | ','
+                | '.'
+                | ';'
+                | ':'
+                | '。'
+                | '、'
+                | '，'
+                | '．'
+                | '！'
+                | '？'
+        )
+    });
     let suffix_len = trimmed_start.len() - trimmed.len();
 
     let Ok(mut url) = reqwest::Url::parse(trimmed) else {
@@ -576,6 +593,29 @@ mod tests {
             "retryable error (https://example.com/path?redacted), next retry soon"
         );
         assert!(!message.contains("hunter2"));
+    }
+
+    #[test]
+    fn network_error_message_redacts_unicode_punctuated_sensitive_urls() {
+        let message = redact_sensitive_network_error_message(
+            "接続失敗: https://example.com/path?password=hunter2。",
+        );
+
+        assert_eq!(message, "接続失敗: https://example.com/path?redacted。");
+        assert!(!message.contains("hunter2"));
+    }
+
+    #[test]
+    fn network_error_message_redacts_multiline_sensitive_urls() {
+        let message = redact_sensitive_network_error_message(
+            "request failed:\nhttps://example.com/path?token=secret-token\nretry later",
+        );
+
+        assert_eq!(
+            message,
+            "request failed: https://example.com/path?redacted retry later"
+        );
+        assert!(!message.contains("secret-token"));
     }
 
     #[test]
