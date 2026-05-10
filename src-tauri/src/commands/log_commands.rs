@@ -16,6 +16,24 @@ fn log_dir_privacy_checklist() -> &'static [&'static str] {
     ]
 }
 
+fn ensure_log_dir(dir: &std::path::Path) -> Result<(), AppError> {
+    std::fs::create_dir_all(dir).map_err(|e| AppError::UserVisible {
+        message: log_dir_error_message("create", e),
+    })
+}
+
+fn log_dir_opener_arg(dir: &std::path::Path) -> Result<String, AppError> {
+    dir.to_str()
+        .map(String::from)
+        .ok_or_else(|| AppError::UserVisible {
+            message: log_dir_error_message("open", "log directory path is not valid UTF-8"),
+        })
+}
+
+fn log_dir_opener_app_arg() -> Option<String> {
+    None
+}
+
 #[tauri::command]
 pub fn open_log_dir(app: tauri::AppHandle) -> Result<(), AppError> {
     let dir = app
@@ -25,12 +43,11 @@ pub fn open_log_dir(app: tauri::AppHandle) -> Result<(), AppError> {
             message: log_dir_error_message("resolve", e),
         })?;
 
-    std::fs::create_dir_all(&dir).map_err(|e| AppError::UserVisible {
-        message: log_dir_error_message("create", e),
-    })?;
+    ensure_log_dir(&dir)?;
+    let opener_arg = log_dir_opener_arg(&dir)?;
 
     app.opener()
-        .open_path(dir.to_string_lossy().into_owned(), None::<String>)
+        .open_path(opener_arg, log_dir_opener_app_arg())
         .map_err(|e| AppError::UserVisible {
             message: log_dir_error_message("open", e),
         })?;
@@ -40,7 +57,21 @@ pub fn open_log_dir(app: tauri::AppHandle) -> Result<(), AppError> {
 
 #[cfg(test)]
 mod tests {
-    use super::{log_dir_error_message, log_dir_privacy_checklist};
+    use std::path::Path;
+
+    use super::{
+        ensure_log_dir, log_dir_error_message, log_dir_opener_app_arg, log_dir_opener_arg,
+        log_dir_privacy_checklist,
+    };
+
+    fn assert_user_visible_recovery_message(result: Result<(), crate::commands::dto::AppError>) {
+        match result {
+            Err(crate::commands::dto::AppError::UserVisible { message }) => {
+                assert_eq!(message, "Check OS permissions and try again.");
+            }
+            other => panic!("expected user-visible error, got {other:?}"),
+        }
+    }
 
     #[test]
     fn log_dir_errors_keep_only_recovery_copy() {
@@ -67,5 +98,82 @@ mod tests {
         assert!(checklist.contains("article URLs"));
         assert!(checklist.contains("local user paths"));
         assert!(checklist.contains("backup database files"));
+    }
+
+    #[test]
+    fn log_dir_opener_arg_uses_exact_utf8_path_without_arguments() {
+        let dir = Path::new("/tmp/Ultra RSS Reader Logs");
+
+        assert_eq!(
+            log_dir_opener_arg(dir).unwrap(),
+            "/tmp/Ultra RSS Reader Logs"
+        );
+        assert_eq!(log_dir_opener_app_arg(), None);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn log_dir_opener_arg_rejects_non_utf8_paths_instead_of_lossy_conversion() {
+        use std::ffi::OsString;
+        use std::os::unix::ffi::OsStringExt;
+        use std::path::PathBuf;
+
+        let path = PathBuf::from(OsString::from_vec(b"/tmp/ultra-rss-\xFF-logs".to_vec()));
+        let result = log_dir_opener_arg(&path);
+
+        match result {
+            Err(crate::commands::dto::AppError::UserVisible { message }) => {
+                assert_eq!(message, "Check OS permissions and try again.");
+            }
+            other => panic!("expected user-visible error, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn ensure_log_dir_allows_existing_directory() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let log_dir = temp_dir.path().join("logs");
+
+        ensure_log_dir(&log_dir).unwrap();
+        ensure_log_dir(&log_dir).unwrap();
+
+        assert!(log_dir.is_dir());
+    }
+
+    #[test]
+    fn ensure_log_dir_rejects_file_collision() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let log_dir = temp_dir.path().join("logs");
+        std::fs::write(&log_dir, b"not a directory").unwrap();
+
+        assert_user_visible_recovery_message(ensure_log_dir(&log_dir));
+        assert!(log_dir.is_file());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn ensure_log_dir_allows_symlink_to_existing_directory() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let target_dir = temp_dir.path().join("actual-logs");
+        let log_dir = temp_dir.path().join("logs-link");
+        std::fs::create_dir(&target_dir).unwrap();
+        std::os::unix::fs::symlink(&target_dir, &log_dir).unwrap();
+
+        ensure_log_dir(&log_dir).unwrap();
+
+        assert!(log_dir.is_dir());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn ensure_log_dir_rejects_symlink_to_file_collision() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let target_file = temp_dir.path().join("actual-log-file");
+        let log_dir = temp_dir.path().join("logs-link");
+        std::fs::write(&target_file, b"not a directory").unwrap();
+        std::os::unix::fs::symlink(&target_file, &log_dir).unwrap();
+
+        assert_user_visible_recovery_message(ensure_log_dir(&log_dir));
+        assert!(log_dir.is_file());
     }
 }
