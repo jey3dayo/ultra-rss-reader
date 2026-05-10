@@ -68,7 +68,7 @@ type ArticleListMarkAllReadCountParams = {
 function getDateGroup(dateStr: string): string {
   const date = parseDateInput(dateStr);
   if (date === null) {
-    return dateStr;
+    return formatArticleDateGroupInvalidFallback(dateStr);
   }
 
   const today = getStartOfLocalDay(getCurrentDate());
@@ -81,7 +81,15 @@ function getDateGroup(dateStr: string): string {
 }
 
 export function formatArticleTime(dateStr: string): string {
-  return formatLocalHourMinute(dateStr) ?? dateStr;
+  return formatLocalHourMinute(dateStr) ?? formatArticleTimeInvalidFallback(dateStr);
+}
+
+function formatArticleDateGroupInvalidFallback(value: string): string {
+  return value;
+}
+
+function formatArticleTimeInvalidFallback(value: string): string {
+  return value;
 }
 
 function filterByFolderFeedIds(
@@ -172,8 +180,13 @@ function compareArticlesByPublishedAt(params: {
   const leftTime = getDateInputTimeMs(left.published_at);
   const rightTime = getDateInputTimeMs(right.published_at);
 
-  if (leftTime !== null && rightTime !== null && leftTime !== rightTime) {
-    return compareDateInputsAsc(left.published_at, right.published_at) * direction;
+  if (leftTime !== null && rightTime !== null) {
+    const dateOrder = compareDateInputsAsc(left.published_at, right.published_at);
+    if (dateOrder !== 0) {
+      return dateOrder * direction;
+    }
+
+    return left.id.localeCompare(right.id);
   }
 
   if (leftTime !== null && rightTime === null) {

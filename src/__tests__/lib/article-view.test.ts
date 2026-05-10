@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { sampleArticles, sampleFeeds } from "@tests/helpers/fixtures";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { FolderDto } from "@/api/tauri-commands";
 import {
   buildArticleViewSummary,
@@ -223,6 +223,19 @@ describe("resolveArticleDateLocale", () => {
 
   it("falls back invalid locale tags to en-US", () => {
     expect(resolveArticleDateLocale("en_US")).toBe("en-US");
+  });
+
+  it("uses the i18n English fallback when Intl supported locale lookup fails", () => {
+    const supportedLocalesOfSpy = vi
+      .spyOn(Intl.DateTimeFormat, "supportedLocalesOf")
+      .mockImplementationOnce(() => {
+        throw new RangeError("invalid locale");
+      });
+
+    expect(resolveArticleDateLocale("en_US")).toBe("en-US");
+    expect(supportedLocalesOfSpy).toHaveBeenCalledWith("en_US");
+
+    supportedLocalesOfSpy.mockRestore();
   });
 });
 

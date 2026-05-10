@@ -1,7 +1,12 @@
 import { Result } from "@praha/byethrow";
 import type { ArticleDto, FeedDto, FolderDto, TagDto } from "@/api/tauri-commands";
 import { countUnreadArticles } from "@/lib/articles/article-list";
-import { formatMediumDateOrDash, getDateInputTimeMs, parseDateInput } from "@/lib/datetime";
+import {
+  formatMediumDateOrDash,
+  getDateInputTimeMs,
+  parseDateInput,
+  resolveDateTimeLocale,
+} from "@/lib/datetime";
 import { resolveFeedWebsiteHref, resolveSiteHostLabel } from "@/lib/feed/feed";
 import type { ReaderSelection } from "@/lib/reader/reader-selection.types";
 import { countFeedsInFolder } from "@/lib/sidebar/sidebar";
@@ -190,18 +195,13 @@ export function resolveArticleDateLocale(locale: string | undefined): string {
 const ARTICLE_DATE_LOCALE_FALLBACK = "en-US";
 
 function resolveSafeArticleDateLocale(locale: string): string {
-  try {
-    Intl.DateTimeFormat(locale);
-    return locale;
-  } catch {
-    return ARTICLE_DATE_LOCALE_FALLBACK;
-  }
+  return resolveDateTimeLocale(locale, ARTICLE_DATE_LOCALE_FALLBACK) ?? ARTICLE_DATE_LOCALE_FALLBACK;
 }
 
 export function formatArticleDate(dateStr: string, locale = "en-US"): string {
   const date = parseDateInput(dateStr);
   if (date === null) {
-    return dateStr;
+    return formatArticleDateInvalidFallback(dateStr);
   }
 
   const resolvedLocale = resolveSafeArticleDateLocale(locale || ARTICLE_DATE_LOCALE_FALLBACK);
@@ -235,6 +235,10 @@ export function formatArticleDate(dateStr: string, locale = "en-US"): string {
 
 export function formatArticleSummaryDate(value: string | null | undefined, locale: string): string {
   return formatMediumDateOrDash(value, locale);
+}
+
+function formatArticleDateInvalidFallback(value: string): string {
+  return value;
 }
 
 export function resolveArticleSummaryWebsiteHref(feed: FeedDto): string | null {

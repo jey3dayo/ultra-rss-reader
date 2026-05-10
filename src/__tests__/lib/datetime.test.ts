@@ -14,6 +14,7 @@ import {
   getDateInputTimeMs,
   parseDateInput,
   parseDateInputResult,
+  resolveDateTimeLocale,
 } from "@/lib/datetime";
 
 describe("datetime helpers", () => {
@@ -98,6 +99,11 @@ describe("datetime helpers", () => {
     expect(formatShortDateTime(value, malformedLocale)).toBe(formatShortDateTime(value));
     expect(formatLongDate(value, malformedLocale)).toBe(formatLongDate(value));
     expect(formatMediumDate(value, malformedLocale)).toBe(formatMediumDate(value));
+  });
+
+  it("resolves supported locales and falls back when Intl locale support rejects the input", () => {
+    expect(resolveDateTimeLocale("en-US", "ja")).toBe("en-US");
+    expect(resolveDateTimeLocale("en_US", "ja")).toBe("ja");
   });
 
   it("counts local calendar day boundaries across daylight saving time changes", () => {

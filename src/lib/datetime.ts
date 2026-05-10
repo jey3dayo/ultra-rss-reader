@@ -93,16 +93,16 @@ export function differenceInDays(later: Date, earlier: Date): number {
   return differenceInDateFnsDays(later, earlier);
 }
 
-function resolveDateTimeLocale(locale?: string): string | undefined {
+export function resolveDateTimeLocale(locale?: string, fallbackLocale?: string): string | undefined {
   if (locale === undefined) {
-    return undefined;
+    return fallbackLocale;
   }
 
   try {
     const [supportedLocale] = Intl.DateTimeFormat.supportedLocalesOf(locale);
-    return supportedLocale;
+    return supportedLocale ?? fallbackLocale;
   } catch {
-    return undefined;
+    return fallbackLocale;
   }
 }
 
@@ -182,5 +182,9 @@ export function formatMediumDate(value: DateInput, locale?: string): string | nu
 }
 
 export function formatMediumDateOrDash(value: DateInput, locale?: string): string {
-  return formatMediumDate(value, locale) ?? "—";
+  return formatMediumDateOrFallback(value, locale, "—");
+}
+
+export function formatMediumDateOrFallback(value: DateInput, locale: string | undefined, fallback: string): string {
+  return formatMediumDate(value, locale) ?? fallback;
 }
