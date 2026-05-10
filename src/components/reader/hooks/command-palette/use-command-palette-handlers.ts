@@ -4,10 +4,12 @@ import { addToHistory } from "@/components/reader/hooks/command-palette/use-comm
 import { type RuntimeDevScenario, runRuntimeDevScenario } from "@/dev/scenario-runtime";
 import type { FeedLandingFailure, FeedLandingResult } from "@/hooks/use-feed-landing";
 import { executeAction } from "@/lib/actions";
+import { isAppActionAvailable } from "@/lib/app-actions";
 import i18n from "@/lib/i18n";
 import type { ToastData } from "@/lib/ui/toast.types";
 import enReader from "@/locales/en/reader.json";
 import jaReader from "@/locales/ja/reader.json";
+import { useUiStore } from "@/stores/ui-store";
 import type { PaletteAction } from "../../command-palette.types";
 import { createCommandPaletteHistoryValue } from "../../command-palette-history";
 
@@ -22,6 +24,7 @@ type UseCommandPaletteHandlersParams = {
   selectArticle: (articleId: string) => void;
   openFeedLanding: (feedId: string) => Promise<FeedLandingResult>;
   paletteSessionId: number;
+  commandPaletteOpen: boolean;
   canSelectArticle: (feedId: string, articleId: string) => boolean;
 };
 
@@ -97,12 +100,14 @@ export function useCommandPaletteHandlers({
   selectArticle,
   openFeedLanding,
   paletteSessionId,
+  commandPaletteOpen,
   canSelectArticle,
 }: UseCommandPaletteHandlersParams): UseCommandPaletteHandlersResult {
   const feedLandingRequestIdRef = useRef(0);
   const devScenarioRequestIdRef = useRef(0);
   const selectedAccountIdRef = useRef(selectedAccountId);
   const paletteSessionIdRef = useRef(paletteSessionId);
+  const commandPaletteOpenRef = useRef(commandPaletteOpen);
   if (selectedAccountIdRef.current !== selectedAccountId) {
     selectedAccountIdRef.current = selectedAccountId;
     feedLandingRequestIdRef.current += 1;
@@ -112,15 +117,32 @@ export function useCommandPaletteHandlers({
     paletteSessionIdRef.current = paletteSessionId;
     devScenarioRequestIdRef.current += 1;
   }
+  commandPaletteOpenRef.current = commandPaletteOpen;
 
   function handleActionSelect(action: PaletteAction["id"]) {
+    if (!commandPaletteOpenRef.current) {
+      return;
+    }
+
     if (action === "open-shortcuts-help") {
       openShortcutsHelp();
       closePalette();
       return;
     }
+    const uiState = useUiStore.getState();
     if (
-      (!selectedAccountId && (action === "open-add-feed" || action === "sync-all" || action === "mark-all-read")) ||
+      !isAppActionAvailable(action, "commandPalette", {
+        selectedAccountId: selectedAccountIdRef.current,
+        selectedArticleId: uiState.selectedArticleId,
+        contentMode: uiState.contentMode,
+        commandPaletteOpen: commandPaletteOpenRef.current,
+        settingsOpen: uiState.settingsOpen,
+        shortcutsHelpOpen: uiState.shortcutsHelpOpen,
+        isAddFeedDialogOpen: uiState.isAddFeedDialogOpen,
+        isSyncing,
+      }) ||
+      (!selectedAccountIdRef.current &&
+        (action === "open-add-feed" || action === "sync-all" || action === "mark-all-read")) ||
       (isSyncing && action === "sync-all")
     ) {
       return;

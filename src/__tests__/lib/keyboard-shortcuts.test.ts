@@ -833,6 +833,21 @@ describe("keyboard shortcut resolver", () => {
     expect(Result.unwrap(result)).toEqual({ type: "reload-webview" });
   });
 
+  it("keeps article keyboard navigation available while Web Preview is focused", () => {
+    const result = resolveKeyboardAction({
+      key: "j",
+      metaKey: false,
+      ctrlKey: false,
+      shiftKey: false,
+      targetTag: "DIV",
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      viewMode: "all",
+    });
+
+    expect(Result.unwrap(result)).toEqual({ type: "navigate-article", direction: 1 });
+  });
+
   it.each([
     ["toggle_read", "m", keyboardEvents.toggleRead],
     ["toggle_star", "s", keyboardEvents.toggleStar],

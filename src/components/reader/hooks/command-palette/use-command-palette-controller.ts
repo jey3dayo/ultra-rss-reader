@@ -94,6 +94,7 @@ export function useCommandPaletteController(): CommandPaletteControllerResult {
       selectArticle,
       openFeedLanding,
       paletteSessionId: paletteSessionIdRef.current,
+      commandPaletteOpen: open,
       canSelectArticle: (feedId, articleId) =>
         selectableArticleFeedIds.has(feedId) && selectableArticleIds.has(articleId),
     });

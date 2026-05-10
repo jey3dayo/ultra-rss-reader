@@ -7,6 +7,7 @@ import {
 } from "@/components/reader/hooks/command-palette/use-command-palette-handlers";
 import i18n from "@/lib/i18n";
 import enReader from "@/locales/en/reader.json";
+import { useUiStore } from "@/stores/ui-store";
 
 const { addToHistoryMock, executeActionMock, runRuntimeDevScenarioMock } = vi.hoisted(() => ({
   addToHistoryMock: vi.fn(),
@@ -28,6 +29,7 @@ vi.mock("@/dev/scenario-runtime", () => ({
 
 afterEach(() => {
   vi.clearAllMocks();
+  useUiStore.setState(useUiStore.getInitialState());
   if (!i18n.hasResourceBundle("en", "reader")) {
     i18n.addResourceBundle("en", "reader", enReader, true, true);
   }
@@ -56,6 +58,7 @@ function createHandlers(overrides: Partial<Parameters<typeof useCommandPaletteHa
       selectArticle: vi.fn(),
       openFeedLanding: vi.fn(),
       paletteSessionId: 1,
+      commandPaletteOpen: true,
       canSelectArticle: () => true,
       ...overrides,
     }),
@@ -77,6 +80,7 @@ function renderHandlers(initialOverrides: Partial<Parameters<typeof useCommandPa
         selectArticle: vi.fn(),
         openFeedLanding: vi.fn(),
         paletteSessionId: 1,
+        commandPaletteOpen: true,
         canSelectArticle: () => true,
         ...overrides,
       }),
@@ -111,6 +115,40 @@ describe("useCommandPaletteHandlers", () => {
 
     expect(openShortcutsHelp).toHaveBeenCalledOnce();
     expect(closePalette).toHaveBeenCalledOnce();
+    expect(addToHistoryMock).not.toHaveBeenCalled();
+    expect(executeActionMock).not.toHaveBeenCalled();
+  });
+
+  it("does not dispatch account-scoped actions from a stale account selection", () => {
+    const { result, rerender } = renderHandlers({ selectedAccountId: "acc-1" });
+
+    rerender({ overrides: { selectedAccountId: null } });
+    result.current.handleActionSelect("sync-all");
+
+    expect(addToHistoryMock).not.toHaveBeenCalled();
+    expect(executeActionMock).not.toHaveBeenCalled();
+  });
+
+  it("does not dispatch actions after the palette has already closed", () => {
+    const openShortcutsHelp = vi.fn();
+    const { result, rerender } = renderHandlers({ commandPaletteOpen: true, openShortcutsHelp });
+    const staleShortcutsHandler = result.current;
+
+    rerender({ overrides: { commandPaletteOpen: false } });
+    result.current.handleActionSelect("open-add-feed");
+    staleShortcutsHandler.handleActionSelect("open-shortcuts-help");
+
+    expect(addToHistoryMock).not.toHaveBeenCalled();
+    expect(executeActionMock).not.toHaveBeenCalled();
+    expect(openShortcutsHelp).not.toHaveBeenCalled();
+  });
+
+  it("does not dispatch modal-blocked actions while another modal is already open", () => {
+    useUiStore.setState({ settingsOpen: true });
+    const handlers = createHandlers();
+
+    handlers.handleActionSelect("open-add-feed");
+
     expect(addToHistoryMock).not.toHaveBeenCalled();
     expect(executeActionMock).not.toHaveBeenCalled();
   });
