@@ -62,13 +62,6 @@
 
 #### P2 Settings 実装 tranche
 
-- [ ] P2-S1 preferences store の latest-only / optimistic failure policy を固定する
-  - worker prompt: preferences load と `setPref` optimistic update の race、古い persist failure、language/theme runtime apply failure を request generation で扱い、rollback する/しない方針を key ごとに固定する
-  - 対象: `src/stores/preferences-store.ts`, `src/schemas/preferences.ts`, `src/lib/ui/ui-language.ts`
-  - 完了条件: load failure 後 fallback、latest save failure、older save failure、runtime side effect failure が同じ toast/diagnostics policy で説明できる
-  - 検証: `pnpm exec vitest run src/__tests__/stores/preferences-store.test.ts src/__tests__/schemas/preferences-schema-contract.test.ts`
-  - supersedes: `P1 preference 保存失敗時の optimistic UI rollback / dirty state policy を固定する`, `P2 preferences load と setPref optimistic update の race を latest-only にする`, `P2 language preference apply を request generation で latest-only にする`
-
 - [ ] P2-S2 settings form save handlers を form revision で guard する
   - worker prompt: account name/credential、shortcut、tag/mute、preference form の save promise が返る前に draft が変わった場合、古い success/failure が新しい draft/dirty state を上書きしないようにする
   - 対象: settings form hooks、`src/components/settings/hooks/account-detail/*`, `src/components/settings/shortcuts-settings.tsx`, tags/mute settings hooks
@@ -142,13 +135,6 @@
   - 完了条件: nested dialog、popover inside dialog、browser overlay then dialog、modal then palette の背後 tab stop と screen reader exposure が復活しない
   - 検証: `pnpm exec vitest run src/__tests__/components/dialog.test.tsx src/__tests__/components/settings-modal.test.tsx src/__tests__/components/command-palette.test.tsx src/__tests__/hooks/use-browser-overlay-shortcuts.test.tsx`
   - supersedes: `P2 dialog / popover の aria-hidden / inert stack contract を追加する`, `P2 focus trap escape hatch を modal/popover/browser overlay の nested top-layer で検証する`, `P2 browser overlay Escape と global keyboard の priority contract を作る`
-
-- [ ] P2-A11Y3 feed tree / account switcher / tag list の roving focus 境界を固定する
-  - worker prompt: hidden/disabled/deleted row、drag/drop row、keyboard context menu、account switch/refetch 中の roving focus が selection と別 target を指さないようにする
-  - 対象: `src/components/reader/roving-focus.ts`, feed tree rows/sections、account switcher、tag list/context menu
-  - 完了条件: hidden row、disabled row、deleted row、keyboard context target、refetch while menu open で focus/selection/action target が drift しない
-  - 検証: `pnpm exec vitest run src/__tests__/components/roving-focus.test.ts src/__tests__/components/feed-tree-row.test.tsx src/__tests__/components/feed-tree-view.test.tsx`
-  - supersedes: `P2 feed tree / account switcher / tag list の roving focus 境界を hidden/disabled row で固定する`, `P2 context menu target drift を right-click position / keyboard context menu で固定する`
 
 - [ ] P2-A11Y4 global/native keyboard shortcut と IME composition の block policy を統一する
   - worker prompt: global keyboard、native menu action、shortcut recorder、shortcut help、browser overlay shortcut が modal/top-layer、input/combobox、IME composing、Alt/Option、Dead/Unidentified key を同じ policy で扱うようにする
