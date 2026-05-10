@@ -129,6 +129,31 @@ describe("useBrowserOverlayShortcuts", () => {
     window.removeEventListener(keyboardEvents.closeBrowserOverlay, closeBrowserShortcut);
   });
 
+  it("binds Escape ownership with the same capture-phase ordering as the global keyboard handler", () => {
+    const addEventListenerSpy = vi.spyOn(window, "addEventListener");
+    const handleCloseOverlay = vi.fn();
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://example.com/article",
+    });
+    usePreferencesStore.setState({ prefs: {}, loaded: true });
+
+    renderHook(() => {
+      useKeyboard();
+      useBrowserOverlayShortcuts({
+        browserUrl: "https://example.com/article",
+        handleCloseOverlay,
+      });
+    });
+
+    const keydownRegistrations = addEventListenerSpy.mock.calls.filter(([type]) => type === "keydown");
+
+    expect(keydownRegistrations).toHaveLength(2);
+    expect(keydownRegistrations.map(([, , options]) => options)).toEqual([true, true]);
+  });
+
   it("keeps already-handled Escape events out of the global keyboard handler", () => {
     const closeBrowserShortcut = vi.fn();
     useUiStore.setState({

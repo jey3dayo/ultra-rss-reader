@@ -494,6 +494,31 @@ describe("executeAction", () => {
         feedEvents.cleanup();
       }
     });
+
+    it("collapses rapid repeated browser close navigation into a single pending action", () => {
+      const { details, cleanup } = captureNavigationDetails(APP_EVENTS.navigateArticle);
+      useUiStore.setState({
+        browserCloseInFlight: true,
+        pendingBrowserCloseAction: null,
+      });
+
+      try {
+        executeAction("next-article");
+        executeAction("next-article");
+        executeAction("next-article");
+
+        expect(details).toEqual([]);
+        expect(useUiStore.getState().pendingBrowserCloseAction).toBe("next-article");
+
+        flushPendingBrowserCloseAction();
+
+        expect(details).toEqual([1]);
+        expect(useUiStore.getState().pendingBrowserCloseAction).toBeNull();
+        expect(useUiStore.getState().browserCloseInFlight).toBe(false);
+      } finally {
+        cleanup();
+      }
+    });
   });
 
   describe("article action events", () => {
