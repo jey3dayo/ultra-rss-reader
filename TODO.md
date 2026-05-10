@@ -148,16 +148,6 @@
   - DB に未知 scope が入ると `row_to_mute_keyword` で一覧全体が落ちるため、1件の破損 row が settings 全体の操作を妨げる可能性がある
   - unknown scope、delete broken row、repair UI、diagnostics-only warning、list partial success の方針を固定する
 
-- [ ] P2 delete tag 後の selected state / article tag picker state cleanup を stale tag guard する
-  - 対象: `src/hooks/use-tags.ts`, `src/components/reader/article-tag-picker-view.tsx`, `src/stores/ui-store.ts`
-  - tag 削除時に selection は all に戻すが、tag picker や article tag chips 側に stale tag id が残ると次の assignment が失敗しやすい
-  - selected tag delete、picker open中delete、article tags refetch、delete mutation failure、undo不可 toast の component/hook test を追加する
-
-- [ ] P3 migration file numbering / feature ownership を generated changelog で検出する
-  - 対象: `src-tauri/migrations`, `tests/release-repo-contract.test.ts`
-  - migration が増えるほど番号衝突、説明不足、feature owner 不明が起きやすく、DB rollback/backup 判断が遅れる
-  - sequential numbering、duplicate version、description suffix、destructive migration marker、fixture DB upgrade smoke を追加する
-
 ### Feed / Folder / Storage / Settings Data
 
 ### GReader / Sync Flow / Account Setup
@@ -166,11 +156,6 @@
   - 対象: `src-tauri/src/service/sync_flow.rs`, `src-tauri/src/repository/pending_mutation.rs`, `src-tauri/src/infra/provider/traits.rs`
   - pending mutation は1件ずつ push 成功後に削除するため、途中 failure で前半だけ remote 適用済みになるが、UI には partial push 状態が見えにくい
   - first success second failure、delete failure after push、duplicate retry、remote id missing、axis別 partial success の integration test を追加する
-
-- [ ] P2 sync_flow Step 6 unread count recalc が sync 前 feeds snapshot に限定される影響を検証する
-  - 対象: `src-tauri/src/service/sync_flow.rs`, `src-tauri/src/infra/db/sqlite_feed.rs`, `src-tauri/src/commands/sync_providers.rs`
-  - Step 4 前に取得した feeds に対して unread count を recalculation するため、sync 中に追加/削除された feed の count repair が漏れる可能性がある
-  - remote subscription added、feed deleted during sync、folder move during sync、local feed added、post-sync feed list refresh の test を追加する
 
 - [ ] P2 article search normalization と backend search SQL の Unicode/length parity を固定する
   - 対象: `src/hooks/use-articles.ts`, `src/components/reader/hooks/article-list/use-article-list-search.ts`, `src-tauri/src/commands/article_commands.rs`
@@ -182,11 +167,6 @@
   - read/star mutation が missing article を cache に挿入する場合、unread/starred/recent/search の query mode に合わない item が混ざる可能性がある
   - unread mode read=true、starred mode unstar、recent query insert、search query insert、tag query insert の cache contract を追加する
 
-- [ ] P2 account selection fallback と query enabled state を deleted/disabled account で固定する
-  - 対象: `src/lib/account/account-selection.ts`, `src/stores/ui-store.ts`, `src/hooks/use-accounts.ts`, `src/hooks/create-query.ts`
-  - selected account が削除/disabled になった時に query enabled と selection fallback がずれると、deleted account の feeds/articles query が走り続ける
-  - selected deleted、selected disabled、all accounts fallback、no accounts、account setup session active の hook/store test を追加する
-
 - [ ] P2 sync progress event account id と account selection の stale mapping を UI adapter で検証する
   - 対象: `src/lib/sync/sync-progress-event.types.ts`, `src/stores/ui-store.ts`, `src/components/reader/sidebar-sync-feedback.ts`
   - sync progress は account id を含むが、進行中に account が rename/delete されると sidebar feedback が orphan progress を表示し続ける可能性がある
@@ -196,11 +176,6 @@
   - 対象: `src/lib/sync/sync-result-feedback.ts`, `src/components/reader/hooks/sidebar/use-sidebar-sync.ts`, `src/api/schemas/sync-result.ts`
   - sync result の warnings/errors が account 単位と feed 単位で混ざると、toast が長くなり原因 account を特定しにくい
   - multiple accounts、same warning dedupe、feed-level error、credential error、scheduler warning、toast truncation の test を追加する
-
-- [ ] P3 provider capability matrix を account kind 追加時の required tests として固定する
-  - 対象: `src-tauri/src/domain/provider.rs`, `src-tauri/src/infra/provider/traits.rs`, `src/components/settings/add-account/services.ts`
-  - provider kind が増えると remote state/folders/delta sync/background browser 等の capability 影響が広く、追加時に漏れが出やすい
-  - capability snapshot、service picker option、credential fields、sync path selection、pending mutation support、settings copy の repo contract を追加する
 
 - [ ] P3 sync/provider test fixture の HTTP response builder を status/header/body 別に標準化する
   - 対象: `src-tauri/src/infra/provider/greader.rs`, `src-tauri/src/commands/sync_providers.rs`, `src-tauri/tests`
@@ -223,11 +198,6 @@
   - 対象: `src-tauri/src/browser_webview.rs`, `src/components/settings/reading-settings-view.tsx`, `src/__tests__/schemas/preferences-schema-contract.test.ts`
   - focus override は embedded page の visibility/focus APIs を差し替えるため、サイト側の media playback/analytics/keyboard handling を壊す可能性がある
   - keep focus on/off、visibilitychange listener、non-configurable property、site script error、setting copy、disable fallback の test/実機検証 TODO にする
-
-- [ ] P2 browser webview diagnostics payload の coordinate privacy / size cap を固定する
-  - 対象: `src-tauri/src/commands/browser_webview_commands.rs`, `src/lib/runtime/diagnostics.ts`, `src/components/settings/debug-settings.tsx`
-  - diagnostics は bounds/scale/native bounds を event/log に出すため、巨大値や画面構成情報を support log へ載せる範囲を決める必要がある
-  - huge coordinate、negative coordinate、multi-monitor scale、native bounds unavailable、payload truncation、diagnostics toggle の test を追加する
 
 - [ ] P2 runtime error guard の browser webview fallback events を expected failure と区別する
   - 対象: `e2e/helpers/runtime-error-guard.ts`, `e2e/app.spec.ts`, `src/components/reader/hooks/browser`
