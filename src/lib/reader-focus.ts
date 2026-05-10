@@ -108,7 +108,11 @@ function focusElement(target: HTMLElement): boolean {
     return false;
   }
 
-  target.focus({ preventScroll: true });
+  try {
+    target.focus({ preventScroll: true });
+  } catch {
+    return false;
+  }
   scrollReaderFocusTargetIntoView(target);
   return true;
 }

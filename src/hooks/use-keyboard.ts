@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
   closeAccountPaneAndFocusSidebar,
   focusAdjacentAccountPaneTarget,
@@ -18,6 +18,7 @@ import {
   focusSelectedSidebarTarget,
   isSidebarPaneTarget,
   resolveReaderFocusReturnAction,
+  scheduleReaderFocusFrame,
 } from "@/lib/reader-focus";
 import { bindWindowEvents, createKeyboardEventListener } from "@/lib/window/window-events";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -32,6 +33,14 @@ function isGlobalShortcutBlockedByModal(): boolean {
   return state.settingsOpen || state.confirmDialog.open || state.shortcutsHelpOpen || state.commandPaletteOpen;
 }
 
+type RepeatNavigationAction =
+  | { type: "navigate-article"; direction: 1 | -1 }
+  | { type: "navigate-feed"; direction: 1 | -1 };
+
+function isRepeatNavigationAction(action: { type: string }): action is RepeatNavigationAction {
+  return action.type === "navigate-article" || action.type === "navigate-feed";
+}
+
 export function useKeyboard() {
   const selectedArticleId = useUiStore((state) => state.selectedArticleId);
   const contentMode = useUiStore((state) => state.contentMode);
@@ -41,8 +50,50 @@ export function useKeyboard() {
   const toggleSidebar = useUiStore((state) => state.toggleSidebar);
   const openSidebar = useUiStore((state) => state.openSidebar);
   const prefs = usePreferencesStore((s) => s.prefs);
+  const pendingRepeatNavigationRef = useRef<RepeatNavigationAction | null>(null);
+  const repeatNavigationCleanupRef = useRef<(() => void) | null>(null);
 
   const keyToAction = useMemo(() => buildKeyToActionMap(prefs), [prefs]);
+  const cancelRepeatNavigation = useCallback(() => {
+    repeatNavigationCleanupRef.current?.();
+    repeatNavigationCleanupRef.current = null;
+    pendingRepeatNavigationRef.current = null;
+  }, []);
+
+  const flushRepeatNavigation = useCallback(() => {
+    const pendingAction = pendingRepeatNavigationRef.current;
+    pendingRepeatNavigationRef.current = null;
+    repeatNavigationCleanupRef.current = null;
+
+    if (!pendingAction) {
+      return;
+    }
+
+    if (pendingAction.type === "navigate-article") {
+      executeAction(pendingAction.direction === 1 ? "next-article" : "prev-article");
+      return;
+    }
+
+    executeAction(pendingAction.direction === 1 ? "next-feed" : "prev-feed");
+  }, []);
+
+  const queueRepeatNavigation = useCallback(
+    (action: RepeatNavigationAction) => {
+      pendingRepeatNavigationRef.current = action;
+      if (repeatNavigationCleanupRef.current !== null) {
+        return;
+      }
+
+      repeatNavigationCleanupRef.current = scheduleReaderFocusFrame(flushRepeatNavigation);
+    },
+    [flushRepeatNavigation],
+  );
+
+  useEffect(() => {
+    return () => {
+      cancelRepeatNavigation();
+    };
+  }, [cancelRepeatNavigation]);
 
   useEffect(() => {
     const handler = createKeyboardEventListener((e) => {
@@ -121,7 +172,8 @@ export function useKeyboard() {
         e.stopPropagation();
         currentStore.openSidebar();
         emitDebugInputTrace("window-key ArrowLeft -> focus-sidebar");
-        requestAnimationFrame(() => {
+        focusSelectedSidebarTarget();
+        scheduleReaderFocusFrame(() => {
           focusSelectedSidebarTarget();
         });
         return;
@@ -160,6 +212,12 @@ export function useKeyboard() {
       e.stopPropagation();
       const resolvedAction = Result.unwrap(action);
       emitDebugInputTrace(`window-key ${e.key} -> ${resolvedAction.type}`);
+
+      if (e.repeat && isRepeatNavigationAction(resolvedAction)) {
+        queueRepeatNavigation(resolvedAction);
+        return;
+      }
+      cancelRepeatNavigation();
 
       switch (resolvedAction.type) {
         case "open-settings":
@@ -208,8 +266,10 @@ export function useKeyboard() {
   }, [
     clearArticle,
     contentMode,
+    cancelRepeatNavigation,
     keyToAction,
     openSidebar,
+    queueRepeatNavigation,
     selectedArticleId,
     subscriptionsWorkspaceOpen,
     toggleSidebar,

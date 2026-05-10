@@ -5,6 +5,7 @@ import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import type { MockTauriCommandCall } from "@tests/helpers/tauri-types";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppShell } from "@/components/app-shell";
+import { APP_EVENTS } from "@/constants/events";
 import { useKeyboard } from "@/hooks/use-keyboard";
 import { keyboardEvents } from "@/lib/keyboard/keyboard-shortcuts";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -551,6 +552,91 @@ describe("useKeyboard", () => {
     });
   });
 
+  it("cancels pending article search focus retries on close, account switch, and unmount", async () => {
+    const calls: MockTauriCommandCall[] = [];
+    const { unmount } = renderAppShell(calls);
+
+    try {
+      await screen.findByRole("heading", { level: 1, name: "First Article" });
+
+      fireEvent.keyDown(window, { key: "/" });
+      const firstInput = await screen.findByPlaceholderText("Search articles…");
+      firstInput.blur();
+      document.body.focus();
+      fireEvent.click(screen.getByRole("button", { name: "Close search" }));
+      await waitFor(() => {
+        expect(screen.queryByPlaceholderText("Search articles…")).not.toBeInTheDocument();
+      });
+      await waitForSearchFocusRetry();
+      expect(firstInput).not.toHaveFocus();
+
+      fireEvent.keyDown(window, { key: "/" });
+      const switchedAccountInput = await screen.findByPlaceholderText("Search articles…");
+      switchedAccountInput.blur();
+      document.body.focus();
+      act(() => {
+        useUiStore.setState({ selectedAccountId: "acc-2" });
+      });
+      await waitForSearchFocusRetry();
+      expect(switchedAccountInput).not.toHaveFocus();
+
+      fireEvent.keyDown(window, { key: "/" });
+      const unmountedInput = await screen.findByPlaceholderText("Search articles…");
+      unmountedInput.blur();
+      document.body.focus();
+      unmount();
+      await waitForSearchFocusRetry();
+      expect(unmountedInput).not.toHaveFocus();
+    } finally {
+      unmount();
+    }
+  });
+
+  it("coalesces repeated article navigation keys to the latest action per frame", () => {
+    vi.useFakeTimers();
+    const requestAnimationFrameDescriptor = Object.getOwnPropertyDescriptor(window, "requestAnimationFrame");
+    const cancelAnimationFrameDescriptor = Object.getOwnPropertyDescriptor(window, "cancelAnimationFrame");
+    Object.defineProperty(window, "requestAnimationFrame", {
+      value: (callback: FrameRequestCallback) => window.setTimeout(() => callback(0), 16),
+      configurable: true,
+    });
+    Object.defineProperty(window, "cancelAnimationFrame", {
+      value: (id: number) => window.clearTimeout(id),
+      configurable: true,
+    });
+    const navigateArticleSpy = vi.fn();
+    window.addEventListener(APP_EVENTS.navigateArticle, navigateArticleSpy);
+
+    try {
+      useUiStore.setState({
+        ...useUiStore.getInitialState(),
+        selectedArticleId: "art-1",
+        contentMode: "reader",
+        viewMode: "all",
+      });
+
+      const { unmount } = renderHook(() => useKeyboard());
+
+      fireEvent.keyDown(window, { key: "j", repeat: true });
+      fireEvent.keyDown(window, { key: "k", repeat: true });
+
+      expect(navigateArticleSpy).not.toHaveBeenCalled();
+      act(() => {
+        vi.advanceTimersByTime(16);
+      });
+
+      expect(navigateArticleSpy).toHaveBeenCalledOnce();
+      expect(navigateArticleSpy.mock.calls[0]?.[0]).toMatchObject({ detail: -1 });
+
+      unmount();
+    } finally {
+      window.removeEventListener(APP_EVENTS.navigateArticle, navigateArticleSpy);
+      vi.useRealTimers();
+      restoreWindowProperty("requestAnimationFrame", requestAnimationFrameDescriptor);
+      restoreWindowProperty("cancelAnimationFrame", cancelAnimationFrameDescriptor);
+    }
+  });
+
   it("pressing Cmd+K opens the command palette", async () => {
     const calls: MockTauriCommandCall[] = [];
     renderAppShell(calls);
@@ -788,3 +874,18 @@ describe("useKeyboard", () => {
     });
   });
 });
+
+function restoreWindowProperty(property: keyof Window, descriptor: PropertyDescriptor | undefined) {
+  if (descriptor) {
+    Object.defineProperty(window, property, descriptor);
+    return;
+  }
+
+  Reflect.deleteProperty(window, property);
+}
+
+function waitForSearchFocusRetry() {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, 20);
+  });
+}

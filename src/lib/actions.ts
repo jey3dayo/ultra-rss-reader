@@ -6,7 +6,7 @@ import type { AppAction } from "@/lib/app-actions";
 import { emitDebugInputTrace } from "@/lib/debug/debug-input-trace";
 import i18n from "@/lib/i18n";
 import { keyboardEvents } from "@/lib/keyboard/keyboard-shortcuts";
-import { focusArticleListTarget, focusSelectedSidebarTarget } from "@/lib/reader-focus";
+import { focusArticleListTarget, focusSelectedSidebarTarget, scheduleReaderFocusFrame } from "@/lib/reader-focus";
 import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
 import { triggerManualSyncWithCooldown } from "@/lib/sync/manual-sync";
 import { resolveSyncFeedbackMessage, summarizeSyncResult } from "@/lib/sync/sync-result-feedback";
@@ -74,14 +74,14 @@ function dispatchBufferedBrowserCloseAction(action: BufferedBrowserCloseAction):
 
 function focusArticleListAfterClearingArticle(articleId: string | null): void {
   useUiStore.getState().setFocusedPane("list");
-  requestAnimationFrame(() => {
+  scheduleReaderFocusFrame(() => {
     focusArticleListTarget(articleId);
   });
 }
 
 function focusSidebarSelection(): void {
   useUiStore.getState().setFocusedPane("sidebar");
-  requestAnimationFrame(() => {
+  scheduleReaderFocusFrame(() => {
     focusSelectedSidebarTarget();
   });
 }

@@ -140,6 +140,18 @@ describe("reader-focus", () => {
     expect(selectedRow).toHaveFocus();
   });
 
+  it("treats focus exceptions as an unavailable reader target", () => {
+    const selectedRow = createButton({ "data-article-id": "article-2", role: "option" });
+    const fallbackRow = createButton({ "data-article-id": "article-1", role: "option" });
+    setThrowingFocus(selectedRow);
+    document.body.append(selectedRow, fallbackRow);
+
+    expect(focusArticleListTarget("article-2")).toBe(true);
+
+    expect(fallbackRow).toHaveFocus();
+    expect(selectedRow).not.toHaveFocus();
+  });
+
   it("falls back to the first focusable article row when the selected article row cannot receive focus", () => {
     const selectedRow = createButton({ "data-article-id": "article-2", role: "option", disabled: "" });
     const fallbackRow = createButton({ "data-article-id": "article-1", role: "option" });
@@ -408,6 +420,15 @@ function setThrowingScrollIntoView(element: HTMLElement) {
   Object.defineProperty(element, "scrollIntoView", {
     value: vi.fn(() => {
       throw new Error("scroll failed");
+    }),
+    configurable: true,
+  });
+}
+
+function setThrowingFocus(element: HTMLElement) {
+  Object.defineProperty(element, "focus", {
+    value: vi.fn(() => {
+      throw new Error("focus failed");
     }),
     configurable: true,
   });
