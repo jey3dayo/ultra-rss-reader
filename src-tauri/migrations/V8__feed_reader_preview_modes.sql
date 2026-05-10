@@ -1,5 +1,5 @@
-ALTER TABLE feeds ADD COLUMN reader_mode TEXT NOT NULL DEFAULT 'inherit';
-ALTER TABLE feeds ADD COLUMN web_preview_mode TEXT NOT NULL DEFAULT 'inherit';
+ALTER TABLE feeds ADD COLUMN reader_mode TEXT NOT NULL DEFAULT 'inherit' CHECK (reader_mode IN ('inherit', 'on', 'off'));
+ALTER TABLE feeds ADD COLUMN web_preview_mode TEXT NOT NULL DEFAULT 'inherit' CHECK (web_preview_mode IN ('inherit', 'on', 'off'));
 
 UPDATE feeds
 SET

@@ -18,6 +18,21 @@ impl<'a> SqliteFeedRepository<'a> {
         Self { conn }
     }
 
+    fn validate_display_mode(name: &str, mode: &str) -> DomainResult<()> {
+        if matches!(mode, "inherit" | "on" | "off") {
+            Ok(())
+        } else {
+            Err(DomainError::Validation(format!(
+                "invalid feed {name}: {mode}"
+            )))
+        }
+    }
+
+    fn validate_display_modes(reader_mode: &str, web_preview_mode: &str) -> DomainResult<()> {
+        Self::validate_display_mode("reader mode", reader_mode)?;
+        Self::validate_display_mode("web preview mode", web_preview_mode)
+    }
+
     fn validate_folder_account(&self, feed: &Feed) -> DomainResult<()> {
         let Some(folder_id) = &feed.folder_id else {
             return Ok(());
@@ -157,6 +172,7 @@ impl FeedRepository for SqliteFeedRepository<'_> {
 
     fn save(&self, feed: &Feed) -> DomainResult<()> {
         self.validate_folder_account(feed)?;
+        Self::validate_display_modes(&feed.reader_mode, &feed.web_preview_mode)?;
 
         self.conn.execute(
             "INSERT INTO feeds (id, account_id, folder_id, remote_id, title, url, site_url, icon, unread_count, reader_mode, web_preview_mode)
@@ -173,7 +189,17 @@ impl FeedRepository for SqliteFeedRepository<'_> {
                web_preview_mode = excluded.web_preview_mode
              ON CONFLICT(account_id, url) DO UPDATE SET
                folder_id = excluded.folder_id,
-               remote_id = excluded.remote_id,
+               remote_id = CASE
+                 WHEN excluded.remote_id IS NULL THEN NULL
+                 WHEN NOT EXISTS (
+                   SELECT 1
+                     FROM feeds AS conflicting_remote
+                    WHERE conflicting_remote.account_id = feeds.account_id
+                      AND conflicting_remote.remote_id = excluded.remote_id
+                      AND conflicting_remote.id <> feeds.id
+                 ) THEN excluded.remote_id
+                 ELSE feeds.remote_id
+               END,
                title = excluded.title,
                site_url = excluded.site_url,
                icon = excluded.icon,
@@ -288,6 +314,8 @@ impl FeedRepository for SqliteFeedRepository<'_> {
         reader_mode: &str,
         web_preview_mode: &str,
     ) -> DomainResult<()> {
+        Self::validate_display_modes(reader_mode, web_preview_mode)?;
+
         let affected_rows = self.conn.execute(
             "UPDATE feeds SET reader_mode = ?1, web_preview_mode = ?2 WHERE id = ?3",
             params![reader_mode, web_preview_mode, feed_id.0],
@@ -793,6 +821,81 @@ mod tests {
     }
 
     #[test]
+    fn save_rejects_unknown_display_modes() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let repo = SqliteFeedRepository::new(db.writer());
+
+        let mut feed = make_feed(&account_id, "Feed", "http://f.com/rss");
+        feed.reader_mode = "enabled".to_string();
+
+        let error = repo
+            .save(&feed)
+            .expect_err("repository should reject unknown reader mode");
+
+        assert!(matches!(
+            error,
+            DomainError::Validation(message) if message == "invalid feed reader mode: enabled"
+        ));
+    }
+
+    #[test]
+    fn update_display_settings_rejects_unknown_modes() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let repo = SqliteFeedRepository::new(db.writer());
+
+        let feed = make_feed(&account_id, "Feed", "http://f.com/rss");
+        repo.save(&feed).unwrap();
+
+        let error = repo
+            .update_display_settings(&feed.id, "inherit", "enabled")
+            .expect_err("repository should reject unknown web preview mode");
+
+        assert!(matches!(
+            error,
+            DomainError::Validation(message) if message == "invalid feed web preview mode: enabled"
+        ));
+    }
+
+    #[test]
+    fn v8_migration_rejects_unknown_display_modes_at_db_boundary() {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(include_str!("../../../migrations/V1__initial.sql"))
+            .unwrap();
+        conn.execute_batch(include_str!(
+            "../../../migrations/V5__feed_display_mode.sql"
+        ))
+        .unwrap();
+        conn.execute_batch(include_str!(
+            "../../../migrations/V7__feed_display_mode_inherit.sql"
+        ))
+        .unwrap();
+        conn.execute_batch(include_str!(
+            "../../../migrations/V8__feed_reader_preview_modes.sql"
+        ))
+        .unwrap();
+        conn.execute(
+            "INSERT INTO accounts (id, kind, name) VALUES ('a1', 'Local', 'Test')",
+            [],
+        )
+        .unwrap();
+
+        let error = conn
+            .execute(
+                "INSERT INTO feeds (id, account_id, title, url, reader_mode, web_preview_mode)
+                 VALUES ('f1', 'a1', 'Feed', 'https://example.com/rss.xml', 'enabled', 'inherit')",
+                [],
+            )
+            .expect_err("DB CHECK should reject unknown reader mode");
+
+        assert!(
+            error.to_string().contains("reader_mode"),
+            "unexpected sqlite error: {error}"
+        );
+    }
+
+    #[test]
     fn update_display_settings_rejects_missing_feed() {
         let db = test_db();
         let repo = SqliteFeedRepository::new(db.writer());
@@ -1226,6 +1329,50 @@ mod tests {
         assert_eq!(saved_feed.unread_count, 9);
         assert_eq!(saved_feed.reader_mode, "on");
         assert_eq!(saved_feed.web_preview_mode, "off");
+    }
+
+    #[test]
+    fn save_prefers_account_url_conflict_over_remote_id_conflict() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let repo = SqliteFeedRepository::new(db.writer());
+
+        let mut url_match = make_feed(&account_id, "URL Match", "https://example.com/rss");
+        url_match.remote_id = Some("feed/url-match".to_string());
+        url_match.reader_mode = "on".to_string();
+        url_match.web_preview_mode = "off".to_string();
+        repo.save(&url_match).unwrap();
+
+        let mut remote_match = make_feed(&account_id, "Remote Match", "https://remote.example/rss");
+        remote_match.remote_id = Some("feed/remote-match".to_string());
+        repo.save(&remote_match).unwrap();
+
+        let mut incoming = make_feed(&account_id, "Incoming", &url_match.url);
+        incoming.remote_id = remote_match.remote_id.clone();
+        incoming.site_url = "https://example.com/articles".to_string();
+        incoming.icon = Some(vec![1, 2, 3]);
+        incoming.unread_count = 12;
+
+        repo.save(&incoming).unwrap();
+
+        let saved_url_match = repo.find_by_id(&url_match.id).unwrap().unwrap();
+        let saved_remote_match = repo.find_by_id(&remote_match.id).unwrap().unwrap();
+        let feeds = repo.find_by_account(&account_id).unwrap();
+
+        assert_eq!(feeds.len(), 2);
+        assert_eq!(saved_url_match.id, url_match.id);
+        assert_eq!(saved_url_match.remote_id, url_match.remote_id);
+        assert_eq!(saved_url_match.title, "Incoming");
+        assert_eq!(saved_url_match.site_url, "https://example.com/articles");
+        assert_eq!(saved_url_match.icon.as_deref(), Some(&[1, 2, 3][..]));
+        assert_eq!(saved_url_match.unread_count, 12);
+        assert_eq!(saved_url_match.reader_mode, "on");
+        assert_eq!(saved_url_match.web_preview_mode, "off");
+        assert_eq!(
+            saved_remote_match.remote_id.as_deref(),
+            Some("feed/remote-match")
+        );
+        assert_eq!(saved_remote_match.url, "https://remote.example/rss");
     }
 
     #[test]
