@@ -100,7 +100,7 @@ fn validate_discovery_redirect(
     Ok(())
 }
 
-fn validate_discovery_url(url: &reqwest::Url) -> DomainResult<()> {
+pub(crate) fn validate_discovery_url(url: &reqwest::Url) -> DomainResult<()> {
     if url.scheme() != "http" && url.scheme() != "https" {
         return Err(DomainError::Validation(
             UNSUPPORTED_URL_VALIDATION_MESSAGE.to_string(),

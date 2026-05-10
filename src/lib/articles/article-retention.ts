@@ -2,6 +2,8 @@ import type { ViewMode } from "@/lib/reader/view-mode.types";
 
 type ArticleRetentionViewMode = ViewMode;
 
+export const MAX_RETAINED_ARTICLE_IDS = 50;
+
 export type RetainedArticleSelectionParams = {
   articleId: string;
   viewMode: ArticleRetentionViewMode;
@@ -24,8 +26,12 @@ export function getRetainedArticleIdsAfterSelectingArticle({
 
 export function addRetainedArticle(currentRetainedArticleIds: ReadonlySet<string>, articleId: string): Set<string> {
   if (articleId.trim() === "") {
-    return new Set(currentRetainedArticleIds);
+    return capRetainedArticleIds(currentRetainedArticleIds);
   }
 
-  return new Set([...currentRetainedArticleIds, articleId]);
+  return capRetainedArticleIds([...currentRetainedArticleIds, articleId]);
+}
+
+function capRetainedArticleIds(articleIds: Iterable<string>): Set<string> {
+  return new Set([...articleIds].slice(-MAX_RETAINED_ARTICLE_IDS));
 }

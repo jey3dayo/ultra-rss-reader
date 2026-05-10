@@ -12,6 +12,7 @@ import {
   isRetiredBackendPassthroughPreferenceKey,
   normalizePreferenceRecord,
   normalizePreferenceValue,
+  type PreferenceRecord,
   parseLanguagePreference,
   parseThemePreference,
   preferenceDefaults,
@@ -33,8 +34,11 @@ export { preferenceDefaults, resolvePreferenceValue };
 let systemThemeCleanup: (() => void) | null = null;
 let themeViewTransitionId = 0;
 let preferencesLoadPromise: Promise<void> | null = null;
+let preferencesMutationGeneration = 0;
+let languageApplyRequestId = 0;
 const preferencePersistRequestCounters = new Map<string, number>();
 const preferencePersistRequestIds = new Map<string, number>();
+const preferenceMutationGenerations = new Map<string, number>();
 
 function logPreferenceRuntimeFailure(message: string, error: unknown): void {
   console.error(message, error);
@@ -73,8 +77,11 @@ export function resetPreferencesStoreRuntimeForTests(): void {
   systemThemeCleanup = null;
   themeViewTransitionId = 0;
   preferencesLoadPromise = null;
+  preferencesMutationGeneration = 0;
+  languageApplyRequestId = 0;
   preferencePersistRequestCounters.clear();
   preferencePersistRequestIds.clear();
+  preferenceMutationGenerations.clear();
 }
 
 function getDocumentRoot(): HTMLElement | null {
@@ -316,13 +323,39 @@ function getNavigatorLanguage(): string | undefined {
   }
 }
 
+function hasPreferenceMutatedSinceLoad(key: string, loadGeneration: number): boolean {
+  return (preferenceMutationGenerations.get(key) ?? 0) > loadGeneration;
+}
+
+function mergeLoadedPreferencesWithOptimisticState(
+  loadedPrefs: PreferenceRecord,
+  currentPrefs: PreferenceRecord,
+  loadGeneration: number,
+): PreferenceRecord {
+  const mergedPrefs: PreferenceRecord = { ...loadedPrefs };
+
+  for (const [key, value] of Object.entries(currentPrefs)) {
+    if (hasPreferenceMutatedSinceLoad(key, loadGeneration)) {
+      mergedPrefs[key] = value;
+    }
+  }
+
+  return mergedPrefs;
+}
+
 function applyLanguage(language: ReturnType<typeof parseLanguagePreference>): void {
-  try {
-    void i18n.changeLanguage(resolveUiLanguage(language, getNavigatorLanguage())).catch((error: unknown) => {
+  const requestId = languageApplyRequestId + 1;
+  languageApplyRequestId = requestId;
+  const logLatestLanguageFailure = (error: unknown) => {
+    if (languageApplyRequestId === requestId) {
       logPreferenceRuntimeFailure("Failed to apply UI language preference:", error);
-    });
+    }
+  };
+
+  try {
+    void i18n.changeLanguage(resolveUiLanguage(language, getNavigatorLanguage())).catch(logLatestLanguageFailure);
   } catch (error) {
-    logPreferenceRuntimeFailure("Failed to apply UI language preference:", error);
+    logLatestLanguageFailure(error);
   }
 }
 
@@ -341,6 +374,7 @@ export const usePreferencesStore = create<PreferencesState & PreferencesActions>
       return preferencesLoadPromise;
     }
 
+    const loadGeneration = preferencesMutationGeneration;
     preferencesLoadPromise = (async () => {
       try {
         const result = await getPreferences();
@@ -352,26 +386,33 @@ export const usePreferencesStore = create<PreferencesState & PreferencesActions>
             const theme = objectHasOwnProperty.call(normalizedData, "theme")
               ? resolvePreferenceValue(normalizedData, "theme")
               : (readMirroredThemePreference() ?? resolvePreferenceValue(normalizedData, "theme"));
-            set({
-              prefs: objectHasOwnProperty.call(normalizedData, "theme") ? normalizedData : { ...normalizedData, theme },
-              loaded: true,
-            });
-            applyTheme(theme, { withTransition: false });
-            mirrorThemePreference(theme);
-            applyLanguage(resolvePreferenceValue(normalizedData, "language"));
-            applyFontStyle(resolvePreferenceValue(normalizedData, "font_style"));
-            applyFontSize(resolvePreferenceValue(normalizedData, "font_size"));
+            const loadedPrefs = objectHasOwnProperty.call(normalizedData, "theme")
+              ? normalizedData
+              : { ...normalizedData, theme };
+            const prefs = mergeLoadedPreferencesWithOptimisticState(loadedPrefs, getState().prefs, loadGeneration);
+            set({ prefs, loaded: true });
+
+            const resolvedTheme = resolvePreferenceValue(prefs, "theme");
+            applyTheme(resolvedTheme, { withTransition: false });
+            mirrorThemePreference(resolvedTheme);
+            applyLanguage(resolvePreferenceValue(prefs, "language"));
+            applyFontStyle(resolvePreferenceValue(prefs, "font_style"));
+            applyFontSize(resolvePreferenceValue(prefs, "font_size"));
           }),
           Result.inspectError((e) => {
             console.error("Failed to load preferences:", e);
             set({ loaded: true });
-            applyDefaultLoadFallback();
+            if (preferencesMutationGeneration === loadGeneration) {
+              applyDefaultLoadFallback();
+            }
           }),
         );
       } catch (e) {
         console.error("Failed to load preferences:", e);
         set({ loaded: true });
-        applyDefaultLoadFallback();
+        if (preferencesMutationGeneration === loadGeneration) {
+          applyDefaultLoadFallback();
+        }
       }
     })().finally(() => {
       preferencesLoadPromise = null;
@@ -382,6 +423,8 @@ export const usePreferencesStore = create<PreferencesState & PreferencesActions>
 
   setPref: (key, value) => {
     const normalizedValue = normalizePreferenceValue(key, value);
+    preferencesMutationGeneration += 1;
+    preferenceMutationGenerations.set(key, preferencesMutationGeneration);
     const requestId = (preferencePersistRequestCounters.get(key) ?? 0) + 1;
     preferencePersistRequestCounters.set(key, requestId);
     preferencePersistRequestIds.set(key, requestId);

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { addRetainedArticle, getRetainedArticleIdsAfterSelectingArticle } from "@/lib/articles/article-retention";
+import {
+  addRetainedArticle,
+  getRetainedArticleIdsAfterSelectingArticle,
+  MAX_RETAINED_ARTICLE_IDS,
+} from "@/lib/articles/article-retention";
 import { resolveSubscriptionCleanupRecommendation } from "@/lib/subscriptions/subscription-review-candidates";
 
 describe("article retention", () => {
@@ -67,6 +71,28 @@ describe("article retention", () => {
 
     expect(previousRetainedArticleIds).toEqual(new Set(["art-1"]));
     expect(retainedArticleIds).toEqual(new Set(["art-1"]));
+  });
+
+  it("caps retained article ids to the newest selected articles", () => {
+    const retainedArticleIds = Array.from({ length: MAX_RETAINED_ARTICLE_IDS + 2 }, (_, index) => `art-${index}`);
+
+    const result = addRetainedArticle(new Set(retainedArticleIds.slice(0, -1)), retainedArticleIds.at(-1) ?? "");
+
+    expect(result).toHaveLength(MAX_RETAINED_ARTICLE_IDS);
+    expect([...result]).toEqual(retainedArticleIds.slice(2));
+  });
+
+  it("applies the same size cap when selecting unread articles", () => {
+    const retainedArticleIds = Array.from({ length: MAX_RETAINED_ARTICLE_IDS + 2 }, (_, index) => `art-${index}`);
+
+    const result = getRetainedArticleIdsAfterSelectingArticle({
+      articleId: retainedArticleIds.at(-1) ?? "",
+      viewMode: "unread",
+      currentRetainedArticleIds: new Set(retainedArticleIds.slice(0, -1)),
+    });
+
+    expect(result).toHaveLength(MAX_RETAINED_ARTICLE_IDS);
+    expect([...result]).toEqual(retainedArticleIds.slice(2));
   });
 
   it("keeps selected unread article retention separate from cleanup recommendation policy", () => {

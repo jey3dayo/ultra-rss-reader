@@ -11,14 +11,13 @@ use crate::infra::db::connection::DbManager;
 use crate::infra::db::sqlite_account::SqliteAccountRepository;
 use crate::infra::db::sqlite_feed::SqliteFeedRepository;
 use crate::infra::db::sqlite_folder::SqliteFolderRepository;
+use crate::infra::feed_discovery::validate_discovery_url;
 use crate::infra::opml;
 use crate::infra::opml::OpmlFeed;
 use crate::repository::account::AccountRepository;
 use crate::repository::feed::FeedRepository;
 use crate::repository::folder::FolderRepository;
 
-const PRIVATE_URL_VALIDATION_MESSAGE: &str =
-    "Requests to private/loopback addresses are not allowed";
 const UNSUPPORTED_URL_VALIDATION_MESSAGE: &str = "Only http:// and https:// URLs are supported";
 const OPML_GENERATE_ERROR_MESSAGE: &str = "Failed to generate OPML export";
 
@@ -174,38 +173,12 @@ fn validate_opml_feed_url(url: &str) -> Result<String, AppError> {
         });
     }
 
-    if parsed.host_str().is_some_and(is_private_host) {
-        return Err(AppError::UserVisible {
-            message: PRIVATE_URL_VALIDATION_MESSAGE.to_string(),
-        });
-    }
+    validate_discovery_url(&parsed).map_err(|error| match error {
+        DomainError::Validation(message) => AppError::UserVisible { message },
+        other => AppError::from(other),
+    })?;
 
     Ok(url.to_string())
-}
-
-fn is_private_host(host: &str) -> bool {
-    let host_lower = host.to_lowercase();
-
-    if host_lower == "localhost" {
-        return true;
-    }
-
-    let ip_str = host_lower.trim_start_matches('[').trim_end_matches(']');
-    if let Ok(ip) = ip_str.parse::<std::net::IpAddr>() {
-        return match ip {
-            std::net::IpAddr::V4(v4) => {
-                v4.is_loopback() || v4.is_private() || v4.is_unspecified() || v4.is_link_local()
-            }
-            std::net::IpAddr::V6(v6) => {
-                v6.is_loopback()
-                    || v6.is_unspecified()
-                    || (v6.segments()[0] & 0xfe00) == 0xfc00
-                    || (v6.segments()[0] & 0xffc0) == 0xfe80
-            }
-        };
-    }
-
-    false
 }
 
 #[tauri::command]
@@ -778,8 +751,8 @@ mod tests {
     fn import_assigns_new_folder_sort_order_after_existing_max_order() {
         let db = test_db();
         let account_id = insert_test_account(&db, "Primary");
-        insert_test_folder_with_sort_order(&db, &account_id, "Duplicate Low", 2);
-        insert_test_folder_with_sort_order(&db, &account_id, "Duplicate High", 2);
+        insert_test_folder_with_sort_order(&db, &account_id, "Low", 2);
+        insert_test_folder_with_sort_order(&db, &account_id, "Middle", 5);
         insert_test_folder_with_sort_order(&db, &account_id, "Gap High", 10);
         let parsed_feeds = vec![
             OpmlFeed {
@@ -934,21 +907,40 @@ mod tests {
     }
 
     #[test]
-    fn export_build_output_round_trips_through_opml_xml_parser() {
+    fn export_build_output_round_trips_escaped_xml_in_stable_order() {
         let folder_news = folder("folder-news", "News & Research", 0);
+        let folder_tools = folder("folder-tools", "Tools <Daily>", 1);
         let feeds = vec![
+            Feed {
+                site_url: "https://example.com/zulu?x=1&y=2".to_string(),
+                ..feed("folder-zulu", Some(&folder_news.id), "Zulu & Friends")
+            },
             Feed {
                 site_url: "https://example.com/alpha?x=1&y=2".to_string(),
                 ..feed("folder-alpha", Some(&folder_news.id), "Alpha & Friends")
             },
             feed("top-beta", None, "Beta <Top>"),
+            feed("folder-tools", Some(&folder_tools.id), "Tools \"Daily\""),
         ];
 
-        let opml_feeds = build_export_opml_feeds(feeds, vec![folder_news]);
+        let opml_feeds = build_export_opml_feeds(feeds, vec![folder_tools, folder_news]);
         let xml = opml::generate_opml("Primary & Local", &opml_feeds).unwrap();
         let parsed = opml::parse_opml(&xml).unwrap();
 
+        assert!(xml.contains("<title>Primary &amp; Local</title>"));
         assert_eq!(parsed, opml_feeds);
+        assert_eq!(
+            parsed
+                .iter()
+                .map(|feed| (feed.title.as_str(), feed.folder.as_deref()))
+                .collect::<Vec<_>>(),
+            vec![
+                ("Alpha & Friends", Some("News & Research")),
+                ("Zulu & Friends", Some("News & Research")),
+                ("Tools \"Daily\"", Some("Tools <Daily>")),
+                ("Beta <Top>", None),
+            ],
+        );
     }
 
     #[test]

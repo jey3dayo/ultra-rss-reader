@@ -80,6 +80,7 @@ export function FeedTreeFolderSection({
       {showDropOverlay ? (
         <button
           type="button"
+          tabIndex={-1}
           aria-label={t("move_to_folder", {
             defaultValue: "Move to folder {{name}}",
             name: folder.name,

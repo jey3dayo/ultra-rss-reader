@@ -697,7 +697,9 @@ describe("FeedTreeView", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Drag Alpha" }));
-    fireEvent.click(screen.getByRole("button", { name: "Move to Target" }));
+    const dropTarget = screen.getByRole("button", { name: "Move to Target" });
+    expect(dropTarget).toHaveAttribute("tabIndex", "-1");
+    fireEvent.click(dropTarget);
 
     expect(onDragStartFeed).toHaveBeenCalledWith(expect.objectContaining({ id: "feed-1" }));
     expect(onDropToFolder).toHaveBeenCalledWith("folder-target");

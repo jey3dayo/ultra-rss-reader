@@ -539,6 +539,71 @@ describe("usePreferencesStore preferences", () => {
     });
   });
 
+  it("keeps optimistic preference writes when an older load resolves later", async () => {
+    const deferred = createDeferred();
+    vi.mocked(getPreferences).mockReturnValue(
+      deferred.promise.then(() =>
+        Result.succeed({
+          theme: "light",
+          language: "en",
+          font_style: "serif",
+          font_size: "large",
+        }),
+      ),
+    );
+
+    const load = usePreferencesStore.getState().loadPreferences();
+
+    usePreferencesStore.getState().setPref("theme", "dark");
+    usePreferencesStore.getState().setPref("language", "ja");
+
+    deferred.resolve();
+    await load;
+
+    expect(usePreferencesStore.getState().loaded).toBe(true);
+    expect(usePreferencesStore.getState().prefs).toMatchObject({
+      theme: "dark",
+      language: "ja",
+      font_style: "serif",
+      font_size: "large",
+    });
+    expect(document.documentElement).toHaveClass("dark");
+  });
+
+  it("does not let an older load failure apply fallback over optimistic runtime preferences", async () => {
+    const changeLanguage = vi.spyOn(i18n, "changeLanguage");
+    const deferred = createDeferred();
+    vi.mocked(getPreferences).mockReturnValue(
+      deferred.promise.then(() => Result.fail({ type: "UserVisible", message: "boom" })),
+    );
+
+    const load = usePreferencesStore.getState().loadPreferences();
+
+    usePreferencesStore.getState().setPref("language", "en");
+    usePreferencesStore.getState().setPref("font_style", "serif");
+    usePreferencesStore.getState().setPref("font_size", "large");
+
+    try {
+      deferred.resolve();
+      await load;
+
+      expect(usePreferencesStore.getState().loaded).toBe(true);
+      expect(usePreferencesStore.getState().prefs).toMatchObject({
+        language: "en",
+        font_style: "serif",
+        font_size: "large",
+      });
+      expect(changeLanguage).toHaveBeenCalledWith("en");
+      expect(changeLanguage).not.toHaveBeenCalledWith("ja");
+      expect(document.documentElement).toHaveClass("font-serif");
+      expect(document.documentElement).toHaveClass("text-lg");
+      expect(document.documentElement).not.toHaveClass("font-sans");
+      expect(document.documentElement).not.toHaveClass("text-base");
+    } finally {
+      changeLanguage.mockRestore();
+    }
+  });
+
   it("normalizes schema-invalid backend preferences before storing loaded state", async () => {
     vi.mocked(getPreferences).mockResolvedValue(
       Result.succeed({
@@ -1079,6 +1144,37 @@ describe("usePreferencesStore preferences", () => {
     } finally {
       changeLanguage.mockRestore();
       consoleError.mockRestore();
+    }
+  });
+
+  it("ignores stale UI language apply failures after a newer language request", async () => {
+    await i18n.changeLanguage("ja");
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const staleLanguage = createResultDeferred<Awaited<ReturnType<typeof i18n.changeLanguage>>>();
+    const latestLanguage = createResultDeferred<Awaited<ReturnType<typeof i18n.changeLanguage>>>();
+    const changeLanguage = vi
+      .spyOn(i18n, "changeLanguage")
+      .mockReturnValueOnce(staleLanguage.promise)
+      .mockReturnValueOnce(latestLanguage.promise);
+
+    try {
+      usePreferencesStore.getState().setPref("language", "en");
+      usePreferencesStore.getState().setPref("language", "ja");
+
+      latestLanguage.resolve(i18n.t);
+      await latestLanguage.promise;
+
+      staleLanguage.reject(new Error("old language apply failed"));
+      await staleLanguage.promise.catch(() => undefined);
+      await Promise.resolve();
+
+      expect(changeLanguage).toHaveBeenNthCalledWith(1, "en");
+      expect(changeLanguage).toHaveBeenNthCalledWith(2, "ja");
+      expect(consoleError).not.toHaveBeenCalledWith("Failed to apply UI language preference:", expect.any(Error));
+      expect(usePreferencesStore.getState().prefs.language).toBe("ja");
+    } finally {
+      consoleError.mockRestore();
+      changeLanguage.mockRestore();
     }
   });
 
