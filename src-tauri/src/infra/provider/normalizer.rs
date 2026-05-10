@@ -7,6 +7,26 @@ fn contains_control_char(value: &str) -> bool {
     value.chars().any(char::is_control)
 }
 
+fn is_private_metadata_host(host: &str) -> bool {
+    let host = host.to_ascii_lowercase();
+    if host == "localhost" {
+        return true;
+    }
+
+    let ip_str = host.trim_start_matches('[').trim_end_matches(']');
+    ip_str.parse::<std::net::IpAddr>().is_ok_and(|ip| match ip {
+        std::net::IpAddr::V4(v4) => {
+            v4.is_loopback() || v4.is_private() || v4.is_unspecified() || v4.is_link_local()
+        }
+        std::net::IpAddr::V6(v6) => {
+            v6.is_loopback()
+                || v6.is_unspecified()
+                || (v6.segments()[0] & 0xfe00) == 0xfc00
+                || (v6.segments()[0] & 0xffc0) == 0xfe80
+        }
+    })
+}
+
 pub fn normalize_provider_metadata_url(raw_url: &str) -> Option<String> {
     let trimmed = raw_url.trim();
     if trimmed.is_empty()
@@ -18,6 +38,9 @@ pub fn normalize_provider_metadata_url(raw_url: &str) -> Option<String> {
 
     let mut url = reqwest::Url::parse(trimmed).ok()?;
     if url.scheme() != "http" && url.scheme() != "https" {
+        return None;
+    }
+    if url.host_str().is_some_and(is_private_metadata_host) {
         return None;
     }
     if !url.username().is_empty() || url.password().is_some() {
@@ -129,13 +152,13 @@ fn extract_thumbnail(entry: &feed_rs::model::Entry) -> Option<String> {
         .first()
         .and_then(|m| m.content.first())
         .and_then(|c| c.url.as_ref())
-        .map(|u| u.to_string())
+        .and_then(|u| normalize_provider_metadata_url(u.as_str()))
         .or_else(|| {
             entry
                 .links
                 .iter()
                 .find(|l| is_image_media_type(l.media_type.as_deref()) && !l.href.trim().is_empty())
-                .map(|l| l.href.trim().to_string())
+                .and_then(|l| normalize_provider_metadata_url(&l.href))
         })
 }
 
@@ -478,6 +501,78 @@ mod tests {
             entries[0].thumbnail,
             Some("https://cdn.example.com/thumb.webp".to_string())
         );
+    }
+
+    #[test]
+    fn thumbnail_fixture_normalizes_media_and_enclosure_privacy_boundaries() {
+        let feed = r#"<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/">
+  <title>Media Feed</title>
+  <id>https://example.com/feed</id>
+  <updated>2026-03-27T12:00:00Z</updated>
+  <entry>
+    <title>Media Content</title>
+    <id>media-content</id>
+    <updated>2026-03-27T12:00:00Z</updated>
+    <link rel="alternate" href="https://example.com/articles/media-content" type="text/html"/>
+    <media:content url="https://cdn.example.com/thumb.jpg?tracking=1#private" type="image/jpeg" fileSize="999999999999999999999999"/>
+  </entry>
+  <entry>
+    <title>Image Enclosure</title>
+    <id>image-enclosure</id>
+    <updated>2026-03-27T12:00:00Z</updated>
+    <link rel="alternate" href="https://example.com/articles/image-enclosure" type="text/html"/>
+    <link rel="enclosure" href="https://cdn.example.com/fallback.png#fragment" type="image/png" length="184467440737095516150"/>
+  </entry>
+  <entry>
+    <title>Audio Enclosure</title>
+    <id>audio-enclosure</id>
+    <updated>2026-03-27T12:00:00Z</updated>
+    <link rel="alternate" href="https://example.com/articles/audio-enclosure" type="text/html"/>
+    <link rel="enclosure" href="https://cdn.example.com/audio.mp3?token=private" type="audio/mpeg" length="123"/>
+  </entry>
+  <entry>
+    <title>Private Media</title>
+    <id>private-media</id>
+    <updated>2026-03-27T12:00:00Z</updated>
+    <link rel="alternate" href="https://example.com/articles/private-media" type="text/html"/>
+    <media:content url="http://127.0.0.1/thumb.jpg" type="image/jpeg"/>
+  </entry>
+  <entry>
+    <title>Userinfo Thumbnail</title>
+    <id>userinfo-thumbnail</id>
+    <updated>2026-03-27T12:00:00Z</updated>
+    <link rel="alternate" href="https://example.com/articles/userinfo-thumbnail" type="text/html"/>
+    <link rel="enclosure" href="https://user:secret@cdn.example.com/thumb.png" type="image/png" length="123"/>
+  </entry>
+</feed>"#;
+
+        let entries = normalize_feed(feed.as_bytes(), "https://example.com/feed.xml").unwrap();
+
+        assert_eq!(
+            entries[0].thumbnail.as_deref(),
+            Some("https://cdn.example.com/thumb.jpg?tracking=1")
+        );
+        assert_eq!(
+            entries[1].thumbnail.as_deref(),
+            Some("https://cdn.example.com/fallback.png")
+        );
+        assert_eq!(entries[2].thumbnail, None);
+        assert_eq!(entries[3].thumbnail, None);
+        assert_eq!(entries[4].thumbnail, None);
+    }
+
+    #[test]
+    fn parse_errors_do_not_store_or_surface_feed_body_samples() {
+        let malformed =
+            b"\xFF\xFE<rss><channel><item><description>token=private-feed-token</description>";
+
+        let error = normalize_feed(malformed, "https://example.com/feed.xml")
+            .expect_err("malformed feed should stay a parser error");
+        let message = error.to_string();
+
+        assert!(matches!(error, DomainError::Parse(_)));
+        assert!(!message.contains("private-feed-token"));
     }
 
     #[test]

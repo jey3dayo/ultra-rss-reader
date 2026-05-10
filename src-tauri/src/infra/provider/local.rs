@@ -15,6 +15,8 @@ const PRIVATE_URL_VALIDATION_MESSAGE: &str =
     "Requests to private/loopback addresses are not allowed";
 const UNSUPPORTED_URL_VALIDATION_MESSAGE: &str = "Only http:// and https:// URLs are supported";
 const DOWNGRADE_REDIRECT_VALIDATION_MESSAGE: &str = "HTTPS to HTTP redirects are not allowed";
+const FEED_RESPONSE_BODY_INCOMPLETE_MESSAGE: &str =
+    "Feed response body ended before the declared response length";
 
 pub struct LocalProvider {
     http_client: reqwest::Client,
@@ -115,7 +117,11 @@ impl LocalProvider {
         }
 
         let mut body = Vec::new();
-        while let Some(chunk) = response.chunk().await? {
+        while let Some(chunk) = response
+            .chunk()
+            .await
+            .map_err(feed_response_body_read_error)?
+        {
             body.extend_from_slice(&chunk);
             if body.len() as u64 > MAX_LOCAL_FEED_BODY_BYTES {
                 return Err(feed_body_too_large_error());
@@ -136,6 +142,11 @@ fn unsupported_feed_content_type_error(content_type: &str) -> DomainError {
     DomainError::Network(format!(
         "Unsupported feed response content type: {content_type}"
     ))
+}
+
+fn feed_response_body_read_error(error: reqwest::Error) -> DomainError {
+    let _ = error;
+    DomainError::Network(FEED_RESPONSE_BODY_INCOMPLETE_MESSAGE.to_string())
 }
 
 fn validate_external_feed_url(url: &reqwest::Url) -> DomainResult<()> {
@@ -435,6 +446,8 @@ mod tests {
     use super::super::http_defaults::PROVIDER_USER_AGENT;
     use super::*;
     use chrono::Utc;
+    use tokio::io::AsyncWriteExt;
+    use tokio::net::TcpListener;
 
     const SAMPLE_RSS: &str = r#"<?xml version="1.0" encoding="UTF-8"?>
     <rss version="2.0">
@@ -756,6 +769,50 @@ mod tests {
             DomainError::Network(message) if message.contains("Feed response body exceeds")
         ));
         mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn pull_entries_classifies_short_content_length_body_as_network_error() {
+        let listener = TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("test server should bind");
+        let address = listener
+            .local_addr()
+            .expect("test server should expose local address");
+        let server = tokio::spawn(async move {
+            let (mut stream, _) = listener
+                .accept()
+                .await
+                .expect("test server should accept one request");
+            let response = concat!(
+                "HTTP/1.1 200 OK\r\n",
+                "Content-Type: application/rss+xml\r\n",
+                "Content-Length: 1024\r\n",
+                "\r\n",
+                "<?xml version=\"1.0\"?><rss version=\"2.0\"><channel>"
+            );
+            stream
+                .write_all(response.as_bytes())
+                .await
+                .expect("test response should be written");
+            stream.shutdown().await.expect("test stream should close");
+        });
+
+        let provider = local_provider_allowing_private_feed_urls();
+        let scope = PullScope::Feed(FeedIdentifier::Local {
+            feed_url: format!("http://{address}/feed.xml"),
+        });
+
+        let error = provider
+            .pull_entries(scope, None)
+            .await
+            .expect_err("short response body should not become a parse error");
+        server.await.expect("test server task should finish");
+
+        assert!(matches!(
+            error,
+            DomainError::Network(message) if message == FEED_RESPONSE_BODY_INCOMPLETE_MESSAGE
+        ));
     }
 
     #[tokio::test]
