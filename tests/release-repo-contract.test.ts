@@ -985,6 +985,47 @@ describe("release repository contract", () => {
     );
   });
 
+  it("keeps release note publication owned by the release skill with prerelease and build metadata policy", () => {
+    const releaseSkill = readText(".codex/skills/release/SKILL.md");
+    const releasePolicyStep = extractReleaseStepBlock(releaseWorkflow, "Resolve release semver policy");
+
+    expect(releaseWorkflow).toContain("generateReleaseNotes: false");
+    expect(releasePolicyStep).toContain('if [[ "$release_version" == *-* ]]; then');
+    expect(releaseSkill).toContain("Write release notes and `CHANGELOG.md` entries in concise Japanese");
+    expect(releaseSkill).toContain("grounded in the actual commit history");
+    expect(releaseSkill).toContain("Stable tags use `prerelease=false`");
+    expect(releaseSkill).toContain("semver prerelease tags such as `v1.2.3-alpha.1` use `prerelease=true`");
+    expect(releaseSkill).toContain(
+      "build metadata alone such as `v1.2.3+build.1` does not make the Release a prerelease",
+    );
+    expect(releaseSkill).toContain("Treat the CLI as the source of truth for release note body text");
+    expect(releaseSkill).toContain("After create/edit, verify with `gh release view");
+    expect(releaseSkill).toContain("Do not generate release notes after the release commit has been created");
+  });
+
+  it("keeps published macOS artifact notarization, quarantine, and translocation manual checks explicit", () => {
+    expect(releaseManualVerification).toContain("published macOS artifact downloaded through the normal browser");
+    expect(releaseManualVerification).toContain("not a locally rebuilt or re-signed app");
+    expect(releaseManualVerification).toContain("com.apple.quarantine");
+    expect(releaseManualVerification).toContain("Gatekeeper and notarization result before first launch");
+    expect(releaseManualVerification).toContain("does not require removing quarantine manually");
+    expect(releaseManualVerification).toContain("translocation evidence");
+    expect(releaseManualVerification).toContain("Do not work around it by clearing quarantine on the verifier machine");
+  });
+
+  it("keeps release hotfix scope and evidence separate from the normal release checklist", () => {
+    expect(releaseManualVerification).toContain("Hotfix Release Checklist");
+    expect(releaseManualVerification).toContain("affected version, regression, user impact, and rollback option");
+    expect(releaseManualVerification).toContain(
+      "contains only the fix, required tests, and release notes for that regression",
+    );
+    expect(releaseManualVerification).toContain("record the skipped gate and the reason");
+    expect(releaseManualVerification).toContain("old artifact digest, replacement artifact digest");
+    expect(releaseManualVerification).toContain(
+      "Release path: normal, hotfix, rollback/republish, or manual native smoke only",
+    );
+  });
+
   it("keeps release builds from using dev Tauri config or dev credentials", () => {
     const tauriActionBlock = extractTauriActionBlock(releaseWorkflow);
     const devOnlyImportPattern = /(?:from\s+|import\()\s*["']@\/dev\/(?:mock-data|scenarios)(?:\/|["'])/;
