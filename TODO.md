@@ -2970,11 +2970,6 @@
   - `clearArticle()` が `focusedPane` を戻さないため、mobile で記事を閉じると `contentMode: empty` でも content pane が表示され続け得る
   - mobile/compact article close、selected article not-found cleanup、browser close parity、focusedPane restore の test を追加する
 
-- [ ] P2 `DevRuntimeOptionsSchema` の strictness / future option policy を決める
-  - 対象: `src/api/schemas/platform-info.ts`, `src-tauri/src/commands/platform_commands.rs`
-  - dev runtime options だけ余剰 key を許すと、Rust 側 dev-only option 追加や typo が silently accepted になり drift を検知しづらい
-  - extra key rejection/allow policy、missing required key、null dimension、invalid dimension、future option drift の test を追加する
-
 - [ ] P2 browser webview bounds schema に上限と coordinate policy を追加する
   - 対象: `src/api/schemas/commands.ts`, `src/lib/browser/browser-webview.ts`, `src-tauri/src/commands/browser_webview_commands.rs`
   - bounds が正数中心で上限がなく、極端な `width/height/x/y` が native webview geometry に流れ得る
@@ -3616,11 +3611,6 @@
   - scenario は便利だが、command schema や route rename から遅れるとデバッグ時だけ壊れる
   - scenario id registry、command coverage、route existence、mock data owner、screenshot smoke の task に分ける
 
-- [ ] P1 XML entity expansion / external entity policy を feed parser boundary で固定する
-  - 対象: `src-tauri/src/infra/provider/local.rs`, feed parser dependency, parser fixtures
-  - RSS/Atom/OPML の XML parsing が entity expansion や external entity をどう扱うか未固定だと、巨大展開・外部参照・parse hang の原因になる
-  - nested entity、external entity、DOCTYPE、large text node、parser timeout/size cap の fixture を追加する
-
 - [ ] P1 IDNA / punycode / IPv6 zone identifier の private host 判定を URL schema 全体で固定する
   - 対象: URL schema、feed discovery、OPML import、external opener
   - `xn--` host、Unicode host、IPv6 zone id、mixed-case host が command ごとに違うと SSRF guard と opener policy がずれる
@@ -3640,21 +3630,6 @@
   - 対象: domain validation、settings forms、reader/sidebar display
   - RTL override、zero-width、confusable 文字が入ると feed name や action target が spoof され、delete/rename 確認で誤認しやすい
   - bidi control、zero-width joiner、NFKC confusable、trim display、confirmation label の policy を追加する
-
-- [ ] P2 RSS enclosure / media metadata の size/type/privacy handling を fixture 化する
-  - 対象: local provider normalizer、article DTO、article view
-  - enclosure や media:content を無視/保存/表示する方針が曖昧だと、巨大 media URL や tracking URL が article rendering に混ざる
-  - enclosure URL、media:thumbnail、media type、length overflow、private media URL、tracking query の fixture を追加する
-
-- [ ] P2 Atom XHTML content / relative link base handling を parser corpus に追加する
-  - 対象: local provider parser、sanitizer、article normalizer
-  - Atom の `content type="xhtml"` や relative link が RSS と違う扱いになると、本文欠落や opener URL mismatch が起きる
-  - XHTML content、summary fallback、relative alternate link、base URI、multiple link rel の fixture を追加する
-
-- [ ] P2 feed Content-Length mismatch / premature EOF の error category を固定する
-  - 対象: provider HTTP client、local provider sync、feed discovery
-  - `Content-Length` と実 body が合わない、途中切断、chunked premature EOF を generic parse error にすると retry/backoff 判断が曖昧になる
-  - shorter body、longer body、premature EOF、chunk trailer error、retryable classification の contract を追加する
 
 - [ ] P2 SQL article list query plan / index drift を representative dataset で検出する
   - 対象: `src-tauri/src/infra/db/sqlite_article.rs`, migrations, article list repository tests
@@ -3710,11 +3685,6 @@
   - 対象: i18n setup、settings language actions、app shell fallback
   - locale JSON load/parse failure 時に raw key 表示、blank UI、old locale 維持のどれにするか未固定だと復旧しにくい
   - missing locale file、invalid JSON、switch failure、old locale retention、diagnostics once の test を追加する
-
-- [ ] P2 platform permission denied を file/dialog/keyring/clipboard ごとに user action copy へ落とす
-  - 対象: Tauri command wrappers、runtime error taxonomy、settings/debug UI
-  - permission denied を generic error にすると、macOS privacy settings や Windows policy の復旧案が出せない
-  - file access denied、dialog denied、keyring denied、clipboard denied、action-specific copy の matrix を作る
 
 - [ ] P2 updater downloaded artifact cleanup を cancel / failed install / app restart で固定する
   - 対象: updater hook、updater commands、release docs
@@ -3900,11 +3870,6 @@
   - 対象: `src-tauri/src/domain/provider.rs`, sync state repository, local provider
   - ETag/Last-Modified 以外の cache-related header を将来扱う場合、保存長や header injection policy がないと DB/log を汚染する
   - long ETag、newline in header、weak validator、Vary ignored、validator truncation の policy を追加する
-
-- [ ] P2 feed response `Content-Type` sniffing を XML/JSON/HTML fallback ごとに固定する
-  - 対象: local provider、feed discovery、provider error taxonomy
-  - RSS を `text/plain` で返す site と HTML error page を同じ fallback で扱うと、誤 parse や user-visible error が曖昧になる
-  - XML with text/plain、HTML error page、JSON Feed、missing content-type、charset parameter の fixture を追加する
 
 - [ ] P2 JSON Feed support を入れる/入れない decision record と parser guard を作る
   - 対象: local provider parser、feed discovery、add feed validation
@@ -4276,11 +4241,6 @@
   - DB だけ巻き戻すと frontend 側に存在しない account/feed/tag の選択状態や cache が残る
   - selected account missing、expanded folder missing、query cache clear、command history cleanup、restart required の contract を追加する
   - superseded by: P1-Q4e (covered by DB restore frontend reconciliation; kept verification: selected account missing, query cache clear, restart required)
-
-- [ ] P2 feed parser error sample を support-safe に保存するか決める
-  - 対象: local provider parser、diagnostics、support dump
-  - parse failure の再現には response sample が有効だが、記事本文や private feed content を保存すると privacy risk になる
-  - no sample、redacted prefix、hash only、content-type/status only、user opt-in の decision を追加する
 
 - [ ] P2 provider credential verification request の side effect を account create/update と分離する
   - 対象: account setup、test connection commands、provider HTTP client
