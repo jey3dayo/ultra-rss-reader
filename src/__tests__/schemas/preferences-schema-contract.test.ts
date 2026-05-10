@@ -333,6 +333,9 @@ describe("preference contract", () => {
       debugWebPreviewUrlSchema?.safeParse("https://example.com/\u0000").success,
     ).toBe(false);
     expect(
+      debugWebPreviewUrlSchema?.safeParse("https://example.com/\u0085").success,
+    ).toBe(false);
+    expect(
       normalizePreferenceValue("debug_web_preview_url", "a".repeat(1025)),
     ).toBe("");
 
@@ -340,6 +343,7 @@ describe("preference contract", () => {
     expect(shortcutSchema?.safeParse("a".repeat(128)).success).toBe(true);
     expect(shortcutSchema?.safeParse("a".repeat(129)).success).toBe(false);
     expect(shortcutSchema?.safeParse("Shift+\nJ").success).toBe(false);
+    expect(shortcutSchema?.safeParse("Shift+\u009fJ").success).toBe(false);
   });
 
   it("classifies likely unknown passthrough typos without rejecting backend-owned keys", () => {

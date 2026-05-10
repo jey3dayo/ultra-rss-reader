@@ -7,6 +7,7 @@ import {
   SIDEBAR_EXPANDED_FOLDERS_STORAGE_VERSION,
   STORAGE_KEYS,
 } from "@/constants/storage";
+import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
 import { parseJsonWithSchemaOrNull } from "@/schemas/parse";
 import { type StoredSidebarExpandedFolders, StoredSidebarExpandedFoldersSchema } from "@/schemas/storage";
 import type { SidebarStartupFolderExpansionParams } from "../../sidebar-feed-section.types";
@@ -32,6 +33,14 @@ const StoredSidebarExpandedFoldersStorageSchema = z
     accounts: StoredSidebarExpandedFoldersSchema,
   })
   .strict();
+const SidebarExpandedFoldersStorageVersionMarkerSchema = z.object({ version: z.unknown() }).passthrough();
+
+type SidebarExpandedFoldersStorageOperation =
+  | "read"
+  | "remove-oversized"
+  | "remove-invalid"
+  | "normalize-write"
+  | "write";
 
 function removeSidebarExpandedFoldersStorage(): void {
   window.localStorage.removeItem(STORAGE_KEYS.sidebarExpandedFolders);
@@ -41,15 +50,45 @@ function writeSidebarExpandedFoldersStorage(storage: SidebarExpandedFoldersStora
   window.localStorage.setItem(STORAGE_KEYS.sidebarExpandedFolders, JSON.stringify(storage));
 }
 
+function logSidebarExpandedFoldersStorageFailure(
+  operation: SidebarExpandedFoldersStorageOperation,
+  error: unknown,
+): void {
+  logRuntimeDiagnostic("sidebar-expanded-folders-storage", "Sidebar expanded folders storage failed", {
+    operation,
+    storageKey: STORAGE_KEYS.sidebarExpandedFolders,
+    error,
+  });
+}
+
+function tryRemoveSidebarExpandedFoldersStorage(operation: SidebarExpandedFoldersStorageOperation): void {
+  try {
+    removeSidebarExpandedFoldersStorage();
+  } catch (error) {
+    logSidebarExpandedFoldersStorageFailure(operation, error);
+  }
+}
+
+function tryWriteSidebarExpandedFoldersStorage(
+  storage: SidebarExpandedFoldersStorage,
+  operation: SidebarExpandedFoldersStorageOperation,
+): void {
+  try {
+    writeSidebarExpandedFoldersStorage(storage);
+  } catch (error) {
+    logSidebarExpandedFoldersStorageFailure(operation, error);
+  }
+}
+
 function normalizeSidebarExpandedFoldersStorage(raw: string): SidebarExpandedFoldersStorage | null {
   if (raw.length > MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_STORAGE_LENGTH) {
-    removeSidebarExpandedFoldersStorage();
+    tryRemoveSidebarExpandedFoldersStorage("remove-oversized");
     return null;
   }
 
   const parsed = parseStoredSidebarExpandedFolders(raw);
   if (!parsed) {
-    removeSidebarExpandedFoldersStorage();
+    tryRemoveSidebarExpandedFoldersStorage("remove-invalid");
     return null;
   }
 
@@ -69,6 +108,9 @@ function parseStoredSidebarExpandedFolders(raw: string): SidebarExpandedFoldersS
   if (versioned) {
     return versioned;
   }
+  if (parseJsonWithSchemaOrNull(raw, SidebarExpandedFoldersStorageVersionMarkerSchema)) {
+    return null;
+  }
 
   const parsed = parseJsonWithSchemaOrNull(raw, StoredSidebarExpandedFoldersSchema);
   if (parsed) {
@@ -84,7 +126,7 @@ function writeNormalizedSidebarExpandedFoldersStorage(
 ): void {
   const normalized = JSON.stringify(storage);
   if (raw !== normalized) {
-    window.localStorage.setItem(STORAGE_KEYS.sidebarExpandedFolders, normalized);
+    tryWriteSidebarExpandedFoldersStorage(storage, "normalize-write");
   }
 }
 
@@ -96,7 +138,8 @@ function readStoredSidebarExpandedFolders(): SidebarExpandedFoldersStorage {
     }
 
     return normalizeSidebarExpandedFoldersStorage(raw) ?? normalizeStoredSidebarExpandedFolders({});
-  } catch {
+  } catch (error) {
+    logSidebarExpandedFoldersStorageFailure("read", error);
     return normalizeStoredSidebarExpandedFolders({});
   }
 }
@@ -184,8 +227,8 @@ function getStoredSidebarExpandedFolders(
       window.localStorage.getItem(STORAGE_KEYS.sidebarExpandedFolders),
       storage,
     );
-  } catch {
-    // Ignore storage cleanup failures; restore still uses the in-memory parsed state.
+  } catch (error) {
+    logSidebarExpandedFoldersStorageFailure("normalize-write", error);
   }
 
   return storage;
@@ -210,9 +253,10 @@ function setStoredSidebarExpandedFolders(
       ),
     };
     const nextState = normalizeStoredSidebarExpandedFolders(StoredSidebarExpandedFoldersSchema.parse(accounts));
-    writeSidebarExpandedFoldersStorage(nextState);
-  } catch {
-    // Ignore quota or storage availability failures; expansion state remains in React state.
+    tryWriteSidebarExpandedFoldersStorage(nextState, "write");
+  } catch (error) {
+    logSidebarExpandedFoldersStorageFailure("write", error);
+    // Ignore storage availability failures; expansion state remains in React state.
   }
 }
 

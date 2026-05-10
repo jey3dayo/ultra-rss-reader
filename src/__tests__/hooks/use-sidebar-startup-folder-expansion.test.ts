@@ -13,6 +13,7 @@ import {
   SIDEBAR_EXPANDED_FOLDERS_STORAGE_VERSION,
   STORAGE_KEYS,
 } from "@/constants/storage";
+import { resetRuntimeDiagnosticOnceSuppressionForTests } from "@/lib/runtime/diagnostics";
 
 const folders: FolderDto[] = [
   { id: "folder-unread", account_id: "acc-1", name: "Unread", sort_order: 0 },
@@ -51,6 +52,7 @@ const readStoredExpansion = (): unknown =>
 afterEach(() => {
   window.localStorage.clear();
   vi.restoreAllMocks();
+  resetRuntimeDiagnosticOnceSuppressionForTests();
 });
 
 describe("resolveSidebarStartupExpandedFolderIds", () => {
@@ -347,6 +349,7 @@ describe("useSidebarStartupFolderExpansion", () => {
   });
 
   it("keeps UI expansion state when localStorage persistence fails", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
       throw new DOMException("quota exceeded", "QuotaExceededError");
     });
@@ -379,6 +382,7 @@ describe("useSidebarStartupFolderExpansion", () => {
   });
 
   it("keeps the UI usable when localStorage reads are unavailable", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
     vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
       throw new DOMException("storage unavailable", "SecurityError");
     });
@@ -536,6 +540,159 @@ describe("useSidebarStartupFolderExpansion", () => {
       version: SIDEBAR_EXPANDED_FOLDERS_STORAGE_VERSION,
       accounts: {},
     });
+  });
+
+  it("diagnoses sidebar expansion storage cleanup failures once", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.spyOn(Storage.prototype, "getItem").mockReturnValue(
+      `"${"x".repeat(MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_STORAGE_LENGTH + 1)}"`,
+    );
+    vi.spyOn(Storage.prototype, "removeItem").mockImplementation(() => {
+      throw new DOMException("remove failed", "SecurityError");
+    });
+
+    const renderRestoreHook = () =>
+      renderHook(() => {
+        const [expandedFolderIds, setExpandedFolderIds] = useState(new Set<string>());
+        useSidebarStartupFolderExpansion({
+          selectedAccountId: "acc-1",
+          expandedFolderIds,
+          feedList: [],
+          folderList: folders,
+          startupFolderExpansion: "restore_previous",
+          feedsReady: true,
+          foldersReady: true,
+          setExpandedFolders: (folderIds) => setExpandedFolderIds(new Set(folderIds)),
+        });
+
+        return expandedFolderIds;
+      });
+
+    const first = renderRestoreHook();
+    await waitFor(() => {
+      expect(first.result.current).toEqual(new Set());
+    });
+    first.unmount();
+
+    const second = renderRestoreHook();
+    await waitFor(() => {
+      expect(second.result.current).toEqual(new Set());
+    });
+    second.unmount();
+
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(warnSpy).toHaveBeenCalledWith(
+      "Sidebar expanded folders storage failed",
+      expect.objectContaining({
+        operation: "remove-oversized",
+        storageKey: STORAGE_KEYS.sidebarExpandedFolders,
+      }),
+    );
+  });
+
+  it("diagnoses sidebar expansion storage read, invalid cleanup, and write failures", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new DOMException("read failed", "SecurityError");
+    });
+
+    const readFailure = renderHook(() => {
+      const [expandedFolderIds, setExpandedFolderIds] = useState(new Set<string>());
+      useSidebarStartupFolderExpansion({
+        selectedAccountId: "acc-1",
+        expandedFolderIds,
+        feedList: [],
+        folderList: folders,
+        startupFolderExpansion: "restore_previous",
+        feedsReady: true,
+        foldersReady: true,
+        setExpandedFolders: (folderIds) => setExpandedFolderIds(new Set(folderIds)),
+      });
+
+      return expandedFolderIds;
+    });
+
+    await waitFor(() => {
+      expect(readFailure.result.current).toEqual(new Set());
+    });
+    readFailure.unmount();
+    expect(warnSpy).toHaveBeenCalledWith(
+      "Sidebar expanded folders storage failed",
+      expect.objectContaining({ operation: "read" }),
+    );
+
+    vi.restoreAllMocks();
+    resetRuntimeDiagnosticOnceSuppressionForTests();
+    const nextWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    window.localStorage.setItem(
+      STORAGE_KEYS.sidebarExpandedFolders,
+      JSON.stringify({
+        version: SIDEBAR_EXPANDED_FOLDERS_STORAGE_VERSION + 1,
+        accounts: { "acc-1": ["folder-restored"] },
+      }),
+    );
+    vi.spyOn(Storage.prototype, "removeItem").mockImplementation(() => {
+      throw new DOMException("remove failed", "SecurityError");
+    });
+
+    const invalidCleanupFailure = renderHook(() => {
+      const [expandedFolderIds, setExpandedFolderIds] = useState(new Set<string>());
+      useSidebarStartupFolderExpansion({
+        selectedAccountId: "acc-1",
+        expandedFolderIds,
+        feedList: [],
+        folderList: folders,
+        startupFolderExpansion: "restore_previous",
+        feedsReady: true,
+        foldersReady: true,
+        setExpandedFolders: (folderIds) => setExpandedFolderIds(new Set(folderIds)),
+      });
+
+      return expandedFolderIds;
+    });
+
+    await waitFor(() => {
+      expect(invalidCleanupFailure.result.current).toEqual(new Set());
+    });
+    invalidCleanupFailure.unmount();
+    expect(nextWarnSpy).toHaveBeenCalledWith(
+      "Sidebar expanded folders storage failed",
+      expect.objectContaining({ operation: "remove-invalid" }),
+    );
+
+    vi.restoreAllMocks();
+    resetRuntimeDiagnosticOnceSuppressionForTests();
+    const writeWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new DOMException("quota exceeded", "QuotaExceededError");
+    });
+
+    const writeFailure = renderHook(
+      ({ expandedFolderIds }: { expandedFolderIds: Set<string> }) => {
+        useSidebarStartupFolderExpansion({
+          selectedAccountId: "acc-1",
+          expandedFolderIds,
+          feedList: [],
+          folderList: folders,
+          startupFolderExpansion: "unread_folders",
+          feedsReady: true,
+          foldersReady: true,
+          setExpandedFolders: vi.fn(),
+        });
+      },
+      { initialProps: { expandedFolderIds: new Set<string>() } },
+    );
+
+    writeFailure.rerender({ expandedFolderIds: new Set(["folder-restored"]) });
+
+    await waitFor(() => {
+      expect(writeWarnSpy).toHaveBeenCalledWith(
+        "Sidebar expanded folders storage failed",
+        expect.objectContaining({ operation: "write" }),
+      );
+    });
+    writeFailure.unmount();
   });
 
   it("keeps the active account inside oversized sidebar expansion storage", async () => {

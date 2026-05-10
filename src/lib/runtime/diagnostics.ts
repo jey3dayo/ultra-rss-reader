@@ -7,6 +7,7 @@ export type RuntimeDiagnosticPolicyId =
   | "app-icon-theme"
   | "unread-badge"
   | "article-action"
+  | "sidebar-expanded-folders-storage"
   | "window-runtime-error";
 
 export type RuntimeDiagnosticPolicy = {
@@ -81,6 +82,14 @@ export const RUNTIME_DIAGNOSTIC_POLICIES = {
     productionDiagnostics: true,
     toast: "never",
     once: false,
+    redactSecrets: true,
+  },
+  "sidebar-expanded-folders-storage": {
+    console: "warn",
+    devOnlyConsole: false,
+    productionDiagnostics: true,
+    toast: "never",
+    once: true,
     redactSecrets: true,
   },
   "window-runtime-error": {

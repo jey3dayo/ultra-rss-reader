@@ -57,19 +57,59 @@ describe("storage schemas", () => {
   });
 
   it("keeps account folder expansion maps while dropping invalid entries", () => {
-    expect(
-      StoredSidebarExpandedFoldersSchema.parse({
-        " account-1 ": [" folder-1 ", 42, "folder-2", null, "folder-1", "folder-2", "folder-3"],
-        "account-2": "folder-3",
-        "account-3": ["folder-2", "folder-4", "folder-2"],
-        "account-4": { folderId: "folder-5" },
-        " ": ["folder-6"],
-        "account-5": [" ", "\u0000"],
-      }),
-    ).toEqual({
+    const parsed = StoredSidebarExpandedFoldersSchema.parse({
+      " account-1 ": [" folder-1 ", 42, "folder-2", null, "folder-1", "folder-2", "folder-3"],
+      "account-2": "folder-3",
+      "account-3": ["folder-2", "folder-4", "folder-2"],
+      "account-4": { folderId: "folder-5" },
+      " ": ["folder-6"],
+      "account-5": [" ", "\u0000"],
+    });
+
+    expect(parsed).toEqual({
       "account-1": ["folder-1", "folder-2", "folder-3"],
       "account-3": ["folder-2", "folder-4"],
     });
+    expect(Object.getPrototypeOf(parsed)).toBeNull();
+  });
+
+  it("normalizes sidebar expansion maps without exposing prototype keys", () => {
+    const raw: Record<string, unknown> = Object.create(null);
+    Object.defineProperty(raw, "__proto__", {
+      configurable: true,
+      enumerable: true,
+      value: ["folder-proto"],
+      writable: true,
+    });
+    raw.constructor = ["folder-constructor"];
+    raw["account-\u0085id"] = ["folder-\u009fid", "folder-\u0000id"];
+
+    const parsed = StoredSidebarExpandedFoldersSchema.parse(raw);
+
+    expect(Object.getPrototypeOf(parsed)).toBeNull();
+    expect(Object.getOwnPropertyDescriptor(parsed, "__proto__")).toMatchObject({
+      enumerable: true,
+      value: ["folder-proto"],
+    });
+    expect(parsed.__proto__).toEqual(["folder-proto"]);
+    expect(parsed.constructor).toEqual(["folder-constructor"]);
+    expect(parsed["account-id"]).toEqual(["folder-id"]);
+    expect(Object.prototype).not.toHaveProperty("folder-proto");
+  });
+
+  it("documents sidebar expansion account pruning as insertion-order based", () => {
+    const entries = Array.from({ length: MAX_STORED_SIDEBAR_EXPANDED_ACCOUNTS + 1 }, (_, index): [string, string[]] => [
+      index === 0 ? "active-account" : `stale-account-${index}`,
+      [`folder-${index}`],
+    ]);
+
+    const parsed = StoredSidebarExpandedFoldersSchema.parse(Object.fromEntries(entries));
+
+    expect(Object.keys(parsed)).toEqual(
+      entries.slice(0, MAX_STORED_SIDEBAR_EXPANDED_ACCOUNTS).map(([accountId]) => accountId),
+    );
+    expect(parsed["active-account"]).toEqual(["folder-0"]);
+    expect(parsed[`stale-account-${MAX_STORED_SIDEBAR_EXPANDED_ACCOUNTS}`]).toBeUndefined();
   });
 
   it("caps oversized sidebar expansion maps at the storage boundary", () => {

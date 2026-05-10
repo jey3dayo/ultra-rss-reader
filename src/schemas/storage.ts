@@ -9,7 +9,7 @@ import {
   STORAGE_KEYS,
 } from "@/constants/storage";
 
-const CONTROL_CHARACTER_RANGES = "\\u0000-\\u001F\\u007F";
+const CONTROL_CHARACTER_RANGES = "\\u0000-\\u001F\\u007F-\\u009F";
 const CONTROL_CHARACTERS_PATTERN = new RegExp(`[${CONTROL_CHARACTER_RANGES}]`, "g");
 
 function normalizeStoredIdentity(value: string): string {
@@ -18,6 +18,10 @@ function normalizeStoredIdentity(value: string): string {
 
 function normalizeCommandHistoryEntry(value: string): string {
   return normalizeStoredIdentity(value).slice(0, MAX_COMMAND_HISTORY_ENTRY_LENGTH);
+}
+
+function isUnknownRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function collectNormalizedUniqueStrings(
@@ -56,9 +60,10 @@ export const CommandHistoryStorageSchema = z
 export type CommandHistoryStorage = z.output<typeof CommandHistoryStorageSchema>;
 
 export const StoredSidebarExpandedFoldersSchema = z
-  .record(z.string(), z.unknown())
+  .unknown()
+  .refine(isUnknownRecord)
   .transform((parsed): Record<string, string[]> => {
-    const expandedFolders: Record<string, string[]> = {};
+    const expandedFolders: Record<string, string[]> = Object.create(null);
     let accountCount = 0;
 
     for (const [accountId, folderIds] of Object.entries(parsed)) {
@@ -76,7 +81,12 @@ export const StoredSidebarExpandedFoldersSchema = z
         continue;
       }
 
-      expandedFolders[normalizedAccountId] = normalizedFolderIds;
+      Object.defineProperty(expandedFolders, normalizedAccountId, {
+        configurable: true,
+        enumerable: true,
+        value: normalizedFolderIds,
+        writable: true,
+      });
       accountCount += 1;
 
       if (accountCount >= MAX_STORED_SIDEBAR_EXPANDED_ACCOUNTS) {
@@ -112,6 +122,9 @@ export const STORAGE_SCHEMA_CAPACITY_FIXTURES = {
       accountEntryCountCap: "account map entries after account id normalization",
       folderEntryCountCap: "folder id entries per account after folder id normalization",
       rawJsonByteCap: "JSON string length before parsing",
+      controlCharacterPolicy: "strip C0, DEL, and C1 controls from account and folder ids before trimming",
+      accountPruningPriority:
+        "schema preserves insertion order and caps after normalization; storage writes insert the active account first before stale accounts",
     },
   },
 } as const;
