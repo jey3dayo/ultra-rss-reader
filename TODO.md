@@ -114,11 +114,6 @@
   - search 表示中に source data と search data のどちらが現行か不明な瞬間があり、空状態や selected cleanup が早く走る可能性がある
   - source refetch + search fetching、selected article in old search result、query clear during refetch、empty state delay の test を追加する
 
-- [ ] P3 stale remote folder retention を subscription sync の期待値として固定する
-  - 対象: `src-tauri/src/commands/sync_providers.rs`, `src-tauri/src/infra/db/sqlite_folder.rs`
-  - remote folders は upsert 中心なので、provider から消えた folder が残る場合の feed assignment / UI 表示方針が曖昧
-  - remote folder deleted、folder API temporarily empty、feed still references old folder、manual local folder、warning vs cleanup policy の test を追加する
-
 - [ ] P3 `listArticles` / `listAccountArticles` overloaded positional args を object params へ寄せる候補を作る
   - 対象: `src/api/tauri-commands.ts`, `src/hooks`, `src/components/reader/hooks/article-list`
   - overloaded positional args は `listArticles(feedId, 20, 50)` と `listArticles(feedId, true, 20, 50)` の読み間違いを誘発しやすい
