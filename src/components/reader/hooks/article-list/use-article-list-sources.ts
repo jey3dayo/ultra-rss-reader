@@ -152,8 +152,8 @@ export function useArticleListSources({
   viewMode,
 }: UseArticleListSourcesParams): UseArticleListSourcesResult {
   const sourcePlan = resolveReaderSourcePlan(selection, viewMode, selectedAccountId);
-  const { data: feeds } = useFeeds(selectedAccountId);
-  const { data: folders } = useFolders(selectedAccountId);
+  const { data: feeds, isLoading: isLoadingFeeds } = useFeeds(selectedAccountId);
+  const { data: folders, isLoading: isLoadingFolders } = useFolders(selectedAccountId);
   const { data: tags } = useTags();
   const { data: allFeedArticles } = useArticles(sourcePlan.feedId, {
     mode: "all",
@@ -217,10 +217,10 @@ export function useArticleListSources({
     () =>
       resolveLatestAccountArticles({
         articles: folderArticles,
-        sourceKind: sourcePlan.sourceKind,
+        sourceKind: "folder",
         feeds: latestFeeds,
       }),
-    [folderArticles, latestFeeds, sourcePlan.sourceKind],
+    [folderArticles, latestFeeds],
   );
   const feedsSnapshotCandidate = useMemo(
     () =>
@@ -240,7 +240,8 @@ export function useArticleListSources({
       (selection.type === "tag" && tagArticles !== undefined && tagArticles.length > 0);
     const selectedSourceIsLoading =
       (selection.type === "feed" && isLoadingFeedArticles) ||
-      (selection.type === "folder" && isLoadingFolderArticles) ||
+      (selection.type === "folder" &&
+        (folderArticles === undefined || isLoadingFolderArticles || isLoadingFeeds || isLoadingFolders)) ||
       (selection.type === "tag" && isLoadingTagArticles);
     if (selectedSourceIsLoading || selectedSourceHasLoadedArticles) {
       return;
@@ -263,8 +264,11 @@ export function useArticleListSources({
     }
   }, [
     folders,
+    folderArticles,
     isLoadingFeedArticles,
+    isLoadingFeeds,
     isLoadingFolderArticles,
+    isLoadingFolders,
     isLoadingTagArticles,
     latestFeedArticles,
     latestFeeds,

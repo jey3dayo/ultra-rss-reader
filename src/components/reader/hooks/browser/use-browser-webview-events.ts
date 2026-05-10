@@ -99,7 +99,8 @@ export function useBrowserWebviewEvents({
           );
           return;
         }
-        if (!isBrowserWebviewFallbackForRequestedUrl(fallbackPayload, useUiStore.getState().browserUrl ?? "")) {
+        const requestedUrl = useUiStore.getState().browserUrl;
+        if (requestedUrl && !isBrowserWebviewFallbackForRequestedUrl(fallbackPayload, requestedUrl)) {
           return;
         }
         onFallback(fallbackPayload);

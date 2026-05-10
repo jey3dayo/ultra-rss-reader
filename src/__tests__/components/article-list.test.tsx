@@ -316,6 +316,8 @@ describe("ArticleList", () => {
 
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
+        case "list_folders":
+          return [{ id: "folder-comic", account_id: "acc-1", name: "Comics", sort_order: 1 }];
         case "list_feeds":
           return [
             { ...sampleFeeds[0], id: "feed-tech", folder_id: "folder-tech", account_id: args.accountId },
@@ -1877,7 +1879,7 @@ describe("ArticleList", () => {
         case "list_feeds":
           return [
             { ...sampleFeeds[0], folder_id: "folder-other" },
-            { ...sampleFeeds[1], folder_id: "folder-comic" },
+            { ...sampleFeeds[1], account_id: "acc-1", folder_id: "folder-comic" },
           ].filter((feed) => feed.account_id === args.accountId);
         case "list_account_articles":
           return [];

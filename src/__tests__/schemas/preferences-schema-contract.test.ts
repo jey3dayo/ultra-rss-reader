@@ -252,6 +252,16 @@ describe("preference contract", () => {
     expect(getLikelyPreferenceKeyTypo(`theme_${"x".repeat(128)}`)).toBeNull();
   });
 
+  it("keeps preference typo diagnostics locale-independent for reserved, long, and CJK keys", () => {
+    expect(getLikelyPreferenceKeyTypo("shortcut_")).toBeNull();
+    expect(getLikelyPreferenceKeyTypo("shortcut_next_article")).toBeNull();
+    expect(getLikelyPreferenceKeyTypo("selected_account_i")).toBe("selected_account_id");
+    expect(getLikelyPreferenceKeyTypo("action_open_browse")).toBe("action_open_browser");
+    expect(getLikelyPreferenceKeyTypo("テーマ")).toBeNull();
+    expect(getLikelyPreferenceKeyTypo("テーマ_theme")).toBeNull();
+    expect(getLikelyPreferenceKeyTypo("x".repeat(512))).toBeNull();
+  });
+
   it("keeps dynamic shortcut preference ids aligned with backend validation", () => {
     const frontendShortcutIds = extractShortcutDefinitionIds(keyboardShortcutsSource);
     const backendShortcutIds = extractBackendAllowedShortcutIds(backendSource);
