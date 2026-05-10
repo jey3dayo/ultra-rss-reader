@@ -232,6 +232,29 @@ The current same-origin assumptions are:
 
 Future changes that merge reader and browser state, add cross-origin messaging, or expose webview navigation data to app actions must update this contract before implementation.
 
+### Article Link Opener Policy
+
+Decision: article links are untrusted publisher-controlled URLs and must be opened without granting an opener relationship, leaking full private URLs through diagnostics, or bypassing the same private-host policy used by feed discovery and feed fetch.
+
+Link opener contract:
+
+- Reader-mode article links must use `rel="noopener noreferrer"` when rendered as anchors. If opened through a native command instead of normal anchor navigation, the native opener must behave as an external navigation with no app-action dispatch, no script bridge, and no opener-style callback into the app.
+- Article URLs, feed URLs, server URLs, and link tooltips must use redacted display and redacted diagnostics. Query strings, fragments, userinfo, credentials, tokens, cookies, and private path segments must not appear in logs, support copy, `title` attributes, or error toasts.
+- Private, loopback, link-local, unspecified, credentialed, malformed, and unsupported-scheme article links must not be auto-opened from reader content. If a future UI allows the user to override a blocked article link, it must show a distinct warning state before navigation and must not store the raw blocked URL in diagnostics.
+- Link policy changes must be verified against sanitized article content and external opener behavior separately from embedded Web Preview navigation.
+
+### Article Content Image Loading Policy
+
+Decision: reader-mode image loading remains compatibility-first for this release, but it is a privacy and performance contract rather than an incidental CSP side effect.
+
+Image loading contract:
+
+- Sanitized reader content may load remote `http:` / `https:` images so article bodies and thumbnails remain readable.
+- Remote image requests can disclose IP address, user agent, request timing, and the image URL path/query to publisher or third-party image hosts. User-facing privacy copy and support guidance must not describe reader mode as offline or tracker-free.
+- Reader image rendering must not introduce script execution, app-action dispatch, Tauri IPC access, or same-origin assumptions with the embedded Web Preview.
+- Broken, blocked, oversized, or slow images must leave text content readable and must not trigger unbounded retry loops.
+- Future reader-only privacy modes may block remote images or tracking-pixel candidates, but they must be measured with the privacy hardening checklist before changing sanitizer, CSP, or frontend rendering behavior.
+
 ### Feed Discovery Result Trust Levels
 
 Decision: feed discovery results are untrusted metadata until the add action validates and normalizes the selected URL.
@@ -253,6 +276,24 @@ Display and action rules:
 - Add action must use the normalized feed URL selected by validation, not only the display label.
 - If validation changes the URL, follows a redirect, or rejects a private host, the user-visible result must explain that before storing the feed.
 - Debug logs and support copy must record discovery failure class without storing raw token-bearing URLs.
+
+### Feed Discovery Crawl Policy
+
+Decision: feed discovery is a bounded user-requested fetch, not a general crawler.
+
+Robots and user-agent contract:
+
+- Discovery and local feed fetch requests must use the provider user agent declared in `src-tauri/src/infra/provider/http_defaults.rs`.
+- Discovery must not spoof browser, search-engine, or provider-specific crawler identities.
+- `robots.txt` handling is currently policy-only: Ultra RSS Reader does not perform background crawling or recursive site indexing during feed discovery. If discovery is expanded beyond a direct user-requested page/feed fetch, robots fetching, robots result caching, and per-host politeness limits must be implemented before release.
+- A `robots.txt` disallow or explicit provider block must be treated as a provider-controlled refusal, not as proof that the URL is invalid or that credentials are wrong.
+
+Provider refusal handling contract:
+
+- Provider rate limiting, including HTTP 429 and valid `Retry-After`, is sync backoff input and may be retried automatically after the scheduler's backoff window.
+- Provider authorization refusals such as HTTP 401/403 require user action for credential, account, or server configuration review. They must not be hidden as normal sync backoff or retried in a tight loop.
+- Robots or crawl-policy refusals require user action or a visible blocked state. They must not be collapsed into generic offline/network failure copy.
+- Diagnostics for refusals must record only the refusal class, status class, and redacted URL/server class, not raw private feed or article URLs.
 
 ## Guardrails
 

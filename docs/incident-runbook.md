@@ -56,6 +56,9 @@ Attachment contract:
 - Do not delete backup files until you have confirmed the app can reopen the database safely.
 - Treat the main `.db` file and any matching `-wal` / `-shm` sidecars as a backup set.
 - Treat database backup sets as private, unencrypted user data. They may contain subscription history, article metadata/content, tags, folders, read/star state, and sync metadata even though production credentials live in the OS keyring.
+- App-created database backups run `integrity_check` before copying, checkpoint WAL with `TRUNCATE` before the copy, write through a temporary file plus rename, write metadata, and run `integrity_check` again on the backup before reporting success.
+- Automatic restore runs `integrity_check` on the backup before staging files, restores the `.db` plus matching `-wal` / `-shm` set through temporary files and rollback files, checkpoints WAL with `TRUNCATE`, and runs `integrity_check` on the restored database before reopening it.
+- Migrations run inside one SQLite transaction. If any migration step fails, the transaction rolls back to the original schema version; startup then restores the preserved pre-migration backup when one exists, otherwise the failed database and logs must be preserved for manual recovery.
 - Before a manual installer upgrade, app replacement, or updater test against a profile you care about, make an OS-level copy of the complete database backup set or app data directory and store it somewhere private.
 - On Windows, close the app before copying or replacing any database files; file locks can make partial restores look successful.
 - If restore fails, preserve the failed database, backup set, and release log before trying another restore path.
@@ -93,6 +96,8 @@ Destructive recovery copy contract:
 
 - OPML export is a subscription list export. It should not contain credentials, tokens, cookies, article content, read/star state, sync metadata, local paths, or database backup metadata, but feed titles, folder names, and feed URLs can still be private.
 - Import/export/backup file dialogs must treat cancel as a neutral result, require explicit overwrite confirmation for existing targets, and reject unsupported extensions or directory selections before parsing or writing.
+- Filesystem paths must use native path APIs at their boundary: app-owned log, backup, and dev credential paths stay app-owned and are not exposed as raw webview recovery copy; user-selected export paths keep the selected native path only for the write surface; settings export/import remains unsupported until a versioned contract exists.
+- Atomic writes must use a temporary file in the target directory followed by rename for export, database backup/restore, and the dev credential store. A stale temporary file is not a successful artifact and must be ignored or cleaned before retry.
 - If OS sleep, app restart, permission denial, or disk full interrupts an updater download, export, or backup, preserve logs and treat any partial artifact as untrusted until the flow reports a clean retry or cleanup.
 - App settings export/import is not a supported recovery promise until a schema version, source app identifier, secret exclusion list, import conflict behavior, and encryption decision are defined.
 - Do not recommend exporting settings as an uninstall/reinstall backup unless that versioned contract exists for the build being tested.
@@ -164,7 +169,10 @@ Use this path when startup succeeded but a later read or write command reports c
    - partial success
    - all failed
    - offline detected
-6. If stale content is still readable, capture whether a stale content banner was shown in the account, feed, or article view. Do not report readable stale articles as a successful fresh sync.
+6. Separate automatic sync backoff from user-action-required refusal:
+   - HTTP 429 or `Retry-After` is backoff input.
+   - HTTP 401/403, robots disallow, and explicit provider block require credential/account/server review or a visible blocked state.
+7. If stale content is still readable, capture whether a stale content banner was shown in the account, feed, or article view. Do not report readable stale articles as a successful fresh sync.
 
 ## Escalation Notes
 
