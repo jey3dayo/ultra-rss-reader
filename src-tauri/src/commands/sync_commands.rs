@@ -105,7 +105,7 @@ impl SyncProgressReporter {
     }
 
     pub(crate) fn emit_account_finished(&self, account: &Account, success: bool) {
-        let completed = self.completed.fetch_add(1, Ordering::SeqCst) + 1;
+        let completed = next_sync_progress_completed(&self.completed, self.total);
         self.emit(
             SyncProgressStage::AccountFinished,
             completed,
@@ -121,6 +121,17 @@ impl SyncProgressReporter {
             None,
             Some(success),
         );
+    }
+}
+
+fn next_sync_progress_completed(completed: &AtomicUsize, total: usize) -> usize {
+    let mut current = completed.load(Ordering::SeqCst);
+    loop {
+        let next = current.saturating_add(1).min(total);
+        match completed.compare_exchange(current, next, Ordering::SeqCst, Ordering::SeqCst) {
+            Ok(_) => return next,
+            Err(actual) => current = actual,
+        }
     }
 }
 
@@ -944,8 +955,18 @@ mod tests {
     use crate::infra::db::sqlite_feed::SqliteFeedRepository;
     use crate::repository::feed::FeedRepository;
     use mockito::Server;
-    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
     use std::sync::Mutex;
+
+    #[test]
+    fn sync_progress_completed_is_monotonic_and_clamped_to_total() {
+        let completed = AtomicUsize::new(0);
+
+        assert_eq!(next_sync_progress_completed(&completed, 2), 1);
+        assert_eq!(next_sync_progress_completed(&completed, 2), 2);
+        assert_eq!(next_sync_progress_completed(&completed, 2), 2);
+        assert_eq!(completed.load(Ordering::SeqCst), 2);
+    }
 
     #[tokio::test]
     async fn run_full_sync_skips_when_already_syncing() {

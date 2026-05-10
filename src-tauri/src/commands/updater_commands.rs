@@ -340,17 +340,15 @@ async fn do_download_and_install(app: &AppHandle, session_id: u64) -> Result<(),
 
     let app_handle = app.clone();
     let mut total_downloaded: usize = 0;
+    let mut last_percent: Option<u8> = None;
 
     update
         .download_and_install(
             move |chunk_length, content_length| {
                 total_downloaded += chunk_length;
-                let percent = content_length.and_then(|total| {
-                    if total == 0 {
-                        return None;
-                    }
-                    Some(((total_downloaded as f64 / total as f64) * 100.0).min(100.0) as u8)
-                });
+                let percent =
+                    next_download_progress_percent(total_downloaded, content_length, last_percent);
+                last_percent = percent;
                 emit_update_event_log_only(
                     &app_handle,
                     "update-download-progress",
@@ -375,14 +373,32 @@ async fn do_download_and_install(app: &AppHandle, session_id: u64) -> Result<(),
     Ok(())
 }
 
+fn next_download_progress_percent(
+    total_downloaded: usize,
+    content_length: Option<u64>,
+    last_percent: Option<u8>,
+) -> Option<u8> {
+    let percent = content_length.and_then(|total| {
+        if total == 0 {
+            return None;
+        }
+        Some(((total_downloaded as f64 / total as f64) * 100.0).min(100.0) as u8)
+    });
+    match (percent, last_percent) {
+        (Some(percent), Some(last_percent)) => Some(percent.max(last_percent)),
+        (Some(percent), None) => Some(percent),
+        (None, last_percent) => last_percent,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::panic;
 
     use super::{
         clear_pending_update, is_prerelease_version, is_strictly_newer_version,
-        next_download_session_id, parse_semantic_version_parts, update_event_emit_warning,
-        update_policy_error_parts, updater_endpoint_error_message,
+        next_download_progress_percent, next_download_session_id, parse_semantic_version_parts,
+        update_event_emit_warning, update_policy_error_parts, updater_endpoint_error_message,
         updater_initialization_error_message, DownloadGuard, SyncInstallGuard, DOWNLOADING,
         DOWNLOAD_SESSION_ID,
     };
@@ -567,5 +583,31 @@ mod tests {
 
         assert_eq!(next_download_session_id(), 1);
         assert_eq!(next_download_session_id(), 2);
+    }
+
+    #[test]
+    fn download_progress_percent_is_monotonic_when_content_length_changes() {
+        assert_eq!(
+            next_download_progress_percent(50, Some(100), None),
+            Some(50)
+        );
+        assert_eq!(
+            next_download_progress_percent(60, Some(200), Some(50)),
+            Some(50)
+        );
+        assert_eq!(
+            next_download_progress_percent(250, Some(200), Some(50)),
+            Some(100)
+        );
+    }
+
+    #[test]
+    fn download_progress_percent_keeps_last_value_when_total_is_unknown() {
+        assert_eq!(next_download_progress_percent(50, None, Some(40)), Some(40));
+        assert_eq!(
+            next_download_progress_percent(50, Some(0), Some(40)),
+            Some(40)
+        );
+        assert_eq!(next_download_progress_percent(50, None, None), None);
     }
 }
