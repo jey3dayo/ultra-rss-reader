@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, expectTypeOf, it, vi } from "v
 import type { SyncProgressRuntimeEventDto } from "@/api/schemas";
 import { TOAST_AUTO_DISMISS_TIMEOUT_MS } from "@/constants/ui-runtime";
 import type { ReaderSelection } from "@/lib/reader/reader-selection.types";
+import { SubscriptionsWorkspaceReturnStateSchema } from "../../lib/subscriptions/subscriptions-workspace.types";
 import type {
   SyncProgressEventDto,
   SyncProgressUiState,
@@ -441,6 +442,79 @@ describe("useUiStore", () => {
     expect(useUiStore.getState().focusedPane).toBe("list");
   });
 
+  it("validates subscriptions index return state before storing it", () => {
+    const returnState = {
+      accountId: " acc-1 ",
+      activeSummaryFilter: "stale",
+      selectedFeedId: " feed-1 ",
+      expandedGroups: {
+        "group:subscription-list:1-folder:folder-1": false,
+      },
+      listScrollTop: {
+        scrollTop: 18,
+        layoutGeneration: "feed-1",
+        viewportHeight: 720,
+      },
+      keptFeedIds: [" feed-2 "],
+      deferredFeedIds: [" feed-3 "],
+    } satisfies Parameters<UiStoreState["openSubscriptionsIndex"]>[0];
+
+    useUiStore.getState().openSubscriptionsIndex(returnState);
+
+    expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
+      kind: "index",
+      returnState: {
+        accountId: "acc-1",
+        activeSummaryFilter: "stale",
+        selectedFeedId: "feed-1",
+        expandedGroups: {
+          "group:subscription-list:1-folder:folder-1": false,
+        },
+        listScrollTop: {
+          scrollTop: 18,
+          layoutGeneration: "feed-1",
+          viewportHeight: 720,
+        },
+        keptFeedIds: ["feed-2"],
+        deferredFeedIds: ["feed-3"],
+      },
+    });
+
+    expect(
+      SubscriptionsWorkspaceReturnStateSchema.safeParse({
+        accountId: "acc-1",
+        activeSummaryFilter: "stale",
+        selectedFeedId: "feed-1",
+        expandedGroups: {
+          "subscription-list:1-folder:folder-1": false,
+        },
+        listScrollTop: {
+          scrollTop: 18,
+          layoutGeneration: "feed-1",
+          viewportHeight: 720,
+        },
+        keptFeedIds: [],
+        deferredFeedIds: [],
+      }).success,
+    ).toBe(false);
+
+    expect(() =>
+      useUiStore.getState().openSubscriptionsIndex({
+        accountId: "acc-1",
+        activeSummaryFilter: "stale",
+        selectedFeedId: "feed-1",
+        expandedGroups: {},
+        listScrollTop: {
+          scrollTop: -1,
+          layoutGeneration: "feed-1",
+          viewportHeight: 720,
+        },
+        keptFeedIds: [],
+        deferredFeedIds: [],
+      }),
+    ).toThrow();
+  });
+
   it("selectFeed updates selection", () => {
     useUiStore.getState().selectFeed("f1");
     expect(useUiStore.getState().selection).toEqual({
@@ -842,6 +916,11 @@ describe("useUiStore", () => {
       focusedPane: "content",
       recentlyReadIds: new Set(["article-1"]),
       retainedArticleIds: new Set(["article-1"]),
+      accountSetupSession: {
+        accountId: "acc-1",
+        owner: "account-detail",
+        state: "syncing",
+      },
     });
 
     useUiStore.getState().handleAccountDeleted("acc-1", ["acc-2"]);
@@ -859,6 +938,7 @@ describe("useUiStore", () => {
     expect(useUiStore.getState().focusedPane).toBe("list");
     expect(useUiStore.getState().recentlyReadIds).toEqual(new Set());
     expect(useUiStore.getState().retainedArticleIds).toEqual(new Set());
+    expect(useUiStore.getState().accountSetupSession).toBeNull();
 
     useUiStore.getState().handleAccountDeleted("acc-2", []);
 
@@ -866,7 +946,7 @@ describe("useUiStore", () => {
     expect(useUiStore.getState().focusedPane).toBe("sidebar");
   });
 
-  it("falls back settings account detail without changing an unrelated reader selection", () => {
+  it("falls back settings account detail without changing unrelated reader or setup state", () => {
     useUiStore.setState({
       selectedAccountId: "reader-acc",
       settingsOpen: true,
@@ -874,11 +954,21 @@ describe("useUiStore", () => {
       settingsAccountId: "acc-1",
       settingsAddAccount: false,
       settingsAddAccountInitialKind: null,
+      accountSetupSession: {
+        accountId: "setup-acc",
+        owner: "account-detail",
+        state: "syncing",
+      },
     });
 
     useUiStore.getState().handleAccountDeleted("acc-1", ["acc-2"]);
 
     expect(useUiStore.getState().selectedAccountId).toBe("reader-acc");
+    expect(useUiStore.getState().accountSetupSession).toEqual({
+      accountId: "setup-acc",
+      owner: "account-detail",
+      state: "syncing",
+    });
     expect(useUiStore.getState().settingsOpen).toBe(true);
     expect(useUiStore.getState().settingsCategory).toBe("accounts");
     expect(useUiStore.getState().settingsAccountId).toBe("acc-2");

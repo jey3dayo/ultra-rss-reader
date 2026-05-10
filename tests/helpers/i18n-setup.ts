@@ -7,6 +7,10 @@ import { i18nResourceNamespaces, i18nResources } from "@/lib/i18n-resources";
 export const testI18nResourceNamespaces = i18nResourceNamespaces;
 const testI18nDefaultLanguage = "en";
 
+export function throwTestI18nMissingKey(key: string): never {
+  throw new Error(`Missing i18n key in test runtime: ${key}`);
+}
+
 function createTestI18nResources(): Resource {
   return {
     en: structuredClone(i18nResources.en),
@@ -22,6 +26,7 @@ function createTestI18nOptions() {
     defaultNS: "common",
     ns: testI18nResourceNamespaces,
     interpolation: { escapeValue: false },
+    parseMissingKeyHandler: throwTestI18nMissingKey,
   } as const;
 }
 

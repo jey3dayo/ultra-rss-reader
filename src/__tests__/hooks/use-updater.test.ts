@@ -302,6 +302,62 @@ describe("performUpdateCheck", () => {
     deferred.resolve(Result.succeed(null));
   });
 
+  it("keeps manual update checks from clearing the pending update while a download is pending", async () => {
+    const deferredDownload = createDeferred<ReturnType<typeof Result.succeed<null>>>();
+    mockDownloadAndInstallUpdate.mockReturnValue(deferredDownload.promise);
+    mockCheckForUpdate.mockResolvedValue(Result.succeed(updateInfo("1.2.4")));
+
+    const {
+      updaterModule: { runManualUpdateCheck, showUpdateAvailableToast },
+      useUiStore,
+    } = await getUpdaterModuleAndUiStore();
+    useUiStore.setState(useUiStore.getInitialState());
+
+    showUpdateAvailableToast("1.2.3");
+    useUiStore
+      .getState()
+      .toastMessage?.actions?.find((action) => action.label === "今すぐ更新")
+      ?.onClick();
+
+    await runManualUpdateCheck();
+
+    expect(mockCheckForUpdate).not.toHaveBeenCalled();
+    expect(useUiStore.getState().toastMessage).toMatchObject({
+      message: "ダウンロード中… 0%",
+      progress: 0,
+      variant: "update",
+    });
+
+    deferredDownload.resolve(Result.succeed(null));
+  });
+
+  it("keeps download clicks from racing an in-flight manual update check", async () => {
+    const deferredCheck = createDeferred<ReturnType<typeof Result.succeed<UpdateInfo>>>();
+    mockCheckForUpdate.mockReturnValue(deferredCheck.promise);
+    mockDownloadAndInstallUpdate.mockResolvedValue(Result.succeed(null));
+
+    const {
+      updaterModule: { runManualUpdateCheck, showUpdateAvailableToast },
+      useUiStore,
+    } = await getUpdaterModuleAndUiStore();
+    useUiStore.setState(useUiStore.getInitialState());
+
+    const manualCheck = runManualUpdateCheck();
+    showUpdateAvailableToast("1.2.3");
+    useUiStore
+      .getState()
+      .toastMessage?.actions?.find((action) => action.label === "今すぐ更新")
+      ?.onClick();
+
+    expect(mockDownloadAndInstallUpdate).not.toHaveBeenCalled();
+
+    deferredCheck.resolve(Result.succeed(updateInfo("1.2.4")));
+    await manualCheck;
+
+    expect(mockCheckForUpdate).toHaveBeenCalledTimes(1);
+    expect(useUiStore.getState().toastMessage?.message).toBe("v1.2.4 が利用可能です");
+  });
+
   it("keeps startup update check failures silent while manual failures show a toast", async () => {
     const error = testUserVisibleAppError("network down");
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -538,6 +594,14 @@ describe("performUpdateCheck", () => {
       .getState()
       .toastMessage?.actions?.find((action) => action.label === "再起動")
       ?.onClick();
+    expect(mockRestartApp).not.toHaveBeenCalled();
+    expect(useUiStore.getState().confirmDialog).toMatchObject({
+      open: true,
+      message: "更新の準備ができました",
+      actionLabel: "再起動",
+      variant: "warning",
+    });
+    await useUiStore.getState().confirmDialog.onConfirm?.();
     await flushMicrotasksAndRealTimer();
 
     expect(useUiStore.getState().toastMessage).toMatchObject({
@@ -569,6 +633,8 @@ describe("performUpdateCheck", () => {
       .getState()
       .toastMessage?.actions?.find((action) => action.label === "再起動")
       ?.onClick();
+    expect(mockRestartApp).not.toHaveBeenCalled();
+    await useUiStore.getState().confirmDialog.onConfirm?.();
     await flushMicrotasksAndRealTimer();
 
     expect(useUiStore.getState().toastMessage).toMatchObject({
@@ -595,6 +661,7 @@ describe("performUpdateCheck", () => {
       .getState()
       .toastMessage?.actions?.find((action) => action.label === "再起動")
       ?.onClick();
+    await useUiStore.getState().confirmDialog.onConfirm?.();
 
     showUpdateAvailableToast("1.2.4");
 
@@ -774,6 +841,31 @@ describe("performUpdateCheck", () => {
     });
 
     deferredDownload.resolve(Result.succeed(null));
+  });
+
+  it("recovers the ready-to-restart session when the ready event is not delivered", async () => {
+    const deferredDownload = createDeferred<ReturnType<typeof Result.succeed<null>>>();
+    mockDownloadAndInstallUpdate.mockReturnValue(deferredDownload.promise);
+
+    const {
+      updaterModule: { showUpdateAvailableToast },
+      useUiStore,
+    } = await getUpdaterModuleAndUiStore();
+    useUiStore.setState(useUiStore.getInitialState());
+
+    showUpdateAvailableToast("1.2.3");
+    useUiStore
+      .getState()
+      .toastMessage?.actions?.find((action) => action.label === "今すぐ更新")
+      ?.onClick();
+
+    deferredDownload.resolve(Result.succeed(null));
+    await flushMicrotasksAndRealTimer();
+
+    expect(useUiStore.getState().toastMessage).toMatchObject({
+      message: "更新の準備ができました",
+      variant: "update",
+    });
   });
 
   it("ignores stale update toast actions after a newer update toast replaces them", async () => {

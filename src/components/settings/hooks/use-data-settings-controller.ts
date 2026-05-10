@@ -3,11 +3,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import type { TFunction } from "i18next";
 import { useCallback, useEffect, useReducer, useRef } from "react";
 import type { AppError } from "@/api/tauri-commands";
-import {
-  getDatabaseInfo,
-  openLogDir,
-  vacuumDatabase,
-} from "@/api/tauri-commands";
+import { getDatabaseInfo, openLogDir, vacuumDatabase } from "@/api/tauri-commands";
 import {
   BYTES_PER_KIBIBYTE,
   BYTES_PER_MEBIBYTE,
@@ -72,10 +68,7 @@ export type DatabaseRuntimeRecoveryAction =
   | "check_os_permissions"
   | "free_disk_space";
 
-export type DatabaseRecoveryActionSafety =
-  | "read_only"
-  | "requires_dry_run"
-  | "requires_explicit_confirmation";
+export type DatabaseRecoveryActionSafety = "read_only" | "requires_dry_run" | "requires_explicit_confirmation";
 
 export type DatabaseRuntimeRecoverySurface = {
   failureKind: DatabaseRuntimeFailureKind;
@@ -99,26 +92,19 @@ type DataSettingsRecoveryTranslationKey =
   | "data.recovery_criteria_delete_account_action"
   | "data.recovery_criteria_delete_account_requirement";
 
-type DataSettingsRecoveryTranslation = (
-  key: DataSettingsRecoveryTranslationKey,
-) => string;
+type DataSettingsRecoveryTranslation = (key: DataSettingsRecoveryTranslationKey) => string;
 
 type DatabaseRestoreAccount = {
   id: string;
 };
 
-type DatabaseRestoreFrontendStateReconciliationParams<
-  T extends DatabaseRestoreAccount,
-> = {
+type DatabaseRestoreFrontendStateReconciliationParams<T extends DatabaseRestoreAccount> = {
   accounts: readonly T[];
   selectedAccountId: string | null | undefined;
   savedAccountId: string | null | undefined;
   queryClient: Pick<QueryClient, "clear">;
   storage: Pick<Storage, "removeItem">;
-  restoreAccountSelection: (
-    accountId: string,
-    options: { focusedPane: "list" },
-  ) => void;
+  restoreAccountSelection: (accountId: string, options: { focusedPane: "list" }) => void;
   clearSelectedAccount: () => void;
   setSelectedAccountPreference: (accountId: string) => void;
   storagePolicy?: DatabaseRestoreStorageReconciliationPolicy;
@@ -163,10 +149,7 @@ const initialDataSettingsControllerState: DataSettingsControllerState = {
 
 type DataSettingsActionOwnerId = symbol;
 
-type DataSettingsActionLifecycle = Pick<
-  DataSettingsControllerState,
-  DataSettingsActionKey
-> & {
+type DataSettingsActionLifecycle = Pick<DataSettingsControllerState, DataSettingsActionKey> & {
   vacuumingOwnerId: DataSettingsActionOwnerId | null;
   lastCompletedVacuumOwnerId: DataSettingsActionOwnerId | null;
 };
@@ -178,19 +161,14 @@ const dataSettingsActionLifecycle: DataSettingsActionLifecycle = {
   lastCompletedVacuumOwnerId: null,
 };
 
-const dataSettingsActionLifecycleListeners = new Set<
-  (lifecycle: DataSettingsActionLifecycle) => void
->();
+const dataSettingsActionLifecycleListeners = new Set<(lifecycle: DataSettingsActionLifecycle) => void>();
 
 function getDataSettingsActionLifecycle(): DataSettingsActionLifecycle {
   return { ...dataSettingsActionLifecycle };
 }
 
 function isDataSettingsActionInFlight(): boolean {
-  return (
-    dataSettingsActionLifecycle.vacuuming ||
-    dataSettingsActionLifecycle.openingLogDir
-  );
+  return dataSettingsActionLifecycle.vacuuming || dataSettingsActionLifecycle.openingLogDir;
 }
 
 function subscribeToDataSettingsActionLifecycle(
@@ -212,12 +190,8 @@ function setDataSettingsActionLifecycle(
   }
   dataSettingsActionLifecycle[actionKey] = value;
   if (actionKey === "vacuuming") {
-    dataSettingsActionLifecycle.vacuumingOwnerId = value
-      ? (ownerId ?? null)
-      : null;
-    dataSettingsActionLifecycle.lastCompletedVacuumOwnerId = value
-      ? null
-      : (ownerId ?? null);
+    dataSettingsActionLifecycle.vacuumingOwnerId = value ? (ownerId ?? null) : null;
+    dataSettingsActionLifecycle.lastCompletedVacuumOwnerId = value ? null : (ownerId ?? null);
   }
   const lifecycle = getDataSettingsActionLifecycle();
   for (const listener of dataSettingsActionLifecycleListeners) {
@@ -271,9 +245,7 @@ function isDatabaseLockedMessage(message: string): boolean {
 }
 
 function isPermissionDeniedMessage(message: string): boolean {
-  return /permission denied|access denied|readonly database|read-only database/i.test(
-    message,
-  );
+  return /permission denied|access denied|readonly database|read-only database/i.test(message);
 }
 
 function isDiskFullMessage(message: string): boolean {
@@ -281,21 +253,15 @@ function isDiskFullMessage(message: string): boolean {
 }
 
 function isDatabaseCorruptionMessage(message: string): boolean {
-  return /corrupt|malformed|not a database|file is not a database|database disk image is malformed/i.test(
-    message,
-  );
+  return /corrupt|malformed|not a database|file is not a database|database disk image is malformed/i.test(message);
 }
 
 function isDatabaseDowngradeMessage(message: string): boolean {
-  return /newer than this application supports|downgrade startup is blocked/i.test(
-    message,
-  );
+  return /newer than this application supports|downgrade startup is blocked/i.test(message);
 }
 
 function isDatabaseMigrationMessage(message: string): boolean {
-  return /migration error|migration failed|failed migration|schema_version/i.test(
-    message,
-  );
+  return /migration error|migration failed|failed migration|schema_version/i.test(message);
 }
 
 export function classifyDatabaseRuntimeRecoverySurface(
@@ -350,8 +316,7 @@ export function classifyDatabaseRuntimeRecoverySurface(
   }
   if (isDatabaseCorruptionMessage(message)) {
     return {
-      failureKind:
-        operation === "read" ? "read_corruption" : "write_corruption",
+      failureKind: operation === "read" ? "read_corruption" : "write_corruption",
       mode: "read_only_degraded",
       actions: ["run_integrity_check", "restore_backup"],
       actionSafety: ["read_only", "requires_explicit_confirmation"],
@@ -369,18 +334,14 @@ function logDatabaseRuntimeRecoverySurface(
   if (recoverySurface === null) {
     return;
   }
-  logRuntimeDiagnostic(
-    "database-runtime-recovery",
-    "Database runtime recovery surface detected",
-    {
-      operation,
-      failureKind: recoverySurface.failureKind,
-      mode: recoverySurface.mode,
-      actions: recoverySurface.actions,
-      diagnosticsIdRequired: recoverySurface.diagnosticsIdRequired,
-      message: error.message,
-    },
-  );
+  logRuntimeDiagnostic("database-runtime-recovery", "Database runtime recovery surface detected", {
+    operation,
+    failureKind: recoverySurface.failureKind,
+    mode: recoverySurface.mode,
+    actions: recoverySurface.actions,
+    diagnosticsIdRequired: recoverySurface.diagnosticsIdRequired,
+    message: error.message,
+  });
 }
 
 export function formatBytes(bytes: number): string {
@@ -428,9 +389,7 @@ export function buildDestructiveRecoveryCriteria(
   ];
 }
 
-export function reconcileDatabaseRestoreFrontendState<
-  T extends DatabaseRestoreAccount,
->({
+export function reconcileDatabaseRestoreFrontendState<T extends DatabaseRestoreAccount>({
   accounts,
   selectedAccountId,
   savedAccountId,
@@ -486,24 +445,13 @@ export function useDataSettingsController({
     ...initialDataSettingsControllerState,
     ...getDataSettingsActionLifecycle(),
   });
-  const {
-    databaseSizeStatus,
-    totalSize,
-    databaseRuntimeRecoverySurface,
-    vacuuming,
-    openingLogDir,
-  } = state;
-  const controllerIdRef = useRef<DataSettingsActionOwnerId>(
-    Symbol("data-settings-controller"),
-  );
+  const { databaseSizeStatus, totalSize, databaseRuntimeRecoverySurface, vacuuming, openingLogDir } = state;
+  const controllerIdRef = useRef<DataSettingsActionOwnerId>(Symbol("data-settings-controller"));
   const databaseSizeRequestRevisionRef = useRef(0);
   const mountedRef = useRef(false);
 
   const isActiveDatabaseSizeRequest = useCallback((requestRevision: number) => {
-    return (
-      mountedRef.current &&
-      requestRevision === databaseSizeRequestRevisionRef.current
-    );
+    return mountedRef.current && requestRevision === databaseSizeRequestRevisionRef.current;
   }, []);
 
   const fetchDbInfo = useCallback(async () => {
@@ -525,10 +473,7 @@ export function useDataSettingsController({
           if (!isActiveDatabaseSizeRequest(requestRevision)) {
             return;
           }
-          const recoverySurface = classifyDatabaseRuntimeRecoverySurface(
-            error,
-            "read",
-          );
+          const recoverySurface = classifyDatabaseRuntimeRecoverySurface(error, "read");
           logDatabaseRuntimeRecoverySurface(recoverySurface, "read", error);
           console.error("Failed to get database info:", error);
           dispatch({ type: "set-database-size-error", recoverySurface });
@@ -546,22 +491,21 @@ export function useDataSettingsController({
   useEffect(() => {
     mountedRef.current = true;
     let previousLifecycle = getDataSettingsActionLifecycle();
-    const unsubscribeFromActionLifecycle =
-      subscribeToDataSettingsActionLifecycle((lifecycle) => {
-        dispatch({ type: "set-vacuuming", value: lifecycle.vacuuming });
-        dispatch({
-          type: "set-opening-log-dir",
-          value: lifecycle.openingLogDir,
-        });
-        if (
-          previousLifecycle.vacuuming &&
-          !lifecycle.vacuuming &&
-          lifecycle.lastCompletedVacuumOwnerId !== controllerIdRef.current
-        ) {
-          void fetchDbInfo();
-        }
-        previousLifecycle = lifecycle;
+    const unsubscribeFromActionLifecycle = subscribeToDataSettingsActionLifecycle((lifecycle) => {
+      dispatch({ type: "set-vacuuming", value: lifecycle.vacuuming });
+      dispatch({
+        type: "set-opening-log-dir",
+        value: lifecycle.openingLogDir,
       });
+      if (
+        previousLifecycle.vacuuming &&
+        !lifecycle.vacuuming &&
+        lifecycle.lastCompletedVacuumOwnerId !== controllerIdRef.current
+      ) {
+        void fetchDbInfo();
+      }
+      previousLifecycle = lifecycle;
+    });
     void fetchDbInfo();
     return () => {
       mountedRef.current = false;
@@ -571,11 +515,7 @@ export function useDataSettingsController({
   }, [fetchDbInfo]);
 
   const handleVacuum = async () => {
-    if (
-      !mountedRef.current ||
-      databaseSizeStatus !== "ready" ||
-      isDataSettingsActionInFlight()
-    ) {
+    if (!mountedRef.current || databaseSizeStatus !== "ready" || isDataSettingsActionInFlight()) {
       return;
     }
 
@@ -596,8 +536,7 @@ export function useDataSettingsController({
             type: "set-database-size-ready",
             value: info.total_size_bytes,
           });
-          const saved =
-            sizeBefore != null ? sizeBefore - info.total_size_bytes : 0;
+          const saved = sizeBefore != null ? sizeBefore - info.total_size_bytes : 0;
           showToast(
             t("data.vacuum_success", {
               saved: saved > 0 ? `-${formatBytes(saved)}` : formatBytes(0),
@@ -608,10 +547,7 @@ export function useDataSettingsController({
           if (!mountedRef.current) {
             return;
           }
-          const recoverySurface = classifyDatabaseRuntimeRecoverySurface(
-            error,
-            "write",
-          );
+          const recoverySurface = classifyDatabaseRuntimeRecoverySurface(error, "write");
           logDatabaseRuntimeRecoverySurface(recoverySurface, "write", error);
           dispatch({
             type: "set-database-runtime-recovery-surface",
@@ -627,11 +563,7 @@ export function useDataSettingsController({
         showToast(t("data.vacuum_failed", { message: getErrorMessage(error) }));
       }
     } finally {
-      setDataSettingsActionLifecycle(
-        "vacuuming",
-        false,
-        controllerIdRef.current,
-      );
+      setDataSettingsActionLifecycle("vacuuming", false, controllerIdRef.current);
       setSettingsLoading?.(false);
     }
   };
@@ -658,9 +590,7 @@ export function useDataSettingsController({
     } catch (error) {
       if (mountedRef.current) {
         console.error("Failed to open log directory:", error);
-        showToast(
-          t("data.open_log_dir_failed", { message: getErrorMessage(error) }),
-        );
+        showToast(t("data.open_log_dir_failed", { message: getErrorMessage(error) }));
       }
     } finally {
       setDataSettingsActionLifecycle("openingLogDir", false);

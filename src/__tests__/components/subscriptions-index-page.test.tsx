@@ -640,8 +640,8 @@ describe("SubscriptionsIndexPage", () => {
           selectedFeedId: "feed-1",
           expandedGroups: {},
           listScrollTop: {
-            scrollTop: 0,
-            layoutGeneration: "",
+            scrollTop: 24,
+            layoutGeneration: "feed-1",
             viewportHeight: window.innerHeight,
           },
           keptFeedIds: ["feed-1"],
@@ -654,6 +654,10 @@ describe("SubscriptionsIndexPage", () => {
 
     expect(await screen.findByRole("heading", { name: "全購読" })).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: /Example Feed/ })).toBeInTheDocument();
+    const workspaceShell = screen.getByTestId("subscriptions-workspace-shell");
+    const listPane = workspaceShell.querySelector("section");
+    const listScrollRegion = listPane?.querySelector("div.space-y-5");
+    expect(listScrollRegion).toHaveProperty("scrollTop", 0);
   });
 
   it("refreshes review candidate dates while the page stays mounted", async () => {

@@ -1,3 +1,5 @@
+import type { SanitizedArticleHtmlDto } from "@/api/schemas/article";
+
 declare const sanitizedArticleHtmlBrand: unique symbol;
 
 /**
@@ -6,10 +8,6 @@ declare const sanitizedArticleHtmlBrand: unique symbol;
  */
 export type SanitizedArticleHtml = string & {
   readonly [sanitizedArticleHtmlBrand]: true;
-};
-
-export type SanitizedArticleHtmlDto = {
-  readonly content_sanitized: string;
 };
 
 export function fromSanitizedArticleHtmlDto(article: SanitizedArticleHtmlDto): SanitizedArticleHtml {

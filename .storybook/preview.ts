@@ -1,5 +1,5 @@
 import type { Preview } from "@storybook/react-vite";
-import "../src/lib/i18n";
+import i18n from "../src/lib/i18n";
 import "../src/styles/global.css";
 
 type StorybookPreviewBackgroundName = "dark" | "light";
@@ -26,6 +26,10 @@ export const STORYBOOK_PREVIEW_BACKGROUNDS: StorybookPreviewBackground[] = [
     value: STORYBOOK_PREVIEW_BACKGROUND_VALUES.light,
   },
 ];
+
+i18n.options.parseMissingKeyHandler = (key: string): never => {
+  throw new Error(`Missing i18n key in Storybook runtime: ${key}`);
+};
 
 const preview: Preview = {
   parameters: {

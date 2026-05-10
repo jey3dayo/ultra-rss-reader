@@ -40,6 +40,18 @@ function rememberStaleDownloadSession(): void {
   }
 }
 
+function completeActiveDownloadAsReady(downloadRequestId: number): void {
+  if (activeDownloadRequestId !== downloadRequestId) {
+    return;
+  }
+
+  rememberStaleDownloadSession();
+  downloadInFlight = false;
+  activeDownloadSessionId = null;
+  activeDownloadRequestId = null;
+  showRestartToast();
+}
+
 export function showUpdateAvailableToast(version: string): void {
   const store = useUiStore.getState();
   const toast: ToastData = {
@@ -110,7 +122,7 @@ function startDownload(ownerToast?: ToastData): void {
     return;
   }
 
-  if (downloadInFlight) {
+  if (downloadInFlight || checkInFlight) {
     return;
   }
 
@@ -131,6 +143,9 @@ function startDownload(ownerToast?: ToastData): void {
     .then((result) =>
       Result.pipe(
         result,
+        Result.inspect(() => {
+          completeActiveDownloadAsReady(downloadRequestId);
+        }),
         Result.inspectError((e) => {
           if (activeDownloadRequestId !== downloadRequestId) {
             return;
@@ -231,7 +246,7 @@ function restartPreparedUpdate(ownerToast?: ToastData): void {
             {
               label: i18n.t("updater.restart_again"),
               onClick: () => {
-                restartPreparedUpdate(failureToast);
+                requestPreparedUpdateRestart(failureToast);
               },
             },
             {
@@ -245,6 +260,19 @@ function restartPreparedUpdate(ownerToast?: ToastData): void {
         store.showToast(failureToast);
       }),
     ),
+  );
+}
+
+function requestPreparedUpdateRestart(ownerToast: ToastData): void {
+  useUiStore.getState().showConfirm(
+    i18n.t("updater.ready"),
+    () => {
+      restartPreparedUpdate(ownerToast);
+    },
+    {
+      actionLabel: i18n.t("updater.restart"),
+      variant: "warning",
+    },
   );
 }
 
@@ -269,7 +297,7 @@ export function showRestartToast(): void {
             return;
           }
 
-          restartPreparedUpdate(toast);
+          requestPreparedUpdateRestart(toast);
         },
       },
       {
@@ -313,6 +341,10 @@ export async function performUpdateCheck(): Promise<UpdateInfo | null> {
 
 export async function runManualUpdateCheck(): Promise<void> {
   if (isUpdaterRuntimeUnavailable()) {
+    return;
+  }
+
+  if (downloadInFlight) {
     return;
   }
 
@@ -390,10 +422,10 @@ export function useUpdater(): void {
           if (!isCurrentDownloadReady(event.payload)) {
             return;
           }
-          downloadInFlight = false;
-          activeDownloadSessionId = null;
-          activeDownloadRequestId = null;
-          showRestartToast();
+          if (activeDownloadRequestId === null) {
+            return;
+          }
+          completeActiveDownloadAsReady(activeDownloadRequestId);
         }),
       ],
       { onUnavailable: () => {} },

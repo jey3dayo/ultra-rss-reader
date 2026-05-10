@@ -101,6 +101,37 @@ export function useDebugSettingsViewProps({
       },
       ...devDataSections,
       {
+        id: "debug-support-log-privacy",
+        heading: t("debug.support_log_privacy"),
+        note: t("debug.support_log_privacy_note"),
+        controls: [
+          {
+            id: "debug-support-log-excerpt",
+            type: "info",
+            label: t("debug.support_log_excerpt"),
+            value: t("debug.support_log_excerpt_value"),
+          },
+          {
+            id: "debug-support-log-redaction",
+            type: "info",
+            label: t("debug.support_log_redaction"),
+            value: t("debug.support_log_redaction_value"),
+          },
+          {
+            id: "debug-support-log-retention",
+            type: "info",
+            label: t("debug.support_log_retention"),
+            value: t("debug.support_log_retention_value"),
+          },
+          {
+            id: "debug-support-log-backup",
+            type: "info",
+            label: t("debug.support_log_backup"),
+            value: t("debug.support_log_backup_value"),
+          },
+        ],
+      },
+      {
         id: "debug-scenarios",
         heading: t("debug.scenarios"),
         note: t("debug.scenarios_note"),

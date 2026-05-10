@@ -9,6 +9,8 @@ use crate::domain::url_policy::{
 use crate::infra::provider::http_defaults;
 
 const DOWNGRADE_REDIRECT_VALIDATION_MESSAGE: &str = "HTTPS to HTTP redirects are not allowed";
+/// Feed discovery identifies itself with the shared provider HTTP user agent.
+const DISCOVERY_USER_AGENT_POLICY: &str = http_defaults::PROVIDER_USER_AGENT;
 
 /// A discovered feed from an HTML page.
 #[derive(Debug, Clone)]
@@ -19,6 +21,10 @@ pub struct DiscoveredFeed {
 
 /// Fetch the given URL and discover RSS/Atom feed links from the HTML.
 ///
+/// Discovery is a user-initiated single URL probe, not a crawler. It uses the
+/// shared provider User-Agent and does not prefetch robots.txt before the target
+/// request.
+///
 /// If the URL itself points to a feed (Content-Type contains xml or json feed),
 /// it is returned as-is. Otherwise, the HTML `<link rel="alternate">` tags are parsed.
 pub async fn discover_feeds(url: &str) -> DomainResult<Vec<DiscoveredFeed>> {
@@ -26,8 +32,7 @@ pub async fn discover_feeds(url: &str) -> DomainResult<Vec<DiscoveredFeed>> {
         .map_err(|_| DomainError::Validation(UNSUPPORTED_URL_VALIDATION_MESSAGE.to_string()))?;
     validate_discovery_request_url(&initial_url)?;
 
-    let client = http_defaults::http_client_builder()
-        .redirect(discovery_redirect_policy())
+    let client = discovery_http_client_builder()
         .build()
         .map_err(|e| DomainError::Network(e.to_string()))?;
 
@@ -79,6 +84,12 @@ fn discovery_redirect_policy() -> reqwest::redirect::Policy {
             Err(error) => attempt.error(error.to_string()),
         }
     })
+}
+
+fn discovery_http_client_builder() -> reqwest::ClientBuilder {
+    http_defaults::http_client_builder()
+        .user_agent(DISCOVERY_USER_AGENT_POLICY)
+        .redirect(discovery_redirect_policy())
 }
 
 fn validate_discovery_redirect(
@@ -416,6 +427,9 @@ fn resolve_feed_candidate_url(base: &str, href: &str) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::{Read, Write};
+    use std::net::TcpListener;
+    use std::sync::mpsc;
 
     #[test]
     fn test_extract_feed_links_rss() {
@@ -675,6 +689,27 @@ mod tests {
     }
 
     #[test]
+    fn test_extract_feed_links_handles_protocol_relative_base_and_private_candidate() {
+        let html = r#"
+            <html><head>
+            <base href="//example.com/site/subdir/">
+            <link rel="alternate" type="application/rss+xml" title="RSS" href="feeds/rss.xml">
+            <link rel="alternate" type="application/atom+xml" title="Private" href="//127.0.0.1/atom.xml">
+            </head><body></body></html>
+        "#;
+
+        let feeds = extract_feed_links(html, "https://example.com/articles/2026/index.html");
+
+        assert_eq!(
+            feeds
+                .iter()
+                .map(|feed| (feed.url.as_str(), feed.title.as_str()))
+                .collect::<Vec<_>>(),
+            vec![("https://example.com/site/subdir/feeds/rss.xml", "RSS")],
+        );
+    }
+
+    #[test]
     fn test_extract_feed_links_allows_same_origin_base_href_path_traversal_after_normalization() {
         let html = r#"
             <html><head>
@@ -874,6 +909,17 @@ mod tests {
 
         assert!(matches!(
             validate_resolved_host_is_public(&url),
+            Err(DomainError::Validation(message)) if message == PRIVATE_URL_VALIDATION_MESSAGE
+        ));
+    }
+
+    #[test]
+    fn validate_discovery_redirect_rejects_dns_rebinding_private_hostname_targets() {
+        let previous = vec![reqwest::Url::parse("https://example.com/page").unwrap()];
+        let next = reqwest::Url::parse("https://localhost./feed.xml").unwrap();
+
+        assert!(matches!(
+            validate_discovery_redirect(&previous, &next),
             Err(DomainError::Validation(message)) if message == PRIVATE_URL_VALIDATION_MESSAGE
         ));
     }
@@ -1173,6 +1219,52 @@ mod tests {
                 "body should not be treated as a feed fallback: {body}"
             );
         }
+    }
+
+    #[tokio::test]
+    async fn discovery_http_client_sends_shared_user_agent_and_does_not_prefetch_robots() {
+        assert_eq!(
+            DISCOVERY_USER_AGENT_POLICY,
+            http_defaults::PROVIDER_USER_AGENT
+        );
+
+        let listener = TcpListener::bind("127.0.0.1:0").expect("test server should bind");
+        let address = listener
+            .local_addr()
+            .expect("test server should expose local address");
+        let (request_tx, request_rx) = mpsc::channel();
+        let server = std::thread::spawn(move || {
+            let (mut stream, _) = listener.accept().expect("client should connect");
+            let mut request = [0_u8; 2048];
+            let bytes_read = stream.read(&mut request).unwrap_or(0);
+            request_tx
+                .send(String::from_utf8_lossy(&request[..bytes_read]).into_owned())
+                .expect("test should receive captured request");
+            stream
+                .write_all(b"HTTP/1.1 204 No Content\r\nContent-Length: 0\r\n\r\n")
+                .expect("test server should write response");
+        });
+
+        let response = discovery_http_client_builder()
+            .build()
+            .expect("discovery client should build")
+            .get(format!("http://{address}/page"))
+            .send()
+            .await
+            .expect("discovery client should send request");
+
+        assert_eq!(response.status(), reqwest::StatusCode::NO_CONTENT);
+        server.join().expect("test server should finish");
+        let request = request_rx
+            .recv()
+            .expect("test should capture discovery request")
+            .to_ascii_lowercase();
+        assert!(request.starts_with("get /page "));
+        assert!(!request.contains("/robots.txt"));
+        assert!(request.contains(&format!(
+            "user-agent: {}",
+            DISCOVERY_USER_AGENT_POLICY.to_ascii_lowercase()
+        )));
     }
 
     #[test]

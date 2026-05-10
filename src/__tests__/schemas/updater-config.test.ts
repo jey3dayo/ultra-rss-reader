@@ -104,7 +104,7 @@ test("release workflow keeps the supported artifact matrix", async () => {
   expect(workflow).toContain("args: --target aarch64-apple-darwin");
   expect(workflow).toContain("platform: windows-latest");
   expect(workflow).toMatch(/args:\s*""/);
-  expect(workflow).toContain("releaseDraft: true");
+  expect(workflow).toContain("releaseDraft: $" + "{{ steps.release-policy.outputs.draft }}");
 });
 
 test("release workflow maps updater manifest platforms to asset signatures and checksums", async () => {

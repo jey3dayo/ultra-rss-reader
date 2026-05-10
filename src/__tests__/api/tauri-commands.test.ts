@@ -768,6 +768,24 @@ describe("tauri-commands with custom handler", () => {
     expect(JSON.stringify(consoleError.mock.calls)).not.toContain("raw-token");
     expect(JSON.stringify(consoleError.mock.calls)).not.toContain("auth-fragment");
   });
+
+  it("redacts URL tokens from non-Error rejected values before logging or returning fallback messages", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    setupTauriMocks((cmd) => {
+      if (cmd === "list_accounts") {
+        throw "Fetch failed for https://user:secret@example.com/private-key/feed.xml?token=raw-token#auth-fragment.";
+      }
+      return null;
+    });
+
+    const error = Result.unwrapError(await listAccounts());
+
+    expect(error.message).toBe("Fetch failed for https://example.com/redacted?redacted#redacted.");
+    expect(JSON.stringify(consoleError.mock.calls)).not.toContain("secret");
+    expect(JSON.stringify(consoleError.mock.calls)).not.toContain("private-key/feed");
+    expect(JSON.stringify(consoleError.mock.calls)).not.toContain("raw-token");
+    expect(JSON.stringify(consoleError.mock.calls)).not.toContain("auth-fragment");
+  });
 });
 
 describe("safeInvoke response validation", () => {

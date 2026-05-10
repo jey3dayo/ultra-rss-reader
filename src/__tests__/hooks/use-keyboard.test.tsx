@@ -192,22 +192,52 @@ describe("useKeyboard", () => {
 
   it.each([
     [
-      "confirm dialog",
+      "app dialog stack layer",
       {
-        confirmDialog: {
-          ...useUiStore.getInitialState().confirmDialog,
-          open: true,
-        },
+        "data-slot": "dialog-content",
+        "data-stack-layer": "dialog",
       },
     ],
-    ["settings modal", { settingsOpen: true }],
-    ["shortcuts help modal", { shortcutsHelpOpen: true }],
-    ["command palette modal", { commandPaletteOpen: true }],
-  ] as const)("ignores global shortcuts while the %s is open", (_label, modalState) => {
+    [
+      "command palette stack layer",
+      {
+        "data-slot": "dialog-content",
+        "data-stack-layer": "commandPalette",
+      },
+    ],
+    [
+      "aria modal dialog fallback",
+      {
+        role: "dialog",
+        "aria-modal": "true",
+      },
+    ],
+    [
+      "native dialog fallback",
+      {
+        open: "",
+      },
+    ],
+    [
+      "popover fallback",
+      {
+        popover: "",
+        "data-open": "",
+      },
+    ],
+  ] as const)("ignores global shortcuts while the %s is open", (_label, topLayerAttributes) => {
     const toggleReadSpy = vi.fn();
     const focusSearchSpy = vi.fn();
     window.addEventListener(keyboardEvents.toggleRead, toggleReadSpy);
     window.addEventListener(keyboardEvents.focusSearch, focusSearchSpy);
+
+    const topLayerElement = Object.hasOwn(topLayerAttributes, "open")
+      ? document.createElement("dialog")
+      : document.createElement("div");
+    for (const [name, value] of Object.entries(topLayerAttributes)) {
+      topLayerElement.setAttribute(name, value);
+    }
+    document.body.append(topLayerElement);
 
     try {
       useUiStore.setState({
@@ -215,7 +245,6 @@ describe("useKeyboard", () => {
         selectedArticleId: "art-1",
         contentMode: "reader",
         viewMode: "all",
-        ...modalState,
       });
 
       const { unmount } = renderHook(() => useKeyboard());
@@ -230,6 +259,7 @@ describe("useKeyboard", () => {
 
       unmount();
     } finally {
+      topLayerElement.remove();
       window.removeEventListener(keyboardEvents.toggleRead, toggleReadSpy);
       window.removeEventListener(keyboardEvents.focusSearch, focusSearchSpy);
     }

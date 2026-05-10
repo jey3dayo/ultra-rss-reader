@@ -7,9 +7,13 @@ import { shortcutDefinitions } from "@/lib/keyboard/keyboard-shortcuts";
 import { uiLanguagePreferences } from "@/lib/ui/ui-language";
 import enReader from "@/locales/en/reader.json";
 import enSettings from "@/locales/en/settings.json";
+import enSidebar from "@/locales/en/sidebar.json";
 import jaReader from "@/locales/ja/reader.json";
 import jaSettings from "@/locales/ja/settings.json";
+import jaSidebar from "@/locales/ja/sidebar.json";
 import i18nextTypesSource from "@/types/i18next.d.ts?raw";
+import menuI18nSource from "../../../src-tauri/src/menu_i18n.rs?raw";
+import testI18n from "../../../tests/helpers/i18n-setup";
 
 type LocaleLeaf = string | readonly string[];
 type LocaleNode = LocaleLeaf | { readonly [key: string]: LocaleNode };
@@ -145,12 +149,99 @@ const meaningLocaleResources = {
   en: {
     reader: enReader,
     settings: enSettings,
+    sidebar: enSidebar,
   },
   ja: {
     reader: jaReader,
     settings: jaSettings,
+    sidebar: jaSidebar,
   },
 } as const;
+
+type NativeMenuLocale = "en" | "ja";
+type NativeMenuLabelKey =
+  | "settings"
+  | "unread"
+  | "all"
+  | "starred"
+  | "sync_all"
+  | "add_account"
+  | "add_subscription"
+  | "open_web_preview"
+  | "open_external_browser"
+  | "toggle_star"
+  | "mark_as_read_unread"
+  | "mark_all_as_read"
+  | "copy_link"
+  | "add_to_reading_list";
+
+const nativeMenuLanguageVariant = {
+  en: "En",
+  ja: "Ja",
+} as const satisfies Record<NativeMenuLocale, string>;
+
+const nativeMenuMeaningCopy = {
+  en: {
+    settings: "Settings...",
+    unread: "Unread",
+    all: "All",
+    starred: "Starred",
+    sync_all: "Sync All",
+    add_account: "Add Account...",
+    add_subscription: "Add Subscription...",
+    open_web_preview: "Open Web Preview",
+    open_external_browser: "Open in External Browser",
+    toggle_star: "Toggle Star",
+    mark_as_read_unread: "Mark as Read/Unread",
+    mark_all_as_read: "Mark All as Read",
+    copy_link: "Copy Link",
+    add_to_reading_list: "Add to Reading List",
+  },
+  ja: {
+    settings: "設定...",
+    unread: "未読",
+    all: "すべて",
+    starred: "スター",
+    sync_all: "すべて同期",
+    add_account: "アカウントを追加...",
+    add_subscription: "購読を追加...",
+    open_web_preview: "Webプレビューを開く",
+    open_external_browser: "外部ブラウザで開く",
+    toggle_star: "スターを切り替え",
+    mark_as_read_unread: "既読/未読を切り替え",
+    mark_all_as_read: "すべて既読にする",
+    copy_link: "リンクをコピー",
+    add_to_reading_list: "リーディングリストに追加",
+  },
+} as const satisfies Record<NativeMenuLocale, Record<NativeMenuLabelKey, string>>;
+
+function extractNativeMenuLabels(locale: NativeMenuLocale): Record<string, string> {
+  const variant = nativeMenuLanguageVariant[locale];
+  const blockPattern = new RegExp(`ResolvedMenuLanguage::${variant} => MenuLabels \\{(?<body>[\\s\\S]*?)\\n\\s*\\},`);
+  const block = blockPattern.exec(menuI18nSource)?.groups?.body;
+  expect(block, `missing Rust native menu label block for ${locale}`).toBeDefined();
+
+  const labels = new Map<string, string>();
+  for (const match of block?.matchAll(/(?<key>[a-z_]+): "(?<value>(?:\\"|[^"])*)"/g) ?? []) {
+    const key = match.groups?.key;
+    const value = match.groups?.value;
+    if (key !== undefined && value !== undefined) {
+      labels.set(key, value.replaceAll('\\"', '"'));
+    }
+  }
+
+  return Object.fromEntries(labels);
+}
+
+function withoutAsciiTrailingEllipsis(value: string): string {
+  if (value.endsWith("...")) {
+    return value.slice(0, -3);
+  }
+  if (value.endsWith("…")) {
+    return value.slice(0, -1);
+  }
+  return value;
+}
 
 const readerBrowserMeaningCopy = {
   en: {
@@ -283,6 +374,12 @@ describe("i18next locale contract", () => {
     expect(problems).toEqual([]);
   });
 
+  it("fails fast for missing keys in the shared component test i18n runtime", () => {
+    expect(() => testI18n.options.parseMissingKeyHandler?.("__test_missing_key")).toThrowError(
+      "Missing i18n key in test runtime: __test_missing_key",
+    );
+  });
+
   it("keeps shortcut definition locale keys covered without orphan reader shortcut labels", () => {
     const expectedShortcutKeys: ReadonlySet<string> = new Set<ShortcutLocaleKey>(
       shortcutDefinitions.flatMap((definition): ShortcutLocaleKey[] => [definition.labelKey, definition.categoryKey]),
@@ -354,6 +451,26 @@ describe("i18next locale contract", () => {
       expect(reader.shortcuts.view_in_browser).toBe(reader.view_in_browser);
       expect(reader.shortcuts.open_external_browser.toLowerCase()).toBe(reader.open_in_external_browser.toLowerCase());
       expect(settings.debug.browser).toBe(settings.reading.in_app_browser);
+    }
+  });
+
+  it("keeps native menu action copy aligned with frontend locale vocabulary", () => {
+    for (const locale of ["en", "ja"] as const) {
+      const nativeMenuLabels = extractNativeMenuLabels(locale);
+      const expectedNativeMenuLabels = nativeMenuMeaningCopy[locale];
+      const { reader, settings, sidebar } = meaningLocaleResources[locale];
+
+      expect(nativeMenuLabels).toMatchObject(expectedNativeMenuLabels);
+      expect(nativeMenuLabels.open_web_preview).toBe(reader.view_in_browser);
+      expect(nativeMenuLabels.open_external_browser).toBe(reader.open_in_external_browser);
+      expect(nativeMenuLabels.copy_link).toBe(settings.actions.copy_link);
+      expect(nativeMenuLabels.add_to_reading_list).toBe(reader.add_to_reading_list);
+      expect(nativeMenuLabels.mark_all_as_read.toLowerCase()).toBe(reader.mark_all_as_read.toLowerCase());
+      expect(nativeMenuLabels.toggle_star.toLowerCase()).toBe(reader.toggle_star.toLowerCase());
+      expect(withoutAsciiTrailingEllipsis(nativeMenuLabels.settings)).toBe(sidebar.settings);
+      expect(withoutAsciiTrailingEllipsis(nativeMenuLabels.add_account).toLowerCase()).toBe(
+        withoutAsciiTrailingEllipsis(settings.add_account_ellipsis).toLowerCase(),
+      );
     }
   });
 

@@ -8,7 +8,7 @@ use tokio::sync::Mutex;
 use tracing::warn;
 
 use super::dto::AppError;
-use super::AppState;
+use super::{AppState, DATABASE_MAINTENANCE_BUSY_ERROR};
 
 static DOWNLOADING: AtomicBool = AtomicBool::new(false);
 static DOWNLOAD_SESSION_ID: AtomicU64 = AtomicU64::new(0);
@@ -53,6 +53,7 @@ fn next_download_session_id() -> u64 {
     DOWNLOAD_SESSION_ID.fetch_add(1, Ordering::SeqCst) + 1
 }
 
+#[derive(Debug)]
 struct SyncInstallGuard<'a>(&'a std::sync::atomic::AtomicBool);
 
 impl<'a> SyncInstallGuard<'a> {
@@ -61,7 +62,7 @@ impl<'a> SyncInstallGuard<'a> {
             .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
             .map(|_| Self(syncing))
             .map_err(|_| AppError::UserVisible {
-                message: "Sync or update install already in progress".to_string(),
+                message: DATABASE_MAINTENANCE_BUSY_ERROR.to_string(),
             })
     }
 }
@@ -402,6 +403,8 @@ mod tests {
         updater_initialization_error_message, DownloadGuard, SyncInstallGuard, DOWNLOADING,
         DOWNLOAD_SESSION_ID,
     };
+    use crate::commands::dto::AppError;
+    use crate::commands::DATABASE_MAINTENANCE_BUSY_ERROR;
     use std::sync::atomic::AtomicBool;
     use std::sync::atomic::Ordering;
     use std::sync::Mutex as StdMutex;
@@ -555,6 +558,28 @@ mod tests {
         }
 
         assert!(!syncing.load(Ordering::SeqCst));
+    }
+
+    #[test]
+    fn sync_install_guard_returns_shared_busy_error_when_flag_is_reserved() {
+        let _test_lock = UPDATER_COMMAND_TEST_LOCK
+            .lock()
+            .expect("test lock poisoned");
+        let syncing = AtomicBool::new(true);
+
+        let error = SyncInstallGuard::acquire(&syncing)
+            .expect_err("reserved sync flag should block update install and restart");
+
+        match error {
+            AppError::UserVisible { message } => {
+                assert_eq!(message, DATABASE_MAINTENANCE_BUSY_ERROR);
+            }
+            other => panic!("expected user-visible shared busy error, got {other:?}"),
+        }
+        assert!(
+            syncing.load(Ordering::SeqCst),
+            "failed updater guard acquire should not clear another operation's flag"
+        );
     }
 
     #[test]

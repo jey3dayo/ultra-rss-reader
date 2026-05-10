@@ -57,9 +57,17 @@ export function translateCommandPaletteFallbackMessage(
 
 function translateCommandPaletteMessage(key: CommandPaletteMessageKey, values?: Record<string, string>) {
   const i18nKey = `command_palette.${key}`;
-  const translated = i18n.t(i18nKey, i18nKey, { ns: "reader", ...values });
-  if (translated !== i18nKey) {
-    return translated;
+  const translated = Result.try({
+    try: () => i18n.t(i18nKey, i18nKey, { ns: "reader", ...values }),
+    catch: (error) => (error instanceof Error ? error : new Error(String(error))),
+  });
+  if (Result.isFailure(translated)) {
+    return translateCommandPaletteFallbackMessage(key, i18n.language, values);
+  }
+
+  const translatedValue = Result.unwrap(translated);
+  if (translatedValue !== i18nKey) {
+    return translatedValue;
   }
 
   return translateCommandPaletteFallbackMessage(key, i18n.language, values);

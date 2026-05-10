@@ -125,6 +125,13 @@ describe("stripHtmlTags", () => {
 });
 
 describe("applyReaderContentPrivacyPolicy", () => {
+  type PrivacyPolicyCorpusFixture = {
+    readonly label: string;
+    readonly html: string;
+    readonly required: readonly string[];
+    readonly forbidden?: readonly string[];
+  };
+
   it("adds the reader body privacy policy to rendered media and links", () => {
     expect(
       applyReaderContentPrivacyPolicy(
@@ -176,7 +183,7 @@ describe("applyReaderContentPrivacyPolicy", () => {
   });
 
   it("keeps the frontend post-process aligned with the sanitizer link and media privacy corpus", () => {
-    const corpus = [
+    const corpus: readonly PrivacyPolicyCorpusFixture[] = [
       {
         label: "sanitized tracking link",
         html: '<a href="https://publisher.example.com/read?utm_source=feed">Read article</a>',
@@ -185,7 +192,30 @@ describe("applyReaderContentPrivacyPolicy", () => {
       {
         label: "sanitized article image",
         html: '<picture><source srcset="https://cdn.example.com/hero.webp 1x"><img src="https://cdn.example.com/hero.jpg" alt="Hero"></picture>',
-        required: ['src="https://cdn.example.com/hero.jpg"', 'referrerpolicy="no-referrer"'],
+        required: [
+          'src="https://cdn.example.com/hero.jpg"',
+          'referrerpolicy="no-referrer"',
+          'loading="lazy"',
+          'decoding="async"',
+        ],
+      },
+      {
+        label: "http article image allowed by CSP but blocked by reader policy",
+        html: '<img src="http://cdn.example.com/tracking.gif" alt="Tracking pixel">',
+        required: ['alt="Tracking pixel"', 'referrerpolicy="no-referrer"', 'loading="lazy"', 'decoding="async"'],
+        forbidden: ['src="http://cdn.example.com/tracking.gif"'],
+      },
+      {
+        label: "sanitized credential-bearing link title",
+        html: '<a href="https://example.com/read" title="https://example.com/read?token=raw">Read article</a>',
+        required: ['href="https://example.com/read"', 'title="External link"', 'rel="noopener noreferrer"'],
+        forbidden: ["token=raw"],
+      },
+      {
+        label: "sanitized private media candidate",
+        html: '<picture><source srcset="https://cdn.example.com/hero.webp 1x, https://127.0.0.1/track.webp 2x"><img src="https://localhost/private.jpg" title="https://localhost/private.jpg?token=raw" alt="Private"></picture>',
+        required: ['srcset="https://cdn.example.com/hero.webp 1x"', 'title="External image"'],
+        forbidden: ["127.0.0.1", "localhost/private.jpg", "token=raw"],
       },
     ];
 
@@ -194,6 +224,9 @@ describe("applyReaderContentPrivacyPolicy", () => {
 
       for (const fragment of fixture.required) {
         expect(normalized, fixture.label).toContain(fragment);
+      }
+      for (const fragment of fixture.forbidden ?? []) {
+        expect(normalized, fixture.label).not.toContain(fragment);
       }
     }
   });

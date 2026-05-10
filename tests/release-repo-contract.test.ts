@@ -21,6 +21,11 @@ type TauriConfig = {
   productName: string;
   version: string;
   identifier: string;
+  app?: {
+    security?: {
+      csp?: string;
+    };
+  };
   build?: {
     devUrl?: string;
   };
@@ -410,7 +415,7 @@ describe("release repository contract", () => {
     const releasePolicyStep = extractReleaseStepBlock(releaseWorkflow, "Resolve release semver policy");
     const tauriActionBlock = extractTauriActionBlock(releaseWorkflow);
 
-    expect(releasePolicyStep).toContain('release_version="${RELEASE_TAG#v}"');
+    expect(releasePolicyStep).toContain('release_version="$' + '{RELEASE_TAG#v}"');
     expect(releasePolicyStep).toContain('if [[ "$release_version" == *-* ]]; then');
     expect(releasePolicyStep).toContain('echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"');
     expect(releasePolicyStep).toContain('echo "draft=true" >> "$GITHUB_OUTPUT"');
@@ -555,6 +560,15 @@ describe("release repository contract", () => {
     expect(releaseWorkflow.indexOf("Validate release version parity")).toBeLessThan(
       releaseWorkflow.indexOf("tauri-apps/tauri-action"),
     );
+  });
+
+  it("keeps Tauri CSP http image access explicit for the reader privacy boundary", () => {
+    const csp = tauriConfig.app?.security?.csp ?? "";
+
+    expect(csp).toContain("img-src 'self' https: http:");
+    expect(csp).not.toContain("upgrade-insecure-requests");
+    expect(csp).not.toContain("default-src *");
+    expect(csp).not.toContain("img-src *");
   });
 
   it("keeps Windows manifest, build script, and generated capability schema in the local release gate", () => {

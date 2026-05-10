@@ -1172,6 +1172,7 @@ describe("primitive command result schemas", () => {
     expect(() => NonnegativeIntResponseSchema.parse(Number.NaN)).toThrow();
     expect(() => CountResponseSchema.parse(-1)).toThrow();
     expect(() => CountResponseSchema.parse(1.5)).toThrow();
+    expect(() => CountResponseSchema.parse(Number.MAX_SAFE_INTEGER + 1)).toThrow();
     expect(() => StringResponseSchema.parse(1)).toThrow();
     expect(() => BooleanResponseSchema.parse("false")).toThrow();
   });

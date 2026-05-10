@@ -1250,7 +1250,7 @@ describe("repository static contracts", () => {
     expect(releaseWorkflow).toContain(`TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${signingPasswordExpression}`);
     expect(releaseWorkflow).toContain(`tagName: ${workflowDispatchReleaseNameExpression}`);
     expect(releaseWorkflow).toContain(`releaseName: ${workflowDispatchReleaseNameExpression}`);
-    expect(releaseWorkflow).toContain("releaseDraft: true");
+    expect(releaseWorkflow).toContain("releaseDraft: $" + "{{ steps.release-policy.outputs.draft }}");
     expect(releaseWorkflow).toContain("platform: macos-latest");
     expect(releaseWorkflow).toContain("args: --target aarch64-apple-darwin");
     expect(releaseWorkflow).toContain("platform: windows-latest");

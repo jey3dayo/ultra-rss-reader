@@ -1,16 +1,28 @@
 import { Result } from "@praha/byethrow";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { isWindowFullscreen, setWindowAlwaysOnTop, setWindowFullscreen, setWindowIcon } from "@/lib/window/windows";
+import {
+  isWindowAlwaysOnTop,
+  isWindowFullscreen,
+  setWindowAlwaysOnTop,
+  setWindowFullscreen,
+  setWindowIcon,
+} from "@/lib/window/windows";
 
-const { getCurrentWindowMock, isFullscreenMock, setAlwaysOnTopMock, setFullscreenMock, setIconMock } = vi.hoisted(
-  () => ({
-    getCurrentWindowMock: vi.fn(),
-    isFullscreenMock: vi.fn(),
-    setAlwaysOnTopMock: vi.fn(),
-    setFullscreenMock: vi.fn(),
-    setIconMock: vi.fn(),
-  }),
-);
+const {
+  getCurrentWindowMock,
+  isAlwaysOnTopMock,
+  isFullscreenMock,
+  setAlwaysOnTopMock,
+  setFullscreenMock,
+  setIconMock,
+} = vi.hoisted(() => ({
+  getCurrentWindowMock: vi.fn(),
+  isAlwaysOnTopMock: vi.fn(),
+  isFullscreenMock: vi.fn(),
+  setAlwaysOnTopMock: vi.fn(),
+  setFullscreenMock: vi.fn(),
+  setIconMock: vi.fn(),
+}));
 
 vi.mock("@tauri-apps/api/window", () => ({
   getCurrentWindow: getCurrentWindowMock,
@@ -19,15 +31,27 @@ vi.mock("@tauri-apps/api/window", () => ({
 describe("windows", () => {
   beforeEach(() => {
     getCurrentWindowMock.mockReturnValue({
+      isAlwaysOnTop: isAlwaysOnTopMock,
       isFullscreen: isFullscreenMock,
       setAlwaysOnTop: setAlwaysOnTopMock,
       setFullscreen: setFullscreenMock,
       setIcon: setIconMock,
     });
+    isAlwaysOnTopMock.mockReset();
     isFullscreenMock.mockReset();
     setAlwaysOnTopMock.mockReset();
     setFullscreenMock.mockReset();
     setIconMock.mockReset();
+  });
+
+  it("reads always-on-top state from the current Tauri window", async () => {
+    isAlwaysOnTopMock.mockResolvedValue(true);
+
+    const result = await isWindowAlwaysOnTop();
+
+    expect(Result.unwrap(result)).toBe(true);
+    expect(getCurrentWindowMock).toHaveBeenCalledOnce();
+    expect(isAlwaysOnTopMock).toHaveBeenCalledOnce();
   });
 
   it("reads fullscreen state from the current Tauri window", async () => {

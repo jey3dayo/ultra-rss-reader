@@ -100,6 +100,27 @@ describe("ShortcutsSettings", () => {
     expect(screen.queryByText(conflictMessage)).not.toBeInTheDocument();
   });
 
+  it("blocks duplicate custom shortcut recording before saving preferences", async () => {
+    const user = userEvent.setup();
+    const setPref = vi.fn();
+    usePreferencesStore.setState({
+      prefs: {
+        shortcut_next_article: "j",
+        shortcut_prev_article: "k",
+      },
+      loaded: true,
+      setPref,
+    });
+
+    render(<ShortcutsSettings />, { wrapper: createWrapper() });
+
+    await user.click(screen.getByTestId("shortcut-badge-next_article"));
+    await user.keyboard("k");
+
+    expect(setPref).not.toHaveBeenCalled();
+    expect(screen.getByText(/"k" is already assigned to "Previous article"/)).toBeInTheDocument();
+  });
+
   it("cancels recording with Escape without saving a shortcut preference", async () => {
     const user = userEvent.setup();
     const setPref = vi.fn();

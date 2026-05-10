@@ -581,6 +581,26 @@ describe("usePreferencesStore preferences", () => {
     });
   });
 
+  it("clears the pending preference load promise during the test runtime reset", async () => {
+    const staleLoad = createDeferred();
+    const nextLoad = createDeferred();
+    vi.mocked(getPreferences)
+      .mockReturnValueOnce(staleLoad.promise.then(() => Result.succeed({ theme: "dark" })))
+      .mockReturnValueOnce(nextLoad.promise.then(() => Result.succeed({ theme: "light" })));
+
+    const firstLoad = usePreferencesStore.getState().loadPreferences();
+    resetPreferencesStoreRuntimeForTests();
+    const secondLoad = usePreferencesStore.getState().loadPreferences();
+
+    expect(getPreferences).toHaveBeenCalledTimes(2);
+
+    staleLoad.resolve();
+    nextLoad.resolve();
+    await Promise.all([firstLoad, secondLoad]);
+
+    expect(usePreferencesStore.getState().loaded).toBe(true);
+  });
+
   it("keeps optimistic preference writes when an older load resolves later", async () => {
     const deferred = createDeferred();
     vi.mocked(getPreferences).mockReturnValue(

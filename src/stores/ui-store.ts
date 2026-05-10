@@ -16,9 +16,10 @@ import type { ReaderSelection } from "@/lib/reader/reader-selection.types";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
 import type { SettingsCategory } from "@/lib/settings/settings-category.types";
 import type { SmartViewKind } from "@/lib/sidebar/smart-view.types";
-import type {
-  SubscriptionsWorkspace,
-  SubscriptionsWorkspaceReturnState,
+import {
+  type SubscriptionsWorkspace,
+  type SubscriptionsWorkspaceReturnState,
+  SubscriptionsWorkspaceReturnStateSchema,
 } from "@/lib/subscriptions/subscriptions-workspace.types";
 import type { SyncProgressEventDto } from "@/lib/sync/sync-progress-event.types";
 import type { SyncProgressUiState } from "@/lib/sync/sync-progress-state.types";
@@ -561,6 +562,14 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
         Object.assign(nextState, getSettingsAccountsViewState(fallbackAccountId, false));
       }
 
+      if (
+        state.accountSetupSession &&
+        "accountId" in state.accountSetupSession &&
+        state.accountSetupSession.accountId === deletedAccountId
+      ) {
+        Object.assign(nextState, { accountSetupSession: null });
+      }
+
       return nextState;
     }),
   restoreAccountSelection: (id, options) =>
@@ -780,7 +789,9 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
   openSubscriptionsIndex: (returnState) =>
     set({
       accountPaneOpen: false,
-      subscriptionsWorkspace: { kind: "index", returnState },
+      subscriptionsWorkspace: returnState
+        ? { kind: "index", returnState: SubscriptionsWorkspaceReturnStateSchema.parse(returnState) }
+        : { kind: "index" },
       focusedPane: "content",
     }),
   closeSubscriptionsWorkspace: () =>

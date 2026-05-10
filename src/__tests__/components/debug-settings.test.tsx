@@ -176,6 +176,17 @@ describe("DebugSettings", () => {
     expect(screen.queryByRole("button", { name: /seed/i })).not.toBeInTheDocument();
   });
 
+  it("surfaces support log privacy checklist next to debug support workflow", async () => {
+    render(<DebugSettings />, { wrapper: createWrapper() });
+
+    expect(await screen.findByText("Support log privacy")).toBeInTheDocument();
+    expect(screen.getByText(/Open logs from Data settings/i)).toBeInTheDocument();
+    expect(screen.getByText(/redacted app\.log excerpt/i)).toBeInTheDocument();
+    expect(screen.getByText(/account names, feed URLs, article URLs, and local user paths/i)).toBeInTheDocument();
+    expect(screen.getByText(/stale support\/debug logs and support dumps/i)).toBeInTheDocument();
+    expect(screen.getByText(/private, unencrypted backup database files/i)).toBeInTheDocument();
+  });
+
   it("hides Dev data seed guidance outside dev builds", async () => {
     vi.stubEnv("DEV", false);
     try {

@@ -2,11 +2,7 @@ import { Result } from "@praha/byethrow";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DatabaseInfoDtoSchema } from "@/api/schemas/database-info";
-import {
-  getDatabaseInfo,
-  openLogDir,
-  vacuumDatabase,
-} from "@/api/tauri-commands";
+import { getDatabaseInfo, openLogDir, vacuumDatabase } from "@/api/tauri-commands";
 import type { DatabaseRecoveryActionSafety } from "@/components/settings/hooks/use-data-settings-controller";
 import {
   buildDestructiveRecoveryCriteria,
@@ -68,41 +64,18 @@ describe("buildDestructiveRecoveryCriteria", () => {
   it("requires target-known disabled state and confirmation criteria for destructive recovery actions", () => {
     const translations = new Map([
       ["data.recovery_criteria_restore_backup_action", "Restore backup"],
-      [
-        "data.recovery_criteria_restore_backup_requirement",
-        "Recommend backup and undo unavailable confirmation",
-      ],
-      [
-        "data.recovery_criteria_private_data_reset_action",
-        "Reset private data",
-      ],
-      [
-        "data.recovery_criteria_private_data_reset_requirement",
-        "Require target counts and second confirmation",
-      ],
-      [
-        "data.recovery_criteria_cleanup_orphans_action",
-        "Clean up orphaned data",
-      ],
-      [
-        "data.recovery_criteria_cleanup_orphans_requirement",
-        "Show dry-run counts before cleanup",
-      ],
+      ["data.recovery_criteria_restore_backup_requirement", "Recommend backup and undo unavailable confirmation"],
+      ["data.recovery_criteria_private_data_reset_action", "Reset private data"],
+      ["data.recovery_criteria_private_data_reset_requirement", "Require target counts and second confirmation"],
+      ["data.recovery_criteria_cleanup_orphans_action", "Clean up orphaned data"],
+      ["data.recovery_criteria_cleanup_orphans_requirement", "Show dry-run counts before cleanup"],
       ["data.recovery_criteria_clear_history_action", "Clear history"],
-      [
-        "data.recovery_criteria_clear_history_requirement",
-        "Show scope and undo unavailable confirmation",
-      ],
+      ["data.recovery_criteria_clear_history_requirement", "Show scope and undo unavailable confirmation"],
       ["data.recovery_criteria_delete_account_action", "Delete account"],
-      [
-        "data.recovery_criteria_delete_account_requirement",
-        "Confirm account name and related data deletion",
-      ],
+      ["data.recovery_criteria_delete_account_requirement", "Confirm account name and related data deletion"],
     ]);
 
-    const criteria = buildDestructiveRecoveryCriteria(
-      (key) => translations.get(key) ?? key,
-    );
+    const criteria = buildDestructiveRecoveryCriteria((key) => translations.get(key) ?? key);
 
     expect(criteria).toEqual([
       {
@@ -196,30 +169,21 @@ describe("classifyDatabaseRuntimeRecoverySurface", () => {
       )?.failureKind,
     ).toBe("write_corruption");
     expect(
-      classifyDatabaseRuntimeRecoverySurface(
-        { type: "UserVisible", message: "Database is busy" },
-        "read",
-      ),
+      classifyDatabaseRuntimeRecoverySurface({ type: "UserVisible", message: "Database is busy" }, "read"),
     ).toMatchObject({
       failureKind: "locked",
       mode: "retry_when_idle",
       actions: ["retry"],
     });
     expect(
-      classifyDatabaseRuntimeRecoverySurface(
-        { type: "UserVisible", message: "permission denied" },
-        "read",
-      ),
+      classifyDatabaseRuntimeRecoverySurface({ type: "UserVisible", message: "permission denied" }, "read"),
     ).toMatchObject({
       failureKind: "permission_denied",
       mode: "user_permission_fix",
       actions: ["check_os_permissions"],
     });
     expect(
-      classifyDatabaseRuntimeRecoverySurface(
-        { type: "UserVisible", message: "database or disk is full" },
-        "write",
-      ),
+      classifyDatabaseRuntimeRecoverySurface({ type: "UserVisible", message: "database or disk is full" }, "write"),
     ).toMatchObject({
       failureKind: "disk_full",
       mode: "free_disk_space",
@@ -229,10 +193,7 @@ describe("classifyDatabaseRuntimeRecoverySurface", () => {
 
   it("leaves unrelated command failures out of the database recovery surface", () => {
     expect(
-      classifyDatabaseRuntimeRecoverySurface(
-        { type: "UserVisible", message: "Account not found" },
-        "read",
-      ),
+      classifyDatabaseRuntimeRecoverySurface({ type: "UserVisible", message: "Account not found" }, "read"),
     ).toBeNull();
   });
 });
@@ -260,18 +221,9 @@ describe("reconcileDatabaseRestoreFrontendState", () => {
 
     expect(queryClient.clear).toHaveBeenCalledTimes(1);
     expect(storage.removeItem).toHaveBeenCalledTimes(3);
-    expect(storage.removeItem).toHaveBeenNthCalledWith(
-      1,
-      STORAGE_KEYS.commandHistory,
-    );
-    expect(storage.removeItem).toHaveBeenNthCalledWith(
-      2,
-      STORAGE_KEYS.sidebarExpandedFolders,
-    );
-    expect(storage.removeItem).toHaveBeenNthCalledWith(
-      3,
-      STORAGE_KEYS.startupSyncLastTriggeredAt,
-    );
+    expect(storage.removeItem).toHaveBeenNthCalledWith(1, STORAGE_KEYS.commandHistory);
+    expect(storage.removeItem).toHaveBeenNthCalledWith(2, STORAGE_KEYS.sidebarExpandedFolders);
+    expect(storage.removeItem).toHaveBeenNthCalledWith(3, STORAGE_KEYS.startupSyncLastTriggeredAt);
     expect(restoreAccountSelection).toHaveBeenCalledWith("acc-restored", {
       focusedPane: "list",
     });
@@ -400,9 +352,7 @@ describe("useDataSettingsController", () => {
     const { result } = renderHook(() =>
       useDataSettingsController({
         t: ((key: string, options?: { saved?: string }) =>
-          key === "data.vacuum_success"
-            ? `Saved ${options?.saved ?? ""}`
-            : key) as never,
+          key === "data.vacuum_success" ? `Saved ${options?.saved ?? ""}` : key) as never,
         showToast,
       }),
     );
@@ -439,9 +389,7 @@ describe("useDataSettingsController", () => {
     const { result } = renderHook(() =>
       useDataSettingsController({
         t: ((key: string, options?: { saved?: string }) =>
-          key === "data.vacuum_success"
-            ? `Saved ${options?.saved ?? ""}`
-            : key) as never,
+          key === "data.vacuum_success" ? `Saved ${options?.saved ?? ""}` : key) as never,
         showToast,
       }),
     );
@@ -472,12 +420,8 @@ describe("useDataSettingsController", () => {
         message: "SQLITE_CORRUPT: database disk image is malformed",
       }),
     );
-    const consoleWarn = vi
-      .spyOn(console, "warn")
-      .mockImplementation(() => undefined);
-    const consoleError = vi
-      .spyOn(console, "error")
-      .mockImplementation(() => undefined);
+    const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
     const showToast = vi.fn();
     const { result } = renderDataSettingsController({ showToast });
 
@@ -507,9 +451,7 @@ describe("useDataSettingsController", () => {
   });
 
   it("reports database size failures separately from loading", async () => {
-    vi.mocked(getDatabaseInfo).mockResolvedValue(
-      Result.fail({ type: "UserVisible", message: "db unavailable" }),
-    );
+    vi.mocked(getDatabaseInfo).mockResolvedValue(Result.fail({ type: "UserVisible", message: "db unavailable" }));
 
     const { result } = renderDataSettingsController();
 
@@ -527,19 +469,13 @@ describe("useDataSettingsController", () => {
         message: "database disk image is malformed",
       }),
     );
-    const consoleWarn = vi
-      .spyOn(console, "warn")
-      .mockImplementation(() => undefined);
-    const consoleError = vi
-      .spyOn(console, "error")
-      .mockImplementation(() => undefined);
+    const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
 
     const { result } = renderDataSettingsController();
 
     await waitFor(() => {
-      expect(result.current.databaseRuntimeRecoverySurface?.failureKind).toBe(
-        "read_corruption",
-      );
+      expect(result.current.databaseRuntimeRecoverySurface?.failureKind).toBe("read_corruption");
     });
 
     expect(result.current.databaseRuntimeRecoverySurface).toMatchObject({
@@ -561,9 +497,7 @@ describe("useDataSettingsController", () => {
   });
 
   it("does not run vacuum while database size is unavailable", async () => {
-    vi.mocked(getDatabaseInfo).mockResolvedValue(
-      Result.fail({ type: "UserVisible", message: "db unavailable" }),
-    );
+    vi.mocked(getDatabaseInfo).mockResolvedValue(Result.fail({ type: "UserVisible", message: "db unavailable" }));
     const { result } = renderDataSettingsController();
 
     await waitFor(() => {
@@ -612,12 +546,8 @@ describe("useDataSettingsController", () => {
       await result.current.handleOpenLogDir();
     });
 
-    expect(showToast).toHaveBeenCalledWith(
-      "Failed to open log directory: Check OS permissions and try again.",
-    );
-    expect(
-      showToast.mock.calls[0]?.[0].match(/Failed to open log directory/g),
-    ).toHaveLength(1);
+    expect(showToast).toHaveBeenCalledWith("Failed to open log directory: Check OS permissions and try again.");
+    expect(showToast.mock.calls[0]?.[0].match(/Failed to open log directory/g)).toHaveLength(1);
   });
 
   it("tracks log directory pending state and suppresses duplicate data actions", async () => {
@@ -731,15 +661,9 @@ describe("useDataSettingsController", () => {
   });
 
   it("refreshes reopened database size after a pending vacuum completes", async () => {
-    let resolveFirstDatabaseInfo:
-      | ((value: Awaited<ReturnType<typeof getDatabaseInfo>>) => void)
-      | undefined;
-    let resolveReopenedDatabaseInfo:
-      | ((value: Awaited<ReturnType<typeof getDatabaseInfo>>) => void)
-      | undefined;
-    let resolvePostVacuumDatabaseInfo:
-      | ((value: Awaited<ReturnType<typeof getDatabaseInfo>>) => void)
-      | undefined;
+    let resolveFirstDatabaseInfo: ((value: Awaited<ReturnType<typeof getDatabaseInfo>>) => void) | undefined;
+    let resolveReopenedDatabaseInfo: ((value: Awaited<ReturnType<typeof getDatabaseInfo>>) => void) | undefined;
+    let resolvePostVacuumDatabaseInfo: ((value: Awaited<ReturnType<typeof getDatabaseInfo>>) => void) | undefined;
     let resolveVacuum: (() => void) | undefined;
     vi.mocked(getDatabaseInfo)
       .mockReturnValueOnce(
@@ -827,9 +751,7 @@ describe("useDataSettingsController", () => {
   });
 
   it("does not run vacuum until database size has loaded", async () => {
-    let resolveDatabaseInfo:
-      | ((value: Awaited<ReturnType<typeof getDatabaseInfo>>) => void)
-      | undefined;
+    let resolveDatabaseInfo: ((value: Awaited<ReturnType<typeof getDatabaseInfo>>) => void) | undefined;
     vi.mocked(getDatabaseInfo).mockReturnValue(
       new Promise((resolve) => {
         resolveDatabaseInfo = resolve;
@@ -882,17 +804,13 @@ describe("useDataSettingsController", () => {
   });
 
   it("ignores initial database info resolution after unmount", async () => {
-    let resolveDatabaseInfo:
-      | ((value: Awaited<ReturnType<typeof getDatabaseInfo>>) => void)
-      | undefined;
+    let resolveDatabaseInfo: ((value: Awaited<ReturnType<typeof getDatabaseInfo>>) => void) | undefined;
     vi.mocked(getDatabaseInfo).mockReturnValue(
       new Promise((resolve) => {
         resolveDatabaseInfo = resolve;
       }),
     );
-    const consoleError = vi
-      .spyOn(console, "error")
-      .mockImplementation(() => undefined);
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
     const { unmount } = renderDataSettingsController();
 
     unmount();
@@ -919,9 +837,7 @@ describe("useDataSettingsController", () => {
         rejectDatabaseInfo = reject;
       }),
     );
-    const consoleError = vi
-      .spyOn(console, "error")
-      .mockImplementation(() => undefined);
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
     const { unmount } = renderDataSettingsController();
 
     unmount();
@@ -982,9 +898,7 @@ describe("useDataSettingsController", () => {
         rejectOpenLogDir = reject;
       }),
     );
-    const consoleError = vi
-      .spyOn(console, "error")
-      .mockImplementation(() => undefined);
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
     const setSettingsLoading = vi.fn();
     const showToast = vi.fn();
     const { result, unmount } = renderDataSettingsController({

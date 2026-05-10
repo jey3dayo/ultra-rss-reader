@@ -24,6 +24,17 @@ describe("DatabaseInfoDtoSchema", () => {
     ).toBe(true);
   });
 
+  it("accepts safe integer byte sizes up to the JavaScript precision boundary", () => {
+    expect(
+      DatabaseInfoDtoSchema.safeParse({
+        db_size_bytes: Number.MAX_SAFE_INTEGER - 2,
+        wal_size_bytes: 1,
+        shm_size_bytes: 1,
+        total_size_bytes: Number.MAX_SAFE_INTEGER,
+      }).success,
+    ).toBe(true);
+  });
+
   it("rejects negative, fractional, and inconsistent byte sizes", () => {
     expect(
       DatabaseInfoDtoSchema.safeParse({
@@ -47,6 +58,17 @@ describe("DatabaseInfoDtoSchema", () => {
         wal_size_bytes: 20,
         shm_size_bytes: 0,
         total_size_bytes: 119,
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects byte sizes above the JavaScript safe integer boundary", () => {
+    expect(
+      DatabaseInfoDtoSchema.safeParse({
+        db_size_bytes: Number.MAX_SAFE_INTEGER + 1,
+        wal_size_bytes: 0,
+        shm_size_bytes: 0,
+        total_size_bytes: Number.MAX_SAFE_INTEGER + 1,
       }).success,
     ).toBe(false);
   });

@@ -1,7 +1,20 @@
 import type { StoryContext } from "@storybook/react-vite";
 import { createElement } from "react";
 import { describe, expect, it } from "vitest";
-import { renderStory, type StoryDecorator } from "./render-story";
+import { renderStory, type StoryDecorator, type StoryLike, type StoryMeta } from "./render-story";
+
+function renderStoryFromUntypedCallBoundary<TArgs extends Record<string, unknown>>(
+  meta: StoryMeta<TArgs>,
+  story: StoryLike<TArgs>,
+  options: unknown,
+): ReturnType<typeof renderStory<TArgs>> {
+  const renderWithUnknownOptions = renderStory as (
+    meta: StoryMeta<TArgs>,
+    story: StoryLike<TArgs>,
+    options: unknown,
+  ) => ReturnType<typeof renderStory<TArgs>>;
+  return renderWithUnknownOptions(meta, story, options);
+}
 
 describe("renderStory", () => {
   it("composes meta decorators outside story decorators in Storybook order", () => {
@@ -132,7 +145,7 @@ describe("renderStory", () => {
 
   it("rejects non-options values passed as the third argument", () => {
     expect(() =>
-      renderStory(
+      renderStoryFromUntypedCallBoundary(
         {
           component: ({ label }: { label: string }) => createElement("span", null, label),
           args: { label: "base" },
@@ -140,7 +153,6 @@ describe("renderStory", () => {
         {
           args: { label: "story" },
         },
-        // @ts-expect-error legacy escape: renderStory third argument rejects non-RenderOptions callers.
         true,
       ),
     ).toThrowError("renderStory third argument must be Testing Library RenderOptions.");

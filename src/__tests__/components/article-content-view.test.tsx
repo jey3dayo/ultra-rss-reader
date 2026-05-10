@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { SanitizedArticleHtmlDtoSchema } from "@/api/schemas/article";
 import {
   ArticleContentView,
   fromSanitizedArticleHtml,
@@ -138,6 +139,16 @@ describe("ArticleContentView", () => {
     };
 
     expect(fromSanitizedArticleHtmlDto(sanitizedDto)).toBe(sanitizedDto.content_sanitized);
+  });
+
+  it("keeps the sanitized HTML brand boundary tied to the runtime DTO schema", () => {
+    const articleDto = SanitizedArticleHtmlDtoSchema.parse({
+      content_sanitized: "<p data-source='rust-sanitizer'>Safe <em>content</em></p>",
+    });
+
+    expect(fromSanitizedArticleHtmlDto(articleDto)).toBe(articleDto.content_sanitized);
+    expect(() => SanitizedArticleHtmlDtoSchema.parse({ content: "<p>Raw body</p>" })).toThrow();
+    expect(() => SanitizedArticleHtmlDtoSchema.parse({ content_sanitized: null })).toThrow();
   });
 
   it("rejects raw string content at the view prop type boundary", () => {

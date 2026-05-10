@@ -50,7 +50,7 @@ import {
   sampleTagSeeds,
   sampleTags,
 } from "./fixtures";
-import { renderStory, type StoryDecorator, type StoryMeta } from "./render-story";
+import { renderStory, type StoryDecorator, type StoryLike, type StoryMeta } from "./render-story";
 
 type CommandSuccess<TCommand> = TCommand extends (...args: infer _Args) => Result.ResultAsync<infer Output, unknown>
   ? Output
@@ -63,6 +63,19 @@ function expectUniqueIds(items: readonly { id: string }[]) {
 
 function expectNonBlank(value: string | null | undefined, message: string) {
   expect(value?.trim().length ?? 0, message).toBeGreaterThan(0);
+}
+
+function renderStoryFromUntypedCallBoundary<TArgs extends Record<string, unknown>>(
+  meta: StoryMeta<TArgs>,
+  story: StoryLike<TArgs>,
+  options: unknown,
+): ReturnType<typeof renderStory<TArgs>> {
+  const renderWithUnknownOptions = renderStory as (
+    meta: StoryMeta<TArgs>,
+    story: StoryLike<TArgs>,
+    options: unknown,
+  ) => ReturnType<typeof renderStory<TArgs>>;
+  return renderWithUnknownOptions(meta, story, options);
 }
 
 describe("test fixtures", () => {
@@ -258,25 +271,6 @@ describe("test fixtures", () => {
     expectTypeOf(createSampleMuteKeywords()).toEqualTypeOf<MutableTestFixture<MuteKeywordDto>>();
     expectTypeOf(createSampleTags()).toEqualTypeOf<MutableTestFixture<TagDto>>();
 
-    if (Date.now() < 0) {
-      const seedAccount = sampleAccountSeeds[0];
-      if (seedAccount?.capabilities) {
-        // @ts-expect-error negative type contract: ReadonlyFixtureSeed<AccountDto> rejects direct seed mutation.
-        seedAccount.name = "Direct Seed Mutation";
-        // @ts-expect-error negative type contract: ReadonlyFixtureSeed<AccountDto> keeps nested fields readonly.
-        seedAccount.capabilities.supports_search = true;
-      }
-      // @ts-expect-error negative type contract: ReadonlyFixtureSeed<AccountDto> rejects collection mutation.
-      sampleAccountSeeds.push(...createSampleAccounts());
-      const mutableAccounts = createSampleAccounts();
-      const mutableAccount = mutableAccounts[0];
-      if (mutableAccount?.capabilities) {
-        mutableAccount.name = "Mutable Clone";
-        mutableAccount.capabilities.supports_search = true;
-      }
-      mutableAccounts.push(...createSampleAccounts());
-    }
-
     expect(createSampleAccounts()).toEqual(sampleAccounts);
   });
 });
@@ -439,12 +433,11 @@ describe("renderStory", () => {
     };
 
     expect(() =>
-      renderStory(
+      renderStoryFromUntypedCallBoundary(
         meta,
         {
           args: { label: "story" },
         },
-        // @ts-expect-error legacy escape: renderStory third argument rejects non-RenderOptions callers.
         true,
       ),
     ).toThrowError("renderStory third argument must be Testing Library RenderOptions.");

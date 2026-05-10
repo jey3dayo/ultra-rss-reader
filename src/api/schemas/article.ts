@@ -14,12 +14,18 @@ const nullableRemoteImageUrlSchema = z
   .pipe(z.string().min(1))
   .nullable();
 
+const sanitizedArticleHtmlDtoShape = {
+  content_sanitized: z.string(),
+} as const;
+
+export const SanitizedArticleHtmlDtoSchema = z.object(sanitizedArticleHtmlDtoShape);
+
 export const ArticleDtoSchema = z
   .object({
     id: z.string(),
     feed_id: z.string(),
     title: z.string(),
-    content_sanitized: z.string(),
+    ...sanitizedArticleHtmlDtoShape,
     summary: z.string().nullable(),
     url: nullableNonBlankStringSchema,
     author: z.string().nullable(),
@@ -33,4 +39,5 @@ export const ArticleDtoSchema = z
 
 export const ArticleDtoListSchema = z.array(ArticleDtoSchema);
 
+export type SanitizedArticleHtmlDto = z.output<typeof SanitizedArticleHtmlDtoSchema>;
 export type ArticleDto = z.output<typeof ArticleDtoSchema>;

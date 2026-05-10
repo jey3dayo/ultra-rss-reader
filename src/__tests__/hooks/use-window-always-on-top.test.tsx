@@ -5,12 +5,16 @@ import { useWindowAlwaysOnTop } from "@/hooks/use-window-always-on-top";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
-const { setAlwaysOnTopMock } = vi.hoisted(() => ({
+const { isAlwaysOnTopMock, isFullscreenMock, setAlwaysOnTopMock } = vi.hoisted(() => ({
+  isAlwaysOnTopMock: vi.fn(),
+  isFullscreenMock: vi.fn(),
   setAlwaysOnTopMock: vi.fn(),
 }));
 
 vi.mock("@tauri-apps/api/window", () => ({
   getCurrentWindow: () => ({
+    isAlwaysOnTop: isAlwaysOnTopMock,
+    isFullscreen: isFullscreenMock,
     setAlwaysOnTop: setAlwaysOnTopMock,
   }),
 }));
@@ -36,6 +40,10 @@ describe("useWindowAlwaysOnTop", () => {
   beforeEach(() => {
     resetTauriRuntimeFlags();
     setTauriRuntimePresent();
+    isAlwaysOnTopMock.mockReset();
+    isAlwaysOnTopMock.mockResolvedValue(false);
+    isFullscreenMock.mockReset();
+    isFullscreenMock.mockResolvedValue(false);
     setAlwaysOnTopMock.mockReset();
     setAlwaysOnTopMock.mockResolvedValue(undefined);
     consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -128,6 +136,60 @@ describe("useWindowAlwaysOnTop", () => {
       expect(setAlwaysOnTopMock).toHaveBeenCalledWith(true);
     });
     expect(consoleWarnSpy).not.toHaveBeenCalled();
+  });
+
+  it("warns when the runtime always-on-top state drifts from the preference after apply", async () => {
+    usePreferencesStore.setState({
+      prefs: { window_always_on_top: "true" },
+      loaded: true,
+    });
+    isAlwaysOnTopMock.mockResolvedValue(false);
+
+    render(<HookHarness />);
+
+    await waitFor(() => {
+      expect(setAlwaysOnTopMock).toHaveBeenCalledWith(true);
+      expect(isAlwaysOnTopMock).toHaveBeenCalledOnce();
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        "Window always-on-top preference drift detected:",
+        "preferred=true",
+        "actual=false",
+      );
+    });
+  });
+
+  it("warns when fullscreen may conflict with an enabled always-on-top preference", async () => {
+    usePreferencesStore.setState({
+      prefs: { window_always_on_top: "true" },
+      loaded: true,
+    });
+    isAlwaysOnTopMock.mockResolvedValue(true);
+    isFullscreenMock.mockResolvedValue(true);
+
+    render(<HookHarness />);
+
+    await waitFor(() => {
+      expect(setAlwaysOnTopMock).toHaveBeenCalledWith(true);
+      expect(isFullscreenMock).toHaveBeenCalledOnce();
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        "Window always-on-top preference is enabled while fullscreen is active.",
+      );
+    });
+  });
+
+  it("surfaces runtime drift check failures to debug output", async () => {
+    usePreferencesStore.setState({
+      prefs: { window_always_on_top: "true" },
+      loaded: true,
+    });
+    isAlwaysOnTopMock.mockRejectedValue(new Error("state unavailable"));
+
+    render(<HookHarness />);
+
+    await waitFor(() => {
+      expect(setAlwaysOnTopMock).toHaveBeenCalledWith(true);
+      expect(consoleWarnSpy).toHaveBeenCalledWith("Failed to read window always-on-top state:", "state unavailable");
+    });
   });
 
   it("ignores stale failures from an earlier toggle request", async () => {

@@ -28,9 +28,32 @@ function emitKeyboardEvent(name: (typeof keyboardEvents)[keyof typeof keyboardEv
   window.dispatchEvent(new Event(name));
 }
 
-function isGlobalShortcutBlockedByModal(): boolean {
-  const state = useUiStore.getState();
-  return state.settingsOpen || state.confirmDialog.open || state.shortcutsHelpOpen || state.commandPaletteOpen;
+const blockingTopLayerSelector = [
+  '[data-slot="dialog-content"][data-stack-layer]',
+  "dialog[open]",
+  '[role="dialog"][aria-modal="true"]',
+].join(", ");
+
+function hasOpenPopoverElement(): boolean {
+  const popoverElements = document.querySelectorAll("[popover]");
+  for (const element of popoverElements) {
+    if (element.matches('[data-state="open"], [data-open]')) {
+      return true;
+    }
+
+    try {
+      if (element.matches(":popover-open")) {
+        return true;
+      }
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
+
+function isGlobalShortcutBlockedByTopLayer(): boolean {
+  return document.querySelector(blockingTopLayerSelector) !== null || hasOpenPopoverElement();
 }
 
 type RepeatNavigationAction =
@@ -106,7 +129,7 @@ export function useKeyboard() {
         return;
       }
 
-      if (isGlobalShortcutBlockedByModal()) {
+      if (isGlobalShortcutBlockedByTopLayer()) {
         return;
       }
 
