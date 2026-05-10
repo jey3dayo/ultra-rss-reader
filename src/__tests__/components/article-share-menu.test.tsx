@@ -3,11 +3,17 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ComponentProps } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { SHARE_COMMAND_TEXT_MAX_CHARS } from "@/api/schemas/commands";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { ArticleShareMenu } from "@/components/reader/article-share-menu";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
-const { addArticleToReadingListMock, copyArticleLinkMock, openExternalUrlMock, openInBrowserMock } = vi.hoisted(() => ({
+const {
+  addArticleToReadingListMock,
+  copyArticleLinkMock,
+  openExternalUrlMock,
+  openInBrowserMock,
+} = vi.hoisted(() => ({
   addArticleToReadingListMock: vi.fn(),
   copyArticleLinkMock: vi.fn(),
   openExternalUrlMock: vi.fn(),
@@ -51,10 +57,18 @@ const labels = {
   linkCopied: "Link copied",
 };
 
-function renderShareMenu(props: Partial<ComponentProps<typeof ArticleShareMenu>> = {}) {
+function renderShareMenu(
+  props: Partial<ComponentProps<typeof ArticleShareMenu>> = {},
+) {
   return render(
     <TooltipProvider>
-      <ArticleShareMenu article={article} supportsReadingList showToast={vi.fn()} labels={labels} {...props} />
+      <ArticleShareMenu
+        article={article}
+        supportsReadingList
+        showToast={vi.fn()}
+        labels={labels}
+        {...props}
+      />
     </TooltipProvider>,
   );
 }
@@ -76,13 +90,18 @@ describe("ArticleShareMenu", () => {
     renderShareMenu({ showToast });
 
     await user.click(screen.getByRole("button", { name: "Share" }));
-    await user.click(await screen.findByRole("menuitem", { name: "Copy link" }));
+    await user.click(
+      await screen.findByRole("menuitem", { name: "Copy link" }),
+    );
 
     await waitFor(() => {
-      expect(copyArticleLinkMock).toHaveBeenCalledWith("https://example.com/article", {
-        showToast,
-        successMessage: "Link copied",
-      });
+      expect(copyArticleLinkMock).toHaveBeenCalledWith(
+        "https://example.com/article",
+        {
+          showToast,
+          successMessage: "Link copied",
+        },
+      );
     });
     expect(openInBrowserMock).not.toHaveBeenCalled();
   });
@@ -95,7 +114,9 @@ describe("ArticleShareMenu", () => {
     renderShareMenu({ showToast });
 
     await user.click(screen.getByRole("button", { name: "Share" }));
-    await user.click(await screen.findByRole("menuitem", { name: "Share via Email" }));
+    await user.click(
+      await screen.findByRole("menuitem", { name: "Share via Email" }),
+    );
 
     await waitFor(() => {
       expect(openExternalUrlMock).toHaveBeenCalledWith(
@@ -107,7 +128,7 @@ describe("ArticleShareMenu", () => {
     expect(copyArticleLinkMock).not.toHaveBeenCalled();
   });
 
-  it("uses fallback subject and body values for blank email share inputs", async () => {
+  it("does not open email share when the article URL is unavailable", async () => {
     const user = userEvent.setup();
     const showToast = vi.fn();
     openExternalUrlMock.mockResolvedValue(Result.succeed(undefined));
@@ -122,13 +143,11 @@ describe("ArticleShareMenu", () => {
     });
 
     await user.click(screen.getByRole("button", { name: "Share" }));
-    await user.click(await screen.findByRole("menuitem", { name: "Share via Email" }));
+    await user.click(
+      await screen.findByRole("menuitem", { name: "Share via Email" }),
+    );
 
-    await waitFor(() => {
-      expect(openExternalUrlMock).toHaveBeenCalledWith(
-        "mailto:?subject=Untitled%20article&body=Article%20URL%20unavailable",
-      );
-    });
+    expect(openExternalUrlMock).not.toHaveBeenCalled();
     expect(showToast).not.toHaveBeenCalled();
   });
 
@@ -149,11 +168,13 @@ describe("ArticleShareMenu", () => {
     });
 
     await user.click(screen.getByRole("button", { name: "Share" }));
-    await user.click(await screen.findByRole("menuitem", { name: "Share via Email" }));
+    await user.click(
+      await screen.findByRole("menuitem", { name: "Share via Email" }),
+    );
 
     await waitFor(() => {
       expect(openExternalUrlMock).toHaveBeenCalledWith(
-        `mailto:?subject=${encodeURIComponent(longTitle.slice(0, 160))}&body=${encodeURIComponent(longUrl.slice(0, 2_000))}`,
+        `mailto:?subject=${encodeURIComponent(longTitle.slice(0, 160))}&body=${encodeURIComponent(longUrl.slice(0, SHARE_COMMAND_TEXT_MAX_CHARS))}`,
       );
     });
     expect(showToast).not.toHaveBeenCalled();
@@ -188,7 +209,9 @@ describe("ArticleShareMenu", () => {
     renderShareMenu({ showToast });
 
     await user.click(screen.getByRole("button", { name: "Share" }));
-    await user.click(await screen.findByRole("menuitem", { name: "Share via Email" }));
+    await user.click(
+      await screen.findByRole("menuitem", { name: "Share via Email" }),
+    );
 
     await waitFor(() => {
       expect(showToast).toHaveBeenCalledWith("Mail client unavailable");
