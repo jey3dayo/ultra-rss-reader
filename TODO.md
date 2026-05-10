@@ -36,11 +36,6 @@
 
 ### Release / Native / Keyboard / I18n / A11y
 
-- [ ] P3 Japanese long-label screenshot smoke を settings / article toolbar / account detail に追加する
-  - 対象: `e2e/storybook`, `src/locales/ja`, `src/components/settings`, `src/components/reader/article-toolbar-view.tsx`
-  - 日本語 copy は英語より幅を取りやすく、compact toolbar や settings row で overflow / overlap を起こしても unit test では見えにくい
-  - ja locale、narrow viewport、large text、button label overflow、account detail section、toolbar actions の screenshot smoke を追加する
-
 - [ ] P3 visual regression smoke の対象を dense UI / a11y state に限定して追加する
   - 対象: `e2e/storybook`, `src/components/reader`, `src/components/settings`
   - 全画面 snapshot を増やすと保守が重いが、dense UI の overlap や hidden focus ring は通常の DOM assertion では検出しづらい
@@ -83,26 +78,6 @@
   - superseded by: `P1-Q4c` runtime corruption
   - invalid row を warn で隠すと UI 上は account が消えたように見え、復旧導線や support log との接続が弱い
   - invalid kind、missing name、quarantine count、diagnostics event、settings recovery copy の contract test を追加する
-
-- [ ] P3 `listArticles` / `listAccountArticles` overloaded positional args を object params へ寄せる候補を作る
-  - 対象: `src/api/tauri-commands.ts`, `src/hooks`, `src/components/reader/hooks/article-list`
-  - overloaded positional args は `listArticles(feedId, 20, 50)` と `listArticles(feedId, true, 20, 50)` の読み間違いを誘発しやすい
-  - all overload shapes、boolean+offset/limit、numeric first arg、invalid negative offset、object-param migration plan の test を追加する
-
-- [ ] P3 Sidebar feed/tags section open state の remount persistence policy を決める
-  - 対象: `src/components/reader/hooks/sidebar/use-sidebar-runtime.ts`, `src/components/app-layout.tsx`
-  - section collapse state が hook-local のため、subscriptions workspace や layout remount でユーザーの閉じた状態が戻る
-  - collapse feeds/tags -> workspace open/close、wide/mobile switch、sidebar unmount/remount、storage owner の test を追加する
-
-- [ ] P2 `pnpm-lock.yaml` の transitive duplicate major を supply-chain TODO として棚卸しする
-  - 対象: `pnpm-lock.yaml`, `package.json`, `scripts/quality-baseline.ts`
-  - `lru-cache` や `signal-exit` など複数 major が残ると、依存更新時の CVE triage と bundle size 判断が属人化しやすい
-  - duplicate major inventory、direct/transitive分類、known acceptable allowlist、lockfile drift report の script task を追加する
-
-- [ ] P3 OPML parser/generator corpus を checked-in fixture directory に分離する
-  - 対象: `src-tauri/src/infra/opml.rs`, `tests/fixtures`, `docs/feed-content-privacy.md`
-  - OPML variants が Rust unit 内 string に散ると、実 reader 由来の fixture 追加や privacy review がやりにくい
-  - fixture directory、redacted real OPML、round-trip fixtures、invalid fixture naming、privacy checklist の task に分割する
 
 - [ ] P2 article reader scroll position retention policy を決める
   - 対象: `src/components/reader/hooks/article`, `src/stores/ui-store.ts`
@@ -283,11 +258,6 @@
   - 対象: Tauri config、Vite dev config、release smoke
   - dev HMR 用 CSP と production CSP がずれると、release だけ blank screen または不要に広い permission になる
   - script-src、style-src、connect-src、font-src、dev HMR exception、release artifact CSP の check を追加する
-
-- [ ] P2 article HTML table / code block / pre layout overflow を reader visual contract にする
-  - 対象: article content view CSS、sanitized HTML fixtures
-  - wide table、long code line、preformatted text が pane 外へ出ると reader/browser overlay/control と重なる
-  - wide table、long URL、long code line、mobile width、copy/select behavior の visual fixture を追加する
 
 - [ ] P2 image/fallback favicon cache eviction を account/feed deletion と同期する
   - 対象: favicon/image cache helpers、feed deletion flow、storage cleanup
