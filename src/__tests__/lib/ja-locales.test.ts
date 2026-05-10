@@ -11,7 +11,7 @@ describe("Japanese feed management labels", () => {
   it("keeps subscription review reason labels consistent", () => {
     expect(jaSubscriptions.reason_no_unread).toBe("未読なし");
     expect(jaSubscriptions.reason_no_stars).toBe("スターなし");
-    expect(jaSubscriptions.fact_stale_days).toBe("更新なし {{count}}日");
+    expect(jaSubscriptions.fact_stale_days).toBe("更新なし {{count, count}}日");
   });
 
   it("keeps in-place decision labels short", () => {

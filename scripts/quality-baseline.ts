@@ -1,6 +1,6 @@
 import type { SpawnSyncReturns } from "node:child_process";
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 const reactDoctorVersion = "0.1.4";
@@ -71,6 +71,15 @@ const lockfileDuplicateMajorBaseline = {
   duplicateMajorCount: 82,
   directDuplicatePackageCount: 1,
   unreviewedDuplicatePackageCount: 36,
+} as const;
+
+export const dependencyLicenseInventoryContract = {
+  reportPath: "tmp/dependency-license-inventory.json",
+  pnpmCommand: ["pnpm", "licenses", "list", "--json"],
+  cargoCommand: ["cargo", "metadata", "--manifest-path", "src-tauri/Cargo.toml", "--format-version", "1"],
+  requiredEcosystems: ["pnpm", "cargo"],
+  reviewPolicy:
+    "Review unknown and dual-license entries before release distribution; generated inventory artifacts stay under tmp/.",
 } as const;
 
 export const tailwindArbitraryValuesInventoryContract = {
@@ -171,6 +180,25 @@ export type TailwindArbitraryValueInventory = {
   entries: TailwindArbitraryValueEntry[];
 };
 
+export type DependencyLicenseFinding = {
+  ecosystem: "pnpm" | "cargo";
+  packageName: string;
+  version?: string;
+  license: string;
+  review: "ok" | "dual-license" | "unknown-license";
+};
+
+export type DependencyLicenseInventory = {
+  generatedReportPath: string;
+  ecosystems: Record<(typeof dependencyLicenseInventoryContract.requiredEcosystems)[number], number>;
+  summary: {
+    total: number;
+    unknownLicenseCount: number;
+    dualLicenseCount: number;
+  };
+  findings: DependencyLicenseFinding[];
+};
+
 export type QualityToolDiagnosticKind =
   | "missing-command"
   | "non-zero-exit"
@@ -197,10 +225,11 @@ export function runQualityBaseline(command: string | undefined = process.argv[2]
     command !== "react-doctor:full" &&
     command !== "knip" &&
     command !== "lockfile-duplicate-majors" &&
-    command !== "tailwind-arbitrary-values"
+    command !== "tailwind-arbitrary-values" &&
+    command !== "dependency-licenses"
   ) {
     console.error(
-      "Usage: node scripts/quality-baseline.ts react-doctor:diff|react-doctor:full|knip|lockfile-duplicate-majors|tailwind-arbitrary-values",
+      "Usage: node scripts/quality-baseline.ts react-doctor:diff|react-doctor:full|knip|lockfile-duplicate-majors|tailwind-arbitrary-values|dependency-licenses",
     );
     process.exit(2);
   }
@@ -213,8 +242,10 @@ export function runQualityBaseline(command: string | undefined = process.argv[2]
     runKnip();
   } else if (command === "lockfile-duplicate-majors") {
     runLockfileDuplicateMajorReport();
-  } else {
+  } else if (command === "tailwind-arbitrary-values") {
     runTailwindArbitraryValuesInventory();
+  } else {
+    runDependencyLicenseInventory();
   }
 }
 
@@ -372,6 +403,64 @@ function runTailwindArbitraryValuesInventory(): void {
   }
 }
 
+function runDependencyLicenseInventory(): void {
+  const pnpmResult = spawnSync(
+    dependencyLicenseInventoryContract.pnpmCommand[0],
+    dependencyLicenseInventoryContract.pnpmCommand.slice(1),
+    { encoding: "utf8", timeout: qualityToolTimeoutMs },
+  );
+  const pnpmDiagnostic = createProcessDiagnostic("pnpm license inventory", "pnpm licenses list --json", pnpmResult);
+  if (pnpmDiagnostic !== null) {
+    writeToolDiagnostic(pnpmDiagnostic);
+    process.exit(exitCodeForDiagnostic(pnpmDiagnostic));
+  }
+
+  const cargoResult = spawnSync(
+    dependencyLicenseInventoryContract.cargoCommand[0],
+    dependencyLicenseInventoryContract.cargoCommand.slice(1),
+    { encoding: "utf8", timeout: qualityToolTimeoutMs },
+  );
+  const cargoDiagnostic = createProcessDiagnostic(
+    "Cargo license inventory",
+    "cargo metadata --manifest-path src-tauri/Cargo.toml --format-version 1",
+    cargoResult,
+  );
+  if (cargoDiagnostic !== null) {
+    writeToolDiagnostic(cargoDiagnostic);
+    process.exit(exitCodeForDiagnostic(cargoDiagnostic));
+  }
+
+  let inventory: DependencyLicenseInventory;
+  try {
+    inventory = buildDependencyLicenseInventory({
+      pnpm: JSON.parse(readJsonPayload(pnpmResult.stdout)),
+      cargo: JSON.parse(readJsonPayload(cargoResult.stdout)),
+    });
+  } catch (error) {
+    const diagnostic = createReportDiagnostic(
+      "Dependency license inventory",
+      "pnpm licenses list --json && cargo metadata --manifest-path src-tauri/Cargo.toml --format-version 1",
+      `${pnpmResult.stdout}\n${cargoResult.stdout}`,
+      error,
+    );
+    writeToolDiagnostic(diagnostic);
+    process.exit(exitCodeForDiagnostic(diagnostic));
+  }
+
+  mkdirSync("tmp", { recursive: true });
+  writeFileSync(dependencyLicenseInventoryContract.reportPath, `${JSON.stringify(inventory, null, 2)}\n`);
+  console.log(
+    [
+      `Dependency licenses: total=${inventory.summary.total}`,
+      `pnpm=${inventory.ecosystems.pnpm}`,
+      `cargo=${inventory.ecosystems.cargo}`,
+      `unknown=${inventory.summary.unknownLicenseCount}`,
+      `dual=${inventory.summary.dualLicenseCount}`,
+      `report=${inventory.generatedReportPath}`,
+    ].join(" "),
+  );
+}
+
 export function buildLockfileDuplicateMajorReport(
   lockfile: string,
   manifest: PackageManifest,
@@ -428,6 +517,89 @@ export function buildTailwindArbitraryValueInventory(
   }
 
   return { summary, entries };
+}
+
+export function buildDependencyLicenseInventory(reports: {
+  pnpm: unknown;
+  cargo: unknown;
+}): DependencyLicenseInventory {
+  const findings = [...readPnpmLicenseFindings(reports.pnpm), ...readCargoLicenseFindings(reports.cargo)].sort(
+    (left, right) =>
+      left.ecosystem.localeCompare(right.ecosystem) ||
+      left.packageName.localeCompare(right.packageName) ||
+      (left.version ?? "").localeCompare(right.version ?? ""),
+  );
+
+  return {
+    generatedReportPath: dependencyLicenseInventoryContract.reportPath,
+    ecosystems: {
+      pnpm: findings.filter((finding) => finding.ecosystem === "pnpm").length,
+      cargo: findings.filter((finding) => finding.ecosystem === "cargo").length,
+    },
+    summary: {
+      total: findings.length,
+      unknownLicenseCount: findings.filter((finding) => finding.review === "unknown-license").length,
+      dualLicenseCount: findings.filter((finding) => finding.review === "dual-license").length,
+    },
+    findings,
+  };
+}
+
+function readPnpmLicenseFindings(report: unknown): DependencyLicenseFinding[] {
+  if (!isObject(report)) {
+    throw new Error("pnpm licenses did not return a JSON object.");
+  }
+
+  return Object.entries(report).flatMap(([license, value]) => {
+    const entries = Array.isArray(value) ? value : [];
+    return entries.filter(isObject).map((entry) => {
+      const packageName = readString(entry, "name");
+      return {
+        ecosystem: "pnpm" as const,
+        packageName,
+        version:
+          readOptionalString(entry, "version") ??
+          readOptionalStringArray(entry, "versions")?.join(",") ??
+          readPackageVersionSuffix(packageName),
+        license,
+        review: classifyLicenseReview(license),
+      };
+    });
+  });
+}
+
+function readCargoLicenseFindings(report: unknown): DependencyLicenseFinding[] {
+  const packages = Array.isArray(report) ? report : isObject(report) && Array.isArray(report.packages) ? report.packages : null;
+  if (packages === null) {
+    throw new Error("cargo metadata did not return a packages array.");
+  }
+
+  return packages.filter(isObject).map((entry) => {
+    const license = readOptionalString(entry, "license") ?? "UNKNOWN";
+    return {
+      ecosystem: "cargo" as const,
+      packageName: readString(entry, "name"),
+      version: readOptionalString(entry, "version"),
+      license,
+      review: classifyLicenseReview(license),
+    };
+  });
+}
+
+function classifyLicenseReview(license: string): DependencyLicenseFinding["review"] {
+  const normalizedLicense = license.trim();
+  if (normalizedLicense.length === 0 || /^unknown$/i.test(normalizedLicense) || /no license/i.test(normalizedLicense)) {
+    return "unknown-license";
+  }
+  if (/\b(?:OR|AND)\b|\//.test(normalizedLicense)) {
+    return "dual-license";
+  }
+  return "ok";
+}
+
+function readPackageVersionSuffix(packageName: string): string | undefined {
+  const separatorIndex = packageName.startsWith("@") ? packageName.indexOf("@", 1) : packageName.lastIndexOf("@");
+  return separatorIndex === -1 ? undefined : packageName.slice(separatorIndex + 1);
 }
 
 export function isTailwindArbitraryValueInventorySourcePath(filePath: string): boolean {
@@ -947,6 +1119,16 @@ function readString(source: Record<string, unknown>, key: string): string {
     throw new Error(`Expected string at ${key}.`);
   }
   return value;
+}
+
+function readOptionalString(source: Record<string, unknown>, key: string): string | undefined {
+  const value = source[key];
+  return typeof value === "string" ? value : undefined;
+}
+
+function readOptionalStringArray(source: Record<string, unknown>, key: string): string[] | undefined {
+  const value = source[key];
+  return Array.isArray(value) && value.every((entry) => typeof entry === "string") ? value : undefined;
 }
 
 function readNumber(source: Record<string, unknown>, key: string): number {

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { stubNavigatorPlatform } from "@tests/helpers/navigator-platform";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
@@ -8,6 +8,7 @@ import { ARTICLE_LIST_PANE_WIDTH_PX, SIDEBAR_PANE_WIDTH_PX } from "@/constants/u
 import { shouldUseDesktopOverlayTitlebar } from "@/lib/window/window-chrome";
 import { usePlatformStore } from "@/stores/platform-store";
 import { useUiStore } from "@/stores/ui-store";
+import { flushTestMutationObservers } from "../../tests/setup";
 
 const defaultCapabilities = {
   supports_reading_list: false,
@@ -116,10 +117,15 @@ describe("App", () => {
     const lazyButton = document.createElement("button");
     lazyButton.type = "button";
     lazyButton.textContent = "Lazy child";
-    hiddenListPane?.append(lazyButton);
+    await act(async () => {
+      hiddenListPane?.append(lazyButton);
+      flushTestMutationObservers();
+    });
 
     expect(initialListFocusable).not.toBeNull();
-    expect(initialListFocusable).toHaveAttribute("tabindex", "-1");
+    await waitFor(() => {
+      expect(initialListFocusable).toHaveAttribute("tabindex", "-1");
+    });
     await waitFor(() => {
       expect(lazyButton).toHaveAttribute("tabindex", "-1");
     });

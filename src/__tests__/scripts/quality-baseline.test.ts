@@ -1,11 +1,13 @@
 import type { SpawnSyncReturns } from "node:child_process";
 import { describe, expect, it } from "vitest";
 import {
+  buildDependencyLicenseInventory,
   buildLockfileDuplicateMajorReport,
   buildTailwindArbitraryValueInventory,
   classifyTailwindArbitraryValue,
   createProcessDiagnostic,
   createReportDiagnostic,
+  dependencyLicenseInventoryContract,
   isQualityBaselineRepoScanIgnoredPath,
   isTailwindArbitraryValueInventorySourcePath,
   parseKnipReport,
@@ -318,6 +320,69 @@ describe("quality-baseline", () => {
       "z-index:1:z-[60]",
       "motion-critical:2:motion-safe:duration-[180ms]",
       "one-off-allowed:2:supports-[backdrop-filter]:bg-background/80",
+    ]);
+  });
+
+  it("builds a combined pnpm and Cargo dependency license inventory with review buckets", () => {
+    expect(dependencyLicenseInventoryContract.reportPath).toBe("tmp/dependency-license-inventory.json");
+    expect(dependencyLicenseInventoryContract.pnpmCommand).toEqual(["pnpm", "licenses", "list", "--json"]);
+    expect(dependencyLicenseInventoryContract.cargoCommand).toEqual([
+      "cargo",
+      "metadata",
+      "--manifest-path",
+      "src-tauri/Cargo.toml",
+      "--format-version",
+      "1",
+    ]);
+
+    const inventory = buildDependencyLicenseInventory({
+      pnpm: {
+        MIT: [{ name: "react", versions: ["19.2.6"] }],
+        UNKNOWN: [{ name: "mystery-js@1.0.0" }],
+      },
+      cargo: {
+        packages: [
+          { name: "serde", version: "1.0.228", license: "MIT OR Apache-2.0" },
+          { name: "internal-crate", version: "0.1.0", license: "" },
+        ],
+      },
+    });
+
+    expect(inventory.ecosystems).toEqual({ pnpm: 2, cargo: 2 });
+    expect(inventory.summary).toEqual({
+      total: 4,
+      unknownLicenseCount: 2,
+      dualLicenseCount: 1,
+    });
+    expect(inventory.findings).toEqual([
+      {
+        ecosystem: "cargo",
+        packageName: "internal-crate",
+        version: "0.1.0",
+        license: "",
+        review: "unknown-license",
+      },
+      {
+        ecosystem: "cargo",
+        packageName: "serde",
+        version: "1.0.228",
+        license: "MIT OR Apache-2.0",
+        review: "dual-license",
+      },
+      {
+        ecosystem: "pnpm",
+        packageName: "mystery-js@1.0.0",
+        version: "1.0.0",
+        license: "UNKNOWN",
+        review: "unknown-license",
+      },
+      {
+        ecosystem: "pnpm",
+        packageName: "react",
+        version: "19.2.6",
+        license: "MIT",
+        review: "ok",
+      },
     ]);
   });
 });

@@ -3,8 +3,9 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { stubNavigatorPlatform } from "@tests/helpers/navigator-platform";
-import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
+import { createTauriMockCallRecorder, setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
+import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   AppShell,
@@ -118,6 +119,24 @@ describe("AppShell", () => {
     render(<AppShell />, { wrapper: createWrapper() });
 
     expect(screen.queryByText("Settings Modal")).not.toBeInTheDocument();
+  });
+
+  it("shares the startup platform info command across React StrictMode double mount", async () => {
+    const recorder = createTauriMockCallRecorder();
+    setupTauriMocks(recorder.handler);
+
+    render(
+      <StrictMode>
+        <AppShell />
+      </StrictMode>,
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => {
+      expect(usePlatformStore.getState().loaded).toBe(true);
+    });
+
+    expect(recorder.calls.filter((call) => call.cmd === "get_platform_info")).toHaveLength(1);
   });
 
   it("keeps settings modal recovery separate from telemetry when the modal fails to render", async () => {

@@ -4,7 +4,7 @@ import { renderHook } from "@testing-library/react";
 import { type TestUserVisibleAppError, testRetryableAppError, testUserVisibleAppError } from "@tests/helpers/app-error";
 import { flushMicrotasksAndRealTimer } from "@tests/helpers/async-flush";
 import { resetTauriRuntimeFlags, setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
-import { createElement, type PropsWithChildren } from "react";
+import { createElement, StrictMode, type PropsWithChildren } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TAURI_EVENT_LISTENER_FAILURE_EVENT } from "@/lib/runtime/tauri-event-listeners";
 
@@ -117,6 +117,28 @@ describe("performUpdateCheck", () => {
 
     deferred.resolve(Result.succeed(updateInfo("1.2.3")));
     await manualCheck;
+
+    expect(useUiStore.getState().toastMessage?.message).toBe("v1.2.3 が利用可能です");
+  });
+
+  it("shares a single startup update check across React StrictMode double mount", async () => {
+    const deferred = createDeferred<ReturnType<typeof Result.succeed<UpdateInfo>>>();
+    mockCheckForUpdate.mockReturnValue(deferred.promise);
+
+    const {
+      updaterModule: { useUpdater },
+      useUiStore,
+    } = await getUpdaterModuleAndUiStore();
+    useUiStore.setState(useUiStore.getInitialState());
+
+    renderHook(() => useUpdater(), {
+      wrapper: ({ children }: PropsWithChildren) => createElement(StrictMode, null, children),
+    });
+
+    expect(mockCheckForUpdate).toHaveBeenCalledTimes(1);
+
+    deferred.resolve(Result.succeed(updateInfo("1.2.3")));
+    await flushMicrotasksAndRealTimer();
 
     expect(useUiStore.getState().toastMessage?.message).toBe("v1.2.3 が利用可能です");
   });
