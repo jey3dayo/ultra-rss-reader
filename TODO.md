@@ -16,61 +16,6 @@
 - 既存 TODO と重なる場合は新しい項目を増やさず、該当 tranche の `supersedes` か検証条件へ統合する
 - backlog が過密な domain は追加列挙を止め、first tranche 実装、重複 merge、parallel-safe shard 化のどれかへ切り替える
 
-### TODO 棚卸し収束バッチ
-
-- [ ] P2 risk TODO の重複 merge と acceptance criteria 補強を先に回す
-  - 背景: TODO が backlog として過密になっており、実装 worker が同じ問題を別名で直すリスクが上がっている
-  - 対象: `TODO.md` の P1/P2、特に query invalidation、auth failure、recovery、runtime diagnostics、accessibility/focus 系
-  - 完了条件: 類似 task を親バッチへ集約し、残す leaf task には対象、問題、完了条件、focused test、defer を揃える
-  - 検証: `rg -n "query invalidation|auth failure|recovery|diagnostics|focus" TODO.md` で重複候補を確認し、merge 理由を残す
-  - defer: P3 の tooling 化は、手動 merge で基準が固まってから実装する
-
-#### TODO 棚卸し収束 実行 tranche
-
-- [ ] P2-C3 supersedes / superseded by 記法で leaf TODO を親 tranche へ回収する
-  - worker prompt: query invalidation、auth failure、recovery、diagnostics、focus の leaf TODO を 1 domain ずつ選び、親 tranche の `supersedes` と leaf 側の `superseded by` を対応させる
-  - 対象: `TODO.md`, future CHANGELOG move workflow
-  - 完了条件: leaf task を削除する前に、残す検証観点、統合先、削除理由が読める
-  - 検証: `rg -n "supersedes|superseded by|query invalidation|auth failure|recovery|diagnostics|focus" TODO.md`
-  - defer: 完了済み task の CHANGELOG 移動は、実装完了後の別作業にする
-
-#### Supersedes merge workflow
-
-- [ ] P2-C3a `query-cache` leaf TODO を `P1-Q5*` へ回収する
-  - merge target: `P1-Q5a` add/delete feed、`P1-Q5b` mutation diagnostics、`P1-Q5c` key normalization、`P1-Q5d` mute/tag/article matrix、`P1-Q5e` sync completed owner
-  - leaf search: `rg -n "query invalidation|query key|createMutation|createQuery|mute keyword invalidation|sync completed" TODO.md`
-  - rule: leaf にしかない検証観点は親 tranche の `supersedes` か完了条件へ移し、重複 leaf には `superseded by: P1-Q5x` を追記してから削除判断する
-  - done when: query/cache domain の重複 leaf が親 tranche か blocked queue のどちらかに必ず紐づく
-  - defer: 実際の leaf 削除は `P1-Q5a` 以降の実装完了後に行う
-
-- [ ] P2-C3b `provider-sync` auth failure leaf TODO を `P1-Q2*` へ回収する
-  - merge target: `P1-Q2a` auth storm、`P1-Q2b` credential rotation、`P1-Q2c` server URL/provider kind migration、`P1-Q2d` capability downgrade、`P1-Q2e` redaction/no-store
-  - leaf search: `rg -n "auth failure|credential rotation|server URL|provider capability|pending mutation|backoff|401|403|lockout" TODO.md`
-  - rule: scheduler/pending mutation を触る leaf は `P1-Q2a`〜`P1-Q2d` のどれかへ寄せ、diagnostics/redaction だけの leaf は `P1-Q2e` へ寄せる
-  - done when: auth failure 系 leaf が provider scheduler、settings credential editor、diagnostics redaction のどの owner か読める
-  - defer: provider HTTP politeness / crawl policy は provider-sync 運用バッチへ残す
-
-- [ ] P2-C3c `db-recovery` recovery leaf TODO を `P1-Q4*` へ回収する
-  - merge target: `P1-Q4a` migration/downgrade、`P1-Q4b` backup/restore integrity、`P1-Q4c` runtime corruption、`P1-Q4d` destructive recovery action、`P1-Q4e` frontend reconciliation
-  - leaf search: `rg -n "migration|downgrade|backup|restore|corruption|integrity_check|WAL|recovery|selected account|localStorage" TODO.md`
-  - rule: DB command/Rust migration leaf と settings data UI leaf を混ぜず、frontend stale cache/localStorage 系は `P1-Q4e` に集める
-  - done when: recovery leaf が migration、backup integrity、runtime DB error、settings destructive action、restore reconciliation のいずれかに分類される
-  - defer: DB encryption / uninstall retention / settings export import は privacy/docs バッチに残す
-
-- [ ] P2-C3d `runtime-diagnostics` leaf TODO を diagnostics owner へ回収する
-  - merge target: `P1-Q1d` runtime diagnostics redaction、`P1-Q2e` provider redaction、`P2-QT1` tool output diagnostics、関連 domain tranche
-  - leaf search: `rg -n "diagnostics|redaction|toast|safeInvoke|unhandled rejection|support dump|log" TODO.md`
-  - rule: secret/url/path redaction は `P1-Q1d`、provider auth/server URL redaction は `P1-Q2e`、tool output failure は `P2-QT1` へ寄せる
-  - done when: diagnostics leaf が user-facing toast、runtime redaction、provider redaction、tooling failure のどれかに分類される
-  - defer: telemetry/audit log の導入判断は future design task として残す
-
-- [ ] P2-C3e `focus/a11y/reader-state` leaf TODO を `P2-R*` / `P2-A11Y*` へ回収する
-  - merge target: `P2-R5` focus/timer cancellation、`P2-A11Y1` top-layer/focus trap、`P2-A11Y3` roving focus、`P2-A11Y4` keyboard/IME、`P2-A11Y5` landmark/focus visible
-  - leaf search: `rg -n "focus|keyboard|shortcut|IME|roving|Escape|Tab|aria|inert|landmark|color-only" TODO.md`
-  - rule: data/refetch による stale focus は `P2-R5`、modal/popover stack は `P2-A11Y1`、keyboard/IME は `P2-A11Y4` へ寄せる
-  - done when: focus/a11y leaf が reader state と top-layer/keyboard a11y のどちらに属するか明確になる
-  - defer: high contrast/zoom visual matrix と long article virtualization は visual regression/future reader design に残す
-
 ### TODO shard 方針
 
 - [ ] P2 TODO shard の domain taxonomy を固定する
@@ -124,6 +69,7 @@
 
 - [ ] P2 article read/star mutation の optimistic insertIfMissing policy を mode/filter と同期する
   - 対象: `src/hooks/use-articles.ts`, `src/lib/query/query-invalidation.ts`, `src/components/reader/article-list-body.tsx`
+  - superseded by: `P1-Q5d` mute/tag/article matrix
   - read/star mutation が missing article を cache に挿入する場合、unread/starred/recent/search の query mode に合わない item が混ざる可能性がある
   - unread mode read=true、starred mode unstar、recent query insert、search query insert、tag query insert の cache contract を追加する
 
@@ -131,11 +77,13 @@
 
 - [ ] P2 browser preview focus override script の site compatibility / security boundary を検証する
   - 対象: `src-tauri/src/browser_webview.rs`, `src/components/settings/reading-settings-view.tsx`, `src/__tests__/schemas/preferences-schema-contract.test.ts`
+  - superseded by: `P2-A11Y1` top-layer/focus trap
   - focus override は embedded page の visibility/focus APIs を差し替えるため、サイト側の media playback/analytics/keyboard handling を壊す可能性がある
   - keep focus on/off、visibilitychange listener、non-configurable property、site script error、setting copy、disable fallback の test/実機検証 TODO にする
 
 - [ ] P3 diagnostics event names / payload schema を central registry 化する
   - 対象: `src-tauri/src/browser_webview.rs`, `src/lib/runtime/diagnostics.ts`, `src/api/schemas/browser-webview.ts`
+  - superseded by: `P1-Q1d` runtime diagnostics redaction
   - diagnostics/fallback/state event name が Rust/frontend に分散しており、rename 時に listener と emitter が片方だけ変わる risk がある
   - event name registry、payload schema parity、unknown event allowlist、test helper emit fixture の配置を決める
 
@@ -171,11 +119,13 @@
 
 - [ ] P2 DB backup cleanup の retention / path redaction / restore message を migration fixture で固定する
   - 対象: `src-tauri/src/infra/db/backup.rs`, `src-tauri/src/infra/db/connection.rs`, `src-tauri/src/infra/db/migration.rs`
+  - superseded by: `P1-Q4b` backup/restore integrity
   - migration backup は失敗時の最後の復旧手段なので、cleanup retention や error message に local path/token が出ない保証が必要
   - keep latest 3、cleanup failure warning、restore failure、redacted backup path、manual restore instruction の Rust test を追加する
 
 - [ ] P2 migration fresh DB path と existing DB backup path の reconcile side effects を分ける
   - 対象: `src-tauri/src/infra/db/connection.rs`, `src-tauri/src/infra/db/migration.rs`, `src-tauri/tests`
+  - superseded by: `P1-Q4a` migration/downgrade
   - fresh DB と existing DB で backup有無は違うが、reconcile_article_content_text/unread_counts は両方で走るため、fresh init と migration repair の責務が混ざりやすい
   - fresh DB、existing no migration、migration success、migration failure restore、reconcile failure の integration test を追加する
 
@@ -196,11 +146,13 @@
 
 - [ ] P1 FreshRSS 認証情報更新を connection verification 必須 contract にする
   - 対象: `src-tauri/src/commands/account_commands.rs`, `src/components/settings/hooks/account-detail/use-account-detail-credentials-editor.ts`
+  - superseded by: `P1-Q2b` credential rotation
   - `update_account_credentials` と `test_account_connection` が分離しているため、壊れた server_url/username/password を保存して次回 sync まで failure が遅延しやすい
   - save-before-test、test-before-save、keyring unavailable、verification stale、settings toast の contract を追加する
 
 - [ ] P1 Keyring credential rollback を旧 password 復元 policy にする
   - 対象: `src-tauri/src/commands/account_commands.rs`, `src-tauri/src/infra/keyring_store.rs`
+  - superseded by: `P1-Q2b` credential rotation
   - credential update 後に DB update が失敗すると rollback が delete になり、既存 credential を失う可能性がある
   - old password read success、old password read failure、set new success + DB failure、rollback failure warning、retry UX の Rust test を追加する
 
@@ -271,11 +223,13 @@
 
 - [ ] P2 `focus_sidebar` shortcut が keyboard focus まで戻す contract を作る
   - 対象: `src/hooks/use-keyboard.ts`, `src/lib/reader-focus.ts`, `src/__tests__/hooks/use-keyboard.test.tsx`
+  - superseded by: `P2-R5` focus/timer cancellation
   - ArrowLeft 経路は selected sidebar target へ focus するが shortcut action は sidebar を開くだけで、focus が article/list に残りやすい
   - sidebar closed、selected feed missing、account pane open、mobile layout、focus target not found の test を追加する
 
 - [ ] P2 menu action callback の synchronous throw を diagnostics boundary に閉じ込める
   - 対象: `src/hooks/use-menu-events.ts`, `src/lib/actions.ts`, `src/lib/runtime/diagnostics.ts`
+  - superseded by: `P1-Q1d` runtime diagnostics redaction
   - payload guard 後の known action が同期 throw した場合に Tauri event callback から例外が漏れ、listener lifecycle と user feedback が曖昧になる
   - executeAction throw、unknown action、diagnostics redaction、listener survival、debug trace の test を追加する
 
@@ -291,6 +245,7 @@
 
 - [ ] P2 unread badge runtime unavailable と command failure の diagnostics category を分ける
   - 対象: `src/hooks/use-badge.ts`, `src/lib/runtime/diagnostics.ts`
+  - superseded by: `P1-Q1d` runtime diagnostics redaction
   - dynamic import unavailable、`getCurrentWindow` failure、`setBadgeCount` reject が同じ unavailable 扱いに寄り、browser dev no-op と native regression を切り分けにくい
   - browser dev、Tauri import failure、window API missing、setBadgeCount rejection、once suppression の test を追加する
 
@@ -326,6 +281,7 @@
 
 - [ ] P2 invalid account row quarantine を diagnostics / recovery action へ出す
   - 対象: `src-tauri/src/infra/db/sqlite_account.rs`, `src-tauri/src/commands/account_commands.rs`, `src/components/settings/accounts-nav-view.tsx`
+  - superseded by: `P1-Q4c` runtime corruption
   - invalid row を warn で隠すと UI 上は account が消えたように見え、復旧導線や support log との接続が弱い
   - invalid kind、missing name、quarantine count、diagnostics event、settings recovery copy の contract test を追加する
 
@@ -391,6 +347,7 @@
 
 - [ ] P2 command palette feed landing success 側の selection / scroll / history contract を固定する
   - 対象: `src/components/reader/hooks/command-palette/use-command-palette-handlers.ts`, `src/hooks/use-feed-landing.ts`
+  - superseded by: `P2-R5` focus/timer cancellation
   - failure guard はあるが success 時にどの selection と scroll restore と history add が残るべきかが薄く、request race で UX が揺れやすい
   - slow success、newer request success、scroll restore、history write failure、toast suppression の hook test を追加する
 
@@ -411,6 +368,7 @@
 
 - [ ] P2 malformed browser event diagnostics を event payload shape 別に分ける
   - 対象: `src/components/reader/hooks/browser/use-browser-webview-events.ts`, `src/api/schemas/browser-webview.ts`
+  - superseded by: `P1-Q1d` runtime diagnostics redaction
   - malformed payload が eventName 単位の once warning だけだと、state/fallback/diagnostics どの payload が欠けたか調査しにくい
   - malformed state、malformed fallback、malformed diagnostics、once key、redacted payload summary の hook test を追加する
 
@@ -1074,6 +1032,11 @@
   - schema 追加時に barrel export や command usage へ接続されないと、knip baseline 更新まで死蔵 schema に気づきにくい
   - exported unused schema、used unexported schema、command response without schema、deprecated schema allowlist の repo contract を追加する
 
+- [ ] P2 type-surface contract を remaining `.types.ts` allowlist の ratchet gate にする
+  - 対象: `tests/helpers/type-surface.ts`, `tests/type-surface-contract.test.ts`, reader/settings/subscriptions の `.types.ts`
+  - type surface helper が入った後も allowlist が広いままだと、view-local props や hook-private params が再び shared `.types.ts` に戻りやすい
+  - current allowlist snapshot、new exported Props/Params/Result rejection、intentional public contract annotation、TODO link required の repo contract を追加する
+
 - [ ] P3 `.github/release.yml` と release workflow の responsibilities を整理する
   - 対象: `.github/release.yml`, `.github/workflows/release.yml`, `.codex/skills/release/SKILL.md`
   - GitHub release drafter config と actual release workflow の責務が近く、どちらが notes/categories/assets を持つかが曖昧になりやすい
@@ -1583,6 +1546,16 @@
   - 対象: sync result DTO、frontend sync feedback、diagnostics
   - 数百 feed の失敗を全部 toast/log に出すと UI と log が埋まり、逆に cap すると重要エラーが落ちる
   - warning cap、first error priority、auth vs parse order、per-feed summary、details drilldown の contract を追加する
+
+- [ ] P2 sync warning public copy から provider remote entry id を外す
+  - 対象: `src-tauri/src/commands/sync_providers.rs`, sync warning DTO、sidebar/account sync warning tests
+  - pending mutation retry warning が remote_entry_id を user-facing message に含むと、provider 固有 ID や URL-like id が toast/sidebar に露出し、diagnostics redaction と責務がずれる
+  - retry pending、dropped mutation、provider id with URL/token-like text、diagnostics detail vs public copy、sidebar warning rendering の contract を追加する
+
+- [ ] P2 dropped pending mutation を user-visible sync warning / diagnostics summary に接続する
+  - 対象: `src-tauri/src/commands/sync_providers.rs`, sync result warning aggregation、pending mutation repository tests
+  - non-GReader feed entry 向け pending mutation は現在 cleanup されるが、warn log だけだと local action が remote に反映されなかった事実を UI で追えない
+  - non-provider-managed feed entry、missing article target、delete failure、summary count、manual resync guidance の contract を追加する
 
 - [ ] P2 article tag relation uniqueness を DB constraint / frontend optimistic state で固定する
   - 対象: tag repository、article tag picker、tests
