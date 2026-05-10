@@ -401,6 +401,27 @@ mod tests {
     }
 
     #[test]
+    fn create_mute_keyword_reports_unique_constraint_as_validation_error() {
+        let db = test_db();
+        let guard = db.lock().unwrap();
+        guard
+            .writer()
+            .execute(
+                "INSERT INTO mute_keywords (id, keyword, scope, created_at, updated_at)
+                 VALUES (?1, ?2, ?3, datetime('now'), datetime('now'))",
+                params!["mute-1", "Kindle Unlimited", "title"],
+            )
+            .unwrap();
+        drop(guard);
+
+        let error =
+            create_mute_keyword_impl(&db, "  kindle unlimited  ".to_string(), "title".to_string())
+                .unwrap_err();
+
+        assert!(error.to_string().contains("Mute keyword already exists"));
+    }
+
+    #[test]
     fn update_mute_keyword_rolls_back_scope_when_auto_read_fails() {
         let db = test_db();
         let guard = db.lock().unwrap();

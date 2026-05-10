@@ -627,6 +627,20 @@ mod tests {
                 false,
             ),
             (
+                article_fixture("Cafe news", "", None, None),
+                "CAFE",
+                MuteKeywordScope::Title,
+                None,
+                true,
+            ),
+            (
+                article_fixture("İstanbul daily", "", None, None),
+                "istanbul",
+                MuteKeywordScope::Title,
+                None,
+                false,
+            ),
+            (
                 article_fixture("ストア限定セール", "", None, None),
                 "ｽﾄｱ",
                 MuteKeywordScope::Title,
@@ -636,6 +650,20 @@ mod tests {
             (
                 article_fixture("ストア限定セール", "", None, None),
                 "ストア",
+                MuteKeywordScope::Title,
+                None,
+                true,
+            ),
+            (
+                article_fixture("Sale　Notice", "", None, None),
+                "sale notice",
+                MuteKeywordScope::Title,
+                None,
+                false,
+            ),
+            (
+                article_fixture("Sale Notice 🎉", "", None, None),
+                "🎉",
                 MuteKeywordScope::Title,
                 None,
                 true,

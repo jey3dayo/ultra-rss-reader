@@ -53,11 +53,73 @@ describe("MuteSettingsView", () => {
       ),
     ).toHaveClass("text-foreground-soft");
     expect(
-      screen.getByText("Existing matches are marked read immediately. Turning this off does not restore unread state."),
+      screen.getByText(
+        "Existing matches are marked read immediately. Turning this off does not restore unread state.",
+      ),
     ).toHaveClass("text-foreground-soft");
-    expect(screen.getByText("No mute keywords yet.")).toHaveClass("motion-content-swap", "text-foreground-soft");
-    expect(screen.getByText("No mute keywords yet.")).toHaveAttribute("data-motion-phase", "entering");
-    expect(screen.getByRole("switch", { name: "Mark muted items as read" })).not.toHaveAttribute("aria-disabled");
+    expect(screen.getByText("No mute keywords yet.")).toHaveClass(
+      "motion-content-swap",
+      "text-foreground-soft",
+    );
+    expect(screen.getByText("No mute keywords yet.")).toHaveAttribute(
+      "data-motion-phase",
+      "entering",
+    );
+    expect(
+      screen.getByRole("switch", { name: "Mark muted items as read" }),
+    ).not.toHaveAttribute("aria-disabled");
+  });
+
+  it("surfaces the ASCII-only matching contract in the add keyword helper copy", () => {
+    render(
+      <MuteSettingsView
+        title="Mute"
+        addHeading="Add muted keyword"
+        intro="Use at least 3 characters. Case-insensitive matching applies to ASCII letters only."
+        keywordLabel="Keyword"
+        keywordValue=""
+        keywordPlaceholder="spoiler"
+        scopeAriaLabel="Mute scope"
+        scopeValue="title"
+        scopeOptions={[
+          { value: "title", label: "Title" },
+          { value: "body", label: "Body" },
+          { value: "title_and_body", label: "Title and body" },
+        ]}
+        addLabel="Add"
+        onKeywordChange={vi.fn()}
+        onScopeChange={vi.fn()}
+        onAdd={vi.fn()}
+        addDisabled={true}
+        savedHeading="Saved rules"
+        emptyState="No mute keywords yet."
+        rules={[]}
+        savedScopeAriaLabel={() => "Saved scope"}
+        onRuleScopeChange={vi.fn()}
+        deleteLabel="Delete"
+        onRequestDelete={vi.fn()}
+        autoMarkReadHeading="Auto mark as read"
+        autoMarkReadLabel="Mark muted items as read"
+        autoMarkReadChecked={false}
+        autoMarkReadDisabled={false}
+        autoMarkReadHint="Existing matches are marked read immediately."
+        onAutoMarkReadChange={vi.fn()}
+        confirmOpen={false}
+        confirmMessage="Delete muted keyword?"
+        confirmActionLabel="Delete"
+        cancelLabel="Cancel"
+        onConfirmDelete={vi.fn()}
+        onCancelDelete={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByText(
+        /Case-insensitive matching applies to ASCII letters only/,
+      ),
+    ).toHaveTextContent(
+      "Use at least 3 characters. Case-insensitive matching applies to ASCII letters only.",
+    );
   });
 
   it("keeps mute controls on the shared right-side settings rail", async () => {
@@ -105,12 +167,28 @@ describe("MuteSettingsView", () => {
       />,
     );
 
-    expect(screen.getByTestId("mute-settings-add-row")).toHaveClass("sm:min-w-[30rem]", "sm:justify-end");
-    expect(screen.getByRole("textbox", { name: "Keyword" })).toHaveClass("sm:w-[220px]");
-    expect(screen.getByRole("combobox", { name: "Mute scope" })).toHaveClass("sm:w-[192px]");
-    expect(screen.getByRole("combobox", { name: "Saved scope" })).toHaveClass("h-10", "sm:flex-1");
-    expect(screen.getByRole("button", { name: "Add" })).toHaveClass("h-10", "px-4");
-    expect(screen.getByRole("button", { name: "Delete" })).toHaveClass("h-10", "px-4");
+    expect(screen.getByTestId("mute-settings-add-row")).toHaveClass(
+      "sm:min-w-[30rem]",
+      "sm:justify-end",
+    );
+    expect(screen.getByRole("textbox", { name: "Keyword" })).toHaveClass(
+      "sm:w-[220px]",
+    );
+    expect(screen.getByRole("combobox", { name: "Mute scope" })).toHaveClass(
+      "sm:w-[192px]",
+    );
+    expect(screen.getByRole("combobox", { name: "Saved scope" })).toHaveClass(
+      "h-10",
+      "sm:flex-1",
+    );
+    expect(screen.getByRole("button", { name: "Add" })).toHaveClass(
+      "h-10",
+      "px-4",
+    );
+    expect(screen.getByRole("button", { name: "Delete" })).toHaveClass(
+      "h-10",
+      "px-4",
+    );
 
     await user.click(screen.getByRole("combobox", { name: "Mute scope" }));
     await user.click(await screen.findByRole("option", { name: "Body" }));
@@ -164,7 +242,10 @@ describe("MuteSettingsView", () => {
       />,
     );
 
-    await user.type(screen.getByRole("textbox", { name: "Keyword" }), "{Enter}");
+    await user.type(
+      screen.getByRole("textbox", { name: "Keyword" }),
+      "{Enter}",
+    );
     expect(onAdd).toHaveBeenCalledTimes(1);
 
     rerender(
@@ -210,7 +291,10 @@ describe("MuteSettingsView", () => {
     );
 
     expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
-    await user.type(screen.getByRole("textbox", { name: "Keyword" }), "{Enter}");
+    await user.type(
+      screen.getByRole("textbox", { name: "Keyword" }),
+      "{Enter}",
+    );
     expect(onAdd).toHaveBeenCalledTimes(1);
   });
 });
