@@ -272,16 +272,6 @@
 
 ### Release / Native / Keyboard / I18n / A11y
 
-- [ ] P1 Tauri capability の external opener permission scope を URL schema と同期する
-  - 対象: `src-tauri/capabilities/default.json`, `src/api/schemas/commands.ts`, `src/api/tauri-commands.ts`
-  - `opener:allow-open-url` と `browser-webview` が同じ default capability にいるため、URL validation と permission scope がずれると外部 opener surface が広がりやすい
-  - `http:`、`https:`、`mailto:`、`file:`、custom scheme、encoded newline、userinfo URL の allow/deny contract と capability snapshot を追加する
-
-- [ ] P2 destructive confirm dialog の pending state / focus restore / thrown callback を固定する
-  - 対象: `src/components/app-confirm-dialog.tsx`, `src/stores/ui-store.ts`, `src/hooks/use-delete-feed.ts`
-  - confirm callback が async failure や throw を起こした時、dialog close、focus restore、toast 表示の owner が曖昧になりやすい
-  - confirm throw、reject、double click、Escape during pending、target removed、focus ref null の component test を追加する
-
 - [ ] P2 mobile single-pane layout の hidden pane tab order / focus restore を E2E contract にする
   - 対象: `e2e/app.spec.ts`, `src/components/app-shell.tsx`, `src/stores/ui-store.ts`
   - mobile single-pane で sidebar/settings/article/account pane を切り替える時、hidden pane に tab stop が残ると keyboard/a11y 操作が壊れる
@@ -320,16 +310,6 @@
   - 対象: `src/components/reader/hooks/article-list/use-article-list-data.ts`, `src/components/reader/hooks/article-list/use-article-list-view-state.ts`, `src/lib/articles/article-list.ts`
   - retained ids は selection 維持に効く一方、account/feed/tag 切替後に古い id が残ると invisible article や memory growth の原因になりやすい
   - account switch、feed delete、tag delete、search clear、max retained ids、selected article deleted の test を追加する
-
-- [ ] P2 schema barrel export と per-schema test の追加漏れを repo contract で検出する
-  - 対象: `src/api/schemas/index.ts`, `src/__tests__/api/schema-barrel-public-api.test.ts`, `src/__tests__/api/schemas`
-  - 新しい schema file を足しても barrel export や schema-specific test を忘れると、runtime validation はあるが public import surface が揺れやすい
-  - schema file inventory、barrel export、test file presence、intentional internal schema allowlist の repo contract を追加する
-
-- [ ] P2 generated schema / target artifact が repo scan に混ざらない tooling boundary を整える
-  - 対象: `.gitignore`, `.ignore`, `mise.toml`, `scripts/quality-baseline.ts`
-  - `src-tauri/target` や generated doc が local scan に混ざると、rg/quality script/agent audit の noise が増えて本来の risk を見落としやすい
-  - tracked/untracked artifact inventory、rg ignore、quality baseline ignore、CI cleanup、generated schema source-of-truth を整理する
 
 - [ ] P2 preferences API schema と app schema の duplicate source-of-truth を縮める
   - 対象: `src/api/schemas/preferences.ts`, `src/schemas/preferences.ts`, `src/__tests__/schemas/preferences-schema-contract.test.ts`
@@ -396,11 +376,6 @@
   - remote image は https only、share/open は http(s)、mailto は mailto を使うため、URL policy が機能ごとに違う理由を test と copy に残さないと修正時に混ざりやすい
   - https image、http article URL、protocol-relative image、credential URL、mailto share、invalid URL toast の policy test を追加する
 
-- [ ] P2 shared form controls の disabled/loading aria contract を destructive actions と同期する
-  - 対象: `src/components/shared/form-action-buttons.tsx`, `src/components/shared/destructive-dialog-footer.tsx`, `src/components/shared/decision-button.tsx`
-  - loading 中の destructive action button が aria-disabled / disabled / focusable のどれになるか統一しないと keyboard 操作で二重 submit しやすい
-  - pending submit、double click、Enter key、Escape key、aria-busy、focus restore、tooltip label の shared component test を追加する
-
 - [ ] P3 story export registry と shared component stories の required coverage を repo contract にする
   - 対象: `tests/helpers/storybook-story-export-registry.ts`, `src/components/shared/*.stories.tsx`, `src/__tests__/components/shared-stories.test.tsx`
   - shared component を追加しても story/test registry へ載せ忘れると、visual/a11y smoke の対象から漏れやすい
@@ -419,16 +394,6 @@
 ### Feed / Folder / Storage / Settings Data
 
 ### GReader / Sync Flow / Account Setup
-
-- [ ] P1 GReader pagination continuation loop の incomplete sync recovery を sync_state と接続する
-  - 対象: `src-tauri/src/infra/provider/greader.rs`, `src-tauri/src/service/sync_flow.rs`, `src-tauri/src/repository/sync_state.rs`
-  - continuation が繰り返す・page limit に到達する場合に Network error で止まるが、次回 sync で cursor を進める/戻す方針が曖昧だと feed が永久に stale になりやすい
-  - repeated continuation、max pages、max stream ids、partial ids、cursor保存/破棄、次回 retry warning の integration test を追加する
-
-- [ ] P2 provider metadata URL normalizer と frontend URL policy の差分を providerごとに fixture 化する
-  - 対象: `src-tauri/src/infra/provider/normalizer.rs`, `src/lib/feed/feed.ts`, `src/components/shared/feed-favicon.tsx`
-  - provider 側で site/icon/article URL を normalize し、frontend でも host/open policy を持つため、片側だけ URL を受け入れる状態が増えやすい
-  - http/https、protocol-relative、relative URL、userinfo、unicode host、tracking query、icon URL の parity fixture を追加する
 
 - [ ] P2 pending mutation push の per-mutation delete timing を remote partial failure で固定する
   - 対象: `src-tauri/src/service/sync_flow.rs`, `src-tauri/src/repository/pending_mutation.rs`, `src-tauri/src/infra/provider/traits.rs`
