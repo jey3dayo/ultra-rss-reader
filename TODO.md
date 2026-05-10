@@ -234,16 +234,6 @@
   - `lru-cache` や `signal-exit` など複数 major が残ると、依存更新時の CVE triage と bundle size 判断が属人化しやすい
   - duplicate major inventory、direct/transitive分類、known acceptable allowlist、lockfile drift report の script task を追加する
 
-- [ ] P2 Tauri app identifier と dev/prod data directory の collision を repo contract にする
-  - 対象: `src-tauri/tauri.conf.json`, `src-tauri/tauri.dev.conf.json`, `src-tauri/tauri.release.conf.json`, `scripts/seed-dev-db-from-prod.ts`
-  - dev/prod identifier が近く、seed script や keyring service 名が依存するため、config drift がデータ破壊につながりやすい
-  - dev identifier、release identifier、app name、keyring service、data dir resolver の test を追加する
-
-- [ ] P2 Base UI wrapper の `data-slot` contract を primitive ごとに固定する
-  - 対象: `src/components/ui`, `src/__tests__/components/ui-reference-settings-canvas.test.tsx`
-  - UI reference tests が一部 slot を見るだけだと、wrapper refactor 時に `data-slot` が消えて design/debug tooling が壊れやすい
-  - button/select/dialog/tooltip/scroll-area/skeleton slot、asChild、disabled/loading state の component contract を追加する
-
 - [ ] P2 `DESIGN.md` / `.claude/rules` の UI rule と actual tokens の drift を検出する
   - 対象: `DESIGN.md`, `.claude/rules`, `src/styles/global.css`, `src/__tests__/config/repo-contracts.test.ts`
   - rules に残った古い radius/spacing/color 方針が実 CSS と違うと、別 agent が古い rule に従って UI を戻しやすい
