@@ -62,6 +62,13 @@ fn has_duplicate_tag_name(tags: &[Tag], tag_id: &str, name: &str) -> bool {
         .any(|tag| tag.id.0 != tag_id && tag.name.eq_ignore_ascii_case(name))
 }
 
+fn is_unique_constraint_domain_error(error: &DomainError) -> bool {
+    matches!(
+        error,
+        DomainError::Persistence(message) if message.contains("UNIQUE constraint failed")
+    )
+}
+
 fn validate_article_tag_targets(
     conn: &Connection,
     article_id: &str,
@@ -136,7 +143,8 @@ fn create_tag_impl(
     let color = normalize_color(color)?;
 
     let db = lock_db(db)?;
-    let repo = SqliteTagRepository::new(db.writer());
+    let tx = begin_immediate_transaction(db.writer())?;
+    let repo = SqliteTagRepository::new(&tx);
     if let Some(existing) = repo.find_by_name(&name)? {
         return Err(AppError::UserVisible {
             message: format!("Tag name \"{}\" already exists", existing.name),
@@ -148,7 +156,16 @@ fn create_tag_impl(
         name,
         color,
     };
-    repo.save(&tag)?;
+    if let Err(error) = repo.save(&tag) {
+        if is_unique_constraint_domain_error(&error) {
+            return Err(AppError::UserVisible {
+                message: format!("Tag name \"{}\" already exists", tag.name),
+            });
+        }
+        return Err(error.into());
+    }
+    drop(repo);
+    tx.commit().map_err(DomainError::from)?;
     Ok(TagDto::from(tag))
 }
 
@@ -248,6 +265,50 @@ fn tag_article_impl(
     drop(repo);
     tx.commit().map_err(DomainError::from)?;
     Ok(())
+}
+
+#[tauri::command]
+pub fn create_tag_and_assign_article(
+    state: State<'_, AppState>,
+    article_id: String,
+    name: String,
+    color: Option<String>,
+) -> Result<TagDto, AppError> {
+    create_tag_and_assign_article_impl(&state.db, article_id, name, color)
+}
+
+fn create_tag_and_assign_article_impl(
+    db: &std::sync::Mutex<crate::infra::db::connection::DbManager>,
+    article_id: String,
+    name: String,
+    color: Option<String>,
+) -> Result<TagDto, AppError> {
+    let name = name.trim().to_string();
+    if name.is_empty() {
+        return Err(AppError::UserVisible {
+            message: "Tag name cannot be empty".to_string(),
+        });
+    }
+    if name.chars().count() > 50 {
+        return Err(AppError::UserVisible {
+            message: "Tag name must be 50 characters or less".to_string(),
+        });
+    }
+    let color = normalize_color(color)?;
+
+    let db = lock_db(db)?;
+    let tx = begin_immediate_transaction(db.writer())?;
+    let repo = SqliteTagRepository::new(&tx);
+    let tag = repo.find_or_create(&Tag {
+        id: TagId::new(),
+        name,
+        color,
+    })?;
+    validate_article_tag_targets(&tx, &article_id, &tag.id.0)?;
+    repo.tag_article(&ArticleId(article_id), &tag.id)?;
+    drop(repo);
+    tx.commit().map_err(DomainError::from)?;
+    Ok(TagDto::from(tag))
 }
 
 #[tauri::command]
@@ -385,6 +446,16 @@ mod tests {
             .unwrap();
 
         (article_id, tag_id)
+    }
+
+    fn count_article_tag_links(db: &DbManager, article_id: &ArticleId, tag_id: &TagId) -> i64 {
+        db.reader()
+            .query_row(
+                "SELECT COUNT(*) FROM article_tags WHERE article_id = ?1 AND tag_id = ?2",
+                params![article_id.0, tag_id.0],
+                |row| row.get(0),
+            )
+            .unwrap()
     }
 
     #[test]
@@ -660,6 +731,58 @@ mod tests {
             error,
             AppError::UserVisible { message } if message == "Tag not found"
         ));
+    }
+
+    #[test]
+    fn create_tag_and_assign_rolls_back_new_tag_when_assignment_fails() {
+        let db = test_db();
+
+        let error = create_tag_and_assign_article_impl(
+            &db,
+            "missing-article".to_string(),
+            "New Tag".to_string(),
+            Some("#Cf7868".to_string()),
+        )
+        .expect_err("missing article should reject the combined create and assign command");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message } if message == "Article not found"
+        ));
+        let guard = db.lock().unwrap();
+        let repo = SqliteTagRepository::new(guard.reader());
+        assert!(repo.find_by_name("New Tag").unwrap().is_none());
+    }
+
+    #[test]
+    fn create_tag_and_assign_reuses_existing_tag_and_assigns_article() {
+        let db = test_db();
+        let (article_id, _) = {
+            let db = db.lock().unwrap();
+            insert_article_and_tag(&db)
+        };
+
+        let tag = create_tag_and_assign_article_impl(
+            &db,
+            article_id.0.clone(),
+            " read later ".to_string(),
+            Some("#Cf7868".to_string()),
+        )
+        .expect("existing tag should be reused and assigned");
+
+        assert_eq!(tag.name, "Read Later");
+        let guard = db.lock().unwrap();
+        assert_eq!(
+            count_article_tag_links(&guard, &article_id, &TagId(tag.id)),
+            1
+        );
+        assert_eq!(
+            SqliteTagRepository::new(guard.reader())
+                .find_all()
+                .unwrap()
+                .len(),
+            1
+        );
     }
 
     #[test]

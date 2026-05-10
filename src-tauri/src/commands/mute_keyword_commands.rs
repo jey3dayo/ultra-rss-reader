@@ -2,6 +2,7 @@ use tauri::State;
 
 use crate::commands::dto::{AppError, MuteKeywordDto};
 use crate::commands::AppState;
+use crate::domain::error::DomainError;
 use crate::domain::mute_keyword::MuteKeywordScope;
 use crate::domain::types::AccountId;
 use crate::infra::db::sqlite_article::mark_muted_unread_as_read_with_conn;
@@ -103,10 +104,9 @@ fn create_mute_keyword_impl(
     let scope = MuteKeywordScope::try_from(scope.as_str())
         .map_err(|message| AppError::UserVisible { message })?;
     let db = lock_db(db)?;
-    let tx = db
-        .writer()
-        .unchecked_transaction()
-        .map_err(crate::domain::error::DomainError::from)?;
+    let tx =
+        rusqlite::Transaction::new_unchecked(db.writer(), rusqlite::TransactionBehavior::Immediate)
+            .map_err(DomainError::from)?;
     let repo = SqliteMuteKeywordRepository::new(&tx);
     let created = repo.create(&keyword, scope)?;
     maybe_mark_existing_muted_articles_as_read(&tx)?;
@@ -132,10 +132,9 @@ fn update_mute_keyword_impl(
     let scope = MuteKeywordScope::try_from(scope.as_str())
         .map_err(|message| AppError::UserVisible { message })?;
     let db = lock_db(db)?;
-    let tx = db
-        .writer()
-        .unchecked_transaction()
-        .map_err(crate::domain::error::DomainError::from)?;
+    let tx =
+        rusqlite::Transaction::new_unchecked(db.writer(), rusqlite::TransactionBehavior::Immediate)
+            .map_err(DomainError::from)?;
     let repo = SqliteMuteKeywordRepository::new(&tx);
     let updated = repo.update_scope(&mute_keyword_id, scope)?;
     maybe_mark_existing_muted_articles_as_read(&tx)?;
