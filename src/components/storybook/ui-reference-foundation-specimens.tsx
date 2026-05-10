@@ -186,6 +186,12 @@ export function SurfaceRoleSpecimen() {
             SettingsSection と同じ section box 用 surface。構造の区切りとして使う。
           </p>
         </SurfaceCard>
+        <SurfaceCard variant="section" padding="compact" className="border-surface-4 bg-[var(--surface-selected)]">
+          <SectionHeading className="mb-2">Selected surface</SectionHeading>
+          <p className="font-serif text-sm leading-[1.45] text-foreground/72">
+            選択済み item や current row のための selected surface。
+          </p>
+        </SurfaceCard>
       </div>
     </SurfaceCard>
   );

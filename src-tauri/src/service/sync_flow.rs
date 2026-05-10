@@ -83,13 +83,23 @@ pub async fn sync_account(
     if caps.supports_remote_state {
         let remote_subs = provider.get_subscriptions().await?;
         for rs in remote_subs {
-            let existing_feed = feed_repo
-                .find_by_remote_id(account_id, &rs.remote_id)?
-                .or_else(|| feed_repo.find_by_url(account_id, &rs.url).ok().flatten());
+            let existing_feed = match feed_repo.find_by_remote_id(account_id, &rs.remote_id)? {
+                Some(feed) => Some(feed),
+                None => match feed_repo.find_by_url(account_id, &rs.url)? {
+                    Some(feed) if feed.remote_id.is_none() => Some(feed),
+                    Some(_) => continue,
+                    None => None,
+                },
+            };
             let folder_id = match rs.folder_remote_id.as_deref() {
                 Some(rid) => folder_repo
                     .find_by_remote_id(account_id, rid)?
-                    .map(|f| f.id),
+                    .map(|f| f.id)
+                    .or_else(|| {
+                        existing_feed
+                            .as_ref()
+                            .and_then(|feed| feed.folder_id.clone())
+                    }),
                 None => existing_feed
                     .as_ref()
                     .and_then(|feed| feed.folder_id.clone()),
@@ -1489,6 +1499,129 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn sync_account_does_not_merge_remote_subscription_into_different_remote_feed_by_url() {
+        let db = DbManager::new_in_memory().unwrap();
+        let account = test_account();
+        let account_repo = SqliteAccountRepository::new(db.writer());
+        let feed_repo = SqliteFeedRepository::new(db.writer());
+        account_repo.save(&account).unwrap();
+
+        feed_repo
+            .save(&Feed {
+                id: FeedId("existing-remote-feed".to_string()),
+                account_id: account.id.clone(),
+                folder_id: None,
+                remote_id: Some("feed/remote-a".to_string()),
+                title: "Remote A".to_string(),
+                url: "https://example.com/rss.xml".to_string(),
+                site_url: "https://example.com/a".to_string(),
+                icon: None,
+                unread_count: 0,
+                reader_mode: "inherit".to_string(),
+                web_preview_mode: "inherit".to_string(),
+            })
+            .unwrap();
+
+        let provider = RemoteSubscriptionProvider {
+            subscriptions: vec![RemoteSubscription {
+                remote_id: "feed/remote-b".to_string(),
+                title: "Remote B".to_string(),
+                url: "https://example.com/rss.xml".to_string(),
+                site_url: "https://example.com/b".to_string(),
+                folder_remote_id: None,
+                icon_url: None,
+            }],
+        };
+        let article_repo = SqliteArticleRepository::new(db.writer());
+        let folder_repo = SqliteFolderRepository::new(db.writer());
+        let pending_repo = SqlitePendingMutationRepository::new(db.writer());
+
+        sync_account(
+            &account.id,
+            &provider,
+            &article_repo,
+            &feed_repo,
+            &folder_repo,
+            &pending_repo,
+        )
+        .await
+        .unwrap();
+
+        let feeds = feed_repo.find_by_account(&account.id).unwrap();
+        assert_eq!(feeds.len(), 1);
+        let existing = feed_repo
+            .find_by_remote_id(&account.id, "feed/remote-a")
+            .unwrap()
+            .unwrap();
+        assert_eq!(existing.id.0, "existing-remote-feed");
+        assert_eq!(existing.title, "Remote A");
+        assert_eq!(existing.site_url, "https://example.com/a");
+
+        assert!(feed_repo
+            .find_by_remote_id(&account.id, "feed/remote-b")
+            .unwrap()
+            .is_none());
+    }
+
+    #[tokio::test]
+    async fn sync_account_adopts_existing_local_feed_when_remote_subscription_matches_url() {
+        let db = DbManager::new_in_memory().unwrap();
+        let account = test_account();
+        let account_repo = SqliteAccountRepository::new(db.writer());
+        let feed_repo = SqliteFeedRepository::new(db.writer());
+        account_repo.save(&account).unwrap();
+
+        feed_repo
+            .save(&Feed {
+                id: FeedId("existing-local-feed".to_string()),
+                account_id: account.id.clone(),
+                folder_id: None,
+                remote_id: None,
+                title: "Local title".to_string(),
+                url: "https://example.com/rss.xml".to_string(),
+                site_url: "https://example.com/local".to_string(),
+                icon: None,
+                unread_count: 0,
+                reader_mode: "inherit".to_string(),
+                web_preview_mode: "inherit".to_string(),
+            })
+            .unwrap();
+
+        let provider = RemoteSubscriptionProvider {
+            subscriptions: vec![RemoteSubscription {
+                remote_id: "feed/remote".to_string(),
+                title: "Remote title".to_string(),
+                url: "https://example.com/rss.xml".to_string(),
+                site_url: "https://example.com/remote".to_string(),
+                folder_remote_id: None,
+                icon_url: None,
+            }],
+        };
+        let article_repo = SqliteArticleRepository::new(db.writer());
+        let folder_repo = SqliteFolderRepository::new(db.writer());
+        let pending_repo = SqlitePendingMutationRepository::new(db.writer());
+
+        sync_account(
+            &account.id,
+            &provider,
+            &article_repo,
+            &feed_repo,
+            &folder_repo,
+            &pending_repo,
+        )
+        .await
+        .unwrap();
+
+        let saved = feed_repo
+            .find_by_remote_id(&account.id, "feed/remote")
+            .unwrap()
+            .unwrap();
+        assert_eq!(saved.id.0, "existing-local-feed");
+        assert_eq!(saved.title, "Remote title");
+        assert_eq!(feed_repo.find_by_account(&account.id).unwrap().len(), 1);
+    }
+
+    #[tokio::test]
     async fn sync_account_preserves_local_folder_when_remote_subscription_has_no_folder() {
         let db = DbManager::new_in_memory().unwrap();
         let account = test_account();
@@ -1553,5 +1686,128 @@ mod tests {
         assert_eq!(saved.id.0, "existing-feed");
         assert_eq!(saved.folder_id, Some(folder_id));
         assert_eq!(feed_repo.find_by_account(&account.id).unwrap().len(), 1);
+    }
+
+    #[tokio::test]
+    async fn sync_account_preserves_existing_folder_when_remote_subscription_folder_is_unknown() {
+        let db = DbManager::new_in_memory().unwrap();
+        let account = test_account();
+        let account_repo = SqliteAccountRepository::new(db.writer());
+        let feed_repo = SqliteFeedRepository::new(db.writer());
+        let folder_repo = SqliteFolderRepository::new(db.writer());
+        account_repo.save(&account).unwrap();
+
+        let folder_id = FolderId::new();
+        folder_repo
+            .save(&Folder {
+                id: folder_id.clone(),
+                account_id: account.id.clone(),
+                remote_id: Some("folder/known".to_string()),
+                name: "Known".to_string(),
+                sort_order: 0,
+            })
+            .unwrap();
+        feed_repo
+            .save(&Feed {
+                id: FeedId("existing-feed".to_string()),
+                account_id: account.id.clone(),
+                folder_id: Some(folder_id.clone()),
+                remote_id: Some("feed/remote".to_string()),
+                title: "Existing".to_string(),
+                url: "https://example.com/rss.xml".to_string(),
+                site_url: "https://example.com".to_string(),
+                icon: None,
+                unread_count: 0,
+                reader_mode: "inherit".to_string(),
+                web_preview_mode: "inherit".to_string(),
+            })
+            .unwrap();
+
+        let provider = RemoteSubscriptionProvider {
+            subscriptions: vec![RemoteSubscription {
+                remote_id: "feed/remote".to_string(),
+                title: "Remote title".to_string(),
+                url: "https://example.com/rss.xml".to_string(),
+                site_url: "https://example.com".to_string(),
+                folder_remote_id: Some("folder/temporarily-missing".to_string()),
+                icon_url: None,
+            }],
+        };
+        let article_repo = SqliteArticleRepository::new(db.writer());
+        let pending_repo = SqlitePendingMutationRepository::new(db.writer());
+
+        sync_account(
+            &account.id,
+            &provider,
+            &article_repo,
+            &feed_repo,
+            &folder_repo,
+            &pending_repo,
+        )
+        .await
+        .unwrap();
+
+        let saved = feed_repo
+            .find_by_remote_id(&account.id, "feed/remote")
+            .unwrap()
+            .unwrap();
+        assert_eq!(saved.id.0, "existing-feed");
+        assert_eq!(saved.folder_id, Some(folder_id));
+    }
+
+    #[tokio::test]
+    async fn sync_account_retains_stale_remote_folder_when_subscription_sync_omits_folders() {
+        let db = DbManager::new_in_memory().unwrap();
+        let account = test_account();
+        let account_repo = SqliteAccountRepository::new(db.writer());
+        let feed_repo = SqliteFeedRepository::new(db.writer());
+        let folder_repo = SqliteFolderRepository::new(db.writer());
+        account_repo.save(&account).unwrap();
+
+        let folder_id = FolderId::new();
+        folder_repo
+            .save(&Folder {
+                id: folder_id.clone(),
+                account_id: account.id.clone(),
+                remote_id: Some("folder/stale".to_string()),
+                name: "Stale Remote Folder".to_string(),
+                sort_order: 7,
+            })
+            .unwrap();
+
+        let provider = RemoteSubscriptionProvider {
+            subscriptions: vec![RemoteSubscription {
+                remote_id: "feed/remote".to_string(),
+                title: "Remote title".to_string(),
+                url: "https://example.com/rss.xml".to_string(),
+                site_url: "https://example.com".to_string(),
+                folder_remote_id: Some("folder/stale".to_string()),
+                icon_url: None,
+            }],
+        };
+        let article_repo = SqliteArticleRepository::new(db.writer());
+        let pending_repo = SqlitePendingMutationRepository::new(db.writer());
+
+        sync_account(
+            &account.id,
+            &provider,
+            &article_repo,
+            &feed_repo,
+            &folder_repo,
+            &pending_repo,
+        )
+        .await
+        .unwrap();
+
+        let folders = folder_repo.find_by_account(&account.id).unwrap();
+        assert_eq!(folders.len(), 1);
+        assert_eq!(folders[0].id, folder_id);
+        assert_eq!(folders[0].remote_id.as_deref(), Some("folder/stale"));
+
+        let saved = feed_repo
+            .find_by_remote_id(&account.id, "feed/remote")
+            .unwrap()
+            .unwrap();
+        assert_eq!(saved.folder_id, Some(folders[0].id.clone()));
     }
 }

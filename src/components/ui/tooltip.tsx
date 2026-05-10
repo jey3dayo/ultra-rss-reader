@@ -20,11 +20,12 @@ export function TooltipProvider({ children }: TooltipProviderProps) {
 
 export function AppTooltip({ label, children, side = "bottom", align = "center", sideOffset = 8 }: AppTooltipProps) {
   return (
-    <Tooltip.Root>
-      <Tooltip.Trigger render={children} />
+    <Tooltip.Root data-slot="tooltip">
+      <Tooltip.Trigger data-slot="tooltip-trigger" render={children} />
       <Tooltip.Portal>
-        <Tooltip.Positioner side={side} align={align} sideOffset={sideOffset}>
+        <Tooltip.Positioner data-slot="tooltip-positioner" side={side} align={align} sideOffset={sideOffset}>
           <Tooltip.Popup
+            data-slot="tooltip-popup"
             data-app-tooltip-side={side}
             className={cn(
               MOTION_POPUP_SURFACE_CLASS_NAME,

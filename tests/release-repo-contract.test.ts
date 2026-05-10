@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -75,6 +76,8 @@ type MigrationChangelogEntry = {
 const RELEASE_UPDATER_ENDPOINT = "https://github.com/jey3dayo/ultra-rss-reader/releases/latest/download/latest.json";
 const RELEASE_TAURI_CONFIG_PATH = "src-tauri/tauri.release.conf.json";
 const DEV_TAURI_CONFIG_PATH = "src-tauri/tauri.dev.conf.json";
+const PROD_TAURI_IDENTIFIER = "com.jey3dayo.ultra-rss-reader";
+const DEV_TAURI_IDENTIFIER = "com.ultra-rss-reader.dev";
 const MIGRATION_DIR = "src-tauri/migrations";
 const INLINE_MIGRATION_VERSIONS: readonly number[] = [10];
 const DESTRUCTIVE_MIGRATION_MARKER = "-- destructive-migration:";
@@ -99,6 +102,51 @@ const PACKAGED_WINDOW_ICON_PATHS = [
   "icons/icon.icns",
   "icons/icon.ico",
 ] as const;
+const MOBILE_ICON_ASSET_HASHES = {
+  "icons/android/mipmap-anydpi-v26/ic_launcher.xml": "760d4b8a06bf7163dd010c33ad2cac9e4a75fa0177afaba042f83e311eef0c3e",
+  "icons/android/mipmap-hdpi/ic_launcher.png": "75ab910077e745762b3c19ce91ab6606b48bf48749d9c643baf0567cd1d17c10",
+  "icons/android/mipmap-hdpi/ic_launcher_foreground.png":
+    "161649a4e1195cdee7a41f6549381d6eae066a2e68693f7b2a0dd7963bb34a58",
+  "icons/android/mipmap-hdpi/ic_launcher_round.png": "5e6c92a894078957666b90f2fc8efb8c9e95c9d16a0ede6098d7f627ea2025d1",
+  "icons/android/mipmap-mdpi/ic_launcher.png": "3ce45ae095e68d72c07e865bd621e8bd3ce9d3799f44f33ce15f749825a9ab56",
+  "icons/android/mipmap-mdpi/ic_launcher_foreground.png":
+    "20433e3f07527e9a1a788f52886583a3140d302d1e744d028ce785cc9077abbb",
+  "icons/android/mipmap-mdpi/ic_launcher_round.png": "e4d23648b41f28e6067f49c727c950acec80a7df86d1355dbe9553d0003bfbc6",
+  "icons/android/mipmap-xhdpi/ic_launcher.png": "55aa6f966e75796a16a3efd619541cd0d11eceed1c509e1af40b21eba2f91948",
+  "icons/android/mipmap-xhdpi/ic_launcher_foreground.png":
+    "291cdef4f2b6aa7ab39d1678922b8ef7601452e2c571080f38c309262ea1e562",
+  "icons/android/mipmap-xhdpi/ic_launcher_round.png":
+    "d8854c27697257941dbcdd90ee920791881700eae78780bba2465fe6b5ecca32",
+  "icons/android/mipmap-xxhdpi/ic_launcher.png": "6e31d70ff9ef085d023bed8464dbb458670bbdd9a6ad495e04a2ce0c82e804c0",
+  "icons/android/mipmap-xxhdpi/ic_launcher_foreground.png":
+    "07682e05b622a51882bc80efc88676a4fe86f1262d3df1cd7feaf08322d3ecb1",
+  "icons/android/mipmap-xxhdpi/ic_launcher_round.png":
+    "2dbcf433575e11daf6a79f8f1598a8bce7392b2751f3aaa53d7f64de25af42ee",
+  "icons/android/mipmap-xxxhdpi/ic_launcher.png": "d0fd2ff0daa1677f55287401ae78ffe6535adf59995b536671405bdea733bf44",
+  "icons/android/mipmap-xxxhdpi/ic_launcher_foreground.png":
+    "9f5a1f5c89f66ff9e83668cf23bfad69e4288006e93e1266feda130a7425379d",
+  "icons/android/mipmap-xxxhdpi/ic_launcher_round.png":
+    "b15bdbc40001b0cafb2e2352698d0afc9b99d4c2a67d63045137ec26b21cf0bb",
+  "icons/android/values/ic_launcher_background.xml": "0687336f0ccc6f7ee09c7c95110667c63b75931238df779a21af401fb864cd34",
+  "icons/ios/AppIcon-20x20@1x.png": "c8f9dc853b01c5ad89f7c22f3e28558eadfc5898389484a730a19344d2ab06cd",
+  "icons/ios/AppIcon-20x20@2x-1.png": "12927bc96a63bd13dd79d792e8625388d57061325c34df28049207b2600a61a3",
+  "icons/ios/AppIcon-20x20@2x.png": "12927bc96a63bd13dd79d792e8625388d57061325c34df28049207b2600a61a3",
+  "icons/ios/AppIcon-20x20@3x.png": "7845d6efbdb6eba1a66bd5b683c35c5153e6a2132fab3c2634e128bd2514183a",
+  "icons/ios/AppIcon-29x29@1x.png": "16195adc8513968986255c86f0b9a39493a3dc1ca10a766b877a175d66652087",
+  "icons/ios/AppIcon-29x29@2x-1.png": "b81826b2a42b24cbc26b63144ce9ebabeb2ea345a3e3a47a4f6d8e861dd16429",
+  "icons/ios/AppIcon-29x29@2x.png": "b81826b2a42b24cbc26b63144ce9ebabeb2ea345a3e3a47a4f6d8e861dd16429",
+  "icons/ios/AppIcon-29x29@3x.png": "3e0ed19c4c230e7c36963ea18336e4d4f73d72b07e8633f58b67f254a92e2b02",
+  "icons/ios/AppIcon-40x40@1x.png": "12927bc96a63bd13dd79d792e8625388d57061325c34df28049207b2600a61a3",
+  "icons/ios/AppIcon-40x40@2x-1.png": "220be6e8e4b497466eeb0a0ed144874192c662dcd4d19390c89b89bb349454d8",
+  "icons/ios/AppIcon-40x40@2x.png": "220be6e8e4b497466eeb0a0ed144874192c662dcd4d19390c89b89bb349454d8",
+  "icons/ios/AppIcon-40x40@3x.png": "594e35e40cba71034cdefef0b2060dfc921bbbd0b5334e35a329db6b6177027a",
+  "icons/ios/AppIcon-512@2x.png": "780eb646c0e30e0ea75cf155814fa6c2638ba48c6d9ff496b06775832084c88f",
+  "icons/ios/AppIcon-60x60@2x.png": "594e35e40cba71034cdefef0b2060dfc921bbbd0b5334e35a329db6b6177027a",
+  "icons/ios/AppIcon-60x60@3x.png": "29a72741769156adb566a64f0f078b70c17affbbef5ebf30cee3786431733073",
+  "icons/ios/AppIcon-76x76@1x.png": "02184e4fbdf23b4f3c09508f1b40492f81b0081ba3e3ab5652cb23704347bbd8",
+  "icons/ios/AppIcon-76x76@2x.png": "2af04f10ae235a52702a9ce45f4ea2f079c7bc2f0565d96d92a78fe039bba0e1",
+  "icons/ios/AppIcon-83.5x83.5@2x.png": "3e5a08f0e1cc8f24d56e6798855131b07e02fad99f60144c516f93ec03a5e9b7",
+} as const;
 const UPDATER_PUBKEY_PLACEHOLDER_PATTERN = /(?:placeholder|change[_-]?me|todo)/i;
 const RELEASE_UPDATER_ASSET_CONTRACT = [
   {
@@ -125,6 +173,7 @@ const RELEASE_UPDATER_ASSET_CONTRACT = [
 const UNSUPPORTED_UPDATER_PLATFORM_KEYS = ["linux-x86_64", "linux-aarch64"] as const;
 
 const readText = (path: string): string => readFileSync(path, "utf8");
+const readSha256 = (path: string): string => createHash("sha256").update(readFileSync(path)).digest("hex");
 
 const runWorkflowPinChecker = (workflowsDir: string): string =>
   execFileSync("node", ["scripts/check-workflow-pins.mjs"], {
@@ -751,7 +800,7 @@ describe("release repository contract", () => {
     expect(extractTomlString(cargoToml, "name")).toBe(packageJson.name);
     expect(extractTomlString(cargoToml, "description")).toBe("A Tauri-based RSS reader");
     expect(tauriConfig.productName).toBe("Ultra RSS Reader");
-    expect(tauriConfig.identifier).toBe("com.jey3dayo.ultra-rss-reader");
+    expect(tauriConfig.identifier).toBe(PROD_TAURI_IDENTIFIER);
     expect(tauriReleaseConfig.identifier).toBe(tauriConfig.identifier);
     expect(tauriConfig.bundle?.createUpdaterArtifacts).toBe(false);
     expect(tauriReleaseConfig.bundle?.createUpdaterArtifacts).toBe(true);
@@ -818,7 +867,7 @@ describe("release repository contract", () => {
   });
 
   it("keeps bundle identifier, release updater artifacts, and updater endpoint in one release contract", () => {
-    expect(tauriConfig.identifier).toBe("com.jey3dayo.ultra-rss-reader");
+    expect(tauriConfig.identifier).toBe(PROD_TAURI_IDENTIFIER);
     expect(tauriReleaseConfig.identifier).toBe(tauriConfig.identifier);
     expect(tauriConfig.bundle?.createUpdaterArtifacts).toBe(false);
     expect(tauriReleaseConfig.bundle?.createUpdaterArtifacts).toBe(true);
@@ -854,6 +903,27 @@ describe("release repository contract", () => {
     );
     expect(appIconThemeSource).toContain("shouldSkipRuntimeIconReplacement");
     expect(appIconThemeSource).toContain('logRuntimeDiagnostic("app-icon-theme"');
+  });
+
+  it("keeps generated Android and iOS app icon assets pinned to the release smoke contract", () => {
+    const expectedIconPaths = Object.keys(MOBILE_ICON_ASSET_HASHES).sort();
+    const generatedIconPaths = [
+      ...readdirSync("src-tauri/icons/android", { recursive: true }).map((entry) => `android/${entry}`),
+      ...readdirSync("src-tauri/icons/ios", { recursive: true }).map((entry) => `ios/${entry}`),
+    ]
+      .filter((entry): entry is string => typeof entry === "string")
+      .filter((entry) => /\.(?:png|xml)$/.test(entry))
+      .map((entry) => `icons/${entry}`)
+      .sort();
+
+    expect(generatedIconPaths).toEqual(expectedIconPaths);
+
+    for (const [iconPath, expectedHash] of Object.entries(MOBILE_ICON_ASSET_HASHES)) {
+      expect(readSha256(`src-tauri/${iconPath}`), iconPath).toBe(expectedHash);
+    }
+
+    expect(readText("mise.toml")).toContain('run = "pnpm exec tauri icon"');
+    expect(readText("docs/README.md")).toContain("`src-tauri/icons/icon.png` is the checked-in source image");
   });
 
   it("keeps updater manifest platforms mapped back to release assets and checksums", () => {
@@ -1103,6 +1173,25 @@ describe("release repository contract", () => {
     expect(releaseManualVerification).toContain("DEV_CREDENTIALS");
     expect(releaseManualVerification).toMatch(/dev mocks/i);
     expect(releaseManualVerification).toContain("debug-only MCP bridge permissions");
+  });
+
+  it("keeps Tauri identifiers and seed data directories collision-proof across dev and production", () => {
+    const seedDevDatabaseScript = readText("scripts/seed-dev-db-from-prod.ts");
+
+    expect(tauriConfig.identifier).toBe(PROD_TAURI_IDENTIFIER);
+    expect(tauriReleaseConfig.identifier).toBe(PROD_TAURI_IDENTIFIER);
+    expect(tauriDevConfig.identifier).toBe(DEV_TAURI_IDENTIFIER);
+    expect(tauriDevConfig.identifier).not.toBe(tauriConfig.identifier);
+    expect(tauriDevConfig.productName).not.toBe(tauriConfig.productName);
+
+    expect(seedDevDatabaseScript).toContain(`const PROD_APP_IDENTIFIER = "${PROD_TAURI_IDENTIFIER}";`);
+    expect(seedDevDatabaseScript).toContain(`const DEV_APP_IDENTIFIER = "${DEV_TAURI_IDENTIFIER}";`);
+    expect(seedDevDatabaseScript).toContain('readConfiguredEnvValue(env, "ULTRA_RSS_PROD_APP_DATA_DIR")');
+    expect(seedDevDatabaseScript).toContain('readConfiguredEnvValue(env, "ULTRA_RSS_DEV_APP_DATA_DIR")');
+    expect(seedDevDatabaseScript).toContain("Production and Dev app data directories resolve to the same path.");
+    expect(seedDevDatabaseScript).toContain("Refusing to seed from a Dev app data directory.");
+    expect(seedDevDatabaseScript).toContain("Refusing to seed a non-Dev app data directory.");
+    expect(seedDevDatabaseScript).toContain(".ultra-rss-reader-dev-app-data");
   });
 
   it("requires provider account kind additions to update capability and add-account contracts", () => {

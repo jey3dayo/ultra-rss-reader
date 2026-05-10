@@ -147,7 +147,6 @@ const schemaFilesCoveredByAggregateTests = [
   "starred-articles",
   "sync-progress",
   "tag",
-  "update-info",
 ] as const;
 
 const expectedSchemaFileStems = [
@@ -156,6 +155,7 @@ const expectedSchemaFileStems = [
   "feed-integrity",
   "platform-info",
   "sync-result",
+  "update-info",
 ] as const;
 
 type PublicSchemaTypeContracts = readonly [
@@ -265,6 +265,7 @@ describe("schema barrel public API", () => {
       "src/__tests__/api/schemas/feed-integrity.test.ts",
       "src/__tests__/api/schemas/platform-info.test.ts",
       "src/__tests__/api/schemas/sync-result.test.ts",
+      "src/__tests__/api/schemas/update-info.test.ts",
     ]);
   });
 });

@@ -1,4 +1,6 @@
-import { render, screen, within } from "@testing-library/react";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ButtonControlsCanvas } from "@/components/storybook/ui-reference-button-controls-canvas.stories";
@@ -21,6 +23,21 @@ import {
 } from "@/components/storybook/ui-reference-shell-specimens";
 import { ViewSpecimensCanvas } from "@/components/storybook/ui-reference-workspace-patterns-canvas.stories";
 import * as workspaceSpecimens from "@/components/storybook/ui-reference-workspace-specimens";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { AppTooltip, TooltipProvider } from "@/components/ui/tooltip";
+
+const UI_COMPONENTS_DIR = resolve(process.cwd(), "src/components/ui");
 
 describe("UI Reference canvases", () => {
   beforeEach(() => {
@@ -193,6 +210,78 @@ describe("UI Reference canvases", () => {
     expect(screen.getByRole("switch", { name: "ミュート時に自動既読" })).toHaveAttribute("aria-disabled", "true");
     expect(screen.queryByText("Shell examples")).not.toBeInTheDocument();
     expect(screen.queryByText("Dialog shell")).not.toBeInTheDocument();
+  });
+
+  it("keeps Base UI wrapper data-slot contracts by primitive", async () => {
+    const user = userEvent.setup();
+    const primitiveRender = render(
+      <TooltipProvider>
+        <div>
+          <Button disabled>Disabled button</Button>
+          <Button nativeButton={false} render={<a href="/reference">Anchor button</a>}>
+            Anchor button
+          </Button>
+          <Select defaultValue="Comfortable">
+            <SelectTrigger aria-label="Contract select">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectPopup>
+              <SelectItem value="Comfortable">Comfortable</SelectItem>
+            </SelectPopup>
+          </Select>
+          <AppTooltip label="Tooltip contract">
+            <Button>Tooltip target</Button>
+          </AppTooltip>
+          <ScrollArea className="h-20" contentClassName="min-h-24">
+            Scroll content
+          </ScrollArea>
+          <Skeleton />
+        </div>
+      </TooltipProvider>,
+    );
+    const { container } = primitiveRender;
+
+    expect(screen.getByRole("button", { name: "Disabled button" })).toHaveAttribute("data-slot", "button");
+    expect(screen.getByRole("button", { name: "Disabled button" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Anchor button" })).toHaveAttribute("data-slot", "button");
+    expect(screen.getByRole("button", { name: "Anchor button" }).tagName).toBe("A");
+    expect(screen.getByRole("combobox", { name: "Contract select" })).toHaveAttribute("data-slot", "select-trigger");
+    expect(screen.getByText("Comfortable")).toHaveAttribute("data-slot", "select-value");
+    expect(container.querySelector('[data-slot="select-icon"]')).toBeInTheDocument();
+    expect(container.querySelector('[data-slot="scroll-area"]')).toBeInTheDocument();
+    expect(container.querySelector('[data-slot="scroll-area-viewport"]')).toBeInTheDocument();
+    expect(container.querySelector('[data-slot="scroll-area-content"]')).toBeInTheDocument();
+    expect(container.querySelector('[data-slot="skeleton"]')).toBeInTheDocument();
+    const scrollAreaSource = readFileSync(resolve(UI_COMPONENTS_DIR, "scroll-area.tsx"), "utf8");
+    expect(scrollAreaSource).toContain('data-slot="scroll-area-scrollbar"');
+    expect(scrollAreaSource).toContain('data-slot="scroll-area-thumb"');
+
+    await user.hover(screen.getByRole("button", { name: "Tooltip target" }));
+
+    await waitFor(() => {
+      expect(document.querySelector('[data-slot="tooltip-popup"]')).toHaveTextContent("Tooltip contract");
+    });
+
+    primitiveRender.unmount();
+    render(
+      <Dialog open>
+        <DialogContent closeLabel="Close contract dialog">
+          <DialogHeader>
+            <DialogTitle>Contract dialog</DialogTitle>
+            <DialogDescription>Dialog content slot contract</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button>Confirm</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>,
+    );
+
+    expect(document.querySelector('[data-slot="dialog-overlay"]')).toBeInTheDocument();
+    expect(document.querySelector('[data-slot="dialog-content"]')).toBeInTheDocument();
+    expect(document.querySelector('[data-slot="dialog-title"]')).toBeInTheDocument();
+    expect(document.querySelector('[data-slot="dialog-description"]')).toBeInTheDocument();
+    expect(document.querySelector('[data-slot="dialog-footer"]')).toBeInTheDocument();
   });
 
   it("renders the shell and overlay canvas with framing specimens", () => {

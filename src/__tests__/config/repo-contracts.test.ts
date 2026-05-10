@@ -1030,7 +1030,13 @@ describe("repository static contracts", () => {
       "update-info",
     ]);
     expect(schemaBarrelExportTargets).toEqual(schemaFileStems);
-    expect(dedicatedSchemaTestStems).toEqual(["database-info", "feed-integrity", "platform-info", "sync-result"]);
+    expect(dedicatedSchemaTestStems).toEqual([
+      "database-info",
+      "feed-integrity",
+      "platform-info",
+      "sync-result",
+      "update-info",
+    ]);
 
     for (const schemaFileStem of schemaFileStems) {
       const hasDedicatedTest = dedicatedSchemaTestStems.includes(schemaFileStem);

@@ -109,8 +109,8 @@ export const sampleArticleSeeds: ReadonlyFixtureSeed<ArticleFixture> = [
     author: "Bob",
     published_at: "2026-03-23T07:00:00Z",
     thumbnail: null,
-    is_read: false,
-    is_starred: true,
+    is_read: true,
+    is_starred: false,
   },
   {
     id: "art-4",

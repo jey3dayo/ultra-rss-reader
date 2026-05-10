@@ -15,6 +15,7 @@ type UiReferenceSection = {
 };
 
 const STORYBOOK_COMPONENTS_DIR = resolve(process.cwd(), "src/components/storybook");
+const GLOBAL_CSS_SOURCE = readFileSync(resolve(process.cwd(), "src/styles/global.css"), "utf8");
 const SPECIMENS_SOURCE_FILE_NAMES = [
   "ui-reference-canvas-specimens.tsx",
   "ui-reference-control-specimens.tsx",
@@ -81,6 +82,72 @@ const specimensSource = SPECIMENS_SOURCE_FILE_NAMES.map((fileName) =>
   readFileSync(join(STORYBOOK_COMPONENTS_DIR, fileName), "utf8"),
 ).join("\n");
 const uiReferenceSource = [specimensSource, ...storySourceEntries.map(({ source }) => source)].join("\n");
+
+const requiredReferenceTokenCoverage = [
+  {
+    token: "--surface-1",
+    specimenSource: "ui-reference-foundation-specimens.tsx",
+    sourceSnippet: "bg-surface-1/88",
+  },
+  {
+    token: "--surface-2",
+    specimenSource: "ui-reference-foundation-specimens.tsx",
+    sourceSnippet: "<SurfaceCard variant=\"section\">",
+  },
+  {
+    token: "--surface-3",
+    specimenSource: "ui-reference-settings-specimens.tsx",
+    sourceSnippet: "bg-surface-3",
+  },
+  {
+    token: "--surface-4",
+    specimenSource: "ui-reference-foundation-specimens.tsx",
+    sourceSnippet: "border-surface-4",
+  },
+  {
+    token: "--surface-selected",
+    specimenSource: "ui-reference-foundation-specimens.tsx",
+    sourceSnippet: "bg-[var(--surface-selected)]",
+  },
+  {
+    token: "--state-success-surface",
+    specimenSource: "ui-reference-foundation-specimens.tsx",
+    sourceSnippet: "bg-state-success-surface",
+  },
+  {
+    token: "--state-warning-surface",
+    specimenSource: "ui-reference-foundation-specimens.tsx",
+    sourceSnippet: "bg-state-warning-surface",
+  },
+  {
+    token: "--state-review-surface",
+    specimenSource: "ui-reference-foundation-specimens.tsx",
+    sourceSnippet: "bg-state-review-surface",
+  },
+  {
+    token: "--state-danger-surface",
+    specimenSource: "ui-reference-foundation-specimens.tsx",
+    sourceSnippet: "bg-state-danger-surface",
+  },
+  {
+    token: "--semantic-tone-unread-surface",
+    specimenSource: "ui-reference-control-specimens.tsx",
+    sourceSnippet: "\"--semantic-tone-unread-surface\"",
+  },
+  {
+    token: "--semantic-tone-starred-surface",
+    specimenSource: "ui-reference-shell-specimens.tsx",
+    sourceSnippet: "var(--semantic-tone-starred-surface)",
+  },
+] as const;
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function countCssTokenDefinitions(source: string, token: string) {
+  return [...source.matchAll(new RegExp(`${escapeRegExp(token)}\\s*:`, "g"))].length;
+}
 
 function countValues(values: readonly string[]) {
   return values.reduce<Record<string, number>>((counts, value) => {
@@ -212,5 +279,18 @@ describe("UI Reference specimen registry", () => {
     });
 
     expect(importDrift).toEqual([]);
+  });
+
+  it("keeps required CSS tokens represented by Storybook reference specimens", () => {
+    const missingCoverage = requiredReferenceTokenCoverage.flatMap(({ token, specimenSource, sourceSnippet }) => {
+      const source = readFileSync(join(STORYBOOK_COMPONENTS_DIR, specimenSource), "utf8");
+      const tokenDefinitionCount = countCssTokenDefinitions(GLOBAL_CSS_SOURCE, token);
+
+      return tokenDefinitionCount >= 2 && source.includes(sourceSnippet)
+        ? []
+        : `${token} should stay defined for light/dark themes and covered by ${specimenSource}`;
+    });
+
+    expect(missingCoverage).toEqual([]);
   });
 });

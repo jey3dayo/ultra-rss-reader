@@ -182,10 +182,11 @@ describe("setupTauriMocks fixture isolation", () => {
     article.is_read = true;
 
     const nextArticles = Result.unwrap(await listArticles("feed-1"));
+    const feedArticles = sampleArticles.filter((sampleArticle) => sampleArticle.feed_id === "feed-1");
 
     expect(articles).not.toBe(sampleArticles);
     expect(article).not.toBe(sampleArticle);
-    expect(nextArticles).toEqual(sampleArticles);
+    expect(nextArticles).toEqual(feedArticles);
     expect(sampleArticle.title).toBe("First Article");
     expect(sampleArticle.is_read).toBe(false);
   });
