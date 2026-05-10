@@ -354,6 +354,7 @@ fn delete_dev_password_at_path(path: &Path, account_id: &str) -> DomainResult<()
 // OS Keychain helpers
 // ---------------------------------------------------------------------------
 
+#[cfg(any(target_os = "macos", test))]
 fn keyring_force_delete_fallback_warning(status: &str, stderr: &str) -> String {
     format!(
         "keyring force-delete fallback failed status={} stderr={}",

@@ -63,6 +63,10 @@ function readRepoFile(path: string) {
   return readFileSync(join(repoRoot, path), "utf8");
 }
 
+function toPosixPath(path: string) {
+  return path.replaceAll("\\", "/");
+}
+
 function extractMiseTaskNames(source: string) {
   const taskNames = new Set<string>();
 
@@ -123,7 +127,7 @@ function isPinnedWorkflowUses(uses: string) {
   }
 
   const ref = uses.match(/@([^@]+)$/)?.[1] ?? "";
-  return /^v?\d+\.\d+(?:\.\d+)?$/.test(ref) || /^[0-9a-f]{40}$/i.test(ref) || workflowUsesRefAllowlist.has(uses);
+  return /^[0-9a-f]{40}$/i.test(ref) || workflowUsesRefAllowlist.has(uses);
 }
 
 function extractWorkflowCheckJobIds(source: string) {
@@ -273,7 +277,7 @@ function storyFilesUnderSrc() {
   return readdirSync(join(repoRoot, "src"), { recursive: true })
     .filter((entry): entry is string => typeof entry === "string")
     .filter((entry) => /\.stories\.(ts|tsx)$/.test(entry))
-    .map((entry) => normalize(join("src", entry)))
+    .map((entry) => toPosixPath(join("src", entry)))
     .toSorted();
 }
 
@@ -1383,18 +1387,20 @@ describe("repository static contracts", () => {
 
   it("keeps workflow action uses pinned beyond floating branches or major-only refs", () => {
     expect(
+      ["actions/checkout@1f2e3d4c5b6a7980f1e2d3c4b5a6978877665544", "dtolnay/rust-toolchain@stable"].filter(
+        (uses) => !isPinnedWorkflowUses(uses),
+      ),
+    ).toEqual([]);
+    expect(
       [
+        "actions/checkout@v6",
         "actions/checkout@v6.0",
         "actions/checkout@v6.0.2",
         "actions/checkout@6.0.2",
-        "actions/checkout@1f2e3d4c5b6a7980f1e2d3c4b5a6978877665544",
-        "dtolnay/rust-toolchain@stable",
-      ].filter((uses) => !isPinnedWorkflowUses(uses)),
-    ).toEqual([]);
-    expect(
-      ["actions/checkout@v6", "actions/checkout@main", "actions/checkout@master", "./.github/actions/local"].filter(
-        isPinnedWorkflowUses,
-      ),
+        "actions/checkout@main",
+        "actions/checkout@master",
+        "./.github/actions/local",
+      ].filter(isPinnedWorkflowUses),
     ).toEqual([]);
 
     const unpinnedUses = workflowFilesUnderGithub().flatMap((path) =>
@@ -1489,11 +1495,12 @@ describe("repository static contracts", () => {
     ];
     const eagerScenarioImports = sourceFiles.flatMap((entry) => {
       const filePath = `src/${entry}`;
-      if (filePath.startsWith("src/dev/") || filePath.startsWith("src/__tests__/")) {
+      const posixFilePath = toPosixPath(filePath);
+      if (posixFilePath.startsWith("src/dev/") || posixFilePath.startsWith("src/__tests__/")) {
         return [];
       }
       const source = readRepoFile(filePath);
-      return source.includes("@/dev/scenarios") ? [filePath] : [];
+      return source.includes("@/dev/scenarios") ? [posixFilePath] : [];
     });
 
     expect(runtimeGuardIndex).toBeGreaterThanOrEqual(0);

@@ -166,7 +166,8 @@ describe("release repository contract", () => {
       }
     }
 
-    expect(extractTaskBlock(miseToml, "lint:workflow-pins")).toContain('const workflowsDir = ".github/workflows"');
+    expect(extractTaskBlock(miseToml, "lint:workflow-pins")).toContain("node scripts/check-workflow-pins.mjs");
+    expect(readText("scripts/check-workflow-pins.mjs")).toContain('const workflowsDir = ".github/workflows"');
   });
 
   it("keeps CI apt mirror failures bounded by an explicit retry policy", () => {

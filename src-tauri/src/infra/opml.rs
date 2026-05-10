@@ -69,9 +69,9 @@ pub fn parse_opml(xml: &str) -> Result<Vec<OpmlFeed>, String> {
                 // Empty element without xmlUrl is just ignored (no children)
             }
             Ok(Event::End(ref e)) if e.name().as_ref() == b"outline" => {
-                if outline_stack.pop().is_none() {
-                    return Err(OPML_MALFORMED_XML_ERROR_MESSAGE.to_string());
-                }
+                outline_stack
+                    .pop()
+                    .ok_or_else(|| OPML_MALFORMED_XML_ERROR_MESSAGE.to_string())?;
             }
             Ok(Event::Eof) => break,
             Err(_) => return Err(OPML_MALFORMED_XML_ERROR_MESSAGE.to_string()),

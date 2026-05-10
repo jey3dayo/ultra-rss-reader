@@ -1,12 +1,15 @@
 use crate::commands::dto::AppError;
 
+#[cfg(any(target_os = "macos", test))]
 const READING_LIST_URL_ERROR: &str =
     "Only http:// and https:// URLs without newlines are supported";
+#[cfg(any(target_os = "macos", test))]
 const READING_LIST_COMMAND_ERROR: &str =
     "Failed to add to Reading List. Please try again from Safari.";
 const CLIPBOARD_TEXT_ERROR: &str = "Invalid clipboard text";
 pub(crate) const CLIPBOARD_TEXT_MAX_CHARS: usize = 2048;
 
+#[cfg(any(target_os = "macos", test))]
 fn is_reading_list_url(url: &str) -> bool {
     if url.contains(['\n', '\r']) {
         return false;
@@ -20,10 +23,12 @@ fn is_reading_list_url(url: &str) -> bool {
     }
 }
 
+#[cfg(any(target_os = "macos", test))]
 fn applescript_string(value: &str) -> String {
     value.replace('\\', "\\\\").replace('"', "\\\"")
 }
 
+#[cfg(any(target_os = "macos", test))]
 fn reading_list_script(url: &str) -> Result<String, AppError> {
     if !is_reading_list_url(url) {
         return Err(AppError::UserVisible {
@@ -47,6 +52,7 @@ fn validate_clipboard_text(text: &str) -> Result<(), AppError> {
     Ok(())
 }
 
+#[cfg(any(target_os = "macos", test))]
 fn reading_list_command_error() -> AppError {
     AppError::UserVisible {
         message: READING_LIST_COMMAND_ERROR.to_string(),
