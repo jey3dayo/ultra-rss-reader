@@ -370,6 +370,29 @@ mod tests {
     }
 
     #[test]
+    fn article_url_normalization_keeps_path_query_and_host_case_policy() {
+        let atom = r#"<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Atom Feed</title>
+  <id>https://example.com/feed</id>
+  <updated>2026-03-27T12:00:00Z</updated>
+  <entry>
+    <title>Canonical Form</title>
+    <id>atom-canonical-form</id>
+    <updated>2026-03-27T12:00:00Z</updated>
+    <link rel="alternate" href=" HTTPS://Example.COM:443/Article?utm_source=feed#section "/>
+  </entry>
+</feed>"#;
+
+        let entries = normalize_feed(atom.as_bytes(), "https://example.com/feed.xml").unwrap();
+
+        assert_eq!(
+            entries[0].url,
+            Some("https://example.com/Article?utm_source=feed".to_string())
+        );
+    }
+
+    #[test]
     fn article_url_skips_invalid_links() {
         let atom = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 <feed xmlns=\"http://www.w3.org/2005/Atom\">

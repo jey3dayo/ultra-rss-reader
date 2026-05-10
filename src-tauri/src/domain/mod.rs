@@ -1,6 +1,7 @@
 pub mod account;
 pub mod article;
 pub mod constants;
+pub mod display_name;
 pub mod error;
 pub mod feed;
 pub mod folder;

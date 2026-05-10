@@ -75,6 +75,15 @@ Recovery copy contract:
 - Article action copy must not suggest restoring from backup for normal read/star/tag mistakes. Backup restore is reserved for destructive data recovery.
 - Recent-history navigation is not an article action undo path and must not be described as a way to recover article state.
 
+## Spoofable Label Handling
+
+Reader and sidebar labels use the shared spoofable-name policy from `docs/feed-content-privacy.md`.
+
+- Article titles, feed names, folder names, tag names, and account names are display labels, not identity keys.
+- Bidi controls and zero-width controls in labels must be treated as warning-worthy before destructive or target-identifying actions.
+- NFKC/confusable normalization must not be used to merge labels or hide intentional typography unless a future entity-specific uniqueness contract is added.
+- Confirmation copy should pair the display label with a stable scope such as account/feed/tag context when a spoofing risk is detected.
+
 ## Freshness And Stale Content Contract
 
 Reader の freshness 表示は、account、feed、article list で同じ sync result model を使う。表示対象が違っても、同じ状態を別の severity や別ラベルにしない。

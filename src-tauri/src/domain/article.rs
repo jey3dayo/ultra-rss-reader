@@ -30,7 +30,7 @@ pub struct ArticleViewHistoryItem {
     pub viewed_at: DateTime<Utc>,
 }
 
-/// Generate a stable article ID. Account-scoped to prevent cross-account collision.
+/// Generate a stable article ID. Account/feed-scoped to prevent cross-feed collision.
 /// Priority: 1) GUID  2) URL-based hash  3) title-based hash
 pub fn generate_entry_id(
     account_id: &str,
@@ -41,7 +41,7 @@ pub fn generate_entry_id(
 ) -> ArticleId {
     if let Some(id) = guid.map(str::trim) {
         if !id.is_empty() {
-            return ArticleId(format!("{account_id}:{id}"));
+            return ArticleId(sha256_hex(&format!("{account_id}|{feed_url}|guid|{id}")));
         }
     }
     let url = entry_url.unwrap_or("");
@@ -65,7 +65,7 @@ mod tests {
     #[test]
     fn guid_takes_precedence() {
         let id = generate_entry_id("acc1", Some("guid-123"), "http://feed.com", None, None);
-        assert_eq!(id, ArticleId("acc1:guid-123".to_string()));
+        assert_eq!(id.0.len(), 64);
     }
 
     #[test]
@@ -77,7 +77,14 @@ mod tests {
             Some("http://article.com/1"),
             Some("My Title"),
         );
-        assert_eq!(id, ArticleId("acc1:guid-123".to_string()));
+        let untrimmed = generate_entry_id(
+            "acc1",
+            Some("guid-123"),
+            "http://feed.com",
+            Some("http://article.com/1"),
+            Some("My Title"),
+        );
+        assert_eq!(id, untrimmed);
     }
 
     #[test]
@@ -103,6 +110,46 @@ mod tests {
         let id1 = generate_entry_id("acc1", Some("guid-1"), "http://feed.com", None, None);
         let id2 = generate_entry_id("acc2", Some("guid-1"), "http://feed.com", None, None);
         assert_ne!(id1, id2);
+    }
+
+    #[test]
+    fn same_guid_in_different_feeds_has_different_ids() {
+        let id1 = generate_entry_id(
+            "acc1",
+            Some("shared-guid"),
+            "https://example.com/feed-a.xml",
+            Some("https://example.com/a"),
+            None,
+        );
+        let id2 = generate_entry_id(
+            "acc1",
+            Some("shared-guid"),
+            "https://example.com/feed-b.xml",
+            Some("https://example.com/b"),
+            None,
+        );
+
+        assert_ne!(id1, id2);
+    }
+
+    #[test]
+    fn guid_identity_ignores_entry_url_changes_within_same_feed() {
+        let id1 = generate_entry_id(
+            "acc1",
+            Some("stable-guid"),
+            "https://example.com/feed.xml",
+            Some("https://example.com/old"),
+            None,
+        );
+        let id2 = generate_entry_id(
+            "acc1",
+            Some("stable-guid"),
+            "https://example.com/feed.xml",
+            Some("https://example.com/new"),
+            Some("New title"),
+        );
+
+        assert_eq!(id1, id2);
     }
 
     #[test]

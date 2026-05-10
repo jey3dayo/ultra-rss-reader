@@ -297,6 +297,44 @@ Provider refusal handling contract:
 - Robots or crawl-policy refusals require user action or a visible blocked state. They must not be collapsed into generic offline/network failure copy.
 - Diagnostics for refusals must record only the refusal class, status class, and redacted URL/server class, not raw private feed or article URLs.
 
+### Feed And Article Identity Policy
+
+Decision: feed item identity is account/feed-scoped before it is article-scoped. A publisher GUID is not globally unique across an account, so the app must not merge two entries only because different feeds emit the same GUID.
+
+Identity contract:
+
+- Article identity priority is trimmed GUID, normalized article URL, then title fallback.
+- Non-empty GUID identity must include the account boundary and the feed boundary. The selected article URL may change without changing identity when the same account/feed/GUID tuple is present.
+- Empty or whitespace-only GUID values are ignored and fall back to normalized article URL, then title.
+- URL-only and title-only fallback identities must include the account and feed boundary so two feeds cannot share unread, starred, tag, or history state accidentally.
+- Feed URL redirects or feed URL edits need a migration decision before preserving old item identities across the old and new feed boundary.
+
+### Article URL Normalization Policy
+
+Decision: provider article URLs are normalized only enough to make stored links safe and stable. They are not canonicalized for tracking removal or semantic URL equivalence.
+
+Normalization contract:
+
+- RSS/Atom feed entry links prefer `alternate` HTML links over feed self links and enclosures.
+- GReader entries prefer `alternate` links before `canonical` fallback links.
+- Article URLs accept only `http:` and `https:`.
+- Leading/trailing whitespace, URL userinfo, and fragments are removed before storage.
+- Host and scheme casing follow URL parser canonicalization, while path and query casing and query parameters are preserved.
+- Malformed URLs, unsupported schemes, empty links, oversized links, and links with control characters are ignored.
+- Canonical URL and feed entry link normalization must use the same provider article URL normalizer before storing `Article.url`.
+
+### Spoofable Name Display Policy
+
+Decision: article, feed, folder, tag, and account names are stored as publisher/user text, but destructive or target-identifying UI must treat bidi controls and zero-width controls as spoofing risk indicators.
+
+Display contract:
+
+- Display labels are trimmed at the display boundary.
+- Do not apply NFKC or other compatibility normalization to stored names or normal display labels; full-width and other intentional typography must remain visible.
+- Bidi controls and zero-width controls must not silently decide action targets. Confirmation labels, destructive actions, and rename/delete review surfaces must show a distinct warning or escaped/annotated representation before acting.
+- Confusable characters are a display risk, not a duplicate-key rule, unless a future task defines normalized uniqueness for a specific entity type.
+- Diagnostics and support copy must not rely on raw spoofable names alone; include stable IDs or redacted entity classes where needed.
+
 ## Guardrails
 
 - Reader HTML must continue to come from sanitized `content_sanitized` fields.
