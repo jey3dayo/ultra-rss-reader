@@ -345,17 +345,6 @@
   - forbidden scope: auth storm backoff、credential rotation pause、pending mutation quarantine、provider capability redesign へ広げない
   - handoff note: 汎用 redaction helper と衝突する場合は `P1-Q1d` の helper shape を確認してから最小 adapter にする
 
-- [ ] P2-C2o `P2-A11Y1` a11y-keyboard second tranche brief を固定する
-  - task id: `P2-A11Y1`
-  - domain shard: `a11y-keyboard`
-  - write scope: dialog/popover/browser overlay top-layer stack、focus trap/inert/escape handling tests
-  - do-not-run-with: `P2-A11Y4`, shortcut/menu event priority changes、large shared dialog redesign
-  - worker prompt: dialog、popover、browser overlay が同時に出た時の top-layer order、focus trap、Escape、outside click、inert/aria-hidden を contract 化する
-  - acceptance criteria: modal over popover、browser overlay over reader、Escape close order、Tab trap、background inert の expected behavior が test で読める
-  - focused tests: settings modal/dialog tests、command palette/popover tests、browser overlay focused tests
-  - forbidden scope: destructive dialog copy、roving focus、global shortcut/IME handling、visual redesign へ広げない
-  - handoff note: 既存 component API を大きく変えず、top-layer の owner と close priority を helper/test で固定する
-
 #### Blocked tranche unblock briefs
 
 - [ ] P2-C2q `P1-Q2a` auth storm unblock audit を固定する
@@ -1136,12 +1125,6 @@
   - DB に未知 scope が入ると `row_to_mute_keyword` で一覧全体が落ちるため、1件の破損 row が settings 全体の操作を妨げる可能性がある
   - unknown scope、delete broken row、repair UI、diagnostics-only warning、list partial success の方針を固定する
 
-- [ ] P2 mute keyword invalidation が article/tag count/search result まで届くか matrix 化する
-  - 対象: `src/hooks/use-mute-keywords.ts`, `src/lib/query/query-invalidation.ts`, `src/__tests__/hooks/use-mute-keywords.test.tsx`
-  - mute keyword は visible article list、unread count、tag counts、search results に影響するが invalidation が log-only なので漏れが stale UI になりやすい
-  - create/update/delete、auto-mark on/off、search active、tag view、folder view、old unread view の invalidation matrix を追加する
-  - superseded by: P1-Q5d (covered by mute/tag/article invalidation matrix; kept verification: search active, tag view, folder view, old unread view)
-
 - [ ] P2 delete tag 後の selected state / article tag picker state cleanup を stale tag guard する
   - 対象: `src/hooks/use-tags.ts`, `src/components/reader/article-tag-picker-view.tsx`, `src/stores/ui-store.ts`
   - tag 削除時に selection は all に戻すが、tag picker や article tag chips 側に stale tag id が残ると次の assignment が失敗しやすい
@@ -1777,12 +1760,6 @@
   - 対象: `src/components/reader/hooks/browser/use-browser-webview-events.ts`, `src/api/schemas/browser-webview.ts`
   - malformed payload が eventName 単位の once warning だけだと、state/fallback/diagnostics どの payload が欠けたか調査しにくい
   - malformed state、malformed fallback、malformed diagnostics、once key、redacted payload summary の hook test を追加する
-
-- [ ] P2 browser overlay Escape と global keyboard の priority contract を作る
-  - 対象: `src/components/reader/hooks/browser/use-browser-overlay-shortcuts.ts`, `src/hooks/use-keyboard.ts`, `src/lib/keyboard/keyboard-shortcuts.ts`
-  - overlay 側は `stopImmediatePropagation`、global 側は browser mode Escape を特殊扱いしており、listener 登録順変更で close/clear が揺れやすい
-  - overlay open、global handler first、modal open、browser mode close、reader clear の keyboard test を追加する
-  - superseded by: P2-A11Y1 (covered by browser overlay top-layer and Escape order contract; kept verification: overlay open, global handler first, modal open, reader clear)
 
 - [ ] P2 account credentials editor の draft revision と pending save 再帰を contract 化する
   - 対象: `src/components/settings/hooks/account-detail/use-account-detail-credentials-editor.ts`
