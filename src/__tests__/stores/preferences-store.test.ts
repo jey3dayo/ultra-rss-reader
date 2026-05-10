@@ -322,6 +322,44 @@ describe("usePreferencesStore preferences", () => {
     expect(document.documentElement).toHaveClass("dark");
   });
 
+  it("keeps the latest transition class when an older view transition finishes late", async () => {
+    const firstTransition = createDeferred();
+    const latestTransition = createDeferred();
+    const startViewTransition = vi
+      .fn<(callback: ViewTransitionUpdateCallback) => ViewTransition>()
+      .mockImplementationOnce((callback) => {
+        callback();
+        return createViewTransition(firstTransition.promise);
+      })
+      .mockImplementationOnce((callback) => {
+        callback();
+        return createViewTransition(latestTransition.promise);
+      });
+    Object.defineProperty(document, "startViewTransition", {
+      configurable: true,
+      value: startViewTransition,
+    });
+
+    usePreferencesStore.getState().setPref("theme", "dark");
+    usePreferencesStore.getState().setPref("theme", "light");
+
+    expect(startViewTransition).toHaveBeenCalledTimes(2);
+    expect(document.documentElement).toHaveClass("vertical-wipe-transition");
+    expect(document.documentElement).not.toHaveClass("dark");
+
+    firstTransition.resolve();
+    await firstTransition.promise;
+    await Promise.resolve();
+
+    expect(document.documentElement).toHaveClass("vertical-wipe-transition");
+
+    latestTransition.resolve();
+    await latestTransition.promise;
+    await Promise.resolve();
+
+    expect(document.documentElement).not.toHaveClass("vertical-wipe-transition");
+  });
+
   it("switches themes immediately when reduced motion is requested", () => {
     const startViewTransition = vi.fn((callback: ViewTransitionUpdateCallback): ViewTransition => {
       callback();
@@ -1236,6 +1274,29 @@ describe("usePreferencesStore preferences", () => {
         expect(setPreference).toHaveBeenCalledWith("language", "en");
       });
       await Promise.resolve();
+
+      expect(usePreferencesStore.getState().prefs.language).toBe("en");
+      expect(i18n.language).toBe("ja");
+      expect(useUiStore.getState().toastMessage).toBeNull();
+      expect(consoleError).toHaveBeenCalledWith("Failed to apply UI language preference:", expect.any(Error));
+    } finally {
+      changeLanguage.mockRestore();
+      consoleError.mockRestore();
+    }
+  });
+
+  it("keeps saved language as the DB source of truth when the i18n runtime is unavailable", async () => {
+    await i18n.changeLanguage("ja");
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const changeLanguage = vi.spyOn(i18n, "changeLanguage").mockImplementation(() => {
+      throw new Error("i18n runtime unavailable");
+    });
+
+    try {
+      expect(() => usePreferencesStore.getState().setPref("language", "en")).not.toThrow();
+      await vi.waitFor(() => {
+        expect(setPreference).toHaveBeenCalledWith("language", "en");
+      });
 
       expect(usePreferencesStore.getState().prefs.language).toBe("en");
       expect(i18n.language).toBe("ja");

@@ -229,6 +229,60 @@ describe("AppShell", () => {
     }
   });
 
+  it("cancels stale settings modal preload retries when the app shell unmounts", async () => {
+    vi.stubEnv("DEV", true);
+    vi.useFakeTimers();
+    try {
+      const error = new Error("settings modal preload failed");
+      const loadModule = vi
+        .fn()
+        .mockRejectedValueOnce(error)
+        .mockResolvedValueOnce({ SettingsModal: () => null });
+      const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+      const { unmount } = render(<AppShell />, { wrapper: createWrapper() });
+
+      preloadSettingsModalModuleForDev(loadModule);
+      await Promise.resolve();
+      await Promise.resolve();
+      unmount();
+      await vi.advanceTimersByTimeAsync(250);
+
+      expect(loadModule).toHaveBeenCalledTimes(1);
+      expect(consoleError).toHaveBeenCalledWith("Failed to preload settings modal.", error);
+      consoleError.mockRestore();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("cancels stale settings modal preload retries when the settings session closes", async () => {
+    vi.stubEnv("DEV", true);
+    vi.useFakeTimers();
+    try {
+      const error = new Error("settings modal preload failed");
+      const loadModule = vi
+        .fn()
+        .mockRejectedValueOnce(error)
+        .mockResolvedValueOnce({ SettingsModal: () => null });
+      const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+      useUiStore.setState({ settingsOpen: true });
+      const { rerender } = render(<AppShell />, { wrapper: createWrapper() });
+
+      preloadSettingsModalModuleForDev(loadModule);
+      await Promise.resolve();
+      await Promise.resolve();
+      useUiStore.setState({ settingsOpen: false });
+      rerender(<AppShell />);
+      await vi.advanceTimersByTimeAsync(250);
+
+      expect(loadModule).toHaveBeenCalledTimes(1);
+      expect(consoleError).toHaveBeenCalledWith("Failed to preload settings modal.", error);
+      consoleError.mockRestore();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("mounts the browser overlay root as a shell child that spans the entire app shell", () => {
     const { container } = render(<AppShell />, { wrapper: createWrapper() });
 

@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 
 export function StoryQueryClientProvider({ children }: { children: ReactNode }) {
   const queryClient = useMemo(
@@ -13,6 +13,12 @@ export function StoryQueryClientProvider({ children }: { children: ReactNode }) 
       }),
     [],
   );
+
+  useEffect(() => {
+    return () => {
+      queryClient.clear();
+    };
+  }, [queryClient]);
 
   return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
 }

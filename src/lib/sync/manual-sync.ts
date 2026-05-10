@@ -35,6 +35,7 @@ export function notifyManualSyncCooldownListeners(
   onListenerErrors: (
     reports: readonly ManualSyncCooldownListenerErrorReport[],
   ) => void = reportManualSyncCooldownListenerErrors,
+  shouldNotify: (entry: ManualSyncCooldownListenerEntry) => boolean = () => true,
 ) {
   const reports: ManualSyncCooldownListenerErrorReport[] = [];
 
@@ -46,6 +47,9 @@ export function notifyManualSyncCooldownListeners(
             listener: listenerEntry,
           }
         : listenerEntry;
+    if (!shouldNotify(entry)) {
+      continue;
+    }
     try {
       entry.listener();
     } catch (error) {
@@ -62,7 +66,9 @@ export function notifyManualSyncCooldownListeners(
 }
 
 function emitManualSyncCooldownChanged() {
-  notifyManualSyncCooldownListeners(manualSyncCooldownListeners);
+  notifyManualSyncCooldownListeners(manualSyncCooldownListeners, undefined, (entry) =>
+    manualSyncCooldownListeners.has(entry),
+  );
 }
 
 function setManualSyncCooldownUntil(nextCooldownUntil: number) {

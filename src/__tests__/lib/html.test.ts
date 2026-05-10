@@ -15,6 +15,15 @@ describe("fromSanitizedArticleHtmlDto", () => {
 
     expect(fromSanitizedArticleHtmlDto(article)).toBe(article.content_sanitized);
   });
+
+  it("rejects non-DTO raw content shapes at the type boundary", () => {
+    const unsafeDto: Parameters<typeof fromSanitizedArticleHtmlDto>[0] = {
+      // @ts-expect-error fromSanitizedArticleHtmlDto requires the backend content_sanitized field.
+      content: "<p>Raw unsanitized body</p>",
+    };
+
+    expect("content" in unsafeDto).toBe(true);
+  });
 });
 
 describe("stripHtmlTags", () => {

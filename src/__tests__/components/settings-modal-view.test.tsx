@@ -146,6 +146,47 @@ describe("SettingsModalView", () => {
     expect(onOpenChange).toHaveBeenCalledWith(false, expect.anything());
   });
 
+  it("keeps Tab focus inside the settings modal while a lower command palette layer is inert", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <>
+        <div data-testid="command-palette-layer" data-stack-layer="commandPalette">
+          <button type="button">Run command</button>
+        </div>
+        <SettingsModalView
+          open={true}
+          title="Preferences"
+          closeLabel="Close preferences"
+          navigation={<button type="button">General</button>}
+          accountsHeading="Accounts"
+          accountsNavigation={<button type="button">Local account</button>}
+          content={settingsContent(<button type="button">Save settings</button>)}
+          contentResetKey="general::false"
+          onClose={vi.fn()}
+          onOpenChange={vi.fn()}
+        />
+      </>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("command-palette-layer").closest("[aria-hidden='true']")).toHaveAttribute("inert");
+    });
+
+    const dialog = screen.getByRole("dialog", { name: "Preferences" });
+    const saveButton = screen.getByRole("button", { name: "Save settings" });
+    const lowerLayerButton = screen.getByRole("button", { name: "Run command", hidden: true });
+
+    saveButton.focus();
+    expect(saveButton).toHaveFocus();
+
+    await user.tab();
+
+    const activeElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    expect(dialog.contains(activeElement) || activeElement?.hasAttribute("data-base-ui-focus-guard")).toBe(true);
+    expect(lowerLayerButton).not.toHaveFocus();
+  });
+
   it("disables closing and shows the lock reason while setup is in progress", () => {
     const onClose = vi.fn();
 

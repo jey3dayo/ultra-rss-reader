@@ -431,6 +431,25 @@ describe("manual-sync", () => {
     expect(listener).not.toHaveBeenCalled();
   });
 
+  it("stops notifying a cooldown listener unsubscribed during the same emit", async () => {
+    let unsubscribeSecond: (() => void) | undefined;
+    const firstListener = vi.fn(() => {
+      unsubscribeSecond?.();
+    });
+    const secondListener = vi.fn();
+    subscribeManualSyncCooldown(firstListener);
+    unsubscribeSecond = subscribeManualSyncCooldown(secondListener);
+
+    await triggerManualSyncWithCooldown({
+      onCooldown: vi.fn(),
+      onSuccess: vi.fn(),
+      onError: vi.fn(),
+    });
+
+    expect(firstListener).toHaveBeenCalledOnce();
+    expect(secondListener).not.toHaveBeenCalled();
+  });
+
   it("clears cooldown listeners when resetting test state", async () => {
     const listener = vi.fn();
     subscribeManualSyncCooldown(listener);

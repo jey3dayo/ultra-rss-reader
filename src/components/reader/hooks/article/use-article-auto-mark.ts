@@ -39,6 +39,10 @@ function removeRetainedArticle(articleId: string) {
   });
 }
 
+function getAutoMarkOwnerKey(accountId: string | null, articleId: string) {
+  return `${accountId ?? ""}:${articleId}`;
+}
+
 export function useArticleAutoMark({
   articleId,
   isRead,
@@ -49,12 +53,14 @@ export function useArticleAutoMark({
   setRead,
   showToast,
 }: UseArticleAutoMarkParams) {
-  const autoMarkedArticleIdRef = useRef<string | null>(null);
-  const latestArticleStateRef = useRef({ articleId, viewMode });
+  const selectedAccountId = useUiStore((state) => state.selectedAccountId);
+  const autoMarkedOwnerKeyRef = useRef<string | null>(null);
+  const latestArticleStateRef = useRef({ articleId, selectedAccountId, viewMode });
   const pendingAutoMarkTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoMarkGenerationRef = useRef(0);
+  const autoMarkOwnerKey = getAutoMarkOwnerKey(selectedAccountId, articleId);
 
-  latestArticleStateRef.current = { articleId, viewMode };
+  latestArticleStateRef.current = { articleId, selectedAccountId, viewMode };
 
   useEffect(() => {
     autoMarkGenerationRef.current += 1;
@@ -77,17 +83,17 @@ export function useArticleAutoMark({
 
     clearPendingAutoMarkTimeout();
 
-    if (isRead && autoMarkedArticleIdRef.current === articleId) {
-      autoMarkedArticleIdRef.current = null;
+    if (isRead && autoMarkedOwnerKeyRef.current === autoMarkOwnerKey) {
+      autoMarkedOwnerKeyRef.current = null;
       return cleanupAutoMarkEffect;
     }
 
-    if (afterReading === "never" || isRead || autoMarkedArticleIdRef.current === articleId) {
+    if (afterReading === "never" || isRead || autoMarkedOwnerKeyRef.current === autoMarkOwnerKey) {
       return cleanupAutoMarkEffect;
     }
 
     const markArticleAsRead = () => {
-      autoMarkedArticleIdRef.current = articleId;
+      autoMarkedOwnerKeyRef.current = autoMarkOwnerKey;
       pendingAutoMarkTimeoutRef.current = null;
 
       const isLatestAutoMark = () => {
@@ -95,6 +101,7 @@ export function useArticleAutoMark({
         return (
           autoMarkGenerationRef.current === autoMarkGeneration &&
           latestArticleState.articleId === articleId &&
+          latestArticleState.selectedAccountId === selectedAccountId &&
           latestArticleState.viewMode === viewMode
         );
       };
@@ -120,8 +127,8 @@ export function useArticleAutoMark({
             if (!isLatestAutoMark()) {
               return;
             }
-            if (autoMarkedArticleIdRef.current === articleId) {
-              autoMarkedArticleIdRef.current = null;
+            if (autoMarkedOwnerKeyRef.current === autoMarkOwnerKey) {
+              autoMarkedOwnerKeyRef.current = null;
             }
             if (shouldRollbackRetainedArticle) {
               removeRetainedArticle(articleId);
@@ -152,5 +159,16 @@ export function useArticleAutoMark({
     pendingAutoMarkTimeoutRef.current = timeout;
 
     return cleanupAutoMarkEffect;
-  }, [addRecentlyRead, afterReading, articleId, isRead, retainArticle, setRead, showToast, viewMode]);
+  }, [
+    addRecentlyRead,
+    afterReading,
+    articleId,
+    autoMarkOwnerKey,
+    isRead,
+    retainArticle,
+    selectedAccountId,
+    setRead,
+    showToast,
+    viewMode,
+  ]);
 }

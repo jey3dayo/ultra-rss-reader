@@ -35,6 +35,7 @@ describe("useArticleAutoMark", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     useUiStore.setState({
+      selectedAccountId: "account-1",
       retainedArticleIds: new Set(),
       recentlyReadIds: new Set(),
     });
@@ -216,6 +217,50 @@ describe("useArticleAutoMark", () => {
       }),
     );
     expect(retainArticle).not.toHaveBeenCalled();
+  });
+
+  it("cancels a delayed mark when the selected account changes before the timer fires", () => {
+    const setRead: UseArticleAutoMarkParams["setRead"] = {
+      mutate: vi.fn(),
+    };
+    const retainArticle = vi.fn();
+
+    renderHook(() => {
+      useArticleAutoMark(
+        createParams({
+          viewMode: "unread",
+          retainArticle,
+          setRead,
+        }),
+      );
+    });
+
+    act(() => {
+      vi.advanceTimersByTime(999);
+    });
+    act(() => {
+      useUiStore.setState({ selectedAccountId: "account-2" });
+    });
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+
+    expect(setRead.mutate).not.toHaveBeenCalled();
+    expect(retainArticle).not.toHaveBeenCalled();
+
+    act(() => {
+      vi.advanceTimersByTime(999);
+    });
+
+    expect(setRead.mutate).toHaveBeenCalledTimes(1);
+    expect(setRead.mutate).toHaveBeenCalledWith(
+      { id: "art-1", read: true },
+      expect.objectContaining({
+        onSuccess: expect.any(Function),
+        onError: expect.any(Function),
+      }),
+    );
+    expect(retainArticle).toHaveBeenCalledWith("art-1");
   });
 
   it("cancels a delayed mark when unmounted", () => {
@@ -638,6 +683,80 @@ describe("useArticleAutoMark", () => {
     });
 
     expect(addRecentlyRead).not.toHaveBeenCalled();
+  });
+
+  it("ignores stale mutation success after the selected account changes", () => {
+    const addRecentlyRead = vi.fn();
+    const mutationCallbacks: Array<NonNullable<NonNullable<Parameters<AutoMarkMutate>[1]>["onSuccess"]>> = [];
+    const mutate: AutoMarkMutate = (_variables, options) => {
+      if (options?.onSuccess) {
+        mutationCallbacks.push(options.onSuccess);
+      }
+    };
+    const setRead: UseArticleAutoMarkParams["setRead"] = {
+      mutate: vi.fn(mutate),
+    };
+
+    renderHook(() => {
+      useArticleAutoMark(
+        createParams({
+          articleId: "art-1",
+          afterReading: "immediately",
+          setRead,
+          addRecentlyRead,
+        }),
+      );
+    });
+
+    act(() => {
+      useUiStore.setState({ selectedAccountId: "account-2" });
+    });
+    act(() => {
+      mutationCallbacks[0]?.(undefined, { id: "art-1", read: true }, undefined, createMutationContext());
+    });
+
+    expect(addRecentlyRead).not.toHaveBeenCalled();
+  });
+
+  it("ignores stale mutation error after the selected account changes", () => {
+    const showToast = vi.fn();
+    const mutationCallbacks: Array<NonNullable<NonNullable<Parameters<AutoMarkMutate>[1]>["onError"]>> = [];
+    const mutate: AutoMarkMutate = (_variables, options) => {
+      if (options?.onError) {
+        mutationCallbacks.push(options.onError);
+      }
+    };
+    const setRead: UseArticleAutoMarkParams["setRead"] = {
+      mutate: vi.fn(mutate),
+    };
+
+    renderHook(() => {
+      useArticleAutoMark(
+        createParams({
+          articleId: "art-1",
+          afterReading: "immediately",
+          viewMode: "unread",
+          retainArticle: useUiStore.getState().retainArticle,
+          setRead,
+          showToast,
+        }),
+      );
+    });
+
+    act(() => {
+      useUiStore.setState({ selectedAccountId: "account-2" });
+    });
+    act(() => {
+      mutationCallbacks[0]?.(
+        new Error("Failed stale account"),
+        { id: "art-1", read: true },
+        undefined,
+        createMutationContext(),
+      );
+    });
+
+    expect(useUiStore.getState().retainedArticleIds).toEqual(new Set(["art-1"]));
+    expect(showToast).not.toHaveBeenCalled();
   });
 
   it("ignores stale mutation success after the mutation owner changes", () => {

@@ -51,6 +51,9 @@ describe("StoryQueryClientProvider", () => {
     });
     firstRender.unmount();
 
+    expect(firstClient?.getMutationCache().getAll()).toHaveLength(0);
+    expect(firstClient?.getQueryData(["story", "cache"])).toBeUndefined();
+
     const secondClientProbe = vi.fn();
     render(
       <StoryQueryClientProvider>

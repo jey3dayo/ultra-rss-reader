@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  captureRuntimeWindowDescriptors,
+  defineRuntimeWindowDescriptor,
   installStoryRuntimeTauriInternals,
   removeStoryRuntimeTauriInternals,
+  restoreRuntimeWindowDescriptors,
   setAppLikeScenarioStoryRuntime,
   setComponentIsolationStoryRuntime,
   setStoryTauriRuntimeMissing,
@@ -165,5 +168,31 @@ describe("story Tauri runtime helper", () => {
     restoreRuntime();
 
     expect(window.__TAURI_INTERNALS__).toEqual({});
+  });
+
+  it("captures and restores mixed runtime descriptors through the shared helper", () => {
+    defineRuntimeWindowDescriptor("__DEV_BROWSER_MOCKS__", {
+      enumerable: true,
+      writable: false,
+      value: true,
+    });
+    const snapshot = captureRuntimeWindowDescriptors(["__TAURI_INTERNALS__", "__DEV_BROWSER_MOCKS__"]);
+
+    installStoryRuntimeTauriInternals({}, { writable: false });
+    defineRuntimeWindowDescriptor("__DEV_BROWSER_MOCKS__", {
+      enumerable: false,
+      writable: true,
+      value: false,
+    });
+
+    restoreRuntimeWindowDescriptors(snapshot);
+
+    expect(Object.getOwnPropertyDescriptor(window, "__TAURI_INTERNALS__")).toBeUndefined();
+    expect(Object.getOwnPropertyDescriptor(window, "__DEV_BROWSER_MOCKS__")).toMatchObject({
+      configurable: true,
+      enumerable: true,
+      writable: false,
+      value: true,
+    });
   });
 });

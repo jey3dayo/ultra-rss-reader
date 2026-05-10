@@ -1,5 +1,5 @@
 import { listen } from "@tauri-apps/api/event";
-import { Component, lazy, type ReactNode, Suspense, useEffect, useReducer } from "react";
+import { Component, lazy, type ReactNode, Suspense, useEffect, useReducer, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { type BrowserDebugGeometrySnapshot, getBrowserGeometryRows } from "@/lib/browser/browser-debug-geometry";
@@ -142,10 +142,14 @@ export function preloadSettingsModalModuleForDev(loadModule = loadSettingsModalM
 
 preloadSettingsModalModuleForDev();
 
-export function resetSettingsModalPreloadForTest() {
+function resetSettingsModalPreloadSession() {
   settingsModalPreloadGeneration += 1;
   clearSettingsModalPreloadRetryTimer();
   settingsModalPreloadState = "idle";
+}
+
+export function resetSettingsModalPreloadForTest() {
+  resetSettingsModalPreloadSession();
 }
 
 const LazySettingsModal = lazy(async () => {
@@ -532,6 +536,7 @@ export function AppShell() {
   const browserUrl = useUiStore((state) => state.browserUrl);
   const toastMessage = useUiStore((state) => state.toastMessage);
   const prefs = usePreferencesStore((state) => state.prefs);
+  const settingsPreloadSessionOpenedRef = useRef(false);
   const overlayTitlebar = shouldUseDesktopOverlayTitlebar({
     platformKind,
     hasTauriRuntime: hasTauriRuntime(),
@@ -543,6 +548,22 @@ export function AppShell() {
   useEffect(() => {
     loadPlatformInfo();
   }, [loadPlatformInfo]);
+
+  useEffect(() => resetSettingsModalPreloadSession, []);
+
+  useEffect(() => {
+    if (settingsOpen) {
+      settingsPreloadSessionOpenedRef.current = true;
+      return;
+    }
+
+    if (!settingsPreloadSessionOpenedRef.current) {
+      return;
+    }
+
+    settingsPreloadSessionOpenedRef.current = false;
+    resetSettingsModalPreloadSession();
+  }, [settingsOpen]);
 
   useEffect(() => {
     const handleTauriEventListenerFailure = () => {

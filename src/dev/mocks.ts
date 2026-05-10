@@ -15,6 +15,12 @@ import type {
   MuteKeywordDto,
   TagDto,
 } from "@/api/tauri-commands";
+import {
+  captureRuntimeWindowDescriptors,
+  defineRuntimeWindowDescriptor,
+  type RuntimeWindowDescriptorsSnapshot,
+  restoreRuntimeWindowDescriptors,
+} from "@/components/storybook/story-tauri-runtime";
 import { DEFAULT_PLATFORM_INFO } from "@/constants/platform";
 import { readDevIntent, readDevWebUrl, readDevWindowSize } from "@/dev/intent";
 import {
@@ -40,7 +46,7 @@ type MockCommandWithArgs = keyof BrowserMockCommandArgsSchemas;
 type ParsedBrowserMockArgs<TCommand extends MockCommandWithArgs> = z.output<BrowserMockCommandArgsSchemas[TCommand]>;
 type RawMockIpcPayload = unknown;
 type DevMockWindowGlobalName = "__DEV_BROWSER_MOCKS__" | "__ULTRA_RSS_BROWSER_MOCKS__";
-type DevMockWindowGlobalsSnapshot = Record<DevMockWindowGlobalName, PropertyDescriptor | undefined>;
+type DevMockWindowGlobalsSnapshot = Pick<RuntimeWindowDescriptorsSnapshot, DevMockWindowGlobalName>;
 type DevMockDiagnostic = {
   kind: "unknown-command";
   command: string;
@@ -139,24 +145,11 @@ function recordDevMockUnknownCommand(command: string): Error {
 }
 
 function captureDevMockWindowGlobals(): DevMockWindowGlobalsSnapshot {
-  return {
-    __DEV_BROWSER_MOCKS__: Object.getOwnPropertyDescriptor(window, "__DEV_BROWSER_MOCKS__"),
-    __ULTRA_RSS_BROWSER_MOCKS__: Object.getOwnPropertyDescriptor(window, "__ULTRA_RSS_BROWSER_MOCKS__"),
-  };
-}
-
-function restoreDevMockWindowGlobal(name: DevMockWindowGlobalName, descriptor: PropertyDescriptor | undefined) {
-  if (descriptor) {
-    Object.defineProperty(window, name, descriptor);
-    return;
-  }
-
-  delete window[name];
+  return captureRuntimeWindowDescriptors(["__DEV_BROWSER_MOCKS__", "__ULTRA_RSS_BROWSER_MOCKS__"]);
 }
 
 function setDevMockWindowGlobal(name: DevMockWindowGlobalName) {
-  Object.defineProperty(window, name, {
-    configurable: true,
+  defineRuntimeWindowDescriptor(name, {
     writable: true,
     value: true,
   });
@@ -164,8 +157,7 @@ function setDevMockWindowGlobal(name: DevMockWindowGlobalName) {
 
 function createDevMockWindowGlobalsRestore(snapshot: DevMockWindowGlobalsSnapshot): RestoreDevMocks {
   return () => {
-    restoreDevMockWindowGlobal("__DEV_BROWSER_MOCKS__", snapshot.__DEV_BROWSER_MOCKS__);
-    restoreDevMockWindowGlobal("__ULTRA_RSS_BROWSER_MOCKS__", snapshot.__ULTRA_RSS_BROWSER_MOCKS__);
+    restoreRuntimeWindowDescriptors(snapshot);
   };
 }
 
@@ -355,7 +347,18 @@ function findLatestPublishedAt(articles: readonly ArticleDto[]): string | null {
 export function setupDevMocks(): RestoreDevMocks {
   const restoreWindowGlobals = createDevMockWindowGlobalsRestore(captureDevMockWindowGlobals());
 
+  if (window.__TAURI_INTERNALS__ && !window.__DEV_BROWSER_MOCKS__ && !window.__ULTRA_RSS_BROWSER_MOCKS__) {
+    defineRuntimeWindowDescriptor("__DEV_BROWSER_MOCKS__", {
+      writable: true,
+      value: false,
+    });
+    defineRuntimeWindowDescriptor("__ULTRA_RSS_BROWSER_MOCKS__", {
+      writable: true,
+      value: false,
+    });
+  }
   if (window.__TAURI_INTERNALS__ && !window.__DEV_BROWSER_MOCKS__) return restoreWindowGlobals;
+
   resetDevMockState();
   setDevMockWindowGlobal("__DEV_BROWSER_MOCKS__");
   setDevMockWindowGlobal("__ULTRA_RSS_BROWSER_MOCKS__");

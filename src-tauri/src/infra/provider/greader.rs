@@ -1197,6 +1197,31 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn authenticate_request_sends_no_store_headers() {
+        let mut server = mockito::Server::new_async().await;
+        let auth_mock = server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .match_header("Content-Type", "application/x-www-form-urlencoded")
+            .match_header("Cache-Control", "no-store")
+            .match_header("Pragma", "no-cache")
+            .with_status(200)
+            .with_body("Auth=test-token-123\n")
+            .create_async()
+            .await;
+
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
+        provider
+            .authenticate(&Credentials {
+                password: Some("secret-password".into()),
+                token: Some("secret-user@example.com".into()),
+            })
+            .await
+            .expect("auth request should include provider no-store headers");
+
+        auth_mock.assert_async().await;
+    }
+
+    #[tokio::test]
     async fn authenticate_maps_provider_http_status_categories() {
         let cases = [
             (401, "Auth error: HTTP 401 Unauthorized"),

@@ -140,6 +140,15 @@ describe("ArticleContentView", () => {
     expect(fromSanitizedArticleHtmlDto(sanitizedDto)).toBe(sanitizedDto.content_sanitized);
   });
 
+  it("rejects raw string content at the view prop type boundary", () => {
+    const unsafeProps: Parameters<typeof ArticleContentView>[0] = {
+      // @ts-expect-error ArticleContentView only accepts SanitizedArticleHtml, not arbitrary strings.
+      contentHtml: "<p>Raw unsanitized body</p>",
+    };
+
+    expect(unsafeProps.contentHtml).toBe("<p>Raw unsanitized body</p>");
+  });
+
   it("keeps the legacy raw string brand helper isolated for explicit local tests", () => {
     const sanitizedHtml = "<p data-source='rust-sanitizer'>Safe <em>content</em></p>";
 
