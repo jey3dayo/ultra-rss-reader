@@ -98,6 +98,32 @@ pub enum DatabaseRecoveryActionSafety {
     RequiresExplicitConfirmation,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum FilesystemRecoverySurface {
+    LogDirectory,
+    DatabaseBackup,
+    OpmlExport,
+    SettingsData,
+    DevCredentialStore,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum FilesystemPathNormalizationPolicy {
+    AppOwnedNativePath,
+    UserSelectedNativePath,
+    UnsupportedUntilVersionedContract,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AtomicFileWritePolicy {
+    NotAWriteSurface,
+    TempFileThenRename,
+    UnsupportedUntilVersionedContract,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct DatabaseRuntimeRecoveryContract {
     pub failure_kind: DatabaseRuntimeFailureKind,
@@ -105,6 +131,14 @@ pub struct DatabaseRuntimeRecoveryContract {
     pub actions: Vec<DatabaseRuntimeRecoveryAction>,
     pub action_safety: Vec<DatabaseRecoveryActionSafety>,
     pub diagnostics_id_required: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub struct FilesystemRecoveryContract {
+    pub surface: FilesystemRecoverySurface,
+    pub path_normalization: FilesystemPathNormalizationPolicy,
+    pub atomic_write: AtomicFileWritePolicy,
+    pub exposes_raw_path_to_webview: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -139,6 +173,45 @@ pub(crate) fn schedule_database_maintenance_action(
         (DatabaseMaintenanceTrigger::Automatic, AppActivityState::Foreground) => {
             DatabaseMaintenanceScheduleDecision::DeferUntilBackground
         }
+    }
+}
+
+pub(crate) fn filesystem_recovery_contract(
+    surface: FilesystemRecoverySurface,
+) -> FilesystemRecoveryContract {
+    let (path_normalization, atomic_write, exposes_raw_path_to_webview) = match surface {
+        FilesystemRecoverySurface::LogDirectory => (
+            FilesystemPathNormalizationPolicy::AppOwnedNativePath,
+            AtomicFileWritePolicy::NotAWriteSurface,
+            false,
+        ),
+        FilesystemRecoverySurface::DatabaseBackup => (
+            FilesystemPathNormalizationPolicy::AppOwnedNativePath,
+            AtomicFileWritePolicy::TempFileThenRename,
+            false,
+        ),
+        FilesystemRecoverySurface::OpmlExport => (
+            FilesystemPathNormalizationPolicy::UserSelectedNativePath,
+            AtomicFileWritePolicy::TempFileThenRename,
+            true,
+        ),
+        FilesystemRecoverySurface::SettingsData => (
+            FilesystemPathNormalizationPolicy::UnsupportedUntilVersionedContract,
+            AtomicFileWritePolicy::UnsupportedUntilVersionedContract,
+            false,
+        ),
+        FilesystemRecoverySurface::DevCredentialStore => (
+            FilesystemPathNormalizationPolicy::AppOwnedNativePath,
+            AtomicFileWritePolicy::TempFileThenRename,
+            false,
+        ),
+    };
+
+    FilesystemRecoveryContract {
+        surface,
+        path_normalization,
+        atomic_write,
+        exposes_raw_path_to_webview,
     }
 }
 
@@ -236,12 +309,12 @@ mod tests {
     use std::sync::Mutex;
 
     use crate::commands::database_commands::{
-        database_runtime_recovery_contract, get_database_info_inner,
+        database_runtime_recovery_contract, filesystem_recovery_contract, get_database_info_inner,
         schedule_database_maintenance_action, search_index_rebuild_maintenance_contract,
-        vacuum_database_inner, AppActivityState, DatabaseInfoDto, DatabaseMaintenanceAction,
-        DatabaseMaintenanceScheduleDecision, DatabaseMaintenanceTrigger,
+        vacuum_database_inner, AppActivityState, AtomicFileWritePolicy, DatabaseInfoDto,
+        DatabaseMaintenanceAction, DatabaseMaintenanceScheduleDecision, DatabaseMaintenanceTrigger,
         DatabaseRecoveryActionSafety, DatabaseRuntimeFailureKind, DatabaseRuntimeRecoveryAction,
-        DatabaseRuntimeRecoveryMode,
+        DatabaseRuntimeRecoveryMode, FilesystemPathNormalizationPolicy, FilesystemRecoverySurface,
     };
     use crate::commands::dto::AppError;
     use crate::commands::start_database_maintenance;
@@ -502,5 +575,70 @@ mod tests {
         assert_eq!(value["action_safety"][0], "read_only");
         assert_eq!(value["actions"][1], "restore_backup");
         assert_eq!(value["action_safety"][1], "requires_explicit_confirmation");
+    }
+
+    #[test]
+    fn filesystem_recovery_contracts_align_path_and_atomic_write_policy() {
+        let log_dir = filesystem_recovery_contract(FilesystemRecoverySurface::LogDirectory);
+        assert_eq!(
+            log_dir.path_normalization,
+            FilesystemPathNormalizationPolicy::AppOwnedNativePath
+        );
+        assert_eq!(
+            log_dir.atomic_write,
+            AtomicFileWritePolicy::NotAWriteSurface
+        );
+        assert!(!log_dir.exposes_raw_path_to_webview);
+
+        for surface in [
+            FilesystemRecoverySurface::DatabaseBackup,
+            FilesystemRecoverySurface::DevCredentialStore,
+        ] {
+            let contract = filesystem_recovery_contract(surface);
+            assert_eq!(
+                contract.path_normalization,
+                FilesystemPathNormalizationPolicy::AppOwnedNativePath
+            );
+            assert_eq!(
+                contract.atomic_write,
+                AtomicFileWritePolicy::TempFileThenRename
+            );
+            assert!(!contract.exposes_raw_path_to_webview);
+        }
+
+        let export = filesystem_recovery_contract(FilesystemRecoverySurface::OpmlExport);
+        assert_eq!(
+            export.path_normalization,
+            FilesystemPathNormalizationPolicy::UserSelectedNativePath
+        );
+        assert_eq!(
+            export.atomic_write,
+            AtomicFileWritePolicy::TempFileThenRename
+        );
+        assert!(export.exposes_raw_path_to_webview);
+
+        let settings = filesystem_recovery_contract(FilesystemRecoverySurface::SettingsData);
+        assert_eq!(
+            settings.path_normalization,
+            FilesystemPathNormalizationPolicy::UnsupportedUntilVersionedContract
+        );
+        assert_eq!(
+            settings.atomic_write,
+            AtomicFileWritePolicy::UnsupportedUntilVersionedContract
+        );
+        assert!(!settings.exposes_raw_path_to_webview);
+    }
+
+    #[test]
+    fn filesystem_recovery_contract_serializes_for_settings_data_surface() {
+        let value = serde_json::to_value(filesystem_recovery_contract(
+            FilesystemRecoverySurface::DatabaseBackup,
+        ))
+        .expect("filesystem recovery contract should serialize");
+
+        assert_eq!(value["surface"], "database_backup");
+        assert_eq!(value["path_normalization"], "app_owned_native_path");
+        assert_eq!(value["atomic_write"], "temp_file_then_rename");
+        assert_eq!(value["exposes_raw_path_to_webview"], false);
     }
 }

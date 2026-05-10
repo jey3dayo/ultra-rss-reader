@@ -213,6 +213,7 @@ Confirm before a release that changes Tauri configuration, signing, keyring beha
 - Network access is limited to the app's RSS/provider, update, favicon, article media, and Web Preview behavior described by current product policy.
 - File access remains user-initiated or app-owned unless a reviewed feature explicitly needs broader paths.
 - Native file dialogs apply the same extension, cancel, directory, and overwrite-confirmation policy across OPML import/export and database backup/restore flows.
+- Log, backup, export, settings, and dev credential recovery surfaces follow the same filesystem contract: native path normalization at the boundary, no raw app-owned recovery paths exposed to the webview, and temporary-file-then-rename writes where the surface writes a recoverable artifact.
 - Keychain access remains limited to provider credentials and does not create a new shared access group without migration and rollback notes.
 - Diagnostics, support dumps, and logs do not require broad filesystem access to collect private data by default.
 - Any new entitlement lists the user-visible feature, expected prompt or OS behavior, fallback behavior when denied, and manual verification evidence.
@@ -223,6 +224,7 @@ If a release changes import/export/backup dialogs, confirm and record:
 - OPML export and database backup save dialogs auto-append only the missing expected extension.
 - Existing-file replacement requires explicit overwrite confirmation before any write starts.
 - Canceling a dialog leaves no file mutation, error toast, or stuck progress state.
+- Database backup and restore evidence includes pre/post `integrity_check` behavior and the WAL checkpoint policy; migration evidence states that DDL runs transactionally and partial migration failure rolls back before automatic backup restore.
 - Sleeping during updater download, OPML export, or database backup either cancels cleanly or resumes through a documented operation generation without accepting partial artifacts.
 - Permission denied, disk full, and OS sleep interruption are reported as distinct outcomes.
 

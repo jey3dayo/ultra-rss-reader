@@ -177,8 +177,21 @@ fn checkpoint_wal(db_path: &Path) -> DomainResult<()> {
 }
 
 fn ensure_integrity_ok(db_path: &Path, operation: &str) -> DomainResult<()> {
-    let conn = Connection::open_with_flags(db_path, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
-    let result: String = conn.query_row("PRAGMA integrity_check", [], |row| row.get(0))?;
+    let conn =
+        Connection::open_with_flags(db_path, OpenFlags::SQLITE_OPEN_READ_ONLY).map_err(|e| {
+            DomainError::Migration(format!(
+                "Failed to open {} for SQLite integrity_check {operation}: {e}",
+                redacted_path_label(db_path)
+            ))
+        })?;
+    let result: String = conn
+        .query_row("PRAGMA integrity_check", [], |row| row.get(0))
+        .map_err(|e| {
+            DomainError::Migration(format!(
+                "Failed to run SQLite integrity_check {operation} for {}: {e}",
+                redacted_path_label(db_path)
+            ))
+        })?;
     if result == "ok" {
         return Ok(());
     }
@@ -881,6 +894,40 @@ mod tests {
         let db_path = dir.path().join("nonexistent.db");
         let result = create_backup(&db_path, 1);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn create_backup_rejects_corrupt_source_before_copying() {
+        let dir = tempfile::tempdir().unwrap();
+        let db_path = dir.path().join("corrupt.db");
+        fs::write(&db_path, b"not sqlite").unwrap();
+
+        let error = create_backup(&db_path, 1).unwrap_err().to_string();
+
+        assert!(
+            error.contains("SQLite integrity_check failed before backup")
+                || error.contains("Failed to run SQLite integrity_check before backup")
+                || error.contains("file is not a database"),
+            "backup should fail before copying a corrupt DB: {error}"
+        );
+        assert!(
+            error.contains("[redacted parent]/corrupt.db"),
+            "backup error should keep path redacted: {error}"
+        );
+        let finalized_backup_count = fs::read_dir(backups_dir(&db_path).unwrap())
+            .unwrap()
+            .filter_map(|entry| entry.ok())
+            .filter(|entry| {
+                entry
+                    .file_name()
+                    .to_string_lossy()
+                    .starts_with("corrupt_v1_")
+            })
+            .count();
+        assert_eq!(
+            finalized_backup_count, 0,
+            "backup should not leave a finalized corrupt backup"
+        );
     }
 
     #[test]
