@@ -90,11 +90,20 @@ pub enum DatabaseRuntimeRecoveryAction {
     FreeDiskSpace,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DatabaseRecoveryActionSafety {
+    ReadOnly,
+    RequiresDryRun,
+    RequiresExplicitConfirmation,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct DatabaseRuntimeRecoveryContract {
     pub failure_kind: DatabaseRuntimeFailureKind,
     pub mode: DatabaseRuntimeRecoveryMode,
     pub actions: Vec<DatabaseRuntimeRecoveryAction>,
+    pub action_safety: Vec<DatabaseRecoveryActionSafety>,
     pub diagnostics_id_required: bool,
 }
 
@@ -177,6 +186,20 @@ pub(crate) fn database_runtime_recovery_contract(
     DatabaseRuntimeRecoveryContract {
         failure_kind,
         mode,
+        action_safety: actions
+            .iter()
+            .map(|action| match action {
+                DatabaseRuntimeRecoveryAction::RunIntegrityCheck
+                | DatabaseRuntimeRecoveryAction::Retry
+                | DatabaseRuntimeRecoveryAction::CheckOsPermissions
+                | DatabaseRuntimeRecoveryAction::FreeDiskSpace => {
+                    DatabaseRecoveryActionSafety::ReadOnly
+                }
+                DatabaseRuntimeRecoveryAction::RestoreBackup => {
+                    DatabaseRecoveryActionSafety::RequiresExplicitConfirmation
+                }
+            })
+            .collect(),
         actions,
         diagnostics_id_required: true,
     }
@@ -217,7 +240,8 @@ mod tests {
         schedule_database_maintenance_action, search_index_rebuild_maintenance_contract,
         vacuum_database_inner, AppActivityState, DatabaseInfoDto, DatabaseMaintenanceAction,
         DatabaseMaintenanceScheduleDecision, DatabaseMaintenanceTrigger,
-        DatabaseRuntimeFailureKind, DatabaseRuntimeRecoveryAction, DatabaseRuntimeRecoveryMode,
+        DatabaseRecoveryActionSafety, DatabaseRuntimeFailureKind, DatabaseRuntimeRecoveryAction,
+        DatabaseRuntimeRecoveryMode,
     };
     use crate::commands::dto::AppError;
     use crate::commands::start_database_maintenance;
@@ -421,6 +445,13 @@ mod tests {
                     DatabaseRuntimeRecoveryAction::RestoreBackup,
                 ]
             );
+            assert_eq!(
+                contract.action_safety,
+                vec![
+                    DatabaseRecoveryActionSafety::ReadOnly,
+                    DatabaseRecoveryActionSafety::RequiresExplicitConfirmation,
+                ]
+            );
             assert!(contract.diagnostics_id_required);
         }
     }
@@ -435,6 +466,10 @@ mod tests {
         assert_eq!(locked.mode, DatabaseRuntimeRecoveryMode::RetryWhenIdle);
         assert_eq!(locked.actions, vec![DatabaseRuntimeRecoveryAction::Retry]);
         assert_eq!(
+            locked.action_safety,
+            vec![DatabaseRecoveryActionSafety::ReadOnly]
+        );
+        assert_eq!(
             permission.mode,
             DatabaseRuntimeRecoveryMode::UserPermissionFix
         );
@@ -442,10 +477,30 @@ mod tests {
             permission.actions,
             vec![DatabaseRuntimeRecoveryAction::CheckOsPermissions]
         );
+        assert_eq!(
+            permission.action_safety,
+            vec![DatabaseRecoveryActionSafety::ReadOnly]
+        );
         assert_eq!(disk_full.mode, DatabaseRuntimeRecoveryMode::FreeDiskSpace);
         assert_eq!(
             disk_full.actions,
             vec![DatabaseRuntimeRecoveryAction::FreeDiskSpace]
         );
+        assert_eq!(
+            disk_full.action_safety,
+            vec![DatabaseRecoveryActionSafety::ReadOnly]
+        );
+    }
+
+    #[test]
+    fn recovery_action_safety_serializes_for_settings_data_contract() {
+        let contract =
+            database_runtime_recovery_contract(DatabaseRuntimeFailureKind::ReadCorruption);
+        let value = serde_json::to_value(contract).expect("recovery contract should serialize");
+
+        assert_eq!(value["actions"][0], "run_integrity_check");
+        assert_eq!(value["action_safety"][0], "read_only");
+        assert_eq!(value["actions"][1], "restore_backup");
+        assert_eq!(value["action_safety"][1], "requires_explicit_confirmation");
     }
 }
