@@ -1160,16 +1160,17 @@ mod tests {
         article_command_pagination, background_browser_open_failure_message,
         background_browser_open_status_failure_message, bulk_mark_account_read,
         bulk_mark_account_starred_read, bulk_mark_old_unread_read, bulk_unstar_account_articles,
-        has_blocking_frame_ancestors, has_blocking_x_frame_options, mark_article_read_with_conn,
-        mark_articles_read_with_conn, mark_feed_read_with_conn, mark_folder_read_with_conn,
-        maybe_queue_mutation, native_browser_open_failure_message, old_unread_before_from_now,
-        open_browser_in_background_with_command, parse_article_list_mode,
-        provider_supports_pending_article_mutations, recalculate_bulk_feed_unread_counts,
-        record_article_view_with_conn, should_use_background_browser_open,
-        supports_remote_mutations, toggle_article_star_with_conn, validate_feed_article_filters,
-        validate_older_than_days, BulkArticleMutationRow, OldUnreadScope,
-        DEFAULT_ARTICLE_LIST_LIMIT, DEFAULT_RECENT_ARTICLE_LIST_LIMIT,
-        MAX_ARTICLE_COMMAND_LIST_LIMIT, MAX_ARTICLE_COMMAND_LIST_OFFSET,
+        collect_old_unread_rows, has_blocking_frame_ancestors, has_blocking_x_frame_options,
+        mark_article_read_with_conn, mark_articles_read_with_conn, mark_feed_read_with_conn,
+        mark_folder_read_with_conn, maybe_queue_mutation, native_browser_open_failure_message,
+        old_unread_before_from_now, open_browser_in_background_with_command,
+        parse_article_list_mode, provider_supports_pending_article_mutations,
+        recalculate_bulk_feed_unread_counts, record_article_view_with_conn,
+        should_use_background_browser_open, supports_remote_mutations,
+        toggle_article_star_with_conn, validate_feed_article_filters, validate_older_than_days,
+        BulkArticleMutationRow, OldUnreadScope, DEFAULT_ARTICLE_LIST_LIMIT,
+        DEFAULT_RECENT_ARTICLE_LIST_LIMIT, MAX_ARTICLE_COMMAND_LIST_LIMIT,
+        MAX_ARTICLE_COMMAND_LIST_OFFSET,
     };
     use crate::commands::dto::AppError;
     use crate::commands::DATABASE_MAINTENANCE_BUSY_ERROR;
@@ -1904,6 +1905,29 @@ mod tests {
     }
 
     #[test]
+    fn record_article_view_persistence_failure_is_user_visible_not_retryable() {
+        let db = DbManager::new_in_memory().expect("in-memory DB should initialize");
+        insert_bulk_account(&db, "acc-a", "FreshRss");
+        db.writer()
+            .execute("DROP TABLE article_view_history", [])
+            .expect("history table drop should succeed");
+
+        let error = record_article_view_with_conn(
+            db.writer(),
+            AccountId("acc-a".to_string()),
+            ArticleId("article-a".to_string()),
+        )
+        .expect_err("history persistence failure should reject once");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message }
+                if message.contains("Persistence error:")
+                    && message.contains("article_view_history")
+        ));
+    }
+
+    #[test]
     fn article_pending_mutation_query_errors_are_reported() {
         let db = DbManager::new_in_memory().expect("in-memory DB should initialize");
         db.writer()
@@ -2616,6 +2640,44 @@ mod tests {
 
         assert_eq!(feed_a_unread, 2);
         assert_eq!(feed_b_unread, 77);
+    }
+
+    #[test]
+    fn old_unread_missing_targets_are_zero_count_success() {
+        let db = DbManager::new_in_memory().expect("in-memory DB should initialize");
+        insert_bulk_account(&db, "acc-a", "Local");
+        insert_bulk_feed(&db, "feed-a", "acc-a", None, None);
+        insert_bulk_article(
+            &db,
+            "article-a",
+            "feed-a",
+            None,
+            "2026-03-01T00:00:00Z",
+            false,
+            false,
+        );
+        let before = chrono::DateTime::parse_from_rfc3339("2026-04-01T00:00:00Z")
+            .expect("timestamp should parse")
+            .with_timezone(&chrono::Utc);
+
+        let cases = [
+            (OldUnreadScope::Account, "missing-account"),
+            (OldUnreadScope::Feed, "missing-feed"),
+            (OldUnreadScope::Folder, "missing-folder"),
+        ];
+
+        for (scope, target_id) in cases {
+            let rows = collect_old_unread_rows(db.reader(), scope, target_id, before)
+                .expect("missing old unread target count should succeed");
+            let marked = bulk_mark_old_unread_read(db.writer(), scope, target_id, before)
+                .expect("missing old unread target mark should succeed");
+
+            assert!(rows.is_empty(), "{target_id} should count as zero");
+            assert_eq!(marked, 0, "{target_id} should mark zero articles");
+        }
+        assert!(!article_is_read(&db, "article-a"));
+        assert_eq!(feed_unread_count(&db, "feed-a"), 0);
+        assert_eq!(pending_mutation_count(&db), 0);
     }
 
     #[test]
