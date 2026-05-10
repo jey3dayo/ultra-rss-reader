@@ -1,5 +1,6 @@
 use rusqlite::types::Type;
 use rusqlite::{params, Connection, OptionalExtension};
+use tracing::warn;
 
 use crate::domain::account::{Account, ConnectionVerificationStatus};
 use crate::domain::error::{DomainError, DomainResult};
@@ -92,9 +93,14 @@ impl AccountRepository for SqliteAccountRepository<'_> {
         let mut stmt = self.conn.prepare(
             "SELECT id, kind, name, server_url, username, sync_interval_secs, sync_on_startup, sync_on_wake, keep_read_items_days, connection_verification_status, connection_verified_at, connection_verification_error FROM accounts ORDER BY name COLLATE NOCASE, id",
         )?;
-        let accounts = stmt
-            .query_map([], row_to_account)?
-            .collect::<Result<Vec<_>, _>>()?;
+        let mut rows = stmt.query([])?;
+        let mut accounts = Vec::new();
+        while let Some(row) = rows.next()? {
+            match row_to_account(row) {
+                Ok(account) => accounts.push(account),
+                Err(error) => warn!("Skipping invalid account row during list_accounts: {error}"),
+            }
+        }
         Ok(accounts)
     }
 
@@ -267,9 +273,13 @@ mod tests {
     }
 
     #[test]
-    fn find_all_returns_error_for_unknown_provider_kind() {
+    fn find_all_quarantines_unknown_provider_kind() {
         let db = test_db();
         let repo = SqliteAccountRepository::new(db.reader());
+        let valid_account = make_account("Valid");
+        SqliteAccountRepository::new(db.writer())
+            .save(&valid_account)
+            .unwrap();
         db.writer()
             .execute(
                 "INSERT INTO accounts (id, kind, name) VALUES (?1, ?2, ?3)",
@@ -277,11 +287,10 @@ mod tests {
             )
             .unwrap();
 
-        let error = repo
-            .find_all()
-            .expect_err("unknown provider kind should fail account decode");
+        let accounts = repo.find_all().unwrap();
 
-        assert!(error.to_string().contains("UnknownProvider"));
+        assert_eq!(accounts.len(), 1);
+        assert_eq!(accounts[0].id, valid_account.id);
     }
 
     #[test]
@@ -304,9 +313,13 @@ mod tests {
     }
 
     #[test]
-    fn find_all_returns_error_for_unknown_verification_status() {
+    fn find_all_quarantines_unknown_verification_status() {
         let db = test_db();
         let repo = SqliteAccountRepository::new(db.reader());
+        let valid_account = make_account("Valid");
+        SqliteAccountRepository::new(db.writer())
+            .save(&valid_account)
+            .unwrap();
         db.writer()
             .execute(
                 "INSERT INTO accounts (id, kind, name, connection_verification_status)
@@ -315,11 +328,10 @@ mod tests {
             )
             .unwrap();
 
-        let error = repo
-            .find_all()
-            .expect_err("unknown verification status should fail account decode");
+        let accounts = repo.find_all().unwrap();
 
-        assert!(error.to_string().contains("expired"));
+        assert_eq!(accounts.len(), 1);
+        assert_eq!(accounts[0].id, valid_account.id);
     }
 
     #[test]
@@ -343,28 +355,77 @@ mod tests {
     }
 
     #[test]
-    fn delete_cascades_feeds() {
+    fn delete_cascades_account_owned_rows_in_one_db_operation() {
         let db = test_db();
         let repo = SqliteAccountRepository::new(db.writer());
 
         let account = make_account("Test");
         repo.save(&account).unwrap();
 
-        // Insert a feed referencing this account
         db.writer()
             .execute(
-                "INSERT INTO feeds (id, account_id, title, url) VALUES ('f1', ?1, 'Feed', 'http://f.com')",
+                "INSERT INTO folders (id, account_id, name) VALUES ('folder-1', ?1, 'Folder')",
+                params![account.id.0],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO feeds (id, account_id, folder_id, title, url, site_url)
+                 VALUES ('feed-1', ?1, 'folder-1', 'Feed', 'https://example.com/feed.xml', 'https://example.com')",
+                params![account.id.0],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO articles (id, feed_id, remote_id, title, published_at, fetched_at)
+                 VALUES ('article-1', 'feed-1', 'remote-1', 'Article', '2026-05-09T00:00:00Z', '2026-05-09T00:01:00Z')",
+                [],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO sync_state (account_id, scope_key) VALUES (?1, '')",
+                params![account.id.0],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO pending_mutations (account_id, mutation_type, remote_entry_id, created_at)
+                 VALUES (?1, 'mark_read', 'remote-1', '2026-05-09T00:02:00Z')",
                 params![account.id.0],
             )
             .unwrap();
 
         repo.delete(&account.id).unwrap();
 
-        let count: i32 = db
+        let folder_count: i32 = db
+            .reader()
+            .query_row("SELECT COUNT(*) FROM folders", [], |row| row.get(0))
+            .unwrap();
+        let feed_count: i32 = db
             .reader()
             .query_row("SELECT COUNT(*) FROM feeds", [], |row| row.get(0))
             .unwrap();
-        assert_eq!(count, 0);
+        let article_count: i32 = db
+            .reader()
+            .query_row("SELECT COUNT(*) FROM articles", [], |row| row.get(0))
+            .unwrap();
+        let sync_state_count: i32 = db
+            .reader()
+            .query_row("SELECT COUNT(*) FROM sync_state", [], |row| row.get(0))
+            .unwrap();
+        let pending_count: i32 = db
+            .reader()
+            .query_row("SELECT COUNT(*) FROM pending_mutations", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+
+        assert_eq!(folder_count, 0);
+        assert_eq!(feed_count, 0);
+        assert_eq!(article_count, 0);
+        assert_eq!(sync_state_count, 0);
+        assert_eq!(pending_count, 0);
     }
 
     #[test]
