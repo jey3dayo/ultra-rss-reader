@@ -1120,7 +1120,14 @@ describe("repository static contracts", () => {
     const miseTasks = extractMiseTaskNames(readRepoFile("mise.toml"));
     const ciTasks = extractMiseRunTasks(readRepoFile(".github/workflows/ci.yml"));
 
-    expect([...new Set(ciTasks)].toSorted()).toEqual(["app:build:debug", "build", "format:check", "lint", "test:ci"]);
+    expect([...new Set(ciTasks)].toSorted()).toEqual([
+      "app:build:debug",
+      "build",
+      "format:check",
+      "lint",
+      "quality:toolchain",
+      "test:ci",
+    ]);
     expect(ciTasks.filter((task) => !miseTasks.has(task))).toEqual([]);
   });
 
@@ -1143,21 +1150,100 @@ describe("repository static contracts", () => {
   it("keeps CI check jobs caching the pnpm store before install", () => {
     const ciWorkflow = readRepoFile(".github/workflows/ci.yml");
     const pnpmStorePathExpression = "$" + "{{ steps.pnpm-store.outputs.path }}";
-    const pnpmStoreKeyExpression = "$" + "{{ runner.os }}-pnpm-store-" + "$" + "{{ hashFiles('pnpm-lock.yaml') }}";
+    const pnpmStoreKeyExpression =
+      "$" +
+      "{{ runner.os }}-pnpm-store-node-" +
+      "$" +
+      "{{ steps.toolchain-cache.outputs.node }}-pnpm-" +
+      "$" +
+      "{{ steps.toolchain-cache.outputs.pnpm }}-mise-" +
+      "$" +
+      "{{ steps.toolchain-cache.outputs.mise }}-" +
+      "$" +
+      "{{ hashFiles('pnpm-lock.yaml') }}";
+    const pnpmStoreVersionedRestoreKeyExpression =
+      "$" +
+      "{{ runner.os }}-pnpm-store-node-" +
+      "$" +
+      "{{ steps.toolchain-cache.outputs.node }}-pnpm-" +
+      "$" +
+      "{{ steps.toolchain-cache.outputs.pnpm }}-mise-" +
+      "$" +
+      "{{ steps.toolchain-cache.outputs.mise }}-";
     const pnpmStoreRestoreKeyExpression = "$" + "{{ runner.os }}-pnpm-store-";
 
     for (const { jobId, section } of extractWorkflowCheckJobSections(ciWorkflow)) {
+      const toolchainCacheIndex = section.indexOf("id: toolchain-cache");
       const storePathIndex = section.indexOf("pnpm store path --silent");
       const cacheIndex = section.indexOf("uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae");
       const installIndex = section.indexOf("pnpm install --frozen-lockfile");
 
+      if (jobId === "toolchain") {
+        continue;
+      }
+
+      expect(toolchainCacheIndex, `${jobId} should resolve Node/pnpm/mise cache versions`).toBeGreaterThanOrEqual(0);
       expect(storePathIndex, `${jobId} should resolve pnpm store path`).toBeGreaterThanOrEqual(0);
       expect(cacheIndex, `${jobId} should use actions/cache for pnpm store`).toBeGreaterThan(storePathIndex);
       expect(installIndex, `${jobId} should install pnpm dependencies`).toBeGreaterThan(cacheIndex);
       expect(section).toContain(`path: ${pnpmStorePathExpression}`);
       expect(section).toContain(`key: ${pnpmStoreKeyExpression}`);
+      expect(section).toContain(pnpmStoreVersionedRestoreKeyExpression);
       expect(section).toContain(pnpmStoreRestoreKeyExpression);
     }
+  });
+
+  it("keeps CI verifying package manager and engine contracts through mise and the CI image", () => {
+    const ciWorkflow = readRepoFile(".github/workflows/ci.yml");
+    const toolchainSection = extractWorkflowCheckJobSections(ciWorkflow).find(({ jobId }) => jobId === "toolchain")?.section;
+    const miseSource = readRepoFile("mise.toml");
+    const packageJsonSource = readRepoFile("package.json");
+
+    expect(toolchainSection).toContain("mise run quality:toolchain");
+    expect(toolchainSection).toContain("Verify CI image toolchain contract");
+    expect(toolchainSection).toContain("process.versions.node");
+    expect(toolchainSection).toContain('execFileSync("pnpm", ["--version"]');
+    expect(miseSource).toContain('[tasks."quality:toolchain"]');
+    expect(packageJsonSource).toContain('"packageManager": "pnpm@10.33.4"');
+    expect(packageJsonSource).toContain('"node": "24"');
+    expect(packageJsonSource).toContain('"pnpm": "10.33.4"');
+  });
+
+  it("keeps CI quality gate summary explicit for skipped or cancelled required matrix jobs", () => {
+    const ciWorkflow = readRepoFile(".github/workflows/ci.yml");
+
+    expect(ciWorkflow).toContain("Quality Gate Result Inputs");
+    expect(ciWorkflow).toContain(
+      "failure because every required CI matrix must complete successfully before merge.",
+    );
+    expect(ciWorkflow).toContain('[ "$result" = "skipped" ] || [ "$result" = "cancelled" ]');
+  });
+
+  it("keeps CI failure artifacts classified by frontend, Rust, and native smoke families", () => {
+    const ciWorkflow = readRepoFile(".github/workflows/ci.yml");
+
+    expect(ciWorkflow).toContain("name: frontend-${{ matrix.os }}-lint-log");
+    expect(ciWorkflow).toContain("name: frontend-${{ matrix.os }}-test-log");
+    expect(ciWorkflow).toContain("name: frontend-${{ matrix.os }}-build-log");
+    expect(ciWorkflow).toContain("name: rust-${{ matrix.os }}-lint-log");
+    expect(ciWorkflow).toContain("name: rust-${{ matrix.os }}-test-log");
+    expect(ciWorkflow).toContain("name: native-smoke-${{ matrix.os }}-debug-log");
+    expect(ciWorkflow).toContain("name: native-smoke-${{ matrix.os }}-debug-build-artifacts");
+    expect(ciWorkflow.match(/retention-days: 7/g)?.length ?? 0).toBeGreaterThanOrEqual(3);
+    expect(ciWorkflow.match(/retention-days: 14/g)?.length ?? 0).toBeGreaterThanOrEqual(2);
+    expect(ciWorkflow.match(/retention-days: 21/g)?.length ?? 0).toBeGreaterThanOrEqual(2);
+  });
+
+  it("keeps native smoke debug build logs and artifacts uploaded only on failure", () => {
+    const ciWorkflow = readRepoFile(".github/workflows/ci.yml");
+    const nativeSmokeSection = extractWorkflowCheckJobSections(ciWorkflow).find(
+      ({ jobId }) => jobId === "native-smoke",
+    )?.section;
+
+    expect(nativeSmokeSection).toContain("mise run app:build:debug 2>&1 | tee");
+    expect(nativeSmokeSection).toContain("tmp/ci-artifacts/native-smoke/debug-build.log");
+    expect(nativeSmokeSection).toContain("src-tauri/target/debug/bundle/");
+    expect(nativeSmokeSection?.match(/if: failure\(\)/g)?.length ?? 0).toBe(2);
   });
 
   it("keeps Storybook addons and framework backed by dev dependencies", () => {

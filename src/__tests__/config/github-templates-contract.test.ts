@@ -34,7 +34,9 @@ function extractTopLevelKeys(source: string): string[] {
 }
 
 function extractTemplateBodyItems(source: string): string[] {
-  return [...source.matchAll(/^  - type: [\s\S]*?(?=^  - type: |\z)/gm)].map((match) => match[0]);
+  return [...`${source}\n  - type: __sentinel\n`.matchAll(/^ {2}- type: [\s\S]*?(?=^ {2}- type: )/gm)].map(
+    (match) => match[0],
+  );
 }
 
 function extractFieldId(bodyItem: string): string | null {
@@ -60,7 +62,9 @@ function extractRequiredCheckboxLabels(source: string, fieldId: string): string[
 
 function extractMarkdownCheckboxLabels(source: string, heading: string): string[] {
   const sectionStart = source.indexOf(`## ${heading}`);
-  const section = sectionStart < 0 ? "" : source.slice(sectionStart, source.indexOf("\n## ", sectionStart + 1));
+  const nextSectionStart = source.indexOf("\n## ", sectionStart + 1);
+  const section =
+    sectionStart < 0 ? "" : source.slice(sectionStart, nextSectionStart < 0 ? undefined : nextSectionStart);
   return [...section.matchAll(/^- \[ \] (.+)$/gm)].map((match) => match[1] ?? "");
 }
 
@@ -71,10 +75,7 @@ function normalizeQualityGateLabel(label: string): string {
 function extractTopLevelWorkflowPermissions(source: string): Record<string, string> {
   const permissionsSection = source.match(/^permissions:\n((?: {2}[A-Za-z-]+:\s+\S+\n?)+)/m)?.[1] ?? "";
   return Object.fromEntries(
-    [...permissionsSection.matchAll(/^ {2}([A-Za-z-]+):\s+(\S+)$/gm)].map((match) => [
-      match[1] ?? "",
-      match[2] ?? "",
-    ]),
+    [...permissionsSection.matchAll(/^ {2}([A-Za-z-]+):\s+(\S+)$/gm)].map((match) => [match[1] ?? "", match[2] ?? ""]),
   );
 }
 
@@ -140,9 +141,7 @@ describe("GitHub templates contract", () => {
 
     for (const path of issueTemplatePaths) {
       const source = readRepoFile(path);
-      expect(source, path).toContain(
-        "`release-readiness` は release 設定変更では `.github/labeler.yml` が付与",
-      );
+      expect(source, path).toContain("`release-readiness` は release 設定変更では `.github/labeler.yml` が付与");
     }
   });
 
