@@ -1102,11 +1102,6 @@
 
 ### Sync / App Runtime
 
-- [ ] P3 integration test helper の `with_locked_db` を async boundary で使えない形にする
-  - 対象: `src-tauri/tests/integration_test.rs`, `src-tauri/src/commands/sync_providers.rs`
-  - lock helper が sync closure を受ける形でも、将来 async closure 化されると DB lock を await 越しに保持する事故が起きやすい
-  - helper naming、lint/comment、drop-before-await fixture、read/write helper 分割の方針を固定する
-
 - [ ] P1 sync-on-wake の visibilitychange listener を account snapshot / stale promise で固定する
   - 対象: `src/App.tsx`, `src/hooks/use-sidebar-sync.ts`, `src/lib/sync/startup-sync-storage.ts`
   - `visibilitychange` から sync-on-wake を fire-and-forget で起動しており、account list 更新や app unmount 後の late rejection が current UI state とずれやすい
@@ -1210,11 +1205,6 @@
   - 対象: `src-tauri/src/infra/db/sqlite_preference.rs`, `src/schemas/preferences.ts`, `src/components/settings`
   - frontend schema にない preference key を backend が保持するのか cleanup するのか決めないと、古い設定や実験フラグが UI 保存時に消える可能性がある
   - unknown key round-trip、known key update、schema migration、settings save 後の retention/cleanup contract test を追加する
-
-- [ ] P3 `DomainError` retryable classification を provider boundary と scheduler backoff で snapshot 化する
-  - 対象: `src-tauri/src/domain/error.rs`, `src-tauri/src/service/sync_scheduler.rs`, `src-tauri/src/commands/sync_providers.rs`
-  - network/rate-limit/auth/sqlite/schema error の retryable 判定が provider と scheduler でずれると、再試行すべき失敗が止まるか、止めるべき失敗が繰り返される
-  - auth nonretryable、network retryable、rate-limit retry-after、sqlite nonretryable、malformed provider payload の snapshot test を追加する
 
 - [ ] P3 repository fixture builder を account/feed/article/tag ごとに最小化する
   - 対象: `src-tauri/tests`, `src-tauri/src/infra/db/*_test.rs`
@@ -1339,16 +1329,6 @@
   - 対象: `src-tauri/src/commands/opml_commands.rs`, `src-tauri/src/infra/feed_discovery.rs`, `src-tauri/src/infra/opml.rs`
   - OPML import と feed discovery が別々に private host 判定を持つため、一方だけ IPv6/localhost/encoded host の扱いが抜ける可能性がある
   - localhost、127.0.0.1、IPv6 loopback、unique local、link-local、protocol-relative、punycode host の shared validation fixture を追加する
-
-- [ ] P2 feed discovery body limit と content-type fallback の error category を user-visible に整理する
-  - 対象: `src-tauri/src/infra/feed_discovery.rs`, `src-tauri/src/commands/feed_commands.rs`, `src/components/reader/add-feed-dialog.tsx`
-  - response body size や unsupported content-type が `Network` として返るため、入力 validation なのか transient network error なのか UI message が揺れやすい
-  - content-length over limit、chunked over limit、empty content-type、HTML not feed、JSON feed、unsupported PDF/image の error mapping test を追加する
-
-- [ ] P2 feed discovery simple HTML parser を malformed tag / encoded attribute で contract 化する
-  - 対象: `src-tauri/src/infra/feed_discovery.rs`
-  - `<link>` 抽出は simple string parser なので、attribute quote、entity decode、`>` を含む値、duplicate attributes、upper-case tag で false negative/positive が出やすい
-  - single/double/unquoted attribute、encoded `&amp;`、duplicate href、malformed close、uppercase LINK、`rel` token ordering の parser fixture を追加する
 
 - [ ] P2 external URL schema の `mailto:` と native opener の redaction/validation contract を固定する
   - 対象: `src/api/schemas/commands.ts`, `src/api/tauri-commands.ts`, `src/components/reader/article-browser-actions.ts`
