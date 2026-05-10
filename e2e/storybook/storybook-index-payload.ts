@@ -20,6 +20,7 @@ export const uiReferenceCanvasStoryIds = [
 
 export const denseNarrowViewportId = "mobile2";
 export const denseNarrowViewportStoryIds = [
+  "reader-sidebar-feedtreeview--dense-narrow-a-11-y-state",
   "reader-sidebar-sidebarheaderview--dense-narrow-viewport",
   "reader-article-articlelistscreenview--dense-narrow-viewport",
   "reader-article-articletoolbarview--mobile-japanese-long-labels",
@@ -30,6 +31,13 @@ export const denseNarrowViewportStoryIds = [
 ] as const;
 export const storybookViewportMaxDimensionPx = 10_000;
 export const storybookSmokeStoryIds = [...uiReferenceCanvasStoryIds, ...denseNarrowViewportStoryIds] as const;
+export const visualRegressionSmokeStoryIds = [
+  "reader-sidebar-feedtreeview--dense-narrow-a-11-y-state",
+  "settings-page-accountdetailview--dense-a-11-y-disabled-state",
+  "primitives-command--results",
+  "primitives-command--empty",
+  "reader-browser-browseroverlaystage--retryable-issue",
+] as const;
 
 const storybookIndexEntriesErrorMessage = "Storybook index payload must be an object with an object entries field";
 const storybookIndexEntryIdErrorMessage = 'Storybook index entries with type "story" must contain string id fields';

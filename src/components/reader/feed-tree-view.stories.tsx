@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { fn } from "storybook/test";
+import { denseNarrowViewportParameters } from "@/components/storybook/viewport-fixtures";
 import type { FeedTreeFeedViewModel, FeedTreeFolderViewModel } from "./feed-tree.types";
 import { FeedTreeView } from "./feed-tree-view";
 
@@ -101,6 +102,92 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
+
+export const DenseNarrowA11yState: Story = {
+  parameters: denseNarrowViewportParameters,
+  decorators: [
+    (Story) => (
+      <div className="w-[260px] bg-sidebar p-2 text-sidebar-foreground" data-testid="feed-tree-dense-smoke">
+        <Story />
+      </div>
+    ),
+  ],
+  args: {
+    canDragFeeds: true,
+    draggedFeedId: "feed-dense-2",
+    activeDropTarget: { kind: "folder", folderId: "folder-dense-2" },
+    onDragStartFeed: fn(),
+    onDragEnterFolder: fn(),
+    onDragEnterUnfoldered: fn(),
+    onDropToFolder: fn(),
+    onDropToUnfoldered: fn(),
+    onDragEnd: fn(),
+    folders: [
+      {
+        id: "folder-dense-1",
+        name: "Engineering and release monitoring",
+        accountId: "acc-1",
+        sortOrder: 0,
+        unreadCount: 128,
+        isExpanded: true,
+        isSelected: false,
+        feeds: [
+          {
+            id: "feed-dense-1",
+            accountId: "acc-1",
+            folderId: "folder-dense-1",
+            title: "Long product incident reports and deploy notes",
+            url: "https://example.com/incidents.xml",
+            siteUrl: "https://example.com/incidents",
+            unreadCount: 44,
+            readerMode: "on",
+            webPreviewMode: "off",
+            isSelected: true,
+            grayscaleFavicon: false,
+          },
+          {
+            id: "feed-dense-2",
+            accountId: "acc-1",
+            folderId: "folder-dense-1",
+            title: "Accessibility regression queue",
+            url: "https://example.com/a11y.xml",
+            siteUrl: "https://example.com/a11y",
+            unreadCount: 84,
+            readerMode: "on",
+            webPreviewMode: "off",
+            isSelected: false,
+            grayscaleFavicon: true,
+          },
+        ],
+      },
+      {
+        id: "folder-dense-2",
+        name: "Design review inbox",
+        accountId: "acc-1",
+        sortOrder: 1,
+        unreadCount: 7,
+        isExpanded: false,
+        isSelected: false,
+        feeds: [],
+      },
+    ],
+    unfolderedFeeds: [
+      {
+        id: "feed-dense-3",
+        accountId: "acc-1",
+        folderId: null,
+        title: "Unsorted mobile screenshots with long titles",
+        url: "https://example.com/mobile.xml",
+        siteUrl: "https://example.com/mobile",
+        unreadCount: 3,
+        readerMode: "on",
+        webPreviewMode: "off",
+        isSelected: false,
+        grayscaleFavicon: false,
+      },
+    ],
+  },
+};
 
 export const SelectionPriorityReview: Story = {
   render: (args) => (

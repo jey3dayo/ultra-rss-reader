@@ -144,6 +144,7 @@ describe("Storybook Explorer organization", () => {
       "storybookSmokeStoryIds",
       "storybookViewportMaxDimensionPx",
       "uiReferenceCanvasStoryIds",
+      "visualRegressionSmokeStoryIds",
     ]);
   });
 
@@ -288,6 +289,7 @@ describe("Storybook Explorer organization", () => {
   it("keeps primitives in the dedicated group", () => {
     expect(titlesUnder(STORYBOOK_EXPLORER_GROUPS.primitives)).toEqual([
       storybookExplorerTitle(STORYBOOK_EXPLORER_GROUPS.primitives, "Button"),
+      storybookExplorerTitle(STORYBOOK_EXPLORER_GROUPS.primitives, "Command"),
     ]);
   });
 
