@@ -746,6 +746,28 @@ describe("seedDevDatabaseFromProd", () => {
     expect(Result.unwrap(result)).toEqual(["Ultra RSS Reader Dev"]);
   });
 
+  it("detects app bundle command lines when exact Unix name checks miss", async () => {
+    const result = await detectLikelyRunningAppProcesses({
+      platform: "darwin",
+      execFileImpl: async (_command, _args) => {
+        if (_command === "ps") {
+          return {
+            stdout: [
+              "123 /Applications/Ultra RSS Reader.app/Contents/MacOS/Ultra RSS Reader --foreground",
+              "124 /Applications/Ultra RSS Reader Dev.app/Contents/MacOS/Ultra RSS Reader Dev (deleted)",
+            ].join("\n"),
+            stderr: "",
+          };
+        }
+        const error = new Error("not found") as NodeJS.ErrnoException;
+        error.code = "1";
+        throw error;
+      },
+    });
+
+    expect(Result.unwrap(result)).toEqual(["Ultra RSS Reader", "Ultra RSS Reader Dev"]);
+  });
+
   it("ignores Unix full command line matches that only contain the app name as an argument", async () => {
     const result = await detectLikelyRunningAppProcesses({
       platform: "linux",
@@ -784,6 +806,29 @@ describe("seedDevDatabaseFromProd", () => {
     expect(Result.unwrap(result)).toEqual([]);
   });
 
+  it("ignores Unix full command line matches without an executable path boundary", async () => {
+    const result = await detectLikelyRunningAppProcesses({
+      platform: "linux",
+      execFileImpl: async (_command, _args) => {
+        if (_command === "ps") {
+          return {
+            stdout: [
+              "123 /opt/Ultra RSS Reader Dev/ultra-rss-reader-helper",
+              "124 /opt/Ultra RSS Reader Dev/ultra-rss-reader-helper --name Ultra RSS Reader Dev",
+              "125 /Applications/Ultra RSS Reader.app/Contents/MacOS/Ultra RSS Reader Helper",
+            ].join("\n"),
+            stderr: "",
+          };
+        }
+        const error = new Error("not found") as NodeJS.ErrnoException;
+        error.code = "1";
+        throw error;
+      },
+    });
+
+    expect(Result.unwrap(result)).toEqual([]);
+  });
+
   it("detects Windows app process names from quoted CSV image names only", async () => {
     const result = await detectLikelyRunningAppProcesses({
       platform: "win32",
@@ -800,6 +845,24 @@ describe("seedDevDatabaseFromProd", () => {
     });
 
     expect(Result.unwrap(result)).toEqual(["Ultra RSS Reader Dev.exe", "ULTRA-RSS-READER.EXE"]);
+  });
+
+  it("parses quoted Windows tasklist CSV without matching localized columns or similar executables", async () => {
+    const result = await detectLikelyRunningAppProcesses({
+      platform: "win32",
+      execFileImpl: async () => ({
+        stdout: [
+          '"イメージ名","PID","セッション名","セッション#","メモリ使用量"',
+          '"Ultra RSS Reader.exe","1234","Console","1","100,000 K"',
+          '"Ultra RSS Reader Dev.exe.bak","1235","Console","1","10,000 K"',
+          '"Ultra RSS Reader Helper.exe","1236","Console","1","10,000 K"',
+          '"powershell.exe","1237","Console","1","Ultra RSS Reader.exe"',
+        ].join("\r\n"),
+        stderr: "",
+      }),
+    });
+
+    expect(Result.unwrap(result)).toEqual(["Ultra RSS Reader.exe"]);
   });
 
   it("ignores localized Windows tasklist headers and empty output", async () => {
@@ -1000,6 +1063,52 @@ describe("seedDevDatabaseFromProd", () => {
         backedUp: [path.join(devDir, "ultra-rss-reader.db")],
       });
       await expect(readFile(path.join(devDir, "ultra-rss-reader.db"), "utf8")).resolves.toBe("prod-db");
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("rechecks app processes after backup and before destination cleanup", async () => {
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), "ultra-rss-seed-test-"));
+    try {
+      const prodDir = path.join(tempDir, "prod");
+      const devDir = path.join(tempDir, "dev");
+      await Promise.all([mkdir(prodDir, { recursive: true }), mkdir(devDir, { recursive: true })]);
+      await Promise.all([
+        writeFile(path.join(prodDir, "ultra-rss-reader.db"), "prod-db"),
+        writeFile(path.join(devDir, "ultra-rss-reader.db"), "dev-db"),
+      ]);
+
+      let pgrepChecks = 0;
+
+      await expect(
+        seedDevDatabaseFromProd({
+          env: {
+            ULTRA_RSS_PROD_APP_DATA_DIR: prodDir,
+            ULTRA_RSS_DEV_APP_DATA_DIR: devDir,
+          },
+          platform: "darwin",
+          execFileImpl: async (command, args) => {
+            if (command === "pgrep") {
+              pgrepChecks += 1;
+              if (pgrepChecks > 3 && String(args[args.length - 1]) === "Ultra RSS Reader Dev") {
+                return { stdout: "4242\n", stderr: "" };
+              }
+              const error = new Error("not found") as NodeJS.ErrnoException;
+              error.code = "1";
+              throw error;
+            }
+            if (command === "ps" || command === "lsof") {
+              const error = new Error("not found") as NodeJS.ErrnoException;
+              error.code = "1";
+              throw error;
+            }
+            throw new Error(`unexpected command: ${command}`);
+          },
+        }),
+      ).rejects.toThrow("Ultra RSS Reader appears to be running");
+
+      await expect(readFile(path.join(devDir, "ultra-rss-reader.db"), "utf8")).resolves.toBe("dev-db");
     } finally {
       await rm(tempDir, { recursive: true, force: true });
     }

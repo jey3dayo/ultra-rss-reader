@@ -8,11 +8,16 @@ import {
 } from "@/constants/storage";
 import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
 import { parseJsonWithSchemaOrNull } from "@/schemas/parse";
-import { type StoredSidebarExpandedFolders, StoredSidebarExpandedFoldersSchema } from "@/schemas/storage";
+import {
+  type StoredSidebarExpandedFolders,
+  StoredSidebarExpandedFoldersSchema,
+} from "@/schemas/storage";
 import type { SidebarStartupFolderExpansionParams } from "../../sidebar-feed-section.types";
 
-type StartupFolderExpansionFeed = SidebarStartupFolderExpansionParams["feedList"][number];
-type StartupFolderExpansionFolder = SidebarStartupFolderExpansionParams["folderList"][number];
+type StartupFolderExpansionFeed =
+  SidebarStartupFolderExpansionParams["feedList"][number];
+type StartupFolderExpansionFolder =
+  SidebarStartupFolderExpansionParams["folderList"][number];
 
 type ResolveSidebarStartupExpandedFolderIdsParams = {
   startupFolderExpansion: SidebarStartupFolderExpansionParams["startupFolderExpansion"];
@@ -32,10 +37,13 @@ const StoredSidebarExpandedFoldersStorageSchema = z
     accounts: StoredSidebarExpandedFoldersSchema,
   })
   .strict();
-const SidebarExpandedFoldersStorageVersionMarkerSchema = z.object({ version: z.unknown() }).passthrough();
+const SidebarExpandedFoldersStorageVersionMarkerSchema = z
+  .object({ version: z.unknown() })
+  .passthrough();
 
 type SidebarExpandedFoldersStorageOperation =
   | "read"
+  | "parse-invalid"
   | "remove-oversized"
   | "remove-invalid"
   | "normalize-write"
@@ -45,22 +53,33 @@ function removeSidebarExpandedFoldersStorage(): void {
   window.localStorage.removeItem(STORAGE_KEYS.sidebarExpandedFolders);
 }
 
-function writeSidebarExpandedFoldersStorage(storage: SidebarExpandedFoldersStorage): void {
-  window.localStorage.setItem(STORAGE_KEYS.sidebarExpandedFolders, JSON.stringify(storage));
+function writeSidebarExpandedFoldersStorage(
+  storage: SidebarExpandedFoldersStorage,
+): void {
+  window.localStorage.setItem(
+    STORAGE_KEYS.sidebarExpandedFolders,
+    JSON.stringify(storage),
+  );
 }
 
 function logSidebarExpandedFoldersStorageFailure(
   operation: SidebarExpandedFoldersStorageOperation,
   error: unknown,
 ): void {
-  logRuntimeDiagnostic("sidebar-expanded-folders-storage", "Sidebar expanded folders storage failed", {
-    operation,
-    storageKey: STORAGE_KEYS.sidebarExpandedFolders,
-    error,
-  });
+  logRuntimeDiagnostic(
+    "sidebar-expanded-folders-storage",
+    "Sidebar expanded folders storage failed",
+    {
+      operation,
+      storageKey: STORAGE_KEYS.sidebarExpandedFolders,
+      error,
+    },
+  );
 }
 
-function tryRemoveSidebarExpandedFoldersStorage(operation: SidebarExpandedFoldersStorageOperation): void {
+function tryRemoveSidebarExpandedFoldersStorage(
+  operation: SidebarExpandedFoldersStorageOperation,
+): void {
   try {
     removeSidebarExpandedFoldersStorage();
   } catch (error) {
@@ -79,7 +98,9 @@ function tryWriteSidebarExpandedFoldersStorage(
   }
 }
 
-function normalizeSidebarExpandedFoldersStorage(raw: string): SidebarExpandedFoldersStorage | null {
+function normalizeSidebarExpandedFoldersStorage(
+  raw: string,
+): SidebarExpandedFoldersStorage | null {
   if (raw.length > MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_STORAGE_LENGTH) {
     tryRemoveSidebarExpandedFoldersStorage("remove-oversized");
     return null;
@@ -87,6 +108,10 @@ function normalizeSidebarExpandedFoldersStorage(raw: string): SidebarExpandedFol
 
   const parsed = parseStoredSidebarExpandedFolders(raw);
   if (!parsed) {
+    logSidebarExpandedFoldersStorageFailure(
+      "parse-invalid",
+      new Error("Invalid sidebar expanded folders storage"),
+    );
     tryRemoveSidebarExpandedFoldersStorage("remove-invalid");
     return null;
   }
@@ -95,23 +120,38 @@ function normalizeSidebarExpandedFoldersStorage(raw: string): SidebarExpandedFol
   return parsed;
 }
 
-function normalizeStoredSidebarExpandedFolders(accounts: StoredSidebarExpandedFolders): SidebarExpandedFoldersStorage {
+function normalizeStoredSidebarExpandedFolders(
+  accounts: StoredSidebarExpandedFolders,
+): SidebarExpandedFoldersStorage {
   return {
     version: SIDEBAR_EXPANDED_FOLDERS_STORAGE_VERSION,
     accounts,
   };
 }
 
-function parseStoredSidebarExpandedFolders(raw: string): SidebarExpandedFoldersStorage | null {
-  const versioned = parseJsonWithSchemaOrNull(raw, StoredSidebarExpandedFoldersStorageSchema);
+function parseStoredSidebarExpandedFolders(
+  raw: string,
+): SidebarExpandedFoldersStorage | null {
+  const versioned = parseJsonWithSchemaOrNull(
+    raw,
+    StoredSidebarExpandedFoldersStorageSchema,
+  );
   if (versioned) {
     return versioned;
   }
-  if (parseJsonWithSchemaOrNull(raw, SidebarExpandedFoldersStorageVersionMarkerSchema)) {
+  if (
+    parseJsonWithSchemaOrNull(
+      raw,
+      SidebarExpandedFoldersStorageVersionMarkerSchema,
+    )
+  ) {
     return null;
   }
 
-  const parsed = parseJsonWithSchemaOrNull(raw, StoredSidebarExpandedFoldersSchema);
+  const parsed = parseJsonWithSchemaOrNull(
+    raw,
+    StoredSidebarExpandedFoldersSchema,
+  );
   if (parsed) {
     return normalizeStoredSidebarExpandedFolders(parsed);
   }
@@ -131,23 +171,31 @@ function writeNormalizedSidebarExpandedFoldersStorage(
 
 function readStoredSidebarExpandedFolders(): SidebarExpandedFoldersStorage {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEYS.sidebarExpandedFolders);
+    const raw = window.localStorage.getItem(
+      STORAGE_KEYS.sidebarExpandedFolders,
+    );
     if (!raw) {
       return normalizeStoredSidebarExpandedFolders({});
     }
 
-    return normalizeSidebarExpandedFoldersStorage(raw) ?? normalizeStoredSidebarExpandedFolders({});
+    return (
+      normalizeSidebarExpandedFoldersStorage(raw) ??
+      normalizeStoredSidebarExpandedFolders({})
+    );
   } catch (error) {
     logSidebarExpandedFoldersStorageFailure("read", error);
     return normalizeStoredSidebarExpandedFolders({});
   }
 }
 
-function buildSidebarFolderIdentity(folderList: StartupFolderExpansionFolder[]): Map<string, Set<string>> {
+function buildSidebarFolderIdentity(
+  folderList: StartupFolderExpansionFolder[],
+): Map<string, Set<string>> {
   const accountFolderIds = new Map<string, Set<string>>();
 
   for (const folder of folderList) {
-    const folderIds = accountFolderIds.get(folder.account_id) ?? new Set<string>();
+    const folderIds =
+      accountFolderIds.get(folder.account_id) ?? new Set<string>();
     folderIds.add(folder.id);
     accountFolderIds.set(folder.account_id, folderIds);
   }
@@ -171,7 +219,9 @@ function pruneSidebarExpandedFoldersForKnownAccounts(
       continue;
     }
 
-    const storedAccountPrunedFolderIds = folderIds.filter((folderId) => storedAccountFolderIds.has(folderId));
+    const storedAccountPrunedFolderIds = folderIds.filter((folderId) =>
+      storedAccountFolderIds.has(folderId),
+    );
     if (storedAccountPrunedFolderIds.length === 0) {
       delete accounts[storedAccountId];
     } else {
@@ -191,36 +241,59 @@ function pruneStoredSidebarExpandedFolders(
   const accountFolderIds = buildSidebarFolderIdentity(folderList);
   const validFolderIds = accountFolderIds.get(accountId);
   const accounts: StoredSidebarExpandedFolders = { ...storage.accounts };
-  const hasOnlySelectedAccountFolders = folderList.every((folder) => folder.account_id === accountId);
+  const hasOnlySelectedAccountFolders = folderList.every(
+    (folder) => folder.account_id === accountId,
+  );
 
   if (!validFolderIds) {
     delete accounts[accountId];
     if (!hasOnlySelectedAccountFolders) {
-      pruneSidebarExpandedFoldersForKnownAccounts(accounts, accountFolderIds, accountId);
+      pruneSidebarExpandedFoldersForKnownAccounts(
+        accounts,
+        accountFolderIds,
+        accountId,
+      );
     }
 
-    return normalizeStoredSidebarExpandedFolders(StoredSidebarExpandedFoldersSchema.parse(accounts));
+    return normalizeStoredSidebarExpandedFolders(
+      StoredSidebarExpandedFoldersSchema.parse(accounts),
+    );
   }
 
-  const prunedFolderIds = (accounts[accountId] ?? []).filter((folderId) => validFolderIds.has(folderId));
+  const prunedFolderIds = (accounts[accountId] ?? []).filter((folderId) =>
+    validFolderIds.has(folderId),
+  );
   if (prunedFolderIds.length === 0) {
     delete accounts[accountId];
   } else {
-    accounts[accountId] = prunedFolderIds.slice(0, MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_PER_ACCOUNT);
+    accounts[accountId] = prunedFolderIds.slice(
+      0,
+      MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_PER_ACCOUNT,
+    );
   }
 
   if (!hasOnlySelectedAccountFolders) {
-    pruneSidebarExpandedFoldersForKnownAccounts(accounts, accountFolderIds, accountId);
+    pruneSidebarExpandedFoldersForKnownAccounts(
+      accounts,
+      accountFolderIds,
+      accountId,
+    );
   }
 
-  return normalizeStoredSidebarExpandedFolders(StoredSidebarExpandedFoldersSchema.parse(accounts));
+  return normalizeStoredSidebarExpandedFolders(
+    StoredSidebarExpandedFoldersSchema.parse(accounts),
+  );
 }
 
 function getStoredSidebarExpandedFolders(
   accountId: string,
   folderList: StartupFolderExpansionFolder[],
 ): SidebarExpandedFoldersStorage {
-  const storage = pruneStoredSidebarExpandedFolders(readStoredSidebarExpandedFolders(), accountId, folderList);
+  const storage = pruneStoredSidebarExpandedFolders(
+    readStoredSidebarExpandedFolders(),
+    accountId,
+    folderList,
+  );
   try {
     writeNormalizedSidebarExpandedFoldersStorage(
       window.localStorage.getItem(STORAGE_KEYS.sidebarExpandedFolders),
@@ -239,19 +312,32 @@ function setStoredSidebarExpandedFolders(
   folderList: StartupFolderExpansionFolder[],
 ): void {
   try {
-    const currentState = pruneStoredSidebarExpandedFolders(readStoredSidebarExpandedFolders(), accountId, folderList);
+    const currentState = pruneStoredSidebarExpandedFolders(
+      readStoredSidebarExpandedFolders(),
+      accountId,
+      folderList,
+    );
     const accountFolderIds = buildSidebarFolderIdentity(folderList);
     const validFolderIds = accountFolderIds.get(accountId);
     const nextFolderIds = validFolderIds
-      ? [...new Set(folderIds)].filter((folderId) => validFolderIds.has(folderId))
+      ? [...new Set(folderIds)].filter((folderId) =>
+          validFolderIds.has(folderId),
+        )
       : [];
     const accounts = {
-      [accountId]: nextFolderIds.slice(0, MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_PER_ACCOUNT),
+      [accountId]: nextFolderIds.slice(
+        0,
+        MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_PER_ACCOUNT,
+      ),
       ...Object.fromEntries(
-        Object.entries(currentState.accounts).filter(([storedAccountId]) => storedAccountId !== accountId),
+        Object.entries(currentState.accounts).filter(
+          ([storedAccountId]) => storedAccountId !== accountId,
+        ),
       ),
     };
-    const nextState = normalizeStoredSidebarExpandedFolders(StoredSidebarExpandedFoldersSchema.parse(accounts));
+    const nextState = normalizeStoredSidebarExpandedFolders(
+      StoredSidebarExpandedFoldersSchema.parse(accounts),
+    );
     tryWriteSidebarExpandedFoldersStorage(nextState, "write");
   } catch (error) {
     logSidebarExpandedFoldersStorageFailure("write", error);
@@ -259,7 +345,9 @@ function setStoredSidebarExpandedFolders(
   }
 }
 
-function collectValidFolderIds(folderList: StartupFolderExpansionFolder[]): Set<string> {
+function collectValidFolderIds(
+  folderList: StartupFolderExpansionFolder[],
+): Set<string> {
   const folderIds = new Set<string>();
 
   for (const folder of folderList) {
@@ -269,8 +357,13 @@ function collectValidFolderIds(folderList: StartupFolderExpansionFolder[]): Set<
   return folderIds;
 }
 
-function collectValidFolderIdsForAccount(accountId: string, folderList: StartupFolderExpansionFolder[]): Set<string> {
-  return buildSidebarFolderIdentity(folderList).get(accountId) ?? new Set<string>();
+function collectValidFolderIdsForAccount(
+  accountId: string,
+  folderList: StartupFolderExpansionFolder[],
+): Set<string> {
+  return (
+    buildSidebarFolderIdentity(folderList).get(accountId) ?? new Set<string>()
+  );
 }
 
 function collectUnreadFolderIds(
@@ -280,7 +373,11 @@ function collectUnreadFolderIds(
   const unreadFolderIds = new Set<string>();
 
   for (const feed of feedList) {
-    if (feed.folder_id !== null && feed.unread_count > 0 && validFolderIds.has(feed.folder_id)) {
+    if (
+      feed.folder_id !== null &&
+      feed.unread_count > 0 &&
+      validFolderIds.has(feed.folder_id)
+    ) {
       unreadFolderIds.add(feed.folder_id);
     }
   }
@@ -300,7 +397,9 @@ export function resolveSidebarStartupExpandedFolderIds({
 
   if (startupFolderExpansion === "restore_previous") {
     const validFolderIds = collectValidFolderIds(folderList);
-    return new Set([...storedFolderIds].filter((folderId) => validFolderIds.has(folderId)));
+    return new Set(
+      [...storedFolderIds].filter((folderId) => validFolderIds.has(folderId)),
+    );
   }
 
   return new Set();
@@ -319,7 +418,9 @@ export function useSidebarStartupFolderExpansion({
   const startupExpansionTokenRef = useRef<string | null>(null);
   const skipActivePruneTokenRef = useRef<string | null>(null);
   const skipPersistenceTokenRef = useRef<string | null>(null);
-  const startupExpansionToken = selectedAccountId ? `${selectedAccountId}:${startupFolderExpansion}` : null;
+  const startupExpansionToken = selectedAccountId
+    ? `${selectedAccountId}:${startupFolderExpansion}`
+    : null;
 
   useEffect(() => {
     if (!selectedAccountId) {
@@ -337,7 +438,10 @@ export function useSidebarStartupFolderExpansion({
       return;
     }
 
-    if (expandedFolderIds.size > 0 && startupFolderExpansion !== "restore_previous") {
+    if (
+      expandedFolderIds.size > 0 &&
+      startupFolderExpansion !== "restore_previous"
+    ) {
       startupExpansionTokenRef.current = startupExpansionToken;
       return;
     }
@@ -346,7 +450,10 @@ export function useSidebarStartupFolderExpansion({
       startupFolderExpansion,
       feedList,
       folderList,
-      storedFolderIds: getStoredSidebarExpandedFolders(selectedAccountId, folderList).accounts[selectedAccountId] ?? [],
+      storedFolderIds:
+        getStoredSidebarExpandedFolders(selectedAccountId, folderList).accounts[
+          selectedAccountId
+        ] ?? [],
     });
 
     setExpandedFolders(nextExpandedFolderIds);
@@ -370,7 +477,10 @@ export function useSidebarStartupFolderExpansion({
       return;
     }
 
-    if (startupFolderExpansion === "restore_previous" && startupExpansionTokenRef.current !== startupExpansionToken) {
+    if (
+      startupFolderExpansion === "restore_previous" &&
+      startupExpansionTokenRef.current !== startupExpansionToken
+    ) {
       return;
     }
 
@@ -379,8 +489,13 @@ export function useSidebarStartupFolderExpansion({
       return;
     }
 
-    const validFolderIds = collectValidFolderIdsForAccount(selectedAccountId, folderList);
-    const prunedExpandedFolderIds = [...expandedFolderIds].filter((folderId) => validFolderIds.has(folderId));
+    const validFolderIds = collectValidFolderIdsForAccount(
+      selectedAccountId,
+      folderList,
+    );
+    const prunedExpandedFolderIds = [...expandedFolderIds].filter((folderId) =>
+      validFolderIds.has(folderId),
+    );
     if (prunedExpandedFolderIds.length !== expandedFolderIds.size) {
       setExpandedFolders(prunedExpandedFolderIds);
     }
@@ -402,7 +517,10 @@ export function useSidebarStartupFolderExpansion({
       return;
     }
 
-    if (startupFolderExpansion === "restore_previous" && startupExpansionTokenRef.current !== startupExpansionToken) {
+    if (
+      startupFolderExpansion === "restore_previous" &&
+      startupExpansionTokenRef.current !== startupExpansionToken
+    ) {
       return;
     }
 
@@ -411,6 +529,16 @@ export function useSidebarStartupFolderExpansion({
       return;
     }
 
-    setStoredSidebarExpandedFolders(selectedAccountId, expandedFolderIds, folderList);
-  }, [expandedFolderIds, folderList, selectedAccountId, startupFolderExpansion, startupExpansionToken]);
+    setStoredSidebarExpandedFolders(
+      selectedAccountId,
+      expandedFolderIds,
+      folderList,
+    );
+  }, [
+    expandedFolderIds,
+    folderList,
+    selectedAccountId,
+    startupFolderExpansion,
+    startupExpansionToken,
+  ]);
 }

@@ -302,15 +302,24 @@ async function checkUnixProcessName(
 }
 
 function hasLikelyUnixAppCommandLine(stdout: string, processName: string): boolean {
-  const likelyPathPatterns =
+  const likelyExecutablePathFragments =
     processName === "Ultra RSS Reader"
-      ? ["/Ultra RSS Reader/", "/Ultra RSS Reader.app/", "\\Ultra RSS Reader\\", "\\Ultra RSS Reader.app\\"]
+      ? [
+          "/Ultra RSS Reader/Ultra RSS Reader",
+          "/Ultra RSS Reader/ultra-rss-reader",
+          "/Ultra RSS Reader.app/Contents/MacOS/Ultra RSS Reader",
+          "\\Ultra RSS Reader\\Ultra RSS Reader",
+          "\\Ultra RSS Reader\\ultra-rss-reader",
+          "\\Ultra RSS Reader.app\\Contents\\MacOS\\Ultra RSS Reader",
+        ]
       : processName === "Ultra RSS Reader Dev"
         ? [
-            "/Ultra RSS Reader Dev/",
-            "/Ultra RSS Reader Dev.app/",
-            "\\Ultra RSS Reader Dev\\",
-            "\\Ultra RSS Reader Dev.app\\",
+            "/Ultra RSS Reader Dev/Ultra RSS Reader Dev",
+            "/Ultra RSS Reader Dev/ultra-rss-reader",
+            "/Ultra RSS Reader Dev.app/Contents/MacOS/Ultra RSS Reader Dev",
+            "\\Ultra RSS Reader Dev\\Ultra RSS Reader Dev",
+            "\\Ultra RSS Reader Dev\\ultra-rss-reader",
+            "\\Ultra RSS Reader Dev.app\\Contents\\MacOS\\Ultra RSS Reader Dev",
           ]
         : ["/ultra-rss-reader", "\\ultra-rss-reader"];
 
@@ -319,14 +328,27 @@ function hasLikelyUnixAppCommandLine(stdout: string, processName: string): boole
     .map((line) => line.trim())
     .some((line) => {
       const commandLine = line.replace(/^\d+\s+/, "");
-      return (
-        commandLine.includes(processName) &&
-        likelyPathPatterns.some((pattern) => {
-          const patternIndex = commandLine.indexOf(pattern);
-          return patternIndex >= 0 && !/\s/.test(commandLine.slice(0, patternIndex));
-        })
-      );
+      return likelyExecutablePathFragments.some((fragment) => hasExecutablePathFragment(commandLine, fragment));
     });
+}
+
+function hasExecutablePathFragment(commandLine: string, fragment: string): boolean {
+  const fragmentIndex = commandLine.indexOf(fragment);
+  if (fragmentIndex < 0 || /\s/.test(commandLine.slice(0, fragmentIndex))) {
+    return false;
+  }
+
+  const nextCharacter = commandLine[fragmentIndex + fragment.length];
+  if (nextCharacter === undefined) {
+    return true;
+  }
+
+  if (!/\s/.test(nextCharacter)) {
+    return false;
+  }
+
+  const trailingCommandLine = commandLine.slice(fragmentIndex + fragment.length).trimStart();
+  return trailingCommandLine.length === 0 || trailingCommandLine.startsWith("-") || trailingCommandLine.startsWith("(");
 }
 
 function isProcessNotFoundError(error: unknown): boolean {

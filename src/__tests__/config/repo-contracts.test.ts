@@ -78,6 +78,13 @@ function expectPackageJsonStringRecord(fieldName: "scripts" | "devDependencies")
   return value;
 }
 
+function listRepoRootYamlFiles(): string[] {
+  return readdirSync(repoRoot)
+    .filter((entry) => /\.(?:ya?ml)$/u.test(entry))
+    .filter((entry) => entry !== "pnpm-lock.yaml")
+    .toSorted();
+}
+
 function expectPackageJsonKnipEntryConfig(): { entry?: string[] } {
   const { knip } = packageJson;
 
@@ -1120,7 +1127,11 @@ describe("repository static contracts", () => {
   it("keeps YAML lint checking its own config", () => {
     const miseSource = readRepoFile("mise.toml");
 
-    expect(miseSource).toContain('run = "yamllint -c .yamllint .github/ .yamllint"');
+    expect(miseSource).toContain('run = "yamllint -c .yamllint .github/ .yamllint pnpm-workspace.yaml"');
+  });
+
+  it("keeps root-level YAML additions out of the lint blind spot", () => {
+    expect(listRepoRootYamlFiles()).toEqual(["pnpm-workspace.yaml"]);
   });
 
   it("keeps CI quality gate waiting on every check job", () => {

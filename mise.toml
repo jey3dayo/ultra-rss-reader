@@ -114,7 +114,7 @@ run_windows = "markdownlint-cli2.CMD %MD_GLOB% %MD_EXCLUDE_NODE_MODULES% %MD_EXC
 
 [tasks."lint:yaml"]
 description = "YAML lint check"
-run = "yamllint -c .yamllint .github/ .yamllint"
+run = "yamllint -c .yamllint .github/ .yamllint pnpm-workspace.yaml"
 
 [tasks."lint:actions"]
 description = "GitHub Actions workflow check (actionlint)"
