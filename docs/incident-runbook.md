@@ -34,6 +34,7 @@ Use the source that matches the failure mode before collecting broader artifacts
 | Failure area | First diagnostic source | Escalate when |
 | --- | --- | --- |
 | startup / migration | Packaged release log plus reported database or backup path | The app cannot reopen the database after preserving backup artifacts |
+| runtime database recovery | User-facing support code plus packaged release log | A read or write command reports corruption after startup succeeded |
 | account credentials / keyring | Packaged release log plus OS keyring behavior notes | Credentials cannot be saved or reloaded with `DEV_CREDENTIALS` disabled |
 | sync | Packaged release log plus account name and toast/warning text | The same account repeatedly reports failure, partial failure, or retry-pending warnings |
 | WebView / browser preview | Debug HUD geometry rows plus packaged release log when available | Native and layout bounds disagree, content is blank, or the embedded preview cannot be recreated |
@@ -96,7 +97,18 @@ If any surface cannot be removed because of OS permissions, file locks, or an un
 6. If manual restore is needed, restore the complete backup set with the app closed, then reopen once and capture the result.
 7. If needed, continue from the migration recovery docs and issue tracking instead of improvising manual DB edits.
 
-### 2. Updater Failure
+### 2. Runtime Database Recovery
+
+Use this path when startup succeeded but a later read or write command reports corruption.
+
+1. Stop write-heavy actions and keep the app in read-only degraded mode when available.
+2. Save the packaged release log and the user-facing support code or diagnostics ID.
+3. Run the app-provided integrity check action before attempting manual database edits.
+4. If corruption is confirmed, preserve the current database and matching `-wal` / `-shm` sidecars before restore.
+5. Restore only from a complete backup set, then restart the app and confirm the same command no longer reports corruption.
+6. Treat DB lock failure, permission denied, and disk full as separate recovery categories. Do not present them as corruption unless the integrity check confirms corruption.
+
+### 3. Updater Failure
 
 1. Confirm whether the failure happened during:
    - update check
@@ -108,7 +120,7 @@ If any surface cannot be removed because of OS permissions, file locks, or an un
 5. Re-run the updater path only after confirming the signed release and packaged build pair you are testing.
 6. If restart failed, capture the toast/error message and log output together.
 
-### 3. Account Credentials / Keyring Failure
+### 4. Account Credentials / Keyring Failure
 
 1. Confirm whether the issue is:
    - saving credentials
@@ -118,7 +130,7 @@ If any surface cannot be removed because of OS permissions, file locks, or an un
 3. For packaged builds, verify behavior against the OS-native keyring, not the dev credential file path.
 4. Save logs before removing and re-adding the account.
 
-### 4. Sync Failure
+### 5. Sync Failure
 
 1. Distinguish between:
    - full failure

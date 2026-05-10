@@ -62,6 +62,43 @@ pub enum DatabaseMaintenanceScheduleDecision {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DatabaseRuntimeFailureKind {
+    ReadCorruption,
+    WriteCorruption,
+    Locked,
+    PermissionDenied,
+    DiskFull,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DatabaseRuntimeRecoveryMode {
+    ReadOnlyDegraded,
+    RetryWhenIdle,
+    UserPermissionFix,
+    FreeDiskSpace,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DatabaseRuntimeRecoveryAction {
+    RunIntegrityCheck,
+    RestoreBackup,
+    Retry,
+    CheckOsPermissions,
+    FreeDiskSpace,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct DatabaseRuntimeRecoveryContract {
+    pub failure_kind: DatabaseRuntimeFailureKind,
+    pub mode: DatabaseRuntimeRecoveryMode,
+    pub actions: Vec<DatabaseRuntimeRecoveryAction>,
+    pub diagnostics_id_required: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub struct SearchIndexRebuildMaintenanceContract {
     pub action: DatabaseMaintenanceAction,
     pub reports_progress: bool,
@@ -105,6 +142,46 @@ pub(crate) fn search_index_rebuild_maintenance_contract() -> SearchIndexRebuildM
     }
 }
 
+pub(crate) fn database_runtime_recovery_contract(
+    failure_kind: DatabaseRuntimeFailureKind,
+) -> DatabaseRuntimeRecoveryContract {
+    let (mode, actions) = match failure_kind {
+        DatabaseRuntimeFailureKind::ReadCorruption => (
+            DatabaseRuntimeRecoveryMode::ReadOnlyDegraded,
+            vec![
+                DatabaseRuntimeRecoveryAction::RunIntegrityCheck,
+                DatabaseRuntimeRecoveryAction::RestoreBackup,
+            ],
+        ),
+        DatabaseRuntimeFailureKind::WriteCorruption => (
+            DatabaseRuntimeRecoveryMode::ReadOnlyDegraded,
+            vec![
+                DatabaseRuntimeRecoveryAction::RunIntegrityCheck,
+                DatabaseRuntimeRecoveryAction::RestoreBackup,
+            ],
+        ),
+        DatabaseRuntimeFailureKind::Locked => (
+            DatabaseRuntimeRecoveryMode::RetryWhenIdle,
+            vec![DatabaseRuntimeRecoveryAction::Retry],
+        ),
+        DatabaseRuntimeFailureKind::PermissionDenied => (
+            DatabaseRuntimeRecoveryMode::UserPermissionFix,
+            vec![DatabaseRuntimeRecoveryAction::CheckOsPermissions],
+        ),
+        DatabaseRuntimeFailureKind::DiskFull => (
+            DatabaseRuntimeRecoveryMode::FreeDiskSpace,
+            vec![DatabaseRuntimeRecoveryAction::FreeDiskSpace],
+        ),
+    };
+
+    DatabaseRuntimeRecoveryContract {
+        failure_kind,
+        mode,
+        actions,
+        diagnostics_id_required: true,
+    }
+}
+
 #[tauri::command]
 pub fn get_database_info(state: State<'_, AppState>) -> Result<DatabaseInfoDto, AppError> {
     get_database_info_inner(&state.db)
@@ -136,10 +213,11 @@ mod tests {
     use std::sync::Mutex;
 
     use crate::commands::database_commands::{
-        get_database_info_inner, schedule_database_maintenance_action,
-        search_index_rebuild_maintenance_contract, vacuum_database_inner, AppActivityState,
-        DatabaseInfoDto, DatabaseMaintenanceAction, DatabaseMaintenanceScheduleDecision,
-        DatabaseMaintenanceTrigger,
+        database_runtime_recovery_contract, get_database_info_inner,
+        schedule_database_maintenance_action, search_index_rebuild_maintenance_contract,
+        vacuum_database_inner, AppActivityState, DatabaseInfoDto, DatabaseMaintenanceAction,
+        DatabaseMaintenanceScheduleDecision, DatabaseMaintenanceTrigger,
+        DatabaseRuntimeFailureKind, DatabaseRuntimeRecoveryAction, DatabaseRuntimeRecoveryMode,
     };
     use crate::commands::dto::AppError;
     use crate::commands::start_database_maintenance;
@@ -324,6 +402,50 @@ mod tests {
                 false,
             ),
             DatabaseMaintenanceScheduleDecision::DeferUntilBackground
+        );
+    }
+
+    #[test]
+    fn runtime_corruption_recovery_surface_enters_read_only_degraded_mode() {
+        for failure_kind in [
+            DatabaseRuntimeFailureKind::ReadCorruption,
+            DatabaseRuntimeFailureKind::WriteCorruption,
+        ] {
+            let contract = database_runtime_recovery_contract(failure_kind);
+
+            assert_eq!(contract.mode, DatabaseRuntimeRecoveryMode::ReadOnlyDegraded);
+            assert_eq!(
+                contract.actions,
+                vec![
+                    DatabaseRuntimeRecoveryAction::RunIntegrityCheck,
+                    DatabaseRuntimeRecoveryAction::RestoreBackup,
+                ]
+            );
+            assert!(contract.diagnostics_id_required);
+        }
+    }
+
+    #[test]
+    fn runtime_database_failures_have_distinct_recovery_actions() {
+        let locked = database_runtime_recovery_contract(DatabaseRuntimeFailureKind::Locked);
+        let permission =
+            database_runtime_recovery_contract(DatabaseRuntimeFailureKind::PermissionDenied);
+        let disk_full = database_runtime_recovery_contract(DatabaseRuntimeFailureKind::DiskFull);
+
+        assert_eq!(locked.mode, DatabaseRuntimeRecoveryMode::RetryWhenIdle);
+        assert_eq!(locked.actions, vec![DatabaseRuntimeRecoveryAction::Retry]);
+        assert_eq!(
+            permission.mode,
+            DatabaseRuntimeRecoveryMode::UserPermissionFix
+        );
+        assert_eq!(
+            permission.actions,
+            vec![DatabaseRuntimeRecoveryAction::CheckOsPermissions]
+        );
+        assert_eq!(disk_full.mode, DatabaseRuntimeRecoveryMode::FreeDiskSpace);
+        assert_eq!(
+            disk_full.actions,
+            vec![DatabaseRuntimeRecoveryAction::FreeDiskSpace]
         );
     }
 }

@@ -9,6 +9,19 @@ pub enum AppError {
     Retryable { message: String },
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum UserFacingErrorSupportPolicy {
+    StableSupportCodeOnly,
+    EphemeralDiagnosticsIdForLogs,
+}
+
+pub fn user_facing_error_support_policy(error: &AppError) -> UserFacingErrorSupportPolicy {
+    match error {
+        AppError::UserVisible { .. } => UserFacingErrorSupportPolicy::StableSupportCodeOnly,
+        AppError::Retryable { .. } => UserFacingErrorSupportPolicy::EphemeralDiagnosticsIdForLogs,
+    }
+}
+
 fn non_empty_app_error_message(message: String) -> String {
     if message.trim().is_empty() {
         "An application error occurred".to_string()
@@ -425,8 +438,9 @@ impl From<crate::domain::article::ArticleViewHistoryItem> for ArticleDto {
 #[cfg(test)]
 mod tests {
     use super::{
-        AccountDto, AccountProviderCapabilitiesDto, AppError, FeedDto, PlatformCapabilitiesDto,
-        PlatformInfoDto, PlatformKindDto,
+        user_facing_error_support_policy, AccountDto, AccountProviderCapabilitiesDto, AppError,
+        FeedDto, PlatformCapabilitiesDto, PlatformInfoDto, PlatformKindDto,
+        UserFacingErrorSupportPolicy,
     };
     use crate::domain::error::DomainError;
 
@@ -509,6 +523,22 @@ mod tests {
         assert_eq!(
             super::non_empty_app_error_message("visible message".to_string()),
             "visible message"
+        );
+    }
+
+    #[test]
+    fn user_facing_error_support_policy_keeps_wire_shape_stable() {
+        assert_eq!(
+            user_facing_error_support_policy(&AppError::UserVisible {
+                message: "Database needs recovery".to_string(),
+            }),
+            UserFacingErrorSupportPolicy::StableSupportCodeOnly
+        );
+        assert_eq!(
+            user_facing_error_support_policy(&AppError::Retryable {
+                message: "Network error: timeout".to_string(),
+            }),
+            UserFacingErrorSupportPolicy::EphemeralDiagnosticsIdForLogs
         );
     }
 

@@ -87,6 +87,18 @@ Support handoff may ask the user to provide app version, OS family, CPU architec
 
 A future diagnostics dump may include a non-secret environment summary only after a user consent and redaction preview flow exists. That summary should be generated per export, avoid stable cross-ticket identifiers, and keep hostname and local paths excluded.
 
+### Support Dump Consent And Redaction Preview
+
+Decision: any support dump or diagnostics export must require explicit user consent and a redaction preview before the artifact is generated.
+
+The preview must list the artifact classes that will be included, the redaction classes that were applied, and the items the user must review manually before sharing. It must not expose raw local paths, account names, feed URLs, article URLs, server URLs, credentials, tokens, cookies, hostname, OS username, or a stable device identifier. If the preview cannot be produced, support dump generation must fail closed and direct the user to share a manually redacted app.log excerpt instead.
+
+### User-Facing Error Correlation
+
+Decision: user-facing copy may show a stable support code for the error category, but diagnostics identifiers are ephemeral log-correlation values and must not be treated as stable user or device identifiers.
+
+Support codes should identify broad recovery areas such as network, account auth, keyring, database recovery, or migration recovery. Diagnostics IDs may be generated per event or per export for support correlation, but they must not encode private data and must not be reused across unrelated support tickets. User-facing copy must keep recovery guidance separate from raw diagnostic detail.
+
 ## Guardrails
 
 - Reader HTML must continue to come from sanitized `content_sanitized` fields.
@@ -95,6 +107,7 @@ A future diagnostics dump may include a non-secret environment summary only afte
 - Private data reset and uninstall guidance must cover database, credentials, preferences/local app state, release logs, stale support/debug logs, support dumps, and backups as separate retention surfaces.
 - Installer, updater, uninstall, and reinstall copy must say that app data can persist across app binary removal and app reinstall.
 - Support artifacts must be redacted before sharing and deleted manually when they are no longer needed.
+- Support dumps must not be generated before explicit user consent and redaction preview.
 
 ## Follow-Up Direction
 

@@ -1171,6 +1171,36 @@ mod tests {
     }
 
     #[test]
+    fn support_dump_policy_requires_consent_and_redaction_preview() {
+        let privacy_doc = include_str!("../../docs/feed-content-privacy.md");
+
+        assert!(privacy_doc.contains("explicit user consent and a redaction preview"));
+        assert!(privacy_doc.contains("before the artifact is generated"));
+        assert!(privacy_doc.contains("support dump generation must fail closed"));
+        assert!(privacy_doc.contains("manually redacted app.log excerpt"));
+    }
+
+    #[test]
+    fn support_error_correlation_policy_avoids_stable_diagnostics_identifiers() {
+        let privacy_doc = include_str!("../../docs/feed-content-privacy.md");
+
+        assert!(privacy_doc.contains("stable support code"));
+        assert!(privacy_doc.contains("ephemeral log-correlation values"));
+        assert!(privacy_doc.contains("must not be reused across unrelated support tickets"));
+        assert!(privacy_doc.contains("must not encode private data"));
+    }
+
+    #[test]
+    fn incident_runbook_covers_runtime_database_recovery_surface() {
+        let incident_runbook = include_str!("../../docs/incident-runbook.md");
+
+        assert!(incident_runbook.contains("runtime database recovery"));
+        assert!(incident_runbook.contains("read-only degraded mode"));
+        assert!(incident_runbook.contains("integrity check action"));
+        assert!(incident_runbook.contains("DB lock failure, permission denied, and disk full"));
+    }
+
+    #[test]
     fn main_window_title_bar_overlay_flag_matches_platform_expectation() {
         assert_eq!(
             main_window_title_bar_uses_overlay(),
