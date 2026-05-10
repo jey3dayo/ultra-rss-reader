@@ -83,20 +83,10 @@
   - account 削除や rename 後に古い credential entry が残ると、復元・debug・reset の時に ghost account として再浮上する
   - delete success、delete keyring failure、rename rollback、reset partial failure、orphan inventory の contract を追加する
 
-- [ ] P1 article link opener の `rel` / URL redaction / private host policy を固定する
-  - 対象: article content rendering、external opener、URL schemas
-  - sanitized HTML 内の link が opener policy を迂回すると、token URL や private host を外部に開く可能性がある
-  - `target=_blank`、`rel=noopener noreferrer`、credential URL、private host、malformed href、relative href の fixture を追加する
-
 - [ ] P2 `robots` / provider block response を sync backoff と user action で分ける
   - 対象: local provider sync、`src-tauri/src/service/sync_scheduler.rs`, sync result UI
   - 403/429/451/503 を同じ failure として扱うと、backoff・toast・manual retry の意味がずれる
   - 403 forbidden、429 retry-after、451 unavailable legal、503 temporary、manual retry allowed の期待値を固定する
-
-- [ ] P2 feed item GUID collision policy を account/feed boundary で固定する
-  - 対象: article repository、local provider normalizer、sync flow
-  - 異なる feed で同じ GUID、空 GUID、URL 変更があると article merge や unread/star が壊れる
-  - same GUID different feed、empty GUID fallback、URL-only identity、title-only feed、feed URL changed の contract を追加する
 
 - [ ] P2 article canonical URL と feed entry link の normalization policy を決める
   - 対象: provider normalizer、article schemas、external opener
@@ -133,11 +123,6 @@
   - reload 後に query cache が空になる前提が implicit だと、future persistence 導入時に stale account/feed が混ざる
   - reload empty cache、startup refetch、account deleted、offline boot、query key versioning の contract を追加する
 
-- [ ] P2 article content image loading policy を privacy / performance として固定する
-  - 対象: article renderer、sanitizer、browser/external opener policy
-  - remote image を即読みするか、lazy/load block するかが曖昧だと IP leak と巨大画像 performance 問題になる
-  - `loading=lazy`、referrer policy、blocked private image URL、broken image、huge dimensions の fixture を追加する
-
 - [ ] P2 mock data に実在ドメインを使う場合の network isolation policy を決める
   - 対象: `src/dev/mock-data.ts`, dev mocks, storybook
   - mock URL が実在ドメインだと、画像・favicon・browser open が accidental network access になる
@@ -157,11 +142,6 @@
   - 対象: `src/dev/scenarios`, dev mocks, command schemas
   - scenario は便利だが、command schema や route rename から遅れるとデバッグ時だけ壊れる
   - scenario id registry、command coverage、route existence、mock data owner、screenshot smoke の task に分ける
-
-- [ ] P1 XML entity expansion / external entity policy を feed parser boundary で固定する
-  - 対象: `src-tauri/src/infra/provider/local.rs`, feed parser dependency, parser fixtures
-  - RSS/Atom/OPML の XML parsing が entity expansion や external entity をどう扱うか未固定だと、巨大展開・外部参照・parse hang の原因になる
-  - nested entity、external entity、DOCTYPE、large text node、parser timeout/size cap の fixture を追加する
 
 - [ ] P1 IDNA / punycode / IPv6 zone identifier の private host 判定を URL schema 全体で固定する
   - 対象: URL schema、feed discovery、OPML import、external opener
