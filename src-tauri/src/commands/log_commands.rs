@@ -175,6 +175,35 @@ mod tests {
     }
 
     #[test]
+    fn support_privacy_decisions_match_docs_contract() {
+        let docs = [
+            include_str!("../../../docs/incident-runbook.md"),
+            include_str!("../../../docs/feed-content-privacy.md"),
+        ]
+        .join("\n")
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ");
+
+        for required in [
+            "must not include a stable app or environment fingerprint by default",
+            "explicit user consent and a redaction preview",
+            "support dump generation must fail closed",
+            "stale support/debug logs and support dumps",
+            "Tooltips and `title` attributes must not reveal credentials, tokens, cookies, full local paths, or full private URLs",
+            "do not save feed parser response samples in support-safe diagnostics",
+            "Support-safe diagnostics may record only parse failure class",
+            "must not persist raw response prefixes",
+            "user-opt-in export after the support dump consent and redaction preview flow",
+        ] {
+            assert!(
+                docs.contains(required),
+                "missing support privacy contract text: {required}"
+            );
+        }
+    }
+
+    #[test]
     fn log_dir_opener_arg_uses_exact_utf8_path_without_arguments() {
         let dir = Path::new("/tmp/Ultra RSS Reader Logs");
 

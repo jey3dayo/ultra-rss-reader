@@ -284,6 +284,26 @@ Trust boundary contract:
   documented as trusted must not be used as proof that feed content is safe to
   render.
 
+### Feed Parser Error Sample Policy
+
+Decision: do not save feed parser response samples in support-safe diagnostics
+by default.
+
+Parser failures may involve private feed bodies, article excerpts, internal
+publisher URLs, authenticated endpoint responses, or user-specific feed
+metadata. Support-safe diagnostics may record only parse failure class,
+provider/source class, content-type class, HTTP status class, response size
+class, and an optional per-event hash for deduplication. They must not persist
+raw response prefixes, article text, feed XML/JSON/HTML samples, raw feed URLs,
+server URLs, credentials, tokens, cookies, local paths, account names, or stable
+cross-ticket identifiers.
+
+If future support tooling needs a response sample, it must be a separate
+user-opt-in export after the support dump consent and redaction preview flow.
+That flow must show the sample class before generation, cap the sample size,
+fail closed when redaction cannot prove safety, and keep the resulting artifact
+out of public issue attachments.
+
 ### Article Link Opener Policy
 
 Decision: article links are untrusted publisher-controlled URLs and must be opened without granting an opener relationship, leaking full private URLs through diagnostics, or bypassing the same private-host policy used by feed discovery and feed fetch.
