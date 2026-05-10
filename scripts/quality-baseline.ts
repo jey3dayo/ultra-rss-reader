@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { pathToFileURL } from "node:url";
 
 const reactDoctorVersion = "0.1.4";
 const knipVersion = "6.12.2";
@@ -44,19 +45,19 @@ type KnipReport = {
   issues: KnipIssueBucket[];
 };
 
-const command = process.argv[2];
+export function runQualityBaseline(command: string | undefined = process.argv[2]): void {
+  if (command !== "react-doctor:diff" && command !== "react-doctor:full" && command !== "knip") {
+    console.error("Usage: node scripts/quality-baseline.ts react-doctor:diff|react-doctor:full|knip");
+    process.exit(2);
+  }
 
-if (command !== "react-doctor:diff" && command !== "react-doctor:full" && command !== "knip") {
-  console.error("Usage: node scripts/quality-baseline.ts react-doctor:diff|react-doctor:full|knip");
-  process.exit(2);
-}
-
-if (command === "react-doctor:diff") {
-  runReactDoctor("diff", true);
-} else if (command === "react-doctor:full") {
-  runReactDoctor("full", false);
-} else {
-  runKnip();
+  if (command === "react-doctor:diff") {
+    runReactDoctor("diff", true);
+  } else if (command === "react-doctor:full") {
+    runReactDoctor("full", false);
+  } else {
+    runKnip();
+  }
 }
 
 function runReactDoctor(mode: ReactDoctorMode, failOnDrift: boolean): void {
@@ -155,7 +156,7 @@ function readKnipVersion(): string {
   return version;
 }
 
-function parseReactDoctorReport(stdout: string): ReactDoctorReport {
+export function parseReactDoctorReport(stdout: string): ReactDoctorReport {
   const parsed: unknown = JSON.parse(readJsonPayload(stdout));
   if (!isObject(parsed)) {
     throw new Error("React Doctor did not return a JSON object.");
@@ -178,7 +179,7 @@ function parseReactDoctorReport(stdout: string): ReactDoctorReport {
   };
 }
 
-function parseKnipReport(stdout: string): KnipReport {
+export function parseKnipReport(stdout: string): KnipReport {
   const parsed: unknown = JSON.parse(readJsonPayload(stdout));
   if (!isObject(parsed) || !Array.isArray(parsed.issues)) {
     throw new Error("Knip did not return an issues array.");
@@ -198,13 +199,57 @@ function countIssueFindings(issue: KnipIssueBucket): number {
   }, 0);
 }
 
-function readJsonPayload(stdout: string): string {
-  const start = stdout.indexOf("{");
-  const end = stdout.lastIndexOf("}");
-  if (start === -1 || end === -1 || end < start) {
-    throw new Error("Tool output did not contain a JSON object.");
+export function readJsonPayload(stdout: string): string {
+  for (let start = stdout.indexOf("{"); start !== -1; start = stdout.indexOf("{", start + 1)) {
+    const payload = readBalancedJsonObject(stdout, start);
+    if (payload === null) {
+      continue;
+    }
+
+    try {
+      JSON.parse(payload);
+      return payload;
+    } catch {}
   }
-  return stdout.slice(start, end + 1);
+
+  throw new Error("Tool output did not contain a JSON object.");
+}
+
+function readBalancedJsonObject(stdout: string, start: number): string | null {
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let index = start; index < stdout.length; index += 1) {
+    const char = stdout[index];
+
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+      } else if (char === "\\") {
+        escaped = true;
+      } else if (char === '"') {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (char === '"') {
+      inString = true;
+      continue;
+    }
+
+    if (char === "{") {
+      depth += 1;
+    } else if (char === "}") {
+      depth -= 1;
+      if (depth === 0) {
+        return stdout.slice(start, index + 1);
+      }
+    }
+  }
+
+  return null;
 }
 
 function checkEqual(name: string, actual: string | number, expected: string | number): string | null {
@@ -229,4 +274,10 @@ function readNumber(source: Record<string, unknown>, key: string): number {
     throw new Error(`Expected number at ${key}.`);
   }
   return value;
+}
+
+const isMainModule = typeof process.argv[1] === "string" && import.meta.url === pathToFileURL(process.argv[1]).href;
+
+if (isMainModule) {
+  runQualityBaseline();
 }

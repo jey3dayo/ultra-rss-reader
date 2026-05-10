@@ -1,8 +1,10 @@
 import { spawnSync } from "node:child_process";
+import { pathToFileURL } from "node:url";
 
-const similarityThresholds = [0.95, 0.9, 0.87] as const;
-const defaultThreshold = 0.9;
-const defaultPath = "src/";
+export const similarityThresholds = [0.95, 0.9, 0.87] as const;
+export const defaultThreshold = 0.9;
+export const defaultPath = "src/";
+export const similarityUsage = `Usage: node scripts/similarity-report.ts [${similarityThresholds.join("|")}] [path]`;
 const todoSimilarityBaseline = {
   functionPairs: 32,
   similarTypePairs: 1,
@@ -172,7 +174,7 @@ function readOptionalCount(output: string, pattern: RegExp): number {
   return match === null ? 0 : Number(match[1]);
 }
 
-function readThreshold(rawValue: string | undefined): SimilarityThreshold {
+export function readThreshold(rawValue: string | undefined): SimilarityThreshold {
   if (rawValue === undefined) {
     return defaultThreshold;
   }
@@ -185,10 +187,20 @@ function readThreshold(rawValue: string | undefined): SimilarityThreshold {
   throw new Error(`Unsupported similarity threshold: ${rawValue}. Use ${similarityThresholds.join(", ")}.`);
 }
 
-function runSimilarityReport(): void {
-  const threshold = readThreshold(process.argv[2]);
-  const targetPath = process.argv[3] ?? defaultPath;
-  const result = spawnSync("pnpm", ["exec", "similarity-ts", "--threshold", String(threshold), targetPath], {
+export function buildSimilarityCommandArgs(threshold: SimilarityThreshold, targetPath: string): string[] {
+  return ["exec", "similarity-ts", "--threshold", String(threshold), targetPath];
+}
+
+export function runSimilarityReport(args: readonly string[] = process.argv.slice(2)): void {
+  if (args[0] === "--help" || args[0] === "-h") {
+    console.log(similarityUsage);
+    console.log("Thresholds: 0.95 near-copy, 0.9 TODO triage, 0.87 broad discovery.");
+    return;
+  }
+
+  const threshold = readThreshold(args[0]);
+  const targetPath = args[1] ?? defaultPath;
+  const result = spawnSync("pnpm", buildSimilarityCommandArgs(threshold, targetPath), {
     encoding: "utf8",
   });
 
@@ -204,6 +216,8 @@ function runSimilarityReport(): void {
   process.stdout.write("\n");
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+const isMainModule = typeof process.argv[1] === "string" && import.meta.url === pathToFileURL(process.argv[1]).href;
+
+if (isMainModule) {
   runSimilarityReport();
 }

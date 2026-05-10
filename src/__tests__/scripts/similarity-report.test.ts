@@ -1,9 +1,16 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
+  buildSimilarityCommandArgs,
   buildSimilaritySummary,
+  defaultPath,
+  defaultThreshold,
   findFalsePositiveMatch,
   parseSimilarityPairs,
+  readThreshold,
   similarityFalsePositiveBaseline,
+  similarityThresholds,
+  similarityUsage,
 } from "../../../scripts/similarity-report";
 
 const sampleReport = `
@@ -36,6 +43,26 @@ describe("similarity-report", () => {
         firstSymbol: "useBrowserWebviewBoundsSync",
         secondPath: "src/components/settings/account-detail/query-cache.ts",
         secondSymbol: "upsertCachedAccount",
+      },
+    ]);
+  });
+
+  it("parses Windows paths and symbols containing colons from similarity-ts output", () => {
+    const report = `
+Similarity: 95.01%, Score: 42.5 points (lines 20~30, avg: 25.0)
+  C:\\work\\ultra-rss-reader\\src\\alpha.ts:20-44 namespace:useAlpha
+  C:\\work\\ultra-rss-reader\\src\\beta.ts:30-54 namespace:useBeta
+`;
+
+    expect(parseSimilarityPairs(report)).toEqual([
+      {
+        similarityPercent: 95.01,
+        score: 42.5,
+        averageLines: 25,
+        firstPath: "C:\\work\\ultra-rss-reader\\src\\alpha.ts",
+        firstSymbol: "namespace:useAlpha",
+        secondPath: "C:\\work\\ultra-rss-reader\\src\\beta.ts",
+        secondSymbol: "namespace:useBeta",
       },
     ]);
   });
@@ -73,5 +100,30 @@ describe("similarity-report", () => {
         }),
       ]),
     );
+  });
+
+  it("keeps threshold validation, help text, and command args in sync", () => {
+    expect(similarityThresholds).toEqual([0.95, 0.9, 0.87]);
+    expect(defaultThreshold).toBe(0.9);
+    expect(defaultPath).toBe("src/");
+    expect(similarityUsage).toBe("Usage: node scripts/similarity-report.ts [0.95|0.9|0.87] [path]");
+    expect(readThreshold(undefined)).toBe(defaultThreshold);
+    expect(readThreshold("0.95")).toBe(0.95);
+    expect(() => readThreshold("0.5")).toThrow("Unsupported similarity threshold: 0.5. Use 0.95, 0.9, 0.87.");
+    expect(buildSimilarityCommandArgs(0.87, "src/lib")).toEqual([
+      "exec",
+      "similarity-ts",
+      "--threshold",
+      "0.87",
+      "src/lib",
+    ]);
+  });
+
+  it("keeps mise report task routed through the package script entrypoint", () => {
+    const miseToml = readFileSync("mise.toml", "utf8");
+
+    expect(miseToml).toContain('[tasks."report:similarity"]');
+    expect(miseToml).toContain('run = "pnpm run report:similarity"');
+    expect(miseToml).toContain('run_windows = "pnpm.CMD run report:similarity"');
   });
 });
