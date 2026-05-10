@@ -1,6 +1,7 @@
 use rusqlite::Connection;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::Instant;
 
 use crate::domain::error::{DomainError, DomainResult};
 use crate::infra::db::sqlite_mute_keyword::build_mute_keyword_exclusion_clause;
@@ -47,8 +48,7 @@ impl DbManager {
                 &backup_file,
                 current_version,
             )?;
-            manager.reconcile_article_content_text()?;
-            manager.reconcile_feed_unread_counts()?;
+            manager.reconcile_startup_migration_cost()?;
             Ok(manager)
         } else {
             // No migration needed, or fresh DB — just open and migrate
@@ -57,8 +57,7 @@ impl DbManager {
             let mut manager = Self { writer, reader };
             match super::migration::run_migrations(&mut manager.writer) {
                 Ok(_) => {
-                    manager.reconcile_article_content_text()?;
-                    manager.reconcile_feed_unread_counts()?;
+                    manager.reconcile_startup_migration_cost()?;
                     Ok(manager)
                 }
                 Err(e) => Err(DomainError::Migration(format!("Migration failed: {e}"))),
@@ -134,8 +133,7 @@ impl DbManager {
 
         let mut manager = Self { writer, reader };
         let _result = super::migration::run_migrations(&mut manager.writer)?;
-        manager.reconcile_article_content_text()?;
-        manager.reconcile_feed_unread_counts()?;
+        manager.reconcile_startup_migration_cost()?;
         Ok(manager)
     }
 
@@ -149,7 +147,23 @@ impl DbManager {
         Ok(())
     }
 
-    fn reconcile_feed_unread_counts(&self) -> DomainResult<()> {
+    fn reconcile_startup_migration_cost(&self) -> DomainResult<()> {
+        let started_at = Instant::now();
+        let repaired_article_content_rows = self.reconcile_article_content_text()?;
+        let repaired_feed_unread_count_rows = self.reconcile_feed_unread_counts()?;
+        let elapsed_ms = started_at.elapsed().as_millis() as u64;
+
+        tracing::info!(
+            repaired_article_content_rows,
+            repaired_feed_unread_count_rows,
+            elapsed_ms,
+            "Measured startup migration repair cost"
+        );
+
+        Ok(())
+    }
+
+    fn reconcile_feed_unread_counts(&self) -> DomainResult<usize> {
         let has_mute_keywords_table: bool = self.writer.query_row(
             "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'mute_keywords')",
             [],
@@ -181,10 +195,10 @@ impl DbManager {
             tracing::info!("Reconciled unread counts for {updated_rows} feed(s) on startup");
         }
 
-        Ok(())
+        Ok(updated_rows)
     }
 
-    fn reconcile_article_content_text(&self) -> DomainResult<()> {
+    fn reconcile_article_content_text(&self) -> DomainResult<usize> {
         let has_content_text: i32 = self.writer.query_row(
             "SELECT COUNT(*)
              FROM pragma_table_info('articles')
@@ -193,7 +207,7 @@ impl DbManager {
             |row| row.get(0),
         )?;
         if has_content_text == 0 {
-            return Ok(());
+            return Ok(0);
         }
 
         let mut stmt = self.writer.prepare(
@@ -211,9 +225,10 @@ impl DbManager {
                 ))
             })?
             .collect::<Result<Vec<_>, _>>()?;
+        let repaired_rows = pending.len();
 
         if pending.is_empty() {
-            return Ok(());
+            return Ok(0);
         }
 
         let tx = self.writer.unchecked_transaction()?;
@@ -228,7 +243,7 @@ impl DbManager {
             }
         }
         tx.commit()?;
-        Ok(())
+        Ok(repaired_rows)
     }
 
     pub fn writer(&self) -> &Connection {
@@ -655,7 +670,54 @@ mod tests {
 
         assert!(before.total_size_bytes > 0);
         assert!(after.total_size_bytes > 0);
+        assert_eq!(
+            after.wal_size_bytes, 0,
+            "VACUUM should truncate WAL before reporting refreshed file sizes"
+        );
+        assert_eq!(
+            after.total_size_bytes, after.db_size_bytes,
+            "VACUUM size report should not include stale WAL bytes after checkpoint"
+        );
         assert_eq!(count, 2, "DB should remain writable/readable after VACUUM");
+    }
+
+    #[test]
+    fn vacuum_reports_checkpointed_size_while_reader_connection_was_open() {
+        let dir = tempfile::tempdir().unwrap();
+        let db_path = dir.path().join("vacuum-reader-open.db");
+        let mut db = DbManager::new(&db_path).unwrap();
+
+        db.writer()
+            .execute_batch(
+                "CREATE TABLE IF NOT EXISTS vacuum_probe (
+                    id INTEGER PRIMARY KEY,
+                    payload TEXT NOT NULL
+                );
+                INSERT INTO vacuum_probe (payload) VALUES (hex(randomblob(8192)));
+                INSERT INTO vacuum_probe (payload) VALUES (hex(randomblob(8192)));",
+            )
+            .unwrap();
+
+        let reader_count: i32 = db
+            .reader()
+            .query_row("SELECT COUNT(*) FROM vacuum_probe", [], |row| row.get(0))
+            .unwrap();
+        let before = db.database_info().unwrap();
+        let after = db.vacuum().unwrap();
+
+        assert_eq!(reader_count, 2);
+        assert!(
+            before.total_size_bytes > 0,
+            "fixture should create a file-backed DB before VACUUM"
+        );
+        assert_eq!(
+            after.wal_size_bytes, 0,
+            "VACUUM should report a checkpointed WAL size across platform file semantics"
+        );
+        assert_eq!(
+            after.total_size_bytes, after.db_size_bytes,
+            "reported total should be stable after WAL checkpoint/truncate"
+        );
     }
 
     #[test]
@@ -1042,5 +1104,61 @@ mod tests {
                 Some("Should not be used")
             )
         );
+    }
+
+    #[test]
+    fn startup_reconcile_reports_article_content_and_unread_count_repair_counts() {
+        let db = DbManager::new_in_memory().unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO accounts (id, kind, name) VALUES ('a1', 'Local', 'Test')",
+                [],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO feeds (id, account_id, title, url, unread_count) VALUES ('f1', 'a1', 'Feed', 'https://example.com/feed.xml', 0)",
+                [],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO articles (
+                    id, feed_id, title, content_raw, content_sanitized, content_text,
+                    sanitizer_version, published_at, fetched_at, is_read
+                 ) VALUES (
+                    'art-1', 'f1', 'Unread', '', '<p>Readable body</p>', '',
+                    1, '2026-04-14T00:00:00Z', '2026-04-14T00:00:00Z', 0
+                 )",
+                [],
+            )
+            .unwrap();
+
+        let repaired_article_content_rows = db.reconcile_article_content_text().unwrap();
+        let repaired_feed_unread_count_rows = db.reconcile_feed_unread_counts().unwrap();
+        let (content_text, unread_count): (String, i32) = db
+            .reader()
+            .query_row(
+                "SELECT
+                   (SELECT content_text FROM articles WHERE id = 'art-1'),
+                   (SELECT unread_count FROM feeds WHERE id = 'f1')",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+
+        assert_eq!(
+            repaired_article_content_rows, 1,
+            "startup cost should count repaired article content rows"
+        );
+        assert_eq!(
+            repaired_feed_unread_count_rows, 1,
+            "startup cost should count repaired feed unread_count rows"
+        );
+        assert_eq!(
+            content_text,
+            super::super::sqlite_article::article_body_text("<p>Readable body</p>", None)
+        );
+        assert_eq!(unread_count, 1);
     }
 }
