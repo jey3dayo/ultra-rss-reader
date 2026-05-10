@@ -153,6 +153,10 @@ pub(crate) fn should_emit_sync_warning(result: &SyncResult) -> bool {
     result.synced && !result.warnings.is_empty()
 }
 
+fn should_emit_manual_single_sync_completion(result: &SyncResult) -> bool {
+    result.synced && result.succeeded > 0
+}
+
 fn emit_sync_warning_event(app_handle: &tauri::AppHandle, result: &SyncResult) {
     if should_emit_sync_warning(result) {
         emit_sync_event_log_only(app_handle, SYNC_WARNING_EVENT, result.warnings.clone());
@@ -828,7 +832,7 @@ pub async fn trigger_sync_account(
         }
     }
     reporter.emit_finished(result.failed.is_empty());
-    if result.synced {
+    if should_emit_manual_single_sync_completion(&result) {
         enable_automatic_sync(
             state.automatic_sync_enabled.as_ref(),
             state.automatic_sync_notify.as_ref(),
@@ -931,7 +935,7 @@ pub async fn trigger_sync_feed(
     }
 
     reporter.emit_finished(result.failed.is_empty());
-    if result.succeeded > 0 {
+    if should_emit_manual_single_sync_completion(&result) {
         emit_sync_warning_event(&app_handle, &result);
         emit_sync_event_log_only(&app_handle, SYNC_COMPLETED_EVENT, ());
         if should_emit_sync_succeeded(&result) {
@@ -1118,6 +1122,36 @@ mod tests {
     }
 
     #[test]
+    fn manual_single_sync_completion_emits_when_at_least_one_item_succeeded() {
+        let result = SyncResult {
+            synced: true,
+            total: 1,
+            succeeded: 1,
+            failed: Vec::new(),
+            warnings: Vec::new(),
+        };
+
+        assert!(should_emit_manual_single_sync_completion(&result));
+    }
+
+    #[test]
+    fn manual_single_sync_completion_suppresses_failure_only_result() {
+        let result = SyncResult {
+            synced: true,
+            total: 1,
+            succeeded: 0,
+            failed: vec![AccountSyncError {
+                account_id: "acc-1".to_string(),
+                account_name: "FreshRSS".to_string(),
+                message: "boom".to_string(),
+            }],
+            warnings: Vec::new(),
+        };
+
+        assert!(!should_emit_manual_single_sync_completion(&result));
+    }
+
+    #[test]
     fn sync_event_emit_warning_names_failed_event_without_failing_sync() {
         let warning = sync_event_emit_warning(SYNC_COMPLETED_EVENT, &"listener unavailable");
 
@@ -1284,6 +1318,21 @@ mod tests {
     }
 
     #[test]
+    fn startup_remote_state_repair_complete_allows_startup_freshrss_success_with_local_failure() {
+        let startup_fresh =
+            test_sync_command_account("startup-fresh", ProviderKind::FreshRss, true);
+        let startup_local = test_sync_command_account("startup-local", ProviderKind::Local, true);
+        let sync_result = sync_result_with_failed_ids(&["startup-local"]);
+
+        assert!(startup_remote_state_repair_succeeded(
+            &[startup_fresh, startup_local],
+            &[],
+            &[],
+            &sync_result,
+        ));
+    }
+
+    #[test]
     fn startup_remote_state_repair_complete_requires_repair_only_success() {
         let repair_only_account =
             test_sync_command_account("repair-only-fresh", ProviderKind::FreshRss, false);
@@ -1374,6 +1423,84 @@ mod tests {
         assert!(
             !syncing.load(Ordering::SeqCst),
             "syncing flag should be reset after automatic sync"
+        );
+    }
+
+    #[tokio::test]
+    async fn account_parallel_sync_reports_failures_in_requested_account_order() {
+        let db = Mutex::new(DbManager::new_in_memory().unwrap());
+        let syncing = AtomicBool::new(false);
+        let first_account = test_sync_command_account("first-account", ProviderKind::Local, true);
+        let second_account = test_sync_command_account("second-account", ProviderKind::Local, true);
+
+        {
+            let db_guard = db.lock().unwrap();
+            for account in [&first_account, &second_account] {
+                db_guard
+                    .writer()
+                    .execute(
+                        "INSERT INTO accounts (id, kind, name, sync_interval_secs, sync_on_startup, sync_on_wake, keep_read_items_days) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                        rusqlite::params![
+                            account.id.as_ref(),
+                            "Local",
+                            account.name,
+                            account.sync_interval_secs,
+                            account.sync_on_startup,
+                            account.sync_on_wake,
+                            account.keep_read_items_days,
+                        ],
+                    )
+                    .unwrap();
+            }
+            let feed_repo = SqliteFeedRepository::new(db_guard.writer());
+            feed_repo
+                .save(&Feed {
+                    id: FeedId::new(),
+                    account_id: first_account.id.clone(),
+                    folder_id: None,
+                    remote_id: None,
+                    title: "First invalid feed".to_string(),
+                    url: "not-a-url".to_string(),
+                    site_url: "https://example.com".to_string(),
+                    icon: None,
+                    unread_count: 0,
+                    reader_mode: "inherit".to_string(),
+                    web_preview_mode: "inherit".to_string(),
+                })
+                .unwrap();
+            feed_repo
+                .save(&Feed {
+                    id: FeedId::new(),
+                    account_id: second_account.id.clone(),
+                    folder_id: None,
+                    remote_id: None,
+                    title: "Second invalid feed".to_string(),
+                    url: "not-a-url".to_string(),
+                    site_url: "https://example.com".to_string(),
+                    icon: None,
+                    unread_count: 0,
+                    reader_mode: "inherit".to_string(),
+                    web_preview_mode: "inherit".to_string(),
+                })
+                .unwrap();
+        }
+
+        let result = run_sync_for_accounts_with_progress(
+            &db,
+            &syncing,
+            vec![second_account, first_account],
+            None,
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(
+            result
+                .failed
+                .iter()
+                .map(|failure| failure.account_id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["second-account", "first-account"]
         );
     }
 
