@@ -3631,11 +3631,6 @@
   - SQLite DDL と data migration の途中失敗後に再起動しても安全かが曖昧だと、復旧不能な半端 schema が残る
   - DDL failure、data copy failure、schema_version unchanged、backup rollback、retry migration の fixture を追加する
 
-- [ ] P2 database `ANALYZE` / stats refresh timing を cleanup・migration・large import 後で決める
-  - 対象: DB maintenance commands、OPML import、feed cleanup
-  - 大量 import/delete 後に query planner stats が古いと、検索や article list が急に遅くなる
-  - large OPML import、cleanup orphans、sanitizer repair、migration complete、manual maintenance の timing を決める
-
 - [ ] P2 background sync battery / CPU guard を repeated failure と many-account で固定する
   - 対象: `src-tauri/src/service/sync_scheduler.rs`, sync settings, diagnostics
   - 多数 account が失敗し続けると backoff があっても wake/check/log が増えて desktop app の常駐負荷になる
@@ -3906,21 +3901,6 @@
   - 別 account に同じ feed URL を import する時の duplicate 判定と folder ownership が曖昧だと feed が欠落する
   - same URL different account、same URL same account、folder same name different account、account switch during import、export scope の contract を追加する
 
-- [ ] P2 account deletion data retention を articles/tags/history/backoff/credentials で明文化する
-  - 対象: account delete command、repositories、settings data reset
-  - account 削除後に何を残すかが未固定だと、privacy と復旧可能性の判断ができない
-  - articles、feeds/folders、tags relations、view history、sync_state/backoff、credentials の retention matrix を作る
-
-- [ ] P2 feed deletion data retention を starred/read/tag/history の観点で明文化する
-  - 対象: delete feed command、article repository、tag/history cleanup
-  - feed を消した後に starred/read/tagged article を残すか消すかが曖昧だと、検索・tag count・history がずれる
-  - read state、star state、tag relations、history、search index、undo impossible warning の policy を追加する
-
-- [ ] P2 local-only account と remote account の pending mutation semantics を型で分ける
-  - 対象: pending mutation repository、provider capability matrix、sync flow
-  - local RSS と FreshRSS/GReader で mutation replay の意味が違うのに同じ queue に見えると、unsupported action が溜まる
-  - local provider no replay、remote replay、capability check、queue cleanup、UI unavailable state の contract を追加する
-
 - [ ] P2 provider account kind 追加時の migration checklist を template 化する
   - 対象: provider traits、account settings、schema/tests
   - 新 provider を足す時に credential、capability、sync cursor、folder/tag semantics の漏れが出やすい
@@ -3930,11 +3910,6 @@
   - 対象: FTS search SQL、reader search UI、locale copy
   - FTS syntax error、phrase query、prefix query、snippet escaping の方針が未固定だと search UX が壊れる
   - quote query、special operators、prefix query、empty result, snippet escaped HTML、ranking tie の contract を追加する
-
-- [ ] P2 search index rebuild progress / cancellation を large DB maintenance として設計する
-  - 対象: FTS maintenance、database settings、diagnostics
-  - FTS rebuild が必要になった時に blocking command として走ると、UI freeze や app shutdown と衝突する
-  - large DB、progress event、cancel/retry、shutdown during rebuild、post-rebuild integrity の task に分ける
 
 - [ ] P2 native notification を導入する場合の permission / privacy / quiet hours policy を先に決める
   - 対象: future notification feature、sync result feedback、settings
@@ -4030,11 +4005,6 @@
   - 対象: DB storage、credential storage、privacy docs
   - keyring は credential を守るが、DB には feed/article/history が残るため、暗号化しない理由または将来方針を明文化する必要がある
   - threat model、OS disk encryption reliance、portable backup、search performance、migration cost の decision を追加する
-
-- [ ] P2 database backup restore の app version / schema version metadata を backup file 側へ持たせる
-  - 対象: backup command、restore docs、DB metadata
-  - backup がどの app/schema 由来か分からないと、restore 前に compatibility を判断できない
-  - app version、schema version、created_at、source app identifier、checksum、metadata parse failure の contract を追加する
 
 - [ ] P2 screen reader landmark / heading structure を reader/settings/subscriptions で固定する
   - 対象: app shell、reader panes、settings modal、subscriptions index
@@ -4271,11 +4241,6 @@
   - cancel を押した瞬間に partial file/partial DB state が残る場合、確認なし cancel は危険になる
   - safe cancel、unsafe cancel confirm、partial file cleanup、transaction rollback、post-cancel summary の contract を追加する
 
-- [ ] P2 DB restore preview で差分 summary を出すか決める
-  - 対象: DB restore future flow、backup metadata、settings data page
-  - restore は破壊的なので、account/feed/article count や backup version を見ずに実行すると取り違えが起きやすい
-  - backup app version、account count、feed count、article count、created_at、schema compatibility の preview policy を追加する
-
 - [ ] P2 feed discovery result trust level を UI 表示と add action で分ける
   - 対象: feed discovery、add feed dialog、URL validation
   - discovery で見つかった title/url をそのまま trusted と扱うと、spoofed title や mixed-content URL を add してしまう
@@ -4285,11 +4250,6 @@
   - 対象: account repository、settings account detail、sync scheduler
   - account row が壊れた時に list failure で settings に入れないと、ユーザーが削除/修復できない
   - invalid provider kind、invalid server URL、missing credential ref、settings read-only view、delete/quarantine action の contract を追加する
-
-- [ ] P2 failed migration backup restore instruction を platform-specific path copy で検証する
-  - 対象: startup DB error message、docs、manual verification
-  - 復旧文言があっても、macOS/Windows の実 path と手順が曖昧だとユーザーが戻せない
-  - macOS app data path、Windows app data path、newest backup selection、copy while app closed、permission failure の checklist を追加する
 
 - [ ] P2 release hotfix flow を normal release と別 checklist にする
   - 対象: release skill/docs、release workflow、CHANGELOG
@@ -4387,11 +4347,6 @@
   - 対象: settings forms、account credentials editor、shortcut settings
   - 保存 promise が返る前に別 field を編集すると、古い success/failure が新しい draft state を上書きする可能性がある
   - edit while saving、save success stale、save failure stale、retry latest draft、dirty state の contract を追加する
-
-- [ ] P2 DB maintenance actions の scheduling を app foreground/background 状態と接続する
-  - 対象: vacuum、integrity check、future FTS rebuild、sync scheduler
-  - heavy maintenance が foreground 操作中や background sync と重なると、UI latency と lock contention が出る
-  - foreground active、window hidden、sync in-flight、user-triggered maintenance、auto maintenance defer の policy を追加する
 
 - [ ] P2 large account switch の query cancellation / stale render budget を計測する
   - 対象: account switcher、reader query hooks、article list/feed tree rendering
