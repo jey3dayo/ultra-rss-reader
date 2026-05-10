@@ -67,7 +67,7 @@ mod tests {
             ),
             (
                 "startup focus restore cancellation state",
-                "#[cfg(not(test))]\nfn mark_startup_focus_restore_stopped",
+                "fn mark_startup_focus_restore_stopped",
             ),
             (
                 "Tauri app builder and plugin setup",
@@ -77,7 +77,10 @@ mod tests {
                 "background scheduler startup",
                 "service::sync_scheduler::start_sync_scheduler",
             ),
-            ("release log cleanup owner", "cleanup_old_logs(&log_dir, 7)"),
+            (
+                "release log cleanup owner",
+                "cleanup_old_logs(&log_dir, RELEASE_LOG_RETENTION_DAYS)",
+            ),
         ];
 
         for (owner, needle) in production_only_startup_paths {

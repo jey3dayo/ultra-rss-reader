@@ -12,10 +12,10 @@ use std::any::Any;
 use std::collections::HashMap;
 #[cfg(not(test))]
 use std::panic::PanicHookInfo;
-#[cfg(not(test))]
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 #[cfg(not(test))]
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 #[cfg(not(test))]
 use std::time::Duration;
 
@@ -342,12 +342,10 @@ fn startup_focus_restore_decision(
     }
 }
 
-#[cfg(not(test))]
 fn mark_startup_focus_restore_stopped(active: &Arc<AtomicBool>) {
     active.store(false, Ordering::Release);
 }
 
-#[cfg(not(test))]
 fn startup_focus_restore_is_active(active: &Arc<AtomicBool>) -> bool {
     active.load(Ordering::Acquire)
 }
@@ -702,15 +700,18 @@ mod tests {
     use std::path::Path;
 
     use std::collections::HashMap;
+    use std::sync::atomic::AtomicBool;
+    use std::sync::Arc;
 
     use super::{
         cleanup_old_logs, cleanup_old_logs_metadata_debug, cleanup_old_logs_read_dir_warning,
         cleanup_old_logs_remove_warning, clipboard_plugin_startup_failure_mode,
         database_init_error_message, database_init_panic_message,
-        main_window_title_bar_uses_overlay, panic_payload_text, redact_sensitive_panic_text,
-        redacted_path_label, startup_app_data_dir_create_error_message,
-        startup_app_data_dir_error_message, startup_focus_main_thread_warning,
-        startup_focus_restore_decision, startup_main_webview_focus_warning,
+        main_window_title_bar_uses_overlay, mark_startup_focus_restore_stopped, panic_payload_text,
+        redact_sensitive_panic_text, redacted_path_label,
+        startup_app_data_dir_create_error_message, startup_app_data_dir_error_message,
+        startup_focus_main_thread_warning, startup_focus_restore_decision,
+        startup_focus_restore_is_active, startup_main_webview_focus_warning,
         startup_main_window_focus_warning, startup_main_window_show_warning,
         startup_preferences_or_default, startup_preferences_read_warning_message,
         tracing_init_status, updater_endpoint_startup_failure_mode,
@@ -1017,6 +1018,42 @@ mod tests {
         assert_eq!(
             startup_focus_restore_decision(true, true, true),
             StartupFocusRestoreDecision::Restore
+        );
+    }
+
+    #[test]
+    fn startup_focus_restore_stop_flag_cancels_delayed_task() {
+        let active = Arc::new(AtomicBool::new(true));
+        assert!(startup_focus_restore_is_active(&active));
+
+        mark_startup_focus_restore_stopped(&active);
+
+        assert!(!startup_focus_restore_is_active(&active));
+    }
+
+    #[test]
+    fn main_window_does_not_restore_persisted_position_or_negative_coordinates() {
+        let tauri_config = include_str!("../tauri.conf.json");
+        let dev_tauri_config = include_str!("../tauri.dev.conf.json");
+        let cargo_toml = include_str!("../Cargo.toml");
+
+        for config in [tauri_config, dev_tauri_config] {
+            assert!(
+                !config.contains("\"x\""),
+                "main window config must not restore persisted x coordinates"
+            );
+            assert!(
+                !config.contains("\"y\""),
+                "main window config must not restore persisted y coordinates"
+            );
+            assert!(
+                !config.contains("position"),
+                "main window config must not restore a fixed position"
+            );
+        }
+        assert!(
+            !cargo_toml.contains("tauri-plugin-window-state"),
+            "window-state plugin would need monitor-safe restore guards before enabling"
         );
     }
 
