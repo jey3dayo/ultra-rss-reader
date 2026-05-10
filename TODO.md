@@ -714,11 +714,6 @@
   - root element drift 時に console error だけだと production blank screen の原因がユーザーに伝わらない
   - root missing、duplicate root、render throw、safe fallback text、no telemetry side effect の test を追加する
 
-- [ ] P2 Windows WebView2 loader copy warning を release smoke failure に昇格する
-  - 対象: `src-tauri/build.rs`, release workflow
-  - loader missing/copy failure が cargo warning のままだと Windows release だけ起動不能になる
-  - missing source、unsupported arch、copy failure、CI release behavior、artifact contains loader の check を追加する
-
 - [ ] P2 Rust provider test HTTP server の port isolation / shutdown contract を作る
   - 対象: `src-tauri/src/infra/provider/*` tests
   - fixed port や server shutdown 漏れがあると parallel test で flake し、provider boundary の regression を隠す
