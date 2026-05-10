@@ -57,17 +57,6 @@
   - focus override は embedded page の visibility/focus APIs を差し替えるため、サイト側の media playback/analytics/keyboard handling を壊す可能性がある
   - keep focus on/off、visibilitychange listener、non-configurable property、site script error、setting copy、disable fallback の test/実機検証 TODO にする
 
-- [ ] P3 diagnostics event names / payload schema を central registry 化する
-  - 対象: `src-tauri/src/browser_webview.rs`, `src/lib/runtime/diagnostics.ts`, `src/api/schemas/browser-webview.ts`
-  - superseded by: `P1-Q1d` runtime diagnostics redaction
-  - diagnostics/fallback/state event name が Rust/frontend に分散しており、rename 時に listener と emitter が片方だけ変わる risk がある
-  - event name registry、payload schema parity、unknown event allowlist、test helper emit fixture の配置を決める
-
-- [ ] P2 OPML/import/export UI action の progress/cancel/large file policy を data settings へ追加する
-  - 対象: `src/components/settings/data-settings.tsx`, `src-tauri/src/commands/opml_commands.rs`, `src/api/schemas/commands.ts`
-  - large OPML import/export は同期 command として走るため、settings close や account switch 中に long-running operation の状態が見えにくい
-  - large OPML、settings close during import、account switch、cancel不可 copy、success summary、partial duplicate skip summary の UX contract を追加する
-
 - [ ] P3 preference command allowlist を generated table として settings docs/rules に反映する
   - 対象: `src-tauri/src/commands/preference_commands.rs`, `src/schemas/preferences.ts`, `CLAUDE.md`
   - preference 追加時の手順が暗黙だと backend allowlist、frontend schema、settings UI、i18n、tests の更新漏れが繰り返される
@@ -78,16 +67,6 @@
   - superseded by: `P1-Q4c` runtime corruption
   - invalid row を warn で隠すと UI 上は account が消えたように見え、復旧導線や support log との接続が弱い
   - invalid kind、missing name、quarantine count、diagnostics event、settings recovery copy の contract test を追加する
-
-- [ ] P2 article reader scroll position retention policy を決める
-  - 対象: `src/components/reader/hooks/article`, `src/stores/ui-store.ts`
-  - article 切替、feed 切替、browser overlay close、account switch で scroll を残すか戻すかが曖昧だと閲覧復帰が不安定になる
-  - same article revisit、新規 article reset、browser close return、account switch、reduced motion の期待値を固定する
-
-- [ ] P2 toast / live-region announcement queue を設計する
-  - 対象: `src/components/app-shell.tsx`, `src/stores/ui-store.ts`
-  - persistent toast、error toast、auto-dismiss toast が短時間で置換されると screen reader へ重要メッセージが届かない
-  - rapid toasts、persistent toast then auto toast、close action、aria-live text、duplicate suppression を固定する
 
 - [ ] P2 native titlebar drag region と interactive controls の overlap を検証する
   - 対象: `src/components/app-shell.tsx`, `src/components/reader/browser-overlay-chrome.tsx`, global CSS
@@ -113,11 +92,6 @@
   - 対象: `.storybook`, storybook tests
   - addon を入れていても allowlist と focused story がないと、違反検知が noise になって CI gate へ上げられない
   - known violation allowlist、critical components、dialog stories、keyboard stories、CI smoke の単位に分ける
-
-- [ ] P3 React test helpers の `MutationObserver` / `ResizeObserver` cleanup を共通化する
-  - 対象: `src/__tests__`, test setup
-  - observer mock の cleanup が test ごとに違うと、後続 test の resize/layout 判定が flake する
-  - setup helper、afterEach cleanup、observer callback ordering、fake timers、StrictMode double invoke の確認を追加する
 
 - [ ] P1 OS keyring orphan credential cleanup を account delete / rename / reset と同期する
   - 対象: `src-tauri/src/infra/keyring_store.rs`, account commands, settings data reset
