@@ -1578,16 +1578,6 @@
   - tag count は account scope を受けるが mute keyword exclusion や read filter と意味がずれると sidebar count と article list が一致しなくなる
   - account all/selected、muted article、read/unread mode、deleted feed、orphan article_tag、count overflow の contract test を追加する
 
-- [ ] P2 Reading List AppleScript URL validation と frontend `normalizeHttpCommandUrl` の差分をなくす
-  - 対象: `src-tauri/src/commands/share_commands.rs`, `src/components/reader/article-browser-actions.ts`, `src/api/schemas/commands.ts`
-  - Rust は `split_once("://")` で URL を判定し、frontend は URL normalize を使うため、credentials、spaces、unicode host、fragment/newline の扱いがずれやすい
-  - username/password、space、tab、encoded newline、unicode host、long URL、uppercase scheme の parity test を追加する
-
-- [ ] P2 Reading List AppleScript stderr / URL token redaction を diagnostics policy に接続する
-  - 対象: `src-tauri/src/commands/share_commands.rs`, `src/lib/runtime/diagnostics.ts`, `src/components/reader/article-share-menu.tsx`
-  - osascript 失敗時の stderr は log に載るため、URL query token や local path を含む provider URL が log へ残る可能性がある
-  - stderr URL token、osascript not found、Safari unavailable、permission denied、long stderr truncation、user-visible message redaction の test を追加する
-
 - [ ] P2 clipboard max length と share mailto max length の source-of-truth を揃える
   - 対象: `src-tauri/src/commands/share_commands.rs`, `src/lib/runtime/clipboard.ts`, `src/components/reader/article-share-menu.tsx`, `src/api/schemas/commands.ts`
   - clipboard は 2048 chars、mailto body は 2000 chars など上限が分散しており、article URL/title がどこで truncate/reject されるか分かりにくい
@@ -1607,11 +1597,6 @@
   - 対象: `src-tauri/src/commands/article_commands.rs`, `src/api/schemas/platform-info.ts`, `src/components/settings/reading-settings-view.tsx`
   - background open は platform capability に依存するため、unsupported OS で preference が true の時に foreground open へ落ちることを UI と test で明確にする
   - macOS background success/failure、Windows/Linux fallback、platform info unknown、preference true/false、stderr redaction の Rust/frontend test を追加する
-
-- [ ] P2 browser embed support header parser の CSP case/quote handling を fixture 化する
-  - 対象: `src-tauri/src/commands/article_commands.rs`, `src/__tests__/components/article-browser-actions.test.ts`
-  - `frame-ancestors` 判定は header string parsing に依存するため、case、quoted source、multiple CSP、report-only header の扱いがずれると embed availability が誤表示になる
-  - `Frame-Ancestors`、multiple directives、`'none'`、`*`、report-only、invalid header bytes、redirect response の test を追加する
 
 - [ ] P2 article list pagination offset limit と UI infinite loading の failure handling を揃える
   - 対象: `src-tauri/src/commands/article_commands.rs`, `src/hooks/use-articles.ts`, `src/components/reader/hooks/article-list`
@@ -1669,11 +1654,6 @@
   - 対象: `src-tauri/src/infra/db/sqlite_folder.rs`, `src/components/reader/hooks/sidebar/use-sidebar-startup-folder-expansion.ts`, `src/stores/ui-store.ts`
   - folder delete 後に DB sort_order は renumber されるが、localStorage の expanded folder ids や UI selection が stale folder を保持しやすい
   - deleted folder expanded、other account folder preserved、renumber rollback、selection fallback、restore_previous storage prune の test を追加する
-
-- [ ] P2 folder name normalization の Unicode / whitespace 方針を tag/feed と揃える
-  - 対象: `src-tauri/src/commands/feed_commands.rs`, `src-tauri/src/domain/folder.rs`, `src/components/reader/folder-select-view.tsx`
-  - folder name は trim + case-insensitive duplicate だが、Unicode whitespace や全角 case の扱いが tag/feed title と揃っていないと設定 UI で期待がずれる
-  - full-width spaces、newline、emoji、accent、Turkish I、100文字境界、UI validation copy の test を追加する
 
 - [ ] P2 createFolderIfNeeded の duplicate create retry / selectedFolderId drift を fixed point にする
   - 対象: `src/components/reader/feed-folder-flow.ts`, `src/components/reader/hooks/feed-dialogs/use-add-feed-dialog-actions.ts`, `src/components/reader/add-feed-dialog.tsx`
