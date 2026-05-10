@@ -384,6 +384,7 @@ async fn add_local_feed_with_provider(
 
     {
         let db = lock_db(db)?;
+        validate_add_local_feed_account_in_db(&db, &account_id)?;
         validate_add_local_feed_duplicate_url_in_db(&db, &account_id, &feed.url)?;
         let feed_repo = SqliteFeedRepository::new(db.writer());
         feed_repo.save(&feed)?;
@@ -1125,6 +1126,73 @@ mod tests {
             connection_rx.try_recv().is_err(),
             "missing account must not trigger an HTTP request"
         );
+    }
+
+    #[tokio::test]
+    async fn add_local_feed_rejects_account_kind_drift_after_fetch() {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let url = format!("http://{}/feed.xml", listener.local_addr().unwrap());
+        let (accepted_tx, accepted_rx) = mpsc::channel();
+        let (respond_tx, respond_rx) = mpsc::channel();
+        let listener_thread = thread::spawn(move || {
+            let (mut stream, _) = listener.accept().unwrap();
+            accepted_tx.send(()).unwrap();
+            respond_rx.recv().unwrap();
+            let response = format!(
+                "HTTP/1.1 200 OK\r\nContent-Type: application/rss+xml\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                SAMPLE_RSS.len(),
+                SAMPLE_RSS
+            );
+            std::io::Write::write_all(&mut stream, response.as_bytes()).unwrap();
+        });
+
+        let db = Arc::new(Mutex::new(test_db()));
+        let account_id = {
+            let db_guard = db.lock().unwrap();
+            insert_test_account(&db_guard, "Primary")
+        };
+
+        let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
+        let add_db = Arc::clone(&db);
+        let add_account_id = account_id.0.clone();
+        let add_task = tokio::spawn(async move {
+            add_local_feed_with_provider(&add_db, add_account_id, url, &provider).await
+        });
+
+        tokio::task::spawn_blocking(move || accepted_rx.recv().unwrap())
+            .await
+            .unwrap();
+        {
+            let db_guard = db.lock().unwrap();
+            db_guard
+                .writer()
+                .execute(
+                    "UPDATE accounts SET kind = 'FreshRss' WHERE id = ?1",
+                    params![account_id.0.clone()],
+                )
+                .unwrap();
+        }
+        respond_tx.send(()).unwrap();
+
+        let error = add_task
+            .await
+            .unwrap()
+            .expect_err("account kind drift should reject add feed");
+        listener_thread.join().unwrap();
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message } if message == "Feed can only be added to a Local account"
+        ));
+
+        let saved_feed_count: i64 = {
+            let db_guard = db.lock().unwrap();
+            db_guard
+                .reader()
+                .query_row("SELECT COUNT(*) FROM feeds", [], |row| row.get(0))
+                .unwrap()
+        };
+        assert_eq!(saved_feed_count, 0);
     }
 
     #[tokio::test]
