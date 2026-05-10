@@ -519,11 +519,6 @@
   - section collapse state が hook-local のため、subscriptions workspace や layout remount でユーザーの閉じた状態が戻る
   - collapse feeds/tags -> workspace open/close、wide/mobile switch、sidebar unmount/remount、storage owner の test を追加する
 
-- [ ] P1 Tauri capability generated schema と default capability の drift を release gate にする
-  - 対象: `src-tauri/capabilities/default.json`, `src-tauri/gen/schemas/*-schema.json`, `src/__tests__/config/repo-contracts.test.ts`
-  - capability を編集しても generated schema / permission description が更新されないと、release build まで権限差分を見落としやすい
-  - capability permission追加、schema stale、platform-specific schema差分、release config include、CI failure message の contract を追加する
-
 - [ ] P2 `pnpm-lock.yaml` の transitive duplicate major を supply-chain TODO として棚卸しする
   - 対象: `pnpm-lock.yaml`, `package.json`, `scripts/quality-baseline.ts`
   - `lru-cache` や `signal-exit` など複数 major が残ると、依存更新時の CVE triage と bundle size 判断が属人化しやすい
@@ -808,11 +803,6 @@
   - 対象: OPML export、DB backup、dev credential file store
   - 途中失敗で target file を半端に残すと、次回 import/restore/debug で正常ファイルとして扱われる
   - temp file、fsync、rename failure、existing file collision、cleanup failure の contract を追加する
-
-- [ ] P2 Node / pnpm / mise toolchain drift を local gate で検出する
-  - 対象: `mise.toml`, `package.json`, CI workflow, setup docs
-  - Node 24 前提なのに Node 25 で warning のまま進むと、local green と CI green がずれる
-  - Node version、pnpm version、Corepack behavior、CI cache key、developer warning の check を追加する
 
 - [ ] P2 React StrictMode double invoke で native command wrapper が二重実行されないか棚卸しする
   - 対象: hooks that invoke Tauri commands in effects、query/mutation wrappers
@@ -1213,11 +1203,6 @@
   - 対象: `src-tauri/src/lib.rs`, `cfg(not(test))` blocks, integration tests
   - plugin setup、startup lifecycle、log setup などが `cfg(not(test))` で外れると unit test だけでは release regression を拾えない
   - plugin setup、log setup、focus restore、scheduler start、cleanup logs、release smoke owner の inventory を作る
-
-- [ ] P2 generated schema drift を PR review comment ではなく failing gate へ昇格する条件を決める
-  - 対象: generated Tauri schemas、API schemas、CI
-  - generated artifact drift が review 依存だと、release 直前に capability/schema mismatch が出る
-  - generated file changed、source changed no generated update、CI failure, intentional update label、regeneration command の policy を追加する
 
 - [ ] P3 TODO priority aging policy を作る
   - 対象: `TODO.md`, `.claude/rules/quality-policy.md`
