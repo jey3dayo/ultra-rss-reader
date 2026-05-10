@@ -87,9 +87,17 @@ fn open_browser_in_background(url: &str) -> Result<(), AppError> {
     open_browser_in_background_with_command(Command::new("open").arg("-g").arg(url))
 }
 
-fn supports_remote_mutations(account_kind: &str, feed_remote_id: Option<&str>) -> bool {
+fn provider_supports_pending_article_mutations(account_kind: &str) -> bool {
     matches!(account_kind, "FreshRss")
-        && feed_remote_id.is_some_and(|remote_id| remote_id.starts_with("feed/"))
+}
+
+fn feed_supports_pending_article_mutations(feed_remote_id: Option<&str>) -> bool {
+    feed_remote_id.is_some_and(|remote_id| remote_id.starts_with("feed/"))
+}
+
+fn supports_remote_mutations(account_kind: &str, feed_remote_id: Option<&str>) -> bool {
+    provider_supports_pending_article_mutations(account_kind)
+        && feed_supports_pending_article_mutations(feed_remote_id)
 }
 
 pub(crate) fn article_command_pagination(
@@ -1126,12 +1134,12 @@ mod tests {
         has_blocking_frame_ancestors, has_blocking_x_frame_options, mark_article_read_with_conn,
         mark_articles_read_with_conn, mark_feed_read_with_conn, mark_folder_read_with_conn,
         maybe_queue_mutation, open_browser_in_background_with_command, parse_article_list_mode,
-        recalculate_bulk_feed_unread_counts, record_article_view_with_conn,
-        should_use_background_browser_open, supports_remote_mutations,
-        toggle_article_star_with_conn, validate_feed_article_filters, validate_older_than_days,
-        BulkArticleMutationRow, OldUnreadScope, DEFAULT_ARTICLE_LIST_LIMIT,
-        DEFAULT_RECENT_ARTICLE_LIST_LIMIT, MAX_ARTICLE_COMMAND_LIST_LIMIT,
-        MAX_ARTICLE_COMMAND_LIST_OFFSET,
+        provider_supports_pending_article_mutations, recalculate_bulk_feed_unread_counts,
+        record_article_view_with_conn, should_use_background_browser_open,
+        supports_remote_mutations, toggle_article_star_with_conn, validate_feed_article_filters,
+        validate_older_than_days, BulkArticleMutationRow, OldUnreadScope,
+        DEFAULT_ARTICLE_LIST_LIMIT, DEFAULT_RECENT_ARTICLE_LIST_LIMIT,
+        MAX_ARTICLE_COMMAND_LIST_LIMIT, MAX_ARTICLE_COMMAND_LIST_OFFSET,
     };
     use crate::commands::dto::AppError;
     use crate::commands::DATABASE_MAINTENANCE_BUSY_ERROR;
@@ -1319,6 +1327,34 @@ mod tests {
     }
 
     #[test]
+    fn background_open_contract_follows_platform_info_capability() {
+        let cases = [
+            (PlatformKind::Macos, true),
+            (PlatformKind::Windows, false),
+            (PlatformKind::Linux, false),
+            (PlatformKind::Unknown, false),
+        ];
+
+        for (kind, supports_background_open) in cases {
+            let info = platform_info_for_kind(kind);
+
+            assert_eq!(
+                info.capabilities.supports_background_browser_open, supports_background_open,
+                "{kind:?}"
+            );
+            assert_eq!(
+                should_use_background_browser_open(true, &info),
+                supports_background_open,
+                "{kind:?}"
+            );
+            assert!(
+                !should_use_background_browser_open(false, &info),
+                "{kind:?}"
+            );
+        }
+    }
+
+    #[test]
     fn background_open_reports_child_process_spawn_failure_as_user_visible() {
         let message = background_browser_open_failure_message("No such file or directory");
 
@@ -1374,6 +1410,12 @@ mod tests {
 
     #[test]
     fn remote_mutations_require_provider_managed_greader_feed_ids() {
+        assert!(provider_supports_pending_article_mutations("FreshRss"));
+        assert!(!provider_supports_pending_article_mutations("Local"));
+        assert!(!provider_supports_pending_article_mutations(
+            "FutureProvider"
+        ));
+
         assert!(supports_remote_mutations("FreshRss", Some("feed/1")));
 
         assert!(!supports_remote_mutations(
@@ -1382,6 +1424,7 @@ mod tests {
         ));
         assert!(!supports_remote_mutations("FreshRss", None));
         assert!(!supports_remote_mutations("Local", Some("feed/1")));
+        assert!(!supports_remote_mutations("FutureProvider", Some("feed/1")));
     }
 
     #[test]
@@ -1492,6 +1535,33 @@ mod tests {
             error,
             AppError::UserVisible { message } if message == "Article list limit must be 200 or less"
         ));
+    }
+
+    #[test]
+    fn article_command_pagination_rejects_load_more_values_with_stable_messages() {
+        let cases = [
+            (
+                Some(MAX_ARTICLE_COMMAND_LIST_OFFSET + 1),
+                Some(1),
+                "Article list offset must be 10000 or less",
+            ),
+            (
+                Some(MAX_ARTICLE_COMMAND_LIST_OFFSET),
+                Some(MAX_ARTICLE_COMMAND_LIST_LIMIT + 1),
+                "Article list limit must be 200 or less",
+            ),
+        ];
+
+        for (offset, limit, expected_message) in cases {
+            let Err(error) = article_command_pagination(offset, limit, DEFAULT_ARTICLE_LIST_LIMIT)
+            else {
+                panic!("invalid pagination should be rejected before repository access");
+            };
+
+            assert!(
+                matches!(error, AppError::UserVisible { message } if message == expected_message)
+            );
+        }
     }
 
     #[test]
@@ -2330,6 +2400,92 @@ mod tests {
 
         assert_eq!(count, 1);
         assert_eq!(read_ids, vec!["old-in-folder"]);
+    }
+
+    #[test]
+    fn bulk_mark_old_unread_read_queues_only_provider_supported_pending_mutations() {
+        let db = DbManager::new_in_memory().expect("in-memory DB should initialize");
+        insert_bulk_account(&db, "acc-a", "FreshRss");
+        insert_bulk_account(&db, "acc-local", "Local");
+        insert_bulk_account(&db, "acc-future", "FutureProvider");
+        insert_bulk_feed(&db, "feed-remote", "acc-a", None, Some("feed/a"));
+        insert_bulk_feed(
+            &db,
+            "feed-local-like",
+            "acc-a",
+            None,
+            Some("https://example.com/feed.xml"),
+        );
+        insert_bulk_feed(&db, "feed-local", "acc-local", None, None);
+        insert_bulk_feed(&db, "feed-future", "acc-future", None, Some("feed/future"));
+        insert_bulk_article(
+            &db,
+            "remote-a",
+            "feed-remote",
+            Some("remote-shared"),
+            "2026-03-01T00:00:00Z",
+            false,
+            false,
+        );
+        insert_bulk_article(
+            &db,
+            "remote-b",
+            "feed-remote",
+            Some("remote-shared"),
+            "2026-03-02T00:00:00Z",
+            false,
+            false,
+        );
+        insert_bulk_article(
+            &db,
+            "local-like",
+            "feed-local-like",
+            Some("local-guid"),
+            "2026-03-01T00:00:00Z",
+            false,
+            false,
+        );
+        insert_bulk_article(
+            &db,
+            "local",
+            "feed-local",
+            None,
+            "2026-03-01T00:00:00Z",
+            false,
+            false,
+        );
+        insert_bulk_article(
+            &db,
+            "future",
+            "feed-future",
+            Some("future-remote"),
+            "2026-03-01T00:00:00Z",
+            false,
+            false,
+        );
+        let before = chrono::DateTime::parse_from_rfc3339("2026-04-01T00:00:00Z")
+            .expect("timestamp should parse")
+            .with_timezone(&chrono::Utc);
+
+        let count =
+            bulk_mark_old_unread_read(db.writer(), OldUnreadScope::Account, "acc-a", before)
+                .expect("old unread mark should succeed");
+
+        let pending_repo = SqlitePendingMutationRepository::new(db.reader());
+        let pending = pending_repo
+            .find_by_account(&AccountId("acc-a".to_string()))
+            .expect("pending mutation query should succeed");
+
+        assert_eq!(count, 3);
+        assert!(article_is_read(&db, "remote-a"));
+        assert!(article_is_read(&db, "remote-b"));
+        assert!(article_is_read(&db, "local-like"));
+        assert!(!article_is_read(&db, "local"));
+        assert!(!article_is_read(&db, "future"));
+        assert_eq!(pending.len(), 1);
+        assert_eq!(pending[0].mutation_type, PendingMutationType::MarkRead);
+        assert_eq!(pending[0].remote_entry_id, "remote-shared");
+        assert_eq!(pending_mutation_count(&db), 1);
     }
 
     #[test]
