@@ -769,11 +769,6 @@
   - startup check は silent failure、manual check は toast failure だが、同じ `checkInFlight` を共有するため、どちらの caller が結果を受け取るかで feedback が揺れやすい
   - startup+manual concurrent、manual+manual concurrent、startup failure、manual cancellation、runtime unavailable の test を追加する
 
-- [ ] P2 reader focus retry generation を account/article switch と unmount cleanup で検証する
-  - 対象: `src/lib/reader-focus.ts`, `src/components/reader/hooks/article-list/use-article-list-navigation.ts`, `src/__tests__/lib/reader-focus.test.ts`
-  - focus retry は module-level generation と timeout を使うため、article switch や account switch 後に古い retry が別 row を focus する可能性がある
-  - selected article deleted、account switch、sidebar smart view switch、unmount cleanup、requestAnimationFrame throw の test を追加する
-
 - [ ] P2 window event binding cleanup を partial registration failure / duplicate binding で固定する
   - 対象: `src/lib/window/window-events.ts`, `src/hooks/use-keyboard.ts`, `src/components/subscriptions-index/subscriptions-index-page.tsx`
   - 複数 event listener をまとめて登録する helper は途中失敗時に cleanup するが、duplicate binding や remove failure の挙動が contract 化されていない
@@ -1196,11 +1191,6 @@
   - 対象: `src/hooks/use-articles.ts`, `src/components/reader/hooks/article-list/use-article-list-search.ts`, `src-tauri/src/commands/article_commands.rs`
   - frontend は NFKC + whitespace collapse + 128文字 cap を持つが、backend search 側の normalization と違うと日本語/全角検索で結果が揺れやすい
   - full-width text、combining mark、emoji、multiple spaces、128文字超、backend raw query cap の parity test を追加する
-
-- [ ] P2 article search focus retry を search close / account switch / unmount で leak-free にする
-  - 対象: `src/components/reader/hooks/article-list/use-article-list-search.ts`, `src/__tests__/components/use-article-list-search.test.tsx`
-  - focus retry は RAF と timeout を併用するため、search close や account switch 後に古い focus が復活すると keyboard flow が乱れる
-  - close before RAF、account switch before timeout、unmount cleanup、requestAnimationFrame unavailable、focus throws の test を追加する
 
 - [ ] P2 article cache optimistic patch が account id 推定に失敗した時の fallback を明文化する
   - 対象: `src/hooks/use-articles.ts`, `src/lib/query/query-invalidation.ts`, `src/components/reader/hooks/article`
@@ -2460,12 +2450,6 @@
   - menu 起点の fullscreen/browser navigation/update/sync が console.error 中心だと、ユーザー操作として失敗したのに feedback が出ない path が残る
   - fullscreen failure、browser back failure、update check failure、sync failure、toast vs diagnostics-only policy の test を追加する
 
-- [ ] P2 native action focus helpers の RAF unavailable / focus throw を contract 化する
-  - 対象: `src/lib/actions.ts`, `src/lib/reader-focus.ts`, `src/__tests__/lib`
-  - `focusArticleListAfterClearingArticle` / `focusSidebarSelection` が rAF を直接使うため、rAF missing や target focus throw で action 全体が落ち得る
-  - requestAnimationFrame missing、focus throws、target absent、clearArticle focus restore、sidebar focus restore の test を追加する
-  - superseded by: P2-R5 (covered by reader/native focus retry cancellation contract; kept verification: requestAnimationFrame missing, focus throws, target absent)
-
 - [ ] P2 browser close buffered action を consecutive action queue として固定する
   - 対象: `src/lib/actions.ts`, `src/stores/ui-store.ts`, `src/components/reader/hooks/article/use-article-browser-overlay-close.ts`
   - `pendingBrowserCloseAction` は単一 slot なので、close animation 中に next/prev/feed action が連打されると最後だけ残る設計が意図か曖昧
@@ -2540,12 +2524,6 @@
   - 対象: `src/components/reader/hooks/article`, `src/stores/ui-store.ts`
   - article 切替、feed 切替、browser overlay close、account switch で scroll を残すか戻すかが曖昧だと閲覧復帰が不安定になる
   - same article revisit、新規 article reset、browser close return、account switch、reduced motion の期待値を固定する
-
-- [ ] P2 keyboard repeat navigation throttle / queue policy を固定する
-  - 対象: `src/hooks/use-keyboard.ts`, `src/components/reader/hooks/article-list/use-article-list-navigation.ts`
-  - `j/k` や arrow 長押しで selection/focus が data refetch より先行すると stale row や pane mismatch が起きる
-  - key repeat、long press、list end、refetch during repeat、focus target stale の focused test を追加する
-  - superseded by: P2-R5 (covered by reader focus/timer cancellation and navigation stale-state contract; kept verification: key repeat, refetch during repeat, focus target stale)
 
 - [ ] P2 toast / live-region announcement queue を設計する
   - 対象: `src/components/app-shell.tsx`, `src/stores/ui-store.ts`
@@ -2748,11 +2726,6 @@
   - 大量記事を一括更新する時に 1 transaction/分割/partial success の方針が曖昧だと UI と DB がずれる
   - large batch、chunk failure、partial rollback、query invalidation、progress feedback の task に分ける
 
-- [ ] P2 migration transactional DDL / partial migration failure recovery を明文化する
-  - 対象: `src-tauri/src/infra/db/migration.rs`, migration files
-  - SQLite DDL と data migration の途中失敗後に再起動しても安全かが曖昧だと、復旧不能な半端 schema が残る
-  - DDL failure、data copy failure、schema_version unchanged、backup rollback、retry migration の fixture を追加する
-
 - [ ] P2 background sync battery / CPU guard を repeated failure と many-account で固定する
   - 対象: `src-tauri/src/service/sync_scheduler.rs`, sync settings, diagnostics
   - 多数 account が失敗し続けると backoff があっても wake/check/log が増えて desktop app の常駐負荷になる
@@ -2802,11 +2775,6 @@
   - 対象: command palette controller/actions、global action dispatcher
   - palette close と action 実行の間に selection や modal state が変わると、意図しない account/feed/action が走る
   - stale selection、palette closed before resolve、modal already open、async action failure、focus restore の contract を追加する
-
-- [ ] P2 settings form dirty-state registry を account/tag/shortcut/preferences で共通化する
-  - 対象: settings forms、update restart guard、navigation guard
-  - form ごとに dirty 判定が違うと、restart/update/account switch 時に保存前変更を落とす
-  - account credentials、tag edit、shortcut edit、sync preferences、modal close/navigation の matrix を作る
 
 - [ ] P3 dependency update smoke を React Query / Zustand / Tauri / Vite の breaking behavior ごとに分類する
   - 対象: `package.json`, `pnpm-lock.yaml`, `src-tauri/Cargo.lock`, quality baseline
@@ -3024,11 +2992,6 @@
   - embedded browser は remote origin、article content は sanitized local DOM という前提が崩れると focus/script/security boundary が曖昧になる
   - remote origin、local sanitized content、focus bridge、history tracking、script injection allowed surface の contract を追加する
 
-- [ ] P2 storage quota exhausted 時の cascading failure を preferences/sidebar/history/debug で検証する
-  - 対象: localStorage-backed helpers、preferences store、runtime diagnostics
-  - quota exceeded が一箇所で起きた後に warning storage も書けず、同じ failure が連鎖する可能性がある
-  - preferences save、sidebar expanded folders、command history、diagnostics warning-once、recovery UI の contract を追加する
-
 - [ ] P2 frontend schema parse failure の fallback data が UI action を enable しない contract を作る
   - 対象: `src/schemas`, Tauri command wrappers, view models
   - parse failure 時に empty fallback を使うと、本来 disabled にすべき destructive action が enabled になる可能性がある
@@ -3159,11 +3122,6 @@
   - 対象: local provider HTTP client、feed discovery、sync scheduler
   - discovery と sync が同じ host に集中すると、ユーザー操作でも provider 側から abuse と見なされる可能性がある
   - per-host rate、manual burst、auto sync batch、discovery retry、429/403 suppression の contract を追加する
-
-- [ ] P1 corrupted preference row が startup/menu/settings を連鎖的に壊さない quarantine policy を作る
-  - 対象: preference repository、startup menu prefs、settings store
-  - 1 行の不正 preference で menu rebuild や settings 全体が fallback すると、ユーザーが修復できない
-  - unknown key、invalid value、oversized value、menu fallback、settings quarantine/reset の contract を追加する
 
 - [ ] P2 installer upgrade 前後の app data backup recommendation を user-facing flow にする
   - 対象: release notes、manual verification、settings data export
@@ -3347,11 +3305,6 @@
   - remote で article/feed が消えた後に local read/star/tag mutation を replay すると、404/skip/rollback の方針が必要になる
   - remote article missing、remote feed missing、mutation replay 404、local cache rollback、user warning の contract を追加する
 
-- [ ] P2 account/feed/tag rename の optimistic UI と backend normalization 差分を固定する
-  - 対象: rename account/feed/tag flows、repository validation、query cache
-  - frontend 表示名と backend normalized name が違う場合、保存直後にちらつきや duplicate 判定ずれが起きる
-  - trim、case fold、Unicode normalization、duplicate after normalization、optimistic rollback の contract を追加する
-
 - [ ] P2 article action undo を導入しない場合の accidental action recovery copy を揃える
   - 対象: mark read/star/tag/mute actions、reader toolbar、context menu
   - 既読・スター・タグ操作は軽いが、undo がないと誤操作時の戻し方が UI surface ごとに違う
@@ -3366,11 +3319,6 @@
   - 対象: feed URL display、account detail、debug/settings tooltips
   - visible text を redaction しても tooltip/title に full URL や path が残ると漏れる
   - feed URL tooltip、server URL tooltip、log path tooltip、article URL tooltip、copy action の redaction test を追加する
-
-- [ ] P2 stale closure in settings save handlers を form revision で guard する
-  - 対象: settings forms、account credentials editor、shortcut settings
-  - 保存 promise が返る前に別 field を編集すると、古い success/failure が新しい draft state を上書きする可能性がある
-  - edit while saving、save success stale、save failure stale、retry latest draft、dirty state の contract を追加する
 
 - [ ] P2 large account switch の query cancellation / stale render budget を計測する
   - 対象: account switcher、reader query hooks、article list/feed tree rendering
