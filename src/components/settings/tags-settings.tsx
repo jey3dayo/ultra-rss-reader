@@ -114,6 +114,8 @@ export function TagsSettings() {
   const createInFlightRef = useRef(false);
   const stateRef = useRef(state);
   stateRef.current = state;
+  const tagsRef = useRef(tags);
+  tagsRef.current = tags;
   const { name, color, createRevision, editingTag, editRevision, deletingTag, renameName, renameColor } = state;
   const createDirty = name.trim().length > 0 || color !== null;
   const editDirty = editingTag !== null && (renameName.trim() !== editingTag.name || renameColor !== editingTag.color);
@@ -158,6 +160,12 @@ export function TagsSettings() {
       return;
     }
 
+    if (!tagsRef.current.some((tag) => tag.id === editingTag.id)) {
+      dispatch({ type: "close-edit" });
+      showToast(t("tags.rename_failed", { message: "Tag no longer exists." }));
+      return;
+    }
+
     const trimmed = renameName.trim();
     const nameChanged = trimmed !== editingTag.name;
     const colorChanged = renameColor !== editingTag.color;
@@ -189,6 +197,12 @@ export function TagsSettings() {
 
   const handleDelete = async () => {
     if (!deletingTag) {
+      return;
+    }
+
+    if (!tagsRef.current.some((tag) => tag.id === deletingTag.id)) {
+      dispatch({ type: "close-delete" });
+      showToast(t("tags.delete_failed", { message: "Tag no longer exists." }));
       return;
     }
 
@@ -256,6 +270,7 @@ export function TagsSettings() {
       <DeleteTagDialogView
         open={deletingTag !== null}
         tagName={deletingTag?.name ?? ""}
+        loading={deleteTag.isPending}
         onOpenChange={(open) => !open && dispatch({ type: "close-delete" })}
         onConfirm={() => void handleDelete()}
       />

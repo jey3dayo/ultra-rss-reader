@@ -59,6 +59,7 @@ export function MuteSettings() {
   const updateMuteKeyword = useUpdateMuteKeyword();
   const ruleScopeUpdateRevisionRef = useRef<Record<string, number>>({});
   const autoMarkReadRevisionRef = useRef(0);
+  const createInFlightRef = useRef(false);
   const confirmDeleteInFlightRef = useRef(false);
   const [confirmDeleteInFlight, setConfirmDeleteInFlight] = useState(false);
   const [state, dispatch] = useReducer(muteSettingsReducer, initialMuteSettingsState);
@@ -69,6 +70,11 @@ export function MuteSettings() {
 
   const handleAdd = async () => {
     const trimmedKeyword = keyword.trim();
+    if (trimmedKeyword.length < 3 || createInFlightRef.current) {
+      return;
+    }
+
+    createInFlightRef.current = true;
     try {
       await createMuteKeyword.mutateAsync({
         keyword: trimmedKeyword,
@@ -78,6 +84,8 @@ export function MuteSettings() {
       showToast(t("mute.add_success"));
     } catch (error) {
       showToast(t("mute.add_failed", { message: getErrorMessage(error) }));
+    } finally {
+      createInFlightRef.current = false;
     }
   };
 

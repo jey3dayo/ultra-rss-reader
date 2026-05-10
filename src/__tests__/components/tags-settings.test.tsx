@@ -47,7 +47,9 @@ describe("TagsSettings", () => {
     await user.type(screen.getByRole("textbox"), "Review");
     const nameInput = screen.getByRole("textbox");
     const form = nameInput.closest("form");
-    const createButton = screen.getByRole("button", { name: /^(Create|tags\.create)$/ });
+    const createButton = screen.getByRole("button", {
+      name: /^(Create|tags\.create)$/,
+    });
 
     await waitFor(() => {
       expect(createButton).toBeEnabled();
@@ -61,7 +63,10 @@ describe("TagsSettings", () => {
     fireEvent.submit(form);
 
     expect(tagHooks.createTagMutateAsync).toHaveBeenCalledTimes(1);
-    expect(tagHooks.createTagMutateAsync).toHaveBeenCalledWith({ name: "Review", color: undefined });
+    expect(tagHooks.createTagMutateAsync).toHaveBeenCalledWith({
+      name: "Review",
+      color: undefined,
+    });
   });
 
   it("guards tag creation from repeated Enter submits before pending state is reflected", async () => {
@@ -81,7 +86,10 @@ describe("TagsSettings", () => {
     fireEvent.submit(form);
 
     expect(tagHooks.createTagMutateAsync).toHaveBeenCalledTimes(1);
-    expect(tagHooks.createTagMutateAsync).toHaveBeenCalledWith({ name: "Review", color: undefined });
+    expect(tagHooks.createTagMutateAsync).toHaveBeenCalledWith({
+      name: "Review",
+      color: undefined,
+    });
   });
 
   it("shows tag load failure separately from the true empty state", () => {
@@ -170,6 +178,63 @@ describe("TagsSettings", () => {
         color: null,
       });
     });
+  });
+
+  it("closes edit dialog without renaming when the target tag disappears", async () => {
+    const user = userEvent.setup();
+    const showToast = vi.fn();
+    tagHooks.tagsData = [{ id: "tag-1", name: "Review", color: null }];
+    useUiStore.setState({ showToast });
+
+    const { rerender } = render(<TagsSettings />);
+
+    await user.click(screen.getByRole("button", { name: /Edit/ }));
+    const dialog = screen.getByRole("dialog");
+    const nameInput = within(dialog).getByRole("textbox");
+    await user.clear(nameInput);
+    await user.type(nameInput, "Reading");
+
+    tagHooks.tagsData = [];
+    rerender(<TagsSettings />);
+
+    await user.click(
+      within(screen.getByRole("dialog")).getByRole("button", {
+        name: /^(Save|common\.save)$/,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+    expect(tagHooks.renameTagMutateAsync).not.toHaveBeenCalled();
+    expect(showToast).toHaveBeenCalledWith("Failed to update tag: Tag no longer exists.");
+  });
+
+  it("closes delete dialog without deleting when the target tag disappears", async () => {
+    const user = userEvent.setup();
+    const showToast = vi.fn();
+    tagHooks.tagsData = [{ id: "tag-1", name: "Review", color: null }];
+    useUiStore.setState({ showToast });
+
+    const { rerender } = render(<TagsSettings />);
+
+    await user.click(screen.getByRole("button", { name: /Delete/ }));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    tagHooks.tagsData = [];
+    rerender(<TagsSettings />);
+
+    await user.click(
+      within(screen.getByRole("dialog")).getByRole("button", {
+        name: 'Delete "Review". This cannot be undone.',
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+    expect(tagHooks.deleteTagMutateAsync).not.toHaveBeenCalled();
+    expect(showToast).toHaveBeenCalledWith("Failed to delete tag: Tag no longer exists.");
   });
 });
 

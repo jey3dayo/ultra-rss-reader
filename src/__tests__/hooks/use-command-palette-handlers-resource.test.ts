@@ -32,6 +32,7 @@ function createHandlers(overrides: Partial<Parameters<typeof createCommandPalett
       selectTagFromCurrentContext: vi.fn(),
       selectArticle: vi.fn(),
       openFeedLanding: vi.fn(),
+      paletteSessionId: 1,
       ...overrides,
     }),
   );
@@ -112,6 +113,7 @@ describe("useCommandPaletteHandlers resource history", () => {
           selectArticle: vi.fn(),
           showToast,
           openFeedLanding,
+          paletteSessionId: 1,
         }),
       {
         initialProps: { selectedAccountId: "acc-1" },

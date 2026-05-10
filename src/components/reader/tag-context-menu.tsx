@@ -1,4 +1,4 @@
-import { useEffect, useReducer } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { normalizeTagColorForView } from "@/api/schemas/commands";
 import type { TagDto } from "@/api/tauri-commands";
@@ -73,6 +73,8 @@ export function TagContextMenuContent({ tag }: TagContextMenuContentProps) {
   const showToast = useUiStore((s) => s.showToast);
   const renameTag = useRenameTag();
   const deleteTag = useDeleteTag();
+  const deleteInFlightRef = useRef(false);
+  const [deleteInFlight, setDeleteInFlight] = useState(false);
 
   useEffect(() => {
     if (!showRenameDialog) {
@@ -92,6 +94,10 @@ export function TagContextMenuContent({ tag }: TagContextMenuContentProps) {
   };
 
   const handleDeleteOpenChange = (open: boolean) => {
+    if (!open && deleteInFlightRef.current) {
+      return;
+    }
+
     dispatch({ type: "set-delete-dialog", value: open });
   };
 
@@ -117,18 +123,22 @@ export function TagContextMenuContent({ tag }: TagContextMenuContentProps) {
     );
   };
 
-  const handleDeleteConfirm = () => {
-    deleteTag.mutate(
-      { tagId: tag.id },
-      {
-        onSuccess: () => {
-          handleDeleteOpenChange(false);
-        },
-        onError: (error: unknown) => {
-          showToast(t("failed_to_delete_tag", { message: getErrorMessage(error) }));
-        },
-      },
-    );
+  const handleDeleteConfirm = async () => {
+    if (deleteInFlightRef.current) {
+      return;
+    }
+
+    deleteInFlightRef.current = true;
+    setDeleteInFlight(true);
+    try {
+      await deleteTag.mutateAsync({ tagId: tag.id });
+      dispatch({ type: "set-delete-dialog", value: false });
+    } catch (error) {
+      showToast(t("failed_to_delete_tag", { message: getErrorMessage(error) }));
+    } finally {
+      deleteInFlightRef.current = false;
+      setDeleteInFlight(false);
+    }
   };
 
   return (
@@ -149,8 +159,9 @@ export function TagContextMenuContent({ tag }: TagContextMenuContentProps) {
       <DeleteTagDialogView
         open={showDeleteDialog}
         tagName={tag.name}
+        loading={deleteInFlight || deleteTag.isPending}
         onOpenChange={handleDeleteOpenChange}
-        onConfirm={handleDeleteConfirm}
+        onConfirm={() => void handleDeleteConfirm()}
       />
     </>
   );

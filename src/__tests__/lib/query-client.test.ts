@@ -1,6 +1,11 @@
 import { createTestQueryClient } from "@tests/helpers/create-wrapper";
 import { describe, expect, it } from "vitest";
-import { getQueryFailureUx, queryClient, queryClientDefaultOptions } from "@/lib/query/query-client";
+import {
+  getQueryFailureUx,
+  queryClient,
+  queryClientDefaultOptions,
+  queryClientLifecyclePolicy,
+} from "@/lib/query/query-client";
 
 describe("query client retry policy", () => {
   it("keeps local IPC read queries non-retrying in production and tests", () => {
@@ -23,6 +28,14 @@ describe("query client retry policy", () => {
       staleTime: 0,
       gcTime: 5 * 60 * 1000,
       refetchOnWindowFocus: false,
+    });
+  });
+
+  it("keeps app-wide singleton reset policy explicit", () => {
+    expect(queryClientLifecyclePolicy).toEqual({
+      instance: "app-wide-singleton",
+      reset: "manual-clear-after-database-restore",
+      remount: "reuse-existing-client",
     });
   });
 
@@ -56,7 +69,12 @@ describe("query client retry policy", () => {
       retry: false,
       transientFailure: "manual-retry",
     });
-    expect(getQueryFailureUx({ type: "Diagnostics", message: "Response validation failed." })).toEqual({
+    expect(
+      getQueryFailureUx({
+        type: "Diagnostics",
+        message: "Response validation failed.",
+      }),
+    ).toEqual({
       retry: false,
       transientFailure: "diagnostics",
     });

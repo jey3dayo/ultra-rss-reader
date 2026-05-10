@@ -980,7 +980,15 @@ pub fn unstar_account_articles(
 pub fn get_feed_integrity_report(
     state: State<'_, AppState>,
 ) -> Result<FeedIntegrityReportDto, AppError> {
-    let db = crate::commands::lock_db(&state.db)?;
+    get_feed_integrity_report_inner(&state.db, &state.syncing)
+}
+
+fn get_feed_integrity_report_inner(
+    db: &Mutex<crate::infra::db::connection::DbManager>,
+    syncing: &AtomicBool,
+) -> Result<FeedIntegrityReportDto, AppError> {
+    let _report_guard = start_database_maintenance(syncing)?;
+    let db = crate::commands::lock_db(db)?;
     let repo = SqliteArticleRepository::new(db.reader());
 
     Ok(FeedIntegrityReportDto {
@@ -1207,7 +1215,6 @@ pub fn search_articles(
 mod tests {
     use super::check_browser_embed_support;
     use super::check_browser_embed_support_with_timeout;
-    use super::cleanup_feed_integrity_orphans_inner;
     use super::{
         acquire_browser_open_queue_guard_from, article_command_pagination,
         background_browser_open_failure_message, background_browser_open_status_failure_message,
@@ -1225,6 +1232,7 @@ mod tests {
         DEFAULT_RECENT_ARTICLE_LIST_LIMIT, MAX_ARTICLE_COMMAND_LIST_LIMIT,
         MAX_ARTICLE_COMMAND_LIST_OFFSET,
     };
+    use super::{cleanup_feed_integrity_orphans_inner, get_feed_integrity_report_inner};
     use crate::commands::dto::AppError;
     use crate::commands::DATABASE_MAINTENANCE_BUSY_ERROR;
     use crate::domain::types::{AccountId, ArticleId, FeedId, FolderId};
@@ -2200,6 +2208,40 @@ mod tests {
             error,
             AppError::UserVisible { message } if message == DATABASE_MAINTENANCE_BUSY_ERROR
         ));
+    }
+
+    #[test]
+    fn get_feed_integrity_report_rejects_while_syncing_or_maintenance_is_reserved() {
+        let db = Mutex::new(DbManager::new_in_memory().expect("in-memory DB should initialize"));
+        let syncing = AtomicBool::new(true);
+
+        let error = get_feed_integrity_report_inner(&db, &syncing)
+            .expect_err("syncing should block feed integrity report reads");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message } if message == DATABASE_MAINTENANCE_BUSY_ERROR
+        ));
+    }
+
+    #[test]
+    fn get_feed_integrity_report_reads_orphans_only_when_idle() {
+        let db = Mutex::new(DbManager::new_in_memory().expect("in-memory DB should initialize"));
+        let syncing = AtomicBool::new(false);
+        {
+            let db_guard = db.lock().expect("test DB lock should succeed");
+            insert_orphaned_article(&db_guard, "orphan-report", "missing-feed-report");
+        }
+
+        let result = get_feed_integrity_report_inner(&db, &syncing)
+            .expect("idle feed integrity report should succeed");
+
+        assert_eq!(result.orphaned_article_count, 1);
+        assert_eq!(result.orphaned_feeds.len(), 1);
+        assert_eq!(
+            result.orphaned_feeds[0].missing_feed_id,
+            "missing-feed-report"
+        );
     }
 
     fn insert_bulk_account(db: &DbManager, id: &str, kind: &str) {

@@ -26,6 +26,12 @@ export function useCommandPaletteController(): CommandPaletteControllerResult {
   } = useCommandPaletteUiState();
   const openFeedLanding = useFeedLanding();
   const selectedAccountIdRef = useRef(selectedAccountId);
+  const paletteSessionIdRef = useRef(0);
+  const wasOpenRef = useRef(open);
+  if (open && !wasOpenRef.current) {
+    paletteSessionIdRef.current += 1;
+  }
+  wasOpenRef.current = open;
   const { input, setInput, devScenarios, prefix, query, deferredQuery } = useCommandPaletteRuntime({ open });
   const actions = useCommandPaletteActions({
     platformKind,
@@ -59,6 +65,7 @@ export function useCommandPaletteController(): CommandPaletteControllerResult {
       selectTagFromCurrentContext,
       selectArticle,
       openFeedLanding,
+      paletteSessionId: paletteSessionIdRef.current,
     });
 
   const {

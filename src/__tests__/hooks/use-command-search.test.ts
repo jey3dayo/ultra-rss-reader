@@ -12,7 +12,13 @@ describe("parsePrefix", () => {
     ["repeated feed prefix", "@@feed", { prefix: "@", query: "@feed" }],
     ["repeated tag prefix", "##tag", { prefix: "#", query: "#tag" }],
     ["whitespace between repeated prefixes", ">   >sync", { prefix: ">", query: ">sync" }],
+    ["full-width action prefix", "＞同期", { prefix: ">", query: "同期" }],
+    ["full-width feed prefix", "＠ フィード", { prefix: "@", query: "フィード" }],
+    ["full-width tag prefix", "＃タグ", { prefix: "#", query: "タグ" }],
+    ["leading zero-width space before prefix", "\u200B>sync", { prefix: ">", query: "sync" }],
+    ["leading newline and tab before prefix", "\n\t@inbox", { prefix: "@", query: "inbox" }],
     ["unknown prefix-like character", "$feed", { prefix: null, query: "$feed" }],
+    ["prefix-looking IME text stays normal search", "＞＞同期", { prefix: ">", query: "＞同期" }],
   ] as const)("parses %s", (_label, input, expected) => {
     expect(parsePrefix(input)).toEqual(expected);
   });

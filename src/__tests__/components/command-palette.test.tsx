@@ -265,6 +265,7 @@ describe("CommandPalette", () => {
         selectTagFromCurrentContext: vi.fn(),
         selectArticle: vi.fn(),
         openFeedLanding: vi.fn(),
+        paletteSessionId: 1,
       }),
     );
 

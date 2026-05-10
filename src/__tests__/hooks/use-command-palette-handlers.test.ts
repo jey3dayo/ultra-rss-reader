@@ -33,6 +33,16 @@ afterEach(() => {
   }
 });
 
+function createDeferred<T>() {
+  let resolve: (value: T) => void = () => undefined;
+  let reject: (reason?: unknown) => void = () => undefined;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+  return { promise, resolve, reject };
+}
+
 function createHandlers(overrides: Partial<Parameters<typeof useCommandPaletteHandlers>[0]> = {}) {
   const { result } = renderHook(() =>
     useCommandPaletteHandlers({
@@ -45,10 +55,33 @@ function createHandlers(overrides: Partial<Parameters<typeof useCommandPaletteHa
       selectTagFromCurrentContext: vi.fn(),
       selectArticle: vi.fn(),
       openFeedLanding: vi.fn(),
+      paletteSessionId: 1,
       ...overrides,
     }),
   );
   return result.current;
+}
+
+function renderHandlers(initialOverrides: Partial<Parameters<typeof useCommandPaletteHandlers>[0]> = {}) {
+  return renderHook(
+    ({ overrides }) =>
+      useCommandPaletteHandlers({
+        closePalette: vi.fn(),
+        openShortcutsHelp: vi.fn(),
+        showToast: vi.fn(),
+        selectedAccountId: "acc-1",
+        isSyncing: false,
+        selectFeedFromCurrentContext: vi.fn(),
+        selectTagFromCurrentContext: vi.fn(),
+        selectArticle: vi.fn(),
+        openFeedLanding: vi.fn(),
+        paletteSessionId: 1,
+        ...overrides,
+      }),
+    {
+      initialProps: { overrides: initialOverrides },
+    },
+  );
 }
 
 describe("useCommandPaletteHandlers", () => {
@@ -92,6 +125,40 @@ describe("useCommandPaletteHandlers", () => {
     await waitFor(() => {
       expect(showToast).toHaveBeenCalledWith('Failed to run dev scenario "open-add-feed-dialog": boom');
     });
+  });
+
+  it("suppresses stale dev scenario failures after a newer scenario starts", async () => {
+    const showToast = vi.fn();
+    const staleScenario = createDeferred<void>();
+    runRuntimeDevScenarioMock
+      .mockReturnValueOnce(staleScenario.promise)
+      .mockRejectedValueOnce(new Error("latest boom"));
+    const handlers = createHandlers({ showToast });
+
+    handlers.handleDevScenarioSelect("open-add-feed-dialog");
+    handlers.handleDevScenarioSelect("open-command-palette");
+    staleScenario.reject(new Error("stale boom"));
+
+    await waitFor(() => {
+      expect(showToast).toHaveBeenCalledWith('Failed to run dev scenario "open-command-palette": latest boom');
+    });
+    expect(showToast).not.toHaveBeenCalledWith(expect.stringContaining("stale boom"));
+  });
+
+  it("suppresses dev scenario failures after the palette session changes", async () => {
+    const showToast = vi.fn();
+    const staleScenario = createDeferred<void>();
+    runRuntimeDevScenarioMock.mockReturnValueOnce(staleScenario.promise);
+    const { result, rerender } = renderHandlers({ showToast, paletteSessionId: 1 });
+
+    result.current.handleDevScenarioSelect("open-add-feed-dialog");
+    rerender({ overrides: { showToast, paletteSessionId: 2 } });
+    staleScenario.reject(new Error("stale boom"));
+
+    await waitFor(() => {
+      expect(runRuntimeDevScenarioMock).toHaveBeenCalledOnce();
+    });
+    expect(showToast).not.toHaveBeenCalled();
   });
 
   it("writes feed history and closes the palette without a success toast for feed landing", async () => {

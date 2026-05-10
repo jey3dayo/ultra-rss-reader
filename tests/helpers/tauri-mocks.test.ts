@@ -14,14 +14,22 @@ import {
 import {
   checkForUpdate,
   cleanupFeedIntegrityOrphans,
+  countAccountStarredArticles,
+  countAccountUnreadArticles,
   getDatabaseInfo,
   getPlatformInfo,
   getPreferences,
+  listAccountArticles,
   listAccounts,
   listArticles,
   listFeedArticleSummaries,
   listFeeds,
   listFolders,
+  listRecentArticles,
+  listStarredArticles,
+  markArticleRead,
+  markArticlesRead,
+  toggleArticleStar,
 } from "@/api/tauri-commands";
 import { sampleAccounts, sampleArticles, sampleFeeds, sampleFolders } from "./fixtures";
 import {
@@ -180,6 +188,29 @@ describe("setupTauriMocks fixture isolation", () => {
     expect(nextArticles).toEqual(sampleArticles);
     expect(sampleArticle.title).toBe("First Article");
     expect(sampleArticle.is_read).toBe(false);
+  });
+
+  it("applies command-schema pagination defaults to default article list mocks", async () => {
+    expect(Result.unwrap(await listArticles("feed-1", 1, 1)).map((article) => article.id)).toEqual(["art-2"]);
+    expect(Result.unwrap(await listAccountArticles("acc-1", 0, 1)).map((article) => article.id)).toEqual(["art-1"]);
+    expect(Result.unwrap(await listStarredArticles("acc-1", 0, 1))?.map((article) => article.id)).toEqual(["art-2"]);
+    expect(Result.unwrap(await listRecentArticles("acc-1", 1, 1)).map((article) => article.id)).toEqual(["art-1"]);
+  });
+
+  it("keeps article read and star mutation commands in the default mock fixture state", async () => {
+    expect(Result.unwrap(await countAccountUnreadArticles("acc-1"))).toBe(1);
+    expect(Result.unwrap(await countAccountStarredArticles("acc-1"))).toBe(1);
+
+    Result.unwrap(await markArticleRead("art-1", true));
+    expect(Result.unwrap(await listArticles("feed-1", true)).map((article) => article.id)).toEqual([]);
+    expect(Result.unwrap(await countAccountUnreadArticles("acc-1"))).toBe(0);
+
+    Result.unwrap(await toggleArticleStar("art-1", true));
+    expect(Result.unwrap(await listStarredArticles("acc-1"))?.map((article) => article.id)).toEqual(["art-1", "art-2"]);
+    expect(Result.unwrap(await countAccountStarredArticles("acc-1"))).toBe(2);
+
+    Result.unwrap(await markArticlesRead(["art-2"]));
+    expect(Result.unwrap(await listArticles("feed-1", true)).map((article) => article.id)).toEqual([]);
   });
 
   it("returns fresh platform info clones from default mocks", async () => {

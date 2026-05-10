@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MuteSettings } from "@/components/settings/mute-settings";
@@ -184,6 +184,55 @@ describe("MuteSettings", () => {
         scope: "title_and_body",
       });
     });
+  });
+
+  it("guards mute keyword creation from repeated submits before pending state is reflected", async () => {
+    const user = userEvent.setup();
+    const pendingCreate = createDeferred<void>();
+    createMuteKeywordMutateAsyncMock.mockReturnValueOnce(pendingCreate.promise);
+
+    render(<MuteSettings />);
+
+    const keywordInput = screen.getByRole("textbox", { name: "Keyword" });
+    await user.type(keywordInput, "spoiler alert");
+    const form = keywordInput.closest("form");
+    const addButton = screen.getByRole("button", { name: "Add" });
+
+    if (!form) {
+      throw new Error("Expected mute keyword input to be inside a form");
+    }
+
+    fireEvent.click(addButton);
+    fireEvent.submit(form);
+
+    expect(createMuteKeywordMutateAsyncMock).toHaveBeenCalledTimes(1);
+    expect(createMuteKeywordMutateAsyncMock).toHaveBeenCalledWith({
+      keyword: "spoiler alert",
+      scope: "title_and_body",
+    });
+
+    await act(async () => {
+      pendingCreate.resolve();
+      await pendingCreate.promise;
+    });
+  });
+
+  it("ignores short mute keyword submits even if the form submit event fires", async () => {
+    const user = userEvent.setup();
+
+    render(<MuteSettings />);
+
+    const keywordInput = screen.getByRole("textbox", { name: "Keyword" });
+    await user.type(keywordInput, "ai");
+    const form = keywordInput.closest("form");
+
+    if (!form) {
+      throw new Error("Expected mute keyword input to be inside a form");
+    }
+
+    fireEvent.submit(form);
+
+    expect(createMuteKeywordMutateAsyncMock).not.toHaveBeenCalled();
   });
 
   it("trims mute keyword creation input and rejects whitespace-padded short values", async () => {

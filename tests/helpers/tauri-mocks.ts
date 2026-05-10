@@ -3,7 +3,6 @@ import { getCommandArgsSchema } from "@/api/schemas";
 import type {
   AccountDto,
   AccountSyncStatusDto,
-  ArticleDto,
   DatabaseInfoDto,
   FeedArticleSummaryDto,
   MuteKeywordDto,
@@ -71,7 +70,16 @@ function validateArgs(cmd: string, payload: unknown): ValidatedMockTauriCommandA
   return toMockHandlerArgs(isRecord(payload) ? payload : {});
 }
 
+function paginate<T>(items: readonly T[], args: ValidatedMockTauriCommandArgs): T[] {
+  const offset = typeof args.offset === "number" ? args.offset : 0;
+  const limit = typeof args.limit === "number" ? args.limit : 20;
+
+  return items.slice(offset, offset + limit);
+}
+
 function createDefaultHandler(): MockHandler {
+  const mockFeeds = createSampleFeeds();
+  let mockArticles = createSampleArticles();
   let mockTags = createSampleTags();
 
   return (cmd, args) => {
@@ -79,82 +87,106 @@ function createDefaultHandler(): MockHandler {
       case "list_accounts":
         return createSampleAccounts();
       case "list_feeds":
-        return createSampleFeeds().filter((f) => f.account_id === args.accountId);
+        return structuredClone(mockFeeds.filter((f) => f.account_id === args.accountId));
       case "list_folders":
         return createSampleFolders().filter((folder) => folder.account_id === args.accountId);
       case "list_articles":
-        return createSampleArticles().filter(
-          (a) => a.feed_id === args.feedId && (!args.unreadOnly || !a.is_read) && (!args.starredOnly || a.is_starred),
+        return structuredClone(
+          paginate(
+            mockArticles.filter(
+              (a) =>
+                a.feed_id === args.feedId && (!args.unreadOnly || !a.is_read) && (!args.starredOnly || a.is_starred),
+            ),
+            args,
+          ),
         );
       case "list_account_articles":
-        return createSampleArticles().filter((a) =>
-          createSampleFeeds().some(
-            (f) => f.id === a.feed_id && f.account_id === args.accountId && (!args.unreadOnly || !a.is_read),
+        return structuredClone(
+          paginate(
+            mockArticles.filter((a) =>
+              mockFeeds.some(
+                (f) => f.id === a.feed_id && f.account_id === args.accountId && (!args.unreadOnly || !a.is_read),
+              ),
+            ),
+            args,
           ),
         );
       case "list_folder_articles":
-        return createSampleArticles().filter((a) =>
-          createSampleFeeds().some((f) => {
-            if (f.id !== a.feed_id || f.folder_id !== args.folderId) {
-              return false;
-            }
-            if (args.mode === "unread") {
-              return !a.is_read;
-            }
-            if (args.mode === "starred") {
-              return a.is_starred;
-            }
-            return true;
-          }),
+        return structuredClone(
+          paginate(
+            mockArticles.filter((a) =>
+              mockFeeds.some((f) => {
+                if (f.id !== a.feed_id || f.folder_id !== args.folderId) {
+                  return false;
+                }
+                if (args.mode === "unread") {
+                  return !a.is_read;
+                }
+                if (args.mode === "starred") {
+                  return a.is_starred;
+                }
+                return true;
+              }),
+            ),
+            args,
+          ),
         );
       case "list_starred_articles":
-        return createSampleArticles().filter(
-          (a) => a.is_starred && createSampleFeeds().some((f) => f.id === a.feed_id && f.account_id === args.accountId),
+        return structuredClone(
+          paginate(
+            mockArticles.filter((a) =>
+              mockFeeds.some((f) => f.id === a.feed_id && f.account_id === args.accountId && a.is_starred),
+            ),
+            args,
+          ),
         );
       case "list_feed_article_summaries": {
-        const articles = createSampleArticles();
-        return createSampleFeeds()
+        return mockFeeds
           .filter((feed) => feed.account_id === args.accountId)
           .map(
             (feed) =>
               ({
                 feed_id: feed.id,
                 latest_article_at:
-                  articles
+                  mockArticles
                     .filter((article) => article.feed_id === feed.id)
                     .map((article) => article.published_at)
                     .toSorted()
                     .slice(-1)[0] ?? null,
-                starred_count: articles.filter((article) => article.feed_id === feed.id && article.is_starred).length,
+                starred_count: mockArticles.filter((article) => article.feed_id === feed.id && article.is_starred)
+                  .length,
               }) satisfies FeedArticleSummaryDto,
           );
       }
       case "list_recent_articles": {
-        const articles = createSampleArticles();
-        return [articles[1], articles[0]]
-          .filter((article): article is ArticleDto => article !== undefined)
-          .filter((article) => {
-            if (args.mode === "unread") {
-              return !article.is_read;
-            }
-            if (args.mode === "starred") {
-              return article.is_starred;
-            }
-            return true;
-          })
-          .slice(Number(args.offset ?? 0), Number(args.offset ?? 0) + Number(args.limit ?? 20))
-          .map((article) => ({
-            ...article,
-            viewed_at: "2026-04-20T10:00:00Z",
-          }));
+        return structuredClone(
+          paginate(
+            mockArticles
+              .filter((article) =>
+                mockFeeds.some(
+                  (feed) =>
+                    feed.id === article.feed_id &&
+                    feed.account_id === args.accountId &&
+                    (args.mode !== "unread" || !article.is_read) &&
+                    (args.mode !== "starred" || article.is_starred),
+                ),
+              )
+              .toReversed()
+              .map((article) => ({
+                ...article,
+                viewed_at: "2026-04-20T10:00:00Z",
+              })),
+            args,
+          ),
+        );
       }
       case "count_account_unread_articles":
-        return createSampleArticles().filter((a) =>
-          createSampleFeeds().some((f) => f.id === a.feed_id && f.account_id === args.accountId && !a.is_read),
+        return mockArticles.filter((a) =>
+          mockFeeds.some((f) => f.id === a.feed_id && f.account_id === args.accountId && !a.is_read),
         ).length;
       case "count_account_starred_articles":
-        return createSampleArticles().filter((a) =>
-          createSampleFeeds().some((f) => f.id === a.feed_id && f.account_id === args.accountId && a.is_starred),
+        return mockArticles.filter((a) =>
+          mockFeeds.some((f) => f.id === a.feed_id && f.account_id === args.accountId && a.is_starred),
         ).length;
       case "get_feed_integrity_report":
         return { orphaned_article_count: 0, orphaned_feeds: [] };
@@ -186,11 +218,39 @@ function createDefaultHandler(): MockHandler {
           keep_read_items_days: 30,
         } satisfies AccountDto;
       case "mark_article_read":
-      case "mark_articles_read":
+        mockArticles = mockArticles.map((article) =>
+          article.id === args.articleId ? { ...article, is_read: args.read !== false } : article,
+        );
+        return null;
+      case "mark_articles_read": {
+        const articleIds = new Set(args.articleIds);
+        mockArticles = mockArticles.map((article) =>
+          articleIds.has(article.id) ? { ...article, is_read: true } : article,
+        );
+        return null;
+      }
       case "mark_account_read":
-      case "mark_account_starred_read":
+      case "mark_account_starred_read": {
+        const accountFeedIds = new Set(
+          mockFeeds.filter((feed) => feed.account_id === args.accountId).map((feed) => feed.id),
+        );
+        mockArticles = mockArticles.map((article) =>
+          accountFeedIds.has(article.feed_id) && (cmd !== "mark_account_starred_read" || article.is_starred)
+            ? { ...article, is_read: true }
+            : article,
+        );
+        return null;
+      }
+      case "unstar_account_articles": {
+        const accountFeedIds = new Set(
+          mockFeeds.filter((feed) => feed.account_id === args.accountId).map((feed) => feed.id),
+        );
+        mockArticles = mockArticles.map((article) =>
+          accountFeedIds.has(article.feed_id) ? { ...article, is_starred: false } : article,
+        );
+        return null;
+      }
       case "mark_old_unread_read":
-      case "unstar_account_articles":
       case "record_article_view":
         return null;
       case "count_old_unread_articles":
@@ -198,9 +258,12 @@ function createDefaultHandler(): MockHandler {
       case "clear_article_view_history":
         return 1;
       case "toggle_article_star":
+        mockArticles = mockArticles.map((article) =>
+          article.id === args.articleId ? { ...article, is_starred: args.starred === true } : article,
+        );
         return null;
       case "search_articles":
-        return [];
+        return structuredClone(paginate([], args));
       case "list_mute_keywords":
         return createSampleMuteKeywords();
       case "list_tags":

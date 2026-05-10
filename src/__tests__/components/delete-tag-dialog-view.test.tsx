@@ -15,10 +15,18 @@ describe("DeleteTagDialogView", () => {
     expect(screen.getByText("Delete Tag")).toBeInTheDocument();
     expect(screen.getByText(/Work/)).toBeInTheDocument();
     expect(screen.getByText(/Work/).closest("p")).toHaveClass("text-foreground-soft");
-    expect(screen.getByRole("button", { name: 'Delete "Work". This cannot be undone.' })).toHaveClass("min-h-11");
+    expect(
+      screen.getByRole("button", {
+        name: 'Delete "Work". This cannot be undone.',
+      }),
+    ).toHaveClass("min-h-11");
     expect(screen.getByRole("button", { name: "Cancel" })).toHaveClass("min-h-11");
 
-    await user.click(screen.getByRole("button", { name: 'Delete "Work". This cannot be undone.' }));
+    await user.click(
+      screen.getByRole("button", {
+        name: 'Delete "Work". This cannot be undone.',
+      }),
+    );
     await user.click(screen.getByRole("button", { name: "Cancel" }));
 
     expect(onConfirm).toHaveBeenCalledTimes(1);
@@ -34,7 +42,11 @@ describe("DeleteTagDialogView", () => {
       <DeleteTagDialogView open={true} tagName="Work" onOpenChange={onOpenChange} onConfirm={onConfirm} />,
     );
 
-    await user.click(screen.getByRole("button", { name: 'Delete "Work". This cannot be undone.' }));
+    await user.click(
+      screen.getByRole("button", {
+        name: 'Delete "Work". This cannot be undone.',
+      }),
+    );
 
     expect(onConfirm).toHaveBeenCalledTimes(1);
     expect(onOpenChange).not.toHaveBeenCalled();
@@ -46,5 +58,34 @@ describe("DeleteTagDialogView", () => {
 
     expect(onConfirm).not.toHaveBeenCalled();
     expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it("disables confirm and cancel while delete is loading", async () => {
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+    const onConfirm = vi.fn();
+
+    render(
+      <DeleteTagDialogView
+        open={true}
+        tagName="Work"
+        loading={true}
+        onOpenChange={onOpenChange}
+        onConfirm={onConfirm}
+      />,
+    );
+
+    const confirmButton = screen.getByRole("button", {
+      name: 'Delete "Work". This cannot be undone.',
+    });
+    expect(confirmButton).toBeDisabled();
+    expect(confirmButton).toHaveAttribute("aria-busy", "true");
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
+
+    await user.click(confirmButton);
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(onConfirm).not.toHaveBeenCalled();
+    expect(onOpenChange).not.toHaveBeenCalled();
   });
 });

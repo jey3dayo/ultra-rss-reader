@@ -21,6 +21,7 @@ type UseCommandPaletteHandlersParams = {
   selectTagFromCurrentContext: (tagId: string) => void;
   selectArticle: (articleId: string) => void;
   openFeedLanding: (feedId: string) => Promise<FeedLandingResult>;
+  paletteSessionId: number;
 };
 
 type UseCommandPaletteHandlersResult = {
@@ -94,12 +95,20 @@ export function useCommandPaletteHandlers({
   selectTagFromCurrentContext,
   selectArticle,
   openFeedLanding,
+  paletteSessionId,
 }: UseCommandPaletteHandlersParams): UseCommandPaletteHandlersResult {
   const feedLandingRequestIdRef = useRef(0);
+  const devScenarioRequestIdRef = useRef(0);
   const selectedAccountIdRef = useRef(selectedAccountId);
+  const paletteSessionIdRef = useRef(paletteSessionId);
   if (selectedAccountIdRef.current !== selectedAccountId) {
     selectedAccountIdRef.current = selectedAccountId;
     feedLandingRequestIdRef.current += 1;
+    devScenarioRequestIdRef.current += 1;
+  }
+  if (paletteSessionIdRef.current !== paletteSessionId) {
+    paletteSessionIdRef.current = paletteSessionId;
+    devScenarioRequestIdRef.current += 1;
   }
 
   function handleActionSelect(action: PaletteAction["id"]) {
@@ -170,7 +179,19 @@ export function useCommandPaletteHandlers({
   }
 
   function handleDevScenarioSelect(scenarioId: RuntimeDevScenario["id"]) {
+    const requestId = devScenarioRequestIdRef.current + 1;
+    devScenarioRequestIdRef.current = requestId;
+    const requestAccountId = selectedAccountIdRef.current;
+    const requestPaletteSessionId = paletteSessionIdRef.current;
     void runRuntimeDevScenario(scenarioId).catch((error) => {
+      if (
+        requestId !== devScenarioRequestIdRef.current ||
+        requestAccountId !== selectedAccountIdRef.current ||
+        requestPaletteSessionId !== paletteSessionIdRef.current
+      ) {
+        return;
+      }
+
       showToast(
         translateCommandPaletteMessage("dev_scenario_failed", {
           scenarioId,

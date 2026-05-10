@@ -27,10 +27,5 @@ export async function flushMicrotasksAndRealTimer(): Promise<void> {
 }
 
 function isUsingFakeTimers(): boolean {
-  try {
-    vi.getTimerCount();
-    return true;
-  } catch {
-    return false;
-  }
+  return vi.isFakeTimers();
 }

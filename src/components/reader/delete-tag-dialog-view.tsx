@@ -4,11 +4,18 @@ import { DestructiveConfirmDialogView } from "@/components/shared/destructive-co
 type DeleteTagDialogViewProps = {
   open: boolean;
   tagName: string;
+  loading?: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
 };
 
-export function DeleteTagDialogView({ open, tagName, onOpenChange, onConfirm }: DeleteTagDialogViewProps) {
+export function DeleteTagDialogView({
+  open,
+  tagName,
+  loading = false,
+  onOpenChange,
+  onConfirm,
+}: DeleteTagDialogViewProps) {
   const { t } = useTranslation("reader");
   const { t: tc } = useTranslation("common");
 
@@ -23,7 +30,10 @@ export function DeleteTagDialogView({ open, tagName, onOpenChange, onConfirm }: 
       }
       cancelLabel={tc("cancel")}
       confirmLabel={tc("delete")}
-      confirmAccessibleLabel={t("delete_tag_accessible_label", { name: tagName })}
+      confirmAccessibleLabel={t("delete_tag_accessible_label", {
+        name: tagName,
+      })}
+      pending={loading}
       onOpenChange={onOpenChange}
       onConfirm={onConfirm}
     />

@@ -22,6 +22,12 @@ export const queryClientDefaultOptions = {
   },
 } as const satisfies DefaultOptions;
 
+export const queryClientLifecyclePolicy = {
+  instance: "app-wide-singleton",
+  reset: "manual-clear-after-database-restore",
+  remount: "reuse-existing-client",
+} as const;
+
 export const queryClient = new QueryClient({
   defaultOptions: queryClientDefaultOptions,
 });
