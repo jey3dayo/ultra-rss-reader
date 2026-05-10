@@ -89,11 +89,6 @@
   - overloaded positional args は `listArticles(feedId, 20, 50)` と `listArticles(feedId, true, 20, 50)` の読み間違いを誘発しやすい
   - all overload shapes、boolean+offset/limit、numeric first arg、invalid negative offset、object-param migration plan の test を追加する
 
-- [ ] P3 dev web preview geometry fixture と HTML artifact の contract を強める
-  - 対象: `src/dev/web-preview-geometry.ts`, `dev-web-preview-geometry.html`, `src/__tests__/dev`
-  - geometry fixture の path / rail CSS variable / colors が fixture 内だけにあり、実 HTML との contract が文字列 contains 以上に薄い
-  - generated HTML path link parity、CSS variables applied once、rail labels present、nested origin URL resolution の test を追加する
-
 - [ ] P3 Sidebar feed/tags section open state の remount persistence policy を決める
   - 対象: `src/components/reader/hooks/sidebar/use-sidebar-runtime.ts`, `src/components/app-layout.tsx`
   - section collapse state が hook-local のため、subscriptions workspace や layout remount でユーザーの閉じた状態が戻る
@@ -103,36 +98,6 @@
   - 対象: `pnpm-lock.yaml`, `package.json`, `scripts/quality-baseline.ts`
   - `lru-cache` や `signal-exit` など複数 major が残ると、依存更新時の CVE triage と bundle size 判断が属人化しやすい
   - duplicate major inventory、direct/transitive分類、known acceptable allowlist、lockfile drift report の script task を追加する
-
-- [ ] P2 type-surface contract を remaining `.types.ts` allowlist の ratchet gate にする
-  - 対象: `tests/helpers/type-surface.ts`, `tests/type-surface-contract.test.ts`, reader/settings/subscriptions の `.types.ts`
-  - type surface helper が入った後も allowlist が広いままだと、view-local props や hook-private params が再び shared `.types.ts` に戻りやすい
-  - current allowlist snapshot、new exported Props/Params/Result rejection、intentional public contract annotation、TODO link required の repo contract を追加する
-
-- [ ] P3 UI reference canvas の日本語/英語 dual-locale smoke を最小化して追加する
-  - 対象: `src/components/storybook`, `src/__tests__/components/ui-reference-settings-canvas.test.tsx`
-  - 現状の reference canvas は日本語長文や英語短文の片方に寄りがちで、locale 切替時の overflow を事前に見つけにくい
-  - Japanese long labels、English labels、button min width、toolbar overflow、settings row height の focused smoke を追加する
-
-- [ ] P3 `resolveLayout` の `contentMode` 未使用を compact empty pane contract として整理する
-  - 対象: `src/hooks/use-layout.ts`, `src/stores/ui-store.ts`
-  - `focusedPane === "content"` なら `contentMode: empty` でも content pane を維持するため、compact/mobile の空画面遷移が意図か事故か曖昧
-  - compact focused content + contentMode empty/browser/reader、clearArticle、closeBrowser parity の test を追加する
-
-- [ ] P2 OPML generator の replacement character policy を import round-trip と同期する
-  - 対象: `src-tauri/src/infra/opml.rs`, `src-tauri/src/commands/opml_commands.rs`
-  - XML 1.0 invalid char を U+FFFD に置換するため、export -> import で title/url が変わることを user-visible summary と test に残す必要がある
-  - invalid title char、invalid folder char、invalid URL char、round-trip title changed、export warning/summary policy の test を追加する
-
-- [ ] P2 Base UI menu item async onClick の rejection handling を shared menu policy にする
-  - 対象: `src/components/reader/article-share-menu.tsx`, `src/components/reader/*context-menu*.tsx`, `src/lib/runtime/diagnostics.ts`
-  - async `onClick` が component ごとに try/catch されるため、Base UI 側で rejection が握り潰される path の user feedback が揺れやすい
-  - copy rejection、reading list rejection、mailto rejection、context menu mutation rejection、diagnostics once の test を追加する
-
-- [ ] P3 context menu `data-action-id` naming と analytics/debug trace を repo contract にする
-  - 対象: `src/components/reader/*context-menu*.tsx`, `src/lib/debug/debug-input-trace.ts`
-  - `data-action-id` が kebab/suffix/manual string に分散しており、debug HUD や tests で action を追う時に rename 漏れが出やすい
-  - action id inventory、submenu day suffix、delete/rename ids、debug trace label、test selector stability の contract を追加する
 
 - [ ] P3 OPML parser/generator corpus を checked-in fixture directory に分離する
   - 対象: `src-tauri/src/infra/opml.rs`, `tests/fixtures`, `docs/feed-content-privacy.md`
@@ -164,25 +129,10 @@
   - reset が途中失敗すると keyring、DB、localStorage、query cache のどれかだけ残り、次回起動で ghost state になる
   - keyring delete failure、DB cleanup failure、storage cleanup、query cache clear、app reload の contract を追加する
 
-- [ ] P2 query retry default policy を command side effect と read query で分ける
-  - 対象: `src/lib/query/query-client.ts`, `src/hooks/create-query.ts`, `src/api/tauri-commands.ts`
-  - validation/auth/permission error まで retry すると toast 重複や副作用の再実行につながる
-  - validation error no retry、network retry、auth no retry、permission no retry、diagnostics labeling を固定する
-
-- [ ] P2 app boot root missing error を fallback UI と telemetry-free log に寄せる
-  - 対象: `src/main.tsx`, `index.html`
-  - root element drift 時に console error だけだと production blank screen の原因がユーザーに伝わらない
-  - root missing、duplicate root、render throw、safe fallback text、no telemetry side effect の test を追加する
-
 - [ ] P2 Rust provider test HTTP server の port isolation / shutdown contract を作る
   - 対象: `src-tauri/src/infra/provider/*` tests
   - fixed port や server shutdown 漏れがあると parallel test で flake し、provider boundary の regression を隠す
   - port `0` binding、parallel tests、shutdown、request timeout、panic cleanup の helper 化を行う
-
-- [ ] P2 sanitizer dependency update contract を allowed tags / attrs snapshot で固定する
-  - 対象: article sanitizer、`ammonia` dependency 周辺
-  - sanitizer dependency 更新で allowed tags/attrs が変わると article 表示・privacy・search text が同時に変わる
-  - allowed tags、allowed attrs、blocked protocol、style stripping、search text parity の fixture を追加する
 
 - [ ] P3 Tailwind arbitrary values inventory と token 化候補を整理する
   - 対象: `src/**/*.tsx`, CSS
@@ -233,11 +183,6 @@
   - 対象: domain models、SQLite repositories、date helpers
   - DB persisted date が UTC なのか local string なのか混在すると sort、sync、review stale day が環境依存になる
   - `created_at`、`updated_at`、`published_at`、`last_sync_at`、`next_retry_at` の timezone contract を書く
-
-- [ ] P2 clipboard copy payload の size cap / permission denied / newline policy を固定する
-  - 対象: `src/lib/runtime/clipboard.ts`, `copy_to_clipboard` command, share actions
-  - 巨大 text、改行混在、権限拒否、runtime unavailable を generic failure にすると復旧と redaction が難しい
-  - size cap、CRLF normalization、permission denied、runtime unavailable、redacted diagnostics を追加する
 
 - [ ] P2 filesystem path normalization を log/backup/export/settings で共通化する
   - 対象: log commands、database backup/export commands、Tauri path helpers
