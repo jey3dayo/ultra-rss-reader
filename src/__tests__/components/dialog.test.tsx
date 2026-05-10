@@ -180,7 +180,6 @@ describe("DialogContent", () => {
     );
 
     const firstAction = screen.getByRole("button", { name: "First action" });
-    const _secondAction = screen.getByRole("button", { name: "Second action" });
     const closeAction = screen.getByRole("button", { name: "Close dialog" });
     const backgroundAction = screen.getByRole("button", { name: "Background action", hidden: true });
 
@@ -188,7 +187,12 @@ describe("DialogContent", () => {
     expect(firstAction).toHaveFocus();
 
     await user.tab();
-    expect(screen.getByRole("dialog", { name: "Keyboard dialog" })).toContainElement(document.activeElement);
+    const tabbedElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    expect(tabbedElement).not.toBeNull();
+    if (tabbedElement === null) {
+      throw new Error("Expected focus to move to a dialog-owned element");
+    }
+    expect(screen.getByRole("dialog", { name: "Keyboard dialog" })).toContainElement(tabbedElement);
 
     closeAction.focus();
     expect(closeAction).toHaveFocus();
