@@ -534,11 +534,6 @@
   - type surface helper が入った後も allowlist が広いままだと、view-local props や hook-private params が再び shared `.types.ts` に戻りやすい
   - current allowlist snapshot、new exported Props/Params/Result rejection、intentional public contract annotation、TODO link required の repo contract を追加する
 
-- [ ] P3 generated Tauri schema files を source edit しないルールを repo contract にする
-  - 対象: `src-tauri/gen/schemas`, `CLAUDE.md`, `src/__tests__/config/repo-contracts.test.ts`
-  - generated schema を人手で編集すると次回 generate で消えるが、agent が巨大 JSON を修正対象にしやすい
-  - generated file banner、write-scope rule、schema regeneration command、diff review warning の docs/contract task を追加する
-
 - [ ] P3 UI reference canvas の日本語/英語 dual-locale smoke を最小化して追加する
   - 対象: `src/components/storybook`, `src/__tests__/components/ui-reference-settings-canvas.test.tsx`
   - 現状の reference canvas は日本語長文や英語短文の片方に寄りがちで、locale 切替時の overflow を事前に見つけにくい
