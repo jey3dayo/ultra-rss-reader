@@ -187,6 +187,7 @@ fn update_latest_timestamp_usec(
     if let Some(next_timestamp_usec) = next_cursor
         .and_then(|cursor| cursor.since)
         .map(|ts| ts.timestamp_micros())
+        .and_then(valid_sync_cursor_timestamp_usec)
     {
         *latest_timestamp_usec = Some(
             latest_timestamp_usec

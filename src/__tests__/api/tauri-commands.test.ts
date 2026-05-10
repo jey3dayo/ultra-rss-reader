@@ -786,6 +786,29 @@ describe("tauri-commands with custom handler", () => {
     expect(JSON.stringify(consoleError.mock.calls)).not.toContain("raw-token");
     expect(JSON.stringify(consoleError.mock.calls)).not.toContain("auth-fragment");
   });
+
+  it("uses the runtime diagnostics redaction policy for user-facing command errors and logs", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const rawPath = "/Users/demo/Library/Application Support/Ultra RSS/private.sqlite";
+    setupTauriMocks((cmd) => {
+      if (cmd === "list_accounts") {
+        throw {
+          type: "UserVisible",
+          message: `Backup failed TOKEN=raw-token at ${rawPath}`,
+        };
+      }
+      return null;
+    });
+
+    const error = Result.unwrapError(await listAccounts());
+    const serializedLog = JSON.stringify(consoleError.mock.calls);
+
+    expect(error.message).toBe("Backup failed TOKEN=<redacted> at <redacted-path>");
+    expect(serializedLog).toContain("TOKEN=<redacted>");
+    expect(serializedLog).toContain("<redacted-path>");
+    expect(serializedLog).not.toContain("raw-token");
+    expect(serializedLog).not.toContain(rawPath);
+  });
 });
 
 describe("safeInvoke response validation", () => {

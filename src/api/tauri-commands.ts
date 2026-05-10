@@ -120,6 +120,7 @@ import {
   updateMuteKeywordArgs,
 } from "@/api/schemas";
 import type { BrowserWebviewBounds } from "@/lib/browser/browser-webview";
+import { redactRuntimeDiagnosticText } from "@/lib/runtime/diagnostics";
 import { createSchemaParseAppError, RESPONSE_VALIDATION_MESSAGE } from "@/lib/ui-errors";
 import { parseWithSchema } from "@/schemas/parse";
 
@@ -163,9 +164,6 @@ type SchemaBackedInvokeOptions<R extends z.ZodType> = InvokeArgsOptions & {
 
 type GenericInvokeOptions = InvokeArgsOptions;
 
-const URL_LIKE_TOKEN_PATTERN = /https?:\/\/[^\s<>"'`]+/gi;
-const AUTHORIZATION_HEADER_TOKEN_PATTERN = /\b(Bearer|Basic)\s+[A-Za-z0-9._~+/=-]+/gi;
-const SECRET_URL_PATH_SEGMENT_PATTERN = /(?:token|secret|password|credential|private[-_]?key|api[-_]?key)/i;
 const VALIDATION_ISSUE_LIMIT = 3;
 const VALIDATION_DETAIL_MAX_LENGTH = 240;
 
@@ -179,40 +177,19 @@ class ResponseValidationError extends Error {
   }
 }
 
-function redactUrlToken(value: string): string {
-  const trailingPunctuation = value.match(/[),.;!?]+$/)?.[0] ?? "";
-  const urlToken = trailingPunctuation ? value.slice(0, -trailingPunctuation.length) : value;
-
-  try {
-    const url = new URL(urlToken);
-    url.username = "";
-    url.password = "";
-    if (
-      url.pathname !== "/" &&
-      url.pathname.split("/").some((segment) => SECRET_URL_PATH_SEGMENT_PATTERN.test(segment))
-    ) {
-      url.pathname = "/redacted";
-    }
-    if (url.search) {
-      url.search = "?redacted";
-    }
-    if (url.hash) {
-      url.hash = "#redacted";
-    }
-    return `${url.toString()}${trailingPunctuation}`;
-  } catch {
-    return value;
-  }
-}
-
-function redactSensitiveRuntimeMessage(message: string): string {
-  return message
-    .replace(URL_LIKE_TOKEN_PATTERN, redactUrlToken)
-    .replace(AUTHORIZATION_HEADER_TOKEN_PATTERN, "$1 redacted");
-}
-
 function runtimeErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (error !== null && typeof error === "object") {
+    const message = Reflect.get(error, "message");
+    if (typeof message === "string") {
+      return message;
+    }
+  }
+
+  return String(error);
 }
 
 function formatZodIssuePath(path: ReadonlyArray<PropertyKey>): string {
@@ -231,13 +208,13 @@ function formatZodIssues(error: z.ZodError): string {
   if (omittedCount > 0) {
     issues.push(`${omittedCount} more issue(s) omitted`);
   }
-  return limitValidationDetail(redactSensitiveRuntimeMessage(issues.join(", ")));
+  return limitValidationDetail(redactRuntimeDiagnosticText(issues.join(", ")));
 }
 
 function redactAppError(error: AppError): AppError {
   return {
     ...error,
-    message: redactSensitiveRuntimeMessage(error.message),
+    message: redactRuntimeDiagnosticText(error.message),
   };
 }
 
@@ -260,7 +237,7 @@ function toAppError(cmd: string, error: unknown): AppError {
     return appError;
   }
 
-  const message = redactSensitiveRuntimeMessage(runtimeErrorMessage(error));
+  const message = redactRuntimeDiagnosticText(runtimeErrorMessage(error));
   console.error(`[tauri-commands] ${cmd} failed:`, message);
   return { type: "UserVisible", message };
 }
