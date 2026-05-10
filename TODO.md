@@ -724,11 +724,6 @@
   - sanitizer dependency 更新で allowed tags/attrs が変わると article 表示・privacy・search text が同時に変わる
   - allowed tags、allowed attrs、blocked protocol、style stripping、search text parity の fixture を追加する
 
-- [ ] P2 bundled icon / asset provenance と third-party attribution を棚卸しする
-  - 対象: `src-tauri/icons`, app assets, release docs
-  - generated asset や外部 asset の source/license が不明なままだと release review で止まりやすい
-  - source asset record、generated sizes、license note、release artifact contains expected icons の check に分ける
-
 - [ ] P3 Tailwind arbitrary values inventory と token 化候補を整理する
   - 対象: `src/**/*.tsx`, CSS
   - arbitrary width/height/z-index/color が増えると design token と responsive constraints のレビューが効かなくなる
