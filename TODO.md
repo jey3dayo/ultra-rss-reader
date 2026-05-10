@@ -262,13 +262,6 @@
 
 #### Parallel dispatch wave plan
 
-- [ ] P2-C2ac Wave 2 second implementation lane を first merge 後に投げる
-  - parallel group: `P2-C2n` (`P2-R1`) と `P2-C2p` (`P2-S1`) は並列可
-  - conditional group: `P2-C2k` (`P1-Q1a`) は `P1-Q1b`/`P1-Q1c` unblock fixture と同時に走らせない
-  - redaction group: `P2-C2l` (`P1-Q1d`) と `P2-C2m` (`P1-Q2e`) は shared redaction helper を同時編集しない。片方を先に helper owner として merge する
-  - a11y group: `P2-C2o` (`P2-A11Y1`) は `P2-A11Y4` と同時投入しない。`P2-C2y` の baseline checklist 後に始める
-  - merge gate: focused tests + `mise run check`; shared helper を追加した場合は owner を TODO または code comment で明確にする
-
 - [ ] P2-C2ad Wave 3 blocked unblock lane を code audit と fixture-only に分けて投げる
   - code audit group: `P2-C2q`, `P2-C2r`, `P2-C2s`, `P2-C2t`, `P2-C2u`
   - fixture-only group: `P2-C2v`, `P2-C2w`
@@ -484,11 +477,6 @@
 
 ### App Shell / Command Palette / Dev Intent
 
-- [ ] P2 app shell lazy preload retry timer を route/session generation で guard する
-  - 対象: `src/components/app-shell.tsx`, `src/__tests__/components/app-shell.test.tsx`
-  - settings modal preload の失敗後に retry timer を持つため、modal close、component unmount、別 lazy chunk failure 後に古い retry が走る可能性がある
-  - preload failure、retry success、unmount before retry、settings close/open、multiple lazy boundary failure の test を追加する
-
 - [ ] P2 SettingsModalBoundary / LazyChunkBoundary error recovery を user action と telemetry に分ける
   - 対象: `src/components/app-shell.tsx`, `src/components/settings/settings-modal-view.tsx`
   - lazy chunk error は console.error と closeSettings に寄っており、user が再オープンできる状態か、diagnostics へ残すべき状態かが曖昧になっている
@@ -506,17 +494,7 @@
   - delete 自体の成功後に optional callback が throw した場合、mutation failure と UI cleanup failure のどちらとして扱うかが曖昧になっている
   - onSuccess throw、onError throw、invalidation reject、delete reject、dialog close callback の result contract を固定する
 
-- [ ] P2 article auto-mark read timer を view mode / account switch / mutation callback ordering で固定する
-  - 対象: `src/components/reader/hooks/article/use-article-auto-mark.ts`, `src/__tests__/hooks/use-article-auto-mark.test.tsx`
-  - delayed auto-mark は timer、mutation callbacks、view mode を跨ぐため、article切替や account切替後に古い mutation callback が rollback を上書きしやすい
-  - stale view mode、article switch、account switch、timer unavailable、onError ordering、multiple pending timers の test を追加する
-
 ### Dev / Tooling / E2E / Test Helpers
-
-- [ ] P2 story-tauri-runtime と dev mocks の global descriptor install/restore を共通化する
-  - 対象: `src/components/storybook/story-tauri-runtime.ts`, `src/dev/mocks.ts`, `tests/helpers/tauri-runtime.ts`
-  - `window.__TAURI_INTERNALS__` や dev mock globals の Object.defineProperty が Storybook/dev/test に分散しており、restore漏れや descriptor 差で runtime 判定が壊れやすい
-  - install/restore helper、existing descriptor preservation、readonly descriptor、partial mock、double install の test を追加する
 
 - [ ] P2 resolved dev intent loader の late result を current intent generation で guard する
   - 対象: `src/dev/use-resolved-dev-intent.ts`, `src/dev/use-dev-intent.ts`, `src/dev/intent.ts`
@@ -546,11 +524,6 @@
   - account/feed/article/tag/pending mutation の最小 fixture builder と、明示的に壊れた row を作る corruption helper を分ける
 
 ### Query / Store / Browser Runtime
-
-- [ ] P2 manual sync cooldown を wall-clock drift / trigger failure / subscriber cleanup で固定する
-  - 対象: `src/lib/sync/manual-sync.ts`, `src/hooks/use-sidebar-sync.ts`, `src/__tests__/lib/manual-sync.test.ts`
-  - cooldown は module-level timer と listener set を持つため、OS sleep、clock rollback、subscriber throw、test reset 漏れで UI の sync button state がずれやすい
-  - clock rollback、sleep 復帰、Retryable failure、UserVisible failure、listener throw、unsubscribe during emit の test を追加する
 
 - [ ] P2 updater download session と toast action の stale session guard を強化する
   - 対象: `src/hooks/use-updater.ts`, `src/api/schemas/update-info.ts`, `src/__tests__/hooks/use-updater.test.tsx`
@@ -601,16 +574,6 @@
   - 対象: `src/stores/ui-store.ts`, `src/components/settings`, `src/components/reader/hooks/browser`
   - account delete 時に selected account、settings detail、account setup session、browser state を同時に更新するため、どれかだけ古い account を参照しやすい
   - selected account delete、settings account delete、setup session account delete、browser open account delete、remaining account fallback の store test を追加する
-
-- [ ] P2 theme view transition cleanup を reduced-motion / thrown transition / late finished で固定する
-  - 対象: `src/stores/preferences-store.ts`, `src/__tests__/lib/theme-appearance-state.test.ts`
-  - `document.startViewTransition` と root class mutation は React 外の副作用なので、throw や late `finished` で transition class が残ると全画面表示に影響する
-  - reduced motion、startViewTransition throw、finished reject、rapid theme switch、system theme listener cleanup の test を追加する
-
-- [ ] P2 language preference apply failure を i18n runtime unavailable と settings toast 方針で固定する
-  - 対象: `src/stores/preferences-store.ts`, `src/lib/ui/ui-language.ts`, `src/components/settings`
-  - `i18n.changeLanguage` は fire-and-forget で失敗を console に寄せるため、保存成功だが UI language 未適用の状態が user に見えにくい
-  - navigator.language throw、changeLanguage reject、unsupported language、backend save success/apply failure、reload後 fallback の test を追加する
 
 - [ ] P3 query invalidation target matrix を repo contract test で drift 検出する
   - 対象: `src/lib/query/query-invalidation.ts`, `src/__tests__/lib/query-invalidation.test.ts`, `src/__tests__/config/repo-contracts.test.ts`
@@ -1076,16 +1039,6 @@
   - 対象: `src/lib/window/window-chrome.ts`, `src/components/app-shell.tsx`, `src/components/shared/app-toast-view.tsx`
   - browser overlay z-40、dialog/command palette z-50、toast z-100 が定数化されているが、Debug HUD や future popover が入ると collision しやすい
   - browser overlay + settings modal、command palette + toast、debug hud + dialog、native titlebar drag region、popover z-index の visual smoke を追加する
-
-- [ ] P2 dev runtime mocks と real Tauri runtime 判定の mutually exclusive contract を作る
-  - 対象: `src/lib/window/window-chrome.ts`, `src/dev/mocks.ts`, `tests/helpers/tauri-runtime.ts`, `src/components/storybook/story-tauri-runtime.ts`
-  - `__DEV_BROWSER_MOCKS__` / `__ULTRA_RSS_BROWSER_MOCKS__` / `__TAURI_INTERNALS__` の組み合わせで runtime 判定が変わるため、Storybook/dev/test で混在すると実 command を叩く risk がある
-  - both mocks true、mock + tauri internals、real tauri only、cleanup restore、storybook decorator の contract test を追加する
-
-- [ ] P2 Storybook query client runtime provider が Tauri mock failure を test isolation で漏らさないようにする
-  - 対象: `src/components/storybook/story-query-client-provider.tsx`, `src/components/storybook/story-tauri-runtime.ts`, `tests/helpers/tauri-mocks.ts`
-  - story ごとの query client と Tauri mock が共有状態を持つと、前 story の failed command/cache が次の story に残り visual smoke が flaky になる
-  - story unmount、query cache clear、mock command reset、failed invoke、parallel stories の test を追加する
 
 - [ ] P2 runtime error guard の browser webview fallback events を expected failure と区別する
   - 対象: `e2e/helpers/runtime-error-guard.ts`, `e2e/app.spec.ts`, `src/components/reader/hooks/browser`
