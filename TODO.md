@@ -219,11 +219,6 @@
   - backend は control char/length だけを見るため、重複 shortcut や unsupported modifier は frontend 側で止める必要がある
   - backend accepts syntax、frontend rejects collision、unsupported modifier、empty key、legacy shortcut id、save bypass の contract を追加する
 
-- [ ] P2 selected_account_id preference の backend allowlist と UI store owner を整理する
-  - 対象: `src-tauri/src/commands/preference_commands.rs`, `src/stores/ui-store.ts`, `src/stores/preferences-store.ts`
-  - selected account は preference table に保存可能だが UI store state とも重なり、削除済み account id が永続化されると起動時 query が stale になりやすい
-  - deleted account、disabled account、no accounts、preference cleanup、startup selection restore の test を追加する
-
 - [ ] P2 platform dev runtime options の env alias precedence を frontend dev intent parser と同期する
   - 対象: `src-tauri/src/commands/platform_commands.rs`, `src/dev/intent.ts`, `src/dev/use-resolved-dev-intent.ts`
   - Rust は env alias の最初の non-empty/valid 値を返すため、frontend parser の priority とズレると dev scenario が別状態で起動する
