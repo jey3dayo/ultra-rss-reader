@@ -65,6 +65,41 @@ fn normalize_unread_count(count: i64) -> i32 {
     count.clamp(0, i64::from(i32::MAX)) as i32
 }
 
+pub(crate) fn recalculate_unread_count_with_conn(
+    conn: &Connection,
+    feed_id: &FeedId,
+) -> DomainResult<i32> {
+    if !SqliteMuteKeywordRepository::new(conn).has_any()? {
+        conn.execute(
+            "UPDATE feeds SET unread_count = (SELECT COUNT(*) FROM articles WHERE feed_id = ?1 AND is_read = 0) WHERE id = ?1",
+            params![feed_id.0],
+        )?;
+    } else {
+        let mute_clause = build_mute_keyword_exclusion_clause(
+            "title",
+            "CASE WHEN trim(coalesce(content_text, '')) = '' THEN coalesce(summary, '') ELSE content_text END",
+        );
+        let sql = format!(
+            "UPDATE feeds
+             SET unread_count = (
+               SELECT COUNT(*)
+               FROM articles
+               WHERE feed_id = ?1
+                 AND is_read = 0
+                 AND {mute_clause}
+             )
+             WHERE id = ?1"
+        );
+        conn.execute(&sql, params![feed_id.0])?;
+    }
+    let count: i64 = conn.query_row(
+        "SELECT unread_count FROM feeds WHERE id = ?1",
+        params![feed_id.0],
+        |row| row.get(0),
+    )?;
+    Ok(normalize_unread_count(count))
+}
+
 const SELECT_COLS: &str =
     "id, account_id, folder_id, remote_id, title, url, site_url, icon, unread_count, reader_mode, web_preview_mode";
 
@@ -177,35 +212,7 @@ impl FeedRepository for SqliteFeedRepository<'_> {
     }
 
     fn recalculate_unread_count(&self, feed_id: &FeedId) -> DomainResult<i32> {
-        if !SqliteMuteKeywordRepository::new(self.conn).has_any()? {
-            self.conn.execute(
-                "UPDATE feeds SET unread_count = (SELECT COUNT(*) FROM articles WHERE feed_id = ?1 AND is_read = 0) WHERE id = ?1",
-                params![feed_id.0],
-            )?;
-        } else {
-            let mute_clause = build_mute_keyword_exclusion_clause(
-                "title",
-                "CASE WHEN trim(coalesce(content_text, '')) = '' THEN coalesce(summary, '') ELSE content_text END",
-            );
-            let sql = format!(
-                "UPDATE feeds
-                 SET unread_count = (
-                   SELECT COUNT(*)
-                   FROM articles
-                   WHERE feed_id = ?1
-                     AND is_read = 0
-                     AND {mute_clause}
-                 )
-                 WHERE id = ?1"
-            );
-            self.conn.execute(&sql, params![feed_id.0])?;
-        }
-        let count: i64 = self.conn.query_row(
-            "SELECT unread_count FROM feeds WHERE id = ?1",
-            params![feed_id.0],
-            |row| row.get(0),
-        )?;
-        Ok(normalize_unread_count(count))
+        recalculate_unread_count_with_conn(self.conn, feed_id)
     }
 
     fn find_by_remote_id(

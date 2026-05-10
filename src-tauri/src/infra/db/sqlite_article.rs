@@ -6,6 +6,7 @@ use crate::domain::article::{Article, ArticleViewHistoryItem};
 use crate::domain::constants::RECENT_ARTICLE_HISTORY_LIMIT;
 use crate::domain::error::DomainResult;
 use crate::domain::types::{AccountId, ArticleId, FeedId, FolderId};
+use crate::infra::db::sqlite_feed::recalculate_unread_count_with_conn;
 use crate::infra::db::sqlite_mute_keyword::{
     build_mute_keyword_exclusion_clause, build_mute_keyword_match_clause,
     SqliteMuteKeywordRepository,
@@ -386,17 +387,8 @@ pub(crate) fn mark_muted_unread_as_read_with_conn(
             .collect::<Vec<_>>();
         feed_ids.sort();
         feed_ids.dedup();
-        let mut recalc_stmt = conn.prepare(
-            "UPDATE feeds
-             SET unread_count = (
-                SELECT COUNT(*)
-                FROM articles
-                WHERE feed_id = ?1 AND is_read = 0
-             )
-             WHERE id = ?1",
-        )?;
         for feed_id in &feed_ids {
-            recalc_stmt.execute(params![feed_id])?;
+            recalculate_unread_count_with_conn(conn, &FeedId(feed_id.clone()))?;
         }
     }
 
@@ -2013,10 +2005,12 @@ mod tests {
         insert_mute_keyword(&db, "kindle unlimited", "title");
 
         let repo = SqliteArticleRepository::new(db.writer());
+        let feed_repo = crate::infra::db::sqlite_feed::SqliteFeedRepository::new(db.writer());
 
         let first = make_article(&feed_id, "Kindle Unlimited one");
         let second = make_article(&feed_id, "Kindle Unlimited two");
         repo.upsert(&[first.clone(), second.clone()]).unwrap();
+        feed_repo.update_unread_count(&feed_id, 99).unwrap();
 
         let changed = repo
             .mark_muted_unread_as_read(&account_id, Some(std::slice::from_ref(&first.id)))
@@ -2040,6 +2034,15 @@ mod tests {
             )
             .unwrap();
         assert!(first_is_read);
+        let stored_unread_count: i64 = db
+            .reader()
+            .query_row(
+                "SELECT unread_count FROM feeds WHERE id = ?1",
+                params![feed_id.0],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(stored_unread_count, 0);
         assert!(!second_is_read);
     }
 
