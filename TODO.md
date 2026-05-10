@@ -36,11 +36,6 @@
 
 ### Release / Native / Keyboard / I18n / A11y
 
-- [ ] P3 visual regression smoke の対象を dense UI / a11y state に限定して追加する
-  - 対象: `e2e/storybook`, `src/components/reader`, `src/components/settings`
-  - 全画面 snapshot を増やすと保守が重いが、dense UI の overlap や hidden focus ring は通常の DOM assertion では検出しづらい
-  - feed tree dense state、settings modal error state、command palette empty/result state、browser overlay error state、toast stack の小さな screenshot smoke を追加する
-
 ### Database / Updater / Window
 
 ### Article List / Schema / Mute / Tags / Share
@@ -56,11 +51,6 @@
   - superseded by: `P2-A11Y1` top-layer/focus trap
   - focus override は embedded page の visibility/focus APIs を差し替えるため、サイト側の media playback/analytics/keyboard handling を壊す可能性がある
   - keep focus on/off、visibilitychange listener、non-configurable property、site script error、setting copy、disable fallback の test/実機検証 TODO にする
-
-- [ ] P3 preference command allowlist を generated table として settings docs/rules に反映する
-  - 対象: `src-tauri/src/commands/preference_commands.rs`, `src/schemas/preferences.ts`, `CLAUDE.md`
-  - preference 追加時の手順が暗黙だと backend allowlist、frontend schema、settings UI、i18n、tests の更新漏れが繰り返される
-  - add preference checklist、allowed key生成、schema default、locale key、settings option parity を rules 化する
 
 - [ ] P2 invalid account row quarantine を diagnostics / recovery action へ出す
   - 対象: `src-tauri/src/infra/db/sqlite_account.rs`, `src-tauri/src/commands/account_commands.rs`, `src/components/settings/accounts-nav-view.tsx`
@@ -147,11 +137,6 @@
   - 対象: query client、startup loaders、settings/account state
   - reload 後に query cache が空になる前提が implicit だと、future persistence 導入時に stale account/feed が混ざる
   - reload empty cache、startup refetch、account deleted、offline boot、query key versioning の contract を追加する
-
-- [ ] P2 locale pluralization / count formatting を unread/feed/article count で固定する
-  - 対象: `src/locales/*`, reader/sidebar/settings count labels
-  - interpolation parity だけでは 0/1/2/large count、日本語/英語の複数形、桁区切りが検出できない
-  - zero、one、many、large number、negative fallback、locale switch の copy test を追加する
 
 - [ ] P2 article content image loading policy を privacy / performance として固定する
   - 対象: article renderer、sanitizer、browser/external opener policy
