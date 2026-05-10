@@ -31,6 +31,7 @@ const MAX_BACKOFF_MULTIPLIER: u64 = 1 << MAX_BACKOFF_SHIFT_BITS;
 
 const TICK_INTERVAL: Duration = Duration::from_secs(SCHEDULER_TICK_INTERVAL_SECS);
 const MAX_BACKOFF: Duration = Duration::from_secs(DEFAULT_SYNC_INTERVAL_SECS);
+const MAX_SCHEDULER_WARNINGS_PER_TICK: usize = 16;
 static INVALID_NEXT_RETRY_CLEANUP_FAILURES: OnceLock<Mutex<HashSet<String>>> = OnceLock::new();
 static SCHEDULER_LIFECYCLE: OnceLock<Mutex<SchedulerLifecycle>> = OnceLock::new();
 
@@ -45,9 +46,11 @@ struct RetryBackoffState {
     error_count: i32,
     next_retry_at: Option<String>,
     retry_in_seconds: u64,
+    retry_warning_changed: bool,
 }
 
 const RETRY_AFTER_MESSAGE_MARKER: &str = "retry_after_seconds=";
+const RETRY_AFTER_MESSAGE_PREFIX: &str = "Rate limit error: HTTP 429 ";
 
 struct SchedulerSyncGuard<'a>(&'a std::sync::atomic::AtomicBool);
 
@@ -255,14 +258,17 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
                                 account.name,
                                 warning.message
                             );
-                            warnings_to_emit.push(AccountSyncWarning {
-                                account_id: account.id.as_ref().to_string(),
-                                account_name: account.name.clone(),
-                                kind: warning.kind,
-                                message: warning.message.clone(),
-                                retry_at: warning.retry_at.clone(),
-                                retry_in_seconds: warning.retry_in_seconds,
-                            });
+                            push_scheduler_warning(
+                                &mut warnings_to_emit,
+                                AccountSyncWarning {
+                                    account_id: account.id.as_ref().to_string(),
+                                    account_name: account.name.clone(),
+                                    kind: warning.kind,
+                                    message: warning.message.clone(),
+                                    retry_at: warning.retry_at.clone(),
+                                    retry_in_seconds: warning.retry_in_seconds,
+                                },
+                            );
                         }
                         reporter.emit_account_finished(account, true);
                         if let Err(error) = reset_error_count(&state.db, &account.id) {
@@ -439,6 +445,33 @@ fn backoff_persistence_failure_warning(
     }
 }
 
+fn scheduler_warning_key(warning: &AccountSyncWarning) -> String {
+    format!(
+        "{}\n{:?}\n{}\n{}",
+        warning.account_id,
+        warning.kind,
+        warning.message,
+        warning.retry_at.as_deref().unwrap_or_default()
+    )
+}
+
+fn push_scheduler_warning(
+    warnings_to_emit: &mut Vec<AccountSyncWarning>,
+    warning: AccountSyncWarning,
+) {
+    if warnings_to_emit.len() >= MAX_SCHEDULER_WARNINGS_PER_TICK {
+        return;
+    }
+    let key = scheduler_warning_key(&warning);
+    if warnings_to_emit
+        .iter()
+        .any(|existing| scheduler_warning_key(existing) == key)
+    {
+        return;
+    }
+    warnings_to_emit.push(warning);
+}
+
 fn complete_failed_account_sync(
     db: &Mutex<DbManager>,
     account: &Account,
@@ -452,27 +485,36 @@ fn complete_failed_account_sync(
                 "Background sync could not persist backoff state for account '{}': {error}",
                 account.name
             );
-            warnings_to_emit.push(backoff_persistence_failure_warning(account, &error));
+            push_scheduler_warning(
+                warnings_to_emit,
+                backoff_persistence_failure_warning(account, &error),
+            );
             RetryBackoffState {
                 error_count: 1,
                 next_retry_at: None,
                 retry_in_seconds: calculate_backoff_secs(account, 1),
+                retry_warning_changed: true,
             }
         }
     };
     let backoff = calculate_backoff(account, backoff_state.error_count)
         .max(Duration::from_secs(backoff_state.retry_in_seconds));
-    warnings_to_emit.push(AccountSyncWarning {
-        account_id: account.id.as_ref().to_string(),
-        account_name: account.name.clone(),
-        kind: AccountSyncWarningKind::RetryScheduled,
-        message: format!(
-            "Background sync failed and will retry automatically for '{}'.",
-            account.name
-        ),
-        retry_at: backoff_state.next_retry_at.clone(),
-        retry_in_seconds: Some(backoff_state.retry_in_seconds),
-    });
+    if backoff_state.retry_warning_changed {
+        push_scheduler_warning(
+            warnings_to_emit,
+            AccountSyncWarning {
+                account_id: account.id.as_ref().to_string(),
+                account_name: account.name.clone(),
+                kind: AccountSyncWarningKind::RetryScheduled,
+                message: format!(
+                    "Background sync failed and will retry automatically for '{}'.",
+                    account.name
+                ),
+                retry_at: backoff_state.next_retry_at.clone(),
+                retry_in_seconds: Some(backoff_state.retry_in_seconds),
+            },
+        );
+    }
     tracing::info!(
         "Account '{}' backoff: {}s (error_count={})",
         account.name,
@@ -623,6 +665,7 @@ fn increment_error_count(
         });
     state.error_count = (clamped_backoff_error_count(state.error_count) as i32).saturating_add(1);
     state.last_error = Some(error.to_string());
+    let previous_next_retry_at = state.next_retry_at.clone();
     let backoff_secs = retry_after_seconds_from_app_error(error)
         .unwrap_or(0)
         .max(calculate_backoff_secs(account, state.error_count));
@@ -634,6 +677,7 @@ fn increment_error_count(
         error_count: state.error_count,
         next_retry_at: Some(next_retry_at),
         retry_in_seconds: backoff_secs,
+        retry_warning_changed: previous_next_retry_at != state.next_retry_at,
     })
 }
 
@@ -643,8 +687,12 @@ fn clamped_backoff_error_count(error_count: i32) -> u32 {
 
 fn retry_after_seconds_from_app_error(error: &crate::commands::dto::AppError) -> Option<u64> {
     let message = match error {
-        AppError::Retryable { message } | AppError::UserVisible { message } => message,
+        AppError::Retryable { message } => message,
+        AppError::UserVisible { .. } => return None,
     };
+    if !message.starts_with(RETRY_AFTER_MESSAGE_PREFIX) {
+        return None;
+    }
     let (_, value) = message.split_once(RETRY_AFTER_MESSAGE_MARKER)?;
     let value = value
         .split(|ch: char| !ch.is_ascii_digit())
@@ -1287,6 +1335,68 @@ mod tests {
             warnings[0].retry_in_seconds,
             Some(calculate_backoff_secs(&account, 1))
         );
+    }
+
+    #[test]
+    fn retry_after_seconds_ignores_user_visible_and_accidental_markers() {
+        assert_eq!(
+            retry_after_seconds_from_app_error(&AppError::UserVisible {
+                message: "Rate limit error: HTTP 429 Too Many Requests; retry_after_seconds=600"
+                    .to_string(),
+            }),
+            None
+        );
+        assert_eq!(
+            retry_after_seconds_from_app_error(&AppError::Retryable {
+                message: "provider copy accidentally said retry_after_seconds=600".to_string(),
+            }),
+            None
+        );
+    }
+
+    #[test]
+    fn retry_after_seconds_accepts_provider_rate_limit_marker() {
+        assert_eq!(
+            retry_after_seconds_from_app_error(&AppError::Retryable {
+                message: "Rate limit error: HTTP 429 Too Many Requests; retry_after_seconds=600"
+                    .to_string(),
+            }),
+            Some(600)
+        );
+    }
+
+    #[test]
+    fn scheduler_warning_push_dedupes_and_caps_warning_count() {
+        let mut warnings = Vec::new();
+        let duplicate = AccountSyncWarning {
+            account_id: "account-1".to_string(),
+            account_name: "Account 1".to_string(),
+            kind: AccountSyncWarningKind::RetryScheduled,
+            message: "retry later".to_string(),
+            retry_at: Some("2099-01-01T00:00:00Z".to_string()),
+            retry_in_seconds: Some(60),
+        };
+
+        push_scheduler_warning(&mut warnings, duplicate.clone());
+        push_scheduler_warning(&mut warnings, duplicate);
+
+        assert_eq!(warnings.len(), 1);
+
+        for index in 0..(MAX_SCHEDULER_WARNINGS_PER_TICK + 4) {
+            push_scheduler_warning(
+                &mut warnings,
+                AccountSyncWarning {
+                    account_id: format!("account-{index}"),
+                    account_name: format!("Account {index}"),
+                    kind: AccountSyncWarningKind::Generic,
+                    message: format!("provider warning {index}"),
+                    retry_at: None,
+                    retry_in_seconds: None,
+                },
+            );
+        }
+
+        assert_eq!(warnings.len(), MAX_SCHEDULER_WARNINGS_PER_TICK);
     }
 
     #[test]
