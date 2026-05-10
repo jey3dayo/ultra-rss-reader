@@ -1563,11 +1563,6 @@
   - create/update/delete、auto-mark on/off、search active、tag view、folder view、old unread view の invalidation matrix を追加する
   - superseded by: P1-Q5d (covered by mute/tag/article invalidation matrix; kept verification: search active, tag view, folder view, old unread view)
 
-- [ ] P2 tag article target validation と delete race を transaction boundary で固定する
-  - 対象: `src-tauri/src/commands/tag_commands.rs`, `src-tauri/src/infra/db/sqlite_tag.rs`, `src/hooks/use-tags.ts`
-  - article/tag existence を reader connection で確認した後に writer で insert/delete するため、確認後に tag/article が消える race では error shape が揺れやすい
-  - article deleted after validation、tag deleted after validation、foreign key failure、double tag、double untag、idempotency の test を追加する
-
 - [ ] P2 delete tag 後の selected state / article tag picker state cleanup を stale tag guard する
   - 対象: `src/hooks/use-tags.ts`, `src/components/reader/article-tag-picker-view.tsx`, `src/stores/ui-store.ts`
   - tag 削除時に selection は all に戻すが、tag picker や article tag chips 側に stale tag id が残ると次の assignment が失敗しやすい
@@ -1577,21 +1572,6 @@
   - 対象: `src/components/reader/article-browser-actions.ts`, `src/lib/runtime/clipboard.ts`, `src/lib/ui-errors.ts`
   - runtime unavailable / permission denied / invalid url / invalid text の分類が複数箇所にあり、copy/open/reading list で同じ error が違う toast になりやすい
   - shared classifier、category locale key、unknown command、plugin unavailable、permission denied、validation failure の parity test を追加する
-
-- [ ] P2 `open_in_browser` background mode の macOS-only fallback と platform info contract を固定する
-  - 対象: `src-tauri/src/commands/article_commands.rs`, `src/api/schemas/platform-info.ts`, `src/components/settings/reading-settings-view.tsx`
-  - background open は platform capability に依存するため、unsupported OS で preference が true の時に foreground open へ落ちることを UI と test で明確にする
-  - macOS background success/failure、Windows/Linux fallback、platform info unknown、preference true/false、stderr redaction の Rust/frontend test を追加する
-
-- [ ] P2 article list pagination offset limit と UI infinite loading の failure handling を揃える
-  - 対象: `src-tauri/src/commands/article_commands.rs`, `src/hooks/use-articles.ts`, `src/components/reader/hooks/article-list`
-  - Rust は offset 10,000 / limit 200 を上限にするため、長期利用 DB の infinite scroll が上限に当たった時の UI 表示を決めておく必要がある
-  - offset max、limit max、server reject、load more disabled、search/tag/folder view、old unread view の contract test を追加する
-
-- [ ] P2 old unread bulk action の pending mutation support 判定を provider capability と同期する
-  - 対象: `src-tauri/src/commands/article_commands.rs`, `src/components/reader/hooks/feed-actions/use-old-unread-read-action.ts`
-  - FreshRSS feed remote id が `feed/` の時だけ remote mutation 対象になるため、provider capability が増えた時に bulk mark read の同期対象漏れが起きやすい
-  - local account、FreshRSS feed/ remote、FreshRSS non-feed remote、future provider、pending mutation dedupe、partial failure の test を追加する
 
 - [ ] P2 article selection not-found state を browser-only fallback と account switch で固定する
   - 対象: `src/components/reader/hooks/article/use-article-view-selection.ts`, `src/components/reader/article-view-state.tsx`, `src/stores/ui-store.ts`
@@ -1659,16 +1639,6 @@
   - 対象: `src/components/settings/shared/settings-action-button.tsx`, `src/components/settings/data-settings-view.tsx`, `src/components/settings/account-detail/danger-zone-view.tsx`
   - destructive/data action が disabled の時に理由が UI に出ないと、sync/vacuum/update 中の操作不可が failure と誤認されやすい
   - disabled reason label、aria-describedby、busy state、tooltip/inline note、keyboard focus behavior の component test を追加する
-
-- [ ] P3 storage constants の byte/entry caps を schema fixture と docs で棚卸しする
-  - 対象: `src/constants/storage.ts`, `src/schemas/storage.ts`, `src/__tests__/constants/storage.test.ts`
-  - storage cap が増えるほど「entry count」「entry length」「raw JSON bytes」のどれを守るか分かりにくくなり、cleanup の期待値が揺れやすい
-  - command history cap、sidebar accounts cap、folders per account cap、raw JSON cap、legacy key cap の fixture table を追加する
-
-- [ ] P3 data-size format constants と UI copy の binary/decimal unit 方針を固定する
-  - 対象: `src/constants/data-size.ts`, `src/components/settings/hooks/use-data-settings-controller.ts`, `src/locales/*/settings.json`
-  - `1024` ベースで `KB/MB` 表示しているため、KiB/MiB ではなく KB/MB と出す方針を決めないと support/debug copy が揺れる
-  - 999B、1024B、1MiB、fraction digits、ja/en unit copy、negative/nonfinite の snapshot を追加する
 
 ### GReader / Sync Flow / Account Setup
 
