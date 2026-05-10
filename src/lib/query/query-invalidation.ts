@@ -111,6 +111,9 @@ export const queryKeys = {
     root: QUERY_KEY_ROOTS.feeds,
     byAccount: (accountId: string | null) => [QUERY_KEY_ROOTS.feeds[0], normalizeQueryAccountId(accountId)] as const,
   },
+  folders: {
+    root: QUERY_KEY_ROOTS.folders,
+  },
   articles: {
     root: QUERY_KEY_ROOTS.articles,
     byFeed: (feedId: string | null, mode: ReaderFilter) =>
@@ -222,7 +225,7 @@ const FEED_INVALIDATION_TARGETS = [
   {
     option: "includeFolders",
     defaultEnabled: true,
-    queryKeys: [QUERY_KEY_ROOTS.folders],
+    queryKeys: [queryKeys.folders.root],
   },
   {
     option: "includeAccountUnreadCount",
@@ -393,6 +396,31 @@ export function resolveArticleMutationInvalidationQueryKeys(kind: ArticleMutatio
   return resolveArticleInvalidationQueryKeys(ARTICLE_MUTATION_INVALIDATION_MATRIX[kind].articleOptions);
 }
 
+function resolveFeedMutationInvalidationQueryKeys(
+  actionOwner: Extract<QueryInvalidationActionOwner, "add-feed" | "delete-feed">,
+  options: InvalidateFeedMutationQueriesOptions = {},
+): ReadonlyArray<QueryKey> {
+  const matrixEntry = FEED_MUTATION_INVALIDATION_OWNER_MATRIX[actionOwner];
+  const invalidationQueryKeys: QueryKey[] = [
+    ...resolveFeedInvalidationQueryKeys(matrixEntry.feedOptions),
+    ...resolveArticleInvalidationQueryKeys(matrixEntry.articleOptions),
+  ];
+
+  if (matrixEntry.includeAccountScopedFeedArticleSummaries && options.accountId !== undefined) {
+    invalidationQueryKeys.push(queryKeys.feedArticleSummaries.subscriptionsIndex(options.accountId));
+  }
+
+  return invalidationQueryKeys;
+}
+
+export function resolveAddFeedInvalidationQueryKeys(options: InvalidateFeedMutationQueriesOptions = {}) {
+  return resolveFeedMutationInvalidationQueryKeys("add-feed", options);
+}
+
+export function resolveDeleteFeedInvalidationQueryKeys(options: InvalidateFeedMutationQueriesOptions = {}) {
+  return resolveFeedMutationInvalidationQueryKeys("delete-feed", options);
+}
+
 export function invalidateArticleMutationQueries(queryClient: QueryClient, kind: ArticleMutationInvalidationKind) {
   const matrixEntry = ARTICLE_MUTATION_INVALIDATION_MATRIX[kind];
 
@@ -448,17 +476,9 @@ function invalidateFeedMutationQueries(
   actionOwner: Extract<QueryInvalidationActionOwner, "add-feed" | "delete-feed">,
   options: InvalidateFeedMutationQueriesOptions = {},
 ) {
-  const matrixEntry = FEED_MUTATION_INVALIDATION_OWNER_MATRIX[actionOwner];
-  const invalidationQueryKeys: QueryKey[] = [
-    ...resolveFeedInvalidationQueryKeys(matrixEntry.feedOptions),
-    ...resolveArticleInvalidationQueryKeys(matrixEntry.articleOptions),
-  ];
-
-  if (matrixEntry.includeAccountScopedFeedArticleSummaries && options.accountId !== undefined) {
-    invalidationQueryKeys.push(queryKeys.feedArticleSummaries.subscriptionsIndex(options.accountId));
-  }
-
-  invalidateQueryKeysLogOnly(queryClient, invalidationQueryKeys, { actionOwner });
+  invalidateQueryKeysLogOnly(queryClient, resolveFeedMutationInvalidationQueryKeys(actionOwner, options), {
+    actionOwner,
+  });
 }
 
 export function invalidateAddFeedQueries(queryClient: QueryClient, options: InvalidateFeedMutationQueriesOptions = {}) {

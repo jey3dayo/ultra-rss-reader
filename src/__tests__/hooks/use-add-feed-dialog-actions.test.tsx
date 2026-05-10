@@ -8,6 +8,7 @@ import {
   useAddFeedDialogActions,
 } from "@/components/reader/hooks/feed-dialogs/use-add-feed-dialog-actions";
 import i18n from "@/lib/i18n";
+import { resolveAddFeedInvalidationQueryKeys } from "@/lib/query/query-invalidation";
 
 vi.mock("@/api/tauri-commands", () => ({
   addLocalFeed: vi.fn(),
@@ -449,30 +450,9 @@ describe("useAddFeedDialogActions", () => {
 
     expect(addLocalFeed).toHaveBeenCalledWith("account-1", "https://example.com/atom.xml");
     expect(updateFeedFolder).toHaveBeenCalledWith("feed-new", "folder-1");
-    expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ["feeds"] });
-    expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ["folders"] });
-    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
-      queryKey: ["accountUnreadCount"],
-    });
-    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
-      queryKey: ["articles"],
-    });
-    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
-      queryKey: ["accountArticles"],
-    });
-    expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ["search"] });
-    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
-      queryKey: ["recentArticles"],
-    });
-    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
-      queryKey: ["tagArticleCounts"],
-    });
-    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
-      queryKey: ["feedArticleSummaries"],
-    });
-    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
-      queryKey: ["feedArticleSummaries", "account-1"],
-    });
+    expect(invalidateQueriesSpy.mock.calls.map(([options]) => options)).toEqual(
+      resolveAddFeedInvalidationQueryKeys({ accountId: "account-1" }).map((queryKey) => ({ queryKey })),
+    );
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 

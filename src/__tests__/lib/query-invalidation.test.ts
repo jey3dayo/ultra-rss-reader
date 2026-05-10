@@ -12,8 +12,10 @@ import {
   invalidateSyncCompletedQueries,
   normalizeQueryAccountId,
   queryKeys,
+  resolveAddFeedInvalidationQueryKeys,
   resolveArticleInvalidationQueryKeys,
   resolveArticleMutationInvalidationQueryKeys,
+  resolveDeleteFeedInvalidationQueryKeys,
   resolveFeedInvalidationQueryKeys,
   setQueryInvalidationFailureReporterForDiagnostics,
 } from "@/lib/query/query-invalidation";
@@ -284,40 +286,47 @@ describe("query-invalidation", () => {
 
   it("keeps add and delete feed invalidation on the shared feed mutation matrix", () => {
     const { invalidateQueries, queryClient } = createInvalidateSpy();
+    const addFeedMatrix = [
+      queryKeys.feeds.root,
+      queryKeys.folders.root,
+      queryKeys.accountUnreadCount.root,
+      queryKeys.articles.root,
+      queryKeys.accountArticles.root,
+      queryKeys.folderArticles.root,
+      queryKeys.starredArticles.root,
+      queryKeys.accountStarredCount.root,
+      queryKeys.articlesByTag.root,
+      queryKeys.tagArticleCounts.root,
+      queryKeys.search.root,
+      queryKeys.recentArticles.root,
+      queryKeys.feedArticleSummaries.root,
+      queryKeys.feedArticleSummaries.subscriptionsIndex(" acc-1 "),
+    ];
+    const deleteFeedMatrix = [
+      queryKeys.feeds.root,
+      queryKeys.folders.root,
+      queryKeys.accountUnreadCount.root,
+      queryKeys.articles.root,
+      queryKeys.accountArticles.root,
+      queryKeys.folderArticles.root,
+      queryKeys.starredArticles.root,
+      queryKeys.accountStarredCount.root,
+      queryKeys.articlesByTag.root,
+      queryKeys.tagArticleCounts.root,
+      queryKeys.search.root,
+      queryKeys.recentArticles.root,
+      queryKeys.feedArticleSummaries.root,
+      queryKeys.feedArticleSummaries.subscriptionsIndex(" "),
+    ];
 
     invalidateAddFeedQueries(queryClient, { accountId: " acc-1 " });
     invalidateDeleteFeedQueries(queryClient, { accountId: " " });
 
-    expect(invalidateQueries.mock.calls.map(([options]) => options)).toEqual([
-      { queryKey: ["feeds"] },
-      { queryKey: ["folders"] },
-      { queryKey: ["accountUnreadCount"] },
-      { queryKey: ["articles"] },
-      { queryKey: ["accountArticles"] },
-      { queryKey: ["folderArticles"] },
-      { queryKey: ["starredArticles"] },
-      { queryKey: ["accountStarredCount"] },
-      { queryKey: ["articlesByTag"] },
-      { queryKey: ["tagArticleCounts"] },
-      { queryKey: ["search"] },
-      { queryKey: ["recentArticles"] },
-      { queryKey: ["feedArticleSummaries"] },
-      { queryKey: ["feedArticleSummaries", "acc-1"] },
-      { queryKey: ["feeds"] },
-      { queryKey: ["folders"] },
-      { queryKey: ["accountUnreadCount"] },
-      { queryKey: ["articles"] },
-      { queryKey: ["accountArticles"] },
-      { queryKey: ["folderArticles"] },
-      { queryKey: ["starredArticles"] },
-      { queryKey: ["accountStarredCount"] },
-      { queryKey: ["articlesByTag"] },
-      { queryKey: ["tagArticleCounts"] },
-      { queryKey: ["search"] },
-      { queryKey: ["recentArticles"] },
-      { queryKey: ["feedArticleSummaries"] },
-      { queryKey: ["feedArticleSummaries", null] },
-    ]);
+    expect(resolveAddFeedInvalidationQueryKeys({ accountId: " acc-1 " })).toEqual(addFeedMatrix);
+    expect(resolveDeleteFeedInvalidationQueryKeys({ accountId: " " })).toEqual(deleteFeedMatrix);
+    expect(invalidateQueries.mock.calls.map(([options]) => options)).toEqual(
+      [...addFeedMatrix, ...deleteFeedMatrix].map((queryKey) => ({ queryKey })),
+    );
   });
 
   it("aggregates add feed invalidation failures with the add-feed owner", async () => {
