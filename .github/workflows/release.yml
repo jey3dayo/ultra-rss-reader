@@ -134,9 +134,12 @@ jobs:
           const releaseTag = process.env.RELEASE_TAG;
           const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
           const tauriConfig = JSON.parse(fs.readFileSync("src-tauri/tauri.conf.json", "utf8"));
+          const tauriReleaseConfig = JSON.parse(fs.readFileSync("src-tauri/tauri.release.conf.json", "utf8"));
           const cargoToml = fs.readFileSync("src-tauri/Cargo.toml", "utf8");
           const cargoVersion = cargoToml.match(/^version = "([^"]+)"$/m)?.[1];
           const expectedTag = `v${packageJson.version}`;
+          const updaterEndpoint = tauriConfig.plugins?.updater?.endpoints?.[0];
+          const updaterPubkey = tauriConfig.plugins?.updater?.pubkey;
 
           const errors = [];
           if (releaseTag !== expectedTag) {
@@ -147,6 +150,21 @@ jobs:
           }
           if (cargoVersion !== packageJson.version) {
             errors.push(`src-tauri/Cargo.toml version ${cargoVersion ?? "(missing)"} does not match package.json version ${packageJson.version}`);
+          }
+          if (tauriReleaseConfig.identifier !== tauriConfig.identifier) {
+            errors.push(`src-tauri/tauri.release.conf.json identifier ${tauriReleaseConfig.identifier} does not match src-tauri/tauri.conf.json identifier ${tauriConfig.identifier}`);
+          }
+          if (tauriConfig.bundle?.createUpdaterArtifacts !== false) {
+            errors.push("src-tauri/tauri.conf.json must keep updater artifacts disabled for dev builds");
+          }
+          if (tauriReleaseConfig.bundle?.createUpdaterArtifacts !== true) {
+            errors.push("src-tauri/tauri.release.conf.json must enable updater artifacts for release builds");
+          }
+          if (updaterEndpoint !== "https://github.com/jey3dayo/ultra-rss-reader/releases/latest/download/latest.json") {
+            errors.push(`src-tauri/tauri.conf.json updater endpoint ${updaterEndpoint ?? "(missing)"} does not match the GitHub release latest.json endpoint`);
+          }
+          if (!updaterPubkey || /(?:placeholder|change[_-]?me|todo)/i.test(updaterPubkey)) {
+            errors.push("src-tauri/tauri.conf.json updater pubkey must be configured and must not be a placeholder");
           }
 
           if (errors.length > 0) {
@@ -174,5 +192,5 @@ jobs:
           prerelease: false
           args: >-
             ${{ matrix.args }}
-            --config '{"identifier":"com.jey3dayo.ultra-rss-reader","bundle":{"createUpdaterArtifacts":true}}'
+            --config src-tauri/tauri.release.conf.json
             --ci

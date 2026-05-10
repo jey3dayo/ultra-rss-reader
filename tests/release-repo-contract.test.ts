@@ -22,7 +22,16 @@ type TauriConfig = {
   bundle?: {
     createUpdaterArtifacts?: boolean;
   };
+  plugins?: {
+    updater?: {
+      endpoints?: string[];
+      pubkey?: string;
+    };
+  };
 };
+
+const RELEASE_UPDATER_ENDPOINT = "https://github.com/jey3dayo/ultra-rss-reader/releases/latest/download/latest.json";
+const UPDATER_PUBKEY_PLACEHOLDER_PATTERN = /(?:placeholder|change[_-]?me|todo)/i;
 
 const readText = (path: string): string => readFileSync(path, "utf8");
 
@@ -211,6 +220,28 @@ describe("release repository contract", () => {
     expect(tauriReleaseConfig.identifier).toBe(tauriConfig.identifier);
     expect(tauriConfig.bundle?.createUpdaterArtifacts).toBe(false);
     expect(tauriReleaseConfig.bundle?.createUpdaterArtifacts).toBe(true);
+  });
+
+  it("requires the release workflow to build with the release updater config", () => {
+    expect(releaseWorkflow).toContain("--config src-tauri/tauri.release.conf.json");
+    expect(releaseWorkflow).not.toContain('--config \'{"identifier"');
+    expect(releaseWorkflow).not.toContain('"createUpdaterArtifacts":true');
+    expect(releaseWorkflow).toContain("src-tauri/tauri.release.conf.json must enable updater artifacts");
+    expect(releaseWorkflow.indexOf("Validate release version parity")).toBeLessThan(
+      releaseWorkflow.indexOf("tauri-apps/tauri-action"),
+    );
+  });
+
+  it("keeps bundle identifier, release updater artifacts, and updater endpoint in one release contract", () => {
+    expect(tauriConfig.identifier).toBe("com.jey3dayo.ultra-rss-reader");
+    expect(tauriReleaseConfig.identifier).toBe(tauriConfig.identifier);
+    expect(tauriConfig.bundle?.createUpdaterArtifacts).toBe(false);
+    expect(tauriReleaseConfig.bundle?.createUpdaterArtifacts).toBe(true);
+    expect(tauriConfig.plugins?.updater?.endpoints).toEqual([RELEASE_UPDATER_ENDPOINT]);
+    expect(tauriConfig.plugins?.updater?.pubkey).toBeTruthy();
+    expect(tauriConfig.plugins?.updater?.pubkey).not.toMatch(UPDATER_PUBKEY_PLACEHOLDER_PATTERN);
+    expect(releaseWorkflow).toContain(RELEASE_UPDATER_ENDPOINT);
+    expect(releaseWorkflow).toContain("src-tauri/tauri.conf.json updater pubkey must be configured");
   });
 
   it("keeps dependency audit manual until advisory policy is defined", () => {
