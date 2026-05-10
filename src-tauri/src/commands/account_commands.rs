@@ -536,7 +536,9 @@ mod tests {
 
         match error {
             AppError::UserVisible { message } => assert_eq!(message, "db failed"),
-            AppError::Retryable { message } => panic!("unexpected retryable error: {message}"),
+            AppError::Retryable { message } | AppError::RetryableWithMetadata { message, .. } => {
+                panic!("unexpected retryable error: {message}");
+            }
         }
     }
 

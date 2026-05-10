@@ -323,10 +323,26 @@ function applyLanguage(language: ReturnType<typeof parseLanguagePreference>): vo
   }
 }
 
-function applyDefaultLoadFallback(): void {
-  applyLanguage(resolvePreferenceValue({}, "language"));
-  applyFontStyle(resolvePreferenceValue({}, "font_style"));
-  applyFontSize(resolvePreferenceValue({}, "font_size"));
+function getCurrentDocumentThemePreference(): Theme {
+  const root = getDocumentRoot();
+  return root?.classList.contains("dark") ? "dark" : "light";
+}
+
+function buildLoadFallbackPreferences(): PreferenceRecord {
+  const theme = readMirroredThemePreference() ?? getCurrentDocumentThemePreference();
+  return {
+    ...preferenceDefaults,
+    theme,
+  };
+}
+
+function applyLoadFallback(prefs: PreferenceRecord): void {
+  const theme = resolvePreferenceValue(prefs, "theme");
+  applyTheme(theme, { withTransition: false });
+  mirrorThemePreference(theme);
+  applyLanguage(resolvePreferenceValue(prefs, "language"));
+  applyFontStyle(resolvePreferenceValue(prefs, "font_style"));
+  applyFontSize(resolvePreferenceValue(prefs, "font_size"));
 }
 
 function applyPreferenceRuntimeEffect(key: string, normalizedValue: string): void {
@@ -401,18 +417,24 @@ export const usePreferencesStore = create<PreferencesState & PreferencesActions>
           }),
           Result.inspectError((e) => {
             console.error("Failed to load preferences:", e);
-            set({ loaded: true });
             if (preferencesMutationGeneration === loadGeneration) {
-              applyDefaultLoadFallback();
+              const prefs = buildLoadFallbackPreferences();
+              set({ prefs, loaded: true });
+              applyLoadFallback(prefs);
+              return;
             }
+            set({ loaded: true });
           }),
         );
       } catch (e) {
         console.error("Failed to load preferences:", e);
-        set({ loaded: true });
         if (preferencesMutationGeneration === loadGeneration) {
-          applyDefaultLoadFallback();
+          const prefs = buildLoadFallbackPreferences();
+          set({ prefs, loaded: true });
+          applyLoadFallback(prefs);
+          return;
         }
+        set({ loaded: true });
       }
     })().finally(() => {
       preferencesLoadPromise = null;

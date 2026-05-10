@@ -1,7 +1,38 @@
 import { describe, expect, it } from "vitest";
-import { UpdateDownloadProgressEventPayloadSchema, UpdateReadyEventPayloadSchema } from "@/api/schemas/update-info";
+import {
+  UpdateDownloadProgressEventPayloadSchema,
+  UpdateInfoDtoSchema,
+  UpdateReadyEventPayloadSchema,
+} from "@/api/schemas/update-info";
 
 describe("updater event payload schemas", () => {
+  it("keeps update command responses strict while event payloads remain forward-compatible", () => {
+    const updateInfo = {
+      version: "1.2.3",
+      body: null,
+      channel: "stable",
+      prerelease: false,
+      source: "github",
+    };
+
+    expect(UpdateInfoDtoSchema.parse(updateInfo)).toEqual(updateInfo);
+    expect(
+      UpdateInfoDtoSchema.safeParse({
+        ...updateInfo,
+        future_response_field: "unexpected",
+      }).success,
+    ).toBe(false);
+    expect(
+      UpdateReadyEventPayloadSchema.parse({
+        session_id: 2,
+        future_event_field: "preserved",
+      }),
+    ).toEqual({
+      session_id: 2,
+      future_event_field: "preserved",
+    });
+  });
+
   it("preserves unknown event fields while validating known drift-sensitive fields", () => {
     expect(
       UpdateDownloadProgressEventPayloadSchema.parse({

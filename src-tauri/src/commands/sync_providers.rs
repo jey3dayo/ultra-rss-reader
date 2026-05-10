@@ -3897,7 +3897,7 @@ mod tests {
             AppError::UserVisible { message } => {
                 assert!(message.contains("no such table: preferences"));
             }
-            AppError::Retryable { message } => {
+            AppError::Retryable { message } | AppError::RetryableWithMetadata { message, .. } => {
                 panic!("post-write DB failures should not be retryable: {message}");
             }
         }
@@ -3966,7 +3966,7 @@ mod tests {
             AppError::UserVisible { message } => {
                 assert!(message.contains("forced sync_state failure"));
             }
-            AppError::Retryable { message } => {
+            AppError::Retryable { message } | AppError::RetryableWithMetadata { message, .. } => {
                 panic!("sync_state DB failures should not be retryable: {message}");
             }
         }

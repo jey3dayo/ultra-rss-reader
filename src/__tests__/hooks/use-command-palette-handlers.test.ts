@@ -56,6 +56,7 @@ function createHandlers(overrides: Partial<Parameters<typeof useCommandPaletteHa
       selectArticle: vi.fn(),
       openFeedLanding: vi.fn(),
       paletteSessionId: 1,
+      canSelectArticle: () => true,
       ...overrides,
     }),
   );
@@ -76,6 +77,7 @@ function renderHandlers(initialOverrides: Partial<Parameters<typeof useCommandPa
         selectArticle: vi.fn(),
         openFeedLanding: vi.fn(),
         paletteSessionId: 1,
+        canSelectArticle: () => true,
         ...overrides,
       }),
     {

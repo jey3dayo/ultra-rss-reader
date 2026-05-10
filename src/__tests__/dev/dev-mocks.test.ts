@@ -587,6 +587,59 @@ describe("setupDevMocks", () => {
     expect(secondPage).toEqual([]);
   });
 
+  it("matches browser-only body mute keywords against extracted visible body text", async () => {
+    setupDevMocks();
+
+    mockArticles.push(
+      {
+        id: "dev-body-hidden-attribute",
+        feed_id: "feed-automaton",
+        title: "Visible link article",
+        content_sanitized: '<p><a href="https://example.com/kindle">Visible text</a></p>',
+        summary: "Summary without muted keyword",
+        url: "https://example.com/visible-link",
+        author: null,
+        published_at: "2026-04-20T12:00:00.000Z",
+        thumbnail: null,
+        is_read: false,
+        is_starred: false,
+      },
+      {
+        id: "dev-body-inline-visible",
+        feed_id: "feed-automaton",
+        title: "Inline body article",
+        content_sanitized: "<p>Kindle <strong>Unlimited</strong></p>",
+        summary: "Summary fallback is ignored",
+        url: "https://example.com/inline-body",
+        author: null,
+        published_at: "2026-04-20T12:01:00.000Z",
+        thumbnail: null,
+        is_read: false,
+        is_starred: false,
+      },
+      {
+        id: "dev-body-summary-fallback",
+        feed_id: "feed-automaton",
+        title: "Summary body article",
+        content_sanitized: "   ",
+        summary: "Kindle Unlimited summary",
+        url: "https://example.com/summary-body",
+        author: null,
+        published_at: "2026-04-20T12:02:00.000Z",
+        thumbnail: null,
+        is_read: false,
+        is_starred: false,
+      },
+    );
+    Result.unwrap(await createMuteKeyword("kindle unlimited", "body"));
+
+    const visibleArticles = Result.unwrap(await listArticles("feed-automaton", 0, 50));
+
+    expect(visibleArticles.map((article) => article.id)).toContain("dev-body-hidden-attribute");
+    expect(visibleArticles.map((article) => article.id)).not.toContain("dev-body-inline-visible");
+    expect(visibleArticles.map((article) => article.id)).not.toContain("dev-body-summary-fallback");
+  });
+
   it("scopes search results to the account before pagination", async () => {
     setupDevMocks();
     Result.unwrap(await addLocalFeed("acc-local", "https://local.example.com/feed.xml"));

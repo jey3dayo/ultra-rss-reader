@@ -1509,6 +1509,7 @@ mod tests {
         assert!(matches!(
             error,
             AppError::Retryable { ref message }
+                | AppError::RetryableWithMetadata { ref message, .. }
                 if message == "Network error: Request timed out. Check the server URL or your network connection."
         ));
     }
@@ -1525,6 +1526,7 @@ mod tests {
         assert!(matches!(
             error,
             AppError::Retryable { ref message }
+                | AppError::RetryableWithMetadata { ref message, .. }
                 if message == "Network error: Request timed out. Check the server URL or your network connection."
         ));
     }

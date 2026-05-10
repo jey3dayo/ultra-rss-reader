@@ -54,20 +54,6 @@ export function useCommandPaletteController(): CommandPaletteControllerResult {
     }
   }, [closeCommandPalette, open, selectedAccountId]);
 
-  const { handleActionSelect, handleFeedSelect, handleTagSelect, handleArticleSelect, handleDevScenarioSelect } =
-    useCommandPaletteHandlers({
-      closePalette,
-      openShortcutsHelp,
-      showToast,
-      selectedAccountId,
-      isSyncing,
-      selectFeedFromCurrentContext,
-      selectTagFromCurrentContext,
-      selectArticle,
-      openFeedLanding,
-      paletteSessionId: paletteSessionIdRef.current,
-    });
-
   const {
     articles,
     filteredActions,
@@ -78,6 +64,8 @@ export function useCommandPaletteController(): CommandPaletteControllerResult {
     recentTags,
     recentArticles,
     recentActions,
+    selectableArticleFeedIds,
+    selectableArticleIds,
     showRecentActions,
     showRecentResources,
     showActions,
@@ -94,6 +82,21 @@ export function useCommandPaletteController(): CommandPaletteControllerResult {
     query,
     selectedAccountId,
   });
+  const { handleActionSelect, handleFeedSelect, handleTagSelect, handleArticleSelect, handleDevScenarioSelect } =
+    useCommandPaletteHandlers({
+      closePalette,
+      openShortcutsHelp,
+      showToast,
+      selectedAccountId,
+      isSyncing,
+      selectFeedFromCurrentContext,
+      selectTagFromCurrentContext,
+      selectArticle,
+      openFeedLanding,
+      paletteSessionId: paletteSessionIdRef.current,
+      canSelectArticle: (feedId, articleId) =>
+        selectableArticleFeedIds.has(feedId) && selectableArticleIds.has(articleId),
+    });
 
   return {
     open,

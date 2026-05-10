@@ -9,6 +9,11 @@ pub enum DomainError {
     Network(String),
     #[error("Rate limit error: {0}")]
     RateLimit(String),
+    #[error("Rate limit error: {message}; retry_after_seconds={retry_after_seconds}")]
+    RateLimitWithRetryAfter {
+        message: String,
+        retry_after_seconds: u64,
+    },
     #[error("Parse error: {0}")]
     Parse(String),
     #[error("Persistence error: {0}")]
@@ -75,7 +80,9 @@ pub enum AppRecoveryAction {
 pub fn error_recovery_category(error: &DomainError) -> ErrorRecoveryCategory {
     match error {
         DomainError::Network(_) => ErrorRecoveryCategory::Network,
-        DomainError::RateLimit(_) => ErrorRecoveryCategory::RateLimit,
+        DomainError::RateLimit(_) | DomainError::RateLimitWithRetryAfter { .. } => {
+            ErrorRecoveryCategory::RateLimit
+        }
         DomainError::Auth(_) => ErrorRecoveryCategory::Auth,
         DomainError::Validation(_) => ErrorRecoveryCategory::Validation,
         DomainError::Parse(_) => ErrorRecoveryCategory::Parse,
@@ -412,9 +419,10 @@ impl DomainError {
         };
 
         match status {
-            StatusCode::TOO_MANY_REQUESTS => Self::RateLimit(format!(
-                "HTTP {status}; retry_after_seconds={retry_after_seconds}"
-            )),
+            StatusCode::TOO_MANY_REQUESTS => Self::RateLimitWithRetryAfter {
+                message: format!("HTTP {status}"),
+                retry_after_seconds,
+            },
             _ => Self::from_provider_http_status(status),
         }
     }
@@ -593,7 +601,7 @@ mod tests {
         assert!(!message.contains("access-token"));
 
         match AppError::from(DomainError::Network(message)) {
-            AppError::Retryable { message } => {
+            AppError::Retryable { message } | AppError::RetryableWithMetadata { message, .. } => {
                 assert!(!message.contains("secret-token"));
                 assert!(!message.contains("raw-key"));
                 assert!(!message.contains("access-token"));
@@ -636,7 +644,7 @@ mod tests {
             AppError::UserVisible { message } => {
                 assert_eq!(message, "Persistence error: Query returned no rows");
             }
-            AppError::Retryable { message } => {
+            AppError::Retryable { message } | AppError::RetryableWithMetadata { message, .. } => {
                 panic!("sqlite persistence errors must not become retryable: {message}");
             }
         }
@@ -730,7 +738,8 @@ mod tests {
                 AppError::UserVisible { message } => {
                     assert_eq!(message, expected_message);
                 }
-                AppError::Retryable { message } => {
+                AppError::Retryable { message }
+                | AppError::RetryableWithMetadata { message, .. } => {
                     panic!("provider boundary errors must not become retryable: {message}");
                 }
             }
@@ -777,9 +786,10 @@ mod tests {
                 true,
             ),
             (
-                DomainError::RateLimit(
-                    "HTTP 429 Too Many Requests; retry_after_seconds=120".to_string(),
-                ),
+                DomainError::RateLimitWithRetryAfter {
+                    message: "HTTP 429 Too Many Requests".to_string(),
+                    retry_after_seconds: 120,
+                },
                 "Rate limit error: HTTP 429 Too Many Requests; retry_after_seconds=120",
                 true,
                 false,
@@ -815,9 +825,17 @@ mod tests {
         {
             assert_eq!(domain_error.to_string(), expected_message);
             match (AppError::from(domain_error), expected_retryable) {
-                (AppError::Retryable { message }, true) => assert_eq!(message, expected_message),
+                (
+                    AppError::Retryable { message }
+                    | AppError::RetryableWithMetadata { message, .. },
+                    true,
+                ) => assert_eq!(message, expected_message),
                 (AppError::UserVisible { message }, false) => assert_eq!(message, expected_message),
-                (AppError::Retryable { message }, false) => {
+                (
+                    AppError::Retryable { message }
+                    | AppError::RetryableWithMetadata { message, .. },
+                    false,
+                ) => {
                     panic!("provider boundary error became unexpectedly retryable: {message}");
                 }
                 (AppError::UserVisible { message }, true) => {

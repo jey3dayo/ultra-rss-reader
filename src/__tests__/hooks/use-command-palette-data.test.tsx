@@ -92,6 +92,37 @@ describe("useCommandPaletteData", () => {
     expect(localStorage.getItem(STORAGE_KEYS.commandHistory)).toBe(JSON.stringify(["feed:feed-1", "article:art-1"]));
   });
 
+  it("drops search and recent article candidates whose feeds are not in the current account snapshot", () => {
+    const staleArticle = { ...sampleArticles[1], id: "stale-article", feed_id: "feed-from-previous-account" };
+    localStorage.setItem(STORAGE_KEYS.commandHistory, JSON.stringify(["article:stale-article", "article:art-1"]));
+    vi.mocked(useFeeds).mockReturnValue(createHookDataResult<ReturnType<typeof useFeeds>>([sampleFeeds[0]]));
+    vi.mocked(useSearchArticles).mockReturnValue(
+      createHookDataResult<ReturnType<typeof useSearchArticles>>([staleArticle, sampleArticles[0]]),
+    );
+    vi.mocked(useRecentArticles).mockReturnValue(
+      createHookDataResult<ReturnType<typeof useRecentArticles>>([staleArticle, sampleArticles[0]]),
+    );
+
+    const { result } = renderHook(() =>
+      useCommandPaletteData({
+        actions: [action],
+        deferredQuery: "article",
+        devScenarios: [],
+        prefix: null,
+        query: "article",
+        selectedAccountId: "acc-1",
+      }),
+    );
+
+    expect(result.current.articles.map((article) => article.id)).toEqual(["art-1"]);
+    expect(result.current.recentArticles.map((article) => article.id)).toEqual(["art-1"]);
+    expect(result.current.selectableArticleFeedIds.has("feed-1")).toBe(true);
+    expect(result.current.selectableArticleFeedIds.has("feed-from-previous-account")).toBe(false);
+    expect(result.current.selectableArticleIds.has("art-1")).toBe(true);
+    expect(result.current.selectableArticleIds.has("stale-article")).toBe(false);
+    expect(localStorage.getItem(STORAGE_KEYS.commandHistory)).toBe(JSON.stringify(["article:art-1"]));
+  });
+
   it("keeps recent resources hidden once the user enters a query or resource prefix", () => {
     localStorage.setItem(STORAGE_KEYS.commandHistory, JSON.stringify(["feed:feed-1", "tag:tag-1", "article:art-1"]));
 

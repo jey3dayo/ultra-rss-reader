@@ -1,4 +1,6 @@
+import { Result } from "@praha/byethrow";
 import { useCallback, useMemo } from "react";
+import { getFeedLandingFailureMessage } from "@/components/reader/hooks/command-palette/use-command-palette-handlers";
 import { useSidebarFeedDragState } from "@/components/reader/hooks/sidebar/use-sidebar-feed-drag-state";
 import { useSidebarFeedNavigation } from "@/components/reader/hooks/sidebar/use-sidebar-feed-navigation";
 import { useSidebarFeedTree } from "@/components/reader/hooks/sidebar/use-sidebar-feed-tree";
@@ -10,6 +12,7 @@ import { useConfirmMarkAllRead } from "@/hooks/use-confirm-mark-all-read";
 import { useFeedLanding } from "@/hooks/use-feed-landing";
 import { resolvePreferenceValue } from "@/schemas/preferences";
 import { usePreferencesStore } from "@/stores/preferences-store";
+import { useUiStore } from "@/stores/ui-store";
 import { buildFeedMarkAllReadConfirmation } from "../../feed-mark-all-read";
 import type { SidebarFeedSectionParams, SidebarFeedSectionResult } from "../../sidebar-feed-section.types";
 
@@ -45,6 +48,7 @@ export function useSidebarFeedSectionController({
   renderFeedContextMenu,
 }: SidebarFeedSectionParams): SidebarFeedSectionResult {
   const openFeedLanding = useFeedLanding();
+  const showToast = useUiStore((state) => state.showToast);
   const confirmMarkAllRead = useConfirmMarkAllRead();
   const { mutate: markFeedRead } = useMarkFeedRead();
   const { mutate: markFolderRead } = useMarkFolderRead();
@@ -55,6 +59,7 @@ export function useSidebarFeedSectionController({
   const folderList = folders ?? [];
   const canDragFeeds = folderList.length > 0;
   const initialFeedById = useMemo(() => new Map(feedList.map((feed) => [feed.id, feed])), [feedList]);
+  const initialFolderById = useMemo(() => new Map(folderList.map((folder) => [folder.id, folder])), [folderList]);
   const isStarredTreeContext = selection.type === "smart" && selection.kind === "starred";
   const feedTreeViewMode = isStarredTreeContext ? "starred" : viewMode;
 
@@ -71,6 +76,7 @@ export function useSidebarFeedSectionController({
     canDragFeeds,
     isFeedsSectionOpen,
     feedById: initialFeedById,
+    folderById: initialFolderById,
     moveFeedToFolder,
     moveFeedToUnfoldered,
   });
@@ -95,13 +101,21 @@ export function useSidebarFeedSectionController({
       }
 
       if (openFirstArticleOnFeedSelection) {
-        void openFeedLanding(feedId);
+        void openFeedLanding(feedId)
+          .then((result) => {
+            if (Result.isFailure(result)) {
+              showToast(getFeedLandingFailureMessage(Result.unwrapError(result)));
+            }
+          })
+          .catch((error: unknown) => {
+            showToast(error instanceof Error ? error.message : "Unknown error");
+          });
         return;
       }
 
       selectFeed(feedId);
     },
-    [feedTreeViewMode, openFeedLanding, openFirstArticleOnFeedSelection, selectFeed],
+    [feedTreeViewMode, openFeedLanding, openFirstArticleOnFeedSelection, selectFeed, showToast],
   );
   const handleSelectFolder = useCallback(
     (folderId: string) => {

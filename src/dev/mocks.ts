@@ -325,10 +325,21 @@ function applyMuteKeywordFilter<
   }
 
   const normalize = (value: string) => value.trim().toLowerCase();
+  const extractBodyText = (article: T) => {
+    if (!article.content_sanitized.trim()) {
+      return article.summary ?? "";
+    }
+
+    const template = document.createElement("template");
+    template.innerHTML = article.content_sanitized;
+    const visibleText = template.content.textContent ?? "";
+
+    return visibleText.trim() ? visibleText : (article.summary ?? "");
+  };
 
   return articles.filter((article) => {
     const title = normalize(article.title);
-    const body = normalize(article.content_sanitized || article.summary || "");
+    const body = normalize(extractBodyText(article));
 
     return !mockMuteKeywords.some((rule) => {
       const keyword = normalize(rule.keyword);

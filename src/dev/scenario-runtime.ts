@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import { DEV_SCENARIO_ID, type DevScenarioId } from "@/dev/scenario-ids";
+import { DEV_SCENARIO_ID, type DevScenarioId, isDevScenarioId } from "@/dev/scenario-ids";
 import { DEV_SCENARIO_MODULE_IMPORTERS } from "@/dev/scenarios/import-registry";
 
 export type RuntimeDevScenario = {
@@ -29,8 +29,8 @@ const DEV_SCENARIOS_UNAVAILABLE_MESSAGE = "Dev scenarios runtime is unavailable 
 const UNKNOWN_DEV_SCENARIO_RUNTIME_ERROR_MESSAGE = "Unknown dev scenario runtime error.";
 
 class InvalidDevScenariosModuleError extends Error {
-  constructor() {
-    super("Dev scenarios module does not match the expected runtime interface.");
+  constructor(message = "Dev scenarios module does not match the expected runtime interface.") {
+    super(message);
   }
 }
 
@@ -52,6 +52,33 @@ function isRecord(value: unknown): value is Record<PropertyKey, unknown> {
 
 function isDevScenariosModule(value: unknown): value is DevScenariosModule {
   return isRecord(value) && typeof value.listDevScenarios === "function" && typeof value.runDevScenario === "function";
+}
+
+function validateRuntimeDevScenario(value: unknown): RuntimeDevScenario {
+  if (!isRecord(value)) {
+    throw new InvalidDevScenariosModuleError("Dev scenario metadata must be an object.");
+  }
+
+  const { id, title, keywords } = value;
+  if (typeof id !== "string" || !isDevScenarioId(id)) {
+    throw new InvalidDevScenariosModuleError("Dev scenario metadata contains an unknown id.");
+  }
+  if (typeof title !== "string" || title.trim().length === 0) {
+    throw new InvalidDevScenariosModuleError("Dev scenario metadata contains a blank title.");
+  }
+  if (!Array.isArray(keywords) || keywords.some((keyword) => typeof keyword !== "string")) {
+    throw new InvalidDevScenariosModuleError("Dev scenario metadata keywords must be a string array.");
+  }
+
+  return { id, title, keywords };
+}
+
+function validateRuntimeDevScenarios(value: unknown): RuntimeDevScenario[] {
+  if (!Array.isArray(value)) {
+    throw new InvalidDevScenariosModuleError("Dev scenarios metadata must be an array.");
+  }
+
+  return value.map(validateRuntimeDevScenario);
 }
 
 async function importDevScenariosModule(): Promise<DevScenariosModule> {
@@ -119,7 +146,7 @@ export async function loadRuntimeDevScenariosResult(): Result.ResultAsync<
   const module = moduleResult.value;
 
   return Result.try({
-    try: async () => module.listDevScenarios().map(({ id, title, keywords }) => ({ id, title, keywords })),
+    try: async () => validateRuntimeDevScenarios(module.listDevScenarios()),
     catch: toDevScenarioModuleError,
   });
 }

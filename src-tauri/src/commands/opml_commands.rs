@@ -499,7 +499,7 @@ mod tests {
             AppError::UserVisible { message } => {
                 assert_eq!(message, "OPML document must contain an <opml> root element");
             }
-            AppError::Retryable { message } => {
+            AppError::Retryable { message } | AppError::RetryableWithMetadata { message, .. } => {
                 panic!("OPML parser errors should not be retryable: {message}");
             }
         }
@@ -514,7 +514,7 @@ mod tests {
             AppError::UserVisible { message } => {
                 assert_eq!(message, "OPML document is malformed XML");
             }
-            AppError::Retryable { message } => {
+            AppError::Retryable { message } | AppError::RetryableWithMetadata { message, .. } => {
                 panic!("OPML malformed XML errors should not be retryable: {message}");
             }
         }

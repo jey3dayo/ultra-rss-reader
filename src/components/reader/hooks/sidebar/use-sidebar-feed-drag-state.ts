@@ -5,6 +5,7 @@ export function useSidebarFeedDragState({
   canDragFeeds,
   isFeedsSectionOpen,
   feedById,
+  folderById,
   moveFeedToFolder,
   moveFeedToUnfoldered,
 }: SidebarFeedDragStateParams): SidebarFeedDragStateResult {
@@ -51,13 +52,15 @@ export function useSidebarFeedDragState({
       try {
         if (!draggedFeedId) return;
         const draggedFeed = feedById.get(draggedFeedId);
+        const targetFolder = folderById.get(folderId);
         if (!draggedFeed || draggedFeed.folder_id === folderId) return;
+        if (!targetFolder || targetFolder.account_id !== draggedFeed.account_id) return;
         await moveFeedToFolder(draggedFeedId, folderId);
       } finally {
         clearDragState();
       }
     },
-    [clearDragState, draggedFeedId, feedById, moveFeedToFolder],
+    [clearDragState, draggedFeedId, feedById, folderById, moveFeedToFolder],
   );
 
   const handleDropToUnfoldered = useCallback(async () => {

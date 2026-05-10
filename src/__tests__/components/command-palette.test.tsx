@@ -266,6 +266,7 @@ describe("CommandPalette", () => {
         selectArticle: vi.fn(),
         openFeedLanding: vi.fn(),
         paletteSessionId: 1,
+        canSelectArticle: () => true,
       }),
     );
 

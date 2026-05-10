@@ -5,8 +5,17 @@ use crate::domain::error::DomainError;
 #[derive(Debug, Serialize, Clone)]
 #[serde(tag = "type")]
 pub enum AppError {
-    UserVisible { message: String },
-    Retryable { message: String },
+    UserVisible {
+        message: String,
+    },
+    Retryable {
+        message: String,
+    },
+    #[serde(rename = "Retryable")]
+    RetryableWithMetadata {
+        message: String,
+        retry_after_seconds: Option<u64>,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -18,7 +27,9 @@ pub enum UserFacingErrorSupportPolicy {
 pub fn user_facing_error_support_policy(error: &AppError) -> UserFacingErrorSupportPolicy {
     match error {
         AppError::UserVisible { .. } => UserFacingErrorSupportPolicy::StableSupportCodeOnly,
-        AppError::Retryable { .. } => UserFacingErrorSupportPolicy::EphemeralDiagnosticsIdForLogs,
+        AppError::Retryable { .. } | AppError::RetryableWithMetadata { .. } => {
+            UserFacingErrorSupportPolicy::EphemeralDiagnosticsIdForLogs
+        }
     }
 }
 
@@ -35,6 +46,13 @@ impl From<DomainError> for AppError {
         let message = non_empty_app_error_message(e.to_string());
         match &e {
             DomainError::Network(_) | DomainError::RateLimit(_) => AppError::Retryable { message },
+            DomainError::RateLimitWithRetryAfter {
+                retry_after_seconds,
+                ..
+            } => AppError::RetryableWithMetadata {
+                message,
+                retry_after_seconds: Some(*retry_after_seconds),
+            },
             _ => AppError::UserVisible { message },
         }
     }
@@ -193,7 +211,9 @@ pub struct SyncProgressEvent {
 impl std::fmt::Display for AppError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            AppError::UserVisible { message } | AppError::Retryable { message } => {
+            AppError::UserVisible { message }
+            | AppError::Retryable { message }
+            | AppError::RetryableWithMetadata { message, .. } => {
                 write!(f, "{}", message)
             }
         }
@@ -449,7 +469,7 @@ mod tests {
         let app_error = AppError::from(DomainError::Network("timeout".to_string()));
 
         match app_error {
-            AppError::Retryable { message } => {
+            AppError::Retryable { message } | AppError::RetryableWithMetadata { message, .. } => {
                 assert_eq!(message, "Network error: timeout");
             }
             AppError::UserVisible { message } => {
@@ -477,7 +497,8 @@ mod tests {
                 AppError::UserVisible { message } => {
                     assert_eq!(message, expected_message);
                 }
-                AppError::Retryable { message } => {
+                AppError::Retryable { message }
+                | AppError::RetryableWithMetadata { message, .. } => {
                     panic!("non-network errors should be user-visible, got retryable: {message}");
                 }
             }
@@ -500,7 +521,9 @@ mod tests {
         for domain_error in errors {
             let app_error = AppError::from(domain_error);
             let message = match app_error {
-                AppError::UserVisible { message } | AppError::Retryable { message } => message,
+                AppError::UserVisible { message }
+                | AppError::Retryable { message }
+                | AppError::RetryableWithMetadata { message, .. } => message,
             };
 
             assert!(

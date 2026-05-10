@@ -761,8 +761,14 @@ describe("usePreferencesStore preferences", () => {
       await Promise.all([firstLoad, secondLoad]);
 
       expect(usePreferencesStore.getState().loaded).toBe(true);
-      expect(usePreferencesStore.getState().prefs).toEqual({});
+      expect(usePreferencesStore.getState().prefs).toMatchObject({
+        theme: "light",
+        language: "system",
+        font_style: "sans_serif",
+        font_size: "medium",
+      });
       expect(changeLanguage).toHaveBeenCalledWith("ja");
+      expect(window.localStorage.getItem(STORAGE_KEYS.theme)).toBe("light");
       expect(document.documentElement).toHaveClass("font-sans");
       expect(document.documentElement).toHaveClass("text-base");
     } finally {
@@ -794,8 +800,14 @@ describe("usePreferencesStore preferences", () => {
       await usePreferencesStore.getState().loadPreferences();
 
       expect(usePreferencesStore.getState().loaded).toBe(true);
-      expect(usePreferencesStore.getState().prefs).toEqual({});
+      expect(usePreferencesStore.getState().prefs).toMatchObject({
+        theme: "light",
+        language: "system",
+        font_style: "sans_serif",
+        font_size: "medium",
+      });
       expect(changeLanguage).toHaveBeenCalledWith("ja");
+      expect(window.localStorage.getItem(STORAGE_KEYS.theme)).toBe("light");
       expect(document.documentElement).toHaveClass("font-sans");
       expect(document.documentElement).toHaveClass("text-base");
 
@@ -1451,6 +1463,12 @@ describe("usePreferencesStore preferences", () => {
     expect(document.documentElement).toHaveClass("dark");
     expect(document.documentElement.style.colorScheme).toBe("dark");
     expect(window.localStorage.getItem(STORAGE_KEYS.theme)).toBe("dark");
+    expect(usePreferencesStore.getState().prefs).toMatchObject({
+      theme: "dark",
+      language: "system",
+      font_style: "sans_serif",
+      font_size: "medium",
+    });
     expect(document.documentElement).toHaveClass("font-sans");
     expect(document.documentElement).toHaveClass("text-base");
   });
@@ -1472,13 +1490,20 @@ describe("usePreferencesStore preferences", () => {
       await usePreferencesStore.getState().loadPreferences();
 
       expect(usePreferencesStore.getState().loaded).toBe(true);
+      expect(usePreferencesStore.getState().prefs).toMatchObject({
+        theme: "dark",
+        language: "system",
+        font_style: "sans_serif",
+        font_size: "medium",
+      });
       expect(document.documentElement).toHaveClass("dark");
       expect(document.documentElement.style.colorScheme).toBe("dark");
       expect(consoleError).toHaveBeenCalledWith("Failed to load preferences:", {
         type: "UserVisible",
         message: "boom",
       });
-      expect(consoleError).not.toHaveBeenCalledWith("Failed to read mirrored theme preference:", expect.any(Error));
+      expect(consoleError).toHaveBeenCalledWith("Failed to read mirrored theme preference:", expect.any(Error));
+      expect(consoleError).toHaveBeenCalledWith("Failed to mirror theme preference:", expect.any(Error));
     } finally {
       if (localStorageDescriptor) {
         Object.defineProperty(window, "localStorage", localStorageDescriptor);

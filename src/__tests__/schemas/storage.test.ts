@@ -174,6 +174,12 @@ describe("storage schemas", () => {
         privateDataExportKeys: [STORAGE_KEYS.theme],
       }).success,
     ).toBe(false);
+    expect(
+      StorageCleanupPolicyConnectionsSchema.safeParse({
+        ...STORAGE_CLEANUP_POLICY_CONNECTIONS,
+        futureStoragePolicy: [STORAGE_KEYS.theme],
+      }).success,
+    ).toBe(false);
   });
 
   it("fixes DB restore localStorage reconciliation to DB-derived user-clearable keys", () => {

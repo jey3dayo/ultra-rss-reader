@@ -184,9 +184,11 @@ const StorageKeySchema = z.enum([
   STORAGE_KEYS.startupSyncLastTriggeredAt,
 ]);
 
-export const StorageCleanupPolicyConnectionsSchema = z.object({
-  settingsDataResetKeys: z.array(StorageKeySchema).readonly(),
-  privateDataExportKeys: z.array(StorageKeySchema).readonly(),
-});
+export const StorageCleanupPolicyConnectionsSchema = z
+  .object({
+    settingsDataResetKeys: z.array(StorageKeySchema).readonly(),
+    privateDataExportKeys: z.array(StorageKeySchema).readonly(),
+  })
+  .strict();
 
 export type StorageCleanupPolicyConnections = z.output<typeof StorageCleanupPolicyConnectionsSchema>;

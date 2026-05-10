@@ -226,6 +226,37 @@ describe("dev-scenario-runtime", () => {
     });
   });
 
+  it.each([
+    {
+      name: "unknown scenario id",
+      scenarios: [{ id: "unknown-scenario", title: "Broken scenario", keywords: ["broken"] }],
+      message: "Dev scenario metadata contains an unknown id.",
+    },
+    {
+      name: "blank title",
+      scenarios: [{ id: DEV_SCENARIO_ID.openSubscriptionsIndex, title: " ", keywords: ["subscriptions"] }],
+      message: "Dev scenario metadata contains a blank title.",
+    },
+    {
+      name: "non-array keywords",
+      scenarios: [{ id: DEV_SCENARIO_ID.openSubscriptionsIndex, title: "Open subscriptions", keywords: "broken" }],
+      message: "Dev scenario metadata keywords must be a string array.",
+    },
+  ] as const)("returns invalid_module when scenario metadata has $name", async ({ scenarios, message }) => {
+    vi.stubEnv("DEV", true);
+    devScenariosModuleMock.module = {
+      listDevScenarios: vi.fn(() => scenarios),
+      runDevScenario: vi.fn(async () => {}),
+    };
+
+    const result = await loadRuntimeDevScenariosResult();
+
+    expect(expectResultError(result)).toEqual({
+      type: "invalid_module",
+      message,
+    });
+  });
+
   it("returns scenario_failed when the scenario runner rejects", async () => {
     vi.stubEnv("DEV", true);
     devScenariosModuleMock.module = {

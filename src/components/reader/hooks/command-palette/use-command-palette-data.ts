@@ -32,6 +32,8 @@ type UseCommandPaletteDataResult = {
   recentTags: TagDto[];
   recentArticles: ArticleDto[];
   recentActions: PaletteAction[];
+  selectableArticleFeedIds: ReadonlySet<string>;
+  selectableArticleIds: ReadonlySet<string>;
   showRecentActions: boolean;
   showRecentResources: boolean;
   showActions: boolean;
@@ -136,11 +138,26 @@ export function useCommandPaletteData({
 }: UseCommandPaletteDataParams): UseCommandPaletteDataResult {
   const feedsQuery = useFeeds(selectedAccountId);
   const tagsQuery = useTags();
-  const { data: articles = [] } = useSearchArticles(selectedAccountId, prefix === null ? deferredQuery : "");
+  const { data: searchArticleCandidates = [] } = useSearchArticles(
+    selectedAccountId,
+    prefix === null ? deferredQuery : "",
+  );
   const recentArticlesQuery = useRecentArticles(selectedAccountId);
   const feeds = feedsQuery.data ?? [];
   const tags = tagsQuery.data ?? [];
-  const recentArticleCandidates = recentArticlesQuery.data ?? [];
+  const currentFeedIds = useMemo(() => new Set(feeds.map((feed) => feed.id)), [feeds]);
+  const articles = useMemo(
+    () => searchArticleCandidates.filter((article) => currentFeedIds.has(article.feed_id)),
+    [currentFeedIds, searchArticleCandidates],
+  );
+  const recentArticleCandidates = useMemo(
+    () => (recentArticlesQuery.data ?? []).filter((article) => currentFeedIds.has(article.feed_id)),
+    [currentFeedIds, recentArticlesQuery.data],
+  );
+  const selectableArticleIds = useMemo(
+    () => new Set([...articles, ...recentArticleCandidates].map((article) => article.id)),
+    [articles, recentArticleCandidates],
+  );
 
   const filteredActions = useMemo(
     () => filterByQuery(actions, query, { label: (action) => action.label, keywords: (action) => action.keywords }),
@@ -286,6 +303,8 @@ export function useCommandPaletteData({
     recentTags,
     recentArticles,
     recentActions,
+    selectableArticleFeedIds: currentFeedIds,
+    selectableArticleIds,
     showRecentActions,
     showRecentResources,
     showActions,

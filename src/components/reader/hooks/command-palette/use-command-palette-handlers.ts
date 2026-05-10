@@ -22,6 +22,7 @@ type UseCommandPaletteHandlersParams = {
   selectArticle: (articleId: string) => void;
   openFeedLanding: (feedId: string) => Promise<FeedLandingResult>;
   paletteSessionId: number;
+  canSelectArticle: (feedId: string, articleId: string) => boolean;
 };
 
 type UseCommandPaletteHandlersResult = {
@@ -74,7 +75,7 @@ function translateCommandPaletteMessage(key: CommandPaletteMessageKey, values?: 
   return translateCommandPaletteFallbackMessage(key, i18n.language, values);
 }
 
-function getFeedLandingFailureMessage(error: FeedLandingFailure) {
+export function getFeedLandingFailureMessage(error: FeedLandingFailure) {
   switch (error.type) {
     case "missing_account":
       return translateCommandPaletteMessage("feed_landing_missing_account");
@@ -96,6 +97,7 @@ export function useCommandPaletteHandlers({
   selectArticle,
   openFeedLanding,
   paletteSessionId,
+  canSelectArticle,
 }: UseCommandPaletteHandlersParams): UseCommandPaletteHandlersResult {
   const feedLandingRequestIdRef = useRef(0);
   const devScenarioRequestIdRef = useRef(0);
@@ -172,6 +174,10 @@ export function useCommandPaletteHandlers({
   }
 
   function handleArticleSelect(feedId: string, articleId: string) {
+    if (!canSelectArticle(feedId, articleId)) {
+      return;
+    }
+
     addToHistory(createCommandPaletteHistoryValue({ kind: "article", id: articleId }));
     selectFeedFromCurrentContext(feedId);
     selectArticle(articleId);

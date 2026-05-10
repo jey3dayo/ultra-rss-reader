@@ -50,7 +50,6 @@ struct RetryBackoffState {
     retry_warning_changed: bool,
 }
 
-const RETRY_AFTER_MESSAGE_MARKER: &str = "retry_after_seconds=";
 const RETRY_AFTER_MESSAGE_PREFIX: &str = "Rate limit error: HTTP 429 ";
 
 struct SchedulerSyncGuard<'a>(&'a std::sync::atomic::AtomicBool);
@@ -888,22 +887,13 @@ fn clamped_backoff_error_count(error_count: i32) -> u32 {
 }
 
 fn retry_after_seconds_from_app_error(error: &crate::commands::dto::AppError) -> Option<u64> {
-    let message = match error {
-        AppError::Retryable { message } => message,
-        AppError::UserVisible { .. } => return None,
-    };
-    if !message.starts_with(RETRY_AFTER_MESSAGE_PREFIX) {
-        return None;
+    match error {
+        AppError::RetryableWithMetadata {
+            message,
+            retry_after_seconds,
+        } if message.starts_with(RETRY_AFTER_MESSAGE_PREFIX) => *retry_after_seconds,
+        AppError::Retryable { .. } | AppError::RetryableWithMetadata { .. } | AppError::UserVisible { .. } => None,
     }
-    let (_, value) = message.split_once(RETRY_AFTER_MESSAGE_MARKER)?;
-    let value = value
-        .split(|ch: char| !ch.is_ascii_digit())
-        .next()
-        .unwrap_or_default();
-    if value.is_empty() {
-        return None;
-    }
-    value.parse::<u64>().ok()
 }
 
 pub async fn wait_for_automatic_sync_enabled(
@@ -1912,9 +1902,10 @@ mod tests {
         let backoff = complete_failed_account_sync(
             &db,
             &account,
-            &AppError::Retryable {
+            &AppError::RetryableWithMetadata {
                 message: "Rate limit error: HTTP 429 Too Many Requests; retry_after_seconds=600"
                     .to_string(),
+                retry_after_seconds: Some(600),
             },
             &mut warnings,
         );
@@ -1959,9 +1950,10 @@ mod tests {
         let backoff = complete_failed_account_sync(
             &db,
             &account,
-            &AppError::Retryable {
+            &AppError::RetryableWithMetadata {
                 message: "Rate limit error: HTTP 429 Too Many Requests; retry_after_seconds=soon"
                     .to_string(),
+                retry_after_seconds: None,
             },
             &mut warnings,
         );
@@ -1993,9 +1985,10 @@ mod tests {
     #[test]
     fn retry_after_seconds_accepts_provider_rate_limit_marker() {
         assert_eq!(
-            retry_after_seconds_from_app_error(&AppError::Retryable {
+            retry_after_seconds_from_app_error(&AppError::RetryableWithMetadata {
                 message: "Rate limit error: HTTP 429 Too Many Requests; retry_after_seconds=600"
                     .to_string(),
+                retry_after_seconds: Some(600),
             }),
             Some(600)
         );
@@ -2048,9 +2041,10 @@ mod tests {
             ),
             (
                 "rate-limit",
-                AppError::Retryable {
+                AppError::RetryableWithMetadata {
                     message: "Rate limit error: HTTP 429 Too Many Requests; retry_after_seconds=600"
                         .to_string(),
+                    retry_after_seconds: Some(600),
                 },
                 600,
             ),

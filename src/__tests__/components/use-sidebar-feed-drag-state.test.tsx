@@ -6,8 +6,12 @@ function renderDragState({
   canDragFeeds = true,
   isFeedsSectionOpen = true,
   feedById = new Map([
-    ["feed-foldered", { folder_id: "folder-1" }],
-    ["feed-unfoldered", { folder_id: null }],
+    ["feed-foldered", { account_id: "account-1", folder_id: "folder-1" }],
+    ["feed-unfoldered", { account_id: "account-1", folder_id: null }],
+  ]),
+  folderById = new Map([
+    ["folder-1", { account_id: "account-1" }],
+    ["folder-2", { account_id: "account-1" }],
   ]),
   moveFeedToFolder = vi.fn(async () => undefined),
   moveFeedToUnfoldered = vi.fn(async () => undefined),
@@ -17,6 +21,7 @@ function renderDragState({
       canDragFeeds,
       isFeedsSectionOpen,
       feedById,
+      folderById,
       moveFeedToFolder,
       moveFeedToUnfoldered,
     }),
@@ -70,6 +75,43 @@ describe("useSidebarFeedDragState", () => {
     });
 
     expect(moveFeedToUnfoldered).not.toHaveBeenCalled();
+    expect(result.current.draggedFeedId).toBeNull();
+    expect(result.current.activeDropTarget).toBeNull();
+  });
+
+  it("ignores folder drops when the target folder is missing or belongs to another account", async () => {
+    const moveFeedToFolder = vi.fn(async () => undefined);
+    const { result } = renderDragState({
+      moveFeedToFolder,
+      folderById: new Map([
+        ["folder-1", { account_id: "account-1" }],
+        ["folder-other-account", { account_id: "account-2" }],
+      ]),
+    });
+
+    act(() => {
+      result.current.handleDragStartFeed("feed-foldered");
+      result.current.handleDragEnterFolder("missing-folder");
+    });
+
+    await act(async () => {
+      await result.current.handleDropToFolder("missing-folder");
+    });
+
+    expect(moveFeedToFolder).not.toHaveBeenCalled();
+    expect(result.current.draggedFeedId).toBeNull();
+    expect(result.current.activeDropTarget).toBeNull();
+
+    act(() => {
+      result.current.handleDragStartFeed("feed-foldered");
+      result.current.handleDragEnterFolder("folder-other-account");
+    });
+
+    await act(async () => {
+      await result.current.handleDropToFolder("folder-other-account");
+    });
+
+    expect(moveFeedToFolder).not.toHaveBeenCalled();
     expect(result.current.draggedFeedId).toBeNull();
     expect(result.current.activeDropTarget).toBeNull();
   });

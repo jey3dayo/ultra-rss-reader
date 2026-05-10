@@ -33,6 +33,7 @@ function createHandlers(overrides: Partial<Parameters<typeof createCommandPalett
       selectArticle: vi.fn(),
       openFeedLanding: vi.fn(),
       paletteSessionId: 1,
+      canSelectArticle: () => true,
       ...overrides,
     }),
   );
@@ -114,6 +115,7 @@ describe("useCommandPaletteHandlers resource history", () => {
           showToast,
           openFeedLanding,
           paletteSessionId: 1,
+          canSelectArticle: () => true,
         }),
       {
         initialProps: { selectedAccountId: "acc-1" },
@@ -179,5 +181,24 @@ describe("useCommandPaletteHandlers resource history", () => {
     expect(selectArticle).toHaveBeenCalledWith("art-1");
     expect(closePalette).toHaveBeenCalledTimes(1);
     expect(selectArticle.mock.invocationCallOrder[0]).toBeLessThan(closePalette.mock.invocationCallOrder[0] ?? 0);
+  });
+
+  it("does not select, close, or write history for stale article selections", () => {
+    const closePalette = vi.fn();
+    const selectFeedFromCurrentContext = vi.fn();
+    const selectArticle = vi.fn();
+    const handlers = createHandlers({
+      closePalette,
+      selectFeedFromCurrentContext,
+      selectArticle,
+      canSelectArticle: () => false,
+    });
+
+    handlers.handleArticleSelect("stale-feed", "stale-article");
+
+    expect(selectFeedFromCurrentContext).not.toHaveBeenCalled();
+    expect(selectArticle).not.toHaveBeenCalled();
+    expect(closePalette).not.toHaveBeenCalled();
+    expect(localStorage.getItem(STORAGE_KEYS.commandHistory)).toBeNull();
   });
 });

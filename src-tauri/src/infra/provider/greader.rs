@@ -1280,8 +1280,10 @@ mod tests {
 
         assert!(matches!(
             error,
-            DomainError::RateLimit(message)
-                if message == "HTTP 429 Too Many Requests; retry_after_seconds=120"
+            DomainError::RateLimitWithRetryAfter {
+                message,
+                retry_after_seconds: 120
+            } if message == "HTTP 429 Too Many Requests"
         ));
         subscriptions.assert_async().await;
     }
@@ -1452,7 +1454,7 @@ mod tests {
                 assert!(!message.contains(username));
                 assert!(!message.contains(password));
             }
-            AppError::Retryable { message } => {
+            AppError::Retryable { message } | AppError::RetryableWithMetadata { message, .. } => {
                 panic!("auth failures should remain user visible: {message}");
             }
         }

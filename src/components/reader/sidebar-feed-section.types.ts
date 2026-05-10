@@ -10,6 +10,7 @@ export type SidebarFeedTreeProps = Omit<FeedTreeViewProps, "emptyState" | "unfol
 export type StartupFolderExpansionMode = StartupFolderExpansionPreference;
 
 type SidebarFeedDragStateFeed = {
+  account_id: string;
   folder_id: string | null;
 };
 
@@ -17,6 +18,7 @@ export type SidebarFeedDragStateParams = {
   canDragFeeds: boolean;
   isFeedsSectionOpen: boolean;
   feedById: Map<string, SidebarFeedDragStateFeed>;
+  folderById: Map<string, Pick<FolderDto, "account_id">>;
   moveFeedToFolder: (feedId: string, folderId: string) => Promise<unknown>;
   moveFeedToUnfoldered: (feedId: string) => Promise<unknown>;
 };
