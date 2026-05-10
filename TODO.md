@@ -529,11 +529,6 @@
   - `lru-cache` や `signal-exit` など複数 major が残ると、依存更新時の CVE triage と bundle size 判断が属人化しやすい
   - duplicate major inventory、direct/transitive分類、known acceptable allowlist、lockfile drift report の script task を追加する
 
-- [ ] P2 release note generation が prerelease / build metadata を本文に反映する contract を作る
-  - 対象: `.codex/skills/release/SKILL.md`, `.github/workflows/release.yml`, `CHANGELOG.md`
-  - prerelease tag を許可する一方で release note の注意書きや draft/prerelease flag が固定されていないと、公開種別を読み違えやすい
-  - stable、alpha/beta/rc、build metadata、draft copy、CHANGELOG section の release task を追加する
-
 - [ ] P2 Tauri app identifier と dev/prod data directory の collision を repo contract にする
   - 対象: `src-tauri/tauri.conf.json`, `src-tauri/tauri.dev.conf.json`, `src-tauri/tauri.release.conf.json`, `scripts/seed-dev-db-from-prod.ts`
   - dev/prod identifier が近く、seed script や keyring service 名が依存するため、config drift がデータ破壊につながりやすい
@@ -849,11 +844,6 @@
   - 1 つの capability snapshot だけだと、reader/browser/settings/debug のどの機能が権限を必要とするか追えない
   - browser、settings、debug/log、database、updater、share command group に分けて drift test を追加する
 
-- [ ] P2 release artifact notarization / quarantine behavior を macOS manual verification に入れる
-  - 対象: release workflow、`docs/release-manual-verification.md`
-  - dmg を download した後の quarantine、Gatekeeper、notarization 表示を見ないと配布後に初回起動で止まる
-  - downloaded dmg、first launch、Gatekeeper dialog、codesign detail、notarization status の check を追加する
-
 - [ ] P3 dependency license inventory を pnpm/Cargo 両方で生成可能にする
   - 対象: `package.json`, `src-tauri/Cargo.toml`, release docs
   - JS/Rust の片方だけ license 棚卸しすると、release review や store 配布で抜ける
@@ -1018,11 +1008,6 @@
   - 対象: updater hook、export/backup commands、runtime lifecycle
   - laptop sleep で long-running file/network operation が中断すると、partial artifact や stale progress が残る
   - sleep during download、sleep during export、sleep during backup、resume cleanup、progress reset の contract を追加する
-
-- [ ] P2 release artifact quarantine path と app translocation の data dir / log dir 影響を検証する
-  - 対象: macOS packaged app verification, app path/log path helpers
-  - 未 notarized/未移動 app が translocation されると、resource path や log/app data dir の見え方が変わる可能性がある
-  - DMG direct launch、Applications launch、quarantine present、translocated path、log dir open の check を追加する
 
 - [ ] P2 Windows hidden console policy と crash visibility の両立を検証する
   - 対象: `src-tauri/src/main.rs`, Windows release smoke, logging
@@ -1244,16 +1229,6 @@
   - risk 指摘が多いほど「何から実装するか」が見えにくくなるため、作業種別で並列投入しやすくする
   - heading parser、target path extraction、priority extraction、work type classifier、worker batch export の script を追加する
 
-- [ ] P1 release artifact SBOM / provenance / checksum を生成・検証する gate を作る
-  - 対象: release workflow、`package.json`, `src-tauri/Cargo.lock`, release docs
-  - 署名だけでは依存関係や生成元を追えず、配布後の supply-chain 問い合わせに答えにくい
-  - JS/Rust SBOM、artifact checksum、workflow run id、source commit、draft release attachment の contract を追加する
-
-- [ ] P1 updater manifest と release asset の signature / checksum / platform mapping を双方向検証する
-  - 対象: updater manifest、release workflow、release manual verification
-  - manifest が別 asset や別 arch を指すと、署名済みでも誤 artifact を配る可能性がある
-  - macOS arm64、Windows x64、asset filename、signature file、checksum mismatch、missing platform の gate を追加する
-
 - [ ] P1 backup/export file の privacy level と encryption decision を明文化する
   - 対象: DB backup、OPML export、support dump、docs
   - DB backup や support dump は article/feed/account metadata を含むため、OPML と同じ感覚で共有されると privacy leak になる
@@ -1369,11 +1344,6 @@
   - data migration を含む release で事前 backup 導線がないと、失敗時にユーザーが戻れない
   - migration release、backup prompt、skip copy、backup failure、restore docs link の policy を追加する
 
-- [ ] P2 release artifact provenance を PR / tag / workflow run の三点で照合する
-  - 対象: release workflow、PR template、release manual verification
-  - tag と artifact の source commit、PR、workflow run がずれると、何を配ったか追跡できない
-  - tag SHA、workflow run id、PR merge commit、artifact checksum、release note commit range の gate を追加する
-
 - [ ] P2 app settings export/import を導入する前の schema version / secret exclusion policy を作る
   - 対象: preferences schema、settings data page、credential store
   - 設定 export に credentials や environment-specific paths が混ざると privacy leak と import 事故につながる
@@ -1488,11 +1458,6 @@
   - 対象: account repository、settings account detail、sync scheduler
   - account row が壊れた時に list failure で settings に入れないと、ユーザーが削除/修復できない
   - invalid provider kind、invalid server URL、missing credential ref、settings read-only view、delete/quarantine action の contract を追加する
-
-- [ ] P2 release hotfix flow を normal release と別 checklist にする
-  - 対象: release skill/docs、release workflow、CHANGELOG
-  - 緊急修正では検証を短縮しがちなので、最低限落とせない gate を通常 release と分ける
-  - security hotfix、data corruption hotfix、CI minimum gates、manual smoke、rollback note の checklist を追加する
 
 - [ ] P2 internal dev mock data が product metrics / screenshots に混ざらないよう source label を出す
   - 対象: dev mocks、debug HUD、screenshots/storybook
