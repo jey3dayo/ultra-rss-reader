@@ -70,11 +70,14 @@ test("release config overrides identifier and enables updater artifacts", async 
 test("release workflow exports updater signing secrets", async () => {
   const workflow = releaseWorkflowSource;
   const tauriActionBlock = extractStepBlock(workflow, "uses: tauri-apps/tauri-action@");
+  const releaseConfig = readTauriReleaseConfig();
 
   expect(tauriActionBlock).toMatch(/^\s+env:\s*$/m);
   expect(tauriActionBlock).toContain("TAURI_SIGNING_PRIVATE_KEY:");
   expect(tauriActionBlock).toContain("TAURI_SIGNING_PRIVATE_KEY_PASSWORD:");
-  expect(tauriActionBlock).toContain("--config src-tauri/tauri.release.conf.json");
+  expect(tauriActionBlock).toContain(
+    `--config '{"identifier":"${releaseConfig.identifier}","bundle":{"createUpdaterArtifacts":true}}'`,
+  );
 });
 
 test("release workflow keeps the supported artifact matrix", async () => {
