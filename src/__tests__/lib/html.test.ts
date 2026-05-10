@@ -89,6 +89,29 @@ describe("stripHtmlTags", () => {
       globalThis.DOMParser = originalDomParser;
     }
   });
+
+  it("keeps regex fallback safe for malformed entities and large malformed HTML", () => {
+    const originalDomParser = globalThis.DOMParser;
+    // @ts-expect-error legacy escape: DOMParser global is intentionally unavailable in this fallback test.
+    globalThis.DOMParser = undefined;
+
+    try {
+      expect(stripHtmlTags("<p>Bad decimal: &#999999999999;</p>")).toBe("Bad decimal: &#999999999999;");
+      expect(stripHtmlTags("<p>Bad hex: &#x110000;</p>")).toBe("Bad hex: &#x110000;");
+      expect(stripHtmlTags("<p>Broken named: &not-an-entity;</p>")).toBe("Broken named: &not-an-entity;");
+
+      const hugeText = `${"<div>本文 &amp; 補足</div>".repeat(5_000)}<!-- unterminated`;
+      const startedAt = performance.now();
+      const result = stripHtmlTags(`${hugeText}<script>${"alert(1);".repeat(2_000)}`);
+      const elapsedMs = performance.now() - startedAt;
+
+      expect(result).not.toContain("alert(1)");
+      expect(result.startsWith("本文 & 補足 本文 & 補足")).toBe(true);
+      expect(elapsedMs).toBeLessThan(1_000);
+    } finally {
+      globalThis.DOMParser = originalDomParser;
+    }
+  });
 });
 
 describe("applyReaderContentPrivacyPolicy", () => {
@@ -173,6 +196,26 @@ describe("normalizeArticleBodyHtml", () => {
     const html = '<figure><img src="https://example.com/image.png" alt="">Tech Blog:</figure><p>Body text</p>';
 
     expect(normalizeArticleBodyHtml(html, "Tech Blog")).toBe(html);
+  });
+
+  it("keeps media and link-only articles when the visible text matches the feed label", () => {
+    const linkOnly = '<p><a href="https://example.com/article">Tech Blog</a></p>';
+    const imageOnly = '<p><img src="https://example.com/image.png" alt=""></p>';
+    const pictureOnly =
+      '<picture><source srcset="https://example.com/image.webp" type="image/webp"><img src="https://example.com/image.png" alt=""></picture>';
+    const videoOnly = '<video src="https://example.com/video.mp4">Tech Blog</video>';
+
+    expect(normalizeArticleBodyHtml(linkOnly, "Tech Blog")).toBe(linkOnly);
+    expect(normalizeArticleBodyHtml(imageOnly, "Tech Blog")).toBe(imageOnly);
+    expect(normalizeArticleBodyHtml(pictureOnly, "Tech Blog")).toBe(pictureOnly);
+    expect(normalizeArticleBodyHtml(videoOnly, "Tech Blog")).toBe(videoOnly);
+  });
+
+  it("removes only duplicated feed labels before real article content", () => {
+    expect(normalizeArticleBodyHtml("<p>Tech Blog：</p><p>Body text</p>", "Tech Blog")).toBe(
+      "<p>Body text</p>",
+    );
+    expect(normalizeArticleBodyHtml("<p>Tech Blog｜</p><p>Body text</p>", "Tech Blog")).toBe("<p>Body text</p>");
   });
 
   it("normalizes null body text to an empty string", () => {

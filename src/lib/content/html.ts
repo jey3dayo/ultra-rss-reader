@@ -66,7 +66,9 @@ export function stripHtmlTags(html: string): string {
       (entity, decimal: string | undefined, hex: string | undefined) => {
         if (decimal || hex) {
           const codePoint = Number.parseInt(decimal ?? hex ?? "", decimal ? 10 : 16);
-          return Number.isFinite(codePoint) ? String.fromCodePoint(codePoint) : entity;
+          return Number.isFinite(codePoint) && codePoint >= 0 && codePoint <= 0x10ffff
+            ? String.fromCodePoint(codePoint)
+            : entity;
         }
 
         const namedEntities: Record<string, string> = {
@@ -92,7 +94,7 @@ function normalizeVisibleText(text: string): string {
 }
 
 function isDuplicateLeadingLabelText(text: string, label: string): boolean {
-  return text === label || text === `${label}:` || text === `${label}｜` || text === `${label} -`;
+  return text === label || text === `${label}:` || text === `${label}：` || text === `${label}｜` || text === `${label} -`;
 }
 
 function hasMeaningfulVisibleText(node: ChildNode): boolean {
