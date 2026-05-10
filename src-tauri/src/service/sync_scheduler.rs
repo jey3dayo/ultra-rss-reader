@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::panic::AssertUnwindSafe;
 use std::sync::atomic::Ordering;
-use std::sync::Mutex;
+use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
 use futures::FutureExt;
@@ -30,6 +30,7 @@ const MAX_BACKOFF_MULTIPLIER: u64 = 1 << MAX_BACKOFF_SHIFT_BITS;
 
 const TICK_INTERVAL: Duration = Duration::from_secs(SCHEDULER_TICK_INTERVAL_SECS);
 const MAX_BACKOFF: Duration = Duration::from_secs(DEFAULT_SYNC_INTERVAL_SECS);
+static INVALID_NEXT_RETRY_CLEANUP_FAILURES: OnceLock<Mutex<HashSet<String>>> = OnceLock::new();
 
 /// Per-account scheduling state kept in memory.
 struct AccountSchedule {
@@ -409,20 +410,63 @@ fn is_in_backoff(db: &Mutex<DbManager>, account_id: &AccountId) -> bool {
         if let Ok(retry_time) = chrono::DateTime::parse_from_rfc3339(next_retry) {
             return chrono::Utc::now() < retry_time;
         }
-        tracing::warn!(
-            "Clearing invalid scheduler next_retry_at for account '{}': {}",
-            account_id.as_ref(),
-            next_retry
-        );
+        clear_invalid_next_retry_at(&repo, &mut state);
+    }
+    false
+}
+
+fn invalid_next_retry_cleanup_failures() -> &'static Mutex<HashSet<String>> {
+    INVALID_NEXT_RETRY_CLEANUP_FAILURES.get_or_init(|| Mutex::new(HashSet::new()))
+}
+
+fn invalid_next_retry_cleanup_key(state: &SyncState, invalid_next_retry_at: &str) -> String {
+    format!(
+        "{}\n{}\n{}",
+        state.account_id.as_ref(),
+        state.scope_key,
+        invalid_next_retry_at
+    )
+}
+
+fn clear_invalid_next_retry_at<R>(repo: &R, state: &mut SyncState)
+where
+    R: SyncStateRepository,
+{
+    let Some(invalid_next_retry_at) = state.next_retry_at.clone() else {
+        return;
+    };
+    let cleanup_key = invalid_next_retry_cleanup_key(state, &invalid_next_retry_at);
+    if invalid_next_retry_cleanup_failures()
+        .lock()
+        .map(|failures| failures.contains(&cleanup_key))
+        .unwrap_or(false)
+    {
         state.next_retry_at = None;
-        if let Err(error) = repo.save(&state) {
+        return;
+    }
+
+    tracing::warn!(
+        "Clearing invalid scheduler next_retry_at for account '{}': {}",
+        state.account_id.as_ref(),
+        invalid_next_retry_at
+    );
+    state.next_retry_at = None;
+    match repo.save(state) {
+        Ok(()) => {
+            if let Ok(mut failures) = invalid_next_retry_cleanup_failures().lock() {
+                failures.remove(&cleanup_key);
+            }
+        }
+        Err(error) => {
+            if let Ok(mut failures) = invalid_next_retry_cleanup_failures().lock() {
+                failures.insert(cleanup_key);
+            }
             tracing::warn!(
                 "Failed to clear invalid scheduler next_retry_at for account '{}': {error}",
-                account_id.as_ref()
+                state.account_id.as_ref()
             );
         }
     }
-    false
 }
 
 fn reset_error_count(db: &Mutex<DbManager>, account_id: &AccountId) -> DomainResult<()> {
@@ -527,8 +571,27 @@ mod tests {
     use crate::domain::account::ConnectionVerificationStatus;
     use crate::infra::db::connection::DbManager;
     use rusqlite::params;
+    use std::cell::Cell;
     use std::sync::atomic::{AtomicBool, Ordering};
     use tokio::sync::Notify;
+
+    struct FailingCleanupRepo<'a> {
+        save_attempts: &'a Cell<usize>,
+    }
+
+    impl SyncStateRepository for FailingCleanupRepo<'_> {
+        fn get<K>(&self, _account_id: &AccountId, _scope_key: K) -> DomainResult<Option<SyncState>>
+        where
+            K: Into<SyncStateScopeKey>,
+        {
+            Ok(None)
+        }
+
+        fn save(&self, _state: &SyncState) -> DomainResult<()> {
+            self.save_attempts.set(self.save_attempts.get() + 1);
+            Err(DomainError::Persistence("cleanup failed".to_string()))
+        }
+    }
 
     fn test_account(sync_interval_secs: i64) -> Account {
         Account {
@@ -710,6 +773,49 @@ mod tests {
     }
 
     #[test]
+    fn interval_change_keeps_active_backoff_as_higher_priority_gate() {
+        let db = std::sync::Mutex::new(test_db());
+        let mut account = test_account(3_600);
+        account.id = AccountId("backoff-account".to_string());
+        let now = Instant::now();
+        let mut schedules = HashMap::from([(
+            account.id.as_ref().to_string(),
+            AccountSchedule {
+                next_sync: now + Duration::from_secs(3_600),
+                interval: Duration::from_secs(3_600),
+            },
+        )]);
+        {
+            let db_guard = db.lock().unwrap();
+            insert_test_account(&db_guard, &account.id);
+            insert_scheduler_sync_state(
+                &db_guard,
+                &account.id,
+                2,
+                Some(&(chrono::Utc::now() + chrono::Duration::minutes(30)).to_rfc3339()),
+            );
+        }
+
+        account.sync_interval_secs = 60;
+        upsert_account_schedule(
+            &mut schedules,
+            account.id.as_ref().to_string(),
+            &account,
+            now,
+        );
+
+        let schedule = schedules
+            .get(account.id.as_ref())
+            .expect("existing schedule should remain");
+        assert_eq!(schedule.interval, Duration::from_secs(60));
+        assert_eq!(schedule.next_sync, now + Duration::from_secs(60));
+        assert!(
+            is_in_backoff(&db, &account.id),
+            "active persisted backoff should still suppress the rescheduled account"
+        );
+    }
+
+    #[test]
     fn scheduler_sync_guard_sets_and_releases_syncing_flag() {
         let syncing = AtomicBool::new(false);
 
@@ -775,6 +881,24 @@ mod tests {
         );
         assert_eq!(warning.retry_at, None);
         assert_eq!(warning.retry_in_seconds, None);
+    }
+
+    #[test]
+    fn scheduler_load_failure_warning_serializes_to_sync_warning_contract() {
+        let error = DomainError::Persistence("Lock error: poisoned".to_string());
+
+        let value = serde_json::to_value(scheduler_load_failure_warning(&error))
+            .expect("warning should serialize");
+
+        assert_eq!(value["account_id"], "scheduler");
+        assert_eq!(value["account_name"], "Scheduler");
+        assert_eq!(value["kind"], "generic");
+        assert!(value["message"]
+            .as_str()
+            .expect("message should be a string")
+            .starts_with("Scheduled sync skipped because accounts could not be loaded:"));
+        assert!(value["retry_at"].is_null());
+        assert!(value["retry_in_seconds"].is_null());
     }
 
     #[test]
@@ -1021,6 +1145,40 @@ mod tests {
             .unwrap()
             .unwrap();
         assert_eq!(state.error_count, 2);
+        assert_eq!(state.next_retry_at, None);
+    }
+
+    #[test]
+    fn invalid_next_retry_cleanup_save_failure_is_not_retried_for_same_invalid_value() {
+        let save_attempts = Cell::new(0);
+        let repo = FailingCleanupRepo {
+            save_attempts: &save_attempts,
+        };
+        let mut state = SyncState {
+            account_id: AccountId("cleanup-failure-account".to_string()),
+            scope_key: SyncStateScopeKey::scheduler().as_string(),
+            timestamp_usec: None,
+            continuation: None,
+            etag: None,
+            last_modified: None,
+            last_success_at: None,
+            last_error: Some("old error".to_string()),
+            error_count: 2,
+            next_retry_at: Some("not-a-date".to_string()),
+        };
+
+        clear_invalid_next_retry_at(&repo, &mut state);
+        assert_eq!(save_attempts.get(), 1);
+        assert_eq!(state.next_retry_at, None);
+
+        state.next_retry_at = Some("not-a-date".to_string());
+        clear_invalid_next_retry_at(&repo, &mut state);
+
+        assert_eq!(
+            save_attempts.get(),
+            1,
+            "same invalid cleanup failure should be suppressed after the first save failure"
+        );
         assert_eq!(state.next_retry_at, None);
     }
 }
