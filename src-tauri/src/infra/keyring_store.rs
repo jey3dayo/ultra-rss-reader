@@ -11,6 +11,8 @@ const SERVICE: &str = "ultra-rss-reader";
 const DEV_CREDENTIALS_MAX_BYTES: u64 = 64 * 1024;
 const DEV_CREDENTIALS_LOCK_TIMEOUT: Duration = Duration::from_secs(10);
 const DEV_CREDENTIALS_LOCK_RETRY_DELAY: Duration = Duration::from_millis(25);
+const DEV_CREDENTIALS_RECOVERY_HINT: &str =
+    "Dev credential store may be corrupted or inaccessible. Close Ultra RSS Reader, remove the dev credentials store and adjacent .tmp/.lock files, then restart the application.";
 static DEV_CREDENTIALS_STORE_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 
 // ---------------------------------------------------------------------------
@@ -157,14 +159,14 @@ where
 fn read_dev_store(path: &Path) -> DomainResult<HashMap<String, String>> {
     match std::fs::metadata(path) {
         Ok(metadata) if metadata.len() > DEV_CREDENTIALS_MAX_BYTES => {
-            return Err(DomainError::Keychain(format!(
+            return Err(dev_store_recovery_error(format!(
                 "Dev store exceeds maximum size of {DEV_CREDENTIALS_MAX_BYTES} bytes"
             )));
         }
         Ok(_) => {}
         Err(error) if error.kind() == ErrorKind::NotFound => return Ok(HashMap::new()),
         Err(error) => {
-            return Err(DomainError::Keychain(format!(
+            return Err(dev_store_recovery_error(format!(
                 "Failed to read dev store metadata: {error}"
             )));
         }
@@ -173,7 +175,7 @@ fn read_dev_store(path: &Path) -> DomainResult<HashMap<String, String>> {
     match std::fs::read_to_string(path) {
         Ok(content) => parse_dev_store_json(&content),
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(HashMap::new()),
-        Err(error) => Err(DomainError::Keychain(format!(
+        Err(error) => Err(dev_store_recovery_error(format!(
             "Failed to read dev store: {error}"
         ))),
     }
@@ -181,14 +183,14 @@ fn read_dev_store(path: &Path) -> DomainResult<HashMap<String, String>> {
 
 fn parse_dev_store_json(content: &str) -> DomainResult<HashMap<String, String>> {
     let value: serde_json::Value = serde_json::from_str(content)
-        .map_err(|e| DomainError::Keychain(format!("Failed to parse dev store: {e}")))?;
+        .map_err(|e| dev_store_recovery_error(format!("Failed to parse dev store: {e}")))?;
     let object = value.as_object().ok_or_else(|| {
-        DomainError::Keychain("Failed to parse dev store: expected JSON object".to_string())
+        dev_store_recovery_error("Failed to parse dev store: expected JSON object")
     })?;
     let mut store = HashMap::with_capacity(object.len());
     for (key, value) in object {
         let password = value.as_str().ok_or_else(|| {
-            DomainError::Keychain(format!(
+            dev_store_recovery_error(format!(
                 "Failed to parse dev store: value for key '{key}' must be a string"
             ))
         })?;
@@ -205,18 +207,41 @@ fn write_dev_store(path: &Path, store: &HashMap<String, String>) -> DomainResult
     let json = serde_json::to_string_pretty(store)
         .map_err(|e| DomainError::Keychain(format!("Failed to serialize dev store: {e}")))?;
     if json.len() as u64 > DEV_CREDENTIALS_MAX_BYTES {
-        return Err(DomainError::Keychain(format!(
+        return Err(dev_store_recovery_error(format!(
             "Dev store exceeds maximum size of {DEV_CREDENTIALS_MAX_BYTES} bytes"
         )));
     }
     let temp_path = dev_store_temp_path(path);
     std::fs::write(&temp_path, &json)
-        .map_err(|e| DomainError::Keychain(format!("Failed to write dev store: {e}")))?;
+        .map_err(|e| dev_store_recovery_error(format!("Failed to write dev store: {e}")))?;
     #[cfg(unix)]
-    set_dev_store_owner_only_permissions(&temp_path)?;
-    std::fs::rename(&temp_path, path)
-        .map_err(|e| DomainError::Keychain(format!("Failed to replace dev store: {e}")))?;
+    if let Err(error) = set_dev_store_owner_only_permissions(&temp_path) {
+        cleanup_failed_dev_store_temp_file(&temp_path);
+        return Err(error);
+    }
+    if let Err(error) = std::fs::rename(&temp_path, path) {
+        cleanup_failed_dev_store_temp_file(&temp_path);
+        return Err(dev_store_recovery_error(format!(
+            "Failed to replace dev store: {error}"
+        )));
+    }
     Ok(())
+}
+
+fn dev_store_recovery_error(message: impl Into<String>) -> DomainError {
+    DomainError::Keychain(format!(
+        "{} {DEV_CREDENTIALS_RECOVERY_HINT}",
+        message.into()
+    ))
+}
+
+fn cleanup_failed_dev_store_temp_file(path: &Path) {
+    if let Err(error) = std::fs::remove_file(path) {
+        tracing::warn!(
+            "Failed to clean up dev credentials temp file {}: {error}",
+            path.display()
+        );
+    }
 }
 
 fn dev_store_temp_path(path: &Path) -> PathBuf {
@@ -266,7 +291,7 @@ impl DevStoreFileLock {
         let lock_path = dev_store_lock_path(store_path);
         if let Some(parent) = lock_path.parent() {
             std::fs::create_dir_all(parent).map_err(|e| {
-                DomainError::Keychain(format!("Failed to create dev store lock dir: {e}"))
+                dev_store_recovery_error(format!("Failed to create dev store lock dir: {e}"))
             })?;
         }
 
@@ -285,7 +310,7 @@ impl DevStoreFileLock {
                 }
                 Err(error) if error.kind() == ErrorKind::AlreadyExists => {
                     if Instant::now() >= deadline {
-                        return Err(DomainError::Keychain(format!(
+                        return Err(dev_store_recovery_error(format!(
                             "Timed out waiting for dev store lock: {}",
                             lock_path.display()
                         )));
@@ -293,7 +318,7 @@ impl DevStoreFileLock {
                     std::thread::sleep(retry_delay);
                 }
                 Err(error) => {
-                    return Err(DomainError::Keychain(format!(
+                    return Err(dev_store_recovery_error(format!(
                         "Failed to acquire dev store lock: {error}"
                     )));
                 }
@@ -329,7 +354,7 @@ where
 
     let perms = std::fs::Permissions::from_mode(0o600);
     set_permissions(path, perms).map_err(|e| {
-        DomainError::Keychain(format!("Failed to restrict dev store permissions: {e}"))
+        dev_store_recovery_error(format!("Failed to restrict dev store permissions: {e}"))
     })
 }
 
@@ -840,10 +865,26 @@ mod tests {
         .expect_err("dev credential permission failure must be observable");
 
         assert!(matches!(error, DomainError::Keychain(_)));
-        assert_eq!(
-            error.to_string(),
+        assert!(error.to_string().contains(
             "Keychain error: Failed to restrict dev store permissions: permission denied"
-        );
+        ));
+        assert!(error
+            .to_string()
+            .contains(super::DEV_CREDENTIALS_RECOVERY_HINT));
+    }
+
+    #[test]
+    fn read_dev_store_ignores_stale_temp_file_next_to_valid_store() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("dev-credentials.json");
+        let temp_path = super::dev_store_temp_path(&path);
+        let mut store = HashMap::new();
+        store.insert("account".to_string(), "secret".to_string());
+        super::write_dev_store(&path, &store).expect("valid dev credential store should be saved");
+        std::fs::write(&temp_path, "{not-json").unwrap();
+
+        assert_eq!(super::read_dev_store(&path).unwrap(), store);
+        assert_eq!(std::fs::read_to_string(&temp_path).unwrap(), "{not-json");
     }
 
     #[test]
@@ -868,10 +909,12 @@ mod tests {
         let error =
             super::read_dev_store(&path).expect_err("dev credentials must stay a JSON object");
 
-        assert_eq!(
-            error.to_string(),
-            "Keychain error: Failed to parse dev store: expected JSON object"
-        );
+        assert!(error
+            .to_string()
+            .contains("Keychain error: Failed to parse dev store: expected JSON object"));
+        assert!(error
+            .to_string()
+            .contains(super::DEV_CREDENTIALS_RECOVERY_HINT));
     }
 
     #[test]
@@ -883,10 +926,12 @@ mod tests {
         let error =
             super::read_dev_store(&path).expect_err("dev credential values must stay strings");
 
-        assert_eq!(
-            error.to_string(),
+        assert!(error.to_string().contains(
             "Keychain error: Failed to parse dev store: value for key 'account' must be a string"
-        );
+        ));
+        assert!(error
+            .to_string()
+            .contains(super::DEV_CREDENTIALS_RECOVERY_HINT));
     }
 
     #[test]
@@ -902,10 +947,12 @@ mod tests {
         let error =
             super::read_dev_store(&path).expect_err("oversized dev credentials must fail closed");
 
-        assert_eq!(
-            error.to_string(),
-            "Keychain error: Dev store exceeds maximum size of 65536 bytes"
-        );
+        assert!(error
+            .to_string()
+            .contains("Keychain error: Dev store exceeds maximum size of 65536 bytes"));
+        assert!(error
+            .to_string()
+            .contains(super::DEV_CREDENTIALS_RECOVERY_HINT));
     }
 
     #[test]
@@ -921,10 +968,12 @@ mod tests {
         let error = super::write_dev_store(&path, &store)
             .expect_err("oversized dev credentials must not be written");
 
-        assert_eq!(
-            error.to_string(),
-            "Keychain error: Dev store exceeds maximum size of 65536 bytes"
-        );
+        assert!(error
+            .to_string()
+            .contains("Keychain error: Dev store exceeds maximum size of 65536 bytes"));
+        assert!(error
+            .to_string()
+            .contains(super::DEV_CREDENTIALS_RECOVERY_HINT));
         assert!(!path.exists());
     }
 
@@ -942,13 +991,13 @@ mod tests {
         )
         .expect_err("second process should observe the existing lock");
 
-        assert_eq!(
-            error.to_string(),
-            format!(
-                "Keychain error: Timed out waiting for dev store lock: {}",
-                super::dev_store_lock_path(&path).display()
-            )
-        );
+        assert!(error.to_string().contains(&format!(
+            "Keychain error: Timed out waiting for dev store lock: {}",
+            super::dev_store_lock_path(&path).display()
+        )));
+        assert!(error
+            .to_string()
+            .contains(super::DEV_CREDENTIALS_RECOVERY_HINT));
         drop(first_lock);
         super::DevStoreFileLock::acquire(&path)
             .expect("dev store lock should be reusable after release");
