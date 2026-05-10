@@ -2,6 +2,8 @@ use async_trait::async_trait;
 use reqwest::header::{ETAG, IF_MODIFIED_SINCE, IF_NONE_MATCH, LAST_MODIFIED};
 use reqwest::StatusCode;
 use std::net::{IpAddr, ToSocketAddrs};
+use std::sync::Arc;
+use tokio::sync::Semaphore;
 
 use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::provider::*;
@@ -21,10 +23,12 @@ const FEED_RESPONSE_BODY_INCOMPLETE_MESSAGE: &str =
     "Feed response body ended before the declared response length";
 const JSON_FEED_SUPPORT_DECISION: &str =
     "JSON Feed is supported only at explicit application/feed+json parser boundaries";
+const LOCAL_PROVIDER_REQUEST_CONCURRENCY_LIMIT: usize = 1;
 
 pub struct LocalProvider {
     http_client: reqwest::Client,
     allow_private_feed_urls: bool,
+    request_permits: Arc<Semaphore>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -50,6 +54,7 @@ impl LocalProvider {
         Self {
             http_client: Self::build_http_client(allow_private_feed_urls),
             allow_private_feed_urls,
+            request_permits: Arc::new(Semaphore::new(LOCAL_PROVIDER_REQUEST_CONCURRENCY_LIMIT)),
         }
     }
 
@@ -224,6 +229,14 @@ impl LocalProvider {
         validate_feed_response_body_against_content_type(&bytes, content_type)?;
 
         Ok((bytes, content_type))
+    }
+
+    async fn acquire_request_permit(&self) -> DomainResult<tokio::sync::OwnedSemaphorePermit> {
+        self.request_permits
+            .clone()
+            .acquire_owned()
+            .await
+            .map_err(|_| DomainError::Network("Local provider request limiter closed".into()))
     }
 }
 
@@ -440,6 +453,7 @@ impl FeedProvider for LocalProvider {
         };
 
         let feed_url = self.validate_feed_url(&feed_url)?;
+        let _permit = self.acquire_request_permit().await?;
         let mut request = self.http_client.get(feed_url.clone());
         if let Some(current) = cursor.as_ref() {
             if let Some(etag) = current.etag.as_deref() {
@@ -518,6 +532,7 @@ impl FeedProvider for LocalProvider {
     ) -> DomainResult<RemoteSubscription> {
         // For local feeds, just validate the URL by fetching and parsing
         let url = self.validate_feed_url(url)?;
+        let _permit = self.acquire_request_permit().await?;
         let response = self
             .http_client
             .get(url.clone())
@@ -559,6 +574,7 @@ mod tests {
     use super::super::http_defaults::PROVIDER_USER_AGENT;
     use super::*;
     use chrono::Utc;
+    use std::sync::atomic::{AtomicUsize, Ordering};
     use tokio::io::AsyncWriteExt;
     use tokio::net::TcpListener;
     use tokio::task::JoinHandle;
@@ -683,6 +699,89 @@ mod tests {
         }
         redirect.assert_async().await;
         final_feed.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn local_provider_limits_concurrent_feed_requests_per_instance() {
+        let listener = TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("test server should bind an isolated ephemeral port");
+        let address = listener
+            .local_addr()
+            .expect("test server should expose local address");
+        let active_requests = Arc::new(AtomicUsize::new(0));
+        let max_active_requests = Arc::new(AtomicUsize::new(0));
+        let server_active_requests = Arc::clone(&active_requests);
+        let server_max_active_requests = Arc::clone(&max_active_requests);
+        let server = tokio::spawn(async move {
+            for _ in 0..2 {
+                let (mut stream, _) = listener
+                    .accept()
+                    .await
+                    .expect("test server should accept a request");
+                let active = Arc::clone(&server_active_requests);
+                let max_active = Arc::clone(&server_max_active_requests);
+                tokio::spawn(async move {
+                    let current = active.fetch_add(1, Ordering::SeqCst) + 1;
+                    max_active.fetch_max(current, Ordering::SeqCst);
+                    tokio::time::sleep(Duration::from_millis(75)).await;
+                    stream
+                        .write_all(
+                            format!(
+                                "HTTP/1.1 200 OK\r\nContent-Type: application/rss+xml\r\nContent-Length: {}\r\n\r\n{}",
+                                SAMPLE_RSS.len(),
+                                SAMPLE_RSS
+                            )
+                            .as_bytes(),
+                        )
+                        .await
+                        .expect("test response should be written");
+                    stream.shutdown().await.expect("test stream should close");
+                    active.fetch_sub(1, Ordering::SeqCst);
+                });
+            }
+        });
+
+        let provider = Arc::new(local_provider_allowing_private_feed_urls());
+        let feed_url = format!("http://{address}/feed.xml");
+        let first_provider = Arc::clone(&provider);
+        let second_provider = Arc::clone(&provider);
+        let first_url = feed_url.clone();
+        let second_url = feed_url.clone();
+
+        let (first_result, second_result) = tokio::join!(
+            async move {
+                first_provider
+                    .pull_entries(
+                        PullScope::Feed(FeedIdentifier::Local {
+                            feed_url: first_url,
+                        }),
+                        None,
+                    )
+                    .await
+            },
+            async move {
+                second_provider
+                    .pull_entries(
+                        PullScope::Feed(FeedIdentifier::Local {
+                            feed_url: second_url,
+                        }),
+                        None,
+                    )
+                    .await
+            }
+        );
+
+        first_result.expect("first local feed request should succeed");
+        second_result.expect("second local feed request should succeed");
+        timeout(Duration::from_secs(2), server)
+            .await
+            .expect("test server should finish")
+            .expect("test server task should finish");
+        assert_eq!(
+            max_active_requests.load(Ordering::SeqCst),
+            LOCAL_PROVIDER_REQUEST_CONCURRENCY_LIMIT
+        );
     }
 
     #[tokio::test]
@@ -1104,6 +1203,18 @@ mod tests {
         ));
     }
 
+    #[test]
+    fn validate_external_feed_url_rechecks_repeated_private_host_resolution() {
+        let url = reqwest::Url::parse("http://localhost/feed.xml").unwrap();
+
+        for _ in 0..2 {
+            assert!(matches!(
+                validate_external_feed_url(&url),
+                Err(DomainError::Validation(message)) if message == PRIVATE_URL_VALIDATION_MESSAGE
+            ));
+        }
+    }
+
     #[tokio::test]
     async fn pull_entries_rejects_non_local_scope() {
         let provider = LocalProvider::new();
@@ -1168,6 +1279,73 @@ mod tests {
                 Err(DomainError::Validation(message)) if message == PRIVATE_URL_VALIDATION_MESSAGE
             ));
         }
+    }
+
+    #[tokio::test]
+    async fn redirect_policy_preserves_authorization_on_same_origin_redirects() {
+        let mut server = mockito::Server::new_async().await;
+        let redirect = server
+            .mock("GET", "/old-feed.xml")
+            .match_header("Authorization", "Bearer same-origin-token")
+            .with_status(308)
+            .with_header("location", "/feed.xml")
+            .create_async()
+            .await;
+        let final_feed = server
+            .mock("GET", "/feed.xml")
+            .match_header("Authorization", "Bearer same-origin-token")
+            .with_status(204)
+            .create_async()
+            .await;
+
+        let client = http_client_builder()
+            .redirect(LocalProvider::redirect_policy(true))
+            .build()
+            .expect("provider client should build");
+        let response = client
+            .get(format!("{}/old-feed.xml", server.url()))
+            .header(reqwest::header::AUTHORIZATION, "Bearer same-origin-token")
+            .send()
+            .await
+            .expect("same-origin redirect should complete");
+
+        assert_eq!(response.status(), StatusCode::NO_CONTENT);
+        redirect.assert_async().await;
+        final_feed.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn redirect_policy_strips_authorization_on_cross_origin_redirects() {
+        let mut origin = mockito::Server::new_async().await;
+        let mut target = mockito::Server::new_async().await;
+        let redirect = origin
+            .mock("GET", "/old-feed.xml")
+            .match_header("Authorization", "Bearer cross-origin-token")
+            .with_status(308)
+            .with_header("location", &format!("{}/feed.xml", target.url()))
+            .create_async()
+            .await;
+        let final_feed = target
+            .mock("GET", "/feed.xml")
+            .match_header("Authorization", mockito::Matcher::Missing)
+            .with_status(204)
+            .create_async()
+            .await;
+
+        let client = http_client_builder()
+            .redirect(LocalProvider::redirect_policy(true))
+            .build()
+            .expect("provider client should build");
+        let response = client
+            .get(format!("{}/old-feed.xml", origin.url()))
+            .header(reqwest::header::AUTHORIZATION, "Bearer cross-origin-token")
+            .send()
+            .await
+            .expect("cross-origin redirect should complete");
+
+        assert_eq!(response.status(), StatusCode::NO_CONTENT);
+        redirect.assert_async().await;
+        final_feed.assert_async().await;
     }
 
     #[test]
