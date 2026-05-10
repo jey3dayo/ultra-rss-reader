@@ -159,6 +159,7 @@ function isPrivateIpv6Host(host: string): boolean {
     normalized.startsWith("::ffff:a") ||
     normalized.startsWith("::ffff:169.254.") ||
     normalized.startsWith("::ffff:a9fe:") ||
+    /^::ffff:ac1[0-9a-f]:/u.test(normalized) ||
     normalized.startsWith("::ffff:192.168.") ||
     normalized.startsWith("::ffff:c0a8:")
   );

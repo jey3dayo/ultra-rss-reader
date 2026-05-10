@@ -359,6 +359,7 @@ describe("command args validation parity", () => {
       { label: "private IPv4", input: "http://192.168.1.2/feed.xml", valid: false },
       { label: "IPv6 zone identifier", input: "http://[fe80::1%25en0]/feed.xml", valid: false },
       { label: "IPv4-mapped loopback", input: "http://[::ffff:7f00:1]/feed.xml", valid: false },
+      { label: "IPv4-mapped RFC1918", input: "http://[::ffff:172.16.0.1]/feed.xml", valid: false },
       {
         label: "Unicode IDNA public URL",
         input: "https://例え.テスト/feed.xml",
@@ -414,6 +415,7 @@ describe("command args validation parity", () => {
       { label: "private IPv4", input: "http://10.0.0.2/article", valid: false },
       { label: "IPv6 zone identifier", input: "http://[fe80::1%25en0]/article", valid: false },
       { label: "IPv4-mapped loopback", input: "http://[::ffff:7f00:1]/article", valid: false },
+      { label: "IPv4-mapped RFC1918", input: "http://[::ffff:172.16.0.1]/article", valid: false },
       {
         label: "Unicode IDNA public URL",
         input: "https://例え.テスト/article",

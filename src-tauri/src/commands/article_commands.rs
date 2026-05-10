@@ -767,6 +767,13 @@ async fn check_browser_embed_support_with_timeout(
     timeout: Duration,
 ) -> Result<bool, AppError> {
     let url = parse_public_browser_http_url(&url)?;
+    check_browser_embed_support_for_url(url, timeout).await
+}
+
+async fn check_browser_embed_support_for_url(
+    url: reqwest::Url,
+    timeout: Duration,
+) -> Result<bool, AppError> {
     let client = reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::limited(5))
         .timeout(timeout)
@@ -1226,7 +1233,7 @@ mod tests {
     use crate::domain::url_policy::PRIVATE_URL_VALIDATION_MESSAGE;
 
     use super::check_browser_embed_support;
-    use super::check_browser_embed_support_with_timeout;
+    use super::check_browser_embed_support_for_url;
     use super::{
         acquire_browser_open_queue_guard_from, article_command_pagination,
         background_browser_open_failure_message, background_browser_open_status_failure_message,
@@ -1240,9 +1247,9 @@ mod tests {
         record_article_view_with_conn, should_use_background_browser_open,
         supports_remote_mutations, toggle_article_star_with_conn, validate_feed_article_filters,
         validate_older_than_days, BrowserOpenQueueKey, BulkArticleMutationRow, OldUnreadScope,
-        ARTICLE_SEARCH_QUERY_MAX_CHARS, DEFAULT_ARTICLE_LIST_LIMIT,
-        DEFAULT_RECENT_ARTICLE_LIST_LIMIT, MAX_ARTICLE_COMMAND_LIST_LIMIT,
-        MAX_ARTICLE_COMMAND_LIST_OFFSET,
+        ARTICLE_SEARCH_QUERY_MAX_CHARS, BROWSER_EMBED_SUPPORT_REQUEST_TIMEOUT,
+        DEFAULT_ARTICLE_LIST_LIMIT, DEFAULT_RECENT_ARTICLE_LIST_LIMIT,
+        MAX_ARTICLE_COMMAND_LIST_LIMIT, MAX_ARTICLE_COMMAND_LIST_OFFSET,
     };
     use super::{cleanup_feed_integrity_orphans_inner, get_feed_integrity_report_inner};
     use crate::commands::dto::AppError;
@@ -1265,6 +1272,10 @@ mod tests {
     use std::time::Duration;
     use tokio::io::AsyncWriteExt;
     use tokio::net::TcpListener;
+
+    fn test_http_url(url: String) -> reqwest::Url {
+        reqwest::Url::parse(&url).expect("test server URL should parse")
+    }
 
     async fn stalled_http_url(path: &str) -> String {
         let listener = TcpListener::bind("127.0.0.1:0")
@@ -1429,9 +1440,12 @@ mod tests {
             .create_async()
             .await;
 
-        let supported = check_browser_embed_support(format!("{}/article", server.url()))
-            .await
-            .expect("embed check should succeed");
+        let supported = check_browser_embed_support_for_url(
+            test_http_url(format!("{}/article", server.url())),
+            BROWSER_EMBED_SUPPORT_REQUEST_TIMEOUT,
+        )
+        .await
+        .expect("embed check should succeed");
 
         assert!(!supported);
     }
@@ -1451,9 +1465,12 @@ mod tests {
             .create_async()
             .await;
 
-        let supported = check_browser_embed_support(format!("{}/article", server.url()))
-            .await
-            .expect("embed check should fall back to GET");
+        let supported = check_browser_embed_support_for_url(
+            test_http_url(format!("{}/article", server.url())),
+            BROWSER_EMBED_SUPPORT_REQUEST_TIMEOUT,
+        )
+        .await
+        .expect("embed check should fall back to GET");
 
         assert!(supported);
         head_mock.assert_async().await;
@@ -1475,9 +1492,12 @@ mod tests {
                 .create_async()
                 .await;
 
-            let supported = check_browser_embed_support(format!("{}/article", server.url()))
-                .await
-                .expect("embed check should resolve non-success GET responses");
+            let supported = check_browser_embed_support_for_url(
+                test_http_url(format!("{}/article", server.url())),
+                BROWSER_EMBED_SUPPORT_REQUEST_TIMEOUT,
+            )
+            .await
+            .expect("embed check should resolve non-success GET responses");
 
             assert!(!supported, "GET {status} should not be embeddable");
             head_mock.assert_async().await;
@@ -1500,9 +1520,12 @@ mod tests {
             .create_async()
             .await;
 
-        let supported = check_browser_embed_support(format!("{}/article", server.url()))
-            .await
-            .expect("embed check should accept success GET responses");
+        let supported = check_browser_embed_support_for_url(
+            test_http_url(format!("{}/article", server.url())),
+            BROWSER_EMBED_SUPPORT_REQUEST_TIMEOUT,
+        )
+        .await
+        .expect("embed check should accept success GET responses");
 
         assert!(supported);
         head_mock.assert_async().await;
@@ -1511,8 +1534,8 @@ mod tests {
 
     #[tokio::test]
     async fn embed_support_surfaces_head_request_timeout() {
-        let error = check_browser_embed_support_with_timeout(
-            stalled_http_url("/article").await,
+        let error = check_browser_embed_support_for_url(
+            test_http_url(stalled_http_url("/article").await),
             Duration::from_millis(20),
         )
         .await
@@ -1528,8 +1551,8 @@ mod tests {
 
     #[tokio::test]
     async fn embed_support_surfaces_get_fallback_timeout() {
-        let error = check_browser_embed_support_with_timeout(
-            head_rejected_then_stalled_get_url("/article").await,
+        let error = check_browser_embed_support_for_url(
+            test_http_url(head_rejected_then_stalled_get_url("/article").await),
             Duration::from_millis(20),
         )
         .await
