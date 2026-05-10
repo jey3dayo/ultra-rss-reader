@@ -91,7 +91,19 @@ impl LocalProvider {
             .map(ToString::to_string)
     }
 
-    fn select_feed_site_url(feed: &feed_rs::model::Feed, fallback_url: &str) -> String {
+    fn resolve_feed_site_url(feed_url: &str, raw_site_url: &str) -> Option<String> {
+        let trimmed = raw_site_url.trim();
+        if trimmed.is_empty() {
+            return None;
+        }
+
+        let resolved = reqwest::Url::parse(feed_url)
+            .and_then(|base_url| base_url.join(trimmed))
+            .ok()?;
+        normalizer::normalize_provider_metadata_url(resolved.as_str())
+    }
+
+    fn select_feed_site_url(feed: &feed_rs::model::Feed, feed_url: &str) -> String {
         feed.links
             .iter()
             .find(|link| {
@@ -102,8 +114,79 @@ impl LocalProvider {
                     && media_type.eq_ignore_ascii_case("text/html")
             })
             .or_else(|| feed.links.iter().find(|link| !link.href.trim().is_empty()))
-            .map(|link| link.href.clone())
-            .unwrap_or_else(|| fallback_url.to_string())
+            .and_then(|link| Self::resolve_feed_site_url(feed_url, &link.href))
+            .unwrap_or_else(|| feed_url.to_string())
+    }
+
+    fn select_raw_feed_site_url(feed_body: &[u8], feed_url: &str) -> Option<String> {
+        let body = String::from_utf8_lossy(feed_body);
+        Self::extract_raw_link_href(&body)
+            .or_else(|| Self::extract_rss_channel_link_text(&body))
+            .and_then(|raw_url| Self::resolve_feed_site_url(feed_url, &raw_url))
+    }
+
+    fn extract_raw_link_href(body: &str) -> Option<String> {
+        let lower_body = body.to_ascii_lowercase();
+        let mut search_from = 0;
+        while let Some(start_offset) = lower_body[search_from..].find("<link") {
+            let start = search_from + start_offset;
+            let remaining = &lower_body[start..];
+            let Some(end_offset) = remaining.find('>') else {
+                return None;
+            };
+            let tag = &body[start..start + end_offset + 1];
+            search_from = start + end_offset + 1;
+
+            let rel = Self::extract_raw_attribute(tag, "rel").unwrap_or_else(|| "alternate".into());
+            let media_type =
+                Self::extract_raw_attribute(tag, "type").unwrap_or_else(|| "text/html".into());
+            if !rel
+                .split_ascii_whitespace()
+                .any(|token| token.eq_ignore_ascii_case("alternate"))
+                || !media_type.eq_ignore_ascii_case("text/html")
+            {
+                continue;
+            }
+
+            if let Some(href) =
+                Self::extract_raw_attribute(tag, "href").filter(|href| !href.trim().is_empty())
+            {
+                return Some(href);
+            }
+        }
+
+        None
+    }
+
+    fn extract_raw_attribute(tag: &str, name: &str) -> Option<String> {
+        for quote in ['"', '\''] {
+            let pattern = format!("{name}={quote}");
+            let lower_tag = tag.to_ascii_lowercase();
+            let Some(start) = lower_tag.find(&pattern) else {
+                continue;
+            };
+            let value_start = start + pattern.len();
+            let Some(end_offset) = tag[value_start..].find(quote) else {
+                continue;
+            };
+            return Some(tag[value_start..value_start + end_offset].to_string());
+        }
+
+        None
+    }
+
+    fn extract_rss_channel_link_text(body: &str) -> Option<String> {
+        let lower_body = body.to_ascii_lowercase();
+        let channel_start = lower_body.find("<channel").unwrap_or(0);
+        let channel_end = lower_body[channel_start..]
+            .find("<item")
+            .map_or(body.len(), |item_start| channel_start + item_start);
+        let channel = &body[channel_start..channel_end];
+        let lower_channel = &lower_body[channel_start..channel_end];
+        let link_start = lower_channel.find("<link>")? + "<link>".len();
+        let link_end = lower_channel[link_start..].find("</link>")? + link_start;
+        let link = channel[link_start..link_end].trim();
+        (!link.is_empty()).then(|| link.to_string())
     }
 
     async fn response_bytes_with_limit(mut response: reqwest::Response) -> DomainResult<Vec<u8>> {
@@ -416,6 +499,9 @@ impl FeedProvider for LocalProvider {
         let feed =
             feed_rs::parser::parse(&bytes[..]).map_err(|e| DomainError::Parse(e.to_string()))?;
 
+        let site_url = Self::select_raw_feed_site_url(&bytes, url.as_str())
+            .unwrap_or_else(|| Self::select_feed_site_url(&feed, url.as_str()));
+
         Ok(RemoteSubscription {
             remote_id: url.to_string(),
             title: feed
@@ -424,11 +510,7 @@ impl FeedProvider for LocalProvider {
                 .map(|t| t.content.clone())
                 .unwrap_or_else(|| url.to_string()),
             url: url.to_string(),
-            site_url: normalizer::normalize_provider_metadata_url(&Self::select_feed_site_url(
-                &feed,
-                url.as_str(),
-            ))
-            .unwrap_or_else(|| url.to_string()),
+            site_url,
             folder_remote_id: None,
             icon_url: feed
                 .icon
@@ -1161,6 +1243,100 @@ mod tests {
         let subscription = provider.create_subscription(&feed_url, None).await.unwrap();
 
         assert_eq!(subscription.site_url, "https://example.com/");
+        mock.assert_async().await;
+    }
+
+    #[test]
+    fn resolve_feed_site_url_resolves_relative_site_links_against_feed_url() {
+        assert_eq!(
+            LocalProvider::resolve_feed_site_url("https://example.com/blog/feed.xml", "../")
+                .as_deref(),
+            Some("https://example.com/")
+        );
+    }
+
+    #[test]
+    fn select_raw_feed_site_url_resolves_relative_rss_channel_link_against_feed_url() {
+        let feed = r#"<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Relative Site Feed</title>
+    <link>../</link>
+    <item>
+      <title>Article 1</title>
+      <link>https://example.com/articles/1</link>
+    </item>
+  </channel>
+</rss>"#;
+
+        assert_eq!(
+            LocalProvider::select_raw_feed_site_url(
+                feed.as_bytes(),
+                "https://example.com/blog/feed.xml"
+            )
+            .as_deref(),
+            Some("https://example.com/")
+        );
+    }
+
+    #[tokio::test]
+    async fn create_subscription_resolves_scheme_relative_site_links_against_feed_url() {
+        let feed = r#"<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Scheme Relative Site Feed</title>
+  <id>https://example.com/feed.xml</id>
+  <updated>2026-03-27T12:00:00Z</updated>
+  <link rel="alternate" type="text/html" href="//example.com/home#fragment"/>
+  <entry>
+    <title>Article 1</title>
+    <id>article-1</id>
+    <updated>2026-03-27T12:00:00Z</updated>
+  </entry>
+</feed>"#;
+        let mut server = mockito::Server::new_async().await;
+        let feed_url = format!("{}/feed.xml", server.url());
+        let mock = server
+            .mock("GET", "/feed.xml")
+            .with_body(feed)
+            .with_header("content-type", "application/atom+xml")
+            .create_async()
+            .await;
+
+        let provider = local_provider_allowing_private_feed_urls();
+        let subscription = provider.create_subscription(&feed_url, None).await.unwrap();
+
+        assert_eq!(subscription.site_url, "http://example.com/home");
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn create_subscription_falls_back_to_feed_url_when_site_link_is_invalid_after_resolution()
+    {
+        let feed = r#"<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Invalid Site Feed</title>
+  <id>https://example.com/feed.xml</id>
+  <updated>2026-03-27T12:00:00Z</updated>
+  <link rel="alternate" type="text/html" href="http://localhost/home"/>
+  <entry>
+    <title>Article 1</title>
+    <id>article-1</id>
+    <updated>2026-03-27T12:00:00Z</updated>
+  </entry>
+</feed>"#;
+        let mut server = mockito::Server::new_async().await;
+        let feed_url = format!("{}/feed.xml", server.url());
+        let mock = server
+            .mock("GET", "/feed.xml")
+            .with_body(feed)
+            .with_header("content-type", "application/atom+xml")
+            .create_async()
+            .await;
+
+        let provider = local_provider_allowing_private_feed_urls();
+        let subscription = provider.create_subscription(&feed_url, None).await.unwrap();
+
+        assert_eq!(subscription.site_url, feed_url);
         mock.assert_async().await;
     }
 

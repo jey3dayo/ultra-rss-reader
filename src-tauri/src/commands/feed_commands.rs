@@ -1243,6 +1243,95 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn add_local_feed_uses_create_fetch_for_metadata_and_pull_fetch_for_articles() {
+        let create_feed = r#"<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Create Fetch Title</title>
+    <link>https://example.com/create</link>
+  </channel>
+</rss>"#;
+        let pull_feed = r#"<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Pull Fetch Title</title>
+    <link>https://example.com/pull</link>
+    <item>
+      <title>Pull Fetch Article</title>
+      <link>https://example.com/articles/pull</link>
+      <guid>pull-guid</guid>
+    </item>
+  </channel>
+</rss>"#;
+        let mut server = mockito::Server::new_async().await;
+        let feed_url = format!("{}/feed.xml", server.url());
+        let create_mock = server
+            .mock("GET", "/feed.xml")
+            .with_status(200)
+            .with_header("content-type", "application/rss+xml")
+            .with_header("etag", "\"create-etag\"")
+            .with_body(create_feed)
+            .expect(1)
+            .create_async()
+            .await;
+        let pull_mock = server
+            .mock("GET", "/feed.xml")
+            .with_status(200)
+            .with_header("content-type", "application/rss+xml")
+            .with_header("etag", "\"pull-etag\"")
+            .with_body(pull_feed)
+            .expect(1)
+            .create_async()
+            .await;
+
+        let db = Mutex::new(test_db());
+        let account_id = {
+            let db_guard = db.lock().unwrap();
+            insert_test_account(&db_guard, "Primary")
+        };
+
+        let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
+        let feed =
+            add_local_feed_with_provider(&db, account_id.0.clone(), feed_url.clone(), &provider)
+                .await
+                .unwrap();
+
+        create_mock.assert_async().await;
+        pull_mock.assert_async().await;
+        assert_eq!(feed.title, "Create Fetch Title");
+        assert_eq!(feed.site_url, "https://example.com/create");
+        assert_eq!(feed.unread_count, 1);
+
+        let (article_title, article_url, saved_etag): (String, String, String) = {
+            let db_guard = db.lock().unwrap();
+            let article = db_guard
+                .reader()
+                .query_row(
+                    "SELECT a.title, a.url
+                     FROM articles a
+                     JOIN feeds f ON f.id = a.feed_id
+                     WHERE f.account_id = ?1 AND f.url = ?2",
+                    params![account_id.0.clone(), feed_url.clone()],
+                    |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
+                )
+                .unwrap();
+            let etag = db_guard
+                .reader()
+                .query_row(
+                    "SELECT etag FROM sync_state WHERE account_id = ?1 AND scope_key = ?2",
+                    params![account_id.0, format!("local_feed:{feed_url}")],
+                    |row| row.get::<_, String>(0),
+                )
+                .unwrap();
+            (article.0, article.1, etag)
+        };
+
+        assert_eq!(article_title, "Pull Fetch Article");
+        assert_eq!(article_url, "https://example.com/articles/pull");
+        assert_eq!(saved_etag, "\"pull-etag\"");
+    }
+
+    #[tokio::test]
     async fn add_local_feed_rejects_duplicate_url_without_deleting_existing_feed() {
         let mut server = mockito::Server::new_async().await;
         let feed_url = format!("{}/feed.xml", server.url());
