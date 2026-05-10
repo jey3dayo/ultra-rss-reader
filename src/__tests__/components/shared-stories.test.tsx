@@ -7,6 +7,7 @@ import {
   type StoryLike,
   type StoryMeta,
 } from "@tests/helpers/render-story";
+import { storybookStoryExportRegistry } from "@tests/helpers/storybook-story-export-registry";
 import { describe, expect, it } from "vitest";
 import copyableReadonlyFieldMeta, {
   Default as CopyableReadonlyFieldDefault,
@@ -44,6 +45,51 @@ import workspaceHeaderMeta, {
   WindowsDesktop as WorkspaceHeaderWindowsDesktop,
 } from "@/components/shared/workspace-header.stories";
 
+const sharedStoryModules = import.meta.glob<unknown>("/src/components/shared/*.stories.tsx", {
+  eager: true,
+});
+
+const requiredSharedStoryExportsByFilePath = {
+  "/src/components/shared/confirm-dialog-view.stories.tsx": ["Default", "LongCopy", "SuccessTone", "WarningTone"],
+  "/src/components/shared/copyable-readonly-field-list.stories.tsx": ["CardSurface", "Plain"],
+  "/src/components/shared/copyable-readonly-field.stories.tsx": ["Default", "Disabled", "EmptyValue"],
+  "/src/components/shared/destructive-confirm-dialog-view.stories.tsx": ["Default", "LongCopy", "Pending"],
+  "/src/components/shared/destructive-dialog-footer.stories.tsx": ["Default", "LongConfirmLabel", "Pending"],
+  "/src/components/shared/form-action-buttons.stories.tsx": ["Default", "Disabled", "Loading", "LongLocalizedLabels"],
+  "/src/components/shared/gradient-switch.stories.tsx": [
+    "Disabled",
+    "DisabledChecked",
+    "Off",
+    "On",
+    "SettingsRow",
+    "WithLabel",
+  ],
+  "/src/components/shared/icon-toolbar-surface-button.stories.tsx": ["ChromeVariantComparison", "Default"],
+  "/src/components/shared/indeterminate-progress.stories.tsx": ["Default", "ToolbarPreview"],
+  "/src/components/shared/labeled-control-row.stories.tsx": ["WithInput", "WithLongLabel", "WithSelect"],
+  "/src/components/shared/labeled-input-row.stories.tsx": [
+    "Default",
+    "Disabled",
+    "InlineAction",
+    "InsideIconAction",
+    "InsideTextAction",
+    "LongLabelActions",
+    "LongLabelInsideAction",
+  ],
+  "/src/components/shared/labeled-select-row.stories.tsx": ["Default", "Disabled", "Open"],
+  "/src/components/shared/labeled-switch-row.stories.tsx": ["Disabled", "Off", "On"],
+  "/src/components/shared/nav-row-button.stories.tsx": ["Default", "Disabled", "SidebarSelected", "WithDescription"],
+  "/src/components/shared/section-heading.stories.tsx": ["Default", "InSectionContext", "LongLabel"],
+  "/src/components/shared/stacked-input-field.stories.tsx": ["Default", "Disabled"],
+  "/src/components/shared/stacked-select-field.stories.tsx": ["Default", "Disabled"],
+  "/src/components/shared/workspace-header.stories.tsx": [
+    "BrowserPreview",
+    "MacDesktop",
+    "Playground",
+    "WindowsDesktop",
+  ],
+} as const;
+
 function renderStory<TArgs extends StoryArgs>(meta: StoryMeta<TArgs>, story: StoryLike<TArgs>) {
   return renderStoryHelper(meta, story);
 }
@@ -53,6 +99,23 @@ function renderStoryWithWrapper<TArgs extends StoryArgs>(meta: StoryMeta<TArgs>,
 }
 
 describe("Shared stories", () => {
+  it("keeps shared component stories registered with required coverage", () => {
+    const sharedStoryFilePaths = Object.keys(sharedStoryModules).toSorted();
+    const requiredSharedStoryFilePaths = Object.keys(requiredSharedStoryExportsByFilePath).toSorted();
+    const registeredSharedStories = new Map(
+      storybookStoryExportRegistry
+        .filter((entry) => entry.filePath.startsWith("/src/components/shared/"))
+        .map((entry) => [entry.filePath, entry.storyExportNames.toSorted()] as const),
+    );
+
+    expect(sharedStoryFilePaths).toEqual(requiredSharedStoryFilePaths);
+    expect([...registeredSharedStories.keys()].toSorted()).toEqual(requiredSharedStoryFilePaths);
+
+    for (const [filePath, requiredStoryExports] of Object.entries(requiredSharedStoryExportsByFilePath)) {
+      expect(registeredSharedStories.get(filePath)).toEqual([...requiredStoryExports].toSorted());
+    }
+  });
+
   it("applies meta and story decorators when rendering stories", () => {
     const meta = {
       component: ({ label }: { label: string }) => <span>{label}</span>,

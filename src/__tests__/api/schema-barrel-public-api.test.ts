@@ -1,3 +1,5 @@
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { expectSortedKeysForTarget } from "@tests/helpers/repo-contract-parser";
 import { describe, expect, expectTypeOf, it } from "vitest";
 import type {
@@ -127,6 +129,35 @@ const publicTauriCommandSchemaBoundaryExports = [
   "isCommandWithArgs",
 ] as const satisfies readonly (typeof publicSchemaRuntimeExports)[number][];
 
+const schemaFilesCoveredByAggregateTests = [
+  "account-sync-status",
+  "account",
+  "article",
+  "browser-webview",
+  "commands",
+  "common",
+  "discovered-feed",
+  "error",
+  "feed-article-summary",
+  "feed",
+  "folder",
+  "mute-keyword",
+  "preferences",
+  "runtime-contracts",
+  "starred-articles",
+  "sync-progress",
+  "tag",
+  "update-info",
+] as const;
+
+const expectedSchemaFileStems = [
+  ...schemaFilesCoveredByAggregateTests,
+  "database-info",
+  "feed-integrity",
+  "platform-info",
+  "sync-result",
+] as const;
+
 type PublicSchemaTypeContracts = readonly [
   AccountDto,
   AccountSyncError,
@@ -154,6 +185,29 @@ type PublicSchemaTypeContracts = readonly [
   TagDto,
   UpdateInfoDto,
 ];
+
+function readSource(path: string) {
+  return readFileSync(join(process.cwd(), path), "utf8");
+}
+
+function readDirectoryFileStems(path: string) {
+  return readdirSync(join(process.cwd(), path))
+    .filter((fileName) => fileName.endsWith(".ts"))
+    .map((fileName) => fileName.replace(/\.ts$/, ""))
+    .filter((fileName) => fileName !== "index")
+    .toSorted();
+}
+
+function extractSchemaBarrelExportTargets(source: string) {
+  return [...source.matchAll(/from "\.\/([^"]+)";/g)]
+    .map((match) => match[1])
+    .filter(Boolean)
+    .toSorted();
+}
+
+function toSchemaTestFilePath(schemaFileStem: string) {
+  return `src/__tests__/api/schemas/${schemaFileStem}.test.ts`;
+}
 
 describe("schema barrel public API", () => {
   it("keeps runtime exports intentionally public through the schema barrel", () => {
@@ -187,5 +241,30 @@ describe("schema barrel public API", () => {
 
   it("keeps DTO and command helper type exports intentionally public through the schema barrel", () => {
     expectTypeOf<PublicSchemaTypeContracts>().toEqualTypeOf<PublicSchemaTypeContracts>();
+  });
+
+  it("keeps every API schema file either barrel-exported or intentionally internal", () => {
+    const schemaFileStems = readDirectoryFileStems("src/api/schemas");
+    const schemaBarrelExportTargets = extractSchemaBarrelExportTargets(readSource("src/api/schemas/index.ts"));
+
+    expectSortedKeysForTarget("src/api/schemas files", schemaFileStems, expectedSchemaFileStems);
+    expectSortedKeysForTarget("src/api/schemas barrel export targets", schemaBarrelExportTargets, schemaFileStems);
+  });
+
+  it("keeps schema-specific test coverage explicit for new API schema files", () => {
+    const dedicatedSchemaTestStems = readDirectoryFileStems("src/__tests__/api/schemas").map((fileName) =>
+      fileName.replace(/\.test$/, ""),
+    );
+    const coveredSchemaFileStems = [...schemaFilesCoveredByAggregateTests, ...dedicatedSchemaTestStems].toSorted();
+
+    expectSortedKeysForTarget("schema files with dedicated or aggregate tests", coveredSchemaFileStems, [
+      ...expectedSchemaFileStems,
+    ]);
+    expect(dedicatedSchemaTestStems.map(toSchemaTestFilePath)).toEqual([
+      "src/__tests__/api/schemas/database-info.test.ts",
+      "src/__tests__/api/schemas/feed-integrity.test.ts",
+      "src/__tests__/api/schemas/platform-info.test.ts",
+      "src/__tests__/api/schemas/sync-result.test.ts",
+    ]);
   });
 });
