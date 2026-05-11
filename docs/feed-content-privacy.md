@@ -66,6 +66,8 @@ Encryption decision:
 Native file selection policy:
 
 - OPML import should accept `.opml` and `.xml` files selected through a native open dialog; directory selection and unsupported extensions must fail before parsing.
+- OS file drop and drag-and-drop import surfaces, if added, must enter the same OPML import boundary as the native open dialog. Dropped OPML files must apply the same extension allowlist, file-size cap, symlink/private-path refusal policy, content parser, URL validation, account ownership, duplicate handling, diagnostics redaction, cancellation, and progress-state behavior before any persistence mutation.
+- Dropped directories, unsupported extensions, multiple-file drops, symlink files, oversized files, and unreadable files must fail or be ignored before parsing with user-visible feedback that does not reveal raw local paths. A drop cancellation must leave import state idle and must not partially import feeds.
 - OPML export and database backup flows must use native save dialogs, append the expected extension only when the user did not provide one, and show a clear overwrite confirmation before replacing an existing file.
 - Dialog cancellation is a neutral result, not an error. It must not create, delete, or overwrite files and must leave progress state idle.
 - Database backup save locations must be treated as private user-chosen paths and must not be logged or shown in support copy unless redacted.
@@ -532,11 +534,13 @@ Favicon fetch contract:
   endpoints. Prefer origin-level site URLs or a reviewed privacy-preserving
   proxy contract over raw feed URLs.
 - Favicon cache entries must be scoped by normalized account/feed or normalized
-  site origin, use a bounded TTL, and be evicted or ignored after feed deletion,
-  account deletion, site URL change, or feed URL change.
-- Failure cache must be bounded and resettable. A failed favicon must fall back
-  without retry loops, and manual refresh may clear the failure entry for that
-  feed/site origin only.
+  site origin, use a maximum 7-day success TTL, and be evicted or ignored after
+  feed deletion, account deletion, site URL change, or feed URL change. Cache
+  refresh must use the same no-referrer, provider-user-agent, private-host, and
+  credential-rejection policy as the original fetch.
+- Failure cache must be bounded, resettable, and expire within 24 hours. A failed
+  favicon must fall back without retry loops, and manual refresh may clear the
+  failure entry for that feed/site origin only.
 - Favicon diagnostics may record fetch class, status class, and redacted host
   class, but must not record raw feed paths, query strings, credentials, tokens,
   cookies, or account names.

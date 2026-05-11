@@ -235,6 +235,7 @@ describe("CommandPalette", () => {
     useUiStore.setState({
       syncProgress: {
         active: true,
+        sessionId: 1,
         kind: "manual_all",
         stage: "account_started",
         total: 1,

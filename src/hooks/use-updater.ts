@@ -20,6 +20,7 @@ type UpdateInfo = UpdateInfoDto;
 let checkInFlight: Result.ResultAsync<UpdateInfo | null, AppError> | null = null;
 let downloadInFlight = false;
 let activeDownloadSessionId: number | null = null;
+let activeDownloadProgressPercent: number | null = null;
 let activeDownloadRequestId: number | null = null;
 let nextDownloadRequestId = 0;
 const staleDownloadSessionIds = new Set<number>();
@@ -52,6 +53,7 @@ function completeActiveDownloadAsReady(downloadRequestId: number): void {
   rememberStaleDownloadSession();
   downloadInFlight = false;
   activeDownloadSessionId = null;
+  activeDownloadProgressPercent = null;
   activeDownloadRequestId = null;
   showRestartToast();
 }
@@ -136,6 +138,7 @@ function startDownload(ownerToast?: ToastData): void {
 
   downloadInFlight = true;
   activeDownloadSessionId = null;
+  activeDownloadProgressPercent = 0;
   activeDownloadRequestId = nextDownloadRequestId + 1;
   nextDownloadRequestId = activeDownloadRequestId;
   const downloadRequestId = activeDownloadRequestId;
@@ -163,6 +166,7 @@ function startDownload(ownerToast?: ToastData): void {
           showUpdateFailureToast(e.message);
           downloadInFlight = false;
           activeDownloadSessionId = null;
+          activeDownloadProgressPercent = null;
           activeDownloadRequestId = null;
         }),
       ),
@@ -176,6 +180,7 @@ function startDownload(ownerToast?: ToastData): void {
       showUpdateFailureToast(getErrorMessage(error));
       downloadInFlight = false;
       activeDownloadSessionId = null;
+      activeDownloadProgressPercent = null;
       activeDownloadRequestId = null;
     });
 }
@@ -214,7 +219,17 @@ function readDownloadProgressPercent(payload: unknown): number | null | undefine
     return undefined;
   }
 
-  return normalizeDownloadProgressPercent(result.data.percent);
+  const percent = normalizeDownloadProgressPercent(result.data.percent);
+  if (percent === null) {
+    return percent;
+  }
+
+  if (activeDownloadProgressPercent !== null && percent < activeDownloadProgressPercent) {
+    return undefined;
+  }
+
+  activeDownloadProgressPercent = percent;
+  return percent;
 }
 
 function isCurrentDownloadReady(payload: unknown): boolean {

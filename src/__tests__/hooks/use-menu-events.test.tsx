@@ -153,7 +153,8 @@ describe("useMenuEvents", () => {
       payload: {
         action: "open-feed-cleanup",
         token: "raw-token",
-        url: `https://example.com/secret-token/feed.xml?token=raw#frag ${"x".repeat(320)}`,
+        url: `https://example.com/secret-token/feed.xml?token=raw#frag ${"x".repeat(20 * 1024)}`,
+        suffix: "kept-after-emergency-truncation",
       },
     });
 
@@ -164,13 +165,15 @@ describe("useMenuEvents", () => {
     expect(debugPayload).toContain(
       'menu-action {"action":"open-feed-cleanup","token":"<redacted>","url":"https://example.com/redacted?redacted#redacted ',
     );
-    expect(debugPayload).toHaveLength("menu-action ".length + 214);
-    expect(debugPayload).toMatch(/\.\.\.\[truncated\]$/);
+    expect(debugPayload).toHaveLength("menu-action ".length + 16 * 1024);
+    expect(debugPayload).toContain("[ultra-rss-reader:diagnostics-truncated]");
+    expect(debugPayload).toContain("kept-after-emergency-truncation");
     expect(warningPayload).toContain(
       '[menu-events] Unknown action: {"action":"open-feed-cleanup","token":"<redacted>","url":"https://example.com/redacted?redacted#redacted ',
     );
-    expect(warningPayload).toHaveLength("[menu-events] Unknown action: ".length + 214);
-    expect(warningPayload).toMatch(/\.\.\.\[truncated\]$/);
+    expect(warningPayload).toHaveLength("[menu-events] Unknown action: ".length + 16 * 1024);
+    expect(warningPayload).toContain("[ultra-rss-reader:diagnostics-truncated]");
+    expect(warningPayload).toContain("kept-after-emergency-truncation");
     expect(JSON.stringify(warnSpy.mock.calls)).not.toContain("raw-token");
     expect(JSON.stringify(warnSpy.mock.calls)).not.toContain("token=raw");
     warnSpy.mockRestore();

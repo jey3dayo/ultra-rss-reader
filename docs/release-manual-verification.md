@@ -433,6 +433,7 @@ Confirm and record:
 - Database backup/export copy says backups are private and not app-encrypted, and OPML export copy says subscription titles and URLs may be private even when secrets are excluded.
 - App settings export/import is not presented as supported unless the build includes a schema version, source app identifier, strict future-version import behavior, secret exclusion policy, conflict preview, and encryption decision.
 - Manual log deletion and support dump deletion are documented as separate cleanup steps after an incident is resolved.
+- Support dumps are not generated before explicit user consent and a redaction preview; if the preview cannot be produced, generation fails closed.
 - If any artifact cannot be removed because of OS permissions, file locks, or an unknown path, the user-facing result says the reset is incomplete.
 - Support/debug copy does not automatically include hostname, local filesystem paths, OS username, account names, feed URLs, article URLs, server URLs, credentials, tokens, cookies, or a stable device identifier.
 - If support needs environment context, ask for app version, OS family, CPU architecture, locale, and timezone offset as separate non-secret fields instead of adding a stable fingerprint to default debug copy.

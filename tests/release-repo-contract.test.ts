@@ -578,6 +578,7 @@ describe("release repository contract", () => {
   const updaterCommandsSource = readText("src-tauri/src/commands/updater_commands.rs");
   const migrationSource = readText("src-tauri/src/infra/db/migration.rs");
   const devMocks = readText("src/dev/mocks.ts");
+  const feedContentPrivacy = readText("docs/feed-content-privacy.md");
   const incidentRunbook = readText("docs/incident-runbook.md");
   const releaseManualVerification = readText("docs/release-manual-verification.md");
   const docsReadme = readText("docs/README.md");
@@ -995,6 +996,79 @@ describe("release repository contract", () => {
     expect(releaseManualVerification).toContain("OS keyring credentials cannot be copied automatically");
     expect(releaseManualVerification).toContain(
       "Rollback after an identifier change must return users to the old identifier namespace",
+    );
+  });
+
+  it("keeps privacy-sensitive export, reset, support dump, and settings portability contracts documented", () => {
+    expect(feedContentPrivacy).toContain(
+      "Database backups include the SQLite database and any matching `-wal` / `-shm` sidecars.",
+    );
+    expect(feedContentPrivacy).toContain(
+      "Ultra RSS Reader does not encrypt database backups or OPML exports with an app-managed key in this release.",
+    );
+    expect(feedContentPrivacy).toContain(
+      "Users who need encrypted storage or transfer must use OS disk encryption, an encrypted archive, or another external secure channel.",
+    );
+    expect(incidentRunbook).toContain("Treat database backup sets as private, unencrypted user data.");
+    expect(releaseManualVerification).toContain(
+      "Database backup/export copy says backups are private and not app-encrypted",
+    );
+
+    expect(incidentRunbook).toContain(
+      "Uninstall or app binary deletion removes the application bundle only; it must not be described as deleting local app data.",
+    );
+    expect(incidentRunbook).toContain(
+      "Reinstalling the same version or a newer version may reuse the existing app data, database, preferences, logs, and OS keyring credentials.",
+    );
+    expect(incidentRunbook).toContain(
+      "A reset is complete only when all applicable surfaces are removed or intentionally preserved for an active incident.",
+    );
+    expect(releaseManualVerification).toContain(
+      "Reinstalling the same or newer version is allowed to reuse existing app data, preferences, logs, and OS keyring credentials",
+    );
+    expect(feedContentPrivacy).toContain(
+      "Installer, updater, uninstall, and reinstall copy must say that app data can persist across app binary removal and app reinstall.",
+    );
+
+    expect(feedContentPrivacy).toContain(
+      "any support dump or diagnostics export must require explicit user consent and a redaction preview before the artifact is generated.",
+    );
+    expect(feedContentPrivacy).toContain("support dump generation must fail closed");
+    expect(incidentRunbook).toContain(
+      "If a database backup set or support dump is needed, share it only through a private support channel after confirming consent and redaction preview requirements",
+    );
+    expect(releaseManualVerification).toContain(
+      "Support dumps are not generated before explicit user consent and a redaction preview",
+    );
+
+    expect(feedContentPrivacy).toContain(
+      "do not introduce app settings export/import until the export contract is versioned and excludes secrets by design.",
+    );
+    expect(feedContentPrivacy).toContain("a top-level schema version and source app identifier");
+    expect(feedContentPrivacy).toContain(
+      "exclusion of credentials, tokens, cookies, OS keyring references, local filesystem paths, account passwords, and provider session material",
+    );
+    expect(incidentRunbook).toContain(
+      "App settings export/import is not a supported recovery promise until a schema version, source app identifier, secret exclusion list, import conflict behavior, and encryption decision are defined.",
+    );
+    expect(releaseManualVerification).toContain(
+      "App settings export/import is not presented as supported unless the build includes a schema version, source app identifier, strict future-version import behavior, secret exclusion policy, conflict preview, and encryption decision.",
+    );
+  });
+
+  it("keeps reader import, favicon, and browser-origin privacy boundaries documented", () => {
+    expect(feedContentPrivacy).toContain(
+      "OS file drop and drag-and-drop import surfaces, if added, must enter the same OPML import boundary as the native open dialog.",
+    );
+    expect(feedContentPrivacy).toContain(
+      "Dropped directories, unsupported extensions, multiple-file drops, symlink files, oversized files, and unreadable files must fail or be ignored before parsing",
+    );
+    expect(feedContentPrivacy).toContain("Favicon requests must send no `Referer` header.");
+    expect(feedContentPrivacy).toContain("use a maximum 7-day success TTL");
+    expect(feedContentPrivacy).toContain("Failure cache must be bounded, resettable, and expire within 24 hours.");
+    expect(feedContentPrivacy).toContain("The embedded browser webview represents a remote publisher origin.");
+    expect(feedContentPrivacy).toContain(
+      "article reader state may use sanitized `content_sanitized`, local app metadata, and app-controlled focus state",
     );
   });
 

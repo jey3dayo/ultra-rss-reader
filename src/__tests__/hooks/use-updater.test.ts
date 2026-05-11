@@ -1009,8 +1009,8 @@ describe("performUpdateCheck", () => {
 
     progressListeners[0]?.({ payload: { session_id: 1, percent: -12 } });
     expect(useUiStore.getState().toastMessage).toMatchObject({
-      message: "ダウンロード中… 0%",
-      progress: 0,
+      message: "ダウンロード中… 100%",
+      progress: 100,
     });
 
     progressListeners[0]?.({ payload: { session_id: 1, percent: 120 } });
@@ -1021,8 +1021,8 @@ describe("performUpdateCheck", () => {
 
     progressListeners[0]?.({ payload: { session_id: 1, percent: 42.4 } });
     expect(useUiStore.getState().toastMessage).toMatchObject({
-      message: "ダウンロード中… 42%",
-      progress: 42,
+      message: "ダウンロード中… 100%",
+      progress: 100,
     });
 
     deferredDownload.resolve(Result.succeed(null));

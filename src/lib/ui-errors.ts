@@ -3,6 +3,12 @@ import type { AppError } from "@/api/schemas/error";
 export type SchemaParseErrorSurface = "user-facing" | "diagnostics";
 
 export const RESPONSE_VALIDATION_MESSAGE = "Response validation failed. See diagnostics for details.";
+export const USER_FACING_ERROR_DIAGNOSTICS_POLICY = {
+  supportCode: "none",
+  diagnosticsId: "runtime-diagnostics-only",
+  copyPolicy: "Do not append support codes or diagnostics ids to user-facing AppError messages.",
+  correlationPolicy: "Correlate failures through redacted runtime diagnostics instead of user-visible identifiers.",
+} as const;
 
 export function classifySchemaParseErrorSurface(boundary: "args" | "response"): SchemaParseErrorSurface {
   return boundary === "args" ? "user-facing" : "diagnostics";

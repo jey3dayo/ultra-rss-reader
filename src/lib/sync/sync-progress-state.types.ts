@@ -2,6 +2,7 @@ import type { SyncProgressKind, SyncProgressStage } from "@/lib/sync/sync-progre
 
 export type SyncProgressUiState = {
   active: boolean;
+  sessionId: number | null;
   kind: SyncProgressKind | null;
   stage: SyncProgressStage | null;
   total: number;

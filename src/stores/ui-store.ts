@@ -155,6 +155,13 @@ function normalizeSyncProgressCounts(event: Pick<SyncProgressEventDto, "total" |
   };
 }
 
+function shouldIgnoreSyncProgressEvent(
+  current: SyncProgressUiState,
+  event: Pick<SyncProgressEventDto, "session_id">,
+): boolean {
+  return current.sessionId !== null && event.session_id < current.sessionId;
+}
+
 type UiState = {
   layoutMode: LayoutMode;
   focusedPane: FocusedPane;
@@ -552,6 +559,7 @@ const initialState: UiState = {
   subscriptionsWorkspace: null,
   syncProgress: {
     active: false,
+    sessionId: null,
     kind: null,
     stage: null,
     total: 0,
@@ -682,6 +690,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
                 }
               : {
                   active: false,
+                  sessionId: null,
                   kind: null,
                   stage: null,
                   total: 0,
@@ -1016,8 +1025,18 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
     })),
   applySyncProgress: (event) =>
     set((state) => {
+      if (shouldIgnoreSyncProgressEvent(state.syncProgress, event)) {
+        return {};
+      }
+
       const counts = normalizeSyncProgressCounts(event);
-      const activeAccountIds = new Set(state.syncProgress.activeAccountIds);
+      const isCurrentSession = state.syncProgress.sessionId === event.session_id;
+      const total = isCurrentSession ? Math.max(state.syncProgress.total, counts.total) : counts.total;
+      const completed = Math.min(
+        isCurrentSession ? Math.max(state.syncProgress.completed, counts.completed) : counts.completed,
+        total,
+      );
+      const activeAccountIds = isCurrentSession ? new Set(state.syncProgress.activeAccountIds) : new Set<string>();
       if (event.account_id) {
         if (event.stage === "account_finished" || event.stage === "finished") {
           activeAccountIds.delete(event.account_id);
@@ -1030,6 +1049,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
         return {
           syncProgress: {
             active: false,
+            sessionId: null,
             kind: null,
             stage: null,
             total: 0,
@@ -1043,11 +1063,12 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       return {
         syncProgress: {
           active: true,
+          sessionId: event.session_id,
           kind: event.kind,
           stage: event.stage,
-          total: counts.total,
-          completed: counts.completed,
-          currentAccountName: event.account_name ?? state.syncProgress.currentAccountName,
+          total,
+          completed,
+          currentAccountName: event.account_name ?? (isCurrentSession ? state.syncProgress.currentAccountName : null),
           activeAccountIds,
         },
       };
@@ -1056,6 +1077,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
     set({
       syncProgress: {
         active: false,
+        sessionId: null,
         kind: null,
         stage: null,
         total: 0,

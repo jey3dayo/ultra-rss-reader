@@ -143,12 +143,14 @@ describe("runtime diagnostics redaction", () => {
   it("formats redacted and truncated runtime diagnostic payloads", () => {
     const formatted = formatRuntimeDiagnosticPayload({
       token: "raw-token",
-      url: `https://example.com/secret-token/feed.xml?token=raw#frag ${"x".repeat(320)}`,
+      url: `https://example.com/secret-token/feed.xml?token=raw#frag ${"x".repeat(20 * 1024)}`,
+      suffix: "kept-after-emergency-truncation",
     });
 
-    expect(formatted).toHaveLength(214);
+    expect(formatted).toHaveLength(16 * 1024);
     expect(formatted).toContain('{"token":"<redacted>","url":"https://example.com/redacted?redacted#redacted ');
-    expect(formatted).toMatch(/\.\.\.\[truncated\]$/);
+    expect(formatted).toContain("[ultra-rss-reader:diagnostics-truncated]");
+    expect(formatted).toContain("kept-after-emergency-truncation");
     expect(formatted).not.toContain("raw-token");
     expect(formatted).not.toContain("token=raw");
   });

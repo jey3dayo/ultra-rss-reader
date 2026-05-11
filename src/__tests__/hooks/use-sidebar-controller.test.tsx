@@ -105,6 +105,7 @@ function createRuntime(overrides: Partial<SidebarRuntimeResult> = {}): SidebarRu
     openSettingsAddAccount: vi.fn(),
     syncProgress: {
       active: false,
+      sessionId: null,
       kind: null,
       stage: null,
       total: 0,

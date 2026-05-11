@@ -69,6 +69,25 @@ describe("ArticleToolbarView", () => {
     });
   });
 
+  it("keeps schema fallback article data from enabling toolbar actions", () => {
+    expect(
+      resolveArticleToolbarActions({
+        hasArticle: false,
+        hasUrl: false,
+        showCopyLinkPreference: true,
+        hideBrowserOverlayActions: false,
+        layoutMode: "mobile",
+      }),
+    ).toMatchObject({
+      canToggleRead: false,
+      canToggleStar: false,
+      canCopyLink: false,
+      canOpenInBrowser: false,
+      canOpenInExternalBrowser: false,
+      showExternalBrowserInMoreMenu: false,
+    });
+  });
+
   it("keeps resolver outputs aligned with toolbar action options", () => {
     const resolved = resolveArticleToolbarActions({
       hasArticle: true,

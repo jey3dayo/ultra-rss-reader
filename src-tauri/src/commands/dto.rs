@@ -243,6 +243,7 @@ pub enum SyncProgressKind {
 #[derive(Debug, Serialize, Clone)]
 pub struct SyncProgressEvent {
     pub stage: SyncProgressStage,
+    pub session_id: u64,
     pub kind: SyncProgressKind,
     pub total: usize,
     pub completed: usize,

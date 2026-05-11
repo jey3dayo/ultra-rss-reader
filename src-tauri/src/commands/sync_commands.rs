@@ -1,4 +1,4 @@
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
 use serde::Serialize;
@@ -39,6 +39,7 @@ pub(crate) const SYNC_COMPLETED_EVENT: &str = "sync-completed";
 pub(crate) const SYNC_SUCCEEDED_EVENT: &str = "sync-succeeded";
 pub(crate) const SYNC_WARNING_EVENT: &str = "sync-warning";
 const SYNC_PROGRESS_EVENT: &str = "sync-progress";
+static SYNC_PROGRESS_SESSION_ID: AtomicU64 = AtomicU64::new(0);
 
 /// RAII guard that resets the `AtomicBool` to `false` on drop, ensuring the
 /// sync flag is always cleared even on early return or panic.
@@ -53,6 +54,7 @@ impl Drop for SyncGuard<'_> {
 #[derive(Clone)]
 pub(crate) struct SyncProgressReporter {
     app_handle: AppHandle,
+    session_id: u64,
     kind: SyncProgressKind,
     total: usize,
     completed: Arc<AtomicUsize>,
@@ -62,6 +64,7 @@ impl SyncProgressReporter {
     pub(crate) fn new(app_handle: AppHandle, kind: SyncProgressKind, total: usize) -> Self {
         Self {
             app_handle,
+            session_id: next_sync_progress_session_id(),
             kind,
             total,
             completed: Arc::new(AtomicUsize::new(0)),
@@ -79,6 +82,7 @@ impl SyncProgressReporter {
             SYNC_PROGRESS_EVENT,
             SyncProgressEvent {
                 stage,
+                session_id: self.session_id,
                 kind: self.kind,
                 total: self.total,
                 completed,
@@ -122,6 +126,10 @@ impl SyncProgressReporter {
             Some(success),
         );
     }
+}
+
+fn next_sync_progress_session_id() -> u64 {
+    SYNC_PROGRESS_SESSION_ID.fetch_add(1, Ordering::SeqCst) + 1
 }
 
 fn next_sync_progress_completed(completed: &AtomicUsize, total: usize) -> usize {
@@ -985,6 +993,14 @@ mod tests {
         assert_eq!(next_sync_progress_completed(&completed, 2), 2);
         assert_eq!(next_sync_progress_completed(&completed, 2), 2);
         assert_eq!(completed.load(Ordering::SeqCst), 2);
+    }
+
+    #[test]
+    fn sync_progress_session_id_advances_per_reporter() {
+        SYNC_PROGRESS_SESSION_ID.store(0, Ordering::SeqCst);
+
+        assert_eq!(next_sync_progress_session_id(), 1);
+        assert_eq!(next_sync_progress_session_id(), 2);
     }
 
     #[tokio::test]

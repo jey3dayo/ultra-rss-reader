@@ -37,13 +37,17 @@ pub(crate) const DATABASE_MAINTENANCE_BUSY_ERROR: &str =
 pub(crate) enum CommandDbLockPolicy {
     TryLockDb,
     BlockingLock,
+    AsyncCommandBlockingLock,
     NoDatabaseLock,
 }
 
 #[cfg(test)]
 pub(crate) fn command_db_lock_policy(command_name: &str) -> Option<CommandDbLockPolicy> {
     let policy = match command_name {
-        "get_database_info" | "vacuum_database" => CommandDbLockPolicy::TryLockDb,
+        "get_database_info"
+        | "vacuum_database"
+        | "import_opml"
+        | "cleanup_feed_integrity_orphans" => CommandDbLockPolicy::TryLockDb,
         "open_in_browser"
         | "check_browser_embed_support"
         | "create_or_update_browser_webview"
@@ -58,32 +62,24 @@ pub(crate) fn command_db_lock_policy(command_name: &str) -> Option<CommandDbLock
         | "get_platform_info"
         | "get_dev_runtime_options"
         | "get_platform_permission_denied_recovery"
+        | "discover_feeds"
         | "check_for_update"
         | "download_and_install_update"
         | "restart_app"
         | "open_log_dir" => CommandDbLockPolicy::NoDatabaseLock,
         "list_accounts"
-        | "add_account"
         | "update_account_sync"
         | "update_account_credentials"
         | "rename_account"
-        | "test_account_connection"
         | "delete_account"
         | "list_folders"
         | "create_folder"
         | "list_feeds"
-        | "add_local_feed"
         | "delete_feed"
         | "rename_feed"
         | "update_feed_folder"
         | "update_feed_display_settings"
-        | "discover_feeds"
-        | "trigger_sync"
-        | "trigger_startup_sync"
         | "get_account_sync_status"
-        | "trigger_sync_account"
-        | "trigger_sync_feed"
-        | "trigger_automatic_sync"
         | "list_articles"
         | "list_account_articles"
         | "list_feed_article_summaries"
@@ -98,7 +94,6 @@ pub(crate) fn command_db_lock_policy(command_name: &str) -> Option<CommandDbLock
         | "mark_old_unread_read"
         | "unstar_account_articles"
         | "get_feed_integrity_report"
-        | "cleanup_feed_integrity_orphans"
         | "mark_article_read"
         | "record_article_view"
         | "clear_article_view_history"
@@ -106,7 +101,6 @@ pub(crate) fn command_db_lock_policy(command_name: &str) -> Option<CommandDbLock
         | "mark_feed_read"
         | "mark_folder_read"
         | "toggle_article_star"
-        | "import_opml"
         | "export_opml"
         | "search_articles"
         | "list_mute_keywords"
@@ -126,6 +120,14 @@ pub(crate) fn command_db_lock_policy(command_name: &str) -> Option<CommandDbLock
         | "get_article_tags"
         | "list_articles_by_tag"
         | "get_tag_article_counts" => CommandDbLockPolicy::BlockingLock,
+        "add_account"
+        | "test_account_connection"
+        | "add_local_feed"
+        | "trigger_sync"
+        | "trigger_startup_sync"
+        | "trigger_sync_account"
+        | "trigger_sync_feed"
+        | "trigger_automatic_sync" => CommandDbLockPolicy::AsyncCommandBlockingLock,
         _ => return None,
     };
     Some(policy)
@@ -414,17 +416,44 @@ mod tests {
         let cases = [
             ("get_database_info", CommandDbLockPolicy::TryLockDb),
             ("vacuum_database", CommandDbLockPolicy::TryLockDb),
-            ("import_opml", CommandDbLockPolicy::BlockingLock),
+            ("import_opml", CommandDbLockPolicy::TryLockDb),
+            (
+                "cleanup_feed_integrity_orphans",
+                CommandDbLockPolicy::TryLockDb,
+            ),
+            (
+                "get_feed_integrity_report",
+                CommandDbLockPolicy::BlockingLock,
+            ),
             ("export_opml", CommandDbLockPolicy::BlockingLock),
             ("search_articles", CommandDbLockPolicy::BlockingLock),
             ("list_articles", CommandDbLockPolicy::BlockingLock),
-            ("add_account", CommandDbLockPolicy::BlockingLock),
-            ("test_account_connection", CommandDbLockPolicy::BlockingLock),
+            (
+                "list_feed_article_summaries",
+                CommandDbLockPolicy::BlockingLock,
+            ),
+            ("add_account", CommandDbLockPolicy::AsyncCommandBlockingLock),
+            (
+                "test_account_connection",
+                CommandDbLockPolicy::AsyncCommandBlockingLock,
+            ),
             ("list_accounts", CommandDbLockPolicy::BlockingLock),
             ("delete_feed", CommandDbLockPolicy::BlockingLock),
-            ("trigger_sync", CommandDbLockPolicy::BlockingLock),
+            (
+                "trigger_sync",
+                CommandDbLockPolicy::AsyncCommandBlockingLock,
+            ),
+            (
+                "trigger_sync_account",
+                CommandDbLockPolicy::AsyncCommandBlockingLock,
+            ),
             ("open_in_browser", CommandDbLockPolicy::NoDatabaseLock),
+            ("discover_feeds", CommandDbLockPolicy::NoDatabaseLock),
             ("check_for_update", CommandDbLockPolicy::NoDatabaseLock),
+            (
+                "download_and_install_update",
+                CommandDbLockPolicy::NoDatabaseLock,
+            ),
         ];
 
         for (command_name, expected_policy) in cases {

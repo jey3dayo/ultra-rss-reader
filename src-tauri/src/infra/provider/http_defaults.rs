@@ -54,7 +54,10 @@ pub async fn response_bytes_with_decoded_cap(
 
 #[cfg(test)]
 mod tests {
-    use super::http_client_builder;
+    use super::{
+        http_client_builder, PROVIDER_CACHE_CONTROL, PROVIDER_PRAGMA, PROVIDER_USER_AGENT,
+    };
+    use reqwest::header::{CACHE_CONTROL, PRAGMA, REFERER, USER_AGENT};
     use std::io::{Read, Write};
     use std::net::TcpListener;
 
@@ -130,6 +133,47 @@ mod tests {
             .send()
             .await
             .expect("provider client should send no-store headers");
+
+        assert_eq!(response.status(), reqwest::StatusCode::NO_CONTENT);
+        server.join().expect("test server should finish");
+    }
+
+    #[tokio::test]
+    async fn provider_http_client_fixes_privacy_preserving_metadata_headers() {
+        let listener = TcpListener::bind("127.0.0.1:0").expect("test server should bind");
+        let address = listener
+            .local_addr()
+            .expect("test server should expose local address");
+        let server = std::thread::spawn(move || {
+            let (mut stream, _) = listener.accept().expect("client should connect");
+            let mut request = [0_u8; 2048];
+            let bytes_read = stream.read(&mut request).unwrap_or(0);
+            let request = String::from_utf8_lossy(&request[..bytes_read]);
+            let request_lower = request.to_ascii_lowercase();
+            assert!(request_lower.contains(&format!(
+                "{}: {}",
+                USER_AGENT.as_str(),
+                PROVIDER_USER_AGENT.to_ascii_lowercase()
+            )));
+            assert!(request_lower.contains(&format!(
+                "{}: {}",
+                CACHE_CONTROL.as_str(),
+                PROVIDER_CACHE_CONTROL
+            )));
+            assert!(request_lower.contains(&format!("{}: {}", PRAGMA.as_str(), PROVIDER_PRAGMA)));
+            assert!(!request_lower.contains(&format!("{}:", REFERER.as_str())));
+            stream
+                .write_all(b"HTTP/1.1 204 No Content\r\nContent-Length: 0\r\n\r\n")
+                .expect("test server should write response");
+        });
+
+        let response = http_client_builder()
+            .build()
+            .expect("provider client should build")
+            .get(format!("http://{address}/favicon.ico"))
+            .send()
+            .await
+            .expect("provider metadata client should send fixed privacy headers");
 
         assert_eq!(response.status(), reqwest::StatusCode::NO_CONTENT);
         server.join().expect("test server should finish");

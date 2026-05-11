@@ -83,6 +83,7 @@ import {
   updateMuteKeyword,
   vacuumDatabase,
 } from "@/api/tauri-commands";
+import { isAppActionAvailable } from "@/lib/app-actions";
 import type { BrowserWebviewBounds } from "@/lib/browser/browser-webview";
 
 type CommandSuccess<TCommand> = TCommand extends (...args: infer _Args) => Result.ResultAsync<infer Output, unknown>
@@ -969,6 +970,50 @@ describe("safeInvoke response validation", () => {
       expect.stringContaining("name"),
     );
     errorSpy.mockRestore();
+  });
+
+  it("keeps account/feed/preference parse failures from becoming empty fallback data that enables UI actions", async () => {
+    const consoleError = suppressConsoleError();
+    setupTauriMocks((cmd) => {
+      if (cmd === "list_accounts") return [{ id: "acc-1" }];
+      if (cmd === "list_feeds") return [{ id: "feed-1", account_id: "acc-1", unread_count: -1 }];
+      if (cmd === "get_preferences") return { theme: "not-a-theme" };
+      return null;
+    });
+
+    const [accountsResult, feedsResult, preferencesResult] = await Promise.all([
+      listAccounts(),
+      listFeeds("acc-1"),
+      getPreferences(),
+    ]);
+
+    for (const [command, result] of [
+      ["list_accounts", accountsResult],
+      ["list_feeds", feedsResult],
+      ["get_preferences", preferencesResult],
+    ] as const) {
+      expect(Result.isFailure(result), command).toBe(true);
+      expect(Result.unwrapError(result)).toEqual({
+        type: "Diagnostics",
+        message: "Response validation failed. See diagnostics for details.",
+      });
+      expectTauriCommandValidationError(consoleError, command, "response");
+    }
+
+    const fallbackContext = {
+      selectedAccountId: null,
+      selectedArticleId: null,
+      contentMode: "reader",
+      commandPaletteOpen: false,
+      settingsOpen: false,
+      shortcutsHelpOpen: false,
+      isAddFeedDialogOpen: false,
+      isSyncing: false,
+    } as const;
+
+    expect(isAppActionAvailable("sync-all", "dispatcher", fallbackContext)).toBe(false);
+    expect(isAppActionAvailable("open-add-feed", "dispatcher", fallbackContext)).toBe(false);
+    expect(isAppActionAvailable("mark-all-read", "dispatcher", fallbackContext)).toBe(false);
   });
 
   it("caps response validation diagnostics detail", async () => {

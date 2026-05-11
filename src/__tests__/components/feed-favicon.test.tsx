@@ -114,6 +114,23 @@ describe("FeedFavicon", () => {
     expect(image?.getAttribute("src")).not.toContain("private/path");
   });
 
+  it("keeps favicon requests on the privacy-preserving browser image path", () => {
+    const { container } = render(
+      <FeedFavicon
+        title="Private"
+        url="https://example.com/feed.xml?token=secret&user=alice"
+        siteUrl="https://example.com/private/path?session=secret"
+      />,
+    );
+
+    const image = container.querySelector("img");
+
+    expect(image).toHaveAttribute("src", "https://www.google.com/s2/favicons?domain=example.com&sz=32");
+    expect(image).toHaveAttribute("referrerpolicy", "no-referrer");
+    expect(image).not.toHaveAttribute("crossorigin");
+    expect(image?.getAttributeNames()).not.toContain("data-user-agent");
+  });
+
   it.each([
     ["localhost site", "http://localhost:8080", "http://localhost:8080/feed.xml"],
     ["private IPv4 feed", "", "http://192.168.1.10/feed.xml"],

@@ -236,11 +236,14 @@ describe("useUiStore", () => {
     expectTypeOf<SyncProgressRuntimeEventDto>()
       .toHaveProperty("account_name")
       .toEqualTypeOf<string | null | undefined>();
+    expectTypeOf<SyncProgressRuntimeEventDto>().toHaveProperty("session_id").toEqualTypeOf<number>();
+    expectTypeOf<SyncProgressUiState>().toHaveProperty("sessionId").toEqualTypeOf<number | null>();
     expectTypeOf<SyncProgressUiState>().toHaveProperty("currentAccountName").toEqualTypeOf<string | null>();
     expectTypeOf<SyncProgressUiState>().toHaveProperty("activeAccountIds").toEqualTypeOf<Set<string>>();
 
     const runtimeEvent = {
       stage: "account_started",
+      session_id: 1,
       kind: "manual_account",
       total: 1,
       completed: 0,
@@ -249,6 +252,7 @@ describe("useUiStore", () => {
     } satisfies SyncProgressRuntimeEventDto;
     const uiState = {
       active: true,
+      sessionId: 1,
       kind: "manual_account",
       stage: "account_started",
       total: 1,
@@ -268,6 +272,7 @@ describe("useUiStore", () => {
   it("normalizes sync progress counts at the store boundary", () => {
     useUiStore.getState().applySyncProgress({
       stage: "account_started",
+      session_id: 1,
       kind: "manual_all",
       total: 2,
       completed: 5,
@@ -278,6 +283,7 @@ describe("useUiStore", () => {
     expect(useUiStore.getState().syncProgress).toEqual(
       expect.objectContaining({
         active: true,
+        sessionId: 1,
         total: 2,
         completed: 2,
         currentAccountName: "FreshRSS",
@@ -287,6 +293,7 @@ describe("useUiStore", () => {
 
     useUiStore.getState().applySyncProgress({
       stage: "account_started",
+      session_id: 2,
       kind: "manual_all",
       total: -2,
       completed: -1,
@@ -297,17 +304,70 @@ describe("useUiStore", () => {
     expect(useUiStore.getState().syncProgress).toEqual(
       expect.objectContaining({
         active: true,
+        sessionId: 2,
         total: 0,
         completed: 0,
-        currentAccountName: "FreshRSS",
+        currentAccountName: null,
       }),
     );
-    expect(useUiStore.getState().syncProgress.activeAccountIds).toEqual(new Set(["acc-1", "acc-2"]));
+    expect(useUiStore.getState().syncProgress.activeAccountIds).toEqual(new Set(["acc-2"]));
+  });
+
+  it("keeps sync progress monotonic within a session and ignores older sessions", () => {
+    useUiStore.getState().applySyncProgress({
+      stage: "account_finished",
+      session_id: 2,
+      kind: "manual_all",
+      total: 3,
+      completed: 2,
+      account_id: "acc-1",
+      account_name: "FreshRSS",
+      success: true,
+    });
+
+    useUiStore.getState().applySyncProgress({
+      stage: "account_started",
+      session_id: 2,
+      kind: "manual_all",
+      total: 3,
+      completed: 1,
+      account_id: "acc-2",
+      account_name: "Second",
+    });
+
+    expect(useUiStore.getState().syncProgress).toEqual(
+      expect.objectContaining({
+        sessionId: 2,
+        completed: 2,
+        currentAccountName: "Second",
+      }),
+    );
+
+    useUiStore.getState().applySyncProgress({
+      stage: "account_finished",
+      session_id: 1,
+      kind: "manual_all",
+      total: 3,
+      completed: 3,
+      account_id: "acc-stale",
+      account_name: "Stale",
+      success: true,
+    });
+
+    expect(useUiStore.getState().syncProgress).toEqual(
+      expect.objectContaining({
+        sessionId: 2,
+        completed: 2,
+        currentAccountName: "Second",
+      }),
+    );
+    expect(useUiStore.getState().syncProgress.activeAccountIds).not.toContain("acc-stale");
   });
 
   it("updates renamed account labels from progress events without remapping the account id", () => {
     useUiStore.getState().applySyncProgress({
       stage: "account_started",
+      session_id: 1,
       kind: "manual_account",
       total: 1,
       completed: 0,
@@ -317,6 +377,7 @@ describe("useUiStore", () => {
 
     useUiStore.getState().applySyncProgress({
       stage: "account_started",
+      session_id: 1,
       kind: "manual_account",
       total: 1,
       completed: 0,
@@ -335,6 +396,7 @@ describe("useUiStore", () => {
   it("tracks unknown account ids from progress events until a completion event cleans them up", () => {
     useUiStore.getState().applySyncProgress({
       stage: "account_started",
+      session_id: 1,
       kind: "manual_account",
       total: 1,
       completed: 0,
@@ -346,6 +408,7 @@ describe("useUiStore", () => {
 
     useUiStore.getState().applySyncProgress({
       stage: "finished",
+      session_id: 1,
       kind: "manual_account",
       total: 1,
       completed: 1,
@@ -356,6 +419,7 @@ describe("useUiStore", () => {
 
     expect(useUiStore.getState().syncProgress).toEqual({
       active: false,
+      sessionId: null,
       kind: null,
       stage: null,
       total: 0,
@@ -368,6 +432,7 @@ describe("useUiStore", () => {
   it("keeps sync active account ids unchanged when account progress omits the account id", () => {
     useUiStore.getState().applySyncProgress({
       stage: "account_started",
+      session_id: 1,
       kind: "manual_all",
       total: 2,
       completed: 0,
@@ -377,6 +442,7 @@ describe("useUiStore", () => {
 
     useUiStore.getState().applySyncProgress({
       stage: "account_finished",
+      session_id: 1,
       kind: "manual_all",
       total: 2,
       completed: 1,
@@ -399,6 +465,7 @@ describe("useUiStore", () => {
 
     useUiStore.getState().applySyncProgress({
       stage: "started",
+      session_id: 1,
       kind: "manual_all",
       total: 2,
       completed: 0,
@@ -420,6 +487,7 @@ describe("useUiStore", () => {
   it("removes deleted accounts from active sync progress and clears orphan progress", () => {
     useUiStore.getState().applySyncProgress({
       stage: "account_started",
+      session_id: 1,
       kind: "manual_all",
       total: 2,
       completed: 0,

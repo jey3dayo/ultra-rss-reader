@@ -66,6 +66,7 @@ let syncCompletedListener: (() => void) | null = null;
 let syncProgressListener:
   | ((event: {
       stage: string;
+      session_id: number;
       kind: string;
       total: number;
       completed: number;
@@ -2771,6 +2772,7 @@ describe("Sidebar", () => {
 
     syncProgressListener?.({
       stage: "started",
+      session_id: 1,
       kind: "manual_account",
       total: 1,
       completed: 0,
@@ -2795,6 +2797,7 @@ describe("Sidebar", () => {
 
     syncProgressListener?.({
       stage: "started",
+      session_id: 1,
       kind: "manual_all",
       total: 2,
       completed: 0,
@@ -2809,6 +2812,7 @@ describe("Sidebar", () => {
 
     syncProgressListener?.({
       stage: "finished",
+      session_id: 1,
       kind: "manual_all",
       total: 2,
       completed: 2,

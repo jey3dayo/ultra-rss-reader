@@ -43,6 +43,7 @@ const labels = {
 
 const syncProgressPayload = {
   stage: "account_started",
+  session_id: 1,
   kind: "manual_all",
   total: 2,
   completed: 1,
@@ -66,6 +67,7 @@ function createSyncHookParams(
     selectedAccountId: null,
     syncProgress: {
       active: false,
+      sessionId: null,
       kind: null,
       stage: null,
       total: 0,
@@ -415,6 +417,7 @@ describe("resolveSidebarLastSyncedLabel", () => {
           createSyncHookParams({
             syncProgress: {
               active: true,
+              sessionId: 1,
               kind: "manual_all",
               stage: "account_started",
               total: 2,

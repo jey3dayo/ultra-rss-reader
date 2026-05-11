@@ -97,6 +97,7 @@ import {
 } from "@/api/schemas/commands";
 import { MAX_DEV_WINDOW_DIMENSION_PX } from "@/api/schemas/platform-info";
 import { UpdateDownloadProgressEventPayloadSchema, UpdateReadyEventPayloadSchema } from "@/api/schemas/update-info";
+import { APP_ACTIONS, isAppAction } from "@/lib/app-actions";
 
 function readTauriCommandsSource() {
   return readFileSync(join(process.cwd(), "src/api/tauri-commands.ts"), "utf8");
@@ -1280,6 +1281,23 @@ describe("AppErrorSchema", () => {
       message: "https://example.com/token/abc123",
     });
   });
+
+  it("keeps support codes and diagnostics ids out of the AppError wire contract", () => {
+    expect(() =>
+      AppErrorSchema.parse({
+        type: "UserVisible",
+        message: "Something went wrong",
+        supportCode: "URR-0001",
+      }),
+    ).toThrow();
+    expect(() =>
+      AppErrorSchema.parse({
+        type: "Diagnostics",
+        message: "Response validation failed. See diagnostics for details.",
+        diagnosticsId: "diag-1",
+      }),
+    ).toThrow();
+  });
 });
 
 describe("primitive command result schemas", () => {
@@ -1330,6 +1348,8 @@ describe("frontend schema runtime contracts", () => {
       enabled: false,
       reason: "schema-parse-failure",
     });
+    expect(isAppAction(SCHEMA_PARSE_FAILURE_ACTION_STATE.reason)).toBe(false);
+    expect(APP_ACTIONS).not.toContain(SCHEMA_PARSE_FAILURE_ACTION_STATE.reason);
   });
 
   it("versions schema-owned query cache roots so app upgrades do not reuse stale cache", () => {

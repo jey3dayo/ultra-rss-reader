@@ -286,6 +286,7 @@ describe("AccountDetail", () => {
     useUiStore.setState({
       syncProgress: {
         active: true,
+        sessionId: 1,
         kind: "manual_all",
         stage: "account_started",
         total: 2,
@@ -329,6 +330,7 @@ describe("AccountDetail", () => {
     useUiStore.setState({
       syncProgress: {
         active: false,
+        sessionId: null,
         kind: null,
         stage: null,
         total: 0,
@@ -535,6 +537,7 @@ describe("AccountDetail", () => {
     useUiStore.setState({
       syncProgress: {
         active: true,
+        sessionId: 2,
         kind: "manual_account",
         stage: "account_started",
         total: 1,

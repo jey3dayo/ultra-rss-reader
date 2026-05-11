@@ -221,8 +221,8 @@ const UUID_URL_PATH_SEGMENT_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9
 const OPAQUE_URL_PATH_SEGMENT_PATTERN = /^(?=.{24,}$)(?=.*[A-Za-z])(?=.*\d)[A-Za-z0-9._~=-]+$/;
 const URL_TOKEN_TRAILING_PUNCTUATION_PATTERN = /[\])}>,.;!?。、，．；：！？]+$/;
 const UNSUPPORTED_DIAGNOSTICS_PAYLOAD = "[Unsupported diagnostics payload]";
-const RUNTIME_DIAGNOSTIC_PAYLOAD_MAX_CHARS = 200;
-const RUNTIME_DIAGNOSTIC_PAYLOAD_TRUNCATED_SUFFIX = "...[truncated]";
+const RUNTIME_DIAGNOSTIC_PAYLOAD_MAX_CHARS = 16 * 1024;
+const RUNTIME_DIAGNOSTIC_PAYLOAD_TRUNCATED_MARKER = "[ultra-rss-reader:diagnostics-truncated]";
 
 const emittedRuntimeDiagnosticKeys = new Set<string>();
 
@@ -413,7 +413,12 @@ function truncateRuntimeDiagnosticPayload(value: string): string {
   if (value.length <= RUNTIME_DIAGNOSTIC_PAYLOAD_MAX_CHARS) {
     return value;
   }
-  return `${value.slice(0, RUNTIME_DIAGNOSTIC_PAYLOAD_MAX_CHARS)}${RUNTIME_DIAGNOSTIC_PAYLOAD_TRUNCATED_SUFFIX}`;
+
+  const remainingChars = RUNTIME_DIAGNOSTIC_PAYLOAD_MAX_CHARS - RUNTIME_DIAGNOSTIC_PAYLOAD_TRUNCATED_MARKER.length;
+  const headChars = Math.ceil(remainingChars / 2);
+  const tailChars = Math.floor(remainingChars / 2);
+
+  return `${value.slice(0, headChars)}${RUNTIME_DIAGNOSTIC_PAYLOAD_TRUNCATED_MARKER}${value.slice(-tailChars)}`;
 }
 
 export function formatRuntimeDiagnosticPayload(payload: unknown): string {

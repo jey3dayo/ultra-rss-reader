@@ -2,6 +2,11 @@ import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { commandArgsSchemas } from "../src/api/schemas/commands";
+import {
+  extractCommandDbLockPolicyCases,
+  extractRegisteredRustCommandNames,
+  extractRustTauriAsyncCommandNames,
+} from "./helpers/tauri-command-contract";
 
 const readText = (path: string): string => readFileSync(path, "utf8");
 
@@ -62,15 +67,6 @@ const extractRustResultCommands = (source: string, returnTypes: readonly string[
         return returnType ? returnTypes.includes(returnType) : false;
       })
       .map((match) => match[1] ?? ""),
-  );
-};
-
-const extractRegisteredRustCommandNames = (source: string): string[] => {
-  const handlerMatch = source.match(/tauri::generate_handler!\s*\[([\s\S]*?)\]/);
-  expect(handlerMatch, "Tauri generate_handler command list should exist").not.toBeNull();
-
-  return sortedUnique(
-    [...(handlerMatch?.[1] ?? "").matchAll(/commands::[a-zA-Z0-9_]+::([a-zA-Z0-9_]+)/g)].map((match) => match[1] ?? ""),
   );
 };
 
@@ -146,6 +142,62 @@ describe("tauri command return contract", () => {
         ])
       `),
     ).toEqual(["mark_feed_read", "trigger_sync"]);
+  });
+
+  it("keeps registered Rust commands classified by DB lock policy", () => {
+    const registeredCommands = extractRegisteredRustCommandNames(readText("src-tauri/src/lib.rs"));
+    const lockPolicies = extractCommandDbLockPolicyCases(readText("src-tauri/src/commands/mod.rs"));
+
+    expect(Object.keys(lockPolicies).toSorted()).toEqual(registeredCommands);
+  });
+
+  it("keeps async Tauri commands out of the synchronous blocking DB policy", () => {
+    const rustCommandSources = readdirSync("src-tauri/src/commands")
+      .filter((fileName) => fileName.endsWith(".rs"))
+      .map((fileName) => readText(`src-tauri/src/commands/${fileName}`))
+      .join("\n");
+    const lockPolicies = extractCommandDbLockPolicyCases(readText("src-tauri/src/commands/mod.rs"));
+    const asyncCommands = extractRustTauriAsyncCommandNames(rustCommandSources);
+
+    expect(asyncCommands.filter((command) => lockPolicies[command] === "BlockingLock")).toEqual([]);
+    expect(
+      Object.fromEntries(
+        [
+          "add_account",
+          "test_account_connection",
+          "add_local_feed",
+          "trigger_sync",
+          "trigger_startup_sync",
+          "trigger_sync_account",
+          "trigger_sync_feed",
+          "trigger_automatic_sync",
+        ].map((command) => [command, lockPolicies[command]]),
+      ),
+    ).toEqual({
+      add_account: "AsyncCommandBlockingLock",
+      test_account_connection: "AsyncCommandBlockingLock",
+      add_local_feed: "AsyncCommandBlockingLock",
+      trigger_sync: "AsyncCommandBlockingLock",
+      trigger_startup_sync: "AsyncCommandBlockingLock",
+      trigger_sync_account: "AsyncCommandBlockingLock",
+      trigger_sync_feed: "AsyncCommandBlockingLock",
+      trigger_automatic_sync: "AsyncCommandBlockingLock",
+    });
+  });
+
+  it("keeps long-running operation progress contracts explicit where implementations exist", () => {
+    const syncCommandsSource = readText("src-tauri/src/commands/sync_commands.rs");
+    const updaterCommandsSource = readText("src-tauri/src/commands/updater_commands.rs");
+    const opmlCommandsSource = readText("src-tauri/src/commands/opml_commands.rs");
+
+    expect(syncCommandsSource).toContain("SYNC_PROGRESS_SESSION_ID");
+    expect(syncCommandsSource).toContain("next_sync_progress_completed");
+    expect(syncCommandsSource).toContain("session_id: self.session_id");
+    expect(updaterCommandsSource).toContain("DOWNLOAD_SESSION_ID");
+    expect(updaterCommandsSource).toContain("next_download_progress_percent");
+    expect(updaterCommandsSource).toContain("percent.max(last_percent)");
+    expect(opmlCommandsSource).not.toContain("import-progress");
+    expect(opmlCommandsSource).not.toContain("export-progress");
   });
 
   it("keeps frontend null-response commands aligned with Rust unit-result commands", () => {
