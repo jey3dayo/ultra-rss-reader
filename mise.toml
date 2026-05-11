@@ -104,9 +104,12 @@ run = "rtk pnpm run lint"
 run_windows = "biome.CMD lint ."
 
 [tasks."lint:clippy"]
-description = "Rust clippy"
-run = "rtk err cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings"
-run_windows = "cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings"
+description = "Rust clippy for dev and release profiles"
+run = """
+rtk err cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings
+rtk err cargo clippy --release --manifest-path src-tauri/Cargo.toml -- -D warnings
+"""
+run_windows = "cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings && cargo clippy --release --manifest-path src-tauri/Cargo.toml -- -D warnings"
 
 [tasks."lint:md"]
 description = "Markdown lint check"

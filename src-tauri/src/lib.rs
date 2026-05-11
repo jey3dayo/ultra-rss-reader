@@ -174,12 +174,14 @@ fn install_redacting_panic_hook() {
     }));
 }
 
+#[cfg(any(test, debug_assertions))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum TracingInitStatus {
     Installed,
     AlreadyInstalled,
 }
 
+#[cfg(any(test, debug_assertions))]
 fn tracing_init_status(installed: bool) -> TracingInitStatus {
     match installed {
         true => TracingInitStatus::Installed,
