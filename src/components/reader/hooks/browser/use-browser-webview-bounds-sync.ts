@@ -1,6 +1,7 @@
 import type { RefObject } from "react";
 import type { AppError } from "@/api/tauri-commands";
 import { useBrowserUrlLayoutEffect } from "@/components/reader/hooks/browser/use-browser-url-effect";
+import { isBrowserSurfaceAppError } from "@/lib/runtime/app-error";
 import { bindWindowEvents } from "@/lib/window/window-events";
 
 const BROWSER_WEBVIEW_BOUNDS_SYNC_FAILED_MESSAGE =
@@ -17,20 +18,8 @@ type UseBrowserWebviewBoundsSyncParams = {
   showSurfaceFailure: (error: AppError) => void;
 };
 
-function isAppError(error: unknown): error is AppError {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "type" in error &&
-    "message" in error &&
-    (error.type === "UserVisible" || error.type === "Retryable") &&
-    typeof error.message === "string" &&
-    error.message.trim().length > 0
-  );
-}
-
 function toBrowserWebviewBoundsSyncError(error: unknown): AppError {
-  if (isAppError(error)) {
+  if (isBrowserSurfaceAppError(error)) {
     return error;
   }
 
