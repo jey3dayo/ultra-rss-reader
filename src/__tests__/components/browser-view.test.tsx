@@ -1083,11 +1083,19 @@ describe("BrowserView", () => {
     render(<BrowserViewHarness />, { wrapper: createWrapper() });
 
     const loadingState = screen.getByTestId("browser-loading-state");
+    const loadingBar = screen.getByTestId("browser-webview-loading-bar");
     const loadingTitle = screen.getByText("Loading");
     const loadingHint = screen.getByText("If this takes too long, open it in your external browser.");
     const loadingHalo = loadingState.querySelector(".blur-2xl");
     const loadingSpinner = loadingState.querySelector(".animate-spin");
 
+    expectInlineStyles(loadingBar, {
+      left: "0px",
+      top: "0px",
+      right: "0px",
+    });
+    expect(loadingBar.firstElementChild).toHaveClass("animate-indeterminate");
+    expect(loadingBar.firstElementChild).toHaveClass("bg-[var(--tone-loading)]");
     expect(loadingState).toHaveAttribute("role", "status");
     expect(loadingState).toHaveAttribute("aria-live", "polite");
     expect(loadingState).toHaveAttribute("aria-atomic", "true");
@@ -1097,6 +1105,23 @@ describe("BrowserView", () => {
     expect(loadingSpinner).toHaveClass("text-foreground");
     expect(loadingTitle).toHaveClass("text-foreground");
     expect(loadingHint).toHaveClass("text-foreground-soft");
+
+    await waitFor(() => {
+      expect(registeredHandlers.has(BROWSER_WINDOW_EVENTS.stateChanged)).toBe(true);
+    });
+    await act(async () => {
+      registeredHandlers.get(BROWSER_WINDOW_EVENTS.stateChanged)?.({
+        payload: {
+          url: "https://example.com/article",
+          can_go_back: false,
+          can_go_forward: false,
+          is_loading: false,
+          load_generation: 1,
+        },
+      });
+    });
+
+    expect(screen.queryByTestId("browser-webview-loading-bar")).not.toBeInTheDocument();
   });
 
   it("keeps the fullscreen stage unchanged when debug hud is enabled", async () => {

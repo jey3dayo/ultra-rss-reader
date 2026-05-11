@@ -1,5 +1,6 @@
 import { LoaderCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { IndeterminateProgress } from "@/components/shared/indeterminate-progress";
 import { OverlayStageSurface } from "@/components/shared/overlay-stage-surface";
 import { BrowserSurfaceStateCard } from "./browser-surface-state-card";
 import type { BrowserOverlayStageController } from "./browser-view.types";
@@ -95,6 +96,17 @@ export function BrowserOverlayStage({ controller }: BrowserOverlayStageProps) {
             bottom: `${controller.geometry.host.bottom}px`,
           }}
         />
+        {controller.isLoading ? (
+          <IndeterminateProgress
+            data-testid="browser-webview-loading-bar"
+            className="pointer-events-none absolute z-20"
+            style={{
+              left: `${controller.geometry.host.left}px`,
+              top: `${controller.geometry.host.top}px`,
+              right: `${controller.geometry.host.right}px`,
+            }}
+          />
+        ) : null}
         {controller.isLoading ? (
           <BrowserOverlayLoadingState label={t("browser_loading")} hint={t("browser_loading_hint")} />
         ) : null}
