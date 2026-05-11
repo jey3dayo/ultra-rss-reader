@@ -502,6 +502,7 @@ fn redact_diagnostic_text(value: &str) -> String {
         .collect()
 }
 
+#[cfg(any(target_os = "macos", test))]
 fn redact_stderr_text(value: &str) -> String {
     format!("<redacted stderr bytes={}>", value.len())
 }

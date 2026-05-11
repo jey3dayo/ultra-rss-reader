@@ -88,13 +88,11 @@ pub fn parse_opml(xml: &str) -> Result<Vec<OpmlFeed>, String> {
                 // Empty element without xmlUrl is just ignored (no children)
             }
             Ok(Event::DocType(_)) => return Err(OPML_MALFORMED_XML_ERROR_MESSAGE.to_string()),
-            Ok(Event::End(ref e)) if e.name().as_ref() == b"outline" => {
-                if body_depth > 0 {
-                    outline_stack
-                        .pop()
-                        .ok_or_else(|| OPML_MALFORMED_XML_ERROR_MESSAGE.to_string())?;
-                    body_depth -= 1;
-                }
+            Ok(Event::End(ref e)) if e.name().as_ref() == b"outline" && body_depth > 0 => {
+                outline_stack
+                    .pop()
+                    .ok_or_else(|| OPML_MALFORMED_XML_ERROR_MESSAGE.to_string())?;
+                body_depth -= 1;
             }
             Ok(Event::Start(_)) if body_depth > 0 => {
                 body_depth += 1;
