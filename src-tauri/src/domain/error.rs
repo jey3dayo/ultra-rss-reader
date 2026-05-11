@@ -113,6 +113,33 @@ pub fn app_recovery_actions_for_error(error: &DomainError) -> &'static [AppRecov
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ProviderBlockResponseContract {
+    pub status: StatusCode,
+    pub uses_sync_backoff: bool,
+    pub primary_user_action: AppRecoveryAction,
+    pub manual_retry_allowed: bool,
+}
+
+pub fn provider_block_response_contract(
+    status: StatusCode,
+) -> Option<ProviderBlockResponseContract> {
+    let (uses_sync_backoff, primary_user_action, manual_retry_allowed) = match status {
+        StatusCode::FORBIDDEN => (true, AppRecoveryAction::EditAccountSettings, false),
+        StatusCode::TOO_MANY_REQUESTS => (true, AppRecoveryAction::WaitForRetryWindow, false),
+        StatusCode::UNAVAILABLE_FOR_LEGAL_REASONS => (true, AppRecoveryAction::FixInput, false),
+        StatusCode::SERVICE_UNAVAILABLE => (true, AppRecoveryAction::Retry, true),
+        _ => return None,
+    };
+
+    Some(ProviderBlockResponseContract {
+        status,
+        uses_sync_backoff,
+        primary_user_action,
+        manual_retry_allowed,
+    })
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PlatformPermissionDeniedSurface {
     File,
     Dialog,
@@ -406,6 +433,7 @@ impl DomainError {
         match status {
             StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN => Self::Auth(message),
             StatusCode::TOO_MANY_REQUESTS => Self::RateLimit(message),
+            StatusCode::UNAVAILABLE_FOR_LEGAL_REASONS => Self::Validation(message),
             _ => Self::Network(message),
         }
     }
@@ -473,10 +501,10 @@ mod tests {
 
     use super::{
         any_loopback_socket_accepts_connection, app_recovery_actions_for_error,
-        classify_network_error, error_recovery_category, redact_sensitive_network_error_message,
-        AppRecoveryAction, DestructiveActionFallback, DomainError, ErrorRecoveryCategory,
-        FrontendNetworkSignal, NetworkErrorClassificationInput, PlatformPermissionDeniedSurface,
-        StorageBoundaryOwner,
+        classify_network_error, error_recovery_category, provider_block_response_contract,
+        redact_sensitive_network_error_message, AppRecoveryAction, DestructiveActionFallback,
+        DomainError, ErrorRecoveryCategory, FrontendNetworkSignal, NetworkErrorClassificationInput,
+        PlatformPermissionDeniedSurface, StorageBoundaryOwner,
     };
     use crate::commands::dto::AppError;
     use reqwest::{
@@ -869,6 +897,16 @@ mod tests {
                 true,
             ),
             (
+                StatusCode::UNAVAILABLE_FOR_LEGAL_REASONS,
+                DomainError::Validation("HTTP 451 Unavailable For Legal Reasons".to_string()),
+                false,
+            ),
+            (
+                StatusCode::SERVICE_UNAVAILABLE,
+                DomainError::Network("HTTP 503 Service Unavailable".to_string()),
+                true,
+            ),
+            (
                 StatusCode::BAD_GATEWAY,
                 DomainError::Network("HTTP 502 Bad Gateway".to_string()),
                 true,
@@ -916,6 +954,46 @@ mod tests {
             domain_error.to_string(),
             "Rate limit error: HTTP 429 Too Many Requests"
         );
+    }
+
+    #[test]
+    fn provider_block_response_contract_splits_backoff_user_action_and_manual_retry() {
+        let cases = [
+            (
+                StatusCode::FORBIDDEN,
+                true,
+                AppRecoveryAction::EditAccountSettings,
+                false,
+            ),
+            (
+                StatusCode::TOO_MANY_REQUESTS,
+                true,
+                AppRecoveryAction::WaitForRetryWindow,
+                false,
+            ),
+            (
+                StatusCode::UNAVAILABLE_FOR_LEGAL_REASONS,
+                true,
+                AppRecoveryAction::FixInput,
+                false,
+            ),
+            (
+                StatusCode::SERVICE_UNAVAILABLE,
+                true,
+                AppRecoveryAction::Retry,
+                true,
+            ),
+        ];
+
+        for (status, uses_sync_backoff, primary_user_action, manual_retry_allowed) in cases {
+            let contract =
+                provider_block_response_contract(status).expect("status should be classified");
+
+            assert_eq!(contract.status, status);
+            assert_eq!(contract.uses_sync_backoff, uses_sync_backoff);
+            assert_eq!(contract.primary_user_action, primary_user_action);
+            assert_eq!(contract.manual_retry_allowed, manual_retry_allowed);
+        }
     }
 
     #[test]
