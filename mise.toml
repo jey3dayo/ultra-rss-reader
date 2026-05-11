@@ -194,25 +194,8 @@ markdownlint-cli2.CMD %MD_GLOB% %MD_EXCLUDE_NODE_MODULES% %MD_EXCLUDE_WORKTREES%
 
 [tasks."report:licenses"]
 description = "Generate pnpm and Cargo dependency license inventory reports under tmp/dependency-licenses"
-run = """
-mkdir -p tmp/dependency-licenses
-pnpm licenses list --json > tmp/dependency-licenses/pnpm-licenses.json
-cargo metadata --manifest-path src-tauri/Cargo.toml --format-version=1 --locked > tmp/dependency-licenses/cargo-metadata.json
-node --input-type=module <<'NODE'
-import { readFileSync, writeFileSync } from "node:fs";
-
-const metadata = JSON.parse(readFileSync("tmp/dependency-licenses/cargo-metadata.json", "utf8"));
-const packages = metadata.packages.map((pkg) => ({
-  name: pkg.name,
-  version: pkg.version,
-  license: pkg.license ?? null,
-  license_file: pkg.license_file ?? null,
-  repository: pkg.repository ?? null,
-}));
-writeFileSync("tmp/dependency-licenses/cargo-licenses.json", `${JSON.stringify(packages, null, 2)}\\n`);
-NODE
-"""
-run_windows = "if not exist tmp\\dependency-licenses mkdir tmp\\dependency-licenses && pnpm.CMD licenses list --json > tmp\\dependency-licenses\\pnpm-licenses.json && cargo metadata --manifest-path src-tauri\\Cargo.toml --format-version=1 --locked > tmp\\dependency-licenses\\cargo-metadata.json && node --input-type=module -e \"import { readFileSync, writeFileSync } from 'node:fs'; const metadata = JSON.parse(readFileSync('tmp/dependency-licenses/cargo-metadata.json', 'utf8')); const packages = metadata.packages.map((pkg) => ({ name: pkg.name, version: pkg.version, license: pkg.license ?? null, license_file: pkg.license_file ?? null, repository: pkg.repository ?? null })); writeFileSync('tmp/dependency-licenses/cargo-licenses.json', `${JSON.stringify(packages, null, 2)}\\n`);\""
+run = "node ./scripts/report-dependency-licenses.ts"
+run_windows = "node ./scripts/report-dependency-licenses.ts"
 
 # ========================================
 # ローカル品質ゲート / レポート
