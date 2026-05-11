@@ -30,52 +30,17 @@
 
 ### Rust Provider / DB / Scheduler
 
-- [ ] P2 `provider-sync`: account/feed delete と background sync の concurrent mutation boundary を固定する
-  - work type: race condition contract
-  - write scope: account commands、feed commands、sync scheduler、sync flow repository writes、query invalidation
-  - acceptance: delete 中の account/feed に対して in-flight sync が article/cache/retry state を書き戻しても削除済みデータが復活しない
-  - focused verification: delete during fetch、delete before persist、sync completes after delete、retry state cleanup、frontend invalidation order
-  - defer: multi-process DB lock redesign は別タスクにする
-
 ### Query / Store / Browser Runtime
 
 ### Reader Content / Feed Discovery / Security
-
-- [ ] P2 `provider-sync`: single feed の entry count / per-entry text size / media metadata cap を固定する
-  - work type: parser scalability contract
-  - write scope: feed normalizer、local provider pull entries、article repository persistence、sync result diagnostics
-  - acceptance: 1 feed に大量 entry、巨大 summary/content、過大 media/enclosure metadata が入っても UI/DB/sanitizer が過負荷にならない
-  - focused verification: 10k entries fixture、oversized content text、oversized title/author、huge media metadata、skipped entry diagnostics、partial sync summary
-  - defer: infinite scrolling pagination redesign は別タスクにする
-
-- [ ] P2 `security-privacy`: sanitizer version backfill を sync flow 依存だけにしない契約を固定する
-  - work type: content security contract
-  - write scope: article repository sanitizer version query、startup/read-path repair trigger、sync flow repair tests、article render boundary tests
-  - acceptance: sanitizer policy 更新後、sync が走らない account/feed でも古い `content_sanitized` が長期に render されず、repair failure は user-visible degraded state か diagnostics に残る
-  - focused verification: app startup with stale sanitizer_version、reader opens stale article before sync、repair batch failure、large stale batch cap、no raw HTML render fallback
-  - defer: sanitizer crate replacement や HTML policy redesign は別タスクにする
 
 ### Release / Native / Keyboard / I18n / A11y
 
 ### Database / Updater / Window
 
-- [ ] P2 `db-recovery`: startup migration recovery message と backup restore runbook の drift を防ぐ
-  - work type: recovery documentation contract
-  - write scope: startup error messages、backup path redaction、log/support checklist、database recovery tests
-  - acceptance: migration failure、persistence failure、integrity failure の user-visible message が削除推奨や raw path leakage を再導入しない
-  - focused verification: migrated-but-restored DB error、permission denied、integrity check failure、backup directory label、support checklist wording
-  - defer: GUI restore wizard 実装は別タスクにする
-
 ### Article List / Schema / Mute / Tags / Share
 
 ### Feed / Folder / Storage / Settings Data
-
-- [ ] P2 `db-recovery`: OPML import の post-commit refresh / query invalidation failure を partial success として扱う
-  - work type: data import recovery contract
-  - write scope: OPML import command、query statistics refresh、frontend import result handling、feed/folder invalidation tests
-  - acceptance: DB transaction commit 後の query statistics refresh や frontend invalidation が失敗しても、import 自体を完全失敗に見せず、再試行で重複や mixed success toast を発生させない
-  - focused verification: refresh_query_statistics failure after commit、frontend invalidation rejection、retry after partial success、duplicate folder/feed suppression、maintenance guard release
-  - defer: OPML parser policy、large file cap、folder naming redesign は別タスクにする
 
 ### GReader / Sync Flow / Account Setup
 
