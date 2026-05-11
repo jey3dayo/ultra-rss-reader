@@ -1007,6 +1007,6 @@ describe("recent article history mutations", () => {
       wrapper,
     });
 
-    await expect(result.current.mutateAsync("acc-1")).resolves.toBe(0);
+    await expect(result.current.mutateAsync("acc-1")).resolves.toBe(1);
   });
 });

@@ -128,12 +128,8 @@ describe("browser preview shortcut bridge contract", () => {
     expect(nativeMessageHandlerBlock).toContain("if let Some(action) = action");
     expect(nativeMessageHandlerBlock).toContain("app_handle.emit(MENU_ACTION_EVENT, action)");
     expect(bridgeMessageActionBlock).toContain("serde_json::from_str(raw_message).ok()?");
-    expect(acceptMessageBlock).toContain(
-      "is_supported_browser_preview_bridge_action(&message.action)",
-    );
-    expect(acceptMessageBlock).toContain(
-      "browser_preview_bridge_url_matches(&message.url, &state.url)",
-    );
+    expect(acceptMessageBlock).toContain("is_supported_browser_preview_bridge_action(&message.action)");
+    expect(acceptMessageBlock).toContain("browser_preview_bridge_url_matches(&message.url, &state.url)");
     expect(supportedBridgeActionBlock).toContain("is_supported_browser_preview_script_action(action)");
     expect(supportedBridgeActionBlock).toContain('matches!(action, "mouse-back" | "mouse-forward")');
   });
