@@ -12,12 +12,12 @@ type CargoMetadata = {
 };
 
 const outputDir = "tmp/dependency-licenses";
-const pnpmCommand = process.platform === "win32" ? "pnpm.CMD" : "pnpm";
 
 const run = (command: string, args: readonly string[], stdoutFile?: string): void => {
   const result = spawnSync(command, [...args], {
     encoding: "utf8",
     maxBuffer: 16 * 1024 * 1024,
+    shell: process.platform === "win32",
     stdio: stdoutFile ? ["ignore", "pipe", "inherit"] : "inherit",
   });
 
@@ -33,7 +33,7 @@ const run = (command: string, args: readonly string[], stdoutFile?: string): voi
 };
 
 mkdirSync(outputDir, { recursive: true });
-run(pnpmCommand, ["licenses", "list", "--json"], `${outputDir}/pnpm-licenses.json`);
+run("pnpm", ["licenses", "list", "--json"], `${outputDir}/pnpm-licenses.json`);
 run(
   "cargo",
   ["metadata", "--manifest-path", "src-tauri/Cargo.toml", "--format-version=1", "--locked"],
