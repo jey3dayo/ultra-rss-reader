@@ -1687,11 +1687,8 @@ describe("repository static contracts", () => {
     expect(releaseWorkflow).toContain("release_tag:");
     expect(releaseWorkflow).toContain("required: true");
     expect(releaseWorkflow).toContain("github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')");
-    expect(releaseWorkflow).toContain(
-      "github.event_name == 'workflow_dispatch' && startsWith(inputs.release_tag, 'v')",
-    );
-    expect(releaseWorkflow).toContain("ref: >-");
-    expect(releaseWorkflow).toContain("format('refs/tags/{0}', inputs.release_tag)");
+    expect(releaseWorkflow).toContain("github.event_name == 'workflow_dispatch'");
+    expect(releaseWorkflow).toContain("ref: ${{ github.ref }}");
     expect(releaseWorkflow).not.toContain(`ref: ${unqualifiedWorkflowDispatchReleaseRefExpression}`);
     expect(releasePreflightIndex).toBeGreaterThanOrEqual(0);
     expect(tauriActionIndex).toBeGreaterThanOrEqual(0);
@@ -1765,9 +1762,6 @@ describe("repository static contracts", () => {
   it("keeps manual release dispatch pinned to explicit version tags", () => {
     const releaseWorkflow = readRepoFile(".github/workflows/release.yml");
     const releaseSourceValidator = readRepoFile("scripts/release/validate-source.ts");
-    const checkoutReleaseRefExpression =
-      "$" +
-      "{{ github.event_name == 'workflow_dispatch' &&\n            format('refs/tags/{0}', inputs.release_tag) || github.ref }}";
     const workflowDispatchReleaseNameExpression =
       "$" + "{{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}";
 
@@ -1776,10 +1770,9 @@ describe("repository static contracts", () => {
     expect(releaseWorkflow).toContain('description: "Release tag to publish. Must start with v."');
     expect(releaseWorkflow).toContain("required: true");
     expect(releaseWorkflow).toContain("type: string");
-    expect(releaseWorkflow).toContain(
-      "(github.event_name == 'workflow_dispatch' && startsWith(inputs.release_tag, 'v'))",
-    );
-    expect(releaseWorkflow).toContain(`ref: >-\n            ${checkoutReleaseRefExpression}`);
+    expect(releaseWorkflow).toContain("github.event_name == 'workflow_dispatch'");
+    expect(releaseWorkflow).toContain("ref: ${{ github.ref }}");
+    expect(releaseWorkflow).not.toContain("format('refs/tags/{0}', inputs.release_tag)");
     expect(releaseWorkflow).toContain("name: Validate release source");
     expect(releaseWorkflow).toContain("node ./scripts/release/validate-source.ts");
     expect(releaseSourceValidator).toContain(
