@@ -46,16 +46,6 @@
 
 ### Browser WebView / Runtime Diagnostics
 
-- [ ] P2 app local time / UTC persistence の boundary を DB fields ごとに棚卸しする
-  - 対象: domain models、SQLite repositories、date helpers
-  - DB persisted date が UTC なのか local string なのか混在すると sort、sync、review stale day が環境依存になる
-  - `created_at`、`updated_at`、`published_at`、`last_sync_at`、`next_retry_at` の timezone contract を書く
-
-- [ ] P2 batch read/star/mute mutations の transaction chunking policy を決める
-  - 対象: article commands、repository mutation methods、reader bulk actions
-  - 大量記事を一括更新する時に 1 transaction/分割/partial success の方針が曖昧だと UI と DB がずれる
-  - large batch、chunk failure、partial rollback、query invalidation、progress feedback の task に分ける
-
 - [ ] P1 app shutdown 中の background sync / DB write / browser webview cleanup を drain する contract を作る
   - 対象: `src-tauri/src/lib.rs`, `src-tauri/src/service/sync_scheduler.rs`, browser webview tracker, DB commands
   - window close や restart 中に sync/DB write/webview close が走ると、WAL・query cache・native webview state が中途半端に残る
@@ -76,11 +66,6 @@
   - OS の close button は frontend navigation guard を通らないため、dirty form や pending mutation を落とす可能性がある
   - native close requested、dirty settings、add feed pending、sync pending、restart requested、force close の flow を固定する
 
-- [ ] P2 window size/position restore を multi-monitor / disconnected monitor / negative coordinates で固定する
-  - 対象: Tauri window config, platform store, startup focus restore
-  - 外部 monitor を外した後の保存位置や negative coordinate を復元すると、window が画面外に出る
-  - disconnected monitor、negative x/y、DPI change、maximized state、fullscreen state、safe fallback center の contract を追加する
-
 - [ ] P2 app data directory rename / bundle identifier migration path を明文化する
   - 対象: `src-tauri/tauri*.conf.json`, startup data dir, release docs
   - bundle identifier を変えると OS app data dir が変わり、既存 DB/credentials/log が見えなくなる
@@ -90,11 +75,6 @@
   - 対象: `commands::*`, `AppState`, DB/browser tracker mutex access
   - 一部 command だけ poisoned mutex を panic/unwrap すると、単一 command failure が app 全体 failure に広がる
   - DB mutex、browser tracker mutex、pending update mutex、syncing flag、diagnostics category の matrix を作る
-
-- [ ] P2 recent article history limit と persistent storage / DB history の役割を整理する
-  - 対象: `src-tauri/src/domain/constants.rs`, `record_article_view`, reader history UI
-  - hardcoded 50 件の意味が未明確だと、履歴 UI や storage cleanup で期待がずれる
-  - max count、duplicate article revisit、account delete、feed delete、clear history、migration の contract を追加する
 
 - [ ] P2 OS sleep中の updater download / file export / DB backup を cancellation-aware にする
   - 対象: updater hook、export/backup commands、runtime lifecycle
