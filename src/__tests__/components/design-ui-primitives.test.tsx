@@ -139,6 +139,25 @@ describe("Design-themed UI primitives", () => {
     );
   });
 
+  it("syncs OS contrast accessibility modes through shared design tokens", () => {
+    expectGlobalCssToContain(
+      "@media (prefers-contrast: more)",
+      "--border: color-mix(in srgb, var(--foreground) 24%, transparent);",
+      "--ring: color-mix(in srgb, var(--primary) 70%, var(--foreground));",
+      "--browser-overlay-rail-border: color-mix(in srgb, var(--foreground) 32%, transparent);",
+      "@media (forced-colors: active)",
+      "--background: Canvas;",
+      "--foreground: CanvasText;",
+      "--primary: Highlight;",
+      "--primary-foreground: HighlightText;",
+      "--border: ButtonBorder;",
+      "--ring: Highlight;",
+      "--sidebar-selection-gradient: linear-gradient(90deg, Highlight 0%, Highlight 100%);",
+      "--overlay-action-surface-focus: Highlight;",
+      "--browser-overlay-state-detail-border: ButtonBorder;",
+    );
+  });
+
   it("uses semantic danger borders for invalid field states", () => {
     render(
       <>

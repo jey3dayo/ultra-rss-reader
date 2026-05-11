@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { cleanup, screen } from "@testing-library/react";
 import { renderStory } from "@tests/helpers/render-story";
 import { describe, expect, it } from "vitest";
@@ -33,7 +35,24 @@ import {
 } from "@/components/storybook/viewport-fixtures";
 import { storybookSmokeStoryIds } from "../../../e2e/storybook/storybook-index-payload";
 
+const globalCss = readFileSync(join(process.cwd(), "src/styles/global.css"), "utf8");
+
 describe("Storybook viewport density fixtures", () => {
+  it("syncs OS high contrast and forced-colors settings through shared design tokens", () => {
+    expect(globalCss).toContain("@media (prefers-contrast: more)");
+    expect(globalCss).toContain("@media (forced-colors: active)");
+    expect(globalCss).toContain("--ring: color-mix(in srgb, var(--primary) 70%, var(--foreground));");
+    expect(globalCss).toContain("--border-strong: color-mix(in srgb, var(--foreground) 42%, transparent);");
+    expect(globalCss).toContain("--sidebar-selection-shadow: inset 0 0 0 1px var(--sidebar-selection-border);");
+    expect(globalCss).toContain("--browser-overlay-rail-border: ButtonBorder;");
+    expect(globalCss).toContain("--browser-overlay-state-detail-border: ButtonBorder;");
+    expect(globalCss).toContain("--overlay-action-surface-focus: Highlight;");
+    expect(globalCss).toContain("--surface-selected: Highlight;");
+    expect(globalCss).toContain("--reader-toolbar-surface: Canvas;");
+    expect(globalCss).toContain("--state-warning-border: ButtonBorder;");
+    expect(globalCss).toContain("--state-danger-border: ButtonBorder;");
+  });
+
   it("uses one narrow viewport baseline for all density fixtures", () => {
     expect(SidebarHeaderDenseNarrowViewport.parameters?.viewport).toBe(denseNarrowViewportParameters.viewport);
     expect(FeedTreeDenseNarrowA11yState.parameters?.viewport).toBe(denseNarrowViewportParameters.viewport);
@@ -91,9 +110,13 @@ describe("Storybook viewport density fixtures", () => {
     expect(ArticleToolbarMobileA11yDisabledState.parameters?.viewport).toBe(denseNarrowViewportParameters.viewport);
 
     cleanup();
-    renderStory(articleToolbarMeta, ArticleToolbarMobileJapaneseLongLabels);
+    const { container: longLabelContainer } = renderStory(articleToolbarMeta, ArticleToolbarMobileJapaneseLongLabels);
+    expect(longLabelContainer.querySelector(".sticky.top-0")).toHaveClass("h-12");
+    expect(longLabelContainer.querySelector("[data-tauri-drag-region]")).toHaveClass("min-w-0");
     expect(screen.getByRole("button", { name: "この記事を既読または未読に切り替える" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Webプレビューを開く" })).toBeInTheDocument();
+    expect(screen.getByText("未読にする")).toHaveClass("max-w-16", "truncate");
+    expect(screen.getByText("プレビューを開く")).toHaveClass("max-w-16", "truncate");
 
     cleanup();
     renderStory(articleToolbarMeta, ArticleToolbarMobileA11yDisabledState);
@@ -122,6 +145,12 @@ describe("Storybook viewport density fixtures", () => {
     expect(screen.getByRole("button", { name: "環境設定を閉じる" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "一般設定" })).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "アカウントを追加" }).length).toBeGreaterThan(0);
+    expect(document.querySelector("nav")).toHaveClass("flex-wrap", "overflow-visible");
+    expect(screen.getByRole("button", { name: "表示とテーマ" })).toHaveClass("max-w-full", "overflow-hidden");
+    expect(screen.getAllByRole("button", { name: /FreshRSS 長い表示名の検証/ })[0]).toHaveClass(
+      "max-w-full",
+      "overflow-hidden",
+    );
   });
 
   it("keeps the account detail dense fixtures focused on localized error and disabled controls", () => {

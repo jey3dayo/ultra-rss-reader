@@ -443,6 +443,16 @@ describe("AppShell", () => {
     }
   });
 
+  it("does not attach OS file-drop listeners before the OPML import boundary is implemented", () => {
+    render(<AppShell />, { wrapper: createWrapper() });
+
+    const tauriEventNames = vi.mocked(listen).mock.calls.map(([eventName]) => eventName);
+    expect(tauriEventNames).not.toContain("tauri://drag-enter");
+    expect(tauriEventNames).not.toContain("tauri://drag-over");
+    expect(tauriEventNames).not.toContain("tauri://drag-drop");
+    expect(tauriEventNames).not.toContain("tauri://drag-leave");
+  });
+
   it("uses overlay titlebar helper classes on first render when tauri is available and mac platform info is still unknown", () => {
     const originalTauriInternalsDescriptor = Object.getOwnPropertyDescriptor(window, "__TAURI_INTERNALS__");
     const restorePlatform = stubNavigatorPlatform({ platform: "MacIntel" });

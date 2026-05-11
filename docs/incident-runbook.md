@@ -34,17 +34,17 @@ Use this page when the app is already failing and you need the fastest path to t
 
 Use the source that matches the failure mode before collecting broader artifacts:
 
-| Failure area | First diagnostic source | Escalate when |
-| --- | --- | --- |
-| startup / migration | Packaged release log plus reported database or backup path | The app cannot reopen the database after preserving backup artifacts |
-| runtime database recovery | User-facing support code plus packaged release log | A read or write command reports corruption after startup succeeded |
-| account credentials / keyring | Packaged release log plus OS keyring behavior notes | Credentials cannot be saved or reloaded with `DEV_CREDENTIALS` disabled |
-| sync | Packaged release log plus account name and toast/warning text | The same account repeatedly reports failure, partial failure, or retry-pending warnings |
-| WebView / browser preview | Debug HUD geometry rows plus packaged release log when available | Native and layout bounds disagree, content is blank, or the embedded preview cannot be recreated |
-| test temp directory cleanup | Rust test output plus cleanup warning and redacted temp root class | A temp database, keyring fixture, or profile directory cannot be removed after retry |
-| CI frontend failure | Vitest or Playwright output plus gate-specific screenshot/log artifact | The failure cannot be reproduced locally from logs alone |
-| CI Rust failure | Rust test output plus `RUST_LOG` output and sanitized fixture class | The failure involves temp database state, filesystem permissions, or platform-only behavior |
-| CI native smoke failure | Native app log plus platform, bundle/executable class, and screenshot when relevant | The app starts differently on macOS or Windows CI than in local dev |
+| Failure area                  | First diagnostic source                                                             | Escalate when                                                                                    |
+| ----------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| startup / migration           | Packaged release log plus reported database or backup path                          | The app cannot reopen the database after preserving backup artifacts                             |
+| runtime database recovery     | User-facing support code plus packaged release log                                  | A read or write command reports corruption after startup succeeded                               |
+| account credentials / keyring | Packaged release log plus OS keyring behavior notes                                 | Credentials cannot be saved or reloaded with `DEV_CREDENTIALS` disabled                          |
+| sync                          | Packaged release log plus account name and toast/warning text                       | The same account repeatedly reports failure, partial failure, or retry-pending warnings          |
+| WebView / browser preview     | Debug HUD geometry rows plus packaged release log when available                    | Native and layout bounds disagree, content is blank, or the embedded preview cannot be recreated |
+| test temp directory cleanup   | Rust test output plus cleanup warning and redacted temp root class                  | A temp database, keyring fixture, or profile directory cannot be removed after retry             |
+| CI frontend failure           | Vitest or Playwright output plus gate-specific screenshot/log artifact              | The failure cannot be reproduced locally from logs alone                                         |
+| CI Rust failure               | Rust test output plus `RUST_LOG` output and sanitized fixture class                 | The failure involves temp database state, filesystem permissions, or platform-only behavior      |
+| CI native smoke failure       | Native app log plus platform, bundle/executable class, and screenshot when relevant | The app starts differently on macOS or Windows CI than in local dev                              |
 
 Do not mix app UI debug actions with log collection in the same note. Record which button or command was used, then attach the corresponding diagnostic source separately.
 
@@ -202,6 +202,12 @@ Downloaded artifact cleanup:
 - App restart must not resurrect an old downloaded artifact as pending install state. On startup, stale updater artifacts are cleanup candidates unless they are revalidated against the current manifest, signature, and app/database compatibility gate.
 - Preserve logs before cleanup when the failure is being investigated; downloaded release artifacts themselves are not a substitute for logs, signatures, or manifest evidence.
 
+Single-instance and deep-link triage:
+
+- Treat normal second launch as a focus/restore request unless a reviewed single-instance route contract says otherwise. Do not use a second launch to clear dirty forms, cancel sync, retry an updater install, or recover a partial export or backup.
+- If the first instance is syncing, downloading an update, waiting on dirty settings or add-feed drafts, or running an import/export/backup, the second launch may restore focus and report the blocked lifecycle route, but it must leave the pending operation owned by the first instance.
+- If a custom protocol or deep link is involved in an incident, record only the route class, app scheme, version, validation failure reason, and focus result. Do not paste raw deep links that may contain private URLs, account names, feed titles, local paths, or import sources into public issues.
+
 ## Failure-Specific Steps
 
 ### 1. Startup / Migration Failure
@@ -280,6 +286,8 @@ Use this path when a Rust integration test cannot remove its temporary database,
 6. Separate automatic sync backoff from user-action-required refusal:
    - HTTP 429 or `Retry-After` is backoff input.
    - HTTP 401/403, robots disallow, and explicit provider block require credential/account/server review or a visible blocked state.
+   - Manual sync can bypass automatic-scheduler suppression, but it must not bypass provider HTTP timeout, body caps, private-host validation, redirect validation, same-instance local sync concurrency, or `Retry-After` classification.
+   - Feed discovery is a user-initiated single URL probe, not a crawler; do not diagnose discovery failures as automatic sync freshness unless the chosen feed was later added and synced.
 7. Treat frontend offline/online state as a trigger hint, not as the native network failure category:
    - `online === false` may suppress automatic background attempts or label stale content as offline, but manual retry should still record the native command result.
    - `online === true` does not prove provider reachability. DNS failure, timeout, TLS failure, connection reset, captive portal, and HTTP status classification come from the native provider error.

@@ -26,12 +26,12 @@ Use this table before choosing the amount of manual verification. It separates
 release process decisions from implementation work; do not change signing,
 notarization, updater, or artifact generation behavior during this checklist.
 
-| Path | Use When | Required Manual Entry | Evidence |
-| --- | --- | --- | --- |
-| Normal release | A scheduled release, feature release, or mixed fix release | Run the full checklist sections that match the changed surface | OS, artifact name, release URL, digest, logs, and screenshots for each platform in scope |
-| Hotfix release | A patch fixes a released regression and should avoid unrelated scope | Start with [Hotfix Release Checklist](#hotfix-release-checklist), then run only the smoke checks affected by the regression | Affected version, regression summary, focused tests, skipped checks with reasons, and artifact evidence |
-| Rollback or republish | A published artifact is broken, unsafe, or must be replaced | Record the old artifact, the replacement or rollback decision, and the user-facing guidance before changing release state | Old release URL, old digest, replacement digest if any, and rollback or upgrade note |
-| Manual native smoke only | No release is being cut, but packaged OS behavior changed | Run the short smoke checklist for the affected OS and feature only | Expected result, redacted log note, and screenshot for any OS prompt or warning |
+| Path                     | Use When                                                             | Required Manual Entry                                                                                                       | Evidence                                                                                                |
+| ------------------------ | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Normal release           | A scheduled release, feature release, or mixed fix release           | Run the full checklist sections that match the changed surface                                                              | OS, artifact name, release URL, digest, logs, and screenshots for each platform in scope                |
+| Hotfix release           | A patch fixes a released regression and should avoid unrelated scope | Start with [Hotfix Release Checklist](#hotfix-release-checklist), then run only the smoke checks affected by the regression | Affected version, regression summary, focused tests, skipped checks with reasons, and artifact evidence |
+| Rollback or republish    | A published artifact is broken, unsafe, or must be replaced          | Record the old artifact, the replacement or rollback decision, and the user-facing guidance before changing release state   | Old release URL, old digest, replacement digest if any, and rollback or upgrade note                    |
+| Manual native smoke only | No release is being cut, but packaged OS behavior changed            | Run the short smoke checklist for the affected OS and feature only                                                          | Expected result, redacted log note, and screenshot for any OS prompt or warning                         |
 
 ## Short Manual Smoke Checklist
 
@@ -385,6 +385,15 @@ If a release adds tray or background resident behavior, confirm and record:
 - Background sync, updater checks, file export, and database backup are either disabled while the window is hidden or explicitly documented as resident operations.
 - Users can disable background activity and can quit the app completely.
 - Reopen from tray, quit, update restart, and relaunch after OS login if enabled were verified in a packaged build.
+
+If a release adds or changes single-instance, second-launch, custom protocol, or deep-link behavior, confirm and record:
+
+- Second launch with no route focuses or restores the existing main window without starting duplicate sync, updater, import/export, or backup work.
+- Hidden and minimized windows are shown and focused; focus failure is diagnostics-only and leaves sync/update/dirty state unchanged.
+- Dirty settings, add-feed drafts, sync in-flight, update pending, pending imports/exports, and in-flight backups block or defer routed actions with clear copy.
+- Update restart requests are handled separately from normal second launch and are not converted into custom-protocol actions.
+- Custom protocol routes use the reviewed production or development scheme and versioned route shape, reject unknown versions, malformed links, userinfo URLs, oversized payloads, repeated parameters, private hosts, and local paths before mutation, and log only route class plus failure reason.
+- Single-instance route delivery waits for startup readiness, focuses the main window, and applies only allowlisted actions after sync/update/dirty-state gates allow them.
 
 Evidence to save:
 

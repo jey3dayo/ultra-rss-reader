@@ -51,4 +51,32 @@ describe("FeedTreeView visibility and density contract", () => {
 
     expect(screen.getByRole("button", { name: /Example Feed/ })).toHaveClass("min-h-8", "py-0.5");
   });
+
+  it("keeps dense feed names constrained while preserving the full safe display name", () => {
+    render(
+      <FeedTreeView
+        isOpen={true}
+        sidebarDensity="compact"
+        folders={[]}
+        unfolderedFeeds={[
+          {
+            ...baseFeed,
+            title: "مثال very long user-created feed display name for dense rows",
+          },
+        ]}
+        displayFavicons={false}
+        emptyState={{ kind: "hidden" }}
+        onToggleFolder={vi.fn()}
+        onSelectFeed={vi.fn()}
+      />,
+    );
+
+    const name = screen.getByText("مثال very long user-created feed display name for dense rows");
+    const row = screen.getByRole("button", { name: /very long user-created feed/ });
+
+    expect(row).toHaveClass("min-h-8", "py-0.5");
+    expect(name).toHaveClass("max-w-full", "truncate");
+    expect(name).toHaveAttribute("dir", "auto");
+    expect(name).toHaveAttribute("title", "مثال very long user-created feed display name for dense rows");
+  });
 });

@@ -401,6 +401,69 @@ describe("ArticleToolbarView", () => {
     }
   });
 
+  it("keeps mobile toolbar labels bounded for 200% text scaling smoke", () => {
+    render(
+      <div style={{ fontSize: "200%" }}>
+        <ArticleToolbarView
+          showCloseButton={false}
+          layoutMode="mobile"
+          articleState={{
+            hasArticle: true,
+            isRead: false,
+            isStarred: true,
+            isBrowserOpen: false,
+          }}
+          actionOptions={{
+            canToggleRead: true,
+            canToggleStar: true,
+            showCopyLinkButton: true,
+            canCopyLink: true,
+            showOpenInBrowserButton: true,
+            canOpenInBrowser: true,
+            showOpenInExternalBrowserButton: true,
+            canOpenInExternalBrowser: true,
+            showExternalBrowserInMoreMenu: true,
+          }}
+          labels={{
+            closeView: "記事ビューを閉じる",
+            toggleRead: "この記事を既読または未読に切り替える",
+            toggleReadShort: "未読にする",
+            toggleStar: "この記事にスターを付けるまたは外す",
+            toggleStarShort: "スター付き",
+            copyLink: "記事のリンクをコピーする",
+            previewToggleOff: "Webプレビューを開く",
+            previewToggleOffShort: "プレビューを開く",
+            previewToggleOn: "Webプレビューを閉じる",
+            previewToggleOnShort: "閉じる",
+            openInExternalBrowser: "外部ブラウザーで開く",
+            moreActions: "その他の記事操作",
+          }}
+          onCloseView={vi.fn()}
+          onToggleRead={vi.fn()}
+          onToggleStar={vi.fn()}
+          onCopyLink={vi.fn()}
+          onOpenInBrowser={vi.fn()}
+          onOpenInExternalBrowser={vi.fn()}
+        />
+      </div>,
+    );
+
+    for (const label of [
+      "この記事を既読または未読に切り替える",
+      "この記事にスターを付けるまたは外す",
+      "Webプレビューを開く",
+    ]) {
+      const button = screen.getByRole("button", { name: label });
+      const visibleLabel = button.querySelector(".max-w-16.truncate");
+
+      expect(button).toHaveClass("h-9", "min-w-9", "px-2");
+      expect(visibleLabel).not.toBeNull();
+      expect(visibleLabel).toHaveClass("max-w-16", "truncate");
+    }
+
+    expect(screen.getByRole("button", { name: "その他の記事操作" })).toHaveClass("size-11", "md:size-8");
+  });
+
   it("keeps the unread toggle neutral when no article is selected", () => {
     render(
       <ArticleToolbarView

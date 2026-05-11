@@ -461,7 +461,10 @@ impl FeedProvider for LocalProvider {
         }
 
         if !status.is_success() {
-            return Err(DomainError::from_provider_http_status(status));
+            return Err(DomainError::from_provider_http_response_status(
+                status,
+                response.headers(),
+            ));
         }
 
         let response_url = response.url().to_string();
@@ -499,9 +502,13 @@ impl FeedProvider for LocalProvider {
             .get(url.clone())
             .send()
             .await
-            .map_err(map_local_provider_request_error)?
-            .error_for_status()
-            .map_err(DomainError::from_provider_http_error)?;
+            .map_err(map_local_provider_request_error)?;
+        if !response.status().is_success() {
+            return Err(DomainError::from_provider_http_response_status(
+                response.status(),
+                response.headers(),
+            ));
+        }
         let (bytes, _) = Self::response_bytes_with_limit(response).await?;
         Self::reject_xml_doctype_declaration(&bytes)?;
         let feed =
@@ -990,6 +997,37 @@ mod tests {
             .expect_err("429 should be classified as rate limit failure");
 
         assert!(matches!(error, DomainError::RateLimit(_)));
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn pull_entries_preserves_retry_after_for_rate_limit_status() {
+        let mut server = mockito::Server::new_async().await;
+        let mock = server
+            .mock("GET", "/rate-limited.xml")
+            .with_status(429)
+            .with_header("retry-after", "120")
+            .with_body("too many requests")
+            .create_async()
+            .await;
+
+        let provider = local_provider_allowing_private_feed_urls();
+        let scope = PullScope::Feed(FeedIdentifier::Local {
+            feed_url: format!("{}/rate-limited.xml", server.url()),
+        });
+
+        let error = provider
+            .pull_entries(scope, None)
+            .await
+            .expect_err("429 retry-after should be preserved for scheduler backoff");
+
+        assert!(matches!(
+            error,
+            DomainError::RateLimitWithRetryAfter {
+                retry_after_seconds: 120,
+                ..
+            }
+        ));
         mock.assert_async().await;
     }
 
@@ -1754,6 +1792,34 @@ mod tests {
             .expect_err("429 should be classified as rate limit failure");
 
         assert!(matches!(error, DomainError::RateLimit(_)));
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn create_subscription_preserves_retry_after_for_rate_limit_status() {
+        let mut server = mockito::Server::new_async().await;
+        let feed_url = format!("{}/rate-limited.xml", server.url());
+        let mock = server
+            .mock("GET", "/rate-limited.xml")
+            .with_status(429)
+            .with_header("retry-after", "180")
+            .with_body("too many requests")
+            .create_async()
+            .await;
+
+        let provider = local_provider_allowing_private_feed_urls();
+        let error = provider
+            .create_subscription(&feed_url, None)
+            .await
+            .expect_err("discovery 429 retry-after should stay structured");
+
+        assert!(matches!(
+            error,
+            DomainError::RateLimitWithRetryAfter {
+                retry_after_seconds: 180,
+                ..
+            }
+        ));
         mock.assert_async().await;
     }
 

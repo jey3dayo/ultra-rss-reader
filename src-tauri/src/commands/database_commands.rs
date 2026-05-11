@@ -160,6 +160,21 @@ pub enum NativeFileDialogDirectoryPolicy {
     RejectDirectorySelection,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum LongRunningNativeOperation {
+    UpdaterDownload,
+    OpmlExport,
+    DatabaseBackup,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum LongRunningOperationInterruptionPolicy {
+    CancelAndInvalidatePartialArtifact,
+    ResetProgressBeforeRetry,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct DatabaseRuntimeRecoveryContract {
     pub failure_kind: DatabaseRuntimeFailureKind,
@@ -207,6 +222,14 @@ pub struct SearchIndexRebuildMaintenanceContract {
     pub reports_progress: bool,
     pub supports_cancellation: bool,
     pub retries_after_cancellation: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct LongRunningNativeOperationContract {
+    pub operation: LongRunningNativeOperation,
+    pub cancellation_token_required: bool,
+    pub interruption_policies: Vec<LongRunningOperationInterruptionPolicy>,
+    pub accepts_partial_artifact_after_resume: bool,
 }
 
 #[cfg(test)]
@@ -337,6 +360,21 @@ pub(crate) fn search_index_rebuild_maintenance_contract() -> SearchIndexRebuildM
 }
 
 #[cfg(test)]
+pub(crate) fn long_running_native_operation_contract(
+    operation: LongRunningNativeOperation,
+) -> LongRunningNativeOperationContract {
+    LongRunningNativeOperationContract {
+        operation,
+        cancellation_token_required: true,
+        interruption_policies: vec![
+            LongRunningOperationInterruptionPolicy::CancelAndInvalidatePartialArtifact,
+            LongRunningOperationInterruptionPolicy::ResetProgressBeforeRetry,
+        ],
+        accepts_partial_artifact_after_resume: false,
+    }
+}
+
+#[cfg(test)]
 pub(crate) fn private_data_reset_contract() -> PrivateDataResetContract {
     PrivateDataResetContract {
         steps: vec![
@@ -448,12 +486,13 @@ mod tests {
 
     use crate::commands::database_commands::{
         database_runtime_recovery_contract, filesystem_recovery_contract, get_database_info_inner,
-        private_data_reset_contract, schedule_database_maintenance_action,
-        search_index_rebuild_maintenance_contract, vacuum_database_inner, AppActivityState,
-        AtomicFileWritePolicy, DatabaseInfoDto, DatabaseMaintenanceAction,
-        DatabaseMaintenanceScheduleDecision, DatabaseMaintenanceTrigger,
+        long_running_native_operation_contract, private_data_reset_contract,
+        schedule_database_maintenance_action, search_index_rebuild_maintenance_contract,
+        vacuum_database_inner, AppActivityState, AtomicFileWritePolicy, DatabaseInfoDto,
+        DatabaseMaintenanceAction, DatabaseMaintenanceScheduleDecision, DatabaseMaintenanceTrigger,
         DatabaseRecoveryActionSafety, DatabaseRuntimeFailureKind, DatabaseRuntimeRecoveryAction,
         DatabaseRuntimeRecoveryMode, FilesystemPathNormalizationPolicy, FilesystemRecoverySurface,
+        LongRunningNativeOperation, LongRunningOperationInterruptionPolicy,
         NativeFileDialogCancelPolicy, NativeFileDialogDirectoryPolicy,
         NativeFileDialogExtensionPolicy, NativeFileDialogOverwritePolicy, PrivateDataResetStep,
     };
@@ -641,6 +680,26 @@ mod tests {
             ),
             DatabaseMaintenanceScheduleDecision::DeferUntilBackground
         );
+    }
+
+    #[test]
+    fn long_running_native_operations_invalidate_partial_artifacts_after_interruption() {
+        for operation in [
+            LongRunningNativeOperation::UpdaterDownload,
+            LongRunningNativeOperation::OpmlExport,
+            LongRunningNativeOperation::DatabaseBackup,
+        ] {
+            let contract = long_running_native_operation_contract(operation);
+
+            assert!(contract.cancellation_token_required);
+            assert!(!contract.accepts_partial_artifact_after_resume);
+            assert!(contract.interruption_policies.contains(
+                &LongRunningOperationInterruptionPolicy::CancelAndInvalidatePartialArtifact
+            ));
+            assert!(contract
+                .interruption_policies
+                .contains(&LongRunningOperationInterruptionPolicy::ResetProgressBeforeRetry));
+        }
     }
 
     #[test]

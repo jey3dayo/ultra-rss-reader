@@ -1257,6 +1257,73 @@ mod tests {
     }
 
     #[test]
+    fn import_keeps_cross_account_duplicate_url_and_folder_ownership_scoped() {
+        let db = test_db();
+        let source_account_id = insert_test_account(&db, "Source");
+        let import_account_id = insert_test_account(&db, "Import Target");
+        let source_folder_id = insert_test_folder(&db, &source_account_id, "Shared Folder");
+        let source_feed_id = insert_test_feed(
+            &db,
+            &source_account_id,
+            Some(&source_folder_id),
+            "Source Feed",
+            "https://example.com/shared.xml",
+        );
+        let parsed_feeds = vec![OpmlFeed {
+            title: "Imported Feed".to_string(),
+            xml_url: "https://example.com/shared.xml".to_string(),
+            html_url: Some("https://example.com/imported".to_string()),
+            folder: Some("Shared Folder".to_string()),
+        }];
+
+        let feeds =
+            import_opml_in_db(&db, &parsed_feeds, import_account_id.0.clone()).unwrap();
+
+        assert_eq!(feeds.len(), 1);
+        assert_eq!(feeds[0].account_id, import_account_id.0);
+        assert_ne!(feeds[0].id, source_feed_id.0);
+
+        let saved_feeds = db
+            .reader()
+            .prepare(
+                "SELECT feeds.id, feeds.account_id, feeds.title, folders.account_id, folders.name
+                 FROM feeds
+                 JOIN folders ON feeds.folder_id = folders.id
+                 WHERE feeds.url = ?1
+                 ORDER BY feeds.account_id",
+            )
+            .unwrap()
+            .query_map(params!["https://example.com/shared.xml"], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                    row.get::<_, String>(3)?,
+                    row.get::<_, String>(4)?,
+                ))
+            })
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
+
+        assert_eq!(saved_feeds.len(), 2);
+        assert!(saved_feeds.contains(&(
+            source_feed_id.0,
+            source_account_id.0.clone(),
+            "Source Feed".to_string(),
+            source_account_id.0,
+            "Shared Folder".to_string()
+        )));
+        assert!(saved_feeds.contains(&(
+            feeds[0].id.clone(),
+            import_account_id.0.clone(),
+            "Imported Feed".to_string(),
+            import_account_id.0,
+            "Shared Folder".to_string()
+        )));
+    }
+
+    #[test]
     fn import_assigns_new_folder_sort_order_after_existing_max_order() {
         let db = test_db();
         let account_id = insert_test_account(&db, "Primary");

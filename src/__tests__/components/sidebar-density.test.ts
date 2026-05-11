@@ -18,4 +18,12 @@ describe("getSidebarDensityTokens", () => {
     expect(normal.treeGap).toContain("space-y-0.5");
     expect(spacious.treeGap).toContain("space-y-1");
   });
+
+  it("keeps compact feed tree pointer targets explicit in density tokens", () => {
+    const compact = getSidebarDensityTokens("compact");
+
+    expect(compact.navButton).toContain("min-h-8");
+    expect(compact.leadingControl).toBe("h-8 w-8");
+    expect(compact.tagListGap).toBe("space-y-0");
+  });
 });

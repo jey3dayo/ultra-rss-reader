@@ -149,7 +149,9 @@ export function FeedTreeFolderSection({
             onClick={() => onSelectFolder?.(folder.id)}
             onMouseDown={handleMiddleMouseDown}
           >
-            <span className="font-medium tracking-[-0.01em]">{folder.name}</span>
+            <span className="max-w-full truncate font-medium tracking-[-0.01em]" dir="auto" title={folder.name}>
+              {folder.name}
+            </span>
           </ContextMenu.Trigger>
           {renderFolderContextMenu?.(folder)}
         </ContextMenu.Root>

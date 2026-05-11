@@ -119,6 +119,13 @@ Pointer target inventory:
 
 Pointer target verification should inventory compact toolbar buttons, feed tree rows, tag chips, settings action buttons, and browser overlay controls together. A smaller visual treatment is acceptable only when padding or row geometry preserves the interactive target.
 
+Dense display width and tooltip policy:
+
+- Feed, folder, account, and tag names created by the user must truncate inside the row content lane. They must not push trailing counts, inline actions, or context controls outside the row.
+- Visible name fragments should use bidi-safe display with `dir="auto"` where the value is rendered directly.
+- Pointer tooltips or native `title` values may expose the full user-created display name for feed, folder, account, and tag rows. This exception does not apply to URLs, server paths, credentials, debug paths, or other privacy-sensitive values.
+- At 200% zoom or text scaling, dense rows may grow vertically when needed, but toolbar buttons, tree rows, tag chips, and settings action buttons must keep distinct hit areas and avoid text overlapping adjacent controls.
+
 ## Landmark And Heading Contract
 
 Reader, settings, and subscriptions surfaces need a stable screen reader outline even when the visual layout is pane-based.

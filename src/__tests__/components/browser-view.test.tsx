@@ -984,6 +984,7 @@ describe("BrowserView", () => {
     expect(topRail).toHaveClass("rounded-none");
     expect(topRail).not.toHaveClass("pointer-events-none");
     expect(topRail).toHaveAttribute("data-tauri-drag-region");
+    expect(topRail).toHaveClass("z-[50]");
     expectInlineStyles(topRail, {
       left: "0px",
       right: "0px",
@@ -1047,6 +1048,7 @@ describe("BrowserView", () => {
       });
       expect(topRail).toHaveAttribute("data-tauri-drag-region");
       expect(topRail).not.toHaveClass("pointer-events-none");
+      expect(topRail).toHaveClass("z-[50]");
       expect(leadingAction).toHaveClass("pointer-events-none");
       expect(screen.getByTestId("browser-overlay-chrome")).toHaveClass("pointer-events-auto");
       expect(trailingActions).toHaveClass("pointer-events-none");

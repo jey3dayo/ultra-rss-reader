@@ -78,7 +78,9 @@ export function TagListView({
                         <span className="inline-block size-2.5 rounded-full" style={{ backgroundColor: tag.color }} />
                       )}
                     </span>
-                    <span className="truncate">{tag.name}</span>
+                    <span className="max-w-full truncate" dir="auto" title={tag.name}>
+                      {tag.name}
+                    </span>
                   </ContextMenu.Trigger>
                   {renderContextMenu?.(tag)}
                 </ContextMenu.Root>

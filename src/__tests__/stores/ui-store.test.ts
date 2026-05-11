@@ -4,6 +4,8 @@ import { TOAST_AUTO_DISMISS_TIMEOUT_MS } from "@/constants/ui-runtime";
 import type { ReaderSelection } from "@/lib/reader/reader-selection.types";
 import { SubscriptionsWorkspaceReturnStateSchema } from "../../lib/subscriptions/subscriptions-workspace.types";
 import type {
+  NativeLifecycleBlockerEntry,
+  NativeLifecycleBlockerOwner,
   SyncProgressEventDto,
   SyncProgressUiState,
   UiStoreAccountSetupActions,
@@ -186,6 +188,9 @@ describe("useUiStore", () => {
     expectTypeOf<UiStoreSettingsModalActions>().toEqualTypeOf<UiStoreSettingsActions>();
     expectTypeOf<UiStoreReaderState>().toHaveProperty("selection").toEqualTypeOf<ReaderSelection>();
     expectTypeOf<UiStoreState>().toHaveProperty("selection").toEqualTypeOf<ReaderSelection>();
+    expectTypeOf<UiStoreState>()
+      .toHaveProperty("nativeLifecycleBlockers")
+      .toEqualTypeOf<Map<NativeLifecycleBlockerOwner, NativeLifecycleBlockerEntry>>();
 
     const state = useUiStore.getState();
     const shellState: UiStoreShellState = state;
@@ -311,6 +316,44 @@ describe("useUiStore", () => {
       }),
     );
     expect(useUiStore.getState().syncProgress.activeAccountIds).toEqual(new Set(["acc-2"]));
+  });
+
+  it("keeps native lifecycle blockers as a dirty and pending close/restart contract", () => {
+    useUiStore.getState().setNativeLifecycleBlocker({
+      owner: "settings",
+      dirty: true,
+      pending: false,
+    });
+    useUiStore.getState().setNativeLifecycleBlocker({
+      owner: "sync",
+      dirty: false,
+      pending: true,
+    });
+
+    expect(useUiStore.getState().getNativeLifecycleBlockerSnapshot()).toEqual({
+      dirty: true,
+      pending: true,
+      owners: ["settings", "sync"],
+    });
+
+    useUiStore.getState().setNativeLifecycleBlocker({
+      owner: "settings",
+      dirty: false,
+      pending: false,
+    });
+
+    expect(useUiStore.getState().getNativeLifecycleBlockerSnapshot()).toEqual({
+      dirty: false,
+      pending: true,
+      owners: ["sync"],
+    });
+
+    useUiStore.getState().clearNativeLifecycleBlocker("sync");
+    expect(useUiStore.getState().getNativeLifecycleBlockerSnapshot()).toEqual({
+      dirty: false,
+      pending: false,
+      owners: [],
+    });
   });
 
   it("keeps sync progress monotonic within a session and ignores older sessions", () => {
@@ -774,8 +817,13 @@ describe("useUiStore", () => {
     useUiStore.getState().selectFeedFromCurrentContext("feed-current-context");
     useUiStore.getState().selectArticle("article-after", { navigationDirection: 1 });
 
-    expect(useUiStore.getState().subscriptionsWorkspace).toEqual({ kind: "index" });
-    expect(useUiStore.getState().selection).toEqual({ type: "feed", feedId: "feed-before" });
+    expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
+      kind: "index",
+    });
+    expect(useUiStore.getState().selection).toEqual({
+      type: "feed",
+      feedId: "feed-before",
+    });
     expect(useUiStore.getState().selectedArticleId).toBe("article-before");
     expect(useUiStore.getState().contentMode).toBe("reader");
     expect(useUiStore.getState().focusedPane).toBe("content");

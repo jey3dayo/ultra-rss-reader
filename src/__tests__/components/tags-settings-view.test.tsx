@@ -44,6 +44,8 @@ describe("TagsSettingsView", () => {
   });
 
   it("renders saved tags as compact identity rows with right-aligned actions", () => {
+    const longTagName = "重要 مراجعة very long user-created tag display name";
+
     render(
       <TagsSettingsView
         title="Tags"
@@ -65,7 +67,7 @@ describe("TagsSettingsView", () => {
         savedHeading="Saved tags"
         emptyState="No tags yet."
         tags={[
-          { id: "tag-1", name: "Fav", color: "#cf7868" },
+          { id: "tag-1", name: longTagName, color: "#cf7868" },
           { id: "tag-2", name: "Gray", color: null },
         ]}
         editLabel="Edit"
@@ -78,10 +80,13 @@ describe("TagsSettingsView", () => {
     );
 
     const favRow = screen.getByTestId("tags-settings-row-tag-1");
-    expect(within(favRow).getByText("Fav")).toBeInTheDocument();
+    const favName = within(favRow).getByText(longTagName);
+    expect(favName).toHaveClass("max-w-full", "truncate");
+    expect(favName).toHaveAttribute("dir", "auto");
+    expect(favName).toHaveAttribute("title", longTagName);
     expect(within(favRow).getByTestId("tags-settings-color-dot-tag-1")).toHaveClass("size-2.5", "rounded-full");
-    expect(within(favRow).getByRole("button", { name: "Edit Fav" })).toHaveClass("size-8");
-    expect(within(favRow).getByRole("button", { name: "Delete Fav" })).toHaveClass("size-8");
+    expect(within(favRow).getByRole("button", { name: `Edit ${longTagName}` })).toHaveClass("size-8");
+    expect(within(favRow).getByRole("button", { name: `Delete ${longTagName}` })).toHaveClass("size-8");
 
     const grayRow = screen.getByTestId("tags-settings-row-tag-2");
     expect(within(grayRow).queryByTestId("tags-settings-color-dot-tag-2")).toBeNull();

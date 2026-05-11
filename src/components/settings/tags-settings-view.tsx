@@ -139,7 +139,11 @@ export function TagsSettingsView({
                       style={{ backgroundColor: tag.color }}
                     />
                   ) : null}
-                  <span className="truncate text-[14px] leading-[1.35] text-[color:var(--form-row-label)]">
+                  <span
+                    className="max-w-full truncate text-[14px] leading-[1.35] text-[color:var(--form-row-label)]"
+                    dir="auto"
+                    title={tag.name}
+                  >
                     {tag.name}
                   </span>
                 </div>

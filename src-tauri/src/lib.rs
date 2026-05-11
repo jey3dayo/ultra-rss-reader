@@ -30,11 +30,15 @@ use infra::db::sqlite_preference::SqlitePreferenceRepository;
 #[cfg(not(test))]
 use repository::preference::PreferenceRepository;
 #[cfg(not(test))]
+use tauri::Emitter;
+#[cfg(not(test))]
 use tauri::Manager;
 
 #[cfg(not(test))]
 const SHUTDOWN_DRAIN_TIMEOUT: Duration = Duration::from_secs(5);
 const SHUTDOWN_DRAIN_POLL_INTERVAL: Duration = Duration::from_millis(25);
+#[cfg(not(test))]
+const MAIN_WINDOW_CLOSE_BLOCKED_EVENT: &str = "main-window-close-blocked";
 #[cfg(any(not(debug_assertions), test))]
 const RELEASE_LOG_MAX_FILE_SIZE_BYTES: u64 = 5_000_000;
 #[cfg(any(not(debug_assertions), test))]
@@ -316,6 +320,48 @@ enum ShutdownDrainAttempt {
     Poisoned(String),
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum MainWindowCloseDecision {
+    StartShutdownDrain,
+    BlockNativeOperationInFlight,
+    IgnoreAlreadyDraining,
+}
+
+fn main_window_close_decision(
+    shutdown_draining: bool,
+    sync_in_flight: bool,
+    update_download_in_flight: bool,
+) -> MainWindowCloseDecision {
+    if shutdown_draining {
+        MainWindowCloseDecision::IgnoreAlreadyDraining
+    } else if sync_in_flight || update_download_in_flight {
+        MainWindowCloseDecision::BlockNativeOperationInFlight
+    } else {
+        MainWindowCloseDecision::StartShutdownDrain
+    }
+}
+
+#[cfg(test)]
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum SecondLaunchDecision {
+    FocusExistingWindow,
+    FocusAndReportNativeOperationInFlight,
+}
+
+#[cfg(test)]
+#[allow(dead_code)]
+fn second_launch_decision(
+    sync_in_flight: bool,
+    update_download_in_flight: bool,
+) -> SecondLaunchDecision {
+    if sync_in_flight || update_download_in_flight {
+        SecondLaunchDecision::FocusAndReportNativeOperationInFlight
+    } else {
+        SecondLaunchDecision::FocusExistingWindow
+    }
+}
+
 fn try_drain_mutex_lock_for_shutdown<T>(mutex: &Mutex<T>) -> ShutdownDrainAttempt {
     match mutex.try_lock() {
         Ok(_guard) => ShutdownDrainAttempt::Drained,
@@ -409,6 +455,13 @@ fn focus_main_webview_on_startup<R: tauri::Runtime>(
             }
         }
     });
+}
+
+#[cfg(not(test))]
+fn emit_main_window_close_blocked(app_handle: &tauri::AppHandle) {
+    if let Err(error) = app_handle.emit(MAIN_WINDOW_CLOSE_BLOCKED_EVENT, ()) {
+        tracing::warn!("Failed to emit main window close blocked lifecycle event: {error}");
+    }
 }
 
 #[cfg(any(not(debug_assertions), test))]
@@ -588,21 +641,46 @@ pub fn run() {
                 let startup_focus_restore_active_for_window = startup_focus_restore_active.clone();
                 window.on_window_event(move |event| match event {
                     tauri::WindowEvent::CloseRequested { api, .. } => {
+                        let Some(state) = handle.try_state::<AppState>() else {
+                            return;
+                        };
+                        let sync_in_flight = state.syncing.load(Ordering::SeqCst);
+                        let update_download_in_flight =
+                            commands::updater_commands::is_update_download_in_flight();
+                        match main_window_close_decision(
+                            state.shutdown_draining.load(Ordering::SeqCst),
+                            sync_in_flight,
+                            update_download_in_flight,
+                        ) {
+                            MainWindowCloseDecision::StartShutdownDrain => {
+                                if state
+                                    .shutdown_draining
+                                    .compare_exchange(
+                                        false,
+                                        true,
+                                        Ordering::SeqCst,
+                                        Ordering::SeqCst,
+                                    )
+                                    .is_err()
+                                {
+                                    api.prevent_close();
+                                    return;
+                                }
+                            }
+                            MainWindowCloseDecision::BlockNativeOperationInFlight => {
+                                api.prevent_close();
+                                emit_main_window_close_blocked(&handle);
+                                return;
+                            }
+                            MainWindowCloseDecision::IgnoreAlreadyDraining => {
+                                api.prevent_close();
+                                return;
+                            }
+                        }
                         service::sync_scheduler::request_sync_scheduler_shutdown();
                         mark_startup_focus_restore_stopped(
                             &startup_focus_restore_active_for_window,
                         );
-                        let Some(state) = handle.try_state::<AppState>() else {
-                            return;
-                        };
-                        if state
-                            .shutdown_draining
-                            .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
-                            .is_err()
-                        {
-                            api.prevent_close();
-                            return;
-                        }
                         api.prevent_close();
                         let app_handle = handle.clone();
                         tauri::async_runtime::spawn(async move {
@@ -770,14 +848,15 @@ mod tests {
         cleanup_old_logs_modified_debug, cleanup_old_logs_read_dir_warning,
         cleanup_old_logs_remove_warning, database_init_error_message,
         database_init_startup_error_message, drain_mutex_lock_for_shutdown,
-        main_window_title_bar_uses_overlay, mark_startup_focus_restore_stopped, panic_payload_text,
-        redact_sensitive_panic_text, redacted_path_label,
-        startup_app_data_dir_create_error_message, startup_app_data_dir_error_message,
-        startup_focus_main_thread_warning, startup_focus_restore_decision,
-        startup_focus_restore_is_active, startup_main_webview_focus_warning,
-        startup_main_window_focus_warning, startup_main_window_show_warning,
-        startup_preferences_or_default, startup_preferences_read_warning_message,
-        tracing_init_status, StartupFocusRestoreDecision, TracingInitStatus,
+        main_window_close_decision, main_window_title_bar_uses_overlay,
+        mark_startup_focus_restore_stopped, panic_payload_text, redact_sensitive_panic_text,
+        redacted_path_label, second_launch_decision, startup_app_data_dir_create_error_message,
+        startup_app_data_dir_error_message, startup_focus_main_thread_warning,
+        startup_focus_restore_decision, startup_focus_restore_is_active,
+        startup_main_webview_focus_warning, startup_main_window_focus_warning,
+        startup_main_window_show_warning, startup_preferences_or_default,
+        startup_preferences_read_warning_message, tracing_init_status, MainWindowCloseDecision,
+        SecondLaunchDecision, StartupFocusRestoreDecision, TracingInitStatus,
         RELEASE_LOG_MAX_FILE_SIZE_BYTES, RELEASE_LOG_RETENTION_DAYS, RELEASE_LOG_ROTATION_STRATEGY,
         RELEASE_LOG_TIMEZONE_STRATEGY,
     };
@@ -906,6 +985,42 @@ mod tests {
         assert!(
             !drained,
             "shutdown drain should report timeout before forced app exit"
+        );
+    }
+
+    #[test]
+    fn main_window_close_blocks_native_sync_or_update_before_shutdown_drain() {
+        assert_eq!(
+            main_window_close_decision(false, false, false),
+            MainWindowCloseDecision::StartShutdownDrain
+        );
+        assert_eq!(
+            main_window_close_decision(false, true, false),
+            MainWindowCloseDecision::BlockNativeOperationInFlight
+        );
+        assert_eq!(
+            main_window_close_decision(false, false, true),
+            MainWindowCloseDecision::BlockNativeOperationInFlight
+        );
+        assert_eq!(
+            main_window_close_decision(true, true, true),
+            MainWindowCloseDecision::IgnoreAlreadyDraining
+        );
+    }
+
+    #[test]
+    fn second_launch_reports_native_operations_after_focus_restore() {
+        assert_eq!(
+            second_launch_decision(false, false),
+            SecondLaunchDecision::FocusExistingWindow
+        );
+        assert_eq!(
+            second_launch_decision(true, false),
+            SecondLaunchDecision::FocusAndReportNativeOperationInFlight
+        );
+        assert_eq!(
+            second_launch_decision(false, true),
+            SecondLaunchDecision::FocusAndReportNativeOperationInFlight
         );
     }
 

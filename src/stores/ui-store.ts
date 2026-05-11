@@ -35,6 +35,20 @@ export type ToastAnnouncement = {
   message: string;
 };
 
+export type NativeLifecycleBlockerOwner = "settings" | "add-feed" | "sync" | "updater" | "export" | "backup";
+
+export type NativeLifecycleBlockerEntry = {
+  owner: NativeLifecycleBlockerOwner;
+  dirty: boolean;
+  pending: boolean;
+};
+
+export type NativeLifecycleBlockerSnapshot = {
+  dirty: boolean;
+  pending: boolean;
+  owners: NativeLifecycleBlockerOwner[];
+};
+
 export type { SyncProgressEventDto } from "@/lib/sync/sync-progress-event.types";
 export type { SyncProgressUiState } from "@/lib/sync/sync-progress-state.types";
 
@@ -162,6 +176,17 @@ function shouldIgnoreSyncProgressEvent(
   return current.sessionId !== null && event.session_id < current.sessionId;
 }
 
+function createNativeLifecycleBlockerSnapshot(
+  entries: ReadonlyMap<NativeLifecycleBlockerOwner, NativeLifecycleBlockerEntry>,
+): NativeLifecycleBlockerSnapshot {
+  const activeEntries = [...entries.values()].filter((entry) => entry.dirty || entry.pending);
+  return {
+    dirty: activeEntries.some((entry) => entry.dirty),
+    pending: activeEntries.some((entry) => entry.pending),
+    owners: activeEntries.map((entry) => entry.owner),
+  };
+}
+
 type UiState = {
   layoutMode: LayoutMode;
   focusedPane: FocusedPane;
@@ -208,6 +233,7 @@ type UiState = {
     icon: ComponentType<{ className?: string }> | null;
     onConfirm: (() => void | Promise<void>) | null;
   };
+  nativeLifecycleBlockers: Map<NativeLifecycleBlockerOwner, NativeLifecycleBlockerEntry>;
 };
 
 type UiActions = {
@@ -294,13 +320,22 @@ type UiActions = {
     },
   ) => void;
   closeConfirm: () => void;
+  setNativeLifecycleBlocker: (entry: NativeLifecycleBlockerEntry) => void;
+  clearNativeLifecycleBlocker: (owner: NativeLifecycleBlockerOwner) => void;
+  getNativeLifecycleBlockerSnapshot: () => NativeLifecycleBlockerSnapshot;
 };
 
 export type UiStoreState = UiState & UiActions;
 
 export type UiStoreShellState = Pick<
   UiStoreState,
-  "layoutMode" | "focusedPane" | "sidebarOpen" | "accountPaneOpen" | "commandPaletteOpen" | "shortcutsHelpOpen"
+  | "layoutMode"
+  | "focusedPane"
+  | "sidebarOpen"
+  | "accountPaneOpen"
+  | "commandPaletteOpen"
+  | "shortcutsHelpOpen"
+  | "nativeLifecycleBlockers"
 >;
 
 export type UiStoreLayoutState = Pick<
@@ -585,9 +620,10 @@ const initialState: UiState = {
     icon: null,
     onConfirm: null,
   },
+  nativeLifecycleBlockers: new Map(),
 };
 
-export const useUiStore = create<UiState & UiActions>()((set) => ({
+export const useUiStore = create<UiState & UiActions>()((set, get) => ({
   ...initialState,
   setLayoutMode: (mode) => set({ layoutMode: mode }),
   setFocusedPane: (pane) => set({ focusedPane: pane }),
@@ -908,7 +944,10 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
   setPendingBrowserCloseAction: (action) =>
     set((state) =>
       action === null
-        ? { pendingBrowserCloseAction: null, pendingBrowserCloseActionQueue: [] }
+        ? {
+            pendingBrowserCloseAction: null,
+            pendingBrowserCloseActionQueue: [],
+          }
         : {
             pendingBrowserCloseAction: action,
             pendingBrowserCloseActionQueue: [...state.pendingBrowserCloseActionQueue, action],
@@ -1234,6 +1273,26 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
         onConfirm: null,
       },
     }),
+  setNativeLifecycleBlocker: (entry) =>
+    set((state) => {
+      const nativeLifecycleBlockers = new Map(state.nativeLifecycleBlockers);
+      if (entry.dirty || entry.pending) {
+        nativeLifecycleBlockers.set(entry.owner, entry);
+      } else {
+        nativeLifecycleBlockers.delete(entry.owner);
+      }
+      return { nativeLifecycleBlockers };
+    }),
+  clearNativeLifecycleBlocker: (owner) =>
+    set((state) => {
+      if (!state.nativeLifecycleBlockers.has(owner)) {
+        return state;
+      }
+      const nativeLifecycleBlockers = new Map(state.nativeLifecycleBlockers);
+      nativeLifecycleBlockers.delete(owner);
+      return { nativeLifecycleBlockers };
+    }),
+  getNativeLifecycleBlockerSnapshot: () => createNativeLifecycleBlockerSnapshot(get().nativeLifecycleBlockers),
 }));
 
 const setUiStoreState = useUiStore.setState;

@@ -31,4 +31,31 @@ describe("TagChip", () => {
 
     expect(onRemove).toHaveBeenCalledTimes(1);
   });
+
+  it("documents the compact inline pointer target for removable chips", () => {
+    const { container } = render(
+      <div style={{ fontSize: "200%" }}>
+        <TagChip
+          label="very long personal research tag"
+          color="#ff6b6b"
+          onRemove={vi.fn()}
+          removeLabel="Remove very long personal research tag"
+        />
+      </div>,
+    );
+
+    const chip = container.querySelector(".group\\/tag-chip");
+    const label = screen.getByText("very long personal research tag");
+    const removeButton = screen.getByRole("button", { name: "Remove very long personal research tag" });
+
+    expect(chip).not.toBeNull();
+    expect(chip).toHaveClass("inline-flex", "min-h-6", "px-2.5", "pr-1.5");
+    expect(label).toHaveClass("truncate");
+    expect(removeButton).toHaveClass(
+      "size-4",
+      "rounded-full",
+      "focus-visible:ring-2",
+      "group-focus-within/tag-chip:opacity-100",
+    );
+  });
 });

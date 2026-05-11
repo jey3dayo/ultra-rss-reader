@@ -13,6 +13,7 @@ use super::{AppState, DATABASE_MAINTENANCE_BUSY_ERROR};
 
 static DOWNLOADING: AtomicBool = AtomicBool::new(false);
 static DOWNLOAD_SESSION_ID: AtomicU64 = AtomicU64::new(0);
+static ACTIVE_DOWNLOAD_SESSION_ID: AtomicU64 = AtomicU64::new(0);
 const UPDATE_CHANNEL_STABLE: &str = "stable";
 const UPDATE_SOURCE_LATEST_JSON: &str = "github-latest-json";
 
@@ -38,23 +39,39 @@ fn clear_pending_update<T>(pending: &mut Option<T>) {
     *pending = None;
 }
 
-struct DownloadGuard;
+struct DownloadGuard {
+    session_id: u64,
+}
 
 impl DownloadGuard {
-    fn acquire() -> Result<Self, AppError> {
+    fn acquire(session_id: u64) -> Result<Self, AppError> {
         DOWNLOADING
             .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
-            .map(|_| Self)
+            .map(|_| {
+                ACTIVE_DOWNLOAD_SESSION_ID.store(session_id, Ordering::SeqCst);
+                Self { session_id }
+            })
             .map_err(|_| AppError::UserVisible {
                 message: "Update download already in progress".to_string(),
             })
+    }
+
+    fn is_current(&self) -> bool {
+        ACTIVE_DOWNLOAD_SESSION_ID.load(Ordering::SeqCst) == self.session_id
     }
 }
 
 impl Drop for DownloadGuard {
     fn drop(&mut self) {
         DOWNLOADING.store(false, Ordering::SeqCst);
+        ACTIVE_DOWNLOAD_SESSION_ID
+            .compare_exchange(self.session_id, 0, Ordering::SeqCst, Ordering::SeqCst)
+            .ok();
     }
+}
+
+pub(crate) fn is_update_download_in_flight() -> bool {
+    DOWNLOADING.load(Ordering::SeqCst)
 }
 
 fn next_download_session_id() -> u64 {
@@ -302,14 +319,19 @@ pub async fn check_for_update(app: AppHandle) -> Result<Option<UpdateInfo>, AppE
 
 #[tauri::command]
 pub async fn download_and_install_update(app: AppHandle) -> Result<(), AppError> {
-    let _download_guard = DownloadGuard::acquire()?;
+    let session_id = next_download_session_id();
+    let download_guard = DownloadGuard::acquire(session_id)?;
     let state = app.state::<AppState>();
     let _sync_guard = SyncInstallGuard::acquire(state.syncing.as_ref())?;
 
-    do_download_and_install(&app, next_download_session_id()).await
+    do_download_and_install(&app, session_id, &download_guard).await
 }
 
-async fn do_download_and_install(app: &AppHandle, session_id: u64) -> Result<(), AppError> {
+async fn do_download_and_install(
+    app: &AppHandle,
+    session_id: u64,
+    download_guard: &DownloadGuard,
+) -> Result<(), AppError> {
     // Take the cached update handle, falling back to a fresh check if empty
     let pending = app.state::<PendingUpdate>();
     let update = {
@@ -374,6 +396,12 @@ async fn do_download_and_install(app: &AppHandle, session_id: u64) -> Result<(),
             message: format!("Failed to download/install update: {e}"),
         })?;
 
+    if !download_guard.is_current() {
+        return Err(AppError::UserVisible {
+            message: "Update download was canceled or superseded before completion".to_string(),
+        });
+    }
+
     // On Windows, download_and_install may restart the app immediately,
     // so this emit may never be reached. The frontend handles both cases:
     // if the app restarts, the user sees the update applied on next launch.
@@ -406,11 +434,11 @@ mod tests {
 
     use super::{
         clear_pending_update, is_prerelease_version, is_strictly_newer_version,
-        is_updater_enabled_by_release_config, next_download_progress_percent,
-        next_download_session_id, parse_semantic_version_parts, update_event_emit_warning,
-        update_policy_error_parts, updater_endpoint_error_message,
-        updater_initialization_error_message, DownloadGuard, SyncInstallGuard, DOWNLOADING,
-        DOWNLOAD_SESSION_ID,
+        is_update_download_in_flight, is_updater_enabled_by_release_config,
+        next_download_progress_percent, next_download_session_id, parse_semantic_version_parts,
+        update_event_emit_warning, update_policy_error_parts, updater_endpoint_error_message,
+        updater_initialization_error_message, DownloadGuard, SyncInstallGuard,
+        ACTIVE_DOWNLOAD_SESSION_ID, DOWNLOADING, DOWNLOAD_SESSION_ID,
     };
     use crate::commands::dto::AppError;
     use crate::commands::DATABASE_MAINTENANCE_BUSY_ERROR;
@@ -543,12 +571,14 @@ mod tests {
         DOWNLOADING.store(false, Ordering::SeqCst);
 
         {
-            let _guard = DownloadGuard::acquire().expect("guard should acquire idle flag");
+            let _guard = DownloadGuard::acquire(1).expect("guard should acquire idle flag");
             assert!(DOWNLOADING.load(Ordering::SeqCst));
-            assert!(DownloadGuard::acquire().is_err());
+            assert!(is_update_download_in_flight());
+            assert!(DownloadGuard::acquire(2).is_err());
         }
 
         assert!(!DOWNLOADING.load(Ordering::SeqCst));
+        assert!(!is_update_download_in_flight());
     }
 
     #[test]
@@ -559,12 +589,35 @@ mod tests {
         DOWNLOADING.store(false, Ordering::SeqCst);
 
         let result = panic::catch_unwind(|| {
-            let _guard = DownloadGuard::acquire().expect("guard should acquire idle flag");
+            let _guard = DownloadGuard::acquire(1).expect("guard should acquire idle flag");
             panic!("simulated panic while downloading");
         });
 
         assert!(result.is_err());
         assert!(!DOWNLOADING.load(Ordering::SeqCst));
+    }
+
+    #[test]
+    fn download_guard_clears_only_the_active_session_on_drop() {
+        let _test_lock = UPDATER_COMMAND_TEST_LOCK
+            .lock()
+            .expect("test lock poisoned");
+        DOWNLOADING.store(false, Ordering::SeqCst);
+        ACTIVE_DOWNLOAD_SESSION_ID.store(0, Ordering::SeqCst);
+
+        {
+            let guard = DownloadGuard::acquire(7).expect("guard should acquire idle flag");
+            assert_eq!(ACTIVE_DOWNLOAD_SESSION_ID.load(Ordering::SeqCst), 7);
+            ACTIVE_DOWNLOAD_SESSION_ID.store(8, Ordering::SeqCst);
+            drop(guard);
+        }
+
+        assert_eq!(
+            ACTIVE_DOWNLOAD_SESSION_ID.load(Ordering::SeqCst),
+            8,
+            "stale download guard must not clear a superseding session"
+        );
+        ACTIVE_DOWNLOAD_SESSION_ID.store(0, Ordering::SeqCst);
     }
 
     #[test]

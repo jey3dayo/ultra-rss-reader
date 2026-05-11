@@ -138,7 +138,9 @@ export function FeedTreeRow({
               <FeedFavicon title={feed.title} url={feed.url} siteUrl={feed.siteUrl} grayscale={feed.grayscaleFavicon} />
             </span>
           )}
-          <span className="truncate font-medium">{feed.title}</span>
+          <span className="max-w-full truncate font-medium" dir="auto" title={feed.title}>
+            {feed.title}
+          </span>
         </ContextMenu.Trigger>
         {renderFeedContextMenu?.(feed)}
       </ContextMenu.Root>

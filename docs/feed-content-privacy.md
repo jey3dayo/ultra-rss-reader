@@ -32,6 +32,35 @@ Blanket blocking of remote images or frames would currently risk:
 - degraded Web Preview behavior
 - provider-specific regressions that are hard to detect from CI alone
 
+## Feed Fetch Network Boundary
+
+Local RSS feed fetches use the shared provider HTTP defaults: a fixed `UltraRSSReader/0.1` User-Agent, no proxy environment inheritance, no persistent response cookies, no `Referer`, `Cache-Control: no-store`, `Pragma: no-cache`, a 15-second timeout, a 5 MiB decoded feed body cap, and the provider redirect policy.
+
+Politeness and concurrency contract:
+
+- Local provider sync is single-flight per provider instance. The global local sync cap is 1, which also caps same-host sync concurrency at 1 for manual all-sync and automatic sync work that shares that provider instance.
+- Local provider subscription creation/discovery through `create_subscription` uses a separate single-flight discovery cap. Discovery must not be blocked by an in-flight sync request, and sync must not consume discovery permits.
+- Manual sync is allowed to bypass automatic-scheduler suppression, but it must not bypass the local provider HTTP timeout, body cap, private-host guard, redirect policy, same-instance sync cap, or provider `Retry-After` classification.
+- Automatic sync must treat HTTP 429 and structured `Retry-After` as backoff input and should avoid retry bursts. If future scheduler work needs per-account or cross-instance host fairness, it must add scheduler-level coordination instead of weakening the provider cap.
+- Feed discovery is a user-initiated single URL probe, not a crawler. It uses the shared provider User-Agent, does not prefetch `robots.txt`, applies the 2 MiB decoded discovery body cap, and must not recursively fetch discovered feed candidates before the user chooses one.
+
+Redirect and credential contract:
+
+- Provider redirects are limited to 5 hops.
+- HTTPS-to-HTTP downgrade redirects are rejected for feed fetch and discovery.
+- Private, loopback, link-local, unspecified, and credential-bearing URLs are rejected at the provider/discovery boundary before network fetch where applicable.
+- Authorization headers may remain on same-origin redirects because the credential stays with the same scheme/host/port origin.
+- Authorization headers must be stripped by the HTTP client on cross-origin redirects. Diagnostics and support copy must not log Authorization values, cookies, raw credential-bearing URLs, or userinfo.
+
+DNS and private-host time-of-check/time-of-use contract:
+
+- URL validation rejects private IP literals and private host forms before fetch.
+- Hostname discovery validation resolves the hostname at request validation time and rejects any private IP answer.
+- Redirect targets are revalidated and re-resolved at every redirect hop; redirect validation must not reuse a previous public DNS result for a different target.
+- DNS results are not cached by the app-level policy today. Repeated validation must re-run the private-host check instead of treating an earlier public result as authority.
+- DNS lookup failures are network failures, not permission to skip the private-host guard.
+- Local provider sync and subscription creation both run the same external feed URL validation before request construction. If DNS rebinding-resistant socket pinning is added later, it must be a focused provider-network change with fixtures for validation-result drift between check and connect.
+
 ## Local Data Privacy Decisions
 
 ### Local Database Encryption At Rest
@@ -68,6 +97,7 @@ Native file selection policy:
 - OPML import should accept `.opml` and `.xml` files selected through a native open dialog; directory selection and unsupported extensions must fail before parsing.
 - OS file drop and drag-and-drop import surfaces, if added, must enter the same OPML import boundary as the native open dialog. Dropped OPML files must apply the same extension allowlist, file-size cap, symlink/private-path refusal policy, content parser, URL validation, account ownership, duplicate handling, diagnostics redaction, cancellation, and progress-state behavior before any persistence mutation.
 - Dropped directories, unsupported extensions, multiple-file drops, symlink files, oversized files, and unreadable files must fail or be ignored before parsing with user-visible feedback that does not reveal raw local paths. A drop cancellation must leave import state idle and must not partially import feeds.
+- Until that boundary exists, app shell surfaces must not subscribe to OS file-drop events or expose a shell-wide file-drop overlay. The browser overlay titlebar drag rail and toolbar actions keep pointer priority through their scoped overlay root, and must not become a fallback file-drop target.
 - OPML export and database backup flows must use native save dialogs, append the expected extension only when the user did not provide one, and show a clear overwrite confirmation before replacing an existing file.
 - Dialog cancellation is a neutral result, not an error. It must not create, delete, or overwrite files and must leave progress state idle.
 - Database backup save locations must be treated as private user-chosen paths and must not be logged or shown in support copy unless redacted.
@@ -211,6 +241,24 @@ Before tray or resident mode is enabled, the feature contract must define:
 
 Until this contract exists, closing the app must not be reinterpreted as background operation, and native notification, updater, or sync work must not rely on a tray-only recovery path.
 
+### Single-Instance And Second-Launch Routing
+
+Decision: second launch must be treated as a lifecycle route request, not a blind app restart or state mutation.
+
+If single-instance behavior is enabled, the first running app instance owns sync, update, dirty-form, import/export, and backup state. A second launch may ask the first instance to focus the main window or deliver a future route, but it must not start a parallel scheduler, duplicate an updater install flow, clear dirty state, or bypass pending-operation prompts.
+
+Before second-launch routing changes ship, the contract must define:
+
+- second launch with no route focuses or restores the existing main window only after startup readiness is reached
+- hidden or minimized windows are shown and focused, but focus failure is diagnostics-only and must not mutate app state
+- dirty settings, add-feed drafts, pending imports/exports, in-flight backups, sync in-flight, and update pending state remain owned by the first instance
+- route delivery is queued until sync/update/dirty-state gates decide whether the action is safe, blocked, or needs user confirmation
+- update restart requests are distinct from a normal second launch and must not be converted into a deep-link action
+- diagnostics record second-launch route class and focus outcome without raw private URLs, local paths, account names, or feed titles
+- packaged-build verification covers second launch, hidden/minimized window restore, dirty settings, sync in-flight, update pending, and focus failure
+
+Until this contract is implemented and verified, second launch must not dispatch app actions beyond focusing the existing window.
+
 ### Sleep And Long-Running Native Operation Cancellation
 
 Decision: long-running updater download, file export, and database backup flows must be cancellation-aware before they are expected to survive OS sleep or resume.
@@ -255,12 +303,13 @@ External links are untrusted input. A future protocol must not accept arbitrary 
 
 Before a custom protocol is registered, the feature contract must define:
 
-- the protocol scheme and versioned route shape, including reserved routes and unknown-version behavior
+- the protocol scheme and versioned route shape: `ultra-rss-reader://v1/<action>` for production and `ultra-rss-reader-dev://v1/<action>` for development, with unknown versions rejected before action mapping
+- reserved routes for `focus`, `settings`, and `import-preview`; all other actions remain unimplemented until separately reviewed
 - a closed allowlist of actions such as opening settings, starting a safe import preview, or focusing an existing view
 - strict parsing for malformed links, userinfo URLs, mixed scheme casing, percent-encoding, oversized payloads, and repeated parameters
 - validation for private hosts, local paths, external provider URLs, and import sources before any state mutation
 - a security confirmation prompt for actions that can import, navigate to remote content, reveal private state, or change settings
-- single-instance behavior: the first running app instance receives the route, validates it, focuses the main window, and applies the action only after the app is ready
+- single-instance behavior: the first running app instance receives the route, validates it, focuses the main window, queues it behind startup readiness, and applies the action only after sync/update/dirty-state gates allow it
 - logging and diagnostics that record route class and failure reason without storing the raw deep link when it can contain private data
 
 Until this contract exists, external URLs must continue to use normal OS/browser handling and must not dispatch app actions through a custom protocol.
@@ -553,11 +602,11 @@ Discovery can receive titles, feed URLs, site URLs, content types, and redirects
 
 Trust level contract:
 
-| Surface | Trust level | Allowed behavior |
-| --- | --- | --- |
-| Discovery result display | Untrusted preview | Show title, URL, and warning state with escaping and truncation |
-| Add action candidate | Validated candidate | Re-validate scheme, host, redirect target, private-host policy, and mixed-content policy before mutation |
-| Stored feed | Trusted app state | Store only normalized values returned by the validated add flow |
+| Surface                  | Trust level         | Allowed behavior                                                                                         |
+| ------------------------ | ------------------- | -------------------------------------------------------------------------------------------------------- |
+| Discovery result display | Untrusted preview   | Show title, URL, and warning state with escaping and truncation                                          |
+| Add action candidate     | Validated candidate | Re-validate scheme, host, redirect target, private-host policy, and mixed-content policy before mutation |
+| Stored feed              | Trusted app state   | Store only normalized values returned by the validated add flow                                          |
 
 Display and action rules:
 
@@ -711,21 +760,21 @@ body, and Web Preview checks as separate records so manual verification results
 do not merge reader-mode privacy impact with embedded-browser compatibility.
 
 - [ ] Reader thumbnail: accepted thumbnail schemes, rejected mixed-content or
-  credentialed thumbnails, referrer policy, and broken-image readability are
-  recorded per provider.
+      credentialed thumbnails, referrer policy, and broken-image readability are
+      recorded per provider.
 - [ ] Reader sanitized body: remote image loads, blocked-image readability, and
-  tracking-pixel candidates are recorded per provider.
+      tracking-pixel candidates are recorded per provider.
 - [ ] Reader sanitized body: frame-like embeds are checked independently from
-  Web Preview.
+      Web Preview.
 - [ ] Web Preview: publisher page load, navigation, and browser controls are
-  checked separately from reader-mode thumbnails and sanitized article
-  rendering.
+      checked separately from reader-mode thumbnails and sanitized article
+      rendering.
 - [ ] Feed favicon: favicon requests use an HTTPS proxy, send no referrer, strip
-  feed path/query data, and fall back without retry loops after image failures.
+      feed path/query data, and fall back without retry loops after image failures.
 - [ ] Sanitizer: `SANITIZER_VERSION`, saved-article behavior, new-sync behavior,
-  and re-sanitize needs are recorded before implementation.
+      and re-sanitize needs are recorded before implementation.
 - [ ] Packaging: any privacy change that affects remote content is verified in a
-  packaged Tauri build before release.
+      packaged Tauri build before release.
 
 ## Related Files
 

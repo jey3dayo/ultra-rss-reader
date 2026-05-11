@@ -635,6 +635,114 @@
   --border-divider: rgba(243, 239, 230, 0.12);
 }
 
+@media (prefers-contrast: more) {
+  :root,
+  :root.dark {
+    --border: color-mix(in srgb, var(--foreground) 24%, transparent);
+    --border-strong: color-mix(in srgb, var(--foreground) 42%, transparent);
+    --input: color-mix(in srgb, var(--foreground) 34%, transparent);
+    --ring: color-mix(in srgb, var(--primary) 70%, var(--foreground));
+    --sidebar-border: color-mix(in srgb, var(--sidebar-foreground) 28%, transparent);
+    --browser-overlay-rail-border: color-mix(in srgb, var(--foreground) 32%, transparent);
+    --browser-overlay-state-detail-border: color-mix(in srgb, var(--foreground) 34%, transparent);
+    --overlay-action-surface-focus: color-mix(in srgb, var(--foreground) 12%, var(--background));
+    --feed-tree-rail-border: color-mix(in srgb, var(--sidebar-foreground) 36%, transparent);
+    --feed-tree-rail-border-soft: color-mix(in srgb, var(--sidebar-foreground) 30%, transparent);
+    --sidebar-selection-border: color-mix(in srgb, var(--sidebar-foreground) 42%, transparent);
+    --sidebar-selection-shadow: inset 0 0 0 1px var(--sidebar-selection-border);
+  }
+}
+
+@media (forced-colors: active) {
+  :root,
+  :root.dark {
+    --background: Canvas;
+    --foreground: CanvasText;
+    --foreground-soft: CanvasText;
+    --card: Canvas;
+    --card-foreground: CanvasText;
+    --popover: Canvas;
+    --popover-foreground: CanvasText;
+    --primary: Highlight;
+    --primary-foreground: HighlightText;
+    --secondary: Canvas;
+    --secondary-foreground: CanvasText;
+    --muted: Canvas;
+    --muted-foreground: CanvasText;
+    --accent: Canvas;
+    --accent-foreground: CanvasText;
+    --destructive: CanvasText;
+    --border: ButtonBorder;
+    --border-strong: CanvasText;
+    --input: ButtonBorder;
+    --ring: Highlight;
+    --sidebar: Canvas;
+    --sidebar-foreground: CanvasText;
+    --sidebar-accent: Canvas;
+    --sidebar-accent-foreground: CanvasText;
+    --sidebar-border: ButtonBorder;
+    --browser-overlay-shell: Canvas;
+    --browser-overlay-loading-halo: Canvas;
+    --browser-overlay-shell-veil: Canvas;
+    --browser-overlay-rail: Canvas;
+    --browser-overlay-rail-border: ButtonBorder;
+    --browser-overlay-state-detail-surface: Canvas;
+    --browser-overlay-state-detail-border: ButtonBorder;
+    --overlay-action-surface: Canvas;
+    --overlay-action-surface-hover: Canvas;
+    --overlay-action-surface-focus: Highlight;
+    --overlay-action-surface-subtle: Canvas;
+    --overlay-action-surface-chrome-hover: Canvas;
+    --overlay-action-surface-chrome-active: Highlight;
+    --surface-1: Canvas;
+    --surface-2: Canvas;
+    --surface-3: Canvas;
+    --surface-4: Canvas;
+    --surface-selected: Highlight;
+    --state-warning-surface: Canvas;
+    --state-warning-border: ButtonBorder;
+    --state-warning-foreground: CanvasText;
+    --state-success-surface: Canvas;
+    --state-success-border: ButtonBorder;
+    --state-success-foreground: CanvasText;
+    --state-review-surface: Canvas;
+    --state-review-border: ButtonBorder;
+    --state-review-foreground: CanvasText;
+    --state-danger-surface: Canvas;
+    --state-danger-border: ButtonBorder;
+    --state-danger-foreground: CanvasText;
+    --reader-toolbar-surface: Canvas;
+    --feed-tree-active-folder-surface: Highlight;
+    --feed-tree-drop-target-surface: Highlight;
+    --feed-tree-review-frame-surface: Canvas;
+    --feed-tree-review-frame-border: ButtonBorder;
+    --feed-tree-rail-border: ButtonBorder;
+    --feed-tree-rail-border-soft: ButtonBorder;
+    --feed-tree-unfoldered-rail-surface: ButtonBorder;
+    --sidebar-selection-background: Highlight;
+    --sidebar-selection-foreground: HighlightText;
+    --sidebar-selection-border: Highlight;
+    --sidebar-selection-shadow: inset 0 0 0 1px Highlight;
+    --sidebar-selection-muted: HighlightText;
+    --sidebar-hover-surface: Canvas;
+    --sidebar-selection-gradient: linear-gradient(90deg, Highlight 0%, Highlight 100%);
+    --sidebar-hover-gradient: linear-gradient(90deg, Canvas 0%, Canvas 100%);
+    --sidebar-focus-gradient: linear-gradient(90deg, Highlight 0%, Highlight 100%);
+    --sidebar-pressed-surface: Highlight;
+    --sidebar-frame-surface: Canvas;
+    --sidebar-frame-solid-surface: Canvas;
+    --sidebar-frame-border: ButtonBorder;
+    --reader-context-border: ButtonBorder;
+    --dialog-overlay: Canvas;
+    --dialog-overlay-readable: Canvas;
+    --dialog-scrim: Canvas;
+    --dialog-scrim-readable: Canvas;
+    --shadow-elevation-1: none;
+    --shadow-elevation-2: none;
+    --shadow-elevation-3: none;
+  }
+}
+
 .desktop-titlebar-offset {
   box-sizing: border-box;
   padding-top: var(--desktop-titlebar-offset);

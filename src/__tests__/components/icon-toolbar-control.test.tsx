@@ -29,6 +29,18 @@ describe("IconToolbarControl", () => {
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps compact toolbar buttons on the shared pointer target contract", () => {
+    render(
+      <TooltipProvider>
+        <IconToolbarButton label="Copy link" onClick={vi.fn()}>
+          <Globe className="size-4" />
+        </IconToolbarButton>
+      </TooltipProvider>,
+    );
+
+    expect(screen.getByRole("button", { name: "Copy link" })).toHaveClass("size-11", "md:size-8", "shrink-0");
+  });
+
   it("keeps tooltip semantics but does not activate aria-disabled icon buttons by click or keyboard", async () => {
     const user = userEvent.setup();
     const onClick = vi.fn();
