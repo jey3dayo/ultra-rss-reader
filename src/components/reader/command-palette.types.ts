@@ -3,7 +3,7 @@ import type { ArticleDto, FeedDto, TagDto } from "@/api/tauri-commands";
 import type { RuntimeDevScenario } from "@/dev/scenario-runtime";
 import type { AppAction } from "@/lib/app-actions";
 
-export type CommandPaletteItemKind = "action" | "feed" | "tag" | "article" | "scenario";
+type CommandPaletteItemKind = "action" | "feed" | "tag" | "article" | "scenario";
 
 export type CommandPaletteActionItem = {
   id: AppAction | "open-shortcuts-help";

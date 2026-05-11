@@ -1,7 +1,6 @@
 import { type AppAction, isAppAction } from "@/lib/app-actions";
-import type { CommandPaletteItemKind } from "./command-palette.types";
 
-type CommandPaletteHistoryDocumentKind = Extract<CommandPaletteItemKind, "feed" | "tag" | "article">;
+type CommandPaletteHistoryDocumentKind = "feed" | "tag" | "article";
 
 export type CommandPaletteHistoryEntry =
   | { kind: "action"; id: AppAction }

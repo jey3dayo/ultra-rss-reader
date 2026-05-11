@@ -1,7 +1,7 @@
 import { MAX_COMMAND_HISTORY_STORAGE_LENGTH, STORAGE_KEYS } from "@/constants/storage";
+import { parseCommandPaletteHistoryEntry } from "@/lib/command-palette/command-history";
 import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
 import { CommandHistoryStorageSchema } from "@/schemas/storage";
-import { parseCommandPaletteHistoryEntry } from "../../command-palette-history";
 
 type CommandHistoryStorageFailureKind = "unavailable" | "normalize" | "read" | "write" | "clear";
 

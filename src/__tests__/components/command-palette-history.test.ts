@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { APP_ACTIONS } from "@/lib/app-actions";
 import {
   createCommandPaletteHistoryValue,
   parseCommandPaletteHistoryEntry,
-} from "@/components/reader/command-palette-history";
-import { APP_ACTIONS } from "@/lib/app-actions";
+} from "@/lib/command-palette/command-history";
 import { shortcutDefinitions, shortcutPrefKey } from "@/lib/keyboard/keyboard-shortcuts";
 
 describe("command-palette-history", () => {

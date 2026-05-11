@@ -5,13 +5,13 @@ import { type RuntimeDevScenario, runRuntimeDevScenario } from "@/dev/scenario-r
 import type { FeedLandingFailure, FeedLandingResult } from "@/hooks/use-feed-landing";
 import { executeAction } from "@/lib/actions";
 import { isAppActionAvailable } from "@/lib/app-actions";
+import { createCommandPaletteHistoryValue } from "@/lib/command-palette/command-history";
 import i18n from "@/lib/i18n";
 import type { ToastData } from "@/lib/ui/toast.types";
 import enReader from "@/locales/en/reader.json";
 import jaReader from "@/locales/ja/reader.json";
 import { useUiStore } from "@/stores/ui-store";
 import type { PaletteAction } from "../../command-palette.types";
-import { createCommandPaletteHistoryValue } from "../../command-palette-history";
 
 type UseCommandPaletteHandlersParams = {
   closePalette: () => void;

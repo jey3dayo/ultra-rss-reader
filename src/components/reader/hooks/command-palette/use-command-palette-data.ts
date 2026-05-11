@@ -9,9 +9,11 @@ import type { RuntimeDevScenario } from "@/dev/scenario-runtime";
 import { useRecentArticles, useSearchArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useTags } from "@/hooks/use-tags";
+import {
+  type CommandPaletteHistoryEntry,
+  parseCommandPaletteHistoryEntry,
+} from "@/lib/command-palette/command-history";
 import type { PaletteAction } from "../../command-palette.types";
-import type { CommandPaletteHistoryEntry } from "../../command-palette-history";
-import { parseCommandPaletteHistoryEntry } from "../../command-palette-history";
 
 type UseCommandPaletteDataParams = {
   actions: PaletteAction[];
