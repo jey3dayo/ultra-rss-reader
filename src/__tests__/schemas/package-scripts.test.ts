@@ -123,7 +123,7 @@ describe("package scripts", () => {
   it("parses static package contract fields without mixing engine parity checks", () => {
     const packageJson = readPackageJson();
 
-    expect(packageJson.version).toBe("0.32.0");
+    expect(packageJson.version).toBe("0.33.0");
     expect(packageJson.packageManager).toBe("pnpm@10.33.4");
     expect(packageJson.private).toBe(true);
     expect(packageJson.type).toBe("module");

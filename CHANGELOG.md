@@ -4,6 +4,26 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.33.0] - 2026-05-11
+
+### Features
+
+- 同期競合、provider 診断、runtime recovery、TODO triage export の契約と補助 tooling を追加し、障害時の切り分けと後続作業の整理をしやすくした
+
+### Bug Fixes
+
+- sync / provider / account / DB / OPML / updater / native command の失敗境界を広く固め、破損データ、隔離アカウント、pending mutation、起動復旧、外部 URL、権限不足時の挙動を安定化した
+- reader、sidebar、settings、subscriptions、browser WebView、command palette の state 復帰、focus、履歴、フィルタ、transaction、diagnostics redaction まわりの細かな不整合をまとめて修正した
+
+### Documentation
+
+- release、updater、native verification、privacy / security、reader recovery、accessibility、lifecycle、support policy の判断基準を整理し、完了済み TODO を大幅に圧縮した
+
+### Maintenance
+
+- Rust / TypeScript の契約テスト、repo quality gate、permission schema snapshot、release workflow preflight、dev mock、visual smoke、fixture 類を拡充し、回帰検知の範囲を広げた
+- 大量の小粒な TODO cleanup、formatting、契約テストの追補、generated schema 更新をまとめて反映した
+
 ## [0.32.0] - 2026-05-10
 
 ### Features
