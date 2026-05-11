@@ -71,11 +71,6 @@
   - bundle identifier を変えると OS app data dir が変わり、既存 DB/credentials/log が見えなくなる
   - old identifier detection、DB migration prompt、credential migration impossible copy、log path note、rollback の contract を追加する
 
-- [ ] P2 `AppState` mutex poisoning を command surface 全体で同じ error に揃える
-  - 対象: `commands::*`, `AppState`, DB/browser tracker mutex access
-  - 一部 command だけ poisoned mutex を panic/unwrap すると、単一 command failure が app 全体 failure に広がる
-  - DB mutex、browser tracker mutex、pending update mutex、syncing flag、diagnostics category の matrix を作る
-
 - [ ] P2 OS sleep中の updater download / file export / DB backup を cancellation-aware にする
   - 対象: updater hook、export/backup commands、runtime lifecycle
   - laptop sleep で long-running file/network operation が中断すると、partial artifact や stale progress が残る
