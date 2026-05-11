@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useId, useMemo, useReducer, useRef } from "react";
 import type { AccountDto } from "@/api/tauri-commands";
+import { isOutsideElement } from "@/lib/dom/dom-target";
 import { focusAccountItem } from "../../account-switcher-menu";
-import { isOutsideElement } from "../../dom-target";
 import type { SidebarAccountSwitcherResult } from "../../sidebar-runtime.types";
 
 type SidebarAccountSwitcherState = {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isOutsideElement } from "@/components/reader/dom-target";
+import { isOutsideElement } from "@/lib/dom/dom-target";
 
 describe("dom-target", () => {
   it("detects targets outside the given element", () => {
