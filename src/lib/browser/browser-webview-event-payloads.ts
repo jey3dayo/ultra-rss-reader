@@ -1,8 +1,8 @@
 import { Result } from "@praha/byethrow";
 import type { ZodError } from "zod";
 import {
-  BrowserWebviewClosedPayloadSchema,
   type BrowserWebviewClosedPayload,
+  BrowserWebviewClosedPayloadSchema,
   BrowserWebviewDiagnosticsPayloadSchema,
   type BrowserWebviewFallbackPayload,
   BrowserWebviewFallbackPayloadSchema,
@@ -13,9 +13,7 @@ import type { BrowserDebugGeometryNativeDiagnostics } from "@/lib/browser/browse
 
 export type { BrowserWebviewClosedPayload };
 
-export function parseBrowserWebviewStatePayload(
-  payload: unknown,
-): Result.Result<BrowserWebviewState, ZodError> {
+export function parseBrowserWebviewStatePayload(payload: unknown): Result.Result<BrowserWebviewState, ZodError> {
   const result = BrowserWebviewStateSchema.safeParse(payload);
   return result.success ? Result.succeed(result.data) : Result.fail(result.error);
 }

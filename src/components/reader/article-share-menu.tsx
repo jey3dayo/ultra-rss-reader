@@ -5,10 +5,7 @@ import { SHARE_COMMAND_TEXT_MAX_CHARS } from "@/api/schemas/commands";
 import { type AppError, type ArticleDto, openExternalUrl } from "@/api/tauri-commands";
 import { IconToolbarMenuTrigger } from "@/components/shared/icon-toolbar-control";
 import { categorizeArticleActionError, normalizeArticleExternalBrowserUrl } from "@/lib/articles/article-actions";
-import {
-  addArticleToReadingList,
-  copyArticleLink,
-} from "./article-browser-actions";
+import { addArticleToReadingList, copyArticleLink } from "./article-browser-actions";
 import { CONTEXT_MENU_ACTION_IDS, createMenuActionHandler } from "./context-menu-action-policy";
 import { contextMenuStyles } from "./context-menu-styles";
 
