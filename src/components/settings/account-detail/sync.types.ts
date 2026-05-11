@@ -1,9 +1,7 @@
 import type { TFunction } from "i18next";
+import type { OptionWithLabel } from "@/lib/ui/options";
 
-export type AccountSelectOption = {
-  value: string;
-  label: string;
-};
+export type AccountSelectOption = OptionWithLabel;
 
 export type AccountSyncStatusRow = {
   label: string;

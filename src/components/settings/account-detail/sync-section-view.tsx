@@ -1,21 +1,17 @@
 import { SettingsLoadingActionButton } from "@/components/settings/settings-loading-action-button";
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
-import { LabeledSelectRow } from "@/components/shared/labeled-select-row";
+import { LabeledSelectRow, type LabeledSelectRowProps } from "@/components/shared/labeled-select-row";
 import { LabeledSwitchRow } from "@/components/shared/labeled-switch-row";
 import { cn } from "@/lib/utils";
-import type { AccountSelectOption, AccountSyncStatusRow } from "./sync.types";
+import type { AccountSyncStatusRow } from "./sync.types";
 
 const CONTROL_RAIL_CLASS = "ml-auto w-full max-w-[30rem]";
 
-type AccountSelectControl = {
-  name: string;
-  label: string;
-  value: string;
-  options: AccountSelectOption[];
-  onChange: (value: string) => void;
-  disabled?: boolean;
-};
+type AccountSelectControl = Pick<
+  LabeledSelectRowProps,
+  "name" | "label" | "value" | "options" | "onChange" | "disabled"
+>;
 
 type AccountSwitchControl = {
   label: string;

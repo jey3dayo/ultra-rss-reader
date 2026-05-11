@@ -2,20 +2,14 @@ import { SettingsContentLayout } from "@/components/settings/shared/settings-con
 import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { FormActionButtons } from "@/components/shared/form-action-buttons";
 import { LabeledInputRow } from "@/components/shared/labeled-input-row";
-import { LabeledSelectRow } from "@/components/shared/labeled-select-row";
+import { LabeledSelectRow, type LabeledSelectRowProps } from "@/components/shared/labeled-select-row";
 import { SurfaceCard } from "@/components/shared/surface-card";
-import type { OptionWithLabel } from "@/lib/ui/options";
 import type { AddAccountCredentialsSection, AddAccountInputControl } from "./form-view.types";
 
 const LABEL_COLUMN_CLASS_NAME = "sm:w-40 sm:shrink-0";
 const INPUT_CLASS_NAME = "h-10";
 
-type AddAccountFormSelectControl = {
-  label: string;
-  name: string;
-  value: string;
-  options: readonly OptionWithLabel[];
-  onChange: (value: string) => void;
+type AddAccountFormSelectControl = Pick<LabeledSelectRowProps, "label" | "name" | "value" | "options" | "onChange"> & {
   disabled: boolean;
 };
 
@@ -88,8 +82,7 @@ export function AddAccountFormView({
   return (
     <SettingsContentLayout title={title} maxWidthClassName="max-w-[640px]" contentTestId="add-account-form-layout">
       <form
-        onSubmit={(event) => {
-          event.preventDefault();
+        action={() => {
           onSubmit();
         }}
         className="space-y-4"

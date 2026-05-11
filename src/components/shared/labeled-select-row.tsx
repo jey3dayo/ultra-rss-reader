@@ -9,7 +9,7 @@ import { Select, SelectPopup, SelectTrigger } from "@/components/ui/select";
 import type { OptionWithLabel } from "@/lib/ui/options";
 import { cn } from "@/lib/utils";
 
-type LabeledSelectRowProps = {
+export type LabeledSelectRowProps = {
   label: string;
   name: string;
   value: string;
