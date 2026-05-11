@@ -291,6 +291,11 @@ mod tests {
         DbManager::new_in_memory().unwrap()
     }
 
+    fn assert_utc_rfc3339(value: &str) {
+        let parsed = chrono::DateTime::parse_from_rfc3339(value).unwrap();
+        assert_eq!(parsed.offset().local_minus_utc(), 0);
+    }
+
     fn article_fixture(
         title: &str,
         content_sanitized: &str,
@@ -382,6 +387,29 @@ mod tests {
 
         assert_eq!(rules.len(), 1);
         assert_eq!(rules[0], created);
+    }
+
+    #[test]
+    fn create_persists_timestamps_as_utc_rfc3339() {
+        let db = test_db();
+        let repo = SqliteMuteKeywordRepository::new(db.writer());
+
+        let created = repo.create("UTC only", MuteKeywordScope::Title).unwrap();
+
+        assert_utc_rfc3339(&created.created_at);
+        assert_utc_rfc3339(&created.updated_at);
+        let (created_at, updated_at): (String, String) = db
+            .reader()
+            .query_row(
+                "SELECT created_at, updated_at FROM mute_keywords WHERE id = ?1",
+                params![created.id],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        assert_eq!(created_at, created.created_at);
+        assert_eq!(updated_at, created.updated_at);
+        assert_utc_rfc3339(&created_at);
+        assert_utc_rfc3339(&updated_at);
     }
 
     #[test]

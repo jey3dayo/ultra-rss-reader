@@ -560,6 +560,13 @@ mod tests {
             .unwrap();
         db.writer()
             .execute(
+                "INSERT INTO feed_http_cache (feed_id, etag, last_modified, last_fetched_at)
+                 VALUES ('feed-1', 'etag-1', 'Wed, 01 May 2026 00:00:00 GMT', '2026-05-09T00:01:00Z')",
+                [],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
                 "INSERT INTO pending_mutations (account_id, mutation_type, remote_entry_id, created_at)
                  VALUES (?1, 'mark_read', 'remote-1', '2026-05-09T00:02:00Z')",
                 params![account.id.0],
@@ -604,6 +611,10 @@ mod tests {
                 row.get(0)
             })
             .unwrap();
+        let http_cache_count: i32 = db
+            .reader()
+            .query_row("SELECT COUNT(*) FROM feed_http_cache", [], |row| row.get(0))
+            .unwrap();
 
         assert_eq!(folder_count, 0);
         assert_eq!(feed_count, 0);
@@ -611,6 +622,7 @@ mod tests {
         assert_eq!(article_tag_count, 0);
         assert_eq!(tag_count, 1);
         assert_eq!(history_count, 0);
+        assert_eq!(http_cache_count, 0);
         assert_eq!(sync_state_count, 0);
         assert_eq!(pending_count, 0);
     }

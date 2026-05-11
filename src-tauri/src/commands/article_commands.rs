@@ -1254,6 +1254,7 @@ mod tests {
     use super::{cleanup_feed_integrity_orphans_inner, get_feed_integrity_report_inner};
     use crate::commands::dto::AppError;
     use crate::commands::DATABASE_MAINTENANCE_BUSY_ERROR;
+    use crate::domain::constants::ARTICLE_MUTATION_TRANSACTION_CHUNK_SIZE;
     use crate::domain::types::{AccountId, ArticleId, FeedId, FolderId};
     use crate::infra::db::connection::DbManager;
     use crate::infra::db::sqlite_article::SqliteArticleRepository;
@@ -2102,6 +2103,111 @@ mod tests {
     }
 
     #[test]
+    fn article_mutation_transaction_policy_bulk_article_read_handles_large_batch() {
+        assert_eq!(ARTICLE_MUTATION_TRANSACTION_CHUNK_SIZE, None);
+
+        let db = DbManager::new_in_memory().expect("in-memory DB should initialize");
+        insert_bulk_account(&db, "acc-a", "FreshRss");
+        insert_bulk_feed(&db, "feed-a", "acc-a", None, Some("feed/a"));
+        let ids = (0..250)
+            .map(|index| {
+                let article_id = format!("article-{index}");
+                insert_bulk_article(
+                    &db,
+                    &article_id,
+                    "feed-a",
+                    Some(&format!("remote-{index}")),
+                    "2026-04-01T00:00:00Z",
+                    false,
+                    false,
+                );
+                ArticleId(article_id)
+            })
+            .collect::<Vec<_>>();
+        db.writer()
+            .execute(
+                "UPDATE feeds SET unread_count = 250 WHERE id = 'feed-a'",
+                [],
+            )
+            .expect("feed unread count setup should succeed");
+
+        mark_articles_read_with_conn(db.writer(), &ids)
+            .expect("large bulk read should succeed in one transaction");
+
+        let unread_count: i64 = db
+            .reader()
+            .query_row(
+                "SELECT COUNT(*) FROM articles WHERE is_read = 0",
+                [],
+                |row| row.get(0),
+            )
+            .expect("unread count query should succeed");
+        assert_eq!(unread_count, 0);
+        assert_eq!(feed_unread_count(&db, "feed-a"), 0);
+        assert_eq!(pending_mutation_count(&db), ids.len() as i64);
+    }
+
+    #[test]
+    fn article_mutation_transaction_policy_bulk_article_read_rolls_back_on_mid_batch_update_failure(
+    ) {
+        assert_eq!(ARTICLE_MUTATION_TRANSACTION_CHUNK_SIZE, None);
+
+        let db = DbManager::new_in_memory().expect("in-memory DB should initialize");
+        insert_bulk_account(&db, "acc-a", "FreshRss");
+        insert_bulk_feed(&db, "feed-a", "acc-a", None, Some("feed/a"));
+        insert_bulk_article(
+            &db,
+            "article-a",
+            "feed-a",
+            Some("remote-a"),
+            "2026-04-01T00:00:00Z",
+            false,
+            false,
+        );
+        insert_bulk_article(
+            &db,
+            "article-b",
+            "feed-a",
+            Some("remote-b"),
+            "2026-04-02T00:00:00Z",
+            false,
+            false,
+        );
+        db.writer()
+            .execute("UPDATE feeds SET unread_count = 2 WHERE id = 'feed-a'", [])
+            .expect("feed unread count setup should succeed");
+        db.writer()
+            .execute(
+                "CREATE TEMP TRIGGER fail_article_b_mark_read
+                 BEFORE UPDATE OF is_read ON articles
+                 WHEN NEW.id = 'article-b'
+                 BEGIN
+                   SELECT RAISE(ABORT, 'forced bulk read failure');
+                 END",
+                [],
+            )
+            .expect("failure trigger should install");
+
+        let error = mark_articles_read_with_conn(
+            db.writer(),
+            &[
+                ArticleId("article-a".to_string()),
+                ArticleId("article-b".to_string()),
+            ],
+        )
+        .expect_err("mid-batch update failure should reject the bulk read mutation");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { ref message } if message.contains("forced bulk read failure")
+        ));
+        assert!(!article_is_read(&db, "article-a"));
+        assert!(!article_is_read(&db, "article-b"));
+        assert_eq!(feed_unread_count(&db, "feed-a"), 2);
+        assert_eq!(pending_mutation_count(&db), 0);
+    }
+
+    #[test]
     fn record_article_view_missing_id_contract_is_command_noop() {
         let db = DbManager::new_in_memory().expect("in-memory DB should initialize");
         insert_bulk_account(&db, "acc-a", "FreshRss");
@@ -2715,6 +2821,56 @@ mod tests {
             assert_eq!(feed_unread_count(&db, "feed-a"), 1, "{name}");
             assert_eq!(pending_mutation_count(&db), 0, "{name}");
         }
+    }
+
+    #[test]
+    fn article_mutation_transaction_policy_bulk_unstar_rolls_back_on_mid_batch_update_failure() {
+        assert_eq!(ARTICLE_MUTATION_TRANSACTION_CHUNK_SIZE, None);
+
+        let db = DbManager::new_in_memory().expect("in-memory DB should initialize");
+        insert_bulk_account(&db, "acc-a", "FreshRss");
+        insert_bulk_feed(&db, "feed-a", "acc-a", None, Some("feed/a"));
+        insert_bulk_article(
+            &db,
+            "article-a",
+            "feed-a",
+            Some("remote-a"),
+            "2026-04-01T00:00:00Z",
+            true,
+            true,
+        );
+        insert_bulk_article(
+            &db,
+            "article-b",
+            "feed-a",
+            Some("remote-b"),
+            "2026-04-02T00:00:00Z",
+            true,
+            true,
+        );
+        db.writer()
+            .execute(
+                "CREATE TEMP TRIGGER fail_article_b_unstar
+                 BEFORE UPDATE OF is_starred ON articles
+                 WHEN NEW.id = 'article-b'
+                 BEGIN
+                   SELECT RAISE(ABORT, 'forced bulk unstar failure');
+                 END",
+                [],
+            )
+            .expect("failure trigger should install");
+
+        let error = bulk_unstar_account_articles(db.writer(), &AccountId("acc-a".to_string()))
+            .expect_err("mid-batch update failure should reject the bulk unstar mutation");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { ref message }
+                if message.contains("forced bulk unstar failure")
+        ));
+        assert!(article_is_starred(&db, "article-a"));
+        assert!(article_is_starred(&db, "article-b"));
+        assert_eq!(pending_mutation_count(&db), 0);
     }
 
     #[test]

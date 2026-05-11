@@ -1038,13 +1038,41 @@ mod tests {
     }
 
     #[test]
-    fn main_window_does_not_restore_persisted_position_or_negative_coordinates() {
+    fn main_window_uses_safe_center_without_restoring_monitor_bound_state() {
         let tauri_config = include_str!("../tauri.conf.json");
         let dev_tauri_config = include_str!("../tauri.dev.conf.json");
         let cargo_toml = include_str!("../Cargo.toml");
         let release_manual = include_str!("../../docs/release-manual-verification.md");
 
         for config in [tauri_config, dev_tauri_config] {
+            let config_json: serde_json::Value =
+                serde_json::from_str(config).expect("tauri config should remain valid json");
+            let window_config = config_json
+                .get("app")
+                .and_then(|app| app.get("windows"))
+                .and_then(|windows| windows.as_array())
+                .and_then(|windows| windows.first())
+                .expect("main window config should be present");
+
+            assert_eq!(
+                window_config
+                    .get("center")
+                    .and_then(serde_json::Value::as_bool),
+                Some(true),
+                "main window should use Tauri's visible-display center fallback"
+            );
+            assert_eq!(
+                window_config.get("width").and_then(serde_json::Value::as_u64),
+                Some(1400),
+                "main window should keep a logical default width instead of restoring DPI-bound physical size"
+            );
+            assert_eq!(
+                window_config
+                    .get("height")
+                    .and_then(serde_json::Value::as_u64),
+                Some(900),
+                "main window should keep a logical default height instead of restoring DPI-bound physical size"
+            );
             assert!(
                 !config.contains("\"x\""),
                 "main window config must not restore persisted x coordinates"
@@ -1057,10 +1085,18 @@ mod tests {
                 !config.contains("position"),
                 "main window config must not restore a fixed position"
             );
+            assert!(
+                window_config.get("maximized").is_none(),
+                "main window config must not restore maximized state across monitor topology changes"
+            );
+            assert!(
+                window_config.get("fullscreen").is_none(),
+                "main window config must not restore fullscreen state across disconnected monitors"
+            );
         }
         assert!(
             !cargo_toml.contains("tauri-plugin-window-state"),
-            "window-state plugin would need monitor-safe restore guards before enabling"
+            "window-state plugin would need disconnected-monitor, negative-coordinate, DPI-change, maximized, and fullscreen guards before enabling"
         );
         assert!(release_manual.contains("disconnecting any external monitor"));
         assert!(release_manual.contains("Saved negative or off-screen window coordinates"));

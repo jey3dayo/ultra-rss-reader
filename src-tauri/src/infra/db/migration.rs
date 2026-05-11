@@ -54,6 +54,14 @@ impl MigrationResult {
 
 pub const LATEST_VERSION: i32 = 18;
 
+/// Applies every pending migration in one SQLite transaction.
+///
+/// SQLite transactional DDL is part of the migration contract here: if any
+/// migration step fails after earlier `ALTER TABLE` or `CREATE TABLE`
+/// statements, the transaction rolls those schema changes back with the data
+/// changes and leaves `schema_version` at the pre-migration value. The next
+/// startup can retry from the same version instead of booting on a partially
+/// migrated schema.
 pub fn run_migrations(conn: &mut Connection) -> DomainResult<MigrationResult> {
     let tx = conn.transaction()?;
     let from_version = read_schema_version(&tx)?;
@@ -728,6 +736,9 @@ mod tests {
             ),
         )
         .unwrap();
+        // Fail after V8 adds columns but before it can copy display_mode data.
+        // The migration transaction must erase those DDL changes so removing
+        // the failure trigger allows the same DB to retry from v7.
         conn.execute_batch(
             "CREATE TRIGGER fail_v8_data_copy
              BEFORE UPDATE ON feeds
@@ -756,6 +767,17 @@ mod tests {
             !table_has_column(&conn, "feeds", V8_WEB_PREVIEW_MODE_COLUMN).unwrap(),
             "transactional DDL must roll back the partially added web_preview_mode column"
         );
+        let display_mode: String = conn
+            .query_row(
+                "SELECT display_mode FROM feeds WHERE id = ?1",
+                ("feed-1",),
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(
+            display_mode, "normal",
+            "failed migration must preserve pre-migration feed data for retry"
+        );
 
         conn.execute("DROP TRIGGER fail_v8_data_copy", []).unwrap();
         let result = run_migrations(&mut conn).unwrap();
@@ -764,6 +786,15 @@ mod tests {
         assert_eq!(result.to_version, LATEST_VERSION);
         assert!(table_has_column(&conn, "feeds", V8_READER_MODE_COLUMN).unwrap());
         assert!(table_has_column(&conn, "feeds", V8_WEB_PREVIEW_MODE_COLUMN).unwrap());
+        let (reader_mode, web_preview_mode): (String, String) = conn
+            .query_row(
+                "SELECT reader_mode, web_preview_mode FROM feeds WHERE id = ?1",
+                ("feed-1",),
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        assert_eq!(reader_mode, "on");
+        assert_eq!(web_preview_mode, "off");
     }
 
     #[test]

@@ -272,6 +272,17 @@ mod tests {
     use crate::commands::dto::AppError;
     use crate::infra::db::connection::DbManager;
 
+    fn assert_app_state_poisoned_error(error: AppError) {
+        match error {
+            AppError::UserVisible { message } => {
+                assert_eq!(message, APP_STATE_POISONED_ERROR);
+                assert!(!message.contains("poison"));
+                assert!(!message.contains("Lock error"));
+            }
+            other => panic!("expected user-visible app state recovery error, got {other:?}"),
+        }
+    }
+
     #[test]
     fn try_lock_db_returns_user_visible_error_when_busy() {
         let db = Mutex::new(DbManager::new_in_memory().unwrap());
@@ -304,14 +315,7 @@ mod tests {
             Err(error) => error,
         };
 
-        match error {
-            AppError::UserVisible { message } => {
-                assert_eq!(message, APP_STATE_POISONED_ERROR);
-                assert!(!message.contains("poison"));
-                assert!(!message.contains("Lock error"));
-            }
-            other => panic!("expected user-visible error, got {other:?}"),
-        }
+        assert_app_state_poisoned_error(error);
     }
 
     #[test]
@@ -328,14 +332,7 @@ mod tests {
             Err(error) => error,
         };
 
-        match error {
-            AppError::UserVisible { message } => {
-                assert_eq!(message, APP_STATE_POISONED_ERROR);
-                assert!(!message.contains("poison"));
-                assert!(!message.contains("Lock error"));
-            }
-            other => panic!("expected user-visible error, got {other:?}"),
-        }
+        assert_app_state_poisoned_error(error);
     }
 
     #[test]
@@ -352,13 +349,63 @@ mod tests {
             Err(error) => error,
         };
 
-        match error {
-            AppError::UserVisible { message } => {
-                assert_eq!(message, APP_STATE_POISONED_ERROR);
-                assert!(!message.contains("poison"));
-                assert!(!message.contains("Lock error"));
-            }
-            other => panic!("expected user-visible error, got {other:?}"),
+        assert_app_state_poisoned_error(error);
+    }
+
+    #[test]
+    fn poisonable_app_state_mutex_helpers_share_recovery_error_contract() {
+        let db_for_try_lock = Mutex::new(DbManager::new_in_memory().unwrap());
+        let try_lock_poison_result = std::panic::catch_unwind(|| {
+            let _guard = db_for_try_lock.lock().unwrap();
+            panic!("poison test database try-lock");
+        });
+        assert!(try_lock_poison_result.is_err());
+
+        let db_for_lock = Mutex::new(DbManager::new_in_memory().unwrap());
+        let lock_poison_result = std::panic::catch_unwind(|| {
+            let _guard = db_for_lock.lock().unwrap();
+            panic!("poison test database lock");
+        });
+        assert!(lock_poison_result.is_err());
+
+        let browser_webview = Mutex::new(BrowserWebviewTracker::default());
+        let browser_poison_result = std::panic::catch_unwind(|| {
+            let _guard = browser_webview.lock().unwrap();
+            panic!("poison test browser webview lock");
+        });
+        assert!(browser_poison_result.is_err());
+
+        let cases = [
+            (
+                "try_lock_db",
+                match try_lock_db(&db_for_try_lock) {
+                    Ok(_) => panic!("poisoned DB try-lock should return an error"),
+                    Err(error) => error,
+                },
+            ),
+            (
+                "lock_db",
+                match lock_db(&db_for_lock) {
+                    Ok(_) => panic!("poisoned DB lock should return an error"),
+                    Err(error) => error,
+                },
+            ),
+            (
+                "lock_browser_webview",
+                lock_browser_webview(&browser_webview)
+                    .expect_err("poisoned browser webview lock should return an error"),
+            ),
+        ];
+
+        for (helper_name, error) in cases {
+            assert_app_state_poisoned_error(error);
+            assert!(
+                matches!(
+                    command_db_lock_policy("check_for_update"),
+                    Some(CommandDbLockPolicy::NoDatabaseLock)
+                ),
+                "{helper_name} poison contract should stay independent of non-DB update commands"
+            );
         }
     }
 

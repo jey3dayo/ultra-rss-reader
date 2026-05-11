@@ -236,6 +236,11 @@ mod tests {
         id
     }
 
+    fn assert_utc_rfc3339(value: &str) {
+        let parsed = chrono::DateTime::parse_from_rfc3339(value).unwrap();
+        assert_eq!(parsed.offset().local_minus_utc(), 0);
+    }
+
     #[test]
     fn save_and_find_by_account() {
         let db = test_db();
@@ -255,6 +260,33 @@ mod tests {
         assert_eq!(found.len(), 1);
         assert_eq!(found[0].mutation_type, PendingMutationType::MarkRead);
         assert!(found[0].id.is_some());
+    }
+
+    #[test]
+    fn save_persists_created_at_as_utc_rfc3339_string() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let repo = SqlitePendingMutationRepository::new(db.writer());
+
+        let mutation = PendingMutation {
+            id: None,
+            account_id: account_id.clone(),
+            mutation_type: PendingMutationType::MarkRead,
+            remote_entry_id: "entry-utc".to_string(),
+            created_at: "2026-05-10T14:30:00+00:00".to_string(),
+        };
+        repo.save(&mutation).unwrap();
+
+        let created_at: String = db
+            .reader()
+            .query_row(
+                "SELECT created_at FROM pending_mutations WHERE account_id = ?1 AND remote_entry_id = ?2",
+                params![account_id.0, "entry-utc"],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(created_at, mutation.created_at);
+        assert_utc_rfc3339(&created_at);
     }
 
     #[test]

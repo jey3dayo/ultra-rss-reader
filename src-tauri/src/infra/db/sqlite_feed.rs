@@ -957,6 +957,13 @@ mod tests {
                 params![account_id.0, now],
             )
             .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO feed_http_cache (feed_id, etag, last_modified, last_fetched_at)
+                 VALUES (?1, 'etag-1', 'Wed, 01 May 2026 00:00:00 GMT', ?2)",
+                params![feed.id.0, now],
+            )
+            .unwrap();
 
         let article_count: i64 = db
             .reader()
@@ -1011,12 +1018,17 @@ mod tests {
                 row.get(0)
             })
             .unwrap();
+        let http_cache_count: i64 = db
+            .reader()
+            .query_row("SELECT COUNT(*) FROM feed_http_cache", [], |row| row.get(0))
+            .unwrap();
         assert_eq!(article_count, 0);
         assert_eq!(read_count, 0);
         assert_eq!(starred_count, 0);
         assert_eq!(article_tag_count, 0);
         assert_eq!(tag_count, 1);
         assert_eq!(history_count, 0);
+        assert_eq!(http_cache_count, 0);
     }
 
     #[test]

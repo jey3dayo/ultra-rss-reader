@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { FreshRssLogoIcon } from "@/components/icons/provider-icons";
 import { FeedFavicon } from "@/components/shared/feed-favicon";
 
@@ -139,6 +139,48 @@ describe("FeedFavicon", () => {
 
     expect(container.querySelector("img")).toBeNull();
     expect(screen.getByText("G")).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("does not use a time-based retry while the same broken favicon instance stays mounted", () => {
+    vi.useFakeTimers();
+    try {
+      const { container, rerender } = render(
+        <FeedFavicon title="Gamma" url="https://example.com/feed.xml" siteUrl="https://example.com" />,
+      );
+
+      const image = container.querySelector("img");
+      expect(image).toHaveAttribute("src", "https://www.google.com/s2/favicons?domain=example.com&sz=32");
+
+      fireEvent.error(image as HTMLImageElement);
+      vi.advanceTimersByTime(86_400_000);
+
+      rerender(<FeedFavicon title="Gamma" url="https://example.com/feed.xml" siteUrl="https://example.com" />);
+
+      expect(container.querySelector("img")).toBeNull();
+      expect(screen.getByText("G")).toHaveAttribute("aria-hidden", "true");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("retries the same favicon source after feed or account deletion remounts the favicon", () => {
+    const feedFavicon = <FeedFavicon title="Gamma" url="https://example.com/feed.xml" siteUrl="https://example.com" />;
+    const { container, unmount } = render(feedFavicon);
+
+    const image = container.querySelector("img");
+    expect(image).toHaveAttribute("src", "https://www.google.com/s2/favicons?domain=example.com&sz=32");
+
+    fireEvent.error(image as HTMLImageElement);
+    expect(container.querySelector("img")).toBeNull();
+    expect(screen.getByText("G")).toHaveAttribute("aria-hidden", "true");
+
+    unmount();
+    const remounted = render(feedFavicon);
+
+    expect(remounted.container.querySelector("img")).toHaveAttribute(
+      "src",
+      "https://www.google.com/s2/favicons?domain=example.com&sz=32",
+    );
   });
 
   it("retries favicon loading when the resolved favicon source changes after a failure", () => {

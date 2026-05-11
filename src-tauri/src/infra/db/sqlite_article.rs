@@ -1231,6 +1231,11 @@ mod tests {
         }
     }
 
+    fn assert_utc_rfc3339(value: &str) {
+        let parsed = DateTime::parse_from_rfc3339(value).unwrap();
+        assert_eq!(parsed.offset().local_minus_utc(), 0);
+    }
+
     fn insert_mute_keyword(db: &DbManager, keyword: &str, scope: &str) {
         let now = Utc::now().to_rfc3339();
         db.writer()
@@ -1239,6 +1244,37 @@ mod tests {
                 params![uuid::Uuid::new_v4().to_string(), keyword, scope, now, now],
             )
             .unwrap();
+    }
+
+    #[test]
+    fn upsert_persists_article_time_fields_as_utc_rfc3339() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let mut article = make_article(&feed_id, "Offset article");
+        article.published_at = DateTime::parse_from_rfc3339("2026-05-10T23:30:00+09:00")
+            .unwrap()
+            .with_timezone(&Utc);
+        article.fetched_at = DateTime::parse_from_rfc3339("2026-05-11T00:30:00+09:00")
+            .unwrap()
+            .with_timezone(&Utc);
+
+        repo.upsert(&[article.clone()]).unwrap();
+
+        let (published_at, fetched_at): (String, String) = db
+            .reader()
+            .query_row(
+                "SELECT published_at, fetched_at FROM articles WHERE id = ?1",
+                params![article.id.0],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        assert_eq!(published_at, "2026-05-10T14:30:00+00:00");
+        assert_eq!(fetched_at, "2026-05-10T15:30:00+00:00");
+        assert_utc_rfc3339(&published_at);
+        assert_utc_rfc3339(&fetched_at);
     }
 
     fn table_columns(db: &DbManager, table_name: &str) -> HashSet<String> {
@@ -2331,7 +2367,7 @@ mod tests {
     }
 
     #[test]
-    fn mark_muted_unread_as_read_rolls_back_all_changes_on_mid_batch_failure() {
+    fn article_mutation_transaction_policy_muted_auto_read_rolls_back_on_mid_batch_failure() {
         assert_eq!(ARTICLE_MUTATION_TRANSACTION_CHUNK_SIZE, None);
 
         let db = test_db();
@@ -2381,7 +2417,9 @@ mod tests {
     }
 
     #[test]
-    fn mark_muted_unread_as_read_handles_large_match_set_in_one_transaction() {
+    fn article_mutation_transaction_policy_muted_auto_read_handles_large_match_set() {
+        assert_eq!(ARTICLE_MUTATION_TRANSACTION_CHUNK_SIZE, None);
+
         let db = test_db();
         let account_id = insert_test_account(&db);
         let feed_id = insert_test_feed(&db, &account_id);
