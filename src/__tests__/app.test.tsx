@@ -135,9 +135,9 @@ describe("App", () => {
 
     expect(screen.queryByTestId("sliding-pane-tray")).not.toBeInTheDocument();
     expect(initialListFocusable).not.toHaveAttribute("tabindex", "-1");
-    expect(initialListFocusable).not.toHaveAttribute("data-app-layout-previous-tabindex");
+    expect(initialListFocusable).not.toHaveAttribute("data-hidden-pane-previous-tabindex");
     expect(lazyButton).not.toHaveAttribute("tabindex");
-    expect(lazyButton).not.toHaveAttribute("data-app-layout-previous-tabindex");
+    expect(lazyButton).not.toHaveAttribute("data-hidden-pane-previous-tabindex");
   });
 
   it("mobile: no fixed-width sidebar/list classes", () => {
