@@ -44,13 +44,6 @@
 
 ### Rust Provider / DB / Scheduler
 
-- [ ] P2 `provider-sync`: feed HTTP cache validators の account/feed scope と deletion cleanup を固定する
-  - work type: DB/provider contract
-  - write scope: local provider HTTP client、`feed_http_cache` repository、feed/account delete、304 handling
-  - acceptance: ETag / Last-Modified が feed URL だけで別 account/feed に再利用されず、delete 後の validator が残らない
-  - focused verification: same URL different account、feed delete/re-add、redirect final URL change、account delete cleanup、304 after stale validator
-  - defer: remote provider の server-side cache behavior は別タスクにする
-
 - [ ] P2 `provider-sync`: compressed feed response の decoded body limit と diagnostics を固定する
   - work type: performance/security contract
   - write scope: local provider HTTP client、feed discovery/fetch、response body limit、network diagnostics
@@ -112,20 +105,6 @@
   - defer: sanitizer crate replacement や HTML policy redesign は別タスクにする
 
 ### Release / Native / Keyboard / I18n / A11y
-
-- [ ] P2 `release-native`: updater runtime availability と native menu check action の失敗面を固定する
-  - work type: native command boundary contract
-  - write scope: native menu update action、updater commands、frontend updater hook、update/menu tests
-  - acceptance: updater config 有効でも plugin init / endpoint / permission が失敗する場合、native menu 経由の確認が沈黙せず manual check と同じ復旧可能な toast/diagnostics へ落ちる
-  - focused verification: release config enabled plus updater init error、endpoint failure、menu action repeated click、browser mock runtime skip、startup silent failure vs manual visible failure
-  - defer: asset signature policy と download 中 close/restart recovery は既存 release-native タスクへ残す
-
-- [ ] P2 `release-native`: update download / prepared restart と app close の user-facing recovery を固定する
-  - work type: native lifecycle contract
-  - write scope: updater commands、main window close handler、update toasts、native menu restart action
-  - acceptance: update download/install/restart 準備中に close/restart/quit を押しても、silent block ではなく状態と次操作がユーザーに伝わる
-  - focused verification: download in flight close、prepared update restart busy、manual restart while sync busy、second close request、toast/menu disabled state
-  - defer: updater asset/signature policy は release workflow 側の別タスクにする
 
 - [ ] P2 `release-native`: Tauri capability / permission / plugin drift を release gate と app runtime で二重化する
   - work type: release security contract
