@@ -1,26 +1,29 @@
 import { Result } from "@praha/byethrow";
-import { normalizeHttpCommandUrl } from "@/api/schemas/commands";
 import { type AppError, addToReadingList, openInBrowser } from "@/api/tauri-commands";
+import {
+  type ArticleActionError,
+  categorizeArticleActionError,
+  normalizeArticleExternalBrowserUrl,
+  resolveArticleActionErrorMetadata,
+} from "@/lib/articles/article-actions";
 import { copyTextToClipboard } from "@/lib/runtime/clipboard";
 import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
-import { classifyRuntimeActionErrorCategory, type RuntimeActionErrorCategory } from "@/lib/ui-errors";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import type { ArticleStatusToast, ArticleToastActionParams } from "./article-actions.types";
 
-export type ArticleActionErrorCategory = RuntimeActionErrorCategory;
-
-export type ArticleActionErrorLocaleKey =
-  | "article_actions.errors.runtime_unavailable"
-  | "article_actions.errors.permission_denied"
-  | "article_actions.errors.invalid_text"
-  | "article_actions.errors.invalid_url"
-  | "article_actions.errors.unknown";
-
-export type ArticleActionError = AppError & {
-  category: ArticleActionErrorCategory;
-  localeKey: ArticleActionErrorLocaleKey;
-};
+export type {
+  ArticleActionError,
+  ArticleActionErrorCategory,
+  ArticleActionErrorLocaleKey,
+} from "@/lib/articles/article-actions";
+export {
+  categorizeArticleActionError,
+  normalizeArticleExternalBrowserUrl,
+  resolveArticleActionErrorCategory,
+  resolveArticleActionErrorLocaleKey,
+  resolveArticleActionErrorMetadata,
+} from "@/lib/articles/article-actions";
 
 type ArticleBrowserToastOperation<T> = () => Result.ResultAsync<T, AppError>;
 type OpenExternalBrowserParams = {
@@ -30,30 +33,7 @@ type OpenExternalBrowserParams = {
 };
 type PendingExternalBrowserOpen = Promise<Result.Result<null, AppError>>;
 
-const ARTICLE_EXTERNAL_BROWSER_INVALID_URL_MESSAGE = "Only http:// and https:// URLs are supported";
-const ARTICLE_EXTERNAL_BROWSER_CREDENTIAL_URL_MESSAGE = "Article URLs must not include credentials";
 const pendingExternalBrowserOpens = new Map<string, PendingExternalBrowserOpen>();
-const ARTICLE_ACTION_ERROR_LOCALE_KEYS = {
-  runtime_unavailable: "article_actions.errors.runtime_unavailable",
-  permission_denied: "article_actions.errors.permission_denied",
-  invalid_text: "article_actions.errors.invalid_text",
-  invalid_url: "article_actions.errors.invalid_url",
-  unknown: "article_actions.errors.unknown",
-} as const satisfies Record<ArticleActionErrorCategory, ArticleActionErrorLocaleKey>;
-
-function isArticleActionErrorCategory(value: unknown): value is ArticleActionErrorCategory {
-  return (
-    value === "runtime_unavailable" ||
-    value === "permission_denied" ||
-    value === "invalid_text" ||
-    value === "invalid_url" ||
-    value === "unknown"
-  );
-}
-
-function isCategorizedActionError(error: AppError): error is ArticleActionError {
-  return "category" in error && isArticleActionErrorCategory(error.category) && "localeKey" in error;
-}
 
 function isAppError(error: unknown): error is AppError {
   return (
@@ -82,65 +62,8 @@ function toArticleActionError(error: unknown): ArticleActionError {
   };
 }
 
-function toInvalidArticleUrlError(message = ARTICLE_EXTERNAL_BROWSER_INVALID_URL_MESSAGE): ArticleActionError {
-  return {
-    type: "UserVisible",
-    message,
-    ...resolveArticleActionErrorMetadata(message, "invalid_url"),
-  };
-}
-
 function logArticleActionFailure(errorLabel: string, error: ArticleActionError): void {
   logRuntimeDiagnostic("article-action", `${errorLabel}:`, error);
-}
-
-export function normalizeArticleExternalBrowserUrl(url: string): Result.Result<string, ArticleActionError> {
-  const normalizedUrl = normalizeHttpCommandUrl(url);
-  if (!normalizedUrl) {
-    return Result.fail(toInvalidArticleUrlError());
-  }
-
-  try {
-    const parsedUrl = new URL(normalizedUrl);
-    if (parsedUrl.username || parsedUrl.password) {
-      return Result.fail(toInvalidArticleUrlError(ARTICLE_EXTERNAL_BROWSER_CREDENTIAL_URL_MESSAGE));
-    }
-
-    return Result.succeed(normalizedUrl);
-  } catch {
-    return Result.fail(toInvalidArticleUrlError());
-  }
-}
-
-export function resolveArticleActionErrorCategory(message: string): ArticleActionErrorCategory {
-  return classifyRuntimeActionErrorCategory(message, { validationCategory: "invalid_text" });
-}
-
-export function resolveArticleActionErrorLocaleKey(category: ArticleActionErrorCategory): ArticleActionErrorLocaleKey {
-  return ARTICLE_ACTION_ERROR_LOCALE_KEYS[category];
-}
-
-export function resolveArticleActionErrorMetadata(
-  message: string,
-  category = resolveArticleActionErrorCategory(message),
-): Pick<ArticleActionError, "category" | "localeKey"> {
-  return {
-    category,
-    localeKey: resolveArticleActionErrorLocaleKey(category),
-  };
-}
-
-export function categorizeArticleActionError(error: AppError): ArticleActionError {
-  if (isCategorizedActionError(error)) {
-    return error;
-  }
-
-  const metadata = resolveArticleActionErrorMetadata(error.message);
-
-  return {
-    ...error,
-    ...metadata,
-  };
 }
 
 function runToastOperation<T>(
