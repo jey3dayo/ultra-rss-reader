@@ -1,16 +1,17 @@
 import { Result } from "@praha/byethrow";
 import { listen } from "@tauri-apps/api/event";
 import { useCallback, useLayoutEffect, useRef } from "react";
-import type { ZodError } from "zod";
-import { z } from "zod";
-import {
-  BrowserWebviewDiagnosticsPayloadSchema,
-  BrowserWebviewFallbackPayloadSchema,
-  BrowserWebviewStateSchema,
-} from "@/api/schemas";
 import type { BrowserWebviewState } from "@/api/tauri-commands";
 import { BROWSER_WINDOW_EVENTS } from "@/constants/browser";
 import type { BrowserDebugGeometryNativeDiagnostics } from "@/lib/browser/browser-debug-geometry";
+import {
+  type BrowserWebviewClosedPayload,
+  parseBrowserWebviewClosedPayload,
+  parseBrowserWebviewDiagnosticsPayload,
+  parseBrowserWebviewFallbackPayload,
+  parseBrowserWebviewStatePayload,
+  warnMalformedBrowserWebviewEvent,
+} from "@/lib/browser/browser-webview-event-payloads";
 import { createTauriListenerGroup } from "@/lib/runtime/tauri-event-listeners";
 import { useUiStore } from "@/stores/ui-store";
 import {
@@ -28,84 +29,6 @@ type UseBrowserWebviewEventsParams = {
 };
 
 type UseBrowserWebviewEventsResult = () => Promise<void>;
-
-type BrowserWebviewClosedPayload = {
-  url: string;
-  load_generation: number;
-};
-
-const BrowserWebviewClosedPayloadSchema = z
-  .object({
-    url: z.string(),
-    load_generation: z.number().int().nonnegative(),
-  })
-  .strict();
-
-function parseBrowserWebviewStatePayload(payload: unknown): Result.Result<BrowserWebviewState, ZodError> {
-  const result = BrowserWebviewStateSchema.safeParse(payload);
-  return result.success ? Result.succeed(result.data) : Result.fail(result.error);
-}
-
-function parseBrowserWebviewFallbackPayload(payload: unknown): Result.Result<BrowserWebviewFallbackPayload, ZodError> {
-  const result = BrowserWebviewFallbackPayloadSchema.safeParse(payload);
-  return result.success ? Result.succeed(result.data) : Result.fail(result.error);
-}
-
-function parseBrowserWebviewClosedPayload(
-  payload: unknown,
-): Result.Result<BrowserWebviewClosedPayload | null, ZodError> {
-  if (payload === undefined || payload === null) {
-    return Result.succeed(null);
-  }
-  const result = BrowserWebviewClosedPayloadSchema.safeParse(payload);
-  return result.success ? Result.succeed(result.data) : Result.fail(result.error);
-}
-
-function parseBrowserWebviewDiagnosticsPayload(
-  payload: unknown,
-): Result.Result<BrowserDebugGeometryNativeDiagnostics, ZodError> {
-  const result = BrowserWebviewDiagnosticsPayloadSchema.safeParse(payload);
-  return result.success ? Result.succeed(result.data) : Result.fail(result.error);
-}
-
-function malformedPayloadSummary(payload: unknown) {
-  if (Array.isArray(payload)) {
-    return "array";
-  }
-  if (payload === null) {
-    return "null";
-  }
-  if (typeof payload === "object") {
-    return `object(keys=${Object.keys(payload).toSorted().join(",")})`;
-  }
-  return typeof payload;
-}
-
-function malformedPayloadIssueSummary(error: ZodError) {
-  return error.issues
-    .map((issue) => `${issue.code}:${issue.path.length > 0 ? issue.path.join(".") : "<root>"}`)
-    .toSorted()
-    .join(",");
-}
-
-function warnMalformedBrowserWebviewEvent(
-  warnedMalformedPayloadShapes: Set<string>,
-  eventName: string,
-  payload: unknown,
-  error: ZodError,
-) {
-  const payloadSummary = malformedPayloadSummary(payload);
-  const issueSummary = malformedPayloadIssueSummary(error);
-  const warningKey = `${eventName}:${payloadSummary}:${issueSummary}`;
-  if (warnedMalformedPayloadShapes.has(warningKey)) {
-    return;
-  }
-
-  warnedMalformedPayloadShapes.add(warningKey);
-  console.warn(
-    `Ignored malformed embedded browser webview ${eventName} payload: payloadType=${payloadSummary}; issues=${issueSummary}`,
-  );
-}
 
 export function useBrowserWebviewEvents({
   showDiagnostics,
