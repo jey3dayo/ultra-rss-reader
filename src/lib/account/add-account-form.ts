@@ -103,32 +103,30 @@ export function formatAddAccountValidationError(
   }
 }
 
-type ServerUrlValidationResult = { ok: true; value: string } | { ok: false; error: AddAccountValidationError };
-
 function isLoopbackFreshRssHost(hostname: string): boolean {
   const normalized = hostname.toLowerCase();
   return normalized === "localhost" || normalized === "127.0.0.1" || normalized === "::1" || normalized === "[::1]";
 }
 
-function validateFreshRssServerUrl(value: string): ServerUrlValidationResult {
+function validateFreshRssServerUrl(value: string): Result.Result<string, AddAccountValidationError> {
   try {
     const url = new URL(value);
 
     if (url.protocol !== "http:" && url.protocol !== "https:") {
-      return { ok: false, error: "invalid_server_url" };
+      return Result.fail("invalid_server_url");
     }
 
     if (url.username || url.password) {
-      return { ok: false, error: "server_url_credentials" };
+      return Result.fail("server_url_credentials");
     }
 
     if (url.protocol === "http:" && !isLoopbackFreshRssHost(url.hostname)) {
-      return { ok: false, error: "insecure_server_url" };
+      return Result.fail("insecure_server_url");
     }
 
-    return { ok: true, value: value.trim().replace(/\/+$/, "") };
+    return Result.succeed(value.trim().replace(/\/+$/, ""));
   } catch {
-    return { ok: false, error: "invalid_server_url" };
+    return Result.fail("invalid_server_url");
   }
 }
 
@@ -160,8 +158,8 @@ export function buildAddAccountPayload(
       return Result.fail("missing_server_url");
     }
     const serverUrlResult = validateFreshRssServerUrl(serverUrl);
-    if (!serverUrlResult.ok) {
-      return Result.fail(serverUrlResult.error);
+    if (Result.isFailure(serverUrlResult)) {
+      return Result.fail(Result.unwrapError(serverUrlResult));
     }
 
     return Result.pipe(
@@ -169,7 +167,7 @@ export function buildAddAccountPayload(
       Result.map((creds) => ({
         kind: input.kind,
         name,
-        serverUrl: serverUrlResult.value,
+        serverUrl: Result.unwrap(serverUrlResult),
         ...creds,
       })),
     );

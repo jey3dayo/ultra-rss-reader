@@ -1,3 +1,4 @@
+import { Result } from "@praha/byethrow";
 import { listen } from "@tauri-apps/api/event";
 import { useCallback, useLayoutEffect, useRef } from "react";
 import type { ZodError } from "zod";
@@ -28,30 +29,10 @@ type UseBrowserWebviewEventsParams = {
 
 type UseBrowserWebviewEventsResult = () => Promise<void>;
 
-type BrowserWebviewPayloadParseResult<T> =
-  | {
-      success: true;
-      data: T;
-    }
-  | {
-      success: false;
-      error: ZodError;
-    };
-
 type BrowserWebviewClosedPayload = {
   url: string;
   load_generation: number;
 };
-
-type BrowserWebviewClosedPayloadParseResult =
-  | {
-      kind: "current";
-      data: BrowserWebviewClosedPayload | null;
-    }
-  | {
-      kind: "malformed";
-      error: ZodError;
-    };
 
 const BrowserWebviewClosedPayloadSchema = z
   .object({
@@ -60,31 +41,31 @@ const BrowserWebviewClosedPayloadSchema = z
   })
   .strict();
 
-function parseBrowserWebviewStatePayload(payload: unknown): BrowserWebviewPayloadParseResult<BrowserWebviewState> {
+function parseBrowserWebviewStatePayload(payload: unknown): Result.Result<BrowserWebviewState, ZodError> {
   const result = BrowserWebviewStateSchema.safeParse(payload);
-  return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
+  return result.success ? Result.succeed(result.data) : Result.fail(result.error);
 }
 
-function parseBrowserWebviewFallbackPayload(
-  payload: unknown,
-): BrowserWebviewPayloadParseResult<BrowserWebviewFallbackPayload> {
+function parseBrowserWebviewFallbackPayload(payload: unknown): Result.Result<BrowserWebviewFallbackPayload, ZodError> {
   const result = BrowserWebviewFallbackPayloadSchema.safeParse(payload);
-  return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
+  return result.success ? Result.succeed(result.data) : Result.fail(result.error);
 }
 
-function parseBrowserWebviewClosedPayload(payload: unknown): BrowserWebviewClosedPayloadParseResult {
+function parseBrowserWebviewClosedPayload(
+  payload: unknown,
+): Result.Result<BrowserWebviewClosedPayload | null, ZodError> {
   if (payload === undefined || payload === null) {
-    return { kind: "current", data: null };
+    return Result.succeed(null);
   }
   const result = BrowserWebviewClosedPayloadSchema.safeParse(payload);
-  return result.success ? { kind: "current", data: result.data } : { kind: "malformed", error: result.error };
+  return result.success ? Result.succeed(result.data) : Result.fail(result.error);
 }
 
 function parseBrowserWebviewDiagnosticsPayload(
   payload: unknown,
-): BrowserWebviewPayloadParseResult<BrowserDebugGeometryNativeDiagnostics> {
+): Result.Result<BrowserDebugGeometryNativeDiagnostics, ZodError> {
   const result = BrowserWebviewDiagnosticsPayloadSchema.safeParse(payload);
-  return result.success ? { success: true, data: result.data } : { success: false, error: result.error };
+  return result.success ? Result.succeed(result.data) : Result.fail(result.error);
 }
 
 function malformedPayloadSummary(payload: unknown) {
@@ -146,16 +127,16 @@ export function useBrowserWebviewEvents({
         subscription: listen<unknown>(BROWSER_WINDOW_EVENTS.stateChanged, ({ payload }) => {
           if (cancelled) return;
           const result = parseBrowserWebviewStatePayload(payload);
-          if (!result.success) {
+          if (Result.isFailure(result)) {
             warnMalformedBrowserWebviewEvent(
               warnedMalformedPayloadShapesRef.current,
               BROWSER_WINDOW_EVENTS.stateChanged,
               payload,
-              result.error,
+              Result.unwrapError(result),
             );
             return;
           }
-          onStateChanged(result.data);
+          onStateChanged(Result.unwrap(result));
         }),
       },
       {
@@ -163,16 +144,16 @@ export function useBrowserWebviewEvents({
         subscription: listen<unknown>(BROWSER_WINDOW_EVENTS.fallback, ({ payload }) => {
           if (cancelled) return;
           const result = parseBrowserWebviewFallbackPayload(payload);
-          if (!result.success) {
+          if (Result.isFailure(result)) {
             warnMalformedBrowserWebviewEvent(
               warnedMalformedPayloadShapesRef.current,
               BROWSER_WINDOW_EVENTS.fallback,
               payload,
-              result.error,
+              Result.unwrapError(result),
             );
             return;
           }
-          const fallbackPayload = result.data;
+          const fallbackPayload = Result.unwrap(result);
           const requestedUrl = useUiStore.getState().browserUrl;
           if (requestedUrl && !isBrowserWebviewFallbackForRequestedUrl(fallbackPayload, requestedUrl)) {
             return;
@@ -185,16 +166,17 @@ export function useBrowserWebviewEvents({
         subscription: listen<unknown>(BROWSER_WINDOW_EVENTS.closed, ({ payload }) => {
           if (cancelled) return;
           const result = parseBrowserWebviewClosedPayload(payload);
-          if (result.kind === "malformed") {
+          if (Result.isFailure(result)) {
             warnMalformedBrowserWebviewEvent(
               warnedMalformedPayloadShapesRef.current,
               BROWSER_WINDOW_EVENTS.closed,
               payload,
-              result.error,
+              Result.unwrapError(result),
             );
             return;
           }
-          if (result.data !== null && !isClosedEventCurrent(result.data)) {
+          const closedPayload = Result.unwrap(result);
+          if (closedPayload !== null && !isClosedEventCurrent(closedPayload)) {
             return;
           }
           onClosed();
@@ -207,16 +189,16 @@ export function useBrowserWebviewEvents({
               subscription: listen<unknown>(BROWSER_WINDOW_EVENTS.diagnostics, ({ payload }) => {
                 if (cancelled) return;
                 const result = parseBrowserWebviewDiagnosticsPayload(payload);
-                if (!result.success) {
+                if (Result.isFailure(result)) {
                   warnMalformedBrowserWebviewEvent(
                     warnedMalformedPayloadShapesRef.current,
                     BROWSER_WINDOW_EVENTS.diagnostics,
                     payload,
-                    result.error,
+                    Result.unwrapError(result),
                   );
                   return;
                 }
-                onDiagnostics(result.data);
+                onDiagnostics(Result.unwrap(result));
               }),
             },
           ]

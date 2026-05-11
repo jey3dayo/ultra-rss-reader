@@ -39,20 +39,14 @@ const initialCommandPaletteRuntimeState: CommandPaletteRuntimeState = {
   devScenarioLoadError: null,
 };
 
-type CommandPaletteRuntimeDevScenarioLoadResult =
-  | { ok: true; scenarios: RuntimeDevScenario[] }
-  | { ok: false; error: DevScenarioRuntimeError };
-
-async function loadCommandPaletteRuntimeDevScenarios(): Promise<CommandPaletteRuntimeDevScenarioLoadResult> {
+async function loadCommandPaletteRuntimeDevScenarios(): Promise<
+  Result.Result<RuntimeDevScenario[], DevScenarioRuntimeError>
+> {
   if (!import.meta.env.DEV) {
-    return { ok: true, scenarios: [] };
+    return Result.succeed([]);
   }
 
-  const result = await loadRuntimeDevScenariosResult();
-  if (Result.isFailure(result)) {
-    return { ok: false, error: Result.unwrapError(result) };
-  }
-  return { ok: true, scenarios: Result.unwrap(result) };
+  return loadRuntimeDevScenariosResult();
 }
 
 function commandPaletteRuntimeReducer(
@@ -110,15 +104,16 @@ export function useCommandPaletteRuntime({ open }: UseCommandPaletteRuntimeParam
           return;
         }
 
-        if (loadResult.ok) {
-          dispatch({ type: "set-dev-scenarios", value: loadResult.scenarios });
+        if (Result.isSuccess(loadResult)) {
+          dispatch({ type: "set-dev-scenarios", value: Result.unwrap(loadResult) });
           return;
         }
 
-        console.warn("Command palette dev scenario loader failed.", loadResult.error);
+        const loadError = Result.unwrapError(loadResult);
+        console.warn("Command palette dev scenario loader failed.", loadError);
         dispatch({
           type: "set-dev-scenario-load-error",
-          value: loadResult.error,
+          value: loadError,
         });
       })
       .catch((error: unknown) => {
