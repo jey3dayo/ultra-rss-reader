@@ -1,17 +1,14 @@
 import { fireEvent, renderHook } from "@testing-library/react";
 import type { MutableRefObject } from "react";
 import { describe, expect, it, vi } from "vitest";
-import type { FeedTreeFeedViewModel } from "@/components/reader/feed-tree.types";
+import type { UseFeedTreePointerDragEventsParams } from "@/components/reader/hooks/feed-tree/feed-tree-drag.types";
+import { useFeedTreePointerDragEvents } from "@/components/reader/hooks/feed-tree/use-feed-tree-pointer-drag-events";
 import {
   createFeedTreePointerDragSession,
   type FeedTreePointerDragSession,
-} from "@/components/reader/feed-tree-drag-session";
-import {
-  FEED_DROP_TARGET_ID_ATTRIBUTE,
-  FEED_DROP_TARGET_KIND_ATTRIBUTE,
-} from "@/components/reader/feed-tree-drop-target";
-import type { UseFeedTreePointerDragEventsParams } from "@/components/reader/hooks/feed-tree/feed-tree-drag.types";
-import { useFeedTreePointerDragEvents } from "@/components/reader/hooks/feed-tree/use-feed-tree-pointer-drag-events";
+} from "@/lib/sidebar/feed-tree-drag-session";
+import { FEED_DROP_TARGET_ID_ATTRIBUTE, FEED_DROP_TARGET_KIND_ATTRIBUTE } from "@/lib/sidebar/feed-tree-drop-target";
+import type { FeedTreeFeedViewModel } from "@/lib/sidebar/sidebar-feed-tree";
 
 const dragWindowEventTypes = new Set(["pointermove", "pointerup", "pointercancel", "keydown", "blur"]);
 

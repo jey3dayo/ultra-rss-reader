@@ -5,9 +5,12 @@ import type {
 } from "@/components/reader/hooks/feed-tree/feed-tree-drag.types";
 import { useFeedTreeHandleClickSuppression } from "@/components/reader/hooks/feed-tree/use-feed-tree-handle-click-suppression";
 import { useFeedTreePointerDragEvents } from "@/components/reader/hooks/feed-tree/use-feed-tree-pointer-drag-events";
+import {
+  createFeedTreePointerDragSession,
+  type FeedTreePointerDragSession,
+} from "@/lib/sidebar/feed-tree-drag-session";
 import type { ActiveDropTarget, FeedTreeFeedViewModel } from "../../feed-tree.types";
 import type { FeedTreeDragOverlayPreview } from "../../feed-tree-drag-overlay";
-import { createFeedTreePointerDragSession, type FeedTreePointerDragSession } from "../../feed-tree-drag-session";
 
 type FeedTreeDragState = {
   isPointerTracking: boolean;

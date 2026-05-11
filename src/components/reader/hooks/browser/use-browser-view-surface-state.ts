@@ -7,11 +7,8 @@ import {
   createBrowserSurfaceFallback,
   resolveRuntimeUnavailableSurfaceIssue,
 } from "@/lib/browser/browser-surface-issue";
-import {
-  type BrowserWebviewFallbackPayload,
-  setBrowserStateWithRef,
-  updateBrowserStateWithRef,
-} from "../../browser-webview-state";
+import type { BrowserWebviewFallbackPayload } from "@/lib/browser/browser-webview-state";
+import { setBrowserStateWithRef, updateBrowserStateWithRef } from "../../browser-webview-state";
 
 type UseBrowserViewSurfaceStateParams = {
   browserStateRef: MutableRefObject<BrowserWebviewState | null>;

@@ -1,8 +1,8 @@
 import type { RefObject } from "react";
 import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import { toBrowserWebviewBounds } from "@/lib/browser/browser-webview";
+import { resolveBrowserOverlayClientRelativeRect } from "@/lib/browser/browser-webview-sync";
 import type { BrowserViewLayoutDiagnostics } from "../../browser-view.types";
-import { resolveBrowserOverlayClientRelativeRect } from "../../browser-webview-sync-helpers";
 
 type UseBrowserLayoutDiagnosticsParams = {
   browserUrl: string | null;

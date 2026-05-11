@@ -4,9 +4,9 @@ import { useBrowserViewSurfaceController } from "@/components/reader/hooks/brows
 import { useBrowserWebviewEvents } from "@/components/reader/hooks/browser/use-browser-webview-events";
 import { useBrowserWebviewStateChanged } from "@/components/reader/hooks/browser/use-browser-webview-state-changed";
 import type { BrowserSurfaceIssue } from "@/lib/browser/browser-surface-issue";
+import type { BrowserWebviewFallbackPayload } from "@/lib/browser/browser-webview-state";
 import { useUiStore } from "@/stores/ui-store";
 import type { BrowserWebviewDiagnosticsPayload, BrowserWebviewStateBinding } from "../../browser-view.types";
-import type { BrowserWebviewFallbackPayload } from "../../browser-webview-state";
 
 type UseBrowserViewEventBridgeParams = BrowserWebviewStateBinding & {
   showDiagnostics: boolean;

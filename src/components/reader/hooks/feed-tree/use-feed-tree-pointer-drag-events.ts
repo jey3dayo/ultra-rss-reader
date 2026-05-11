@@ -1,14 +1,17 @@
 import { useEffect, useRef } from "react";
 import type { UseFeedTreePointerDragEventsParams } from "@/components/reader/hooks/feed-tree/feed-tree-drag.types";
-import { bindWindowEvents, createKeyboardEventListener, createPointerEventListener } from "@/lib/window/window-events";
-import type { ActiveDropTarget } from "../../feed-tree.types";
-import { applyFeedTreePointerDropOutcome, resolveFeedTreePointerDropOutcome } from "../../feed-tree-drag-outcome";
+import {
+  applyFeedTreePointerDropOutcome,
+  resolveFeedTreePointerDropOutcome,
+} from "@/lib/sidebar/feed-tree-drag-outcome";
 import {
   getFeedTreePointerDragSessionForPointer,
   shouldStartFeedTreePointerDrag,
   updateFeedTreePointerDragSessionPosition,
-} from "../../feed-tree-drag-session";
-import { getFeedDropTargetAtPoint, isSameFeedDropTarget } from "../../feed-tree-drop-target";
+} from "@/lib/sidebar/feed-tree-drag-session";
+import { getFeedDropTargetAtPoint, isSameFeedDropTarget } from "@/lib/sidebar/feed-tree-drop-target";
+import { bindWindowEvents, createKeyboardEventListener, createPointerEventListener } from "@/lib/window/window-events";
+import type { ActiveDropTarget } from "../../feed-tree.types";
 import { applyFeedTreeHoverTarget } from "../../feed-tree-hover-target";
 
 export function useFeedTreePointerDragEvents({
