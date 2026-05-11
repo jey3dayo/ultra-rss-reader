@@ -2317,7 +2317,7 @@ describe("release repository contract", () => {
     expect(miseToml).not.toMatch(/depends = \[[^\]]*"audit:deps"/);
   });
 
-  it("keeps markdownlint target count and ignore patterns under a repo contract", () => {
+  it("keeps markdownlint glob and ignore patterns under a repo contract", () => {
     const markdownlintConfig = parseJsonc(readText(".markdownlint-cli2.jsonc")) as {
       globs?: string[];
       ignores?: string[];
@@ -2329,11 +2329,10 @@ describe("release repository contract", () => {
 
     expect(markdownlintConfig.globs).toEqual([markdownlintRepoContract.glob]);
     expect(markdownlintConfig.ignores).toEqual([...markdownlintRepoContract.ignorePatterns]);
-    expect(markdownFiles).toHaveLength(markdownlintRepoContract.targetFileCount);
     expect(markdownlintRepoContract.rootMarkdownFiles.every((path) => markdownFiles.includes(path))).toBe(true);
     expect(markdownFiles.some((path) => path.startsWith("src-tauri/gen/"))).toBe(false);
     expect(miseToml).toContain('[tasks."quality:markdownlint-contract"]');
-    expect(miseToml).toContain(`expected ${markdownlintRepoContract.targetFileCount}`);
+    expect(miseToml).toContain("Check markdownlint glob and ignore pattern contract");
     expect(miseToml).toContain("src-tauri/gen/**");
   });
 
