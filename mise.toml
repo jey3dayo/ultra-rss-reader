@@ -212,12 +212,7 @@ const packages = metadata.packages.map((pkg) => ({
 writeFileSync("tmp/dependency-licenses/cargo-licenses.json", `${JSON.stringify(packages, null, 2)}\\n`);
 NODE
 """
-run_windows = """
-if not exist tmp\\dependency-licenses mkdir tmp\\dependency-licenses
-pnpm.CMD licenses list --json > tmp\\dependency-licenses\\pnpm-licenses.json
-cargo metadata --manifest-path src-tauri\\Cargo.toml --format-version=1 --locked > tmp\\dependency-licenses\\cargo-metadata.json
-node --input-type=module -e "import { readFileSync, writeFileSync } from 'node:fs'; const metadata = JSON.parse(readFileSync('tmp/dependency-licenses/cargo-metadata.json', 'utf8')); const packages = metadata.packages.map((pkg) => ({ name: pkg.name, version: pkg.version, license: pkg.license ?? null, license_file: pkg.license_file ?? null, repository: pkg.repository ?? null })); writeFileSync('tmp/dependency-licenses/cargo-licenses.json', `${JSON.stringify(packages, null, 2)}\\n`);"
-"""
+run_windows = "if not exist tmp\\dependency-licenses mkdir tmp\\dependency-licenses && pnpm.CMD licenses list --json > tmp\\dependency-licenses\\pnpm-licenses.json && cargo metadata --manifest-path src-tauri\\Cargo.toml --format-version=1 --locked > tmp\\dependency-licenses\\cargo-metadata.json && node --input-type=module -e \"import { readFileSync, writeFileSync } from 'node:fs'; const metadata = JSON.parse(readFileSync('tmp/dependency-licenses/cargo-metadata.json', 'utf8')); const packages = metadata.packages.map((pkg) => ({ name: pkg.name, version: pkg.version, license: pkg.license ?? null, license_file: pkg.license_file ?? null, repository: pkg.repository ?? null })); writeFileSync('tmp/dependency-licenses/cargo-licenses.json', `${JSON.stringify(packages, null, 2)}\\n`);\""
 
 # ========================================
 # ローカル品質ゲート / レポート
