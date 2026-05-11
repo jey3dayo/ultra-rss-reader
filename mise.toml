@@ -239,13 +239,19 @@ run_windows = "vitest.CMD run"
 
 [tasks."test:unit:ci"]
 description = "Run Vitest unit tests with quieter CI output"
-run = "rtk test pnpm exec vitest run --reporter=dot --silent=passed-only"
-run_windows = "vitest.CMD run --reporter=dot --silent=passed-only"
+run = """
+rtk test pnpm run test:node --reporter=dot --silent=passed-only
+rtk test pnpm run test:jsdom --reporter=dot --silent=passed-only
+"""
+run_windows = "pnpm.CMD run test:node --reporter=dot --silent=passed-only && pnpm.CMD run test:jsdom --reporter=dot --silent=passed-only"
 
 [tasks."test:unit:profile"]
 description = "Run Vitest unit tests with verbose output for slow test profiling"
-run = "rtk test pnpm exec vitest run --reporter=verbose --slow-test-threshold=300"
-run_windows = "vitest.CMD run --reporter=verbose --slow-test-threshold=300"
+run = """
+rtk test pnpm run test:node --reporter=verbose --slow-test-threshold=300
+rtk test pnpm run test:jsdom --reporter=verbose --slow-test-threshold=300
+"""
+run_windows = "pnpm.CMD run test:node --reporter=verbose --slow-test-threshold=300 && pnpm.CMD run test:jsdom --reporter=verbose --slow-test-threshold=300"
 
 [tasks."test:e2e"]
 description = "Run Playwright E2E tests"

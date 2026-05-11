@@ -251,6 +251,19 @@ describe("package scripts", () => {
     );
   });
 
+  it("keeps Vitest unit test projects addressable from package and mise tasks", () => {
+    const packageJson = readPackageJson();
+    const miseToml = readWorkspaceFile("mise.toml");
+
+    expect(packageJson.scripts?.test).toBe("pnpm run test:node && pnpm run test:jsdom");
+    expect(packageJson.scripts?.["test:node"]).toBe("pnpm exec vitest run --project node");
+    expect(packageJson.scripts?.["test:jsdom"]).toBe("pnpm exec vitest run --project jsdom");
+    expect(miseToml).toContain("pnpm run test:node --reporter=dot --silent=passed-only");
+    expect(miseToml).toContain("pnpm run test:jsdom --reporter=dot --silent=passed-only");
+    expect(miseToml).toContain("pnpm run test:node --reporter=verbose --slow-test-threshold=300");
+    expect(miseToml).toContain("pnpm run test:jsdom --reporter=verbose --slow-test-threshold=300");
+  });
+
   it("keeps mise test:all semantics aligned with Storybook E2E", () => {
     const miseToml = readWorkspaceFile("mise.toml");
 
