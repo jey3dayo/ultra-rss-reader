@@ -46,75 +46,25 @@
 
 ### Browser WebView / Runtime Diagnostics
 
-- [ ] P2 window drag region と file drop region の pointer event priority を検証する
-  - 対象: app shell CSS、native titlebar overlay、drag/drop handlers
-  - titlebar drag、browser overlay、file drop overlay が同じ上部領域を使うと、クリック/ドラッグ/drop の優先順位が壊れる
-  - titlebar drag、toolbar click、file hover、drop cancel、browser overlay open の visual/manual check を追加する
-
 - [ ] P2 memory pressure / OOM risk を large feed import と article render で smoke 化する
   - 対象: local provider parser、OPML import、article content view
   - 巨大 feed や巨大 HTML を parse/render した時に body cap だけでは JS/Rust memory pressure を検出できない
   - large feed entries、large article HTML、many images、large OPML、render abort/fallback の smoke を追加する
-
-- [ ] P2 app action telemetry-free audit log を local diagnostics として持つか決める
-  - 対象: app action dispatcher、diagnostics reporter、debug HUD
-  - action failure の再現には sequence が必要だが、telemetry なし方針なら local-only・redacted・size-capped の設計が必要
-  - local-only log、redaction、size cap、action id、account/feed omission、support copy の decision を追加する
-
-- [ ] P2 imported OPML account ownership を cross-account duplicate / move flow で固定する
-  - 対象: OPML import、feed repository、settings account selection
-  - 別 account に同じ feed URL を import する時の duplicate 判定と folder ownership が曖昧だと feed が欠落する
-  - same URL different account、same URL same account、folder same name different account、account switch during import、export scope の contract を追加する
 
 - [ ] P2 provider account kind 追加時の migration checklist を template 化する
   - 対象: provider traits、account settings、schema/tests
   - 新 provider を足す時に credential、capability、sync cursor、folder/tag semantics の漏れが出やすい
   - credential model、folder model、tag model、read/star support、cursor support、test fixture checklist を追加する
 
-- [ ] P2 Rust test `cfg(test)` と production-only code path の coverage gap を inventory 化する
-  - 対象: `src-tauri/src/lib.rs`, `cfg(not(test))` blocks, integration tests
-  - plugin setup、startup lifecycle、log setup などが `cfg(not(test))` で外れると unit test だけでは release regression を拾えない
-  - plugin setup、log setup、focus restore、scheduler start、cleanup logs、release smoke owner の inventory を作る
-
-- [ ] P2 Tauri/macOS sandbox entitlements と file/network/keychain access の将来方針を整理する
-  - 対象: Tauri config、release packaging、keyring/file/network commands
-  - sandbox や store 配布を考えると、現状の file dialog・keyring・network access が entitlements と合うか早めに分けておく必要がある
-  - network client、keychain/keyring、user-selected files、app data dir、external opener の entitlement matrix を作る
-
-- [ ] P2 local DB encryption at rest を採用しない/する decision record を作る
-  - 対象: DB storage、credential storage、privacy docs
-  - keyring は credential を守るが、DB には feed/article/history が残るため、暗号化しない理由または将来方針を明文化する必要がある
-  - threat model、OS disk encryption reliance、portable backup、search performance、migration cost の decision を追加する
-
-- [ ] P2 OPML export に privacy summary comment を入れる/入れない decision を作る
-  - 対象: OPML generator、export docs
-  - OPML は共有されやすいが購読傾向や folder 名を含むため、生成物に注意書きを入れるか決めておく
-  - comment included/omitted、round-trip compatibility、reader import tolerance、locale copy、user warning の decision を追加する
-
 - [ ] P2 destructive action undo unavailable warning を delete account/feed/tag/history で揃える
   - 対象: destructive dialogs、settings/subscriptions/tag flows
   - rollback 不能な削除で copy がばらつくと、ユーザーが recoverable と誤解する
   - delete account、delete feed、delete tag、clear history、cleanup orphans、backup recommendation の copy contract を追加する
 
-- [ ] P2 command/action id の public persistence boundary を preference/history/debug で分類する
-  - 対象: app action ids、shortcut preferences、command history、debug traces
-  - action id を rename すると preference/history/debug が壊れるため、永続化される id と内部 id を分ける必要がある
-  - persisted ids、internal-only ids、migration map、debug label、removed action の contract を追加する
-
-- [ ] P1 update/install failure 後の app binary / DB schema / pending update state の三者整合を固定する
-  - 対象: updater hook、updater commands、DB migration、startup boot
-  - binary は旧版のまま DB だけ migration 済み、または pending update state だけ残ると復旧不能に見える
-  - install failure、restart failure、schema migrated、pending update cleared、manual redownload の contract を追加する
-
 - [ ] P1 corrupted preference row が startup/menu/settings を連鎖的に壊さない quarantine policy を作る
   - 対象: preference repository、startup menu prefs、settings store
   - 1 行の不正 preference で menu rebuild や settings 全体が fallback すると、ユーザーが修復できない
   - unknown key、invalid value、oversized value、menu fallback、settings quarantine/reset の contract を追加する
-
-- [ ] P2 installer upgrade 前後の app data backup recommendation を user-facing flow にする
-  - 対象: release notes、manual verification、settings data export
-  - data migration を含む release で事前 backup 導線がないと、失敗時にユーザーが戻れない
-  - migration release、backup prompt、skip copy、backup failure、restore docs link の policy を追加する
 
 - [ ] P2 feed parser error sample を support-safe に保存するか決める
   - 対象: local provider parser、diagnostics、support dump
@@ -155,16 +105,6 @@
   - 対象: `src-tauri/src/infra/db`, migrations, repo contract tests
   - column rename や migration 追加後に raw SQL string が古いままでも compiler が拾えない
   - table names、column names、index names、raw SQL parser limits、intentional dynamic SQL allowlist の report を追加する
-
-- [ ] P3 TODO risk register を domain owner 別に shard する計画を作る
-  - 対象: `TODO.md`, future task files
-  - 1 ファイルに全 risk が積み上がると、reader/settings/release/provider の担当ごとの実行単位が見えにくい
-  - reader、settings、provider、release、quality、security/privacy の shard policy と移行手順を決める
-
-- [ ] P1 remote feed content 由来の filename/path suggestion を絶対に使わない contract を作る
-  - 対象: OPML export、backup/export dialogs、article share future scope
-  - feed title や article title を file name suggestion に使うと、path separator/control char/RTL spoof で危険な保存名になる
-  - feed title、account name、article title、control chars、path separators、safe default filename の policy を追加する
 
 - [ ] P2 account recovery flow を credential reset / server URL fix / cache clear の三系統に分ける
   - 対象: account detail settings、sync error UI、diagnostics
@@ -230,11 +170,6 @@
   - 対象: tests、quality policy、CI
   - flake を場当たり的に skip すると、未解決リスクが TODO と CI のどちらにも残らない
   - skip annotation format、TODO link、owner、expiry date、retry evidence、unskip gate の policy を追加する
-
-- [ ] P3 risk TODO の acceptance criteria template を定型化する
-  - 対象: `TODO.md`, future task generator
-  - TODO が多くなるほど「完了条件」が曖昧な項目が増え、実装 worker が scope を広げすぎる
-  - 対象、問題、分割、focused test、manual verification、defer 明記の template を作る
 
 - [ ] P1 error fallback が destructive action を隠さず disabled にする共通 contract を作る
   - 対象: settings data actions、account/feed/tag destructive dialogs、query parse fallback
@@ -305,13 +240,3 @@
   - 対象: reader search UI、FTS query builder、locale copy
   - ユーザーが quote/operator を入力した時の扱いが不明だと、検索失敗を bug と誤解する
   - literal search、phrase search、operator escaped、syntax error copy、help text の contract を追加する
-
-- [ ] P3 TODO.md の優先度と実装順を machine-readable に抽出する script を追加する
-  - 対象: `TODO.md`, task triage tooling
-  - 目視だけでは P1/P2 の並列投入順を保ちにくい
-  - priority parse、target parse、domain bucket、dependency hint、JSON export の script を追加する
-
-- [ ] P3 risk TODO の重複 close / merge workflow を決める
-  - 対象: `TODO.md`, CHANGELOG, future issue export
-  - 類似タスクを統合する時に片方を消すだけだと、過去の判断理由や検証観点が失われる
-  - merge marker、superseded by、completed by、CHANGELOG move、issue link の運用を決める
