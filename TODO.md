@@ -22,41 +22,13 @@
 
 ### Sync / App Runtime
 
-- [ ] P2 `provider-sync`: startup sync / remote-state repair / automatic scheduler enable の結果契約を固定する
-  - work type: startup lifecycle contract
-  - write scope: startup sync command、remote-state repair marker、automatic sync enable path、startup sync storage tests
-  - acceptance: startup sync 対象と repair-only 対象が混在しても、成功/部分失敗/全失敗の result、repair marker、automatic scheduler enable、last-trigger storage が矛盾しない
-  - focused verification: preferred account missing、repair-only success with no startup accounts、startup account failure plus repair success、repair marker write failure、automatic sync enable skipped/allowed
-  - defer: scheduler tick backoff や Retry-After policy は既存 provider-sync タスクへ残す
-
 ### App Shell / Command Palette / Dev Intent
 
 ### Reader UI / Account Settings
 
 ### Dev / Tooling / E2E / Test Helpers
 
-- [ ] P3 `quality-tooling`: browser-only dev mock の destructive / external side effect parity を固定する
-  - work type: dev runtime contract
-  - write scope: browser-only dev mocks、test Tauri mocks、dev mock parity tests、external-opener diagnostics
-  - acceptance: external opener、reading list、browser WebView、feed integrity cleanup、import 系 side effect が mock runtime で observable / dry-run-safe / explicitly unsupported のいずれかに分類され、未知 command は fail fast する
-  - focused verification: schema-backed command without mock case、external open recorded、cleanup mock dry-run remains non-destructive、mock runtime reset、unknown command diagnostics
-  - defer: live provider env tests と real Tauri IPC behavior は別タスクにする
-
 ### Rust Provider / DB / Scheduler
-
-- [ ] P2 `provider-sync`: compressed feed response の decoded body limit と diagnostics を固定する
-  - work type: performance/security contract
-  - write scope: local provider HTTP client、feed discovery/fetch、response body limit、network diagnostics
-  - acceptance: gzip/brotli の raw bytes が上限内でも展開後に巨大化する feed を、memory pressure 前に user-visible error へ落とす
-  - focused verification: identity/gzip/brotli、decoded size over limit、partial decode error、diagnostic redaction、user-visible error copy
-  - defer: streaming parser 導入や parser crate 変更は別タスクにする
-
-- [ ] P2 `provider-sync`: GReader JSON response の decoded body cap と diagnostics を local feed body cap と同等にする
-  - work type: performance/security contract
-  - write scope: GReader provider HTTP calls、shared HTTP body limit helper、provider diagnostics、GReader provider tests
-  - acceptance: 巨大または圧縮で膨らむ GReader JSON が parse 前に上限エラーになり、Authorization や server URL を diagnostics に漏らさない
-  - focused verification: unread-count oversized JSON、stream contents oversized JSON、stream item IDs oversized JSON、gzip decoded-over-limit、malformed partial JSON、redacted error
-  - defer: GReader pagination strategy や server-side rate-limit policy は別タスクにする
 
 - [ ] P2 `provider-sync`: account/feed delete と background sync の concurrent mutation boundary を固定する
   - work type: race condition contract
@@ -66,13 +38,6 @@
   - defer: multi-process DB lock redesign は別タスクにする
 
 ### Query / Store / Browser Runtime
-
-- [ ] P2 `reader-state`: browser WebView event の load generation / requested URL 世代管理を close-reopen で固定する
-  - work type: native event lifecycle contract
-  - write scope: browser webview event bridge、browser state reducer、browser cleanup hook、Tauri event schemas
-  - acceptance: close 後や別 URL 作成後に late `state-changed` / `fallback` / `closed` event が届いても、新しい browser state を stale event で上書きしない
-  - focused verification: close then late state event、reopen same URL new generation、fallback from old URL、malformed event warning dedupe、listener cleanup
-  - defer: WebView geometry/DPI policy は別タスクにする
 
 - [ ] P3 `quality-tooling`: localStorage quota / unavailable cascade の surfaced warning 数を storage user ごとに固定する
   - work type: runtime diagnostics contract
@@ -106,20 +71,6 @@
 
 ### Release / Native / Keyboard / I18n / A11y
 
-- [ ] P2 `release-native`: Tauri capability / permission / plugin drift を release gate と app runtime で二重化する
-  - work type: release security contract
-  - write scope: `src-tauri/capabilities`、Tauri config、release workflow checks、runtime command availability tests
-  - acceptance: debug-only plugin/permission、browser-webview capability、updater/opener/clipboard permissions が workflow だけでなく repo test でも drift 検出される
-  - focused verification: dev vs release config、MCP bridge permission absence、browser-webview capability minimality、unused command removal、release artifact config
-  - defer: permission model の全面再設計は別タスクにする
-
-- [ ] P3 `release-native`: always-on-top preference と fullscreen/native window state の再同期契約を固定する
-  - work type: native runtime preference contract
-  - write scope: window always-on-top hook、fullscreen actions、window helper tests、native manual verification notes
-  - acceptance: `window_always_on_top=true` の状態で fullscreen toggle、native rejection、runtime drift が起きても最新 intent だけが適用され、警告だけで終わる drift を残さない
-  - focused verification: preference on then fullscreen enter/exit、setAlwaysOnTop rejection、isFullscreen rejection、rapid preference toggle、unsupported platform error suppression
-  - defer: window-state plugin 導入、座標/最大化/フルスクリーン復元は対象外
-
 ### Database / Updater / Window
 
 - [ ] P2 `db-recovery`: startup migration recovery message と backup restore runbook の drift を防ぐ
@@ -137,13 +88,6 @@
   - defer: full database repair wizard、migration recovery policy、manual backup restore UI は別タスクにする
 
 ### Article List / Schema / Mute / Tags / Share
-
-- [ ] P2 `reader-state`: tag delete / rename 中の tag view・tag picker・command palette selection cleanup を固定する
-  - work type: stale selection contract
-  - write scope: tag commands/hooks、tag view source resolution、article tag picker、command palette resource groups
-  - acceptance: 選択中 tag が delete/rename されても、tag view が missing tag を表示し続けず、picker と command palette の stale option が安全に閉じる
-  - focused verification: delete selected tag、rename selected tag、picker open during delete、command palette open during tag update、query invalidation failure
-  - defer: tag merge / bulk tag editing は別タスクにする
 
 - [ ] P2 `settings-state`: mute keyword auto-mark-read と scope update の stale success rollback を query invalidation まで固定する
   - work type: async mutation contract
