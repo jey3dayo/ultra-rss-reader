@@ -72,6 +72,10 @@ export type ArticleSearchQueryOwner = {
   key: string;
 };
 
+type CachedArticleInsertOptions = {
+  insertIfMissing: boolean;
+};
+
 const ARTICLE_SEARCH_QUERY_MAX_LENGTH = 128;
 const ARTICLE_SEARCH_QUERY_WHITESPACE_PATTERN = /\s+/gu;
 const READER_FILTERS = ["all", "unread", "starred"] as const satisfies readonly ReaderFilter[];
@@ -356,7 +360,7 @@ function shouldInsertMissingAccountArticle(queryKey: QueryKey, nextArticle: Arti
 function updateCachedStarredArticleArray(
   current: unknown,
   nextArticle: ArticleDto,
-  options: { insertIfMissing: boolean },
+  options: CachedArticleInsertOptions,
 ) {
   if (!Array.isArray(current)) {
     if (nextArticle.is_starred) {
@@ -414,7 +418,7 @@ function patchUnknownAccountArticleCaches(qc: QueryClient, nextArticle: ArticleD
   );
 }
 
-function patchArticleListQueries(qc: QueryClient, nextArticle: ArticleDto, options: { insertIfMissing: boolean }) {
+function patchArticleListQueries(qc: QueryClient, nextArticle: ArticleDto, options: CachedArticleInsertOptions) {
   for (const queryRoot of [
     queryKeys.articles.root,
     queryKeys.articlesByTag.root,
