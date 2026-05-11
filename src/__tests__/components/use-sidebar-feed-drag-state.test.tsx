@@ -191,6 +191,54 @@ describe("useSidebarFeedDragState", () => {
     expect(result.current.activeDropTarget).toBeNull();
   });
 
+  it("ignores a drop to a folder that became stale after hover", async () => {
+    const initialFeedById = new Map([["feed-foldered", { account_id: "account-1", folder_id: "folder-1" }]]);
+    const initialFolderById = new Map([
+      ["folder-1", { account_id: "account-1" }],
+      ["folder-2", { account_id: "account-1" }],
+    ]);
+    const moveFeedToFolder = vi.fn(async () => undefined);
+    const moveFeedToUnfoldered = vi.fn(async () => undefined);
+    const { result, rerender } = renderHook(
+      ({ folderById }) =>
+        useSidebarFeedDragState({
+          canDragFeeds: true,
+          isFeedsSectionOpen: true,
+          feedById: initialFeedById,
+          folderById,
+          moveFeedToFolder,
+          moveFeedToUnfoldered,
+        }),
+      { initialProps: { folderById: initialFolderById } },
+    );
+
+    act(() => {
+      result.current.handleDragStartFeed("feed-foldered");
+    });
+
+    await waitFor(() => {
+      expect(result.current.draggedFeedId).toBe("feed-foldered");
+    });
+
+    act(() => {
+      result.current.handleDragEnterFolder("folder-2");
+    });
+
+    expect(result.current.activeDropTarget).toEqual({ kind: "folder", folderId: "folder-2" });
+
+    rerender({
+      folderById: new Map([["folder-1", { account_id: "account-1" }]]),
+    });
+
+    await act(async () => {
+      await result.current.handleDropToFolder("folder-2");
+    });
+
+    expect(moveFeedToFolder).not.toHaveBeenCalled();
+    expect(result.current.draggedFeedId).toBeNull();
+    expect(result.current.activeDropTarget).toBeNull();
+  });
+
   it("ignores drag starts when feeds cannot be dragged, the section is closed, or the feed is missing", () => {
     const disabledDrag = renderDragState({ canDragFeeds: false });
     const closedSection = renderDragState({ isFeedsSectionOpen: false });

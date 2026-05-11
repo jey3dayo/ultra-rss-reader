@@ -44,7 +44,7 @@ export type DeleteTagMutationInput = {
 };
 
 type TagMutationInvalidationScope = "create" | "articleAssignment" | "metadata";
-type TagQueryKey = readonly [string];
+type TagQueryKey = readonly unknown[];
 
 const TAG_QUERY_KEYS = {
   tags: ["tags"],

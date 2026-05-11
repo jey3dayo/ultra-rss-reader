@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import type { SidebarFeedDragStateParams, SidebarFeedDragStateResult } from "../../sidebar-feed-section.types";
 
+type ActiveDropTarget = NonNullable<SidebarFeedDragStateResult["activeDropTarget"]>;
+
 export function useSidebarFeedDragState({
   canDragFeeds,
   isFeedsSectionOpen,
@@ -10,7 +12,7 @@ export function useSidebarFeedDragState({
   moveFeedToUnfoldered,
 }: SidebarFeedDragStateParams): SidebarFeedDragStateResult {
   const [draggedFeedId, setDraggedFeedId] = useState<string | null>(null);
-  const [activeDropTarget, setActiveDropTarget] = useState<SidebarFeedDragStateResult["activeDropTarget"]>(null);
+  const [activeDropTarget, setActiveDropTarget] = useState<ActiveDropTarget | null>(null);
 
   const clearDragState = useCallback(() => {
     setDraggedFeedId(null);

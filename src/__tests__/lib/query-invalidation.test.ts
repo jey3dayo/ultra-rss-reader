@@ -2,9 +2,9 @@ import { hashKey } from "@tanstack/react-query";
 import { createTestQueryClient } from "@tests/helpers/create-wrapper";
 import { resetDiagnosticsReporterModuleGlobalsForTests } from "@tests/helpers/diagnostics-reporters";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { QUERY_CACHE_KEY_VERSION } from "@/api/schemas/runtime-contracts";
 import {
   ARTICLE_CACHE_QUERY_ROOTS,
-  QUERY_KEY_ROOTS,
   getReaderArticleQueryMode,
   invalidateAddFeedQueries,
   invalidateArticleMutationQueries,
@@ -13,6 +13,7 @@ import {
   invalidateFeedQueries,
   invalidateSyncCompletedQueries,
   normalizeQueryAccountId,
+  QUERY_KEY_ROOTS,
   queryKeys,
   resetQueryInvalidationFailureReporterForTests,
   resolveAddFeedInvalidationQueryKeys,
@@ -22,7 +23,6 @@ import {
   resolveFeedInvalidationQueryKeys,
   setQueryInvalidationFailureReporterForDiagnostics,
 } from "@/lib/query/query-invalidation";
-import { QUERY_CACHE_KEY_VERSION } from "@/api/schemas/runtime-contracts";
 
 function createInvalidateSpy() {
   const queryClient = createTestQueryClient();
@@ -79,11 +79,7 @@ describe("query-invalidation", () => {
       "accountArticles",
       "acc-1",
     ]);
-    expect(queryKeys.accountArticles.byAccountPrefix(" ")).toEqual([
-      QUERY_CACHE_KEY_VERSION,
-      "accountArticles",
-      null,
-    ]);
+    expect(queryKeys.accountArticles.byAccountPrefix(" ")).toEqual([QUERY_CACHE_KEY_VERSION, "accountArticles", null]);
     expect(queryKeys.feedArticleSummaries.root).toEqual([QUERY_CACHE_KEY_VERSION, "feedArticleSummaries"]);
     expect(queryKeys.feedArticleSummaries.byAccount("acc-1")).toEqual([
       QUERY_CACHE_KEY_VERSION,
@@ -198,9 +194,7 @@ describe("query-invalidation", () => {
     queryClient.setQueryData(tagKey, ["tag article"]);
 
     expect(hashKey(articleKey)).toBe(hashKey([QUERY_CACHE_KEY_VERSION, "articles", "feed-1", { mode: "unread" }]));
-    expect(hashKey(accountKey)).toBe(
-      hashKey([QUERY_CACHE_KEY_VERSION, "accountArticles", "acc-1", { mode: "all" }]),
-    );
+    expect(hashKey(accountKey)).toBe(hashKey([QUERY_CACHE_KEY_VERSION, "accountArticles", "acc-1", { mode: "all" }]));
     expect(hashKey(tagKey)).toBe(
       hashKey([QUERY_CACHE_KEY_VERSION, "articlesByTag", "tag-1", "acc-1", { mode: "starred" }]),
     );
@@ -259,29 +253,29 @@ describe("query-invalidation", () => {
   });
 
   it("keeps feed invalidation target keys explicit", () => {
-    expect(resolveFeedInvalidationQueryKeys()).toEqual([["feeds"], ["folders"]]);
+    expect(resolveFeedInvalidationQueryKeys()).toEqual([queryKeys.feeds.root, queryKeys.folders.root]);
     expect(
       resolveFeedInvalidationQueryKeys({
         includeFeeds: false,
         includeFolders: false,
         includeAccountUnreadCount: true,
       }),
-    ).toEqual([["accountUnreadCount"]]);
+    ).toEqual([queryKeys.accountUnreadCount.root]);
   });
 
   it("keeps article invalidation target keys explicit", () => {
     expect(resolveArticleInvalidationQueryKeys()).toEqual([
-      ["articles"],
-      ["accountArticles"],
-      ["folderArticles"],
-      ["starredArticles"],
-      ["accountUnreadCount"],
-      ["accountStarredCount"],
-      ["feeds"],
-      ["articlesByTag"],
-      ["search"],
-      ["recentArticles"],
-      ["feedArticleSummaries"],
+      queryKeys.articles.root,
+      queryKeys.accountArticles.root,
+      queryKeys.folderArticles.root,
+      queryKeys.starredArticles.root,
+      queryKeys.accountUnreadCount.root,
+      queryKeys.accountStarredCount.root,
+      queryKeys.feeds.root,
+      queryKeys.articlesByTag.root,
+      queryKeys.search.root,
+      queryKeys.recentArticles.root,
+      queryKeys.feedArticleSummaries.root,
     ]);
     expect(
       resolveArticleInvalidationQueryKeys({
@@ -298,23 +292,23 @@ describe("query-invalidation", () => {
         includeRecentArticles: false,
         includeFeedArticleSummaries: false,
       }),
-    ).toEqual([["tagArticleCounts"], ["feedIntegrityReport"]]);
+    ).toEqual([queryKeys.tagArticleCounts.root, queryKeys.feedIntegrityReport.root]);
   });
 
   it("documents mutation owner invalidation query key sets", () => {
     expect(resolveArticleInvalidationQueryKeys({ includeTagArticleCounts: true })).toEqual([
-      ["articles"],
-      ["accountArticles"],
-      ["folderArticles"],
-      ["starredArticles"],
-      ["accountUnreadCount"],
-      ["accountStarredCount"],
-      ["feeds"],
-      ["articlesByTag"],
-      ["tagArticleCounts"],
-      ["search"],
-      ["recentArticles"],
-      ["feedArticleSummaries"],
+      queryKeys.articles.root,
+      queryKeys.accountArticles.root,
+      queryKeys.folderArticles.root,
+      queryKeys.starredArticles.root,
+      queryKeys.accountUnreadCount.root,
+      queryKeys.accountStarredCount.root,
+      queryKeys.feeds.root,
+      queryKeys.articlesByTag.root,
+      queryKeys.tagArticleCounts.root,
+      queryKeys.search.root,
+      queryKeys.recentArticles.root,
+      queryKeys.feedArticleSummaries.root,
     ]);
     expect(
       resolveArticleInvalidationQueryKeys({
@@ -322,22 +316,22 @@ describe("query-invalidation", () => {
         includeFeeds: false,
       }),
     ).toEqual([
-      ["articles"],
-      ["accountArticles"],
-      ["folderArticles"],
-      ["starredArticles"],
-      ["accountStarredCount"],
-      ["articlesByTag"],
-      ["search"],
-      ["recentArticles"],
-      ["feedArticleSummaries"],
+      queryKeys.articles.root,
+      queryKeys.accountArticles.root,
+      queryKeys.folderArticles.root,
+      queryKeys.starredArticles.root,
+      queryKeys.accountStarredCount.root,
+      queryKeys.articlesByTag.root,
+      queryKeys.search.root,
+      queryKeys.recentArticles.root,
+      queryKeys.feedArticleSummaries.root,
     ]);
     expect(
       resolveFeedInvalidationQueryKeys({
         includeFolders: false,
         includeAccountUnreadCount: true,
       }),
-    ).toEqual([["feeds"], ["accountUnreadCount"]]);
+    ).toEqual([queryKeys.feeds.root, queryKeys.accountUnreadCount.root]);
   });
 
   it("keeps mute, tag, and article mutation invalidation matrix explicit", () => {
@@ -389,7 +383,7 @@ describe("query-invalidation", () => {
 
     await vi.waitFor(() => {
       expect(diagnosticsReporter).toHaveBeenCalledWith([
-        { actionOwner: "article-mutation", queryKey: ["articles"], error: articleRejection },
+        { actionOwner: "article-mutation", queryKey: queryKeys.articles.root, error: articleRejection },
       ]);
     });
 
@@ -399,7 +393,7 @@ describe("query-invalidation", () => {
 
     await vi.waitFor(() => {
       expect(diagnosticsReporter).toHaveBeenCalledWith([
-        { actionOwner: "mute-keyword-mutation", queryKey: ["articles"], error: muteRejection },
+        { actionOwner: "mute-keyword-mutation", queryKey: queryKeys.articles.root, error: muteRejection },
       ]);
     });
 
@@ -409,7 +403,7 @@ describe("query-invalidation", () => {
 
     await vi.waitFor(() => {
       expect(diagnosticsReporter).toHaveBeenCalledWith([
-        { actionOwner: "tag-mutation", queryKey: ["articles"], error: tagRejection },
+        { actionOwner: "tag-mutation", queryKey: queryKeys.articles.root, error: tagRejection },
       ]);
     });
 
@@ -478,8 +472,8 @@ describe("query-invalidation", () => {
 
     await vi.waitFor(() => {
       expect(diagnosticsReporter).toHaveBeenCalledWith([
-        { actionOwner: "add-feed", queryKey: ["feeds"], error: feedsRejection },
-        { actionOwner: "add-feed", queryKey: ["articles"], error: articlesRejection },
+        { actionOwner: "add-feed", queryKey: queryKeys.feeds.root, error: feedsRejection },
+        { actionOwner: "add-feed", queryKey: queryKeys.articles.root, error: articlesRejection },
       ]);
     });
     expect(diagnosticsReporter).toHaveBeenCalledOnce();
@@ -496,10 +490,14 @@ describe("query-invalidation", () => {
 
     invalidateQueries.mockImplementation((filters) => {
       const queryKey = filters?.queryKey ?? [];
-      if (queryKey[0] === "folders") {
+      if (queryKey[0] === QUERY_CACHE_KEY_VERSION && queryKey[1] === "folders") {
         return Promise.reject(foldersRejection);
       }
-      if (queryKey[0] === "feedArticleSummaries" && queryKey[1] === "acc-1") {
+      if (
+        queryKey[0] === QUERY_CACHE_KEY_VERSION &&
+        queryKey[1] === "feedArticleSummaries" &&
+        queryKey[2] === "acc-1"
+      ) {
         return Promise.reject(accountScopedRejection);
       }
 
@@ -510,8 +508,12 @@ describe("query-invalidation", () => {
 
     await vi.waitFor(() => {
       expect(diagnosticsReporter).toHaveBeenCalledWith([
-        { actionOwner: "delete-feed", queryKey: ["folders"], error: foldersRejection },
-        { actionOwner: "delete-feed", queryKey: ["feedArticleSummaries", "acc-1"], error: accountScopedRejection },
+        { actionOwner: "delete-feed", queryKey: queryKeys.folders.root, error: foldersRejection },
+        {
+          actionOwner: "delete-feed",
+          queryKey: queryKeys.feedArticleSummaries.subscriptionsIndex("acc-1"),
+          error: accountScopedRejection,
+        },
       ]);
     });
     expect(diagnosticsReporter).toHaveBeenCalledOnce();
@@ -527,10 +529,10 @@ describe("query-invalidation", () => {
       includeAccountUnreadCount: true,
     });
 
-    expect(invalidateQueries).not.toHaveBeenCalledWith({ queryKey: ["feeds"] });
-    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["folders"] });
+    expect(invalidateQueries).not.toHaveBeenCalledWith({ queryKey: queryKeys.feeds.root });
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.folders.root });
     expect(invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["accountUnreadCount"],
+      queryKey: queryKeys.accountUnreadCount.root,
     });
   });
 
@@ -540,17 +542,17 @@ describe("query-invalidation", () => {
     invalidateArticleQueries(queryClient);
 
     expect(invalidateQueries.mock.calls.map(([options]) => options)).toEqual([
-      { queryKey: ["articles"] },
-      { queryKey: ["accountArticles"] },
-      { queryKey: ["folderArticles"] },
-      { queryKey: ["starredArticles"] },
-      { queryKey: ["accountUnreadCount"] },
-      { queryKey: ["accountStarredCount"] },
-      { queryKey: ["feeds"] },
-      { queryKey: ["articlesByTag"] },
-      { queryKey: ["search"] },
-      { queryKey: ["recentArticles"] },
-      { queryKey: ["feedArticleSummaries"] },
+      { queryKey: queryKeys.articles.root },
+      { queryKey: queryKeys.accountArticles.root },
+      { queryKey: queryKeys.folderArticles.root },
+      { queryKey: queryKeys.starredArticles.root },
+      { queryKey: queryKeys.accountUnreadCount.root },
+      { queryKey: queryKeys.accountStarredCount.root },
+      { queryKey: queryKeys.feeds.root },
+      { queryKey: queryKeys.articlesByTag.root },
+      { queryKey: queryKeys.search.root },
+      { queryKey: queryKeys.recentArticles.root },
+      { queryKey: queryKeys.feedArticleSummaries.root },
     ]);
   });
 
@@ -572,9 +574,9 @@ describe("query-invalidation", () => {
     });
 
     expect(invalidateQueries.mock.calls.map(([options]) => options)).toEqual([
-      { queryKey: ["articles"] },
-      { queryKey: ["tagArticleCounts"] },
-      { queryKey: ["feedIntegrityReport"] },
+      { queryKey: queryKeys.articles.root },
+      { queryKey: queryKeys.tagArticleCounts.root },
+      { queryKey: queryKeys.feedIntegrityReport.root },
     ]);
   });
 
@@ -594,16 +596,16 @@ describe("query-invalidation", () => {
         failures: [
           {
             actionOwner: "unknown",
-            queryKey: ["feeds"],
+            queryKey: queryKeys.feeds.root,
             error: rejection,
           },
         ],
       });
     });
     expect(invalidateQueries.mock.calls.map(([options]) => options)).toEqual([
-      { queryKey: ["feeds"] },
-      { queryKey: ["folders"] },
-      { queryKey: ["accountUnreadCount"] },
+      { queryKey: queryKeys.feeds.root },
+      { queryKey: queryKeys.folders.root },
+      { queryKey: queryKeys.accountUnreadCount.root },
     ]);
 
     warnSpy.mockRestore();
@@ -627,19 +629,19 @@ describe("query-invalidation", () => {
 
     await vi.waitFor(() => {
       expect(diagnosticsReporter).toHaveBeenCalledWith([
-        { actionOwner: "unknown", queryKey: ["feeds"], error: feedRejection },
+        { actionOwner: "unknown", queryKey: queryKeys.feeds.root, error: feedRejection },
         {
           actionOwner: "unknown",
-          queryKey: ["accountUnreadCount"],
+          queryKey: queryKeys.accountUnreadCount.root,
           error: unreadRejection,
         },
       ]);
     });
     expect(diagnosticsReporter).toHaveBeenCalledOnce();
     expect(invalidateQueries.mock.calls.map(([options]) => options)).toEqual([
-      { queryKey: ["feeds"] },
-      { queryKey: ["folders"] },
-      { queryKey: ["accountUnreadCount"] },
+      { queryKey: queryKeys.feeds.root },
+      { queryKey: queryKeys.folders.root },
+      { queryKey: queryKeys.accountUnreadCount.root },
     ]);
 
     restoreDiagnosticsReporter();
@@ -661,7 +663,7 @@ describe("query-invalidation", () => {
 
     await vi.waitFor(() => {
       expect(warnSpy).toHaveBeenCalledWith("Query invalidation failed:", {
-        failures: [{ actionOwner: "unknown", queryKey: ["feeds"], error: rejection }],
+        failures: [{ actionOwner: "unknown", queryKey: queryKeys.feeds.root, error: rejection }],
       });
     });
 
@@ -685,7 +687,7 @@ describe("query-invalidation", () => {
 
     await vi.waitFor(() => {
       expect(diagnosticsReporter).toHaveBeenCalledWith([
-        { actionOwner: "delete-feed", queryKey: ["feeds"], error: rejection },
+        { actionOwner: "delete-feed", queryKey: queryKeys.feeds.root, error: rejection },
       ]);
     });
 
@@ -699,20 +701,20 @@ describe("query-invalidation", () => {
 
     expect(invalidateQueries).not.toHaveBeenCalledWith();
     expect(invalidateQueries.mock.calls.map(([options]) => options)).toEqual([
-      { queryKey: ["feeds"] },
-      { queryKey: ["folders"] },
-      { queryKey: ["accountUnreadCount"] },
-      { queryKey: ["articles"] },
-      { queryKey: ["accountArticles"] },
-      { queryKey: ["folderArticles"] },
-      { queryKey: ["starredArticles"] },
-      { queryKey: ["accountStarredCount"] },
-      { queryKey: ["articlesByTag"] },
-      { queryKey: ["tagArticleCounts"] },
-      { queryKey: ["search"] },
-      { queryKey: ["feedIntegrityReport"] },
-      { queryKey: ["recentArticles"] },
-      { queryKey: ["feedArticleSummaries"] },
+      { queryKey: queryKeys.feeds.root },
+      { queryKey: queryKeys.folders.root },
+      { queryKey: queryKeys.accountUnreadCount.root },
+      { queryKey: queryKeys.articles.root },
+      { queryKey: queryKeys.accountArticles.root },
+      { queryKey: queryKeys.folderArticles.root },
+      { queryKey: queryKeys.starredArticles.root },
+      { queryKey: queryKeys.accountStarredCount.root },
+      { queryKey: queryKeys.articlesByTag.root },
+      { queryKey: queryKeys.tagArticleCounts.root },
+      { queryKey: queryKeys.search.root },
+      { queryKey: queryKeys.feedIntegrityReport.root },
+      { queryKey: queryKeys.recentArticles.root },
+      { queryKey: queryKeys.feedArticleSummaries.root },
     ]);
   });
 
@@ -729,7 +731,7 @@ describe("query-invalidation", () => {
 
     await vi.waitFor(() => {
       expect(diagnosticsReporter).toHaveBeenCalledWith([
-        { actionOwner: "background-sync-completed", queryKey: ["feeds"], error: backgroundRejection },
+        { actionOwner: "background-sync-completed", queryKey: queryKeys.feeds.root, error: backgroundRejection },
       ]);
     });
 
@@ -740,7 +742,7 @@ describe("query-invalidation", () => {
 
     await vi.waitFor(() => {
       expect(diagnosticsReporter).toHaveBeenCalledWith([
-        { actionOwner: "manual-sync-completed", queryKey: ["feeds"], error: manualRejection },
+        { actionOwner: "manual-sync-completed", queryKey: queryKeys.feeds.root, error: manualRejection },
       ]);
     });
 

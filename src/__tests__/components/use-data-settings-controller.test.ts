@@ -207,6 +207,7 @@ describe("reconcileDatabaseRestoreFrontendState", () => {
     const restoreAccountSelection = vi.fn();
     const clearSelectedAccount = vi.fn();
     const setSelectedAccountPreference = vi.fn();
+    const clearSettingsDirtyState = vi.fn();
 
     const result = reconcileDatabaseRestoreFrontendState({
       accounts: [{ id: "acc-restored" }],
@@ -217,9 +218,11 @@ describe("reconcileDatabaseRestoreFrontendState", () => {
       restoreAccountSelection,
       clearSelectedAccount,
       setSelectedAccountPreference,
+      clearSettingsDirtyState,
     });
 
     expect(queryClient.clear).toHaveBeenCalledTimes(1);
+    expect(clearSettingsDirtyState).toHaveBeenCalledTimes(1);
     expect(storage.removeItem).toHaveBeenCalledTimes(3);
     expect(storage.removeItem).toHaveBeenNthCalledWith(1, STORAGE_KEYS.commandHistory);
     expect(storage.removeItem).toHaveBeenNthCalledWith(2, STORAGE_KEYS.sidebarExpandedFolders);

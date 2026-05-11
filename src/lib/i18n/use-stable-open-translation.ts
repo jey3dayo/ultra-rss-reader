@@ -1,11 +1,11 @@
-import type { TFunction } from "i18next";
+import type { Namespace, TFunction } from "i18next";
 import { useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 
-export function useStableOpenTranslation<Namespace extends string>(
-  namespace: Namespace,
+export function useStableOpenTranslation<Ns extends Namespace>(
+  namespace: Ns,
   open: boolean,
-): TFunction<Namespace> {
+): TFunction<Ns> {
   const { t, i18n } = useTranslation(namespace);
   const openLanguageRef = useRef<string | null>(null);
 
@@ -19,9 +19,9 @@ export function useStableOpenTranslation<Namespace extends string>(
 
   return useMemo(() => {
     if (openLanguage === null) {
-      return t;
+      return t as TFunction<Ns>;
     }
 
-    return i18n.getFixedT(openLanguage, namespace) as TFunction<Namespace>;
+    return i18n.getFixedT(openLanguage, namespace) as TFunction<Ns>;
   }, [i18n, namespace, openLanguage, t]);
 }

@@ -441,6 +441,34 @@ describe("performUpdateCheck", () => {
     errorSpy.mockRestore();
   });
 
+  it("surfaces updater runtime and endpoint failures through the manual check recovery toast", async () => {
+    const initError = testRetryableAppError("Updater unavailable during manual update check: plugin missing");
+    const endpointError = testRetryableAppError(
+      "Update endpoint unavailable during manual update check: endpoint refused connection",
+    );
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    mockCheckForUpdate.mockResolvedValueOnce(Result.fail(initError)).mockResolvedValueOnce(Result.fail(endpointError));
+
+    const {
+      updaterModule: { runManualUpdateCheck },
+      useUiStore,
+    } = await getUpdaterModuleAndUiStore();
+    useUiStore.setState(useUiStore.getInitialState());
+
+    await runManualUpdateCheck();
+
+    expect(errorSpy).toHaveBeenCalledWith("Manual update check failed:", initError);
+    expect(useUiStore.getState().toastMessage?.message).toBe("アップデートの確認に失敗しました");
+
+    await runManualUpdateCheck();
+
+    expect(errorSpy).toHaveBeenCalledWith("Manual update check failed:", endpointError);
+    expect(mockCheckForUpdate).toHaveBeenCalledTimes(2);
+    expect(useUiStore.getState().toastMessage?.message).toBe("アップデートの確認に失敗しました");
+
+    errorSpy.mockRestore();
+  });
+
   it("keeps manual failure feedback when sharing the startup in-flight check", async () => {
     const error = testUserVisibleAppError("network down");
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});

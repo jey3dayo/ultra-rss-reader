@@ -269,6 +269,64 @@ describe("useUpdateFeedFolder", () => {
     expectTauriCommandError(consoleError, "update_feed_folder", appError);
   });
 
+  it("does not let a failed update roll back cache data that no longer matches its optimistic target", async () => {
+    seedFeeds();
+    const consoleError = suppressConsoleError();
+    const appError: AppError = { type: "UserVisible", message: "stale failed" };
+    const update = deferredTauriUpdate();
+    setupTauriMocks((cmd) => {
+      if (cmd === "update_feed_folder") {
+        return update.promise;
+      }
+      return undefined;
+    });
+
+    const { result } = renderHook(() => useUpdateFeedFolder(), { wrapper });
+    let mutationPromise: Promise<unknown> | undefined;
+
+    act(() => {
+      mutationPromise = result.current.mutateAsync({ feedId: "feed-1", folderId: "folder-a" }).catch(() => undefined);
+    });
+
+    await waitFor(() => {
+      expect(queryClient.getQueryData<FeedDto[]>(queryKeys.feeds.byAccount("acc-1"))).toEqual([
+        expect.objectContaining({
+          id: "feed-1",
+          folder_id: "folder-a",
+        }),
+      ]);
+    });
+
+    queryClient.setQueryData<FeedDto[]>(queryKeys.feeds.byAccount("acc-1"), [
+      {
+        id: "feed-1",
+        account_id: "acc-1",
+        folder_id: "folder-b",
+        remote_id: null,
+        title: "Tech Blog",
+        url: "https://example.com/feed.xml",
+        site_url: "https://example.com",
+        unread_count: 5,
+        reader_mode: "inherit",
+        web_preview_mode: "inherit",
+      },
+    ]);
+
+    await act(async () => {
+      update.resolve(Result.fail(appError));
+      await mutationPromise;
+    });
+
+    expect(queryClient.getQueryData<FeedDto[]>(queryKeys.feeds.byAccount("acc-1"))).toEqual([
+      expect.objectContaining({
+        id: "feed-1",
+        folder_id: "folder-b",
+      }),
+    ]);
+    expect(showToastMock).toHaveBeenCalledWith("Failed to update folder: stale failed");
+    expectTauriCommandError(consoleError, "update_feed_folder", appError);
+  });
+
   it("keeps a successful folder update resolved when post-success invalidation rejects", async () => {
     seedFeeds();
     const consoleWarn = suppressConsoleWarn();

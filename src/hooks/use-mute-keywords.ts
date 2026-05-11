@@ -33,7 +33,7 @@ export type SetMuteAutoMarkReadMutationInput = {
   enabled: boolean;
 };
 
-type MuteKeywordQueryKey = readonly [string];
+type MuteKeywordQueryKey = readonly unknown[];
 
 export const MUTE_KEYWORD_QUERY_KEY = ["muteKeywords"] as const satisfies MuteKeywordQueryKey;
 
