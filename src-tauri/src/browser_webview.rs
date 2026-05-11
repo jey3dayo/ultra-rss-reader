@@ -296,24 +296,27 @@ pub fn browser_webview<R: Runtime, M: Manager<R>>(manager: &M) -> Option<Webview
     manager.get_webview(BROWSER_WEBVIEW_LABEL)
 }
 
-pub fn cleanup_browser_webview_for_shutdown<R: Runtime>(app_handle: &AppHandle<R>) {
+pub fn cleanup_browser_webview_for_shutdown<R: Runtime>(app_handle: &AppHandle<R>) -> bool {
+    let mut closed_webview = true;
     if let Some(webview) = browser_webview(app_handle) {
         if let Err(error) = webview.close() {
             tracing::warn!("Failed to close embedded browser webview during shutdown: {error}");
+            closed_webview = false;
         }
     }
 
     let Some(state) = app_handle.try_state::<crate::commands::AppState>() else {
-        return;
+        return closed_webview;
     };
     let Ok(mut tracker) = crate::commands::lock_browser_webview(&state.browser_webview) else {
-        return;
+        return false;
     };
     let had_tracked_state = tracker.snapshot().is_some();
     tracker.clear();
     if had_tracked_state {
         emit_browser_webview_closed(app_handle);
     }
+    closed_webview
 }
 
 pub fn load_browser_preview_prefs<R: Runtime>(

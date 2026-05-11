@@ -148,7 +148,9 @@ App data namespace migration contract:
 
 - The current production bundle identifier is `com.jey3dayo.ultra-rss-reader`; normal startup must not rename the app data directory automatically.
 - If a future release changes the identifier, triage must check the old identifier's app data, log, and keyring namespace before declaring data lost.
-- Database migration across identifiers requires an explicit release plan with user-visible backup or copy guidance, rollback steps, and clear copy that OS keyring credentials may need to be re-entered.
+- Database migration across identifiers requires an explicit release plan with a user-visible database migration prompt or backup/copy prompt, rollback steps, and clear copy that OS keyring credentials cannot be copied automatically. OS keyring credentials may need to be re-entered.
+- Log paths change with the identifier namespace. Support must collect the release log from the namespace that actually launched, and preserve the old namespace logs before any cleanup.
+- Rollback across an identifier change must use the old identifier namespace or a preserved database backup; do not tell users to delete the old app data, log, or keyring namespace as a repair step.
 - Do not move logs, backups, support dumps, or credentials between identifier namespaces during incident response unless the release plan says exactly which artifact class is safe to copy.
 
 ### Export And Settings Portability

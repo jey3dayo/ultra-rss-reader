@@ -1,6 +1,7 @@
 //! End-to-end integration test: add local feed -> sync -> read articles
 
 use std::borrow::Cow;
+use std::path::Path;
 use std::sync::atomic::AtomicBool;
 use std::sync::Mutex;
 
@@ -28,6 +29,8 @@ use ultra_rss_reader_lib::repository::pending_mutation::{
     PendingMutation, PendingMutationAxis, PendingMutationRepository, PendingMutationType,
 };
 use ultra_rss_reader_lib::service::sync_flow;
+
+const TEMP_DIR_CLEANUP_RETRIES: usize = 2;
 
 struct PasswordCleanup {
     account_id: String,
@@ -165,23 +168,50 @@ impl Drop for DiagnosticTempDir {
         let Some(dir) = self.dir.take() else {
             return;
         };
-        let path = dir.path().to_path_buf();
-        if let Err(error) = dir.close() {
+        let path = dir.keep();
+        if let Err(error) = remove_diagnostic_temp_dir(&path, TEMP_DIR_CLEANUP_RETRIES) {
             eprintln!(
                 "{}",
-                temp_dir_cleanup_failure_diagnostic(self.owner, &path, &error)
+                temp_dir_cleanup_failure_diagnostic(
+                    self.owner,
+                    &path,
+                    &error,
+                    TEMP_DIR_CLEANUP_RETRIES,
+                    true,
+                )
             );
         }
     }
 }
 
+fn remove_diagnostic_temp_dir(path: &Path, retries: usize) -> std::io::Result<()> {
+    remove_diagnostic_temp_dir_with(path, retries, std::fs::remove_dir_all)
+}
+
+fn remove_diagnostic_temp_dir_with(
+    path: &Path,
+    retries: usize,
+    mut remove_dir_all: impl FnMut(&Path) -> std::io::Result<()>,
+) -> std::io::Result<()> {
+    for attempt in 0..=retries {
+        match remove_dir_all(path) {
+            Ok(()) => return Ok(()),
+            Err(error) if attempt == retries => return Err(error),
+            Err(_) => std::thread::yield_now(),
+        }
+    }
+    Ok(())
+}
+
 fn temp_dir_cleanup_failure_diagnostic(
     owner: &str,
-    path: &std::path::Path,
+    path: &Path,
     error: &std::io::Error,
+    retries: usize,
+    artifact_retained: bool,
 ) -> String {
     format!(
-        "integration test temp dir cleanup failure: owner={owner} path={} error={error}",
+        "integration test temp dir cleanup failure: owner={owner} path={} retries={retries} artifact_retained={artifact_retained} windows_open_handle_hint=close fixture file handles before cleanup retry error={error}",
         path.display()
     )
 }
@@ -522,12 +552,37 @@ fn integration_temp_dir_cleanup_failure_diagnostic_identifies_owner_and_path() {
         "credentials fixture",
         std::path::Path::new("/tmp/ultra-rss-reader-test"),
         &error,
+        2,
+        true,
     );
 
     assert!(message.contains("integration test temp dir cleanup failure"));
     assert!(message.contains("owner=credentials fixture"));
     assert!(message.contains("path=/tmp/ultra-rss-reader-test"));
+    assert!(message.contains("retries=2"));
+    assert!(message.contains("artifact_retained=true"));
+    assert!(message.contains("windows_open_handle_hint=close fixture file handles"));
     assert!(message.contains("cleanup denied"));
+}
+
+#[test]
+fn integration_temp_dir_cleanup_retries_before_retaining_artifact() {
+    let mut attempts = 0;
+    let error = remove_diagnostic_temp_dir_with(
+        std::path::Path::new("/tmp/ultra-rss-reader-test"),
+        2,
+        |_| {
+            attempts += 1;
+            Err(std::io::Error::new(
+                std::io::ErrorKind::PermissionDenied,
+                "open handle",
+            ))
+        },
+    )
+    .expect_err("cleanup should report the final failure after retry budget");
+
+    assert_eq!(attempts, 3);
+    assert_eq!(error.kind(), std::io::ErrorKind::PermissionDenied);
 }
 
 #[test]

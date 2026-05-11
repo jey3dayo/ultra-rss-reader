@@ -1,5 +1,5 @@
 import { cleanup, configure } from "@testing-library/react";
-import { afterEach, beforeEach } from "vitest";
+import { afterEach, beforeEach, vi } from "vitest";
 import "@testing-library/jest-dom/vitest";
 import { resetCommandHistoryStorageFailureWarnings } from "@/components/reader/hooks/command-palette/use-command-history";
 import { resetStartupSyncStorageFailureWarnings } from "@/lib/sync/startup-sync-storage";
@@ -26,6 +26,7 @@ const originalWindowSessionStorageDescriptor = Object.getOwnPropertyDescriptor(w
 const originalGlobalLocalStorageDescriptor = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
 const originalGlobalSessionStorageDescriptor = Object.getOwnPropertyDescriptor(globalThis, "sessionStorage");
 const originalGlobalStorageDescriptor = Object.getOwnPropertyDescriptor(globalThis, "Storage");
+const originalProcessEnv = { ...process.env };
 
 export const MEMORY_STORAGE_BROWSER_SPEC_DIFFERENCES = [
   "MemoryStorage is a Vitest fallback for blocked or unavailable browser storage, not a full Storage host object.",
@@ -100,6 +101,24 @@ export function restoreStorageDescriptors(): void {
   restoreDescriptor(globalThis, "localStorage", originalGlobalLocalStorageDescriptor);
   restoreDescriptor(globalThis, "sessionStorage", originalGlobalSessionStorageDescriptor);
   restoreDescriptor(globalThis, "Storage", originalGlobalStorageDescriptor);
+}
+
+function clearWorkingStorage(storage: Storage | null): void {
+  try {
+    storage?.clear();
+  } catch {
+    // Broken storage descriptors are restored by the shared teardown below.
+  }
+}
+
+export function restoreProcessEnv(): void {
+  for (const key of Object.keys(process.env)) {
+    if (!(key in originalProcessEnv)) {
+      Reflect.deleteProperty(process.env, key);
+    }
+  }
+
+  Object.assign(process.env, originalProcessEnv);
 }
 
 function readWorkingWindowStorage(key: "localStorage" | "sessionStorage"): Storage | null {
@@ -187,6 +206,10 @@ afterEach(() => {
   resetCommandHistoryStorageFailureWarnings();
   resetStartupSyncStorageFailureWarnings();
   resetTestObserverMocks();
+  vi.useRealTimers();
+  restoreProcessEnv();
+  clearWorkingStorage(readWorkingWindowStorage("localStorage"));
+  clearWorkingStorage(readWorkingWindowStorage("sessionStorage"));
   restoreStorageDescriptors();
   ensureWorkingStorage();
   installTestObserverMocks();

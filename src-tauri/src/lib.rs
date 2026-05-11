@@ -14,9 +14,7 @@ use std::collections::HashMap;
 use std::panic::PanicHookInfo;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-#[cfg(not(test))]
-use std::sync::Mutex;
-#[cfg(not(test))]
+use std::sync::{Mutex, TryLockError};
 use std::time::Duration;
 
 #[cfg(not(test))]
@@ -36,6 +34,7 @@ use tauri::Manager;
 
 #[cfg(not(test))]
 const SHUTDOWN_DRAIN_TIMEOUT: Duration = Duration::from_secs(5);
+const SHUTDOWN_DRAIN_POLL_INTERVAL: Duration = Duration::from_millis(25);
 #[cfg(any(not(debug_assertions), test))]
 const RELEASE_LOG_MAX_FILE_SIZE_BYTES: u64 = 5_000_000;
 #[cfg(any(not(debug_assertions), test))]
@@ -209,14 +208,15 @@ fn database_init_error_message(error: &DomainError, db_path: &std::path::Path) -
              Backup directory: {}\n\
              The database may already have been restored automatically. Do not delete the database file.\n\
              If the application still does not start, close it and restore the newest backup from the backup directory to the database path.\n\
-             Please update the application or contact support.",
+             Please update the application or contact support with this startup error text.",
             redacted_path_label(db_path),
             redacted_path_label(&backups_dir)
         ),
         _ => format!(
             "Failed to initialize database: {error}\n\
              Database file: {}\n\
-             Check OS permissions and available disk space, then restart the application.",
+             Check OS permissions and available disk space, then restart the application. \
+             If the error persists, contact support with this startup error text.",
             redacted_path_label(db_path)
         ),
     }
@@ -308,6 +308,40 @@ fn mark_startup_focus_restore_stopped(active: &Arc<AtomicBool>) {
 
 fn startup_focus_restore_is_active(active: &Arc<AtomicBool>) -> bool {
     active.load(Ordering::Acquire)
+}
+
+async fn drain_mutex_lock_for_shutdown<T>(
+    mutex: &Mutex<T>,
+    timeout: Duration,
+    lock_name: &'static str,
+) -> bool {
+    match tokio::time::timeout(timeout, async {
+        loop {
+            match mutex.try_lock() {
+                Ok(_guard) => return true,
+                Err(TryLockError::WouldBlock) => {
+                    tokio::time::sleep(SHUTDOWN_DRAIN_POLL_INTERVAL).await;
+                }
+                Err(TryLockError::Poisoned(error)) => {
+                    tracing::warn!("{lock_name} shutdown drain failed: lock poisoned: {error}");
+                    return false;
+                }
+            }
+        }
+    })
+    .await
+    {
+        Ok(drained) => drained,
+        Err(_) => {
+            tracing::warn!("{lock_name} shutdown drain timed out");
+            false
+        }
+    }
+}
+
+#[cfg(not(test))]
+async fn drain_database_shutdown(state: &AppState, timeout: Duration) -> bool {
+    drain_mutex_lock_for_shutdown(&state.db, timeout, "Database").await
 }
 
 #[cfg(not(test))]
@@ -558,11 +592,27 @@ pub fn run() {
                         api.prevent_close();
                         let app_handle = handle.clone();
                         tauri::async_runtime::spawn(async move {
-                            browser_webview::cleanup_browser_webview_for_shutdown(&app_handle);
-                            service::sync_scheduler::drain_sync_scheduler_shutdown(
-                                SHUTDOWN_DRAIN_TIMEOUT,
-                            )
-                            .await;
+                            let browser_drained =
+                                browser_webview::cleanup_browser_webview_for_shutdown(&app_handle);
+                            let sync_drained =
+                                service::sync_scheduler::drain_sync_scheduler_shutdown(
+                                    SHUTDOWN_DRAIN_TIMEOUT,
+                                )
+                                .await;
+                            let db_drained = if let Some(state) = app_handle.try_state::<AppState>()
+                            {
+                                drain_database_shutdown(state.inner(), SHUTDOWN_DRAIN_TIMEOUT).await
+                            } else {
+                                false
+                            };
+                            if !(browser_drained && sync_drained && db_drained) {
+                                tracing::warn!(
+                                    browser_drained,
+                                    sync_drained,
+                                    db_drained,
+                                    "App shutdown forced before all runtime drains completed"
+                                );
+                            }
                             app_handle.exit(0);
                         });
                     }
@@ -698,22 +748,24 @@ mod tests {
 
     use std::collections::HashMap;
     use std::sync::atomic::AtomicBool;
-    use std::sync::Arc;
+    use std::sync::{Arc, Mutex};
+    use std::time::Duration;
 
     use super::{
         cleanup_old_logs, cleanup_old_logs_entry_debug, cleanup_old_logs_metadata_debug,
         cleanup_old_logs_modified_debug, cleanup_old_logs_read_dir_warning,
         cleanup_old_logs_remove_warning, database_init_error_message,
-        database_init_startup_error_message, main_window_title_bar_uses_overlay,
-        mark_startup_focus_restore_stopped, panic_payload_text, redact_sensitive_panic_text,
-        redacted_path_label, startup_app_data_dir_create_error_message,
-        startup_app_data_dir_error_message, startup_focus_main_thread_warning,
-        startup_focus_restore_decision, startup_focus_restore_is_active,
-        startup_main_webview_focus_warning, startup_main_window_focus_warning,
-        startup_main_window_show_warning, startup_preferences_or_default,
-        startup_preferences_read_warning_message, tracing_init_status, StartupFocusRestoreDecision,
-        TracingInitStatus, RELEASE_LOG_MAX_FILE_SIZE_BYTES, RELEASE_LOG_RETENTION_DAYS,
-        RELEASE_LOG_ROTATION_STRATEGY, RELEASE_LOG_TIMEZONE_STRATEGY,
+        database_init_startup_error_message, drain_mutex_lock_for_shutdown,
+        main_window_title_bar_uses_overlay, mark_startup_focus_restore_stopped, panic_payload_text,
+        redact_sensitive_panic_text, redacted_path_label,
+        startup_app_data_dir_create_error_message, startup_app_data_dir_error_message,
+        startup_focus_main_thread_warning, startup_focus_restore_decision,
+        startup_focus_restore_is_active, startup_main_webview_focus_warning,
+        startup_main_window_focus_warning, startup_main_window_show_warning,
+        startup_preferences_or_default, startup_preferences_read_warning_message,
+        tracing_init_status, StartupFocusRestoreDecision, TracingInitStatus,
+        RELEASE_LOG_MAX_FILE_SIZE_BYTES, RELEASE_LOG_RETENTION_DAYS, RELEASE_LOG_ROTATION_STRATEGY,
+        RELEASE_LOG_TIMEZONE_STRATEGY,
     };
     use crate::domain::error::DomainError;
 
@@ -774,7 +826,7 @@ mod tests {
     }
 
     #[test]
-    fn database_init_startup_error_classifies_migration_and_filesystem_failures() {
+    fn startup_shutdown_contract_database_init_error_is_recoverable_copy() {
         let db_path = Path::new("/Users/example/app/ultra-rss-reader.db");
         let migration = database_init_startup_error_message(
             &DomainError::Migration("duplicate column".to_string()),
@@ -786,10 +838,61 @@ mod tests {
         );
 
         assert!(migration.contains("restore the newest backup"));
+        assert!(migration.contains("Backup directory"));
+        assert!(migration.contains("contact support with this startup error text"));
         assert!(!migration.contains("startup filesystem access"));
         assert!(persistence.contains("Check OS permissions and available disk space"));
         assert!(persistence.contains("permission denied"));
+        assert!(persistence.contains("contact support with this startup error text"));
         assert!(!persistence.contains("/Users/example"));
+    }
+
+    #[tokio::test]
+    async fn startup_shutdown_contract_db_drain_waits_for_in_flight_lock_to_release() {
+        let db_lock = Arc::new(Mutex::new(()));
+        let lock_for_thread = db_lock.clone();
+        let (ready_tx, ready_rx) = std::sync::mpsc::channel();
+
+        let releaser = std::thread::spawn(move || {
+            let _held_lock = lock_for_thread
+                .lock()
+                .expect("test lock should be acquired");
+            ready_tx.send(()).expect("ready signal should be sent");
+            std::thread::sleep(Duration::from_millis(10));
+        });
+        ready_rx.recv().expect("ready signal should be received");
+
+        let drained =
+            drain_mutex_lock_for_shutdown(db_lock.as_ref(), Duration::from_millis(100), "Database")
+                .await;
+
+        releaser.join().expect("lock releaser should not panic");
+        assert!(drained, "shutdown drain should wait for the DB lock");
+    }
+
+    #[tokio::test]
+    async fn startup_shutdown_contract_db_drain_times_out_when_lock_stays_busy() {
+        let db_lock = Arc::new(Mutex::new(()));
+        let lock_for_thread = db_lock.clone();
+        let (ready_tx, ready_rx) = std::sync::mpsc::channel();
+        let releaser = std::thread::spawn(move || {
+            let _held_lock = lock_for_thread
+                .lock()
+                .expect("test lock should be acquired");
+            ready_tx.send(()).expect("ready signal should be sent");
+            std::thread::sleep(Duration::from_millis(50));
+        });
+        ready_rx.recv().expect("ready signal should be received");
+
+        let drained =
+            drain_mutex_lock_for_shutdown(db_lock.as_ref(), Duration::from_millis(1), "Database")
+                .await;
+
+        releaser.join().expect("lock releaser should not panic");
+        assert!(
+            !drained,
+            "shutdown drain should report timeout before forced app exit"
+        );
     }
 
     #[test]

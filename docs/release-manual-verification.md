@@ -349,8 +349,9 @@ Confirm before release:
 
 - `src-tauri/tauri.conf.json` and `src-tauri/tauri.release.conf.json` both use `com.jey3dayo.ultra-rss-reader`.
 - No automatic app data directory rename is attempted during normal startup.
-- If a future identifier change is required, the release plan documents old identifier detection, database copy or backup guidance, the fact that OS keyring credentials may need user re-entry, log path changes, and rollback steps.
-- If a release changes the identifier, manual verification must prove the old app data directory remains preserved until the user accepts the documented copy or backup path. Skipping native migration is acceptable only when the release notes and support handoff explicitly say data and credentials remain in the old namespace.
+- If a future identifier change is required, the release plan documents old identifier detection, a user-visible database migration prompt or backup/copy prompt, the fact that OS keyring credentials cannot be copied automatically and may need user re-entry, and rollback steps. Log paths change with the identifier namespace and must be called out in release notes and support handoff.
+- If a release changes the identifier, manual verification must prove the old app data directory remains preserved until the user accepts the documented copy or backup path. Skipping native migration is acceptable only when the release notes and support handoff explicitly say database, logs, and credentials remain in the old namespace.
+- Rollback after an identifier change must return users to the old identifier namespace or restore from the preserved backup; rollback guidance must not tell users to delete the old app data, log, or keyring namespace as a repair step.
 
 ### 6a. macOS Sandbox Entitlements And Access Policy
 
