@@ -3,8 +3,8 @@ import type { AppError } from "@/api/tauri-commands";
 import { useBrowserViewSurfaceController } from "@/components/reader/hooks/browser/use-browser-view-surface-controller";
 import { useBrowserWebviewEvents } from "@/components/reader/hooks/browser/use-browser-webview-events";
 import { useBrowserWebviewStateChanged } from "@/components/reader/hooks/browser/use-browser-webview-state-changed";
+import type { BrowserSurfaceIssue } from "@/lib/browser/browser-surface-issue";
 import { useUiStore } from "@/stores/ui-store";
-import type { BrowserSurfaceIssue } from "../../browser-surface-issue";
 import type { BrowserWebviewDiagnosticsPayload, BrowserWebviewStateBinding } from "../../browser-view.types";
 import type { BrowserWebviewFallbackPayload } from "../../browser-webview-state";
 

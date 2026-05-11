@@ -3,7 +3,7 @@ import {
   createBrowserSurfaceFailure,
   createBrowserSurfaceFallback,
   resolveRuntimeUnavailableSurfaceIssue,
-} from "@/components/reader/browser-surface-issue";
+} from "@/lib/browser/browser-surface-issue";
 
 const labels = {
   failed: "Web Preview couldn't load.",

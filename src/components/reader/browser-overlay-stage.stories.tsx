@@ -2,9 +2,9 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { createRef } from "react";
 import { fn } from "storybook/test";
 import { denseNarrowViewportParameters } from "@/components/storybook/viewport-fixtures";
+import type { BrowserSurfaceIssue } from "@/lib/browser/browser-surface-issue";
 import { BrowserOverlayChrome } from "./browser-overlay-chrome";
 import { BrowserOverlayStage } from "./browser-overlay-stage";
-import type { BrowserSurfaceIssue } from "./browser-surface-issue";
 import type {
   BrowserOverlayChromeController,
   BrowserOverlayStageController,

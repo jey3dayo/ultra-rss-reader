@@ -1,7 +1,7 @@
 import { CircleAlert, ExternalLink, RotateCcw } from "lucide-react";
 import { SurfaceCard } from "@/components/shared/surface-card";
 import { Button } from "@/components/ui/button";
-import type { BrowserSurfaceIssue } from "./browser-surface-issue";
+import type { BrowserSurfaceIssue } from "@/lib/browser/browser-surface-issue";
 
 type BrowserSurfaceStateCardProps = {
   issue: BrowserSurfaceIssue;

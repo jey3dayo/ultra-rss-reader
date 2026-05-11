@@ -3,7 +3,7 @@ import {
   type UseBrowserViewSurfaceStateResult,
   useBrowserViewSurfaceState,
 } from "@/components/reader/hooks/browser/use-browser-view-surface-state";
-import { isBrowserRuntimeUnavailable } from "../../browser-runtime-availability";
+import { isBrowserRuntimeUnavailable } from "@/lib/browser/browser-runtime-availability";
 import type { BrowserWebviewStateBinding } from "../../browser-view.types";
 
 type UseBrowserViewSurfaceControllerParams = BrowserWebviewStateBinding & {

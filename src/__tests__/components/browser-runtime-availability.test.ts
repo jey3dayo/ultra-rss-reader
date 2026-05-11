@@ -1,6 +1,6 @@
 import { resetTauriRuntimeFlags, setTauriRuntimeMissing, setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
 import { afterEach, describe, expect, it } from "vitest";
-import { isBrowserRuntimeUnavailable } from "@/components/reader/browser-runtime-availability";
+import { isBrowserRuntimeUnavailable } from "@/lib/browser/browser-runtime-availability";
 
 describe("browser-runtime-availability", () => {
   afterEach(() => {

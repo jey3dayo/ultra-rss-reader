@@ -6,7 +6,7 @@ import {
   createBrowserSurfaceFailure,
   createBrowserSurfaceFallback,
   resolveRuntimeUnavailableSurfaceIssue,
-} from "../../browser-surface-issue";
+} from "@/lib/browser/browser-surface-issue";
 import {
   type BrowserWebviewFallbackPayload,
   setBrowserStateWithRef,

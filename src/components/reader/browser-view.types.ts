@@ -4,8 +4,8 @@ import type {
   BrowserDebugGeometryLayoutDiagnostics,
   BrowserDebugGeometryNativeDiagnostics,
 } from "@/lib/browser/browser-debug-geometry";
+import type { BrowserSurfaceIssue } from "@/lib/browser/browser-surface-issue";
 import type { BrowserViewerGeometry, BrowserViewerScope } from "@/lib/browser/browser-viewer-geometry";
-import type { BrowserSurfaceIssue } from "./browser-surface-issue";
 
 export type BrowserViewScope = BrowserViewerScope;
 export type BrowserWebviewDiagnosticsPayload = BrowserDebugGeometryNativeDiagnostics;
