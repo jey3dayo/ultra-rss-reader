@@ -116,16 +116,6 @@
   - release log が local time だと timezone をまたぐ報告で sync/update 時刻の突合が難しくなる
   - local timezone、UTC alternative、DST boundary、log filename/time display、support copy の policy を決める
 
-- [ ] P3 Windows dispatch env allowlist を dev credential 以外の future env 追加に備えて schema 化する
-  - 対象: `scripts/lib/windows-dispatch.ts`, dev scripts
-  - env forwarding が ad hoc だと、future secret env を WSL->Windows へ漏らすか、必要 env を渡し忘れる
-  - allowlist schema、secret denylist、path env、dev-only env、test fixture の task に分ける
-
-- [ ] P3 release/debug feature flag inventory を generated report にする
-  - 対象: `cfg(debug_assertions)`, `DEV_*` env, dev modules, Tauri configs
-  - debug/release 分岐が増えると、どの機能がどの build に入るかレビューしにくい
-  - Rust cfg、Vite env、dev module import、Tauri dev config、release artifact expected absence を一覧化する
-
 - [ ] P1 file drop / drag-and-drop import surface を URL validation と同じ security boundary にする
   - 対象: Tauri window events、OPML import UI、file path handling
   - OS の file drop が dialog flow を迂回すると、拡張子・サイズ・symlink・private path の validation を抜ける可能性がある
