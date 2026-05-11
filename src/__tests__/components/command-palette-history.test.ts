@@ -3,6 +3,8 @@ import {
   createCommandPaletteHistoryValue,
   parseCommandPaletteHistoryEntry,
 } from "@/components/reader/command-palette-history";
+import { APP_ACTIONS } from "@/lib/app-actions";
+import { shortcutDefinitions, shortcutPrefKey } from "@/lib/keyboard/keyboard-shortcuts";
 
 describe("command-palette-history", () => {
   it("parses each supported history prefix", () => {
@@ -63,6 +65,23 @@ describe("command-palette-history", () => {
 
     for (const entry of entries) {
       expect(parseCommandPaletteHistoryEntry(createCommandPaletteHistoryValue(entry))).toEqual(entry);
+    }
+  });
+
+  it("keeps shortcut preference ids separate from command history action ids", () => {
+    for (const action of APP_ACTIONS) {
+      expect(parseCommandPaletteHistoryEntry(`action:${action}`)).toEqual({
+        kind: "action",
+        id: action,
+      });
+    }
+
+    for (const definition of shortcutDefinitions) {
+      const preferenceKey = shortcutPrefKey(definition.id);
+
+      expect(preferenceKey).toBe(`shortcut_${definition.id}`);
+      expect(parseCommandPaletteHistoryEntry(preferenceKey)).toBeNull();
+      expect(parseCommandPaletteHistoryEntry(`action:${definition.id}`)).toBeNull();
     }
   });
 });

@@ -162,6 +162,14 @@ pub enum NativeFileDialogDirectoryPolicy {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
+pub enum FilenameSuggestionPolicy {
+    NotAnArtifactSurface,
+    AppOwnedOrUserSelectedOnly,
+    UnsupportedUntilVersionedContract,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
 pub enum LongRunningNativeOperation {
     UpdaterDownload,
     OpmlExport,
@@ -194,6 +202,7 @@ pub struct FilesystemRecoveryContract {
     pub cancel_policy: NativeFileDialogCancelPolicy,
     pub directory_policy: NativeFileDialogDirectoryPolicy,
     pub auto_appends_extension: bool,
+    pub filename_suggestion: FilenameSuggestionPolicy,
     pub exposes_raw_path_to_webview: bool,
 }
 
@@ -272,6 +281,7 @@ pub(crate) fn filesystem_recovery_contract(
         cancel_policy,
         directory_policy,
         auto_appends_extension,
+        filename_suggestion,
         exposes_raw_path_to_webview,
     ) = match surface {
         FilesystemRecoverySurface::LogDirectory => (
@@ -282,6 +292,7 @@ pub(crate) fn filesystem_recovery_contract(
             NativeFileDialogCancelPolicy::NotAFileDialogSurface,
             NativeFileDialogDirectoryPolicy::NotAFileDialogSurface,
             false,
+            FilenameSuggestionPolicy::NotAnArtifactSurface,
             false,
         ),
         FilesystemRecoverySurface::DatabaseBackup => (
@@ -292,6 +303,7 @@ pub(crate) fn filesystem_recovery_contract(
             NativeFileDialogCancelPolicy::NoOpSuccess,
             NativeFileDialogDirectoryPolicy::RejectDirectorySelection,
             true,
+            FilenameSuggestionPolicy::AppOwnedOrUserSelectedOnly,
             false,
         ),
         FilesystemRecoverySurface::OpmlImport => (
@@ -302,6 +314,7 @@ pub(crate) fn filesystem_recovery_contract(
             NativeFileDialogCancelPolicy::NoOpSuccess,
             NativeFileDialogDirectoryPolicy::RejectDirectorySelection,
             false,
+            FilenameSuggestionPolicy::NotAnArtifactSurface,
             false,
         ),
         FilesystemRecoverySurface::OpmlExport => (
@@ -312,6 +325,7 @@ pub(crate) fn filesystem_recovery_contract(
             NativeFileDialogCancelPolicy::NoOpSuccess,
             NativeFileDialogDirectoryPolicy::RejectDirectorySelection,
             true,
+            FilenameSuggestionPolicy::AppOwnedOrUserSelectedOnly,
             true,
         ),
         FilesystemRecoverySurface::SettingsData => (
@@ -322,6 +336,7 @@ pub(crate) fn filesystem_recovery_contract(
             NativeFileDialogCancelPolicy::NotAFileDialogSurface,
             NativeFileDialogDirectoryPolicy::NotAFileDialogSurface,
             false,
+            FilenameSuggestionPolicy::UnsupportedUntilVersionedContract,
             false,
         ),
         FilesystemRecoverySurface::DevCredentialStore => (
@@ -332,6 +347,7 @@ pub(crate) fn filesystem_recovery_contract(
             NativeFileDialogCancelPolicy::NotAFileDialogSurface,
             NativeFileDialogDirectoryPolicy::NotAFileDialogSurface,
             false,
+            FilenameSuggestionPolicy::AppOwnedOrUserSelectedOnly,
             false,
         ),
     };
@@ -345,6 +361,7 @@ pub(crate) fn filesystem_recovery_contract(
         cancel_policy,
         directory_policy,
         auto_appends_extension,
+        filename_suggestion,
         exposes_raw_path_to_webview,
     }
 }
@@ -491,10 +508,11 @@ mod tests {
         vacuum_database_inner, AppActivityState, AtomicFileWritePolicy, DatabaseInfoDto,
         DatabaseMaintenanceAction, DatabaseMaintenanceScheduleDecision, DatabaseMaintenanceTrigger,
         DatabaseRecoveryActionSafety, DatabaseRuntimeFailureKind, DatabaseRuntimeRecoveryAction,
-        DatabaseRuntimeRecoveryMode, FilesystemPathNormalizationPolicy, FilesystemRecoverySurface,
-        LongRunningNativeOperation, LongRunningOperationInterruptionPolicy,
-        NativeFileDialogCancelPolicy, NativeFileDialogDirectoryPolicy,
-        NativeFileDialogExtensionPolicy, NativeFileDialogOverwritePolicy, PrivateDataResetStep,
+        DatabaseRuntimeRecoveryMode, FilenameSuggestionPolicy, FilesystemPathNormalizationPolicy,
+        FilesystemRecoverySurface, LongRunningNativeOperation,
+        LongRunningOperationInterruptionPolicy, NativeFileDialogCancelPolicy,
+        NativeFileDialogDirectoryPolicy, NativeFileDialogExtensionPolicy,
+        NativeFileDialogOverwritePolicy, PrivateDataResetStep,
     };
     use crate::commands::dto::AppError;
     use crate::commands::start_database_maintenance;
@@ -865,6 +883,10 @@ mod tests {
             NativeFileDialogDirectoryPolicy::RejectDirectorySelection
         );
         assert!(backup.auto_appends_extension);
+        assert_eq!(
+            backup.filename_suggestion,
+            FilenameSuggestionPolicy::AppOwnedOrUserSelectedOnly
+        );
         assert!(!backup.exposes_raw_path_to_webview);
 
         let dev_credentials =
@@ -947,6 +969,10 @@ mod tests {
             NativeFileDialogDirectoryPolicy::RejectDirectorySelection
         );
         assert!(export.auto_appends_extension);
+        assert_eq!(
+            export.filename_suggestion,
+            FilenameSuggestionPolicy::AppOwnedOrUserSelectedOnly
+        );
         assert!(export.exposes_raw_path_to_webview);
 
         let settings = filesystem_recovery_contract(FilesystemRecoverySurface::SettingsData);
@@ -996,6 +1022,10 @@ mod tests {
         assert_eq!(value["cancel_policy"], "no_op_success");
         assert_eq!(value["directory_policy"], "reject_directory_selection");
         assert_eq!(value["auto_appends_extension"], true);
+        assert_eq!(
+            value["filename_suggestion"],
+            "app_owned_or_user_selected_only"
+        );
         assert_eq!(value["exposes_raw_path_to_webview"], false);
     }
 

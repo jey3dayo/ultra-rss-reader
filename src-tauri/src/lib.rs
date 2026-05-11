@@ -1348,6 +1348,20 @@ mod tests {
     }
 
     #[test]
+    fn rust_test_cfg_inventory_records_production_only_release_gaps() {
+        let release_manual = include_str!("../../docs/release-manual-verification.md");
+
+        assert!(
+            release_manual.contains("Rust Test cfg(test) And Production-Only Coverage Inventory")
+        );
+        assert!(release_manual.contains("Tauri runtime startup"));
+        assert!(release_manual.contains("Panic and logging"));
+        assert!(release_manual.contains("Native updater install"));
+        assert!(release_manual.contains("macOS titlebar/focus"));
+        assert!(release_manual.contains("Do not treat a `cargo test` pass as evidence"));
+    }
+
+    #[test]
     fn privacy_docs_record_local_database_encryption_decision() {
         let privacy_doc = include_str!("../../docs/feed-content-privacy.md");
 

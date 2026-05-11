@@ -266,6 +266,14 @@ Confirm:
 
 Use an installed older build plus a signed draft release.
 
+Before testing against an existing profile, show or record user-facing guidance
+that recommends preserving a private OS-level copy of the complete app data
+directory or database backup set. The copy must say that this backup is private
+user data, is not app-encrypted by Ultra RSS Reader, and should be stored in a
+private location before continuing with installer replacement or updater
+verification. The user can continue without a backup only when the flow records
+that the profile is disposable or already backed up elsewhere.
+
 Before verifying the updater UI, classify the release notes, `CHANGELOG.md`
 entry, and in-app updater message from the same user-visible change set.
 The updater message can stay shorter than the release notes, but it must not
@@ -326,6 +334,13 @@ Confirm:
 - Install/restart applies the new version successfully.
 - If updater verification fails, the app stays on the current version and surfaces a useful error.
 - After a failed download or install, a manual recheck can start a fresh updater flow.
+- After any download, install, or restart failure, record app binary version,
+  database schema version, and pending update state before retrying. If the
+  three states disagree, stop normal update retry and follow the
+  release/update safety contract in the incident runbook.
+- A retry after failed install must use a freshly verified signed artifact or a
+  revalidated pending artifact that matches the current manifest and database
+  compatibility gate; stale or partial pending update state is not installable.
 
 ### 5. Packaged Startup Verification
 
@@ -353,7 +368,27 @@ Confirm before release:
 - If a release changes the identifier, manual verification must prove the old app data directory remains preserved until the user accepts the documented copy or backup path. Skipping native migration is acceptable only when the release notes and support handoff explicitly say database, logs, and credentials remain in the old namespace.
 - Rollback after an identifier change must return users to the old identifier namespace or restore from the preserved backup; rollback guidance must not tell users to delete the old app data, log, or keyring namespace as a repair step.
 
-### 6a. macOS Sandbox Entitlements And Access Policy
+### 6a. Rust Test cfg(test) And Production-Only Coverage Inventory
+
+Rust unit tests may exercise pure contract helpers under `cfg(test)`, but they
+do not run the full Tauri production startup graph. Keep this inventory current
+when adding `#[cfg(test)]`, `#[cfg(not(test))]`, or release-only native code.
+
+Current inventory:
+
+| Surface | Production-only path | Existing coverage | Manual release gap |
+| --- | --- | --- | --- |
+| Tauri runtime startup | `run()`, plugin setup, database open, menu wiring, updater state registration | Unit tests cover startup copy, DB migration recovery text, shutdown drain decisions, and close gating helpers | Packaged startup verification must prove the production app opens, logs, and keeps app data paths stable |
+| Panic and logging | redacting panic hook and release log plugin under `cfg(not(test))` / `cfg(not(debug_assertions))` | Unit tests cover redaction helpers, release log retention constants, cleanup messages, and timezone policy strings | Packaged crash/log checks must prove the installed app writes redacted release logs without a dev console |
+| Native updater install | updater plugin handle, signed artifact download/install, app restart | Unit tests cover stale pending state clearing, semantic version policy, install/download guards, progress monotonicity, and shared DB/sync busy guard | Packaged updater verification must prove signed artifacts install, failed installs leave retry-safe state, and restart opens the expected version |
+| macOS titlebar/focus | production window titlebar style and startup focus restore task | Unit tests cover the platform titlebar predicate, delayed-focus decision helpers, and diagnostics-only failure copy | macOS packaged verification must confirm the visible window, focus behavior, quarantine/translocation path, and permission prompts |
+
+Do not treat a `cargo test` pass as evidence for release signing, notarization,
+Gatekeeper, OS keyring prompts, native file dialogs, production app restart, or
+packaged updater install. Those remain manual release checks unless a focused
+native smoke test exists for the exact production path.
+
+### 6b. macOS Sandbox Entitlements And Access Policy
 
 Current policy: Ultra RSS Reader does not expand macOS sandbox entitlements opportunistically. Any future change to file, network, or keychain access must be reviewed as a release-native contract change before shipping.
 

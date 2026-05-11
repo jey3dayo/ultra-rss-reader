@@ -12,10 +12,7 @@ const { useSearchArticlesMock } = vi.hoisted(() => ({
 vi.mock("@/hooks/use-articles", () => ({
   resolveArticleSearchQueryOwner: (accountId: string | null, query: string) => {
     const normalizedAccountId = accountId?.trim() || null;
-    const normalizedQuery = query
-      .normalize("NFKC")
-      .replace(/\s+/gu, " ")
-      .trim();
+    const normalizedQuery = query.normalize("NFKC").replace(/\s+/gu, " ").trim();
     return normalizedAccountId && normalizedQuery
       ? {
           accountId: normalizedAccountId,
@@ -34,21 +31,19 @@ describe("useArticleListSearch", () => {
       callback(0);
       return 0;
     });
-    useSearchArticlesMock.mockImplementation(
-      (_accountId: string | null, query: string) => ({
-        data: query ? [{ id: "search-result" }] : undefined,
-        isFetching: false,
-        isPlaceholderData: false,
-        searchOwner:
-          _accountId && query
-            ? {
-                accountId: _accountId,
-                query,
-                key: `${_accountId}\0${query}`,
-              }
-            : null,
-      }),
-    );
+    useSearchArticlesMock.mockImplementation((_accountId: string | null, query: string) => ({
+      data: query ? [{ id: "search-result" }] : undefined,
+      isFetching: false,
+      isPlaceholderData: false,
+      searchOwner:
+        _accountId && query
+          ? {
+              accountId: _accountId,
+              query,
+              key: `${_accountId}\0${query}`,
+            }
+          : null,
+    }));
   });
 
   afterEach(() => {
@@ -59,8 +54,7 @@ describe("useArticleListSearch", () => {
 
   it("resets open search state and debounced query when the selected account changes", () => {
     const { result, rerender } = renderHook(
-      ({ selectedAccountId }: { selectedAccountId: string | null }) =>
-        useArticleListSearch({ selectedAccountId }),
+      ({ selectedAccountId }: { selectedAccountId: string | null }) => useArticleListSearch({ selectedAccountId }),
       {
         initialProps: { selectedAccountId: "acc-1" },
       },
@@ -89,9 +83,7 @@ describe("useArticleListSearch", () => {
   });
 
   it("opens search without changing the debounced query until the debounce delay", () => {
-    const { result } = renderHook(() =>
-      useArticleListSearch({ selectedAccountId: "acc-1" }),
-    );
+    const { result } = renderHook(() => useArticleListSearch({ selectedAccountId: "acc-1" }));
 
     act(() => {
       result.current.openSearch();
@@ -118,9 +110,7 @@ describe("useArticleListSearch", () => {
   });
 
   it("toggles search open and keeps it open on repeated toggle", () => {
-    const { result } = renderHook(() =>
-      useArticleListSearch({ selectedAccountId: "acc-1" }),
-    );
+    const { result } = renderHook(() => useArticleListSearch({ selectedAccountId: "acc-1" }));
 
     act(() => {
       result.current.handleToggleSearch();
@@ -138,9 +128,7 @@ describe("useArticleListSearch", () => {
   it("opens search when retry focus runtime APIs are unavailable", () => {
     vi.stubGlobal("requestAnimationFrame", undefined);
     vi.spyOn(window, "setTimeout").mockImplementation(undefined as never);
-    const { result } = renderHook(() =>
-      useArticleListSearch({ selectedAccountId: "acc-1" }),
-    );
+    const { result } = renderHook(() => useArticleListSearch({ selectedAccountId: "acc-1" }));
 
     expect(() => {
       act(() => {
@@ -157,9 +145,7 @@ describe("useArticleListSearch", () => {
     vi.stubGlobal("requestAnimationFrame", () => {
       throw requestError;
     });
-    const { result } = renderHook(() =>
-      useArticleListSearch({ selectedAccountId: "acc-1" }),
-    );
+    const { result } = renderHook(() => useArticleListSearch({ selectedAccountId: "acc-1" }));
 
     expect(() => {
       act(() => {
@@ -167,10 +153,7 @@ describe("useArticleListSearch", () => {
       });
     }).not.toThrow();
 
-    expect(warn).toHaveBeenCalledWith(
-      "Failed to schedule reader focus frame.",
-      requestError,
-    );
+    expect(warn).toHaveBeenCalledWith("Failed to schedule reader focus frame.", requestError);
     expect(result.current.showSearch).toBe(true);
   });
 
@@ -178,9 +161,7 @@ describe("useArticleListSearch", () => {
     const focus = vi.fn(() => {
       throw new Error("focus failed");
     });
-    const { result } = renderHook(() =>
-      useArticleListSearch({ selectedAccountId: "acc-1" }),
-    );
+    const { result } = renderHook(() => useArticleListSearch({ selectedAccountId: "acc-1" }));
     const input = document.createElement("input");
     input.focus = focus;
     result.current.searchInputRef.current = input;
@@ -196,9 +177,7 @@ describe("useArticleListSearch", () => {
   });
 
   it("does not throw when search opens before the input is mounted", () => {
-    const { result } = renderHook(() =>
-      useArticleListSearch({ selectedAccountId: "acc-1" }),
-    );
+    const { result } = renderHook(() => useArticleListSearch({ selectedAccountId: "acc-1" }));
 
     expect(result.current.searchInputRef.current).toBeNull();
     expect(() => {
@@ -218,9 +197,7 @@ describe("useArticleListSearch", () => {
       return callbacks.length;
     });
     vi.stubGlobal("cancelAnimationFrame", vi.fn());
-    const { result, unmount } = renderHook(() =>
-      useArticleListSearch({ selectedAccountId: "acc-1" }),
-    );
+    const { result, unmount } = renderHook(() => useArticleListSearch({ selectedAccountId: "acc-1" }));
     const input = document.createElement("input");
     input.focus = focus;
     result.current.searchInputRef.current = input;
@@ -241,9 +218,7 @@ describe("useArticleListSearch", () => {
   });
 
   it("closes search and clears the debounced query immediately", () => {
-    const { result } = renderHook(() =>
-      useArticleListSearch({ selectedAccountId: "acc-1" }),
-    );
+    const { result } = renderHook(() => useArticleListSearch({ selectedAccountId: "acc-1" }));
 
     act(() => {
       result.current.openSearch();
@@ -268,9 +243,7 @@ describe("useArticleListSearch", () => {
   });
 
   it("does not pass stale debounced query to search while the search UI is closed", () => {
-    const { result } = renderHook(() =>
-      useArticleListSearch({ selectedAccountId: "acc-1" }),
-    );
+    const { result } = renderHook(() => useArticleListSearch({ selectedAccountId: "acc-1" }));
 
     act(() => {
       result.current.openSearch();
@@ -296,9 +269,7 @@ describe("useArticleListSearch", () => {
   });
 
   it("does not retain a query set while closed when search is reopened", () => {
-    const { result } = renderHook(() =>
-      useArticleListSearch({ selectedAccountId: "acc-1" }),
-    );
+    const { result } = renderHook(() => useArticleListSearch({ selectedAccountId: "acc-1" }));
 
     act(() => {
       result.current.setSearchQuery("stale");
@@ -320,9 +291,7 @@ describe("useArticleListSearch", () => {
   });
 
   it("does not revive a stale query when search is reopened before the old debounce timer flushes", () => {
-    const { result } = renderHook(() =>
-      useArticleListSearch({ selectedAccountId: "acc-1" }),
-    );
+    const { result } = renderHook(() => useArticleListSearch({ selectedAccountId: "acc-1" }));
 
     act(() => {
       result.current.openSearch();
@@ -347,27 +316,20 @@ describe("useArticleListSearch", () => {
   });
 
   it("does not expose stale placeholder results as current search results while the next owner is fetching", () => {
-    useSearchArticlesMock.mockImplementation(
-      (_accountId: string | null, query: string) => ({
-        data:
-          query === "query b"
-            ? [{ id: "query-a-result" }]
-            : [{ id: "query-a-result" }],
-        isFetching: query === "query b",
-        isPlaceholderData: query === "query b",
-        searchOwner:
-          _accountId && query
-            ? {
-                accountId: _accountId,
-                query,
-                key: `${_accountId}\0${query}`,
-              }
-            : null,
-      }),
-    );
-    const { result } = renderHook(() =>
-      useArticleListSearch({ selectedAccountId: "acc-1" }),
-    );
+    useSearchArticlesMock.mockImplementation((_accountId: string | null, query: string) => ({
+      data: query === "query b" ? [{ id: "query-a-result" }] : [{ id: "query-a-result" }],
+      isFetching: query === "query b",
+      isPlaceholderData: query === "query b",
+      searchOwner:
+        _accountId && query
+          ? {
+              accountId: _accountId,
+              query,
+              key: `${_accountId}\0${query}`,
+            }
+          : null,
+    }));
+    const { result } = renderHook(() => useArticleListSearch({ selectedAccountId: "acc-1" }));
 
     act(() => {
       result.current.openSearch();
@@ -393,24 +355,20 @@ describe("useArticleListSearch", () => {
   });
 
   it("does not expose stale owner results as current search results after the query changes", () => {
-    useSearchArticlesMock.mockImplementation(
-      (_accountId: string | null, query: string) => ({
-        data: [{ id: "query-a-result" }],
-        isFetching: query === "query b",
-        isPlaceholderData: false,
-        searchOwner:
-          _accountId && query
-            ? {
-                accountId: _accountId,
-                query: "query a",
-                key: `${_accountId}\0query a`,
-              }
-            : null,
-      }),
-    );
-    const { result } = renderHook(() =>
-      useArticleListSearch({ selectedAccountId: "acc-1" }),
-    );
+    useSearchArticlesMock.mockImplementation((_accountId: string | null, query: string) => ({
+      data: [{ id: "query-a-result" }],
+      isFetching: query === "query b",
+      isPlaceholderData: false,
+      searchOwner:
+        _accountId && query
+          ? {
+              accountId: _accountId,
+              query: "query a",
+              key: `${_accountId}\0query a`,
+            }
+          : null,
+    }));
+    const { result } = renderHook(() => useArticleListSearch({ selectedAccountId: "acc-1" }));
 
     act(() => {
       result.current.openSearch();

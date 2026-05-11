@@ -272,8 +272,17 @@ fn make_pending_update_handle(update: Update) -> PendingUpdateHandle {
     }
 }
 
+fn pending_update_metadata_matches_parts(
+    cached_version: &str,
+    cached_source: &str,
+    current_version: &str,
+    current_source: &str,
+) -> bool {
+    cached_version == current_version && cached_source == current_source
+}
+
 fn pending_update_metadata_matches(version: &str, source: &str, update: &Update) -> bool {
-    version == update.version && source == update_source(update)
+    pending_update_metadata_matches_parts(version, source, &update.version, &update_source(update))
 }
 
 fn updater_initialization_error_message(error: impl std::fmt::Display) -> String {
@@ -436,7 +445,8 @@ mod tests {
         clear_pending_update, is_prerelease_version, is_strictly_newer_version,
         is_update_download_in_flight, is_updater_enabled_by_release_config,
         next_download_progress_percent, next_download_session_id, parse_semantic_version_parts,
-        update_event_emit_warning, update_policy_error_parts, updater_endpoint_error_message,
+        pending_update_metadata_matches_parts, update_event_emit_warning,
+        update_policy_error_parts, updater_endpoint_error_message,
         updater_initialization_error_message, DownloadGuard, SyncInstallGuard,
         ACTIVE_DOWNLOAD_SESSION_ID, DOWNLOADING, DOWNLOAD_SESSION_ID,
     };
@@ -456,6 +466,28 @@ mod tests {
         clear_pending_update(&mut pending);
 
         assert_eq!(pending, None);
+    }
+
+    #[test]
+    fn pending_update_metadata_contract_rejects_changed_version_or_source() {
+        assert!(pending_update_metadata_matches_parts(
+            "1.2.4",
+            "github-latest-json",
+            "1.2.4",
+            "github-latest-json"
+        ));
+        assert!(!pending_update_metadata_matches_parts(
+            "1.2.4",
+            "github-latest-json",
+            "1.2.5",
+            "github-latest-json"
+        ));
+        assert!(!pending_update_metadata_matches_parts(
+            "1.2.4",
+            "github-latest-json",
+            "1.2.4",
+            "stale-cache"
+        ));
     }
 
     #[test]

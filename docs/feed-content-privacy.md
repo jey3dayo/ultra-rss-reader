@@ -101,6 +101,12 @@ Native file selection policy:
 - OPML export and database backup flows must use native save dialogs, append the expected extension only when the user did not provide one, and show a clear overwrite confirmation before replacing an existing file.
 - Dialog cancellation is a neutral result, not an error. It must not create, delete, or overwrite files and must leave progress state idle.
 - Database backup save locations must be treated as private user-chosen paths and must not be logged or shown in support copy unless redacted.
+- Installer upgrade and updater flows that operate on an existing profile must
+  recommend a private OS-level copy of the complete app data directory or
+  database backup set before replacement. The user-facing copy must say the
+  backup can contain private reading/subscription history, is not app-encrypted
+  by Ultra RSS Reader, and should be stored in a private location. It must not
+  describe OPML export or settings export as a complete app-data backup.
 
 OPML account ownership contract:
 
