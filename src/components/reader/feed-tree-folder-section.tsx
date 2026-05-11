@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { useContextMenuTargetSnapshot } from "./context-menu-target";
 import type { ActiveDropTarget, FeedTreeFeedViewModel, FeedTreeFolderViewModel } from "./feed-tree.types";
 import { FEED_DROP_TARGET_ID_ATTRIBUTE, FEED_DROP_TARGET_KIND_ATTRIBUTE } from "./feed-tree-drop-target";
+import { handleMiddleMouseMarkRead } from "./feed-tree-middle-click";
 import { FeedTreeRow } from "./feed-tree-row";
 import { getSidebarDensityTokens, type SidebarDensity } from "./sidebar-density";
 import { SidebarLeadingControlButton } from "./sidebar-leading-control-button";
@@ -57,17 +58,8 @@ export function FeedTreeFolderSection({
   const showDropOverlay = canDragFeeds && draggedFeedId !== null;
   const isActive = canDragFeeds && activeDropTarget?.kind === "folder" && activeDropTarget.folderId === folder.id;
   const panelId = `feed-tree-folder-panel-${folder.id}`;
-  const handleMiddleMouseDown = (event: ReactMouseEvent<HTMLElement>) => {
-    if (event.button !== 1) {
-      return;
-    }
-    event.preventDefault();
-    event.stopPropagation();
-    if (folder.unreadCount <= 0) {
-      return;
-    }
-    onMarkFolderRead?.(folder);
-  };
+  const handleMiddleMouseDown = (event: ReactMouseEvent<HTMLElement>) =>
+    handleMiddleMouseMarkRead(event, folder, onMarkFolderRead);
 
   return (
     <div

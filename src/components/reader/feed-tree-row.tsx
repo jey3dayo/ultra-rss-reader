@@ -7,6 +7,7 @@ import { SIDEBAR_SELECTED_TARGET_ATTRIBUTE } from "@/lib/reader-focus";
 import { cn } from "@/lib/utils";
 import { useContextMenuTargetSnapshot } from "./context-menu-target";
 import type { FeedTreeRowProps } from "./feed-tree.types";
+import { handleMiddleMouseMarkRead } from "./feed-tree-middle-click";
 import { FeedTreeSelectableRow } from "./feed-tree-selectable-row";
 import { getSidebarDensityTokens, type SidebarDensity } from "./sidebar-density";
 import { SidebarLeadingControlButton } from "./sidebar-leading-control-button";
@@ -81,17 +82,8 @@ export function FeedTreeRow({
   const rowStyle: FeedTreeRowStyle = {
     "--feed-tree-rail-offset": tokens.treeRailOffset,
   };
-  const handleMiddleMouseDown = (event: ReactMouseEvent<HTMLElement>) => {
-    if (event.button !== 1) {
-      return;
-    }
-    event.preventDefault();
-    event.stopPropagation();
-    if (feed.unreadCount <= 0) {
-      return;
-    }
-    onMarkFeedRead?.(feed);
-  };
+  const handleMiddleMouseDown = (event: ReactMouseEvent<HTMLElement>) =>
+    handleMiddleMouseMarkRead(event, feed, onMarkFeedRead);
 
   return (
     <FeedTreeSelectableRow
