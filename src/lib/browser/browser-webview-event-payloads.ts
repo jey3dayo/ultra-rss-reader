@@ -13,16 +13,54 @@ import type { BrowserDebugGeometryNativeDiagnostics } from "@/lib/browser/browse
 
 export type { BrowserWebviewClosedPayload };
 
-export function parseBrowserWebviewStatePayload(payload: unknown): Result.Result<BrowserWebviewState, ZodError> {
-  const result = BrowserWebviewStateSchema.safeParse(payload);
+type BrowserWebviewEventPayload =
+  | BrowserWebviewState
+  | BrowserWebviewFallbackPayload
+  | BrowserWebviewClosedPayload
+  | BrowserDebugGeometryNativeDiagnostics;
+
+function parseBrowserWebviewPayload(
+  schema: typeof BrowserWebviewStateSchema,
+  payload: unknown,
+): Result.Result<BrowserWebviewState, ZodError>;
+function parseBrowserWebviewPayload(
+  schema: typeof BrowserWebviewFallbackPayloadSchema,
+  payload: unknown,
+): Result.Result<BrowserWebviewFallbackPayload, ZodError>;
+function parseBrowserWebviewPayload(
+  schema: typeof BrowserWebviewClosedPayloadSchema,
+  payload: unknown,
+): Result.Result<BrowserWebviewClosedPayload, ZodError>;
+function parseBrowserWebviewPayload(
+  schema: typeof BrowserWebviewDiagnosticsPayloadSchema,
+  payload: unknown,
+): Result.Result<BrowserDebugGeometryNativeDiagnostics, ZodError>;
+function parseBrowserWebviewPayload(
+  schema: {
+    safeParse: (payload: unknown) =>
+      | {
+          success: true;
+          data: BrowserWebviewEventPayload;
+        }
+      | {
+          success: false;
+          error: ZodError;
+        };
+  },
+  payload: unknown,
+): Result.Result<BrowserWebviewEventPayload, ZodError> {
+  const result = schema.safeParse(payload);
   return result.success ? Result.succeed(result.data) : Result.fail(result.error);
+}
+
+export function parseBrowserWebviewStatePayload(payload: unknown): Result.Result<BrowserWebviewState, ZodError> {
+  return parseBrowserWebviewPayload(BrowserWebviewStateSchema, payload);
 }
 
 export function parseBrowserWebviewFallbackPayload(
   payload: unknown,
 ): Result.Result<BrowserWebviewFallbackPayload, ZodError> {
-  const result = BrowserWebviewFallbackPayloadSchema.safeParse(payload);
-  return result.success ? Result.succeed(result.data) : Result.fail(result.error);
+  return parseBrowserWebviewPayload(BrowserWebviewFallbackPayloadSchema, payload);
 }
 
 export function parseBrowserWebviewClosedPayload(
@@ -31,15 +69,13 @@ export function parseBrowserWebviewClosedPayload(
   if (payload === undefined || payload === null) {
     return Result.succeed(null);
   }
-  const result = BrowserWebviewClosedPayloadSchema.safeParse(payload);
-  return result.success ? Result.succeed(result.data) : Result.fail(result.error);
+  return parseBrowserWebviewPayload(BrowserWebviewClosedPayloadSchema, payload);
 }
 
 export function parseBrowserWebviewDiagnosticsPayload(
   payload: unknown,
 ): Result.Result<BrowserDebugGeometryNativeDiagnostics, ZodError> {
-  const result = BrowserWebviewDiagnosticsPayloadSchema.safeParse(payload);
-  return result.success ? Result.succeed(result.data) : Result.fail(result.error);
+  return parseBrowserWebviewPayload(BrowserWebviewDiagnosticsPayloadSchema, payload);
 }
 
 export function malformedPayloadSummary(payload: unknown) {
