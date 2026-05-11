@@ -678,11 +678,14 @@ describe("useArticleListSources", () => {
   });
 
   it("does not adopt stale account feeds or account articles for a newly selected account", () => {
+    const staleAccountArticleCount = 2_000;
     useFeedsMock.mockReturnValue({
       data: createMatrixFeeds().filter((feed) => feed.account_id === "acc-2"),
     });
     useAccountArticlesMock.mockReturnValue({
-      data: [matrixArticle("stale-account-result", "feed-other-account", false, false)],
+      data: Array.from({ length: staleAccountArticleCount }, (_, index) =>
+        matrixArticle(`stale-account-result-${index}`, "feed-other-account", false, false),
+      ),
       isLoading: false,
     });
 
@@ -700,6 +703,7 @@ describe("useArticleListSources", () => {
 
     expect(result.current.feeds).toEqual([]);
     expect(result.current.accountArticles).toEqual([]);
+    expect(result.current.accountArticles).toHaveLength(0);
   });
 
   it("keeps a retained selected article in the feed source after unread refetch removes it", () => {

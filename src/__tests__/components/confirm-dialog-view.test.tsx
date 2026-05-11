@@ -148,7 +148,7 @@ describe("ConfirmDialogView", () => {
   });
 
   it("keeps dialog recovery actions keyboard reachable", async () => {
-    const user = userEvent.setup();
+    const confirmUser = userEvent.setup();
     const onConfirm = vi.fn();
     const onCancel = vi.fn();
 
@@ -166,9 +166,14 @@ describe("ConfirmDialogView", () => {
     );
 
     screen.getByRole("button", { name: "Retry" }).focus();
-    await user.keyboard("{Enter}");
+    await confirmUser.keyboard("{Enter}");
+
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    expect(onCancel).not.toHaveBeenCalled();
 
     unmount();
+
+    const cancelUser = userEvent.setup();
 
     render(
       <ConfirmDialogView
@@ -184,7 +189,7 @@ describe("ConfirmDialogView", () => {
     );
 
     screen.getByRole("button", { name: "Dismiss" }).focus();
-    await user.keyboard("{Enter}");
+    await cancelUser.keyboard("{Enter}");
 
     expect(onConfirm).toHaveBeenCalledTimes(1);
     expect(onCancel).toHaveBeenCalledTimes(1);

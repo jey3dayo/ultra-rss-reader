@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { Profiler } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { FeedTreeView } from "@/components/reader/feed-tree-view";
 import i18n from "@/lib/i18n";
@@ -222,6 +223,57 @@ describe("FeedTreeView", () => {
     expect(screen.getByRole("button", { name: /Alpha/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Beta/ })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Gamma/ })).not.toBeInTheDocument();
+  });
+
+  it("captures large feed tree render duration for the account switch smoke path", () => {
+    let renderDuration = 0;
+    const folderCount = 20;
+    const feedsPerFolder = 25;
+    const folders = Array.from({ length: folderCount }, (_, folderIndex) => ({
+      id: `folder-${folderIndex}`,
+      name: `Folder ${folderIndex}`,
+      accountId: "acc-large",
+      sortOrder: folderIndex,
+      unreadCount: feedsPerFolder,
+      isExpanded: true,
+      isSelected: false,
+      feeds: Array.from({ length: feedsPerFolder }, (_, feedIndex) => ({
+        id: `feed-${folderIndex}-${feedIndex}`,
+        accountId: "acc-large",
+        folderId: `folder-${folderIndex}`,
+        title: `Feed ${folderIndex}-${feedIndex}`,
+        url: `https://example.com/${folderIndex}/${feedIndex}.xml`,
+        siteUrl: `https://example.com/${folderIndex}/${feedIndex}`,
+        unreadCount: 1,
+        readerMode: "on" as const,
+        webPreviewMode: "off" as const,
+        isSelected: false,
+        grayscaleFavicon: false,
+      })),
+    }));
+
+    render(
+      <Profiler
+        id="large-feed-tree"
+        onRender={(_id, _phase, actualDuration) => {
+          renderDuration += actualDuration;
+        }}
+      >
+        <FeedTreeView
+          isOpen={true}
+          folders={folders}
+          unfolderedFeeds={[]}
+          onToggleFolder={vi.fn()}
+          onSelectFeed={vi.fn()}
+          displayFavicons={false}
+          emptyState={{ kind: "message", message: "No feeds yet" }}
+        />
+      </Profiler>,
+    );
+
+    expect(screen.getByRole("button", { name: /Feed 19-24/ })).toBeInTheDocument();
+    expect(renderDuration).toBeGreaterThan(0);
+    expect(Number.isFinite(renderDuration)).toBe(true);
   });
 
   it("separates folder selection from folder expansion", async () => {
