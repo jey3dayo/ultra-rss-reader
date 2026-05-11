@@ -19,7 +19,7 @@ import {
   type VisiblePreferenceDefaultKey,
 } from "@/schemas/preferences";
 import frontendSource from "@/schemas/preferences.ts?raw";
-import claudeSource from "../../../CLAUDE.md?raw";
+import preferenceRulesSource from "../../../.claude/rules/preferences-pattern.md?raw";
 import backendSource from "../../../src-tauri/src/domain/preference.rs?raw";
 
 function extractBlock(source: string, pattern: RegExp, label: string): string {
@@ -84,7 +84,7 @@ function extractPreferenceAllowlistTableKeys(source: string): string[] {
   const block = extractBlock(
     source,
     /<!-- preference-allowlist:start -->([\s\S]*?)<!-- preference-allowlist:end -->/,
-    "CLAUDE preference allowlist table",
+    "preference rule allowlist table",
   );
 
   return [...block.matchAll(/^\| `([^`]+)` \|/gm)].map((match) => match[1]);
@@ -128,10 +128,10 @@ describe("preference contract", () => {
     expect(backendAllowedKeys.toSorted()).toEqual([...frontendKeys, ...backendOwnedPreferenceKeys].toSorted());
   });
 
-  it("keeps CLAUDE preference allowlist table generated from schema and backend allowlists", () => {
+  it("keeps preference rule allowlist table generated from schema and backend allowlists", () => {
     const backendAllowedKeys = extractBackendAllowedKeys(backendSource);
     const backendShortcutKeys = extractBackendAllowedShortcutIds(backendSource).map((id) => `shortcut_${id}`);
-    const documentedKeys = extractPreferenceAllowlistTableKeys(claudeSource);
+    const documentedKeys = extractPreferenceAllowlistTableKeys(preferenceRulesSource);
 
     expect(documentedKeys).toEqual([...backendAllowedKeys, ...backendShortcutKeys]);
   });

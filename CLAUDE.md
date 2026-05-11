@@ -33,30 +33,13 @@ This file stays intentionally short and focuses on agent-facing workflow guidanc
 
 ## File Placement
 
-- Put feature-local UI in `src/components/<feature>/`.
-- Put UI reused by multiple features in `src/components/shared/`.
-- Keep shadcn/Base UI wrappers in `src/components/ui/`; do not place app-specific feature UI there.
-- Co-locate large feature controller hooks under that feature's `hooks/` directory when they are not reused elsewhere.
-- Put cross-feature data hooks in `src/hooks/` and cross-feature pure helpers in `src/lib/`.
-- Put feature-owned hooks under `src/components/<feature>/hooks/` once every runtime consumer is within that feature boundary.
-- Put article/content normalization helpers in `src/lib/content/`.
-- Put feed URL/host helpers and feed landing helpers in `src/lib/feed/`.
-- Put reader query/source planning helpers in `src/lib/reader/`.
-- Put sidebar feed grouping and smart-view helpers in `src/lib/sidebar/`.
-- Put UI-only pure helpers in `src/lib/ui/`.
-- Put Tauri/browser runtime boundary helpers in `src/lib/runtime/`.
-- Keep app-wide action boundaries at `src/lib/actions.ts` and `src/lib/app-actions.ts` when they are shared by keyboard, menu, command palette, dev scenarios, and IPC validation.
-- Keep app-wide runtime singletons and domain-neutral primitives at the `src/lib` root when no narrower feature owns them, including `i18n.ts`, `datetime.ts`, and `utils.ts`.
-- Keep cross-pane DOM focus helpers at `src/lib/reader-focus.ts`; `src/lib/reader/` is for pure reader query/source planning.
-- Put frontend-owned runtime schemas in `src/schemas/` when they validate local config, localStorage, preferences, or other non-IPC data.
-- Keep Tauri IPC request/response schemas in `src/api/schemas/`; do not mix them with local storage or app-config schemas.
+- Follow the Repository Structure section in [.claude/rules/README.md](.claude/rules/README.md) before moving code or creating new shared surfaces.
 - Treat `src-tauri/gen/schemas/` as generated Tauri capability schema output, not source. Do not hand-edit files there; change `src-tauri/capabilities/` or the owning Tauri permission/config source, rerun the Tauri CLI command that generated the schema drift, and review the resulting schema diff as generated output before committing.
-- Put cross-feature literals in `src/constants/`, and shared type-only contracts in `src/lib/*.types.ts` unless an existing feature-local type file is narrower.
 - Do not keep `.types.ts` files as dumping grounds for view-local props or hook-internal params/results. When a type is only consumed by one component or one hook, co-locate it in that file; keep `.types.ts` for contracts shared across views, hooks, stories, tests, stores, or runtime boundaries.
 - Do not move React props or hook params/results to `src/schemas/` unless they validate runtime input. Schemas are for runtime validation boundaries; component and hook types are compile-time contracts.
-- Put reusable test helpers under `tests/helpers/` and import them as `@tests/helpers/*` from frontend tests.
-- Keep sample DTO/data fixtures in `tests/helpers/fixtures.ts`, Tauri IPC mock setup in `tests/helpers/tauri-mocks.ts`, and test-only Tauri mock call contracts in `tests/helpers/tauri-types.ts`.
-- Reader-only pure helpers may stay under `src/components/reader/`; move them to `src/lib/` only when `lib`, `stores`, or another feature needs them.
+- When extracting component-local pure helpers to `src/lib/`, move only logic that is React-free, UI-copy-free, store-free, and Tauri-command-free.
+- Keep hooks, toast execution, store access, listener lifecycle, optimistic updates, component props, and view labels in the owning feature.
+- Prefer compatibility re-exports from the old feature module when tests, mocks, or nearby components still import that public surface.
 - For RTK command guidance, follow [RTK.md](RTK.md); put day-to-day project rules in `.claude/rules/`.
 
 ## Type Surface Policy
@@ -98,76 +81,7 @@ This file stays intentionally short and focuses on agent-facing workflow guidanc
 - When adding a preference, update `src/schemas/preferences.ts` schema/defaults, the Rust backend allowlist, settings UI/locale copy, and focused parity tests in the same change.
 - `selected_account_id` is backend/runtime-owned and must not be exposed as a visible settings default.
 - Shortcut preference keys are generated as `shortcut_${id}` from the shortcut definition ids and must stay aligned with Rust shortcut allowlist entries.
-- The table below is generated from `src/schemas/preferences.ts` plus the Rust preference allowlist and is covered by the preference schema contract test.
-
-<!-- preference-allowlist:start -->
-| Preference key | Source | Default owner |
-| --- | --- | --- |
-| `theme` | frontend schema | required unless hidden |
-| `language` | frontend schema | required unless hidden |
-| `unread_badge` | frontend schema | required unless hidden |
-| `open_links` | frontend schema | required unless hidden |
-| `open_links_background` | frontend schema | required unless hidden |
-| `sort_unread` | frontend schema | required unless hidden |
-| `group_by` | frontend schema | required unless hidden |
-| `cmd_click_browser` | frontend schema | required unless hidden |
-| `ask_before_mark_all` | frontend schema | required unless hidden |
-| `list_selection_style` | frontend schema | required unless hidden |
-| `sidebar_density` | frontend schema | required unless hidden |
-| `layout` | frontend schema | required unless hidden |
-| `opaque_sidebars` | frontend schema | required unless hidden |
-| `grayscale_favicons` | frontend schema | required unless hidden |
-| `font_style` | frontend schema | required unless hidden |
-| `font_size` | frontend schema | required unless hidden |
-| `show_starred_count` | frontend schema | required unless hidden |
-| `show_unread_count` | frontend schema | required unless hidden |
-| `show_sidebar_unread` | frontend schema | required unless hidden |
-| `show_sidebar_starred` | frontend schema | required unless hidden |
-| `show_sidebar_recent_articles` | frontend schema | required unless hidden |
-| `show_sidebar_tags` | frontend schema | required unless hidden |
-| `startup_folder_expansion` | frontend schema | required unless hidden |
-| `image_previews` | frontend schema | required unless hidden |
-| `display_favicons` | frontend schema | required unless hidden |
-| `text_preview` | frontend schema | required unless hidden |
-| `dim_archived` | frontend schema | required unless hidden |
-| `reader_mode_default` | frontend schema | required unless hidden |
-| `web_preview_mode_default` | frontend schema | required unless hidden |
-| `web_preview_keep_focus` | frontend schema | required unless hidden |
-| `window_always_on_top` | frontend schema | required unless hidden |
-| `reading_sort` | frontend schema | required unless hidden |
-| `after_reading` | frontend schema | required unless hidden |
-| `scroll_to_top_on_change` | frontend schema | required unless hidden |
-| `open_first_article_on_feed_selection` | frontend schema | required unless hidden |
-| `sort_subscriptions` | frontend schema | required unless hidden |
-| `sync_on_startup` | frontend schema | required unless hidden |
-| `action_copy_link` | frontend schema | required unless hidden |
-| `action_open_browser` | frontend schema | required unless hidden |
-| `mute_auto_mark_read` | frontend schema | required unless hidden |
-| `recent_articles_history_enabled` | frontend schema | required unless hidden |
-| `debug_browser_hud` | frontend schema | required unless hidden |
-| `debug_web_preview_url` | frontend schema | required unless hidden |
-| `selected_account_id` | backend-owned | backend/runtime only |
-| `shortcut_next_article` | shortcut definition | shortcutDefaults |
-| `shortcut_prev_article` | shortcut definition | shortcutDefaults |
-| `shortcut_next_feed` | shortcut definition | shortcutDefaults |
-| `shortcut_prev_feed` | shortcut definition | shortcutDefaults |
-| `shortcut_reload_webview` | shortcut definition | shortcutDefaults |
-| `shortcut_focus_sidebar` | shortcut definition | shortcutDefaults |
-| `shortcut_toggle_sidebar` | shortcut definition | shortcutDefaults |
-| `shortcut_toggle_read` | shortcut definition | shortcutDefaults |
-| `shortcut_toggle_star` | shortcut definition | shortcutDefaults |
-| `shortcut_open_in_app_browser` | shortcut definition | shortcutDefaults |
-| `shortcut_open_external_browser` | shortcut definition | shortcutDefaults |
-| `shortcut_mark_all_read` | shortcut definition | shortcutDefaults |
-| `shortcut_show_unread` | shortcut definition | shortcutDefaults |
-| `shortcut_show_all` | shortcut definition | shortcutDefaults |
-| `shortcut_show_starred` | shortcut definition | shortcutDefaults |
-| `shortcut_cycle_filter` | shortcut definition | shortcutDefaults |
-| `shortcut_search` | shortcut definition | shortcutDefaults |
-| `shortcut_open_command_palette` | shortcut definition | shortcutDefaults |
-| `shortcut_close_or_clear` | shortcut definition | shortcutDefaults |
-| `shortcut_open_settings` | shortcut definition | shortcutDefaults |
-<!-- preference-allowlist:end -->
+- The generated preference allowlist table lives in [.claude/rules/preferences-pattern.md](.claude/rules/preferences-pattern.md) and is covered by the preference schema contract test.
 
 ## Temporary Artifacts
 
@@ -199,18 +113,11 @@ This file stays intentionally short and focuses on agent-facing workflow guidanc
 
 ## MCP and Skills
 
-- For browser-only frontend debugging or view-only inspection, prefer `mise run app:dev:browser` plus the `agent-browser` skill.
-- In Codex, prefer Computer Use when you need to observe or drive desktop-app behavior beyond browser view-only inspection, including visible-state checks, screenshots, and end-to-end interaction against the development app.
-- For a running native Tauri app, prefer `tauri-mcp-server` for DOM inspection, computed style checks, and webview-level interactive UI review.
-- For native desktop UI debugging, start from `mise run app:dev`, turn on `Settings > Debug > Show layout HUD`, and inspect the running dev window with `tauri-mcp-server` rather than a packaged build or browser-only preview.
-- If Computer Use is available, use it alongside `tauri-mcp-server` for visible-state confirmation and window-level interaction while the `Debug HUD` is on-screen.
-- Use `tauri-dev-screenshot` only when you need a saved native-window PNG artifact, window chrome, or an occlusion-safe capture that Computer Use or `tauri-mcp-server` cannot provide reliably.
-- For child webview sizing, overlay shells, or logical-vs-physical pixel issues, use `tauri-webview-geometry`.
+- Browser-only UI checks: use `mise run app:dev:browser` plus the `agent-browser` skill.
+- Native desktop checks: start from `mise run app:dev`, avoid duplicate app instances, and operate the development app rather than a packaged or release build.
+- For native Tauri inspection, prefer `tauri-mcp-server` for DOM/computed-style/webview interaction and Computer Use for visible window state.
+- Use `tauri-dev-screenshot` for saved native-window PNG artifacts, and `tauri-webview-geometry` for child webview sizing or pixel-ratio issues.
 - Use the `tauri` skill when changing Tauri-facing code paths, especially filesystem and path handling from the webview.
-- Do not use `agent-browser` as a substitute for Tauri-native inspection when the bug depends on the desktop shell, IPC, window state, or embedded webview geometry.
-- Start from `mise run app:dev` before using Computer Use or `tauri-mcp-server` against the desktop app.
-- When using Computer Use for desktop debugging, always operate the development app, not a packaged or release build.
-- Before launching the development app for Computer Use, check whether it is already running and avoid multi-launching duplicate app instances.
 
 ## Feature Work Reminder
 

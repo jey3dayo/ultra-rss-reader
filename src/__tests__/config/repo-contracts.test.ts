@@ -1600,6 +1600,7 @@ describe("repository static contracts", () => {
       ".claude/rules/README.md",
       ".claude/rules/async-side-effect-policy.md",
       ".claude/rules/contract-test-policy.md",
+      ".claude/rules/preferences-pattern.md",
       ".claude/rules/quality-policy.md",
       ".claude/rules/runtime-boundary.md",
       ".claude/rules/rust-test-unwrap-policy.md",

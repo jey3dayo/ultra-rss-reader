@@ -22,6 +22,79 @@ Zustand のセレクタパターンにより、対象の pref が変わった時
 
 Preference は UI state であると同時に local persisted data でもあるため、schema normalization と persistence failure behavior を揃えないと、表示値・保存値・起動時 fallback が drift する。
 
+## Preference Allowlist
+
+この表は `src/schemas/preferences.ts` と Rust preference allowlist から生成される契約表で、preference schema contract test の対象。
+
+<!-- preference-allowlist:start -->
+| Preference key | Source | Default owner |
+| --- | --- | --- |
+| `theme` | frontend schema | required unless hidden |
+| `language` | frontend schema | required unless hidden |
+| `unread_badge` | frontend schema | required unless hidden |
+| `open_links` | frontend schema | required unless hidden |
+| `open_links_background` | frontend schema | required unless hidden |
+| `sort_unread` | frontend schema | required unless hidden |
+| `group_by` | frontend schema | required unless hidden |
+| `cmd_click_browser` | frontend schema | required unless hidden |
+| `ask_before_mark_all` | frontend schema | required unless hidden |
+| `list_selection_style` | frontend schema | required unless hidden |
+| `sidebar_density` | frontend schema | required unless hidden |
+| `layout` | frontend schema | required unless hidden |
+| `opaque_sidebars` | frontend schema | required unless hidden |
+| `grayscale_favicons` | frontend schema | required unless hidden |
+| `font_style` | frontend schema | required unless hidden |
+| `font_size` | frontend schema | required unless hidden |
+| `show_starred_count` | frontend schema | required unless hidden |
+| `show_unread_count` | frontend schema | required unless hidden |
+| `show_sidebar_unread` | frontend schema | required unless hidden |
+| `show_sidebar_starred` | frontend schema | required unless hidden |
+| `show_sidebar_recent_articles` | frontend schema | required unless hidden |
+| `show_sidebar_tags` | frontend schema | required unless hidden |
+| `startup_folder_expansion` | frontend schema | required unless hidden |
+| `image_previews` | frontend schema | required unless hidden |
+| `display_favicons` | frontend schema | required unless hidden |
+| `text_preview` | frontend schema | required unless hidden |
+| `dim_archived` | frontend schema | required unless hidden |
+| `reader_mode_default` | frontend schema | required unless hidden |
+| `web_preview_mode_default` | frontend schema | required unless hidden |
+| `web_preview_keep_focus` | frontend schema | required unless hidden |
+| `window_always_on_top` | frontend schema | required unless hidden |
+| `reading_sort` | frontend schema | required unless hidden |
+| `after_reading` | frontend schema | required unless hidden |
+| `scroll_to_top_on_change` | frontend schema | required unless hidden |
+| `open_first_article_on_feed_selection` | frontend schema | required unless hidden |
+| `sort_subscriptions` | frontend schema | required unless hidden |
+| `sync_on_startup` | frontend schema | required unless hidden |
+| `action_copy_link` | frontend schema | required unless hidden |
+| `action_open_browser` | frontend schema | required unless hidden |
+| `mute_auto_mark_read` | frontend schema | required unless hidden |
+| `recent_articles_history_enabled` | frontend schema | required unless hidden |
+| `debug_browser_hud` | frontend schema | required unless hidden |
+| `debug_web_preview_url` | frontend schema | required unless hidden |
+| `selected_account_id` | backend-owned | backend/runtime only |
+| `shortcut_next_article` | shortcut definition | shortcutDefaults |
+| `shortcut_prev_article` | shortcut definition | shortcutDefaults |
+| `shortcut_next_feed` | shortcut definition | shortcutDefaults |
+| `shortcut_prev_feed` | shortcut definition | shortcutDefaults |
+| `shortcut_reload_webview` | shortcut definition | shortcutDefaults |
+| `shortcut_focus_sidebar` | shortcut definition | shortcutDefaults |
+| `shortcut_toggle_sidebar` | shortcut definition | shortcutDefaults |
+| `shortcut_toggle_read` | shortcut definition | shortcutDefaults |
+| `shortcut_toggle_star` | shortcut definition | shortcutDefaults |
+| `shortcut_open_in_app_browser` | shortcut definition | shortcutDefaults |
+| `shortcut_open_external_browser` | shortcut definition | shortcutDefaults |
+| `shortcut_mark_all_read` | shortcut definition | shortcutDefaults |
+| `shortcut_show_unread` | shortcut definition | shortcutDefaults |
+| `shortcut_show_all` | shortcut definition | shortcutDefaults |
+| `shortcut_show_starred` | shortcut definition | shortcutDefaults |
+| `shortcut_cycle_filter` | shortcut definition | shortcutDefaults |
+| `shortcut_search` | shortcut definition | shortcutDefaults |
+| `shortcut_open_command_palette` | shortcut definition | shortcutDefaults |
+| `shortcut_close_or_clear` | shortcut definition | shortcutDefaults |
+| `shortcut_open_settings` | shortcut definition | shortcutDefaults |
+<!-- preference-allowlist:end -->
+
 ## 例
 
 ### 正しい
