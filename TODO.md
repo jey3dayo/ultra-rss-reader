@@ -71,31 +71,6 @@
   - すべての account failure を「認証情報更新」に寄せると、server URL typo や stale cache の復旧が遠回りになる
   - credential reset、server URL edit、test connection、sync_state clear、pending mutation quarantine の flow を整理する
 
-- [ ] P2 provider-side deleted feed / folder の local retention policy を account kind ごとに固定する
-  - 対象: GReader/FreshRSS sync、local repository、subscriptions UI
-  - remote で消えた feed/folder を local に残すか消すかが曖昧だと、復活・削除・OPML export の期待値が揺れる
-  - remote deleted feed、remote deleted folder、local starred article、pending mutation、manual resubscribe の contract を追加する
-
-- [ ] P2 sync scheduler fairness を many-account / one-slow-account で固定する
-  - 対象: sync scheduler、provider fetch loop
-  - 1 つの遅い account が他 account の sync を遅らせると、全体の鮮度が落ちる
-  - one slow account、many small accounts、manual sync priority、timeout, fairness order の contract を追加する
-
-- [ ] P2 partial sync success の freshness indicator を feed/account/article list で揃える
-  - 対象: sync result UI、account detail、sidebar/feed list
-  - 一部 feed だけ成功した時に account 全体を fresh と見せると、ユーザーが未更新 feed に気づけない
-  - all success、partial success、all failed、stale feed count、last successful feed sync の display policy を追加する
-
-- [ ] P2 support/debug copy に stable app/environment fingerprint を secretなしで含めるか決める
-  - 対象: diagnostics dump、support workflow、runtime platform info
-  - OS/version/app build がないと問い合わせ再現が難しいが、hostname/path/user名を含めると privacy risk になる
-  - app version、commit hash、OS family、arch、locale、timezone offset、excluded hostname の decision を追加する
-
-- [ ] P2 offline-first stale content banner を account/feed/article view で出すか決める
-  - 対象: reader UI、sync status、network error taxonomy
-  - network failure 中でも古い記事は読めるため、error toast だけでは stale content を見ていることが分かりにくい
-  - offline detected、last sync age、manual sync failed、per-feed stale、banner dismiss の policy を追加する
-
 - [ ] P2 keyboard-only recovery actions を error dialog/toast/settings debug で検証する
   - 対象: error surfaces、settings debug actions、toasts
   - 復旧導線が mouse 前提だと、キーボード操作ユーザーが backup restore/open log/retry に到達できない
@@ -121,20 +96,10 @@
   - flake を場当たり的に skip すると、未解決リスクが TODO と CI のどちらにも残らない
   - skip annotation format、TODO link、owner、expiry date、retry evidence、unskip gate の policy を追加する
 
-- [ ] P2 stale warning/banner の dismiss persistence を account/feed/session scope で決める
-  - 対象: stale content banner、sync warnings、settings diagnostics
-  - 一度閉じた warning が別 account/feed でも消えると重要な failure を見落とし、逆に毎回出ると無視される
-  - session dismiss、account scoped dismiss、feed scoped dismiss、new error reopens、manual reset の contract を追加する
-
 - [ ] P2 provider API version / server product detection を capability と diagnostics に接続する
   - 対象: GReader/FreshRSS provider、test connection、account detail
   - FreshRSS 互換 API の実装差がある場合、capability を server version/product から分けないと sync failure が増える
   - product header、version endpoint、missing capability、unknown server、diagnostics label の contract を追加する
-
-- [ ] P2 auth token expiry / refresh semantics を provider ごとに明文化する
-  - 対象: GReader/FreshRSS auth flow、credential store、sync scheduler
-  - token/session が期限切れになる provider で再ログイン/credential reuse/backoff の方針が未固定だと auth storm になる
-  - token expired、refresh success、refresh failure、credential invalid、manual reauth required の contract を追加する
 
 - [ ] P2 provider clock skew と server timestamp を sync cursor/backoff で扱う方針を決める
   - 対象: GReader cursor、sync_state、scheduler backoff
@@ -155,11 +120,6 @@
   - 対象: mark read/star/tag/mute actions、reader toolbar、context menu
   - 既読・スター・タグ操作は軽いが、undo がないと誤操作時の戻し方が UI surface ごとに違う
   - mark read reversal、star toggle、tag remove/add、bulk mark read、toast copy の policy を追加する
-
-- [ ] P2 tooltip / title attribute に secret or full URL を出さない privacy contract を作る
-  - 対象: feed URL display、account detail、debug/settings tooltips
-  - visible text を redaction しても tooltip/title に full URL や path が残ると漏れる
-  - feed URL tooltip、server URL tooltip、log path tooltip、article URL tooltip、copy action の redaction test を追加する
 
 - [ ] P2 stale closure in settings save handlers を form revision で guard する
   - 対象: settings forms、account credentials editor、shortcut settings
