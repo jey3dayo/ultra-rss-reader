@@ -6,8 +6,8 @@ use tauri::{AppHandle, Emitter, State};
 use tracing::warn;
 
 use crate::commands::dto::{
-    AccountSyncError, AccountSyncStatus, AccountSyncWarning, AppError, SyncProgressEvent,
-    SyncProgressKind, SyncProgressStage, SyncResult,
+    sync_issue_owner_for_app_error, AccountSyncError, AccountSyncStatus, AccountSyncWarning,
+    AppError, SyncProgressEvent, SyncProgressKind, SyncProgressStage, SyncResult,
 };
 use crate::commands::AppState;
 use crate::domain::account::Account;
@@ -438,6 +438,7 @@ async fn run_sync_for_accounts_with_progress(
                 failed.push(AccountSyncError {
                     account_id: account.id.as_ref().to_string(),
                     account_name: account.name.clone(),
+                    action_owner: Some(sync_issue_owner_for_app_error(&e)),
                     message: e.to_string(),
                 });
             }
@@ -508,6 +509,7 @@ pub async fn trigger_startup_sync(
             Err(error) => repair_failures.push(AccountSyncError {
                 account_id: account.id.as_ref().to_string(),
                 account_name: account.name.clone(),
+                action_owner: Some(sync_issue_owner_for_app_error(&error)),
                 message: error.to_string(),
             }),
         }
@@ -840,6 +842,7 @@ pub async fn trigger_sync_account(
             result.failed.push(AccountSyncError {
                 account_id: account.id.as_ref().to_string(),
                 account_name: name,
+                action_owner: Some(sync_issue_owner_for_app_error(&e)),
                 message: e.to_string(),
             });
             reporter.emit_account_finished(&account, false);
@@ -942,6 +945,7 @@ pub async fn trigger_sync_feed(
             result.failed.push(AccountSyncError {
                 account_id: account.id.as_ref().to_string(),
                 account_name: account.name.clone(),
+                action_owner: Some(sync_issue_owner_for_app_error(&e)),
                 message: e.to_string(),
             });
             reporter.emit_account_finished(&account, false);
@@ -1087,6 +1091,7 @@ mod tests {
             failed: vec![AccountSyncError {
                 account_id: "acc-1".to_string(),
                 account_name: "FreshRSS".to_string(),
+                action_owner: None,
                 message: "boom".to_string(),
             }],
             warnings: Vec::new(),
@@ -1167,6 +1172,7 @@ mod tests {
             failed: vec![AccountSyncError {
                 account_id: "acc-1".to_string(),
                 account_name: "FreshRSS".to_string(),
+                action_owner: None,
                 message: "boom".to_string(),
             }],
             warnings: Vec::new(),
@@ -1302,6 +1308,7 @@ mod tests {
                 .map(|id| AccountSyncError {
                     account_id: id.to_string(),
                     account_name: id.to_string(),
+                    action_owner: None,
                     message: "failed".to_string(),
                 })
                 .collect(),

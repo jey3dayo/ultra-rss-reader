@@ -663,6 +663,36 @@ describe("performUpdateCheck", () => {
     expect(useUiStore.getState().toastMessage?.message).toBe("v1.2.4 が利用可能です");
   });
 
+  it("treats cancelling the available update toast as a no-op before any artifact download starts", async () => {
+    mockDownloadAndInstallUpdate.mockResolvedValue(Result.succeed(null));
+
+    const {
+      updaterModule: { showUpdateAvailableToast },
+      useUiStore,
+    } = await getUpdaterModuleAndUiStore();
+    useUiStore.setState(useUiStore.getInitialState());
+
+    showUpdateAvailableToast("1.2.3");
+    useUiStore
+      .getState()
+      .toastMessage?.actions?.find((action) => action.label === "後で")
+      ?.onClick();
+    await flushMicrotasksAndRealTimer();
+
+    expect(mockDownloadAndInstallUpdate).not.toHaveBeenCalled();
+    expect(useUiStore.getState().toastMessage).toBeNull();
+
+    showUpdateAvailableToast("1.2.4");
+    useUiStore
+      .getState()
+      .toastMessage?.actions?.find((action) => action.label === "今すぐ更新")
+      ?.onClick();
+    await flushMicrotasksAndRealTimer();
+
+    expect(mockDownloadAndInstallUpdate).toHaveBeenCalledTimes(1);
+    expect(useUiStore.getState().toastMessage?.message).toBe("更新の準備ができました");
+  });
+
   it("keeps the prepared update pending when restart command fails", async () => {
     mockRestartApp.mockResolvedValue(Result.fail(testUserVisibleAppError("restart failed")));
 
@@ -686,6 +716,39 @@ describe("performUpdateCheck", () => {
       variant: "warning",
     });
     await useUiStore.getState().confirmDialog.onConfirm?.();
+    await flushMicrotasksAndRealTimer();
+
+    expect(useUiStore.getState().toastMessage).toMatchObject({
+      message: "再起動に失敗しました。更新の準備は完了しています。",
+      persistent: true,
+      variant: "update",
+    });
+    expect(useUiStore.getState().toastMessage?.actions?.map((action) => action.label)).toEqual([
+      "もう一度再起動",
+      "後で",
+    ]);
+  });
+
+  it("keeps the prepared update pending when restart is requested before native install exits", async () => {
+    const deferredRestart = createDeferred<ReturnType<typeof Result.fail<TestUserVisibleAppError>>>();
+    mockRestartApp.mockReturnValue(deferredRestart.promise);
+
+    const {
+      updaterModule: { showRestartToast },
+      useUiStore,
+    } = await getUpdaterModuleAndUiStore();
+    useUiStore.setState(useUiStore.getInitialState());
+
+    showRestartToast();
+    useUiStore
+      .getState()
+      .toastMessage?.actions?.find((action) => action.label === "再起動")
+      ?.onClick();
+    await useUiStore.getState().confirmDialog.onConfirm?.();
+
+    expect(mockRestartApp).toHaveBeenCalledTimes(1);
+
+    deferredRestart.resolve(Result.fail(testUserVisibleAppError("restart failed before install exit")));
     await flushMicrotasksAndRealTimer();
 
     expect(useUiStore.getState().toastMessage).toMatchObject({
@@ -1211,6 +1274,65 @@ describe("performUpdateCheck", () => {
     expect(useUiStore.getState().toastMessage).toMatchObject({
       message: "ダウンロード中… 40%",
       progress: 40,
+    });
+
+    secondDownload.resolve(Result.succeed(null));
+  });
+
+  it("ignores stale ready events from a failed install session during a retried download", async () => {
+    const firstDownload = createDeferred<ReturnType<typeof Result.fail<TestUserVisibleAppError>>>();
+    const secondDownload = createDeferred<ReturnType<typeof Result.succeed<null>>>();
+    const progressListeners: Array<(event: { payload: unknown }) => void> = [];
+    const readyListeners: Array<(event: { payload: unknown }) => void> = [];
+    mockCheckForUpdate.mockResolvedValue(Result.succeed(null));
+    mockDownloadAndInstallUpdate.mockReturnValueOnce(firstDownload.promise).mockReturnValueOnce(secondDownload.promise);
+    mockListen.mockImplementation(async (eventName: string, callback: (event: { payload: unknown }) => void) => {
+      if (eventName === "update-download-progress") {
+        progressListeners.push(callback);
+      }
+      if (eventName === "update-ready") {
+        readyListeners.push(callback);
+      }
+      return () => {};
+    });
+
+    const {
+      updaterModule: { showUpdateAvailableToast, useUpdater },
+      useUiStore,
+    } = await getUpdaterModuleAndUiStore();
+    useUiStore.setState(useUiStore.getInitialState());
+
+    renderHook(() => useUpdater());
+    await flushMicrotasksAndRealTimer();
+
+    showUpdateAvailableToast("1.2.3");
+    useUiStore
+      .getState()
+      .toastMessage?.actions?.find((action) => action.label === "今すぐ更新")
+      ?.onClick();
+    progressListeners[0]?.({ payload: { session_id: 20, percent: 100 } });
+
+    firstDownload.resolve(Result.fail(testUserVisibleAppError("install failed after download")));
+    await flushMicrotasksAndRealTimer();
+
+    showUpdateAvailableToast("1.2.4");
+    useUiStore
+      .getState()
+      .toastMessage?.actions?.find((action) => action.label === "今すぐ更新")
+      ?.onClick();
+
+    readyListeners[0]?.({ payload: { session_id: 20 } });
+    expect(useUiStore.getState().toastMessage).toMatchObject({
+      message: "ダウンロード中… 0%",
+      progress: 0,
+      variant: "update",
+    });
+
+    progressListeners[0]?.({ payload: { session_id: 21, percent: 100 } });
+    readyListeners[0]?.({ payload: { session_id: 21 } });
+    expect(useUiStore.getState().toastMessage).toMatchObject({
+      message: "更新の準備ができました",
+      variant: "update",
     });
 
     secondDownload.resolve(Result.succeed(null));

@@ -2187,6 +2187,36 @@ mod tests {
     }
 
     #[test]
+    fn map_item_to_entry_normalizes_canonical_url_with_article_link_policy() {
+        let item = GReaderItem {
+            id: "entry-1".to_string(),
+            title: Some("Canonical fallback".to_string()),
+            canonical: Some(vec![GReaderLink {
+                href: " HTTPS://Example.COM:443/Article?utm_source=reader#tracking ".to_string(),
+            }]),
+            alternate: None,
+            summary: None,
+            content: None,
+            author: None,
+            published: None,
+            updated: None,
+            timestamp_usec: None,
+            origin: Some(GReaderOrigin {
+                stream_id: "feed/https://example.com/rss".to_string(),
+                title: None,
+            }),
+            categories: vec![],
+        };
+
+        let entry = GReaderProvider::map_item_to_entry(item, None).unwrap();
+
+        assert_eq!(
+            entry.url.as_deref(),
+            Some("https://example.com/Article?utm_source=reader")
+        );
+    }
+
+    #[test]
     fn map_item_to_entry_uses_canonical_url_when_alternate_href_is_blank() {
         let item = GReaderItem {
             id: "entry-1".to_string(),

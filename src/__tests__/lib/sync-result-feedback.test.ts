@@ -1,10 +1,21 @@
 import { describe, expect, it } from "vitest";
 import {
+  getSyncIssueDiagnosticsDetails,
   getSyncWarningAccountNames,
   resolveSyncFeedbackMessage,
+  type SyncFeedbackPublicCopy,
   summarizeSyncResult,
   summarizeSyncWarnings,
 } from "@/lib/sync/sync-result-feedback";
+
+const jaPublicCopy = {
+  unknownAccountLabel: "不明なアカウント",
+  actionOwnerLabels: {
+    credential: "認証情報",
+    feed: "フィード",
+    scheduler: "スケジューラー",
+  },
+} satisfies SyncFeedbackPublicCopy;
 
 describe("sync-result-feedback", () => {
   it("summarizes an already-running sync", () => {
@@ -81,7 +92,10 @@ describe("sync-result-feedback", () => {
         ],
         warnings: [],
       }),
-    ).toEqual({ kind: "partial-failure", accounts: "FreshRSS, Unknown account" });
+    ).toEqual({
+      kind: "partial-failure",
+      accounts: "FreshRSS, Unknown account",
+    });
   });
 
   it("trims failed account names before projecting them to feedback text", () => {
@@ -91,9 +105,21 @@ describe("sync-result-feedback", () => {
         total: 3,
         succeeded: 0,
         failed: [
-          { account_id: "acc-1", account_name: "  FreshRSS  ", message: "boom" },
-          { account_id: "acc-2", account_name: "FreshRSS", message: "boom again" },
-          { account_id: "acc-3", account_name: "  Local", message: "local boom" },
+          {
+            account_id: "acc-1",
+            account_name: "  FreshRSS  ",
+            message: "boom",
+          },
+          {
+            account_id: "acc-2",
+            account_name: "FreshRSS",
+            message: "boom again",
+          },
+          {
+            account_id: "acc-3",
+            account_name: "  Local",
+            message: "local boom",
+          },
         ],
         warnings: [],
       }),
@@ -208,14 +234,79 @@ describe("sync-result-feedback", () => {
     expect(
       summarizeSyncWarnings([
         { account_id: "acc-1", account_name: "Account 1", message: "warn 1" },
-        { account_id: "acc-2", account_name: "Account 2", action_owner: "feed", message: "warn 2" },
+        {
+          account_id: "acc-2",
+          account_name: "Account 2",
+          action_owner: "feed",
+          message: "warn 2",
+        },
         { account_id: "acc-3", account_name: "Account 3", message: "warn 3" },
-        { account_id: "acc-4", account_name: "Account 4", action_owner: "credential", message: "warn 4" },
+        {
+          account_id: "acc-4",
+          account_name: "Account 4",
+          action_owner: "credential",
+          message: "warn 4",
+        },
         { account_id: "acc-5", account_name: "Account 5", message: "warn 5" },
       ]),
     ).toEqual({
       kind: "warnings",
       accounts: "Account 1, Account 2 (feed), Account 3, Account 4 (credentials) +1 more",
+    });
+  });
+
+  it("keeps many-account failure order stable and caps visible labels", () => {
+    expect(
+      summarizeSyncResult({
+        synced: true,
+        total: 6,
+        succeeded: 0,
+        failed: [
+          {
+            account_id: "acc-1",
+            account_name: "Auth Account",
+            action_owner: "credential",
+            message: "auth",
+          },
+          {
+            account_id: "acc-2",
+            account_name: "Parse Feed",
+            action_owner: "feed",
+            message: "parse",
+          },
+          {
+            account_id: "acc-3",
+            account_name: "Account 3",
+            message: "account",
+          },
+          {
+            account_id: "acc-2",
+            account_name: "Parse Feed",
+            action_owner: "feed",
+            message: "parse again",
+          },
+          {
+            account_id: "acc-4",
+            account_name: "Account 4",
+            message: "account 4",
+          },
+          {
+            account_id: "acc-5",
+            account_name: "Account 5",
+            message: "account 5",
+          },
+        ],
+        warnings: [
+          {
+            account_id: "acc-warning",
+            account_name: "Warning",
+            message: "warn",
+          },
+        ],
+      }),
+    ).toEqual({
+      kind: "partial-failure",
+      accounts: "Auth Account (credentials), Parse Feed (feed), Account 3, Account 4 +1 more",
     });
   });
 
@@ -256,6 +347,84 @@ describe("sync-result-feedback", () => {
         { account_id: "acc-3", account_name: "Local", message: "warn 3" },
       ]),
     ).toBe("Unknown account, Local");
+  });
+
+  it("keeps blank account ids out of public feedback while retaining diagnostics details", () => {
+    const warnings = [
+      {
+        account_id: "acc-deleted-1",
+        account_name: "",
+        message: "Deleted account cannot be synced",
+      },
+      {
+        account_id: "scheduler",
+        account_name: "   ",
+        action_owner: "scheduler",
+        message: "Scheduler skipped",
+      },
+    ] as const;
+
+    expect(getSyncWarningAccountNames([...warnings])).toBe("Unknown account, Unknown account (scheduler)");
+    expect(getSyncIssueDiagnosticsDetails([...warnings])).toEqual([
+      {
+        accountId: "acc-deleted-1",
+        accountName: null,
+        actionOwner: "account",
+      },
+      {
+        accountId: "scheduler",
+        accountName: null,
+        actionOwner: "scheduler",
+      },
+    ]);
+  });
+
+  it("keeps provider remote entry ids out of public warning copy", () => {
+    expect(
+      summarizeSyncWarnings([
+        {
+          account_id: "acc-1",
+          account_name: "FreshRSS",
+          action_owner: "feed",
+          kind: "retry_pending",
+          message: "Pending mutation for remote_entry_id=https://reader.example.test/token/secret-entry-id",
+        },
+      ]),
+    ).toEqual({
+      kind: "retry-pending",
+      accounts: "FreshRSS (feed)",
+    });
+  });
+
+  it("uses supplied public copy for unknown accounts and action owner labels", () => {
+    expect(
+      summarizeSyncWarnings(
+        [
+          {
+            account_id: "acc-1",
+            account_name: "",
+            action_owner: "credential",
+            message: "Credential refresh failed",
+          },
+          {
+            account_id: "acc-2",
+            account_name: "FreshRSS",
+            action_owner: "feed",
+            message: "Feed skipped",
+          },
+          {
+            account_id: "scheduler",
+            account_name: "Scheduler",
+            action_owner: "scheduler",
+            message: "Background scheduler skipped",
+          },
+        ],
+        jaPublicCopy,
+      ),
+    ).toEqual({
+      kind: "warnings",
+      accounts: "不明なアカウント (認証情報), FreshRSS (フィード), Scheduler (スケジューラー)",
+    });
   });
 
   it("summarizes warning payloads for event-driven retry notifications", () => {

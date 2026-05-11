@@ -1,6 +1,9 @@
+use unicode_normalization::UnicodeNormalization;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DisplayNameRisk {
     BidiControl,
+    Confusable,
     ZeroWidth,
 }
 
@@ -12,7 +15,7 @@ pub struct DisplayNamePolicy {
 
 pub fn normalize_display_name_for_display(name: &str) -> DisplayNamePolicy {
     let display = name.trim().to_string();
-    let risks = display
+    let mut risks = display
         .chars()
         .filter_map(|ch| {
             if is_bidi_control(ch) {
@@ -29,6 +32,11 @@ pub fn normalize_display_name_for_display(name: &str) -> DisplayNamePolicy {
             }
             risks
         });
+
+    let nfkc_display: String = display.nfkc().collect();
+    if nfkc_display != display && !risks.contains(&DisplayNameRisk::Confusable) {
+        risks.push(DisplayNameRisk::Confusable);
+    }
 
     DisplayNamePolicy { display, risks }
 }
@@ -60,7 +68,7 @@ mod tests {
         let policy = normalize_display_name_for_display("  Ｆｅｅｄ  ");
 
         assert_eq!(policy.display, "Ｆｅｅｄ");
-        assert!(policy.risks.is_empty());
+        assert_eq!(policy.risks, vec![DisplayNameRisk::Confusable]);
     }
 
     #[test]
@@ -81,11 +89,28 @@ mod tests {
 
     #[test]
     fn display_name_policy_deduplicates_risks() {
-        let policy = normalize_display_name_for_display("\u{202e}A\u{202d}\u{200b}B\u{200d}");
+        let policy = normalize_display_name_for_display("\u{202e}Ａ\u{202d}\u{200b}B\u{200d}");
 
         assert_eq!(
             policy.risks,
-            vec![DisplayNameRisk::BidiControl, DisplayNameRisk::ZeroWidth]
+            vec![
+                DisplayNameRisk::BidiControl,
+                DisplayNameRisk::ZeroWidth,
+                DisplayNameRisk::Confusable
+            ]
         );
+    }
+
+    #[test]
+    fn display_name_policy_keeps_confusable_text_and_reports_nfkc_risk() {
+        let policy = normalize_display_name_for_display("ΡayPal");
+
+        assert_eq!(policy.display, "ΡayPal");
+        assert!(policy.risks.is_empty());
+
+        let policy = normalize_display_name_for_display("① News");
+
+        assert_eq!(policy.display, "① News");
+        assert_eq!(policy.risks, vec![DisplayNameRisk::Confusable]);
     }
 }

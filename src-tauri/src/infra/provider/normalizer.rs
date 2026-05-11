@@ -405,6 +405,52 @@ mod tests {
     }
 
     #[test]
+    fn feed_entry_link_normalization_policy_preserves_query_and_punycode_but_drops_fragment() {
+        let atom = r#"<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Atom Feed</title>
+  <id>https://example.com/feed</id>
+  <updated>2026-03-27T12:00:00Z</updated>
+  <entry>
+    <title>Unicode Link</title>
+    <id>atom-unicode-link</id>
+    <updated>2026-03-27T12:00:00Z</updated>
+    <link rel="alternate" href=" https://例え.テスト:443/記事?utm_source=feed#section "/>
+  </entry>
+</feed>"#;
+
+        let entries = normalize_feed(atom.as_bytes(), "https://example.com/feed.xml").unwrap();
+
+        assert_eq!(
+            entries[0].url,
+            Some("https://xn--r8jz45g.xn--zckzah/%E8%A8%98%E4%BA%8B?utm_source=feed".to_string())
+        );
+    }
+
+    #[test]
+    fn feed_entry_link_policy_decodes_html_entities_keeps_query_and_drops_fragment() {
+        let rss = r#"<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Entity Link Feed</title>
+    <link>https://example.com/</link>
+    <item>
+      <title>Entity Link Article</title>
+      <link>https://example.com/article?utm_source=feed&amp;id=1#comments</link>
+      <guid>entity-link-article</guid>
+    </item>
+  </channel>
+</rss>"#;
+
+        let entries = normalize_feed(rss.as_bytes(), "https://example.com/feed.xml").unwrap();
+
+        assert_eq!(
+            entries[0].url,
+            Some("https://example.com/article?utm_source=feed&id=1".to_string())
+        );
+    }
+
+    #[test]
     fn article_url_skips_invalid_links() {
         let atom = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 <feed xmlns=\"http://www.w3.org/2005/Atom\">

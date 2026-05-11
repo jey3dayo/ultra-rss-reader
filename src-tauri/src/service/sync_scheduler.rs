@@ -1328,6 +1328,36 @@ mod tests {
     }
 
     #[test]
+    fn upsert_account_schedule_keeps_clock_backward_like_recent_schedule_until_due() {
+        let mut account = test_account(60);
+        account.id = AccountId("clock-backward-recovery".to_string());
+        let now = Instant::now();
+        let next_sync = now + Duration::from_secs(30);
+        let mut schedules = HashMap::from([(
+            account.id.as_ref().to_string(),
+            AccountSchedule {
+                next_sync,
+                interval: Duration::from_secs(60),
+            },
+        )]);
+
+        upsert_account_schedule(
+            &mut schedules,
+            account.id.as_ref().to_string(),
+            &account,
+            now,
+        );
+
+        let schedule = schedules
+            .get(account.id.as_ref())
+            .expect("schedule should remain");
+        assert_eq!(
+            schedule.next_sync, next_sync,
+            "scheduler must not pull a still-valid in-memory schedule forward after a small clock correction"
+        );
+    }
+
+    #[test]
     fn completed_sync_reschedule_uses_refreshed_account_interval() {
         let db = std::sync::Mutex::new(test_db());
         let mut stale_account = test_account(3_600);
@@ -1940,6 +1970,39 @@ mod tests {
     }
 
     #[test]
+    fn manual_sync_after_resume_clears_expired_scheduler_backoff() {
+        let db = std::sync::Mutex::new(test_db());
+        let account = test_account(60);
+        {
+            let db_guard = db.lock().unwrap();
+            insert_test_account(&db_guard, &account.id);
+            insert_scheduler_sync_state(
+                &db_guard,
+                &account.id,
+                3,
+                Some(&(chrono::Utc::now() - chrono::Duration::minutes(5)).to_rfc3339()),
+            );
+        }
+
+        assert!(
+            !is_in_backoff(&db, &account.id),
+            "manual sync after resume should be allowed once the retry window expired during sleep"
+        );
+
+        reset_error_count(&db, &account.id)
+            .expect("manual successful sync should clear scheduler retry state");
+
+        let db_guard = db.lock().unwrap();
+        let repo = SqliteSyncStateRepository::new(db_guard.reader());
+        let state = repo
+            .get(&account.id, SyncStateScopeKey::scheduler())
+            .expect("sync state lookup should succeed")
+            .expect("sync state should exist");
+        assert_eq!(state.error_count, 0);
+        assert_eq!(state.next_retry_at, None);
+    }
+
+    #[test]
     fn failed_account_sync_ignores_invalid_provider_retry_after_marker() {
         let db = std::sync::Mutex::new(test_db());
         let account = test_account(60);
@@ -2031,6 +2094,62 @@ mod tests {
     }
 
     #[test]
+    fn many_account_repeated_failures_keep_one_due_account_and_capped_warning_surface() {
+        let now = Instant::now();
+        let accounts = (0..32)
+            .map(|index| {
+                let mut account = test_account(60);
+                account.id = AccountId(format!("failure-account-{index:02}"));
+                account
+            })
+            .collect::<Vec<_>>();
+        let schedules = accounts
+            .iter()
+            .map(|account| {
+                (
+                    account.id.as_ref().to_string(),
+                    AccountSchedule {
+                        next_sync: now - Duration::from_secs(60),
+                        interval: Duration::from_secs(60),
+                    },
+                )
+            })
+            .collect::<HashMap<_, _>>();
+        let mut warnings = Vec::new();
+
+        let selected = select_due_accounts_for_tick(
+            &accounts,
+            &schedules,
+            now,
+            MAX_ACCOUNTS_PER_SCHEDULER_TICK,
+        );
+        for account in &accounts {
+            push_scheduler_warning(
+                &mut warnings,
+                AccountSyncWarning {
+                    account_id: account.id.as_ref().to_string(),
+                    account_name: account.name.clone(),
+                    kind: AccountSyncWarningKind::RetryScheduled,
+                    message: format!("retry later for {}", account.name),
+                    retry_at: Some("2099-01-01T00:00:00Z".to_string()),
+                    retry_in_seconds: Some(MAX_BACKOFF.as_secs()),
+                },
+            );
+        }
+
+        assert_eq!(
+            selected.len(),
+            1,
+            "many failing accounts must not all wake/sync on the same scheduler tick"
+        );
+        assert_eq!(
+            warnings.len(),
+            MAX_SCHEDULER_WARNINGS_PER_TICK,
+            "many-account repeated failure diagnostics must stay rate limited per tick"
+        );
+    }
+
+    #[test]
     fn scheduler_backoff_keeps_retryable_classification_snapshot() {
         let cases = [
             (
@@ -2049,6 +2168,27 @@ mod tests {
                     retry_after_seconds: Some(600),
                 },
                 600,
+            ),
+            (
+                "provider-forbidden-user-action",
+                AppError::UserVisible {
+                    message: "Auth error: HTTP 403 Forbidden".to_string(),
+                },
+                calculate_backoff_secs(&test_account(60), 1),
+            ),
+            (
+                "provider-legal-block-user-action",
+                AppError::UserVisible {
+                    message: "Validation error: HTTP 451 Unavailable For Legal Reasons".to_string(),
+                },
+                calculate_backoff_secs(&test_account(60), 1),
+            ),
+            (
+                "provider-temporary-block-retryable",
+                AppError::Retryable {
+                    message: "Network error: HTTP 503 Service Unavailable".to_string(),
+                },
+                calculate_backoff_secs(&test_account(60), 1),
             ),
             (
                 "auth",
@@ -2100,6 +2240,11 @@ mod tests {
             assert!(
                 is_in_backoff(&db, &account.id),
                 "backoff missing for {case_name}"
+            );
+            assert_eq!(
+                warnings[0].kind,
+                AccountSyncWarningKind::RetryScheduled,
+                "scheduler retry warning must stay separate from provider user-action classification for {case_name}"
             );
         }
     }

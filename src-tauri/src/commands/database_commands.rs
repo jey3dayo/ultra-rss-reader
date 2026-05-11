@@ -107,6 +107,7 @@ pub enum DatabaseRecoveryActionSafety {
 pub enum FilesystemRecoverySurface {
     LogDirectory,
     DatabaseBackup,
+    OpmlImport,
     OpmlExport,
     SettingsData,
     DevCredentialStore,
@@ -128,6 +129,37 @@ pub enum AtomicFileWritePolicy {
     UnsupportedUntilVersionedContract,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NativeFileDialogExtensionPolicy {
+    NotAFileDialogSurface,
+    RequireOpmlExtension,
+    RequireDatabaseExtension,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NativeFileDialogOverwritePolicy {
+    NotAFileDialogSurface,
+    OpenExistingFileOnly,
+    ConfirmBeforeReplacingExistingFile,
+    RejectExistingFileCollision,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NativeFileDialogCancelPolicy {
+    NotAFileDialogSurface,
+    NoOpSuccess,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NativeFileDialogDirectoryPolicy {
+    NotAFileDialogSurface,
+    RejectDirectorySelection,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct DatabaseRuntimeRecoveryContract {
     pub failure_kind: DatabaseRuntimeFailureKind,
@@ -142,6 +174,11 @@ pub struct FilesystemRecoveryContract {
     pub surface: FilesystemRecoverySurface,
     pub path_normalization: FilesystemPathNormalizationPolicy,
     pub atomic_write: AtomicFileWritePolicy,
+    pub dialog_extension: NativeFileDialogExtensionPolicy,
+    pub overwrite_confirmation: NativeFileDialogOverwritePolicy,
+    pub cancel_policy: NativeFileDialogCancelPolicy,
+    pub directory_policy: NativeFileDialogDirectoryPolicy,
+    pub auto_appends_extension: bool,
     pub exposes_raw_path_to_webview: bool,
 }
 
@@ -204,30 +241,74 @@ pub(crate) fn schedule_database_maintenance_action(
 pub(crate) fn filesystem_recovery_contract(
     surface: FilesystemRecoverySurface,
 ) -> FilesystemRecoveryContract {
-    let (path_normalization, atomic_write, exposes_raw_path_to_webview) = match surface {
+    let (
+        path_normalization,
+        atomic_write,
+        dialog_extension,
+        overwrite_confirmation,
+        cancel_policy,
+        directory_policy,
+        auto_appends_extension,
+        exposes_raw_path_to_webview,
+    ) = match surface {
         FilesystemRecoverySurface::LogDirectory => (
             FilesystemPathNormalizationPolicy::AppOwnedNativePath,
             AtomicFileWritePolicy::NotAWriteSurface,
+            NativeFileDialogExtensionPolicy::NotAFileDialogSurface,
+            NativeFileDialogOverwritePolicy::NotAFileDialogSurface,
+            NativeFileDialogCancelPolicy::NotAFileDialogSurface,
+            NativeFileDialogDirectoryPolicy::NotAFileDialogSurface,
+            false,
             false,
         ),
         FilesystemRecoverySurface::DatabaseBackup => (
             FilesystemPathNormalizationPolicy::AppOwnedNativePath,
             AtomicFileWritePolicy::TempFileThenRename,
+            NativeFileDialogExtensionPolicy::RequireDatabaseExtension,
+            NativeFileDialogOverwritePolicy::RejectExistingFileCollision,
+            NativeFileDialogCancelPolicy::NoOpSuccess,
+            NativeFileDialogDirectoryPolicy::RejectDirectorySelection,
+            true,
+            false,
+        ),
+        FilesystemRecoverySurface::OpmlImport => (
+            FilesystemPathNormalizationPolicy::UserSelectedNativePath,
+            AtomicFileWritePolicy::NotAWriteSurface,
+            NativeFileDialogExtensionPolicy::RequireOpmlExtension,
+            NativeFileDialogOverwritePolicy::OpenExistingFileOnly,
+            NativeFileDialogCancelPolicy::NoOpSuccess,
+            NativeFileDialogDirectoryPolicy::RejectDirectorySelection,
+            false,
             false,
         ),
         FilesystemRecoverySurface::OpmlExport => (
             FilesystemPathNormalizationPolicy::UserSelectedNativePath,
             AtomicFileWritePolicy::TempFileThenRename,
+            NativeFileDialogExtensionPolicy::RequireOpmlExtension,
+            NativeFileDialogOverwritePolicy::ConfirmBeforeReplacingExistingFile,
+            NativeFileDialogCancelPolicy::NoOpSuccess,
+            NativeFileDialogDirectoryPolicy::RejectDirectorySelection,
+            true,
             true,
         ),
         FilesystemRecoverySurface::SettingsData => (
-            FilesystemPathNormalizationPolicy::UnsupportedUntilVersionedContract,
+            FilesystemPathNormalizationPolicy::UserSelectedNativePath,
             AtomicFileWritePolicy::UnsupportedUntilVersionedContract,
+            NativeFileDialogExtensionPolicy::NotAFileDialogSurface,
+            NativeFileDialogOverwritePolicy::NotAFileDialogSurface,
+            NativeFileDialogCancelPolicy::NotAFileDialogSurface,
+            NativeFileDialogDirectoryPolicy::NotAFileDialogSurface,
+            false,
             false,
         ),
         FilesystemRecoverySurface::DevCredentialStore => (
             FilesystemPathNormalizationPolicy::AppOwnedNativePath,
             AtomicFileWritePolicy::TempFileThenRename,
+            NativeFileDialogExtensionPolicy::NotAFileDialogSurface,
+            NativeFileDialogOverwritePolicy::NotAFileDialogSurface,
+            NativeFileDialogCancelPolicy::NotAFileDialogSurface,
+            NativeFileDialogDirectoryPolicy::NotAFileDialogSurface,
+            false,
             false,
         ),
     };
@@ -236,6 +317,11 @@ pub(crate) fn filesystem_recovery_contract(
         surface,
         path_normalization,
         atomic_write,
+        dialog_extension,
+        overwrite_confirmation,
+        cancel_policy,
+        directory_policy,
+        auto_appends_extension,
         exposes_raw_path_to_webview,
     }
 }
@@ -368,7 +454,8 @@ mod tests {
         DatabaseMaintenanceScheduleDecision, DatabaseMaintenanceTrigger,
         DatabaseRecoveryActionSafety, DatabaseRuntimeFailureKind, DatabaseRuntimeRecoveryAction,
         DatabaseRuntimeRecoveryMode, FilesystemPathNormalizationPolicy, FilesystemRecoverySurface,
-        PrivateDataResetStep,
+        NativeFileDialogCancelPolicy, NativeFileDialogDirectoryPolicy,
+        NativeFileDialogExtensionPolicy, NativeFileDialogOverwritePolicy, PrivateDataResetStep,
     };
     use crate::commands::dto::AppError;
     use crate::commands::start_database_maintenance;
@@ -674,23 +761,106 @@ mod tests {
             log_dir.atomic_write,
             AtomicFileWritePolicy::NotAWriteSurface
         );
+        assert_eq!(
+            log_dir.dialog_extension,
+            NativeFileDialogExtensionPolicy::NotAFileDialogSurface
+        );
+        assert_eq!(
+            log_dir.overwrite_confirmation,
+            NativeFileDialogOverwritePolicy::NotAFileDialogSurface
+        );
+        assert_eq!(
+            log_dir.cancel_policy,
+            NativeFileDialogCancelPolicy::NotAFileDialogSurface
+        );
+        assert_eq!(
+            log_dir.directory_policy,
+            NativeFileDialogDirectoryPolicy::NotAFileDialogSurface
+        );
+        assert!(!log_dir.auto_appends_extension);
         assert!(!log_dir.exposes_raw_path_to_webview);
 
-        for surface in [
-            FilesystemRecoverySurface::DatabaseBackup,
-            FilesystemRecoverySurface::DevCredentialStore,
-        ] {
-            let contract = filesystem_recovery_contract(surface);
-            assert_eq!(
-                contract.path_normalization,
-                FilesystemPathNormalizationPolicy::AppOwnedNativePath
-            );
-            assert_eq!(
-                contract.atomic_write,
-                AtomicFileWritePolicy::TempFileThenRename
-            );
-            assert!(!contract.exposes_raw_path_to_webview);
-        }
+        let backup = filesystem_recovery_contract(FilesystemRecoverySurface::DatabaseBackup);
+        assert_eq!(
+            backup.path_normalization,
+            FilesystemPathNormalizationPolicy::AppOwnedNativePath
+        );
+        assert_eq!(
+            backup.atomic_write,
+            AtomicFileWritePolicy::TempFileThenRename
+        );
+        assert_eq!(
+            backup.dialog_extension,
+            NativeFileDialogExtensionPolicy::RequireDatabaseExtension
+        );
+        assert_eq!(
+            backup.overwrite_confirmation,
+            NativeFileDialogOverwritePolicy::RejectExistingFileCollision
+        );
+        assert_eq!(
+            backup.cancel_policy,
+            NativeFileDialogCancelPolicy::NoOpSuccess
+        );
+        assert_eq!(
+            backup.directory_policy,
+            NativeFileDialogDirectoryPolicy::RejectDirectorySelection
+        );
+        assert!(backup.auto_appends_extension);
+        assert!(!backup.exposes_raw_path_to_webview);
+
+        let dev_credentials =
+            filesystem_recovery_contract(FilesystemRecoverySurface::DevCredentialStore);
+        assert_eq!(
+            dev_credentials.path_normalization,
+            FilesystemPathNormalizationPolicy::AppOwnedNativePath
+        );
+        assert_eq!(
+            dev_credentials.atomic_write,
+            AtomicFileWritePolicy::TempFileThenRename
+        );
+        assert_eq!(
+            dev_credentials.dialog_extension,
+            NativeFileDialogExtensionPolicy::NotAFileDialogSurface
+        );
+        assert_eq!(
+            dev_credentials.overwrite_confirmation,
+            NativeFileDialogOverwritePolicy::NotAFileDialogSurface
+        );
+        assert_eq!(
+            dev_credentials.cancel_policy,
+            NativeFileDialogCancelPolicy::NotAFileDialogSurface
+        );
+        assert_eq!(
+            dev_credentials.directory_policy,
+            NativeFileDialogDirectoryPolicy::NotAFileDialogSurface
+        );
+        assert!(!dev_credentials.auto_appends_extension);
+        assert!(!dev_credentials.exposes_raw_path_to_webview);
+
+        let import = filesystem_recovery_contract(FilesystemRecoverySurface::OpmlImport);
+        assert_eq!(
+            import.path_normalization,
+            FilesystemPathNormalizationPolicy::UserSelectedNativePath
+        );
+        assert_eq!(import.atomic_write, AtomicFileWritePolicy::NotAWriteSurface);
+        assert_eq!(
+            import.dialog_extension,
+            NativeFileDialogExtensionPolicy::RequireOpmlExtension
+        );
+        assert_eq!(
+            import.overwrite_confirmation,
+            NativeFileDialogOverwritePolicy::OpenExistingFileOnly
+        );
+        assert_eq!(
+            import.cancel_policy,
+            NativeFileDialogCancelPolicy::NoOpSuccess
+        );
+        assert_eq!(
+            import.directory_policy,
+            NativeFileDialogDirectoryPolicy::RejectDirectorySelection
+        );
+        assert!(!import.auto_appends_extension);
+        assert!(!import.exposes_raw_path_to_webview);
 
         let export = filesystem_recovery_contract(FilesystemRecoverySurface::OpmlExport);
         assert_eq!(
@@ -701,17 +871,51 @@ mod tests {
             export.atomic_write,
             AtomicFileWritePolicy::TempFileThenRename
         );
+        assert_eq!(
+            export.dialog_extension,
+            NativeFileDialogExtensionPolicy::RequireOpmlExtension
+        );
+        assert_eq!(
+            export.overwrite_confirmation,
+            NativeFileDialogOverwritePolicy::ConfirmBeforeReplacingExistingFile
+        );
+        assert_eq!(
+            export.cancel_policy,
+            NativeFileDialogCancelPolicy::NoOpSuccess
+        );
+        assert_eq!(
+            export.directory_policy,
+            NativeFileDialogDirectoryPolicy::RejectDirectorySelection
+        );
+        assert!(export.auto_appends_extension);
         assert!(export.exposes_raw_path_to_webview);
 
         let settings = filesystem_recovery_contract(FilesystemRecoverySurface::SettingsData);
         assert_eq!(
             settings.path_normalization,
-            FilesystemPathNormalizationPolicy::UnsupportedUntilVersionedContract
+            FilesystemPathNormalizationPolicy::UserSelectedNativePath
         );
         assert_eq!(
             settings.atomic_write,
             AtomicFileWritePolicy::UnsupportedUntilVersionedContract
         );
+        assert_eq!(
+            settings.dialog_extension,
+            NativeFileDialogExtensionPolicy::NotAFileDialogSurface
+        );
+        assert_eq!(
+            settings.overwrite_confirmation,
+            NativeFileDialogOverwritePolicy::NotAFileDialogSurface
+        );
+        assert_eq!(
+            settings.cancel_policy,
+            NativeFileDialogCancelPolicy::NotAFileDialogSurface
+        );
+        assert_eq!(
+            settings.directory_policy,
+            NativeFileDialogDirectoryPolicy::NotAFileDialogSurface
+        );
+        assert!(!settings.auto_appends_extension);
         assert!(!settings.exposes_raw_path_to_webview);
     }
 
@@ -725,6 +929,14 @@ mod tests {
         assert_eq!(value["surface"], "database_backup");
         assert_eq!(value["path_normalization"], "app_owned_native_path");
         assert_eq!(value["atomic_write"], "temp_file_then_rename");
+        assert_eq!(value["dialog_extension"], "require_database_extension");
+        assert_eq!(
+            value["overwrite_confirmation"],
+            "reject_existing_file_collision"
+        );
+        assert_eq!(value["cancel_policy"], "no_op_success");
+        assert_eq!(value["directory_policy"], "reject_directory_selection");
+        assert_eq!(value["auto_appends_extension"], true);
         assert_eq!(value["exposes_raw_path_to_webview"], false);
     }
 

@@ -149,6 +149,30 @@ struct GReaderAccountEntriesSyncOutcome {
 
 const GREADER_REMOTE_STATE_PULL_COOLDOWN_MINUTES: i64 = 10;
 
+fn pending_mutation_retry_warning(mutation_type: PendingMutationType) -> ProviderSyncWarning {
+    ProviderSyncWarning {
+        kind: AccountSyncWarningKind::RetryPending,
+        message: format!(
+            "Local change '{}' will retry next sync.",
+            mutation_type.as_str()
+        ),
+        retry_at: None,
+        retry_in_seconds: None,
+    }
+}
+
+fn dropped_pending_mutation_warning(mutation_type: PendingMutationType) -> ProviderSyncWarning {
+    ProviderSyncWarning {
+        kind: AccountSyncWarningKind::Generic,
+        message: format!(
+            "Local change '{}' could not be sent because the feed is no longer managed by FreshRSS. Sync again after refreshing the feed.",
+            mutation_type.as_str()
+        ),
+        retry_at: None,
+        retry_in_seconds: None,
+    }
+}
+
 fn build_article_from_remote_entry(
     account: &Account,
     feed: &Feed,
@@ -972,6 +996,7 @@ async fn sync_greader_feeds(
                 pm.mutation_type.as_str(),
                 pm.remote_entry_id
             );
+            warnings.push(dropped_pending_mutation_warning(pm.mutation_type));
             let db_guard = lock_db(db)?;
             let pending_repo = SqlitePendingMutationRepository::new(db_guard.writer());
             pending_repo.delete(&[pending_mutation_id])?;
@@ -1019,16 +1044,7 @@ async fn sync_greader_feeds(
                     pm.mutation_type.as_str(),
                     pm.remote_entry_id
                 );
-                warnings.push(ProviderSyncWarning {
-                    kind: AccountSyncWarningKind::RetryPending,
-                    message: format!(
-                        "Local change '{}' for entry {} will retry next sync.",
-                        pm.mutation_type.as_str(),
-                        pm.remote_entry_id
-                    ),
-                    retry_at: None,
-                    retry_in_seconds: None,
-                });
+                warnings.push(pending_mutation_retry_warning(pm.mutation_type));
             }
         }
     }
@@ -1750,6 +1766,32 @@ mod tests {
         assert_eq!(warnings.len(), 1);
         assert_eq!(warnings[0].kind, AccountSyncWarningKind::Generic);
         assert!(warnings[0].message.contains("Stale"));
+    }
+
+    #[test]
+    fn pending_mutation_retry_warning_keeps_remote_entry_id_out_of_public_copy() {
+        let warning = pending_mutation_retry_warning(PendingMutationType::MarkRead);
+
+        assert_eq!(warning.kind, AccountSyncWarningKind::RetryPending);
+        assert_eq!(
+            warning.message,
+            "Local change 'mark_read' will retry next sync."
+        );
+        assert!(!warning.message.contains("remote_entry_id"));
+        assert!(!warning.message.contains("https://"));
+    }
+
+    #[test]
+    fn dropped_pending_mutation_warning_is_user_visible_without_remote_entry_id() {
+        let warning = dropped_pending_mutation_warning(PendingMutationType::Star);
+
+        assert_eq!(warning.kind, AccountSyncWarningKind::Generic);
+        assert_eq!(
+            warning.message,
+            "Local change 'star' could not be sent because the feed is no longer managed by FreshRSS. Sync again after refreshing the feed."
+        );
+        assert!(!warning.message.contains("remote_entry_id"));
+        assert!(!warning.message.contains("https://"));
     }
 
     #[test]

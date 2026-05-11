@@ -175,7 +175,34 @@ pub struct AccountSyncStatus {
 pub struct AccountSyncError {
     pub account_id: String,
     pub account_name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub action_owner: Option<SyncIssueOwner>,
     pub message: String,
+}
+
+#[derive(Debug, Serialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum SyncIssueOwner {
+    Account,
+    Feed,
+    Credential,
+    Scheduler,
+}
+
+pub fn sync_issue_owner_for_app_error(error: &AppError) -> SyncIssueOwner {
+    let message = error.to_string();
+    if message.starts_with("Auth error:") {
+        SyncIssueOwner::Credential
+    } else if message.starts_with("Rate limit error:")
+        || matches!(
+            error,
+            AppError::Retryable { .. } | AppError::RetryableWithMetadata { .. }
+        )
+    {
+        SyncIssueOwner::Scheduler
+    } else {
+        SyncIssueOwner::Account
+    }
 }
 
 #[derive(Debug, Serialize, Clone)]
@@ -474,9 +501,9 @@ impl From<crate::domain::article::ArticleViewHistoryItem> for ArticleDto {
 #[cfg(test)]
 mod tests {
     use super::{
-        user_facing_error_support_policy, AccountDto, AccountProviderCapabilitiesDto, AppError,
-        FeedDto, PlatformCapabilitiesDto, PlatformInfoDto, PlatformKindDto,
-        UserFacingErrorSupportPolicy,
+        sync_issue_owner_for_app_error, user_facing_error_support_policy, AccountDto,
+        AccountProviderCapabilitiesDto, AppError, FeedDto, PlatformCapabilitiesDto,
+        PlatformInfoDto, PlatformKindDto, SyncIssueOwner, UserFacingErrorSupportPolicy,
     };
     use crate::domain::error::DomainError;
 
@@ -546,6 +573,39 @@ mod tests {
                 !message.trim().is_empty(),
                 "AppError message should not be blank"
             );
+        }
+    }
+
+    #[test]
+    fn sync_issue_owner_for_app_error_separates_provider_block_recovery_surface() {
+        let cases = [
+            (
+                AppError::from(DomainError::Auth("HTTP 403 Forbidden".to_string())),
+                SyncIssueOwner::Credential,
+            ),
+            (
+                AppError::from(DomainError::RateLimitWithRetryAfter {
+                    message: "HTTP 429 Too Many Requests".to_string(),
+                    retry_after_seconds: 120,
+                }),
+                SyncIssueOwner::Scheduler,
+            ),
+            (
+                AppError::from(DomainError::Validation(
+                    "HTTP 451 Unavailable For Legal Reasons".to_string(),
+                )),
+                SyncIssueOwner::Account,
+            ),
+            (
+                AppError::from(DomainError::Network(
+                    "HTTP 503 Service Unavailable".to_string(),
+                )),
+                SyncIssueOwner::Scheduler,
+            ),
+        ];
+
+        for (error, expected_owner) in cases {
+            assert_eq!(sync_issue_owner_for_app_error(&error), expected_owner);
         }
     }
 

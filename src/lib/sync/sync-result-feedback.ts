@@ -22,45 +22,78 @@ export type SyncFeedbackMessages = {
   success: string;
 };
 
-const ACTION_OWNER_LABELS: Record<Exclude<SyncIssueOwner, "account">, string> = {
-  credential: "credentials",
-  feed: "feed",
-  scheduler: "scheduler",
+export type SyncFeedbackPublicCopy = {
+  unknownAccountLabel: string;
+  actionOwnerLabels: Record<Exclude<SyncIssueOwner, "account">, string>;
 };
 
-const MAX_SYNC_FEEDBACK_ACCOUNT_LABELS = 4;
-const UNKNOWN_ACCOUNT_LABEL = "Unknown account";
+export type SyncIssueDiagnosticsDetail = {
+  accountId: string;
+  accountName: string | null;
+  actionOwner: SyncIssueOwner;
+};
 
-function getIssueAccountName(item: AccountSyncError | AccountSyncWarning): string {
+export const DEFAULT_SYNC_FEEDBACK_PUBLIC_COPY: SyncFeedbackPublicCopy = {
+  unknownAccountLabel: "Unknown account",
+  actionOwnerLabels: {
+    credential: "credentials",
+    feed: "feed",
+    scheduler: "scheduler",
+  },
+};
+
+const DEFAULT_SYNC_FEEDBACK_PUBLIC_COPY_OPTIONS: SyncFeedbackPublicCopy = DEFAULT_SYNC_FEEDBACK_PUBLIC_COPY;
+
+const MAX_SYNC_FEEDBACK_ACCOUNT_LABELS = 4;
+
+function getIssueAccountName(item: AccountSyncError | AccountSyncWarning, copy: SyncFeedbackPublicCopy): string {
   const accountName = item.account_name.trim();
-  return accountName.length > 0 ? accountName : UNKNOWN_ACCOUNT_LABEL;
+  return accountName.length > 0 ? accountName : copy.unknownAccountLabel;
+}
+
+function getIssueDiagnosticsAccountName(item: AccountSyncError | AccountSyncWarning): string | null {
+  const accountName = item.account_name.trim();
+  return accountName.length > 0 ? accountName : null;
 }
 
 function getIssueOwner(item: AccountSyncError | AccountSyncWarning): SyncIssueOwner {
   return item.action_owner ?? "account";
 }
 
-function getIssueOwnerLabel(owner: SyncIssueOwner): string {
+function getIssueOwnerLabel(owner: SyncIssueOwner, copy: SyncFeedbackPublicCopy): string {
   if (owner === "account") {
     return "";
   }
-  return ACTION_OWNER_LABELS[owner];
+  return copy.actionOwnerLabels[owner];
 }
 
-function getIssueFeedbackLabel(item: AccountSyncError | AccountSyncWarning): string {
-  const accountName = getIssueAccountName(item);
-  const ownerLabel = getIssueOwnerLabel(getIssueOwner(item));
+function getIssueFeedbackLabel(item: AccountSyncError | AccountSyncWarning, copy: SyncFeedbackPublicCopy): string {
+  const accountName = getIssueAccountName(item, copy);
+  const ownerLabel = getIssueOwnerLabel(getIssueOwner(item), copy);
   return ownerLabel.length > 0 ? `${accountName} (${ownerLabel})` : accountName;
 }
 
-function getDistinctAccountNames(items: Array<AccountSyncError | AccountSyncWarning>): string {
-  const labels = [...new Set(items.map(getIssueFeedbackLabel))];
+function getDistinctAccountNames(
+  items: Array<AccountSyncError | AccountSyncWarning>,
+  copy: SyncFeedbackPublicCopy,
+): string {
+  const labels = [...new Set(items.map((item) => getIssueFeedbackLabel(item, copy)))];
   const visibleLabels = labels.slice(0, MAX_SYNC_FEEDBACK_ACCOUNT_LABELS);
   const omittedCount = labels.length - visibleLabels.length;
   if (omittedCount <= 0) {
     return visibleLabels.join(", ");
   }
   return `${visibleLabels.join(", ")} +${omittedCount} more`;
+}
+
+export function getSyncIssueDiagnosticsDetails(
+  items: Array<AccountSyncError | AccountSyncWarning>,
+): SyncIssueDiagnosticsDetail[] {
+  return items.map((item) => ({
+    accountId: item.account_id,
+    accountName: getIssueDiagnosticsAccountName(item),
+    actionOwner: getIssueOwner(item),
+  }));
 }
 
 function hasRetryPendingWarnings(warnings: AccountSyncWarning[]): boolean {
@@ -81,7 +114,10 @@ function getEarliestRetryWarning(warnings: AccountSyncWarning[]): AccountSyncWar
   return scheduledWarnings.find((warning) => getRetryWarningSeconds(warning) === earliestRetrySeconds);
 }
 
-export function summarizeSyncResult(result: SyncResultDto): SyncFeedback {
+export function summarizeSyncResult(
+  result: SyncResultDto,
+  copy: SyncFeedbackPublicCopy = DEFAULT_SYNC_FEEDBACK_PUBLIC_COPY_OPTIONS,
+): SyncFeedback {
   if (!result.synced) {
     return { kind: "already-in-progress" };
   }
@@ -89,29 +125,33 @@ export function summarizeSyncResult(result: SyncResultDto): SyncFeedback {
   if (result.failed.length > 0) {
     return {
       kind: "partial-failure",
-      accounts: getDistinctAccountNames(result.failed),
+      accounts: getDistinctAccountNames(result.failed, copy),
     };
   }
 
   if (result.warnings.length > 0) {
-    return summarizeSyncWarnings(result.warnings);
+    return summarizeSyncWarnings(result.warnings, copy);
   }
 
   return { kind: "success" };
 }
 
-export function getSyncWarningAccountNames(warnings: AccountSyncWarning[]): string {
-  return getDistinctAccountNames(warnings);
+export function getSyncWarningAccountNames(
+  warnings: AccountSyncWarning[],
+  copy: SyncFeedbackPublicCopy = DEFAULT_SYNC_FEEDBACK_PUBLIC_COPY_OPTIONS,
+): string {
+  return getDistinctAccountNames(warnings, copy);
 }
 
 export function summarizeSyncWarnings(
   warnings: AccountSyncWarning[],
+  copy: SyncFeedbackPublicCopy = DEFAULT_SYNC_FEEDBACK_PUBLIC_COPY_OPTIONS,
 ): Extract<SyncFeedback, { kind: "retry-scheduled" | "retry-pending" | "warnings" }> {
   const scheduledRetry = getEarliestRetryWarning(warnings);
   if (scheduledRetry) {
     return {
       kind: "retry-scheduled",
-      accounts: getDistinctAccountNames(warnings),
+      accounts: getDistinctAccountNames(warnings, copy),
       retryAt: scheduledRetry.retry_at,
       retryInSeconds: scheduledRetry.retry_in_seconds,
     };
@@ -119,7 +159,7 @@ export function summarizeSyncWarnings(
 
   return {
     kind: hasRetryPendingWarnings(warnings) ? "retry-pending" : "warnings",
-    accounts: getDistinctAccountNames(warnings),
+    accounts: getDistinctAccountNames(warnings, copy),
   };
 }
 
