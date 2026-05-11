@@ -732,7 +732,7 @@ describe("Sidebar", () => {
     fireEvent.contextMenu(await screen.findByRole("button", { name: /Recently Viewed/ }));
     fireEvent.click(await screen.findByRole("menuitem", { name: "Clear history" }));
     expect(screen.getAllByText("Clear history").length).toBeGreaterThan(0);
-    fireEvent.click(screen.getByRole("button", { name: "Clear history" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Clear history\./ }));
 
     await waitFor(() =>
       expect(commandCalls).toContainEqual({
