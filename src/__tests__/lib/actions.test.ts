@@ -110,24 +110,34 @@ function extractMenuIdConstants(source: string): ReadonlyMap<string, string> {
   return new Map([...source.matchAll(/const ([A-Z0-9_]+): &str = "([^"]+)";/g)].map((match) => [match[1], match[2]]));
 }
 
-function extractMenuActionContracts(source: string): Array<{ menuId: string; action: string }> {
-  const block = extractBlock(
-    source,
-    /fn resolve_menu_action\(menu_id: &str\) -> Option<&'static str> \{[\s\S]*?match menu_id \{([\s\S]*?)^\s*\}/m,
-    "resolve_menu_action block",
-  );
+function extractResolvedMenuTuples(
+  source: string,
+  blockPattern: RegExp,
+  blockName: string,
+  tuplePattern: RegExp,
+): Array<readonly [menuId: string, value: string]> {
+  const block = extractBlock(source, blockPattern, blockName);
   const menuIdsByConstant = extractMenuIdConstants(source);
 
-  return [...block.matchAll(/([A-Z0-9_]+) => Some\("([^"]+)"\),/g)].map((match) => {
+  return [...block.matchAll(tuplePattern)].map((match) => {
     const menuId = menuIdsByConstant.get(match[1]);
     if (!menuId) {
       throw new Error(`Could not resolve menu id constant ${match[1]}`);
     }
-    return {
-      menuId,
-      action: match[2],
-    };
+    return [menuId, match[2]] as const;
   });
+}
+
+function extractMenuActionContracts(source: string): Array<{ menuId: string; action: string }> {
+  return extractResolvedMenuTuples(
+    source,
+    /fn resolve_menu_action\(menu_id: &str\) -> Option<&'static str> \{[\s\S]*?match menu_id \{([\s\S]*?)^\s*\}/m,
+    "resolve_menu_action block",
+    /([A-Z0-9_]+) => Some\("([^"]+)"\),/g,
+  ).map(([menuId, action]) => ({
+    menuId,
+    action,
+  }));
 }
 
 function extractMenuActionPayloads(source: string): string[] {
@@ -135,23 +145,15 @@ function extractMenuActionPayloads(source: string): string[] {
 }
 
 function extractItemMenuShortcutHints(source: string): Array<{ menuId: string; shortcutHint: string }> {
-  const block = extractBlock(
+  return extractResolvedMenuTuples(
     source,
     /const ITEM_MENU_SHORTCUT_HINTS: &\[\(&str, &str\)\] = &\[([\s\S]*?)^\];/m,
     "ITEM_MENU_SHORTCUT_HINTS block",
-  );
-  const menuIdsByConstant = extractMenuIdConstants(source);
-
-  return [...block.matchAll(/\(([A-Z0-9_]+), "([^"]+)"\),/g)].map((match) => {
-    const menuId = menuIdsByConstant.get(match[1]);
-    if (!menuId) {
-      throw new Error(`Could not resolve shortcut menu id constant ${match[1]}`);
-    }
-    return {
-      menuId,
-      shortcutHint: match[2],
-    };
-  });
+    /\(([A-Z0-9_]+), "([^"]+)"\),/g,
+  ).map(([menuId, shortcutHint]) => ({
+    menuId,
+    shortcutHint,
+  }));
 }
 
 function shortcutActionToAppAction(shortcutAction: string): string {
