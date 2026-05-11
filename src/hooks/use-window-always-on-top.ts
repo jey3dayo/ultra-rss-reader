@@ -18,6 +18,42 @@ function logAlwaysOnTopFailure(error: Error): void {
   logRuntimeDiagnostic("window-always-on-top", "Failed to update window always-on-top state", error);
 }
 
+async function reconcileWindowAlwaysOnTopDrift(enabled: boolean, isLatestRequest: () => boolean): Promise<void> {
+  const reconcileResult = await setWindowAlwaysOnTop(enabled);
+  if (!isLatestRequest()) {
+    return;
+  }
+
+  if (Result.isFailure(reconcileResult)) {
+    logAlwaysOnTopFailure(Result.unwrapError(reconcileResult));
+    return;
+  }
+
+  const verifiedResult = await isWindowAlwaysOnTop();
+  if (!isLatestRequest()) {
+    return;
+  }
+
+  if (Result.isFailure(verifiedResult)) {
+    logRuntimeDiagnostic(
+      "window-always-on-top",
+      "Failed to read window always-on-top state",
+      Result.unwrapError(verifiedResult),
+    );
+    return;
+  }
+
+  const verifiedAlwaysOnTop = Result.unwrap(verifiedResult);
+  if (verifiedAlwaysOnTop !== enabled) {
+    logRuntimeDiagnostic(
+      "window-always-on-top",
+      "Window always-on-top preference drift persisted",
+      `preferred=${String(enabled)}`,
+      `actual=${String(verifiedAlwaysOnTop)}`,
+    );
+  }
+}
+
 async function verifyWindowAlwaysOnTopRuntimeState(enabled: boolean, isLatestRequest: () => boolean): Promise<void> {
   const alwaysOnTopResult = await isWindowAlwaysOnTop();
   if (!isLatestRequest()) {
@@ -41,6 +77,7 @@ async function verifyWindowAlwaysOnTopRuntimeState(enabled: boolean, isLatestReq
       `preferred=${String(enabled)}`,
       `actual=${String(actualAlwaysOnTop)}`,
     );
+    await reconcileWindowAlwaysOnTopDrift(enabled, isLatestRequest);
   }
 
   if (!enabled) {

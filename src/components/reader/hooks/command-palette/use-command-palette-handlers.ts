@@ -26,6 +26,7 @@ type UseCommandPaletteHandlersParams = {
   paletteSessionId: number;
   commandPaletteOpen?: boolean;
   canSelectArticle: (feedId: string, articleId: string) => boolean;
+  canSelectTag?: (tagId: string) => boolean;
 };
 
 type UseCommandPaletteHandlersResult = {
@@ -102,6 +103,7 @@ export function useCommandPaletteHandlers({
   paletteSessionId,
   commandPaletteOpen = true,
   canSelectArticle,
+  canSelectTag = () => true,
 }: UseCommandPaletteHandlersParams): UseCommandPaletteHandlersResult {
   const feedLandingRequestIdRef = useRef(0);
   const devScenarioRequestIdRef = useRef(0);
@@ -214,6 +216,10 @@ export function useCommandPaletteHandlers({
   }
 
   function handleTagSelect(tagId: string) {
+    if (!canSelectTag(tagId)) {
+      return;
+    }
+
     if (!tryClaimPaletteSubmit(`tag:${tagId}`)) {
       return;
     }

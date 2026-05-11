@@ -61,6 +61,7 @@ import {
   getTagArticleCounts,
   goBackBrowserWebview,
   goForwardBrowserWebview,
+  importOpml,
   listAccountArticles,
   listAccounts,
   listArticles,
@@ -92,7 +93,12 @@ import {
 } from "@/api/tauri-commands";
 import { DEFAULT_PLATFORM_INFO } from "@/constants/platform";
 import { mockArticles } from "@/dev/mock-data";
-import { DEV_MOCK_NETWORK_BOUNDARY, DEV_MOCK_PLATFORM_INFO, setupDevMocks } from "@/dev/mocks";
+import {
+  DEV_MOCK_NETWORK_BOUNDARY,
+  DEV_MOCK_PLATFORM_INFO,
+  DEV_MOCK_SIDE_EFFECT_BOUNDARY,
+  setupDevMocks,
+} from "@/dev/mocks";
 import type { BrowserWebviewBounds } from "@/lib/browser/browser-webview";
 
 type DevMockDiagnosticsTestWindow = Window & {
@@ -475,6 +481,13 @@ describe("setupDevMocks", () => {
       externalOpen: "record-only",
       browserWebview: "state-only",
       feedDiscovery: "synthetic",
+    });
+    expect(DEV_MOCK_SIDE_EFFECT_BOUNDARY).toEqual({
+      externalOpen: "record-only",
+      readingList: "record-only",
+      browserWebview: "state-only",
+      feedIntegrityCleanup: "dry-run-safe",
+      opmlImport: "explicitly-unsupported",
     });
     expect(
       Result.unwrap(await createOrUpdateBrowserWebview("https://www3.nhk.or.jp/news/html/mock.html", browserBounds)),
@@ -892,6 +905,23 @@ describe("setupDevMocks", () => {
     );
   });
 
+  it("resets browser-only external side effect records and diagnostics between mock runtime installs", async () => {
+    setupDevMocks();
+
+    Result.unwrap(await openInBrowser("https://example.com/first", false));
+    await expect(invoke("unknown_dev_command")).rejects.toThrow("[dev-mocks] Unknown command: unknown_dev_command");
+
+    expect((window as DevMockExternalOpenerTestWindow).__ULTRA_RSS_DEV_MOCK_EXTERNAL_OPENS__).toHaveLength(1);
+    expect((window as DevMockDiagnosticsTestWindow).__ULTRA_RSS_DEV_MOCK_DIAGNOSTICS__).toHaveLength(1);
+    expect(document.querySelector('[data-testid="dev-mock-diagnostics-canvas"]')).not.toBeNull();
+
+    setupDevMocks();
+
+    expect((window as DevMockExternalOpenerTestWindow).__ULTRA_RSS_DEV_MOCK_EXTERNAL_OPENS__).toEqual([]);
+    expect((window as DevMockDiagnosticsTestWindow).__ULTRA_RSS_DEV_MOCK_DIAGNOSTICS__).toEqual([]);
+    expect(document.querySelector('[data-testid="dev-mock-diagnostics-canvas"]')).toBeNull();
+  });
+
   it("validates raw browser-only IPC payloads at the mock command boundary", async () => {
     setupDevMocks();
 
@@ -914,6 +944,7 @@ describe("setupDevMocks", () => {
   it("keeps feed integrity cleanup mock responses aligned with the production DTO schema", async () => {
     setupDevMocks();
 
+    const feedsBeforeCleanup = Result.unwrap(await listFeeds("acc-freshrss"));
     const dryRun = Result.unwrap(await cleanupFeedIntegrityOrphans(true));
     const cleanup = Result.unwrap(await cleanupFeedIntegrityOrphans(false));
 
@@ -929,5 +960,19 @@ describe("setupDevMocks", () => {
       orphaned_article_count: 0,
       deleted_article_count: 0,
     });
+    expect(Result.unwrap(await listFeeds("acc-freshrss"))).toEqual(feedsBeforeCleanup);
+  });
+
+  it("keeps browser-only OPML import explicitly unsupported without mutating feeds", async () => {
+    setupDevMocks();
+
+    const feedsBeforeImport = Result.unwrap(await listFeeds("acc-freshrss"));
+    const result = await importOpml("acc-freshrss", "<opml><body /></opml>");
+
+    expect(Result.unwrapError(result)).toMatchObject({
+      type: "UserVisible",
+      message: "Browser-only dev mocks do not import OPML because it would create feeds.",
+    });
+    expect(Result.unwrap(await listFeeds("acc-freshrss"))).toEqual(feedsBeforeImport);
   });
 });

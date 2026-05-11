@@ -41,6 +41,13 @@ export const DEV_MOCK_NETWORK_BOUNDARY = {
   browserWebview: "state-only",
   feedDiscovery: "synthetic",
 } as const;
+export const DEV_MOCK_SIDE_EFFECT_BOUNDARY = {
+  externalOpen: "record-only",
+  readingList: "record-only",
+  browserWebview: "state-only",
+  feedIntegrityCleanup: "dry-run-safe",
+  opmlImport: "explicitly-unsupported",
+} as const;
 
 type MockCommandArgsSchema = z.ZodType<Record<string, unknown>>;
 const browserMockCommandArgsSchemas: CommandArgsSchemaRegistry = commandArgsSchemas satisfies Record<
@@ -1264,7 +1271,10 @@ export function setupDevMocks(): RestoreDevMocks {
         };
       case "import_opml":
         parseBrowserMockArgs("import_opml", rawIpcPayload);
-        return null;
+        throw {
+          type: "UserVisible",
+          message: "Browser-only dev mocks do not import OPML because it would create feeds.",
+        };
       case "copy_to_clipboard":
         parseBrowserMockArgs("copy_to_clipboard", rawIpcPayload);
         return null;

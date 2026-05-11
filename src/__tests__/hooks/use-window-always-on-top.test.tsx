@@ -151,15 +151,36 @@ describe("useWindowAlwaysOnTop", () => {
       prefs: { window_always_on_top: "true" },
       loaded: true,
     });
+    isAlwaysOnTopMock.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+
+    render(<HookHarness />);
+
+    await waitFor(() => {
+      expect(setAlwaysOnTopMock).toHaveBeenCalledTimes(2);
+      expect(setAlwaysOnTopMock).toHaveBeenNthCalledWith(1, true);
+      expect(setAlwaysOnTopMock).toHaveBeenNthCalledWith(2, true);
+      expect(isAlwaysOnTopMock).toHaveBeenCalledTimes(2);
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        "Window always-on-top preference drift detected",
+        "preferred=true",
+        "actual=false",
+      );
+    });
+  });
+
+  it("warns when runtime drift persists after reapplying the latest preference intent", async () => {
+    usePreferencesStore.setState({
+      prefs: { window_always_on_top: "true" },
+      loaded: true,
+    });
     isAlwaysOnTopMock.mockResolvedValue(false);
 
     render(<HookHarness />);
 
     await waitFor(() => {
-      expect(setAlwaysOnTopMock).toHaveBeenCalledWith(true);
-      expect(isAlwaysOnTopMock).toHaveBeenCalledOnce();
+      expect(setAlwaysOnTopMock).toHaveBeenCalledTimes(2);
       expect(consoleWarnSpy).toHaveBeenCalledWith(
-        "Window always-on-top preference drift detected",
+        "Window always-on-top preference drift persisted",
         "preferred=true",
         "actual=false",
       );
@@ -199,6 +220,26 @@ describe("useWindowAlwaysOnTop", () => {
       expect(consoleWarnSpy).toHaveBeenCalledWith(
         "Failed to read window always-on-top state",
         new Error("state unavailable"),
+      );
+    });
+  });
+
+  it("surfaces fullscreen state read failures after applying an enabled preference", async () => {
+    usePreferencesStore.setState({
+      prefs: { window_always_on_top: "true" },
+      loaded: true,
+    });
+    isAlwaysOnTopMock.mockResolvedValue(true);
+    isFullscreenMock.mockRejectedValue(new Error("fullscreen unavailable"));
+
+    render(<HookHarness />);
+
+    await waitFor(() => {
+      expect(setAlwaysOnTopMock).toHaveBeenCalledWith(true);
+      expect(isFullscreenMock).toHaveBeenCalledOnce();
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        "Failed to read window fullscreen state",
+        new Error("fullscreen unavailable"),
       );
     });
   });

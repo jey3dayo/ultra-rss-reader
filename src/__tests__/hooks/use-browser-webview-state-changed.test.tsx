@@ -222,6 +222,49 @@ describe("useBrowserWebviewStateChanged", () => {
     expect(clearSurfaceIssue).not.toHaveBeenCalled();
   });
 
+  it("ignores a late same-url state change from an older close-reopen generation", () => {
+    const clearSurfaceIssue = vi.fn();
+    const { result } = renderHook(() => {
+      const [browserState, setBrowserState] = useState<BrowserWebviewState | null>({
+        ...createState("https://example.com/article", true),
+        load_generation: 3,
+      });
+      const browserStateRef = useRef<BrowserWebviewState | null>(browserState);
+      browserStateRef.current = browserState;
+      const fallbackInFlightRef = useRef(false);
+
+      const handleStateChanged = useBrowserWebviewStateChanged({
+        browserStateRef,
+        fallbackInFlightRef,
+        setBrowserState,
+        clearSurfaceIssue,
+        getRequestedUrl: () => "https://example.com/article",
+      });
+
+      return { browserState, browserStateRef, handleStateChanged };
+    });
+
+    act(() => {
+      result.current.handleStateChanged({
+        url: "https://example.com/article",
+        can_go_back: true,
+        can_go_forward: true,
+        is_loading: false,
+        load_generation: 2,
+      });
+    });
+
+    expect(result.current.browserState).toEqual({
+      url: "https://example.com/article",
+      can_go_back: false,
+      can_go_forward: false,
+      is_loading: true,
+      load_generation: 3,
+    });
+    expect(result.current.browserStateRef.current).toEqual(result.current.browserState);
+    expect(clearSurfaceIssue).not.toHaveBeenCalled();
+  });
+
   it("treats a late loaded event as recovery after a load timeout surface failure", () => {
     const clearSurfaceIssue = vi.fn();
     const { result } = renderHook(() => {

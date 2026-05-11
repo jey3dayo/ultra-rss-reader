@@ -463,6 +463,59 @@ describe("ArticleTagPickerView", () => {
     expect(input).toHaveFocus();
   });
 
+  it("closes the picker when an open option list loses tags", async () => {
+    const onExpandedChange = vi.fn();
+
+    const { rerender } = render(
+      <ArticleTagPickerView
+        assignedTags={[]}
+        availableTags={[
+          { id: "tag-1", name: "Later", color: null },
+          { id: "tag-2", name: "Important", color: "#ff0000" },
+        ]}
+        newTagName=""
+        isExpanded
+        labels={{
+          addTag: "Add tag",
+          availableTags: "Available tags",
+          newTagPlaceholder: "Create tag",
+          createTag: "Create tag",
+          removeTag: (name) => `Remove tag ${name}`,
+        }}
+        onExpandedChange={onExpandedChange}
+        onNewTagNameChange={vi.fn()}
+        onAssignTag={vi.fn()}
+        onRemoveTag={vi.fn()}
+        onCreateTag={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("option", { name: "Important" })).toBeInTheDocument();
+
+    rerender(
+      <ArticleTagPickerView
+        assignedTags={[]}
+        availableTags={[{ id: "tag-1", name: "Later", color: null }]}
+        newTagName=""
+        isExpanded
+        labels={{
+          addTag: "Add tag",
+          availableTags: "Available tags",
+          newTagPlaceholder: "Create tag",
+          createTag: "Create tag",
+          removeTag: (name) => `Remove tag ${name}`,
+        }}
+        onExpandedChange={onExpandedChange}
+        onNewTagNameChange={vi.fn()}
+        onAssignTag={vi.fn()}
+        onRemoveTag={vi.fn()}
+        onCreateTag={vi.fn()}
+      />,
+    );
+
+    expect(onExpandedChange).toHaveBeenCalledWith(false);
+  });
+
   it("supports Arrow, Home, and End listbox navigation across available tags", async () => {
     const user = userEvent.setup();
 

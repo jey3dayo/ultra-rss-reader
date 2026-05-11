@@ -1,7 +1,11 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import type { BrowserWebviewState } from "@/api/tauri-commands";
-import { resolveBrowserStateForRequestedUrl, updateBrowserStateWithRef } from "../../browser-webview-state";
+import {
+  initialBrowserState,
+  resolveBrowserStateForRequestedUrl,
+  updateBrowserStateWithRef,
+} from "../../browser-webview-state";
 
 type UseBrowserWebviewRequestStateParams = {
   browserUrl: string | null;
@@ -20,9 +24,13 @@ export function useBrowserWebviewRequestState({
   setBrowserState,
   clearSurfaceIssue,
 }: UseBrowserWebviewRequestStateParams) {
+  const previousBrowserUrlRef = useRef<string | null>(browserUrl);
+
   // Keep this separate from the similar lifecycle hooks: it resets request
   // state synchronously and intentionally has no async cleanup.
   useEffect(() => {
+    const previousBrowserUrl = previousBrowserUrlRef.current;
+    previousBrowserUrlRef.current = browserUrl;
     fallbackInFlightRef.current = false;
     resetBrowserWebviewSyncState();
 
@@ -30,9 +38,13 @@ export function useBrowserWebviewRequestState({
       return;
     }
 
-    updateBrowserStateWithRef(browserStateRef, setBrowserState, (state) =>
-      resolveBrowserStateForRequestedUrl(state, browserUrl),
-    );
+    updateBrowserStateWithRef(browserStateRef, setBrowserState, (state) => {
+      if (previousBrowserUrl === null && state?.url === browserUrl) {
+        return initialBrowserState(browserUrl, state.load_generation + 1);
+      }
+
+      return resolveBrowserStateForRequestedUrl(state, browserUrl);
+    });
     clearSurfaceIssue();
   }, [
     browserStateRef,

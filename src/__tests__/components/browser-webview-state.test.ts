@@ -6,6 +6,7 @@ import {
   mergeBrowserState,
   resolveBrowserStateForRequestedUrl,
   setBrowserStateWithRef,
+  shouldIgnoreBrowserWebviewStateChangedPayload,
   updateBrowserStateWithRef,
 } from "@/components/reader/browser-webview-state";
 import { useUiStore } from "@/stores/ui-store";
@@ -182,6 +183,24 @@ describe("browser-webview-state", () => {
       is_loading: false,
       load_generation: 2,
     });
+  });
+
+  it("ignores an older same-url state event while a newer request generation is loading", () => {
+    expect(
+      shouldIgnoreBrowserWebviewStateChangedPayload(
+        browserState({
+          url: "https://example.com/article",
+          is_loading: true,
+          load_generation: 3,
+        }),
+        browserState({
+          url: "https://example.com/article",
+          is_loading: false,
+          load_generation: 2,
+        }),
+        "https://example.com/article",
+      ),
+    ).toBe(true);
   });
 
   it("detects the missing embedded browser webview error", () => {

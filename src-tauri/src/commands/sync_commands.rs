@@ -253,6 +253,33 @@ fn mark_startup_remote_state_repair_complete(db: &Mutex<DbManager>) -> Result<()
     Ok(())
 }
 
+fn startup_remote_state_repair_marker_warning(error: &AppError) -> AccountSyncWarning {
+    AccountSyncWarning {
+        account_id: "startup".to_string(),
+        account_name: "Startup sync".to_string(),
+        kind: crate::commands::dto::AccountSyncWarningKind::Generic,
+        message: format!(
+            "Startup remote-state repair completed, but the completion marker could not be saved: {error}"
+        ),
+        retry_at: None,
+        retry_in_seconds: None,
+    }
+}
+
+fn record_startup_remote_state_repair_complete(
+    db: &Mutex<DbManager>,
+    sync_result: &mut SyncResult,
+) {
+    if let Err(error) = mark_startup_remote_state_repair_complete(db) {
+        warn!(
+            "Startup remote-state repair completed but marker save failed; repair will be retried on next startup: {error}"
+        );
+        sync_result
+            .warnings
+            .push(startup_remote_state_repair_marker_warning(&error));
+    }
+}
+
 fn startup_remote_state_repair_succeeded(
     startup_sync_accounts: &[Account],
     repair_only_accounts: &[Account],
@@ -280,6 +307,14 @@ fn startup_remote_state_repair_succeeded(
         .iter()
         .filter(|account| matches!(account.kind, ProviderKind::FreshRss))
         .all(|account| !failed_ids.contains(account.id.as_ref()))
+}
+
+fn should_enable_automatic_sync_after_startup(
+    sync_result: &SyncResult,
+    startup_sync_accounts: &[Account],
+    _repair_only_accounts: &[Account],
+) -> bool {
+    sync_result.synced && !startup_sync_accounts.is_empty()
 }
 
 #[cfg(not(test))]
@@ -523,7 +558,7 @@ pub async fn trigger_startup_sync(
         }
     }
 
-    let sync_result = if startup_sync_accounts.is_empty() {
+    let mut sync_result = if startup_sync_accounts.is_empty() {
         SyncResult {
             synced: !repaired_account_ids.is_empty(),
             total: repair_only_accounts.len(),
@@ -561,13 +596,14 @@ pub async fn trigger_startup_sync(
             &sync_result,
         )
     {
-        mark_startup_remote_state_repair_complete(&state.db)?;
+        record_startup_remote_state_repair_complete(&state.db, &mut sync_result);
     }
 
-    if sync_result.synced
-        && !all_accounts.is_empty()
-        && all_accounts.iter().any(|account| account.sync_on_startup)
-    {
+    if should_enable_automatic_sync_after_startup(
+        &sync_result,
+        &startup_sync_accounts,
+        &repair_only_accounts,
+    ) {
         enable_automatic_sync(
             state.automatic_sync_enabled.as_ref(),
             state.automatic_sync_notify.as_ref(),
@@ -1390,6 +1426,84 @@ mod tests {
             &[repair_only_account],
             &[],
             &sync_result,
+        ));
+    }
+
+    #[test]
+    fn startup_remote_state_repair_marker_failure_is_reported_as_result_warning() {
+        let db = Mutex::new(DbManager::new_in_memory().unwrap());
+        let mut result = SyncResult {
+            synced: true,
+            total: 1,
+            succeeded: 1,
+            failed: Vec::new(),
+            warnings: Vec::new(),
+        };
+
+        let poison_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let _guard = db.lock().unwrap();
+            panic!("poison startup repair marker db lock");
+        }));
+        assert!(poison_result.is_err());
+
+        record_startup_remote_state_repair_complete(&db, &mut result);
+
+        assert!(result.synced);
+        assert_eq!(result.succeeded, 1);
+        assert!(result.failed.is_empty());
+        assert_eq!(result.warnings.len(), 1);
+        assert_eq!(result.warnings[0].account_id, "startup");
+        assert_eq!(result.warnings[0].account_name, "Startup sync");
+        assert_eq!(
+            result.warnings[0].kind,
+            crate::commands::dto::AccountSyncWarningKind::Generic
+        );
+        assert!(result.warnings[0]
+            .message
+            .contains("completion marker could not be saved"));
+    }
+
+    #[test]
+    fn startup_sync_enables_automatic_sync_after_any_startup_run_even_with_repair_only_failure() {
+        let startup_account = test_sync_command_account("startup-local", ProviderKind::Local, true);
+        let repair_only_account =
+            test_sync_command_account("repair-only-fresh", ProviderKind::FreshRss, false);
+        let result = SyncResult {
+            synced: true,
+            total: 2,
+            succeeded: 1,
+            failed: vec![AccountSyncError {
+                account_id: "repair-only-fresh".to_string(),
+                account_name: "repair-only-fresh".to_string(),
+                action_owner: None,
+                message: "repair failed".to_string(),
+            }],
+            warnings: Vec::new(),
+        };
+
+        assert!(should_enable_automatic_sync_after_startup(
+            &result,
+            &[startup_account],
+            &[repair_only_account],
+        ));
+    }
+
+    #[test]
+    fn startup_sync_keeps_automatic_sync_disabled_for_repair_only_run() {
+        let repair_only_account =
+            test_sync_command_account("repair-only-fresh", ProviderKind::FreshRss, false);
+        let result = SyncResult {
+            synced: true,
+            total: 1,
+            succeeded: 1,
+            failed: Vec::new(),
+            warnings: Vec::new(),
+        };
+
+        assert!(!should_enable_automatic_sync_after_startup(
+            &result,
+            &[],
+            &[repair_only_account],
         ));
     }
 

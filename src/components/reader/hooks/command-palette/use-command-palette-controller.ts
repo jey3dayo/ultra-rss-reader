@@ -67,6 +67,7 @@ export function useCommandPaletteController(): CommandPaletteControllerResult {
     recentActions,
     selectableArticleFeedIds,
     selectableArticleIds,
+    selectableTagIds,
     showRecentActions,
     showRecentResources,
     showActions,
@@ -98,6 +99,7 @@ export function useCommandPaletteController(): CommandPaletteControllerResult {
       commandPaletteOpen: open,
       canSelectArticle: (feedId, articleId) =>
         selectableArticleFeedIds.has(feedId) && selectableArticleIds.has(articleId),
+      canSelectTag: (tagId) => selectableTagIds.has(tagId),
     });
 
   return {

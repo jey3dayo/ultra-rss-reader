@@ -18,13 +18,13 @@ function toBrowserNavigationState(nextState: BrowserWebviewState | null) {
   };
 }
 
-export function initialBrowserState(url: string): BrowserWebviewState {
+export function initialBrowserState(url: string, loadGeneration = 0): BrowserWebviewState {
   return {
     url,
     can_go_back: false,
     can_go_forward: false,
     is_loading: true,
-    load_generation: 0,
+    load_generation: loadGeneration,
   };
 }
 
@@ -51,7 +51,11 @@ export function shouldIgnoreBrowserWebviewStateChangedPayload(
     return true;
   }
 
-  return Boolean(currentState?.is_loading && currentState.url === requestedUrl && payload.url !== requestedUrl);
+  if (!currentState?.is_loading || currentState.url !== requestedUrl) {
+    return false;
+  }
+
+  return payload.url !== requestedUrl || payload.load_generation < currentState.load_generation;
 }
 
 export function isMissingEmbeddedBrowserWebviewError(error: AppError) {

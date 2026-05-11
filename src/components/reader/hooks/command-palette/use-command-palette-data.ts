@@ -34,6 +34,7 @@ type UseCommandPaletteDataResult = {
   recentActions: PaletteAction[];
   selectableArticleFeedIds: ReadonlySet<string>;
   selectableArticleIds: ReadonlySet<string>;
+  selectableTagIds: ReadonlySet<string>;
   showRecentActions: boolean;
   showRecentResources: boolean;
   showActions: boolean;
@@ -158,6 +159,7 @@ export function useCommandPaletteData({
     () => new Set([...articles, ...recentArticleCandidates].map((article) => article.id)),
     [articles, recentArticleCandidates],
   );
+  const selectableTagIds = useMemo(() => new Set(tags.map((tag) => tag.id)), [tags]);
 
   const filteredActions = useMemo(
     () => filterByQuery(actions, query, { label: (action) => action.label, keywords: (action) => action.keywords }),
@@ -305,6 +307,7 @@ export function useCommandPaletteData({
     recentActions,
     selectableArticleFeedIds: currentFeedIds,
     selectableArticleIds,
+    selectableTagIds,
     showRecentActions,
     showRecentResources,
     showActions,

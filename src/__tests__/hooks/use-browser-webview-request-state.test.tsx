@@ -70,6 +70,39 @@ describe("useBrowserWebviewRequestState", () => {
     expect(result.current.browserState).toBe(initialState);
   });
 
+  it("starts a new same-url request generation after close and reopen", () => {
+    const resetBrowserWebviewSyncState = vi.fn();
+    const clearSurfaceIssue = vi.fn();
+    const initialState = createBrowserState("https://example.com/article", false, 2);
+
+    const { result, rerender } = renderHook(
+      ({ browserUrl }) => {
+        const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(initialState);
+        const browserStateRef = useRef<BrowserWebviewState | null>(browserState);
+        browserStateRef.current = browserState;
+        const fallbackInFlightRef = useRef(false);
+
+        useBrowserWebviewRequestState({
+          browserUrl,
+          browserStateRef,
+          fallbackInFlightRef,
+          resetBrowserWebviewSyncState,
+          setBrowserState,
+          clearSurfaceIssue,
+        });
+
+        return { browserState, browserStateRef };
+      },
+      { initialProps: { browserUrl: "https://example.com/article" as string | null } },
+    );
+
+    rerender({ browserUrl: null });
+    rerender({ browserUrl: "https://example.com/article" });
+
+    expect(result.current.browserState).toEqual(createBrowserState("https://example.com/article", true, 3));
+    expect(result.current.browserStateRef.current).toEqual(createBrowserState("https://example.com/article", true, 3));
+  });
+
   it("only clears retry state when the browser url is missing", () => {
     const resetBrowserWebviewSyncState = vi.fn();
     const clearSurfaceIssue = vi.fn();

@@ -543,6 +543,9 @@ mod tests {
     use super::super::http_defaults::PROVIDER_USER_AGENT;
     use super::*;
     use chrono::Utc;
+    use flate2::write::GzEncoder;
+    use flate2::Compression;
+    use std::io::Write;
     use std::sync::atomic::{AtomicUsize, Ordering};
     use tokio::io::AsyncWriteExt;
     use tokio::net::TcpListener;
@@ -1088,6 +1091,50 @@ mod tests {
         assert!(matches!(
             error,
             DomainError::Network(message) if message.contains("Feed response body exceeds")
+        ));
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn pull_entries_applies_body_limit_after_gzip_decoding() {
+        let oversized_body =
+            "x".repeat(http_defaults::PROVIDER_RESPONSE_BODY_CAP_BYTES as usize + 1);
+        let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
+        encoder
+            .write_all(oversized_body.as_bytes())
+            .expect("gzip fixture should encode");
+        let compressed_body = encoder.finish().expect("gzip fixture should finish");
+        assert!(
+            compressed_body.len() < http_defaults::PROVIDER_RESPONSE_BODY_CAP_BYTES as usize,
+            "fixture must be compressed below the cap to prove decoded size is enforced"
+        );
+
+        let mut server = mockito::Server::new_async().await;
+        let mock = server
+            .mock("GET", "/oversized-gzip.xml")
+            .with_status(200)
+            .with_body(compressed_body)
+            .with_header("content-type", "application/rss+xml")
+            .with_header("content-encoding", "gzip")
+            .create_async()
+            .await;
+
+        let provider = local_provider_allowing_private_feed_urls();
+        let scope = PullScope::Feed(FeedIdentifier::Local {
+            feed_url: format!("{}/oversized-gzip.xml", server.url()),
+        });
+
+        let error = provider
+            .pull_entries(scope, None)
+            .await
+            .expect_err("gzip-decoded feed bodies should be limited before parsing");
+
+        assert!(matches!(
+            error,
+            DomainError::Network(message) if message == format!(
+                "Feed response body exceeds {} bytes",
+                http_defaults::PROVIDER_RESPONSE_BODY_CAP_BYTES
+            )
         ));
         mock.assert_async().await;
     }

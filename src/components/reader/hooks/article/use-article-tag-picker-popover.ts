@@ -29,6 +29,7 @@ export function useArticleTagPickerPopover({
   const hasFocusedOnOpenRef = useRef(false);
   const isMountedRef = useRef(true);
   const wasExpandedRef = useRef(isExpanded);
+  const previousAvailableTagCountRef = useRef(availableTagCount);
 
   const cancelRestoreFocusFrame = useCallback(() => {
     if (restoreFocusFrameRef.current !== null) {
@@ -155,9 +156,21 @@ export function useArticleTagPickerPopover({
 
   useEffect(() => {
     if (!isExpanded) {
+      previousAvailableTagCountRef.current = availableTagCount;
       hasFocusedOnOpenRef.current = false;
     }
-  }, [isExpanded]);
+  }, [availableTagCount, isExpanded]);
+
+  useEffect(() => {
+    const previousAvailableTagCount = previousAvailableTagCountRef.current;
+    previousAvailableTagCountRef.current = availableTagCount;
+
+    if (!isExpanded || availableTagCount >= previousAvailableTagCount) {
+      return;
+    }
+
+    closePicker(true);
+  }, [availableTagCount, closePicker, isExpanded]);
 
   useEffect(() => {
     if (wasExpandedRef.current && !isExpanded) {

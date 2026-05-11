@@ -2,6 +2,7 @@ use std::time::Duration;
 
 use crate::domain::error::{DomainError, DomainResult};
 use reqwest::header::{HeaderMap, HeaderValue, CACHE_CONTROL, PRAGMA};
+use serde::de::DeserializeOwned;
 
 pub const PROVIDER_HTTP_TIMEOUT: Duration = Duration::from_secs(15);
 pub const PROVIDER_USER_AGENT: &str = "UltraRSSReader/0.1";
@@ -50,6 +51,20 @@ pub async fn response_bytes_with_decoded_cap(
     }
 
     Ok(body)
+}
+
+pub async fn response_json_with_decoded_cap<T>(
+    response: reqwest::Response,
+    cap_bytes: u64,
+    too_large_error: impl Fn() -> DomainError,
+    read_error: impl Fn(reqwest::Error) -> DomainError,
+) -> DomainResult<T>
+where
+    T: DeserializeOwned,
+{
+    let body =
+        response_bytes_with_decoded_cap(response, cap_bytes, too_large_error, read_error).await?;
+    serde_json::from_slice(&body).map_err(|error| DomainError::Parse(error.to_string()))
 }
 
 #[cfg(test)]

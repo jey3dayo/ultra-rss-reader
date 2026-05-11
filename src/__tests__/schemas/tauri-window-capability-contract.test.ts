@@ -125,6 +125,7 @@ type CapabilityPermission =
 
 const TauriCapabilityContractSchema = z.object({
   identifier: z.string().optional(),
+  webviews: z.array(z.string()).optional(),
   permissions: z.array(
     z.union([
       z.string(),
@@ -222,6 +223,25 @@ describe("tauri window capability contract", () => {
     expect(
       capability.permissions.map(permissionIdentifier).filter((permission) => permission.startsWith("mcp-bridge:")),
     ).toEqual([]);
+  });
+
+  it("keeps the embedded browser webview capability event-only", () => {
+    const capability = readDefaultCapability("browser-webview");
+
+    expect(capability.webviews).toEqual(["browser-webview"]);
+    expect(capability.permissions.map(permissionIdentifier)).toEqual(["core:event:default"]);
+  });
+
+  it("keeps release plugin permissions backed by runtime plugin initialization", () => {
+    const permissionIds = readDefaultCapability().permissions.map(permissionIdentifier);
+    const tauriLib = readWorkspaceFile("src-tauri/src/lib.rs");
+
+    expect(permissionIds).toEqual(
+      expect.arrayContaining(["opener:allow-open-url", "clipboard-manager:allow-write-text", "updater-commands"]),
+    );
+    expect(tauriLib).toContain("tauri_plugin_clipboard_manager::init()");
+    expect(tauriLib).toContain("tauri_plugin_opener::init()");
+    expect(tauriLib).toContain("tauri_plugin_updater::Builder::new().build()");
   });
 
   it("keeps Tauri command permissions split by command ownership", () => {

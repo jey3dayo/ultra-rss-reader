@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use reqwest::header::HeaderValue;
+use serde::de::DeserializeOwned;
 use serde::{Deserialize, Deserializer};
 use std::collections::{HashMap, HashSet};
 use std::fmt;
@@ -8,7 +9,7 @@ use std::fmt;
 use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::provider::*;
 
-use super::http_defaults::http_client_builder;
+use super::http_defaults::{self, http_client_builder};
 use super::normalizer::{normalize_provider_metadata_url, normalize_trusted_backend_article_url};
 use super::traits::{Credentials, FeedProvider};
 
@@ -292,6 +293,13 @@ fn valid_item_cursor_timestamp_usec(timestamp_usec: i64) -> Option<i64> {
     Some(timestamp_usec)
 }
 
+fn greader_json_body_too_large_error() -> DomainError {
+    DomainError::Network(format!(
+        "GReader JSON response body exceeds {} bytes",
+        http_defaults::PROVIDER_RESPONSE_BODY_CAP_BYTES
+    ))
+}
+
 impl GReaderProvider {
     /// Create a provider configured for FreshRSS.
     pub fn for_freshrss(server_url: &str) -> Self {
@@ -334,18 +342,30 @@ impl GReaderProvider {
         ))
     }
 
+    async fn read_json_response<T>(response: reqwest::Response) -> DomainResult<T>
+    where
+        T: DeserializeOwned,
+    {
+        http_defaults::response_json_with_decoded_cap(
+            response,
+            http_defaults::PROVIDER_RESPONSE_BODY_CAP_BYTES,
+            greader_json_body_too_large_error,
+            DomainError::from_provider_http_error,
+        )
+        .await
+    }
+
     async fn fetch_unread_count_map(&self) -> DomainResult<HashMap<String, i32>> {
         let url = self.api_url("/reader/api/0/unread-count?output=json&all=true");
-        let response: UnreadCountsResponse = self
+        let response = self
             .http_client
             .get(&url)
             .header("Authorization", self.auth_header()?)
             .send()
             .await
             .map_err(DomainError::from_provider_http_error)
-            .and_then(Self::ensure_success_response)?
-            .json()
-            .await?;
+            .and_then(Self::ensure_success_response)?;
+        let response: UnreadCountsResponse = Self::read_json_response(response).await?;
 
         Ok(response
             .unreadcounts
@@ -382,16 +402,15 @@ impl GReaderProvider {
             }
         }
 
-        let resp: StreamContentsResponse = self
+        let resp = self
             .http_client
             .get(&url)
             .header("Authorization", self.auth_header()?)
             .send()
             .await
             .map_err(DomainError::from_provider_http_error)
-            .and_then(Self::ensure_success_response)?
-            .json()
-            .await?;
+            .and_then(Self::ensure_success_response)?;
+        let resp: StreamContentsResponse = Self::read_json_response(resp).await?;
 
         let raw_item_count = resp.items.len();
         let item_timestamps = resp
@@ -497,16 +516,15 @@ impl GReaderProvider {
             url.push_str(&format!("&c={}", urlencoded(continuation)));
         }
 
-        self.http_client
+        let response = self
+            .http_client
             .get(&url)
             .header("Authorization", self.auth_header()?)
             .send()
             .await
             .map_err(DomainError::from_provider_http_error)
-            .and_then(Self::ensure_success_response)?
-            .json::<StreamItemIdsResponse>()
-            .await
-            .map_err(DomainError::from)
+            .and_then(Self::ensure_success_response)?;
+        Self::read_json_response(response).await
     }
 
     async fn pull_all_item_ids(&self, stream_id: &str) -> DomainResult<Vec<String>> {
@@ -672,16 +690,15 @@ impl FeedProvider for GReaderProvider {
 
     async fn get_subscriptions(&self) -> DomainResult<Vec<RemoteSubscription>> {
         let url = self.api_url("/reader/api/0/subscription/list?output=json");
-        let resp: SubscriptionListResponse = self
+        let resp = self
             .http_client
             .get(&url)
             .header("Authorization", self.auth_header()?)
             .send()
             .await
             .map_err(DomainError::from_provider_http_error)
-            .and_then(Self::ensure_success_response)?
-            .json()
-            .await?;
+            .and_then(Self::ensure_success_response)?;
+        let resp: SubscriptionListResponse = Self::read_json_response(resp).await?;
 
         let subscriptions = resp
             .subscriptions
@@ -709,16 +726,15 @@ impl FeedProvider for GReaderProvider {
 
     async fn get_folders(&self) -> DomainResult<Vec<RemoteFolder>> {
         let url = self.api_url("/reader/api/0/tag/list?output=json");
-        let resp: TagListResponse = self
+        let resp = self
             .http_client
             .get(&url)
             .header("Authorization", self.auth_header()?)
             .send()
             .await
             .map_err(DomainError::from_provider_http_error)
-            .and_then(Self::ensure_success_response)?
-            .json()
-            .await?;
+            .and_then(Self::ensure_success_response)?;
+        let resp: TagListResponse = Self::read_json_response(resp).await?;
 
         let folders = resp
             .tags
@@ -962,7 +978,10 @@ fn normalize_item_id(id: &str) -> String {
 mod tests {
     use super::*;
     use crate::commands::dto::AppError;
+    use flate2::write::GzEncoder;
+    use flate2::Compression;
     use std::borrow::Cow;
+    use std::io::Write;
 
     struct ProviderHttpResponseFixture<'a> {
         status: usize,
@@ -1041,6 +1060,28 @@ mod tests {
             mock.with_status(response.status)
                 .with_body(response.body.as_ref()),
             |mock, (name, value)| mock.with_header(*name, value),
+        )
+    }
+
+    fn oversized_json_body() -> String {
+        format!(
+            r#"{{ "padding": "{}" }}"#,
+            "x".repeat(http_defaults::PROVIDER_RESPONSE_BODY_CAP_BYTES as usize)
+        )
+    }
+
+    fn gzip_body(body: &str) -> Vec<u8> {
+        let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
+        encoder
+            .write_all(body.as_bytes())
+            .expect("gzip fixture should encode");
+        encoder.finish().expect("gzip fixture should finish")
+    }
+
+    fn greader_json_body_limit_error_message() -> String {
+        format!(
+            "GReader JSON response body exceeds {} bytes",
+            http_defaults::PROVIDER_RESPONSE_BODY_CAP_BYTES
         )
     }
 
@@ -2652,6 +2693,148 @@ mod tests {
             .await
             .expect_err("malformed provider JSON should surface a parse error");
         stream_mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn get_unread_count_map_rejects_oversized_json_before_parse_without_secret_diagnostics() {
+        let mut server = mockito::Server::new_async().await;
+        let token = "secret-auth-token";
+        let unread_mock = server
+            .mock("GET", "/api/greader.php/reader/api/0/unread-count")
+            .match_query(mockito::Matcher::AllOf(vec![
+                mockito::Matcher::UrlEncoded("output".into(), "json".into()),
+                mockito::Matcher::UrlEncoded("all".into(), "true".into()),
+            ]))
+            .match_header("Authorization", "GoogleLogin auth=secret-auth-token")
+            .with_status(200)
+            .with_body(oversized_json_body())
+            .with_header("content-type", "application/json")
+            .create_async()
+            .await;
+
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
+        provider.auth_token = Some(token.to_string());
+
+        let error = provider
+            .get_unread_count_map()
+            .await
+            .expect_err("oversized unread-count JSON should be rejected before parsing");
+        let message = error.to_string();
+
+        assert_eq!(
+            message,
+            format!("Network error: {}", greader_json_body_limit_error_message())
+        );
+        assert!(!message.contains(token));
+        assert!(!message.contains(&server.url()));
+        unread_mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn pull_entries_rejects_oversized_stream_contents_json_before_parse() {
+        let mut server = mockito::Server::new_async().await;
+        let stream_mock = server
+            .mock(
+                "GET",
+                mockito::Matcher::Regex(
+                    r"/api/greader.php/reader/api/0/stream/contents/.*".to_string(),
+                ),
+            )
+            .match_query(mockito::Matcher::AllOf(vec![
+                mockito::Matcher::UrlEncoded("output".into(), "json".into()),
+                mockito::Matcher::UrlEncoded("n".into(), "200".into()),
+            ]))
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_status(200)
+            .with_body(oversized_json_body())
+            .with_header("content-type", "application/json")
+            .create_async()
+            .await;
+
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
+        provider.auth_token = Some("tok".to_string());
+
+        let error = provider
+            .pull_entries(PullScope::All, None)
+            .await
+            .expect_err("oversized stream contents JSON should be rejected before parsing");
+
+        assert!(matches!(
+            error,
+            DomainError::Network(message) if message == greader_json_body_limit_error_message()
+        ));
+        stream_mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn pull_item_ids_page_rejects_oversized_json_before_parse() {
+        let mut server = mockito::Server::new_async().await;
+        let ids_mock = server
+            .mock("GET", "/api/greader.php/reader/api/0/stream/items/ids")
+            .match_query(mockito::Matcher::AllOf(vec![
+                mockito::Matcher::UrlEncoded("output".into(), "json".into()),
+                mockito::Matcher::UrlEncoded("n".into(), "10000".into()),
+                mockito::Matcher::UrlEncoded("s".into(), STATE_READ.into()),
+            ]))
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_status(200)
+            .with_body(oversized_json_body())
+            .with_header("content-type", "application/json")
+            .create_async()
+            .await;
+
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
+        provider.auth_token = Some("tok".to_string());
+
+        let result = provider.pull_item_ids_page(STATE_READ, None).await;
+        let Err(error) = result else {
+            panic!("oversized item IDs JSON should be rejected before parsing");
+        };
+
+        assert!(matches!(
+            error,
+            DomainError::Network(message) if message == greader_json_body_limit_error_message()
+        ));
+        ids_mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn get_unread_count_map_rejects_gzip_decoded_oversized_json_before_parse() {
+        let oversized_body = oversized_json_body();
+        let compressed_body = gzip_body(&oversized_body);
+        assert!(
+            compressed_body.len() < http_defaults::PROVIDER_RESPONSE_BODY_CAP_BYTES as usize,
+            "fixture must be compressed below the cap to prove decoded size is enforced"
+        );
+
+        let mut server = mockito::Server::new_async().await;
+        let unread_mock = server
+            .mock("GET", "/api/greader.php/reader/api/0/unread-count")
+            .match_query(mockito::Matcher::AllOf(vec![
+                mockito::Matcher::UrlEncoded("output".into(), "json".into()),
+                mockito::Matcher::UrlEncoded("all".into(), "true".into()),
+            ]))
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_status(200)
+            .with_body(compressed_body)
+            .with_header("content-type", "application/json")
+            .with_header("content-encoding", "gzip")
+            .create_async()
+            .await;
+
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
+        provider.auth_token = Some("tok".to_string());
+
+        let error = provider
+            .get_unread_count_map()
+            .await
+            .expect_err("gzip-decoded oversized GReader JSON should be rejected before parsing");
+
+        assert!(matches!(
+            error,
+            DomainError::Network(message) if message == greader_json_body_limit_error_message()
+        ));
+        unread_mock.assert_async().await;
     }
 
     #[tokio::test]

@@ -201,4 +201,20 @@ describe("useCommandPaletteHandlers resource history", () => {
     expect(closePalette).not.toHaveBeenCalled();
     expect(localStorage.getItem(STORAGE_KEYS.commandHistory)).toBeNull();
   });
+
+  it("does not select, close, or write history for stale tag selections", () => {
+    const closePalette = vi.fn();
+    const selectTagFromCurrentContext = vi.fn();
+    const handlers = createHandlers({
+      closePalette,
+      selectTagFromCurrentContext,
+      canSelectTag: () => false,
+    });
+
+    handlers.handleTagSelect("stale-tag");
+
+    expect(selectTagFromCurrentContext).not.toHaveBeenCalled();
+    expect(closePalette).not.toHaveBeenCalled();
+    expect(localStorage.getItem(STORAGE_KEYS.commandHistory)).toBeNull();
+  });
 });
