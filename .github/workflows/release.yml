@@ -504,9 +504,13 @@ jobs:
             process.exit(1);
           }
 
+          const targetTriple = expectedContract.matrixArgs.startsWith("--target ")
+            ? expectedContract.matrixArgs.slice("--target ".length)
+            : null;
           const bundleRoots = [
             "src-tauri/target/release/bundle",
             path.join("src-tauri/target", expectedContract.platformKey, "release/bundle"),
+            ...(targetTriple ? [path.join("src-tauri/target", targetTriple, "release/bundle")] : []),
           ];
 
           const listFiles = (directory) => {
@@ -594,9 +598,13 @@ jobs:
             process.exit(1);
           }
 
+          const targetTriple = expectedContract.matrixArgs.startsWith("--target ")
+            ? expectedContract.matrixArgs.slice("--target ".length)
+            : null;
           const bundleRoots = [
             "src-tauri/target/release/bundle",
             path.join("src-tauri/target", expectedContract.platformKey, "release/bundle"),
+            ...(targetTriple ? [path.join("src-tauri/target", targetTriple, "release/bundle")] : []),
           ];
           const listFiles = (directory) => {
             if (!fs.existsSync(directory)) {
