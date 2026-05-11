@@ -46,11 +46,6 @@
 
 ### Browser WebView / Runtime Diagnostics
 
-- [ ] P2 `robots` / provider block response を sync backoff と user action で分ける
-  - 対象: local provider sync、`src-tauri/src/service/sync_scheduler.rs`, sync result UI
-  - 403/429/451/503 を同じ failure として扱うと、backoff・toast・manual retry の意味がずれる
-  - 403 forbidden、429 retry-after、451 unavailable legal、503 temporary、manual retry allowed の期待値を固定する
-
 - [ ] P2 article canonical URL と feed entry link の normalization policy を決める
   - 対象: provider normalizer、article schemas、external opener
   - tracking query、fragment、relative link、HTML entity decode の扱いが未固定だと dedupe と opener がずれる
@@ -95,11 +90,6 @@
   - 対象: `src-tauri/src/service/sync_scheduler.rs`, sync settings, diagnostics
   - 多数 account が失敗し続けると backoff があっても wake/check/log が増えて desktop app の常駐負荷になる
   - many accounts、continuous auth failure、network offline、scheduler sleep、log rate limit の contract を追加する
-
-- [ ] P2 offline/online signal と native network error classification の関係を決める
-  - 対象: frontend runtime boundary、sync trigger UI、domain network error
-  - `navigator.onLine` と Rust HTTP error が食い違うと、manual sync button や toast が誤った復旧案を出す
-  - online false、online true but DNS failure、captive portal、manual retry、sync scheduler の期待値を固定する
 
 - [ ] P2 image/fallback favicon cache eviction を account/feed deletion と同期する
   - 対象: favicon/image cache helpers、feed deletion flow、storage cleanup
