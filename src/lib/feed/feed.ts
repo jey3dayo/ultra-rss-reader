@@ -1,4 +1,5 @@
 import { Result } from "@praha/byethrow";
+import { isPrivateIpv4Host } from "@/lib/runtime/host-privacy";
 
 /**
  * Returns the preferred link target for a feed website action.
@@ -57,39 +58,6 @@ export function extractSiteHost(siteUrl: string, feedUrl: string): Result.Result
   }
 
   return Result.fail({ type: "invalid_url", value: invalidUrl });
-}
-
-function isPrivateIpv4Host(host: string): boolean {
-  const octets = host.split(".");
-  if (octets.length !== 4) {
-    return false;
-  }
-
-  const parsedOctets = octets.map((octet) => {
-    if (!/^\d{1,3}$/.test(octet)) {
-      return null;
-    }
-
-    const value = Number(octet);
-    return value >= 0 && value <= 255 ? value : null;
-  });
-  if (parsedOctets.some((octet) => octet === null)) {
-    return false;
-  }
-
-  const [first = null, second = null] = parsedOctets;
-  if (first === null || second === null) {
-    return false;
-  }
-
-  return (
-    first === 0 ||
-    first === 10 ||
-    first === 127 ||
-    (first === 169 && second === 254) ||
-    (first === 172 && second >= 16 && second <= 31) ||
-    (first === 192 && second === 168)
-  );
 }
 
 function normalizeHostForPrivacyPolicy(host: string): string {
