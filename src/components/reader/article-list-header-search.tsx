@@ -7,6 +7,7 @@ type ArticleListHeaderSearchProps = {
   searchQuery: string;
   searchArticlesLabel: string;
   searchArticlesPlaceholder: string;
+  searchArticlesDescription: string;
   onSearchQueryChange: (query: string) => void;
   onCloseSearch: () => void;
   onRestoreSearchToggleFocus: () => void;
@@ -17,6 +18,7 @@ export function ArticleListHeaderSearch({
   searchQuery,
   searchArticlesLabel,
   searchArticlesPlaceholder,
+  searchArticlesDescription,
   onSearchQueryChange,
   onCloseSearch,
   onRestoreSearchToggleFocus,
@@ -54,6 +56,7 @@ export function ArticleListHeaderSearch({
           }
         }}
         aria-label={searchArticlesLabel}
+        aria-description={searchArticlesDescription}
         placeholder={searchArticlesPlaceholder}
       />
     </div>

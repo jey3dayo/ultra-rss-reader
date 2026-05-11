@@ -68,6 +68,8 @@ type SettingsModalPreloadState = "idle" | "pending" | "succeeded" | "retrying" |
 const SETTINGS_MODAL_PRELOAD_RETRY_DELAY_MS = 250;
 const SETTINGS_MODAL_PRELOAD_FAILURE_TOAST = "設定画面の読み込みに失敗しました。アプリの再読み込みを試してください。";
 const LAZY_CHUNK_FAILURE_TOAST = "画面の読み込みに失敗しました。アプリの再読み込みを試してください。";
+const MAIN_WINDOW_CLOSE_BLOCKED_EVENT = "main-window-close-blocked";
+const MAIN_WINDOW_CLOSE_BLOCKED_TOAST = "未保存または実行中の処理があるため、終了前に確認してください。";
 let settingsModalPreloadState: SettingsModalPreloadState = "idle";
 let settingsModalPreloadRetryTimer: ReturnType<typeof setTimeout> | null = null;
 let settingsModalPreloadGeneration = 0;
@@ -604,6 +606,26 @@ export function AppShell() {
     return () => {
       window.removeEventListener(TAURI_EVENT_LISTENER_FAILURE_EVENT, handleTauriEventListenerFailure);
     };
+  }, []);
+
+  useEffect(() => {
+    return attachTauriListeners(
+      [
+        listen<void>(MAIN_WINDOW_CLOSE_BLOCKED_EVENT, () => {
+          const { getNativeLifecycleBlockerSnapshot, showToast } = useUiStore.getState();
+          const blockerSnapshot = getNativeLifecycleBlockerSnapshot();
+          showToast({
+            message: MAIN_WINDOW_CLOSE_BLOCKED_TOAST,
+            persistent: blockerSnapshot.dirty || blockerSnapshot.pending,
+          });
+        }),
+      ],
+      {
+        onUnavailable: () => {
+          // browser mode / non-tauri
+        },
+      },
+    );
   }, []);
 
   return (

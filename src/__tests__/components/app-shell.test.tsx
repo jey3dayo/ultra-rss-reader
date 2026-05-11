@@ -453,6 +453,43 @@ describe("AppShell", () => {
     expect(tauriEventNames).not.toContain("tauri://drag-leave");
   });
 
+  it("surfaces native close blocks through the dirty and pending lifecycle registry", async () => {
+    render(<AppShell />, { wrapper: createWrapper() });
+
+    const closeBlockedCall = vi
+      .mocked(listen)
+      .mock.calls.find(([eventName]) => eventName === "main-window-close-blocked");
+    const closeBlockedListener = closeBlockedCall?.[1];
+    if (!closeBlockedListener) {
+      throw new Error("Expected main window close blocked listener");
+    }
+
+    act(() => {
+      useUiStore.getState().setNativeLifecycleBlocker({
+        owner: "settings",
+        dirty: true,
+        pending: false,
+      });
+      useUiStore.getState().setNativeLifecycleBlocker({
+        owner: "sync",
+        dirty: false,
+        pending: true,
+      });
+      closeBlockedListener({
+        event: "main-window-close-blocked",
+        id: 1,
+        payload: undefined,
+      });
+    });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().toastMessage).toEqual({
+        message: "未保存または実行中の処理があるため、終了前に確認してください。",
+        persistent: true,
+      });
+    });
+  });
+
   it("uses overlay titlebar helper classes on first render when tauri is available and mac platform info is still unknown", () => {
     const originalTauriInternalsDescriptor = Object.getOwnPropertyDescriptor(window, "__TAURI_INTERNALS__");
     const restorePlatform = stubNavigatorPlatform({ platform: "MacIntel" });
@@ -881,8 +918,13 @@ describe("AppShell", () => {
   });
 
   it("keeps native browser input traces scoped to the debug HUD lifecycle", async () => {
+    const cleanupNativeLifecycleCloseBlocked = vi.fn();
     const cleanupBrowserInputTrace = vi.fn();
-    vi.mocked(listen).mockImplementation(() => Promise.resolve(cleanupBrowserInputTrace));
+    vi.mocked(listen).mockImplementation((eventName) =>
+      Promise.resolve(
+        eventName === "browser-webview-debug-input" ? cleanupBrowserInputTrace : cleanupNativeLifecycleCloseBlocked,
+      ),
+    );
     const hiddenHudRender = render(<AppShell />, { wrapper: createWrapper() });
 
     expect(vi.mocked(listen)).not.toHaveBeenCalledWith("browser-webview-debug-input", expect.any(Function));
@@ -914,22 +956,29 @@ describe("AppShell", () => {
     unmount();
     expect(screen.queryByText("native-click target=webview")).not.toBeInTheDocument();
     expect(cleanupBrowserInputTrace).toHaveBeenCalledTimes(1);
+    expect(cleanupNativeLifecycleCloseBlocked).toHaveBeenCalledTimes(2);
   });
 
   it("keeps route and settings modal transitions from accumulating debug HUD Tauri listeners", async () => {
     const activeListeners = new Set<string>();
+    const activeDebugHudListeners = new Set<string>();
     vi.mocked(listen).mockImplementation((eventName) => {
       const listenerKey = `${eventName}:${vi.mocked(listen).mock.calls.length}`;
       activeListeners.add(listenerKey);
+      if (eventName === "browser-webview-debug-input") {
+        activeDebugHudListeners.add(listenerKey);
+      }
       return Promise.resolve(() => {
         activeListeners.delete(listenerKey);
+        activeDebugHudListeners.delete(listenerKey);
       });
     });
 
     const { rerender, unmount } = renderAppShellWithDebugHud();
 
     await waitFor(() => {
-      expect(activeListeners.size).toBe(1);
+      expect(activeDebugHudListeners.size).toBe(1);
+      expect(activeListeners.size).toBe(2);
     });
 
     act(() => {
@@ -938,7 +987,8 @@ describe("AppShell", () => {
     rerender(<AppShell />);
     await waitFor(() => {
       expect(screen.getByText("Settings Modal")).toBeInTheDocument();
-      expect(activeListeners.size).toBe(1);
+      expect(activeDebugHudListeners.size).toBe(1);
+      expect(activeListeners.size).toBe(2);
     });
 
     act(() => {
@@ -946,7 +996,8 @@ describe("AppShell", () => {
     });
     rerender(<AppShell />);
     await waitFor(() => {
-      expect(activeListeners.size).toBe(1);
+      expect(activeDebugHudListeners.size).toBe(1);
+      expect(activeListeners.size).toBe(2);
     });
 
     unmount();

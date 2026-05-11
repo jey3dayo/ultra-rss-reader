@@ -9,6 +9,7 @@ type ArticleListHeaderLabels = {
   searchArticlesButtonText: string;
   closeSearchLabel: string;
   searchArticlesPlaceholder: string;
+  searchArticlesDescription?: string;
 };
 
 export type ArticleListHeaderProps = {
@@ -78,6 +79,7 @@ export function ArticleListHeader({
           searchQuery={searchQuery}
           searchArticlesLabel={labels.searchArticlesLabel}
           searchArticlesPlaceholder={labels.searchArticlesPlaceholder}
+          searchArticlesDescription={labels.searchArticlesDescription ?? ""}
           onSearchQueryChange={onSearchQueryChange}
           onCloseSearch={onCloseSearch}
           onRestoreSearchToggleFocus={restoreSearchToggleFocus}

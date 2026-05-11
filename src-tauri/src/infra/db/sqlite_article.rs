@@ -230,6 +230,8 @@ pub(super) fn article_body_text(value: &str, summary: Option<&str>) -> String {
 }
 
 fn build_fts_query(query: &str) -> Option<String> {
+    // Search treats every whitespace-separated token as literal text. FTS5
+    // operators, quotes, and prefix markers are intentionally not user syntax.
     let terms = query
         .split_whitespace()
         .filter(|term| !term.is_empty())
@@ -3591,7 +3593,10 @@ mod tests {
 
         let quoted = make_article(&feed_id, "Rust \"Guide\"");
         let punctuated = make_article(&feed_id, "SQLite NEAR(search) notes");
-        repo.upsert(&[quoted, punctuated]).unwrap();
+        let operator = make_article(&feed_id, "FTS OR operator");
+        let prefix_marker = make_article(&feed_id, "Prefix star* marker");
+        repo.upsert(&[quoted, punctuated, operator, prefix_marker])
+            .unwrap();
 
         let quoted_results = repo
             .search(&account_id, "\"Guide\"", &Pagination::default())
@@ -3599,11 +3604,34 @@ mod tests {
         let punctuated_results = repo
             .search(&account_id, "NEAR(search)", &Pagination::default())
             .unwrap();
+        let operator_results = repo
+            .search(&account_id, "OR", &Pagination::default())
+            .unwrap();
+        let prefix_results = repo
+            .search(&account_id, "star*", &Pagination::default())
+            .unwrap();
 
         assert_eq!(quoted_results.len(), 1);
         assert_eq!(quoted_results[0].title, "Rust \"Guide\"");
         assert_eq!(punctuated_results.len(), 1);
         assert_eq!(punctuated_results[0].title, "SQLite NEAR(search) notes");
+        assert_eq!(operator_results.len(), 1);
+        assert_eq!(operator_results[0].title, "FTS OR operator");
+        assert_eq!(prefix_results.len(), 1);
+        assert_eq!(prefix_results[0].title, "Prefix star* marker");
+    }
+
+    #[test]
+    fn search_fts_query_builder_quotes_every_term_as_literal_text() {
+        assert_eq!(
+            build_fts_query("alpha beta"),
+            Some("\"alpha\" \"beta\"".to_string())
+        );
+        assert_eq!(
+            build_fts_query("\"quoted\" OR prefix*"),
+            Some("\"\"\"quoted\"\"\" \"OR\" \"prefix*\"".to_string())
+        );
+        assert_eq!(build_fts_query(" \n\t "), None);
     }
 
     #[test]

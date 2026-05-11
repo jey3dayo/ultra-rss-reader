@@ -368,6 +368,30 @@ Trust boundary contract:
   joined into a path, normalized into a save filename, or used to decide where
   an import/export/backup artifact is written.
 
+### Reader Search Query And Snippet Policy
+
+Decision: reader search treats user input as literal words, ranks results by
+the normal article recency order, and does not generate remote-content-derived
+snippets.
+
+Search uses SQLite FTS only as a candidate matcher. The backend quotes every
+whitespace-separated term before passing it to FTS, so quotes, `OR`, `NEAR`, and
+`*` are literal input rather than user-facing query syntax. The LIKE fallback
+escapes SQL wildcard characters for the same literal-search behavior.
+
+Ranking and snippet contract:
+
+- Search results must keep the standard article order: `published_at DESC`,
+  `fetched_at DESC`, then stable article id order. FTS rank, match position,
+  publisher title tricks, or snippet density must not reorder the list.
+- Search UI copy must describe literal-word search and explicitly say that
+  quotes, `OR`, `NEAR`, and `*` are not operators.
+- Reader search must not create new snippets from raw remote feed content.
+  Existing article title, sanitized content preview, and normal list metadata
+  may be displayed through the same rendering path used outside search.
+- Syntax errors from FTS query operators should not be surfaced to users for
+  ordinary search input because operators are escaped before matching.
+
 ### Provider Request Security Boundary
 
 Decision: provider HTTP clients use a no-store request policy and must not

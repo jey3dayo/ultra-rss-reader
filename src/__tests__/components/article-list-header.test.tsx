@@ -19,7 +19,9 @@ const articleListHeaderLabels = {
   searchArticlesLabel: "Search articles",
   searchArticlesButtonText: "Search",
   closeSearchLabel: "Close search",
-  searchArticlesPlaceholder: "Search articles…",
+  searchArticlesPlaceholder: "Search literal words…",
+  searchArticlesDescription:
+    "Words are searched literally in titles and article text. Quotes, OR, NEAR, and * are not search operators.",
 };
 
 describe("ArticleListHeader", () => {
@@ -233,7 +235,7 @@ describe("ArticleListHeader", () => {
     expect(header?.querySelector("[data-tauri-drag-region]")).not.toBeNull();
   });
 
-  it("labels the search input accessibly and uses an ellipsis placeholder", () => {
+  it("labels the search input accessibly and explains literal search syntax", () => {
     render(
       <ArticleListHeader
         showSearch
@@ -251,7 +253,14 @@ describe("ArticleListHeader", () => {
       { wrapper: createWrapper() },
     );
 
-    expect(screen.getByRole("textbox", { name: "Search articles" })).toHaveAttribute("placeholder", "Search articles…");
+    expect(screen.getByRole("textbox", { name: "Search articles" })).toHaveAttribute(
+      "placeholder",
+      "Search literal words…",
+    );
+    expect(screen.getByRole("textbox", { name: "Search articles" })).toHaveAttribute(
+      "aria-description",
+      "Words are searched literally in titles and article text. Quotes, OR, NEAR, and * are not search operators.",
+    );
     expect(screen.getByRole("textbox", { name: "Search articles" })).toHaveClass(
       "focus:ring-2",
       "focus:ring-[color:color-mix(in_srgb,var(--foreground)_10%,transparent)]",
@@ -366,7 +375,9 @@ describe("ArticleListHeader", () => {
       searchArticlesLabel: "Search articles",
       searchArticlesButtonText: "Search",
       closeSearchLabel: "Close search",
-      searchArticlesPlaceholder: "Search articles…",
+      searchArticlesPlaceholder: "Search literal words…",
+      searchArticlesDescription:
+        "Words are searched literally in titles and article text. Quotes, OR, NEAR, and * are not search operators.",
     });
     expect(result.current.headerProps.sidebarButtonLabel).toBe("Hide sidebar");
     expect(result.current.headerProps.onMarkAllRead).toBe(handleMarkAllRead);

@@ -1476,6 +1476,74 @@ describe("release repository contract", () => {
     );
   });
 
+  it("keeps reader search and feed discovery trust contracts synchronized", () => {
+    const sqliteArticleSource = readText(
+      "src-tauri/src/infra/db/sqlite_article.rs",
+    );
+    const readerLocaleEn = readText("src/locales/en/reader.json");
+    const readerLocaleJa = readText("src/locales/ja/reader.json");
+
+    expect(sqliteArticleSource).toContain(
+      "fn build_fts_query(query: &str) -> Option<String>",
+    );
+    expect(sqliteArticleSource).toContain(
+      "Search treats every whitespace-separated token as literal text.",
+    );
+    expect(sqliteArticleSource).toContain(
+      "search_fts_query_builder_quotes_every_term_as_literal_text",
+    );
+    expect(sqliteArticleSource).toContain(
+      "search_dedupes_fts_and_like_hits_before_applying_stable_order",
+    );
+    expect(sqliteArticleSource).toContain(
+      "ORDER BY m.published_at DESC, m.fetched_at DESC, m.article_id DESC",
+    );
+
+    expect(readerLocaleEn).toContain(
+      "Words are searched literally in titles and article text. Quotes, OR, NEAR, and * are not search operators.",
+    );
+    expect(readerLocaleJa).toContain(
+      "タイトルと本文を単語ごとにそのまま検索します。引用符、OR、NEAR、* は検索演算子として扱いません。",
+    );
+
+    expect(feedContentPrivacy).toContain(
+      "### Reader Search Query And Snippet Policy",
+    );
+    expect(feedContentPrivacy).toContain(
+      "reader search treats user input as literal words",
+    );
+    expect(feedContentPrivacy).toContain("remote-content-derived");
+    expect(feedContentPrivacy).toContain("snippets");
+    expect(feedContentPrivacy).toContain(
+      "Search uses SQLite FTS only as a candidate matcher.",
+    );
+    expect(feedContentPrivacy).toContain(
+      "Search UI copy must describe literal-word search",
+    );
+    expect(feedContentPrivacy).toContain(
+      "FTS rank, match position, publisher title tricks, or snippet density",
+    );
+
+    expect(feedContentPrivacy).toContain(
+      "### Feed Discovery Result Trust Levels",
+    );
+    expect(feedContentPrivacy).toContain(
+      "feed discovery results are untrusted metadata until the add action validates and normalizes the selected URL",
+    );
+    expect(feedContentPrivacy).toContain(
+      "Discovery result display | Untrusted preview",
+    );
+    expect(feedContentPrivacy).toContain(
+      "Add action candidate     | Validated candidate",
+    );
+    expect(feedContentPrivacy).toContain(
+      "Stored feed              | Trusted app state",
+    );
+    expect(feedContentPrivacy).toContain(
+      "Add action must use the normalized feed URL selected by validation",
+    );
+  });
+
   it("keeps production release log timezone policy synchronized with support docs", () => {
     expect(tauriLib).toContain("TimezoneStrategy::UseLocal");
     expect(tauriLib).toContain(
@@ -2095,6 +2163,21 @@ describe("release repository contract", () => {
       "### Single-Instance And Second-Launch Routing",
     );
     expect(feedContentPrivacy).toContain(
+      "### System Tray And Background Resident Mode",
+    );
+    expect(feedContentPrivacy).toContain(
+      "do not ship tray or background resident mode until app lifecycle semantics are explicit for close, quit, updater restart, sync, and dirty settings state.",
+    );
+    expect(feedContentPrivacy).toContain(
+      "whether sync scheduler, updater checks, file export, and database backup may run while the main window is hidden",
+    );
+    expect(feedContentPrivacy).toContain(
+      "visible user controls for disabling background activity and for quitting completely",
+    );
+    expect(feedContentPrivacy).toContain(
+      "Until this contract exists, closing the app must not be reinterpreted as background operation",
+    );
+    expect(feedContentPrivacy).toContain(
       "second launch must be treated as a lifecycle route request, not a blind app restart or state mutation.",
     );
     expect(feedContentPrivacy).toContain(
@@ -2112,12 +2195,60 @@ describe("release repository contract", () => {
     expect(feedContentPrivacy).toContain(
       "queues it behind startup readiness, and applies the action only after sync/update/dirty-state gates allow it",
     );
+    expect(feedContentPrivacy).toContain(
+      "### Native Notification Permission And Quiet Hours",
+    );
+    expect(feedContentPrivacy).toContain(
+      "do not ship native notifications for sync, update, or error events until permission, privacy, quiet-hours, and disable controls are designed together.",
+    );
+    expect(feedContentPrivacy).toContain(
+      "an explicit user opt-in or OS permission prompt path before the first non-critical notification",
+    );
+    expect(feedContentPrivacy).toContain(
+      "a global disable setting and per-event-class controls before notification delivery",
+    );
+    expect(feedContentPrivacy).toContain(
+      "quiet hours behavior, including whether urgent errors may bypass it and how that exception is presented",
+    );
+    expect(feedContentPrivacy).toContain(
+      "lock-screen-safe copy that redacts account names, feed titles, article titles, server URLs, credentials, tokens, cookies, and local paths",
+    );
+    expect(feedContentPrivacy).toContain(
+      "Until this contract exists, sync/update/error feedback must stay in-app or in redacted logs rather than native OS notifications.",
+    );
+    expect(feedContentPrivacy).toContain(
+      "### Custom Protocol And Deep Link Routing",
+    );
+    expect(feedContentPrivacy).toContain(
+      "do not add a custom protocol or deep links until the URL schema, action allowlist, validation behavior, and single-instance routing are fixed as a contract.",
+    );
+    expect(feedContentPrivacy).toContain(
+      "unknown versions rejected before action mapping",
+    );
+    expect(feedContentPrivacy).toContain(
+      "strict parsing for malformed links, userinfo URLs, mixed scheme casing, percent-encoding, oversized payloads, and repeated parameters",
+    );
+    expect(feedContentPrivacy).toContain(
+      "Until this contract exists, external URLs must continue to use normal OS/browser handling and must not dispatch app actions through a custom protocol.",
+    );
 
     expect(releaseManualVerification).toContain(
       "Second launch with no route focuses or restores the existing main window without starting duplicate sync, updater, import/export, or backup work.",
     );
     expect(releaseManualVerification).toContain(
+      "Close-to-tray, full quit, updater restart, OS shutdown, and force quit have separate user-visible behavior.",
+    );
+    expect(releaseManualVerification).toContain(
+      "Background sync, updater checks, file export, and database backup are either disabled while the window is hidden or explicitly documented as resident operations.",
+    );
+    expect(releaseManualVerification).toContain(
+      "Users can disable background activity and can quit the app completely.",
+    );
+    expect(releaseManualVerification).toContain(
       "Dirty settings, add-feed drafts, sync in-flight, update pending, pending imports/exports, and in-flight backups block or defer routed actions with clear copy.",
+    );
+    expect(releaseManualVerification).toContain(
+      "Custom protocol routes use the reviewed production or development scheme and versioned route shape, reject unknown versions, malformed links, userinfo URLs, oversized payloads, repeated parameters, private hosts, and local paths before mutation, and log only route class plus failure reason.",
     );
     expect(releaseManualVerification).toContain(
       "Single-instance route delivery waits for startup readiness, focuses the main window, and applies only allowlisted actions after sync/update/dirty-state gates allow them.",

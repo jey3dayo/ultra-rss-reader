@@ -1276,8 +1276,7 @@ mod tests {
             folder: Some("Shared Folder".to_string()),
         }];
 
-        let feeds =
-            import_opml_in_db(&db, &parsed_feeds, import_account_id.0.clone()).unwrap();
+        let feeds = import_opml_in_db(&db, &parsed_feeds, import_account_id.0.clone()).unwrap();
 
         assert_eq!(feeds.len(), 1);
         assert_eq!(feeds[0].account_id, import_account_id.0);

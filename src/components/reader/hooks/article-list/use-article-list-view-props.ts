@@ -80,6 +80,7 @@ export function useArticleListViewProps({
         searchArticlesButtonText: t("search_short"),
         closeSearchLabel: t("close_search"),
         searchArticlesPlaceholder: t("search_articles_placeholder"),
+        searchArticlesDescription: t("search_articles_description"),
       },
       showSidebarButton,
       sidebarButtonLabel,

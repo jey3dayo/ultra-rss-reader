@@ -583,11 +583,11 @@ describe("useKeyboard", () => {
     renderAppShell(calls);
 
     await screen.findByRole("heading", { level: 1, name: "First Article" });
-    expect(screen.queryByPlaceholderText("Search articles…")).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("Search literal words…")).not.toBeInTheDocument();
 
     fireEvent.keyDown(window, { key: "/" });
 
-    const input = await screen.findByPlaceholderText("Search articles…");
+    const input = await screen.findByPlaceholderText("Search literal words…");
     await waitFor(() => {
       expect(input).toHaveFocus();
     });
@@ -601,18 +601,18 @@ describe("useKeyboard", () => {
       await screen.findByRole("heading", { level: 1, name: "First Article" });
 
       fireEvent.keyDown(window, { key: "/" });
-      const firstInput = await screen.findByPlaceholderText("Search articles…");
+      const firstInput = await screen.findByPlaceholderText("Search literal words…");
       firstInput.blur();
       document.body.focus();
       fireEvent.click(screen.getByRole("button", { name: "Close search" }));
       await waitFor(() => {
-        expect(screen.queryByPlaceholderText("Search articles…")).not.toBeInTheDocument();
+        expect(screen.queryByPlaceholderText("Search literal words…")).not.toBeInTheDocument();
       });
       await waitForSearchFocusRetry();
       expect(firstInput).not.toHaveFocus();
 
       fireEvent.keyDown(window, { key: "/" });
-      const switchedAccountInput = await screen.findByPlaceholderText("Search articles…");
+      const switchedAccountInput = await screen.findByPlaceholderText("Search literal words…");
       switchedAccountInput.blur();
       document.body.focus();
       act(() => {
@@ -622,7 +622,7 @@ describe("useKeyboard", () => {
       expect(switchedAccountInput).not.toHaveFocus();
 
       fireEvent.keyDown(window, { key: "/" });
-      const unmountedInput = await screen.findByPlaceholderText("Search articles…");
+      const unmountedInput = await screen.findByPlaceholderText("Search literal words…");
       unmountedInput.blur();
       document.body.focus();
       unmount();
