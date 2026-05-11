@@ -46,35 +46,10 @@
 
 ### Browser WebView / Runtime Diagnostics
 
-- [ ] P2 article canonical URL と feed entry link の normalization policy を決める
-  - 対象: provider normalizer、article schemas、external opener
-  - tracking query、fragment、relative link、HTML entity decode の扱いが未固定だと dedupe と opener がずれる
-  - query retention、fragment retention、relative link base、HTML entity decode、invalid URL fallback を固定する
-
-- [ ] P2 sync scheduler system sleep / clock jump recovery を contract 化する
-  - 対象: `src-tauri/src/service/sync_scheduler.rs`, startup/sync-on-wake
-  - macOS sleep や手動時刻変更後に next_sync/backoff が過去・未来へ飛ぶと sync が止まるか連打される
-  - sleep resume、clock backward、clock forward、backoff expired during sleep、manual sync after resume を固定する
-
 - [ ] P2 app local time / UTC persistence の boundary を DB fields ごとに棚卸しする
   - 対象: domain models、SQLite repositories、date helpers
   - DB persisted date が UTC なのか local string なのか混在すると sort、sync、review stale day が環境依存になる
   - `created_at`、`updated_at`、`published_at`、`last_sync_at`、`next_retry_at` の timezone contract を書く
-
-- [ ] P2 filesystem path normalization を log/backup/export/settings で共通化する
-  - 対象: log commands、database backup/export commands、Tauri path helpers
-  - symlink、non-UTF8 path、reserved name、case-insensitive collision の扱いが command ごとに違うと platform bug になる
-  - symlink、non-UTF8、Windows reserved name、case collision、path redaction の matrix を作る
-
-- [ ] P2 atomic file write policy を export / backup / dev credential store で揃える
-  - 対象: OPML export、DB backup、dev credential file store
-  - 途中失敗で target file を半端に残すと、次回 import/restore/debug で正常ファイルとして扱われる
-  - temp file、fsync、rename failure、existing file collision、cleanup failure の contract を追加する
-
-- [ ] P2 article/feed/folder/tag/account name の Unicode bidi / confusable display policy を決める
-  - 対象: domain validation、settings forms、reader/sidebar display
-  - RTL override、zero-width、confusable 文字が入ると feed name や action target が spoof され、delete/rename 確認で誤認しやすい
-  - bidi control、zero-width joiner、NFKC confusable、trim display、confirmation label の policy を追加する
 
 - [ ] P2 batch read/star/mute mutations の transaction chunking policy を決める
   - 対象: article commands、repository mutation methods、reader bulk actions
@@ -86,20 +61,10 @@
   - SQLite DDL と data migration の途中失敗後に再起動しても安全かが曖昧だと、復旧不能な半端 schema が残る
   - DDL failure、data copy failure、schema_version unchanged、backup rollback、retry migration の fixture を追加する
 
-- [ ] P2 background sync battery / CPU guard を repeated failure と many-account で固定する
-  - 対象: `src-tauri/src/service/sync_scheduler.rs`, sync settings, diagnostics
-  - 多数 account が失敗し続けると backoff があっても wake/check/log が増えて desktop app の常駐負荷になる
-  - many accounts、continuous auth failure、network offline、scheduler sleep、log rate limit の contract を追加する
-
 - [ ] P2 image/fallback favicon cache eviction を account/feed deletion と同期する
   - 対象: favicon/image cache helpers、feed deletion flow、storage cleanup
   - feed 削除後に favicon/image failure cache が残ると、同じ URL 再追加時に古い失敗状態を引き継ぐ
   - feed delete、feed URL change、account delete、cache TTL、manual refresh の contract を追加する
-
-- [ ] P2 updater downloaded artifact cleanup を cancel / failed install / app restart で固定する
-  - 対象: updater hook、updater commands、release docs
-  - download 済み artifact が cancel や failed install 後に残ると、次回 check/install が stale artifact を使う可能性がある
-  - cancel、download failure、install failure、restart before install、cleanup diagnostics の contract を追加する
 
 - [ ] P1 app shutdown 中の background sync / DB write / browser webview cleanup を drain する contract を作る
   - 対象: `src-tauri/src/lib.rs`, `src-tauri/src/service/sync_scheduler.rs`, browser webview tracker, DB commands
@@ -125,11 +90,6 @@
   - 対象: Tauri window config, platform store, startup focus restore
   - 外部 monitor を外した後の保存位置や negative coordinate を復元すると、window が画面外に出る
   - disconnected monitor、negative x/y、DPI change、maximized state、fullscreen state、safe fallback center の contract を追加する
-
-- [ ] P2 native file dialog extension / overwrite confirmation policy を import/export/backup で揃える
-  - 対象: OPML import/export、DB backup/restore UI、Tauri dialog usage
-  - open/save dialog の拡張子・既存 file overwrite・cancel handling がばらつくと、ユーザーデータを誤上書きしやすい
-  - `.opml`/`.xml` filter、existing file overwrite、cancel result、directory selected、extension auto-append の policy を追加する
 
 - [ ] P2 app data directory rename / bundle identifier migration path を明文化する
   - 対象: `src-tauri/tauri*.conf.json`, startup data dir, release docs
@@ -185,26 +145,6 @@
   - 対象: sync result DTO、frontend sync feedback、diagnostics
   - 数百 feed の失敗を全部 toast/log に出すと UI と log が埋まり、逆に cap すると重要エラーが落ちる
   - warning cap、first error priority、auth vs parse order、per-feed summary、details drilldown の contract を追加する
-
-- [ ] P2 sync warning public copy から provider remote entry id を外す
-  - 対象: `src-tauri/src/commands/sync_providers.rs`, sync warning DTO、sidebar/account sync warning tests
-  - pending mutation retry warning が remote_entry_id を user-facing message に含むと、provider 固有 ID や URL-like id が toast/sidebar に露出し、diagnostics redaction と責務がずれる
-  - retry pending、dropped mutation、provider id with URL/token-like text、diagnostics detail vs public copy、sidebar warning rendering の contract を追加する
-
-- [ ] P2 sync feedback の blank account name fallback を user-facing copy と diagnostics detail に分ける
-  - 対象: `src/lib/sync/sync-result-feedback.ts`, `src/__tests__/lib/sync-result-feedback.test.ts`, sidebar/account sync warning UI
-  - account_name が blank の時に account_id を表示名として使うと、内部 ID が toast/sidebar に出る一方、support diagnostics では account_id が必要になる
-  - blank account name、deleted account、unknown scheduler owner、public unknown-account copy、diagnostics account_id retention の contract を追加する
-
-- [ ] P2 sync feedback action owner label を i18n / public copy source に寄せる
-  - 対象: `src/lib/sync/sync-result-feedback.ts`, reader/sidebar i18n、sync feedback tests
-  - action owner label が `credentials` / `feed` / `scheduler` の hardcoded English だと、locale 変更や user-facing copy policy とずれやすい
-  - ja/en owner label、unknown owner fallback、account owner no suffix、snapshot copy、translator key coverage の test を追加する
-
-- [ ] P2 dropped pending mutation を user-visible sync warning / diagnostics summary に接続する
-  - 対象: `src-tauri/src/commands/sync_providers.rs`, sync result warning aggregation、pending mutation repository tests
-  - non-GReader feed entry 向け pending mutation は現在 cleanup されるが、warn log だけだと local action が remote に反映されなかった事実を UI で追えない
-  - non-provider-managed feed entry、missing article target、delete failure、summary count、manual resync guidance の contract を追加する
 
 - [ ] P2 article tag relation uniqueness を DB constraint / frontend optimistic state で固定する
   - 対象: tag repository、article tag picker、tests
