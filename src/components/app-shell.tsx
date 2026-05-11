@@ -161,56 +161,23 @@ const LazySettingsModal = lazy(async () => {
 
 const TAURI_EVENT_LISTENER_FAILURE_TOAST = "デスクトップ連携の一部を開始できませんでした。";
 
-type SettingsModalBoundaryProps = {
-  children: ReactNode;
-  onTelemetryError: (error: Error) => void;
-  onUserRecoveryRequired: () => void;
-};
-
-type SettingsModalBoundaryState = {
-  hasError: boolean;
-};
-
-class SettingsModalBoundary extends Component<SettingsModalBoundaryProps, SettingsModalBoundaryState> {
-  state: SettingsModalBoundaryState = {
-    hasError: false,
-  };
-
-  static getDerivedStateFromError(): SettingsModalBoundaryState {
-    return { hasError: true };
-  }
-
-  componentDidCatch(error: Error) {
-    this.props.onTelemetryError(error);
-    this.props.onUserRecoveryRequired();
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return null;
-    }
-
-    return this.props.children;
-  }
-}
-
-type LazyChunkBoundaryProps = {
+type AppShellErrorBoundaryProps = {
   children: ReactNode;
   fallback?: ReactNode;
   onTelemetryError?: (error: Error) => void;
   onUserRecoveryRequired?: () => void;
 };
 
-type LazyChunkBoundaryState = {
+type AppShellErrorBoundaryState = {
   hasError: boolean;
 };
 
-class LazyChunkBoundary extends Component<LazyChunkBoundaryProps, LazyChunkBoundaryState> {
-  state: LazyChunkBoundaryState = {
+class AppShellErrorBoundary extends Component<AppShellErrorBoundaryProps, AppShellErrorBoundaryState> {
+  state: AppShellErrorBoundaryState = {
     hasError: false,
   };
 
-  static getDerivedStateFromError(): LazyChunkBoundaryState {
+  static getDerivedStateFromError(): AppShellErrorBoundaryState {
     return { hasError: true };
   }
 
@@ -645,16 +612,16 @@ export function AppShell() {
         <AppLayout />
       </div>
       {settingsOpen ? (
-        <LazyChunkBoundary onTelemetryError={reportLazyChunkBoundaryError} onUserRecoveryRequired={closeSettings}>
-          <SettingsModalBoundary
+        <AppShellErrorBoundary onTelemetryError={reportLazyChunkBoundaryError} onUserRecoveryRequired={closeSettings}>
+          <AppShellErrorBoundary
             onTelemetryError={reportSettingsModalBoundaryError}
             onUserRecoveryRequired={closeSettings}
           >
             <Suspense fallback={null}>
               <LazySettingsModal />
             </Suspense>
-          </SettingsModalBoundary>
-        </LazyChunkBoundary>
+          </AppShellErrorBoundary>
+        </AppShellErrorBoundary>
       ) : null}
       <AppConfirmDialog />
       {shortcutsHelpOpen ? (
@@ -668,11 +635,11 @@ export function AppShell() {
       <ToastLiveRegion />
       <Toast />
       {commandPaletteOpen ? (
-        <LazyChunkBoundary onTelemetryError={reportLazyChunkBoundaryError}>
+        <AppShellErrorBoundary onTelemetryError={reportLazyChunkBoundaryError}>
           <Suspense fallback={null}>
             <LazyCommandPalette />
           </Suspense>
-        </LazyChunkBoundary>
+        </AppShellErrorBoundary>
       ) : null}
       {showFocusDebugHud ? (
         <FocusDebugHud temporarilyHidden={focusDebugHudTemporarilyHidden} avoidBottomRight={toastMessage !== null} />
