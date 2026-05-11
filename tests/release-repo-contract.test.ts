@@ -721,7 +721,7 @@ describe("release repository contract", () => {
     expect(releaseWorkflow.indexOf("Validate release version parity")).toBeLessThan(
       releaseWorkflow.indexOf("tauri-apps/tauri-action"),
     );
-    expect(releaseWorkflow.indexOf("Preflight release build")).toBeLessThan(
+    expect(releaseWorkflow.indexOf("Run release quality preflight")).toBeLessThan(
       releaseWorkflow.indexOf("tauri-apps/tauri-action"),
     );
     expect(releaseWorkflow.indexOf("Validate release build contamination contract")).toBeLessThan(
@@ -753,7 +753,9 @@ describe("release repository contract", () => {
         "{{ runner.os }}-pnpm-store-toolchain-$" +
         "{{ hashFiles('mise.toml', 'package.json', 'pnpm-lock.yaml') }}",
     );
-    expect(releaseCacheBlock).not.toContain("restore-keys:");
+    expect(releaseCacheBlock).toContain("restore-keys:");
+    expect(releaseCacheBlock).toContain("$" + "{{ runner.os }}-pnpm-store-toolchain-");
+    expect(releaseCacheBlock).toContain("$" + "{{ runner.os }}-pnpm-store-");
   });
 
   it("keeps CI pnpm cache restore keys bounded by frozen lockfile installs", () => {
@@ -865,6 +867,9 @@ describe("release repository contract", () => {
   it("keeps release workflow action, token, and cache surfaces pinned to the release asset scope", () => {
     const releaseUsesValues = extractWorkflowUses(releaseWorkflow);
     const expectedReleaseActions = [
+      "actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd",
+      "jdx/mise-action@1648a7812b9aeae629881980618f079932869151",
+      "actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae",
       "actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd",
       "jdx/mise-action@1648a7812b9aeae629881980618f079932869151",
       "actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae",
@@ -1023,8 +1028,11 @@ describe("release repository contract", () => {
     expect(buildScript).toContain("Failed to copy WebView2Loader.dll to");
     expect(buildScript).not.toContain("cargo:warning=Could not find WebView2Loader.dll to copy");
     expect(buildScript).not.toContain("cargo:warning=Failed to copy WebView2Loader.dll");
-    expect(releaseWorkflow).toContain("Preflight release build");
-    expect(releaseWorkflow).toContain("run: mise run ci");
+    expect(releaseWorkflow).toContain("Run release quality preflight");
+    expect(releaseWorkflow).toContain("mise run format:check");
+    expect(releaseWorkflow).toContain("mise run lint:types");
+    expect(releaseWorkflow).toContain("mise run test:unit:ci");
+    expect(releaseWorkflow).not.toContain("run: mise run ci");
     expect(buildScript).toContain("WindowsAttributes::new_without_app_manifest()");
     expect(windowsManifest).toContain('xmlns="urn:schemas-microsoft-com:asm.v1"');
     expect(windowsManifest).toContain('name="Microsoft.Windows.Common-Controls"');
@@ -1575,7 +1583,7 @@ describe("release repository contract", () => {
     expect(signingPreflightStep).toContain("rerun workflow_dispatch with dry_run=true");
     expect(signingPreflightStep).toContain('echo "should_publish=true" >> "$GITHUB_OUTPUT"');
     for (const stepName of [
-      "Preflight release build",
+      "Run release quality preflight",
       "Validate release build contamination contract",
       "Resolve release semver policy",
       "Validate updater manifest asset contract",
@@ -1590,7 +1598,7 @@ describe("release repository contract", () => {
       );
     }
     expect(releaseWorkflow.indexOf("Validate release signing preflight")).toBeLessThan(
-      releaseWorkflow.indexOf("Preflight release build"),
+      releaseWorkflow.indexOf("Run release quality preflight"),
     );
     expect(releaseWorkflow.indexOf("Validate release signing preflight")).toBeLessThan(
       releaseWorkflow.indexOf("tauri-apps/tauri-action"),

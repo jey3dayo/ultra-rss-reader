@@ -23,31 +23,14 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release:
+  preflight:
     if: >-
       (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
       (github.event_name == 'workflow_dispatch' && startsWith(inputs.release_tag, 'v'))
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: macos-latest
-            artifact_platform: darwin
-            artifact_arch: aarch64
-            updater_platform: darwin-aarch64
-            updater_asset_pattern: .app.tar.gz
-            updater_signature_pattern: .app.tar.gz.sig
-            args: --target aarch64-apple-darwin
-          - platform: windows-latest
-            artifact_platform: windows
-            artifact_arch: x86_64
-            updater_platform: windows-x86_64
-            updater_asset_pattern: -setup.exe
-            updater_signature_pattern: -setup.exe.sig
-            args: ""
-
-    runs-on: ${{ matrix.platform }}
+    runs-on: ubuntu-latest
     timeout-minutes: 30
+    outputs:
+      should_publish: ${{ steps.signing-preflight.outputs.should_publish }}
 
     steps:
       # actions/checkout@v6.0.2
@@ -147,6 +130,214 @@ jobs:
         with:
           path: ${{ steps.pnpm-store.outputs.path }}
           key: ${{ runner.os }}-pnpm-store-toolchain-${{ hashFiles('mise.toml', 'package.json', 'pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-toolchain-
+            ${{ runner.os }}-pnpm-store-
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Validate release version parity
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
+        run: |
+          node <<'NODE'
+          const fs = require("node:fs");
+
+          const releaseTag = process.env.RELEASE_TAG;
+          const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
+          const tauriConfig = JSON.parse(fs.readFileSync("src-tauri/tauri.conf.json", "utf8"));
+          const cargoToml = fs.readFileSync("src-tauri/Cargo.toml", "utf8");
+          const cargoVersion = cargoToml.match(/^version = "([^"]+)"$/m)?.[1];
+          const expectedTag = `v${packageJson.version}`;
+          const errors = [];
+
+          if (releaseTag !== expectedTag) {
+            errors.push(`release tag ${releaseTag} does not match package.json version ${expectedTag}`);
+          }
+          if (tauriConfig.version !== packageJson.version) {
+            errors.push(`src-tauri/tauri.conf.json version ${tauriConfig.version} does not match package.json version ${packageJson.version}`);
+          }
+          if (cargoVersion !== packageJson.version) {
+            errors.push(`src-tauri/Cargo.toml version ${cargoVersion ?? "(missing)"} does not match package.json version ${packageJson.version}`);
+          }
+
+          if (errors.length > 0) {
+            for (const error of errors) {
+              console.error(`::error::${error}`);
+            }
+            process.exit(1);
+          }
+          NODE
+
+      - name: Validate release signing preflight
+        id: signing-preflight
+        shell: bash
+        env:
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
+          TAURI_SIGNING_PRIVATE_KEY_SET: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD_SET: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD != '' }}
+        run: |
+          set -euo pipefail
+
+          if [[ "$DRY_RUN" == "true" ]]; then
+            echo "should_publish=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::release dry run validated source, versions, cache, and signing preflight; artifact build and draft release upload are skipped"
+            exit 0
+          fi
+
+          missing=()
+          if [[ "$TAURI_SIGNING_PRIVATE_KEY_SET" != "true" ]]; then
+            missing+=("TAURI_SIGNING_PRIVATE_KEY")
+          fi
+          if [[ "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD_SET" != "true" ]]; then
+            missing+=("TAURI_SIGNING_PRIVATE_KEY_PASSWORD")
+          fi
+          if (( ${#missing[@]} > 0 )); then
+            printf '::error::release signing secrets are required before artifact build or draft release upload: %s\n' "$(IFS=,; echo "${missing[*]}")"
+            echo "::error::rerun workflow_dispatch with dry_run=true to validate release preflight without publishing artifacts"
+            exit 1
+          fi
+
+          echo "should_publish=true" >> "$GITHUB_OUTPUT"
+
+      - name: Run release quality preflight
+        if: steps.signing-preflight.outputs.should_publish == 'true'
+        shell: bash
+        run: |
+          mise run format:check
+          mise run lint:types
+          mise run test:unit:ci
+
+  release:
+    needs: preflight
+    if: >-
+      needs.preflight.outputs.should_publish == 'true' &&
+      ((github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
+      (github.event_name == 'workflow_dispatch' && startsWith(inputs.release_tag, 'v')))
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            artifact_platform: darwin
+            artifact_arch: aarch64
+            updater_platform: darwin-aarch64
+            updater_asset_pattern: .app.tar.gz
+            updater_signature_pattern: .app.tar.gz.sig
+            args: --target aarch64-apple-darwin
+          - platform: windows-latest
+            artifact_platform: windows
+            artifact_arch: x86_64
+            updater_platform: windows-x86_64
+            updater_asset_pattern: -setup.exe
+            updater_signature_pattern: -setup.exe.sig
+            args: ""
+
+    runs-on: ${{ matrix.platform }}
+    timeout-minutes: 60
+
+    steps:
+      # actions/checkout@v6.0.2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          ref: >-
+            ${{ github.event_name == 'workflow_dispatch' &&
+            format('refs/tags/{0}', inputs.release_tag) || github.ref }}
+
+      - name: Validate manual release tag
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::release_tag must match vX.Y.Z, optionally with prerelease or build metadata"
+            exit 1
+          fi
+
+      - name: Validate release source
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
+          WORKFLOW_REF: ${{ github.ref }}
+          WORKFLOW_REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::release tag must match vX.Y.Z, optionally with prerelease or build metadata"
+            exit 1
+          fi
+
+          if [[ "$EVENT_NAME" == "push" ]]; then
+            if [[ "$WORKFLOW_REF" != "refs/tags/$RELEASE_TAG" || "$WORKFLOW_REF_NAME" != "$RELEASE_TAG" ]]; then
+              echo "::error::tag push ref $WORKFLOW_REF does not match release tag $RELEASE_TAG"
+              exit 1
+            fi
+          elif [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            if [[ "$WORKFLOW_REF" == refs/tags/* && "$WORKFLOW_REF_NAME" != "$RELEASE_TAG" ]]; then
+              echo "::error::manual dispatch ref $WORKFLOW_REF does not match release tag $RELEASE_TAG"
+              exit 1
+            fi
+          else
+            echo "::error::unsupported release event $EVENT_NAME"
+            exit 1
+          fi
+
+          if ! git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_TAG" >/dev/null; then
+            echo "::error::release tag $RELEASE_TAG does not exist on origin; create and push an annotated tag before manual dispatch"
+            exit 1
+          fi
+
+          git fetch --force --tags origin "refs/tags/$RELEASE_TAG:refs/tags/$RELEASE_TAG"
+          git fetch --force origin main:refs/remotes/origin/main
+
+          tag_object_type="$(git cat-file -t "refs/tags/$RELEASE_TAG")"
+          if [[ "$tag_object_type" != "tag" ]]; then
+            echo "::error::release tag $RELEASE_TAG must be an annotated tag object, got $tag_object_type"
+            exit 1
+          fi
+          tag_object_sha="$(git rev-parse "refs/tags/$RELEASE_TAG")"
+          tag_target_sha="$(git rev-parse "refs/tags/$RELEASE_TAG^{}")"
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            git checkout --detach "$tag_target_sha"
+          fi
+          checkout_sha="$(git rev-parse HEAD)"
+          if [[ "$tag_object_sha" == "$tag_target_sha" ]]; then
+            echo "::error::release tag $RELEASE_TAG tag object matches peeled commit; expected annotated tag metadata"
+            exit 1
+          fi
+          if [[ "$tag_target_sha" != "$checkout_sha" ]]; then
+            echo "::error::release tag $RELEASE_TAG points at $tag_target_sha, but checkout is $checkout_sha"
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor "$tag_target_sha" refs/remotes/origin/main; then
+            echo "::error::release tag $RELEASE_TAG target $tag_target_sha is not reachable from origin/main"
+            exit 1
+          fi
+
+      # jdx/mise-action@v4.0.1
+      - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151
+
+      - name: Resolve pnpm store path
+        id: pnpm-store
+        shell: bash
+        run: |
+          pnpm config set store-dir .pnpm-store
+          store_path="$(pnpm store path --silent)"
+          mkdir -p "$store_path"
+          echo "path=$store_path" >> "$GITHUB_OUTPUT"
+
+      # actions/cache@v5.0.5
+      - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-store-toolchain-${{ hashFiles('mise.toml', 'package.json', 'pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-toolchain-
+            ${{ runner.os }}-pnpm-store-
 
       # dtolnay/rust-toolchain@stable
       - uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9
@@ -158,6 +349,7 @@ jobs:
       - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4
         with:
           workspaces: src-tauri
+          shared-key: release-${{ runner.os }}-${{ hashFiles('src-tauri/Cargo.lock') }}
 
       - run: pnpm install --frozen-lockfile
 
@@ -343,10 +535,6 @@ jobs:
           fi
 
           echo "should_publish=true" >> "$GITHUB_OUTPUT"
-
-      - name: Preflight release build
-        if: steps.signing-preflight.outputs.should_publish == 'true'
-        run: mise run ci
 
       - name: Validate release build contamination contract
         if: steps.signing-preflight.outputs.should_publish == 'true'

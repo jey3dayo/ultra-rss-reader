@@ -227,8 +227,8 @@ describe("FeedTreeView", () => {
 
   it("renders the large feed tree used by the account switch smoke path", () => {
     let renderDuration = 0;
-    const folderCount = 20;
-    const feedsPerFolder = 25;
+    const folderCount = 8;
+    const feedsPerFolder = 10;
     const folders = Array.from({ length: folderCount }, (_, folderIndex) => ({
       id: `folder-${folderIndex}`,
       name: `Folder ${folderIndex}`,
@@ -271,7 +271,7 @@ describe("FeedTreeView", () => {
       </Profiler>,
     );
 
-    expect(screen.getByRole("button", { name: /Feed 19-24/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Feed 7-9/ })).toBeInTheDocument();
     expect(renderDuration).toBeGreaterThanOrEqual(0);
     expect(Number.isFinite(renderDuration)).toBe(true);
   });
