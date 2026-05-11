@@ -120,13 +120,17 @@ export function resolveArticleSearchQueryOwner(
   };
 }
 
-function patchCachedArticleReadState(qc: QueryClient, articleId: string, read: boolean) {
+function patchCachedArticleState(
+  qc: QueryClient,
+  articleId: string,
+  resolveNextArticle: (article: ArticleDto) => ArticleDto,
+) {
   const cachedArticle = findCachedArticle(qc, articleId);
   if (cachedArticle === null) {
     return;
   }
 
-  const nextArticle = { ...cachedArticle, is_read: read };
+  const nextArticle = resolveNextArticle(cachedArticle);
   const accountIds = resolveAccountIdsForArticle(qc, cachedArticle);
 
   patchArticleListQueries(qc, nextArticle, { insertIfMissing: false });
@@ -139,6 +143,10 @@ function patchCachedArticleReadState(qc: QueryClient, articleId: string, read: b
   }
 
   patchUnknownAccountArticleCaches(qc, nextArticle);
+}
+
+function patchCachedArticleReadState(qc: QueryClient, articleId: string, read: boolean) {
+  patchCachedArticleState(qc, articleId, (cachedArticle) => ({ ...cachedArticle, is_read: read }));
 }
 
 export function resolveArticleMutationInvalidationQueryKeys() {
@@ -425,24 +433,7 @@ function patchArticleListQueries(qc: QueryClient, nextArticle: ArticleDto, optio
 }
 
 function patchCachedArticleStarState(qc: QueryClient, articleId: string, starred: boolean) {
-  const cachedArticle = findCachedArticle(qc, articleId);
-  if (cachedArticle === null) {
-    return;
-  }
-
-  const nextArticle = { ...cachedArticle, is_starred: starred };
-  const accountIds = resolveAccountIdsForArticle(qc, cachedArticle);
-
-  patchArticleListQueries(qc, nextArticle, { insertIfMissing: false });
-
-  if (accountIds.length > 0) {
-    for (const accountId of accountIds) {
-      patchKnownAccountArticleCaches(qc, accountId, nextArticle);
-    }
-    return;
-  }
-
-  patchUnknownAccountArticleCaches(qc, nextArticle);
+  patchCachedArticleState(qc, articleId, (cachedArticle) => ({ ...cachedArticle, is_starred: starred }));
 }
 
 export function useArticles(feedId: string | null, options?: ArticleQueryOptions) {
