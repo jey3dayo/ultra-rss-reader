@@ -56,16 +56,6 @@
   - 大量記事を一括更新する時に 1 transaction/分割/partial success の方針が曖昧だと UI と DB がずれる
   - large batch、chunk failure、partial rollback、query invalidation、progress feedback の task に分ける
 
-- [ ] P2 migration transactional DDL / partial migration failure recovery を明文化する
-  - 対象: `src-tauri/src/infra/db/migration.rs`, migration files
-  - SQLite DDL と data migration の途中失敗後に再起動しても安全かが曖昧だと、復旧不能な半端 schema が残る
-  - DDL failure、data copy failure、schema_version unchanged、backup rollback、retry migration の fixture を追加する
-
-- [ ] P2 image/fallback favicon cache eviction を account/feed deletion と同期する
-  - 対象: favicon/image cache helpers、feed deletion flow、storage cleanup
-  - feed 削除後に favicon/image failure cache が残ると、同じ URL 再追加時に古い失敗状態を引き継ぐ
-  - feed delete、feed URL change、account delete、cache TTL、manual refresh の contract を追加する
-
 - [ ] P1 app shutdown 中の background sync / DB write / browser webview cleanup を drain する contract を作る
   - 対象: `src-tauri/src/lib.rs`, `src-tauri/src/service/sync_scheduler.rs`, browser webview tracker, DB commands
   - window close や restart 中に sync/DB write/webview close が走ると、WAL・query cache・native webview state が中途半端に残る
@@ -130,16 +120,6 @@
   - 対象: updater flow、DB migration、release metadata
   - 古い downloaded update を後で install すると、現在 DB schema と想定 migration path がずれる可能性がある
   - downloaded version age、current app newer、DB schema newer、install blocked、redownload required の contract を追加する
-
-- [ ] P2 sync result warning cap と aggregation order を many-feed failure で固定する
-  - 対象: sync result DTO、frontend sync feedback、diagnostics
-  - 数百 feed の失敗を全部 toast/log に出すと UI と log が埋まり、逆に cap すると重要エラーが落ちる
-  - warning cap、first error priority、auth vs parse order、per-feed summary、details drilldown の contract を追加する
-
-- [ ] P2 article tag relation uniqueness を DB constraint / frontend optimistic state で固定する
-  - 対象: tag repository、article tag picker、tests
-  - 同じ article/tag relation が二重登録されると count、picker chips、remove 操作が壊れる
-  - duplicate tag_article、optimistic duplicate、untag one of duplicates、count query、DB unique constraint の contract を追加する
 
 - [ ] P2 window drag region と file drop region の pointer event priority を検証する
   - 対象: app shell CSS、native titlebar overlay、drag/drop handlers
