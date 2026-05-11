@@ -39,13 +39,6 @@
 
 ### Query / Store / Browser Runtime
 
-- [ ] P3 `quality-tooling`: localStorage quota / unavailable cascade の surfaced warning 数を storage user ごとに固定する
-  - work type: runtime diagnostics contract
-  - write scope: preferences store、command history、sidebar expansion storage、runtime diagnostics suppression tests
-  - acceptance: storage quota や SecurityError が 1 surface で起きても、別 surface の storage failure が過剰抑制または重複連打されない
-  - focused verification: preferences write quota、command history write quota、sidebar expansion normalize failure、diagnostic once reset、user-visible fallback absence
-  - defer: storage backend の IndexedDB 移行は別タスクにする
-
 ### Reader Content / Feed Discovery / Security
 
 - [ ] P2 `security-privacy`: provider error redaction policy を local/GReader/discovery/test connection で横断固定する
