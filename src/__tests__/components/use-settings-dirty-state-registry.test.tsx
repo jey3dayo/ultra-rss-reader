@@ -151,4 +151,31 @@ describe("settings dirty-state registry", () => {
       entries: [],
     });
   });
+
+  it("clears the latest restart-guard snapshot when registered settings state unmounts", () => {
+    const { unmount } = renderHook(
+      () =>
+        useRegisterSettingsDirtyState({
+          owner: "shortcut",
+          dirty: true,
+          pending: false,
+          blockingReason: "shortcut-recording",
+        }),
+      { wrapper },
+    );
+
+    expect(getSettingsDirtyStateSnapshot()).toMatchObject({
+      dirty: true,
+      blockingReasons: ["shortcut-recording"],
+    });
+
+    unmount();
+
+    expect(getSettingsDirtyStateSnapshot()).toEqual({
+      dirty: false,
+      pending: false,
+      blockingReasons: [],
+      entries: [],
+    });
+  });
 });

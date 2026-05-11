@@ -231,6 +231,7 @@ describe("reconcileDatabaseRestoreFrontendState", () => {
     expect(clearSelectedAccount).not.toHaveBeenCalled();
     expect(result).toEqual({
       queryCacheCleared: true,
+      resetReason: "database-restore",
       removedStorageKeys: [
         STORAGE_KEYS.commandHistory,
         STORAGE_KEYS.sidebarExpandedFolders,
@@ -301,6 +302,43 @@ describe("reconcileDatabaseRestoreFrontendState", () => {
     expect(setSelectedAccountPreference).toHaveBeenCalledWith("acc-restored");
     expect(clearSelectedAccount).not.toHaveBeenCalled();
     expect(result.removedStorageKeys).toEqual([]);
+  });
+
+  it("uses the same frontend cleanup boundary after private data reset", () => {
+    const queryClient = { clear: vi.fn() };
+    const storage = {
+      removeItem: vi.fn(),
+    };
+    const restoreAccountSelection = vi.fn();
+    const clearSelectedAccount = vi.fn();
+    const setSelectedAccountPreference = vi.fn();
+
+    const result = reconcileDatabaseRestoreFrontendState({
+      accounts: [{ id: "acc-after-reset" }],
+      selectedAccountId: "acc-before-reset",
+      savedAccountId: "acc-before-reset",
+      resetReason: "private-data-reset",
+      queryClient,
+      storage,
+      restoreAccountSelection,
+      clearSelectedAccount,
+      setSelectedAccountPreference,
+    });
+
+    expect(queryClient.clear).toHaveBeenCalledTimes(1);
+    expect(storage.removeItem).toHaveBeenCalledTimes(3);
+    expect(restoreAccountSelection).toHaveBeenCalledWith("acc-after-reset", {
+      focusedPane: "list",
+    });
+    expect(setSelectedAccountPreference).toHaveBeenCalledWith("acc-after-reset");
+    expect(clearSelectedAccount).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      queryCacheCleared: true,
+      resetReason: "private-data-reset",
+      selectedAccountId: "acc-after-reset",
+      preferenceAccountId: "acc-after-reset",
+      restartRequired: true,
+    });
   });
 });
 

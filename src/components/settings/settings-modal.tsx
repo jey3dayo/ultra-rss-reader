@@ -28,6 +28,7 @@ import { useAccounts } from "@/hooks/use-accounts";
 import { useScreenSnapshot } from "@/hooks/use-screen-snapshot";
 import { getPreferredAccountId } from "@/lib/account/account-selection";
 import type { AddAccountProviderKind } from "@/lib/account/add-account-form";
+import { useStableOpenTranslation } from "@/lib/i18n/use-stable-open-translation";
 import type { SettingsCategory } from "@/lib/settings/settings-category.types";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -180,9 +181,9 @@ export function SettingsModal() {
 }
 
 function SettingsModalContent() {
-  const { t } = useTranslation("settings");
   const devBuild = import.meta.env.DEV;
   const settingsOpen = useUiStore((s) => s.settingsOpen);
+  const t = useStableOpenTranslation("settings", settingsOpen);
   const settingsCategory = useUiStore((s) => s.settingsCategory);
   const settingsAccountId = useUiStore((s) => s.settingsAccountId);
   const settingsAddAccount = useUiStore((s) => s.settingsAddAccount);

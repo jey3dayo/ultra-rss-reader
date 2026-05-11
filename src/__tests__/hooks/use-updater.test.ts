@@ -835,6 +835,90 @@ describe("performUpdateCheck", () => {
     registryHook.unmount();
   });
 
+  it("blocks prepared update restart while visible account setup is verifying or syncing", async () => {
+    mockRestartApp.mockResolvedValue(Result.succeed(null));
+
+    const {
+      updaterModule: { showRestartToast },
+      useUiStore,
+    } = await getUpdaterModuleAndUiStore();
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      settingsOpen: true,
+      settingsCategory: "accounts",
+      settingsAddAccount: true,
+    });
+    useUiStore.getState().startAccountSetupVerification();
+
+    showRestartToast();
+    useUiStore
+      .getState()
+      .toastMessage?.actions?.find((action) => action.label === "再起動")
+      ?.onClick();
+
+    expect(mockRestartApp).not.toHaveBeenCalled();
+    expect(useUiStore.getState().confirmDialog.open).toBe(false);
+    expect(useUiStore.getState().toastMessage).toMatchObject({
+      message: "編集中または保存中の変更があるため、再起動できません。",
+      persistent: true,
+      variant: "update",
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      settingsOpen: true,
+      settingsCategory: "accounts",
+      settingsAccountId: "acc-setup",
+    });
+    useUiStore.getState().startAccountSetup("acc-setup", { owner: "account-detail" });
+    showRestartToast();
+    useUiStore
+      .getState()
+      .toastMessage?.actions?.find((action) => action.label === "再起動")
+      ?.onClick();
+
+    expect(mockRestartApp).not.toHaveBeenCalled();
+    expect(useUiStore.getState().confirmDialog.open).toBe(false);
+  });
+
+  it("allows prepared update restart after settings dirty state unmounts cleanly", async () => {
+    mockRestartApp.mockResolvedValue(Result.succeed(null));
+
+    const {
+      updaterModule: { showRestartToast },
+      useUiStore,
+    } = await getUpdaterModuleAndUiStore();
+    const { SettingsDirtyStateRegistryProvider, useRegisterSettingsDirtyState } = await import(
+      "@/components/settings/hooks/use-settings-dirty-state-registry"
+    );
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      settingsOpen: true,
+    });
+
+    const wrapper = ({ children }: PropsWithChildren) =>
+      createElement(SettingsDirtyStateRegistryProvider, null, children);
+    const registryHook = renderHook(
+      () =>
+        useRegisterSettingsDirtyState({
+          owner: "preferences",
+          dirty: false,
+          pending: true,
+          blockingReason: "preferences-save-pending",
+        }),
+      { wrapper },
+    );
+    registryHook.unmount();
+
+    showRestartToast();
+    useUiStore
+      .getState()
+      .toastMessage?.actions?.find((action) => action.label === "再起動")
+      ?.onClick();
+
+    expect(useUiStore.getState().confirmDialog.open).toBe(true);
+  });
+
   it("blocks prepared update restart while add feed is dirty or pending", async () => {
     mockRestartApp.mockResolvedValue(Result.succeed(null));
 

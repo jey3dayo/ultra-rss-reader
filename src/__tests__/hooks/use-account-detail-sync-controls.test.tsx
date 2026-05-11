@@ -31,6 +31,14 @@ function createDeferred<T>() {
   return { promise, resolve };
 }
 
+const successfulSyncResult = {
+  synced: true,
+  total: 1,
+  succeeded: 1,
+  failed: [],
+  warnings: [],
+};
+
 function makeUpdatedAccount(account: AccountDetailAccount, partial: UpdateAccountSyncParams): AccountDetailAccount {
   return {
     ...account,
@@ -256,5 +264,34 @@ describe("useAccountDetailSyncControls", () => {
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: ["account-sync-status"],
     });
+  });
+
+  it("keeps stale account setup finalization scoped to the session that started it", async () => {
+    const queryClient = createTestQueryClient();
+    const staleSetup = createDeferred<ReturnType<typeof Result.fail<Error>>>();
+    const currentSetup = createDeferred<ReturnType<typeof Result.succeed<typeof successfulSyncResult>>>();
+    syncAccountMock.mockReturnValueOnce(staleSetup.promise).mockReturnValueOnce(currentSetup.promise);
+
+    const firstSetup = runAccountSetupSync({
+      accountId: "acc-setup",
+      queryClient,
+      t,
+      owner: "account-detail",
+    });
+    const secondSetup = runAccountSetupSync({
+      accountId: "acc-setup",
+      queryClient,
+      t,
+      owner: "account-detail",
+    });
+
+    currentSetup.resolve(Result.succeed(successfulSyncResult));
+    await secondSetup;
+    staleSetup.resolve(Result.fail(new Error("stale setup failed")));
+    await firstSetup;
+
+    expect(useUiStore.getState().selectedAccountId).toBe("acc-setup");
+    expect(useUiStore.getState().accountSetupSession).toBeNull();
+    expect(useUiStore.getState().toastMessage?.message).toBe(t("account.setup_complete"));
   });
 });

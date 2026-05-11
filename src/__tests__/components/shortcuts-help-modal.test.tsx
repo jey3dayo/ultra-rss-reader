@@ -5,6 +5,7 @@ import type { ReactElement } from "react";
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ShortcutsHelpModal } from "@/components/reader/shortcuts-help-modal";
+import i18n from "@/lib/i18n";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -18,7 +19,8 @@ describe("ShortcutsHelpModal", () => {
     });
   }
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    await i18n.changeLanguage("en");
     vi.stubGlobal(
       "ResizeObserver",
       class ResizeObserver {
@@ -181,6 +183,21 @@ describe("ShortcutsHelpModal", () => {
         },
       ]
     `);
+  });
+
+  it("keeps open help labels on one locale while language changes", async () => {
+    await i18n.changeLanguage("en");
+
+    renderShortcutsHelpModal(<ShortcutsHelpModal open={true} onOpenChange={() => {}} />);
+
+    expect(await screen.findByRole("dialog", { name: "Keyboard shortcuts" })).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Search shortcuts…")).toBeInTheDocument();
+
+    await i18n.changeLanguage("ja");
+
+    expect(screen.getByRole("dialog", { name: "Keyboard shortcuts" })).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Search shortcuts…")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: "キーボードショートカット" })).not.toBeInTheDocument();
   });
 
   it("closes when escape is pressed", async () => {

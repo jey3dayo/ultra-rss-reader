@@ -29,6 +29,7 @@ pub(crate) const DEFAULT_RECENT_ARTICLE_LIST_LIMIT: usize = 20;
 pub(crate) const MAX_ARTICLE_COMMAND_LIST_LIMIT: usize = 200;
 const ARTICLE_SEARCH_QUERY_MAX_CHARS: usize = 128;
 const BROWSER_EMBED_SUPPORT_REQUEST_TIMEOUT: Duration = Duration::from_secs(5);
+const DOWNGRADE_REDIRECT_VALIDATION_MESSAGE: &str = "HTTPS to HTTP redirects are not allowed";
 // Offset pagination is a best-effort UI contract: page boundaries may shift if
 // articles are inserted, deleted, or reclassified between page requests.
 pub(crate) const MAX_ARTICLE_COMMAND_LIST_OFFSET: usize = 10_000;
@@ -772,7 +773,7 @@ async fn check_browser_embed_support_for_url(
     timeout: Duration,
 ) -> Result<bool, AppError> {
     let client = reqwest::Client::builder()
-        .redirect(reqwest::redirect::Policy::limited(5))
+        .redirect(browser_embed_redirect_policy())
         .timeout(timeout)
         .build()
         .map_err(DomainError::from)?;
@@ -797,6 +798,37 @@ async fn check_browser_embed_support_for_url(
 
     let headers = response.headers();
     Ok(!(has_blocking_x_frame_options(headers) || has_blocking_frame_ancestors(headers)))
+}
+
+fn browser_embed_redirect_policy() -> reqwest::redirect::Policy {
+    reqwest::redirect::Policy::custom(|attempt| {
+        if attempt.previous().len() > 5 {
+            return attempt.error("too many redirects");
+        }
+
+        match validate_browser_embed_redirect(attempt.previous(), attempt.url()) {
+            Ok(()) => attempt.follow(),
+            Err(error) => attempt.error(error.to_string()),
+        }
+    })
+}
+
+fn validate_browser_embed_redirect(
+    previous_urls: &[reqwest::Url],
+    next_url: &reqwest::Url,
+) -> Result<(), DomainError> {
+    validate_public_http_url(next_url)?;
+
+    if previous_urls
+        .last()
+        .is_some_and(|previous| previous.scheme() == "https" && next_url.scheme() == "http")
+    {
+        return Err(DomainError::Validation(
+            DOWNGRADE_REDIRECT_VALIDATION_MESSAGE.to_string(),
+        ));
+    }
+
+    Ok(())
 }
 
 #[tauri::command]
@@ -1242,16 +1274,18 @@ mod tests {
         open_browser_in_background_with_command, parse_article_list_mode,
         provider_supports_pending_article_mutations, recalculate_bulk_feed_unread_counts,
         record_article_view_with_conn, should_use_background_browser_open,
-        supports_remote_mutations, toggle_article_star_with_conn, validate_feed_article_filters,
-        validate_older_than_days, BrowserOpenQueueKey, BulkArticleMutationRow, OldUnreadScope,
-        ARTICLE_SEARCH_QUERY_MAX_CHARS, BROWSER_EMBED_SUPPORT_REQUEST_TIMEOUT,
-        DEFAULT_ARTICLE_LIST_LIMIT, DEFAULT_RECENT_ARTICLE_LIST_LIMIT,
+        supports_remote_mutations, toggle_article_star_with_conn, validate_browser_embed_redirect,
+        validate_feed_article_filters, validate_older_than_days, BrowserOpenQueueKey,
+        BulkArticleMutationRow, OldUnreadScope, ARTICLE_SEARCH_QUERY_MAX_CHARS,
+        BROWSER_EMBED_SUPPORT_REQUEST_TIMEOUT, DEFAULT_ARTICLE_LIST_LIMIT,
+        DEFAULT_RECENT_ARTICLE_LIST_LIMIT, DOWNGRADE_REDIRECT_VALIDATION_MESSAGE,
         MAX_ARTICLE_COMMAND_LIST_LIMIT, MAX_ARTICLE_COMMAND_LIST_OFFSET,
     };
     use super::{cleanup_feed_integrity_orphans_inner, get_feed_integrity_report_inner};
     use crate::commands::dto::AppError;
     use crate::commands::DATABASE_MAINTENANCE_BUSY_ERROR;
     use crate::domain::constants::ARTICLE_MUTATION_TRANSACTION_CHUNK_SIZE;
+    use crate::domain::error::DomainError;
     use crate::domain::types::{AccountId, ArticleId, FeedId, FolderId};
     use crate::infra::db::connection::DbManager;
     use crate::infra::db::sqlite_article::SqliteArticleRepository;
@@ -1602,6 +1636,96 @@ mod tests {
                     if message == PRIVATE_URL_VALIDATION_MESSAGE
             ));
         }
+    }
+
+    #[test]
+    fn embed_support_redirect_policy_rejects_private_redirect_targets() {
+        let previous = reqwest::Url::parse("https://example.com/article")
+            .expect("public previous URL should parse");
+
+        for next in [
+            "https://LOCALHOST./article",
+            "https://127.0.0.1/article",
+            "https://169.254.169.254/article",
+            "https://[fe80::1]/article",
+            "https://[::ffff:7f00:1]/article",
+        ] {
+            let next_url = reqwest::Url::parse(next).expect("redirect target should parse");
+            let error = validate_browser_embed_redirect(std::slice::from_ref(&previous), &next_url)
+                .expect_err("private browser embed redirect should be rejected");
+
+            assert!(matches!(
+                error,
+                DomainError::Validation(ref message)
+                    if message == PRIVATE_URL_VALIDATION_MESSAGE
+            ));
+        }
+    }
+
+    #[tokio::test]
+    async fn embed_support_http_client_rejects_private_redirect_targets() {
+        let mut server = Server::new_async().await;
+        let redirect = server
+            .mock("HEAD", "/article")
+            .with_status(302)
+            .with_header("location", "http://127.0.0.1/private")
+            .create_async()
+            .await;
+
+        let error = check_browser_embed_support_for_url(
+            test_http_url(format!("{}/article", server.url())),
+            BROWSER_EMBED_SUPPORT_REQUEST_TIMEOUT,
+        )
+        .await
+        .expect_err("private browser embed redirect should fail");
+
+        assert!(matches!(
+            error,
+            AppError::Retryable { .. } | AppError::RetryableWithMetadata { .. }
+        ));
+        redirect.assert_async().await;
+    }
+
+    #[test]
+    fn embed_support_redirect_policy_rejects_https_to_http_downgrade() {
+        let previous = reqwest::Url::parse("https://example.com/article")
+            .expect("public previous URL should parse");
+        let next = reqwest::Url::parse("http://example.com/article")
+            .expect("downgrade target should parse");
+
+        let error = validate_browser_embed_redirect(&[previous], &next)
+            .expect_err("HTTPS to HTTP browser embed redirect should be rejected");
+
+        assert!(matches!(
+            error,
+            DomainError::Validation(ref message)
+                if message == DOWNGRADE_REDIRECT_VALIDATION_MESSAGE
+        ));
+    }
+
+    #[test]
+    fn embed_support_redirect_policy_allows_http_to_https_upgrade() {
+        let previous = reqwest::Url::parse("http://example.com/article")
+            .expect("public previous URL should parse");
+        let next = reqwest::Url::parse("https://example.com/article")
+            .expect("upgrade target should parse");
+
+        assert!(validate_browser_embed_redirect(&[previous], &next).is_ok());
+    }
+
+    #[test]
+    fn embed_support_redirect_policy_limits_looping_redirect_chains() {
+        let next = reqwest::Url::parse("https://example.com/article")
+            .expect("public redirect target should parse");
+        let previous = (0..6)
+            .map(|index| {
+                reqwest::Url::parse(&format!("https://example.com/article/{index}"))
+                    .expect("public previous URL should parse")
+            })
+            .collect::<Vec<_>>();
+
+        assert!(validate_browser_embed_redirect(&previous, &next).is_ok());
+        assert!(previous.len() > 5, "redirect policy rejects this hop count");
     }
 
     #[test]

@@ -17,6 +17,21 @@ export function useSidebarFeedDragState({
     setActiveDropTarget(null);
   }, []);
 
+  const canDropFeedToFolder = useCallback(
+    (feedId: string, folderId: string) => {
+      const draggedFeed = feedById.get(feedId);
+      const targetFolder = folderById.get(folderId);
+      if (!draggedFeed || draggedFeed.folder_id === folderId) {
+        return false;
+      }
+      if (!targetFolder || targetFolder.account_id !== draggedFeed.account_id) {
+        return false;
+      }
+      return true;
+    },
+    [feedById, folderById],
+  );
+
   const handleDragStartFeed = useCallback(
     (feedId: string) => {
       if (!canDragFeeds || !isFeedsSectionOpen || !feedById.has(feedId)) {
@@ -34,9 +49,14 @@ export function useSidebarFeedDragState({
         return;
       }
 
+      if (!canDropFeedToFolder(draggedFeedId, folderId)) {
+        setActiveDropTarget(null);
+        return;
+      }
+
       setActiveDropTarget({ kind: "folder", folderId });
     },
-    [draggedFeedId],
+    [canDropFeedToFolder, draggedFeedId],
   );
 
   const handleDragEnterUnfoldered = useCallback(() => {
@@ -44,23 +64,26 @@ export function useSidebarFeedDragState({
       return;
     }
 
+    const draggedFeed = feedById.get(draggedFeedId);
+    if (!draggedFeed || draggedFeed.folder_id === null) {
+      setActiveDropTarget(null);
+      return;
+    }
+
     setActiveDropTarget({ kind: "unfoldered" });
-  }, [draggedFeedId]);
+  }, [draggedFeedId, feedById]);
 
   const handleDropToFolder = useCallback(
     async (folderId: string) => {
       try {
         if (!draggedFeedId) return;
-        const draggedFeed = feedById.get(draggedFeedId);
-        const targetFolder = folderById.get(folderId);
-        if (!draggedFeed || draggedFeed.folder_id === folderId) return;
-        if (!targetFolder || targetFolder.account_id !== draggedFeed.account_id) return;
+        if (!canDropFeedToFolder(draggedFeedId, folderId)) return;
         await moveFeedToFolder(draggedFeedId, folderId);
       } finally {
         clearDragState();
       }
     },
-    [clearDragState, draggedFeedId, feedById, folderById, moveFeedToFolder],
+    [canDropFeedToFolder, clearDragState, draggedFeedId, moveFeedToFolder],
   );
 
   const handleDropToUnfoldered = useCallback(async () => {
@@ -83,6 +106,24 @@ export function useSidebarFeedDragState({
       clearDragState();
     }
   }, [canDragFeeds, clearDragState, draggedFeedId, feedById, isFeedsSectionOpen]);
+
+  useEffect(() => {
+    if (!draggedFeedId || activeDropTarget === null) {
+      return;
+    }
+
+    if (activeDropTarget.kind === "folder") {
+      if (!canDropFeedToFolder(draggedFeedId, activeDropTarget.folderId)) {
+        setActiveDropTarget(null);
+      }
+      return;
+    }
+
+    const draggedFeed = feedById.get(draggedFeedId);
+    if (!draggedFeed || draggedFeed.folder_id === null) {
+      setActiveDropTarget(null);
+    }
+  }, [activeDropTarget, canDropFeedToFolder, draggedFeedId, feedById]);
 
   return {
     draggedFeedId,

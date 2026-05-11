@@ -1,5 +1,4 @@
 import { useEffect, useRef } from "react";
-import { useTranslation } from "react-i18next";
 import { useCommandPaletteActions } from "@/components/reader/hooks/command-palette/use-command-palette-actions";
 import { useCommandPaletteData } from "@/components/reader/hooks/command-palette/use-command-palette-data";
 import { useCommandPaletteHandlers } from "@/components/reader/hooks/command-palette/use-command-palette-handlers";
@@ -7,10 +6,10 @@ import { useCommandPaletteRuntime } from "@/components/reader/hooks/command-pale
 import { useCommandPaletteUiState } from "@/components/reader/hooks/command-palette/use-command-palette-ui-state";
 import { useCommandPaletteViewProps } from "@/components/reader/hooks/command-palette/use-command-palette-view-props";
 import { useFeedLanding } from "@/hooks/use-feed-landing";
+import { useStableOpenTranslation } from "@/lib/i18n/use-stable-open-translation";
 import type { CommandPaletteControllerResult } from "../../command-palette.types";
 
 export function useCommandPaletteController(): CommandPaletteControllerResult {
-  const { t } = useTranslation("reader");
   const {
     open,
     closeCommandPalette,
@@ -24,6 +23,7 @@ export function useCommandPaletteController(): CommandPaletteControllerResult {
     shortcutPrefs,
     isSyncing,
   } = useCommandPaletteUiState();
+  const t = useStableOpenTranslation("reader", open);
   const openFeedLanding = useFeedLanding();
   const selectedAccountIdRef = useRef(selectedAccountId);
   const paletteSessionIdRef = useRef(0);
@@ -34,6 +34,7 @@ export function useCommandPaletteController(): CommandPaletteControllerResult {
   wasOpenRef.current = open;
   const { input, setInput, devScenarios, prefix, query, deferredQuery } = useCommandPaletteRuntime({ open });
   const actions = useCommandPaletteActions({
+    open,
     platformKind,
     shortcutPrefs,
     selectedAccountId,

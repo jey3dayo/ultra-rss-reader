@@ -44,6 +44,21 @@ describe("ShortcutsSettings", () => {
     expect(screen.getByTestId("shortcut-badge-toggle_star")).toHaveTextContent("s");
   });
 
+  it("keeps open shortcut settings labels on one locale while language changes", async () => {
+    useUiStore.getState().openSettings("shortcuts");
+
+    render(<ShortcutsSettings />, { wrapper: createWrapper() });
+
+    expect(screen.getByRole("heading", { name: "Shortcuts" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reset to Defaults" })).toBeInTheDocument();
+
+    await i18n.changeLanguage("ja");
+
+    expect(screen.getByRole("heading", { name: "Shortcuts" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reset to Defaults" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "ショートカット" })).not.toBeInTheDocument();
+  });
+
   it("builds shortcut categories in definition order", () => {
     expect(
       buildShortcutCategoryOrder([

@@ -1,5 +1,4 @@
 import { useCallback, useMemo, useState } from "react";
-import { useTranslation } from "react-i18next";
 import {
   Command,
   CommandEmpty,
@@ -11,6 +10,7 @@ import {
 } from "@/components/ui/command";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { MOTION_CONTENT_SWAP_CLASS_NAME } from "@/constants/motion";
+import { useStableOpenTranslation } from "@/lib/i18n/use-stable-open-translation";
 import { getShortcutDisplay, type ShortcutDefinition, shortcutDefinitions } from "@/lib/keyboard/keyboard-shortcuts";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -34,7 +34,7 @@ type ShortcutHelpItem = {
 };
 
 export function ShortcutsHelpModal({ open, onOpenChange }: ShortcutsHelpModalProps) {
-  const { t } = useTranslation("reader");
+  const t = useStableOpenTranslation("reader", open);
   const platformKind = usePlatformStore((state) => state.platform.kind);
   const shortcutPrefs = usePreferencesStore((state) => state.prefs);
   const [searchValue, setSearchValue] = useState("");

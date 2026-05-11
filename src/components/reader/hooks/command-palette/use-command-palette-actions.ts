@@ -9,12 +9,13 @@ import {
   SunIcon,
 } from "lucide-react";
 import { useMemo } from "react";
-import { useTranslation } from "react-i18next";
 import type { PlatformInfo } from "@/api/schemas";
+import { useStableOpenTranslation } from "@/lib/i18n/use-stable-open-translation";
 import { getShortcutDisplay } from "@/lib/keyboard/keyboard-shortcuts";
 import type { PaletteAction } from "../../command-palette.types";
 
 type UseCommandPaletteActionsParams = {
+  open: boolean;
   platformKind: PlatformInfo["kind"];
   shortcutPrefs: Record<string, string>;
   selectedAccountId: string | null;
@@ -24,14 +25,15 @@ type UseCommandPaletteActionsParams = {
 type UseCommandPaletteActionsResult = PaletteAction[];
 
 export function useCommandPaletteActions({
+  open,
   platformKind,
   shortcutPrefs,
   selectedAccountId,
   isSyncing,
 }: UseCommandPaletteActionsParams): UseCommandPaletteActionsResult {
-  const { t } = useTranslation("reader");
-  const { t: tSidebar } = useTranslation("sidebar");
-  const { t: tSettings } = useTranslation("settings");
+  const t = useStableOpenTranslation("reader", open);
+  const tSidebar = useStableOpenTranslation("sidebar", open);
+  const tSettings = useStableOpenTranslation("settings", open);
 
   return useMemo(() => {
     const actions: UseCommandPaletteActionsResult = [

@@ -1,8 +1,8 @@
 import { RotateCcw } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
-import { useTranslation } from "react-i18next";
 import { useRegisterSettingsDirtyState } from "@/components/settings/hooks/use-settings-dirty-state-registry";
 import { ShortcutsSettingsView } from "@/components/settings/shortcuts-settings-view";
+import { useStableOpenTranslation } from "@/lib/i18n/use-stable-open-translation";
 import { shouldIgnoreGlobalShortcutKeyboardEvent } from "@/lib/keyboard/global-shortcut-targets";
 import {
   formatKeyForDisplay,
@@ -39,8 +39,9 @@ function normalizeRecordedKey(
 }
 
 export function ShortcutsSettings() {
-  const { t } = useTranslation("settings");
-  const { t: tReader } = useTranslation("reader");
+  const settingsOpen = useUiStore((s) => s.settingsOpen);
+  const t = useStableOpenTranslation("settings", settingsOpen);
+  const tReader = useStableOpenTranslation("reader", settingsOpen);
   const setPref = usePreferencesStore((s) => s.setPref);
   const prefs = usePreferencesStore((s) => s.prefs);
   const pendingPreferenceSaves = usePreferencesStore((s) => s.pendingPreferenceSaves);

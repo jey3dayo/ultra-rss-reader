@@ -279,6 +279,27 @@ fn validate_freshrss_server_url(account: &Account) -> Result<&str, AppError> {
         })
 }
 
+fn normalize_updated_account_server_url(
+    account: &Account,
+    server_url: Option<&str>,
+) -> Result<Option<String>, AppError> {
+    match account.kind {
+        ProviderKind::FreshRss => {
+            let server_url = server_url.ok_or_else(|| AppError::UserVisible {
+                message: "FreshRSS server URL is required".into(),
+            })?;
+            if server_url.trim().is_empty() {
+                return Err(AppError::UserVisible {
+                    message: "FreshRSS server URL is required".into(),
+                });
+            }
+            Ok(Some(normalize_new_freshrss_server_url(server_url)?))
+        }
+        ProviderKind::Local => Ok(server_url.map(ToOwned::to_owned)),
+        ProviderKind::Quarantined => Ok(None),
+    }
+}
+
 fn save_account_after_optional_password<F, S, D>(
     account: &Account,
     password: Option<&str>,
@@ -395,7 +416,7 @@ mod tests {
     use super::{
         account_credential_cleanup_contract, delete_account_then_password,
         invalid_account_row_recovery_contract, normalize_new_freshrss_server_url,
-        provider_account_scale_guidance_contract,
+        normalize_updated_account_server_url, provider_account_scale_guidance_contract,
         provider_credential_verification_request_contract, save_account_after_optional_password,
         update_account_credentials_after_optional_password, validate_account_name,
         validate_account_name_with_excluded_id, validate_account_sync_settings,
@@ -559,6 +580,51 @@ mod tests {
 
         account.server_url = Some("   ".to_string());
         assert!(validate_freshrss_server_url(&account).is_err());
+    }
+
+    #[test]
+    fn normalizes_updated_freshrss_server_url_with_new_account_policy() {
+        let account = fresh_rss_account();
+
+        assert_eq!(
+            normalize_updated_account_server_url(&account, Some(" https://rss.example.com/root "))
+                .unwrap(),
+            Some("https://rss.example.com/root".to_string())
+        );
+
+        for server_url in [
+            None,
+            Some("   "),
+            Some("ftp://rss.example.com"),
+            Some("https://alice:secret@rss.example.com"),
+            Some("http://localhost:8080"),
+            Some("http://127.0.0.1"),
+            Some("http://[::1]"),
+            Some("not a url"),
+        ] {
+            assert!(
+                normalize_updated_account_server_url(&account, server_url).is_err(),
+                "{server_url:?} should be rejected"
+            );
+        }
+    }
+
+    #[test]
+    fn normalize_updated_account_server_url_keeps_non_freshrss_policy() {
+        let mut account = fresh_rss_account();
+
+        account.kind = ProviderKind::Local;
+        assert_eq!(
+            normalize_updated_account_server_url(&account, Some(" local value ")).unwrap(),
+            Some(" local value ".to_string())
+        );
+
+        account.kind = ProviderKind::Quarantined;
+        assert_eq!(
+            normalize_updated_account_server_url(&account, Some("https://rss.example.com"))
+                .unwrap(),
+            None
+        );
     }
 
     #[test]
@@ -1188,6 +1254,10 @@ pub fn update_account_credentials(
 
     let db = crate::commands::lock_db(&state.db)?;
     let repo = SqliteAccountRepository::new(db.writer());
+    let current_account = repo.find_by_id(&id)?.ok_or_else(|| AppError::UserVisible {
+        message: "Account not found".into(),
+    })?;
+    let server_url = normalize_updated_account_server_url(&current_account, server_url.as_deref())?;
     let account = update_account_credentials_after_optional_password(
         &id,
         password.as_deref(),

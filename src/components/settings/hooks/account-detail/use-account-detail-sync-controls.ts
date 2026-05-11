@@ -71,6 +71,8 @@ export async function runAccountSetupSync({
   shouldApplyFinalUiAction,
 }: RunAccountSetupSyncParams) {
   useUiStore.getState().startAccountSetup(accountId, { owner });
+  const setupSession = useUiStore.getState().accountSetupSession;
+  const isCurrentSetupSession = () => useUiStore.getState().accountSetupSession === setupSession;
 
   let syncResult: Awaited<ReturnType<typeof syncAccount>>;
   try {
@@ -78,6 +80,9 @@ export async function runAccountSetupSync({
   } catch (error) {
     onSyncStatusChanged?.();
     invalidateQueryKeysLogOnly(queryClient, [["account-sync-status"]]);
+    if (!isCurrentSetupSession()) {
+      return;
+    }
     useUiStore
       .getState()
       .markAccountSetupFailed(accountId, t("account.sync_failed", { message: getErrorMessage(error) }));
@@ -88,6 +93,9 @@ export async function runAccountSetupSync({
   invalidateQueryKeysLogOnly(queryClient, [["account-sync-status"]]);
 
   if (Result.isFailure(syncResult)) {
+    if (!isCurrentSetupSession()) {
+      return;
+    }
     useUiStore.getState().markAccountSetupFailed(accountId, resolveSetupFailureMessage(t, syncResult));
     return;
   }
@@ -97,11 +105,17 @@ export async function runAccountSetupSync({
 
   const feedback = summarizeSyncResult(Result.unwrap(syncResult));
   if (feedback.kind !== "success") {
+    if (!isCurrentSetupSession()) {
+      return;
+    }
     useUiStore.getState().markAccountSetupFailed(accountId, resolveSetupFailureMessage(t, syncResult));
     return;
   }
 
   const uiState = useUiStore.getState();
+  if (!isCurrentSetupSession()) {
+    return;
+  }
   uiState.markAccountSetupSucceeded(accountId);
   if (shouldApplyFinalUiAction && !shouldApplyFinalUiAction()) {
     uiState.clearAccountSetup();

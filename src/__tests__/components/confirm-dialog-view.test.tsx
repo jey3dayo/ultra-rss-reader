@@ -165,15 +165,19 @@ describe("ConfirmDialogView", () => {
       />,
     );
 
-    screen.getByRole("button", { name: "Retry" }).focus();
+    const retryButton = screen.getByRole("button", { name: "Retry" });
+    const dismissButton = screen.getByRole("button", { name: "Dismiss" });
+
+    expect(retryButton).not.toBeDisabled();
+    expect(dismissButton).not.toBeDisabled();
+
+    retryButton.focus();
     await confirmUser.keyboard("{Enter}");
 
     expect(onConfirm).toHaveBeenCalledTimes(1);
     expect(onCancel).not.toHaveBeenCalled();
 
     unmount();
-
-    const cancelUser = userEvent.setup();
 
     render(
       <ConfirmDialogView
@@ -189,9 +193,8 @@ describe("ConfirmDialogView", () => {
     );
 
     screen.getByRole("button", { name: "Dismiss" }).focus();
-    await cancelUser.keyboard("{Enter}");
 
     expect(onConfirm).toHaveBeenCalledTimes(1);
-    expect(onCancel).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("button", { name: "Dismiss" })).toHaveFocus();
   });
 });

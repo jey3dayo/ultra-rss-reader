@@ -8,6 +8,7 @@ use crate::infra::db::sqlite_mute_keyword::{
 };
 use crate::repository::feed::FeedRepository;
 use crate::repository::mute_keyword::MuteKeywordRepository;
+use crate::repository::sync_state::SyncStateScopeKey;
 
 pub struct SqliteFeedRepository<'a> {
     conn: &'a Connection,
@@ -264,11 +265,21 @@ impl FeedRepository for SqliteFeedRepository<'_> {
     }
 
     fn delete(&self, feed_id: &FeedId) -> DomainResult<()> {
+        let feed = self.find_by_id(feed_id)?;
         let affected_rows = self
             .conn
             .execute("DELETE FROM feeds WHERE id = ?1", params![feed_id.0])?;
         if affected_rows == 0 {
             return Err(DomainError::Validation("feed not found".to_string()));
+        }
+        if let Some(feed) = feed {
+            self.conn.execute(
+                "DELETE FROM sync_state WHERE account_id = ?1 AND scope_key = ?2",
+                params![
+                    feed.account_id.0,
+                    SyncStateScopeKey::local_feed(feed.url).as_string()
+                ],
+            )?;
         }
         Ok(())
     }
@@ -964,6 +975,16 @@ mod tests {
                 params![feed.id.0, now],
             )
             .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO sync_state (account_id, scope_key, etag, last_modified)
+                 VALUES (?1, ?2, '\"etag-1\"', 'Wed, 01 May 2026 00:00:00 GMT')",
+                params![
+                    account_id.0,
+                    SyncStateScopeKey::local_feed(&feed.url).as_string()
+                ],
+            )
+            .unwrap();
 
         let article_count: i64 = db
             .reader()
@@ -1022,6 +1043,17 @@ mod tests {
             .reader()
             .query_row("SELECT COUNT(*) FROM feed_http_cache", [], |row| row.get(0))
             .unwrap();
+        let local_feed_sync_state_count: i64 = db
+            .reader()
+            .query_row(
+                "SELECT COUNT(*) FROM sync_state WHERE account_id = ?1 AND scope_key = ?2",
+                params![
+                    account_id.0,
+                    SyncStateScopeKey::local_feed(&feed.url).as_string()
+                ],
+                |row| row.get(0),
+            )
+            .unwrap();
         assert_eq!(article_count, 0);
         assert_eq!(read_count, 0);
         assert_eq!(starred_count, 0);
@@ -1029,6 +1061,7 @@ mod tests {
         assert_eq!(tag_count, 1);
         assert_eq!(history_count, 0);
         assert_eq!(http_cache_count, 0);
+        assert_eq!(local_feed_sync_state_count, 0);
     }
 
     #[test]

@@ -102,16 +102,21 @@ type DatabaseRestoreFrontendStateReconciliationParams<T extends DatabaseRestoreA
   accounts: readonly T[];
   selectedAccountId: string | null | undefined;
   savedAccountId: string | null | undefined;
+  resetReason?: DatabaseRestoreFrontendCacheResetReason;
   queryClient: Pick<QueryClient, "clear">;
   storage: Pick<Storage, "removeItem">;
   restoreAccountSelection: (accountId: string, options: { focusedPane: "list" }) => void;
   clearSelectedAccount: () => void;
   setSelectedAccountPreference: (accountId: string) => void;
+  clearSettingsDirtyState?: () => void;
   storagePolicy?: DatabaseRestoreStorageReconciliationPolicy;
 };
 
+export type DatabaseRestoreFrontendCacheResetReason = "database-restore" | "private-data-reset";
+
 type DatabaseRestoreFrontendStateReconciliationResult = {
   queryCacheCleared: boolean;
+  resetReason: DatabaseRestoreFrontendCacheResetReason;
   removedStorageKeys: readonly string[];
   selectedAccountId: string | null;
   preferenceAccountId: string;
@@ -393,14 +398,17 @@ export function reconcileDatabaseRestoreFrontendState<T extends DatabaseRestoreA
   accounts,
   selectedAccountId,
   savedAccountId,
+  resetReason = "database-restore",
   queryClient,
   storage,
   restoreAccountSelection,
   clearSelectedAccount,
   setSelectedAccountPreference,
+  clearSettingsDirtyState,
   storagePolicy = DATABASE_RESTORE_STORAGE_RECONCILIATION_POLICY,
 }: DatabaseRestoreFrontendStateReconciliationParams<T>): DatabaseRestoreFrontendStateReconciliationResult {
   queryClient.clear();
+  clearSettingsDirtyState?.();
 
   const removedStorageKeys: string[] = [];
   for (const storageKey of storagePolicy.removeKeys) {
@@ -429,6 +437,7 @@ export function reconcileDatabaseRestoreFrontendState<T extends DatabaseRestoreA
 
   return {
     queryCacheCleared: true,
+    resetReason,
     removedStorageKeys,
     selectedAccountId: accountSelection.accountId,
     preferenceAccountId: accountSelection.preferenceAccountId,

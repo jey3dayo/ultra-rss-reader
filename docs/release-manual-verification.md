@@ -103,7 +103,12 @@ names or workflow internals unless the release contract already requires them.
 
 ### 1. FreshRSS Live Verification
 
-Run `mise run test:live`.
+Run `mise run test:live`. This gate is intentionally opt-in and requires
+`FRESHRSS_URL`, `FRESHRSS_USER`, and `FRESHRSS_PASS` from the operator
+environment. Live provider tests stay out of mise run check and require explicit
+operator opt-in with redacted evidence. Do not print FreshRSS URL, username,
+password, tokens, cookies, or response bodies in live test logs or verification
+notes.
 
 Confirm:
 

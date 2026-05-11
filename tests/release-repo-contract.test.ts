@@ -7,8 +7,10 @@ import { describe, expect, it } from "vitest";
 import {
   generatedFixtureSnapshotSizeBudget,
   isGeneratedReportArtifactPath,
+  liveProviderTestGateContract,
   markdownlintRepoContract,
   qualityBaselineRepoScanIgnoredPathPrefixes,
+  testHelperRuntimeIsolationContract,
 } from "../scripts/quality-baseline";
 import {
   analyzeRepositorySqlInventory,
@@ -646,6 +648,9 @@ describe("release repository contract", () => {
   const localProviderSource = readText("src-tauri/src/infra/provider/local.rs");
   const accountCommandsSource = readText("src-tauri/src/commands/account_commands.rs");
   const opmlCommandsSource = readText("src-tauri/src/commands/opml_commands.rs");
+  const greaderProviderSource = readText("src-tauri/src/infra/provider/greader.rs");
+  const testSetupSource = readText(testHelperRuntimeIsolationContract.sharedSetupPath);
+  const testIsolationPolicySource = readText(testHelperRuntimeIsolationContract.policyTestPath);
   const articleContentViewTest = readText("src/__tests__/components/article-content-view.test.tsx");
   const feedDiscoverySource = readText("src-tauri/src/infra/feed_discovery.rs");
   const addAccountFormSource = readText("src/lib/account/add-account-form.ts");
@@ -2315,6 +2320,39 @@ describe("release repository contract", () => {
     expect(isGeneratedReportArtifactPath("tests/fixtures/opml/generated-basic.opml")).toBe(false);
     expect(generatedFixtureSnapshotSizeBudget.largeCorpusDirectoryPrefixes).toEqual(["tests/fixtures/"]);
     expect(generatedFixtureSnapshotSizeBudget.reviewExceptionPolicy).toContain("repo-contract update");
+  });
+
+  it("keeps live provider tests opt-in and secret-masked outside the default repo gate", () => {
+    const normalizedReleaseManualVerification = releaseManualVerification.replace(/\s+/g, " ");
+
+    expect(miseToml).toContain(`[tasks."${liveProviderTestGateContract.taskName}"]`);
+    for (const fragment of liveProviderTestGateContract.commandFragments) {
+      expect(miseToml).toContain(fragment);
+    }
+    expect(miseToml).not.toMatch(new RegExp(`depends = \\[[^\\]]*"${liveProviderTestGateContract.taskName}"`));
+    expect(greaderProviderSource).toContain("skip_live_freshrss_test_when_env_is_missing");
+    for (const envKey of liveProviderTestGateContract.requiredEnvKeys) {
+      expect(greaderProviderSource).toContain(`std::env::var("${envKey}")`);
+      expect(releaseManualVerification).toContain(envKey);
+    }
+    expect(normalizedReleaseManualVerification).toContain(liveProviderTestGateContract.localGateExclusionPolicy);
+    expect(normalizedReleaseManualVerification).toContain(liveProviderTestGateContract.maskingPolicy);
+  });
+
+  it("keeps test helper global runtime isolation owned at suite boundaries", () => {
+    expect(docsReadme).toContain("Test isolation policy");
+    expect(docsReadme).toContain(testHelperRuntimeIsolationContract.reviewPolicy);
+    expect(testIsolationPolicySource).toContain("test isolation policy contract");
+
+    for (const reset of testHelperRuntimeIsolationContract.suiteBoundaryResets) {
+      expect(testSetupSource).toContain(reset);
+    }
+    for (const surface of testHelperRuntimeIsolationContract.globalRuntimeSurfaces) {
+      expect(docsReadme).toContain(surface);
+    }
+    for (const helperPathPrefix of testHelperRuntimeIsolationContract.helperPathPrefixes) {
+      expect(generatedFixtureSnapshotSizeBudget.fixturePathPrefixes).toContain(helperPathPrefix);
+    }
   });
 
   it("documents schema, test fixture, dependency update, and reproducibility gates", () => {

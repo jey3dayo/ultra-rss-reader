@@ -47,6 +47,44 @@ export const generatedFixtureSnapshotSizeBudget = {
     "Checked-in fixture or snapshot budget increases require a repo-contract update with a focused test.",
 } as const;
 
+export const liveProviderTestGateContract = {
+  taskName: "test:live",
+  requiredEnvKeys: ["FRESHRSS_URL", "FRESHRSS_USER", "FRESHRSS_PASS"],
+  commandFragments: ["dotenvx run --", "freshrss_live", "--ignored", "--nocapture"],
+  localGateExclusionPolicy:
+    "Live provider tests stay out of mise run check and require explicit operator opt-in with redacted evidence.",
+  maskingPolicy:
+    "Do not print FreshRSS URL, username, password, tokens, cookies, or response bodies in live test logs or verification notes.",
+} as const;
+
+export const testHelperRuntimeIsolationContract = {
+  sharedSetupPath: "tests/setup.ts",
+  policyTestPath: "tests/test-isolation-policy.test.ts",
+  helperPathPrefixes: ["tests/helpers/"],
+  suiteBoundaryResets: [
+    "cleanup()",
+    "teardownTauriMocks()",
+    "resetTauriRuntimeFlags()",
+    "vi.useRealTimers()",
+    "restoreProcessEnv()",
+    'clearWorkingStorage(readWorkingWindowStorage("localStorage"))',
+    'clearWorkingStorage(readWorkingWindowStorage("sessionStorage"))',
+    "restoreStorageDescriptors()",
+    "resetTestObserverMocks()",
+  ],
+  globalRuntimeSurfaces: [
+    "process.env",
+    "localStorage",
+    "sessionStorage",
+    "fake timers",
+    "Tauri IPC mocks",
+    "observer globals",
+    "singleton diagnostics reporters",
+  ],
+  reviewPolicy:
+    "Helpers that mutate global runtime state must expose an explicit reset or rely on the shared suite teardown, with focused coverage for two consecutive test runs.",
+} as const;
+
 const reactDoctorBaselines = {
   diff: {
     score: 100,

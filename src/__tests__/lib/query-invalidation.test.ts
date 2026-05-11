@@ -4,6 +4,7 @@ import { resetDiagnosticsReporterModuleGlobalsForTests } from "@tests/helpers/di
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   ARTICLE_CACHE_QUERY_ROOTS,
+  QUERY_KEY_ROOTS,
   getReaderArticleQueryMode,
   invalidateAddFeedQueries,
   invalidateArticleMutationQueries,
@@ -21,6 +22,7 @@ import {
   resolveFeedInvalidationQueryKeys,
   setQueryInvalidationFailureReporterForDiagnostics,
 } from "@/lib/query/query-invalidation";
+import { QUERY_CACHE_KEY_VERSION } from "@/api/schemas/runtime-contracts";
 
 function createInvalidateSpy() {
   const queryClient = createTestQueryClient();
@@ -39,56 +41,150 @@ describe("query-invalidation", () => {
   });
 
   it("keeps typed query key helpers aligned with existing tuple shapes", () => {
-    expect(queryKeys.accounts.root).toEqual(["accounts"]);
-    expect(queryKeys.feeds.byAccount("acc-1")).toEqual(["feeds", "acc-1"]);
-    expect(queryKeys.feeds.byAccount(" acc-1 ")).toEqual(["feeds", "acc-1"]);
-    expect(queryKeys.feeds.byAccount(" ")).toEqual(["feeds", null]);
-    expect(queryKeys.articles.byFeed("feed-1", "unread")).toEqual(["articles", "feed-1", { mode: "unread" }]);
-    expect(queryKeys.accountArticles.byAccount("acc-1", "all")).toEqual(["accountArticles", "acc-1", { mode: "all" }]);
-    expect(queryKeys.accountArticles.byAccount(" acc-1 ", "all")).toEqual([
+    expect(queryKeys.accounts.root).toEqual([QUERY_CACHE_KEY_VERSION, "accounts"]);
+    expect(queryKeys.feeds.byAccount("acc-1")).toEqual([QUERY_CACHE_KEY_VERSION, "feeds", "acc-1"]);
+    expect(queryKeys.feeds.byAccount(" acc-1 ")).toEqual([QUERY_CACHE_KEY_VERSION, "feeds", "acc-1"]);
+    expect(queryKeys.feeds.byAccount(" ")).toEqual([QUERY_CACHE_KEY_VERSION, "feeds", null]);
+    expect(queryKeys.articles.byFeed("feed-1", "unread")).toEqual([
+      QUERY_CACHE_KEY_VERSION,
+      "articles",
+      "feed-1",
+      { mode: "unread" },
+    ]);
+    expect(queryKeys.accountArticles.byAccount("acc-1", "all")).toEqual([
+      QUERY_CACHE_KEY_VERSION,
       "accountArticles",
       "acc-1",
       { mode: "all" },
     ]);
-    expect(queryKeys.accountArticles.byAccount(" ", "all")).toEqual(["accountArticles", null, { mode: "all" }]);
-    expect(queryKeys.accountArticles.byAccountPrefix("acc-1")).toEqual(["accountArticles", "acc-1"]);
-    expect(queryKeys.accountArticles.byAccountPrefix(" acc-1 ")).toEqual(["accountArticles", "acc-1"]);
-    expect(queryKeys.accountArticles.byAccountPrefix(" ")).toEqual(["accountArticles", null]);
-    expect(queryKeys.feedArticleSummaries.root).toEqual(["feedArticleSummaries"]);
-    expect(queryKeys.feedArticleSummaries.byAccount("acc-1")).toEqual(["feedArticleSummaries", "acc-1"]);
-    expect(queryKeys.feedArticleSummaries.byAccount(" ")).toEqual(["feedArticleSummaries", null]);
-    expect(queryKeys.feedArticleSummaries.subscriptionsIndex(" acc-1 ")).toEqual(["feedArticleSummaries", "acc-1"]);
-    expect(queryKeys.feedArticleSummaries.subscriptionsIndex(" ")).toEqual(["feedArticleSummaries", null]);
+    expect(queryKeys.accountArticles.byAccount(" acc-1 ", "all")).toEqual([
+      QUERY_CACHE_KEY_VERSION,
+      "accountArticles",
+      "acc-1",
+      { mode: "all" },
+    ]);
+    expect(queryKeys.accountArticles.byAccount(" ", "all")).toEqual([
+      QUERY_CACHE_KEY_VERSION,
+      "accountArticles",
+      null,
+      { mode: "all" },
+    ]);
+    expect(queryKeys.accountArticles.byAccountPrefix("acc-1")).toEqual([
+      QUERY_CACHE_KEY_VERSION,
+      "accountArticles",
+      "acc-1",
+    ]);
+    expect(queryKeys.accountArticles.byAccountPrefix(" acc-1 ")).toEqual([
+      QUERY_CACHE_KEY_VERSION,
+      "accountArticles",
+      "acc-1",
+    ]);
+    expect(queryKeys.accountArticles.byAccountPrefix(" ")).toEqual([
+      QUERY_CACHE_KEY_VERSION,
+      "accountArticles",
+      null,
+    ]);
+    expect(queryKeys.feedArticleSummaries.root).toEqual([QUERY_CACHE_KEY_VERSION, "feedArticleSummaries"]);
+    expect(queryKeys.feedArticleSummaries.byAccount("acc-1")).toEqual([
+      QUERY_CACHE_KEY_VERSION,
+      "feedArticleSummaries",
+      "acc-1",
+    ]);
+    expect(queryKeys.feedArticleSummaries.byAccount(" ")).toEqual([
+      QUERY_CACHE_KEY_VERSION,
+      "feedArticleSummaries",
+      null,
+    ]);
+    expect(queryKeys.feedArticleSummaries.subscriptionsIndex(" acc-1 ")).toEqual([
+      QUERY_CACHE_KEY_VERSION,
+      "feedArticleSummaries",
+      "acc-1",
+    ]);
+    expect(queryKeys.feedArticleSummaries.subscriptionsIndex(" ")).toEqual([
+      QUERY_CACHE_KEY_VERSION,
+      "feedArticleSummaries",
+      null,
+    ]);
     expect(queryKeys.folderArticles.byFolder("folder-1", "starred")).toEqual([
+      QUERY_CACHE_KEY_VERSION,
       "folderArticles",
       "folder-1",
       { mode: "starred" },
     ]);
-    expect(queryKeys.recentArticles.byAccount("acc-1", "all")).toEqual(["recentArticles", "acc-1", { mode: "all" }]);
-    expect(queryKeys.recentArticles.byAccount(" ", "all")).toEqual(["recentArticles", null, { mode: "all" }]);
-    expect(queryKeys.accountUnreadCount.byAccount("acc-1")).toEqual(["accountUnreadCount", "acc-1"]);
-    expect(queryKeys.accountUnreadCount.byAccount(null)).toEqual(["accountUnreadCount", null]);
-    expect(queryKeys.accountUnreadCount.byAccount(" ")).toEqual(["accountUnreadCount", null]);
-    expect(queryKeys.accountStarredCount.byAccount(" acc-1 ")).toEqual(["accountStarredCount", "acc-1"]);
-    expect(queryKeys.accountStarredCount.byAccount(" ")).toEqual(["accountStarredCount", null]);
+    expect(queryKeys.recentArticles.byAccount("acc-1", "all")).toEqual([
+      QUERY_CACHE_KEY_VERSION,
+      "recentArticles",
+      "acc-1",
+      { mode: "all" },
+    ]);
+    expect(queryKeys.recentArticles.byAccount(" ", "all")).toEqual([
+      QUERY_CACHE_KEY_VERSION,
+      "recentArticles",
+      null,
+      { mode: "all" },
+    ]);
+    expect(queryKeys.accountUnreadCount.byAccount("acc-1")).toEqual([
+      QUERY_CACHE_KEY_VERSION,
+      "accountUnreadCount",
+      "acc-1",
+    ]);
+    expect(queryKeys.accountUnreadCount.byAccount(null)).toEqual([QUERY_CACHE_KEY_VERSION, "accountUnreadCount", null]);
+    expect(queryKeys.accountUnreadCount.byAccount(" ")).toEqual([QUERY_CACHE_KEY_VERSION, "accountUnreadCount", null]);
+    expect(queryKeys.accountStarredCount.byAccount(" acc-1 ")).toEqual([
+      QUERY_CACHE_KEY_VERSION,
+      "accountStarredCount",
+      "acc-1",
+    ]);
+    expect(queryKeys.accountStarredCount.byAccount(" ")).toEqual([
+      QUERY_CACHE_KEY_VERSION,
+      "accountStarredCount",
+      null,
+    ]);
     expect(queryKeys.articlesByTag.byTagAndAccount("tag-1", "acc-1", "all")).toEqual([
+      QUERY_CACHE_KEY_VERSION,
       "articlesByTag",
       "tag-1",
       "acc-1",
       { mode: "all" },
     ]);
     expect(queryKeys.articlesByTag.byTagAndAccount("tag-1", " ", "all")).toEqual([
+      QUERY_CACHE_KEY_VERSION,
       "articlesByTag",
       "tag-1",
       null,
       { mode: "all" },
     ]);
-    expect(queryKeys.tagArticleCounts.byAccount("acc-1")).toEqual(["tagArticleCounts", "acc-1"]);
-    expect(queryKeys.tagArticleCounts.byAccount(null)).toEqual(["tagArticleCounts", null]);
-    expect(queryKeys.tagArticleCounts.byAccount(" ")).toEqual(["tagArticleCounts", null]);
-    expect(queryKeys.search.byAccountAndQuery("acc-1", "fresh")).toEqual(["search", "acc-1", "fresh"]);
-    expect(queryKeys.search.byAccountAndQuery(" acc-1 ", "fresh")).toEqual(["search", "acc-1", "fresh"]);
-    expect(queryKeys.search.byAccountAndQuery(" ", "fresh")).toEqual(["search", null, "fresh"]);
+    expect(queryKeys.tagArticleCounts.byAccount("acc-1")).toEqual([
+      QUERY_CACHE_KEY_VERSION,
+      "tagArticleCounts",
+      "acc-1",
+    ]);
+    expect(queryKeys.tagArticleCounts.byAccount(null)).toEqual([QUERY_CACHE_KEY_VERSION, "tagArticleCounts", null]);
+    expect(queryKeys.tagArticleCounts.byAccount(" ")).toEqual([QUERY_CACHE_KEY_VERSION, "tagArticleCounts", null]);
+    expect(queryKeys.search.byAccountAndQuery("acc-1", "fresh")).toEqual([
+      QUERY_CACHE_KEY_VERSION,
+      "search",
+      "acc-1",
+      "fresh",
+    ]);
+    expect(queryKeys.search.byAccountAndQuery(" acc-1 ", "fresh")).toEqual([
+      QUERY_CACHE_KEY_VERSION,
+      "search",
+      "acc-1",
+      "fresh",
+    ]);
+    expect(queryKeys.search.byAccountAndQuery(" ", "fresh")).toEqual([
+      QUERY_CACHE_KEY_VERSION,
+      "search",
+      null,
+      "fresh",
+    ]);
+  });
+
+  it("keeps every schema-owned query root behind the query cache version segment", () => {
+    expect(Object.values(QUERY_KEY_ROOTS).map(([version]) => version)).toEqual(
+      Array(Object.keys(QUERY_KEY_ROOTS).length).fill(QUERY_CACHE_KEY_VERSION),
+    );
   });
 
   it("keeps reader article query key object segments stable for hashing and root matching", () => {
@@ -101,9 +197,13 @@ describe("query-invalidation", () => {
     queryClient.setQueryData(accountKey, ["account article"]);
     queryClient.setQueryData(tagKey, ["tag article"]);
 
-    expect(hashKey(articleKey)).toBe(hashKey(["articles", "feed-1", { mode: "unread" }]));
-    expect(hashKey(accountKey)).toBe(hashKey(["accountArticles", "acc-1", { mode: "all" }]));
-    expect(hashKey(tagKey)).toBe(hashKey(["articlesByTag", "tag-1", "acc-1", { mode: "starred" }]));
+    expect(hashKey(articleKey)).toBe(hashKey([QUERY_CACHE_KEY_VERSION, "articles", "feed-1", { mode: "unread" }]));
+    expect(hashKey(accountKey)).toBe(
+      hashKey([QUERY_CACHE_KEY_VERSION, "accountArticles", "acc-1", { mode: "all" }]),
+    );
+    expect(hashKey(tagKey)).toBe(
+      hashKey([QUERY_CACHE_KEY_VERSION, "articlesByTag", "tag-1", "acc-1", { mode: "starred" }]),
+    );
     expect(queryClient.getQueryCache().findAll({ queryKey: queryKeys.articles.root })).toHaveLength(1);
     expect(queryClient.getQueryCache().findAll({ queryKey: queryKeys.accountArticles.root })).toHaveLength(1);
     expect(queryClient.getQueryCache().findAll({ queryKey: queryKeys.articlesByTag.root })).toHaveLength(1);
@@ -111,17 +211,24 @@ describe("query-invalidation", () => {
 
   it("keeps composite query keys in typed manual helpers instead of generated single-id hooks", () => {
     expect(queryKeys.accountArticles.byAccount("acc-1", "unread")).toEqual([
+      QUERY_CACHE_KEY_VERSION,
       "accountArticles",
       "acc-1",
       { mode: "unread" },
     ]);
     expect(queryKeys.articlesByTag.byTagAndAccount("tag-1", "acc-1", "starred")).toEqual([
+      QUERY_CACHE_KEY_VERSION,
       "articlesByTag",
       "tag-1",
       "acc-1",
       { mode: "starred" },
     ]);
-    expect(queryKeys.search.byAccountAndQuery("acc-1", "news")).toEqual(["search", "acc-1", "news"]);
+    expect(queryKeys.search.byAccountAndQuery("acc-1", "news")).toEqual([
+      QUERY_CACHE_KEY_VERSION,
+      "search",
+      "acc-1",
+      "news",
+    ]);
   });
 
   it("normalizes account ids used in query keys", () => {

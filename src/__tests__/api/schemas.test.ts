@@ -587,6 +587,42 @@ describe("DTO schemas", () => {
     ).toThrow();
     expect(() => AccountDtoSchema.parse({ ...data, connection_verified_at: "not-a-date" })).toThrow();
   });
+  it("accepts quarantined AccountDto status and rejects unknown connection verification statuses", () => {
+    const data = {
+      id: "acc-1",
+      kind: "Quarantined",
+      name: "Recovered account",
+      display_name: "Recovered account",
+      icon_url: null,
+      capabilities: {
+        supports_folders: false,
+        supports_starring: false,
+        supports_search: false,
+        supports_delta_sync: false,
+        supports_remote_state: false,
+      },
+      server_url: null,
+      username: null,
+      sync_interval_secs: 3600,
+      sync_on_startup: false,
+      sync_on_wake: false,
+      keep_read_items_days: 30,
+      connection_verification_status: "quarantined",
+      connection_verified_at: null,
+      connection_verification_error: "Unknown provider kind: DebugProvider",
+    };
+
+    expect(AccountDtoSchema.parse(data)).toEqual(data);
+    expect(() =>
+      AccountDtoSchema.parse({
+        ...data,
+        connection_verification_status: "unknown",
+      }),
+    ).toThrow();
+    expect(readRustCommandDtoSource()).toContain(
+      'crate::domain::account::ConnectionVerificationStatus::Quarantined => "quarantined"',
+    );
+  });
   it("keeps AccountDto schema fields aligned with Rust DTO fields", () => {
     expect(Object.keys(AccountDtoSchema.shape).toSorted()).toEqual(
       extractRustStructFields(readRustCommandDtoSource(), "AccountDto"),

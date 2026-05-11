@@ -3,6 +3,8 @@ use std::net::{IpAddr, SocketAddr, TcpStream, ToSocketAddrs};
 use std::time::Duration;
 use thiserror::Error;
 
+pub const PROVIDER_RETRY_AFTER_MAX_SECONDS: u64 = 3_600;
+
 #[derive(Debug, Error)]
 pub enum DomainError {
     #[error("Network error: {0}")]
@@ -471,7 +473,7 @@ fn retry_after_seconds(headers: &HeaderMap) -> Option<u64> {
     }
 
     if let Ok(seconds) = value.parse::<u64>() {
-        return Some(seconds);
+        return Some(seconds.min(PROVIDER_RETRY_AFTER_MAX_SECONDS));
     }
 
     let retry_at = chrono::DateTime::parse_from_rfc2822(value).ok()?;
@@ -480,7 +482,7 @@ fn retry_after_seconds(headers: &HeaderMap) -> Option<u64> {
         .with_timezone(&chrono::Utc)
         .signed_duration_since(now)
         .num_seconds();
-    Some(seconds.max(0) as u64)
+    Some((seconds.max(0) as u64).min(PROVIDER_RETRY_AFTER_MAX_SECONDS))
 }
 
 impl From<rusqlite::Error> for DomainError {
@@ -504,7 +506,7 @@ mod tests {
         classify_network_error, error_recovery_category, provider_block_response_contract,
         redact_sensitive_network_error_message, AppRecoveryAction, DestructiveActionFallback,
         DomainError, ErrorRecoveryCategory, FrontendNetworkSignal, NetworkErrorClassificationInput,
-        PlatformPermissionDeniedSurface, StorageBoundaryOwner,
+        PlatformPermissionDeniedSurface, StorageBoundaryOwner, PROVIDER_RETRY_AFTER_MAX_SECONDS,
     };
     use crate::commands::dto::AppError;
     use reqwest::{
@@ -938,6 +940,69 @@ mod tests {
             domain_error.to_string(),
             "Rate limit error: HTTP 429 Too Many Requests; retry_after_seconds=120"
         );
+    }
+
+    #[test]
+    fn provider_http_status_429_caps_huge_retry_after_delta() {
+        let mut headers = HeaderMap::new();
+        headers.insert(RETRY_AFTER, HeaderValue::from_static("999999"));
+
+        let domain_error = DomainError::from_provider_http_response_status(
+            StatusCode::TOO_MANY_REQUESTS,
+            &headers,
+        );
+
+        assert!(matches!(
+            domain_error,
+            DomainError::RateLimitWithRetryAfter {
+                retry_after_seconds: PROVIDER_RETRY_AFTER_MAX_SECONDS,
+                ..
+            }
+        ));
+    }
+
+    #[test]
+    fn provider_http_status_429_accepts_http_date_retry_after() {
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            RETRY_AFTER,
+            HeaderValue::from_static("Thu, 01 Jan 2099 00:00:00 GMT"),
+        );
+
+        let domain_error = DomainError::from_provider_http_response_status(
+            StatusCode::TOO_MANY_REQUESTS,
+            &headers,
+        );
+
+        assert!(matches!(
+            domain_error,
+            DomainError::RateLimitWithRetryAfter {
+                retry_after_seconds: PROVIDER_RETRY_AFTER_MAX_SECONDS,
+                ..
+            }
+        ));
+    }
+
+    #[test]
+    fn provider_http_status_429_past_http_date_retry_after_is_zero() {
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            RETRY_AFTER,
+            HeaderValue::from_static("Wed, 01 Jan 2020 00:00:00 GMT"),
+        );
+
+        let domain_error = DomainError::from_provider_http_response_status(
+            StatusCode::TOO_MANY_REQUESTS,
+            &headers,
+        );
+
+        assert!(matches!(
+            domain_error,
+            DomainError::RateLimitWithRetryAfter {
+                retry_after_seconds: 0,
+                ..
+            }
+        ));
     }
 
     #[test]

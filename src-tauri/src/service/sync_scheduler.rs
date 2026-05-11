@@ -16,7 +16,7 @@ use crate::commands::sync_commands::{
     SYNC_COMPLETED_EVENT, SYNC_SUCCEEDED_EVENT, SYNC_WARNING_EVENT,
 };
 use crate::domain::account::Account;
-use crate::domain::error::{DomainError, DomainResult};
+use crate::domain::error::{DomainError, DomainResult, PROVIDER_RETRY_AFTER_MAX_SECONDS};
 use crate::domain::types::AccountId;
 use crate::infra::db::connection::DbManager;
 use crate::infra::db::sqlite_account::SqliteAccountRepository;
@@ -891,7 +891,9 @@ fn retry_after_seconds_from_app_error(error: &crate::commands::dto::AppError) ->
         AppError::RetryableWithMetadata {
             message,
             retry_after_seconds,
-        } if message.starts_with(RETRY_AFTER_MESSAGE_PREFIX) => *retry_after_seconds,
+        } if message.starts_with(RETRY_AFTER_MESSAGE_PREFIX) => {
+            retry_after_seconds.map(|seconds| seconds.min(PROVIDER_RETRY_AFTER_MAX_SECONDS))
+        }
         AppError::Retryable { .. }
         | AppError::RetryableWithMetadata { .. }
         | AppError::UserVisible { .. } => None,
@@ -2098,6 +2100,18 @@ mod tests {
                 retry_after_seconds: Some(600),
             }),
             Some(600)
+        );
+    }
+
+    #[test]
+    fn retry_after_seconds_caps_provider_rate_limit_marker() {
+        assert_eq!(
+            retry_after_seconds_from_app_error(&AppError::RetryableWithMetadata {
+                message: "Rate limit error: HTTP 429 Too Many Requests; retry_after_seconds=999999"
+                    .to_string(),
+                retry_after_seconds: Some(999999),
+            }),
+            Some(PROVIDER_RETRY_AFTER_MAX_SECONDS)
         );
     }
 

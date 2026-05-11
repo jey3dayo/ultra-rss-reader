@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { IsoDateTimeStringSchema } from "./common";
 
-const AccountConnectionVerificationStatusSchema = z.enum(["verified", "unverified", "error"]);
+const AccountConnectionVerificationStatusSchema = z.enum(["verified", "unverified", "error", "quarantined"]);
 const accountSyncIntervalSecsSchema = z.number().int().finite().min(60).max(86_400);
 const accountKeepReadItemsDaysSchema = z.number().int().finite().min(0).max(3650);
 const nonBlankTrimmedStringSchema = z.string().trim().min(1);

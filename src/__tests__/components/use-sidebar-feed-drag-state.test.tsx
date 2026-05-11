@@ -1,4 +1,4 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { useSidebarFeedDragState } from "@/components/reader/hooks/sidebar/use-sidebar-feed-drag-state";
 
@@ -35,6 +35,9 @@ describe("useSidebarFeedDragState", () => {
 
     act(() => {
       result.current.handleDragStartFeed("feed-foldered");
+    });
+
+    act(() => {
       result.current.handleDragEnterFolder("folder-2");
     });
 
@@ -113,6 +116,78 @@ describe("useSidebarFeedDragState", () => {
 
     expect(moveFeedToFolder).not.toHaveBeenCalled();
     expect(result.current.draggedFeedId).toBeNull();
+    expect(result.current.activeDropTarget).toBeNull();
+  });
+
+  it("does not keep stale folder hover targets when a folder is missing or belongs to another account", async () => {
+    const { result } = renderDragState({
+      folderById: new Map([
+        ["folder-1", { account_id: "account-1" }],
+        ["folder-other-account", { account_id: "account-2" }],
+      ]),
+    });
+
+    act(() => {
+      result.current.handleDragStartFeed("feed-foldered");
+    });
+
+    await waitFor(() => {
+      expect(result.current.draggedFeedId).toBe("feed-foldered");
+    });
+
+    act(() => {
+      result.current.handleDragEnterFolder("missing-folder");
+    });
+
+    expect(result.current.activeDropTarget).toBeNull();
+
+    act(() => {
+      result.current.handleDragEnterFolder("folder-other-account");
+    });
+
+    expect(result.current.activeDropTarget).toBeNull();
+  });
+
+  it("clears an active folder hover target when folder data changes during drag", async () => {
+    const initialFeedById = new Map([["feed-foldered", { account_id: "account-1", folder_id: "folder-1" }]]);
+    const initialFolderById = new Map([
+      ["folder-1", { account_id: "account-1" }],
+      ["folder-2", { account_id: "account-1" }],
+    ]);
+    const moveFeedToFolder = vi.fn(async () => undefined);
+    const moveFeedToUnfoldered = vi.fn(async () => undefined);
+    const { result, rerender } = renderHook(
+      ({ folderById }) =>
+        useSidebarFeedDragState({
+          canDragFeeds: true,
+          isFeedsSectionOpen: true,
+          feedById: initialFeedById,
+          folderById,
+          moveFeedToFolder,
+          moveFeedToUnfoldered,
+        }),
+      { initialProps: { folderById: initialFolderById } },
+    );
+
+    act(() => {
+      result.current.handleDragStartFeed("feed-foldered");
+    });
+
+    await waitFor(() => {
+      expect(result.current.draggedFeedId).toBe("feed-foldered");
+    });
+
+    act(() => {
+      result.current.handleDragEnterFolder("folder-2");
+    });
+
+    expect(result.current.activeDropTarget).toEqual({ kind: "folder", folderId: "folder-2" });
+
+    rerender({
+      folderById: new Map([["folder-1", { account_id: "account-1" }]]),
+    });
+
+    expect(result.current.draggedFeedId).toBe("feed-foldered");
     expect(result.current.activeDropTarget).toBeNull();
   });
 

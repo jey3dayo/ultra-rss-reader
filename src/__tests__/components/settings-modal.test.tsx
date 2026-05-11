@@ -9,6 +9,7 @@ import { ActionsSettings } from "@/components/settings/actions-settings";
 import { ReadingSettings } from "@/components/settings/reading-settings";
 import { SettingsModal } from "@/components/settings/settings-modal";
 import type { SettingsModalViewProps } from "@/components/settings/settings-modal-view";
+import i18n from "@/lib/i18n";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -36,7 +37,8 @@ vi.mock("@/components/settings/settings-modal-view", () => ({
 }));
 
 describe("SettingsModal", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    await i18n.changeLanguage("en");
     useUiStore.setState(useUiStore.getInitialState());
     usePreferencesStore.setState({ pendingPreferenceSaves: 0 });
     useUiStore.getState().openSettings();
@@ -57,6 +59,19 @@ describe("SettingsModal", () => {
     await waitFor(() => {
       expect(useUiStore.getState().settingsOpen).toBe(false);
     });
+  });
+
+  it("keeps open modal chrome on one locale while language changes", async () => {
+    render(<SettingsModal />, { wrapper: createWrapper() });
+
+    expect(screen.getByRole("heading", { name: "Preferences" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Close preferences" })).toBeInTheDocument();
+
+    await i18n.changeLanguage("ja");
+
+    expect(screen.getByRole("heading", { name: "Preferences" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Close preferences" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "設定" })).not.toBeInTheDocument();
   });
 
   it("locks close and navigation while preference saves are pending", async () => {

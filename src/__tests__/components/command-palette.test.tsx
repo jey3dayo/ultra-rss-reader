@@ -20,6 +20,7 @@ import { CommandPalette } from "@/components/reader/command-palette";
 import { useCommandPaletteHandlers } from "@/components/reader/hooks/command-palette/use-command-palette-handlers";
 import { STORAGE_KEYS } from "@/constants/storage";
 import * as actions from "@/lib/actions";
+import i18n from "@/lib/i18n";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -50,7 +51,8 @@ function expectCommandHistoryCleared() {
 }
 
 describe("CommandPalette", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    await i18n.changeLanguage("en");
     vi.stubGlobal(
       "ResizeObserver",
       class ResizeObserver {
@@ -155,6 +157,32 @@ describe("CommandPalette", () => {
     expect(dialog).toHaveAttribute("data-stack-layer", "commandPalette");
     expect(dialog).toHaveClass("z-50");
     expect(overlay).toHaveClass("z-50");
+  });
+
+  it("keeps open palette labels on one locale while language changes", async () => {
+    await i18n.changeLanguage("en");
+
+    render(<CommandPalette />, { wrapper: createWrapper() });
+
+    expect(
+      await screen.findByRole("dialog", {
+        name: "Open command palette",
+        description: "Search commands…",
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /Account settings/ })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /Theme: Light/ })).toBeInTheDocument();
+
+    await i18n.changeLanguage("ja");
+
+    expect(screen.getByRole("dialog", { name: "Open command palette" })).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Search commands…")).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /Account settings/ })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /Theme: Light/ })).toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: "コマンドパレットを開く" })).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("コマンドを検索…")).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /アカウント設定/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /テーマ: ライト/ })).not.toBeInTheDocument();
   });
 
   it("shows recent resources without duplicating persisted history entries", async () => {

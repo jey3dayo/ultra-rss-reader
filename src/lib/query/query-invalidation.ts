@@ -1,4 +1,5 @@
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
+import { createSchemaVersionedQueryKey } from "@/api/schemas/runtime-contracts";
 import type { ReaderFilter } from "@/lib/reader/reader-query";
 import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
 
@@ -32,7 +33,7 @@ type QueryInvalidationActionOwner =
   | "mute-keyword-mutation"
   | "tag-mutation"
   | "unknown";
-type QueryInvalidationKey = readonly [string];
+type QueryInvalidationKey = ReturnType<typeof createSchemaVersionedQueryKey<string>>;
 type ReaderArticleModeOptions = Readonly<{ mode: ReaderFilter }>;
 type QueryInvalidationFailure = {
   actionOwner: QueryInvalidationActionOwner;
@@ -90,21 +91,21 @@ function readerArticleModeOptions(mode: ReaderFilter): ReaderArticleModeOptions 
 }
 
 export const QUERY_KEY_ROOTS = {
-  accounts: ["accounts"],
-  feeds: ["feeds"],
-  folders: ["folders"],
-  articles: ["articles"],
-  accountArticles: ["accountArticles"],
-  folderArticles: ["folderArticles"],
-  starredArticles: ["starredArticles"],
-  recentArticles: ["recentArticles"],
-  accountUnreadCount: ["accountUnreadCount"],
-  accountStarredCount: ["accountStarredCount"],
-  articlesByTag: ["articlesByTag"],
-  tagArticleCounts: ["tagArticleCounts"],
-  search: ["search"],
-  feedIntegrityReport: ["feedIntegrityReport"],
-  feedArticleSummaries: ["feedArticleSummaries"],
+  accounts: createSchemaVersionedQueryKey("accounts"),
+  feeds: createSchemaVersionedQueryKey("feeds"),
+  folders: createSchemaVersionedQueryKey("folders"),
+  articles: createSchemaVersionedQueryKey("articles"),
+  accountArticles: createSchemaVersionedQueryKey("accountArticles"),
+  folderArticles: createSchemaVersionedQueryKey("folderArticles"),
+  starredArticles: createSchemaVersionedQueryKey("starredArticles"),
+  recentArticles: createSchemaVersionedQueryKey("recentArticles"),
+  accountUnreadCount: createSchemaVersionedQueryKey("accountUnreadCount"),
+  accountStarredCount: createSchemaVersionedQueryKey("accountStarredCount"),
+  articlesByTag: createSchemaVersionedQueryKey("articlesByTag"),
+  tagArticleCounts: createSchemaVersionedQueryKey("tagArticleCounts"),
+  search: createSchemaVersionedQueryKey("search"),
+  feedIntegrityReport: createSchemaVersionedQueryKey("feedIntegrityReport"),
+  feedArticleSummaries: createSchemaVersionedQueryKey("feedArticleSummaries"),
 } as const satisfies Record<string, QueryInvalidationKey>;
 
 export const queryKeys = {
@@ -113,7 +114,7 @@ export const queryKeys = {
   },
   feeds: {
     root: QUERY_KEY_ROOTS.feeds,
-    byAccount: (accountId: string | null) => [QUERY_KEY_ROOTS.feeds[0], normalizeQueryAccountId(accountId)] as const,
+    byAccount: (accountId: string | null) => [...QUERY_KEY_ROOTS.feeds, normalizeQueryAccountId(accountId)] as const,
   },
   folders: {
     root: QUERY_KEY_ROOTS.folders,
@@ -121,45 +122,45 @@ export const queryKeys = {
   articles: {
     root: QUERY_KEY_ROOTS.articles,
     byFeed: (feedId: string | null, mode: ReaderFilter) =>
-      [QUERY_KEY_ROOTS.articles[0], feedId, readerArticleModeOptions(mode)] as const,
+      [...QUERY_KEY_ROOTS.articles, feedId, readerArticleModeOptions(mode)] as const,
   },
   accountArticles: {
     root: QUERY_KEY_ROOTS.accountArticles,
     byAccountPrefix: (accountId: string | null) =>
-      [QUERY_KEY_ROOTS.accountArticles[0], normalizeQueryAccountId(accountId)] as const,
+      [...QUERY_KEY_ROOTS.accountArticles, normalizeQueryAccountId(accountId)] as const,
     byAccount: (accountId: string | null, mode: ReaderFilter) =>
-      [QUERY_KEY_ROOTS.accountArticles[0], normalizeQueryAccountId(accountId), readerArticleModeOptions(mode)] as const,
+      [...QUERY_KEY_ROOTS.accountArticles, normalizeQueryAccountId(accountId), readerArticleModeOptions(mode)] as const,
   },
   folderArticles: {
     root: QUERY_KEY_ROOTS.folderArticles,
     byFolder: (folderId: string | null, mode: ReaderFilter) =>
-      [QUERY_KEY_ROOTS.folderArticles[0], folderId, readerArticleModeOptions(mode)] as const,
+      [...QUERY_KEY_ROOTS.folderArticles, folderId, readerArticleModeOptions(mode)] as const,
   },
   starredArticles: {
     root: QUERY_KEY_ROOTS.starredArticles,
     byAccount: (accountId: string | null) =>
-      [QUERY_KEY_ROOTS.starredArticles[0], normalizeQueryAccountId(accountId)] as const,
+      [...QUERY_KEY_ROOTS.starredArticles, normalizeQueryAccountId(accountId)] as const,
   },
   recentArticles: {
     root: QUERY_KEY_ROOTS.recentArticles,
     byAccount: (accountId: string | null, mode: ReaderFilter) =>
-      [QUERY_KEY_ROOTS.recentArticles[0], normalizeQueryAccountId(accountId), readerArticleModeOptions(mode)] as const,
+      [...QUERY_KEY_ROOTS.recentArticles, normalizeQueryAccountId(accountId), readerArticleModeOptions(mode)] as const,
   },
   accountUnreadCount: {
     root: QUERY_KEY_ROOTS.accountUnreadCount,
     byAccount: (accountId: string | null) =>
-      [QUERY_KEY_ROOTS.accountUnreadCount[0], normalizeQueryAccountId(accountId)] as const,
+      [...QUERY_KEY_ROOTS.accountUnreadCount, normalizeQueryAccountId(accountId)] as const,
   },
   accountStarredCount: {
     root: QUERY_KEY_ROOTS.accountStarredCount,
     byAccount: (accountId: string | null) =>
-      [QUERY_KEY_ROOTS.accountStarredCount[0], normalizeQueryAccountId(accountId)] as const,
+      [...QUERY_KEY_ROOTS.accountStarredCount, normalizeQueryAccountId(accountId)] as const,
   },
   articlesByTag: {
     root: QUERY_KEY_ROOTS.articlesByTag,
     byTagAndAccount: (tagId: string | null, accountId: string | null, mode: ReaderFilter) =>
       [
-        QUERY_KEY_ROOTS.articlesByTag[0],
+        ...QUERY_KEY_ROOTS.articlesByTag,
         tagId,
         normalizeQueryAccountId(accountId),
         readerArticleModeOptions(mode),
@@ -168,12 +169,12 @@ export const queryKeys = {
   tagArticleCounts: {
     root: QUERY_KEY_ROOTS.tagArticleCounts,
     byAccount: (accountId: string | null) =>
-      [QUERY_KEY_ROOTS.tagArticleCounts[0], normalizeQueryAccountId(accountId)] as const,
+      [...QUERY_KEY_ROOTS.tagArticleCounts, normalizeQueryAccountId(accountId)] as const,
   },
   search: {
     root: QUERY_KEY_ROOTS.search,
     byAccountAndQuery: (accountId: string | null, query: string) =>
-      [QUERY_KEY_ROOTS.search[0], normalizeQueryAccountId(accountId), query] as const,
+      [...QUERY_KEY_ROOTS.search, normalizeQueryAccountId(accountId), query] as const,
   },
   feedIntegrityReport: {
     root: QUERY_KEY_ROOTS.feedIntegrityReport,
@@ -181,9 +182,9 @@ export const queryKeys = {
   feedArticleSummaries: {
     root: QUERY_KEY_ROOTS.feedArticleSummaries,
     byAccount: (accountId: string | null) =>
-      [QUERY_KEY_ROOTS.feedArticleSummaries[0], normalizeQueryAccountId(accountId)] as const,
+      [...QUERY_KEY_ROOTS.feedArticleSummaries, normalizeQueryAccountId(accountId)] as const,
     subscriptionsIndex: (accountId: string | null) =>
-      [QUERY_KEY_ROOTS.feedArticleSummaries[0], normalizeQueryAccountId(accountId)] as const,
+      [...QUERY_KEY_ROOTS.feedArticleSummaries, normalizeQueryAccountId(accountId)] as const,
   },
 } as const;
 
