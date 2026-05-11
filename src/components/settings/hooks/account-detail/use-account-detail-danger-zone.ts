@@ -5,6 +5,8 @@ import { useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { deleteAccount, exportOpml } from "@/api/tauri-commands";
 import {
+  getQueryKeyRootName,
+  getQueryKeyScopeValue,
   invalidateArticleQueries,
   invalidateFeedQueries,
   invalidateQueryKeysLogOnly,
@@ -68,24 +70,25 @@ function isDeletedAccountArticleQuery(
   deletedAccountId: string,
   deletedFeedIds: Set<string>,
 ): boolean {
-  const root = queryKey[0];
+  const root = getQueryKeyRootName(queryKey);
 
   if (
-    (root === queryKeys.accountArticles.root[0] ||
-      root === queryKeys.starredArticles.root[0] ||
-      root === queryKeys.recentArticles.root[0] ||
-      root === queryKeys.search.root[0] ||
-      root === queryKeys.feedArticleSummaries.root[0]) &&
-    queryKey[1] === deletedAccountId
+    (root === queryKeys.accountArticles.root[1] ||
+      root === queryKeys.starredArticles.root[1] ||
+      root === queryKeys.recentArticles.root[1] ||
+      root === queryKeys.search.root[1] ||
+      root === queryKeys.feedArticleSummaries.root[1]) &&
+    getQueryKeyScopeValue(queryKey, 0) === deletedAccountId
   ) {
     return true;
   }
 
-  if (root === queryKeys.articlesByTag.root[0] && queryKey[2] === deletedAccountId) {
+  if (root === queryKeys.articlesByTag.root[1] && getQueryKeyScopeValue(queryKey, 1) === deletedAccountId) {
     return true;
   }
 
-  return root === queryKeys.articles.root[0] && typeof queryKey[1] === "string" && deletedFeedIds.has(queryKey[1]);
+  const feedId = getQueryKeyScopeValue(queryKey, 0);
+  return root === queryKeys.articles.root[1] && typeof feedId === "string" && deletedFeedIds.has(feedId);
 }
 
 function removeDeletedAccountArticleCaches(queryClient: QueryClient, deletedAccountId: string): void {
@@ -185,7 +188,7 @@ export function useAccountDetailDangerZone({
       await deleteAccount(account.id),
       Result.inspectError(showDeleteError),
       Result.inspect(() => {
-        const accounts = queryClient.getQueryData<AccountDetailAccount[]>(["accounts"]) ?? [];
+        const accounts = queryClient.getQueryData<AccountDetailAccount[]>(queryKeys.accounts.root) ?? [];
         const remainingAccountIds = accounts
           .filter((cachedAccount) => cachedAccount.id !== account.id)
           .map((cachedAccount) => cachedAccount.id);
@@ -197,7 +200,7 @@ export function useAccountDetailDangerZone({
           setPref("selected_account_id", fallbackAccountId);
         }
 
-        invalidateQueryKeysLogOnly(queryClient, [["accounts"]]);
+        invalidateQueryKeysLogOnly(queryClient, [queryKeys.accounts.root]);
         invalidateFeedQueries(queryClient, { includeFolders: false });
         invalidateArticleQueries(queryClient, {
           includeTagArticleCounts: true,

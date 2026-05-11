@@ -6,6 +6,7 @@ import {
   runFeedMutationWithOptimisticRollback,
   startLatestFeedMutation,
 } from "@/components/reader/feed-query-cache";
+import { queryKeys } from "@/lib/query/query-invalidation";
 
 describe("invalidateFeedQueries", () => {
   it("invalidates feeds and folders by default", () => {
@@ -14,10 +15,10 @@ describe("invalidateFeedQueries", () => {
 
     invalidateFeedQueries(queryClient);
 
-    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["feeds"] });
-    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["folders"] });
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.feeds.root });
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.folders.root });
     expect(invalidateQueries).not.toHaveBeenCalledWith({
-      queryKey: ["accountUnreadCount"],
+      queryKey: queryKeys.accountUnreadCount.root,
     });
   });
 
@@ -30,10 +31,10 @@ describe("invalidateFeedQueries", () => {
       includeAccountUnreadCount: true,
     });
 
-    expect(invalidateQueries).not.toHaveBeenCalledWith({ queryKey: ["feeds"] });
-    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["folders"] });
+    expect(invalidateQueries).not.toHaveBeenCalledWith({ queryKey: queryKeys.feeds.root });
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.folders.root });
     expect(invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["accountUnreadCount"],
+      queryKey: queryKeys.accountUnreadCount.root,
     });
   });
 });

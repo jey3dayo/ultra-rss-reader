@@ -192,7 +192,7 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
 
           submittedSuccessfullyRef.current = true;
           upsertCachedAccount(qc, account);
-          invalidateQueryKeysLogOnly(qc, [["accounts"], queryKeys.feeds.root]);
+          invalidateQueryKeysLogOnly(qc, [queryKeys.accounts.root, queryKeys.feeds.root]);
           const { selectAccount } = useUiStore.getState();
           selectAccount(account.id);
           setSettingsAccountId(account.id);

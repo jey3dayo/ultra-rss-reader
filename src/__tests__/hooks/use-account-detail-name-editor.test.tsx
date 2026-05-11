@@ -9,6 +9,7 @@ import type { RefObject } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { scheduleAccountDetailInputFocus } from "@/components/settings/hooks/account-detail/account-detail-editor-focus";
 import { useAccountDetailNameEditor } from "@/components/settings/hooks/account-detail/use-account-detail-name-editor";
+import { queryKeys } from "@/lib/query/query-invalidation";
 
 const { renameAccountMock } = vi.hoisted(() => ({
   renameAccountMock: vi.fn(),
@@ -234,7 +235,7 @@ describe("useAccountDetailNameEditor", () => {
   it("commits the backend-normalized account name instead of the optimistic draft", async () => {
     const account = { ...sampleAccounts[1], name: "FreshRSS" };
     const queryClient = createTestQueryClient();
-    queryClient.setQueryData(["accounts"], [account]);
+    queryClient.setQueryData(queryKeys.accounts.root, [account]);
     renameAccountMock.mockResolvedValue(Result.succeed({ ...account, name: "Cafe FreshRSS" }));
 
     const { result } = renderHook(() =>
@@ -256,7 +257,7 @@ describe("useAccountDetailNameEditor", () => {
     expect(renameAccountMock).toHaveBeenCalledWith(account.id, "Café FreshRSS");
     expect(result.current.editingName).toBe(false);
     expect(result.current.nameDraft).toBe("Cafe FreshRSS");
-    expect(queryClient.getQueryData(["accounts"])).toEqual([{ ...account, name: "Cafe FreshRSS" }]);
+    expect(queryClient.getQueryData(queryKeys.accounts.root)).toEqual([{ ...account, name: "Cafe FreshRSS" }]);
   });
 
   it("ignores a stale rename response after switching accounts and starting a new edit", async () => {
@@ -271,7 +272,7 @@ describe("useAccountDetailNameEditor", () => {
       name: "Local Account",
     };
     const queryClient = createTestQueryClient();
-    queryClient.setQueryData(["accounts"], [firstAccount, secondAccount]);
+    queryClient.setQueryData(queryKeys.accounts.root, [firstAccount, secondAccount]);
     const staleRename = createDeferred<ReturnType<typeof renameAccountMock>>();
     renameAccountMock.mockReturnValue(staleRename.promise);
 
@@ -302,7 +303,7 @@ describe("useAccountDetailNameEditor", () => {
       await saveStaleRename;
     });
 
-    expect(queryClient.getQueryData(["accounts"])).toEqual([firstAccount, secondAccount]);
+    expect(queryClient.getQueryData(queryKeys.accounts.root)).toEqual([firstAccount, secondAccount]);
     expect(result.current.editingName).toBe(true);
     expect(result.current.savingName).toBe(false);
     expect(result.current.nameDraft).toBe("Current Draft");
@@ -315,7 +316,7 @@ describe("useAccountDetailNameEditor", () => {
       name: "FreshRSS Work",
     };
     const queryClient = createTestQueryClient();
-    queryClient.setQueryData(["accounts"], [account]);
+    queryClient.setQueryData(queryKeys.accounts.root, [account]);
     const staleRename = createDeferred<ReturnType<typeof renameAccountMock>>();
     renameAccountMock.mockReturnValue(staleRename.promise);
 
@@ -342,7 +343,7 @@ describe("useAccountDetailNameEditor", () => {
       await saveStaleRename;
     });
 
-    expect(queryClient.getQueryData(["accounts"])).toEqual([account]);
+    expect(queryClient.getQueryData(queryKeys.accounts.root)).toEqual([account]);
     expect(result.current.editingName).toBe(true);
     expect(result.current.savingName).toBe(false);
     expect(result.current.nameDraft).toBe("Current Draft");

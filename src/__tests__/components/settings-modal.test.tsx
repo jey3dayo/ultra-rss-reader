@@ -10,6 +10,7 @@ import { ReadingSettings } from "@/components/settings/reading-settings";
 import { SettingsModal } from "@/components/settings/settings-modal";
 import type { SettingsModalViewProps } from "@/components/settings/settings-modal-view";
 import i18n from "@/lib/i18n";
+import { queryKeys } from "@/lib/query/query-invalidation";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -557,7 +558,7 @@ describe("SettingsModal", () => {
     );
 
     await act(async () => {
-      queryClient?.setQueryData(["accounts"], undefined);
+      queryClient?.setQueryData(queryKeys.accounts.root, undefined);
     });
 
     expect(screen.getByTestId("account-detail-layout")).toBeInTheDocument();
@@ -566,7 +567,7 @@ describe("SettingsModal", () => {
     expect(screen.getByRole("button", { name: /FreshRSS/i })).toBeInTheDocument();
 
     await act(async () => {
-      queryClient?.setQueryData(["accounts"], [sampleAccounts[1]]);
+      queryClient?.setQueryData(queryKeys.accounts.root, [sampleAccounts[1]]);
     });
 
     await waitFor(() => {
@@ -593,7 +594,7 @@ describe("SettingsModal", () => {
     expect(await screen.findByRole("heading", { level: 2, name: "Local" })).toBeInTheDocument();
 
     await act(async () => {
-      queryClient?.setQueryData(["accounts"], [sampleAccounts[1]]);
+      queryClient?.setQueryData(queryKeys.accounts.root, [sampleAccounts[1]]);
     });
 
     await waitFor(() => {
@@ -662,7 +663,7 @@ describe("SettingsModal", () => {
     expect(screen.getByRole("button", { name: /FreshRSS/i })).toHaveClass("text-[var(--sidebar-selection-foreground)]");
 
     await act(async () => {
-      queryClient?.setQueryData(["accounts"], [sampleAccounts[1]]);
+      queryClient?.setQueryData(queryKeys.accounts.root, [sampleAccounts[1]]);
     });
 
     expect(screen.queryByRole("heading", { level: 2, name: "Local" })).not.toBeInTheDocument();

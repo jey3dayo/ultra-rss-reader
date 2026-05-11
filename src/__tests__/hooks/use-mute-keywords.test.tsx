@@ -13,20 +13,21 @@ import {
   useSetMuteAutoMarkRead,
   useUpdateMuteKeyword,
 } from "@/hooks/use-mute-keywords";
+import { queryKeys } from "@/lib/query/query-invalidation";
 
 const articleCacheInvalidationKeys = [
-  ["articles"],
-  ["accountArticles"],
-  ["folderArticles"],
-  ["starredArticles"],
-  ["accountUnreadCount"],
-  ["accountStarredCount"],
-  ["feeds"],
-  ["articlesByTag"],
-  ["tagArticleCounts"],
-  ["search"],
-  ["recentArticles"],
-  ["feedArticleSummaries"],
+  queryKeys.articles.root,
+  queryKeys.accountArticles.root,
+  queryKeys.folderArticles.root,
+  queryKeys.starredArticles.root,
+  queryKeys.accountUnreadCount.root,
+  queryKeys.accountStarredCount.root,
+  queryKeys.feeds.root,
+  queryKeys.articlesByTag.root,
+  queryKeys.tagArticleCounts.root,
+  queryKeys.search.root,
+  queryKeys.recentArticles.root,
+  queryKeys.feedArticleSummaries.root,
 ];
 
 function expectMuteKeywordArticleCacheInvalidation(invalidateQueriesSpy: ReturnType<typeof vi.fn>) {

@@ -8,6 +8,7 @@ import type { FeedDto } from "@/api/tauri-commands";
 import { SubscriptionsIndexPage } from "@/components/subscriptions-index/subscriptions-index-page";
 import type { SubscriptionsIndexPageView } from "@/components/subscriptions-index/subscriptions-index-page-view";
 import i18n from "@/lib/i18n";
+import { queryKeys } from "@/lib/query/query-invalidation";
 import type { SubscriptionDecisionActions } from "@/lib/subscriptions/subscriptions-index";
 import type {
   SubscriptionDetailCandidate,
@@ -1083,7 +1084,7 @@ describe("SubscriptionsIndexPage", () => {
     await screen.findByRole("dialog");
 
     feedRows = feedRows.filter((feed) => feed.id !== "feed-1");
-    await queryClient.invalidateQueries({ queryKey: ["feeds"] });
+    await queryClient.invalidateQueries({ queryKey: queryKeys.feeds.root });
 
     const staleDialog = await screen.findByRole("dialog");
     expect(

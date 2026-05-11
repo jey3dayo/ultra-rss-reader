@@ -6,6 +6,7 @@ import { sampleFeeds } from "@tests/helpers/fixtures";
 import { setupTauriMocks, teardownTauriMocks } from "@tests/helpers/tauri-mocks";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RenameDialog } from "@/components/reader/rename-feed-dialog";
+import { queryKeys } from "@/lib/query/query-invalidation";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -144,8 +145,8 @@ describe("RenameDialog", () => {
       cmd: "update_feed_folder",
       args: { feedId: "feed-1", folderId: "folder-new" },
     });
-    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["feeds"] });
-    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["folders"] });
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.feeds.root });
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.folders.root });
   });
 
   it("does not create a folder when the dialog closes without saving", async () => {
@@ -217,8 +218,8 @@ describe("RenameDialog", () => {
         cmd: "update_feed_display_settings",
         args: { feedId: "feed-1", readerMode: "on", webPreviewMode: "on" },
       });
-      expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["feeds"] });
-      expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["folders"] });
+      expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.feeds.root });
+      expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.folders.root });
       expect(onOpenChange).not.toHaveBeenCalled();
     });
 

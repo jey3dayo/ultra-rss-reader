@@ -2,7 +2,7 @@ import { Result } from "@praha/byethrow";
 import { type KeyboardEvent, type RefObject, useCallback, useEffect, useReducer, useRef } from "react";
 import { renameAccount } from "@/api/tauri-commands";
 import { normalizeRenameInput } from "@/hooks/normalize-rename-input";
-import { invalidateQueryKeysLogOnly } from "@/lib/query/query-invalidation";
+import { invalidateQueryKeysLogOnly, queryKeys } from "@/lib/query/query-invalidation";
 import { updateCachedAccount } from "../../account-detail/query-cache";
 import { createAccountDetailErrorToast } from "../../account-detail/toast";
 import type { AccountDetailEditorContext } from "../../account-detail/types";
@@ -119,7 +119,7 @@ export function useAccountDetailNameEditor({
         editSessionRef.current += 1;
         dispatch({ type: "finish-edit", value: updated.name });
         updateCachedAccount(queryClient, updated);
-        invalidateQueryKeysLogOnly(queryClient, [["accounts"]]);
+        invalidateQueryKeysLogOnly(queryClient, [queryKeys.accounts.root]);
       }),
     );
     if (!renameSucceeded) {

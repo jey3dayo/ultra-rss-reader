@@ -90,6 +90,15 @@ function readerArticleModeOptions(mode: ReaderFilter): ReaderArticleModeOptions 
   return { mode };
 }
 
+export function getQueryKeyRootName(queryKey: QueryKey): string | null {
+  const rootName = queryKey[1];
+  return typeof rootName === "string" ? rootName : null;
+}
+
+export function getQueryKeyScopeValue(queryKey: QueryKey, scopeIndex: number): unknown {
+  return queryKey[scopeIndex + 2];
+}
+
 export const QUERY_KEY_ROOTS = {
   accounts: createSchemaVersionedQueryKey("accounts"),
   feeds: createSchemaVersionedQueryKey("feeds"),

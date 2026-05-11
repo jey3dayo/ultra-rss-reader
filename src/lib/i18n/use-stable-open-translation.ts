@@ -2,10 +2,7 @@ import type { Namespace, TFunction } from "i18next";
 import { useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 
-export function useStableOpenTranslation<Ns extends Namespace>(
-  namespace: Ns,
-  open: boolean,
-): TFunction<Ns> {
+export function useStableOpenTranslation<Ns extends Namespace>(namespace: Ns, open: boolean): TFunction<Ns> {
   const { t, i18n } = useTranslation(namespace);
   const openLanguageRef = useRef<string | null>(null);
 

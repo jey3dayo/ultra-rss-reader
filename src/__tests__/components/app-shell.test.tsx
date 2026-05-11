@@ -490,6 +490,37 @@ describe("AppShell", () => {
     });
   });
 
+  it("surfaces native close blocks even when only a native update download is in flight", async () => {
+    render(<AppShell />, { wrapper: createWrapper() });
+
+    const closeBlockedListener = await waitFor(() => {
+      const closeBlockedCall = vi
+        .mocked(listen)
+        .mock.calls.find(([eventName]) => eventName === "main-window-close-blocked");
+      const listener = closeBlockedCall?.[1];
+      if (!listener) {
+        throw new Error("Expected main window close blocked listener");
+      }
+
+      return listener;
+    });
+
+    act(() => {
+      closeBlockedListener({
+        event: "main-window-close-blocked",
+        id: 1,
+        payload: undefined,
+      });
+    });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().toastMessage).toEqual({
+        message: "未保存または実行中の処理があるため、終了前に確認してください。",
+        persistent: true,
+      });
+    });
+  });
+
   it("uses overlay titlebar helper classes on first render when tauri is available and mac platform info is still unknown", () => {
     const originalTauriInternalsDescriptor = Object.getOwnPropertyDescriptor(window, "__TAURI_INTERNALS__");
     const restorePlatform = stubNavigatorPlatform({ platform: "MacIntel" });

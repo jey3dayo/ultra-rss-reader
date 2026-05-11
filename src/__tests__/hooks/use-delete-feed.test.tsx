@@ -47,28 +47,28 @@ describe("useDeleteFeed", () => {
     expect(deleteFeedSpy).toHaveBeenCalledWith("feed-1");
     await waitFor(() => {
       expect(invalidateQueriesSpy).toHaveBeenCalledWith({
-        queryKey: ["feeds"],
+        queryKey: queryKeys.feeds.root,
       });
       expect(invalidateQueriesSpy).toHaveBeenCalledWith({
-        queryKey: ["folders"],
+        queryKey: queryKeys.folders.root,
       });
       expect(invalidateQueriesSpy).toHaveBeenCalledWith({
-        queryKey: ["accountUnreadCount"],
+        queryKey: queryKeys.accountUnreadCount.root,
       });
       expect(invalidateQueriesSpy).toHaveBeenCalledWith({
-        queryKey: ["articles"],
+        queryKey: queryKeys.articles.root,
       });
       expect(invalidateQueriesSpy).toHaveBeenCalledWith({
-        queryKey: ["accountArticles"],
+        queryKey: queryKeys.accountArticles.root,
       });
       expect(invalidateQueriesSpy).toHaveBeenCalledWith({
-        queryKey: ["search"],
+        queryKey: queryKeys.search.root,
       });
       expect(invalidateQueriesSpy).toHaveBeenCalledWith({
-        queryKey: ["recentArticles"],
+        queryKey: queryKeys.recentArticles.root,
       });
       expect(invalidateQueriesSpy).toHaveBeenCalledWith({
-        queryKey: ["tagArticleCounts"],
+        queryKey: queryKeys.tagArticleCounts.root,
       });
       expect(invalidateQueriesSpy).toHaveBeenCalledWith({
         queryKey: queryKeys.feedArticleSummaries.subscriptionsIndex("acc-1"),
@@ -104,7 +104,7 @@ describe("useDeleteFeed", () => {
     expect(onSuccess).toHaveBeenCalledTimes(1);
     await waitFor(() => {
       expect(invalidateQueriesSpy).toHaveBeenCalledWith({
-        queryKey: ["feeds"],
+        queryKey: queryKeys.feeds.root,
       });
     });
   });
@@ -130,13 +130,13 @@ describe("useDeleteFeed", () => {
         failures: expect.arrayContaining([
           {
             actionOwner: "delete-feed",
-            queryKey: ["feeds"],
+            queryKey: queryKeys.feeds.root,
             error: invalidationError,
           },
         ]),
       });
     });
-    expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ["feeds"] });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: queryKeys.feeds.root });
     expect(showToastMock).toHaveBeenCalledWith("Unsubscribed from Tech Blog");
   });
 

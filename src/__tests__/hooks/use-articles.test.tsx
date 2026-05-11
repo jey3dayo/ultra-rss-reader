@@ -5,6 +5,7 @@ import { createQueryWrapper } from "@tests/helpers/create-wrapper";
 import { sampleArticles, sampleFeeds } from "@tests/helpers/fixtures";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { QUERY_CACHE_KEY_VERSION } from "@/api/schemas/runtime-contracts";
 import * as tauriCommands from "@/api/tauri-commands";
 import {
   normalizeArticleSearchQuery,
@@ -290,11 +291,17 @@ describe("useToggleStar", () => {
     expect(queryClient.getQueryState(queryKeys.recentArticles.byAccount(null, "all"))).toBeDefined();
     expect(queryClient.getQueryState(queryKeys.accountStarredCount.byAccount(null))).toBeDefined();
 
-    expect(queryClient.getQueryState(["articles", "   ", { mode: "all" }])).toBeUndefined();
-    expect(queryClient.getQueryState(["accountArticles", "\n\t", { mode: "all" }])).toBeUndefined();
-    expect(queryClient.getQueryState(["folderArticles", "   ", { mode: "all" }])).toBeUndefined();
-    expect(queryClient.getQueryState(["recentArticles", "\n", { mode: "all" }])).toBeUndefined();
-    expect(queryClient.getQueryState(["accountStarredCount", "   "])).toBeUndefined();
+    expect(queryClient.getQueryState([QUERY_CACHE_KEY_VERSION, "articles", "   ", { mode: "all" }])).toBeUndefined();
+    expect(
+      queryClient.getQueryState([QUERY_CACHE_KEY_VERSION, "accountArticles", "\n\t", { mode: "all" }]),
+    ).toBeUndefined();
+    expect(
+      queryClient.getQueryState([QUERY_CACHE_KEY_VERSION, "folderArticles", "   ", { mode: "all" }]),
+    ).toBeUndefined();
+    expect(
+      queryClient.getQueryState([QUERY_CACHE_KEY_VERSION, "recentArticles", "\n", { mode: "all" }]),
+    ).toBeUndefined();
+    expect(queryClient.getQueryState([QUERY_CACHE_KEY_VERSION, "accountStarredCount", "   "])).toBeUndefined();
   });
 
   it("patches cached account and starred article data immediately when starring an article", async () => {
@@ -467,14 +474,17 @@ describe("useToggleStar", () => {
     vi.spyOn(tauriCommands, "toggleArticleStar").mockResolvedValue(Result.succeed(null));
 
     queryClient.setQueryData(queryKeys.feeds.byAccount("acc-1"), sampleFeedsForAccountOne);
-    queryClient.setQueryData(["articlesByTag", "tag-1"], [sampleArticles[1], sampleArticles[0]]);
+    queryClient.setQueryData(queryKeys.articlesByTag.byTagAndAccount("tag-1", null, "all"), [
+      sampleArticles[1],
+      sampleArticles[0],
+    ]);
 
     const { result } = renderHook(() => useToggleStar(), { wrapper });
 
     await result.current.mutateAsync({ id: "art-1", starred: true });
 
     await waitFor(() => {
-      expect(queryClient.getQueryData(["articlesByTag", "tag-1"])).toEqual([
+      expect(queryClient.getQueryData(queryKeys.articlesByTag.byTagAndAccount("tag-1", null, "all"))).toEqual([
         expect.objectContaining({ id: "art-2" }),
         expect.objectContaining({ id: "art-1", is_starred: true }),
       ]);
@@ -499,8 +509,11 @@ describe("useToggleStar", () => {
     ]);
     queryClient.setQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"), sampleArticles);
     queryClient.setQueryData(queryKeys.accountArticles.byAccount("acc-2", "all"), [feedTwoArticle]);
-    queryClient.setQueryData(["articlesByTag", "tag-1", "acc-2", { mode: "all" }], [feedTwoArticle, sampleArticles[1]]);
-    queryClient.setQueryData(["tagArticleCounts", "acc-2"], { "tag-1": 1 });
+    queryClient.setQueryData(queryKeys.articlesByTag.byTagAndAccount("tag-1", "acc-2", "all"), [
+      feedTwoArticle,
+      sampleArticles[1],
+    ]);
+    queryClient.setQueryData(queryKeys.tagArticleCounts.byAccount("acc-2"), { "tag-1": 1 });
 
     const { result } = renderHook(() => useToggleStar(), { wrapper });
 
@@ -514,8 +527,10 @@ describe("useToggleStar", () => {
         expect.objectContaining({ id: "art-feed-2", is_starred: true }),
       ]);
     });
-    expect(queryClient.getQueryState(["articlesByTag", "tag-1", "acc-2", { mode: "all" }])?.isInvalidated).toBe(true);
-    expect(queryClient.getQueryState(["tagArticleCounts", "acc-2"])?.isInvalidated).toBe(true);
+    expect(
+      queryClient.getQueryState(queryKeys.articlesByTag.byTagAndAccount("tag-1", "acc-2", "all"))?.isInvalidated,
+    ).toBe(true);
+    expect(queryClient.getQueryState(queryKeys.tagArticleCounts.byAccount("acc-2"))?.isInvalidated).toBe(true);
   });
 
   it("does not insert a starred article into another account when feed cache is missing", async () => {
@@ -749,15 +764,17 @@ describe("useSetRead", () => {
   it("marks tag article counts stale after changing article read state", async () => {
     vi.spyOn(tauriCommands, "markArticleRead").mockResolvedValue(Result.succeed(null));
 
-    queryClient.setQueryData(["articlesByTag", "tag-1", "acc-1", { mode: "all" }], sampleArticles);
-    queryClient.setQueryData(["tagArticleCounts", "acc-1"], { "tag-1": 1 });
+    queryClient.setQueryData(queryKeys.articlesByTag.byTagAndAccount("tag-1", "acc-1", "all"), sampleArticles);
+    queryClient.setQueryData(queryKeys.tagArticleCounts.byAccount("acc-1"), { "tag-1": 1 });
 
     const { result } = renderHook(() => useSetRead(), { wrapper });
 
     await result.current.mutateAsync({ id: "art-1", read: true });
 
-    expect(queryClient.getQueryState(["articlesByTag", "tag-1", "acc-1", { mode: "all" }])?.isInvalidated).toBe(true);
-    expect(queryClient.getQueryState(["tagArticleCounts", "acc-1"])?.isInvalidated).toBe(true);
+    expect(
+      queryClient.getQueryState(queryKeys.articlesByTag.byTagAndAccount("tag-1", "acc-1", "all"))?.isInvalidated,
+    ).toBe(true);
+    expect(queryClient.getQueryState(queryKeys.tagArticleCounts.byAccount("acc-1"))?.isInvalidated).toBe(true);
   });
 
   it("leaves cached read state unchanged when a read mutation fails", async () => {
@@ -881,7 +898,7 @@ describe("recent article history mutations", () => {
       queryKey: queryKeys.accountArticles.root,
     });
     expect(invalidateQueriesSpy).not.toHaveBeenCalledWith({
-      queryKey: ["accountUnreadCount"],
+      queryKey: queryKeys.accountUnreadCount.root,
     });
   });
 
@@ -929,7 +946,7 @@ describe("recent article history mutations", () => {
       queryKey: queryKeys.accountArticles.root,
     });
     expect(invalidateQueriesSpy).not.toHaveBeenCalledWith({
-      queryKey: ["accountUnreadCount"],
+      queryKey: queryKeys.accountUnreadCount.root,
     });
   });
 });

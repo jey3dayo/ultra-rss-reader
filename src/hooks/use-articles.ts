@@ -206,7 +206,7 @@ function indexFeedAccountIdsByFeedId(data: unknown): Map<string, string> {
 }
 
 function resolveArticleAccountIdFromScopedQuery(queryKey: QueryKey, data: unknown, articleId: string): string | null {
-  const accountId = queryKey[1];
+  const accountId = queryKey[2];
   if (typeof accountId !== "string" || !indexArticleDtosById(data).has(articleId)) {
     return null;
   }
@@ -439,7 +439,7 @@ export function useFolderArticles(folderId: string | null, options?: { mode?: Re
   });
 }
 
-export const useStarredArticles = createQuery("starredArticles", listStarredArticles);
+export const useStarredArticles = createQuery(queryKeys.starredArticles.root, listStarredArticles);
 
 export function useRecentArticles(accountId: string | null, options?: { mode?: ReaderFilter }) {
   const mode = options?.mode ?? "all";

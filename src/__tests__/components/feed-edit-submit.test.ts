@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppError, FeedDto } from "@/api/tauri-commands";
 import { submitFeedEdits } from "@/components/reader/feed-edit-submit";
 import type { SubmitFeedEditsParams } from "@/components/reader/rename-feed-dialog.types";
+import { queryKeys } from "@/lib/query/query-invalidation";
 
 const feed: FeedDto = {
   id: "feed-1",
@@ -123,9 +124,9 @@ describe("submitFeedEdits", () => {
       feedId: feed.id,
       folderId: "folder-2",
     });
-    expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ["feeds"] });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: queryKeys.feeds.root });
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({
-      queryKey: ["folders"],
+      queryKey: queryKeys.folders.root,
     });
   });
 
@@ -179,7 +180,7 @@ describe("submitFeedEdits", () => {
       folderId: "folder-2",
     });
     expect(invalidateQueriesSpy).not.toHaveBeenCalledWith({
-      queryKey: ["feeds"],
+      queryKey: queryKeys.feeds.root,
     });
   });
 });

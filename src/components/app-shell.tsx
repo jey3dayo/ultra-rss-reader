@@ -612,11 +612,10 @@ export function AppShell() {
     return attachTauriListeners(
       [
         listen<void>(MAIN_WINDOW_CLOSE_BLOCKED_EVENT, () => {
-          const { getNativeLifecycleBlockerSnapshot, showToast } = useUiStore.getState();
-          const blockerSnapshot = getNativeLifecycleBlockerSnapshot();
+          const { showToast } = useUiStore.getState();
           showToast({
             message: MAIN_WINDOW_CLOSE_BLOCKED_TOAST,
-            persistent: blockerSnapshot.dirty || blockerSnapshot.pending,
+            persistent: true,
           });
         }),
       ],

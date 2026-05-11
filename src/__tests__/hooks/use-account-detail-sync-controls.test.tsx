@@ -10,6 +10,7 @@ import {
   runAccountSetupSync,
   useAccountDetailSyncControls,
 } from "@/components/settings/hooks/account-detail/use-account-detail-sync-controls";
+import { queryKeys } from "@/lib/query/query-invalidation";
 import { useUiStore } from "@/stores/ui-store";
 
 const { syncAccountMock, updateAccountSyncMock } = vi.hoisted(() => ({
@@ -95,7 +96,7 @@ describe("useAccountDetailSyncControls", () => {
   ])("keeps the latest $label update when an older response resolves last", async ({ first, second, expected }) => {
     const account = sampleAccounts[1];
     const queryClient = createTestQueryClient();
-    queryClient.setQueryData(["accounts"], [account]);
+    queryClient.setQueryData(queryKeys.accounts.root, [account]);
     const firstResult = createDeferred<ReturnType<typeof Result.succeed<AccountDetailAccount>>>();
     const secondResult = createDeferred<ReturnType<typeof Result.succeed<AccountDetailAccount>>>();
     updateAccountSyncMock.mockReturnValueOnce(firstResult.promise).mockReturnValueOnce(secondResult.promise);
@@ -120,7 +121,7 @@ describe("useAccountDetailSyncControls", () => {
     firstResult.resolve(Result.succeed(makeUpdatedAccount(account, first)));
     await firstUpdate;
 
-    expect(queryClient.getQueryData<AccountDetailAccount[]>(["accounts"])?.[0]).toEqual(
+    expect(queryClient.getQueryData<AccountDetailAccount[]>(queryKeys.accounts.root)?.[0]).toEqual(
       expect.objectContaining(expected),
     );
   });
@@ -128,7 +129,7 @@ describe("useAccountDetailSyncControls", () => {
   it("does not show a stale error toast when an older update fails after a newer update succeeds", async () => {
     const account = sampleAccounts[1];
     const queryClient = createTestQueryClient();
-    queryClient.setQueryData(["accounts"], [account]);
+    queryClient.setQueryData(queryKeys.accounts.root, [account]);
     const firstResult = createDeferred<ReturnType<typeof Result.fail<Error>>>();
     const secondResult = createDeferred<ReturnType<typeof Result.succeed<AccountDetailAccount>>>();
     updateAccountSyncMock.mockReturnValueOnce(firstResult.promise).mockReturnValueOnce(secondResult.promise);
@@ -156,7 +157,7 @@ describe("useAccountDetailSyncControls", () => {
     await firstUpdate;
 
     expect(useUiStore.getState().toastMessage).toBeNull();
-    expect(queryClient.getQueryData<AccountDetailAccount[]>(["accounts"])?.[0]).toEqual(
+    expect(queryClient.getQueryData<AccountDetailAccount[]>(queryKeys.accounts.root)?.[0]).toEqual(
       expect.objectContaining({ sync_interval_secs: 7200 }),
     );
   });
@@ -219,7 +220,7 @@ describe("useAccountDetailSyncControls", () => {
       last_error: "stale error",
     };
     queryClient.setQueryData(["account-sync-status", account.id], staleStatus);
-    queryClient.setQueryData(["feeds", account.id], [{ id: "feed-1", title: "Stale feed" }]);
+    queryClient.setQueryData(queryKeys.feeds.byAccount(account.id), [{ id: "feed-1", title: "Stale feed" }]);
     syncAccountMock.mockResolvedValue(Result.fail(new Error("still failing")));
 
     const { result } = renderHook(() =>
@@ -236,7 +237,7 @@ describe("useAccountDetailSyncControls", () => {
     });
 
     expect(queryClient.getQueryData(["account-sync-status", account.id])).toBeUndefined();
-    expect(queryClient.getQueryData(["feeds", account.id])).toBeUndefined();
+    expect(queryClient.getQueryData(queryKeys.feeds.byAccount(account.id))).toBeUndefined();
     expect(syncAccountMock).toHaveBeenCalledWith(account.id);
   });
 

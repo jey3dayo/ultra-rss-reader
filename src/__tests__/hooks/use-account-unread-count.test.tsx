@@ -73,6 +73,6 @@ describe("useAccountUnreadCount", () => {
     await waitFor(() => {
       expect(queryClient.getQueryData(queryKeys.accountUnreadCount.byAccount("acc-1"))).toBe(5);
     });
-    expect(queryClient.getQueryState(["accountUnreadCount", " acc-1 "])).toBeUndefined();
+    expect(queryClient.getQueryState([...queryKeys.accountUnreadCount.root, " acc-1 "])).toBeUndefined();
   });
 });

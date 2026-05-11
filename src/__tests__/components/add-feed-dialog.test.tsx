@@ -4,6 +4,7 @@ import { createQueryWrapper } from "@tests/helpers/create-wrapper";
 import { setupTauriMocks, teardownTauriMocks } from "@tests/helpers/tauri-mocks";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AddFeedDialog } from "@/components/reader/add-feed-dialog";
+import { queryKeys } from "@/lib/query/query-invalidation";
 import { usePreferencesStore } from "@/stores/preferences-store";
 
 vi.mock("@/components/reader/add-feed-dialog-view", () => ({
@@ -132,9 +133,9 @@ describe("AddFeedDialog", () => {
       cmd: "update_feed_folder",
       args: { feedId: "feed-new", folderId: "folder-new" },
     });
-    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["feeds"] });
-    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["accountUnreadCount"] });
-    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["folders"] });
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.feeds.root });
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.accountUnreadCount.root });
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.folders.root });
   });
 
   it("shows inline guidance and keeps actions disabled for invalid URLs", async () => {

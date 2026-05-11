@@ -94,28 +94,31 @@ function unwrapGeneratedQueryResult<TData>(
 }
 
 export function createQuery<TData, TId extends string | null>(
-  queryKey: string,
+  queryRoot: string | readonly unknown[],
   fetcher: (id: string) => Result.ResultAsync<TData, GeneratedQueryError>,
 ) {
+  const queryKeyLabel = typeof queryRoot === "string" ? queryRoot : String(queryRoot[queryRoot.length - 1] ?? "");
+  const queryKeyRoot = typeof queryRoot === "string" ? [queryRoot] : queryRoot;
+
   return function useGeneratedQuery(id: TId) {
     const queryId = normalizeQueryId(id);
-    return useQuery<TData, GeneratedQueryError | Error, TData, [string, string | null]>({
-      queryKey: [queryKey, queryId],
+    return useQuery<TData, GeneratedQueryError | Error, TData, readonly unknown[]>({
+      queryKey: [...queryKeyRoot, queryId],
       queryFn: () => {
         if (queryId === null) {
           createQueryDiagnosticsReporter({
             type: "disabled-query-refetch",
-            queryKey,
+            queryKey: queryKeyLabel,
           });
           return Promise.reject(new Error("Query id is required when the query is enabled."));
         }
 
         return fetcher(queryId)
-          .then((result) => unwrapGeneratedQueryResult(result, queryKey, queryId))
+          .then((result) => unwrapGeneratedQueryResult(result, queryKeyLabel, queryId))
           .catch((error: unknown) => {
             createQueryDiagnosticsReporter({
               type: "query-function-rejected",
-              queryKey,
+              queryKey: queryKeyLabel,
               queryId,
               error,
             });

@@ -8,6 +8,7 @@ import i18n from "@tests/helpers/i18n-setup";
 import type { RefObject } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAccountDetailCredentialsEditor } from "@/components/settings/hooks/account-detail/use-account-detail-credentials-editor";
+import { queryKeys } from "@/lib/query/query-invalidation";
 import { useUiStore } from "@/stores/ui-store";
 
 const { copyToClipboardMock, testAccountConnectionMock, updateAccountCredentialsMock } = vi.hoisted(() => ({
@@ -282,7 +283,7 @@ describe("useAccountDetailCredentialsEditor", () => {
   it("keeps the password draft and cached account unchanged when keyring update fails", async () => {
     const account = sampleAccounts[1];
     const queryClient = createTestQueryClient();
-    queryClient.setQueryData(["accounts"], [account]);
+    queryClient.setQueryData(queryKeys.accounts.root, [account]);
     updateAccountCredentialsMock.mockRejectedValue(new Error("keychain unavailable"));
 
     const { result } = renderHook(() =>
@@ -309,7 +310,7 @@ describe("useAccountDetailCredentialsEditor", () => {
       account.username,
       "new-secret",
     );
-    expect(queryClient.getQueryData(["accounts"])).toEqual([account]);
+    expect(queryClient.getQueryData(queryKeys.accounts.root)).toEqual([account]);
     expect(result.current.credPassword).toBe("new-secret");
     expect(result.current.passwordDisplayValue).toBe("new-secret");
     expect(useUiStore.getState().toastMessage?.message).toBe("Failed to update sync settings: keychain unavailable");
@@ -319,7 +320,7 @@ describe("useAccountDetailCredentialsEditor", () => {
   it("requires connection verification before accepting saved credential drafts", async () => {
     const account = sampleAccounts[1];
     const queryClient = createTestQueryClient();
-    queryClient.setQueryData(["accounts"], [account]);
+    queryClient.setQueryData(queryKeys.accounts.root, [account]);
     updateAccountCredentialsMock.mockResolvedValue(
       Result.succeed({
         ...account,
@@ -410,14 +411,14 @@ describe("useAccountDetailCredentialsEditor", () => {
     });
 
     expect(result.current.testingConnection).toBe(false);
-    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["accounts"] });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.accounts.root });
     expect(useUiStore.getState().toastMessage?.message).toBe("Connection failed: test account not found");
   });
 
   it("ignores a stale connection success when the draft changes before the result returns", async () => {
     const account = sampleAccounts[1];
     const queryClient = createTestQueryClient();
-    queryClient.setQueryData(["accounts"], [account]);
+    queryClient.setQueryData(queryKeys.accounts.root, [account]);
     const staleConnection = createDeferred<ReturnType<typeof testAccountConnectionMock>>();
     testAccountConnectionMock.mockReturnValue(staleConnection.promise);
 
@@ -445,7 +446,7 @@ describe("useAccountDetailCredentialsEditor", () => {
       await testConnection;
     });
 
-    expect(queryClient.getQueryData(["accounts"])).toEqual([account]);
+    expect(queryClient.getQueryData(queryKeys.accounts.root)).toEqual([account]);
     expect(useUiStore.getState().toastMessage).toBeNull();
     expect(result.current.credUsername).toBe("new-draft");
     expect(result.current.testingConnection).toBe(false);
@@ -499,7 +500,7 @@ describe("useAccountDetailCredentialsEditor", () => {
   it("does not apply a stale credential save when the draft changes before the save returns", async () => {
     const account = sampleAccounts[1];
     const queryClient = createTestQueryClient();
-    queryClient.setQueryData(["accounts"], [account]);
+    queryClient.setQueryData(queryKeys.accounts.root, [account]);
     const staleSave = createDeferred<ReturnType<typeof updateAccountCredentialsMock>>();
     updateAccountCredentialsMock.mockReturnValue(staleSave.promise);
 
@@ -525,7 +526,7 @@ describe("useAccountDetailCredentialsEditor", () => {
       await saveCredentials;
     });
 
-    expect(queryClient.getQueryData(["accounts"])).toEqual([account]);
+    expect(queryClient.getQueryData(queryKeys.accounts.root)).toEqual([account]);
     expect(useUiStore.getState().toastMessage).toBeNull();
     expect(result.current.credUsername).toBe("current-draft");
   });
@@ -562,7 +563,7 @@ describe("useAccountDetailCredentialsEditor", () => {
   it("queues a changed credential draft until the in-flight save settles", async () => {
     const account = sampleAccounts[1];
     const queryClient = createTestQueryClient();
-    queryClient.setQueryData(["accounts"], [account]);
+    queryClient.setQueryData(queryKeys.accounts.root, [account]);
     const firstSave = createDeferred<ReturnType<typeof updateAccountCredentialsMock>>();
     updateAccountCredentialsMock.mockReturnValueOnce(firstSave.promise).mockResolvedValueOnce(
       Result.succeed({
@@ -612,7 +613,7 @@ describe("useAccountDetailCredentialsEditor", () => {
       "current-draft",
       undefined,
     );
-    expect(queryClient.getQueryData(["accounts"])).toEqual([verifiedCurrentDraft]);
+    expect(queryClient.getQueryData(queryKeys.accounts.root)).toEqual([verifiedCurrentDraft]);
     expect(result.current.credUsername).toBeNull();
   });
 
@@ -717,7 +718,7 @@ describe("useAccountDetailCredentialsEditor", () => {
   it("does not invalidate cache or toast after credential persistence finishes on a closed detail", async () => {
     const account = sampleAccounts[1];
     const queryClient = createTestQueryClient();
-    queryClient.setQueryData(["accounts"], [account]);
+    queryClient.setQueryData(queryKeys.accounts.root, [account]);
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
     const staleSave = createDeferred<ReturnType<typeof updateAccountCredentialsMock>>();
     updateAccountCredentialsMock.mockReturnValue(staleSave.promise);
@@ -742,7 +743,7 @@ describe("useAccountDetailCredentialsEditor", () => {
       await saveCredentials;
     });
 
-    expect(queryClient.getQueryData(["accounts"])).toEqual([account]);
+    expect(queryClient.getQueryData(queryKeys.accounts.root)).toEqual([account]);
     expect(invalidateSpy).not.toHaveBeenCalled();
     expect(useUiStore.getState().toastMessage).toBeNull();
   });
@@ -751,7 +752,7 @@ describe("useAccountDetailCredentialsEditor", () => {
     const consoleWarn = suppressConsoleWarn();
     const account = sampleAccounts[1];
     const queryClient = createTestQueryClient();
-    queryClient.setQueryData(["accounts"], [account]);
+    queryClient.setQueryData(queryKeys.accounts.root, [account]);
     vi.spyOn(queryClient, "invalidateQueries").mockRejectedValue(new Error("refetch unavailable"));
     const updated = { ...account, username: "alice" };
     const verified = {
@@ -788,13 +789,13 @@ describe("useAccountDetailCredentialsEditor", () => {
         failures: [
           expect.objectContaining({
             actionOwner: "unknown",
-            queryKey: ["accounts"],
+            queryKey: queryKeys.accounts.root,
             error: expect.any(Error),
           }),
         ],
       }),
     );
-    expect(queryClient.getQueryData(["accounts"])).toEqual([verified]);
+    expect(queryClient.getQueryData(queryKeys.accounts.root)).toEqual([verified]);
     expect(useUiStore.getState().toastMessage?.message).toBe("Credentials saved");
   });
 

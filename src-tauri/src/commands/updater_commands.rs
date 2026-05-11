@@ -614,6 +614,22 @@ mod tests {
     }
 
     #[test]
+    fn download_guard_exposes_in_flight_state_for_native_close_recovery() {
+        let _test_lock = UPDATER_COMMAND_TEST_LOCK
+            .lock()
+            .expect("test lock poisoned");
+        DOWNLOADING.store(false, Ordering::SeqCst);
+
+        let guard = DownloadGuard::acquire(3).expect("guard should acquire idle flag");
+
+        assert!(is_update_download_in_flight());
+
+        drop(guard);
+
+        assert!(!is_update_download_in_flight());
+    }
+
+    #[test]
     fn download_guard_releases_flag_after_panic_unwind() {
         let _test_lock = UPDATER_COMMAND_TEST_LOCK
             .lock()

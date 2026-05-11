@@ -927,12 +927,12 @@ describe("repository static contracts", () => {
       ...resolveDeleteFeedInvalidationQueryKeys({ accountId: "acc-1" }),
     ];
     const reachableRootNames = new Set(
-      [...invalidationTargetRoots, ...mutationTargetRoots].map((queryKey) => queryKey[0]),
+      [...invalidationTargetRoots, ...mutationTargetRoots].map((queryKey) => queryKey[1]),
     );
 
     expect(
       Object.values(queryKeys)
-        .map((entry) => entry.root[0])
+        .map((entry) => entry.root[1])
         .toSorted(),
     ).toEqual([
       "accountArticles",

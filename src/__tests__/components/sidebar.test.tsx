@@ -17,6 +17,7 @@ import { Sidebar } from "@/components/reader/sidebar";
 import { APP_EVENTS } from "@/constants/events";
 import { STORAGE_KEYS } from "@/constants/storage";
 import { formatAccountSyncRetryTime } from "@/lib/account/account-sync-status-format";
+import { queryKeys } from "@/lib/query/query-invalidation";
 import { ACCOUNT_PANE_NAVIGATION_TARGET_ATTRIBUTE, ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE } from "@/lib/reader-focus";
 import { resetManualSyncCooldownForTests } from "@/lib/sync/manual-sync";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -914,7 +915,7 @@ describe("Sidebar", () => {
     sidebarSourceOverrides.feedsData = undefined;
     sidebarSourceOverrides.foldersData = undefined;
     sidebarSourceOverrides.starredArticlesData = undefined;
-    queryClient.setQueryData(["accounts"], undefined);
+    queryClient.setQueryData(queryKeys.accounts.root, undefined);
     rerender(<Sidebar />);
 
     expect(screen.getByRole("heading", { name: "Local" })).toBeInTheDocument();

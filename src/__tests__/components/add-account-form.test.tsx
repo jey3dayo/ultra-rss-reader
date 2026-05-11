@@ -12,6 +12,7 @@ import { AddAccountForm, buildServicePickerCategories } from "@/components/setti
 import { ServicePicker } from "@/components/settings/add-account/service-picker";
 import { runAccountSetupSync } from "@/components/settings/hooks/account-detail/use-account-detail-sync-controls";
 import i18n from "@/lib/i18n";
+import { queryKeys } from "@/lib/query/query-invalidation";
 import enSettings from "@/locales/en/settings.json";
 import jaSettings from "@/locales/ja/settings.json";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -985,7 +986,7 @@ describe("AddAccountForm", () => {
     await user.click(screen.getByRole("button", { name: "Add" }));
 
     await waitFor(() => {
-      expect(queryClient?.getQueryData(["accounts"])).toEqual(
+      expect(queryClient?.getQueryData(queryKeys.accounts.root)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             id: "acc-new",
@@ -1046,7 +1047,7 @@ describe("AddAccountForm", () => {
         failures: expect.arrayContaining([
           expect.objectContaining({
             actionOwner: "unknown",
-            queryKey: ["accounts"],
+            queryKey: queryKeys.accounts.root,
             error: invalidationError,
           }),
         ]),

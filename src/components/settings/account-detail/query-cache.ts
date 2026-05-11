@@ -1,5 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
 import type { AccountDto } from "@/api/tauri-commands";
+import { queryKeys } from "@/lib/query/query-invalidation";
 
 type AccountDetailCachePatchOwner = "optimistic-update" | "server-refetch";
 
@@ -16,11 +17,13 @@ export function upsertCachedAccount(queryClient: QueryClient, account: AccountDt
 }
 
 export function removeCachedAccount(queryClient: QueryClient, accountId: string) {
-  queryClient.setQueryData<AccountDto[]>(["accounts"], (previous) => previous?.filter((item) => item.id !== accountId));
+  queryClient.setQueryData<AccountDto[]>(queryKeys.accounts.root, (previous) =>
+    previous?.filter((item) => item.id !== accountId),
+  );
 }
 
 export function patchCachedAccount(queryClient: QueryClient, account: AccountDto, options: PatchCachedAccountOptions) {
-  queryClient.setQueryData<AccountDto[]>(["accounts"], (previous) => {
+  queryClient.setQueryData<AccountDto[]>(queryKeys.accounts.root, (previous) => {
     if (!previous) {
       return options.owner === "optimistic-update" ? [account] : undefined;
     }

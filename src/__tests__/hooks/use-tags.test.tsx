@@ -4,6 +4,7 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { createQueryWrapper } from "@tests/helpers/create-wrapper";
 import { sampleArticles, sampleTags } from "@tests/helpers/fixtures";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { QUERY_CACHE_KEY_VERSION } from "@/api/schemas/runtime-contracts";
 import * as tauriCommands from "@/api/tauri-commands";
 import {
   resolveTagMutationInvalidationQueryKeys,
@@ -17,6 +18,7 @@ import {
   useTags,
   useUntagArticle,
 } from "@/hooks/use-tags";
+import { queryKeys } from "@/lib/query/query-invalidation";
 import { useUiStore } from "@/stores/ui-store";
 
 describe("tag query keys", () => {
@@ -107,7 +109,9 @@ describe("useArticlesByTag", () => {
     renderHook(() => useArticlesByTag("   ", "acc-1"), { wrapper });
 
     expect(listArticlesByTagSpy).not.toHaveBeenCalled();
-    expect(queryClient.getQueryState(["articlesByTag", null, "acc-1", { mode: "all" }])?.fetchStatus).toBe("idle");
+    expect(queryClient.getQueryState(queryKeys.articlesByTag.byTagAndAccount(null, "acc-1", "all"))?.fetchStatus).toBe(
+      "idle",
+    );
   });
 
   it("trims valid tag ids for the query key and fetches with account and mode", async () => {
@@ -122,7 +126,9 @@ describe("useArticlesByTag", () => {
     await waitFor(() => {
       expect(listArticlesByTagSpy).toHaveBeenCalledWith("tag-1", undefined, undefined, "acc-1", "unread");
     });
-    expect(queryClient.getQueryData(["articlesByTag", "tag-1", "acc-1", { mode: "unread" }])).toEqual(sampleArticles);
+    expect(queryClient.getQueryData(queryKeys.articlesByTag.byTagAndAccount("tag-1", "acc-1", "unread"))).toEqual(
+      sampleArticles,
+    );
   });
 
   it("normalizes blank and whitespace account ids to the all-account article tag key", async () => {
@@ -151,7 +157,9 @@ describe("useArticlesByTag", () => {
     expect(queryClient.getQueryData(tagQueryKeys.articlesByTag.byTagAndAccount("tag-1", null, "all"))).toEqual(
       sampleArticles,
     );
-    expect(queryClient.getQueryState(["articlesByTag", "tag-1", " \n\t ", { mode: "all" }])).toBeUndefined();
+    expect(
+      queryClient.getQueryState([QUERY_CACHE_KEY_VERSION, "articlesByTag", "tag-1", " \n\t ", { mode: "all" }]),
+    ).toBeUndefined();
     expect(listArticlesByTagSpy).toHaveBeenCalledTimes(1);
   });
 });
@@ -191,7 +199,7 @@ describe("useTagArticleCounts", () => {
     rerender({ accountId: null });
 
     await waitFor(() => {
-      expect(queryClient.getQueryData(["tagArticleCounts", null])).toEqual({
+      expect(queryClient.getQueryData(queryKeys.tagArticleCounts.byAccount(null))).toEqual({
         "tag-all": 2,
       });
     });
@@ -202,10 +210,10 @@ describe("useTagArticleCounts", () => {
     await waitFor(() => {
       expect(getTagArticleCountsSpy).toHaveBeenCalledWith("acc-1");
     });
-    expect(queryClient.getQueryData(["tagArticleCounts", null])).toEqual({
+    expect(queryClient.getQueryData(queryKeys.tagArticleCounts.byAccount(null))).toEqual({
       "tag-all": 2,
     });
-    expect(queryClient.getQueryData(["tagArticleCounts", "acc-1"])).toEqual({
+    expect(queryClient.getQueryData(queryKeys.tagArticleCounts.byAccount("acc-1"))).toEqual({
       "tag-acc-1": 1,
     });
   });
@@ -235,7 +243,7 @@ describe("useTagArticleCounts", () => {
     expect(queryClient.getQueryData(tagQueryKeys.tagArticleCounts.byAccount(null))).toEqual({
       "tag-all": 2,
     });
-    expect(queryClient.getQueryState(["tagArticleCounts", " \n\t "])).toBeUndefined();
+    expect(queryClient.getQueryState([QUERY_CACHE_KEY_VERSION, "tagArticleCounts", " \n\t "])).toBeUndefined();
     expect(getTagArticleCountsSpy).toHaveBeenCalledTimes(1);
   });
 });
@@ -274,10 +282,10 @@ describe("article tag mutations", () => {
 
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ["tags"] });
     expect(invalidateQueriesSpy).not.toHaveBeenCalledWith({
-      queryKey: ["tagArticleCounts"],
+      queryKey: queryKeys.tagArticleCounts.root,
     });
     expect(invalidateQueriesSpy).not.toHaveBeenCalledWith({
-      queryKey: ["articlesByTag"],
+      queryKey: queryKeys.articlesByTag.root,
     });
   });
 
@@ -325,10 +333,10 @@ describe("article tag mutations", () => {
       queryKey: ["articleTags"],
     });
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({
-      queryKey: ["articlesByTag"],
+      queryKey: queryKeys.articlesByTag.root,
     });
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({
-      queryKey: ["tagArticleCounts"],
+      queryKey: queryKeys.tagArticleCounts.root,
     });
     expect(invalidateQueriesSpy).not.toHaveBeenCalledWith({
       queryKey: ["tags"],
@@ -363,20 +371,22 @@ describe("article tag mutations", () => {
   it("marks article and tag assignment caches stale after assigning a tag", async () => {
     vi.spyOn(tauriCommands, "tagArticle").mockResolvedValue(Result.succeed(null));
     queryClient.setQueryData(["articleTags", "art-1"], [{ id: "tag-1", name: "Review", color: null }]);
-    queryClient.setQueryData(["articlesByTag", "tag-1", "acc-1", { mode: "all" }], sampleArticles);
-    queryClient.setQueryData(["tagArticleCounts", "acc-1"], { "tag-1": 1 });
-    queryClient.setQueryData(["articles", "feed-1", { mode: "all" }], sampleArticles);
-    queryClient.setQueryData(["accountArticles", "acc-1", { mode: "all" }], sampleArticles);
+    queryClient.setQueryData(queryKeys.articlesByTag.byTagAndAccount("tag-1", "acc-1", "all"), sampleArticles);
+    queryClient.setQueryData(queryKeys.tagArticleCounts.byAccount("acc-1"), { "tag-1": 1 });
+    queryClient.setQueryData(queryKeys.articles.byFeed("feed-1", "all"), sampleArticles);
+    queryClient.setQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"), sampleArticles);
 
     const { result } = renderHook(() => useTagArticle(), { wrapper });
 
     await result.current.mutateAsync({ articleId: "art-1", tagId: "tag-2" });
 
     expect(queryClient.getQueryState(["articleTags", "art-1"])?.isInvalidated).toBe(true);
-    expect(queryClient.getQueryState(["articlesByTag", "tag-1", "acc-1", { mode: "all" }])?.isInvalidated).toBe(true);
-    expect(queryClient.getQueryState(["tagArticleCounts", "acc-1"])?.isInvalidated).toBe(true);
-    expect(queryClient.getQueryState(["articles", "feed-1", { mode: "all" }])?.isInvalidated).toBe(true);
-    expect(queryClient.getQueryState(["accountArticles", "acc-1", { mode: "all" }])?.isInvalidated).toBe(true);
+    expect(
+      queryClient.getQueryState(queryKeys.articlesByTag.byTagAndAccount("tag-1", "acc-1", "all"))?.isInvalidated,
+    ).toBe(true);
+    expect(queryClient.getQueryState(queryKeys.tagArticleCounts.byAccount("acc-1"))?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(queryKeys.articles.byFeed("feed-1", "all"))?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(queryKeys.accountArticles.byAccount("acc-1", "all"))?.isInvalidated).toBe(true);
   });
 
   it("invalidates article tag assignment caches after unassigning a tag", async () => {
@@ -391,10 +401,10 @@ describe("article tag mutations", () => {
       queryKey: ["articleTags"],
     });
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({
-      queryKey: ["articlesByTag"],
+      queryKey: queryKeys.articlesByTag.root,
     });
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({
-      queryKey: ["tagArticleCounts"],
+      queryKey: queryKeys.tagArticleCounts.root,
     });
     expect(invalidateQueriesSpy).not.toHaveBeenCalledWith({
       queryKey: ["tags"],
@@ -458,10 +468,10 @@ describe("article tag mutations", () => {
       queryKey: ["articleTags"],
     });
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({
-      queryKey: ["articlesByTag"],
+      queryKey: queryKeys.articlesByTag.root,
     });
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({
-      queryKey: ["tagArticleCounts"],
+      queryKey: queryKeys.tagArticleCounts.root,
     });
   });
 
@@ -478,10 +488,10 @@ describe("article tag mutations", () => {
       queryKey: ["articleTags"],
     });
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({
-      queryKey: ["articlesByTag"],
+      queryKey: queryKeys.articlesByTag.root,
     });
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({
-      queryKey: ["tagArticleCounts"],
+      queryKey: queryKeys.tagArticleCounts.root,
     });
   });
 

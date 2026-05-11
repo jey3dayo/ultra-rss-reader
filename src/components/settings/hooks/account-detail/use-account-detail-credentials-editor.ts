@@ -1,7 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { type RefObject, useEffect, useReducer, useRef } from "react";
 import { copyToClipboard, testAccountConnection, updateAccountCredentials } from "@/api/tauri-commands";
-import { invalidateQueryKeysLogOnly } from "@/lib/query/query-invalidation";
+import { invalidateQueryKeysLogOnly, queryKeys } from "@/lib/query/query-invalidation";
 import { getErrorMessage } from "@/lib/ui/errors";
 import { useUiStore } from "@/stores/ui-store";
 import { updateCachedAccount } from "../../account-detail/query-cache";
@@ -218,7 +218,7 @@ export function useAccountDetailCredentialsEditor({
         return false;
       }
       showConnectionError({ message: getErrorMessage(error) });
-      await queryClient.invalidateQueries({ queryKey: ["accounts"] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.accounts.root });
       return false;
     }
 
@@ -227,7 +227,7 @@ export function useAccountDetailCredentialsEditor({
     }
     if (Result.isFailure(result)) {
       showConnectionError(Result.unwrapError(result));
-      await queryClient.invalidateQueries({ queryKey: ["accounts"] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.accounts.root });
       return false;
     }
 
@@ -327,7 +327,7 @@ export function useAccountDetailCredentialsEditor({
       const updated = Result.unwrap(saveResult);
       saved = true;
       updateCachedAccount(queryClient, updated);
-      invalidateQueryKeysLogOnly(queryClient, [["accounts"]]);
+      invalidateQueryKeysLogOnly(queryClient, [queryKeys.accounts.root]);
 
       const verified = await runConnectionVerification(account.id, draftRevision, updated);
       if (!verified) {

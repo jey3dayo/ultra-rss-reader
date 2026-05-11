@@ -290,7 +290,7 @@ describe("useAccountDetailDangerZone", () => {
   it("invalidates reader article caches after account delete succeeds", async () => {
     deleteAccountMock.mockResolvedValue(Result.succeed(null));
     const queryClient = createTestQueryClient();
-    queryClient.setQueryData(["accounts"], sampleAccounts);
+    queryClient.setQueryData(queryKeys.accounts.root, sampleAccounts);
     queryClient.setQueryData(queryKeys.feeds.root, sampleFeeds);
     queryClient.setQueryData(queryKeys.articles.byFeed("feed-1", "unread"), sampleArticles);
     queryClient.setQueryData(queryKeys.articles.byFeed("feed-2", "unread"), sampleArticles);
@@ -361,7 +361,7 @@ describe("useAccountDetailDangerZone", () => {
     expect(usePreferencesStore.getState().prefs.selected_account_id).toBe("acc-2");
     expect(setPreferenceMock).toHaveBeenCalledWith("selected_account_id", "acc-2");
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({
-      queryKey: ["accounts"],
+      queryKey: queryKeys.accounts.root,
     });
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({
       queryKey: queryKeys.feeds.root,
@@ -387,7 +387,7 @@ describe("useAccountDetailDangerZone", () => {
     deleteAccountMock.mockResolvedValue(Result.succeed(null));
     setPreferenceMock.mockResolvedValue(Result.fail({ type: "UserVisible", message: "disk full" }));
     const queryClient = createTestQueryClient();
-    queryClient.setQueryData(["accounts"], sampleAccounts);
+    queryClient.setQueryData(queryKeys.accounts.root, sampleAccounts);
     usePreferencesStore.setState({
       prefs: { selected_account_id: "acc-1" },
       loaded: true,

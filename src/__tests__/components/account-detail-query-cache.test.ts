@@ -7,6 +7,7 @@ import {
   updateCachedAccount,
   upsertCachedAccount,
 } from "@/components/settings/account-detail/query-cache";
+import { queryKeys } from "@/lib/query/query-invalidation";
 
 function buildAccount(id: string, name = id): AccountDto {
   return {
@@ -26,22 +27,22 @@ describe("account-detail-query-cache", () => {
   it("updates an existing cached account", () => {
     const queryClient = createTestQueryClient();
     const updated = buildAccount("acc-1", "Updated");
-    queryClient.setQueryData(["accounts"], [buildAccount("acc-1"), buildAccount("acc-2")]);
+    queryClient.setQueryData(queryKeys.accounts.root, [buildAccount("acc-1"), buildAccount("acc-2")]);
 
     updateCachedAccount(queryClient, updated);
 
-    expect(queryClient.getQueryData(["accounts"])).toEqual([updated, buildAccount("acc-2")]);
+    expect(queryClient.getQueryData(queryKeys.accounts.root)).toEqual([updated, buildAccount("acc-2")]);
   });
 
   it("keeps server refetch patches scoped to cached accounts", () => {
     const queryClient = createTestQueryClient();
     const first = buildAccount("acc-1");
     const missing = buildAccount("acc-2", "Server Refetch");
-    queryClient.setQueryData(["accounts"], [first]);
+    queryClient.setQueryData(queryKeys.accounts.root, [first]);
 
     patchCachedAccount(queryClient, missing, { owner: "server-refetch" });
 
-    expect(queryClient.getQueryData(["accounts"])).toEqual([first]);
+    expect(queryClient.getQueryData(queryKeys.accounts.root)).toEqual([first]);
   });
 
   it("keeps an empty account cache empty when updating", () => {
@@ -49,7 +50,7 @@ describe("account-detail-query-cache", () => {
 
     updateCachedAccount(queryClient, buildAccount("acc-1"));
 
-    expect(queryClient.getQueryData(["accounts"])).toBeUndefined();
+    expect(queryClient.getQueryData(queryKeys.accounts.root)).toBeUndefined();
   });
 
   it("upserts into an empty account cache", () => {
@@ -58,7 +59,7 @@ describe("account-detail-query-cache", () => {
 
     upsertCachedAccount(queryClient, account);
 
-    expect(queryClient.getQueryData(["accounts"])).toEqual([account]);
+    expect(queryClient.getQueryData(queryKeys.accounts.root)).toEqual([account]);
   });
 
   it("uses optimistic update patches to create a missing account cache", () => {
@@ -67,28 +68,28 @@ describe("account-detail-query-cache", () => {
 
     patchCachedAccount(queryClient, account, { owner: "optimistic-update" });
 
-    expect(queryClient.getQueryData(["accounts"])).toEqual([account]);
+    expect(queryClient.getQueryData(queryKeys.accounts.root)).toEqual([account]);
   });
 
   it("appends accounts that are not already cached", () => {
     const queryClient = createTestQueryClient();
     const first = buildAccount("acc-1");
     const second = buildAccount("acc-2");
-    queryClient.setQueryData(["accounts"], [first]);
+    queryClient.setQueryData(queryKeys.accounts.root, [first]);
 
     upsertCachedAccount(queryClient, second);
 
-    expect(queryClient.getQueryData(["accounts"])).toEqual([first, second]);
+    expect(queryClient.getQueryData(queryKeys.accounts.root)).toEqual([first, second]);
   });
 
   it("removes deleted accounts from the cache", () => {
     const queryClient = createTestQueryClient();
     const first = buildAccount("acc-1");
     const second = buildAccount("acc-2");
-    queryClient.setQueryData(["accounts"], [first, second]);
+    queryClient.setQueryData(queryKeys.accounts.root, [first, second]);
 
     removeCachedAccount(queryClient, first.id);
 
-    expect(queryClient.getQueryData(["accounts"])).toEqual([second]);
+    expect(queryClient.getQueryData(queryKeys.accounts.root)).toEqual([second]);
   });
 });

@@ -21,6 +21,7 @@ import {
   useMuteKeywords,
 } from "@/hooks/use-mute-keywords";
 import { resolveTagMutationInvalidationQueryKeys } from "@/hooks/use-tags";
+import { queryKeys } from "@/lib/query/query-invalidation";
 
 const { useQueryMock } = vi.hoisted(() => ({
   useQueryMock: vi.fn((options: { queryKey?: unknown }) => options),
@@ -91,14 +92,14 @@ describe("tag settings and reader tag contracts", () => {
     expect(resolveTagMutationInvalidationQueryKeys("create")).toEqual([["tags"]]);
     expect(resolveTagMutationInvalidationQueryKeys("articleAssignment")).toEqual([
       ["articleTags"],
-      ["articlesByTag"],
-      ["tagArticleCounts"],
+      queryKeys.articlesByTag.root,
+      queryKeys.tagArticleCounts.root,
     ]);
     expect(resolveTagMutationInvalidationQueryKeys("metadata")).toEqual([
       ["tags"],
       ["articleTags"],
-      ["articlesByTag"],
-      ["tagArticleCounts"],
+      queryKeys.articlesByTag.root,
+      queryKeys.tagArticleCounts.root,
     ]);
   });
 });
@@ -195,18 +196,18 @@ describe("mute settings contracts", () => {
   it("invalidates mute settings and article-derived views without changing scope semantics", () => {
     expect(resolveMuteKeywordInvalidationQueryKeys()).toEqual([
       ["muteKeywords"],
-      ["articles"],
-      ["accountArticles"],
-      ["folderArticles"],
-      ["starredArticles"],
-      ["accountUnreadCount"],
-      ["accountStarredCount"],
-      ["feeds"],
-      ["articlesByTag"],
-      ["tagArticleCounts"],
-      ["search"],
-      ["recentArticles"],
-      ["feedArticleSummaries"],
+      queryKeys.articles.root,
+      queryKeys.accountArticles.root,
+      queryKeys.folderArticles.root,
+      queryKeys.starredArticles.root,
+      queryKeys.accountUnreadCount.root,
+      queryKeys.accountStarredCount.root,
+      queryKeys.feeds.root,
+      queryKeys.articlesByTag.root,
+      queryKeys.tagArticleCounts.root,
+      queryKeys.search.root,
+      queryKeys.recentArticles.root,
+      queryKeys.feedArticleSummaries.root,
     ]);
   });
 
