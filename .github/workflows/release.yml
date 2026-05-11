@@ -40,17 +40,6 @@ jobs:
             ${{ github.event_name == 'workflow_dispatch' &&
             format('refs/tags/{0}', inputs.release_tag) || github.ref }}
 
-      - name: Validate manual release tag
-        if: github.event_name == 'workflow_dispatch'
-        shell: bash
-        env:
-          RELEASE_TAG: ${{ inputs.release_tag }}
-        run: |
-          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
-            echo "::error::release_tag must match vX.Y.Z, optionally with prerelease or build metadata"
-            exit 1
-          fi
-
       - name: Validate release source
         shell: bash
         env:
@@ -58,60 +47,7 @@ jobs:
           RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
           WORKFLOW_REF: ${{ github.ref }}
           WORKFLOW_REF_NAME: ${{ github.ref_name }}
-        run: |
-          set -euo pipefail
-
-          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
-            echo "::error::release tag must match vX.Y.Z, optionally with prerelease or build metadata"
-            exit 1
-          fi
-
-          if [[ "$EVENT_NAME" == "push" ]]; then
-            if [[ "$WORKFLOW_REF" != "refs/tags/$RELEASE_TAG" || "$WORKFLOW_REF_NAME" != "$RELEASE_TAG" ]]; then
-              echo "::error::tag push ref $WORKFLOW_REF does not match release tag $RELEASE_TAG"
-              exit 1
-            fi
-          elif [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
-            if [[ "$WORKFLOW_REF" == refs/tags/* && "$WORKFLOW_REF_NAME" != "$RELEASE_TAG" ]]; then
-              echo "::error::manual dispatch ref $WORKFLOW_REF does not match release tag $RELEASE_TAG"
-              exit 1
-            fi
-          else
-            echo "::error::unsupported release event $EVENT_NAME"
-            exit 1
-          fi
-
-          if ! git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_TAG" >/dev/null; then
-            echo "::error::release tag $RELEASE_TAG does not exist on origin; create and push an annotated tag before manual dispatch"
-            exit 1
-          fi
-
-          git fetch --force --tags origin "refs/tags/$RELEASE_TAG:refs/tags/$RELEASE_TAG"
-          git fetch --force origin main:refs/remotes/origin/main
-
-          tag_object_type="$(git cat-file -t "refs/tags/$RELEASE_TAG")"
-          if [[ "$tag_object_type" != "tag" ]]; then
-            echo "::error::release tag $RELEASE_TAG must be an annotated tag object, got $tag_object_type"
-            exit 1
-          fi
-          tag_object_sha="$(git rev-parse "refs/tags/$RELEASE_TAG")"
-          tag_target_sha="$(git rev-parse "refs/tags/$RELEASE_TAG^{}")"
-          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
-            git checkout --detach "$tag_target_sha"
-          fi
-          checkout_sha="$(git rev-parse HEAD)"
-          if [[ "$tag_object_sha" == "$tag_target_sha" ]]; then
-            echo "::error::release tag $RELEASE_TAG tag object matches peeled commit; expected annotated tag metadata"
-            exit 1
-          fi
-          if [[ "$tag_target_sha" != "$checkout_sha" ]]; then
-            echo "::error::release tag $RELEASE_TAG points at $tag_target_sha, but checkout is $checkout_sha"
-            exit 1
-          fi
-          if ! git merge-base --is-ancestor "$tag_target_sha" refs/remotes/origin/main; then
-            echo "::error::release tag $RELEASE_TAG target $tag_target_sha is not reachable from origin/main"
-            exit 1
-          fi
+        run: node ./scripts/release/validate-source.ts
 
       # jdx/mise-action@v4.0.1
       - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151
@@ -140,35 +76,7 @@ jobs:
         shell: bash
         env:
           RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
-        run: |
-          node <<'NODE'
-          const fs = require("node:fs");
-
-          const releaseTag = process.env.RELEASE_TAG;
-          const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
-          const tauriConfig = JSON.parse(fs.readFileSync("src-tauri/tauri.conf.json", "utf8"));
-          const cargoToml = fs.readFileSync("src-tauri/Cargo.toml", "utf8");
-          const cargoVersion = cargoToml.match(/^version = "([^"]+)"$/m)?.[1];
-          const expectedTag = `v${packageJson.version}`;
-          const errors = [];
-
-          if (releaseTag !== expectedTag) {
-            errors.push(`release tag ${releaseTag} does not match package.json version ${expectedTag}`);
-          }
-          if (tauriConfig.version !== packageJson.version) {
-            errors.push(`src-tauri/tauri.conf.json version ${tauriConfig.version} does not match package.json version ${packageJson.version}`);
-          }
-          if (cargoVersion !== packageJson.version) {
-            errors.push(`src-tauri/Cargo.toml version ${cargoVersion ?? "(missing)"} does not match package.json version ${packageJson.version}`);
-          }
-
-          if (errors.length > 0) {
-            for (const error of errors) {
-              console.error(`::error::${error}`);
-            }
-            process.exit(1);
-          }
-          NODE
+        run: node ./scripts/release/validate-version-parity.ts
 
       - name: Validate release signing preflight
         id: signing-preflight
@@ -182,7 +90,8 @@ jobs:
 
           if [[ "$DRY_RUN" == "true" ]]; then
             echo "should_publish=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::release dry run validated source, versions, cache, and signing preflight; artifact build and draft release upload are skipped"
+            notice="release dry run validated source, versions, cache, and signing preflight; artifact build and draft release upload are skipped"
+            echo "::notice::$notice"
             exit 0
           fi
 
@@ -194,7 +103,8 @@ jobs:
             missing+=("TAURI_SIGNING_PRIVATE_KEY_PASSWORD")
           fi
           if (( ${#missing[@]} > 0 )); then
-            printf '::error::release signing secrets are required before artifact build or draft release upload: %s\n' "$(IFS=,; echo "${missing[*]}")"
+            error="release signing secrets are required before artifact build or draft release upload"
+            printf '::error::%s: %s\n' "$error" "$(IFS=,; echo "${missing[*]}")"
             echo "::error::rerun workflow_dispatch with dry_run=true to validate release preflight without publishing artifacts"
             exit 1
           fi
@@ -245,17 +155,6 @@ jobs:
             ${{ github.event_name == 'workflow_dispatch' &&
             format('refs/tags/{0}', inputs.release_tag) || github.ref }}
 
-      - name: Validate manual release tag
-        if: github.event_name == 'workflow_dispatch'
-        shell: bash
-        env:
-          RELEASE_TAG: ${{ inputs.release_tag }}
-        run: |
-          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
-            echo "::error::release_tag must match vX.Y.Z, optionally with prerelease or build metadata"
-            exit 1
-          fi
-
       - name: Validate release source
         shell: bash
         env:
@@ -263,60 +162,7 @@ jobs:
           RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
           WORKFLOW_REF: ${{ github.ref }}
           WORKFLOW_REF_NAME: ${{ github.ref_name }}
-        run: |
-          set -euo pipefail
-
-          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
-            echo "::error::release tag must match vX.Y.Z, optionally with prerelease or build metadata"
-            exit 1
-          fi
-
-          if [[ "$EVENT_NAME" == "push" ]]; then
-            if [[ "$WORKFLOW_REF" != "refs/tags/$RELEASE_TAG" || "$WORKFLOW_REF_NAME" != "$RELEASE_TAG" ]]; then
-              echo "::error::tag push ref $WORKFLOW_REF does not match release tag $RELEASE_TAG"
-              exit 1
-            fi
-          elif [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
-            if [[ "$WORKFLOW_REF" == refs/tags/* && "$WORKFLOW_REF_NAME" != "$RELEASE_TAG" ]]; then
-              echo "::error::manual dispatch ref $WORKFLOW_REF does not match release tag $RELEASE_TAG"
-              exit 1
-            fi
-          else
-            echo "::error::unsupported release event $EVENT_NAME"
-            exit 1
-          fi
-
-          if ! git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_TAG" >/dev/null; then
-            echo "::error::release tag $RELEASE_TAG does not exist on origin; create and push an annotated tag before manual dispatch"
-            exit 1
-          fi
-
-          git fetch --force --tags origin "refs/tags/$RELEASE_TAG:refs/tags/$RELEASE_TAG"
-          git fetch --force origin main:refs/remotes/origin/main
-
-          tag_object_type="$(git cat-file -t "refs/tags/$RELEASE_TAG")"
-          if [[ "$tag_object_type" != "tag" ]]; then
-            echo "::error::release tag $RELEASE_TAG must be an annotated tag object, got $tag_object_type"
-            exit 1
-          fi
-          tag_object_sha="$(git rev-parse "refs/tags/$RELEASE_TAG")"
-          tag_target_sha="$(git rev-parse "refs/tags/$RELEASE_TAG^{}")"
-          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
-            git checkout --detach "$tag_target_sha"
-          fi
-          checkout_sha="$(git rev-parse HEAD)"
-          if [[ "$tag_object_sha" == "$tag_target_sha" ]]; then
-            echo "::error::release tag $RELEASE_TAG tag object matches peeled commit; expected annotated tag metadata"
-            exit 1
-          fi
-          if [[ "$tag_target_sha" != "$checkout_sha" ]]; then
-            echo "::error::release tag $RELEASE_TAG points at $tag_target_sha, but checkout is $checkout_sha"
-            exit 1
-          fi
-          if ! git merge-base --is-ancestor "$tag_target_sha" refs/remotes/origin/main; then
-            echo "::error::release tag $RELEASE_TAG target $tag_target_sha is not reachable from origin/main"
-            exit 1
-          fi
+        run: node ./scripts/release/validate-source.ts
 
       # jdx/mise-action@v4.0.1
       - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151
@@ -357,153 +203,7 @@ jobs:
         shell: bash
         env:
           RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
-        run: |
-          node <<'NODE'
-          const fs = require("node:fs");
-
-          const releaseTag = process.env.RELEASE_TAG;
-          const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
-          const tauriConfig = JSON.parse(fs.readFileSync("src-tauri/tauri.conf.json", "utf8"));
-          const tauriReleaseConfig = JSON.parse(fs.readFileSync("src-tauri/tauri.release.conf.json", "utf8"));
-          const tauriDevConfig = JSON.parse(fs.readFileSync("src-tauri/tauri.dev.conf.json", "utf8"));
-          const defaultCapability = JSON.parse(fs.readFileSync("src-tauri/capabilities/default.json", "utf8"));
-          const cargoToml = fs.readFileSync("src-tauri/Cargo.toml", "utf8");
-          const releaseWorkflow = fs.readFileSync(".github/workflows/release.yml", "utf8");
-          const cargoVersion = cargoToml.match(/^version = "([^"]+)"$/m)?.[1];
-          const expectedTag = `v${packageJson.version}`;
-          const releaseConfigPath = "src-tauri/tauri.release.conf.json";
-          const devConfigPath = "src-tauri/tauri.dev.conf.json";
-          const updaterEndpoint = tauriConfig.plugins?.updater?.endpoints?.[0];
-          const updaterPubkey = tauriConfig.plugins?.updater?.pubkey;
-          const updaterAssetContract = [
-            {
-              platformKey: "darwin-aarch64",
-              artifactPlatform: "darwin",
-              artifactArch: "aarch64",
-              matrixPlatform: "macos-latest",
-              matrixArgs: "--target aarch64-apple-darwin",
-              assetPattern: ".app.tar.gz",
-              signaturePattern: ".app.tar.gz.sig",
-              checksumPattern: ".app.tar.gz.sha256",
-            },
-            {
-              platformKey: "windows-x86_64",
-              artifactPlatform: "windows",
-              artifactArch: "x86_64",
-              matrixPlatform: "windows-latest",
-              matrixArgs: "\"\"",
-              assetPattern: "-setup.exe",
-              signaturePattern: "-setup.exe.sig",
-              checksumPattern: "-setup.exe.sha256",
-            },
-          ];
-          const unsupportedUpdaterPlatformKeys = ["linux-x86_64", "linux-aarch64"];
-          const capabilities = Array.isArray(defaultCapability)
-            ? defaultCapability
-            : Array.isArray(defaultCapability.capabilities)
-              ? defaultCapability.capabilities
-              : [defaultCapability];
-          const mainCapability = capabilities.find((capability) => capability.identifier === "main");
-          const browserWebviewCapability = capabilities.find((capability) => capability.identifier === "browser-webview");
-
-          const errors = [];
-          if (releaseTag !== expectedTag) {
-            errors.push(`release tag ${releaseTag} does not match package.json version ${expectedTag}`);
-          }
-          if (tauriConfig.version !== packageJson.version) {
-            errors.push(`src-tauri/tauri.conf.json version ${tauriConfig.version} does not match package.json version ${packageJson.version}`);
-          }
-          if (cargoVersion !== packageJson.version) {
-            errors.push(`src-tauri/Cargo.toml version ${cargoVersion ?? "(missing)"} does not match package.json version ${packageJson.version}`);
-          }
-          if (tauriReleaseConfig.identifier !== tauriConfig.identifier) {
-            errors.push(`src-tauri/tauri.release.conf.json identifier ${tauriReleaseConfig.identifier} does not match src-tauri/tauri.conf.json identifier ${tauriConfig.identifier}`);
-          }
-          if (tauriConfig.bundle?.createUpdaterArtifacts !== false) {
-            errors.push("src-tauri/tauri.conf.json must keep updater artifacts disabled for dev builds");
-          }
-          if (tauriReleaseConfig.bundle?.createUpdaterArtifacts !== true) {
-            errors.push("src-tauri/tauri.release.conf.json must enable updater artifacts for release builds");
-          }
-          if (tauriReleaseConfig.identifier === tauriDevConfig.identifier) {
-            errors.push("src-tauri/tauri.release.conf.json must not use the dev Tauri identifier");
-          }
-          if (tauriReleaseConfig.productName === tauriDevConfig.productName) {
-            errors.push("src-tauri/tauri.release.conf.json must not use the dev Tauri product name");
-          }
-          if (updaterEndpoint !== "https://github.com/jey3dayo/ultra-rss-reader/releases/latest/download/latest.json") {
-            errors.push(`src-tauri/tauri.conf.json updater endpoint ${updaterEndpoint ?? "(missing)"} does not match the GitHub release latest.json endpoint`);
-          }
-          if (!updaterPubkey || /(?:placeholder|change[_-]?me|todo)/i.test(updaterPubkey)) {
-            errors.push("src-tauri/tauri.conf.json updater pubkey must be configured and must not be a placeholder");
-          }
-          if (!releaseWorkflow.includes(`--config ${releaseConfigPath}`)) {
-            errors.push("release workflow must pass src-tauri/tauri.release.conf.json to tauri-action");
-          }
-          if (releaseWorkflow.includes(`--config ${devConfigPath}`)) {
-            errors.push("release workflow must not pass src-tauri/tauri.dev.conf.json to tauri-action");
-          }
-          if (/\bDEV_CREDENTIALS\s*:/.test(releaseWorkflow) || /\bULTRA_RSS_DEV_CREDENTIALS\s*:/.test(releaseWorkflow)) {
-            errors.push("release workflow must not set dev credential environment variables");
-          }
-          if (!Array.isArray(mainCapability?.permissions)) {
-            errors.push("src-tauri/capabilities/default.json must declare main release permissions explicitly");
-          } else if (capabilities.flatMap((capability) => capability.permissions ?? []).some((permission) => String(permission).startsWith("mcp-bridge:"))) {
-            errors.push("release capability must not include debug-only MCP bridge permissions");
-          }
-          if (!browserWebviewCapability) {
-            errors.push("src-tauri/capabilities/default.json must declare a browser-webview capability");
-          } else if (
-            JSON.stringify(browserWebviewCapability.webviews) !== JSON.stringify(["browser-webview"]) ||
-            JSON.stringify(browserWebviewCapability.permissions) !== JSON.stringify(["core:event:default"])
-          ) {
-            errors.push("browser-webview capability must stay on the minimal core event permission snapshot");
-          }
-          for (const contract of updaterAssetContract) {
-            if (!releaseWorkflow.includes(`platform: ${contract.matrixPlatform}`)) {
-              errors.push(`release workflow matrix is missing ${contract.matrixPlatform} for updater platform ${contract.platformKey}`);
-            }
-            if (!releaseWorkflow.includes(`updater_platform: ${contract.platformKey}`)) {
-              errors.push(`release workflow matrix is missing updater_platform ${contract.platformKey}`);
-            }
-            if (!releaseWorkflow.includes(`artifact_platform: ${contract.artifactPlatform}`)) {
-              errors.push(`release workflow matrix is missing artifact_platform ${contract.artifactPlatform}`);
-            }
-            if (!releaseWorkflow.includes(`artifact_arch: ${contract.artifactArch}`)) {
-              errors.push(`release workflow matrix is missing artifact_arch ${contract.artifactArch}`);
-            }
-            if (!releaseWorkflow.includes(`updater_asset_pattern: ${contract.assetPattern}`)) {
-              errors.push(`release workflow matrix is missing updater_asset_pattern ${contract.assetPattern}`);
-            }
-            if (!releaseWorkflow.includes(`updater_signature_pattern: ${contract.signaturePattern}`)) {
-              errors.push(`release workflow matrix is missing updater_signature_pattern ${contract.signaturePattern}`);
-            }
-            if (!releaseWorkflow.includes(`args: ${contract.matrixArgs}`)) {
-              errors.push(`release workflow matrix is missing args ${contract.matrixArgs} for updater platform ${contract.platformKey}`);
-            }
-            if (contract.signaturePattern !== `${contract.assetPattern}.sig`) {
-              errors.push(`updater platform ${contract.platformKey} signature sidecar must map to ${contract.assetPattern}.sig`);
-            }
-            if (contract.checksumPattern !== `${contract.assetPattern}.sha256`) {
-              errors.push(`updater platform ${contract.platformKey} checksum sidecar must map to ${contract.assetPattern}.sha256`);
-            }
-          }
-          for (const unsupportedPlatformKey of unsupportedUpdaterPlatformKeys) {
-            if (updaterAssetContract.some((contract) => contract.platformKey === unsupportedPlatformKey)) {
-              errors.push(`latest.json updater manifest must not include unsupported future platform ${unsupportedPlatformKey}`);
-            }
-          }
-          if (updaterAssetContract.length !== new Set(updaterAssetContract.map((contract) => contract.platformKey)).size) {
-            errors.push("latest.json updater manifest must map exactly to the release asset contract without duplicate platforms");
-          }
-
-          if (errors.length > 0) {
-            for (const error of errors) {
-              console.error(`::error::${error}`);
-            }
-            process.exit(1);
-          }
-          NODE
+        run: node ./scripts/release/validate-version-parity.ts
 
       - name: Validate release signing preflight
         id: signing-preflight
@@ -517,7 +217,8 @@ jobs:
 
           if [[ "$DRY_RUN" == "true" ]]; then
             echo "should_publish=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::release dry run validated source, versions, cache, and signing preflight; artifact build and draft release upload are skipped"
+            notice="release dry run validated source, versions, cache, and signing preflight; artifact build and draft release upload are skipped"
+            echo "::notice::$notice"
             exit 0
           fi
 
@@ -529,7 +230,8 @@ jobs:
             missing+=("TAURI_SIGNING_PRIVATE_KEY_PASSWORD")
           fi
           if (( ${#missing[@]} > 0 )); then
-            printf '::error::release signing secrets are required before artifact build or draft release upload: %s\n' "$(IFS=,; echo "${missing[*]}")"
+            error="release signing secrets are required before artifact build or draft release upload"
+            printf '::error::%s: %s\n' "$error" "$(IFS=,; echo "${missing[*]}")"
             echo "::error::rerun workflow_dispatch with dry_run=true to validate release preflight without publishing artifacts"
             exit 1
           fi
@@ -539,78 +241,7 @@ jobs:
       - name: Validate release build contamination contract
         if: steps.signing-preflight.outputs.should_publish == 'true'
         shell: bash
-        run: |
-          node <<'NODE'
-          const fs = require("node:fs");
-
-          const releaseWorkflow = fs.readFileSync(".github/workflows/release.yml", "utf8");
-          const tauriReleaseConfig = JSON.parse(fs.readFileSync("src-tauri/tauri.release.conf.json", "utf8"));
-          const tauriDevConfig = JSON.parse(fs.readFileSync("src-tauri/tauri.dev.conf.json", "utf8"));
-          const defaultCapability = JSON.parse(fs.readFileSync("src-tauri/capabilities/default.json", "utf8"));
-          const tauriLib = fs.readFileSync("src-tauri/src/lib.rs", "utf8");
-          const devMocks = fs.readFileSync("src/dev/mocks.ts", "utf8");
-          const devConfigCliArg = ["--config", "src-tauri/tauri.dev.conf.json"].join(" ");
-          const devOnlyImportPattern = /(?:from\s+|import\()\s*["']@\/dev\/(?:mock-data|scenarios)(?:\/|["'])/;
-          const capabilities = Array.isArray(defaultCapability)
-            ? defaultCapability
-            : Array.isArray(defaultCapability.capabilities)
-              ? defaultCapability.capabilities
-              : [defaultCapability];
-
-          function listSourceFiles(dir) {
-            const entries = fs.readdirSync(dir, { withFileTypes: true });
-            return entries.flatMap((entry) => {
-              const path = `${dir}/${entry.name}`;
-              if (entry.isDirectory()) {
-                return listSourceFiles(path);
-              }
-              return /\.(?:ts|tsx)$/.test(entry.name) ? [path] : [];
-            });
-          }
-
-          const errors = [];
-          if (releaseWorkflow.includes(devConfigCliArg)) {
-            errors.push("release build must not use src-tauri/tauri.dev.conf.json");
-          }
-          if (/\bDEV_CREDENTIALS\s*:/.test(releaseWorkflow) || /\bULTRA_RSS_DEV_CREDENTIALS\s*:/.test(releaseWorkflow)) {
-            errors.push("release build must not set dev-only credential environment variables");
-          }
-          if (tauriReleaseConfig.identifier === tauriDevConfig.identifier) {
-            errors.push("release build must not use the dev bundle identifier");
-          }
-          if (tauriReleaseConfig.productName === tauriDevConfig.productName) {
-            errors.push("release build must not use the dev product name");
-          }
-          if (capabilities.flatMap((capability) => capability.permissions ?? []).some((permission) => String(permission).startsWith("mcp-bridge:"))) {
-            errors.push("release capability must not include debug-only MCP bridge permissions");
-          }
-          if (
-            !/#\[cfg\(debug_assertions\)\]\s*let builder = builder\.plugin\(\s*tauri_plugin_mcp_bridge::Builder::new\(\)/.test(
-              tauriLib,
-            )
-          ) {
-            errors.push("release build must keep the MCP bridge plugin behind cfg(debug_assertions)");
-          }
-          if (!devMocks.includes("if (window.__TAURI_INTERNALS__ && !window.__DEV_BROWSER_MOCKS__) return restoreWindowGlobals;")) {
-            errors.push("release build must keep dev browser mocks disabled inside Tauri");
-          }
-
-          for (const sourcePath of listSourceFiles("src")) {
-            if (sourcePath.startsWith("src/dev/") || sourcePath.startsWith("src/__tests__/")) {
-              continue;
-            }
-            if (devOnlyImportPattern.test(fs.readFileSync(sourcePath, "utf8"))) {
-              errors.push(`release source must not import dev-only mock data or scenario modules: ${sourcePath}`);
-            }
-          }
-
-          if (errors.length > 0) {
-            for (const error of errors) {
-              console.error(`::error::${error}`);
-            }
-            process.exit(1);
-          }
-          NODE
+        run: pnpm run check:release-contamination
 
       - name: Resolve release semver policy
         if: steps.signing-preflight.outputs.should_publish == 'true'
@@ -651,325 +282,26 @@ jobs:
       - name: Validate updater manifest asset contract
         if: steps.signing-preflight.outputs.should_publish == 'true'
         shell: bash
-        run: |
-          node <<'NODE'
-          const fs = require("node:fs");
-          const path = require("node:path");
-
-          const updaterAssetContract = [
-            {
-              platformKey: "darwin-aarch64",
-              artifactPlatform: "darwin",
-              artifactArch: "aarch64",
-              matrixPlatform: "macos-latest",
-              matrixArgs: "--target aarch64-apple-darwin",
-              assetPattern: ".app.tar.gz",
-              signaturePattern: ".app.tar.gz.sig",
-              checksumPattern: ".app.tar.gz.sha256",
-            },
-            {
-              platformKey: "windows-x86_64",
-              artifactPlatform: "windows",
-              artifactArch: "x86_64",
-              matrixPlatform: "windows-latest",
-              matrixArgs: "\"\"",
-              assetPattern: "-setup.exe",
-              signaturePattern: "-setup.exe.sig",
-              checksumPattern: "-setup.exe.sha256",
-            },
-          ];
-          const unsupportedUpdaterPlatformKeys = ["linux-x86_64", "linux-aarch64"];
-          const runnerToMatrixPlatform = {
-            macOS: "macos-latest",
-            Windows: "windows-latest",
-          };
-          const expectedContract = updaterAssetContract.find(
-            (contract) => contract.matrixPlatform === runnerToMatrixPlatform[process.env.RUNNER_OS],
-          );
-
-          if (!expectedContract) {
-            console.error(`::error::missing updater asset contract for runner ${process.env.RUNNER_OS ?? "(unknown)"}`);
-            process.exit(1);
-          }
-
-          const targetTriple = expectedContract.matrixArgs.startsWith("--target ")
-            ? expectedContract.matrixArgs.slice("--target ".length)
-            : null;
-          const bundleRoots = [
-            "src-tauri/target/release/bundle",
-            path.join("src-tauri/target", expectedContract.platformKey, "release/bundle"),
-            ...(targetTriple ? [path.join("src-tauri/target", targetTriple, "release/bundle")] : []),
-          ];
-
-          const listFiles = (directory) => {
-            if (!fs.existsSync(directory)) {
-              return [];
-            }
-
-            return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
-              const entryPath = path.join(directory, entry.name);
-              return entry.isDirectory() ? listFiles(entryPath) : [entryPath];
-            });
-          };
-          const bundleFiles = bundleRoots.flatMap(listFiles);
-          const updaterAssets = bundleFiles.filter(
-            (filePath) =>
-              filePath.endsWith(expectedContract.assetPattern) &&
-              !filePath.endsWith(expectedContract.signaturePattern) &&
-              !filePath.endsWith(expectedContract.checksumPattern),
-          );
-
-          if (updaterAssets.length !== 1) {
-            console.error(
-              `::error::updater platform ${expectedContract.platformKey} must produce exactly one ${expectedContract.assetPattern} asset, found ${updaterAssets.length}`,
-            );
-            process.exit(1);
-          }
-
-          const updaterAsset = updaterAssets[0];
-          const signatureAsset = `${updaterAsset}.sig`;
-          if (!fs.existsSync(signatureAsset)) {
-            console.error(`::error::updater platform ${expectedContract.platformKey} is missing signature sidecar ${signatureAsset}`);
-            process.exit(1);
-          }
-
-          for (const unsupportedPlatformKey of unsupportedUpdaterPlatformKeys) {
-            if (bundleFiles.some((filePath) => filePath.includes(unsupportedPlatformKey))) {
-              console.error(`::error::unexpected future updater platform artifact present: ${unsupportedPlatformKey}`);
-              process.exit(1);
-            }
-          }
-          NODE
+        run: node ./scripts/release/artifacts.ts validate-updater-assets
 
       - name: Generate updater asset checksums
         if: steps.signing-preflight.outputs.should_publish == 'true'
         shell: bash
-        run: |
-          node <<'NODE'
-          const { execFileSync } = require("node:child_process");
-          const crypto = require("node:crypto");
-          const fs = require("node:fs");
-          const path = require("node:path");
-
-          const updaterAssetContract = [
-            {
-              platformKey: "darwin-aarch64",
-              artifactPlatform: "darwin",
-              artifactArch: "aarch64",
-              matrixPlatform: "macos-latest",
-              matrixArgs: "--target aarch64-apple-darwin",
-              assetPattern: ".app.tar.gz",
-              signaturePattern: ".app.tar.gz.sig",
-              checksumPattern: ".app.tar.gz.sha256",
-            },
-            {
-              platformKey: "windows-x86_64",
-              artifactPlatform: "windows",
-              artifactArch: "x86_64",
-              matrixPlatform: "windows-latest",
-              matrixArgs: "\"\"",
-              assetPattern: "-setup.exe",
-              signaturePattern: "-setup.exe.sig",
-              checksumPattern: "-setup.exe.sha256",
-            },
-          ];
-          const runnerToMatrixPlatform = {
-            macOS: "macos-latest",
-            Windows: "windows-latest",
-          };
-          const expectedContract = updaterAssetContract.find(
-            (contract) => contract.matrixPlatform === runnerToMatrixPlatform[process.env.RUNNER_OS],
-          );
-
-          if (!expectedContract) {
-            console.error(`::error::missing updater asset contract for runner ${process.env.RUNNER_OS ?? "(unknown)"}`);
-            process.exit(1);
-          }
-
-          const targetTriple = expectedContract.matrixArgs.startsWith("--target ")
-            ? expectedContract.matrixArgs.slice("--target ".length)
-            : null;
-          const bundleRoots = [
-            "src-tauri/target/release/bundle",
-            path.join("src-tauri/target", expectedContract.platformKey, "release/bundle"),
-            ...(targetTriple ? [path.join("src-tauri/target", targetTriple, "release/bundle")] : []),
-          ];
-          const listFiles = (directory) => {
-            if (!fs.existsSync(directory)) {
-              return [];
-            }
-
-            return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
-              const entryPath = path.join(directory, entry.name);
-              return entry.isDirectory() ? listFiles(entryPath) : [entryPath];
-            });
-          };
-          const updaterAsset = bundleRoots
-            .flatMap(listFiles)
-            .find(
-              (filePath) =>
-                filePath.endsWith(expectedContract.assetPattern) &&
-                !filePath.endsWith(expectedContract.signaturePattern) &&
-                !filePath.endsWith(expectedContract.checksumPattern),
-            );
-
-          if (!updaterAsset) {
-            console.error(`::error::missing updater asset for ${expectedContract.platformKey}`);
-            process.exit(1);
-          }
-
-          const checksum = crypto.createHash("sha256").update(fs.readFileSync(updaterAsset)).digest("hex");
-          const checksumAsset = `${updaterAsset}.sha256`;
-          fs.writeFileSync(checksumAsset, `${checksum}  ${path.basename(updaterAsset)}\n`);
-          fs.mkdirSync("src-tauri/target", { recursive: true });
-          fs.writeFileSync("src-tauri/target/updater-checksum-assets.txt", `${checksumAsset}\n`);
-          NODE
+        run: node ./scripts/release/artifacts.ts generate-updater-checksums
 
       - name: Generate release dependency provenance
         if: steps.signing-preflight.outputs.should_publish == 'true'
         shell: bash
         run: |
           mise run report:licenses
-          node <<'NODE'
-          const fs = require("node:fs");
-
-          const runnerToAssetPlatform = {
-            macOS: "darwin-aarch64",
-            Windows: "windows-x86_64",
-          };
-          const assetPlatform = runnerToAssetPlatform[process.env.RUNNER_OS];
-
-          if (!assetPlatform) {
-            console.error(`::error::missing dependency provenance platform for runner ${process.env.RUNNER_OS ?? "(unknown)"}`);
-            process.exit(1);
-          }
-
-          fs.mkdirSync("src-tauri/target/release-provenance", { recursive: true });
-          const assets = [
-            ["tmp/dependency-licenses/pnpm-licenses.json", `src-tauri/target/release-provenance/pnpm-licenses-${assetPlatform}.json`],
-            ["tmp/dependency-licenses/cargo-licenses.json", `src-tauri/target/release-provenance/cargo-licenses-${assetPlatform}.json`],
-          ];
-
-          for (const [source, destination] of assets) {
-            if (!fs.existsSync(source)) {
-              console.error(`::error::missing dependency provenance source ${source}`);
-              process.exit(1);
-            }
-            fs.copyFileSync(source, destination);
-          }
-
-          fs.writeFileSync(
-            "src-tauri/target/release-dependency-provenance-assets.txt",
-            `${assets.map(([, destination]) => destination).join("\n")}\n`,
-          );
-          NODE
+          node ./scripts/release/artifacts.ts generate-dependency-provenance
 
       - name: Generate release provenance record
         if: steps.signing-preflight.outputs.should_publish == 'true'
         shell: bash
         env:
           RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
-        run: |
-          node <<'NODE'
-          const { execFileSync } = require("node:child_process");
-          const crypto = require("node:crypto");
-          const fs = require("node:fs");
-          const path = require("node:path");
-
-          const runnerToMatrixPlatform = {
-            macOS: "macos-latest",
-            Windows: "windows-latest",
-          };
-          const runnerToAssetPlatform = {
-            macOS: "darwin-aarch64",
-            Windows: "windows-x86_64",
-          };
-          const matrixPlatform = runnerToMatrixPlatform[process.env.RUNNER_OS];
-          const assetPlatform = runnerToAssetPlatform[process.env.RUNNER_OS];
-
-          if (!matrixPlatform || !assetPlatform) {
-            console.error(`::error::missing release provenance platform for runner ${process.env.RUNNER_OS ?? "(unknown)"}`);
-            process.exit(1);
-          }
-
-          const checksumAssets = fs
-            .readFileSync("src-tauri/target/updater-checksum-assets.txt", "utf8")
-            .trim()
-            .split("\n")
-            .filter(Boolean);
-          const dependencyAssets = fs
-            .readFileSync("src-tauri/target/release-dependency-provenance-assets.txt", "utf8")
-            .trim()
-            .split("\n")
-            .filter(Boolean);
-
-          if (checksumAssets.length !== 1) {
-            console.error(`::error::expected exactly one updater checksum asset, found ${checksumAssets.length}`);
-            process.exit(1);
-          }
-          if (dependencyAssets.length !== 2) {
-            console.error(`::error::expected exactly two dependency provenance assets, found ${dependencyAssets.length}`);
-            process.exit(1);
-          }
-
-          const checksumAsset = checksumAssets[0];
-          const checksumContent = fs.readFileSync(checksumAsset, "utf8").trim();
-          const [artifactSha256, artifactName] = checksumContent.split(/\s+/, 2);
-          const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
-          const sourceSha = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
-          const tagTargetSha = execFileSync("git", ["rev-parse", `refs/tags/${process.env.RELEASE_TAG}^{}`], {
-            encoding: "utf8",
-          }).trim();
-          const mergeCommitSubject = execFileSync("git", ["log", "-1", "--format=%s", sourceSha], {
-            encoding: "utf8",
-          }).trim();
-          const pullRequestNumber = mergeCommitSubject.match(/\(#(?<number>\d+)\)$/)?.groups?.number ?? null;
-          const workflowRunUrl = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`;
-          const record = {
-            artifact: {
-              checksumAssetName: path.basename(checksumAsset),
-              name: artifactName,
-              sha256: artifactSha256,
-            },
-            dependencyProvenanceAssets: dependencyAssets.map((asset) => path.basename(asset)),
-            packageVersion: packageJson.version,
-            releaseTag: process.env.RELEASE_TAG,
-            runner: {
-              assetPlatform,
-              matrixPlatform,
-              os: process.env.RUNNER_OS,
-            },
-            pullRequest: {
-              mergeCommitSubject,
-              number: pullRequestNumber,
-            },
-            source: {
-              commitSha: sourceSha,
-              tagTargetSha,
-            },
-            workflow: {
-              eventName: process.env.GITHUB_EVENT_NAME,
-              ref: process.env.GITHUB_REF,
-              refName: process.env.GITHUB_REF_NAME,
-              runAttempt: process.env.GITHUB_RUN_ATTEMPT,
-              runId: process.env.GITHUB_RUN_ID,
-              runUrl: workflowRunUrl,
-              workflow: process.env.GITHUB_WORKFLOW,
-            },
-          };
-          const recordPath = `src-tauri/target/release-provenance/release-provenance-${assetPlatform}.json`;
-          fs.writeFileSync(recordPath, `${JSON.stringify(record, null, 2)}\n`);
-          fs.writeFileSync("src-tauri/target/release-provenance-assets.txt", `${recordPath}\n`);
-
-          if (!/^[a-f0-9]{64}$/i.test(artifactSha256)) {
-            console.error(`::error::invalid updater checksum digest for ${artifactName}`);
-            process.exit(1);
-          }
-          if (sourceSha !== tagTargetSha) {
-            console.error(`::error::release provenance source ${sourceSha} does not match tag target ${tagTargetSha}`);
-            process.exit(1);
-          }
-          NODE
+        run: node ./scripts/release/artifacts.ts generate-release-provenance
 
       - name: Upload updater asset checksums
         if: steps.signing-preflight.outputs.should_publish == 'true'
@@ -977,53 +309,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
-        run: |
-          node <<'NODE'
-          const { spawnSync } = require("node:child_process");
-          const fs = require("node:fs");
-
-          const checksumAssets = fs
-            .readFileSync("src-tauri/target/updater-checksum-assets.txt", "utf8")
-            .trim()
-            .split("\n")
-            .filter(Boolean);
-
-          if (checksumAssets.length !== 1) {
-            console.error(`::error::expected exactly one updater checksum asset, found ${checksumAssets.length}`);
-            process.exit(1);
-          }
-
-          const expectedAssetNames = checksumAssets.map((asset) => asset.split(/[\\/]/).at(-1));
-          const inspectReleaseAssets = (label) => {
-            const view = spawnSync(
-              "gh",
-              ["release", "view", process.env.RELEASE_TAG, "--json", "assets,isDraft,isPrerelease,tagName,url"],
-              { encoding: "utf8" },
-            );
-            if (view.status !== 0) {
-              console.error(`::error::failed to inspect release asset inventory before ${label}`);
-              process.stderr.write(view.stderr ?? "");
-              process.exit(view.status ?? 1);
-            }
-
-            const release = JSON.parse(view.stdout);
-            const uploadedNames = new Set(release.assets.map((asset) => asset.name));
-            const clobberTargets = expectedAssetNames.filter((name) => uploadedNames.has(name));
-            const missingAssets = expectedAssetNames.filter((name) => !uploadedNames.has(name));
-            console.log(
-              `::notice::${label} release asset inventory tag=${release.tagName} draft=${release.isDraft} prerelease=${release.isPrerelease} clobber_targets=${clobberTargets.join(",") || "(none)"} missing_assets=${missingAssets.join(",") || "(none)"} url=${release.url}`,
-            );
-          };
-
-          inspectReleaseAssets("checksum upload");
-          const result = spawnSync("gh", ["release", "upload", process.env.RELEASE_TAG, ...checksumAssets, "--clobber"], {
-            stdio: "inherit",
-          });
-          if ((result.status ?? 1) !== 0) {
-            inspectReleaseAssets("checksum upload failure recovery");
-          }
-          process.exit(result.status ?? 1);
-          NODE
+        run: node ./scripts/release/artifacts.ts upload-updater-checksums
 
       - name: Upload release provenance assets
         if: steps.signing-preflight.outputs.should_publish == 'true'
@@ -1031,57 +317,4 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
-        run: |
-          node <<'NODE'
-          const { spawnSync } = require("node:child_process");
-          const fs = require("node:fs");
-
-          const provenanceAssets = [
-            ...fs
-              .readFileSync("src-tauri/target/release-dependency-provenance-assets.txt", "utf8")
-              .trim()
-              .split("\n")
-              .filter(Boolean),
-            ...fs
-              .readFileSync("src-tauri/target/release-provenance-assets.txt", "utf8")
-              .trim()
-              .split("\n")
-              .filter(Boolean),
-          ];
-
-          if (provenanceAssets.length !== 3) {
-            console.error(`::error::expected three release provenance assets, found ${provenanceAssets.length}`);
-            process.exit(1);
-          }
-
-          const expectedAssetNames = provenanceAssets.map((asset) => asset.split(/[\\/]/).at(-1));
-          const inspectReleaseAssets = (label) => {
-            const view = spawnSync(
-              "gh",
-              ["release", "view", process.env.RELEASE_TAG, "--json", "assets,isDraft,isPrerelease,tagName,url"],
-              { encoding: "utf8" },
-            );
-            if (view.status !== 0) {
-              console.error(`::error::failed to inspect release asset inventory before ${label}`);
-              process.stderr.write(view.stderr ?? "");
-              process.exit(view.status ?? 1);
-            }
-
-            const release = JSON.parse(view.stdout);
-            const uploadedNames = new Set(release.assets.map((asset) => asset.name));
-            const clobberTargets = expectedAssetNames.filter((name) => uploadedNames.has(name));
-            const missingAssets = expectedAssetNames.filter((name) => !uploadedNames.has(name));
-            console.log(
-              `::notice::${label} release asset inventory tag=${release.tagName} draft=${release.isDraft} prerelease=${release.isPrerelease} clobber_targets=${clobberTargets.join(",") || "(none)"} missing_assets=${missingAssets.join(",") || "(none)"} url=${release.url}`,
-            );
-          };
-
-          inspectReleaseAssets("provenance upload");
-          const result = spawnSync("gh", ["release", "upload", process.env.RELEASE_TAG, ...provenanceAssets, "--clobber"], {
-            stdio: "inherit",
-          });
-          if ((result.status ?? 1) !== 0) {
-            inspectReleaseAssets("provenance upload failure recovery");
-          }
-          process.exit(result.status ?? 1);
-          NODE
+        run: node ./scripts/release/artifacts.ts upload-release-provenance

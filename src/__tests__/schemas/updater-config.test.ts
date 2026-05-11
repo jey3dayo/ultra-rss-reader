@@ -7,6 +7,10 @@ import {
 } from "@/schemas/app-config";
 import { parseJsonWithSchema } from "@/schemas/parse";
 import releaseWorkflowSource from "../../../.github/workflows/release.yml?raw";
+import releaseContaminationCheckerSource from "../../../scripts/check-release-build-contamination.ts?raw";
+import releaseArtifactsSource from "../../../scripts/release/artifacts.ts?raw";
+import releaseSourceValidatorSource from "../../../scripts/release/validate-source.ts?raw";
+import releaseVersionValidatorSource from "../../../scripts/release/validate-version-parity.ts?raw";
 import tauriConfigSource from "../../../src-tauri/tauri.conf.json?raw";
 import tauriReleaseConfigSource from "../../../src-tauri/tauri.release.conf.json?raw";
 
@@ -98,8 +102,8 @@ test("release workflow exports updater signing secrets", async () => {
   expect(releaseConfig.bundle.createUpdaterArtifacts).toBe(true);
   expect(tauriActionBlock).toContain(`--config ${releaseTauriConfigPath}`);
   expect(tauriActionBlock).not.toContain(`--config ${devTauriConfigPath}`);
-  expect(workflow).toContain(`const releaseConfigPath = "${releaseTauriConfigPath}";`);
-  expect(workflow).toContain(`const devConfigPath = "${devTauriConfigPath}";`);
+  expect(releaseVersionValidatorSource).toContain(`const RELEASE_TAURI_CONFIG_PATH = "${releaseTauriConfigPath}";`);
+  expect(releaseVersionValidatorSource).toContain(`const DEV_TAURI_CONFIG_PATH = "${devTauriConfigPath}";`);
 });
 
 test("release workflow keeps the supported artifact matrix", async () => {
@@ -118,15 +122,16 @@ test("release workflow maps updater manifest platforms to asset signatures and c
   expect(workflow).toContain("Validate updater manifest asset contract");
   expect(workflow).toContain("Generate updater asset checksums");
   expect(workflow).toContain("Upload updater asset checksums");
-  expect(workflow).toContain('unsupportedUpdaterPlatformKeys = ["linux-x86_64", "linux-aarch64"]');
+  expect(releaseArtifactsSource).toContain('UNSUPPORTED_UPDATER_PLATFORM_KEYS = ["linux-x86_64", "linux-aarch64"]');
 
   for (const contract of releaseUpdaterAssetContract) {
-    expect(workflow).toContain(`platformKey: "${contract.platformKey}"`);
-    expect(workflow).toContain(`matrixPlatform: "${contract.matrixPlatform}"`);
-    expect(workflow).toContain(`matrixArgs: ${JSON.stringify(contract.matrixArgs)}`);
-    expect(workflow).toContain(`assetPattern: "${contract.assetPattern}"`);
-    expect(workflow).toContain(`signaturePattern: "${contract.signaturePattern}"`);
-    expect(workflow).toContain(`checksumPattern: "${contract.checksumPattern}"`);
+    const matrixArgsLiteral = contract.matrixArgs === '""' ? "'\"\"'" : JSON.stringify(contract.matrixArgs);
+    expect(releaseArtifactsSource).toContain(`platformKey: "${contract.platformKey}"`);
+    expect(releaseArtifactsSource).toContain(`matrixPlatform: "${contract.matrixPlatform}"`);
+    expect(releaseArtifactsSource).toContain(`matrixArgs: ${matrixArgsLiteral}`);
+    expect(releaseArtifactsSource).toContain(`assetPattern: "${contract.assetPattern}"`);
+    expect(releaseArtifactsSource).toContain(`signaturePattern: "${contract.signaturePattern}"`);
+    expect(releaseArtifactsSource).toContain(`checksumPattern: "${contract.checksumPattern}"`);
     expect(workflow).toContain(`platform: ${contract.matrixPlatform}`);
     expect(workflow).toContain(`args: ${contract.matrixArgs}`);
   }
@@ -137,9 +142,11 @@ test("release workflow keeps provenance and dev-only contamination gates before 
 
   expect(workflow).toContain("Validate release source");
   expect(workflow).toContain("Validate release build contamination contract");
-  expect(workflow).toContain("tag_target_sha");
-  expect(workflow).toContain("checkout_sha");
-  expect(workflow).toContain("release capability must not include debug-only MCP bridge permissions");
+  expect(releaseSourceValidatorSource).toContain("const tagTargetSha = git");
+  expect(releaseSourceValidatorSource).toContain("const checkoutSha = git");
+  expect(releaseContaminationCheckerSource).toContain(
+    "release capability must not include debug-only MCP bridge permissions",
+  );
   expect(workflow.indexOf("Generate updater asset checksums")).toBeLessThan(
     workflow.indexOf("Upload updater asset checksums"),
   );

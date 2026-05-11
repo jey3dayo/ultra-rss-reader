@@ -1678,7 +1678,7 @@ describe("repository static contracts", () => {
       "$" + "{{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref }}";
     const workflowDispatchReleaseNameExpression =
       "$" + "{{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}";
-    const releasePreflightIndex = releaseWorkflow.indexOf("run: mise run ci");
+    const releasePreflightIndex = releaseWorkflow.indexOf("Run release quality preflight");
     const tauriActionIndex = releaseWorkflow.indexOf("uses: tauri-apps/tauri-action@");
 
     expect(releaseWorkflow).toContain('tags: ["v*"]');
@@ -1710,25 +1710,20 @@ describe("repository static contracts", () => {
   });
 
   it("keeps release provenance uploads recoverable after partial asset failures", () => {
-    const releaseWorkflow = readRepoFile(".github/workflows/release.yml");
+    const releaseArtifactsScript = readRepoFile("scripts/release/artifacts.ts");
 
-    expect(releaseWorkflow).toContain(
-      '["release", "view", process.env.RELEASE_TAG, "--json", "assets,isDraft,isPrerelease,tagName,url"]',
+    expect(releaseArtifactsScript).toContain(
+      '["release", "view", requiredEnv("RELEASE_TAG"), "--json", "assets,isDraft,isPrerelease,tagName,url"]',
     );
-    expect(releaseWorkflow).toContain('"assets,isDraft,isPrerelease,tagName,url"');
-    expect(releaseWorkflow).toContain("clobber_targets=");
-    expect(releaseWorkflow).toContain("missing_assets=");
-    expect(releaseWorkflow).toContain("draft=$" + "{release.isDraft}");
-    expect(releaseWorkflow).toContain("prerelease=$" + "{release.isPrerelease}");
-    expect(releaseWorkflow).toContain('inspectReleaseAssets("checksum upload")');
-    expect(releaseWorkflow).toContain('inspectReleaseAssets("checksum upload failure recovery")');
-    expect(releaseWorkflow).toContain('inspectReleaseAssets("provenance upload")');
-    expect(releaseWorkflow).toContain('inspectReleaseAssets("provenance upload failure recovery")');
-    expect(releaseWorkflow).toContain(
-      '"gh", ["release", "upload", process.env.RELEASE_TAG, ...checksumAssets, "--clobber"]',
-    );
-    expect(releaseWorkflow).toContain(
-      '"gh", ["release", "upload", process.env.RELEASE_TAG, ...provenanceAssets, "--clobber"]',
+    expect(releaseArtifactsScript).toContain('"assets,isDraft,isPrerelease,tagName,url"');
+    expect(releaseArtifactsScript).toContain("clobber_targets=");
+    expect(releaseArtifactsScript).toContain("missing_assets=");
+    expect(releaseArtifactsScript).toContain("draft=$" + "{release.isDraft}");
+    expect(releaseArtifactsScript).toContain("prerelease=$" + "{release.isPrerelease}");
+    expect(releaseArtifactsScript).toContain('uploadAssets("checksum upload", "checksum upload failure recovery"');
+    expect(releaseArtifactsScript).toContain('uploadAssets("provenance upload", "provenance upload failure recovery"');
+    expect(releaseArtifactsScript).toContain(
+      '"gh", ["release", "upload", requiredEnv("RELEASE_TAG"), ...assets, "--clobber"]',
     );
   });
 
@@ -1769,12 +1764,12 @@ describe("repository static contracts", () => {
 
   it("keeps manual release dispatch pinned to explicit version tags", () => {
     const releaseWorkflow = readRepoFile(".github/workflows/release.yml");
+    const releaseSourceValidator = readRepoFile("scripts/release/validate-source.ts");
     const checkoutReleaseRefExpression =
       "$" +
       "{{ github.event_name == 'workflow_dispatch' &&\n            format('refs/tags/{0}', inputs.release_tag) || github.ref }}";
     const workflowDispatchReleaseNameExpression =
       "$" + "{{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}";
-    const workflowDispatchReleaseTagExpression = "$" + "{{ inputs.release_tag }}";
 
     expect(releaseWorkflow).toContain("workflow_dispatch:");
     expect(releaseWorkflow).toContain("release_tag:");
@@ -1785,13 +1780,13 @@ describe("repository static contracts", () => {
       "(github.event_name == 'workflow_dispatch' && startsWith(inputs.release_tag, 'v'))",
     );
     expect(releaseWorkflow).toContain(`ref: >-\n            ${checkoutReleaseRefExpression}`);
-    expect(releaseWorkflow).toContain("name: Validate manual release tag");
-    expect(releaseWorkflow).toContain(`RELEASE_TAG: ${workflowDispatchReleaseTagExpression}`);
-    expect(releaseWorkflow).toContain(
-      'if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$ ]]; then',
+    expect(releaseWorkflow).toContain("name: Validate release source");
+    expect(releaseWorkflow).toContain("node ./scripts/release/validate-source.ts");
+    expect(releaseSourceValidator).toContain(
+      "const RELEASE_TAG_PATTERN = /^v[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$/;",
     );
-    expect(releaseWorkflow).toContain(
-      "::error::release_tag must match vX.Y.Z, optionally with prerelease or build metadata",
+    expect(releaseSourceValidator).toContain(
+      "release tag must match vX.Y.Z, optionally with prerelease or build metadata",
     );
     expect(releaseWorkflow).toContain(`tagName: ${workflowDispatchReleaseNameExpression}`);
     expect(releaseWorkflow).toContain(`releaseName: ${workflowDispatchReleaseNameExpression}`);
