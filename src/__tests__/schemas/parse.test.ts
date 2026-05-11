@@ -15,6 +15,10 @@ const userSchema = z.object({
 });
 const FROZEN_TEST_NOW = new Date("2026-04-15T00:00:00.000Z");
 
+function toPosixPath(path: string) {
+  return path.replaceAll("\\", "/");
+}
+
 function relativeIsoDate(daysFromFrozenNow: number): string {
   const date = new Date(FROZEN_TEST_NOW);
   date.setUTCDate(date.getUTCDate() + daysFromFrozenNow);
@@ -139,7 +143,7 @@ describe("schema parse helpers", () => {
     const callCounts = new Map<string, number>();
     for (const sourceFile of sourceFiles) {
       const contents = await readFile(sourceFile, "utf8");
-      const relativePath = relative(process.cwd(), sourceFile);
+      const relativePath = toPosixPath(relative(process.cwd(), sourceFile));
       const callCount = contents
         .split("\n")
         .filter((line) => line.includes("parseJsonWithSchemaOrNull("))

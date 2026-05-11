@@ -155,6 +155,10 @@ function toPosixPath(path: string) {
   return path.replaceAll("\\", "/");
 }
 
+function normalizeRepoPath(path: string) {
+  return toPosixPath(normalize(path));
+}
+
 function extractSchemaBarrelExportTargets(source: string) {
   return [...source.matchAll(/from "\.\/([^"]+)";/g)]
     .map((match) => match[1])
@@ -348,7 +352,7 @@ function extractConfigAliases(source: string, configPath: string) {
   for (const match of source.matchAll(/"([^"]+)":\s*path\.(?:resolve|join)\(import\.meta\.dirname,\s*"([^"]+)"\)/g)) {
     const alias = match[1] ?? "";
     const target = match[2] ?? "";
-    aliases.set(alias, normalize(join(configDir, target)));
+    aliases.set(alias, normalizeRepoPath(join(configDir, target)));
   }
 
   return Object.fromEntries([...aliases.entries()].toSorted());
@@ -1528,7 +1532,7 @@ describe("repository static contracts", () => {
   it("keeps repository-relative documentation links pointing at existing files", () => {
     const ruleMarkdownFiles = readdirSync(join(repoRoot, ".claude/rules"))
       .filter((entry) => entry.endsWith(".md"))
-      .map((entry) => normalize(join(".claude/rules", entry)))
+      .map((entry) => normalizeRepoPath(join(".claude/rules", entry)))
       .toSorted();
 
     expect(markdownFilesUnderDocs()).toEqual(expect.arrayContaining(ruleMarkdownFiles));
@@ -1562,10 +1566,10 @@ describe("repository static contracts", () => {
 
   it("keeps the .claude/rules index complete for every project rule", () => {
     const ruleIndex = readRepoFile(".claude/rules/README.md");
-    const indexedRuleLinks = new Set(extractMarkdownRelativeLinks(ruleIndex).map((link) => normalize(link)));
+    const indexedRuleLinks = new Set(extractMarkdownRelativeLinks(ruleIndex).map((link) => normalizeRepoPath(link)));
     const ruleFiles = readdirSync(join(repoRoot, ".claude/rules"))
       .filter((entry) => entry.endsWith(".md") && entry !== "README.md")
-      .map((entry) => normalize(`./${entry}`))
+      .map((entry) => normalizeRepoPath(`./${entry}`))
       .toSorted();
     const missingRuleLinks = ruleFiles.filter((ruleFile) => !indexedRuleLinks.has(ruleFile));
 
@@ -1579,13 +1583,13 @@ describe("repository static contracts", () => {
     const indexedRuleFiles = new Set(
       extractMarkdownRelativeLinks(ruleIndex)
         .filter((link) => link.endsWith(".md") && link !== "./README.md")
-        .map((link) => normalize(join(".claude/rules", link))),
+        .map((link) => normalizeRepoPath(join(".claude/rules", link))),
     );
     const claudeRuleLinks = [
       ...new Set(
         extractMarkdownLinks(claudeGuidance)
           .filter((link) => link.startsWith(".claude/rules/") && link.endsWith(".md"))
-          .map((link) => normalize(link)),
+          .map((link) => normalizeRepoPath(link)),
       ),
     ].toSorted();
     const missingFromIndex = claudeRuleLinks

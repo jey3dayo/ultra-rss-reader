@@ -35,11 +35,15 @@ function collectTypeScriptFiles(repoRoot: string, directoryPath: string): string
     if (entry.isDirectory()) {
       files.push(...collectTypeScriptFiles(repoRoot, entryPath));
     } else if (entry.name.endsWith(".ts") || entry.name.endsWith(".tsx")) {
-      files.push(relative(repoRoot, entryPath));
+      files.push(toPosixPath(relative(repoRoot, entryPath)));
     }
   }
 
   return files;
+}
+
+function toPosixPath(path: string) {
+  return path.replaceAll("\\", "/");
 }
 
 type ExportedTypeName = {
@@ -48,7 +52,7 @@ type ExportedTypeName = {
 };
 
 function resolveTypeScriptModulePath(surfaceFile: string, modulePath: string): string {
-  const basePath = normalize(join(dirname(surfaceFile), modulePath));
+  const basePath = toPosixPath(normalize(join(dirname(surfaceFile), modulePath)));
 
   return basePath.endsWith(".ts") || basePath.endsWith(".tsx") ? basePath : `${basePath}.ts`;
 }
