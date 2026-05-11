@@ -176,6 +176,16 @@ App data namespace migration contract:
 - For release validation or packaged-build handoff, use [release-manual-verification.md](./release-manual-verification.md).
 - That checklist is the source of truth for FreshRSS live verification, native keyring verification, and packaged updater verification.
 
+### Provider Sync Triage
+
+Use the provider sync contract in [feed-content-privacy.md](./feed-content-privacy.md) before treating a sync issue as data loss.
+
+- Remote missing feeds or folders are not automatic local deletes for FreshRSS. Check whether local starred articles, OPML-exportable subscription metadata, or pending read/star mutations still exist before advising unsubscribe cleanup.
+- FreshRSS token expiry is server-defined and not reported. A sync that gets HTTP 401 or 403 after reauthentication should be handled as account auth recovery with scheduler backoff, not as a repeated background refresh loop.
+- Many-account freshness issues should be triaged per account. One slow or retry-delayed account should not block another ready account; collect the account that is retry-pending separately from the account that is stale.
+- Partial sync success must stay visible. Account detail, sidebar/feed list, and article list evidence should agree on whether the state is all-success, partial-success, all-failed, or stale cached content.
+- Manual sync can bypass automatic-scheduler suppression, but it must still report the provider result and must not clear stale or partial indicators for unrelated accounts or feeds.
+
 ### Release / Update Safety Contract
 
 Treat the app binary version, database schema version, and pending updater state as one recovery boundary. A user profile is safe to continue only when all three agree on the same completed release state or when the app stops in a user-visible recovery state before opening the database for normal writes.

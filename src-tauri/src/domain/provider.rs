@@ -402,6 +402,8 @@ mod tests {
         let local = ProviderKind::Local.auth_semantics();
         assert_eq!(local.credential_material, "none");
         assert_eq!(local.token_expiry, "not_applicable");
+        assert_eq!(local.refresh_strategy, "not_applicable");
+        assert_eq!(local.expiry_recovery, "not_applicable");
 
         let freshrss = ProviderKind::FreshRss.auth_semantics();
         assert_eq!(
@@ -417,6 +419,12 @@ mod tests {
             freshrss.expiry_recovery,
             "treat_401_403_as_auth_failure_and_scheduler_backoff"
         );
+
+        let quarantined = ProviderKind::Quarantined.auth_semantics();
+        assert_eq!(quarantined.credential_material, "none");
+        assert_eq!(quarantined.token_expiry, "not_applicable");
+        assert_eq!(quarantined.refresh_strategy, "sync_disabled");
+        assert_eq!(quarantined.expiry_recovery, "sync_disabled");
     }
 
     #[test]

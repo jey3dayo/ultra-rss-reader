@@ -363,6 +363,7 @@ describe("setupTauriMocks fixture isolation", () => {
     expect(orderedCommandDifference(mockedCommandIndex, frontendCommandIndex)).toEqual([
       "plugin:event|listen",
       "plugin:event|unlisten",
+      "plugin:window|is_always_on_top",
       "plugin:window|set_always_on_top",
       "plugin:window|set_badge_count",
       "plugin:window|set_icon",

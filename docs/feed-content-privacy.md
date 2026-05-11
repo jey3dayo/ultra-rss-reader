@@ -468,6 +468,75 @@ Provider request contract:
   requests must run only through the explicit connection-test flow and update
   only verification status fields.
 
+### Provider Sync Contract
+
+Decision: provider-side deletion, auth refresh, scheduler fairness, and
+freshness display are account-kind contracts. Existing providers must keep these
+policies stable until a provider capability or migration explicitly changes
+them.
+
+Provider-side deletion retention contract:
+
+- Local accounts do not have a provider-side deletion source. Missing remote
+  feed and folder retention is not applicable.
+- FreshRSS through the GReader API retains local feeds and folders when they are
+  missing from a remote subscription or folder snapshot. A missing remote feed
+  or folder must not delete local starred articles, pending read/star
+  mutations, tags, history, or OPML-exportable subscription metadata by
+  implication.
+- FreshRSS manual resubscribe may reconnect to retained local state only through
+  an explicit app flow or stable feed identity match. A normal sync must not
+  silently treat a remote deletion as a local unsubscribe confirmation.
+- Quarantined accounts do not sync. Missing remote feed and folder retention is
+  not applicable until the account is repaired into a concrete provider kind.
+
+Auth token expiry and refresh contract:
+
+- Local accounts have no provider auth token, no token expiry, and no refresh
+  behavior.
+- FreshRSS stores username/password credential material in the credential store
+  and obtains a GReader ClientLogin token for the provider sync session.
+  FreshRSS token expiry is server-defined and not reported through the provider
+  contract.
+- FreshRSS refresh means reauthenticating before each sync session with the
+  stored credential material, not persisting cookies or reusing a hidden HTTP
+  session. HTTP 401 or 403 after reauthentication is an auth failure that must
+  enter scheduler backoff and user-visible account recovery, not an auth retry
+  loop.
+- Quarantined accounts have sync disabled and must not try credential reuse,
+  token refresh, or background reauthentication.
+
+Scheduler fairness contract:
+
+- Automatic sync chooses due accounts by oldest `next_sync` and stable account
+  id tie-break, then caps work to one account per scheduler tick.
+- Many overdue accounts are drained across ticks instead of burst-syncing every
+  account after sleep, wake, or a long app pause.
+- A slow, failed, or retry-delayed account must not block another ready account
+  in the same account snapshot. Manual sync keeps priority by holding the shared
+  sync flag; automatic sync skips while manual sync or credential rotation is in
+  progress.
+- Scheduler warnings and retry state are account-scoped. A retry or auth failure
+  on one account must not make unrelated accounts appear fresh or retry-pending.
+
+Partial freshness display contract:
+
+- Account-level freshness is based on the account scheduler `last_success_at`
+  only when the account sync completed without account-level warnings or
+  failures. Partial success, all failed, scheduler suppression, and offline
+  states must not be displayed as a fresh account sync.
+- Feed-level freshness must prefer a feed's own last successful feed sync when
+  that data exists. Until per-feed success timestamps are available, feed lists
+  must inherit the account stale or partial state rather than claiming a newer
+  feed-specific success.
+- Article-list freshness follows the selected feed when a feed is selected and
+  otherwise follows the selected account. Cached articles remain readable, but
+  the list must preserve stale or partial state instead of hiding it behind a
+  successful cached render.
+- Display copy for all-success, partial-success, all-failed, stale-feed-count,
+  and last-successful-feed-sync states must use the same freshness vocabulary in
+  account detail, sidebar/feed list, and article list surfaces.
+
 ### Provider Account Kind Migration Checklist
 
 Decision: every new provider account kind requires a migration checklist before
@@ -634,6 +703,50 @@ Reduced-data contract:
 - Settings copy must describe reduced-data behavior as "limits automatic remote
   loading and background work" rather than "offline", "tracker-free", or
   "private browsing".
+
+### Offline-First Stale Content Banner Policy
+
+Decision: show stale-content warning surfaces only when the reader is presenting
+cached content that may be older than the latest attempted sync result. Do not
+block reading cached articles, and do not treat a visible stale warning as a
+freshness success.
+
+Stale banner scope contract:
+
+- Account view: show an account-scoped stale warning when the selected account
+  has a failed, partially failed, suppressed, or offline sync state and the
+  reader can still show cached feeds or articles for that account.
+- Feed view: show a feed-scoped stale warning when the selected feed has an
+  older last successful sync than the account's latest attempted sync, or when a
+  manual sync failed for that feed while cached articles remain readable.
+- Article view: show at most a compact inherited stale indicator for the
+  currently selected article when its owning account or feed is stale. Do not
+  add a second full-width article banner if the account or feed banner is
+  already visible in the current layout.
+- Offline detection is only one stale reason. DNS failure, timeout, TLS failure,
+  provider backoff, partial sync, and scheduler suppression may also make cached
+  content stale and should keep their own recovery category.
+- Manual sync failure reopens the relevant stale warning even when cached
+  content remains readable.
+
+Dismiss persistence contract:
+
+- Stale warning dismiss is session-scoped by default and must reset on app
+  restart.
+- Account stale dismiss is scoped to the selected account id and the current
+  stale reason class. Dismissing one account must not hide warnings for another
+  account.
+- Feed stale dismiss is scoped to the selected feed id plus the current stale
+  reason class. Dismissing one feed must not hide warnings for sibling feeds or
+  the account-level warning.
+- Article-level inherited indicators follow the feed dismiss state when the
+  article has a feed, otherwise the account dismiss state.
+- A new error class, a newer failed manual sync, account switch, feed switch, or
+  explicit refresh of diagnostics must reopen the relevant warning. A successful
+  sync clears the stale warning and its session dismiss state for that scope.
+- Diagnostics may record stale reason class, scope class, and dismiss class, but
+  must not include account names, feed URLs, article URLs, server URLs,
+  credentials, tokens, cookies, local paths, or stable device identifiers.
 
 ### Feed Favicon Fetch Policy
 

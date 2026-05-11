@@ -1143,6 +1143,32 @@ describe("release repository contract", () => {
     expect(feedContentPrivacy).toContain(
       'Settings copy must describe reduced-data behavior as "limits automatic remote',
     );
+    expect(feedContentPrivacy).toContain("### Offline-First Stale Content Banner Policy");
+    expect(feedContentPrivacy).toContain("show stale-content warning surfaces only when the reader is presenting");
+    expect(feedContentPrivacy).toContain("Account view: show an account-scoped stale warning");
+    expect(feedContentPrivacy).toContain("Feed view: show a feed-scoped stale warning");
+    expect(feedContentPrivacy).toContain("Article view: show at most a compact inherited stale indicator");
+    expect(feedContentPrivacy).toContain("Stale warning dismiss is session-scoped by default");
+    expect(feedContentPrivacy).toContain("Account stale dismiss is scoped to the selected account id");
+    expect(feedContentPrivacy).toContain("Feed stale dismiss is scoped to the selected feed id");
+    expect(feedContentPrivacy).toContain("A new error class, a newer failed manual sync");
+    expect(incidentRunbook).toContain(
+      "capture whether a stale content banner was shown in the account, feed, or article view",
+    );
+    expect(readerKeyboardNavigation).toContain("Sync failure, auth failure, or stale content");
+    expect(feedContentPrivacy).toContain(
+      "Support/debug copy must not include a stable app or environment fingerprint by default.",
+    );
+    expect(feedContentPrivacy).toContain("### Support/Debug Environment Fingerprint");
+    expect(feedContentPrivacy).toContain("must not automatically include hostname, local filesystem paths");
+    expect(feedContentPrivacy).toContain("Tooltips and `title` attributes must not reveal credentials");
+    expect(feedContentPrivacy).toContain(
+      "Feed URLs, server URLs, log paths, and article URLs use redacted display and redacted tooltip copy",
+    );
+    expect(feedContentPrivacy).toContain("must not appear in logs, support copy, `title` attributes, or error toasts");
+    expect(readerKeyboardNavigation).toContain(
+      "This exception does not apply to URLs, server paths, credentials, debug paths, or other privacy-sensitive values.",
+    );
 
     expect(localProviderSource).toContain("pull_entries_smoke_parses_many_large_entries_under_body_cap");
     expect(opmlCommandsSource).toContain("import_parser_smoke_parses_large_opml_under_file_limit");
@@ -1241,6 +1267,23 @@ describe("release repository contract", () => {
     expect(feedContentPrivacy).toContain("DNS results are not cached by the app-level policy today.");
     expect(incidentRunbook).toContain("Manual sync can bypass automatic-scheduler suppression");
     expect(incidentRunbook).toContain("Feed discovery is a user-initiated single URL probe, not a crawler");
+
+    expect(providerSource).toContain("provider_auth_semantics_document_token_refresh_contract");
+    expect(providerSource).toContain("treat_401_403_as_auth_failure_and_scheduler_backoff");
+    expect(providerSource).toContain("provider_side_deletion_retention_policy_is_fixed_by_account_kind");
+    expect(feedContentPrivacy).toContain("### Provider Sync Contract");
+    expect(feedContentPrivacy).toContain("FreshRSS through the GReader API retains local feeds and folders");
+    expect(feedContentPrivacy).toContain("HTTP 401 or 403 after reauthentication is an auth failure");
+    expect(feedContentPrivacy).toContain(
+      "A slow, failed, or retry-delayed account must not block another ready account",
+    );
+    expect(feedContentPrivacy).toContain("Partial success, all failed, scheduler suppression, and offline");
+    expect(incidentRunbook).toContain("### Provider Sync Triage");
+    expect(incidentRunbook).toContain("Remote missing feeds or folders are not automatic local deletes for FreshRSS.");
+    expect(releaseManualVerification).toContain("expired or rejected tokens surface as auth failure/backoff");
+    expect(releaseManualVerification).toContain(
+      "Partial sync success remains visible with matching freshness language",
+    );
   });
 
   it("keeps reader search and feed discovery trust contracts synchronized", () => {

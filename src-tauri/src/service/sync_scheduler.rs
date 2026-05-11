@@ -1298,6 +1298,48 @@ mod tests {
     }
 
     #[test]
+    fn select_due_accounts_for_tick_keeps_one_slow_account_from_blocking_ready_accounts() {
+        let now = Instant::now();
+        let mut slow_account = test_account(60);
+        slow_account.id = AccountId("account-slow".to_string());
+        let mut ready_account = test_account(60);
+        ready_account.id = AccountId("account-ready".to_string());
+        let accounts = vec![slow_account.clone(), ready_account.clone()];
+        let schedules = HashMap::from([
+            (
+                slow_account.id.as_ref().to_string(),
+                AccountSchedule {
+                    next_sync: now + Duration::from_secs(300),
+                    interval: Duration::from_secs(60),
+                },
+            ),
+            (
+                ready_account.id.as_ref().to_string(),
+                AccountSchedule {
+                    next_sync: now - Duration::from_secs(1),
+                    interval: Duration::from_secs(60),
+                },
+            ),
+        ]);
+
+        let selected = select_due_accounts_for_tick(
+            &accounts,
+            &schedules,
+            now,
+            MAX_ACCOUNTS_PER_SCHEDULER_TICK,
+        );
+
+        assert_eq!(
+            selected
+                .iter()
+                .map(|account| account.id.as_ref())
+                .collect::<Vec<_>>(),
+            vec!["account-ready"],
+            "a slow or retry-delayed account must not block another ready account in the same scheduler tick"
+        );
+    }
+
+    #[test]
     fn upsert_account_schedule_clamps_clock_jump_like_far_future_in_memory_schedule() {
         let mut account = test_account(60);
         account.id = AccountId("clock-forward-recovery".to_string());

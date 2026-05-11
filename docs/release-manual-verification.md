@@ -108,7 +108,18 @@ Run `mise run test:live`.
 Confirm:
 
 - FreshRSS authentication succeeds with real credentials.
+- FreshRSS reauthenticates for the sync session with stored credential material;
+  expired or rejected tokens surface as auth failure/backoff instead of a
+  background refresh loop.
 - Initial sync completes without manual DB cleanup.
+- Remote deletion of a FreshRSS feed or folder does not implicitly remove local
+  starred articles, pending read/star mutations, tags, history, or
+  OPML-exportable subscription metadata.
+- Many-account sync drains overdue accounts fairly, and one slow or
+  retry-delayed account does not prevent another ready account from syncing on a
+  later tick or manual sync.
+- Partial sync success remains visible with matching freshness language in
+  account detail, sidebar/feed list, and article list surfaces.
 - Basic article read/unread and star actions still round-trip correctly.
 - The verification record contains only pass/fail status and sanitized account labels, not credential values.
 
@@ -376,12 +387,12 @@ when adding `#[cfg(test)]`, `#[cfg(not(test))]`, or release-only native code.
 
 Current inventory:
 
-| Surface | Production-only path | Existing coverage | Manual release gap |
-| --- | --- | --- | --- |
-| Tauri runtime startup | `run()`, plugin setup, database open, menu wiring, updater state registration | Unit tests cover startup copy, DB migration recovery text, shutdown drain decisions, and close gating helpers | Packaged startup verification must prove the production app opens, logs, and keeps app data paths stable |
-| Panic and logging | redacting panic hook and release log plugin under `cfg(not(test))` / `cfg(not(debug_assertions))` | Unit tests cover redaction helpers, release log retention constants, cleanup messages, and timezone policy strings | Packaged crash/log checks must prove the installed app writes redacted release logs without a dev console |
-| Native updater install | updater plugin handle, signed artifact download/install, app restart | Unit tests cover stale pending state clearing, semantic version policy, install/download guards, progress monotonicity, and shared DB/sync busy guard | Packaged updater verification must prove signed artifacts install, failed installs leave retry-safe state, and restart opens the expected version |
-| macOS titlebar/focus | production window titlebar style and startup focus restore task | Unit tests cover the platform titlebar predicate, delayed-focus decision helpers, and diagnostics-only failure copy | macOS packaged verification must confirm the visible window, focus behavior, quarantine/translocation path, and permission prompts |
+| Surface                | Production-only path                                                                              | Existing coverage                                                                                                                                     | Manual release gap                                                                                                                                |
+| ---------------------- | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tauri runtime startup  | `run()`, plugin setup, database open, menu wiring, updater state registration                     | Unit tests cover startup copy, DB migration recovery text, shutdown drain decisions, and close gating helpers                                         | Packaged startup verification must prove the production app opens, logs, and keeps app data paths stable                                          |
+| Panic and logging      | redacting panic hook and release log plugin under `cfg(not(test))` / `cfg(not(debug_assertions))` | Unit tests cover redaction helpers, release log retention constants, cleanup messages, and timezone policy strings                                    | Packaged crash/log checks must prove the installed app writes redacted release logs without a dev console                                         |
+| Native updater install | updater plugin handle, signed artifact download/install, app restart                              | Unit tests cover stale pending state clearing, semantic version policy, install/download guards, progress monotonicity, and shared DB/sync busy guard | Packaged updater verification must prove signed artifacts install, failed installs leave retry-safe state, and restart opens the expected version |
+| macOS titlebar/focus   | production window titlebar style and startup focus restore task                                   | Unit tests cover the platform titlebar predicate, delayed-focus decision helpers, and diagnostics-only failure copy                                   | macOS packaged verification must confirm the visible window, focus behavior, quarantine/translocation path, and permission prompts                |
 
 Do not treat a `cargo test` pass as evidence for release signing, notarization,
 Gatekeeper, OS keyring prompts, native file dialogs, production app restart, or
