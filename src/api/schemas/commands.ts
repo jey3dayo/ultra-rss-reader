@@ -488,6 +488,28 @@ export const openExternalUrlArgs = z.object({ url: externalUrlSchema });
 
 const readingListUrlSchema = httpCommandUrlSchema;
 
+function isDevWebPreviewGeometryFixtureUrl(value: string): boolean {
+  const url = parseHttpUrl(value);
+  if (url == null) {
+    return false;
+  }
+
+  const host = url.hostname.toLowerCase().replace(/\.+$/u, "");
+  return (
+    (host === "localhost" || host === "127.0.0.1" || host === "::1") &&
+    url.pathname === "/dev-web-preview-geometry.html" &&
+    url.search === "" &&
+    url.hash === "" &&
+    url.username === "" &&
+    url.password === ""
+  );
+}
+
+const devWebPreviewGeometryFixtureUrlSchema = z.string().trim().refine(isDevWebPreviewGeometryFixtureUrl, {
+  message: "Only the dev web preview geometry fixture may target localhost",
+});
+const browserWebviewUrlSchema = z.union([readingListUrlSchema, devWebPreviewGeometryFixtureUrlSchema]);
+
 // --- checkBrowserEmbedSupport ---
 export const checkBrowserEmbedSupportArgs = z.object({ url: readingListUrlSchema });
 
@@ -512,7 +534,7 @@ export const browserWebviewBoundsArgs = z.object({
   unit: z.enum(["logical", "physical"]).optional(),
 });
 export const createOrUpdateBrowserWebviewArgs = z.object({
-  url: readingListUrlSchema,
+  url: browserWebviewUrlSchema,
   bounds: browserWebviewBoundsArgs,
 });
 export const setBrowserWebviewBoundsArgs = z.object({

@@ -1210,6 +1210,12 @@ export function setupDevMocks(): RestoreDevMocks {
         return null;
       }
 
+      case "plugin:event|listen":
+        return 1;
+
+      case "plugin:event|unlisten":
+        return null;
+
       case "go_back_browser_webview":
       case "go_forward_browser_webview":
       case "reload_browser_webview":

@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { Result } from "@praha/byethrow";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { clearMocks } from "@tauri-apps/api/mocks";
 import { setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -903,6 +904,17 @@ describe("setupDevMocks", () => {
     expect(document.querySelector('[data-testid="dev-mock-diagnostics-canvas"]')?.textContent).toBe(
       "[dev-mocks] Unknown command: unknown_dev_command",
     );
+  });
+
+  it("supports Tauri event subscriptions in browser-only mock mode", async () => {
+    setupDevMocks();
+
+    const unlisten = await listen("sync-completed", () => undefined);
+
+    expect(unlisten).toEqual(expect.any(Function));
+    expect(document.querySelector('[data-testid="dev-mock-diagnostics-canvas"]')).toBeNull();
+
+    await expect(unlisten()).resolves.toBeUndefined();
   });
 
   it("resets browser-only external side effect records and diagnostics between mock runtime installs", async () => {
