@@ -30,6 +30,18 @@ const REDACTED_LINK_TITLE: &str = "External link";
 const REDACTED_IMAGE_TITLE: &str = "External image";
 
 pub fn sanitize_html(raw: &str) -> String {
+    sanitize_untrusted_feed_html(raw)
+}
+
+pub fn sanitize_untrusted_feed_html(raw: &str) -> String {
+    sanitize_article_html(raw)
+}
+
+pub fn sanitize_trusted_backend_html(raw: &str) -> String {
+    sanitize_article_html(raw)
+}
+
+fn sanitize_article_html(raw: &str) -> String {
     if raw.trim().is_empty() {
         return String::new();
     }
@@ -399,6 +411,19 @@ mod tests {
     #[test]
     fn records_current_sanitizer_contract_version() {
         assert_eq!(SANITIZER_VERSION, 3);
+    }
+
+    #[test]
+    fn provider_response_trust_boundaries_have_explicit_sanitizer_entrypoints() {
+        let raw = r#"<p onclick="evil()">Body</p><script>evil()</script>"#;
+
+        assert_eq!(sanitize_html(raw), sanitize_untrusted_feed_html(raw));
+        assert_eq!(
+            sanitize_untrusted_feed_html(raw),
+            sanitize_trusted_backend_html(raw)
+        );
+        assert!(!sanitize_untrusted_feed_html(raw).contains("onclick"));
+        assert!(!sanitize_trusted_backend_html(raw).contains("<script"));
     }
 
     #[test]

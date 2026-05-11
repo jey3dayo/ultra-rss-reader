@@ -204,6 +204,25 @@ describe("ArticleContentView", () => {
     expect(screen.getByText("inline_identifier_without_breaks")).toBeInTheDocument();
   });
 
+  it("smoke-renders a large sanitized article body without expanding render wrappers", () => {
+    const paragraphs = Array.from(
+      { length: 500 },
+      (_, index) => `<p>Large import paragraph ${index + 1} with sanitized reader content.</p>`,
+    ).join("");
+
+    const { container } = render(
+      <ArticleContentView
+        contentHtml={fromSanitizedArticleHtmlDto({
+          content_sanitized: paragraphs,
+        })}
+      />,
+    );
+
+    expect(container.querySelectorAll(".prose")).toHaveLength(1);
+    expect(screen.getByText("Large import paragraph 1 with sanitized reader content.")).toBeInTheDocument();
+    expect(screen.getByText("Large import paragraph 500 with sanitized reader content.")).toBeInTheDocument();
+  });
+
   it("keeps reader remote images separate from Web Preview frame behavior", () => {
     const { container } = render(
       <ArticleContentView

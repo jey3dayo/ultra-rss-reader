@@ -185,7 +185,7 @@ impl Drop for DiagnosticTempDir {
 }
 
 fn remove_diagnostic_temp_dir(path: &Path, retries: usize) -> std::io::Result<()> {
-    remove_diagnostic_temp_dir_with(path, retries, std::fs::remove_dir_all)
+    remove_diagnostic_temp_dir_with(path, retries, |path| std::fs::remove_dir_all(path))
 }
 
 fn remove_diagnostic_temp_dir_with(

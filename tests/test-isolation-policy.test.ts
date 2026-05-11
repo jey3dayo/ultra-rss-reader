@@ -43,8 +43,8 @@ describe("test isolation policy contract", () => {
 
     expectAll(setup, [
       "restoreProcessEnv",
-      "clearWorkingStorage(readWorkingWindowStorage(\"localStorage\"))",
-      "clearWorkingStorage(readWorkingWindowStorage(\"sessionStorage\"))",
+      'clearWorkingStorage(readWorkingWindowStorage("localStorage"))',
+      'clearWorkingStorage(readWorkingWindowStorage("sessionStorage"))',
       "vi.useRealTimers()",
       "resetCommandHistoryStorageFailureWarnings()",
       "resetStartupSyncStorageFailureWarnings()",

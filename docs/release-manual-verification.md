@@ -349,7 +349,7 @@ Confirm before release:
 
 - `src-tauri/tauri.conf.json` and `src-tauri/tauri.release.conf.json` both use `com.jey3dayo.ultra-rss-reader`.
 - No automatic app data directory rename is attempted during normal startup.
-- If a future identifier change is required, the release plan documents old identifier detection, a user-visible database migration prompt or backup/copy prompt, the fact that OS keyring credentials cannot be copied automatically and may need user re-entry, and rollback steps. Log paths change with the identifier namespace and must be called out in release notes and support handoff.
+- If a future identifier change is required, the release plan documents old identifier detection, a user-visible database migration prompt or backup/copy prompt, the fact that OS keyring credentials cannot be copied automatically, and rollback steps. OS keyring credentials may need user re-entry. Log paths change with the identifier namespace and must be called out in release notes and support handoff.
 - If a release changes the identifier, manual verification must prove the old app data directory remains preserved until the user accepts the documented copy or backup path. Skipping native migration is acceptable only when the release notes and support handoff explicitly say database, logs, and credentials remain in the old namespace.
 - Rollback after an identifier change must return users to the old identifier namespace or restore from the preserved backup; rollback guidance must not tell users to delete the old app data, log, or keyring namespace as a repair step.
 
@@ -411,8 +411,10 @@ From the packaged build, use the in-app log-directory flow or `get_log_dir`.
 Confirm:
 
 - Release logs are written to disk.
-- Release log timestamps use the packaged app's local timezone policy (`TimezoneStrategy::UseLocal`). When sharing logs across timezones, record the verifier's OS timezone and local offset together with the log.
+- Release log timestamps use the packaged app's local timezone policy (`TimezoneStrategy::UseLocal`). When sharing logs across timezones, record the verifier's OS timezone and UTC offset together with the log.
 - Do not convert local release log timestamps to UTC in support notes unless the converted value is labeled separately; keep the original local timestamp available for comparison with the user's app UI and OS event history.
+- If a log excerpt crosses a DST boundary, record that boundary explicitly with the OS timezone and UTC offset observed on each side.
+- Treat release log filenames as rotation labels only. Support notes must correlate incidents by the log line timestamp plus OS timezone context, not by inferring UTC or local display time from the filename.
 - You can locate the logs needed for updater or sync troubleshooting.
 - The log-directory action opens the native folder without showing a raw path in the webview.
 - Any shared logs are redacted for credentials, tokens, cookies, and passwords.
@@ -486,7 +488,7 @@ Write down:
 - Live service, native keyring, updater, packaged startup, icon/badge, uninstall
   or data-reset, and permission-prompt results that were in scope.
 - Checks intentionally skipped, with the reason and owner for any follow-up.
-- Supporting log or screenshot location, with OS timezone and local offset for
+- Supporting log or screenshot location, with OS timezone and UTC offset for
   shared release logs.
 
 If something fails during this checklist, continue from [incident-runbook.md](./incident-runbook.md) instead of improvising ad-hoc recovery steps.

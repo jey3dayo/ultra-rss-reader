@@ -24,7 +24,8 @@ Use this page when the app is already failing and you need the fastest path to t
 - Packaged builds write file logs.
 - Use the in-app "Open log directory" flow or `get_log_dir`.
 - `open_log_dir` opens the native folder picker and intentionally does not expose the resolved filesystem path to the webview.
-- Packaged release log timestamps use local time. When escalating logs across timezones, record the OS timezone and UTC offset with the log excerpt instead of converting timestamps in place.
+- Packaged release log timestamps use local time (`TimezoneStrategy::UseLocal`). When escalating logs across timezones, record the OS timezone, UTC offset, and whether the excerpt crosses a DST boundary instead of converting timestamps in place.
+- Treat release log filenames as retention/rotation labels, not as the canonical event timezone. Use the log line timestamp plus the recorded OS timezone context for support correlation.
 - Keep the log bundle before retrying destructive recovery steps.
 - When escalating, share the saved log file or redacted snippets, not an unredacted full user data directory.
 - Treat old release logs, support/debug logs, and support dumps as private data even after the database or credentials have been reset.

@@ -55,6 +55,21 @@ pub struct RemoteEntry {
     pub is_starred: Option<bool>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ProviderResponseTrustBoundary {
+    TrustedBackend,
+    UntrustedFeed,
+}
+
+impl RemoteEntry {
+    pub fn response_trust_boundary(&self) -> ProviderResponseTrustBoundary {
+        match self.source_feed_id {
+            FeedIdentifier::Local { .. } => ProviderResponseTrustBoundary::UntrustedFeed,
+            FeedIdentifier::Remote { .. } => ProviderResponseTrustBoundary::TrustedBackend,
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct RemoteSubscription {
     pub remote_id: String,
@@ -480,6 +495,51 @@ mod tests {
         assert_eq!(
             quarantined.star_state,
             RemoteDeleteOptimisticMutationConflict::NotApplicable
+        );
+    }
+
+    #[test]
+    fn remote_entry_response_trust_boundary_follows_provider_source() {
+        let local = RemoteEntry {
+            id: Some("local-entry".to_string()),
+            source_feed_id: FeedIdentifier::Local {
+                feed_url: "https://example.com/feed.xml".to_string(),
+            },
+            title: "Local".to_string(),
+            content: "<p>local</p>".to_string(),
+            summary: None,
+            url: Some("https://example.com/local".to_string()),
+            published_at: None,
+            updated_at: None,
+            thumbnail: None,
+            author: None,
+            is_read: None,
+            is_starred: None,
+        };
+        let remote = RemoteEntry {
+            id: Some("remote-entry".to_string()),
+            source_feed_id: FeedIdentifier::Remote {
+                remote_id: "feed/https://example.com/feed.xml".to_string(),
+            },
+            title: "Remote".to_string(),
+            content: "<p>remote</p>".to_string(),
+            summary: None,
+            url: Some("https://example.com/remote".to_string()),
+            published_at: None,
+            updated_at: None,
+            thumbnail: None,
+            author: None,
+            is_read: Some(false),
+            is_starred: Some(false),
+        };
+
+        assert_eq!(
+            local.response_trust_boundary(),
+            ProviderResponseTrustBoundary::UntrustedFeed
+        );
+        assert_eq!(
+            remote.response_trust_boundary(),
+            ProviderResponseTrustBoundary::TrustedBackend
         );
     }
 }

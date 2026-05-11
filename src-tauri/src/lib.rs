@@ -310,6 +310,20 @@ fn startup_focus_restore_is_active(active: &Arc<AtomicBool>) -> bool {
     active.load(Ordering::Acquire)
 }
 
+enum ShutdownDrainAttempt {
+    Drained,
+    Busy,
+    Poisoned(String),
+}
+
+fn try_drain_mutex_lock_for_shutdown<T>(mutex: &Mutex<T>) -> ShutdownDrainAttempt {
+    match mutex.try_lock() {
+        Ok(_guard) => ShutdownDrainAttempt::Drained,
+        Err(TryLockError::WouldBlock) => ShutdownDrainAttempt::Busy,
+        Err(TryLockError::Poisoned(error)) => ShutdownDrainAttempt::Poisoned(error.to_string()),
+    }
+}
+
 async fn drain_mutex_lock_for_shutdown<T>(
     mutex: &Mutex<T>,
     timeout: Duration,
@@ -317,12 +331,12 @@ async fn drain_mutex_lock_for_shutdown<T>(
 ) -> bool {
     match tokio::time::timeout(timeout, async {
         loop {
-            match mutex.try_lock() {
-                Ok(_guard) => return true,
-                Err(TryLockError::WouldBlock) => {
+            match try_drain_mutex_lock_for_shutdown(mutex) {
+                ShutdownDrainAttempt::Drained => return true,
+                ShutdownDrainAttempt::Busy => {
                     tokio::time::sleep(SHUTDOWN_DRAIN_POLL_INTERVAL).await;
                 }
-                Err(TryLockError::Poisoned(error)) => {
+                ShutdownDrainAttempt::Poisoned(error) => {
                     tracing::warn!("{lock_name} shutdown drain failed: lock poisoned: {error}");
                     return false;
                 }
@@ -1044,7 +1058,7 @@ mod tests {
         assert!(file_logging_design.contains("KeepAll"));
         assert!(file_logging_design.contains("TimezoneStrategy::UseLocal"));
         assert!(release_manual.contains("TimezoneStrategy::UseLocal"));
-        assert!(release_manual.contains("OS timezone and local offset"));
+        assert!(release_manual.contains("OS timezone and UTC offset"));
     }
 
     #[test]
