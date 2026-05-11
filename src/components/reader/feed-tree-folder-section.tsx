@@ -4,6 +4,7 @@ import type { MouseEvent as ReactMouseEvent, ReactNode, PointerEvent as ReactPoi
 import { useTranslation } from "react-i18next";
 import { SIDEBAR_SELECTED_TARGET_ATTRIBUTE } from "@/lib/reader-focus";
 import { cn } from "@/lib/utils";
+import { useContextMenuTargetSnapshot } from "./context-menu-target";
 import type { ActiveDropTarget, FeedTreeFeedViewModel, FeedTreeFolderViewModel } from "./feed-tree.types";
 import { FEED_DROP_TARGET_ID_ATTRIBUTE, FEED_DROP_TARGET_KIND_ATTRIBUTE } from "./feed-tree-drop-target";
 import { FeedTreeRow } from "./feed-tree-row";
@@ -52,6 +53,7 @@ export function FeedTreeFolderSection({
 }: FeedTreeFolderSectionProps) {
   const { t } = useTranslation("sidebar");
   const tokens = getSidebarDensityTokens(sidebarDensity);
+  const { contextMenuTarget, captureTarget, captureKeyboardTarget, clearTarget } = useContextMenuTargetSnapshot(folder);
   const showDropOverlay = canDragFeeds && draggedFeedId !== null;
   const isActive = canDragFeeds && activeDropTarget?.kind === "folder" && activeDropTarget.folderId === folder.id;
   const panelId = `feed-tree-folder-panel-${folder.id}`;
@@ -120,7 +122,7 @@ export function FeedTreeFolderSection({
             className={cn("motion-disclosure-icon h-3 w-3", folder.isExpanded ? "rotate-0" : "-rotate-90")}
           />
         </SidebarLeadingControlButton>
-        <ContextMenu.Root>
+        <ContextMenu.Root onOpenChange={(open) => !open && clearTarget()}>
           <ContextMenu.Trigger
             render={
               <SidebarNavButton
@@ -146,6 +148,8 @@ export function FeedTreeFolderSection({
                 )}
               />
             }
+            onContextMenu={captureTarget}
+            onKeyDownCapture={captureKeyboardTarget}
             onClick={() => onSelectFolder?.(folder.id)}
             onMouseDown={handleMiddleMouseDown}
           >
@@ -153,7 +157,7 @@ export function FeedTreeFolderSection({
               {folder.name}
             </span>
           </ContextMenu.Trigger>
-          {renderFolderContextMenu?.(folder)}
+          {renderFolderContextMenu?.(contextMenuTarget)}
         </ContextMenu.Root>
       </div>
       <div

@@ -83,6 +83,18 @@ Article content is not a row list. It should prioritize content reading, scrolli
 
 When `ArrowLeft` originates from an article-list row while the app state still says content is focused, route back to the sidebar. This preserves the leftward chain from article content to article list to sidebar.
 
+## Long Article Selection And Search Highlight Contract
+
+Before article-content virtualization is introduced, article content remains a single rendered reading surface. Any future virtualization work must preserve the current reader contracts instead of treating offscreen content as disposable DOM.
+
+Virtualization preconditions:
+
+- Text selection owned by the browser must not be cleared by scroll restoration, article-local re-rendering, image load completion, or background preference updates while the selected article stays the same.
+- Find-in-article and search highlights must be anchored to normalized text ranges or stable content nodes, not viewport row indexes. A highlight outside the viewport must be recoverable when the user scrolls to it.
+- Reader scroll restoration must use a stable article/content anchor and offset. Restoring by virtual row index is not enough because sanitizer output, image loading, and future content blocks can change layout height.
+- Lazy image loading may defer network and layout work, but it must not reorder text, steal focus from article content, or move a restored text/search highlight without a follow-up correction.
+- Print, share, and copy-full-article behavior remain future scope. Do not infer that virtualized offscreen DOM is the complete article body for those actions without a separate contract.
+
 ## Visual Focus Contract
 
 Pane rows use two separate concepts:

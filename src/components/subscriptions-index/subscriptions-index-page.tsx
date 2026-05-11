@@ -201,12 +201,13 @@ export function SubscriptionsIndexPage() {
         }
       : null;
 
-  const isDeleteTargetCurrent =
+  const deleteTargetInCurrentAccount = deleteTargetFeed?.account_id === selectedAccountId;
+  const isDeleteTargetKnown =
     deleteTargetFeed === null ||
-    (deleteTargetFeed.account_id === selectedAccountId && feeds.some((feed) => feed.id === deleteTargetFeed.id));
+    (deleteTargetInCurrentAccount && feeds.some((feed) => feed.id === deleteTargetFeed.id));
 
   const handleConfirmDelete = async () => {
-    if (!deleteTargetFeed || deletePendingRef.current || !isDeleteTargetCurrent) {
+    if (!deleteTargetFeed || deletePendingRef.current || !isDeleteTargetKnown) {
       return;
     }
 
@@ -260,10 +261,10 @@ export function SubscriptionsIndexPage() {
   }, []);
 
   useEffect(() => {
-    if (deleteTargetFeed !== null && !isDeleteTargetCurrent && !deletePendingRef.current) {
+    if (deleteTargetFeed !== null && !deleteTargetInCurrentAccount && !deletePendingRef.current) {
       setDeleteTargetFeed(null);
     }
-  }, [deleteTargetFeed, isDeleteTargetCurrent]);
+  }, [deleteTargetFeed, deleteTargetInCurrentAccount]);
 
   useLayoutEffect(() => {
     const handleKeyDown = createKeyboardEventListener((event) => {
@@ -370,6 +371,8 @@ export function SubscriptionsIndexPage() {
           feed={deleteTargetFeed}
           open={true}
           pending={deletePending || deleteFeedMutation.isPending}
+          confirmDisabled={!isDeleteTargetKnown}
+          confirmDisabledReason={t("delete_target_unavailable")}
           onOpenChange={(open) => {
             if (!open) {
               setDeleteTargetFeed(null);

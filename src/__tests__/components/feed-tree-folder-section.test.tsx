@@ -87,6 +87,40 @@ describe("FeedTreeFolderSection", () => {
     expect(onSelectFolder).not.toHaveBeenCalled();
   });
 
+  it("keeps the right-clicked folder as the context menu target when folder data updates while open", () => {
+    const renderFolderContextMenu = vi.fn((folder: FeedTreeFolderViewModel) => (
+      <div data-testid="folder-context-target">{folder.name}</div>
+    ));
+
+    const { rerender } = render(
+      <FeedTreeFolderSection
+        folder={baseFolder}
+        activeDropTarget={null}
+        onToggleFolder={vi.fn()}
+        onSelectFolder={vi.fn()}
+        onSelectFeed={vi.fn()}
+        displayFavicons={false}
+        renderFolderContextMenu={renderFolderContextMenu}
+      />,
+    );
+
+    fireEvent.contextMenu(screen.getByRole("button", { name: "Select folder Comic" }));
+
+    rerender(
+      <FeedTreeFolderSection
+        folder={{ ...baseFolder, name: "Renamed folder" }}
+        activeDropTarget={null}
+        onToggleFolder={vi.fn()}
+        onSelectFolder={vi.fn()}
+        onSelectFeed={vi.fn()}
+        displayFavicons={false}
+        renderFolderContextMenu={renderFolderContextMenu}
+      />,
+    );
+
+    expect(screen.getByTestId("folder-context-target")).toHaveTextContent("Comic");
+  });
+
   it("uses a softer active drop tone for folder targets", () => {
     render(
       <FeedTreeFolderSection

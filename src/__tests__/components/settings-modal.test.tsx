@@ -863,7 +863,11 @@ describe("SettingsModal", () => {
       name: "Record recently viewed articles",
     });
     expect(historySwitch).toBeChecked();
-    expect(screen.getByRole("button", { name: "Clear recently viewed history" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: "Clear recently viewed history for the current account. This cannot be undone.",
+      }),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("switch", {
         name: "Open the first article when selecting a feed",

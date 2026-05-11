@@ -28,9 +28,11 @@ type OpenExternalBrowserParams = {
   showToast: ArticleStatusToast;
   errorLabel: string;
 };
+type PendingExternalBrowserOpen = Promise<Result.Result<null, AppError>>;
 
 const ARTICLE_EXTERNAL_BROWSER_INVALID_URL_MESSAGE = "Only http:// and https:// URLs are supported";
 const ARTICLE_EXTERNAL_BROWSER_CREDENTIAL_URL_MESSAGE = "Article URLs must not include credentials";
+const pendingExternalBrowserOpens = new Map<string, PendingExternalBrowserOpen>();
 const ARTICLE_ACTION_ERROR_LOCALE_KEYS = {
   runtime_unavailable: "article_actions.errors.runtime_unavailable",
   permission_denied: "article_actions.errors.permission_denied",
@@ -168,7 +170,7 @@ function runToastOperation<T>(
 function runExternalBrowserOperation(
   operation: ArticleBrowserToastOperation<null>,
   { showToast, errorLabel }: Pick<OpenExternalBrowserParams, "showToast" | "errorLabel">,
-) {
+): PendingExternalBrowserOpen {
   return operation()
     .then((result) =>
       Result.pipe(
@@ -213,7 +215,20 @@ export function openUrlInExternalBrowser(
   }
 
   const normalizedUrl = Result.unwrap(normalizedUrlResult);
-  return runExternalBrowserOperation(() => openInBrowser(normalizedUrl, background), { showToast, errorLabel });
+  const pendingKey = `${background ? "background" : "foreground"}:${normalizedUrl}`;
+  const pendingOpen = pendingExternalBrowserOpens.get(pendingKey);
+  if (pendingOpen) {
+    return pendingOpen;
+  }
+
+  const openPromise = runExternalBrowserOperation(() => openInBrowser(normalizedUrl, background), {
+    showToast,
+    errorLabel,
+  }).finally(() => {
+    pendingExternalBrowserOpens.delete(pendingKey);
+  });
+  pendingExternalBrowserOpens.set(pendingKey, openPromise);
+  return openPromise;
 }
 
 export function copyArticleLink(url: string, { showToast, successMessage }: ArticleToastActionParams) {

@@ -297,6 +297,81 @@ describe("article-browser-actions", () => {
     expect(showToast).not.toHaveBeenCalled();
   });
 
+  it("dedupes rapid external-browser opens for the same normalized URL and background mode", async () => {
+    const openResolvers: Array<(value: null) => void> = [];
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      switch (cmd) {
+        case "open_in_browser":
+          return new Promise<null>((resolve) => {
+            openResolvers.push(resolve);
+          });
+        default:
+          return undefined;
+      }
+    });
+
+    const firstOpen = openUrlInExternalBrowser(" https://example.com/article ", {
+      background: false,
+      showToast,
+      errorLabel: "Failed to open in browser",
+    });
+    const secondOpen = openUrlInExternalBrowser("https://example.com/article", {
+      background: false,
+      showToast,
+      errorLabel: "Failed to open in browser",
+    });
+
+    expect(calls).toEqual([
+      {
+        cmd: "open_in_browser",
+        args: { url: "https://example.com/article", background: false },
+      },
+    ]);
+
+    const settleOpen = openResolvers[0];
+    if (!settleOpen) {
+      throw new Error("open_in_browser promise resolver was not captured");
+    }
+    settleOpen(null);
+
+    const [firstResult, secondResult] = await Promise.all([firstOpen, secondOpen]);
+    expect(firstResult).toSatisfy(Result.isSuccess);
+    expect(secondResult).toSatisfy(Result.isSuccess);
+    expect(showToast).not.toHaveBeenCalled();
+  });
+
+  it("allows external-browser retry after a failed in-flight open settles", async () => {
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      switch (cmd) {
+        case "open_in_browser":
+          if (calls.filter((call) => call.cmd === "open_in_browser").length === 1) {
+            throw { type: "UserVisible", message: "Browser unavailable" };
+          }
+          return null;
+        default:
+          return undefined;
+      }
+    });
+
+    await openUrlInExternalBrowser("https://example.com/article", {
+      background: false,
+      showToast,
+      errorLabel: "Failed to open in browser",
+    });
+    await openUrlInExternalBrowser("https://example.com/article", {
+      background: false,
+      showToast,
+      errorLabel: "Failed to open in browser",
+    });
+
+    expect(calls.filter((call) => call.cmd === "open_in_browser")).toHaveLength(2);
+    expect(showToast).toHaveBeenCalledWith("Browser unavailable");
+  });
+
   it.each([
     ["https://example.com/article", "https://example.com/article"],
     [" http://example.com/article ", "http://example.com/article"],

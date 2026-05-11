@@ -483,9 +483,15 @@ describe("SubscriptionsIndexPage", () => {
 
     const decisionBar = await within(detailPane).findByTestId("subscriptions-detail-decision-bar");
     expect(decisionBar).toBeVisible();
-    const keepButton = within(detailPane).getByRole("button", { name: /^(残す|decision_keep)$/ });
-    const deferButton = within(detailPane).getByRole("button", { name: /^(あとで|decision_defer)$/ });
-    const deleteButton = within(detailPane).getByRole("button", { name: /^(削除|delete)$/ });
+    const keepButton = within(detailPane).getByRole("button", {
+      name: /^(残す|decision_keep)$/,
+    });
+    const deferButton = within(detailPane).getByRole("button", {
+      name: /^(あとで|decision_defer)$/,
+    });
+    const deleteButton = within(detailPane).getByRole("button", {
+      name: /^(削除|delete)$/,
+    });
     expect(keepButton).toBeVisible();
     expect(deferButton).toBeVisible();
     expect(deleteButton).toBeVisible();
@@ -503,7 +509,11 @@ describe("SubscriptionsIndexPage", () => {
     const unsubscribeDialog = await screen.findByRole("dialog");
     expect(unsubscribeDialog).toBeInTheDocument();
     expect(within(unsubscribeDialog).getByText("Example Feed")).toBeInTheDocument();
-    await user.click(within(unsubscribeDialog).getByRole("button", { name: /^(キャンセル|cancel)$/ }));
+    await user.click(
+      within(unsubscribeDialog).getByRole("button", {
+        name: /^(キャンセル|cancel)$/,
+      }),
+    );
 
     await user.click(screen.getByRole("button", { name: /Fresh Feed/ }));
 
@@ -766,7 +776,9 @@ describe("SubscriptionsIndexPage", () => {
     });
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 
-    const { unmount } = render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+    const { unmount } = render(<SubscriptionsIndexPage />, {
+      wrapper: createWrapper(),
+    });
 
     await user.click(await screen.findByRole("button", { name: /90日更新なし/ }));
     expect(await screen.findByText("一致する購読はありません。")).toBeInTheDocument();
@@ -961,7 +973,9 @@ describe("SubscriptionsIndexPage", () => {
     await screen.findByRole("dialog", { name: "Nested modal" });
     await user.keyboard("{Escape}");
 
-    expect(useUiStore.getState().subscriptionsWorkspace).toEqual({ kind: "index" });
+    expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
+      kind: "index",
+    });
   });
 
   it("does not close the subscriptions workspace when Escape closes nested edit and delete dialogs", async () => {
@@ -973,12 +987,18 @@ describe("SubscriptionsIndexPage", () => {
     const detailPane = screen.getByTestId("subscriptions-detail-pane");
 
     await user.click(within(detailPane).getByRole("button", { name: /^(編集|edit)$/ }));
-    expect(await screen.findByRole("dialog", { name: /^(フィードを編集|edit_feed)$/ })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("dialog", {
+        name: /^(フィードを編集|edit_feed)$/,
+      }),
+    ).toBeInTheDocument();
     await user.keyboard("{Escape}");
     await waitFor(() => {
       expect(screen.queryByRole("dialog", { name: /^(フィードを編集|edit_feed)$/ })).not.toBeInTheDocument();
     });
-    expect(useUiStore.getState().subscriptionsWorkspace).toEqual({ kind: "index" });
+    expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
+      kind: "index",
+    });
 
     await user.click(within(detailPane).getByRole("button", { name: /^(削除|delete)$/ }));
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
@@ -986,7 +1006,9 @@ describe("SubscriptionsIndexPage", () => {
     await waitFor(() => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
-    expect(useUiStore.getState().subscriptionsWorkspace).toEqual({ kind: "index" });
+    expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
+      kind: "index",
+    });
   });
 
   it("guards unsubscribe confirmation while the delete mutation is pending", async () => {
@@ -1003,7 +1025,9 @@ describe("SubscriptionsIndexPage", () => {
     const detailPane = screen.getByTestId("subscriptions-detail-pane");
     await user.click(within(detailPane).getByRole("button", { name: /^(削除|delete)$/ }));
     const unsubscribeDialog = await screen.findByRole("dialog");
-    const confirmButton = within(unsubscribeDialog).getByRole("button", { name: /^(購読解除|unsubscribe)$/ });
+    const confirmButton = within(unsubscribeDialog).getByRole("button", {
+      name: /^(「Example Feed」の購読を解除します。元に戻せません。|Unsubscribe from "Example Feed"\. This cannot be undone\.)$/,
+    });
 
     fireEvent.click(confirmButton);
     fireEvent.click(confirmButton);
@@ -1011,7 +1035,11 @@ describe("SubscriptionsIndexPage", () => {
     await waitFor(() => {
       expect(deleteFeedCalls).toEqual(["feed-1"]);
       expect(confirmButton).toBeDisabled();
-      expect(within(unsubscribeDialog).getByRole("button", { name: /^(キャンセル|cancel)$/ })).toBeDisabled();
+      expect(
+        within(unsubscribeDialog).getByRole("button", {
+          name: /^(キャンセル|cancel)$/,
+        }),
+      ).toBeDisabled();
     });
 
     resolveDelete();
@@ -1041,9 +1069,11 @@ describe("SubscriptionsIndexPage", () => {
     expect(deleteFeedCalls).toEqual([]);
   });
 
-  it("closes stale unsubscribe targets after the feed list refetch removes the target", async () => {
+  it("disables stale unsubscribe targets after the feed list refetch removes the target", async () => {
     const user = userEvent.setup();
-    const { queryClient, wrapper } = createQueryWrapper({ includeToastHost: true });
+    const { queryClient, wrapper } = createQueryWrapper({
+      includeToastHost: true,
+    });
 
     render(<SubscriptionsIndexPage />, { wrapper });
 
@@ -1055,9 +1085,15 @@ describe("SubscriptionsIndexPage", () => {
     feedRows = feedRows.filter((feed) => feed.id !== "feed-1");
     await queryClient.invalidateQueries({ queryKey: ["feeds"] });
 
-    await waitFor(() => {
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    });
+    const staleDialog = await screen.findByRole("dialog");
+    expect(
+      within(staleDialog).getByText("フィードを再読み込みできません。対象が確認できるまで購読解除は無効です。"),
+    ).toBeInTheDocument();
+    expect(
+      within(staleDialog).getByRole("button", {
+        name: "「Example Feed」の購読を解除します。元に戻せません。",
+      }),
+    ).toBeDisabled();
     expect(deleteFeedCalls).toEqual([]);
   });
 });

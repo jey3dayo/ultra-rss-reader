@@ -6,6 +6,8 @@ type DestructiveDialogFooterProps = {
   cancelLabel: string;
   confirmLabel: string;
   confirmAccessibleLabel?: string;
+  confirmDescriptionId?: string;
+  confirmDisabled?: boolean;
   pending?: boolean;
   onCancel: () => void;
   onConfirm: () => void;
@@ -15,10 +17,14 @@ export function DestructiveDialogFooter({
   cancelLabel,
   confirmLabel,
   confirmAccessibleLabel,
+  confirmDescriptionId,
+  confirmDisabled = false,
   pending = false,
   onCancel,
   onConfirm,
 }: DestructiveDialogFooterProps) {
+  const actionDisabled = pending || confirmDisabled;
+
   return (
     <DialogFooter>
       <Button variant="outline" onClick={onCancel} disabled={pending} className="min-h-11">
@@ -26,8 +32,9 @@ export function DestructiveDialogFooter({
       </Button>
       <DeleteButton
         onClick={onConfirm}
-        disabled={pending}
+        disabled={actionDisabled}
         aria-label={confirmAccessibleLabel}
+        aria-describedby={confirmDescriptionId}
         aria-busy={pending}
         className="min-h-11"
       >

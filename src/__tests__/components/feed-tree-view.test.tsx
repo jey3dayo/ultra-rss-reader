@@ -103,6 +103,47 @@ describe("FeedTreeView", () => {
     expect(renderFeedContextMenu).toHaveBeenCalledWith(expect.objectContaining({ id: "feed-2", folderId: null }));
   });
 
+  it("keeps the right-clicked feed as the context menu target when feed data updates while open", () => {
+    const renderFeedContextMenu = vi.fn((feed: { title: string }) => (
+      <div data-testid="feed-context-target">{feed.title}</div>
+    ));
+    const makeFeedTree = (title: string) => (
+      <FeedTreeView
+        isOpen={true}
+        folders={[]}
+        unfolderedFeeds={[
+          {
+            id: "feed-1",
+            accountId: "acc-1",
+            folderId: null,
+            title,
+            url: "https://example.com/feed.xml",
+            siteUrl: "https://example.com",
+            unreadCount: 1,
+            readerMode: "on",
+            webPreviewMode: "off",
+            isSelected: false,
+            grayscaleFavicon: false,
+          },
+        ]}
+        onToggleFolder={vi.fn()}
+        onSelectFeed={vi.fn()}
+        onMarkFeedRead={vi.fn()}
+        onMarkFolderRead={vi.fn()}
+        displayFavicons={false}
+        emptyState={{ kind: "message", message: "No feeds yet" }}
+        renderFeedContextMenu={renderFeedContextMenu}
+      />
+    );
+
+    const { rerender } = render(makeFeedTree("Alpha"));
+
+    fireEvent.contextMenu(screen.getByRole("button", { name: /Alpha/ }));
+    rerender(makeFeedTree("Renamed feed"));
+
+    expect(screen.getByTestId("feed-context-target")).toHaveTextContent("Alpha");
+  });
+
   it("renders nested feeds only for expanded folders", () => {
     render(
       <FeedTreeView

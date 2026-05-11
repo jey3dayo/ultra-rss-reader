@@ -20,6 +20,7 @@ describe("UnsubscribeFeedDialogView", () => {
         }
         cancelLabel="Cancel"
         confirmLabel="Unsubscribe"
+        confirmAccessibleLabel='Unsubscribe from "Tech Blog". This cannot be undone.'
         onOpenChange={onOpenChange}
         onConfirm={onConfirm}
       />,
@@ -29,10 +30,18 @@ describe("UnsubscribeFeedDialogView", () => {
     expect(screen.getByRole("heading", { name: "Unsubscribe" })).toBeInTheDocument();
     expect(screen.getByText(/Tech Blog/)).toBeInTheDocument();
     expect(screen.getByText(/Tech Blog/).closest("p")).toHaveClass("text-foreground-soft");
-    expect(screen.getByRole("button", { name: "Unsubscribe" })).toHaveClass("min-h-11");
+    expect(
+      screen.getByRole("button", {
+        name: 'Unsubscribe from "Tech Blog". This cannot be undone.',
+      }),
+    ).toHaveClass("min-h-11");
     expect(screen.getByRole("button", { name: "Cancel" })).toHaveClass("min-h-11");
 
-    await user.click(screen.getByRole("button", { name: "Unsubscribe" }));
+    await user.click(
+      screen.getByRole("button", {
+        name: 'Unsubscribe from "Tech Blog". This cannot be undone.',
+      }),
+    );
     await user.click(screen.getByRole("button", { name: "Cancel" }));
 
     expect(onConfirm).toHaveBeenCalledTimes(1);
@@ -108,5 +117,37 @@ describe("UnsubscribeFeedDialogView", () => {
 
     expect(onConfirm).not.toHaveBeenCalled();
     expect(onOpenChange).not.toHaveBeenCalled();
+  });
+
+  it("disables confirm with a visible reason when the feed target is unavailable", async () => {
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+    const onConfirm = vi.fn();
+
+    render(
+      <UnsubscribeFeedDialogView
+        open={true}
+        title="Unsubscribe"
+        description="Unsubscribe from Tech Blog?"
+        cancelLabel="Cancel"
+        confirmLabel="Unsubscribe"
+        confirmAccessibleLabel='Unsubscribe from "Tech Blog". This cannot be undone.'
+        confirmDisabled={true}
+        confirmDisabledReason="The feed could not be reloaded."
+        onOpenChange={onOpenChange}
+        onConfirm={onConfirm}
+      />,
+    );
+
+    const confirmButton = screen.getByRole("button", {
+      name: 'Unsubscribe from "Tech Blog". This cannot be undone.',
+    });
+
+    expect(confirmButton).toBeDisabled();
+    expect(confirmButton).toHaveAccessibleDescription("The feed could not be reloaded.");
+
+    await user.click(confirmButton);
+
+    expect(onConfirm).not.toHaveBeenCalled();
   });
 });

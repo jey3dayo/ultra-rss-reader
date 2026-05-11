@@ -208,9 +208,12 @@ export function useAccountDetailDangerZone({
   };
 
   const handleRequestDelete = () => {
-    showConfirm(t("account.confirm_delete"), () => handleDelete(), {
+    showConfirm(t("account.confirm_delete", { name: account.name }), () => handleDelete(), {
       actionLabel: tc("delete"),
-      actionAccessibleLabel: `${tc("delete")} "${account.name}". This cannot be undone.`,
+      actionAccessibleLabel: t("account.delete_account_accessible_label", {
+        defaultValue: `${tc("delete")} "${account.name}". This cannot be undone.`,
+        name: account.name,
+      }),
       variant: "destructive",
     });
   };

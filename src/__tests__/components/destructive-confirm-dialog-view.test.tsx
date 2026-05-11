@@ -103,6 +103,39 @@ describe("DestructiveConfirmDialogView", () => {
     expect(onOpenChange).not.toHaveBeenCalled();
   });
 
+  it("keeps unavailable destructive targets visible with a disabled reason", async () => {
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+    const onConfirm = vi.fn();
+
+    render(
+      <DestructiveConfirmDialogView
+        open={true}
+        title="Delete item"
+        description="This cannot be undone."
+        cancelLabel="Cancel"
+        confirmLabel="Delete"
+        confirmAccessibleLabel='Delete "Work". This cannot be undone.'
+        confirmDisabled={true}
+        confirmDisabledReason="The target could not be reloaded."
+        onOpenChange={onOpenChange}
+        onConfirm={onConfirm}
+      />,
+    );
+
+    const confirmButton = screen.getByRole("button", { name: 'Delete "Work". This cannot be undone.' });
+    const disabledReason = screen.getByText("The target could not be reloaded.");
+
+    expect(confirmButton).toBeDisabled();
+    expect(confirmButton).toHaveAccessibleDescription("The target could not be reloaded.");
+    expect(confirmButton).toHaveAttribute("aria-describedby", disabledReason.id);
+
+    await user.click(confirmButton);
+
+    expect(onConfirm).not.toHaveBeenCalled();
+    expect(onOpenChange).not.toHaveBeenCalled();
+  });
+
   it("ignores duplicate confirms while an async destructive action is pending", async () => {
     const user = userEvent.setup();
     let resolveConfirm: () => void = () => undefined;

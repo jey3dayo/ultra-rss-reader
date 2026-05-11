@@ -1,10 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import { getErrorMessage, projectUiErrorToast } from "@/lib/ui/errors";
 import {
+  classifyAppRecoveryCategory,
   classifyQueryTransientFailureUx,
   classifyRuntimeActionErrorCategory,
   classifySchemaParseErrorSurface,
   createSchemaParseAppError,
+  getAppRecoveryActionsForCategory,
   USER_FACING_ERROR_DIAGNOSTICS_POLICY,
 } from "@/lib/ui-errors";
 
@@ -38,15 +40,30 @@ describe("ui error projection", () => {
   });
 
   it("classifies transient query failures separately from permanent user errors", () => {
-    expect(classifyQueryTransientFailureUx({ type: "Retryable", message: "network timeout" })).toBe("manual-retry");
+    expect(
+      classifyQueryTransientFailureUx({
+        type: "Retryable",
+        message: "network timeout",
+      }),
+    ).toBe("manual-retry");
     expect(
       classifyQueryTransientFailureUx({
         type: "UserVisible",
         message: "Database is busy. Wait for the current operation to finish and try again.",
       }),
     ).toBe("manual-retry");
-    expect(classifyQueryTransientFailureUx({ type: "Diagnostics", message: "schema mismatch" })).toBe("diagnostics");
-    expect(classifyQueryTransientFailureUx({ type: "UserVisible", message: "Feed not found" })).toBe("none");
+    expect(
+      classifyQueryTransientFailureUx({
+        type: "Diagnostics",
+        message: "schema mismatch",
+      }),
+    ).toBe("diagnostics");
+    expect(
+      classifyQueryTransientFailureUx({
+        type: "UserVisible",
+        message: "Feed not found",
+      }),
+    ).toBe("none");
   });
 
   it("classifies runtime action errors shared by clipboard and article actions", () => {
@@ -55,10 +72,66 @@ describe("ui error projection", () => {
     expect(classifyRuntimeActionErrorCategory("Browser permission denied")).toBe("permission_denied");
     expect(classifyRuntimeActionErrorCategory("Only http:// and https:// URLs are supported")).toBe("invalid_url");
     expect(classifyRuntimeActionErrorCategory("Clipboard text validation failed")).toBe("invalid_text");
-    expect(classifyRuntimeActionErrorCategory("URL validation failed", { validationCategory: "invalid_url" })).toBe(
-      "invalid_url",
-    );
+    expect(
+      classifyRuntimeActionErrorCategory("URL validation failed", {
+        validationCategory: "invalid_url",
+      }),
+    ).toBe("invalid_url");
     expect(classifyRuntimeActionErrorCategory("Unexpected failure")).toBe("unknown");
+  });
+
+  it("maps app errors to recovery categories instead of treating everything as retryable", () => {
+    expect(
+      classifyAppRecoveryCategory({
+        type: "Retryable",
+        message: "network timeout",
+      }),
+    ).toBe("network");
+    expect(
+      classifyAppRecoveryCategory({
+        type: "UserVisible",
+        message: "Authentication failed",
+      }),
+    ).toBe("auth");
+    expect(
+      classifyAppRecoveryCategory({
+        type: "UserVisible",
+        message: "permission denied",
+      }),
+    ).toBe("permission");
+    expect(
+      classifyAppRecoveryCategory({
+        type: "Diagnostics",
+        message: "Response validation failed",
+      }),
+    ).toBe("schema");
+    expect(
+      classifyAppRecoveryCategory({
+        type: "UserVisible",
+        message: "database disk image is malformed",
+      }),
+    ).toBe("storage");
+    expect(
+      classifyAppRecoveryCategory({
+        type: "UserVisible",
+        message: "unexpected failure",
+      }),
+    ).toBe("unknown");
+  });
+
+  it("keeps app-level recovery actions category-specific", () => {
+    expect(getAppRecoveryActionsForCategory("network")).toEqual(["retry", "open-settings"]);
+    expect(getAppRecoveryActionsForCategory("auth")).toEqual(["open-settings"]);
+    expect(getAppRecoveryActionsForCategory("permission")).toEqual(["open-settings", "open-log-dir"]);
+    expect(getAppRecoveryActionsForCategory("schema")).toEqual(["open-log-dir", "contact-support"]);
+    expect(getAppRecoveryActionsForCategory("storage")).toEqual(["open-log-dir", "restore-backup"]);
+    expect(getAppRecoveryActionsForCategory("unknown")).toEqual(["retry", "open-log-dir", "contact-support"]);
+  });
+
+  it("keeps reset local state in the typed app recovery action contract for explicit callers", () => {
+    const action = "reset-local-state" satisfies ReturnType<typeof getAppRecoveryActionsForCategory>[number];
+
+    expect(action).toBe("reset-local-state");
   });
 
   it("normalizes unknown error messages for caller fallbacks", () => {

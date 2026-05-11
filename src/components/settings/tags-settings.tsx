@@ -120,6 +120,7 @@ export function TagsSettings() {
   const createDirty = name.trim().length > 0 || color !== null;
   const editDirty = editingTag !== null && (renameName.trim() !== editingTag.name || renameColor !== editingTag.color);
   const tagPending = createTag.isPending || renameTag.isPending || deleteTag.isPending;
+  const deleteTargetKnown = deletingTag === null || tags.some((tag) => tag.id === deletingTag.id);
   useRegisterSettingsDirtyState({
     owner: "tag",
     dirty: createDirty || editDirty,
@@ -271,6 +272,8 @@ export function TagsSettings() {
         open={deletingTag !== null}
         tagName={deletingTag?.name ?? ""}
         loading={deleteTag.isPending}
+        confirmDisabled={!deleteTargetKnown}
+        confirmDisabledReason={t("tags.delete_target_unavailable")}
         onOpenChange={(open) => !open && dispatch({ type: "close-delete" })}
         onConfirm={() => void handleDelete()}
       />

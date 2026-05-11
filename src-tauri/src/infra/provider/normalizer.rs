@@ -747,6 +747,30 @@ mod tests {
     }
 
     #[test]
+    fn large_feed_import_smoke_parses_many_entries_without_body_samples() {
+        let mut feed = String::from(
+            r#"<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>Large Feed</title>"#,
+        );
+        for index in 0..1_000 {
+            feed.push_str(&format!(
+                r#"<item><title>Large Article {index}</title><link>https://example.com/articles/{index}</link><guid>large-{index}</guid><description>&lt;p&gt;Body {index}&lt;/p&gt;</description></item>"#
+            ));
+        }
+        feed.push_str("</channel></rss>");
+
+        let entries = normalize_feed(feed.as_bytes(), "https://example.com/feed.xml")
+            .expect("large feed fixture should parse");
+
+        assert_eq!(entries.len(), 1_000);
+        assert_eq!(entries[0].id.as_deref(), Some("large-0"));
+        assert_eq!(entries[999].id.as_deref(), Some("large-999"));
+        assert_eq!(
+            entries[999].url.as_deref(),
+            Some("https://example.com/articles/999")
+        );
+    }
+
+    #[test]
     fn published_date_takes_precedence_over_updated_date() {
         let atom = r#"<?xml version="1.0" encoding="UTF-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">

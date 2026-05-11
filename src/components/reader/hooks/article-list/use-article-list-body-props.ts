@@ -1,5 +1,5 @@
 import type { TFunction } from "i18next";
-import type { ArticleListSetupState } from "../../article-list.types";
+import type { ArticleListFailureState, ArticleListSetupState } from "../../article-list.types";
 import type { ArticleListBodyProps } from "../../article-list-body";
 
 type ArticleListBodyEmptyStateProps = Pick<
@@ -37,6 +37,32 @@ type BuildArticleListBodyEmptyStateParams = Pick<
   "t" | "isSearchEmptyState" | "setupEmptyState" | "trimmedDebouncedQuery" | "handleCloseSearch"
 >;
 
+const ARTICLE_LIST_FAILURE_EMPTY_STATES = {
+  permission: {
+    emptyMessage: "Permission required",
+    emptyDescription: "The article list is unavailable until access is restored.",
+  },
+  auth: {
+    emptyMessage: "Authentication required",
+    emptyDescription: "Reconnect the account before treating this list as empty.",
+  },
+  network: {
+    emptyMessage: "Cannot refresh articles",
+    emptyDescription: "Check the connection or retry before assuming there are no articles.",
+  },
+  schema: {
+    emptyMessage: "Article data needs recovery",
+    emptyDescription: "The response could not be read. Open logs or contact support.",
+  },
+} as const satisfies Record<
+  ArticleListFailureState,
+  Pick<ArticleListBodyEmptyStateProps, "emptyMessage" | "emptyDescription">
+>;
+
+function isArticleListFailureState(setupEmptyState: ArticleListSetupState): setupEmptyState is ArticleListFailureState {
+  return setupEmptyState in ARTICLE_LIST_FAILURE_EMPTY_STATES;
+}
+
 export function buildArticleListBodyEmptyState({
   t,
   isSearchEmptyState,
@@ -48,23 +74,29 @@ export function buildArticleListBodyEmptyState({
     ? "default"
     : setupEmptyState === "no-accounts"
       ? "hidden"
-      : setupEmptyState === "none"
-        ? "default"
-        : "setup";
+      : isArticleListFailureState(setupEmptyState)
+        ? "setup"
+        : setupEmptyState === "none"
+          ? "default"
+          : "setup";
   const emptyMessage = isSearchEmptyState
     ? t("search_no_results_title", { query: trimmedDebouncedQuery })
     : setupEmptyState === "no-accounts"
       ? t("article_list_setup_no_accounts_title")
-      : setupEmptyState === "no-feeds"
-        ? t("article_list_setup_no_feeds_title")
-        : t("no_articles");
+      : isArticleListFailureState(setupEmptyState)
+        ? ARTICLE_LIST_FAILURE_EMPTY_STATES[setupEmptyState].emptyMessage
+        : setupEmptyState === "no-feeds"
+          ? t("article_list_setup_no_feeds_title")
+          : t("no_articles");
   const emptyDescription = isSearchEmptyState
     ? t("search_no_results_description")
     : setupEmptyState === "no-accounts"
       ? t("article_list_setup_no_accounts_description")
-      : setupEmptyState === "no-feeds"
-        ? t("article_list_setup_no_feeds_description")
-        : t("no_articles_description");
+      : isArticleListFailureState(setupEmptyState)
+        ? ARTICLE_LIST_FAILURE_EMPTY_STATES[setupEmptyState].emptyDescription
+        : setupEmptyState === "no-feeds"
+          ? t("article_list_setup_no_feeds_description")
+          : t("no_articles_description");
 
   return {
     emptyStateVariant,

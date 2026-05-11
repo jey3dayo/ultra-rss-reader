@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { TagListView } from "@/components/reader/tag-list-view";
 
@@ -24,5 +24,26 @@ describe("TagListView", () => {
     expect(panel).toHaveAttribute("aria-hidden", "false");
     expect(screen.getByText("No tags yet")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "No tags yet" })).not.toBeInTheDocument();
+  });
+
+  it("keeps the right-clicked tag as the context menu target when tag data updates while open", () => {
+    const renderContextMenu = vi.fn((tag: { name: string }) => <div data-testid="tag-context-target">{tag.name}</div>);
+    const makeTagList = (name: string) => (
+      <TagListView
+        tagsLabel="Tags"
+        isOpen
+        onToggleOpen={vi.fn()}
+        tags={[{ id: "tag-1", name, color: null, articleCount: 1, isSelected: false }]}
+        onSelectTag={vi.fn()}
+        renderContextMenu={renderContextMenu}
+      />
+    );
+
+    const { rerender } = render(makeTagList("Important"));
+
+    fireEvent.contextMenu(screen.getByRole("button", { name: /Important/ }));
+    rerender(makeTagList("Renamed tag"));
+
+    expect(screen.getByTestId("tag-context-target")).toHaveTextContent("Important");
   });
 });

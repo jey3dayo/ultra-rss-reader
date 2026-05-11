@@ -1,6 +1,7 @@
 import type { KeyboardAction } from "@/lib/keyboard/keyboard-shortcuts";
 
-export type ArticleListSetupState = "none" | "no-accounts" | "no-feeds";
+export type ArticleListFailureState = "permission" | "auth" | "network" | "schema";
+export type ArticleListSetupState = "none" | "no-accounts" | "no-feeds" | ArticleListFailureState;
 
 export type HandleArticleListKeyboardActionParams = {
   action: KeyboardAction;

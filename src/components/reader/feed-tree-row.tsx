@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { FeedFavicon } from "@/components/shared/feed-favicon";
 import { SIDEBAR_SELECTED_TARGET_ATTRIBUTE } from "@/lib/reader-focus";
 import { cn } from "@/lib/utils";
+import { useContextMenuTargetSnapshot } from "./context-menu-target";
 import type { FeedTreeRowProps } from "./feed-tree.types";
 import { FeedTreeSelectableRow } from "./feed-tree-selectable-row";
 import { getSidebarDensityTokens, type SidebarDensity } from "./sidebar-density";
@@ -76,6 +77,7 @@ export function FeedTreeRow({
   consumeSuppressedHandleClick,
 }: FeedTreeRowProps) {
   const tokens = getSidebarDensityTokens(sidebarDensity);
+  const { contextMenuTarget, captureTarget, captureKeyboardTarget, clearTarget } = useContextMenuTargetSnapshot(feed);
   const rowStyle: FeedTreeRowStyle = {
     "--feed-tree-rail-offset": tokens.treeRailOffset,
   };
@@ -112,7 +114,7 @@ export function FeedTreeRow({
       }
       leadingControlAnchorProps={{ "data-feed-row-handle-anchor": feed.id }}
     >
-      <ContextMenu.Root>
+      <ContextMenu.Root onOpenChange={(open) => !open && clearTarget()}>
         <ContextMenu.Trigger
           render={
             <SidebarNavButton
@@ -130,6 +132,8 @@ export function FeedTreeRow({
               className="rounded-lg"
             />
           }
+          onContextMenu={captureTarget}
+          onKeyDownCapture={captureKeyboardTarget}
           onClick={() => onSelectFeed(feed.id)}
           onMouseDown={handleMiddleMouseDown}
         >
@@ -142,7 +146,7 @@ export function FeedTreeRow({
             {feed.title}
           </span>
         </ContextMenu.Trigger>
-        {renderFeedContextMenu?.(feed)}
+        {renderFeedContextMenu?.(contextMenuTarget)}
       </ContextMenu.Root>
     </FeedTreeSelectableRow>
   );

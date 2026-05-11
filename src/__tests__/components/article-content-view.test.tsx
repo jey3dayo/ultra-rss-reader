@@ -204,10 +204,13 @@ describe("ArticleContentView", () => {
     expect(screen.getByText("inline_identifier_without_breaks")).toBeInTheDocument();
   });
 
-  it("smoke-renders a large sanitized article body without expanding render wrappers", () => {
+  it("smoke-renders a large sanitized article body with many remote images without expanding render wrappers", () => {
     const paragraphs = Array.from(
       { length: 500 },
-      (_, index) => `<p>Large import paragraph ${index + 1} with sanitized reader content.</p>`,
+      (_, index) =>
+        `<p>Large import paragraph ${index + 1} with sanitized reader content.</p>${
+          index % 10 === 0 ? `<img src="https://cdn.example.com/body-${index}.jpg" alt="Body image ${index}" />` : ""
+        }`,
     ).join("");
 
     const { container } = render(
@@ -221,6 +224,34 @@ describe("ArticleContentView", () => {
     expect(container.querySelectorAll(".prose")).toHaveLength(1);
     expect(screen.getByText("Large import paragraph 1 with sanitized reader content.")).toBeInTheDocument();
     expect(screen.getByText("Large import paragraph 500 with sanitized reader content.")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Body image 0" })).toHaveAttribute(
+      "src",
+      "https://cdn.example.com/body-0.jpg",
+    );
+    expect(screen.getAllByRole("img", { name: /^Body image/ })).toHaveLength(50);
+  });
+
+  it("keeps the pre-virtualization selection and find contract on one native content surface", () => {
+    const { container } = render(
+      <ArticleContentView
+        contentHtml={fromSanitizedArticleHtmlDto({
+          content_sanitized:
+            "<h2>Intro</h2><p>First selectable paragraph.</p><p>Second paragraph with search term.</p>",
+        })}
+      />,
+    );
+
+    const prose = container.querySelector(".prose");
+    expect(prose).not.toBeNull();
+    expect(prose).toHaveAttribute("data-reader-content-contract", "native-contiguous-dom");
+    expect(prose).toHaveAttribute("data-reader-selection-contract", "native-dom-selection");
+    expect(prose).toHaveAttribute("data-reader-search-highlight-contract", "browser-find-no-inline-marks");
+    expect(prose).toHaveAttribute("data-reader-scroll-anchor", "article-content");
+    expect(prose).toHaveAttribute("data-reader-image-loading-contract", "lazy-native");
+    expect(prose?.textContent).toBe("IntroFirst selectable paragraph.Second paragraph with search term.");
+    expect(container.querySelectorAll(".prose")).toHaveLength(1);
+    expect(container.querySelector("mark")).toBeNull();
+    expect(container.querySelector("[data-reader-search-highlight]")).toBeNull();
   });
 
   it("keeps reader remote images separate from Web Preview frame behavior", () => {

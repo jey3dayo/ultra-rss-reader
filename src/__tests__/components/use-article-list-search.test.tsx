@@ -392,6 +392,21 @@ describe("useArticleListSearch", () => {
     expect(result.current.isSearching).toBe(false);
   });
 
+  it("keeps operator-like syntax as literal search text before the backend search boundary", () => {
+    const { result } = renderHook(() => useArticleListSearch({ selectedAccountId: "acc-1" }));
+
+    act(() => {
+      result.current.openSearch();
+      result.current.setSearchQuery('  "quoted"   OR   NEAR(search)   prefix*  ');
+    });
+    act(() => {
+      vi.advanceTimersByTime(ARTICLE_SEARCH_DEBOUNCE_MS);
+    });
+
+    expect(result.current.trimmedDebouncedQuery).toBe('"quoted"   OR   NEAR(search)   prefix*');
+    expect(useSearchArticlesMock).toHaveBeenLastCalledWith("acc-1", '"quoted"   OR   NEAR(search)   prefix*');
+  });
+
   it("exposes literal-search syntax copy on the search input", () => {
     const inputRef = createRef<HTMLInputElement>();
 

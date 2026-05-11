@@ -5,6 +5,8 @@ type DeleteTagDialogViewProps = {
   open: boolean;
   tagName: string;
   loading?: boolean;
+  confirmDisabled?: boolean;
+  confirmDisabledReason?: string;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
 };
@@ -13,6 +15,8 @@ export function DeleteTagDialogView({
   open,
   tagName,
   loading = false,
+  confirmDisabled = false,
+  confirmDisabledReason,
   onOpenChange,
   onConfirm,
 }: DeleteTagDialogViewProps) {
@@ -25,7 +29,8 @@ export function DeleteTagDialogView({
       title={t("delete_tag")}
       description={
         <Trans i18nKey="confirm_delete_tag" ns="reader" values={{ name: tagName }}>
-          Are you sure you want to delete <strong>{tagName}</strong>? This tag will be removed from all articles.
+          Are you sure you want to delete <strong>{tagName}</strong>? This tag will be removed from all articles. This
+          cannot be undone.
         </Trans>
       }
       cancelLabel={tc("cancel")}
@@ -33,6 +38,8 @@ export function DeleteTagDialogView({
       confirmAccessibleLabel={t("delete_tag_accessible_label", {
         name: tagName,
       })}
+      confirmDisabled={confirmDisabled}
+      confirmDisabledReason={confirmDisabledReason}
       pending={loading}
       onOpenChange={onOpenChange}
       onConfirm={onConfirm}

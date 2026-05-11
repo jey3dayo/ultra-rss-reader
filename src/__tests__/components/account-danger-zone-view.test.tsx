@@ -45,4 +45,37 @@ describe("AccountDangerZoneView", () => {
     expect(onRequestDelete).toHaveBeenCalledTimes(1);
     expect(screen.queryByText("This action cannot be undone.")).not.toBeInTheDocument();
   });
+
+  it("keeps destructive actions visible but disabled when fallback state cannot identify the target", async () => {
+    const user = userEvent.setup();
+    const onExport = vi.fn();
+    const onRequestDelete = vi.fn();
+
+    render(
+      <AccountDangerZoneView
+        dataHeading="Data"
+        dangerHeading="Danger Zone"
+        exportLabel="Export OPML"
+        deleteLabel="Delete account"
+        disabled={true}
+        disabledReason="Account details failed to load. Delete is disabled until the account can be identified."
+        onExport={onExport}
+        onRequestDelete={onRequestDelete}
+      />,
+    );
+
+    const deleteButton = screen.getByRole("button", { name: "Delete account" });
+    const disabledReason = screen.getByText(
+      "Account details failed to load. Delete is disabled until the account can be identified.",
+    );
+
+    expect(deleteButton).toBeVisible();
+    expect(deleteButton).toBeDisabled();
+    expect(deleteButton).toHaveAttribute("aria-describedby", disabledReason.id);
+
+    await user.click(deleteButton);
+
+    expect(onExport).not.toHaveBeenCalled();
+    expect(onRequestDelete).not.toHaveBeenCalled();
+  });
 });

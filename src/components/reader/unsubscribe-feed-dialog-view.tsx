@@ -14,6 +14,9 @@ export function UnsubscribeFeedDialogView({
   description,
   cancelLabel,
   confirmLabel,
+  confirmAccessibleLabel,
+  confirmDisabled,
+  confirmDisabledReason,
   pending,
   onOpenChange,
   onConfirm,
@@ -25,6 +28,9 @@ export function UnsubscribeFeedDialogView({
       description={description}
       cancelLabel={cancelLabel}
       confirmLabel={confirmLabel}
+      confirmAccessibleLabel={confirmAccessibleLabel}
+      confirmDisabled={confirmDisabled}
+      confirmDisabledReason={confirmDisabledReason}
       pending={pending}
       onOpenChange={onOpenChange}
       onConfirm={onConfirm}

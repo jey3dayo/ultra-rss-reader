@@ -7,6 +7,7 @@ import { useSetRead, useToggleStar } from "@/hooks/use-articles";
 import { usePlatformStore } from "@/stores/platform-store";
 import { useUiStore } from "@/stores/ui-store";
 import { ArticleContextMenuView } from "./article-context-menu-view";
+import { useContextMenuTargetSnapshot } from "./context-menu-target";
 
 type ArticleContextMenuProps = {
   article: ArticleDto;
@@ -15,6 +16,8 @@ type ArticleContextMenuProps = {
 
 export function ArticleContextMenu({ article, children }: ArticleContextMenuProps) {
   const { t } = useTranslation("reader");
+  const { contextMenuTarget, captureTarget, captureKeyboardTarget, clearTarget } =
+    useContextMenuTargetSnapshot(article);
   const setRead = useSetRead();
   const toggleStar = useToggleStar();
   const addRecentlyRead = useUiStore((s) => s.addRecentlyRead);
@@ -26,7 +29,7 @@ export function ArticleContextMenu({ article, children }: ArticleContextMenuProp
   const supportsReadingList = usePlatformStore((s) => s.platform.capabilities.supports_reading_list);
   const retainOnUnstar = viewMode === "starred" || (selection.type === "smart" && selection.kind === "starred");
   const { handleToggleRead, handleToggleStar, handleOpenExternalBrowser } = useArticleActions({
-    article,
+    article: contextMenuTarget,
     viewMode,
     retainOnUnstar,
     supportsReadingList,
@@ -39,16 +42,28 @@ export function ArticleContextMenu({ article, children }: ArticleContextMenuProp
   });
 
   return (
-    <ContextMenu.Root>
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: Base UI render prop requires event handler on static element to prevent parent context menu trigger */}
-      <ContextMenu.Trigger render={<div onContextMenu={(e) => e.stopPropagation()} />}>{children}</ContextMenu.Trigger>
+    <ContextMenu.Root onOpenChange={(open) => !open && clearTarget()}>
+      <ContextMenu.Trigger
+        render={
+          // biome-ignore lint/a11y/noStaticElementInteractions: Base UI render prop needs the context menu capture handlers on the inert trigger element wrapping child controls.
+          <div
+            onContextMenu={(event) => {
+              captureTarget();
+              event.stopPropagation();
+            }}
+            onKeyDownCapture={captureKeyboardTarget}
+          />
+        }
+      >
+        {children}
+      </ContextMenu.Trigger>
       <ArticleContextMenuView
-        toggleReadLabel={article.is_read ? t("mark_as_unread") : t("mark_as_read")}
-        toggleStarLabel={article.is_starred ? t("unstar") : t("star")}
-        openInBrowserLabel={article.url ? t("open_in_browser") : undefined}
+        toggleReadLabel={contextMenuTarget.is_read ? t("mark_as_unread") : t("mark_as_read")}
+        toggleStarLabel={contextMenuTarget.is_starred ? t("unstar") : t("star")}
+        openInBrowserLabel={contextMenuTarget.url ? t("open_in_browser") : undefined}
         onToggleRead={handleToggleRead}
         onToggleStar={handleToggleStar}
-        onOpenInBrowser={article.url ? handleOpenExternalBrowser : undefined}
+        onOpenInBrowser={contextMenuTarget.url ? handleOpenExternalBrowser : undefined}
       />
     </ContextMenu.Root>
   );

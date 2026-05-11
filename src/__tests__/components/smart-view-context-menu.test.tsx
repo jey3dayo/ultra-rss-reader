@@ -20,9 +20,13 @@ const {
 }));
 
 vi.mock("@/hooks/use-articles", () => ({
-  useClearArticleViewHistory: () => ({ mutate: clearArticleViewHistoryMutateMock }),
+  useClearArticleViewHistory: () => ({
+    mutate: clearArticleViewHistoryMutateMock,
+  }),
   useMarkAccountRead: () => ({ mutate: markAccountReadMutateMock }),
-  useMarkAccountStarredRead: () => ({ mutate: markAccountStarredReadMutateMock }),
+  useMarkAccountStarredRead: () => ({
+    mutate: markAccountStarredReadMutateMock,
+  }),
   useUnstarAccountArticles: () => ({ mutate: unstarAccountArticlesMutateMock }),
 }));
 
@@ -118,8 +122,10 @@ describe("SmartViewContextMenuContent", () => {
     expect(useUiStore.getState().confirmDialog).toEqual(
       expect.objectContaining({
         open: true,
+        message: "Clear recently viewed history? This cannot be undone.",
         actionLabel: "Clear history",
-        variant: "warning",
+        actionAccessibleLabel: "Clear history. Clear recently viewed history? This cannot be undone.",
+        variant: "destructive",
       }),
     );
 

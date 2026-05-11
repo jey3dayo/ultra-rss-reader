@@ -327,6 +327,16 @@ describe("useAccountDetailDangerZone", () => {
     act(() => {
       result.current.handleRequestDelete();
     });
+
+    expect(useUiStore.getState().confirmDialog).toEqual(
+      expect.objectContaining({
+        message:
+          'Delete "Local"? This cannot be undone. Related feeds, local articles, and account settings will be removed.',
+        actionAccessibleLabel: 'Delete account "Local". This cannot be undone.',
+        variant: "destructive",
+      }),
+    );
+
     await act(async () => {
       await useUiStore.getState().confirmDialog.onConfirm?.();
     });

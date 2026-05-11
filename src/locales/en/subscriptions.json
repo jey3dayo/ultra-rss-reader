@@ -37,6 +37,7 @@
   "detail_recent_articles": "Recent articles",
   "empty": "No subscriptions match the current filters.",
   "detail_empty": "Select a subscription to view details.",
+  "delete_target_unavailable": "The feed could not be reloaded. Unsubscribe is disabled until the target is known.",
   "folder": "Folder",
   "latest_article": "Latest article",
   "unread_count": "Unread",

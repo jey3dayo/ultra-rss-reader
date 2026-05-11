@@ -2142,6 +2142,59 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn pull_entries_smoke_parses_many_large_entries_under_body_cap() {
+        const ENTRY_COUNT: usize = 600;
+        let large_body = format!(
+            "<p>{}</p><img src=\"https://cdn.example.com/body.jpg\" alt=\"body\" />",
+            "large imported article body ".repeat(24)
+        );
+        let mut feed = String::from(
+            r#"<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>Large Feed</title><link>https://example.com/</link>"#,
+        );
+        for index in 0..ENTRY_COUNT {
+            feed.push_str(&format!(
+                "<item><title>Large Article {index}</title><link>https://example.com/articles/{index}</link><guid>large-{index}</guid><description><![CDATA[{large_body}]]></description></item>"
+            ));
+        }
+        feed.push_str("</channel></rss>");
+        assert!(
+            feed.len() < http_defaults::PROVIDER_RESPONSE_BODY_CAP_BYTES as usize,
+            "smoke fixture should stay below the provider response body cap"
+        );
+
+        let mut server = mockito::Server::new_async().await;
+        let feed_url = format!("{}/large-feed.xml", server.url());
+        let mock = server
+            .mock("GET", "/large-feed.xml")
+            .with_body(feed)
+            .with_header("content-type", "application/rss+xml; charset=utf-8")
+            .create_async()
+            .await;
+
+        let provider = local_provider_allowing_private_feed_urls();
+        let result = provider
+            .pull_entries(
+                PullScope::Feed(FeedIdentifier::Local {
+                    feed_url: feed_url.clone(),
+                }),
+                None,
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(result.entries.len(), ENTRY_COUNT);
+        assert_eq!(result.entries[0].title, "Large Article 0");
+        assert!(result.entries[0]
+            .content
+            .contains("large imported article body"));
+        assert_eq!(
+            result.entries[ENTRY_COUNT - 1].url.as_deref(),
+            Some(format!("https://example.com/articles/{}", ENTRY_COUNT - 1).as_str())
+        );
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
     async fn create_subscription_copies_feed_icon_url() {
         let feed = r#"<?xml version="1.0" encoding="UTF-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">

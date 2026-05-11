@@ -113,8 +113,8 @@
     "recent_articles_history_enabled": "Record recently viewed articles",
     "recent_articles_history": "Recently viewed history",
     "clear_recent_articles": "Clear history",
-    "clear_recent_articles_aria_label": "Clear recently viewed history",
-    "confirm_clear_recent_articles": "Clear recently viewed history for the current account?",
+    "clear_recent_articles_aria_label": "Clear recently viewed history for the current account. This cannot be undone.",
+    "confirm_clear_recent_articles": "Clear recently viewed history for the current account? This cannot be undone.",
     "clear_recent_articles_success": "Recently viewed history cleared",
     "clear_recent_articles_failed": "Failed to clear recently viewed history: {{message}}",
     "scroll": "Scroll",
@@ -171,7 +171,8 @@
     "rename_failed": "Failed to update tag: {{message}}",
     "delete_success": "Tag deleted",
     "delete_failed": "Failed to delete tag: {{message}}",
-    "deleted_resource_noop": "This tag was already removed."
+    "deleted_resource_noop": "This tag was already removed.",
+    "delete_target_unavailable": "The tag could not be reloaded. Deleting is disabled until the target is known."
   },
   "shortcuts": {
     "heading": "Shortcuts",
@@ -248,7 +249,8 @@
     "oldest_first": "Oldest first",
     "export_opml": "Export OPML",
     "delete_account": "Delete Account",
-    "confirm_delete": "Delete this account?",
+    "confirm_delete": "Delete \"{{name}}\"? This cannot be undone. Related feeds, local articles, and account settings will be removed.",
+    "delete_account_accessible_label": "Delete account \"{{name}}\". This cannot be undone.",
     "failed_to_rename": "Failed to rename account: {{message}}",
     "copy_server_url": "Copy Server URL",
     "copy_server_url_failed": "Failed to copy server URL: {{message}}",

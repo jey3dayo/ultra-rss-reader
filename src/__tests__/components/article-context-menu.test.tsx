@@ -60,4 +60,47 @@ describe("ArticleContextMenu", () => {
       });
     });
   });
+
+  it("keeps the right-clicked article as the action target when selection data updates while the menu is open", async () => {
+    const calls: MockTauriCommandCall[] = [];
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      switch (cmd) {
+        case "open_in_browser":
+          return null;
+        default:
+          return undefined;
+      }
+    });
+
+    const { rerender } = render(
+      <ArticleContextMenu article={sampleArticles[0]}>
+        <button type="button">Article row</button>
+      </ArticleContextMenu>,
+      { wrapper: createWrapper() },
+    );
+
+    const user = userEvent.setup();
+    fireEvent.contextMenu(screen.getByRole("button", { name: "Article row" }));
+
+    rerender(
+      <ArticleContextMenu article={sampleArticles[1]}>
+        <button type="button">Article row</button>
+      </ArticleContextMenu>,
+    );
+
+    await user.click(await screen.findByRole("menuitem", { name: "Open Web Preview" }));
+
+    await waitFor(() => {
+      expect(calls).toContainEqual({
+        cmd: "open_in_browser",
+        args: { url: sampleArticles[0]?.url, background: false },
+      });
+    });
+    expect(calls).not.toContainEqual({
+      cmd: "open_in_browser",
+      args: { url: sampleArticles[1]?.url, background: false },
+    });
+  });
 });

@@ -61,6 +61,24 @@ DNS and private-host time-of-check/time-of-use contract:
 - DNS lookup failures are network failures, not permission to skip the private-host guard.
 - Local provider sync and subscription creation both run the same external feed URL validation before request construction. If DNS rebinding-resistant socket pinning is added later, it must be a focused provider-network change with fixtures for validation-result drift between check and connect.
 
+### Large Feed And Article Memory Pressure Smoke Policy
+
+Large-feed import and article-render smoke tests are regression sentinels, not supported hard limits. They must cover many feed entries, large OPML under the import cap, and large sanitized article bodies so body-size caps do not become the only memory-pressure signal.
+
+The current smoke boundary is:
+
+- Local provider parser: parse many large RSS entries under the 5 MiB decoded feed body cap.
+- OPML import: parse a large subscription list under the 4 MiB OPML import cap.
+- Article content view: render a large sanitized article body through the branded sanitized-HTML boundary without adding extra render wrappers.
+
+Provider parse failures must not persist raw response samples, raw feed bodies, article bodies, feed URLs, article URLs, credentials, tokens, cookies, or local paths by default. Support-safe diagnostics may record status class, content-type class, cap class, parser boundary name, fixture class name, and a non-reversible hash only after the artifact path includes consent and redaction preview. Raw response samples require a separate opt-in support flow and must be treated as private support artifacts.
+
+### Provider Scale Guidance Decision
+
+Account settings may show provider-specific feed and article count guidance as advisory performance guidance, not as an enforced maximum. The copy must say Ultra RSS Reader has no fixed provider-wide hard limit in this release, and that actual performance depends on provider latency, article body size, image-heavy feeds, local database size, and device resources.
+
+Warning thresholds must be driven by observed performance diagnostics or release-tested guidance, not by treating FreshRSS or Local accounts as having a protocol maximum. Diagnostics may record account kind, coarse feed count bucket, coarse article count bucket, sync duration class, body-cap class, and whether the warning came from import, sync, or render smoke. Diagnostics must not include raw account names, feed URLs, article URLs, article bodies, credentials, tokens, cookies, or local paths.
+
 ## Local Data Privacy Decisions
 
 ### Local Database Encryption At Rest
@@ -397,6 +415,32 @@ Ranking and snippet contract:
   may be displayed through the same rendering path used outside search.
 - Syntax errors from FTS query operators should not be surfaced to users for
   ordinary search input because operators are escaped before matching.
+
+### Article Content Selection And Search Highlight Contract
+
+Decision: before article-content virtualization exists, reader article content
+stays one contiguous sanitized DOM surface. Text selection must remain native
+DOM selection inside sanitized article content, and browser find should continue
+to work against the rendered text without an app-owned block virtualization
+layer.
+
+Selection, find, and highlight contract:
+
+- Reader search is a list-level filter only today. It must not inject search
+  highlight markup into sanitized article HTML, reorder article content blocks,
+  or replace text nodes with app-owned snippet fragments.
+- The article content pane marks the current pre-virtualization contract with
+  stable `data-reader-*` attributes so future virtualization work must make an
+  explicit compatibility decision for selection, browser find, scroll restore,
+  and image loading before changing the DOM shape.
+- Future article-content virtualization must keep stable scroll anchors for the
+  selected article and any future in-article find result. Scroll restoration must
+  not rely on transient virtual row indexes alone.
+- Image lazy loading may stay browser-owned until virtualization owns row or
+  block mounting. If virtualization starts unmounting article blocks, image load
+  timing and placeholder behavior need a separate compatibility test.
+- Print and share remain future scope. Do not use this contract as permission to
+  add print/share behavior while implementing virtualization prerequisites.
 
 ### Provider Request Security Boundary
 

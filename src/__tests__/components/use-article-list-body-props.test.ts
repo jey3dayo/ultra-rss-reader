@@ -101,4 +101,27 @@ describe("buildArticleListBodyEmptyState", () => {
       onEmptyAction: undefined,
     });
   });
+
+  it.each([
+    ["permission", "Permission required", "The article list is unavailable until access is restored."],
+    ["auth", "Authentication required", "Reconnect the account before treating this list as empty."],
+    ["network", "Cannot refresh articles", "Check the connection or retry before assuming there are no articles."],
+    ["schema", "Article data needs recovery", "The response could not be read. Open logs or contact support."],
+  ] as const)("uses failure copy instead of true empty copy for %s failures", (failureState, message, description) => {
+    const props = buildArticleListBodyEmptyState({
+      t,
+      isSearchEmptyState: false,
+      setupEmptyState: failureState,
+      trimmedDebouncedQuery: "",
+      handleCloseSearch: vi.fn(),
+    });
+
+    expect(props).toEqual({
+      emptyStateVariant: "setup",
+      emptyMessage: message,
+      emptyDescription: description,
+      emptyActionLabel: undefined,
+      onEmptyAction: undefined,
+    });
+  });
 });

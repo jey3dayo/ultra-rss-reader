@@ -603,6 +603,9 @@ describe("release repository contract", () => {
   const providerSource = readText("src-tauri/src/domain/provider.rs");
   const providerHttpDefaultsSource = readText("src-tauri/src/infra/provider/http_defaults.rs");
   const localProviderSource = readText("src-tauri/src/infra/provider/local.rs");
+  const accountCommandsSource = readText("src-tauri/src/commands/account_commands.rs");
+  const opmlCommandsSource = readText("src-tauri/src/commands/opml_commands.rs");
+  const articleContentViewTest = readText("src/__tests__/components/article-content-view.test.tsx");
   const feedDiscoverySource = readText("src-tauri/src/infra/feed_discovery.rs");
   const addAccountFormSource = readText("src/lib/account/add-account-form.ts");
   const addAccountServicesSource = readText("src/components/settings/add-account/services.ts");
@@ -1140,6 +1143,25 @@ describe("release repository contract", () => {
     expect(feedContentPrivacy).toContain(
       'Settings copy must describe reduced-data behavior as "limits automatic remote',
     );
+
+    expect(localProviderSource).toContain("pull_entries_smoke_parses_many_large_entries_under_body_cap");
+    expect(opmlCommandsSource).toContain("import_parser_smoke_parses_large_opml_under_file_limit");
+    expect(articleContentViewTest).toContain(
+      "smoke-renders a large sanitized article body with many remote images without expanding render wrappers",
+    );
+    expect(feedContentPrivacy).toContain("### Large Feed And Article Memory Pressure Smoke Policy");
+    expect(feedContentPrivacy).toContain(
+      "Large-feed import and article-render smoke tests are regression sentinels, not supported hard limits.",
+    );
+    expect(feedContentPrivacy).toContain("Provider parse failures must not persist raw response samples");
+    expect(incidentRunbook).toContain("Feed parser failure samples must be support-safe by default.");
+    expect(feedContentPrivacy).toContain("### Provider Scale Guidance Decision");
+    expect(feedContentPrivacy).toContain(
+      "Account settings may show provider-specific feed and article count guidance as advisory performance guidance, not as an enforced maximum.",
+    );
+    expect(accountCommandsSource).toContain("provider_account_scale_guidance_contract_is_advisory");
+    expect(accountCommandsSource).toContain("warning_threshold_guidance");
+    expect(accountCommandsSource).toContain("no_hard_limit_copy");
   });
 
   it("keeps app action diagnostics and public id persistence boundaries documented", () => {
@@ -1247,6 +1269,26 @@ describe("release repository contract", () => {
     expect(feedContentPrivacy).toContain("Search UI copy must describe literal-word search");
     expect(feedContentPrivacy).toContain("FTS rank, match position,");
     expect(feedContentPrivacy).toContain("publisher title tricks, or snippet density");
+    expect(feedContentPrivacy).toContain("### Article Content Selection And Search Highlight Contract");
+    expect(feedContentPrivacy).toContain("stays one contiguous sanitized DOM surface.");
+    expect(feedContentPrivacy).toContain("DOM selection inside sanitized article content");
+    expect(feedContentPrivacy).toContain("Reader search is a list-level filter only today");
+    expect(feedContentPrivacy).toContain("It must not inject search");
+    expect(feedContentPrivacy).toContain("highlight markup into sanitized article HTML");
+    expect(feedContentPrivacy).toContain("Future article-content virtualization must keep stable scroll anchors");
+    expect(feedContentPrivacy).toContain("Image lazy loading may stay browser-owned");
+
+    expect(readerKeyboardNavigation).toContain("## Long Article Selection And Search Highlight Contract");
+    expect(readerKeyboardNavigation).toContain("article content remains a single rendered reading surface");
+    expect(readerKeyboardNavigation).toContain(
+      "Text selection owned by the browser must not be cleared by scroll restoration",
+    );
+    expect(readerKeyboardNavigation).toContain(
+      "Find-in-article and search highlights must be anchored to normalized text ranges or stable content nodes",
+    );
+    expect(readerKeyboardNavigation).toContain(
+      "Reader scroll restoration must use a stable article/content anchor and offset.",
+    );
 
     expect(feedContentPrivacy).toContain("### Feed Discovery Result Trust Levels");
     expect(feedContentPrivacy).toContain(

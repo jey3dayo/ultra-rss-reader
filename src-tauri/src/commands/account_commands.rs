@@ -52,6 +52,23 @@ struct InvalidAccountRowRecoveryContract {
 }
 
 #[cfg(test)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ProviderScaleGuidanceSurface {
+    AccountSettingsAdvisory,
+}
+
+#[cfg(test)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ProviderAccountScaleGuidanceContract {
+    surface: ProviderScaleGuidanceSurface,
+    max_feeds_guidance: &'static str,
+    max_articles_guidance: &'static str,
+    warning_threshold_guidance: &'static str,
+    performance_diagnostics: &'static str,
+    no_hard_limit_copy: bool,
+}
+
+#[cfg(test)]
 fn account_credential_cleanup_contract() -> AccountCredentialCleanupContract {
     AccountCredentialCleanupContract {
         steps: vec![
@@ -75,6 +92,19 @@ fn invalid_account_row_recovery_contract() -> InvalidAccountRowRecoveryContract 
         ],
         preserves_account_id: true,
         exposes_displayable_row: true,
+    }
+}
+
+#[cfg(test)]
+fn provider_account_scale_guidance_contract() -> ProviderAccountScaleGuidanceContract {
+    ProviderAccountScaleGuidanceContract {
+        surface: ProviderScaleGuidanceSurface::AccountSettingsAdvisory,
+        max_feeds_guidance: "provider_specific_advisory_not_enforced",
+        max_articles_guidance: "provider_specific_advisory_not_enforced",
+        warning_threshold_guidance: "warn_from_observed_performance_not_fixed_protocol_limit",
+        performance_diagnostics:
+            "record_account_kind_feed_count_article_count_and_sync_duration_class",
+        no_hard_limit_copy: true,
     }
 }
 
@@ -345,10 +375,12 @@ mod tests {
     use super::{
         account_credential_cleanup_contract, delete_account_then_password,
         invalid_account_row_recovery_contract, normalize_new_freshrss_server_url,
-        save_account_after_optional_password, update_account_credentials_after_optional_password,
-        validate_account_name, validate_account_name_with_excluded_id,
-        validate_account_sync_settings, validate_add_account_args, validate_freshrss_server_url,
+        provider_account_scale_guidance_contract, save_account_after_optional_password,
+        update_account_credentials_after_optional_password, validate_account_name,
+        validate_account_name_with_excluded_id, validate_account_sync_settings,
+        validate_add_account_args, validate_freshrss_server_url,
         AccountCredentialCleanupFailurePolicy, AccountCredentialCleanupStep, AccountRecoveryAction,
+        ProviderScaleGuidanceSurface,
     };
     use crate::commands::dto::AppError;
     use crate::domain::account::{Account, ConnectionVerificationStatus};
@@ -984,6 +1016,33 @@ mod tests {
         );
         assert!(contract.preserves_account_id);
         assert!(contract.exposes_displayable_row);
+    }
+
+    #[test]
+    fn provider_account_scale_guidance_contract_is_advisory_smoke() {
+        let contract = provider_account_scale_guidance_contract();
+
+        assert_eq!(
+            contract.surface,
+            ProviderScaleGuidanceSurface::AccountSettingsAdvisory
+        );
+        assert_eq!(
+            contract.max_feeds_guidance,
+            "provider_specific_advisory_not_enforced"
+        );
+        assert_eq!(
+            contract.max_articles_guidance,
+            "provider_specific_advisory_not_enforced"
+        );
+        assert_eq!(
+            contract.warning_threshold_guidance,
+            "warn_from_observed_performance_not_fixed_protocol_limit"
+        );
+        assert_eq!(
+            contract.performance_diagnostics,
+            "record_account_kind_feed_count_article_count_and_sync_duration_class"
+        );
+        assert!(contract.no_hard_limit_copy);
     }
 }
 

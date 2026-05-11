@@ -210,7 +210,7 @@ describe("TagsSettings", () => {
     expect(showToast).toHaveBeenCalledWith("Failed to update tag: Tag no longer exists.");
   });
 
-  it("closes delete dialog without deleting when the target tag disappears", async () => {
+  it("keeps delete dialog visible but disabled when the target tag disappears", async () => {
     const user = userEvent.setup();
     const showToast = vi.fn();
     tagHooks.tagsData = [{ id: "tag-1", name: "Review", color: null }];
@@ -230,11 +230,15 @@ describe("TagsSettings", () => {
       }),
     );
 
-    await waitFor(() => {
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    const deleteButton = within(screen.getByRole("dialog")).getByRole("button", {
+      name: 'Delete "Review". This cannot be undone.',
     });
+    expect(deleteButton).toBeDisabled();
+    expect(deleteButton).toHaveAccessibleDescription(
+      "The tag could not be reloaded. Deleting is disabled until the target is known.",
+    );
     expect(tagHooks.deleteTagMutateAsync).not.toHaveBeenCalled();
-    expect(showToast).toHaveBeenCalledWith("Failed to delete tag: Tag no longer exists.");
+    expect(showToast).not.toHaveBeenCalled();
   });
 });
 

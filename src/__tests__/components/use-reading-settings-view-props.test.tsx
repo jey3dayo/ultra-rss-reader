@@ -334,6 +334,31 @@ describe("useReadingSettingsViewProps", () => {
     expect(clearHistoryMutateMock).not.toHaveBeenCalled();
   });
 
+  it("opens destructive recent history confirmation with target and irreversible accessible label", () => {
+    const showConfirm = vi.fn();
+    useUiStore.setState({ selectedAccountId: "acc-1", showConfirm });
+    const { result } = renderHook(
+      () =>
+        useReadingSettingsViewProps({
+          t,
+          prefs: {},
+          setPref: vi.fn(),
+          devIntent: null,
+          platformKind: "macos",
+          supportsBackgroundBrowserOpen: true,
+        }),
+      { wrapper: createWrapper() },
+    );
+
+    getActionControl(result.current, "clear-recent-articles").onAction?.();
+
+    expect(showConfirm).toHaveBeenCalledWith(t("reading.confirm_clear_recent_articles"), expect.any(Function), {
+      actionLabel: t("reading.clear_recent_articles"),
+      actionAccessibleLabel: t("reading.clear_recent_articles_aria_label"),
+      variant: "destructive",
+    });
+  });
+
   it("maps ja recent history action aria labels from locale keys", () => {
     const tJa = i18n.getFixedT("ja", "settings");
 

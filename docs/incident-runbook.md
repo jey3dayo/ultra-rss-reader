@@ -76,6 +76,7 @@ Size and truncation contract:
 - In-memory diagnostics history must behave as a 256 KiB ring buffer and evict oldest entries before writing new diagnostics.
 - If support/debug copy still exceeds the cap or cannot be copied, truncate from the middle, include `[ultra-rss-reader:diagnostics-truncated]`, and direct the user to share a manually redacted app.log excerpt instead.
 - Truncation must not remove the redaction preview, artifact class list, or warning that support artifacts are private.
+- Feed parser failure samples must be support-safe by default. Do not save raw feed responses, article bodies, feed URLs, article URLs, credentials, tokens, cookies, or local paths in diagnostics; record only the parser boundary, status/content-type class, cap class, coarse account/provider class, and consent/redaction state unless a private support flow explicitly accepts a raw sample.
 
 Storage pressure contract:
 

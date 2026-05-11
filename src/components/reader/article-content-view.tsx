@@ -45,6 +45,11 @@ export function ArticleContentView({ thumbnailUrl, contentHtml, feedName }: Arti
         </div>
       )}
       <div
+        data-reader-content-contract="native-contiguous-dom"
+        data-reader-selection-contract="native-dom-selection"
+        data-reader-search-highlight-contract="browser-find-no-inline-marks"
+        data-reader-scroll-anchor="article-content"
+        data-reader-image-loading-contract="lazy-native"
         className="prose prose-stone dark:prose-invert min-w-0 max-w-none overflow-x-hidden font-serif text-[1.02rem] leading-8 text-foreground prose-headings:font-sans prose-headings:font-normal prose-headings:tracking-[-0.02em] prose-headings:text-foreground prose-p:font-serif prose-li:font-serif prose-blockquote:font-serif prose-strong:text-foreground prose-code:break-words prose-pre:max-w-full prose-pre:overflow-x-auto prose-table:block prose-table:max-w-full prose-table:overflow-x-auto"
         // react-doctor-disable-next-line react/no-danger -- contentHtml is SanitizedArticleHtml from the Rust sanitizer boundary.
         dangerouslySetInnerHTML={{ __html: displayHtml }}

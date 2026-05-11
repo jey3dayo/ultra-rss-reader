@@ -70,7 +70,11 @@ export function useReadingSettingsViewProps({
             ),
         });
       },
-      { actionLabel: t("reading.clear_recent_articles") },
+      {
+        actionLabel: t("reading.clear_recent_articles"),
+        actionAccessibleLabel: t("reading.clear_recent_articles_aria_label"),
+        variant: "destructive",
+      },
     );
   }, [clearHistory, selectedAccountId, showConfirm, showToast, t]);
 

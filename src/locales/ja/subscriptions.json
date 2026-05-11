@@ -37,6 +37,7 @@
   "detail_recent_articles": "最近の記事",
   "empty": "一致する購読はありません。",
   "detail_empty": "購読を選ぶと詳細が表示されます。",
+  "delete_target_unavailable": "フィードを再読み込みできません。対象が確認できるまで購読解除は無効です。",
   "folder": "フォルダ",
   "latest_article": "最新記事",
   "unread_count": "未読",

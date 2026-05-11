@@ -56,9 +56,10 @@ export function SmartViewContextMenuContent({ accountId, view }: SmartViewContex
   }, [accountId, showConfirm, t, unstarAccountArticles, view.count]);
 
   const handleClearRecentHistory = useCallback(() => {
-    showConfirm(t("clear_recent_history"), () => clearArticleViewHistory.mutate(accountId), {
+    showConfirm(t("confirm_clear_recent_history"), () => clearArticleViewHistory.mutate(accountId), {
       actionLabel: t("clear_recent_history"),
-      variant: "warning",
+      actionAccessibleLabel: `${t("clear_recent_history")}. ${t("confirm_clear_recent_history")}`,
+      variant: "destructive",
     });
   }, [accountId, clearArticleViewHistory, showConfirm, t]);
 

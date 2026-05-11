@@ -544,6 +544,32 @@ mod tests {
     }
 
     #[test]
+    fn import_parser_smoke_parses_large_opml_under_file_limit() {
+        const FEED_COUNT: usize = 2_000;
+        let mut opml =
+            String::from(r#"<?xml version="1.0" encoding="UTF-8"?><opml version="2.0"><body>"#);
+        for index in 0..FEED_COUNT {
+            opml.push_str(&format!(
+                r#"<outline text="Feed {index}" type="rss" xmlUrl="https://example.com/feed-{index}.xml" htmlUrl="https://example.com/feed-{index}"/>"#
+            ));
+        }
+        opml.push_str("</body></opml>");
+        assert!(
+            opml.len() < OPML_IMPORT_CONTENT_MAX_BYTES,
+            "large OPML smoke fixture should stay below the import file cap"
+        );
+
+        let feeds = parse_import_opml(&opml).unwrap();
+
+        assert_eq!(feeds.len(), FEED_COUNT);
+        assert_eq!(feeds[0].title, "Feed 0");
+        assert_eq!(
+            feeds[FEED_COUNT - 1].xml_url,
+            format!("https://example.com/feed-{}.xml", FEED_COUNT - 1)
+        );
+    }
+
+    #[test]
     fn import_parser_malformed_xml_error_matches_toast_surface() {
         let error = parse_import_opml(r#"<?xml version="1.0"?><opml><body><outline text="Feed">"#)
             .unwrap_err();

@@ -113,8 +113,8 @@
     "recent_articles_history_enabled": "最近見た記事を記録",
     "recent_articles_history": "最近見た記事の履歴",
     "clear_recent_articles": "履歴を削除",
-    "clear_recent_articles_aria_label": "最近見た記事の履歴を削除",
-    "confirm_clear_recent_articles": "現在のアカウントの閲覧履歴を削除しますか？",
+    "clear_recent_articles_aria_label": "現在のアカウントの閲覧履歴を削除します。元に戻せません。",
+    "confirm_clear_recent_articles": "現在のアカウントの閲覧履歴を削除しますか？元に戻せません。",
     "clear_recent_articles_success": "閲覧履歴を削除しました",
     "clear_recent_articles_failed": "閲覧履歴の削除に失敗しました: {{message}}",
     "scroll": "スクロール",
@@ -171,7 +171,8 @@
     "rename_failed": "タグの更新に失敗しました: {{message}}",
     "delete_success": "タグを削除しました",
     "delete_failed": "タグの削除に失敗しました: {{message}}",
-    "deleted_resource_noop": "このタグはすでに削除されています。"
+    "deleted_resource_noop": "このタグはすでに削除されています。",
+    "delete_target_unavailable": "タグを再読み込みできません。対象が確認できるまで削除は無効です。"
   },
   "shortcuts": {
     "heading": "ショートカット",
@@ -248,7 +249,8 @@
     "oldest_first": "古い順",
     "export_opml": "OPMLをエクスポート",
     "delete_account": "アカウントを削除",
-    "confirm_delete": "このアカウントを削除しますか？",
+    "confirm_delete": "「{{name}}」を削除しますか？元に戻せません。関連するフィード、ローカル記事、アカウント設定も削除されます。",
+    "delete_account_accessible_label": "アカウント「{{name}}」を削除します。元に戻せません。",
     "failed_to_rename": "アカウント名の変更に失敗しました: {{message}}",
     "copy_server_url": "サーバーURLをコピー",
     "copy_server_url_failed": "サーバーURLのコピーに失敗しました: {{message}}",

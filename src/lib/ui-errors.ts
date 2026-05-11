@@ -44,6 +44,14 @@ export class AppErrorClassificationError extends Error {
 }
 
 export type QueryTransientFailureUx = "manual-retry" | "diagnostics" | "none";
+export type AppRecoveryCategory = "auth" | "network" | "permission" | "schema" | "storage" | "unknown";
+export type AppErrorRecoveryAction =
+  | "contact-support"
+  | "open-log-dir"
+  | "open-settings"
+  | "reset-local-state"
+  | "restore-backup"
+  | "retry";
 export type RuntimeActionErrorCategory =
   | "runtime_unavailable"
   | "permission_denied"
@@ -62,6 +70,15 @@ const TRANSIENT_USER_VISIBLE_PATTERNS = [
   /\btemporar(?:y|ily)\b/i,
 ];
 
+const APP_ERROR_RECOVERY_ACTIONS = {
+  auth: ["open-settings"],
+  network: ["retry", "open-settings"],
+  permission: ["open-settings", "open-log-dir"],
+  schema: ["open-log-dir", "contact-support"],
+  storage: ["open-log-dir", "restore-backup"],
+  unknown: ["retry", "open-log-dir", "contact-support"],
+} as const satisfies Record<AppRecoveryCategory, readonly AppErrorRecoveryAction[]>;
+
 export function classifyQueryTransientFailureUx(error: AppError): QueryTransientFailureUx {
   if (error.type === "Retryable") {
     return "manual-retry";
@@ -73,6 +90,66 @@ export function classifyQueryTransientFailureUx(error: AppError): QueryTransient
     return "manual-retry";
   }
   return "none";
+}
+
+export function classifyAppRecoveryCategory(error: AppError): AppRecoveryCategory {
+  if (error.type === "Diagnostics") {
+    return "schema";
+  }
+  if (error.type === "Retryable") {
+    return "network";
+  }
+
+  const normalized = error.message.toLowerCase();
+  if (
+    normalized.includes("permission denied") ||
+    normalized.includes("access denied") ||
+    normalized.includes("not allowed") ||
+    normalized.includes("read-only database") ||
+    normalized.includes("readonly database")
+  ) {
+    return "permission";
+  }
+  if (
+    normalized.includes("unauthorized") ||
+    normalized.includes("forbidden") ||
+    normalized.includes("invalid credentials") ||
+    normalized.includes("authentication") ||
+    normalized.includes("auth failed")
+  ) {
+    return "auth";
+  }
+  if (
+    normalized.includes("network") ||
+    normalized.includes("offline") ||
+    normalized.includes("timeout") ||
+    normalized.includes("dns") ||
+    normalized.includes("connection refused")
+  ) {
+    return "network";
+  }
+  if (
+    normalized.includes("corrupt") ||
+    normalized.includes("malformed") ||
+    normalized.includes("not a database") ||
+    normalized.includes("database disk image is malformed")
+  ) {
+    return "storage";
+  }
+
+  return "unknown";
+}
+
+export function getAppRecoveryActionsForCategory(category: AppRecoveryCategory): readonly AppErrorRecoveryAction[] {
+  return APP_ERROR_RECOVERY_ACTIONS[category];
+}
+
+export function classifyAppErrorRecoveryCategory(error: AppError): AppRecoveryCategory {
+  return classifyAppRecoveryCategory(error);
+}
+
+export function getAppErrorRecoveryActions(error: AppError): readonly AppErrorRecoveryAction[] {
+  return getAppRecoveryActionsForCategory(classifyAppRecoveryCategory(error));
 }
 
 function hasRuntimeActionErrorToken(message: string, token: string): boolean {

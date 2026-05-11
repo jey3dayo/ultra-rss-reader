@@ -49,7 +49,6 @@ fn normalize_backend_article_search_query(query: &str) -> String {
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 struct BrowserOpenQueueKey {
     url: String,
-    background: bool,
 }
 
 struct BrowserOpenQueueGuard<'a> {
@@ -82,7 +81,7 @@ pub fn open_in_browser(url: String, background: Option<bool>) -> Result<(), AppE
     let background =
         should_use_background_browser_open(background.unwrap_or(false), &platform_info);
     let normalized_url = parsed_url.to_string();
-    let Some(_open_guard) = acquire_browser_open_queue_guard(&normalized_url, background)? else {
+    let Some(_open_guard) = acquire_browser_open_queue_guard(&normalized_url)? else {
         tracing::debug!(
             url = %crate::commands::redacted_browser_url_for_display(&normalized_url),
             background,
@@ -112,13 +111,11 @@ fn parse_public_browser_http_url(url: &str) -> Result<reqwest::Url, AppError> {
 
 fn acquire_browser_open_queue_guard(
     url: &str,
-    background: bool,
 ) -> Result<Option<BrowserOpenQueueGuard<'static>>, AppError> {
     acquire_browser_open_queue_guard_from(
         browser_open_queue(),
         BrowserOpenQueueKey {
             url: url.to_string(),
-            background,
         },
     )
 }
@@ -1647,11 +1644,10 @@ mod tests {
     }
 
     #[test]
-    fn browser_open_queue_deduplicates_same_target_until_guard_drops() {
+    fn browser_open_queue_deduplicates_same_url_until_guard_drops() {
         let queue = Box::leak(Box::new(Mutex::new(std::collections::HashSet::new())));
         let key = BrowserOpenQueueKey {
             url: "https://example.com/article".to_string(),
-            background: true,
         };
 
         let first = acquire_browser_open_queue_guard_from(queue, key.clone())
@@ -1662,16 +1658,15 @@ mod tests {
 
         assert!(duplicate.is_none());
 
-        let distinct_background = acquire_browser_open_queue_guard_from(
+        let menu_shortcut_race = acquire_browser_open_queue_guard_from(
             queue,
             BrowserOpenQueueKey {
                 url: key.url.clone(),
-                background: false,
             },
         )
         .expect("queue lock should be available");
 
-        assert!(distinct_background.is_some());
+        assert!(menu_shortcut_race.is_none());
         drop(first);
 
         let after_release = acquire_browser_open_queue_guard_from(queue, key)
