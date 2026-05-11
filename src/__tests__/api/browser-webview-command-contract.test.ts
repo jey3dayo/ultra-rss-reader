@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Result } from "@praha/byethrow";
 import { expectTauriCommandValidationError, suppressConsoleError } from "@tests/helpers/console-spies";
-import { extractRustStructFields } from "@tests/helpers/tauri-command-contract";
+import { extractRustStructFields, runValidationCommandCases } from "@tests/helpers/tauri-command-contract";
 import { createTauriMockCallRecorder, setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { describe, expect, it } from "vitest";
 import {
@@ -34,38 +34,6 @@ const browserBounds: BrowserWebviewBounds = {
   width: 900,
   height: 720,
 };
-
-type CommandValidationError = {
-  message: string;
-};
-
-async function runCommandCases<
-  TCommand extends readonly [string, () => Promise<Result.Result<unknown, CommandValidationError>>],
->(
-  commandCases: readonly TCommand[],
-): Promise<Array<readonly [string, Result.Result<unknown, CommandValidationError>]>> {
-  return Promise.all(
-    commandCases.map(async ([command, runCommand]) => {
-      const result = await runCommand();
-      return [command, result] as const;
-    }),
-  );
-}
-
-async function runResponseValidationCommandCases<
-  TCommand extends readonly [string, () => Promise<Result.Result<unknown, CommandValidationError>>],
->(
-  commandCases: readonly TCommand[],
-): Promise<Array<readonly [string, Result.Result<unknown, CommandValidationError>]>> {
-  const consoleError = suppressConsoleError();
-  const results = await runCommandCases(commandCases);
-
-  for (const [command] of results) {
-    expectTauriCommandValidationError(consoleError, command, "response");
-  }
-
-  return results;
-}
 
 function readRustBrowserWebviewSource() {
   return readFileSync(join(process.cwd(), "src-tauri/src/browser_webview.rs"), "utf8");
@@ -153,7 +121,7 @@ describe("browser webview command contract", () => {
       return null;
     });
 
-    for (const [command, result] of await runResponseValidationCommandCases(stateCommandCases)) {
+    for (const [command, result] of await runValidationCommandCases(stateCommandCases, "response")) {
       expect(Result.isFailure(result), command).toBe(true);
       expect(Result.unwrapError(result).message).toContain("validation failed");
     }
@@ -173,7 +141,7 @@ describe("browser webview command contract", () => {
       return null;
     });
 
-    for (const [command, result] of await runResponseValidationCommandCases(nullCommandCases)) {
+    for (const [command, result] of await runValidationCommandCases(nullCommandCases, "response")) {
       expect(Result.isFailure(result), command).toBe(true);
       expect(Result.unwrapError(result).message).toContain("validation failed");
     }

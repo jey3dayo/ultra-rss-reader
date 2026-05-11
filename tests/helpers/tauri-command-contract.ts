@@ -1,4 +1,40 @@
+import type { Result } from "@praha/byethrow";
 import { expect } from "vitest";
+import { expectTauriCommandValidationError, suppressConsoleError } from "./console-spies";
+
+export type CommandValidationBoundary = "args" | "response";
+
+export type CommandValidationError = {
+  readonly type?: string;
+  readonly message: string;
+};
+
+export type CommandValidationCase = readonly [string, () => Promise<Result.Result<unknown, CommandValidationError>>];
+
+export async function runCommandCases<TCommand extends CommandValidationCase>(
+  commandCases: readonly TCommand[],
+): Promise<Array<readonly [string, Result.Result<unknown, CommandValidationError>]>> {
+  return Promise.all(
+    commandCases.map(async ([command, runCommand]) => {
+      const result = await runCommand();
+      return [command, result] as const;
+    }),
+  );
+}
+
+export async function runValidationCommandCases<TCommand extends CommandValidationCase>(
+  commandCases: readonly TCommand[],
+  boundary: CommandValidationBoundary,
+): Promise<Array<readonly [string, Result.Result<unknown, CommandValidationError>]>> {
+  const consoleError = suppressConsoleError();
+  const results = await runCommandCases(commandCases);
+
+  for (const [command] of results) {
+    expectTauriCommandValidationError(consoleError, command, boundary);
+  }
+
+  return results;
+}
 
 export function extractCommandNames(source: string, commandPattern: RegExp): string[] {
   const commands = new Set<string>();

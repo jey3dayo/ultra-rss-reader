@@ -2,6 +2,7 @@ import { Result } from "@praha/byethrow";
 import { invoke } from "@tauri-apps/api/core";
 import { expectTauriCommandValidationError, suppressConsoleError } from "@tests/helpers/console-spies";
 import { sampleAccounts, sampleArticles, sampleFeeds } from "@tests/helpers/fixtures";
+import { runValidationCommandCases } from "@tests/helpers/tauri-command-contract";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest";
 import {
@@ -89,10 +90,6 @@ import type { BrowserWebviewBounds } from "@/lib/browser/browser-webview";
 type CommandSuccess<TCommand> = TCommand extends (...args: infer _Args) => Result.ResultAsync<infer Output, unknown>
   ? Output
   : never;
-type CommandValidationError = {
-  type?: string;
-  message: string;
-};
 
 const responseValidationBrowserBounds: BrowserWebviewBounds = {
   x: 380,
@@ -106,35 +103,6 @@ const sampleAcc1Articles = sampleArticles.filter((article) =>
   sampleAcc1Feeds.some((feed) => feed.id === article.feed_id),
 );
 const sampleFeed1Articles = sampleArticles.filter((article) => article.feed_id === "feed-1");
-
-async function runCommandCases<
-  TCommand extends readonly [string, () => Promise<Result.Result<unknown, CommandValidationError>>],
->(
-  commandCases: readonly TCommand[],
-): Promise<Array<readonly [string, Result.Result<unknown, CommandValidationError>]>> {
-  return Promise.all(
-    commandCases.map(async ([command, runCommand]) => {
-      const result = await runCommand();
-      return [command, result] as const;
-    }),
-  );
-}
-
-async function runValidationCommandCases<
-  TCommand extends readonly [string, () => Promise<Result.Result<unknown, CommandValidationError>>],
->(
-  commandCases: readonly TCommand[],
-  boundary: "args" | "response",
-): Promise<Array<readonly [string, Result.Result<unknown, CommandValidationError>]>> {
-  const consoleError = suppressConsoleError();
-  const results = await runCommandCases(commandCases);
-
-  for (const [command] of results) {
-    expectTauriCommandValidationError(consoleError, command, boundary);
-  }
-
-  return results;
-}
 
 describe("tauri-commands with mockIPC", () => {
   const browserBounds: BrowserWebviewBounds = {
