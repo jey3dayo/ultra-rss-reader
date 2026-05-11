@@ -46,11 +46,6 @@
 
 ### Browser WebView / Runtime Diagnostics
 
-- [ ] P1 Tauri command blocking DB work を `spawn_blocking` / async boundary で分類する
-  - 対象: `src-tauri/src/commands`, repository access, `AppState` DB mutex
-  - async command 内で重い SQLite 処理を直接実行すると、runtime worker を詰まらせて sync・updater・webview events が遅延する
-  - list/search/export/vacuum/import/repair command の blocking classification と focused benchmark を追加する
-
 - [ ] P2 main window close confirmation と dirty/pending state registry を native close event へ接続する
   - 対象: `src-tauri/src/lib.rs`, app shell dirty-state registry, settings/add-feed flows
   - OS の close button は frontend navigation guard を通らないため、dirty form や pending mutation を落とす可能性がある
@@ -60,11 +55,6 @@
   - 対象: updater hook、export/backup commands、runtime lifecycle
   - laptop sleep で long-running file/network operation が中断すると、partial artifact や stale progress が残る
   - sleep during download、sleep during export、sleep during backup、resume cleanup、progress reset の contract を追加する
-
-- [ ] P1 file drop / drag-and-drop import surface を URL validation と同じ security boundary にする
-  - 対象: Tauri window events、OPML import UI、file path handling
-  - OS の file drop が dialog flow を迂回すると、拡張子・サイズ・symlink・private path の validation を抜ける可能性がある
-  - dropped OPML、dropped directory、symlink file、huge file、multiple files、cancel/ignore feedback の contract を追加する
 
 - [ ] P1 single-instance / second-launch behavior を sync/update/dirty state と接続する
   - 対象: Tauri app lifecycle、window focus restore、update restart、dirty-state registry
@@ -76,11 +66,6 @@
   - titlebar drag、browser overlay、file drop overlay が同じ上部領域を使うと、クリック/ドラッグ/drop の優先順位が壊れる
   - titlebar drag、toolbar click、file hover、drop cancel、browser overlay open の visual/manual check を追加する
 
-- [ ] P2 long-running operation progress event monotonicity を import/export/sync/update で揃える
-  - 対象: sync progress events、OPML import/export UI、updater events
-  - progress が戻る、100% 後に error、session id なしで別操作に混ざると UI が信用できなくなる
-  - monotonic percent、session id、100 then error、cancel, restart after failure の contract を追加する
-
 - [ ] P2 memory pressure / OOM risk を large feed import と article render で smoke 化する
   - 対象: local provider parser、OPML import、article content view
   - 巨大 feed や巨大 HTML を parse/render した時に body cap だけでは JS/Rust memory pressure を検出できない
@@ -90,11 +75,6 @@
   - 対象: app action dispatcher、diagnostics reporter、debug HUD
   - action failure の再現には sequence が必要だが、telemetry なし方針なら local-only・redacted・size-capped の設計が必要
   - local-only log、redaction、size cap、action id、account/feed omission、support copy の decision を追加する
-
-- [ ] P2 user-facing error copy の support code / diagnostics id 方針を決める
-  - 対象: `AppError` schema、toasts、dialogs、runtime diagnostics
-  - 詳細を隠すほど問い合わせ時の特定が難しくなるため、secret を出さずに照合できる短い code/id が必要か判断する
-  - stable error code、diagnostics id、copy in ja/en、log correlation、no secret detail の policy を追加する
 
 - [ ] P3 repository method naming と SQL operation kind の suffix を整理する
   - 対象: `src-tauri/src/repository`, `src-tauri/src/infra/db`
@@ -131,11 +111,6 @@
   - OS や user preference で低通信/省電力を求める場合、remote images と background sync をどう抑えるか未固定
   - remote image load、favicon fetch、automatic sync、manual override、settings copy の decision を追加する
 
-- [ ] P2 privacy-preserving feed favicon fetch の referer / user-agent / cache policy を固定する
-  - 対象: favicon helpers、feed metadata display、HTTP defaults
-  - favicon 取得が article/feed fetch と別経路になると、referer・user-agent・private host guard がずれる
-  - no referer、user-agent、private host reject、cache TTL、failure cache、manual refresh の contract を追加する
-
 - [ ] P2 imported OPML account ownership を cross-account duplicate / move flow で固定する
   - 対象: OPML import、feed repository、settings account selection
   - 別 account に同じ feed URL を import する時の duplicate 判定と folder ownership が曖昧だと feed が欠落する
@@ -166,21 +141,6 @@
   - external URL から app action を起動できるようにすると、private host/open settings/import などの validation が必要になる
   - protocol allowlist、action mapping、single-instance route、malformed link、security prompt の decision を追加する
 
-- [ ] P2 browser webview state と article reader state の same-origin assumptions を明文化する
-  - 対象: browser webview tracker、article content view、URL/open policies
-  - embedded browser は remote origin、article content は sanitized local DOM という前提が崩れると focus/script/security boundary が曖昧になる
-  - remote origin、local sanitized content、focus bridge、history tracking、script injection allowed surface の contract を追加する
-
-- [ ] P2 storage quota exhausted 時の cascading failure を preferences/sidebar/history/debug で検証する
-  - 対象: localStorage-backed helpers、preferences store、runtime diagnostics
-  - quota exceeded が一箇所で起きた後に warning storage も書けず、同じ failure が連鎖する可能性がある
-  - preferences save、sidebar expanded folders、command history、diagnostics warning-once、recovery UI の contract を追加する
-
-- [ ] P2 frontend schema parse failure の fallback data が UI action を enable しない contract を作る
-  - 対象: `src/schemas`, Tauri command wrappers, view models
-  - parse failure 時に empty fallback を使うと、本来 disabled にすべき destructive action が enabled になる可能性がある
-  - account list parse failure、feed list parse failure、preference parse failure、empty fallback、disabled action の test を追加する
-
 - [ ] P2 Rust test `cfg(test)` と production-only code path の coverage gap を inventory 化する
   - 対象: `src-tauri/src/lib.rs`, `cfg(not(test))` blocks, integration tests
   - plugin setup、startup lifecycle、log setup などが `cfg(not(test))` で外れると unit test だけでは release regression を拾えない
@@ -195,16 +155,6 @@
   - 対象: `TODO.md`, task triage tooling
   - risk 指摘が多いほど「何から実装するか」が見えにくくなるため、作業種別で並列投入しやすくする
   - heading parser、target path extraction、priority extraction、work type classifier、worker batch export の script を追加する
-
-- [ ] P1 backup/export file の privacy level と encryption decision を明文化する
-  - 対象: DB backup、OPML export、support dump、docs
-  - DB backup や support dump は article/feed/account metadata を含むため、OPML と同じ感覚で共有されると privacy leak になる
-  - DB backup、OPML export、diagnostics dump、log zip、encryption required/optional、warning copy の policy を追加する
-
-- [ ] P1 uninstall / reinstall / app data removal の data retention contract を作る
-  - 対象: installer/uninstaller docs、app data dir、credentials/keyring
-  - app を削除しても DB/log/keyring が残るかどうかが未固定だと、privacy と復旧の期待がずれる
-  - macOS app delete、Windows uninstall、reinstall same version、reinstall newer version、manual data removal の checklist を追加する
 
 - [ ] P2 Tauri/macOS sandbox entitlements と file/network/keychain access の将来方針を整理する
   - 対象: Tauri config、release packaging、keyring/file/network commands
@@ -266,11 +216,6 @@
   - binary は旧版のまま DB だけ migration 済み、または pending update state だけ残ると復旧不能に見える
   - install failure、restart failure、schema migrated、pending update cleared、manual redownload の contract を追加する
 
-- [ ] P1 support dump 生成前に user consent / redaction preview を必須にするか決める
-  - 対象: Debug HUD、diagnostics export、support workflow
-  - redaction があっても dump の中身をユーザーが確認できないと、購読傾向や環境情報を意図せず共有する可能性がある
-  - preview screen、copy summary、redacted fields list、cancel flow、large dump truncation の decision を追加する
-
 - [ ] P1 feed fetch abuse prevention を manual sync / auto sync / discovery で分ける
   - 対象: local provider HTTP client、feed discovery、sync scheduler
   - discovery と sync が同じ host に集中すると、ユーザー操作でも provider 側から abuse と見なされる可能性がある
@@ -285,11 +230,6 @@
   - 対象: release notes、manual verification、settings data export
   - data migration を含む release で事前 backup 導線がないと、失敗時にユーザーが戻れない
   - migration release、backup prompt、skip copy、backup failure、restore docs link の policy を追加する
-
-- [ ] P2 app settings export/import を導入する前の schema version / secret exclusion policy を作る
-  - 対象: preferences schema、settings data page、credential store
-  - 設定 export に credentials や environment-specific paths が混ざると privacy leak と import 事故につながる
-  - schema version、credential excluded、local paths excluded、unknown keys、downgrade import の decision を追加する
 
 - [ ] P2 feed parser error sample を support-safe に保存するか決める
   - 対象: local provider parser、diagnostics、support dump
@@ -315,11 +255,6 @@
   - 対象: `AppError`, toasts/dialogs, settings debug actions
   - すべての失敗が「再試行」だけだと、permission denied、auth failure、corrupt DB、network offline の復旧が混ざる
   - retry、open settings、open log dir、restore backup、reset local state、contact support の action matrix を作る
-
-- [ ] P2 stale support/debug logs を private data reset と uninstall docs に接続する
-  - 対象: log dir、settings data reset、docs
-  - DB/credentials を消しても古い logs/support dumps が残ると privacy reset として不完全になる
-  - private data reset、manual log deletion、support dump deletion、uninstall docs、failure warning の contract を追加する
 
 - [ ] P2 provider-specific max feed count / article count assumptions を account settings に出すか決める
   - 対象: provider traits、sync scheduler、settings account detail
