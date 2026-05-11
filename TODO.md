@@ -46,50 +46,15 @@
 
 ### Browser WebView / Runtime Diagnostics
 
-- [ ] P2 memory pressure / OOM risk を large feed import と article render で smoke 化する
-  - 対象: local provider parser、OPML import、article content view
-  - 巨大 feed や巨大 HTML を parse/render した時に body cap だけでは JS/Rust memory pressure を検出できない
-  - large feed entries、large article HTML、many images、large OPML、render abort/fallback の smoke を追加する
-
-- [ ] P2 destructive action undo unavailable warning を delete account/feed/tag/history で揃える
-  - 対象: destructive dialogs、settings/subscriptions/tag flows
-  - rollback 不能な削除で copy がばらつくと、ユーザーが recoverable と誤解する
-  - delete account、delete feed、delete tag、clear history、cleanup orphans、backup recommendation の copy contract を追加する
-
 - [ ] P1 corrupted preference row が startup/menu/settings を連鎖的に壊さない quarantine policy を作る
   - 対象: preference repository、startup menu prefs、settings store
   - 1 行の不正 preference で menu rebuild や settings 全体が fallback すると、ユーザーが修復できない
   - unknown key、invalid value、oversized value、menu fallback、settings quarantine/reset の contract を追加する
 
-- [ ] P2 feed parser error sample を support-safe に保存するか決める
-  - 対象: local provider parser、diagnostics、support dump
-  - parse failure の再現には response sample が有効だが、記事本文や private feed content を保存すると privacy risk になる
-  - no sample、redacted prefix、hash only、content-type/status only、user opt-in の decision を追加する
-
 - [ ] P2 provider credential verification request の side effect を account create/update と分離する
   - 対象: account setup、test connection commands、provider HTTP client
   - 接続確認が remote server 側で session/cookie/last-login を更新する場合、保存前の試行が side effect になる
   - verify before save、verify after save、cookie discarded、rate limit、failed verify logging の contract を追加する
-
-- [ ] P2 external browser open queue を rapid clicks / double shortcuts で idempotent にする
-  - 対象: `open_in_browser`, app actions, keyboard/menu handlers
-  - 同じ article を連打すると複数 browser tab や duplicate Reading List action が出て、ユーザー操作の副作用が大きい
-  - double click、key repeat、menu+shortcut race、same URL dedupe window、failure retry の policy を追加する
-
-- [ ] P2 long article virtualization を導入する前の selection/search highlight contract を作る
-  - 対象: article content view、search highlight、reader scroll restoration
-  - 将来 virtualization を入れると scroll restore、text selection、search highlight、image loading の前提が変わる
-  - selection preservation、find-in-article、scroll anchor、image lazy load、print/share future scope の decision を追加する
-
-- [ ] P2 app-level recovery action を error category ごとに整理する
-  - 対象: `AppError`, toasts/dialogs, settings debug actions
-  - すべての失敗が「再試行」だけだと、permission denied、auth failure、corrupt DB、network offline の復旧が混ざる
-  - retry、open settings、open log dir、restore backup、reset local state、contact support の action matrix を作る
-
-- [ ] P2 provider-specific max feed count / article count assumptions を account settings に出すか決める
-  - 対象: provider traits、sync scheduler、settings account detail
-  - 大量 feed/account で性能が落ちる場合、暗黙 limit のままだと user support が難しい
-  - max feeds guidance、max articles guidance、warning threshold、performance diagnostics、no hard limit copy の decision を追加する
 
 - [ ] P3 Rust/TS cross-language enum drift を generated table で見える化する
   - 対象: domain enums、API schemas、frontend constants
@@ -136,20 +101,10 @@
   - 復旧導線が mouse 前提だと、キーボード操作ユーザーが backup restore/open log/retry に到達できない
   - retry button、open settings、open log dir、restore backup、dismiss toast、focus restore の E2E check を追加する
 
-- [ ] P2 screen reader labels for destructive dialogs に対象名と不可逆性を必ず含める
-  - 対象: delete account/feed/tag/history dialogs
-  - 見出しや本文に対象名があっても、button label だけでは screen reader の action が曖昧になる
-  - accessible name、target name、irreversible warning、loading state、failure retry の contract を追加する
-
 - [ ] P2 import/export progress cancellation の confirmation timing を固定する
   - 対象: OPML import/export、DB backup/restore、settings data future flow
   - cancel を押した瞬間に partial file/partial DB state が残る場合、確認なし cancel は危険になる
   - safe cancel、unsafe cancel confirm、partial file cleanup、transaction rollback、post-cancel summary の contract を追加する
-
-- [ ] P2 feed discovery result trust level を UI 表示と add action で分ける
-  - 対象: feed discovery、add feed dialog、URL validation
-  - discovery で見つかった title/url をそのまま trusted と扱うと、spoofed title や mixed-content URL を add してしまう
-  - discovered title display、final URL validation、private URL reject、duplicate URL, user confirmation の contract を追加する
 
 - [ ] P2 malformed provider account config を settings 表示可能な quarantine state にする
   - 対象: account repository、settings account detail、sync scheduler
@@ -165,16 +120,6 @@
   - 対象: tests、quality policy、CI
   - flake を場当たり的に skip すると、未解決リスクが TODO と CI のどちらにも残らない
   - skip annotation format、TODO link、owner、expiry date、retry evidence、unskip gate の policy を追加する
-
-- [ ] P1 error fallback が destructive action を隠さず disabled にする共通 contract を作る
-  - 対象: settings data actions、account/feed/tag destructive dialogs、query parse fallback
-  - エラー時に空配列や default state へ倒すと、対象不明の delete/reset が enabled になる危険がある
-  - account load failure、feed load failure、tag load failure、settings parse failure、disabled action reason の test を追加する
-
-- [ ] P2 empty state が permission/auth/network/schema failure を同じ「空」として見せないようにする
-  - 対象: reader lists、subscriptions index、settings account views
-  - failure を empty と表示すると、ユーザーがデータ消失と誤解するか、復旧 action を見つけられない
-  - true empty、auth failure、network failure、schema parse failure、permission denied の copy/state matrix を作る
 
 - [ ] P2 stale warning/banner の dismiss persistence を account/feed/session scope で決める
   - 対象: stale content banner、sync warnings、settings diagnostics
@@ -211,11 +156,6 @@
   - 既読・スター・タグ操作は軽いが、undo がないと誤操作時の戻し方が UI surface ごとに違う
   - mark read reversal、star toggle、tag remove/add、bulk mark read、toast copy の policy を追加する
 
-- [ ] P2 context menu target drift を right-click position / keyboard context menu で固定する
-  - 対象: article list、feed tree、tag list context menus
-  - context menu を開いた後に selection/refetch が変わると、表示対象と実行対象がずれる
-  - pointer target snapshot、keyboard context target、refetch while open、target deleted、action disabled の contract を追加する
-
 - [ ] P2 tooltip / title attribute に secret or full URL を出さない privacy contract を作る
   - 対象: feed URL display、account detail、debug/settings tooltips
   - visible text を redaction しても tooltip/title に full URL や path が残ると漏れる
@@ -230,8 +170,3 @@
   - 対象: account switcher、reader query hooks、article list/feed tree rendering
   - 記事・feed が多い account 間で切替えると、旧 account の query result や render work が残りやすい
   - old query cancel、new account skeleton、stale result reject、render duration budget、memory budget の smoke を追加する
-
-- [ ] P2 search query syntax help を backend FTS escaping policy と同期する
-  - 対象: reader search UI、FTS query builder、locale copy
-  - ユーザーが quote/operator を入力した時の扱いが不明だと、検索失敗を bug と誤解する
-  - literal search、phrase search、operator escaped、syntax error copy、help text の contract を追加する
