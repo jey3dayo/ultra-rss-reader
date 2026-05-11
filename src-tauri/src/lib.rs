@@ -40,7 +40,7 @@ const SHUTDOWN_DRAIN_POLL_INTERVAL: Duration = Duration::from_millis(25);
 #[cfg(not(test))]
 const MAIN_WINDOW_CLOSE_BLOCKED_EVENT: &str = "main-window-close-blocked";
 #[cfg(any(not(debug_assertions), test))]
-const RELEASE_LOG_MAX_FILE_SIZE_BYTES: u64 = 5_000_000;
+const RELEASE_LOG_MAX_FILE_SIZE_BYTES: u128 = 5_000_000;
 #[cfg(any(not(debug_assertions), test))]
 const RELEASE_LOG_RETENTION_DAYS: u64 = 7;
 #[cfg(test)]
