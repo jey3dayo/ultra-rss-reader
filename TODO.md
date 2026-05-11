@@ -68,13 +68,6 @@
 
 ### Article List / Schema / Mute / Tags / Share
 
-- [ ] P2 `reader-state`: recent article history recording/clearing と account/article deletion の race を固定する
-  - work type: history mutation contract
-  - write scope: record article view command/hook、clear article view history、recent smart view context menu、article view/history tests
-  - acceptance: deleted account/feed/article や history-disabled state を in-flight record/clear が再導入せず、clear は current account だけを対象にして recent smart view を安全に更新する
-  - focused verification: record resolves after article delete、clear while selected account switches、history disabled during in-flight record、recent smart view open while clear、query invalidation rejection
-  - defer: history retention duration、cross-device history sync、smart view ranking redesign は別タスクにする
-
 ### Feed / Folder / Storage / Settings Data
 
 - [ ] P2 `db-recovery`: OPML import の post-commit refresh / query invalidation failure を partial success として扱う
