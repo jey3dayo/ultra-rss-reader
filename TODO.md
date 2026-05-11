@@ -46,16 +46,6 @@
 
 ### Browser WebView / Runtime Diagnostics
 
-- [ ] P1 app shutdown 中の background sync / DB write / browser webview cleanup を drain する contract を作る
-  - 対象: `src-tauri/src/lib.rs`, `src-tauri/src/service/sync_scheduler.rs`, browser webview tracker, DB commands
-  - window close や restart 中に sync/DB write/webview close が走ると、WAL・query cache・native webview state が中途半端に残る
-  - close requested、restart app、sync in-flight、DB write in-flight、browser webview open、timeout forced exit の contract を追加する
-
-- [ ] P1 startup database init panic を recoverable startup error UI へ寄せる
-  - 対象: `src-tauri/src/lib.rs`, DB init, startup fallback UI
-  - `panic!` で起動失敗するとログを読めないユーザーに復旧手順が届かず、migration/permission/disk full の切り分けができない
-  - migration error、permission denied、disk full、backup exists、redacted path、support copy の期待値を固定する
-
 - [ ] P1 Tauri command blocking DB work を `spawn_blocking` / async boundary で分類する
   - 対象: `src-tauri/src/commands`, repository access, `AppState` DB mutex
   - async command 内で重い SQLite 処理を直接実行すると、runtime worker を詰まらせて sync・updater・webview events が遅延する
@@ -66,20 +56,10 @@
   - OS の close button は frontend navigation guard を通らないため、dirty form や pending mutation を落とす可能性がある
   - native close requested、dirty settings、add feed pending、sync pending、restart requested、force close の flow を固定する
 
-- [ ] P2 app data directory rename / bundle identifier migration path を明文化する
-  - 対象: `src-tauri/tauri*.conf.json`, startup data dir, release docs
-  - bundle identifier を変えると OS app data dir が変わり、既存 DB/credentials/log が見えなくなる
-  - old identifier detection、DB migration prompt、credential migration impossible copy、log path note、rollback の contract を追加する
-
 - [ ] P2 OS sleep中の updater download / file export / DB backup を cancellation-aware にする
   - 対象: updater hook、export/backup commands、runtime lifecycle
   - laptop sleep で long-running file/network operation が中断すると、partial artifact や stale progress が残る
   - sleep during download、sleep during export、sleep during backup、resume cleanup、progress reset の contract を追加する
-
-- [ ] P2 production log timezone strategy を UTC/local のどちらにするか support docs と同期する
-  - 対象: `src-tauri/src/lib.rs`, log docs, support workflow
-  - release log が local time だと timezone をまたぐ報告で sync/update 時刻の突合が難しくなる
-  - local timezone、UTC alternative、DST boundary、log filename/time display、support copy の policy を決める
 
 - [ ] P1 file drop / drag-and-drop import surface を URL validation と同じ security boundary にする
   - 対象: Tauri window events、OPML import UI、file path handling
@@ -90,11 +70,6 @@
   - 対象: Tauri app lifecycle、window focus restore、update restart、dirty-state registry
   - 2 回目起動時に既存 window を focus するだけか、URL/action を渡すかが未固定だと、sync 中や dirty form 中に state が壊れる
   - second launch、hidden/minimized window、dirty settings、sync in-flight、update pending、focus failure の contract を追加する
-
-- [ ] P1 stale update install と DB migration version の compatibility gate を作る
-  - 対象: updater flow、DB migration、release metadata
-  - 古い downloaded update を後で install すると、現在 DB schema と想定 migration path がずれる可能性がある
-  - downloaded version age、current app newer、DB schema newer、install blocked、redownload required の contract を追加する
 
 - [ ] P2 window drag region と file drop region の pointer event priority を検証する
   - 対象: app shell CSS、native titlebar overlay、drag/drop handlers
@@ -110,16 +85,6 @@
   - 対象: local provider parser、OPML import、article content view
   - 巨大 feed や巨大 HTML を parse/render した時に body cap だけでは JS/Rust memory pressure を検出できない
   - large feed entries、large article HTML、many images、large OPML、render abort/fallback の smoke を追加する
-
-- [ ] P2 test suite parallelism と shared global state の isolation policy を明文化する
-  - 対象: Vitest setup、Rust tests、global diagnostics/reset helpers
-  - parallel test が localStorage、window globals、OnceLock、env vars を共有すると flake が増える
-  - env var isolation、OnceLock reset、localStorage reset、fake timers、Rust test threads の policy を追加する
-
-- [ ] P2 Rust integration tests の filesystem temp dir cleanup failure を diagnostics 化する
-  - 対象: `src-tauri/tests`, temp DB/keyring fixtures
-  - temp dir cleanup が失敗しても見えないと、次回 test や disk usage に影響する
-  - temp dir owner、Windows open handle、cleanup failure warning、test retry、artifact retention の task に分ける
 
 - [ ] P2 app action telemetry-free audit log を local diagnostics として持つか決める
   - 対象: app action dispatcher、diagnostics reporter、debug HUD
@@ -145,21 +110,6 @@
   - 対象: `TODO.md`, similarity report, task triage scripts
   - TODO が増え続けると同じ risk を別名で積みやすくなり、優先度判断が鈍る
   - normalized heading、priority bucket、file target overlap、similarity threshold、completed task pruning の report を追加する
-
-- [ ] P1 release rollback / downgrade install を DB schema compatibility として禁止または明示復旧にする
-  - 対象: updater flow、release metadata、DB migration
-  - 新しい DB schema を触った後に古い app を起動すると、migration downgrade 非対応で data loss や起動不能になる
-  - app downgrade detection、schema newer than app、rollback blocked copy、manual restore path、support message の contract を追加する
-
-- [ ] P1 provider response trust boundary を `trusted backend` / `untrusted feed` で型と sanitizer に分ける
-  - 対象: provider DTO、article sanitizer、schema-boundary rule
-  - FreshRSS/GReader API response と任意 RSS/Atom response を同じ trust level で扱うと、validation/sanitization の責務が曖昧になる
-  - trusted API DTO、untrusted feed HTML、provider metadata、error payload、schema strictness の decision を書く
-
-- [ ] P1 credential-bearing URL を persistence boundary で reject する
-  - 対象: feed URL、server URL、article URL、history、OPML export
-  - `https://user:pass@example.com/feed` のような URL が DB/OPML/history に保存されると、redaction 以前に漏洩面が増える
-  - feed add、OPML import、article link、browser history、debug dump、export の reject/redact policy を固定する
 
 - [ ] P1 app log / diagnostics の maximum total size と emergency truncation を固定する
   - 対象: log plugin setup、runtime diagnostics、support dump
