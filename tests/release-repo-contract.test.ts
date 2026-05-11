@@ -1774,6 +1774,25 @@ describe("release repository contract", () => {
   });
 
   it("keeps updater, export, and database backup interruption checks cancellation-aware", () => {
+    expect(feedContentPrivacy).toContain("### Import/Export Progress Cancellation");
+    expect(feedContentPrivacy).toContain(
+      "destructive or ambiguous cancellation confirmation must happen before canceling an import/export operation",
+    );
+    expect(feedContentPrivacy).toContain(
+      "OPML import: confirmation is required after parsing or preview has started and before canceling a running import that may have written feeds or folders.",
+    );
+    expect(feedContentPrivacy).toContain(
+      "OPML export: confirmation is required after the destination path has been chosen and before canceling a running write that may leave a partial artifact.",
+    );
+    expect(feedContentPrivacy).toContain(
+      "Database backup/restore: confirmation is required before canceling any running copy or restore step that may leave a partial backup set or restore target.",
+    );
+    expect(feedContentPrivacy).toContain(
+      "A cancel request made before a file is selected or before an operation starts must close without a confirmation prompt.",
+    );
+    expect(feedContentPrivacy).toContain(
+      "If cancellation cannot guarantee cleanup of a partial artifact, the UI must say the artifact may remain and direct the user to delete or retry it manually.",
+    );
     expect(releaseManualVerification).toContain(
       "If OS sleep is introduced during download, resume does not leave a partial artifact, stale progress, or stale success state; manual recheck starts a fresh flow.",
     );
