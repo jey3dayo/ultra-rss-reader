@@ -4,6 +4,7 @@ import type { ViewMode } from "@/lib/reader/view-mode.types";
 import type { AfterReadingPreference } from "@/schemas/preferences";
 import { useUiStore } from "@/stores/ui-store";
 import type { ArticleStatusToast } from "../../article-actions.types";
+import { removeRetainedArticle } from "../../retained-articles";
 
 type ArticleStatusMutation<TVariables> = Pick<UseMutationResult<unknown, Error, TVariables, unknown>, "mutate">;
 
@@ -26,18 +27,6 @@ const delayedAutoMarkTimeoutsMs = {
   after_0_5s: 500,
   after_1s: 1000,
 } satisfies Record<DelayedAfterReadingPreference, number>;
-
-function removeRetainedArticle(articleId: string) {
-  useUiStore.setState((state) => {
-    if (!state.retainedArticleIds.has(articleId)) {
-      return state;
-    }
-
-    const retainedArticleIds = new Set(state.retainedArticleIds);
-    retainedArticleIds.delete(articleId);
-    return { retainedArticleIds };
-  });
-}
 
 function getAutoMarkOwnerKey(accountId: string | null, articleId: string) {
   return `${accountId ?? ""}:${articleId}`;

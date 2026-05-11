@@ -3,6 +3,7 @@ import { useCallback } from "react";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
 import { useUiStore } from "@/stores/ui-store";
 import type { ArticleStatusToast } from "../../article-actions.types";
+import { removeRetainedArticle } from "../../retained-articles";
 
 type ArticleStatusMutation<TVariables> = Pick<UseMutationResult<unknown, Error, TVariables, unknown>, "mutate">;
 
@@ -37,18 +38,6 @@ type UseArticleStatusActionsResult = {
   handleToggleRead: () => void;
   handleToggleStar: () => void;
 };
-
-function removeRetainedArticle(articleId: string) {
-  useUiStore.setState((state) => {
-    if (!state.retainedArticleIds.has(articleId)) {
-      return state;
-    }
-
-    const retainedArticleIds = new Set(state.retainedArticleIds);
-    retainedArticleIds.delete(articleId);
-    return { retainedArticleIds };
-  });
-}
 
 export function useArticleStatusActions({
   articleId,
