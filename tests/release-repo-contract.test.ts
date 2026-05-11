@@ -517,7 +517,7 @@ const listTypeScriptSourceFiles = (dir: string): string[] =>
   readdirSync(dir, { recursive: true })
     .filter((entry): entry is string => typeof entry === "string")
     .filter((entry) => /\.(?:ts|tsx)$/.test(entry))
-    .map((entry) => `${dir}/${entry}`);
+    .map((entry) => normalizeRepoPath(`${dir}/${entry}`));
 
 const repoWalkIgnoredDirectoryNames = new Set([
   ".git",
@@ -1458,7 +1458,7 @@ describe("release repository contract", () => {
     ]
       .filter((entry): entry is string => typeof entry === "string")
       .filter((entry) => /\.(?:png|xml)$/.test(entry))
-      .map((entry) => `icons/${entry}`)
+      .map((entry) => normalizeRepoPath(`icons/${entry}`))
       .sort();
 
     expect(generatedIconPaths).toEqual(expectedIconPaths);

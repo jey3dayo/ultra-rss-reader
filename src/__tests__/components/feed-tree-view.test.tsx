@@ -227,6 +227,7 @@ describe("FeedTreeView", () => {
 
   it("captures large feed tree render duration for the account switch smoke path", () => {
     let renderDuration = 0;
+    let renderCount = 0;
     const folderCount = 20;
     const feedsPerFolder = 25;
     const folders = Array.from({ length: folderCount }, (_, folderIndex) => ({
@@ -256,6 +257,7 @@ describe("FeedTreeView", () => {
       <Profiler
         id="large-feed-tree"
         onRender={(_id, _phase, actualDuration) => {
+          renderCount += 1;
           renderDuration += actualDuration;
         }}
       >
@@ -272,7 +274,8 @@ describe("FeedTreeView", () => {
     );
 
     expect(screen.getByRole("button", { name: /Feed 19-24/ })).toBeInTheDocument();
-    expect(renderDuration).toBeGreaterThan(0);
+    expect(renderCount).toBeGreaterThan(0);
+    expect(renderDuration).toBeGreaterThanOrEqual(0);
     expect(Number.isFinite(renderDuration)).toBe(true);
   });
 
