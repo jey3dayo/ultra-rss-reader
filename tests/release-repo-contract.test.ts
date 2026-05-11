@@ -924,7 +924,9 @@ describe("release repository contract", () => {
     expect(rustTestTask).toContain(
       'run_windows = "cargo test --manifest-path src-tauri/Cargo.toml --target-dir src-tauri/target/test-rust --test integration_test"',
     );
-    expect(extractTaskBlock(miseToml, "test:ci")).toContain('depends = ["test:rust", "test:unit:ci"]');
+    const ciTestTask = extractTaskBlock(miseToml, "test:ci");
+    expect(ciTestTask).toContain("mise run test:unit:ci\nmise run test:rust");
+    expect(ciTestTask).toContain('run_windows = "mise run test:unit:ci && mise run test:rust"');
     expect(ciWorkflow).toContain("mise run test:ci");
     expect(ciWorkflow).not.toMatch(/\brun:\s+cargo test\b/);
   });

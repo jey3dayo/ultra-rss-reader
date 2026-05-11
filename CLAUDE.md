@@ -5,8 +5,8 @@ This file stays intentionally short and focuses on agent-facing workflow guidanc
 
 ## First Actions
 
-- Run `mise run check` before committing.
-- Use `mise run ci` when you need the full repository gate including build validation.
+- Run `mise run check` before committing; this is the default Codex/day-to-day local verification gate.
+- Use `mise run ci` when you need the unit-first full repository gate including build validation.
 - Use `mise run quality:react-doctor:diff` as the local React Doctor regression gate for changed files. It pins `react-doctor@0.1.4` and fails on score, error, warning, affected-file, or tool-version drift from the checked-in baseline.
 - Use `mise run quality:react-doctor:full` as an informational full-codebase React Doctor report. It shares the pinned version but does not fail the task on known full-scan baseline debt.
 - Use `mise run quality:knip` for Knip baseline drift checks. It pins `knip@6.12.2` and fails when the known issue/finding counts change.

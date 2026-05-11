@@ -249,8 +249,12 @@ description = "Run all tests"
 depends = ["test:rust", "test:unit"]
 
 [tasks."test:ci"]
-description = "Run CI tests with quieter unit test output"
-depends = ["test:rust", "test:unit:ci"]
+description = "Run CI tests with quieter unit test output, unit tests first"
+run = """
+mise run test:unit:ci
+mise run test:rust
+"""
+run_windows = "mise run test:unit:ci && mise run test:rust"
 
 [tasks."test:rust"]
 description = "Run Rust tests; Windows CI is scoped to integration_test for native keyring/path coverage while Linux runs the full Rust suite"
@@ -405,5 +409,12 @@ description = "Local verification (format + lint + test)"
 depends = ["format", "lint", "test"]
 
 [tasks.ci]
-description = "CI equivalent (format:check + lint + test + build)"
-depends = ["format:check", "lint", "test", "build"]
+description = "CI equivalent, unit-first full gate (format:check + test:unit:ci + lint + test:rust + build)"
+run = """
+mise run format:check
+mise run test:unit:ci
+mise run lint
+mise run test:rust
+mise run build
+"""
+run_windows = "mise run format:check && mise run test:unit:ci && mise run lint && mise run test:rust && mise run build"
