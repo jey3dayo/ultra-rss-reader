@@ -17,46 +17,23 @@ vi.mock("@/api/tauri-commands", () => ({
   setPreference: vi.fn(async () => Result.succeed(null)),
 }));
 
+import { createDeferred as createTestDeferred } from "@tests/helpers/deferred";
 import {
   PREFERENCES_LOAD_FALLBACK_OWNER,
   resetPreferencesStoreRuntimeForTests,
   usePreferencesStore,
 } from "../../stores/preferences-store";
 
-function createDeferred(): { promise: Promise<void>; resolve: () => void } {
-  let resolvePromise: () => void = () => {};
-  const promise = new Promise<void>((resolve) => {
-    resolvePromise = resolve;
-  });
-  return { promise, resolve: resolvePromise };
+function createDeferred() {
+  return createTestDeferred<void>();
 }
 
-function createRejectableDeferred(): {
-  promise: Promise<void>;
-  resolve: () => void;
-  reject: (error: unknown) => void;
-} {
-  let resolvePromise: () => void = () => {};
-  let rejectPromise: (error: unknown) => void = () => {};
-  const promise = new Promise<void>((resolve, reject) => {
-    resolvePromise = resolve;
-    rejectPromise = reject;
-  });
-  return { promise, resolve: resolvePromise, reject: rejectPromise };
+function createRejectableDeferred() {
+  return createTestDeferred<void>();
 }
 
-function createResultDeferred<T>(): {
-  promise: Promise<T>;
-  resolve: (value: T) => void;
-  reject: (error: unknown) => void;
-} {
-  let resolvePromise: (value: T) => void = () => {};
-  let rejectPromise: (error: unknown) => void = () => {};
-  const promise = new Promise<T>((resolve, reject) => {
-    resolvePromise = resolve;
-    rejectPromise = reject;
-  });
-  return { promise, resolve: resolvePromise, reject: rejectPromise };
+function createResultDeferred<T>() {
+  return createTestDeferred<T>();
 }
 
 function createViewTransition(finished: Promise<void>): ViewTransition {
