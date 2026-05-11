@@ -51,11 +51,6 @@
   - 巨大 feed や巨大 HTML を parse/render した時に body cap だけでは JS/Rust memory pressure を検出できない
   - large feed entries、large article HTML、many images、large OPML、render abort/fallback の smoke を追加する
 
-- [ ] P2 provider account kind 追加時の migration checklist を template 化する
-  - 対象: provider traits、account settings、schema/tests
-  - 新 provider を足す時に credential、capability、sync cursor、folder/tag semantics の漏れが出やすい
-  - credential model、folder model、tag model、read/star support、cursor support、test fixture checklist を追加する
-
 - [ ] P2 destructive action undo unavailable warning を delete account/feed/tag/history で揃える
   - 対象: destructive dialogs、settings/subscriptions/tag flows
   - rollback 不能な削除で copy がばらつくと、ユーザーが recoverable と誤解する
