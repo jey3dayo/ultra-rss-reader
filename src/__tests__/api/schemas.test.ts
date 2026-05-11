@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expectSortedKeysForTarget } from "@tests/helpers/repo-contract-parser";
-import { extractSafeInvokeCommandsWithArgs } from "@tests/helpers/tauri-command-contract";
+import { extractRustStructFields, extractSafeInvokeCommandsWithArgs } from "@tests/helpers/tauri-command-contract";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import {
@@ -169,54 +169,6 @@ function extractRustU32Const(source: string, constName: string) {
   const match = source.match(new RegExp(`const ${constName}: u32 = ([\\d_]+);`));
   expect(match, `${constName} should exist`).not.toBeNull();
   return Number(match?.[1].replaceAll("_", ""));
-}
-
-function extractRustStructFields(source: string, structName: string) {
-  const structMatch = source.match(
-    new RegExp(`((?:#\\[[^\\]]+\\]\\s*)*)pub struct ${structName} \\{([\\s\\S]*?)\\n\\}`),
-  );
-  expect(structMatch, `${structName} should exist in Rust command DTOs`).not.toBeNull();
-
-  const renameAll = structMatch?.[1]?.match(/#\[serde\(rename_all = "([^"]+)"\)\]/)?.[1];
-  const body = structMatch?.[2] ?? "";
-  const fields: string[] = [];
-  let fieldAttributes: string[] = [];
-
-  for (const line of body.split("\n")) {
-    const attributeMatch = line.trim().match(/^#\[(.+)\]$/);
-    if (attributeMatch?.[1]) {
-      fieldAttributes.push(attributeMatch[1]);
-      continue;
-    }
-
-    const fieldMatch = line.match(/^ {4}pub ([a-zA-Z0-9_]+):/);
-    if (!fieldMatch?.[1]) {
-      continue;
-    }
-
-    if (fieldAttributes.some((attribute) => attribute.startsWith("serde(skip"))) {
-      fieldAttributes = [];
-      continue;
-    }
-
-    fields.push(serializedRustFieldName(fieldMatch[1], fieldAttributes, renameAll));
-    fieldAttributes = [];
-  }
-
-  return fields.toSorted();
-}
-
-function snakeToCamel(value: string) {
-  return value.replace(/_([a-z])/g, (_, char: string) => char.toUpperCase());
-}
-
-function serializedRustFieldName(fieldName: string, attributes: readonly string[], renameAll?: string) {
-  const renamed = attributes.map((attribute) => attribute.match(/serde\(rename = "([^"]+)"/)?.[1]).find(Boolean);
-  if (renamed) {
-    return renamed;
-  }
-
-  return renameAll === "camelCase" ? snakeToCamel(fieldName) : fieldName;
 }
 
 function zodObjectShapeKeys(schema: z.ZodTypeAny) {
@@ -625,15 +577,15 @@ describe("DTO schemas", () => {
   });
   it("keeps AccountDto schema fields aligned with Rust DTO fields", () => {
     expect(Object.keys(AccountDtoSchema.shape).toSorted()).toEqual(
-      extractRustStructFields(readRustCommandDtoSource(), "AccountDto"),
+      extractRustStructFields(readRustCommandDtoSource(), "AccountDto", "Rust command DTOs"),
     );
     expect(zodObjectShapeKeys(AccountDtoSchema.shape.capabilities)).toEqual(
-      extractRustStructFields(readRustCommandDtoSource(), "AccountProviderCapabilitiesDto"),
+      extractRustStructFields(readRustCommandDtoSource(), "AccountProviderCapabilitiesDto", "Rust command DTOs"),
     );
   });
   it("keeps AccountSyncStatus schema fields aligned with Rust DTO fields", () => {
     expect(Object.keys(AccountSyncStatusSchema.shape).toSorted()).toEqual(
-      extractRustStructFields(readRustCommandDtoSource(), "AccountSyncStatus"),
+      extractRustStructFields(readRustCommandDtoSource(), "AccountSyncStatus", "Rust command DTOs"),
     );
   });
   it("parses valid FolderDto", () => {
@@ -748,7 +700,7 @@ describe("DTO schemas", () => {
   });
   it("keeps FeedDto schema fields aligned with Rust DTO fields", () => {
     expect(Object.keys(FeedDtoSchema.shape).toSorted()).toEqual(
-      extractRustStructFields(readRustCommandDtoSource(), "FeedDto"),
+      extractRustStructFields(readRustCommandDtoSource(), "FeedDto", "Rust command DTOs"),
     );
   });
   it("rejects invalid feed unread counts", () => {

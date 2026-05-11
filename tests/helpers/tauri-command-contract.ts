@@ -1,3 +1,5 @@
+import { expect } from "vitest";
+
 export function extractCommandNames(source: string, commandPattern: RegExp): string[] {
   const commands = new Set<string>();
 
@@ -68,6 +70,41 @@ export function extractRustTauriAsyncCommandNames(source: string): string[] {
   return [...new Set([...source.matchAll(commandPattern)].map((match) => match[1] ?? ""))].toSorted();
 }
 
+export function extractRustStructFields(source: string, structName: string, sourceLabel: string): string[] {
+  const structMatch = source.match(
+    new RegExp(`((?:#\\[[^\\]]+\\]\\s*)*)pub struct ${structName} \\{([\\s\\S]*?)\\n\\}`),
+  );
+  expect(structMatch, `${structName} should exist in ${sourceLabel}`).not.toBeNull();
+
+  const renameAll = structMatch?.[1]?.match(/#\[serde\(rename_all = "([^"]+)"\)\]/)?.[1];
+  const body = structMatch?.[2] ?? "";
+  const fields: string[] = [];
+  let fieldAttributes: string[] = [];
+
+  for (const line of body.split("\n")) {
+    const attributeMatch = line.trim().match(/^#\[(.+)\]$/);
+    if (attributeMatch?.[1]) {
+      fieldAttributes.push(attributeMatch[1]);
+      continue;
+    }
+
+    const fieldMatch = line.match(/^ {4}pub ([a-zA-Z0-9_]+):/);
+    if (!fieldMatch?.[1]) {
+      continue;
+    }
+
+    if (fieldAttributes.some((attribute) => attribute.startsWith("serde(skip"))) {
+      fieldAttributes = [];
+      continue;
+    }
+
+    fields.push(serializedRustFieldName(fieldMatch[1], fieldAttributes, renameAll));
+    fieldAttributes = [];
+  }
+
+  return fields.toSorted();
+}
+
 export function extractCommandDbLockPolicyCases(source: string): Record<string, string> {
   const policyBodyMatch = source.match(
     /pub\(crate\)\s+fn\s+command_db_lock_policy[\s\S]*?let policy = match command_name \{([\s\S]*?)\n\s*_\s*=>\s*return None,/,
@@ -94,6 +131,19 @@ export function extractCommandDbLockPolicyCases(source: string): Record<string, 
   }
 
   return policies;
+}
+
+function snakeToCamel(value: string): string {
+  return value.replace(/_([a-z])/g, (_, char: string) => char.toUpperCase());
+}
+
+function serializedRustFieldName(fieldName: string, attributes: readonly string[], renameAll?: string): string {
+  const renamed = attributes.map((attribute) => attribute.match(/serde\(rename = "([^"]+)"/)?.[1]).find(Boolean);
+  if (renamed) {
+    return renamed;
+  }
+
+  return renameAll === "camelCase" ? snakeToCamel(fieldName) : fieldName;
 }
 
 export type CommandIndex = {

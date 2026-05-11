@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Result } from "@praha/byethrow";
 import { expectTauriCommandValidationError, suppressConsoleError } from "@tests/helpers/console-spies";
+import { extractRustStructFields } from "@tests/helpers/tauri-command-contract";
 import { createTauriMockCallRecorder, setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { describe, expect, it } from "vitest";
 import {
@@ -92,53 +93,6 @@ function extractRustEventNames(source: string) {
     .toSorted();
 }
 
-function extractRustStructFields(source: string, structName: string) {
-  const structMatch = source.match(
-    new RegExp(`((?:#\\[[^\\]]+\\]\\s*)*)pub struct ${structName} \\{([\\s\\S]*?)\\n\\}`),
-  );
-  expect(structMatch, `${structName} should exist in Rust browser_webview.rs`).not.toBeNull();
-
-  const renameAll = structMatch?.[1]?.match(/#\[serde\(rename_all = "([^"]+)"\)\]/)?.[1];
-  const body = structMatch?.[2] ?? "";
-  const fields: string[] = [];
-  let fieldAttributes: string[] = [];
-
-  for (const line of body.split("\n")) {
-    const attributeMatch = line.trim().match(/^#\[(.+)\]$/);
-    if (attributeMatch?.[1]) {
-      fieldAttributes.push(attributeMatch[1]);
-      continue;
-    }
-
-    const fieldMatch = line.match(/^ {4}pub ([a-zA-Z0-9_]+):/);
-    if (!fieldMatch?.[1]) {
-      continue;
-    }
-    if (fieldAttributes.some((attribute) => attribute.startsWith("serde(skip"))) {
-      fieldAttributes = [];
-      continue;
-    }
-
-    fields.push(serializedRustFieldName(fieldMatch[1], fieldAttributes, renameAll));
-    fieldAttributes = [];
-  }
-
-  return fields.toSorted();
-}
-
-function snakeToCamel(value: string) {
-  return value.replace(/_([a-z])/g, (_, char: string) => char.toUpperCase());
-}
-
-function serializedRustFieldName(fieldName: string, attributes: readonly string[], renameAll?: string) {
-  const renamed = attributes.map((attribute) => attribute.match(/serde\(rename = "([^"]+)"/)?.[1]).find(Boolean);
-  if (renamed) {
-    return renamed;
-  }
-
-  return renameAll === "camelCase" ? snakeToCamel(fieldName) : fieldName;
-}
-
 describe("browser webview command contract", () => {
   it("keeps browser webview event name registries aligned with Rust and frontend listeners", () => {
     const eventNames = Object.values(BROWSER_WEBVIEW_EVENT_NAMES).toSorted();
@@ -157,7 +111,7 @@ describe("browser webview command contract", () => {
 
   it("keeps BrowserWebviewState schema fields aligned with the Rust DTO", () => {
     expect(Object.keys(BrowserWebviewStateSchema.shape).toSorted()).toEqual(
-      extractRustStructFields(readRustBrowserWebviewSource(), "BrowserWebviewState"),
+      extractRustStructFields(readRustBrowserWebviewSource(), "BrowserWebviewState", "Rust browser_webview.rs"),
     );
   });
 
@@ -165,10 +119,10 @@ describe("browser webview command contract", () => {
     const source = readRustBrowserWebviewSource();
 
     expect(Object.keys(BrowserWebviewFallbackPayloadSchema.shape).toSorted()).toEqual(
-      extractRustStructFields(source, "BrowserWebviewFallbackPayload"),
+      extractRustStructFields(source, "BrowserWebviewFallbackPayload", "Rust browser_webview.rs"),
     );
     expect(Object.keys(BrowserWebviewDiagnosticsPayloadSchema.shape).toSorted()).toEqual(
-      extractRustStructFields(source, "BrowserWebviewDiagnosticsPayload"),
+      extractRustStructFields(source, "BrowserWebviewDiagnosticsPayload", "Rust browser_webview.rs"),
     );
     expect(Object.keys(BrowserWebviewClosedPayloadSchema.shape).toSorted()).toEqual(["load_generation", "url"]);
     expect(BrowserWebviewDebugInputPayloadSchema.parse("native-click target=webview")).toBe(
