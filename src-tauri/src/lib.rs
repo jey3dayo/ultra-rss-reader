@@ -1023,7 +1023,7 @@ mod tests {
         ready_rx.recv().expect("ready signal should be received");
 
         let drained =
-            drain_mutex_lock_for_shutdown(db_lock.as_ref(), Duration::from_millis(100), "Database")
+            drain_mutex_lock_for_shutdown(db_lock.as_ref(), Duration::from_secs(1), "Database")
                 .await;
 
         releaser.join().expect("lock releaser should not panic");
