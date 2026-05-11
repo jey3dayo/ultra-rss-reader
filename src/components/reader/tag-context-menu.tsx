@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { normalizeTagColorForView } from "@/api/schemas/commands";
 import type { TagDto } from "@/api/tauri-commands";
 import { TAG_COLOR_PRESETS } from "@/components/shared/exception-palettes";
+import { normalizeRenameInput } from "@/hooks/normalize-rename-input";
 import { useDeleteTag, useRenameTag } from "@/hooks/use-tags";
 import { getErrorMessage } from "@/lib/ui/errors";
 import { useUiStore } from "@/stores/ui-store";
@@ -102,7 +103,7 @@ export function TagContextMenuContent({ tag }: TagContextMenuContentProps) {
   };
 
   const handleRenameSubmit = () => {
-    const trimmed = renameName.trim();
+    const trimmed = normalizeRenameInput(renameName);
     const nameChanged = trimmed !== tag.name;
     const colorChanged = renameColor !== tag.color;
     if (!trimmed || (!nameChanged && !colorChanged)) {

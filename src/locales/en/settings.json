@@ -373,6 +373,8 @@
     "credentials_backend_native": "OS keyring",
     "dev_data": "Dev data seed",
     "dev_data_note": "Use the existing seed task only for the Dev app. The command stages a backup before replacing the Dev database.",
+    "dev_data_source": "Source label",
+    "dev_data_source_value": "Label seeded records, screenshots, and product metrics as Dev mock data before sharing.",
     "dev_data_command": "Command",
     "dev_data_backup": "Backup and restart",
     "dev_data_backup_value": "Creates a timestamped backup under the Dev app data backups directory, then requires restarting the Dev app.",

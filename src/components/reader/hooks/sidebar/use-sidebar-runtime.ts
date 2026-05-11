@@ -4,6 +4,7 @@ import { useSidebarSources } from "@/components/reader/hooks/sidebar/use-sidebar
 import { useSidebarSync } from "@/components/reader/hooks/sidebar/use-sidebar-sync";
 import { useSidebarUiState } from "@/components/reader/hooks/sidebar/use-sidebar-ui-state";
 import { useResolvedDevIntent } from "@/dev/use-resolved-dev-intent";
+import { useCancelReaderQueriesOnAccountSwitch } from "@/hooks/use-cancel-reader-queries-on-account-switch";
 import type { SidebarRuntimeResult } from "../../sidebar-runtime.types";
 import type { SidebarSyncResult } from "./use-sidebar-sync";
 
@@ -19,6 +20,7 @@ export function useSidebarRuntime(): SidebarRuntimeResult {
   } = useSidebarAccountSwitcher();
   const uiState = useSidebarUiState();
   const { selectedAccountId, syncProgress, applySyncProgress, clearSyncProgress, showToast } = uiState;
+  useCancelReaderQueriesOnAccountSwitch(selectedAccountId);
   const sources = useSidebarSources({ selectedAccountId });
   const feedViewportRef = useRef<HTMLDivElement>(null);
   const { intent: activeDevIntent } = useResolvedDevIntent();

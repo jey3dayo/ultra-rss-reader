@@ -123,15 +123,15 @@ describe("useRenameFeedDialogController copy action", () => {
     );
 
     act(() => {
-      result.current.setTitle("Snapshot title");
+      result.current.setTitle("  Snapshot cafe\u0301  ");
     });
 
     await act(async () => {
       await result.current.handleSubmit();
     });
 
-    expect(renameFeedMock).toHaveBeenCalledWith(sampleFeeds[0].id, "Snapshot title");
-    expect(renameFeedMock).not.toHaveBeenCalledWith(sampleFeeds[1].id, "Snapshot title");
+    expect(renameFeedMock).toHaveBeenCalledWith(sampleFeeds[0].id, "Snapshot café");
+    expect(renameFeedMock).not.toHaveBeenCalledWith(sampleFeeds[1].id, "Snapshot café");
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 });

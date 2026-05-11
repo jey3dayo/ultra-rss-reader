@@ -2,7 +2,7 @@ import { Result } from "@praha/byethrow";
 import type { QueryClient } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import { createQueryWrapper } from "@tests/helpers/create-wrapper";
-import { sampleArticles } from "@tests/helpers/fixtures";
+import { sampleArticles, sampleTags } from "@tests/helpers/fixtures";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as tauriCommands from "@/api/tauri-commands";
 import {
@@ -428,10 +428,11 @@ describe("article tag mutations", () => {
 
   it("invalidates tag metadata and article count caches after renaming a tag", async () => {
     const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
+    queryClient.setQueryData(tagQueryKeys.tags.root, sampleTags);
     vi.spyOn(tauriCommands, "renameTag").mockResolvedValue(
       Result.succeed({
         id: "tag-1",
-        name: "Renamed",
+        name: "Café",
         color: "#6f8eb8",
       }),
     );
@@ -440,10 +441,18 @@ describe("article tag mutations", () => {
 
     await result.current.mutateAsync({
       tagId: "tag-1",
-      name: "Renamed",
+      name: "Cafe\u0301",
       color: "#6f8eb8",
     });
 
+    expect(queryClient.getQueryData(tagQueryKeys.tags.root)).toEqual([
+      {
+        id: "tag-1",
+        name: "Café",
+        color: "#6f8eb8",
+      },
+      ...sampleTags.slice(1),
+    ]);
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ["tags"] });
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({
       queryKey: ["articleTags"],

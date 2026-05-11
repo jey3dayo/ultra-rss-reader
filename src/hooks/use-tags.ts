@@ -179,7 +179,27 @@ function invalidateTagQueries(qc: QueryClient) {
 
 export const useRenameTag = createMutation(
   ({ tagId, name, color }: RenameTagMutationInput) => renameTag(tagId, name, color),
-  invalidateTagQueries,
+  (qc, args, tag) => {
+    qc.setQueryData(tagQueryKeys.tags.root, (current: unknown) => {
+      if (!Array.isArray(current)) {
+        return current;
+      }
+
+      return current.map((candidate) => {
+        if (
+          typeof candidate !== "object" ||
+          candidate === null ||
+          !("id" in candidate) ||
+          candidate.id !== args.tagId
+        ) {
+          return candidate;
+        }
+
+        return tag;
+      });
+    });
+    invalidateTagQueries(qc);
+  },
 );
 
 export const useDeleteTag = createMutation(

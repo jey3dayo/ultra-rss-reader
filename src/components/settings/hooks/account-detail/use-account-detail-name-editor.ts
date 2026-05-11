@@ -1,6 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { type KeyboardEvent, type RefObject, useCallback, useEffect, useReducer, useRef } from "react";
 import { renameAccount } from "@/api/tauri-commands";
+import { normalizeRenameInput } from "@/hooks/normalize-rename-input";
 import { invalidateQueryKeysLogOnly } from "@/lib/query/query-invalidation";
 import { updateCachedAccount } from "../../account-detail/query-cache";
 import { createAccountDetailErrorToast } from "../../account-detail/toast";
@@ -93,7 +94,7 @@ export function useAccountDetailNameEditor({
       return;
     }
 
-    const trimmed = nameDraft.trim();
+    const trimmed = normalizeRenameInput(nameDraft);
     if (!trimmed || trimmed === account.name) {
       editSessionRef.current += 1;
       dispatch({ type: "finish-edit", value: account.name });

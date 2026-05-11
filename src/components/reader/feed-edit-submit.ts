@@ -1,5 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { renameFeed } from "@/api/tauri-commands";
+import { normalizeRenameInput } from "@/hooks/normalize-rename-input";
 import { displayPresetToTriStateModes, resolveFeedDisplayPreset } from "@/lib/articles/article-display";
 import { createFolderIfNeededResult } from "./feed-folder-flow";
 import { invalidateFeedQueries } from "./feed-query-cache";
@@ -29,7 +30,7 @@ export async function submitFeedEdits({
   updateFeedFolder,
   updateDisplaySettings,
 }: SubmitFeedEditsParams) {
-  const trimmed = title.trim();
+  const trimmed = normalizeRenameInput(title);
   const folderResult = await createFolderIfNeededResult({
     accountId: feed.account_id,
     selectedFolderId: folderSelection.selectedFolderId,

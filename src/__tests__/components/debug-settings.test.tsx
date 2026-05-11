@@ -170,6 +170,8 @@ describe("DebugSettings", () => {
     render(<DebugSettings />, { wrapper: createWrapper() });
 
     expect(await screen.findByText("Dev data seed")).toBeInTheDocument();
+    expect(screen.getByText("Source label")).toBeInTheDocument();
+    expect(screen.getByText(/product metrics as Dev mock data/i)).toBeInTheDocument();
     expect(screen.getByText("mise run app:dev:seed-from-prod")).toBeInTheDocument();
     expect(screen.getByText(/timestamped backup/i)).toBeInTheDocument();
     expect(screen.getByText(/Production credentials are not copied/i)).toBeInTheDocument();

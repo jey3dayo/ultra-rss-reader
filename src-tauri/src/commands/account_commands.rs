@@ -69,6 +69,15 @@ struct ProviderAccountScaleGuidanceContract {
 }
 
 #[cfg(test)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ProviderCredentialVerificationRequestContract {
+    create_requests_connection_test: bool,
+    update_requests_connection_test: bool,
+    explicit_verification_command: &'static str,
+    mutation_status_after_create_or_update: ConnectionVerificationStatus,
+}
+
+#[cfg(test)]
 fn account_credential_cleanup_contract() -> AccountCredentialCleanupContract {
     AccountCredentialCleanupContract {
         steps: vec![
@@ -105,6 +114,17 @@ fn provider_account_scale_guidance_contract() -> ProviderAccountScaleGuidanceCon
         performance_diagnostics:
             "record_account_kind_feed_count_article_count_and_sync_duration_class",
         no_hard_limit_copy: true,
+    }
+}
+
+#[cfg(test)]
+fn provider_credential_verification_request_contract(
+) -> ProviderCredentialVerificationRequestContract {
+    ProviderCredentialVerificationRequestContract {
+        create_requests_connection_test: false,
+        update_requests_connection_test: false,
+        explicit_verification_command: "test_account_connection",
+        mutation_status_after_create_or_update: ConnectionVerificationStatus::Unverified,
     }
 }
 
@@ -375,7 +395,8 @@ mod tests {
     use super::{
         account_credential_cleanup_contract, delete_account_then_password,
         invalid_account_row_recovery_contract, normalize_new_freshrss_server_url,
-        provider_account_scale_guidance_contract, save_account_after_optional_password,
+        provider_account_scale_guidance_contract,
+        provider_credential_verification_request_contract, save_account_after_optional_password,
         update_account_credentials_after_optional_password, validate_account_name,
         validate_account_name_with_excluded_id, validate_account_sync_settings,
         validate_add_account_args, validate_freshrss_server_url,
@@ -1043,6 +1064,22 @@ mod tests {
             "record_account_kind_feed_count_article_count_and_sync_duration_class"
         );
         assert!(contract.no_hard_limit_copy);
+    }
+
+    #[test]
+    fn account_create_update_do_not_request_provider_credential_verification() {
+        let contract = provider_credential_verification_request_contract();
+
+        assert!(!contract.create_requests_connection_test);
+        assert!(!contract.update_requests_connection_test);
+        assert_eq!(
+            contract.explicit_verification_command,
+            "test_account_connection"
+        );
+        assert_eq!(
+            contract.mutation_status_after_create_or_update,
+            ConnectionVerificationStatus::Unverified
+        );
     }
 }
 

@@ -1,4 +1,5 @@
 import { act, renderHook } from "@testing-library/react";
+import { createWrapper } from "@tests/helpers/create-wrapper";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useSidebarRuntime } from "@/components/reader/hooks/sidebar/use-sidebar-runtime";
 import { useUiStore } from "@/stores/ui-store";
@@ -55,7 +56,9 @@ describe("useSidebarRuntime", () => {
   });
 
   it("keeps feed and tag section collapse state across sidebar remounts", () => {
-    const { result, unmount } = renderHook(() => useSidebarRuntime());
+    const { result, unmount } = renderHook(() => useSidebarRuntime(), {
+      wrapper: createWrapper(),
+    });
 
     act(() => {
       result.current.setIsFeedsSectionOpen(false);
@@ -67,7 +70,9 @@ describe("useSidebarRuntime", () => {
 
     unmount();
 
-    const remounted = renderHook(() => useSidebarRuntime());
+    const remounted = renderHook(() => useSidebarRuntime(), {
+      wrapper: createWrapper(),
+    });
 
     expect(remounted.result.current.isFeedsSectionOpen).toBe(false);
     expect(remounted.result.current.isTagsSectionOpen).toBe(false);

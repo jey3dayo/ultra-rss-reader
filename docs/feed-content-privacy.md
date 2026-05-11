@@ -467,6 +467,11 @@ Provider request contract:
   account credentials may save database/keyring state, but verification network
   requests must run only through the explicit connection-test flow and update
   only verification status fields.
+- Provider API identity is a capability contract, not a live fingerprint.
+  FreshRSS uses the GReader protocol with diagnostics label `freshrss-greader`;
+  server product version detection is unsupported by the current GReader
+  contract and must not change feature capabilities without a reviewed provider
+  capability migration.
 
 ### Provider Sync Contract
 
@@ -806,6 +811,13 @@ Display and action rules:
 ### Fixture Domain Name Policy
 
 Decision: new fixtures, mock data, screenshots, and documentation examples should use RFC-reserved domains unless a real external service is the behavior under test.
+
+Dev mock data source labeling:
+
+- Internal Dev mock records, screenshots, and product-metric samples must be labeled as `Dev mock data` before they are shared outside the local Dev workflow.
+- Storybook and screenshot evidence that uses browser mocks or seeded Dev data must include either a visible badge, a filename/note label, or a debug HUD/source note that prevents the artifact from being read as production data.
+- Release builds must not show the Dev mock data source label because release source must not import dev-only mock data or scenario modules.
+- Product metrics and support/debug copy must not aggregate Dev mock data without an explicit source field or filter.
 
 Reserved-domain migration plan:
 

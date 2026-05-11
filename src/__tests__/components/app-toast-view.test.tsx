@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { AppToastView } from "@/components/shared/app-toast-view";
 
@@ -24,5 +25,29 @@ describe("AppToastView", () => {
     render(<AppToastView toastMessage={{ message: "Saved" }} onClose={vi.fn()} />);
 
     expect(screen.getByTestId("app-toast")).toHaveClass("fixed", "z-[100]");
+  });
+
+  it("keeps recovery toast actions and dismiss reachable from the keyboard", async () => {
+    const user = userEvent.setup();
+    const onRetry = vi.fn();
+    const onClose = vi.fn();
+
+    render(
+      <AppToastView
+        toastMessage={{
+          message: "Sync failed",
+          actions: [{ label: "Retry", onClick: onRetry }],
+        }}
+        onClose={onClose}
+      />,
+    );
+
+    await user.tab();
+    await user.keyboard("{Enter}");
+    await user.tab();
+    await user.keyboard("{Enter}");
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onRetry).toHaveBeenCalledTimes(1);
   });
 });

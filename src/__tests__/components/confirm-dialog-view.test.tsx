@@ -146,4 +146,47 @@ describe("ConfirmDialogView", () => {
     expect(onOpenChange).not.toHaveBeenCalled();
     expect(onConfirm).not.toHaveBeenCalled();
   });
+
+  it("keeps dialog recovery actions keyboard reachable", async () => {
+    const user = userEvent.setup();
+    const onConfirm = vi.fn();
+    const onCancel = vi.fn();
+
+    const { unmount } = render(
+      <ConfirmDialogView
+        open={true}
+        title="Recovery action"
+        message="Retry setup?"
+        actionLabel="Retry"
+        cancelLabel="Dismiss"
+        onOpenChange={vi.fn()}
+        onConfirm={onConfirm}
+        onCancel={onCancel}
+      />,
+    );
+
+    screen.getByRole("button", { name: "Retry" }).focus();
+    await user.keyboard("{Enter}");
+
+    unmount();
+
+    render(
+      <ConfirmDialogView
+        open={true}
+        title="Recovery action"
+        message="Retry setup?"
+        actionLabel="Retry"
+        cancelLabel="Dismiss"
+        onOpenChange={vi.fn()}
+        onConfirm={onConfirm}
+        onCancel={onCancel}
+      />,
+    );
+
+    screen.getByRole("button", { name: "Dismiss" }).focus();
+    await user.keyboard("{Enter}");
+
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
 });

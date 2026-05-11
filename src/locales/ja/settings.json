@@ -373,6 +373,8 @@
     "credentials_backend_native": "OS キーリング",
     "dev_data": "Dev データ seed",
     "dev_data_note": "既存の seed タスクは Dev アプリ専用です。Dev DB を置き換える前にバックアップを作成します。",
+    "dev_data_source": "ソースラベル",
+    "dev_data_source_value": "seed 済みのレコード、スクリーンショット、プロダクト指標は共有前に Dev mock data としてラベル付けします。",
     "dev_data_command": "コマンド",
     "dev_data_backup": "バックアップと再起動",
     "dev_data_backup_value": "Dev アプリデータの backups 配下に時刻付きバックアップを作成し、実行後は Dev アプリの再起動が必要です。",

@@ -164,26 +164,34 @@ describe("useDebugSettingsViewProps", () => {
         note: expect.stringContaining("Dev app"),
       }),
     );
-    expect(devDataSection?.controls).toEqual([
-      expect.objectContaining({
-        id: "debug-dev-data-command",
-        type: "info",
-        label: "Command",
-        value: "mise run app:dev:seed-from-prod",
-      }),
-      expect.objectContaining({
-        id: "debug-dev-data-backup",
-        type: "info",
-        label: "Backup and restart",
-        value: expect.stringContaining("timestamped backup"),
-      }),
-      expect.objectContaining({
-        id: "debug-dev-data-credentials",
-        type: "info",
-        label: "Credentials",
-        value: expect.stringContaining("not copied"),
-      }),
-    ]);
+    expect(devDataSection?.controls).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "debug-dev-data-source",
+          type: "info",
+          label: "Source label",
+          value: expect.stringContaining("Dev mock data"),
+        }),
+        expect.objectContaining({
+          id: "debug-dev-data-command",
+          type: "info",
+          label: "Command",
+          value: "mise run app:dev:seed-from-prod",
+        }),
+        expect.objectContaining({
+          id: "debug-dev-data-backup",
+          type: "info",
+          label: "Backup and restart",
+          value: expect.stringContaining("timestamped backup"),
+        }),
+        expect.objectContaining({
+          id: "debug-dev-data-credentials",
+          type: "info",
+          label: "Credentials",
+          value: expect.stringContaining("not copied"),
+        }),
+      ]),
+    );
   });
 
   it("omits the Dev data seed guidance outside dev builds", () => {

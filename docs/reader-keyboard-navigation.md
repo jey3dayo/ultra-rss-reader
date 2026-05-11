@@ -116,6 +116,7 @@ Dense control keyboard contract:
 
 - Toolbar buttons, feed tree rows, article rows, settings form controls, command palette items, and browser overlay controls must expose a visible `:focus-visible` state without requiring prior hover.
 - Keyboard-only operation must reach the same primary actions as pointer operation: pane movement, row selection, article read/star actions, feed/tag selection, settings save/cancel actions, and command palette execution.
+- Recovery surfaces must remain keyboard-only operable. Error dialogs, recovery toasts, and settings debug/data actions must expose retry, open settings, open log directory, restore backup, dismiss toast, and focus restoration through native button focus order or documented shortcut handling.
 - Selected and focused states must remain visually distinct. Selection may show current app context; focus must show the current keyboard operation target.
 - Disabled dense controls must remain focus-skipped unless they need to expose a reason. If a disabled control is reachable for explanation, its label or description must include why the action is unavailable.
 - Focus styles must not depend on color alone. Pair tone changes with an outline, inset indicator, underline, icon change, or text label when the control carries state.

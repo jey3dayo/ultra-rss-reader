@@ -35,6 +35,12 @@ export function useDebugSettingsViewProps({
           note: t("debug.dev_data_note"),
           controls: [
             {
+              id: "debug-dev-data-source",
+              type: "info",
+              label: t("debug.dev_data_source"),
+              value: t("debug.dev_data_source_value"),
+            },
+            {
               id: "debug-dev-data-command",
               type: "info",
               label: t("debug.dev_data_command"),

@@ -235,7 +235,7 @@ describe("useAccountDetailNameEditor", () => {
     const account = { ...sampleAccounts[1], name: "FreshRSS" };
     const queryClient = createTestQueryClient();
     queryClient.setQueryData(["accounts"], [account]);
-    renameAccountMock.mockResolvedValue(Result.succeed({ ...account, name: "FreshRSS Personal" }));
+    renameAccountMock.mockResolvedValue(Result.succeed({ ...account, name: "Cafe FreshRSS" }));
 
     const { result } = renderHook(() =>
       useAccountDetailNameEditor({
@@ -247,16 +247,16 @@ describe("useAccountDetailNameEditor", () => {
 
     act(() => {
       result.current.startEditingName();
-      result.current.setNameDraft("  FreshRSS Personal  ");
+      result.current.setNameDraft("  Cafe\u0301 FreshRSS  ");
     });
     await act(async () => {
       await result.current.commitRename();
     });
 
-    expect(renameAccountMock).toHaveBeenCalledWith(account.id, "FreshRSS Personal");
+    expect(renameAccountMock).toHaveBeenCalledWith(account.id, "Café FreshRSS");
     expect(result.current.editingName).toBe(false);
-    expect(result.current.nameDraft).toBe("FreshRSS Personal");
-    expect(queryClient.getQueryData(["accounts"])).toEqual([{ ...account, name: "FreshRSS Personal" }]);
+    expect(result.current.nameDraft).toBe("Cafe FreshRSS");
+    expect(queryClient.getQueryData(["accounts"])).toEqual([{ ...account, name: "Cafe FreshRSS" }]);
   });
 
   it("ignores a stale rename response after switching accounts and starting a new edit", async () => {

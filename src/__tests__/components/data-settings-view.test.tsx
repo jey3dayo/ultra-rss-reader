@@ -128,6 +128,41 @@ describe("DataSettingsView", () => {
     expect(onVacuum).not.toHaveBeenCalled();
   });
 
+  it("keeps open-log recovery reachable from the keyboard", async () => {
+    const user = userEvent.setup();
+    const onOpenLogDir = vi.fn();
+
+    render(
+      <DataSettingsView
+        title="Data"
+        databaseHeading="Database"
+        databaseSizeLabel="Database size"
+        databaseSizeStatus="ready"
+        databaseSizeValue="1.50 MB"
+        databaseSizeLoadingLabel="Loading..."
+        databaseSizeErrorLabel="Unavailable"
+        safetyHeading="Backup and Restore"
+        safetyDescription="Confirm rollback before changing user data."
+        safetyChecklist={["Use OPML export.", "Quit before restoring backups."]}
+        optimizationHeading="Optimization"
+        vacuumDescription="Optimize the database."
+        vacuumLabel="Optimize now"
+        vacuuming={false}
+        logsHeading="Logs"
+        openLogDirDescription="Open the log directory."
+        openLogDirLabel="Open log directory"
+        openingLogDir={false}
+        onVacuum={vi.fn()}
+        onOpenLogDir={onOpenLogDir}
+      />,
+    );
+
+    screen.getByRole("button", { name: "Open log directory" }).focus();
+    await user.keyboard("{Enter}");
+
+    expect(onOpenLogDir).toHaveBeenCalledTimes(1);
+  });
+
   it("shows the loading label while vacuuming and keeps the action disabled", async () => {
     const user = userEvent.setup();
     const onVacuum = vi.fn();

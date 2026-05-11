@@ -383,6 +383,7 @@ mod tests {
             "unsupported_by_greader_contract"
         );
         assert_eq!(identity.diagnostics_product_label, "freshrss-greader");
+        assert_ne!(identity.diagnostics_product_label, identity.server_product);
     }
 
     #[test]

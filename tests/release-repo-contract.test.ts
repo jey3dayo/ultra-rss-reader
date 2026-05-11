@@ -1210,6 +1210,17 @@ describe("release repository contract", () => {
     expect(readerKeyboardNavigation).toContain(
       "This exception does not apply to URLs, server paths, credentials, debug paths, or other privacy-sensitive values.",
     );
+    expect(readerKeyboardNavigation).toContain("Recovery surfaces must remain keyboard-only operable.");
+    expect(readerKeyboardNavigation).toContain(
+      "retry, open settings, open log directory, restore backup, dismiss toast, and focus restoration",
+    );
+    expect(feedContentPrivacy).toContain("Dev mock data source labeling");
+    expect(feedContentPrivacy).toContain(
+      "Internal Dev mock records, screenshots, and product-metric samples must be labeled as `Dev mock data`",
+    );
+    expect(feedContentPrivacy).toContain(
+      "Release builds must not show the Dev mock data source label because release source must not import dev-only mock data or scenario modules.",
+    );
 
     expect(localProviderSource).toContain("pull_entries_smoke_parses_many_large_entries_under_body_cap");
     expect(opmlCommandsSource).toContain("import_parser_smoke_parses_large_opml_under_file_limit");
@@ -1310,9 +1321,16 @@ describe("release repository contract", () => {
     expect(incidentRunbook).toContain("Feed discovery is a user-initiated single URL probe, not a crawler");
 
     expect(providerSource).toContain("provider_auth_semantics_document_token_refresh_contract");
+    expect(providerSource).toContain("freshrss_capability_is_connected_to_greader_product_diagnostics");
+    expect(providerSource).toContain("unsupported_by_greader_contract");
+    expect(providerSource).toContain("freshrss-greader");
     expect(providerSource).toContain("treat_401_403_as_auth_failure_and_scheduler_backoff");
     expect(providerSource).toContain("provider_side_deletion_retention_policy_is_fixed_by_account_kind");
     expect(feedContentPrivacy).toContain("### Provider Sync Contract");
+    expect(feedContentPrivacy).toContain(
+      "FreshRSS uses the GReader protocol with diagnostics label `freshrss-greader`",
+    );
+    expect(feedContentPrivacy).toContain("server product version detection is unsupported by the current GReader");
     expect(feedContentPrivacy).toContain("FreshRSS through the GReader API retains local feeds and folders");
     expect(feedContentPrivacy).toContain("HTTP 401 or 403 after reauthentication is an auth failure");
     expect(feedContentPrivacy).toContain(
