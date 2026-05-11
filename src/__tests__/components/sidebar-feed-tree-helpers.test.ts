@@ -6,7 +6,7 @@ import {
   getVisibleSidebarFeedTreeData,
   mapFeedsToFeedTreeViewModels,
   sortSidebarSubscriptionFeeds,
-} from "@/components/reader/sidebar-feed-tree-helpers";
+} from "@/lib/sidebar/sidebar-feed-tree";
 
 const folders: FolderDto[] = [
   { id: "folder-1", account_id: "acc-1", name: "Folder 1", sort_order: 0 },

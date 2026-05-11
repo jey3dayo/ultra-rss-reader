@@ -11,7 +11,7 @@ import {
   buildArticleViewSummaryResult,
   findSelectedArticle,
 } from "@/lib/articles/article-view";
-import type { ReaderSelection } from "@/lib/reader/reader-selection.types";
+import { resolveReaderSelectionSourceKind, resolveReaderSourceArticles } from "@/lib/reader/reader-source-articles";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -27,29 +27,6 @@ export type ArticleViewSelectionState =
   | ArticleViewEmptyState
   | { kind: "not-found" }
   | { kind: "article"; article: ArticleDto; feed?: FeedDto };
-
-function resolveSummaryArticles(params: {
-  selection: ReaderSelection;
-  allFeedArticles: ArticleDto[] | undefined;
-  allFolderArticles: ArticleDto[] | undefined;
-  allTagArticles: ArticleDto[] | undefined;
-}): ArticleDto[] | undefined {
-  const { selection, allFeedArticles, allFolderArticles, allTagArticles } = params;
-
-  if (selection.type === "feed") {
-    return allFeedArticles;
-  }
-
-  if (selection.type === "folder") {
-    return allFolderArticles;
-  }
-
-  if (selection.type === "tag") {
-    return allTagArticles;
-  }
-
-  return undefined;
-}
 
 function resolveEmptyArticleViewState(params: {
   accountsCount: number | undefined;
@@ -140,11 +117,11 @@ export function useArticleViewSelection(): ArticleViewSelectionState {
       folders,
       tags,
       filteredArticles: data.filteredArticles,
-      summaryArticles: resolveSummaryArticles({
-        selection,
-        allFeedArticles,
-        allFolderArticles,
-        allTagArticles,
+      summaryArticles: resolveReaderSourceArticles({
+        sourceKind: resolveReaderSelectionSourceKind(selection),
+        feedArticles: allFeedArticles,
+        folderArticles: allFolderArticles,
+        tagArticles: allTagArticles,
       }),
       allFeedArticles,
     });

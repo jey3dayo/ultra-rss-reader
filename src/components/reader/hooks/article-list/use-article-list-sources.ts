@@ -17,6 +17,7 @@ import {
   resolveReaderSourcePlan,
   shouldRecoverUnavailableReaderSelection,
 } from "@/lib/reader/reader-query";
+import { resolveReaderSourceArticles, resolveReaderSourceValue } from "@/lib/reader/reader-source-articles";
 import { useUiStore } from "@/stores/ui-store";
 import type { UseArticleListSourcesParams, UseArticleListSourcesResult } from "./article-list-controller.types";
 
@@ -83,66 +84,6 @@ function recoverStaleReaderSelection(selection: UseArticleListSourcesParams["sel
   }
 
   useUiStore.getState().selectAll();
-}
-
-function resolvePrimarySourceArticles(params: {
-  sourceKind: ReaderSourceKind;
-  articles: ArticleDto[] | undefined;
-  tagArticles: ArticleDto[] | undefined;
-  folderArticles: ArticleDto[] | undefined;
-  accountSelectionArticles: ArticleDto[] | undefined;
-}): ArticleDto[] | undefined {
-  const { sourceKind, articles, tagArticles, folderArticles, accountSelectionArticles } = params;
-
-  if (sourceKind === "feed") {
-    return articles;
-  }
-
-  if (sourceKind === "tag") {
-    return tagArticles;
-  }
-
-  if (sourceKind === "folder") {
-    return folderArticles;
-  }
-
-  return accountSelectionArticles;
-}
-
-function resolvePrimarySourceLoading(params: {
-  sourceKind: ReaderSourceKind;
-  isLoadingFeedArticles: boolean;
-  isLoadingTagArticles: boolean;
-  isLoadingFolderArticles: boolean;
-  isLoadingRecentArticles: boolean;
-  isLoadingAccountArticles: boolean;
-}): boolean {
-  const {
-    sourceKind,
-    isLoadingFeedArticles,
-    isLoadingTagArticles,
-    isLoadingFolderArticles,
-    isLoadingRecentArticles,
-    isLoadingAccountArticles,
-  } = params;
-
-  if (sourceKind === "feed") {
-    return isLoadingFeedArticles;
-  }
-
-  if (sourceKind === "tag") {
-    return isLoadingTagArticles;
-  }
-
-  if (sourceKind === "folder") {
-    return isLoadingFolderArticles;
-  }
-
-  if (sourceKind === "recent") {
-    return isLoadingRecentArticles;
-  }
-
-  return isLoadingAccountArticles;
 }
 
 export function useArticleListSources({
@@ -279,20 +220,20 @@ export function useArticleListSources({
   ]);
 
   const accountSelectionArticles = sourcePlan.sourceKind === "recent" ? latestRecentArticles : latestAccountArticles;
-  const primarySourceArticles = resolvePrimarySourceArticles({
+  const primarySourceArticles = resolveReaderSourceArticles({
     sourceKind: sourcePlan.sourceKind,
-    articles: latestFeedArticles,
-    tagArticles,
+    feedArticles: latestFeedArticles,
     folderArticles: latestFolderArticles,
-    accountSelectionArticles,
+    tagArticles,
+    fallbackArticles: accountSelectionArticles,
   });
-  const primarySourceLoading = resolvePrimarySourceLoading({
+  const primarySourceLoading = resolveReaderSourceValue({
     sourceKind: sourcePlan.sourceKind,
-    isLoadingFeedArticles,
-    isLoadingTagArticles,
-    isLoadingFolderArticles,
-    isLoadingRecentArticles,
-    isLoadingAccountArticles,
+    feedValue: isLoadingFeedArticles,
+    folderValue: isLoadingFolderArticles,
+    tagValue: isLoadingTagArticles,
+    recentValue: isLoadingRecentArticles,
+    fallbackValue: isLoadingAccountArticles,
   });
   const primarySourceSnapshotCandidate = useMemo<ArticleListPrimarySourceSnapshot | null>(
     () =>

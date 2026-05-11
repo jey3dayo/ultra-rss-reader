@@ -109,11 +109,6 @@ const remainingTypeSurfaceFiles = [
     "SidebarVisibilityFallbackParams",
   ]),
   allowTypeSurface("src/components/reader/sidebar-feed-tree.types.ts", [
-    "SidebarFeedTreeFolderBuildParams",
-    "SidebarFolderFeedVisibilityParams",
-    "SidebarUnfolderedFeedVisibilityParams",
-    "SidebarVisibleFeedTreeParams",
-    "SidebarVisibleFeedTreeResult",
     "UseSidebarFeedTreeParams",
     "UseSidebarFeedTreeResult",
   ]),

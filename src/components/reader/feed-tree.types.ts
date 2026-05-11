@@ -1,31 +1,8 @@
 import type { ReactNode, PointerEvent as ReactPointerEvent } from "react";
-import type { TriStateDisplayMode } from "@/lib/articles/article-display";
+import type { FeedTreeFeedViewModel, FeedTreeFolderViewModel } from "@/lib/sidebar/sidebar-feed-tree";
 import type { SidebarDensity } from "./sidebar-density";
 
-export type FeedTreeFeedViewModel = {
-  id: string;
-  accountId: string;
-  folderId: string | null;
-  title: string;
-  url: string;
-  siteUrl: string;
-  unreadCount: number;
-  readerMode: TriStateDisplayMode;
-  webPreviewMode: TriStateDisplayMode;
-  isSelected: boolean;
-  grayscaleFavicon: boolean;
-};
-
-export type FeedTreeFolderViewModel = {
-  id: string;
-  name: string;
-  accountId: string;
-  sortOrder: number;
-  unreadCount: number;
-  isExpanded: boolean;
-  isSelected: boolean;
-  feeds: FeedTreeFeedViewModel[];
-};
+export type { FeedTreeFeedViewModel, FeedTreeFolderViewModel } from "@/lib/sidebar/sidebar-feed-tree";
 
 export type ActiveDropTarget = { kind: "folder"; folderId: string } | { kind: "unfoldered" } | null;
 

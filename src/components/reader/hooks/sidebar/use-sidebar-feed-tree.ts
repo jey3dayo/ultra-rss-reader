@@ -1,15 +1,15 @@
 import { useCallback, useMemo } from "react";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import { groupFeedsByFolder } from "@/lib/sidebar/sidebar";
-import type { FeedTreeFeedViewModel, FeedTreeFolderViewModel } from "../../feed-tree.types";
-import type { UseSidebarFeedTreeParams, UseSidebarFeedTreeResult } from "../../sidebar-feed-tree.types";
 import {
   buildSidebarFeedTreeFolders,
   getVisibleSidebarFeeds,
   getVisibleSidebarFeedTreeData,
   mapFeedsToFeedTreeViewModels,
   sortSidebarSubscriptionFeeds,
-} from "../../sidebar-feed-tree-helpers";
+} from "@/lib/sidebar/sidebar-feed-tree";
+import type { FeedTreeFeedViewModel, FeedTreeFolderViewModel } from "../../feed-tree.types";
+import type { UseSidebarFeedTreeParams, UseSidebarFeedTreeResult } from "../../sidebar-feed-tree.types";
 
 const EMPTY_STARRED_COUNT_BY_FEED_ID = new Map<string, number>();
 

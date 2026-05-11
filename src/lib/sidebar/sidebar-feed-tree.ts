@@ -1,17 +1,81 @@
-import type { FeedDto } from "@/api/tauri-commands";
-import { sortFeedsByPreference, sumUnreadCounts } from "@/lib/sidebar/sidebar";
+import type { FeedDto, FolderDto } from "@/api/tauri-commands";
+import type { TriStateDisplayMode } from "@/lib/articles/article-display";
+import type { ViewMode } from "@/lib/reader/view-mode.types";
 import type { SortSubscriptions } from "@/schemas/preferences";
-import type { FeedTreeFeedViewModel, FeedTreeFolderViewModel } from "./feed-tree.types";
-import type {
-  SidebarFeedTreeFolderBuildParams,
-  SidebarFeedTreeViewMode,
-  SidebarFeedTreeViewModelOptions,
-  SidebarFolderFeedVisibilityParams,
-  SidebarSortFeeds,
-  SidebarUnfolderedFeedVisibilityParams,
-  SidebarVisibleFeedTreeParams,
-  SidebarVisibleFeedTreeResult,
-} from "./sidebar-feed-tree.types";
+import { sortFeedsByPreference, sumUnreadCounts } from "./sidebar";
+
+export type FeedTreeFeedViewModel = {
+  id: string;
+  accountId: string;
+  folderId: string | null;
+  title: string;
+  url: string;
+  siteUrl: string;
+  unreadCount: number;
+  readerMode: TriStateDisplayMode;
+  webPreviewMode: TriStateDisplayMode;
+  isSelected: boolean;
+  grayscaleFavicon: boolean;
+};
+
+export type FeedTreeFolderViewModel = {
+  id: string;
+  name: string;
+  accountId: string;
+  sortOrder: number;
+  unreadCount: number;
+  isExpanded: boolean;
+  isSelected: boolean;
+  feeds: FeedTreeFeedViewModel[];
+};
+
+export type SidebarFeedTreeViewMode = ViewMode;
+
+export type SidebarSortFeeds = (candidateFeeds: FeedDto[]) => FeedDto[];
+
+export type SidebarFeedTreeViewModelOptions = {
+  selectedFeedId: string | null;
+  grayscaleFavicons: boolean;
+  viewMode: SidebarFeedTreeViewMode;
+  starredCountByFeedId: ReadonlyMap<string, number>;
+};
+
+export type SidebarFolderFeedVisibilityParams = {
+  folderId: string;
+  feedsByFolder: Map<string, FeedDto[]>;
+  getVisibleFeeds: SidebarSortFeeds;
+};
+
+export type SidebarUnfolderedFeedVisibilityParams = {
+  unfolderedFeeds: FeedDto[];
+  getVisibleFeeds: SidebarSortFeeds;
+};
+
+export type SidebarVisibleFeedTreeParams = {
+  sortedFolderList: FolderDto[];
+  feedsByFolder: Map<string, FeedDto[]>;
+  unfolderedFeeds: FeedDto[];
+  getVisibleFeeds: SidebarSortFeeds;
+};
+
+export type SidebarVisibleFeedTreeResult = {
+  visibleFolderFeedsById: Map<string, FeedDto[]>;
+  visibleUnfolderedFeeds: FeedDto[];
+  orderedFeedIds: string[];
+};
+
+export type SidebarFeedTreeFolderBuildParams = {
+  sortedFolderList: FolderDto[];
+  feedsByFolder: Map<string, FeedDto[]>;
+  visibleFolderFeedsById: Map<string, FeedDto[]>;
+  expandedFolderIds: ReadonlySet<string>;
+  selectedFolderId: string | null;
+  selectedFeedId: string | null;
+  grayscaleFavicons: boolean;
+  viewMode: SidebarFeedTreeViewMode;
+  starredCountByFeedId: ReadonlyMap<string, number>;
+  hideEmptyFoldersInCurrentView: boolean;
+};
 
 const EMPTY_STARRED_COUNT_BY_FEED_ID = new Map<string, number>();
 
