@@ -575,7 +575,7 @@ export function useRecordArticleView() {
         return Promise.resolve(null);
       }
 
-      return recordArticleView(normalizedAccountId, normalizedArticleId).then(Result.unwrap);
+      return recordArticleView(normalizedAccountId, normalizedArticleId).then((result) => Result.unwrap(result));
     },
     onSuccess: (_data, variables) => {
       const normalizedAccountId = normalizeManualArticleQueryId(variables.accountId);
@@ -616,7 +616,7 @@ export function useClearArticleViewHistory() {
         return Promise.resolve(0);
       }
 
-      return clearArticleViewHistory(normalizedAccountId).then(Result.unwrap);
+      return clearArticleViewHistory(normalizedAccountId).then((result) => Result.unwrap(result));
     },
     onMutate: async (accountId) => {
       const normalizedAccountId = normalizeManualArticleQueryId(accountId);
