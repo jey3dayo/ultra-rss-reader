@@ -22,6 +22,7 @@ pub fn parse_opml(xml: &str) -> Result<Vec<OpmlFeed>, String> {
     let mut reader = Reader::from_str(xml);
     let mut feeds = Vec::new();
     let mut outline_stack: Vec<Option<String>> = Vec::new();
+    let mut body_depth = 0_usize;
     let mut saw_opml_root = false;
     let mut saw_root_element = false;
 
@@ -41,10 +42,17 @@ pub fn parse_opml(xml: &str) -> Result<Vec<OpmlFeed>, String> {
             Ok(Event::Decl(_)) if saw_root_element => {
                 return Err(OPML_MALFORMED_XML_ERROR_MESSAGE.to_string());
             }
+            Ok(Event::Start(ref e)) if e.name().as_ref() == b"body" && body_depth == 0 => {
+                body_depth = 1;
+            }
             Ok(Event::Start(ref e)) if e.name().as_ref() == b"outline" => {
+                if body_depth == 0 {
+                    continue;
+                }
                 if outline_stack.len() >= MAX_OUTLINE_DEPTH {
                     return Err(OPML_MALFORMED_XML_ERROR_MESSAGE.to_string());
                 }
+                body_depth += 1;
                 let attrs = parse_outline_attrs(e)?;
                 if let Some(xml_url) = attrs.get("xmlUrl").or(attrs.get("xmlurl")) {
                     feeds.push(OpmlFeed {
@@ -65,6 +73,9 @@ pub fn parse_opml(xml: &str) -> Result<Vec<OpmlFeed>, String> {
                 }
             }
             Ok(Event::Empty(ref e)) if e.name().as_ref() == b"outline" => {
+                if body_depth == 0 {
+                    continue;
+                }
                 let attrs = parse_outline_attrs(e)?;
                 if let Some(xml_url) = attrs.get("xmlUrl").or(attrs.get("xmlurl")) {
                     feeds.push(OpmlFeed {
@@ -78,9 +89,18 @@ pub fn parse_opml(xml: &str) -> Result<Vec<OpmlFeed>, String> {
             }
             Ok(Event::DocType(_)) => return Err(OPML_MALFORMED_XML_ERROR_MESSAGE.to_string()),
             Ok(Event::End(ref e)) if e.name().as_ref() == b"outline" => {
-                outline_stack
-                    .pop()
-                    .ok_or_else(|| OPML_MALFORMED_XML_ERROR_MESSAGE.to_string())?;
+                if body_depth > 0 {
+                    outline_stack
+                        .pop()
+                        .ok_or_else(|| OPML_MALFORMED_XML_ERROR_MESSAGE.to_string())?;
+                    body_depth -= 1;
+                }
+            }
+            Ok(Event::Start(_)) if body_depth > 0 => {
+                body_depth += 1;
+            }
+            Ok(Event::End(_)) if body_depth > 0 => {
+                body_depth -= 1;
             }
             Ok(Event::Eof) => break,
             Err(_) => return Err(OPML_MALFORMED_XML_ERROR_MESSAGE.to_string()),
@@ -338,6 +358,32 @@ mod tests {
         assert_eq!(feeds.len(), 1);
         assert_eq!(feeds[0].title, "Standalone");
         assert_eq!(feeds[0].folder, None);
+    }
+
+    #[test]
+    fn ignores_outline_elements_outside_body() {
+        let xml = r#"<?xml version="1.0"?>
+<opml version="2.0">
+  <head>
+    <outline text="Head Feed" xmlUrl="https://example.com/head.xml"/>
+  </head>
+  <outline text="Root Feed" xmlUrl="https://example.com/root.xml"/>
+  <body>
+    <outline text="Body Feed" xmlUrl="https://example.com/body.xml"/>
+  </body>
+</opml>"#;
+
+        let feeds = parse_opml(xml).unwrap();
+
+        assert_eq!(
+            feeds,
+            vec![OpmlFeed {
+                title: "Body Feed".to_string(),
+                xml_url: "https://example.com/body.xml".to_string(),
+                html_url: None,
+                folder: None,
+            }]
+        );
     }
 
     #[test]

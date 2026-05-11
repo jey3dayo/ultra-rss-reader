@@ -3,6 +3,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import type { TFunction } from "i18next";
 import { useEffect, useRef, useState } from "react";
 import { syncAccount, updateAccountSync } from "@/api/tauri-commands";
+import { accountSyncStatusQueryKey } from "@/hooks/use-account-sync-status";
 import type { AccountSetupSessionOwner, AccountSetupSessionState } from "@/lib/account/account-setup-session.types";
 import {
   invalidateArticleQueries,
@@ -225,6 +226,12 @@ export function useAccountDetailSyncControls({
     const requestGeneration = selectedAccountGenerationRef.current;
     syncActionInFlightRef.current = true;
     setSyncActionInFlight(true);
+    queryClient.removeQueries({
+      queryKey: accountSyncStatusQueryKey(requestAccountId),
+    });
+    queryClient.removeQueries({
+      queryKey: queryKeys.feeds.byAccount(requestAccountId),
+    });
     try {
       await runAccountSetupSync({
         accountId: requestAccountId,

@@ -3,6 +3,22 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { FeedContextMenuView } from "@/components/reader/feed-context-menu-view";
+import type { FeedTreeFeedViewModel } from "@/components/reader/feed-tree.types";
+import { FeedTreeRow } from "@/components/reader/feed-tree-row";
+
+const baseFeed: FeedTreeFeedViewModel = {
+  id: "feed-1",
+  accountId: "acc-1",
+  folderId: null,
+  title: "Tech Blog",
+  url: "https://example.com/feed.xml",
+  siteUrl: "https://example.com",
+  unreadCount: 3,
+  readerMode: "on",
+  webPreviewMode: "off",
+  isSelected: false,
+  grayscaleFavicon: false,
+};
 
 describe("FeedContextMenuView", () => {
   it("renders feed actions and delegates clicks", async () => {
@@ -200,5 +216,66 @@ describe("FeedContextMenuView", () => {
 
     expect(screen.queryByRole("menuitem", { name: "Mark all as read" })).not.toBeInTheDocument();
     expect(onMarkAllRead).not.toHaveBeenCalled();
+  });
+
+  it("captures the feed target for keyboard context menu invocation", () => {
+    const renderFeedContextMenu = vi.fn((feed: FeedTreeFeedViewModel) => (
+      <div data-testid="feed-context-target">{feed.title}</div>
+    ));
+
+    const { rerender } = render(
+      <FeedTreeRow
+        feed={baseFeed}
+        displayFavicons={false}
+        onSelectFeed={vi.fn()}
+        renderFeedContextMenu={renderFeedContextMenu}
+      />,
+    );
+
+    fireEvent.keyDown(screen.getByRole("button", { name: /Tech Blog/ }), {
+      key: "ContextMenu",
+    });
+
+    rerender(
+      <FeedTreeRow
+        feed={{ ...baseFeed, title: "Renamed feed" }}
+        displayFavicons={false}
+        onSelectFeed={vi.fn()}
+        renderFeedContextMenu={renderFeedContextMenu}
+      />,
+    );
+
+    expect(screen.getByTestId("feed-context-target")).toHaveTextContent("Tech Blog");
+  });
+
+  it("captures the feed target for Shift+F10 context menu invocation", () => {
+    const renderFeedContextMenu = vi.fn((feed: FeedTreeFeedViewModel) => (
+      <div data-testid="feed-context-target">{feed.title}</div>
+    ));
+
+    const { rerender } = render(
+      <FeedTreeRow
+        feed={baseFeed}
+        displayFavicons={false}
+        onSelectFeed={vi.fn()}
+        renderFeedContextMenu={renderFeedContextMenu}
+      />,
+    );
+
+    fireEvent.keyDown(screen.getByRole("button", { name: /Tech Blog/ }), {
+      key: "F10",
+      shiftKey: true,
+    });
+
+    rerender(
+      <FeedTreeRow
+        feed={{ ...baseFeed, title: "Renamed feed" }}
+        displayFavicons={false}
+        onSelectFeed={vi.fn()}
+        renderFeedContextMenu={renderFeedContextMenu}
+      />,
+    );
+
+    expect(screen.getByTestId("feed-context-target")).toHaveTextContent("Tech Blog");
   });
 });

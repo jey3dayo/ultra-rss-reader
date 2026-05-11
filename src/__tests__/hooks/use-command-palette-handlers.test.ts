@@ -131,7 +131,10 @@ describe("useCommandPaletteHandlers", () => {
 
   it("does not dispatch actions after the palette has already closed", () => {
     const openShortcutsHelp = vi.fn();
-    const { result, rerender } = renderHandlers({ commandPaletteOpen: true, openShortcutsHelp });
+    const { result, rerender } = renderHandlers({
+      commandPaletteOpen: true,
+      openShortcutsHelp,
+    });
     const staleShortcutsHandler = result.current;
 
     rerender({ overrides: { commandPaletteOpen: false } });
@@ -141,6 +144,53 @@ describe("useCommandPaletteHandlers", () => {
     expect(addToHistoryMock).not.toHaveBeenCalled();
     expect(executeActionMock).not.toHaveBeenCalled();
     expect(openShortcutsHelp).not.toHaveBeenCalled();
+  });
+
+  it("guards action double submits within the same palette session", () => {
+    const closePalette = vi.fn();
+    const handlers = createHandlers({ closePalette });
+
+    handlers.handleActionSelect("open-settings");
+    handlers.handleActionSelect("open-settings");
+
+    expect(addToHistoryMock).toHaveBeenCalledOnce();
+    expect(executeActionMock).toHaveBeenCalledOnce();
+    expect(executeActionMock).toHaveBeenCalledWith("open-settings");
+    expect(closePalette).toHaveBeenCalledOnce();
+  });
+
+  it("guards resource double submits within the same palette session", () => {
+    const closePalette = vi.fn();
+    const selectTagFromCurrentContext = vi.fn();
+    const handlers = createHandlers({
+      closePalette,
+      selectTagFromCurrentContext,
+    });
+
+    handlers.handleTagSelect("tag-1");
+    handlers.handleTagSelect("tag-1");
+
+    expect(addToHistoryMock).toHaveBeenCalledOnce();
+    expect(addToHistoryMock).toHaveBeenCalledWith("tag:tag-1");
+    expect(selectTagFromCurrentContext).toHaveBeenCalledOnce();
+    expect(selectTagFromCurrentContext).toHaveBeenCalledWith("tag-1");
+    expect(closePalette).toHaveBeenCalledOnce();
+  });
+
+  it("allows a new submit after the palette session changes", () => {
+    const closePalette = vi.fn();
+    const { result, rerender } = renderHandlers({
+      closePalette,
+      paletteSessionId: 1,
+    });
+
+    result.current.handleActionSelect("open-settings");
+    rerender({ overrides: { closePalette, paletteSessionId: 2 } });
+    result.current.handleActionSelect("open-settings");
+
+    expect(addToHistoryMock).toHaveBeenCalledTimes(2);
+    expect(executeActionMock).toHaveBeenCalledTimes(2);
+    expect(closePalette).toHaveBeenCalledTimes(2);
   });
 
   it("does not dispatch modal-blocked actions while another modal is already open", () => {
@@ -189,7 +239,10 @@ describe("useCommandPaletteHandlers", () => {
     const showToast = vi.fn();
     const staleScenario = createDeferred<void>();
     runRuntimeDevScenarioMock.mockReturnValueOnce(staleScenario.promise);
-    const { result, rerender } = renderHandlers({ showToast, paletteSessionId: 1 });
+    const { result, rerender } = renderHandlers({
+      showToast,
+      paletteSessionId: 1,
+    });
 
     result.current.handleDevScenarioSelect("open-add-feed-dialog");
     rerender({ overrides: { showToast, paletteSessionId: 2 } });
@@ -204,10 +257,18 @@ describe("useCommandPaletteHandlers", () => {
   it("writes feed history and closes the palette without a success toast for feed landing", async () => {
     const closePalette = vi.fn();
     const showToast = vi.fn();
-    const openFeedLanding = vi
-      .fn()
-      .mockResolvedValue(Result.succeed({ type: "feed_selected", feedId: "feed-1", articleId: "art-1" }));
-    const handlers = createHandlers({ closePalette, showToast, openFeedLanding });
+    const openFeedLanding = vi.fn().mockResolvedValue(
+      Result.succeed({
+        type: "feed_selected",
+        feedId: "feed-1",
+        articleId: "art-1",
+      }),
+    );
+    const handlers = createHandlers({
+      closePalette,
+      showToast,
+      openFeedLanding,
+    });
 
     handlers.handleFeedSelect("feed-1");
 

@@ -20,7 +20,7 @@ export const qualityBaselineRepoScanIgnoredPathPrefixes = [
 ] as const;
 
 export const markdownlintRepoContract = {
-  targetFileCount: 158,
+  targetFileCount: 159,
   glob: "**/*.md",
   ignorePatterns: [
     "node_modules",

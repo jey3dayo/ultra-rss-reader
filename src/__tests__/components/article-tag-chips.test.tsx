@@ -269,7 +269,44 @@ describe("ArticleTagChips", () => {
         args: { articleId: "art-1", tagId: "tag-later" },
       });
     });
+    expect(useUiStore.getState().toastMessage).toEqual({
+      message: "Tag added. Remove the tag to reverse.",
+    });
     expect(commands.some((command) => command.cmd === "create_tag")).toBe(false);
+  });
+
+  it("surfaces recovery copy after removing an article tag", async () => {
+    const user = userEvent.setup();
+    const commands: Array<{ cmd: string; args: Record<string, unknown> }> = [];
+
+    useUiStore.setState(useUiStore.getInitialState());
+    setupTauriMocks((cmd, args) => {
+      commands.push({ cmd, args });
+      switch (cmd) {
+        case "get_article_tags":
+          return [{ id: "tag-later", name: "Later", color: "#3b82f6" }];
+        case "list_tags":
+          return [{ id: "tag-later", name: "Later", color: "#3b82f6" }];
+        case "untag_article":
+          return null;
+        default:
+          return undefined;
+      }
+    });
+
+    render(<ArticleTagChips articleId="art-1" />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "Remove tag Later" }));
+
+    await waitFor(() => {
+      expect(commands).toContainEqual({
+        cmd: "untag_article",
+        args: { articleId: "art-1", tagId: "tag-later" },
+      });
+    });
+    expect(useUiStore.getState().toastMessage).toEqual({
+      message: "Tag removed. Add it again to reverse.",
+    });
   });
 
   it("keeps the picker open and surfaces feedback when existing tag assignment fails", async () => {

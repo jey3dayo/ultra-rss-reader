@@ -231,9 +231,45 @@ describe("useAccountDetailNameEditor", () => {
     expect(result.current.nameDraft).toBe("FreshRSS Personal");
   });
 
+  it("commits the backend-normalized account name instead of the optimistic draft", async () => {
+    const account = { ...sampleAccounts[1], name: "FreshRSS" };
+    const queryClient = createTestQueryClient();
+    queryClient.setQueryData(["accounts"], [account]);
+    renameAccountMock.mockResolvedValue(Result.succeed({ ...account, name: "FreshRSS Personal" }));
+
+    const { result } = renderHook(() =>
+      useAccountDetailNameEditor({
+        account,
+        queryClient,
+        t,
+      }),
+    );
+
+    act(() => {
+      result.current.startEditingName();
+      result.current.setNameDraft("  FreshRSS Personal  ");
+    });
+    await act(async () => {
+      await result.current.commitRename();
+    });
+
+    expect(renameAccountMock).toHaveBeenCalledWith(account.id, "FreshRSS Personal");
+    expect(result.current.editingName).toBe(false);
+    expect(result.current.nameDraft).toBe("FreshRSS Personal");
+    expect(queryClient.getQueryData(["accounts"])).toEqual([{ ...account, name: "FreshRSS Personal" }]);
+  });
+
   it("ignores a stale rename response after switching accounts and starting a new edit", async () => {
-    const firstAccount = { ...sampleAccounts[1], id: "acc-1", name: "FreshRSS Work" };
-    const secondAccount = { ...sampleAccounts[2], id: "acc-2", name: "Local Account" };
+    const firstAccount = {
+      ...sampleAccounts[1],
+      id: "acc-1",
+      name: "FreshRSS Work",
+    };
+    const secondAccount = {
+      ...sampleAccounts[2],
+      id: "acc-2",
+      name: "Local Account",
+    };
     const queryClient = createTestQueryClient();
     queryClient.setQueryData(["accounts"], [firstAccount, secondAccount]);
     const staleRename = createDeferred<ReturnType<typeof renameAccountMock>>();
@@ -273,7 +309,11 @@ describe("useAccountDetailNameEditor", () => {
   });
 
   it("ignores a stale rename response when the draft changes before the result returns", async () => {
-    const account = { ...sampleAccounts[1], id: "acc-1", name: "FreshRSS Work" };
+    const account = {
+      ...sampleAccounts[1],
+      id: "acc-1",
+      name: "FreshRSS Work",
+    };
     const queryClient = createTestQueryClient();
     queryClient.setQueryData(["accounts"], [account]);
     const staleRename = createDeferred<ReturnType<typeof renameAccountMock>>();
@@ -309,8 +349,16 @@ describe("useAccountDetailNameEditor", () => {
   });
 
   it("clears saving state when a stale rename response arrives after switching accounts", async () => {
-    const firstAccount = { ...sampleAccounts[1], id: "acc-1", name: "FreshRSS Work" };
-    const secondAccount = { ...sampleAccounts[2], id: "acc-2", name: "Local Account" };
+    const firstAccount = {
+      ...sampleAccounts[1],
+      id: "acc-1",
+      name: "FreshRSS Work",
+    };
+    const secondAccount = {
+      ...sampleAccounts[2],
+      id: "acc-2",
+      name: "Local Account",
+    };
     const staleRename = createDeferred<ReturnType<typeof renameAccountMock>>();
     renameAccountMock.mockReturnValue(staleRename.promise);
 

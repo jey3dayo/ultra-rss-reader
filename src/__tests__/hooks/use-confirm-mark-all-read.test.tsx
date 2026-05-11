@@ -47,7 +47,10 @@ describe("useConfirmMarkAllRead", () => {
     const onConfirm = vi.fn();
     const showConfirm = vi.fn();
     useUiStore.setState({ showConfirm });
-    usePreferencesStore.setState({ prefs: { ask_before_mark_all: "true" }, loaded: true });
+    usePreferencesStore.setState({
+      prefs: { ask_before_mark_all: "true" },
+      loaded: true,
+    });
     const { result } = renderHook(() => useConfirmMarkAllRead());
 
     act(() => {
@@ -56,6 +59,7 @@ describe("useConfirmMarkAllRead", () => {
 
     expect(showConfirm).toHaveBeenCalledWith("confirm_mark_read:3", onConfirm, {
       actionLabel: "mark_as_read_count_action",
+      actionAccessibleLabel: "mark_read_count_accessible_label:3",
       variant: "warning",
     });
     expect(onConfirm).not.toHaveBeenCalled();
@@ -65,7 +69,10 @@ describe("useConfirmMarkAllRead", () => {
     const onConfirm = vi.fn();
     const showConfirm = vi.fn();
     useUiStore.setState({ showConfirm });
-    usePreferencesStore.setState({ prefs: { ask_before_mark_all: "false" }, loaded: true });
+    usePreferencesStore.setState({
+      prefs: { ask_before_mark_all: "false" },
+      loaded: true,
+    });
     const { result } = renderHook(() => useConfirmMarkAllRead());
 
     act(() => {

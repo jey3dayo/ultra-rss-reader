@@ -4,13 +4,20 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, w
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-
 import {
   generatedFixtureSnapshotSizeBudget,
   isGeneratedReportArtifactPath,
   markdownlintRepoContract,
   qualityBaselineRepoScanIgnoredPathPrefixes,
 } from "../scripts/quality-baseline";
+import {
+  analyzeRepositorySqlInventory,
+  buildEnumDriftRows,
+  type EnumDriftContract,
+  formatEnumDriftTable,
+  formatRepositorySqlInventoryReport,
+  readMigrationSources,
+} from "../scripts/repo-contract-inventory";
 import {
   extractIssueTemplateDoneWhenDescription,
   extractIssueTemplateDoneWhenPlaceholder,
@@ -436,6 +443,38 @@ const extractRustEnumVariants = (source: string, enumName: string): string[] => 
     .filter((line) => /^[A-Z][A-Za-z0-9]*$/.test(line));
 };
 
+const toSnakeCase = (value: string): string =>
+  value
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .replace(/([A-Z])([A-Z][a-z])/g, "$1_$2")
+    .toLowerCase();
+
+const extractTypeScriptStringArray = (source: string, constantName: string): string[] => {
+  const body = source.match(new RegExp(`const ${escapeRegExp(constantName)} = \\[(?<body>[\\s\\S]*?)\\] as const`))
+    ?.groups?.body;
+  if (!body) {
+    throw new Error(`Missing TypeScript string array: ${constantName}`);
+  }
+  return [...body.matchAll(/"([^"]+)"/g)].map((match) => match[1]).filter((value): value is string => !!value);
+};
+
+const extractTypeScriptUnionValues = (source: string, typeName: string): string[] => {
+  const body = source.match(new RegExp(`type ${escapeRegExp(typeName)} = (?<body>[^;]+);`))?.groups?.body;
+  if (!body) {
+    throw new Error(`Missing TypeScript union: ${typeName}`);
+  }
+  return [...body.matchAll(/"([^"]+)"/g)].map((match) => match[1]).filter((value): value is string => !!value);
+};
+
+const rustStringValuesFromMatchArm = (source: string, functionName: string): string[] => {
+  const body = source.match(new RegExp(`fn ${escapeRegExp(functionName)}[\\s\\S]*?\\{(?<body>[\\s\\S]*?)\\n\\}`))
+    ?.groups?.body;
+  if (!body) {
+    throw new Error(`Missing Rust function: ${functionName}`);
+  }
+  return [...body.matchAll(/=>\s*"([^"]+)"/g)].map((match) => match[1]).filter((value): value is string => !!value);
+};
+
 const extractEnabledServiceKinds = (source: string): string[] =>
   [...source.matchAll(/kind:\s*"(?<kind>Local|FreshRss)",/g)]
     .map((match) => match.groups?.kind)
@@ -601,6 +640,8 @@ describe("release repository contract", () => {
   const preferencesSchemaSource = readText("src/schemas/preferences.ts");
   const preferencesStoreSource = readText("src/stores/preferences-store.ts");
   const providerSource = readText("src-tauri/src/domain/provider.rs");
+  const sqliteAccountSource = readText("src-tauri/src/infra/db/sqlite_account.rs");
+  const platformConstantsSource = readText("src/constants/platform.ts");
   const providerHttpDefaultsSource = readText("src-tauri/src/infra/provider/http_defaults.rs");
   const localProviderSource = readText("src-tauri/src/infra/provider/local.rs");
   const accountCommandsSource = readText("src-tauri/src/commands/account_commands.rs");
@@ -1589,6 +1630,36 @@ describe("release repository contract", () => {
     expect(releaseManualVerification).toContain("A known issue should include a workaround when one exists");
   });
 
+  it("keeps flaky test quarantine discoverable through TODO or issue links and skip annotations", () => {
+    const flakyPolicy = readText("docs/flaky-test-quarantine-policy.md");
+    const sourceFiles = listRepoFiles()
+      .filter((path) => /\.(?:ts|tsx|rs)$/.test(path))
+      .filter((path) => path.startsWith("tests/") || path.startsWith("src/") || path.startsWith("scripts/"));
+    const skippedTestAnnotations = sourceFiles.flatMap((path) => {
+      const source = readText(path);
+      return [...source.matchAll(/(?:it|test|describe)\.skip\s*\(/g)].map((match) => {
+        const prefix = source.slice(Math.max(0, match.index - 240), match.index);
+        return { path, prefix };
+      });
+    });
+
+    expect(flakyPolicy).toContain("TODO.md");
+    expect(flakyPolicy).toContain("GitHub issue");
+    expect(flakyPolicy).toContain("owner=<owner>");
+    expect(flakyPolicy).toContain("expires=<YYYY-MM-DD>");
+    expect(flakyPolicy).toContain("evidence=<command/result>");
+    expect(flakyPolicy).toContain("unskip=<focused command>");
+    expect(flakyPolicy).toContain("flaky-quarantine:");
+    for (const annotation of skippedTestAnnotations) {
+      expect(annotation.prefix, annotation.path).toContain("flaky-quarantine:");
+      expect(annotation.prefix, annotation.path).toMatch(/TODO=(?:TODO\.md|https:\/\/github\.com\/)/);
+      expect(annotation.prefix, annotation.path).toMatch(/owner=[^;\n]+/);
+      expect(annotation.prefix, annotation.path).toMatch(/expires=\d{4}-\d{2}-\d{2}/);
+      expect(annotation.prefix, annotation.path).toMatch(/evidence=[^;\n]+/);
+      expect(annotation.prefix, annotation.path).toMatch(/unskip=[^;\n]+/);
+    }
+  });
+
   it("keeps published macOS artifact notarization, quarantine, and translocation manual checks explicit", () => {
     expect(releaseManualVerification).toContain("published macOS artifact downloaded through the normal browser");
     expect(releaseManualVerification).toContain("not a locally rebuilt or re-signed app");
@@ -1887,6 +1958,40 @@ describe("release repository contract", () => {
     expect(addAccountServicesSource).toContain('descKey: "account.freshrss_desc"');
   });
 
+  it("generates a visible Rust and TypeScript enum drift table for release-facing contracts", () => {
+    const contracts: EnumDriftContract[] = [
+      {
+        name: "AddAccountProviderKind",
+        rust: extractEnabledServiceKinds(addAccountServicesSource),
+        typescript: extractTypeScriptUnionValues(addAccountFormSource, "AddAccountProviderKind"),
+        labels: extractEnabledServiceKinds(addAccountServicesSource),
+        unknownFallback: "ProviderKind::Quarantined keeps unknown persisted account rows visible",
+      },
+      {
+        name: "PlatformKind",
+        rust: extractRustEnumVariants(readText("src-tauri/src/commands/dto.rs"), "PlatformKindDto").map(toSnakeCase),
+        typescript: extractTypeScriptStringArray(platformConstantsSource, "PLATFORM_KINDS"),
+        labels: extractTypeScriptStringArray(platformConstantsSource, "PLATFORM_KINDS"),
+        unknownFallback: "PlatformInfoSchema falls back to DEFAULT_PLATFORM_INFO",
+      },
+      {
+        name: "ConnectionVerificationStatus",
+        rust: rustStringValuesFromMatchArm(sqliteAccountSource, "verification_status_to_str"),
+        typescript: rustStringValuesFromMatchArm(sqliteAccountSource, "verification_status_to_str"),
+        labels: rustStringValuesFromMatchArm(sqliteAccountSource, "verification_status_to_str"),
+        unknownFallback: "unknown persisted status is returned as a quarantined account",
+      },
+    ];
+    const rows = buildEnumDriftRows(contracts);
+    const generatedTable = formatEnumDriftTable(rows);
+
+    expect(generatedTable).toContain("| Enum | Rust | TypeScript | Labels | Unknown fallback | Drift |");
+    expect(generatedTable).toContain("AddAccountProviderKind");
+    expect(generatedTable).toContain("PlatformKind");
+    expect(generatedTable).toContain("ConnectionVerificationStatus");
+    expect(rows.map((row) => row.drift)).toEqual(["ok", "ok", "ok"]);
+  });
+
   it("generates a migration changelog with numbering, ownership, and destructive markers", () => {
     const migrationChangelog = generateMigrationChangelog();
     const migrationVersions = migrationChangelog.map((entry) => entry.version);
@@ -1927,6 +2032,29 @@ describe("release repository contract", () => {
     }
     expect(tauriLib).toContain("fn migration_error_message_includes_restore_steps()");
     expect(readText("src-tauri/src/infra/db/migration.rs")).toContain("fn fresh_db_migrates_to_latest()");
+  });
+
+  it("checks repository SQL strings against migration-defined table, column, and index inventory", () => {
+    const repositorySources = listRepoFiles("src-tauri/src/infra/db")
+      .filter((path) => path.endsWith(".rs"))
+      .map((file) => ({ file, source: readText(file) }));
+    const report = analyzeRepositorySqlInventory({
+      migrationSources: readMigrationSources(MIGRATION_DIR),
+      repositorySources,
+    });
+    const formattedReport = formatRepositorySqlInventoryReport(report);
+
+    expect(formattedReport).toContain("migration tables:");
+    expect(formattedReport).toContain("migration columns:");
+    expect(formattedReport).toContain("dynamic SQL allowlist:");
+    expect(formattedReport).toContain("parser limits:");
+    expect(report.references.length).toBeGreaterThan(0);
+    expect(report.migrationInventory.tables).toContain("accounts");
+    expect(report.migrationInventory.columnsByTable.get("accounts")).toContain("sync_on_startup");
+    expect(report.migrationInventory.indexes).toContain("idx_pending_mutations_unique_entry_type");
+    expect(report.unknownTables, formattedReport).toEqual([]);
+    expect(report.unknownIndexes, formattedReport).toEqual([]);
+    expect(report.unknownColumns, formattedReport).toEqual([]);
   });
 
   it("keeps stale update installs gated by updater policy and database schema compatibility", () => {

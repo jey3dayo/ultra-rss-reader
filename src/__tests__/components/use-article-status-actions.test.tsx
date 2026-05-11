@@ -32,6 +32,8 @@ function createParams(overrides: Partial<UseArticleStatusActionsParams> = {}): U
     toggleStar: {
       mutate: vi.fn(),
     },
+    markedReadMessage: "marked read",
+    markedUnreadMessage: "marked unread",
     starredMessage: "starred",
     unstarredMessage: "unstarred",
     ...overrides,
@@ -75,6 +77,8 @@ describe("useArticleStatusActions", () => {
         retainArticle,
         setRead,
         toggleStar,
+        markedReadMessage: "marked read",
+        markedUnreadMessage: "marked unread",
         starredMessage: "starred",
         unstarredMessage: "unstarred",
       }),
@@ -92,6 +96,7 @@ describe("useArticleStatusActions", () => {
     );
     expect(removeRecentlyRead).toHaveBeenCalledWith("art-1");
     expect(addRecentlyRead).not.toHaveBeenCalled();
+    expect(showToast).toHaveBeenCalledWith("marked unread");
   });
 
   it("does not mutate, retain, or toast when articleId is null", () => {
@@ -121,6 +126,8 @@ describe("useArticleStatusActions", () => {
         retainArticle,
         setRead,
         toggleStar,
+        markedReadMessage: "marked read",
+        markedUnreadMessage: "marked unread",
         starredMessage: "starred",
         unstarredMessage: "unstarred",
       }),
@@ -139,6 +146,33 @@ describe("useArticleStatusActions", () => {
     expect(showToast).not.toHaveBeenCalled();
     expect(addRecentlyRead).not.toHaveBeenCalled();
     expect(removeRecentlyRead).not.toHaveBeenCalled();
+  });
+
+  it("shows recovery copy after marking an article read", () => {
+    const showToast = vi.fn();
+    const addRecentlyRead = vi.fn();
+    const setRead: UseArticleStatusActionsParams["setRead"] = {
+      mutate: vi.fn((variables, options) => {
+        options?.onSuccess?.(undefined, variables, undefined);
+      }),
+    };
+
+    const { result } = renderHook(() =>
+      useArticleStatusActions(
+        createParams({
+          addRecentlyRead,
+          setRead,
+          showToast,
+        }),
+      ),
+    );
+
+    act(() => {
+      result.current.setReadStatus(true);
+    });
+
+    expect(addRecentlyRead).toHaveBeenCalledWith("art-1");
+    expect(showToast).toHaveBeenCalledWith("marked read");
   });
 
   it("rolls back newly retained unread articles and shows a toast when marking read fails", () => {

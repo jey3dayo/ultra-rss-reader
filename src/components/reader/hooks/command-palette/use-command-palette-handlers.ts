@@ -108,6 +108,7 @@ export function useCommandPaletteHandlers({
   const selectedAccountIdRef = useRef(selectedAccountId);
   const paletteSessionIdRef = useRef(paletteSessionId);
   const commandPaletteOpenRef = useRef(commandPaletteOpen);
+  const submittedPaletteSelectionRef = useRef<string | null>(null);
   if (selectedAccountIdRef.current !== selectedAccountId) {
     selectedAccountIdRef.current = selectedAccountId;
     feedLandingRequestIdRef.current += 1;
@@ -115,9 +116,20 @@ export function useCommandPaletteHandlers({
   }
   if (paletteSessionIdRef.current !== paletteSessionId) {
     paletteSessionIdRef.current = paletteSessionId;
+    submittedPaletteSelectionRef.current = null;
     devScenarioRequestIdRef.current += 1;
   }
   commandPaletteOpenRef.current = commandPaletteOpen;
+
+  function tryClaimPaletteSubmit(selectionKey: string) {
+    const submitKey = `${paletteSessionIdRef.current}:${selectionKey}`;
+    if (!commandPaletteOpenRef.current || submittedPaletteSelectionRef.current === submitKey) {
+      return false;
+    }
+
+    submittedPaletteSelectionRef.current = submitKey;
+    return true;
+  }
 
   function handleActionSelect(action: PaletteAction["id"]) {
     if (!commandPaletteOpenRef.current) {
@@ -125,6 +137,10 @@ export function useCommandPaletteHandlers({
     }
 
     if (action === "open-shortcuts-help") {
+      if (!tryClaimPaletteSubmit(`action:${action}`)) {
+        return;
+      }
+
       openShortcutsHelp();
       closePalette();
       return;
@@ -148,12 +164,20 @@ export function useCommandPaletteHandlers({
       return;
     }
 
+    if (!tryClaimPaletteSubmit(`action:${action}`)) {
+      return;
+    }
+
     addToHistory(createCommandPaletteHistoryValue({ kind: "action", id: action }));
     executeAction(action);
     closePalette();
   }
 
   function handleFeedSelect(feedId: string) {
+    if (!tryClaimPaletteSubmit(`feed:${feedId}`)) {
+      return;
+    }
+
     const requestId = feedLandingRequestIdRef.current + 1;
     feedLandingRequestIdRef.current = requestId;
     const requestAccountId = selectedAccountIdRef.current;
@@ -190,6 +214,10 @@ export function useCommandPaletteHandlers({
   }
 
   function handleTagSelect(tagId: string) {
+    if (!tryClaimPaletteSubmit(`tag:${tagId}`)) {
+      return;
+    }
+
     addToHistory(createCommandPaletteHistoryValue({ kind: "tag", id: tagId }));
     selectTagFromCurrentContext(tagId);
     closePalette();
@@ -200,6 +228,10 @@ export function useCommandPaletteHandlers({
       return;
     }
 
+    if (!tryClaimPaletteSubmit(`article:${articleId}`)) {
+      return;
+    }
+
     addToHistory(createCommandPaletteHistoryValue({ kind: "article", id: articleId }));
     selectFeedFromCurrentContext(feedId);
     selectArticle(articleId);
@@ -207,6 +239,10 @@ export function useCommandPaletteHandlers({
   }
 
   function handleDevScenarioSelect(scenarioId: RuntimeDevScenario["id"]) {
+    if (!tryClaimPaletteSubmit(`scenario:${scenarioId}`)) {
+      return;
+    }
+
     const requestId = devScenarioRequestIdRef.current + 1;
     devScenarioRequestIdRef.current = requestId;
     const requestAccountId = selectedAccountIdRef.current;

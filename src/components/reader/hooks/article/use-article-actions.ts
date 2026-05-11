@@ -65,6 +65,8 @@ export function useArticleActions({
     retainArticle,
     setRead,
     toggleStar,
+    markedReadMessage: t("article_marked_read_recovery"),
+    markedUnreadMessage: t("article_marked_unread_recovery"),
     starredMessage: t("article_starred"),
     unstarredMessage: t("article_unstarred"),
   });

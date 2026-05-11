@@ -125,6 +125,7 @@ export function ArticleTagChips({ articleId }: ArticleTagChipsProps) {
       {
         onSuccess: () => {
           dispatch({ type: "finish-create-tag" });
+          showToast(t("article_tag_added_recovery"));
         },
         onError: (error) => {
           showToast(toArticleTagAssignErrorMessage(error));
@@ -179,7 +180,17 @@ export function ArticleTagChips({ articleId }: ArticleTagChipsProps) {
       onNewTagNameChange={(value) => dispatch({ type: "set-new-tag-name", value })}
       onAssignTag={assignExistingTag}
       onRemoveTag={(tagId) => {
-        untagArticleMutation.mutate({ articleId, tagId });
+        untagArticleMutation.mutate(
+          { articleId, tagId },
+          {
+            onSuccess: () => {
+              showToast(t("article_tag_removed_recovery"));
+            },
+            onError: (error) => {
+              showToast(toArticleTagAssignErrorMessage(error));
+            },
+          },
+        );
       }}
       onCreateTag={handleCreateAndAssign}
     />

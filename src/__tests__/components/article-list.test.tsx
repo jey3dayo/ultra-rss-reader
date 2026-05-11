@@ -1203,7 +1203,11 @@ describe("ArticleList", () => {
     });
 
     await user.click(screen.getByRole("button", { name: "Mark all as read" }));
-    await user.click(screen.getByRole("button", { name: "Mark 1 as Read" }));
+    await user.click(
+      screen.getByRole("button", {
+        name: "Mark 1 article as read. Use Mark as unread to reverse individual articles.",
+      }),
+    );
 
     await waitFor(() => {
       expect(screen.queryByText("First Article")).not.toBeInTheDocument();
@@ -1259,7 +1263,11 @@ describe("ArticleList", () => {
 
     await user.click(markAllReadButton);
     expect(screen.getAllByText("Mark 48 articles as read?").length).toBeGreaterThan(0);
-    await user.click(screen.getByRole("button", { name: "Mark 48 as Read" }));
+    await user.click(
+      screen.getByRole("button", {
+        name: "Mark 48 articles as read. Use Mark as unread to reverse individual articles.",
+      }),
+    );
 
     await waitFor(() => {
       expect(commands).toContainEqual({
@@ -1318,7 +1326,11 @@ describe("ArticleList", () => {
 
     await user.click(markAllReadButton);
     expect(screen.getAllByText("Mark 7 articles as read?").length).toBeGreaterThan(0);
-    await user.click(screen.getByRole("button", { name: "Mark 7 as Read" }));
+    await user.click(
+      screen.getByRole("button", {
+        name: "Mark 7 articles as read. Use Mark as unread to reverse individual articles.",
+      }),
+    );
 
     await waitFor(() => {
       expect(commands).toContainEqual({

@@ -551,6 +551,41 @@ mod tests {
     }
 
     #[test]
+    fn delete_by_snapshot_id_preserves_newer_same_axis_mutation() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let repo = SqlitePendingMutationRepository::new(db.writer());
+
+        repo.save(&PendingMutation {
+            id: None,
+            account_id: account_id.clone(),
+            mutation_type: PendingMutationType::MarkRead,
+            remote_entry_id: "entry-1".to_string(),
+            created_at: "2024-01-01T00:00:00Z".to_string(),
+        })
+        .unwrap();
+        let replayed_snapshot = repo.find_by_account(&account_id).unwrap();
+        let replayed_id = replayed_snapshot[0].id.unwrap();
+
+        repo.save(&PendingMutation {
+            id: None,
+            account_id: account_id.clone(),
+            mutation_type: PendingMutationType::MarkUnread,
+            remote_entry_id: "entry-1".to_string(),
+            created_at: "2024-01-01T00:00:01Z".to_string(),
+        })
+        .unwrap();
+
+        repo.delete(&[replayed_id]).unwrap();
+
+        let remaining = repo.find_by_account(&account_id).unwrap();
+        assert_eq!(remaining.len(), 1);
+        assert_eq!(remaining[0].mutation_type, PendingMutationType::MarkUnread);
+        assert_eq!(remaining[0].remote_entry_id, "entry-1");
+        assert_eq!(remaining[0].created_at, "2024-01-01T00:00:01Z");
+    }
+
+    #[test]
     fn delete_empty_ids_is_noop() {
         let db = test_db();
         let repo = SqlitePendingMutationRepository::new(db.writer());

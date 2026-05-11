@@ -14,6 +14,11 @@ type UseBrowserOverlayFocusReturnResult = {
 };
 
 const FOCUS_RETURN_SCHEDULE_WARNING = "Failed to schedule browser overlay focus return.";
+const FOCUS_OWNING_TOP_LAYER_SELECTOR = [
+  '[data-stack-layer="dialog"]:not([data-closed])',
+  '[data-stack-layer="commandPalette"]:not([data-closed])',
+  '[role="dialog"][aria-modal="true"]',
+].join(",");
 
 function scheduleBrowserOverlayFocusReturn(callback: FrameRequestCallback): number | null {
   if (typeof window === "undefined" || typeof window.requestAnimationFrame !== "function") {
@@ -34,6 +39,20 @@ function cancelBrowserOverlayFocusReturn(frameHandle: number): void {
   }
 
   window.cancelAnimationFrame(frameHandle);
+}
+
+function topLayerOwnsFocus() {
+  if (typeof document === "undefined") {
+    return false;
+  }
+
+  const activeElement = document.activeElement;
+  if (!(activeElement instanceof HTMLElement) || activeElement === document.body) {
+    return false;
+  }
+
+  const topLayer = activeElement.closest<HTMLElement>(FOCUS_OWNING_TOP_LAYER_SELECTOR);
+  return topLayer !== null && !topLayer.hasAttribute("aria-hidden") && !topLayer.hasAttribute("inert");
 }
 
 export function useBrowserOverlayFocusReturn({
@@ -85,6 +104,10 @@ export function useBrowserOverlayFocusReturn({
       focusReturnFrameRef.current = scheduleBrowserOverlayFocusReturn(() => {
         focusReturnFrameRef.current = null;
         if (cancelled) {
+          return;
+        }
+
+        if (topLayerOwnsFocus()) {
           return;
         }
 

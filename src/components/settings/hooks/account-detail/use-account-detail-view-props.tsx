@@ -24,8 +24,44 @@ type AccountDetailViewPropsParams = {
 
 type AccountDetailViewPropsResult = Pick<
   AccountDetailViewProps,
-  "title" | "headerSummary" | "generalSection" | "credentialsSection" | "syncSection" | "dangerZone"
+  "title" | "subtitle" | "headerSummary" | "generalSection" | "credentialsSection" | "syncSection" | "dangerZone"
 >;
+
+function isFreshRssAccount(account: AccountDetailAccount): boolean {
+  return account.kind === "FreshRss";
+}
+
+function isLocalAccount(account: AccountDetailAccount): boolean {
+  return account.kind === "Local";
+}
+
+function isValidHttpServerUrl(value: string | null): boolean {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return true;
+  }
+
+  try {
+    const url = new URL(trimmed);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function resolveAccountQuarantineReason(account: AccountDetailAccount, t: TFunction<"settings">): string | null {
+  if (!isFreshRssAccount(account) && !isLocalAccount(account)) {
+    return t("account.quarantine_invalid_provider_kind", {
+      kind: account.kind,
+    });
+  }
+
+  if (isFreshRssAccount(account) && !isValidHttpServerUrl(account.server_url)) {
+    return t("account.quarantine_invalid_server_url");
+  }
+
+  return null;
+}
 
 export function useAccountDetailViewProps({
   account,
@@ -42,6 +78,8 @@ export function useAccountDetailViewProps({
   const isSetupSyncing = accountSetupState === "syncing";
   const isSetupFailed = accountSetupState === "failed";
   const isSetupActive = isSetupSyncing || isSetupFailed;
+  const quarantineReason = resolveAccountQuarantineReason(account, t);
+  const isQuarantined = quarantineReason !== null;
   const progressValue =
     isSyncing && syncProgress && syncProgress.total > 0
       ? Math.max((syncProgress.completed / syncProgress.total) * 100, syncProgress.completed === 0 ? 8 : 0)
@@ -94,6 +132,7 @@ export function useAccountDetailViewProps({
 
   return {
     title: account.name,
+    subtitle: quarantineReason ?? undefined,
     headerSummary,
     generalSection: {
       heading: t("account.general"),
@@ -107,58 +146,119 @@ export function useAccountDetailViewProps({
       infoRows: [
         {
           label: t("account.type"),
-          value: account.kind === "FreshRss" ? t("account.freshrss") : t("account.local"),
+          value: isFreshRssAccount(account)
+            ? t("account.freshrss")
+            : isLocalAccount(account)
+              ? t("account.local")
+              : account.kind,
         },
+        ...(quarantineReason
+          ? [
+              {
+                label: t("account.quarantine_state"),
+                value: t("account.quarantine_state_value"),
+              },
+            ]
+          : []),
+        ...(!isValidHttpServerUrl(account.server_url)
+          ? [
+              {
+                label: t("account.server_url"),
+                value: account.server_url ?? "",
+              },
+            ]
+          : []),
+        ...(account.username
+          ? [
+              {
+                label: t("account.username"),
+                value: account.username,
+              },
+            ]
+          : []),
+        ...(quarantineReason
+          ? [
+              {
+                label: t("account.quarantine_action"),
+                value: t("account.quarantine_delete_action"),
+              },
+            ]
+          : []),
+        ...(isSetupFailed
+          ? [
+              {
+                label: t("account.recovery_credentials_label"),
+                value: t("account.recovery_credentials_detail"),
+              },
+              {
+                label: t("account.recovery_server_url_label"),
+                value: t("account.recovery_server_url_detail"),
+              },
+              {
+                label: t("account.recovery_cache_label"),
+                value: t("account.recovery_cache_detail"),
+              },
+            ]
+          : []),
       ],
       onStartEditingName: controller.startEditingName,
       onNameDraftChange: controller.setNameDraft,
       onCommitName: controller.commitRename,
       onNameKeyDown: controller.handleNameKeyDown,
-      disabled: isSetupActive,
+      disabled: isSetupActive || isQuarantined,
     },
-    credentialsSection:
-      account.kind === "FreshRss" ? (
-        <AccountCredentialsSectionView
-          heading={t("account.server")}
-          note={isSetupFailed ? t("account.setup_failed_credentials_note") : undefined}
-          disabled={isSetupSyncing}
-          serverUrlLabel={t("account.server_url")}
-          serverUrlValue={controller.credServerUrl ?? account.server_url ?? ""}
-          serverUrlPlaceholder={t("account.server_url_placeholder")}
-          serverUrlInputRef={controller.serverUrlInputRef}
-          serverUrlCopyLabel={t("account.copy_server_url")}
-          onServerUrlChange={controller.setCredServerUrl}
-          onServerUrlBlur={controller.commitCredentials}
-          onServerUrlCopy={() => void controller.handleCopyServerUrl()}
-          usernameLabel={t("account.username")}
-          usernameValue={controller.credUsername ?? account.username ?? ""}
-          usernameInputRef={controller.usernameInputRef}
-          onUsernameChange={controller.setCredUsername}
-          onUsernameBlur={controller.commitCredentials}
-          passwordLabel={t("account.password")}
-          passwordValue={controller.passwordDisplayValue}
-          passwordPlaceholder={t("account.password_placeholder")}
-          onPasswordChange={controller.setCredPassword}
-          onPasswordFocus={controller.onPasswordFocus}
-          onPasswordBlur={controller.commitCredentials}
-          testConnectionLabel={isSetupActive ? undefined : t("account.test_connection")}
-          testingConnectionLabel={isSetupActive ? undefined : t("account.testing_connection")}
-          testConnectionTone={verificationStatus === "verified" ? "subtle" : "content"}
-          onTestConnection={isSetupActive ? undefined : controller.handleTestConnection}
-          isTestingConnection={controller.testingConnection}
-        />
-      ) : undefined,
+    credentialsSection: isFreshRssAccount(account) ? (
+      <AccountCredentialsSectionView
+        heading={t("account.server")}
+        note={
+          isQuarantined
+            ? t("account.quarantine_readonly_note")
+            : isSetupFailed
+              ? t("account.setup_failed_credentials_note")
+              : undefined
+        }
+        disabled={isSetupSyncing || isQuarantined}
+        serverUrlLabel={t("account.server_url")}
+        serverUrlValue={controller.credServerUrl ?? account.server_url ?? ""}
+        serverUrlPlaceholder={t("account.server_url_placeholder")}
+        serverUrlInputRef={controller.serverUrlInputRef}
+        serverUrlCopyLabel={t("account.copy_server_url")}
+        onServerUrlChange={controller.setCredServerUrl}
+        onServerUrlBlur={controller.commitCredentials}
+        onServerUrlCopy={() => void controller.handleCopyServerUrl()}
+        usernameLabel={t("account.username")}
+        usernameValue={controller.credUsername ?? account.username ?? ""}
+        usernameInputRef={controller.usernameInputRef}
+        onUsernameChange={controller.setCredUsername}
+        onUsernameBlur={controller.commitCredentials}
+        passwordLabel={t("account.password")}
+        passwordValue={controller.passwordDisplayValue}
+        passwordPlaceholder={t("account.password_placeholder")}
+        onPasswordChange={controller.setCredPassword}
+        onPasswordFocus={controller.onPasswordFocus}
+        onPasswordBlur={controller.commitCredentials}
+        testConnectionLabel={isSetupActive || isQuarantined ? undefined : t("account.test_connection")}
+        testingConnectionLabel={isSetupActive || isQuarantined ? undefined : t("account.testing_connection")}
+        testConnectionTone={verificationStatus === "verified" ? "subtle" : "content"}
+        onTestConnection={isSetupActive || isQuarantined ? undefined : controller.handleTestConnection}
+        isTestingConnection={controller.testingConnection}
+      />
+    ) : undefined,
     syncSection: {
-      heading: isSetupSyncing
-        ? t("account.setup_syncing_heading")
-        : isSetupFailed
-          ? t("account.setup_failed_heading")
-          : t("account.syncing"),
-      note: isSetupSyncing
-        ? t("account.setup_syncing_description")
-        : isSetupFailed
-          ? (accountSetupErrorMessage ?? t("account.setup_failed_description"))
-          : undefined,
+      heading: isQuarantined
+        ? t("account.quarantine_heading")
+        : isSetupSyncing
+          ? t("account.setup_syncing_heading")
+          : isSetupFailed
+            ? t("account.setup_failed_heading")
+            : t("account.syncing"),
+      note: isQuarantined
+        ? t("account.quarantine_readonly_note")
+        : isSetupSyncing
+          ? t("account.setup_syncing_description")
+          : isSetupFailed
+            ? (accountSetupErrorMessage ?? t("account.setup_failed_description"))
+            : undefined,
       progressLabel,
       progressValue,
       progressCurrentLabel,
@@ -168,19 +268,19 @@ export function useAccountDetailViewProps({
         value: String(account.sync_interval_secs),
         options: controller.syncIntervalOptions,
         onChange: (value) => controller.handleSyncUpdate({ syncIntervalSecs: Number(value) }),
-        disabled: isSetupActive,
+        disabled: isSetupActive || isQuarantined,
       },
       syncOnStartup: {
         label: t("account.sync_on_startup"),
         checked: account.sync_on_startup,
         onChange: (value) => controller.handleSyncUpdate({ syncOnStartup: value }),
-        disabled: isSetupActive,
+        disabled: isSetupActive || isQuarantined,
       },
       syncOnWake: {
         label: t("account.sync_on_wake"),
         checked: account.sync_on_wake,
         onChange: (value) => controller.handleSyncUpdate({ syncOnWake: value }),
-        disabled: isSetupActive,
+        disabled: isSetupActive || isQuarantined,
       },
       keepReadItems: {
         name: "keep-read-items",
@@ -188,15 +288,15 @@ export function useAccountDetailViewProps({
         value: String(account.keep_read_items_days),
         options: controller.keepReadItemsOptions,
         onChange: (value) => controller.handleSyncUpdate({ keepReadItemsDays: Number(value) }),
-        disabled: isSetupActive,
+        disabled: isSetupActive || isQuarantined,
       },
       statusRows: syncStatusRows,
       syncNowLabel: isSetupFailed ? t("account.setup_retry") : t("account.sync_now"),
       syncingLabel: isSetupSyncing ? t("account.setup_syncing_action") : t("account.syncing_now"),
-      onSyncNow: isSetupActive ? controller.handleSetupRetry : controller.handleSyncNow,
+      onSyncNow: isQuarantined ? undefined : isSetupActive ? controller.handleSetupRetry : controller.handleSyncNow,
       isSyncing: isSyncing || controller.syncActionInFlight,
-      secondaryActionLabel: isSetupFailed ? t("account.setup_edit_credentials") : undefined,
-      onSecondaryAction: isSetupFailed ? controller.focusCredentialsEditor : undefined,
+      secondaryActionLabel: isSetupFailed && !isQuarantined ? t("account.setup_edit_credentials") : undefined,
+      onSecondaryAction: isSetupFailed && !isQuarantined ? controller.focusCredentialsEditor : undefined,
     },
     dangerZone: {
       dataHeading: t("account.data_section"),

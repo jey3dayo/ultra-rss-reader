@@ -1088,6 +1088,9 @@ describe("BrowserView", () => {
     const loadingHalo = loadingState.querySelector(".blur-2xl");
     const loadingSpinner = loadingState.querySelector(".animate-spin");
 
+    expect(loadingState).toHaveAttribute("role", "status");
+    expect(loadingState).toHaveAttribute("aria-live", "polite");
+    expect(loadingState).toHaveAttribute("aria-atomic", "true");
     expect(loadingState.className).not.toMatch(/\bborder\b/);
     expect(loadingState.className).not.toMatch(/\bshadow-/);
     expect(loadingHalo).toHaveClass("bg-browser-overlay-loading-halo");
@@ -1188,7 +1191,9 @@ describe("BrowserView", () => {
       browserUrl: "https://example.com/article",
     });
 
-    render(<BrowserViewWithoutPortalRootHarness />, { wrapper: createWrapper() });
+    render(<BrowserViewWithoutPortalRootHarness />, {
+      wrapper: createWrapper(),
+    });
 
     const stage = screen.getByTestId("browser-overlay-stage-shell");
     expectInlineStyles(stage, {

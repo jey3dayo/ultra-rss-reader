@@ -795,6 +795,26 @@ describe("AppShell", () => {
     expect(within(liveRegion).getAllByText("Saved")).toHaveLength(1);
   });
 
+  it("keeps toast recovery actions keyboard reachable", async () => {
+    const user = userEvent.setup();
+    const retry = vi.fn();
+
+    setDebugHudUiState({
+      toastMessage: {
+        message: "Recovery required",
+        persistent: true,
+        actions: [{ label: "Retry", onClick: retry }],
+      },
+    });
+
+    render(<AppShell />, { wrapper: createWrapper() });
+
+    within(screen.getByTestId("app-toast")).getByRole("button", { name: "Retry" }).focus();
+    await user.keyboard("{Enter}");
+
+    expect(retry).toHaveBeenCalledTimes(1);
+  });
+
   it("applies a stable width to update toasts", () => {
     setDebugHudUiState({
       toastMessage: {
@@ -992,7 +1012,11 @@ describe("AppShell", () => {
     });
 
     act(() => {
-      useUiStore.setState({ settingsOpen: false, contentMode: "browser", browserUrl: "https://example.com" });
+      useUiStore.setState({
+        settingsOpen: false,
+        contentMode: "browser",
+        browserUrl: "https://example.com",
+      });
     });
     rerender(<AppShell />);
     await waitFor(() => {

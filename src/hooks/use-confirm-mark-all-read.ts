@@ -20,6 +20,9 @@ export function useConfirmMarkAllRead() {
       if (askBeforeMarkAll === "true") {
         showConfirm(t("confirm_mark_read", { count }), onConfirm, {
           actionLabel: tc("mark_as_read_count_action", { count }),
+          actionAccessibleLabel: t("mark_read_count_accessible_label", {
+            count,
+          }),
           variant: "warning",
         });
         return;

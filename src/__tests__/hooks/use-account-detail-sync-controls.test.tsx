@@ -137,7 +137,9 @@ describe("useAccountDetailSyncControls", () => {
     let secondUpdate: Promise<void> | undefined;
     act(() => {
       firstUpdate = result.current.handleSyncUpdate({ syncIntervalSecs: 900 });
-      secondUpdate = result.current.handleSyncUpdate({ syncIntervalSecs: 7200 });
+      secondUpdate = result.current.handleSyncUpdate({
+        syncIntervalSecs: 7200,
+      });
     });
 
     secondResult.resolve(Result.succeed(makeUpdatedAccount(account, { syncIntervalSecs: 7200 })));
@@ -200,6 +202,36 @@ describe("useAccountDetailSyncControls", () => {
     expect(useUiStore.getState().toastMessage).toBeNull();
   });
 
+  it("clears stale account status and feed caches before retrying setup", async () => {
+    const account = { ...sampleAccounts[1], id: "acc-setup" };
+    const queryClient = createTestQueryClient();
+    const staleStatus = {
+      account_id: account.id,
+      last_success_at: null,
+      last_error: "stale error",
+    };
+    queryClient.setQueryData(["account-sync-status", account.id], staleStatus);
+    queryClient.setQueryData(["feeds", account.id], [{ id: "feed-1", title: "Stale feed" }]);
+    syncAccountMock.mockResolvedValue(Result.fail(new Error("still failing")));
+
+    const { result } = renderHook(() =>
+      useAccountDetailSyncControls({
+        account,
+        queryClient,
+        t,
+        accountSetupState: "failed",
+      }),
+    );
+
+    await act(async () => {
+      await result.current.handleSetupRetry();
+    });
+
+    expect(queryClient.getQueryData(["account-sync-status", account.id])).toBeUndefined();
+    expect(queryClient.getQueryData(["feeds", account.id])).toBeUndefined();
+    expect(syncAccountMock).toHaveBeenCalledWith(account.id);
+  });
+
   it("recovers account setup sync when the native sync promise rejects", async () => {
     const queryClient = createTestQueryClient();
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
@@ -221,6 +253,8 @@ describe("useAccountDetailSyncControls", () => {
       errorMessage: "Sync failed: transport down",
     });
     expect(onSyncStatusChanged).toHaveBeenCalledTimes(1);
-    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["account-sync-status"] });
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: ["account-sync-status"],
+    });
   });
 });

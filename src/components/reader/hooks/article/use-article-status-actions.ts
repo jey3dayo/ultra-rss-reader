@@ -25,6 +25,8 @@ export type UseArticleStatusActionsParams = {
   retainArticle: (articleId: string) => void;
   setRead: SetReadMutation;
   toggleStar: ToggleStarMutation;
+  markedReadMessage: string;
+  markedUnreadMessage: string;
   starredMessage: string;
   unstarredMessage: string;
 };
@@ -60,6 +62,8 @@ export function useArticleStatusActions({
   retainArticle,
   setRead,
   toggleStar,
+  markedReadMessage,
+  markedUnreadMessage,
   starredMessage,
   unstarredMessage,
 }: UseArticleStatusActionsParams): UseArticleStatusActionsResult {
@@ -94,6 +98,7 @@ export function useArticleStatusActions({
             } else {
               removeRecentlyRead(articleId);
             }
+            showToast(pressed ? markedReadMessage : markedUnreadMessage);
           },
           onError: (error) => {
             if (shouldRollbackRetainedArticle) {
@@ -104,7 +109,17 @@ export function useArticleStatusActions({
         },
       );
     },
-    [addRecentlyRead, articleId, removeRecentlyRead, retainIfNeeded, setRead, showToast, viewMode],
+    [
+      addRecentlyRead,
+      articleId,
+      markedReadMessage,
+      markedUnreadMessage,
+      removeRecentlyRead,
+      retainIfNeeded,
+      setRead,
+      showToast,
+      viewMode,
+    ],
   );
 
   const setStarStatus = useCallback(

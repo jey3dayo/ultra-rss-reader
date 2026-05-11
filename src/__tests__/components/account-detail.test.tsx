@@ -37,8 +37,10 @@ vi.mock("@/components/settings/account-detail/view", () => ({
     headerSummary?: ReactNode;
     generalSection: {
       nameValue: string;
+      disabled?: boolean;
       isEditingName: boolean;
       nameDraft: string;
+      infoRows?: Array<{ label: string; value: string }>;
       nameInputRef?: React.RefObject<HTMLInputElement | null>;
       onStartEditingName: () => void;
       onNameDraftChange: (value: string) => void;
@@ -88,7 +90,11 @@ vi.mock("@/components/settings/account-detail/view", () => ({
             onKeyDown={props.generalSection.onNameKeyDown}
           />
         ) : (
-          <button type="button" onClick={props.generalSection.onStartEditingName}>
+          <button
+            type="button"
+            onClick={props.generalSection.onStartEditingName}
+            disabled={props.generalSection.disabled}
+          >
             {props.generalSection.nameValue}
           </button>
         )}
@@ -118,6 +124,12 @@ vi.mock("@/components/settings/account-detail/view", () => ({
         </ul>
         <dl>
           {props.syncSection.statusRows?.map((row) => (
+            <div key={row.label}>
+              <dt>{row.label}</dt>
+              <dd>{row.value}</dd>
+            </div>
+          ))}
+          {props.generalSection.infoRows?.map((row) => (
             <div key={row.label}>
               <dt>{row.label}</dt>
               <dd>{row.value}</dd>
@@ -260,6 +272,80 @@ describe("AccountDetail", () => {
           keepReadItemsDays: 30,
         },
       });
+    });
+  });
+
+  it("shows setup recovery choices as separate credential, server URL, and cache clear rows", async () => {
+    setupTauriMocks((cmd) => {
+      if (cmd === "list_accounts") {
+        return [
+          {
+            id: "acc-1",
+            kind: "FreshRss",
+            name: "FreshRSS",
+            username: "user",
+            server_url: "https://freshrss.example.com",
+            sync_interval_secs: 3600,
+            sync_on_startup: true,
+            sync_on_wake: false,
+            keep_read_items_days: 30,
+          },
+        ];
+      }
+      return null;
+    });
+
+    useUiStore.setState({
+      accountSetupSession: {
+        accountId: "acc-1",
+        owner: "add-account",
+        state: "failed",
+        errorMessage: "Sync failed: unauthorized",
+      },
+    });
+
+    render(<AccountDetail />, { wrapper: createWrapper() });
+
+    expect(await screen.findByText("Credential reset")).toBeInTheDocument();
+    expect(screen.getByText("Server URL fix")).toBeInTheDocument();
+    expect(screen.getByText("Cache clear")).toBeInTheDocument();
+    expect(screen.getByText("Retry setup clears stale account status and feed cache first.")).toBeInTheDocument();
+  });
+
+  it("keeps malformed provider accounts visible as read-only quarantine state", async () => {
+    setupTauriMocks((cmd) => {
+      if (cmd === "list_accounts") {
+        return [
+          {
+            id: "acc-1",
+            kind: "DebugProvider",
+            name: "Debug account",
+            username: "debug-user",
+            server_url: "not a url",
+            sync_interval_secs: 3600,
+            sync_on_startup: true,
+            sync_on_wake: false,
+            keep_read_items_days: 30,
+          },
+        ];
+      }
+      return null;
+    });
+
+    render(<AccountDetail />, { wrapper: createWrapper() });
+
+    expect(await screen.findByRole("button", { name: "Debug account" })).toBeDisabled();
+    expect(screen.getByText("Configuration needs attention")).toBeInTheDocument();
+    expect(screen.getByText("Quarantined")).toBeInTheDocument();
+    expect(screen.getByText("Delete this account, then add it again.")).toBeInTheDocument();
+
+    await waitFor(() => {
+      const lastCall = accountDetailViewSpy.mock.calls.at(-1)?.[0];
+      expect(lastCall?.subtitle).toBe("Unknown provider kind: DebugProvider");
+      expect(lastCall?.syncSection.syncOnStartup.disabled).toBe(true);
+      expect(lastCall?.syncSection.keepReadItems.disabled).toBe(true);
+      expect(lastCall?.syncSection.onSyncNow).toBeUndefined();
+      expect(lastCall?.dangerZone.disabled).toBe(false);
     });
   });
 
@@ -441,7 +527,10 @@ describe("AccountDetail", () => {
     await waitFor(() => {
       const lastCall = accountDetailViewSpy.mock.calls[accountDetailViewSpy.mock.calls.length - 1];
       expect(lastCall?.[0].syncSection.statusRows).toEqual([
-        expect.objectContaining({ label: "Next automatic retry", value: expect.any(String) }),
+        expect.objectContaining({
+          label: "Next automatic retry",
+          value: expect.any(String),
+        }),
         { label: "Consecutive sync failures", value: "2 failures" },
         { label: "Last sync error", value: "Network timeout" },
       ]);
@@ -501,7 +590,12 @@ describe("AccountDetail", () => {
     await waitFor(() => {
       const firstResolvedCall = accountDetailViewSpy.mock.calls[accountDetailViewSpy.mock.calls.length - 1];
       expect(firstResolvedCall?.[0].syncSection.statusRows).toEqual(
-        expect.arrayContaining([expect.objectContaining({ label: "Last sync error", value: "Network timeout" })]),
+        expect.arrayContaining([
+          expect.objectContaining({
+            label: "Last sync error",
+            value: "Network timeout",
+          }),
+        ]),
       );
     });
 
@@ -682,10 +776,15 @@ describe("AccountDetail", () => {
 
     await waitFor(() => {
       expect(useUiStore.getState().settingsOpen).toBe(false);
-      expect(useUiStore.getState().selection).toEqual({ type: "smart", kind: "unread" });
+      expect(useUiStore.getState().selection).toEqual({
+        type: "smart",
+        kind: "unread",
+      });
       expect(useUiStore.getState().viewMode).toBe("unread");
       expect(useUiStore.getState().accountSetupSession).toBeNull();
-      expect(useUiStore.getState().toastMessage).toEqual({ message: "Setup complete" });
+      expect(useUiStore.getState().toastMessage).toEqual({
+        message: "Setup complete",
+      });
     });
   });
 
@@ -879,7 +978,9 @@ describe("AccountDetail", () => {
 
     render(<AccountDetail />, { wrapper: createWrapper() });
 
-    const serverUrlInput = await screen.findByRole("textbox", { name: "Server URL" });
+    const serverUrlInput = await screen.findByRole("textbox", {
+      name: "Server URL",
+    });
     await user.clear(serverUrlInput);
     await user.type(serverUrlInput, "https://first-draft.example.com");
     fireEvent.blur(serverUrlInput);
@@ -1022,7 +1123,10 @@ describe("AccountDetail", () => {
             },
           ];
         case "test_account_connection":
-          throw { type: "UserVisible", message: "Connection failed: connection could not be verified" };
+          throw {
+            type: "UserVisible",
+            message: "Connection failed: connection could not be verified",
+          };
         default:
           return undefined;
       }
@@ -1200,7 +1304,11 @@ describe("AccountDetail", () => {
 
     render(<AccountDetail />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("button", { name: i18n.t("settings:account.copy_server_url") }));
+    await user.click(
+      await screen.findByRole("button", {
+        name: i18n.t("settings:account.copy_server_url"),
+      }),
+    );
 
     await waitFor(() => {
       expect(showToast).toHaveBeenCalledWith(expectedMessage);
@@ -1239,7 +1347,9 @@ describe("AccountDetail", () => {
     });
 
     const { unmount } = render(<AccountDetail />, { wrapper: createWrapper() });
-    const exportButton = await screen.findByRole("button", { name: "Export OPML" });
+    const exportButton = await screen.findByRole("button", {
+      name: "Export OPML",
+    });
 
     fireEvent.click(exportButton);
     await waitFor(() => {
@@ -1284,7 +1394,13 @@ describe("AccountDetail", () => {
             total: 1,
             succeeded: 1,
             failed: [],
-            warnings: [{ account_id: "acc-1", account_name: "FreshRSS", message: "Skipped 3 entries." }],
+            warnings: [
+              {
+                account_id: "acc-1",
+                account_name: "FreshRSS",
+                message: "Skipped 3 entries.",
+              },
+            ],
           };
         default:
           return undefined;
@@ -1416,7 +1532,14 @@ describe("AccountDetail", () => {
           ];
         case "trigger_sync_account":
           return new Promise((resolve) => {
-            resolveSync = () => resolve({ synced: true, total: 1, succeeded: 1, failed: [], warnings: [] });
+            resolveSync = () =>
+              resolve({
+                synced: true,
+                total: 1,
+                succeeded: 1,
+                failed: [],
+                warnings: [],
+              });
           });
         default:
           return undefined;
@@ -1466,7 +1589,14 @@ describe("AccountDetail", () => {
           ];
         case "trigger_sync_account":
           return new Promise((resolve) => {
-            resolveSync = () => resolve({ synced: true, total: 1, succeeded: 1, failed: [], warnings: [] });
+            resolveSync = () =>
+              resolve({
+                synced: true,
+                total: 1,
+                succeeded: 1,
+                failed: [],
+                warnings: [],
+              });
           });
         default:
           return undefined;

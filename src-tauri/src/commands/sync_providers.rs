@@ -724,6 +724,14 @@ fn pending_mutation_targets_provider_managed_greader_feed(
                  WHERE pm.id = ?1
                    AND f.account_id = pm.account_id
                    AND f.remote_id LIKE 'feed/%'
+             ) AND NOT EXISTS (
+                 SELECT 1
+                 FROM pending_mutations pm
+                 JOIN articles a ON a.remote_id = pm.remote_entry_id
+                 JOIN feeds f ON f.id = a.feed_id
+                 WHERE pm.id = ?1
+                   AND f.account_id = pm.account_id
+                   AND (f.remote_id IS NULL OR f.remote_id NOT LIKE 'feed/%')
              )",
         rusqlite::params![pending_mutation_id],
         |row| row.get::<_, bool>(0),
@@ -1032,11 +1040,7 @@ async fn sync_greader_feeds(
                 }
                 let db_guard = lock_db(db)?;
                 let pending_repo = SqlitePendingMutationRepository::new(db_guard.writer());
-                pending_repo.delete_by_account_remote_entry_ids_and_axis(
-                    &account.id,
-                    std::slice::from_ref(&pm.remote_entry_id),
-                    pm.mutation_type.axis(),
-                )?;
+                pending_repo.delete(&[pending_mutation_id])?;
             }
             Err(error) => {
                 warn!(
@@ -1936,7 +1940,7 @@ mod tests {
     }
 
     #[test]
-    fn pending_mutation_target_lookup_uses_remote_entry_id_collision_across_feeds() {
+    fn pending_mutation_target_lookup_rejects_remote_entry_id_collision_across_feeds() {
         let db = test_db();
         let (account, feeds) = insert_account_and_feeds(
             &db,
@@ -2018,7 +2022,7 @@ mod tests {
             pending_mutation_targets_provider_managed_greader_feed(&db, pending_mutation_id)
                 .unwrap();
 
-        assert!(targets_greader);
+        assert!(!targets_greader);
     }
 
     fn test_feed(account_id: &AccountId) -> Feed {

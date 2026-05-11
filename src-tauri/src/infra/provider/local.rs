@@ -294,7 +294,7 @@ fn feed_response_body_read_error(error: reqwest::Error) -> DomainError {
 }
 
 fn validate_external_feed_url(url: &reqwest::Url) -> DomainResult<()> {
-    validate_discovery_request_url(url)
+    validate_discovery_request_url(url).map(|_| ())
 }
 
 fn validate_external_feed_redirect(

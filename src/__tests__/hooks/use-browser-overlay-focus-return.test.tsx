@@ -212,6 +212,34 @@ describe("useBrowserOverlayFocusReturn", () => {
     expect(useUiStore.getState().focusedPane).not.toBe("list");
   });
 
+  it("does not steal focus from a newly opened modal top layer after the overlay closes", () => {
+    const articleButton = document.createElement("button");
+    articleButton.dataset.articleId = "article-1";
+    document.body.append(articleButton);
+
+    const modal = document.createElement("div");
+    modal.dataset.stackLayer = "dialog";
+    modal.setAttribute("role", "dialog");
+    const modalButton = document.createElement("button");
+    modal.append(modalButton);
+    document.body.append(modal);
+
+    const { rerender } = renderHook(
+      ({ isBrowserOpen }) =>
+        useBrowserOverlayFocusReturn({
+          articleId: "article-1",
+          isBrowserOpen,
+        }),
+      { initialProps: { isBrowserOpen: true } },
+    );
+
+    modalButton.focus();
+    rerender({ isBrowserOpen: false });
+
+    expect(document.activeElement).toBe(modalButton);
+    expect(useUiStore.getState().focusedPane).not.toBe("list");
+  });
+
   it("skips focus return when requestAnimationFrame is unavailable", () => {
     vi.stubGlobal("requestAnimationFrame", undefined);
 
