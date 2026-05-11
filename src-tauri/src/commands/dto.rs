@@ -353,6 +353,8 @@ pub struct FeedIntegrityCleanupDto {
     pub dry_run: bool,
     pub orphaned_article_count: i64,
     pub deleted_article_count: i64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub orphaned_article_ids: Option<Vec<String>>,
 }
 
 #[derive(Debug, Serialize)]

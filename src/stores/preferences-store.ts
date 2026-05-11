@@ -47,9 +47,19 @@ let languageApplyRequestId = 0;
 const preferencePersistRequestCounters = new Map<string, number>();
 const preferencePersistRequestIds = new Map<string, number>();
 const preferenceMutationGenerations = new Map<string, number>();
+const preferenceStorageFailureMessages = new Set<string>();
 
 function logPreferenceRuntimeFailure(message: string, error: unknown): void {
   console.error(message, error);
+}
+
+function logPreferenceStorageFailureOnce(message: string, error: unknown): void {
+  if (preferenceStorageFailureMessages.has(message)) {
+    return;
+  }
+
+  preferenceStorageFailureMessages.add(message);
+  logPreferenceRuntimeFailure(message, error);
 }
 
 function warnUnknownPreferenceTypo(key: string, candidate: string): void {
@@ -90,6 +100,7 @@ export function resetPreferencesStoreRuntimeForTests(): void {
   preferencePersistRequestCounters.clear();
   preferencePersistRequestIds.clear();
   preferenceMutationGenerations.clear();
+  preferenceStorageFailureMessages.clear();
 }
 
 function getDocumentRoot(): HTMLElement | null {
@@ -121,7 +132,7 @@ function mirrorThemePreference(theme: Theme): void {
     window.localStorage.setItem(STORAGE_KEYS.theme, theme);
   } catch (error) {
     // Storage mirroring is best-effort; DB remains the source of truth and optimistic UI state is retained.
-    logPreferenceRuntimeFailure("Failed to mirror theme preference:", error);
+    logPreferenceStorageFailureOnce("Failed to mirror theme preference:", error);
   }
 }
 
@@ -136,7 +147,7 @@ function readMirroredThemePreference(): Theme | null {
     }
     return parseThemePreference(storedTheme);
   } catch (error) {
-    logPreferenceRuntimeFailure("Failed to read mirrored theme preference:", error);
+    logPreferenceStorageFailureOnce("Failed to read mirrored theme preference:", error);
     return null;
   }
 }

@@ -61,7 +61,11 @@ describe("storage quota cascade contract", () => {
     resetPreferencesStoreRuntimeForTests();
     resetCommandHistoryStorageFailureWarnings();
     resetRuntimeDiagnosticOnceSuppressionForTests();
-    usePreferencesStore.setState({ prefs: {}, loaded: false, pendingPreferenceSaves: 0 });
+    usePreferencesStore.setState({
+      prefs: {},
+      loaded: false,
+      pendingPreferenceSaves: 0,
+    });
     useUiStore.setState({ toastMessage: null });
     window.localStorage.clear();
     vi.mocked(setPreference).mockResolvedValue(Result.succeed(null));
@@ -120,8 +124,20 @@ describe("storage quota cascade contract", () => {
     expect(consoleError).toHaveBeenCalledWith("Failed to mirror theme preference:", expect.any(DOMException));
     expect(consoleWarn).toHaveBeenCalledWith(
       "Sidebar expanded folders storage failed",
-      expect.objectContaining({ operation: "write", storageKey: STORAGE_KEYS.sidebarExpandedFolders }),
+      expect.objectContaining({
+        operation: "write",
+        storageKey: STORAGE_KEYS.sidebarExpandedFolders,
+      }),
     );
     expect(consoleWarn).toHaveBeenCalledWith("Failed to write command history to localStorage.", expect.any(Object));
+    expect(
+      consoleError.mock.calls.filter(([message]) => message === "Failed to mirror theme preference:"),
+    ).toHaveLength(1);
+    expect(
+      consoleWarn.mock.calls.filter(([message]) => message === "Sidebar expanded folders storage failed"),
+    ).toHaveLength(1);
+    expect(
+      consoleWarn.mock.calls.filter(([message]) => message === "Failed to write command history to localStorage."),
+    ).toHaveLength(1);
   });
 });

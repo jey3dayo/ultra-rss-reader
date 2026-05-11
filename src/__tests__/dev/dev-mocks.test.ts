@@ -954,6 +954,7 @@ describe("setupDevMocks", () => {
       dry_run: true,
       orphaned_article_count: 0,
       deleted_article_count: 0,
+      orphaned_article_ids: [],
     });
     expect(cleanup).toEqual({
       dry_run: false,

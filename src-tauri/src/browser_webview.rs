@@ -612,6 +612,12 @@ fn is_supported_browser_preview_script_action(action: &str) -> bool {
 }
 
 #[cfg_attr(not(any(test, windows)), allow(dead_code))]
+fn is_supported_browser_preview_bridge_action(action: &str) -> bool {
+    is_supported_browser_preview_script_action(action)
+        || matches!(action, "mouse-back" | "mouse-forward")
+}
+
+#[cfg_attr(not(any(test, windows)), allow(dead_code))]
 fn normalize_browser_preview_bridge_url(url: &str) -> Option<String> {
     let mut parsed = reqwest::Url::parse(url).ok()?;
     parsed.set_fragment(None);
@@ -684,7 +690,7 @@ fn should_accept_browser_preview_bridge_message(
     message: &BrowserPreviewBridgeMessage,
     snapshot: Option<&BrowserWebviewState>,
 ) -> bool {
-    is_supported_browser_preview_script_action(&message.action)
+    is_supported_browser_preview_bridge_action(&message.action)
         && snapshot
             .is_some_and(|state| browser_preview_bridge_url_matches(&message.url, &state.url))
 }
@@ -2124,6 +2130,13 @@ mod tests {
         );
         assert_eq!(
             browser_preview_bridge_message_action(
+                r#"{"action":"mouse-back","url":"https://example.com/redirected"}"#,
+                Some(&redirected_state)
+            ),
+            Some("mouse-back".to_string())
+        );
+        assert_eq!(
+            browser_preview_bridge_message_action(
                 r#"{"action":"toggle-read","url":"https://example.com"}"#,
                 Some(&trailing_slash_state)
             ),
@@ -2158,6 +2171,13 @@ mod tests {
         assert_eq!(
             browser_preview_bridge_message_action(
                 r#"{"action":"toggle-read","url":"https://example.com/requested"}"#,
+                Some(&redirected_state)
+            ),
+            None
+        );
+        assert_eq!(
+            browser_preview_bridge_message_action(
+                r#"{"action":"mouse-back","url":"https://example.com/requested"}"#,
                 Some(&redirected_state)
             ),
             None

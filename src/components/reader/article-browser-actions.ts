@@ -232,7 +232,23 @@ export function openUrlInExternalBrowser(
 }
 
 export function copyArticleLink(url: string, { showToast, successMessage }: ArticleToastActionParams) {
-  const normalizedUrl = normalizeHttpCommandUrl(url) ?? url;
+  if (url.trim().length === 0) {
+    return runToastOperation(
+      () => copyTextToClipboard(url, { category: "article_link" }),
+      { showToast, successMessage },
+      "Copy failed",
+    );
+  }
+
+  const normalizedUrlResult = normalizeArticleExternalBrowserUrl(url);
+  if (Result.isFailure(normalizedUrlResult)) {
+    const actionError = Result.unwrapError(normalizedUrlResult);
+    logArticleActionFailure("Copy failed", actionError);
+    showToast(actionError.message);
+    return Promise.resolve(Result.fail(actionError));
+  }
+
+  const normalizedUrl = Result.unwrap(normalizedUrlResult);
 
   return runToastOperation(
     () => copyTextToClipboard(normalizedUrl, { category: "article_link" }),
@@ -242,13 +258,15 @@ export function copyArticleLink(url: string, { showToast, successMessage }: Arti
 }
 
 export function addArticleToReadingList(url: string, { showToast, successMessage }: ArticleToastActionParams) {
-  const normalizedUrl = normalizeHttpCommandUrl(url);
-  if (!normalizedUrl) {
-    const actionError = toInvalidArticleUrlError();
+  const normalizedUrlResult = normalizeArticleExternalBrowserUrl(url);
+  if (Result.isFailure(normalizedUrlResult)) {
+    const actionError = Result.unwrapError(normalizedUrlResult);
     logArticleActionFailure("Add to reading list failed", actionError);
     showToast(actionError.message);
     return Promise.resolve(Result.fail(actionError));
   }
+
+  const normalizedUrl = Result.unwrap(normalizedUrlResult);
 
   return runToastOperation(
     () => addToReadingList(normalizedUrl),

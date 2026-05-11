@@ -33,6 +33,7 @@ import {
   getReaderArticleQueryMode,
   invalidateArticleMutationQueries,
   invalidateArticleQueries,
+  invalidateQueryKeysLogOnly,
   normalizeQueryAccountId,
   queryKeys,
   resolveArticleMutationInvalidationQueryKeys as resolveArticleMutationInvalidationQueryKeysFromMatrix,
@@ -73,6 +74,7 @@ export type ArticleSearchQueryOwner = {
 
 const ARTICLE_SEARCH_QUERY_MAX_LENGTH = 128;
 const ARTICLE_SEARCH_QUERY_WHITESPACE_PATTERN = /\s+/gu;
+const READER_FILTERS = ["all", "unread", "starred"] as const satisfies readonly ReaderFilter[];
 
 function resolveArticleQueryMode(options?: ArticleQueryOptions): ReaderFilter {
   if (options?.mode) {
@@ -245,6 +247,56 @@ function resolveAccountIdsForArticle(qc: QueryClient, article: ArticleDto): stri
   }
 
   return Array.from(accountIds);
+}
+
+function isAccountKnownDeleted(qc: QueryClient, accountId: string): boolean {
+  const accounts = qc.getQueryData<unknown>(queryKeys.accounts.root);
+  if (!Array.isArray(accounts)) {
+    return false;
+  }
+
+  return !accounts.some(
+    (account): account is { id: string } =>
+      typeof account === "object" &&
+      account !== null &&
+      "id" in account &&
+      typeof account.id === "string" &&
+      account.id === accountId,
+  );
+}
+
+function isArticleKnownDeletedFromScopedCache(qc: QueryClient, accountId: string, articleId: string): boolean {
+  const scopedArticleQueries = [
+    ...qc.getQueriesData<unknown>({ queryKey: queryKeys.accountArticles.byAccountPrefix(accountId) }),
+    ...qc.getQueriesData<unknown>({ queryKey: queryKeys.recentArticles.byAccount(accountId, "all").slice(0, 3) }),
+    ...qc.getQueriesData<unknown>({ queryKey: queryKeys.starredArticles.byAccount(accountId) }),
+  ];
+
+  let sawScopedArticleList = false;
+  for (const [, data] of scopedArticleQueries) {
+    const articles = indexArticleDtosById(data);
+    if (articles.size === 0) {
+      continue;
+    }
+    sawScopedArticleList = true;
+    if (articles.has(articleId)) {
+      return false;
+    }
+  }
+
+  return sawScopedArticleList;
+}
+
+function shouldInvalidateAfterRecordArticleView(qc: QueryClient, accountId: string, articleId: string): boolean {
+  if (isAccountKnownDeleted(qc, accountId)) {
+    return false;
+  }
+
+  return !isArticleKnownDeletedFromScopedCache(qc, accountId, articleId);
+}
+
+function getRecentArticleQueryKeysForAccount(accountId: string) {
+  return READER_FILTERS.map((mode) => queryKeys.recentArticles.byAccount(accountId, mode));
 }
 
 function shouldKeepArticleInQuery(queryKey: QueryKey, nextArticle: ArticleDto): boolean {
@@ -526,7 +578,14 @@ export function useRecordArticleView() {
       return recordArticleView(normalizedAccountId, normalizedArticleId).then(Result.unwrap);
     },
     onSuccess: (_data, variables) => {
-      if (!normalizeManualArticleQueryId(variables.accountId) || !normalizeManualArticleQueryId(variables.articleId)) {
+      const normalizedAccountId = normalizeManualArticleQueryId(variables.accountId);
+      const normalizedArticleId = normalizeManualArticleQueryId(variables.articleId);
+
+      if (
+        !normalizedAccountId ||
+        !normalizedArticleId ||
+        !shouldInvalidateAfterRecordArticleView(qc, normalizedAccountId, normalizedArticleId)
+      ) {
         return;
       }
 
@@ -546,20 +605,43 @@ export function useRecordArticleView() {
   });
 }
 
-export const useClearArticleViewHistory = createMutation(clearArticleViewHistory, (qc) =>
-  invalidateArticleQueries(qc, {
-    actionOwner: "article-mutation",
-    includeAccountArticles: false,
-    includeStarredArticles: false,
-    includeAccountUnreadCount: false,
-    includeAccountStarredCount: false,
-    includeFeeds: false,
-    includeArticles: false,
-    includeArticlesByTag: false,
-    includeSearch: false,
-    includeRecentArticles: true,
-  }),
-);
+export function useClearArticleViewHistory() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (accountId: string) => {
+      const normalizedAccountId = normalizeManualArticleQueryId(accountId);
+
+      if (!normalizedAccountId || isAccountKnownDeleted(qc, normalizedAccountId)) {
+        return Promise.resolve(0);
+      }
+
+      return clearArticleViewHistory(normalizedAccountId).then(Result.unwrap);
+    },
+    onMutate: async (accountId) => {
+      const normalizedAccountId = normalizeManualArticleQueryId(accountId);
+      if (!normalizedAccountId) {
+        return;
+      }
+
+      const recentArticleQueryKeys = getRecentArticleQueryKeysForAccount(normalizedAccountId);
+      await Promise.all(recentArticleQueryKeys.map((queryKey) => qc.cancelQueries({ queryKey })));
+      for (const queryKey of recentArticleQueryKeys) {
+        qc.setQueryData(queryKey, []);
+      }
+    },
+    onSuccess: (_data, accountId) => {
+      const normalizedAccountId = normalizeManualArticleQueryId(accountId);
+      if (!normalizedAccountId || isAccountKnownDeleted(qc, normalizedAccountId)) {
+        return;
+      }
+
+      invalidateQueryKeysLogOnly(qc, getRecentArticleQueryKeysForAccount(normalizedAccountId), {
+        actionOwner: "article-mutation",
+      });
+    },
+  });
+}
 
 export const useMarkFeedRead = createMutation(markFeedRead, (qc) =>
   invalidateArticleMutationQueries(qc, "article-read-star"),

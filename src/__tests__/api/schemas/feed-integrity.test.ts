@@ -29,6 +29,7 @@ const cleanupDryRunFixture = {
   dry_run: true,
   orphaned_article_count: 2,
   deleted_article_count: 0,
+  orphaned_article_ids: ["article-1", "article-2"],
 } satisfies FeedIntegrityCleanupDto;
 
 describe("FeedIntegrityReportDtoSchema", () => {
@@ -126,7 +127,7 @@ describe("FeedIntegrityCleanupDtoSchema", () => {
     ).toBe(false);
   });
 
-  it("accepts destructive cleanup only when deletion count is covered by the orphan count", () => {
+  it("accepts destructive cleanup count drift as a partial result", () => {
     expect(
       FeedIntegrityCleanupDtoSchema.safeParse({
         dry_run: false,
@@ -140,7 +141,7 @@ describe("FeedIntegrityCleanupDtoSchema", () => {
         orphaned_article_count: 2,
         deleted_article_count: 3,
       }).success,
-    ).toBe(false);
+    ).toBe(true);
   });
 
   it("maps destructive cleanup count drift and irreversible deletion to UI warning kinds", () => {
@@ -150,6 +151,13 @@ describe("FeedIntegrityCleanupDtoSchema", () => {
         dry_run: false,
         orphaned_article_count: 2,
         deleted_article_count: 1,
+      }),
+    ).toEqual(["count_mismatch", "undo_unavailable"]);
+    expect(
+      getFeedIntegrityCleanupWarningKinds({
+        dry_run: false,
+        orphaned_article_count: 2,
+        deleted_article_count: 3,
       }),
     ).toEqual(["count_mismatch", "undo_unavailable"]);
     expect(

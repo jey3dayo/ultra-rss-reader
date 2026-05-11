@@ -937,6 +937,15 @@ describe("recent article history mutations", () => {
     await result.current.mutateAsync("acc-1");
 
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: queryKeys.recentArticles.byAccount("acc-1", "all"),
+    });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: queryKeys.recentArticles.byAccount("acc-1", "unread"),
+    });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: queryKeys.recentArticles.byAccount("acc-1", "starred"),
+    });
+    expect(invalidateQueriesSpy).not.toHaveBeenCalledWith({
       queryKey: queryKeys.recentArticles.root,
     });
     expect(invalidateQueriesSpy).not.toHaveBeenCalledWith({
@@ -948,5 +957,56 @@ describe("recent article history mutations", () => {
     expect(invalidateQueriesSpy).not.toHaveBeenCalledWith({
       queryKey: queryKeys.accountUnreadCount.root,
     });
+  });
+
+  it("does not invalidate recent articles when record resolves after the account is deleted", async () => {
+    const recordDeferred = createDeferred<Awaited<ReturnType<typeof tauriCommands.recordArticleView>>>();
+    vi.spyOn(tauriCommands, "recordArticleView").mockReturnValue(recordDeferred.promise);
+    const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const article = sampleArticles[0];
+
+    queryClient.setQueryData(queryKeys.accounts.root, [{ id: "acc-1" }]);
+    queryClient.setQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"), [article]);
+
+    const { result } = renderHook(() => useRecordArticleView(), { wrapper });
+    const mutationPromise = result.current.mutateAsync({
+      accountId: "acc-1",
+      articleId: article.id,
+    });
+
+    queryClient.setQueryData(queryKeys.accounts.root, []);
+    queryClient.setQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"), []);
+    recordDeferred.resolve(Result.succeed(null));
+
+    await mutationPromise;
+
+    expect(invalidateQueriesSpy).not.toHaveBeenCalledWith({
+      queryKey: queryKeys.recentArticles.root,
+    });
+  });
+
+  it("clears cached recent articles only for the requested account", async () => {
+    const otherAccountArticles = [sampleArticles[1]];
+    queryClient.setQueryData(queryKeys.recentArticles.byAccount("acc-1", "all"), [sampleArticles[0]]);
+    queryClient.setQueryData(queryKeys.recentArticles.byAccount("acc-2", "all"), otherAccountArticles);
+
+    const { result } = renderHook(() => useClearArticleViewHistory(), {
+      wrapper,
+    });
+
+    await result.current.mutateAsync("acc-1");
+
+    expect(queryClient.getQueryData(queryKeys.recentArticles.byAccount("acc-1", "all"))).toEqual([]);
+    expect(queryClient.getQueryData(queryKeys.recentArticles.byAccount("acc-2", "all"))).toEqual(otherAccountArticles);
+  });
+
+  it("keeps clear history successful when recent article invalidation rejects", async () => {
+    vi.spyOn(queryClient, "invalidateQueries").mockRejectedValue(new Error("invalidation failed"));
+
+    const { result } = renderHook(() => useClearArticleViewHistory(), {
+      wrapper,
+    });
+
+    await expect(result.current.mutateAsync("acc-1")).resolves.toBe(0);
   });
 });

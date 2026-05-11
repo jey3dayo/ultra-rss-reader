@@ -53,6 +53,20 @@ impl<'a> SqliteArticleRepository<'a> {
         Ok(count)
     }
 
+    pub fn list_orphaned_article_ids(&self) -> DomainResult<Vec<String>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT a.id
+             FROM articles a
+             LEFT JOIN feeds f ON a.feed_id = f.id
+             WHERE f.id IS NULL
+             ORDER BY a.id ASC",
+        )?;
+        let ids = stmt
+            .query_map([], |row| row.get(0))?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(ids)
+    }
+
     pub fn delete_orphaned_articles(&self) -> DomainResult<i64> {
         let deleted = self.conn.execute(
             "DELETE FROM articles
@@ -64,6 +78,23 @@ impl<'a> SqliteArticleRepository<'a> {
             [],
         )?;
         Ok(deleted as i64)
+    }
+
+    pub fn delete_orphaned_articles_by_ids(&self, article_ids: &[String]) -> DomainResult<i64> {
+        let mut deleted = 0_i64;
+        for article_id in article_ids {
+            deleted += self.conn.execute(
+                "DELETE FROM articles
+                 WHERE id = ?1
+                   AND NOT EXISTS (
+                       SELECT 1
+                       FROM feeds f
+                       WHERE f.id = articles.feed_id
+                   )",
+                params![article_id],
+            )? as i64;
+        }
+        Ok(deleted)
     }
 
     pub fn list_orphaned_feed_groups(&self) -> DomainResult<Vec<OrphanedFeedGroup>> {

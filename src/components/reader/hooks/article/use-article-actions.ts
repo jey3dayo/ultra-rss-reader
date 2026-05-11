@@ -103,6 +103,7 @@ export function useArticleActions({
 
   useArticleActionShortcuts({
     keyboardShortcuts,
+    selectedArticleUrl: articleUrl,
     onToggleRead: handleToggleRead,
     onToggleStar: handleToggleStar,
     onOpenExternalBrowser: handleOpenExternalBrowser,

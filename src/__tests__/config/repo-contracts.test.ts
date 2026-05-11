@@ -1705,6 +1705,29 @@ describe("repository static contracts", () => {
     expect(tauriReleaseConfig.bundle.createUpdaterArtifacts).toBe(true);
   });
 
+  it("keeps release provenance uploads recoverable after partial asset failures", () => {
+    const releaseWorkflow = readRepoFile(".github/workflows/release.yml");
+
+    expect(releaseWorkflow).toContain(
+      '["release", "view", process.env.RELEASE_TAG, "--json", "assets,isDraft,isPrerelease,tagName,url"]',
+    );
+    expect(releaseWorkflow).toContain('"assets,isDraft,isPrerelease,tagName,url"');
+    expect(releaseWorkflow).toContain("clobber_targets=");
+    expect(releaseWorkflow).toContain("missing_assets=");
+    expect(releaseWorkflow).toContain("draft=$" + "{release.isDraft}");
+    expect(releaseWorkflow).toContain("prerelease=$" + "{release.isPrerelease}");
+    expect(releaseWorkflow).toContain('inspectReleaseAssets("checksum upload")');
+    expect(releaseWorkflow).toContain('inspectReleaseAssets("checksum upload failure recovery")');
+    expect(releaseWorkflow).toContain('inspectReleaseAssets("provenance upload")');
+    expect(releaseWorkflow).toContain('inspectReleaseAssets("provenance upload failure recovery")');
+    expect(releaseWorkflow).toContain(
+      '"gh", ["release", "upload", process.env.RELEASE_TAG, ...checksumAssets, "--clobber"]',
+    );
+    expect(releaseWorkflow).toContain(
+      '"gh", ["release", "upload", process.env.RELEASE_TAG, ...provenanceAssets, "--clobber"]',
+    );
+  });
+
   it("allows the embedded browser child webview to invoke its native commands", () => {
     const capabilities = defaultCapability as Array<{
       identifier?: string;

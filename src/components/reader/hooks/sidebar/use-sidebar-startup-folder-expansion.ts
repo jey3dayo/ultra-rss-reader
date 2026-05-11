@@ -224,10 +224,10 @@ function getStoredSidebarExpandedFolders(
 ): SidebarExpandedFoldersStorage {
   const storage = pruneStoredSidebarExpandedFolders(readStoredSidebarExpandedFolders(), accountId, folderList);
   try {
-    writeNormalizedSidebarExpandedFoldersStorage(
-      window.localStorage.getItem(STORAGE_KEYS.sidebarExpandedFolders),
-      storage,
-    );
+    const raw = window.localStorage.getItem(STORAGE_KEYS.sidebarExpandedFolders);
+    if (raw !== null) {
+      writeNormalizedSidebarExpandedFoldersStorage(raw, storage);
+    }
   } catch (error) {
     logSidebarExpandedFoldersStorageFailure("normalize-write", error);
   }

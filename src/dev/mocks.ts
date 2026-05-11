@@ -777,6 +777,7 @@ export function setupDevMocks(): RestoreDevMocks {
           dry_run: dryRun,
           orphaned_article_count: feedIntegrityReport.orphaned_article_count,
           deleted_article_count: dryRun ? 0 : feedIntegrityReport.orphaned_article_count,
+          ...(dryRun ? { orphaned_article_ids: [] } : {}),
         };
       }
 

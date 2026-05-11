@@ -9,7 +9,7 @@ use crate::domain::account::Account;
 use crate::domain::article::{generate_entry_id, Article};
 use crate::domain::feed::Feed;
 use crate::domain::provider::{
-    FeedIdentifier, Mutation, PullResult, PullScope, RemoteEntry, SyncCursor,
+    FeedIdentifier, Mutation, PullResult, PullScope, RemoteEntry, RemoteSubscription, SyncCursor,
 };
 use crate::domain::types::{AccountId, ArticleId, FeedId, FolderId};
 use crate::infra::db::connection::DbManager;
@@ -706,6 +706,65 @@ fn resolve_greader_subscription_folder_id(
         .or_else(|| existing_feed.and_then(|feed| feed.folder_id.clone()))
 }
 
+fn save_greader_subscriptions(
+    db: &Mutex<DbManager>,
+    account: &Account,
+    folder_remote_id_map: &HashMap<String, FolderId>,
+    remote_subs: &[RemoteSubscription],
+    sync_started_remote_feed_ids: &HashSet<String>,
+) -> Result<(), AppError> {
+    let db_guard = lock_db(db)?;
+    let feed_repo = SqliteFeedRepository::new(db_guard.writer());
+    for rs in remote_subs {
+        let existing = feed_repo.find_by_remote_id(&account.id, &rs.remote_id)?;
+        if existing.is_none() && sync_started_remote_feed_ids.contains(&rs.remote_id) {
+            continue;
+        }
+        let feed = Feed {
+            id: existing
+                .as_ref()
+                .map(|f| f.id.clone())
+                .unwrap_or_else(FeedId::new),
+            account_id: account.id.clone(),
+            folder_id: resolve_greader_subscription_folder_id(
+                rs.folder_remote_id.as_deref(),
+                folder_remote_id_map,
+                existing.as_ref(),
+            ),
+            remote_id: Some(rs.remote_id.clone()),
+            title: rs.title.clone(),
+            url: rs.url.clone(),
+            site_url: rs.site_url.clone(),
+            icon: existing.as_ref().and_then(|f| f.icon.clone()),
+            unread_count: 0,
+            reader_mode: existing
+                .as_ref()
+                .map(|f| f.reader_mode.clone())
+                .unwrap_or_else(|| "inherit".to_string()),
+            web_preview_mode: existing
+                .as_ref()
+                .map(|f| f.web_preview_mode.clone())
+                .unwrap_or_else(|| "inherit".to_string()),
+        };
+        feed_repo.save(&feed)?;
+    }
+    Ok(())
+}
+
+fn provider_managed_remote_feed_ids(
+    db: &Mutex<DbManager>,
+    account_id: &AccountId,
+) -> Result<HashSet<String>, AppError> {
+    let db_guard = lock_db(db)?;
+    let feed_repo = SqliteFeedRepository::new(db_guard.reader());
+    Ok(feed_repo
+        .find_by_account(account_id)?
+        .into_iter()
+        .filter_map(|feed| feed.remote_id)
+        .filter(|remote_id| is_provider_managed_greader_feed(Some(remote_id)))
+        .collect())
+}
+
 fn folder_name_case_key(name: &str) -> String {
     name.trim().to_lowercase()
 }
@@ -853,6 +912,7 @@ async fn sync_greader_feeds(
 ) -> Result<ProviderSyncOutcome, AppError> {
     let total_started_at = Instant::now();
     let article_counts_before = provider_managed_feed_snapshots(db, &account.id)?;
+    let sync_started_remote_feed_ids = provider_managed_remote_feed_ids(db, &account.id)?;
 
     let folder_remote_id_map: HashMap<String, FolderId> = {
         let db_guard = lock_db(db)?;
@@ -866,40 +926,13 @@ async fn sync_greader_feeds(
 
     let subscriptions_started_at = Instant::now();
     let remote_subs = provider.get_subscriptions().await?;
-    {
-        let db_guard = lock_db(db)?;
-        let feed_repo = SqliteFeedRepository::new(db_guard.writer());
-        for rs in &remote_subs {
-            let existing = feed_repo.find_by_remote_id(&account.id, &rs.remote_id)?;
-            let feed = Feed {
-                id: existing
-                    .as_ref()
-                    .map(|f| f.id.clone())
-                    .unwrap_or_else(FeedId::new),
-                account_id: account.id.clone(),
-                folder_id: resolve_greader_subscription_folder_id(
-                    rs.folder_remote_id.as_deref(),
-                    &folder_remote_id_map,
-                    existing.as_ref(),
-                ),
-                remote_id: Some(rs.remote_id.clone()),
-                title: rs.title.clone(),
-                url: rs.url.clone(),
-                site_url: rs.site_url.clone(),
-                icon: existing.as_ref().and_then(|f| f.icon.clone()),
-                unread_count: 0,
-                reader_mode: existing
-                    .as_ref()
-                    .map(|f| f.reader_mode.clone())
-                    .unwrap_or_else(|| "inherit".to_string()),
-                web_preview_mode: existing
-                    .as_ref()
-                    .map(|f| f.web_preview_mode.clone())
-                    .unwrap_or_else(|| "inherit".to_string()),
-            };
-            feed_repo.save(&feed)?;
-        }
-    }
+    save_greader_subscriptions(
+        db,
+        account,
+        &folder_remote_id_map,
+        &remote_subs,
+        &sync_started_remote_feed_ids,
+    )?;
     info!(
         account_id = %account.id.as_ref(),
         account_name = %account.name,
@@ -1770,6 +1803,88 @@ mod tests {
         assert_eq!(warnings.len(), 1);
         assert_eq!(warnings[0].kind, AccountSyncWarningKind::Generic);
         assert!(warnings[0].message.contains("Stale"));
+    }
+
+    #[test]
+    fn save_greader_subscriptions_does_not_recreate_feed_deleted_after_sync_started() {
+        let db = test_db();
+        let (account, feed) = insert_account_and_feed(&db, "https://rss.example.com");
+        let sync_started_remote_feed_ids =
+            HashSet::from([feed.remote_id.clone().expect("test feed has remote id")]);
+        {
+            let db_guard = db.lock().unwrap();
+            let feed_repo = SqliteFeedRepository::new(db_guard.writer());
+            feed_repo
+                .delete(&feed.id)
+                .expect("test feed delete should succeed");
+        }
+
+        save_greader_subscriptions(
+            &db,
+            &account,
+            &HashMap::new(),
+            &[RemoteSubscription {
+                remote_id: FEED_REMOTE_ID.to_string(),
+                title: "Example Feed".to_string(),
+                url: "https://example.com/rss".to_string(),
+                site_url: "https://example.com".to_string(),
+                folder_remote_id: None,
+                icon_url: None,
+            }],
+            &sync_started_remote_feed_ids,
+        )
+        .expect("stale subscription persist should skip deleted feed without failing");
+
+        let db_guard = db.lock().unwrap();
+        let feed_repo = SqliteFeedRepository::new(db_guard.reader());
+        assert!(
+            feed_repo.find_by_id(&feed.id).unwrap().is_none(),
+            "in-flight subscription sync must not recreate a feed deleted after sync started"
+        );
+        assert!(
+            feed_repo
+                .find_by_remote_id(&account.id, FEED_REMOTE_ID)
+                .unwrap()
+                .is_none(),
+            "deleted remote feed must stay absent after stale subscription persist"
+        );
+    }
+
+    #[test]
+    fn save_greader_subscriptions_persists_new_remote_subscription_not_seen_at_sync_start() {
+        let db = test_db();
+        let account = test_account("https://rss.example.com");
+        {
+            let db_guard = db.lock().unwrap();
+            let account_repo = SqliteAccountRepository::new(db_guard.writer());
+            account_repo.save(&account).unwrap();
+        }
+
+        save_greader_subscriptions(
+            &db,
+            &account,
+            &HashMap::new(),
+            &[RemoteSubscription {
+                remote_id: FEED_REMOTE_ID.to_string(),
+                title: "Example Feed".to_string(),
+                url: "https://example.com/rss".to_string(),
+                site_url: "https://example.com".to_string(),
+                folder_remote_id: None,
+                icon_url: None,
+            }],
+            &HashSet::new(),
+        )
+        .expect("new subscription persist should succeed");
+
+        let db_guard = db.lock().unwrap();
+        let feed_repo = SqliteFeedRepository::new(db_guard.reader());
+        assert!(
+            feed_repo
+                .find_by_remote_id(&account.id, FEED_REMOTE_ID)
+                .unwrap()
+                .is_some(),
+            "remote subscriptions not present at sync start are regular additions"
+        );
     }
 
     #[test]

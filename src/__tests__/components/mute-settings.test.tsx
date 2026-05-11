@@ -317,6 +317,39 @@ describe("MuteSettings", () => {
     expect(showToast).toHaveBeenCalledTimes(1);
   });
 
+  it("ignores stale saved rule scope update failure after a newer change", async () => {
+    const user = userEvent.setup();
+    const showToast = vi.fn();
+    useUiStore.setState({ showToast });
+    const firstUpdate = createDeferred<void>();
+    const secondUpdate = createDeferred<void>();
+    updateMuteKeywordMutateAsyncMock.mockReturnValueOnce(firstUpdate.promise).mockReturnValueOnce(secondUpdate.promise);
+
+    render(<MuteSettings />);
+
+    await user.click(screen.getByRole("combobox", { name: "Scope for spoiler" }));
+    await user.click(await screen.findByRole("option", { name: "Body" }));
+    await user.click(screen.getByRole("combobox", { name: "Scope for spoiler" }));
+    await user.click(await screen.findByRole("option", { name: "Title and body" }));
+
+    await waitFor(() => {
+      expect(updateMuteKeywordMutateAsyncMock).toHaveBeenCalledTimes(2);
+    });
+
+    await act(async () => {
+      secondUpdate.resolve();
+      await secondUpdate.promise;
+    });
+    expect(showToast).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      firstUpdate.reject(new Error("first failed"));
+      await firstUpdate.promise.catch(() => undefined);
+    });
+    expect(showToast).toHaveBeenCalledTimes(1);
+    expect(showToast).not.toHaveBeenCalledWith(expect.stringContaining("first failed"));
+  });
+
   it("opens and cancels the delete confirmation without deleting", async () => {
     const user = userEvent.setup();
 

@@ -1056,23 +1056,33 @@ fn get_feed_integrity_report_inner(
 pub fn cleanup_feed_integrity_orphans(
     state: State<'_, AppState>,
     dry_run: bool,
+    orphaned_article_ids: Option<Vec<String>>,
 ) -> Result<FeedIntegrityCleanupDto, AppError> {
-    cleanup_feed_integrity_orphans_inner(&state.db, &state.syncing, dry_run)
+    cleanup_feed_integrity_orphans_inner(&state.db, &state.syncing, dry_run, orphaned_article_ids)
 }
 
 fn cleanup_feed_integrity_orphans_inner(
     db: &Mutex<crate::infra::db::connection::DbManager>,
     syncing: &AtomicBool,
     dry_run: bool,
+    orphaned_article_ids: Option<Vec<String>>,
 ) -> Result<FeedIntegrityCleanupDto, AppError> {
     let _maintenance_guard = start_database_maintenance(syncing)?;
     let db = try_lock_db(db)?;
     let repo = SqliteArticleRepository::new(db.writer());
-    let orphaned_article_count = repo.count_orphaned_articles()?;
-    let deleted_article_count = if dry_run {
-        0
-    } else {
-        repo.delete_orphaned_articles()?
+    let snapshot_article_ids = match (dry_run, orphaned_article_ids) {
+        (true, _) => Some(repo.list_orphaned_article_ids()?),
+        (false, Some(ids)) => Some(ids),
+        (false, None) => None,
+    };
+    let orphaned_article_count = snapshot_article_ids.as_ref().map_or_else(
+        || repo.count_orphaned_articles(),
+        |ids| Ok(ids.len() as i64),
+    )?;
+    let deleted_article_count = match (dry_run, snapshot_article_ids.as_deref()) {
+        (true, _) => 0,
+        (false, Some(ids)) => repo.delete_orphaned_articles_by_ids(ids)?,
+        (false, None) => repo.delete_orphaned_articles()?,
     };
     if deleted_article_count > 0 {
         db.refresh_query_statistics()?;
@@ -1082,6 +1092,7 @@ fn cleanup_feed_integrity_orphans_inner(
         dry_run,
         orphaned_article_count,
         deleted_article_count,
+        orphaned_article_ids: if dry_run { snapshot_article_ids } else { None },
     })
 }
 
@@ -2399,7 +2410,7 @@ mod tests {
             insert_orphaned_article(&db_guard, "orphan-dry-run", "missing-feed");
         }
 
-        let result = cleanup_feed_integrity_orphans_inner(&db, &syncing, true)
+        let result = cleanup_feed_integrity_orphans_inner(&db, &syncing, true, None)
             .expect("dry-run cleanup should succeed");
         let remaining = {
             let db_guard = db.lock().expect("test DB lock should succeed");
@@ -2411,6 +2422,10 @@ mod tests {
         assert!(result.dry_run);
         assert_eq!(result.orphaned_article_count, 1);
         assert_eq!(result.deleted_article_count, 0);
+        assert_eq!(
+            result.orphaned_article_ids,
+            Some(vec!["orphan-dry-run".to_string()])
+        );
         assert_eq!(remaining, 1);
     }
 
@@ -2434,7 +2449,7 @@ mod tests {
             insert_orphaned_article(&db_guard, "orphan-cleanup", "missing-feed");
         }
 
-        let result = cleanup_feed_integrity_orphans_inner(&db, &syncing, false)
+        let result = cleanup_feed_integrity_orphans_inner(&db, &syncing, false, None)
             .expect("destructive cleanup should succeed");
         let (remaining_orphans, healthy_articles) = {
             let db_guard = db.lock().expect("test DB lock should succeed");
@@ -2451,6 +2466,7 @@ mod tests {
         assert!(!result.dry_run);
         assert_eq!(result.orphaned_article_count, 1);
         assert_eq!(result.deleted_article_count, 1);
+        assert_eq!(result.orphaned_article_ids, None);
         assert_eq!(remaining_orphans, 0);
         assert_eq!(healthy_articles, 1);
         let article_stats_rows: i64 = {
@@ -2465,6 +2481,80 @@ mod tests {
                 .expect("article stats query should succeed")
         };
         assert!(article_stats_rows > 0);
+    }
+
+    #[test]
+    fn cleanup_feed_integrity_orphans_uses_dry_run_snapshot_when_feed_is_restored() {
+        let db = Mutex::new(DbManager::new_in_memory().expect("in-memory DB should initialize"));
+        let syncing = AtomicBool::new(false);
+        {
+            let db_guard = db.lock().expect("test DB lock should succeed");
+            insert_bulk_account(&db_guard, "acc-restored", "Local");
+            insert_orphaned_article(&db_guard, "orphan-restored", "feed-restored");
+        }
+
+        let dry_run = cleanup_feed_integrity_orphans_inner(&db, &syncing, true, None)
+            .expect("dry-run cleanup should succeed");
+        {
+            let db_guard = db.lock().expect("test DB lock should succeed");
+            insert_bulk_feed(&db_guard, "feed-restored", "acc-restored", None, None);
+        }
+
+        let result = cleanup_feed_integrity_orphans_inner(
+            &db,
+            &syncing,
+            false,
+            dry_run.orphaned_article_ids.clone(),
+        )
+        .expect("snapshot cleanup should succeed after feed restore");
+        let restored_article_count = {
+            let db_guard = db.lock().expect("test DB lock should succeed");
+            SqliteArticleRepository::new(db_guard.reader())
+                .find_by_feed(&FeedId("feed-restored".to_string()), &Pagination::default())
+                .expect("restored feed query should succeed")
+                .len()
+        };
+
+        assert!(!result.dry_run);
+        assert_eq!(result.orphaned_article_count, 1);
+        assert_eq!(result.deleted_article_count, 0);
+        assert_eq!(restored_article_count, 1);
+    }
+
+    #[test]
+    fn cleanup_feed_integrity_orphans_ignores_new_orphans_outside_dry_run_snapshot() {
+        let db = Mutex::new(DbManager::new_in_memory().expect("in-memory DB should initialize"));
+        let syncing = AtomicBool::new(false);
+        {
+            let db_guard = db.lock().expect("test DB lock should succeed");
+            insert_orphaned_article(&db_guard, "orphan-snapshot", "missing-feed-snapshot");
+        }
+
+        let dry_run = cleanup_feed_integrity_orphans_inner(&db, &syncing, true, None)
+            .expect("dry-run cleanup should succeed");
+        {
+            let db_guard = db.lock().expect("test DB lock should succeed");
+            insert_orphaned_article(&db_guard, "orphan-new", "missing-feed-new");
+        }
+
+        let result = cleanup_feed_integrity_orphans_inner(
+            &db,
+            &syncing,
+            false,
+            dry_run.orphaned_article_ids.clone(),
+        )
+        .expect("snapshot cleanup should succeed with new orphan drift");
+        let remaining_orphans = {
+            let db_guard = db.lock().expect("test DB lock should succeed");
+            SqliteArticleRepository::new(db_guard.reader())
+                .count_orphaned_articles()
+                .expect("orphan count should succeed")
+        };
+
+        assert!(!result.dry_run);
+        assert_eq!(result.orphaned_article_count, 1);
+        assert_eq!(result.deleted_article_count, 1);
+        assert_eq!(remaining_orphans, 1);
     }
 
     #[test]
@@ -2489,7 +2579,7 @@ mod tests {
                 .expect("feed delete should cascade article rows");
         }
 
-        let result = cleanup_feed_integrity_orphans_inner(&db, &syncing, false)
+        let result = cleanup_feed_integrity_orphans_inner(&db, &syncing, false, None)
             .expect("cleanup after cascade should succeed");
 
         assert!(!result.dry_run);
@@ -2502,7 +2592,7 @@ mod tests {
         let db = Mutex::new(DbManager::new_in_memory().expect("in-memory DB should initialize"));
         let syncing = AtomicBool::new(true);
 
-        let error = cleanup_feed_integrity_orphans_inner(&db, &syncing, false)
+        let error = cleanup_feed_integrity_orphans_inner(&db, &syncing, false, None)
             .expect_err("syncing should block cleanup");
 
         assert!(matches!(

@@ -137,17 +137,20 @@ describe("article-browser-actions", () => {
   });
 
   it.each([
-    "mailto:hello@example.com",
-    "file:///tmp/article.html",
-    "https://example.com/article\nnext",
-  ])("projects invalid article link clipboard text without invoking Tauri: %j", async (url) => {
+    ["mailto:hello@example.com", "Only http:// and https:// URLs are supported"],
+    ["file:///tmp/article.html", "Only http:// and https:// URLs are supported"],
+    ["javascript:alert('owned')", "Only http:// and https:// URLs are supported"],
+    ["https://example.com/article\nnext", "Only http:// and https:// URLs are supported"],
+    ["https://user:pass@example.com/article", "Article URLs must not include credentials"],
+    ["http://127.0.0.1/private", "Only http:// and https:// URLs are supported"],
+  ])("projects invalid article link clipboard text without invoking Tauri: %j", async (url, expectedMessage) => {
     await copyArticleLink(url, {
       showToast,
       successMessage: "Link copied",
     });
 
     expect(calls).toEqual([]);
-    expect(showToast).toHaveBeenCalledWith("Only http:// and https:// URLs are supported");
+    expect(showToast).toHaveBeenCalledWith(expectedMessage);
   });
 
   it("shows a success toast after adding a link to the reading list", async () => {
@@ -198,20 +201,25 @@ describe("article-browser-actions", () => {
     expect(showToast).toHaveBeenCalledWith("Added to reading list");
   });
 
-  it("rejects invalid Reading List URLs before invoking Tauri", async () => {
+  it.each([
+    ["mailto:hello@example.com", "Only http:// and https:// URLs are supported"],
+    ["javascript:alert('owned')", "Only http:// and https:// URLs are supported"],
+    ["https://user:pass@example.com/article", "Article URLs must not include credentials"],
+    ["http://127.0.0.1/private", "Only http:// and https:// URLs are supported"],
+  ])("rejects invalid Reading List URLs before invoking Tauri: %j", async (url, expectedMessage) => {
     setupTauriMocks((cmd, args) => {
       calls.push({ cmd, args });
       return undefined;
     });
 
-    const result = await addArticleToReadingList("mailto:hello@example.com", {
+    const result = await addArticleToReadingList(url, {
       showToast,
       successMessage: "Added to reading list",
     });
 
     expect(result).toSatisfy(Result.isFailure);
     expect(calls).toEqual([]);
-    expect(showToast).toHaveBeenCalledWith("Only http:// and https:// URLs are supported");
+    expect(showToast).toHaveBeenCalledWith(expectedMessage);
   });
 
   it("shows the command error when adding to the reading list fails", async () => {

@@ -90,4 +90,72 @@ describe("browser preview shortcut bridge contract", () => {
       "reload-webview",
     ]);
   });
+
+  it("keeps Windows remote-page actions behind postMessage and native snapshot filtering", () => {
+    const windowsBridgeBlock = extractBlock(
+      backendSource,
+      /fn browser_preview_script_bridge_source[\s\S]*?Some\(format!\(\s*r#"\n([\s\S]*?)"#\s*\)\)/,
+      "Windows browser preview script bridge source",
+    );
+    const nativeMessageHandlerBlock = extractBlock(
+      backendSource,
+      /WebMessageReceivedEventHandler::create\(Box::new\(\s*move \|_sender, args\| \{([\s\S]*?)\n\s*Ok\(\(\)\)\s*\},\s*\)\)/,
+      "Windows WebMessageReceived handler",
+    );
+    const bridgeMessageActionBlock = extractBlock(
+      backendSource,
+      /fn browser_preview_bridge_message_action\([\s\S]*?\) -> Option<String> \{([\s\S]*?)\n\}/,
+      "browser preview bridge message action",
+    );
+    const acceptMessageBlock = extractBlock(
+      backendSource,
+      /fn should_accept_browser_preview_bridge_message\([\s\S]*?\) -> bool \{([\s\S]*?)\n\}/,
+      "browser preview bridge message acceptance",
+    );
+    const supportedBridgeActionBlock = extractBlock(
+      backendSource,
+      /fn is_supported_browser_preview_bridge_action\(action: &str\) -> bool \{([\s\S]*?)\n\}/,
+      "browser preview bridge action allowlist",
+    );
+
+    expect(windowsBridgeBlock).toContain("window.chrome?.webview?.postMessage");
+    expect(windowsBridgeBlock).toContain("JSON.stringify({{ action, url: window.location.href }})");
+    expect(windowsBridgeBlock).toContain("event.button === 3 ? 'mouse-back' : 'mouse-forward'");
+    expect(windowsBridgeBlock).not.toContain("__TAURI_INTERNALS__");
+    expect(nativeMessageHandlerBlock).toContain(
+      "browser_preview_bridge_message_action(&raw_message, snapshot.as_ref())",
+    );
+    expect(nativeMessageHandlerBlock).toContain("if let Some(action) = action");
+    expect(nativeMessageHandlerBlock).toContain("app_handle.emit(MENU_ACTION_EVENT, action)");
+    expect(bridgeMessageActionBlock).toContain("serde_json::from_str(raw_message).ok()?");
+    expect(acceptMessageBlock).toContain(
+      "is_supported_browser_preview_bridge_action(&message.action)",
+    );
+    expect(acceptMessageBlock).toContain(
+      "browser_preview_bridge_url_matches(&message.url, &state.url)",
+    );
+    expect(supportedBridgeActionBlock).toContain("is_supported_browser_preview_script_action(action)");
+    expect(supportedBridgeActionBlock).toContain('matches!(action, "mouse-back" | "mouse-forward")');
+  });
+
+  it("keeps non-Windows remote pages limited to browser WebView commands with denied-invoke recovery", () => {
+    const closeBridgeBlock = extractBlock(
+      backendSource,
+      /pub fn browser_preview_close_bridge_source[\s\S]*?Some\(format!\(\s*r#"\n([\s\S]*?)"#\s*\)\)/,
+      "non-Windows browser preview close bridge source",
+    );
+
+    expect(closeBridgeBlock).toContain("const getInvoke = () => window.__TAURI_INTERNALS__?.invoke;");
+    expect(closeBridgeBlock).toContain("await invoke('close_browser_webview');");
+    expect(closeBridgeBlock).toContain("void invoke('go_back_browser_webview')");
+    expect(closeBridgeBlock).toContain("void invoke('go_forward_browser_webview')");
+    expect(closeBridgeBlock).not.toContain("emit(MENU_ACTION_EVENT");
+    expect(closeBridgeBlock).not.toContain("toggle-read");
+    expect(closeBridgeBlock).toContain("closeInFlight = false;");
+    expect(closeBridgeBlock).toContain(
+      "console.error('Failed to close embedded browser webview from bridge:', error);",
+    );
+    expect(closeBridgeBlock).toContain("if (!state?.can_go_back)");
+    expect(closeBridgeBlock).toContain("return closeBrowserPreview();");
+  });
 });

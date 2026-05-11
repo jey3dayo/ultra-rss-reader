@@ -454,7 +454,7 @@ function runtimeDiagnosticDetailKey(detail: unknown): string {
   }
   if (typeof detail === "object" && detail !== null) {
     try {
-      return JSON.stringify(detail);
+      return JSON.stringify(detail, (key, value: unknown) => (key === "error" ? "[error]" : value));
     } catch {
       return "[Unserializable detail]";
     }

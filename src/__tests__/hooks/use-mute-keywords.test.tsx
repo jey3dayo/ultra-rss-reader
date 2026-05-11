@@ -152,6 +152,50 @@ describe("mute keyword mutations", () => {
     });
   });
 
+  it("keeps mute keyword scope update successful when post-success invalidation fails", async () => {
+    const invalidationError = new Error("mute scope cache refresh failed");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    invalidateQueriesSpy.mockRejectedValue(invalidationError);
+    vi.spyOn(tauriCommands, "updateMuteKeyword").mockResolvedValue(
+      Result.succeed({
+        id: "mute-1",
+        keyword: "spoiler",
+        scope: "title_and_body",
+        created_at: "2026-05-09T00:00:00Z",
+        updated_at: "2026-05-09T00:05:00Z",
+      }),
+    );
+
+    const { result } = renderHook(() => useUpdateMuteKeyword(), { wrapper });
+
+    await expect(
+      result.current.mutateAsync({
+        muteKeywordId: "mute-1",
+        scope: "title_and_body",
+      }),
+    ).resolves.toEqual({
+      id: "mute-1",
+      keyword: "spoiler",
+      scope: "title_and_body",
+      created_at: "2026-05-09T00:00:00Z",
+      updated_at: "2026-05-09T00:05:00Z",
+    });
+    await waitFor(() => {
+      expect(warn).toHaveBeenCalledWith(
+        "Query invalidation failed:",
+        expect.objectContaining({
+          failures: expect.arrayContaining([
+            {
+              actionOwner: "mute-keyword-mutation",
+              queryKey: ["muteKeywords"],
+              error: invalidationError,
+            },
+          ]),
+        }),
+      );
+    });
+  });
+
   it("invalidates mute keyword and article caches after deleting a mute keyword", async () => {
     vi.spyOn(tauriCommands, "deleteMuteKeyword").mockResolvedValue(Result.succeed(null));
 
@@ -173,6 +217,31 @@ describe("mute keyword mutations", () => {
 
     await waitFor(() => {
       expectMuteKeywordArticleCacheInvalidation(invalidateQueriesSpy);
+    });
+  });
+
+  it("keeps auto-mark-read update successful when post-success invalidation fails", async () => {
+    const invalidationError = new Error("mute auto-mark cache refresh failed");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    invalidateQueriesSpy.mockRejectedValue(invalidationError);
+    vi.spyOn(tauriCommands, "setMuteAutoMarkRead").mockResolvedValue(Result.succeed(null));
+
+    const { result } = renderHook(() => useSetMuteAutoMarkRead(), { wrapper });
+
+    await expect(result.current.mutateAsync({ enabled: true })).resolves.toBeNull();
+    await waitFor(() => {
+      expect(warn).toHaveBeenCalledWith(
+        "Query invalidation failed:",
+        expect.objectContaining({
+          failures: expect.arrayContaining([
+            {
+              actionOwner: "mute-keyword-mutation",
+              queryKey: ["muteKeywords"],
+              error: invalidationError,
+            },
+          ]),
+        }),
+      );
     });
   });
 });

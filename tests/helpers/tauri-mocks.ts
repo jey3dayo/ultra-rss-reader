@@ -195,6 +195,7 @@ function createDefaultHandler(): MockHandler {
           dry_run: args.dryRun,
           orphaned_article_count: 0,
           deleted_article_count: 0,
+          ...(args.dryRun ? { orphaned_article_ids: [] } : {}),
         };
       case "add_account":
         return {

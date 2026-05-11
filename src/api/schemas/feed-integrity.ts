@@ -22,6 +22,7 @@ export const FeedIntegrityCleanupDtoSchema = z
     dry_run: z.boolean(),
     orphaned_article_count: NonnegativeIntegerSchema,
     deleted_article_count: NonnegativeIntegerSchema,
+    orphaned_article_ids: z.array(z.string()).optional(),
   })
   .strict()
   .superRefine((value, ctx) => {
@@ -32,14 +33,6 @@ export const FeedIntegrityCleanupDtoSchema = z
         message: "Dry-run cleanup must not delete articles",
       });
       return;
-    }
-
-    if (!value.dry_run && value.deleted_article_count > value.orphaned_article_count) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["deleted_article_count"],
-        message: "Deleted article count must not exceed the counted orphaned articles",
-      });
     }
   });
 

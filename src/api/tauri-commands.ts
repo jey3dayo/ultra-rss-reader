@@ -508,14 +508,14 @@ export const getFeedIntegrityReport = () =>
     response: FeedIntegrityReportDtoSchema,
   });
 
-export const cleanupFeedIntegrityOrphans = (dryRun: boolean) =>
+export const cleanupFeedIntegrityOrphans = (dryRun: boolean, orphanedArticleIds?: readonly string[]) =>
   safeInvoke(
     "cleanup_feed_integrity_orphans",
     {
       response: FeedIntegrityCleanupDtoSchema,
       args: cleanupFeedIntegrityOrphansArgs,
     },
-    { dryRun },
+    { dryRun, orphanedArticleIds: orphanedArticleIds ? [...orphanedArticleIds] : undefined },
   );
 
 export const markArticleRead = (articleId: string, read = true) =>

@@ -303,7 +303,10 @@ export const oldUnreadArticlesArgs = z.object({
 
 // --- unstarAccountArticles ---
 export const unstarAccountArticlesArgs = z.object({ accountId: nonBlankTrimmedIdSchema });
-export const cleanupFeedIntegrityOrphansArgs = z.object({ dryRun: z.boolean() });
+export const cleanupFeedIntegrityOrphansArgs = z.object({
+  dryRun: z.boolean(),
+  orphanedArticleIds: z.array(nonBlankTrimmedIdSchema).optional(),
+});
 
 // --- searchArticles ---
 export const searchArticlesArgs = z.object({

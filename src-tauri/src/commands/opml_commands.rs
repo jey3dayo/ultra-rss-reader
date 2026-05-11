@@ -152,9 +152,34 @@ fn import_opml_in_db(
 
     tx.commit().map_err(DomainError::from)?;
     if !created_feeds.is_empty() {
-        db.refresh_query_statistics()?;
+        refresh_import_query_statistics(db);
     }
     Ok(created_feeds)
+}
+
+fn refresh_import_query_statistics(db: &DbManager) {
+    if let Err(error) = refresh_import_query_statistics_inner(db) {
+        tracing::warn!(
+            error = %error,
+            "OPML import committed, but query statistics refresh failed"
+        );
+    }
+}
+
+#[cfg(not(test))]
+fn refresh_import_query_statistics_inner(db: &DbManager) -> crate::domain::error::DomainResult<()> {
+    db.refresh_query_statistics()
+}
+
+#[cfg(test)]
+fn refresh_import_query_statistics_inner(db: &DbManager) -> crate::domain::error::DomainResult<()> {
+    if FORCE_IMPORT_QUERY_STATISTICS_REFRESH_FAILURE.with(std::cell::Cell::get) {
+        return Err(DomainError::Persistence(
+            "forced OPML import query statistics refresh failure".to_string(),
+        ));
+    }
+
+    db.refresh_query_statistics()
 }
 
 fn parse_import_opml(opml_content: &str) -> Result<Vec<OpmlFeed>, AppError> {
@@ -414,6 +439,11 @@ fn compare_export_feeds(a: &Feed, b: &Feed) -> Ordering {
 #[cfg(test)]
 fn opml_generate_log_error_for_test() -> &'static str {
     OPML_GENERATE_LOG_ERROR
+}
+
+#[cfg(test)]
+thread_local! {
+    static FORCE_IMPORT_QUERY_STATISTICS_REFRESH_FAILURE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
 }
 
 #[cfg(test)]
@@ -1035,6 +1065,35 @@ mod tests {
             stats_rows > 0,
             "OPML import should refresh planner statistics after writing feeds"
         );
+    }
+
+    #[test]
+    fn import_keeps_committed_feeds_when_query_statistics_refresh_fails() {
+        let db = test_db();
+        let account_id = insert_test_account(&db, "Primary");
+        let parsed_feeds = vec![OpmlFeed {
+            title: "Rust Blog".to_string(),
+            xml_url: "https://blog.rust-lang.org/feed.xml".to_string(),
+            html_url: None,
+            folder: Some("Engineering".to_string()),
+        }];
+
+        FORCE_IMPORT_QUERY_STATISTICS_REFRESH_FAILURE.with(|force_failure| force_failure.set(true));
+        let feeds = import_opml_in_db(&db, &parsed_feeds, account_id.0.clone());
+        FORCE_IMPORT_QUERY_STATISTICS_REFRESH_FAILURE
+            .with(|force_failure| force_failure.set(false));
+
+        let feeds = feeds.expect("post-commit refresh failure should not fail OPML import");
+        assert_eq!(feeds.len(), 1);
+        let persisted_feed_count: i64 = db
+            .reader()
+            .query_row(
+                "SELECT COUNT(*) FROM feeds WHERE account_id = ?1",
+                params![account_id.0],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(persisted_feed_count, 1);
     }
 
     #[test]

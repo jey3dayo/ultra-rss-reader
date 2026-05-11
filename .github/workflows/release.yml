@@ -797,9 +797,35 @@ jobs:
             process.exit(1);
           }
 
+          const expectedAssetNames = checksumAssets.map((asset) => asset.split(/[\\/]/).at(-1));
+          const inspectReleaseAssets = (label) => {
+            const view = spawnSync(
+              "gh",
+              ["release", "view", process.env.RELEASE_TAG, "--json", "assets,isDraft,isPrerelease,tagName,url"],
+              { encoding: "utf8" },
+            );
+            if (view.status !== 0) {
+              console.error(`::error::failed to inspect release asset inventory before ${label}`);
+              process.stderr.write(view.stderr ?? "");
+              process.exit(view.status ?? 1);
+            }
+
+            const release = JSON.parse(view.stdout);
+            const uploadedNames = new Set(release.assets.map((asset) => asset.name));
+            const clobberTargets = expectedAssetNames.filter((name) => uploadedNames.has(name));
+            const missingAssets = expectedAssetNames.filter((name) => !uploadedNames.has(name));
+            console.log(
+              `::notice::${label} release asset inventory tag=${release.tagName} draft=${release.isDraft} prerelease=${release.isPrerelease} clobber_targets=${clobberTargets.join(",") || "(none)"} missing_assets=${missingAssets.join(",") || "(none)"} url=${release.url}`,
+            );
+          };
+
+          inspectReleaseAssets("checksum upload");
           const result = spawnSync("gh", ["release", "upload", process.env.RELEASE_TAG, ...checksumAssets, "--clobber"], {
             stdio: "inherit",
           });
+          if ((result.status ?? 1) !== 0) {
+            inspectReleaseAssets("checksum upload failure recovery");
+          }
           process.exit(result.status ?? 1);
           NODE
 
@@ -832,8 +858,34 @@ jobs:
             process.exit(1);
           }
 
+          const expectedAssetNames = provenanceAssets.map((asset) => asset.split(/[\\/]/).at(-1));
+          const inspectReleaseAssets = (label) => {
+            const view = spawnSync(
+              "gh",
+              ["release", "view", process.env.RELEASE_TAG, "--json", "assets,isDraft,isPrerelease,tagName,url"],
+              { encoding: "utf8" },
+            );
+            if (view.status !== 0) {
+              console.error(`::error::failed to inspect release asset inventory before ${label}`);
+              process.stderr.write(view.stderr ?? "");
+              process.exit(view.status ?? 1);
+            }
+
+            const release = JSON.parse(view.stdout);
+            const uploadedNames = new Set(release.assets.map((asset) => asset.name));
+            const clobberTargets = expectedAssetNames.filter((name) => uploadedNames.has(name));
+            const missingAssets = expectedAssetNames.filter((name) => !uploadedNames.has(name));
+            console.log(
+              `::notice::${label} release asset inventory tag=${release.tagName} draft=${release.isDraft} prerelease=${release.isPrerelease} clobber_targets=${clobberTargets.join(",") || "(none)"} missing_assets=${missingAssets.join(",") || "(none)"} url=${release.url}`,
+            );
+          };
+
+          inspectReleaseAssets("provenance upload");
           const result = spawnSync("gh", ["release", "upload", process.env.RELEASE_TAG, ...provenanceAssets, "--clobber"], {
             stdio: "inherit",
           });
+          if ((result.status ?? 1) !== 0) {
+            inspectReleaseAssets("provenance upload failure recovery");
+          }
           process.exit(result.status ?? 1);
           NODE
