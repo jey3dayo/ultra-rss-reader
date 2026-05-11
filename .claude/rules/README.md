@@ -47,7 +47,7 @@
 - sample DTO / data fixture は `tests/helpers/fixtures.ts`、Tauri IPC mock setup は `tests/helpers/tauri-mocks.ts`、test-only の Tauri mock call contract は `tests/helpers/tauri-types.ts` に分ける
 - 大きい feature の controller hook は、再利用されない限り feature 配下の `hooks/` に co-locate してよい
 - reader 専用の pure helper は `src/components/reader/` に残してよい。`lib` / `stores` / 他 feature から必要になった時だけ `src/lib/` へ出す
-- `rules/tools/` は外部ツール向け routing shim の置き場。日常的な project rule はこの `.claude/rules/` に置く
+- RTK のコマンド実行方針は [../../RTK.md](../../RTK.md) を参照する。日常的な project rule はこの `.claude/rules/` に置く
 
 ## Rust
 
