@@ -74,13 +74,6 @@
 
 ### Query / Store / Browser Runtime
 
-- [ ] P2 `query-cache`: DTO/schema 変更時の query key version bump gate を作る
-  - work type: upgrade compatibility contract
-  - write scope: schema contract tests、query key version constants、API schema barrels、repo contract tests
-  - acceptance: persisted/long-lived cache を持たない前提でも、DTO shape 変更時に schema-owned query root version を上げる判断漏れを CI で検出できる
-  - focused verification: schema file diff inventory、version bump required allowlist、query key root snapshot、intentional no-bump escape hatch
-  - defer: React Query cache persistence 導入は別タスクにする
-
 - [ ] P2 `reader-state`: browser WebView event の load generation / requested URL 世代管理を close-reopen で固定する
   - work type: native event lifecycle contract
   - write scope: browser webview event bridge、browser state reducer、browser cleanup hook、Tauri event schemas
