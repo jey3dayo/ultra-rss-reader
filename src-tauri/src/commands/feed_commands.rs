@@ -1,4 +1,4 @@
-use std::sync::Mutex;
+use std::sync::{atomic::AtomicBool, Mutex};
 
 use rusqlite::{params, Connection, OptionalExtension};
 use tauri::State;
@@ -183,7 +183,16 @@ fn create_folder_in_db(
 
 #[tauri::command]
 pub fn delete_feed(state: State<'_, AppState>, feed_id: String) -> Result<(), AppError> {
-    let db = lock_db(&state.db)?;
+    delete_feed_with_sync_boundary(&state.db, state.syncing.as_ref(), feed_id)
+}
+
+fn delete_feed_with_sync_boundary(
+    db: &Mutex<DbManager>,
+    syncing: &AtomicBool,
+    feed_id: String,
+) -> Result<(), AppError> {
+    let _guard = crate::commands::start_database_maintenance(syncing)?;
+    let db = lock_db(db)?;
     delete_feed_in_db(&db, feed_id)
 }
 
@@ -544,16 +553,17 @@ pub async fn discover_feeds(url: String) -> Result<Vec<DiscoveredFeedDto>, AppEr
 mod tests {
     use rusqlite::params;
     use std::net::TcpListener;
+    use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::{mpsc, Arc, Barrier, Mutex};
     use std::thread;
     use std::time::{Duration, Instant};
 
     use super::{
         add_local_feed_with_db, add_local_feed_with_provider, classify_update_feed_folder_error,
-        create_folder_in_db, delete_feed_in_db, lock_db, recalculate_feed_unread_count_in_db,
-        rename_feed_in_db, update_feed_display_settings_in_db, update_feed_folder_in_db,
-        validate_add_local_feed_account_in_db, validate_add_local_feed_duplicate_url_in_db,
-        UPDATE_FEED_FOLDER_TARGET_VALIDATION_MESSAGE,
+        create_folder_in_db, delete_feed_in_db, delete_feed_with_sync_boundary, lock_db,
+        recalculate_feed_unread_count_in_db, rename_feed_in_db, update_feed_display_settings_in_db,
+        update_feed_folder_in_db, validate_add_local_feed_account_in_db,
+        validate_add_local_feed_duplicate_url_in_db, UPDATE_FEED_FOLDER_TARGET_VALIDATION_MESSAGE,
     };
     use crate::commands::dto::AppError;
     use crate::domain::error::DomainError;
@@ -649,6 +659,37 @@ mod tests {
             error,
             AppError::UserVisible { message } if message == "Validation error: feed not found"
         ));
+    }
+
+    #[test]
+    fn delete_feed_command_rejects_while_sync_boundary_is_busy() {
+        let db = Mutex::new(test_db());
+        let syncing = AtomicBool::new(true);
+
+        let error = delete_feed_with_sync_boundary(&db, &syncing, "missing-feed".to_string())
+            .expect_err("feed delete should not run while sync boundary is busy");
+
+        assert!(matches!(error, AppError::UserVisible { .. }));
+        assert!(syncing.load(Ordering::SeqCst));
+    }
+
+    #[test]
+    fn delete_feed_command_releases_sync_boundary_after_delete() {
+        let db = Mutex::new(test_db());
+        let account_id = {
+            let guard = db.lock().unwrap();
+            insert_test_account(&guard, "Primary")
+        };
+        let feed_id = {
+            let guard = db.lock().unwrap();
+            insert_test_feed(&guard, &account_id)
+        };
+        let syncing = AtomicBool::new(false);
+
+        delete_feed_with_sync_boundary(&db, &syncing, feed_id.0)
+            .expect("feed delete should succeed");
+
+        assert!(!syncing.load(Ordering::SeqCst));
     }
 
     #[test]

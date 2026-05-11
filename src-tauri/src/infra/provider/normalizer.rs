@@ -3,6 +3,8 @@ use crate::domain::provider::{FeedIdentifier, RemoteEntry};
 use crate::domain::url_policy::{has_url_credentials, is_private_host};
 
 const MAX_PROVIDER_METADATA_URL_BYTES: usize = 2048;
+const MAX_PROVIDER_FEED_ENTRIES: usize = 10_000;
+const MAX_PROVIDER_ENTRY_TEXT_CHARS: usize = 1_000_000;
 
 fn contains_control_char(value: &str) -> bool {
     value.chars().any(char::is_control)
@@ -29,6 +31,18 @@ pub fn normalize_provider_metadata_url(raw_url: &str) -> Option<String> {
     }
     url.set_fragment(None);
     Some(url.to_string())
+}
+
+fn truncate_provider_entry_text(value: String) -> String {
+    let mut char_indices = value.char_indices();
+    match char_indices.nth(MAX_PROVIDER_ENTRY_TEXT_CHARS) {
+        Some((byte_index, _)) => value[..byte_index].to_string(),
+        None => value,
+    }
+}
+
+fn truncate_provider_entry_optional_text(value: Option<String>) -> Option<String> {
+    value.map(truncate_provider_entry_text)
 }
 
 pub fn normalize_provider_article_url(raw_url: &str) -> Option<String> {
@@ -80,6 +94,7 @@ pub fn normalize_feed(feed_data: &[u8], feed_url: &str) -> DomainResult<Vec<Remo
     Ok(feed
         .entries
         .into_iter()
+        .take(MAX_PROVIDER_FEED_ENTRIES)
         .map(|entry| {
             let url = select_article_url(&entry.links);
             let published_at = entry.published.or(entry.updated);
@@ -100,14 +115,18 @@ pub fn normalize_feed(feed_data: &[u8], feed_url: &str) -> DomainResult<Vec<Remo
                 source_feed_id: FeedIdentifier::Local {
                     feed_url: feed_url.to_string(),
                 },
-                title: entry.title.map(|t| t.content).unwrap_or_default(),
-                content,
-                summary: entry.summary.map(|s| s.content),
+                title: truncate_provider_entry_text(
+                    entry.title.map(|t| t.content).unwrap_or_default(),
+                ),
+                content: truncate_provider_entry_text(content),
+                summary: truncate_provider_entry_optional_text(entry.summary.map(|s| s.content)),
                 url,
                 published_at,
                 updated_at,
                 thumbnail,
-                author: entry.authors.first().map(|a| a.name.clone()),
+                author: truncate_provider_entry_optional_text(
+                    entry.authors.first().map(|a| a.name.clone()),
+                ),
                 is_read: None,
                 is_starred: None,
             }
@@ -768,6 +787,80 @@ mod tests {
             entries[999].url.as_deref(),
             Some("https://example.com/articles/999")
         );
+    }
+
+    #[test]
+    fn feed_parser_boundary_caps_single_feed_entry_count() {
+        let mut feed = String::from(
+            r#"<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>Large Feed</title>"#,
+        );
+        for index in 0..(MAX_PROVIDER_FEED_ENTRIES + 1) {
+            feed.push_str(&format!(
+                r#"<item><title>Large Article {index}</title><link>https://example.com/articles/{index}</link><guid>large-{index}</guid></item>"#
+            ));
+        }
+        feed.push_str("</channel></rss>");
+
+        let entries = normalize_feed(feed.as_bytes(), "https://example.com/feed.xml")
+            .expect("large feed fixture should parse");
+
+        assert_eq!(entries.len(), MAX_PROVIDER_FEED_ENTRIES);
+        assert_eq!(
+            entries.last().and_then(|entry| entry.id.as_deref()),
+            Some("large-9999")
+        );
+    }
+
+    #[test]
+    fn feed_parser_boundary_caps_per_entry_text_fields_without_splitting_utf8() {
+        let oversized_ascii = "a".repeat(MAX_PROVIDER_ENTRY_TEXT_CHARS + 1);
+        let oversized_unicode = format!("{}🚀", "b".repeat(MAX_PROVIDER_ENTRY_TEXT_CHARS));
+        let feed = format!(
+            r#"<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Atom Feed</title>
+  <id>https://example.com/feed</id>
+  <updated>2026-03-27T12:00:00Z</updated>
+  <entry>
+    <title>{oversized_ascii}</title>
+    <id>oversized-text</id>
+    <updated>2026-03-27T12:00:00Z</updated>
+    <author><name>{oversized_unicode}</name></author>
+    <summary>{oversized_ascii}</summary>
+    <content>{oversized_unicode}</content>
+  </entry>
+</feed>"#
+        );
+
+        let entries = normalize_feed(feed.as_bytes(), "https://example.com/feed.xml")
+            .expect("oversized text fixture should parse");
+        let entry = &entries[0];
+
+        assert_eq!(entry.title.chars().count(), MAX_PROVIDER_ENTRY_TEXT_CHARS);
+        assert_eq!(entry.content.chars().count(), MAX_PROVIDER_ENTRY_TEXT_CHARS);
+        assert_eq!(
+            entry
+                .summary
+                .as_ref()
+                .map(|summary| summary.chars().count()),
+            Some(MAX_PROVIDER_ENTRY_TEXT_CHARS)
+        );
+        assert_eq!(
+            entry.author.as_ref().map(|author| author.chars().count()),
+            Some(MAX_PROVIDER_ENTRY_TEXT_CHARS)
+        );
+        assert!(!entry.content.ends_with('🚀'));
+        assert!(!entry.author.as_deref().unwrap_or_default().ends_with('🚀'));
+    }
+
+    #[test]
+    fn provider_metadata_url_boundary_rejects_values_over_byte_cap() {
+        let oversized_url = format!(
+            "https://example.com/{}",
+            "a".repeat(MAX_PROVIDER_METADATA_URL_BYTES)
+        );
+
+        assert_eq!(normalize_provider_metadata_url(&oversized_url), None);
     }
 
     #[test]

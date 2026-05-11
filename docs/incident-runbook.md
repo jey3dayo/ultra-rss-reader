@@ -97,7 +97,7 @@ Platform permission denied copy contract:
 ### Database Backups
 
 - Migration recovery keeps the relevant backup artifacts for manual investigation.
-- Check the migration error output first to find the backup path that was created for the failed startup.
+- Check the migration error output first to find the redacted database or backup label and backup directory label for the failed startup.
 - Do not delete backup files until you have confirmed the app can reopen the database safely.
 - Treat the main `.db` file and any matching `-wal` / `-shm` sidecars as a backup set.
 - Treat database backup sets as private, unencrypted user data. They may contain subscription history, article metadata/content, tags, folders, read/star state, and sync metadata even though production credentials live in the OS keyring.
@@ -223,7 +223,7 @@ Single-instance and deep-link triage:
 
 ### 1. Startup / Migration Failure
 
-1. Read the startup error as-is and note the reported database or backup path.
+1. Read the startup error as-is and note the redacted database or backup label and backup directory label.
 2. Open the release log directory and save the latest log file.
 3. Check whether a backup was created before the failed migration.
 4. If the failure happened after an upgrade, stop and preserve the backup before retrying.

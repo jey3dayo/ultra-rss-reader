@@ -12,6 +12,7 @@ use crate::infra::provider::greader::GReaderProvider;
 use crate::infra::provider::traits::{Credentials, FeedProvider};
 use crate::repository::account::AccountRepository;
 use std::net::IpAddr;
+use std::sync::{atomic::AtomicBool, Mutex};
 
 #[cfg(test)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -411,12 +412,32 @@ where
     Ok(())
 }
 
+fn delete_account_with_sync_boundary<K>(
+    db: &Mutex<crate::infra::db::connection::DbManager>,
+    syncing: &AtomicBool,
+    id: AccountId,
+    delete_password: K,
+) -> Result<(), AppError>
+where
+    K: FnOnce(&str) -> Result<(), AppError>,
+{
+    let _guard = crate::commands::start_database_maintenance(syncing)?;
+    let db = crate::commands::lock_db(db)?;
+    let repo = SqliteAccountRepository::new(db.writer());
+    delete_account_then_password(
+        &id,
+        |id| repo.delete(id).map_err(AppError::from),
+        delete_password,
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
         account_credential_cleanup_contract, delete_account_then_password,
-        invalid_account_row_recovery_contract, normalize_new_freshrss_server_url,
-        normalize_updated_account_server_url, provider_account_scale_guidance_contract,
+        delete_account_with_sync_boundary, invalid_account_row_recovery_contract,
+        normalize_new_freshrss_server_url, normalize_updated_account_server_url,
+        provider_account_scale_guidance_contract,
         provider_credential_verification_request_contract, save_account_after_optional_password,
         update_account_credentials_after_optional_password, validate_account_name,
         validate_account_name_with_excluded_id, validate_account_sync_settings,
@@ -428,7 +449,10 @@ mod tests {
     use crate::domain::account::{Account, ConnectionVerificationStatus};
     use crate::domain::provider::ProviderKind;
     use crate::domain::types::AccountId;
+    use crate::infra::db::connection::DbManager;
     use std::cell::RefCell;
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::Mutex;
 
     fn fresh_rss_account() -> Account {
         Account {
@@ -1068,6 +1092,45 @@ mod tests {
     }
 
     #[test]
+    fn delete_account_command_rejects_while_sync_boundary_is_busy() {
+        let db = Mutex::new(DbManager::new_in_memory().unwrap());
+        let syncing = AtomicBool::new(true);
+
+        let error = delete_account_with_sync_boundary(
+            &db,
+            &syncing,
+            AccountId("missing-account".to_string()),
+            |_| Ok(()),
+        )
+        .expect_err("account delete should not run while sync boundary is busy");
+
+        assert!(matches!(error, AppError::UserVisible { .. }));
+        assert!(syncing.load(Ordering::SeqCst));
+    }
+
+    #[test]
+    fn delete_account_command_releases_sync_boundary_after_delete() {
+        let db = Mutex::new(DbManager::new_in_memory().unwrap());
+        let account_id = AccountId("account-delete-boundary".to_string());
+        {
+            let guard = db.lock().unwrap();
+            guard
+                .writer()
+                .execute(
+                    "INSERT INTO accounts (id, kind, name) VALUES (?1, 'Local', 'Local')",
+                    [&account_id.0],
+                )
+                .unwrap();
+        }
+        let syncing = AtomicBool::new(false);
+
+        delete_account_with_sync_boundary(&db, &syncing, account_id, |_| Ok(()))
+            .expect("account delete should succeed");
+
+        assert!(!syncing.load(Ordering::SeqCst));
+    }
+
+    #[test]
     fn account_delete_cleanup_contract_keeps_keyring_orphans_from_reappearing() {
         let contract = account_credential_cleanup_contract();
 
@@ -1359,12 +1422,10 @@ pub async fn test_account_connection(
 
 #[tauri::command]
 pub fn delete_account(state: State<'_, AppState>, account_id: String) -> Result<(), AppError> {
-    let db = crate::commands::lock_db(&state.db)?;
-    let repo = SqliteAccountRepository::new(db.writer());
-    let id = AccountId(account_id);
-    delete_account_then_password(
-        &id,
-        |id| repo.delete(id).map_err(AppError::from),
+    delete_account_with_sync_boundary(
+        &state.db,
+        state.syncing.as_ref(),
+        AccountId(account_id),
         |account_id| keyring_store::delete_password(account_id).map_err(AppError::from),
     )
 }

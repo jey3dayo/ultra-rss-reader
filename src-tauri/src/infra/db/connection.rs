@@ -5,6 +5,7 @@ use std::time::Instant;
 
 use crate::domain::error::{DomainError, DomainResult};
 use crate::infra::db::sqlite_mute_keyword::build_mute_keyword_exclusion_clause;
+use crate::infra::sanitizer;
 
 static IN_MEMORY_COUNTER: AtomicU64 = AtomicU64::new(0);
 const BUSY_TIMEOUT_MS: i32 = 5000;
@@ -12,6 +13,7 @@ const FILE_JOURNAL_MODE: &str = "wal";
 const IN_MEMORY_JOURNAL_MODE: &str = "memory";
 const ARTICLES_FTS_TRIGGER_COUNT: i32 = 3;
 const ARTICLES_FTS_TRIGGER_SQL_MARKER: &str = "content_text";
+const STARTUP_SANITIZER_REPAIR_BATCH_LIMIT: usize = 500;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct DatabaseInfo {
@@ -172,12 +174,14 @@ impl DbManager {
 
     fn reconcile_startup_migration_cost(&self) -> DomainResult<()> {
         let started_at = Instant::now();
+        let repaired_article_sanitizer_rows = self.reconcile_article_sanitizer_version()?;
         let repaired_article_content_rows = self.reconcile_article_content_text()?;
         let rebuilt_articles_fts = self.reconcile_articles_fts_contract()?;
         let repaired_feed_unread_count_rows = self.reconcile_feed_unread_counts()?;
         let elapsed_ms = started_at.elapsed().as_millis() as u64;
 
         tracing::info!(
+            repaired_article_sanitizer_rows,
             repaired_article_content_rows,
             rebuilt_articles_fts,
             repaired_feed_unread_count_rows,
@@ -186,6 +190,90 @@ impl DbManager {
         );
 
         Ok(())
+    }
+
+    fn reconcile_article_sanitizer_version(&self) -> DomainResult<usize> {
+        let has_sanitizer_version: bool = self.writer.query_row(
+            "SELECT EXISTS(
+                 SELECT 1
+                 FROM pragma_table_info('articles')
+                 WHERE name = 'sanitizer_version'
+             )",
+            [],
+            |row| row.get(0),
+        )?;
+        let has_content_text: bool = self.writer.query_row(
+            "SELECT EXISTS(
+                 SELECT 1
+                 FROM pragma_table_info('articles')
+                 WHERE name = 'content_text'
+             )",
+            [],
+            |row| row.get(0),
+        )?;
+        if !has_sanitizer_version || !has_content_text {
+            return Ok(0);
+        }
+
+        let mut stmt = self.writer.prepare(
+            "SELECT id, content_raw, content_sanitized, summary
+             FROM articles
+             WHERE sanitizer_version < ?1
+             ORDER BY sanitizer_version ASC, fetched_at ASC, id ASC
+             LIMIT ?2",
+        )?;
+        let pending = stmt
+            .query_map(
+                rusqlite::params![
+                    sanitizer::SANITIZER_VERSION,
+                    STARTUP_SANITIZER_REPAIR_BATCH_LIMIT as i64
+                ],
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, String>(2)?,
+                        row.get::<_, Option<String>>(3)?,
+                    ))
+                },
+            )?
+            .collect::<Result<Vec<_>, _>>()?;
+        let repaired_rows = pending.len();
+
+        if pending.is_empty() {
+            return Ok(0);
+        }
+
+        let tx = self.writer.unchecked_transaction()?;
+        {
+            let mut update = tx.prepare(
+                "UPDATE articles
+                 SET content_sanitized = ?1,
+                     content_text = ?2,
+                     sanitizer_version = ?3
+                 WHERE id = ?4",
+            )?;
+            for (id, content_raw, existing_sanitized, summary) in pending {
+                let content_source = if content_raw.trim().is_empty() {
+                    existing_sanitized.as_str()
+                } else {
+                    content_raw.as_str()
+                };
+                let content_sanitized = sanitizer::sanitize_html(content_source);
+                let content_text = super::sqlite_article::article_body_text(
+                    &content_sanitized,
+                    summary.as_deref(),
+                );
+                update.execute(rusqlite::params![
+                    content_sanitized,
+                    content_text,
+                    sanitizer::SANITIZER_VERSION,
+                    id
+                ])?;
+            }
+        }
+        tx.commit()?;
+        Ok(repaired_rows)
     }
 
     fn reconcile_feed_unread_counts(&self) -> DomainResult<usize> {
@@ -1119,6 +1207,54 @@ mod tests {
             .unwrap();
 
         assert_eq!(unread_count, 2);
+    }
+
+    #[test]
+    fn security_privacy_new_repairs_one_startup_sanitizer_version_batch() {
+        let dir = tempfile::tempdir().unwrap();
+        let db_path = dir.path().join("startup-sanitizer-repair.db");
+
+        {
+            let db = DbManager::new(&db_path).unwrap();
+            db.writer()
+                .execute(
+                    "INSERT INTO accounts (id, kind, name) VALUES ('a1', 'Local', 'Test')",
+                    [],
+                )
+                .unwrap();
+            db.writer()
+                .execute(
+                    "INSERT INTO feeds (id, account_id, title, url, unread_count) VALUES ('f1', 'a1', 'Feed', 'https://example.com/feed.xml', 0)",
+                    [],
+                )
+                .unwrap();
+            db.writer()
+                .execute(
+                    "INSERT INTO articles (id, feed_id, title, content_raw, content_sanitized, content_text, sanitizer_version, published_at, fetched_at, is_read)
+                     VALUES ('stale-startup', 'f1', 'Startup stale', '<p onclick=\"evil()\">Startup body</p><script>alert(1)</script>', '<script>stale</script>', '', ?1, '2026-04-14T00:00:00Z', '2026-04-14T00:00:00Z', 0)",
+                    [crate::infra::sanitizer::SANITIZER_VERSION - 1],
+                )
+                .unwrap();
+        }
+
+        let repaired = DbManager::new(&db_path).unwrap();
+        let (content_sanitized, content_text, sanitizer_version): (String, String, u32) = repaired
+            .reader()
+            .query_row(
+                "SELECT content_sanitized, content_text, sanitizer_version FROM articles WHERE id = 'stale-startup'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .unwrap();
+
+        assert_eq!(
+            sanitizer_version,
+            crate::infra::sanitizer::SANITIZER_VERSION
+        );
+        assert!(content_sanitized.contains("Startup body"));
+        assert!(!content_sanitized.contains("<script"));
+        assert!(!content_sanitized.contains("onclick"));
+        assert_eq!(content_text, "Startup body");
     }
 
     #[test]

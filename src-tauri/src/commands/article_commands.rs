@@ -15,11 +15,13 @@ use crate::commands::dto::{
 };
 use crate::commands::AppState;
 use crate::commands::{start_database_maintenance, try_lock_db};
+use crate::domain::article::Article;
 use crate::domain::error::DomainError;
 use crate::domain::types::{AccountId, ArticleId, FeedId, FolderId};
 use crate::domain::url_policy::validate_public_http_url;
 use crate::infra::db::sqlite_article::SqliteArticleRepository;
 use crate::infra::db::sqlite_feed::SqliteFeedRepository;
+use crate::infra::sanitizer;
 use crate::repository::article::{ArticleListMode, ArticleRepository, Pagination};
 use crate::repository::feed::FeedRepository;
 use crate::repository::pending_mutation::{PendingMutation, PendingMutationType};
@@ -285,6 +287,24 @@ fn validate_feed_article_filters(
     }
 
     Ok(())
+}
+
+fn repair_outdated_articles_for_render(
+    repo: &SqliteArticleRepository<'_>,
+    articles: Vec<Article>,
+) -> Result<Vec<Article>, AppError> {
+    articles
+        .into_iter()
+        .map(|mut article| {
+            if article.sanitizer_version < sanitizer::SANITIZER_VERSION {
+                let sanitized = sanitizer::sanitize_html(&article.content_raw);
+                repo.update_sanitized(&article.id, &sanitized, sanitizer::SANITIZER_VERSION)?;
+                article.content_sanitized = sanitized;
+                article.sanitizer_version = sanitizer::SANITIZER_VERSION;
+            }
+            Ok(article)
+        })
+        .collect()
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -842,7 +862,7 @@ pub fn list_articles(
 ) -> Result<Vec<ArticleDto>, AppError> {
     validate_feed_article_filters(unread_only, starred_only)?;
     let db = crate::commands::lock_db(&state.db)?;
-    let repo = SqliteArticleRepository::new(db.reader());
+    let repo = SqliteArticleRepository::new(db.writer());
     let pagination = article_command_pagination(offset, limit, DEFAULT_ARTICLE_LIST_LIMIT)?;
     let articles = if starred_only.unwrap_or(false) {
         repo.find_starred_by_feed(&FeedId(feed_id), &pagination)?
@@ -851,6 +871,7 @@ pub fn list_articles(
     } else {
         repo.find_by_feed(&FeedId(feed_id), &pagination)?
     };
+    let articles = repair_outdated_articles_for_render(&repo, articles)?;
     Ok(articles.into_iter().map(ArticleDto::from).collect())
 }
 
@@ -863,13 +884,14 @@ pub fn list_account_articles(
     limit: Option<usize>,
 ) -> Result<Vec<ArticleDto>, AppError> {
     let db = crate::commands::lock_db(&state.db)?;
-    let repo = SqliteArticleRepository::new(db.reader());
+    let repo = SqliteArticleRepository::new(db.writer());
     let pagination = article_command_pagination(offset, limit, DEFAULT_ARTICLE_LIST_LIMIT)?;
     let articles = if unread_only.unwrap_or(false) {
         repo.find_unread_by_account(&AccountId(account_id), &pagination)?
     } else {
         repo.find_by_account(&AccountId(account_id), &pagination)?
     };
+    let articles = repair_outdated_articles_for_render(&repo, articles)?;
     Ok(articles.into_iter().map(ArticleDto::from).collect())
 }
 
@@ -900,7 +922,7 @@ pub fn list_folder_articles(
     limit: Option<usize>,
 ) -> Result<Vec<ArticleDto>, AppError> {
     let db = crate::commands::lock_db(&state.db)?;
-    let repo = SqliteArticleRepository::new(db.reader());
+    let repo = SqliteArticleRepository::new(db.writer());
     let pagination = article_command_pagination(offset, limit, DEFAULT_ARTICLE_LIST_LIMIT)?;
     let mode = parse_article_list_mode(mode.as_deref())?;
     let folder_id = FolderId(folder_id);
@@ -909,6 +931,7 @@ pub fn list_folder_articles(
         ArticleListMode::Unread => repo.find_unread_by_folder(&folder_id, &pagination)?,
         ArticleListMode::Starred => repo.find_starred_by_folder(&folder_id, &pagination)?,
     };
+    let articles = repair_outdated_articles_for_render(&repo, articles)?;
     Ok(articles.into_iter().map(ArticleDto::from).collect())
 }
 
@@ -920,9 +943,10 @@ pub fn list_starred_articles(
     limit: Option<usize>,
 ) -> Result<Vec<ArticleDto>, AppError> {
     let db = crate::commands::lock_db(&state.db)?;
-    let repo = SqliteArticleRepository::new(db.reader());
+    let repo = SqliteArticleRepository::new(db.writer());
     let pagination = article_command_pagination(offset, limit, DEFAULT_ARTICLE_LIST_LIMIT)?;
     let articles = repo.find_starred_by_account(&AccountId(account_id), &pagination)?;
+    let articles = repair_outdated_articles_for_render(&repo, articles)?;
     Ok(articles.into_iter().map(ArticleDto::from).collect())
 }
 
@@ -935,12 +959,27 @@ pub fn list_recent_articles(
     limit: Option<usize>,
 ) -> Result<Vec<ArticleDto>, AppError> {
     let db = crate::commands::lock_db(&state.db)?;
-    let repo = SqliteArticleRepository::new(db.reader());
+    let repo = SqliteArticleRepository::new(db.writer());
     let pagination = article_command_pagination(offset, limit, DEFAULT_RECENT_ARTICLE_LIST_LIMIT)?;
     let mode = parse_article_list_mode(mode.as_deref())?;
     let articles =
         repo.find_recently_viewed_by_account(&AccountId(account_id), &pagination, mode)?;
-    Ok(articles.into_iter().map(ArticleDto::from).collect())
+    let articles = articles
+        .into_iter()
+        .map(|mut item| {
+            if item.article.sanitizer_version < sanitizer::SANITIZER_VERSION {
+                let sanitized = sanitizer::sanitize_html(&item.article.content_raw);
+                repo.update_sanitized(&item.article.id, &sanitized, sanitizer::SANITIZER_VERSION)?;
+                item.article.content_sanitized = sanitized;
+                item.article.sanitizer_version = sanitizer::SANITIZER_VERSION;
+            }
+            Ok(item)
+        })
+        .collect::<Result<Vec<_>, AppError>>()?;
+    Ok(articles
+        .into_iter()
+        .map(|item| ArticleDto::from(item.article))
+        .collect())
 }
 
 #[tauri::command]
@@ -1261,10 +1300,11 @@ pub fn search_articles(
     limit: Option<usize>,
 ) -> Result<Vec<ArticleDto>, AppError> {
     let db = crate::commands::lock_db(&state.db)?;
-    let repo = SqliteArticleRepository::new(db.reader());
+    let repo = SqliteArticleRepository::new(db.writer());
     let pagination = article_command_pagination(offset, limit, DEFAULT_ARTICLE_LIST_LIMIT)?;
     let normalized_query = normalize_backend_article_search_query(&query);
     let articles = repo.search(&AccountId(account_id), &normalized_query, &pagination)?;
+    let articles = repair_outdated_articles_for_render(&repo, articles)?;
     Ok(articles.into_iter().map(ArticleDto::from).collect())
 }
 
@@ -1284,8 +1324,9 @@ mod tests {
         native_browser_open_failure_message, old_unread_before_from_now,
         open_browser_in_background_with_command, parse_article_list_mode,
         provider_supports_pending_article_mutations, recalculate_bulk_feed_unread_counts,
-        record_article_view_with_conn, should_use_background_browser_open,
-        supports_remote_mutations, toggle_article_star_with_conn, validate_browser_embed_redirect,
+        record_article_view_with_conn, repair_outdated_articles_for_render,
+        should_use_background_browser_open, supports_remote_mutations,
+        toggle_article_star_with_conn, validate_browser_embed_redirect,
         validate_feed_article_filters, validate_older_than_days, BrowserOpenQueueKey,
         BulkArticleMutationRow, OldUnreadScope, ARTICLE_SEARCH_QUERY_MAX_CHARS,
         BROWSER_EMBED_SUPPORT_REQUEST_TIMEOUT, DEFAULT_ARTICLE_LIST_LIMIT,
@@ -1302,6 +1343,7 @@ mod tests {
     use crate::infra::db::sqlite_article::SqliteArticleRepository;
     use crate::infra::db::sqlite_feed::SqliteFeedRepository;
     use crate::infra::db::sqlite_pending_mutation::SqlitePendingMutationRepository;
+    use crate::infra::sanitizer;
     use crate::platform::{platform_info_for_kind, PlatformKind};
     use crate::repository::article::{ArticleListMode, ArticleRepository, Pagination};
     use crate::repository::feed::FeedRepository;
@@ -2087,6 +2129,54 @@ mod tests {
                 matches!(error, AppError::UserVisible { message } if message == expected_message)
             );
         }
+    }
+
+    #[test]
+    fn security_privacy_article_render_read_path_repairs_stale_sanitizer_version_before_returning()
+    {
+        let db = DbManager::new_in_memory().expect("in-memory DB should initialize");
+        insert_bulk_account(&db, "acc-a", "Local");
+        insert_bulk_feed(&db, "feed-a", "acc-a", None, None);
+        db.writer()
+            .execute(
+                "INSERT INTO articles (id, feed_id, title, content_raw, content_sanitized, sanitizer_version, published_at, fetched_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                rusqlite::params![
+                    "stale-render",
+                    "feed-a",
+                    "Stale Render",
+                    r#"<p onclick="evil()">Safe body</p><script>alert(1)</script>"#,
+                    r#"<script>stale rendered html</script>"#,
+                    sanitizer::SANITIZER_VERSION - 1,
+                    "2026-04-01T00:00:00Z",
+                    "2026-04-01T00:00:00Z"
+                ],
+            )
+            .expect("stale article insert should succeed");
+        let repo = SqliteArticleRepository::new(db.writer());
+        let stale_articles = repo
+            .find_by_feed(&FeedId("feed-a".to_string()), &Pagination::default())
+            .expect("stale article should be readable");
+
+        let repaired = repair_outdated_articles_for_render(&repo, stale_articles)
+            .expect("render path repair should succeed");
+
+        assert_eq!(repaired.len(), 1);
+        assert_eq!(repaired[0].sanitizer_version, sanitizer::SANITIZER_VERSION);
+        assert!(repaired[0].content_sanitized.contains("Safe body"));
+        assert!(!repaired[0].content_sanitized.contains("<script"));
+        assert!(!repaired[0].content_sanitized.contains("onclick"));
+
+        let (saved_html, saved_version): (String, u32) = db
+            .reader()
+            .query_row(
+                "SELECT content_sanitized, sanitizer_version FROM articles WHERE id = 'stale-render'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .expect("repaired article should be persisted");
+        assert_eq!(saved_html, repaired[0].content_sanitized);
+        assert_eq!(saved_version, sanitizer::SANITIZER_VERSION);
     }
 
     #[test]

@@ -255,6 +255,13 @@ const CONNECTIVITY_ERROR_MESSAGE: &str =
 const TIMEOUT_ERROR_MESSAGE: &str =
     "Request timed out. Check the server URL or your network connection.";
 const RETRY_AFTER_HEADER: &str = "retry-after";
+const SENSITIVE_HEADER_MARKERS: &[&str] = &[
+    "authorization:",
+    "proxy-authorization:",
+    "cookie:",
+    "set-cookie:",
+];
+const SENSITIVE_KV_PREFIXES: &[&str] = &["auth=", "token=", "access_token=", "refresh_token="];
 
 fn is_loopback_host(host: &str) -> bool {
     host.eq_ignore_ascii_case("localhost")
@@ -369,11 +376,49 @@ fn classify_reqwest_network_error(error: &reqwest::Error) -> String {
 }
 
 fn redact_sensitive_network_error_message(message: &str) -> String {
-    message
+    redact_sensitive_header_lines(message)
         .split_whitespace()
-        .map(redact_sensitive_url_token)
+        .map(redact_sensitive_network_token)
         .collect::<Vec<_>>()
         .join(" ")
+}
+
+fn redact_sensitive_header_lines(message: &str) -> String {
+    message
+        .lines()
+        .map(|line| {
+            let normalized = line.to_ascii_lowercase();
+            let Some((marker, marker_start)) = SENSITIVE_HEADER_MARKERS
+                .iter()
+                .find_map(|marker| normalized.find(marker).map(|start| (*marker, start)))
+            else {
+                return line.to_string();
+            };
+            format!("{}{} <redacted>", &line[..marker_start], marker)
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+fn redact_sensitive_network_token(token: &str) -> String {
+    let url_redacted = redact_sensitive_url_token(token);
+    if url_redacted != token {
+        return url_redacted;
+    }
+
+    redact_sensitive_kv_token(token)
+}
+
+fn redact_sensitive_kv_token(token: &str) -> String {
+    let lower = token.to_ascii_lowercase();
+    if let Some(prefix) = SENSITIVE_KV_PREFIXES
+        .iter()
+        .find(|prefix| lower.starts_with(**prefix))
+    {
+        return format!("{prefix}<redacted>");
+    }
+
+    token.to_string()
 }
 
 fn redact_sensitive_url_token(token: &str) -> String {
@@ -1297,5 +1342,33 @@ mod tests {
         assert!(!message.contains("alice"));
         assert!(!message.contains("hunter2"));
         assert!(!message.contains("secret"));
+    }
+
+    #[test]
+    fn security_privacy_network_error_message_redacts_authorization_header_values() {
+        let message = redact_sensitive_network_error_message(
+            "upstream rejected request\nprovider Authorization: Bearer provider-secret\nretry later",
+        );
+
+        assert_eq!(
+            message,
+            "upstream rejected request provider authorization: <redacted> retry later"
+        );
+        assert!(!message.contains("provider-secret"));
+        assert!(!message.contains("Bearer"));
+    }
+
+    #[test]
+    fn security_privacy_network_error_message_redacts_provider_auth_kv_tokens() {
+        let message = redact_sensitive_network_error_message(
+            "GReader auth failed with GoogleLogin auth=provider-auth-token token=raw-token",
+        );
+
+        assert_eq!(
+            message,
+            "GReader auth failed with GoogleLogin auth=<redacted> token=<redacted>"
+        );
+        assert!(!message.contains("provider-auth-token"));
+        assert!(!message.contains("raw-token"));
     }
 }

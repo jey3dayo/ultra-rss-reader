@@ -35,7 +35,7 @@ pub async fn discover_feeds(url: &str) -> DomainResult<Vec<DiscoveredFeed>> {
 
     let client = discovery_http_client_builder_for_url(&initial_url)?
         .build()
-        .map_err(|e| DomainError::Network(e.to_string()))?;
+        .map_err(DomainError::from_provider_http_error)?;
 
     let response = client
         .get(initial_url)
@@ -197,7 +197,7 @@ fn map_feed_discovery_request_error(error: reqwest::Error) -> DomainError {
         return DomainError::Validation(DOWNGRADE_REDIRECT_VALIDATION_MESSAGE.to_string());
     }
 
-    DomainError::Network(message)
+    DomainError::from_provider_http_error(error)
 }
 
 async fn response_text_with_limit(response: reqwest::Response) -> DomainResult<String> {
@@ -205,7 +205,7 @@ async fn response_text_with_limit(response: reqwest::Response) -> DomainResult<S
         response,
         http_defaults::DISCOVERY_RESPONSE_BODY_CAP_BYTES,
         discovery_body_too_large_error,
-        |error| DomainError::Network(error.to_string()),
+        DomainError::from_provider_http_error,
     )
     .await?;
 

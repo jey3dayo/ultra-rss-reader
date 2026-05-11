@@ -31,6 +31,7 @@ type QueryInvalidationActionOwner =
   | "delete-feed"
   | "manual-sync-completed"
   | "mute-keyword-mutation"
+  | "opml-import"
   | "tag-mutation"
   | "unknown";
 type QueryInvalidationKey = ReturnType<typeof createSchemaVersionedQueryKey<string>>;
@@ -505,6 +506,10 @@ export function invalidateDeleteFeedQueries(
   options: InvalidateFeedMutationQueriesOptions = {},
 ) {
   invalidateFeedMutationQueries(queryClient, "delete-feed", options);
+}
+
+export function invalidateOpmlImportQueries(queryClient: QueryClient) {
+  invalidateFeedQueries(queryClient, { actionOwner: "opml-import" });
 }
 
 export function invalidateSyncCompletedQueries(
