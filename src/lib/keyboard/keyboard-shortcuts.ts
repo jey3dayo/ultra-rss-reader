@@ -62,6 +62,16 @@ export type ShortcutActionId =
 
 export type ShortcutPreferenceKey = `shortcut_${ShortcutActionId}`;
 
+type ShortcutModifierEvent = {
+  metaKey: boolean;
+  ctrlKey: boolean;
+};
+
+type ShortcutKeyEvent = ShortcutModifierEvent & {
+  key: string;
+  shiftKey: boolean;
+};
+
 export type ShortcutLabelKey =
   | "shortcuts.next_article"
   | "shortcuts.prev_article"
@@ -412,15 +422,15 @@ export function buildKeyToActionMap(prefs: KeyboardShortcutPrefs): KeyToActionMa
 }
 
 /** Normalize a KeyboardEvent into the key string format used in shortcut definitions. */
-function isPrimaryModifierActive(platformKind: PlatformKind, e: { metaKey: boolean; ctrlKey: boolean }): boolean {
+function isPrimaryModifierActive(platformKind: PlatformKind, e: ShortcutModifierEvent): boolean {
   return platformKind === "macos" ? e.metaKey : e.ctrlKey;
 }
 
-function hasNonPrimaryModifier(platformKind: PlatformKind, e: { metaKey: boolean; ctrlKey: boolean }): boolean {
+function hasNonPrimaryModifier(platformKind: PlatformKind, e: ShortcutModifierEvent): boolean {
   return (platformKind === "macos" && e.ctrlKey) || (platformKind !== "macos" && e.metaKey);
 }
 
-function normalizeKeyFromEvent(e: { key: string; metaKey: boolean; ctrlKey: boolean; shiftKey: boolean }): string {
+function normalizeKeyFromEvent(e: ShortcutKeyEvent): string {
   const parts: string[] = [];
   if (e.metaKey || e.ctrlKey) parts.push("\u2318");
   if (e.shiftKey && e.key !== "Shift") parts.push("Shift");
@@ -428,10 +438,7 @@ function normalizeKeyFromEvent(e: { key: string; metaKey: boolean; ctrlKey: bool
   return parts.join("+");
 }
 
-function normalizeKeyFromRuntimeEvent(
-  e: { key: string; metaKey: boolean; ctrlKey: boolean; shiftKey: boolean },
-  platformKind: PlatformKind,
-): string {
+function normalizeKeyFromRuntimeEvent(e: ShortcutKeyEvent, platformKind: PlatformKind): string {
   const parts: string[] = [];
   if (isPrimaryModifierActive(platformKind, e)) {
     parts.push("\u2318");
