@@ -22,7 +22,8 @@ It supports local RSS/Atom feeds and FreshRSS, subscription review workflows, We
 
 ## Critical Constraints
 
-- Default local verification is `mise run check`; full local gate is `mise run ci`.
+- Default fast local verification is `mise run check`; it covers format, lint, Rust tests, and node Vitest.
+- Run `mise run test:unit:dom` for DOM, React rendering, Testing Library, or browser global changes.
 - Do not claim completion without running `mise run check` unless the task is explicitly docs-only and a narrower docs gate is recorded.
 - Tauri IPC calls go through `src/api/tauri-commands.ts` via `safeInvoke`.
 - Frontend-owned runtime schemas live in `src/schemas/`; Tauri IPC request/response schemas live in `src/api/schemas/`.
@@ -59,8 +60,9 @@ It supports local RSS/Atom feeds and FreshRSS, subscription review workflows, We
 - `mise run app:dev:signed`: macOS-only signed one-shot dev run for Keychain dialog behavior.
 - `mise run app:dev:subscriptions-index`: native dev mode that opens the subscriptions index workspace.
 - `mise run app:dev:web-preview`: native dev mode that opens `VITE_DEV_WEB_URL` in Web Preview.
-- `mise run check`: format, lint, and tests.
+- `mise run check`: fast format, lint, Rust tests, and node Vitest.
 - `mise run ci`: format check, lint, tests, and build.
+- `mise run test:unit:dom`: jsdom Vitest for DOM/rendering changes.
 - `mise run test:e2e`: Playwright browser-mode E2E coverage.
 - `mise run test:live`: FreshRSS live integration tests requiring encrypted `.env` credentials.
 - `pnpm storybook`: Storybook component development server.

@@ -701,7 +701,7 @@ describe("release repository contract", () => {
 
   it("checks release source and version parity before artifact creation", () => {
     expect(releaseWorkflow).toContain("Validate release source");
-    expect(releaseWorkflow).toContain("ref: ${{ github.ref }}");
+    expect(releaseWorkflow).toContain(["ref: $", "{{ github.ref }}"].join(""));
     expect(releaseWorkflow).not.toContain("format('refs/tags/{0}', inputs.release_tag)");
     expect(releaseWorkflow).toContain("node ./scripts/release/validate-source.ts");
     expect(releaseSourceValidator).toContain('eventName === "push"');

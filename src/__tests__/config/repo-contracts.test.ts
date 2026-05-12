@@ -1693,7 +1693,7 @@ describe("repository static contracts", () => {
     expect(releaseWorkflow).toContain("required: true");
     expect(releaseWorkflow).toContain("github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')");
     expect(releaseWorkflow).toContain("github.event_name == 'workflow_dispatch'");
-    expect(releaseWorkflow).toContain("ref: ${{ github.ref }}");
+    expect(releaseWorkflow).toContain(["ref: $", "{{ github.ref }}"].join(""));
     expect(releaseWorkflow).not.toContain(`ref: ${unqualifiedWorkflowDispatchReleaseRefExpression}`);
     expect(releasePreflightIndex).toBeGreaterThanOrEqual(0);
     expect(tauriActionIndex).toBeGreaterThanOrEqual(0);
@@ -1776,7 +1776,7 @@ describe("repository static contracts", () => {
     expect(releaseWorkflow).toContain("required: true");
     expect(releaseWorkflow).toContain("type: string");
     expect(releaseWorkflow).toContain("github.event_name == 'workflow_dispatch'");
-    expect(releaseWorkflow).toContain("ref: ${{ github.ref }}");
+    expect(releaseWorkflow).toContain(["ref: $", "{{ github.ref }}"].join(""));
     expect(releaseWorkflow).not.toContain("format('refs/tags/{0}', inputs.release_tag)");
     expect(releaseWorkflow).toContain("name: Validate release source");
     expect(releaseWorkflow).toContain("node ./scripts/release/validate-source.ts");
