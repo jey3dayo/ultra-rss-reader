@@ -1,8 +1,10 @@
 import { Result } from "@praha/byethrow";
 import type { QueryClient } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
+import "@testing-library/react/dont-cleanup-after-each";
+import { cleanup, renderHook, waitFor } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { createQueryWrapper } from "@tests/helpers/create-wrapper";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as tauriCommands from "@/api/tauri-commands";
 import {
   MUTE_KEYWORD_QUERY_KEY,
@@ -29,6 +31,13 @@ const articleCacheInvalidationKeys = [
   queryKeys.recentArticles.root,
   queryKeys.feedArticleSummaries.root,
 ];
+
+setupBrowserTestDom();
+
+afterEach(async () => {
+  cleanup();
+  await new Promise<void>((resolve) => setImmediate(resolve));
+});
 
 function expectMuteKeywordArticleCacheInvalidation(invalidateQueriesSpy: ReturnType<typeof vi.fn>) {
   expect(invalidateQueriesSpy.mock.calls.map(([options]) => options)).toEqual([

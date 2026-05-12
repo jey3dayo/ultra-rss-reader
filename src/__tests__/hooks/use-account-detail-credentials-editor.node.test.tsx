@@ -1,5 +1,7 @@
+import "@testing-library/jest-dom/vitest";
 import { Result } from "@praha/byethrow";
 import { act, renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { suppressConsoleWarn } from "@tests/helpers/console-spies";
 import { createTestQueryClient } from "@tests/helpers/create-wrapper";
 import { createDeferred } from "@tests/helpers/deferred";
@@ -22,6 +24,8 @@ vi.mock("@/api/tauri-commands", () => ({
   testAccountConnection: testAccountConnectionMock,
   updateAccountCredentials: updateAccountCredentialsMock,
 }));
+
+setupBrowserTestDom();
 
 describe("useAccountDetailCredentialsEditor", () => {
   const t = i18n.getFixedT("en", "settings");

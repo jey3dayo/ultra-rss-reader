@@ -1,13 +1,38 @@
 import { Result } from "@praha/byethrow";
 import type { QueryClient } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
+import "@testing-library/react/dont-cleanup-after-each";
+import { cleanup, renderHook, waitFor } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { createQueryWrapper } from "@tests/helpers/create-wrapper";
+import type React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as tauriCommands from "@/api/tauri-commands";
 import { useDeleteFeed } from "@/hooks/use-delete-feed";
 import { queryKeys } from "@/lib/query/query-invalidation";
 import type { ToastData } from "@/lib/ui/toast.types";
 import { useUiStore } from "@/stores/ui-store";
+
+setupBrowserTestDom();
+
+vi.mock("react-i18next", () => ({
+  I18nextProvider: ({ children }: { children: React.ReactNode }) => children,
+  initReactI18next: {
+    type: "3rdParty",
+    init: () => undefined,
+  },
+  setI18n: () => undefined,
+  useTranslation: () => ({
+    t: (key: string, options?: { message?: string; title?: string }) => {
+      if (key === "unsubscribed_from") {
+        return `Unsubscribed from ${options?.title ?? ""}`;
+      }
+      if (key === "failed_to_unsubscribe") {
+        return `Failed to unsubscribe: ${options?.message ?? ""}`;
+      }
+      return key;
+    },
+  }),
+}));
 
 describe("useDeleteFeed", () => {
   let queryClient: QueryClient;
@@ -25,7 +50,11 @@ describe("useDeleteFeed", () => {
     useUiStore.setState({ showToast: showToastMock });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    await queryClient.cancelQueries();
+    queryClient.clear();
+    cleanup();
+    await new Promise((resolve) => setTimeout(resolve, 0));
     vi.restoreAllMocks();
     useUiStore.setState(useUiStore.getInitialState());
   });

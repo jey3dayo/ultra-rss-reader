@@ -1,5 +1,6 @@
 import { Result } from "@praha/byethrow";
-import { renderHook, waitFor } from "@testing-library/react";
+import { cleanup, renderHook, waitFor } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { createQueryWrapper } from "@tests/helpers/create-wrapper";
 import { resetDiagnosticsReporterModuleGlobalsForTests } from "@tests/helpers/diagnostics-reporters";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -9,13 +10,24 @@ import {
   setCreateQueryDiagnosticsReporterForDiagnostics,
 } from "@/hooks/create-query";
 
+setupBrowserTestDom();
+
+afterEach(async () => {
+  cleanup();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+});
+
 describe("createQuery", () => {
   let wrapper: ReturnType<typeof createQueryWrapper>["wrapper"];
   type GeneratedQueryProps = { id: string | null };
 
   beforeEach(() => {
     resetDiagnosticsReporterModuleGlobalsForTests();
-    const queryWrapper = createQueryWrapper();
+    const queryWrapper = createQueryWrapper({
+      queryClientConfig: {
+        defaultOptions: { queries: { retryDelay: 1 } },
+      },
+    });
     wrapper = queryWrapper.wrapper;
   });
 

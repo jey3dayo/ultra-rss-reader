@@ -1,7 +1,10 @@
 import { renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { describe, expect, it } from "vitest";
 import type { AccountSyncStatusDto } from "@/api/tauri-commands";
 import { useAccountDetailSyncStatusRows } from "@/components/settings/hooks/account-detail/use-account-detail-sync-status-rows";
+
+setupBrowserTestDom();
 
 describe("useAccountDetailSyncStatusRows", () => {
   const createSyncStatus = (overrides: Partial<AccountSyncStatusDto>): AccountSyncStatusDto => ({

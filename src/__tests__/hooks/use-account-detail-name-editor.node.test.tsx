@@ -1,5 +1,7 @@
+import "@testing-library/jest-dom/vitest";
 import { Result } from "@praha/byethrow";
 import { act, renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { createTestQueryClient } from "@tests/helpers/create-wrapper";
 import { createDeferred } from "@tests/helpers/deferred";
 import { sampleAccounts } from "@tests/helpers/fixtures";
@@ -19,6 +21,8 @@ vi.mock("@/api/tauri-commands", () => ({
   renameAccount: renameAccountMock,
 }));
 
+setupBrowserTestDom();
+
 describe("useAccountDetailNameEditor", () => {
   const t = i18n.getFixedT("en", "settings");
 
@@ -35,10 +39,11 @@ describe("useAccountDetailNameEditor", () => {
 
   it("focuses and selects the name input when editing starts", () => {
     const account = { ...sampleAccounts[1], name: "FreshRSS" };
-    const frameSpy = vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+    const frameSpy = vi.fn((callback: FrameRequestCallback) => {
       callback(0);
       return 1;
     });
+    stubWindowGlobal("requestAnimationFrame", frameSpy);
     const input = document.createElement("input");
     input.value = account.name;
     document.body.append(input);
@@ -66,11 +71,13 @@ describe("useAccountDetailNameEditor", () => {
   it("cancels a scheduled name input focus when the editor unmounts", () => {
     const account = { ...sampleAccounts[1], name: "FreshRSS" };
     let runScheduledFrame: FrameRequestCallback = () => {};
-    const frameSpy = vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+    const frameSpy = vi.fn((callback: FrameRequestCallback) => {
       runScheduledFrame = callback;
       return 1;
     });
-    const cancelFrameSpy = vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
+    const cancelFrameSpy = vi.fn();
+    stubWindowGlobal("requestAnimationFrame", frameSpy);
+    stubWindowGlobal("cancelAnimationFrame", cancelFrameSpy);
     const input = document.createElement("input");
     input.value = account.name;
     document.body.append(input);
@@ -99,7 +106,7 @@ describe("useAccountDetailNameEditor", () => {
   it("focuses the latest name input ref when a scheduled focus frame runs", () => {
     const account = { ...sampleAccounts[1], name: "FreshRSS" };
     let runScheduledFrame: FrameRequestCallback = () => {};
-    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+    stubWindowGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
       runScheduledFrame = callback;
       return 1;
     });
@@ -401,4 +408,12 @@ function setInputRef(ref: RefObject<HTMLInputElement | null>, input: HTMLInputEl
     configurable: true,
     value: input,
   });
+}
+
+function stubWindowGlobal(key: "requestAnimationFrame" | "cancelAnimationFrame", value: unknown): void {
+  Object.defineProperty(window, key, {
+    configurable: true,
+    value,
+  });
+  vi.stubGlobal(key, value);
 }

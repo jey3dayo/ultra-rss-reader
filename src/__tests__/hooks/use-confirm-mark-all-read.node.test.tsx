@@ -1,14 +1,20 @@
-import { act, renderHook } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import "@testing-library/react/dont-cleanup-after-each";
+import { act, cleanup, renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useConfirmMarkAllRead } from "@/hooks/use-confirm-mark-all-read";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
-vi.mock("react-i18next", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("react-i18next")>();
+setupBrowserTestDom();
 
+afterEach(async () => {
+  cleanup();
+  await new Promise<void>((resolve) => setImmediate(resolve));
+});
+
+vi.mock("react-i18next", () => {
   return {
-    ...actual,
     useTranslation: (namespace: string) => ({
       t: (key: string, options?: { count?: number }) =>
         namespace === "reader" ? `${key}:${options?.count ?? ""}` : key,

@@ -1,7 +1,10 @@
 import { Result } from "@praha/byethrow";
-import { act, renderHook } from "@testing-library/react";
+import "@testing-library/react/dont-cleanup-after-each";
+import { act, cleanup, renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { createQueryWrapper } from "@tests/helpers/create-wrapper";
 import { sampleFeeds } from "@tests/helpers/fixtures";
+import type React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useRenameFeedDialogController } from "@/components/reader/hooks/feed-dialogs/use-rename-feed-dialog-controller";
 import type { ToastData } from "@/lib/ui/toast.types";
@@ -40,6 +43,37 @@ vi.mock("@/hooks/use-update-feed-folder", () => ({
   useUpdateFeedFolder: () => ({ mutateAsync: vi.fn(async () => undefined) }),
 }));
 
+setupBrowserTestDom();
+
+vi.mock("react-i18next", () => ({
+  I18nextProvider: ({ children }: { children: React.ReactNode }) => children,
+  initReactI18next: {
+    type: "3rdParty",
+    init: () => undefined,
+  },
+  setI18n: () => undefined,
+  useTranslation: () => ({
+    t: (key: string, options?: { defaultValue?: string; message?: string }) => {
+      if (key === "copied_to_clipboard") {
+        return "Copied";
+      }
+      if (key === "title_required") {
+        return options?.defaultValue ?? "Title is required";
+      }
+      if (key === "failed_to_create_folder") {
+        return `Failed to create folder: ${options?.message ?? ""}`;
+      }
+      if (key === "failed_to_rename") {
+        return `Failed to rename: ${options?.message ?? ""}`;
+      }
+      if (key === "no_folder") {
+        return "No folder";
+      }
+      return key;
+    },
+  }),
+}));
+
 describe("useRenameFeedDialogController copy action", () => {
   let showToast: ReturnType<typeof vi.fn<(message: string | ToastData) => void>>;
 
@@ -54,7 +88,9 @@ describe("useRenameFeedDialogController copy action", () => {
     useUiStore.setState({ showToast });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    cleanup();
+    await new Promise<void>((resolve) => setImmediate(resolve));
     vi.restoreAllMocks();
     useUiStore.setState(useUiStore.getInitialState());
   });

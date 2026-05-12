@@ -1,6 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { QueryClient } from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { addLocalFeed, discoverFeeds, updateFeedFolder } from "@/api/tauri-commands";
 import {
@@ -19,6 +20,8 @@ vi.mock("@/api/tauri-commands", () => ({
 }));
 
 const t = i18n.getFixedT("en", "reader");
+
+setupBrowserTestDom();
 
 function createDeferred<T>() {
   let resolve: (value: T) => void = () => {};

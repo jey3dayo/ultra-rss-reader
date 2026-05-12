@@ -1,6 +1,7 @@
 import { Result } from "@praha/byethrow";
 import type { QueryClient } from "@tanstack/react-query";
-import { renderHook } from "@testing-library/react";
+import { cleanup, renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { createQueryWrapper } from "@tests/helpers/create-wrapper";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppError } from "@/api/schemas/error";
@@ -14,6 +15,13 @@ type TestArgs = {
 type TestData = {
   savedId: string;
 };
+
+setupBrowserTestDom();
+
+afterEach(async () => {
+  cleanup();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+});
 
 describe("createMutation", () => {
   beforeEach(() => {

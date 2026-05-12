@@ -1,6 +1,7 @@
 import { Result } from "@praha/byethrow";
 import type { QueryClient } from "@tanstack/react-query";
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { expectTauriCommandError, suppressConsoleError, suppressConsoleWarn } from "@tests/helpers/console-spies";
 import { createQueryWrapper } from "@tests/helpers/create-wrapper";
 import { setupTauriMocks, teardownTauriMocks } from "@tests/helpers/tauri-mocks";
@@ -11,6 +12,8 @@ import { useUpdateFeedFolder } from "@/hooks/use-update-feed-folder";
 import { queryKeys } from "@/lib/query/query-invalidation";
 import type { ToastData } from "@/lib/ui/toast.types";
 import { useUiStore } from "@/stores/ui-store";
+
+setupBrowserTestDom();
 
 describe("useUpdateFeedFolder", () => {
   let queryClient: QueryClient;
@@ -28,7 +31,9 @@ describe("useUpdateFeedFolder", () => {
     useUiStore.setState({ showToast: showToastMock });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    cleanup();
+    await new Promise<void>((resolve) => setImmediate(resolve));
     teardownTauriMocks();
     vi.restoreAllMocks();
     useUiStore.setState(useUiStore.getInitialState());

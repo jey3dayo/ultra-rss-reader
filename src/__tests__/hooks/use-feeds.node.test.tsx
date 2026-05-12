@@ -1,5 +1,7 @@
 import { Result } from "@praha/byethrow";
-import { renderHook, waitFor } from "@testing-library/react";
+import "@testing-library/react/dont-cleanup-after-each";
+import { cleanup, renderHook, waitFor } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { createQueryWrapper } from "@tests/helpers/create-wrapper";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { FeedDto } from "@/api/tauri-commands";
@@ -11,10 +13,14 @@ import {
   setQueryInvalidationFailureReporterForDiagnostics,
 } from "@/lib/query/query-invalidation";
 
+setupBrowserTestDom();
+
 describe("useImportOpml", () => {
   let restoreInvalidationFailureReporter: (() => void) | null = null;
 
-  afterEach(() => {
+  afterEach(async () => {
+    cleanup();
+    await new Promise<void>((resolve) => setImmediate(resolve));
     restoreInvalidationFailureReporter?.();
     restoreInvalidationFailureReporter = null;
     vi.restoreAllMocks();

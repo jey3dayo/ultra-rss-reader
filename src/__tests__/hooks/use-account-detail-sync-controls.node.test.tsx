@@ -1,5 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { act, renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { createTestQueryClient } from "@tests/helpers/create-wrapper";
 import { sampleAccounts } from "@tests/helpers/fixtures";
 import i18n from "@tests/helpers/i18n-setup";
@@ -22,6 +23,8 @@ vi.mock("@/api/tauri-commands", () => ({
   syncAccount: syncAccountMock,
   updateAccountSync: updateAccountSyncMock,
 }));
+
+setupBrowserTestDom();
 
 function createDeferred<T>() {
   let resolve: (value: T) => void = () => {};

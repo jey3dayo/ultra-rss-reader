@@ -1,5 +1,6 @@
 import { Result } from "@praha/byethrow";
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { createTestQueryClient } from "@tests/helpers/create-wrapper";
 import { sampleAccounts, sampleArticles, sampleFeeds } from "@tests/helpers/fixtures";
 import i18n from "@tests/helpers/i18n-setup";
@@ -26,6 +27,8 @@ vi.mock("@/api/tauri-commands", () => ({
   setPreference: setPreferenceMock,
 }));
 
+setupBrowserTestDom();
+
 function createDeferred<T>() {
   let resolve: (value: T) => void = () => {};
   const promise = new Promise<T>((promiseResolve) => {
@@ -41,6 +44,7 @@ describe("useAccountDetailDangerZone", () => {
   const t = i18n.getFixedT("en", "settings");
 
   beforeEach(() => {
+    vi.stubGlobal("HTMLAnchorElement", window.HTMLAnchorElement);
     originalCreateObjectUrl = URL.createObjectURL;
     originalRevokeObjectUrl = URL.revokeObjectURL;
     Object.defineProperty(URL, "createObjectURL", {
@@ -61,8 +65,11 @@ describe("useAccountDetailDangerZone", () => {
     usePreferencesStore.setState({ prefs: {}, loaded: false });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     vi.useRealTimers();
+    cleanup();
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    vi.unstubAllGlobals();
     vi.restoreAllMocks();
     Object.defineProperty(URL, "createObjectURL", {
       configurable: true,

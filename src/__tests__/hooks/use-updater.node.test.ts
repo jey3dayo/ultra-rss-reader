@@ -3,6 +3,7 @@ import { QueryClient } from "@tanstack/react-query";
 import { renderHook } from "@testing-library/react";
 import { type TestUserVisibleAppError, testRetryableAppError, testUserVisibleAppError } from "@tests/helpers/app-error";
 import { flushMicrotasksAndRealTimer } from "@tests/helpers/async-flush";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { resetTauriRuntimeFlags, setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
 import { createElement, type PropsWithChildren, StrictMode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -22,6 +23,8 @@ vi.mock("@/api/tauri-commands", () => ({
 vi.mock("@tauri-apps/api/event", () => ({
   listen: mockListen,
 }));
+
+setupBrowserTestDom();
 
 type UpdateInfo = {
   version: string;

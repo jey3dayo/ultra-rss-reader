@@ -1,6 +1,8 @@
 import { Result } from "@praha/byethrow";
-import { act, renderHook, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import "@testing-library/react/dont-cleanup-after-each";
+import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { countOldUnreadArticles } from "@/api/tauri-commands";
 import { useOldUnreadReadAction } from "@/components/reader/hooks/feed-actions/use-old-unread-read-action";
 import { useUiStore } from "@/stores/ui-store";
@@ -38,6 +40,30 @@ vi.mock("@/hooks/use-articles", async (importOriginal) => {
 });
 
 const countOldUnreadArticlesMock = vi.mocked(countOldUnreadArticles);
+
+setupBrowserTestDom();
+
+afterEach(async () => {
+  cleanup();
+  await new Promise<void>((resolve) => setImmediate(resolve));
+});
+
+vi.mock("react-i18next", () => ({
+  useTranslation: (namespace: string) => ({
+    t: (key: string, options?: { count?: number }) => {
+      if (namespace === "reader" && key === "no_old_unread_to_mark") {
+        return "No old unread articles";
+      }
+      if (namespace === "reader" && key === "confirm_mark_old_unread_read") {
+        return `confirm_mark_old_unread_read:${options?.count ?? ""}`;
+      }
+      if (namespace === "common" && key === "mark_as_read_action") {
+        return "Mark as Read";
+      }
+      return key;
+    },
+  }),
+}));
 
 describe("useOldUnreadReadAction", () => {
   beforeEach(() => {

@@ -1,11 +1,19 @@
 import { Result } from "@praha/byethrow";
-import { renderHook, waitFor } from "@testing-library/react";
+import { cleanup, renderHook, waitFor } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { createQueryWrapper } from "@tests/helpers/create-wrapper";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AccountSyncStatusDto } from "@/api/schemas";
 import * as tauriCommands from "@/api/tauri-commands";
 import { accountSyncStatusQueryKey, useAccountSyncStatus } from "@/hooks/use-account-sync-status";
 import { useAccountSyncStatuses } from "@/hooks/use-account-sync-statuses";
+
+setupBrowserTestDom();
+
+afterEach(async () => {
+  cleanup();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+});
 
 describe("useAccountSyncStatus", () => {
   let wrapper: ReturnType<typeof createQueryWrapper>["wrapper"];

@@ -1,9 +1,17 @@
-import { renderHook, waitFor } from "@testing-library/react";
+import { cleanup, renderHook, waitFor } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { createQueryWrapper } from "@tests/helpers/create-wrapper";
 import { createTauriMockCallRecorder, setupTauriMocks, teardownTauriMocks } from "@tests/helpers/tauri-mocks";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { useAccountUnreadCount } from "@/hooks/use-account-unread-count";
 import { queryKeys } from "@/lib/query/query-invalidation";
+
+setupBrowserTestDom();
+
+afterEach(async () => {
+  cleanup();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+});
 
 describe("useAccountUnreadCount", () => {
   beforeEach(() => {
