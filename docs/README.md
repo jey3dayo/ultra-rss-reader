@@ -1,14 +1,29 @@
 # Documentation Index
 
-Use this page as the entry point for repository documentation outside the main [README.md](../README.md).
+Use this page as the documentation index outside the main [README.md](../README.md).
+When current product behavior, architecture, commands, or verification scope matters, start with `README.md` first and use this page to find focused operational or historical documents.
 
 ## Top-Level Docs
 
-- [../README.md](../README.md): current product overview, architecture, commands, and verification guidance
-- [../CLAUDE.md](../CLAUDE.md): short agent-facing workflow guidance
+- [../README.md](../README.md): source of truth for product overview, architecture, development modes, commands, and verification model
+- [../CLAUDE.md](../CLAUDE.md): short repository-local agent workflow, quality gates, and rule routing
+- [../AGENTS.md](../AGENTS.md): thin entry point for agents that read it before repository-local guidance
+- [../llms.txt](../llms.txt): compressed LLM-oriented map of sources, constraints, and main code areas
 - [../RTK.md](../RTK.md): repository command execution policy and RTK usage guidance
-- [../TODO.md](../TODO.md): active and upcoming tasks only
+- [../TODO.md](../TODO.md): active and upcoming work only
 - [../CHANGELOG.md](../CHANGELOG.md): completed user-visible changes
+
+## Documentation Routing
+
+- Unknown operational or historical document: start here.
+- Product overview, architecture, command details, development modes, verification matrix, and release summary: [../README.md](../README.md).
+- Agent workflow, quality gate selection, and rule routing: [../CLAUDE.md](../CLAUDE.md).
+- Packaged builds, updater checks, live-service checks, release provenance, and release sign-off: [release-manual-verification.md](./release-manual-verification.md).
+- Logs, backups, recovery, updater, keyring, and sync triage: [incident-runbook.md](./incident-runbook.md).
+- Remote article content privacy and CSP policy: [feed-content-privacy.md](./feed-content-privacy.md).
+- Reader article source, scope, filter, hook, and paging order: [reader-article-scope-matrix.md](./reader-article-scope-matrix.md).
+- Reader pane keyboard navigation, focus return, and focus styling contracts: [reader-keyboard-navigation.md](./reader-keyboard-navigation.md).
+- Dated design and implementation records: [superpowers/README.md](./superpowers/README.md).
 
 ## Operational Docs
 
@@ -17,6 +32,8 @@ Use this page as the entry point for repository documentation outside the main [
 - [feed-content-privacy.md](./feed-content-privacy.md): source of truth for feed-content privacy expectations and the current CSP policy
 - [reader-keyboard-navigation.md](./reader-keyboard-navigation.md): source of truth for reader pane keyboard navigation, focus return behavior, and focus styling contracts
 - [reader-article-scope-matrix.md](./reader-article-scope-matrix.md): source of truth for reader article source, scope, and filter combinations
+- [flaky-test-quarantine-policy.md](./flaky-test-quarantine-policy.md): policy for quarantining, documenting, and retiring flaky tests
+- [similarity-refactor-guidance.md](./similarity-refactor-guidance.md): guidance for interpreting similarity reports before extracting shared code
 
 ## Project Guidance
 

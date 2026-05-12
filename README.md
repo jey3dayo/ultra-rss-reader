@@ -219,24 +219,10 @@ Always run `mise run check` before committing.
 - If `pnpm preview` does not reflect a recent frontend change, run `pnpm build` first so `dist/` is regenerated.
 - Playwright failure artifacts are split by gate: browser-mode E2E writes to `test-results/e2e` and `playwright-report/e2e`; Storybook smoke writes to `test-results/storybook` and `playwright-report/storybook`.
 
-## Documentation Routing
+## Documentation
 
-- Use [docs/README.md](docs/README.md) when you need an operational or historical document and do not know the exact file yet.
-- Use [docs/release-manual-verification.md](docs/release-manual-verification.md) for packaged builds, updater checks, and release sign-off.
-- Use [docs/incident-runbook.md](docs/incident-runbook.md) for logs, backups, recovery, updater, keyring, and sync triage.
-- Use [docs/feed-content-privacy.md](docs/feed-content-privacy.md) for privacy and CSP rules around remote article content.
-- Use [docs/reader-keyboard-navigation.md](docs/reader-keyboard-navigation.md) for reader pane keyboard navigation, focus return behavior, and focus styling contracts.
-- Use [docs/superpowers/README.md](docs/superpowers/README.md) for dated design and implementation records.
-
-## Documentation Map
-
-- [docs/README.md](docs/README.md) — index for operational docs and historical implementation records
-- [docs/superpowers/README.md](docs/superpowers/README.md) — reading guide for dated design and implementation records
-- [docs/release-manual-verification.md](docs/release-manual-verification.md) — packaged-build and live-service release checklist
-- [docs/incident-runbook.md](docs/incident-runbook.md) — failure triage for logs, backups, updater, keyring, and sync issues
-- [docs/feed-content-privacy.md](docs/feed-content-privacy.md) — privacy and CSP policy for remote article content
-- [docs/reader-keyboard-navigation.md](docs/reader-keyboard-navigation.md) — reader pane keyboard navigation and focus styling contract
-- [.claude/rules/README.md](.claude/rules/README.md) — project-specific engineering rules by topic
+Use [docs/README.md](docs/README.md) as the index for operational docs, current behavior references, and historical design records.
+Agent-specific workflow guidance lives in [CLAUDE.md](CLAUDE.md), and topic-specific engineering rules live in [.claude/rules/README.md](.claude/rules/README.md).
 
 ## Architecture
 

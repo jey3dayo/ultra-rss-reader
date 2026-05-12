@@ -1,102 +1,72 @@
 # Ultra RSS Reader
 
-> Ultra RSS Reader is a desktop-first RSS reader built with Tauri 2, Rust, React 19, TypeScript, and SQLite. It supports local RSS/Atom feeds and FreshRSS, includes subscription review and Web Preview workflows, stores credentials in the OS keyring, and uses a layered Rust backend with a React frontend.
+Ultra RSS Reader is a desktop-first RSS reader built with Tauri 2, Rust, React 19, TypeScript, and SQLite.
+It supports local RSS/Atom feeds and FreshRSS, subscription review workflows, Web Preview, SQLite storage, and OS keyring credentials.
 
-Read `AGENTS.md`, then `CLAUDE.md`, then `README.md` before changing code. Use `mise run check` as the default verification gate and `mise run ci` for the full local gate including build validation. Native integrations such as keyring behavior, updater installation, and packaged app flows still need manual verification.
+## Read Order
 
-Important implementation constraints:
+1. `AGENTS.md`: thin router and instruction precedence for external agents.
+2. `CLAUDE.md`: short repository-local agent workflow.
+3. `README.md`: source of truth for product behavior, architecture, commands, and verification.
+4. `docs/README.md`: index for operational docs, current behavior references, and historical design records.
 
-- TypeScript is strict-mode, functional React only, and all Tauri IPC calls go through `src/api/tauri-commands.ts` via `safeInvoke`.
-- Keep frontend-owned runtime schemas in `src/schemas/`; keep Tauri IPC request/response schemas in `src/api/schemas/`.
-- Put cross-feature constants in `src/constants/`, shared type-only contracts in `src/lib/*.types.ts`, and reusable test helpers in `tests/helpers/` imported as `@tests/helpers/*`.
-- Rust follows a layered architecture: `commands -> service -> repository -> domain -> infra`.
+## Source Of Truth
+
+- Product, architecture, development modes, commands, verification matrix: [README.md](README.md)
+- Agent workflow and rule routing: [CLAUDE.md](CLAUDE.md)
+- External agent router: [AGENTS.md](AGENTS.md)
+- Documentation index: [docs/README.md](docs/README.md)
+- RTK command policy: [RTK.md](RTK.md)
+- UI design rules: [DESIGN.md](DESIGN.md)
+- UI review routing: [DESIGN_REVIEW.md](DESIGN_REVIEW.md)
+
+## Critical Constraints
+
+- Default local verification is `mise run check`; full local gate is `mise run ci`.
+- Do not claim completion without running `mise run check` unless the task is explicitly docs-only and a narrower docs gate is recorded.
+- Tauri IPC calls go through `src/api/tauri-commands.ts` via `safeInvoke`.
+- Frontend-owned runtime schemas live in `src/schemas/`; Tauri IPC request/response schemas live in `src/api/schemas/`.
+- Cross-feature constants live in `src/constants/`; shared type-only contracts live in `src/lib/*.types.ts`; reusable test helpers live in `tests/helpers/` and are imported as `@tests/helpers/*`.
+- Rust follows `commands -> service -> repository -> domain -> infra`.
 - Do not hold `std::sync::Mutex` locks across `.await` points.
-- Credentials must stay in the OS keyring; never add them to SQLite. `DEV_CREDENTIALS=1` is for development builds only.
-- Prefer editing existing files over creating new files.
-- Keep changes scoped to the requested task; avoid unrelated refactors and docs churn.
+- Credentials must stay in the OS keyring; never store FreshRSS passwords or tokens in SQLite. `DEV_CREDENTIALS=1` is development-only.
+- Japanese UI copy under `src/locales/ja/` is product copy: concise, natural, and covered by copy-sensitive tests when changed.
 - Put temporary artifacts under `tmp/`.
-- Do not claim work complete without running at least `mise run check` unless the task is explicitly docs-only.
-- Reader article list behavior is governed by `docs/reader-article-scope-matrix.md`. Use it as the source of truth for `ReaderQuery`, smart views, subscription scopes, footer filters, source hooks, and paging order.
-- Reader pane keyboard behavior is governed by `docs/reader-keyboard-navigation.md`. Use it as the source of truth for focus movement, row selection, and reader navigation focus styling.
-- Japanese locale files under `src/locales/ja/` are product copy. Keep wording concise and natural, avoid literal translation, and update copy-sensitive tests when labels change.
 
-## Fast Path
+## Canonical Behavior References
 
-- Product and architecture context: [README](README.md)
-- Repository-local agent workflow: [CLAUDE](CLAUDE.md)
-- Router and precedence: [AGENTS](AGENTS.md)
-- Reader article list matrix: [docs/reader-article-scope-matrix.md](docs/reader-article-scope-matrix.md)
-- Reader keyboard navigation contract: [docs/reader-keyboard-navigation.md](docs/reader-keyboard-navigation.md)
-- Operational doc index: [docs/README.md](docs/README.md)
-- Default local verification: `mise run check`
-- Full local CI gate: `mise run ci`
+- Reader article source, scope, filters, source hooks, and paging order: [docs/reader-article-scope-matrix.md](docs/reader-article-scope-matrix.md)
+- Reader pane keyboard navigation and focus styling: [docs/reader-keyboard-navigation.md](docs/reader-keyboard-navigation.md)
+- Release and packaged-build manual verification: [docs/release-manual-verification.md](docs/release-manual-verification.md)
+- Logs, backups, recovery, updater, keyring, and sync triage: [docs/incident-runbook.md](docs/incident-runbook.md)
+- Feed content privacy and CSP expectations: [docs/feed-content-privacy.md](docs/feed-content-privacy.md)
+- Topic-specific engineering rules: [.claude/rules/README.md](.claude/rules/README.md)
 
-## Start Here
+## Main Code Areas
 
-- [README](README.md): Product overview, features, development modes, architecture, security, release flow, and verification matrix.
-- [CLAUDE](CLAUDE.md): Repository-specific coding standards, command workflow, and required verification steps.
-- [AGENTS](AGENTS.md): Agent instruction router and repository-local precedence rules.
-- [CHANGELOG](CHANGELOG.md): Recent shipped changes and behavior history.
+- `src-tauri/src/`: Rust commands, services, repositories, domain types, providers, browser webview, and platform integration.
+- `src/`: React app shell, reader UI, settings UI, subscriptions index, hooks, stores, API schemas, and utilities.
+- `src/api/tauri-commands.ts`: canonical TypeScript IPC boundary.
+- `src/lib/reader/reader-query.ts`: reader list intent normalization via `ReaderQuery` and `ReaderSourcePlan`.
+- `src/dev/scenarios/`: `VITE_DEV_INTENT` scenarios for direct dev entry points and command palette dev commands.
+- `src-tauri/tauri.dev.conf.json`: repository dev configuration consumed by `mise run app:dev*` tasks.
 
-## Code Map
+## Frequent Commands
 
-- [src-tauri/src](src-tauri/src/): Rust application code including Tauri commands, services, repositories, domain types, providers, browser webview, and platform integration.
-- [src](src/): React application code including the app shell, reader UI, settings UI, subscription review, subscriptions index, hooks, stores, API schemas, and utilities.
-- [src/locales/ja](src/locales/ja/): Japanese UI copy for reader, settings, sidebar, subscriptions, and shared actions.
-- [src-tauri/migrations](src-tauri/migrations/): SQLite schema migrations and persistence history.
-- [src/api/tauri-commands.ts](src/api/tauri-commands.ts): Canonical TypeScript IPC boundary and `safeInvoke` wrapper.
-- [src/schemas](src/schemas/): Frontend-owned runtime schemas and parse helpers for config, storage, and preferences.
-- [src/constants](src/constants/): Shared literal values, storage keys, layout constants, and motion tokens.
-- [src/App.tsx](src/App.tsx): Frontend entry composition.
-- [src/components/icons](src/components/icons/): Provider and product icon components plus narrow icon-only types.
-- [src/dev/scenarios](src/dev/scenarios/): `VITE_DEV_INTENT` scenarios powering direct dev entry points and command palette dev commands.
-- [src/dev-mocks.ts](src/dev-mocks.ts) and [src/dev-mock-data.ts](src/dev-mock-data.ts): Browser/dev-only mock IPC handlers and deterministic sample data.
-- [src/locales](src/locales/): i18next resources; Japanese product copy lives under `src/locales/ja/`.
-- [src/lib/reader/reader-query.ts](src/lib/reader/reader-query.ts): Reader article list intent normalization via `ReaderQuery` and `ReaderSourcePlan`.
-- [docs/reader-article-scope-matrix.md](docs/reader-article-scope-matrix.md): Canonical mapping for reader source, scope, filter, API hook, and paging order.
-- [docs/reader-keyboard-navigation.md](docs/reader-keyboard-navigation.md): Canonical reader pane keyboard navigation and focus styling contract.
-- [src/lib/reader-focus.ts](src/lib/reader-focus.ts): Reader focus target helpers.
-- [src/lib/reader-pane-navigation.ts](src/lib/reader-pane-navigation.ts): Shared helpers for pane row keyboard navigation.
-- [src-tauri/src/lib.rs](src-tauri/src/lib.rs): Rust bootstrap and shared module wiring.
-- [src-tauri/tauri.dev.conf.json](src-tauri/tauri.dev.conf.json): Repository dev configuration consumed by every `mise run app:dev*` task.
-
-## Development Commands
-
-- `mise run check`: Default local verification gate (`format` + `lint` + `test`).
-- `mise run ci`: CI-equivalent gate (`format:check` + `lint` + `test` + `build`).
-- `mise run app:dev`: Default native Tauri development mode with `DEV_CREDENTIALS=1`.
-- `mise run app:dev:signed`: macOS-only one-shot dev run that builds, codesigns with `UltraRSSReader-Dev`, and launches the dev binary to suppress Keychain dialogs.
-- `mise run app:dev:subscriptions-index`: Native dev mode that jumps directly into the subscriptions index workspace.
-- `mise run app:dev:browser`: Browser-mode UI debugging on `http://127.0.0.1:4173/`.
-- `mise run app:dev:web-preview`: Native dev mode that opens `VITE_DEV_WEB_URL` directly in Web Preview.
-- Subscription review UI is reached from the subscriptions index workspace.
-- `mise run app:dev:seed-from-prod`: Seeds the development app database from packaged app data.
+- `mise run app:dev`: default native Tauri development mode with `DEV_CREDENTIALS=1`.
+- `mise run app:dev:browser`: browser-mode UI debugging on `http://127.0.0.1:4173/`.
+- `mise run app:dev:native-keyring`: native dev mode using the OS keyring backend.
+- `mise run app:dev:signed`: macOS-only signed one-shot dev run for Keychain dialog behavior.
+- `mise run app:dev:subscriptions-index`: native dev mode that opens the subscriptions index workspace.
+- `mise run app:dev:web-preview`: native dev mode that opens `VITE_DEV_WEB_URL` in Web Preview.
+- `mise run check`: format, lint, and tests.
+- `mise run ci`: format check, lint, tests, and build.
 - `mise run test:e2e`: Playwright browser-mode E2E coverage.
-- `mise run test:live`: FreshRSS live integration tests that require encrypted `.env` credentials.
-- `mise run app:build`: Native production build for the current platform.
-- `pnpm storybook`: Storybook component development server on port 6006.
-- `pnpm build-storybook`: Storybook static build.
-- [mise.toml](mise.toml): Canonical task definitions for verification, testing, and app launch modes.
-- [package.json](package.json): Frontend scripts and JavaScript dependencies.
-- [src-tauri/Cargo.toml](src-tauri/Cargo.toml): Rust crate metadata and native dependencies.
+- `mise run test:live`: FreshRSS live integration tests requiring encrypted `.env` credentials.
+- `pnpm storybook`: Storybook component development server.
 
-## Design Docs
+## Historical Docs
 
-- [docs/superpowers/specs](docs/superpowers/specs/): Dated design documents for feature behavior and UI decisions.
-- [docs/superpowers/plans](docs/superpowers/plans/): Dated implementation plans and execution checklists.
-
-## Operational Docs
-
-- [docs/incident-runbook.md](docs/incident-runbook.md): Fastest path to logs, backups, and failure-specific recovery steps.
-- [docs/feed-content-privacy.md](docs/feed-content-privacy.md): Privacy and CSP expectations for remote article content and embedded pages.
-- [docs/reader-keyboard-navigation.md](docs/reader-keyboard-navigation.md): Reader pane keyboard navigation, focus return behavior, and visual focus contract.
-- [docs/release-manual-verification.md](docs/release-manual-verification.md): Required manual verification before tagging a release or handing off packaged builds.
-
-## Optional
-
-- [TODO.md](TODO.md): Active and upcoming work tracking.
-- [src/__tests__](src/__tests__): Frontend unit tests and integration-style component tests.
-- [tests](tests/): Additional browser/dev support tests and shared helpers.
-- [src-tauri/tests/integration_test.rs](src-tauri/tests/integration_test.rs): Rust integration coverage.
-- [vitest.config.ts](vitest.config.ts): Frontend test configuration.
-- [playwright.config.ts](playwright.config.ts): Browser-mode end-to-end test configuration.
+- `docs/superpowers/specs/`: dated design documents.
+- `docs/superpowers/plans/`: dated implementation plans and execution checklists.
+- Historical docs are not the primary source of truth for current behavior. Prefer `README.md`, `docs/README.md`, operational docs, and code.
