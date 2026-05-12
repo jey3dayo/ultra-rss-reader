@@ -752,6 +752,10 @@
   height: var(--desktop-titlebar-offset);
 }
 
+.desktop-overlay-titlebar {
+  isolation: isolate;
+}
+
 *,
 *::before,
 *::after {

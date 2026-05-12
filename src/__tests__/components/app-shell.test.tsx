@@ -13,6 +13,7 @@ import {
   preloadSettingsModalModuleForDev,
   resetSettingsModalPreloadForTest,
   resolveFocusDebugHudPortalTarget,
+  shouldStartDesktopTitlebarDrag,
 } from "@/components/app-shell";
 import { APP_EVENTS } from "@/constants/events";
 import { TAURI_EVENT_LISTENER_FAILURE_EVENT } from "@/lib/runtime/tauri-event-listeners";
@@ -22,9 +23,18 @@ import { useUiStore } from "@/stores/ui-store";
 
 const settingsModalState = vi.hoisted(() => ({ shouldThrow: false }));
 const commandPaletteState = vi.hoisted(() => ({ shouldThrow: false }));
+const { startDraggingMock } = vi.hoisted(() => ({
+  startDraggingMock: vi.fn(() => Promise.resolve()),
+}));
 
 vi.mock("@tauri-apps/api/event", () => ({
   listen: vi.fn(() => Promise.resolve(() => {})),
+}));
+
+vi.mock("@tauri-apps/api/window", () => ({
+  getCurrentWindow: () => ({
+    startDragging: startDraggingMock,
+  }),
 }));
 
 vi.mock("@/hooks/use-app-icon-theme", () => ({ useAppIconTheme: vi.fn() }));
@@ -98,6 +108,7 @@ describe("AppShell", () => {
       prefs: {},
       loaded: true,
     });
+    startDraggingMock.mockClear();
     resetSettingsModalPreloadForTest();
     setupTauriMocks();
   });
@@ -422,7 +433,7 @@ describe("AppShell", () => {
     expect(overlayRoot).not.toHaveClass("pointer-events-auto");
   });
 
-  it("keeps the desktop overlay titlebar helper classes on the shell overlay root without adding a shell-wide drag strip", () => {
+  it("keeps a shell-owned desktop drag strip behind overlay chrome on macOS tauri", () => {
     const originalTauriInternalsDescriptor = Object.getOwnPropertyDescriptor(window, "__TAURI_INTERNALS__");
 
     try {
@@ -446,9 +457,48 @@ describe("AppShell", () => {
       const { container } = render(<AppShell />, { wrapper: createWrapper() });
 
       const overlayRoot = container.querySelector<HTMLElement>("[data-browser-overlay-root]");
+      const dragStrip = screen.getByTestId("desktop-titlebar-drag-strip");
       expect(container.firstElementChild).not.toHaveClass("desktop-overlay-titlebar");
       expect(overlayRoot).not.toHaveClass("desktop-titlebar-offset");
       expect(overlayRoot).toHaveClass("desktop-overlay-titlebar");
+      expect(dragStrip).toHaveAttribute("data-tauri-drag-region");
+      expect(dragStrip).toHaveClass("desktop-titlebar-drag-strip", "pointer-events-none", "z-[1]");
+    } finally {
+      if (originalTauriInternalsDescriptor) {
+        Object.defineProperty(window, "__TAURI_INTERNALS__", originalTauriInternalsDescriptor);
+      } else {
+        delete window.__TAURI_INTERNALS__;
+      }
+    }
+  });
+
+  it("does not render the desktop titlebar drag strip outside macOS overlay runtime", () => {
+    const originalTauriInternalsDescriptor = Object.getOwnPropertyDescriptor(window, "__TAURI_INTERNALS__");
+
+    try {
+      const { container, rerender } = render(<AppShell />, { wrapper: createWrapper() });
+
+      expect(container.querySelector("[data-testid='desktop-titlebar-drag-strip']")).toBeNull();
+
+      setTauriRuntimePresent();
+      usePlatformStore.setState({
+        platform: {
+          kind: "windows",
+          capabilities: {
+            supports_reading_list: false,
+            supports_background_browser_open: false,
+            supports_runtime_window_icon_replacement: true,
+            supports_native_browser_navigation: true,
+            uses_dev_file_credentials: false,
+          },
+        },
+        loaded: true,
+        loadError: false,
+        inFlightLoad: null,
+      });
+
+      rerender(<AppShell />);
+
       expect(container.querySelector("[data-testid='desktop-titlebar-drag-strip']")).toBeNull();
     } finally {
       if (originalTauriInternalsDescriptor) {
@@ -456,6 +506,86 @@ describe("AppShell", () => {
       } else {
         delete window.__TAURI_INTERNALS__;
       }
+    }
+  });
+
+  it("starts native window dragging from non-interactive macOS titlebar space", async () => {
+    const originalTauriInternalsDescriptor = Object.getOwnPropertyDescriptor(window, "__TAURI_INTERNALS__");
+
+    try {
+      setTauriRuntimePresent();
+      usePlatformStore.setState({
+        platform: {
+          kind: "macos",
+          capabilities: {
+            supports_reading_list: false,
+            supports_background_browser_open: false,
+            supports_runtime_window_icon_replacement: true,
+            supports_native_browser_navigation: true,
+            uses_dev_file_credentials: false,
+          },
+        },
+        loaded: true,
+        loadError: false,
+        inFlightLoad: null,
+      });
+
+      const { container } = render(<AppShell />, { wrapper: createWrapper() });
+      const shellRoot = container.firstElementChild;
+      if (!(shellRoot instanceof HTMLElement)) {
+        throw new Error("Expected shell root");
+      }
+
+      const dragStrip = screen.getByTestId("desktop-titlebar-drag-strip");
+      fireEvent.pointerDown(dragStrip, { button: 0, clientY: 12 });
+
+      await waitFor(() => {
+        expect(startDraggingMock).toHaveBeenCalledOnce();
+      });
+    } finally {
+      if (originalTauriInternalsDescriptor) {
+        Object.defineProperty(window, "__TAURI_INTERNALS__", originalTauriInternalsDescriptor);
+      } else {
+        delete window.__TAURI_INTERNALS__;
+      }
+    }
+  });
+
+  it("does not start titlebar dragging from arbitrary top-edge app content", () => {
+    const content = document.createElement("div");
+    document.body.append(content);
+
+    try {
+      const event = new MouseEvent("pointerdown", {
+        button: 0,
+        clientY: 12,
+        bubbles: true,
+        composed: true,
+      }) as PointerEvent;
+      content.dispatchEvent(event);
+
+      expect(shouldStartDesktopTitlebarDrag(event)).toBe(false);
+    } finally {
+      content.remove();
+    }
+  });
+
+  it("does not start titlebar dragging from interactive titlebar controls", () => {
+    const button = document.createElement("button");
+    document.body.append(button);
+
+    try {
+      const event = new MouseEvent("pointerdown", {
+        button: 0,
+        clientY: 12,
+        bubbles: true,
+        composed: true,
+      }) as PointerEvent;
+      button.dispatchEvent(event);
+
+      expect(shouldStartDesktopTitlebarDrag(event)).toBe(false);
+    } finally {
+      button.remove();
     }
   });
 
@@ -562,8 +692,10 @@ describe("AppShell", () => {
       const { container } = render(<AppShell />, { wrapper: createWrapper() });
 
       const overlayRoot = container.querySelector<HTMLElement>("[data-browser-overlay-root]");
+      const dragStrip = screen.getByTestId("desktop-titlebar-drag-strip");
       expect(overlayRoot).not.toHaveClass("desktop-titlebar-offset");
       expect(overlayRoot).toHaveClass("desktop-overlay-titlebar");
+      expect(dragStrip).toHaveAttribute("data-tauri-drag-region");
     } finally {
       restorePlatform();
       if (originalTauriInternalsDescriptor) {

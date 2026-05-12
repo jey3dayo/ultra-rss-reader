@@ -1,4 +1,5 @@
 import { listen } from "@tauri-apps/api/event";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Component, lazy, type ReactNode, Suspense, useEffect, useReducer, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
@@ -70,6 +71,17 @@ const SETTINGS_MODAL_PRELOAD_FAILURE_TOAST = "設定画面の読み込みに失�
 const LAZY_CHUNK_FAILURE_TOAST = "画面の読み込みに失敗しました。アプリの再読み込みを試してください。";
 const MAIN_WINDOW_CLOSE_BLOCKED_EVENT = "main-window-close-blocked";
 const MAIN_WINDOW_CLOSE_BLOCKED_TOAST = "未保存または実行中の処理があるため、終了前に確認してください。";
+const INTERACTIVE_TITLEBAR_TARGET_SELECTOR = [
+  "button",
+  "a[href]",
+  "input",
+  "select",
+  "textarea",
+  "[role='button']",
+  "[role='link']",
+  "[contenteditable='true']",
+  "[data-titlebar-interactive]",
+].join(",");
 let settingsModalPreloadState: SettingsModalPreloadState = "idle";
 let settingsModalPreloadRetryTimer: ReturnType<typeof setTimeout> | null = null;
 let settingsModalPreloadGeneration = 0;
@@ -85,6 +97,36 @@ function clearSettingsModalPreloadRetryTimer() {
 
 function reportLazyChunkFailure(message: string) {
   useUiStore.getState().showToast(message);
+}
+
+function eventTargetElement(event: Event): Element | null {
+  const [firstTarget] = event.composedPath();
+  if (firstTarget instanceof Element) {
+    return firstTarget;
+  }
+
+  return event.target instanceof Element ? event.target : null;
+}
+
+function isInteractiveTitlebarTarget(target: Element): boolean {
+  return target.closest(INTERACTIVE_TITLEBAR_TARGET_SELECTOR) !== null;
+}
+
+export function shouldStartDesktopTitlebarDrag(event: PointerEvent): boolean {
+  if (event.button !== 0) {
+    return false;
+  }
+
+  const target = eventTargetElement(event);
+  if (target === null || isInteractiveTitlebarTarget(target)) {
+    return false;
+  }
+
+  return target.closest("[data-tauri-drag-region]") !== null;
+}
+
+async function startDesktopTitlebarDrag() {
+  await getCurrentWindow().startDragging();
 }
 
 export function preloadSettingsModalModuleForDev(loadModule = loadSettingsModalModule) {
@@ -595,8 +637,38 @@ export function AppShell() {
     );
   }, []);
 
+  useEffect(() => {
+    if (!overlayTitlebar) {
+      return;
+    }
+
+    return bindWindowEvents([
+      {
+        type: "pointerdown",
+        listener: createPointerEventListener((event) => {
+          if (!shouldStartDesktopTitlebarDrag(event)) {
+            return;
+          }
+
+          void startDesktopTitlebarDrag().catch((error: unknown) => {
+            console.error("Failed to start desktop titlebar drag.", error);
+          });
+        }),
+        options: { capture: true },
+      },
+    ]);
+  }, [overlayTitlebar]);
+
   return (
     <div className="relative flex h-full flex-col bg-background text-foreground">
+      {overlayTitlebar ? (
+        <div
+          data-testid="desktop-titlebar-drag-strip"
+          data-tauri-drag-region
+          aria-hidden="true"
+          className="desktop-titlebar-drag-strip pointer-events-none absolute inset-x-0 top-0 z-[1]"
+        />
+      ) : null}
       <div
         data-browser-overlay-root=""
         className={cn(

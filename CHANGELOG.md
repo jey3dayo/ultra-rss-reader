@@ -4,6 +4,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+### Bug Fixes
+
+- macOS overlay titlebar のドラッグ帯を shell 側の責務として復旧し、reader と購読一覧の上端でウィンドウを掴める領域を安定させた
+
 ## [0.34.0] - 2026-05-12
 
 ### Features
