@@ -9,16 +9,20 @@ const jsdomProjectName = "jsdom";
 const nodeProjectGroupOrder = 0;
 const jsdomProjectGroupOrder = 1;
 
-// Keep this list explicit: every entry has been verified to run without jsdom
-// and without the shared DOM setup cost.
-const nodeEnvironmentTestFiles = [
+// Keep folders that are consistently DOM-free fast by default. Rendering and
+// DOM-facing tests stay in jsdom unless they opt into node with *.node.test.*.
+const nodeEnvironmentTestGlobs = [
+  "src/__tests__/api/schemas/**/*.test.ts",
+  "src/__tests__/scripts/**/*.test.ts",
+  "src/__tests__/styles/**/*.test.ts",
+] as const;
+const nodeNamedTestGlobs = ["src/**/*.node.test.{ts,tsx}"] as const;
+
+// Migration-only exceptions for mixed folders. New tests should prefer a
+// node-first folder or the *.node.test.* naming convention.
+const legacyNodeEnvironmentTestFiles = [
   "src/__tests__/api/bulk-count-schemas.test.ts",
   "src/__tests__/api/schema-barrel-public-api.test.ts",
-  "src/__tests__/api/schemas/database-info.test.ts",
-  "src/__tests__/api/schemas/feed-integrity.test.ts",
-  "src/__tests__/api/schemas/platform-info.test.ts",
-  "src/__tests__/api/schemas/sync-result.test.ts",
-  "src/__tests__/api/schemas/update-info.test.ts",
   "src/__tests__/components/account-detail-query-cache.test.ts",
   "src/__tests__/components/account-detail-sync-status-refetch.test.ts",
   "src/__tests__/components/account-detail-toast.test.ts",
@@ -35,14 +39,11 @@ const nodeEnvironmentTestFiles = [
   "src/__tests__/components/feed-tree-drag-outcome.test.ts",
   "src/__tests__/components/feed-tree-drag-session.test.ts",
   "src/__tests__/components/feed-tree-hover-target.test.ts",
-  "src/__tests__/components/reader-boolean-prop-surface.test.ts",
-  "src/__tests__/components/reader-type-surface.test.ts",
   "src/__tests__/components/shared-radius-contract.test.ts",
   "src/__tests__/components/sidebar-account-selection.test.ts",
   "src/__tests__/components/sidebar-density.test.ts",
   "src/__tests__/components/sidebar-feed-tree-helpers.test.ts",
   "src/__tests__/components/sidebar-sync-feedback.test.ts",
-  "src/__tests__/components/ui-reference-specimen-registry.test.ts",
   "src/__tests__/components/ui-wrapper-public-api.test.ts",
   "src/__tests__/components/use-appearance-settings-view-props.test.ts",
   "src/__tests__/components/use-article-list-body-props.test.ts",
@@ -101,15 +102,7 @@ const nodeEnvironmentTestFiles = [
   "src/__tests__/schemas/preferences-schema-contract.test.ts",
   "src/__tests__/schemas/tauri-config-identifiers.test.ts",
   "src/__tests__/schemas/updater-config.test.ts",
-  "src/__tests__/scripts/quality-baseline.test.ts",
-  "src/__tests__/scripts/seed-dev-db-from-prod.test.ts",
-  "src/__tests__/scripts/similarity-report.test.ts",
-  "src/__tests__/scripts/tauri-cli-dispatch.test.ts",
-  "src/__tests__/scripts/tauri-dev-vite-manager.test.ts",
-  "src/__tests__/scripts/todo-triage.test.ts",
-  "src/__tests__/scripts/windows-command-dispatch.test.ts",
   "src/__tests__/stores/platform-store.test.ts",
-  "src/__tests__/styles/semantic-tone-tokens.test.ts",
   "tests/helpers/app-error.test.ts",
   "tests/helpers/deferred.test.ts",
   "tests/helpers/dev-intent.test.ts",
@@ -137,7 +130,7 @@ export default defineConfig({
         test: {
           name: nodeProjectName,
           environment: nodeProjectName,
-          include: [...nodeEnvironmentTestFiles],
+          include: [...nodeEnvironmentTestGlobs, ...nodeNamedTestGlobs, ...legacyNodeEnvironmentTestFiles],
           setupFiles: [],
           sequence: {
             groupOrder: nodeProjectGroupOrder,
@@ -150,7 +143,7 @@ export default defineConfig({
           name: jsdomProjectName,
           environment: jsdomProjectName,
           include: [...unitTestFileGlobs],
-          exclude: [...nodeEnvironmentTestFiles],
+          exclude: [...nodeEnvironmentTestGlobs, ...nodeNamedTestGlobs, ...legacyNodeEnvironmentTestFiles],
           setupFiles: [...jsdomSetupFiles],
           sequence: {
             groupOrder: jsdomProjectGroupOrder,
