@@ -252,7 +252,9 @@ describe("package scripts", () => {
     const packageJson = readPackageJson();
     const miseToml = readWorkspaceFile("mise.toml");
     const ciTask = extractMiseTaskSection(miseToml, "test:unit:ci");
+    const ciWindowsCommand = extractMiseTaskCommand(miseToml, "test:unit:ci", "run_windows");
     const profileTask = extractMiseTaskSection(miseToml, "test:unit:profile");
+    const profileWindowsCommand = extractMiseTaskCommand(miseToml, "test:unit:profile", "run_windows");
 
     expect(packageJson.scripts?.test).toBe("pnpm run test:node && pnpm run test:jsdom");
     expect(packageJson.scripts?.["test:node"]).toBe("pnpm exec vitest run --project node");
@@ -260,9 +262,13 @@ describe("package scripts", () => {
     expect(ciTask).not.toBe("");
     expect(ciTask).toContain("pnpm run test:node --reporter=dot --silent=passed-only");
     expect(ciTask).toContain("pnpm run test:jsdom --reporter=dot --silent=passed-only");
+    expect(ciWindowsCommand).toContain("pnpm.CMD run test:node --reporter=dot --silent=passed-only");
+    expect(ciWindowsCommand).toContain("pnpm.CMD run test:jsdom --reporter=dot --silent=passed-only");
     expect(profileTask).not.toBe("");
     expect(profileTask).toContain("pnpm run test:node --reporter=verbose --slow-test-threshold=300");
     expect(profileTask).toContain("pnpm run test:jsdom --reporter=verbose --slow-test-threshold=300");
+    expect(profileWindowsCommand).toContain("pnpm.CMD run test:node --reporter=verbose --slow-test-threshold=300");
+    expect(profileWindowsCommand).toContain("pnpm.CMD run test:jsdom --reporter=verbose --slow-test-threshold=300");
   });
 
   it("keeps mise test:all semantics aligned with Storybook E2E", () => {
