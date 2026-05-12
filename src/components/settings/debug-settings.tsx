@@ -1,5 +1,7 @@
-import { useCallback, useEffect } from "react";
+import { Result } from "@praha/byethrow";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { resetOversizedDevCredentialsStore } from "@/api/tauri-commands";
 import { SettingsPageView } from "@/components/settings/settings-page-view";
 import { DEV_SCENARIO_ID, type DevScenarioId } from "@/dev/scenario-ids";
 import { runRuntimeDevScenario } from "@/dev/scenario-runtime";
@@ -22,6 +24,7 @@ export function DebugSettings() {
   const platformLoaded = usePlatformStore((s) => s.loaded);
   const platformLoadError = usePlatformStore((s) => s.loadError);
   const usesDevFileCredentials = usePlatformStore((s) => s.platform.capabilities.uses_dev_file_credentials);
+  const [resettingDevCredentials, setResettingDevCredentials] = useState(false);
 
   useEffect(() => {
     loadPlatformInfo();
@@ -71,6 +74,22 @@ export function DebugSettings() {
     [closeSettings, showToast, t],
   );
 
+  const resetDevCredentials = useCallback(async () => {
+    if (!usesDevFileCredentials || resettingDevCredentials) {
+      return;
+    }
+    setResettingDevCredentials(true);
+    try {
+      const moved = Result.unwrap(await resetOversizedDevCredentialsStore());
+      showToast(t(moved ? "debug.credentials_reset_success" : "debug.credentials_reset_noop"));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      showToast(t("debug.credentials_reset_failed", { message }));
+    } finally {
+      setResettingDevCredentials(false);
+    }
+  }, [resettingDevCredentials, showToast, t, usesDevFileCredentials]);
+
   const credentialsBackendValue = platformLoadError
     ? t("debug.credentials_backend_load_failed")
     : !platformLoaded
@@ -85,6 +104,9 @@ export function DebugSettings() {
     setPref,
     devBuild,
     credentialsBackendValue,
+    canResetDevCredentials: platformLoaded && usesDevFileCredentials,
+    resetDevCredentials,
+    resettingDevCredentials,
     openWebPreviewUrl,
     openWebPreviewGeometryCheck,
     openWebPreviewToastCheck,

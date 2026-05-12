@@ -7,6 +7,7 @@ import {
   classifySchemaParseErrorSurface,
   createSchemaParseAppError,
   getAppRecoveryActionsForCategory,
+  isDevCredentialStoreRecoveryError,
   USER_FACING_ERROR_DIAGNOSTICS_POLICY,
 } from "@/lib/ui-errors";
 
@@ -114,9 +115,30 @@ describe("ui error projection", () => {
     expect(
       classifyAppRecoveryCategory({
         type: "UserVisible",
+        message: "Keychain error: Dev store exceeds maximum size of 65536 bytes",
+      }),
+    ).toBe("storage");
+    expect(
+      classifyAppRecoveryCategory({
+        type: "UserVisible",
         message: "unexpected failure",
       }),
     ).toBe("unknown");
+  });
+
+  it("detects dev credential store recovery errors without matching diagnostics failures", () => {
+    expect(
+      isDevCredentialStoreRecoveryError({
+        type: "UserVisible",
+        message: "Keychain error: Dev store exceeds maximum size of 65536 bytes",
+      }),
+    ).toBe(true);
+    expect(
+      isDevCredentialStoreRecoveryError({
+        type: "Diagnostics",
+        message: "Dev store exceeds maximum size of 65536 bytes",
+      }),
+    ).toBe(false);
   });
 
   it("keeps app-level recovery actions category-specific", () => {

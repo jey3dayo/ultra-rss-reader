@@ -132,12 +132,17 @@ export function classifyAppRecoveryCategory(error: AppError): AppRecoveryCategor
     normalized.includes("corrupt") ||
     normalized.includes("malformed") ||
     normalized.includes("not a database") ||
-    normalized.includes("database disk image is malformed")
+    normalized.includes("database disk image is malformed") ||
+    normalized.includes("dev store exceeds maximum size")
   ) {
     return "storage";
   }
 
   return "unknown";
+}
+
+export function isDevCredentialStoreRecoveryError(error: AppError): boolean {
+  return error.type !== "Diagnostics" && error.message.toLowerCase().includes("dev store exceeds maximum size");
 }
 
 export function getAppRecoveryActionsForCategory(category: AppRecoveryCategory): readonly AppErrorRecoveryAction[] {

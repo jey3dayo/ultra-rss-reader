@@ -183,6 +183,16 @@ fn read_dev_store(path: &Path) -> DomainResult<HashMap<String, String>> {
     }
 }
 
+fn dev_store_is_oversized(path: &Path) -> DomainResult<bool> {
+    match std::fs::metadata(path) {
+        Ok(metadata) => Ok(metadata.len() > DEV_CREDENTIALS_MAX_BYTES),
+        Err(error) if error.kind() == ErrorKind::NotFound => Ok(false),
+        Err(error) => Err(dev_store_recovery_error(format!(
+            "Failed to read dev store metadata: {error}"
+        ))),
+    }
+}
+
 fn parse_dev_store_json(content: &str) -> DomainResult<HashMap<String, String>> {
     let value: serde_json::Value = serde_json::from_str(content)
         .map_err(|e| dev_store_recovery_error(format!("Failed to parse dev store: {e}")))?;
@@ -291,6 +301,68 @@ fn dev_store_lock_path(path: &Path) -> PathBuf {
         .and_then(|name| name.to_str())
         .unwrap_or("dev-credentials.json");
     path.with_file_name(format!(".{file_name}.lock"))
+}
+
+fn dev_store_recovery_backup_dir(path: &Path) -> PathBuf {
+    let created_unix_ms = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_millis())
+        .unwrap_or_default();
+    path.with_file_name(format!("dev-credentials-recovery-{created_unix_ms}"))
+}
+
+fn is_dev_store_recovery_artifact(file_name: &str, store_file_name: &str) -> bool {
+    file_name == store_file_name
+        || file_name == format!(".{store_file_name}.lock")
+        || (file_name.starts_with(&format!(".{store_file_name}.")) && file_name.ends_with(".tmp"))
+}
+
+fn move_dev_store_recovery_artifacts(path: &Path, backup_dir: &Path) -> DomainResult<bool> {
+    let parent = path.parent().ok_or_else(|| {
+        dev_store_recovery_error("Failed to reset dev store: store path has no parent directory")
+    })?;
+    let store_file_name = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("dev-credentials.json");
+    let entries = match std::fs::read_dir(parent) {
+        Ok(entries) => entries,
+        Err(error) if error.kind() == ErrorKind::NotFound => return Ok(false),
+        Err(error) => {
+            return Err(dev_store_recovery_error(format!(
+                "Failed to list dev store recovery artifacts: {error}"
+            )));
+        }
+    };
+
+    let mut moved_any = false;
+    for entry in entries {
+        let entry = entry.map_err(|error| {
+            dev_store_recovery_error(format!(
+                "Failed to inspect dev store recovery artifact: {error}"
+            ))
+        })?;
+        let file_name = entry.file_name();
+        let file_name = file_name.to_string_lossy();
+        if !is_dev_store_recovery_artifact(&file_name, store_file_name) {
+            continue;
+        }
+        if !moved_any {
+            std::fs::create_dir_all(backup_dir).map_err(|error| {
+                dev_store_recovery_error(format!(
+                    "Failed to create dev store recovery backup: {error}"
+                ))
+            })?;
+        }
+        std::fs::rename(entry.path(), backup_dir.join(file_name.as_ref())).map_err(|error| {
+            dev_store_recovery_error(format!(
+                "Failed to move dev store recovery artifact: {error}"
+            ))
+        })?;
+        moved_any = true;
+    }
+
+    Ok(moved_any)
 }
 
 #[derive(Debug)]
@@ -640,6 +712,20 @@ pub fn delete_password(account_id: &str) -> DomainResult<()> {
             "Failed to delete password: {e}"
         ))),
     }
+}
+
+pub fn reset_oversized_dev_credentials_store() -> DomainResult<bool> {
+    let Some(path) = dev_credentials_path() else {
+        return Ok(false);
+    };
+    let _process_guard = DEV_CREDENTIALS_STORE_LOCK
+        .lock()
+        .map_err(|e| DomainError::Keychain(format!("Failed to lock dev store: {e}")))?;
+    if !dev_store_is_oversized(&path)? {
+        return Ok(false);
+    }
+    let backup_dir = dev_store_recovery_backup_dir(&path);
+    move_dev_store_recovery_artifacts(&path, &backup_dir)
 }
 
 #[cfg(test)]
@@ -1124,6 +1210,76 @@ mod tests {
         assert!(error
             .to_string()
             .contains(super::DEV_CREDENTIALS_RECOVERY_HINT));
+    }
+
+    #[test]
+    fn dev_store_is_oversized_detects_only_files_above_limit() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("dev-credentials.json");
+
+        std::fs::write(&path, "x".repeat(super::DEV_CREDENTIALS_MAX_BYTES as usize)).unwrap();
+        assert!(!super::dev_store_is_oversized(&path).unwrap());
+
+        std::fs::write(
+            &path,
+            "x".repeat(super::DEV_CREDENTIALS_MAX_BYTES as usize + 1),
+        )
+        .unwrap();
+        assert!(super::dev_store_is_oversized(&path).unwrap());
+    }
+
+    #[test]
+    fn move_dev_store_recovery_artifacts_moves_store_lock_and_tmp_only() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("dev-credentials.json");
+        let lock_path = dir.path().join(".dev-credentials.json.lock");
+        let temp_path = dir.path().join(".dev-credentials.json.123.thread.tmp");
+        let unrelated_path = dir.path().join(".dev-credentials.json.notes");
+        let backup_dir = dir.path().join("backup");
+        std::fs::write(&path, "store").unwrap();
+        std::fs::write(&lock_path, "lock").unwrap();
+        std::fs::write(&temp_path, "tmp").unwrap();
+        std::fs::write(&unrelated_path, "notes").unwrap();
+
+        let moved =
+            super::move_dev_store_recovery_artifacts(&path, &backup_dir).expect("artifacts move");
+
+        assert!(moved);
+        assert!(!path.exists());
+        assert!(!lock_path.exists());
+        assert!(!temp_path.exists());
+        assert!(unrelated_path.exists());
+        assert_eq!(
+            std::fs::read_to_string(backup_dir.join("dev-credentials.json")).unwrap(),
+            "store"
+        );
+        assert_eq!(
+            std::fs::read_to_string(backup_dir.join(".dev-credentials.json.lock")).unwrap(),
+            "lock"
+        );
+        assert_eq!(
+            std::fs::read_to_string(backup_dir.join(".dev-credentials.json.123.thread.tmp"))
+                .unwrap(),
+            "tmp"
+        );
+    }
+
+    #[test]
+    fn valid_dev_store_does_not_trigger_oversized_recovery() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("dev-credentials.json");
+        let backup_dir = dir.path().join("backup");
+        let mut store = HashMap::new();
+        store.insert("account".to_string(), "secret".to_string());
+        super::write_dev_store(&path, &store).expect("valid store should be writable");
+
+        if super::dev_store_is_oversized(&path).unwrap() {
+            super::move_dev_store_recovery_artifacts(&path, &backup_dir).unwrap();
+        }
+
+        assert!(path.exists());
+        assert!(!backup_dir.exists());
+        assert_eq!(super::read_dev_store(&path).unwrap(), store);
     }
 
     #[test]

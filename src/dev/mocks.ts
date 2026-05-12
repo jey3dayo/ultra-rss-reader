@@ -968,6 +968,9 @@ export function setupDevMocks(): RestoreDevMocks {
           },
         ];
 
+      case "reset_oversized_dev_credentials_store":
+        return false;
+
       case "get_dev_runtime_options": {
         const devWindowSize = readDevWindowSize();
         return {
@@ -1163,7 +1166,10 @@ export function setupDevMocks(): RestoreDevMocks {
           throw { type: "UserVisible", message: "Folder not found" };
         }
         if (targetFolder && targetFolder.account_id !== targetFeed.account_id) {
-          throw { type: "UserVisible", message: "Folder belongs to another account" };
+          throw {
+            type: "UserVisible",
+            message: "Folder belongs to another account",
+          };
         }
         targetFeed.folder_id = folderId;
         return null;
@@ -1200,13 +1206,21 @@ export function setupDevMocks(): RestoreDevMocks {
 
       case "open_in_browser": {
         const { url } = parseBrowserMockArgs("open_in_browser", rawIpcPayload);
-        recordDevMockExternalOpen({ command: "open_in_browser", url, target: "_blank" });
+        recordDevMockExternalOpen({
+          command: "open_in_browser",
+          url,
+          target: "_blank",
+        });
         return null;
       }
 
       case "plugin:opener|open_url": {
         const { url } = parseBrowserMockArgs("plugin:opener|open_url", rawIpcPayload);
-        recordDevMockExternalOpen({ command: "plugin:opener|open_url", url, target: "_blank" });
+        recordDevMockExternalOpen({
+          command: "plugin:opener|open_url",
+          url,
+          target: "_blank",
+        });
         return null;
       }
 
@@ -1288,7 +1302,11 @@ export function setupDevMocks(): RestoreDevMocks {
       case "add_to_reading_list":
         {
           const { url } = parseBrowserMockArgs("add_to_reading_list", rawIpcPayload);
-          recordDevMockExternalOpen({ command: "add_to_reading_list", url, target: "reading-list" });
+          recordDevMockExternalOpen({
+            command: "add_to_reading_list",
+            url,
+            target: "reading-list",
+          });
         }
         return null;
       case "get_database_info":

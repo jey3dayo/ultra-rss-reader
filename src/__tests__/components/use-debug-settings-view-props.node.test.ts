@@ -12,6 +12,9 @@ function createProps(overrides: Partial<Parameters<typeof buildDebugSettingsView
     setPref: vi.fn(),
     devBuild: false,
     credentialsBackendValue: "OS keyring",
+    canResetDevCredentials: false,
+    resetDevCredentials: vi.fn(),
+    resettingDevCredentials: false,
     openWebPreviewUrl: vi.fn(),
     openWebPreviewGeometryCheck: vi.fn(),
     openWebPreviewToastCheck: vi.fn(),
@@ -75,9 +78,21 @@ describe("useDebugSettingsViewProps", () => {
 
     expect(scenarioControls).toHaveLength(3);
     expect(scenarioControls).toEqual([
-      expect.objectContaining({ id: "debug-web-preview-geometry-check", type: "action", disabled: true }),
-      expect.objectContaining({ id: "debug-web-preview-toast-check", type: "action", disabled: true }),
-      expect.objectContaining({ id: "debug-reading-display-mode", type: "action", disabled: true }),
+      expect.objectContaining({
+        id: "debug-web-preview-geometry-check",
+        type: "action",
+        disabled: true,
+      }),
+      expect.objectContaining({
+        id: "debug-web-preview-toast-check",
+        type: "action",
+        disabled: true,
+      }),
+      expect.objectContaining({
+        id: "debug-reading-display-mode",
+        type: "action",
+        disabled: true,
+      }),
     ]);
 
     for (const control of scenarioControls) {
@@ -198,5 +213,40 @@ describe("useDebugSettingsViewProps", () => {
     const props = createProps({ devBuild: false });
 
     expect(props.sections.find((section) => section.id === "debug-dev-data")).toBeUndefined();
+  });
+
+  it("adds the dev credential reset action only when dev file credentials are active", () => {
+    const resetDevCredentials = vi.fn();
+    const props = createProps({
+      canResetDevCredentials: true,
+      resetDevCredentials,
+    });
+
+    const credentialsSection = props.sections.find((section) => section.id === "debug-credentials");
+    const resetControl = credentialsSection?.controls.find((control) => control.id === "debug-credentials-reset");
+
+    expect(resetControl).toEqual(
+      expect.objectContaining({
+        type: "action",
+        label: "Dev credential recovery",
+        actionLabel: "Reset",
+        actionAriaLabel: "Reset oversized dev credential store",
+        disabled: false,
+      }),
+    );
+
+    if (resetControl?.type === "action") {
+      resetControl.onAction();
+    }
+
+    expect(resetDevCredentials).toHaveBeenCalledOnce();
+  });
+
+  it("omits the dev credential reset action for native keyring", () => {
+    const props = createProps({ canResetDevCredentials: false });
+
+    const credentialsSection = props.sections.find((section) => section.id === "debug-credentials");
+
+    expect(credentialsSection?.controls.some((control) => control.id === "debug-credentials-reset")).toBe(false);
   });
 });

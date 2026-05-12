@@ -22,6 +22,7 @@ const expectedMainWebviewPermissions = [
   "core:window:allow-set-fullscreen",
   "core:window:allow-set-icon",
   "core:window:allow-set-size",
+  "core:window:allow-start-dragging",
   "core:window:allow-unmaximize",
   "reader-commands",
   "browser-commands",
@@ -45,7 +46,12 @@ const expectedCommandOwnerAllowlists = {
     "close_browser_webview",
   ],
   "database-commands": ["get_database_info", "vacuum_database"],
-  "debug-log-commands": ["get_dev_runtime_options", "get_platform_permission_denied_recovery", "open_log_dir"],
+  "debug-log-commands": [
+    "get_dev_runtime_options",
+    "get_platform_permission_denied_recovery",
+    "open_log_dir",
+    "reset_oversized_dev_credentials_store",
+  ],
   "reader-commands": [
     "list_accounts",
     "add_account",
@@ -185,7 +191,10 @@ function extractRegisteredCommandNames(source: string): string[] {
     .filter((command): command is string => Boolean(command));
 }
 
-function extractPermissionAllowlist(source: string): { identifier: string; commands: string[] } {
+function extractPermissionAllowlist(source: string): {
+  identifier: string;
+  commands: string[];
+} {
   const identifier = source.match(/identifier\s*=\s*"([^"]+)"/)?.[1];
   const allowBlock = source.match(/commands\.allow\s*=\s*\[([\s\S]*?)\]/)?.[1] ?? "";
   if (!identifier) {

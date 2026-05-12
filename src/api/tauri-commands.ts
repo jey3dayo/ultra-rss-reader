@@ -402,7 +402,12 @@ function resolveListAccountArticlesArgs(
   const unreadOnly = typeof unreadOnlyOrOffset === "boolean" ? unreadOnlyOrOffset : undefined;
   const offset = typeof unreadOnlyOrOffset === "number" ? unreadOnlyOrOffset : offsetOrLimit;
   const resolvedLimit = typeof unreadOnlyOrOffset === "number" ? offsetOrLimit : limit;
-  return { accountId: accountIdOrParams, unreadOnly, offset, limit: resolvedLimit };
+  return {
+    accountId: accountIdOrParams,
+    unreadOnly,
+    offset,
+    limit: resolvedLimit,
+  };
 }
 
 export function listAccountArticles(
@@ -515,7 +520,10 @@ export const cleanupFeedIntegrityOrphans = (dryRun: boolean, orphanedArticleIds?
       response: FeedIntegrityCleanupDtoSchema,
       args: cleanupFeedIntegrityOrphansArgs,
     },
-    { dryRun, orphanedArticleIds: orphanedArticleIds ? [...orphanedArticleIds] : undefined },
+    {
+      dryRun,
+      orphanedArticleIds: orphanedArticleIds ? [...orphanedArticleIds] : undefined,
+    },
   );
 
 export const markArticleRead = (articleId: string, read = true) =>
@@ -785,7 +793,13 @@ export const addToReadingList = (url: string) =>
 export const getPlatformInfo = () => safeInvoke("get_platform_info", { response: PlatformInfoSchema });
 export const getDevRuntimeOptions = () => safeInvoke("get_dev_runtime_options", { response: DevRuntimeOptionsSchema });
 export const getPlatformPermissionDeniedRecovery = () =>
-  safeInvoke("get_platform_permission_denied_recovery", { response: PlatformPermissionDeniedRecoveryListSchema });
+  safeInvoke("get_platform_permission_denied_recovery", {
+    response: PlatformPermissionDeniedRecoveryListSchema,
+  });
+export const resetOversizedDevCredentialsStore = () =>
+  safeInvoke("reset_oversized_dev_credentials_store", {
+    response: BooleanResponseSchema,
+  });
 
 // Updater
 export const checkForUpdate = () => safeInvoke("check_for_update", { response: UpdateInfoDtoSchema.nullable() });

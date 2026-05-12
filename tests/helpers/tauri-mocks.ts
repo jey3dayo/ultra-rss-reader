@@ -377,6 +377,8 @@ function createDefaultHandler(): MockHandler {
       case "plugin:opener|open_url":
       case "open_log_dir":
         return null;
+      case "reset_oversized_dev_credentials_store":
+        return false;
       case "plugin:event|listen":
         return 1;
       case "plugin:event|unlisten":

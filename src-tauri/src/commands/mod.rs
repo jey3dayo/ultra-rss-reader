@@ -62,6 +62,7 @@ pub(crate) fn command_db_lock_policy(command_name: &str) -> Option<CommandDbLock
         | "get_platform_info"
         | "get_dev_runtime_options"
         | "get_platform_permission_denied_recovery"
+        | "reset_oversized_dev_credentials_store"
         | "discover_feeds"
         | "check_for_update"
         | "download_and_install_update"

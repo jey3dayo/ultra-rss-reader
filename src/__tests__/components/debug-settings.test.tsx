@@ -79,7 +79,9 @@ describe("DebugSettings", () => {
     await user.type(screen.getByLabelText("Web preview URL"), "not a url");
     await user.click(screen.getByRole("button", { name: "Open: Web preview URL" }));
 
-    expect(useUiStore.getState().toastMessage).toEqual({ message: "Enter a valid web preview URL." });
+    expect(useUiStore.getState().toastMessage).toEqual({
+      message: "Enter a valid web preview URL.",
+    });
     expect(useUiStore.getState().browserUrl).toBeNull();
     expect(useUiStore.getState().settingsOpen).toBe(true);
   });
@@ -98,7 +100,9 @@ describe("DebugSettings", () => {
     expect(useUiStore.getState().browserUrl).toBe(geometryCheckUrl);
     expect(useUiStore.getState().contentMode).toBe("browser");
     expect(useUiStore.getState().settingsOpen).toBe(false);
-    expect(useUiStore.getState().toastMessage).toEqual({ message: "Link copied" });
+    expect(useUiStore.getState().toastMessage).toEqual({
+      message: "Link copied",
+    });
   });
 
   it("opens the geometry check page instead of the old image viewer overlay flow", async () => {
@@ -131,7 +135,9 @@ describe("DebugSettings", () => {
     expect(useUiStore.getState().browserUrl).toBe(geometryCheckUrl);
     expect(useUiStore.getState().contentMode).toBe("browser");
     expect(useUiStore.getState().settingsOpen).toBe(false);
-    expect(useUiStore.getState().toastMessage).toEqual({ message: "Link copied" });
+    expect(useUiStore.getState().toastMessage).toEqual({
+      message: "Link copied",
+    });
   });
 
   it("keeps long debug action labels on one line", () => {
@@ -148,6 +154,46 @@ describe("DebugSettings", () => {
     expect(await screen.findByText("OS keyring")).toBeInTheDocument();
     expect(screen.getByText(/relaunching with `mise run app:dev`/i)).toBeInTheDocument();
     expect(screen.getByText(/mise run app:dev:native-keyring/i)).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", {
+        name: "Reset oversized dev credential store",
+      }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows dev credential reset only for dev file credentials and reports success", async () => {
+    const user = userEvent.setup();
+    setupTauriMocks((cmd) => {
+      if (cmd === "get_platform_info") {
+        return {
+          kind: "macos",
+          capabilities: {
+            supports_reading_list: true,
+            supports_background_browser_open: true,
+            supports_runtime_window_icon_replacement: true,
+            supports_native_browser_navigation: true,
+            uses_dev_file_credentials: true,
+          },
+        };
+      }
+      if (cmd === "reset_oversized_dev_credentials_store") {
+        return true;
+      }
+      return undefined;
+    });
+
+    render(<DebugSettings />, { wrapper: createWrapper() });
+
+    expect(await screen.findByText("Dev file credentials")).toBeInTheDocument();
+    await user.click(
+      screen.getByRole("button", {
+        name: "Reset oversized dev credential store",
+      }),
+    );
+
+    expect(useUiStore.getState().toastMessage).toEqual({
+      message: "Dev credentials were moved aside. Restart the app and reconnect accounts.",
+    });
   });
 
   it("shows explicit debug copy when platform info loading fails", async () => {

@@ -1,3 +1,4 @@
+use crate::commands::dto::AppError;
 use crate::commands::dto::{
     DevRuntimeOptionsDto, PlatformInfoDto, PlatformPermissionDeniedRecoveryDto,
     PlatformPermissionDeniedSurfaceDto,
@@ -75,6 +76,11 @@ fn platform_permission_denied_recovery_matrix() -> Vec<PlatformPermissionDeniedR
 #[tauri::command]
 pub fn get_platform_permission_denied_recovery() -> Vec<PlatformPermissionDeniedRecoveryDto> {
     platform_permission_denied_recovery_matrix()
+}
+
+#[tauri::command]
+pub fn reset_oversized_dev_credentials_store() -> Result<bool, AppError> {
+    crate::infra::keyring_store::reset_oversized_dev_credentials_store().map_err(AppError::from)
 }
 
 #[cfg(test)]

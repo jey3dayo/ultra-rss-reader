@@ -5,4 +5,5 @@ commands.allow = [
   "get_dev_runtime_options",
   "get_platform_permission_denied_recovery",
   "open_log_dir",
+  "reset_oversized_dev_credentials_store",
 ]

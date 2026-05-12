@@ -5,6 +5,9 @@ import type { SettingsPreferenceViewPropsParams } from "../settings-preference.t
 type UseDebugSettingsViewPropsParams = SettingsPreferenceViewPropsParams & {
   devBuild: boolean;
   credentialsBackendValue: string;
+  canResetDevCredentials: boolean;
+  resetDevCredentials: () => void;
+  resettingDevCredentials: boolean;
   openWebPreviewUrl: () => void;
   openWebPreviewGeometryCheck: () => void;
   openWebPreviewToastCheck: () => void;
@@ -17,6 +20,9 @@ export function useDebugSettingsViewProps({
   setPref,
   devBuild,
   credentialsBackendValue,
+  canResetDevCredentials,
+  resetDevCredentials,
+  resettingDevCredentials,
   openWebPreviewUrl,
   openWebPreviewGeometryCheck,
   openWebPreviewToastCheck,
@@ -103,6 +109,21 @@ export function useDebugSettingsViewProps({
             label: t("debug.credentials_backend"),
             value: credentialsBackendValue,
           },
+          ...(canResetDevCredentials
+            ? [
+                {
+                  id: "debug-credentials-reset",
+                  type: "action" as const,
+                  label: t("debug.credentials_reset"),
+                  actionLabel: resettingDevCredentials
+                    ? t("debug.credentials_resetting")
+                    : t("debug.credentials_reset_action"),
+                  actionAriaLabel: t("debug.credentials_reset_aria_label"),
+                  disabled: resettingDevCredentials,
+                  onAction: resetDevCredentials,
+                },
+              ]
+            : []),
         ],
       },
       ...devDataSections,
