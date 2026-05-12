@@ -9,10 +9,7 @@ rules:
     min-spaces-inside-empty: 0
     max-spaces-inside-empty: 1
   trailing-spaces: disable
-  line-length:
-    max: 150
-    allow-non-breakable-words: true
-    allow-non-breakable-inline-mappings: true
+  line-length: disable
   colons:
     max-spaces-before: 0
     max-spaces-after: 1
