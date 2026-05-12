@@ -34,7 +34,7 @@ const nodeEnvironmentTestGlobs = [
   "tests/type-surface-contract.test.ts",
   "tests/windows-dispatch.test.ts",
 ] as const;
-const nodeNamedTestGlobs = ["src/**/*.node.test.{ts,tsx}"] as const;
+const nodeNamedTestGlobs = ["src/**/*.node.test.{ts,tsx}", "tests/**/*.node.test.{ts,tsx}"] as const;
 
 // Migration-only exceptions for mixed folders. New tests should prefer a
 // node-first folder or the *.node.test.* naming convention.

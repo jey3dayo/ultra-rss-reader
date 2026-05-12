@@ -2,9 +2,9 @@ import { describe, expect, expectTypeOf, it, vi } from "vitest";
 import type { ActionsSettingsViewProps } from "@/components/settings/actions-settings-view";
 import {
   ACTIONS_SETTINGS_TOOLBAR_ACTION_IDS,
-  useActionsSettingsViewProps as buildActionsSettingsViewProps,
+  buildActionsSettingsViewModel,
   TOOLBAR_ACTION_IDS_WITH_SETTINGS,
-} from "@/components/settings/hooks/use-actions-settings-view-props";
+} from "@/components/settings/lib/actions-settings-view-model";
 import i18n from "@/lib/i18n";
 
 const t = i18n.getFixedT("en", "settings");
@@ -18,7 +18,7 @@ describe("useActionsSettingsViewProps", () => {
 
   it("maps toolbar action preferences to service toggles", () => {
     const setPref = vi.fn();
-    const props = buildActionsSettingsViewProps({
+    const props = buildActionsSettingsViewModel({
       t,
       prefs: { action_copy_link: "true" },
       setPref,

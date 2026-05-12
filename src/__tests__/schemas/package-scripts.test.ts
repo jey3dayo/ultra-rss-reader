@@ -251,6 +251,7 @@ describe("package scripts", () => {
   it("keeps Vitest unit test projects addressable from package and mise tasks", () => {
     const packageJson = readPackageJson();
     const miseToml = readWorkspaceFile("mise.toml");
+    const vitestConfig = readWorkspaceFile("vitest.config.ts");
     const fastTask = extractMiseTaskSection(miseToml, "test:unit:fast");
     const fastWindowsCommand = extractMiseTaskCommand(miseToml, "test:unit:fast", "run_windows");
     const domTask = extractMiseTaskSection(miseToml, "test:unit:dom");
@@ -263,6 +264,9 @@ describe("package scripts", () => {
     expect(packageJson.scripts?.test).toBe("pnpm run test:node && pnpm run test:jsdom");
     expect(packageJson.scripts?.["test:node"]).toBe("pnpm exec vitest run --project node");
     expect(packageJson.scripts?.["test:jsdom"]).toBe("pnpm exec vitest run --project jsdom");
+    expect(vitestConfig).toContain('"src/**/*.node.test.{ts,tsx}"');
+    expect(vitestConfig).toContain('"tests/**/*.node.test.{ts,tsx}"');
+    expect(vitestConfig).toContain("...nodeNamedTestGlobs");
     expect(fastTask).not.toBe("");
     expect(fastTask).toContain("pnpm run test:node");
     expect(fastTask).not.toContain("test:jsdom");

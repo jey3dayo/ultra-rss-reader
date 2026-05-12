@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   buildShortcutCategoryOrder,
+  buildShortcutsSettingsViewProps,
   resolveShortcutCategoryHeading,
-  useShortcutsSettingsViewProps,
-} from "@/components/settings/hooks/use-shortcuts-settings-view-props";
+} from "@/components/settings/lib/shortcuts-settings-view-model";
 import type { ShortcutsSettingsViewProps } from "@/components/settings/shortcuts-settings-view";
 import i18n from "@/lib/i18n";
 import { type ShortcutActionId, shortcutDefinitions } from "@/lib/keyboard/keyboard-shortcuts";
@@ -23,7 +23,7 @@ function getShortcutItem(props: ShortcutsSettingsViewProps, id: ShortcutActionId
 
 const defaultShortcutKeys = new Map(shortcutDefinitions.map((definition) => [definition.id, definition.defaultKey]));
 
-describe("useShortcutsSettingsViewProps", () => {
+describe("buildShortcutsSettingsViewProps", () => {
   it("builds category order from first appearance and emits duplicate categories once", () => {
     expect(
       buildShortcutCategoryOrder([
@@ -47,7 +47,7 @@ describe("useShortcutsSettingsViewProps", () => {
   it("maps reset state, shortcut display, conflicts, and static bindings", () => {
     const onResetAll = vi.fn();
 
-    const props = useShortcutsSettingsViewProps({
+    const props = buildShortcutsSettingsViewProps({
       t,
       tReader,
       platformKind: "windows",
@@ -100,7 +100,7 @@ describe("useShortcutsSettingsViewProps", () => {
   });
 
   it("keeps shortcut category order, labels, and reset disabled state stable", () => {
-    const props = useShortcutsSettingsViewProps({
+    const props = buildShortcutsSettingsViewProps({
       t,
       tReader,
       platformKind: "macos",
@@ -250,9 +250,9 @@ describe("useShortcutsSettingsViewProps", () => {
   it("binds recording and keyboard handlers to each shortcut id", () => {
     const onStartRecording = vi.fn();
     const onBadgeKeyDown = vi.fn();
-    const event = new KeyboardEvent("keydown", { key: "j" });
+    const event = { key: "j" } as KeyboardEvent;
 
-    const props = useShortcutsSettingsViewProps({
+    const props = buildShortcutsSettingsViewProps({
       t,
       tReader,
       platformKind: "macos",
@@ -284,7 +284,7 @@ describe("useShortcutsSettingsViewProps", () => {
     const tJa = i18n.getFixedT("ja", "settings");
     const tReaderJa = i18n.getFixedT("ja", "reader");
 
-    const props = useShortcutsSettingsViewProps({
+    const props = buildShortcutsSettingsViewProps({
       t: tJa,
       tReader: tReaderJa,
       platformKind: "macos",

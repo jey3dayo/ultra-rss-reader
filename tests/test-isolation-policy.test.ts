@@ -48,7 +48,7 @@ describe("test isolation policy contract", () => {
       "src/__tests__/config/ci-workflow-contract.test.ts",
       "src/__tests__/dev/scenarios/registry.test.ts",
       "tests/helpers/repo-contract-parser.test.ts",
-      'const nodeNamedTestGlobs = ["src/**/*.node.test.{ts,tsx}"] as const;',
+      'const nodeNamedTestGlobs = ["src/**/*.node.test.{ts,tsx}", "tests/**/*.node.test.{ts,tsx}"] as const;',
       "const legacyNodeEnvironmentTestFiles = [",
       "name: nodeProjectName",
       "environment: nodeProjectName",
