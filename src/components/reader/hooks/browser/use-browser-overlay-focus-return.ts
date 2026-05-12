@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
+import { cancelAnimationFrameHandle, scheduleAnimationFrame } from "@/lib/dom/animation-frame";
 import { queryElementByDataAttribute } from "@/lib/dom/data-attribute";
 import { topLayerOwnsFocus } from "@/lib/dom/top-layer";
 import { isReaderFocusTargetDisabled } from "@/lib/reader-focus";
@@ -15,27 +16,6 @@ type UseBrowserOverlayFocusReturnResult = {
 };
 
 const FOCUS_RETURN_SCHEDULE_WARNING = "Failed to schedule browser overlay focus return.";
-
-function scheduleBrowserOverlayFocusReturn(callback: FrameRequestCallback): number | null {
-  if (typeof window === "undefined" || typeof window.requestAnimationFrame !== "function") {
-    return null;
-  }
-
-  try {
-    return window.requestAnimationFrame(callback);
-  } catch (error) {
-    console.warn(FOCUS_RETURN_SCHEDULE_WARNING, error);
-    return null;
-  }
-}
-
-function cancelBrowserOverlayFocusReturn(frameHandle: number): void {
-  if (typeof window === "undefined" || typeof window.cancelAnimationFrame !== "function") {
-    return;
-  }
-
-  window.cancelAnimationFrame(frameHandle);
-}
 
 export function useBrowserOverlayFocusReturn({
   articleId,
@@ -83,54 +63,61 @@ export function useBrowserOverlayFocusReturn({
       overlayFocusReturnTargetRef.current = null;
       overlayFocusReturnTargetKeyRef.current = null;
 
-      focusReturnFrameRef.current = scheduleBrowserOverlayFocusReturn(() => {
-        focusReturnFrameRef.current = null;
-        if (cancelled) {
-          return;
-        }
-
-        if (topLayerOwnsFocus()) {
-          return;
-        }
-
-        if (previousTargetKey) {
-          const nextTarget = queryElementByDataAttribute<HTMLElement>(
-            document,
-            "data-browser-overlay-return-focus",
-            previousTargetKey,
-          );
-          if (nextTarget && !isReaderFocusTargetDisabled(nextTarget)) {
-            nextTarget.focus();
+      focusReturnFrameRef.current = scheduleAnimationFrame(
+        () => {
+          focusReturnFrameRef.current = null;
+          if (cancelled) {
             return;
           }
-        }
 
-        if (previousTarget?.isConnected && !isReaderFocusTargetDisabled(previousTarget)) {
-          previousTarget.focus();
-          return;
-        }
+          if (topLayerOwnsFocus()) {
+            return;
+          }
 
-        const selectedArticleTarget = queryElementByDataAttribute<HTMLElement>(document, "data-article-id", articleId);
-        if (selectedArticleTarget && !isReaderFocusTargetDisabled(selectedArticleTarget)) {
-          useUiStore.getState().setFocusedPane("list");
-          selectedArticleTarget.focus({ preventScroll: true });
-          return;
-        }
+          if (previousTargetKey) {
+            const nextTarget = queryElementByDataAttribute<HTMLElement>(
+              document,
+              "data-browser-overlay-return-focus",
+              previousTargetKey,
+            );
+            if (nextTarget && !isReaderFocusTargetDisabled(nextTarget)) {
+              nextTarget.focus();
+              return;
+            }
+          }
 
-        const openInBrowserTarget = document.querySelector<HTMLElement>(
-          '[data-browser-overlay-return-focus="open-in-browser"]',
-        );
-        if (openInBrowserTarget && !isReaderFocusTargetDisabled(openInBrowserTarget)) {
-          openInBrowserTarget.focus();
-          return;
-        }
+          if (previousTarget?.isConnected && !isReaderFocusTargetDisabled(previousTarget)) {
+            previousTarget.focus();
+            return;
+          }
 
-        const fallbackTarget = document.querySelector<HTMLElement>("[data-article-list-root='true']");
-        if (fallbackTarget && !isReaderFocusTargetDisabled(fallbackTarget)) {
-          useUiStore.getState().setFocusedPane("list");
-          fallbackTarget.focus({ preventScroll: true });
-        }
-      });
+          const selectedArticleTarget = queryElementByDataAttribute<HTMLElement>(
+            document,
+            "data-article-id",
+            articleId,
+          );
+          if (selectedArticleTarget && !isReaderFocusTargetDisabled(selectedArticleTarget)) {
+            useUiStore.getState().setFocusedPane("list");
+            selectedArticleTarget.focus({ preventScroll: true });
+            return;
+          }
+
+          const openInBrowserTarget = document.querySelector<HTMLElement>(
+            '[data-browser-overlay-return-focus="open-in-browser"]',
+          );
+          if (openInBrowserTarget && !isReaderFocusTargetDisabled(openInBrowserTarget)) {
+            openInBrowserTarget.focus();
+            return;
+          }
+
+          const fallbackTarget = document.querySelector<HTMLElement>("[data-article-list-root='true']");
+          if (fallbackTarget && !isReaderFocusTargetDisabled(fallbackTarget)) {
+            useUiStore.getState().setFocusedPane("list");
+            fallbackTarget.focus({ preventScroll: true });
+          }
+        },
+        { warningMessage: FOCUS_RETURN_SCHEDULE_WARNING },
+      );
     }
 
     wasBrowserOpenRef.current = isBrowserOpen;
@@ -138,7 +125,7 @@ export function useBrowserOverlayFocusReturn({
     return () => {
       cancelled = true;
       if (focusReturnFrameRef.current !== null) {
-        cancelBrowserOverlayFocusReturn(focusReturnFrameRef.current);
+        cancelAnimationFrameHandle(focusReturnFrameRef.current);
         focusReturnFrameRef.current = null;
       }
     };
