@@ -72,15 +72,29 @@ describe("test isolation policy contract", () => {
 
   it("keeps the shared frontend teardown responsible for mutable globals", () => {
     const setup = readRepoFile("tests/setup.ts");
+    const browserTestGlobals = readRepoFile("tests/helpers/browser-test-globals.ts");
 
     expectAll(setup, [
-      "restoreProcessEnv",
+      'from "./helpers/browser-test-globals"',
+      "ensureWorkingStorage()",
+      "ensureGetAnimations()",
+      "restoreProcessEnv()",
       'clearWorkingStorage(readWorkingWindowStorage("localStorage"))',
       'clearWorkingStorage(readWorkingWindowStorage("sessionStorage"))',
+      "restoreStorageDescriptors()",
       "vi.useRealTimers()",
       "resetCommandHistoryStorageFailureWarnings()",
       "resetStartupSyncStorageFailureWarnings()",
       "resetTestObserverMocks()",
+    ]);
+    expectAll(browserTestGlobals, [
+      "export class MemoryStorage implements Storage",
+      "export function installTestDom",
+      "export function setupBrowserTestDom",
+      "restoreProcessEnv",
+      'clearWorkingStorage(readWorkingWindowStorage("localStorage"))',
+      'clearWorkingStorage(readWorkingWindowStorage("sessionStorage"))',
+      "vi.useRealTimers()",
       "restoreStorageDescriptors()",
     ]);
   });
