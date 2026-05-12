@@ -1,4 +1,5 @@
 import { act, renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import type { PropsWithChildren } from "react";
 import { describe, expect, it } from "vitest";
 import {
@@ -9,6 +10,8 @@ import {
   useRegisterSettingsDirtyState,
   useSettingsDirtyStateRegistrySnapshot,
 } from "@/components/settings/hooks/use-settings-dirty-state-registry";
+
+setupBrowserTestDom();
 
 function wrapper({ children }: PropsWithChildren) {
   return <SettingsDirtyStateRegistryProvider>{children}</SettingsDirtyStateRegistryProvider>;

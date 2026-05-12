@@ -162,7 +162,7 @@ const cleanupContractTestFiles = {
   readerPureHelperContracts: [
     "src/__tests__/components/article-list-item.test.tsx",
     "src/__tests__/components/feed-mark-all-read.node.test.ts",
-    "src/__tests__/components/use-article-list-navigation.test.tsx",
+    "src/__tests__/components/use-article-list-navigation.node.test.tsx",
   ],
   publicWrapperSurfaceContracts: ["src/__tests__/components/ui-wrapper-public-api.node.test.ts"],
 } as const;

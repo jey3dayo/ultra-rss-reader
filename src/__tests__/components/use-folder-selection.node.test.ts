@@ -1,7 +1,14 @@
-import { act, renderHook } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { act, cleanup, renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { NEW_FOLDER_VALUE } from "@/components/reader/folder-select-view";
 import { buildFolderOptions, useFolderSelection } from "@/components/reader/hooks/feed-dialogs/use-folder-selection";
+
+setupBrowserTestDom();
+
+afterEach(() => {
+  cleanup();
+});
 
 describe("use-folder-selection", () => {
   it("builds a no-folder option when folders are not loaded", () => {

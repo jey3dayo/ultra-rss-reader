@@ -1,9 +1,22 @@
+import "@testing-library/jest-dom/vitest";
 import { renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { sampleArticles } from "@tests/helpers/fixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { useArticleListEffects } from "@/components/reader/hooks/article-list/use-article-list-effects";
 import { useArticleListNavigation } from "@/components/reader/hooks/article-list/use-article-list-navigation";
+
+setupBrowserTestDom();
+
+function stubWindowGlobal(key: "requestAnimationFrame" | "cancelAnimationFrame", value: unknown): void {
+  Object.defineProperty(window, key, {
+    configurable: true,
+    writable: true,
+    value,
+  });
+  vi.stubGlobal(key, value);
+}
 
 describe("useArticleListNavigation", () => {
   afterEach(() => {
@@ -50,7 +63,7 @@ describe("useArticleListNavigation", () => {
     const viewport = document.createElement("div");
     const requestAnimationFrame = vi.fn();
 
-    vi.stubGlobal("requestAnimationFrame", requestAnimationFrame);
+    stubWindowGlobal("requestAnimationFrame", requestAnimationFrame);
     Object.defineProperty(viewport, "clientHeight", { value: 200 });
     Object.defineProperty(viewport, "scrollHeight", { value: 400 });
     document.body.append(list);
@@ -79,7 +92,7 @@ describe("useArticleListNavigation", () => {
     const viewport = document.createElement("div");
     const requestAnimationFrameCallbacks: FrameRequestCallback[] = [];
 
-    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+    stubWindowGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
       requestAnimationFrameCallbacks.push(callback);
       return requestAnimationFrameCallbacks.length;
     });
@@ -118,7 +131,7 @@ describe("useArticleListNavigation", () => {
     const viewport = document.createElement("div");
     const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
 
-    vi.stubGlobal(
+    stubWindowGlobal(
       "requestAnimationFrame",
       vi.fn(() => {
         throw new Error("frame failed");
@@ -157,7 +170,7 @@ describe("useArticleListNavigation", () => {
     const textarea = document.createElement("textarea");
     const requestAnimationFrameCallbacks: FrameRequestCallback[] = [];
 
-    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+    stubWindowGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
       requestAnimationFrameCallbacks.push(callback);
       return requestAnimationFrameCallbacks.length;
     });
@@ -239,7 +252,7 @@ describe("useArticleListNavigation", () => {
     const viewport = document.createElement("div");
     const requestAnimationFrame = vi.fn();
 
-    vi.stubGlobal("requestAnimationFrame", requestAnimationFrame);
+    stubWindowGlobal("requestAnimationFrame", requestAnimationFrame);
 
     const { result } = renderHook(() =>
       useArticleListNavigation({
@@ -267,7 +280,7 @@ describe("useArticleListNavigation", () => {
     const thirdButton = document.createElement("button");
     const requestAnimationFrameCallbacks: FrameRequestCallback[] = [];
 
-    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+    stubWindowGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
       requestAnimationFrameCallbacks.push(callback);
       return requestAnimationFrameCallbacks.length;
     });
@@ -318,7 +331,7 @@ describe("useArticleListNavigation", () => {
     const secondButton = document.createElement("button");
     const requestAnimationFrameCallbacks: FrameRequestCallback[] = [];
 
-    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+    stubWindowGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
       requestAnimationFrameCallbacks.push(callback);
       return requestAnimationFrameCallbacks.length;
     });
@@ -372,11 +385,11 @@ describe("useArticleListEffects", () => {
     const clearArticle = vi.fn();
     const requestAnimationFrameCallbacks: FrameRequestCallback[] = [];
 
-    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+    stubWindowGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
       requestAnimationFrameCallbacks.push(callback);
       return requestAnimationFrameCallbacks.length;
     });
-    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+    stubWindowGlobal("cancelAnimationFrame", vi.fn());
     deletedButton.setAttribute("data-article-id", sampleArticles[1].id);
     fallbackButton.setAttribute("data-article-id", sampleArticles[0].id);
     list.append(deletedButton);
@@ -425,11 +438,11 @@ describe("useArticleListEffects", () => {
     const requestAnimationFrameCallbacks: FrameRequestCallback[] = [];
     const cancelAnimationFrame = vi.fn();
 
-    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+    stubWindowGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
       requestAnimationFrameCallbacks.push(callback);
       return requestAnimationFrameCallbacks.length;
     });
-    vi.stubGlobal("cancelAnimationFrame", cancelAnimationFrame);
+    stubWindowGlobal("cancelAnimationFrame", cancelAnimationFrame);
 
     const { rerender } = renderHook(
       ({ filteredArticles, isPrimarySourceLoading }) =>
@@ -476,11 +489,11 @@ describe("useArticleListEffects", () => {
     const requestAnimationFrameCallbacks: FrameRequestCallback[] = [];
     const cancelAnimationFrame = vi.fn();
 
-    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+    stubWindowGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
       requestAnimationFrameCallbacks.push(callback);
       return requestAnimationFrameCallbacks.length;
     });
-    vi.stubGlobal("cancelAnimationFrame", cancelAnimationFrame);
+    stubWindowGlobal("cancelAnimationFrame", cancelAnimationFrame);
 
     const { rerender } = renderHook(
       ({ filteredArticles }) =>
@@ -524,11 +537,11 @@ describe("useArticleListEffects", () => {
     const requestAnimationFrameCallbacks: FrameRequestCallback[] = [];
     const cancelAnimationFrame = vi.fn();
 
-    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+    stubWindowGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
       requestAnimationFrameCallbacks.push(callback);
       return requestAnimationFrameCallbacks.length;
     });
-    vi.stubGlobal("cancelAnimationFrame", cancelAnimationFrame);
+    stubWindowGlobal("cancelAnimationFrame", cancelAnimationFrame);
 
     const { rerender } = renderHook(
       ({ filteredArticles, isSearchLoading }) =>

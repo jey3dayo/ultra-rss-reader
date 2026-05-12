@@ -1,3 +1,4 @@
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { describe, expect, it, vi } from "vitest";
 import {
   FEED_DROP_TARGET_ID_ATTRIBUTE,
@@ -6,6 +7,8 @@ import {
   getFeedDropTargetFromElement,
   isSameFeedDropTarget,
 } from "@/lib/sidebar/feed-tree-drop-target";
+
+setupBrowserTestDom();
 
 describe("isSameFeedDropTarget", () => {
   it("compares folder targets by folder id", () => {

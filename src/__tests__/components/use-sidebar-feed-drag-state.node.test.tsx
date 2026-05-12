@@ -1,6 +1,9 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { describe, expect, it, vi } from "vitest";
 import { useSidebarFeedDragState } from "@/components/reader/hooks/sidebar/use-sidebar-feed-drag-state";
+
+setupBrowserTestDom();
 
 function renderDragState({
   canDragFeeds = true,

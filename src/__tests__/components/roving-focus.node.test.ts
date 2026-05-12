@@ -1,6 +1,9 @@
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { createRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { focusRovingButton, getActiveRovingButtonIndex, getLoopedFocusIndex } from "@/lib/dom/roving-focus";
+
+setupBrowserTestDom();
 
 describe("roving-focus", () => {
   afterEach(() => {

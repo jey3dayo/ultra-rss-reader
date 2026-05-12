@@ -1,6 +1,10 @@
+import "@testing-library/jest-dom/vitest";
 import { render } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { describe, expect, it } from "vitest";
 import { StarIcon, UnreadIcon } from "@/components/shared/article-state-icon";
+
+setupBrowserTestDom();
 
 describe("UnreadIcon", () => {
   it("uses the shared unread tone instead of a hardcoded blue", () => {

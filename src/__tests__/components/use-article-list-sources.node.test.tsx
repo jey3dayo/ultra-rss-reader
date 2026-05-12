@@ -1,4 +1,5 @@
 import { renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { sampleArticles, sampleFeeds } from "@tests/helpers/fixtures";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -7,6 +8,8 @@ import { useArticleListSources } from "@/components/reader/hooks/article-list/us
 import { resolveReaderSourcePlan } from "@/lib/reader/reader-query";
 import type { ReaderSelection } from "@/lib/reader/reader-selection.types";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
+
+setupBrowserTestDom();
 
 const {
   useFeedsMock,

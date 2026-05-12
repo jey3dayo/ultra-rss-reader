@@ -1,9 +1,12 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { describe, expect, it } from "vitest";
 import type { FeedDto } from "@/api/tauri-commands";
 import { useSubscriptionsIndexState } from "@/components/subscriptions-index/use-subscriptions-index-state";
 import { buildSubscriptionListRows } from "@/lib/subscriptions/subscriptions-index";
 import type { SubscriptionListRow } from "@/lib/subscriptions/subscriptions-index.types";
+
+setupBrowserTestDom();
 
 function makeRow(
   feedId: string,

@@ -1,10 +1,13 @@
 import { renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { sampleArticles, sampleFeeds } from "@tests/helpers/fixtures";
 import { describe, expect, it } from "vitest";
 import type { ArticleDto } from "@/api/tauri-commands";
 import type { UseArticleListDataParams } from "@/components/reader/hooks/article-list/article-list-controller.types";
 import { useArticleListData } from "@/components/reader/hooks/article-list/use-article-list-data";
 import { type ReaderFilter, type ReaderSourcePlan, resolveReaderSourcePlan } from "@/lib/reader/reader-query";
+
+setupBrowserTestDom();
 
 const EMPTY_ARTICLES: ArticleDto[] = [];
 const EMPTY_RETAINED_ARTICLE_IDS = new Set<string>();

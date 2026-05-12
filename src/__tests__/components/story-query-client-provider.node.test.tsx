@@ -1,8 +1,11 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { render } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { describe, expect, it, vi } from "vitest";
 import { StoryQueryClientProvider } from "@/components/storybook/story-query-client-provider";
+
+setupBrowserTestDom();
 
 function QueryClientProbe({ onClient }: { onClient: (queryClient: QueryClient) => void }) {
   const queryClient = useQueryClient();

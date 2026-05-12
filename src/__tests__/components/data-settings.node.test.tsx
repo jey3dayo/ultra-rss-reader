@@ -1,4 +1,5 @@
 import { render } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DataSettings } from "@/components/settings/data-settings";
 import { STORAGE_CLEANUP_POLICY_CONNECTIONS } from "@/constants/storage";
@@ -48,6 +49,8 @@ vi.mock("react-i18next", () => ({
     },
   }),
 }));
+
+setupBrowserTestDom();
 
 describe("DataSettings", () => {
   beforeEach(() => {

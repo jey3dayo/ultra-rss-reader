@@ -1,7 +1,10 @@
 import { renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { describe, expect, it } from "vitest";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import { useSidebarFeedTree } from "@/components/reader/hooks/sidebar/use-sidebar-feed-tree";
+
+setupBrowserTestDom();
 
 const folders: FolderDto[] = [
   { id: "folder-z", account_id: "acc-1", name: "Zulu Folder", sort_order: 2 },

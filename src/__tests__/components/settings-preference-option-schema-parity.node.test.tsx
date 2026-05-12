@@ -1,4 +1,5 @@
 import { renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { settingsPreferenceLabelKeys } from "@tests/helpers/settings-fixtures";
 import { describe, expect, expectTypeOf, it, vi } from "vitest";
@@ -9,6 +10,8 @@ import type { SettingsPageControl, SettingsPageViewProps } from "@/components/se
 import type { SettingsPreferenceViewPropsParams } from "@/components/settings/settings-preference.types";
 import i18n from "@/lib/i18n";
 import { type KnownPreferenceKey, preferenceSchemas } from "@/schemas/preferences";
+
+setupBrowserTestDom();
 
 const t = i18n.getFixedT("en", "settings");
 

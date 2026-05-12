@@ -1,4 +1,4 @@
-import { waitFor } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   CONTEXT_MENU_ACTION_IDS,
@@ -8,6 +8,8 @@ import {
 import { APP_EVENTS } from "@/constants/events";
 
 const ACTION_ID_PATTERN = /^[a-z]+(?:-[a-z0-9]+)*$/;
+
+setupBrowserTestDom();
 
 describe("context menu action policy", () => {
   beforeEach(() => {
@@ -43,7 +45,7 @@ describe("context menu action policy", () => {
     createMenuActionHandler(CONTEXT_MENU_ACTION_IDS.feedOpenSite, action, { showToast })();
     createMenuActionHandler(CONTEXT_MENU_ACTION_IDS.feedOpenSite, action, { showToast })();
 
-    await waitFor(() => {
+    await vi.waitFor(() => {
       expect(showToast).toHaveBeenCalledTimes(2);
     });
     window.removeEventListener(APP_EVENTS.debugInputTrace, listener);

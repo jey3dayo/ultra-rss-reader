@@ -1,9 +1,12 @@
-import { renderHook } from "@testing-library/react";
+import { cleanup, renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { useArticleActions } from "@/components/reader/hooks/article/use-article-actions";
 import { keyboardEvents } from "@/lib/keyboard/keyboard-shortcuts";
 import { useUiStore } from "@/stores/ui-store";
+
+setupBrowserTestDom();
 
 const { addArticleToReadingListMock, copyArticleLinkMock, openArticleInExternalBrowserMock } = vi.hoisted(() => ({
   addArticleToReadingListMock: vi.fn(),
@@ -65,6 +68,7 @@ describe("useArticleActions", () => {
   });
 
   afterEach(() => {
+    cleanup();
     useUiStore.setState(useUiStore.getInitialState());
   });
 

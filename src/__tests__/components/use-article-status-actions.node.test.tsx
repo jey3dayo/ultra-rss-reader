@@ -1,9 +1,12 @@
 import { QueryClient } from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { UseArticleStatusActionsParams } from "@/components/reader/hooks/article/use-article-status-actions";
 import { useArticleStatusActions } from "@/components/reader/hooks/article/use-article-status-actions";
 import { useUiStore } from "@/stores/ui-store";
+
+setupBrowserTestDom();
 
 type SetReadMutate = UseArticleStatusActionsParams["setRead"]["mutate"];
 type ToggleStarMutate = UseArticleStatusActionsParams["toggleStar"]["mutate"];

@@ -1,6 +1,7 @@
 import { Result } from "@praha/byethrow";
-import { act, renderHook, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DatabaseInfoDtoSchema } from "@/api/schemas/database-info";
 import { getDatabaseInfo, openLogDir, vacuumDatabase } from "@/api/tauri-commands";
 import type { DatabaseRecoveryActionSafety } from "@/components/settings/hooks/use-data-settings-controller";
@@ -12,6 +13,12 @@ import {
   useDataSettingsController,
 } from "@/components/settings/hooks/use-data-settings-controller";
 import { STORAGE_KEYS } from "@/constants/storage";
+
+setupBrowserTestDom();
+
+afterEach(() => {
+  cleanup();
+});
 
 vi.mock("@/api/tauri-commands", () => ({
   getDatabaseInfo: vi.fn(async () =>

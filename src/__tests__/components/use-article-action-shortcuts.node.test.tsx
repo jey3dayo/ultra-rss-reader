@@ -1,4 +1,5 @@
-import { fireEvent, render } from "@testing-library/react";
+import { cleanup, fireEvent, render } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   type UseArticleActionShortcutsParams,
@@ -8,6 +9,8 @@ import { useKeyboard } from "@/hooks/use-keyboard";
 import { keyboardEvents } from "@/lib/keyboard/keyboard-shortcuts";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
+
+setupBrowserTestDom();
 
 type TestShortcutsProps = Partial<UseArticleActionShortcutsParams>;
 
@@ -45,6 +48,7 @@ describe("useArticleActionShortcuts", () => {
   });
 
   afterEach(() => {
+    cleanup();
     useUiStore.setState(useUiStore.getInitialState());
     usePreferencesStore.setState({ prefs: {}, loaded: false });
   });

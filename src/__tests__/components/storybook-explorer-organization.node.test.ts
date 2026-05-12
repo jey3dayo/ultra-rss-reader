@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import preview, { STORYBOOK_PREVIEW_BACKGROUND_TOKEN } from "../../../.storybook/preview";
 import * as storybookIndexPayload from "../../../e2e/storybook/storybook-index-payload";
 import {
@@ -22,6 +22,13 @@ import {
   STORYBOOK_EXPLORER_UI_REFERENCE_TITLES,
   storybookExplorerTitle,
 } from "../../constants/storybook-explorer";
+
+vi.mock("@storybook/addon-docs/blocks", () => ({
+  Controls: () => null,
+  Primary: () => null,
+  Subtitle: () => null,
+  Title: () => null,
+}));
 
 type StoryMetaModule = {
   default?: {
