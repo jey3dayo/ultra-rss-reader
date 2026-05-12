@@ -14,6 +14,8 @@ use crate::repository::account::AccountRepository;
 use std::net::IpAddr;
 use std::sync::{atomic::AtomicBool, Mutex};
 
+const MISSING_PASSWORD_ERROR_MARKER: &str = "Password is not configured";
+
 #[cfg(test)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum AccountCredentialCleanupStep {
@@ -340,19 +342,25 @@ where
     }
 }
 
-fn update_account_credentials_after_optional_password<F, U, G, S>(
+fn is_missing_password_error(error: &AppError) -> bool {
+    matches!(error, AppError::UserVisible { message } if message.contains(MISSING_PASSWORD_ERROR_MARKER))
+}
+
+fn update_account_credentials_after_optional_password<F, U, G, S, D>(
     id: &AccountId,
     password: Option<&str>,
     mut find_account: F,
     update_credentials: U,
     get_password: G,
     mut set_password: S,
+    mut delete_password: D,
 ) -> Result<Account, AppError>
 where
     F: FnMut(&AccountId) -> Result<Option<Account>, AppError>,
     U: FnOnce(&AccountId) -> Result<(), AppError>,
     G: FnOnce(&str) -> Result<String, AppError>,
     S: FnMut(&str, &str) -> Result<(), AppError>,
+    D: FnMut(&str) -> Result<(), AppError>,
 {
     find_account(id)?.ok_or_else(|| AppError::UserVisible {
         message: "Account not found".into(),
@@ -360,7 +368,11 @@ where
 
     let saved_password = password.filter(|pw| !pw.is_empty());
     let previous_password = if saved_password.is_some() {
-        Some(get_password(id.as_ref())?)
+        match get_password(id.as_ref()) {
+            Ok(password) => Some(password),
+            Err(error) if is_missing_password_error(&error) => None,
+            Err(error) => return Err(error),
+        }
     } else {
         None
     };
@@ -380,6 +392,14 @@ where
                 if let Err(rollback_error) = set_password(id.as_ref(), &previous_password) {
                     warn!(
                         "Failed to restore previous keyring entry for account {} after credential update failure: {:?}",
+                        id.as_ref(),
+                        rollback_error
+                    );
+                }
+            } else if saved_password.is_some() {
+                if let Err(rollback_error) = delete_password(id.as_ref()) {
+                    warn!(
+                        "Failed to remove new keyring entry for account {} after credential update failure: {:?}",
                         id.as_ref(),
                         rollback_error
                     );
@@ -772,6 +792,7 @@ mod tests {
                     .push((account_id.to_string(), password.to_string()));
                 Ok(())
             },
+            |_| Ok(()),
         )
         .expect_err("missing account should be rejected before keyring save");
 
@@ -808,6 +829,7 @@ mod tests {
                     .push((account_id.to_string(), password.to_string()));
                 Ok(())
             },
+            |_| Ok(()),
         )
         .expect_err("DB update failure should be returned");
 
@@ -855,6 +877,7 @@ mod tests {
                     .push((account_id.to_string(), password.to_string()));
                 Ok(())
             },
+            |_| Ok(()),
         )
         .expect("successful credential update should keep the new keyring password");
 
@@ -870,6 +893,107 @@ mod tests {
         assert_eq!(
             saved_passwords.borrow().as_slice(),
             &[(account.id.as_ref().to_string(), "new-secret".to_string())]
+        );
+    }
+
+    #[test]
+    fn update_account_credentials_saves_password_when_previous_password_is_missing() {
+        let account = fresh_rss_account();
+        let read_passwords = RefCell::new(Vec::new());
+        let saved_passwords = RefCell::new(Vec::new());
+        let updated_accounts = RefCell::new(Vec::new());
+        let deleted_passwords = RefCell::new(Vec::new());
+
+        let updated = update_account_credentials_after_optional_password(
+            &account.id,
+            Some("new-secret"),
+            |_| Ok(Some(account.clone())),
+            |account_id| {
+                updated_accounts
+                    .borrow_mut()
+                    .push(account_id.as_ref().to_string());
+                Ok(())
+            },
+            |account_id| {
+                read_passwords.borrow_mut().push(account_id.to_string());
+                Err(AppError::UserVisible {
+                    message: "Validation error: Password is not configured. Re-enter your password in account settings, save it, and try again.".to_string(),
+                })
+            },
+            |account_id, password| {
+                saved_passwords
+                    .borrow_mut()
+                    .push((account_id.to_string(), password.to_string()));
+                Ok(())
+            },
+            |account_id| {
+                deleted_passwords.borrow_mut().push(account_id.to_string());
+                Ok(())
+            },
+        )
+        .expect("missing previous password should allow saving a replacement password");
+
+        assert_eq!(updated.id, account.id);
+        assert_eq!(
+            read_passwords.borrow().as_slice(),
+            &[account.id.as_ref().to_string()]
+        );
+        assert_eq!(
+            updated_accounts.borrow().as_slice(),
+            &[account.id.as_ref().to_string()]
+        );
+        assert_eq!(
+            saved_passwords.borrow().as_slice(),
+            &[(account.id.as_ref().to_string(), "new-secret".to_string())]
+        );
+        assert!(deleted_passwords.borrow().is_empty());
+    }
+
+    #[test]
+    fn update_account_credentials_deletes_new_password_when_db_update_fails_without_previous_password(
+    ) {
+        let account = fresh_rss_account();
+        let saved_passwords = RefCell::new(Vec::new());
+        let deleted_passwords = RefCell::new(Vec::new());
+
+        let error = update_account_credentials_after_optional_password(
+            &account.id,
+            Some("new-secret"),
+            |_| Ok(Some(account.clone())),
+            |_| {
+                Err(AppError::UserVisible {
+                    message: "db failed".to_string(),
+                })
+            },
+            |_| {
+                Err(AppError::UserVisible {
+                    message: "Validation error: Password is not configured. Re-enter your password in account settings, save it, and try again.".to_string(),
+                })
+            },
+            |account_id, password| {
+                saved_passwords
+                    .borrow_mut()
+                    .push((account_id.to_string(), password.to_string()));
+                Ok(())
+            },
+            |account_id| {
+                deleted_passwords.borrow_mut().push(account_id.to_string());
+                Ok(())
+            },
+        )
+        .expect_err("DB update failure should be returned after deleting the new password");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message } if message == "db failed"
+        ));
+        assert_eq!(
+            saved_passwords.borrow().as_slice(),
+            &[(account.id.as_ref().to_string(), "new-secret".to_string())]
+        );
+        assert_eq!(
+            deleted_passwords.borrow().as_slice(),
+            &[account.id.as_ref().to_string()]
         );
     }
 
@@ -900,6 +1024,7 @@ mod tests {
                     .push((account_id.to_string(), password.to_string()));
                 Ok(())
             },
+            |_| Ok(()),
         )
         .expect("empty password draft should not block metadata credential updates");
 
@@ -939,6 +1064,7 @@ mod tests {
                     .push((account_id.to_string(), password.to_string()));
                 Ok(())
             },
+            |_| Ok(()),
         )
         .expect_err("old credential read failure should stop before mutation");
 
@@ -976,6 +1102,7 @@ mod tests {
                 }
                 Ok(())
             },
+            |_| Ok(()),
         )
         .expect_err("DB update failure should stay the returned error");
 
@@ -1331,6 +1458,7 @@ pub fn update_account_credentials(
         },
         |account_id| keyring_store::get_password(account_id).map_err(AppError::from),
         |account_id, pw| keyring_store::set_password(account_id, pw).map_err(AppError::from),
+        |account_id| keyring_store::delete_password(account_id).map_err(AppError::from),
     )?;
     Ok(AccountDto::from(account))
 }
