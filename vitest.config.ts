@@ -2,6 +2,11 @@ import path from "node:path";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
 
+const unitTestFileGlobs = ["src/**/*.test.{ts,tsx}", "tests/**/*.test.{ts,tsx}"] as const;
+const jsdomSetupFiles = ["tests/setup.ts"] as const;
+
+// Keep this list explicit: every entry has been verified to run without jsdom
+// and without the shared DOM setup cost.
 const nodeEnvironmentTestFiles = [
   "src/__tests__/api/bulk-count-schemas.test.ts",
   "src/__tests__/api/schema-barrel-public-api.test.ts",
@@ -140,9 +145,9 @@ export default defineConfig({
         test: {
           name: "jsdom",
           environment: "jsdom",
-          include: ["src/**/*.test.{ts,tsx}", "tests/**/*.test.{ts,tsx}"],
+          include: [...unitTestFileGlobs],
           exclude: [...nodeEnvironmentTestFiles],
-          setupFiles: ["tests/setup.ts"],
+          setupFiles: [...jsdomSetupFiles],
           sequence: {
             groupOrder: 1,
           },

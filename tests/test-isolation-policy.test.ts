@@ -33,12 +33,13 @@ describe("test isolation policy contract", () => {
   it("keeps Vitest on the shared setup file without disabling file isolation", () => {
     const vitestConfig = readRepoFile("vitest.config.ts");
 
-    expect(vitestConfig).toContain('setupFiles: ["tests/setup.ts"]');
+    expect(vitestConfig).toContain('const jsdomSetupFiles = ["tests/setup.ts"] as const;');
     expect(vitestConfig).toContain('name: "node"');
     expect(vitestConfig).toContain('environment: "node"');
     expect(vitestConfig).toContain("setupFiles: []");
     expect(vitestConfig).toContain('name: "jsdom"');
     expect(vitestConfig).toContain('environment: "jsdom"');
+    expect(vitestConfig).toContain("setupFiles: [...jsdomSetupFiles]");
     expect(vitestConfig).toContain("groupOrder: 0");
     expect(vitestConfig).toContain("groupOrder: 1");
     expect(vitestConfig).not.toMatch(/\bisolate\s*:\s*false\b/);
