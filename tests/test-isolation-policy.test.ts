@@ -41,8 +41,13 @@ describe("test isolation policy contract", () => {
       "const jsdomProjectGroupOrder = 1;",
       "const nodeEnvironmentTestGlobs = [",
       "src/__tests__/api/schemas/**/*.test.ts",
+      "src/__tests__/constants/**/*.test.ts",
+      "src/__tests__/schemas/**/*.test.ts",
       "src/__tests__/scripts/**/*.test.ts",
       "src/__tests__/styles/**/*.test.ts",
+      "src/__tests__/config/ci-workflow-contract.test.ts",
+      "src/__tests__/dev/scenarios/registry.test.ts",
+      "tests/helpers/repo-contract-parser.test.ts",
       'const nodeNamedTestGlobs = ["src/**/*.node.test.{ts,tsx}"] as const;',
       "const legacyNodeEnvironmentTestFiles = [",
       "name: nodeProjectName",
@@ -58,6 +63,7 @@ describe("test isolation policy contract", () => {
       "groupOrder: jsdomProjectGroupOrder",
     ]);
     expect(vitestConfig).not.toMatch(/src\/__tests__\/components\/\*\*/);
+    expect(vitestConfig).not.toMatch(/src\/__tests__\/lib\/\*\*/);
     expect(vitestConfig).not.toMatch(/\bisolate\s*:\s*false\b/);
     expect(vitestConfig).not.toMatch(/\benvironmentMatchGlobs\s*:/);
     expect(vitestConfig).not.toMatch(/\bpoolOptions\s*:/);
