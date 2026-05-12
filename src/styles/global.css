@@ -14,6 +14,8 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-text-selection: var(--text-selection);
+  --color-text-selection-foreground: var(--text-selection-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -156,6 +158,8 @@
   --popover-foreground: var(--theme-foreground);
   --primary: var(--theme-primary);
   --primary-foreground: #fff7f2;
+  --text-selection: #ead2bc;
+  --text-selection-foreground: var(--theme-foreground);
   --secondary: var(--theme-card);
   --secondary-foreground: var(--theme-foreground);
   --muted: var(--theme-surface-3);
@@ -419,6 +423,8 @@
   --popover-foreground: var(--theme-foreground);
   --primary: var(--theme-primary);
   --primary-foreground: var(--theme-canvas);
+  --text-selection: #765435;
+  --text-selection-foreground: #fff7f2;
   --secondary: #2c2822;
   --secondary-foreground: var(--theme-foreground);
   --muted: #302b25;
@@ -665,6 +671,8 @@
     --popover-foreground: CanvasText;
     --primary: Highlight;
     --primary-foreground: HighlightText;
+    --text-selection: Highlight;
+    --text-selection-foreground: HighlightText;
     --secondary: Canvas;
     --secondary-foreground: CanvasText;
     --muted: Canvas;
@@ -768,6 +776,11 @@ body {
   font-family: inherit;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+[data-slot="input"]::selection {
+  background: var(--text-selection);
+  color: var(--text-selection-foreground);
 }
 
 @keyframes vertical-wipe {

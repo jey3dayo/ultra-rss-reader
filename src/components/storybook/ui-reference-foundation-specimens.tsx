@@ -164,6 +164,13 @@ export function SemanticStateSurfaceSpecimen() {
           chipTone="muted"
           className="border-border/60 bg-[color-mix(in_srgb,#dfa88f_18%,transparent)]"
         />
+        <ReferenceSemanticStateCard
+          title="Text selection"
+          description="Native text selection. Softer than primary so selected input text stays readable."
+          chipLabel="Selection"
+          chipTone="muted"
+          className="border-border/60 bg-text-selection text-text-selection-foreground"
+        />
       </div>
     </SurfaceCard>
   );

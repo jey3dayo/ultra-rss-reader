@@ -36,6 +36,8 @@ const REQUIRED_THEME_COLOR_ALIASES = [
   { aliasName: "--color-popover-foreground", tokenName: "--popover-foreground" },
   { aliasName: "--color-primary", tokenName: "--primary" },
   { aliasName: "--color-primary-foreground", tokenName: "--primary-foreground" },
+  { aliasName: "--color-text-selection", tokenName: "--text-selection" },
+  { aliasName: "--color-text-selection-foreground", tokenName: "--text-selection-foreground" },
   { aliasName: "--color-secondary", tokenName: "--secondary" },
   { aliasName: "--color-secondary-foreground", tokenName: "--secondary-foreground" },
   { aliasName: "--color-muted", tokenName: "--muted" },
