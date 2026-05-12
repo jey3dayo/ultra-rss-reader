@@ -75,7 +75,7 @@ const darkReaderToolbarTokens: CssVariableProperties = {
   "--surface-2": "rgba(242, 241, 237, 0.08)",
   "--surface-3": "rgba(242, 241, 237, 0.12)",
   "--primary": "#f54e00",
-  "--ring": "rgba(245, 78, 0, 0.38)",
+  "--ring": "rgba(159, 187, 224, 0.42)",
   "--tone-unread": "#9fbbe0",
   "--tone-starred": "#facc15",
   "--semantic-tone-starred-surface": "rgba(250, 204, 21, 0.16)",

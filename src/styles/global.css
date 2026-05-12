@@ -170,7 +170,7 @@
   --border: rgba(38, 37, 30, 0.12);
   --border-strong: rgba(38, 37, 30, 0.2);
   --input: rgba(38, 37, 30, 0.12);
-  --ring: rgba(245, 78, 0, 0.26);
+  --ring: rgba(112, 132, 158, 0.38);
   --sidebar: var(--theme-surface-3);
   --sidebar-foreground: var(--theme-foreground);
   --sidebar-accent: #dcd8cf;
@@ -435,7 +435,7 @@
   --border: rgba(243, 239, 230, 0.12);
   --border-strong: rgba(243, 239, 230, 0.22);
   --input: rgba(243, 239, 230, 0.14);
-  --ring: rgba(245, 78, 0, 0.38);
+  --ring: rgba(159, 187, 224, 0.42);
   --sidebar: #171410;
   --sidebar-foreground: #efe8db;
   --sidebar-accent: #26211b;
@@ -647,7 +647,7 @@
     --border: color-mix(in srgb, var(--foreground) 24%, transparent);
     --border-strong: color-mix(in srgb, var(--foreground) 42%, transparent);
     --input: color-mix(in srgb, var(--foreground) 34%, transparent);
-    --ring: color-mix(in srgb, var(--primary) 70%, var(--foreground));
+    --ring: color-mix(in srgb, var(--foreground) 56%, var(--tone-unread));
     --sidebar-border: color-mix(in srgb, var(--sidebar-foreground) 28%, transparent);
     --browser-overlay-rail-border: color-mix(in srgb, var(--foreground) 32%, transparent);
     --browser-overlay-state-detail-border: color-mix(in srgb, var(--foreground) 34%, transparent);
