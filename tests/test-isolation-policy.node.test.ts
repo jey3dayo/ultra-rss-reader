@@ -65,6 +65,7 @@ describe("test isolation policy contract", () => {
     expect(vitestConfig).not.toMatch(/src\/__tests__\/components\/\*\*/);
     expect(vitestConfig).not.toMatch(/src\/__tests__\/lib\/\*\*/);
     expect(vitestConfig).not.toMatch(/\bisolate\s*:\s*false\b/);
+    expect(vitestConfig).not.toMatch(/\bmaxWorkers\s*:/);
     expect(vitestConfig).not.toMatch(/\benvironmentMatchGlobs\s*:/);
     expect(vitestConfig).not.toMatch(/\bpoolOptions\s*:/);
   });
