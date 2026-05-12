@@ -2,6 +2,7 @@ import { Result } from "@praha/byethrow";
 import { useCallback, useEffect, useRef } from "react";
 import { APP_EVENTS } from "@/constants/events";
 import { getAdjacentItemId } from "@/lib/articles/article-list";
+import { cancelAnimationFrameHandle, scheduleAnimationFrame } from "@/lib/dom/animation-frame";
 import { queryElementByDataAttribute } from "@/lib/dom/data-attribute";
 import {
   bindWindowEvents,
@@ -11,27 +12,6 @@ import {
 import type { SidebarFeedNavigationParams } from "../../sidebar-feed-section.types";
 
 const FEED_FOCUS_SCHEDULE_WARNING = "Failed to schedule sidebar feed focus.";
-
-function scheduleSidebarFeedFocus(callback: FrameRequestCallback): number | null {
-  if (typeof window === "undefined" || typeof window.requestAnimationFrame !== "function") {
-    return null;
-  }
-
-  try {
-    return window.requestAnimationFrame(callback);
-  } catch (error) {
-    console.warn(FEED_FOCUS_SCHEDULE_WARNING, error);
-    return null;
-  }
-}
-
-function cancelSidebarFeedFocus(frameHandle: number): void {
-  if (typeof window === "undefined" || typeof window.cancelAnimationFrame !== "function") {
-    return;
-  }
-
-  window.cancelAnimationFrame(frameHandle);
-}
 
 export function useSidebarFeedNavigation({
   orderedFeedIds,
@@ -49,7 +29,7 @@ export function useSidebarFeedNavigation({
 
   const cancelPendingFocusFrame = useCallback(() => {
     if (pendingFocusFrameRef.current !== null) {
-      cancelSidebarFeedFocus(pendingFocusFrameRef.current);
+      cancelAnimationFrameHandle(pendingFocusFrameRef.current);
       pendingFocusFrameRef.current = null;
       pendingFocusFeedIdRef.current = null;
     }
@@ -95,28 +75,31 @@ export function useSidebarFeedNavigation({
       selectFeed(resolvedNextFeedId);
       cancelPendingFocusFrame();
       pendingFocusFeedIdRef.current = resolvedNextFeedId;
-      const pendingFocusFrame = scheduleSidebarFeedFocus(() => {
-        pendingFocusFrameRef.current = null;
-        pendingFocusFeedIdRef.current = null;
-        if (!isMountedRef.current) {
-          return;
-        }
-        if (latestSelectedFeedIdRef.current !== resolvedNextFeedId) {
-          return;
-        }
+      const pendingFocusFrame = scheduleAnimationFrame(
+        () => {
+          pendingFocusFrameRef.current = null;
+          pendingFocusFeedIdRef.current = null;
+          if (!isMountedRef.current) {
+            return;
+          }
+          if (latestSelectedFeedIdRef.current !== resolvedNextFeedId) {
+            return;
+          }
 
-        const nextFeedButton = queryElementByDataAttribute<HTMLButtonElement>(
-          document,
-          "data-feed-id",
-          resolvedNextFeedId,
-        );
-        if (!nextFeedButton) {
-          return;
-        }
+          const nextFeedButton = queryElementByDataAttribute<HTMLButtonElement>(
+            document,
+            "data-feed-id",
+            resolvedNextFeedId,
+          );
+          if (!nextFeedButton) {
+            return;
+          }
 
-        nextFeedButton.focus({ preventScroll: true });
-        nextFeedButton.scrollIntoView?.({ block: "nearest", inline: "nearest" });
-      });
+          nextFeedButton.focus({ preventScroll: true });
+          nextFeedButton.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+        },
+        { warningMessage: FEED_FOCUS_SCHEDULE_WARNING },
+      );
       pendingFocusFrameRef.current = pendingFocusFrame;
       if (pendingFocusFrame === null) {
         pendingFocusFeedIdRef.current = null;

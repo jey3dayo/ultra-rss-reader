@@ -24,18 +24,22 @@ function extractMiseTaskNames(miseToml: string): Set<string> {
 }
 
 function extractMiseTaskDepends(miseToml: string, taskName: string): string[] {
+  const taskSection = extractMiseTaskSection(miseToml, taskName);
+  const dependsLine = taskSection.match(/^depends = \[(.*)\]$/m)?.[1] ?? "";
+
+  return [...dependsLine.matchAll(/"([^"]+)"/g)].map((match) => match[1] ?? "");
+}
+
+function extractMiseTaskSection(miseToml: string, taskName: string): string {
   const lines = miseToml.split("\n");
   const sectionStart = lines.indexOf(`[tasks."${taskName}"]`);
   if (sectionStart === -1) {
-    return [];
+    return "";
   }
 
   const sectionLines = lines.slice(sectionStart + 1);
   const sectionEnd = sectionLines.findIndex((line) => line.startsWith("[tasks."));
-  const taskSection = sectionLines.slice(0, sectionEnd === -1 ? undefined : sectionEnd).join("\n");
-  const dependsLine = taskSection.match(/^depends = \[(.*)\]$/m)?.[1] ?? "";
-
-  return [...dependsLine.matchAll(/"([^"]+)"/g)].map((match) => match[1] ?? "");
+  return sectionLines.slice(0, sectionEnd === -1 ? undefined : sectionEnd).join("\n");
 }
 
 function extractMiseToolVersion(miseToml: string, toolName: string): string | null {
@@ -59,14 +63,7 @@ function extractMiseEnvMap(miseToml: string, prefix: string): Map<string, string
 }
 
 function extractMiseTaskCommand(miseToml: string, taskName: string, commandName: "run" | "run_windows"): string {
-  const taskHeader = `[tasks."${taskName}"]`;
-  const sectionStart = miseToml.indexOf(taskHeader);
-  if (sectionStart === -1) {
-    return "";
-  }
-
-  const nextTaskStart = miseToml.indexOf("\n[tasks.", sectionStart + taskHeader.length);
-  const taskSection = miseToml.slice(sectionStart, nextTaskStart === -1 ? undefined : nextTaskStart);
+  const taskSection = extractMiseTaskSection(miseToml, taskName);
   return taskSection.match(new RegExp(`^${commandName}\\s*=\\s*"([^"]+)"`, "m"))?.[1] ?? "";
 }
 
@@ -249,6 +246,23 @@ describe("package scripts", () => {
     expect(packageJson.scripts?.["quality:dependency-licenses"]).toBe(
       "node ./scripts/quality-baseline.ts dependency-licenses",
     );
+  });
+
+  it("keeps Vitest unit test projects addressable from package and mise tasks", () => {
+    const packageJson = readPackageJson();
+    const miseToml = readWorkspaceFile("mise.toml");
+    const ciTask = extractMiseTaskSection(miseToml, "test:unit:ci");
+    const profileTask = extractMiseTaskSection(miseToml, "test:unit:profile");
+
+    expect(packageJson.scripts?.test).toBe("pnpm run test:node && pnpm run test:jsdom");
+    expect(packageJson.scripts?.["test:node"]).toBe("pnpm exec vitest run --project node");
+    expect(packageJson.scripts?.["test:jsdom"]).toBe("pnpm exec vitest run --project jsdom");
+    expect(ciTask).not.toBe("");
+    expect(ciTask).toContain("pnpm run test:node --reporter=dot --silent=passed-only");
+    expect(ciTask).toContain("pnpm run test:jsdom --reporter=dot --silent=passed-only");
+    expect(profileTask).not.toBe("");
+    expect(profileTask).toContain("pnpm run test:node --reporter=verbose --slow-test-threshold=300");
+    expect(profileTask).toContain("pnpm run test:jsdom --reporter=verbose --slow-test-threshold=300");
   });
 
   it("keeps mise test:all semantics aligned with Storybook E2E", () => {

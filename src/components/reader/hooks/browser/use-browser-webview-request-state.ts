@@ -1,11 +1,8 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import { useEffect, useRef } from "react";
 import type { BrowserWebviewState } from "@/api/tauri-commands";
-import {
-  initialBrowserState,
-  resolveBrowserStateForRequestedUrl,
-  updateBrowserStateWithRef,
-} from "../../browser-webview-state";
+import { initialBrowserState, resolveBrowserStateForRequestedUrl } from "@/lib/browser/browser-webview-state";
+import { updateBrowserStateWithRef } from "../../browser-webview-state";
 
 type UseBrowserWebviewRequestStateParams = {
   browserUrl: string | null;

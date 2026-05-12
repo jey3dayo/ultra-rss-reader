@@ -1,7 +1,7 @@
 import type { Resource } from "i18next";
 import i18n from "i18next";
 import { initReactI18next, setI18n } from "react-i18next";
-import { afterEach, beforeEach } from "vitest";
+import { beforeEach } from "vitest";
 import { formatI18nInterpolation, registerCountFormatter } from "@/lib/i18n-count";
 import { i18nResourceNamespaces, i18nResources } from "@/lib/i18n-resources";
 
@@ -42,10 +42,6 @@ export async function resetTestI18nState() {
 }
 
 beforeEach(async () => {
-  await resetTestI18nState();
-});
-
-afterEach(async () => {
   await resetTestI18nState();
 });
 

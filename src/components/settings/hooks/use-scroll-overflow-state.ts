@@ -1,4 +1,5 @@
 import { useCallback, useLayoutEffect, useReducer, useRef } from "react";
+import { scheduleAnimationFrameWithTimeoutFallback } from "@/lib/dom/animation-frame";
 import { bindWindowEvents } from "@/lib/window/window-events";
 
 type ScrollOverflowState = {
@@ -15,34 +16,10 @@ const initialScrollOverflowState: ScrollOverflowState = {
   hasOverflow: false,
 };
 
-type OverflowMeasurementFrame = {
-  cancel: () => void;
-};
-
 type ScrollOverflowObserverLifecycle = {
   connect: () => void;
   disconnect: () => void;
 };
-
-function scheduleOverflowMeasurement(callback: () => void): OverflowMeasurementFrame {
-  if (typeof window.requestAnimationFrame === "function") {
-    const animationFrame = window.requestAnimationFrame(callback);
-    return {
-      cancel: () => {
-        if (typeof window.cancelAnimationFrame === "function") {
-          window.cancelAnimationFrame(animationFrame);
-        }
-      },
-    };
-  }
-
-  const timeout = window.setTimeout(callback, 0);
-  return {
-    cancel: () => {
-      window.clearTimeout(timeout);
-    },
-  };
-}
 
 function createScrollOverflowObserverLifecycle(
   viewport: HTMLDivElement,
@@ -135,19 +112,19 @@ export function useScrollOverflowState(dependency: unknown) {
         value: viewport.scrollHeight > viewport.clientHeight + 1,
       });
     };
-    let pendingMeasurementFrame: OverflowMeasurementFrame | null = null;
+    let cancelPendingMeasurement: (() => void) | null = null;
     const scheduleUpdateOverflow = () => {
-      if (pendingMeasurementFrame) {
+      if (cancelPendingMeasurement) {
         return;
       }
-      pendingMeasurementFrame = scheduleOverflowMeasurement(() => {
-        pendingMeasurementFrame = null;
+      cancelPendingMeasurement = scheduleAnimationFrameWithTimeoutFallback(() => {
+        cancelPendingMeasurement = null;
         updateOverflow();
       });
     };
 
     updateOverflow();
-    const measurementFrame = scheduleOverflowMeasurement(() => {
+    const cancelMeasurement = scheduleAnimationFrameWithTimeoutFallback(() => {
       updateOverflow();
     });
     const removeWindowEvents = bindWindowEvents([{ type: "resize", listener: updateOverflow }]);
@@ -156,8 +133,8 @@ export function useScrollOverflowState(dependency: unknown) {
 
     return () => {
       isActive = false;
-      measurementFrame.cancel();
-      pendingMeasurementFrame?.cancel();
+      cancelMeasurement();
+      cancelPendingMeasurement?.();
       removeWindowEvents();
       observerLifecycle?.disconnect();
     };

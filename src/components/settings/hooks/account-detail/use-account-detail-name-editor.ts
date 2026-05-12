@@ -2,11 +2,11 @@ import { Result } from "@praha/byethrow";
 import { type KeyboardEvent, type RefObject, useCallback, useEffect, useReducer, useRef } from "react";
 import { renameAccount } from "@/api/tauri-commands";
 import { normalizeRenameInput } from "@/hooks/normalize-rename-input";
+import { scheduleInputFocus } from "@/lib/dom/input-focus";
 import { invalidateQueryKeysLogOnly, queryKeys } from "@/lib/query/query-invalidation";
 import { updateCachedAccount } from "../../account-detail/query-cache";
 import { createAccountDetailErrorToast } from "../../account-detail/toast";
 import type { AccountDetailEditorContext } from "../../account-detail/types";
-import { scheduleAccountDetailInputFocus } from "./account-detail-editor-focus";
 
 type AccountDetailNameEditorParams = AccountDetailEditorContext;
 
@@ -86,7 +86,7 @@ export function useAccountDetailNameEditor({
     editSessionRef.current += 1;
     dispatch({ type: "start-edit", value: account.name });
     cancelScheduledFocus();
-    cancelScheduledFocusRef.current = scheduleAccountDetailInputFocus(nameInputRef);
+    cancelScheduledFocusRef.current = scheduleInputFocus(nameInputRef);
   };
 
   const commitRename = async () => {

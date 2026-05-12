@@ -12,12 +12,12 @@ import {
   parseBrowserWebviewStatePayload,
   warnMalformedBrowserWebviewEvent,
 } from "@/lib/browser/browser-webview-event-payloads";
-import { createTauriListenerGroup } from "@/lib/runtime/tauri-event-listeners";
-import { useUiStore } from "@/stores/ui-store";
 import {
   type BrowserWebviewFallbackPayload,
   isBrowserWebviewFallbackForRequestedUrl,
-} from "../../browser-webview-state";
+} from "@/lib/browser/browser-webview-state";
+import { createTauriListenerGroup } from "@/lib/runtime/tauri-event-listeners";
+import { useUiStore } from "@/stores/ui-store";
 
 type UseBrowserWebviewEventsParams = {
   showDiagnostics: boolean;

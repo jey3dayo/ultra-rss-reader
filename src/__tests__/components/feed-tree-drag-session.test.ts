@@ -4,8 +4,8 @@ import {
   getFeedTreePointerDragSessionForPointer,
   shouldStartFeedTreePointerDrag,
   updateFeedTreePointerDragSessionPosition,
-} from "@/components/reader/feed-tree-drag-session";
-import type { FeedTreeFeedViewModel } from "@/components/reader/feed-tree-row";
+} from "@/lib/sidebar/feed-tree-drag-session";
+import type { FeedTreeFeedViewModel } from "@/lib/sidebar/sidebar-feed-tree";
 
 describe("feedTreeDragSession", () => {
   const feed = {

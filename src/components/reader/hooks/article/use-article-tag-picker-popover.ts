@@ -1,7 +1,7 @@
 import { type KeyboardEvent, useCallback, useEffect, useRef } from "react";
 import { isOutsideElement } from "@/lib/dom/dom-target";
+import { focusRovingButton, getActiveRovingButtonIndex } from "@/lib/dom/roving-focus";
 import type { ArticleTagPickerViewProps } from "../../article-tag-picker.types";
-import { focusRovingButton, getActiveRovingButtonIndex } from "../../roving-focus";
 
 type UseArticleTagPickerPopoverParams = {
   isExpanded: boolean;

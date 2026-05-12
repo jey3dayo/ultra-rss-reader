@@ -1,4 +1,6 @@
 import { useEffect, useRef } from "react";
+import { cancelAnimationFrameHandle, scheduleAnimationFrame } from "@/lib/dom/animation-frame";
+import { focusAndSelectInput } from "@/lib/dom/input-focus";
 
 export function useTagDialogAutofocus(open: boolean) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -9,22 +11,21 @@ export function useTagDialogAutofocus(open: boolean) {
       return;
     }
 
-    const frame = requestAnimationFrame(() => {
+    const frame = scheduleAnimationFrame(() => {
       // Timer guard pattern: only the latest scheduled frame may mutate focus state.
       if (pendingFocusFrameRef.current !== frame) {
         return;
       }
 
       pendingFocusFrameRef.current = null;
-      inputRef.current?.focus();
-      inputRef.current?.select();
+      focusAndSelectInput(inputRef.current);
     });
     pendingFocusFrameRef.current = frame;
 
     return () => {
-      if (pendingFocusFrameRef.current === frame) {
+      if (frame !== null && pendingFocusFrameRef.current === frame) {
         pendingFocusFrameRef.current = null;
-        cancelAnimationFrame(frame);
+        cancelAnimationFrameHandle(frame);
       }
     };
   }, [open]);

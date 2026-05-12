@@ -2,8 +2,8 @@ import { act, renderHook } from "@testing-library/react";
 import { useRef, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { BrowserWebviewState } from "@/api/tauri-commands";
-import { isBrowserWebviewFallbackForRequestedUrl } from "@/components/reader/browser-webview-state";
 import { useBrowserWebviewStateChanged } from "@/components/reader/hooks/browser/use-browser-webview-state-changed";
+import { isBrowserWebviewFallbackForRequestedUrl } from "@/lib/browser/browser-webview-state";
 
 function createState(url: string, isLoading: boolean): BrowserWebviewState {
   return {

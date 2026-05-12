@@ -10,9 +10,11 @@ import {
   setBrowserWebviewBounds,
 } from "@/api/tauri-commands";
 import type { BrowserWebviewBounds } from "@/lib/browser/browser-webview";
+import { isMissingEmbeddedBrowserWebviewError } from "@/lib/browser/browser-webview-state";
+import { resolveBrowserWebviewBounds, shouldApplySyncedBrowserState } from "@/lib/browser/browser-webview-sync";
+import { isBrowserSurfaceAppError } from "@/lib/runtime/app-error";
 import { useUiStore } from "@/stores/ui-store";
-import { isMissingEmbeddedBrowserWebviewError, setBrowserStateWithRef } from "../../browser-webview-state";
-import { resolveBrowserWebviewBounds, shouldApplySyncedBrowserState } from "../../browser-webview-sync-helpers";
+import { setBrowserStateWithRef } from "../../browser-webview-state";
 import { useAsyncCommandLifecycle } from "./use-browser-url-effect";
 
 const BROWSER_WEBVIEW_OPERATION_FAILED_MESSAGE = "Webプレビューの操作に失敗しました。再試行してください。";
@@ -37,22 +39,10 @@ type BrowserWebviewOperationFailure = {
   error: AppError;
 };
 
-function isAppError(error: unknown): error is AppError {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "type" in error &&
-    "message" in error &&
-    (error.type === "UserVisible" || error.type === "Retryable") &&
-    typeof error.message === "string" &&
-    error.message.trim().length > 0
-  );
-}
-
 function toBrowserWebviewOperationFailure(error: unknown): BrowserWebviewOperationFailure {
   return {
     kind: "browser-webview-operation-failure",
-    error: isAppError(error)
+    error: isBrowserSurfaceAppError(error)
       ? error
       : {
           type: "UserVisible",
@@ -68,7 +58,7 @@ function isBrowserWebviewOperationFailure(result: unknown): result is BrowserWeb
     "kind" in result &&
     result.kind === "browser-webview-operation-failure" &&
     "error" in result &&
-    isAppError(result.error)
+    isBrowserSurfaceAppError(result.error)
   );
 }
 

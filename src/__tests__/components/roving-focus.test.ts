@@ -1,6 +1,6 @@
 import { createRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { focusRovingButton, getActiveRovingButtonIndex, getLoopedFocusIndex } from "@/components/reader/roving-focus";
+import { focusRovingButton, getActiveRovingButtonIndex, getLoopedFocusIndex } from "@/lib/dom/roving-focus";
 
 describe("roving-focus", () => {
   afterEach(() => {

@@ -1,7 +1,7 @@
 import type { Dispatch, MutableRefObject, PointerEvent as ReactPointerEvent, SetStateAction } from "react";
+import type { FeedTreePointerDragSession } from "@/lib/sidebar/feed-tree-drag-session";
 import type { ActiveDropTarget, FeedTreeFeedViewModel } from "../../feed-tree.types";
 import type { FeedTreeDragOverlayPreview } from "../../feed-tree-drag-overlay";
-import type { FeedTreePointerDragSession } from "../../feed-tree-drag-session";
 
 export type UseFeedTreeDragParams = {
   isOpen: boolean;

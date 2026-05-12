@@ -5,7 +5,7 @@ import {
   getFeedDropTargetAtPoint,
   getFeedDropTargetFromElement,
   isSameFeedDropTarget,
-} from "@/components/reader/feed-tree-drop-target";
+} from "@/lib/sidebar/feed-tree-drop-target";
 
 describe("isSameFeedDropTarget", () => {
   it("compares folder targets by folder id", () => {

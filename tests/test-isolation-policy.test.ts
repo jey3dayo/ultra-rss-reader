@@ -30,11 +30,26 @@ describe("test isolation policy contract", () => {
     ]);
   });
 
-  it("keeps Vitest on the shared setup file without disabling file isolation", () => {
+  it("keeps Vitest projects split without disabling file isolation", () => {
     const vitestConfig = readRepoFile("vitest.config.ts");
 
-    expect(vitestConfig).toContain('setupFiles: ["tests/setup.ts"]');
+    expectAll(vitestConfig, [
+      'const jsdomSetupFiles = ["tests/setup.ts"] as const;',
+      'const nodeProjectName = "node";',
+      'const jsdomProjectName = "jsdom";',
+      "const nodeProjectGroupOrder = 0;",
+      "const jsdomProjectGroupOrder = 1;",
+      "name: nodeProjectName",
+      "environment: nodeProjectName",
+      "setupFiles: []",
+      "name: jsdomProjectName",
+      "environment: jsdomProjectName",
+      "setupFiles: [...jsdomSetupFiles]",
+      "groupOrder: nodeProjectGroupOrder",
+      "groupOrder: jsdomProjectGroupOrder",
+    ]);
     expect(vitestConfig).not.toMatch(/\bisolate\s*:\s*false\b/);
+    expect(vitestConfig).not.toMatch(/\benvironmentMatchGlobs\s*:/);
     expect(vitestConfig).not.toMatch(/\bpoolOptions\s*:/);
   });
 

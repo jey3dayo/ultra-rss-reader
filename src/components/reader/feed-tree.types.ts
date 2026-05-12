@@ -1,10 +1,10 @@
 import type { ReactNode, PointerEvent as ReactPointerEvent } from "react";
+import type { ActiveDropTarget } from "@/lib/sidebar/feed-tree-drag.types";
 import type { FeedTreeFeedViewModel, FeedTreeFolderViewModel } from "@/lib/sidebar/sidebar-feed-tree";
 import type { SidebarDensity } from "./sidebar-density";
 
+export type { ActiveDropTarget } from "@/lib/sidebar/feed-tree-drag.types";
 export type { FeedTreeFeedViewModel, FeedTreeFolderViewModel } from "@/lib/sidebar/sidebar-feed-tree";
-
-export type ActiveDropTarget = { kind: "folder"; folderId: string } | { kind: "unfoldered" } | null;
 
 export type FeedTreeEmptyState =
   | { kind: "hidden"; text?: never; message?: never; label?: never }

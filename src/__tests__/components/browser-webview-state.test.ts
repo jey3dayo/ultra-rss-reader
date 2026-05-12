@@ -1,14 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { BrowserWebviewState } from "@/api/tauri-commands";
+import { setBrowserStateWithRef, updateBrowserStateWithRef } from "@/components/reader/browser-webview-state";
 import {
   initialBrowserState,
   isMissingEmbeddedBrowserWebviewError,
   mergeBrowserState,
   resolveBrowserStateForRequestedUrl,
-  setBrowserStateWithRef,
   shouldIgnoreBrowserWebviewStateChangedPayload,
-  updateBrowserStateWithRef,
-} from "@/components/reader/browser-webview-state";
+} from "@/lib/browser/browser-webview-state";
 import { useUiStore } from "@/stores/ui-store";
 
 function browserState(overrides: Partial<BrowserWebviewState>): BrowserWebviewState {

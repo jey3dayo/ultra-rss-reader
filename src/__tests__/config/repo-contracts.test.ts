@@ -1101,8 +1101,8 @@ describe("repository static contracts", () => {
     expect(claudeGuidance).toContain("review the resulting schema diff as generated output before committing");
     expect(extractMiseTaskCommand(miseSource, "lint:md")).toContain("$MD_EXCLUDE_TARGET");
     expect(extractMiseTaskCommand(miseSource, "lint:md")).toContain("$MD_EXCLUDE_TAURI_GEN");
-    expect(extractMiseTaskSection(miseSource, "quality:markdownlint-contract")).toContain("-g '!**/target/**'");
-    expect(extractMiseTaskSection(miseSource, "quality:markdownlint-contract")).toContain("-g '!src-tauri/gen/**'");
+    expect(extractMiseTaskCommand(miseSource, "quality:markdownlint-contract")).toContain("$MD_EXCLUDE_TARGET");
+    expect(extractMiseTaskCommand(miseSource, "quality:markdownlint-contract")).toContain("$MD_EXCLUDE_TAURI_GEN");
   });
 
   it("keeps app E2E Playwright and package dev scripts aligned with the Vite port", () => {

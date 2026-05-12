@@ -1,0 +1,95 @@
+import type { AppError, BrowserWebviewFallbackPayload, BrowserWebviewState } from "@/api/schemas";
+
+const MISSING_EMBEDDED_BROWSER_WEBVIEW_ERROR = "Embedded browser webview is not open";
+
+export type { BrowserWebviewFallbackPayload };
+
+export function initialBrowserState(url: string, loadGeneration = 0): BrowserWebviewState {
+  return {
+    url,
+    can_go_back: false,
+    can_go_forward: false,
+    is_loading: true,
+    load_generation: loadGeneration,
+  };
+}
+
+export function resolveBrowserStateForRequestedUrl(
+  previousState: BrowserWebviewState | null,
+  requestedUrl: string,
+): BrowserWebviewState {
+  return previousState?.url === requestedUrl ? previousState : initialBrowserState(requestedUrl);
+}
+
+export function isBrowserWebviewFallbackForRequestedUrl(
+  payload: BrowserWebviewFallbackPayload,
+  requestedUrl: string,
+): boolean {
+  return requestedUrl.length > 0 && payload.url === requestedUrl;
+}
+
+export function shouldIgnoreBrowserWebviewStateChangedPayload(
+  currentState: BrowserWebviewState | null,
+  payload: BrowserWebviewState,
+  requestedUrl: string,
+): boolean {
+  if (!requestedUrl) {
+    return true;
+  }
+
+  if (!currentState?.is_loading || currentState.url !== requestedUrl) {
+    return false;
+  }
+
+  return payload.url !== requestedUrl || payload.load_generation < currentState.load_generation;
+}
+
+export function isMissingEmbeddedBrowserWebviewError(error: AppError) {
+  return error.message === MISSING_EMBEDDED_BROWSER_WEBVIEW_ERROR;
+}
+
+export function mergeBrowserState(
+  previousState: BrowserWebviewState | null,
+  nextState: BrowserWebviewState,
+  intendedUrl: string,
+): BrowserWebviewState {
+  if (!previousState) {
+    return nextState;
+  }
+
+  if (!previousState.is_loading && nextState.is_loading && previousState.url !== nextState.url) {
+    return {
+      ...previousState,
+      can_go_back: nextState.can_go_back,
+      can_go_forward: nextState.can_go_forward,
+    };
+  }
+
+  if (
+    previousState.is_loading &&
+    nextState.is_loading &&
+    previousState.url === intendedUrl &&
+    nextState.url !== intendedUrl
+  ) {
+    return {
+      ...previousState,
+      can_go_back: nextState.can_go_back,
+      can_go_forward: nextState.can_go_forward,
+    };
+  }
+
+  if (
+    previousState.is_loading &&
+    previousState.url === intendedUrl &&
+    nextState.url !== intendedUrl &&
+    nextState.load_generation <= previousState.load_generation
+  ) {
+    return {
+      ...previousState,
+      can_go_back: nextState.can_go_back,
+      can_go_forward: nextState.can_go_forward,
+    };
+  }
+
+  return nextState;
+}

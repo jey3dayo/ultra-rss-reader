@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { MOTION_RESIZE_SURFACE_CLASS_NAME } from "@/constants/motion";
+import { FEED_DROP_TARGET_KIND_ATTRIBUTE } from "@/lib/sidebar/feed-tree-drop-target";
 import { cn } from "@/lib/utils";
-import { FEED_DROP_TARGET_KIND_ATTRIBUTE } from "./feed-tree-drop-target";
 
 type FeedTreeUnfolderedDropZoneProps = {
   enabled: boolean;

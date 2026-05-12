@@ -2,10 +2,10 @@ import { act, renderHook } from "@testing-library/react";
 import { resetTauriRuntimeFlags, setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { BrowserWebviewState } from "@/api/tauri-commands";
-import type { BrowserWebviewFallbackPayload } from "@/components/reader/browser-webview-state";
 import { useBrowserWebviewEvents } from "@/components/reader/hooks/browser/use-browser-webview-events";
 import { BROWSER_WINDOW_EVENTS } from "@/constants/browser";
 import type { BrowserDebugGeometryNativeDiagnostics } from "@/lib/browser/browser-debug-geometry";
+import type { BrowserWebviewFallbackPayload } from "@/lib/browser/browser-webview-state";
 import { TAURI_EVENT_LISTENER_FAILURE_EVENT } from "@/lib/runtime/tauri-event-listeners";
 import { useUiStore } from "@/stores/ui-store";
 

@@ -2,9 +2,9 @@ import { describe, expect, it, vi } from "vitest";
 import {
   applyFeedTreePointerDropOutcome,
   resolveFeedTreePointerDropOutcome,
-} from "@/components/reader/feed-tree-drag-outcome";
-import type { FeedTreePointerDragSession } from "@/components/reader/feed-tree-drag-session";
-import type { FeedTreeFeedViewModel } from "@/components/reader/feed-tree-row";
+} from "@/lib/sidebar/feed-tree-drag-outcome";
+import type { FeedTreePointerDragSession } from "@/lib/sidebar/feed-tree-drag-session";
+import type { FeedTreeFeedViewModel } from "@/lib/sidebar/sidebar-feed-tree";
 
 const feed = {
   id: "feed-1",

@@ -8,6 +8,8 @@ import { useFolders } from "@/hooks/use-folders";
 import { useUpdateFeedDisplaySettings } from "@/hooks/use-update-feed-display-mode";
 import { useUpdateFeedFolder } from "@/hooks/use-update-feed-folder";
 import { resolveFeedDisplayPreset } from "@/lib/articles/article-display";
+import { scheduleAnimationFrame } from "@/lib/dom/animation-frame";
+import { focusAndSelectInput } from "@/lib/dom/input-focus";
 import { copyTextToClipboard } from "@/lib/runtime/clipboard";
 import { useUiStore } from "@/stores/ui-store";
 import { type FeedEditorState, submitFeedEdits } from "../../feed-edit-submit";
@@ -83,9 +85,8 @@ export function useRenameFeedDialogController({
 
     dispatch({ type: "reset", feed });
     resetFolderSelection(feed.folder_id);
-    requestAnimationFrame(() => {
-      inputRef.current?.focus();
-      inputRef.current?.select();
+    scheduleAnimationFrame(() => {
+      focusAndSelectInput(inputRef.current);
     });
   }, [open, feed, feed.folder_id, feed.title, resetFolderSelection]);
 

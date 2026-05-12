@@ -1,9 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { BrowserWebviewState } from "@/api/tauri-commands";
-import {
-  resolveBrowserWebviewBounds,
-  shouldApplySyncedBrowserState,
-} from "@/components/reader/browser-webview-sync-helpers";
+import { resolveBrowserWebviewBounds, shouldApplySyncedBrowserState } from "@/lib/browser/browser-webview-sync";
 
 function createDomRect({ left = 10, top = 20, width = 300, height = 200 }: Partial<DOMRect>): DOMRect {
   return new DOMRect(left, top, width, height);
