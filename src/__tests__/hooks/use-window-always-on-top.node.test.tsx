@@ -1,4 +1,7 @@
-import { act, render, waitFor } from "@testing-library/react";
+import "@testing-library/react/dont-cleanup-after-each";
+import { Result } from "@praha/byethrow";
+import { act, cleanup, render, waitFor } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { resetTauriRuntimeFlags, setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useWindowAlwaysOnTop } from "@/hooks/use-window-always-on-top";
@@ -12,13 +15,18 @@ const { isAlwaysOnTopMock, isFullscreenMock, setAlwaysOnTopMock } = vi.hoisted((
   setAlwaysOnTopMock: vi.fn(),
 }));
 
-vi.mock("@tauri-apps/api/window", () => ({
-  getCurrentWindow: () => ({
-    isAlwaysOnTop: isAlwaysOnTopMock,
-    isFullscreen: isFullscreenMock,
-    setAlwaysOnTop: setAlwaysOnTopMock,
-  }),
-}));
+vi.mock("@/lib/window/windows", async (importOriginal) => {
+  const original = await importOriginal<typeof import("@/lib/window/windows")>();
+
+  return {
+    ...original,
+    isWindowAlwaysOnTop: isAlwaysOnTopMock,
+    isWindowFullscreen: isFullscreenMock,
+    setWindowAlwaysOnTop: setAlwaysOnTopMock,
+  };
+});
+
+setupBrowserTestDom();
 
 function HookHarness() {
   useWindowAlwaysOnTop();
@@ -43,17 +51,18 @@ describe("useWindowAlwaysOnTop", () => {
     resetRuntimeDiagnosticOnceSuppressionForTests();
     setTauriRuntimePresent();
     isAlwaysOnTopMock.mockReset();
-    isAlwaysOnTopMock.mockResolvedValue(false);
+    isAlwaysOnTopMock.mockResolvedValue(Result.succeed(false));
     isFullscreenMock.mockReset();
-    isFullscreenMock.mockResolvedValue(false);
+    isFullscreenMock.mockResolvedValue(Result.succeed(false));
     setAlwaysOnTopMock.mockReset();
-    setAlwaysOnTopMock.mockResolvedValue(undefined);
+    setAlwaysOnTopMock.mockResolvedValue(Result.succeed(undefined));
     consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     usePreferencesStore.setState({ prefs: {}, loaded: true });
     useUiStore.setState({ toastMessage: null });
   });
 
   afterEach(() => {
+    cleanup();
     consoleWarnSpy.mockRestore();
   });
 
@@ -98,7 +107,7 @@ describe("useWindowAlwaysOnTop", () => {
       prefs: { window_always_on_top: "true" },
       loaded: true,
     });
-    setAlwaysOnTopMock.mockRejectedValue(new Error("permission denied"));
+    setAlwaysOnTopMock.mockResolvedValue(Result.fail(new Error("permission denied")));
 
     expect(() => render(<HookHarness />)).not.toThrow();
 
@@ -116,7 +125,7 @@ describe("useWindowAlwaysOnTop", () => {
       prefs: { window_always_on_top: "true" },
       loaded: true,
     });
-    setAlwaysOnTopMock.mockRejectedValue(new Error("permission denied"));
+    setAlwaysOnTopMock.mockResolvedValue(Result.fail(new Error("permission denied")));
 
     render(<HookHarness />);
 
@@ -136,7 +145,7 @@ describe("useWindowAlwaysOnTop", () => {
       prefs: { window_always_on_top: "true" },
       loaded: true,
     });
-    setAlwaysOnTopMock.mockRejectedValue(new Error("always-on-top is unsupported on this platform"));
+    setAlwaysOnTopMock.mockResolvedValue(Result.fail(new Error("always-on-top is unsupported on this platform")));
 
     render(<HookHarness />);
 
@@ -151,7 +160,7 @@ describe("useWindowAlwaysOnTop", () => {
       prefs: { window_always_on_top: "true" },
       loaded: true,
     });
-    isAlwaysOnTopMock.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+    isAlwaysOnTopMock.mockResolvedValueOnce(Result.succeed(false)).mockResolvedValueOnce(Result.succeed(true));
 
     render(<HookHarness />);
 
@@ -173,7 +182,7 @@ describe("useWindowAlwaysOnTop", () => {
       prefs: { window_always_on_top: "true" },
       loaded: true,
     });
-    isAlwaysOnTopMock.mockResolvedValue(false);
+    isAlwaysOnTopMock.mockResolvedValue(Result.succeed(false));
 
     render(<HookHarness />);
 
@@ -192,8 +201,8 @@ describe("useWindowAlwaysOnTop", () => {
       prefs: { window_always_on_top: "true" },
       loaded: true,
     });
-    isAlwaysOnTopMock.mockResolvedValue(true);
-    isFullscreenMock.mockResolvedValue(true);
+    isAlwaysOnTopMock.mockResolvedValue(Result.succeed(true));
+    isFullscreenMock.mockResolvedValue(Result.succeed(true));
 
     render(<HookHarness />);
 
@@ -211,7 +220,7 @@ describe("useWindowAlwaysOnTop", () => {
       prefs: { window_always_on_top: "true" },
       loaded: true,
     });
-    isAlwaysOnTopMock.mockRejectedValue(new Error("state unavailable"));
+    isAlwaysOnTopMock.mockResolvedValue(Result.fail(new Error("state unavailable")));
 
     render(<HookHarness />);
 
@@ -229,8 +238,8 @@ describe("useWindowAlwaysOnTop", () => {
       prefs: { window_always_on_top: "true" },
       loaded: true,
     });
-    isAlwaysOnTopMock.mockResolvedValue(true);
-    isFullscreenMock.mockRejectedValue(new Error("fullscreen unavailable"));
+    isAlwaysOnTopMock.mockResolvedValue(Result.succeed(true));
+    isFullscreenMock.mockResolvedValue(Result.fail(new Error("fullscreen unavailable")));
 
     render(<HookHarness />);
 
@@ -249,7 +258,7 @@ describe("useWindowAlwaysOnTop", () => {
       prefs: { window_always_on_top: "true" },
       loaded: true,
     });
-    setAlwaysOnTopMock.mockRejectedValue(new Error("TOKEN=secret"));
+    setAlwaysOnTopMock.mockResolvedValue(Result.fail(new Error("TOKEN=secret")));
 
     render(<HookHarness />);
 
@@ -269,9 +278,10 @@ describe("useWindowAlwaysOnTop", () => {
   });
 
   it("ignores stale failures from an earlier toggle request", async () => {
-    const firstRequest = createDeferred<void>();
-    const secondRequest = createDeferred<void>();
+    const firstRequest = createDeferred<ReturnType<typeof Result.succeed<undefined>>>();
+    const secondRequest = createDeferred<ReturnType<typeof Result.succeed<undefined>>>();
     setAlwaysOnTopMock.mockReturnValueOnce(firstRequest.promise).mockReturnValueOnce(secondRequest.promise);
+    isAlwaysOnTopMock.mockResolvedValue(Result.succeed(true));
 
     render(<HookHarness />);
 
@@ -291,14 +301,14 @@ describe("useWindowAlwaysOnTop", () => {
     });
 
     firstRequest.reject(new Error("stale failure"));
-    secondRequest.resolve();
+    secondRequest.resolve(Result.succeed(undefined));
     await Promise.allSettled([firstRequest.promise, secondRequest.promise]);
 
     expect(consoleWarnSpy).not.toHaveBeenCalled();
   });
 
   it("ignores failures after unmount", async () => {
-    const request = createDeferred<void>();
+    const request = createDeferred<ReturnType<typeof Result.succeed<undefined>>>();
     setAlwaysOnTopMock.mockReturnValueOnce(request.promise);
 
     const { unmount } = render(<HookHarness />);

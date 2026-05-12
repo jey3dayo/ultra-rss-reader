@@ -1,4 +1,5 @@
-import { renderHook } from "@testing-library/react";
+import { cleanup, renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useBrowserOverlayShortcuts } from "@/components/reader/hooks/browser/use-browser-overlay-shortcuts";
 import { useKeyboard } from "@/hooks/use-keyboard";
@@ -6,8 +7,11 @@ import { keyboardEvents } from "@/lib/keyboard/keyboard-shortcuts";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
+setupBrowserTestDom();
+
 describe("useBrowserOverlayShortcuts", () => {
   afterEach(() => {
+    cleanup();
     vi.restoreAllMocks();
     useUiStore.setState(useUiStore.getInitialState());
     usePreferencesStore.setState({ prefs: {}, loaded: false });

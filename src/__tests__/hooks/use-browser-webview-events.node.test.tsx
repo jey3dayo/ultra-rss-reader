@@ -1,4 +1,5 @@
 import { act, renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { resetTauriRuntimeFlags, setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { BrowserWebviewState } from "@/api/tauri-commands";
@@ -17,6 +18,8 @@ const listenMock = vi.hoisted(() => vi.fn<(eventName: string, callback: EventCal
 vi.mock("@tauri-apps/api/event", () => ({
   listen: listenMock,
 }));
+
+setupBrowserTestDom();
 
 describe("useBrowserWebviewEvents", () => {
   beforeEach(() => {

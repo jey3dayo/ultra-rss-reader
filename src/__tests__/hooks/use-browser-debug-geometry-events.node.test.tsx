@@ -1,8 +1,11 @@
-import { renderHook } from "@testing-library/react";
+import { cleanup, renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useBrowserDebugGeometryEvents } from "@/components/reader/hooks/browser/use-browser-debug-geometry-events";
 import { APP_EVENTS } from "@/constants/events";
 import type { BrowserDebugGeometrySnapshot } from "@/lib/browser/browser-debug-geometry";
+
+setupBrowserTestDom();
 
 type BrowserDebugGeometryDetail = BrowserDebugGeometrySnapshot | null;
 
@@ -40,6 +43,7 @@ function listenToBrowserDebugGeometry(listener: (detail: BrowserDebugGeometryDet
 
 describe("useBrowserDebugGeometryEvents", () => {
   afterEach(() => {
+    cleanup();
     vi.unstubAllEnvs();
     vi.restoreAllMocks();
   });

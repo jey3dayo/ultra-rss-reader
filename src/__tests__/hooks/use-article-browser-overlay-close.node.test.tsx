@@ -1,5 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { act, renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeBrowserWebview } from "@/api/tauri-commands";
 import { useArticleBrowserOverlayClose } from "@/components/reader/hooks/article/use-article-browser-overlay-close";
@@ -12,6 +13,8 @@ vi.mock("@/api/tauri-commands", () => ({
 }));
 
 const closeBrowserWebviewMock = vi.mocked(closeBrowserWebview);
+
+setupBrowserTestDom();
 
 describe("useArticleBrowserOverlayClose", () => {
   beforeEach(() => {
@@ -373,8 +376,11 @@ describe("useArticleBrowserOverlayClose", () => {
   it("finalizes the overlay close when reduced motion detection throws", async () => {
     const error = new Error("matchMedia unavailable");
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-    vi.stubGlobal("matchMedia", () => {
-      throw error;
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      value: () => {
+        throw error;
+      },
     });
     closeBrowserWebviewMock.mockResolvedValue(Result.succeed(null));
     const originalSetFocusedPane = useUiStore.getState().setFocusedPane;
@@ -420,7 +426,7 @@ describe("useArticleBrowserOverlayClose", () => {
       "throwing",
       () => {
         const error = new Error("frame unavailable");
-        vi.stubGlobal("requestAnimationFrame", () => {
+        vi.spyOn(window, "requestAnimationFrame").mockImplementation(() => {
           throw error;
         });
         return error;
@@ -430,7 +436,10 @@ describe("useArticleBrowserOverlayClose", () => {
     const frameError = setupFrameFailure();
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     if (!frameError) {
-      vi.stubGlobal("requestAnimationFrame", undefined);
+      Object.defineProperty(window, "requestAnimationFrame", {
+        configurable: true,
+        value: undefined,
+      });
     }
     closeBrowserWebviewMock.mockResolvedValue(Result.succeed(null));
     const navigateArticleSpy = vi.fn();

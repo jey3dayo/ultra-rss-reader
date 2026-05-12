@@ -1,9 +1,12 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, cleanup, renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { useRef, useState } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { BrowserWebviewState } from "@/api/tauri-commands";
 import { useBrowserWebviewStateChanged } from "@/components/reader/hooks/browser/use-browser-webview-state-changed";
 import { isBrowserWebviewFallbackForRequestedUrl } from "@/lib/browser/browser-webview-state";
+
+setupBrowserTestDom();
 
 function createState(url: string, isLoading: boolean): BrowserWebviewState {
   return {
@@ -16,6 +19,10 @@ function createState(url: string, isLoading: boolean): BrowserWebviewState {
 }
 
 describe("useBrowserWebviewStateChanged", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
   it("accepts fallback payloads only for the currently requested URL", () => {
     expect(
       isBrowserWebviewFallbackForRequestedUrl(

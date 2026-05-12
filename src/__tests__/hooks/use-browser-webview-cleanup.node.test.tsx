@@ -1,10 +1,13 @@
 import { Result } from "@praha/byethrow";
-import { renderHook } from "@testing-library/react";
+import { cleanup, renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { AppError } from "@/api/tauri-commands";
 import { closeBrowserWebview } from "@/api/tauri-commands";
 import { useBrowserWebviewCleanup } from "@/components/reader/hooks/browser/use-browser-webview-cleanup";
 import { useUiStore } from "@/stores/ui-store";
+
+setupBrowserTestDom();
 
 vi.mock("@/api/tauri-commands", () => ({
   closeBrowserWebview: vi.fn(),
@@ -14,6 +17,7 @@ const closeBrowserWebviewMock = vi.mocked(closeBrowserWebview);
 
 describe("useBrowserWebviewCleanup", () => {
   afterEach(() => {
+    cleanup();
     vi.restoreAllMocks();
     vi.clearAllMocks();
     useUiStore.setState(useUiStore.getInitialState());

@@ -1,6 +1,14 @@
-import { act, renderHook } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { act, cleanup, renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
+import { afterEach, describe, expect, it } from "vitest";
 import { useBrowserNativeDiagnostics } from "@/components/reader/hooks/browser/use-browser-native-diagnostics";
+
+setupBrowserTestDom();
+
+afterEach(async () => {
+  cleanup();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+});
 
 function createDiagnostics() {
   return {

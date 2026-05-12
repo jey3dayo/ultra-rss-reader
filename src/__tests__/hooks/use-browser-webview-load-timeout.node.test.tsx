@@ -1,8 +1,11 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, cleanup, renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useBrowserWebviewLoadTimeout } from "@/components/reader/hooks/browser/use-browser-webview-load-timeout";
 import { BROWSER_WINDOW_LOAD_TIMEOUT_MS } from "@/constants/browser";
 import { useUiStore } from "@/stores/ui-store";
+
+setupBrowserTestDom();
 
 describe("useBrowserWebviewLoadTimeout", () => {
   beforeEach(() => {
@@ -11,6 +14,7 @@ describe("useBrowserWebviewLoadTimeout", () => {
   });
 
   afterEach(() => {
+    cleanup();
     vi.useRealTimers();
     vi.restoreAllMocks();
     useUiStore.setState({ browserUrl: null });

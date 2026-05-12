@@ -1,7 +1,10 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, cleanup, renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useBrowserOverlayFocusReturn } from "@/components/reader/hooks/browser/use-browser-overlay-focus-return";
 import { useUiStore } from "@/stores/ui-store";
+
+setupBrowserTestDom();
 
 describe("useBrowserOverlayFocusReturn", () => {
   beforeEach(() => {
@@ -13,6 +16,7 @@ describe("useBrowserOverlayFocusReturn", () => {
   });
 
   afterEach(() => {
+    cleanup();
     document.body.replaceChildren();
     vi.restoreAllMocks();
   });
@@ -241,7 +245,10 @@ describe("useBrowserOverlayFocusReturn", () => {
   });
 
   it("skips focus return when requestAnimationFrame is unavailable", () => {
-    vi.stubGlobal("requestAnimationFrame", undefined);
+    Object.defineProperty(window, "requestAnimationFrame", {
+      configurable: true,
+      value: undefined,
+    });
 
     const articleButton = document.createElement("button");
     articleButton.dataset.articleId = "article-1";

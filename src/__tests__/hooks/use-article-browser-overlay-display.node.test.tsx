@@ -1,11 +1,18 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, cleanup, renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { sampleFeeds } from "@tests/helpers/fixtures";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { useArticleBrowserOverlayDisplay } from "@/components/reader/hooks/article/use-article-browser-overlay-display";
 import { APP_EVENTS } from "@/constants/events";
 import { usePreferencesStore } from "@/stores/preferences-store";
 
+setupBrowserTestDom();
+
 describe("useArticleBrowserOverlayDisplay", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
   beforeEach(() => {
     usePreferencesStore.setState({
       prefs: {

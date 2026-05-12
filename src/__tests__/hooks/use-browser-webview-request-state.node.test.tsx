@@ -1,8 +1,15 @@
-import { renderHook } from "@testing-library/react";
+import { cleanup, renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { useRef, useState } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { BrowserWebviewState } from "@/api/tauri-commands";
 import { useBrowserWebviewRequestState } from "@/components/reader/hooks/browser/use-browser-webview-request-state";
+
+setupBrowserTestDom();
+
+afterEach(() => {
+  cleanup();
+});
 
 function createBrowserState(url: string, isLoading = false, loadGeneration = 1): BrowserWebviewState {
   return {

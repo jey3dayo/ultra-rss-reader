@@ -1,7 +1,10 @@
 import { existsSync } from "node:fs";
-import { act, render, waitFor } from "@testing-library/react";
+import { Result } from "@praha/byethrow";
+import "@testing-library/react/dont-cleanup-after-each";
+import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { flushMicrotasksAndRealTimer } from "@tests/helpers/async-flush";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { APP_ICON_THEME_PATHS, useAppIconTheme } from "@/hooks/use-app-icon-theme";
 import { RUNTIME_DIAGNOSTIC_POLICIES, resetRuntimeDiagnosticOnceSuppressionForTests } from "@/lib/runtime/diagnostics";
 import { usePlatformStore } from "@/stores/platform-store";
@@ -11,11 +14,16 @@ const { setIconMock } = vi.hoisted(() => ({
   setIconMock: vi.fn(),
 }));
 
-vi.mock("@tauri-apps/api/window", () => ({
-  getCurrentWindow: () => ({
-    setIcon: setIconMock,
-  }),
-}));
+vi.mock("@/lib/window/windows", async (importOriginal) => {
+  const original = await importOriginal<typeof import("@/lib/window/windows")>();
+
+  return {
+    ...original,
+    setWindowIcon: setIconMock,
+  };
+});
+
+setupBrowserTestDom();
 
 const defaultCapabilities = {
   supports_reading_list: false,
@@ -31,6 +39,15 @@ function HookHarness() {
 }
 
 type MatchMediaChangeEvent = Pick<MediaQueryListEvent, "matches">;
+
+function stubMatchMedia(matchMedia: ((query: string) => unknown) | undefined) {
+  vi.stubGlobal("matchMedia", matchMedia);
+  Object.defineProperty(window, "matchMedia", {
+    configurable: true,
+    writable: true,
+    value: matchMedia,
+  });
+}
 
 function createMatchMedia(matches: boolean) {
   const listeners = new Set<(event: MatchMediaChangeEvent) => void>();
@@ -126,16 +143,19 @@ function setPlatformState({
 describe("useAppIconTheme", () => {
   beforeEach(() => {
     setIconMock.mockReset();
+    setIconMock.mockResolvedValue(Result.succeed(undefined));
     resetRuntimeDiagnosticOnceSuppressionForTests();
     usePreferencesStore.setState({ prefs: {}, loaded: true });
     usePlatformStore.setState(usePlatformStore.getInitialState());
   });
 
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
   it("uses the light icon when the theme is light", async () => {
-    vi.stubGlobal(
-      "matchMedia",
-      vi.fn(() => createMatchMedia(false)),
-    );
+    stubMatchMedia(vi.fn(() => createMatchMedia(false)));
     usePreferencesStore.setState({ prefs: { theme: "light" }, loaded: true });
     setPlatformState({
       loaded: true,
@@ -157,12 +177,9 @@ describe("useAppIconTheme", () => {
 
   it("classifies runtime diagnostics without toast and with secret redaction", async () => {
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
-    vi.stubGlobal(
-      "matchMedia",
-      vi.fn(() => createMatchMedia(false)),
-    );
-    setIconMock.mockRejectedValue(
-      new Error("TOKEN=secret https://alice:password@example.com/icon.png?token=secret#secret"),
+    stubMatchMedia(vi.fn(() => createMatchMedia(false)));
+    setIconMock.mockResolvedValue(
+      Result.fail(new Error("TOKEN=secret https://alice:password@example.com/icon.png?token=secret#secret")),
     );
     usePreferencesStore.setState({ prefs: { theme: "light" }, loaded: true });
     setPlatformState({
@@ -203,10 +220,7 @@ describe("useAppIconTheme", () => {
 
   it("tracks system theme changes", async () => {
     const mql = createMatchMedia(true);
-    vi.stubGlobal(
-      "matchMedia",
-      vi.fn(() => mql),
-    );
+    stubMatchMedia(vi.fn(() => mql));
     usePreferencesStore.setState({ prefs: { theme: "system" }, loaded: true });
     setPlatformState({
       loaded: true,
@@ -228,10 +242,7 @@ describe("useAppIconTheme", () => {
 
   it("coalesces rapid system theme changes before starting the icon side effect", async () => {
     const mql = createMatchMedia(true);
-    vi.stubGlobal(
-      "matchMedia",
-      vi.fn(() => mql),
-    );
+    stubMatchMedia(vi.fn(() => mql));
     setIconMock.mockResolvedValue(undefined);
     usePreferencesStore.setState({ prefs: { theme: "system" }, loaded: true });
     setPlatformState({
@@ -254,10 +265,7 @@ describe("useAppIconTheme", () => {
 
   it("removes the system theme listener when switching to an explicit theme", async () => {
     const mql = createMatchMedia(true);
-    vi.stubGlobal(
-      "matchMedia",
-      vi.fn(() => mql),
-    );
+    stubMatchMedia(vi.fn(() => mql));
     usePreferencesStore.setState({ prefs: { theme: "system" }, loaded: true });
     setPlatformState({
       loaded: true,
@@ -291,10 +299,7 @@ describe("useAppIconTheme", () => {
 
   it("skips runtime icon replacement when capability is disabled", async () => {
     const mql = createMatchMedia(true);
-    vi.stubGlobal(
-      "matchMedia",
-      vi.fn(() => mql),
-    );
+    stubMatchMedia(vi.fn(() => mql));
     usePreferencesStore.setState({ prefs: { theme: "system" }, loaded: true });
     setPlatformState({
       loaded: true,
@@ -311,10 +316,7 @@ describe("useAppIconTheme", () => {
 
   it("skips runtime icon replacement when platform info is not loaded", async () => {
     const mql = createMatchMedia(true);
-    vi.stubGlobal(
-      "matchMedia",
-      vi.fn(() => mql),
-    );
+    stubMatchMedia(vi.fn(() => mql));
     usePreferencesStore.setState({ prefs: { theme: "system" }, loaded: true });
     setPlatformState({
       loaded: false,
@@ -329,7 +331,7 @@ describe("useAppIconTheme", () => {
   });
 
   it("falls back without throwing when system theme cannot read matchMedia", async () => {
-    vi.stubGlobal("matchMedia", undefined);
+    stubMatchMedia(undefined);
     usePreferencesStore.setState({ prefs: { theme: "system" }, loaded: true });
     setPlatformState({
       loaded: true,
@@ -344,8 +346,7 @@ describe("useAppIconTheme", () => {
   });
 
   it("falls back without throwing when matchMedia itself throws", async () => {
-    vi.stubGlobal(
-      "matchMedia",
+    stubMatchMedia(
       vi.fn(() => {
         throw new Error("matchMedia unavailable");
       }),
@@ -365,10 +366,7 @@ describe("useAppIconTheme", () => {
 
   it("uses legacy system theme listeners and ignores cleanup failures", async () => {
     const mql = createLegacyMatchMedia(true, { throwOnRemove: true });
-    vi.stubGlobal(
-      "matchMedia",
-      vi.fn(() => mql),
-    );
+    stubMatchMedia(vi.fn(() => mql));
     usePreferencesStore.setState({ prefs: { theme: "system" }, loaded: true });
     setPlatformState({
       loaded: true,
@@ -394,10 +392,7 @@ describe("useAppIconTheme", () => {
   });
 
   it("applies icon after platform info loads and runtime replacement becomes available", async () => {
-    vi.stubGlobal(
-      "matchMedia",
-      vi.fn(() => createMatchMedia(false)),
-    );
+    stubMatchMedia(vi.fn(() => createMatchMedia(false)));
     usePreferencesStore.setState({ prefs: { theme: "light" }, loaded: true });
     setPlatformState({
       loaded: false,
@@ -423,11 +418,10 @@ describe("useAppIconTheme", () => {
 
   it("treats runtime icon replacement failures as no-op and reflects the next theme state", async () => {
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
-    vi.stubGlobal(
-      "matchMedia",
-      vi.fn(() => createMatchMedia(false)),
-    );
-    setIconMock.mockRejectedValueOnce(new Error("runtime icon unavailable")).mockResolvedValue(undefined);
+    stubMatchMedia(vi.fn(() => createMatchMedia(false)));
+    setIconMock
+      .mockResolvedValueOnce(Result.fail(new Error("runtime icon unavailable")))
+      .mockResolvedValue(Result.succeed(undefined));
     usePreferencesStore.setState({ prefs: { theme: "light" }, loaded: true });
     setPlatformState({
       loaded: true,
@@ -454,12 +448,11 @@ describe("useAppIconTheme", () => {
   });
 
   it("applies only the latest queued icon request after rapid theme changes", async () => {
-    const firstIconRequest = createDeferred<void>();
-    vi.stubGlobal(
-      "matchMedia",
-      vi.fn(() => createMatchMedia(false)),
-    );
-    setIconMock.mockImplementationOnce(() => firstIconRequest.promise).mockResolvedValue(undefined);
+    const firstIconRequest = createDeferred<
+      ReturnType<typeof Result.succeed<undefined>> | ReturnType<typeof Result.fail<Error>>
+    >();
+    stubMatchMedia(vi.fn(() => createMatchMedia(false)));
+    setIconMock.mockImplementationOnce(() => firstIconRequest.promise).mockResolvedValue(Result.succeed(undefined));
     usePreferencesStore.setState({ prefs: { theme: "dark" }, loaded: true });
     setPlatformState({
       loaded: true,
@@ -481,7 +474,7 @@ describe("useAppIconTheme", () => {
     expect(setIconMock).toHaveBeenCalledTimes(1);
 
     act(() => {
-      firstIconRequest.resolve();
+      firstIconRequest.resolve(Result.succeed(undefined));
     });
 
     await waitFor(() => {
@@ -491,13 +484,12 @@ describe("useAppIconTheme", () => {
   });
 
   it("continues with the latest queued icon request after an OS command failure", async () => {
-    const firstIconRequest = createDeferred<void>();
+    const firstIconRequest = createDeferred<
+      ReturnType<typeof Result.succeed<undefined>> | ReturnType<typeof Result.fail<Error>>
+    >();
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
-    vi.stubGlobal(
-      "matchMedia",
-      vi.fn(() => createMatchMedia(false)),
-    );
-    setIconMock.mockImplementationOnce(() => firstIconRequest.promise).mockResolvedValue(undefined);
+    stubMatchMedia(vi.fn(() => createMatchMedia(false)));
+    setIconMock.mockImplementationOnce(() => firstIconRequest.promise).mockResolvedValue(Result.succeed(undefined));
     usePreferencesStore.setState({ prefs: { theme: "dark" }, loaded: true });
     setPlatformState({
       loaded: true,
@@ -519,7 +511,7 @@ describe("useAppIconTheme", () => {
     expect(setIconMock).toHaveBeenCalledTimes(1);
 
     act(() => {
-      firstIconRequest.reject(new Error("OS icon update failed"));
+      firstIconRequest.resolve(Result.fail(new Error("OS icon update failed")));
     });
     await Promise.allSettled([firstIconRequest.promise]);
 
@@ -536,13 +528,10 @@ describe("useAppIconTheme", () => {
   });
 
   it("does not replay a stale intermediate system theme request when the latest request matches the in-flight icon", async () => {
-    const firstIconRequest = createDeferred<void>();
+    const firstIconRequest = createDeferred<ReturnType<typeof Result.succeed<undefined>>>();
     const mql = createMatchMedia(true);
-    vi.stubGlobal(
-      "matchMedia",
-      vi.fn(() => mql),
-    );
-    setIconMock.mockImplementationOnce(() => firstIconRequest.promise).mockResolvedValue(undefined);
+    stubMatchMedia(vi.fn(() => mql));
+    setIconMock.mockImplementationOnce(() => firstIconRequest.promise).mockResolvedValue(Result.succeed(undefined));
     usePreferencesStore.setState({ prefs: { theme: "system" }, loaded: true });
     setPlatformState({
       loaded: true,
@@ -565,7 +554,7 @@ describe("useAppIconTheme", () => {
     expect(setIconMock).toHaveBeenCalledTimes(1);
 
     act(() => {
-      firstIconRequest.resolve();
+      firstIconRequest.resolve(Result.succeed(undefined));
     });
 
     await flushMicrotasksAndRealTimer();
@@ -574,12 +563,9 @@ describe("useAppIconTheme", () => {
   });
 
   it("does not apply queued icon requests after unmount", async () => {
-    const firstIconRequest = createDeferred<void>();
-    vi.stubGlobal(
-      "matchMedia",
-      vi.fn(() => createMatchMedia(false)),
-    );
-    setIconMock.mockImplementationOnce(() => firstIconRequest.promise).mockResolvedValue(undefined);
+    const firstIconRequest = createDeferred<ReturnType<typeof Result.succeed<undefined>>>();
+    stubMatchMedia(vi.fn(() => createMatchMedia(false)));
+    setIconMock.mockImplementationOnce(() => firstIconRequest.promise).mockResolvedValue(Result.succeed(undefined));
     usePreferencesStore.setState({ prefs: { theme: "dark" }, loaded: true });
     setPlatformState({
       loaded: true,
@@ -600,7 +586,7 @@ describe("useAppIconTheme", () => {
     unmount();
 
     act(() => {
-      firstIconRequest.resolve();
+      firstIconRequest.resolve(Result.succeed(undefined));
     });
     await flushMicrotasksAndRealTimer();
 

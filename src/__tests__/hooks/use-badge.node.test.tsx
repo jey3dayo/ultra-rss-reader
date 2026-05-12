@@ -1,8 +1,10 @@
-import { act, render, waitFor } from "@testing-library/react";
+import "@testing-library/react/dont-cleanup-after-each";
+import { act, cleanup, render, waitFor } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { sampleFeeds } from "@tests/helpers/fixtures";
 import { setupTauriMocks, teardownTauriMocks } from "@tests/helpers/tauri-mocks";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useBadge } from "@/hooks/use-badge";
 import { resetRuntimeDiagnosticOnceSuppressionForTests } from "@/lib/runtime/diagnostics";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -25,6 +27,8 @@ const { getCurrentWindowMock } = vi.hoisted(() => ({
 vi.mock("@tauri-apps/api/window", () => ({
   getCurrentWindow: getCurrentWindowMock,
 }));
+
+setupBrowserTestDom();
 
 function createDeferred<T>() {
   let resolve!: (value: T | PromiseLike<T>) => void;
@@ -52,6 +56,11 @@ describe("useBadge", () => {
     });
     usePreferencesStore.setState({ prefs: {}, loaded: true });
     useUiStore.setState({ selectedAccountId: "acc-1" });
+  });
+
+  afterEach(async () => {
+    cleanup();
+    await new Promise<void>((resolve) => setImmediate(resolve));
   });
 
   it("clears the badge when unread badge display is disabled", async () => {

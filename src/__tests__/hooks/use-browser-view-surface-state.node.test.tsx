@@ -1,8 +1,11 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, cleanup, renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { useRef, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppError, BrowserWebviewState } from "@/api/tauri-commands";
 import { useBrowserViewSurfaceState } from "@/components/reader/hooks/browser/use-browser-view-surface-state";
+
+setupBrowserTestDom();
 
 const labels = {
   browserMode: "Embedded preview isn't available in browser mode.",
@@ -45,6 +48,7 @@ describe("useBrowserViewSurfaceState", () => {
   });
 
   afterEach(() => {
+    cleanup();
     vi.restoreAllMocks();
   });
 

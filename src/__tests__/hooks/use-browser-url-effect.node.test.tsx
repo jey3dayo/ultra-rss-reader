@@ -1,4 +1,5 @@
-import { renderHook } from "@testing-library/react";
+import { cleanup, renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   useAsyncCommandLifecycle,
@@ -7,8 +8,11 @@ import {
 } from "@/components/reader/hooks/browser/use-browser-url-effect";
 import { useUiStore } from "@/stores/ui-store";
 
+setupBrowserTestDom();
+
 describe("useBrowserUrlEffect", () => {
   afterEach(() => {
+    cleanup();
     useUiStore.setState({ browserUrl: null });
   });
 

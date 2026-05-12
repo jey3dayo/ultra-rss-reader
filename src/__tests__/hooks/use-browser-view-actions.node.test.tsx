@@ -1,5 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { act, renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { useRef, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { BrowserWebviewState } from "@/api/tauri-commands";
@@ -32,6 +33,8 @@ vi.mock("@/api/tauri-commands", () => ({
 vi.mock("@/components/reader/article-browser-actions", () => ({
   openUrlInExternalBrowser: openUrlInExternalBrowserMock,
 }));
+
+setupBrowserTestDom();
 
 function createBrowserState(overrides?: Partial<BrowserWebviewState>): BrowserWebviewState {
   return {
