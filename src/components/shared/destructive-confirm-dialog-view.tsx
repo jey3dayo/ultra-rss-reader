@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { DestructiveDialogFooter } from "@/components/shared/destructive-dialog-footer";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { getRestorableActiveElement, restoreFocusOnMicrotask } from "@/lib/dom/focus-restore";
 
 export type DestructiveConfirmDialogViewProps = {
   open: boolean;
@@ -40,7 +41,7 @@ export function DestructiveConfirmDialogView({
 
   useEffect(() => {
     if (open && !wasOpenRef.current) {
-      restoreFocusElementRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      restoreFocusElementRef.current = getRestorableActiveElement();
     }
 
     if (!open) {
@@ -48,12 +49,7 @@ export function DestructiveConfirmDialogView({
       setConfirmInFlight(false);
 
       if (wasOpenRef.current) {
-        const restoreFocusElement = restoreFocusElementRef.current;
-        queueMicrotask(() => {
-          if (restoreFocusElement && document.contains(restoreFocusElement)) {
-            restoreFocusElement.focus();
-          }
-        });
+        restoreFocusOnMicrotask(restoreFocusElementRef.current);
       }
     }
 

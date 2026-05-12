@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ConfirmDialogView } from "@/components/shared/confirm-dialog-view";
+import { getRestorableActiveElement, restoreFocusOnMicrotask } from "@/lib/dom/focus-restore";
 import { useUiStore } from "@/stores/ui-store";
 
 export function AppConfirmDialog() {
@@ -14,7 +15,7 @@ export function AppConfirmDialog() {
 
   useEffect(() => {
     if (confirmDialog.open && !wasOpenRef.current) {
-      restoreFocusElementRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      restoreFocusElementRef.current = getRestorableActiveElement();
     }
 
     if (!confirmDialog.open) {
@@ -22,12 +23,7 @@ export function AppConfirmDialog() {
       setConfirmInFlight(false);
 
       if (wasOpenRef.current) {
-        const restoreFocusElement = restoreFocusElementRef.current;
-        queueMicrotask(() => {
-          if (restoreFocusElement && document.contains(restoreFocusElement)) {
-            restoreFocusElement.focus();
-          }
-        });
+        restoreFocusOnMicrotask(restoreFocusElementRef.current);
       }
     }
 
