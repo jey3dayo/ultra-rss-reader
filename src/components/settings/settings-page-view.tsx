@@ -43,6 +43,7 @@ function SettingsPageSwitchRow({ control }: SettingsPageControlRowProps<Settings
       checked={control.checked}
       onChange={control.onChange}
       disabled={control.disabled}
+      labelClassName="sm:whitespace-nowrap"
     />
   );
 }

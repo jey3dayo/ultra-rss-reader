@@ -37,7 +37,7 @@ export function LabeledControlRow({
     <span className="flex min-w-0 flex-col gap-1.5">
       <span className={labelClasses}>{label}</span>
       {description ? (
-        <span id={resolvedDescriptionId} className="font-serif text-xs leading-[1.45] text-foreground-soft">
+        <span id={resolvedDescriptionId} className="font-sans text-[13px] leading-[1.5] text-foreground-soft">
           {description}
         </span>
       ) : null}

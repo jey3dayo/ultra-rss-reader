@@ -106,6 +106,31 @@ describe("SettingsPageView", () => {
     expect(screen.queryByRole("textbox", { name: "Storage backend" })).toBeNull();
   });
 
+  it("keeps desktop switch labels on one line when the control is compact", () => {
+    render(
+      <SettingsPageView
+        title="Reading"
+        sections={[
+          {
+            id: "scroll",
+            heading: "Scroll",
+            controls: [
+              {
+                id: "scroll-to-top-on-change",
+                type: "switch",
+                label: "フィード切り替え時にトップへスクロール",
+                checked: true,
+                onChange: vi.fn(),
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("フィード切り替え時にトップへスクロール")).toHaveClass("sm:whitespace-nowrap");
+  });
+
   it("uses the shared labeled input row for text controls with inline actions", async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();

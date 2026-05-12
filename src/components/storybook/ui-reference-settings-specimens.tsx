@@ -132,6 +132,12 @@ export function FormRowsSpecimen({ livePreview, onLivePreviewChange }: FormRowsS
         triggerClassName="min-w-[11rem]"
       />
       <LabeledSwitchRow label="Live Preview" checked={livePreview} onChange={onLivePreviewChange} />
+      <LabeledSwitchRow
+        label="フィード切り替え時にトップへスクロール"
+        checked={true}
+        onChange={() => {}}
+        labelClassName="sm:whitespace-nowrap"
+      />
       <ReferenceRadioGroup />
     </SettingsSection>
   );

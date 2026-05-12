@@ -8,6 +8,7 @@ type LabeledSwitchRowProps = {
   onChange: (checked: boolean) => void;
   disabled?: boolean;
   rowClassName?: string;
+  labelClassName?: string;
 };
 
 export function LabeledSwitchRow({
@@ -17,9 +18,10 @@ export function LabeledSwitchRow({
   onChange,
   disabled,
   rowClassName,
+  labelClassName,
 }: LabeledSwitchRowProps) {
   return (
-    <LabeledControlRow label={label} description={description} className={rowClassName}>
+    <LabeledControlRow label={label} description={description} className={rowClassName} labelClassName={labelClassName}>
       {({ descriptionId }) => (
         <GradientSwitch
           checked={checked}

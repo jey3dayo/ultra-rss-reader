@@ -121,7 +121,8 @@ function ShortcutKeyBadge({ item, pressAKeyLabel, resetDisabled }: ShortcutKeyBa
 
   return (
     <div className="flex w-full flex-col items-stretch gap-1 sm:w-auto sm:items-end">
-      <div className="flex w-full items-center gap-1 sm:w-auto">
+      <div className="flex w-full items-center justify-end gap-1 sm:w-auto">
+        <ShortcutResetButton item={item} disabled={resetDisabled} />
         <ShortcutKeyButton
           ref={badgeRef}
           data-testid={`shortcut-badge-${item.id}`}
@@ -131,7 +132,6 @@ function ShortcutKeyBadge({ item, pressAKeyLabel, resetDisabled }: ShortcutKeyBa
         >
           {item.isRecording ? pressAKeyLabel : item.displayKey}
         </ShortcutKeyButton>
-        <ShortcutResetButton item={item} disabled={resetDisabled} />
       </div>
       {item.conflictLabel && !item.isRecording && (
         <span className="text-[10px] text-state-danger-foreground">{item.conflictLabel}</span>
