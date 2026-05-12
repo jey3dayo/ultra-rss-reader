@@ -168,7 +168,7 @@ describe("useDebugSettingsViewProps", () => {
     ]);
   });
 
-  it("surfaces the Dev data seed command and safety notes only for dev builds without wiring execution", () => {
+  it("surfaces the Dev data seed command only for dev builds without wiring execution", () => {
     const props = createProps({ devBuild: true });
 
     const devDataSection = props.sections.find((section) => section.id === "debug-dev-data");
@@ -176,37 +176,17 @@ describe("useDebugSettingsViewProps", () => {
     expect(devDataSection).toEqual(
       expect.objectContaining({
         heading: "Dev data seed",
-        note: expect.stringContaining("Dev app"),
       }),
     );
-    expect(devDataSection?.controls).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          id: "debug-dev-data-source",
-          type: "info",
-          label: "Source label",
-          value: expect.stringContaining("Dev mock data"),
-        }),
-        expect.objectContaining({
-          id: "debug-dev-data-command",
-          type: "info",
-          label: "Command",
-          value: "mise run app:dev:seed-from-prod",
-        }),
-        expect.objectContaining({
-          id: "debug-dev-data-backup",
-          type: "info",
-          label: "Backup and restart",
-          value: expect.stringContaining("timestamped backup"),
-        }),
-        expect.objectContaining({
-          id: "debug-dev-data-credentials",
-          type: "info",
-          label: "Credentials",
-          value: expect.stringContaining("not copied"),
-        }),
-      ]),
-    );
+    expect(devDataSection?.note).toBeUndefined();
+    expect(devDataSection?.controls).toEqual([
+      expect.objectContaining({
+        id: "debug-dev-data-command",
+        type: "info",
+        label: "Command",
+        value: "mise run app:dev:seed-from-prod",
+      }),
+    ]);
   });
 
   it("omits the Dev data seed guidance outside dev builds", () => {

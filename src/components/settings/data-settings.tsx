@@ -1,17 +1,8 @@
 import { useTranslation } from "react-i18next";
 import { DataSettingsView } from "@/components/settings/data-settings-view";
-import { STORAGE_CLEANUP_POLICY_CONNECTIONS } from "@/constants/storage";
-import { StorageCleanupPolicyConnectionsSchema } from "@/schemas/storage";
 import { useUiStore } from "@/stores/ui-store";
 import { useDataSettingsController } from "./hooks/use-data-settings-controller";
 import { useRegisterSettingsDirtyState } from "./hooks/use-settings-dirty-state-registry";
-
-const storageCleanupPolicyConnections = StorageCleanupPolicyConnectionsSchema.parse(STORAGE_CLEANUP_POLICY_CONNECTIONS);
-const OPML_DATA_ACTION_POLICY_CHECKLIST = [
-  "OPML import/export can take time on large subscription lists; keep the settings window open until the success or error summary appears.",
-  "OPML import/export is not cancelable after it starts. If the source file looks unusually large, make a backup first and wait for the command to finish.",
-  "Duplicate feeds are skipped during OPML import, and the completion summary should be treated as partial success when fewer feeds are added than the file contains.",
-] as const;
 
 export function DataSettings() {
   const { t } = useTranslation("settings");
@@ -25,8 +16,6 @@ export function DataSettings() {
   const dataActionPending = controller.vacuuming || controller.openingLogDir;
   const safetyChecklist = t("data.safety_checklist", {
     returnObjects: true,
-    settingsDataResetStorageKeys: storageCleanupPolicyConnections.settingsDataResetKeys,
-    privateDataExportStorageKeys: storageCleanupPolicyConnections.privateDataExportKeys,
   }) as string[];
 
   useRegisterSettingsDirtyState({
@@ -47,10 +36,7 @@ export function DataSettings() {
       databaseSizeErrorLabel={t("data.database_size_error")}
       safetyHeading={t("data.safety")}
       safetyDescription={t("data.safety_description")}
-      safetyChecklist={[...safetyChecklist, ...OPML_DATA_ACTION_POLICY_CHECKLIST]}
-      recoveryCriteriaHeading={t("data.recovery_criteria")}
-      recoveryCriteriaTargetUnknownLabel={t("data.recovery_criteria_target_unknown_disabled")}
-      destructiveRecoveryCriteria={controller.destructiveRecoveryCriteria}
+      safetyChecklist={safetyChecklist}
       optimizationHeading={t("data.optimization")}
       vacuumDescription={t("data.vacuum_description")}
       vacuumLabel={t("data.vacuum")}

@@ -6,7 +6,6 @@ import { DatabaseInfoDtoSchema } from "@/api/schemas/database-info";
 import { getDatabaseInfo, openLogDir, vacuumDatabase } from "@/api/tauri-commands";
 import type { DatabaseRecoveryActionSafety } from "@/components/settings/hooks/use-data-settings-controller";
 import {
-  buildDestructiveRecoveryCriteria,
   classifyDatabaseRuntimeRecoverySurface,
   formatBytes,
   reconcileDatabaseRestoreFrontendState,
@@ -67,52 +66,7 @@ describe("formatBytes", () => {
   });
 });
 
-describe("buildDestructiveRecoveryCriteria", () => {
-  it("requires target-known disabled state and confirmation criteria for destructive recovery actions", () => {
-    const translations = new Map([
-      ["data.recovery_criteria_restore_backup_action", "Restore backup"],
-      ["data.recovery_criteria_restore_backup_requirement", "Recommend backup and undo unavailable confirmation"],
-      ["data.recovery_criteria_private_data_reset_action", "Reset private data"],
-      ["data.recovery_criteria_private_data_reset_requirement", "Require target counts and second confirmation"],
-      ["data.recovery_criteria_cleanup_orphans_action", "Clean up orphaned data"],
-      ["data.recovery_criteria_cleanup_orphans_requirement", "Show dry-run counts before cleanup"],
-      ["data.recovery_criteria_clear_history_action", "Clear history"],
-      ["data.recovery_criteria_clear_history_requirement", "Show scope and undo unavailable confirmation"],
-      ["data.recovery_criteria_delete_account_action", "Delete account"],
-      ["data.recovery_criteria_delete_account_requirement", "Confirm account name and related data deletion"],
-    ]);
-
-    const criteria = buildDestructiveRecoveryCriteria((key) => translations.get(key) ?? key);
-
-    expect(criteria).toEqual([
-      {
-        action: "Restore backup",
-        requirement: "Recommend backup and undo unavailable confirmation",
-        disabledWhenTargetUnknown: true,
-      },
-      {
-        action: "Reset private data",
-        requirement: "Require target counts and second confirmation",
-        disabledWhenTargetUnknown: true,
-      },
-      {
-        action: "Clean up orphaned data",
-        requirement: "Show dry-run counts before cleanup",
-        disabledWhenTargetUnknown: true,
-      },
-      {
-        action: "Clear history",
-        requirement: "Show scope and undo unavailable confirmation",
-        disabledWhenTargetUnknown: true,
-      },
-      {
-        action: "Delete account",
-        requirement: "Confirm account name and related data deletion",
-        disabledWhenTargetUnknown: true,
-      },
-    ]);
-  });
-
+describe("data recovery safety contract", () => {
   it("keeps dry-run safety representable in the settings data recovery contract", () => {
     const safety: readonly DatabaseRecoveryActionSafety[] = [
       "read_only",

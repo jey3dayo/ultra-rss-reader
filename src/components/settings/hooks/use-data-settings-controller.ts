@@ -27,7 +27,6 @@ type UseDataSettingsControllerResult = {
   databaseSizeStatus: DatabaseSizeStatus;
   databaseSizeValue: string;
   databaseRuntimeRecoverySurface: DatabaseRuntimeRecoverySurface | null;
-  destructiveRecoveryCriteria: readonly DestructiveRecoveryCriterion[];
   vacuuming: boolean;
   openingLogDir: boolean;
   handleVacuum: () => Promise<void>;
@@ -37,12 +36,6 @@ type UseDataSettingsControllerResult = {
 export type DatabaseSizeStatus = "loading" | "ready" | "error";
 
 type DataSettingsActionKey = "vacuuming" | "openingLogDir";
-
-export type DestructiveRecoveryCriterion = {
-  action: string;
-  requirement: string;
-  disabledWhenTargetUnknown: boolean;
-};
 
 export type DatabaseRuntimeFailureKind =
   | "read_corruption"
@@ -79,20 +72,6 @@ export type DatabaseRuntimeRecoverySurface = {
 };
 
 type DatabaseRuntimeOperation = "read" | "write";
-
-type DataSettingsRecoveryTranslationKey =
-  | "data.recovery_criteria_restore_backup_action"
-  | "data.recovery_criteria_restore_backup_requirement"
-  | "data.recovery_criteria_private_data_reset_action"
-  | "data.recovery_criteria_private_data_reset_requirement"
-  | "data.recovery_criteria_cleanup_orphans_action"
-  | "data.recovery_criteria_cleanup_orphans_requirement"
-  | "data.recovery_criteria_clear_history_action"
-  | "data.recovery_criteria_clear_history_requirement"
-  | "data.recovery_criteria_delete_account_action"
-  | "data.recovery_criteria_delete_account_requirement";
-
-type DataSettingsRecoveryTranslation = (key: DataSettingsRecoveryTranslationKey) => string;
 
 type DatabaseRestoreAccount = {
   id: string;
@@ -362,38 +341,6 @@ export function formatBytes(bytes: number): string {
   return `${(bytes / BYTES_PER_MEBIBYTE).toFixed(DATA_SIZE_FRACTION_DIGITS)} ${DATA_SIZE_UNIT_LABELS.mebibyte}`;
 }
 
-export function buildDestructiveRecoveryCriteria(
-  t: DataSettingsRecoveryTranslation,
-): readonly DestructiveRecoveryCriterion[] {
-  return [
-    {
-      action: t("data.recovery_criteria_restore_backup_action"),
-      requirement: t("data.recovery_criteria_restore_backup_requirement"),
-      disabledWhenTargetUnknown: true,
-    },
-    {
-      action: t("data.recovery_criteria_private_data_reset_action"),
-      requirement: t("data.recovery_criteria_private_data_reset_requirement"),
-      disabledWhenTargetUnknown: true,
-    },
-    {
-      action: t("data.recovery_criteria_cleanup_orphans_action"),
-      requirement: t("data.recovery_criteria_cleanup_orphans_requirement"),
-      disabledWhenTargetUnknown: true,
-    },
-    {
-      action: t("data.recovery_criteria_clear_history_action"),
-      requirement: t("data.recovery_criteria_clear_history_requirement"),
-      disabledWhenTargetUnknown: true,
-    },
-    {
-      action: t("data.recovery_criteria_delete_account_action"),
-      requirement: t("data.recovery_criteria_delete_account_requirement"),
-      disabledWhenTargetUnknown: true,
-    },
-  ];
-}
-
 export function reconcileDatabaseRestoreFrontendState<T extends DatabaseRestoreAccount>({
   accounts,
   selectedAccountId,
@@ -611,7 +558,6 @@ export function useDataSettingsController({
     databaseSizeStatus,
     databaseSizeValue: totalSize != null ? formatBytes(totalSize) : "",
     databaseRuntimeRecoverySurface,
-    destructiveRecoveryCriteria: buildDestructiveRecoveryCriteria(t),
     vacuuming,
     openingLogDir,
     handleVacuum,

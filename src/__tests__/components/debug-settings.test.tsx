@@ -148,12 +148,11 @@ describe("DebugSettings", () => {
     expect(screen.getByText("Reading display mode settings")).toHaveClass("whitespace-nowrap");
   });
 
-  it("shows the current credentials backend and relaunch hint", async () => {
+  it("shows the current credentials backend and restart hint", async () => {
     render(<DebugSettings />, { wrapper: createWrapper() });
 
     expect(await screen.findByText("OS keyring")).toBeInTheDocument();
-    expect(screen.getByText(/relaunching with `mise run app:dev`/i)).toBeInTheDocument();
-    expect(screen.getByText(/mise run app:dev:native-keyring/i)).toBeInTheDocument();
+    expect(screen.getByText("Restart the Dev app after changing credential backend.")).toBeInTheDocument();
     expect(
       screen.queryByRole("button", {
         name: "Reset oversized dev credential store",
@@ -212,27 +211,20 @@ describe("DebugSettings", () => {
     expect(screen.queryByText("OS keyring")).not.toBeInTheDocument();
   });
 
-  it("shows Dev data seed safety guidance without an execution button", async () => {
+  it("shows the Dev data seed command without an execution button", async () => {
     render(<DebugSettings />, { wrapper: createWrapper() });
 
     expect(await screen.findByText("Dev data seed")).toBeInTheDocument();
-    expect(screen.getByText("Source label")).toBeInTheDocument();
-    expect(screen.getByText(/product metrics as Dev mock data/i)).toBeInTheDocument();
     expect(screen.getByText("mise run app:dev:seed-from-prod")).toBeInTheDocument();
-    expect(screen.getByText(/timestamped backup/i)).toBeInTheDocument();
-    expect(screen.getByText(/Production credentials are not copied/i)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /seed/i })).not.toBeInTheDocument();
   });
 
-  it("surfaces support log privacy checklist next to debug support workflow", async () => {
+  it("omits support log privacy guidance from the developer debug surface", async () => {
     render(<DebugSettings />, { wrapper: createWrapper() });
 
-    expect(await screen.findByText("Support log privacy")).toBeInTheDocument();
-    expect(screen.getByText(/Open logs from Data settings/i)).toBeInTheDocument();
-    expect(screen.getByText(/redacted app\.log excerpt/i)).toBeInTheDocument();
-    expect(screen.getByText(/account names, feed URLs, article URLs, and local user paths/i)).toBeInTheDocument();
-    expect(screen.getByText(/stale support\/debug logs and support dumps/i)).toBeInTheDocument();
-    expect(screen.getByText(/private, unencrypted backup database files/i)).toBeInTheDocument();
+    expect(await screen.findByText("Debug")).toBeInTheDocument();
+    expect(screen.queryByText("Support log privacy")).not.toBeInTheDocument();
+    expect(screen.queryByText(/redacted app\.log excerpt/i)).not.toBeInTheDocument();
   });
 
   it("hides Dev data seed guidance outside dev builds", async () => {

@@ -2,7 +2,6 @@ import { render } from "@testing-library/react";
 import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DataSettings } from "@/components/settings/data-settings";
-import { STORAGE_CLEANUP_POLICY_CONNECTIONS } from "@/constants/storage";
 
 const mocks = vi.hoisted(() => ({
   dataSettingsView: vi.fn<(props: unknown) => null>(() => null),
@@ -62,25 +61,18 @@ describe("DataSettings", () => {
     mocks.translationCalls.length = 0;
   });
 
-  it("passes storage cleanup policy connections into the data safety checklist translation", () => {
+  it("passes the localized data safety checklist without extra policy copy", () => {
     render(<DataSettings />);
 
     expect(mocks.dataSettingsView).toHaveBeenCalledWith(
       expect.objectContaining({
-        safetyChecklist: [
-          "safety",
-          "OPML import/export can take time on large subscription lists; keep the settings window open until the success or error summary appears.",
-          "OPML import/export is not cancelable after it starts. If the source file looks unusually large, make a backup first and wait for the command to finish.",
-          "Duplicate feeds are skipped during OPML import, and the completion summary should be treated as partial success when fewer feeds are added than the file contains.",
-        ],
+        safetyChecklist: ["safety"],
       }),
     );
     expect(mocks.translationCalls).toContainEqual({
       key: "data.safety_checklist",
       options: {
         returnObjects: true,
-        settingsDataResetStorageKeys: STORAGE_CLEANUP_POLICY_CONNECTIONS.settingsDataResetKeys,
-        privateDataExportStorageKeys: STORAGE_CLEANUP_POLICY_CONNECTIONS.privateDataExportKeys,
       },
     });
   });

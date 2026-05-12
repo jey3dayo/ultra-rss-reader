@@ -2,10 +2,7 @@ import { SettingsActionButton } from "@/components/settings/shared/settings-acti
 import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
-import type { DatabaseSizeStatus, DestructiveRecoveryCriterion } from "./hooks/use-data-settings-controller";
-
-const OPML_IMPORT_FOLDER_POLICY_COPY =
-  "OPML import flattens nested folders to the deepest folder name for each feed. Empty folder outlines are skipped.";
+import type { DatabaseSizeStatus } from "./hooks/use-data-settings-controller";
 
 type DataSettingsViewProps = {
   title: string;
@@ -18,9 +15,6 @@ type DataSettingsViewProps = {
   safetyHeading: string;
   safetyDescription: string;
   safetyChecklist: readonly string[];
-  recoveryCriteriaHeading?: string;
-  recoveryCriteriaTargetUnknownLabel?: string;
-  destructiveRecoveryCriteria?: readonly DestructiveRecoveryCriterion[];
   optimizationHeading: string;
   vacuumDescription: string;
   vacuumLabel: string;
@@ -46,9 +40,6 @@ export function DataSettingsView({
   safetyHeading,
   safetyDescription,
   safetyChecklist,
-  recoveryCriteriaHeading,
-  recoveryCriteriaTargetUnknownLabel,
-  destructiveRecoveryCriteria = [],
   optimizationHeading,
   vacuumDescription,
   vacuumLabel,
@@ -83,30 +74,11 @@ export function DataSettingsView({
       </SettingsSection>
       <SettingsSection heading={safetyHeading} surface="flat" className="mb-6 sm:mb-7">
         <p className="mb-3 font-serif text-sm text-foreground-soft">{safetyDescription}</p>
-        <p className="mb-3 font-serif text-sm text-foreground-soft">{OPML_IMPORT_FOLDER_POLICY_COPY}</p>
         <ul className="list-disc space-y-1 pl-5 font-serif text-sm text-foreground-soft">
           {safetyChecklist.map((item) => (
             <li key={item}>{item}</li>
           ))}
         </ul>
-        {destructiveRecoveryCriteria.length > 0 ? (
-          <div className="mt-4">
-            {recoveryCriteriaHeading != null ? (
-              <h3 className="mb-2 text-sm font-semibold text-foreground">{recoveryCriteriaHeading}</h3>
-            ) : null}
-            <ul className="space-y-2 font-serif text-sm text-foreground-soft">
-              {destructiveRecoveryCriteria.map((criterion) => (
-                <li key={criterion.action}>
-                  <span className="font-sans font-medium text-foreground">{criterion.action}</span>
-                  <span> - {criterion.requirement}</span>
-                  {criterion.disabledWhenTargetUnknown && recoveryCriteriaTargetUnknownLabel != null ? (
-                    <span> {recoveryCriteriaTargetUnknownLabel}</span>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
       </SettingsSection>
       <SettingsSection heading={optimizationHeading} surface="flat" className="mb-6 sm:mb-7">
         <LabeledControlRow label={vacuumLabel} description={vacuumDescriptionText}>
