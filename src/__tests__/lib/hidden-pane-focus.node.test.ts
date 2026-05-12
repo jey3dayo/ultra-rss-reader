@@ -1,9 +1,13 @@
+import "@testing-library/jest-dom/vitest";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   disableHiddenPaneFocus,
   HIDDEN_PANE_PREVIOUS_TAB_INDEX_ATTRIBUTE,
   restoreHiddenPaneFocus,
 } from "@/lib/dom/hidden-pane-focus";
+
+setupBrowserTestDom();
 
 describe("hidden pane focus", () => {
   afterEach(() => {

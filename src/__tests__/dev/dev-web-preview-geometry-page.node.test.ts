@@ -1,8 +1,11 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { describe, expect, it } from "vitest";
 import { createDevWebPreviewGeometryFixture } from "@/dev/web-preview-geometry";
+
+setupBrowserTestDom();
 
 function readGeometryPageHtml(): string {
   const currentFile = fileURLToPath(import.meta.url);

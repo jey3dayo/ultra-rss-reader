@@ -1,3 +1,4 @@
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { resetTauriRuntimeFlags, setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -6,6 +7,8 @@ import {
   resetTauriEventListenerFailureReportForRuntimeRecovery,
   TAURI_EVENT_LISTENER_FAILURE_EVENT,
 } from "@/lib/runtime/tauri-event-listeners";
+
+setupBrowserTestDom();
 
 function createDeferredCleanup() {
   let resolveCleanup: (cleanup: () => void) => void = () => {};

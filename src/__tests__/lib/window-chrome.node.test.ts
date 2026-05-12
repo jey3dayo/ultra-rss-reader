@@ -1,7 +1,10 @@
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { stubNavigatorPlatform } from "@tests/helpers/navigator-platform";
 import { resetTauriRuntimeFlags, setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { APP_STACKING_CLASS_NAMES, hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window/window-chrome";
+
+setupBrowserTestDom();
 
 function readTailwindZIndexClassValue(className: string): number {
   const arbitraryValueMatch = /^z-\[(\d+)\]$/.exec(className);

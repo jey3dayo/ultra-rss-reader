@@ -1,5 +1,9 @@
+import "@testing-library/jest-dom/vitest";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { focusAndSelectInput, focusFirstInput, scheduleInputFocus } from "@/lib/dom/input-focus";
+
+setupBrowserTestDom();
 
 describe("input focus DOM helpers", () => {
   afterEach(() => {

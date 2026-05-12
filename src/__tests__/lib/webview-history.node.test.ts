@@ -1,6 +1,9 @@
 import { Result } from "@praha/byethrow";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { goBackInWebview, goForwardInWebview, reloadWebview } from "@/lib/browser/webview-history";
+
+setupBrowserTestDom();
 
 function getIframeHistory(iframe: HTMLIFrameElement): History {
   if (!iframe.contentWindow) {

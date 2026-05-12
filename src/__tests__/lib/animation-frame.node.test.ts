@@ -1,9 +1,12 @@
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   cancelAnimationFrameHandle,
   scheduleAnimationFrame,
   scheduleAnimationFrameWithTimeoutFallback,
 } from "@/lib/dom/animation-frame";
+
+setupBrowserTestDom();
 
 describe("animation frame DOM helpers", () => {
   afterEach(() => {
@@ -20,7 +23,10 @@ describe("animation frame DOM helpers", () => {
   });
 
   it("returns null when animation frames are unavailable", () => {
-    vi.stubGlobal("requestAnimationFrame", undefined);
+    Object.defineProperty(window, "requestAnimationFrame", {
+      configurable: true,
+      value: undefined,
+    });
 
     expect(scheduleAnimationFrame(vi.fn())).toBeNull();
   });
@@ -45,15 +51,24 @@ describe("animation frame DOM helpers", () => {
   });
 
   it("skips cancellation when animation frame cancellation is unavailable", () => {
-    vi.stubGlobal("cancelAnimationFrame", undefined);
+    Object.defineProperty(window, "cancelAnimationFrame", {
+      configurable: true,
+      value: undefined,
+    });
 
     expect(() => cancelAnimationFrameHandle(42)).not.toThrow();
   });
 
   it("schedules a cancellable callback with timeout fallback", () => {
     vi.useFakeTimers();
-    vi.stubGlobal("requestAnimationFrame", undefined);
-    vi.stubGlobal("cancelAnimationFrame", undefined);
+    Object.defineProperty(window, "requestAnimationFrame", {
+      configurable: true,
+      value: undefined,
+    });
+    Object.defineProperty(window, "cancelAnimationFrame", {
+      configurable: true,
+      value: undefined,
+    });
     const callback = vi.fn();
 
     const cancel = scheduleAnimationFrameWithTimeoutFallback(callback);

@@ -1,5 +1,8 @@
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { describe, expect, it, vi } from "vitest";
 import { flushRaf } from "./async-flush";
+
+setupBrowserTestDom();
 
 describe("async flush helpers", () => {
   it("flushes requestAnimationFrame callbacks", async () => {

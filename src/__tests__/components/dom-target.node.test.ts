@@ -1,5 +1,8 @@
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { describe, expect, it } from "vitest";
 import { isOutsideElement } from "@/lib/dom/dom-target";
+
+setupBrowserTestDom();
 
 describe("dom-target", () => {
   it("detects targets outside the given element", () => {

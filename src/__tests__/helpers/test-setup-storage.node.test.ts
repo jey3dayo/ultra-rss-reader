@@ -1,16 +1,19 @@
-import { afterEach, describe, expect, it } from "vitest";
 import {
   ensureWorkingStorage,
   MEMORY_STORAGE_BROWSER_SPEC_DIFFERENCES,
   MemoryStorage,
   restoreStorageDescriptors,
-} from "../../../tests/setup";
+  setupBrowserTestDom,
+} from "@tests/helpers/browser-test-globals";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-const originalWindowLocalStorageDescriptor = Object.getOwnPropertyDescriptor(window, "localStorage");
-const originalWindowSessionStorageDescriptor = Object.getOwnPropertyDescriptor(window, "sessionStorage");
-const originalGlobalLocalStorageDescriptor = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
-const originalGlobalSessionStorageDescriptor = Object.getOwnPropertyDescriptor(globalThis, "sessionStorage");
-const originalGlobalStorageDescriptor = Object.getOwnPropertyDescriptor(globalThis, "Storage");
+setupBrowserTestDom();
+
+let originalWindowLocalStorageDescriptor: PropertyDescriptor | undefined;
+let originalWindowSessionStorageDescriptor: PropertyDescriptor | undefined;
+let originalGlobalLocalStorageDescriptor: PropertyDescriptor | undefined;
+let originalGlobalSessionStorageDescriptor: PropertyDescriptor | undefined;
+let originalGlobalStorageDescriptor: PropertyDescriptor | undefined;
 
 function callStorageMethod(method: Storage["setItem"], storage: Storage, key: unknown, value: unknown) {
   Reflect.apply(method, storage, [key, value]);
@@ -33,6 +36,14 @@ function readStorageProperty(storage: Storage, key: PropertyKey): unknown {
 }
 
 describe("test setup storage fallback", () => {
+  beforeEach(() => {
+    originalWindowLocalStorageDescriptor = Object.getOwnPropertyDescriptor(window, "localStorage");
+    originalWindowSessionStorageDescriptor = Object.getOwnPropertyDescriptor(window, "sessionStorage");
+    originalGlobalLocalStorageDescriptor = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
+    originalGlobalSessionStorageDescriptor = Object.getOwnPropertyDescriptor(globalThis, "sessionStorage");
+    originalGlobalStorageDescriptor = Object.getOwnPropertyDescriptor(globalThis, "Storage");
+  });
+
   afterEach(() => {
     restoreStorageDescriptors();
   });

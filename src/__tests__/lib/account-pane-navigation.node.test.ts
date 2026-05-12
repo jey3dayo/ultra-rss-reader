@@ -1,3 +1,5 @@
+import "@testing-library/jest-dom/vitest";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   ACCOUNT_PANE_ACCOUNT_ID_ATTRIBUTE,
@@ -11,6 +13,8 @@ import {
   getAccountPaneNavigationTargetSelector,
 } from "@/lib/reader-focus";
 import { useUiStore } from "@/stores/ui-store";
+
+setupBrowserTestDom();
 
 describe("account-pane-navigation", () => {
   beforeEach(() => {

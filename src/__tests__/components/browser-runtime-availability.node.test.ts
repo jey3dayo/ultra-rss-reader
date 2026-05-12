@@ -1,6 +1,9 @@
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { resetTauriRuntimeFlags, setTauriRuntimeMissing, setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
 import { afterEach, describe, expect, it } from "vitest";
 import { isBrowserRuntimeUnavailable } from "@/lib/browser/browser-runtime-availability";
+
+setupBrowserTestDom();
 
 describe("browser-runtime-availability", () => {
   afterEach(() => {

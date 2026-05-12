@@ -1,3 +1,4 @@
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { describe, expect, it, vi } from "vitest";
 import {
   bindWindowEvents,
@@ -7,6 +8,8 @@ import {
   createPointerEventListener,
   isWindowNavigationDirection,
 } from "@/lib/window/window-events";
+
+setupBrowserTestDom();
 
 function createIframeWindow() {
   const iframe = document.createElement("iframe");

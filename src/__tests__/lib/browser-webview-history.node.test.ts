@@ -1,6 +1,9 @@
 import { Result } from "@praha/byethrow";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as webviewHistory from "@/lib/browser/webview-history";
+
+setupBrowserTestDom();
 
 function removeIframes() {
   for (const iframe of document.querySelectorAll("iframe")) {

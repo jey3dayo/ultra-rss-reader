@@ -1,5 +1,8 @@
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createDevWebPreviewGeometryFixture, resolveDevWebPreviewGeometryUrl } from "@/dev/web-preview-geometry";
+
+setupBrowserTestDom();
 
 describe("dev-web-preview-geometry", () => {
   afterEach(() => {

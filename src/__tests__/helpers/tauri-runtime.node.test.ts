@@ -1,7 +1,14 @@
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { resetTauriRuntimeFlags, setTauriRuntimeMissing, setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
+
+setupBrowserTestDom();
 
 describe("tauri runtime test helper", () => {
+  beforeEach(() => {
+    resetTauriRuntimeFlags();
+  });
+
   it("resets browser mock flags and removes Tauri internals", () => {
     setTauriRuntimePresent();
     window.__DEV_BROWSER_MOCKS__ = true;

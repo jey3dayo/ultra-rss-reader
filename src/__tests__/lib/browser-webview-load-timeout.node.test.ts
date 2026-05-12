@@ -1,8 +1,11 @@
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   clearBrowserWebviewLoadTimeout,
   scheduleBrowserWebviewLoadTimeout,
 } from "@/lib/browser/browser-webview-load-timeout";
+
+setupBrowserTestDom();
 
 describe("browser webview load timeout helpers", () => {
   beforeEach(() => {

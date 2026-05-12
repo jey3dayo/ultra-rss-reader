@@ -1,3 +1,5 @@
+import "@testing-library/jest-dom/vitest";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   hasOpenDialogTopLayer,
@@ -5,6 +7,8 @@ import {
   hideElementsOutsideDialog,
   topLayerOwnsFocus,
 } from "@/lib/dom/top-layer";
+
+setupBrowserTestDom();
 
 describe("top-layer DOM helpers", () => {
   afterEach(() => {

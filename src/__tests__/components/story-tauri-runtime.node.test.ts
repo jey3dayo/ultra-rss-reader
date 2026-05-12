@@ -1,3 +1,4 @@
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { describe, expect, it } from "vitest";
 import {
   captureRuntimeWindowDescriptors,
@@ -10,6 +11,8 @@ import {
   setStoryTauriRuntimeMissing,
   setStoryTauriRuntimePresent,
 } from "@/components/storybook/story-tauri-runtime";
+
+setupBrowserTestDom();
 
 describe("story Tauri runtime helper", () => {
   it("keeps semantic runtime helpers as public Storybook import paths", () => {

@@ -1,10 +1,17 @@
-import {
+import { installTestDom } from "@tests/helpers/browser-test-globals";
+import { afterAll, describe, expect, it } from "vitest";
+
+const testDom = installTestDom();
+const {
   collectStorybookStoryExportRegistry,
   STORYBOOK_HELPER_EXPORT_ALLOWLIST_IDS,
   storybookStoryExportRegistry,
   storybookStoryRegistryIssues,
-} from "@tests/helpers/storybook-story-export-registry";
-import { describe, expect, it } from "vitest";
+} = await import("@tests/helpers/storybook-story-export-registry");
+
+afterAll(() => {
+  testDom.cleanup();
+});
 
 describe("Storybook story export registry", () => {
   it("keeps every story file registered with a default meta and story exports", () => {

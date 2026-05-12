@@ -1,4 +1,7 @@
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { describe, expect, it, vi } from "vitest";
+
+setupBrowserTestDom();
 
 const ENV_KEY = "ULTRA_RSS_TEST_SETUP_ISOLATION_SENTINEL";
 

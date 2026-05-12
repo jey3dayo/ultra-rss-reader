@@ -1,9 +1,12 @@
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { describe, expect, it } from "vitest";
 import {
   describeDebugHudActiveElement,
   describeDebugHudEventTarget,
   summarizeDebugHudActiveElementDescription,
 } from "@/lib/debug/debug-hud-active-element";
+
+setupBrowserTestDom();
 
 describe("debug-hud-active-element", () => {
   it("describes null and non-element targets as none", () => {

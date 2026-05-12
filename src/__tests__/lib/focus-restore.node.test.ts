@@ -1,5 +1,8 @@
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { getRestorableActiveElement, restoreFocusOnMicrotask } from "@/lib/dom/focus-restore";
+
+setupBrowserTestDom();
 
 describe("focus restore DOM helpers", () => {
   afterEach(() => {
