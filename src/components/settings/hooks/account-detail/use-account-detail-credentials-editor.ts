@@ -1,6 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { type RefObject, useEffect, useReducer, useRef } from "react";
 import { copyToClipboard, testAccountConnection, updateAccountCredentials } from "@/api/tauri-commands";
+import { focusFirstInput } from "@/lib/dom/input-focus";
 import { invalidateQueryKeysLogOnly, queryKeys } from "@/lib/query/query-invalidation";
 import { getErrorMessage } from "@/lib/ui/errors";
 import { useUiStore } from "@/stores/ui-store";
@@ -8,7 +9,6 @@ import { updateCachedAccount } from "../../account-detail/query-cache";
 import { createAccountDetailErrorToast } from "../../account-detail/toast";
 import type { AccountDetailEditorContext } from "../../account-detail/types";
 import { type SettingsDirtyStateEntry, useRegisterSettingsDirtyState } from "../use-settings-dirty-state-registry";
-import { focusFirstAccountDetailInput } from "./account-detail-editor-focus";
 
 type AccountDetailCredentialsEditorParams = AccountDetailEditorContext;
 
@@ -431,7 +431,7 @@ export function useAccountDetailCredentialsEditor({
       return;
     }
 
-    focusFirstAccountDetailInput([serverUrlInputRef, usernameInputRef]);
+    focusFirstInput([serverUrlInputRef, usernameInputRef]);
   };
 
   return {

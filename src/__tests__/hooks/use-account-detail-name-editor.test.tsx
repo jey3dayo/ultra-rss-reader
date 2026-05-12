@@ -7,8 +7,8 @@ import i18n from "@tests/helpers/i18n-setup";
 import { createInputKeyboardEvent } from "@tests/helpers/typed-test-factories";
 import type { RefObject } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { scheduleAccountDetailInputFocus } from "@/components/settings/hooks/account-detail/account-detail-editor-focus";
 import { useAccountDetailNameEditor } from "@/components/settings/hooks/account-detail/use-account-detail-name-editor";
+import { scheduleInputFocus } from "@/lib/dom/input-focus";
 import { queryKeys } from "@/lib/query/query-invalidation";
 
 const { renameAccountMock } = vi.hoisted(() => ({
@@ -136,7 +136,7 @@ describe("useAccountDetailNameEditor", () => {
     input.value = "FreshRSS";
     document.body.append(input);
 
-    scheduleAccountDetailInputFocus({ current: input });
+    scheduleInputFocus({ current: input });
     vi.runOnlyPendingTimers();
 
     expect(input).toHaveFocus();
