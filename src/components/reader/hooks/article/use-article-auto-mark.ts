@@ -28,8 +28,24 @@ const delayedAutoMarkTimeoutsMs = {
   after_1s: 1000,
 } satisfies Record<DelayedAfterReadingPreference, number>;
 
+let manualUnreadAutoMarkSuppressionKey: string | null = null;
+
 function getAutoMarkOwnerKey(accountId: string | null, articleId: string) {
   return `${accountId ?? ""}:${articleId}`;
+}
+
+export function suppressAutoMarkAfterManualUnread(accountId: string | null, articleId: string): void {
+  manualUnreadAutoMarkSuppressionKey = getAutoMarkOwnerKey(accountId, articleId);
+}
+
+export function clearManualUnreadAutoMarkSuppression(accountId: string | null, articleId: string): void {
+  if (manualUnreadAutoMarkSuppressionKey === getAutoMarkOwnerKey(accountId, articleId)) {
+    manualUnreadAutoMarkSuppressionKey = null;
+  }
+}
+
+export function clearManualUnreadAutoMarkSuppressionsForTests(): void {
+  manualUnreadAutoMarkSuppressionKey = null;
 }
 
 export function useArticleAutoMark({
@@ -72,12 +88,22 @@ export function useArticleAutoMark({
 
     clearPendingAutoMarkTimeout();
 
-    if (isRead && autoMarkedOwnerKeyRef.current === autoMarkOwnerKey) {
-      autoMarkedOwnerKeyRef.current = null;
+    if (manualUnreadAutoMarkSuppressionKey !== null && manualUnreadAutoMarkSuppressionKey !== autoMarkOwnerKey) {
+      manualUnreadAutoMarkSuppressionKey = null;
+    }
+
+    if (isRead) {
+      if (autoMarkedOwnerKeyRef.current === autoMarkOwnerKey) {
+        autoMarkedOwnerKeyRef.current = null;
+      }
       return cleanupAutoMarkEffect;
     }
 
-    if (afterReading === "never" || isRead || autoMarkedOwnerKeyRef.current === autoMarkOwnerKey) {
+    if (
+      afterReading === "never" ||
+      manualUnreadAutoMarkSuppressionKey === autoMarkOwnerKey ||
+      autoMarkedOwnerKeyRef.current === autoMarkOwnerKey
+    ) {
       return cleanupAutoMarkEffect;
     }
 

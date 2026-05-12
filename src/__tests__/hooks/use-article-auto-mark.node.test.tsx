@@ -3,7 +3,12 @@ import "@testing-library/react/dont-cleanup-after-each";
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useArticleAutoMark } from "@/components/reader/hooks/article/use-article-auto-mark";
+import {
+  clearManualUnreadAutoMarkSuppression,
+  clearManualUnreadAutoMarkSuppressionsForTests,
+  suppressAutoMarkAfterManualUnread,
+  useArticleAutoMark,
+} from "@/components/reader/hooks/article/use-article-auto-mark";
 import { useUiStore } from "@/stores/ui-store";
 
 setupBrowserTestDom();
@@ -47,6 +52,7 @@ describe("useArticleAutoMark", () => {
 
   afterEach(async () => {
     cleanup();
+    clearManualUnreadAutoMarkSuppressionsForTests();
     vi.useRealTimers();
     await new Promise<void>((resolve) => {
       setImmediate(resolve);
@@ -376,6 +382,163 @@ describe("useArticleAutoMark", () => {
     );
 
     expect(setRead.mutate).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not auto-mark an article suppressed after a manual unread action", () => {
+    const setRead: UseArticleAutoMarkParams["setRead"] = {
+      mutate: vi.fn(),
+    };
+    suppressAutoMarkAfterManualUnread("account-1", "art-1");
+
+    renderHook(() => {
+      useArticleAutoMark(
+        createParams({
+          articleId: "art-1",
+          afterReading: "after_1s",
+          setRead,
+        }),
+      );
+    });
+
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+
+    expect(setRead.mutate).not.toHaveBeenCalled();
+  });
+
+  it("keeps manual unread suppression through a transient stale read render", () => {
+    const setRead: UseArticleAutoMarkParams["setRead"] = {
+      mutate: vi.fn(),
+    };
+    suppressAutoMarkAfterManualUnread("account-1", "art-1");
+
+    const { rerender } = renderHook(
+      (props: UseArticleAutoMarkParams) => {
+        useArticleAutoMark(props);
+      },
+      {
+        initialProps: createParams({
+          articleId: "art-1",
+          afterReading: "after_1s",
+          isRead: true,
+          setRead,
+        }),
+      },
+    );
+
+    rerender(
+      createParams({
+        articleId: "art-1",
+        afterReading: "after_1s",
+        isRead: false,
+        setRead,
+      }),
+    );
+
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+
+    expect(setRead.mutate).not.toHaveBeenCalled();
+  });
+
+  it("clears manual unread suppression after selecting another article", () => {
+    const setRead: UseArticleAutoMarkParams["setRead"] = {
+      mutate: vi.fn(),
+    };
+    suppressAutoMarkAfterManualUnread("account-1", "art-1");
+
+    const { rerender } = renderHook(
+      (props: UseArticleAutoMarkParams) => {
+        useArticleAutoMark(props);
+      },
+      {
+        initialProps: createParams({
+          articleId: "art-1",
+          afterReading: "after_1s",
+          setRead,
+        }),
+      },
+    );
+
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+    expect(setRead.mutate).not.toHaveBeenCalled();
+
+    rerender(
+      createParams({
+        articleId: "art-2",
+        afterReading: "after_1s",
+        setRead,
+      }),
+    );
+
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+
+    expect(setRead.mutate).toHaveBeenCalledTimes(1);
+    expect(setRead.mutate).toHaveBeenCalledWith(
+      { id: "art-2", read: true },
+      expect.objectContaining({
+        onSuccess: expect.any(Function),
+        onError: expect.any(Function),
+      }),
+    );
+
+    rerender(
+      createParams({
+        articleId: "art-1",
+        afterReading: "after_1s",
+        setRead,
+      }),
+    );
+
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+
+    expect(setRead.mutate).toHaveBeenCalledTimes(2);
+    expect(setRead.mutate).toHaveBeenLastCalledWith(
+      { id: "art-1", read: true },
+      expect.objectContaining({
+        onSuccess: expect.any(Function),
+        onError: expect.any(Function),
+      }),
+    );
+  });
+
+  it("auto-marks again after manual read clears a previous manual unread suppression", () => {
+    const setRead: UseArticleAutoMarkParams["setRead"] = {
+      mutate: vi.fn(),
+    };
+    suppressAutoMarkAfterManualUnread("account-1", "art-1");
+    clearManualUnreadAutoMarkSuppression("account-1", "art-1");
+
+    renderHook(() => {
+      useArticleAutoMark(
+        createParams({
+          articleId: "art-1",
+          afterReading: "after_1s",
+          setRead,
+        }),
+      );
+    });
+
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+
+    expect(setRead.mutate).toHaveBeenCalledTimes(1);
+    expect(setRead.mutate).toHaveBeenCalledWith(
+      { id: "art-1", read: true },
+      expect.objectContaining({
+        onSuccess: expect.any(Function),
+        onError: expect.any(Function),
+      }),
+    );
   });
 
   it("immediately marks unread articles and records success only after mutation success", () => {

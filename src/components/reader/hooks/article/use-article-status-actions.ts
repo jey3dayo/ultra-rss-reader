@@ -1,5 +1,9 @@
 import type { UseMutationResult } from "@tanstack/react-query";
 import { useCallback } from "react";
+import {
+  clearManualUnreadAutoMarkSuppression,
+  suppressAutoMarkAfterManualUnread,
+} from "@/components/reader/hooks/article/use-article-auto-mark";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
 import { useUiStore } from "@/stores/ui-store";
 import type { ArticleStatusToast } from "../../article-actions.types";
@@ -77,14 +81,17 @@ export function useArticleStatusActions({
 
       const shouldRollbackRetainedArticle =
         pressed && viewMode === "unread" && !useUiStore.getState().retainedArticleIds.has(articleId);
+      const selectedAccountId = useUiStore.getState().selectedAccountId;
       retainIfNeeded(pressed);
       setRead.mutate(
         { id: articleId, read: pressed },
         {
           onSuccess: () => {
             if (pressed) {
+              clearManualUnreadAutoMarkSuppression(selectedAccountId, articleId);
               addRecentlyRead(articleId);
             } else {
+              suppressAutoMarkAfterManualUnread(selectedAccountId, articleId);
               removeRecentlyRead(articleId);
             }
             showToast(pressed ? markedReadMessage : markedUnreadMessage);

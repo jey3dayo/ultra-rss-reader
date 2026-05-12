@@ -15,6 +15,7 @@ import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import type { MockTauriCommandCall } from "@tests/helpers/tauri-types";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ArticlePane, ArticleToolbar, ArticleView } from "@/components/reader/article-view";
+import { clearManualUnreadAutoMarkSuppressionsForTests } from "@/components/reader/hooks/article/use-article-auto-mark";
 import { readerPassiveCardOffsetClassName } from "@/components/reader/reader-passive-card";
 import { BROWSER_OVERLAY_CLOSE_DELAY_MS, MOTION_ARTICLE_SLIDE_CLASS_NAME } from "@/constants/motion";
 import { keyboardEvents } from "@/lib/keyboard/keyboard-shortcuts";
@@ -240,6 +241,7 @@ describe("ArticleView", () => {
     useUiStore.setState(useUiStore.getInitialState());
     usePreferencesStore.setState({ prefs: {}, loaded: false });
     usePlatformStore.setState(usePlatformStore.getInitialState());
+    clearManualUnreadAutoMarkSuppressionsForTests();
     setReadingListPlatformSupport(false);
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
@@ -1641,6 +1643,61 @@ describe("ArticleView", () => {
 
     expect(useUiStore.getState().retainedArticleIds).toEqual(new Set(["art-1"]));
     vi.useRealTimers();
+  });
+
+  it("does not auto-mark the selected article again after the toolbar marks it unread", async () => {
+    const calls: MockTauriCommandCall[] = [];
+    const readArticle = { ...primaryArticle, is_read: true };
+    const unreadArticle = { ...primaryArticle, is_read: false };
+
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      switch (cmd) {
+        case "get_article_tags":
+          return [];
+        case "mark_article_read":
+        case "record_article_view":
+          return null;
+        default:
+          return undefined;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "feed", feedId: "feed-1" },
+      selectedArticleId: "art-1",
+      contentMode: "reader",
+    });
+    usePreferencesStore.setState({
+      prefs: { after_reading: "after_0_3s" },
+      loaded: true,
+    });
+
+    const { rerender } = render(<ArticlePane article={readArticle} feed={primaryFeed} feedName="Feed One" />, {
+      wrapper: createWrapper(),
+    });
+
+    await screen.findByRole("heading", { level: 1, name: "First Article" });
+    fireEvent.click(screen.getByRole("button", { name: "Toggle read" }));
+
+    await waitFor(() => {
+      expect(calls).toContainEqual({
+        cmd: "mark_article_read",
+        args: { articleId: "art-1", read: false },
+      });
+    });
+
+    rerender(<ArticlePane article={unreadArticle} feed={primaryFeed} feedName="Feed One" />);
+
+    await new Promise((resolve) => setTimeout(resolve, 350));
+
+    const markReadCalls = calls.filter(
+      (call) => call.cmd === "mark_article_read" && call.args.articleId === "art-1" && call.args.read === true,
+    );
+    expect(markReadCalls).toHaveLength(0);
   });
 
   it("keeps the selected article visible in browser mode after unread auto-mark removes it from the unread source", async () => {
