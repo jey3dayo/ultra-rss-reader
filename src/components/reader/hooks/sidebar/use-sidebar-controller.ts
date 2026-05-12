@@ -6,6 +6,7 @@ import { useSidebarControllerSections } from "@/components/reader/hooks/sidebar/
 import { useSidebarRuntime } from "@/components/reader/hooks/sidebar/use-sidebar-runtime";
 import { useSidebarViewProps } from "@/components/reader/hooks/sidebar/use-sidebar-view-props";
 import { useUpdateFeedFolder } from "@/hooks/use-update-feed-folder";
+import { cancelAnimationFrameHandle, scheduleAnimationFrame } from "@/lib/dom/animation-frame";
 import { queryElementByDataAttribute } from "@/lib/dom/data-attribute";
 import { focusSelectedAccountPaneTarget, scheduleReaderFocusFrame } from "@/lib/reader-focus";
 import { useUiStore } from "@/stores/ui-store";
@@ -184,7 +185,7 @@ export function useSidebarController(): SidebarControllerResult {
         }
 
         retriesRemaining -= 1;
-        frameId = requestAnimationFrame(focusSelectedFeed);
+        frameId = scheduleAnimationFrame(focusSelectedFeed) ?? 0;
         return;
       }
 
@@ -192,10 +193,12 @@ export function useSidebarController(): SidebarControllerResult {
       selectedFeedButton.scrollIntoView?.({ block: "nearest", inline: "nearest" });
     };
 
-    frameId = requestAnimationFrame(focusSelectedFeed);
+    frameId = scheduleAnimationFrame(focusSelectedFeed) ?? 0;
 
     return () => {
-      cancelAnimationFrame(frameId);
+      if (frameId !== 0) {
+        cancelAnimationFrameHandle(frameId);
+      }
     };
   }, [focusedPane, selection]);
 

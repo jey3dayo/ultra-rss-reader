@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useReducer, useRef } from "react";
+import { cancelAnimationFrameHandle, scheduleAnimationFrame } from "@/lib/dom/animation-frame";
 import type { FeedDialogFolderSelectionParams } from "../../feed-dialog-form.types";
 import { type FolderSelectOption, NEW_FOLDER_VALUE } from "../../folder-select-view";
 
@@ -92,7 +93,7 @@ export function useFolderSelection(initialFolderId: string | null) {
 
   const cancelPendingFocusFrame = useCallback(() => {
     if (pendingFocusFrameRef.current !== null) {
-      cancelAnimationFrame(pendingFocusFrameRef.current);
+      cancelAnimationFrameHandle(pendingFocusFrameRef.current);
       pendingFocusFrameRef.current = null;
     }
   }, []);
@@ -113,7 +114,7 @@ export function useFolderSelection(initialFolderId: string | null) {
     }
 
     cancelPendingFocusFrame();
-    const focusFrame = requestAnimationFrame(() => {
+    const focusFrame = scheduleAnimationFrame(() => {
       if (pendingFocusFrameRef.current !== focusFrame) {
         return;
       }
