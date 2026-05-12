@@ -3,6 +3,7 @@ import { useEffect, useReducer, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useAddFeedDialogActions } from "@/components/reader/hooks/feed-dialogs/use-add-feed-dialog-actions";
 import { buildFolderOptions, useFolderSelection } from "@/components/reader/hooks/feed-dialogs/use-folder-selection";
+import { scheduleAnimationFrame } from "@/lib/dom/animation-frame";
 import { useUiStore } from "@/stores/ui-store";
 import type { AddFeedDialogController, AddFeedDialogControllerParams } from "../../add-feed-dialog.types";
 import {
@@ -41,7 +42,7 @@ export function useAddFeedDialogController({
 
     dispatch({ type: "reset" });
     resetFolderSelection(null);
-    requestAnimationFrame(() => inputRef.current?.focus());
+    scheduleAnimationFrame(() => inputRef.current?.focus());
   }, [open, resetFolderSelection]);
 
   const trimmedUrl = state.url.trim();
