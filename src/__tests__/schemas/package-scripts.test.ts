@@ -63,14 +63,7 @@ function extractMiseEnvMap(miseToml: string, prefix: string): Map<string, string
 }
 
 function extractMiseTaskCommand(miseToml: string, taskName: string, commandName: "run" | "run_windows"): string {
-  const taskHeader = `[tasks."${taskName}"]`;
-  const sectionStart = miseToml.indexOf(taskHeader);
-  if (sectionStart === -1) {
-    return "";
-  }
-
-  const nextTaskStart = miseToml.indexOf("\n[tasks.", sectionStart + taskHeader.length);
-  const taskSection = miseToml.slice(sectionStart, nextTaskStart === -1 ? undefined : nextTaskStart);
+  const taskSection = extractMiseTaskSection(miseToml, taskName);
   return taskSection.match(new RegExp(`^${commandName}\\s*=\\s*"([^"]+)"`, "m"))?.[1] ?? "";
 }
 
@@ -264,8 +257,10 @@ describe("package scripts", () => {
     expect(packageJson.scripts?.test).toBe("pnpm run test:node && pnpm run test:jsdom");
     expect(packageJson.scripts?.["test:node"]).toBe("pnpm exec vitest run --project node");
     expect(packageJson.scripts?.["test:jsdom"]).toBe("pnpm exec vitest run --project jsdom");
+    expect(ciTask).not.toBe("");
     expect(ciTask).toContain("pnpm run test:node --reporter=dot --silent=passed-only");
     expect(ciTask).toContain("pnpm run test:jsdom --reporter=dot --silent=passed-only");
+    expect(profileTask).not.toBe("");
     expect(profileTask).toContain("pnpm run test:node --reporter=verbose --slow-test-threshold=300");
     expect(profileTask).toContain("pnpm run test:jsdom --reporter=verbose --slow-test-threshold=300");
   });
