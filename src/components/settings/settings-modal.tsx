@@ -30,6 +30,7 @@ import { getPreferredAccountId } from "@/lib/account/account-selection";
 import type { AddAccountProviderKind } from "@/lib/account/add-account-form";
 import { useStableOpenTranslation } from "@/lib/i18n/use-stable-open-translation";
 import type { SettingsCategory } from "@/lib/settings/settings-category.types";
+import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -43,6 +44,15 @@ function SnapshotBackedAccountDetail({
   const { t, i18n } = useTranslation("settings");
   const syncProgress = useUiStore((s) => s.syncProgress);
   const syncStatusQuery = useAccountSyncStatus(account.id);
+  const loadPlatformInfo = usePlatformStore((s) => s.loadPlatformInfo);
+  const platformLoaded = usePlatformStore((s) => s.loaded);
+  const platformLoadError = usePlatformStore((s) => s.loadError);
+  const usesDevFileCredentials = usePlatformStore((s) => s.platform.capabilities.uses_dev_file_credentials);
+
+  useEffect(() => {
+    void loadPlatformInfo();
+  }, [loadPlatformInfo]);
+
   const controller = useAccountDetailController({
     account,
     t,
@@ -66,6 +76,7 @@ function SnapshotBackedAccountDetail({
     syncStatusRows,
     language: i18n.language,
     t,
+    canRecoverDevCredentialsStore: platformLoaded && !platformLoadError && usesDevFileCredentials,
   });
 
   return <AccountDetailView {...viewProps} />;
