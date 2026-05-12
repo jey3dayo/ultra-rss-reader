@@ -6,6 +6,7 @@ import * as React from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { MOTION_POPUP_DIALOG_CLASS_NAME, MOTION_POPUP_OVERLAY_CLASS_NAME } from "@/constants";
+import { hideElementsOutsideDialog } from "@/lib/dom/top-layer";
 import { cn } from "@/lib/utils";
 import { APP_STACKING_CLASS_NAMES } from "@/lib/window/window-chrome";
 
@@ -37,64 +38,6 @@ type DialogTopLayerContextValue = {
 };
 
 const DialogTopLayerContext = React.createContext<DialogTopLayerContextValue>({ modal: true, open: undefined });
-
-function hideElementsOutsideDialog(dialogId: string) {
-  const dialogElements = Array.from(document.querySelectorAll(`[data-dialog-stack-id="${dialogId}"]`));
-  const hiddenElements: Array<{
-    element: HTMLElement;
-    ariaHidden: string | null;
-    inertAttribute: string | null;
-    inert: boolean;
-  }> = [];
-
-  const collectOutsideElements = (element: HTMLElement): HTMLElement[] => {
-    const isDialogElement = dialogElements.some(
-      (dialogElement) =>
-        element === dialogElement || element.contains(dialogElement) || dialogElement.contains(element),
-    );
-
-    if (isDialogElement) {
-      if (dialogElements.some((dialogElement) => element.contains(dialogElement) && element !== dialogElement)) {
-        return Array.from(element.children).flatMap((child) => collectOutsideElements(child as HTMLElement));
-      }
-      return [];
-    }
-
-    return [element];
-  };
-
-  const outsideElements = Array.from(document.body.children).flatMap((child) =>
-    collectOutsideElements(child as HTMLElement),
-  );
-
-  for (const element of outsideElements) {
-    hiddenElements.push({
-      element,
-      ariaHidden: element.getAttribute("aria-hidden"),
-      inertAttribute: element.getAttribute("inert"),
-      inert: element.inert,
-    });
-    element.setAttribute("aria-hidden", "true");
-    element.setAttribute("inert", "");
-    element.inert = true;
-  }
-
-  return () => {
-    for (const { element, ariaHidden, inertAttribute, inert } of hiddenElements) {
-      if (ariaHidden === null) {
-        element.removeAttribute("aria-hidden");
-      } else {
-        element.setAttribute("aria-hidden", ariaHidden);
-      }
-      if (inertAttribute === null) {
-        element.removeAttribute("inert");
-      } else {
-        element.setAttribute("inert", inertAttribute);
-      }
-      element.inert = inert;
-    }
-  };
-}
 
 function Dialog({ modal = true, open, ...props }: DialogProps) {
   return (
@@ -152,7 +95,7 @@ function DialogContent({
   ...props
 }: DialogContentProps) {
   const { t } = useTranslation();
-  const { modal, open } = React.useContext(DialogTopLayerContext);
+  const { modal, open } = React.use(DialogTopLayerContext);
   const dialogId = React.useId();
   const resolvedOverlayClassName = [getDialogOverlayPresetClass(overlayPreset), overlayClassName]
     .filter(Boolean)

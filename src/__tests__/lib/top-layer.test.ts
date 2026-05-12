@@ -1,0 +1,115 @@
+import { afterEach, describe, expect, it } from "vitest";
+import {
+  hasOpenDialogTopLayer,
+  hasOpenNestedEscapeLayer,
+  hideElementsOutsideDialog,
+  topLayerOwnsFocus,
+} from "@/lib/dom/top-layer";
+
+describe("top-layer DOM helpers", () => {
+  afterEach(() => {
+    document.body.replaceChildren();
+  });
+
+  it("detects open dialog top layers", () => {
+    const closedDialog = document.createElement("div");
+    closedDialog.dataset.slot = "dialog-content";
+    document.body.append(closedDialog);
+
+    expect(hasOpenDialogTopLayer()).toBe(false);
+
+    closedDialog.dataset.open = "";
+
+    expect(hasOpenDialogTopLayer()).toBe(true);
+    expect(hasOpenDialogTopLayer(null)).toBe(false);
+  });
+
+  it("detects nested Escape-owning layers inside a provided root", () => {
+    const root = document.createElement("section");
+    const popperWrapper = document.createElement("div");
+    popperWrapper.dataset.radixPopperContentWrapper = "";
+    root.append(popperWrapper);
+
+    expect(hasOpenNestedEscapeLayer(root)).toBe(true);
+    expect(hasOpenNestedEscapeLayer(document.body)).toBe(false);
+    expect(hasOpenNestedEscapeLayer(null)).toBe(false);
+  });
+
+  it("detects when an open top layer owns focus", () => {
+    const dialog = document.createElement("div");
+    dialog.dataset.stackLayer = "dialog";
+    const button = document.createElement("button");
+    dialog.append(button);
+    document.body.append(dialog);
+
+    button.focus();
+
+    expect(topLayerOwnsFocus()).toBe(true);
+  });
+
+  it("does not treat hidden or inert top layers as focus owners", () => {
+    const dialog = document.createElement("div");
+    dialog.dataset.stackLayer = "dialog";
+    dialog.setAttribute("aria-hidden", "true");
+    const button = document.createElement("button");
+    dialog.append(button);
+    document.body.append(dialog);
+
+    button.focus();
+    expect(topLayerOwnsFocus()).toBe(false);
+
+    dialog.removeAttribute("aria-hidden");
+    dialog.setAttribute("inert", "");
+
+    expect(topLayerOwnsFocus()).toBe(false);
+  });
+
+  it("ignores body focus and missing documents", () => {
+    document.body.focus();
+
+    expect(topLayerOwnsFocus()).toBe(false);
+    expect(topLayerOwnsFocus(null)).toBe(false);
+  });
+
+  it("hides and restores body children outside the active dialog stack", () => {
+    const background = document.createElement("main");
+    background.setAttribute("aria-hidden", "false");
+    const dialogOverlay = document.createElement("div");
+    dialogOverlay.dataset.dialogStackId = "dialog-1";
+    const dialogContent = document.createElement("div");
+    dialogContent.dataset.dialogStackId = "dialog-1";
+    dialogContent.dataset.slot = "dialog-content";
+    document.body.append(background, dialogOverlay, dialogContent);
+
+    const restore = hideElementsOutsideDialog("dialog-1");
+
+    expect(background).toHaveAttribute("aria-hidden", "true");
+    expect(background).toHaveAttribute("inert");
+    expect(dialogOverlay).not.toHaveAttribute("aria-hidden");
+    expect(dialogContent).not.toHaveAttribute("aria-hidden");
+
+    restore();
+
+    expect(background).toHaveAttribute("aria-hidden", "false");
+    expect(background).not.toHaveAttribute("inert");
+  });
+
+  it("does not hide ancestors that contain dialog stack elements", () => {
+    const portalRoot = document.createElement("div");
+    const unrelatedChild = document.createElement("section");
+    const dialogContent = document.createElement("div");
+    dialogContent.dataset.dialogStackId = "dialog-1";
+    portalRoot.append(unrelatedChild, dialogContent);
+    document.body.append(portalRoot);
+
+    const restore = hideElementsOutsideDialog("dialog-1");
+
+    expect(portalRoot).not.toHaveAttribute("aria-hidden");
+    expect(dialogContent).not.toHaveAttribute("aria-hidden");
+    expect(unrelatedChild).toHaveAttribute("aria-hidden", "true");
+
+    restore();
+
+    expect(unrelatedChild).not.toHaveAttribute("aria-hidden");
+  });
+});
