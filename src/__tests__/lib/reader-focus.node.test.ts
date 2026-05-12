@@ -1,3 +1,5 @@
+import "@testing-library/jest-dom/vitest";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   ACCOUNT_PANE_NAVIGATION_TARGET_ATTRIBUTE,
@@ -21,6 +23,8 @@ import {
   SIDEBAR_SMART_VIEW_KIND_ATTRIBUTE,
   scheduleReaderFocusFrame,
 } from "@/lib/reader-focus";
+
+setupBrowserTestDom();
 
 describe("reader-focus", () => {
   afterEach(() => {

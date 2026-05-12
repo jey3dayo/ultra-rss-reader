@@ -1,9 +1,12 @@
 import { Result } from "@praha/byethrow";
 import { renderHook, waitFor } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import type { ReactNode } from "react";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DevRuntimeOptions } from "@/api/tauri-commands";
+
+setupBrowserTestDom();
 
 const { runRuntimeDevScenarioMock, getDevRuntimeOptionsMock } = vi.hoisted(() => ({
   runRuntimeDevScenarioMock: vi.fn(),

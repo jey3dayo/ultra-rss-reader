@@ -1,4 +1,5 @@
 import { QueryClient, type QueryKey } from "@tanstack/react-query";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AccountDto, ArticleDto, FeedDto, TagDto } from "@/api/tauri-commands";
 import { runDevScenario } from "@/dev/scenarios/runner";
@@ -6,6 +7,8 @@ import type { DevScenarioContext } from "@/dev/scenarios/types";
 import { tagQueryKeys } from "@/hooks/use-tags";
 import { queryKeys } from "@/lib/query/query-invalidation";
 import { usePreferencesStore } from "@/stores/preferences-store";
+
+setupBrowserTestDom({ url: "http://localhost:3000/" });
 
 const mockWindow = {
   isMaximized: vi.fn(async () => false),
@@ -439,7 +442,7 @@ describe("runDevScenario", () => {
     vi.stubEnv("VITE_DEV_WEB_URL", "https://example.com/debug-preview");
     vi.stubEnv("VITE_DEV_WINDOW_WIDTH", "520");
     vi.stubEnv("VITE_DEV_WINDOW_HEIGHT", "900");
-    const timeoutSpy = vi.spyOn(window, "setTimeout");
+    const timeoutSpy = vi.spyOn(globalThis, "setTimeout");
     mockWindow.isMaximized.mockResolvedValueOnce(true);
     mockInnerLogicalSizes([
       { width: 1440, height: 960 },

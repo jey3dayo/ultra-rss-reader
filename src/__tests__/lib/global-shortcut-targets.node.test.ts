@@ -1,9 +1,12 @@
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { describe, expect, it } from "vitest";
 import {
   isGlobalShortcutTextEditingTarget,
   isModalBlockedMenuAction,
   shouldIgnoreGlobalShortcutKeyboardEvent,
 } from "@/lib/keyboard/global-shortcut-targets";
+
+setupBrowserTestDom();
 
 function createElement(markup: string): Element {
   const wrapper = document.createElement("div");

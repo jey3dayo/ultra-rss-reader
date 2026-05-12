@@ -1,12 +1,15 @@
 import { Result } from "@praha/byethrow";
 import { act, render, waitFor } from "@testing-library/react";
 import { testRetryableAppError, testUserVisibleAppError } from "@tests/helpers/app-error";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { type DevIntentState, resetDevIntentState } from "@tests/helpers/dev-intent";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "@/App";
 import type { AccountDto, AppError } from "@/api/tauri-commands";
 import { STORAGE_KEYS } from "@/constants/storage";
 import { APP_HIDDEN_DURATION_SYNC_THRESHOLD_MS } from "@/constants/ui-runtime";
+
+setupBrowserTestDom();
 
 type UiState = {
   selectedAccountId: string | null;

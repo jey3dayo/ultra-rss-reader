@@ -1,6 +1,10 @@
+import "@testing-library/jest-dom/vitest";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { STORAGE_KEYS } from "@/constants/storage";
 import indexHtmlSource from "../../../index.html?raw";
+
+setupBrowserTestDom();
 
 function extractThemeBootstrapScript(source: string): string {
   const match = source.match(/<script>\s*([\s\S]*?localStorage[\s\S]*?)\s*<\/script>/);
@@ -49,6 +53,13 @@ function createMatchMedia(matches: boolean): typeof window.matchMedia {
   }));
 }
 
+function installMatchMedia(matchMedia: typeof window.matchMedia): void {
+  Object.defineProperty(window, "matchMedia", {
+    configurable: true,
+    value: matchMedia,
+  });
+}
+
 describe("index.html theme bootstrap script", () => {
   beforeEach(() => {
     document.documentElement.classList.remove("dark");
@@ -60,7 +71,7 @@ describe("index.html theme bootstrap script", () => {
   it("reads the mirrored theme from localStorage and applies dark mode before app mount", () => {
     window.localStorage.setItem(STORAGE_KEYS.theme, "dark");
     const matchMedia = createMatchMedia(false);
-    vi.stubGlobal("matchMedia", matchMedia);
+    installMatchMedia(matchMedia);
 
     applyThemeBootstrapModel();
 
@@ -72,7 +83,7 @@ describe("index.html theme bootstrap script", () => {
   it("uses prefers-color-scheme when the mirrored theme is system", () => {
     window.localStorage.setItem(STORAGE_KEYS.theme, "system");
     const matchMedia = createMatchMedia(true);
-    vi.stubGlobal("matchMedia", matchMedia);
+    installMatchMedia(matchMedia);
 
     applyThemeBootstrapModel();
 

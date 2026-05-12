@@ -1,4 +1,5 @@
 import { Result } from "@praha/byethrow";
+import "@testing-library/jest-dom/vitest";
 import i18n from "i18next";
 import { afterEach, beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest";
 import { getPreferences, setPreference } from "@/api/tauri-commands";
@@ -17,12 +18,16 @@ vi.mock("@/api/tauri-commands", () => ({
   setPreference: vi.fn(async () => Result.succeed(null)),
 }));
 
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { createDeferred as createTestDeferred } from "@tests/helpers/deferred";
+import "@tests/helpers/i18n-setup";
 import {
   PREFERENCES_LOAD_FALLBACK_OWNER,
   resetPreferencesStoreRuntimeForTests,
   usePreferencesStore,
 } from "../../stores/preferences-store";
+
+setupBrowserTestDom();
 
 function createDeferred() {
   return createTestDeferred<void>();

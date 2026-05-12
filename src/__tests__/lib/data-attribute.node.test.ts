@@ -1,5 +1,8 @@
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { describe, expect, it } from "vitest";
 import { queryElementByDataAttribute } from "@/lib/dom/data-attribute";
+
+setupBrowserTestDom();
 
 describe("data-attribute", () => {
   it("returns the first element with the matching data attribute value", () => {

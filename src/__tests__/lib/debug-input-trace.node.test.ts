@@ -1,3 +1,4 @@
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { describe, expect, it, vi } from "vitest";
 import { APP_EVENTS } from "@/constants/events";
 import {
@@ -8,6 +9,8 @@ import {
   formatRawPointerTrace,
   resolveDebugTraceSource,
 } from "@/lib/debug/debug-input-trace";
+
+setupBrowserTestDom();
 
 function expectCustomEvent(value: unknown): asserts value is CustomEvent<string> {
   expect(value).toBeInstanceOf(CustomEvent);

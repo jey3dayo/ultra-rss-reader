@@ -193,10 +193,19 @@ describe("runtime diagnostics redaction", () => {
     });
 
     expect(consoleWarn).toHaveBeenCalledTimes(1);
+    const warningDetail = consoleWarn.mock.calls[0]?.[1];
+    if (typeof warningDetail !== "object" || warningDetail === null || !("error" in warningDetail)) {
+      throw new Error("Expected sidebar storage warning detail with an error field");
+    }
     expect(consoleWarn).toHaveBeenCalledWith("Sidebar expanded folders storage failed", {
       operation: "write",
       storageKey: "ultra-rss:sidebar-expanded-folders",
-      error: {},
+      error: warningDetail.error,
+    });
+    expect(warningDetail.error).toBeInstanceOf(DOMException);
+    expect(warningDetail.error).toMatchObject({
+      message: "quota exceeded",
+      name: "QuotaExceededError",
     });
   });
 

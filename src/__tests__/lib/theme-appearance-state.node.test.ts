@@ -1,9 +1,13 @@
+import "@testing-library/jest-dom/vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { runInNewContext } from "node:vm";
 import { Result } from "@praha/byethrow";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { STORAGE_KEYS } from "@/constants/storage";
+
+setupBrowserTestDom();
 
 const { getPreferencesMock, setPreferenceMock } = vi.hoisted(() => ({
   getPreferencesMock: vi.fn(),

@@ -1,3 +1,4 @@
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { describe, expect, it } from "vitest";
 import {
   applyReaderContentPrivacyPolicy,
@@ -6,6 +7,8 @@ import {
   normalizeReaderContentImageUrl,
   stripHtmlTags,
 } from "@/lib/content/html";
+
+setupBrowserTestDom();
 
 describe("fromSanitizedArticleHtmlDto", () => {
   it("brands the backend content_sanitized DTO field without accepting raw article body by default", () => {

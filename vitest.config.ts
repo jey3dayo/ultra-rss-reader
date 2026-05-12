@@ -23,7 +23,6 @@ const nodeEnvironmentTestGlobs = [
   "src/__tests__/dev/dev-mock-data.test.ts",
   "src/__tests__/dev/scenario-runtime.test.ts",
   "src/__tests__/dev/scenarios/registry.test.ts",
-  "src/__tests__/stores/platform-store.test.ts",
   "tests/helpers/app-error.test.ts",
   "tests/helpers/deferred.test.ts",
   "tests/helpers/dev-intent.test.ts",

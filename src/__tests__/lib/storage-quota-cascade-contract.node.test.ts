@@ -1,5 +1,6 @@
 import { Result } from "@praha/byethrow";
-import { renderHook, waitFor } from "@testing-library/react";
+import { cleanup, renderHook, waitFor } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
@@ -19,6 +20,8 @@ vi.mock("@/api/tauri-commands", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/api/tauri-commands")>()),
   setPreference: vi.fn(async () => Result.succeed(null)),
 }));
+
+setupBrowserTestDom();
 
 const folders: FolderDto[] = [{ id: "folder-1", account_id: "acc-1", name: "Folder", sort_order: 0 }];
 
@@ -72,6 +75,7 @@ describe("storage quota cascade contract", () => {
   });
 
   afterEach(() => {
+    cleanup();
     vi.restoreAllMocks();
     resetPreferencesStoreRuntimeForTests();
     resetCommandHistoryStorageFailureWarnings();

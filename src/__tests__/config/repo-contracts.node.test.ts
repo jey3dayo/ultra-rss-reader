@@ -41,7 +41,6 @@ import packageJson from "../../../package.json";
 import { qualityBaselineRepoScanIgnoredPathPrefixes } from "../../../scripts/quality-baseline";
 import tauriConfig from "../../../src-tauri/tauri.conf.json";
 import tauriReleaseConfig from "../../../src-tauri/tauri.release.conf.json";
-import { STORYBOOK_HELPER_EXPORT_ALLOWLIST } from "../../../tests/helpers/storybook-story-export-registry";
 
 const repoRoot = process.cwd();
 type CapabilityPermission =
@@ -397,6 +396,21 @@ function extractStoryFileNamedExports(source: string) {
   }));
 }
 
+function extractStorybookHelperExportAllowlist(source: string) {
+  const allowlistEntries = [...source.matchAll(/storyFilePath:\s*"([^"]+)"[\s\S]*?helperExportName:\s*"([^"]+)"/g)].map(
+    (match) => ({
+      storyFilePath: match[1] ?? "",
+      helperExportName: match[2] ?? "",
+    }),
+  );
+
+  if (allowlistEntries.length === 0) {
+    throw new Error("Expected Storybook helper export allowlist entries");
+  }
+
+  return allowlistEntries;
+}
+
 function isRepositoryRelativeLink(link: string) {
   return (
     !link.startsWith("http://") && !link.startsWith("https://") && !link.startsWith("mailto:") && !link.startsWith("#")
@@ -531,7 +545,7 @@ const releaseNoteLabelParityLabels = [
   "refactor",
 ] as const;
 const storybookStoryHelperExportAllowlist = new Set(
-  STORYBOOK_HELPER_EXPORT_ALLOWLIST.map(
+  extractStorybookHelperExportAllowlist(readRepoFile("tests/helpers/storybook-story-export-registry.ts")).map(
     ({ storyFilePath, helperExportName }) => `${storyFilePath.replace(/^\/+/, "")}:${helperExportName}`,
   ),
 );

@@ -1,8 +1,12 @@
 import type { Decorator, StoryContext } from "@storybook/react-vite";
+import "@testing-library/jest-dom/vitest";
 import { createElement } from "react";
 import { describe, expect, it } from "vitest";
 import preview from "../../.storybook/preview";
+import { setupBrowserTestDom } from "./browser-test-globals";
 import { renderStory, type StoryDecorator, type StoryLike, type StoryMeta } from "./render-story";
+
+setupBrowserTestDom();
 
 function renderStoryFromUntypedCallBoundary<TArgs extends Record<string, unknown>>(
   meta: StoryMeta<TArgs>,

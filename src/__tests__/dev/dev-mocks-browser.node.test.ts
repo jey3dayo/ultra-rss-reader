@@ -2,6 +2,7 @@ import { Result } from "@praha/byethrow";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { clearMocks } from "@tauri-apps/api/mocks";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -108,6 +109,8 @@ type DevMockExternalOpenerTestWindow = Window & {
     target: "_blank" | "reading-list";
   }>;
 };
+
+setupBrowserTestDom();
 
 describe("setupDevMocks", () => {
   const browserBounds: BrowserWebviewBounds = {

@@ -1,4 +1,8 @@
+import "@testing-library/jest-dom/vitest";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+setupBrowserTestDom();
 
 const renderMock = vi.hoisted(() => vi.fn());
 const createRootMock = vi.hoisted(() => vi.fn(() => ({ render: renderMock })));
