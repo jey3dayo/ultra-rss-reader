@@ -1,5 +1,8 @@
 import { useBrowserUrlEffect } from "@/components/reader/hooks/browser/use-browser-url-effect";
-import { BROWSER_WINDOW_LOAD_TIMEOUT_MS } from "@/constants/browser";
+import {
+  clearBrowserWebviewLoadTimeout,
+  scheduleBrowserWebviewLoadTimeout,
+} from "@/lib/browser/browser-webview-load-timeout";
 
 type UseBrowserWebviewLoadTimeoutParams = {
   browserUrl: string | null;
@@ -7,32 +10,6 @@ type UseBrowserWebviewLoadTimeoutParams = {
   isStillLoading: () => boolean;
   showSurfaceFailure: (error: { type: "UserVisible"; message: string }) => void;
 };
-
-function scheduleBrowserWebviewLoadTimeout(callback: () => void): number | null {
-  if (typeof window === "undefined" || typeof window.setTimeout !== "function") {
-    console.warn("Browser webview load timeout timer is unavailable.");
-    return null;
-  }
-
-  try {
-    return window.setTimeout(callback, BROWSER_WINDOW_LOAD_TIMEOUT_MS);
-  } catch (error) {
-    console.warn("Failed to schedule browser webview load timeout.", error);
-    return null;
-  }
-}
-
-function clearBrowserWebviewLoadTimeout(timeoutId: number | null): void {
-  if (timeoutId === null) {
-    return;
-  }
-
-  try {
-    window.clearTimeout(timeoutId);
-  } catch (error) {
-    console.warn("Failed to clear browser webview load timeout.", error);
-  }
-}
 
 export function useBrowserWebviewLoadTimeout({
   browserUrl,
