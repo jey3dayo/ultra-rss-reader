@@ -1,4 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  addFeedIdToSet,
+  buildListLayoutGeneration,
+  findSelectedSubscriptionRow,
+  removeFeedIdFromSet,
+  resolveGroupExpansion,
+  resolveInitialListScrollState,
+  sanitizeExpandedGroups,
+  toggleExpandedGroup,
+} from "@/components/subscriptions-index/lib/subscriptions-index-state-model";
 import type { SubscriptionSummaryFilterKey } from "@/lib/subscriptions/subscription-summary-filter.types";
 import { buildVisibleSubscriptionRows, type SubscriptionSortKey } from "@/lib/subscriptions/subscriptions-index";
 import type { SubscriptionListRow } from "@/lib/subscriptions/subscriptions-index.types";
@@ -6,25 +16,6 @@ import type {
   SubscriptionsWorkspaceExpandedGroupKey,
   SubscriptionsWorkspaceListScrollState,
 } from "@/lib/subscriptions/subscriptions-workspace.types";
-
-const EXPANDED_GROUP_KEY_PREFIX = "group:";
-
-function findSelectedSubscriptionRow(
-  rows: SubscriptionListRow[],
-  selectedFeedId: string | null,
-): SubscriptionListRow | null {
-  return rows.find((row) => row.feed.id === selectedFeedId) ?? null;
-}
-
-function addFeedIdToSet(current: ReadonlySet<string>, feedId: string): Set<string> {
-  return new Set(current).add(feedId);
-}
-
-function removeFeedIdFromSet(current: ReadonlySet<string>, feedId: string): Set<string> {
-  const next = new Set(current);
-  next.delete(feedId);
-  return next;
-}
 
 function updateSelectedFeedDecision(params: {
   selectedFeedId: string | null;
@@ -38,57 +29,6 @@ function updateSelectedFeedDecision(params: {
 
   setPrimary((current) => addFeedIdToSet(current, selectedFeedId));
   setSecondary((current) => removeFeedIdFromSet(current, selectedFeedId));
-}
-
-function namespaceExpandedGroupKey(groupKey: string): SubscriptionsWorkspaceExpandedGroupKey {
-  return `${EXPANDED_GROUP_KEY_PREFIX}${groupKey}`;
-}
-
-function isExpandedGroupKey(groupKey: string): groupKey is SubscriptionsWorkspaceExpandedGroupKey {
-  return groupKey.startsWith(EXPANDED_GROUP_KEY_PREFIX);
-}
-
-function sanitizeExpandedGroups(
-  expandedGroups: Record<string, boolean> | undefined,
-): Record<SubscriptionsWorkspaceExpandedGroupKey, boolean> {
-  if (!expandedGroups) {
-    return {};
-  }
-
-  const sanitized: Record<SubscriptionsWorkspaceExpandedGroupKey, boolean> = {};
-  for (const [groupKey, expanded] of Object.entries(expandedGroups)) {
-    if (isExpandedGroupKey(groupKey) && typeof expanded === "boolean") {
-      sanitized[groupKey] = expanded;
-    }
-  }
-  return sanitized;
-}
-
-function resolveInitialListScrollState(params: {
-  initialListScrollState?: SubscriptionsWorkspaceListScrollState;
-  listLayoutGeneration: string;
-  listLayoutReady: boolean;
-  viewportHeight: number;
-}): SubscriptionsWorkspaceListScrollState {
-  const { initialListScrollState, listLayoutGeneration, listLayoutReady, viewportHeight } = params;
-  if (
-    !initialListScrollState ||
-    (listLayoutReady && initialListScrollState.layoutGeneration !== listLayoutGeneration) ||
-    initialListScrollState.viewportHeight !== viewportHeight ||
-    initialListScrollState.scrollTop < 0
-  ) {
-    return {
-      scrollTop: 0,
-      layoutGeneration: listLayoutGeneration,
-      viewportHeight,
-    };
-  }
-
-  return initialListScrollState;
-}
-
-function buildListLayoutGeneration(visibleRows: SubscriptionListRow[]): string {
-  return visibleRows.map((row) => row.feed.id).join("\n");
 }
 
 type SubscriptionsIndexStateOptions = {
@@ -240,7 +180,7 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
     selectedRow,
     sortKey,
     visibleRows,
-    isGroupExpanded: (groupKey: string) => expandedGroups[namespaceExpandedGroupKey(groupKey)] ?? true,
+    isGroupExpanded: (groupKey: string) => resolveGroupExpansion(expandedGroups, groupKey),
     setActiveSummaryFilter: selectSummaryFilter,
     setListScrollTop: (scrollTop: number) =>
       setListScrollState({
@@ -265,13 +205,6 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
         setSecondary: setDeferredFeedIds,
       });
     },
-    toggleGroup: (groupKey: string) =>
-      setExpandedGroups((current) => {
-        const expandedGroupKey = namespaceExpandedGroupKey(groupKey);
-        return {
-          ...current,
-          [expandedGroupKey]: !(current[expandedGroupKey] ?? true),
-        };
-      }),
+    toggleGroup: (groupKey: string) => setExpandedGroups((current) => toggleExpandedGroup(current, groupKey)),
   };
 }

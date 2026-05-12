@@ -27,6 +27,30 @@ import type {
 
 export type MockHandler = (cmd: string, args: ValidatedMockTauriCommandArgs) => unknown;
 
+let installedTauriMockWindowShim = false;
+
+function ensureTauriMockWindow(): void {
+  if (typeof globalThis.window !== "undefined") {
+    return;
+  }
+
+  Object.defineProperty(globalThis, "window", {
+    configurable: true,
+    value: globalThis,
+    writable: true,
+  });
+  installedTauriMockWindowShim = true;
+}
+
+function restoreTauriMockWindow(): void {
+  if (!installedTauriMockWindowShim) {
+    return;
+  }
+
+  Reflect.deleteProperty(globalThis, "window");
+  installedTauriMockWindowShim = false;
+}
+
 export function createTauriMockCallRecorder(handler?: MockHandler): {
   calls: ValidatedMockTauriCommandCall[];
   handler: MockHandler;
@@ -439,6 +463,7 @@ function createDefaultHandler(): MockHandler {
  */
 export function setupTauriMocks(handler?: MockHandler): void {
   const defaultHandler = createDefaultHandler();
+  ensureTauriMockWindow();
   mockWindows("main");
   mockIPC((cmd, payload) => {
     const args = validateArgs(cmd, payload);
@@ -456,5 +481,7 @@ export function setupTauriMocks(handler?: MockHandler): void {
  * Tear down Tauri IPC mocks. Call this in afterEach.
  */
 export function teardownTauriMocks(): void {
+  ensureTauriMockWindow();
   clearMocks();
+  restoreTauriMockWindow();
 }

@@ -31,7 +31,7 @@ import {
   resolveEffectiveRetainedArticleIds,
   selectVisibleArticles,
 } from "@/lib/articles/article-list";
-import type { ReaderFilter, ReaderSourcePlan } from "@/lib/reader/reader-query";
+import { type ReaderFilter, type ReaderSourcePlan, resolveReaderSourcePlan } from "@/lib/reader/reader-query";
 
 afterEach(() => {
   vi.useRealTimers();
@@ -43,26 +43,16 @@ function buildTestSourcePlan(params: {
   effectiveViewMode: ReaderFilter;
 }): ReaderSourcePlan {
   const accountId = params.accountId ?? "acc-1";
-  return {
-    query: {
-      source: "articles",
-      scope: { type: "account", accountId },
-      filter: params.sourceFilter,
-    },
-    sourceKind: "account",
-    sourceKey: `account:${accountId}:articles:${params.sourceFilter}`,
-    accountId,
-    folderId: null,
-    feedId: null,
-    tagId: null,
-    accountMode: params.sourceFilter,
-    folderMode: "all",
-    feedMode: "all",
-    tagMode: "all",
-    recentMode: "all",
-    effectiveViewMode: params.effectiveViewMode,
-    preservesRecentOrder: false,
-  };
+
+  if (params.sourceFilter === "starred") {
+    return resolveReaderSourcePlan({ type: "smart", kind: "starred" }, params.effectiveViewMode, accountId);
+  }
+
+  if (params.sourceFilter !== params.effectiveViewMode) {
+    throw new Error(`Unsupported test source plan: ${params.sourceFilter}/${params.effectiveViewMode}`);
+  }
+
+  return resolveReaderSourcePlan({ type: "all" }, params.sourceFilter, accountId);
 }
 
 describe("article-list utils", () => {

@@ -2,6 +2,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import type { FeedDto } from "@/api/tauri-commands";
 import { useSubscriptionsIndexState } from "@/components/subscriptions-index/use-subscriptions-index-state";
+import { buildSubscriptionListRows } from "@/lib/subscriptions/subscriptions-index";
 import type { SubscriptionListRow } from "@/lib/subscriptions/subscriptions-index.types";
 
 function makeRow(
@@ -24,13 +25,20 @@ function makeRow(
     web_preview_mode: "inherit",
   };
 
+  const [row] = buildSubscriptionListRows({
+    feeds: [feed],
+    candidateMap: new Map(),
+    feedArticleSummaryMap: new Map(),
+    folderNameById: new Map(),
+  });
+
+  if (!row) {
+    throw new Error(`Failed to build subscription row for ${feedId}`);
+  }
+
   return {
-    feed,
-    folderId: null,
-    folderName: null,
-    latestArticleAt: null,
+    ...row,
     status,
-    reasonTooltipKey: null,
   };
 }
 

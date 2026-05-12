@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { resetTauriRuntimeFlags, setTauriRuntimeMissing, setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   CLIPBOARD_TEXT_MAX_CHARS,
   copyTextToClipboard,
@@ -16,6 +16,24 @@ vi.mock("@/api/tauri-commands", () => ({
   copyToClipboard: copyToClipboardMock,
 }));
 
+const originalWindowDescriptor = Object.getOwnPropertyDescriptor(globalThis, "window");
+const originalNavigatorDescriptor = Object.getOwnPropertyDescriptor(globalThis, "navigator");
+const nodeWindow = {};
+
+Object.defineProperty(globalThis, "window", {
+  configurable: true,
+  writable: true,
+  value: nodeWindow,
+});
+
+if (typeof globalThis.navigator === "undefined") {
+  Object.defineProperty(globalThis, "navigator", {
+    configurable: true,
+    writable: true,
+    value: {},
+  });
+}
+
 describe("clipboard", () => {
   const originalClipboard = navigator.clipboard;
 
@@ -30,6 +48,20 @@ describe("clipboard", () => {
       configurable: true,
       value: originalClipboard,
     });
+  });
+
+  afterAll(() => {
+    if (originalNavigatorDescriptor) {
+      Object.defineProperty(globalThis, "navigator", originalNavigatorDescriptor);
+    } else {
+      Reflect.deleteProperty(globalThis, "navigator");
+    }
+
+    if (originalWindowDescriptor) {
+      Object.defineProperty(globalThis, "window", originalWindowDescriptor);
+    } else {
+      Reflect.deleteProperty(globalThis, "window");
+    }
   });
 
   function setFrontendClipboard(writeText: (value: string) => Promise<void>) {

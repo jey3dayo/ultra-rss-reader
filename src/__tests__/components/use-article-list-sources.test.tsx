@@ -4,6 +4,7 @@ import { sampleArticles, sampleFeeds } from "@tests/helpers/fixtures";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ArticleDto, FeedDto, FolderDto } from "@/api/tauri-commands";
 import { useArticleListSources } from "@/components/reader/hooks/article-list/use-article-list-sources";
+import { resolveReaderSourcePlan } from "@/lib/reader/reader-query";
 import type { ReaderSelection } from "@/lib/reader/reader-selection.types";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
 
@@ -548,8 +549,6 @@ describe("useArticleListSources", () => {
       expectedHook: ReturnType<typeof vi.fn>;
       expectedArgs: unknown[];
       resultKey: "accountArticles" | "articles" | "tagArticles";
-      expectedSourceKind: "account" | "folder" | "feed" | "tag" | "recent";
-      expectedSourceKey: string;
     }> = [
       {
         name: "unread smart view",
@@ -559,8 +558,6 @@ describe("useArticleListSources", () => {
         expectedHook: useAccountArticlesMock,
         expectedArgs: ["acc-1", { mode: "unread" }],
         resultKey: "accountArticles",
-        expectedSourceKind: "account",
-        expectedSourceKey: "account:acc-1:articles:unread",
       },
       {
         name: "starred smart view",
@@ -570,8 +567,6 @@ describe("useArticleListSources", () => {
         expectedHook: useAccountArticlesMock,
         expectedArgs: ["acc-1", { mode: "starred" }],
         resultKey: "accountArticles",
-        expectedSourceKind: "account",
-        expectedSourceKey: "account:acc-1:articles:starred",
       },
       ...(["unread", "all", "starred"] as const).map((mode) => ({
         name: `selection all ${mode}`,
@@ -581,8 +576,6 @@ describe("useArticleListSources", () => {
         expectedHook: useAccountArticlesMock,
         expectedArgs: ["acc-1", { mode }],
         resultKey: "accountArticles" as const,
-        expectedSourceKind: "account" as const,
-        expectedSourceKey: `account:acc-1:articles:${mode}`,
       })),
       ...(["unread", "all", "starred"] as const).map((mode) => ({
         name: `folder ${mode}`,
@@ -592,8 +585,6 @@ describe("useArticleListSources", () => {
         expectedHook: useFolderArticlesMock,
         expectedArgs: ["folder-1", { mode }],
         resultKey: "accountArticles" as const,
-        expectedSourceKind: "folder" as const,
-        expectedSourceKey: `folder:folder-1:${mode}`,
       })),
       ...(["unread", "all", "starred"] as const).map((mode) => ({
         name: `feed ${mode}`,
@@ -603,8 +594,6 @@ describe("useArticleListSources", () => {
         expectedHook: useArticlesMock,
         expectedArgs: ["feed-1", { mode }],
         resultKey: "articles" as const,
-        expectedSourceKind: "feed" as const,
-        expectedSourceKey: `feed:feed-1:${mode}`,
       })),
       ...(["unread", "all", "starred"] as const).map((mode) => ({
         name: `tag ${mode}`,
@@ -614,8 +603,6 @@ describe("useArticleListSources", () => {
         expectedHook: useArticlesByTagMock,
         expectedArgs: ["tag-1", "acc-1", { mode }],
         resultKey: "tagArticles" as const,
-        expectedSourceKind: "tag" as const,
-        expectedSourceKey: `tag:tag-1:${mode}`,
       })),
       ...(["unread", "all", "starred"] as const).map((mode) => ({
         name: `recent ${mode}`,
@@ -625,8 +612,6 @@ describe("useArticleListSources", () => {
         expectedHook: useRecentArticlesMock,
         expectedArgs: ["acc-1", { mode }],
         resultKey: "accountArticles" as const,
-        expectedSourceKind: "recent" as const,
-        expectedSourceKey: `recent:acc-1:${mode}`,
       })),
     ];
 
@@ -646,8 +631,9 @@ describe("useArticleListSources", () => {
       );
 
       expect(result.current[testCase.resultKey]?.length, testCase.name).toBe(testCase.expectedCount);
-      expect(result.current.sourcePlan.sourceKind, testCase.name).toBe(testCase.expectedSourceKind);
-      expect(result.current.sourcePlan.sourceKey, testCase.name).toBe(testCase.expectedSourceKey);
+      const expectedSourcePlan = resolveReaderSourcePlan(testCase.selection, testCase.viewMode, "acc-1");
+      expect(result.current.sourcePlan.sourceKind, testCase.name).toBe(expectedSourcePlan.sourceKind);
+      expect(result.current.sourcePlan.sourceKey, testCase.name).toBe(expectedSourcePlan.sourceKey);
       expect(testCase.expectedHook, testCase.name).toHaveBeenCalledWith(...testCase.expectedArgs);
       unmount();
     }

@@ -1,3 +1,4 @@
+import { installNodeTestStorage } from "@tests/helpers/node-test-storage";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LEGACY_STORAGE_KEYS, STORAGE_KEYS } from "@/constants/storage";
 import {
@@ -10,8 +11,11 @@ import {
 describe("startup sync storage", () => {
   const key = STORAGE_KEYS.startupSyncLastTriggeredAt;
   const legacyKey = LEGACY_STORAGE_KEYS.startupSyncLastTriggeredAt;
+  let restoreNodeTestStorage: () => void;
 
   beforeEach(() => {
+    const installedStorage = installNodeTestStorage();
+    restoreNodeTestStorage = installedStorage.restore;
     resetStartupSyncStorageFailureWarnings();
     localStorage.clear();
   });
@@ -19,6 +23,7 @@ describe("startup sync storage", () => {
   afterEach(() => {
     resetStartupSyncStorageFailureWarnings();
     vi.restoreAllMocks();
+    restoreNodeTestStorage();
   });
 
   it("reads valid timestamps and throttles inside the startup sync window", () => {

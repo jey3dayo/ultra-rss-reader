@@ -2,8 +2,14 @@ import type { TFunction } from "i18next";
 import { BellOff, BookOpen, Bug, Command, Database, Palette, Settings, Share2, Tag } from "lucide-react";
 import type { ReactNode } from "react";
 import type { AccountDto } from "@/api/tauri-commands";
-import type { AccountNavItem } from "@/components/settings/accounts-nav.types";
 import { AccountsNavView } from "@/components/settings/accounts-nav-view";
+import {
+  buildAccountNavItems,
+  buildSettingsContentResetKey,
+  buildSettingsNavItemModels,
+  type SettingsNavItemModel,
+  settingsCategoryByNavId,
+} from "@/components/settings/lib/settings-modal-view-model";
 import type { SettingsModalViewProps } from "@/components/settings/settings-modal.types";
 import type { SettingsNavItem, SettingsNavItemId } from "@/components/settings/settings-nav.types";
 import { SettingsNavView } from "@/components/settings/settings-nav-view";
@@ -31,34 +37,23 @@ type UseSettingsModalViewPropsParams = {
   setupLockReason?: string | null;
 };
 
-const settingsCategoryByNavId: Record<SettingsNavItemId, SettingsCategory> = {
-  general: "general",
-  reading: "reading",
-  appearance: "appearance",
-  mute: "mute",
-  tags: "tags",
-  shortcuts: "shortcuts",
-  actions: "actions",
-  data: "data",
-  debug: "debug",
+const settingsNavIcons: Record<SettingsNavItemId, ReactNode> = {
+  general: <Settings className="size-5" />,
+  reading: <BookOpen className="size-5" />,
+  appearance: <Palette className="size-5" />,
+  mute: <BellOff className="size-5" />,
+  tags: <Tag className="size-5" />,
+  shortcuts: <Command className="size-5" />,
+  actions: <Share2 className="size-5" />,
+  data: <Database className="size-5" />,
+  debug: <Bug className="size-5" />,
 };
 
-function buildSettingsContentResetKey({
-  settingsCategory,
-  settingsAccountId,
-  settingsAddAccount,
-  settingsAddAccountInitialKind,
-}: Pick<
-  UseSettingsModalViewPropsParams,
-  "settingsCategory" | "settingsAccountId" | "settingsAddAccount" | "settingsAddAccountInitialKind"
->): string {
-  return JSON.stringify({
-    category: settingsCategory,
-    accountId: settingsAccountId,
-    mode: settingsAddAccount
-      ? { type: "add", initialKind: settingsAddAccountInitialKind ?? "pick" }
-      : { type: "browse" },
-  });
+function attachSettingsNavIcons(item: SettingsNavItemModel): SettingsNavItem {
+  return {
+    ...item,
+    icon: settingsNavIcons[item.id],
+  };
 }
 
 export function useSettingsModalViewProps({
@@ -80,74 +75,16 @@ export function useSettingsModalViewProps({
   setupLockReason,
 }: UseSettingsModalViewPropsParams): SettingsModalViewProps {
   const setupLocked = Boolean(setupLockReason);
-  const navItems: SettingsNavItem[] = [
-    {
-      id: "general",
-      label: t("nav.general"),
-      icon: <Settings className="size-5" />,
-      isActive: settingsCategory === "general" && !settingsAccountId && !settingsAddAccount,
-    },
-    {
-      id: "reading",
-      label: t("nav.reading"),
-      icon: <BookOpen className="size-5" />,
-      isActive: settingsCategory === "reading" && !settingsAccountId && !settingsAddAccount,
-    },
-    {
-      id: "appearance",
-      label: t("nav.appearance"),
-      icon: <Palette className="size-5" />,
-      isActive: settingsCategory === "appearance" && !settingsAccountId && !settingsAddAccount,
-    },
-    {
-      id: "mute",
-      label: t("nav.mute"),
-      icon: <BellOff className="size-5" />,
-      isActive: settingsCategory === "mute" && !settingsAccountId && !settingsAddAccount,
-    },
-    {
-      id: "tags",
-      label: t("nav.tags"),
-      icon: <Tag className="size-5" />,
-      isActive: settingsCategory === "tags" && !settingsAccountId && !settingsAddAccount,
-    },
-    {
-      id: "shortcuts",
-      label: t("nav.shortcuts"),
-      icon: <Command className="size-5" />,
-      isActive: settingsCategory === "shortcuts" && !settingsAccountId && !settingsAddAccount,
-    },
-    {
-      id: "actions",
-      label: t("nav.actions"),
-      icon: <Share2 className="size-5" />,
-      isActive: settingsCategory === "actions" && !settingsAccountId && !settingsAddAccount,
-    },
-    {
-      id: "data",
-      label: t("nav.data"),
-      icon: <Database className="size-5" />,
-      isActive: settingsCategory === "data" && !settingsAccountId && !settingsAddAccount,
-    },
-  ];
+  const translateNavLabel = (key: string) => String(t(key));
+  const navItems = buildSettingsNavItemModels({
+    t: translateNavLabel,
+    devBuild,
+    settingsCategory,
+    settingsAccountId,
+    settingsAddAccount,
+  }).map(attachSettingsNavIcons);
 
-  if (devBuild) {
-    navItems.push({
-      id: "debug",
-      label: t("nav.debug"),
-      icon: <Bug className="size-5" />,
-      isActive: settingsCategory === "debug" && !settingsAccountId && !settingsAddAccount,
-    });
-  }
-
-  const accountItems: AccountNavItem[] = (accounts ?? []).map((account) => ({
-    id: account.id,
-    name: account.name,
-    kind: account.kind,
-    username: account.username,
-    serverUrl: account.server_url,
-    isActive: settingsAccountId === account.id,
-  }));
+  const accountItems = buildAccountNavItems({ accounts, settingsAccountId });
 
   const handleSelectCategory = (categoryId: SettingsNavItemId) => {
     if (setupLocked) {

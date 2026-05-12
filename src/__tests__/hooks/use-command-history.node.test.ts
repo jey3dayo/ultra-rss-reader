@@ -1,4 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { installNodeTestStorage } from "@tests/helpers/node-test-storage";
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   addToHistory,
   clearHistory,
@@ -12,7 +13,13 @@ import {
 import { MAX_COMMAND_HISTORY, MAX_COMMAND_HISTORY_STORAGE_LENGTH, STORAGE_KEYS } from "@/constants/storage";
 import { resetRuntimeDiagnosticOnceSuppressionForTests } from "@/lib/runtime/diagnostics";
 
+const nodeTestStorage = installNodeTestStorage();
+
 describe("use-command-history", () => {
+  afterAll(() => {
+    nodeTestStorage.restore();
+  });
+
   beforeEach(() => {
     resetCommandHistoryStorageFailureWarnings();
     resetRuntimeDiagnosticOnceSuppressionForTests();

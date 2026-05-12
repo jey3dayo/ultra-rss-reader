@@ -1,9 +1,8 @@
-import { renderHook } from "@testing-library/react";
 import { sampleArticles, sampleFeeds } from "@tests/helpers/fixtures";
 import { describe, expect, it } from "vitest";
 import type { ArticleDto } from "@/api/tauri-commands";
 import type { UseArticleListDataParams } from "@/components/reader/hooks/article-list/article-list-controller.types";
-import { useArticleListData } from "@/components/reader/hooks/article-list/use-article-list-data";
+import { buildArticleListData } from "@/components/reader/hooks/article-list/use-article-list-data";
 import { type ReaderFilter, type ReaderSourcePlan, resolveReaderSourcePlan } from "@/lib/reader/reader-query";
 
 const EMPTY_ARTICLES: ArticleDto[] = [];
@@ -34,40 +33,20 @@ function buildParams(sourcePlan: ReaderSourcePlan): UseArticleListDataParams {
   };
 }
 
-describe("useArticleListData", () => {
-  it("keeps filtered article memo stable when an equivalent sourcePlan object is recreated", () => {
-    const firstPlan = buildSourcePlan({
+describe("buildArticleListData", () => {
+  it("does not reuse source articles as search results while current search data is unavailable", () => {
+    const sourcePlan = buildSourcePlan({
       accountId: "acc-1",
       filter: "all",
     });
-    const { result, rerender } = renderHook(
-      ({ params }: { params: UseArticleListDataParams }) => useArticleListData(params),
-      {
-        initialProps: { params: buildParams(firstPlan) },
-      },
-    );
-    const firstFilteredArticles = result.current.filteredArticles;
 
-    rerender({
-      params: buildParams(
-        buildSourcePlan({
-          accountId: "acc-1",
-          filter: "all",
-        }),
-      ),
+    const result = buildArticleListData({
+      ...buildParams(sourcePlan),
+      showSearch: true,
+      trimmedDebouncedQuery: "urgent",
+      searchResults: undefined,
     });
 
-    expect(result.current.filteredArticles).toBe(firstFilteredArticles);
-
-    rerender({
-      params: buildParams(
-        buildSourcePlan({
-          accountId: "acc-1",
-          filter: "unread",
-        }),
-      ),
-    });
-
-    expect(result.current.filteredArticles).not.toBe(firstFilteredArticles);
+    expect(result.filteredArticles).toEqual([]);
   });
 });

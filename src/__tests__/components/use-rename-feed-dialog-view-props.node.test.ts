@@ -1,7 +1,6 @@
-import { renderHook } from "@testing-library/react";
 import { createRef } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { useRenameFeedDialogViewProps } from "@/components/reader/hooks/feed-dialogs/use-rename-feed-dialog-view-props";
+import { buildRenameFeedDialogViewProps } from "@/components/reader/lib/rename-feed-dialog-view-props";
 import type { RenameFeedDialogController } from "@/components/reader/rename-feed-dialog.types";
 import i18n from "@/lib/i18n";
 
@@ -37,18 +36,18 @@ describe("useRenameFeedDialogViewProps", () => {
     const controller = createController();
     const onOpenChange = vi.fn();
 
-    const { result } = renderHook(() =>
-      useRenameFeedDialogViewProps({
-        open: true,
-        feedSiteUrl: "https://example.com",
-        feedUrl: "https://example.com/feed.xml",
-        onOpenChange,
-        folderLabelId: "folder-label",
-        controller,
-      }),
-    );
+    const props = buildRenameFeedDialogViewProps({
+      open: true,
+      feedSiteUrl: "https://example.com",
+      feedUrl: "https://example.com/feed.xml",
+      onOpenChange,
+      folderLabelId: "folder-label",
+      controller,
+      t,
+      tc,
+    });
 
-    expect(result.current).toEqual(
+    expect(props).toEqual(
       expect.objectContaining({
         open: true,
         title: "Daily Feed",
@@ -68,12 +67,12 @@ describe("useRenameFeedDialogViewProps", () => {
         },
       }),
     );
-    expect(result.current.displayModeOptions).toEqual([
+    expect(props.displayModeOptions).toEqual([
       { value: "default", label: t("display_mode_default") },
       { value: "standard", label: t("display_mode_standard") },
       { value: "preview", label: t("display_mode_preview") },
     ]);
-    expect(result.current.folderSelectProps).toEqual(
+    expect(props.folderSelectProps).toEqual(
       expect.objectContaining({
         labelId: "folder-label",
         label: t("folder"),
@@ -87,8 +86,8 @@ describe("useRenameFeedDialogViewProps", () => {
       }),
     );
 
-    const copyWebsiteUrl = result.current.urlFields[0]?.onCopy;
-    const copyFeedUrl = result.current.urlFields[1]?.onCopy;
+    const copyWebsiteUrl = props.urlFields[0]?.onCopy;
+    const copyFeedUrl = props.urlFields[1]?.onCopy;
 
     if (!copyWebsiteUrl || !copyFeedUrl) {
       throw new Error("Missing URL copy action");
@@ -105,21 +104,21 @@ describe("useRenameFeedDialogViewProps", () => {
     const setDisplayPreset = vi.fn();
     const controller = createController({ setDisplayPreset });
 
-    const { result } = renderHook(() =>
-      useRenameFeedDialogViewProps({
-        open: false,
-        feedSiteUrl: "",
-        feedUrl: "",
-        onOpenChange: vi.fn(),
-        folderLabelId: "folder-label",
-        controller,
-      }),
-    );
+    const props = buildRenameFeedDialogViewProps({
+      open: false,
+      feedSiteUrl: "",
+      feedUrl: "",
+      onOpenChange: vi.fn(),
+      folderLabelId: "folder-label",
+      controller,
+      t,
+      tc,
+    });
 
-    result.current.onDisplayModeChange("reader");
+    props.onDisplayModeChange("reader");
     expect(setDisplayPreset).not.toHaveBeenCalled();
 
-    result.current.onDisplayModeChange("preview");
+    props.onDisplayModeChange("preview");
     expect(setDisplayPreset).toHaveBeenCalledWith("preview");
   });
 });

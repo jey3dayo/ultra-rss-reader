@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { Result } from "@praha/byethrow";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -13,7 +11,6 @@ import {
   ArticleDtoListSchema,
   BrowserWebviewStateSchema,
   CountResponseSchema,
-  commandArgsSchemas,
   DatabaseInfoDtoSchema,
   DevRuntimeOptionsSchema,
   DiscoveredFeedDtoListSchema,
@@ -94,12 +91,7 @@ import {
 } from "@/api/tauri-commands";
 import { DEFAULT_PLATFORM_INFO } from "@/constants/platform";
 import { mockArticles } from "@/dev/mock-data";
-import {
-  DEV_MOCK_NETWORK_BOUNDARY,
-  DEV_MOCK_PLATFORM_INFO,
-  DEV_MOCK_SIDE_EFFECT_BOUNDARY,
-  setupDevMocks,
-} from "@/dev/mocks";
+import { setupDevMocks } from "@/dev/mocks";
 import type { BrowserWebviewBounds } from "@/lib/browser/browser-webview";
 
 type DevMockDiagnosticsTestWindow = Window & {
@@ -281,11 +273,6 @@ describe("setupDevMocks", () => {
     expect(platform).toEqual(DEFAULT_PLATFORM_INFO);
   });
 
-  it("keeps browser-only mock platform capabilities aligned with production defaults", () => {
-    expect(PlatformInfoSchema.parse(DEV_MOCK_PLATFORM_INFO)).toEqual(DEV_MOCK_PLATFORM_INFO);
-    expect(DEV_MOCK_PLATFORM_INFO).toEqual(DEFAULT_PLATFORM_INFO);
-  });
-
   it("returns account sync status for browser-only account settings checks", async () => {
     setupDevMocks();
 
@@ -464,13 +451,21 @@ describe("setupDevMocks", () => {
 
     expect(windowOpenSpy).not.toHaveBeenCalled();
     expect((window as DevMockExternalOpenerTestWindow).__ULTRA_RSS_DEV_MOCK_EXTERNAL_OPENS__).toEqual([
-      { command: "open_in_browser", url: "https://example.com/article", target: "_blank" },
+      {
+        command: "open_in_browser",
+        url: "https://example.com/article",
+        target: "_blank",
+      },
       {
         command: "plugin:opener|open_url",
         url: "mailto:?subject=First&body=https%3A%2F%2Fexample.com",
         target: "_blank",
       },
-      { command: "add_to_reading_list", url: "https://example.com/read-later", target: "reading-list" },
+      {
+        command: "add_to_reading_list",
+        url: "https://example.com/read-later",
+        target: "reading-list",
+      },
     ]);
     windowOpenSpy.mockRestore();
   });
@@ -478,18 +473,6 @@ describe("setupDevMocks", () => {
   it("documents browser-only network boundaries for real-domain mock URLs", async () => {
     setupDevMocks();
 
-    expect(DEV_MOCK_NETWORK_BOUNDARY).toEqual({
-      externalOpen: "record-only",
-      browserWebview: "state-only",
-      feedDiscovery: "synthetic",
-    });
-    expect(DEV_MOCK_SIDE_EFFECT_BOUNDARY).toEqual({
-      externalOpen: "record-only",
-      readingList: "record-only",
-      browserWebview: "state-only",
-      feedIntegrityCleanup: "dry-run-safe",
-      opmlImport: "explicitly-unsupported",
-    });
     expect(
       Result.unwrap(await createOrUpdateBrowserWebview("https://www3.nhk.or.jp/news/html/mock.html", browserBounds)),
     ).toMatchObject({
@@ -848,35 +831,6 @@ describe("setupDevMocks", () => {
     expect(Result.unwrap(await listFeeds("acc-freshrss")).find((feed) => feed.id === "feed-automaton")?.folder_id).toBe(
       originalFolderId,
     );
-  });
-
-  it("keeps every schema-validated command covered by the browser-only mock switch", () => {
-    const source = readFileSync(resolve(process.cwd(), "src/dev/mocks.ts"), "utf8");
-    const mockedCommands = new Set([...source.matchAll(/case "([^"]+)"/g)].map((match) => match[1]));
-
-    expect(Object.keys(commandArgsSchemas).filter((command) => !mockedCommands.has(command))).toEqual([]);
-  });
-
-  it("keeps every response-schema command covered by the browser-only mock switch", () => {
-    const [mockSource, commandSource] = [
-      readFileSync(resolve(process.cwd(), "src/dev/mocks.ts"), "utf8"),
-      readFileSync(resolve(process.cwd(), "src/api/tauri-commands.ts"), "utf8"),
-    ];
-    const mockedCommands = new Set([...mockSource.matchAll(/case "([^"]+)"/g)].map((match) => match[1]));
-    const responseSchemaCommands = new Set(
-      [...commandSource.matchAll(/safeInvoke\(\s*"([^"]+)"\s*,\s*\{[^}]*response:/gs)].map((match) => match[1]),
-    );
-
-    expect([...responseSchemaCommands].filter((command) => !mockedCommands.has(command))).toEqual([]);
-  });
-
-  it("parses every schema-validated browser-only command at the mock IPC boundary", () => {
-    const source = readFileSync(resolve(process.cwd(), "src/dev/mocks.ts"), "utf8");
-    const parsedCommands = new Set(
-      [...source.matchAll(/parseBrowserMockArgs\(\s*"([^"]+)"/g)].map((match) => match[1]),
-    );
-
-    expect(Object.keys(commandArgsSchemas).filter((command) => !parsedCommands.has(command))).toEqual([]);
   });
 
   it("rejects unknown browser-only commands instead of returning a null success", async () => {

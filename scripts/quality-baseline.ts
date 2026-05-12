@@ -58,7 +58,7 @@ export const liveProviderTestGateContract = {
 
 export const testHelperRuntimeIsolationContract = {
   sharedSetupPath: "tests/setup.ts",
-  policyTestPath: "tests/test-isolation-policy.test.ts",
+  policyTestPath: "tests/test-isolation-policy.node.test.ts",
   helperPathPrefixes: ["tests/helpers/"],
   suiteBoundaryResets: [
     "cleanup()",
