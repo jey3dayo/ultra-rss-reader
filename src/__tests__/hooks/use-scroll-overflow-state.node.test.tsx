@@ -1,7 +1,10 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, cleanup, renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { mockObserverConstructors } from "@tests/helpers/typed-test-factories";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useScrollOverflowState } from "@/components/settings/hooks/use-scroll-overflow-state";
+
+setupBrowserTestDom();
 
 let cleanupObserverMocks: (() => void) | null = null;
 
@@ -48,6 +51,7 @@ function setTrackedScrollMetrics(element: HTMLElement, clientHeight: number, scr
 
 describe("useScrollOverflowState", () => {
   afterEach(() => {
+    cleanup();
     cleanupObserverMocks?.();
     cleanupObserverMocks = null;
     vi.useRealTimers();
@@ -96,9 +100,15 @@ describe("useScrollOverflowState", () => {
     vi.useFakeTimers();
     vi.stubGlobal("ResizeObserver", undefined);
     vi.stubGlobal("MutationObserver", undefined);
-    vi.stubGlobal("requestAnimationFrame", undefined);
-    vi.stubGlobal("cancelAnimationFrame", undefined);
-    const clearTimeoutSpy = vi.spyOn(window, "clearTimeout");
+    Object.defineProperty(window, "requestAnimationFrame", {
+      configurable: true,
+      value: undefined,
+    });
+    Object.defineProperty(window, "cancelAnimationFrame", {
+      configurable: true,
+      value: undefined,
+    });
+    const clearTimeoutSpy = vi.spyOn(globalThis, "clearTimeout");
     const viewport = document.createElement("div");
     setScrollMetrics(viewport, 100, 100);
 

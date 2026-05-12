@@ -1,8 +1,11 @@
-import { renderHook } from "@testing-library/react";
+import { cleanup, renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { sampleArticles, sampleFeeds, sampleFolders } from "@tests/helpers/fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useArticleViewSelection } from "@/components/reader/hooks/article/use-article-view-selection";
 import { useUiStore } from "@/stores/ui-store";
+
+setupBrowserTestDom();
 
 const {
   useAccountsMock,
@@ -90,6 +93,7 @@ describe("useArticleViewSelection", () => {
   });
 
   afterEach(() => {
+    cleanup();
     vi.clearAllMocks();
     useUiStore.setState({
       contentMode: "empty",

@@ -1,6 +1,9 @@
 import { act, renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useFeedTreeHandleClickSuppression } from "@/components/reader/hooks/feed-tree/use-feed-tree-handle-click-suppression";
+
+setupBrowserTestDom();
 
 describe("useFeedTreeHandleClickSuppression", () => {
   afterEach(() => {

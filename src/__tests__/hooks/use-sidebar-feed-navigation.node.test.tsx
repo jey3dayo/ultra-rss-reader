@@ -1,7 +1,11 @@
+import "@testing-library/jest-dom/vitest";
 import { renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useSidebarFeedNavigation } from "@/components/reader/hooks/sidebar/use-sidebar-feed-navigation";
 import { APP_EVENTS } from "@/constants/events";
+
+setupBrowserTestDom();
 
 describe("useSidebarFeedNavigation", () => {
   afterEach(() => {

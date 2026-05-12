@@ -1,9 +1,11 @@
 import { Result } from "@praha/byethrow";
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { sampleFeeds, sampleFolders } from "@tests/helpers/fixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useSidebarFeedSectionController } from "@/components/reader/hooks/sidebar/use-sidebar-feed-section-controller";
 import type { SidebarFeedSectionParams } from "@/components/reader/sidebar-feed-section.types";
+import i18n from "@/lib/i18n";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -21,6 +23,13 @@ vi.mock("@/hooks/use-articles", () => ({
 vi.mock("@/hooks/use-confirm-mark-all-read", () => ({
   useConfirmMarkAllRead: () => vi.fn(),
 }));
+
+setupBrowserTestDom();
+
+afterEach(async () => {
+  cleanup();
+  await new Promise<void>((resolve) => setImmediate(resolve));
+});
 
 function createControllerParams(overrides: Partial<SidebarFeedSectionParams> = {}): SidebarFeedSectionParams {
   return {
@@ -56,7 +65,8 @@ function createControllerParams(overrides: Partial<SidebarFeedSectionParams> = {
 }
 
 describe("useSidebarFeedSectionController", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    await i18n.changeLanguage("en");
     openFeedLandingMock.mockReset();
     usePreferencesStore.setState({
       prefs: { open_first_article_on_feed_selection: "false" },

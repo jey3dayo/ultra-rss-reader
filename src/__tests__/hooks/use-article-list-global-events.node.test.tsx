@@ -1,8 +1,11 @@
 import { renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { describe, expect, it, vi } from "vitest";
 import { useArticleListGlobalEvents } from "@/components/reader/hooks/article-list/use-article-list-global-events";
 import { APP_EVENTS } from "@/constants/events";
 import { keyboardEvents } from "@/lib/keyboard/keyboard-shortcuts";
+
+setupBrowserTestDom();
 
 describe("useArticleListGlobalEvents", () => {
   it("ignores navigate article events with invalid detail", () => {

@@ -1,10 +1,18 @@
-import { act, renderHook } from "@testing-library/react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { act, cleanup, renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { useArticleViewUiState } from "@/components/reader/hooks/article/use-article-view-ui-state";
 import { useCommandPaletteUiState } from "@/components/reader/hooks/command-palette/use-command-palette-ui-state";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
+
+setupBrowserTestDom();
+
+afterEach(async () => {
+  cleanup();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+});
 
 describe("reader UI state hooks", () => {
   beforeEach(() => {

@@ -1,4 +1,6 @@
-import { act, renderHook, waitFor } from "@testing-library/react";
+import "@testing-library/react/dont-cleanup-after-each";
+import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { createQueryWrapper } from "@tests/helpers/create-wrapper";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -16,6 +18,8 @@ import {
   subscribeManualSyncCooldown,
   triggerManualSyncWithCooldown,
 } from "@/lib/sync/manual-sync";
+
+setupBrowserTestDom();
 
 type EventCallback = (event: unknown) => void;
 type Cleanup = () => void;
@@ -92,8 +96,12 @@ describe("resolveSidebarLastSyncedLabel", () => {
     resetSidebarSyncDiagnosticsForTests();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    cleanup();
     vi.useRealTimers();
+    await new Promise<void>((resolve) => {
+      setImmediate(resolve);
+    });
   });
 
   it("does not collapse sync status query failures into the never-synced label", () => {

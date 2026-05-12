@@ -1,8 +1,12 @@
 import { QueryClient } from "@tanstack/react-query";
-import { act, renderHook } from "@testing-library/react";
+import "@testing-library/react/dont-cleanup-after-each";
+import { act, cleanup, renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useArticleAutoMark } from "@/components/reader/hooks/article/use-article-auto-mark";
 import { useUiStore } from "@/stores/ui-store";
+
+setupBrowserTestDom();
 
 type UseArticleAutoMarkParams = Parameters<typeof useArticleAutoMark>[0];
 type AutoMarkMutate = UseArticleAutoMarkParams["setRead"]["mutate"];
@@ -41,8 +45,12 @@ describe("useArticleAutoMark", () => {
     });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    cleanup();
     vi.useRealTimers();
+    await new Promise<void>((resolve) => {
+      setImmediate(resolve);
+    });
     vi.unstubAllGlobals();
   });
 

@@ -1,8 +1,11 @@
 import { act, renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { createRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useSidebarController } from "@/components/reader/hooks/sidebar/use-sidebar-controller";
 import type { SidebarRuntimeResult } from "@/components/reader/sidebar-runtime.types";
+
+setupBrowserTestDom();
 
 const {
   closeAccountListMock,

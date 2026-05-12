@@ -1,6 +1,7 @@
-import { renderHook } from "@testing-library/react";
+import { cleanup, renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { createQueryWrapper } from "@tests/helpers/create-wrapper";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   ACCOUNT_SWITCH_MEMORY_BUDGET_BYTES,
   ACCOUNT_SWITCH_QUERY_ROOTS,
@@ -10,6 +11,12 @@ import {
   useCancelReaderQueriesOnAccountSwitch,
 } from "@/hooks/use-cancel-reader-queries-on-account-switch";
 import { queryKeys } from "@/lib/query/query-invalidation";
+
+setupBrowserTestDom();
+
+afterEach(() => {
+  cleanup();
+});
 
 describe("useCancelReaderQueriesOnAccountSwitch", () => {
   it("cancels stale reader query roots after switching accounts", () => {

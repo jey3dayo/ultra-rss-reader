@@ -1,7 +1,8 @@
-import { renderHook, waitFor } from "@testing-library/react";
+import { cleanup, renderHook, waitFor } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { createWrapper } from "@tests/helpers/create-wrapper";
-import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createTauriMockCallRecorder, setupTauriMocks } from "@tests/helpers/tauri-mocks";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   buildSidebarAccountStatusLabels,
   useSidebarAccountStatusLabels,
@@ -9,8 +10,16 @@ import {
 import { formatAccountSyncRetryTime } from "@/lib/account/account-sync-status-format";
 import i18n from "@/lib/i18n";
 
+setupBrowserTestDom();
+
+afterEach(async () => {
+  cleanup();
+  await new Promise<void>((resolve) => setImmediate(resolve));
+});
+
 describe("useSidebarAccountStatusLabels", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    await i18n.changeLanguage("en");
     setupTauriMocks();
   });
 
@@ -76,7 +85,7 @@ describe("useSidebarAccountStatusLabels", () => {
   });
 
   it("omits accounts without a scheduled retry", async () => {
-    setupTauriMocks((cmd, args) => {
+    const recorder = createTauriMockCallRecorder((cmd, args) => {
       if (cmd === "get_account_sync_status" && args.accountId === "acc-2") {
         return {
           last_success_at: null,
@@ -87,12 +96,14 @@ describe("useSidebarAccountStatusLabels", () => {
       }
       return undefined;
     });
+    setupTauriMocks(recorder.handler);
 
     const { result } = renderHook(() => useSidebarAccountStatusLabels([{ id: "acc-1" }, { id: "acc-2" }]), {
       wrapper: createWrapper(),
     });
 
     await waitFor(() => {
+      expect(recorder.calls.filter((call) => call.cmd === "get_account_sync_status")).toHaveLength(2);
       expect(result.current).toEqual({});
     });
   });

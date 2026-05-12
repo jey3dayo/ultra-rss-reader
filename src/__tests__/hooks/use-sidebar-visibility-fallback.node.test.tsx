@@ -1,10 +1,13 @@
 import { renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { describe, expect, it, vi } from "vitest";
 import {
   resolveSidebarVisibilityFallback,
   useSidebarVisibilityFallback,
 } from "@/components/reader/hooks/sidebar/use-sidebar-visibility-fallback";
 import type { SidebarVisibilityFallbackParams } from "@/components/reader/sidebar-feed-section.types";
+
+setupBrowserTestDom();
 
 const tag = { id: "tag-1", name: "Important", color: "#ff0000" };
 

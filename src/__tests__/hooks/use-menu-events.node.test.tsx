@@ -1,4 +1,5 @@
 import { render, waitFor } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { resetTauriRuntimeFlags, setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { APP_EVENTS } from "@/constants/events";
@@ -24,6 +25,8 @@ vi.mock("@/lib/actions", async (importOriginal) => ({
 vi.mock("@/lib/debug/debug-input-trace", () => ({
   emitDebugInputTrace: emitDebugInputTraceMock,
 }));
+
+setupBrowserTestDom();
 
 function MenuEventsProbe() {
   useMenuEvents();

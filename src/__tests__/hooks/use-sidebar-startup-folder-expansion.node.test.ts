@@ -1,4 +1,5 @@
 import { renderHook, waitFor } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
@@ -14,6 +15,8 @@ import {
   STORAGE_KEYS,
 } from "@/constants/storage";
 import { resetRuntimeDiagnosticOnceSuppressionForTests } from "@/lib/runtime/diagnostics";
+
+setupBrowserTestDom();
 
 const folders: FolderDto[] = [
   { id: "folder-unread", account_id: "acc-1", name: "Unread", sort_order: 0 },

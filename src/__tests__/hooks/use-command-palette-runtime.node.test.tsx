@@ -1,5 +1,6 @@
 import { Result } from "@praha/byethrow";
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useCommandPaletteRuntime } from "@/components/reader/hooks/command-palette/use-command-palette-runtime";
 import type { loadRuntimeDevScenariosResult } from "@/dev/scenario-runtime";
@@ -11,6 +12,13 @@ const { loadRuntimeDevScenariosResultMock } = vi.hoisted(() => ({
 vi.mock("@/dev/scenario-runtime", () => ({
   loadRuntimeDevScenariosResult: loadRuntimeDevScenariosResultMock,
 }));
+
+setupBrowserTestDom();
+
+afterEach(async () => {
+  cleanup();
+  await new Promise<void>((resolve) => setImmediate(resolve));
+});
 
 function createDeferred<T>() {
   let resolve: (value: T) => void = () => {};

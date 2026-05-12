@@ -1,7 +1,8 @@
-import { renderHook } from "@testing-library/react";
+import { cleanup, renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { createHookDataResult } from "@tests/helpers/typed-test-factories";
 import { SettingsIcon } from "lucide-react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PaletteAction } from "@/components/reader/command-palette.types";
 import { useCommandPaletteData } from "@/components/reader/hooks/command-palette/use-command-palette-data";
 import { STORAGE_KEYS } from "@/constants/storage";
@@ -29,6 +30,13 @@ const action: PaletteAction = {
   icon: SettingsIcon,
   keywords: ["settings"],
 };
+
+setupBrowserTestDom();
+
+afterEach(async () => {
+  cleanup();
+  await new Promise<void>((resolve) => setImmediate(resolve));
+});
 
 describe("useCommandPaletteData", () => {
   beforeEach(() => {

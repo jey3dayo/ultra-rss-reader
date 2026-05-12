@@ -1,10 +1,12 @@
 import { Result } from "@praha/byethrow";
 import type { QueryClient } from "@tanstack/react-query";
-import { act, renderHook, waitFor } from "@testing-library/react";
+import "@testing-library/react/dont-cleanup-after-each";
+import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { createQueryWrapper } from "@tests/helpers/create-wrapper";
 import { sampleArticles, sampleFeeds } from "@tests/helpers/fixtures";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { QUERY_CACHE_KEY_VERSION } from "@/api/schemas/runtime-contracts";
 import * as tauriCommands from "@/api/tauri-commands";
 import {
@@ -24,6 +26,15 @@ import {
   useToggleStar,
 } from "@/hooks/use-articles";
 import { queryKeys } from "@/lib/query/query-invalidation";
+
+setupBrowserTestDom();
+
+afterEach(async () => {
+  cleanup();
+  await new Promise<void>((resolve) => {
+    setImmediate(resolve);
+  });
+});
 
 const sampleFeedsForAccountOne = sampleFeeds.map((feed) => ({
   ...feed,

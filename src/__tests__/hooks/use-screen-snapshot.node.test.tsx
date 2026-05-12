@@ -1,7 +1,14 @@
-import { renderHook } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { cleanup, renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
+import { afterEach, describe, expect, it } from "vitest";
 import type { ScreenSnapshotResult } from "@/hooks/use-screen-snapshot";
 import { adoptSnapshotByKey, useScreenSnapshot } from "@/hooks/use-screen-snapshot";
+
+setupBrowserTestDom();
+
+afterEach(() => {
+  cleanup();
+});
 
 type SnapshotCandidate = { value: string };
 

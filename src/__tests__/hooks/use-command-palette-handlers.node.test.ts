@@ -1,6 +1,7 @@
 import { Result } from "@praha/byethrow";
-import { renderHook, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { cleanup, renderHook, waitFor } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   translateCommandPaletteFallbackMessage,
   useCommandPaletteHandlers,
@@ -27,7 +28,18 @@ vi.mock("@/dev/scenario-runtime", () => ({
   runRuntimeDevScenario: runRuntimeDevScenarioMock,
 }));
 
-afterEach(() => {
+setupBrowserTestDom();
+
+beforeEach(async () => {
+  if (!i18n.hasResourceBundle("en", "reader")) {
+    i18n.addResourceBundle("en", "reader", enReader, true, true);
+  }
+  await i18n.changeLanguage("en");
+});
+
+afterEach(async () => {
+  cleanup();
+  await new Promise<void>((resolve) => setImmediate(resolve));
   vi.clearAllMocks();
   useUiStore.setState(useUiStore.getInitialState());
   if (!i18n.hasResourceBundle("en", "reader")) {

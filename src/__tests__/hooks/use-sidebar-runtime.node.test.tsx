@@ -1,6 +1,7 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, cleanup, renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { createWrapper } from "@tests/helpers/create-wrapper";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useSidebarRuntime } from "@/components/reader/hooks/sidebar/use-sidebar-runtime";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -49,6 +50,13 @@ vi.mock("@/components/reader/hooks/sidebar/use-sidebar-sync", () => ({
     isSyncDisabled: false,
   }),
 }));
+
+setupBrowserTestDom();
+
+afterEach(async () => {
+  cleanup();
+  await new Promise<void>((resolve) => setImmediate(resolve));
+});
 
 describe("useSidebarRuntime", () => {
   beforeEach(() => {

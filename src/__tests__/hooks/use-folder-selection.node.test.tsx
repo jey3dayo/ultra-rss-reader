@@ -1,7 +1,10 @@
 import { act, renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { NEW_FOLDER_VALUE } from "@/components/reader/folder-select-view";
 import { useFolderSelection } from "@/components/reader/hooks/feed-dialogs/use-folder-selection";
+
+setupBrowserTestDom();
 
 describe("useFolderSelection focus cleanup", () => {
   afterEach(() => {

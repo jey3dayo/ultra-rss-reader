@@ -1,5 +1,31 @@
-import { describe, expect, it } from "vitest";
-import { parsePrefix } from "@/components/reader/hooks/command-palette/use-command-search";
+import { cleanup, renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
+import { afterEach, describe, expect, it } from "vitest";
+import { parsePrefix, useCommandSearch } from "@/components/reader/hooks/command-palette/use-command-search";
+
+setupBrowserTestDom();
+
+afterEach(() => {
+  cleanup();
+});
+
+describe("useCommandSearch", () => {
+  it("returns the immediate prefix and query and exposes deferredQuery", () => {
+    const { result, rerender } = renderHook(({ input }) => useCommandSearch(input), {
+      initialProps: { input: "   >   refresh" },
+    });
+
+    expect(result.current.prefix).toBe(">");
+    expect(result.current.query).toBe("refresh");
+    expect(result.current.deferredQuery).toBe("refresh");
+
+    rerender({ input: "@ inbox" });
+
+    expect(result.current.prefix).toBe("@");
+    expect(result.current.query).toBe("inbox");
+    expect(typeof result.current.deferredQuery).toBe("string");
+  });
+});
 
 describe("parsePrefix", () => {
   it.each([

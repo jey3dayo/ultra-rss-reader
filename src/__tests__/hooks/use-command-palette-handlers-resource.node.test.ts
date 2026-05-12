@@ -1,9 +1,14 @@
 import { Result } from "@praha/byethrow";
-import { renderHook, waitFor } from "@testing-library/react";
+import { cleanup, renderHook, waitFor } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useCommandPaletteHandlers as createCommandPaletteHandlers } from "@/components/reader/hooks/command-palette/use-command-palette-handlers";
 import { STORAGE_KEYS } from "@/constants/storage";
 import type { FeedLandingResult } from "@/hooks/use-feed-landing";
+import i18n from "@/lib/i18n";
+import enReader from "@/locales/en/reader.json";
+
+setupBrowserTestDom();
 
 function createDeferred<T>() {
   let resolve: (value: T) => void = () => {};
@@ -41,11 +46,17 @@ function createHandlers(overrides: Partial<Parameters<typeof createCommandPalett
 }
 
 describe("useCommandPaletteHandlers resource history", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    if (!i18n.hasResourceBundle("en", "reader")) {
+      i18n.addResourceBundle("en", "reader", enReader, true, true);
+    }
+    await i18n.changeLanguage("en");
     localStorage.clear();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    cleanup();
+    await new Promise<void>((resolve) => setImmediate(resolve));
     vi.restoreAllMocks();
   });
 
