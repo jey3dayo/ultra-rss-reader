@@ -24,9 +24,22 @@ import { useUiStore } from "@/stores/ui-store";
 
 setupBrowserTestDom();
 
+const queryClients = new Set<QueryClient>();
+
+function createTrackedQueryWrapper(options?: Parameters<typeof createQueryWrapper>[0]) {
+  const queryWrapper = createQueryWrapper(options);
+  queryClients.add(queryWrapper.queryClient);
+  return queryWrapper;
+}
+
 afterEach(async () => {
+  await Promise.all([...queryClients].map((queryClient) => queryClient.cancelQueries()));
+  for (const queryClient of queryClients) {
+    queryClient.clear();
+  }
+  queryClients.clear();
   cleanup();
-  await new Promise<void>((resolve) => setImmediate(resolve));
+  await new Promise((resolve) => setTimeout(resolve, 0));
 });
 
 describe("tag query keys", () => {
@@ -34,7 +47,7 @@ describe("tag query keys", () => {
   let wrapper: ReturnType<typeof createQueryWrapper>["wrapper"];
 
   beforeEach(() => {
-    const queryWrapper = createQueryWrapper();
+    const queryWrapper = createTrackedQueryWrapper();
     queryClient = queryWrapper.queryClient;
     wrapper = queryWrapper.wrapper;
     vi.restoreAllMocks();
@@ -77,7 +90,7 @@ describe("useArticlesByTag", () => {
   let wrapper: ReturnType<typeof createQueryWrapper>["wrapper"];
 
   beforeEach(() => {
-    const queryWrapper = createQueryWrapper();
+    const queryWrapper = createTrackedQueryWrapper();
     queryClient = queryWrapper.queryClient;
     wrapper = queryWrapper.wrapper;
     vi.restoreAllMocks();
@@ -177,7 +190,7 @@ describe("useTagArticleCounts", () => {
   let wrapper: ReturnType<typeof createQueryWrapper>["wrapper"];
 
   beforeEach(() => {
-    const queryWrapper = createQueryWrapper();
+    const queryWrapper = createTrackedQueryWrapper();
     queryClient = queryWrapper.queryClient;
     wrapper = queryWrapper.wrapper;
     vi.restoreAllMocks();
@@ -261,7 +274,7 @@ describe("article tag mutations", () => {
   let wrapper: ReturnType<typeof createQueryWrapper>["wrapper"];
 
   beforeEach(() => {
-    const queryWrapper = createQueryWrapper({
+    const queryWrapper = createTrackedQueryWrapper({
       queryClientConfig: {
         defaultOptions: {
           mutations: { retry: false },

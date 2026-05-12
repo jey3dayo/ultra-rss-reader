@@ -4,6 +4,28 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.34.0] - 2026-05-12
+
+### Features
+
+- WebView の読み込み進捗表示を追加し、ブラウザプレビューの状態変化を把握しやすくした
+
+### Bug Fixes
+
+- ブラウザオーバーレイを閉じる操作の競合を抑え、reader 側の close interaction を安定化した
+- verification gate の契約を実行結果に合わせ、release 前の品質確認で拾える範囲を揃えた
+
+### Documentation
+
+- repository guidance routing と similarity refactor triage の方針を整理し、後続の agent 作業で参照しやすくした
+
+### Maintenance
+
+- Vitest の node/jsdom project 分離を進め、DOM helper、component contract、hooks、browser runtime、store、dev mock など DOM 依存の薄いテストを node 側へ移した
+- browser-test globals と node 向け helper を整備し、node unit gate の並列実行と profiling を扱いやすくした
+- DOM focus、animation frame、input focus、top layer、WebView timeout などの helper を整理し、reader/browser 周辺のテスト責務を分離した
+- Rust doctest と YAML lint の運用ノイズを抑え、CI / mise task contract の検証を補強した
+
 ## [0.33.0] - 2026-05-11
 
 ### Features
