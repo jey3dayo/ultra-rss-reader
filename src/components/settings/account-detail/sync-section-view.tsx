@@ -37,6 +37,10 @@ type AccountSyncSectionViewProps = {
   isSyncing?: boolean;
   secondaryActionLabel?: string;
   onSecondaryAction?: () => void;
+  devCredentialsRecoveryActionLabel?: string;
+  devCredentialsRecoveryLoadingLabel?: string;
+  onDevCredentialsRecoveryAction?: () => void;
+  isDevCredentialsRecoveryInFlight?: boolean;
 };
 
 type AccountSelectRowProps = {
@@ -64,6 +68,10 @@ export function AccountSyncSectionView({
   isSyncing,
   secondaryActionLabel,
   onSecondaryAction,
+  devCredentialsRecoveryActionLabel,
+  devCredentialsRecoveryLoadingLabel,
+  onDevCredentialsRecoveryAction,
+  isDevCredentialsRecoveryInFlight,
 }: AccountSyncSectionViewProps) {
   const normalizedProgressValue = typeof progressValue === "number" ? clampProgressValue(progressValue) : null;
 
@@ -133,12 +141,21 @@ export function AccountSyncSectionView({
           ))}
         </div>
       ) : null}
-      {(onSyncNow || onSecondaryAction) && (
+      {(onSyncNow || onSecondaryAction || onDevCredentialsRecoveryAction) && (
         <div className={cn(CONTROL_RAIL_CLASS, "flex flex-col-reverse gap-2 pt-4 sm:flex-row sm:justify-end")}>
           {onSecondaryAction && secondaryActionLabel ? (
             <SettingsActionButton onClick={onSecondaryAction} disabled={isSyncing}>
               {secondaryActionLabel}
             </SettingsActionButton>
+          ) : null}
+          {onDevCredentialsRecoveryAction && devCredentialsRecoveryActionLabel ? (
+            <SettingsLoadingActionButton
+              onClick={onDevCredentialsRecoveryAction}
+              loading={isDevCredentialsRecoveryInFlight}
+              loadingLabel={devCredentialsRecoveryLoadingLabel}
+            >
+              {devCredentialsRecoveryActionLabel}
+            </SettingsLoadingActionButton>
           ) : null}
           {onSyncNow ? (
             <SettingsLoadingActionButton onClick={onSyncNow} loading={isSyncing} loadingLabel={syncingLabel}>

@@ -18,6 +18,7 @@ type AccountDetailViewPropsParams = {
   syncStatusRows: AccountSyncStatusRow[];
   language: string;
   t: TFunction<"settings">;
+  canRecoverDevCredentialsStore: boolean;
   accountSetupState?: AccountSetupSessionState | null;
   accountSetupErrorMessage?: string | null;
 };
@@ -63,6 +64,10 @@ function resolveAccountQuarantineReason(account: AccountDetailAccount, t: TFunct
   return null;
 }
 
+function hasOversizedDevCredentialsStoreError(syncStatus: AccountSyncStatusDto | undefined): boolean {
+  return syncStatus?.last_error?.includes("Dev store exceeds maximum size") === true;
+}
+
 export function useAccountDetailViewProps({
   account,
   controller,
@@ -72,6 +77,7 @@ export function useAccountDetailViewProps({
   syncStatusRows,
   language,
   t,
+  canRecoverDevCredentialsStore,
   accountSetupState,
   accountSetupErrorMessage,
 }: AccountDetailViewPropsParams): AccountDetailViewPropsResult {
@@ -80,6 +86,8 @@ export function useAccountDetailViewProps({
   const isSetupActive = isSetupSyncing || isSetupFailed;
   const quarantineReason = resolveAccountQuarantineReason(account, t);
   const isQuarantined = quarantineReason !== null;
+  const canShowDevCredentialsRecovery =
+    canRecoverDevCredentialsStore && !isQuarantined && hasOversizedDevCredentialsStoreError(syncStatus);
   const progressValue =
     isSyncing && syncProgress && syncProgress.total > 0
       ? Math.max((syncProgress.completed / syncProgress.total) * 100, syncProgress.completed === 0 ? 8 : 0)
@@ -297,6 +305,14 @@ export function useAccountDetailViewProps({
       isSyncing: isSyncing || controller.syncActionInFlight,
       secondaryActionLabel: isSetupFailed && !isQuarantined ? t("account.setup_edit_credentials") : undefined,
       onSecondaryAction: isSetupFailed && !isQuarantined ? controller.focusCredentialsEditor : undefined,
+      devCredentialsRecoveryActionLabel: canShowDevCredentialsRecovery
+        ? t("account.dev_credentials_recovery_action")
+        : undefined,
+      devCredentialsRecoveryLoadingLabel: canShowDevCredentialsRecovery
+        ? t("account.dev_credentials_recovery_loading")
+        : undefined,
+      onDevCredentialsRecoveryAction: canShowDevCredentialsRecovery ? controller.handleResetDevCredentials : undefined,
+      isDevCredentialsRecoveryInFlight: controller.devCredentialsRecoveryInFlight,
     },
     dangerZone: {
       dataHeading: t("account.data_section"),

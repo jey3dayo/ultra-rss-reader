@@ -9,6 +9,7 @@ import type { AccountDto } from "@/api/tauri-commands";
 import { AccountDetail } from "@/components/settings/account-detail";
 import type { AccountDetailAccount } from "@/components/settings/account-detail/types";
 import { i18nResourceLocales } from "@/lib/i18n-resources";
+import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -57,6 +58,10 @@ vi.mock("@/components/settings/account-detail/view", () => ({
       onSyncNow?: () => void;
       secondaryActionLabel?: string;
       onSecondaryAction?: () => void;
+      devCredentialsRecoveryActionLabel?: string;
+      devCredentialsRecoveryLoadingLabel?: string;
+      onDevCredentialsRecoveryAction?: () => void;
+      isDevCredentialsRecoveryInFlight?: boolean;
       statusRows?: Array<{ label: string; value: string }>;
       syncOnStartup: {
         onChange: (checked: boolean) => void;
@@ -117,6 +122,17 @@ vi.mock("@/components/settings/account-detail/view", () => ({
             {props.syncSection.secondaryActionLabel}
           </button>
         ) : null}
+        {props.syncSection.onDevCredentialsRecoveryAction && props.syncSection.devCredentialsRecoveryActionLabel ? (
+          <button
+            type="button"
+            onClick={props.syncSection.onDevCredentialsRecoveryAction}
+            disabled={props.syncSection.isDevCredentialsRecoveryInFlight}
+          >
+            {props.syncSection.isDevCredentialsRecoveryInFlight
+              ? props.syncSection.devCredentialsRecoveryLoadingLabel
+              : props.syncSection.devCredentialsRecoveryActionLabel}
+          </button>
+        ) : null}
         <ul>
           {props.syncSection.keepReadItems.options.map((option) => (
             <li key={option.value}>{option.label}</li>
@@ -149,6 +165,7 @@ describe("AccountDetail", () => {
     accountDetailViewSpy.mockClear();
     await i18n.changeLanguage("en");
     useUiStore.setState(useUiStore.getInitialState());
+    usePlatformStore.setState(usePlatformStore.getInitialState());
     usePreferencesStore.setState({ prefs: {}, loaded: true });
     useUiStore.setState({ settingsAccountId: "acc-1" });
   });
@@ -534,6 +551,146 @@ describe("AccountDetail", () => {
         { label: "Consecutive sync failures", value: "2 failures" },
         { label: "Last sync error", value: "Network timeout" },
       ]);
+    });
+  });
+
+  it("shows dev credential recovery only when dev file credentials failed because the store is oversized", async () => {
+    setupTauriMocks((cmd) => {
+      switch (cmd) {
+        case "list_accounts":
+          return [
+            {
+              id: "acc-1",
+              kind: "FreshRss",
+              name: "FreshRSS",
+              username: "user",
+              server_url: "https://freshrss.example.com",
+              sync_interval_secs: 3600,
+              sync_on_startup: true,
+              sync_on_wake: false,
+              keep_read_items_days: 30,
+            },
+          ];
+        case "get_platform_info":
+          return {
+            kind: "macos",
+            capabilities: {
+              supports_reading_list: true,
+              supports_background_browser_open: true,
+              supports_runtime_window_icon_replacement: true,
+              supports_native_browser_navigation: true,
+              uses_dev_file_credentials: true,
+            },
+          };
+        case "get_account_sync_status":
+          return {
+            last_success_at: null,
+            last_error:
+              "Keychain error: Dev store exceeds maximum size of 65536 bytes Dev credential store may be corrupted or inaccessible.",
+            error_count: 3,
+            next_retry_at: null,
+          };
+        default:
+          return undefined;
+      }
+    });
+
+    render(<AccountDetail />, { wrapper: createWrapper() });
+
+    expect(await screen.findByRole("button", { name: "Recover Dev credentials" })).toBeInTheDocument();
+  });
+
+  it("does not show dev credential recovery for native keyring oversized-looking errors", async () => {
+    setupTauriMocks((cmd) => {
+      switch (cmd) {
+        case "list_accounts":
+          return [
+            {
+              id: "acc-1",
+              kind: "FreshRss",
+              name: "FreshRSS",
+              username: "user",
+              server_url: "https://freshrss.example.com",
+              sync_interval_secs: 3600,
+              sync_on_startup: true,
+              sync_on_wake: false,
+              keep_read_items_days: 30,
+            },
+          ];
+        case "get_account_sync_status":
+          return {
+            last_success_at: null,
+            last_error: "Keychain error: Dev store exceeds maximum size of 65536 bytes",
+            error_count: 3,
+            next_retry_at: null,
+          };
+        default:
+          return undefined;
+      }
+    });
+
+    render(<AccountDetail />, { wrapper: createWrapper() });
+
+    await screen.findByText("Last sync error");
+    expect(screen.queryByRole("button", { name: "Recover Dev credentials" })).not.toBeInTheDocument();
+  });
+
+  it("calls the dev credential reset command from the sync error recovery action", async () => {
+    const user = userEvent.setup();
+    const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
+
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+      switch (cmd) {
+        case "list_accounts":
+          return [
+            {
+              id: "acc-1",
+              kind: "FreshRss",
+              name: "FreshRSS",
+              username: "user",
+              server_url: "https://freshrss.example.com",
+              sync_interval_secs: 3600,
+              sync_on_startup: true,
+              sync_on_wake: false,
+              keep_read_items_days: 30,
+            },
+          ];
+        case "get_platform_info":
+          return {
+            kind: "macos",
+            capabilities: {
+              supports_reading_list: true,
+              supports_background_browser_open: true,
+              supports_runtime_window_icon_replacement: true,
+              supports_native_browser_navigation: true,
+              uses_dev_file_credentials: true,
+            },
+          };
+        case "get_account_sync_status":
+          return {
+            last_success_at: null,
+            last_error:
+              "Keychain error: Dev store exceeds maximum size of 65536 bytes Dev credential store may be corrupted or inaccessible.",
+            error_count: 3,
+            next_retry_at: null,
+          };
+        case "reset_oversized_dev_credentials_store":
+          return true;
+        default:
+          return undefined;
+      }
+    });
+
+    render(<AccountDetail />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "Recover Dev credentials" }));
+
+    await waitFor(() => {
+      expect(calls.some((call) => call.cmd === "reset_oversized_dev_credentials_store")).toBe(true);
+    });
+    expect(useUiStore.getState().toastMessage).toEqual({
+      message: "Dev credentials were moved aside. Restart the app and reconnect accounts.",
     });
   });
 

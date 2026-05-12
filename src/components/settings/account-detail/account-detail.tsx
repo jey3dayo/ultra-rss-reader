@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useAccountDetailController } from "@/components/settings/hooks/account-detail/use-account-detail-controller";
 import { useAccountDetailSyncStatusRows } from "@/components/settings/hooks/account-detail/use-account-detail-sync-status-rows";
@@ -5,6 +6,7 @@ import { useAccountDetailViewProps } from "@/components/settings/hooks/account-d
 import { useAccountSyncStatus } from "@/hooks/use-account-sync-status";
 import { useAccounts } from "@/hooks/use-accounts";
 import type { AccountSetupSessionState } from "@/lib/account/account-setup-session.types";
+import { usePlatformStore } from "@/stores/platform-store";
 import { useUiStore } from "@/stores/ui-store";
 import type { AccountDetailSyncProgress } from "./sync.types";
 import { refetchAccountSyncStatusWithErrorSurface } from "./sync-status-refetch";
@@ -29,6 +31,15 @@ function AccountDetailContent({
   const { t, i18n } = useTranslation("settings");
   const syncStatusQuery = useAccountSyncStatus(account.id);
   const setSettingsAccountId = useUiStore((s) => s.setSettingsAccountId);
+  const loadPlatformInfo = usePlatformStore((s) => s.loadPlatformInfo);
+  const platformLoaded = usePlatformStore((s) => s.loaded);
+  const platformLoadError = usePlatformStore((s) => s.loadError);
+  const usesDevFileCredentials = usePlatformStore((s) => s.platform.capabilities.uses_dev_file_credentials);
+
+  useEffect(() => {
+    void loadPlatformInfo();
+  }, [loadPlatformInfo]);
+
   const controller = useAccountDetailController({
     account,
     t,
@@ -54,6 +65,7 @@ function AccountDetailContent({
     syncStatusRows,
     language: i18n.language,
     t,
+    canRecoverDevCredentialsStore: platformLoaded && !platformLoadError && usesDevFileCredentials,
     accountSetupState,
     accountSetupErrorMessage,
   });

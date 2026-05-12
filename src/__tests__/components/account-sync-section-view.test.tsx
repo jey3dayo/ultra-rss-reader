@@ -380,6 +380,105 @@ describe("AccountSyncSectionView", () => {
     expect(onEditCredentials).toHaveBeenCalledOnce();
   });
 
+  it("renders dev credential recovery as a separate action beside sync and secondary actions", async () => {
+    const user = userEvent.setup();
+    const onRetry = vi.fn();
+    const onEditCredentials = vi.fn();
+    const onRecoverDevCredentials = vi.fn();
+
+    render(
+      <AccountSyncSectionView
+        heading="Initial setup in progress"
+        syncInterval={{
+          name: "sync-interval",
+          label: "Sync",
+          value: "3600",
+          options: [{ value: "3600", label: "Every hour" }],
+          onChange: () => {},
+        }}
+        syncOnWake={{
+          label: "Sync on wake",
+          checked: true,
+          onChange: () => {},
+        }}
+        syncOnStartup={{
+          label: "Sync on startup",
+          checked: true,
+          onChange: () => {},
+        }}
+        keepReadItems={{
+          name: "keep-read-items",
+          label: "Keep read items",
+          value: "30",
+          options: [{ value: "30", label: "One month" }],
+          onChange: () => {},
+        }}
+        syncNowLabel="Retry setup"
+        onSyncNow={onRetry}
+        secondaryActionLabel="Edit credentials"
+        onSecondaryAction={onEditCredentials}
+        devCredentialsRecoveryActionLabel="Recover Dev credentials"
+        devCredentialsRecoveryLoadingLabel="Recovering..."
+        onDevCredentialsRecoveryAction={onRecoverDevCredentials}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Retry setup" }));
+    await user.click(screen.getByRole("button", { name: "Edit credentials" }));
+    const recoveryButton = screen.getByRole("button", { name: "Recover Dev credentials" });
+    expectStandardSettingsActionButton(recoveryButton);
+    await user.click(recoveryButton);
+
+    expect(onRetry).toHaveBeenCalledOnce();
+    expect(onEditCredentials).toHaveBeenCalledOnce();
+    expect(onRecoverDevCredentials).toHaveBeenCalledOnce();
+  });
+
+  it("shows the dev credential recovery loading state without replacing the sync loading label", () => {
+    render(
+      <AccountSyncSectionView
+        heading="Initial setup failed"
+        syncInterval={{
+          name: "sync-interval",
+          label: "Sync",
+          value: "3600",
+          options: [{ value: "3600", label: "Every hour" }],
+          onChange: () => {},
+        }}
+        syncOnWake={{
+          label: "Sync on wake",
+          checked: true,
+          onChange: () => {},
+        }}
+        syncOnStartup={{
+          label: "Sync on startup",
+          checked: true,
+          onChange: () => {},
+        }}
+        keepReadItems={{
+          name: "keep-read-items",
+          label: "Keep read items",
+          value: "30",
+          options: [{ value: "30", label: "One month" }],
+          onChange: () => {},
+        }}
+        syncNowLabel="Retry setup"
+        syncingLabel="Syncing now"
+        onSyncNow={() => {}}
+        devCredentialsRecoveryActionLabel="Recover Dev credentials"
+        devCredentialsRecoveryLoadingLabel="Recovering..."
+        onDevCredentialsRecoveryAction={() => {}}
+        isDevCredentialsRecoveryInFlight={true}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Retry setup" })).not.toBeDisabled();
+    const recoveryButton = screen.getByRole("button", { name: "Recovering..." });
+    expect(recoveryButton).toBeDisabled();
+    expect(recoveryButton).toHaveAttribute("aria-busy", "true");
+    expect(recoveryButton.querySelector("[data-slot='loading-spinner']")).not.toBeNull();
+  });
+
   it("disables the secondary action while a sync action is in flight", () => {
     render(
       <AccountSyncSectionView

@@ -2,7 +2,7 @@ import { Result } from "@praha/byethrow";
 import type { QueryClient } from "@tanstack/react-query";
 import type { TFunction } from "i18next";
 import { useEffect, useRef, useState } from "react";
-import { syncAccount, updateAccountSync } from "@/api/tauri-commands";
+import { resetOversizedDevCredentialsStore, syncAccount, updateAccountSync } from "@/api/tauri-commands";
 import { accountSyncStatusQueryKey } from "@/hooks/use-account-sync-status";
 import type { AccountSetupSessionOwner, AccountSetupSessionState } from "@/lib/account/account-setup-session.types";
 import {
@@ -31,7 +31,9 @@ export type AccountDetailSyncControlsResult = {
   handleSyncUpdate: (partial: UpdateAccountSyncParams) => Promise<void>;
   handleSyncNow: () => Promise<void>;
   handleSetupRetry: () => Promise<void>;
+  handleResetDevCredentials: () => Promise<void>;
   syncActionInFlight: boolean;
+  devCredentialsRecoveryInFlight: boolean;
   syncIntervalOptions: AccountSelectOption[];
   keepReadItemsOptions: AccountSelectOption[];
 };
@@ -143,6 +145,7 @@ export function useAccountDetailSyncControls({
   const selectedAccountIdRef = useRef(account.id);
   const mountedRef = useRef(true);
   const [syncActionInFlight, setSyncActionInFlight] = useState(false);
+  const [devCredentialsRecoveryInFlight, setDevCredentialsRecoveryInFlight] = useState(false);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -156,6 +159,7 @@ export function useAccountDetailSyncControls({
     selectedAccountIdRef.current = account.id;
     syncActionInFlightRef.current = false;
     setSyncActionInFlight(false);
+    setDevCredentialsRecoveryInFlight(false);
   }, [account.id]);
 
   const isCurrentSelectedAccountGeneration = (generation: number, accountId: string) =>
@@ -261,11 +265,43 @@ export function useAccountDetailSyncControls({
     }
   };
 
+  const handleResetDevCredentials = async () => {
+    if (syncActionInFlightRef.current) {
+      return;
+    }
+
+    const requestAccountId = account.id;
+    const requestGeneration = selectedAccountGenerationRef.current;
+    syncActionInFlightRef.current = true;
+    setDevCredentialsRecoveryInFlight(true);
+    try {
+      const moved = Result.unwrap(await resetOversizedDevCredentialsStore());
+      if (!isCurrentSelectedAccountGeneration(requestGeneration, requestAccountId)) {
+        return;
+      }
+      useUiStore
+        .getState()
+        .showToast(t(moved ? "account.dev_credentials_reset_success" : "account.dev_credentials_reset_noop"));
+    } catch (error) {
+      if (!isCurrentSelectedAccountGeneration(requestGeneration, requestAccountId)) {
+        return;
+      }
+      useUiStore.getState().showToast(t("account.dev_credentials_reset_failed", { message: getErrorMessage(error) }));
+    } finally {
+      if (isCurrentSelectedAccountGeneration(requestGeneration, requestAccountId)) {
+        syncActionInFlightRef.current = false;
+        setDevCredentialsRecoveryInFlight(false);
+      }
+    }
+  };
+
   return {
     handleSyncUpdate,
     handleSyncNow,
     handleSetupRetry,
+    handleResetDevCredentials,
     syncActionInFlight,
+    devCredentialsRecoveryInFlight,
     syncIntervalOptions: [
       { value: "900", label: t("account.every_15_minutes") },
       { value: "1800", label: t("account.every_30_minutes") },
