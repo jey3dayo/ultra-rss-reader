@@ -34,14 +34,18 @@ describe("test isolation policy contract", () => {
     const vitestConfig = readRepoFile("vitest.config.ts");
 
     expect(vitestConfig).toContain('const jsdomSetupFiles = ["tests/setup.ts"] as const;');
-    expect(vitestConfig).toContain('name: "node"');
-    expect(vitestConfig).toContain('environment: "node"');
+    expect(vitestConfig).toContain('const nodeProjectName = "node";');
+    expect(vitestConfig).toContain('const jsdomProjectName = "jsdom";');
+    expect(vitestConfig).toContain("const nodeProjectGroupOrder = 0;");
+    expect(vitestConfig).toContain("const jsdomProjectGroupOrder = 1;");
+    expect(vitestConfig).toContain("name: nodeProjectName");
+    expect(vitestConfig).toContain("environment: nodeProjectName");
     expect(vitestConfig).toContain("setupFiles: []");
-    expect(vitestConfig).toContain('name: "jsdom"');
-    expect(vitestConfig).toContain('environment: "jsdom"');
+    expect(vitestConfig).toContain("name: jsdomProjectName");
+    expect(vitestConfig).toContain("environment: jsdomProjectName");
     expect(vitestConfig).toContain("setupFiles: [...jsdomSetupFiles]");
-    expect(vitestConfig).toContain("groupOrder: 0");
-    expect(vitestConfig).toContain("groupOrder: 1");
+    expect(vitestConfig).toContain("groupOrder: nodeProjectGroupOrder");
+    expect(vitestConfig).toContain("groupOrder: jsdomProjectGroupOrder");
     expect(vitestConfig).not.toMatch(/\bisolate\s*:\s*false\b/);
     expect(vitestConfig).not.toMatch(/\benvironmentMatchGlobs\s*:/);
     expect(vitestConfig).not.toMatch(/\bpoolOptions\s*:/);

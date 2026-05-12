@@ -4,6 +4,10 @@ import { defineConfig } from "vitest/config";
 
 const unitTestFileGlobs = ["src/**/*.test.{ts,tsx}", "tests/**/*.test.{ts,tsx}"] as const;
 const jsdomSetupFiles = ["tests/setup.ts"] as const;
+const nodeProjectName = "node";
+const jsdomProjectName = "jsdom";
+const nodeProjectGroupOrder = 0;
+const jsdomProjectGroupOrder = 1;
 
 // Keep this list explicit: every entry has been verified to run without jsdom
 // and without the shared DOM setup cost.
@@ -131,25 +135,25 @@ export default defineConfig({
       {
         extends: true,
         test: {
-          name: "node",
-          environment: "node",
+          name: nodeProjectName,
+          environment: nodeProjectName,
           include: [...nodeEnvironmentTestFiles],
           setupFiles: [],
           sequence: {
-            groupOrder: 0,
+            groupOrder: nodeProjectGroupOrder,
           },
         },
       },
       {
         extends: true,
         test: {
-          name: "jsdom",
-          environment: "jsdom",
+          name: jsdomProjectName,
+          environment: jsdomProjectName,
           include: [...unitTestFileGlobs],
           exclude: [...nodeEnvironmentTestFiles],
           setupFiles: [...jsdomSetupFiles],
           sequence: {
-            groupOrder: 1,
+            groupOrder: jsdomProjectGroupOrder,
           },
         },
       },
