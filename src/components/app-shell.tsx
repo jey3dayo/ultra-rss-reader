@@ -533,6 +533,7 @@ export function AppShell() {
   const closeSettings = useUiStore((state) => state.closeSettings);
   const contentMode = useUiStore((state) => state.contentMode);
   const browserUrl = useUiStore((state) => state.browserUrl);
+  const browserCloseInFlight = useUiStore((state) => state.browserCloseInFlight);
   const toastMessage = useUiStore((state) => state.toastMessage);
   const prefs = usePreferencesStore((state) => state.prefs);
   const settingsPreloadSessionOpenedRef = useRef(false);
@@ -542,7 +543,7 @@ export function AppShell() {
   });
   const showFocusDebugHud = resolvePreferenceValue(prefs, "debug_browser_hud") === "true";
   const focusDebugHudTemporarilyHidden = settingsOpen || confirmDialogOpen || shortcutsHelpOpen || commandPaletteOpen;
-  const browserOverlayRootInteractive = contentMode === "browser" && browserUrl !== null;
+  const browserOverlayRootInteractive = contentMode === "browser" && browserUrl !== null && !browserCloseInFlight;
 
   useEffect(() => {
     loadPlatformInfo();

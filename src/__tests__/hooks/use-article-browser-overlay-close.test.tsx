@@ -275,6 +275,52 @@ describe("useArticleBrowserOverlayClose", () => {
     expect(setFocusedPane).not.toHaveBeenCalled();
     expect(setBrowserOverlayClosedPreference).not.toHaveBeenCalled();
     expect(closeBrowser).not.toHaveBeenCalled();
+    expect(useUiStore.getState().browserCloseInFlight).toBe(false);
+  });
+
+  it("finalizes the overlay close when the native close command stalls", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    closeBrowserWebviewMock.mockReturnValue(new Promise(() => {}));
+    const originalSetFocusedPane = useUiStore.getState().setFocusedPane;
+    const setFocusedPane = vi.fn((pane: "sidebar" | "list" | "content") => originalSetFocusedPane(pane));
+    useUiStore.setState({
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserCloseInFlight: false,
+      setFocusedPane,
+    });
+    const closeBrowser = vi.fn(() => useUiStore.getState().closeBrowser());
+    const focusSelectedArticleRow = vi.fn();
+    const setBrowserOverlayClosedPreference = vi.fn();
+
+    const { result } = renderHook(() =>
+      useArticleBrowserOverlayClose({
+        closeBrowser,
+        focusSelectedArticleRow,
+        setBrowserCloseInFlight: useUiStore.getState().setBrowserCloseInFlight,
+        setBrowserOverlayClosedPreference,
+      }),
+    );
+
+    act(() => {
+      result.current();
+    });
+
+    expect(useUiStore.getState().browserCloseInFlight).toBe(true);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2_000);
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(BROWSER_OVERLAY_CLOSE_DELAY_MS);
+      await Promise.resolve();
+      await vi.runOnlyPendingTimersAsync();
+    });
+
+    expect(warn).toHaveBeenCalledWith("Timed out closing embedded browser webview before returning to reader mode.");
+    expect(setFocusedPane).toHaveBeenCalledWith("list");
+    expect(setBrowserOverlayClosedPreference).toHaveBeenCalledTimes(1);
+    expect(closeBrowser).toHaveBeenCalledTimes(1);
+    expect(useUiStore.getState().browserCloseInFlight).toBe(false);
   });
 
   it("finalizes the overlay close when the close motion timer is unavailable", async () => {

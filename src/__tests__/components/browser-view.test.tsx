@@ -638,6 +638,7 @@ describe("BrowserView", () => {
 
       const shell = screen.getByTestId("browser-overlay-shell");
       expect(shell).toHaveAttribute("data-open", "false");
+      expect(shell).not.toHaveClass("pointer-events-auto");
       expect(requestAnimationFrameSpy).toHaveBeenCalled();
 
       act(() => {

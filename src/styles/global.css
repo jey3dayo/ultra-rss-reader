@@ -1135,6 +1135,10 @@ html.vertical-wipe-transition::view-transition-new(root) {
   will-change: transform, opacity, filter;
 }
 
+.motion-browser-overlay-panel[data-open="false"] * {
+  pointer-events: none;
+}
+
 .motion-browser-overlay-panel[data-open="true"] {
   transform: translateY(0);
   opacity: 1;

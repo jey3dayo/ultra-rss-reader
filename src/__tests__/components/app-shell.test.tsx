@@ -397,6 +397,22 @@ describe("AppShell", () => {
     expect(overlayRoot).not.toHaveClass("pointer-events-none");
 
     useUiStore.setState({
+      browserCloseInFlight: true,
+    });
+    rerender(<AppShell />);
+
+    expect(overlayRoot).toHaveClass("pointer-events-none");
+    expect(overlayRoot).not.toHaveClass("pointer-events-auto");
+
+    useUiStore.setState({
+      browserCloseInFlight: false,
+    });
+    rerender(<AppShell />);
+
+    expect(overlayRoot).toHaveClass("pointer-events-auto");
+    expect(overlayRoot).not.toHaveClass("pointer-events-none");
+
+    useUiStore.setState({
       contentMode: "reader",
       browserUrl: "https://example.com/stale",
     });

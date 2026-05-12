@@ -216,7 +216,7 @@ function BrowserOverlayShell({
       data-open={overlayOpen ? "true" : "false"}
       className={cn(
         MOTION_BROWSER_OVERLAY_CLASS_NAME,
-        "pointer-events-auto absolute inset-0 z-20 isolate overflow-hidden bg-browser-overlay-shell backdrop-blur-sm",
+        "absolute inset-0 z-20 isolate overflow-hidden bg-browser-overlay-shell backdrop-blur-sm",
       )}
     >
       <div
