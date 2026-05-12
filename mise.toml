@@ -263,6 +263,11 @@ rtk test pnpm run test:jsdom --reporter=verbose --slow-test-threshold=300
 """
 run_windows = "pnpm.CMD run test:node --reporter=verbose --slow-test-threshold=300 && pnpm.CMD run test:jsdom --reporter=verbose --slow-test-threshold=300"
 
+[tasks."test:unit:parallel:profile"]
+description = "Measure Vitest unit tests with node and jsdom projects in one Vitest invocation"
+run = "rtk test pnpm exec vitest run --reporter=dot --silent=passed-only"
+run_windows = "pnpm.CMD exec vitest run --reporter=dot --silent=passed-only"
+
 [tasks."test:e2e"]
 description = "Run Playwright E2E tests"
 run = "rtk test pnpm exec playwright test"
