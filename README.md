@@ -29,7 +29,7 @@ If you are new to the repository, use this order:
 1. Read this `README.md` for product, architecture, development modes, and verification scope.
 2. Run `mise install` and `pnpm install`.
 3. Start the app with `mise run app:dev`.
-4. Use `mise run check` as the default local verification gate for day-to-day Codex work.
+4. Use `mise run check` as the default fast local verification gate for day-to-day Codex work.
 5. Follow [docs/release-manual-verification.md](docs/release-manual-verification.md) before any release or packaged-build handoff.
 
 ## Quick Command Reference
@@ -37,8 +37,9 @@ If you are new to the repository, use this order:
 ```bash
 mise run app:dev      # default native development
 mise run app:dev:browser  # browser-only UI debugging
-mise run check        # format + lint + test
+mise run check        # fast format + lint + Rust + node Vitest
 mise run ci           # unit-first CI-equivalent local gate
+mise run test:unit:dom # jsdom Vitest gate for DOM/rendering changes
 mise run test:e2e     # Playwright browser-mode E2E tests
 mise run test:live    # FreshRSS live integration tests
 pnpm storybook        # component development on port 6006
@@ -162,12 +163,13 @@ Practical guidance:
 ## Development Commands
 
 ```bash
-mise run check        # format + lint + test  (Codex/day-to-day local dev loop)
+mise run check        # fast format + lint + Rust + node Vitest  (Codex/day-to-day local dev loop)
 mise run ci           # unit-first format + lint + test + build  (full CI gate)
 mise run format       # Biome + cargo fmt + taplo
 mise run lint         # tsc --noEmit + Biome + Clippy (-D warnings) + actionlint + yamllint
 mise run test         # Vitest + cargo test
 mise run test:ci      # quiet unit-first CI test gate
+mise run test:unit:dom # jsdom Vitest for DOM/rendering changes
 mise run test:e2e     # Playwright browser-mode E2E tests
 mise run test:storybook:e2e # Storybook Playwright smoke tests
 mise run build:storybook    # Storybook static build check
@@ -185,12 +187,14 @@ pnpm storybook                       # Launch Storybook for component developmen
 pnpm build-storybook                 # Build Storybook static output
 ```
 
-Always run `mise run check` before committing.
+Always run `mise run check` before committing. Run `mise run test:unit:dom` for DOM, React rendering, Testing Library, or browser global changes; run `mise run ci` before PR handoff or when full repository confidence is needed.
 
 ### Test Scope
 
-- `mise run test` is the default fast verification loop for repository tests (Rust + Vitest).
+- `mise run check` is the default fast verification loop for local work (format + lint + Rust tests + node Vitest).
+- `mise run test` runs the full repository test set (Rust + Vitest).
 - `mise run test:ci` runs the quieter CI test gate with Vitest first, then Rust tests.
+- `mise run test:unit:dom` runs the jsdom Vitest suite for DOM, React rendering, Testing Library, and browser global coverage.
 - `mise run test:e2e` runs Playwright against the browser-mode UI flow.
 - `mise run test:storybook:e2e` runs the Storybook Playwright smoke suite against the UI reference canvases. Use it after changing Storybook stories, shared visual reference canvases, or Storybook-only decorators.
 - `mise run build:storybook` is the static Storybook build gate. Run it with `mise run test:storybook:e2e` before relying on a Storybook fixture in a review or release note.
@@ -200,14 +204,15 @@ Always run `mise run check` before committing.
 
 ### Verification Matrix
 
-| Area                             | Default CI / local gate                        | Additional verification                                      |
-| -------------------------------- | ---------------------------------------------- | ------------------------------------------------------------ |
-| TypeScript / Rust regressions    | `mise run check`                               | None                                                         |
-| Browser-mode UI flow             | `mise run test:e2e`                            | Optional manual pass in `mise run app:dev:browser`           |
-| Storybook reference canvases     | Not part of default CI                         | `mise run build:storybook` + `mise run test:storybook:e2e`   |
-| FreshRSS real-server integration | Not part of default CI                         | `mise run test:live` with real credentials                   |
-| Native keyring integration       | Unit / integration tests around app logic only | Manual verification on each target OS                        |
-| Updater download / install       | Config and command-level checks only           | Manual verification on packaged builds per target OS         |
+| Area                                      | Default CI / local gate                        | Additional verification                                    |
+| ----------------------------------------- | ---------------------------------------------- | ---------------------------------------------------------- |
+| TypeScript / Rust / node unit regressions | `mise run check`                               | `mise run ci` before PR handoff or broad changes           |
+| DOM / React rendering regressions         | `mise run ci`                                  | Focused `mise run test:unit:dom` during local iteration    |
+| Browser-mode UI flow                      | `mise run test:e2e`                            | Optional manual pass in `mise run app:dev:browser`         |
+| Storybook reference canvases              | Not part of default CI                         | `mise run build:storybook` + `mise run test:storybook:e2e` |
+| FreshRSS real-server integration          | Not part of default CI                         | `mise run test:live` with real credentials                 |
+| Native keyring integration                | Unit / integration tests around app logic only | Manual verification on each target OS                      |
+| Updater download / install                | Config and command-level checks only           | Manual verification on packaged builds per target OS       |
 
 `mise run ci` intentionally covers format, lint, repository tests, and frontend build. It runs the quiet Vitest unit gate before lint, Rust tests, and build so unit failures surface before heavier checks. It does not run Playwright, Storybook static build, live-service tests, or native packaged-app checks, so release validation still needs the checklist in [docs/release-manual-verification.md](docs/release-manual-verification.md).
 

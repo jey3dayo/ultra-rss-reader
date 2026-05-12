@@ -14,9 +14,9 @@ const expectedTopLevelKeys = ["name", "description", "title", "labels", "body"] 
 const expectedQualityGateLabels = [
   "型エラー 0 件 (`mise run check` の `lint:types`)",
   "リント違反 0 件 (`mise run check` の `lint`)",
-  "全テスト成功 (`mise run check` の `test`)",
+  "高速テスト成功 (`mise run check` の `test:unit:fast` / `test:rust`)",
   "フォーマッター適用済み (`mise run check` の `format`)",
-  "release / native / Storybook / manual verification / release readiness 影響時は `mise run ci` または focused test を確認内容へ記録",
+  "jsdom / DOM / React rendering / PR handoff / release / native / Storybook 影響時は DOM/CI/focused test を記録",
 ] as const;
 const expectedRequiredFieldIdsByTemplate = {
   "01-feature.yml": ["summary", "background", "scope", "done-when"],

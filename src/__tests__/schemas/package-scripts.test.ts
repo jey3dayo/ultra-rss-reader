@@ -251,6 +251,10 @@ describe("package scripts", () => {
   it("keeps Vitest unit test projects addressable from package and mise tasks", () => {
     const packageJson = readPackageJson();
     const miseToml = readWorkspaceFile("mise.toml");
+    const fastTask = extractMiseTaskSection(miseToml, "test:unit:fast");
+    const fastWindowsCommand = extractMiseTaskCommand(miseToml, "test:unit:fast", "run_windows");
+    const domTask = extractMiseTaskSection(miseToml, "test:unit:dom");
+    const domWindowsCommand = extractMiseTaskCommand(miseToml, "test:unit:dom", "run_windows");
     const ciTask = extractMiseTaskSection(miseToml, "test:unit:ci");
     const ciWindowsCommand = extractMiseTaskCommand(miseToml, "test:unit:ci", "run_windows");
     const profileTask = extractMiseTaskSection(miseToml, "test:unit:profile");
@@ -259,6 +263,14 @@ describe("package scripts", () => {
     expect(packageJson.scripts?.test).toBe("pnpm run test:node && pnpm run test:jsdom");
     expect(packageJson.scripts?.["test:node"]).toBe("pnpm exec vitest run --project node");
     expect(packageJson.scripts?.["test:jsdom"]).toBe("pnpm exec vitest run --project jsdom");
+    expect(fastTask).not.toBe("");
+    expect(fastTask).toContain("pnpm run test:node");
+    expect(fastTask).not.toContain("test:jsdom");
+    expect(fastWindowsCommand).toContain("pnpm.CMD run test:node");
+    expect(domTask).not.toBe("");
+    expect(domTask).toContain("pnpm run test:jsdom");
+    expect(domTask).not.toContain("test:node");
+    expect(domWindowsCommand).toContain("pnpm.CMD run test:jsdom");
     expect(ciTask).not.toBe("");
     expect(ciTask).toContain("pnpm run test:node --reporter=dot --silent=passed-only");
     expect(ciTask).toContain("pnpm run test:jsdom --reporter=dot --silent=passed-only");

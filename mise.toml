@@ -237,6 +237,16 @@ description = "Run Vitest unit tests"
 run = "rtk test pnpm run test"
 run_windows = "vitest.CMD run"
 
+[tasks."test:unit:fast"]
+description = "Run fast Vitest unit tests without jsdom"
+run = "rtk test pnpm run test:node"
+run_windows = "pnpm.CMD run test:node"
+
+[tasks."test:unit:dom"]
+description = "Run jsdom Vitest unit tests"
+run = "rtk test pnpm run test:jsdom"
+run_windows = "pnpm.CMD run test:jsdom"
+
 [tasks."test:unit:ci"]
 description = "Run Vitest unit tests with quieter CI output"
 run = """
@@ -387,8 +397,8 @@ run = "pnpm exec tauri icon"
 # ========================================
 
 [tasks.check]
-description = "Local verification (format + lint + test)"
-depends = ["format", "lint", "test"]
+description = "Fast local verification (format + lint + Rust tests + node Vitest)"
+depends = ["format", "lint", "test:rust", "test:unit:fast"]
 
 [tasks.ci]
 description = "CI equivalent, unit-first full gate (format:check + test:unit:ci + lint + test:rust + build)"

@@ -2439,7 +2439,13 @@ describe("release repository contract", () => {
   });
 
   it("keeps issue Done When placeholders tied back to the PR DoD checklist", () => {
-    const prDodChecks = ["動作確認完了", "型エラー 0 件", "リント違反 0 件", "全テスト成功", "フォーマッター適用済み"];
+    const prDodChecks = [
+      "動作確認完了",
+      "型エラー 0 件",
+      "リント違反 0 件",
+      "高速テスト成功",
+      "フォーマッター適用済み",
+    ];
 
     for (const check of prDodChecks) {
       expect(pullRequestTemplate, `PR DoD missing ${check}`).toContain(check);

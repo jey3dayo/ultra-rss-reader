@@ -1636,28 +1636,32 @@ describe("repository static contracts", () => {
     const expectedQualityGateCheckboxes = [
       "型エラー 0 件 (`mise run check` の `lint:types`)",
       "リント違反 0 件 (`mise run check` の `lint`)",
-      "全テスト成功 (`mise run check` の `test`)",
+      "高速テスト成功 (`mise run check` の `test:unit:fast` / `test:rust`)",
       "フォーマッター適用済み (`mise run check` の `format`)",
-      "release / native / Storybook / manual verification / release readiness 影響時: `mise run ci` または focused test を確認内容へ記録",
+      "jsdom / DOM / React rendering / PR handoff / release / native / Storybook 影響時: DOM/CI/focused test を記録",
       "環境変数の変更時: `.env` を暗号化 (`dotenvx encrypt`)",
     ];
 
     expect(confirmedCheckboxes).toContain("動作確認完了");
     expect(qualityGateCheckboxes).toEqual(expectedQualityGateCheckboxes);
 
-    for (const command of ["mise run check", "mise run ci"] as const) {
+    for (const command of ["mise run check", "mise run test:unit:dom", "mise run ci"] as const) {
       expect(pullRequestTemplate).toContain(command);
       expect(agents).toContain(command);
     }
 
-    for (const impactScope of ["release", "native", "Storybook"] as const) {
+    for (const impactScope of [
+      "jsdom",
+      "DOM",
+      "React rendering",
+      "PR handoff",
+      "release",
+      "native",
+      "Storybook",
+    ] as const) {
       expect(pullRequestTemplate).toContain(impactScope);
       expect(agents).toContain(impactScope);
     }
-    for (const prOnlyImpactScope of ["manual verification", "release readiness"] as const) {
-      expect(pullRequestTemplate).toContain(prOnlyImpactScope);
-    }
-
     expect(pullRequestTemplate).toContain("focused test");
     expect(agents).toContain("focused test");
   });

@@ -10,8 +10,8 @@ This file is the short repository-local workflow guide for agents.
 - Prefer existing files and local patterns. Keep changes scoped to the requested task.
 - Default desktop development entry point: `mise run app:dev`.
 - Browser-only UI debugging entry point: `mise run app:dev:browser`.
-- Default local verification gate before finishing or committing: `mise run check`.
-- Use `mise run ci` when release, native, Storybook, build output, or full repository confidence is affected.
+- Default fast local verification gate before finishing or committing: `mise run check`.
+- Use `mise run test:unit:dom` for jsdom-affected changes, and `mise run ci` when release, native, Storybook, build output, PR handoff, broad UI behavior, or full repository confidence is affected.
 
 ## Source Of Truth
 
@@ -26,8 +26,9 @@ This file is the short repository-local workflow guide for agents.
 
 ## Quality Gates
 
-- `mise run check` is the default day-to-day gate and covers format, lint, and tests.
-- `mise run ci` is the unit-first full local gate including build validation.
+- `mise run check` is the default day-to-day fast gate and covers format, lint, Rust tests, and node Vitest.
+- `mise run test:unit:dom` runs the jsdom Vitest suite separately when DOM, React rendering, Testing Library, or browser global behavior is affected.
+- `mise run ci` is the unit-first full local gate including jsdom Vitest and build validation.
 - `mise run quality:react-doctor:diff` is the changed-file React Doctor regression gate.
 - `mise run quality:react-doctor:full` is informational for known full-scan baseline debt.
 - `mise run quality:knip` checks Knip baseline drift.
