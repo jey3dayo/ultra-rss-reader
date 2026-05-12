@@ -70,7 +70,7 @@ describe("buildShortcutsSettingsViewProps", () => {
         title: t("shortcuts.heading"),
         conflictMessage: "Resolve shortcut conflicts",
         pressAKeyLabel: t("shortcuts.press_a_key"),
-        resetLabel: t("shortcuts.reset_to_defaults"),
+        resetAllLabel: t("shortcuts.reset_all_to_defaults"),
         resetDisabled: true,
         onResetAll,
       }),

@@ -10,7 +10,7 @@ const meta = {
     title: "Shortcuts",
     conflictMessage: null,
     pressAKeyLabel: "Press a key",
-    resetLabel: "Reset to defaults",
+    resetAllLabel: "Reset all to defaults",
     resetDisabled: false,
     onResetAll: fn(),
     categories: [

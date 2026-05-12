@@ -20,14 +20,13 @@ describe("ShortcutsSettingsView", () => {
   it("renders shortcut categories, conflicts, and static bindings", async () => {
     const user = userEvent.setup();
     const onStartRecording = vi.fn();
-    const onLockedReset = vi.fn();
 
     render(
       <ShortcutsSettingsView
         title="Shortcuts"
         conflictMessage="Shortcut j is already used by Next article"
         pressAKeyLabel="Press a key"
-        resetLabel="Reset to defaults"
+        resetAllLabel="Reset all to defaults"
         resetDisabled={true}
         onResetAll={() => {}}
         categories={[
@@ -60,7 +59,6 @@ describe("ShortcutsSettingsView", () => {
                 isLocked: true,
                 isRecording: false,
                 resetAriaLabel: "Reset Open settings shortcut",
-                onReset: onLockedReset,
               },
             ],
           },
@@ -76,33 +74,29 @@ describe("ShortcutsSettingsView", () => {
     );
     expect(screen.getByText("Already used")).toHaveClass("text-state-danger-foreground");
     expect(screen.getByText("⌘ ,")).toBeInTheDocument();
-    const lockedResetButton = screen.getByRole("button", {
-      name: "Reset Open settings shortcut",
-    });
-    expect(lockedResetButton).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Reset Open settings shortcut" })).toBeNull();
     expect(screen.getByRole("button", { name: "J" })).toHaveClass(
       "border-state-danger-border",
       "bg-state-danger-surface",
       "text-state-danger-foreground",
     );
     expect(screen.getByRole("button", { name: "Reset Next article shortcut" })).toBeEnabled();
-    expect(screen.getByRole("button", { name: "Reset to defaults" })).toHaveClass("w-full");
+    expect(screen.getByRole("button", { name: "Reset all to defaults" })).toHaveClass("w-full");
+    expect(screen.queryByRole("button", { name: "Reset to defaults" })).toBeNull();
     expect(screen.getByRole("button", { name: "J" })).toHaveClass("w-full");
     expect(screen.getByText("⌘ ,")).toHaveClass("bg-surface-1", "text-foreground-soft");
 
     await user.click(screen.getByRole("button", { name: "J" }));
-    await user.click(lockedResetButton);
 
     expect(onStartRecording).toHaveBeenCalledTimes(1);
-    expect(onLockedReset).not.toHaveBeenCalled();
     const resetButton = screen.getByRole("button", {
-      name: "Reset to defaults",
+      name: "Reset all to defaults",
     });
     expect(resetButton).toBeDisabled();
     expectNoButtonMinWidth(resetButton);
   });
 
-  it("keeps row reset disabled only for default bindings and activates focused row reset from the keyboard", async () => {
+  it("only shows row reset for custom bindings and activates focused row reset from the keyboard", async () => {
     const user = userEvent.setup();
     const onResetDefault = vi.fn();
     const onResetCustom = vi.fn();
@@ -112,7 +106,7 @@ describe("ShortcutsSettingsView", () => {
         title="Shortcuts"
         conflictMessage={null}
         pressAKeyLabel="Press a key"
-        resetLabel="Reset to defaults"
+        resetAllLabel="Reset all to defaults"
         resetDisabled={false}
         onResetAll={vi.fn()}
         categories={[
@@ -144,7 +138,7 @@ describe("ShortcutsSettingsView", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Reset Next article shortcut" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Reset Next article shortcut" })).toBeNull();
     const rowReset = screen.getByRole("button", {
       name: "Reset Previous article shortcut",
     });
@@ -163,7 +157,7 @@ describe("ShortcutsSettingsView", () => {
         title="Shortcuts"
         conflictMessage={null}
         pressAKeyLabel="Press a key"
-        resetLabel="Reset to defaults"
+        resetAllLabel="Reset all to defaults"
         resetDisabled={false}
         onResetAll={vi.fn()}
         categories={[
@@ -202,7 +196,7 @@ describe("ShortcutsSettingsView", () => {
         title="Shortcuts"
         conflictMessage={null}
         pressAKeyLabel="Press a key"
-        resetLabel="Reset to defaults"
+        resetAllLabel="Reset all to defaults"
         resetDisabled={false}
         onResetAll={onResetAll}
         categories={[
@@ -236,7 +230,7 @@ describe("ShortcutsSettingsView", () => {
         title="Shortcuts"
         conflictMessage={null}
         pressAKeyLabel="Press a key"
-        resetLabel="Reset to defaults"
+        resetAllLabel="Reset all to defaults"
         resetDisabled={false}
         onResetAll={onResetAll}
         categories={[
@@ -264,7 +258,7 @@ describe("ShortcutsSettingsView", () => {
     const recordingButton = screen.getByRole("button", { name: "Press a key" });
     expect(recordingButton).toHaveClass("w-full");
     expect(recordingButton).toHaveClass("bg-ring/14");
-    expect(screen.getByRole("button", { name: "Reset to defaults" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Reset all to defaults" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Reset Next article shortcut" })).toBeDisabled();
 
     await waitFor(() => {
@@ -281,7 +275,7 @@ describe("ShortcutsSettingsView", () => {
       key: "K",
       metaKey: true,
     });
-    await user.click(screen.getByRole("button", { name: "Reset to defaults" }));
+    await user.click(screen.getByRole("button", { name: "Reset all to defaults" }));
     await user.click(screen.getByRole("button", { name: "Reset Next article shortcut" }));
 
     expect(onRecordKeyDown).toHaveBeenCalledTimes(2);

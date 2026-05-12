@@ -1,3 +1,4 @@
+import { RotateCcw } from "lucide-react";
 import { type ComponentPropsWithoutRef, type ReactNode, type Ref, useEffect, useRef } from "react";
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
@@ -31,7 +32,7 @@ export type ShortcutsSettingsViewProps = {
   categories: ShortcutsSettingsCategory[];
   conflictMessage: string | null;
   pressAKeyLabel: string;
-  resetLabel: string;
+  resetAllLabel: string;
   resetDisabled: boolean;
   onResetAll: () => void;
 };
@@ -39,7 +40,6 @@ export type ShortcutsSettingsViewProps = {
 type ShortcutKeyBadgeProps = {
   item: ShortcutsSettingsItem;
   pressAKeyLabel: string;
-  resetLabel: string;
   resetDisabled?: boolean;
 };
 
@@ -52,22 +52,24 @@ type ShortcutKeyButtonProps = ComponentPropsWithoutRef<"button"> & {
 
 function ShortcutResetButton({
   item,
-  resetLabel,
   disabled = item.resetDisabled,
 }: {
   item: ShortcutsSettingsItem;
-  resetLabel: string;
   disabled?: boolean;
 }) {
+  if (item.resetDisabled !== false) {
+    return null;
+  }
+
   return (
     <button
       type="button"
-      className="rounded-md border border-border/60 bg-surface-1 px-2 py-1 text-[12px] font-medium text-foreground-soft transition-colors duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-border-strong hover:bg-surface-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-45 motion-reduce:transition-none"
+      className="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-foreground-soft/72 transition-colors duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-surface-2/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-45 motion-reduce:transition-none"
       disabled={disabled}
       onClick={item.onReset}
       aria-label={item.resetAriaLabel}
     >
-      {resetLabel}
+      <RotateCcw className="size-3.5" aria-hidden="true" />
     </button>
   );
 }
@@ -102,7 +104,7 @@ export function ShortcutKeyButton({
   );
 }
 
-function ShortcutKeyBadge({ item, pressAKeyLabel, resetLabel, resetDisabled }: ShortcutKeyBadgeProps) {
+function ShortcutKeyBadge({ item, pressAKeyLabel, resetDisabled }: ShortcutKeyBadgeProps) {
   const badgeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -119,7 +121,7 @@ function ShortcutKeyBadge({ item, pressAKeyLabel, resetLabel, resetDisabled }: S
 
   return (
     <div className="flex w-full flex-col items-stretch gap-1 sm:w-auto sm:items-end">
-      <div className="flex w-full items-center gap-1.5 sm:w-auto">
+      <div className="flex w-full items-center gap-1 sm:w-auto">
         <ShortcutKeyButton
           ref={badgeRef}
           data-testid={`shortcut-badge-${item.id}`}
@@ -129,7 +131,7 @@ function ShortcutKeyBadge({ item, pressAKeyLabel, resetLabel, resetDisabled }: S
         >
           {item.isRecording ? pressAKeyLabel : item.displayKey}
         </ShortcutKeyButton>
-        <ShortcutResetButton item={item} resetLabel={resetLabel} disabled={resetDisabled} />
+        <ShortcutResetButton item={item} disabled={resetDisabled} />
       </div>
       {item.conflictLabel && !item.isRecording && (
         <span className="text-[10px] text-state-danger-foreground">{item.conflictLabel}</span>
@@ -143,7 +145,7 @@ export function ShortcutsSettingsView({
   categories,
   conflictMessage,
   pressAKeyLabel,
-  resetLabel,
+  resetAllLabel,
   resetDisabled,
   onResetAll,
 }: ShortcutsSettingsViewProps) {
@@ -153,7 +155,7 @@ export function ShortcutsSettingsView({
     <SettingsContentLayout title={title} outerTestId="shortcuts-settings-root">
       <div className="mb-5 flex justify-end sm:mb-6">
         <SettingsActionButton tone="header" onClick={onResetAll} disabled={resetDisabled || hasRecordingShortcut}>
-          {resetLabel}
+          {resetAllLabel}
         </SettingsActionButton>
       </div>
       {conflictMessage && (
@@ -171,20 +173,18 @@ export function ShortcutsSettingsView({
               className="flex-col items-stretch sm:flex-row sm:items-center"
             >
               {item.isLocked ? (
-                <div className="flex w-full items-center gap-1.5 sm:w-auto">
+                <div className="flex w-full items-center sm:w-auto">
                   <kbd
                     data-testid={`shortcut-badge-${item.id}`}
                     className="w-full rounded-md border border-border/70 bg-surface-1 px-2.5 py-1 text-center font-mono text-[13px] font-medium leading-none tracking-[0.02em] text-foreground-soft sm:w-auto"
                   >
                     {item.displayKey}
                   </kbd>
-                  <ShortcutResetButton item={item} resetLabel={resetLabel} disabled />
                 </div>
               ) : (
                 <ShortcutKeyBadge
                   item={item}
                   pressAKeyLabel={pressAKeyLabel}
-                  resetLabel={resetLabel}
                   resetDisabled={hasRecordingShortcut || item.resetDisabled}
                 />
               )}
