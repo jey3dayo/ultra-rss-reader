@@ -1,12 +1,13 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::Mutex;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use tracing::{info, warn};
 
 use crate::commands::dto::{AccountSyncWarningKind, AppError};
 use crate::domain::account::Account;
 use crate::domain::article::{generate_entry_id, Article};
+use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::feed::Feed;
 use crate::domain::folder::Folder;
 use crate::domain::provider::{
@@ -37,6 +38,55 @@ use crate::repository::sync_state::{
 };
 
 use super::feed_commands::lock_db;
+
+const G_READER_PASSWORD_LOOKUP_TIMEOUT: Duration = Duration::from_secs(10);
+
+async fn get_greader_password(account: &Account) -> Result<String, AppError> {
+    get_greader_password_with_timeout(
+        account.id.as_ref(),
+        &account.name,
+        G_READER_PASSWORD_LOOKUP_TIMEOUT,
+        |account_id| keyring_store::get_password(&account_id),
+    )
+    .await
+}
+
+async fn get_greader_password_with_timeout<F>(
+    account_id: &str,
+    account_name: &str,
+    timeout_duration: Duration,
+    read_password: F,
+) -> Result<String, AppError>
+where
+    F: FnOnce(String) -> DomainResult<String> + Send + 'static,
+{
+    let account_id = account_id.to_string();
+    let account_name = account_name.to_string();
+    let account_id_for_log = account_id.clone();
+    match tokio::time::timeout(
+        timeout_duration,
+        tokio::task::spawn_blocking(move || read_password(account_id)),
+    )
+    .await
+    {
+        Ok(Ok(Ok(password))) => Ok(password),
+        Ok(Ok(Err(error))) => Err(AppError::from(error)),
+        Ok(Err(error)) => Err(AppError::from(DomainError::Keychain(format!(
+            "Failed to read password from macOS Keychain: {error}"
+        )))),
+        Err(_) => {
+            warn!(
+                account_id = %account_id_for_log,
+                account_name = %account_name,
+                timeout_ms = timeout_duration.as_millis() as u64,
+                "Timed out reading FreshRSS password from macOS Keychain"
+            );
+            Err(AppError::from(DomainError::Keychain(
+                "Timed out reading password from macOS Keychain. Unlock Keychain Access or re-enter the account password, then try again.".to_string(),
+            )))
+        }
+    }
+}
 
 fn upsert_articles_in_current_transaction(
     conn: &rusqlite::Connection,
@@ -478,7 +528,7 @@ pub(super) async fn sync_greader_account(
 
     // Step 1: Authenticate (no DB lock)
     let auth_started_at = Instant::now();
-    let password = keyring_store::get_password(account.id.as_ref())?;
+    let password = get_greader_password(account).await?;
     provider
         .authenticate(&Credentials {
             token: Some(username),
@@ -580,7 +630,7 @@ pub(super) async fn repair_greader_remote_state(
         }
     };
 
-    let password = keyring_store::get_password(account.id.as_ref())?;
+    let password = get_greader_password(account).await?;
     provider
         .authenticate(&Credentials {
             token: Some(username),
@@ -656,7 +706,7 @@ pub(super) async fn sync_greader_feed(
         }
     };
 
-    let password = keyring_store::get_password(account.id.as_ref())?;
+    let password = get_greader_password(account).await?;
     provider
         .authenticate(&Credentials {
             token: Some(username),
@@ -1780,6 +1830,30 @@ mod tests {
             connection_verification_status: ConnectionVerificationStatus::Unverified,
             connection_verified_at: None,
             connection_verification_error: None,
+        }
+    }
+
+    #[tokio::test]
+    async fn greader_password_lookup_times_out_when_keychain_blocks() {
+        let started_at = Instant::now();
+        let error = get_greader_password_with_timeout(
+            "acc-timeout",
+            "FreshRSS",
+            Duration::from_millis(10),
+            |_| {
+                std::thread::sleep(Duration::from_millis(250));
+                Ok("password".to_string())
+            },
+        )
+        .await
+        .expect_err("blocking keychain lookup should time out");
+
+        assert!(started_at.elapsed() < Duration::from_millis(200));
+        match error {
+            AppError::UserVisible { message } => {
+                assert!(message.contains("Timed out reading password from macOS Keychain"));
+            }
+            other => panic!("expected user-visible keychain timeout, got {other:?}"),
         }
     }
 
