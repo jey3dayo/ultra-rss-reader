@@ -24,6 +24,7 @@
     "quality:lockfile-duplicate-majors": "node ./scripts/quality-baseline.ts lockfile-duplicate-majors",
     "quality:dependency-licenses": "node ./scripts/quality-baseline.ts dependency-licenses",
     "check:release-contamination": "node ./scripts/check-release-build-contamination.ts",
+    "diagnose:macos-keychain-signature": "node ./scripts/release/macos-keychain-signature-diagnostics.ts",
     "report:release-debug-flags": "node ./scripts/release-debug-feature-flags-report.ts",
     "report:similarity": "node ./scripts/similarity-report.ts",
     "test": "pnpm run test:node && pnpm run test:jsdom",

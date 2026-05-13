@@ -278,6 +278,58 @@ Confirm:
 - Removing the account leaves the app in a clean state and does not block re-adding it.
 - A failed credential save leaves the account list and keyring in a retryable state.
 
+### 3a. macOS Keychain Re-Prompt Signature Diagnostics
+
+Run this when macOS asks for the login password again after a packaged update
+reads an existing FreshRSS API password from Keychain. This diagnoses app
+identity drift; it does not change FreshRSS auth, Keychain service names,
+database schema, or Tauri command payloads.
+
+Use only apps installed from published release artifacts or the in-app updater.
+Do not use `mise run app:install`, `mise run app:dev:native-keyring`, or any
+locally re-signed `.app` as evidence for this check.
+
+Record the older installed app before updating:
+
+```bash
+pnpm run diagnose:macos-keychain-signature -- record \
+  --label before-update \
+  --version "<old-version>" \
+  --artifact-url "<old-release-artifact-url>" \
+  --out tmp/macos-keychain-signature-before.json
+```
+
+After the in-app updater installs and restarts the new app, record the updated
+app and compare the stable signing fields:
+
+```bash
+pnpm run diagnose:macos-keychain-signature -- record \
+  --label after-update \
+  --version "<new-version>" \
+  --artifact-url "<new-release-artifact-url>" \
+  --out tmp/macos-keychain-signature-after.json
+
+pnpm run diagnose:macos-keychain-signature -- compare \
+  --before tmp/macos-keychain-signature-before.json \
+  --after tmp/macos-keychain-signature-after.json \
+  --out tmp/macos-keychain-signature-comparison.md
+```
+
+Confirm:
+
+- `identifier`, `TeamIdentifier`, authority chain, and designated requirement
+  match before and after the update.
+- `CDHash` is recorded but ignored because it is allowed to change between
+  versions.
+- The Keychain scope remains service `ultra-rss-reader` and Ultra RSS Reader
+  account id only; password values are never read, logged, or screenshotted.
+- If stable fields differ, classify the failure as release artifact signature
+  drift, updater-installed app mismatch, or local ad-hoc re-signing
+  contamination.
+- If stable fields match but the prompt persists, classify it as a legacy
+  Keychain ACL/item issue and re-save the affected account credential from the
+  packaged app before re-testing.
+
 ### 4. Packaged Updater Verification
 
 Use an installed older build plus a signed draft release.

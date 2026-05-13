@@ -248,6 +248,19 @@ describe("package scripts", () => {
     );
   });
 
+  it("exposes macOS Keychain signature diagnostics through package scripts", () => {
+    const packageJson = readPackageJson();
+    const diagnosticScript = readWorkspaceFile("scripts/release/macos-keychain-signature-diagnostics.ts");
+
+    expect(packageJson.scripts?.["diagnose:macos-keychain-signature"]).toBe(
+      "node ./scripts/release/macos-keychain-signature-diagnostics.ts",
+    );
+    expect(diagnosticScript).toContain("record [--app <path>]");
+    expect(diagnosticScript).toContain("compare --before <old.json> --after <new.json>");
+    expect(diagnosticScript).toContain('const KEYCHAIN_SERVICE = "ultra-rss-reader"');
+    expect(diagnosticScript).toContain('ignoredFields: ["cdHash"]');
+  });
+
   it("keeps Vitest unit test projects addressable from package and mise tasks", () => {
     const packageJson = readPackageJson();
     const miseToml = readWorkspaceFile("mise.toml");
@@ -337,5 +350,11 @@ describe("package scripts", () => {
     expect(releaseManual).toContain("Gatekeeper result");
     expect(releaseManual).toContain("Do not use `mise run app:install` for this step.");
     expect(releaseManual).toContain("not evidence that the published release artifact");
+    expect(releaseManual).toContain("### 3a. macOS Keychain Re-Prompt Signature Diagnostics");
+    expect(releaseManual).toContain("Do not use `mise run app:install`, `mise run app:dev:native-keyring`");
+    expect(releaseManual).toContain("pnpm run diagnose:macos-keychain-signature -- record");
+    expect(releaseManual).toContain("pnpm run diagnose:macos-keychain-signature -- compare");
+    expect(releaseManual).toContain("`CDHash` is recorded but ignored");
+    expect(releaseManual).toContain("service `ultra-rss-reader`");
   });
 });
