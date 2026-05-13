@@ -152,8 +152,8 @@ export function summarizeSyncWarnings(
     return {
       kind: "retry-scheduled",
       accounts: getDistinctAccountNames(warnings, copy),
-      retryAt: scheduledRetry.retry_at,
-      retryInSeconds: scheduledRetry.retry_in_seconds,
+      retryAt: scheduledRetry.retry_at ?? undefined,
+      retryInSeconds: scheduledRetry.retry_in_seconds ?? undefined,
     };
   }
 

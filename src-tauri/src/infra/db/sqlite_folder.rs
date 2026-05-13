@@ -14,7 +14,45 @@ impl<'a> SqliteFolderRepository<'a> {
         Self { conn }
     }
 
+    fn normalize_sort_order_before_unique_index(&self) -> DomainResult<()> {
+        let duplicate_account_ids = {
+            let mut stmt = self.conn.prepare(
+                "SELECT account_id
+                 FROM folders
+                 GROUP BY account_id, sort_order
+                 HAVING COUNT(*) > 1",
+            )?;
+            let rows = stmt.query_map([], |row| row.get::<_, String>(0))?;
+            rows.collect::<Result<Vec<_>, _>>()?
+        };
+        if duplicate_account_ids.is_empty() {
+            return Ok(());
+        }
+
+        let tx = self.conn.unchecked_transaction()?;
+        for account_id in duplicate_account_ids {
+            let folder_ids = {
+                let mut stmt = tx.prepare(
+                    "SELECT id FROM folders WHERE account_id = ?1 ORDER BY sort_order, id",
+                )?;
+                let rows = stmt.query_map(params![account_id], |row| row.get::<_, String>(0))?;
+                rows.collect::<Result<Vec<_>, _>>()?
+            };
+
+            for (sort_order, folder_id) in folder_ids.iter().enumerate() {
+                tx.execute(
+                    "UPDATE folders SET sort_order = ?1 WHERE id = ?2",
+                    params![sort_order as i32, folder_id],
+                )?;
+            }
+        }
+
+        tx.commit()?;
+        Ok(())
+    }
+
     fn ensure_order_contract(&self) -> DomainResult<()> {
+        self.normalize_sort_order_before_unique_index()?;
         self.conn.execute_batch(
             "CREATE UNIQUE INDEX IF NOT EXISTS idx_folders_account_sort_order_unique
                ON folders(account_id, sort_order);
@@ -65,6 +103,7 @@ fn row_to_folder(row: &rusqlite::Row) -> rusqlite::Result<Folder> {
 
 impl FolderRepository for SqliteFolderRepository<'_> {
     fn find_by_account(&self, account_id: &AccountId) -> DomainResult<Vec<Folder>> {
+        self.ensure_order_contract()?;
         let mut stmt = self.conn.prepare(
             "SELECT id, account_id, remote_id, name, sort_order FROM folders WHERE account_id = ?1 ORDER BY sort_order, id",
         )?;
@@ -137,6 +176,7 @@ impl FolderRepository for SqliteFolderRepository<'_> {
         account_id: &AccountId,
         remote_id: &str,
     ) -> DomainResult<Option<Folder>> {
+        self.ensure_order_contract()?;
         let mut stmt = self.conn.prepare(
             "SELECT id, account_id, remote_id, name, sort_order FROM folders WHERE account_id = ?1 AND remote_id = ?2",
         )?;
@@ -439,6 +479,52 @@ mod tests {
         let folders = repo.find_by_account(&account_id).unwrap();
         let names: Vec<&str> = folders.iter().map(|f| f.name.as_str()).collect();
         assert_eq!(names, vec!["A", "B", "C"]);
+    }
+
+    #[test]
+    fn find_by_account_repairs_duplicate_sort_order_before_creating_unique_index() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let other_account_id = insert_test_account(&db);
+        db.writer()
+            .execute_batch(
+                "DROP INDEX IF EXISTS idx_folders_account_sort_order_unique;
+                 DROP INDEX IF EXISTS idx_folders_account_name_nocase_unique;",
+            )
+            .unwrap();
+        for (id, account_id, name) in [
+            ("folder-a", account_id.as_ref(), "A"),
+            ("folder-b", account_id.as_ref(), "B"),
+            ("folder-c", account_id.as_ref(), "C"),
+            ("folder-other", other_account_id.as_ref(), "Other"),
+        ] {
+            db.writer()
+                .execute(
+                    "INSERT INTO folders (id, account_id, name, sort_order) VALUES (?1, ?2, ?3, 0)",
+                    params![id, account_id, name],
+                )
+                .unwrap();
+        }
+        let repo = SqliteFolderRepository::new(db.writer());
+
+        let folders = repo.find_by_account(&account_id).unwrap();
+        let orders = folders
+            .iter()
+            .map(|folder| (folder.id.0.as_str(), folder.sort_order))
+            .collect::<Vec<_>>();
+        let other_folder = repo.find_by_account(&other_account_id).unwrap();
+
+        assert_eq!(
+            orders,
+            vec![("folder-a", 0), ("folder-b", 1), ("folder-c", 2)]
+        );
+        assert_eq!(other_folder[0].sort_order, 0);
+        db.reader()
+            .execute(
+                "INSERT INTO folders (id, account_id, name, sort_order) VALUES ('folder-duplicate', ?1, 'Duplicate', 0)",
+                params![account_id.as_ref()],
+            )
+            .expect_err("unique sort_order index should be active after repair");
     }
 
     #[test]

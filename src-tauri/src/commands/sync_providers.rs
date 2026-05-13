@@ -8,6 +8,7 @@ use crate::commands::dto::{AccountSyncWarningKind, AppError};
 use crate::domain::account::Account;
 use crate::domain::article::{generate_entry_id, Article};
 use crate::domain::feed::Feed;
+use crate::domain::folder::Folder;
 use crate::domain::provider::{
     FeedIdentifier, Mutation, PullResult, PullScope, RemoteEntry, RemoteSubscription, SyncCursor,
 };
@@ -462,8 +463,6 @@ pub(super) async fn sync_greader_account(
     account: &Account,
     mut provider: GReaderProvider,
 ) -> Result<ProviderSyncOutcome, AppError> {
-    use crate::domain::folder::Folder;
-
     let total_started_at = Instant::now();
 
     let username = match &account.username {
@@ -500,30 +499,46 @@ pub(super) async fn sync_greader_account(
     {
         let db_guard = lock_db(db)?;
         let folder_repo = SqliteFolderRepository::new(db_guard.writer());
+        let mut local_folders = folder_repo.find_by_account(&account.id)?;
+        let mut next_sort_order = local_folders
+            .iter()
+            .map(|folder| folder.sort_order)
+            .max()
+            .map_or(0, |sort_order| sort_order.saturating_add(1));
         for rf in &remote_folders {
-            let existing_remote_id = folder_repo
-                .find_by_remote_id(&account.id, &rf.remote_id)?
-                .map(|f| f.id);
-            let existing_name_id = if existing_remote_id.is_none() {
+            let existing_remote_index = local_folders
+                .iter()
+                .position(|folder| folder.remote_id.as_deref() == Some(rf.remote_id.as_str()));
+            let existing_name_index = if existing_remote_index.is_none() {
                 let remote_name_key = folder_name_case_key(&rf.name);
-                folder_repo
-                    .find_by_account(&account.id)?
-                    .into_iter()
-                    .find(|folder| folder_name_case_key(&folder.name) == remote_name_key)
-                    .map(|folder| folder.id)
+                local_folders
+                    .iter()
+                    .position(|folder| folder_name_case_key(&folder.name) == remote_name_key)
             } else {
                 None
             };
+            let existing_index = existing_remote_index.or(existing_name_index);
+            let existing_folder = existing_index.and_then(|index| local_folders.get(index));
+            let sort_order = resolve_greader_folder_sort_order(
+                rf.sort_order,
+                existing_folder,
+                &mut next_sort_order,
+            );
             let folder = Folder {
-                id: existing_remote_id
-                    .or(existing_name_id)
+                id: existing_folder
+                    .map(|folder| folder.id.clone())
                     .unwrap_or_else(FolderId::new),
                 account_id: account.id.clone(),
                 remote_id: Some(rf.remote_id.clone()),
                 name: rf.name.clone(),
-                sort_order: rf.sort_order.unwrap_or(0),
+                sort_order,
             };
             folder_repo.save(&folder)?;
+            if let Some(index) = existing_index {
+                local_folders[index] = folder;
+            } else {
+                local_folders.push(folder);
+            }
         }
     }
     info!(
@@ -767,6 +782,20 @@ fn provider_managed_remote_feed_ids(
 
 fn folder_name_case_key(name: &str) -> String {
     name.trim().to_lowercase()
+}
+
+fn resolve_greader_folder_sort_order(
+    remote_sort_order: Option<i32>,
+    existing_folder: Option<&Folder>,
+    next_sort_order: &mut i32,
+) -> i32 {
+    remote_sort_order
+        .or_else(|| existing_folder.map(|folder| folder.sort_order))
+        .unwrap_or_else(|| {
+            let sort_order = *next_sort_order;
+            *next_sort_order = next_sort_order.saturating_add(1);
+            sort_order
+        })
 }
 
 fn pending_mutation_targets_provider_managed_greader_feed(
@@ -2341,6 +2370,54 @@ mod tests {
         );
 
         assert_eq!(resolved, Some(remote_folder_id));
+    }
+
+    #[test]
+    fn resolve_greader_folder_sort_order_preserves_existing_order_when_remote_order_is_missing() {
+        let account_id = AccountId::new();
+        let folder = Folder {
+            id: FolderId::new(),
+            account_id,
+            remote_id: Some("user/-/label/Tech".to_string()),
+            name: "Tech".to_string(),
+            sort_order: 7,
+        };
+        let mut next_sort_order = 12;
+
+        let sort_order =
+            resolve_greader_folder_sort_order(None, Some(&folder), &mut next_sort_order);
+
+        assert_eq!(sort_order, 7);
+        assert_eq!(next_sort_order, 12);
+    }
+
+    #[test]
+    fn resolve_greader_folder_sort_order_assigns_new_missing_remote_order_to_tail() {
+        let mut next_sort_order = 12;
+
+        let sort_order = resolve_greader_folder_sort_order(None, None, &mut next_sort_order);
+
+        assert_eq!(sort_order, 12);
+        assert_eq!(next_sort_order, 13);
+    }
+
+    #[test]
+    fn resolve_greader_folder_sort_order_prefers_remote_order_when_present() {
+        let account_id = AccountId::new();
+        let folder = Folder {
+            id: FolderId::new(),
+            account_id,
+            remote_id: Some("user/-/label/Tech".to_string()),
+            name: "Tech".to_string(),
+            sort_order: 7,
+        };
+        let mut next_sort_order = 12;
+
+        let sort_order =
+            resolve_greader_folder_sort_order(Some(3), Some(&folder), &mut next_sort_order);
+
+        assert_eq!(sort_order, 3);
+        assert_eq!(next_sort_order, 12);
     }
 
     #[tokio::test]

@@ -266,7 +266,15 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
             // entries aligned with account setting changes.
             for account in &accounts {
                 let id = account.id.as_ref().to_string();
-                upsert_account_schedule(&mut schedules, id, account, now);
+                let persisted_retry_next_sync =
+                    persisted_retry_next_sync(&state.db, &account.id, now);
+                upsert_account_schedule(
+                    &mut schedules,
+                    id,
+                    account,
+                    now,
+                    persisted_retry_next_sync,
+                );
             }
 
             let due_accounts = select_due_accounts_for_tick(&accounts, &schedules, now, usize::MAX)
@@ -491,9 +499,10 @@ fn upsert_account_schedule(
     account_id: String,
     account: &Account,
     now: Instant,
+    persisted_retry_next_sync: Option<Instant>,
 ) {
     let interval = account_interval(account);
-    let next_sync = now + interval;
+    let next_sync = persisted_retry_next_sync.unwrap_or(now + interval);
     match schedules.get_mut(&account_id) {
         Some(schedule) if schedule.interval != interval => {
             schedule.interval = interval;
@@ -513,6 +522,36 @@ fn upsert_account_schedule(
             );
         }
     }
+}
+
+fn retry_at_to_next_sync(next_retry_at: &str, now: Instant) -> Option<Instant> {
+    let retry_time = chrono::DateTime::parse_from_rfc3339(next_retry_at)
+        .ok()?
+        .with_timezone(&chrono::Utc);
+    let delay = retry_time
+        .signed_duration_since(chrono::Utc::now())
+        .to_std()
+        .unwrap_or(Duration::ZERO);
+    Some(now + delay)
+}
+
+fn persisted_retry_next_sync(
+    db: &Mutex<DbManager>,
+    account_id: &AccountId,
+    now: Instant,
+) -> Option<Instant> {
+    let db_guard = db.lock().ok()?;
+    let repo = SqliteSyncStateRepository::new(db_guard.reader());
+    let state = repo
+        .get(account_id, SyncStateScopeKey::scheduler())
+        .ok()??;
+    if state.error_count == 0 {
+        return None;
+    }
+    state
+        .next_retry_at
+        .as_deref()
+        .and_then(|next_retry_at| retry_at_to_next_sync(next_retry_at, now))
 }
 
 fn prune_deleted_account_schedules(
@@ -1123,6 +1162,7 @@ mod tests {
             account.id.as_ref().to_string(),
             &account,
             now,
+            None,
         );
 
         let schedule = schedules
@@ -1157,21 +1197,64 @@ mod tests {
         }
 
         account.sync_interval_secs = 60;
+        let retry_next_sync = persisted_retry_next_sync(&db, &account.id, now);
         upsert_account_schedule(
             &mut schedules,
             account.id.as_ref().to_string(),
             &account,
             now,
+            retry_next_sync,
         );
 
         let schedule = schedules
             .get(account.id.as_ref())
             .expect("existing schedule should remain");
         assert_eq!(schedule.interval, Duration::from_secs(60));
-        assert_eq!(schedule.next_sync, now + Duration::from_secs(60));
+        assert!(
+            schedule.next_sync > now + Duration::from_secs(60),
+            "persisted backoff should remain the stronger scheduling gate than the changed interval"
+        );
         assert!(
             is_in_backoff(&db, &account.id),
             "active persisted backoff should still suppress the rescheduled account"
+        );
+    }
+
+    #[test]
+    fn persisted_retry_next_sync_makes_overdue_retry_due_immediately() {
+        let db = std::sync::Mutex::new(test_db());
+        let mut account = test_account(3_600);
+        account.id = AccountId("overdue-retry-account".to_string());
+        {
+            let db_guard = db.lock().unwrap();
+            insert_test_account(&db_guard, &account.id);
+            insert_scheduler_sync_state(
+                &db_guard,
+                &account.id,
+                1,
+                Some(&(chrono::Utc::now() - chrono::Duration::minutes(5)).to_rfc3339()),
+            );
+        }
+
+        let now = Instant::now();
+        let retry_next_sync = persisted_retry_next_sync(&db, &account.id, now)
+            .expect("overdue retry should produce an immediate schedule");
+        let mut schedules = HashMap::new();
+
+        upsert_account_schedule(
+            &mut schedules,
+            account.id.as_ref().to_string(),
+            &account,
+            now,
+            Some(retry_next_sync),
+        );
+
+        let schedule = schedules
+            .get(account.id.as_ref())
+            .expect("schedule should be created");
+        assert_eq!(
+            schedule.next_sync, now,
+            "missed retry windows should run on the next scheduler tick instead of waiting a full interval"
         );
     }
 
@@ -1359,6 +1442,7 @@ mod tests {
             account.id.as_ref().to_string(),
             &account,
             now,
+            None,
         );
 
         let schedule = schedules
@@ -1390,6 +1474,7 @@ mod tests {
             account.id.as_ref().to_string(),
             &account,
             now,
+            None,
         );
 
         let schedule = schedules

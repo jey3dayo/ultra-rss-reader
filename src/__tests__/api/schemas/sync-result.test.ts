@@ -19,6 +19,17 @@ describe("AccountSyncWarningSchema", () => {
     ).toBe(false);
   });
 
+  it("accepts backend null retry metadata for generic warnings", () => {
+    expect(
+      AccountSyncWarningSchema.safeParse({
+        ...retryScheduledWarning,
+        kind: "generic",
+        retry_at: null,
+        retry_in_seconds: null,
+      }).success,
+    ).toBe(true);
+  });
+
   it("rejects negative or non-finite retry seconds", () => {
     expect(
       AccountSyncWarningSchema.safeParse({

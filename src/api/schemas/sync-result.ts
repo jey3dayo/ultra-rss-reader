@@ -22,8 +22,8 @@ export const AccountSyncWarningSchema = z
     action_owner: SyncIssueOwnerSchema.optional(),
     kind: z.enum(["generic", "retry_pending", "retry_scheduled"]).optional(),
     message: nonBlankTrimmedStringSchema,
-    retry_at: IsoDateTimeStringSchema.optional(),
-    retry_in_seconds: nonnegativeIntegerSchema.optional(),
+    retry_at: IsoDateTimeStringSchema.nullish(),
+    retry_in_seconds: nonnegativeIntegerSchema.nullish(),
   })
   .strict();
 
