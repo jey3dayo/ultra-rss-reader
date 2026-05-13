@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.37.0] - 2026-05-14
+
+### Bug Fixes
+
+- FreshRSS 側で削除済みの購読がローカルに残り続け、同期のたびに警告扱いになる状態を解消した
+
 ## [0.36.0] - 2026-05-14
 
 ### Features
