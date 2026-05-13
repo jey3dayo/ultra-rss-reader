@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.37.1] - 2026-05-14
+
+### Bug Fixes
+
+- macOS Keychain のパスワード読み取りが応答しない場合でも、FreshRSS 同期が「同期中」のまま固まらず復帰できるようにした
+
 ## [0.37.0] - 2026-05-14
 
 ### Bug Fixes
