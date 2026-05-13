@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.37.2] - 2026-05-14
+
+### Bug Fixes
+
+- FreshRSS 同期時の macOS Keychain 読み取りを timeout 付き CLI 経路に切り替え、署名差分による ACL 待ちでも同期が進められるようにした
+
 ## [0.37.1] - 2026-05-14
 
 ### Bug Fixes
