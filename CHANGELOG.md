@@ -4,6 +4,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.36.0] - 2026-05-14
+
+### Features
+
+- macOS Keychain の再プロンプト調査用に、更新前後の署名情報を記録・比較する診断コマンドと手順を追加した
+
+### Bug Fixes
+
+- FreshRSS の自動再試行がアプリ停止中に期限切れになっても次回起動時に再開し、フォルダ順序の重複や同期警告の null metadata で同期結果表示が失敗しないようにした
+
 ## [0.35.0] - 2026-05-13
 
 ### Bug Fixes
