@@ -46,7 +46,7 @@ async fn get_greader_password(account: &Account) -> Result<String, AppError> {
         account.id.as_ref(),
         &account.name,
         G_READER_PASSWORD_LOOKUP_TIMEOUT,
-        |account_id| keyring_store::get_password(&account_id),
+        |account_id| keyring_store::get_password_for_sync(&account_id),
     )
     .await
 }

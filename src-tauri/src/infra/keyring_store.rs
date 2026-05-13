@@ -13,6 +13,10 @@ const DEV_CREDENTIALS_LOCK_TIMEOUT: Duration = Duration::from_secs(10);
 const DEV_CREDENTIALS_LOCK_RETRY_DELAY: Duration = Duration::from_millis(25);
 const DEV_CREDENTIALS_STALE_LOCK_AFTER: Duration = Duration::from_secs(5 * 60);
 const DEV_CREDENTIALS_ACCOUNT_ID_MAX_BYTES: usize = 128;
+#[cfg(target_os = "macos")]
+const KEYRING_SECURITY_CLI_TIMEOUT: Duration = Duration::from_secs(5);
+#[cfg(target_os = "macos")]
+const KEYRING_SECURITY_CLI_RETRY_DELAY: Duration = Duration::from_millis(25);
 const DEV_CREDENTIALS_RECOVERY_HINT: &str =
     "Dev credential store may be corrupted or inaccessible. Close Ultra RSS Reader, remove the dev credentials store and adjacent .tmp/.lock files, then restart the application.";
 static DEV_CREDENTIALS_STORE_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
@@ -615,6 +619,82 @@ fn force_delete_keychain_entry(account_id: &str) {
 #[cfg(not(target_os = "macos"))]
 fn force_delete_keychain_entry(_account_id: &str) {}
 
+#[cfg(target_os = "macos")]
+fn wait_for_security_cli_output(
+    mut child: std::process::Child,
+    timeout: Duration,
+) -> DomainResult<std::process::Output> {
+    let started_at = Instant::now();
+    loop {
+        match child.try_wait() {
+            Ok(Some(_)) => {
+                return child.wait_with_output().map_err(|error| {
+                    DomainError::Keychain(format!(
+                        "Failed to read password from macOS Keychain CLI: {error}"
+                    ))
+                });
+            }
+            Ok(None) if started_at.elapsed() >= timeout => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(DomainError::Keychain(
+                    "Timed out reading password from macOS Keychain CLI".to_string(),
+                ));
+            }
+            Ok(None) => std::thread::sleep(KEYRING_SECURITY_CLI_RETRY_DELAY),
+            Err(error) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(DomainError::Keychain(format!(
+                    "Failed to poll macOS Keychain CLI: {error}"
+                )));
+            }
+        }
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn get_password_from_security_cli(account_id: &str) -> DomainResult<String> {
+    validate_dev_credential_account_id(account_id)?;
+    let child = std::process::Command::new("security")
+        .args([
+            "find-generic-password",
+            "-s",
+            SERVICE,
+            "-a",
+            account_id,
+            "-w",
+        ])
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .map_err(|error| {
+            DomainError::Keychain(format!("Failed to run macOS Keychain CLI: {error}"))
+        })?;
+    let output = wait_for_security_cli_output(child, KEYRING_SECURITY_CLI_TIMEOUT)?;
+
+    if output.status.success() {
+        let password = String::from_utf8(output.stdout)
+            .map_err(|error| {
+                DomainError::Keychain(format!(
+                    "Failed to decode password from macOS Keychain CLI: {error}"
+                ))
+            })?
+            .trim_end_matches(['\r', '\n'])
+            .to_string();
+        if password.is_empty() {
+            return Err(missing_password_error());
+        }
+        return Ok(password);
+    }
+
+    Err(DomainError::Keychain(format!(
+        "macOS Keychain CLI failed status={} stderr={}",
+        redact_diagnostic_text(&output.status.to_string()),
+        redact_stderr_text(&String::from_utf8_lossy(&output.stderr))
+    )))
+}
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -695,6 +775,27 @@ pub fn get_password(account_id: &str) -> DomainResult<String> {
         Err(e) => Err(DomainError::Keychain(format!(
             "Failed to retrieve password: {e}"
         ))),
+    }
+}
+
+pub fn get_password_for_sync(account_id: &str) -> DomainResult<String> {
+    if let Some(path) = dev_credentials_path() {
+        validate_dev_credential_account_id(account_id)?;
+        let store = read_dev_store(&path)?;
+        return store
+            .get(account_id)
+            .cloned()
+            .ok_or_else(missing_password_error);
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        return get_password_from_security_cli(account_id);
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        get_password(account_id)
     }
 }
 
@@ -985,6 +1086,43 @@ mod tests {
         assert_eq!(
             warning,
             "keyring force-delete fallback failed status=exit status: 44 stderr=<redacted stderr bytes=15>"
+        );
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn security_cli_wait_returns_completed_output() {
+        let child = std::process::Command::new("sh")
+            .args(["-c", "printf ok"])
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn()
+            .unwrap();
+
+        let output = super::wait_for_security_cli_output(child, std::time::Duration::from_secs(1))
+            .expect("completed process should return output");
+
+        assert!(output.status.success());
+        assert_eq!(output.stdout, b"ok");
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn security_cli_wait_times_out_and_kills_child() {
+        let child = std::process::Command::new("sh")
+            .args(["-c", "sleep 1"])
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn()
+            .unwrap();
+
+        let error =
+            super::wait_for_security_cli_output(child, std::time::Duration::from_millis(10))
+                .expect_err("slow process should time out");
+
+        assert_eq!(
+            error.to_string(),
+            "Keychain error: Timed out reading password from macOS Keychain CLI"
         );
     }
 
