@@ -105,8 +105,9 @@ export function buildShortcutsSettingsViewProps({
     title: t("shortcuts.heading"),
     conflictMessage,
     pressAKeyLabel: t("shortcuts.press_a_key"),
-    resetAllLabel: t("shortcuts.reset_all_to_defaults"),
+    resetAllLabel: t("shortcuts.reset_to_defaults"),
     resetDisabled: !hasCustomBindings,
+    showLockedReset: true,
     onResetAll,
     categories: buildShortcutCategories(
       shortcutDefinitions,

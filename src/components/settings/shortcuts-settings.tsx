@@ -165,7 +165,7 @@ export function ShortcutsSettings() {
 
   const handleResetAll = useCallback(() => {
     showConfirm(t("shortcuts.confirm_reset"), doResetAll, {
-      actionLabel: t("shortcuts.reset_all_to_defaults"),
+      actionLabel: t("shortcuts.reset_to_defaults"),
       icon: RotateCcw,
     });
   }, [showConfirm, doResetAll, t]);

@@ -34,6 +34,7 @@ export type ShortcutsSettingsViewProps = {
   pressAKeyLabel: string;
   resetAllLabel: string;
   resetDisabled: boolean;
+  showLockedReset?: boolean;
   onResetAll: () => void;
 };
 
@@ -53,11 +54,13 @@ type ShortcutKeyButtonProps = ComponentPropsWithoutRef<"button"> & {
 function ShortcutResetButton({
   item,
   disabled = item.resetDisabled,
+  forceVisible = false,
 }: {
   item: ShortcutsSettingsItem;
   disabled?: boolean;
+  forceVisible?: boolean;
 }) {
-  if (item.resetDisabled !== false) {
+  if (!forceVisible && item.resetDisabled !== false) {
     return null;
   }
 
@@ -147,6 +150,7 @@ export function ShortcutsSettingsView({
   pressAKeyLabel,
   resetAllLabel,
   resetDisabled,
+  showLockedReset = false,
   onResetAll,
 }: ShortcutsSettingsViewProps) {
   const hasRecordingShortcut = categories.some((category) => category.items.some((item) => item.isRecording));
@@ -173,7 +177,8 @@ export function ShortcutsSettingsView({
               className="flex-col items-stretch sm:flex-row sm:items-center"
             >
               {item.isLocked ? (
-                <div className="flex w-full items-center sm:w-auto">
+                <div className="flex w-full items-center justify-end gap-1 sm:w-auto">
+                  <ShortcutResetButton item={item} disabled={true} forceVisible={showLockedReset} />
                   <kbd
                     data-testid={`shortcut-badge-${item.id}`}
                     className="w-full rounded-md border border-border/70 bg-surface-1 px-2.5 py-1 text-center font-mono text-[13px] font-medium leading-none tracking-[0.02em] text-foreground-soft sm:w-auto"
