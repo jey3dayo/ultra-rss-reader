@@ -766,6 +766,41 @@ fn save_greader_subscriptions(
     Ok(())
 }
 
+fn delete_missing_greader_subscriptions(
+    db: &Mutex<DbManager>,
+    account: &Account,
+    remote_subscription_ids: &HashSet<String>,
+) -> Result<usize, AppError> {
+    let db_guard = lock_db(db)?;
+    let feed_repo = SqliteFeedRepository::new(db_guard.writer());
+    let feeds = feed_repo.find_by_account(&account.id)?;
+    let mut deleted_count = 0usize;
+
+    for feed in feeds {
+        let Some(remote_id) = feed.remote_id.as_deref() else {
+            continue;
+        };
+        if !is_provider_managed_greader_feed(Some(remote_id))
+            || remote_subscription_ids.contains(remote_id)
+        {
+            continue;
+        }
+
+        info!(
+            account_id = %account.id.as_ref(),
+            account_name = %account.name,
+            feed_id = %feed.id.as_ref(),
+            remote_id = %remote_id,
+            feed_title = %feed.title,
+            "Deleting local FreshRSS feed missing from remote subscriptions"
+        );
+        feed_repo.delete(&feed.id)?;
+        deleted_count = deleted_count.saturating_add(1);
+    }
+
+    Ok(deleted_count)
+}
+
 fn provider_managed_remote_feed_ids(
     db: &Mutex<DbManager>,
     account_id: &AccountId,
@@ -962,10 +997,17 @@ async fn sync_greader_feeds(
         &remote_subs,
         &sync_started_remote_feed_ids,
     )?;
+    let remote_subscription_ids = remote_subs
+        .iter()
+        .map(|subscription| subscription.remote_id.clone())
+        .collect::<HashSet<_>>();
+    let deleted_subscription_count =
+        delete_missing_greader_subscriptions(db, account, &remote_subscription_ids)?;
     info!(
         account_id = %account.id.as_ref(),
         account_name = %account.name,
         phase = "subscriptions",
+        deleted_subscription_count = deleted_subscription_count,
         elapsed_ms = subscriptions_started_at.elapsed().as_millis() as u64,
         "FreshRSS sync phase completed"
     );
@@ -978,15 +1020,6 @@ async fn sync_greader_feeds(
 
     let local_provider = LocalProvider::new();
     let mut warnings = Vec::new();
-    let remote_subscription_ids = remote_subs
-        .iter()
-        .map(|subscription| subscription.remote_id.as_str())
-        .collect::<HashSet<_>>();
-    warnings.extend(detect_stale_remote_subscriptions(
-        account,
-        &feeds,
-        &remote_subscription_ids,
-    ));
     let provider_managed_feeds = feeds
         .iter()
         .filter(|feed| is_provider_managed_greader_feed(feed.remote_id.as_deref()))
@@ -1615,37 +1648,6 @@ fn provider_managed_feed_snapshots(
         .map_err(AppError::from)
 }
 
-fn detect_stale_remote_subscriptions(
-    account: &Account,
-    feeds: &[Feed],
-    remote_subscription_ids: &HashSet<&str>,
-) -> Vec<ProviderSyncWarning> {
-    feeds
-        .iter()
-        .filter_map(|feed| {
-            let remote_id = feed.remote_id.as_deref()?;
-            if !is_provider_managed_greader_feed(Some(remote_id))
-                || remote_subscription_ids.contains(remote_id)
-            {
-                return None;
-            }
-            warn!(
-                "FreshRSS account '{}' feed '{}' is missing from the remote subscription list",
-                account.name, feed.title
-            );
-            Some(ProviderSyncWarning {
-                kind: AccountSyncWarningKind::Generic,
-                message: format!(
-                    "Remote subscription '{}' is no longer present on FreshRSS.",
-                    feed.title
-                ),
-                retry_at: None,
-                retry_in_seconds: None,
-            })
-        })
-        .collect()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1782,56 +1784,55 @@ mod tests {
     }
 
     #[test]
-    fn detects_stale_remote_subscriptions_without_deleting_local_feed() {
-        let account = test_account("https://rss.example.com");
-        let feeds = vec![
-            Feed {
-                id: FeedId("feed-present".to_string()),
-                account_id: account.id.clone(),
-                folder_id: None,
-                remote_id: Some("feed/https://example.com/present.xml".to_string()),
-                title: "Present".to_string(),
-                url: "https://example.com/present.xml".to_string(),
-                site_url: "https://example.com".to_string(),
-                icon: None,
-                unread_count: 0,
-                reader_mode: "inherit".to_string(),
-                web_preview_mode: "inherit".to_string(),
-            },
-            Feed {
-                id: FeedId("feed-stale".to_string()),
-                account_id: account.id.clone(),
-                folder_id: None,
-                remote_id: Some("feed/https://example.com/stale.xml".to_string()),
-                title: "Stale".to_string(),
-                url: "https://example.com/stale.xml".to_string(),
-                site_url: "https://example.com".to_string(),
-                icon: None,
-                unread_count: 0,
-                reader_mode: "inherit".to_string(),
-                web_preview_mode: "inherit".to_string(),
-            },
-            Feed {
-                id: FeedId("feed-local".to_string()),
-                account_id: account.id.clone(),
-                folder_id: None,
-                remote_id: None,
-                title: "Local".to_string(),
-                url: "https://example.com/local.xml".to_string(),
-                site_url: "https://example.com".to_string(),
-                icon: None,
-                unread_count: 0,
-                reader_mode: "inherit".to_string(),
-                web_preview_mode: "inherit".to_string(),
-            },
-        ];
-        let remote_ids = HashSet::from(["feed/https://example.com/present.xml"]);
+    fn delete_missing_greader_subscriptions_removes_only_remote_managed_feeds() {
+        let db = test_db();
+        let (account, feeds) = insert_account_and_feeds(
+            &db,
+            "https://rss.example.com",
+            &[
+                (
+                    "feed/https://example.com/present.xml",
+                    "Present",
+                    "https://example.com/present.xml",
+                    "https://example.com",
+                ),
+                (
+                    "feed/https://example.com/stale.xml",
+                    "Stale",
+                    "https://example.com/stale.xml",
+                    "https://example.com",
+                ),
+            ],
+        );
+        let local_feed = Feed {
+            id: FeedId("feed-local".to_string()),
+            account_id: account.id.clone(),
+            folder_id: None,
+            remote_id: None,
+            title: "Local".to_string(),
+            url: "https://example.com/local.xml".to_string(),
+            site_url: "https://example.com".to_string(),
+            icon: None,
+            unread_count: 0,
+            reader_mode: "inherit".to_string(),
+            web_preview_mode: "inherit".to_string(),
+        };
+        {
+            let db_guard = db.lock().unwrap();
+            let feed_repo = SqliteFeedRepository::new(db_guard.writer());
+            feed_repo.save(&local_feed).unwrap();
+        }
+        let remote_ids = HashSet::from(["feed/https://example.com/present.xml".to_string()]);
 
-        let warnings = detect_stale_remote_subscriptions(&account, &feeds, &remote_ids);
+        let deleted_count =
+            delete_missing_greader_subscriptions(&db, &account, &remote_ids).unwrap();
 
-        assert_eq!(warnings.len(), 1);
-        assert_eq!(warnings[0].kind, AccountSyncWarningKind::Generic);
-        assert!(warnings[0].message.contains("Stale"));
+        assert_eq!(deleted_count, 1);
+        let db_guard = db.lock().unwrap();
+        let feed_repo = SqliteFeedRepository::new(db_guard.reader());
+        assert!(feed_repo.find_by_id(&feeds[0].id).unwrap().is_some());
+        assert!(feed_repo.find_by_id(&feeds[1].id).unwrap().is_none());
+        assert!(feed_repo.find_by_id(&local_feed.id).unwrap().is_some());
     }
 
     #[test]
