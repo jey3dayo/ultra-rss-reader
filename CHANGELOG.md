@@ -4,9 +4,21 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.35.0] - 2026-05-13
+
 ### Bug Fixes
 
+- 保存済みパスワードや肥大化した dev credential store の復旧導線を整え、設定画面から credential の欠落や破損を回復しやすくした
+- ショートカット設定のリセット操作を見直し、個別リセットと一括リセットの affordance を揃えて誤操作を減らした
+- 記事の自動既読化後でも手動で未読に戻した状態を維持し、reader の状態変更が意図せず上書きされないようにした
 - macOS overlay titlebar のドラッグ帯を shell 側の責務として復旧し、reader と購読一覧の上端でウィンドウを掴める領域を安定させた
+- 記事ステータス toast の文言を簡潔にし、既読・未読操作後の通知を読み取りやすくした
+
+### Maintenance
+
+- Vite の静的設定を簡素化し、build 設定の見通しをよくした
+- 入力欄の focus ring、選択色、設定画面の dense row typography を調整し、日常操作の視認性を整えた
+- 設定画面の data / debug guidance を整理し、開発・診断向けの説明を必要な箇所へ絞った
 
 ## [0.34.0] - 2026-05-12
 
