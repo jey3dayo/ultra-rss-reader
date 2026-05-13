@@ -443,6 +443,12 @@ describe("resolveSidebarLastSyncedLabel", () => {
       await vi.advanceTimersByTimeAsync(60_000);
     });
 
+    expect(clearSyncProgress).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(9 * 60_000);
+    });
+
     expect(clearSyncProgress).toHaveBeenCalledTimes(1);
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({
       queryKey: accountSyncStatusQueryKey(),

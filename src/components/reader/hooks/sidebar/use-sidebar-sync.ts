@@ -50,7 +50,7 @@ type SidebarSyncAction = { type: "set-cooldown-tick"; value: number };
 
 const SyncWarningPayloadSchema = z.array(AccountSyncWarningSchema);
 const SyncCompletedPayloadSchema = z.null();
-const SYNC_PROGRESS_STUCK_RECOVERY_MS = 60_000;
+const SYNC_PROGRESS_STUCK_RECOVERY_MS = 10 * 60_000;
 const malformedSyncEventWarnings = new Set<string>();
 
 function createInitialSidebarSyncState() {

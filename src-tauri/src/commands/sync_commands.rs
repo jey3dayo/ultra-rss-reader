@@ -7,7 +7,8 @@ use tracing::warn;
 
 use crate::commands::dto::{
     sync_issue_owner_for_app_error, AccountSyncError, AccountSyncStatus, AccountSyncWarning,
-    AppError, SyncProgressEvent, SyncProgressKind, SyncProgressStage, SyncResult,
+    AccountSyncWarningKind, AppError, SyncProgressEvent, SyncProgressKind, SyncProgressStage,
+    SyncResult,
 };
 use crate::commands::AppState;
 use crate::domain::account::Account;
@@ -31,6 +32,7 @@ use crate::repository::sync_state::{SyncState, SyncStateRepository, SyncStateSco
 use super::feed_commands::lock_db;
 use super::sync_providers::{
     repair_greader_remote_state, sync_greader_account, sync_greader_feed, sync_local_feed,
+    ProviderSyncOutcome, ProviderSyncWarning,
 };
 
 const STARTUP_REMOTE_STATE_REPAIR_KEY: &str = "startup_remote_state_repair_v1";
@@ -327,11 +329,20 @@ fn local_provider() -> LocalProvider {
     LocalProvider::new_allowing_private_feed_urls_for_tests()
 }
 
+fn local_feed_sync_warning(feed: &Feed, error: &AppError) -> ProviderSyncWarning {
+    ProviderSyncWarning {
+        kind: AccountSyncWarningKind::Generic,
+        message: format!("Local feed '{}' failed during sync: {error}", feed.title),
+        retry_at: None,
+        retry_in_seconds: None,
+    }
+}
+
 /// Sync a single account, returning warnings on soft anomalies and Err on hard failures.
 pub(crate) async fn sync_account(
     db: &Mutex<DbManager>,
     account: &Account,
-) -> Result<super::sync_providers::ProviderSyncOutcome, AppError> {
+) -> Result<ProviderSyncOutcome, AppError> {
     match account.kind {
         ProviderKind::Local => {
             let provider = local_provider();
@@ -340,10 +351,17 @@ pub(crate) async fn sync_account(
                 let feed_repo = SqliteFeedRepository::new(db_guard.reader());
                 feed_repo.find_by_account(&account.id)?
             };
+            let mut warnings = Vec::new();
             for feed in &feeds {
-                sync_local_feed(db, &provider, &account.id, feed).await?;
+                if let Err(error) = sync_local_feed(db, &provider, &account.id, feed).await {
+                    warn!(
+                        "Failed to pull entries for local feed {}: {error}",
+                        feed.url
+                    );
+                    warnings.push(local_feed_sync_warning(feed, &error));
+                }
             }
-            Ok(super::sync_providers::ProviderSyncOutcome::default())
+            Ok(ProviderSyncOutcome { warnings })
         }
         ProviderKind::FreshRss => {
             let server_url = account.server_url.as_deref().unwrap_or_default();
@@ -1588,7 +1606,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn account_parallel_sync_reports_failures_in_requested_account_order() {
+    async fn account_parallel_sync_reports_local_feed_warnings_in_requested_account_order() {
         let db = Mutex::new(DbManager::new_in_memory().unwrap());
         let syncing = AtomicBool::new(false);
         let first_account = test_sync_command_account("first-account", ProviderKind::Local, true);
@@ -1655,14 +1673,112 @@ mod tests {
         .await
         .unwrap();
 
+        assert!(result.failed.is_empty());
+        assert_eq!(result.succeeded, 2);
         assert_eq!(
             result
-                .failed
+                .warnings
                 .iter()
-                .map(|failure| failure.account_id.as_str())
+                .map(|warning| warning.account_id.as_str())
                 .collect::<Vec<_>>(),
             vec!["second-account", "first-account"]
         );
+        assert!(result
+            .warnings
+            .iter()
+            .all(|warning| warning.message.contains("Local feed")));
+    }
+
+    #[tokio::test]
+    async fn local_account_sync_continues_after_one_feed_fails() {
+        let mut server = Server::new_async().await;
+        let good_feed_url = format!("{}/good.xml", server.url());
+        let good_mock = server
+            .mock("GET", "/good.xml")
+            .with_status(200)
+            .with_header("content-type", "application/rss+xml")
+            .with_body(
+                r#"<?xml version="1.0" encoding="UTF-8"?>
+                <rss version="2.0">
+                  <channel>
+                    <title>Good Feed</title>
+                    <item>
+                      <guid>good-1</guid>
+                      <title>Good Article</title>
+                      <link>https://example.com/good</link>
+                    </item>
+                  </channel>
+                </rss>"#,
+            )
+            .create_async()
+            .await;
+        let db = Mutex::new(DbManager::new_in_memory().unwrap());
+        let account = test_sync_command_account("local-account", ProviderKind::Local, true);
+        let bad_feed = Feed {
+            id: FeedId::new(),
+            account_id: account.id.clone(),
+            folder_id: None,
+            remote_id: None,
+            title: "Bad Feed".to_string(),
+            url: "not-a-url".to_string(),
+            site_url: "https://example.com".to_string(),
+            icon: None,
+            unread_count: 0,
+            reader_mode: "inherit".to_string(),
+            web_preview_mode: "inherit".to_string(),
+        };
+        let good_feed = Feed {
+            id: FeedId::new(),
+            account_id: account.id.clone(),
+            folder_id: None,
+            remote_id: None,
+            title: "Good Feed".to_string(),
+            url: good_feed_url,
+            site_url: "https://example.com".to_string(),
+            icon: None,
+            unread_count: 0,
+            reader_mode: "inherit".to_string(),
+            web_preview_mode: "inherit".to_string(),
+        };
+
+        {
+            let db_guard = db.lock().unwrap();
+            db_guard
+                .writer()
+                .execute(
+                    "INSERT INTO accounts (id, kind, name, sync_interval_secs, sync_on_startup, sync_on_wake, keep_read_items_days) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                    rusqlite::params![
+                        account.id.as_ref(),
+                        "Local",
+                        account.name,
+                        account.sync_interval_secs,
+                        account.sync_on_startup,
+                        account.sync_on_wake,
+                        account.keep_read_items_days,
+                    ],
+                )
+                .unwrap();
+            let feed_repo = SqliteFeedRepository::new(db_guard.writer());
+            feed_repo.save(&bad_feed).unwrap();
+            feed_repo.save(&good_feed).unwrap();
+        }
+
+        let outcome = sync_account(&db, &account).await.unwrap();
+
+        good_mock.assert_async().await;
+        assert_eq!(outcome.warnings.len(), 1);
+        assert!(outcome.warnings[0].message.contains("Bad Feed"));
+        let saved_article_count: i64 = db
+            .lock()
+            .unwrap()
+            .reader()
+            .query_row(
+                "SELECT COUNT(*) FROM articles WHERE feed_id = ?1",
+                rusqlite::params![good_feed.id.as_ref()],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(saved_article_count, 1);
     }
 
     #[test]
