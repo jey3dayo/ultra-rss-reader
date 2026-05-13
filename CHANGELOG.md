@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.38.0] - 2026-05-14
+
+### Bug Fixes
+
+- Local アカウントの同期で一部フィードが失敗しても残りのフィード同期を継続し、OPML から登録し直した大量のローカル購読を扱いやすくした
+
 ## [0.37.2] - 2026-05-14
 
 ### Bug Fixes
