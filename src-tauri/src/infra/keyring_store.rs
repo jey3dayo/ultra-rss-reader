@@ -790,7 +790,7 @@ pub fn get_password_for_sync(account_id: &str) -> DomainResult<String> {
 
     #[cfg(target_os = "macos")]
     {
-        return get_password_from_security_cli(account_id);
+        get_password_from_security_cli(account_id)
     }
 
     #[cfg(not(target_os = "macos"))]
