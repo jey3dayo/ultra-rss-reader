@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.40.0] - 2026-05-15
+
+### Bug Fixes
+
+- macOS native smoke の Rust toolchain bootstrap を明示化し、CI で誤った cargo 実行ファイルを拾って失敗する状態を防いだ
+
 ## [0.39.0] - 2026-05-15
 
 ### Documentation
