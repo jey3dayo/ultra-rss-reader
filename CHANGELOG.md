@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.38.1] - 2026-05-14
+
+### Maintenance
+
+- macOS 版リリース成果物の署名と Gatekeeper 検証を release workflow に追加し、署名情報がない状態では成果物作成前に停止するようにした
+
 ## [0.38.0] - 2026-05-14
 
 ### Bug Fixes
