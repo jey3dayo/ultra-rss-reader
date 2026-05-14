@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.38.2] - 2026-05-14
+
+### Maintenance
+
+- Developer ID 未契約でも macOS 版を ad-hoc 署名付きでリリースできるようにし、Gatekeeper 検証は Apple 公証情報がある場合のみ必須にした
+
 ## [0.38.1] - 2026-05-14
 
 ### Maintenance
