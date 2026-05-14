@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.38.3] - 2026-05-14
+
+### Maintenance
+
+- macOS の ad-hoc 署名ビルドで空の Apple signing identity を渡さないようにし、リリース前チェックのローカル HTTP テストが環境 proxy に影響されないようにした
+
 ## [0.38.2] - 2026-05-14
 
 ### Maintenance
