@@ -210,6 +210,20 @@ const validateMacosAppSignature = (): void => {
 
   const appBundle = appBundles[0];
   runVerification("codesign", ["--verify", "--deep", "--strict", "--verbose=2", appBundle]);
+
+  const hasNotarizationCredentials = Boolean(
+    process.env.APPLE_SIGNING_IDENTITY &&
+      process.env.APPLE_ID &&
+      process.env.APPLE_PASSWORD &&
+      process.env.APPLE_TEAM_ID,
+  );
+  if (!hasNotarizationCredentials) {
+    console.log(
+      "Skipping Gatekeeper notarization assessment because Apple notarization credentials are not configured",
+    );
+    return;
+  }
+
   runVerification("spctl", ["--assess", "--type", "execute", "--verbose=4", appBundle]);
 };
 

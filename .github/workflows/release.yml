@@ -83,13 +83,6 @@ jobs:
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
           TAURI_SIGNING_PRIVATE_KEY_SET: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD_SET: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD != '' }}
-          APPLE_CERTIFICATE_SET: ${{ secrets.APPLE_CERTIFICATE != '' }}
-          APPLE_CERTIFICATE_PASSWORD_SET: ${{ secrets.APPLE_CERTIFICATE_PASSWORD != '' }}
-          APPLE_SIGNING_IDENTITY_SET: ${{ secrets.APPLE_SIGNING_IDENTITY != '' }}
-          APPLE_ID_SET: ${{ secrets.APPLE_ID != '' }}
-          APPLE_PASSWORD_SET: ${{ secrets.APPLE_PASSWORD != '' }}
-          APPLE_TEAM_ID_SET: ${{ secrets.APPLE_TEAM_ID != '' }}
-          KEYCHAIN_PASSWORD_SET: ${{ secrets.KEYCHAIN_PASSWORD != '' }}
         run: |
           set -euo pipefail
 
@@ -106,27 +99,6 @@ jobs:
           fi
           if [[ "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD_SET" != "true" ]]; then
             missing+=("TAURI_SIGNING_PRIVATE_KEY_PASSWORD")
-          fi
-          if [[ "$APPLE_CERTIFICATE_SET" != "true" ]]; then
-            missing+=("APPLE_CERTIFICATE")
-          fi
-          if [[ "$APPLE_CERTIFICATE_PASSWORD_SET" != "true" ]]; then
-            missing+=("APPLE_CERTIFICATE_PASSWORD")
-          fi
-          if [[ "$APPLE_SIGNING_IDENTITY_SET" != "true" ]]; then
-            missing+=("APPLE_SIGNING_IDENTITY")
-          fi
-          if [[ "$APPLE_ID_SET" != "true" ]]; then
-            missing+=("APPLE_ID")
-          fi
-          if [[ "$APPLE_PASSWORD_SET" != "true" ]]; then
-            missing+=("APPLE_PASSWORD")
-          fi
-          if [[ "$APPLE_TEAM_ID_SET" != "true" ]]; then
-            missing+=("APPLE_TEAM_ID")
-          fi
-          if [[ "$KEYCHAIN_PASSWORD_SET" != "true" ]]; then
-            missing+=("KEYCHAIN_PASSWORD")
           fi
           if (( ${#missing[@]} > 0 )); then
             error="release signing secrets are required before artifact build or draft release upload"
@@ -236,13 +208,6 @@ jobs:
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
           TAURI_SIGNING_PRIVATE_KEY_SET: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD_SET: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD != '' }}
-          APPLE_CERTIFICATE_SET: ${{ secrets.APPLE_CERTIFICATE != '' }}
-          APPLE_CERTIFICATE_PASSWORD_SET: ${{ secrets.APPLE_CERTIFICATE_PASSWORD != '' }}
-          APPLE_SIGNING_IDENTITY_SET: ${{ secrets.APPLE_SIGNING_IDENTITY != '' }}
-          APPLE_ID_SET: ${{ secrets.APPLE_ID != '' }}
-          APPLE_PASSWORD_SET: ${{ secrets.APPLE_PASSWORD != '' }}
-          APPLE_TEAM_ID_SET: ${{ secrets.APPLE_TEAM_ID != '' }}
-          KEYCHAIN_PASSWORD_SET: ${{ secrets.KEYCHAIN_PASSWORD != '' }}
         run: |
           set -euo pipefail
 
@@ -259,27 +224,6 @@ jobs:
           fi
           if [[ "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD_SET" != "true" ]]; then
             missing+=("TAURI_SIGNING_PRIVATE_KEY_PASSWORD")
-          fi
-          if [[ "$APPLE_CERTIFICATE_SET" != "true" ]]; then
-            missing+=("APPLE_CERTIFICATE")
-          fi
-          if [[ "$APPLE_CERTIFICATE_PASSWORD_SET" != "true" ]]; then
-            missing+=("APPLE_CERTIFICATE_PASSWORD")
-          fi
-          if [[ "$APPLE_SIGNING_IDENTITY_SET" != "true" ]]; then
-            missing+=("APPLE_SIGNING_IDENTITY")
-          fi
-          if [[ "$APPLE_ID_SET" != "true" ]]; then
-            missing+=("APPLE_ID")
-          fi
-          if [[ "$APPLE_PASSWORD_SET" != "true" ]]; then
-            missing+=("APPLE_PASSWORD")
-          fi
-          if [[ "$APPLE_TEAM_ID_SET" != "true" ]]; then
-            missing+=("APPLE_TEAM_ID")
-          fi
-          if [[ "$KEYCHAIN_PASSWORD_SET" != "true" ]]; then
-            missing+=("KEYCHAIN_PASSWORD")
           fi
           if (( ${#missing[@]} > 0 )); then
             error="release signing secrets are required before artifact build or draft release upload"
@@ -323,6 +267,11 @@ jobs:
         run: |
           set -euo pipefail
 
+          if [[ -z "$APPLE_CERTIFICATE" ]]; then
+            echo "::notice::APPLE_CERTIFICATE is not configured; building macOS artifacts with ad-hoc signing"
+            exit 0
+          fi
+
           certificate_path="$RUNNER_TEMP/apple-signing-certificate.p12"
           keychain_path="$RUNNER_TEMP/release-signing.keychain-db"
 
@@ -361,6 +310,11 @@ jobs:
       - name: Validate macOS app signing
         if: steps.signing-preflight.outputs.should_publish == 'true' && runner.os == 'macOS'
         shell: bash
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: node ./scripts/release/artifacts.ts validate-macos-app-signature
 
       - name: Validate updater manifest asset contract

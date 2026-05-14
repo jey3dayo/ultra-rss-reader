@@ -89,6 +89,7 @@ test("release config overrides identifier and enables updater artifacts", async 
 
   expect(config.identifier).toBe(productionIdentifier);
   expect(config.bundle.createUpdaterArtifacts).toBe(true);
+  expect(config.bundle.macOS?.signingIdentity).toBe("-");
 });
 
 test("release workflow exports updater signing secrets", async () => {
@@ -104,19 +105,11 @@ test("release workflow exports updater signing secrets", async () => {
   expect(tauriActionBlock).toContain("APPLE_PASSWORD:");
   expect(tauriActionBlock).toContain("APPLE_TEAM_ID:");
   expect(workflow).toContain("Import Apple signing certificate");
-  for (const secretName of [
-    "APPLE_CERTIFICATE",
-    "APPLE_CERTIFICATE_PASSWORD",
-    "APPLE_SIGNING_IDENTITY",
-    "APPLE_ID",
-    "APPLE_PASSWORD",
-    "APPLE_TEAM_ID",
-    "KEYCHAIN_PASSWORD",
-  ] as const) {
-    expect(workflow).toContain(`${secretName}_SET: $` + `{{ secrets.${secretName} != '' }}`);
-    expect(workflow).toContain(`missing+=("${secretName}")`);
-  }
+  expect(workflow).toContain("building macOS artifacts with ad-hoc signing");
+  expect(workflow).not.toContain('missing+=("APPLE_CERTIFICATE")');
+  expect(workflow).not.toContain('missing+=("APPLE_SIGNING_IDENTITY")');
   expect(releaseConfig.bundle.createUpdaterArtifacts).toBe(true);
+  expect(releaseConfig.bundle.macOS?.signingIdentity).toBe("-");
   expect(tauriActionBlock).toContain(`--config ${releaseTauriConfigPath}`);
   expect(tauriActionBlock).not.toContain(`--config ${devTauriConfigPath}`);
   expect(releaseVersionValidatorSource).toContain(`const RELEASE_TAURI_CONFIG_PATH = "${releaseTauriConfigPath}";`);
@@ -142,6 +135,8 @@ test("release workflow maps updater manifest platforms to asset signatures and c
   expect(workflow).toContain("Upload updater asset checksums");
   expect(releaseArtifactsSource).toContain("validate-macos-app-signature");
   expect(releaseArtifactsSource).toContain('"codesign", ["--verify", "--deep", "--strict", "--verbose=2", appBundle]');
+  expect(releaseArtifactsSource).toContain("Skipping Gatekeeper notarization assessment");
+  expect(releaseArtifactsSource).toContain("hasNotarizationCredentials");
   expect(releaseArtifactsSource).toContain('"spctl", ["--assess", "--type", "execute", "--verbose=4", appBundle]');
   expect(releaseArtifactsSource).toContain('UNSUPPORTED_UPDATER_PLATFORM_KEYS = ["linux-x86_64", "linux-aarch64"]');
 

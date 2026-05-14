@@ -1724,18 +1724,9 @@ describe("repository static contracts", () => {
     expect(tauriActionIndex).toBeLessThan(validateMacosSigningIndex);
     expect(releaseWorkflow).toContain(`TAURI_SIGNING_PRIVATE_KEY: ${signingKeyExpression}`);
     expect(releaseWorkflow).toContain(`TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${signingPasswordExpression}`);
-    for (const secretName of [
-      "APPLE_CERTIFICATE",
-      "APPLE_CERTIFICATE_PASSWORD",
-      "APPLE_SIGNING_IDENTITY",
-      "APPLE_ID",
-      "APPLE_PASSWORD",
-      "APPLE_TEAM_ID",
-      "KEYCHAIN_PASSWORD",
-    ] as const) {
-      expect(releaseWorkflow).toContain(`${secretName}_SET: $` + `{{ secrets.${secretName} != '' }}`);
-      expect(releaseWorkflow).toContain(`missing+=("${secretName}")`);
-    }
+    expect(releaseWorkflow).toContain("building macOS artifacts with ad-hoc signing");
+    expect(releaseWorkflow).not.toContain('missing+=("APPLE_CERTIFICATE")');
+    expect(releaseWorkflow).not.toContain('missing+=("APPLE_SIGNING_IDENTITY")');
     expect(releaseWorkflow).toContain(`APPLE_SIGNING_IDENTITY: ${appleSigningIdentityExpression}`);
     expect(releaseWorkflow).toContain(`APPLE_ID: ${appleIdExpression}`);
     expect(releaseWorkflow).toContain(`APPLE_PASSWORD: ${applePasswordExpression}`);
@@ -1750,6 +1741,7 @@ describe("repository static contracts", () => {
     expect(releaseWorkflow).toContain("--config src-tauri/tauri.release.conf.json");
     expect(releaseWorkflow).toContain("--ci");
     expect(tauriReleaseConfig.bundle.createUpdaterArtifacts).toBe(true);
+    expect(tauriReleaseConfig.bundle.macOS?.signingIdentity).toBe("-");
   });
 
   it("keeps release provenance uploads recoverable after partial asset failures", () => {

@@ -37,6 +37,11 @@ export const TauriReleaseConfigSchema = z.object({
   identifier: z.string(),
   bundle: z.object({
     createUpdaterArtifacts: z.boolean(),
+    macOS: z
+      .object({
+        signingIdentity: z.string(),
+      })
+      .optional(),
   }),
 });
 
