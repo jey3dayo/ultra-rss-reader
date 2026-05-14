@@ -100,10 +100,10 @@ test("release workflow exports updater signing secrets", async () => {
   expect(tauriActionBlock).toMatch(/^\s+env:\s*$/m);
   expect(tauriActionBlock).toContain("TAURI_SIGNING_PRIVATE_KEY:");
   expect(tauriActionBlock).toContain("TAURI_SIGNING_PRIVATE_KEY_PASSWORD:");
-  expect(tauriActionBlock).toContain("APPLE_SIGNING_IDENTITY:");
-  expect(tauriActionBlock).toContain("APPLE_ID:");
-  expect(tauriActionBlock).toContain("APPLE_PASSWORD:");
-  expect(tauriActionBlock).toContain("APPLE_TEAM_ID:");
+  expect(tauriActionBlock).not.toContain("APPLE_SIGNING_IDENTITY:");
+  expect(tauriActionBlock).not.toContain("APPLE_ID:");
+  expect(tauriActionBlock).not.toContain("APPLE_PASSWORD:");
+  expect(tauriActionBlock).not.toContain("APPLE_TEAM_ID:");
   expect(workflow).toContain("Import Apple signing certificate");
   expect(workflow).toContain("building macOS artifacts with ad-hoc signing");
   expect(workflow).not.toContain('missing+=("APPLE_CERTIFICATE")');

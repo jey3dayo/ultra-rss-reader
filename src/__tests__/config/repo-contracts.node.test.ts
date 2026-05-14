@@ -1693,10 +1693,6 @@ describe("repository static contracts", () => {
     const releaseWorkflow = readRepoFile(".github/workflows/release.yml");
     const signingKeyExpression = "$" + "{{ secrets.TAURI_SIGNING_PRIVATE_KEY }}";
     const signingPasswordExpression = "$" + "{{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}";
-    const appleSigningIdentityExpression = "$" + "{{ secrets.APPLE_SIGNING_IDENTITY }}";
-    const appleIdExpression = "$" + "{{ secrets.APPLE_ID }}";
-    const applePasswordExpression = "$" + "{{ secrets.APPLE_PASSWORD }}";
-    const appleTeamIdExpression = "$" + "{{ secrets.APPLE_TEAM_ID }}";
     const unqualifiedWorkflowDispatchReleaseRefExpression =
       "$" + "{{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref }}";
     const workflowDispatchReleaseNameExpression =
@@ -1727,10 +1723,10 @@ describe("repository static contracts", () => {
     expect(releaseWorkflow).toContain("building macOS artifacts with ad-hoc signing");
     expect(releaseWorkflow).not.toContain('missing+=("APPLE_CERTIFICATE")');
     expect(releaseWorkflow).not.toContain('missing+=("APPLE_SIGNING_IDENTITY")');
-    expect(releaseWorkflow).toContain(`APPLE_SIGNING_IDENTITY: ${appleSigningIdentityExpression}`);
-    expect(releaseWorkflow).toContain(`APPLE_ID: ${appleIdExpression}`);
-    expect(releaseWorkflow).toContain(`APPLE_PASSWORD: ${applePasswordExpression}`);
-    expect(releaseWorkflow).toContain(`APPLE_TEAM_ID: ${appleTeamIdExpression}`);
+    expect(releaseWorkflow).toContain("APPLE_SIGNING_IDENTITY: $" + "{{ secrets.APPLE_SIGNING_IDENTITY }}");
+    expect(releaseWorkflow).toContain("APPLE_ID: $" + "{{ secrets.APPLE_ID }}");
+    expect(releaseWorkflow).toContain("APPLE_PASSWORD: $" + "{{ secrets.APPLE_PASSWORD }}");
+    expect(releaseWorkflow).toContain("APPLE_TEAM_ID: $" + "{{ secrets.APPLE_TEAM_ID }}");
     expect(releaseWorkflow).toContain("node ./scripts/release/artifacts.ts validate-macos-app-signature");
     expect(releaseWorkflow).toContain(`tagName: ${workflowDispatchReleaseNameExpression}`);
     expect(releaseWorkflow).toContain(`releaseName: ${workflowDispatchReleaseNameExpression}`);
