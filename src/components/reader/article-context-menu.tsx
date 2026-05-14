@@ -82,7 +82,7 @@ export function ArticleContextMenu({ article, feedUrl, children }: ArticleContex
       <ArticleContextMenuView
         toggleReadLabel={targetArticle.is_read ? t("mark_as_unread") : t("mark_as_read")}
         toggleStarLabel={targetArticle.is_starred ? t("unstar") : t("star")}
-        openInBrowserLabel={targetArticle.url ? t("open_in_browser") : undefined}
+        openInBrowserLabel={targetArticle.url ? t("open_article_in_browser") : undefined}
         copyFeedUrlLabel={targetFeedUrl ? t("copy_feed_url") : undefined}
         onToggleRead={handleToggleRead}
         onToggleStar={handleToggleStar}

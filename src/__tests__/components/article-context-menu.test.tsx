@@ -16,7 +16,7 @@ describe("ArticleContextMenu", () => {
     setupTauriMocks();
   });
 
-  it("uses preview wording for the in-app browser action", async () => {
+  it("uses browser wording for the external browser action", async () => {
     render(
       <ArticleContextMenu article={sampleArticles[0]}>
         <button type="button">Article row</button>
@@ -26,7 +26,7 @@ describe("ArticleContextMenu", () => {
 
     fireEvent.contextMenu(screen.getByRole("button", { name: "Article row" }));
 
-    expect(await screen.findByRole("menuitem", { name: "Open Web Preview" })).toBeInTheDocument();
+    expect(await screen.findByRole("menuitem", { name: "Open in Browser" })).toBeInTheDocument();
   });
 
   it("reuses article actions when opening the browser from the context menu", async () => {
@@ -51,7 +51,7 @@ describe("ArticleContextMenu", () => {
 
     const user = userEvent.setup();
     fireEvent.contextMenu(screen.getByRole("button", { name: "Article row" }));
-    await user.click(await screen.findByRole("menuitem", { name: "Open Web Preview" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Open in Browser" }));
 
     await waitFor(() => {
       expect(calls).toContainEqual({
@@ -125,7 +125,7 @@ describe("ArticleContextMenu", () => {
       </ArticleContextMenu>,
     );
 
-    await user.click(await screen.findByRole("menuitem", { name: "Open Web Preview" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Open in Browser" }));
 
     await waitFor(() => {
       expect(calls).toContainEqual({

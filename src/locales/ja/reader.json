@@ -130,6 +130,7 @@
   "unstar": "スターを外す",
   "star": "スターを付ける",
   "open_in_browser": "Webプレビューを開く",
+  "open_article_in_browser": "ブラウザで開く",
   "add_feed": "フィードを追加",
   "add_feed_description": "フィードURLまたはサイトURLからフィードを自動検出します。",
   "feed_or_site_url": "フィードまたはサイトURL",

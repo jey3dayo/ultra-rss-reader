@@ -130,6 +130,7 @@
   "unstar": "Unstar",
   "star": "Star",
   "open_in_browser": "Open Web Preview",
+  "open_article_in_browser": "Open in Browser",
   "add_feed": "Add Feed",
   "add_feed_description": "Enter a feed URL or site URL to discover feeds automatically.",
   "feed_or_site_url": "Feed or Site URL",
