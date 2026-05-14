@@ -17,8 +17,19 @@ For an urgent patch that only fixes a released regression, use the [Hotfix Relea
 1. `mise run ci` passes on the release commit.
 2. A packaged build is available for the target OS.
 3. FreshRSS live credentials are available in `.env` if the build still supports FreshRSS.
-4. A signed draft release exists if you are verifying the updater install path.
+4. A draft release with updater-signed artifacts exists if you are verifying
+   the updater install path.
 5. The previous release build is available when verifying updater install and restart behavior.
+
+### macOS Signing Baseline
+
+Current release policy assumes no Apple Developer Program / Developer ID. macOS
+artifacts are ad-hoc signed with `signingIdentity: "-"`.
+`codesign --verify --deep --strict` must pass for the packaged `.app`.
+Gatekeeper notarization assessment is required only when Apple notarization
+credentials are configured for the workflow; otherwise record the `spctl`
+result as skipped or rejected by policy instead of treating it as a release
+failure.
 
 ## Release Path Decision
 
@@ -61,11 +72,13 @@ platforms or surfaces that did not change.
 
 - OS: macOS, using a published artifact downloaded through the normal browser or
   GitHub Releases path.
-- Expected result: Gatekeeper accepts the signed/notarized app, quarantine does
-  not require manual removal, and launching from `/Applications` uses the
-  expected app data and log locations.
-- Evidence: `codesign` result, `spctl` result, quarantine attribute note,
-  notarization or Gatekeeper prompt screenshot if shown, and a redacted log note.
+- Expected result: the ad-hoc signed app passes strict `codesign`
+  verification, the Gatekeeper / notarization outcome matches the configured
+  release policy, quarantine behavior is recorded, and launching from
+  `/Applications` uses the expected app data and log locations.
+- Evidence: `codesign` result, `spctl` result or skipped-by-policy note,
+  quarantine attribute note, notarization or Gatekeeper prompt screenshot if
+  shown, and a redacted log note.
 
 ### Windows SmartScreen Smoke
 
@@ -140,8 +153,8 @@ Confirm and record:
 - Updater signature sidecar asset name, source release URL, and whether the
   sidecar matches the published artifact being installed
 - Codesign result, for example `codesign --verify --deep --strict --verbose=2 <app>`
-- Gatekeeper result, for example `spctl --assess --type execute --verbose <app>`
-- Gatekeeper assessment result
+- Gatekeeper result, for example `spctl --assess --type execute --verbose <app>`, or the skipped-by-policy reason when Apple notarization credentials are not configured
+- Gatekeeper assessment result or ad-hoc signing policy result
 - Installed app identifier or bundle identifier observed from the packaged app
 - Installed app version shown by the packaged app
 - Quarantine and first-launch result from the published artifact path, or the
@@ -178,10 +191,11 @@ Confirm and record:
   evidence type so missing or mismatched artifacts are visible without relying
   on hard-coded file names.
 - Draft release attachment list before publishing.
-- If release signing secrets are unavailable, the workflow must stop before
+- If updater signing secrets are unavailable, the workflow must stop before
   artifact build or draft Release upload. Record the missing secret names shown
   by the workflow copy, or record that `workflow_dispatch` used `dry_run=true`
-  and intentionally skipped artifact publication.
+  and intentionally skipped artifact publication. Apple Developer ID /
+  notarization credentials are optional under the current macOS release policy.
 
 ### 2b. Release Dev-Only Contamination Record
 
@@ -218,7 +232,7 @@ Run this with the published macOS artifact downloaded through the normal browser
 Confirm and record:
 
 - Downloaded artifact name, release URL, SHA-256 digest, and whether the downloaded artifact has the `com.apple.quarantine` extended attribute.
-- Gatekeeper and notarization result before first launch, including any warning or confirmation prompt.
+- Gatekeeper and notarization policy result before first launch, including any warning or confirmation prompt.
 - Whether launching directly from the mounted DMG works or is intentionally blocked by policy.
 - Whether launching after copying to `/Applications` opens the same app version and does not require removing quarantine manually.
 - Whether the app appears to run from a translocated path on direct launch, and whether that path changes after moving the app to `/Applications`.

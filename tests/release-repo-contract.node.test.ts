@@ -1715,7 +1715,11 @@ describe("release repository contract", () => {
     expect(releaseManualVerification).toContain("published macOS artifact downloaded through the normal browser");
     expect(releaseManualVerification).toContain("not a locally rebuilt or re-signed app");
     expect(releaseManualVerification).toContain("com.apple.quarantine");
-    expect(releaseManualVerification).toContain("Gatekeeper and notarization result before first launch");
+    expect(releaseManualVerification).toContain(
+      "Current release policy assumes no Apple Developer Program / Developer ID",
+    );
+    expect(releaseManualVerification).toContain('ad-hoc signed with `signingIdentity: "-"`');
+    expect(releaseManualVerification).toContain("Gatekeeper and notarization policy result before first launch");
     expect(releaseManualVerification).toContain("does not require removing quarantine manually");
     expect(releaseManualVerification).toContain("translocation evidence");
     expect(releaseManualVerification).toContain("Do not work around it by clearing quarantine on the verifier machine");

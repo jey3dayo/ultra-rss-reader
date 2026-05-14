@@ -200,7 +200,7 @@ Always run `mise run check` before committing. Run `mise run test:unit:dom` for 
 - `mise run build:storybook` is the static Storybook build gate. Run it with `mise run test:storybook:e2e` before relying on a Storybook fixture in a review or release note.
 - `mise run test:live` is opt-in and requires real FreshRSS credentials from `.env`.
 - Features that depend on OS services such as updater installation and native keyring behavior still need platform-specific manual verification. Follow [docs/release-manual-verification.md](docs/release-manual-verification.md) before tagging a release or sharing a packaged build.
-- Published release install verification must use the artifact from GitHub Releases and record its digest, codesign result, and Gatekeeper result. `mise run app:install` rebuilds from the current checkout and may locally re-sign the app, so it is not a substitute for published artifact verification.
+- Published release install verification must use the artifact from GitHub Releases and record its digest, codesign result, and Gatekeeper result. macOS releases currently assume no Apple Developer Program / Developer ID; the app is ad-hoc signed, so `codesign --verify --deep --strict` is required evidence and Gatekeeper notarization acceptance is recorded as skipped or rejected by policy unless Apple notarization credentials are configured. `mise run app:install` rebuilds from the current checkout and may locally re-sign the app, so it is not a substitute for published artifact verification.
 
 ### Verification Matrix
 
@@ -330,6 +330,8 @@ Error mapping: `DomainError` â†’ `AppError` at the command boundary (`Network` â
 ## Release
 
 Tagging `v*` triggers a GitHub Actions release build for macOS Apple Silicon and Windows, then creates a draft GitHub Release. Version is kept in sync across `tauri.conf.json`, `Cargo.toml`, and `package.json`.
+
+macOS release artifacts are built under a no Developer ID policy. The release config uses ad-hoc signing, validates the packaged `.app` with `codesign --verify --deep --strict`, and only treats Gatekeeper notarization assessment as required when Apple notarization credentials are configured.
 
 ## License
 

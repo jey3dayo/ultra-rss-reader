@@ -19,6 +19,8 @@ paths:
 - `generateReleaseNotes` は `false`。リリースノートは CLI（`gh release edit/create`）で管理し、`tauri-action` はアーティファクト添付のみ担当する
 - GitHub Actions の uses にはコミットハッシュ pin + バージョンコメントを付与する
 - `fail-fast: false` で一部のプラットフォーム失敗が他に波及しないようにする
+- macOS は Developer ID なし前提でリリースする。`src-tauri/tauri.release.conf.json` は ad-hoc signing (`signingIdentity: "-"`) を使い、workflow は `codesign --verify --deep --strict` を必須検証にする
+- Gatekeeper / notarization 評価は Apple 公証情報が設定されている場合のみ必須。未設定時の `spctl` reject は既知の配布制約として記録し、release failure 扱いにしない
 
 ## バージョン管理
 
@@ -64,5 +66,6 @@ Tauri アプリのクロスプラットフォームビルドは OS 固有のツ�
 
 ## スコープ外（将来追加可能）
 
-- コード署名（Apple Developer Program / Windows EV 証明書）
+- Developer ID / Apple notarization による macOS 配布
+- Windows EV 証明書
 - Linux ビルド（.deb / .AppImage）

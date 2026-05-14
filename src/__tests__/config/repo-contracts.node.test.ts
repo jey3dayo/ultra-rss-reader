@@ -1839,8 +1839,12 @@ describe("repository static contracts", () => {
     expect(releaseManualVerification).toContain("Release Dev-Only Contamination Record");
     expect(releaseManualVerification).toContain("debug-only MCP bridge permissions");
     expect(releaseManualVerification).toContain("Published release artifact name and release URL");
-    expect(releaseManualVerification).toContain("Gatekeeper assessment result");
+    expect(releaseManualVerification).toContain(
+      "Current release policy assumes no Apple Developer Program / Developer ID",
+    );
+    expect(releaseManualVerification).toContain("Gatekeeper assessment result or ad-hoc signing policy result");
     expect(readme).toContain("Published release install verification must use the artifact from GitHub Releases");
+    expect(readme).toContain("macOS releases currently assume no Apple Developer Program / Developer ID");
     expect(readme).toContain("`mise run app:install` rebuilds from the current checkout");
     expect(appInstallTask).toContain("Build, locally re-sign, and install the current checkout");
     expect(appInstallTask).toContain("src-tauri/target/release/bundle/macos");
