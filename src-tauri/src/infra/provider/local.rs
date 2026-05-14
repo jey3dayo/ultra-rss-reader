@@ -1209,7 +1209,10 @@ mod tests {
             "provider test HTTP servers should not share a fixed port"
         );
 
-        let client = reqwest::Client::new();
+        let client = reqwest::Client::builder()
+            .no_proxy()
+            .build()
+            .expect("test HTTP client should build without proxy configuration");
         let status_a = client
             .get(server_a.url("/probe-a"))
             .send()
