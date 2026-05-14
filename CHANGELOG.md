@@ -4,6 +4,17 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.41.0] - 2026-05-15
+
+### Features
+
+- 記事リストのコンテキストメニューからフィード URL をコピーできるようにした
+
+### Bug Fixes
+
+- macOS の本番 Web Preview で HTTP の記事ページが ATS にブロックされて白紙になる問題を、Web コンテンツ限定の許可で解消した
+- 記事の右クリックメニューで、外部ブラウザを開く操作の文言を「ブラウザで開く」に揃えた
+
 ## [0.40.0] - 2026-05-15
 
 ### Bug Fixes
