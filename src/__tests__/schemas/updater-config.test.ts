@@ -99,6 +99,23 @@ test("release workflow exports updater signing secrets", async () => {
   expect(tauriActionBlock).toMatch(/^\s+env:\s*$/m);
   expect(tauriActionBlock).toContain("TAURI_SIGNING_PRIVATE_KEY:");
   expect(tauriActionBlock).toContain("TAURI_SIGNING_PRIVATE_KEY_PASSWORD:");
+  expect(tauriActionBlock).toContain("APPLE_SIGNING_IDENTITY:");
+  expect(tauriActionBlock).toContain("APPLE_ID:");
+  expect(tauriActionBlock).toContain("APPLE_PASSWORD:");
+  expect(tauriActionBlock).toContain("APPLE_TEAM_ID:");
+  expect(workflow).toContain("Import Apple signing certificate");
+  for (const secretName of [
+    "APPLE_CERTIFICATE",
+    "APPLE_CERTIFICATE_PASSWORD",
+    "APPLE_SIGNING_IDENTITY",
+    "APPLE_ID",
+    "APPLE_PASSWORD",
+    "APPLE_TEAM_ID",
+    "KEYCHAIN_PASSWORD",
+  ] as const) {
+    expect(workflow).toContain(`${secretName}_SET: $` + `{{ secrets.${secretName} != '' }}`);
+    expect(workflow).toContain(`missing+=("${secretName}")`);
+  }
   expect(releaseConfig.bundle.createUpdaterArtifacts).toBe(true);
   expect(tauriActionBlock).toContain(`--config ${releaseTauriConfigPath}`);
   expect(tauriActionBlock).not.toContain(`--config ${devTauriConfigPath}`);
@@ -120,8 +137,12 @@ test("release workflow maps updater manifest platforms to asset signatures and c
   const workflow = releaseWorkflowSource;
 
   expect(workflow).toContain("Validate updater manifest asset contract");
+  expect(workflow).toContain("Validate macOS app signing");
   expect(workflow).toContain("Generate updater asset checksums");
   expect(workflow).toContain("Upload updater asset checksums");
+  expect(releaseArtifactsSource).toContain("validate-macos-app-signature");
+  expect(releaseArtifactsSource).toContain('"codesign", ["--verify", "--deep", "--strict", "--verbose=2", appBundle]');
+  expect(releaseArtifactsSource).toContain('"spctl", ["--assess", "--type", "execute", "--verbose=4", appBundle]');
   expect(releaseArtifactsSource).toContain('UNSUPPORTED_UPDATER_PLATFORM_KEYS = ["linux-x86_64", "linux-aarch64"]');
 
   for (const contract of releaseUpdaterAssetContract) {
@@ -152,5 +173,9 @@ test("release workflow keeps provenance and dev-only contamination gates before 
   );
   expect(workflow.indexOf("Validate release build contamination contract")).toBeLessThan(
     workflow.indexOf("tauri-apps/tauri-action"),
+  );
+  expect(workflow.indexOf("tauri-apps/tauri-action")).toBeLessThan(workflow.indexOf("Validate macOS app signing"));
+  expect(workflow.indexOf("Validate macOS app signing")).toBeLessThan(
+    workflow.indexOf("Validate updater manifest asset contract"),
   );
 });

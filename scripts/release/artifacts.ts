@@ -113,6 +113,17 @@ const listFiles = (directory: string): string[] => {
   });
 };
 
+const listDirectories = (directory: string): string[] => {
+  if (!existsSync(directory)) {
+    return [];
+  }
+
+  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const entryPath = path.join(directory, entry.name);
+    return entry.isDirectory() ? [entryPath, ...listDirectories(entryPath)] : [];
+  });
+};
+
 const currentContract = (): ReleaseAssetContract => {
   const matrixPlatform = RUNNER_TO_MATRIX_PLATFORM[process.env.RUNNER_OS ?? ""];
   const contract = RELEASE_UPDATER_ASSET_CONTRACT.find((item) => item.matrixPlatform === matrixPlatform);
@@ -166,6 +177,40 @@ const validateUpdaterAssets = (): void => {
       fail(`unexpected future updater platform artifact present: ${unsupportedPlatformKey}`);
     }
   }
+};
+
+const runVerification = (command: string, args: readonly string[]): void => {
+  const result = spawnSync(command, [...args], { encoding: "utf8" });
+  if (result.status === 0) {
+    return;
+  }
+
+  process.stdout.write(result.stdout ?? "");
+  process.stderr.write(result.stderr ?? "");
+  fail(`${command} ${args.join(" ")} failed`);
+};
+
+const validateMacosAppSignature = (): void => {
+  if (process.env.RUNNER_OS !== "macOS") {
+    fail("macOS app signature validation must run on macOS");
+  }
+
+  const contract = currentContract();
+  if (contract.platformKey !== "darwin-aarch64") {
+    fail(`macOS app signature validation cannot run for ${contract.platformKey}`);
+  }
+
+  const appBundles = bundleRoots(contract)
+    .flatMap(listDirectories)
+    .filter((directoryPath) => directoryPath.endsWith(".app"));
+
+  if (appBundles.length !== 1) {
+    fail(`macOS release must produce exactly one .app bundle, found ${appBundles.length}`);
+  }
+
+  const appBundle = appBundles[0];
+  runVerification("codesign", ["--verify", "--deep", "--strict", "--verbose=2", appBundle]);
+  runVerification("spctl", ["--assess", "--type", "execute", "--verbose=4", appBundle]);
 };
 
 const generateUpdaterChecksums = (): void => {
@@ -332,6 +377,9 @@ switch (command) {
   case "validate-updater-assets":
     validateUpdaterAssets();
     break;
+  case "validate-macos-app-signature":
+    validateMacosAppSignature();
+    break;
   case "generate-updater-checksums":
     generateUpdaterChecksums();
     break;
@@ -349,6 +397,6 @@ switch (command) {
     break;
   default:
     fail(
-      `unknown release artifacts command ${command ?? "(missing)"}; expected validate-updater-assets, generate-updater-checksums, generate-dependency-provenance, generate-release-provenance, upload-updater-checksums, or upload-release-provenance`,
+      `unknown release artifacts command ${command ?? "(missing)"}; expected validate-updater-assets, validate-macos-app-signature, generate-updater-checksums, generate-dependency-provenance, generate-release-provenance, upload-updater-checksums, or upload-release-provenance`,
     );
 }

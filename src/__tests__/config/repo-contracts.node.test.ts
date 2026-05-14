@@ -1693,12 +1693,18 @@ describe("repository static contracts", () => {
     const releaseWorkflow = readRepoFile(".github/workflows/release.yml");
     const signingKeyExpression = "$" + "{{ secrets.TAURI_SIGNING_PRIVATE_KEY }}";
     const signingPasswordExpression = "$" + "{{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}";
+    const appleSigningIdentityExpression = "$" + "{{ secrets.APPLE_SIGNING_IDENTITY }}";
+    const appleIdExpression = "$" + "{{ secrets.APPLE_ID }}";
+    const applePasswordExpression = "$" + "{{ secrets.APPLE_PASSWORD }}";
+    const appleTeamIdExpression = "$" + "{{ secrets.APPLE_TEAM_ID }}";
     const unqualifiedWorkflowDispatchReleaseRefExpression =
       "$" + "{{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref }}";
     const workflowDispatchReleaseNameExpression =
       "$" + "{{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}";
     const releasePreflightIndex = releaseWorkflow.indexOf("Run release quality preflight");
+    const importAppleCertificateIndex = releaseWorkflow.indexOf("Import Apple signing certificate");
     const tauriActionIndex = releaseWorkflow.indexOf("uses: tauri-apps/tauri-action@");
+    const validateMacosSigningIndex = releaseWorkflow.indexOf("Validate macOS app signing");
 
     expect(releaseWorkflow).toContain('tags: ["v*"]');
     expect(releaseWorkflow).toContain("workflow_dispatch:");
@@ -1710,10 +1716,31 @@ describe("repository static contracts", () => {
     expect(releaseWorkflow).toContain(["ref: $", "{{ github.ref }}"].join(""));
     expect(releaseWorkflow).not.toContain(`ref: ${unqualifiedWorkflowDispatchReleaseRefExpression}`);
     expect(releasePreflightIndex).toBeGreaterThanOrEqual(0);
+    expect(importAppleCertificateIndex).toBeGreaterThanOrEqual(0);
     expect(tauriActionIndex).toBeGreaterThanOrEqual(0);
+    expect(validateMacosSigningIndex).toBeGreaterThanOrEqual(0);
     expect(releasePreflightIndex).toBeLessThan(tauriActionIndex);
+    expect(importAppleCertificateIndex).toBeLessThan(tauriActionIndex);
+    expect(tauriActionIndex).toBeLessThan(validateMacosSigningIndex);
     expect(releaseWorkflow).toContain(`TAURI_SIGNING_PRIVATE_KEY: ${signingKeyExpression}`);
     expect(releaseWorkflow).toContain(`TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${signingPasswordExpression}`);
+    for (const secretName of [
+      "APPLE_CERTIFICATE",
+      "APPLE_CERTIFICATE_PASSWORD",
+      "APPLE_SIGNING_IDENTITY",
+      "APPLE_ID",
+      "APPLE_PASSWORD",
+      "APPLE_TEAM_ID",
+      "KEYCHAIN_PASSWORD",
+    ] as const) {
+      expect(releaseWorkflow).toContain(`${secretName}_SET: $` + `{{ secrets.${secretName} != '' }}`);
+      expect(releaseWorkflow).toContain(`missing+=("${secretName}")`);
+    }
+    expect(releaseWorkflow).toContain(`APPLE_SIGNING_IDENTITY: ${appleSigningIdentityExpression}`);
+    expect(releaseWorkflow).toContain(`APPLE_ID: ${appleIdExpression}`);
+    expect(releaseWorkflow).toContain(`APPLE_PASSWORD: ${applePasswordExpression}`);
+    expect(releaseWorkflow).toContain(`APPLE_TEAM_ID: ${appleTeamIdExpression}`);
+    expect(releaseWorkflow).toContain("node ./scripts/release/artifacts.ts validate-macos-app-signature");
     expect(releaseWorkflow).toContain(`tagName: ${workflowDispatchReleaseNameExpression}`);
     expect(releaseWorkflow).toContain(`releaseName: ${workflowDispatchReleaseNameExpression}`);
     expect(releaseWorkflow).toContain("releaseDraft: $" + "{{ steps.release-policy.outputs.draft }}");
