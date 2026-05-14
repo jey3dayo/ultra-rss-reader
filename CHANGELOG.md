@@ -4,6 +4,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.39.0] - 2026-05-15
+
+### Documentation
+
+- Developer ID 未契約時の unsigned macOS リリース方針と手動検証手順を整理し、release workflow の期待値を追いやすくした
+
+### Maintenance
+
+- Storybook の Shell & Overlay 参照 canvas で update toast のサンプル同士が重ならないようにし、同じ崩れを E2E で検知できるようにした
+
 ## [0.38.3] - 2026-05-14
 
 ### Maintenance
