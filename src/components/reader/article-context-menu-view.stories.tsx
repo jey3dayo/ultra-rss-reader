@@ -11,9 +11,11 @@ const meta = {
     toggleReadLabel: "Mark as Read",
     toggleStarLabel: "Star",
     openInBrowserLabel: "Open in Browser",
+    copyFeedUrlLabel: "Copy Feed URL",
     onToggleRead: fn(),
     onToggleStar: fn(),
     onOpenInBrowser: fn(),
+    onCopyFeedUrl: fn(),
   },
   render: (args) => (
     <div className="min-h-48 bg-background p-16">

@@ -59,6 +59,7 @@ export function buildArticleListData({
     feedNameMap,
   });
   const selectedFeed = feeds?.find((feed) => feed.id === feedId);
+  const feedUrlById = new Map((feeds ?? []).map((feed) => [feed.id, feed.url]));
 
   return {
     feedId,
@@ -69,6 +70,7 @@ export function buildArticleListData({
     filteredArticles,
     groupedArticles,
     selectedFeed,
+    feedUrlById,
   };
 }
 
@@ -156,6 +158,7 @@ export function useArticleListData(params: UseArticleListDataParams): UseArticle
   }, [filteredArticles, groupBy, feedNameMap]);
 
   const selectedFeed = useMemo(() => feeds?.find((feed) => feed.id === feedId), [feeds, feedId]);
+  const feedUrlById = useMemo(() => new Map((feeds ?? []).map((feed) => [feed.id, feed.url])), [feeds]);
 
   return {
     feedId,
@@ -166,5 +169,6 @@ export function useArticleListData(params: UseArticleListDataParams): UseArticle
     filteredArticles,
     groupedArticles,
     selectedFeed,
+    feedUrlById,
   };
 }

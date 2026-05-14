@@ -101,6 +101,7 @@ export type UseArticleListViewPropsParams = {
   imagePreviews: string;
   selectionStyle: string;
   selectArticle: (articleId: string) => void;
+  feedUrlById: Map<string, string>;
   effectiveViewMode: ViewMode;
   setViewMode: (viewMode: ViewMode) => void;
 } & Pick<
@@ -150,6 +151,7 @@ export type UseArticleListPresentationParams = {
   selectedArticleId: string | null;
   recentlyReadIds: Set<string>;
   selectedFeed: UseArticleListHeaderControllerParams["selectedFeed"];
+  feedUrlById: Map<string, string>;
   layoutMode: UseArticleListHeaderControllerParams["layoutMode"];
   sidebarOpen: boolean;
   openSidebar: () => void;
@@ -307,4 +309,5 @@ export type UseArticleListDataResult = {
   filteredArticles: ArticleDto[];
   groupedArticles: Record<string, ArticleDto[]>;
   selectedFeed: FeedDto | undefined;
+  feedUrlById: Map<string, string>;
 };

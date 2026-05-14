@@ -67,6 +67,7 @@ export function useArticleListController(): UseArticleListViewPropsResult {
     filteredArticles,
     groupedArticles,
     selectedFeed,
+    feedUrlById,
   } = useArticleListData({
     feedId,
     folderId,
@@ -114,6 +115,7 @@ export function useArticleListController(): UseArticleListViewPropsResult {
     selectedArticleId,
     recentlyReadIds,
     selectedFeed,
+    feedUrlById,
     layoutMode,
     sidebarOpen,
     openSidebar,

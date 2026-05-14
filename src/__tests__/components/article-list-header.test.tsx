@@ -362,6 +362,7 @@ describe("ArticleListHeader", () => {
         imagePreviews: "none",
         selectionStyle: "unread",
         selectArticle: vi.fn(),
+        feedUrlById: new Map(),
         effectiveViewMode: "all",
         footerModes: ["all"],
         footerDisabledModes: [],

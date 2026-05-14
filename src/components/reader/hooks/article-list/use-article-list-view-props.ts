@@ -37,6 +37,7 @@ export function useArticleListViewProps({
   imagePreviews,
   selectionStyle,
   selectArticle,
+  feedUrlById,
   effectiveViewMode,
   footerModes,
   footerDisabledModes,
@@ -63,6 +64,7 @@ export function useArticleListViewProps({
     imagePreviews,
     selectionStyle,
     selectArticle,
+    feedUrlById,
     handleCloseSearch,
     handleMarkAllRead,
   });

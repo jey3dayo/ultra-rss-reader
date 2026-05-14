@@ -6,19 +6,25 @@ type ArticleContextMenuViewProps = {
   toggleReadLabel: string;
   toggleStarLabel: string;
   openInBrowserLabel?: string;
+  copyFeedUrlLabel?: string;
   onToggleRead: () => void;
   onToggleStar: () => void;
   onOpenInBrowser?: () => void;
+  onCopyFeedUrl?: () => void;
 };
 
 export function ArticleContextMenuView({
   toggleReadLabel,
   toggleStarLabel,
   openInBrowserLabel,
+  copyFeedUrlLabel,
   onToggleRead,
   onToggleStar,
   onOpenInBrowser,
+  onCopyFeedUrl,
 }: ArticleContextMenuViewProps) {
+  const hasSecondaryActions = (onOpenInBrowser && openInBrowserLabel) || (onCopyFeedUrl && copyFeedUrlLabel);
+
   return (
     <ContextMenu.Portal>
       <ContextMenu.Positioner>
@@ -37,16 +43,27 @@ export function ArticleContextMenuView({
           >
             {toggleStarLabel}
           </ContextMenu.Item>
-          {onOpenInBrowser && openInBrowserLabel && (
+          {hasSecondaryActions && (
             <>
               <ContextMenu.Separator className={contextMenuStyles.separator} />
-              <ContextMenu.Item
-                data-action-id={CONTEXT_MENU_ACTION_IDS.articleOpenBrowser}
-                className={contextMenuStyles.item}
-                onClick={onOpenInBrowser}
-              >
-                {openInBrowserLabel}
-              </ContextMenu.Item>
+              {onOpenInBrowser && openInBrowserLabel && (
+                <ContextMenu.Item
+                  data-action-id={CONTEXT_MENU_ACTION_IDS.articleOpenBrowser}
+                  className={contextMenuStyles.item}
+                  onClick={onOpenInBrowser}
+                >
+                  {openInBrowserLabel}
+                </ContextMenu.Item>
+              )}
+              {onCopyFeedUrl && copyFeedUrlLabel && (
+                <ContextMenu.Item
+                  data-action-id={CONTEXT_MENU_ACTION_IDS.articleCopyFeedUrl}
+                  className={contextMenuStyles.item}
+                  onClick={onCopyFeedUrl}
+                >
+                  {copyFeedUrlLabel}
+                </ContextMenu.Item>
+              )}
             </>
           )}
         </ContextMenu.Popup>

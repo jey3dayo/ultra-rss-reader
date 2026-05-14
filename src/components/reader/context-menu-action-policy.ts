@@ -5,6 +5,7 @@ import { getErrorMessage } from "@/lib/ui/errors";
 export const CONTEXT_MENU_ACTION_IDS = {
   accountOpenSettings: "account-open-settings",
   articleAddToReadingList: "article-add-to-reading-list",
+  articleCopyFeedUrl: "article-copy-feed-url",
   articleCopyLink: "article-copy-link",
   articleOpenBrowser: "article-open-browser",
   articleShareEmail: "article-share-email",

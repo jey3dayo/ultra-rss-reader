@@ -1,8 +1,9 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
-import { sampleArticles } from "@tests/helpers/fixtures";
+import { sampleArticles, sampleFeeds } from "@tests/helpers/fixtures";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
+import type { MockTauriCommandCall } from "@tests/helpers/tauri-types";
 import type { ComponentProps } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ArticleListBody } from "@/components/reader/article-list-body";
@@ -16,6 +17,7 @@ function renderArticleListBody({
   emptyActionLabel,
   onEmptyAction,
   isLoading = false,
+  feedUrlById = new Map([[sampleArticles[0].feed_id, sampleFeeds[0].url]]),
   groups = [
     {
       id: "today",
@@ -40,6 +42,7 @@ function renderArticleListBody({
   emptyActionLabel?: string;
   onEmptyAction?: () => void;
   isLoading?: boolean;
+  feedUrlById?: ComponentProps<typeof ArticleListBody>["feedUrlById"];
   groups?: ComponentProps<typeof ArticleListBody>["groups"];
   onSelectArticle?: (articleId: string) => void;
   onMarkAllRead?: () => void;
@@ -63,6 +66,7 @@ function renderArticleListBody({
       imagePreviews="off"
       selectionStyle="modern"
       onSelectArticle={onSelectArticle}
+      feedUrlById={feedUrlById}
       markAllReadLabel="Mark all as read"
       onMarkAllRead={onMarkAllRead}
     />,
@@ -94,6 +98,31 @@ describe("ArticleListBody", () => {
 
     await user.click(row);
     expect(onSelectArticle).toHaveBeenCalledWith(sampleArticles[0].id);
+  });
+
+  it("copies the right-clicked article source feed URL from the row context menu", async () => {
+    const calls: MockTauriCommandCall[] = [];
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      switch (cmd) {
+        case "copy_to_clipboard":
+          return null;
+        default:
+          return undefined;
+      }
+    });
+
+    const { onSelectArticle } = renderArticleListBody();
+
+    fireEvent.contextMenu(screen.getByRole("option", { name: /First Article/ }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Copy Feed URL" }));
+
+    expect(calls).toContainEqual({
+      cmd: "copy_to_clipboard",
+      args: { text: sampleFeeds[0].url },
+    });
+    expect(onSelectArticle).not.toHaveBeenCalled();
   });
 
   it("keeps the list background context trigger separate from article row actions", async () => {
