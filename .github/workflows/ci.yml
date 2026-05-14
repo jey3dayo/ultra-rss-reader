@@ -413,6 +413,20 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8
 
+      - name: Repair macOS Rustup bootstrap
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo_version="$(cargo --version 2>&1 || true)"
+          if [[ "$cargo_version" == rustup-init* ]]; then
+            rustup_init="$(command -v rustup-init || command -v cargo)"
+            "$rustup_init" -y --default-toolchain stable --profile minimal
+            echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+          fi
+          cargo --version
+          rustc --version
+
       - uses: Swatinem/rust-cache@23869a5bd66c73db3c0ac40331f3206eb23791dc
         with:
           workspaces: src-tauri
