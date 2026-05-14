@@ -345,9 +345,9 @@ export function UpdateToastStabilitySpecimen() {
           title="Stable update notification width"
           body="Download progress and restart-ready notifications share the same update Toast width so progress text changes do not resize the popup."
         />
-        <div className="grid gap-4 xl:grid-cols-4">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,20rem),1fr))] gap-4">
           {updateToastSpecimens.map((specimen) => (
-            <div key={specimen.testId} className="space-y-2">
+            <div key={specimen.testId} className="min-w-0 space-y-2">
               <div className="text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
                 {specimen.label}
               </div>

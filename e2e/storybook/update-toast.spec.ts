@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { expectMeasurableBox } from "../helpers/measurable-box";
 import {
   expectNoRuntimeErrors,
   expectNoStorybookRuntimeErrorDom,
@@ -10,6 +11,8 @@ const updateToastTestIds = [
   "reference-update-toast-download-90",
   "reference-update-toast-ready",
 ] as const;
+
+const updateToastLayoutTestIds = [...updateToastTestIds, "reference-update-toast-failure"] as const;
 
 const shellOverlayStoryUrl = "/iframe.html?id=ui-reference-shell-overlay-canvas--default";
 
@@ -38,11 +41,7 @@ test.describe("Storybook update Toast stability", () => {
       updateToastTestIds.map(async (testId) => {
         const toast = page.getByTestId(testId);
         await expect(toast).toBeVisible();
-        const box = await toast.boundingBox();
-        if (!box) {
-          throw new Error(`Expected ${testId} to have a measurable box.`);
-        }
-        return box;
+        return expectMeasurableBox(toast, testId);
       }),
     );
 
@@ -51,6 +50,43 @@ test.describe("Storybook update Toast stability", () => {
     for (const box of comparisonBoxes) {
       expect(Math.abs(box.width - baselineBox.width)).toBeLessThanOrEqual(1);
     }
+  });
+
+  test("wraps update notification specimens without overlap at the reference viewport", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await openShellOverlayStory(page);
+
+    const boxes = await Promise.all(
+      updateToastLayoutTestIds.map(async (testId) => ({
+        testId,
+        box: await expectMeasurableBox(page.getByTestId(testId), testId),
+      })),
+    );
+
+    const overlaps: string[] = [];
+
+    for (let index = 0; index < boxes.length; index += 1) {
+      for (let comparisonIndex = index + 1; comparisonIndex < boxes.length; comparisonIndex += 1) {
+        const current = boxes[index];
+        const comparison = boxes[comparisonIndex];
+        const horizontalOverlap = Math.max(
+          0,
+          Math.min(current.box.x + current.box.width, comparison.box.x + comparison.box.width) -
+            Math.max(current.box.x, comparison.box.x),
+        );
+        const verticalOverlap = Math.max(
+          0,
+          Math.min(current.box.y + current.box.height, comparison.box.y + comparison.box.height) -
+            Math.max(current.box.y, comparison.box.y),
+        );
+
+        if (horizontalOverlap > 0 && verticalOverlap > 0) {
+          overlaps.push(`${current.testId} overlaps ${comparison.testId}`);
+        }
+      }
+    }
+
+    expect(overlaps).toEqual([]);
   });
 
   test("allows the shell overlay story to scroll when the viewport is short", async ({ page }) => {
