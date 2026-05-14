@@ -1785,6 +1785,17 @@ describe("repository static contracts", () => {
     expect(tauriConfig.app.security.csp).toContain("connect-src ipc: http://ipc.localhost");
   });
 
+  it("keeps Web Preview ATS relaxation scoped to web content loads", () => {
+    const infoPlist = readRepoFile("src-tauri/Info.plist");
+
+    expect(tauriConfig.bundle.macOS?.infoPlist).toBe("Info.plist");
+    expect("infoPlist" in tauriReleaseConfig.bundle.macOS).toBe(false);
+    expect(infoPlist).toContain("<key>NSAppTransportSecurity</key>");
+    expect(infoPlist).toContain("<key>NSAllowsArbitraryLoadsInWebContent</key>");
+    expect(infoPlist).toContain("<true/>");
+    expect(infoPlist).not.toContain("<key>NSAllowsArbitraryLoads</key>");
+  });
+
   it("documents the release-build condition for Tauri unstable child webview APIs", () => {
     const cargoToml = readRepoFile("src-tauri/Cargo.toml");
 
