@@ -739,7 +739,7 @@ describe("ArticleView", () => {
         name: "Web forward",
       }),
     ).toBeInTheDocument();
-    expect(within(overlayActions).getByRole("button", { name: "Reload page" })).toBeInTheDocument();
+    expect(within(overlayChrome).getByRole("button", { name: "Reload page" })).toBeInTheDocument();
     expect(
       within(overlayActions).getByRole("button", {
         name: "Open in External Browser",
@@ -797,17 +797,20 @@ describe("ArticleView", () => {
     });
 
     const overlayActions = await screen.findByTestId("browser-overlay-actions");
-    const customActionShells = within(overlayActions)
-      .getAllByRole("button")
+    const overlayChrome = await screen.findByTestId("browser-overlay-chrome");
+    const toolbarActionShells = [
+      ...within(overlayChrome).getAllByRole("button"),
+      ...within(overlayActions).getAllByRole("button"),
+    ]
       .filter((button) =>
-        ["Reload page", "Open in External Browser", "Share"].includes(
+        ["Reload page", "Open in External Browser", "Copy link"].includes(
           button.getAttribute("aria-label") ?? button.textContent ?? "",
         ),
       )
       .map((button) => button.closest("[data-overlay-shell='action']"));
 
-    expect(customActionShells.length).toBeGreaterThan(1);
-    expect(customActionShells.every((shell) => shell?.className.includes("size-11"))).toBe(true);
+    expect(toolbarActionShells.length).toBeGreaterThan(1);
+    expect(toolbarActionShells.every((shell) => shell?.className.includes("size-11"))).toBe(true);
   });
 
   it("closes only the current article overlay when the overlay close button is pressed", async () => {
