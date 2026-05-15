@@ -524,7 +524,7 @@ describe("useKeyboard", () => {
     expect(calls.map(({ cmd }) => cmd)).not.toContain("open_in_browser");
   });
 
-  it("pressing b opens the selected article in the external browser", async () => {
+  it("pressing b opens the selected article in the external browser without repeating on key hold", async () => {
     const calls: MockTauriCommandCall[] = [];
     renderAppShell(calls);
 
@@ -539,6 +539,11 @@ describe("useKeyboard", () => {
         args: { url: "https://example.com/1", background: false },
       });
     });
+
+    fireEvent.keyDown(window, { key: "b", repeat: true });
+    fireEvent.keyDown(window, { key: "b", repeat: true });
+
+    expect(calls.filter(({ cmd }) => cmd === "open_in_browser")).toHaveLength(1);
   });
 
   it("queues article navigation while browser close is in flight", async () => {

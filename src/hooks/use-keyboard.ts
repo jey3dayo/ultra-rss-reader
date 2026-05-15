@@ -244,6 +244,9 @@ export function useKeyboard() {
         return;
       }
       cancelRepeatNavigation();
+      if (e.repeat) {
+        return;
+      }
 
       switch (resolvedAction.type) {
         case "open-settings":
