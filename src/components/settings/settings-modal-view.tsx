@@ -3,6 +3,7 @@ import { useScrollOverflowState } from "@/components/settings/hooks/use-scroll-o
 import type { SettingsModalViewProps } from "@/components/settings/settings-modal.types";
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { SettingsContentScrollBehaviorProvider } from "@/components/settings/shared/settings-content-layout";
+import { SettingsShellSectionLabel } from "@/components/settings/shared/settings-shell-section-label";
 import { IndeterminateProgress } from "@/components/shared/indeterminate-progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -12,8 +13,6 @@ import { cn } from "@/lib/utils";
 export type { SettingsModalViewProps } from "@/components/settings/settings-modal.types";
 
 const HIDDEN_SCROLLBAR_CLASS = "[&>[data-slot='scroll-area-scrollbar']]:hidden";
-const SHELL_SECTION_LABEL_CLASS =
-  "mb-2 px-1 font-sans text-[11px] font-medium uppercase tracking-[0.14em] text-[color:var(--settings-shell-section-label)]";
 
 export function SettingsModalView({
   open,
@@ -104,7 +103,7 @@ export function SettingsModalView({
                   className="min-h-0 max-h-[5.5rem]"
                   contentClassName="px-3 py-2.5 pr-5"
                 >
-                  {accountsHeading ? <p className={SHELL_SECTION_LABEL_CLASS}>{accountsHeading}</p> : null}
+                  {accountsHeading ? <SettingsShellSectionLabel>{accountsHeading}</SettingsShellSectionLabel> : null}
                   {accountsNavigation}
                 </ScrollArea>
               </div>
@@ -126,7 +125,7 @@ export function SettingsModalView({
             className="mx-3 mb-3 hidden rounded-md border border-border/60 p-3 shadow-none sm:block"
             style={{ backgroundColor: "var(--settings-shell-account-surface)" }}
           >
-            {accountsHeading ? <p className={SHELL_SECTION_LABEL_CLASS}>{accountsHeading}</p> : null}
+            {accountsHeading ? <SettingsShellSectionLabel>{accountsHeading}</SettingsShellSectionLabel> : null}
             <ScrollArea
               data-testid="settings-accounts-scroll-area"
               className="min-h-0 max-h-[15rem]"

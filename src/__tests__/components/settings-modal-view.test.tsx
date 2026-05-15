@@ -286,6 +286,7 @@ describe("SettingsModalView", () => {
     ).toHaveClass("pr-2");
     expect(screen.getAllByText("Accounts")).toHaveLength(2);
     expect(screen.getAllByText("Accounts")[0]).toHaveClass("text-[color:var(--settings-shell-section-label)]");
+    expect(screen.getAllByText("Accounts")[0]).toHaveClass("select-none");
   });
 
   it("renders a narrow-screen accounts section inside the navigation flow", () => {

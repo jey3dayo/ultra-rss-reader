@@ -8,15 +8,13 @@ import { AccountsNavView } from "@/components/settings/accounts-nav-view";
 import { AddAccountForm } from "@/components/settings/add-account/controller";
 import { SettingsNavView } from "@/components/settings/settings-nav-view";
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
+import { SettingsShellSectionLabel } from "@/components/settings/shared/settings-shell-section-label";
 import { StoryQueryClientProvider } from "@/components/storybook/story-query-client-provider";
 import {
   AnnotatedNote,
   ReferencePage,
   SettingsHeaderSummarySpecimen,
 } from "@/components/storybook/ui-reference-settings-specimens";
-
-const SHELL_SECTION_LABEL_CLASS =
-  "mb-2 px-1 font-sans text-[11px] font-medium uppercase tracking-[0.14em] text-[color:var(--settings-shell-section-label)]";
 
 const settingsNavItems = [
   {
@@ -126,7 +124,7 @@ function SettingsWorkspaceShell({
           className="mx-3 mb-3 rounded-md border border-border/60 p-3"
           style={{ backgroundColor: "var(--settings-shell-account-surface)" }}
         >
-          <p className={SHELL_SECTION_LABEL_CLASS}>Accounts</p>
+          <SettingsShellSectionLabel>Accounts</SettingsShellSectionLabel>
           <AccountsNavView
             accounts={[...accounts]}
             addAccountLabel="Add account…"

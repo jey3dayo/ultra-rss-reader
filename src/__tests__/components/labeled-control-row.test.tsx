@@ -11,6 +11,7 @@ describe("LabeledControlRow", () => {
     );
 
     expect(screen.getByText("Open links")).toHaveClass("text-[color:var(--form-row-label)]");
+    expect(screen.getByText("Open links")).toHaveClass("select-none");
     expect(screen.getByText("Open links").closest("div")).toHaveClass(
       "motion-contextual-surface",
       "border-b",

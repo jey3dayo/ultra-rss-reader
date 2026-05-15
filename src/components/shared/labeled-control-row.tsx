@@ -30,7 +30,10 @@ export function LabeledControlRow({
 }: LabeledControlRowProps) {
   const generatedDescriptionId = useId();
   const resolvedDescriptionId = description ? (descriptionId ?? generatedDescriptionId) : undefined;
-  const labelClasses = cn("font-sans text-[14px] leading-[1.35] text-[color:var(--form-row-label)]", labelClassName);
+  const labelClasses = cn(
+    "select-none font-sans text-[14px] leading-[1.35] text-[color:var(--form-row-label)]",
+    labelClassName,
+  );
   const resolvedChildren =
     typeof children === "function" ? children({ descriptionId: resolvedDescriptionId }) : children;
   const labelContent = (
