@@ -14,15 +14,25 @@ export type UseArticleActionShortcutsParams = {
   onAddToReadingList: () => void;
 };
 
-export function useArticleActionShortcuts({
-  keyboardShortcuts,
-  selectedArticleUrl,
-  onToggleRead,
-  onToggleStar,
-  onOpenExternalBrowser,
-  onCopyLink,
-  onAddToReadingList,
-}: UseArticleActionShortcutsParams) {
+export function useArticleActionShortcuts(params: UseArticleActionShortcutsParams | null) {
+  const enabled = params !== null;
+  const {
+    keyboardShortcuts,
+    selectedArticleUrl,
+    onToggleRead,
+    onToggleStar,
+    onOpenExternalBrowser,
+    onCopyLink,
+    onAddToReadingList,
+  } = params ?? {
+    keyboardShortcuts: undefined,
+    selectedArticleUrl: null,
+    onToggleRead: () => {},
+    onToggleStar: () => {},
+    onOpenExternalBrowser: () => {},
+    onCopyLink: () => {},
+    onAddToReadingList: () => {},
+  };
   const contentMode = useUiStore((s) => s.contentMode);
   const selectedArticleId = useUiStore((s) => s.selectedArticleId);
   const shouldIgnoreUrlAction =
@@ -50,6 +60,10 @@ export function useArticleActionShortcuts({
   }, [onAddToReadingList, shouldIgnoreUrlAction]);
 
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
     return bindWindowEvents([
       ...(keyboardShortcuts
         ? [
@@ -79,5 +93,6 @@ export function useArticleActionShortcuts({
     handleOpenExternalBrowserShortcut,
     onToggleRead,
     onToggleStar,
+    enabled,
   ]);
 }

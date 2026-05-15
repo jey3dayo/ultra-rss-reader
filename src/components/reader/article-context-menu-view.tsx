@@ -6,24 +6,24 @@ type ArticleContextMenuViewProps = {
   toggleReadLabel: string;
   toggleStarLabel: string;
   openInBrowserLabel?: string;
-  copyFeedUrlLabel?: string;
+  copyArticleLinkLabel?: string;
   onToggleRead: () => void;
   onToggleStar: () => void;
   onOpenInBrowser?: () => void;
-  onCopyFeedUrl?: () => void;
+  onCopyArticleLink?: () => void;
 };
 
 export function ArticleContextMenuView({
   toggleReadLabel,
   toggleStarLabel,
   openInBrowserLabel,
-  copyFeedUrlLabel,
+  copyArticleLinkLabel,
   onToggleRead,
   onToggleStar,
   onOpenInBrowser,
-  onCopyFeedUrl,
+  onCopyArticleLink,
 }: ArticleContextMenuViewProps) {
-  const hasSecondaryActions = (onOpenInBrowser && openInBrowserLabel) || (onCopyFeedUrl && copyFeedUrlLabel);
+  const hasSecondaryActions = (onOpenInBrowser && openInBrowserLabel) || (onCopyArticleLink && copyArticleLinkLabel);
 
   return (
     <ContextMenu.Portal>
@@ -55,13 +55,13 @@ export function ArticleContextMenuView({
                   {openInBrowserLabel}
                 </ContextMenu.Item>
               )}
-              {onCopyFeedUrl && copyFeedUrlLabel && (
+              {onCopyArticleLink && copyArticleLinkLabel && (
                 <ContextMenu.Item
-                  data-action-id={CONTEXT_MENU_ACTION_IDS.articleCopyFeedUrl}
+                  data-action-id={CONTEXT_MENU_ACTION_IDS.articleCopyLink}
                   className={contextMenuStyles.item}
-                  onClick={onCopyFeedUrl}
+                  onClick={onCopyArticleLink}
                 >
-                  {copyFeedUrlLabel}
+                  {copyArticleLinkLabel}
                 </ContextMenu.Item>
               )}
             </>

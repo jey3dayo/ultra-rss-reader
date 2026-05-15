@@ -28,7 +28,6 @@ type UseArticleListBodyPropsParams = {
   imagePreviews: ArticleListBodyProps["imagePreviews"];
   selectionStyle: ArticleListBodyProps["selectionStyle"];
   selectArticle: ArticleListBodyProps["onSelectArticle"];
-  feedUrlById: ArticleListBodyProps["feedUrlById"];
   handleCloseSearch: () => void;
   handleMarkAllRead: () => void;
 };
@@ -129,7 +128,6 @@ export function useArticleListBodyProps({
   imagePreviews,
   selectionStyle,
   selectArticle,
-  feedUrlById,
   handleCloseSearch,
   handleMarkAllRead,
 }: UseArticleListBodyPropsParams): ArticleListBodyProps {
@@ -161,7 +159,6 @@ export function useArticleListBodyProps({
     imagePreviews,
     selectionStyle,
     onSelectArticle: selectArticle,
-    feedUrlById,
     markAllReadLabel: t("mark_all_as_read"),
     onMarkAllRead: handleMarkAllRead,
   };

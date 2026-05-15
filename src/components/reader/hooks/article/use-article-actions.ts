@@ -22,6 +22,7 @@ type UseArticleActionsParams = {
   setRead: ArticleStatusMutation<{ id: string; read: boolean }>;
   toggleStar: ArticleStatusMutation<{ id: string; starred: boolean }>;
   keyboardShortcuts?: ArticleActionKeyboardShortcuts;
+  enableKeyboardShortcuts?: boolean;
 };
 
 type UseArticleActionsResult = {
@@ -46,6 +47,7 @@ export function useArticleActions({
   setRead,
   toggleStar,
   keyboardShortcuts,
+  enableKeyboardShortcuts = true,
 }: UseArticleActionsParams): UseArticleActionsResult {
   const { t } = useTranslation("reader");
   const articleId = article?.id ?? null;
@@ -101,15 +103,19 @@ export function useArticleActions({
     });
   }, [articleUrl, showToast, supportsReadingList, t]);
 
-  useArticleActionShortcuts({
-    keyboardShortcuts,
-    selectedArticleUrl: articleUrl,
-    onToggleRead: handleToggleRead,
-    onToggleStar: handleToggleStar,
-    onOpenExternalBrowser: handleOpenExternalBrowser,
-    onCopyLink: handleCopyLink,
-    onAddToReadingList: handleAddToReadingList,
-  });
+  useArticleActionShortcuts(
+    enableKeyboardShortcuts
+      ? {
+          keyboardShortcuts,
+          selectedArticleUrl: articleUrl,
+          onToggleRead: handleToggleRead,
+          onToggleStar: handleToggleStar,
+          onOpenExternalBrowser: handleOpenExternalBrowser,
+          onCopyLink: handleCopyLink,
+          onAddToReadingList: handleAddToReadingList,
+        }
+      : null,
+  );
 
   return {
     setReadStatus,

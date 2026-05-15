@@ -24,7 +24,6 @@ export type ArticleListBodyProps = {
   imagePreviews: string;
   selectionStyle: string;
   onSelectArticle: (articleId: string) => void;
-  feedUrlById: ReadonlyMap<string, string>;
   markAllReadLabel: string;
   onMarkAllRead: () => void;
 };
@@ -47,7 +46,6 @@ export function ArticleListBody({
   imagePreviews,
   selectionStyle,
   onSelectArticle,
-  feedUrlById,
   markAllReadLabel,
   onMarkAllRead,
 }: ArticleListBodyProps) {
@@ -75,11 +73,7 @@ export function ArticleListBody({
           imagePreviews={imagePreviews}
           selectionStyle={selectionStyle}
           onSelectArticle={onSelectArticle}
-          renderRow={({ article, content }) => (
-            <ArticleContextMenu article={article} feedUrl={feedUrlById.get(article.feed_id)}>
-              {content}
-            </ArticleContextMenu>
-          )}
+          renderRow={({ article, content }) => <ArticleContextMenu article={article}>{content}</ArticleContextMenu>}
         />
       </ContextMenu.Trigger>
       {showBodyContextMenu ? (
