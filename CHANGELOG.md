@@ -4,6 +4,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.41.1] - 2026-05-15
+
+### Bug Fixes
+
+- Reader の日付やスマートビューなどの構造ラベルを選択不可にし、記事本文以外を誤って選択しにくくした
+
+### Maintenance
+
+- 設定画面のセクションラベルを共通コンポーネントへ寄せ、本文側の設定ラベルも選択不可に揃えた
+
 ## [0.41.0] - 2026-05-15
 
 ### Features
