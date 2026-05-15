@@ -1,4 +1,4 @@
-import { lazy, Suspense, type ReactNode } from "react";
+import { lazy, type ReactNode, Suspense } from "react";
 import { useTranslation } from "react-i18next";
 import type { UiDisplayState } from "@/lib/ui/display-state.types";
 import type { BrowserOverlayCloseHandler, BrowserOverlayToolbarAction } from "./browser-view.types";
