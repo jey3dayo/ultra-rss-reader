@@ -132,12 +132,14 @@ export function IconToolbarSurfaceButton({
   tone = "default",
   variant = "default",
 }: IconToolbarSurfaceButtonProps) {
+  const chromeTargetClassName = variant === "chrome" ? "md:size-10" : undefined;
+
   return (
-    <OverlayActionSurface compact={compact} tone={tone} variant={variant}>
+    <OverlayActionSurface compact={compact} tone={tone} variant={variant} className={chromeTargetClassName}>
       <AppTooltip label={tooltipLabel ?? label} side={tooltipSide} align={tooltipAlign} sideOffset={tooltipSideOffset}>
         <ButtonPrimitive
           onClick={onClick}
-          className={cn(iconToolbarSurfaceButtonClassName, className)}
+          className={cn(iconToolbarSurfaceButtonClassName, chromeTargetClassName, className)}
           disabled={disabled}
           aria-label={label}
         >

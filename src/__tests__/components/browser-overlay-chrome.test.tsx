@@ -114,6 +114,19 @@ function getToolbarButtonLabels(): string[] {
   return labels;
 }
 
+function getLeadingButtonLabels(): string[] {
+  const labels: string[] = [];
+
+  for (const button of within(screen.getByTestId("browser-overlay-chrome")).getAllByRole("button")) {
+    const label = button.getAttribute("aria-label");
+    if (label !== null) {
+      labels.push(label);
+    }
+  }
+
+  return labels;
+}
+
 describe("BrowserOverlayChrome", () => {
   afterEach(() => {
     vi.useRealTimers();
@@ -153,7 +166,7 @@ describe("BrowserOverlayChrome", () => {
     expect(closeSurface).not.toHaveClass("border-transparent");
   });
 
-  it("renders close, back, and forward controls on the leading side", async () => {
+  it("renders close and browser navigation controls on the leading side", async () => {
     const user = userEvent.setup();
     const controller = createController({
       browserState: {
@@ -175,6 +188,7 @@ describe("BrowserOverlayChrome", () => {
     );
 
     const leadingChrome = within(screen.getByTestId("browser-overlay-chrome"));
+    expect(screen.getByTestId("browser-overlay-chrome")).toHaveClass("gap-0");
     const closeButton = leadingChrome.getByRole("button", {
       name: "Close Web Preview",
     });
@@ -182,21 +196,34 @@ describe("BrowserOverlayChrome", () => {
     const forwardButton = leadingChrome.getByRole("button", {
       name: "Web forward",
     });
+    const reloadButton = leadingChrome.getByRole("button", {
+      name: "Reload page",
+    });
 
+    expect(getLeadingButtonLabels()).toEqual(["Close Web Preview", "Web back", "Web forward", "Reload page"]);
     expect(closeButton.closest("[data-overlay-shell='action']")).toHaveClass("size-11");
+    expect(closeButton.closest("[data-overlay-shell='action']")).toHaveClass("md:size-10");
     expect(backButton.closest("[data-overlay-shell='action']")).toHaveClass("size-11");
+    expect(backButton.closest("[data-overlay-shell='action']")).toHaveClass("md:size-10");
     expect(forwardButton.closest("[data-overlay-shell='action']")).toHaveClass("size-11");
+    expect(forwardButton.closest("[data-overlay-shell='action']")).toHaveClass("md:size-10");
+    expect(reloadButton.closest("[data-overlay-shell='action']")).toHaveClass("size-11");
+    expect(reloadButton.closest("[data-overlay-shell='action']")).toHaveClass("md:size-10");
     expect(backButton.querySelector(".lucide-chevron-left")).not.toBeNull();
     expect(closeButton.querySelector(".lucide-x")).not.toBeNull();
+    expect(reloadButton.querySelector(".lucide-rotate-cw")).not.toBeNull();
     expect(backButton).toBeEnabled();
     expect(forwardButton).toBeDisabled();
+    expect(reloadButton).toBeEnabled();
     expect(forwardButton).not.toHaveAttribute("aria-disabled");
 
     await user.click(closeButton);
     await user.click(backButton);
+    await user.click(reloadButton);
     expect(controller.handleCloseOverlay).toHaveBeenCalledTimes(1);
     expect(controller.handleGoBack).toHaveBeenCalledTimes(1);
     expect(controller.handleGoForward).not.toHaveBeenCalled();
+    expect(controller.handleReload).toHaveBeenCalledTimes(1);
   });
 
   it("closes the web preview when the back control has no browser history", async () => {
@@ -364,7 +391,7 @@ describe("BrowserOverlayChrome", () => {
     expect(onCustomAction).toHaveBeenCalledTimes(1);
   });
 
-  it("renders browser actions before custom trailing actions on the right side", () => {
+  it("keeps only page actions and custom trailing actions on the right side", () => {
     const controller = createController();
     const presentation = createSurfacePresentation();
 
@@ -377,7 +404,7 @@ describe("BrowserOverlayChrome", () => {
       />,
     );
 
-    expect(getToolbarButtonLabels()).toEqual(["Reload page", "Open in External Browser", "Share"]);
+    expect(getToolbarButtonLabels()).toEqual(["Open in External Browser", "Share"]);
   });
 
   it("keeps trailing chrome tooltips out of the native webview area", async () => {

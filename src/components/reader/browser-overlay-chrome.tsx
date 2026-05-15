@@ -140,7 +140,7 @@ export function BrowserOverlayChrome(props: BrowserOverlayChromeProps) {
         }}
         className="pointer-events-none absolute z-[60]"
       >
-        <div data-testid="browser-overlay-chrome" className="pointer-events-auto flex items-center gap-2">
+        <div data-testid="browser-overlay-chrome" className="pointer-events-auto flex items-center gap-0">
           <BrowserOverlayIconAction
             actionKey="close-web-preview"
             compact={presentation.leadingActionSurface.compact}
@@ -175,6 +175,19 @@ export function BrowserOverlayChrome(props: BrowserOverlayChromeProps) {
           >
             <ChevronRight aria-hidden="true" className="size-4" />
           </BrowserOverlayIconAction>
+          <BrowserOverlayIconAction
+            actionKey="reload-web-preview"
+            compact={presentation.leadingActionSurface.compact}
+            label={t("reload_page")}
+            onClick={() => {
+              startAcceptedFeedback("reload-web-preview");
+              return controller.handleReload();
+            }}
+            disabled={!controller.browserState}
+            spinning={activeFeedbackAction === "reload-web-preview"}
+          >
+            <RotateCw aria-hidden="true" className="size-4" />
+          </BrowserOverlayIconAction>
         </div>
       </div>
       <div
@@ -186,20 +199,6 @@ export function BrowserOverlayChrome(props: BrowserOverlayChromeProps) {
         className="pointer-events-none absolute z-[60]"
       >
         <div className="pointer-events-auto flex items-center gap-2">
-          <BrowserOverlayIconAction
-            actionKey="reload-web-preview"
-            compact={presentation.actionButtonSurface.compact}
-            label={t("reload_page")}
-            tooltipSide="left"
-            onClick={() => {
-              startAcceptedFeedback("reload-web-preview");
-              return controller.handleReload();
-            }}
-            disabled={!controller.browserState}
-            spinning={activeFeedbackAction === "reload-web-preview"}
-          >
-            <RotateCw aria-hidden="true" className="size-4" />
-          </BrowserOverlayIconAction>
           <BrowserOverlayIconAction
             actionKey="open-external-browser"
             compact={presentation.actionButtonSurface.compact}

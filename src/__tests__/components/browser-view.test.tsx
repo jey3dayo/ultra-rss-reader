@@ -1000,10 +1000,10 @@ describe("BrowserView", () => {
     });
     expect(
       within(chrome).getByRole("button", { name: "Close Web Preview" }).closest("[data-overlay-shell='action']"),
-    ).toHaveClass("size-11", "md:size-8");
+    ).toHaveClass("size-11", "md:size-10");
     expect(
       screen.getByRole("button", { name: /open in external browser/i }).closest("[data-overlay-shell='action']"),
-    ).toHaveClass("size-11", "md:size-8");
+    ).toHaveClass("size-11", "md:size-10");
     expect(chrome).toBeInTheDocument();
   });
 
@@ -1056,7 +1056,7 @@ describe("BrowserView", () => {
       expect(trailingActions.firstElementChild).toHaveClass("pointer-events-auto");
       expectInlineStyles(leadingAction, {
         left: "72px",
-        top: "4px",
+        top: "0px",
       });
       const closeButton = within(screen.getByTestId("browser-overlay-chrome")).getByRole("button", {
         name: "Close Web Preview",

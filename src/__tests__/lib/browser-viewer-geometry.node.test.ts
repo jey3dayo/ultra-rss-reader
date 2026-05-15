@@ -109,10 +109,10 @@ describe("resolveBrowserViewerGeometry", () => {
     expect(geometry.chrome.visualHeaderHeight).toBe(40);
     expect(geometry.chrome.leadingSafeInset).toBe(16);
     expect(geometry.chrome.leading.left).toBe(16);
-    expect(geometry.chrome.leading.top).toBe(4);
+    expect(geometry.chrome.leading.top).toBe(0);
     expect(geometry.chrome.action.right).toBe(16);
-    expect(geometry.chrome.action.top).toBe(4);
-    expect(geometry.chrome.action.size).toBe(32);
+    expect(geometry.chrome.action.top).toBe(0);
+    expect(geometry.chrome.action.size).toBe(40);
   });
 
   it("keeps the desktop visual header height while reserving extra leading space for macOS overlay titlebars", () => {
@@ -128,10 +128,10 @@ describe("resolveBrowserViewerGeometry", () => {
     expect(geometry.chrome.visualHeaderHeight).toBe(40);
     expect(geometry.chrome.leadingSafeInset).toBe(72);
     expect(geometry.chrome.leading.left).toBe(72);
-    expect(geometry.chrome.leading.top).toBe(4);
+    expect(geometry.chrome.leading.top).toBe(0);
     expect(geometry.chrome.action.right).toBe(16);
-    expect(geometry.chrome.action.top).toBe(4);
-    expect(geometry.chrome.action.size).toBe(32);
+    expect(geometry.chrome.action.top).toBe(0);
+    expect(geometry.chrome.action.size).toBe(40);
     expect(geometry.diagnostics.top).toBe(48);
   });
 
