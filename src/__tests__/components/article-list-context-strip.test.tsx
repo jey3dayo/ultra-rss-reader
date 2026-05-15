@@ -22,6 +22,7 @@ describe("ArticleListContextStrip", () => {
     expect(strip).toHaveAttribute("data-tone", "starred");
     expect(strip).toHaveAttribute("data-motion-phase", "entering");
     expect(strip).toHaveClass("motion-content-swap");
+    expect(strip).toHaveClass("select-none");
     expect(strip).toHaveClass("border-[var(--reader-context-border)]");
     expect(strip).toHaveClass("bg-surface-1/72");
     expect(screen.queryByRole("button", { name: "Starred" })).not.toBeInTheDocument();

@@ -40,7 +40,7 @@ export function ArticleGroupsView({
   return groups.map((group) => (
     <section key={group.id} aria-labelledby={group.showLabel ? `${groupLabelIdPrefix}-${group.id}` : undefined}>
       {group.showLabel && (
-        <div data-group-header="true" className="sticky top-0 bg-card px-4 py-2">
+        <div data-group-header="true" className="sticky top-0 select-none bg-card px-4 py-2">
           <span
             id={`${groupLabelIdPrefix}-${group.id}`}
             className="text-[11px] font-medium uppercase tracking-[0.12em] text-foreground-soft"

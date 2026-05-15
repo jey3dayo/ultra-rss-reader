@@ -47,7 +47,7 @@ export function ArticleListContextStrip({ primaryLabel, secondaryLabel, tone }: 
       data-style="band"
       data-tone={tone ?? "neutral"}
       {...{ [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING }}
-      className={`${MOTION_CONTENT_SWAP_CLASS_NAME} relative flex items-center justify-between border-b border-[var(--reader-context-border)] bg-surface-1/72 px-4 py-1.5`}
+      className={`${MOTION_CONTENT_SWAP_CLASS_NAME} relative flex select-none items-center justify-between border-b border-[var(--reader-context-border)] bg-surface-1/72 px-4 py-1.5`}
     >
       <span
         aria-hidden="true"

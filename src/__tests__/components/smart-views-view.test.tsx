@@ -20,7 +20,12 @@ describe("SmartViewsView", () => {
     );
 
     expect(screen.getByText("Smart views")).toBeInTheDocument();
-    expect(screen.getByText("Smart views")).toHaveClass("px-2", "font-semibold", "text-sidebar-foreground/50");
+    expect(screen.getByText("Smart views")).toHaveClass(
+      "select-none",
+      "px-2",
+      "font-semibold",
+      "text-sidebar-foreground/50",
+    );
 
     const unreadButton = screen.getByRole("button", { name: /Unread/ });
     const starredButton = screen.getByRole("button", { name: /Starred/ });

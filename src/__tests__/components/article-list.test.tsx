@@ -1125,6 +1125,7 @@ describe("ArticleList", () => {
 
     expect(viewport).not.toBeNull();
     expect(header).not.toBeNull();
+    expect(header).toHaveClass("select-none");
     if (!viewport || !header) {
       throw new Error("Expected article list viewport and sticky header to be rendered");
     }

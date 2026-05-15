@@ -57,7 +57,7 @@ export function TagListView({
           <div className={cn("px-2", tokens.tagListGap)}>
             {isEmpty ? (
               emptyLabel ? (
-                <p className="px-2 py-1.5 text-sm text-sidebar-foreground/65">{emptyLabel}</p>
+                <p className="select-none px-2 py-1.5 text-sm text-sidebar-foreground/65">{emptyLabel}</p>
               ) : null
             ) : (
               tags.map((tag) => (

@@ -23,6 +23,7 @@ describe("TagListView", () => {
     expect(panel).toHaveAttribute("data-empty", "true");
     expect(panel).toHaveAttribute("aria-hidden", "false");
     expect(screen.getByText("No tags yet")).toBeInTheDocument();
+    expect(screen.getByText("No tags yet")).toHaveClass("select-none");
     expect(screen.queryByRole("button", { name: "No tags yet" })).not.toBeInTheDocument();
   });
 
