@@ -1,6 +1,14 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const browserViewMock = vi.hoisted(() =>
+  vi.fn(({ labels, onCloseOverlay }: { labels: { closeWebPreview: string }; onCloseOverlay: () => void }) => (
+    <button type="button" aria-label={labels.closeWebPreview} onClick={onCloseOverlay}>
+      Web Preview
+    </button>
+  )),
+);
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -9,11 +17,7 @@ vi.mock("react-i18next", () => ({
 }));
 
 vi.mock("@/components/reader/browser-view", () => ({
-  BrowserView: ({ labels, onCloseOverlay }: { labels: { closeWebPreview: string }; onCloseOverlay: () => void }) => (
-    <button type="button" aria-label={labels.closeWebPreview} onClick={onCloseOverlay}>
-      Web Preview
-    </button>
-  ),
+  BrowserView: browserViewMock,
 }));
 
 import {
@@ -23,6 +27,10 @@ import {
 } from "@/components/reader/article-view-state";
 
 describe("BrowserOverlaySurface", () => {
+  beforeEach(() => {
+    browserViewMock.mockClear();
+  });
+
   it("keeps reader children visible without mounting the browser view when hidden", () => {
     render(
       <BrowserOverlaySurface showBrowserView={false} onCloseOverlay={vi.fn()}>
@@ -32,6 +40,7 @@ describe("BrowserOverlaySurface", () => {
 
     expect(screen.getByText("Reader body")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Close Web Preview" })).not.toBeInTheDocument();
+    expect(browserViewMock).not.toHaveBeenCalled();
   });
 
   it("mounts Web Preview with the reader close language and passes the close handler", async () => {
@@ -40,7 +49,7 @@ describe("BrowserOverlaySurface", () => {
 
     render(<BrowserOverlaySurface onCloseOverlay={onCloseOverlay} />);
 
-    await user.click(screen.getByRole("button", { name: "Close Web Preview" }));
+    await user.click(await screen.findByRole("button", { name: "Close Web Preview" }));
 
     expect(onCloseOverlay).toHaveBeenCalledTimes(1);
   });
