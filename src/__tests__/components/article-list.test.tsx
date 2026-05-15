@@ -624,7 +624,7 @@ describe("ArticleList", () => {
       expect(useUiStore.getState().contentMode).toBe("browser");
     });
 
-    const host = screen.getByTestId("browser-webview-host");
+    const host = await screen.findByTestId("browser-webview-host");
     host.setAttribute("tabindex", "-1");
     host.focus();
     expect(host).toHaveFocus();
@@ -1637,7 +1637,7 @@ describe("ArticleList", () => {
       expect(useUiStore.getState().contentMode).toBe("browser");
     });
 
-    const host = screen.getByTestId("browser-webview-host");
+    const host = await screen.findByTestId("browser-webview-host");
     host.setAttribute("tabindex", "-1");
     host.focus();
     expect(host).toHaveFocus();

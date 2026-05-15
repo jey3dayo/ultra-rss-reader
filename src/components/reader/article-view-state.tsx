@@ -1,8 +1,12 @@
-import type { ReactNode } from "react";
+import { lazy, type ReactNode, Suspense } from "react";
 import { useTranslation } from "react-i18next";
 import type { UiDisplayState } from "@/lib/ui/display-state.types";
-import { BrowserView } from "./browser-view";
 import type { BrowserOverlayCloseHandler, BrowserOverlayToolbarAction } from "./browser-view.types";
+
+const LazyBrowserView = lazy(async () => {
+  const mod = await import("./browser-view");
+  return { default: mod.BrowserView };
+});
 
 type BrowserOverlaySurfaceProps = {
   children?: ReactNode;
@@ -32,14 +36,16 @@ export function BrowserOverlaySurface({
     <div className="relative flex min-h-0 flex-1 flex-col">
       {children}
       {showBrowserView ? (
-        <BrowserView
-          scope="main-stage"
-          onCloseOverlay={onCloseOverlay}
-          labels={{
-            closeWebPreview: t("close_browser_overlay"),
-          }}
-          toolbarActions={toolbarActions}
-        />
+        <Suspense fallback={null}>
+          <LazyBrowserView
+            scope="main-stage"
+            onCloseOverlay={onCloseOverlay}
+            labels={{
+              closeWebPreview: t("close_browser_overlay"),
+            }}
+            toolbarActions={toolbarActions}
+          />
+        </Suspense>
       ) : null}
     </div>
   );

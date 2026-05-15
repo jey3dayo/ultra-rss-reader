@@ -611,7 +611,9 @@ describe("ArticleView", () => {
     });
 
     fireEvent.click(
-      await within(screen.getByTestId("browser-overlay-chrome")).findByRole("button", { name: "Close Web Preview" }),
+      await within(await screen.findByTestId("browser-overlay-chrome")).findByRole("button", {
+        name: "Close Web Preview",
+      }),
     );
 
     await waitFor(() => {
@@ -667,7 +669,9 @@ describe("ArticleView", () => {
     });
 
     fireEvent.click(
-      await within(screen.getByTestId("browser-overlay-chrome")).findByRole("button", { name: "Close Web Preview" }),
+      await within(await screen.findByTestId("browser-overlay-chrome")).findByRole("button", {
+        name: "Close Web Preview",
+      }),
     );
 
     await waitFor(() => {
@@ -717,20 +721,21 @@ describe("ArticleView", () => {
       expect(useUiStore.getState().contentMode).toBe("browser");
     });
 
-    const overlayActions = screen.getByTestId("browser-overlay-actions");
+    const overlayActions = await screen.findByTestId("browser-overlay-actions");
+    const overlayChrome = await screen.findByTestId("browser-overlay-chrome");
 
     expect(
-      within(screen.getByTestId("browser-overlay-chrome")).getByRole("button", {
+      within(overlayChrome).getByRole("button", {
         name: "Close Web Preview",
       }),
     ).toBeInTheDocument();
     expect(
-      within(screen.getByTestId("browser-overlay-chrome")).getByRole("button", {
+      within(overlayChrome).getByRole("button", {
         name: "Back to Reader",
       }),
     ).toBeInTheDocument();
     expect(
-      within(screen.getByTestId("browser-overlay-chrome")).getByRole("button", {
+      within(overlayChrome).getByRole("button", {
         name: "Web forward",
       }),
     ).toBeInTheDocument();
@@ -791,7 +796,7 @@ describe("ArticleView", () => {
       expect(useUiStore.getState().contentMode).toBe("browser");
     });
 
-    const overlayActions = screen.getByTestId("browser-overlay-actions");
+    const overlayActions = await screen.findByTestId("browser-overlay-actions");
     const customActionShells = within(overlayActions)
       .getAllByRole("button")
       .filter((button) =>
@@ -854,7 +859,9 @@ describe("ArticleView", () => {
     });
 
     fireEvent.click(
-      await within(screen.getByTestId("browser-overlay-chrome")).findByRole("button", { name: "Close Web Preview" }),
+      await within(await screen.findByTestId("browser-overlay-chrome")).findByRole("button", {
+        name: "Close Web Preview",
+      }),
     );
 
     await waitFor(() => {
@@ -914,7 +921,7 @@ describe("ArticleView", () => {
       expect(useUiStore.getState().browserUrl).toBe("https://example.com/1");
     });
 
-    const closeOverlayButton = await within(screen.getByTestId("browser-overlay-chrome")).findByRole("button", {
+    const closeOverlayButton = await within(await screen.findByTestId("browser-overlay-chrome")).findByRole("button", {
       name: "Close Web Preview",
     });
     closeOverlayButton.focus();
@@ -973,7 +980,7 @@ describe("ArticleView", () => {
       expect(useUiStore.getState().contentMode).toBe("browser");
     });
 
-    const host = screen.getByTestId("browser-webview-host");
+    const host = await screen.findByTestId("browser-webview-host");
     host.setAttribute("tabindex", "-1");
     host.focus();
     expect(host).toHaveFocus();
@@ -1165,7 +1172,7 @@ describe("ArticleView", () => {
       args: { url: "https://example.com/1", background: false },
     });
 
-    await user.click(within(screen.getByTestId("browser-overlay-chrome")).getAllByRole("button")[0]);
+    await user.click(within(await screen.findByTestId("browser-overlay-chrome")).getAllByRole("button")[0]);
 
     await waitFor(() => {
       expect(useUiStore.getState().contentMode).toBe("reader");
@@ -2304,7 +2311,7 @@ describe("ArticleView", () => {
       expect(useUiStore.getState().browserUrl).toBe("https://example.com/1");
     });
 
-    expect(screen.getByTestId("browser-overlay-shell")).toBeInTheDocument();
+    expect(await screen.findByTestId("browser-overlay-shell")).toBeInTheDocument();
     expect(screen.queryByText("Web Preview")).not.toBeInTheDocument();
 
     articleEntry.unmount();
@@ -2317,7 +2324,7 @@ describe("ArticleView", () => {
 
     render(<ArticleView />, { wrapper: createWrapper() });
 
-    expect(screen.getByTestId("browser-overlay-shell")).toBeInTheDocument();
+    expect(await screen.findByTestId("browser-overlay-shell")).toBeInTheDocument();
     expect(screen.queryByText("Web Preview")).not.toBeInTheDocument();
   });
 
