@@ -8,14 +8,14 @@ type UseBrowserWebviewLoadTimeoutParams = {
   browserUrl: string | null;
   isLoading: boolean;
   isStillLoading: () => boolean;
-  showSurfaceFailure: (error: { type: "UserVisible"; message: string }) => void;
+  onLoadTimeout: () => void;
 };
 
 export function useBrowserWebviewLoadTimeout({
   browserUrl,
   isLoading,
   isStillLoading,
-  showSurfaceFailure,
+  onLoadTimeout,
 }: UseBrowserWebviewLoadTimeoutParams) {
   // Keep this separate from the similar lifecycle hooks: it owns only the
   // requested-URL timeout window and stale-loading guard.
@@ -31,16 +31,13 @@ export function useBrowserWebviewLoadTimeout({
           return;
         }
 
-        showSurfaceFailure({
-          type: "UserVisible",
-          message: "Timed out waiting for embedded browser webview to finish loading.",
-        });
+        onLoadTimeout();
       });
 
       return () => {
         clearBrowserWebviewLoadTimeout(timeoutId);
       };
     },
-    [isLoading, isStillLoading, showSurfaceFailure],
+    [isLoading, isStillLoading, onLoadTimeout],
   );
 }

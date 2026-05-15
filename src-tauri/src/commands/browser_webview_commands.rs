@@ -13,7 +13,7 @@ use crate::browser_webview::{
     go_back, go_forward, install_escape_accelerator_bridge, load_browser_preview_prefs,
     navigation_availability, should_trigger_timeout_fallback, BrowserNavigationAvailability,
     BrowserWebviewDiagnosticsPayload, BrowserWebviewFallbackPayload, BrowserWebviewLogicalRect,
-    BrowserWebviewState, BROWSER_WEBVIEW_LABEL,
+    BrowserWebviewState, BrowserWebviewTracker, BROWSER_WEBVIEW_LABEL,
 };
 use crate::commands::dto::AppError;
 use crate::commands::AppState;
@@ -398,53 +398,46 @@ fn schedule_browser_webview_timeout(
         tracing::info!("embedded-browser timeout armed url={log_url} generation={load_generation}");
         sleep(Duration::from_millis(BROWSER_WEBVIEW_LOAD_TIMEOUT_MS)).await;
 
-        let should_fallback = {
+        let timeout_state = {
             let app_state = app_handle.state::<AppState>();
-            let decision = if let Ok(tracker) =
+            let timeout_state = if let Ok(mut tracker) =
                 crate::commands::lock_browser_webview(&app_state.browser_webview)
             {
-                should_trigger_timeout_fallback(tracker.snapshot().as_ref(), &url, load_generation)
+                finish_browser_webview_timeout(&mut tracker, &url, load_generation)
             } else {
-                false
+                None
             };
-            decision
+            timeout_state
         };
 
-        if !should_fallback {
+        let Some(timeout_state) = timeout_state else {
             tracing::info!(
                 "embedded-browser timeout skipped url={log_url} generation={load_generation}"
             );
             return;
-        }
-
-        tracing::warn!(
-            "embedded-browser timeout triggered url={log_url} generation={load_generation}"
-        );
-
-        let payload = BrowserWebviewFallbackPayload {
-            url: url.clone(),
-            opened_external: false,
-            error_message: Some("Timed out waiting for the embedded browser to load.".to_string()),
         };
 
-        if let Some(browser_webview) = browser_webview(&app_handle) {
-            let _ = browser_webview.close();
-        }
-
-        let app_state = app_handle.state::<AppState>();
-        let had_tracked_state = clear_browser_webview_tracker(&app_state).unwrap_or(false);
-        for emission in timeout_fallback_emissions(should_fallback, had_tracked_state) {
-            match emission {
-                BrowserWebviewTimeoutFallbackEmission::ClearTracker => {}
-                BrowserWebviewTimeoutFallbackEmission::Fallback => {
-                    emit_browser_webview_fallback(&app_handle, &payload);
-                }
-                BrowserWebviewTimeoutFallbackEmission::Closed => {
-                    emit_browser_webview_closed(&app_handle);
-                }
-            }
-        }
+        tracing::warn!(
+            "embedded-browser timeout stopped loading indicator url={log_url} generation={load_generation}"
+        );
+        emit_browser_webview_state(&app_handle, &timeout_state);
     });
+}
+
+fn finish_browser_webview_timeout(
+    tracker: &mut BrowserWebviewTracker,
+    expected_url: &str,
+    expected_load_generation: u64,
+) -> Option<BrowserWebviewState> {
+    if !should_trigger_timeout_fallback(
+        tracker.snapshot().as_ref(),
+        expected_url,
+        expected_load_generation,
+    ) {
+        return None;
+    }
+
+    Some(tracker.finish(expected_url.to_string(), None))
 }
 
 fn timeout_fallback_emissions(
@@ -870,18 +863,18 @@ mod tests {
         browser_host_focus_failure_warning, browser_webview_bounds_diagnostics_payload,
         browser_webview_initial_url, browser_webview_log_url, browser_webview_not_open_error,
         child_webview_add_child_bounds, child_webview_rect_from_browser_bounds,
-        empty_reload_source_error, external_url, is_placeholder_browser_webview_url,
-        navigation_failure_emissions, should_accept_page_load_finish,
-        should_navigate_existing_browser_webview, should_use_placeholder_browser_webview_url,
-        timeout_fallback_emissions, tracker_navigation_availability,
-        validate_browser_webview_fallback_url, validated_bounds, BrowserNavigationAvailability,
-        BrowserWebviewBounds, BrowserWebviewBoundsUnit, BrowserWebviewTimeoutFallbackEmission,
-        BROWSER_WEBVIEW_EMPTY_RELOAD_SOURCE_ERROR, BROWSER_WEBVIEW_NOT_OPEN_ERROR,
-        INVALID_BROWSER_BOUNDS_ERROR,
+        empty_reload_source_error, external_url, finish_browser_webview_timeout,
+        is_placeholder_browser_webview_url, navigation_failure_emissions,
+        should_accept_page_load_finish, should_navigate_existing_browser_webview,
+        should_use_placeholder_browser_webview_url, timeout_fallback_emissions,
+        tracker_navigation_availability, validate_browser_webview_fallback_url, validated_bounds,
+        BrowserNavigationAvailability, BrowserWebviewBounds, BrowserWebviewBoundsUnit,
+        BrowserWebviewTimeoutFallbackEmission, BROWSER_WEBVIEW_EMPTY_RELOAD_SOURCE_ERROR,
+        BROWSER_WEBVIEW_NOT_OPEN_ERROR, INVALID_BROWSER_BOUNDS_ERROR,
     };
     use crate::browser_webview::{
         set_browser_webview_diagnostics_enabled, BrowserWebviewLogicalRect, BrowserWebviewState,
-        BROWSER_WEBVIEW_DIAGNOSTICS_TEST_LOCK,
+        BrowserWebviewTracker, BROWSER_WEBVIEW_DIAGNOSTICS_TEST_LOCK,
     };
     use crate::commands::dto::AppError;
     use crate::platform::PlatformKind;
@@ -1338,6 +1331,33 @@ mod tests {
     #[test]
     fn timeout_fallback_emits_nothing_when_timeout_is_stale() {
         assert_eq!(timeout_fallback_emissions(false, true), vec![]);
+    }
+
+    #[test]
+    fn timeout_finishes_loading_without_clearing_tracker() {
+        let mut tracker = BrowserWebviewTracker::default();
+        let loading = tracker.start("https://example.com/article".to_string());
+
+        let timed_out =
+            finish_browser_webview_timeout(&mut tracker, &loading.url, loading.load_generation)
+                .expect("matching timeout should stop the loading state");
+
+        assert_eq!(timed_out.url, loading.url);
+        assert_eq!(timed_out.load_generation, loading.load_generation);
+        assert!(!timed_out.is_loading);
+        assert_eq!(tracker.snapshot(), Some(timed_out));
+    }
+
+    #[test]
+    fn timeout_ignores_stale_generation_without_changing_tracker() {
+        let mut tracker = BrowserWebviewTracker::default();
+        let loading = tracker.start("https://example.com/article".to_string());
+
+        assert_eq!(
+            finish_browser_webview_timeout(&mut tracker, &loading.url, loading.load_generation + 1),
+            None
+        );
+        assert_eq!(tracker.snapshot(), Some(loading));
     }
 
     #[test]

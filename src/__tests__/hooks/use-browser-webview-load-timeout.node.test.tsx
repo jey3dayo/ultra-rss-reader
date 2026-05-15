@@ -20,13 +20,13 @@ describe("useBrowserWebviewLoadTimeout", () => {
     useUiStore.setState({ browserUrl: null });
   });
 
-  it("shows a timeout failure only while the same URL is still loading", () => {
-    const showSurfaceFailure = vi.fn();
+  it("stops the loading state only while the same URL is still loading", () => {
+    const onLoadTimeout = vi.fn();
     const props = {
       browserUrl: "https://example.com/article",
       isLoading: true,
       isStillLoading: () => true,
-      showSurfaceFailure,
+      onLoadTimeout,
     };
 
     renderHook(
@@ -39,35 +39,32 @@ describe("useBrowserWebviewLoadTimeout", () => {
     act(() => {
       vi.advanceTimersByTime(BROWSER_WINDOW_LOAD_TIMEOUT_MS - 1);
     });
-    expect(showSurfaceFailure).not.toHaveBeenCalled();
+    expect(onLoadTimeout).not.toHaveBeenCalled();
 
     act(() => {
       vi.advanceTimersByTime(1);
     });
-    expect(showSurfaceFailure).toHaveBeenCalledWith({
-      type: "UserVisible",
-      message: "Timed out waiting for embedded browser webview to finish loading.",
-    });
+    expect(onLoadTimeout).toHaveBeenCalledTimes(1);
 
-    showSurfaceFailure.mockClear();
+    onLoadTimeout.mockClear();
     renderHook(() => {
       useBrowserWebviewLoadTimeout({
         browserUrl: "https://example.com/article",
         isLoading: true,
         isStillLoading: () => false,
-        showSurfaceFailure,
+        onLoadTimeout,
       });
     });
 
     act(() => {
       vi.advanceTimersByTime(BROWSER_WINDOW_LOAD_TIMEOUT_MS);
     });
-    expect(showSurfaceFailure).not.toHaveBeenCalled();
+    expect(onLoadTimeout).not.toHaveBeenCalled();
   });
 
-  it("uses a generic timeout surface detail without exposing the requested URL", () => {
+  it("keeps timeout handling local without exposing the requested URL", () => {
     const requestedUrl = "https://example.com/private-token";
-    const showSurfaceFailure = vi.fn();
+    const onLoadTimeout = vi.fn();
     useUiStore.setState({ browserUrl: requestedUrl });
 
     renderHook(() => {
@@ -75,7 +72,7 @@ describe("useBrowserWebviewLoadTimeout", () => {
         browserUrl: requestedUrl,
         isLoading: true,
         isStillLoading: () => true,
-        showSurfaceFailure,
+        onLoadTimeout,
       });
     });
 
@@ -83,22 +80,18 @@ describe("useBrowserWebviewLoadTimeout", () => {
       vi.advanceTimersByTime(BROWSER_WINDOW_LOAD_TIMEOUT_MS);
     });
 
-    expect(showSurfaceFailure).toHaveBeenCalledWith({
-      type: "UserVisible",
-      message: "Timed out waiting for embedded browser webview to finish loading.",
-    });
-    expect(showSurfaceFailure.mock.calls[0]?.[0].message).not.toContain(requestedUrl);
+    expect(onLoadTimeout).toHaveBeenCalledTimes(1);
   });
 
   it("clears the timeout when loading completes before the timeout threshold", () => {
-    const showSurfaceFailure = vi.fn();
+    const onLoadTimeout = vi.fn();
     const { rerender } = renderHook(
       ({ isLoading }) => {
         useBrowserWebviewLoadTimeout({
           browserUrl: "https://example.com/article",
           isLoading,
           isStillLoading: () => true,
-          showSurfaceFailure,
+          onLoadTimeout,
         });
       },
       { initialProps: { isLoading: true } },
@@ -109,17 +102,17 @@ describe("useBrowserWebviewLoadTimeout", () => {
     act(() => {
       vi.advanceTimersByTime(BROWSER_WINDOW_LOAD_TIMEOUT_MS);
     });
-    expect(showSurfaceFailure).not.toHaveBeenCalled();
+    expect(onLoadTimeout).not.toHaveBeenCalled();
   });
 
-  it("does not show a timeout failure after the requested URL changes or the hook unmounts", () => {
-    const showSurfaceFailure = vi.fn();
+  it("does not stop loading after the requested URL changes or the hook unmounts", () => {
+    const onLoadTimeout = vi.fn();
     const { unmount } = renderHook(() =>
       useBrowserWebviewLoadTimeout({
         browserUrl: "https://example.com/article",
         isLoading: true,
         isStillLoading: () => true,
-        showSurfaceFailure,
+        onLoadTimeout,
       }),
     );
 
@@ -128,7 +121,7 @@ describe("useBrowserWebviewLoadTimeout", () => {
     act(() => {
       vi.advanceTimersByTime(BROWSER_WINDOW_LOAD_TIMEOUT_MS);
     });
-    expect(showSurfaceFailure).not.toHaveBeenCalled();
+    expect(onLoadTimeout).not.toHaveBeenCalled();
 
     useUiStore.setState({ browserUrl: "https://example.com/article" });
     unmount();
@@ -136,7 +129,7 @@ describe("useBrowserWebviewLoadTimeout", () => {
     act(() => {
       vi.advanceTimersByTime(BROWSER_WINDOW_LOAD_TIMEOUT_MS);
     });
-    expect(showSurfaceFailure).not.toHaveBeenCalled();
+    expect(onLoadTimeout).not.toHaveBeenCalled();
   });
 
   it("keeps loading state quiet when timeout scheduling fails", () => {
@@ -145,7 +138,7 @@ describe("useBrowserWebviewLoadTimeout", () => {
     vi.spyOn(window, "setTimeout").mockImplementation(() => {
       throw error;
     });
-    const showSurfaceFailure = vi.fn();
+    const onLoadTimeout = vi.fn();
 
     expect(() => {
       renderHook(() =>
@@ -153,12 +146,12 @@ describe("useBrowserWebviewLoadTimeout", () => {
           browserUrl: "https://example.com/article",
           isLoading: true,
           isStillLoading: () => true,
-          showSurfaceFailure,
+          onLoadTimeout,
         }),
       );
     }).not.toThrow();
 
-    expect(showSurfaceFailure).not.toHaveBeenCalled();
+    expect(onLoadTimeout).not.toHaveBeenCalled();
     expect(warn).toHaveBeenCalledWith("Failed to schedule browser webview load timeout.", error);
   });
 
@@ -168,14 +161,14 @@ describe("useBrowserWebviewLoadTimeout", () => {
     vi.spyOn(window, "clearTimeout").mockImplementation(() => {
       throw error;
     });
-    const showSurfaceFailure = vi.fn();
+    const onLoadTimeout = vi.fn();
 
     const { unmount } = renderHook(() =>
       useBrowserWebviewLoadTimeout({
         browserUrl: "https://example.com/article",
         isLoading: true,
         isStillLoading: () => true,
-        showSurfaceFailure,
+        onLoadTimeout,
       }),
     );
 

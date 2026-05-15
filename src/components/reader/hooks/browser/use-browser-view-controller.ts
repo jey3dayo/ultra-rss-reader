@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useBrowserDebugGeometryEvents } from "@/components/reader/hooks/browser/use-browser-debug-geometry-events";
 import { useBrowserLayoutDiagnostics } from "@/components/reader/hooks/browser/use-browser-layout-diagnostics";
 import { useBrowserOverlayShortcuts } from "@/components/reader/hooks/browser/use-browser-overlay-shortcuts";
@@ -14,6 +14,7 @@ import { initialBrowserState } from "@/lib/browser/browser-webview-state";
 import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window/window-chrome";
 import type { BrowserViewController, BrowserViewScope } from "../../browser-view.types";
 import { resolveBrowserViewPresentation } from "../../browser-view-presentation";
+import { updateBrowserStateWithRef } from "../../browser-webview-state";
 
 export type UseBrowserViewControllerParams = {
   scope: BrowserViewScope;
@@ -105,11 +106,20 @@ export function useBrowserViewController({
 
   useBrowserWebviewCleanup();
 
+  const handleBrowserWebviewLoadTimeout = useCallback(() => {
+    updateBrowserStateWithRef(browserStateRef, setBrowserState, (currentState) => {
+      if (!currentState) {
+        return currentState;
+      }
+      return { ...currentState, is_loading: false };
+    });
+  }, [browserStateRef, setBrowserState]);
+
   useBrowserWebviewLoadTimeout({
     browserUrl,
     isLoading,
     isStillLoading: () => Boolean(browserStateRef.current?.is_loading),
-    showSurfaceFailure,
+    onLoadTimeout: handleBrowserWebviewLoadTimeout,
   });
 
   useBrowserOverlayShortcuts({ browserUrl, handleCloseOverlay });
