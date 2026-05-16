@@ -1860,10 +1860,13 @@ describe("release repository contract", () => {
       "If cancellation cannot guarantee cleanup of a partial artifact, the UI must say the artifact may remain and direct the user to delete or retry it manually.",
     );
     expect(releaseManualVerification).toContain(
-      "If OS sleep is introduced during download, resume does not leave a partial artifact, stale progress, or stale success state; manual recheck starts a fresh flow.",
+      "fresh flow unless the artifact is revalidated against the current manifest",
     );
     expect(releaseManualVerification).toContain(
-      "Sleeping during updater download, OPML export, or database backup either cancels cleanly or resumes through a documented operation generation without accepting partial artifacts.",
+      "Sleeping during updater download, OPML export, or database backup/restore",
+    );
+    expect(releaseManualVerification).toContain(
+      "either cancels cleanly, blocks restart/retry until cleanup is known, or resumes",
     );
     expect(releaseManualVerification).toContain(
       "Canceling a dialog leaves no file mutation, error toast, or stuck progress state.",
