@@ -4,6 +4,22 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.43.0] - 2026-05-17
+
+### Bug Fixes
+
+- CI の macOS Rustup bootstrap が余計な default toolchain を導入しないようにし、toolchain drift を抑えた
+
+### Documentation
+
+- feed content privacy と CSP tightening の preflight を追加し、今後の制約整理の入口を明確にした
+- updater / OPML export / database backup/restore の sleep/resume 境界を整理した
+
+### Maintenance
+
+- FreshRSS pending mutation replay の監査テストを追加し、古い remote snapshot が新しい local intent を上書きしない契約を固めた
+- premortem 由来の TODO を完了済みとして整理した
+
 ## [0.42.0] - 2026-05-16
 
 ### Bug Fixes
