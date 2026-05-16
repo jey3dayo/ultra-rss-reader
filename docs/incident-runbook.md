@@ -319,3 +319,7 @@ When handing the issue off, include:
 - path to backup artifacts, if migration was involved
 - whether stale support/debug logs or support dumps were created and whether they were deleted after the incident
 - whether each attached diagnostic artifact was redacted before sharing
+- for updater download, OPML export, or database backup/restore incidents:
+  operation phase, sleep/resume or cancel/retry trigger, and whether any partial
+  artifact was cleaned, ignored, preserved for private investigation, or
+  revalidated before retry
