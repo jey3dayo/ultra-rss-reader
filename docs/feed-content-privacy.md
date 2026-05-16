@@ -908,6 +908,66 @@ Recommended order:
 2. Separate reader-mode privacy controls from Web Preview behavior instead of treating them as one switch.
 3. Consider mitigations such as explicit privacy modes, remote-image blocking in reader mode, or tracking-pixel countermeasures only after the compatibility impact is understood.
 
+## Feed Content Privacy Change Preflight
+
+Use this preflight before changing CSP, reader image loading, Web Preview,
+sanitized article rendering, or support copy that describes those surfaces. The
+goal is to keep the current compatibility-first product decision explicit while
+leaving unresolved threat-model decisions in
+[#33 Define feed-content privacy and CSP tightening threat model](https://github.com/jey3dayo/ultra-rss-reader/issues/33).
+
+### Decide Before Implementation
+
+- Identify the affected surface before editing: reader sanitized body, reader
+  thumbnail, feed favicon, embedded Web Preview, external browser opener,
+  sanitizer, provider fetch, or support/debug copy.
+- State whether the change is a compatibility-preserving fix, a measurement-only
+  experiment, a user-visible privacy control, or CSP tightening. Do not mix these
+  into one implementation batch.
+- Keep reader-mode remote image behavior separate from Web Preview behavior. A
+  reader-only image decision must not silently change embedded-browser
+  navigation, and a Web Preview regression must not be used as proof that
+  reader-mode privacy controls are unsafe.
+- Confirm that app content still renders only sanitized `content_sanitized`
+  fields and that app scripts remain locked to `script-src 'self'` unless a
+  reviewed design explicitly says otherwise.
+- Decide whether the change needs sanitizer versioning, saved-article
+  re-sanitization, settings copy, provider compatibility notes, or packaged
+  Tauri verification before implementation starts.
+
+### Record In Manual Verification
+
+- Record reader sanitized-body behavior separately from reader thumbnails,
+  favicons, external opener behavior, and Web Preview.
+- For reader remote images, record whether normal images, missing images, slow
+  images, blocked images, and tracking-pixel candidates keep text readable.
+- For Web Preview, record publisher page load, navigation, and browser controls
+  as embedded-browser compatibility results, not as reader-mode privacy results.
+- For CSP or sanitizer changes, record the tested CSP directive, sanitizer rule
+  set, `SANITIZER_VERSION`, saved-article behavior, and new-sync behavior.
+- For support or release notes, record the user-facing privacy statement that
+  was verified. Do not claim reader mode is offline, tracker-free, or private
+  browsing while remote images remain allowed by default.
+
+### Escalate To #33
+
+Escalate to #33 instead of deciding inside the implementation when any of these
+are true:
+
+- The change would redefine the threat model for IP address, user agent,
+  request timing, path/query disclosure, cookies, referrers, or third-party
+  tracking in reader mode or Web Preview.
+- The change would make remote image blocking, tracking-pixel filtering, reduced
+  data behavior, or privacy modes a user-facing product contract.
+- The change would tighten `img-src`, `frame-src`, `connect-src`, sanitizer
+  allowlists, or Web Preview navigation in a way that can break existing
+  providers or saved articles.
+- The change needs shared state, messaging, permissions, cookies, or DOM access
+  across the app reader and embedded Web Preview.
+- The change requires new recovery, migration, support, or release-note language
+  because existing saved `content_sanitized` may behave differently from newly
+  synced content.
+
 ## Privacy Hardening Measurement Plan
 
 Use this as the minimum design batch before changing CSP, sanitizer behavior, or
