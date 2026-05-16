@@ -11,6 +11,9 @@ For an urgent patch that only fixes a released regression, use the [Hotfix Relea
 - Before sharing a packaged build for external verification
 - After changing updater, keyring, account auth, or packaged-app startup behavior
 - After changing uninstall, private data reset, support dump, or diagnostics retention behavior
+- After changing updater download, OPML export, database backup/restore, or
+  other long-running native operation progress, cancellation, retry, or
+  partial-artifact behavior
 
 ## Prerequisites
 
@@ -103,10 +106,35 @@ platforms or surfaces that did not change.
 - OS: every platform whose updater path is being verified.
 - Expected result: an installed previous release detects the draft or published
   update, downloads it, restarts into the expected version, and can recheck after
-  a failed or canceled update.
+  a failed or canceled update. A partial download, stale pending update, or
+  resumed progress indicator is never recorded as success unless the signed
+  artifact is revalidated against the current manifest.
 - Evidence: previous version, target version, release URL, updater log note,
   success or failure screenshot, and app data backup confirmation before testing
   an existing profile.
+
+### Long-Running Native Operation Preflight
+
+Use this preflight when a PR changes updater download, OPML export, database
+backup/restore, native file-dialog write flows, operation progress, cancellation,
+retry, or cleanup behavior.
+
+Record the sleep/resume, cancel, retry, and partial-artifact stance for each
+affected operation in the PR or release verification notes:
+
+- `supported`: the release deliberately supports the lifecycle path, manual
+  verification covers it on each affected OS, and the result includes artifact
+  validation or cleanup evidence.
+- `guarded`: the lifecycle path is blocked, canceled, deferred, or forced
+  through a fresh retry with user-visible copy and log evidence.
+- `unsupported`: the release does not promise the lifecycle path; verification
+  proves the app does not report success, reuse stale artifacts, or hide the
+  failure.
+
+Do not define a new formal sleep/resume support contract in this checklist.
+If a release intends to make sleep/resume officially supported for updater
+download, OPML export, or database backup/restore, leave the design decision,
+state machine, and artifact lifecycle contract in issue #32 or its successor.
 
 ## Checklist
 
@@ -412,7 +440,10 @@ Confirm:
 - Record whether packaged updater verification passed, failed safely, or was
   skipped with a release-surface reason.
 - Download starts and completes without a stuck progress state.
-- If OS sleep is introduced during download, resume does not leave a partial artifact, stale progress, or stale success state; manual recheck starts a fresh flow.
+- If OS sleep is introduced during download, resume does not leave a partial
+  artifact, stale progress, or stale success state; manual recheck starts a
+  fresh flow unless the artifact is revalidated against the current manifest,
+  signature, and database compatibility gate.
 - Install/restart applies the new version successfully.
 - If updater verification fails, the app stays on the current version and surfaces a useful error.
 - After a failed download or install, a manual recheck can start a fresh updater flow.
@@ -423,6 +454,8 @@ Confirm:
 - A retry after failed install must use a freshly verified signed artifact or a
   revalidated pending artifact that matches the current manifest and database
   compatibility gate; stale or partial pending update state is not installable.
+- Verification notes classify updater download sleep/resume, cancel, retry, and
+  partial-download handling as `supported`, `guarded`, or `unsupported`.
 
 ### 5. Packaged Startup Verification
 
@@ -492,7 +525,12 @@ If a release changes import/export/backup dialogs, confirm and record:
 - Existing-file replacement requires explicit overwrite confirmation before any write starts.
 - Canceling a dialog leaves no file mutation, error toast, or stuck progress state.
 - Database backup and restore evidence includes pre/post `integrity_check` behavior and the WAL checkpoint policy; migration evidence states that DDL runs transactionally and partial migration failure rolls back before automatic backup restore.
-- Sleeping during updater download, OPML export, or database backup either cancels cleanly or resumes through a documented operation generation without accepting partial artifacts.
+- Sleeping during updater download, OPML export, or database backup/restore
+  either cancels cleanly, blocks restart/retry until cleanup is known, or resumes
+  through a documented operation generation without accepting partial artifacts.
+- Verification notes classify OPML export and database backup/restore
+  sleep/resume, cancel, retry, and partial-artifact handling as `supported`,
+  `guarded`, or `unsupported`.
 - Permission denied, disk full, and OS sleep interruption are reported as distinct outcomes.
 
 If a release adds tray or background resident behavior, confirm and record:
@@ -577,6 +615,19 @@ Confirm and record:
 - Cancel during database backup/restore asks for confirmation before canceling any copy or restore step.
 - The confirmation copy states whether cancellation leaves no changes, partial changes, or a partial artifact that may need manual cleanup.
 - After a canceled export or backup, a retry does not silently reuse a stale partial artifact.
+- After an interrupted OPML export, the `.opml` or `.xml` target is accepted as
+  successful only when the operation reported a clean completion after
+  temporary-file cleanup or atomic rename.
+- After an interrupted database backup, the backup is accepted as successful only
+  when the complete `.db` plus expected sidecar policy and post-copy
+  `integrity_check` evidence were recorded.
+- After an interrupted database restore, the restore is accepted as successful
+  only when staging, rollback handling, WAL checkpoint policy, and post-restore
+  `integrity_check` evidence were recorded before reopening the database.
+- Retry after sleep/resume, app restart, permission denial, disk full, or cancel
+  starts from a fresh destination or a documented cleanup/revalidation point; a
+  leftover temporary file, partial backup set, or partial restore staging area is
+  never enough to mark the run successful.
 - After a canceled import, the UI reports whether no feeds changed or a partial mutation may need review.
 
 ## Hotfix Release Checklist
@@ -614,6 +665,9 @@ Write down:
   and first-launch result for each platform in scope.
 - Live service, native keyring, updater, packaged startup, icon/badge, uninstall
   or data-reset, and permission-prompt results that were in scope.
+- Long-running native operation classifications for updater download, OPML
+  export, and database backup/restore when those surfaces were changed:
+  `supported`, `guarded`, or `unsupported`, plus the partial-artifact evidence.
 - Checks intentionally skipped, with the reason and owner for any follow-up.
 - Supporting log or screenshot location, with OS timezone and UTC offset for
   shared release logs.
