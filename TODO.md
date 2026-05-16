@@ -91,11 +91,38 @@
 
 ### Rust Provider / DB / Scheduler
 
+#### FreshRSS pending mutation partial-success audit
+
+- [x] priority: P1 / domain: provider-sync / work type: contract audit + focused test
+  - issue: #31
+  - 対象: `src-tauri/src/service/sync_flow.rs`, `src-tauri/src/infra/provider/greader.rs`, `src-tauri/src/infra/db/sqlite_pending_mutation.rs`
+  - scope: pending mutation push が途中成功・途中失敗した場合の現行挙動を確認し、duplicate replay / local intent priority / queue deletion 単位の contract test を追加する
+  - acceptance criteria: 現行挙動を test name と assertion で説明できる。仕様判断が必要な範囲は #31 に残し、実装修正へ進める範囲を分離する
+  - focused verification: `rtk test cargo test --manifest-path src-tauri/Cargo.toml pending_mutation`
+
 ### Query / Store / Browser Runtime
 
 ### Reader Content / Feed Discovery / Security
 
+#### Feed content privacy change preflight
+
+- [x] priority: P2 / domain: security-privacy / work type: implementation-time checklist
+  - issue: #33
+  - 対象: `docs/feed-content-privacy.md`, `docs/release-manual-verification.md`, feed content / WebView / CSP 変更差分
+  - scope: feed content privacy、reader image loading、CSP、Web Preview へ触る変更時に、compatibility-first 継続か tightening かを #33 の判断対象として記録する
+  - acceptance criteria: CSP / remote image / Web Preview に触る PR で、manual verification または issue escalation のどちらかが残る
+  - focused verification: docs-only なら `mise run format:check`、実装差分ありなら該当 UI/native smoke を追加
+
 ### Release / Native / Keyboard / I18n / A11y
+
+#### Long-running native operation sleep/resume preflight
+
+- [x] priority: P2 / domain: release-native / work type: implementation-time checklist
+  - issue: #32
+  - 対象: updater download、OPML export、database backup/restore、`docs/release-manual-verification.md`
+  - scope: sleep/resume、cancel、retry、partial artifact cleanup に触る変更時に、supported / unsupported / guarded の扱いを明記する
+  - acceptance criteria: 変更 PR の verification notes に packaged-build manual verification または #32 への deferred reason が残る
+  - focused verification: `mise run ci` に加えて、該当 surface の manual native verification を記録する
 
 ### Database / Updater / Window
 
