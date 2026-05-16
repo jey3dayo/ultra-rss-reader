@@ -41,11 +41,15 @@ pub async fn sync_account(
             provider
                 .push_mutations(std::slice::from_ref(&mutation))
                 .await?;
-            pending_mutation_repo.delete_by_account_remote_entry_ids_and_axis(
-                account_id,
-                std::slice::from_ref(&pending_mutation.remote_entry_id),
-                pending_mutation.mutation_type.axis(),
-            )?;
+            if let Some(pending_mutation_id) = pending_mutation.id {
+                pending_mutation_repo.delete(&[pending_mutation_id])?;
+            } else {
+                pending_mutation_repo.delete_by_account_remote_entry_ids_and_axis(
+                    account_id,
+                    std::slice::from_ref(&pending_mutation.remote_entry_id),
+                    pending_mutation.mutation_type.axis(),
+                )?;
+            }
         }
     }
 
@@ -322,6 +326,12 @@ mod tests {
 
     struct FakePendingMutationRepository {
         pending: Vec<PendingMutation>,
+        deleted_ids: Mutex<Vec<Vec<i64>>>,
+    }
+
+    struct SnapshotDeletePendingMutationRepository {
+        replay_snapshot: Vec<PendingMutation>,
+        current_queue: Vec<PendingMutation>,
         deleted_ids: Mutex<Vec<Vec<i64>>>,
     }
 
@@ -840,6 +850,40 @@ mod tests {
                 .collect::<Vec<_>>();
             self.deleted_ids.lock().unwrap().push(ids);
             Err(DomainError::Persistence("delete failed".to_string()))
+        }
+    }
+
+    impl PendingMutationRepository for SnapshotDeletePendingMutationRepository {
+        fn find_by_account(&self, _account_id: &AccountId) -> DomainResult<Vec<PendingMutation>> {
+            Ok(self.replay_snapshot.clone())
+        }
+
+        fn save(&self, _mutation: &PendingMutation) -> DomainResult<()> {
+            Ok(())
+        }
+
+        fn delete(&self, ids: &[i64]) -> DomainResult<()> {
+            self.deleted_ids.lock().unwrap().push(ids.to_vec());
+            Ok(())
+        }
+
+        fn delete_by_account_remote_entry_ids_and_axis(
+            &self,
+            _account_id: &AccountId,
+            remote_entry_ids: &[String],
+            axis: PendingMutationAxis,
+        ) -> DomainResult<()> {
+            let ids = self
+                .current_queue
+                .iter()
+                .filter(|pending| {
+                    remote_entry_ids.contains(&pending.remote_entry_id)
+                        && pending.mutation_type.axis() == axis
+                })
+                .filter_map(|pending| pending.id)
+                .collect::<Vec<_>>();
+            self.deleted_ids.lock().unwrap().push(ids);
+            Ok(())
         }
     }
 
@@ -1437,6 +1481,54 @@ mod tests {
         .expect_err("second axis push should fail");
 
         assert_eq!(error.to_string(), "Network error: second push failed");
+        assert_eq!(provider.pushed.lock().unwrap().len(), 1);
+        assert_eq!(*pending_repo.deleted_ids.lock().unwrap(), vec![vec![10]]);
+    }
+
+    #[tokio::test]
+    async fn sync_account_deletes_pushed_pending_mutation_by_snapshot_id() {
+        let db = DbManager::new_in_memory().unwrap();
+        let account = test_account();
+        let account_repo = SqliteAccountRepository::new(db.writer());
+        account_repo.save(&account).unwrap();
+
+        let provider = RemoteStateProvider {
+            pushed: Mutex::new(Vec::new()),
+        };
+        let article_repo = SqliteArticleRepository::new(db.writer());
+        let feed_repo = SqliteFeedRepository::new(db.writer());
+        let folder_repo = SqliteFolderRepository::new(db.writer());
+        let replayed = PendingMutation {
+            id: Some(10),
+            account_id: account.id.clone(),
+            mutation_type: PendingMutationType::MarkRead,
+            remote_entry_id: "remote-entry-1".to_string(),
+            created_at: "2024-01-01T00:00:00Z".to_string(),
+        };
+        let newer_same_axis_local_intent = PendingMutation {
+            id: Some(12),
+            account_id: account.id.clone(),
+            mutation_type: PendingMutationType::MarkRead,
+            remote_entry_id: "remote-entry-1".to_string(),
+            created_at: "2024-01-01T00:00:01Z".to_string(),
+        };
+        let pending_repo = SnapshotDeletePendingMutationRepository {
+            replay_snapshot: vec![replayed.clone()],
+            current_queue: vec![newer_same_axis_local_intent],
+            deleted_ids: Mutex::new(Vec::new()),
+        };
+
+        sync_account(
+            &account.id,
+            &provider,
+            &article_repo,
+            &feed_repo,
+            &folder_repo,
+            &pending_repo,
+        )
+        .await
+        .unwrap();
+
         assert_eq!(provider.pushed.lock().unwrap().len(), 1);
         assert_eq!(*pending_repo.deleted_ids.lock().unwrap(), vec![vec![10]]);
     }

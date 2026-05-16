@@ -3343,6 +3343,73 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn push_mutations_stops_after_first_failed_edit_tag() {
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(200)
+            .with_body("Auth=tok\n")
+            .create_async()
+            .await;
+
+        let mark_read_mock = server
+            .mock("POST", "/api/greader.php/reader/api/0/edit-tag")
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .match_body("i=entry-1&a=user%2F-%2Fstate%2Fcom.google%2Fread")
+            .with_status(200)
+            .with_body("OK")
+            .create_async()
+            .await;
+        let mark_unread_mock = server
+            .mock("POST", "/api/greader.php/reader/api/0/edit-tag")
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .match_body("i=entry-2&r=user%2F-%2Fstate%2Fcom.google%2Fread")
+            .with_status(500)
+            .with_body("failed")
+            .create_async()
+            .await;
+        let star_mock = server
+            .mock("POST", "/api/greader.php/reader/api/0/edit-tag")
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .match_body("i=entry-3&a=user%2F-%2Fstate%2Fcom.google%2Fstarred")
+            .expect(0)
+            .create_async()
+            .await;
+
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
+        provider
+            .authenticate(&Credentials {
+                password: Some("p".into()),
+                token: Some("u".into()),
+            })
+            .await
+            .unwrap();
+
+        let mutations = vec![
+            Mutation::MarkRead {
+                remote_entry_id: "entry-1".into(),
+            },
+            Mutation::MarkUnread {
+                remote_entry_id: "entry-2".into(),
+            },
+            Mutation::SetStarred {
+                remote_entry_id: "entry-3".into(),
+                starred: true,
+            },
+        ];
+
+        let error = provider
+            .push_mutations(&mutations)
+            .await
+            .expect_err("first failed edit-tag should stop the remaining replay batch");
+
+        assert!(matches!(error, DomainError::Network(_)));
+        mark_read_mock.assert_async().await;
+        mark_unread_mock.assert_async().await;
+        star_mock.assert_async().await;
+    }
+
+    #[tokio::test]
     async fn create_subscription_uses_exact_feed_url_match_after_quickadd() {
         let mut server = mockito::Server::new_async().await;
         server
