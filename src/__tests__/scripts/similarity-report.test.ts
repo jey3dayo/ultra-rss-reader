@@ -114,6 +114,28 @@ Similarity: 95.01%, Score: 42.5 points (lines 20~30, avg: 25.0)
     expect(summary).toContain("absent browser-overlay-close-vs-sidebar-smart-view-builder");
   });
 
+  it("ignores type similarity blocks when parsing function pairs", () => {
+    const report = `
+=== Function Similarity ===
+${sampleReport}
+=== Type Similarity ===
+
+Similarity: 95.47% (structural: 100.00%, naming: 88.67%)
+  src/components/settings/shared/settings-shell-section-label.tsx:4 | L4-7 similar-type: SettingsShellSectionLabelProps (type)
+  src/components/shared/section-heading.tsx:4 | L4-7 similar-type: SectionHeadingProps (type)
+
+Similarity: 100.00% (structural: 100.00%, naming: 100.00%)
+  src/__tests__/components/use-article-list-data.node.test.ts:11 | L11 type-literal: buildSourcePlan (parameter: params)
+  src/__tests__/components/use-article-list-data.node.test.tsx:15 | L15 type-literal: buildSourcePlan (parameter: params)
+`;
+
+    expect(parseSimilarityOutput(report)).toEqual({
+      pairs: parseSimilarityPairs(sampleReport),
+      skippedSimilarityBlocks: 0,
+    });
+    expect(buildSimilaritySummary(report)).toContain("unparsed similarity blocks: 0");
+  });
+
   it("reports unparsed similarity blocks so similarity-ts output drift is visible", () => {
     const driftedReport = `
 Similarity: 91.00%, Score: 12.0 points (lines 4~6)

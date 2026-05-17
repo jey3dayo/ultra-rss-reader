@@ -112,7 +112,8 @@ export function parseSimilarityPairs(output: string): SimilarityPair[] {
 }
 
 export function parseSimilarityOutput(output: string): SimilarityParseDiagnostics {
-  const lines = output.split("\n");
+  const [functionSimilarityOutput] = output.split(/^=== Type Similarity ===$/m);
+  const lines = (functionSimilarityOutput ?? output).split("\n");
   const pairs: SimilarityPair[] = [];
   let skippedSimilarityBlocks = 0;
 
