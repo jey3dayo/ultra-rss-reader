@@ -13,7 +13,6 @@ export type AddAccountPayload = {
 export type AddAccountValidationError =
   | "missing_server_url"
   | "invalid_server_url"
-  | "insecure_server_url"
   | "server_url_credentials"
   | "missing_username"
   | "missing_password";
@@ -93,7 +92,6 @@ export function formatAddAccountValidationError(
       return "account.error_server_url_required";
     case "invalid_server_url":
       return "account.error_server_url_invalid";
-    case "insecure_server_url":
     case "server_url_credentials":
       return "account.error_server_url_invalid";
     case "missing_username":
@@ -101,11 +99,6 @@ export function formatAddAccountValidationError(
     case "missing_password":
       return "account.error_password_required";
   }
-}
-
-function isLoopbackFreshRssHost(hostname: string): boolean {
-  const normalized = hostname.toLowerCase();
-  return normalized === "localhost" || normalized === "127.0.0.1" || normalized === "::1" || normalized === "[::1]";
 }
 
 function validateFreshRssServerUrl(value: string): Result.Result<string, AddAccountValidationError> {
@@ -118,10 +111,6 @@ function validateFreshRssServerUrl(value: string): Result.Result<string, AddAcco
 
     if (url.username || url.password) {
       return Result.fail("server_url_credentials");
-    }
-
-    if (url.protocol === "http:" && !isLoopbackFreshRssHost(url.hostname)) {
-      return Result.fail("insecure_server_url");
     }
 
     return Result.succeed(value.trim().replace(/\/+$/, ""));

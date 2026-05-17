@@ -65,8 +65,13 @@ describe("add-account-form utils", () => {
     });
   });
 
-  it("allows loopback HTTP FreshRSS server URLs", () => {
-    for (const serverUrl of ["http://localhost:8080/", "http://127.0.0.1:8080", "http://[::1]:8080/"]) {
+  it("allows HTTP FreshRSS server URLs", () => {
+    for (const serverUrl of [
+      "http://localhost:8080/",
+      "http://127.0.0.1:8080",
+      "http://[::1]:8080/",
+      "http://jey3dayo.asuscomm.com:5556/api/greader.php",
+    ]) {
       const result = buildAddAccountPayload({
         kind: "FreshRss",
         name: "",
@@ -77,18 +82,6 @@ describe("add-account-form utils", () => {
 
       expect(Result.isSuccess(result)).toBe(true);
     }
-  });
-
-  it("rejects public HTTP FreshRSS server URLs before credentials are submitted", () => {
-    const result = buildAddAccountPayload({
-      kind: "FreshRss",
-      name: "",
-      serverUrl: "http://example.com",
-      username: "alice",
-      password: "secret",
-    });
-
-    expect(Result.unwrapError(result)).toBe("insecure_server_url");
   });
 
   it("rejects FreshRSS server URLs with embedded credentials", () => {
@@ -149,7 +142,6 @@ describe("add-account-form utils", () => {
   it("formats validation errors for toasts", () => {
     expect(formatAddAccountValidationError("FreshRss", "missing_server_url")).toBe("account.error_server_url_required");
     expect(formatAddAccountValidationError("FreshRss", "invalid_server_url")).toBe("account.error_server_url_invalid");
-    expect(formatAddAccountValidationError("FreshRss", "insecure_server_url")).toBe("account.error_server_url_invalid");
     expect(formatAddAccountValidationError("FreshRss", "server_url_credentials")).toBe(
       "account.error_server_url_invalid",
     );
