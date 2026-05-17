@@ -4,6 +4,18 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.43.1] - 2026-05-17
+
+### Bug Fixes
+
+- FreshRSS 同期時に `News` / `news` のような大文字小文字だけが異なるフォルダ名を事前に修復し、SQLite の一意インデックス作成で同期が止まらないようにした
+- Windows の native shell で `mise run check` が `.CMD` / tool PATH / inline script quoting に引っかからず実行できるようにした
+
+### Maintenance
+
+- Windows の symlink 作成権限がない環境では該当契約テストだけを skip し、権限がある環境では従来どおり symlink 防御を検証するようにした
+- リポジトリ横断スキャン系テストを並列読み込みにして、並列 check 中のタイムアウトを避けた
+
 ## [0.43.0] - 2026-05-17
 
 ### Bug Fixes
