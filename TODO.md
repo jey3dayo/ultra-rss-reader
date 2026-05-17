@@ -28,6 +28,15 @@
 
 ### Dev / Tooling / E2E / Test Helpers
 
+#### mise Windows task shell PATH follow-up
+
+- [ ] priority: P2 / domain: quality-tooling / work type: mise task shell
+  - 対象: `C:\Users\j138c\.config\mise\config.windows.toml`, `mise.toml`
+  - scope: Windows native shell (`cmd /c`) で `mise run` の TOML task を実行したとき、`node` / `pnpm.CMD` / `taplo` / `tsc.CMD` が PATH 解決できない原因を切り分ける
+  - acceptance criteria: WSL bash を経由せず、`mise run quality:toolchain`, `mise run format:toml:check`, `mise run lint:types`, `mise run test:unit:fast` が Windows 側で実行できる
+  - focused verification: `mise settings ls windows_default_inline_shell_args`, `mise settings ls windows_default_file_shell_args`, `mise exec -- cmd /c node -v`, `mise run quality:toolchain`, `mise run test:unit:fast`
+  - defer scope: `mise exec -- cmd /c ...` では tool PATH が見える一方、`mise run` の TOML task では `node` などが見えないため、one-shot report では `X` として保留する
+
 #### Vitest jsdom dependency reduction
 
 - [x] priority: P2 / domain: quality-tooling / work type: test split
