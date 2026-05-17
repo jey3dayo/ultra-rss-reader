@@ -14,6 +14,73 @@ impl<'a> SqliteFolderRepository<'a> {
         Self { conn }
     }
 
+    fn normalize_name_case_before_unique_index(&self) -> DomainResult<()> {
+        let duplicate_groups = {
+            let mut stmt = self.conn.prepare(
+                "SELECT account_id, lower(name)
+                 FROM folders
+                 GROUP BY account_id, lower(name)
+                 HAVING COUNT(*) > 1",
+            )?;
+            let rows = stmt.query_map([], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+            })?;
+            rows.collect::<Result<Vec<_>, _>>()?
+        };
+        if duplicate_groups.is_empty() {
+            return Ok(());
+        }
+
+        let tx = self.conn.unchecked_transaction()?;
+        for (account_id, name_key) in duplicate_groups {
+            let duplicate_folders = {
+                let mut stmt = tx.prepare(
+                    "SELECT folders.id, folders.remote_id, folders.sort_order, COUNT(feeds.id) AS feed_count
+                     FROM folders
+                     LEFT JOIN feeds ON feeds.folder_id = folders.id
+                     WHERE folders.account_id = ?1 AND lower(folders.name) = ?2
+                     GROUP BY folders.id, folders.remote_id, folders.sort_order
+                     ORDER BY feed_count DESC, folders.sort_order, folders.id",
+                )?;
+                let rows = stmt.query_map(params![account_id, name_key], |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, Option<String>>(1)?,
+                        row.get::<_, i32>(2)?,
+                    ))
+                })?;
+                rows.collect::<Result<Vec<_>, _>>()?
+            };
+
+            let Some((canonical_id, canonical_remote_id, _)) = duplicate_folders.first() else {
+                continue;
+            };
+            let replacement_remote_id = canonical_remote_id.clone().or_else(|| {
+                duplicate_folders
+                    .iter()
+                    .find_map(|(_, remote_id, _)| remote_id.clone())
+            });
+
+            for (duplicate_id, _, _) in duplicate_folders.iter().skip(1) {
+                tx.execute(
+                    "UPDATE feeds SET folder_id = ?1 WHERE folder_id = ?2",
+                    params![canonical_id, duplicate_id],
+                )?;
+                tx.execute("DELETE FROM folders WHERE id = ?1", params![duplicate_id])?;
+            }
+
+            if replacement_remote_id != *canonical_remote_id {
+                tx.execute(
+                    "UPDATE folders SET remote_id = ?1 WHERE id = ?2",
+                    params![replacement_remote_id, canonical_id],
+                )?;
+            }
+        }
+
+        tx.commit()?;
+        Ok(())
+    }
+
     fn normalize_sort_order_before_unique_index(&self) -> DomainResult<()> {
         let duplicate_account_ids = {
             let mut stmt = self.conn.prepare(
@@ -52,6 +119,7 @@ impl<'a> SqliteFolderRepository<'a> {
     }
 
     fn ensure_order_contract(&self) -> DomainResult<()> {
+        self.normalize_name_case_before_unique_index()?;
         self.normalize_sort_order_before_unique_index()?;
         self.conn.execute_batch(
             "CREATE UNIQUE INDEX IF NOT EXISTS idx_folders_account_sort_order_unique
@@ -525,6 +593,61 @@ mod tests {
                 params![account_id.as_ref()],
             )
             .expect_err("unique sort_order index should be active after repair");
+    }
+
+    #[test]
+    fn find_by_account_repairs_case_duplicate_names_before_creating_unique_index() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        db.writer()
+            .execute_batch(
+                "DROP INDEX IF EXISTS idx_folders_account_sort_order_unique;
+                 DROP INDEX IF EXISTS idx_folders_account_name_nocase_unique;",
+            )
+            .unwrap();
+        for (id, remote_id, name, sort_order) in [
+            ("folder-news-upper", "user/-/label/News", "News", 2),
+            ("folder-news-lower", "user/-/label/news", "news", 0),
+            ("folder-tech", "user/-/label/Tech", "Tech", 1),
+        ] {
+            db.writer()
+                .execute(
+                    "INSERT INTO folders (id, account_id, remote_id, name, sort_order) VALUES (?1, ?2, ?3, ?4, ?5)",
+                    params![id, account_id.as_ref(), remote_id, name, sort_order],
+                )
+                .unwrap();
+        }
+        db.writer()
+            .execute(
+                "INSERT INTO feeds (id, account_id, folder_id, title, url, site_url)
+                 VALUES ('feed-news', ?1, 'folder-news-upper', 'News Feed', 'https://example.com/news.xml', 'https://example.com')",
+                params![account_id.as_ref()],
+            )
+            .unwrap();
+        let repo = SqliteFolderRepository::new(db.writer());
+
+        let folders = repo.find_by_account(&account_id).unwrap();
+        let folder_ids = folders
+            .iter()
+            .map(|folder| folder.id.0.as_str())
+            .collect::<Vec<_>>();
+        let feed_folder_id: String = db
+            .reader()
+            .query_row(
+                "SELECT folder_id FROM feeds WHERE id = 'feed-news'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+
+        assert_eq!(folder_ids, vec!["folder-tech", "folder-news-upper"]);
+        assert_eq!(feed_folder_id, "folder-news-upper");
+        db.reader()
+            .execute(
+                "INSERT INTO folders (id, account_id, name, sort_order) VALUES ('folder-news-duplicate', ?1, 'NEWS', 3)",
+                params![account_id.as_ref()],
+            )
+            .expect_err("unique name index should be active after repair");
     }
 
     #[test]
