@@ -140,18 +140,22 @@ describe("schema parse helpers", () => {
 
     await collectSourceFiles(sourceRoot);
 
-    const callCounts = new Map<string, number>();
-    for (const sourceFile of sourceFiles) {
-      const contents = await readFile(sourceFile, "utf8");
-      const relativePath = toPosixPath(relative(process.cwd(), sourceFile));
-      const callCount = contents
-        .split("\n")
-        .filter((line) => line.includes("parseJsonWithSchemaOrNull("))
-        .filter((line) => !line.includes("export function parseJsonWithSchemaOrNull")).length;
-      if (callCount > 0) {
-        callCounts.set(relativePath, callCount);
-      }
-    }
+    const callCountEntries = await Promise.all(
+      sourceFiles.map(async (sourceFile) => {
+        const contents = await readFile(sourceFile, "utf8");
+        const relativePath = toPosixPath(relative(process.cwd(), sourceFile));
+        const callCount = contents
+          .split("\n")
+          .filter((line) => line.includes("parseJsonWithSchemaOrNull("))
+          .filter((line) => !line.includes("export function parseJsonWithSchemaOrNull")).length;
+        return callCount > 0 ? { relativePath, callCount } : undefined;
+      }),
+    );
+    const callCounts = new Map(
+      callCountEntries
+        .filter((entry) => entry !== undefined)
+        .map(({ relativePath, callCount }) => [relativePath, callCount]),
+    );
 
     expect(Object.fromEntries(callCounts)).toEqual(
       Object.fromEntries(

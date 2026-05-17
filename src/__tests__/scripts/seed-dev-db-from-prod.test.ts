@@ -32,6 +32,50 @@ function createNonSymlinkStats(): { isSymbolicLink: () => boolean } {
   return { isSymbolicLink: () => false };
 }
 
+function getErrorCode(error: unknown) {
+  if (typeof error !== "object" || error === null || !("code" in error)) {
+    return undefined;
+  }
+  return typeof error.code === "string" ? error.code : undefined;
+}
+
+async function probeSymlinkSupport() {
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), "ultra-rss-symlink-probe-"));
+  try {
+    const fileTarget = path.join(tempDir, "target.db");
+    const fileLink = path.join(tempDir, "target-link.db");
+    const dirTarget = path.join(tempDir, "target-dir");
+    const dirLink = path.join(tempDir, "target-dir-link");
+
+    await Promise.all([writeFile(fileTarget, "probe"), mkdir(dirTarget)]);
+
+    const support = { file: true, directory: true };
+    try {
+      await symlink(fileTarget, fileLink, "file");
+    } catch (error) {
+      if (getErrorCode(error) !== "EPERM") {
+        throw error;
+      }
+      support.file = false;
+    }
+    try {
+      await symlink(dirTarget, dirLink, "dir");
+    } catch (error) {
+      if (getErrorCode(error) !== "EPERM") {
+        throw error;
+      }
+      support.directory = false;
+    }
+    return support;
+  } finally {
+    await rm(tempDir, { recursive: true, force: true });
+  }
+}
+
+const symlinkSupport = await probeSymlinkSupport();
+const itIfFileSymlink = symlinkSupport.file ? it : it.skip;
+const itIfDirectorySymlink = symlinkSupport.directory ? it : it.skip;
+
 describe("resolveAppDataDir", () => {
   it("resolves macOS Tauri app data directories from bundle identifiers", () => {
     expect(
@@ -338,7 +382,7 @@ describe("seedDevDatabaseFromProdPlan", () => {
     ).rejects.toThrow("Refusing to copy a non-database source artifact");
   });
 
-  it("rejects symlinked source database artifacts", async () => {
+  itIfFileSymlink("rejects symlinked source database artifacts", async () => {
     const tempDir = await mkdtemp(path.join(os.tmpdir(), "ultra-rss-seed-test-"));
     try {
       const prodDir = path.join(tempDir, "prod");
@@ -347,7 +391,7 @@ describe("seedDevDatabaseFromProdPlan", () => {
       await Promise.all([mkdir(prodDir, { recursive: true }), mkdir(devDir, { recursive: true })]);
       await writeFile(realProdDbPath, "prod-db");
       await Promise.all([
-        symlink(realProdDbPath, path.join(prodDir, "ultra-rss-reader.db")),
+        symlink(realProdDbPath, path.join(prodDir, "ultra-rss-reader.db"), "file"),
         writeFile(path.join(devDir, "ultra-rss-reader.db"), "dev-db"),
       ]);
 
@@ -367,7 +411,7 @@ describe("seedDevDatabaseFromProdPlan", () => {
     }
   });
 
-  it("rejects a symlinked staging directory before cleanup", async () => {
+  itIfDirectorySymlink("rejects a symlinked staging directory before cleanup", async () => {
     const tempDir = await mkdtemp(path.join(os.tmpdir(), "ultra-rss-seed-test-"));
     try {
       const prodDir = path.join(tempDir, "prod");
@@ -387,7 +431,7 @@ describe("seedDevDatabaseFromProdPlan", () => {
       await Promise.all([
         writeFile(path.join(prodDir, "ultra-rss-reader.db"), "prod-db"),
         writeFile(path.join(devDir, "ultra-rss-reader.db"), "dev-db"),
-        symlink(outsideDir, plan.stagingDir),
+        symlink(outsideDir, plan.stagingDir, "dir"),
       ]);
 
       await expect(seedDevDatabaseFromProdPlan(plan)).rejects.toThrow("Refusing to seed through a symlink");
