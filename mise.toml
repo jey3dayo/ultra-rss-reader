@@ -333,24 +333,7 @@ xattr -cr "$APP_DST"
 codesign --force --deep --sign - "$APP_DST"
 open "$APP_DST"
 """
-run_windows = """
-$exe = Get-ChildItem 'src-tauri\\target\\release\\bundle\\nsis\\*.exe' -ErrorAction SilentlyContinue |
-  Sort-Object LastWriteTime -Descending |
-  Select-Object -First 1
-if ($exe) {
-  $process = Start-Process -FilePath $exe.FullName -ArgumentList '/S' -Wait -PassThru
-  exit $process.ExitCode
-}
-$msi = Get-ChildItem 'src-tauri\\target\\release\\bundle\\msi\\*.msi' -ErrorAction SilentlyContinue |
-  Sort-Object LastWriteTime -Descending |
-  Select-Object -First 1
-if ($msi) {
-  $process = Start-Process msiexec.exe -ArgumentList @('/i', $msi.FullName, '/qn', '/norestart') -Wait -PassThru
-  exit $process.ExitCode
-}
-Write-Error 'No Windows installer found under src-tauri\\target\\release\\bundle.'
-exit 1
-"""
+run_windows = "node ./scripts/install-windows-app.ts"
 
 [tasks."app:build:debug"]
 description = "Build native app in debug mode (faster, no optimizations)"

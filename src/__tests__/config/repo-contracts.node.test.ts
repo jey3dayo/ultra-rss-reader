@@ -1836,6 +1836,7 @@ describe("repository static contracts", () => {
     const releaseManualVerification = readRepoFile("docs/release-manual-verification.md");
     const readme = readRepoFile("README.md");
     const miseSource = readRepoFile("mise.toml");
+    const windowsInstallScript = readRepoFile("scripts/install-windows-app.ts");
     const appInstallTask = extractMiseTaskSection(miseSource, "app:install");
 
     expect(releaseManualVerification).toContain(
@@ -1859,7 +1860,8 @@ describe("repository static contracts", () => {
     expect(readme).toContain("`mise run app:install` rebuilds from the current checkout");
     expect(appInstallTask).toContain("Build, locally re-sign, and install the current checkout");
     expect(appInstallTask).toContain("src-tauri/target/release/bundle/macos");
-    expect(appInstallTask).toContain("src-tauri\\\\target\\\\release\\\\bundle");
+    expect(appInstallTask).toContain("scripts/install-windows-app.ts");
+    expect(windowsInstallScript).toContain('"src-tauri", "target", "release", "bundle"');
   });
 
   it("keeps bundled app icon provenance and configured icon outputs explicit", () => {
