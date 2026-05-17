@@ -4,6 +4,17 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.43.2] - 2026-05-18
+
+### Bug Fixes
+
+- FreshRSS アカウント追加で、HTTPS ではない公開 `http://` サーバー URL も登録できるようにした
+
+### Maintenance
+
+- Windows の `mise run app:install` を Node 経由にし、PowerShell 構文が cmd として解釈されて失敗しないようにした
+- similarity report の function parser が type similarity block を混ぜて数えないようにした
+
 ## [0.43.1] - 2026-05-17
 
 ### Bug Fixes
