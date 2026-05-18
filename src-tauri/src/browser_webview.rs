@@ -53,7 +53,7 @@ const BROWSER_PREVIEW_SHORTCUT_SPECS: &[BrowserPreviewShortcutSpec] = &[
         pref_key: "shortcut_close_or_clear",
         default_binding: "Escape",
         app_action: "close-browser",
-        supports_script_bridge: false,
+        supports_script_bridge: true,
     },
     BrowserPreviewShortcutSpec {
         pref_key: "shortcut_toggle_read",
@@ -343,11 +343,19 @@ pub fn browser_preview_focus_override_source(prefs: &HashMap<String, String>) ->
     Some(
         r#"
 (() => {
-  if (window.__ULTRA_RSS_FOCUS_OVERRIDE_INSTALLED__) return;
+  if (window.__ULTRA_RSS_FOCUS_OVERRIDE_INSTALLED__ || window.__MBU_FOCUS_OVERRIDE_APPLIED__) return;
   Object.defineProperty(window, '__ULTRA_RSS_FOCUS_OVERRIDE_INSTALLED__', {
     configurable: false,
     value: true,
   });
+  Object.defineProperty(window, '__MBU_FOCUS_OVERRIDE_APPLIED__', {
+    configurable: false,
+    value: true,
+  });
+
+  try {
+    document.documentElement?.setAttribute('data-mbu-focus-override-applied', 'true');
+  } catch (_) {}
 
   const defineGetter = (target, property, value) => {
     try {
@@ -361,7 +369,17 @@ pub fn browser_preview_focus_override_source(prefs: &HashMap<String, String>) ->
     try {
       Object.defineProperty(target, property, {
         configurable: true,
+        writable: true,
         value,
+      });
+    } catch (_) {}
+  };
+  const ignoreEventHandlerProperty = (target, property) => {
+    try {
+      Object.defineProperty(target, property, {
+        configurable: true,
+        get: () => null,
+        set: () => {},
       });
     } catch (_) {}
   };
@@ -370,8 +388,17 @@ pub fn browser_preview_focus_override_source(prefs: &HashMap<String, String>) ->
   defineGetter(document, 'hidden', false);
   defineGetter(Document.prototype, 'visibilityState', 'visible');
   defineGetter(document, 'visibilityState', 'visible');
+  defineGetter(Document.prototype, 'webkitHidden', false);
+  defineGetter(document, 'webkitHidden', false);
+  defineGetter(Document.prototype, 'webkitVisibilityState', 'visible');
+  defineGetter(document, 'webkitVisibilityState', 'visible');
   defineValue(Document.prototype, 'hasFocus', () => true);
   defineValue(document, 'hasFocus', () => true);
+
+  ignoreEventHandlerProperty(window, 'onblur');
+  ignoreEventHandlerProperty(window, 'onfocus');
+  ignoreEventHandlerProperty(document, 'onvisibilitychange');
+  ignoreEventHandlerProperty(document, 'onwebkitvisibilitychange');
 
   const blockedEvents = new Set(['blur', 'focus', 'visibilitychange', 'webkitvisibilitychange']);
   const shouldBlock = (target, type) => blockedEvents.has(type) && (target === window || target === document);
@@ -1126,6 +1153,9 @@ pub fn install_escape_accelerator_bridge<R: Runtime>(
                             ),
                         );
                         if let Some(action) = action {
+                            if action == "close-browser" {
+                                focus_main_webview_window(&app_handle);
+                            }
                             let _ = app_handle.emit(MENU_ACTION_EVENT, action);
                         }
                         Ok(())
@@ -2057,11 +2087,12 @@ mod tests {
             ("shortcut_next_feed".to_string(), "Shift+F".to_string()),
             ("shortcut_prev_feed".to_string(), "⌘+H".to_string()),
             ("shortcut_reload_webview".to_string(), "Shift+R".to_string()),
-            ("shortcut_close_or_clear".to_string(), "x".to_string()),
+            ("shortcut_close_or_clear".to_string(), "Escape".to_string()),
         ]);
 
         let bindings = browser_preview_script_bindings(&prefs);
 
+        assert_eq!(bindings.get("Escape"), Some(&"close-browser"));
         assert_eq!(bindings.get("x"), Some(&"toggle-read"));
         assert_eq!(bindings.get("Shift+S"), Some(&"toggle-star"));
         assert_eq!(bindings.get("⌘+b"), Some(&"open-in-default-browser"));
@@ -2070,7 +2101,6 @@ mod tests {
         assert_eq!(bindings.get("Shift+F"), Some(&"next-feed"));
         assert_eq!(bindings.get("⌘+h"), Some(&"prev-feed"));
         assert_eq!(bindings.get("Shift+R"), Some(&"reload-webview"));
-        assert!(!bindings.values().any(|action| *action == "close-browser"));
     }
 
     #[test]
@@ -2196,7 +2226,7 @@ mod tests {
 
         assert_eq!(
             browser_preview_bridge_message_action(
-                r#"{"action":"close-browser","url":"https://example.com/current"}"#,
+                r#"{"action":"open-settings","url":"https://example.com/current"}"#,
                 Some(&current_state)
             ),
             None
@@ -2285,7 +2315,12 @@ mod tests {
 
         assert!(script.contains("'hidden'"));
         assert!(script.contains("'visibilityState'"));
+        assert!(script.contains("'webkitHidden'"));
+        assert!(script.contains("'webkitVisibilityState'"));
         assert!(script.contains("'hasFocus'"));
+        assert!(script.contains("ignoreEventHandlerProperty(window, 'onblur');"));
+        assert!(script.contains("ignoreEventHandlerProperty(window, 'onfocus');"));
+        assert!(script.contains("ignoreEventHandlerProperty(document, 'onvisibilitychange');"));
         assert!(script.contains("stopImmediatePropagation"));
         assert!(script.contains("originalAddEventListener.call(window"));
         assert!(script.contains("typeof listener === 'object'"));
@@ -2300,7 +2335,10 @@ mod tests {
         let script = browser_preview_focus_override_source(&prefs)
             .expect("focus override script should exist when preference is enabled");
 
-        assert!(script.contains("if (window.__ULTRA_RSS_FOCUS_OVERRIDE_INSTALLED__) return;"));
+        assert!(script.contains(
+            "if (window.__ULTRA_RSS_FOCUS_OVERRIDE_INSTALLED__ || window.__MBU_FOCUS_OVERRIDE_APPLIED__) return;"
+        ));
+        assert!(script.contains("data-mbu-focus-override-applied"));
         assert!(script
             .contains("const originalAddEventListener = EventTarget.prototype.addEventListener;"));
         assert!(script.contains(
@@ -2324,9 +2362,11 @@ mod tests {
 
         assert!(script
             .contains("Object.defineProperty(window, '__ULTRA_RSS_FOCUS_OVERRIDE_INSTALLED__'"));
+        assert!(script.contains("Object.defineProperty(window, '__MBU_FOCUS_OVERRIDE_APPLIED__'"));
         assert!(script.contains("configurable: false"));
         assert!(script.contains("const defineGetter = (target, property, value) => {"));
         assert!(script.contains("const defineValue = (target, property, value) => {"));
+        assert!(script.contains("const ignoreEventHandlerProperty = (target, property) => {"));
         assert!(script.contains("try {"));
         assert!(script.contains("} catch (_) {}"));
         assert!(script.contains("defineGetter(document, 'hidden', false);"));
@@ -2366,13 +2406,17 @@ mod tests {
             .expect("close bridge script should still exist when focus override is unset");
 
         assert!(enabled_script.contains("__ULTRA_RSS_FOCUS_OVERRIDE_INSTALLED__"));
+        assert!(enabled_script.contains("__MBU_FOCUS_OVERRIDE_APPLIED__"));
         assert!(enabled_script.contains("Document.prototype, 'hidden', false"));
         assert!(enabled_script.contains("Document.prototype, 'visibilityState', 'visible'"));
+        assert!(enabled_script.contains("Document.prototype, 'webkitVisibilityState', 'visible'"));
         assert!(enabled_script.contains("Document.prototype, 'hasFocus', () => true"));
         assert!(disabled_script.contains("close_browser_webview"));
         assert!(missing_script.contains("close_browser_webview"));
         assert!(!disabled_script.contains("__ULTRA_RSS_FOCUS_OVERRIDE_INSTALLED__"));
+        assert!(!disabled_script.contains("__MBU_FOCUS_OVERRIDE_APPLIED__"));
         assert!(!missing_script.contains("__ULTRA_RSS_FOCUS_OVERRIDE_INSTALLED__"));
+        assert!(!missing_script.contains("__MBU_FOCUS_OVERRIDE_APPLIED__"));
         assert!(!disabled_script.contains("Document.prototype, 'visibilityState', 'visible'"));
         assert!(!missing_script.contains("Document.prototype, 'visibilityState', 'visible'"));
     }

@@ -140,9 +140,6 @@ export function useKeyboard() {
       }
 
       const currentStore = useUiStore.getState();
-      if (e.key === "Escape" && currentStore.contentMode === "browser" && currentStore.browserUrl) {
-        return;
-      }
 
       const normalizedPaneKey = normalizePaneNavigationKey(e.key);
       const targetInAccountPane = targetElement?.closest('[data-account-pane="true"]');

@@ -103,7 +103,7 @@ describe("useBrowserOverlayShortcuts", () => {
     expect(escapeEvent.defaultPrevented).toBe(false);
   });
 
-  it("owns Escape before the global browser close shortcut can emit a duplicate close", () => {
+  it("lets the global browser close shortcut own Escape without a duplicate overlay close", () => {
     const handleCloseOverlay = vi.fn();
     const closeBrowserShortcut = vi.fn();
     useUiStore.setState({
@@ -126,8 +126,8 @@ describe("useBrowserOverlayShortcuts", () => {
     const escapeEvent = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
     window.dispatchEvent(escapeEvent);
 
-    expect(handleCloseOverlay).toHaveBeenCalledTimes(1);
-    expect(closeBrowserShortcut).not.toHaveBeenCalled();
+    expect(handleCloseOverlay).not.toHaveBeenCalled();
+    expect(closeBrowserShortcut).toHaveBeenCalledTimes(1);
     expect(escapeEvent.defaultPrevented).toBe(true);
 
     window.removeEventListener(keyboardEvents.closeBrowserOverlay, closeBrowserShortcut);

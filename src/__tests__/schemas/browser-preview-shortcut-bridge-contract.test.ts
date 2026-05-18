@@ -70,16 +70,17 @@ describe("browser preview shortcut bridge contract", () => {
     }
   });
 
-  it("keeps Escape outside the script bridge and article actions inside it", () => {
+  it("keeps Escape in the script bridge so focused WebViews can close", () => {
     const specs = extractBrowserPreviewShortcutSpecs(backendSource);
     const scriptBridgeSpecs = specs.filter((spec) => spec.supportsScriptBridge);
 
     expect(specs.find((spec) => spec.prefKey === "shortcut_close_or_clear")).toMatchObject({
       defaultBinding: "Escape",
       appAction: "close-browser",
-      supportsScriptBridge: false,
+      supportsScriptBridge: true,
     });
     expect(scriptBridgeSpecs.map((spec) => spec.appAction)).toEqual([
+      "close-browser",
       "toggle-read",
       "toggle-star",
       "open-in-default-browser",
@@ -126,6 +127,8 @@ describe("browser preview shortcut bridge contract", () => {
       "browser_preview_bridge_message_action(&raw_message, snapshot.as_ref())",
     );
     expect(nativeMessageHandlerBlock).toContain("if let Some(action) = action");
+    expect(nativeMessageHandlerBlock).toContain('if action == "close-browser"');
+    expect(nativeMessageHandlerBlock).toContain("focus_main_webview_window(&app_handle);");
     expect(nativeMessageHandlerBlock).toContain("app_handle.emit(MENU_ACTION_EVENT, action)");
     expect(bridgeMessageActionBlock).toContain("serde_json::from_str(raw_message).ok()?");
     expect(acceptMessageBlock).toContain("is_supported_browser_preview_bridge_action(&message.action)");
