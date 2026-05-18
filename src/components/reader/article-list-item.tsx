@@ -164,7 +164,7 @@ export function ArticleListItem({
       onClick={onSelect}
       onKeyDown={handleKeyDown}
       className={cn(
-        "relative isolate flex w-full cursor-pointer flex-col gap-1 rounded-md px-4 py-3 text-left outline-none transition-[background-color,border-color,box-shadow,color,opacity] duration-150 motion-reduce:transition-none",
+        "relative isolate flex w-full cursor-pointer select-none flex-col gap-1 rounded-md px-4 py-3 text-left outline-none transition-[background-color,border-color,box-shadow,color,opacity] duration-150 motion-reduce:transition-none",
         selectionStyle === "classic"
           ? cn(
               "focus-visible:bg-[image:var(--sidebar-focus-gradient)]",

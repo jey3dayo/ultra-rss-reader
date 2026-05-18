@@ -333,6 +333,25 @@ describe("ArticleListItem", () => {
     expect(option).toHaveAttribute("tabindex", "0");
   });
 
+  it("prevents accidental text selection while interacting with article rows", () => {
+    render(
+      <ArticleListItem
+        article={{ ...sampleArticles[0], is_read: false, is_starred: false }}
+        isSelected
+        isRecentlyRead={false}
+        dimArchived="true"
+        textPreview="true"
+        imagePreviews="off"
+        selectionStyle="modern"
+        feedName={undefined}
+        onSelect={() => {}}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    expect(screen.getByRole("option", { name: "First Article (unread)" })).toHaveClass("select-none");
+  });
+
   it("shows a star indicator on starred article rows", () => {
     render(
       <ArticleListItem
