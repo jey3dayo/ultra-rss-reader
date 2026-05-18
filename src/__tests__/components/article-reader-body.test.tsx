@@ -40,6 +40,16 @@ describe("ArticleReaderBody", () => {
     expect(openArticleInExternalBrowserMock).toHaveBeenCalledWith("https://example.com/posts/1");
   });
 
+  it("lets the reader content expand across the right pane with viewport-responsive padding", () => {
+    const { container } = render(<ArticleReaderBody article={baseArticle} />);
+
+    const readerContent = container.querySelector("[data-article-slide-content]");
+
+    expect(readerContent).toHaveClass("w-full", "px-[clamp(1.75rem,4vw,4.5rem)]");
+    expect(readerContent).not.toHaveClass("max-w-[44rem]");
+    expect(readerContent).not.toHaveClass("max-w-[72rem]");
+  });
+
   it("delegates content link clicks added after the article body renders", () => {
     const { container } = render(<ArticleReaderBody article={{ ...baseArticle, content_sanitized: "<p>Body</p>" }} />);
     const contentContainer = container.querySelector("[data-article-content-container]");

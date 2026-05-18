@@ -219,7 +219,7 @@ export function ArticleReaderBody({ article, feedName, onOpenArticleTitleInWebPr
       <article
         key={article.id}
         data-article-slide-content="true"
-        className="mx-auto max-w-[44rem] px-7 pb-20 pt-10 md:px-11 md:pt-13"
+        className="w-full px-[clamp(1.75rem,4vw,4.5rem)] pb-20 pt-10 md:pt-13"
       >
         <ArticleMetaView
           title={article.title}

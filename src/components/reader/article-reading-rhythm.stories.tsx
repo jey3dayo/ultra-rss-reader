@@ -4,7 +4,7 @@ import { ArticleTagPickerView } from "./article-tag-picker-view";
 
 function ArticleReadingRhythmCanvas() {
   return (
-    <article className="mx-auto max-w-[44rem] bg-background px-7 pb-20 pt-10 text-foreground md:px-11 md:pt-13">
+    <article className="w-full bg-background px-[clamp(1.75rem,4vw,4.5rem)] pb-20 pt-10 text-foreground md:pt-13">
       <ArticleMetaView
         title="イランの攻撃被害額４３兆円、米国とイスラエルに賠償要求へ"
         author="damono3856"
