@@ -667,6 +667,12 @@ fn create_browser_webview(
                 "Failed to create embedded browser webview: {error}"
             ))
         })?;
+    browser_webview.set_auto_resize(true).map_err(|error| {
+        let _ = browser_webview.close();
+        browser_webview_error(format!(
+            "Failed to enable embedded browser auto resize: {error}"
+        ))
+    })?;
     install_escape_accelerator_bridge(&browser_webview, &app_handle).map_err(|error| {
         let _ = browser_webview.close();
         browser_webview_error(format!(
