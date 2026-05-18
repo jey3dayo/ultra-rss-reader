@@ -67,6 +67,20 @@ const selectedJapaneseArticleFixture = {
   is_starred: false,
 };
 
+const selectedShortJapaneseArticleFixture = {
+  id: "art-selected-short-japanese",
+  feed_id: "feed-1",
+  title: "第57話",
+  content_sanitized: "<p>三郷さんは甘すぎ上司にちょっとキビしい</p>",
+  summary: "三郷さんは甘すぎ上司にちょっとキビしい",
+  url: "https://example.com/episode-57",
+  author: null,
+  published_at: "2026-05-15T07:30:00Z",
+  thumbnail: null,
+  is_read: false,
+  is_starred: false,
+};
+
 const scrollbarFillerArticles = Array.from({ length: 7 }, (_, index) => ({
   id: `art-scrollbar-${index + 1}`,
   feed_id: "feed-1",
@@ -162,6 +176,27 @@ export const SelectedJapaneseUnreadWithScrollbar: Story = {
             isSelected: false,
             isRecentlyRead: false,
           })),
+        ],
+      },
+    ],
+  },
+};
+
+export const SelectedJapaneseUnreadWithoutScrollbar: Story = {
+  args: {
+    listAriaLabel: "記事一覧",
+    groups: [
+      {
+        id: "may-15",
+        label: "2026年5月15日",
+        showLabel: true,
+        items: [
+          {
+            article: selectedShortJapaneseArticleFixture,
+            feedName: "コミック",
+            isSelected: true,
+            isRecentlyRead: false,
+          },
         ],
       },
     ],

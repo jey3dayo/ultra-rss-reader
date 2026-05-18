@@ -120,33 +120,40 @@ export function ArticleListScreenView({
   }
 
   return (
-    <ScrollArea
-      className="h-full"
-      contentClassName="pb-4 pr-3"
-      scrollbarClassName="data-vertical:bg-[color-mix(in_srgb,var(--background)_42%,var(--surface-2)_58%)] data-vertical:border-l-[color-mix(in_srgb,var(--color-border)_58%,transparent)]"
-      thumbClassName="bg-[color-mix(in_srgb,var(--color-border-strong)_72%,transparent)]"
-      viewportRef={viewportRef}
-    >
-      <div data-testid="article-list-scroll-content">
-        <div
-          ref={listRef}
-          role="listbox"
-          tabIndex={-1}
-          data-article-list-root="true"
-          aria-label={listAriaLabel}
-          onKeyDownCapture={onListKeyDownCapture}
-        >
-          <ArticleGroupsView
-            groups={groups}
-            dimArchived={dimArchived}
-            textPreview={textPreview}
-            imagePreviews={imagePreviews}
-            selectionStyle={selectionStyle}
-            onSelectArticle={onSelectArticle}
-            renderRow={renderRow}
-          />
+    <div className="relative h-full overflow-hidden">
+      <ScrollArea
+        className="relative z-10 h-full"
+        contentClassName="pb-4 pr-3"
+        scrollbarClassName="data-vertical:bg-[color-mix(in_srgb,var(--background)_42%,var(--surface-2)_58%)] data-vertical:border-l-[color-mix(in_srgb,var(--color-border)_58%,transparent)]"
+        thumbClassName="bg-[color-mix(in_srgb,var(--color-border-strong)_72%,transparent)]"
+        viewportRef={viewportRef}
+      >
+        <div data-testid="article-list-scroll-content">
+          <div
+            ref={listRef}
+            role="listbox"
+            tabIndex={-1}
+            data-article-list-root="true"
+            aria-label={listAriaLabel}
+            onKeyDownCapture={onListKeyDownCapture}
+          >
+            <ArticleGroupsView
+              groups={groups}
+              dimArchived={dimArchived}
+              textPreview={textPreview}
+              imagePreviews={imagePreviews}
+              selectionStyle={selectionStyle}
+              onSelectArticle={onSelectArticle}
+              renderRow={renderRow}
+            />
+          </div>
         </div>
-      </div>
-    </ScrollArea>
+      </ScrollArea>
+      <div
+        aria-hidden="true"
+        data-testid="article-list-scrollbar-lane"
+        className="pointer-events-none absolute inset-y-0 right-0 z-0 w-3 border-l border-[color-mix(in_srgb,var(--color-border)_34%,transparent)] bg-[color-mix(in_srgb,var(--background)_64%,var(--surface-2)_36%)]"
+      />
+    </div>
   );
 }
