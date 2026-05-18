@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import i18n from "@tests/helpers/i18n-setup";
@@ -13,7 +13,60 @@ import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
-const accountDetailViewSpy = vi.fn();
+type AccountDetailViewMockProps = {
+  title: string;
+  subtitle?: string;
+  headerSummary?: ReactNode;
+  generalSection: {
+    nameValue: string;
+    disabled?: boolean;
+    isEditingName: boolean;
+    nameDraft: string;
+    infoRows?: Array<{ label: string; value: string }>;
+    nameInputRef?: React.RefObject<HTMLInputElement | null>;
+    onStartEditingName: () => void;
+    onNameDraftChange: (value: string) => void;
+    onCommitName: () => void;
+    onNameKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void;
+  };
+  credentialsSection?: ReactNode;
+  syncSection: {
+    heading: string;
+    note?: string;
+    isSyncing?: boolean;
+    progressLabel?: string;
+    progressValue?: number | null;
+    progressCurrentLabel?: string;
+    syncNowLabel?: string;
+    syncingLabel?: string;
+    onSyncNow?: () => void;
+    secondaryActionLabel?: string;
+    onSecondaryAction?: () => void;
+    devCredentialsRecoveryActionLabel?: string;
+    devCredentialsRecoveryLoadingLabel?: string;
+    onDevCredentialsRecoveryAction?: () => void;
+    isDevCredentialsRecoveryInFlight?: boolean;
+    statusRows?: Array<{ label: string; value: string }>;
+    syncOnStartup: {
+      onChange: (checked: boolean) => void;
+      disabled?: boolean;
+    };
+    keepReadItems: {
+      options: Array<{ value: string; label: string }>;
+      onChange: (value: string) => void;
+      disabled?: boolean;
+    };
+  };
+  dangerZone: {
+    importLabel: string;
+    exportLabel: string;
+    onImport: (file: File) => Promise<void>;
+    onExport: () => void;
+    disabled?: boolean;
+  };
+};
+
+const accountDetailViewSpy = vi.fn<(props: AccountDetailViewMockProps) => void>();
 const accountDetailCopyFailureLocaleMessages = {
   en: "Failed to copy server URL: Clipboard unavailable",
   ja: "サーバーURLのコピーに失敗しました: Clipboard unavailable",
@@ -33,52 +86,7 @@ async function findPasswordInput() {
 }
 
 vi.mock("@/components/settings/account-detail/view", () => ({
-  AccountDetailView: (props: {
-    title: string;
-    headerSummary?: ReactNode;
-    generalSection: {
-      nameValue: string;
-      disabled?: boolean;
-      isEditingName: boolean;
-      nameDraft: string;
-      infoRows?: Array<{ label: string; value: string }>;
-      nameInputRef?: React.RefObject<HTMLInputElement | null>;
-      onStartEditingName: () => void;
-      onNameDraftChange: (value: string) => void;
-      onCommitName: () => void;
-      onNameKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void;
-    };
-    credentialsSection?: ReactNode;
-    syncSection: {
-      heading: string;
-      note?: string;
-      isSyncing?: boolean;
-      syncNowLabel?: string;
-      syncingLabel?: string;
-      onSyncNow?: () => void;
-      secondaryActionLabel?: string;
-      onSecondaryAction?: () => void;
-      devCredentialsRecoveryActionLabel?: string;
-      devCredentialsRecoveryLoadingLabel?: string;
-      onDevCredentialsRecoveryAction?: () => void;
-      isDevCredentialsRecoveryInFlight?: boolean;
-      statusRows?: Array<{ label: string; value: string }>;
-      syncOnStartup: {
-        onChange: (checked: boolean) => void;
-        disabled?: boolean;
-      };
-      keepReadItems: {
-        options: Array<{ value: string; label: string }>;
-        onChange: (value: string) => void;
-        disabled?: boolean;
-      };
-    };
-    dangerZone: {
-      exportLabel: string;
-      onExport: () => void;
-      disabled?: boolean;
-    };
-  }) => {
+  AccountDetailView: (props: AccountDetailViewMockProps) => {
     accountDetailViewSpy(props);
 
     return (
@@ -152,6 +160,20 @@ vi.mock("@/components/settings/account-detail/view", () => ({
             </div>
           ))}
         </dl>
+        <input
+          data-testid="opml-import-input"
+          type="file"
+          accept=".opml,.xml"
+          onChange={(event) => {
+            const file = event.currentTarget.files?.[0];
+            if (file) {
+              props.dangerZone.onImport(file);
+            }
+          }}
+        />
+        <button type="button" onClick={() => {}} disabled={props.dangerZone.disabled}>
+          {props.dangerZone.importLabel}
+        </button>
         <button type="button" onClick={props.dangerZone.onExport} disabled={props.dangerZone.disabled}>
           {props.dangerZone.exportLabel}
         </button>
@@ -159,6 +181,19 @@ vi.mock("@/components/settings/account-detail/view", () => ({
     );
   },
 }));
+
+async function findLatestImportHandler() {
+  await waitFor(() => {
+    expect(accountDetailViewSpy.mock.calls.at(-1)?.[0].dangerZone.onImport).toEqual(expect.any(Function));
+  });
+
+  const call = accountDetailViewSpy.mock.calls.at(-1);
+  if (!call) {
+    throw new Error("Expected account detail view props to be recorded");
+  }
+
+  return call[0].dangerZone.onImport;
+}
 
 describe("AccountDetail", () => {
   beforeEach(async () => {
@@ -1524,6 +1559,146 @@ describe("AccountDetail", () => {
     unmount();
 
     expect(revokeObjectUrl).toHaveBeenCalledWith("blob:second");
+  });
+
+  it("imports the selected OPML file into the current account and shows a success toast", async () => {
+    const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
+
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      switch (cmd) {
+        case "list_accounts":
+          return [
+            {
+              id: "acc-1",
+              kind: "Local",
+              name: "Local",
+              username: null,
+              server_url: null,
+              sync_interval_secs: 3600,
+              sync_on_startup: true,
+              sync_on_wake: false,
+              keep_read_items_days: 30,
+            },
+          ];
+        case "import_opml":
+          return [];
+        default:
+          return undefined;
+      }
+    });
+
+    render(<AccountDetail />, { wrapper: createWrapper() });
+
+    const onImport = await findLatestImportHandler();
+    await act(async () => {
+      await onImport(new File(['<opml version="2.0"><body /></opml>'], "feeds.opml", { type: "text/xml" }));
+    });
+
+    await waitFor(() => {
+      expect(calls).toContainEqual({
+        cmd: "import_opml",
+        args: {
+          accountId: "acc-1",
+          opmlContent: '<opml version="2.0"><body /></opml>',
+        },
+      });
+    });
+    expect(useUiStore.getState().toastMessage).toEqual({
+      message: "OPML imported",
+    });
+  });
+
+  it("wraps OPML import failures in the localized account toast", async () => {
+    const showToast = vi.fn();
+    useUiStore.setState({ showToast });
+
+    setupTauriMocks((cmd) => {
+      switch (cmd) {
+        case "list_accounts":
+          return [
+            {
+              id: "acc-1",
+              kind: "Local",
+              name: "Local",
+              username: null,
+              server_url: null,
+              sync_interval_secs: 3600,
+              sync_on_startup: true,
+              sync_on_wake: false,
+              keep_read_items_days: 30,
+            },
+          ];
+        case "import_opml":
+          throw { type: "UserVisible", message: "Invalid OPML" };
+        default:
+          return undefined;
+      }
+    });
+
+    render(<AccountDetail />, { wrapper: createWrapper() });
+
+    const onImport = await findLatestImportHandler();
+    await act(async () => {
+      await onImport(new File(["not opml"], "broken.opml", { type: "text/xml" }));
+    });
+
+    await waitFor(() => {
+      expect(showToast).toHaveBeenCalledWith("Failed to import OPML: Invalid OPML");
+    });
+  });
+
+  it("guards OPML import against duplicate in-flight file selections", async () => {
+    const importCalls = vi.fn();
+    let resolveImport: ((value: unknown) => void) | undefined;
+
+    setupTauriMocks((cmd) => {
+      switch (cmd) {
+        case "list_accounts":
+          return [
+            {
+              id: "acc-1",
+              kind: "Local",
+              name: "Local",
+              username: null,
+              server_url: null,
+              sync_interval_secs: 3600,
+              sync_on_startup: true,
+              sync_on_wake: false,
+              keep_read_items_days: 30,
+            },
+          ];
+        case "import_opml":
+          importCalls();
+          return new Promise((resolve) => {
+            resolveImport = resolve;
+          });
+        default:
+          return undefined;
+      }
+    });
+
+    render(<AccountDetail />, { wrapper: createWrapper() });
+
+    const onImport = await findLatestImportHandler();
+    const file = new File(['<opml version="2.0"><body /></opml>'], "feeds.opml", { type: "text/xml" });
+    let firstImport: Promise<void> | undefined;
+    let secondImport: Promise<void> | undefined;
+    await act(async () => {
+      firstImport = onImport(file);
+      secondImport = onImport(file);
+    });
+
+    expect(importCalls).toHaveBeenCalledTimes(1);
+
+    resolveImport?.([]);
+    if (!firstImport || !secondImport) {
+      throw new Error("Expected import promises to be created");
+    }
+    await act(async () => {
+      await Promise.all([firstImport, secondImport]);
+    });
   });
 
   it("shows a warning toast when account sync completes with anomalies", async () => {

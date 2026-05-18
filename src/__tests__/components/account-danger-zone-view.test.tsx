@@ -11,8 +11,9 @@ function expectStandardSettingsActionButton(button: HTMLElement) {
 }
 
 describe("AccountDangerZoneView", () => {
-  it("renders export and delete actions before confirmation", async () => {
+  it("renders import, export, and delete actions before confirmation", async () => {
     const user = userEvent.setup();
+    const onImport = vi.fn();
     const onExport = vi.fn();
     const onRequestDelete = vi.fn();
 
@@ -20,13 +21,16 @@ describe("AccountDangerZoneView", () => {
       <AccountDangerZoneView
         dataHeading="Data"
         dangerHeading="Danger Zone"
+        importLabel="Import OPML"
         exportLabel="Export OPML"
         deleteLabel="Delete account"
+        onImport={onImport}
         onExport={onExport}
         onRequestDelete={onRequestDelete}
       />,
     );
 
+    await user.upload(screen.getByTestId("opml-import-input"), new File(["<opml />"], "feeds.opml"));
     await user.click(screen.getByRole("button", { name: "Export OPML" }));
     await user.click(screen.getByRole("button", { name: "Delete account" }));
 
@@ -35,12 +39,15 @@ describe("AccountDangerZoneView", () => {
     expect(screen.getByRole("heading", { level: 3, name: "Danger Zone" })).toHaveClass(
       "text-state-danger-foreground/72",
     );
+    expectStandardSettingsActionButton(screen.getByRole("button", { name: "Import OPML" }));
     expectStandardSettingsActionButton(screen.getByRole("button", { name: "Export OPML" }));
     expect(screen.getByRole("button", { name: "Delete account" })).toHaveAttribute("data-delete-button");
     expect(screen.getByRole("button", { name: "Delete account" })).toHaveClass("w-full");
-    expect(screen.getByRole("button", { name: "Export OPML" }).parentElement).toHaveClass("pl-2");
+    expect(screen.getByRole("button", { name: "Import OPML" }).parentElement?.parentElement).toHaveClass("pl-2");
+    expect(screen.getByRole("button", { name: "Export OPML" }).parentElement?.parentElement).toHaveClass("pl-2");
     expect(screen.getByRole("button", { name: "Delete account" }).parentElement).toHaveClass("pl-2");
     expect(container.querySelectorAll('[data-surface-card="section"]')).toHaveLength(2);
+    expect(onImport).toHaveBeenCalledWith(expect.objectContaining({ name: "feeds.opml" }));
     expect(onExport).toHaveBeenCalledTimes(1);
     expect(onRequestDelete).toHaveBeenCalledTimes(1);
     expect(screen.queryByText("This action cannot be undone.")).not.toBeInTheDocument();
@@ -48,6 +55,7 @@ describe("AccountDangerZoneView", () => {
 
   it("keeps destructive actions visible but disabled when fallback state cannot identify the target", async () => {
     const user = userEvent.setup();
+    const onImport = vi.fn();
     const onExport = vi.fn();
     const onRequestDelete = vi.fn();
 
@@ -55,26 +63,35 @@ describe("AccountDangerZoneView", () => {
       <AccountDangerZoneView
         dataHeading="Data"
         dangerHeading="Danger Zone"
+        importLabel="Import OPML"
         exportLabel="Export OPML"
         deleteLabel="Delete account"
         disabled={true}
         disabledReason="Account details failed to load. Delete is disabled until the account can be identified."
+        onImport={onImport}
         onExport={onExport}
         onRequestDelete={onRequestDelete}
       />,
     );
 
+    const importButton = screen.getByRole("button", { name: "Import OPML" });
+    const exportButton = screen.getByRole("button", { name: "Export OPML" });
     const deleteButton = screen.getByRole("button", { name: "Delete account" });
     const disabledReason = screen.getByText(
       "Account details failed to load. Delete is disabled until the account can be identified.",
     );
 
+    expect(importButton).toBeDisabled();
+    expect(exportButton).toBeDisabled();
     expect(deleteButton).toBeVisible();
     expect(deleteButton).toBeDisabled();
     expect(deleteButton).toHaveAttribute("aria-describedby", disabledReason.id);
 
+    await user.click(importButton);
+    await user.click(exportButton);
     await user.click(deleteButton);
 
+    expect(onImport).not.toHaveBeenCalled();
     expect(onExport).not.toHaveBeenCalled();
     expect(onRequestDelete).not.toHaveBeenCalled();
   });

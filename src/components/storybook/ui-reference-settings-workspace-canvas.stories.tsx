@@ -268,8 +268,10 @@ export function SettingsWorkspaceCanvas() {
                     dangerZone={{
                       dataHeading: "Data",
                       dangerHeading: "Danger Zone",
+                      importLabel: "Import OPML",
                       exportLabel: "Export OPML",
                       deleteLabel: "Delete account",
+                      onImport: () => {},
                       onExport: () => {},
                       onRequestDelete: () => {},
                     }}

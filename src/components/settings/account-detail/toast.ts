@@ -11,6 +11,7 @@ type AccountDetailErrorToastKey =
   | "account.connection_failed"
   | "account.copy_server_url_failed"
   | "account.sync_failed"
+  | "account.failed_to_import_opml"
   | "account.failed_to_export_opml"
   | "account.failed_to_delete";
 

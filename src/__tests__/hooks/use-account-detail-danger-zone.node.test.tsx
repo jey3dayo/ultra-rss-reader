@@ -13,10 +13,11 @@ import { queryKeys } from "@/lib/query/query-invalidation";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
-const { deleteAccountMock, exportOpmlMock, getPreferencesMock, setPreferenceMock } = vi.hoisted(() => ({
+const { deleteAccountMock, exportOpmlMock, getPreferencesMock, importOpmlMock, setPreferenceMock } = vi.hoisted(() => ({
   deleteAccountMock: vi.fn(),
   exportOpmlMock: vi.fn(),
   getPreferencesMock: vi.fn(),
+  importOpmlMock: vi.fn(),
   setPreferenceMock: vi.fn(),
 }));
 
@@ -24,6 +25,7 @@ vi.mock("@/api/tauri-commands", () => ({
   deleteAccount: deleteAccountMock,
   exportOpml: exportOpmlMock,
   getPreferences: getPreferencesMock,
+  importOpml: importOpmlMock,
   setPreference: setPreferenceMock,
 }));
 
@@ -59,6 +61,7 @@ describe("useAccountDetailDangerZone", () => {
     exportOpmlMock.mockReset();
     deleteAccountMock.mockReset();
     getPreferencesMock.mockReset();
+    importOpmlMock.mockReset();
     setPreferenceMock.mockReset();
     setPreferenceMock.mockResolvedValue(Result.succeed(null));
     useUiStore.setState(useUiStore.getInitialState());

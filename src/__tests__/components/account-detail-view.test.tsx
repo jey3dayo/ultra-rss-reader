@@ -50,8 +50,10 @@ function renderAccountDetailView(syncSectionOverrides: Partial<AccountDetailView
       dangerZone={{
         dataHeading: "Data",
         dangerHeading: "Danger Zone",
+        importLabel: "Import OPML",
         exportLabel: "Export OPML",
         deleteLabel: "Delete account",
+        onImport: vi.fn(),
         onExport: vi.fn(),
         onRequestDelete: vi.fn(),
       }}
@@ -119,8 +121,10 @@ describe("AccountDetailView", () => {
         dangerZone={{
           dataHeading: "Data",
           dangerHeading: "Danger Zone",
+          importLabel: "Import OPML",
           exportLabel: "Export OPML",
           deleteLabel: "Delete account",
+          onImport: vi.fn(),
           onExport: vi.fn(),
           onRequestDelete: vi.fn(),
         }}
@@ -139,6 +143,7 @@ describe("AccountDetailView", () => {
     expect(screen.getByText("Apr 13, 12:15")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 3, name: "Data" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 3, name: "Danger Zone" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Import OPML" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Export OPML" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Delete account" })).toBeInTheDocument();
   });
@@ -190,8 +195,10 @@ describe("AccountDetailView", () => {
         dangerZone={{
           dataHeading: "Data",
           dangerHeading: "Danger Zone",
+          importLabel: "Import OPML",
           exportLabel: "Export OPML",
           deleteLabel: "Delete account",
+          onImport: vi.fn(),
           onExport: vi.fn(),
           onRequestDelete: vi.fn(),
         }}
@@ -251,8 +258,10 @@ describe("AccountDetailView", () => {
         dangerZone={{
           dataHeading: "Data",
           dangerHeading: "Danger Zone",
+          importLabel: "Import OPML",
           exportLabel: "Export OPML",
           deleteLabel: "Delete account",
+          onImport: vi.fn(),
           onExport: vi.fn(),
           onRequestDelete: vi.fn(),
         }}
@@ -320,8 +329,10 @@ describe("AccountDetailView", () => {
         dangerZone={{
           dataHeading: "Data",
           dangerHeading: "Danger Zone",
+          importLabel: "Import OPML",
           exportLabel: "Export OPML",
           deleteLabel: "Delete account",
+          onImport: vi.fn(),
           onExport: vi.fn(),
           onRequestDelete: vi.fn(),
           disabled: true,

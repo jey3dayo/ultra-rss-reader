@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { type ChangeEvent, useId, useRef } from "react";
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { DeleteButton } from "@/components/shared/delete-button";
@@ -6,8 +6,10 @@ import { DeleteButton } from "@/components/shared/delete-button";
 type AccountDangerZoneViewProps = {
   dataHeading: string;
   dangerHeading: string;
+  importLabel: string;
   exportLabel: string;
   deleteLabel: string;
+  onImport: (file: File) => void;
   onExport: () => void;
   onRequestDelete: () => void;
   disabled?: boolean;
@@ -17,15 +19,28 @@ type AccountDangerZoneViewProps = {
 export function AccountDangerZoneView({
   dataHeading,
   dangerHeading,
+  importLabel,
   exportLabel,
   deleteLabel,
+  onImport,
   onExport,
   onRequestDelete,
   disabled = false,
   disabledReason,
 }: AccountDangerZoneViewProps) {
   const disabledReasonId = useId();
+  const importInputRef = useRef<HTMLInputElement | null>(null);
   const showDisabledReason = disabled && disabledReason != null && disabledReason.trim().length > 0;
+  const handleImportClick = () => {
+    importInputRef.current?.click();
+  };
+  const handleImportFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = "";
+    if (file) {
+      onImport(file);
+    }
+  };
 
   return (
     <>
@@ -34,9 +49,23 @@ export function AccountDangerZoneView({
         className="mt-6 border-t border-border pt-6"
         contentClassName="pl-2 sm:pl-3"
       >
-        <SettingsActionButton onClick={onExport} disabled={disabled}>
-          {exportLabel}
-        </SettingsActionButton>
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          <input
+            ref={importInputRef}
+            data-testid="opml-import-input"
+            type="file"
+            accept=".opml,.xml"
+            className="hidden"
+            tabIndex={-1}
+            onChange={handleImportFileChange}
+          />
+          <SettingsActionButton onClick={handleImportClick} disabled={disabled}>
+            {importLabel}
+          </SettingsActionButton>
+          <SettingsActionButton onClick={onExport} disabled={disabled}>
+            {exportLabel}
+          </SettingsActionButton>
+        </div>
       </SettingsSection>
 
       <SettingsSection

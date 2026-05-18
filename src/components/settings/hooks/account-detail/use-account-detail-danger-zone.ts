@@ -3,15 +3,17 @@ import type { QueryClient, QueryKey } from "@tanstack/react-query";
 import type { TFunction } from "i18next";
 import { useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { deleteAccount, exportOpml } from "@/api/tauri-commands";
+import { deleteAccount, exportOpml, importOpml } from "@/api/tauri-commands";
 import {
   getQueryKeyRootName,
   getQueryKeyScopeValue,
   invalidateArticleQueries,
   invalidateFeedQueries,
+  invalidateOpmlImportQueries,
   invalidateQueryKeysLogOnly,
   queryKeys,
 } from "@/lib/query/query-invalidation";
+import { getErrorMessage } from "@/lib/ui/errors";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { createAccountDetailErrorToast } from "../../account-detail/toast";
@@ -25,6 +27,7 @@ type AccountDetailDangerZoneParams = {
 };
 
 export type AccountDetailDangerZoneResult = {
+  handleImportOpml: (file: File) => Promise<void>;
   handleExportOpml: () => Promise<void>;
   handleRequestDelete: () => void;
 };
@@ -104,12 +107,14 @@ export function useAccountDetailDangerZone({
   t,
   onAccountDeleted,
 }: AccountDetailDangerZoneParams): AccountDetailDangerZoneResult {
+  const importInFlightRef = useRef(false);
   const exportInFlightRef = useRef(false);
   const pendingExportUrlRef = useRef<string | null>(null);
   const pendingExportUrlTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mountedRef = useRef(true);
   const { t: tc } = useTranslation("common");
   const showConfirm = useUiStore((state) => state.showConfirm);
+  const showImportError = createAccountDetailErrorToast(t, "account.failed_to_import_opml");
   const showExportError = createAccountDetailErrorToast(t, "account.failed_to_export_opml");
   const showDeleteError = createAccountDetailErrorToast(t, "account.failed_to_delete");
   const savedAccountId = usePreferencesStore((state) => state.prefs.selected_account_id ?? "");
@@ -140,6 +145,37 @@ export function useAccountDetailDangerZone({
     void accountId;
     revokePendingExportUrl();
   }, [account.id, revokePendingExportUrl]);
+
+  const handleImportOpml = async (file: File) => {
+    if (importInFlightRef.current) {
+      return;
+    }
+
+    const importAccountId = account.id;
+    importInFlightRef.current = true;
+    try {
+      const opmlContent = await file.text();
+      const importResult = await importOpml(importAccountId, opmlContent);
+      if (!mountedRef.current) {
+        return;
+      }
+
+      Result.pipe(
+        importResult,
+        Result.inspectError(showImportError),
+        Result.inspect(() => {
+          invalidateOpmlImportQueries(queryClient);
+          useUiStore.getState().showToast(t("account.import_opml_success"));
+        }),
+      );
+    } catch (error) {
+      if (mountedRef.current) {
+        showImportError({ message: getErrorMessage(error) });
+      }
+    } finally {
+      importInFlightRef.current = false;
+    }
+  };
 
   const handleExportOpml = async () => {
     if (exportInFlightRef.current) {
@@ -222,6 +258,7 @@ export function useAccountDetailDangerZone({
   };
 
   return {
+    handleImportOpml,
     handleExportOpml,
     handleRequestDelete,
   };

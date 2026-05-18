@@ -9,8 +9,10 @@ const meta = {
   args: {
     dataHeading: "Data",
     dangerHeading: "Danger Zone",
+    importLabel: "Import OPML",
     exportLabel: "Export OPML",
     deleteLabel: "Delete account",
+    onImport: fn(),
     onExport: fn(),
     onRequestDelete: fn(),
   },

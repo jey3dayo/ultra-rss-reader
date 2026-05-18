@@ -317,8 +317,10 @@ export function useAccountDetailViewProps({
     dangerZone: {
       dataHeading: t("account.data_section"),
       dangerHeading: t("account.danger_zone"),
+      importLabel: t("account.import_opml"),
       exportLabel: t("account.export_opml"),
       deleteLabel: t("account.delete_account"),
+      onImport: controller.handleImportOpml,
       onExport: controller.handleExportOpml,
       onRequestDelete: controller.handleRequestDelete,
       disabled: isSetupActive,
