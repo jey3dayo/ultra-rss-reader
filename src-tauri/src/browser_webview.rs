@@ -12,7 +12,7 @@ use std::{
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, Runtime, Webview};
 
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "macos"))]
 use crate::menu::MENU_ACTION_EVENT;
 
 pub const BROWSER_WEBVIEW_LABEL: &str = "browser-webview";
@@ -30,6 +30,8 @@ pub const BROWSER_WEBVIEW_EVENT_NAMES: &[&str] = &[
 ];
 
 static BROWSER_WEBVIEW_DIAGNOSTICS_ENABLED: AtomicBool = AtomicBool::new(false);
+#[cfg(target_os = "macos")]
+static BROWSER_MACOS_ESCAPE_MONITOR_INSTALLED: AtomicBool = AtomicBool::new(false);
 #[cfg(test)]
 pub(crate) static BROWSER_WEBVIEW_DIAGNOSTICS_TEST_LOCK: std::sync::Mutex<()> =
     std::sync::Mutex::new(());
@@ -510,6 +512,13 @@ fn focus_main_webview_window<R: Runtime>(app_handle: &AppHandle<R>) {
     }
 }
 
+#[cfg(target_os = "macos")]
+fn focus_main_webview_window<R: Runtime>(app_handle: &AppHandle<R>) {
+    if let Some(webview) = app_handle.get_webview("main") {
+        let _ = webview.set_focus();
+    }
+}
+
 #[cfg_attr(not(any(test, windows)), allow(dead_code))]
 fn normalize_browser_shortcut(key: &str, command_or_control: bool, shift: bool) -> Option<String> {
     if key.is_empty() {
@@ -642,6 +651,13 @@ fn is_supported_browser_preview_script_action(action: &str) -> bool {
 fn is_supported_browser_preview_bridge_action(action: &str) -> bool {
     is_supported_browser_preview_script_action(action)
         || matches!(action, "mouse-back" | "mouse-forward")
+}
+
+#[cfg_attr(not(any(test, target_os = "macos")), allow(dead_code))]
+fn should_handle_macos_browser_escape_key(key_code: u16, browser_webview_open: bool) -> bool {
+    const MACOS_ESCAPE_KEY_CODE: u16 = 53;
+
+    browser_webview_open && key_code == MACOS_ESCAPE_KEY_CODE
 }
 
 #[cfg_attr(not(any(test, windows)), allow(dead_code))]
@@ -1243,7 +1259,63 @@ pub fn install_escape_accelerator_bridge<R: Runtime>(
     }
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "macos")]
+pub fn install_escape_accelerator_bridge<R: Runtime>(
+    _browser_webview: &Webview<R>,
+    app_handle: &AppHandle<R>,
+) -> tauri::Result<()> {
+    use std::{ptr::null_mut, sync::atomic::Ordering};
+
+    use objc2_app_kit::{NSEvent, NSEventMask};
+
+    if BROWSER_MACOS_ESCAPE_MONITOR_INSTALLED
+        .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+        .is_err()
+    {
+        return Ok(());
+    }
+
+    let app_handle = app_handle.clone();
+    let handler = block2::RcBlock::new(move |event: std::ptr::NonNull<NSEvent>| -> *mut NSEvent {
+        let key_code = unsafe { event.as_ref().keyCode() };
+        let browser_webview_open = app_handle
+            .try_state::<crate::commands::AppState>()
+            .and_then(|app_state| {
+                app_state
+                    .browser_webview
+                    .lock()
+                    .ok()
+                    .and_then(|tracker| tracker.snapshot())
+            })
+            .is_some();
+
+        if !should_handle_macos_browser_escape_key(key_code, browser_webview_open) {
+            return event.as_ptr();
+        }
+
+        emit_browser_webview_debug_input(
+            &app_handle,
+            format!("native-macos-key key_code={key_code} action=close-browser handled=true"),
+        );
+        focus_main_webview_window(&app_handle);
+        let _ = app_handle.emit(MENU_ACTION_EVENT, "close-browser");
+        null_mut()
+    });
+
+    let monitor = unsafe {
+        NSEvent::addLocalMonitorForEventsMatchingMask_handler(NSEventMask::KeyDown, &handler)
+    };
+
+    if let Some(monitor) = monitor {
+        std::mem::forget(monitor);
+        Ok(())
+    } else {
+        BROWSER_MACOS_ESCAPE_MONITOR_INSTALLED.store(false, Ordering::SeqCst);
+        Err(std::io::Error::other("Failed to install macOS embedded browser Escape monitor").into())
+    }
+}
+
+#[cfg(all(not(windows), not(target_os = "macos")))]
 pub fn install_escape_accelerator_bridge<R: Runtime>(
     _browser_webview: &Webview<R>,
     _app_handle: &AppHandle<R>,
@@ -1481,7 +1553,8 @@ mod tests {
         browser_preview_initialization_script_from_prefs_result, browser_preview_script_bindings,
         browser_preview_shortcut_preferences_read_warning, browser_webview_diagnostics_enabled,
         browser_webview_emit_failure_warning, set_browser_webview_diagnostics_enabled,
-        should_trigger_timeout_fallback, supports_native_navigation, BrowserNavigationAvailability,
+        should_handle_macos_browser_escape_key, should_trigger_timeout_fallback,
+        supports_native_navigation, BrowserNavigationAvailability,
         BrowserWebviewDiagnosticsPayload, BrowserWebviewFallbackPayload, BrowserWebviewLogicalRect,
         BrowserWebviewState, BrowserWebviewTracker, BROWSER_WEBVIEW_DIAGNOSTICS_EVENT,
         BROWSER_WEBVIEW_DIAGNOSTICS_TEST_LOCK, BROWSER_WEBVIEW_LABEL,
@@ -2101,6 +2174,13 @@ mod tests {
         assert_eq!(bindings.get("Shift+F"), Some(&"next-feed"));
         assert_eq!(bindings.get("⌘+h"), Some(&"prev-feed"));
         assert_eq!(bindings.get("Shift+R"), Some(&"reload-webview"));
+    }
+
+    #[test]
+    fn macos_escape_monitor_handles_escape_only_when_browser_webview_is_open() {
+        assert!(should_handle_macos_browser_escape_key(53, true));
+        assert!(!should_handle_macos_browser_escape_key(53, false));
+        assert!(!should_handle_macos_browser_escape_key(36, true));
     }
 
     #[test]

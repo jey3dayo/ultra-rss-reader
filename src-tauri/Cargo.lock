@@ -6055,6 +6055,7 @@ version = "0.43.3"
 dependencies = [
  "ammonia",
  "async-trait",
+ "block2 0.6.2",
  "chrono",
  "feed-rs",
  "flate2",
@@ -6064,6 +6065,7 @@ dependencies = [
  "kuchikiki",
  "log",
  "mockito",
+ "objc2-app-kit 0.3.2",
  "objc2-web-kit 0.3.2",
  "open",
  "quick-xml 0.36.2",
