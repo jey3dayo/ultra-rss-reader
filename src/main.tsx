@@ -1,7 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import "./lib/i18n";
-import { setupDevMocks } from "@/dev/mocks";
 import { App } from "./App";
 import "./styles/global.css";
 
@@ -46,6 +45,8 @@ export function mountApp(rootElement: HTMLElement | null = resolveAppRoot()) {
   }
 }
 
-// Inject mock IPC when running in browser (not inside Tauri)
-setupDevMocks();
+if (import.meta.env.DEV) {
+  const { setupDevMocks } = await import("@/dev/mocks");
+  setupDevMocks();
+}
 mountApp();

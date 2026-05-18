@@ -43,6 +43,7 @@ const DEV_MOCKS_PATH = "src/dev/mocks.ts";
 const VITE_CONFIG_PATH = "vite.config.ts";
 const DEV_CREDENTIAL_ENV_PATTERN = /\b(?:DEV_CREDENTIALS|ULTRA_RSS_DEV_CREDENTIALS)\s*:/;
 const DEV_ONLY_IMPORT_PATTERN = /(?:from\s+|import\()\s*["']@\/dev\/(?:mock-data|scenarios)(?:\/|["'])/;
+const STATIC_DEV_MOCKS_IMPORT_PATTERN = /^\s*import\s+(?!type\b)[^;\n]+from\s*["']@\/dev\/mocks["']/m;
 const REQUIRED_RELEASE_CSP_DIRECTIVES = {
   "script-src": ["'self'"],
   "style-src": ["'self'", "'unsafe-inline'"],
@@ -246,6 +247,17 @@ const releaseSourceDevOnlyImports = listSourceFiles("src").filter((sourcePath) =
 
 for (const sourcePath of releaseSourceDevOnlyImports) {
   errors.push(`release source must not import dev-only mock data or scenario modules: ${sourcePath}`);
+}
+
+const releaseSourceStaticDevMocksImports = listSourceFiles("src").filter((sourcePath) => {
+  if (sourcePath.startsWith("src/dev/") || sourcePath.startsWith("src/__tests__/")) {
+    return false;
+  }
+  return STATIC_DEV_MOCKS_IMPORT_PATTERN.test(readText(sourcePath));
+});
+
+for (const sourcePath of releaseSourceStaticDevMocksImports) {
+  errors.push(`release source must not statically import dev browser mocks: ${sourcePath}`);
 }
 
 if (errors.length > 0) {

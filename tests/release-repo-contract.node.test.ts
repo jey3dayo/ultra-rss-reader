@@ -1741,11 +1741,18 @@ describe("release repository contract", () => {
   it("keeps release builds from using dev Tauri config or dev credentials", () => {
     const tauriActionBlock = extractTauriActionBlock(releaseWorkflow);
     const devOnlyImportPattern = /(?:from\s+|import\()\s*["']@\/dev\/(?:mock-data|scenarios)(?:\/|["'])/;
+    const staticDevMocksImportPattern = /^\s*import\s+(?!type\b)[^;\n]+from\s*["']@\/dev\/mocks["']/m;
     const releaseSourceDevOnlyImports = listTypeScriptSourceFiles("src").flatMap((filePath) => {
       if (filePath.startsWith("src/dev/") || filePath.startsWith("src/__tests__/")) {
         return [];
       }
       return devOnlyImportPattern.test(readText(filePath)) ? [filePath] : [];
+    });
+    const releaseSourceStaticDevMocksImports = listTypeScriptSourceFiles("src").flatMap((filePath) => {
+      if (filePath.startsWith("src/dev/") || filePath.startsWith("src/__tests__/")) {
+        return [];
+      }
+      return staticDevMocksImportPattern.test(readText(filePath)) ? [filePath] : [];
     });
 
     execFileSync("node", ["./scripts/check-release-build-contamination.ts"], {
@@ -1773,6 +1780,7 @@ describe("release repository contract", () => {
     expect(releaseContaminationChecker).toContain(
       "release source must not import dev-only mock data or scenario modules",
     );
+    expect(releaseContaminationChecker).toContain("release source must not statically import dev browser mocks");
     expect(packageJson.scripts).toMatchObject({
       "check:release-contamination": "node ./scripts/check-release-build-contamination.ts",
     });
@@ -1791,6 +1799,7 @@ describe("release repository contract", () => {
       ),
     ).toEqual([]);
     expect(releaseSourceDevOnlyImports).toEqual([]);
+    expect(releaseSourceStaticDevMocksImports).toEqual([]);
     expect(tauriActionBlock).not.toContain("--config src-tauri/tauri.dev.conf.json");
     expect(releaseWorkflow).not.toMatch(/\bDEV_CREDENTIALS\s*:/);
     expect(releaseWorkflow).not.toMatch(/\bULTRA_RSS_DEV_CREDENTIALS\s*:/);

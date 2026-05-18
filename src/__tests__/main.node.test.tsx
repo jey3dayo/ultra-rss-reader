@@ -22,6 +22,13 @@ vi.mock("@/App", () => ({
   App: () => null,
 }));
 
+async function importMainAndWaitForBootstrap() {
+  await import("@/main");
+  await vi.waitFor(() => {
+    expect(setupDevMocksMock).toHaveBeenCalledOnce();
+  });
+}
+
 describe("main app root bootstrap", () => {
   beforeEach(() => {
     vi.resetModules();
@@ -34,9 +41,8 @@ describe("main app root bootstrap", () => {
   it("mounts the app when exactly one #root element exists", async () => {
     document.body.innerHTML = '<div id="root"></div>';
 
-    await import("@/main");
+    await importMainAndWaitForBootstrap();
 
-    expect(setupDevMocksMock).toHaveBeenCalledOnce();
     expect(createRootMock).toHaveBeenCalledOnce();
     expect(createRootMock).toHaveBeenCalledWith(document.getElementById("root"));
     expect(renderMock).toHaveBeenCalledOnce();
@@ -46,9 +52,8 @@ describe("main app root bootstrap", () => {
   it("renders a user-visible fallback when #root is missing", async () => {
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
 
-    await import("@/main");
+    await importMainAndWaitForBootstrap();
 
-    expect(setupDevMocksMock).toHaveBeenCalledOnce();
     expect(createRootMock).not.toHaveBeenCalled();
     expect(consoleError).toHaveBeenCalledWith("Expected exactly one #root element, found 0.");
     expect(document.querySelector("[data-app-root-missing-fallback]")).toHaveTextContent(
@@ -62,9 +67,8 @@ describe("main app root bootstrap", () => {
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
     document.body.innerHTML = '<div id="root"></div><div id="root"></div>';
 
-    await import("@/main");
+    await importMainAndWaitForBootstrap();
 
-    expect(setupDevMocksMock).toHaveBeenCalledOnce();
     expect(createRootMock).not.toHaveBeenCalled();
     expect(consoleError).toHaveBeenCalledWith("Expected exactly one #root element, found 2.");
     expect(document.querySelector("[data-app-root-missing-fallback]")).toHaveTextContent(
@@ -82,7 +86,7 @@ describe("main app root bootstrap", () => {
       throw renderError;
     });
 
-    await import("@/main");
+    await importMainAndWaitForBootstrap();
 
     expect(createRootMock).toHaveBeenCalledOnce();
     expect(consoleError).toHaveBeenCalledWith("Failed to render app root.", renderError);
