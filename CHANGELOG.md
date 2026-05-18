@@ -4,6 +4,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.43.3] - 2026-05-18
+
+### Bug Fixes
+
+- Web Preview の embedded WebView がウィンドウ端・角のリサイズに追従するようにした
+- ウィンドウを極小サイズへ縮めても embedded browser が途切れないように、main window の最小サイズを維持するようにした
+- production bundle に dev mock が混入しないようにして、本番ビルドの不要なコードを減らした
+
 ## [0.43.2] - 2026-05-18
 
 ### Bug Fixes
