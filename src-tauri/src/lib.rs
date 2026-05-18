@@ -39,6 +39,8 @@ const SHUTDOWN_DRAIN_TIMEOUT: Duration = Duration::from_secs(5);
 const SHUTDOWN_DRAIN_POLL_INTERVAL: Duration = Duration::from_millis(25);
 #[cfg(not(test))]
 const MAIN_WINDOW_CLOSE_BLOCKED_EVENT: &str = "main-window-close-blocked";
+const MAIN_WINDOW_MIN_WIDTH: u64 = 520;
+const MAIN_WINDOW_MIN_HEIGHT: u64 = 420;
 #[cfg(any(not(debug_assertions), test))]
 const RELEASE_LOG_MAX_FILE_SIZE_BYTES: u128 = 5_000_000;
 #[cfg(any(not(debug_assertions), test))]
@@ -467,6 +469,40 @@ fn emit_main_window_close_blocked(app_handle: &tauri::AppHandle) {
     }
 }
 
+#[cfg(not(test))]
+fn main_window_min_size() -> tauri::Size {
+    tauri::Size::Logical(tauri::LogicalSize::new(
+        MAIN_WINDOW_MIN_WIDTH as f64,
+        MAIN_WINDOW_MIN_HEIGHT as f64,
+    ))
+}
+
+#[cfg(not(test))]
+fn enforce_main_window_min_size_after_window_resize<R: tauri::Runtime>(
+    window: &tauri::Window<R>,
+    size: tauri::PhysicalSize<u32>,
+) {
+    let Ok(scale_factor) = window.scale_factor() else {
+        tracing::warn!("Failed to read main window scale factor while enforcing minimum size");
+        return;
+    };
+    let logical_width = f64::from(size.width) / scale_factor;
+    let logical_height = f64::from(size.height) / scale_factor;
+    if logical_width >= MAIN_WINDOW_MIN_WIDTH as f64
+        && logical_height >= MAIN_WINDOW_MIN_HEIGHT as f64
+    {
+        return;
+    }
+
+    let next_size = tauri::Size::Logical(tauri::LogicalSize::new(
+        logical_width.max(MAIN_WINDOW_MIN_WIDTH as f64),
+        logical_height.max(MAIN_WINDOW_MIN_HEIGHT as f64),
+    ));
+    if let Err(error) = window.set_size(next_size) {
+        tracing::warn!("Failed to restore main window minimum size after resize: {error}");
+    }
+}
+
 #[cfg(any(not(debug_assertions), test))]
 fn cleanup_old_logs(log_dir: &std::path::Path, max_age_days: u64) {
     use std::time::{Duration, SystemTime};
@@ -596,6 +632,14 @@ pub fn run() {
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .on_window_event(|window, event| {
+            if window.label() != "main" {
+                return;
+            }
+            if let tauri::WindowEvent::Resized(size) = event {
+                enforce_main_window_min_size_after_window_resize(window, *size);
+            }
+        })
         .setup(|app| {
             // Initialize database first so preferences are available for menu construction
             let app_data_dir = app
@@ -640,6 +684,9 @@ pub fn run() {
                 window
                     .set_title_bar_style(main_window_title_bar_style())
                     .expect("Failed to configure main window title bar style");
+                window
+                    .set_min_size(Some(main_window_min_size()))
+                    .expect("Failed to configure main window minimum size");
 
                 let startup_focus_restore_active_for_window = startup_focus_restore_active.clone();
                 window.on_window_event(move |event| match event {
@@ -720,6 +767,21 @@ pub fn run() {
                     _ => {}
                 });
             }
+
+            let app_handle_for_startup_size = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                tokio::time::sleep(Duration::from_millis(250)).await;
+                let Some(window) = app_handle_for_startup_size.get_window("main") else {
+                    tracing::warn!("Failed to find main window while enforcing startup size");
+                    return;
+                };
+                match window.inner_size() {
+                    Ok(size) => enforce_main_window_min_size_after_window_resize(&window, size),
+                    Err(error) => {
+                        tracing::warn!("Failed to read main window size after startup: {error}");
+                    }
+                }
+            });
 
             focus_main_webview_on_startup(app.handle().clone(), startup_focus_restore_active);
 
@@ -861,8 +923,8 @@ mod tests {
         startup_main_window_show_warning, startup_preferences_or_default,
         startup_preferences_read_warning_message, tracing_init_status, MainWindowCloseDecision,
         SecondLaunchDecision, StartupFocusRestoreDecision, TracingInitStatus,
-        RELEASE_LOG_MAX_FILE_SIZE_BYTES, RELEASE_LOG_RETENTION_DAYS, RELEASE_LOG_ROTATION_STRATEGY,
-        RELEASE_LOG_TIMEZONE_STRATEGY,
+        MAIN_WINDOW_MIN_HEIGHT, MAIN_WINDOW_MIN_WIDTH, RELEASE_LOG_MAX_FILE_SIZE_BYTES,
+        RELEASE_LOG_RETENTION_DAYS, RELEASE_LOG_ROTATION_STRATEGY, RELEASE_LOG_TIMEZONE_STRATEGY,
     };
     use crate::domain::error::DomainError;
 
@@ -1374,6 +1436,20 @@ mod tests {
                     .and_then(serde_json::Value::as_u64),
                 Some(900),
                 "main window should keep a logical default height instead of restoring DPI-bound physical size"
+            );
+            assert_eq!(
+                window_config
+                    .get("minWidth")
+                    .and_then(serde_json::Value::as_u64),
+                Some(MAIN_WINDOW_MIN_WIDTH),
+                "main window should preserve enough logical width for the ultra-compact browser layout"
+            );
+            assert_eq!(
+                window_config
+                    .get("minHeight")
+                    .and_then(serde_json::Value::as_u64),
+                Some(MAIN_WINDOW_MIN_HEIGHT),
+                "main window should preserve enough logical height for the embedded browser webview"
             );
             assert!(
                 !config.contains("\"x\""),
