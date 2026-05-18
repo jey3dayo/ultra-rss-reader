@@ -40,3 +40,19 @@ export const OverflowContent: Story = {
     ),
   },
 };
+
+export const InlineImageMediaRail: Story = {
+  args: {
+    thumbnailUrl: null,
+    contentHtml: fromSanitizedArticleHtml(
+      '<p>Text paragraphs keep a comfortable reading measure even when the reader pane is wide.</p><p><img src="https://placehold.co/1200x675/d7dacd/2f3429.png?text=Inline+reader+media" alt="Inline reader media"></p><p>The next paragraph returns to the text rail instead of inheriting the image width.</p>',
+    ),
+  },
+  decorators: [
+    (Story) => (
+      <article className="w-[min(100vw,1200px)] bg-background p-8">
+        <Story />
+      </article>
+    ),
+  ],
+};

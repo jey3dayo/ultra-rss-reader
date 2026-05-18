@@ -204,6 +204,27 @@ describe("ArticleContentView", () => {
     expect(screen.getByText("inline_identifier_without_breaks")).toBeInTheDocument();
   });
 
+  it("separates text line length from the wider media rail", () => {
+    const { container } = render(
+      <ArticleContentView
+        contentHtml={fromSanitizedArticleHtmlDto({
+          content_sanitized:
+            "<p>Readable paragraph</p><p><img src='https://cdn.example.com/panel.jpg' alt='Panel'></p><figure><img src='https://cdn.example.com/figure.jpg' alt='Figure'></figure>",
+        })}
+      />,
+    );
+
+    const prose = container.querySelector(".prose");
+
+    expect(prose).not.toBeNull();
+    expect(prose).toHaveClass("[&_p:not(:has(img))]:max-w-[72ch]");
+    expect(prose).toHaveClass("[&_:where(figure,p:has(img))]:max-w-[min(100%,56rem)]");
+    expect(prose).toHaveClass("[&_:where(figure,p:has(img))]:w-full");
+    expect(prose).toHaveClass("prose-img:w-full", "prose-img:max-w-full", "prose-img:h-auto");
+    expect(screen.getByRole("img", { name: "Panel" })).toHaveAttribute("src", "https://cdn.example.com/panel.jpg");
+    expect(screen.getByRole("img", { name: "Figure" })).toHaveAttribute("src", "https://cdn.example.com/figure.jpg");
+  });
+
   it("smoke-renders a large sanitized article body with many remote images without expanding render wrappers", () => {
     const paragraphs = Array.from(
       { length: 500 },
