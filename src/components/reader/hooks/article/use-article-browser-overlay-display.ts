@@ -35,6 +35,7 @@ export function useArticleBrowserOverlayDisplay({
   const [readerModeOverride, setReaderModeOverride] = useState<BinaryDisplayMode | null>(null);
   const [webPreviewModeOverride, setWebPreviewModeOverride] = useState<BinaryDisplayMode | null>(null);
   const preserveBrowserOverlayOnNextArticleRef = useRef(false);
+  const suppressBrowserOverlayPreserveRef = useRef(false);
   const previousArticleIdRef = useRef(articleId);
 
   const appDefaultDisplayModes = useMemo(() => resolveAppDefaultDisplayModes(prefs), [prefs]);
@@ -73,6 +74,10 @@ export function useArticleBrowserOverlayDisplay({
 
   useEffect(() => {
     const markKeyboardNavigationIntent = () => {
+      if (suppressBrowserOverlayPreserveRef.current) {
+        preserveBrowserOverlayOnNextArticleRef.current = false;
+        return;
+      }
       preserveBrowserOverlayOnNextArticleRef.current = webPreviewModeOverride === "on";
     };
 
@@ -103,11 +108,14 @@ export function useArticleBrowserOverlayDisplay({
   }, [articleId, webPreviewModeOverride]);
 
   const setBrowserOverlayOpenPreference = useCallback(() => {
+    suppressBrowserOverlayPreserveRef.current = false;
     setReaderModeOverride(requestedDisplay.readerMode ? "on" : "off");
     setWebPreviewModeOverride("on");
   }, [requestedDisplay.readerMode]);
 
   const setBrowserOverlayClosedPreference = useCallback(() => {
+    suppressBrowserOverlayPreserveRef.current = true;
+    preserveBrowserOverlayOnNextArticleRef.current = false;
     setReaderModeOverride(requestedDisplay.readerMode ? "on" : "off");
     setWebPreviewModeOverride("off");
   }, [requestedDisplay.readerMode]);

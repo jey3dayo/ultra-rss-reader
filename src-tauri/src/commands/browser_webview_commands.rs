@@ -1,8 +1,8 @@
 use serde::Deserialize;
 use tauri::{
     webview::{PageLoadEvent, WebviewBuilder},
-    LogicalPosition, LogicalSize, Manager, PhysicalPosition, PhysicalSize, Position, Rect, Size,
-    State, Url, WebviewUrl, Window,
+    Emitter, LogicalPosition, LogicalSize, Manager, PhysicalPosition, PhysicalSize, Position, Rect,
+    Size, State, Url, WebviewUrl, Window,
 };
 use tokio::time::{sleep, Duration};
 
@@ -17,6 +17,7 @@ use crate::browser_webview::{
 };
 use crate::commands::dto::AppError;
 use crate::commands::AppState;
+use crate::menu::MENU_ACTION_EVENT;
 use crate::platform::PlatformKind;
 
 const BROWSER_WEBVIEW_LOAD_TIMEOUT_MS: u64 = 10_000;
@@ -29,6 +30,8 @@ const INVALID_BROWSER_BOUNDS_ERROR: &str =
 const BROWSER_WEBVIEW_NOT_OPEN_ERROR: &str = "Embedded browser webview is not open";
 const BROWSER_WEBVIEW_EMPTY_RELOAD_SOURCE_ERROR: &str =
     "Embedded browser webview has no current URL to reload";
+const BROWSER_WEBVIEW_SHORTCUT_NAVIGATION_SCHEME: &str = "ultra-rss-browser-shortcut";
+const BROWSER_WEBVIEW_CLOSE_SHORTCUT_NAVIGATION_HOST: &str = "close-browser";
 
 #[cfg_attr(test, derive(Debug, PartialEq, Eq))]
 enum BrowserWebviewTimeoutFallbackEmission {
@@ -388,6 +391,23 @@ fn browser_host_focus_failure_warning(phase: &str, error: &impl std::fmt::Displa
     )
 }
 
+fn is_browser_webview_close_shortcut_navigation(target_url: &Url) -> bool {
+    target_url.scheme() == BROWSER_WEBVIEW_SHORTCUT_NAVIGATION_SCHEME
+        && target_url.host_str() == Some(BROWSER_WEBVIEW_CLOSE_SHORTCUT_NAVIGATION_HOST)
+}
+
+fn handle_browser_webview_shortcut_navigation(window: &Window, target_url: &Url) -> bool {
+    if !is_browser_webview_close_shortcut_navigation(target_url) {
+        return false;
+    }
+
+    if let Err(error) = focus_browser_host_window(window) {
+        tracing::warn!("{}", browser_host_focus_failure_warning("before", &error));
+    }
+    let _ = window.app_handle().emit(MENU_ACTION_EVENT, "close-browser");
+    true
+}
+
 fn schedule_browser_webview_timeout(
     app_handle: tauri::AppHandle,
     url: String,
@@ -608,6 +628,7 @@ fn create_browser_webview(
     let uses_placeholder_url = should_use_placeholder_browser_webview_url(platform_kind);
     let initial_url = browser_webview_initial_url(&url, platform_kind)?;
     let app_handle = window.app_handle().clone();
+    let navigation_window = window.clone();
     let navigation_app_handle = app_handle.clone();
     let page_load_app_handle = app_handle.clone();
     let initialization_script = browser_preview_initialization_script_from_prefs_result(
@@ -616,6 +637,9 @@ fn create_browser_webview(
 
     let builder = WebviewBuilder::new(BROWSER_WEBVIEW_LABEL, WebviewUrl::External(initial_url))
         .on_navigation(move |target_url| {
+            if handle_browser_webview_shortcut_navigation(&navigation_window, target_url) {
+                return false;
+            }
             if uses_placeholder_url && is_placeholder_browser_webview_url(target_url.as_str()) {
                 return true;
             }
@@ -884,6 +908,7 @@ mod tests {
     };
     use crate::commands::dto::AppError;
     use crate::platform::PlatformKind;
+    use tauri::Url;
 
     #[test]
     fn external_url_accepts_https_urls() {
@@ -904,6 +929,25 @@ mod tests {
         let result = external_url("file:///tmp/article.html");
 
         assert!(result.is_err(), "file:// URLs must be rejected");
+    }
+
+    #[test]
+    fn browser_webview_shortcut_navigation_accepts_only_close_shortcut_url() {
+        let close_url = Url::parse("ultra-rss-browser-shortcut://close-browser")
+            .expect("shortcut URL should parse");
+        let other_host = Url::parse("ultra-rss-browser-shortcut://reload-webview")
+            .expect("shortcut URL should parse");
+        let other_scheme = Url::parse("https://close-browser").expect("https URL should parse");
+
+        assert!(super::is_browser_webview_close_shortcut_navigation(
+            &close_url
+        ));
+        assert!(!super::is_browser_webview_close_shortcut_navigation(
+            &other_host
+        ));
+        assert!(!super::is_browser_webview_close_shortcut_navigation(
+            &other_scheme
+        ));
     }
 
     #[test]

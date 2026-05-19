@@ -802,6 +802,9 @@ pub fn browser_preview_close_bridge_source(prefs: &HashMap<String, String>) -> O
     return parts.join('+');
   }};
   const getInvoke = () => window.__TAURI_INTERNALS__?.invoke;
+  const requestCloseViaNavigation = () => {{
+    window.location.href = 'ultra-rss-browser-shortcut://close-browser';
+  }};
   const getSpaceScrollDirection = (event) => {{
     if (event.altKey || event.metaKey || event.ctrlKey || event.key !== ' ') {{
       return 0;
@@ -823,6 +826,8 @@ pub fn browser_preview_close_bridge_source(prefs: &HashMap<String, String>) -> O
 
     const invoke = getInvoke();
     if (typeof invoke !== 'function') {{
+      closeInFlight = true;
+      requestCloseViaNavigation();
       return;
     }}
 
@@ -830,8 +835,8 @@ pub fn browser_preview_close_bridge_source(prefs: &HashMap<String, String>) -> O
     try {{
       await invoke('close_browser_webview');
     }} catch (error) {{
-      closeInFlight = false;
       console.error('Failed to close embedded browser webview from bridge:', error);
+      requestCloseViaNavigation();
     }}
   }};
   window.addEventListener('keydown', (event) => {{
@@ -1308,6 +1313,7 @@ pub fn install_escape_accelerator_bridge<R: Runtime>(
 
     if let Some(monitor) = monitor {
         std::mem::forget(monitor);
+        std::mem::forget(handler);
         Ok(())
     } else {
         BROWSER_MACOS_ESCAPE_MONITOR_INSTALLED.store(false, Ordering::SeqCst);
@@ -2333,6 +2339,8 @@ mod tests {
 
         assert!(script.contains("\"Escape\""));
         assert!(script.contains("close_browser_webview"));
+        assert!(script.contains("ultra-rss-browser-shortcut://close-browser"));
+        assert!(script.contains("requestCloseViaNavigation();"));
         assert!(script.contains("go_back_browser_webview"));
         assert!(script.contains("go_forward_browser_webview"));
         assert!(script.contains("getSpaceScrollDirection"));

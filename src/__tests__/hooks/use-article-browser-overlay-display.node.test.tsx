@@ -69,6 +69,32 @@ describe("useArticleBrowserOverlayDisplay", () => {
     expect(result.current.resolvedDisplay.webPreviewMode).toBe(false);
   });
 
+  it("does not preserve a transient Web Preview override after an explicit close", () => {
+    const { result, rerender } = renderHook(
+      ({ articleId }: { articleId: string }) =>
+        useArticleBrowserOverlayDisplay({
+          articleId,
+          articleUrl: "https://example.com/article",
+          feed: undefined,
+        }),
+      { initialProps: { articleId: "art-1" } },
+    );
+
+    act(() => {
+      result.current.setBrowserOverlayOpenPreference();
+    });
+    expect(result.current.shouldShowBrowserOverlay).toBe(true);
+
+    act(() => {
+      result.current.setBrowserOverlayClosedPreference();
+      window.dispatchEvent(new Event(APP_EVENTS.navigateArticle));
+    });
+    rerender({ articleId: "art-2" });
+
+    expect(result.current.shouldShowBrowserOverlay).toBe(false);
+    expect(result.current.resolvedDisplay.webPreviewMode).toBe(false);
+  });
+
   it("keeps whitespace-only article URLs in missing web preview fallback", () => {
     usePreferencesStore.setState({
       prefs: {
