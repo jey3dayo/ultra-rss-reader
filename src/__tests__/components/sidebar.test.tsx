@@ -1628,7 +1628,7 @@ describe("Sidebar", () => {
     });
   });
 
-  it("moves the selected subscription with arrow keys from a focused feed row", async () => {
+  it("moves the selected subscription with arrow keys and returns focus to the selected article row", async () => {
     const user = userEvent.setup();
 
     usePreferencesStore.setState({
@@ -1711,26 +1711,10 @@ describe("Sidebar", () => {
       expect(useUiStore.getState().selection).toEqual({ type: "feed", feedId: "feed-2" });
     });
 
-    const betaFeed = queryFeedButton("feed-2");
-    expect(betaFeed).not.toBeNull();
-    if (!betaFeed) {
-      throw new Error("Expected feed button for feed-2");
-    }
-
     await waitFor(() => {
-      expect(betaFeed).toHaveFocus();
-    });
-
-    await waitFor(() => {
+      expect(useUiStore.getState().focusedPane).toBe("list");
       expect(useUiStore.getState().selectedArticleId).toBe("feed-2-art-1");
-      expect(betaFeed).toHaveFocus();
-    });
-
-    fireEvent.keyDown(betaFeed, { key: "ArrowUp" });
-
-    await waitFor(() => {
-      expect(useUiStore.getState().selection).toEqual({ type: "feed", feedId: "feed-1" });
-      expect(alphaFeed).toHaveFocus();
+      expect(screen.getByRole("option", { name: "feed-2 Article (unread)" })).toHaveFocus();
     });
   });
 

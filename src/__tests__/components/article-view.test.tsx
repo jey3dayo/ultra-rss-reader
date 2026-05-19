@@ -996,7 +996,7 @@ describe("ArticleView", () => {
     });
   });
 
-  it("waits for the native browser webview to close before returning to reader mode", async () => {
+  it("returns to reader mode immediately while the native browser webview closes", async () => {
     let resolveClose: (() => void) | undefined;
 
     setupTauriMocks((cmd, args) => {
@@ -1046,14 +1046,14 @@ describe("ArticleView", () => {
     try {
       window.dispatchEvent(new Event(keyboardEvents.closeBrowserOverlay));
 
-      expect(useUiStore.getState().contentMode).toBe("browser");
-      expect(useUiStore.getState().browserUrl).toBe("https://example.com/1");
+      expect(useUiStore.getState().contentMode).toBe("reader");
+      expect(useUiStore.getState().browserUrl).toBeNull();
 
       resolveClose?.();
 
       await vi.advanceTimersByTimeAsync(BROWSER_OVERLAY_CLOSE_DELAY_MS - 1);
-      expect(useUiStore.getState().contentMode).toBe("browser");
-      expect(useUiStore.getState().browserUrl).toBe("https://example.com/1");
+      expect(useUiStore.getState().contentMode).toBe("reader");
+      expect(useUiStore.getState().browserUrl).toBeNull();
 
       await vi.advanceTimersByTimeAsync(1);
 
