@@ -20,6 +20,7 @@ When current product behavior, architecture, commands, or verification scope mat
 - Agent workflow, quality gate selection, and rule routing: [../CLAUDE.md](../CLAUDE.md).
 - Packaged builds, updater checks, live-service checks, release provenance, and release sign-off: [release-manual-verification.md](./release-manual-verification.md).
 - Logs, backups, recovery, updater, keyring, and sync triage: [incident-runbook.md](./incident-runbook.md).
+- Native dev app process capture, screenshots, key input, and Debug HUD verification: [native-dev-verification.md](./native-dev-verification.md).
 - Remote article content privacy and CSP policy: [feed-content-privacy.md](./feed-content-privacy.md).
 - Reader article source, scope, filter, hook, and paging order: [reader-article-scope-matrix.md](./reader-article-scope-matrix.md).
 - Reader pane keyboard navigation, focus return, and focus styling contracts: [reader-keyboard-navigation.md](./reader-keyboard-navigation.md).
@@ -29,6 +30,7 @@ When current product behavior, architecture, commands, or verification scope mat
 
 - [release-manual-verification.md](./release-manual-verification.md): checklist for packaged builds, live-service verification, keyring validation, and updater checks before release
 - [incident-runbook.md](./incident-runbook.md): shortest path to logs, backups, and failure-specific triage when the app is already failing
+- [native-dev-verification.md](./native-dev-verification.md): runbook for Tauri dev app process capture, window screenshots, keyboard input, and Debug HUD checks
 - [feed-content-privacy.md](./feed-content-privacy.md): source of truth for feed-content privacy expectations and the current CSP policy
 - [reader-keyboard-navigation.md](./reader-keyboard-navigation.md): source of truth for reader pane keyboard navigation, focus return behavior, and focus styling contracts
 - [reader-article-scope-matrix.md](./reader-article-scope-matrix.md): source of truth for reader article source, scope, and filter combinations
