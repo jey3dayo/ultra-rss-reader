@@ -83,6 +83,46 @@ Article content is not a row list. It should prioritize content reading, scrolli
 
 When `ArrowLeft` originates from an article-list row while the app state still says content is focused, route back to the sidebar. This preserves the leftward chain from article content to article list to sidebar.
 
+## Reader Focus Return Contract
+
+Reader focus must return to a stable keyboard target whenever the user leaves a transient surface. This keeps global reader shortcuts such as `j`, `k`, `next-article`, and `prev-article` usable after closing browser or overlay UI.
+
+Forward navigation order:
+
+- Sidebar pane / feed list
+- Article list pane
+- Article content pane
+- Embedded browser WebView
+
+Return navigation follows the same order in reverse. Each transition must restore both the app focus state and the DOM focus target:
+
+| Closing or returning from | Required stable target |
+| --- | --- |
+| Account pane | Current sidebar selection. |
+| Sidebar pane / feed list into article list | Selected article row; if none exists, the first readable article row or article-list root. |
+| Article content pane | Selected article row in the article list. |
+| Embedded browser WebView or browser overlay | `focusedPane="list"` and the selected article row. |
+| Browser overlay fallback without a selected row | Article-list root, with `focusedPane="list"`. |
+
+Invalid post-close states:
+
+- Focus remains on `body`.
+- Focus remains inside a disconnected DOM node or a closed overlay.
+- Focus remains owned by the embedded WebView after it closes.
+- `focusedPane` says `content` or `browser` while keyboard focus is visually back in the article list.
+
+Acceptance contract:
+
+- After focusing the embedded WebView body and pressing `Escape`, the browser view closes and article-list focus is restored to the selected row.
+- Immediately after that close, `j` and `k` move to the next and previous article without requiring a pointer click.
+- Text inputs, `textarea`, `select`, `contenteditable`, and textbox/searchbox roles keep their editing semantics and must not be overridden by global reader shortcuts.
+
+Implementation ownership:
+
+- `src/lib/reader-focus.ts` owns stable DOM focus target helpers.
+- `src/hooks/use-keyboard.ts` owns global fallback routing when pane-local handlers do not receive the event.
+- Browser close recovery is owned by `use-article-browser-overlay-close` and `use-browser-overlay-focus-return`.
+
 ## Long Article Selection And Search Highlight Contract
 
 Before article-content virtualization is introduced, article content remains a single rendered reading surface. Any future virtualization work must preserve the current reader contracts instead of treating offscreen content as disposable DOM.
