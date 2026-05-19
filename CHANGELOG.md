@@ -4,6 +4,24 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.43.4] - 2026-05-19
+
+### Features
+
+- 設定画面のアカウント詳細から OPML を import できるようにした
+
+### Bug Fixes
+
+- Web Preview の WebView に focus がある状態でも `Escape` で閉じられるようにした
+- Web Preview を閉じた直後に `j` / `k` で次/前の記事へ移動できるように、記事一覧へ focus を戻すようにした
+- Web Preview を明示的に閉じたあと、記事移動で一時的な WebView 表示状態が復活しないようにした
+- Reader の記事本文とメディア幅を分離し、本文レイアウトが不要に広がらないようにした
+- 記事一覧のスクロールバー領域とテキスト選択挙動を安定させた
+
+### Documentation
+
+- Reader の focus return contract と native dev app の検証手順を文書化した
+
 ## [0.43.3] - 2026-05-18
 
 ### Bug Fixes
