@@ -14,6 +14,7 @@ import type { BrowserOverlayToolbarAction, BrowserViewScope } from "./browser-vi
 type BrowserViewProps = {
   scope?: BrowserViewScope;
   onCloseOverlay: () => void;
+  onBrowserWebviewClosed?: () => void;
   labels: {
     closeWebPreview: string;
   };
@@ -262,13 +263,19 @@ function BrowserOverlayShell({
   );
 }
 
-export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, toolbarActions }: BrowserViewProps) {
+export function BrowserView({
+  scope = "content-pane",
+  onCloseOverlay,
+  onBrowserWebviewClosed,
+  labels,
+  toolbarActions,
+}: BrowserViewProps) {
   const portalTarget =
     scope === "main-stage" && typeof document !== "undefined"
       ? document.querySelector<HTMLElement>("[data-browser-overlay-root]")
       : null;
   const resolvedScope = scope === "main-stage" && !portalTarget ? "content-pane" : scope;
-  const controller = useBrowserViewController({ scope: resolvedScope, onCloseOverlay });
+  const controller = useBrowserViewController({ scope: resolvedScope, onCloseOverlay, onBrowserWebviewClosed });
 
   if (!controller.browserUrl) return null;
 

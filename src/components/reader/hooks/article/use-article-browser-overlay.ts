@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import type { FeedDto } from "@/api/tauri-commands";
 import { useArticleBrowserOverlayClose } from "@/components/reader/hooks/article/use-article-browser-overlay-close";
 import { useArticleBrowserOverlayDisplay } from "@/components/reader/hooks/article/use-article-browser-overlay-display";
@@ -20,6 +20,7 @@ type UseArticleBrowserOverlayResult = {
   resolvedDisplay: ResolvedArticleDisplay;
   handleOpenBrowserOverlay: () => void;
   handleCloseBrowserOverlay: () => void;
+  handleBrowserWebviewClosed: () => void;
   handleToggleBrowserOverlay: () => void;
 };
 
@@ -34,6 +35,7 @@ export function useArticleBrowserOverlay({
   const closeBrowser = useUiStore((s) => s.closeBrowser);
   const setBrowserCloseInFlight = useUiStore((s) => s.setBrowserCloseInFlight);
   const isBrowserOpen = contentMode === "browser";
+  const suppressBrowserReopenRef = useRef(false);
   const {
     requestedDisplay,
     resolvedDisplay,
@@ -58,7 +60,14 @@ export function useArticleBrowserOverlay({
       return;
     }
 
+    if (!shouldShowBrowserOverlay) {
+      suppressBrowserReopenRef.current = false;
+    }
+
     if (shouldShowBrowserOverlay) {
+      if (suppressBrowserReopenRef.current && !isBrowserOpen) {
+        return;
+      }
       if (!isBrowserOpen || browserUrl !== articleUrl) {
         if (!isBrowserOpen) {
           rememberOverlayFocusReturnTarget();
@@ -82,16 +91,23 @@ export function useArticleBrowserOverlay({
   ]);
 
   const handleOpenBrowserOverlay = useCallback(() => {
+    suppressBrowserReopenRef.current = false;
     rememberOverlayFocusReturnTarget();
     setBrowserOverlayOpenPreference();
   }, [rememberOverlayFocusReturnTarget, setBrowserOverlayOpenPreference]);
 
-  const handleCloseBrowserOverlay = useArticleBrowserOverlayClose({
-    closeBrowser,
-    focusSelectedArticleRow,
-    setBrowserCloseInFlight,
-    setBrowserOverlayClosedPreference,
-  });
+  const handleClosedBrowserOverlayPreference = useCallback(() => {
+    suppressBrowserReopenRef.current = true;
+    setBrowserOverlayClosedPreference();
+  }, [setBrowserOverlayClosedPreference]);
+
+  const { closeBrowserOverlay: handleCloseBrowserOverlay, finalizeClosedBrowserOverlay: handleBrowserWebviewClosed } =
+    useArticleBrowserOverlayClose({
+      closeBrowser,
+      focusSelectedArticleRow,
+      setBrowserCloseInFlight,
+      setBrowserOverlayClosedPreference: handleClosedBrowserOverlayPreference,
+    });
 
   const handleToggleBrowserOverlay = useCallback(() => {
     if (requestedDisplay.webPreviewMode) {
@@ -107,6 +123,7 @@ export function useArticleBrowserOverlay({
     resolvedDisplay,
     handleOpenBrowserOverlay,
     handleCloseBrowserOverlay,
+    handleBrowserWebviewClosed,
     handleToggleBrowserOverlay,
   };
 }

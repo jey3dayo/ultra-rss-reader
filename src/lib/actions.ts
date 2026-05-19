@@ -34,6 +34,8 @@ const actionDiagnosticPolicyByCategory = {
   updates: "app-action-updates",
 } as const satisfies Record<GlobalActionDiagnosticCategory, RuntimeDiagnosticPolicyId>;
 
+let browserCloseStuckRecoveryScheduled = false;
+
 /** Emit a keyboard-style DOM event that existing components already listen for. */
 function emitEvent(name: string): void {
   window.dispatchEvent(new Event(name));
@@ -91,7 +93,32 @@ function queueBrowserCloseActionIfNeeded(action: BufferedBrowserCloseAction): bo
 
   store.setPendingBrowserCloseAction(action);
   emitDebugInputTrace(`queue ${action}`);
+  scheduleBrowserCloseStuckRecovery();
   return true;
+}
+
+function scheduleBrowserCloseStuckRecovery(): void {
+  const store = useUiStore.getState();
+  if (browserCloseStuckRecoveryScheduled || store.contentMode !== "browser") {
+    return;
+  }
+
+  browserCloseStuckRecoveryScheduled = true;
+  window.setTimeout(() => {
+    browserCloseStuckRecoveryScheduled = false;
+    const latestStore = useUiStore.getState();
+    if (!latestStore.browserCloseInFlight || latestStore.contentMode !== "browser") {
+      return;
+    }
+
+    const selectedArticleId = latestStore.selectedArticleId;
+    const pendingActions = [...latestStore.pendingBrowserCloseActionQueue];
+    emitDebugInputTrace("recover browser-close pending");
+    latestStore.closeBrowser();
+    latestStore.setFocusedPane("list");
+    focusArticleListTarget(selectedArticleId);
+    flushPendingBrowserCloseAction(pendingActions);
+  }, 0);
 }
 
 function dispatchBufferedBrowserCloseAction(action: BufferedBrowserCloseAction): void {
@@ -168,9 +195,9 @@ async function navigateBrowserForward(): Promise<void> {
   );
 }
 
-export function flushPendingBrowserCloseAction(): void {
+export function flushPendingBrowserCloseAction(pendingActionsOverride?: BufferedBrowserCloseAction[]): void {
   const store = useUiStore.getState();
-  const pendingActions = [...store.pendingBrowserCloseActionQueue];
+  const pendingActions = pendingActionsOverride ?? [...store.pendingBrowserCloseActionQueue];
   store.setPendingBrowserCloseAction(null);
   store.setBrowserCloseInFlight(false);
   emitDebugInputTrace(`flush ${pendingActions.length === 0 ? "none" : pendingActions.join(",")}`);

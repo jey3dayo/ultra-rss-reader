@@ -1,7 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { useCallback, useEffect, useRef } from "react";
 import { closeBrowserWebview } from "@/api/tauri-commands";
-import { BROWSER_OVERLAY_CLOSE_DELAY_MS } from "@/constants/motion";
 import { flushPendingBrowserCloseAction } from "@/lib/actions";
 import { emitDebugInputTrace } from "@/lib/debug/debug-input-trace";
 import { scheduleReaderFocusFrame } from "@/lib/reader-focus";
@@ -15,52 +14,6 @@ type UseArticleBrowserOverlayCloseParams = {
   setBrowserCloseInFlight: (inFlight: boolean) => void;
   setBrowserOverlayClosedPreference: () => void;
 };
-
-function prefersReducedMotion() {
-  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
-    return false;
-  }
-
-  try {
-    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  } catch (error) {
-    console.warn("Failed to read reduced motion preference for browser overlay close.", error);
-    return false;
-  }
-}
-
-function waitForBrowserOverlayCloseMotion() {
-  if (prefersReducedMotion()) {
-    return { cancel: () => {}, done: Promise.resolve() };
-  }
-
-  let timeoutId: number | null = null;
-  const done = new Promise<void>((resolve) => {
-    try {
-      timeoutId = window.setTimeout(resolve, BROWSER_OVERLAY_CLOSE_DELAY_MS);
-    } catch (error) {
-      console.warn("Failed to schedule browser overlay close motion timer.", error);
-      resolve();
-    }
-  }).finally(() => {
-    timeoutId = null;
-  });
-
-  return {
-    cancel: () => {
-      if (timeoutId === null) {
-        return;
-      }
-      try {
-        window.clearTimeout(timeoutId);
-      } catch (error) {
-        console.warn("Failed to clear browser overlay close motion timer.", error);
-      }
-      timeoutId = null;
-    },
-    done,
-  };
-}
 
 function focusSelectedArticleRowAfterClose(focusSelectedArticleRow: () => void): void {
   try {
@@ -116,16 +69,12 @@ export function useArticleBrowserOverlayClose({
   setBrowserOverlayClosedPreference,
 }: UseArticleBrowserOverlayCloseParams) {
   const mountedRef = useRef(true);
-  const closeGenerationRef = useRef(0);
-  const closeMotionCancelRef = useRef<(() => void) | null>(null);
   const closeInFlightByHookRef = useRef(false);
+  const closeFinalizedRef = useRef(false);
 
   useEffect(() => {
     return () => {
       mountedRef.current = false;
-      closeGenerationRef.current += 1;
-      closeMotionCancelRef.current?.();
-      closeMotionCancelRef.current = null;
       if (closeInFlightByHookRef.current && useUiStore.getState().browserCloseInFlight) {
         setBrowserCloseInFlight(false);
       }
@@ -133,46 +82,51 @@ export function useArticleBrowserOverlayClose({
   }, [setBrowserCloseInFlight]);
 
   const finalizeCloseBrowserOverlay = useCallback(() => {
-    useUiStore.getState().setFocusedPane("list");
-    focusSelectedArticleRowAfterClose(focusSelectedArticleRow);
+    if (closeFinalizedRef.current) {
+      return;
+    }
+
+    closeFinalizedRef.current = true;
+    const pendingActions = [...useUiStore.getState().pendingBrowserCloseActionQueue];
     setBrowserOverlayClosedPreference();
     closeBrowser();
+    useUiStore.getState().setFocusedPane("list");
+    focusSelectedArticleRowAfterClose(focusSelectedArticleRow);
+    flushPendingBrowserCloseAction(pendingActions);
     scheduleReaderFocusFrame(() => {
-      try {
-        focusSelectedArticleRowAfterClose(focusSelectedArticleRow);
-      } finally {
-        flushPendingBrowserCloseAction();
-      }
+      useUiStore.getState().setFocusedPane("list");
+      focusSelectedArticleRowAfterClose(focusSelectedArticleRow);
     });
   }, [closeBrowser, focusSelectedArticleRow, setBrowserOverlayClosedPreference]);
 
-  return useCallback(() => {
-    if (useUiStore.getState().browserCloseInFlight) {
+  const closeBrowserOverlay = useCallback(() => {
+    const store = useUiStore.getState();
+    if (store.browserCloseInFlight || store.contentMode !== "browser") {
       emitDebugInputTrace("close-browser ignored (in-flight)");
       return;
     }
 
     emitDebugInputTrace("close-browser start");
+    closeFinalizedRef.current = false;
     closeInFlightByHookRef.current = true;
     setBrowserCloseInFlight(true);
     void closeBrowserWebviewBeforeReaderMode().finally(() => {
       emitDebugInputTrace("close-browser finalize");
-      if (!mountedRef.current) {
-        return;
-      }
-      const closeGeneration = closeGenerationRef.current + 1;
-      closeGenerationRef.current = closeGeneration;
-      closeMotionCancelRef.current?.();
-      const closeMotion = waitForBrowserOverlayCloseMotion();
-      closeMotionCancelRef.current = closeMotion.cancel;
-      void closeMotion.done.then(() => {
-        if (closeGenerationRef.current !== closeGeneration) {
-          return;
-        }
-        closeMotionCancelRef.current = null;
-        closeInFlightByHookRef.current = false;
-        finalizeCloseBrowserOverlay();
-      });
     });
+    if (mountedRef.current) {
+      closeInFlightByHookRef.current = false;
+      finalizeCloseBrowserOverlay();
+    }
   }, [finalizeCloseBrowserOverlay, setBrowserCloseInFlight]);
+
+  const finalizeClosedBrowserOverlay = useCallback(() => {
+    emitDebugInputTrace("close-browser native-closed");
+    closeInFlightByHookRef.current = false;
+    finalizeCloseBrowserOverlay();
+  }, [finalizeCloseBrowserOverlay]);
+
+  return {
+    closeBrowserOverlay,
+    finalizeClosedBrowserOverlay,
+  };
 }

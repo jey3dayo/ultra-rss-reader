@@ -52,6 +52,7 @@ export type ResolveBrowserViewSurfacePresentationParams = {
 
 export type BrowserOverlayCloseHandler = {
   onCloseOverlay: () => void;
+  onBrowserWebviewClosed?: () => void;
 };
 
 export type BrowserWebviewStateBinding = {

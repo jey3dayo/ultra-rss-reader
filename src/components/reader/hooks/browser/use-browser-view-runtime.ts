@@ -30,9 +30,13 @@ type UseBrowserViewRuntimeResult = {
   viewportWidth: number;
   isLoading: boolean;
   handleCloseOverlay: () => void;
+  handleBrowserWebviewClosed: () => void;
 };
 
-export function useBrowserViewRuntime({ onCloseOverlay }: UseBrowserViewRuntimeParams): UseBrowserViewRuntimeResult {
+export function useBrowserViewRuntime({
+  onCloseOverlay,
+  onBrowserWebviewClosed,
+}: UseBrowserViewRuntimeParams): UseBrowserViewRuntimeResult {
   const prefs = usePreferencesStore((s) => s.prefs);
   const showDiagnostics = resolvePreferenceValue(prefs, "debug_browser_hud") === "true";
   const browserUrl = useUiStore((s) => s.browserUrl);
@@ -51,6 +55,9 @@ export function useBrowserViewRuntime({ onCloseOverlay }: UseBrowserViewRuntimeP
   const handleCloseOverlay = useCallback(() => {
     onCloseOverlay();
   }, [onCloseOverlay]);
+  const handleBrowserWebviewClosed = useCallback(() => {
+    (onBrowserWebviewClosed ?? onCloseOverlay)();
+  }, [onBrowserWebviewClosed, onCloseOverlay]);
 
   return {
     showDiagnostics,
@@ -69,5 +76,6 @@ export function useBrowserViewRuntime({ onCloseOverlay }: UseBrowserViewRuntimeP
     viewportWidth,
     isLoading,
     handleCloseOverlay,
+    handleBrowserWebviewClosed,
   };
 }

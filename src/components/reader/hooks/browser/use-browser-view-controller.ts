@@ -19,11 +19,13 @@ import { updateBrowserStateWithRef } from "../../browser-webview-state";
 export type UseBrowserViewControllerParams = {
   scope: BrowserViewScope;
   onCloseOverlay: () => void;
+  onBrowserWebviewClosed?: () => void;
 };
 
 export function useBrowserViewController({
   scope,
   onCloseOverlay,
+  onBrowserWebviewClosed,
 }: UseBrowserViewControllerParams): BrowserViewController {
   const {
     showDiagnostics,
@@ -42,7 +44,8 @@ export function useBrowserViewController({
     viewportWidth,
     isLoading,
     handleCloseOverlay,
-  } = useBrowserViewRuntime({ onCloseOverlay });
+    handleBrowserWebviewClosed,
+  } = useBrowserViewRuntime({ onCloseOverlay, onBrowserWebviewClosed });
   const overlayTitlebar = shouldUseDesktopOverlayTitlebar({
     platformKind,
     hasTauriRuntime: hasTauriRuntime(),
@@ -68,6 +71,7 @@ export function useBrowserViewController({
     fallbackInFlightRef,
     setBrowserState,
     onCloseOverlay: handleCloseOverlay,
+    onBrowserWebviewClosed: handleBrowserWebviewClosed,
     onDiagnostics: handleNativeDiagnostics,
   });
 

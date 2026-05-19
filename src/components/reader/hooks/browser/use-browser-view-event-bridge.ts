@@ -12,6 +12,7 @@ type UseBrowserViewEventBridgeParams = BrowserWebviewStateBinding & {
   showDiagnostics: boolean;
   isLoading: boolean;
   onCloseOverlay: () => void;
+  onBrowserWebviewClosed?: () => void;
   onDiagnostics: (payload: BrowserWebviewDiagnosticsPayload) => void;
 };
 
@@ -30,6 +31,7 @@ export function useBrowserViewEventBridge({
   fallbackInFlightRef,
   setBrowserState,
   onCloseOverlay,
+  onBrowserWebviewClosed,
   onDiagnostics,
 }: UseBrowserViewEventBridgeParams): UseBrowserViewEventBridgeResult {
   const {
@@ -63,7 +65,7 @@ export function useBrowserViewEventBridge({
       },
       [handleBrowserWebviewFallback],
     ),
-    onClosed: onCloseOverlay,
+    onClosed: onBrowserWebviewClosed ?? onCloseOverlay,
     isClosedEventCurrent: useCallback(
       (payload) => {
         const currentState = browserStateRef.current;

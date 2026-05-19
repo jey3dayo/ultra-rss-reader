@@ -188,6 +188,39 @@ describe("executeAction event contracts", () => {
       }
     });
 
+    it("recovers a stuck browser close and flushes queued article navigation", async () => {
+      vi.useFakeTimers();
+      const { details, cleanup } = captureNavigationDetails(APP_EVENTS.navigateArticle);
+      useUiStore.setState({
+        selectedArticleId: "art-1",
+        contentMode: "browser",
+        browserUrl: "https://example.com/article",
+        browserCloseInFlight: true,
+        pendingBrowserCloseAction: null,
+      });
+
+      try {
+        executeAction("next-article");
+
+        expect(details).toEqual([]);
+        expect(useUiStore.getState().pendingBrowserCloseAction).toBe("next-article");
+
+        await vi.advanceTimersByTimeAsync(0);
+
+        expect(details).toEqual([1]);
+        expect(useUiStore.getState()).toMatchObject({
+          contentMode: "reader",
+          focusedPane: "list",
+          browserCloseInFlight: false,
+          pendingBrowserCloseAction: null,
+          pendingBrowserCloseActionQueue: [],
+        });
+      } finally {
+        cleanup();
+        vi.useRealTimers();
+      }
+    });
+
     it("flushes pending browser close navigation in the order it was queued", () => {
       const articleEvents = captureNavigationDetails(APP_EVENTS.navigateArticle);
       const feedEvents = captureNavigationDetails(APP_EVENTS.navigateFeed);

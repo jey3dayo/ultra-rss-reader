@@ -13,6 +13,7 @@ import type { BrowserOverlayToolbarAction } from "../../browser-view.types";
 
 type ArticlePaneBrowserOverlayState = {
   onCloseOverlay: () => void;
+  onBrowserWebviewClosed: () => void;
   showBrowserView?: boolean;
 };
 
@@ -50,6 +51,7 @@ export function useArticlePaneController({ article, feed }: ArticlePaneProps): A
     resolvedDisplay,
     handleOpenBrowserOverlay,
     handleCloseBrowserOverlay,
+    handleBrowserWebviewClosed,
     handleToggleBrowserOverlay,
   } = useArticleBrowserOverlay({
     articleId: article.id,
@@ -124,6 +126,7 @@ export function useArticlePaneController({ article, feed }: ArticlePaneProps): A
     },
     browserOverlayProps: {
       onCloseOverlay: handleCloseBrowserOverlay,
+      onBrowserWebviewClosed: handleBrowserWebviewClosed,
       showBrowserView: isBrowserOpen,
     },
     browserOverlayToolbarActions: actionStripProps.actionOptions.canCopyLink

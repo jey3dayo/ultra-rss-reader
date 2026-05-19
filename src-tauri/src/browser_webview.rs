@@ -835,11 +835,11 @@ pub fn browser_preview_close_bridge_source(prefs: &HashMap<String, String>) -> O
     }}
   }};
   window.addEventListener('keydown', (event) => {{
-    if (event.defaultPrevented || isEditableTarget(event.target)) {{
+    if (isEditableTarget(event.target)) {{
       return;
     }}
     const spaceScrollDirection = getSpaceScrollDirection(event);
-    if (spaceScrollDirection !== 0) {{
+    if (!event.defaultPrevented && spaceScrollDirection !== 0) {{
       event.preventDefault();
       event.stopPropagation();
       scrollByPageStep(spaceScrollDirection);
@@ -973,11 +973,11 @@ fn browser_preview_script_bridge_source(prefs: &HashMap<String, String>) -> Opti
     window.chrome?.webview?.postMessage(JSON.stringify({{ action, url: window.location.href }}));
   }};
   window.addEventListener('keydown', (event) => {{
-    if (event.defaultPrevented || isEditableTarget(event.target)) {{
+    if (isEditableTarget(event.target)) {{
       return;
     }}
     const spaceScrollDirection = getSpaceScrollDirection(event);
-    if (spaceScrollDirection !== 0) {{
+    if (!event.defaultPrevented && spaceScrollDirection !== 0) {{
       event.preventDefault();
       event.stopPropagation();
       scrollByPageStep(spaceScrollDirection);
@@ -2341,6 +2341,11 @@ mod tests {
         assert!(script.contains("event.button !== 4"));
         assert!(script.contains("data-disable-global-shortcuts=\"true\""));
         assert!(script.contains("if (mouseNavigationInFlight)"));
+        assert!(script.contains("if (isEditableTarget(event.target))"));
+        assert!(script.contains("if (!event.defaultPrevented && spaceScrollDirection !== 0)"));
+        assert!(!script.contains(
+            "window.addEventListener('keydown', (event) => {\n    if (event.defaultPrevented"
+        ));
     }
 
     #[test]
@@ -2467,6 +2472,11 @@ mod tests {
         assert!(script.contains("window.addEventListener('keydown'"));
         assert!(script.contains("window.addEventListener('mouseup'"));
         assert!(script.contains("data-disable-global-shortcuts=\"true\""));
+        assert!(script.contains("if (isEditableTarget(event.target))"));
+        assert!(script.contains("if (!event.defaultPrevented && spaceScrollDirection !== 0)"));
+        assert!(!script.contains(
+            "window.addEventListener('keydown', (event) => {\n    if (event.defaultPrevented"
+        ));
     }
 
     #[test]

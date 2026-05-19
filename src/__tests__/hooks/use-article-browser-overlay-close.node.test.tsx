@@ -5,7 +5,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeBrowserWebview } from "@/api/tauri-commands";
 import { useArticleBrowserOverlayClose } from "@/components/reader/hooks/article/use-article-browser-overlay-close";
 import { APP_EVENTS } from "@/constants/events";
-import { BROWSER_OVERLAY_CLOSE_DELAY_MS } from "@/constants/motion";
 import { useUiStore } from "@/stores/ui-store";
 
 vi.mock("@/api/tauri-commands", () => ({
@@ -48,7 +47,7 @@ describe("useArticleBrowserOverlayClose", () => {
       browserCloseInFlight: false,
       setFocusedPane,
     });
-    const closeBrowser = vi.fn(() => useUiStore.getState().setBrowserCloseInFlight(false));
+    const closeBrowser = vi.fn(() => useUiStore.getState().closeBrowser());
     const focusSelectedArticleRow = vi.fn();
     const setBrowserOverlayClosedPreference = vi.fn();
 
@@ -62,8 +61,8 @@ describe("useArticleBrowserOverlayClose", () => {
     );
 
     act(() => {
-      result.current();
-      result.current();
+      result.current.closeBrowserOverlay();
+      result.current.closeBrowserOverlay();
     });
 
     expect(closeBrowserWebviewMock).toHaveBeenCalledTimes(1);
@@ -71,7 +70,6 @@ describe("useArticleBrowserOverlayClose", () => {
     await act(async () => {
       resolveClose(Result.succeed(null));
       await Promise.resolve();
-      await vi.advanceTimersByTimeAsync(BROWSER_OVERLAY_CLOSE_DELAY_MS);
       await vi.advanceTimersByTimeAsync(0);
     });
 
@@ -110,12 +108,11 @@ describe("useArticleBrowserOverlayClose", () => {
     );
 
     act(() => {
-      result.current();
+      result.current.closeBrowserOverlay();
     });
 
     await act(async () => {
       await Promise.resolve();
-      await vi.advanceTimersByTimeAsync(BROWSER_OVERLAY_CLOSE_DELAY_MS);
       await vi.advanceTimersByTimeAsync(0);
     });
 
@@ -154,12 +151,11 @@ describe("useArticleBrowserOverlayClose", () => {
     );
 
     act(() => {
-      result.current();
+      result.current.closeBrowserOverlay();
     });
 
     await act(async () => {
       await Promise.resolve();
-      await vi.advanceTimersByTimeAsync(BROWSER_OVERLAY_CLOSE_DELAY_MS);
       await vi.advanceTimersByTimeAsync(0);
     });
 
@@ -205,12 +201,11 @@ describe("useArticleBrowserOverlayClose", () => {
 
     try {
       act(() => {
-        result.current();
+        result.current.closeBrowserOverlay();
       });
 
       await act(async () => {
         await Promise.resolve();
-        await vi.advanceTimersByTimeAsync(BROWSER_OVERLAY_CLOSE_DELAY_MS);
         await Promise.resolve();
         await vi.runOnlyPendingTimersAsync();
       });
@@ -234,26 +229,24 @@ describe("useArticleBrowserOverlayClose", () => {
     }
   });
 
-  it("does not finalize a pending close motion after unmount", async () => {
-    let resolveClose: (value: Result.Result<null, { type: "UserVisible"; message: string }>) => void = () => {};
-    closeBrowserWebviewMock.mockReturnValue(
-      new Promise((resolve) => {
-        resolveClose = resolve;
-      }),
-    );
+  it("finalizes a native-closed webview without running the native close command again", async () => {
+    const navigateArticleSpy = vi.fn();
+    window.addEventListener(APP_EVENTS.navigateArticle, navigateArticleSpy);
     const originalSetFocusedPane = useUiStore.getState().setFocusedPane;
     const setFocusedPane = vi.fn((pane: "sidebar" | "list" | "content") => originalSetFocusedPane(pane));
     useUiStore.setState({
       selectedArticleId: "art-1",
       contentMode: "browser",
-      browserCloseInFlight: false,
+      browserCloseInFlight: true,
+      pendingBrowserCloseAction: "next-article",
+      pendingBrowserCloseActionQueue: ["next-article"],
       setFocusedPane,
     });
-    const closeBrowser = vi.fn(() => useUiStore.getState().setBrowserCloseInFlight(false));
+    const closeBrowser = vi.fn(() => useUiStore.getState().closeBrowser());
     const focusSelectedArticleRow = vi.fn();
     const setBrowserOverlayClosedPreference = vi.fn();
 
-    const { result, unmount } = renderHook(() =>
+    const { result } = renderHook(() =>
       useArticleBrowserOverlayClose({
         closeBrowser,
         focusSelectedArticleRow,
@@ -262,26 +255,38 @@ describe("useArticleBrowserOverlayClose", () => {
       }),
     );
 
-    act(() => {
-      result.current();
-    });
+    try {
+      act(() => {
+        result.current.finalizeClosedBrowserOverlay();
+      });
 
-    unmount();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+        await vi.runOnlyPendingTimersAsync();
+      });
 
-    await act(async () => {
-      resolveClose(Result.succeed(null));
-      await Promise.resolve();
-      await vi.advanceTimersByTimeAsync(BROWSER_OVERLAY_CLOSE_DELAY_MS);
-      await vi.advanceTimersByTimeAsync(0);
-    });
-
-    expect(setFocusedPane).not.toHaveBeenCalled();
-    expect(setBrowserOverlayClosedPreference).not.toHaveBeenCalled();
-    expect(closeBrowser).not.toHaveBeenCalled();
-    expect(useUiStore.getState().browserCloseInFlight).toBe(false);
+      expect(closeBrowserWebviewMock).not.toHaveBeenCalled();
+      expect(setBrowserOverlayClosedPreference).toHaveBeenCalledTimes(1);
+      expect(closeBrowser).toHaveBeenCalledTimes(1);
+      expect(setFocusedPane).toHaveBeenCalledWith("list");
+      expect(focusSelectedArticleRow).toHaveBeenCalledTimes(2);
+      expect(navigateArticleSpy).toHaveBeenCalledOnce();
+      expect(navigateArticleSpy.mock.calls[0]?.[0]).toMatchObject({
+        detail: 1,
+      });
+      expect(useUiStore.getState()).toMatchObject({
+        contentMode: "reader",
+        focusedPane: "list",
+        browserCloseInFlight: false,
+        pendingBrowserCloseAction: null,
+        pendingBrowserCloseActionQueue: [],
+      });
+    } finally {
+      window.removeEventListener(APP_EVENTS.navigateArticle, navigateArticleSpy);
+    }
   });
 
-  it("finalizes the overlay close when the native close command stalls", async () => {
+  it("finalizes the overlay close immediately when the native close command stalls", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     closeBrowserWebviewMock.mockReturnValue(new Promise(() => {}));
     const originalSetFocusedPane = useUiStore.getState().setFocusedPane;
@@ -306,27 +311,28 @@ describe("useArticleBrowserOverlayClose", () => {
     );
 
     act(() => {
-      result.current();
+      result.current.closeBrowserOverlay();
     });
 
-    expect(useUiStore.getState().browserCloseInFlight).toBe(true);
+    expect(setFocusedPane).toHaveBeenCalledWith("list");
+    expect(setBrowserOverlayClosedPreference).toHaveBeenCalledTimes(1);
+    expect(closeBrowser).toHaveBeenCalledTimes(1);
+    expect(useUiStore.getState().browserCloseInFlight).toBe(false);
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(2_000);
       await Promise.resolve();
-      await vi.advanceTimersByTimeAsync(BROWSER_OVERLAY_CLOSE_DELAY_MS);
       await Promise.resolve();
       await vi.runOnlyPendingTimersAsync();
     });
 
     expect(warn).toHaveBeenCalledWith("Timed out closing embedded browser webview before returning to reader mode.");
-    expect(setFocusedPane).toHaveBeenCalledWith("list");
     expect(setBrowserOverlayClosedPreference).toHaveBeenCalledTimes(1);
     expect(closeBrowser).toHaveBeenCalledTimes(1);
     expect(useUiStore.getState().browserCloseInFlight).toBe(false);
   });
 
-  it("finalizes the overlay close when the close motion timer is unavailable", async () => {
+  it("finalizes the overlay close when the native timeout timer is unavailable", async () => {
     const error = new Error("timer unavailable");
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     vi.spyOn(window, "setTimeout").mockImplementation(() => {
@@ -359,7 +365,7 @@ describe("useArticleBrowserOverlayClose", () => {
     );
 
     act(() => {
-      result.current();
+      result.current.closeBrowserOverlay();
     });
 
     await act(async () => {
@@ -367,54 +373,7 @@ describe("useArticleBrowserOverlayClose", () => {
       await Promise.resolve();
     });
 
-    expect(warn).toHaveBeenCalledWith("Failed to schedule browser overlay close motion timer.", error);
-    expect(setFocusedPane).toHaveBeenCalledWith("list");
-    expect(setBrowserOverlayClosedPreference).toHaveBeenCalledTimes(1);
-    expect(closeBrowser).toHaveBeenCalledTimes(1);
-  });
-
-  it("finalizes the overlay close when reduced motion detection throws", async () => {
-    const error = new Error("matchMedia unavailable");
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-    Object.defineProperty(window, "matchMedia", {
-      configurable: true,
-      value: () => {
-        throw error;
-      },
-    });
-    closeBrowserWebviewMock.mockResolvedValue(Result.succeed(null));
-    const originalSetFocusedPane = useUiStore.getState().setFocusedPane;
-    const setFocusedPane = vi.fn((pane: "sidebar" | "list" | "content") => originalSetFocusedPane(pane));
-    useUiStore.setState({
-      selectedArticleId: "art-1",
-      contentMode: "browser",
-      browserCloseInFlight: false,
-      setFocusedPane,
-    });
-    const closeBrowser = vi.fn(() => useUiStore.getState().setBrowserCloseInFlight(false));
-    const focusSelectedArticleRow = vi.fn();
-    const setBrowserOverlayClosedPreference = vi.fn();
-
-    const { result } = renderHook(() =>
-      useArticleBrowserOverlayClose({
-        closeBrowser,
-        focusSelectedArticleRow,
-        setBrowserCloseInFlight: useUiStore.getState().setBrowserCloseInFlight,
-        setBrowserOverlayClosedPreference,
-      }),
-    );
-
-    act(() => {
-      result.current();
-    });
-
-    await act(async () => {
-      await Promise.resolve();
-      await vi.advanceTimersByTimeAsync(BROWSER_OVERLAY_CLOSE_DELAY_MS);
-      await vi.advanceTimersByTimeAsync(0);
-    });
-
-    expect(warn).toHaveBeenCalledWith("Failed to read reduced motion preference for browser overlay close.", error);
+    expect(warn).toHaveBeenCalledWith("Failed to schedule embedded browser webview close timeout.", error);
     expect(setFocusedPane).toHaveBeenCalledWith("list");
     expect(setBrowserOverlayClosedPreference).toHaveBeenCalledTimes(1);
     expect(closeBrowser).toHaveBeenCalledTimes(1);
@@ -469,12 +428,11 @@ describe("useArticleBrowserOverlayClose", () => {
 
     try {
       act(() => {
-        result.current();
+        result.current.closeBrowserOverlay();
       });
 
       await act(async () => {
         await Promise.resolve();
-        await vi.advanceTimersByTimeAsync(BROWSER_OVERLAY_CLOSE_DELAY_MS);
         await Promise.resolve();
         await vi.runOnlyPendingTimersAsync();
       });
@@ -494,52 +452,5 @@ describe("useArticleBrowserOverlayClose", () => {
     } finally {
       window.removeEventListener(APP_EVENTS.navigateArticle, navigateArticleSpy);
     }
-  });
-
-  it("logs close motion timer cleanup failures without finalizing after unmount", async () => {
-    const error = new Error("clear unavailable");
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-    vi.spyOn(window, "clearTimeout").mockImplementation(() => {
-      throw error;
-    });
-    closeBrowserWebviewMock.mockResolvedValue(Result.succeed(null));
-    const originalSetFocusedPane = useUiStore.getState().setFocusedPane;
-    const setFocusedPane = vi.fn((pane: "sidebar" | "list" | "content") => originalSetFocusedPane(pane));
-    useUiStore.setState({
-      selectedArticleId: "art-1",
-      contentMode: "browser",
-      browserCloseInFlight: false,
-      setFocusedPane,
-    });
-    const closeBrowser = vi.fn(() => useUiStore.getState().setBrowserCloseInFlight(false));
-    const focusSelectedArticleRow = vi.fn();
-    const setBrowserOverlayClosedPreference = vi.fn();
-
-    const { result, unmount } = renderHook(() =>
-      useArticleBrowserOverlayClose({
-        closeBrowser,
-        focusSelectedArticleRow,
-        setBrowserCloseInFlight: useUiStore.getState().setBrowserCloseInFlight,
-        setBrowserOverlayClosedPreference,
-      }),
-    );
-
-    act(() => {
-      result.current();
-    });
-    await act(async () => {
-      await Promise.resolve();
-    });
-
-    expect(() => unmount()).not.toThrow();
-
-    act(() => {
-      vi.advanceTimersByTime(BROWSER_OVERLAY_CLOSE_DELAY_MS);
-    });
-
-    expect(warn).toHaveBeenCalledWith("Failed to clear browser overlay close motion timer.", error);
-    expect(setFocusedPane).not.toHaveBeenCalled();
-    expect(setBrowserOverlayClosedPreference).not.toHaveBeenCalled();
-    expect(closeBrowser).not.toHaveBeenCalled();
   });
 });

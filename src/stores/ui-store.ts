@@ -934,7 +934,7 @@ export const useUiStore = create<UiState & UiActions>()((set, get) => ({
       contentMode: s.selectedArticleId ? "reader" : "empty",
       browserUrl: null,
       browserNavigationState: null,
-      focusedPane: s.selectedArticleId ? "content" : "list",
+      focusedPane: "list",
       browserCloseInFlight: false,
       pendingBrowserCloseAction: null,
       pendingBrowserCloseActionQueue: [],

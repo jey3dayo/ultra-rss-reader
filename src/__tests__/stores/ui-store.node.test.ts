@@ -1149,12 +1149,12 @@ describe("useUiStore", () => {
     expect(useUiStore.getState().focusedPane).toBe("content");
   });
 
-  it("closeBrowser returns to reader if article selected", () => {
+  it("closeBrowser returns to reader and list focus if article selected", () => {
     useUiStore.getState().selectArticle("a1");
     useUiStore.getState().openBrowser("https://ex.com");
     useUiStore.getState().closeBrowser();
     expect(useUiStore.getState().contentMode).toBe("reader");
-    expect(useUiStore.getState().focusedPane).toBe("content");
+    expect(useUiStore.getState().focusedPane).toBe("list");
   });
 
   it("closeBrowser returns to the list when no article is selected", () => {
@@ -1167,7 +1167,7 @@ describe("useUiStore", () => {
     expect(useUiStore.getState().focusedPane).toBe("list");
   });
 
-  it("closeBrowser clears in-flight browser state and returns focus by article presence", () => {
+  it("closeBrowser clears in-flight browser state and returns focus to the list", () => {
     useUiStore.setState({
       selectedArticleId: "art-1",
       contentMode: "browser",
@@ -1188,7 +1188,7 @@ describe("useUiStore", () => {
         browserCloseInFlight: false,
         pendingBrowserCloseAction: null,
         pendingBrowserCloseActionQueue: [],
-        focusedPane: "content",
+        focusedPane: "list",
       }),
     );
 

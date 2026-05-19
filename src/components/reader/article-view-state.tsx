@@ -11,6 +11,7 @@ const LazyBrowserView = lazy(async () => {
 type BrowserOverlaySurfaceProps = {
   children?: ReactNode;
   onCloseOverlay: () => void;
+  onBrowserWebviewClosed?: () => void;
   showBrowserView?: boolean;
   toolbarActions?: BrowserOverlayToolbarAction[];
 };
@@ -27,6 +28,7 @@ type ArticleNotFoundStateViewProps = UiDisplayState;
 export function BrowserOverlaySurface({
   children,
   onCloseOverlay,
+  onBrowserWebviewClosed,
   showBrowserView = true,
   toolbarActions,
 }: BrowserOverlaySurfaceProps) {
@@ -40,6 +42,7 @@ export function BrowserOverlaySurface({
           <LazyBrowserView
             scope="main-stage"
             onCloseOverlay={onCloseOverlay}
+            onBrowserWebviewClosed={onBrowserWebviewClosed}
             labels={{
               closeWebPreview: t("close_browser_overlay"),
             }}
