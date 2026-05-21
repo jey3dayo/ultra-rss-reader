@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.43.5] - 2026-05-21
+
+### Bug Fixes
+
+- 記事一覧の並び替えで公開日時の解析を記事ごとに 1 回へ抑え、大量の記事を表示するときの CPU 負荷を減らした
+
 ## [0.43.4] - 2026-05-19
 
 ### Features
