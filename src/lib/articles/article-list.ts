@@ -171,13 +171,28 @@ function shouldPreserveArticleListSourceOrder(params: {
   return params.preservesSourceOrder === true || params.isActiveSearch;
 }
 
-function compareArticlesByPublishedAt(params: { left: ArticleDto; right: ArticleDto; direction: 1 | -1 }): number {
-  const { left, right, direction } = params;
-  const leftTime = getDateInputTimeMs(left.published_at);
-  const rightTime = getDateInputTimeMs(right.published_at);
+type ArticlePublishedAtTimeMap = ReadonlyMap<ArticleDto, number | null>;
+
+function buildArticlePublishedAtTimeMap(articles: ArticleDto[]): ArticlePublishedAtTimeMap {
+  const map = new Map<ArticleDto, number | null>();
+  for (const article of articles) {
+    map.set(article, getDateInputTimeMs(article.published_at));
+  }
+  return map;
+}
+
+function compareArticlesByPublishedAt(params: {
+  left: ArticleDto;
+  right: ArticleDto;
+  direction: 1 | -1;
+  publishedAtTimeByArticle: ArticlePublishedAtTimeMap;
+}): number {
+  const { left, right, direction, publishedAtTimeByArticle } = params;
+  const leftTime = publishedAtTimeByArticle.get(left) ?? null;
+  const rightTime = publishedAtTimeByArticle.get(right) ?? null;
 
   if (leftTime !== null && rightTime !== null) {
-    const dateOrder = compareDateInputsAsc(left.published_at, right.published_at);
+    const dateOrder = leftTime < rightTime ? -1 : leftTime > rightTime ? 1 : 0;
     if (dateOrder !== 0) {
       return dateOrder * direction;
     }
@@ -390,7 +405,8 @@ export function selectVisibleArticles(params: SelectVisibleArticlesParams): Arti
   }
 
   const direction = sortUnread === "oldest_first" ? 1 : -1;
-  list.sort((left, right) => compareArticlesByPublishedAt({ left, right, direction }));
+  const publishedAtTimeByArticle = buildArticlePublishedAtTimeMap(list);
+  list.sort((left, right) => compareArticlesByPublishedAt({ left, right, direction, publishedAtTimeByArticle }));
   return list;
 }
 

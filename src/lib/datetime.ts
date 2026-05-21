@@ -5,9 +5,7 @@ import {
   compareAsc,
   differenceInDays as differenceInDateFnsDays,
   format,
-  getTime,
   isSameDay,
-  isValid,
   set,
   startOfDay,
 } from "date-fns";
@@ -41,11 +39,11 @@ export function parseDateInputResult(value: DateInput): Result.Result<Date, Pars
   }
 
   if (value instanceof Date) {
-    return isValid(value) ? Result.succeed(value) : Result.fail("invalid_date");
+    return Number.isNaN(value.getTime()) ? Result.fail("invalid_date") : Result.succeed(value);
   }
 
   const date = new Date(value);
-  return isValid(date) ? Result.succeed(date) : Result.fail("invalid_date");
+  return Number.isNaN(date.getTime()) ? Result.fail("invalid_date") : Result.succeed(date);
 }
 
 export function parseDateInput(value: DateInput): Date | null {
@@ -55,7 +53,7 @@ export function parseDateInput(value: DateInput): Date | null {
 
 export function getDateInputTimeMs(value: DateInput): number | null {
   const date = parseDateInput(value);
-  return date === null ? null : getTime(date);
+  return date === null ? null : date.getTime();
 }
 
 export function compareDateInputsAsc(left: DateInput, right: DateInput): number {

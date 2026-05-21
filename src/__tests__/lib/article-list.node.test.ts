@@ -88,6 +88,53 @@ describe("article-list utils", () => {
     expect(result.map((article) => article.id)).toEqual(["newer-unread", "older-unread"]);
   });
 
+  it("parses each article published_at at most once when sorting visible articles", () => {
+    const RealDate = Date;
+    let constructedDates = 0;
+    const CountingDate = class extends RealDate {
+      constructor(...args: ConstructorParameters<DateConstructor>) {
+        constructedDates += 1;
+        super(...args);
+      }
+    };
+    CountingDate.now = RealDate.now;
+    CountingDate.parse = RealDate.parse;
+    CountingDate.UTC = RealDate.UTC;
+
+    vi.stubGlobal("Date", CountingDate);
+
+    const articles: ArticleDto[] = Array.from({ length: 6 }, (_, index) => ({
+      ...sampleArticles[0],
+      id: `article-${index}`,
+      is_read: false,
+      published_at: new RealDate(Date.UTC(2026, 2, 25, 10, index)).toISOString(),
+    }));
+
+    const result = selectVisibleArticles({
+      articles: [],
+      accountArticles: articles,
+      tagArticles: [],
+      searchResults: [],
+      feedId: null,
+      tagId: null,
+      viewMode: "unread",
+      sourceFilter: null,
+      showSearch: false,
+      searchQuery: "",
+      sortUnread: "newest_first",
+    });
+
+    expect(result.map((article) => article.id)).toEqual([
+      "article-5",
+      "article-4",
+      "article-3",
+      "article-2",
+      "article-1",
+      "article-0",
+    ]);
+    expect(constructedDates).toBeLessThanOrEqual(articles.length);
+  });
+
   it("prefers search results when search is open", () => {
     const result = selectVisibleArticles({
       articles: sampleArticles,
