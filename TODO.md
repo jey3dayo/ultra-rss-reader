@@ -28,7 +28,7 @@
 
 #### UI commonization backlog refresh
 
-- [ ] priority: P2 / domain: settings-state / work type: shared row cleanup / recommended next tranche
+- [x] priority: P2 / domain: settings-state / work type: shared row cleanup / recommended next tranche
   - 対象: `src/components/settings/settings-page-view.tsx`, `src/components/shared/labeled-action-input-row.tsx`, related settings page/modal tests
   - evidence: settings page text controls still hand-roll `LabeledControlRow + Input + SettingsActionButton` while mute/tag settings already use shared action rows
   - scope: text controls with inline settings action should use the existing shared action-input row API or a narrow compatible extension; keep settings-specific button styling at the call site
