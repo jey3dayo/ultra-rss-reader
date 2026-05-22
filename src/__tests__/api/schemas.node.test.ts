@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expectSortedKeysForTarget } from "@tests/helpers/repo-contract-parser";
 import { extractRustStructFields, extractSafeInvokeCommandsWithArgs } from "@tests/helpers/tauri-command-contract";
+import { readTauriCommandsSource } from "@tests/helpers/tauri-command-source";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import {
@@ -98,10 +99,6 @@ import {
 import { MAX_DEV_WINDOW_DIMENSION_PX } from "@/api/schemas/platform-info";
 import { UpdateDownloadProgressEventPayloadSchema, UpdateReadyEventPayloadSchema } from "@/api/schemas/update-info";
 import { APP_ACTIONS, isAppAction } from "@/lib/app-actions";
-
-function readTauriCommandsSource() {
-  return readFileSync(join(process.cwd(), "src/api/tauri-commands.ts"), "utf8");
-}
 
 function readRustCommandDtoSource() {
   return readFileSync(join(process.cwd(), "src-tauri/src/commands/dto.rs"), "utf8");
@@ -212,10 +209,11 @@ function expectPaginationArgsSchema(schema: { parse: (value: unknown) => unknown
 }
 
 function extractImportedApiSchemaNamesFromTauriCommands(source: string) {
-  const importMatch = source.match(/import\s+\{([\s\S]*?)\}\s+from\s+"@\/api\/schemas";/);
-  expect(importMatch, "tauri command wrapper should import schemas from the barrel").not.toBeNull();
+  const importMatches = [...source.matchAll(/import\s+\{([^}]*)\}\s+from\s+"@\/api\/schemas";/g)];
+  expect(importMatches, "tauri command wrapper should import schemas from the barrel").not.toHaveLength(0);
 
-  return [...(importMatch?.[1] ?? "").matchAll(/\b([A-Z][A-Za-z0-9]+Schema)\b/g)]
+  return importMatches
+    .flatMap((match) => [...(match[1] ?? "").matchAll(/\b([A-Z][A-Za-z0-9]+Schema)\b/g)])
     .map((match) => match[1])
     .filter((name): name is string => name !== undefined)
     .toSorted();

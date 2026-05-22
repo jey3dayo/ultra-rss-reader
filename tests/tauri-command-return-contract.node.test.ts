@@ -6,6 +6,7 @@ import {
   extractRegisteredRustCommandNames,
   extractRustTauriAsyncCommandNames,
 } from "./helpers/tauri-command-contract";
+import { readTauriCommandsSource } from "./helpers/tauri-command-source";
 
 const readText = (path: string): string => readFileSync(path, "utf8");
 
@@ -181,7 +182,7 @@ describe("tauri command return contract", () => {
   });
 
   it("keeps frontend null-response commands aligned with Rust unit-result commands", () => {
-    const tauriCommands = readText("src/api/tauri-commands.ts");
+    const tauriCommands = readTauriCommandsSource();
     const rustCommandSources = readdirSync("src-tauri/src/commands")
       .filter((fileName) => fileName.endsWith(".rs"))
       .map((fileName) => readText(`src-tauri/src/commands/${fileName}`))
@@ -198,7 +199,7 @@ describe("tauri command return contract", () => {
   });
 
   it("keeps frontend string-response commands aligned with Rust string-result commands", () => {
-    const tauriCommands = readText("src/api/tauri-commands.ts");
+    const tauriCommands = readTauriCommandsSource();
     const rustCommandSources = readdirSync("src-tauri/src/commands")
       .filter((fileName) => fileName.endsWith(".rs"))
       .map((fileName) => readText(`src-tauri/src/commands/${fileName}`))
@@ -211,7 +212,7 @@ describe("tauri command return contract", () => {
   });
 
   it("keeps frontend boolean-response commands aligned with Rust bool-result commands", () => {
-    const tauriCommands = readText("src/api/tauri-commands.ts");
+    const tauriCommands = readTauriCommandsSource();
     const rustCommandSources = readdirSync("src-tauri/src/commands")
       .filter((fileName) => fileName.endsWith(".rs"))
       .map((fileName) => readText(`src-tauri/src/commands/${fileName}`))
@@ -224,7 +225,7 @@ describe("tauri command return contract", () => {
   });
 
   it("keeps frontend count-response commands aligned with Rust numeric count-result commands", () => {
-    const tauriCommands = readText("src/api/tauri-commands.ts");
+    const tauriCommands = readTauriCommandsSource();
     const rustCommandSources = readdirSync("src-tauri/src/commands")
       .filter((fileName) => fileName.endsWith(".rs"))
       .map((fileName) => readText(`src-tauri/src/commands/${fileName}`))
