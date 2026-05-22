@@ -1,20 +1,19 @@
-import { Result } from "@praha/byethrow";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useReducer, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { addAccount } from "@/api/tauri-commands";
 import { runAccountSetupSync } from "@/components/settings/hooks/account-detail/use-account-detail-sync-controls";
 import {
   type AddAccountProviderKind,
   addAccountFormInitialState,
   addAccountFormReducer,
-  buildAddAccountPayload,
   formatAddAccountValidationError,
   getAddAccountFormConfig,
+  matchAddAccountPayload,
 } from "@/lib/account/add-account-form";
 import { invalidateQueryKeysLogOnly, queryKeys } from "@/lib/query/query-invalidation";
 import { useUiStore } from "@/stores/ui-store";
 import { upsertCachedAccount } from "../account-detail/query-cache";
+import { matchAddAccountCommand } from "./account-config-actions";
 import { AccountConfigFormView } from "./account-config-form-view";
 import { findServiceDefinition } from "./services";
 
@@ -130,15 +129,6 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
     }
 
     dispatchUi({ type: "set-error-message", value: null });
-    const payloadResult = buildAddAccountPayload(form);
-
-    if (Result.isFailure(payloadResult)) {
-      const message = t(formatAddAccountValidationError(form.kind, Result.unwrapError(payloadResult)));
-      dispatchUi({ type: "set-error-message", value: message });
-      useUiStore.getState().showToast(message);
-      return;
-    }
-
     if (debugState?.submitMessage) {
       dispatchUi({
         type: "set-error-message",
@@ -147,7 +137,18 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
       return;
     }
 
-    const payload = Result.unwrap(payloadResult);
+    const payload = matchAddAccountPayload(form, {
+      success: (value) => value,
+      failure: (error) => {
+        const message = t(formatAddAccountValidationError(form.kind, error));
+        dispatchUi({ type: "set-error-message", value: message });
+        useUiStore.getState().showToast(message);
+        return null;
+      },
+    });
+    if (payload === null) {
+      return;
+    }
     const requestSnapshot: AddAccountRequestSnapshot = {
       requestId: submitRequestIdRef.current + 1,
       kind: payload.kind,
@@ -161,9 +162,8 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
     dispatchUi({ type: "set-submitting", value: true });
     useUiStore.getState().startAccountSetupVerification();
     try {
-      Result.pipe(
-        await addAccount(payload.kind, payload.name, payload.serverUrl, payload.username, payload.password),
-        Result.inspectError((e) => {
+      await matchAddAccountCommand(payload, {
+        onFailure: (e) => {
           if (!isCurrentSubmitSnapshot(requestSnapshot)) {
             useUiStore.getState().clearAccountSetup();
             return;
@@ -183,8 +183,8 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
           dispatchUi({ type: "set-error-message", value: message });
           useUiStore.getState().showToast(message);
           useUiStore.getState().clearAccountSetup();
-        }),
-        Result.inspect((account) => {
+        },
+        onSuccess: (account) => {
           if (!isCurrentSubmitSnapshot(requestSnapshot)) {
             useUiStore.getState().clearAccountSetup();
             return;
@@ -216,8 +216,8 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
               );
             },
           });
-        }),
-      );
+        },
+      });
     } finally {
       submittingRef.current = false;
       if (mountedRef.current) {

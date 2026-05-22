@@ -1,8 +1,6 @@
-import { Result } from "@praha/byethrow";
 import { useCallback, useReducer, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { FeedDto } from "@/api/tauri-commands";
-import { openInBrowser } from "@/api/tauri-commands";
 import { useOldUnreadReadAction } from "@/components/reader/hooks/feed-actions/use-old-unread-read-action";
 import { useMarkFeedRead } from "@/hooks/use-articles";
 import { useConfirmMarkAllRead } from "@/hooks/use-confirm-mark-all-read";
@@ -18,6 +16,7 @@ import { resolveSiteHostLabel } from "@/lib/feed/feed";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { CONTEXT_MENU_ACTION_IDS, createMenuActionHandler } from "./context-menu-action-policy";
+import { openFeedSiteInBrowser } from "./feed-context-menu-actions";
 import { FeedContextMenuView } from "./feed-context-menu-view";
 import { buildFeedMarkAllReadConfirmation } from "./feed-mark-all-read";
 import { RenameDialog } from "./rename-feed-dialog";
@@ -77,10 +76,7 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
     const url = feed.site_url || feed.url;
     if (url) {
       const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
-      const result = await openInBrowser(url, bg);
-      if (Result.isFailure(result)) {
-        throw Result.unwrapError(result);
-      }
+      await openFeedSiteInBrowser(url, bg);
     }
   }, [feed.site_url, feed.url]);
 

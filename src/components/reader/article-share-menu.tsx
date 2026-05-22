@@ -1,69 +1,15 @@
 import { Menu } from "@base-ui/react/menu";
-import { Result } from "@praha/byethrow";
 import { BookmarkPlus, Copy, Mail, Share } from "lucide-react";
-import { SHARE_COMMAND_TEXT_MAX_CHARS } from "@/api/schemas/commands";
-import { type AppError, type ArticleDto, openExternalUrl } from "@/api/tauri-commands";
+import type { AppError, ArticleDto } from "@/api/tauri-commands";
 import { IconToolbarMenuTrigger } from "@/components/shared/icon-toolbar-control";
-import { categorizeArticleActionError, normalizeArticleExternalBrowserUrl } from "@/lib/articles/article-actions";
+import { categorizeArticleActionError } from "@/lib/articles/article-actions";
+import { openArticleEmailShare } from "@/lib/articles/article-share";
 import { addArticleToReadingList, copyArticleLink } from "./article-browser-actions";
 import { CONTEXT_MENU_ACTION_IDS, createMenuActionHandler } from "./context-menu-action-policy";
 import { contextMenuStyles } from "./context-menu-styles";
 
 const articleShareMenuUnavailableClassName =
   "disabled:opacity-35 disabled:saturate-0 disabled:hover:bg-transparent disabled:focus-visible:bg-transparent";
-
-const MAILTO_FALLBACK_SUBJECT = "Untitled article";
-const MAILTO_SUBJECT_MAX_LENGTH = 160;
-const MAILTO_BODY_MAX_LENGTH = SHARE_COMMAND_TEXT_MAX_CHARS;
-
-function truncateGraphemes(value: string, maxGraphemes: number) {
-  if (typeof Intl.Segmenter === "function") {
-    const segmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
-    let result = "";
-    let count = 0;
-    for (const { segment } of segmenter.segment(value)) {
-      if (count >= maxGraphemes) {
-        break;
-      }
-      result += segment;
-      count += 1;
-    }
-    return result;
-  }
-
-  let result = "";
-  let count = 0;
-  for (const character of value) {
-    if (count >= maxGraphemes) {
-      break;
-    }
-    result += character;
-    count += 1;
-  }
-  return result;
-}
-
-function resolveMailtoValue(value: string | null, fallback: string, maxLength: number) {
-  const normalized = value?.trim() || fallback;
-  return truncateGraphemes(normalized, maxLength);
-}
-
-function buildArticleMailto(article: ArticleDto) {
-  const rawUrl = article.url;
-  if (!rawUrl?.trim()) {
-    return Result.fail(null);
-  }
-
-  const normalizedUrlResult = normalizeArticleExternalBrowserUrl(rawUrl);
-  if (Result.isFailure(normalizedUrlResult)) {
-    return normalizedUrlResult;
-  }
-
-  const normalizedUrl = Result.unwrap(normalizedUrlResult);
-  const subject = resolveMailtoValue(article.title, MAILTO_FALLBACK_SUBJECT, MAILTO_SUBJECT_MAX_LENGTH);
-  const body = resolveMailtoValue(normalizedUrl, normalizedUrl, MAILTO_BODY_MAX_LENGTH);
-  return Result.succeed(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
-}
 
 type ArticleShareMenuLabels = {
   share: string;
@@ -181,20 +127,7 @@ export function ArticleShareMenu({ article, supportsReadingList, showToast, labe
                 CONTEXT_MENU_ACTION_IDS.articleShareEmail,
                 async () => {
                   if (!article) return;
-                  const mailtoResult = buildArticleMailto(article);
-                  if (Result.isFailure(mailtoResult)) {
-                    const error = Result.unwrapError(mailtoResult);
-                    if (error) {
-                      throw error;
-                    }
-                    return;
-                  }
-
-                  const mailto = Result.unwrap(mailtoResult);
-                  const result = await openExternalUrl(mailto);
-                  if (Result.isFailure(result)) {
-                    throw Result.unwrapError(result);
-                  }
+                  await openArticleEmailShare(article);
                 },
                 showToast,
                 "Failed to open email client:",

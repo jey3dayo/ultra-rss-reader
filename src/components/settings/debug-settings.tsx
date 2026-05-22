@@ -1,7 +1,5 @@
-import { Result } from "@praha/byethrow";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { resetOversizedDevCredentialsStore } from "@/api/tauri-commands";
 import { SettingsPageView } from "@/components/settings/settings-page-view";
 import { DEV_SCENARIO_ID, type DevScenarioId } from "@/dev/scenario-ids";
 import { runRuntimeDevScenario } from "@/dev/scenario-runtime";
@@ -10,6 +8,7 @@ import { resolvePreferenceValue } from "@/schemas/preferences";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
+import { resetDevCredentialsStore } from "./debug-settings-actions";
 import { useDebugSettingsViewProps } from "./hooks/use-debug-settings-view-props";
 
 export function DebugSettings() {
@@ -80,7 +79,7 @@ export function DebugSettings() {
     }
     setResettingDevCredentials(true);
     try {
-      const moved = Result.unwrap(await resetOversizedDevCredentialsStore());
+      const moved = await resetDevCredentialsStore();
       showToast(t(moved ? "debug.credentials_reset_success" : "debug.credentials_reset_noop"));
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";

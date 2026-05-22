@@ -178,3 +178,16 @@ export function buildAddAccountPayload(
     name,
   });
 }
+
+export function matchAddAccountPayload<T>(
+  input: AddAccountFormInput,
+  handlers: {
+    success: (payload: AddAccountPayload) => T;
+    failure: (error: AddAccountValidationError) => T;
+  },
+): T {
+  const payloadResult = buildAddAccountPayload(input);
+  return Result.isSuccess(payloadResult)
+    ? handlers.success(Result.unwrap(payloadResult))
+    : handlers.failure(Result.unwrapError(payloadResult));
+}

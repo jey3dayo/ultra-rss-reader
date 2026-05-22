@@ -1,6 +1,5 @@
-import { Result } from "@praha/byethrow";
 import { useState } from "react";
-import { canUseExternalFaviconEndpoint, extractSiteHost } from "@/lib/feed/feed";
+import { resolveExternalFaviconHost } from "@/lib/feed/feed";
 import { cn } from "@/lib/utils";
 
 type FeedFaviconSize = "sm" | "md" | "lg";
@@ -70,13 +69,7 @@ function resolveFallbackLabel(title: string): string {
 
 export function FeedFavicon({ title, url, siteUrl, grayscale = false, size = "sm" }: FeedFaviconProps) {
   const [failedFaviconKey, setFailedFaviconKey] = useState<FailedFaviconKey | null>(null);
-  let resolvedHost: string | null = null;
-  Result.pipe(
-    extractSiteHost(siteUrl, url),
-    Result.inspect((host) => {
-      resolvedHost = canUseExternalFaviconEndpoint(host) ? host : null;
-    }),
-  );
+  const resolvedHost = resolveExternalFaviconHost(siteUrl, url);
   const sizeClassName = faviconSizeClassNames[size];
   const fallbackLabel = resolveFallbackLabel(title);
   const faviconSrc = resolvedHost ? resolveGoogleFaviconSrc(resolvedHost, sizeClassName.requestSize) : null;

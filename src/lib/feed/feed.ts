@@ -102,3 +102,8 @@ export function resolveSiteHostLabel(siteUrl: string, feedUrl: string): string {
 
   return "";
 }
+
+export function resolveExternalFaviconHost(siteUrl: string, feedUrl: string): string | null {
+  const host = resolveSiteHostLabel(siteUrl, feedUrl);
+  return host && canUseExternalFaviconEndpoint(host) ? host : null;
+}
