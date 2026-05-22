@@ -1,5 +1,6 @@
+import { AppSelectPopup } from "@/components/shared/app-select-popup";
 import { SelectOptionItems, SelectOptionValue } from "@/components/shared/select-option-content";
-import { Select, SelectPopup, SelectTrigger } from "@/components/ui/select";
+import { Select, SelectTrigger } from "@/components/ui/select";
 import { type FeedDisplayPresetOption, isFeedDisplayPresetOption } from "@/lib/articles/article-display";
 
 type ArticleListFeedModeControlProps = {
@@ -28,9 +29,9 @@ export function ArticleListFeedModeControl({
       <SelectTrigger aria-label={ariaLabel} className="min-w-[168px]">
         <SelectOptionValue options={options} />
       </SelectTrigger>
-      <SelectPopup>
+      <AppSelectPopup>
         <SelectOptionItems options={options} />
-      </SelectPopup>
+      </AppSelectPopup>
     </Select>
   );
 }

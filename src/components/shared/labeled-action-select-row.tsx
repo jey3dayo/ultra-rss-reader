@@ -2,9 +2,10 @@ import type { ReactNode } from "react";
 import { useId } from "react";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { SelectOptionItems, SelectOptionValue } from "@/components/shared/select-option-content";
-import { Select, SelectPopup, SelectTrigger } from "@/components/ui/select";
+import { Select, SelectTrigger } from "@/components/ui/select";
 import type { OptionWithLabel } from "@/lib/ui/options";
 import { cn } from "@/lib/utils";
+import { AppSelectPopup } from "./app-select-popup";
 
 type LabeledActionSelectRowProps = {
   label: string;
@@ -53,9 +54,9 @@ export function ActionSelectControl({
       >
         <SelectOptionValue options={options} />
       </SelectTrigger>
-      <SelectPopup>
+      <AppSelectPopup>
         <SelectOptionItems options={options} />
-      </SelectPopup>
+      </AppSelectPopup>
     </Select>
   );
 }

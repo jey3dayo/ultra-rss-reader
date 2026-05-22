@@ -69,8 +69,10 @@ describe("Form fields", () => {
 
     const folderSelect = await screen.findByRole("combobox", { name: "Folder" });
     await user.click(folderSelect);
-    expect(document.body.querySelector('[data-slot="select-popup"]')).toHaveClass("motion-popup-surface");
-    expect(document.body.querySelector('[data-slot="select-positioner"]')).toHaveClass(APP_STACKING_CLASS_NAMES.popup);
+    expect(document.body.querySelector('[data-slot="select-popup"]')).toHaveClass(
+      "motion-popup-surface",
+      APP_STACKING_CLASS_NAMES.popup,
+    );
     await user.click(await screen.findByRole("option", { name: "Work" }));
 
     await waitFor(() => {

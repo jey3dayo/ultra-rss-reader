@@ -1274,3 +1274,12 @@ body {
   background: var(--color-border-strong);
   border-radius: 3px;
 }
+
+/* Base UI Select positioner needs explicit z-index to render above Dialog overlays */
+:has(> [data-slot="select-popup"]) {
+  z-index: 50;
+}
+
+:has(> [data-slot="select-popup"].z-\[70\]) {
+  z-index: 70;
+}

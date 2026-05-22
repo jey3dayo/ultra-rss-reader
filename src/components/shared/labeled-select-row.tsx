@@ -5,9 +5,10 @@ import {
   SelectOptionItems,
   SelectOptionValue,
 } from "@/components/shared/select-option-content";
-import { Select, SelectPopup, SelectTrigger } from "@/components/ui/select";
+import { Select, SelectTrigger } from "@/components/ui/select";
 import type { OptionWithLabel } from "@/lib/ui/options";
 import { cn } from "@/lib/utils";
+import { AppSelectPopup } from "./app-select-popup";
 
 export type LabeledSelectRowProps = {
   label: string;
@@ -41,9 +42,9 @@ export function LabeledSelectRow({
         <SelectTrigger aria-labelledby={labelId} className={cn("w-full sm:w-[220px]", triggerClassName)}>
           <SelectOptionValue options={options} />
         </SelectTrigger>
-        <SelectPopup>
+        <AppSelectPopup>
           <SelectOptionItems options={options} />
-        </SelectPopup>
+        </AppSelectPopup>
       </Select>
     </LabeledControlRow>
   );

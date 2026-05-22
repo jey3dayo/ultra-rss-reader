@@ -1,7 +1,6 @@
 import { Tooltip } from "@base-ui/react/tooltip";
 import { MOTION_POPUP_SURFACE_CLASS_NAME } from "@/constants";
 import { cn } from "@/lib/utils";
-import { APP_STACKING_CLASS_NAMES } from "@/lib/window/window-chrome";
 
 export type TooltipProviderProps = {
   children: React.ReactNode;
@@ -24,20 +23,13 @@ export function AppTooltip({ label, children, side = "bottom", align = "center",
     <Tooltip.Root data-slot="tooltip">
       <Tooltip.Trigger data-slot="tooltip-trigger" render={children} />
       <Tooltip.Portal>
-        <Tooltip.Positioner
-          data-slot="tooltip-positioner"
-          className={APP_STACKING_CLASS_NAMES.tooltip}
-          side={side}
-          align={align}
-          sideOffset={sideOffset}
-        >
+        <Tooltip.Positioner data-slot="tooltip-positioner" side={side} align={align} sideOffset={sideOffset}>
           <Tooltip.Popup
             data-slot="tooltip-popup"
             data-app-tooltip-side={side}
             className={cn(
               MOTION_POPUP_SURFACE_CLASS_NAME,
-              APP_STACKING_CLASS_NAMES.tooltip,
-              "rounded-md border border-border/70 bg-surface-1/96 px-2 py-1 text-xs text-foreground shadow-elevation-1",
+              "z-[80] rounded-md border border-border/70 bg-surface-1/96 px-2 py-1 text-xs text-foreground shadow-elevation-1",
             )}
           >
             {label}
