@@ -26,6 +26,30 @@
 
 ### Reader UI / Account Settings
 
+#### UI commonization backlog refresh
+
+- [ ] priority: P2 / domain: settings-state / work type: shared row cleanup / recommended next tranche
+  - 対象: `src/components/settings/settings-page-view.tsx`, `src/components/shared/labeled-action-input-row.tsx`, related settings page/modal tests
+  - evidence: settings page text controls still hand-roll `LabeledControlRow + Input + SettingsActionButton` while mute/tag settings already use shared action rows
+  - scope: text controls with inline settings action should use the existing shared action-input row API or a narrow compatible extension; keep settings-specific button styling at the call site
+  - acceptance criteria: `settings-page-view` no longer imports `@/components/ui/input` directly for action text rows, visible copy and control callbacks stay unchanged, and row width/a11y remain covered by focused tests
+  - focused verification: `pnpm exec vitest run src/__tests__/components/use-settings-modal-view-props.node.test.ts src/__tests__/components/settings-modal.test.tsx --project node --project jsdom` plus `pnpm exec tsc --noEmit`
+  - stop if shared row API changes would force unrelated settings pages or public prop churn
+- [ ] priority: P2 / domain: reader-state / work type: passive state action commonization
+  - 対象: `src/components/reader/article-empty-state-view.tsx`, `src/components/reader/article-list-screen-view.tsx`, `src/components/reader/browser-surface-state-card.tsx`, `src/components/reader/feed-tree-empty-state.tsx`
+  - evidence: reader passive/empty/error states each import `@/components/ui/button` directly for small retry/setup/open actions with similar subdued surface treatment
+  - scope: introduce a reader/passive-state action button only if it removes repeated state-action styling without absorbing business logic or icon choices
+  - acceptance criteria: direct `Button` imports are reduced in the listed passive state surfaces, visual variants remain equivalent, and focused component tests assert accessible names and key classes
+  - focused verification: `pnpm exec vitest run src/__tests__/components/article-list-screen-view.test.tsx src/__tests__/components/browser-surface-state-card.test.tsx --project jsdom` plus `pnpm exec tsc --noEmit`
+  - stop if candidate surfaces need different interaction semantics or broad visual redesign
+- [ ] priority: P2 / domain: reader-state / work type: similarity triage
+  - 対象: `src/components/reader/hooks/article/use-article-auto-mark.ts`, `src/components/reader/hooks/browser/use-browser-webview-sync.ts`, `src/components/reader/hooks/browser/use-browser-overlay-focus-return.ts`, `src/components/reader/hooks/article-list/use-article-list-view-state.ts`, `scripts/similarity-report.ts`
+  - evidence: `mise run report:similarity` currently reports 42 function pairs against a scan baseline of 32; the gate still passes because unparsed blocks and type report drift are clean
+  - scope: audit high-score hook lifecycle pairs before extracting helpers; prefer classifying false positives over broad lifecycle abstraction
+  - acceptance criteria: either a narrow helper extraction lands with focused lifecycle tests, or `scripts/similarity-report.ts` false-positive baseline explains why the top pairs should remain separate
+  - focused verification: `mise run report:similarity` plus focused node/jsdom tests for any touched hooks
+  - stop if the duplicated unit is only generic hook shape or cancellation boilerplate without a safe shared owner
+
 ### Dev / Tooling / E2E / Test Helpers
 
 #### Vitest jsdom dependency reduction
