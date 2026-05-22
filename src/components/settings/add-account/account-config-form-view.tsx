@@ -5,7 +5,7 @@ import { FormActionButtons } from "@/components/shared/form-action-buttons";
 import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import { SurfaceCard } from "@/components/shared/surface-card";
 import { cn } from "@/lib/utils";
-import type { AddAccountCredentialsSection, AddAccountInputControl } from "./form-view.types";
+import type { AddAccountCredentialsSection, AddAccountInputControl } from "./form-view";
 import type { ServicePresentation } from "./services.types";
 
 const LABEL_COLUMN_CLASS_NAME = "sm:w-40 sm:shrink-0";

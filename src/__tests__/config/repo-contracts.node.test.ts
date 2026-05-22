@@ -1491,7 +1491,7 @@ describe("repository static contracts", () => {
     expect(addAccountFormSource).toContain('from "@/components/settings/add-account/controller"');
     expect(addAccountControllerSource).toContain('from "./account-config-form"');
     expect(accountConfigFormSource).toContain('from "./account-config-form-view"');
-    expect(accountConfigFormViewSource).toContain('from "./form-view.types"');
+    expect(accountConfigFormViewSource).toContain('from "./form-view"');
     expect(addAccountFormStorySource).toContain('from "./controller"');
     expect(addAccountFormViewTestSource).toContain('from "@/components/settings/add-account/account-config-form-view"');
     expect(addAccountFormViewTestSource).toContain('from "@/components/settings/add-account/form-view"');
@@ -2208,7 +2208,6 @@ describe("repository static contracts", () => {
       "src/components/reader/sidebar.types.ts",
       "src/components/settings/account-detail/sync.types.ts",
       "src/components/settings/accounts-nav.types.ts",
-      "src/components/settings/add-account/form-view.types.ts",
       "src/components/settings/add-account/services.types.ts",
       "src/components/settings/settings-modal.types.ts",
       "src/components/settings/settings-nav.types.ts",

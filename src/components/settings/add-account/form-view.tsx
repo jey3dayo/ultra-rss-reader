@@ -4,10 +4,26 @@ import { FormActionButtons } from "@/components/shared/form-action-buttons";
 import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import { LabeledSelectRow, type LabeledSelectRowProps } from "@/components/shared/labeled-select-row";
 import { SurfaceCard } from "@/components/shared/surface-card";
-import type { AddAccountCredentialsSection, AddAccountInputControl } from "./form-view.types";
 
 const LABEL_COLUMN_CLASS_NAME = "sm:w-40 sm:shrink-0";
 const INPUT_CLASS_NAME = "h-10";
+
+export type AddAccountInputControl = {
+  label: string;
+  name: string;
+  value: string;
+  placeholder?: string;
+  type?: string;
+  onChange: (value: string) => void;
+  disabled: boolean;
+};
+
+export type AddAccountCredentialsSection = {
+  heading: string;
+  serverUrl?: AddAccountInputControl;
+  credential: AddAccountInputControl;
+  password: AddAccountInputControl;
+};
 
 type AddAccountFormSelectControl = Pick<LabeledSelectRowProps, "label" | "name" | "value" | "options" | "onChange"> & {
   disabled: boolean;

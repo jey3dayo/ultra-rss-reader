@@ -30,7 +30,6 @@ const localOnlyTypeSurfaceFiles = [
   "src/components/reader/article-actions.types.ts",
   "src/components/reader/sidebar-runtime.types.ts",
   "src/components/reader/sidebar-sources.types.ts",
-  "src/components/settings/add-account/form-view.types.ts",
 ] as const;
 
 const cleanupContractTestFiles = {

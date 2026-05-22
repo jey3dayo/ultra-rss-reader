@@ -114,7 +114,6 @@ export const remainingTypeSurfaceAllowlist = [
   ]),
   remainingTypeSurface("src/components/settings/account-detail/sync.types.ts", ["UpdateAccountSyncParams"]),
   remainingTypeSurface("src/components/settings/accounts-nav.types.ts", ["AccountsNavViewProps"]),
-  remainingTypeSurface("src/components/settings/add-account/form-view.types.ts"),
   remainingTypeSurface("src/components/settings/add-account/services.types.ts"),
   remainingTypeSurface("src/components/settings/settings-modal.types.ts", ["SettingsModalViewProps"]),
   remainingTypeSurface("src/components/settings/settings-nav.types.ts", ["SettingsNavViewProps"]),

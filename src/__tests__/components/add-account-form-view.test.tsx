@@ -2,11 +2,11 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, expectTypeOf, it, vi } from "vitest";
 import { AccountConfigFormView } from "@/components/settings/add-account/account-config-form-view";
-import { AddAccountFormView } from "@/components/settings/add-account/form-view";
-import type {
-  AddAccountCredentialsSection,
-  AddAccountInputControl,
-} from "@/components/settings/add-account/form-view.types";
+import {
+  type AddAccountCredentialsSection,
+  AddAccountFormView,
+  type AddAccountInputControl,
+} from "@/components/settings/add-account/form-view";
 
 describe("AddAccountFormView", () => {
   it("keeps shared add-account form controls in the form view type surface", () => {
