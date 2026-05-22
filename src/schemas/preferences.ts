@@ -123,7 +123,7 @@ export type PreferenceRecord = KnownPreferenceRecord & ShortcutPreferenceRecord 
 type PreferenceValue<K extends KnownPreferenceKey> = z.output<(typeof preferenceSchemas)[K]>;
 
 const objectHasOwnProperty = Object.prototype.hasOwnProperty;
-export const backendOwnedPreferenceKeys = ["selected_account_id"] as const;
+export const backendOwnedPreferenceKeys = ["selected_account_id", "startup_remote_state_repair_v1"] as const;
 const retiredBackendPassthroughPreferenceKeys = [] as const;
 const retiredBackendPassthroughPreferenceKeySet: ReadonlySet<string> = new Set(retiredBackendPassthroughPreferenceKeys);
 const preferenceTypoDetectionDistance = 2;
@@ -257,7 +257,7 @@ function getEditDistanceWithinLimit(source: string, target: string, limit: numbe
 }
 
 export function getLikelyPreferenceKeyTypo(key: string): string | null {
-  if (isKnownPreferenceKey(key) || isShortcutPreferenceKey(key) || key === "selected_account_id") {
+  if (isKnownPreferenceKey(key) || isShortcutPreferenceKey(key) || isBackendOwnedPreferenceKey(key)) {
     return null;
   }
   if (key.length > preferenceKeyMaxLength) {
