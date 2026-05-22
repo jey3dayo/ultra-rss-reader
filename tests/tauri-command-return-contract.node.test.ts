@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { commandArgsSchemaKeys, commandArgsSchemas } from "../src/api/schemas/commands";
+import { commandArgsSchemas } from "../src/api/schemas/commands";
+import { commandArgsSchemaKeys } from "./helpers/command-args-schema-keys";
 import {
   extractCommandDbLockPolicyCases,
   extractRegisteredRustCommandNames,

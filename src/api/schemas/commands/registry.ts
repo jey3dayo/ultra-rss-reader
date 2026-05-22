@@ -1,4 +1,4 @@
-import { z } from "zod";
+import type { z } from "zod";
 import {
   addAccountArgs,
   deleteAccountArgs,
@@ -146,27 +146,6 @@ export const commandArgsSchemas = {
 
 export type CommandArgsSchemaRegistry = typeof commandArgsSchemas;
 export type CommandWithArgs = keyof CommandArgsSchemaRegistry;
-
-export function commandArgsSchemaKeys(schema: CommandArgsSchema): string[] {
-  if (schema instanceof z.ZodObject) {
-    return Object.keys(schema.shape).toSorted();
-  }
-
-  if (schema instanceof z.ZodDiscriminatedUnion) {
-    return [
-      ...new Set(
-        schema.options.flatMap((option) => {
-          if (!(option instanceof z.ZodObject)) {
-            throw new Error(`Unsupported discriminated union option schema: ${option.constructor.name}`);
-          }
-          return Object.keys(option.shape);
-        }),
-      ),
-    ].toSorted();
-  }
-
-  throw new Error(`Unsupported command args schema: ${schema.constructor.name}`);
-}
 
 export function isCommandWithArgs(commandName: string): commandName is CommandWithArgs {
   // biome-ignore lint: Object.hasOwn is outside the current TypeScript lib target.

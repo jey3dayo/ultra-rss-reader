@@ -410,7 +410,8 @@ function isSchemaOwnedZodImportPath(path: string) {
     path.startsWith("src/schemas/") ||
     path === "src/__tests__/api/schemas.node.test.ts" ||
     path.startsWith("src/__tests__/api/schemas/") ||
-    path.startsWith("src/__tests__/schemas/")
+    path.startsWith("src/__tests__/schemas/") ||
+    path === "tests/helpers/command-args-schema-keys.ts"
   );
 }
 
@@ -2101,6 +2102,21 @@ describe("repository static contracts", () => {
       .toSorted();
 
     expect(directZodImportPaths).toEqual([]);
+  });
+
+  it("keeps test-only command schema introspection helpers out of production schema modules", () => {
+    const tauriCommandReturnContractSource = readRepoFile("tests/tauri-command-return-contract.node.test.ts");
+
+    expect(readRepoFile("src/api/schemas/commands/registry.ts")).not.toContain("commandArgsSchemaKeys");
+    expect(tauriCommandReturnContractSource).not.toMatch(
+      /commandArgsSchemaKeys[\s\S]*from "\.\.\/src\/api\/schemas\/commands"/,
+    );
+  });
+
+  it("keeps app select popup stacking owned by the base select popup", () => {
+    const appSelectPopupSource = readRepoFile("src/components/shared/app-select-popup.tsx");
+
+    expect(appSelectPopupSource).not.toContain("APP_STACKING_CLASS_NAMES");
   });
 
   it("keeps reader keyboard navigation docs aligned with pane owner files", () => {
