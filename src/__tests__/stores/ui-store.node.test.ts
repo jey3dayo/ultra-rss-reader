@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest";
 import type { SyncProgressRuntimeEventDto } from "@/api/schemas";
 import { TOAST_AUTO_DISMISS_TIMEOUT_MS } from "@/constants/ui-runtime";
-import type { ReaderSelection } from "@/lib/reader/reader-selection.types";
 import { SubscriptionsWorkspaceReturnStateSchema } from "../../lib/subscriptions/subscriptions-workspace.types";
 import type {
   NativeLifecycleBlockerEntry,
@@ -15,6 +14,7 @@ import type {
   UiStoreLayoutActions,
   UiStoreLayoutState,
   UiStoreReaderActions,
+  UiStoreReaderSelection,
   UiStoreReaderSelectionActions,
   UiStoreReaderSelectionState,
   UiStoreReaderState,
@@ -186,8 +186,8 @@ describe("useUiStore", () => {
     >();
     expectTypeOf<UiStoreSettingsModalState>().toEqualTypeOf<UiStoreSettingsState>();
     expectTypeOf<UiStoreSettingsModalActions>().toEqualTypeOf<UiStoreSettingsActions>();
-    expectTypeOf<UiStoreReaderState>().toHaveProperty("selection").toEqualTypeOf<ReaderSelection>();
-    expectTypeOf<UiStoreState>().toHaveProperty("selection").toEqualTypeOf<ReaderSelection>();
+    expectTypeOf<UiStoreReaderState>().toHaveProperty("selection").toEqualTypeOf<UiStoreReaderSelection>();
+    expectTypeOf<UiStoreState>().toHaveProperty("selection").toEqualTypeOf<UiStoreReaderSelection>();
     expectTypeOf<UiStoreState>()
       .toHaveProperty("nativeLifecycleBlockers")
       .toEqualTypeOf<Map<NativeLifecycleBlockerOwner, NativeLifecycleBlockerEntry>>();
