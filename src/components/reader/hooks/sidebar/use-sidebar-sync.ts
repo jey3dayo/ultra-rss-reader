@@ -3,7 +3,6 @@ import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useMemo, useReducer, useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  type AccountSyncWarning,
   type SyncCompletedPayload,
   SyncCompletedPayloadSchema,
   type SyncWarningPayload,

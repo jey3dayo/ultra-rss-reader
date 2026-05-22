@@ -1,5 +1,4 @@
 import { useEffect, useRef } from "react";
-import { z } from "zod";
 import {
   MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_PER_ACCOUNT,
   MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_STORAGE_LENGTH,
@@ -8,7 +7,13 @@ import {
 } from "@/constants/storage";
 import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
 import { parseJsonWithSchemaOrNull } from "@/schemas/parse";
-import { type StoredSidebarExpandedFolders, StoredSidebarExpandedFoldersSchema } from "@/schemas/storage";
+import {
+  type SidebarExpandedFoldersStorage,
+  SidebarExpandedFoldersStorageVersionMarkerSchema,
+  type StoredSidebarExpandedFolders,
+  StoredSidebarExpandedFoldersSchema,
+  StoredSidebarExpandedFoldersStorageSchema,
+} from "@/schemas/storage";
 import type { SidebarStartupFolderExpansionParams } from "../../sidebar-feed-section.types";
 
 type StartupFolderExpansionFeed = SidebarStartupFolderExpansionParams["feedList"][number];
@@ -20,19 +25,6 @@ type ResolveSidebarStartupExpandedFolderIdsParams = {
   folderList: StartupFolderExpansionFolder[];
   storedFolderIds?: Iterable<string>;
 };
-
-type SidebarExpandedFoldersStorage = {
-  version: typeof SIDEBAR_EXPANDED_FOLDERS_STORAGE_VERSION;
-  accounts: StoredSidebarExpandedFolders;
-};
-
-const StoredSidebarExpandedFoldersStorageSchema = z
-  .object({
-    version: z.literal(SIDEBAR_EXPANDED_FOLDERS_STORAGE_VERSION),
-    accounts: StoredSidebarExpandedFoldersSchema,
-  })
-  .strict();
-const SidebarExpandedFoldersStorageVersionMarkerSchema = z.object({ version: z.unknown() }).passthrough();
 
 type SidebarExpandedFoldersStorageOperation =
   | "read"

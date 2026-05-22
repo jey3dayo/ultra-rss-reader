@@ -1,4 +1,6 @@
 import type { SubscriptionSummaryFilterKey } from "@/lib/subscriptions/subscription-summary-filter.types";
+import type { SubscriptionsWorkspaceReturnState } from "@/schemas/subscriptions-workspace";
+
 export {
   type SubscriptionsWorkspaceExpandedGroupKey,
   type SubscriptionsWorkspaceListScrollState,
@@ -6,7 +8,6 @@ export {
   type SubscriptionsWorkspaceReturnState,
   SubscriptionsWorkspaceReturnStateSchema,
 } from "@/schemas/subscriptions-workspace";
-import type { SubscriptionsWorkspaceReturnState } from "@/schemas/subscriptions-workspace";
 
 export type SubscriptionSummaryFilterState = SubscriptionSummaryFilterKey;
 

@@ -1,6 +1,5 @@
 import { Result } from "@praha/byethrow";
 import { invoke } from "@tauri-apps/api/core";
-import { z } from "zod";
 
 import {
   type AccountDto,
@@ -123,7 +122,13 @@ import {
 import type { BrowserWebviewBounds } from "@/lib/browser/browser-webview";
 import { redactRuntimeDiagnosticText } from "@/lib/runtime/diagnostics";
 import { createSchemaParseAppError, RESPONSE_VALIDATION_MESSAGE } from "@/lib/ui-errors";
-import { parseWithSchema } from "@/schemas/parse";
+import {
+  isSchemaParseError,
+  parseWithSchema,
+  type RuntimeSchema,
+  type SchemaOutput,
+  type SchemaParseError,
+} from "@/schemas/parse";
 
 // Re-export types so existing consumers don't break
 export type {
@@ -165,13 +170,13 @@ type ListAccountArticlesParams = {
   limit?: number;
 };
 
-type InvokeArgsSchema = z.ZodType<InvokeArgsRecord>;
+type InvokeArgsSchema = RuntimeSchema<InvokeArgsRecord>;
 
 type InvokeArgsOptions = {
   args?: InvokeArgsSchema;
 };
 
-type SchemaBackedInvokeOptions<R extends z.ZodType> = InvokeArgsOptions & {
+type SchemaBackedInvokeOptions<R extends RuntimeSchema> = InvokeArgsOptions & {
   response: R;
 };
 
@@ -188,9 +193,9 @@ const RETRYABLE_RUNTIME_ERROR_PATTERNS = [
 ];
 
 class ResponseValidationError extends Error {
-  readonly cause: z.ZodError;
+  readonly cause: SchemaParseError;
 
-  constructor(cause: z.ZodError) {
+  constructor(cause: SchemaParseError) {
     super(RESPONSE_VALIDATION_MESSAGE);
     this.name = "ResponseValidationError";
     this.cause = cause;
@@ -220,7 +225,7 @@ function limitValidationDetail(detail: string): string {
   return detail.length <= VALIDATION_DETAIL_MAX_LENGTH ? detail : `${detail.slice(0, VALIDATION_DETAIL_MAX_LENGTH)}...`;
 }
 
-function formatZodIssues(error: z.ZodError): string {
+function formatZodIssues(error: SchemaParseError): string {
   const issues = error.issues.slice(0, VALIDATION_ISSUE_LIMIT).map((issue) => {
     return `${formatZodIssuePath(issue.path)}: ${issue.message}`;
   });
@@ -249,7 +254,7 @@ function toAppError(cmd: string, error: unknown): AppError {
     return createSchemaParseAppError("response", detail);
   }
 
-  if (error instanceof z.ZodError) {
+  if (isSchemaParseError(error)) {
     const detail = formatZodIssues(error);
     console.error(`[tauri-commands] ${cmd} args validation failed:`, detail);
     return createSchemaParseAppError("args", detail);
@@ -271,28 +276,28 @@ function toAppError(cmd: string, error: unknown): AppError {
 
 function validateInvokeArgs(options: InvokeArgsOptions, args?: InvokeArgsRecord): InvokeArgsRecord | undefined {
   // Missing args intentionally bypass schema parsing for schema-backed no-arg calls.
-  // Throwing is contained here because safeInvoke converts ZodError into AppError Result.
+  // Throwing is contained here because safeInvoke converts schema parse errors into AppError Result.
   return options.args && args ? parseWithSchema(options.args, args) : args;
 }
 
-function hasResponseSchema<R extends z.ZodType>(
+function hasResponseSchema<R extends RuntimeSchema>(
   options: GenericInvokeOptions | SchemaBackedInvokeOptions<R>,
 ): options is SchemaBackedInvokeOptions<R> {
   return "response" in options;
 }
 
-async function invokeWithResponseSchema<R extends z.ZodType>(
+async function invokeWithResponseSchema<R extends RuntimeSchema>(
   cmd: string,
   options: SchemaBackedInvokeOptions<R>,
   args?: InvokeArgsRecord,
-): Promise<z.output<R>> {
+): Promise<SchemaOutput<R>> {
   const validatedArgs = validateInvokeArgs(options, args);
   const raw = await invoke<unknown>(cmd, validatedArgs);
   try {
     // Response parse is diagnostics-only once it leaves safeInvoke.
     return parseWithSchema(options.response, raw);
   } catch (error) {
-    if (error instanceof z.ZodError) {
+    if (isSchemaParseError(error)) {
       throw new ResponseValidationError(error);
     }
     throw error;
@@ -308,11 +313,11 @@ async function invokeWithoutResponseSchema<T>(
   return invoke<T>(cmd, validatedArgs);
 }
 
-function safeInvoke<R extends z.ZodType>(
+function safeInvoke<R extends RuntimeSchema>(
   cmd: string,
   options: SchemaBackedInvokeOptions<R>,
   args?: InvokeArgsRecord,
-): Result.ResultAsync<z.output<R>, AppError>;
+): Result.ResultAsync<SchemaOutput<R>, AppError>;
 
 function safeInvoke<T = unknown>(
   cmd: string,
@@ -320,7 +325,7 @@ function safeInvoke<T = unknown>(
   args?: InvokeArgsRecord,
 ): Result.ResultAsync<T, AppError>;
 
-function safeInvoke<R extends z.ZodType, T = unknown>(
+function safeInvoke<R extends RuntimeSchema, T = unknown>(
   cmd: string,
   options: GenericInvokeOptions | SchemaBackedInvokeOptions<R> = {},
   args?: InvokeArgsRecord,

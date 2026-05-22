@@ -389,6 +389,31 @@ function storyFilesUnderSrc() {
     .toSorted();
 }
 
+function typescriptFilesUnder(paths: readonly string[]) {
+  return paths.flatMap((path) => {
+    const absolutePath = join(repoRoot, path);
+    const stats = statSync(absolutePath);
+    if (stats.isFile()) {
+      return /\.(?:ts|tsx)$/.test(path) ? [toPosixPath(path)] : [];
+    }
+
+    return readdirSync(absolutePath, { recursive: true })
+      .filter((entry): entry is string => typeof entry === "string")
+      .map((entry) => toPosixPath(join(path, entry)))
+      .filter((filePath) => statSync(join(repoRoot, filePath)).isFile() && /\.(?:ts|tsx)$/.test(filePath));
+  });
+}
+
+function isSchemaOwnedZodImportPath(path: string) {
+  return (
+    path.startsWith("src/api/schemas/") ||
+    path.startsWith("src/schemas/") ||
+    path === "src/__tests__/api/schemas.node.test.ts" ||
+    path.startsWith("src/__tests__/api/schemas/") ||
+    path.startsWith("src/__tests__/schemas/")
+  );
+}
+
 function extractStoryFileNamedExports(source: string) {
   return [...source.matchAll(/^\s*export\s+(const|function|class|let|var)\s+([A-Za-z_$][\w$]*)/gm)].map((match) => ({
     kind: match[1] ?? "",
@@ -2066,6 +2091,16 @@ describe("repository static contracts", () => {
       "} as const satisfies Record<DevScenarioId, () => Promise<unknown>>;",
     );
     expect(eagerScenarioImports).toEqual([]);
+  });
+
+  it("keeps direct zod imports limited to schema modules and explicit schema contract tests", () => {
+    const zodImportPattern = /\bfrom\s+["']zod["']|\bimport\(\s*["']zod["']\s*\)/;
+    const directZodImportPaths = typescriptFilesUnder(["src", "tests"])
+      .filter((path) => zodImportPattern.test(readRepoFile(path)))
+      .filter((path) => !isSchemaOwnedZodImportPath(path))
+      .toSorted();
+
+    expect(directZodImportPaths).toEqual([]);
   });
 
   it("keeps reader keyboard navigation docs aligned with pane owner files", () => {

@@ -1,7 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { z } from "zod";
-import { commandArgsSchemas } from "../src/api/schemas/commands";
+import { commandArgsSchemaKeys, commandArgsSchemas } from "../src/api/schemas/commands";
 import {
   extractCommandDbLockPolicyCases,
   extractRegisteredRustCommandNames,
@@ -101,32 +100,13 @@ const extractRustCommandArgNames = (source: string): Record<string, string[]> =>
   return Object.fromEntries([...commandArgs.entries()].map(([command, args]) => [command, sortedUnique(args)]));
 };
 
-const schemaArgNames = (schema: z.ZodType<Record<string, unknown>>): string[] => {
-  if (schema instanceof z.ZodObject) {
-    return Object.keys(schema.shape).toSorted();
-  }
-
-  if (schema instanceof z.ZodDiscriminatedUnion) {
-    return sortedUnique(
-      schema.options.flatMap((option) => {
-        if (!(option instanceof z.ZodObject)) {
-          throw new Error(`Unsupported discriminated union option schema: ${option.constructor.name}`);
-        }
-        return Object.keys(option.shape);
-      }),
-    );
-  }
-
-  throw new Error(`Unsupported command args schema: ${schema.constructor.name}`);
-};
-
 const registryArgNames = (): Record<string, string[]> =>
   Object.fromEntries(
     Object.entries(commandArgsSchemas)
       .filter(([command]) => !command.startsWith("plugin:"))
       .map(([command, schema]) => {
         const frontendOnlyArgs = FRONTEND_ONLY_OPTIONAL_ARGS[command] ?? [];
-        const rustBackedArgs = schemaArgNames(schema).filter((argName) => !frontendOnlyArgs.includes(argName));
+        const rustBackedArgs = commandArgsSchemaKeys(schema).filter((argName) => !frontendOnlyArgs.includes(argName));
         return [command, rustBackedArgs.toSorted()];
       }),
   );

@@ -161,9 +161,9 @@ export {
   type SyncCompletedPayload,
   SyncCompletedPayloadSchema,
   type SyncResultDto,
+  SyncResultSchema,
   type SyncWarningPayload,
   SyncWarningPayloadSchema,
-  SyncResultSchema,
 } from "./sync-result";
 export {
   TagArticleCountsSchema,

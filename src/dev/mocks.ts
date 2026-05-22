@@ -4,7 +4,6 @@
  */
 
 import { mockIPC, mockWindows } from "@tauri-apps/api/mocks";
-import type { z } from "zod";
 import { type CommandArgsSchemaRegistry, commandArgsSchemas } from "@/api/schemas";
 import type {
   AccountDto,
@@ -34,6 +33,7 @@ import {
 } from "@/dev/mock-data";
 import { stripHtmlTags } from "@/lib/content/html";
 import { addHours, getCurrentDate, getCurrentIsoTimestamp, toIsoTimestamp } from "@/lib/datetime";
+import type { RuntimeSchema, SchemaOutput } from "@/schemas/parse";
 
 export const DEV_MOCK_PLATFORM_INFO = DEFAULT_PLATFORM_INFO;
 export const DEV_MOCK_NETWORK_BOUNDARY = {
@@ -49,14 +49,16 @@ export const DEV_MOCK_SIDE_EFFECT_BOUNDARY = {
   opmlImport: "explicitly-unsupported",
 } as const;
 
-type MockCommandArgsSchema = z.ZodType<Record<string, unknown>>;
+type MockCommandArgsSchema = RuntimeSchema<Record<string, unknown>>;
 const browserMockCommandArgsSchemas: CommandArgsSchemaRegistry = commandArgsSchemas satisfies Record<
   string,
   MockCommandArgsSchema
 >;
 type BrowserMockCommandArgsSchemas = CommandArgsSchemaRegistry;
 type MockCommandWithArgs = keyof BrowserMockCommandArgsSchemas;
-type ParsedBrowserMockArgs<TCommand extends MockCommandWithArgs> = z.output<BrowserMockCommandArgsSchemas[TCommand]>;
+type ParsedBrowserMockArgs<TCommand extends MockCommandWithArgs> = SchemaOutput<
+  BrowserMockCommandArgsSchemas[TCommand]
+>;
 type RawMockIpcPayload = unknown;
 type DevMockWindowGlobalName = "__DEV_BROWSER_MOCKS__" | "__ULTRA_RSS_BROWSER_MOCKS__";
 type DevMockWindowGlobalsSnapshot = Pick<RuntimeWindowDescriptorsSnapshot, DevMockWindowGlobalName>;
