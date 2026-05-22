@@ -4,6 +4,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+### Maintenance
+
+- UI commonization と similarity triage の完了済み TODO を整理し、active backlog を空にした
+
 ## [0.43.5] - 2026-05-21
 
 ### Bug Fixes
