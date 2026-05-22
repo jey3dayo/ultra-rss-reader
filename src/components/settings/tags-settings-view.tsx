@@ -3,9 +3,9 @@ import { type FormEvent, useId } from "react";
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
+import { LabeledActionInputRow } from "@/components/shared/labeled-action-input-row";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { TagColorPicker } from "@/components/shared/tag-color-picker";
-import { Input } from "@/components/ui/input";
 import type { TagViewItem } from "@/lib/tags.types";
 
 type TagsSettingsListItem = TagViewItem;
@@ -80,27 +80,21 @@ export function TagsSettingsView({
     <SettingsContentLayout title={title} outerTestId="tags-settings-root">
       <form onSubmit={handleCreateSubmit}>
         <SettingsSection heading={addHeading} note={intro} surface="flat" className="mb-6 sm:mb-7">
-          <LabeledControlRow
+          <LabeledActionInputRow
             label={nameLabel}
-            htmlFor={nameInputId}
-            className="items-start sm:items-center"
+            inputId={nameInputId}
+            name="tag_name"
+            value={nameValue}
+            placeholder={namePlaceholder}
+            onChange={onNameChange}
+            rowClassName="items-start sm:items-center"
             labelClassName="sm:w-40 sm:shrink-0"
-          >
-            <div className="flex w-full items-center gap-2 sm:max-w-[30rem] sm:justify-end">
-              <Input
-                id={nameInputId}
-                name="tag_name"
-                value={nameValue}
-                placeholder={namePlaceholder}
-                onChange={(event) => onNameChange(event.target.value)}
-                className="h-10 flex-1"
-                aria-label={nameLabel}
-              />
+            trailingControls={
               <SettingsActionButton type="submit" size="compact" disabled={createDisabled}>
                 {createLabel}
               </SettingsActionButton>
-            </div>
-          </LabeledControlRow>
+            }
+          />
           <LabeledControlRow label={colorLabel} labelClassName="sm:w-40 sm:shrink-0">
             <div className="w-full sm:max-w-[400px]">
               <TagColorPicker

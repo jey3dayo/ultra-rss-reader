@@ -4,12 +4,46 @@ import { createWrapper } from "@tests/helpers/create-wrapper";
 import { describe, expect, it, vi } from "vitest";
 import { FormActionButtons } from "@/components/shared/form-action-buttons";
 import { FormDialogShell } from "@/components/shared/form-dialog-shell";
+import { LabeledActionInputRow } from "@/components/shared/labeled-action-input-row";
+import { LabeledActionSelectRow } from "@/components/shared/labeled-action-select-row";
 import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import { LabeledSelectRow } from "@/components/shared/labeled-select-row";
 import { LabeledSwitchRow } from "@/components/shared/labeled-switch-row";
+import { LoadingActionContent } from "@/components/shared/loading-action-content";
 import { createSelectValueChangeHandler } from "@/components/shared/select-option-content";
 
 describe("shared form controls", () => {
+  it("renders shared loading action content with default and custom loading states", () => {
+    const { rerender } = render(
+      <LoadingActionContent loading={false} loadingLabel="Saving">
+        Save
+      </LoadingActionContent>,
+    );
+
+    expect(screen.getByText("Save")).toBeInTheDocument();
+    expect(screen.queryByText("Saving")).not.toBeInTheDocument();
+    expect(document.querySelector("[data-slot='loading-spinner']")).not.toBeInTheDocument();
+
+    rerender(
+      <LoadingActionContent loading={true} loadingLabel="Saving">
+        Save
+      </LoadingActionContent>,
+    );
+
+    expect(screen.getByText("Saving")).toBeInTheDocument();
+    expect(screen.queryByText("Save")).not.toBeInTheDocument();
+    expect(document.querySelector("[data-slot='loading-spinner']")).toHaveAttribute("aria-hidden", "true");
+
+    rerender(
+      <LoadingActionContent loading={true} spinner={<span data-testid="custom-spinner" aria-hidden="true" />}>
+        Save
+      </LoadingActionContent>,
+    );
+
+    expect(screen.getByText("Save")).toBeInTheDocument();
+    expect(screen.getByTestId("custom-spinner")).toBeInTheDocument();
+  });
+
   it("renders form action buttons with loading and disabled states", async () => {
     const user = userEvent.setup();
     const onCancel = vi.fn();
@@ -224,6 +258,29 @@ describe("shared form controls", () => {
     expect(onAction).toHaveBeenCalledTimes(1);
   });
 
+  it("associates labeled action input rows with their input and right-aligned trailing controls", () => {
+    render(
+      <LabeledActionInputRow
+        label="Tag name"
+        name="tag-name"
+        value="News"
+        onChange={vi.fn()}
+        trailingControls={<button type="button">Create</button>}
+      />,
+    );
+
+    const input = screen.getByRole("textbox", { name: "Tag name" });
+    const createButton = screen.getByRole("button", { name: "Create" });
+
+    expect(input).toHaveValue("News");
+    expect(input.id).toBeTruthy();
+    expect(document.querySelector(`label[for="${input.id}"]`)).toHaveTextContent("Tag name");
+    expect(input.closest("div.flex.w-full.items-center.gap-2")).toHaveClass("sm:max-w-[30rem]", "sm:justify-end");
+    expect(createButton.closest("div.flex.w-full.items-center.gap-2")).toBe(
+      input.closest("div.flex.w-full.items-center.gap-2"),
+    );
+  });
+
   it("renders inside helper actions with foreground-soft utility treatment", async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
@@ -398,6 +455,66 @@ describe("shared form controls", () => {
 
     expect(onSelectChange).toHaveBeenCalledWith("feedbin");
     expect(onSwitchChange).toHaveBeenCalledWith(true);
+  });
+
+  it("exposes labeled action select rows with label-driven names and trailing controls", async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+
+    render(
+      <LabeledActionSelectRow
+        label="Mute scope"
+        name="mute-scope"
+        value="title"
+        options={[
+          { value: "title", label: "Title" },
+          { value: "body", label: "Body" },
+        ]}
+        onValueChange={onValueChange}
+        trailingControls={<button type="button">Delete</button>}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    const combobox = screen.getByRole("combobox", { name: "Mute scope" });
+    const deleteButton = screen.getByRole("button", { name: "Delete" });
+
+    expect(combobox).toHaveTextContent("Title");
+    expect(combobox).toHaveClass("h-10", "sm:flex-1");
+    expect(combobox.closest("div.flex.w-full.flex-col.gap-2")).toHaveClass("sm:max-w-[30rem]", "sm:justify-end");
+    expect(deleteButton.closest("div.flex.w-full.flex-col.gap-2")).toBe(
+      combobox.closest("div.flex.w-full.flex-col.gap-2"),
+    );
+
+    await user.click(combobox);
+    await user.click(await screen.findByRole("option", { name: "Body" }));
+
+    expect(onValueChange).toHaveBeenCalledWith("body");
+  });
+
+  it("does not call labeled action select change handlers while disabled", async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+
+    render(
+      <LabeledActionSelectRow
+        label="Mute scope"
+        name="mute-scope"
+        value="title"
+        options={[
+          { value: "title", label: "Title" },
+          { value: "body", label: "Body" },
+        ]}
+        disabled
+        onValueChange={onValueChange}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    await user.click(screen.getByRole("combobox", { name: "Mute scope" }));
+
+    expect(screen.queryByRole("option", { name: "Body" })).not.toBeInTheDocument();
+    expect(onValueChange).not.toHaveBeenCalled();
   });
 
   it("keeps unknown select values visible as their raw value", () => {

@@ -28,6 +28,12 @@ import gradientSwitchMeta, {
 import iconToolbarSurfaceButtonMeta, {
   ChromeVariantComparison,
 } from "@/components/shared/icon-toolbar-surface-button.stories";
+import labeledActionInputRowMeta, {
+  WithTrailingAction as LabeledActionInputRowWithTrailingAction,
+} from "@/components/shared/labeled-action-input-row.stories";
+import labeledActionSelectRowMeta, {
+  WithTrailingAction as LabeledActionSelectRowWithTrailingAction,
+} from "@/components/shared/labeled-action-select-row.stories";
 import labeledInputRowMeta, {
   Disabled as LabeledInputRowDisabled,
   InsideIconAction as LabeledInputRowInsideIconAction,
@@ -66,6 +72,8 @@ const requiredSharedStoryExportsByFilePath = {
   ],
   "/src/components/shared/icon-toolbar-surface-button.stories.tsx": ["ChromeVariantComparison", "Default"],
   "/src/components/shared/indeterminate-progress.stories.tsx": ["Default", "ToolbarPreview"],
+  "/src/components/shared/labeled-action-input-row.stories.tsx": ["WithTrailingAction"],
+  "/src/components/shared/labeled-action-select-row.stories.tsx": ["WithTrailingAction"],
   "/src/components/shared/labeled-control-row.stories.tsx": ["WithInput", "WithLongLabel", "WithSelect"],
   "/src/components/shared/labeled-input-row.stories.tsx": [
     "Default",
@@ -163,6 +171,16 @@ describe("Shared stories", () => {
     cleanup();
     const { container } = renderStory(copyableReadonlyFieldListMeta, CopyableReadonlyFieldListCardSurface);
     expect(container.querySelector(".rounded-md.border.bg-card")).not.toBeNull();
+
+    cleanup();
+    renderStory(labeledActionInputRowMeta, LabeledActionInputRowWithTrailingAction);
+    expect(screen.getByRole("textbox", { name: "Tag name" })).toHaveValue("News");
+    expect(screen.getByRole("button", { name: "Create" })).toBeInTheDocument();
+
+    cleanup();
+    renderStoryWithWrapper(labeledActionSelectRowMeta, LabeledActionSelectRowWithTrailingAction);
+    expect(screen.getByRole("combobox", { name: "Mute scope" })).toHaveTextContent("Title");
+    expect(screen.getByRole("button", { name: "Delete" })).toBeInTheDocument();
 
     cleanup();
     renderStory(labeledInputRowMeta, LabeledInputRowInsideIconAction);

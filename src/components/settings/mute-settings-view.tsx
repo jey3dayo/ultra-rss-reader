@@ -6,12 +6,11 @@ import { SettingsContentLayout } from "@/components/settings/shared/settings-con
 import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { ConfirmDialogView } from "@/components/shared/confirm-dialog-view";
 import { GradientSwitch } from "@/components/shared/gradient-switch";
+import { LabeledActionInputRow } from "@/components/shared/labeled-action-input-row";
+import { ActionSelectControl, LabeledActionSelectRow } from "@/components/shared/labeled-action-select-row";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
-import { Input } from "@/components/ui/input";
-import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
 import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
-import { getOptionLabelByValue } from "@/lib/ui/options";
 
 type MuteSettingsScopeOption = {
   value: MuteKeywordScope;
@@ -129,50 +128,40 @@ export function MuteSettingsView({
     <>
       <SettingsContentLayout title={title} outerTestId="mute-settings-root">
         <SettingsSection heading={addHeading} note={intro} surface="flat" className="mb-6 sm:mb-7">
-          <LabeledControlRow
+          <LabeledActionInputRow
             label={keywordLabel}
-            className="items-start sm:items-center"
+            name="mute_keyword"
+            value={keywordValue}
+            onChange={onKeywordChange}
+            placeholder={keywordPlaceholder}
+            rowClassName="items-start sm:items-center"
             labelClassName="sm:w-40 sm:shrink-0"
-          >
-            <form
-              data-testid="mute-settings-add-row"
-              className="flex w-full flex-col gap-2 sm:w-auto sm:min-w-[30rem] sm:max-w-[30rem] sm:flex-row sm:items-center sm:justify-end"
-              onSubmit={handleAddSubmit}
-            >
-              <Input
-                name="mute_keyword"
-                aria-label={keywordLabel}
-                value={keywordValue}
-                onChange={(event) => onKeywordChange(event.target.value)}
-                placeholder={keywordPlaceholder}
-                className="h-10 w-full sm:w-[220px] sm:flex-none"
-              />
-              <Select
-                value={scopeValue}
-                onValueChange={(value) =>
-                  handleMuteKeywordScopeSelectValue(value, onScopeChange, {
-                    source: "add-row",
-                  })
-                }
-              >
-                <SelectTrigger aria-label={scopeAriaLabel} className="h-10 w-full sm:w-[192px]">
-                  <SelectValue>
-                    {(selectedValue: string | null) => getOptionLabelByValue(scopeOptions, selectedValue ?? scopeValue)}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectPopup>
-                  {scopeOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectPopup>
-              </Select>
-              <SettingsActionButton type="submit" size="compact" disabled={addDisabled}>
-                {addLabel}
-              </SettingsActionButton>
-            </form>
-          </LabeledControlRow>
+            controlClassName="flex-col sm:w-auto sm:min-w-[30rem] sm:flex-row"
+            inputClassName="w-full sm:w-[220px] sm:flex-none"
+            formProps={{
+              "data-testid": "mute-settings-add-row",
+              onSubmit: handleAddSubmit,
+            }}
+            trailingControls={
+              <>
+                <ActionSelectControl
+                  label={scopeAriaLabel}
+                  name="mute_keyword_scope"
+                  value={scopeValue}
+                  options={scopeOptions}
+                  onValueChange={(value) =>
+                    handleMuteKeywordScopeSelectValue(value, onScopeChange, {
+                      source: "add-row",
+                    })
+                  }
+                  triggerClassName="h-10 w-full sm:w-[192px] sm:flex-none"
+                />
+                <SettingsActionButton type="submit" size="compact" disabled={addDisabled}>
+                  {addLabel}
+                </SettingsActionButton>
+              </>
+            }
+          />
         </SettingsSection>
 
         <SettingsSection heading={autoMarkReadHeading} note={autoMarkReadHint} surface="flat" className="mb-6 sm:mb-7">
@@ -196,41 +185,26 @@ export function MuteSettingsView({
             </p>
           ) : (
             rules.map((rule) => (
-              <LabeledControlRow
+              <LabeledActionSelectRow
                 key={rule.id}
                 label={rule.keyword}
+                value={rule.scope}
+                options={scopeOptions}
+                selectAriaLabel={savedScopeAriaLabel(rule.keyword)}
+                onValueChange={(value) =>
+                  handleMuteKeywordScopeSelectValue(value, (scope) => onRuleScopeChange(rule.id, scope), {
+                    source: "saved-rule",
+                    ruleId: rule.id,
+                  })
+                }
                 labelClassName="sm:max-w-[280px] sm:shrink-0 sm:truncate"
-              >
-                <div className="flex w-full flex-col gap-2 sm:max-w-[30rem] sm:flex-row sm:items-center sm:justify-end">
-                  <Select
-                    value={rule.scope}
-                    onValueChange={(value) =>
-                      handleMuteKeywordScopeSelectValue(value, (scope) => onRuleScopeChange(rule.id, scope), {
-                        source: "saved-rule",
-                        ruleId: rule.id,
-                      })
-                    }
-                  >
-                    <SelectTrigger aria-label={savedScopeAriaLabel(rule.keyword)} className="h-10 w-full sm:flex-1">
-                      <SelectValue>
-                        {(selectedValue: string | null) =>
-                          getOptionLabelByValue(scopeOptions, selectedValue ?? rule.scope)
-                        }
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectPopup>
-                      {scopeOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectPopup>
-                  </Select>
+                triggerClassName="h-10 w-full sm:flex-1"
+                trailingControls={
                   <SettingsActionButton type="button" size="compact" onClick={() => onRequestDelete(rule.id)}>
                     {deleteLabel}
                   </SettingsActionButton>
-                </div>
-              </LabeledControlRow>
+                }
+              />
             ))
           )}
         </SettingsSection>
