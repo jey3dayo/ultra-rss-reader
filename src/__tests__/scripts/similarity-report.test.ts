@@ -108,8 +108,10 @@ Similarity: 95.01%, Score: 42.5 points (lines 20~30, avg: 25.0)
     expect(summary).toContain("thresholds: 0.95 / 0.9 / 0.87");
     expect(summary).toContain("scan excludes: node_modules / dist / src-tauri/target");
     expect(summary).toContain("unparsed similarity blocks: 0");
+    expect(summary).toContain("scan baseline function pairs: 32");
     expect(summary).toContain("allowlisted false positives present: 2");
     expect(summary).toContain("allowlisted false positives absent: 2");
+    expect(summary).not.toContain("TODO baseline");
     expect(summary).toContain("absent browser-overlay-close-vs-sidebar-smart-view-builder");
   });
 
@@ -175,7 +177,7 @@ Similarity: 90.00%, Score: 12.3 points (lines 4~6, avg: 5.0)
   });
 
   it("keeps false-positive allowlist reporting independent from TODO content", () => {
-    const summary = buildSimilaritySummary(sampleReport, "P2 renamed similarity cleanup");
+    const summary = buildSimilaritySummary(sampleReport);
 
     expect(summary).not.toContain("allowlisted TODO refs");
     expect(summary).not.toContain("stale TODO ref");
@@ -251,5 +253,6 @@ Similarity: 90.00%, Score: 12.3 points (lines 4~6, avg: 5.0)
     expect(miseToml).toContain('[tasks."report:similarity"]');
     expect(miseToml).toContain('run = "pnpm run report:similarity"');
     expect(miseToml).toContain('run_windows = "pnpm.CMD run report:similarity"');
+    expect(buildSimilaritySummary.toString()).not.toContain("todoContent");
   });
 });

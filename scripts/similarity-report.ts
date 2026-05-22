@@ -1,5 +1,4 @@
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 export const similarityThresholds = [0.95, 0.9, 0.87] as const;
@@ -173,14 +172,13 @@ export function findFalsePositiveMatch(pair: SimilarityPair): SimilarityFalsePos
   );
 }
 
-export function buildSimilaritySummary(output: string, todoContent?: string): string {
+export function buildSimilaritySummary(output: string): string {
   const diagnostics = parseSimilarityOutput(output);
   const pairs = diagnostics.pairs;
   const typeSummary = parseSimilarityTypeSummary(output);
   const matchedFalsePositives = pairs.map(findFalsePositiveMatch).filter((item) => item !== null);
   const matchedIds = new Set(matchedFalsePositives.map((item) => item.id));
   const unmatchedFalsePositives = similarityFalsePositiveBaseline.filter((item) => !matchedIds.has(item.id));
-  void todoContent;
 
   return [
     "Similarity scan baseline",
@@ -191,10 +189,10 @@ export function buildSimilaritySummary(output: string, todoContent?: string): st
     "filtering rule: raise --min-lines/--min-tokens before extracting helpers from tiny callback-shape matches.",
     `function pairs: ${pairs.length}`,
     `unparsed similarity blocks: ${diagnostics.skippedSimilarityBlocks}`,
-    `TODO baseline function pairs: ${todoSimilarityBaseline.functionPairs}`,
+    `scan baseline function pairs: ${todoSimilarityBaseline.functionPairs}`,
     `type pairs: ${typeSummary.totalTypePairs} (types: ${typeSummary.similarTypePairs}, type literals: ${typeSummary.typeLiteralPairs})`,
     `type pair report drift: ${typeSummary.reportedTypePairDrift}`,
-    `TODO baseline type pairs: ${todoSimilarityBaseline.similarTypePairs + todoSimilarityBaseline.typeLiteralPairs} (types: ${todoSimilarityBaseline.similarTypePairs}, type literals: ${todoSimilarityBaseline.typeLiteralPairs})`,
+    `scan baseline type pairs: ${todoSimilarityBaseline.similarTypePairs + todoSimilarityBaseline.typeLiteralPairs} (types: ${todoSimilarityBaseline.similarTypePairs}, type literals: ${todoSimilarityBaseline.typeLiteralPairs})`,
     `allowlisted false positives present: ${matchedFalsePositives.length}`,
     `allowlisted false positives absent: ${unmatchedFalsePositives.length}`,
     ...matchedFalsePositives.map((item) => `- present ${item.id}: ${item.decision}`),
@@ -301,7 +299,7 @@ export function runSimilarityReport(args: readonly string[] = process.argv.slice
 
   process.stdout.write(result.stdout);
   process.stdout.write("\n");
-  const summary = buildSimilaritySummary(result.stdout, readTodoContent());
+  const summary = buildSimilaritySummary(result.stdout);
   process.stdout.write(summary);
   process.stdout.write("\n");
 
@@ -309,14 +307,6 @@ export function runSimilarityReport(args: readonly string[] = process.argv.slice
   if (gateDiagnostic !== null) {
     process.stderr.write(`${gateDiagnostic.message}\n`);
     process.exit(gateDiagnostic.exitCode);
-  }
-}
-
-function readTodoContent(): string | undefined {
-  try {
-    return readFileSync("TODO.md", "utf8");
-  } catch {
-    return undefined;
   }
 }
 
