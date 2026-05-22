@@ -26,19 +26,6 @@
 
 ### Reader UI / Account Settings
 
-#### UI primitive direct import commonization triage
-
-- [ ] priority: P2 / domain: reader-state / work type: shared component triage + report maintenance
-  - 対象: `src/components/reader/sidebar-footer-actions.tsx`, `src/components/subscriptions-index/subscription-detail-pane.tsx`, `src/components/shared/`
-  - scope: `src/components/ui/*` の直接 import 調査で見つかった共通化候補を、意味・状態・a11y が揃うものだけ `shared` または settings-local shared へ寄せる
-  - candidates:
-    - subscriptions management action: `subscription-detail-pane` の compact edit/delete action と `DecisionButton` / workspace action class の境界を整理する
-  - local exception: `article-tag-picker-popover` の create action は icon-only で visible loading label を持たないため、loading label/spinner helper へ寄せず現状維持する
-  - direct import のまま残す候補: `ScrollArea`, `Dialog`, `Command`, `Collapsible`, `Skeleton` は layout/runtime/feature state 依存が強いため、実装時に再評価理由を残す
-  - report responsibility: 実装後に `mise run report:similarity` を確認し、共通化で TODO-backed false positive や similarity baseline が変わる場合は `scripts/similarity-report.ts` の report baseline / TODO ref を同じ変更に含める
-  - acceptance criteria: 共通化した箇所は既存 visual language と `DESIGN_REVIEW.md` の shared 昇格条件に合う。共通化しなかった候補は local exception として理由が説明できる。report baseline drift が残らない
-  - focused verification: `mise run report:similarity` と、変更対象に応じて focused component test または `mise run test:unit:dom`
-
 ### Dev / Tooling / E2E / Test Helpers
 
 ### Rust Provider / DB / Scheduler
