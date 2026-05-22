@@ -15,7 +15,7 @@ export const similarityScanExcludePatterns = [
   "playwright-report",
   "src-tauri/gen/schemas",
 ] as const;
-const todoSimilarityBaseline = {
+const similarityScanBaseline = {
   functionPairs: 32,
   similarTypePairs: 1,
   typeLiteralPairs: 2,
@@ -189,10 +189,10 @@ export function buildSimilaritySummary(output: string): string {
     "filtering rule: raise --min-lines/--min-tokens before extracting helpers from tiny callback-shape matches.",
     `function pairs: ${pairs.length}`,
     `unparsed similarity blocks: ${diagnostics.skippedSimilarityBlocks}`,
-    `scan baseline function pairs: ${todoSimilarityBaseline.functionPairs}`,
+    `scan baseline function pairs: ${similarityScanBaseline.functionPairs}`,
     `type pairs: ${typeSummary.totalTypePairs} (types: ${typeSummary.similarTypePairs}, type literals: ${typeSummary.typeLiteralPairs})`,
     `type pair report drift: ${typeSummary.reportedTypePairDrift}`,
-    `scan baseline type pairs: ${todoSimilarityBaseline.similarTypePairs + todoSimilarityBaseline.typeLiteralPairs} (types: ${todoSimilarityBaseline.similarTypePairs}, type literals: ${todoSimilarityBaseline.typeLiteralPairs})`,
+    `scan baseline type pairs: ${similarityScanBaseline.similarTypePairs + similarityScanBaseline.typeLiteralPairs} (types: ${similarityScanBaseline.similarTypePairs}, type literals: ${similarityScanBaseline.typeLiteralPairs})`,
     `allowlisted false positives present: ${matchedFalsePositives.length}`,
     `allowlisted false positives absent: ${unmatchedFalsePositives.length}`,
     ...matchedFalsePositives.map((item) => `- present ${item.id}: ${item.decision}`),

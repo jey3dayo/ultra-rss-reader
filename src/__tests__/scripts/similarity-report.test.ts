@@ -102,7 +102,7 @@ Similarity: 95.01%, Score: 42.5 points (lines 20~30, avg: 25.0)
     ]);
   });
 
-  it("reports absent allowlist entries so stale TODO baselines are visible", () => {
+  it("reports absent allowlist entries against scan baselines", () => {
     const summary = buildSimilaritySummary(sampleReport);
 
     expect(summary).toContain("thresholds: 0.95 / 0.9 / 0.87");
