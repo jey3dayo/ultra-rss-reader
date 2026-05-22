@@ -1,4 +1,6 @@
-import { act, fireEvent, renderHook, waitFor } from "@testing-library/react";
+import "@testing-library/jest-dom/vitest";
+import { act, cleanup, fireEvent, renderHook, waitFor } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { sampleAccounts } from "@tests/helpers/fixtures";
 import type { MutableRefObject } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -11,8 +13,12 @@ function setRef<T>(ref: unknown, value: T) {
   (ref as MutableRefObject<T>).current = value;
 }
 
+setupBrowserTestDom();
+
 describe("useSidebarAccountSwitcher", () => {
   afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
     document.body.replaceChildren();
   });
 
@@ -122,7 +128,7 @@ describe("useSidebarAccountSwitcher", () => {
     const trigger = document.createElement("button");
     const other = document.createElement("button");
     document.body.append(trigger, other);
-    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+    vi.spyOn(globalThis, "requestAnimationFrame").mockImplementation((callback) => {
       scheduledCallbacks.push(callback);
       return 1;
     });
@@ -149,11 +155,11 @@ describe("useSidebarAccountSwitcher", () => {
     const trigger = document.createElement("button");
     const other = document.createElement("button");
     document.body.append(trigger, other);
-    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+    vi.spyOn(globalThis, "requestAnimationFrame").mockImplementation((callback) => {
       scheduledCallbacks.push(callback);
       return 88;
     });
-    const cancelAnimationFrameSpy = vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => undefined);
+    const cancelAnimationFrameSpy = vi.spyOn(globalThis, "cancelAnimationFrame").mockImplementation(() => undefined);
     const focusSpy = vi.spyOn(trigger, "focus");
     const { result } = renderHook(() => useSidebarAccountSwitcher());
     setRef(result.current.accountTriggerRef, trigger);
@@ -179,6 +185,8 @@ describe("useSidebarAccountSwitcher", () => {
     const originalCancelAnimationFrame = window.cancelAnimationFrame;
     Object.defineProperty(window, "requestAnimationFrame", { configurable: true, value: undefined });
     Object.defineProperty(window, "cancelAnimationFrame", { configurable: true, value: undefined });
+    Object.defineProperty(globalThis, "requestAnimationFrame", { configurable: true, value: undefined });
+    Object.defineProperty(globalThis, "cancelAnimationFrame", { configurable: true, value: undefined });
     const trigger = document.createElement("button");
     const other = document.createElement("button");
     document.body.append(trigger, other);
@@ -205,11 +213,19 @@ describe("useSidebarAccountSwitcher", () => {
       configurable: true,
       value: originalCancelAnimationFrame,
     });
+    Object.defineProperty(globalThis, "requestAnimationFrame", {
+      configurable: true,
+      value: originalRequestAnimationFrame,
+    });
+    Object.defineProperty(globalThis, "cancelAnimationFrame", {
+      configurable: true,
+      value: originalCancelAnimationFrame,
+    });
   });
 
   it("restores focus with a timer fallback when requestAnimationFrame throws", async () => {
     const requestError = new Error("requestAnimationFrame unavailable");
-    const requestAnimationFrameSpy = vi.spyOn(window, "requestAnimationFrame").mockImplementation(() => {
+    const requestAnimationFrameSpy = vi.spyOn(globalThis, "requestAnimationFrame").mockImplementation(() => {
       throw requestError;
     });
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
@@ -321,10 +337,25 @@ describe("useSidebarAccountSwitcher", () => {
         value: () => undefined,
       });
     }
+    if (typeof requestAnimationFrame !== "function") {
+      Object.defineProperty(globalThis, "requestAnimationFrame", {
+        configurable: true,
+        value: (callback: FrameRequestCallback) => {
+          callback(0);
+          return 0;
+        },
+      });
+    }
+    if (typeof cancelAnimationFrame !== "function") {
+      Object.defineProperty(globalThis, "cancelAnimationFrame", {
+        configurable: true,
+        value: () => undefined,
+      });
+    }
     const firstItem = document.createElement("button");
     const secondItem = document.createElement("button");
     const itemRefs = { current: [firstItem, secondItem] };
-    const requestAnimationFrameSpy = vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+    const requestAnimationFrameSpy = vi.spyOn(globalThis, "requestAnimationFrame").mockImplementation((callback) => {
       callback(0);
       return 0;
     });
@@ -352,6 +383,14 @@ describe("useSidebarAccountSwitcher", () => {
       configurable: true,
       value: originalCancelAnimationFrame,
     });
+    Object.defineProperty(globalThis, "requestAnimationFrame", {
+      configurable: true,
+      value: originalRequestAnimationFrame,
+    });
+    Object.defineProperty(globalThis, "cancelAnimationFrame", {
+      configurable: true,
+      value: originalCancelAnimationFrame,
+    });
   });
 
   it("focuses the selected account item with a timer fallback when requestAnimationFrame is unavailable", async () => {
@@ -359,6 +398,8 @@ describe("useSidebarAccountSwitcher", () => {
     const originalCancelAnimationFrame = window.cancelAnimationFrame;
     Object.defineProperty(window, "requestAnimationFrame", { configurable: true, value: undefined });
     Object.defineProperty(window, "cancelAnimationFrame", { configurable: true, value: undefined });
+    Object.defineProperty(globalThis, "requestAnimationFrame", { configurable: true, value: undefined });
+    Object.defineProperty(globalThis, "cancelAnimationFrame", { configurable: true, value: undefined });
     const setTimeoutSpy = vi.spyOn(globalThis, "setTimeout");
     const firstItem = document.createElement("button");
     const secondItem = document.createElement("button");
@@ -386,6 +427,14 @@ describe("useSidebarAccountSwitcher", () => {
       value: originalRequestAnimationFrame,
     });
     Object.defineProperty(window, "cancelAnimationFrame", {
+      configurable: true,
+      value: originalCancelAnimationFrame,
+    });
+    Object.defineProperty(globalThis, "requestAnimationFrame", {
+      configurable: true,
+      value: originalRequestAnimationFrame,
+    });
+    Object.defineProperty(globalThis, "cancelAnimationFrame", {
       configurable: true,
       value: originalCancelAnimationFrame,
     });
