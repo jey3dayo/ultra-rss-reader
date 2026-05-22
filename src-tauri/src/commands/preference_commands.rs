@@ -86,6 +86,11 @@ mod tests {
     }
 
     #[test]
+    fn allows_startup_remote_state_repair_marker_preference() {
+        assert!(is_allowed_preference_key("startup_remote_state_repair_v1"));
+    }
+
+    #[test]
     fn rejects_unknown_preference_keys() {
         assert!(!is_allowed_preference_key("unknown_web_preview_key"));
     }

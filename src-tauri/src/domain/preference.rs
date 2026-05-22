@@ -44,6 +44,7 @@ const ALLOWED_KEYS: &[&str] = &[
     "debug_browser_hud",
     "debug_web_preview_url",
     "selected_account_id",
+    "startup_remote_state_repair_v1",
 ];
 
 const SHORTCUT_KEY_PREFIX: &str = "shortcut_";
