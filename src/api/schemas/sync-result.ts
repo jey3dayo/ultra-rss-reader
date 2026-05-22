@@ -41,7 +41,12 @@ export const SyncResultSchema = z
   })
   .strict();
 
+export const SyncWarningPayloadSchema = z.array(AccountSyncWarningSchema);
+export const SyncCompletedPayloadSchema = z.null();
+
 export type AccountSyncError = z.output<typeof AccountSyncErrorSchema>;
 export type AccountSyncWarning = z.output<typeof AccountSyncWarningSchema>;
+export type SyncWarningPayload = z.output<typeof SyncWarningPayloadSchema>;
+export type SyncCompletedPayload = z.output<typeof SyncCompletedPayloadSchema>;
 export type SyncIssueOwner = z.output<typeof SyncIssueOwnerSchema>;
 export type SyncResultDto = z.output<typeof SyncResultSchema>;

@@ -1,6 +1,10 @@
-import type { z } from "zod";
+import { z } from "zod";
 
-type NullableParseResult<TSchema extends z.ZodType> = z.output<TSchema> | null;
+export type RuntimeSchema<TOutput = unknown> = z.ZodType<TOutput>;
+export type SchemaOutput<TSchema extends RuntimeSchema> = z.output<TSchema>;
+export type SchemaParseError = z.ZodError;
+
+type NullableParseResult<TSchema extends RuntimeSchema> = SchemaOutput<TSchema> | null;
 
 export const PARSE_JSON_WITH_SCHEMA_OR_NULL_CALLER_OWNERS = [
   {
@@ -50,7 +54,11 @@ export const JSON_SCHEMA_FALLBACK_BOUNDARY_OWNERS = {
  * Throwing schema boundary. Invalid values surface as the schema library error.
  * Use only where the callsite immediately converts the throw into Result/reject or intentionally fails a test.
  */
-export function parseWithSchema<TSchema extends z.ZodType>(schema: TSchema, value: unknown): z.output<TSchema> {
+export function isSchemaParseError(error: unknown): error is SchemaParseError {
+  return error instanceof z.ZodError;
+}
+
+export function parseWithSchema<TSchema extends RuntimeSchema>(schema: TSchema, value: unknown): SchemaOutput<TSchema> {
   const result = schema.safeParse(value);
   if (!result.success) {
     throw result.error;
@@ -61,7 +69,10 @@ export function parseWithSchema<TSchema extends z.ZodType>(schema: TSchema, valu
 /**
  * Throwing JSON + schema boundary. Malformed JSON throws SyntaxError; invalid data throws ZodError.
  */
-export function parseJsonWithSchema<TSchema extends z.ZodType>(contents: string, schema: TSchema): z.output<TSchema> {
+export function parseJsonWithSchema<TSchema extends RuntimeSchema>(
+  contents: string,
+  schema: TSchema,
+): SchemaOutput<TSchema> {
   return parseWithSchema(schema, JSON.parse(contents));
 }
 
@@ -69,7 +80,7 @@ export function parseJsonWithSchema<TSchema extends z.ZodType>(contents: string,
  * Nullable JSON + schema boundary. Malformed JSON and invalid data both return null for caller-owned fallback.
  * Use for local persisted/config recovery paths where the caller owns a safe default.
  */
-export function parseJsonWithSchemaOrNull<TSchema extends z.ZodType>(
+export function parseJsonWithSchemaOrNull<TSchema extends RuntimeSchema>(
   contents: string,
   schema: TSchema,
 ): NullableParseResult<TSchema> {
@@ -85,7 +96,7 @@ export function parseJsonWithSchemaOrNull<TSchema extends z.ZodType>(
 /**
  * Safe-named alias for callers that prefer a nullable parse helper name.
  */
-export function safeParseJsonWithSchema<TSchema extends z.ZodType>(
+export function safeParseJsonWithSchema<TSchema extends RuntimeSchema>(
   contents: string,
   schema: TSchema,
 ): NullableParseResult<TSchema> {

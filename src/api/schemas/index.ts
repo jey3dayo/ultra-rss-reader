@@ -158,7 +158,11 @@ export {
 export {
   type AccountSyncError,
   type AccountSyncWarning,
+  type SyncCompletedPayload,
+  SyncCompletedPayloadSchema,
   type SyncResultDto,
+  type SyncWarningPayload,
+  SyncWarningPayloadSchema,
   SyncResultSchema,
 } from "./sync-result";
 export {
