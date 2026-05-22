@@ -3,11 +3,11 @@ import { useEffect, useRef } from "react";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { queryElementByDataAttribute } from "@/lib/dom/data-attribute";
 import type { FocusedPane } from "@/lib/layout/layout-state.types";
-import type { ReaderSelection } from "@/lib/reader/reader-selection.types";
 import { scheduleReaderFocusFrame } from "@/lib/reader-focus";
+import type { ArticleListSelection } from "./article-list-controller.types";
 
 type UseArticleListEffectsParams = {
-  selection: ReaderSelection;
+  selection: ArticleListSelection;
   scrollToTopOnChange: string;
   listRef: RefObject<HTMLDivElement | null>;
   viewportRef: RefObject<HTMLDivElement | null>;

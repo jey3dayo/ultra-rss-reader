@@ -5,14 +5,21 @@ import type { FeedDisplayPresetOption } from "@/lib/articles/article-display";
 import type { KeyboardShortcutPrefs } from "@/lib/keyboard/keyboard-shortcuts";
 import type { FocusedPane, LayoutMode } from "@/lib/layout/layout-state.types";
 import type { ReaderSourcePlan } from "@/lib/reader/reader-query";
-import type { ReaderSelection } from "@/lib/reader/reader-selection.types";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
+import type { SmartViewKind } from "@/lib/sidebar/smart-view.types";
 import type { ArticleGroupsViewGroup } from "../../article-groups-view";
 import type { ArticleListSetupState } from "../../article-list.types";
 import type { ArticleListBodyProps } from "../../article-list-body";
 import type { ArticleListContextStripProps } from "../../article-list-context-strip";
 import type { ArticleListFooterProps } from "../../article-list-footer";
 import type { ArticleListHeaderProps } from "../../article-list-header";
+
+export type ArticleListSelection =
+  | { type: "feed"; feedId: string }
+  | { type: "folder"; folderId: string }
+  | { type: "smart"; kind: SmartViewKind }
+  | { type: "tag"; tagId: string }
+  | { type: "all" };
 
 export type UseArticleListViewPropsResult = {
   layoutMode: LayoutMode;
@@ -41,7 +48,7 @@ export type UseArticleListInteractionsResult = {
 };
 
 export type UseArticleListViewStateParams = {
-  selection: ReaderSelection;
+  selection: ArticleListSelection;
   t: TFunction<"reader">;
   selectedAccountId: string | null;
   feedId: string | null;
@@ -126,7 +133,7 @@ export type UseArticleListPresentationParams = {
   t: TFunction<"reader">;
   tc: TFunction<"common">;
   ts: TFunction<"sidebar">;
-  selection: ReaderSelection;
+  selection: ArticleListSelection;
   focusedPane: FocusedPane;
   selectedAccountId: string | null;
   accountCount?: number;
@@ -173,7 +180,7 @@ export type UseArticleListPresentationParams = {
 };
 
 export type UseArticleListHeaderActionsParams = {
-  selection: ReaderSelection;
+  selection: ArticleListSelection;
   feeds: FeedDto[] | undefined;
   feedId: string | null;
   selectedFeed: FeedDto | undefined;
@@ -191,7 +198,7 @@ export type UseArticleListHeaderActionsResult = {
 };
 
 export type UseArticleListHeaderControllerParams = {
-  selection: ReaderSelection;
+  selection: ArticleListSelection;
   feeds: FeedDto[] | undefined;
   feedId: string | null;
   selectedFeed: FeedDto | undefined;
@@ -255,7 +262,7 @@ export type UseArticleListSearchResult = {
 };
 
 export type UseArticleListSourcesParams = {
-  selection: ReaderSelection;
+  selection: ArticleListSelection;
   selectedAccountId: string | null;
   selectedArticleId: string | null;
   retainedArticleIds: Set<string>;

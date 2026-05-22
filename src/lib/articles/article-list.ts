@@ -11,8 +11,8 @@ import {
   parseDateInput,
 } from "@/lib/datetime";
 import type { ReaderSourcePlan } from "@/lib/reader/reader-query";
-import type { ReaderSelection } from "@/lib/reader/reader-selection.types";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
+import type { SmartViewKind } from "@/lib/sidebar/smart-view.types";
 
 export const MAX_RETAINED_ARTICLES_SNAPSHOT_SIZE = 50;
 
@@ -58,8 +58,15 @@ export type RetainedArticlesSnapshot = {
   articles: ArticleDto[];
 };
 
+type ArticleListMarkAllReadSelection =
+  | { type: "feed"; feedId: string }
+  | { type: "folder"; folderId: string }
+  | { type: "smart"; kind: SmartViewKind }
+  | { type: "tag"; tagId: string }
+  | { type: "all" };
+
 export type ArticleListMarkAllReadCountParams = {
-  selection: ReaderSelection;
+  selection: ArticleListMarkAllReadSelection;
   selectedFeedUnreadCount: number;
   folderUnreadCount: number;
   filteredArticles: ArticleDto[];
