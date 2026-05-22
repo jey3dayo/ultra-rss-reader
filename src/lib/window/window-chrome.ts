@@ -15,6 +15,8 @@ export const APP_STACKING_CLASS_NAMES = {
   browserOverlayRoot: "z-40",
   dialog: "z-50",
   commandPalette: "z-50",
+  popup: "z-[70]",
+  tooltip: "z-[80]",
   toast: "z-[100]",
 } as const;
 
