@@ -35,7 +35,7 @@
   - acceptance criteria: `settings-page-view` no longer imports `@/components/ui/input` directly for action text rows, visible copy and control callbacks stay unchanged, and row width/a11y remain covered by focused tests
   - focused verification: `pnpm exec vitest run src/__tests__/components/use-settings-modal-view-props.node.test.ts src/__tests__/components/settings-modal.test.tsx --project node --project jsdom` plus `pnpm exec tsc --noEmit`
   - stop if shared row API changes would force unrelated settings pages or public prop churn
-- [ ] priority: P2 / domain: reader-state / work type: passive state action commonization
+- [x] priority: P2 / domain: reader-state / work type: passive state action commonization
   - 対象: `src/components/reader/article-empty-state-view.tsx`, `src/components/reader/article-list-screen-view.tsx`, `src/components/reader/browser-surface-state-card.tsx`, `src/components/reader/feed-tree-empty-state.tsx`
   - evidence: reader passive/empty/error states each import `@/components/ui/button` directly for small retry/setup/open actions with similar subdued surface treatment
   - scope: introduce a reader/passive-state action button only if it removes repeated state-action styling without absorbing business logic or icon choices

@@ -12,9 +12,8 @@ describe("FeedTreeEmptyState", () => {
 
     rerender(<FeedTreeEmptyState kind="action" text="Add your first feed" onAction={onAction} />);
 
-    expect(screen.getByRole("button", { name: "Add your first feed" })).toHaveClass(
-      "text-foreground-soft",
-      "hover:text-foreground",
-    );
+    const actionButton = screen.getByRole("button", { name: "Add your first feed" });
+    expect(actionButton).toHaveAttribute("data-reader-passive-action", "true");
+    expect(actionButton).toHaveClass("text-foreground-soft", "hover:text-foreground");
   });
 });
