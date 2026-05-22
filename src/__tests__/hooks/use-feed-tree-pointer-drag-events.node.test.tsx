@@ -1,6 +1,7 @@
-import { fireEvent, renderHook } from "@testing-library/react";
+import { cleanup, fireEvent, renderHook } from "@testing-library/react";
+import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import type { MutableRefObject } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { UseFeedTreePointerDragEventsParams } from "@/components/reader/hooks/feed-tree/feed-tree-drag.types";
 import { useFeedTreePointerDragEvents } from "@/components/reader/hooks/feed-tree/use-feed-tree-pointer-drag-events";
 import {
@@ -11,6 +12,8 @@ import { FEED_DROP_TARGET_ID_ATTRIBUTE, FEED_DROP_TARGET_KIND_ATTRIBUTE } from "
 import type { FeedTreeFeedViewModel } from "@/lib/sidebar/sidebar-feed-tree";
 
 const dragWindowEventTypes = new Set(["pointermove", "pointerup", "pointercancel", "keydown", "blur"]);
+
+setupBrowserTestDom();
 
 function createFeed(overrides: Partial<FeedTreeFeedViewModel> = {}): FeedTreeFeedViewModel {
   return {
@@ -67,6 +70,12 @@ function createPointerEvent(type: string, pointerId: number, clientX: number, cl
 }
 
 describe("useFeedTreePointerDragEvents", () => {
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+    document.body.replaceChildren();
+  });
+
   it("keeps window listeners fixed for the drag session while using latest callbacks", () => {
     const addEventListenerSpy = vi.spyOn(window, "addEventListener");
     const removeEventListenerSpy = vi.spyOn(window, "removeEventListener");
@@ -119,6 +128,8 @@ describe("useFeedTreePointerDragEvents", () => {
       });
       expect(initialOnDragEnterFolder).toHaveBeenCalledWith("folder-1");
 
+      const listenerAddsAfterInitialDragMove = getDragListenerAdds();
+
       Object.defineProperty(document, "elementFromPoint", {
         configurable: true,
         value: vi.fn(() => secondFolderTarget),
@@ -135,7 +146,7 @@ describe("useFeedTreePointerDragEvents", () => {
 
       fireEvent(window, createPointerEvent("pointermove", 1, 30, 30));
 
-      expect(getDragListenerAdds()).toBe(5);
+      expect(getDragListenerAdds()).toBe(listenerAddsAfterInitialDragMove);
       expect(getDragListenerRemoves()).toBe(0);
       expect(initialSetPointerDragPreview).toHaveBeenCalledTimes(1);
       expect(latestSetPointerDragPreview).toHaveBeenCalledWith({

@@ -1,3 +1,4 @@
+import { LoadingActionContent } from "@/components/shared/loading-action-content";
 import { Button } from "@/components/ui/button";
 
 type FormActionButtonsProps = {
@@ -47,7 +48,9 @@ export function FormActionButtons({
         aria-busy={loading || undefined}
         className="min-h-11"
       >
-        {loading && submittingLabel ? submittingLabel : submitLabel}
+        <LoadingActionContent loading={loading} loadingLabel={submittingLabel}>
+          {submitLabel}
+        </LoadingActionContent>
       </Button>
     </>
   );

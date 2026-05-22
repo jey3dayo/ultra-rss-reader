@@ -203,12 +203,16 @@ describe("BrowserOverlayChrome", () => {
     expect(getLeadingButtonLabels()).toEqual(["Close Web Preview", "Web back", "Web forward", "Reload page"]);
     expect(closeButton.closest("[data-overlay-shell='action']")).toHaveClass("size-11");
     expect(closeButton.closest("[data-overlay-shell='action']")).toHaveClass("md:size-10");
+    expect(closeButton.querySelector(".lucide-x")).toHaveClass("size-5");
     expect(backButton.closest("[data-overlay-shell='action']")).toHaveClass("size-11");
     expect(backButton.closest("[data-overlay-shell='action']")).toHaveClass("md:size-10");
+    expect(backButton.querySelector(".lucide-chevron-left")).toHaveClass("size-5");
     expect(forwardButton.closest("[data-overlay-shell='action']")).toHaveClass("size-11");
     expect(forwardButton.closest("[data-overlay-shell='action']")).toHaveClass("md:size-10");
+    expect(forwardButton.querySelector(".lucide-chevron-right")).toHaveClass("size-5");
     expect(reloadButton.closest("[data-overlay-shell='action']")).toHaveClass("size-11");
     expect(reloadButton.closest("[data-overlay-shell='action']")).toHaveClass("md:size-10");
+    expect(reloadButton.querySelector(".lucide-rotate-cw")).toHaveClass("size-5");
     expect(backButton.querySelector(".lucide-chevron-left")).not.toBeNull();
     expect(closeButton.querySelector(".lucide-x")).not.toBeNull();
     expect(reloadButton.querySelector(".lucide-rotate-cw")).not.toBeNull();
@@ -385,6 +389,7 @@ describe("BrowserOverlayChrome", () => {
     expect(firstSurface).toHaveAttribute("data-overlay-shell", "action");
     expect(firstSurface).toHaveClass("bg-transparent");
     expect(firstSurface).toHaveClass("shadow-none");
+    expect(screen.getByRole("button", { name: "Custom Action A" }).querySelector("span")).toHaveClass("size-5");
 
     await user.click(screen.getByRole("button", { name: "Custom Action A" }));
 

@@ -1,5 +1,5 @@
 import { Menu } from "@base-ui/react/menu";
-import { Check, Clock3, ExternalLink, Plus, RefreshCw, Save, Share, Trash2, X } from "lucide-react";
+import { Check, ChevronLeft, Clock3, ExternalLink, Plus, RefreshCw, Save, Share, Trash2, X } from "lucide-react";
 import { type CSSProperties, useEffect, useReducer, useState } from "react";
 import { AccountSwitcherTriggerButton } from "@/components/reader/account-switcher-view";
 import { TagOptionRowButton, TagPickerTriggerButton } from "@/components/reader/article-tag-picker-buttons";
@@ -312,8 +312,34 @@ export function IconUtilityButtonSpecimen() {
               <IconToolbarSurfaceButton label="Close Web Preview" onClick={() => undefined}>
                 <X className="size-4" />
               </IconToolbarSurfaceButton>
-              <IconToolbarSurfaceButton label="Reload page" variant="chrome" onClick={() => undefined}>
-                <RefreshCw className="size-4" />
+            </div>
+          </div>
+          <div
+            data-testid="reference-browser-chrome-buttons"
+            className="rounded-md border border-border/60 bg-[#1e2324] p-3 text-[#f2f1ed]"
+            style={darkReaderToolbarTokens}
+          >
+            <div className="mb-2 flex items-center justify-between gap-3 text-[11px] font-medium tracking-[0.14em] text-[#f2f1ed]/60 uppercase">
+              <span>Browser chrome</span>
+              <span>40px target / 20px icon</span>
+            </div>
+            <div className="flex min-h-10 items-center gap-3">
+              <IconToolbarSurfaceButton label="Browser chrome close" variant="chrome" onClick={() => undefined}>
+                <X className="size-5" />
+              </IconToolbarSurfaceButton>
+              <IconToolbarSurfaceButton label="Browser chrome back" variant="chrome" onClick={() => undefined}>
+                <ChevronLeft className="size-5" />
+              </IconToolbarSurfaceButton>
+              <IconToolbarSurfaceButton label="Browser chrome reload" variant="chrome" onClick={() => undefined}>
+                <RefreshCw className="size-5" />
+              </IconToolbarSurfaceButton>
+              <IconToolbarSurfaceButton
+                label="Browser chrome external"
+                variant="chrome"
+                tooltipSide="left"
+                onClick={() => undefined}
+              >
+                <ExternalLink className="size-5" />
               </IconToolbarSurfaceButton>
             </div>
           </div>

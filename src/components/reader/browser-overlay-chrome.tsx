@@ -12,6 +12,7 @@ import type {
 } from "./browser-view.types";
 
 const ACCEPTED_ACTION_SPIN_MS = 1_000;
+const BROWSER_CHROME_ICON_CLASS_NAME = "size-5";
 
 type BrowserOverlayChromeProps =
   | {
@@ -37,7 +38,7 @@ function BrowserOverlayCloseOnlyChrome({
 }: Extract<BrowserOverlayChromeProps, { closeLabel: string }>) {
   return (
     <IconToolbarSurfaceButton label={closeLabel} onClick={onClose} variant="chrome">
-      <X aria-hidden="true" className="size-4" />
+      <X aria-hidden="true" className={BROWSER_CHROME_ICON_CLASS_NAME} />
     </IconToolbarSurfaceButton>
   );
 }
@@ -63,7 +64,7 @@ function BrowserOverlayIconAction({
 }) {
   const content = isValidElement<{ className?: string }>(children)
     ? cloneElement(children, {
-        className: cn(children.props.className, spinning && "animate-spin"),
+        className: cn(children.props.className, BROWSER_CHROME_ICON_CLASS_NAME, spinning && "animate-spin"),
       })
     : children;
 

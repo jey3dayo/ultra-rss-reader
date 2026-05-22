@@ -134,18 +134,25 @@ describe("window-chrome", () => {
     const browserOverlayRoot = readTailwindZIndexClassValue(APP_STACKING_CLASS_NAMES.browserOverlayRoot);
     const dialog = readTailwindZIndexClassValue(APP_STACKING_CLASS_NAMES.dialog);
     const commandPalette = readTailwindZIndexClassValue(APP_STACKING_CLASS_NAMES.commandPalette);
+    const popup = readTailwindZIndexClassValue(APP_STACKING_CLASS_NAMES.popup);
+    const tooltip = readTailwindZIndexClassValue(APP_STACKING_CLASS_NAMES.tooltip);
     const toast = readTailwindZIndexClassValue(APP_STACKING_CLASS_NAMES.toast);
 
     expect(APP_STACKING_CLASS_NAMES).toEqual({
       browserOverlayRoot: "z-40",
       dialog: "z-50",
       commandPalette: "z-50",
+      popup: "z-[70]",
+      tooltip: "z-[80]",
       toast: "z-[100]",
     });
     expect(browserOverlayRoot).toBeLessThan(dialog);
     expect(browserOverlayRoot).toBeLessThan(commandPalette);
     expect(dialog).toBe(commandPalette);
+    expect(popup).toBeGreaterThan(dialog);
+    expect(tooltip).toBeGreaterThan(popup);
     expect(toast).toBeGreaterThan(dialog);
     expect(toast).toBeGreaterThan(commandPalette);
+    expect(toast).toBeGreaterThan(tooltip);
   });
 });

@@ -28,8 +28,11 @@ describe("ArticleEmptyStateView", () => {
     expect(screen.getByText("Pick one from the list")).toBeInTheDocument();
     expect(screen.getByText("Press / to search")).toBeInTheDocument();
     expect(screen.getByText("Open Web Preview from the toolbar")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Open settings" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Jump to sidebar" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open settings" })).toHaveAttribute("data-reader-passive-action", "true");
+    expect(screen.getByRole("button", { name: "Jump to sidebar" })).toHaveAttribute(
+      "data-reader-passive-action",
+      "true",
+    );
   });
 
   it("left-aligns the message and guidance for easier scanning", () => {

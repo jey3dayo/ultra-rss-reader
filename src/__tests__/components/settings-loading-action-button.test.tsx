@@ -71,4 +71,21 @@ describe("SettingsLoadingActionButton", () => {
 
     expect(onClick).toHaveBeenCalledOnce();
   });
+
+  it("uses a custom loading spinner when provided", () => {
+    render(
+      <SettingsLoadingActionButton
+        loading={true}
+        loadingLabel="Publishing"
+        spinner={<span data-testid="custom-spinner" aria-hidden="true" />}
+      >
+        Publish
+      </SettingsLoadingActionButton>,
+    );
+
+    const button = screen.getByRole("button", { name: "Publishing" });
+
+    expect(button.querySelector("[data-slot='loading-spinner']")).not.toBeInTheDocument();
+    expect(screen.getByTestId("custom-spinner")).toBeInTheDocument();
+  });
 });

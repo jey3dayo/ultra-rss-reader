@@ -3,6 +3,8 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SidebarFooterActions } from "@/components/reader/sidebar-footer-actions";
+import { SidebarFooterActionButton } from "@/components/shared/sidebar-footer-action-button";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { usePreferencesStore } from "@/stores/preferences-store";
 
 vi.mock("@/api/tauri-commands", () => ({
@@ -101,5 +103,40 @@ describe("SidebarFooterActions", () => {
 
     await user.click(themeButton);
     expect(usePreferencesStore.getState().prefs.theme).toBe("light");
+  });
+
+  it("keeps sidebar footer action styling and tooltip behavior in the shared button", async () => {
+    const user = userEvent.setup();
+    const onClick = vi.fn();
+
+    render(
+      <TooltipProvider>
+        <SidebarFooterActionButton
+          label="Manage Subscriptions"
+          tooltipLabel="Manage all feeds"
+          onClick={onClick}
+          className="mr-auto"
+        >
+          <span>Feeds</span>
+        </SidebarFooterActionButton>
+      </TooltipProvider>,
+    );
+
+    const button = screen.getByRole("button", { name: "Manage Subscriptions" });
+
+    expect(button).toHaveClass(
+      "h-8",
+      "rounded-md",
+      "border-0",
+      "bg-transparent",
+      "text-[var(--sidebar-foreground-muted-strong)]",
+      "mr-auto",
+    );
+
+    await user.hover(button);
+    expect(await screen.findByText("Manage all feeds")).toHaveClass("motion-popup-surface");
+
+    await user.click(button);
+    expect(onClick).toHaveBeenCalledTimes(1);
   });
 });

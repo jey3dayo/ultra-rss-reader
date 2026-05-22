@@ -4,7 +4,6 @@ import { countUnreadArticles } from "@/lib/articles/article-list";
 import { normalizeReaderContentImageUrl } from "@/lib/content/html";
 import { formatMediumDateOrDash, getDateInputTimeMs, parseDateInput, resolveDateTimeLocale } from "@/lib/datetime";
 import { resolveFeedWebsiteHref, resolveSiteHostLabel } from "@/lib/feed/feed";
-import type { ReaderSelection } from "@/lib/reader/reader-selection.types";
 import { countFeedsInFolder } from "@/lib/sidebar/sidebar";
 import type { SmartViewKind } from "@/lib/sidebar/smart-view.types";
 
@@ -58,8 +57,15 @@ type ArticleViewSummaryStats = {
   latestArticlePublishedAt: string | null;
 };
 
+type ArticleViewSummarySelection =
+  | { type: "feed"; feedId: string }
+  | { type: "folder"; folderId: string }
+  | { type: "smart"; kind: SmartViewKind }
+  | { type: "tag"; tagId: string }
+  | { type: "all" };
+
 export type BuildArticleViewSummaryParams = {
-  selection: ReaderSelection;
+  selection: ArticleViewSummarySelection;
   selectedFeedId: string | null;
   feeds: FeedDto[] | undefined;
   folders: FolderDto[] | undefined;

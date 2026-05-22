@@ -2,8 +2,12 @@ import { useQueryClient } from "@tanstack/react-query";
 import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useMemo, useReducer, useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
-import { z } from "zod";
-import { type AccountSyncWarning, AccountSyncWarningSchema } from "@/api/schemas/sync-result";
+import {
+  type SyncCompletedPayload,
+  SyncCompletedPayloadSchema,
+  type SyncWarningPayload,
+  SyncWarningPayloadSchema,
+} from "@/api/schemas/sync-result";
 import { accountSyncStatusQueryKey, useAccountSyncStatus } from "@/hooks/use-account-sync-status";
 import { formatAccountLastSuccessLabel } from "@/lib/account/account-sync-status-format";
 import { getCurrentTimeMs } from "@/lib/datetime";
@@ -30,8 +34,8 @@ export type SidebarSyncResult = {
 };
 
 type SidebarSyncProgressPayload = SyncProgressEventDto;
-type SidebarSyncWarningPayload = AccountSyncWarning[];
-type SidebarSyncCompletedPayload = null;
+type SidebarSyncWarningPayload = SyncWarningPayload;
+type SidebarSyncCompletedPayload = SyncCompletedPayload;
 type SidebarSyncStatusInvalidationOwner = "background-sync-completed" | "manual-sync-completed";
 
 type SidebarSyncParams = {
@@ -48,8 +52,6 @@ type SidebarSyncState = {
 
 type SidebarSyncAction = { type: "set-cooldown-tick"; value: number };
 
-const SyncWarningPayloadSchema = z.array(AccountSyncWarningSchema);
-const SyncCompletedPayloadSchema = z.null();
 const SYNC_PROGRESS_STUCK_RECOVERY_MS = 10 * 60_000;
 const malformedSyncEventWarnings = new Set<string>();
 
@@ -82,7 +84,11 @@ function getPayloadType(payload: unknown) {
   return typeof payload;
 }
 
-function reportMalformedSyncEventOnce(eventName: string, payload: unknown, error: z.ZodError) {
+function reportMalformedSyncEventOnce(
+  eventName: string,
+  payload: unknown,
+  error: { issues: Array<{ path: PropertyKey[] }> },
+) {
   const issuePath = error.issues[0]?.path.join(".");
   const issue = issuePath ? issuePath : "payload";
   const warningKey = `${eventName}:${issue}`;

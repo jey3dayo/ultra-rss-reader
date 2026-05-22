@@ -1,5 +1,5 @@
-import { LoaderCircle } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
+import { LoadingActionContent } from "@/components/shared/loading-action-content";
 import { cn } from "@/lib/utils";
 import { SettingsActionButton } from "./shared/settings-action-button";
 
@@ -21,14 +21,6 @@ export function SettingsLoadingActionButton({
   className,
   ...props
 }: SettingsLoadingActionButtonProps) {
-  const resolvedSpinner = spinner ?? (
-    <LoaderCircle
-      data-slot="loading-spinner"
-      aria-hidden="true"
-      className="size-3 shrink-0 animate-spin text-current"
-    />
-  );
-
   return (
     <SettingsActionButton
       {...props}
@@ -36,8 +28,9 @@ export function SettingsLoadingActionButton({
       disabled={disabled || (loading && disabledWhenLoading)}
       aria-busy={loading || undefined}
     >
-      {loading ? resolvedSpinner : null}
-      {loading && loadingLabel !== undefined ? loadingLabel : children}
+      <LoadingActionContent loading={loading} loadingLabel={loadingLabel} spinner={spinner}>
+        {children}
+      </LoadingActionContent>
     </SettingsActionButton>
   );
 }

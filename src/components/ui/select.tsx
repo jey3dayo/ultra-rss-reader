@@ -4,6 +4,7 @@ import type * as React from "react";
 
 import { MOTION_POPUP_SURFACE_CLASS_NAME } from "@/constants";
 import { cn } from "@/lib/utils";
+import { APP_STACKING_CLASS_NAMES } from "@/lib/window/window-chrome";
 
 export type SelectProps = SelectPrimitive.Root.Props<string>;
 export type SelectTriggerProps = SelectPrimitive.Trigger.Props;
@@ -43,12 +44,17 @@ function SelectValue({ ...props }: SelectValueProps) {
 function SelectPopup({ className, children, ...props }: SelectPopupProps) {
   return (
     <SelectPrimitive.Portal>
-      <SelectPrimitive.Positioner sideOffset={8}>
+      <SelectPrimitive.Positioner
+        data-slot="select-positioner"
+        className={APP_STACKING_CLASS_NAMES.popup}
+        sideOffset={8}
+      >
         <SelectPrimitive.Popup
           data-slot="select-popup"
           className={cn(
             MOTION_POPUP_SURFACE_CLASS_NAME,
-            "bg-surface-1 text-popover-foreground relative z-50 max-h-64 min-w-[8rem] overflow-x-hidden overflow-y-auto rounded-md border border-border p-1 shadow-elevation-2",
+            APP_STACKING_CLASS_NAMES.popup,
+            "bg-surface-1 text-popover-foreground relative max-h-64 min-w-[8rem] overflow-x-hidden overflow-y-auto rounded-md border border-border p-1 shadow-elevation-2",
             className,
           )}
           {...props}

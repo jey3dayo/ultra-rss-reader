@@ -1,12 +1,13 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { z } from "zod";
 import { commandArgsSchemas } from "../src/api/schemas/commands";
+import { commandArgsSchemaKeys } from "./helpers/command-args-schema-keys";
 import {
   extractCommandDbLockPolicyCases,
   extractRegisteredRustCommandNames,
   extractRustTauriAsyncCommandNames,
 } from "./helpers/tauri-command-contract";
+import { readTauriCommandsSource } from "./helpers/tauri-command-source";
 
 const readText = (path: string): string => readFileSync(path, "utf8");
 
@@ -101,32 +102,13 @@ const extractRustCommandArgNames = (source: string): Record<string, string[]> =>
   return Object.fromEntries([...commandArgs.entries()].map(([command, args]) => [command, sortedUnique(args)]));
 };
 
-const schemaArgNames = (schema: z.ZodType<Record<string, unknown>>): string[] => {
-  if (schema instanceof z.ZodObject) {
-    return Object.keys(schema.shape).toSorted();
-  }
-
-  if (schema instanceof z.ZodDiscriminatedUnion) {
-    return sortedUnique(
-      schema.options.flatMap((option) => {
-        if (!(option instanceof z.ZodObject)) {
-          throw new Error(`Unsupported discriminated union option schema: ${option.constructor.name}`);
-        }
-        return Object.keys(option.shape);
-      }),
-    );
-  }
-
-  throw new Error(`Unsupported command args schema: ${schema.constructor.name}`);
-};
-
 const registryArgNames = (): Record<string, string[]> =>
   Object.fromEntries(
     Object.entries(commandArgsSchemas)
       .filter(([command]) => !command.startsWith("plugin:"))
       .map(([command, schema]) => {
         const frontendOnlyArgs = FRONTEND_ONLY_OPTIONAL_ARGS[command] ?? [];
-        const rustBackedArgs = schemaArgNames(schema).filter((argName) => !frontendOnlyArgs.includes(argName));
+        const rustBackedArgs = commandArgsSchemaKeys(schema).filter((argName) => !frontendOnlyArgs.includes(argName));
         return [command, rustBackedArgs.toSorted()];
       }),
   );
@@ -201,7 +183,7 @@ describe("tauri command return contract", () => {
   });
 
   it("keeps frontend null-response commands aligned with Rust unit-result commands", () => {
-    const tauriCommands = readText("src/api/tauri-commands.ts");
+    const tauriCommands = readTauriCommandsSource();
     const rustCommandSources = readdirSync("src-tauri/src/commands")
       .filter((fileName) => fileName.endsWith(".rs"))
       .map((fileName) => readText(`src-tauri/src/commands/${fileName}`))
@@ -218,7 +200,7 @@ describe("tauri command return contract", () => {
   });
 
   it("keeps frontend string-response commands aligned with Rust string-result commands", () => {
-    const tauriCommands = readText("src/api/tauri-commands.ts");
+    const tauriCommands = readTauriCommandsSource();
     const rustCommandSources = readdirSync("src-tauri/src/commands")
       .filter((fileName) => fileName.endsWith(".rs"))
       .map((fileName) => readText(`src-tauri/src/commands/${fileName}`))
@@ -231,7 +213,7 @@ describe("tauri command return contract", () => {
   });
 
   it("keeps frontend boolean-response commands aligned with Rust bool-result commands", () => {
-    const tauriCommands = readText("src/api/tauri-commands.ts");
+    const tauriCommands = readTauriCommandsSource();
     const rustCommandSources = readdirSync("src-tauri/src/commands")
       .filter((fileName) => fileName.endsWith(".rs"))
       .map((fileName) => readText(`src-tauri/src/commands/${fileName}`))
@@ -244,7 +226,7 @@ describe("tauri command return contract", () => {
   });
 
   it("keeps frontend count-response commands aligned with Rust numeric count-result commands", () => {
-    const tauriCommands = readText("src/api/tauri-commands.ts");
+    const tauriCommands = readTauriCommandsSource();
     const rustCommandSources = readdirSync("src-tauri/src/commands")
       .filter((fileName) => fileName.endsWith(".rs"))
       .map((fileName) => readText(`src-tauri/src/commands/${fileName}`))

@@ -1,10 +1,10 @@
 import type { KeyboardEvent as ReactKeyboardEvent, ReactNode, RefObject } from "react";
 import { useTranslation } from "react-i18next";
 import type { ArticleDto } from "@/api/tauri-commands";
-import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { ArticleGroupsView, type ArticleGroupsViewGroup } from "./article-groups-view";
+import { ReaderPassiveActionButton } from "./reader-passive-action-button";
 import { ReaderPassiveCard, readerListPassiveCardOffsetClassName } from "./reader-passive-card";
 
 export type ArticleListEmptyStateVariant = "default" | "setup" | "hidden";
@@ -108,9 +108,9 @@ export function ArticleListScreenView({
                 </p>
               ) : null}
               {emptyActionLabel && onEmptyAction ? (
-                <Button type="button" variant="outline" size="sm" className="mt-5" onClick={onEmptyAction}>
+                <ReaderPassiveActionButton variant="outline" size="sm" className="mt-5" onClick={onEmptyAction}>
                   {emptyActionLabel}
-                </Button>
+                </ReaderPassiveActionButton>
               ) : null}
             </ReaderPassiveCard>
           )}

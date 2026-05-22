@@ -1279,3 +1279,7 @@ body {
 :has(> [data-slot="select-popup"]) {
   z-index: 50;
 }
+
+:has(> [data-slot="select-popup"].z-\[70\]) {
+  z-index: 70;
+}

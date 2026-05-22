@@ -8,7 +8,6 @@ import {
   defaultThreshold,
   evaluateSimilarityReportGate,
   findFalsePositiveMatch,
-  findStaleFalsePositiveTodoRefs,
   isSimilarityReportEntrypoint,
   parseSimilarityOutput,
   parseSimilarityPairs,
@@ -26,7 +25,7 @@ Similarity: 92.07%, Score: 56.6 points (lines 61~62, avg: 61.5)
 
 Similarity: 90.39%, Score: 33.9 points (lines 14~61, avg: 37.5)
   src/components/reader/hooks/browser/use-browser-webview-bounds-sync.ts:65-125 useBrowserWebviewBoundsSync
-  src/components/settings/account-detail/query-cache.ts:10-23 upsertCachedAccount
+  src/components/settings/account-detail/query-cache.ts:10-23 patchCachedAccount
 `;
 
 describe("similarity-report", () => {
@@ -48,7 +47,7 @@ describe("similarity-report", () => {
         firstPath: "src/components/reader/hooks/browser/use-browser-webview-bounds-sync.ts",
         firstSymbol: "useBrowserWebviewBoundsSync",
         secondPath: "src/components/settings/account-detail/query-cache.ts",
-        secondSymbol: "upsertCachedAccount",
+        secondSymbol: "patchCachedAccount",
       },
     ]);
   });
@@ -103,15 +102,17 @@ Similarity: 95.01%, Score: 42.5 points (lines 20~30, avg: 25.0)
     ]);
   });
 
-  it("reports absent allowlist entries so stale TODO baselines are visible", () => {
+  it("reports absent allowlist entries against scan baselines", () => {
     const summary = buildSimilaritySummary(sampleReport);
 
     expect(summary).toContain("thresholds: 0.95 / 0.9 / 0.87");
     expect(summary).toContain("scan excludes: node_modules / dist / src-tauri/target");
     expect(summary).toContain("unparsed similarity blocks: 0");
+    expect(summary).toContain("scan baseline function pairs: 42");
     expect(summary).toContain("allowlisted false positives present: 2");
-    expect(summary).toContain("allowlisted false positives absent: 2");
-    expect(summary).toContain("absent browser-overlay-close-vs-sidebar-smart-view-builder");
+    expect(summary).toContain("allowlisted false positives absent: 6");
+    expect(summary).not.toContain("TODO baseline");
+    expect(summary).toContain("absent article-auto-mark-vs-browser-webview-sync");
   });
 
   it("ignores type similarity blocks when parsing function pairs", () => {
@@ -175,34 +176,27 @@ Similarity: 90.00%, Score: 12.3 points (lines 4~6, avg: 5.0)
     expect(evaluateSimilarityReportGate(sampleReport)).toBeNull();
   });
 
-  it("reports stale false-positive TODO references when TODO content is provided", () => {
-    const todoContent = [
-      "P2 similarity 90.42%: browser overlay close と sidebar smart view builder の structural false positive を guard する",
-      "P3 similarity 90.39%: account cache updater と hook lifecycle false positive を共通化しないよう分類する",
-    ].join("\n");
+  it("keeps false-positive allowlist reporting independent from TODO content", () => {
+    const summary = buildSimilaritySummary(sampleReport);
 
-    expect(findStaleFalsePositiveTodoRefs(todoContent)).toEqual([]);
-    expect(findStaleFalsePositiveTodoRefs("P2 renamed similarity cleanup")).toHaveLength(4);
-
-    const summary = buildSimilaritySummary(sampleReport, "P2 renamed similarity cleanup");
-
-    expect(summary).toContain("allowlisted TODO refs present: 0");
-    expect(summary).toContain("allowlisted TODO refs stale: 4");
-    expect(summary).toContain("stale TODO ref browser-overlay-close-vs-sidebar-smart-view-builder");
+    expect(summary).not.toContain("allowlisted TODO refs");
+    expect(summary).not.toContain("stale TODO ref");
   });
 
-  it("keeps baseline entries tied to TODO names and review units", () => {
+  it("keeps baseline entries tied to review units", () => {
     expect(similarityFalsePositiveBaseline).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           id: "browser-overlay-close-vs-sidebar-smart-view-builder",
-          todoName:
-            "P2 similarity 90.42%: browser overlay close と sidebar smart view builder の structural false positive を guard する",
           classification: "domain-boundary",
         }),
         expect.objectContaining({
-          id: "account-cache-updater-vs-browser-bounds-lifecycle",
+          id: "account-cache-patcher-vs-browser-bounds-lifecycle",
           reviewUnit: "Treat cache helpers as standalone data updates; investigate only large hook lifecycle pairs.",
+        }),
+        expect.objectContaining({
+          id: "article-auto-mark-vs-article-list-view-state",
+          decision: "Do not share article read mutation lifecycle with pure article-list view-state derivation.",
         }),
       ]),
     );
@@ -263,5 +257,6 @@ Similarity: 90.00%, Score: 12.3 points (lines 4~6, avg: 5.0)
     expect(miseToml).toContain('[tasks."report:similarity"]');
     expect(miseToml).toContain('run = "pnpm run report:similarity"');
     expect(miseToml).toContain('run_windows = "pnpm.CMD run report:similarity"');
+    expect(buildSimilaritySummary.toString()).not.toContain("todoContent");
   });
 });

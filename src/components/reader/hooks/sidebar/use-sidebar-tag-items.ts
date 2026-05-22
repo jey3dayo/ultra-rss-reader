@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { TagDto } from "@/api/tauri-commands";
-import type { ReaderSelection } from "@/lib/reader/reader-selection.types";
+import type { SidebarSelection } from "../../sidebar-feed-tree.types";
 
 export type SidebarTagItem = {
   id: string;
@@ -13,7 +13,7 @@ export type SidebarTagItem = {
 export type SidebarTagItemsParams = {
   tags: TagDto[] | undefined;
   tagArticleCounts: Record<string, number> | undefined;
-  selection: ReaderSelection;
+  selection: SidebarSelection;
 };
 
 export type SidebarTagItemsResult = SidebarTagItem[];

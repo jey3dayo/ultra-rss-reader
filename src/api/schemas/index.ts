@@ -158,8 +158,12 @@ export {
 export {
   type AccountSyncError,
   type AccountSyncWarning,
+  type SyncCompletedPayload,
+  SyncCompletedPayloadSchema,
   type SyncResultDto,
   SyncResultSchema,
+  type SyncWarningPayload,
+  SyncWarningPayloadSchema,
 } from "./sync-result";
 export {
   TagArticleCountsSchema,

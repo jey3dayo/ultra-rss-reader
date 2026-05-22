@@ -1,4 +1,3 @@
-import { useId } from "react";
 import type {
   SettingsPageActionControl,
   SettingsPageInfoControl,
@@ -10,11 +9,11 @@ import type {
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
+import { LabeledActionInputRow } from "@/components/shared/labeled-action-input-row";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import { LabeledSelectRow } from "@/components/shared/labeled-select-row";
 import { LabeledSwitchRow } from "@/components/shared/labeled-switch-row";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 type SettingsPageControlRowProps<Control> = {
@@ -49,22 +48,19 @@ function SettingsPageSwitchRow({ control }: SettingsPageControlRowProps<Settings
 }
 
 function SettingsPageTextRow({ control }: SettingsPageControlRowProps<SettingsPageTextControl>) {
-  const inputId = useId();
-
   if (control.actionLabel && control.onAction) {
     return (
-      <LabeledControlRow label={control.label} htmlFor={inputId} className="gap-4" labelClassName="w-40 shrink-0">
-        <div className="flex w-full items-center gap-2 sm:max-w-[30rem] sm:justify-end">
-          <Input
-            id={inputId}
-            name={control.name}
-            value={control.value}
-            onChange={(event) => control.onChange(event.target.value)}
-            placeholder={control.placeholder}
-            disabled={control.disabled}
-            className="h-10 flex-1"
-            aria-label={control.label}
-          />
+      <LabeledActionInputRow
+        label={control.label}
+        name={control.name}
+        value={control.value}
+        onChange={control.onChange}
+        placeholder={control.placeholder}
+        disabled={control.disabled}
+        rowClassName="gap-4"
+        labelClassName="w-40 shrink-0"
+        inputClassName="h-10 flex-1"
+        trailingControls={
           <SettingsActionButton
             type="button"
             size={control.actionSize ?? "compact"}
@@ -74,8 +70,8 @@ function SettingsPageTextRow({ control }: SettingsPageControlRowProps<SettingsPa
           >
             {control.actionLabel}
           </SettingsActionButton>
-        </div>
-      </LabeledControlRow>
+        }
+      />
     );
   }
 

@@ -43,7 +43,7 @@ function extractFrontendPreferenceKeys(source: string): string[] {
 function extractBackendAllowedKeys(source: string): string[] {
   const block = extractBlock(source, /const ALLOWED_KEYS: &\[&str\] = &\[([\s\S]*?)\];/, "backend ALLOWED_KEYS block");
 
-  return [...block.matchAll(/"([a-z_]+)"/g)].map((match) => match[1]);
+  return [...block.matchAll(/"([a-z0-9_]+)"/g)].map((match) => match[1]);
 }
 
 function extractShortcutDefinitionIds(source: string): string[] {
@@ -109,6 +109,10 @@ describe("preference contract", () => {
     const missingInBackend = frontendKeys.filter((key) => !backendAllowedKeys.includes(key));
 
     expect(missingInBackend).toEqual([]);
+  });
+
+  it("keeps startup remote-state repair marker as a backend-owned preference", () => {
+    expect(backendOwnedPreferenceKeys).toContain("startup_remote_state_repair_v1");
   });
 
   it("keeps backend preference keys unique and limited to frontend or backend-only keys", () => {

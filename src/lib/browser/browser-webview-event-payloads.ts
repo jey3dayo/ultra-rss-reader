@@ -1,5 +1,4 @@
 import { Result } from "@praha/byethrow";
-import type { ZodError } from "zod";
 import {
   type BrowserWebviewClosedPayload,
   BrowserWebviewClosedPayloadSchema,
@@ -10,6 +9,7 @@ import {
   BrowserWebviewStateSchema,
 } from "@/api/schemas/browser-webview";
 import type { BrowserDebugGeometryNativeDiagnostics } from "@/lib/browser/browser-debug-geometry";
+import type { SchemaParseError } from "@/schemas/parse";
 
 export type { BrowserWebviewClosedPayload };
 
@@ -22,19 +22,19 @@ type BrowserWebviewEventPayload =
 function parseBrowserWebviewPayload(
   schema: typeof BrowserWebviewStateSchema,
   payload: unknown,
-): Result.Result<BrowserWebviewState, ZodError>;
+): Result.Result<BrowserWebviewState, SchemaParseError>;
 function parseBrowserWebviewPayload(
   schema: typeof BrowserWebviewFallbackPayloadSchema,
   payload: unknown,
-): Result.Result<BrowserWebviewFallbackPayload, ZodError>;
+): Result.Result<BrowserWebviewFallbackPayload, SchemaParseError>;
 function parseBrowserWebviewPayload(
   schema: typeof BrowserWebviewClosedPayloadSchema,
   payload: unknown,
-): Result.Result<BrowserWebviewClosedPayload, ZodError>;
+): Result.Result<BrowserWebviewClosedPayload, SchemaParseError>;
 function parseBrowserWebviewPayload(
   schema: typeof BrowserWebviewDiagnosticsPayloadSchema,
   payload: unknown,
-): Result.Result<BrowserDebugGeometryNativeDiagnostics, ZodError>;
+): Result.Result<BrowserDebugGeometryNativeDiagnostics, SchemaParseError>;
 function parseBrowserWebviewPayload(
   schema: {
     safeParse: (payload: unknown) =>
@@ -44,28 +44,30 @@ function parseBrowserWebviewPayload(
         }
       | {
           success: false;
-          error: ZodError;
+          error: SchemaParseError;
         };
   },
   payload: unknown,
-): Result.Result<BrowserWebviewEventPayload, ZodError> {
+): Result.Result<BrowserWebviewEventPayload, SchemaParseError> {
   const result = schema.safeParse(payload);
   return result.success ? Result.succeed(result.data) : Result.fail(result.error);
 }
 
-export function parseBrowserWebviewStatePayload(payload: unknown): Result.Result<BrowserWebviewState, ZodError> {
+export function parseBrowserWebviewStatePayload(
+  payload: unknown,
+): Result.Result<BrowserWebviewState, SchemaParseError> {
   return parseBrowserWebviewPayload(BrowserWebviewStateSchema, payload);
 }
 
 export function parseBrowserWebviewFallbackPayload(
   payload: unknown,
-): Result.Result<BrowserWebviewFallbackPayload, ZodError> {
+): Result.Result<BrowserWebviewFallbackPayload, SchemaParseError> {
   return parseBrowserWebviewPayload(BrowserWebviewFallbackPayloadSchema, payload);
 }
 
 export function parseBrowserWebviewClosedPayload(
   payload: unknown,
-): Result.Result<BrowserWebviewClosedPayload | null, ZodError> {
+): Result.Result<BrowserWebviewClosedPayload | null, SchemaParseError> {
   if (payload === undefined || payload === null) {
     return Result.succeed(null);
   }
@@ -74,7 +76,7 @@ export function parseBrowserWebviewClosedPayload(
 
 export function parseBrowserWebviewDiagnosticsPayload(
   payload: unknown,
-): Result.Result<BrowserDebugGeometryNativeDiagnostics, ZodError> {
+): Result.Result<BrowserDebugGeometryNativeDiagnostics, SchemaParseError> {
   return parseBrowserWebviewPayload(BrowserWebviewDiagnosticsPayloadSchema, payload);
 }
 
@@ -91,7 +93,7 @@ export function malformedPayloadSummary(payload: unknown) {
   return typeof payload;
 }
 
-export function malformedPayloadIssueSummary(error: ZodError) {
+export function malformedPayloadIssueSummary(error: SchemaParseError) {
   return error.issues
     .map((issue) => `${issue.code}:${issue.path.length > 0 ? issue.path.join(".") : "<root>"}`)
     .toSorted()
@@ -102,7 +104,7 @@ export function warnMalformedBrowserWebviewEvent(
   warnedMalformedPayloadShapes: Set<string>,
   eventName: string,
   payload: unknown,
-  error: ZodError,
+  error: SchemaParseError,
 ) {
   const payloadSummary = malformedPayloadSummary(payload);
   const issueSummary = malformedPayloadIssueSummary(error);

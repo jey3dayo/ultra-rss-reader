@@ -1,7 +1,7 @@
 import { CircleAlert, ExternalLink, RotateCcw } from "lucide-react";
 import { SurfaceCard } from "@/components/shared/surface-card";
-import { Button } from "@/components/ui/button";
 import type { BrowserSurfaceIssue } from "@/lib/browser/browser-surface-issue";
+import { ReaderPassiveActionButton } from "./reader-passive-action-button";
 
 type BrowserSurfaceStateCardProps = {
   issue: BrowserSurfaceIssue;
@@ -46,15 +46,15 @@ export function BrowserSurfaceStateCard({
       ) : null}
       <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
         {issue.canRetry ? (
-          <Button type="button" variant="outline" size="sm" onClick={onRetry}>
+          <ReaderPassiveActionButton variant="outline" size="sm" onClick={onRetry}>
             <RotateCcw className="size-3.5" />
             {labels.retryWebPreview}
-          </Button>
+          </ReaderPassiveActionButton>
         ) : null}
-        <Button type="button" variant="secondary" size="sm" onClick={onOpenExternal}>
+        <ReaderPassiveActionButton variant="secondary" size="sm" onClick={onOpenExternal}>
           <ExternalLink className="size-3.5" />
           {labels.openInExternalBrowser}
-        </Button>
+        </ReaderPassiveActionButton>
       </div>
     </SurfaceCard>
   );

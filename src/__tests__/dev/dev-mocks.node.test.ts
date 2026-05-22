@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { readTauriCommandsSource } from "@tests/helpers/tauri-command-source";
 import { describe, expect, it } from "vitest";
 import { commandArgsSchemas, PlatformInfoSchema } from "@/api/schemas";
 import { DEFAULT_PLATFORM_INFO } from "@/constants/platform";
@@ -38,7 +39,7 @@ describe("dev mock static contracts", () => {
   });
 
   it("keeps every response-schema command covered by the browser-only mock switch", () => {
-    const [mockSource, commandSource] = [readSource("src/dev/mocks.ts"), readSource("src/api/tauri-commands.ts")];
+    const [mockSource, commandSource] = [readSource("src/dev/mocks.ts"), readTauriCommandsSource()];
     const mockedCommands = new Set([...mockSource.matchAll(/case "([^"]+)"/g)].map((match) => match[1]));
     const responseSchemaCommands = new Set(
       [...commandSource.matchAll(/safeInvoke\(\s*"([^"]+)"\s*,\s*\{[^}]*response:/gs)].map((match) => match[1]),

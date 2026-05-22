@@ -6,6 +6,7 @@ import {
   MAX_STORED_SIDEBAR_EXPANDED_ACCOUNTS,
   MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_PER_ACCOUNT,
   MAX_STORED_SIDEBAR_EXPANDED_FOLDERS_STORAGE_LENGTH,
+  SIDEBAR_EXPANDED_FOLDERS_STORAGE_VERSION,
   STORAGE_KEYS,
 } from "@/constants/storage";
 
@@ -116,6 +117,17 @@ export const StoredSidebarExpandedFoldersSchema = z
   });
 
 export type StoredSidebarExpandedFolders = z.output<typeof StoredSidebarExpandedFoldersSchema>;
+
+export const StoredSidebarExpandedFoldersStorageSchema = z
+  .object({
+    version: z.literal(SIDEBAR_EXPANDED_FOLDERS_STORAGE_VERSION),
+    accounts: StoredSidebarExpandedFoldersSchema,
+  })
+  .strict();
+
+export const SidebarExpandedFoldersStorageVersionMarkerSchema = z.object({ version: z.unknown() }).passthrough();
+
+export type SidebarExpandedFoldersStorage = z.output<typeof StoredSidebarExpandedFoldersStorageSchema>;
 
 const DatabaseRestoreStorageReconciliationPolicySchemaBase = z
   .object({

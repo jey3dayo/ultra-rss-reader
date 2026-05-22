@@ -1,5 +1,5 @@
-import { Button } from "@/components/ui/button";
 import type { FeedTreeEmptyState as FeedTreeEmptyStateModel } from "./feed-tree.types";
+import { ReaderPassiveActionButton } from "./reader-passive-action-button";
 
 type FeedTreeEmptyStateProps = FeedTreeEmptyStateModel;
 
@@ -22,15 +22,14 @@ export function FeedTreeEmptyState(props: FeedTreeEmptyStateProps) {
           <span>{text}</span>
         </div>
       ) : (
-        <Button
-          type="button"
+        <ReaderPassiveActionButton
           variant="ghost"
           size="sm"
           onClick={props.onAction}
           className="min-h-11 px-3 text-foreground-soft underline decoration-foreground-soft/50 underline-offset-2 hover:bg-transparent hover:text-foreground hover:decoration-foreground/50"
         >
           {text}
-        </Button>
+        </ReaderPassiveActionButton>
       )}
     </div>
   );

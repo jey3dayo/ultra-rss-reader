@@ -1,5 +1,5 @@
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { ReaderPassiveActionButton } from "./reader-passive-action-button";
 
 type ArticleEmptyStateViewProps = {
   eyebrow?: string;
@@ -59,9 +59,13 @@ export function ArticleEmptyStateView({
         {actions.length > 0 ? (
           <div className="mt-6 flex flex-wrap gap-3">
             {actions.map((action) => (
-              <Button key={action.label} type="button" variant={action.variant ?? "default"} onClick={action.onClick}>
+              <ReaderPassiveActionButton
+                key={action.label}
+                variant={action.variant ?? "default"}
+                onClick={action.onClick}
+              >
                 {action.label}
-              </Button>
+              </ReaderPassiveActionButton>
             ))}
           </div>
         ) : null}

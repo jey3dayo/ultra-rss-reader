@@ -111,6 +111,9 @@ describe("UI Reference canvases", () => {
     expect(screen.getByTestId("reference-article-filter-toggle-buttons")).toBeInTheDocument();
     expect(screen.getByTestId("reference-reader-header-action-strip")).toBeInTheDocument();
     expect(screen.getByTestId("reference-icon-utility-buttons")).toBeInTheDocument();
+    expect(screen.getByTestId("reference-browser-chrome-buttons")).toBeInTheDocument();
+    expect(screen.getByText("40px target / 20px icon")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Browser chrome reload" }).querySelector("svg")).toHaveClass("size-5");
     expect(screen.getByTestId("reference-navigation-button-patterns")).toBeInTheDocument();
     expect(screen.getByTestId("reference-specialized-button-patterns")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Delete permanently" })).toHaveAttribute("data-delete-button");

@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { AddFeedDialog } from "@/components/reader/add-feed-dialog";
 import { RenameDialog } from "@/components/reader/rename-feed-dialog";
 import { AddAccountForm } from "@/components/settings/add-account/controller";
+import { APP_STACKING_CLASS_NAMES } from "@/lib/window/window-chrome";
 
 const sampleFolders = [
   { id: "folder-1", account_id: "acc-1", name: "Work", sort_order: 0 },
@@ -68,7 +69,10 @@ describe("Form fields", () => {
 
     const folderSelect = await screen.findByRole("combobox", { name: "Folder" });
     await user.click(folderSelect);
-    expect(document.body.querySelector('[data-slot="select-popup"]')).toHaveClass("motion-popup-surface");
+    expect(document.body.querySelector('[data-slot="select-popup"]')).toHaveClass(
+      "motion-popup-surface",
+      APP_STACKING_CLASS_NAMES.popup,
+    );
     await user.click(await screen.findByRole("option", { name: "Work" }));
 
     await waitFor(() => {

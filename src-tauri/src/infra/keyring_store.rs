@@ -18,7 +18,7 @@ const KEYRING_SECURITY_CLI_TIMEOUT: Duration = Duration::from_secs(5);
 #[cfg(target_os = "macos")]
 const KEYRING_SECURITY_CLI_RETRY_DELAY: Duration = Duration::from_millis(25);
 const DEV_CREDENTIALS_RECOVERY_HINT: &str =
-    "Dev credential store may be corrupted or inaccessible. Close Ultra RSS Reader, remove the dev credentials store and adjacent .tmp/.lock files, then restart the application.";
+    "Dev credential store may be corrupted or inaccessible. Close Ultra RSS Reader, remove the dev credentials store and adjacent temporary/lock files, then restart the application.";
 static DEV_CREDENTIALS_STORE_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 
 // ---------------------------------------------------------------------------

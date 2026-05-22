@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { FeedDto } from "@/api/tauri-commands";
+import { WorkspaceManagementActionButton } from "@/components/shared/workspace-management-action-button";
 import { SubscriptionDetailPane } from "@/components/subscriptions-index/subscription-detail-pane";
 import type { SubscriptionDetailMetrics, SubscriptionListRow } from "@/lib/subscriptions/subscriptions-index.types";
 
@@ -66,6 +67,32 @@ function getLatestArticleMetricRow(): HTMLElement {
 }
 
 describe("SubscriptionDetailPane", () => {
+  it("renders shared workspace management action button styles by intent", () => {
+    render(
+      <>
+        <WorkspaceManagementActionButton intent="edit" label="Edit" onClick={vi.fn()}>
+          Edit
+        </WorkspaceManagementActionButton>
+        <WorkspaceManagementActionButton intent="delete" label="Remove" onClick={vi.fn()}>
+          Remove
+        </WorkspaceManagementActionButton>
+      </>,
+    );
+
+    expect(screen.getByRole("button", { name: "Edit" })).toHaveClass(
+      "justify-center",
+      "rounded-md",
+      "bg-surface-1/88",
+      "text-foreground-soft",
+    );
+    expect(screen.getByRole("button", { name: "Remove" })).toHaveClass(
+      "justify-center",
+      "rounded-md",
+      "bg-state-danger-surface",
+      "text-state-danger-foreground",
+    );
+  });
+
   it("delegates decision bar actions and hides management actions while decisions are present", () => {
     const decisionActions = {
       keepLabel: "Keep",
@@ -122,6 +149,11 @@ describe("SubscriptionDetailPane", () => {
       expect(actionButton).toBeVisible();
       expect(actionButton.querySelector("svg")).toHaveClass("size-4");
     }
+    expect(screen.getByRole("button", { name: "Edit" })).toHaveClass("bg-surface-1/88", "text-foreground-soft");
+    expect(screen.getByRole("button", { name: "Remove" })).toHaveClass(
+      "bg-state-danger-surface",
+      "text-state-danger-foreground",
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "Edit" }));
     fireEvent.click(screen.getByRole("button", { name: "Remove" }));

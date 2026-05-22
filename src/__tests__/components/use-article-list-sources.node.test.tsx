@@ -4,9 +4,9 @@ import { createWrapper } from "@tests/helpers/create-wrapper";
 import { sampleArticles, sampleFeeds } from "@tests/helpers/fixtures";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ArticleDto, FeedDto, FolderDto } from "@/api/tauri-commands";
+import type { ArticleListSelection } from "@/components/reader/hooks/article-list/article-list-controller.types";
 import { useArticleListSources } from "@/components/reader/hooks/article-list/use-article-list-sources";
 import { resolveReaderSourcePlan } from "@/lib/reader/reader-query";
-import type { ReaderSelection } from "@/lib/reader/reader-selection.types";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
 
 setupBrowserTestDom();
@@ -546,7 +546,7 @@ describe("useArticleListSources", () => {
 
     const cases: Array<{
       name: string;
-      selection: ReaderSelection;
+      selection: ArticleListSelection;
       viewMode: MatrixMode;
       expectedCount: number;
       expectedHook: ReturnType<typeof vi.fn>;

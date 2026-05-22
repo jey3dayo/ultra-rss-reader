@@ -73,6 +73,7 @@ Preference は UI state であると同時に local persisted data でもある�
 | `debug_browser_hud` | frontend schema | required unless hidden |
 | `debug_web_preview_url` | frontend schema | required unless hidden |
 | `selected_account_id` | backend-owned | backend/runtime only |
+| `startup_remote_state_repair_v1` | backend-owned | backend/runtime only |
 | `shortcut_next_article` | shortcut definition | shortcutDefaults |
 | `shortcut_prev_article` | shortcut definition | shortcutDefaults |
 | `shortcut_next_feed` | shortcut definition | shortcutDefaults |

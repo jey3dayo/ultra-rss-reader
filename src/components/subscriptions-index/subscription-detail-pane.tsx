@@ -3,7 +3,7 @@ import { DecisionButton } from "@/components/shared/decision-button";
 import { FeedDetailPanel } from "@/components/shared/feed-detail-panel";
 import { FeedFavicon } from "@/components/shared/feed-favicon";
 import { SurfaceCard } from "@/components/shared/surface-card";
-import { Button } from "@/components/ui/button";
+import { WorkspaceManagementActionButton } from "@/components/shared/workspace-management-action-button";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
 import type { SubscriptionDecisionActions } from "@/lib/subscriptions/subscriptions-index";
 import { formatSubscriptionDate } from "@/lib/subscriptions/subscriptions-index";
@@ -193,28 +193,22 @@ export function SubscriptionDetailPane({
                 {...{ [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING }}
                 className={`${MOTION_CONTENT_SWAP_CLASS_NAME} grid grid-cols-2 gap-2`}
               >
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="lg"
-                  aria-label={managementActions.editLabel}
+                <WorkspaceManagementActionButton
+                  intent="edit"
+                  label={managementActions.editLabel}
                   onClick={managementActions.onEdit}
-                  className="justify-center rounded-md bg-surface-1/88 px-3 font-medium text-foreground-soft shadow-none hover:bg-surface-2 hover:text-foreground sm:px-3.5"
                 >
                   <Pencil className="size-4" />
                   {managementActions.editLabel}
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="lg"
-                  aria-label={managementActions.deleteLabel}
+                </WorkspaceManagementActionButton>
+                <WorkspaceManagementActionButton
+                  intent="delete"
+                  label={managementActions.deleteLabel}
                   onClick={managementActions.onDelete}
-                  className="justify-center rounded-md bg-state-danger-surface px-3 font-medium text-state-danger-foreground shadow-none hover:bg-state-danger-surface sm:px-3.5"
                 >
                   <Trash2 className="size-4" />
                   {managementActions.deleteLabel}
-                </Button>
+                </WorkspaceManagementActionButton>
               </div>
             ) : null}
           </div>

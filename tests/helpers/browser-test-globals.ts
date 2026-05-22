@@ -18,6 +18,8 @@ const TEST_DOM_GLOBAL_KEYS = [
   "navigator",
   "Node",
   "Element",
+  "EventTarget",
+  "FocusEvent",
   "HTMLElement",
   "HTMLButtonElement",
   "HTMLInputElement",

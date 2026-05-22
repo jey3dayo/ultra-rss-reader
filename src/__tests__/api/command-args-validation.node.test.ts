@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Result } from "@praha/byethrow";
+import { readTauriCommandsSource } from "@tests/helpers/tauri-command-source";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { describe, expect, it } from "vitest";
 import { TagDtoSchema } from "@/api/schemas";
@@ -41,10 +42,6 @@ function readRustDomainSource(fileName: string) {
   return readFileSync(join(process.cwd(), "src-tauri/src/domain", fileName), "utf8");
 }
 
-function readApiSource(fileName: string) {
-  return readFileSync(join(process.cwd(), "src/api", fileName), "utf8");
-}
-
 function extractRustUsizeConst(source: string, constName: string) {
   const match = source.match(
     new RegExp(`(?:pub(?:\\(crate\\))? )?const ${constName}: usize = (\\d+)(?: \\* (\\d+))?;`),
@@ -74,7 +71,7 @@ function extractRustValidationLimit(source: string, messagePrefix: string) {
 
 describe("command args validation parity", () => {
   it("contracts safeInvoke args schema bypass for undefined args", () => {
-    const source = readApiSource("tauri-commands.ts");
+    const source = readTauriCommandsSource();
 
     expect(source).toContain("return options.args && args ? parseWithSchema(options.args, args) : args;");
     expect(source).toContain("preferredAccountId === undefined ? undefined : { preferredAccountId }");

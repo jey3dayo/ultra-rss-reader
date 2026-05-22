@@ -1,5 +1,4 @@
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 export const similarityThresholds = [0.95, 0.9, 0.87] as const;
@@ -16,10 +15,10 @@ export const similarityScanExcludePatterns = [
   "playwright-report",
   "src-tauri/gen/schemas",
 ] as const;
-const todoSimilarityBaseline = {
-  functionPairs: 32,
-  similarTypePairs: 1,
-  typeLiteralPairs: 2,
+const similarityScanBaseline = {
+  functionPairs: 42,
+  similarTypePairs: 11,
+  typeLiteralPairs: 0,
 } as const;
 
 type SimilarityThreshold = (typeof similarityThresholds)[number];
@@ -53,7 +52,6 @@ export type SimilarityReportGateDiagnostic = {
 
 type SimilarityFalsePositive = {
   id: string;
-  todoName: string;
   classification: "domain-boundary" | "cache-helper-vs-hook-lifecycle" | "hook-lifecycle-baseline";
   paths: readonly string[];
   symbols: readonly string[];
@@ -63,9 +61,53 @@ type SimilarityFalsePositive = {
 
 export const similarityFalsePositiveBaseline = [
   {
+    id: "article-auto-mark-vs-browser-webview-sync",
+    classification: "hook-lifecycle-baseline",
+    paths: [
+      "src/components/reader/hooks/article/use-article-auto-mark.ts",
+      "src/components/reader/hooks/browser/use-browser-webview-sync.ts",
+    ],
+    symbols: ["useArticleAutoMark", "useBrowserWebviewSync"],
+    decision:
+      "Do not share auto-read timer/mutation rollback with embedded browser native create/resize/focus lifecycle.",
+    reviewUnit: "Review future work inside article auto-marking or browser WebView sync separately.",
+  },
+  {
+    id: "article-auto-mark-vs-browser-overlay-focus-return",
+    classification: "hook-lifecycle-baseline",
+    paths: [
+      "src/components/reader/hooks/article/use-article-auto-mark.ts",
+      "src/components/reader/hooks/browser/use-browser-overlay-focus-return.ts",
+    ],
+    symbols: ["useArticleAutoMark", "useBrowserOverlayFocusReturn"],
+    decision: "Do not share auto-read timer/mutation lifecycle with DOM focus-return scheduling.",
+    reviewUnit: "Review future work inside article auto-marking or overlay focus-return separately.",
+  },
+  {
+    id: "article-auto-mark-vs-article-list-view-state",
+    classification: "domain-boundary",
+    paths: [
+      "src/components/reader/hooks/article/use-article-auto-mark.ts",
+      "src/components/reader/hooks/article-list/use-article-list-view-state.ts",
+    ],
+    symbols: ["useArticleAutoMark", "useArticleListViewState"],
+    decision: "Do not share article read mutation lifecycle with pure article-list view-state derivation.",
+    reviewUnit:
+      "Review future work inside article mutation lifecycle or article-list view-state derivation separately.",
+  },
+  {
+    id: "article-auto-mark-vs-browser-overlay-close",
+    classification: "hook-lifecycle-baseline",
+    paths: [
+      "src/components/reader/hooks/article/use-article-auto-mark.ts",
+      "src/components/reader/hooks/article/use-article-browser-overlay-close.ts",
+    ],
+    symbols: ["useArticleAutoMark", "useArticleBrowserOverlayClose"],
+    decision: "Do not share auto-read timer/mutation lifecycle with browser overlay close in-flight guards.",
+    reviewUnit: "Review future work inside article auto-marking or browser overlay close guards separately.",
+  },
+  {
     id: "browser-overlay-close-vs-sidebar-smart-view-builder",
-    todoName:
-      "P2 similarity 90.42%: browser overlay close と sidebar smart view builder の structural false positive を guard する",
     classification: "domain-boundary",
     paths: [
       "src/components/reader/hooks/article/use-article-browser-overlay-close.ts",
@@ -76,29 +118,26 @@ export const similarityFalsePositiveBaseline = [
     reviewUnit: "Keep future work scoped to browser close motion guards or sidebar smart-view item mapping separately.",
   },
   {
-    id: "account-cache-updater-vs-browser-bounds-lifecycle",
-    todoName: "P3 similarity 90.39%: account cache updater と hook lifecycle false positive を共通化しないよう分類する",
+    id: "account-cache-patcher-vs-browser-bounds-lifecycle",
     classification: "cache-helper-vs-hook-lifecycle",
     paths: [
       "src/components/settings/account-detail/query-cache.ts",
       "src/components/reader/hooks/browser/use-browser-webview-bounds-sync.ts",
     ],
-    symbols: ["upsertCachedAccount", "useBrowserWebviewBoundsSync"],
+    symbols: ["patchCachedAccount", "useBrowserWebviewBoundsSync"],
     decision: "Do not share account cache array mutation with browser layout effect cancellation and native sync.",
     reviewUnit: "Treat cache helpers as standalone data updates; investigate only large hook lifecycle pairs.",
   },
   {
-    id: "account-cache-updater-vs-updater-lifecycle",
-    todoName: "P3 similarity 90.39%: account cache updater と hook lifecycle false positive を共通化しないよう分類する",
+    id: "account-cache-patcher-vs-updater-lifecycle",
     classification: "cache-helper-vs-hook-lifecycle",
     paths: ["src/components/settings/account-detail/query-cache.ts", "src/hooks/use-updater.ts"],
-    symbols: ["upsertCachedAccount", "useUpdater"],
+    symbols: ["patchCachedAccount", "useUpdater"],
     decision: "Do not share account cache array mutation with updater startup check and Tauri listener disposal.",
     reviewUnit: "Treat cache helpers as standalone data updates; investigate only large hook lifecycle pairs.",
   },
   {
     id: "browser-bounds-lifecycle-vs-updater-lifecycle",
-    todoName: "P3 similarity 90.39%: account cache updater と hook lifecycle false positive を共通化しないよう分類する",
     classification: "hook-lifecycle-baseline",
     paths: ["src/components/reader/hooks/browser/use-browser-webview-bounds-sync.ts", "src/hooks/use-updater.ts"],
     symbols: ["useBrowserWebviewBoundsSync", "useUpdater"],
@@ -179,14 +218,13 @@ export function findFalsePositiveMatch(pair: SimilarityPair): SimilarityFalsePos
   );
 }
 
-export function buildSimilaritySummary(output: string, todoContent?: string): string {
+export function buildSimilaritySummary(output: string): string {
   const diagnostics = parseSimilarityOutput(output);
   const pairs = diagnostics.pairs;
   const typeSummary = parseSimilarityTypeSummary(output);
   const matchedFalsePositives = pairs.map(findFalsePositiveMatch).filter((item) => item !== null);
   const matchedIds = new Set(matchedFalsePositives.map((item) => item.id));
   const unmatchedFalsePositives = similarityFalsePositiveBaseline.filter((item) => !matchedIds.has(item.id));
-  const staleTodoRefs = todoContent === undefined ? [] : findStaleFalsePositiveTodoRefs(todoContent);
 
   return [
     "Similarity scan baseline",
@@ -197,17 +235,14 @@ export function buildSimilaritySummary(output: string, todoContent?: string): st
     "filtering rule: raise --min-lines/--min-tokens before extracting helpers from tiny callback-shape matches.",
     `function pairs: ${pairs.length}`,
     `unparsed similarity blocks: ${diagnostics.skippedSimilarityBlocks}`,
-    `TODO baseline function pairs: ${todoSimilarityBaseline.functionPairs}`,
+    `scan baseline function pairs: ${similarityScanBaseline.functionPairs}`,
     `type pairs: ${typeSummary.totalTypePairs} (types: ${typeSummary.similarTypePairs}, type literals: ${typeSummary.typeLiteralPairs})`,
     `type pair report drift: ${typeSummary.reportedTypePairDrift}`,
-    `TODO baseline type pairs: ${todoSimilarityBaseline.similarTypePairs + todoSimilarityBaseline.typeLiteralPairs} (types: ${todoSimilarityBaseline.similarTypePairs}, type literals: ${todoSimilarityBaseline.typeLiteralPairs})`,
+    `scan baseline type pairs: ${similarityScanBaseline.similarTypePairs + similarityScanBaseline.typeLiteralPairs} (types: ${similarityScanBaseline.similarTypePairs}, type literals: ${similarityScanBaseline.typeLiteralPairs})`,
     `allowlisted false positives present: ${matchedFalsePositives.length}`,
     `allowlisted false positives absent: ${unmatchedFalsePositives.length}`,
-    `allowlisted TODO refs present: ${similarityFalsePositiveBaseline.length - staleTodoRefs.length}`,
-    `allowlisted TODO refs stale: ${staleTodoRefs.length}`,
     ...matchedFalsePositives.map((item) => `- present ${item.id}: ${item.decision}`),
     ...unmatchedFalsePositives.map((item) => `- absent ${item.id}: ${item.reviewUnit}`),
-    ...staleTodoRefs.map((item) => `- stale TODO ref ${item.id}: ${item.todoName}`),
   ].join("\n");
 }
 
@@ -232,10 +267,6 @@ export function evaluateSimilarityReportGate(output: string): SimilarityReportGa
     exitCode: 1,
     message: `Similarity report gate failed: ${messages.join("; ")}`,
   };
-}
-
-export function findStaleFalsePositiveTodoRefs(todoContent: string): SimilarityFalsePositive[] {
-  return similarityFalsePositiveBaseline.filter((item) => !todoContent.includes(item.todoName));
 }
 
 export function parseSimilarityTypeSummary(output: string): SimilarityTypeSummary {
@@ -314,7 +345,7 @@ export function runSimilarityReport(args: readonly string[] = process.argv.slice
 
   process.stdout.write(result.stdout);
   process.stdout.write("\n");
-  const summary = buildSimilaritySummary(result.stdout, readTodoContent());
+  const summary = buildSimilaritySummary(result.stdout);
   process.stdout.write(summary);
   process.stdout.write("\n");
 
@@ -322,14 +353,6 @@ export function runSimilarityReport(args: readonly string[] = process.argv.slice
   if (gateDiagnostic !== null) {
     process.stderr.write(`${gateDiagnostic.message}\n`);
     process.exit(gateDiagnostic.exitCode);
-  }
-}
-
-function readTodoContent(): string | undefined {
-  try {
-    return readFileSync("TODO.md", "utf8");
-  } catch {
-    return undefined;
   }
 }
 

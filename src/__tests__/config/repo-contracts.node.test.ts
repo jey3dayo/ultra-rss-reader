@@ -389,6 +389,32 @@ function storyFilesUnderSrc() {
     .toSorted();
 }
 
+function typescriptFilesUnder(paths: readonly string[]) {
+  return paths.flatMap((path) => {
+    const absolutePath = join(repoRoot, path);
+    const stats = statSync(absolutePath);
+    if (stats.isFile()) {
+      return /\.(?:ts|tsx)$/.test(path) ? [toPosixPath(path)] : [];
+    }
+
+    return readdirSync(absolutePath, { recursive: true })
+      .filter((entry): entry is string => typeof entry === "string")
+      .map((entry) => toPosixPath(join(path, entry)))
+      .filter((filePath) => statSync(join(repoRoot, filePath)).isFile() && /\.(?:ts|tsx)$/.test(filePath));
+  });
+}
+
+function isSchemaOwnedZodImportPath(path: string) {
+  return (
+    path.startsWith("src/api/schemas/") ||
+    path.startsWith("src/schemas/") ||
+    path === "src/__tests__/api/schemas.node.test.ts" ||
+    path.startsWith("src/__tests__/api/schemas/") ||
+    path.startsWith("src/__tests__/schemas/") ||
+    path === "tests/helpers/command-args-schema-keys.ts"
+  );
+}
+
 function extractStoryFileNamedExports(source: string) {
   return [...source.matchAll(/^\s*export\s+(const|function|class|let|var)\s+([A-Za-z_$][\w$]*)/gm)].map((match) => ({
     kind: match[1] ?? "",
@@ -741,12 +767,7 @@ const automaticAffectedAreaLabelParity = [
   },
 ] as const;
 
-const typeSurfaceInventoryClassifications = [
-  "public contract",
-  "feature-local",
-  "local-only",
-  "schema-derived",
-] as const;
+const typeSurfaceInventoryClassifications = ["public contract", "feature-local", "schema-derived"] as const;
 
 const typeSurfaceInventory = [
   {
@@ -884,14 +905,6 @@ const typeSurfaceInventory = [
     runtimeBoundary: false,
     followUp:
       "Keep preference hook input contracts here while general, appearance, reading, actions, and debug settings share the same typed setter.",
-  },
-  {
-    path: "src/lib/reader/reader-selection.types.ts",
-    owner: "lib/reader",
-    classification: "local-only",
-    consumerScope: "reader selection helper state used by the reader feature and tests",
-    runtimeBoundary: false,
-    followUp: "Move to a narrower reader owner if lib/stores stop importing this contract.",
   },
   {
     path: "src/lib/sync/sync-progress-event.types.ts",
@@ -1630,6 +1643,14 @@ describe("repository static contracts", () => {
     expect(topLevelDocsSection).toContain("[../RTK.md](../RTK.md)");
   });
 
+  it("keeps TODO limited to active backlog entries", () => {
+    const todoSource = readRepoFile("TODO.md");
+    const completedTodoEntries = [...todoSource.matchAll(/^- \[x\] .+$/gim)].map((match) => match[0]);
+
+    expect(todoSource).toContain("完了済みの項目は `CHANGELOG.md` を参照");
+    expect(completedTodoEntries).toEqual([]);
+  });
+
   it("keeps AGENTS as a thin router to CLAUDE guidance", () => {
     const agents = readRepoFile("AGENTS.md");
 
@@ -2073,6 +2094,31 @@ describe("repository static contracts", () => {
     expect(eagerScenarioImports).toEqual([]);
   });
 
+  it("keeps direct zod imports limited to schema modules and explicit schema contract tests", () => {
+    const zodImportPattern = /\bfrom\s+["']zod["']|\bimport\(\s*["']zod["']\s*\)/;
+    const directZodImportPaths = typescriptFilesUnder(["src", "tests"])
+      .filter((path) => zodImportPattern.test(readRepoFile(path)))
+      .filter((path) => !isSchemaOwnedZodImportPath(path))
+      .toSorted();
+
+    expect(directZodImportPaths).toEqual([]);
+  });
+
+  it("keeps test-only command schema introspection helpers out of production schema modules", () => {
+    const tauriCommandReturnContractSource = readRepoFile("tests/tauri-command-return-contract.node.test.ts");
+
+    expect(readRepoFile("src/api/schemas/commands/registry.ts")).not.toContain("commandArgsSchemaKeys");
+    expect(tauriCommandReturnContractSource).not.toMatch(
+      /commandArgsSchemaKeys[\s\S]*from "\.\.\/src\/api\/schemas\/commands"/,
+    );
+  });
+
+  it("keeps app select popup stacking owned by the base select popup", () => {
+    const appSelectPopupSource = readRepoFile("src/components/shared/app-select-popup.tsx");
+
+    expect(appSelectPopupSource).not.toContain("APP_STACKING_CLASS_NAMES");
+  });
+
   it("keeps reader keyboard navigation docs aligned with pane owner files", () => {
     const keyboardDocs = readRepoFile("docs/reader-keyboard-navigation.md");
     const documentedPaths = new Set(extractMarkdownInlineCode(keyboardDocs));
@@ -2115,7 +2161,6 @@ describe("repository static contracts", () => {
       "src/components/settings/add-account/services.types.ts:components/settings/add-account",
       "src/components/settings/settings-page.types.ts:components/settings/settings-page",
       "src/components/settings/settings-preference.types.ts:components/settings/settings-preference",
-      "src/lib/reader/reader-selection.types.ts:lib/reader",
       "src/lib/sync/sync-progress-event.types.ts:lib/sync",
       "src/lib/ui/action.types.ts:lib/ui",
       "src/stores/preferences-store.types.ts:stores/preferences-store",

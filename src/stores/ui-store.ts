@@ -13,7 +13,6 @@ import type {
   LayoutMode,
   PendingBrowserCloseAction,
 } from "@/lib/layout/layout-state.types";
-import type { ReaderSelection } from "@/lib/reader/reader-selection.types";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
 import type { SettingsCategory } from "@/lib/settings/settings-category.types";
 import type { SmartViewKind } from "@/lib/sidebar/smart-view.types";
@@ -26,6 +25,9 @@ import type { SyncProgressEventDto } from "@/lib/sync/sync-progress-event.types"
 import type { SyncProgressUiState } from "@/lib/sync/sync-progress-state.types";
 import type { ToastData } from "@/lib/ui/toast.types";
 import { TOAST_AUTO_DISMISS_TIMEOUT_MS } from "../constants/ui-runtime";
+import type { UiStoreReaderSelection } from "./ui-store-reader-selection.types";
+
+export type { UiStoreReaderSelection } from "./ui-store-reader-selection.types";
 
 let toastTimer: ReturnType<typeof setTimeout> | null = null;
 let toastAnnouncementId = 0;
@@ -62,7 +64,7 @@ function getContextAwareScopeViewMode(state: Pick<UiState, "selection" | "viewMo
     : "unread";
 }
 
-function getSmartViewMode(kind: Extract<ReaderSelection, { type: "smart" }>["kind"]): UiState["viewMode"] {
+function getSmartViewMode(kind: Extract<UiStoreReaderSelection, { type: "smart" }>["kind"]): UiState["viewMode"] {
   if (kind === "starred") {
     return "starred";
   }
@@ -194,7 +196,7 @@ type UiState = {
   accountPaneOpen: boolean;
   contentMode: ContentMode;
   selectedAccountId: string | null;
-  selection: ReaderSelection;
+  selection: UiStoreReaderSelection;
   selectedArticleId: string | null;
   viewMode: ViewMode;
   searchQuery: string;
