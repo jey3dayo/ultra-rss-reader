@@ -6,7 +6,7 @@ export type TypeSurfaceAllowlistEntry =
   | {
       readonly path: string;
       readonly intent: string;
-      readonly followUpTodo: string;
+      readonly followUpNote: string;
       readonly allowedRestrictedExports?: readonly string[];
     };
 
@@ -160,8 +160,8 @@ export function createTypeSurfaceHelper({
           `${entry.path} should document why the type surface is intentional`,
         ).toBe(true);
         expect(
-          entry.followUpTodo.trim().length > 0,
-          `${entry.path} should keep the cleanup TODO reference visible`,
+          entry.followUpNote.trim().length > 0,
+          `${entry.path} should keep the cleanup follow-up note visible`,
         ).toBe(true);
         expect(getRestrictedExportNames(entry.path, readCachedRepoFile(entry.path)), entry.path).toEqual(
           [...(entry.allowedRestrictedExports ?? [])].toSorted(),

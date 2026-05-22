@@ -33,11 +33,11 @@ const localOnlyTypeSurfaceFiles = [
 ] as const;
 
 const typeSurfaceIntent = "Remaining shared type surface; keep only while referenced across the feature boundary.";
-const typeSurfaceFollowUpTodo = "P2 type-surface contract を remaining `.types.ts` allowlist の ratchet gate にする";
+const typeSurfaceFollowUpNote = "P2 type-surface contract を remaining `.types.ts` allowlist の ratchet gate にする";
 const allowTypeSurface = (path: string, allowedRestrictedExports: readonly string[] = []) => ({
   path,
   intent: typeSurfaceIntent,
-  followUpTodo: typeSurfaceFollowUpTodo,
+  followUpNote: typeSurfaceFollowUpNote,
   allowedRestrictedExports,
 });
 

@@ -8,7 +8,7 @@ function remainingTypeSurface(path: string, allowedRestrictedExports: readonly s
   return {
     path,
     intent: "Remaining shared type surface tracked by the ratchet contract.",
-    followUpTodo: "TODO.md P2 type-surface contract",
+    followUpNote: "P2 type-surface contract ratchet follow-up",
     allowedRestrictedExports,
   };
 }
