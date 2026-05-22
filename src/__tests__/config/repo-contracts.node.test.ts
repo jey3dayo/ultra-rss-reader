@@ -1629,6 +1629,7 @@ describe("repository static contracts", () => {
       ".claude/rules/contract-test-policy.md",
       ".claude/rules/preferences-pattern.md",
       ".claude/rules/quality-policy.md",
+      ".claude/rules/result-boundary.md",
       ".claude/rules/runtime-boundary.md",
       ".claude/rules/rust-test-unwrap-policy.md",
       ".claude/rules/schema-boundary.md",

@@ -65,6 +65,7 @@ This file is the short repository-local workflow guide for agents.
 ## Rule Routing
 
 - Browser APIs, Tauri runtime APIs, storage, platform globals, or runtime boundaries: [.claude/rules/runtime-boundary.md](.claude/rules/runtime-boundary.md).
+- `@praha/byethrow` Result placement and component boundary rules: [.claude/rules/result-boundary.md](.claude/rules/result-boundary.md).
 - Async UI side effects, fire-and-forget calls, optimistic updates, or native command wrappers: [.claude/rules/async-side-effect-policy.md](.claude/rules/async-side-effect-policy.md).
 - Runtime schemas, DTO parsing, preferences schemas, or localStorage config schemas: [.claude/rules/schema-boundary.md](.claude/rules/schema-boundary.md).
 - Boundary tests or TODO findings that should become durable coverage: [.claude/rules/contract-test-policy.md](.claude/rules/contract-test-policy.md).

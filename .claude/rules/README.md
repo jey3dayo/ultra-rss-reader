@@ -13,6 +13,7 @@
 ## Frontend / Tauri
 
 - [tauri-ipc-error-handling.md](./tauri-ipc-error-handling.md): Tauri IPC のエラーハンドリング方針
+- [result-boundary.md](./result-boundary.md): `@praha/byethrow` Result の配置境界と component 直 import 回避ルール
 - [runtime-boundary.md](./runtime-boundary.md): Browser API / Tauri runtime / storage / platform globals の境界処理方針
 - [async-side-effect-policy.md](./async-side-effect-policy.md): fire-and-forget、latest-only、unmount cleanup、optimistic update の方針
 - [schema-boundary.md](./schema-boundary.md): DTO / preferences / localStorage schema の strictness と fallback 所有者

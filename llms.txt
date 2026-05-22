@@ -26,6 +26,7 @@ It supports local RSS/Atom feeds and FreshRSS, subscription review workflows, We
 - Run `mise run test:unit:dom` for DOM, React rendering, Testing Library, or browser global changes.
 - Do not claim completion without running `mise run check` unless the task is explicitly docs-only and a narrower docs gate is recorded.
 - Tauri IPC calls go through `src/api/tauri-commands.ts` via `safeInvoke`.
+- `@praha/byethrow` Result handling stays near API/lib/adapter boundaries; see [.claude/rules/result-boundary.md](.claude/rules/result-boundary.md).
 - Frontend-owned runtime schemas live in `src/schemas/`; Tauri IPC request/response schemas live in `src/api/schemas/`.
 - Cross-feature constants live in `src/constants/`; shared type-only contracts live in `src/lib/*.types.ts`; reusable test helpers live in `tests/helpers/` and are imported as `@tests/helpers/*`.
 - Rust follows `commands -> service -> repository -> domain -> infra`.
