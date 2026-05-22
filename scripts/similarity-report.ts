@@ -16,9 +16,9 @@ export const similarityScanExcludePatterns = [
   "src-tauri/gen/schemas",
 ] as const;
 const similarityScanBaseline = {
-  functionPairs: 32,
-  similarTypePairs: 1,
-  typeLiteralPairs: 2,
+  functionPairs: 42,
+  similarTypePairs: 11,
+  typeLiteralPairs: 0,
 } as const;
 
 type SimilarityThreshold = (typeof similarityThresholds)[number];
@@ -61,6 +61,52 @@ type SimilarityFalsePositive = {
 
 export const similarityFalsePositiveBaseline = [
   {
+    id: "article-auto-mark-vs-browser-webview-sync",
+    classification: "hook-lifecycle-baseline",
+    paths: [
+      "src/components/reader/hooks/article/use-article-auto-mark.ts",
+      "src/components/reader/hooks/browser/use-browser-webview-sync.ts",
+    ],
+    symbols: ["useArticleAutoMark", "useBrowserWebviewSync"],
+    decision:
+      "Do not share auto-read timer/mutation rollback with embedded browser native create/resize/focus lifecycle.",
+    reviewUnit: "Review future work inside article auto-marking or browser WebView sync separately.",
+  },
+  {
+    id: "article-auto-mark-vs-browser-overlay-focus-return",
+    classification: "hook-lifecycle-baseline",
+    paths: [
+      "src/components/reader/hooks/article/use-article-auto-mark.ts",
+      "src/components/reader/hooks/browser/use-browser-overlay-focus-return.ts",
+    ],
+    symbols: ["useArticleAutoMark", "useBrowserOverlayFocusReturn"],
+    decision: "Do not share auto-read timer/mutation lifecycle with DOM focus-return scheduling.",
+    reviewUnit: "Review future work inside article auto-marking or overlay focus-return separately.",
+  },
+  {
+    id: "article-auto-mark-vs-article-list-view-state",
+    classification: "domain-boundary",
+    paths: [
+      "src/components/reader/hooks/article/use-article-auto-mark.ts",
+      "src/components/reader/hooks/article-list/use-article-list-view-state.ts",
+    ],
+    symbols: ["useArticleAutoMark", "useArticleListViewState"],
+    decision: "Do not share article read mutation lifecycle with pure article-list view-state derivation.",
+    reviewUnit:
+      "Review future work inside article mutation lifecycle or article-list view-state derivation separately.",
+  },
+  {
+    id: "article-auto-mark-vs-browser-overlay-close",
+    classification: "hook-lifecycle-baseline",
+    paths: [
+      "src/components/reader/hooks/article/use-article-auto-mark.ts",
+      "src/components/reader/hooks/article/use-article-browser-overlay-close.ts",
+    ],
+    symbols: ["useArticleAutoMark", "useArticleBrowserOverlayClose"],
+    decision: "Do not share auto-read timer/mutation lifecycle with browser overlay close in-flight guards.",
+    reviewUnit: "Review future work inside article auto-marking or browser overlay close guards separately.",
+  },
+  {
     id: "browser-overlay-close-vs-sidebar-smart-view-builder",
     classification: "domain-boundary",
     paths: [
@@ -72,21 +118,21 @@ export const similarityFalsePositiveBaseline = [
     reviewUnit: "Keep future work scoped to browser close motion guards or sidebar smart-view item mapping separately.",
   },
   {
-    id: "account-cache-updater-vs-browser-bounds-lifecycle",
+    id: "account-cache-patcher-vs-browser-bounds-lifecycle",
     classification: "cache-helper-vs-hook-lifecycle",
     paths: [
       "src/components/settings/account-detail/query-cache.ts",
       "src/components/reader/hooks/browser/use-browser-webview-bounds-sync.ts",
     ],
-    symbols: ["upsertCachedAccount", "useBrowserWebviewBoundsSync"],
+    symbols: ["patchCachedAccount", "useBrowserWebviewBoundsSync"],
     decision: "Do not share account cache array mutation with browser layout effect cancellation and native sync.",
     reviewUnit: "Treat cache helpers as standalone data updates; investigate only large hook lifecycle pairs.",
   },
   {
-    id: "account-cache-updater-vs-updater-lifecycle",
+    id: "account-cache-patcher-vs-updater-lifecycle",
     classification: "cache-helper-vs-hook-lifecycle",
     paths: ["src/components/settings/account-detail/query-cache.ts", "src/hooks/use-updater.ts"],
-    symbols: ["upsertCachedAccount", "useUpdater"],
+    symbols: ["patchCachedAccount", "useUpdater"],
     decision: "Do not share account cache array mutation with updater startup check and Tauri listener disposal.",
     reviewUnit: "Treat cache helpers as standalone data updates; investigate only large hook lifecycle pairs.",
   },

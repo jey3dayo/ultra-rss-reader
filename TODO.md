@@ -42,11 +42,12 @@
   - acceptance criteria: direct `Button` imports are reduced in the listed passive state surfaces, visual variants remain equivalent, and focused component tests assert accessible names and key classes
   - focused verification: `pnpm exec vitest run src/__tests__/components/article-list-screen-view.test.tsx src/__tests__/components/browser-surface-state-card.test.tsx --project jsdom` plus `pnpm exec tsc --noEmit`
   - stop if candidate surfaces need different interaction semantics or broad visual redesign
-- [ ] priority: P2 / domain: reader-state / work type: similarity triage
+- [x] priority: P2 / domain: reader-state / work type: similarity triage
   - 対象: `src/components/reader/hooks/article/use-article-auto-mark.ts`, `src/components/reader/hooks/browser/use-browser-webview-sync.ts`, `src/components/reader/hooks/browser/use-browser-overlay-focus-return.ts`, `src/components/reader/hooks/article-list/use-article-list-view-state.ts`, `scripts/similarity-report.ts`
-  - evidence: `mise run report:similarity` currently reports 42 function pairs against a scan baseline of 32; the gate still passes because unparsed blocks and type report drift are clean
+  - evidence: triage started from `mise run report:similarity` reporting 42 function pairs against a stale scan baseline of 32; the gate still passed because unparsed blocks and type report drift were clean
   - scope: audit high-score hook lifecycle pairs before extracting helpers; prefer classifying false positives over broad lifecycle abstraction
   - acceptance criteria: either a narrow helper extraction lands with focused lifecycle tests, or `scripts/similarity-report.ts` false-positive baseline explains why the top pairs should remain separate
+  - result: false-positive baseline updated for the top article auto-mark lifecycle pairs and current scan baseline; no helper extraction because mutation timing, native WebView sync, focus return, and pure view-state derivation have separate owners
   - focused verification: `mise run report:similarity` plus focused node/jsdom tests for any touched hooks
   - stop if the duplicated unit is only generic hook shape or cancellation boilerplate without a safe shared owner
 
