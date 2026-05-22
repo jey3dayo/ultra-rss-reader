@@ -741,12 +741,7 @@ const automaticAffectedAreaLabelParity = [
   },
 ] as const;
 
-const typeSurfaceInventoryClassifications = [
-  "public contract",
-  "feature-local",
-  "local-only",
-  "schema-derived",
-] as const;
+const typeSurfaceInventoryClassifications = ["public contract", "feature-local", "schema-derived"] as const;
 
 const typeSurfaceInventory = [
   {
@@ -884,14 +879,6 @@ const typeSurfaceInventory = [
     runtimeBoundary: false,
     followUp:
       "Keep preference hook input contracts here while general, appearance, reading, actions, and debug settings share the same typed setter.",
-  },
-  {
-    path: "src/lib/reader/reader-selection.types.ts",
-    owner: "lib/reader",
-    classification: "local-only",
-    consumerScope: "reader selection helper state used by the reader feature and tests",
-    runtimeBoundary: false,
-    followUp: "Move to a narrower reader owner if lib/stores stop importing this contract.",
   },
   {
     path: "src/lib/sync/sync-progress-event.types.ts",
@@ -2115,7 +2102,6 @@ describe("repository static contracts", () => {
       "src/components/settings/add-account/services.types.ts:components/settings/add-account",
       "src/components/settings/settings-page.types.ts:components/settings/settings-page",
       "src/components/settings/settings-preference.types.ts:components/settings/settings-preference",
-      "src/lib/reader/reader-selection.types.ts:lib/reader",
       "src/lib/sync/sync-progress-event.types.ts:lib/sync",
       "src/lib/ui/action.types.ts:lib/ui",
       "src/stores/preferences-store.types.ts:stores/preferences-store",

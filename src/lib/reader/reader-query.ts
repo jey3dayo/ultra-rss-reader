@@ -1,9 +1,14 @@
-import type { ReaderSelection } from "@/lib/reader/reader-selection.types";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
+import type { SmartViewKind } from "@/lib/sidebar/smart-view.types";
 
 export type ReaderFilter = ViewMode;
 
-export type ReaderQuerySelection = ReaderSelection;
+export type ReaderQuerySelection =
+  | { type: "feed"; feedId: string }
+  | { type: "folder"; folderId: string }
+  | { type: "smart"; kind: SmartViewKind }
+  | { type: "tag"; tagId: string }
+  | { type: "all" };
 
 type AccountReaderScope = { type: "account"; accountId: string };
 type ArticleReaderScope =

@@ -1,9 +1,8 @@
-import type { ReaderSourceKind } from "@/lib/reader/reader-query";
-import type { ReaderSelection } from "@/lib/reader/reader-selection.types";
+import type { ReaderQuerySelection, ReaderSourceKind } from "@/lib/reader/reader-query";
 
 type SelectableReaderSourceKind = Extract<ReaderSourceKind, "feed" | "folder" | "tag">;
 
-export function resolveReaderSelectionSourceKind(selection: ReaderSelection): SelectableReaderSourceKind | null {
+export function resolveReaderSelectionSourceKind(selection: ReaderQuerySelection): SelectableReaderSourceKind | null {
   if (selection.type === "feed" || selection.type === "folder" || selection.type === "tag") {
     return selection.type;
   }
