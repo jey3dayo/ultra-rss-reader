@@ -8,7 +8,6 @@ import {
   defaultThreshold,
   evaluateSimilarityReportGate,
   findFalsePositiveMatch,
-  findStaleFalsePositiveTodoRefs,
   isSimilarityReportEntrypoint,
   parseSimilarityOutput,
   parseSimilarityPairs,
@@ -175,29 +174,18 @@ Similarity: 90.00%, Score: 12.3 points (lines 4~6, avg: 5.0)
     expect(evaluateSimilarityReportGate(sampleReport)).toBeNull();
   });
 
-  it("reports stale false-positive TODO references when TODO content is provided", () => {
-    const todoContent = [
-      "P2 similarity 90.42%: browser overlay close と sidebar smart view builder の structural false positive を guard する",
-      "P3 similarity 90.39%: account cache updater と hook lifecycle false positive を共通化しないよう分類する",
-    ].join("\n");
-
-    expect(findStaleFalsePositiveTodoRefs(todoContent)).toEqual([]);
-    expect(findStaleFalsePositiveTodoRefs("P2 renamed similarity cleanup")).toHaveLength(4);
-
+  it("keeps false-positive allowlist reporting independent from TODO content", () => {
     const summary = buildSimilaritySummary(sampleReport, "P2 renamed similarity cleanup");
 
-    expect(summary).toContain("allowlisted TODO refs present: 0");
-    expect(summary).toContain("allowlisted TODO refs stale: 4");
-    expect(summary).toContain("stale TODO ref browser-overlay-close-vs-sidebar-smart-view-builder");
+    expect(summary).not.toContain("allowlisted TODO refs");
+    expect(summary).not.toContain("stale TODO ref");
   });
 
-  it("keeps baseline entries tied to TODO names and review units", () => {
+  it("keeps baseline entries tied to review units", () => {
     expect(similarityFalsePositiveBaseline).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           id: "browser-overlay-close-vs-sidebar-smart-view-builder",
-          todoName:
-            "P2 similarity 90.42%: browser overlay close と sidebar smart view builder の structural false positive を guard する",
           classification: "domain-boundary",
         }),
         expect.objectContaining({

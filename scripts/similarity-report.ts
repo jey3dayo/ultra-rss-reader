@@ -53,7 +53,6 @@ export type SimilarityReportGateDiagnostic = {
 
 type SimilarityFalsePositive = {
   id: string;
-  todoName: string;
   classification: "domain-boundary" | "cache-helper-vs-hook-lifecycle" | "hook-lifecycle-baseline";
   paths: readonly string[];
   symbols: readonly string[];
@@ -64,8 +63,6 @@ type SimilarityFalsePositive = {
 export const similarityFalsePositiveBaseline = [
   {
     id: "browser-overlay-close-vs-sidebar-smart-view-builder",
-    todoName:
-      "P2 similarity 90.42%: browser overlay close と sidebar smart view builder の structural false positive を guard する",
     classification: "domain-boundary",
     paths: [
       "src/components/reader/hooks/article/use-article-browser-overlay-close.ts",
@@ -77,7 +74,6 @@ export const similarityFalsePositiveBaseline = [
   },
   {
     id: "account-cache-updater-vs-browser-bounds-lifecycle",
-    todoName: "P3 similarity 90.39%: account cache updater と hook lifecycle false positive を共通化しないよう分類する",
     classification: "cache-helper-vs-hook-lifecycle",
     paths: [
       "src/components/settings/account-detail/query-cache.ts",
@@ -89,7 +85,6 @@ export const similarityFalsePositiveBaseline = [
   },
   {
     id: "account-cache-updater-vs-updater-lifecycle",
-    todoName: "P3 similarity 90.39%: account cache updater と hook lifecycle false positive を共通化しないよう分類する",
     classification: "cache-helper-vs-hook-lifecycle",
     paths: ["src/components/settings/account-detail/query-cache.ts", "src/hooks/use-updater.ts"],
     symbols: ["upsertCachedAccount", "useUpdater"],
@@ -98,7 +93,6 @@ export const similarityFalsePositiveBaseline = [
   },
   {
     id: "browser-bounds-lifecycle-vs-updater-lifecycle",
-    todoName: "P3 similarity 90.39%: account cache updater と hook lifecycle false positive を共通化しないよう分類する",
     classification: "hook-lifecycle-baseline",
     paths: ["src/components/reader/hooks/browser/use-browser-webview-bounds-sync.ts", "src/hooks/use-updater.ts"],
     symbols: ["useBrowserWebviewBoundsSync", "useUpdater"],
@@ -186,7 +180,7 @@ export function buildSimilaritySummary(output: string, todoContent?: string): st
   const matchedFalsePositives = pairs.map(findFalsePositiveMatch).filter((item) => item !== null);
   const matchedIds = new Set(matchedFalsePositives.map((item) => item.id));
   const unmatchedFalsePositives = similarityFalsePositiveBaseline.filter((item) => !matchedIds.has(item.id));
-  const staleTodoRefs = todoContent === undefined ? [] : findStaleFalsePositiveTodoRefs(todoContent);
+  void todoContent;
 
   return [
     "Similarity scan baseline",
@@ -203,11 +197,8 @@ export function buildSimilaritySummary(output: string, todoContent?: string): st
     `TODO baseline type pairs: ${todoSimilarityBaseline.similarTypePairs + todoSimilarityBaseline.typeLiteralPairs} (types: ${todoSimilarityBaseline.similarTypePairs}, type literals: ${todoSimilarityBaseline.typeLiteralPairs})`,
     `allowlisted false positives present: ${matchedFalsePositives.length}`,
     `allowlisted false positives absent: ${unmatchedFalsePositives.length}`,
-    `allowlisted TODO refs present: ${similarityFalsePositiveBaseline.length - staleTodoRefs.length}`,
-    `allowlisted TODO refs stale: ${staleTodoRefs.length}`,
     ...matchedFalsePositives.map((item) => `- present ${item.id}: ${item.decision}`),
     ...unmatchedFalsePositives.map((item) => `- absent ${item.id}: ${item.reviewUnit}`),
-    ...staleTodoRefs.map((item) => `- stale TODO ref ${item.id}: ${item.todoName}`),
   ].join("\n");
 }
 
@@ -232,10 +223,6 @@ export function evaluateSimilarityReportGate(output: string): SimilarityReportGa
     exitCode: 1,
     message: `Similarity report gate failed: ${messages.join("; ")}`,
   };
-}
-
-export function findStaleFalsePositiveTodoRefs(todoContent: string): SimilarityFalsePositive[] {
-  return similarityFalsePositiveBaseline.filter((item) => !todoContent.includes(item.todoName));
 }
 
 export function parseSimilarityTypeSummary(output: string): SimilarityTypeSummary {
