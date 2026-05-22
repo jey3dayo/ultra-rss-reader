@@ -73,6 +73,7 @@ describe("Form fields", () => {
       "motion-popup-surface",
       APP_STACKING_CLASS_NAMES.popup,
     );
+    expect(document.body.querySelector('[data-slot="select-positioner"]')).toHaveClass(APP_STACKING_CLASS_NAMES.popup);
     await user.click(await screen.findByRole("option", { name: "Work" }));
 
     await waitFor(() => {
