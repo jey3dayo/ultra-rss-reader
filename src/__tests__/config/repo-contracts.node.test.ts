@@ -1617,6 +1617,14 @@ describe("repository static contracts", () => {
     expect(topLevelDocsSection).toContain("[../RTK.md](../RTK.md)");
   });
 
+  it("keeps TODO limited to active backlog entries", () => {
+    const todoSource = readRepoFile("TODO.md");
+    const completedTodoEntries = [...todoSource.matchAll(/^- \[x\] .+$/gim)].map((match) => match[0]);
+
+    expect(todoSource).toContain("完了済みの項目は `CHANGELOG.md` を参照");
+    expect(completedTodoEntries).toEqual([]);
+  });
+
   it("keeps AGENTS as a thin router to CLAUDE guidance", () => {
     const agents = readRepoFile("AGENTS.md");
 
