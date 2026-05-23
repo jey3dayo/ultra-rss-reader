@@ -93,15 +93,15 @@ const reactDoctorBaselines = {
   },
   full: {
     score: null,
-    errorCount: 21,
+    errorCount: 18,
     warningCount: 211,
-    affectedFileCount: 89,
+    affectedFileCount: 86,
   },
 } as const;
 
 const knipBaseline = {
-  issueCount: 49,
-  findingsCount: 93,
+  issueCount: 46,
+  findingsCount: 84,
 } as const;
 
 const lockfileDuplicateMajorBaseline = {
