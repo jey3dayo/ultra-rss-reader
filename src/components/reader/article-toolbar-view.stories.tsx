@@ -213,7 +213,7 @@ export const MobileA11yDisabledState: Story = {
     showCloseButton: false,
     articleState: {
       ...meta.args.articleState,
-      hasArticle: false,
+      hasArticle: true,
       isRead: true,
       isStarred: false,
       isBrowserOpen: false,

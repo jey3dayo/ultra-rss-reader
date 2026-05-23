@@ -2009,18 +2009,13 @@ describe("ArticleView", () => {
     });
   });
 
-  it("renders the empty-state unread toggle without semantic unread tone", () => {
+  it("keeps empty-state article actions hidden while preserving the passive toolbar shell", () => {
     render(<ArticleView />, { wrapper: createWrapper() });
 
-    const readButton = screen.getByRole("button", { name: "Toggle read" });
-    const readIcon = readButton.querySelector("span");
-
     expect(screen.getByText("Select an article")).toBeInTheDocument();
-    expect(readButton).toBeDisabled();
-    expect(readButton).toHaveAttribute("aria-pressed", "false");
-    expect(readIcon).not.toBeNull();
-    expect(readIcon).not.toHaveClass("bg-[var(--tone-unread)]");
-    expect(readIcon).not.toHaveClass("text-[var(--tone-unread)]");
+    expect(screen.queryByRole("button", { name: "Toggle read" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Toggle star" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Open Web Preview" })).not.toBeInTheDocument();
   });
 
   it("renders a feed summary card when a feed is selected without an article", async () => {
@@ -2673,15 +2668,14 @@ describe("ArticleView", () => {
     expect(shareButton).toHaveClass("size-11", "md:size-8", "rounded-md", "text-foreground-soft");
   });
 
-  it("disables the share menu button when no article is selected", async () => {
+  it("hides the share menu button when no article is selected", async () => {
     useUiStore.getState().selectAccount("acc-1");
     useUiStore.getState().selectFeed("feed-1");
 
     render(<ArticleView />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      const shareButton = screen.getAllByRole("button", { name: "Share" })[0];
-      expect(shareButton).toBeDisabled();
+      expect(screen.queryByRole("button", { name: "Share" })).not.toBeInTheDocument();
     });
   });
 
