@@ -4,6 +4,22 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.43.7] - 2026-05-24
+
+### Bug Fixes
+
+- 設定画面のトグルを、ON は primary 色と右つまみ、OFF は neutral 色と左つまみで判別できるようにした
+- 空の Reader 表示と toolbar 周辺の見た目を整え、記事がない状態でも操作面が崩れにくいようにした
+
+### Maintenance
+
+- アプリ同期結果の処理を分離し、同期フローの責務境界を整理した
+- 空記事 toolbar の期待値テストを現在の表示仕様に合わせた
+
+### Documentation
+
+- agent 向けの source of truth table を追加し、参照すべきプロジェクト文書を整理した
+
 ## [0.43.6] - 2026-05-23
 
 ### Bug Fixes
