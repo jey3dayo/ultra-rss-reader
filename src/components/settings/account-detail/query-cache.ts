@@ -40,5 +40,3 @@ export function patchCachedAccount(queryClient: QueryClient, account: AccountDto
     return [...previous, account];
   });
 }
-
-export type { AccountDetailCachePatchOwner };

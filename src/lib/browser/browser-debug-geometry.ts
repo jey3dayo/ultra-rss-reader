@@ -11,7 +11,7 @@ export type BrowserDebugGeometryNativeDiagnostics = {
   nativeWebviewBounds: BrowserDebugGeometryRect | null;
 };
 
-export type BrowserDebugGeometryRect = {
+type BrowserDebugGeometryRect = {
   x: number;
   y: number;
   width: number;

@@ -1,11 +1,9 @@
-import { ContextMenu } from "@base-ui/react/context-menu";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import { MotionNumber } from "@/components/shared/motion-number";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { sumUnreadCounts } from "@/lib/sidebar/sidebar";
-import { FeedItem, FeedItemView } from "./feed-item";
-import { FolderContextMenuContent } from "./folder-context-menu";
+import { FeedItemView } from "./feed-item";
 
 function getFolderUnreadCount(feeds: FeedDto[]) {
   return sumUnreadCounts(feeds);
@@ -75,46 +73,6 @@ export function FolderSectionView({
               onSelect={onSelectFeed}
               displayFavicons={displayFavicons}
               grayscaleFavicons={grayscaleFavicons}
-            />
-          ))}
-        </div>
-      </CollapsibleContent>
-    </Collapsible>
-  );
-}
-
-export function FolderSection(props: FolderSectionViewProps) {
-  const folderUnread = getFolderUnreadCount(props.feeds);
-
-  return (
-    <Collapsible open={props.isExpanded}>
-      <ContextMenu.Root>
-        <ContextMenu.Trigger render={<div />}>
-          <CollapsibleTrigger
-            onClick={() => props.onToggle(props.folder.id)}
-            className={getFolderTriggerClassName()}
-            aria-expanded={props.isExpanded}
-            aria-haspopup="menu"
-          >
-            <FolderSectionTriggerContent
-              folderName={props.folder.name}
-              folderUnread={folderUnread}
-              isExpanded={props.isExpanded}
-            />
-          </CollapsibleTrigger>
-        </ContextMenu.Trigger>
-        <FolderContextMenuContent folder={props.folder} folderUnread={folderUnread} feeds={props.feeds} />
-      </ContextMenu.Root>
-      <CollapsibleContent>
-        <div className="space-y-0.5 pl-3">
-          {props.feeds.map((feed) => (
-            <FeedItem
-              key={feed.id}
-              feed={feed}
-              isSelected={props.selectedFeedId === feed.id}
-              onSelect={props.onSelectFeed}
-              displayFavicons={props.displayFavicons}
-              grayscaleFavicons={props.grayscaleFavicons}
             />
           ))}
         </div>

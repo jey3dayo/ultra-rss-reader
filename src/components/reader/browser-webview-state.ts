@@ -1,24 +1,6 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import type { BrowserWebviewState } from "@/api/schemas";
-import {
-  initialBrowserState,
-  isBrowserWebviewFallbackForRequestedUrl,
-  isMissingEmbeddedBrowserWebviewError,
-  mergeBrowserState,
-  resolveBrowserStateForRequestedUrl,
-  shouldIgnoreBrowserWebviewStateChangedPayload,
-} from "@/lib/browser/browser-webview-state";
 import { useUiStore } from "@/stores/ui-store";
-
-export type { BrowserWebviewFallbackPayload } from "@/lib/browser/browser-webview-state";
-export {
-  initialBrowserState,
-  isBrowserWebviewFallbackForRequestedUrl,
-  isMissingEmbeddedBrowserWebviewError,
-  mergeBrowserState,
-  resolveBrowserStateForRequestedUrl,
-  shouldIgnoreBrowserWebviewStateChangedPayload,
-};
 
 function toBrowserNavigationState(nextState: BrowserWebviewState | null) {
   if (!nextState) {
