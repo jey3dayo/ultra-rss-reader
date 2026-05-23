@@ -1,10 +1,7 @@
-import type { ReactNode } from "react";
+import type { SectionHeadingProps } from "@/components/shared/section-heading";
 import { cn } from "@/lib/utils";
 
-type SettingsShellSectionLabelProps = {
-  children: ReactNode;
-  className?: string;
-};
+type SettingsShellSectionLabelProps = SectionHeadingProps;
 
 export function SettingsShellSectionLabel({ children, className }: SettingsShellSectionLabelProps) {
   return (
