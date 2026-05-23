@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { describe, expect, it, vi } from "vitest";
-import { createSelectValueChangeHandler } from "@/components/shared/select-option-content";
+import { createSelectValueChangeHandler } from "@/components/shared/select-value-change-handler";
 import { StackedInputField } from "@/components/shared/stacked-input-field";
 import { StackedSelectField } from "@/components/shared/stacked-select-field";
 

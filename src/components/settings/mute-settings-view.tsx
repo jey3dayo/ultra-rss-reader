@@ -10,33 +10,12 @@ import { LabeledActionInputRow } from "@/components/shared/labeled-action-input-
 import { ActionSelectControl, LabeledActionSelectRow } from "@/components/shared/labeled-action-select-row";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
-import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
+import { handleMuteKeywordScopeSelectValue } from "./mute-keyword-scope-select";
 
 type MuteSettingsScopeOption = {
   value: MuteKeywordScope;
   label: string;
 };
-
-function isMuteKeywordScope(value: string | null): value is MuteKeywordScope {
-  return value === "title" || value === "body" || value === "title_and_body";
-}
-
-export function handleMuteKeywordScopeSelectValue(
-  value: string | null,
-  onValidScopeChange: (scope: MuteKeywordScope) => void,
-  context: { source: "add-row" | "saved-rule"; ruleId?: string },
-) {
-  if (isMuteKeywordScope(value)) {
-    onValidScopeChange(value);
-    return;
-  }
-
-  logRuntimeDiagnostic("mute-keyword-scope-select", "Ignored invalid mute keyword scope select value", {
-    source: context.source,
-    ruleId: context.ruleId,
-    value,
-  });
-}
 
 type MuteSettingsKeywordRow = {
   id: string;

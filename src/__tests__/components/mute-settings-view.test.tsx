@@ -1,7 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { handleMuteKeywordScopeSelectValue, MuteSettingsView } from "@/components/settings/mute-settings-view";
+import { handleMuteKeywordScopeSelectValue } from "@/components/settings/mute-keyword-scope-select";
+import { MuteSettingsView } from "@/components/settings/mute-settings-view";
 
 describe("mute keyword scope select policy", () => {
   afterEach(() => {
