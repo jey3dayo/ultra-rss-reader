@@ -4,25 +4,12 @@ import {
   type ArticleActionError,
   categorizeArticleActionError,
   normalizeArticleExternalBrowserUrl,
-  resolveArticleActionErrorMetadata,
+  toArticleActionError,
 } from "@/lib/articles/article-actions";
 import { copyTextToClipboard } from "@/lib/runtime/clipboard";
 import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
-
-export type {
-  ArticleActionError,
-  ArticleActionErrorCategory,
-  ArticleActionErrorLocaleKey,
-} from "@/lib/articles/article-actions";
-export {
-  categorizeArticleActionError,
-  normalizeArticleExternalBrowserUrl,
-  resolveArticleActionErrorCategory,
-  resolveArticleActionErrorLocaleKey,
-  resolveArticleActionErrorMetadata,
-} from "@/lib/articles/article-actions";
 
 export type ArticleStatusToast = (message: string) => void;
 
@@ -40,33 +27,6 @@ type OpenExternalBrowserParams = {
 type PendingExternalBrowserOpen = Promise<Result.Result<null, AppError>>;
 
 const pendingExternalBrowserOpens = new Map<string, PendingExternalBrowserOpen>();
-
-function isAppError(error: unknown): error is AppError {
-  return (
-    !!error && typeof error === "object" && "type" in error && "message" in error && typeof error.message === "string"
-  );
-}
-
-function toArticleActionError(error: unknown): ArticleActionError {
-  if (isAppError(error)) {
-    return categorizeArticleActionError(error);
-  }
-
-  if (error instanceof Error) {
-    return {
-      type: "UserVisible",
-      message: error.message,
-      ...resolveArticleActionErrorMetadata(error.message),
-    };
-  }
-
-  const message = String(error);
-  return {
-    type: "UserVisible",
-    message,
-    ...resolveArticleActionErrorMetadata(message),
-  };
-}
 
 function logArticleActionFailure(errorLabel: string, error: ArticleActionError): void {
   logRuntimeDiagnostic("article-action", `${errorLabel}:`, error);

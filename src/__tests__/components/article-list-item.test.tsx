@@ -2,10 +2,9 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { sampleArticles } from "@tests/helpers/fixtures";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ArticleListItem, articleListItemTestContract } from "@/components/reader/article-list-item";
+import { ArticleListItem } from "@/components/reader/article-list-item";
+import { resolveArticleListItemPresentation as resolvePresentation } from "@/lib/articles/article-list-item-presentation";
 import { useUiStore } from "@/stores/ui-store";
-
-const { resolvePresentation } = articleListItemTestContract;
 
 describe("ArticleListItem", () => {
   beforeEach(() => {

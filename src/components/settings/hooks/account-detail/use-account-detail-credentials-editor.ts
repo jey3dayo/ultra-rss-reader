@@ -1,6 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { type RefObject, useEffect, useReducer, useRef } from "react";
 import { copyToClipboard, testAccountConnection, updateAccountCredentials } from "@/api/tauri-commands";
+import { isValidRequiredHttpServerUrl } from "@/lib/account/server-url";
 import { focusFirstInput } from "@/lib/dom/input-focus";
 import { invalidateQueryKeysLogOnly, queryKeys } from "@/lib/query/query-invalidation";
 import { getErrorMessage } from "@/lib/ui/errors";
@@ -33,15 +34,6 @@ export type AccountDetailCredentialsEditorResult = {
 
 const MASKED_PASSWORD_VALUE = "••••••••";
 const MISSING_PASSWORD_ERROR_MARKER = "Password is not configured";
-
-function isValidServerUrl(value: string): boolean {
-  try {
-    const url = new URL(value);
-    return url.protocol === "http:" || url.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
 
 type AccountDetailCredentialsEditorState = {
   credServerUrl: string | null;
@@ -285,7 +277,7 @@ export function useAccountDetailCredentialsEditor({
         return { saved: false, verified: false };
       }
 
-      if (serverUrl && !isValidServerUrl(serverUrl)) {
+      if (serverUrl && !isValidRequiredHttpServerUrl(serverUrl)) {
         useUiStore.getState().showToast(t("account.error_server_url_invalid"));
         return { saved: false, verified: false };
       }

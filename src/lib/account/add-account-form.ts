@@ -1,4 +1,5 @@
 import { Result } from "@praha/byethrow";
+import { validateFreshRssServerUrl } from "@/lib/account/server-url";
 
 export type AddAccountProviderKind = "Local" | "FreshRss";
 
@@ -98,24 +99,6 @@ export function formatAddAccountValidationError(
       return "account.error_username_required";
     case "missing_password":
       return "account.error_password_required";
-  }
-}
-
-function validateFreshRssServerUrl(value: string): Result.Result<string, AddAccountValidationError> {
-  try {
-    const url = new URL(value);
-
-    if (url.protocol !== "http:" && url.protocol !== "https:") {
-      return Result.fail("invalid_server_url");
-    }
-
-    if (url.username || url.password) {
-      return Result.fail("server_url_credentials");
-    }
-
-    return Result.succeed(value.trim().replace(/\/+$/, ""));
-  } catch {
-    return Result.fail("invalid_server_url");
   }
 }
 

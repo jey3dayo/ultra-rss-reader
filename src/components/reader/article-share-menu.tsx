@@ -1,8 +1,8 @@
 import { Menu } from "@base-ui/react/menu";
 import { BookmarkPlus, Copy, Mail, Share } from "lucide-react";
-import type { AppError, ArticleDto } from "@/api/tauri-commands";
+import type { ArticleDto } from "@/api/tauri-commands";
 import { IconToolbarMenuTrigger } from "@/components/shared/icon-toolbar-control";
-import { categorizeArticleActionError } from "@/lib/articles/article-actions";
+import { toArticleActionError } from "@/lib/articles/article-actions";
 import { openArticleEmailShare } from "@/lib/articles/article-share";
 import { addArticleToReadingList, copyArticleLink } from "./article-browser-actions";
 import { CONTEXT_MENU_ACTION_IDS, createMenuActionHandler } from "./context-menu-action-policy";
@@ -27,17 +27,6 @@ type ArticleShareMenuProps = {
   labels: ArticleShareMenuLabels;
 };
 
-function isAppError(error: unknown): error is AppError {
-  if (!error || typeof error !== "object" || !("type" in error) || !("message" in error)) {
-    return false;
-  }
-
-  return (
-    typeof error.message === "string" &&
-    (error.type === "UserVisible" || error.type === "Retryable" || error.type === "Diagnostics")
-  );
-}
-
 function runArticleShareMenuAction(
   actionId: Parameters<typeof createMenuActionHandler>[0],
   action: () => Promise<unknown>,
@@ -52,13 +41,7 @@ function runArticleShareMenuAction(
     {
       showToast,
       getToastMessage: (error: unknown) => {
-        const appError: AppError = isAppError(error)
-          ? error
-          : {
-              type: "UserVisible",
-              message: error instanceof Error ? error.message : String(error),
-            };
-        const actionError = categorizeArticleActionError(appError);
+        const actionError = toArticleActionError(error);
         console.error(errorLabel, actionError);
         return actionError.message;
       },

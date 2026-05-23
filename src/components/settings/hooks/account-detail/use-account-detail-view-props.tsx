@@ -8,6 +8,7 @@ import type { AccountDetailAccount } from "@/components/settings/account-detail/
 import type { AccountDetailViewProps } from "@/components/settings/account-detail/view";
 import type { AccountSetupSessionState } from "@/lib/account/account-setup-session.types";
 import { formatAccountLastSuccessLabel } from "@/lib/account/account-sync-status-format";
+import { isValidOptionalHttpServerUrl } from "@/lib/account/server-url";
 import type { AccountDetailControllerResult } from "./use-account-detail-controller";
 
 type AccountDetailViewPropsParams = {
@@ -37,20 +38,6 @@ function isLocalAccount(account: AccountDetailAccount): boolean {
   return account.kind === "Local";
 }
 
-function isValidHttpServerUrl(value: string | null): boolean {
-  const trimmed = value?.trim();
-  if (!trimmed) {
-    return true;
-  }
-
-  try {
-    const url = new URL(trimmed);
-    return url.protocol === "http:" || url.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
-
 function resolveAccountQuarantineReason(account: AccountDetailAccount, t: TFunction<"settings">): string | null {
   if (!isFreshRssAccount(account) && !isLocalAccount(account)) {
     return t("account.quarantine_invalid_provider_kind", {
@@ -58,7 +45,7 @@ function resolveAccountQuarantineReason(account: AccountDetailAccount, t: TFunct
     });
   }
 
-  if (isFreshRssAccount(account) && !isValidHttpServerUrl(account.server_url)) {
+  if (isFreshRssAccount(account) && !isValidOptionalHttpServerUrl(account.server_url)) {
     return t("account.quarantine_invalid_server_url");
   }
 
@@ -169,7 +156,7 @@ export function useAccountDetailViewProps({
               },
             ]
           : []),
-        ...(!isValidHttpServerUrl(account.server_url)
+        ...(!isValidOptionalHttpServerUrl(account.server_url)
           ? [
               {
                 label: t("account.server_url"),
