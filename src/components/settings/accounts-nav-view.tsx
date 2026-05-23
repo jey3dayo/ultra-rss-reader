@@ -1,18 +1,13 @@
 import { Plus, Rss } from "lucide-react";
+import type { ReactNode } from "react";
 import { NavRowButton } from "@/components/shared/nav-row-button";
 import { cn } from "@/lib/utils";
+import { type AccountNavItem, resolveAccountDescription } from "./accounts-nav-model";
 import { SERVICE_CATEGORIES } from "./add-account/services";
 
 type AccountNavSelectHandler = (accountId: string) => void;
 
-export type AccountNavItem = {
-  id: string;
-  name: string;
-  kind: string;
-  username?: string | null;
-  serverUrl?: string | null;
-  isActive: boolean;
-};
+export type { AccountNavItem } from "./accounts-nav-model";
 
 export type AccountsNavViewProps = {
   accounts: AccountNavItem[];
@@ -28,52 +23,24 @@ const ACCOUNT_ICON_BG: Record<string, string> = Object.fromEntries(
 );
 const ACCOUNT_SELECTED_CLASS_NAME =
   "bg-[image:var(--sidebar-selection-gradient)] text-[var(--sidebar-selection-foreground)] shadow-none before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:bg-border-strong/70 before:opacity-70 focus-visible:bg-[image:var(--sidebar-selection-gradient)]";
-
-function normalizeDetail(value?: string | null): string | null {
-  const normalized = value?.trim();
-  return normalized ? normalized : null;
-}
-
-function normalizeComparable(value: string): string {
-  return value.trim().toLowerCase();
-}
-
-function getServerHostLabel(serverUrl?: string | null): string | null {
-  const normalized = normalizeDetail(serverUrl);
-  if (!normalized) {
-    return null;
-  }
-
-  try {
-    return new URL(normalized).host || null;
-  } catch {
-    return null;
-  }
-}
-
-export function resolveAccountDescription(
-  account: AccountsNavViewProps["accounts"][number],
-  hasMultipleAccounts: boolean,
-): string | null {
-  if (!hasMultipleAccounts) {
-    return null;
-  }
-
-  const title = normalizeComparable(account.name);
-  const candidates = [normalizeDetail(account.username), getServerHostLabel(account.serverUrl)];
-
-  for (const candidate of candidates) {
-    if (!candidate) {
-      continue;
-    }
-    if (normalizeComparable(candidate) === title) {
-      continue;
-    }
-    return candidate;
-  }
-
-  return null;
-}
+const DEFAULT_ACCOUNT_ICON = (
+  <span className="flex size-7 items-center justify-center rounded-full bg-surface-1/72">
+    <Rss className="size-[15px] text-white" />
+  </span>
+);
+const ADD_ACCOUNT_ICON = (
+  <span className="flex size-7 items-center justify-center rounded-full bg-surface-1/72">
+    <Plus className="size-[15px]" />
+  </span>
+);
+const ACCOUNT_ICON_BY_KIND: Record<string, ReactNode> = Object.fromEntries(
+  Object.entries(ACCOUNT_ICON_BG).map(([kind, className]) => [
+    kind,
+    <span key={kind} className={cn("flex size-7 items-center justify-center rounded-full", className)}>
+      <Rss className="size-[15px] text-white" />
+    </span>,
+  ]),
+);
 
 export function AccountsNavView({
   accounts,
@@ -102,25 +69,11 @@ export function AccountsNavView({
               "relative w-auto max-w-full shrink-0 overflow-hidden rounded-md px-3 py-2 text-[13px] leading-[1.3] focus-visible:ring-0 focus-visible:ring-transparent sm:w-full",
               account.isActive && ACCOUNT_SELECTED_CLASS_NAME,
             )}
-            leading={
-              <span
-                className={cn(
-                  "flex size-7 items-center justify-center rounded-full",
-                  ACCOUNT_ICON_BG[kindKey] ?? "bg-surface-1/72",
-                )}
-              >
-                <Rss className="size-[15px] text-white" />
-              </span>
-            }
+            leading={ACCOUNT_ICON_BY_KIND[kindKey] ?? DEFAULT_ACCOUNT_ICON}
             title={account.name}
-            description={
-              description ? (
-                <div
-                  className={account.isActive ? "text-[var(--sidebar-selection-muted)]" : "text-sidebar-foreground/54"}
-                >
-                  {description}
-                </div>
-              ) : undefined
+            description={description ?? undefined}
+            descriptionClassName={
+              account.isActive ? "text-[var(--sidebar-selection-muted)]" : "text-sidebar-foreground/54"
             }
           />
         );
@@ -134,11 +87,7 @@ export function AccountsNavView({
           "relative w-auto max-w-full shrink-0 items-center overflow-hidden rounded-md px-3 py-2 text-[13px] leading-[1.3] focus-visible:ring-0 focus-visible:ring-transparent sm:w-full",
           isAddAccountActive && ACCOUNT_SELECTED_CLASS_NAME,
         )}
-        leading={
-          <span className="flex size-7 items-center justify-center rounded-full bg-surface-1/72">
-            <Plus className="size-[15px]" />
-          </span>
-        }
+        leading={ADD_ACCOUNT_ICON}
         title={addAccountLabel}
       />
     </div>

@@ -1,10 +1,10 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, expectTypeOf, it, vi } from "vitest";
+import { resolveAccountDescription } from "@/components/settings/accounts-nav-model";
 import {
   type AccountNavItem,
   AccountsNavView,
   type AccountsNavViewProps,
-  resolveAccountDescription,
 } from "@/components/settings/accounts-nav-view";
 
 describe("AccountsNavView", () => {
