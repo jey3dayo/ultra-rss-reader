@@ -4,9 +4,24 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.43.6] - 2026-05-23
+
+### Bug Fixes
+
+- ポップアップの重なり順を共通化し、Reader / Settings 周辺の表示順が崩れにくいようにした
+
 ### Maintenance
 
 - UI commonization と similarity triage の完了済み TODO を整理し、active backlog を空にした
+- pnpm 11 と周辺 frontend toolchain へ更新し、依存 lockfile と toolchain contract を揃えた
+- Reader / Settings / Subscriptions 周辺の feature-local 型を owner module へ寄せ、残す type surface を contract で明示した
+- component result handling と settings / subscriptions の共通 UI 部品を整理し、重複した type surface と helper 境界を縮小した
+- FreshRSS pending mutation recovery の契約テストを追加し、古い remote snapshot が local intent を上書きしないことを確認できるようにした
+- Inoreader の add-account entry を削除し、現在サポートする account provider 一覧を整理した
+
+### Documentation
+
+- remote content privacy policy と result boundary rule を記録した
 
 ## [0.43.5] - 2026-05-21
 
