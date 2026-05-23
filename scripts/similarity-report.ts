@@ -17,7 +17,7 @@ export const similarityScanExcludePatterns = [
 ] as const;
 const similarityScanBaseline = {
   functionPairs: 42,
-  similarTypePairs: 11,
+  similarTypePairs: 4,
   typeLiteralPairs: 0,
 } as const;
 
@@ -143,6 +143,59 @@ export const similarityFalsePositiveBaseline = [
     symbols: ["useBrowserWebviewBoundsSync", "useUpdater"],
     decision: "Keep lifecycle hooks separate unless the duplicated unit is only cancellation/disposal plumbing.",
     reviewUnit: "Review with min-lines/min-tokens high enough to exclude tiny callback-shape matches.",
+  },
+  {
+    id: "browser-layout-diagnostics-vs-feed-tree-pointer-drag-events",
+    classification: "hook-lifecycle-baseline",
+    paths: [
+      "src/components/reader/hooks/browser/use-browser-layout-diagnostics.ts",
+      "src/components/reader/hooks/feed-tree/use-feed-tree-pointer-drag-events.ts",
+    ],
+    symbols: ["useBrowserLayoutDiagnostics", "useFeedTreePointerDragEvents"],
+    decision: "Do not share browser geometry snapshot state with feed-tree pointer drag window-event lifecycle.",
+    reviewUnit: "Review browser diagnostics and feed-tree drag behavior separately.",
+  },
+  {
+    id: "browser-layout-diagnostics-vs-subscription-review-candidates",
+    classification: "domain-boundary",
+    paths: [
+      "src/components/reader/hooks/browser/use-browser-layout-diagnostics.ts",
+      "src/lib/subscriptions/subscription-review-candidates.ts",
+    ],
+    symbols: ["useBrowserLayoutDiagnostics", "buildSubscriptionReviewCandidates"],
+    decision: "Do not share browser DOM geometry derivation with subscription health candidate scoring.",
+    reviewUnit: "Review browser layout diagnostics and subscription review candidate scoring separately.",
+  },
+  {
+    id: "scroll-overflow-state-vs-subscription-review-candidates",
+    classification: "domain-boundary",
+    paths: [
+      "src/components/settings/hooks/use-scroll-overflow-state.ts",
+      "src/lib/subscriptions/subscription-review-candidates.ts",
+    ],
+    symbols: ["useScrollOverflowState", "buildSubscriptionReviewCandidates"],
+    decision: "Do not share scroll overflow observer state with subscription review candidate scoring.",
+    reviewUnit: "Review settings scroll overflow and subscription review candidate scoring separately.",
+  },
+  {
+    id: "browser-bounds-lifecycle-vs-sidebar-account-selection",
+    classification: "hook-lifecycle-baseline",
+    paths: [
+      "src/components/reader/hooks/browser/use-browser-webview-bounds-sync.ts",
+      "src/components/reader/hooks/sidebar/use-sidebar-account-selection.ts",
+    ],
+    symbols: ["useBrowserWebviewBoundsSync", "useSidebarAccountSelection"],
+    decision: "Do not share native browser bounds sync lifecycle with sidebar account selection side effects.",
+    reviewUnit: "Review browser WebView bounds sync and sidebar account selection separately.",
+  },
+  {
+    id: "subscription-review-candidates-vs-subscription-list-groups",
+    classification: "domain-boundary",
+    paths: ["src/lib/subscriptions/subscription-review-candidates.ts", "src/lib/subscriptions/subscriptions-index.ts"],
+    symbols: ["buildSubscriptionReviewCandidates", "buildSubscriptionListGroups"],
+    decision:
+      "Keep subscription review scoring separate from subscription list grouping; only count normalization is shared.",
+    reviewUnit: "Review subscription candidate scoring and list grouping separately.",
   },
 ] as const satisfies readonly SimilarityFalsePositive[];
 
