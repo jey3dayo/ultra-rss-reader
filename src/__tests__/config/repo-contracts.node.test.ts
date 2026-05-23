@@ -2285,16 +2285,16 @@ describe("repository static contracts", () => {
 
   it("keeps frontend schema files covered by schema contract tests", () => {
     const schemaFileStems = readDirectoryFileStems("src/schemas");
-    const schemaTestSource = typescriptFilesUnder(["src/__tests__/schemas", "src/__tests__/stores"]).map((path) => [
-      path,
-      readRepoFile(path),
-    ] as const);
+    const schemaTestSource = typescriptFilesUnder(["src/__tests__/schemas", "src/__tests__/stores"]).map(
+      (path) => [path, readRepoFile(path)] as const,
+    );
 
     expect(schemaFileStems).toEqual(["app-config", "parse", "preferences", "storage", "subscriptions-workspace"]);
     for (const schemaFileStem of schemaFileStems) {
       expect(
         schemaTestSource.some(
-          ([path, source]) => path.includes(`/${schemaFileStem}.test.ts`) || source.includes(`@/schemas/${schemaFileStem}`),
+          ([path, source]) =>
+            path.includes(`/${schemaFileStem}.test.ts`) || source.includes(`@/schemas/${schemaFileStem}`),
         ),
         `${schemaFileStem} must have frontend schema contract coverage`,
       ).toBe(true);
