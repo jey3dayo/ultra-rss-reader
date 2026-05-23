@@ -4,15 +4,17 @@ import type { MockTauriCommandCall } from "@tests/helpers/tauri-types";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as tauriCommands from "@/api/tauri-commands";
 import {
-  type ArticleActionError,
   addArticleToReadingList,
-  categorizeArticleActionError,
   copyArticleLink,
-  normalizeArticleExternalBrowserUrl,
   openArticleInExternalBrowser,
   openUrlInExternalBrowser,
-  resolveArticleActionErrorCategory,
 } from "@/components/reader/article-browser-actions";
+import {
+  type ArticleActionError,
+  categorizeArticleActionError,
+  normalizeArticleExternalBrowserUrl,
+  resolveArticleActionErrorCategory,
+} from "@/lib/articles/article-actions";
 import { resolveClipboardErrorCategory } from "@/lib/runtime/clipboard";
 import { usePreferencesStore } from "@/stores/preferences-store";
 

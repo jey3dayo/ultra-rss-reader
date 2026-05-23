@@ -211,7 +211,7 @@ export function focusArticleListTarget(selectedArticleId: string | null): boolea
   return listbox ? focusElement(listbox) : false;
 }
 
-export function focusArticleListRowTarget(selectedArticleId: string | null): boolean {
+function focusArticleListRowTarget(selectedArticleId: string | null): boolean {
   if (typeof document === "undefined") {
     return false;
   }
@@ -272,7 +272,7 @@ export function focusSelectedSidebarTarget(): boolean {
   ]);
 }
 
-export function focusSidebarSmartViewTarget(kind: SmartViewKind): boolean {
+function focusSidebarSmartViewTarget(kind: SmartViewKind): boolean {
   if (typeof document === "undefined") {
     return false;
   }

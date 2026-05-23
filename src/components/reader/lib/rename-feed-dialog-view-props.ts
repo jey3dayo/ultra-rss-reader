@@ -3,7 +3,7 @@ import { buildFeedDisplayPresetOptions, isFeedDisplayPresetOption } from "@/lib/
 import type { FeedDialogSelectOption } from "../feed-dialog-form.types";
 import type { RenameFeedDialogController } from "../rename-feed-dialog.types";
 
-type BuildRenameFeedDialogViewPropsParams = {
+export type BuildRenameFeedDialogViewPropsParams = {
   open: boolean;
   feedSiteUrl: string;
   feedUrl: string;

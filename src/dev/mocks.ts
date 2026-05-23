@@ -9,6 +9,7 @@ import type {
   AccountDto,
   AccountSyncStatusDto,
   ArticleDto,
+  FeedArticleSummaryDto,
   FeedDto,
   FolderDto,
   MuteKeywordDto,
@@ -636,19 +637,20 @@ export function setupDevMocks(): RestoreDevMocks {
       case "list_feed_article_summaries": {
         const { accountId } = parseBrowserMockArgs("list_feed_article_summaries", rawIpcPayload);
         const visibleArticles = applyMuteKeywordFilter(mockArticles);
-        return cloneMockResponse(
-          mockFeeds
-            .filter((feed) => feed.account_id === accountId)
-            .map((feed) => {
-              const feedArticles = visibleArticles.filter((article) => article.feed_id === feed.id);
+        const summaries: FeedArticleSummaryDto[] = [];
+        for (const feed of mockFeeds) {
+          if (feed.account_id !== accountId) {
+            continue;
+          }
 
-              return {
-                feed_id: feed.id,
-                latest_article_at: findLatestPublishedAt(feedArticles),
-                starred_count: feedArticles.filter((article) => article.is_starred).length,
-              };
-            }),
-        );
+          const feedArticles = visibleArticles.filter((article) => article.feed_id === feed.id);
+          summaries.push({
+            feed_id: feed.id,
+            latest_article_at: findLatestPublishedAt(feedArticles),
+            starred_count: feedArticles.filter((article) => article.is_starred).length,
+          });
+        }
+        return cloneMockResponse(summaries);
       }
 
       case "list_folder_articles": {
@@ -1069,7 +1071,12 @@ export function setupDevMocks(): RestoreDevMocks {
 
       case "get_article_tags": {
         const { articleId } = parseBrowserMockArgs("get_article_tags", rawIpcPayload);
-        const tagIds = new Set(mockArticleTags.filter((at) => at.article_id === articleId).map((at) => at.tag_id));
+        const tagIds = new Set<string>();
+        for (const articleTag of mockArticleTags) {
+          if (articleTag.article_id === articleId) {
+            tagIds.add(articleTag.tag_id);
+          }
+        }
         return cloneMockResponse(mockTags.filter((t) => tagIds.has(t.id)));
       }
 
@@ -1081,7 +1088,12 @@ export function setupDevMocks(): RestoreDevMocks {
           offset = 0,
           limit = 50,
         } = parseBrowserMockArgs("list_articles_by_tag", rawIpcPayload);
-        const articleIds = new Set(mockArticleTags.filter((at) => at.tag_id === tagId).map((at) => at.article_id));
+        const articleIds = new Set<string>();
+        for (const articleTag of mockArticleTags) {
+          if (articleTag.tag_id === tagId) {
+            articleIds.add(articleTag.article_id);
+          }
+        }
         let filtered = mockArticles.filter((a) => articleIds.has(a.id));
         if (accountId) {
           const feedIds = collectFeedIdsByAccount(accountId);

@@ -240,7 +240,7 @@ const shortcutDefinitionById = new Map<ShortcutActionId, ShortcutDefinition>(
 const shortcutActionIdSet = new Set<string>(shortcutDefinitionById.keys());
 const lockedShortcutActionIds = new Set<ShortcutActionId>(["open_settings"]);
 
-export function isShortcutActionId(value: string): value is ShortcutActionId {
+function isShortcutActionId(value: string): value is ShortcutActionId {
   return shortcutActionIdSet.has(value);
 }
 
@@ -350,7 +350,7 @@ export function normalizeRecordedShortcutKey(e: {
   return normalizeShortcutKeyForContract(normalizeKeyFromEvent(e));
 }
 
-export function isNativeMenuOwnedShortcut(key: string): boolean {
+function isNativeMenuOwnedShortcut(key: string): boolean {
   const normalizedKey = normalizeShortcutMapKey(key);
   return normalizedKey !== null && nativeMenuOwnedShortcuts.has(normalizedKey);
 }

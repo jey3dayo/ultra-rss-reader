@@ -1,15 +1,10 @@
 import { useTranslation } from "react-i18next";
-import { buildRenameFeedDialogViewProps } from "../../lib/rename-feed-dialog-view-props";
-import type { RenameFeedDialogController } from "../../rename-feed-dialog.types";
+import {
+  type BuildRenameFeedDialogViewPropsParams,
+  buildRenameFeedDialogViewProps,
+} from "../../lib/rename-feed-dialog-view-props";
 
-type UseRenameFeedDialogViewPropsParams = {
-  open: boolean;
-  feedSiteUrl: string;
-  feedUrl: string;
-  onOpenChange: (open: boolean) => void;
-  folderLabelId: string;
-  controller: RenameFeedDialogController;
-};
+type UseRenameFeedDialogViewPropsParams = Omit<BuildRenameFeedDialogViewPropsParams, "t" | "tc">;
 
 export function useRenameFeedDialogViewProps({
   open,

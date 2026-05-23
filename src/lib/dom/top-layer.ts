@@ -1,6 +1,6 @@
-export const DIALOG_TOP_LAYER_SELECTOR = '[data-slot="dialog-content"][data-open]';
-export const NESTED_ESCAPE_LAYER_SELECTOR = ['[role="dialog"]', "[data-radix-popper-content-wrapper]"].join(",");
-export const FOCUS_OWNING_TOP_LAYER_SELECTOR = [
+const DIALOG_TOP_LAYER_SELECTOR = '[data-slot="dialog-content"][data-open]';
+const NESTED_ESCAPE_LAYER_SELECTOR = ['[role="dialog"]', "[data-radix-popper-content-wrapper]"].join(",");
+const FOCUS_OWNING_TOP_LAYER_SELECTOR = [
   '[data-stack-layer="dialog"]:not([data-closed])',
   '[data-stack-layer="commandPalette"]:not([data-closed])',
   '[role="dialog"][aria-modal="true"]',

@@ -140,7 +140,7 @@ export function findLatestArticleOrNull(articles: ArticleDto[] | undefined): Art
   return latest;
 }
 
-export function findLatestArticle(articles: ArticleDto[] | undefined): Result.Result<ArticleDto, "no_articles"> {
+function findLatestArticle(articles: ArticleDto[] | undefined): Result.Result<ArticleDto, "no_articles"> {
   const latestArticle = findLatestArticleOrNull(articles);
   return latestArticle ? Result.succeed(latestArticle) : Result.fail("no_articles");
 }

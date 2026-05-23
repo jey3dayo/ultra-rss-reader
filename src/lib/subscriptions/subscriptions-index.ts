@@ -55,7 +55,7 @@ function countStaleCandidates(candidates: SubscriptionReviewCandidate[]): number
   return count;
 }
 
-export function rowMatchesSubscriptionSummaryFilter(
+function rowMatchesSubscriptionSummaryFilter(
   row: SubscriptionListRow,
   filterKey: SubscriptionSummaryFilterKey,
 ): boolean {
