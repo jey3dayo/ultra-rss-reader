@@ -314,7 +314,7 @@ Run the packaged app on the target OS with normal credentials storage enabled.
 
 Confirm:
 
-- Adding a FreshRSS or Inoreader account stores credentials without falling back to dev storage.
+- Adding a FreshRSS account stores credentials without falling back to dev storage.
 - Restarting the app keeps the account usable without re-entering the password.
 - Editing account settings does not silently lose the stored secret.
 - Removing the account leaves the app in a clean state and does not block re-adding it.

@@ -1,7 +1,7 @@
 import type { ComponentType } from "react";
 import type { AddAccountProviderKind } from "@/lib/account/add-account-form";
 
-type ServiceKind = AddAccountProviderKind | "Feedbin" | "Feedly" | "Fever" | "Inoreader" | "NewsBlur";
+type ServiceKind = AddAccountProviderKind | "Feedbin" | "Feedly" | "Fever" | "NewsBlur";
 
 export type ServiceCategoryLabelKey =
   | "account.category_local"
@@ -13,7 +13,6 @@ export type ServiceNameKey =
   | "account.fever"
   | "account.feedbin"
   | "account.feedly"
-  | "account.inoreader"
   | "account.newsblur";
 export type ServiceDescriptionKey =
   | "account.local_desc"

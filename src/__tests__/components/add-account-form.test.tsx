@@ -33,7 +33,6 @@ vi.mock("react-i18next", () => {
       "account.freshrss_desc": "freshrss.org",
       "account.fever": "Fever",
       "account.fever_desc": "Deprecated. Not recommended.",
-      "account.inoreader": "Inoreader",
       "account.feedly": "Feedly",
       "account.newsblur": "NewsBlur",
       "account.feedbin": "Feedbin",
@@ -64,7 +63,6 @@ vi.mock("react-i18next", () => {
       "account.freshrss_desc": "FreshRSS サーバー",
       "account.fever": "Fever",
       "account.fever_desc": "非推奨",
-      "account.inoreader": "Inoreader",
       "account.feedly": "Feedly",
       "account.newsblur": "NewsBlur",
       "account.feedbin": "Feedbin",
@@ -246,7 +244,6 @@ describe("AddAccountForm", () => {
       "account.freshrss_desc": jaSettings.account.freshrss_desc,
       "account.fever": jaSettings.account.fever,
       "account.fever_desc": jaSettings.account.fever_desc,
-      "account.inoreader": jaSettings.account.inoreader,
       "account.feedly": jaSettings.account.feedly,
       "account.newsblur": jaSettings.account.newsblur,
       "account.feedbin": jaSettings.account.feedbin,
@@ -369,9 +366,6 @@ describe("AddAccountForm", () => {
     const feedlyButton = screen.getByRole("button", {
       name: /Feedly|account\.feedly/,
     });
-    const inoreaderButton = screen.getByRole("button", {
-      name: /Inoreader|account\.inoreader/,
-    });
     const newsBlurButton = screen.getByRole("button", {
       name: /NewsBlur|account\.newsblur/,
     });
@@ -382,12 +376,11 @@ describe("AddAccountForm", () => {
 
     expect(feverButton).toBeDisabled();
     expect(feedlyButton).toBeDisabled();
-    expect(inoreaderButton).toBeDisabled();
     expect(newsBlurButton).toBeDisabled();
     expect(feedbinButton).toBeDisabled();
     expect(enSettings.account.coming_soon).toBe("Coming soon");
     expect(jaSettings.account.coming_soon).toBe("準備中");
-    expect(comingSoonLabels).toHaveLength(5);
+    expect(comingSoonLabels).toHaveLength(4);
     expect(screen.queryByText("工事中")).not.toBeInTheDocument();
     expect(screen.queryByText("account.coming_soon")).not.toBeInTheDocument();
   });

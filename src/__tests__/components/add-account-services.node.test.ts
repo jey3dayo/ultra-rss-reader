@@ -28,7 +28,7 @@ describe("add-account-services", () => {
   it("keeps disabled services listed but not discoverable as enabled providers", () => {
     const disabledKinds = getDisabledServiceDefinitions().map((service) => service.kind);
 
-    expect(disabledKinds).toEqual(["Fever", "Inoreader", "Feedly", "NewsBlur", "Feedbin"]);
+    expect(disabledKinds).toEqual(["Fever", "Feedly", "NewsBlur", "Feedbin"]);
   });
 
   it("keeps enabled service picker options aligned with credential field requirements", () => {
