@@ -1,7 +1,10 @@
-import { Result } from "@praha/byethrow";
 import { type KeyboardEvent as ReactKeyboardEvent, useCallback } from "react";
+import {
+  type ArticleListKeyboardIntent,
+  resolveArticleListKeyboardIntent,
+} from "@/lib/articles/article-list-keyboard-intent";
 import { emitDebugInputTrace } from "@/lib/debug/debug-input-trace";
-import { type KeyToActionMap, resolveKeyboardAction } from "@/lib/keyboard/keyboard-shortcuts";
+import type { KeyToActionMap } from "@/lib/keyboard/keyboard-shortcuts";
 import { focusArticleContentTarget, focusSelectedSidebarTarget } from "@/lib/reader-focus";
 import { useUiStore } from "@/stores/ui-store";
 import type { HandleArticleListKeyboardActionParams } from "../../article-list-keyboard-action";
@@ -16,6 +19,17 @@ type UseArticleListKeydownHandlerParams = {
   keyToAction: KeyToActionMap;
 };
 
+type ExecuteArticleListKeyboardIntentParams = Pick<
+  UseArticleListKeydownHandlerParams,
+  "selectArticle" | "clearArticle" | "toggleSidebar" | "openSidebar"
+> & {
+  intent: ArticleListKeyboardIntent;
+};
+
+type HandleArticleListKeydownEventParams = UseArticleListKeydownHandlerParams & {
+  event: ReactKeyboardEvent<HTMLDivElement>;
+};
+
 function consumeArticleListKeyEvent(event: ReactKeyboardEvent<HTMLDivElement>) {
   event.preventDefault();
   event.stopPropagation();
@@ -24,6 +38,89 @@ function consumeArticleListKeyEvent(event: ReactKeyboardEvent<HTMLDivElement>) {
 function focusArticleContentOnNextFrame() {
   requestAnimationFrame(() => {
     focusArticleContentTarget();
+  });
+}
+
+function resolveArticleListKeyboardIntentFromEvent(
+  event: ReactKeyboardEvent<HTMLDivElement>,
+  optionTarget: HTMLElement,
+  selectedArticleId: string | null,
+  keyToAction: KeyToActionMap,
+): ArticleListKeyboardIntent | null {
+  const uiState = useUiStore.getState();
+  return resolveArticleListKeyboardIntent({
+    key: event.key,
+    metaKey: event.metaKey,
+    ctrlKey: event.ctrlKey,
+    shiftKey: event.shiftKey,
+    optionTargetTag: optionTarget.tagName,
+    focusedArticleId: optionTarget.dataset.articleId ?? null,
+    selectedArticleId,
+    contentMode: uiState.contentMode,
+    viewMode: uiState.viewMode,
+    keyToAction,
+  });
+}
+
+function executeArticleListKeyboardIntent({
+  intent,
+  selectArticle,
+  clearArticle,
+  toggleSidebar,
+  openSidebar,
+}: ExecuteArticleListKeyboardIntentParams) {
+  if (intent.type === "focus-sidebar") {
+    openSidebar();
+    requestAnimationFrame(() => {
+      focusSelectedSidebarTarget();
+    });
+    return;
+  }
+
+  if (intent.type === "focus-content") {
+    if (intent.articleId) {
+      selectArticle(intent.articleId);
+    }
+    focusArticleContentOnNextFrame();
+    return;
+  }
+
+  handleArticleListKeyboardAction({
+    action: intent.action,
+    clearArticle,
+    toggleSidebar,
+    openSidebar,
+  });
+}
+
+function handleArticleListKeydownEvent({
+  event,
+  selectedArticleId,
+  selectArticle,
+  clearArticle,
+  toggleSidebar,
+  openSidebar,
+  keyToAction,
+}: HandleArticleListKeydownEventParams) {
+  const target = event.target instanceof Element ? event.target : null;
+  const optionTarget = target?.closest<HTMLElement>('[role="option"]') ?? null;
+  if (!optionTarget) {
+    return;
+  }
+
+  const intent = resolveArticleListKeyboardIntentFromEvent(event, optionTarget, selectedArticleId, keyToAction);
+  if (intent === null) {
+    return;
+  }
+
+  consumeArticleListKeyEvent(event);
+  emitDebugInputTrace(`list-key ${event.key} -> ${intent.debugLabel}`);
+  executeArticleListKeyboardIntent({
+    intent,
+    selectArticle,
+    clearArticle,
+    toggleSidebar,
+    openSidebar,
   });
 }
 
@@ -37,74 +134,14 @@ export function useArticleListKeydownHandler({
 }: UseArticleListKeydownHandlerParams) {
   return useCallback(
     (event: ReactKeyboardEvent<HTMLDivElement>) => {
-      const target = event.target instanceof Element ? event.target : null;
-      const optionTarget = target?.closest<HTMLElement>('[role="option"]') ?? null;
-      if (!optionTarget) {
-        return;
-      }
-
-      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-        consumeArticleListKeyEvent(event);
-
-        const direction = event.key === "ArrowDown" ? 1 : -1;
-        emitDebugInputTrace(`list-key ${event.key} -> navigate-article`);
-        handleArticleListKeyboardAction({
-          action: { type: "navigate-article", direction },
-          clearArticle,
-          toggleSidebar,
-          openSidebar,
-        });
-        return;
-      }
-
-      if (event.key === "ArrowLeft") {
-        consumeArticleListKeyEvent(event);
-
-        emitDebugInputTrace("list-key ArrowLeft -> focus-sidebar");
-        openSidebar();
-        requestAnimationFrame(() => {
-          focusSelectedSidebarTarget();
-        });
-        return;
-      }
-
-      if (event.key === "ArrowRight") {
-        consumeArticleListKeyEvent(event);
-
-        emitDebugInputTrace("list-key ArrowRight -> focus-content");
-        const focusedArticleId = optionTarget.dataset.articleId;
-        if (focusedArticleId) {
-          selectArticle(focusedArticleId);
-        }
-        focusArticleContentOnNextFrame();
-        return;
-      }
-
-      const action = resolveKeyboardAction({
-        key: event.key,
-        metaKey: event.metaKey,
-        ctrlKey: event.ctrlKey,
-        shiftKey: event.shiftKey,
-        targetTag: optionTarget.tagName,
+      handleArticleListKeydownEvent({
+        event,
         selectedArticleId,
-        contentMode: useUiStore.getState().contentMode,
-        viewMode: useUiStore.getState().viewMode,
-        keyToAction,
-      });
-
-      if (Result.isFailure(action)) {
-        return;
-      }
-
-      consumeArticleListKeyEvent(event);
-
-      const resolvedAction = Result.unwrap(action);
-      emitDebugInputTrace(`list-key ${event.key} -> ${resolvedAction.type}`);
-      handleArticleListKeyboardAction({
-        action: resolvedAction,
+        selectArticle,
         clearArticle,
         toggleSidebar,
         openSidebar,
+        keyToAction,
       });
     },
     [clearArticle, keyToAction, openSidebar, selectArticle, selectedArticleId, toggleSidebar],
