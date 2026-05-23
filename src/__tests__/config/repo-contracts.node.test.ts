@@ -1596,8 +1596,8 @@ describe("repository static contracts", () => {
     expect(colorRule).toContain("rgba(245, 78, 0, 0.38)");
     expect(colorRule).toContain("var(--gradient-switch-track-off)");
     expect(colorRule).not.toContain("oklch(0.65 0.15 250)");
-    expect(extractCssCustomProperty(globalCss, ":root", "--gradient-switch-track-on")).toBe("var(--color-ring)");
-    expect(extractCssCustomProperty(globalCss, ":root", "--gradient-switch-track-off")).toBe("var(--color-gray-600)");
+    expect(extractCssCustomProperty(globalCss, ":root", "--gradient-switch-track-on")).toBe("var(--color-primary)");
+    expect(extractCssCustomProperty(globalCss, ":root", "--gradient-switch-track-off")).toBe("var(--color-input)");
   });
 
   it("keeps renderStory scoped to Storybook global preview parameters and decorators", () => {

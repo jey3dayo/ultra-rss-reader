@@ -120,6 +120,8 @@ describe("Design-themed shared components", () => {
     expect(screen.getByRole("button", { name: "Unread" })).toHaveAttribute("data-pressed");
     expect(screen.getByRole("switch", { name: "Live preview" })).toHaveClass(
       "bg-[linear-gradient(to_right,var(--gradient-switch-track-on)_35%,var(--gradient-switch-track-off)_65%)]",
+      "[background-position:100%_0%]",
+      "data-checked:[background-position:0%_0%]",
     );
     expect(screen.getByRole("switch", { name: "Live preview" })).toHaveClass(
       "shadow-[var(--gradient-switch-track-shadow)]",

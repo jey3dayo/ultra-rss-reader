@@ -13,8 +13,8 @@ describe("Switch", () => {
     expect(switchControl).toHaveClass("data-[size=default]:h-[18.4px]", "data-[size=default]:w-[32px]");
     expect(thumb).toHaveClass(
       "group-data-[size=default]/switch:size-4",
-      "group-data-[size=default]/switch:data-checked:translate-x-[calc(100%-2px)]",
-      "group-data-[size=default]/switch:data-unchecked:translate-x-0",
+      "data-checked:translate-x-[calc(100%-2px)]",
+      "data-unchecked:translate-x-0",
     );
   });
 
@@ -24,8 +24,8 @@ describe("Switch", () => {
       trackClasses: ["data-[size=default]:h-[18.4px]", "data-[size=default]:w-[32px]"],
       thumbClasses: [
         "group-data-[size=default]/switch:size-4",
-        "group-data-[size=default]/switch:data-checked:translate-x-[calc(100%-2px)]",
-        "group-data-[size=default]/switch:data-unchecked:translate-x-0",
+        "data-checked:translate-x-[calc(100%-2px)]",
+        "data-unchecked:translate-x-0",
       ],
     },
     {
@@ -33,8 +33,8 @@ describe("Switch", () => {
       trackClasses: ["data-[size=sm]:h-[14px]", "data-[size=sm]:w-[24px]"],
       thumbClasses: [
         "group-data-[size=sm]/switch:size-3",
-        "group-data-[size=sm]/switch:data-checked:translate-x-[calc(100%-2px)]",
-        "group-data-[size=sm]/switch:data-unchecked:translate-x-0",
+        "data-checked:translate-x-[calc(100%-2px)]",
+        "data-unchecked:translate-x-0",
       ],
     },
   ])("keeps the $size size contract on the track and thumb", ({ size, trackClasses, thumbClasses }) => {
