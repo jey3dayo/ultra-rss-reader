@@ -267,11 +267,11 @@ Error mapping: `DomainError` â†’ `AppError` at the command boundary (`Network` â
 
 #### Current Sync Consistency Rules
 
-- Remote-state accounts push queued `pending_mutations` before pulling folders, subscriptions, entries, and remote state.
-- Pending mutations are deleted only after `push_mutations()` succeeds; if the push fails, they remain queued for the next sync attempt.
-- When remote state is applied, entries that still have pending local mutations are excluded from overwrite so local intent wins until the queue is drained.
+- Remote-state accounts push queued `pending_mutations` before applying remote state.
+- FreshRSS pending mutations are replayed one item at a time. A successful push is deleted from the queue immediately, while a failed push remains queued and reports a retry warning for the next sync attempt.
+- When remote state is applied, entries that still have pending local mutations and entries pushed successfully in the same sync are excluded from overwrite so local intent wins until the provider catches up.
 - Unread counts are recalculated after the sync flow completes.
-- The current contract treats mutation push as a batch operation. Fine-grained recovery for partial remote success is not implemented yet.
+- FreshRSS API responses are still treated as success or failure per mutation request; there is no deeper provider-specific partial-success detection inside a single edit-tag request.
 
 ### TypeScript Frontend (`src/`)
 
