@@ -15,14 +15,34 @@ This file is the short repository-local workflow guide for agents.
 
 ## Source Of Truth
 
-- Product, architecture, development commands, and verification model: [README.md](README.md).
-- Operational docs and historical records index: [docs/README.md](docs/README.md).
-- Topic-specific engineering rules: [.claude/rules/README.md](.claude/rules/README.md).
-- Visual design rules: [DESIGN.md](DESIGN.md).
-- UI review and abstraction routing: [DESIGN_REVIEW.md](DESIGN_REVIEW.md).
-- RTK command execution policy: [RTK.md](RTK.md).
-- Active work tracking: [TODO.md](TODO.md).
-- Completed user-visible changes: [CHANGELOG.md](CHANGELOG.md).
+Use this table as the Source of Truth Table (SoTT) when deciding where to read or update durable project knowledge.
+Do not duplicate the same fact across documents; update the owning source and keep routers lightweight.
+
+| Target | Source of truth | Use |
+| --- | --- | --- |
+| Agent runtime entry | [AGENTS.md](AGENTS.md) | Thin router for runtimes that read `AGENTS.md` before repository-local guidance |
+| Agent workflow, source routing, and this SoTT | [CLAUDE.md](CLAUDE.md) | Repository-local workflow, quality-gate selection, rule routing, and source ownership |
+| Product scope, setup, usage, architecture overview, and verification scope | [README.md](README.md) | User-facing product overview, development modes, command details, and architecture summary |
+| Operational docs and historical records index | [docs/README.md](docs/README.md) | Entry point for focused operational docs and historical design/planning records |
+| Visual design rules, UX principles, and style-token policy | [DESIGN.md](DESIGN.md) | Durable reusable visual guidance; implementation tokens live in [src/styles/global.css](src/styles/global.css) |
+| UI review and abstraction routing | [DESIGN_REVIEW.md](DESIGN_REVIEW.md) | Review process, shared-vs-local routing, exceptions, and escalation |
+| Runtime coding rules and security-adjacent policy | [.claude/rules/README.md](.claude/rules/README.md) and topic rules | Browser/Tauri boundaries, schemas, async effects, Result placement, preferences, release, and native/runtime rules |
+| UI display messages and translation keys | [src/locales/](src/locales/) and [src/lib/i18n-resources.ts](src/lib/i18n-resources.ts) | i18next locale resources, namespaces, and resource registry; Japanese product copy lives under `src/locales/ja/` |
+| Frontend storage keys and cleanup contracts | [src/constants/storage.ts](src/constants/storage.ts) | localStorage keys, legacy aliases, owners, schema policies, and cleanup policy connections |
+| Frontend runtime validation | [src/schemas/](src/schemas/) | Frontend-owned runtime schemas for app config, localStorage, preferences, and non-IPC validation |
+| Tauri IPC contracts | [src/api/tauri-commands.ts](src/api/tauri-commands.ts), [src/api/schemas/](src/api/schemas/), and [src-tauri/src/commands/](src-tauri/src/commands/) | `safeInvoke` wrappers, request/response schemas, command DTOs, and command-boundary error mapping |
+| SQLite schema and migrations | [src-tauri/src/infra/db/migration.rs](src-tauri/src/infra/db/migration.rs) and [src-tauri/src/infra/db/](src-tauri/src/infra/db/) | Embedded DB schema, migration ordering, connection policy, and SQLite repository implementations |
+| Domain and repository contracts | [src-tauri/src/domain/](src-tauri/src/domain/) and [src-tauri/src/repository/](src-tauri/src/repository/) | Core domain types and data-access trait boundaries |
+| App action IDs and protocol-like markers | [src/lib/app-actions.ts](src/lib/app-actions.ts) and [src/lib/actions.ts](src/lib/actions.ts) | Keyboard, menu, command palette, and dev-scenario action identifiers and execution routing |
+| Build, verification commands, and tool versions | [mise.toml](mise.toml) and [package.json](package.json) | mise tasks, package scripts, package manager version, engines, and toolchain contract |
+| RTK command execution policy | [RTK.md](RTK.md) | Repository command wrapping and noisy-output handling policy |
+| Active work tracking | [TODO.md](TODO.md) | In-progress work, follow-up tasks, known gaps, and TODO triage inputs |
+| Completed user-visible changes | [CHANGELOG.md](CHANGELOG.md) | Completed user-visible changes and release readiness notes |
+| Generated artifacts | `dist/` and `src-tauri/gen/schemas/` | Not source of truth; regenerate from owning source before reviewing or committing artifact drift |
+
+Keep UI display messages, AI/dev prompt text, storage keys, protocol/action markers, and compatibility regex separate.
+Display copy belongs in locale resources, storage keys in storage constants, protocol markers in their action or IPC owners,
+and compatibility regex next to the parser or schema that owns the fallback.
 
 ## Quality Gates
 
