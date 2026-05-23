@@ -1,21 +1,18 @@
 import { useQueryClient } from "@tanstack/react-query";
-import type { TFunction } from "i18next";
-import type { AccountSetupSessionState } from "@/lib/account/account-setup-session.types";
-import type { AccountDetailAccount } from "../../account-detail/types";
 import {
   type AccountDetailCredentialsEditorResult,
   useAccountDetailCredentialsEditor,
 } from "./use-account-detail-credentials-editor";
 import { type AccountDetailDangerZoneResult, useAccountDetailDangerZone } from "./use-account-detail-danger-zone";
 import { type AccountDetailNameEditorResult, useAccountDetailNameEditor } from "./use-account-detail-name-editor";
-import { type AccountDetailSyncControlsResult, useAccountDetailSyncControls } from "./use-account-detail-sync-controls";
+import {
+  type AccountDetailSyncControlsParams,
+  type AccountDetailSyncControlsResult,
+  useAccountDetailSyncControls,
+} from "./use-account-detail-sync-controls";
 
-type AccountDetailControllerParams = {
-  account: AccountDetailAccount;
-  t: TFunction<"settings">;
+type AccountDetailControllerParams = Omit<AccountDetailSyncControlsParams, "queryClient"> & {
   onAccountDeleted: () => void;
-  onSyncStatusChanged?: () => void;
-  accountSetupState?: AccountSetupSessionState | null;
 };
 
 export type AccountDetailControllerResult = AccountDetailNameEditorResult &

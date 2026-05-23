@@ -26,7 +26,7 @@ export type UpdateAccountSyncParams = {
   keepReadItemsDays?: number;
 };
 
-type AccountDetailSyncControlsParams = {
+export type AccountDetailSyncControlsParams = {
   account: AccountDetailAccount;
   queryClient: QueryClient;
   t: TFunction<"settings">;
