@@ -1,3 +1,12 @@
+allowBuilds:
+  esbuild: true
+  msw: true
+minimumReleaseAgeExclude:
+  - '@tanstack/query-core@5.100.13'
+  - '@tanstack/react-query@5.100.13'
+  - date-fns@4.3.0
+  - oxlint-plugin-react-doctor@0.2.3
+  - react-doctor@0.2.3
 supportedArchitectures:
   os:
     - darwin

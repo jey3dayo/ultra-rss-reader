@@ -121,7 +121,7 @@ describe("package scripts", () => {
     const packageJson = readPackageJson();
 
     expect(packageJson.version).toMatch(/^\d+\.\d+\.\d+$/);
-    expect(packageJson.packageManager).toBe("pnpm@10.33.4");
+    expect(packageJson.packageManager).toBe("pnpm@11.2.2");
     expect(packageJson.private).toBe(true);
     expect(packageJson.type).toBe("module");
 
