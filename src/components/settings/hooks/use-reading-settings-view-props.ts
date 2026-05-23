@@ -4,7 +4,7 @@ import { useClearArticleViewHistory } from "@/hooks/use-articles";
 import { useUiStore } from "@/stores/ui-store";
 import { buildReadingSettingsViewProps } from "../lib/reading-settings-view-model";
 import type { ReadingSettingsViewProps } from "../reading-settings-view";
-import type { SettingsPreferenceViewPropsParams } from "../settings-preference.types";
+import type { SettingsPreferenceViewPropsParams } from "../settings-preference";
 
 type UseReadingSettingsViewPropsParams = SettingsPreferenceViewPropsParams & {
   devIntent: DevIntent;

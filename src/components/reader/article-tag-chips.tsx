@@ -3,8 +3,7 @@ import { useTranslation } from "react-i18next";
 import { normalizeTagColorForView } from "@/api/schemas/commands";
 import { useArticleTags, useCreateTag, useTagArticle, useTags, useUntagArticle } from "@/hooks/use-tags";
 import { useUiStore } from "@/stores/ui-store";
-import type { ArticleTagPickerTagView } from "./article-tag-picker.types";
-import { ArticleTagPickerView } from "./article-tag-picker-view";
+import { type ArticleTagPickerTagView, ArticleTagPickerView } from "./article-tag-picker-view";
 
 type ArticleTagChipsProps = {
   articleId: string;

@@ -1,11 +1,11 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, expectTypeOf, it, vi } from "vitest";
-import type {
-  SettingsNavItem,
-  SettingsNavItemId,
-  SettingsNavViewProps,
-} from "@/components/settings/settings-nav.types";
-import { SettingsNavView } from "@/components/settings/settings-nav-view";
+import {
+  type SettingsNavItem,
+  type SettingsNavItemId,
+  SettingsNavView,
+  type SettingsNavViewProps,
+} from "@/components/settings/settings-nav-view";
 import type { SettingsCategory } from "@/lib/settings/settings-category.types";
 
 describe("SettingsNavView", () => {

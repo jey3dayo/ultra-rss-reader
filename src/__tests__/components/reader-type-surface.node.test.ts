@@ -20,11 +20,7 @@ const readerTypeSurfaceFiles = [
   "src/components/reader/sidebar.types.ts",
 ] as const;
 
-const settingsTypeSurfaceFiles = [
-  "src/components/settings/settings-modal.types.ts",
-  "src/components/settings/settings-nav.types.ts",
-  "src/components/settings/settings-page.types.ts",
-] as const;
+const settingsTypeSurfaceFiles = ["src/components/settings/settings-page.types.ts"] as const;
 
 const localOnlyTypeSurfaceFiles = [
   "src/components/reader/article-actions.types.ts",

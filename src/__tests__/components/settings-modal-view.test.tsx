@@ -3,8 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { flushTestResizeObservers } from "@tests/setup";
 import type { ReactNode } from "react";
 import { describe, expect, expectTypeOf, it, vi } from "vitest";
-import type { SettingsModalViewProps } from "@/components/settings/settings-modal.types";
-import { SettingsModalView } from "@/components/settings/settings-modal-view";
+import { SettingsModalView, type SettingsModalViewProps } from "@/components/settings/settings-modal-view";
 import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
 
 function setScrollMetrics(scrollArea: HTMLElement, clientHeight: number, scrollHeight: number) {

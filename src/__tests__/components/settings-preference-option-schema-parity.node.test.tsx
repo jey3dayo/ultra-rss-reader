@@ -7,7 +7,7 @@ import { useAppearanceSettingsViewProps } from "@/components/settings/hooks/use-
 import { useGeneralSettingsViewProps } from "@/components/settings/hooks/use-general-settings-view-props";
 import { useReadingSettingsViewProps } from "@/components/settings/hooks/use-reading-settings-view-props";
 import type { SettingsPageControl, SettingsPageViewProps } from "@/components/settings/settings-page.types";
-import type { SettingsPreferenceViewPropsParams } from "@/components/settings/settings-preference.types";
+import type { SettingsPreferenceViewPropsParams } from "@/components/settings/settings-preference";
 import i18n from "@/lib/i18n";
 import { type KnownPreferenceKey, preferenceSchemas } from "@/schemas/preferences";
 

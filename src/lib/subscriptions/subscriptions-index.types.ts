@@ -3,7 +3,8 @@ import type {
   SubscriptionReviewCandidate,
   SubscriptionReviewTone,
 } from "@/lib/subscriptions/subscription-review-candidates";
-import type { SubscriptionSummaryFilterKey } from "@/lib/subscriptions/subscription-summary-filter.types";
+
+export type SubscriptionSummaryFilterKey = "all" | "review" | "stale";
 
 export type SubscriptionRowStatus =
   | { tone: "neutral"; labelKey: "normal" }

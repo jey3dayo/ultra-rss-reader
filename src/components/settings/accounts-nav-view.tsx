@@ -1,8 +1,27 @@
 import { Plus, Rss } from "lucide-react";
 import { NavRowButton } from "@/components/shared/nav-row-button";
 import { cn } from "@/lib/utils";
-import type { AccountsNavViewProps } from "./accounts-nav.types";
 import { SERVICE_CATEGORIES } from "./add-account/services";
+
+type AccountNavSelectHandler = (accountId: string) => void;
+
+export type AccountNavItem = {
+  id: string;
+  name: string;
+  kind: string;
+  username?: string | null;
+  serverUrl?: string | null;
+  isActive: boolean;
+};
+
+export type AccountsNavViewProps = {
+  accounts: AccountNavItem[];
+  addAccountLabel: string;
+  isAddAccountActive: boolean;
+  onSelectAccount: AccountNavSelectHandler;
+  onAddAccount: () => void;
+  disabled?: boolean;
+};
 
 const ACCOUNT_ICON_BG: Record<string, string> = Object.fromEntries(
   SERVICE_CATEGORIES.flatMap((cat) => cat.services.map((s) => [s.kind.toLowerCase(), s.iconBg])),

@@ -9,9 +9,8 @@ import {
   sanitizeExpandedGroups,
   toggleExpandedGroup,
 } from "@/components/subscriptions-index/lib/subscriptions-index-state-model";
-import type { SubscriptionSummaryFilterKey } from "@/lib/subscriptions/subscription-summary-filter.types";
 import { buildVisibleSubscriptionRows, type SubscriptionSortKey } from "@/lib/subscriptions/subscriptions-index";
-import type { SubscriptionListRow } from "@/lib/subscriptions/subscriptions-index.types";
+import type { SubscriptionListRow, SubscriptionSummaryFilterKey } from "@/lib/subscriptions/subscriptions-index.types";
 import type {
   SubscriptionsWorkspaceExpandedGroupKey,
   SubscriptionsWorkspaceListScrollState,

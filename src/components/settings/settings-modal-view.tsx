@@ -1,6 +1,6 @@
 import { X } from "lucide-react";
+import type { ReactNode } from "react";
 import { useScrollOverflowState } from "@/components/settings/hooks/use-scroll-overflow-state";
-import type { SettingsModalViewProps } from "@/components/settings/settings-modal.types";
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { SettingsContentScrollBehaviorProvider } from "@/components/settings/shared/settings-content-layout";
 import { SettingsShellSectionLabel } from "@/components/settings/shared/settings-shell-section-label";
@@ -10,7 +10,25 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
 import { cn } from "@/lib/utils";
 
-export type { SettingsModalViewProps } from "@/components/settings/settings-modal.types";
+type SettingsModalContentScrollBehavior = "auto" | "always" | "never";
+type SettingsModalOpenChangeHandler = (open: boolean) => void;
+
+export type SettingsModalViewProps = {
+  open: boolean;
+  title: string;
+  closeLabel: string;
+  navigation: ReactNode;
+  accountsHeading?: string;
+  accountsNavigation: ReactNode;
+  content: ReactNode;
+  contentResetKey?: string;
+  contentScrollBehavior?: SettingsModalContentScrollBehavior;
+  isLoading?: boolean;
+  isCloseDisabled?: boolean;
+  lockMessage?: string;
+  onClose: () => void;
+  onOpenChange: SettingsModalOpenChangeHandler;
+};
 
 const HIDDEN_SCROLLBAR_CLASS = "[&>[data-slot='scroll-area-scrollbar']]:hidden";
 

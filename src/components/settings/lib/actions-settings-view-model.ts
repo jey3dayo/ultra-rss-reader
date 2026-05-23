@@ -1,7 +1,7 @@
 import { ARTICLE_TOOLBAR_ACTION_RESOLVER_CONTRACT } from "@/components/reader/article-toolbar-view";
 import type { KnownPreferenceKey } from "@/schemas/preferences";
 import { resolvePreferenceValue } from "@/schemas/preferences";
-import type { SettingsPreferenceViewPropsParams } from "../settings-preference.types";
+import type { SettingsPreferenceViewPropsParams } from "../settings-preference";
 
 export type ToolbarSettingsActionId = "copy-link";
 export type ActionsSettingsServiceId = "action-copy-link";

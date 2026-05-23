@@ -10,7 +10,7 @@ import { resolvePreferenceValue } from "@/schemas/preferences";
 import type { UiStoreState } from "@/stores/ui-store";
 import type { ReadingSettingsViewProps } from "../reading-settings-view";
 import type { SettingsPageSwitchControl } from "../settings-page.types";
-import type { SettingsPreferenceViewPropsParams } from "../settings-preference.types";
+import type { SettingsPreferenceViewPropsParams } from "../settings-preference";
 
 type ClearArticleViewHistoryMutation = {
   isPending: boolean;

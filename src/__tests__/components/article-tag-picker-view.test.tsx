@@ -358,9 +358,7 @@ describe("ArticleTagPickerView", () => {
 
   it("keeps the view independent from the tauri api layer", () => {
     expect(articleTagPickerViewSource).not.toContain("@/api/tauri-commands");
-    expect(articleTagPickerViewSource).toContain(
-      'import type { ArticleTagPickerViewProps } from "./article-tag-picker.types"',
-    );
+    expect(articleTagPickerViewSource).toContain('import type { TagViewItem } from "@/lib/tags.types"');
   });
 
   it("keeps tag picker wrapper refs attached to their native buttons", () => {

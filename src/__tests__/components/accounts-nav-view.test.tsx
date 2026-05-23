@@ -1,7 +1,11 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, expectTypeOf, it, vi } from "vitest";
-import type { AccountNavItem, AccountsNavViewProps } from "@/components/settings/accounts-nav.types";
-import { AccountsNavView, resolveAccountDescription } from "@/components/settings/accounts-nav-view";
+import {
+  type AccountNavItem,
+  AccountsNavView,
+  type AccountsNavViewProps,
+  resolveAccountDescription,
+} from "@/components/settings/accounts-nav-view";
 
 describe("AccountsNavView", () => {
   it("keeps account nav items as navigation view models", () => {

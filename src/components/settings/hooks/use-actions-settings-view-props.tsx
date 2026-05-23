@@ -7,7 +7,7 @@ import {
   buildActionsSettingsViewModel,
   TOOLBAR_ACTION_IDS_WITH_SETTINGS,
 } from "../lib/actions-settings-view-model";
-import type { SettingsPreferenceViewPropsParams } from "../settings-preference.types";
+import type { SettingsPreferenceViewPropsParams } from "../settings-preference";
 
 const ACTIONS_SETTINGS_SERVICE_ICONS: Record<ActionsSettingsServiceId, React.ReactNode> = {
   "action-copy-link": <Copy className="size-5" />,

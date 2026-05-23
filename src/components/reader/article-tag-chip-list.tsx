@@ -1,5 +1,5 @@
 import { TagChip } from "@/components/shared/tag-chip";
-import type { ArticleTagPickerViewProps } from "./article-tag-picker.types";
+import type { ArticleTagPickerViewProps } from "./article-tag-picker-view";
 
 type ArticleTagChipListProps = {
   assignedTags: ArticleTagPickerViewProps["assignedTags"];

@@ -1,6 +1,6 @@
 import type { AccountDto } from "@/api/tauri-commands";
-import type { AccountNavItem } from "@/components/settings/accounts-nav.types";
-import type { SettingsNavItemId } from "@/components/settings/settings-nav.types";
+import type { AccountNavItem } from "@/components/settings/accounts-nav-view";
+import type { SettingsNavItemId } from "@/components/settings/settings-nav-view";
 import type { AddAccountProviderKind } from "@/lib/account/add-account-form";
 import type { SettingsCategory } from "@/lib/settings/settings-category.types";
 

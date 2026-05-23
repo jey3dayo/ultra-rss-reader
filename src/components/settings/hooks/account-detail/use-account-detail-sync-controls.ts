@@ -13,9 +13,10 @@ import {
 } from "@/lib/query/query-invalidation";
 import { resolveSyncFeedbackMessage, summarizeSyncResult } from "@/lib/sync/sync-result-feedback";
 import { getErrorMessage } from "@/lib/ui/errors";
+import type { OptionWithLabel } from "@/lib/ui/options";
 import { useUiStore } from "@/stores/ui-store";
 import { updateCachedAccount } from "../../account-detail/query-cache";
-import type { AccountSelectOption, UpdateAccountSyncParams } from "../../account-detail/sync.types";
+import type { UpdateAccountSyncParams } from "../../account-detail/sync.types";
 import { createAccountDetailErrorToast } from "../../account-detail/toast";
 import type { AccountDetailAccount } from "../../account-detail/types";
 
@@ -34,8 +35,8 @@ export type AccountDetailSyncControlsResult = {
   handleResetDevCredentials: () => Promise<void>;
   syncActionInFlight: boolean;
   devCredentialsRecoveryInFlight: boolean;
-  syncIntervalOptions: AccountSelectOption[];
-  keepReadItemsOptions: AccountSelectOption[];
+  syncIntervalOptions: OptionWithLabel[];
+  keepReadItemsOptions: OptionWithLabel[];
 };
 
 type RunAccountSetupSyncParams = {

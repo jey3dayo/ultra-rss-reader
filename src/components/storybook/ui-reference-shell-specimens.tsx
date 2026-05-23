@@ -1,8 +1,7 @@
 import { AlertTriangle, BookOpen, Check, Clock3, Palette, RefreshCw, Save, Settings2, Share } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { contextMenuStyles } from "@/components/reader/context-menu-styles";
-import type { SettingsNavItem } from "@/components/settings/settings-nav.types";
-import { SettingsNavView } from "@/components/settings/settings-nav-view";
+import { type SettingsNavItem, SettingsNavView } from "@/components/settings/settings-nav-view";
 import { AppToastView } from "@/components/shared/app-toast-view";
 import { StarIcon, UnreadIcon } from "@/components/shared/article-state-icon";
 import { iconToolbarButtonClassName } from "@/components/shared/icon-toolbar-control";

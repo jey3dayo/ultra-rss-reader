@@ -1,4 +1,3 @@
-import type { SubscriptionSummaryFilterKey } from "@/lib/subscriptions/subscription-summary-filter.types";
 import type { SubscriptionsWorkspaceReturnState } from "@/schemas/subscriptions-workspace";
 
 export {
@@ -8,8 +7,6 @@ export {
   type SubscriptionsWorkspaceReturnState,
   SubscriptionsWorkspaceReturnStateSchema,
 } from "@/schemas/subscriptions-workspace";
-
-export type SubscriptionSummaryFilterState = SubscriptionSummaryFilterKey;
 
 export type SubscriptionsWorkspace = {
   kind: "index";

@@ -1,10 +1,36 @@
 import { Plus } from "lucide-react";
 import { useId } from "react";
 import { useArticleTagPickerPopover } from "@/components/reader/hooks/article/use-article-tag-picker-popover";
+import type { TagViewItem } from "@/lib/tags.types";
 import { ArticleTagChipList } from "./article-tag-chip-list";
-import type { ArticleTagPickerViewProps } from "./article-tag-picker.types";
 import { TagPickerTriggerButton } from "./article-tag-picker-buttons";
 import { ArticleTagPickerPopover } from "./article-tag-picker-popover";
+
+export type ArticleTagPickerViewLabels = Readonly<{
+  sectionTitle?: string;
+  sectionHint?: string;
+  addTag: string;
+  availableTags: string;
+  newTagPlaceholder: string;
+  createTag: string;
+  removeTag: (name: string) => string;
+}>;
+
+export type ArticleTagPickerTagView = Readonly<Pick<TagViewItem, "id" | "name" | "color">>;
+
+export type ArticleTagPickerViewProps = Readonly<{
+  assignedTags: readonly ArticleTagPickerTagView[];
+  availableTags: readonly ArticleTagPickerTagView[];
+  newTagName: string;
+  isExpanded: boolean;
+  isCreateTagPending?: boolean;
+  labels: ArticleTagPickerViewLabels;
+  onExpandedChange: (expanded: boolean) => void;
+  onNewTagNameChange: (value: string) => void;
+  onAssignTag: (tagId: string) => void;
+  onRemoveTag: (tagId: string) => void;
+  onCreateTag: (name: string) => void;
+}>;
 
 export function ArticleTagPickerView({
   assignedTags,

@@ -1,7 +1,12 @@
+import type { TFunction } from "i18next";
 import { useMemo } from "react";
 import type { AccountSyncStatusDto } from "@/api/tauri-commands";
 import { formatAccountSyncRetryDateTime } from "@/lib/account/account-sync-status-format";
-import type { AccountDetailSyncStatusTranslator, AccountSyncStatusRow } from "../../account-detail/sync.types";
+import type { AccountSyncStatusRow } from "../../account-detail/sync.types";
+
+type AccountDetailSyncStatusTranslator =
+  | TFunction<"settings">
+  | ((key: string, options?: { count?: number }) => string);
 
 type AccountDetailSyncStatusRowsParams = {
   syncStatus: AccountSyncStatusDto | undefined;

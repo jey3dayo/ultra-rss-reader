@@ -24,7 +24,6 @@ export const remainingTypeSurfaceAllowlist = [
   ]),
   remainingTypeSurface("src/components/reader/article-actions.types.ts", ["ArticleToastActionParams"]),
   remainingTypeSurface("src/components/reader/article-list.types.ts", ["HandleArticleListKeyboardActionParams"]),
-  remainingTypeSurface("src/components/reader/article-tag-picker.types.ts", ["ArticleTagPickerViewProps"]),
   remainingTypeSurface("src/components/reader/browser-view.types.ts", [
     "ResolveBrowserViewPresentationParams",
     "ResolveBrowserViewSurfacePresentationParams",
@@ -113,13 +112,8 @@ export const remainingTypeSurfaceAllowlist = [
     "SidebarViewPropsResult",
   ]),
   remainingTypeSurface("src/components/settings/account-detail/sync.types.ts", ["UpdateAccountSyncParams"]),
-  remainingTypeSurface("src/components/settings/accounts-nav.types.ts", ["AccountsNavViewProps"]),
   remainingTypeSurface("src/components/settings/add-account/services.types.ts"),
-  remainingTypeSurface("src/components/settings/settings-modal.types.ts", ["SettingsModalViewProps"]),
-  remainingTypeSurface("src/components/settings/settings-nav.types.ts", ["SettingsNavViewProps"]),
   remainingTypeSurface("src/components/settings/settings-page.types.ts", ["SettingsPageViewProps"]),
-  remainingTypeSurface("src/components/settings/settings-preference.types.ts", ["SettingsPreferenceViewPropsParams"]),
-  remainingTypeSurface("src/lib/subscriptions/subscription-summary-filter.types.ts"),
   remainingTypeSurface("src/lib/subscriptions/subscriptions-index.types.ts"),
   remainingTypeSurface("src/lib/subscriptions/subscriptions-workspace.types.ts"),
 ] as const;

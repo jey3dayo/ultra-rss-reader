@@ -10,9 +10,8 @@ import {
   type SettingsNavItemModel,
   settingsCategoryByNavId,
 } from "@/components/settings/lib/settings-modal-view-model";
-import type { SettingsModalViewProps } from "@/components/settings/settings-modal.types";
-import type { SettingsNavItem, SettingsNavItemId } from "@/components/settings/settings-nav.types";
-import { SettingsNavView } from "@/components/settings/settings-nav-view";
+import type { SettingsModalViewProps } from "@/components/settings/settings-modal-view";
+import { type SettingsNavItem, type SettingsNavItemId, SettingsNavView } from "@/components/settings/settings-nav-view";
 import type { AddAccountProviderKind } from "@/lib/account/add-account-form";
 import type { SettingsCategory } from "@/lib/settings/settings-category.types";
 
