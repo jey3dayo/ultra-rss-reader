@@ -1,4 +1,4 @@
-export class NodeTestStorage implements Storage {
+class NodeTestStorage implements Storage {
   #data = new Map<string, string>();
 
   get length(): number {

@@ -701,13 +701,14 @@ export const useUiStore = create<UiState & UiActions>()((set, get) => ({
     }),
   handleAccountDeleted: (deletedAccountId, remainingAccountIds) =>
     set((state) => {
-      const fallbackAccountId = getPreferredAccountId(
-        remainingAccountIds
-          .map((accountId) => accountId.trim())
-          .filter((accountId) => accountId.length > 0 && accountId !== deletedAccountId)
-          .map((accountId) => ({ id: accountId })),
-        null,
-      );
+      const fallbackAccountCandidates: Array<{ id: string }> = [];
+      for (const accountId of remainingAccountIds) {
+        const normalizedAccountId = accountId.trim();
+        if (normalizedAccountId.length > 0 && normalizedAccountId !== deletedAccountId) {
+          fallbackAccountCandidates.push({ id: normalizedAccountId });
+        }
+      }
+      const fallbackAccountId = getPreferredAccountId(fallbackAccountCandidates, null);
       const nextState: Partial<UiState> = {};
 
       if (state.selectedAccountId === deletedAccountId) {

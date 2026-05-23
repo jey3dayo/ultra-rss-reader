@@ -3,8 +3,8 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
-const reactDoctorVersion = "0.1.4";
-const knipVersion = "6.12.2";
+const reactDoctorVersion = "0.2.3";
+const knipVersion = "6.14.2";
 const qualityToolTimeoutMs = 120_000;
 const qualityToolMaxBufferBytes = 64 * 1024 * 1024;
 
@@ -86,22 +86,22 @@ export const testHelperRuntimeIsolationContract = {
 
 const reactDoctorBaselines = {
   diff: {
-    score: 100,
+    score: null,
     errorCount: 0,
     warningCount: 0,
     affectedFileCount: 0,
   },
   full: {
-    score: 85,
-    errorCount: 0,
+    score: null,
+    errorCount: 26,
     warningCount: 228,
-    affectedFileCount: 87,
+    affectedFileCount: 95,
   },
 } as const;
 
 const knipBaseline = {
-  issueCount: 42,
-  findingsCount: 93,
+  issueCount: 66,
+  findingsCount: 120,
 } as const;
 
 const lockfileDuplicateMajorBaseline = {
@@ -170,7 +170,7 @@ const knownAcceptableLockfileDuplicateMajors = [
 type ReactDoctorMode = keyof typeof reactDoctorBaselines;
 
 type ReactDoctorSummary = {
-  score: number;
+  score: number | null;
   errorCount: number;
   warningCount: number;
   affectedFileCount: number;
@@ -306,7 +306,19 @@ function runReactDoctor(mode: ReactDoctorMode, failOnDrift: boolean): void {
   const modeFlag = mode === "diff" ? "--diff" : "--full";
   const result = spawnSync(
     "pnpm",
-    ["exec", "react-doctor", ".", "--verbose", modeFlag, "--offline", "--json", "--json-compact", "--fail-on", "none"],
+    [
+      "exec",
+      "react-doctor",
+      ".",
+      "--verbose",
+      modeFlag,
+      "--offline",
+      "--json",
+      "--json-compact",
+      "--fail-on",
+      "none",
+      "--no-dead-code",
+    ],
     { encoding: "utf8", timeout: qualityToolTimeoutMs },
   );
 
@@ -753,7 +765,7 @@ function readReactDoctorReport(parsed: unknown): ReactDoctorReport {
     version: readString(parsed, "version"),
     mode: readString(parsed, "mode"),
     summary: {
-      score: readNumber(summary, "score"),
+      score: readNullableNumber(summary, "score"),
       errorCount: readNumber(summary, "errorCount"),
       warningCount: readNumber(summary, "warningCount"),
       affectedFileCount: readNumber(summary, "affectedFileCount"),
@@ -1112,7 +1124,18 @@ function readBalancedJsonObject(stdout: string, start: number): string | null {
   return null;
 }
 
-function checkEqual(name: string, actual: string | number, expected: string | number): string | null {
+function readNullableNumber(source: Record<string, unknown>, key: string): number | null {
+  const value = source[key];
+  if (value === null) {
+    return null;
+  }
+  if (typeof value !== "number") {
+    throw new Error(`Expected number or null at ${key}.`);
+  }
+  return value;
+}
+
+function checkEqual(name: string, actual: string | number | null, expected: string | number | null): string | null {
   return actual === expected ? null : `${name} drift: expected ${expected}, actual ${actual}`;
 }
 

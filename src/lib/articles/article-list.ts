@@ -223,16 +223,22 @@ export function areArticleListsEquivalent(left: ArticleDto[], right: ArticleDto[
     return false;
   }
 
-  return left.every((article, index) => {
+  for (let index = 0; index < left.length; index += 1) {
+    const article = left[index];
     const candidate = right[index];
-    return (
-      candidate !== undefined &&
-      article.id === candidate.id &&
-      article.is_read === candidate.is_read &&
-      article.is_starred === candidate.is_starred &&
-      article.title === candidate.title
-    );
-  });
+    if (
+      article === undefined ||
+      candidate === undefined ||
+      article.id !== candidate.id ||
+      article.is_read !== candidate.is_read ||
+      article.is_starred !== candidate.is_starred ||
+      article.title !== candidate.title
+    ) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 export type CollectRetainedArticlesFromSourcesParams = {

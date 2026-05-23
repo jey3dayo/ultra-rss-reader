@@ -113,7 +113,7 @@ function readWindowDescriptor(key: "localStorage" | "sessionStorage"): PropertyD
   return typeof window === "undefined" ? undefined : Object.getOwnPropertyDescriptor(window, key);
 }
 
-export function captureBrowserTestStorageDescriptors(): void {
+function captureBrowserTestStorageDescriptors(): void {
   originalWindowLocalStorageDescriptor = readWindowDescriptor("localStorage");
   originalWindowSessionStorageDescriptor = readWindowDescriptor("sessionStorage");
   originalGlobalLocalStorageDescriptor = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
@@ -301,18 +301,6 @@ export function setupBrowserTestDom(options: BrowserTestDomOptions = {}): void {
     dom?.cleanup();
     dom = null;
   });
-}
-
-export async function withTestDom<T>(
-  callback: (dom: BrowserTestDomHandle) => T | Promise<T>,
-  options: BrowserTestDomOptions = {},
-): Promise<T> {
-  const dom = installTestDom(options);
-  try {
-    return await callback(dom);
-  } finally {
-    dom.cleanup();
-  }
 }
 
 captureBrowserTestStorageDescriptors();

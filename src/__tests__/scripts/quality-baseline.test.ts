@@ -82,6 +82,22 @@ describe("quality-baseline", () => {
     });
   });
 
+  it("accepts React Doctor offline reports without score output", () => {
+    const output =
+      '{"version":"0.2.3","mode":"diff","summary":{"score":null,"errorCount":0,"warningCount":0,"affectedFileCount":0}}';
+
+    expect(parseReactDoctorReport(output)).toEqual({
+      version: "0.2.3",
+      mode: "diff",
+      summary: {
+        score: null,
+        errorCount: 0,
+        warningCount: 0,
+        affectedFileCount: 0,
+      },
+    });
+  });
+
   it("reads the Knip report after unrelated JSON objects", () => {
     const output = '{"event":"start"}\n{"issues":[]}';
 

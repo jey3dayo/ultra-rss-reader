@@ -10,7 +10,7 @@ import { cancelAnimationFrameHandle, scheduleAnimationFrame } from "@/lib/dom/an
 import { queryElementByDataAttribute } from "@/lib/dom/data-attribute";
 import { focusSelectedAccountPaneTarget, scheduleReaderFocusFrame } from "@/lib/reader-focus";
 import { useUiStore } from "@/stores/ui-store";
-import { focusAccountItem } from "../../account-switcher-menu";
+import { focusAccountItem } from "../../account-switcher-focus";
 import type { SidebarControllerResult } from "../../sidebar.types";
 
 export function useSidebarController(): SidebarControllerResult {

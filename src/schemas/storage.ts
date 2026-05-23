@@ -12,6 +12,7 @@ import {
 
 const CONTROL_CHARACTER_RANGES = "\\u0000-\\u001F\\u007F-\\u009F";
 const CONTROL_CHARACTERS_PATTERN = new RegExp(`[${CONTROL_CHARACTER_RANGES}]`, "g");
+const storageGraphemeSegmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
 
 function normalizeStoredIdentity(value: string): string {
   return value.replace(CONTROL_CHARACTERS_PATTERN, "").trim();
@@ -22,10 +23,9 @@ function truncateAtGraphemeBoundary(value: string, maxCodeUnits: number): string
     return value;
   }
 
-  const segmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
   let truncated = "";
 
-  for (const { segment } of segmenter.segment(value)) {
+  for (const { segment } of storageGraphemeSegmenter.segment(value)) {
     if (truncated.length + segment.length > maxCodeUnits) {
       break;
     }

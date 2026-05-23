@@ -230,7 +230,7 @@ function findDuplicateRegistryValues<TValue extends string>(values: Iterable<TVa
     seen.add(value);
   }
 
-  return [...duplicates].sort();
+  return Array.from(duplicates).toSorted();
 }
 
 export function createDevScenarioRegistryIndex(scenarios: readonly DevScenario[]): DevScenarioRegistryIndex {

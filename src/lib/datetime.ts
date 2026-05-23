@@ -183,6 +183,6 @@ export function formatMediumDateOrDash(value: DateInput, locale?: string): strin
   return formatMediumDateOrFallback(value, locale, "—");
 }
 
-export function formatMediumDateOrFallback(value: DateInput, locale: string | undefined, fallback: string): string {
+function formatMediumDateOrFallback(value: DateInput, locale: string | undefined, fallback: string): string {
   return formatMediumDate(value, locale) ?? fallback;
 }

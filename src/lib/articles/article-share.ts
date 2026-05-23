@@ -6,13 +6,14 @@ import { normalizeArticleExternalBrowserUrl } from "@/lib/articles/article-actio
 const MAILTO_FALLBACK_SUBJECT = "Untitled article";
 const MAILTO_SUBJECT_MAX_LENGTH = 160;
 const MAILTO_BODY_MAX_LENGTH = SHARE_COMMAND_TEXT_MAX_CHARS;
+const mailtoGraphemeSegmenter =
+  typeof Intl.Segmenter === "function" ? new Intl.Segmenter(undefined, { granularity: "grapheme" }) : null;
 
 function truncateGraphemes(value: string, maxGraphemes: number) {
-  if (typeof Intl.Segmenter === "function") {
-    const segmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+  if (mailtoGraphemeSegmenter !== null) {
     let result = "";
     let count = 0;
-    for (const { segment } of segmenter.segment(value)) {
+    for (const { segment } of mailtoGraphemeSegmenter.segment(value)) {
       if (count >= maxGraphemes) {
         break;
       }

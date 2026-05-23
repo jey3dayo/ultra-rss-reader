@@ -1,7 +1,8 @@
 import type { RefObject } from "react";
 import type { AccountDto } from "@/api/tauri-commands";
+import { focusAccountItem } from "@/components/reader/account-switcher-focus";
 import { NavRowButton } from "@/components/shared/nav-row-button";
-import { focusRovingButton, getActiveRovingButtonIndex } from "@/lib/dom/roving-focus";
+import { getActiveRovingButtonIndex } from "@/lib/dom/roving-focus";
 import { focusSelectedSidebarTarget } from "@/lib/reader-focus";
 import { cn } from "@/lib/utils";
 
@@ -18,14 +19,6 @@ type AccountSwitcherMenuProps = {
 
 function shouldShowKindLabel(name: string, kind: string): boolean {
   return name.trim().toLocaleLowerCase() !== kind.trim().toLocaleLowerCase();
-}
-
-export function focusAccountItem(
-  itemRefs: RefObject<Array<HTMLButtonElement | null>>,
-  accountsLength: number,
-  index: number,
-) {
-  focusRovingButton(itemRefs, accountsLength, index);
 }
 
 export function AccountSwitcherMenu({
@@ -46,6 +39,7 @@ export function AccountSwitcherMenu({
       data-open=""
       data-side="bottom"
       aria-label={menuLabel}
+      tabIndex={-1}
       className="motion-popup-surface absolute top-full left-0 z-50 min-w-[200px] rounded-xl bg-surface-2/90 p-1 shadow-elevation-2"
       onKeyDown={(e) => {
         if (!accounts.length) return;
@@ -96,7 +90,6 @@ export function AccountSwitcherMenu({
             }}
             role="menuitemradio"
             aria-checked={account.id === selectedAccountId}
-            aria-pressed={account.id === selectedAccountId}
             className={cn(
               "w-full rounded-md px-3 py-2 text-left text-sm shadow-none focus-visible:ring-0",
               account.id === selectedAccountId

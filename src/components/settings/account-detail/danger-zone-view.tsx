@@ -55,6 +55,7 @@ export function AccountDangerZoneView({
             data-testid="opml-import-input"
             type="file"
             accept=".opml,.xml"
+            aria-label={importLabel}
             className="hidden"
             tabIndex={-1}
             onChange={handleImportFileChange}
