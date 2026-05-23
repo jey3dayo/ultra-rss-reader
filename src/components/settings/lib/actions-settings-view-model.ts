@@ -3,7 +3,7 @@ import type { KnownPreferenceKey } from "@/schemas/preferences";
 import { resolvePreferenceValue } from "@/schemas/preferences";
 import type { SettingsPreferenceViewPropsParams } from "../settings-preference";
 
-export type ToolbarSettingsActionId = "copy-link";
+type ToolbarSettingsActionId = "copy-link";
 export type ActionsSettingsServiceId = "action-copy-link";
 
 type ActionsSettingsServiceEntry = {
@@ -13,7 +13,7 @@ type ActionsSettingsServiceEntry = {
   labelKey: "actions.copy_link";
 };
 
-export type ActionsSettingsServiceViewModel = {
+type ActionsSettingsServiceViewModel = {
   id: ActionsSettingsServiceId;
   label: string;
   toggleAriaLabel: string;
@@ -41,9 +41,16 @@ export const ACTIONS_SETTINGS_TOOLBAR_ACTION_IDS = ACTIONS_SETTINGS_SERVICE_ENTR
   (service) => service.toolbarActionId,
 );
 
-export const TOOLBAR_ACTION_IDS_WITH_SETTINGS = ARTICLE_TOOLBAR_ACTION_RESOLVER_CONTRACT.filter((action) =>
-  ACTIONS_SETTINGS_TOOLBAR_ACTION_IDS.includes(action.actionId as ToolbarSettingsActionId),
-).map((action) => action.actionId);
+export const TOOLBAR_ACTION_IDS_WITH_SETTINGS = ARTICLE_TOOLBAR_ACTION_RESOLVER_CONTRACT.reduce<string[]>(
+  (actionIds, action) => {
+    if (ACTIONS_SETTINGS_TOOLBAR_ACTION_IDS.includes(action.actionId as ToolbarSettingsActionId)) {
+      actionIds.push(action.actionId);
+    }
+
+    return actionIds;
+  },
+  [],
+);
 
 export function buildActionsSettingsViewModel({
   t,

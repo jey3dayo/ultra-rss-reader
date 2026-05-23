@@ -12,7 +12,7 @@ import {
   OPEN_WEB_PREVIEW_URL_SCENARIO_REPLAY_DELAY_MS,
   OPEN_WEB_PREVIEW_URL_SCENARIO_REPLAY_LATE_DELAY_MS,
 } from "@/dev/scenarios/constants";
-import type { DevScenario, DevScenarioContext, DevScenarioId } from "@/dev/scenarios/types";
+import type { DevScenarioContext } from "@/dev/scenarios/types";
 import { tagQueryKeys } from "@/hooks/use-tags";
 import { resolveFeedLandingArticle } from "@/lib/feed/feed-landing";
 import { queryKeys } from "@/lib/query/query-invalidation";
@@ -49,12 +49,6 @@ const OPEN_WEB_PREVIEW_URL_REPLAY_DELAYS_MS = [
 
 let openWebPreviewUrlReplayGeneration = 0;
 let openWebPreviewUrlReplayTimerIds: number[] = [];
-
-export function createUnsupportedDevScenarioRunner(id: DevScenarioId): DevScenario["run"] {
-  return ({ ui }) => {
-    ui.showToast(`Dev scenario "${id}" is not implemented yet.`);
-  };
-}
 
 export function cancelOpenWebPreviewUrlScenarioReplay(): void {
   openWebPreviewUrlReplayGeneration += 1;
@@ -563,7 +557,7 @@ export async function runOpenTagViewScenario(ctx: DevScenarioContext): Promise<v
 }
 
 function rankPreferredDevFeeds(feeds: FeedDto[]): FeedDto[] {
-  return [...feeds].sort((left, right) => scorePreferredDevFeed(right) - scorePreferredDevFeed(left));
+  return feeds.toSorted((left, right) => scorePreferredDevFeed(right) - scorePreferredDevFeed(left));
 }
 
 function scorePreferredDevFeed(feed: FeedDto): number {

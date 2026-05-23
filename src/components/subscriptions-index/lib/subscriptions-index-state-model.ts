@@ -42,11 +42,11 @@ export function applySelectedFeedDecision(params: {
   };
 }
 
-export function namespaceExpandedGroupKey(groupKey: string): SubscriptionsWorkspaceExpandedGroupKey {
+function namespaceExpandedGroupKey(groupKey: string): SubscriptionsWorkspaceExpandedGroupKey {
   return `${EXPANDED_GROUP_KEY_PREFIX}${groupKey}`;
 }
 
-export function isExpandedGroupKey(groupKey: string): groupKey is SubscriptionsWorkspaceExpandedGroupKey {
+function isExpandedGroupKey(groupKey: string): groupKey is SubscriptionsWorkspaceExpandedGroupKey {
   return groupKey.startsWith(EXPANDED_GROUP_KEY_PREFIX);
 }
 

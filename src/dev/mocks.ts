@@ -70,7 +70,7 @@ type DevMockDiagnostic = {
 type DevMockDiagnosticsWindow = Window & {
   __ULTRA_RSS_DEV_MOCK_DIAGNOSTICS__?: DevMockDiagnostic[];
 };
-export type DevMockExternalOpen = {
+type DevMockExternalOpen = {
   command: "open_in_browser" | "plugin:opener|open_url" | "add_to_reading_list";
   url: string;
   target: "_blank" | "reading-list";
@@ -481,12 +481,18 @@ export function setupDevMocks(): RestoreDevMocks {
         const { accountId } = parseBrowserMockArgs("delete_account", rawIpcPayload);
         const idx = mockAccounts.findIndex((a) => a.id === accountId);
         if (idx >= 0) mockAccounts.splice(idx, 1);
-        const removedFeedIds = new Set(
-          mockFeeds.filter((feed) => feed.account_id === accountId).map((feed) => feed.id),
-        );
-        const removedArticleIds = new Set(
-          mockArticles.filter((article) => removedFeedIds.has(article.feed_id)).map((article) => article.id),
-        );
+        const removedFeedIds = new Set<string>();
+        for (const feed of mockFeeds) {
+          if (feed.account_id === accountId) {
+            removedFeedIds.add(feed.id);
+          }
+        }
+        const removedArticleIds = new Set<string>();
+        for (const article of mockArticles) {
+          if (removedFeedIds.has(article.feed_id)) {
+            removedArticleIds.add(article.id);
+          }
+        }
         for (let i = mockFolders.length - 1; i >= 0; i -= 1) {
           if (mockFolders[i]?.account_id === accountId) {
             mockFolders.splice(i, 1);
@@ -722,7 +728,12 @@ export function setupDevMocks(): RestoreDevMocks {
 
       case "unstar_account_articles": {
         const { accountId } = parseBrowserMockArgs("unstar_account_articles", rawIpcPayload);
-        const feedIds = new Set(mockFeeds.filter((feed) => feed.account_id === accountId).map((feed) => feed.id));
+        const feedIds = new Set<string>();
+        for (const feed of mockFeeds) {
+          if (feed.account_id === accountId) {
+            feedIds.add(feed.id);
+          }
+        }
         for (const article of mockArticles) {
           if (feedIds.has(article.feed_id)) {
             article.is_starred = false;
@@ -748,25 +759,25 @@ export function setupDevMocks(): RestoreDevMocks {
         } = parseBrowserMockArgs("list_recent_articles", rawIpcPayload);
         const feedIds = collectFeedIdsByAccount(accountId);
         const articleById = new Map(mockArticles.map((article) => [article.id, article]));
-        const articles = mockArticleViewHistory
-          .filter((item) => item.accountId === accountId)
-          .map((item): ArticleDto | null => {
-            const article = articleById.get(item.articleId);
-            if (!article || !feedIds.has(article.feed_id)) {
-              return null;
-            }
-            return { ...article, viewed_at: item.viewedAt };
-          })
-          .filter((article): article is ArticleDto => article !== null)
-          .filter((article) => {
-            if (mode === "unread") {
-              return !article.is_read;
-            }
-            if (mode === "starred") {
-              return article.is_starred;
-            }
-            return true;
-          });
+        const articles: ArticleDto[] = [];
+        for (const item of mockArticleViewHistory) {
+          if (item.accountId !== accountId) {
+            continue;
+          }
+
+          const article = articleById.get(item.articleId);
+          if (!article || !feedIds.has(article.feed_id)) {
+            continue;
+          }
+          if (mode === "unread" && article.is_read) {
+            continue;
+          }
+          if (mode === "starred" && !article.is_starred) {
+            continue;
+          }
+
+          articles.push({ ...article, viewed_at: item.viewedAt });
+        }
         return cloneMockResponse(applyMuteKeywordFilter(articles).slice(offset, offset + limit));
       }
 
@@ -794,7 +805,7 @@ export function setupDevMocks(): RestoreDevMocks {
       }
 
       case "list_mute_keywords":
-        return cloneMockResponse([...mockMuteKeywords].sort((a, b) => b.created_at.localeCompare(a.created_at)));
+        return cloneMockResponse(mockMuteKeywords.toSorted((a, b) => b.created_at.localeCompare(a.created_at)));
 
       case "create_mute_keyword": {
         const { keyword, scope } = parseBrowserMockArgs("create_mute_keyword", rawIpcPayload);
@@ -917,7 +928,12 @@ export function setupDevMocks(): RestoreDevMocks {
 
       case "mark_folder_read": {
         const { folderId } = parseBrowserMockArgs("mark_folder_read", rawIpcPayload);
-        const folderFeedIds = new Set(mockFeeds.filter((f) => f.folder_id === folderId).map((f) => f.id));
+        const folderFeedIds = new Set<string>();
+        for (const feed of mockFeeds) {
+          if (feed.folder_id === folderId) {
+            folderFeedIds.add(feed.id);
+          }
+        }
         for (const art of mockArticles) {
           if (folderFeedIds.has(art.feed_id)) art.is_read = true;
         }

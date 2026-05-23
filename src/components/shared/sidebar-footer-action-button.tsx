@@ -3,7 +3,7 @@ import type { ComponentProps, ReactNode } from "react";
 import { AppTooltip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
-export const sidebarFooterActionButtonClassName = cn(
+const sidebarFooterActionButtonClassName = cn(
   "motion-interactive-surface inline-flex h-8 shrink-0 items-center justify-center rounded-md border-0 bg-transparent text-[var(--sidebar-foreground-muted-strong)] shadow-none outline-none select-none transition-none",
   "hover:bg-[var(--sidebar-hover-surface)] hover:text-[var(--sidebar-selection-foreground)]",
   "focus-visible:border-[var(--sidebar-divider-strong)] focus-visible:bg-[var(--sidebar-hover-surface)] focus-visible:ring-0",

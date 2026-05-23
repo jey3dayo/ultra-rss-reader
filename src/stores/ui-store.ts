@@ -14,6 +14,7 @@ import type {
   LayoutMode,
   PendingBrowserCloseAction,
 } from "@/lib/layout/layout-state.types";
+import type { ReaderQuerySelection } from "@/lib/reader/reader-query";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
 import type { SettingsCategory } from "@/lib/settings/settings-category.types";
 import type { SmartViewKind } from "@/lib/sidebar/smart-view.types";
@@ -24,23 +25,12 @@ import {
 } from "@/schemas/subscriptions-workspace";
 import { TOAST_AUTO_DISMISS_TIMEOUT_MS } from "../constants/ui-runtime";
 
-type UiStoreFeedSelection = { type: "feed"; feedId: string };
-type UiStoreFolderSelection = { type: "folder"; folderId: string };
-type UiStoreSmartSelection = { type: "smart"; kind: SmartViewKind };
-type UiStoreTagSelection = { type: "tag"; tagId: string };
-type UiStoreAllSelection = { type: "all" };
-
-export type UiStoreReaderSelection =
-  | UiStoreFeedSelection
-  | UiStoreFolderSelection
-  | UiStoreSmartSelection
-  | UiStoreTagSelection
-  | UiStoreAllSelection;
+export type UiStoreReaderSelection = ReaderQuerySelection;
 
 let toastTimer: ReturnType<typeof setTimeout> | null = null;
 let toastAnnouncementId = 0;
 
-export type ToastAnnouncement = {
+type ToastAnnouncement = {
   id: number;
   message: string;
 };

@@ -102,10 +102,7 @@ function shouldRedactDebugInputKey(key: string, target: EventTarget | null, targ
   return key.length <= PRINTABLE_KEY_MAX_LENGTH || key === "Space" || key === "Unidentified";
 }
 
-export function sanitizeDebugInputTraceTargetDescription(
-  targetDescription: string,
-  target?: EventTarget | null,
-): string {
+function sanitizeDebugInputTraceTargetDescription(targetDescription: string, target?: EventTarget | null): string {
   if (!isSensitiveDebugInputTarget(target ?? null, targetDescription)) {
     return targetDescription;
   }

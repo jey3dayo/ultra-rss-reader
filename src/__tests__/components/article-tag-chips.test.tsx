@@ -5,11 +5,8 @@ import { createWrapper } from "@tests/helpers/create-wrapper";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { describe, expect, it } from "vitest";
 import type { AppError } from "@/api/tauri-commands";
-import {
-  ArticleTagChips,
-  buildArticleTagPickerLists,
-  findArticleTagByName,
-} from "@/components/reader/article-tag-chips";
+import { ArticleTagChips } from "@/components/reader/article-tag-chips";
+import { buildArticleTagPickerLists, findArticleTagByName } from "@/components/reader/article-tag-chips-model";
 import { useUiStore } from "@/stores/ui-store";
 
 describe("ArticleTagChips", () => {

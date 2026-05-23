@@ -6,7 +6,7 @@ import { ArticleTagChipList } from "./article-tag-chip-list";
 import { TagPickerTriggerButton } from "./article-tag-picker-buttons";
 import { ArticleTagPickerPopover } from "./article-tag-picker-popover";
 
-export type ArticleTagPickerViewLabels = Readonly<{
+type ArticleTagPickerViewLabels = Readonly<{
   sectionTitle?: string;
   sectionHint?: string;
   addTag: string;

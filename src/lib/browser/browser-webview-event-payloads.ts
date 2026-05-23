@@ -80,7 +80,7 @@ export function parseBrowserWebviewDiagnosticsPayload(
   return parseBrowserWebviewPayload(BrowserWebviewDiagnosticsPayloadSchema, payload);
 }
 
-export function malformedPayloadSummary(payload: unknown) {
+function malformedPayloadSummary(payload: unknown) {
   if (Array.isArray(payload)) {
     return "array";
   }
@@ -93,7 +93,7 @@ export function malformedPayloadSummary(payload: unknown) {
   return typeof payload;
 }
 
-export function malformedPayloadIssueSummary(error: SchemaParseError) {
+function malformedPayloadIssueSummary(error: SchemaParseError) {
   return error.issues
     .map((issue) => `${issue.code}:${issue.path.length > 0 ? issue.path.join(".") : "<root>"}`)
     .toSorted()

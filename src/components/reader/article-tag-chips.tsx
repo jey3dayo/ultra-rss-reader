@@ -1,9 +1,9 @@
 import { useReducer } from "react";
 import { useTranslation } from "react-i18next";
-import { normalizeTagColorForView } from "@/api/schemas/commands";
 import { useArticleTags, useCreateTag, useTagArticle, useTags, useUntagArticle } from "@/hooks/use-tags";
 import { useUiStore } from "@/stores/ui-store";
-import { type ArticleTagPickerTagView, ArticleTagPickerView } from "./article-tag-picker-view";
+import { buildArticleTagPickerLists, findArticleTagByName } from "./article-tag-chips-model";
+import { ArticleTagPickerView } from "./article-tag-picker-view";
 
 type ArticleTagChipsProps = {
   articleId: string;
@@ -37,70 +37,12 @@ function articleTagChipsReducer(state: ArticleTagChipsState, action: ArticleTagC
   }
 }
 
-function toArticleTagPickerTagView(tag: { id: string; name: string; color: string | null }): ArticleTagPickerTagView {
-  return {
-    id: tag.id,
-    name: tag.name,
-    color: normalizeTagColorForView(tag.color),
-  };
-}
-
-function normalizeArticleTagNameForMatch(name: string): string {
-  return name.trim().toLocaleLowerCase();
-}
-
 function toArticleTagAssignErrorMessage(error: unknown): string {
   if (typeof error === "object" && error !== null && "message" in error && typeof error.message === "string") {
     return error.message;
   }
 
   return String(error);
-}
-
-export function findArticleTagByName(
-  tags: Array<{ id: string; name: string; color: string | null }> | undefined,
-  name: string,
-): { id: string; name: string; color: string | null } | null {
-  const normalizedName = normalizeArticleTagNameForMatch(name);
-  if (!normalizedName) {
-    return null;
-  }
-
-  return tags?.find((tag) => normalizeArticleTagNameForMatch(tag.name) === normalizedName) ?? null;
-}
-
-export function buildArticleTagPickerLists(params: {
-  articleTags: Array<{ id: string; name: string; color: string | null }> | undefined;
-  allTags: Array<{ id: string; name: string; color: string | null }> | undefined;
-}): {
-  assignedTags: ArticleTagPickerTagView[];
-  availableTags: ArticleTagPickerTagView[];
-} {
-  const { articleTags, allTags } = params;
-  const tagsLength = Math.max(articleTags?.length ?? 0, allTags?.length ?? 0);
-  const activeTagIds = allTags ? new Set(allTags.map((tag) => tag.id).filter((tagId) => tagId.length > 0)) : null;
-  const assignedTagIds = new Set<string>();
-  const assignedTags: ArticleTagPickerTagView[] = [];
-  const availableTagsById = new Map<string, ArticleTagPickerTagView>();
-
-  for (let index = 0; index < tagsLength; index += 1) {
-    const articleTag = articleTags?.[index];
-    if (articleTag?.id && activeTagIds?.has(articleTag.id) !== false && !assignedTagIds.has(articleTag.id)) {
-      assignedTagIds.add(articleTag.id);
-      assignedTags.push(toArticleTagPickerTagView(articleTag));
-      availableTagsById.delete(articleTag.id);
-    }
-
-    const availableTag = allTags?.[index];
-    if (availableTag?.id && !assignedTagIds.has(availableTag.id) && !availableTagsById.has(availableTag.id)) {
-      availableTagsById.set(availableTag.id, toArticleTagPickerTagView(availableTag));
-    }
-  }
-
-  return {
-    assignedTags,
-    availableTags: Array.from(availableTagsById.values()),
-  };
 }
 
 export function ArticleTagChips({ articleId }: ArticleTagChipsProps) {

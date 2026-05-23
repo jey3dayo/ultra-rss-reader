@@ -235,18 +235,24 @@ function findDuplicateRegistryValues<TValue extends string>(values: Iterable<TVa
 
 export function createDevScenarioRegistryIndex(scenarios: readonly DevScenario[]): DevScenarioRegistryIndex {
   const stableScenarios = [...scenarios];
+  const duplicateKeywordsByScenarioId: DevScenarioRegistryIndex["duplicateKeywordsByScenarioId"] = [];
+  for (const scenario of stableScenarios) {
+    const duplicates = findDuplicateRegistryValues(scenario.keywords);
+    if (duplicates.length > 0) {
+      duplicateKeywordsByScenarioId.push({
+        id: scenario.id,
+        duplicates,
+      });
+    }
+  }
+
   return {
     scenarios: stableScenarios,
     scenarioById: new Map(stableScenarios.map((scenario) => [scenario.id, scenario])),
     ids: new Set(stableScenarios.map((scenario) => scenario.id)),
     duplicateIds: findDuplicateRegistryValues(stableScenarios.map((scenario) => scenario.id)),
     duplicateTitles: findDuplicateRegistryValues(stableScenarios.map((scenario) => scenario.title)),
-    duplicateKeywordsByScenarioId: stableScenarios
-      .map((scenario) => ({
-        id: scenario.id,
-        duplicates: findDuplicateRegistryValues(scenario.keywords),
-      }))
-      .filter(({ duplicates }) => duplicates.length > 0),
+    duplicateKeywordsByScenarioId,
   };
 }
 
