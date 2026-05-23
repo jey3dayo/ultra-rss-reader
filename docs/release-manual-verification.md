@@ -511,6 +511,7 @@ Confirm before a release that changes Tauri configuration, signing, keyring beha
 
 - The intended macOS sandbox mode and entitlements are documented in the release plan.
 - Network access is limited to the app's RSS/provider, update, favicon, article media, and Web Preview behavior described by current product policy.
+- Remote-content privacy checks record reader sanitized-body images, reader thumbnails, feed favicons, and Web Preview page loading as separate results.
 - File access remains user-initiated or app-owned unless a reviewed feature explicitly needs broader paths.
 - Native file dialogs apply the same extension, cancel, directory, and overwrite-confirmation policy across OPML import/export and database backup/restore flows.
 - Log, backup, export, settings, and dev credential recovery surfaces follow the same filesystem contract: native path normalization at the boundary, no raw app-owned recovery paths exposed to the webview, and temporary-file-then-rename writes where the surface writes a recoverable artifact.

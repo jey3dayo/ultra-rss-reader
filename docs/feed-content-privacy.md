@@ -913,7 +913,7 @@ Recommended order:
 Use this preflight before changing CSP, reader image loading, Web Preview,
 sanitized article rendering, or support copy that describes those surfaces. The
 goal is to keep the current compatibility-first product decision explicit while
-leaving unresolved threat-model decisions in
+preserving the compatibility-first threat-model decision recorded in
 [#33 Define feed-content privacy and CSP tightening threat model](https://github.com/jey3dayo/ultra-rss-reader/issues/33).
 
 ### Decide Before Implementation
@@ -949,10 +949,13 @@ leaving unresolved threat-model decisions in
   was verified. Do not claim reader mode is offline, tracker-free, or private
   browsing while remote images remain allowed by default.
 
-### Escalate To #33
+### Open A Focused Follow-Up
 
-Escalate to #33 instead of deciding inside the implementation when any of these
-are true:
+Issue #33 keeps the default policy compatibility-first: reader remote images and
+Web Preview frames remain allowed by default, app scripts remain locked to
+`script-src 'self'`, and reader mode must not be described as offline,
+tracker-free, or private browsing. Open a new focused issue instead of deciding
+inside an implementation when any of these are true:
 
 - The change would redefine the threat model for IP address, user agent,
   request timing, path/query disclosure, cookies, referrers, or third-party
