@@ -1,8 +1,7 @@
-import { Result } from "@praha/byethrow";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useRef } from "react";
-import { type AccountDto, listAccounts, syncAccount, triggerStartupSync } from "./api/tauri-commands";
+import { listAccounts, syncAccount, triggerStartupSync } from "./api/tauri-commands";
 import { AppShell } from "./components/app-shell";
 import { APP_HIDDEN_DURATION_SYNC_THRESHOLD_MS } from "./constants/ui-runtime";
 import { useDevIntent } from "./dev/use-dev-intent";
@@ -12,21 +11,15 @@ import { queryClient } from "./lib/query/query-client";
 import { invalidateSyncCompletedQueries } from "./lib/query/query-invalidation";
 import { logRuntimeDiagnostic } from "./lib/runtime/diagnostics";
 import { attachTauriListeners } from "./lib/runtime/tauri-event-listeners";
+import {
+  extractSyncOnWakeAccountIds,
+  logStartupSyncResult,
+  logSyncOnWakeAccountResult,
+  readSyncOnWakeAccountsResult,
+} from "./lib/sync/app-sync-results";
 import { markStartupSyncTriggered, shouldThrottleStartupSync } from "./lib/sync/startup-sync-storage";
 import { usePreferencesStore } from "./stores/preferences-store";
 import { useUiStore } from "./stores/ui-store";
-
-function extractSyncOnWakeAccountIds(accounts: AccountDto[]): string[] {
-  const accountIds: string[] = [];
-
-  for (const account of accounts) {
-    if (account.sync_on_wake) {
-      accountIds.push(account.id);
-    }
-  }
-
-  return accountIds;
-}
 
 function AppInner() {
   const loadPreferences = usePreferencesStore((s) => s.loadPreferences);
@@ -54,14 +47,7 @@ function AppInner() {
     startupSyncRequested.current = true;
     markStartupSyncTriggered(undefined, undefined, startupSyncAccountId);
     void triggerStartupSync(startupSyncAccountId)
-      .then((result) =>
-        Result.pipe(
-          result,
-          Result.inspectError((error) => {
-            logRuntimeDiagnostic("startup-sync", "Startup sync failed:", error);
-          }),
-        ),
-      )
+      .then(logStartupSyncResult)
       .catch((error: unknown) => {
         logRuntimeDiagnostic("startup-sync", "Startup sync rejected:", error);
       });
@@ -91,16 +77,11 @@ function AppInner() {
         return;
       }
 
-      if (Result.isFailure(accountsResult)) {
-        logRuntimeDiagnostic(
-          "sync-on-wake",
-          "Sync on wake failed to list accounts:",
-          Result.unwrapError(accountsResult),
-        );
+      const accounts = readSyncOnWakeAccountsResult(accountsResult);
+      if (accounts === null) {
         return;
       }
 
-      const accounts = Result.unwrap(accountsResult);
       const syncOnWakeAccountIds = extractSyncOnWakeAccountIds(accounts);
       const syncResults = await Promise.allSettled(
         syncOnWakeAccountIds.map(async (accountId) => ({
@@ -108,20 +89,19 @@ function AppInner() {
           result: await syncAccount(accountId),
         })),
       );
-      if (!isCurrentRun()) {
-        return;
-      }
 
       for (const syncResult of syncResults) {
+        if (!isCurrentRun()) {
+          break;
+        }
+
         if (syncResult.status === "rejected") {
           logRuntimeDiagnostic("sync-on-wake", "Sync on wake rejected:", syncResult.reason);
           continue;
         }
 
         const { accountId, result } = syncResult.value;
-        if (Result.isFailure(result)) {
-          logRuntimeDiagnostic("sync-on-wake", "Sync on wake failed:", accountId, Result.unwrapError(result));
-        }
+        logSyncOnWakeAccountResult(accountId, result);
       }
     } finally {
       if (isCurrentRun()) {
@@ -136,6 +116,9 @@ function AppInner() {
   }, [runSyncOnWake]);
 
   useEffect(() => {
+    const cancelSyncOnWakeRun = () => {
+      syncOnWakeRunToken.current += 1;
+    };
     const handleVisibilityChange = () => {
       if (document.hidden) {
         lastHiddenAt.current = getCurrentTimeMs();
@@ -152,7 +135,7 @@ function AppInner() {
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
-      syncOnWakeRunToken.current += 1;
+      cancelSyncOnWakeRun();
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, []);
