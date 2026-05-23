@@ -286,6 +286,10 @@ export function ArticleToolbarActionStrip({
     });
   }
 
+  if (!resolvedHasArticle) {
+    return null;
+  }
+
   return (
     <div className="flex items-center gap-1">
       {isMobile ? (

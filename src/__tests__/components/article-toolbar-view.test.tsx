@@ -297,7 +297,7 @@ describe("ArticleToolbarView", () => {
     expect(starIcon).toHaveClass("fill-[var(--tone-starred)]");
   });
 
-  it("hides optional actions and disables unavailable ones", () => {
+  it("hides optional actions and the unavailable article action strip", () => {
     render(
       <ArticleToolbarView
         showCloseButton={false}
@@ -341,14 +341,14 @@ describe("ArticleToolbarView", () => {
     );
 
     expect(screen.queryByRole("button", { name: "Close article" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Toggle read" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Toggle star" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Toggle read" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Toggle star" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Copy link" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Open Web Preview" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Open in external browser" })).not.toBeInTheDocument();
   });
 
-  it("keeps toolbar actions as labelled native buttons when unavailable", () => {
+  it("omits unavailable article actions before an article is selected", () => {
     render(
       <ArticleToolbarView
         showCloseButton={false}
@@ -392,12 +392,7 @@ describe("ArticleToolbarView", () => {
     );
 
     for (const label of ["Toggle read", "Toggle star", "Open Web Preview", "Open in External Browser", "Copy link"]) {
-      const button = screen.getByRole("button", { name: label });
-
-      expect(button.tagName).toBe("BUTTON");
-      expect(button).toHaveAttribute("aria-label", label);
-      expect(button).toBeDisabled();
-      expect(button).not.toHaveAttribute("aria-disabled");
+      expect(screen.queryByRole("button", { name: label })).not.toBeInTheDocument();
     }
   });
 
@@ -464,7 +459,7 @@ describe("ArticleToolbarView", () => {
     expect(screen.getByRole("button", { name: "その他の記事操作" })).toHaveClass("size-11", "md:size-8");
   });
 
-  it("keeps the unread toggle neutral when no article is selected", () => {
+  it("hides the action strip when no article is selected", () => {
     render(
       <ArticleToolbarView
         showCloseButton={false}
@@ -507,17 +502,12 @@ describe("ArticleToolbarView", () => {
       />,
     );
 
-    const readButton = screen.getByRole("button", { name: "Toggle read" });
-    const readIcon = readButton.querySelector("span");
-
-    expect(readButton).toBeDisabled();
-    expect(readButton).toHaveAttribute("aria-pressed", "false");
-    expect(readIcon).not.toBeNull();
-    expect(readIcon).not.toHaveClass("bg-[var(--tone-unread)]");
-    expect(readIcon).not.toHaveClass("text-[var(--tone-unread)]");
+    expect(screen.queryByRole("button", { name: "Toggle read" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Toggle star" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Open Web Preview" })).not.toBeInTheDocument();
   });
 
-  it("dims toolbar actions when they are unavailable without an article selection", () => {
+  it("hides share controls without an article selection even when supplied by the caller", () => {
     render(
       <ArticleToolbarView
         showCloseButton={false}
@@ -575,17 +565,12 @@ describe("ArticleToolbarView", () => {
       />,
     );
 
-    for (const label of [
-      "Toggle read",
-      "Toggle star",
-      "Open Web Preview",
-      "Open in External Browser",
-      "Copy link",
-      "Share",
-    ]) {
-      expect(screen.getByRole("button", { name: label })).toBeDisabled();
-      expect(screen.getByRole("button", { name: label })).toHaveClass("disabled:opacity-35", "disabled:saturate-0");
-    }
+    expect(screen.queryByRole("button", { name: "Toggle read" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Toggle star" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Open Web Preview" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Open in External Browser" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Copy link" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Share" })).not.toBeInTheDocument();
   });
 
   it("limits the drag region to the center spacer so action buttons stay clickable on overlay title bars", () => {

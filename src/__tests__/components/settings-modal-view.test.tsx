@@ -269,8 +269,8 @@ describe("SettingsModalView", () => {
     expect(screen.getByTestId("settings-nav-shell")).toHaveStyle({
       backgroundColor: "var(--settings-shell-rail)",
     });
-    expect(screen.getByTestId("settings-nav-shell")).toHaveClass("h-[18rem]");
-    expect(screen.getByTestId("settings-nav-shell")).toHaveClass("max-h-[18rem]");
+    expect(screen.getByTestId("settings-nav-shell")).toHaveClass("max-h-[15rem]");
+    expect(screen.getByTestId("settings-nav-shell")).toHaveClass("sm:h-auto");
     expect(screen.getByTestId("settings-accounts-section")).toHaveClass("p-3");
     expect(screen.getByTestId("settings-accounts-section")).toHaveClass("rounded-md");
     expect(screen.getByTestId("settings-accounts-section")).toHaveClass("border-border/60");
@@ -308,10 +308,10 @@ describe("SettingsModalView", () => {
     expect(screen.getByTestId("settings-mobile-accounts-section")).toHaveClass("rounded-md");
     expect(screen.getByTestId("settings-mobile-accounts-section")).toHaveClass("border-border/60");
     expect(screen.getByTestId("settings-mobile-accounts-section")).toHaveClass("shadow-none");
-    expect(screen.getByTestId("settings-mobile-accounts-scroll-area")).toHaveClass("max-h-[5.5rem]");
+    expect(screen.getByTestId("settings-mobile-accounts-scroll-area")).toHaveClass("max-h-[4rem]");
     expect(screen.getAllByText("Accounts navigation")[0].closest('[data-slot="scroll-area-content"]')).toHaveClass(
       "px-3",
-      "py-2.5",
+      "py-1.5",
       "pr-5",
     );
     expect(screen.getByTestId("settings-mobile-accounts-section")).toHaveStyle({
@@ -414,8 +414,8 @@ describe("SettingsModalView", () => {
     expect(surface).toHaveClass("flex-col");
     expect(surface).toHaveClass("sm:flex-row");
     expect(navPane).toHaveClass("w-full");
-    expect(navPane).toHaveClass("h-[18rem]");
-    expect(navPane).toHaveClass("max-h-[18rem]");
+    expect(navPane).toHaveClass("max-h-[15rem]");
+    expect(navPane).not.toHaveClass("h-[18rem]");
     expect(navPane).toHaveClass("sm:h-auto");
     expect(navPane).toHaveClass("sm:w-[292px]");
     expect(navPane).toHaveClass("border-b");
