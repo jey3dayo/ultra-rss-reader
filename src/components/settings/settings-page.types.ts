@@ -38,7 +38,7 @@ type SettingsPageTextWithoutAction = {
   actionSize?: never;
 };
 
-export type SettingsPageSelectControl = SettingsPageControlHeader<"select"> &
+type SettingsPageSelectControl = SettingsPageControlHeader<"select"> &
   SettingsPageFieldIdentity & {
     value: string;
     options: SettingsPageOption[];
@@ -46,7 +46,7 @@ export type SettingsPageSelectControl = SettingsPageControlHeader<"select"> &
     open?: boolean;
   };
 
-export type SettingsPageSwitchControl = SettingsPageControlHeader<"switch"> & {
+type SettingsPageSwitchControl = SettingsPageControlHeader<"switch"> & {
   checked: boolean;
   onChange: (checked: boolean) => void;
 };
@@ -58,17 +58,16 @@ type SettingsPageTextFieldControl = SettingsPageControlHeader<"text"> &
     placeholder?: string;
   };
 
-export type SettingsPageTextControl = SettingsPageTextFieldControl &
-  (SettingsPageTextAction | SettingsPageTextWithoutAction);
+type SettingsPageTextControl = SettingsPageTextFieldControl & (SettingsPageTextAction | SettingsPageTextWithoutAction);
 
-export type SettingsPageActionControl = SettingsPageControlHeader<"action"> &
+type SettingsPageActionControl = SettingsPageControlHeader<"action"> &
   SettingsPageInlineAction & {
     actionAriaLabel?: string;
     rowClassName?: string;
     labelClassName?: string;
   };
 
-export type SettingsPageInfoControl = SettingsPageControlHeader<"info"> & {
+type SettingsPageInfoControl = SettingsPageControlHeader<"info"> & {
   value: string;
   valueClassName?: string;
 };

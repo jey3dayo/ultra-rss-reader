@@ -10,7 +10,6 @@ import { copyTextToClipboard } from "@/lib/runtime/clipboard";
 import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
-import type { ArticleStatusToast, ArticleToastActionParams } from "./article-actions.types";
 
 export type {
   ArticleActionError,
@@ -24,6 +23,13 @@ export {
   resolveArticleActionErrorLocaleKey,
   resolveArticleActionErrorMetadata,
 } from "@/lib/articles/article-actions";
+
+export type ArticleStatusToast = (message: string) => void;
+
+export type ArticleToastActionParams = {
+  showToast: ArticleStatusToast;
+  successMessage: string;
+};
 
 type ArticleBrowserToastOperation<T> = () => Result.ResultAsync<T, AppError>;
 type OpenExternalBrowserParams = {

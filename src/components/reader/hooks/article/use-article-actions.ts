@@ -2,11 +2,18 @@ import type { UseMutationResult } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import type { ArticleDto } from "@/api/tauri-commands";
-import { useArticleActionShortcuts } from "@/components/reader/hooks/article/use-article-action-shortcuts";
+import {
+  type ArticleActionKeyboardShortcuts,
+  useArticleActionShortcuts,
+} from "@/components/reader/hooks/article/use-article-action-shortcuts";
 import { useArticleStatusActions } from "@/components/reader/hooks/article/use-article-status-actions";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
-import type { ArticleActionKeyboardShortcuts, ArticleStatusToast } from "../../article-actions.types";
-import { addArticleToReadingList, copyArticleLink, openArticleInExternalBrowser } from "../../article-browser-actions";
+import {
+  type ArticleStatusToast,
+  addArticleToReadingList,
+  copyArticleLink,
+  openArticleInExternalBrowser,
+} from "../../article-browser-actions";
 
 type ArticleStatusMutation<TVariables> = Pick<UseMutationResult<unknown, Error, TVariables, unknown>, "mutate">;
 

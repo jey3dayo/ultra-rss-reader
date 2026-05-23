@@ -1,9 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import { buildReadingSettingsViewProps } from "@/components/settings/lib/reading-settings-view-model";
 import type { ReadingSettingsViewProps } from "@/components/settings/reading-settings-view";
-import type { SettingsPageActionControl, SettingsPageControl } from "@/components/settings/settings-page.types";
+import type { SettingsPageControl } from "@/components/settings/settings-page.types";
 import { DEV_SCENARIO_ID } from "@/dev/scenario-ids";
 import i18n from "@/lib/i18n";
+
+type SettingsPageActionControl = Extract<SettingsPageControl, { type: "action" }>;
 
 const t = i18n.getFixedT("en", "settings");
 

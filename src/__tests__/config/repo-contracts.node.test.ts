@@ -581,8 +581,18 @@ const workflowLocalReusableActionAllowlist = new Set<string>();
 const maintainerManagedLabelSet = new Set<string>(maintainerManagedLabels);
 const automationMaintenanceLabelSet = new Set(["ci", "maintenance-family"]);
 const auditedReaderTypeSurfacePathSet = new Set([
-  "src/components/reader/article-list.types.ts",
+  "src/components/reader/add-feed-dialog.types.ts",
   "src/components/reader/browser-view.types.ts",
+  "src/components/reader/command-palette.types.ts",
+  "src/components/reader/feed-dialog-form.types.ts",
+  "src/components/reader/feed-tree.types.ts",
+  "src/components/reader/hooks/article-list/article-list-controller.types.ts",
+  "src/components/reader/hooks/feed-tree/feed-tree-drag.types.ts",
+  "src/components/reader/rename-feed-dialog.types.ts",
+  "src/components/reader/sidebar-feed-section.types.ts",
+  "src/components/reader/sidebar-feed-tree.types.ts",
+  "src/components/reader/sidebar-runtime.types.ts",
+  "src/components/reader/sidebar-sources.types.ts",
   "src/components/reader/sidebar.types.ts",
 ]);
 const pathLabelableAffectedAreaTemplateNames = ["feature", "bug", "test verification", "maintenance"] as const;
@@ -771,36 +781,25 @@ const typeSurfaceInventoryClassifications = ["public contract", "feature-local",
 
 const typeSurfaceInventory = [
   {
-    path: "src/components/reader/article-list.types.ts",
-    owner: "components/reader/article-list",
+    path: "src/components/reader/add-feed-dialog.types.ts",
+    owner: "components/reader/add-feed-dialog",
     classification: "feature-local",
-    consumerScope: "reader article-list controller, hooks, view, stories, and focused tests",
+    consumerScope: "reader add-feed dialog controller, view, shared feed-dialog form types, and focused tests",
     auditedExports: [
-      "ArticleListSetupState",
-      "HandleArticleListKeyboardActionParams",
-      "UseArticleListDataParams",
-      "UseArticleListDataResult",
-      "UseArticleListHeaderActionsParams",
-      "UseArticleListHeaderActionsResult",
-      "UseArticleListHeaderControllerParams",
-      "UseArticleListHeaderControllerResult",
-      "UseArticleListHeaderControlsParams",
-      "UseArticleListHeaderControlsResult",
-      "UseArticleListInteractionsParams",
-      "UseArticleListInteractionsResult",
-      "UseArticleListPresentationParams",
-      "UseArticleListSearchParams",
-      "UseArticleListSearchResult",
-      "UseArticleListSourcesParams",
-      "UseArticleListSourcesResult",
-      "UseArticleListViewPropsParams",
-      "UseArticleListViewPropsResult",
-      "UseArticleListViewStateParams",
-      "UseArticleListViewStateResult",
+      "AddFeedDialogAction",
+      "AddFeedDialogController",
+      "AddFeedDialogControllerDerived",
+      "AddFeedDialogControllerParams",
+      "AddFeedDialogFolderSelectionParams",
+      "AddFeedDialogProps",
+      "AddFeedDialogState",
+      "AddFeedDialogViewLabels",
+      "DiscoveredFeedOption",
+      "ResolveAddFeedDialogDerivedParams",
     ],
     runtimeBoundary: false,
     followUp:
-      "Keep only article-list hook params/results that bridge controller, view-prop builders, stories, and focused tests here; local-only hook params stay with their hook files.",
+      "Keep add-feed dialog state and controller contracts here while reducer, controller hook, form view, and tests share them.",
   },
   {
     path: "src/components/reader/browser-view.types.ts",
@@ -830,6 +829,177 @@ const typeSurfaceInventory = [
       "BrowserViewProps is component-local; preserve native webview state and toolbar contracts in this surface.",
   },
   {
+    path: "src/components/reader/command-palette.types.ts",
+    owner: "components/reader/command-palette",
+    classification: "feature-local",
+    consumerScope: "reader command palette controller, result rendering, handlers, and focused tests",
+    auditedExports: [
+      "CommandPaletteActionItem",
+      "CommandPaletteControllerResult",
+      "CommandPaletteResultsProps",
+      "CommandPaletteViewPropsResult",
+      "PaletteAction",
+    ],
+    runtimeBoundary: false,
+    followUp:
+      "Keep command palette contracts here while actions, controller output, and result-list props stay shared inside the feature.",
+  },
+  {
+    path: "src/components/reader/feed-dialog-form.types.ts",
+    owner: "components/reader/feed-dialog-form",
+    classification: "feature-local",
+    consumerScope: "reader add-feed and rename-feed dialog form composition",
+    auditedExports: [
+      "FeedDialogControllerFolderSelectProps",
+      "FeedDialogFolderSelectionParams",
+      "FeedDialogReadonlyFieldProps",
+      "FeedDialogSelectOption",
+    ],
+    runtimeBoundary: false,
+    followUp:
+      "Keep shared feed-dialog form contracts here while add-feed and rename-feed reuse the same form primitives.",
+  },
+  {
+    path: "src/components/reader/feed-tree.types.ts",
+    owner: "components/reader/feed-tree",
+    classification: "feature-local",
+    consumerScope: "reader feed tree view, sidebar feed section, drag helpers, and focused tests",
+    auditedExports: [
+      "ActiveDropTarget",
+      "FeedTreeEmptyState",
+      "FeedTreeFeedViewModel",
+      "FeedTreeFolderViewModel",
+      "FeedTreeRowProps",
+      "FeedTreeViewProps",
+    ],
+    runtimeBoundary: false,
+    followUp: "Keep feed tree view contracts here while sidebar sections and drag helpers share row and tree props.",
+  },
+  {
+    path: "src/components/reader/hooks/article-list/article-list-controller.types.ts",
+    owner: "components/reader/hooks/article-list",
+    classification: "feature-local",
+    consumerScope: "reader article-list controller hooks, view-prop builder, presentation helpers, and focused tests",
+    auditedExports: [
+      "ArticleListSelection",
+      "UseArticleListDataParams",
+      "UseArticleListDataResult",
+      "UseArticleListHeaderActionsParams",
+      "UseArticleListHeaderActionsResult",
+      "UseArticleListHeaderControllerParams",
+      "UseArticleListHeaderControllerResult",
+      "UseArticleListHeaderControlsParams",
+      "UseArticleListHeaderControlsResult",
+      "UseArticleListInteractionsParams",
+      "UseArticleListInteractionsResult",
+      "UseArticleListPresentationParams",
+      "UseArticleListSearchParams",
+      "UseArticleListSearchResult",
+      "UseArticleListSourcesParams",
+      "UseArticleListSourcesResult",
+      "UseArticleListViewPropsParams",
+      "UseArticleListViewPropsResult",
+      "UseArticleListViewStateParams",
+      "UseArticleListViewStateResult",
+    ],
+    runtimeBoundary: false,
+    followUp:
+      "Keep hook params/results here while article-list controller pieces remain split across focused hook modules.",
+  },
+  {
+    path: "src/components/reader/hooks/feed-tree/feed-tree-drag.types.ts",
+    owner: "components/reader/hooks/feed-tree",
+    classification: "feature-local",
+    consumerScope: "reader feed tree drag hook, pointer event adapter, and feed tree view",
+    auditedExports: ["UseFeedTreeDragParams", "UseFeedTreeDragResult", "UseFeedTreePointerDragEventsParams"],
+    runtimeBoundary: false,
+    followUp:
+      "Keep drag hook contracts here while drag state and pointer event bindings are split across feed-tree hook modules.",
+  },
+  {
+    path: "src/components/reader/rename-feed-dialog.types.ts",
+    owner: "components/reader/rename-feed-dialog",
+    classification: "feature-local",
+    consumerScope: "reader rename-feed dialog controller, shared feed-dialog form, and focused tests",
+    auditedExports: [
+      "FeedEditDisplayPreset",
+      "RenameDialogProps",
+      "RenameFeedDialogController",
+      "RenameFeedDialogControllerParams",
+      "RenameFeedDialogUrlField",
+      "SubmitFeedEditsParams",
+    ],
+    runtimeBoundary: false,
+    followUp:
+      "Keep rename-feed dialog contracts here while controller, dialog view, and submit helper share the same form state.",
+  },
+  {
+    path: "src/components/reader/sidebar-feed-section.types.ts",
+    owner: "components/reader/sidebar-feed-section",
+    classification: "feature-local",
+    consumerScope: "reader sidebar feed section hook, feed tree adapter, navigation, and focused tests",
+    auditedExports: [
+      "SidebarFeedDragStateParams",
+      "SidebarFeedDragStateResult",
+      "SidebarFeedNavigationParams",
+      "SidebarFeedSectionParams",
+      "SidebarFeedSectionResult",
+      "SidebarFeedTreeProps",
+      "SidebarFeedTreePropsParams",
+      "SidebarStartupFolderExpansionParams",
+      "SidebarVisibilityFallbackParams",
+      "StartupFolderExpansionMode",
+    ],
+    runtimeBoundary: false,
+    followUp:
+      "Keep feed section contracts here while sidebar feed tree state, startup expansion, and view props remain split.",
+  },
+  {
+    path: "src/components/reader/sidebar-feed-tree.types.ts",
+    owner: "components/reader/sidebar-feed-tree",
+    classification: "feature-local",
+    consumerScope: "reader sidebar feed tree hook, sidebar feed section, and selection state",
+    auditedExports: [
+      "SidebarFeedTreeViewMode",
+      "SidebarSelection",
+      "UseSidebarFeedTreeParams",
+      "UseSidebarFeedTreeResult",
+    ],
+    runtimeBoundary: false,
+    followUp:
+      "Keep sidebar feed tree hook contracts here while tree view mode and selection bridge sidebar hook modules.",
+  },
+  {
+    path: "src/components/reader/sidebar-runtime.types.ts",
+    owner: "components/reader/sidebar-runtime",
+    classification: "feature-local",
+    consumerScope: "reader sidebar runtime hook, account switcher, UI state adapter, and focused tests",
+    auditedExports: [
+      "SidebarAccountSelectionParams",
+      "SidebarAccountSwitcherResult",
+      "SidebarRuntimeResult",
+      "SidebarUiStateResult",
+    ],
+    runtimeBoundary: false,
+    followUp:
+      "Keep runtime hook contracts here while account selection, sidebar UI state, and runtime output are composed separately.",
+  },
+  {
+    path: "src/components/reader/sidebar-sources.types.ts",
+    owner: "components/reader/sidebar-sources",
+    classification: "feature-local",
+    consumerScope: "reader sidebar source model hook, account status labels, feed tree, tags, and focused tests",
+    auditedExports: [
+      "SidebarAccountStatusLabels",
+      "SidebarAccountStatusLabelsParams",
+      "SidebarSourcesParams",
+      "SidebarSourcesResult",
+    ],
+    runtimeBoundary: false,
+    followUp:
+      "Keep sidebar source contracts here while account/feed/tag source hooks compose a single sidebar source model.",
+  },
+  {
     path: "src/components/reader/sidebar.types.ts",
     owner: "components/reader/sidebar",
     classification: "feature-local",
@@ -853,16 +1023,6 @@ const typeSurfaceInventory = [
     followUp: "Keep sidebar params/results here while they compose controller, section hook, and view-prop contracts.",
   },
   {
-    path: "src/components/settings/account-detail/sync.types.ts",
-    owner: "components/settings/account-detail/sync",
-    classification: "feature-local",
-    consumerScope: "account detail sync section, sync hooks, status rows, and focused tests",
-    auditedExports: ["AccountDetailSyncProgress", "AccountSyncStatusRow", "UpdateAccountSyncParams"],
-    runtimeBoundary: false,
-    followUp:
-      "Keep sync controls, progress, and status-row view contracts together while they are shared by the sync section and account-detail hooks.",
-  },
-  {
     path: "src/components/settings/account-detail/types.ts",
     owner: "components/settings/account-detail",
     classification: "feature-local",
@@ -870,15 +1030,7 @@ const typeSurfaceInventory = [
     auditedExports: ["AccountDetailAccount"],
     runtimeBoundary: false,
     followUp:
-      "Keep the AccountDto alias here while account detail hooks share it; sync-only contracts belong in account-detail/sync.types.ts.",
-  },
-  {
-    path: "src/components/settings/add-account/services.types.ts",
-    owner: "components/settings/add-account",
-    classification: "schema-derived",
-    consumerScope: "add-account service form options derived from service/provider schema contracts",
-    runtimeBoundary: true,
-    followUp: "Prefer schema or command-wrapper output types over hand-written DTO copies when this surface changes.",
+      "Keep the AccountDto alias here while account detail hooks share it; sync controls and status-row contracts belong with their owning hooks/views.",
   },
   {
     path: "src/components/settings/settings-page.types.ts",
@@ -901,26 +1053,58 @@ const typeSurfaceInventory = [
       "Keep preference hook input contracts here while general, appearance, reading, actions, and debug settings share the same typed setter.",
   },
   {
-    path: "src/lib/sync/sync-progress-event.types.ts",
-    owner: "lib/sync",
+    path: "src/lib/subscriptions/subscriptions-index.types.ts",
+    owner: "lib/subscriptions/subscriptions-index",
     classification: "public contract",
-    consumerScope: "sync event contract shared by runtime sync code and UI feedback",
-    runtimeBoundary: true,
-    followUp: "Keep boundary-facing payload types centralized; derive from a schema if runtime validation is added.",
+    consumerScope: "subscriptions index state model, page views, detail/list panes, stories, and focused tests",
+    auditedExports: [
+      "SubscriptionDetailCandidate",
+      "SubscriptionDetailMetrics",
+      "SubscriptionListGroup",
+      "SubscriptionListRow",
+      "SubscriptionRowStatus",
+      "SubscriptionSummaryCard",
+      "SubscriptionSummaryFilterKey",
+    ],
+    runtimeBoundary: false,
+    followUp:
+      "Keep subscriptions index view-model contracts here while list, detail, summary, stories, and state model share them.",
   },
   {
     path: "src/lib/ui/action.types.ts",
     owner: "lib/ui",
     classification: "public contract",
     consumerScope: "shared UI action contracts imported across feature views",
+    auditedExports: ["UiFeedbackAction"],
     runtimeBoundary: false,
     followUp: "Keep in src/lib while multiple feature or shared UI consumers import it.",
+  },
+  {
+    path: "src/lib/ui/display-state.types.ts",
+    owner: "lib/ui",
+    classification: "public contract",
+    consumerScope: "display-state feedback contracts shared by reader article view, settings account detail, and tests",
+    auditedExports: ["UiDisplayState", "UiDisplayStateAction"],
+    runtimeBoundary: false,
+    followUp:
+      "Keep display-state contracts here while feature views share dismissible message/action state without owning the UI primitive.",
+  },
+  {
+    path: "src/lib/ui/toast.types.ts",
+    owner: "lib/ui",
+    classification: "public contract",
+    consumerScope: "toast contracts shared by store, app toast view, updater, reader hooks, settings hooks, and tests",
+    auditedExports: ["ToastAction", "ToastData", "ToastSeverity"],
+    runtimeBoundary: false,
+    followUp:
+      "Keep toast contracts here while notification state and actions are used across reader, settings, hooks, shared UI, and tests.",
   },
   {
     path: "src/stores/preferences-store.types.ts",
     owner: "stores/preferences-store",
     classification: "schema-derived",
     consumerScope: "preferences store state backed by PreferencesDtoSchema-derived values",
+    auditedExports: ["PreferencesActions", "PreferencesState"],
     runtimeBoundary: true,
     followUp: "Keep PreferencesDto as the store source of truth unless UI view-model state intentionally differs.",
   },
@@ -2134,7 +2318,7 @@ describe("repository static contracts", () => {
     );
   });
 
-  it("keeps TypeScript type surface inventory scoped to representative shared contracts", () => {
+  it("keeps TypeScript type surface inventory scoped to retained shared contracts", () => {
     const inventoryPaths = typeSurfaceInventory.map(({ path }) => path);
     const inventoryClassifications = new Set(typeSurfaceInventory.map(({ classification }) => classification));
     const representativeSourceGlobs = [
@@ -2148,27 +2332,35 @@ describe("repository static contracts", () => {
     expect(inventoryPaths).toEqual([...inventoryPaths].toSorted());
     expect([...inventoryClassifications].toSorted()).toEqual([...typeSurfaceInventoryClassifications].toSorted());
     expect(typeSurfaceInventory.map(({ path, owner }) => `${path}:${owner}`)).toEqual([
-      "src/components/reader/article-list.types.ts:components/reader/article-list",
+      "src/components/reader/add-feed-dialog.types.ts:components/reader/add-feed-dialog",
       "src/components/reader/browser-view.types.ts:components/reader/browser-view",
+      "src/components/reader/command-palette.types.ts:components/reader/command-palette",
+      "src/components/reader/feed-dialog-form.types.ts:components/reader/feed-dialog-form",
+      "src/components/reader/feed-tree.types.ts:components/reader/feed-tree",
+      "src/components/reader/hooks/article-list/article-list-controller.types.ts:components/reader/hooks/article-list",
+      "src/components/reader/hooks/feed-tree/feed-tree-drag.types.ts:components/reader/hooks/feed-tree",
+      "src/components/reader/rename-feed-dialog.types.ts:components/reader/rename-feed-dialog",
+      "src/components/reader/sidebar-feed-section.types.ts:components/reader/sidebar-feed-section",
+      "src/components/reader/sidebar-feed-tree.types.ts:components/reader/sidebar-feed-tree",
+      "src/components/reader/sidebar-runtime.types.ts:components/reader/sidebar-runtime",
+      "src/components/reader/sidebar-sources.types.ts:components/reader/sidebar-sources",
       "src/components/reader/sidebar.types.ts:components/reader/sidebar",
-      "src/components/settings/account-detail/sync.types.ts:components/settings/account-detail/sync",
       "src/components/settings/account-detail/types.ts:components/settings/account-detail",
-      "src/components/settings/add-account/services.types.ts:components/settings/add-account",
       "src/components/settings/settings-page.types.ts:components/settings/settings-page",
       "src/components/settings/settings-preference.ts:components/settings/settings-preference",
-      "src/lib/sync/sync-progress-event.types.ts:lib/sync",
+      "src/lib/subscriptions/subscriptions-index.types.ts:lib/subscriptions/subscriptions-index",
       "src/lib/ui/action.types.ts:lib/ui",
+      "src/lib/ui/display-state.types.ts:lib/ui",
+      "src/lib/ui/toast.types.ts:lib/ui",
       "src/stores/preferences-store.types.ts:stores/preferences-store",
     ]);
     expect(typeSurfaceInventory.filter(({ runtimeBoundary }) => runtimeBoundary).map(({ path }) => path)).toEqual([
       "src/components/reader/browser-view.types.ts",
-      "src/components/settings/add-account/services.types.ts",
-      "src/lib/sync/sync-progress-event.types.ts",
       "src/stores/preferences-store.types.ts",
     ]);
     expect(
       typeSurfaceInventory.filter(({ classification }) => classification === "schema-derived").map(({ path }) => path),
-    ).toEqual(["src/components/settings/add-account/services.types.ts", "src/stores/preferences-store.types.ts"]);
+    ).toEqual(["src/stores/preferences-store.types.ts"]);
     expect(
       typeSurfaceInventory.every(({ consumerScope, followUp }) => consumerScope.length > 0 && followUp.length > 0),
     ).toBe(true);
@@ -2186,8 +2378,6 @@ describe("repository static contracts", () => {
   it("keeps remaining TypeScript type surface files on an explicit allowlist", () => {
     const remainingTypeSurfaceAllowlist = [
       "src/components/reader/add-feed-dialog.types.ts",
-      "src/components/reader/article-actions.types.ts",
-      "src/components/reader/article-list.types.ts",
       "src/components/reader/browser-view.types.ts",
       "src/components/reader/command-palette.types.ts",
       "src/components/reader/feed-dialog-form.types.ts",
@@ -2200,16 +2390,20 @@ describe("repository static contracts", () => {
       "src/components/reader/sidebar-runtime.types.ts",
       "src/components/reader/sidebar-sources.types.ts",
       "src/components/reader/sidebar.types.ts",
-      "src/components/settings/account-detail/sync.types.ts",
-      "src/components/settings/add-account/services.types.ts",
       "src/components/settings/settings-page.types.ts",
       "src/lib/subscriptions/subscriptions-index.types.ts",
-      "src/lib/subscriptions/subscriptions-workspace.types.ts",
+      "src/lib/ui/action.types.ts",
+      "src/lib/ui/display-state.types.ts",
+      "src/lib/ui/toast.types.ts",
+      "src/stores/preferences-store.types.ts",
     ];
     const typeSurfaceFiles = [
       ...collectTypeSurfaceFiles("src/components/reader"),
       ...collectTypeSurfaceFiles("src/components/settings"),
       ...collectTypeSurfaceFiles("src/lib/subscriptions"),
+      ...collectTypeSurfaceFiles("src/lib/sync"),
+      ...collectTypeSurfaceFiles("src/lib/ui"),
+      ...collectTypeSurfaceFiles("src/stores"),
     ].toSorted();
 
     expect(typeSurfaceFiles).toEqual(remainingTypeSurfaceAllowlist);

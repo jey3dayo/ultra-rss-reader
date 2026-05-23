@@ -3,8 +3,8 @@ import { useTranslation } from "react-i18next";
 import type { AddAccountProviderKind } from "@/lib/account/add-account-form";
 import { AccountConfigForm, type AccountConfigFormProps } from "./account-config-form";
 import { ServicePicker, type ServicePickerCategory } from "./service-picker";
+import type { ServiceCategoryLabelKey, ServiceDescriptionKey, ServiceNameKey } from "./services";
 import { SERVICE_CATEGORIES } from "./services";
-import type { ServiceCategoryLabelKey, ServiceDescriptionKey, ServiceNameKey } from "./services.types";
 
 type Step = { type: "pick" } | { type: "config"; kind: AddAccountProviderKind };
 

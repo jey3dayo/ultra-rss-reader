@@ -80,7 +80,14 @@ describe("reader/settings/subscriptions type surface contract", () => {
     const helper = createTypeSurfaceHelper({
       expect,
       repoRoot: process.cwd(),
-      searchDirectories: ["src/components/reader", "src/components/settings", "src/lib/subscriptions"],
+      searchDirectories: [
+        "src/components/reader",
+        "src/components/settings",
+        "src/lib/subscriptions",
+        "src/lib/sync",
+        "src/lib/ui",
+        "src/stores",
+      ],
     });
 
     helper.assertRemainingTypeSurfaceAllowlist({

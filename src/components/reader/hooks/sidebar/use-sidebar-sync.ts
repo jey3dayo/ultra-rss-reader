@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useMemo, useReducer, useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
+import { type SyncProgressEventDto, SyncProgressEventSchema } from "@/api/schemas/sync-progress";
 import {
   type SyncCompletedPayload,
   SyncCompletedPayloadSchema,
@@ -20,9 +21,8 @@ import {
   subscribeManualSyncCooldown,
   triggerManualSyncWithCooldown,
 } from "@/lib/sync/manual-sync";
-import { type SyncProgressEventDto, SyncProgressEventSchema } from "@/lib/sync/sync-progress-event.types";
-import type { SyncProgressUiState } from "@/lib/sync/sync-progress-state.types";
 import { summarizeSyncResult, summarizeSyncWarnings } from "@/lib/sync/sync-result-feedback";
+import type { SyncProgressUiState } from "@/stores/ui-store";
 import { resolveSidebarSyncFeedbackMessage } from "../../sidebar-sync-feedback";
 
 export type SidebarSyncResult = {

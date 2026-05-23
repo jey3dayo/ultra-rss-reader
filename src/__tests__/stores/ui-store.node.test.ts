@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest";
 import type { SyncProgressRuntimeEventDto } from "@/api/schemas";
 import { TOAST_AUTO_DISMISS_TIMEOUT_MS } from "@/constants/ui-runtime";
-import { SubscriptionsWorkspaceReturnStateSchema } from "../../lib/subscriptions/subscriptions-workspace.types";
+import { SubscriptionsWorkspaceReturnStateSchema } from "@/schemas/subscriptions-workspace";
 import type {
   NativeLifecycleBlockerEntry,
   NativeLifecycleBlockerOwner,

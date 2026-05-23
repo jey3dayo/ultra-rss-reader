@@ -11,8 +11,14 @@ import type {
   SubscriptionDetailCandidate,
   SubscriptionDetailMetrics,
   SubscriptionListRow,
-  SubscriptionManagementActions,
 } from "@/lib/subscriptions/subscriptions-index.types";
+
+export type SubscriptionManagementActions = {
+  editLabel: string;
+  deleteLabel: string;
+  onEdit: () => void;
+  onDelete: () => void;
+};
 
 type SubscriptionDetailPaneProps = {
   heading: string;

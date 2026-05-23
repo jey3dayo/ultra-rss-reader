@@ -22,8 +22,6 @@ export const remainingTypeSurfaceAllowlist = [
     "AddFeedDialogProps",
     "ResolveAddFeedDialogDerivedParams",
   ]),
-  remainingTypeSurface("src/components/reader/article-actions.types.ts", ["ArticleToastActionParams"]),
-  remainingTypeSurface("src/components/reader/article-list.types.ts", ["HandleArticleListKeyboardActionParams"]),
   remainingTypeSurface("src/components/reader/browser-view.types.ts", [
     "ResolveBrowserViewPresentationParams",
     "ResolveBrowserViewSurfacePresentationParams",
@@ -111,9 +109,10 @@ export const remainingTypeSurfaceAllowlist = [
     "SidebarViewPropsParams",
     "SidebarViewPropsResult",
   ]),
-  remainingTypeSurface("src/components/settings/account-detail/sync.types.ts", ["UpdateAccountSyncParams"]),
-  remainingTypeSurface("src/components/settings/add-account/services.types.ts"),
   remainingTypeSurface("src/components/settings/settings-page.types.ts", ["SettingsPageViewProps"]),
   remainingTypeSurface("src/lib/subscriptions/subscriptions-index.types.ts"),
-  remainingTypeSurface("src/lib/subscriptions/subscriptions-workspace.types.ts"),
+  remainingTypeSurface("src/lib/ui/action.types.ts"),
+  remainingTypeSurface("src/lib/ui/display-state.types.ts"),
+  remainingTypeSurface("src/lib/ui/toast.types.ts"),
+  remainingTypeSurface("src/stores/preferences-store.types.ts"),
 ] as const;

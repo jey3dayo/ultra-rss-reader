@@ -1,5 +1,6 @@
 import type { ComponentType } from "react";
 import { create } from "zustand";
+import type { SyncProgressEventDto } from "@/api/schemas/sync-progress";
 import type { ConfirmDialogVariant } from "@/components/shared/dialog.types";
 import { getPreferredAccountId } from "@/lib/account/account-selection";
 import type { AccountSetupSession, AccountSetupSessionOwner } from "@/lib/account/account-setup-session.types";
@@ -16,18 +17,25 @@ import type {
 import type { ViewMode } from "@/lib/reader/view-mode.types";
 import type { SettingsCategory } from "@/lib/settings/settings-category.types";
 import type { SmartViewKind } from "@/lib/sidebar/smart-view.types";
+import type { ToastData } from "@/lib/ui/toast.types";
 import {
-  type SubscriptionsWorkspace,
   type SubscriptionsWorkspaceReturnState,
   SubscriptionsWorkspaceReturnStateSchema,
-} from "@/lib/subscriptions/subscriptions-workspace.types";
-import type { SyncProgressEventDto } from "@/lib/sync/sync-progress-event.types";
-import type { SyncProgressUiState } from "@/lib/sync/sync-progress-state.types";
-import type { ToastData } from "@/lib/ui/toast.types";
+} from "@/schemas/subscriptions-workspace";
 import { TOAST_AUTO_DISMISS_TIMEOUT_MS } from "../constants/ui-runtime";
-import type { UiStoreReaderSelection } from "./ui-store-reader-selection.types";
 
-export type { UiStoreReaderSelection } from "./ui-store-reader-selection.types";
+type UiStoreFeedSelection = { type: "feed"; feedId: string };
+type UiStoreFolderSelection = { type: "folder"; folderId: string };
+type UiStoreSmartSelection = { type: "smart"; kind: SmartViewKind };
+type UiStoreTagSelection = { type: "tag"; tagId: string };
+type UiStoreAllSelection = { type: "all" };
+
+export type UiStoreReaderSelection =
+  | UiStoreFeedSelection
+  | UiStoreFolderSelection
+  | UiStoreSmartSelection
+  | UiStoreTagSelection
+  | UiStoreAllSelection;
 
 let toastTimer: ReturnType<typeof setTimeout> | null = null;
 let toastAnnouncementId = 0;
@@ -35,6 +43,11 @@ let toastAnnouncementId = 0;
 export type ToastAnnouncement = {
   id: number;
   message: string;
+};
+
+type SubscriptionsWorkspace = {
+  kind: "index";
+  returnState?: SubscriptionsWorkspaceReturnState;
 };
 
 export type NativeLifecycleBlockerOwner = "settings" | "add-feed" | "sync" | "updater" | "export" | "backup";
@@ -51,8 +64,21 @@ export type NativeLifecycleBlockerSnapshot = {
   owners: NativeLifecycleBlockerOwner[];
 };
 
-export type { SyncProgressEventDto } from "@/lib/sync/sync-progress-event.types";
-export type { SyncProgressUiState } from "@/lib/sync/sync-progress-state.types";
+export type { SyncProgressEventDto } from "@/api/schemas/sync-progress";
+
+type SyncProgressStage = "started" | "account_started" | "account_finished" | "finished";
+type SyncProgressKind = "manual_all" | "manual_account" | "automatic";
+
+export type SyncProgressUiState = {
+  active: boolean;
+  sessionId: number | null;
+  currentAccountName: string | null;
+  activeAccountIds: Set<string>;
+  kind: SyncProgressKind | null;
+  stage: SyncProgressStage | null;
+  total: number;
+  completed: number;
+};
 
 function getSidebarHiddenFallbackPane(state: Pick<UiState, "contentMode">): FocusedPane {
   return state.contentMode === "empty" ? "list" : "content";

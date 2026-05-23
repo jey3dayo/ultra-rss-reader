@@ -2,7 +2,11 @@ import { useCallback, useEffect } from "react";
 import { keyboardEvents } from "@/lib/keyboard/keyboard-shortcuts";
 import { bindWindowEvents } from "@/lib/window/window-events";
 import { useUiStore } from "@/stores/ui-store";
-import type { ArticleActionKeyboardShortcuts } from "../../article-actions.types";
+
+export type ArticleActionKeyboardShortcuts = {
+  onToggleBrowserOverlay: () => void;
+  onCloseBrowserOverlay: () => void;
+};
 
 export type UseArticleActionShortcutsParams = {
   keyboardShortcuts?: ArticleActionKeyboardShortcuts;

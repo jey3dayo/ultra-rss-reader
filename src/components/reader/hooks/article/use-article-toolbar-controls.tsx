@@ -7,9 +7,9 @@ import { resolvePreferenceValue } from "@/schemas/preferences";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
-import type { ArticleActionKeyboardShortcuts } from "../../article-actions.types";
 import { ArticleShareMenu } from "../../article-share-menu";
 import { type ArticleToolbarActionStripProps, resolveArticleToolbarActions } from "../../article-toolbar-view";
+import type { ArticleActionKeyboardShortcuts } from "./use-article-action-shortcuts";
 
 type UseArticleToolbarControlsParams = {
   article: ArticleDto | null;

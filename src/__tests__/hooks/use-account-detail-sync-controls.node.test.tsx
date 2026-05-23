@@ -5,10 +5,10 @@ import { createTestQueryClient } from "@tests/helpers/create-wrapper";
 import { sampleAccounts } from "@tests/helpers/fixtures";
 import i18n from "@tests/helpers/i18n-setup";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { UpdateAccountSyncParams } from "@/components/settings/account-detail/sync.types";
 import type { AccountDetailAccount } from "@/components/settings/account-detail/types";
 import {
   runAccountSetupSync,
+  type UpdateAccountSyncParams,
   useAccountDetailSyncControls,
 } from "@/components/settings/hooks/account-detail/use-account-detail-sync-controls";
 import { queryKeys } from "@/lib/query/query-invalidation";

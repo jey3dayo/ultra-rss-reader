@@ -6,7 +6,7 @@ import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import { SurfaceCard } from "@/components/shared/surface-card";
 import { cn } from "@/lib/utils";
 import type { AddAccountCredentialsSection, AddAccountInputControl } from "./form-view";
-import type { ServicePresentation } from "./services.types";
+import type { ServicePresentation } from "./services";
 
 const LABEL_COLUMN_CLASS_NAME = "sm:w-40 sm:shrink-0";
 const INPUT_CLASS_NAME = "h-10";

@@ -14,7 +14,7 @@ import type { SubscriptionListRow, SubscriptionSummaryFilterKey } from "@/lib/su
 import type {
   SubscriptionsWorkspaceExpandedGroupKey,
   SubscriptionsWorkspaceListScrollState,
-} from "@/lib/subscriptions/subscriptions-workspace.types";
+} from "@/schemas/subscriptions-workspace";
 
 function updateSelectedFeedDecision(params: {
   selectedFeedId: string | null;

@@ -3,7 +3,7 @@ import { NavRowButton } from "@/components/shared/nav-row-button";
 import { SectionHeading } from "@/components/shared/section-heading";
 import type { AddAccountProviderKind } from "@/lib/account/add-account-form";
 import { cn } from "@/lib/utils";
-import type { ServiceDefinition, ServicePresentation } from "./services.types";
+import type { ServiceDefinition, ServicePresentation } from "./services";
 
 type DisabledServicePickerKind = Extract<ServiceDefinition, { disabled: true }>["kind"];
 

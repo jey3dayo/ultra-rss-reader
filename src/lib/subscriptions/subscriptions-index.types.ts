@@ -53,10 +53,3 @@ export type SubscriptionDetailCandidate = {
   reasonBoxBody: string | null;
   reasonLabels: string[];
 };
-
-export type SubscriptionManagementActions = {
-  editLabel: string;
-  deleteLabel: string;
-  onEdit: () => void;
-  onDelete: () => void;
-};

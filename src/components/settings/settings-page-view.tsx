@@ -1,11 +1,4 @@
-import type {
-  SettingsPageActionControl,
-  SettingsPageInfoControl,
-  SettingsPageSelectControl,
-  SettingsPageSwitchControl,
-  SettingsPageTextControl,
-  SettingsPageViewProps,
-} from "@/components/settings/settings-page.types";
+import type { SettingsPageControl, SettingsPageViewProps } from "@/components/settings/settings-page.types";
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
@@ -19,6 +12,12 @@ import { cn } from "@/lib/utils";
 type SettingsPageControlRowProps<Control> = {
   control: Control;
 };
+
+type SettingsPageSelectControl = Extract<SettingsPageControl, { type: "select" }>;
+type SettingsPageSwitchControl = Extract<SettingsPageControl, { type: "switch" }>;
+type SettingsPageTextControl = Extract<SettingsPageControl, { type: "text" }>;
+type SettingsPageActionControl = Extract<SettingsPageControl, { type: "action" }>;
+type SettingsPageInfoControl = Extract<SettingsPageControl, { type: "info" }>;
 
 function SettingsPageSelectRow({ control }: SettingsPageControlRowProps<SettingsPageSelectControl>) {
   return (

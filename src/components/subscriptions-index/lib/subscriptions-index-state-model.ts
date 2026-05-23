@@ -2,7 +2,7 @@ import type { SubscriptionListRow } from "@/lib/subscriptions/subscriptions-inde
 import type {
   SubscriptionsWorkspaceExpandedGroupKey,
   SubscriptionsWorkspaceListScrollState,
-} from "@/lib/subscriptions/subscriptions-workspace.types";
+} from "@/schemas/subscriptions-workspace";
 
 const EXPANDED_GROUP_KEY_PREFIX = "group:";
 

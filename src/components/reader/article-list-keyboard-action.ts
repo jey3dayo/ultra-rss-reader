@@ -1,6 +1,13 @@
 import { executeAction } from "@/lib/actions";
+import type { KeyboardAction } from "@/lib/keyboard/keyboard-shortcuts";
 import { useUiStore } from "@/stores/ui-store";
-import type { HandleArticleListKeyboardActionParams } from "./article-list.types";
+
+export type HandleArticleListKeyboardActionParams = {
+  action: KeyboardAction;
+  clearArticle: () => void;
+  toggleSidebar: () => void;
+  openSidebar: () => void;
+};
 
 export function handleArticleListKeyboardAction({
   action,

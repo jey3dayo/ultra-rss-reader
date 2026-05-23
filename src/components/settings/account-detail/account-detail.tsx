@@ -8,10 +8,15 @@ import { useAccounts } from "@/hooks/use-accounts";
 import type { AccountSetupSessionState } from "@/lib/account/account-setup-session.types";
 import { usePlatformStore } from "@/stores/platform-store";
 import { useUiStore } from "@/stores/ui-store";
-import type { AccountDetailSyncProgress } from "./sync.types";
 import { refetchAccountSyncStatusWithErrorSurface } from "./sync-status-refetch";
 import type { AccountDetailAccount } from "./types";
 import { AccountDetailView } from "./view";
+
+export type AccountDetailSyncProgress = {
+  total: number;
+  completed: number;
+  currentAccountName: string | null;
+};
 
 type AccountDetailContentProps = {
   account: AccountDetailAccount;

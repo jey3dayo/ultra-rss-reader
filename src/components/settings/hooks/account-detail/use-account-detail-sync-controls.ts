@@ -16,9 +16,15 @@ import { getErrorMessage } from "@/lib/ui/errors";
 import type { OptionWithLabel } from "@/lib/ui/options";
 import { useUiStore } from "@/stores/ui-store";
 import { updateCachedAccount } from "../../account-detail/query-cache";
-import type { UpdateAccountSyncParams } from "../../account-detail/sync.types";
 import { createAccountDetailErrorToast } from "../../account-detail/toast";
 import type { AccountDetailAccount } from "../../account-detail/types";
+
+export type UpdateAccountSyncParams = {
+  syncIntervalSecs?: number;
+  syncOnStartup?: boolean;
+  syncOnWake?: boolean;
+  keepReadItemsDays?: number;
+};
 
 type AccountDetailSyncControlsParams = {
   account: AccountDetailAccount;

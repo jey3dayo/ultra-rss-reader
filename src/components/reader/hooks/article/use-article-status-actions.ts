@@ -6,7 +6,7 @@ import {
 } from "@/components/reader/hooks/article/use-article-auto-mark";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
 import { useUiStore } from "@/stores/ui-store";
-import type { ArticleStatusToast } from "../../article-actions.types";
+import type { ArticleStatusToast } from "../../article-browser-actions";
 import { removeRetainedArticle } from "../../retained-articles";
 
 type ArticleStatusMutation<TVariables> = Pick<UseMutationResult<unknown, Error, TVariables, unknown>, "mutate">;

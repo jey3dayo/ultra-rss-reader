@@ -10,12 +10,11 @@ import type {
   SubscriptionDetailMetrics,
   SubscriptionListGroup,
   SubscriptionListRow,
-  SubscriptionManagementActions,
   SubscriptionSummaryCard,
 } from "@/lib/subscriptions/subscriptions-index.types";
 import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window/window-chrome";
 import { usePlatformStore } from "@/stores/platform-store";
-import { SubscriptionDetailPane } from "./subscription-detail-pane";
+import { SubscriptionDetailPane, type SubscriptionManagementActions } from "./subscription-detail-pane";
 import { SubscriptionsListPane } from "./subscriptions-list-pane";
 import { SubscriptionsOverviewSummary } from "./subscriptions-overview-summary";
 

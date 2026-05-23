@@ -1,13 +1,60 @@
 import { Monitor, Rss, Thermometer } from "lucide-react";
+import type { ComponentType } from "react";
 import { FreshRssLogoIcon } from "@/components/icons/provider-icons";
 import { PROVIDER_ICON_BG_CLASS } from "@/components/shared/exception-palettes";
 import type { AddAccountProviderKind } from "@/lib/account/add-account-form";
-import type {
-  DisabledServiceDefinition,
-  EnabledServiceDefinition,
-  ServiceCategory,
-  ServiceDefinition,
-} from "./services.types";
+
+type DisabledServiceKind = "Feedbin" | "Feedly" | "Fever" | "NewsBlur";
+
+export type ServiceCategoryLabelKey =
+  | "account.category_local"
+  | "account.category_self_hosted"
+  | "account.category_services";
+export type ServiceNameKey =
+  | "account.local_feeds"
+  | "account.freshrss"
+  | "account.fever"
+  | "account.feedbin"
+  | "account.feedly"
+  | "account.newsblur";
+export type ServiceDescriptionKey =
+  | "account.local_desc"
+  | "account.freshrss_desc"
+  | "account.fever_desc"
+  | "account.feedbin_hold_desc"
+  | "account.feedly_hold_desc";
+
+export type ServicePresentation = {
+  icon: ComponentType<{ className?: string }>;
+  iconBg: string;
+  name: string;
+  description: string;
+};
+
+type ServiceDefinitionBase = {
+  icon: ComponentType<{ className?: string }>;
+  iconBg: string;
+  nameKey: ServiceNameKey;
+  descKey: ServiceDescriptionKey;
+  beta?: boolean;
+};
+
+export type EnabledServiceDefinition = ServiceDefinitionBase & {
+  kind: AddAccountProviderKind;
+  disabled?: false;
+};
+
+export type DisabledServiceDefinition = ServiceDefinitionBase & {
+  kind: DisabledServiceKind;
+  disabled: true;
+};
+
+export type ServiceDefinition = EnabledServiceDefinition | DisabledServiceDefinition;
+
+export type ServiceCategory = {
+  labelKey: ServiceCategoryLabelKey;
+  services: ServiceDefinition[];
+};
 
 export const SERVICE_CATEGORIES: ServiceCategory[] = [
   {

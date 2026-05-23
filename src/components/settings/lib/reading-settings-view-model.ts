@@ -9,8 +9,10 @@ import {
 import { resolvePreferenceValue } from "@/schemas/preferences";
 import type { UiStoreState } from "@/stores/ui-store";
 import type { ReadingSettingsViewProps } from "../reading-settings-view";
-import type { SettingsPageSwitchControl } from "../settings-page.types";
+import type { SettingsPageControl } from "../settings-page.types";
 import type { SettingsPreferenceViewPropsParams } from "../settings-preference";
+
+type SettingsPageSwitchControl = Extract<SettingsPageControl, { type: "switch" }>;
 
 type ClearArticleViewHistoryMutation = {
   isPending: boolean;

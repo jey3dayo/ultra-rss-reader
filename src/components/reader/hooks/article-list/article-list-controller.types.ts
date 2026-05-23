@@ -8,11 +8,11 @@ import type { ReaderSourcePlan } from "@/lib/reader/reader-query";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
 import type { SmartViewKind } from "@/lib/sidebar/smart-view.types";
 import type { ArticleGroupsViewGroup } from "../../article-groups-view";
-import type { ArticleListSetupState } from "../../article-list.types";
 import type { ArticleListBodyProps } from "../../article-list-body";
 import type { ArticleListContextStripProps } from "../../article-list-context-strip";
 import type { ArticleListFooterProps } from "../../article-list-footer";
 import type { ArticleListHeaderProps } from "../../article-list-header";
+import type { ArticleListSetupState } from "./use-article-list-body-props";
 
 export type ArticleListSelection =
   | { type: "feed"; feedId: string }

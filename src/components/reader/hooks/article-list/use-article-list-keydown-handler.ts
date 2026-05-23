@@ -4,7 +4,7 @@ import { emitDebugInputTrace } from "@/lib/debug/debug-input-trace";
 import { type KeyToActionMap, resolveKeyboardAction } from "@/lib/keyboard/keyboard-shortcuts";
 import { focusArticleContentTarget, focusSelectedSidebarTarget } from "@/lib/reader-focus";
 import { useUiStore } from "@/stores/ui-store";
-import type { HandleArticleListKeyboardActionParams } from "../../article-list.types";
+import type { HandleArticleListKeyboardActionParams } from "../../article-list-keyboard-action";
 import { handleArticleListKeyboardAction } from "../../article-list-keyboard-action";
 
 type UseArticleListKeydownHandlerParams = {

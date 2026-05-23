@@ -8,8 +8,6 @@ const repoRoot = process.cwd();
 
 const readerTypeSurfaceFiles = [
   "src/components/reader/add-feed-dialog.types.ts",
-  "src/components/reader/article-actions.types.ts",
-  "src/components/reader/article-list.types.ts",
   "src/components/reader/browser-view.types.ts",
   "src/components/reader/command-palette.types.ts",
   "src/components/reader/feed-tree.types.ts",
@@ -23,7 +21,6 @@ const readerTypeSurfaceFiles = [
 const settingsTypeSurfaceFiles = ["src/components/settings/settings-page.types.ts"] as const;
 
 const localOnlyTypeSurfaceFiles = [
-  "src/components/reader/article-actions.types.ts",
   "src/components/reader/sidebar-runtime.types.ts",
   "src/components/reader/sidebar-sources.types.ts",
 ] as const;
@@ -55,6 +52,9 @@ const remainingTypeSurfaceSearchDirectories = [
   "src/components/reader",
   "src/components/settings",
   "src/lib/subscriptions",
+  "src/lib/sync",
+  "src/lib/ui",
+  "src/stores",
 ] as const;
 
 function readRepoFile(path: string) {
