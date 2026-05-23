@@ -1,5 +1,6 @@
 import type { FeedArticleSummaryDto, FeedDto, FolderDto } from "@/api/tauri-commands";
 import { parseDateInput } from "@/lib/datetime";
+import { normalizeSubscriptionCount } from "@/lib/subscriptions/subscription-count";
 
 export type SubscriptionReviewReasonKey = "stale_90d" | "no_unread" | "no_stars";
 export type SubscriptionReviewTone = "high" | "medium" | "low";
@@ -168,10 +169,6 @@ export function buildFolderNameByIdMap(folders: FolderDto[]): Map<string, string
   return folderNameById;
 }
 
-function clampNonnegativeCount(value: number): number {
-  return Number.isFinite(value) ? Math.max(0, value) : 0;
-}
-
 function buildFeedArticleSummaryByFeedIdMap(
   feedArticleSummaries: FeedArticleSummaryDto[],
 ): Map<string, FeedArticleSummaryDto> {
@@ -216,8 +213,8 @@ export function buildSubscriptionReviewCandidates({
 
     const latestArticleDate = parseDateInput(latestArticleAt);
     const staleDays = latestArticleDate === null ? null : calculateSubscriptionReviewStaleDays(now, latestArticleDate);
-    const unreadCount = clampNonnegativeCount(feed.unread_count);
-    const starredCount = clampNonnegativeCount(summary?.starred_count ?? 0);
+    const unreadCount = normalizeSubscriptionCount(feed.unread_count);
+    const starredCount = normalizeSubscriptionCount(summary?.starred_count ?? 0);
     const hasFetchedArticle = latestArticleAt !== null;
     const reasonKeys: SubscriptionReviewReasonKey[] = [];
 

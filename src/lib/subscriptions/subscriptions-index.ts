@@ -1,6 +1,7 @@
 import type { ArticleDto, FeedArticleSummaryDto, FeedDto } from "@/api/tauri-commands";
 import { resolveFeedDisplayPreset, resolveFeedDisplayPresetLabel } from "@/lib/articles/article-display";
 import { compareDateInputsAsc, formatMediumDateOrDash, getDateInputTimeMs } from "@/lib/datetime";
+import { normalizeSubscriptionCount } from "@/lib/subscriptions/subscription-count";
 import type { SubscriptionReviewCandidate } from "@/lib/subscriptions/subscription-review-candidates";
 import {
   buildSubscriptionReviewReasonFacts,
@@ -109,14 +110,6 @@ function rowMatchesSubscriptionSearch(row: SubscriptionListRow, normalizedQuery:
   );
 }
 
-function normalizeSubscriptionSummaryCount(count: number): number {
-  return Number.isFinite(count) && count >= 0 ? count : 0;
-}
-
-function normalizeSubscriptionListUnreadCount(count: number): number {
-  return Number.isFinite(count) && count >= 0 ? count : 0;
-}
-
 function compareSubscriptionRows(
   left: SubscriptionListRow,
   right: SubscriptionListRow,
@@ -139,8 +132,7 @@ function compareSubscriptionRows(
 
   if (sortKey === "unread_count") {
     const unreadCountOrder =
-      normalizeSubscriptionListUnreadCount(right.feed.unread_count) -
-      normalizeSubscriptionListUnreadCount(left.feed.unread_count);
+      normalizeSubscriptionCount(right.feed.unread_count) - normalizeSubscriptionCount(left.feed.unread_count);
     return unreadCountOrder === 0 ? compareByTitleAndId() : unreadCountOrder;
   }
 
@@ -214,9 +206,9 @@ export function buildSubscriptionSummaryCards(params: {
   };
 }): SubscriptionSummaryCard[] {
   const { summary, activeSummaryFilter, labels } = params;
-  const totalCount = normalizeSubscriptionSummaryCount(summary.totalCount);
-  const reviewCount = normalizeSubscriptionSummaryCount(summary.reviewCount);
-  const staleCount = normalizeSubscriptionSummaryCount(summary.staleCount);
+  const totalCount = normalizeSubscriptionCount(summary.totalCount);
+  const reviewCount = normalizeSubscriptionCount(summary.reviewCount);
+  const staleCount = normalizeSubscriptionCount(summary.staleCount);
 
   return [
     {
