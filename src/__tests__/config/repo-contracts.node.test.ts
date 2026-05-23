@@ -410,7 +410,7 @@ function isSchemaOwnedZodImportPath(path: string) {
     path.startsWith("src/schemas/") ||
     path === "src/__tests__/api/schemas.node.test.ts" ||
     path.startsWith("src/__tests__/api/schemas/") ||
-    path.startsWith("src/__tests__/schemas/") ||
+    path === "src/__tests__/schemas/parse.test.ts" ||
     path === "tests/helpers/command-args-schema-keys.ts"
   );
 }
@@ -2281,6 +2281,35 @@ describe("repository static contracts", () => {
       .toSorted();
 
     expect(directZodImportPaths).toEqual([]);
+  });
+
+  it("keeps frontend schema files covered by schema contract tests", () => {
+    const schemaFileStems = readDirectoryFileStems("src/schemas");
+    const schemaTestSource = typescriptFilesUnder(["src/__tests__/schemas", "src/__tests__/stores"]).map((path) => [
+      path,
+      readRepoFile(path),
+    ] as const);
+
+    expect(schemaFileStems).toEqual(["app-config", "parse", "preferences", "storage", "subscriptions-workspace"]);
+    for (const schemaFileStem of schemaFileStems) {
+      expect(
+        schemaTestSource.some(
+          ([path, source]) => path.includes(`/${schemaFileStem}.test.ts`) || source.includes(`@/schemas/${schemaFileStem}`),
+        ),
+        `${schemaFileStem} must have frontend schema contract coverage`,
+      ).toBe(true);
+    }
+  });
+
+  it("keeps test-local zod schemas out of schema tests unless they exercise parse helpers", () => {
+    const localZodSchemaDeclarations = typescriptFilesUnder(["src/__tests__/schemas"])
+      .filter((path) => path !== "src/__tests__/schemas/parse.test.ts")
+      .flatMap((path) => {
+        const source = readRepoFile(path);
+        return /\bconst\s+\w+Schema\s*=\s*z\./.test(source) ? [path] : [];
+      });
+
+    expect(localZodSchemaDeclarations).toEqual([]);
   });
 
   it("keeps test-only command schema introspection helpers out of production schema modules", () => {

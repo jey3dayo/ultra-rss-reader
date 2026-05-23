@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { z } from "zod";
+import { type TauriCapability, TauriCapabilityFileSchema } from "@/schemas/app-config";
 import { parseJsonWithSchema } from "@/schemas/parse";
 
 type TauriConfig = {
@@ -121,32 +121,7 @@ const expectedCommandOwnerAllowlists = {
   "updater-commands": ["check_for_update", "download_and_install_update", "restart_app"],
 } as const satisfies Record<string, readonly string[]>;
 
-type CapabilityPermission =
-  | string
-  | {
-      identifier: string;
-      allow?: Array<{ url: string }>;
-      deny?: Array<{ url: string }>;
-    };
-
-const TauriCapabilityContractSchema = z.object({
-  identifier: z.string().optional(),
-  webviews: z.array(z.string()).optional(),
-  permissions: z.array(
-    z.union([
-      z.string(),
-      z.object({
-        identifier: z.string(),
-        allow: z.array(z.object({ url: z.string() })).optional(),
-        deny: z.array(z.object({ url: z.string() })).optional(),
-      }),
-    ]),
-  ),
-});
-type TauriCapability = z.output<typeof TauriCapabilityContractSchema>;
-const TauriCapabilityFileSchema = z.union([TauriCapabilityContractSchema, z.array(TauriCapabilityContractSchema)]);
-
-function permissionIdentifier(permission: CapabilityPermission): string {
+function permissionIdentifier(permission: TauriCapability["permissions"][number]): string {
   return typeof permission === "string" ? permission : permission.identifier;
 }
 

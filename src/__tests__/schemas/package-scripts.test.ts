@@ -1,9 +1,8 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { z } from "zod";
 import { type PackageJson, PackageJsonSchema } from "@/schemas/app-config";
-import { parseJsonWithSchema } from "@/schemas/parse";
+import { isSchemaParseError, parseJsonWithSchema } from "@/schemas/parse";
 
 function parsePackageJson(value: string): PackageJson {
   return parseJsonWithSchema(value, PackageJsonSchema);
@@ -114,7 +113,15 @@ function extractReadmeMiseCommands(readme: string): string[] {
 
 describe("package scripts", () => {
   it("surfaces package schema failures instead of falling back to an empty package contract", () => {
-    expect(() => parsePackageJson('{"scripts":{"dev":false}}')).toThrow(z.ZodError);
+    let schemaError: unknown;
+
+    try {
+      parsePackageJson('{"scripts":{"dev":false}}');
+    } catch (error) {
+      schemaError = error;
+    }
+
+    expect(isSchemaParseError(schemaError)).toBe(true);
   });
 
   it("parses static package contract fields without mixing engine parity checks", () => {
