@@ -27,11 +27,10 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useUiStore } from "@/stores/ui-store";
 
 export {
-  AnnotatedNote,
-  ReferencePage,
   UI_REFERENCE_DECORATIVE_TEST_IDS,
   UI_REFERENCE_PRIMARY_SPECIMEN_ANCHOR_IDS,
-} from "./ui-reference-canvas-specimens";
+} from "./ui-reference-canvas-specimen-ids";
+export { AnnotatedNote, ReferencePage } from "./ui-reference-canvas-specimens";
 export { NavigationButtonPatternsSpecimen } from "./ui-reference-navigation-specimens";
 
 type CssVariableProperties = CSSProperties & Record<`--${string}`, string>;

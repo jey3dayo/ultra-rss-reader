@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   UI_REFERENCE_DECORATIVE_TEST_IDS,
   UI_REFERENCE_PRIMARY_SPECIMEN_ANCHOR_IDS,
-} from "@/components/storybook/ui-reference-canvas-specimens";
+} from "@/components/storybook/ui-reference-canvas-specimen-ids";
 
 type UiReferenceSection = {
   fileName: string;
