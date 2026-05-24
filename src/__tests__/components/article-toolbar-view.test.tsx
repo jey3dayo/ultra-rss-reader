@@ -4,9 +4,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ArticleShareMenu } from "@/components/reader/article-share-menu";
 import {
   ARTICLE_TOOLBAR_ACTION_RESOLVER_CONTRACT,
-  ArticleToolbarView,
   resolveArticleToolbarActions,
-} from "@/components/reader/article-toolbar-view";
+} from "@/components/reader/article-toolbar-actions";
+import { ArticleToolbarView } from "@/components/reader/article-toolbar-view";
 import {
   MOTION_DATA_ICON_ATTRIBUTE,
   MOTION_DATA_STATE_ATTRIBUTE,

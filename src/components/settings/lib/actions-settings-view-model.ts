@@ -1,4 +1,4 @@
-import { ARTICLE_TOOLBAR_ACTION_RESOLVER_CONTRACT } from "@/components/reader/article-toolbar-view";
+import { ARTICLE_TOOLBAR_ACTION_RESOLVER_CONTRACT } from "@/components/reader/article-toolbar-actions";
 import type { KnownPreferenceKey } from "@/schemas/preferences";
 import { resolvePreferenceValue } from "@/schemas/preferences";
 import type { SettingsPreferenceViewPropsParams } from "../settings-preference";

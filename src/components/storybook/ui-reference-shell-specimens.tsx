@@ -4,7 +4,7 @@ import { contextMenuStyles } from "@/components/reader/context-menu-styles";
 import { type SettingsNavItem, SettingsNavView } from "@/components/settings/settings-nav-view";
 import { AppToastView } from "@/components/shared/app-toast-view";
 import { StarIcon, UnreadIcon } from "@/components/shared/article-state-icon";
-import { iconToolbarButtonClassName } from "@/components/shared/icon-toolbar-control";
+import { iconToolbarButtonClassName } from "@/components/shared/icon-toolbar-control-styles";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { SurfaceCard } from "@/components/shared/surface-card";
 import { Button } from "@/components/ui/button";

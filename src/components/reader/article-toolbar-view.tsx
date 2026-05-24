@@ -8,9 +8,12 @@ import { MotionIconSwap } from "@/components/shared/motion-icon-swap";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { MOTION_ICON_SWAP_STATE_A, MOTION_ICON_SWAP_STATE_B } from "@/constants";
 import { cn } from "@/lib/utils";
+import type {
+  ArticleToolbarActionOptions,
+  ArticleToolbarArticleState,
+  ArticleToolbarLayoutMode,
+} from "./article-toolbar-actions";
 import { contextMenuStyles } from "./context-menu-styles";
-
-type ArticleToolbarLayoutMode = "wide" | "compact" | "mobile";
 
 type ArticleToolbarViewLabels = {
   closeView: string;
@@ -44,95 +47,6 @@ type ArticleToolbarViewProps = {
 };
 
 export type ArticleToolbarActionStripProps = Omit<ArticleToolbarViewProps, "showCloseButton" | "onCloseView">;
-
-type ArticleToolbarActionResolverInput = {
-  hasArticle: boolean;
-  hasUrl: boolean;
-  showCopyLinkPreference: boolean;
-  hideBrowserOverlayActions: boolean;
-  layoutMode: ArticleToolbarLayoutMode;
-};
-
-type ArticleToolbarActionResolverResult = {
-  canToggleRead: boolean;
-  canToggleStar: boolean;
-  showCopyLinkButton: boolean;
-  canCopyLink: boolean;
-  showOpenInBrowserButton: boolean;
-  canOpenInBrowser: boolean;
-  showOpenInExternalBrowserButton: boolean;
-  canOpenInExternalBrowser: boolean;
-  showExternalBrowserInMoreMenu: boolean;
-};
-
-type ArticleToolbarActionOptions = Omit<ArticleToolbarActionResolverResult, "showExternalBrowserInMoreMenu"> & {
-  showExternalBrowserInMoreMenu?: ArticleToolbarActionResolverResult["showExternalBrowserInMoreMenu"];
-};
-
-type ArticleToolbarArticleState = {
-  hasArticle: boolean;
-  isRead: boolean;
-  isStarred: boolean;
-  isBrowserOpen: boolean;
-  hideBrowserOverlayActions?: boolean;
-};
-
-type ArticleToolbarActionResolverContract = {
-  actionId: string;
-  resultKeys: readonly (keyof ArticleToolbarActionResolverResult)[];
-  actionOptionKeys: readonly (keyof ArticleToolbarActionOptions)[];
-};
-
-export const ARTICLE_TOOLBAR_ACTION_RESOLVER_CONTRACT = [
-  {
-    actionId: "toggle-read",
-    resultKeys: ["canToggleRead"],
-    actionOptionKeys: ["canToggleRead"],
-  },
-  {
-    actionId: "toggle-star",
-    resultKeys: ["canToggleStar"],
-    actionOptionKeys: ["canToggleStar"],
-  },
-  {
-    actionId: "open-in-browser",
-    resultKeys: ["showOpenInBrowserButton", "canOpenInBrowser"],
-    actionOptionKeys: ["showOpenInBrowserButton", "canOpenInBrowser"],
-  },
-  {
-    actionId: "open-in-external-browser",
-    resultKeys: ["showOpenInExternalBrowserButton", "canOpenInExternalBrowser", "showExternalBrowserInMoreMenu"],
-    actionOptionKeys: ["showOpenInExternalBrowserButton", "canOpenInExternalBrowser", "showExternalBrowserInMoreMenu"],
-  },
-  {
-    actionId: "copy-link",
-    resultKeys: ["showCopyLinkButton", "canCopyLink"],
-    actionOptionKeys: ["showCopyLinkButton", "canCopyLink"],
-  },
-] as const satisfies readonly ArticleToolbarActionResolverContract[];
-
-export function resolveArticleToolbarActions({
-  hasArticle,
-  hasUrl,
-  showCopyLinkPreference,
-  hideBrowserOverlayActions,
-  layoutMode,
-}: ArticleToolbarActionResolverInput): ArticleToolbarActionResolverResult {
-  const canUseUrl = hasArticle && hasUrl;
-  const showBrowserOverlayAction = !hideBrowserOverlayActions;
-
-  return {
-    canToggleRead: hasArticle,
-    canToggleStar: hasArticle,
-    showCopyLinkButton: showCopyLinkPreference,
-    canCopyLink: canUseUrl,
-    showOpenInBrowserButton: showBrowserOverlayAction,
-    canOpenInBrowser: canUseUrl,
-    showOpenInExternalBrowserButton: showBrowserOverlayAction,
-    canOpenInExternalBrowser: canUseUrl,
-    showExternalBrowserInMoreMenu: layoutMode === "mobile" && showBrowserOverlayAction && canUseUrl,
-  };
-}
 
 type ArticleToolbarVisualActiveTone = "unread" | "neutral" | "accent" | "starred";
 
