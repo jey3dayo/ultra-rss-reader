@@ -1,12 +1,6 @@
 import { Copy } from "lucide-react";
 import type { ActionsSettingsViewProps } from "../actions-settings-view";
-import {
-  ACTIONS_SETTINGS_SERVICE_ENTRIES,
-  ACTIONS_SETTINGS_TOOLBAR_ACTION_IDS,
-  type ActionsSettingsServiceId,
-  buildActionsSettingsViewModel,
-  TOOLBAR_ACTION_IDS_WITH_SETTINGS,
-} from "../lib/actions-settings-view-model";
+import { type ActionsSettingsServiceId, buildActionsSettingsViewModel } from "../lib/actions-settings-view-model";
 import type { SettingsPreferenceViewPropsParams } from "../settings-preference";
 
 const ACTIONS_SETTINGS_SERVICE_ICONS: Record<ActionsSettingsServiceId, React.ReactNode> = {
@@ -24,10 +18,3 @@ export function useActionsSettingsViewProps(params: SettingsPreferenceViewPropsP
     })),
   };
 }
-
-export {
-  ACTIONS_SETTINGS_SERVICE_ENTRIES,
-  ACTIONS_SETTINGS_TOOLBAR_ACTION_IDS,
-  buildActionsSettingsViewModel,
-  TOOLBAR_ACTION_IDS_WITH_SETTINGS,
-};
