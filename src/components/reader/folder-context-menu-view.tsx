@@ -30,7 +30,7 @@ export function FolderContextMenuView({
 }: FolderContextMenuViewProps) {
   return (
     <ContextMenu.Portal>
-      <ContextMenu.Positioner>
+      <ContextMenu.Positioner className={contextMenuStyles.positioner}>
         <ContextMenu.Popup className={contextMenuStyles.popup}>
           {hasUnreadArticles && (
             <ContextMenu.Item

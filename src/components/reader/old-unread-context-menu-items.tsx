@@ -29,7 +29,7 @@ export function OldUnreadContextMenuItems({
         <ChevronRight aria-hidden="true" className="ml-3 size-4 text-foreground-soft" />
       </ContextMenu.SubmenuTrigger>
       <ContextMenu.Portal>
-        <ContextMenu.Positioner>
+        <ContextMenu.Positioner className={contextMenuStyles.positioner}>
           <ContextMenu.Popup className={contextMenuStyles.popup}>
             {OLD_UNREAD_DAY_PRESETS.map((days) => (
               <ContextMenu.Item

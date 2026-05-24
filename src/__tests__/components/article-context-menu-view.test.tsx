@@ -42,6 +42,7 @@ describe("ArticleContextMenuView", () => {
       "article-open-browser",
     );
     expect(screen.getByRole("menuitem", { name: "Copy link" })).toHaveAttribute("data-action-id", "article-copy-link");
+    expect(screen.getByRole("menu").parentElement).toHaveClass("z-50");
     expect(onToggleRead).toHaveBeenCalledTimes(1);
     expect(onToggleStar).toHaveBeenCalledTimes(1);
     expect(onOpenInBrowser).toHaveBeenCalledTimes(1);

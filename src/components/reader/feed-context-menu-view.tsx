@@ -42,7 +42,7 @@ export function FeedContextMenuView({
 }: FeedContextMenuViewProps) {
   return (
     <ContextMenu.Portal>
-      <ContextMenu.Positioner>
+      <ContextMenu.Positioner className={contextMenuStyles.positioner}>
         <ContextMenu.Popup className={contextMenuStyles.popup}>
           <ContextMenu.Item
             data-action-id={CONTEXT_MENU_ACTION_IDS.feedEdit}

@@ -78,7 +78,7 @@ export function ArticleListBody({
       </ContextMenu.Trigger>
       {showBodyContextMenu ? (
         <ContextMenu.Portal>
-          <ContextMenu.Positioner>
+          <ContextMenu.Positioner className={contextMenuStyles.positioner}>
             <ContextMenu.Popup className={contextMenuStyles.popup}>
               <ContextMenu.Item className={contextMenuStyles.item} onClick={onMarkAllRead}>
                 {markAllReadLabel}

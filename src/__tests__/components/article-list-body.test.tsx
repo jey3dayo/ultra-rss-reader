@@ -129,6 +129,7 @@ describe("ArticleListBody", () => {
 
     const markAllReadItem = await screen.findByRole("menuitem", { name: "Mark all as read" });
     expect(screen.queryByRole("menuitem", { name: "Mark as Read" })).not.toBeInTheDocument();
+    expect(markAllReadItem.closest('[role="menu"]')?.parentElement).toHaveClass("z-50");
     expect(onSelectArticle).not.toHaveBeenCalled();
 
     fireEvent.click(markAllReadItem);

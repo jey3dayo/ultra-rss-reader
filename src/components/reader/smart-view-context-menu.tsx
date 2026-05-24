@@ -66,7 +66,7 @@ export function SmartViewContextMenuContent({ accountId, view }: SmartViewContex
   if (view.kind === "unread") {
     return (
       <ContextMenu.Portal>
-        <ContextMenu.Positioner>
+        <ContextMenu.Positioner className={contextMenuStyles.positioner}>
           <ContextMenu.Popup className={contextMenuStyles.popup}>
             <ContextMenu.Item
               data-action-id={CONTEXT_MENU_ACTION_IDS.smartUnreadMarkAllRead}
@@ -97,7 +97,7 @@ export function SmartViewContextMenuContent({ accountId, view }: SmartViewContex
   if (view.kind === "starred") {
     return (
       <ContextMenu.Portal>
-        <ContextMenu.Positioner>
+        <ContextMenu.Positioner className={contextMenuStyles.positioner}>
           <ContextMenu.Popup className={contextMenuStyles.popup}>
             <ContextMenu.Item
               data-action-id={CONTEXT_MENU_ACTION_IDS.smartStarredMarkAllRead}
@@ -121,7 +121,7 @@ export function SmartViewContextMenuContent({ accountId, view }: SmartViewContex
 
   return (
     <ContextMenu.Portal>
-      <ContextMenu.Positioner>
+      <ContextMenu.Positioner className={contextMenuStyles.positioner}>
         <ContextMenu.Popup className={contextMenuStyles.popup}>
           <ContextMenu.Item
             data-action-id={CONTEXT_MENU_ACTION_IDS.smartRecentClearHistory}
