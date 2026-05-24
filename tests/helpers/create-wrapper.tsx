@@ -1,30 +1,8 @@
 import type { QueryClientConfig } from "@tanstack/react-query";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { I18nextProvider } from "react-i18next";
-import { useUiStore } from "@/stores/ui-store";
 import i18n from "./i18n-setup";
-
-function TestToastHost() {
-  const { toastMessage, clearToast } = useUiStore();
-
-  if (!toastMessage) {
-    return null;
-  }
-
-  return (
-    <div data-testid="test-toast-host">
-      <span>{toastMessage.message}</span>
-      {toastMessage.actions?.map((action) => (
-        <button key={action.label} type="button" onClick={action.onClick}>
-          {action.label}
-        </button>
-      ))}
-      <button type="button" onClick={clearToast}>
-        dismiss
-      </button>
-    </div>
-  );
-}
+import { TestToastHost } from "./test-toast-host";
 
 type CreateQueryWrapperOptions = {
   includeToastHost?: boolean;

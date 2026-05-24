@@ -1,13 +1,9 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { SanitizedArticleHtmlDtoSchema } from "@/api/schemas/article";
-import {
-  ArticleContentView,
-  fromSanitizedArticleHtml,
-  fromSanitizedArticleHtmlDto,
-  type SanitizedArticleHtml,
-} from "@/components/reader/article-content-view";
+import { ArticleContentView } from "@/components/reader/article-content-view";
 import articleContentViewStories from "@/components/reader/article-content-view.stories";
+import { fromSanitizedArticleHtml, fromSanitizedArticleHtmlDto, type SanitizedArticleHtml } from "@/lib/content/html";
 
 function dangerouslyBrandRawArticleHtmlForViewTest(rawHtml: string): SanitizedArticleHtml {
   return fromSanitizedArticleHtml(rawHtml);

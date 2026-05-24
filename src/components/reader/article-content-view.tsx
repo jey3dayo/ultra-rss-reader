@@ -2,20 +2,10 @@
 import { useMemo } from "react";
 import {
   applyReaderContentPrivacyPolicy,
-  fromSanitizedArticleHtml,
-  fromSanitizedArticleHtmlDto,
   normalizeArticleBodyHtml,
   normalizeReaderContentImageUrl,
   type SanitizedArticleHtml,
 } from "@/lib/content/html";
-
-/**
- * HTML that has crossed the Rust sanitizer boundary as `content_sanitized`.
- *
- * ArticleContentView intentionally does not sanitize again in React; callers must
- * brand only Rust-sanitized article bodies before passing them to this danger boundary.
- */
-export { fromSanitizedArticleHtml, fromSanitizedArticleHtmlDto, type SanitizedArticleHtml };
 
 type ArticleContentViewProps = {
   thumbnailUrl?: string | null;

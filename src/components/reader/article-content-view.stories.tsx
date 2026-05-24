@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { ArticleContentView, fromSanitizedArticleHtml } from "./article-content-view";
+import { fromSanitizedArticleHtml } from "@/lib/content/html";
+import { ArticleContentView } from "./article-content-view";
 
 const meta = {
   title: "Reader/Article/ArticleContentView",

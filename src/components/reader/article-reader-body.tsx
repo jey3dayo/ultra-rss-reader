@@ -7,10 +7,11 @@ import {
   resolveArticleDateLocale,
   shouldOpenArticleTitleInExternalBrowser,
 } from "@/lib/articles/article-view";
+import { fromSanitizedArticleHtml } from "@/lib/content/html";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { openArticleInExternalBrowser } from "./article-browser-actions";
-import { ArticleContentView, fromSanitizedArticleHtml } from "./article-content-view";
+import { ArticleContentView } from "./article-content-view";
 import { ArticleMetaView } from "./article-meta-view";
 import { ArticleTagChips } from "./article-tag-chips";
 
