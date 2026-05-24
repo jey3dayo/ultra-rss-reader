@@ -7,19 +7,23 @@ import { createTauriMockCallRecorder, setupTauriMocks } from "@tests/helpers/tau
 import { setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { AppShell } from "@/components/app-shell";
 import {
-  AppShell,
   getFocusDebugHudActiveElementDescription,
-  preloadSettingsModalModuleForDev,
-  resetSettingsModalPreloadForTest,
   resolveFocusDebugHudPortalTarget,
-  shouldStartDesktopTitlebarDrag,
-} from "@/components/app-shell";
+} from "@/components/app-shell/focus-debug-hud-dom";
+import {
+  preloadSettingsModalModuleForDev,
+  resetSettingsModalPreloadSession,
+} from "@/components/app-shell/settings-modal-preload";
+import { shouldStartDesktopTitlebarDrag } from "@/components/app-shell/titlebar-drag";
 import { APP_EVENTS } from "@/constants/events";
 import { TAURI_EVENT_LISTENER_FAILURE_EVENT } from "@/lib/runtime/tauri-event-listeners";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
+
+const SETTINGS_MODAL_PRELOAD_FAILURE_TOAST = "設定画面の読み込みに失敗しました。アプリの再読み込みを試してください。";
 
 const settingsModalState = vi.hoisted(() => ({ shouldThrow: false }));
 const commandPaletteState = vi.hoisted(() => ({ shouldThrow: false }));
@@ -97,6 +101,18 @@ function setDebugHudUiState(overrides: Partial<ReturnType<typeof useUiStore.getI
   });
 }
 
+function preloadSettingsModalModuleForTest(loadModule: () => Promise<unknown>) {
+  preloadSettingsModalModuleForDev(loadModule, {
+    onInitialFailure: (error) => {
+      console.error("Failed to preload settings modal.", error);
+      useUiStore.getState().showToast(SETTINGS_MODAL_PRELOAD_FAILURE_TOAST);
+    },
+    onRetryFailure: (error) => {
+      console.error("Failed to retry settings modal preload.", error);
+    },
+  });
+}
+
 describe("AppShell", () => {
   beforeEach(() => {
     vi.mocked(listen).mockClear();
@@ -109,7 +125,7 @@ describe("AppShell", () => {
       loaded: true,
     });
     startDraggingMock.mockClear();
-    resetSettingsModalPreloadForTest();
+    resetSettingsModalPreloadSession();
     setupTauriMocks();
   });
 
@@ -241,8 +257,8 @@ describe("AppShell", () => {
       const loadModule = vi.fn().mockRejectedValueOnce(error).mockRejectedValueOnce(retryError);
       const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
 
-      preloadSettingsModalModuleForDev(loadModule);
-      preloadSettingsModalModuleForDev(loadModule);
+      preloadSettingsModalModuleForTest(loadModule);
+      preloadSettingsModalModuleForTest(loadModule);
       await Promise.resolve();
       await Promise.resolve();
 
@@ -256,7 +272,7 @@ describe("AppShell", () => {
 
       expect(loadModule).toHaveBeenCalledTimes(2);
       expect(consoleError).toHaveBeenCalledWith("Failed to retry settings modal preload.", retryError);
-      preloadSettingsModalModuleForDev(loadModule);
+      preloadSettingsModalModuleForTest(loadModule);
       expect(loadModule).toHaveBeenCalledTimes(2);
       consoleError.mockRestore();
     } finally {
@@ -275,7 +291,7 @@ describe("AppShell", () => {
         .mockResolvedValueOnce({ SettingsModal: () => null });
       const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
 
-      preloadSettingsModalModuleForDev(loadModule);
+      preloadSettingsModalModuleForTest(loadModule);
       await Promise.resolve();
       await Promise.resolve();
 
@@ -285,7 +301,7 @@ describe("AppShell", () => {
       await vi.advanceTimersByTimeAsync(250);
 
       expect(loadModule).toHaveBeenCalledTimes(2);
-      preloadSettingsModalModuleForDev(loadModule);
+      preloadSettingsModalModuleForTest(loadModule);
       expect(loadModule).toHaveBeenCalledTimes(2);
       expect(consoleError).not.toHaveBeenCalledWith("Failed to retry settings modal preload.", expect.any(Error));
       consoleError.mockRestore();
@@ -305,10 +321,10 @@ describe("AppShell", () => {
         .mockResolvedValueOnce({ SettingsModal: () => null });
       const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
 
-      preloadSettingsModalModuleForDev(loadModule);
+      preloadSettingsModalModuleForTest(loadModule);
       await Promise.resolve();
       await Promise.resolve();
-      resetSettingsModalPreloadForTest();
+      resetSettingsModalPreloadSession();
       await vi.advanceTimersByTimeAsync(250);
 
       expect(loadModule).toHaveBeenCalledTimes(1);
@@ -331,7 +347,7 @@ describe("AppShell", () => {
       const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
       const { unmount } = render(<AppShell />, { wrapper: createWrapper() });
 
-      preloadSettingsModalModuleForDev(loadModule);
+      preloadSettingsModalModuleForTest(loadModule);
       await Promise.resolve();
       await Promise.resolve();
       unmount();
@@ -358,7 +374,7 @@ describe("AppShell", () => {
       useUiStore.setState({ settingsOpen: true });
       const { rerender } = render(<AppShell />, { wrapper: createWrapper() });
 
-      preloadSettingsModalModuleForDev(loadModule);
+      preloadSettingsModalModuleForTest(loadModule);
       await Promise.resolve();
       await Promise.resolve();
       useUiStore.setState({ settingsOpen: false });

@@ -3,8 +3,17 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Component, lazy, type ReactNode, Suspense, useEffect, useReducer, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
+import {
+  getFocusDebugHudActiveElementDescription,
+  resolveFocusDebugHudPortalTarget,
+} from "@/components/app-shell/focus-debug-hud-dom";
+import {
+  preloadSettingsModalModuleForDev,
+  resetSettingsModalPreloadSession,
+} from "@/components/app-shell/settings-modal-preload";
+import { shouldStartDesktopTitlebarDrag } from "@/components/app-shell/titlebar-drag";
 import { type BrowserDebugGeometrySnapshot, getBrowserGeometryRows } from "@/lib/browser/browser-debug-geometry";
-import { describeDebugHudActiveElement, describeDebugHudEventTarget } from "@/lib/debug/debug-hud-active-element";
+import { describeDebugHudEventTarget } from "@/lib/debug/debug-hud-active-element";
 import {
   buildDebugHudClipboardText,
   emitDebugInputTrace,
@@ -64,137 +73,32 @@ async function loadSettingsModalModule() {
   return import("./settings/settings-modal");
 }
 
-type SettingsModalPreloadState = "idle" | "pending" | "succeeded" | "retrying" | "failed";
-
-const SETTINGS_MODAL_PRELOAD_RETRY_DELAY_MS = 250;
 const SETTINGS_MODAL_PRELOAD_FAILURE_TOAST = "設定画面の読み込みに失敗しました。アプリの再読み込みを試してください。";
 const LAZY_CHUNK_FAILURE_TOAST = "画面の読み込みに失敗しました。アプリの再読み込みを試してください。";
 const MAIN_WINDOW_CLOSE_BLOCKED_EVENT = "main-window-close-blocked";
 const MAIN_WINDOW_CLOSE_BLOCKED_TOAST = "未保存または実行中の処理があるため、終了前に確認してください。";
-const INTERACTIVE_TITLEBAR_TARGET_SELECTOR = [
-  "button",
-  "a[href]",
-  "input",
-  "select",
-  "textarea",
-  "[role='button']",
-  "[role='link']",
-  "[contenteditable='true']",
-  "[data-titlebar-interactive]",
-].join(",");
-let settingsModalPreloadState: SettingsModalPreloadState = "idle";
-let settingsModalPreloadRetryTimer: ReturnType<typeof setTimeout> | null = null;
-let settingsModalPreloadGeneration = 0;
-
-function clearSettingsModalPreloadRetryTimer() {
-  if (settingsModalPreloadRetryTimer === null) {
-    return;
-  }
-
-  clearTimeout(settingsModalPreloadRetryTimer);
-  settingsModalPreloadRetryTimer = null;
-}
 
 function reportLazyChunkFailure(message: string) {
   useUiStore.getState().showToast(message);
-}
-
-function eventTargetElement(event: Event): Element | null {
-  const [firstTarget] = event.composedPath();
-  if (firstTarget instanceof Element) {
-    return firstTarget;
-  }
-
-  return event.target instanceof Element ? event.target : null;
-}
-
-function isInteractiveTitlebarTarget(target: Element): boolean {
-  return target.closest(INTERACTIVE_TITLEBAR_TARGET_SELECTOR) !== null;
-}
-
-export function shouldStartDesktopTitlebarDrag(event: PointerEvent): boolean {
-  if (event.button !== 0) {
-    return false;
-  }
-
-  const target = eventTargetElement(event);
-  if (target === null || isInteractiveTitlebarTarget(target)) {
-    return false;
-  }
-
-  return target.closest("[data-tauri-drag-region]") !== null;
 }
 
 async function startDesktopTitlebarDrag() {
   await getCurrentWindow().startDragging();
 }
 
-export function preloadSettingsModalModuleForDev(loadModule = loadSettingsModalModule) {
-  if (!import.meta.env.DEV) {
-    return;
-  }
-
-  if (settingsModalPreloadState !== "idle") {
-    return;
-  }
-
-  settingsModalPreloadState = "pending";
-  settingsModalPreloadGeneration += 1;
-  const preloadGeneration = settingsModalPreloadGeneration;
-
-  void loadModule()
-    .then(() => {
-      if (settingsModalPreloadGeneration !== preloadGeneration) {
-        return;
-      }
-
-      settingsModalPreloadState = "succeeded";
-    })
-    .catch((error: unknown) => {
-      if (settingsModalPreloadGeneration !== preloadGeneration) {
-        return;
-      }
-
-      console.error("Failed to preload settings modal.", error);
-      reportLazyChunkFailure(SETTINGS_MODAL_PRELOAD_FAILURE_TOAST);
-      settingsModalPreloadState = "retrying";
-      settingsModalPreloadRetryTimer = setTimeout(() => {
-        settingsModalPreloadRetryTimer = null;
-        if (settingsModalPreloadGeneration !== preloadGeneration) {
-          return;
-        }
-
-        void loadModule()
-          .then(() => {
-            if (settingsModalPreloadGeneration !== preloadGeneration) {
-              return;
-            }
-
-            settingsModalPreloadState = "succeeded";
-          })
-          .catch((retryError: unknown) => {
-            if (settingsModalPreloadGeneration !== preloadGeneration) {
-              return;
-            }
-
-            settingsModalPreloadState = "failed";
-            console.error("Failed to retry settings modal preload.", retryError);
-          });
-      }, SETTINGS_MODAL_PRELOAD_RETRY_DELAY_MS);
-    });
+function reportSettingsModalPreloadFailure(error: unknown) {
+  console.error("Failed to preload settings modal.", error);
+  reportLazyChunkFailure(SETTINGS_MODAL_PRELOAD_FAILURE_TOAST);
 }
 
-preloadSettingsModalModuleForDev();
-
-function resetSettingsModalPreloadSession() {
-  settingsModalPreloadGeneration += 1;
-  clearSettingsModalPreloadRetryTimer();
-  settingsModalPreloadState = "idle";
+function reportSettingsModalPreloadRetryFailure(error: unknown) {
+  console.error("Failed to retry settings modal preload.", error);
 }
 
-export function resetSettingsModalPreloadForTest() {
-  resetSettingsModalPreloadSession();
-}
+preloadSettingsModalModuleForDev(loadSettingsModalModule, {
+  onInitialFailure: reportSettingsModalPreloadFailure,
+  onRetryFailure: reportSettingsModalPreloadRetryFailure,
+});
 
 const LazySettingsModal = lazy(async () => {
   const mod = await loadSettingsModalModule();
@@ -361,48 +265,6 @@ function normalizeDebugHudClipboardText(text: string): string {
     const codePoint = char.codePointAt(0);
     return codePoint !== undefined && (codePoint < 32 || codePoint === 127) ? " | " : char;
   }).join("");
-}
-
-type DebugHudDocumentBoundary = {
-  readonly activeElement?: unknown;
-  readonly body?: unknown;
-  readonly defaultView?: (Window & { readonly HTMLElement?: typeof HTMLElement }) | null;
-};
-
-function isDebugHudHtmlElement(value: unknown, ownerDocument: DebugHudDocumentBoundary): value is HTMLElement {
-  const HtmlElement: typeof HTMLElement | null =
-    ownerDocument.defaultView?.HTMLElement ?? (typeof HTMLElement !== "undefined" ? HTMLElement : null);
-  return HtmlElement !== null && value instanceof HtmlElement;
-}
-
-export function resolveFocusDebugHudPortalTarget(
-  ownerDocument: DebugHudDocumentBoundary | null | undefined = typeof document === "undefined" ? undefined : document,
-): HTMLElement | null {
-  if (ownerDocument == null) {
-    return null;
-  }
-
-  const { body } = ownerDocument;
-  return isDebugHudHtmlElement(body, ownerDocument) ? body : null;
-}
-
-export function getFocusDebugHudActiveElementDescription(
-  ownerDocument: DebugHudDocumentBoundary | null | undefined = typeof document === "undefined" ? undefined : document,
-): string {
-  if (ownerDocument == null) {
-    return "none";
-  }
-
-  let activeElement: unknown;
-  try {
-    activeElement = ownerDocument.activeElement;
-  } catch {
-    return "none";
-  }
-
-  return isDebugHudHtmlElement(activeElement, ownerDocument)
-    ? describeDebugHudActiveElement(activeElement)
-    : describeDebugHudActiveElement(null);
 }
 
 function FocusDebugHud({ temporarilyHidden = false, avoidBottomRight = false }: FocusDebugHudProps) {

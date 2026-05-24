@@ -9,7 +9,8 @@ import type * as React from "react";
 import type { Ref } from "react";
 import { describe, expect, expectTypeOf, it } from "vitest";
 import type { ConfirmDialogVariant } from "@/components/shared/dialog.types";
-import type { Button, buttonVariants } from "@/components/ui/button";
+import type { Button } from "@/components/ui/button";
+import type { buttonVariants } from "@/components/ui/button-variants";
 import type { CollapsibleContentProps, CollapsibleProps, CollapsibleTriggerProps } from "@/components/ui/collapsible";
 import type {
   DialogCloseProps,
@@ -40,7 +41,7 @@ import type {
 import packageJson from "../../../package.json";
 
 describe("UI wrapper public API", () => {
-  it("keeps Button and buttonVariants as the public styled Base UI Button surface", () => {
+  it("keeps Button and buttonVariants as the styled Base UI Button surfaces", () => {
     expectTypeOf<typeof Button>().parameter(0).toMatchTypeOf<ButtonPrimitive.Props>();
     expectTypeOf<typeof Button>().parameter(0).toMatchTypeOf<VariantProps<typeof buttonVariants>>();
     expectTypeOf<VariantProps<typeof buttonVariants>>().toHaveProperty("variant");

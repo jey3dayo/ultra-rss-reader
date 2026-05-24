@@ -1,0 +1,40 @@
+import { cva } from "class-variance-authority";
+
+import { MOTION_BUTTON_SURFACE_CLASS_NAME } from "@/constants";
+
+const buttonVariants = cva(
+  `${MOTION_BUTTON_SURFACE_CLASS_NAME} group/button inline-flex shrink-0 items-center justify-center rounded-md border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/60 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-state-danger-border aria-invalid:ring-3 aria-invalid:ring-destructive/20 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4`,
+  {
+    variants: {
+      variant: {
+        default:
+          "border-border bg-surface-3 text-foreground shadow-elevation-1 hover:bg-surface-4 hover:text-foreground aria-expanded:bg-surface-4",
+        outline:
+          "border-border-strong bg-surface-1 text-foreground shadow-elevation-1 hover:bg-surface-2 hover:text-foreground aria-expanded:bg-surface-2",
+        secondary:
+          "border-border bg-surface-4 text-foreground-soft shadow-none hover:bg-surface-3 hover:text-foreground aria-expanded:bg-surface-3",
+        ghost: "text-foreground-soft shadow-none hover:bg-surface-2 hover:text-foreground aria-expanded:bg-surface-2",
+        destructive:
+          "border-state-danger-border bg-state-danger-surface text-state-danger-foreground shadow-none hover:border-state-danger-border hover:bg-state-danger-surface focus-visible:border-state-danger-border focus-visible:ring-destructive/20",
+        link: "border-transparent p-0 text-[color:color-mix(in_srgb,var(--primary)_68%,var(--foreground))] shadow-none underline-offset-4 hover:text-primary hover:underline",
+      },
+      size: {
+        default: "h-8 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
+        xs: "h-6 gap-1 rounded-md px-2 text-xs in-data-[slot=button-group]:rounded-md has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3",
+        sm: "h-7 gap-1 rounded-md px-2.5 text-[0.8rem] in-data-[slot=button-group]:rounded-md has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3.5",
+        lg: "h-9 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-3 has-data-[icon=inline-start]:pl-3",
+        icon: "size-11 md:size-8",
+        "icon-xs":
+          "size-11 rounded-md md:size-6 in-data-[slot=button-group]:rounded-md [&_svg:not([class*='size-'])]:size-3",
+        "icon-sm": "size-11 rounded-md md:size-7 in-data-[slot=button-group]:rounded-md",
+        "icon-lg": "size-11 md:size-9",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default",
+    },
+  },
+);
+
+export { buttonVariants };

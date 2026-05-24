@@ -70,6 +70,7 @@ export function useArticleAutoMark({
   useEffect(() => {
     autoMarkGenerationRef.current += 1;
     const autoMarkGeneration = autoMarkGenerationRef.current;
+
     const clearPendingAutoMarkTimeout = () => {
       const pendingTimeout = pendingAutoMarkTimeoutRef.current;
       if (pendingTimeout === null) {
@@ -78,12 +79,6 @@ export function useArticleAutoMark({
 
       clearTimeout(pendingTimeout);
       pendingAutoMarkTimeoutRef.current = null;
-    };
-    const cleanupAutoMarkEffect = () => {
-      if (autoMarkGenerationRef.current === autoMarkGeneration) {
-        autoMarkGenerationRef.current += 1;
-      }
-      clearPendingAutoMarkTimeout();
     };
 
     clearPendingAutoMarkTimeout();
@@ -96,84 +91,86 @@ export function useArticleAutoMark({
       if (autoMarkedOwnerKeyRef.current === autoMarkOwnerKey) {
         autoMarkedOwnerKeyRef.current = null;
       }
-      return cleanupAutoMarkEffect;
-    }
-
-    if (
-      afterReading === "never" ||
-      manualUnreadAutoMarkSuppressionKey === autoMarkOwnerKey ||
-      autoMarkedOwnerKeyRef.current === autoMarkOwnerKey
+    } else if (
+      afterReading !== "never" &&
+      manualUnreadAutoMarkSuppressionKey !== autoMarkOwnerKey &&
+      autoMarkedOwnerKeyRef.current !== autoMarkOwnerKey
     ) {
-      return cleanupAutoMarkEffect;
-    }
+      const markArticleAsRead = () => {
+        autoMarkedOwnerKeyRef.current = autoMarkOwnerKey;
+        pendingAutoMarkTimeoutRef.current = null;
 
-    const markArticleAsRead = () => {
-      autoMarkedOwnerKeyRef.current = autoMarkOwnerKey;
-      pendingAutoMarkTimeoutRef.current = null;
+        const isLatestAutoMark = () => {
+          const latestArticleState = latestArticleStateRef.current;
+          return (
+            autoMarkGenerationRef.current === autoMarkGeneration &&
+            latestArticleState.articleId === articleId &&
+            latestArticleState.selectedAccountId === selectedAccountId &&
+            latestArticleState.viewMode === viewMode
+          );
+        };
+        const shouldRollbackRetainedArticle =
+          viewMode === "unread" && !useUiStore.getState().retainedArticleIds.has(articleId);
+        if (viewMode === "unread") {
+          retainArticle(articleId);
+        }
 
-      const isLatestAutoMark = () => {
-        const latestArticleState = latestArticleStateRef.current;
-        return (
-          autoMarkGenerationRef.current === autoMarkGeneration &&
-          latestArticleState.articleId === articleId &&
-          latestArticleState.selectedAccountId === selectedAccountId &&
-          latestArticleState.viewMode === viewMode
+        setRead.mutate(
+          {
+            id: articleId,
+            read: true,
+          },
+          {
+            onSuccess: () => {
+              if (!isLatestAutoMark()) {
+                return;
+              }
+              addRecentlyRead(articleId);
+            },
+            onError: (error) => {
+              if (!isLatestAutoMark()) {
+                return;
+              }
+              if (autoMarkedOwnerKeyRef.current === autoMarkOwnerKey) {
+                autoMarkedOwnerKeyRef.current = null;
+              }
+              if (shouldRollbackRetainedArticle) {
+                removeRetainedArticle(articleId);
+              }
+              showToast(error.message);
+            },
+          },
         );
       };
-      const shouldRollbackRetainedArticle =
-        viewMode === "unread" && !useUiStore.getState().retainedArticleIds.has(articleId);
-      if (viewMode === "unread") {
-        retainArticle(articleId);
+
+      if (afterReading === "immediately") {
+        markArticleAsRead();
+      } else if (typeof setTimeout === "function") {
+        const timeout = setTimeout(() => {
+          // Timer guard pattern: only the latest scheduled timeout may mutate read state.
+          if (pendingAutoMarkTimeoutRef.current !== timeout) {
+            return;
+          }
+
+          markArticleAsRead();
+        }, delayedAutoMarkTimeoutsMs[afterReading]);
+        pendingAutoMarkTimeoutRef.current = timeout;
+      }
+    }
+
+    return () => {
+      if (autoMarkGenerationRef.current === autoMarkGeneration) {
+        autoMarkGenerationRef.current += 1;
       }
 
-      setRead.mutate(
-        {
-          id: articleId,
-          read: true,
-        },
-        {
-          onSuccess: () => {
-            if (!isLatestAutoMark()) {
-              return;
-            }
-            addRecentlyRead(articleId);
-          },
-          onError: (error) => {
-            if (!isLatestAutoMark()) {
-              return;
-            }
-            if (autoMarkedOwnerKeyRef.current === autoMarkOwnerKey) {
-              autoMarkedOwnerKeyRef.current = null;
-            }
-            if (shouldRollbackRetainedArticle) {
-              removeRetainedArticle(articleId);
-            }
-            showToast(error.message);
-          },
-        },
-      );
-    };
-
-    if (afterReading === "immediately") {
-      markArticleAsRead();
-      return cleanupAutoMarkEffect;
-    }
-
-    if (typeof setTimeout !== "function") {
-      return cleanupAutoMarkEffect;
-    }
-
-    const timeout = setTimeout(() => {
-      // Timer guard pattern: only the latest scheduled timeout may mutate read state.
-      if (pendingAutoMarkTimeoutRef.current !== timeout) {
+      const pendingTimeout = pendingAutoMarkTimeoutRef.current;
+      if (pendingTimeout === null) {
         return;
       }
 
-      markArticleAsRead();
-    }, delayedAutoMarkTimeoutsMs[afterReading]);
-    pendingAutoMarkTimeoutRef.current = timeout;
-
-    return cleanupAutoMarkEffect;
+      clearTimeout(pendingTimeout);
+      pendingAutoMarkTimeoutRef.current = null;
+    };
   }, [
     addRecentlyRead,
     afterReading,

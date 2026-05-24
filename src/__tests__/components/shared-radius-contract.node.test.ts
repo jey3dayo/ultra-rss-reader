@@ -6,6 +6,7 @@ const checkedFiles = [
   "src/components/shared/surface-card.tsx",
   "src/components/shared/feed-favicon.tsx",
   "src/components/ui/button.tsx",
+  "src/components/ui/button-variants.ts",
   "src/components/ui/input.tsx",
   "src/components/ui/dialog.tsx",
   "src/components/ui/command.tsx",

@@ -9,7 +9,8 @@ import { useUiStore } from "@/stores/ui-store";
 import { updateCachedAccount } from "../../account-detail/query-cache";
 import { createAccountDetailErrorToast } from "../../account-detail/toast";
 import type { AccountDetailEditorContext } from "../../account-detail/types";
-import { type SettingsDirtyStateEntry, useRegisterSettingsDirtyState } from "../use-settings-dirty-state-registry";
+import type { SettingsDirtyStateEntry } from "../settings-dirty-state-registry";
+import { useRegisterSettingsDirtyState } from "../use-settings-dirty-state-registry";
 
 type AccountDetailCredentialsEditorParams = AccountDetailEditorContext;
 

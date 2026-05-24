@@ -8,7 +8,7 @@ import {
 } from "@/api/schemas/update-info";
 import { type AppError, checkForUpdate, downloadAndInstallUpdate, restartApp } from "@/api/tauri-commands";
 import { getAddFeedDialogRestartBlockerSnapshot } from "@/components/reader/hooks/feed-dialogs/use-add-feed-dialog-actions";
-import { getSettingsDirtyStateSnapshot } from "@/components/settings/hooks/use-settings-dirty-state-registry";
+import { getSettingsDirtyStateSnapshot } from "@/components/settings/hooks/settings-dirty-state-registry";
 import i18n from "@/lib/i18n";
 import { attachTauriListeners } from "@/lib/runtime/tauri-event-listeners";
 import type { ToastData } from "@/lib/ui/toast.types";

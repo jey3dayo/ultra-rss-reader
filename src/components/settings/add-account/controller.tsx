@@ -2,9 +2,8 @@ import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { AddAccountProviderKind } from "@/lib/account/add-account-form";
 import { AccountConfigForm, type AccountConfigFormProps } from "./account-config-form";
-import { ServicePicker, type ServicePickerCategory } from "./service-picker";
-import type { ServiceCategoryLabelKey, ServiceDescriptionKey, ServiceNameKey } from "./services";
-import { SERVICE_CATEGORIES } from "./services";
+import { ServicePicker } from "./service-picker";
+import { buildServicePickerCategories } from "./service-picker-categories";
 
 type Step = { type: "pick" } | { type: "config"; kind: AddAccountProviderKind };
 
@@ -38,40 +37,4 @@ export function AddAccountForm({ initialKind, debugState }: AddAccountFormProps 
       onSelect={handleSelect}
     />
   );
-}
-
-type ServicePickerTranslationKey =
-  | ServiceCategoryLabelKey
-  | ServiceNameKey
-  | ServiceDescriptionKey
-  | "account.coming_soon";
-
-type SettingsTranslator = (key: ServicePickerTranslationKey) => string;
-
-export function buildServicePickerCategories(t: SettingsTranslator): ServicePickerCategory[] {
-  return SERVICE_CATEGORIES.map((category) => ({
-    id: category.labelKey,
-    label: t(category.labelKey),
-    services: category.services.map((service) => {
-      if (service.disabled) {
-        return {
-          kind: service.kind,
-          icon: service.icon,
-          iconBg: service.iconBg,
-          name: t(service.nameKey),
-          description: t(service.descKey),
-          disabled: true,
-          disabledLabel: t("account.coming_soon"),
-        };
-      }
-
-      return {
-        kind: service.kind,
-        icon: service.icon,
-        iconBg: service.iconBg,
-        name: t(service.nameKey),
-        description: t(service.descKey),
-      };
-    }),
-  }));
 }

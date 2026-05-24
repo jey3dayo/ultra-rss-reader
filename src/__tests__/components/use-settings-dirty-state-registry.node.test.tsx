@@ -6,6 +6,8 @@ import {
   createSettingsDirtyStateSnapshot,
   getSettingsDirtyStateSnapshot,
   type SettingsDirtyStateEntry,
+} from "@/components/settings/hooks/settings-dirty-state-registry";
+import {
   SettingsDirtyStateRegistryProvider,
   useRegisterSettingsDirtyState,
   useSettingsDirtyStateRegistrySnapshot,

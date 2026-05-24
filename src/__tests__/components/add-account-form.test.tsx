@@ -8,8 +8,9 @@ import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import type { ReactNode } from "react";
 import { I18nextProvider } from "react-i18next";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { AddAccountForm, buildServicePickerCategories } from "@/components/settings/add-account/controller";
+import { AddAccountForm } from "@/components/settings/add-account/controller";
 import { ServicePicker } from "@/components/settings/add-account/service-picker";
+import { buildServicePickerCategories } from "@/components/settings/add-account/service-picker-categories";
 import { runAccountSetupSync } from "@/components/settings/hooks/account-detail/use-account-detail-sync-controls";
 import i18n from "@/lib/i18n";
 import { queryKeys } from "@/lib/query/query-invalidation";
@@ -114,6 +115,10 @@ const servicePickerSource = readFileSync(
 );
 const addAccountControllerSource = readFileSync(
   join(process.cwd(), "src/components/settings/add-account/controller.tsx"),
+  "utf8",
+);
+const servicePickerCategoriesSource = readFileSync(
+  join(process.cwd(), "src/components/settings/add-account/service-picker-categories.ts"),
   "utf8",
 );
 const accountConfigFormSource = readFileSync(
@@ -233,7 +238,7 @@ describe("AddAccountForm", () => {
     expect(onSelect).toHaveBeenCalledWith("Local");
   });
 
-  it("derives service picker copy from settings translations in the controller", () => {
+  it("derives service picker copy from settings translations in the category builder", () => {
     const translations: Record<string, string> = {
       "account.category_local": jaSettings.account.category_local,
       "account.category_self_hosted": jaSettings.account.category_self_hosted,
@@ -389,7 +394,8 @@ describe("AddAccountForm", () => {
     expect(servicePickerSource).not.toContain("useTranslation");
     expect(servicePickerSource).not.toContain("SERVICE_CATEGORIES");
     expect(addAccountControllerSource).toContain("useTranslation");
-    expect(addAccountControllerSource).toContain("SERVICE_CATEGORIES");
+    expect(addAccountControllerSource).toContain("buildServicePickerCategories");
+    expect(servicePickerCategoriesSource).toContain("SERVICE_CATEGORIES");
   });
 
   it("delegates hover styling to the shared nav row button", () => {
