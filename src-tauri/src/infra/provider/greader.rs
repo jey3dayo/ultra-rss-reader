@@ -90,8 +90,6 @@ struct GReaderContent {
 struct GReaderOrigin {
     #[serde(rename = "streamId")]
     stream_id: String,
-    #[allow(dead_code)]
-    title: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -2114,7 +2112,6 @@ mod tests {
             timestamp_usec: None,
             origin: Some(GReaderOrigin {
                 stream_id: "feed/https://example.com/rss".to_string(),
-                title: None,
             }),
             categories: vec![
                 format!("{STATE_READ}/archive"),
@@ -2144,7 +2141,6 @@ mod tests {
             timestamp_usec: None,
             origin: Some(GReaderOrigin {
                 stream_id: "feed/https://example.com/rss".to_string(),
-                title: None,
             }),
             categories: vec![],
         };
@@ -2185,7 +2181,6 @@ mod tests {
             timestamp_usec: None,
             origin: Some(GReaderOrigin {
                 stream_id: "feed/https://example.com/rss".to_string(),
-                title: None,
             }),
             categories: vec![],
         };
@@ -2217,7 +2212,6 @@ mod tests {
             timestamp_usec: None,
             origin: Some(GReaderOrigin {
                 stream_id: "feed/https://example.com/rss".to_string(),
-                title: None,
             }),
             categories: vec![],
         };
@@ -2244,7 +2238,6 @@ mod tests {
             timestamp_usec: None,
             origin: Some(GReaderOrigin {
                 stream_id: "feed/https://example.com/rss".to_string(),
-                title: None,
             }),
             categories: vec![],
         };
@@ -2276,7 +2269,6 @@ mod tests {
             timestamp_usec: None,
             origin: Some(GReaderOrigin {
                 stream_id: "feed/https://example.com/rss".to_string(),
-                title: None,
             }),
             categories: vec![],
         };
@@ -2303,7 +2295,6 @@ mod tests {
             timestamp_usec: None,
             origin: Some(GReaderOrigin {
                 stream_id: "feed/https://example.com/rss".to_string(),
-                title: None,
             }),
             categories: vec![],
         };
@@ -2337,7 +2328,6 @@ mod tests {
             timestamp_usec: None,
             origin: Some(GReaderOrigin {
                 stream_id: "feed/https://example.com/rss".to_string(),
-                title: None,
             }),
             categories: vec![],
         };
