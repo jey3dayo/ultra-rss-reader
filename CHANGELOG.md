@@ -4,6 +4,25 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.43.9] - 2026-05-26
+
+### Bug Fixes
+
+- Smart View から unread folder を開いたとき、未読フォルダが自動展開されるようにした
+
+### Documentation
+
+- boundary ownership rule を追加し、refactor 時の責務境界と移動先判断を整理した
+
+### Maintenance
+
+- release skill の手順を phase ごとの参照ファイルに分割し、関連 contract test を追加した
+- dev / Storybook helper と mock runtime の責務境界を整理した
+- GReader origin 由来の未使用 title field を削除した
+- tag query / mutation の Result 処理を React Query adapter 境界へ寄せた
+- Windows dispatch の env schema 型を明示し、型アサーションを減らした
+- boundary rule 追加に合わせて repo contract の許可リストを更新した
+
 ## [0.43.8] - 2026-05-25
 
 ### Bug Fixes
