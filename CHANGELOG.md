@@ -4,6 +4,20 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.43.8] - 2026-05-25
+
+### Bug Fixes
+
+- Reader の context menu が reader chrome の下に隠れないようにした
+- 設定画面の switch ON 色をアイコンの暖色アクセントに合わせた warm bronze に調整した
+
+### Maintenance
+
+- React Doctor 指摘を解消し、component / helper / storybook specimen の責務境界を整理した
+- Settings action hook と Reader toolbar の非 component export を分離した
+- UI store の型 surface を整理した
+- 不要になった observer mock alias を削除した
+
 ## [0.43.7] - 2026-05-24
 
 ### Bug Fixes
