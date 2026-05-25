@@ -1808,6 +1808,7 @@ describe("repository static contracts", () => {
     expect(claudeRuleLinks).toEqual([
       ".claude/rules/README.md",
       ".claude/rules/async-side-effect-policy.md",
+      ".claude/rules/boundary-ownership.md",
       ".claude/rules/contract-test-policy.md",
       ".claude/rules/preferences-pattern.md",
       ".claude/rules/quality-policy.md",
