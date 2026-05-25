@@ -202,6 +202,16 @@ const RELEASE_CSP_FORBIDDEN_SOURCES = [
 ] as const;
 
 const readText = (path: string): string => readFileSync(path, "utf8");
+const readReleaseSkillCorpus = (): string =>
+  [
+    ".codex/skills/release/SKILL.md",
+    ".codex/skills/release/references/phase-1-prechecks.md",
+    ".codex/skills/release/references/phase-2-generate.md",
+    ".codex/skills/release/references/phase-3-publish.md",
+    ".codex/skills/release/references/subagents.md",
+  ]
+    .map((path) => readText(path))
+    .join("\n");
 const readSha256 = (path: string): string => createHash("sha256").update(readFileSync(path)).digest("hex");
 
 const runWorkflowPinChecker = (workflowsDir: string): string =>
@@ -1632,13 +1642,13 @@ describe("release repository contract", () => {
     expect(releaseConfig).not.toContain("version-template:");
     expect(releaseWorkflow).toContain("generateReleaseNotes: false");
     expect(releaseWorkflow).toContain("releaseDraft: $" + "{{ steps.release-policy.outputs.draft }}");
-    expect(readText(".codex/skills/release/SKILL.md")).toContain(
+    expect(readReleaseSkillCorpus()).toContain(
       ".github/release.yml` only owns Release Drafter PR-label changelog grouping",
     );
   });
 
   it("keeps release note publication owned by the release skill with prerelease and build metadata policy", () => {
-    const releaseSkill = readText(".codex/skills/release/SKILL.md");
+    const releaseSkill = readReleaseSkillCorpus();
     const releasePolicyStep = extractReleaseStepBlock(releaseWorkflow, "Resolve release semver policy");
 
     expect(releaseWorkflow).toContain("generateReleaseNotes: false");
@@ -1651,7 +1661,8 @@ describe("release repository contract", () => {
       "build metadata alone such as `v1.2.3+build.1` does not make the Release a prerelease",
     );
     expect(releaseSkill).toContain("Treat the CLI as the source of truth for release note body text");
-    expect(releaseSkill).toContain("After create/edit, verify with `gh release view");
+    expect(releaseSkill).toContain("After create/edit, verify with:");
+    expect(releaseSkill).toContain("gh release view v{new_version} --json tagName,isDraft,url,body");
     expect(releaseSkill).toContain("Do not generate release notes after the release commit has been created");
   });
 

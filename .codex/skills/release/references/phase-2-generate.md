@@ -71,7 +71,7 @@ python3 .codex/skills/release/scripts/release_checks.py classify-commits <previo
 
 Omit empty categories. Keep GitHub Release headings emoji-prefixed. Keep `CHANGELOG.md` headings plain text without emoji.
 
-Write release notes and `CHANGELOG.md` entries in concise Japanese by default. Summarize user-visible impact rather than mechanically translating commit subjects. Do not invent changes that are not present in the commits.
+Write release notes and `CHANGELOG.md` entries in concise Japanese by default, grounded in the actual commit history. Summarize user-visible impact rather than mechanically translating commit subjects. Do not invent changes that are not present in the commits.
 
 ## Update CHANGELOG And TODO
 

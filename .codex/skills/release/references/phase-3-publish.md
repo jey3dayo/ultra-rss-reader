@@ -77,8 +77,8 @@ For annotated tags, `refs/tags/v{new_version}` is the tag object and `refs/tags/
 - Use manual dispatch with `dry_run=true` only to validate release preflight without publishing artifacts.
 - The release workflow keeps Releases as drafts.
 - Stable tags use `prerelease=false`.
-- Semver prerelease tags such as `v1.2.3-alpha.1` use `prerelease=true`.
-- Build metadata alone such as `v1.2.3+build.1` does not make the Release a prerelease.
+- semver prerelease tags such as `v1.2.3-alpha.1` use `prerelease=true`.
+- build metadata alone such as `v1.2.3+build.1` does not make the Release a prerelease.
 - `.github/release.yml` only owns Release Drafter PR-label changelog grouping.
 - The release workflow and this skill own release notes publication, tag validation, artifact builds, updater sidecars, provenance, and draft Release asset publication.
 - If rerunning the same tag after a cancellation or failed artifact upload, first inspect the draft Release assets and delete any partial assets for that tag before rerunning.
@@ -100,7 +100,7 @@ gh release create v{new_version} --draft --notes "..."
 
 Treat the CLI as the source of truth for release note body text. The GitHub workflow only builds artifacts and attaches them.
 
-After create/edit, verify:
+After create/edit, verify with:
 
 ```bash
 gh release view v{new_version} --json tagName,isDraft,url,body
