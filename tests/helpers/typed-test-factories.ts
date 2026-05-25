@@ -1,10 +1,6 @@
 import type { KeyboardEvent } from "react";
 import { vi } from "vitest";
 
-export type {
-  MutationObserverMockInstance,
-  ResizeObserverMockInstance,
-} from "@tests/helpers/observer-mocks";
 export { mockObserverConstructors } from "@tests/helpers/observer-mocks";
 
 type KeyboardEventFactoryOptions = {
