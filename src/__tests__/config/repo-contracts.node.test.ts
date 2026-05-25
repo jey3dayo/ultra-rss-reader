@@ -1591,12 +1591,16 @@ describe("repository static contracts", () => {
     expect(extractCssCustomProperty(globalCss, ":root.dark", "--tone-loading")).toBe("var(--theme-unread)");
     expect(extractCssCustomProperty(globalCss, ":root", "--dialog-scrim")).toBe("var(--dialog-overlay)");
     expect(extractCssCustomProperty(globalCss, ":root.dark", "--dialog-scrim")).toBe("var(--dialog-overlay)");
+    expect(extractCssCustomProperty(globalCss, ":root", "--control-active-warm")).toBe("#c08532");
+    expect(extractCssCustomProperty(globalCss, ":root.dark", "--control-active-warm")).toBe("#c08532");
 
     expect(colorRule).toContain("rgba(245, 78, 0, 0.26)");
     expect(colorRule).toContain("rgba(245, 78, 0, 0.38)");
     expect(colorRule).toContain("var(--gradient-switch-track-off)");
     expect(colorRule).not.toContain("oklch(0.65 0.15 250)");
-    expect(extractCssCustomProperty(globalCss, ":root", "--gradient-switch-track-on")).toBe("var(--color-primary)");
+    expect(extractCssCustomProperty(globalCss, ":root", "--gradient-switch-track-on")).toBe(
+      "var(--control-active-warm)",
+    );
     expect(extractCssCustomProperty(globalCss, ":root", "--gradient-switch-track-off")).toBe("var(--color-input)");
   });
 
