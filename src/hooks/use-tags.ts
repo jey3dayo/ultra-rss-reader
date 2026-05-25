@@ -1,6 +1,5 @@
-import { Result } from "@praha/byethrow";
 import type { QueryClient } from "@tanstack/react-query";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import {
   createTag,
   deleteTag,
@@ -13,7 +12,7 @@ import {
   untagArticle,
 } from "@/api/tauri-commands";
 import { createMutation } from "@/hooks/create-mutation";
-import { createQuery } from "@/hooks/create-query";
+import { createQuery, unwrapReadQueryResult } from "@/hooks/create-query";
 import {
   invalidateArticleMutationQueries,
   invalidateQueryKeysLogOnly,
@@ -98,7 +97,7 @@ function invalidateTagQueryKeys(qc: QueryClient, queryKeys: ReadonlyArray<TagQue
 export function useTags() {
   return useQuery({
     queryKey: tagQueryKeys.tags.root,
-    queryFn: () => listTags().then(Result.unwrap()),
+    queryFn: () => listTags().then(unwrapReadQueryResult),
   });
 }
 
@@ -107,7 +106,7 @@ export function useTagArticleCounts(accountId: string | null | undefined) {
 
   return useQuery({
     queryKey: tagQueryKeys.tagArticleCounts.byAccount(queryAccountId),
-    queryFn: () => getTagArticleCounts(queryAccountId ?? undefined).then(Result.unwrap()),
+    queryFn: () => getTagArticleCounts(queryAccountId ?? undefined).then(unwrapReadQueryResult),
   });
 }
 
@@ -143,20 +142,17 @@ export function useArticlesByTag(tagId: string | null, accountId?: string | null
         undefined,
         normalizedAccountId ?? undefined,
         mode,
-      ).then(Result.unwrap()),
+      ).then(unwrapReadQueryResult),
     enabled: normalizedTagId !== null,
   });
 }
 
-export function useCreateTag() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ name, color }: CreateTagMutationInput) => createTag(name, color).then(Result.unwrap()),
-    onSuccess: () => {
-      invalidateTagQueryKeys(qc, resolveTagMutationInvalidationQueryKeys("create"));
-    },
-  });
-}
+export const useCreateTag = createMutation(
+  ({ name, color }: CreateTagMutationInput) => createTag(name, color),
+  (qc) => {
+    invalidateTagQueryKeys(qc, resolveTagMutationInvalidationQueryKeys("create"));
+  },
+);
 
 function invalidateArticleTagQueries(qc: QueryClient) {
   invalidateTagQueryKeys(qc, resolveTagMutationInvalidationQueryKeys("articleAssignment"));

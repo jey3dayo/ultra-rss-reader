@@ -78,6 +78,10 @@ function redactDiagnosticError(error: unknown, queryKey: string, queryId: string
 
 type GeneratedQueryError = Pick<AppError, "message"> & Partial<Pick<AppError, "type">>;
 
+export function unwrapReadQueryResult<TData>(result: Result.Result<TData, GeneratedQueryError>): TData {
+  return Result.unwrap(result);
+}
+
 function unwrapGeneratedQueryResult<TData>(
   result: Result.Result<TData, GeneratedQueryError>,
   queryKey: string,
