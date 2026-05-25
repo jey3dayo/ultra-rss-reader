@@ -15,24 +15,41 @@ import type {
   MuteKeywordDto,
   TagDto,
 } from "@/api/tauri-commands";
-import {
-  captureRuntimeWindowDescriptors,
-  defineRuntimeWindowDescriptor,
-  type RuntimeWindowDescriptorsSnapshot,
-  restoreRuntimeWindowDescriptors,
-} from "@/components/storybook/story-tauri-runtime";
 import { DEFAULT_PLATFORM_INFO } from "@/constants/platform";
 import { readDevIntent, readDevWebUrl, readDevWindowSize } from "@/dev/intent";
+import { mockAccounts, mockArticles, mockArticleTags, mockFeeds, mockFolders, mockTags } from "@/dev/mock-data";
 import {
-  mockAccounts,
-  mockArticles,
-  mockArticleTags,
-  mockFeeds,
-  mockFolders,
-  mockTags,
-  resetMockDataForDevMocks,
-} from "@/dev/mock-data";
-import { stripHtmlTags } from "@/lib/content/html";
+  captureDevMockWindowGlobals,
+  createDevMockWindowGlobalsRestore,
+  defineDevMockWindowGlobal,
+  type RestoreDevMocks,
+  recordDevMockExternalOpen,
+  recordDevMockUnknownCommand,
+  resetDevMockDiagnostics,
+  resetDevMockExternalOpens,
+  setDevMockWindowGlobal,
+} from "@/dev/mock-runtime";
+import {
+  applyMuteKeywordFilter,
+  collectFeedIdsByAccount,
+  collectFeedIdsByFolder,
+  countStarredByAccount,
+  countUnreadByAccount,
+  deleteDevMockAccount,
+  findLatestPublishedAt,
+  findOldUnreadArticles,
+  mockArticleViewHistory,
+  mockMuteKeywords,
+  mockPreferences,
+  recalcUnread,
+  resetDevMockDataState,
+  takeNextDevMockAccountId,
+  takeNextDevMockFeedId,
+  takeNextDevMockFolderId,
+  takeNextDevMockMuteKeywordId,
+  takeNextDevMockTagId,
+  titleFromUrl,
+} from "@/dev/mock-state";
 import { addHours, getCurrentDate, getCurrentIsoTimestamp, toIsoTimestamp } from "@/lib/datetime";
 import type { RuntimeSchema, SchemaOutput } from "@/schemas/parse";
 
@@ -61,28 +78,8 @@ type ParsedBrowserMockArgs<TCommand extends MockCommandWithArgs> = SchemaOutput<
   BrowserMockCommandArgsSchemas[TCommand]
 >;
 type RawMockIpcPayload = unknown;
-type DevMockWindowGlobalName = "__DEV_BROWSER_MOCKS__" | "__ULTRA_RSS_BROWSER_MOCKS__";
-type DevMockWindowGlobalsSnapshot = Pick<RuntimeWindowDescriptorsSnapshot, DevMockWindowGlobalName>;
-type DevMockDiagnostic = {
-  kind: "unknown-command";
-  command: string;
-  message: string;
-};
-type DevMockDiagnosticsWindow = Window & {
-  __ULTRA_RSS_DEV_MOCK_DIAGNOSTICS__?: DevMockDiagnostic[];
-};
-type DevMockExternalOpen = {
-  command: "open_in_browser" | "plugin:opener|open_url" | "add_to_reading_list";
-  url: string;
-  target: "_blank" | "reading-list";
-};
-type DevMockExternalOpenerWindow = Window & {
-  __ULTRA_RSS_DEV_MOCK_EXTERNAL_OPENS__?: DevMockExternalOpen[];
-};
-export type RestoreDevMocks = () => void;
 
-const DEV_MOCK_DIAGNOSTICS_ELEMENT_ID = "ultra-rss-dev-mock-diagnostics";
-const DEV_MOCK_DIAGNOSTICS_EVENT = "ultra-rss-dev-mock-diagnostics";
+export type { RestoreDevMocks } from "@/dev/mock-runtime";
 
 function parseMockArgs<TCommand extends MockCommandWithArgs>(
   command: TCommand,
@@ -104,307 +101,18 @@ function cloneMockResponse<T>(value: T): T {
   return structuredClone(value);
 }
 
-function devMockDiagnosticsWindow(): DevMockDiagnosticsWindow {
-  return window as DevMockDiagnosticsWindow;
-}
-
-function devMockExternalOpenerWindow(): DevMockExternalOpenerWindow {
-  return window as DevMockExternalOpenerWindow;
-}
-
-function recordDevMockExternalOpen(open: DevMockExternalOpen) {
-  const targetWindow = devMockExternalOpenerWindow();
-  const opens = targetWindow.__ULTRA_RSS_DEV_MOCK_EXTERNAL_OPENS__ ?? [];
-  opens.push(open);
-  targetWindow.__ULTRA_RSS_DEV_MOCK_EXTERNAL_OPENS__ = opens;
-}
-
-function resetDevMockExternalOpens() {
-  devMockExternalOpenerWindow().__ULTRA_RSS_DEV_MOCK_EXTERNAL_OPENS__ = [];
-}
-
-function ensureDevMockDiagnosticsCanvas(): HTMLElement {
-  const existing = document.getElementById(DEV_MOCK_DIAGNOSTICS_ELEMENT_ID);
-  if (existing) {
-    return existing;
-  }
-
-  const element = document.createElement("aside");
-  element.id = DEV_MOCK_DIAGNOSTICS_ELEMENT_ID;
-  element.dataset.testid = "dev-mock-diagnostics-canvas";
-  element.setAttribute("aria-live", "polite");
-  element.style.cssText = [
-    "position: fixed",
-    "right: 12px",
-    "bottom: 12px",
-    "z-index: 2147483647",
-    "max-width: min(420px, calc(100vw - 24px))",
-    "padding: 8px 10px",
-    "border: 1px solid rgba(185, 28, 28, 0.35)",
-    "border-radius: 8px",
-    "background: rgba(254, 242, 242, 0.96)",
-    "color: #7f1d1d",
-    "font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
-    "box-shadow: 0 8px 24px rgba(127, 29, 29, 0.16)",
-  ].join(";");
-  document.body.append(element);
-  return element;
-}
-
-function renderDevMockDiagnosticsCanvas(diagnostics: readonly DevMockDiagnostic[]) {
-  if (diagnostics.length === 0) {
-    document.getElementById(DEV_MOCK_DIAGNOSTICS_ELEMENT_ID)?.remove();
-    return;
-  }
-
-  const latest = diagnostics[diagnostics.length - 1];
-  ensureDevMockDiagnosticsCanvas().textContent = latest?.message ?? "";
-}
-
-function resetDevMockDiagnostics() {
-  const targetWindow = devMockDiagnosticsWindow();
-  targetWindow.__ULTRA_RSS_DEV_MOCK_DIAGNOSTICS__ = [];
-  renderDevMockDiagnosticsCanvas([]);
-}
-
-function recordDevMockUnknownCommand(command: string): Error {
-  const message = `[dev-mocks] Unknown command: ${command}`;
-  const diagnostic: DevMockDiagnostic = {
-    kind: "unknown-command",
-    command,
-    message,
-  };
-  const targetWindow = devMockDiagnosticsWindow();
-  const diagnostics = targetWindow.__ULTRA_RSS_DEV_MOCK_DIAGNOSTICS__ ?? [];
-  diagnostics.push(diagnostic);
-  targetWindow.__ULTRA_RSS_DEV_MOCK_DIAGNOSTICS__ = diagnostics;
-  renderDevMockDiagnosticsCanvas(diagnostics);
-  window.dispatchEvent(new CustomEvent(DEV_MOCK_DIAGNOSTICS_EVENT, { detail: diagnostic }));
-  return new Error(message);
-}
-
-function captureDevMockWindowGlobals(): DevMockWindowGlobalsSnapshot {
-  return captureRuntimeWindowDescriptors(["__DEV_BROWSER_MOCKS__", "__ULTRA_RSS_BROWSER_MOCKS__"]);
-}
-
-function setDevMockWindowGlobal(name: DevMockWindowGlobalName) {
-  defineRuntimeWindowDescriptor(name, {
-    writable: true,
-    value: true,
-  });
-}
-
-function createDevMockWindowGlobalsRestore(snapshot: DevMockWindowGlobalsSnapshot): RestoreDevMocks {
-  return () => {
-    restoreRuntimeWindowDescriptors(snapshot);
-  };
-}
-
-let nextAccountId = 100;
-let nextFeedId = 100;
-let nextFolderId = 100;
-let nextTagId = 100;
-let nextMuteKeywordId = 100;
-const mockPreferences = new Map<string, string>();
-const mockMuteKeywords: MuteKeywordDto[] = [];
-const mockArticleViewHistory: {
-  accountId: string;
-  articleId: string;
-  viewedAt: string;
-}[] = [];
-const initialMockArticleViewHistory: typeof mockArticleViewHistory = [
-  {
-    accountId: "acc-freshrss",
-    articleId: "art-2",
-    viewedAt: "2026-04-20T10:00:00Z",
-  },
-  {
-    accountId: "acc-freshrss",
-    articleId: "art-1",
-    viewedAt: "2026-04-20T09:30:00Z",
-  },
-];
-
 function resetDevMockState() {
-  nextAccountId = 100;
-  nextFeedId = 100;
-  nextFolderId = 100;
-  nextTagId = 100;
-  nextMuteKeywordId = 100;
-  mockPreferences.clear();
-  mockMuteKeywords.splice(0);
-  mockArticleViewHistory.splice(
-    0,
-    mockArticleViewHistory.length,
-    ...initialMockArticleViewHistory.map((item) => structuredClone(item)),
-  );
-  resetMockDataForDevMocks();
+  resetDevMockDataState();
   resetDevMockDiagnostics();
   resetDevMockExternalOpens();
-}
-
-function titleFromUrl(feedUrl: string): string {
-  try {
-    return new URL(feedUrl).hostname.replace(/^www\./, "");
-  } catch {
-    return feedUrl;
-  }
-}
-
-function recalcUnread(feedId: string) {
-  const feed = mockFeeds.find((f) => f.id === feedId);
-  if (feed) {
-    let unreadCount = 0;
-    for (const article of mockArticles) {
-      if (article.feed_id === feedId && !article.is_read) {
-        unreadCount += 1;
-      }
-    }
-    feed.unread_count = unreadCount;
-  }
-}
-
-function collectFeedIdsByAccount(accountId: string): Set<string> {
-  const feedIds = new Set<string>();
-
-  for (const feed of mockFeeds) {
-    if (feed.account_id === accountId) {
-      feedIds.add(feed.id);
-    }
-  }
-
-  return feedIds;
-}
-
-function collectFeedIdsByFolder(folderId: string): Set<string> {
-  const feedIds = new Set<string>();
-
-  for (const feed of mockFeeds) {
-    if (feed.folder_id === folderId) {
-      feedIds.add(feed.id);
-    }
-  }
-
-  return feedIds;
-}
-
-function countUnreadByAccount(accountId: string) {
-  const feedIds = collectFeedIdsByAccount(accountId);
-  let unreadCount = 0;
-  for (const article of mockArticles) {
-    if (feedIds.has(article.feed_id) && !article.is_read) {
-      unreadCount += 1;
-    }
-  }
-  return unreadCount;
-}
-
-function countStarredByAccount(accountId: string) {
-  const feedIds = collectFeedIdsByAccount(accountId);
-  let starredCount = 0;
-  for (const article of mockArticles) {
-    if (feedIds.has(article.feed_id) && article.is_starred) {
-      starredCount += 1;
-    }
-  }
-  return starredCount;
-}
-
-function resolveOldUnreadFeedIds(scopeKind: "account" | "feed" | "folder", targetId: string) {
-  if (scopeKind === "account") {
-    return [...collectFeedIdsByAccount(targetId)];
-  }
-  if (scopeKind === "folder") {
-    return [...collectFeedIdsByFolder(targetId)];
-  }
-  return [targetId];
-}
-
-function findOldUnreadArticles(scopeKind: "account" | "feed" | "folder", targetId: string, olderThanDays: 7 | 30 | 90) {
-  const feedIds = new Set(resolveOldUnreadFeedIds(scopeKind, targetId));
-  const threshold = Date.now() - olderThanDays * 24 * 60 * 60 * 1000;
-  return mockArticles.filter((article) => {
-    const publishedAt = Date.parse(article.published_at);
-    return feedIds.has(article.feed_id) && !article.is_read && Number.isFinite(publishedAt) && publishedAt < threshold;
-  });
-}
-
-function applyMuteKeywordFilter<
-  T extends {
-    title: string;
-    content_sanitized: string;
-    summary: string | null;
-  },
->(articles: T[]) {
-  if (mockMuteKeywords.length === 0) {
-    return articles;
-  }
-
-  const normalize = (value: string) => value.trim().toLowerCase();
-  const extractBodyText = (article: T) => {
-    if (!article.content_sanitized.trim()) {
-      return article.summary ?? "";
-    }
-
-    const visibleText = stripHtmlTags(article.content_sanitized);
-
-    return visibleText.trim() ? visibleText : (article.summary ?? "");
-  };
-
-  return articles.filter((article) => {
-    const title = normalize(article.title);
-    const body = normalize(extractBodyText(article));
-
-    return !mockMuteKeywords.some((rule) => {
-      const keyword = normalize(rule.keyword);
-      if (!keyword) {
-        return false;
-      }
-      if (rule.scope === "title") {
-        return title.includes(keyword);
-      }
-      if (rule.scope === "body") {
-        return body.includes(keyword);
-      }
-      return title.includes(keyword) || body.includes(keyword);
-    });
-  });
-}
-
-function findLatestPublishedAt(articles: readonly ArticleDto[]): string | null {
-  return articles.reduce<{ publishedAt: string | null; publishedTime: number }>(
-    (latest, article) => {
-      const publishedTime = Date.parse(article.published_at);
-      if (!Number.isFinite(publishedTime)) {
-        return latest;
-      }
-
-      const nextPublishedTime = Math.max(latest.publishedTime, publishedTime);
-      if (nextPublishedTime === latest.publishedTime) {
-        return latest;
-      }
-
-      return {
-        publishedAt: article.published_at,
-        publishedTime: nextPublishedTime,
-      };
-    },
-    { publishedAt: null, publishedTime: Number.NEGATIVE_INFINITY },
-  ).publishedAt;
 }
 
 export function setupDevMocks(): RestoreDevMocks {
   const restoreWindowGlobals = createDevMockWindowGlobalsRestore(captureDevMockWindowGlobals());
 
   if (window.__TAURI_INTERNALS__ && !window.__DEV_BROWSER_MOCKS__ && !window.__ULTRA_RSS_BROWSER_MOCKS__) {
-    defineRuntimeWindowDescriptor("__DEV_BROWSER_MOCKS__", {
-      writable: true,
-      value: false,
-    });
-    defineRuntimeWindowDescriptor("__ULTRA_RSS_BROWSER_MOCKS__", {
-      writable: true,
-      value: false,
-    });
+    defineDevMockWindowGlobal("__DEV_BROWSER_MOCKS__", false);
+    defineDevMockWindowGlobal("__ULTRA_RSS_BROWSER_MOCKS__", false);
   }
   if (window.__TAURI_INTERNALS__ && !window.__DEV_BROWSER_MOCKS__) return restoreWindowGlobals;
 
@@ -425,7 +133,7 @@ export function setupDevMocks(): RestoreDevMocks {
       case "add_account": {
         const { kind, name, serverUrl } = parseBrowserMockArgs("add_account", rawIpcPayload);
         const account: AccountDto = {
-          id: `dev-acc-${nextAccountId++}`,
+          id: `dev-acc-${takeNextDevMockAccountId()}`,
           kind,
           name,
           username: null,
@@ -480,45 +188,7 @@ export function setupDevMocks(): RestoreDevMocks {
 
       case "delete_account": {
         const { accountId } = parseBrowserMockArgs("delete_account", rawIpcPayload);
-        const idx = mockAccounts.findIndex((a) => a.id === accountId);
-        if (idx >= 0) mockAccounts.splice(idx, 1);
-        const removedFeedIds = new Set<string>();
-        for (const feed of mockFeeds) {
-          if (feed.account_id === accountId) {
-            removedFeedIds.add(feed.id);
-          }
-        }
-        const removedArticleIds = new Set<string>();
-        for (const article of mockArticles) {
-          if (removedFeedIds.has(article.feed_id)) {
-            removedArticleIds.add(article.id);
-          }
-        }
-        for (let i = mockFolders.length - 1; i >= 0; i -= 1) {
-          if (mockFolders[i]?.account_id === accountId) {
-            mockFolders.splice(i, 1);
-          }
-        }
-        for (let i = mockFeeds.length - 1; i >= 0; i -= 1) {
-          if (mockFeeds[i]?.account_id === accountId) {
-            mockFeeds.splice(i, 1);
-          }
-        }
-        for (let i = mockArticles.length - 1; i >= 0; i -= 1) {
-          if (removedFeedIds.has(mockArticles[i]?.feed_id ?? "")) {
-            mockArticles.splice(i, 1);
-          }
-        }
-        for (let i = mockArticleTags.length - 1; i >= 0; i -= 1) {
-          if (removedArticleIds.has(mockArticleTags[i]?.article_id ?? "")) {
-            mockArticleTags.splice(i, 1);
-          }
-        }
-        for (let i = mockArticleViewHistory.length - 1; i >= 0; i -= 1) {
-          if (mockArticleViewHistory[i]?.accountId === accountId) {
-            mockArticleViewHistory.splice(i, 1);
-          }
-        }
+        deleteDevMockAccount(accountId);
         return null;
       }
 
@@ -557,7 +227,7 @@ export function setupDevMocks(): RestoreDevMocks {
       case "create_folder": {
         const { accountId, name } = parseBrowserMockArgs("create_folder", rawIpcPayload);
         const folder: FolderDto = {
-          id: `dev-folder-${nextFolderId++}`,
+          id: `dev-folder-${takeNextDevMockFolderId()}`,
           account_id: accountId,
           name,
           sort_order: mockFolders.filter((f) => f.account_id === accountId).length,
@@ -573,7 +243,7 @@ export function setupDevMocks(): RestoreDevMocks {
 
       case "add_local_feed": {
         const { accountId, url } = parseBrowserMockArgs("add_local_feed", rawIpcPayload);
-        const feedId = `dev-feed-${nextFeedId++}`;
+        const feedId = `dev-feed-${takeNextDevMockFeedId()}`;
         const feed: FeedDto = {
           id: feedId,
           account_id: accountId,
@@ -821,7 +491,7 @@ export function setupDevMocks(): RestoreDevMocks {
 
         const now = getCurrentIsoTimestamp();
         const rule: MuteKeywordDto = {
-          id: `dev-mute-${nextMuteKeywordId++}`,
+          id: `dev-mute-${takeNextDevMockMuteKeywordId()}`,
           keyword: keyword.trim(),
           scope,
           created_at: now,
@@ -1020,7 +690,7 @@ export function setupDevMocks(): RestoreDevMocks {
       case "create_tag": {
         const { name, color } = parseBrowserMockArgs("create_tag", rawIpcPayload);
         const tag: TagDto = {
-          id: `dev-tag-${nextTagId++}`,
+          id: `dev-tag-${takeNextDevMockTagId()}`,
           name,
           color: color ?? null,
         };
