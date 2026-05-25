@@ -26,7 +26,7 @@ Do not duplicate the same fact across documents; update the owning source and ke
 | Operational docs and historical records index | [docs/README.md](docs/README.md) | Entry point for focused operational docs and historical design/planning records |
 | Visual design rules, UX principles, and style-token policy | [DESIGN.md](DESIGN.md) | Durable reusable visual guidance; implementation tokens live in [src/styles/global.css](src/styles/global.css) |
 | UI review and abstraction routing | [DESIGN_REVIEW.md](DESIGN_REVIEW.md) | Review process, shared-vs-local routing, exceptions, and escalation |
-| Runtime coding rules and security-adjacent policy | [.claude/rules/README.md](.claude/rules/README.md) and topic rules | Browser/Tauri boundaries, schemas, async effects, Result placement, preferences, release, and native/runtime rules |
+| Runtime coding rules and security-adjacent policy | [.claude/rules/README.md](.claude/rules/README.md) and topic rules | Browser/Tauri boundaries, schemas, owner routing, async effects, Result placement, preferences, release, and native/runtime rules |
 | UI display messages and translation keys | [src/locales/](src/locales/) and [src/lib/i18n-resources.ts](src/lib/i18n-resources.ts) | i18next locale resources, namespaces, and resource registry; Japanese product copy lives under `src/locales/ja/` |
 | Frontend storage keys and cleanup contracts | [src/constants/storage.ts](src/constants/storage.ts) | localStorage keys, legacy aliases, owners, schema policies, and cleanup policy connections |
 | Frontend runtime validation | [src/schemas/](src/schemas/) | Frontend-owned runtime schemas for app config, localStorage, preferences, and non-IPC validation |
@@ -88,6 +88,7 @@ and compatibility regex next to the parser or schema that owns the fallback.
 - `@praha/byethrow` Result placement and component boundary rules: [.claude/rules/result-boundary.md](.claude/rules/result-boundary.md).
 - Async UI side effects, fire-and-forget calls, optimistic updates, or native command wrappers: [.claude/rules/async-side-effect-policy.md](.claude/rules/async-side-effect-policy.md).
 - Runtime schemas, DTO parsing, preferences schemas, or localStorage config schemas: [.claude/rules/schema-boundary.md](.claude/rules/schema-boundary.md).
+- Refactor-time owner selection, helper extraction destinations, generated artifacts, UI copy, stable keys, and runtime capability ownership: [.claude/rules/boundary-ownership.md](.claude/rules/boundary-ownership.md).
 - Boundary tests or TODO findings that should become durable coverage: [.claude/rules/contract-test-policy.md](.claude/rules/contract-test-policy.md).
 - Preference schema/defaults, backend allowlist, settings copy, and shortcut preference parity: [.claude/rules/preferences-pattern.md](.claude/rules/preferences-pattern.md).
 - TODO priority taxonomy, similarity false positives, React Compiler, ES2023 copy methods, or React Doctor suppression decisions: [.claude/rules/quality-policy.md](.claude/rules/quality-policy.md).

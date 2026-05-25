@@ -40,6 +40,7 @@ When current product behavior, architecture, commands, or verification scope mat
 ## Project Guidance
 
 - [../.claude/rules/README.md](../.claude/rules/README.md): topic-specific engineering rules for UI, Tauri, Rust, and release work
+- [../.claude/rules/boundary-ownership.md](../.claude/rules/boundary-ownership.md): owner routing for refactors, helper extraction, generated artifacts, UI copy, stable keys, and runtime capability boundaries
 
 ## Quality And Reproducibility Contracts
 
