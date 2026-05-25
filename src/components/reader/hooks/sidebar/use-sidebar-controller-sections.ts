@@ -99,6 +99,25 @@ export function useSidebarControllerSections({
     },
     [selectTagFromCurrentContext],
   );
+  const handleSelectSmartView = useCallback(
+    (kind: Parameters<typeof selectSmartView>[0]) => {
+      if (kind === "unread" && feeds !== undefined && folders !== undefined) {
+        const validFolderIds = new Set(folders.map((folder) => folder.id));
+        const unreadFolderIds = new Set<string>();
+
+        for (const feed of feeds) {
+          if (feed.folder_id !== null && feed.unread_count > 0 && validFolderIds.has(feed.folder_id)) {
+            unreadFolderIds.add(feed.folder_id);
+          }
+        }
+
+        setExpandedFolders(unreadFolderIds);
+      }
+
+      selectSmartView(kind);
+    },
+    [feeds, folders, selectSmartView, setExpandedFolders],
+  );
   const { feedTreeProps } = useSidebarFeedSectionController({
     selectedAccountId,
     feeds,
@@ -121,7 +140,7 @@ export function useSidebarControllerSections({
     selectFeed: selectFeedFromCurrentContext,
     selectFolder: selectFolderFromCurrentContext,
     selectAll,
-    selectSmartView,
+    selectSmartView: handleSelectSmartView,
     setViewMode,
     toggleFolder,
     displayFavicons,
@@ -154,7 +173,7 @@ export function useSidebarControllerSections({
     closeAccountList,
     focusAccountList,
     visibleSmartViews,
-    selectSmartView,
+    selectSmartView: handleSelectSmartView,
     isFeedsSectionOpen,
     toggleFeedsSection,
     feedViewportRef,
