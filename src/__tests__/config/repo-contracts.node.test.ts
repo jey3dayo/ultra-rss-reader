@@ -2425,6 +2425,7 @@ describe("repository static contracts", () => {
       "src/lib/ui/display-state.types.ts",
       "src/lib/ui/toast.types.ts",
       "src/stores/preferences-store.types.ts",
+      "src/stores/ui-store.types.ts",
     ];
     const typeSurfaceFiles = [
       ...collectTypeSurfaceFiles("src/components/reader"),

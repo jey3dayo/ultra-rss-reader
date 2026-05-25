@@ -1,74 +1,56 @@
-import type { ComponentType } from "react";
 import { create } from "zustand";
 import type { SyncProgressEventDto } from "@/api/schemas/sync-progress";
-import type { ConfirmDialogVariant } from "@/components/shared/dialog.types";
 import { getPreferredAccountId } from "@/lib/account/account-selection";
-import type { AccountSetupSession, AccountSetupSessionOwner } from "@/lib/account/account-setup-session.types";
 import type { AddAccountProviderKind } from "@/lib/account/add-account-form";
 import { addRetainedArticle, getRetainedArticleIdsAfterSelectingArticle } from "@/lib/articles/article-retention";
-import type {
-  ArticleNavigationDirection,
-  BrowserNavigationState,
-  ContentMode,
-  FocusedPane,
-  LayoutMode,
-  PendingBrowserCloseAction,
-} from "@/lib/layout/layout-state.types";
-import type { ReaderQuerySelection } from "@/lib/reader/reader-query";
+import type { FocusedPane } from "@/lib/layout/layout-state.types";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
 import type { SettingsCategory } from "@/lib/settings/settings-category.types";
-import type { SmartViewKind } from "@/lib/sidebar/smart-view.types";
 import type { ToastData } from "@/lib/ui/toast.types";
-import {
-  type SubscriptionsWorkspaceReturnState,
-  SubscriptionsWorkspaceReturnStateSchema,
-} from "@/schemas/subscriptions-workspace";
+import { SubscriptionsWorkspaceReturnStateSchema } from "@/schemas/subscriptions-workspace";
+import type {
+  NativeLifecycleBlockerEntry,
+  NativeLifecycleBlockerOwner,
+  NativeLifecycleBlockerSnapshot,
+  SyncProgressUiState,
+  UiActions,
+  UiState,
+  UiStoreReaderSelection,
+  UiStoreState,
+} from "@/stores/ui-store.types";
 import { TOAST_AUTO_DISMISS_TIMEOUT_MS } from "../constants/ui-runtime";
 
-export type UiStoreReaderSelection = ReaderQuerySelection;
+export type {
+  NativeLifecycleBlockerEntry,
+  NativeLifecycleBlockerOwner,
+  NativeLifecycleBlockerSnapshot,
+  SyncProgressEventDto,
+  SyncProgressUiState,
+  UiStoreAccountSetupActions,
+  UiStoreAccountSetupState,
+  UiStoreDialogActions,
+  UiStoreDialogState,
+  UiStoreLayoutActions,
+  UiStoreLayoutState,
+  UiStoreReaderActions,
+  UiStoreReaderSelection,
+  UiStoreReaderSelectionActions,
+  UiStoreReaderSelectionState,
+  UiStoreReaderState,
+  UiStoreSettingsActions,
+  UiStoreSettingsModalActions,
+  UiStoreSettingsModalState,
+  UiStoreSettingsState,
+  UiStoreShellState,
+  UiStoreState,
+  UiStoreSyncProgressActions,
+  UiStoreSyncProgressState,
+  UiStoreToastActions,
+  UiStoreToastState,
+} from "@/stores/ui-store.types";
 
 let toastTimer: ReturnType<typeof setTimeout> | null = null;
 let toastAnnouncementId = 0;
-
-type ToastAnnouncement = {
-  id: number;
-  message: string;
-};
-
-type SubscriptionsWorkspace = {
-  kind: "index";
-  returnState?: SubscriptionsWorkspaceReturnState;
-};
-
-export type NativeLifecycleBlockerOwner = "settings" | "add-feed" | "sync" | "updater" | "export" | "backup";
-
-export type NativeLifecycleBlockerEntry = {
-  owner: NativeLifecycleBlockerOwner;
-  dirty: boolean;
-  pending: boolean;
-};
-
-export type NativeLifecycleBlockerSnapshot = {
-  dirty: boolean;
-  pending: boolean;
-  owners: NativeLifecycleBlockerOwner[];
-};
-
-export type { SyncProgressEventDto } from "@/api/schemas/sync-progress";
-
-type SyncProgressStage = "started" | "account_started" | "account_finished" | "finished";
-type SyncProgressKind = "manual_all" | "manual_account" | "automatic";
-
-export type SyncProgressUiState = {
-  active: boolean;
-  sessionId: number | null;
-  currentAccountName: string | null;
-  activeAccountIds: Set<string>;
-  kind: SyncProgressKind | null;
-  stage: SyncProgressStage | null;
-  total: number;
-  completed: number;
-};
 
 function getSidebarHiddenFallbackPane(state: Pick<UiState, "contentMode">): FocusedPane {
   return state.contentMode === "empty" ? "list" : "content";
@@ -167,6 +149,102 @@ function getResetArticleReaderScrollState() {
   };
 }
 
+type ReaderScopeResetState = Pick<
+  UiState,
+  | "accountPaneOpen"
+  | "selection"
+  | "selectedArticleId"
+  | "contentMode"
+  | "focusedPane"
+  | "browserUrl"
+  | "browserNavigationState"
+  | "browserCloseInFlight"
+  | "pendingBrowserCloseAction"
+  | "pendingBrowserCloseActionQueue"
+  | "recentlyReadIds"
+  | "retainedArticleIds"
+  | "articleReaderScrollPositions"
+> &
+  Partial<Pick<UiState, "viewMode" | "expandedFolderIds">>;
+
+function getReaderScopeResetState(
+  selection: UiStoreReaderSelection,
+  options: {
+    viewMode?: ViewMode;
+    expandedFolderIds?: Set<string>;
+  } = {},
+): ReaderScopeResetState {
+  const nextState: ReaderScopeResetState = {
+    accountPaneOpen: false,
+    selection,
+    selectedArticleId: null,
+    contentMode: "empty",
+    focusedPane: "list",
+    ...getResetBrowserState(),
+    ...getResetArticleReaderScrollState(),
+    recentlyReadIds: new Set(),
+    retainedArticleIds: new Set(),
+  };
+
+  if (options.viewMode !== undefined) {
+    nextState.viewMode = options.viewMode;
+  }
+  if (options.expandedFolderIds !== undefined) {
+    nextState.expandedFolderIds = options.expandedFolderIds;
+  }
+
+  return nextState;
+}
+
+type AccountSelectionResetState = Pick<
+  UiState,
+  | "selectedAccountId"
+  | "accountPaneOpen"
+  | "commandPaletteOpen"
+  | "selection"
+  | "viewMode"
+  | "selectedArticleId"
+  | "contentMode"
+  | "focusedPane"
+  | "expandedFolderIds"
+  | "browserUrl"
+  | "browserNavigationState"
+  | "browserCloseInFlight"
+  | "pendingBrowserCloseAction"
+  | "pendingBrowserCloseActionQueue"
+  | "recentlyReadIds"
+  | "retainedArticleIds"
+  | "articleReaderScrollPositions"
+>;
+
+function getAccountSelectionResetState({
+  selectedAccountId,
+  selection,
+  focusedPane,
+  viewMode = "unread",
+}: {
+  selectedAccountId: string | null;
+  selection: UiStoreReaderSelection;
+  focusedPane: FocusedPane;
+  viewMode?: ViewMode;
+}): AccountSelectionResetState {
+  return {
+    selectedAccountId,
+    accountPaneOpen: false,
+    commandPaletteOpen: false,
+    selection,
+    viewMode,
+    selectedArticleId: null,
+    contentMode: "empty",
+    focusedPane,
+    expandedFolderIds: new Set(),
+    ...getResetBrowserState(),
+    ...getResetArticleReaderScrollState(),
+    recentlyReadIds: new Set(),
+    retainedArticleIds: new Set(),
+  };
+}
+
 function normalizeAccountSetupAccountId(accountId: string) {
   const normalizedAccountId = accountId.trim();
   return normalizedAccountId.length > 0 ? normalizedAccountId : null;
@@ -194,6 +272,19 @@ function shouldIgnoreSyncProgressEvent(
   return current.sessionId !== null && event.session_id < current.sessionId;
 }
 
+function getIdleSyncProgress(): SyncProgressUiState {
+  return {
+    active: false,
+    sessionId: null,
+    kind: null,
+    stage: null,
+    total: 0,
+    completed: 0,
+    currentAccountName: null,
+    activeAccountIds: new Set(),
+  };
+}
+
 function createNativeLifecycleBlockerSnapshot(
   entries: ReadonlyMap<NativeLifecycleBlockerOwner, NativeLifecycleBlockerEntry>,
 ): NativeLifecycleBlockerSnapshot {
@@ -204,384 +295,6 @@ function createNativeLifecycleBlockerSnapshot(
     owners: activeEntries.map((entry) => entry.owner),
   };
 }
-
-type UiState = {
-  layoutMode: LayoutMode;
-  focusedPane: FocusedPane;
-  sidebarOpen: boolean;
-  accountPaneOpen: boolean;
-  contentMode: ContentMode;
-  selectedAccountId: string | null;
-  selection: UiStoreReaderSelection;
-  selectedArticleId: string | null;
-  viewMode: ViewMode;
-  searchQuery: string;
-  browserUrl: string | null;
-  browserNavigationState: BrowserNavigationState | null;
-  browserCloseInFlight: boolean;
-  pendingBrowserCloseAction: PendingBrowserCloseAction | null;
-  pendingBrowserCloseActionQueue: PendingBrowserCloseAction[];
-  articleNavigationDirection: ArticleNavigationDirection | null;
-  expandedFolderIds: Set<string>;
-  isFeedsSectionOpen: boolean;
-  isTagsSectionOpen: boolean;
-  settingsOpen: boolean;
-  settingsCategory: SettingsCategory;
-  settingsAccountId: string | null;
-  settingsAddAccount: boolean;
-  settingsAddAccountInitialKind: AddAccountProviderKind | null;
-  settingsLoading: boolean;
-  subscriptionsWorkspace: SubscriptionsWorkspace | null;
-  syncProgress: SyncProgressUiState;
-  accountSetupSession: AccountSetupSession | null;
-  commandPaletteOpen: boolean;
-  shortcutsHelpOpen: boolean;
-  isAddFeedDialogOpen: boolean;
-  toastMessage: ToastData | null;
-  toastAnnouncements: ToastAnnouncement[];
-  recentlyReadIds: Set<string>;
-  retainedArticleIds: Set<string>;
-  articleReaderScrollPositions: Map<string, number>;
-  confirmDialog: {
-    open: boolean;
-    message: string;
-    actionLabel: string | null;
-    actionAccessibleLabel: string | null;
-    variant: ConfirmDialogVariant;
-    icon: ComponentType<{ className?: string }> | null;
-    onConfirm: (() => void | Promise<void>) | null;
-  };
-  nativeLifecycleBlockers: Map<NativeLifecycleBlockerOwner, NativeLifecycleBlockerEntry>;
-};
-
-type UiActions = {
-  setLayoutMode: (mode: LayoutMode) => void;
-  setFocusedPane: (pane: FocusedPane) => void;
-  openSidebar: () => void;
-  closeSidebar: () => void;
-  toggleSidebar: () => void;
-  openAccountPane: () => void;
-  closeAccountPane: () => void;
-  toggleAccountPane: () => void;
-  selectAccount: (id: string) => void;
-  handleAccountDeleted: (deletedAccountId: string, remainingAccountIds: readonly string[]) => void;
-  restoreAccountSelection: (id: string, options?: { focusedPane?: FocusedPane }) => void;
-  clearSelectedAccount: () => void;
-  selectFeed: (feedId: string) => void;
-  selectFeedFromCurrentContext: (feedId: string) => void;
-  selectFolder: (folderId: string) => void;
-  selectFolderFromCurrentContext: (folderId: string) => void;
-  selectSmartView: (kind: SmartViewKind) => void;
-  selectTag: (tagId: string) => void;
-  selectTagFromCurrentContext: (tagId: string) => void;
-  handleTagDeleted: (deletedTagId: string) => void;
-  selectAll: () => void;
-  selectArticle: (id: string, options?: { navigationDirection?: ArticleNavigationDirection | null }) => void;
-  clearArticle: () => void;
-  openBrowser: (url: string) => void;
-  closeBrowser: () => void;
-  setBrowserNavigationState: (state: BrowserNavigationState | null) => void;
-  setBrowserCloseInFlight: (inFlight: boolean) => void;
-  setPendingBrowserCloseAction: (action: PendingBrowserCloseAction | null) => void;
-  setViewMode: (mode: ViewMode) => void;
-  setSearchQuery: (query: string) => void;
-  toggleFolder: (folderId: string) => void;
-  setExpandedFolders: (folderIds: Iterable<string>) => void;
-  setIsFeedsSectionOpen: (open: boolean | ((current: boolean) => boolean)) => void;
-  setIsTagsSectionOpen: (open: boolean | ((current: boolean) => boolean)) => void;
-  openSettings: (tab?: SettingsCategory) => void;
-  closeSettings: () => void;
-  openAddFeedDialog: () => void;
-  closeAddFeedDialog: () => void;
-  setSettingsCategory: (cat: SettingsCategory) => void;
-  openSettingsAccount: (id: string) => void;
-  openSettingsAddAccount: (initialKind?: AddAccountProviderKind) => void;
-  setSettingsAccountId: (id: string | null) => void;
-  setSettingsAddAccount: (show: boolean, initialKind?: AddAccountProviderKind) => void;
-  setSettingsAccountsView: (
-    accountId: string | null,
-    addAccount: boolean,
-    initialKind?: AddAccountProviderKind,
-  ) => void;
-  setSettingsLoading: (loading: boolean) => void;
-  openSubscriptionsIndex: (state?: SubscriptionsWorkspaceReturnState) => void;
-  closeSubscriptionsWorkspace: () => void;
-  applySyncProgress: (event: SyncProgressEventDto) => void;
-  clearSyncProgress: () => void;
-  startAccountSetupVerification: () => void;
-  startAccountSetup: (accountId: string, options?: { owner?: AccountSetupSessionOwner }) => void;
-  markAccountSetupFailed: (accountId: string, errorMessage?: string) => void;
-  markAccountSetupSucceeded: (accountId: string) => void;
-  clearAccountSetup: () => void;
-  openCommandPalette: () => void;
-  closeCommandPalette: () => void;
-  toggleCommandPalette: () => void;
-  openShortcutsHelp: () => void;
-  closeShortcutsHelp: () => void;
-  showToast: (message: string | ToastData) => void;
-  clearToast: () => void;
-  clearToastAnnouncement: (id: number) => void;
-  addRecentlyRead: (id: string) => void;
-  removeRecentlyRead: (id: string) => void;
-  clearRecentlyRead: () => void;
-  retainArticle: (id: string) => void;
-  clearRetainedArticles: () => void;
-  setArticleReaderScrollPosition: (articleId: string, scrollTop: number) => void;
-  showConfirm: (
-    message: string,
-    onConfirm: () => void | Promise<void>,
-    options?: {
-      actionLabel?: string;
-      actionAccessibleLabel?: string;
-      variant?: ConfirmDialogVariant;
-      icon?: ComponentType<{ className?: string }>;
-    },
-  ) => void;
-  closeConfirm: () => void;
-  setNativeLifecycleBlocker: (entry: NativeLifecycleBlockerEntry) => void;
-  clearNativeLifecycleBlocker: (owner: NativeLifecycleBlockerOwner) => void;
-  getNativeLifecycleBlockerSnapshot: () => NativeLifecycleBlockerSnapshot;
-};
-
-export type UiStoreState = UiState & UiActions;
-
-export type UiStoreShellState = Pick<
-  UiStoreState,
-  | "layoutMode"
-  | "focusedPane"
-  | "sidebarOpen"
-  | "accountPaneOpen"
-  | "commandPaletteOpen"
-  | "shortcutsHelpOpen"
-  | "nativeLifecycleBlockers"
->;
-
-export type UiStoreLayoutState = Pick<
-  UiStoreState,
-  "layoutMode" | "focusedPane" | "sidebarOpen" | "accountPaneOpen" | "subscriptionsWorkspace"
->;
-
-export type UiStoreReaderState = Pick<
-  UiStoreState,
-  | "selectedAccountId"
-  | "selection"
-  | "selectedArticleId"
-  | "viewMode"
-  | "contentMode"
-  | "browserUrl"
-  | "browserNavigationState"
-  | "browserCloseInFlight"
-  | "pendingBrowserCloseAction"
-  | "pendingBrowserCloseActionQueue"
-  | "articleNavigationDirection"
-  | "searchQuery"
-  | "expandedFolderIds"
-  | "isFeedsSectionOpen"
-  | "isTagsSectionOpen"
-  | "recentlyReadIds"
-  | "retainedArticleIds"
-  | "articleReaderScrollPositions"
->;
-
-export type UiStoreReaderSelectionState = Pick<
-  UiStoreState,
-  | "selectedAccountId"
-  | "selection"
-  | "selectedArticleId"
-  | "viewMode"
-  | "contentMode"
-  | "browserUrl"
-  | "browserNavigationState"
-  | "browserCloseInFlight"
-  | "pendingBrowserCloseAction"
-  | "pendingBrowserCloseActionQueue"
-  | "articleNavigationDirection"
-  | "searchQuery"
-  | "expandedFolderIds"
-  | "isFeedsSectionOpen"
-  | "isTagsSectionOpen"
-  | "recentlyReadIds"
-  | "retainedArticleIds"
-  | "articleReaderScrollPositions"
->;
-
-export type UiStoreSettingsState = Pick<
-  UiStoreState,
-  | "settingsOpen"
-  | "settingsCategory"
-  | "settingsAccountId"
-  | "settingsAddAccount"
-  | "settingsAddAccountInitialKind"
-  | "settingsLoading"
->;
-
-export type UiStoreSettingsModalState = Pick<
-  UiStoreState,
-  | "settingsOpen"
-  | "settingsCategory"
-  | "settingsAccountId"
-  | "settingsAddAccount"
-  | "settingsAddAccountInitialKind"
-  | "settingsLoading"
->;
-
-export type UiStoreDialogState = Pick<
-  UiStoreState,
-  "isAddFeedDialogOpen" | "toastMessage" | "confirmDialog" | "accountSetupSession"
->;
-
-export type UiStoreToastState = Pick<UiStoreState, "toastMessage" | "toastAnnouncements">;
-
-export type UiStoreSyncProgressState = Pick<UiStoreState, "syncProgress">;
-
-export type UiStoreAccountSetupState = Pick<UiStoreState, "accountSetupSession">;
-
-export type UiStoreLayoutActions = Pick<
-  UiStoreState,
-  | "setLayoutMode"
-  | "setFocusedPane"
-  | "openSidebar"
-  | "closeSidebar"
-  | "toggleSidebar"
-  | "openAccountPane"
-  | "closeAccountPane"
-  | "toggleAccountPane"
-  | "openSubscriptionsIndex"
-  | "closeSubscriptionsWorkspace"
-  | "openCommandPalette"
-  | "closeCommandPalette"
-  | "toggleCommandPalette"
-  | "openShortcutsHelp"
-  | "closeShortcutsHelp"
->;
-
-export type UiStoreReaderActions = Pick<
-  UiStoreState,
-  | "selectAccount"
-  | "handleAccountDeleted"
-  | "restoreAccountSelection"
-  | "clearSelectedAccount"
-  | "selectFeed"
-  | "selectFeedFromCurrentContext"
-  | "selectFolder"
-  | "selectFolderFromCurrentContext"
-  | "selectSmartView"
-  | "selectTag"
-  | "selectTagFromCurrentContext"
-  | "handleTagDeleted"
-  | "selectAll"
-  | "selectArticle"
-  | "clearArticle"
-  | "openBrowser"
-  | "closeBrowser"
-  | "setBrowserNavigationState"
-  | "setBrowserCloseInFlight"
-  | "setPendingBrowserCloseAction"
-  | "setViewMode"
-  | "setSearchQuery"
-  | "toggleFolder"
-  | "setExpandedFolders"
-  | "setIsFeedsSectionOpen"
-  | "setIsTagsSectionOpen"
-  | "openSubscriptionsIndex"
-  | "closeSubscriptionsWorkspace"
-  | "addRecentlyRead"
-  | "removeRecentlyRead"
-  | "clearRecentlyRead"
-  | "retainArticle"
-  | "clearRetainedArticles"
-  | "setArticleReaderScrollPosition"
->;
-
-export type UiStoreReaderSelectionActions = Pick<
-  UiStoreState,
-  | "selectAccount"
-  | "handleAccountDeleted"
-  | "restoreAccountSelection"
-  | "clearSelectedAccount"
-  | "selectFeed"
-  | "selectFeedFromCurrentContext"
-  | "selectFolder"
-  | "selectFolderFromCurrentContext"
-  | "selectSmartView"
-  | "selectTag"
-  | "selectTagFromCurrentContext"
-  | "handleTagDeleted"
-  | "selectAll"
-  | "selectArticle"
-  | "clearArticle"
-  | "openBrowser"
-  | "closeBrowser"
-  | "setBrowserNavigationState"
-  | "setBrowserCloseInFlight"
-  | "setPendingBrowserCloseAction"
-  | "setViewMode"
-  | "setSearchQuery"
-  | "toggleFolder"
-  | "setExpandedFolders"
-  | "setIsFeedsSectionOpen"
-  | "setIsTagsSectionOpen"
-  | "addRecentlyRead"
-  | "removeRecentlyRead"
-  | "clearRecentlyRead"
-  | "retainArticle"
-  | "clearRetainedArticles"
-  | "setArticleReaderScrollPosition"
->;
-
-export type UiStoreSettingsActions = Pick<
-  UiStoreState,
-  | "openSettings"
-  | "closeSettings"
-  | "setSettingsCategory"
-  | "openSettingsAccount"
-  | "openSettingsAddAccount"
-  | "setSettingsAccountId"
-  | "setSettingsAddAccount"
-  | "setSettingsAccountsView"
-  | "setSettingsLoading"
->;
-
-export type UiStoreSettingsModalActions = Pick<
-  UiStoreState,
-  | "openSettings"
-  | "closeSettings"
-  | "setSettingsCategory"
-  | "openSettingsAccount"
-  | "openSettingsAddAccount"
-  | "setSettingsAccountId"
-  | "setSettingsAddAccount"
-  | "setSettingsAccountsView"
-  | "setSettingsLoading"
->;
-
-export type UiStoreDialogActions = Pick<
-  UiStoreState,
-  | "openAddFeedDialog"
-  | "closeAddFeedDialog"
-  | "showToast"
-  | "clearToast"
-  | "startAccountSetupVerification"
-  | "startAccountSetup"
-  | "markAccountSetupFailed"
-  | "markAccountSetupSucceeded"
-  | "clearAccountSetup"
-  | "showConfirm"
-  | "closeConfirm"
->;
-
-export type UiStoreToastActions = Pick<UiStoreState, "showToast" | "clearToast" | "clearToastAnnouncement">;
-
-export type UiStoreSyncProgressActions = Pick<UiStoreState, "applySyncProgress" | "clearSyncProgress">;
-
-export type UiStoreAccountSetupActions = Pick<
-  UiStoreState,
-  | "startAccountSetupVerification"
-  | "startAccountSetup"
-  | "markAccountSetupFailed"
-  | "markAccountSetupSucceeded"
-  | "clearAccountSetup"
->;
 
 const initialState: UiState = {
   layoutMode: "wide",
@@ -610,16 +323,7 @@ const initialState: UiState = {
   settingsAddAccountInitialKind: null,
   settingsLoading: false,
   subscriptionsWorkspace: null,
-  syncProgress: {
-    active: false,
-    sessionId: null,
-    kind: null,
-    stage: null,
-    total: 0,
-    completed: 0,
-    currentAccountName: null,
-    activeAccountIds: new Set(),
-  },
+  syncProgress: getIdleSyncProgress(),
   accountSetupSession: null,
   commandPaletteOpen: false,
   shortcutsHelpOpen: false,
@@ -674,21 +378,13 @@ export const useUiStore = create<UiState & UiActions>()((set, get) => ({
       focusedPane: "sidebar",
     })),
   selectAccount: (id) =>
-    set({
-      selectedAccountId: id,
-      accountPaneOpen: false,
-      commandPaletteOpen: false,
-      selection: { type: "all" },
-      viewMode: "unread",
-      selectedArticleId: null,
-      contentMode: "empty",
-      focusedPane: "list",
-      expandedFolderIds: new Set(),
-      ...getResetBrowserState(),
-      ...getResetArticleReaderScrollState(),
-      recentlyReadIds: new Set(),
-      retainedArticleIds: new Set(),
-    }),
+    set(
+      getAccountSelectionResetState({
+        selectedAccountId: id,
+        selection: { type: "all" },
+        focusedPane: "list",
+      }),
+    ),
   handleAccountDeleted: (deletedAccountId, remainingAccountIds) =>
     set((state) => {
       const fallbackAccountCandidates: Array<{ id: string }> = [];
@@ -702,21 +398,14 @@ export const useUiStore = create<UiState & UiActions>()((set, get) => ({
       const nextState: Partial<UiState> = {};
 
       if (state.selectedAccountId === deletedAccountId) {
-        Object.assign(nextState, {
-          selectedAccountId: fallbackAccountId,
-          accountPaneOpen: false,
-          commandPaletteOpen: false,
-          selection: { type: "all" },
-          viewMode: "unread",
-          selectedArticleId: null,
-          contentMode: "empty",
-          focusedPane: fallbackAccountId ? "list" : "sidebar",
-          expandedFolderIds: new Set(),
-          ...getResetBrowserState(),
-          ...getResetArticleReaderScrollState(),
-          recentlyReadIds: new Set(),
-          retainedArticleIds: new Set(),
-        });
+        Object.assign(
+          nextState,
+          getAccountSelectionResetState({
+            selectedAccountId: fallbackAccountId,
+            selection: { type: "all" },
+            focusedPane: fallbackAccountId ? "list" : "sidebar",
+          }),
+        );
       }
 
       if (state.settingsAccountId === deletedAccountId) {
@@ -743,151 +432,60 @@ export const useUiStore = create<UiState & UiActions>()((set, get) => ({
                   currentAccountName: null,
                   activeAccountIds,
                 }
-              : {
-                  active: false,
-                  sessionId: null,
-                  kind: null,
-                  stage: null,
-                  total: 0,
-                  completed: 0,
-                  currentAccountName: null,
-                  activeAccountIds,
-                },
+              : getIdleSyncProgress(),
         });
       }
 
       return nextState;
     }),
   restoreAccountSelection: (id, options) =>
-    set({
-      selectedAccountId: id,
-      accountPaneOpen: false,
-      commandPaletteOpen: false,
-      selection: { type: "smart", kind: "unread" },
-      viewMode: "unread",
-      selectedArticleId: null,
-      contentMode: "empty",
-      focusedPane: options?.focusedPane ?? "list",
-      expandedFolderIds: new Set(),
-      ...getResetBrowserState(),
-      ...getResetArticleReaderScrollState(),
-      recentlyReadIds: new Set(),
-      retainedArticleIds: new Set(),
-    }),
+    set(
+      getAccountSelectionResetState({
+        selectedAccountId: id,
+        selection: { type: "smart", kind: "unread" },
+        focusedPane: options?.focusedPane ?? "list",
+      }),
+    ),
   clearSelectedAccount: () =>
-    set({
-      selectedAccountId: null,
-      accountPaneOpen: false,
-      commandPaletteOpen: false,
-      selection: { type: "all" },
-      viewMode: "unread",
-      selectedArticleId: null,
-      contentMode: "empty",
-      focusedPane: "list",
-      expandedFolderIds: new Set(),
-      ...getResetBrowserState(),
-      ...getResetArticleReaderScrollState(),
-      recentlyReadIds: new Set(),
-      retainedArticleIds: new Set(),
-    }),
+    set(
+      getAccountSelectionResetState({
+        selectedAccountId: null,
+        selection: { type: "all" },
+        focusedPane: "list",
+      }),
+    ),
   selectFeed: (feedId) =>
     set((state) =>
-      state.subscriptionsWorkspace !== null
-        ? state
-        : {
-            accountPaneOpen: false,
-            selection: { type: "feed", feedId },
-            selectedArticleId: null,
-            contentMode: "empty",
-            focusedPane: "list",
-            ...getResetBrowserState(),
-            ...getResetArticleReaderScrollState(),
-            recentlyReadIds: new Set(),
-            retainedArticleIds: new Set(),
-          },
+      state.subscriptionsWorkspace !== null ? state : getReaderScopeResetState({ type: "feed", feedId }),
     ),
   selectFeedFromCurrentContext: (feedId) =>
     set((state) =>
       state.subscriptionsWorkspace !== null
         ? state
-        : {
-            accountPaneOpen: false,
-            selection: { type: "feed", feedId },
-            viewMode: getContextAwareScopeViewMode(state),
-            selectedArticleId: null,
-            contentMode: "empty",
-            focusedPane: "list",
-            ...getResetBrowserState(),
-            ...getResetArticleReaderScrollState(),
-            recentlyReadIds: new Set(),
-            retainedArticleIds: new Set(),
-          },
+        : getReaderScopeResetState({ type: "feed", feedId }, { viewMode: getContextAwareScopeViewMode(state) }),
     ),
   selectFolder: (folderId) =>
-    set((state) => ({
-      accountPaneOpen: false,
-      selection: { type: "folder", folderId },
-      selectedArticleId: null,
-      contentMode: "empty",
-      focusedPane: "list",
-      expandedFolderIds: new Set(state.expandedFolderIds).add(folderId),
-      ...getResetBrowserState(),
-      ...getResetArticleReaderScrollState(),
-      recentlyReadIds: new Set(),
-      retainedArticleIds: new Set(),
-    })),
+    set((state) =>
+      getReaderScopeResetState(
+        { type: "folder", folderId },
+        { expandedFolderIds: new Set(state.expandedFolderIds).add(folderId) },
+      ),
+    ),
   selectFolderFromCurrentContext: (folderId) =>
-    set((state) => ({
-      accountPaneOpen: false,
-      selection: { type: "folder", folderId },
-      viewMode: getContextAwareScopeViewMode(state),
-      selectedArticleId: null,
-      contentMode: "empty",
-      focusedPane: "list",
-      expandedFolderIds: new Set(state.expandedFolderIds).add(folderId),
-      ...getResetBrowserState(),
-      ...getResetArticleReaderScrollState(),
-      recentlyReadIds: new Set(),
-      retainedArticleIds: new Set(),
-    })),
+    set((state) =>
+      getReaderScopeResetState(
+        { type: "folder", folderId },
+        {
+          viewMode: getContextAwareScopeViewMode(state),
+          expandedFolderIds: new Set(state.expandedFolderIds).add(folderId),
+        },
+      ),
+    ),
   selectSmartView: (kind) =>
-    set({
-      accountPaneOpen: false,
-      selection: { type: "smart", kind },
-      viewMode: getSmartViewMode(kind),
-      selectedArticleId: null,
-      contentMode: "empty",
-      focusedPane: "list",
-      ...getResetBrowserState(),
-      ...getResetArticleReaderScrollState(),
-      recentlyReadIds: new Set(),
-      retainedArticleIds: new Set(),
-    }),
-  selectTag: (tagId) =>
-    set({
-      accountPaneOpen: false,
-      selection: { type: "tag", tagId },
-      selectedArticleId: null,
-      contentMode: "empty",
-      focusedPane: "list",
-      ...getResetBrowserState(),
-      ...getResetArticleReaderScrollState(),
-      recentlyReadIds: new Set(),
-      retainedArticleIds: new Set(),
-    }),
+    set(getReaderScopeResetState({ type: "smart", kind }, { viewMode: getSmartViewMode(kind) })),
+  selectTag: (tagId) => set(getReaderScopeResetState({ type: "tag", tagId })),
   selectTagFromCurrentContext: (tagId) =>
-    set((state) => ({
-      accountPaneOpen: false,
-      selection: { type: "tag", tagId },
-      viewMode: getContextAwareScopeViewMode(state),
-      selectedArticleId: null,
-      contentMode: "empty",
-      focusedPane: "list",
-      ...getResetBrowserState(),
-      ...getResetArticleReaderScrollState(),
-      recentlyReadIds: new Set(),
-      retainedArticleIds: new Set(),
-    })),
+    set((state) => getReaderScopeResetState({ type: "tag", tagId }, { viewMode: getContextAwareScopeViewMode(state) })),
   handleTagDeleted: (deletedTagId) =>
     set((state) => {
       if (state.selection.type !== "tag" || state.selection.tagId !== deletedTagId) {
@@ -895,29 +493,10 @@ export const useUiStore = create<UiState & UiActions>()((set, get) => ({
       }
 
       return {
-        accountPaneOpen: false,
-        selection: { type: "all" },
-        selectedArticleId: null,
-        contentMode: "empty",
-        focusedPane: "list",
-        ...getResetBrowserState(),
-        ...getResetArticleReaderScrollState(),
-        recentlyReadIds: new Set(),
-        retainedArticleIds: new Set(),
+        ...getReaderScopeResetState({ type: "all" }),
       };
     }),
-  selectAll: () =>
-    set({
-      accountPaneOpen: false,
-      selection: { type: "all" },
-      selectedArticleId: null,
-      contentMode: "empty",
-      focusedPane: "list",
-      ...getResetBrowserState(),
-      ...getResetArticleReaderScrollState(),
-      recentlyReadIds: new Set(),
-      retainedArticleIds: new Set(),
-    }),
+  selectAll: () => set(getReaderScopeResetState({ type: "all" })),
   selectArticle: (id, options) =>
     set((state) =>
       state.subscriptionsWorkspace !== null
@@ -1105,16 +684,7 @@ export const useUiStore = create<UiState & UiActions>()((set, get) => ({
 
       if (event.stage === "finished") {
         return {
-          syncProgress: {
-            active: false,
-            sessionId: null,
-            kind: null,
-            stage: null,
-            total: 0,
-            completed: 0,
-            currentAccountName: null,
-            activeAccountIds: new Set(),
-          },
+          syncProgress: getIdleSyncProgress(),
         };
       }
 
@@ -1131,19 +701,7 @@ export const useUiStore = create<UiState & UiActions>()((set, get) => ({
         },
       };
     }),
-  clearSyncProgress: () =>
-    set({
-      syncProgress: {
-        active: false,
-        sessionId: null,
-        kind: null,
-        stage: null,
-        total: 0,
-        completed: 0,
-        currentAccountName: null,
-        activeAccountIds: new Set(),
-      },
-    }),
+  clearSyncProgress: () => set({ syncProgress: getIdleSyncProgress() }),
   startAccountSetupVerification: () =>
     set({
       accountSetupSession: {

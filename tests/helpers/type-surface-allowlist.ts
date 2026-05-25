@@ -115,4 +115,5 @@ export const remainingTypeSurfaceAllowlist = [
   remainingTypeSurface("src/lib/ui/display-state.types.ts"),
   remainingTypeSurface("src/lib/ui/toast.types.ts"),
   remainingTypeSurface("src/stores/preferences-store.types.ts"),
+  remainingTypeSurface("src/stores/ui-store.types.ts"),
 ] as const;
