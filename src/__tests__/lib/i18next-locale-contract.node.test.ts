@@ -1,17 +1,30 @@
+import { createInstance } from "i18next";
 import { describe, expect, it } from "vitest";
 import i18n, { supportedLanguages } from "@/lib/i18n";
 import i18nSource from "@/lib/i18n.ts?raw";
 import { formatDisplayCount, normalizeDisplayCount, resolveCountLocale } from "@/lib/i18n-count";
-import { i18nResourceFiles, i18nResourceLocales, i18nResourceNamespaces, i18nResources } from "@/lib/i18n-resources";
+import {
+  i18nDeferredResourceNamespaces,
+  i18nInitialResourceNamespaces,
+  i18nResourceFiles,
+  i18nResourceLocales,
+  i18nResourceNamespaces,
+  i18nResources,
+  loadI18nResourceNamespace,
+} from "@/lib/i18n-resources";
 import type { ShortcutCategoryKey, ShortcutLabelKey } from "@/lib/keyboard/keyboard-shortcuts";
 import { shortcutDefinitions } from "@/lib/keyboard/keyboard-shortcuts";
 import { uiLanguagePreferences } from "@/lib/ui/ui-language";
+import enCommon from "@/locales/en/common.json";
 import enReader from "@/locales/en/reader.json";
 import enSettings from "@/locales/en/settings.json";
 import enSidebar from "@/locales/en/sidebar.json";
+import enSubscriptions from "@/locales/en/subscriptions.json";
+import jaCommon from "@/locales/ja/common.json";
 import jaReader from "@/locales/ja/reader.json";
 import jaSettings from "@/locales/ja/settings.json";
 import jaSidebar from "@/locales/ja/sidebar.json";
+import jaSubscriptions from "@/locales/ja/subscriptions.json";
 import i18nextTypesSource from "@/types/i18next.d.ts?raw";
 import menuI18nSource from "../../../src-tauri/src/menu_i18n.rs?raw";
 import testI18n from "../../../tests/helpers/i18n-setup";
@@ -25,6 +38,23 @@ const componentAndLibSourceFiles = import.meta.glob<string>("/src/{components,ho
   import: "default",
   query: "?raw",
 });
+
+const contractLocaleResources = {
+  en: {
+    common: enCommon,
+    settings: enSettings,
+    reader: enReader,
+    sidebar: enSidebar,
+    subscriptions: enSubscriptions,
+  },
+  ja: {
+    common: jaCommon,
+    settings: jaSettings,
+    reader: jaReader,
+    sidebar: jaSidebar,
+    subscriptions: jaSubscriptions,
+  },
+} as const;
 
 function isLocaleObject(value: LocaleNode | undefined): value is { readonly [key: string]: LocaleNode } {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -79,9 +109,9 @@ function getLocaleValue(resource: LocaleNode, keyPath: string): LocaleNode | und
 
 function hasLocaleKey(namespace: (typeof i18nResourceNamespaces)[number], key: string): boolean {
   return (
-    getLocaleValue(i18nResources.en[namespace], key) !== undefined ||
-    getLocaleValue(i18nResources.en[namespace], `${key}_one`) !== undefined ||
-    getLocaleValue(i18nResources.en[namespace], `${key}_other`) !== undefined
+    getLocaleValue(contractLocaleResources.en[namespace], key) !== undefined ||
+    getLocaleValue(contractLocaleResources.en[namespace], `${key}_one`) !== undefined ||
+    getLocaleValue(contractLocaleResources.en[namespace], `${key}_other`) !== undefined
   );
 }
 
@@ -296,11 +326,12 @@ describe("i18next locale contract", () => {
   });
 
   it("keeps runtime and type namespace sources aligned", () => {
-    const namespaces = [...i18nResourceNamespaces];
+    const initialNamespaces = [...i18nInitialResourceNamespaces];
 
     expect(Object.keys(i18nResources)).toEqual([...i18nResourceLocales]);
-    expect(Object.keys(i18nResources.en)).toEqual(namespaces);
-    expect(Object.keys(i18nResources.ja)).toEqual(namespaces);
+    expect(Object.keys(i18nResources.en)).toEqual(initialNamespaces);
+    expect(Object.keys(i18nResources.ja)).toEqual(initialNamespaces);
+    expect([...i18nDeferredResourceNamespaces]).toEqual(["settings", "subscriptions"]);
     expect(i18nResourceFiles.map((file) => `${file.locale}/${file.namespace}`)).toEqual(
       i18nResourceLocales.flatMap((locale) => i18nResourceNamespaces.map((namespace) => `${locale}/${namespace}`)),
     );
@@ -310,29 +341,52 @@ describe("i18next locale contract", () => {
       ),
     );
     expect(i18nSource).toContain("ns: i18nResourceNamespaces");
-    expect(i18nSource).toContain("resources: i18nResources");
+    expect(i18nSource).toContain("resources: structuredClone(i18nResources)");
     expect(i18nextTypesSource).toContain('import type { I18nDefaultResources } from "@/lib/i18n-resources"');
     expect(i18nextTypesSource).toContain("resources: I18nDefaultResources");
   });
 
   it("keeps resource namespace maps aligned with locale JSON file inventory", () => {
     const namespaces = [...i18nResourceNamespaces].toSorted();
+    const initialNamespaces = [...i18nInitialResourceNamespaces].toSorted();
     const basenamesByLocale = localeResourceBasenamesByLocale();
 
     expect(Object.keys(basenamesByLocale).toSorted()).toEqual([...i18nResourceLocales].toSorted());
 
     for (const locale of i18nResourceLocales) {
-      expect(Object.keys(i18nResources[locale]).toSorted()).toEqual(namespaces);
+      expect(Object.keys(i18nResources[locale]).toSorted()).toEqual(initialNamespaces);
       expect(basenamesByLocale[locale]).toEqual(namespaces);
     }
+  });
+
+  it("loads deferred namespaces into an i18next instance on demand", async () => {
+    const isolatedI18n = createInstance();
+    await isolatedI18n.init({
+      resources: structuredClone(i18nResources),
+      lng: "en",
+      fallbackLng: "en",
+      defaultNS: "common",
+      ns: i18nResourceNamespaces,
+      interpolation: { escapeValue: false },
+    });
+
+    expect(isolatedI18n.hasResourceBundle("en", "settings")).toBe(false);
+    expect(isolatedI18n.hasResourceBundle("ja", "settings")).toBe(false);
+
+    await loadI18nResourceNamespace(isolatedI18n, "settings");
+
+    expect(isolatedI18n.hasResourceBundle("en", "settings")).toBe(true);
+    expect(isolatedI18n.hasResourceBundle("ja", "settings")).toBe(true);
+    expect(isolatedI18n.t("settings:add_account_ellipsis", { lng: "en" })).toBe(enSettings.add_account_ellipsis);
+    expect(isolatedI18n.t("settings:add_account_ellipsis", { lng: "ja" })).toBe(jaSettings.add_account_ellipsis);
   });
 
   it("keeps locale keys aligned across supported locales", () => {
     const missingByLocale: string[] = [];
 
     for (const namespace of i18nResourceNamespaces) {
-      const enKeys = flattenLocaleKeys(i18nResources.en[namespace]);
-      const jaKeys = flattenLocaleKeys(i18nResources.ja[namespace]);
+      const enKeys = flattenLocaleKeys(contractLocaleResources.en[namespace]);
+      const jaKeys = flattenLocaleKeys(contractLocaleResources.ja[namespace]);
 
       missingByLocale.push(...missingKeys(enKeys, jaKeys).map((key) => `ja:${namespace}.${key}`));
       missingByLocale.push(...missingKeys(jaKeys, enKeys).map((key) => `en:${namespace}.${key}`));
@@ -345,13 +399,13 @@ describe("i18next locale contract", () => {
     const mismatches: string[] = [];
 
     for (const namespace of i18nResourceNamespaces) {
-      const enKeys = flattenLocaleKeys(i18nResources.en[namespace]);
-      const jaKeys = flattenLocaleKeys(i18nResources.ja[namespace]);
+      const enKeys = flattenLocaleKeys(contractLocaleResources.en[namespace]);
+      const jaKeys = flattenLocaleKeys(contractLocaleResources.ja[namespace]);
       const localeKeys = new Set([...enKeys, ...jaKeys]);
 
       for (const key of [...localeKeys].toSorted()) {
-        const enValue = getLocaleValue(i18nResources.en[namespace], key);
-        const jaValue = getLocaleValue(i18nResources.ja[namespace], key);
+        const enValue = getLocaleValue(contractLocaleResources.en[namespace], key);
+        const jaValue = getLocaleValue(contractLocaleResources.ja[namespace], key);
         if (typeof enValue !== "string" || typeof jaValue !== "string") {
           continue;
         }

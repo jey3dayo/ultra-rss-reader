@@ -21,6 +21,8 @@ import {
   formatRawKeyboardTrace,
   formatRawPointerTrace,
 } from "@/lib/debug/debug-input-trace";
+import i18n from "@/lib/i18n";
+import { loadI18nResourceNamespace } from "@/lib/i18n-resources";
 import {
   APP_STACKING_CLASS_NAMES,
   hasTauriRuntime,
@@ -70,6 +72,7 @@ const LazyShortcutsHelpModal = lazy(async () => {
 });
 
 async function loadSettingsModalModule() {
+  await loadI18nResourceNamespace(i18n, "settings");
   return import("./settings/settings-modal");
 }
 

@@ -13,6 +13,9 @@ import {
   resolveArticleSummaryWebsiteHref,
   resolveArticleSummaryWebsiteLabel,
 } from "@/lib/articles/article-view";
+import i18n from "@/lib/i18n";
+import { useI18nResourceNamespace } from "@/lib/i18n/use-i18n-resource-namespace";
+import { loadI18nResourceNamespace } from "@/lib/i18n-resources";
 import { useUiStore } from "@/stores/ui-store";
 import { ArticleEmptyStateView } from "./article-empty-state-view";
 import { ArticlePane, ArticleToolbar } from "./article-pane-view";
@@ -20,6 +23,7 @@ import { ArticleEmptyStateShell, ArticleNotFoundStateView, BrowserOnlyStateView 
 import { readerPassiveCardClassName, readerPassiveCardOffsetClassName } from "./reader-passive-card";
 
 const LazySubscriptionsIndexPage = lazy(async () => {
+  await loadI18nResourceNamespace(i18n, "subscriptions");
   const mod = await import("../subscriptions-index/subscriptions-index-page");
   return { default: mod.SubscriptionsIndexPage };
 });
@@ -178,6 +182,7 @@ function EmptyState({
 }) {
   const { t } = useTranslation("reader");
   const { t: settingsT } = useTranslation("settings");
+  const settingsNamespaceReady = useI18nResourceNamespace(emptyReason === "no-accounts" ? "settings" : null);
   const openSettingsAddAccount = useUiStore((state) => state.openSettingsAddAccount);
   const openAddFeedDialog = useUiStore((state) => state.openAddFeedDialog);
 
@@ -187,6 +192,10 @@ function EmptyState({
 
   if (emptyReason === "default" && summary) {
     return <SelectionSummaryEmptyState summary={summary} />;
+  }
+
+  if (emptyReason === "no-accounts" && !settingsNamespaceReady) {
+    return null;
   }
 
   const content: ArticleEmptyStateViewProps =
