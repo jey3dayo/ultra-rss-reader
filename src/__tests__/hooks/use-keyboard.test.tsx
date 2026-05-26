@@ -391,11 +391,15 @@ describe("useKeyboard", () => {
 
     document.body.focus();
     fireEvent.keyDown(window, { key: "Up" });
-    expect(localAccount).toHaveFocus();
+    await waitFor(() => {
+      expect(localAccount).toHaveFocus();
+    });
 
     document.body.focus();
     fireEvent.keyDown(window, { key: "Down" });
-    expect(freshRssAccount).toHaveFocus();
+    await waitFor(() => {
+      expect(freshRssAccount).toHaveFocus();
+    });
   });
 
   it("pressing m toggles the selected article back to unread", async () => {
