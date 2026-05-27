@@ -4,6 +4,17 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.43.10] - 2026-05-27
+
+### Bug Fixes
+
+- アカウント一覧の読み込み後に選択中アカウントへ focus を戻し、キーボード操作でアカウントペインへ移動したときの focus を安定させた
+
+### Maintenance
+
+- 起動時に読み込む翻訳 namespace を reader 初期表示に必要な範囲へ絞り、settings / subscriptions の翻訳を必要時に読み込むようにした
+- 時刻表示と Tauri window API の vendor import を軽量化し、startup bundle に入る不要な依存を減らした
+
 ## [0.43.9] - 2026-05-26
 
 ### Bug Fixes
