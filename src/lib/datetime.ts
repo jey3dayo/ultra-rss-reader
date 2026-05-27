@@ -4,7 +4,6 @@ import {
   addDays,
   compareAsc,
   differenceInDays as differenceInDateFnsDays,
-  format,
   isSameDay,
   set,
   startOfDay,
@@ -123,7 +122,7 @@ export function formatLocalHourMinute(value: DateInput): string | null {
     return null;
   }
 
-  return format(date, "HH:mm");
+  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 }
 
 export function formatShortDate(value: DateInput, locale?: string): string | null {

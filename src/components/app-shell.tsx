@@ -1,5 +1,4 @@
 import { listen } from "@tauri-apps/api/event";
-import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Component, lazy, type ReactNode, Suspense, useEffect, useReducer, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
@@ -86,6 +85,7 @@ function reportLazyChunkFailure(message: string) {
 }
 
 async function startDesktopTitlebarDrag() {
+  const { getCurrentWindow } = await import("@tauri-apps/api/window");
   await getCurrentWindow().startDragging();
 }
 
