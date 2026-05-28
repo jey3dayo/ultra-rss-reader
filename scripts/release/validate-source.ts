@@ -67,7 +67,7 @@ if (tagObjectType !== "tag") {
 
 const tagObjectSha = git(["rev-parse", `refs/tags/${releaseTag}`]);
 const tagTargetSha = git(["rev-parse", `refs/tags/${releaseTag}^{}`]);
-if (eventName === "workflow_dispatch") {
+if (eventName === "workflow_dispatch" && !reuseExistingAssets) {
   gitInherit(["checkout", "--detach", tagTargetSha]);
 }
 
@@ -75,7 +75,7 @@ const checkoutSha = git(["rev-parse", "HEAD"]);
 if (tagObjectSha === tagTargetSha) {
   fail(`release tag ${releaseTag} tag object matches peeled commit; expected annotated tag metadata`);
 }
-if (tagTargetSha !== checkoutSha) {
+if (!reuseExistingAssets && tagTargetSha !== checkoutSha) {
   fail(`release tag ${releaseTag} points at ${tagTargetSha}, but checkout is ${checkoutSha}`);
 }
 if (!reuseExistingAssets && !gitSucceeds(["merge-base", "--is-ancestor", tagTargetSha, "refs/remotes/origin/main"])) {
