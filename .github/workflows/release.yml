@@ -387,5 +387,6 @@ jobs:
         if: steps.signing-preflight.outputs.should_publish == 'true' && steps.signing-preflight.outputs.should_build == 'false'
         shell: bash
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
         run: node ./scripts/release/artifacts.ts validate-existing-release-assets

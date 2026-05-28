@@ -910,7 +910,7 @@ describe("release repository contract", () => {
       expect(usesValue).toMatch(/@[0-9a-f]{40}$/i);
     }
     expect(releaseWorkflow).not.toContain("actions/upload-artifact");
-    expect(releaseWorkflow.match(/secrets\.GITHUB_TOKEN/g)).toHaveLength(3);
+    expect(releaseWorkflow.match(/secrets\.GITHUB_TOKEN/g)).toHaveLength(4);
     expect(extractTauriActionBlock(releaseWorkflow)).toContain("GITHUB_TOKEN: $" + "{{ secrets.GITHUB_TOKEN }}");
     expect(extractReleaseStepBlock(releaseWorkflow, "Validate release signing preflight")).toContain(
       "TAURI_SIGNING_PRIVATE_KEY_SET: $" + "{{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}",
@@ -925,6 +925,9 @@ describe("release repository contract", () => {
       "GH_TOKEN: $" + "{{ secrets.GITHUB_TOKEN }}",
     );
     expect(extractReleaseStepBlock(releaseWorkflow, "Upload release provenance assets")).toContain(
+      "GH_TOKEN: $" + "{{ secrets.GITHUB_TOKEN }}",
+    );
+    expect(extractReleaseStepBlock(releaseWorkflow, "Validate existing draft release assets")).toContain(
       "GH_TOKEN: $" + "{{ secrets.GITHUB_TOKEN }}",
     );
     expect(extractReleaseCacheBlock(releaseWorkflow)).not.toContain("node_modules");
