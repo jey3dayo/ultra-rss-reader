@@ -740,6 +740,8 @@ describe("release repository contract", () => {
       '["merge-base", "--is-ancestor", tagTargetSha, "refs/remotes/origin/main"]',
     );
     expect(releaseSourceValidator).toContain("is not reachable from origin/main");
+    expect(releaseSourceValidator).toContain('process.env.REUSE_EXISTING_ASSETS === "true"');
+    expect(releaseSourceValidator).toContain("release recovery is validating existing assets");
     expect(releaseWorkflow.indexOf("Validate release source")).toBeLessThan(
       releaseWorkflow.indexOf("Resolve pnpm store path"),
     );
@@ -1614,7 +1616,7 @@ describe("release repository contract", () => {
     expect(signingPreflightStep).toContain('echo "should_publish=true" >> "$GITHUB_OUTPUT"');
     expect(signingPreflightStep).toContain('echo "should_build=true" >> "$GITHUB_OUTPUT"');
     expect(extractReleaseStepBlock(releaseWorkflow, "Run release quality preflight")).toContain(
-      "if: steps.signing-preflight.outputs.should_publish == 'true'",
+      "if: steps.signing-preflight.outputs.should_build == 'true'",
     );
     for (const stepName of [
       "Validate release build contamination contract",

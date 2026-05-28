@@ -35,6 +35,7 @@ const eventName = requiredEnv("EVENT_NAME");
 const releaseTag = requiredEnv("RELEASE_TAG");
 const workflowRef = requiredEnv("WORKFLOW_REF");
 const workflowRefName = requiredEnv("WORKFLOW_REF_NAME");
+const reuseExistingAssets = process.env.REUSE_EXISTING_ASSETS === "true";
 
 if (!RELEASE_TAG_PATTERN.test(releaseTag)) {
   fail("release tag must match vX.Y.Z, optionally with prerelease or build metadata");
@@ -77,6 +78,11 @@ if (tagObjectSha === tagTargetSha) {
 if (tagTargetSha !== checkoutSha) {
   fail(`release tag ${releaseTag} points at ${tagTargetSha}, but checkout is ${checkoutSha}`);
 }
-if (!gitSucceeds(["merge-base", "--is-ancestor", tagTargetSha, "refs/remotes/origin/main"])) {
+if (!reuseExistingAssets && !gitSucceeds(["merge-base", "--is-ancestor", tagTargetSha, "refs/remotes/origin/main"])) {
   fail(`release tag ${releaseTag} target ${tagTargetSha} is not reachable from origin/main`);
+}
+if (reuseExistingAssets && !gitSucceeds(["merge-base", "--is-ancestor", tagTargetSha, "refs/remotes/origin/main"])) {
+  console.log(
+    `::notice::release recovery is validating existing assets for ${releaseTag}; tag target ${tagTargetSha} is not reachable from origin/main`,
+  );
 }
