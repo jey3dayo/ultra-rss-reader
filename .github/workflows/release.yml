@@ -192,6 +192,7 @@ jobs:
         with:
           workspaces: src-tauri
           shared-key: release-${{ runner.os }}-${{ hashFiles('src-tauri/Cargo.lock') }}
+          save-if: false
 
       - run: pnpm install --frozen-lockfile
 
