@@ -917,7 +917,7 @@ describe("release repository contract", () => {
       "TAURI_SIGNING_PRIVATE_KEY_PASSWORD_SET: $" + "{{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD != '' }}",
     );
     expect(extractTauriActionBlock(releaseWorkflow)).toContain(
-      "if: steps.signing-preflight.outputs.should_publish == 'true'",
+      "if: steps.signing-preflight.outputs.should_build == 'true'",
     );
     expect(extractReleaseStepBlock(releaseWorkflow, "Upload updater asset checksums")).toContain(
       "GH_TOKEN: $" + "{{ secrets.GITHUB_TOKEN }}",
@@ -1602,7 +1602,9 @@ describe("release repository contract", () => {
       "DRY_RUN: $" + "{{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}",
     );
     expect(signingPreflightStep).toContain('echo "should_publish=false" >> "$GITHUB_OUTPUT"');
+    expect(signingPreflightStep).toContain('echo "should_build=false" >> "$GITHUB_OUTPUT"');
     expect(signingPreflightStep).toContain("release dry run validated source, versions, cache, and signing preflight");
+    expect(signingPreflightStep).toContain("release recovery will validate existing draft assets without rebuilding");
     expect(signingPreflightStep).toContain('missing+=("TAURI_SIGNING_PRIVATE_KEY")');
     expect(signingPreflightStep).toContain('missing+=("TAURI_SIGNING_PRIVATE_KEY_PASSWORD")');
     expect(signingPreflightStep).toContain(
@@ -1610,8 +1612,11 @@ describe("release repository contract", () => {
     );
     expect(signingPreflightStep).toContain("rerun workflow_dispatch with dry_run=true");
     expect(signingPreflightStep).toContain('echo "should_publish=true" >> "$GITHUB_OUTPUT"');
+    expect(signingPreflightStep).toContain('echo "should_build=true" >> "$GITHUB_OUTPUT"');
+    expect(extractReleaseStepBlock(releaseWorkflow, "Run release quality preflight")).toContain(
+      "if: steps.signing-preflight.outputs.should_publish == 'true'",
+    );
     for (const stepName of [
-      "Run release quality preflight",
       "Validate release build contamination contract",
       "Resolve release semver policy",
       "Validate updater manifest asset contract",
@@ -1622,9 +1627,12 @@ describe("release repository contract", () => {
       "Upload release provenance assets",
     ]) {
       expect(extractReleaseStepBlock(releaseWorkflow, stepName)).toContain(
-        "if: steps.signing-preflight.outputs.should_publish == 'true'",
+        "if: steps.signing-preflight.outputs.should_build == 'true'",
       );
     }
+    expect(extractReleaseStepBlock(releaseWorkflow, "Validate existing draft release assets")).toContain(
+      "if: steps.signing-preflight.outputs.should_publish == 'true' && steps.signing-preflight.outputs.should_build == 'false'",
+    );
     expect(releaseWorkflow.indexOf("Validate release signing preflight")).toBeLessThan(
       releaseWorkflow.indexOf("Run release quality preflight"),
     );
