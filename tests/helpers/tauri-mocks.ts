@@ -114,6 +114,8 @@ function createDefaultHandler(): MockHandler {
         return structuredClone(mockFeeds.filter((f) => f.account_id === args.accountId));
       case "list_folders":
         return createSampleFolders().filter((folder) => folder.account_id === args.accountId);
+      case "get_article":
+        return structuredClone(mockArticles.find((article) => article.id === args.articleId) ?? mockArticles[0]);
       case "list_articles":
         return structuredClone(
           paginate(

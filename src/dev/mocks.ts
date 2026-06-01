@@ -277,6 +277,12 @@ export function setupDevMocks(): RestoreDevMocks {
         return cloneMockResponse(feed);
       }
 
+      case "get_article": {
+        const { articleId } = parseBrowserMockArgs("get_article", rawIpcPayload);
+        const article = mockArticles.find((candidate) => candidate.id === articleId) ?? mockArticles[0];
+        return cloneMockResponse(article);
+      }
+
       case "list_articles": {
         const {
           feedId,

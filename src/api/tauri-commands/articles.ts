@@ -3,11 +3,13 @@ import {
   type AppError,
   type ArticleDto,
   ArticleDtoListSchema,
+  ArticleDtoSchema,
   type ArticleListMode,
   CountResponseSchema,
   clearArticleViewHistoryArgs,
   countAccountStarredArticlesArgs,
   countAccountUnreadArticlesArgs,
+  getArticleArgs,
   listAccountArticlesArgs,
   listArticlesArgs,
   listFolderArticlesArgs,
@@ -42,6 +44,9 @@ type ListAccountArticlesParams = {
   offset?: number;
   limit?: number;
 };
+
+export const getArticle = (articleId: string) =>
+  safeInvoke("get_article", { response: ArticleDtoSchema, args: getArticleArgs }, { articleId });
 
 function resolveListArticlesArgs(
   feedIdOrParams: string | ListArticlesParams,

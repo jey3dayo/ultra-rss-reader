@@ -131,6 +131,7 @@ export const queryKeys = {
   },
   articles: {
     root: QUERY_KEY_ROOTS.articles,
+    byId: (articleId: string | null) => [...QUERY_KEY_ROOTS.articles, "byId", articleId] as const,
     byFeed: (feedId: string | null, mode: ReaderFilter) =>
       [...QUERY_KEY_ROOTS.articles, feedId, readerArticleModeOptions(mode)] as const,
   },

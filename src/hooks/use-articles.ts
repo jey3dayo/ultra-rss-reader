@@ -6,6 +6,7 @@ import {
   type ArticleDto,
   clearArticleViewHistory,
   countAccountStarredArticles,
+  getArticle,
   listAccountArticles,
   listArticles,
   listFeedStarredArticles,
@@ -453,6 +454,16 @@ export function useArticles(feedId: string | null, options?: ArticleQueryOptions
       ).then(Result.unwrap());
     },
     enabled: !!normalizedFeedId,
+  });
+}
+
+export function useArticle(articleId: string | null) {
+  const normalizedArticleId = normalizeManualArticleQueryId(articleId);
+
+  return useQuery({
+    queryKey: queryKeys.articles.byId(normalizedArticleId),
+    queryFn: () => getArticle(requireEnabledQueryValue(normalizedArticleId, "articleId")).then(Result.unwrap()),
+    enabled: !!normalizedArticleId,
   });
 }
 

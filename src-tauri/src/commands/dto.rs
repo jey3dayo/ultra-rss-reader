@@ -493,6 +493,60 @@ impl From<crate::domain::article::Article> for ArticleDto {
     }
 }
 
+impl ArticleDto {
+    pub fn list_item_from(article: crate::domain::article::Article) -> Self {
+        Self {
+            content_sanitized: String::new(),
+            ..Self::from(article)
+        }
+    }
+
+    pub fn list_item_from_view_history(
+        item: crate::domain::article::ArticleViewHistoryItem,
+    ) -> Self {
+        let mut dto = Self::list_item_from(item.article);
+        dto.viewed_at = Some(item.viewed_at.to_rfc3339());
+        dto
+    }
+}
+
+#[cfg(test)]
+mod article_dto_list_tests {
+    use chrono::Utc;
+
+    use super::ArticleDto;
+    use crate::domain::article::Article;
+    use crate::domain::types::{ArticleId, FeedId};
+
+    fn test_article() -> Article {
+        Article {
+            id: ArticleId("article-1".to_string()),
+            feed_id: FeedId("feed-1".to_string()),
+            remote_id: None,
+            title: "Article".to_string(),
+            content_raw: "<p>Raw body</p>".to_string(),
+            content_sanitized: "<p>Sanitized body</p>".to_string(),
+            sanitizer_version: 1,
+            summary: Some("Summary".to_string()),
+            url: None,
+            author: None,
+            thumbnail: None,
+            published_at: Utc::now(),
+            is_read: false,
+            is_starred: false,
+            fetched_at: Utc::now(),
+        }
+    }
+
+    #[test]
+    fn list_item_from_omits_sanitized_content() {
+        let dto = ArticleDto::list_item_from(test_article());
+
+        assert_eq!(dto.content_sanitized, "");
+        assert_eq!(dto.title, "Article");
+    }
+}
+
 impl From<crate::domain::article::ArticleViewHistoryItem> for ArticleDto {
     fn from(item: crate::domain::article::ArticleViewHistoryItem) -> Self {
         let mut dto = ArticleDto::from(item.article);

@@ -431,6 +431,15 @@ pub(crate) fn mark_muted_unread_as_read_with_conn(
 }
 
 impl ArticleRepository for SqliteArticleRepository<'_> {
+    fn find_by_id(&self, id: &ArticleId) -> DomainResult<Option<Article>> {
+        let sql = format!("SELECT {SELECT_COLS} FROM articles WHERE id = ?1");
+        let article = self
+            .conn
+            .query_row(&sql, params![id.0], row_to_article)
+            .optional()?;
+        Ok(article)
+    }
+
     fn find_by_feed(
         &self,
         feed_id: &FeedId,

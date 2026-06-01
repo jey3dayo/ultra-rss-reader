@@ -9,6 +9,7 @@ setupBrowserTestDom();
 
 const {
   useAccountsMock,
+  useArticleMock,
   useArticleListDataMock,
   useArticleListSourcesMock,
   useArticlesMock,
@@ -18,6 +19,7 @@ const {
   useTagsMock,
 } = vi.hoisted(() => ({
   useAccountsMock: vi.fn(),
+  useArticleMock: vi.fn(),
   useArticleListDataMock: vi.fn(),
   useArticleListSourcesMock: vi.fn(),
   useArticlesMock: vi.fn(),
@@ -32,6 +34,7 @@ vi.mock("@/hooks/use-accounts", () => ({
 }));
 
 vi.mock("@/hooks/use-articles", () => ({
+  useArticle: useArticleMock,
   useArticles: useArticlesMock,
   useFolderArticles: useFolderArticlesMock,
 }));
@@ -72,6 +75,7 @@ describe("useArticleViewSelection", () => {
     useFoldersMock.mockReturnValue({ data: [] });
     useTagsMock.mockReturnValue({ data: [] });
     useArticlesMock.mockReturnValue({ data: [] });
+    useArticleMock.mockReturnValue({ data: undefined });
     useFolderArticlesMock.mockReturnValue({ data: [] });
     useArticlesByTagMock.mockReturnValue({ data: [] });
     useArticleListSourcesMock.mockReturnValue({
@@ -132,6 +136,45 @@ describe("useArticleViewSelection", () => {
     const { result } = renderHook(() => useArticleViewSelection());
 
     expect(result.current).toEqual({ kind: "not-found" });
+  });
+
+  it("uses the full selected article body when list rows are lightweight", () => {
+    const listArticle = {
+      ...sampleArticles[0],
+      id: "selected-article",
+      content_sanitized: "",
+    };
+    const fullArticle = {
+      ...listArticle,
+      content_sanitized: "<p>Full body</p>",
+    };
+
+    useUiStore.setState({
+      contentMode: "reader",
+      browserUrl: null,
+      selectedArticleId: "selected-article",
+      selection: { type: "all" },
+      subscriptionsWorkspace: null,
+      selectedAccountId: "acc-1",
+      retainedArticleIds: new Set(),
+      viewMode: "all",
+    });
+    useArticleListDataMock.mockReturnValue({
+      feedId: null,
+      filteredArticles: [listArticle],
+      tagId: null,
+    });
+    useArticleMock.mockReturnValue({ data: fullArticle });
+
+    const { result } = renderHook(() => useArticleViewSelection());
+
+    expect(result.current).toMatchObject({
+      kind: "article",
+      article: {
+        id: "selected-article",
+        content_sanitized: "<p>Full body</p>",
+      },
+    });
   });
 
   it("uses the account switch reset instead of surfacing a stale not-found state", () => {

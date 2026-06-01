@@ -15,6 +15,7 @@ import {
   clearArticleViewHistoryArgs,
   countAccountStarredArticlesArgs,
   countAccountUnreadArticlesArgs,
+  getArticleArgs,
   listAccountArticlesArgs,
   listArticlesArgs,
   listFeedArticleSummariesArgs,
@@ -81,6 +82,7 @@ type CommandArgsSchema = z.ZodType<Record<string, unknown>>;
 export const commandArgsSchemas = {
   list_folders: listFoldersArgs,
   list_feeds: listFeedsArgs,
+  get_article: getArticleArgs,
   list_articles: listArticlesArgs,
   list_account_articles: listAccountArticlesArgs,
   list_feed_article_summaries: listFeedArticleSummariesArgs,

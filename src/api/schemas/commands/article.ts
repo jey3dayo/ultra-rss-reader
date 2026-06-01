@@ -22,6 +22,10 @@ export const listArticlesArgs = z
     path: ["starredOnly"],
   });
 
+export const getArticleArgs = z.object({
+  articleId: nonBlankTrimmedIdSchema,
+});
+
 export const listAccountArticlesArgs = z.object({
   accountId: nonBlankTrimmedIdSchema,
   unreadOnly: z.boolean().optional(),

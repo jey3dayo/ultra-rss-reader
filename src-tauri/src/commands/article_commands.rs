@@ -307,6 +307,13 @@ fn repair_outdated_articles_for_render(
         .collect()
 }
 
+fn article_list_dtos(articles: Vec<Article>) -> Vec<ArticleDto> {
+    articles
+        .into_iter()
+        .map(ArticleDto::list_item_from)
+        .collect()
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum OldUnreadScope {
     Account,
@@ -852,6 +859,22 @@ fn validate_browser_embed_redirect(
 }
 
 #[tauri::command]
+pub fn get_article(state: State<'_, AppState>, article_id: String) -> Result<ArticleDto, AppError> {
+    let db = crate::commands::lock_db(&state.db)?;
+    let repo = SqliteArticleRepository::new(db.writer());
+    let article =
+        repo.find_by_id(&ArticleId(article_id))?
+            .ok_or_else(|| AppError::UserVisible {
+                message: "Article not found".to_string(),
+            })?;
+    let mut articles = repair_outdated_articles_for_render(&repo, vec![article])?;
+    let article = articles.pop().ok_or_else(|| AppError::UserVisible {
+        message: "Article not found".to_string(),
+    })?;
+    Ok(ArticleDto::from(article))
+}
+
+#[tauri::command]
 pub fn list_articles(
     state: State<'_, AppState>,
     feed_id: String,
@@ -871,8 +894,7 @@ pub fn list_articles(
     } else {
         repo.find_by_feed(&FeedId(feed_id), &pagination)?
     };
-    let articles = repair_outdated_articles_for_render(&repo, articles)?;
-    Ok(articles.into_iter().map(ArticleDto::from).collect())
+    Ok(article_list_dtos(articles))
 }
 
 #[tauri::command]
@@ -891,8 +913,7 @@ pub fn list_account_articles(
     } else {
         repo.find_by_account(&AccountId(account_id), &pagination)?
     };
-    let articles = repair_outdated_articles_for_render(&repo, articles)?;
-    Ok(articles.into_iter().map(ArticleDto::from).collect())
+    Ok(article_list_dtos(articles))
 }
 
 #[tauri::command]
@@ -931,8 +952,7 @@ pub fn list_folder_articles(
         ArticleListMode::Unread => repo.find_unread_by_folder(&folder_id, &pagination)?,
         ArticleListMode::Starred => repo.find_starred_by_folder(&folder_id, &pagination)?,
     };
-    let articles = repair_outdated_articles_for_render(&repo, articles)?;
-    Ok(articles.into_iter().map(ArticleDto::from).collect())
+    Ok(article_list_dtos(articles))
 }
 
 #[tauri::command]
@@ -946,8 +966,7 @@ pub fn list_starred_articles(
     let repo = SqliteArticleRepository::new(db.writer());
     let pagination = article_command_pagination(offset, limit, DEFAULT_ARTICLE_LIST_LIMIT)?;
     let articles = repo.find_starred_by_account(&AccountId(account_id), &pagination)?;
-    let articles = repair_outdated_articles_for_render(&repo, articles)?;
-    Ok(articles.into_iter().map(ArticleDto::from).collect())
+    Ok(article_list_dtos(articles))
 }
 
 #[tauri::command]
@@ -978,7 +997,7 @@ pub fn list_recent_articles(
         .collect::<Result<Vec<_>, AppError>>()?;
     Ok(articles
         .into_iter()
-        .map(|item| ArticleDto::from(item.article))
+        .map(ArticleDto::list_item_from_view_history)
         .collect())
 }
 
@@ -1304,8 +1323,7 @@ pub fn search_articles(
     let pagination = article_command_pagination(offset, limit, DEFAULT_ARTICLE_LIST_LIMIT)?;
     let normalized_query = normalize_backend_article_search_query(&query);
     let articles = repo.search(&AccountId(account_id), &normalized_query, &pagination)?;
-    let articles = repair_outdated_articles_for_render(&repo, articles)?;
-    Ok(articles.into_iter().map(ArticleDto::from).collect())
+    Ok(article_list_dtos(articles))
 }
 
 #[cfg(test)]

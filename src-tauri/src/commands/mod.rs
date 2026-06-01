@@ -81,6 +81,7 @@ pub(crate) fn command_db_lock_policy(command_name: &str) -> Option<CommandDbLock
         | "update_feed_folder"
         | "update_feed_display_settings"
         | "get_account_sync_status"
+        | "get_article"
         | "list_articles"
         | "list_account_articles"
         | "list_feed_article_summaries"
@@ -428,6 +429,7 @@ mod tests {
             ),
             ("export_opml", CommandDbLockPolicy::BlockingLock),
             ("search_articles", CommandDbLockPolicy::BlockingLock),
+            ("get_article", CommandDbLockPolicy::BlockingLock),
             ("list_articles", CommandDbLockPolicy::BlockingLock),
             (
                 "list_feed_article_summaries",

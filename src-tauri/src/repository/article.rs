@@ -45,6 +45,7 @@ impl Default for Pagination {
 }
 
 pub trait ArticleRepository {
+    fn find_by_id(&self, id: &ArticleId) -> DomainResult<Option<Article>>;
     fn find_by_feed(&self, feed_id: &FeedId, pagination: &Pagination)
         -> DomainResult<Vec<Article>>;
     fn find_unread_by_feed(
