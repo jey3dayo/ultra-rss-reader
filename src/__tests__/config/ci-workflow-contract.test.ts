@@ -65,9 +65,9 @@ describe("CI workflow contract", () => {
     expect(toolchainSection).toContain("local mise Node version drift");
     expect(toolchainSection).toContain("local pnpm version drift");
     expect(miseSource).toContain('[tasks."quality:toolchain"]');
-    expect(packageJsonSource).toContain('"packageManager": "pnpm@11.2.2"');
+    expect(packageJsonSource).toContain('"packageManager": "pnpm@11.5.1"');
     expect(packageJsonSource).toContain('"node": "24"');
-    expect(packageJsonSource).toContain('"pnpm": "11.2.2"');
+    expect(packageJsonSource).toContain('"pnpm": "11.5.1"');
   });
 
   it("explains skipped and cancelled required matrix results in the quality gate step summary", () => {

@@ -4,7 +4,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 const reactDoctorVersion = "0.2.3";
-const knipVersion = "6.14.2";
+const knipVersion = "6.15.0";
 const qualityToolTimeoutMs = 120_000;
 const qualityToolMaxBufferBytes = 64 * 1024 * 1024;
 
@@ -101,7 +101,7 @@ const reactDoctorBaselines = {
 
 const knipBaseline = {
   issueCount: 45,
-  findingsCount: 84,
+  findingsCount: 82,
 } as const;
 
 const lockfileDuplicateMajorBaseline = {

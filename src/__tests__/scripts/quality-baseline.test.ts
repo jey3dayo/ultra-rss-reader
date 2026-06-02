@@ -41,7 +41,7 @@ describe("quality-baseline", () => {
 
   it("keeps nested braces and braces inside strings inside the JSON payload", () => {
     const output = [
-      "knip 6.14.2",
+      "knip 6.15.0",
       '{"issues":[{"file":"src/example.ts","exports":["useThing"],"note":"literal { brace }"}]}',
       "scan finished",
     ].join("\n");
