@@ -50,4 +50,24 @@ describe("AppToastView", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
+
+  it("renders disabled toast actions as disabled buttons", async () => {
+    const user = userEvent.setup();
+    const onUpdate = vi.fn();
+
+    render(
+      <AppToastView
+        toastMessage={{
+          message: "Update available",
+          actions: [{ label: "Update now", onClick: onUpdate, disabled: true }],
+        }}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Update now" }));
+
+    expect(screen.getByRole("button", { name: "Update now" })).toBeDisabled();
+    expect(onUpdate).not.toHaveBeenCalled();
+  });
 });

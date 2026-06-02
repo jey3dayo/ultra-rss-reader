@@ -145,6 +145,7 @@ function Toast() {
   const toastMessage = useUiStore((state) => state.toastMessage);
   const clearToast = useUiStore((state) => state.clearToast);
   const browserUrl = useUiStore((state) => state.browserUrl);
+  const syncActive = useUiStore((state) => state.syncProgress.active);
   if (!toastMessage) return null;
 
   return (
@@ -152,6 +153,7 @@ function Toast() {
       toastMessage={toastMessage}
       onClose={clearToast}
       placement={browserUrl ? "browser-rail" : "bottom-right"}
+      syncActionState={syncActive}
     />
   );
 }

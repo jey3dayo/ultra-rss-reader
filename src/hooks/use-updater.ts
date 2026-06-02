@@ -39,6 +39,10 @@ function clearToastIfCurrent(toast: ToastData): void {
   useUiStore.getState().clearToast();
 }
 
+function isSyncActive(): boolean {
+  return useUiStore.getState().syncProgress.active;
+}
+
 function rememberStaleDownloadSession(): void {
   if (activeDownloadSessionId !== null) {
     staleDownloadSessionIds.add(activeDownloadSessionId);
@@ -67,6 +71,7 @@ export function showUpdateAvailableToast(version: string): void {
     actions: [
       {
         label: i18n.t("updater.update_now"),
+        disabled: isSyncActive,
         onClick: () => {
           startDownload(toast);
         },
@@ -129,6 +134,10 @@ function getErrorMessage(error: unknown): string {
 
 function startDownload(ownerToast?: ToastData): void {
   if (ownerToast && !isCurrentToast(ownerToast)) {
+    return;
+  }
+
+  if (isSyncActive()) {
     return;
   }
 

@@ -11,6 +11,7 @@ type AppToastViewProps = {
   position?: "fixed" | "static";
   placement?: "bottom-right" | "browser-rail";
   testId?: string;
+  syncActionState?: boolean;
 };
 
 const UPDATE_TOAST_WIDTH_CLASS_NAME = "w-[min(320px,calc(100vw-2rem))]";
@@ -19,16 +20,22 @@ function clampProgressWidth(progress: number) {
   return Math.min(Math.max(progress, 0), 100);
 }
 
+function resolveActionDisabled(disabled: boolean | (() => boolean) | undefined): boolean {
+  return typeof disabled === "function" ? disabled() : disabled === true;
+}
+
 export function AppToastView({
   toastMessage,
   onClose,
   position = "fixed",
   placement = "bottom-right",
   testId = "app-toast",
+  syncActionState = false,
 }: AppToastViewProps) {
   const { t } = useTranslation("common");
   const { message, progress, actions, variant } = toastMessage;
   const showInBrowserRail = position === "fixed" && placement === "browser-rail";
+  void syncActionState;
 
   return (
     <div
@@ -79,6 +86,7 @@ export function AppToastView({
               key={action.label}
               type="button"
               onClick={action.onClick}
+              disabled={resolveActionDisabled(action.disabled)}
               variant="ghost"
               size="xs"
               className="min-h-7 px-2.5 py-1 text-xs font-medium text-primary hover:bg-surface-1/72 hover:text-primary"

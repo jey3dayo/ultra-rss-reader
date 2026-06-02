@@ -251,6 +251,41 @@ describe("performUpdateCheck", () => {
     ]);
   });
 
+  it("disables update download while sync is active", async () => {
+    mockDownloadAndInstallUpdate.mockResolvedValue(Result.succeed(null));
+
+    const {
+      updaterModule: { showUpdateAvailableToast },
+      useUiStore,
+    } = await getUpdaterModuleAndUiStore();
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      syncProgress: {
+        active: true,
+        sessionId: 1,
+        kind: "manual_all",
+        stage: "started",
+        total: 2,
+        completed: 0,
+        currentAccountName: null,
+        activeAccountIds: new Set(),
+      },
+    });
+
+    showUpdateAvailableToast("1.2.3");
+    const updateAction = useUiStore.getState().toastMessage?.actions?.find((action) => action.label === "今すぐ更新");
+
+    expect(updateAction?.disabled).toBeTypeOf("function");
+    expect(typeof updateAction?.disabled === "function" ? updateAction.disabled() : updateAction?.disabled).toBe(true);
+    updateAction?.onClick();
+
+    expect(mockDownloadAndInstallUpdate).not.toHaveBeenCalled();
+    expect(useUiStore.getState().toastMessage).toMatchObject({
+      message: "v1.2.3 が利用可能です",
+      variant: "update",
+    });
+  });
+
   it("cleans up the pending download when the download command rejects", async () => {
     mockDownloadAndInstallUpdate
       .mockRejectedValueOnce(new Error("download command rejected"))
