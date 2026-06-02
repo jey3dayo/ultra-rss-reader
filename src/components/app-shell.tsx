@@ -1,4 +1,3 @@
-import { listen } from "@tauri-apps/api/event";
 import { Component, lazy, type ReactNode, Suspense, useEffect, useReducer, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
@@ -46,8 +45,13 @@ import { useMouseNavigation } from "../hooks/use-mouse-navigation";
 import { useUpdater } from "../hooks/use-updater";
 import { useWindowAlwaysOnTop } from "../hooks/use-window-always-on-top";
 import { copyValueToClipboard } from "../lib/runtime/clipboard";
-import { attachTauriListeners, TAURI_EVENT_LISTENER_FAILURE_EVENT } from "../lib/runtime/tauri-event-listeners";
+import {
+  attachTauriListeners,
+  listenTauriEvent,
+  TAURI_EVENT_LISTENER_FAILURE_EVENT,
+} from "../lib/runtime/tauri-event-listeners";
 import { cn } from "../lib/utils";
+import { startWindowDragging } from "../lib/window/tauri-window";
 import { usePlatformStore } from "../stores/platform-store";
 import { usePreferencesStore } from "../stores/preferences-store";
 import { useUiStore } from "../stores/ui-store";
@@ -86,8 +90,7 @@ function reportLazyChunkFailure(message: string) {
 }
 
 async function startDesktopTitlebarDrag() {
-  const { getCurrentWindow } = await import("@tauri-apps/api/window");
-  await getCurrentWindow().startDragging();
+  await startWindowDragging();
 }
 
 function reportSettingsModalPreloadFailure(error: unknown) {
@@ -351,7 +354,7 @@ function FocusDebugHud({ temporarilyHidden = false, avoidBottomRight = false }: 
   useEffect(() => {
     return attachTauriListeners(
       [
-        listen<string>("browser-webview-debug-input", (event) => {
+        listenTauriEvent<string>("browser-webview-debug-input", (event) => {
           dispatch({ type: "append-browser-trace", value: event.payload });
         }),
       ],
@@ -489,7 +492,7 @@ export function AppShell() {
   useEffect(() => {
     return attachTauriListeners(
       [
-        listen<void>(MAIN_WINDOW_CLOSE_BLOCKED_EVENT, () => {
+        listenTauriEvent<void>(MAIN_WINDOW_CLOSE_BLOCKED_EVENT, () => {
           const { showToast } = useUiStore.getState();
           showToast({
             message: MAIN_WINDOW_CLOSE_BLOCKED_TOAST,

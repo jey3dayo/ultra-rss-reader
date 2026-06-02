@@ -1,5 +1,4 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useMemo, useReducer, useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
 import { type SyncProgressEventDto, SyncProgressEventSchema } from "@/api/schemas/sync-progress";
@@ -14,7 +13,7 @@ import { formatAccountLastSuccessLabel } from "@/lib/account/account-sync-status
 import { getCurrentTimeMs } from "@/lib/datetime";
 import i18n from "@/lib/i18n";
 import { invalidateQueryKeysLogOnly } from "@/lib/query/query-invalidation";
-import { attachTauriListeners } from "@/lib/runtime/tauri-event-listeners";
+import { attachTauriListeners, listenTauriEvent } from "@/lib/runtime/tauri-event-listeners";
 import {
   getManualSyncCooldownUntil,
   setManualSyncCooldownListenerErrorReporterForDiagnostics,
@@ -299,21 +298,21 @@ export function useSidebarSync({
 
   useEffect(() => {
     return attachTauriListeners([
-      listen<SidebarSyncProgressPayload>("sync-progress", (event) => {
+      listenTauriEvent<SidebarSyncProgressPayload>("sync-progress", (event) => {
         const payload = resolveSidebarSyncProgressPayload(event);
         if (!payload) {
           return;
         }
         applySyncProgress(payload);
       }),
-      listen<SidebarSyncCompletedPayload>("sync-completed", (event) => {
+      listenTauriEvent<SidebarSyncCompletedPayload>("sync-completed", (event) => {
         if (!isSidebarSyncCompletedPayload(event)) {
           return;
         }
         clearSyncProgress();
         invalidateAccountSyncStatuses("background-sync-completed");
       }),
-      listen<SidebarSyncWarningPayload>("sync-warning", (event) => {
+      listenTauriEvent<SidebarSyncWarningPayload>("sync-warning", (event) => {
         const payload = resolveSidebarSyncWarningPayload(event);
         if (!payload) {
           return;

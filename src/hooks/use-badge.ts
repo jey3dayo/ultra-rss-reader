@@ -3,6 +3,7 @@ import type { FeedDto } from "@/api/schemas/feed";
 import { useAccountUnreadCount } from "@/hooks/use-account-unread-count";
 import { useFeeds } from "@/hooks/use-feeds";
 import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
+import { getWindowBadgeCountTarget, type WindowBadgeCountTarget } from "@/lib/window/tauri-window";
 import type { UnreadBadgePreference } from "@/schemas/preferences";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -54,20 +55,11 @@ async function applyBadgeCountCommand(
   count: number | undefined,
   shouldApplyRequest: () => boolean,
 ): Promise<BadgeCommandResult> {
-  let getCurrentWindow: typeof import("@tauri-apps/api/window").getCurrentWindow;
-
+  let currentWindow: WindowBadgeCountTarget;
   try {
-    ({ getCurrentWindow } = await import("@tauri-apps/api/window"));
+    currentWindow = await getWindowBadgeCountTarget();
   } catch (error: unknown) {
-    logRuntimeDiagnostic("unread-badge-runtime-unavailable", "Unread badge runtime is unavailable:", error);
-    return "unavailable";
-  }
-
-  let currentWindow: Awaited<ReturnType<typeof getCurrentWindow>>;
-  try {
-    currentWindow = await getCurrentWindow();
-  } catch (error: unknown) {
-    logRuntimeDiagnostic("unread-badge-runtime-unavailable", "Unread badge window runtime is unavailable:", error);
+    logRuntimeDiagnostic("unread-badge-runtime-unavailable", "Unread badge window target is unavailable:", error);
     return "unavailable";
   }
 

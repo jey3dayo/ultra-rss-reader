@@ -1,8 +1,8 @@
 import { Result } from "@praha/byethrow";
 import { useEffect, useRef } from "react";
 import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
+import { isWindowAlwaysOnTop, isWindowFullscreen, setWindowAlwaysOnTop } from "@/lib/window/tauri-window";
 import { hasTauriRuntime } from "@/lib/window/window-chrome";
-import { isWindowAlwaysOnTop, isWindowFullscreen, setWindowAlwaysOnTop } from "@/lib/window/windows";
 import { resolvePreferenceValue } from "@/schemas/preferences";
 import { usePreferencesStore } from "@/stores/preferences-store";
 

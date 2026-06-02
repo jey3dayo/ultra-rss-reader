@@ -15,8 +15,8 @@ const { isAlwaysOnTopMock, isFullscreenMock, setAlwaysOnTopMock } = vi.hoisted((
   setAlwaysOnTopMock: vi.fn(),
 }));
 
-vi.mock("@/lib/window/windows", async (importOriginal) => {
-  const original = await importOriginal<typeof import("@/lib/window/windows")>();
+vi.mock("@/lib/window/tauri-window", async (importOriginal) => {
+  const original = await importOriginal<typeof import("@/lib/window/tauri-window")>();
 
   return {
     ...original,

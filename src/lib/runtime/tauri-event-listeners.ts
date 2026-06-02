@@ -1,3 +1,4 @@
+import { type EventCallback, type EventName, listen, type Options } from "@tauri-apps/api/event";
 import { hasTauriRuntime } from "@/lib/window/window-chrome";
 
 type TauriEventCleanup = () => void;
@@ -168,4 +169,12 @@ export function attachTauriListeners(
   listenerOptions?: TauriListenerErrorHandler | TauriListenerOptions,
 ) {
   return createTauriListenerGroup(subscriptions, listenerOptions).dispose;
+}
+
+export function listenTauriEvent<T>(event: EventName, handler: EventCallback<T>, options?: Options) {
+  if (options === undefined) {
+    return listen(event, handler);
+  }
+
+  return listen(event, handler, options);
 }

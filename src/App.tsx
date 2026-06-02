@@ -1,5 +1,4 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useRef } from "react";
 import { listAccounts, syncAccount, triggerStartupSync } from "./api/tauri-commands";
 import { AppShell } from "./components/app-shell";
@@ -10,7 +9,7 @@ import { getCurrentTimeMs } from "./lib/datetime";
 import { queryClient } from "./lib/query/query-client";
 import { invalidateSyncCompletedQueries } from "./lib/query/query-invalidation";
 import { logRuntimeDiagnostic } from "./lib/runtime/diagnostics";
-import { attachTauriListeners } from "./lib/runtime/tauri-event-listeners";
+import { attachTauriListeners, listenTauriEvent } from "./lib/runtime/tauri-event-listeners";
 import {
   extractSyncOnWakeAccountIds,
   logStartupSyncResult,
@@ -143,7 +142,7 @@ function AppInner() {
   // Keep background sync invalidation scoped to data that can change during sync.
   useEffect(() => {
     return attachTauriListeners([
-      listen("sync-completed", () => {
+      listenTauriEvent("sync-completed", () => {
         invalidateSyncCompletedQueries(queryClient);
       }),
     ]);

@@ -1,5 +1,4 @@
 import { Result } from "@praha/byethrow";
-import { listen } from "@tauri-apps/api/event";
 import { useCallback, useLayoutEffect, useRef } from "react";
 import type { BrowserWebviewState } from "@/api/tauri-commands";
 import { BROWSER_WINDOW_EVENTS } from "@/constants/browser";
@@ -16,7 +15,7 @@ import {
   type BrowserWebviewFallbackPayload,
   isBrowserWebviewFallbackForRequestedUrl,
 } from "@/lib/browser/browser-webview-state";
-import { createTauriListenerGroup } from "@/lib/runtime/tauri-event-listeners";
+import { createTauriListenerGroup, listenTauriEvent } from "@/lib/runtime/tauri-event-listeners";
 import { useUiStore } from "@/stores/ui-store";
 
 type UseBrowserWebviewEventsParams = {
@@ -47,7 +46,7 @@ export function useBrowserWebviewEvents({
     const listenerGroup = createTauriListenerGroup([
       {
         owner: "browser-webview-events:state-changed",
-        subscription: listen<unknown>(BROWSER_WINDOW_EVENTS.stateChanged, ({ payload }) => {
+        subscription: listenTauriEvent<unknown>(BROWSER_WINDOW_EVENTS.stateChanged, ({ payload }) => {
           if (cancelled) return;
           const result = parseBrowserWebviewStatePayload(payload);
           if (Result.isFailure(result)) {
@@ -64,7 +63,7 @@ export function useBrowserWebviewEvents({
       },
       {
         owner: "browser-webview-events:fallback",
-        subscription: listen<unknown>(BROWSER_WINDOW_EVENTS.fallback, ({ payload }) => {
+        subscription: listenTauriEvent<unknown>(BROWSER_WINDOW_EVENTS.fallback, ({ payload }) => {
           if (cancelled) return;
           const result = parseBrowserWebviewFallbackPayload(payload);
           if (Result.isFailure(result)) {
@@ -86,7 +85,7 @@ export function useBrowserWebviewEvents({
       },
       {
         owner: "browser-webview-events:closed",
-        subscription: listen<unknown>(BROWSER_WINDOW_EVENTS.closed, ({ payload }) => {
+        subscription: listenTauriEvent<unknown>(BROWSER_WINDOW_EVENTS.closed, ({ payload }) => {
           if (cancelled) return;
           const result = parseBrowserWebviewClosedPayload(payload);
           if (Result.isFailure(result)) {
@@ -109,7 +108,7 @@ export function useBrowserWebviewEvents({
         ? [
             {
               owner: "browser-webview-events:diagnostics",
-              subscription: listen<unknown>(BROWSER_WINDOW_EVENTS.diagnostics, ({ payload }) => {
+              subscription: listenTauriEvent<unknown>(BROWSER_WINDOW_EVENTS.diagnostics, ({ payload }) => {
                 if (cancelled) return;
                 const result = parseBrowserWebviewDiagnosticsPayload(payload);
                 if (Result.isFailure(result)) {

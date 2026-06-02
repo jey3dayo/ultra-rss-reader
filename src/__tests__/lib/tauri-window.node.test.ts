@@ -6,7 +6,8 @@ import {
   setWindowAlwaysOnTop,
   setWindowFullscreen,
   setWindowIcon,
-} from "@/lib/window/windows";
+  startWindowDragging,
+} from "@/lib/window/tauri-window";
 
 const {
   getCurrentWindowMock,
@@ -14,6 +15,7 @@ const {
   isFullscreenMock,
   setAlwaysOnTopMock,
   setFullscreenMock,
+  startDraggingMock,
   setIconMock,
 } = vi.hoisted(() => ({
   getCurrentWindowMock: vi.fn(),
@@ -21,6 +23,7 @@ const {
   isFullscreenMock: vi.fn(),
   setAlwaysOnTopMock: vi.fn(),
   setFullscreenMock: vi.fn(),
+  startDraggingMock: vi.fn(),
   setIconMock: vi.fn(),
 }));
 
@@ -28,19 +31,21 @@ vi.mock("@tauri-apps/api/window", () => ({
   getCurrentWindow: getCurrentWindowMock,
 }));
 
-describe("windows", () => {
+describe("tauri-window", () => {
   beforeEach(() => {
     getCurrentWindowMock.mockReturnValue({
       isAlwaysOnTop: isAlwaysOnTopMock,
       isFullscreen: isFullscreenMock,
       setAlwaysOnTop: setAlwaysOnTopMock,
       setFullscreen: setFullscreenMock,
+      startDragging: startDraggingMock,
       setIcon: setIconMock,
     });
     isAlwaysOnTopMock.mockReset();
     isFullscreenMock.mockReset();
     setAlwaysOnTopMock.mockReset();
     setFullscreenMock.mockReset();
+    startDraggingMock.mockReset();
     setIconMock.mockReset();
   });
 
@@ -98,6 +103,15 @@ describe("windows", () => {
 
     expect(Result.unwrap(result)).toBeUndefined();
     expect(setIconMock).toHaveBeenCalledWith("icons/icon.png");
+  });
+
+  it("starts dragging the current Tauri window", async () => {
+    startDraggingMock.mockResolvedValue(undefined);
+
+    await startWindowDragging();
+
+    expect(getCurrentWindowMock).toHaveBeenCalledOnce();
+    expect(startDraggingMock).toHaveBeenCalledOnce();
   });
 
   it("wraps non-error Tauri failures as Error values", async () => {
@@ -177,7 +191,7 @@ describe("windows", () => {
     vi.doMock("@tauri-apps/api/window", () => {
       throw "import unavailable";
     });
-    const { isWindowFullscreen: importFailingIsWindowFullscreen } = await import("@/lib/window/windows");
+    const { isWindowFullscreen: importFailingIsWindowFullscreen } = await import("@/lib/window/tauri-window");
 
     const result = await importFailingIsWindowFullscreen();
 
