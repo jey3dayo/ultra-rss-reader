@@ -17,6 +17,7 @@
 - [runtime-boundary.md](./runtime-boundary.md): Browser API / Tauri runtime / storage / platform globals の境界処理方針
 - [async-side-effect-policy.md](./async-side-effect-policy.md): fire-and-forget、latest-only、unmount cleanup、optimistic update の方針
 - [schema-boundary.md](./schema-boundary.md): DTO / preferences / localStorage schema の strictness と fallback 所有者
+- [boundary-ownership.md](./boundary-ownership.md): refactor 時の owner 判定表と移動先ルール
 - [contract-test-policy.md](./contract-test-policy.md): contract test の置き場所、TODO 化する境界値、ルール昇格の判断基準
 - [quality-policy.md](./quality-policy.md): TODO priority taxonomy、React Compiler opt-in、ES2023 array copy methods、React Doctor warning suppression policy
 - [tauri-window-chrome.md](./tauri-window-chrome.md): OS ごとに異なる titlebar / header の扱いと現在の実装方針
@@ -43,6 +44,7 @@
 - cross-pane DOM focus helper は `src/lib/reader-focus.ts` に残す。`src/lib/reader/` は reader query / source planning 用
 - frontend-owned runtime schema は `src/schemas/` に置く。local config、localStorage、preferences など IPC 以外の検証が対象
 - Tauri IPC request / response schema は `src/api/schemas/` に置く。local storage や app config schema と混ぜない
+- refactor 時の移動先判断は [boundary-ownership.md](./boundary-ownership.md) の owner 表を参照する
 - cross-feature literal は `src/constants/`、共有 type-only contract は `src/lib/*.types.ts` に置く
 - reusable test helper は `tests/helpers/` に置き、frontend tests からは `@tests/helpers/*` で import する
 - sample DTO / data fixture は `tests/helpers/fixtures.ts`、Tauri IPC mock setup は `tests/helpers/tauri-mocks.ts`、test-only の Tauri mock call contract は `tests/helpers/tauri-types.ts` に分ける

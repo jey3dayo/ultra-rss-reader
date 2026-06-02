@@ -1,6 +1,8 @@
 use chrono::{DateTime, Utc};
 
-use crate::domain::article::{Article, ArticleViewHistoryItem};
+use crate::domain::article::{
+    Article, ArticleListHistoryItem, ArticleListItem, ArticleViewHistoryItem,
+};
 use crate::domain::error::DomainResult;
 use crate::domain::types::{AccountId, ArticleId, FeedId, FolderId};
 
@@ -45,6 +47,7 @@ impl Default for Pagination {
 }
 
 pub trait ArticleRepository {
+    fn find_by_id(&self, id: &ArticleId) -> DomainResult<Option<Article>>;
     fn find_by_feed(&self, feed_id: &FeedId, pagination: &Pagination)
         -> DomainResult<Vec<Article>>;
     fn find_unread_by_feed(
@@ -129,4 +132,34 @@ pub trait ArticleRepository {
         query: &str,
         pagination: &Pagination,
     ) -> DomainResult<Vec<Article>>;
+    fn list_by_feed(
+        &self,
+        feed_id: &FeedId,
+        pagination: &Pagination,
+        mode: ArticleListMode,
+    ) -> DomainResult<Vec<ArticleListItem>>;
+    fn list_by_account(
+        &self,
+        account_id: &AccountId,
+        pagination: &Pagination,
+        mode: ArticleListMode,
+    ) -> DomainResult<Vec<ArticleListItem>>;
+    fn list_by_folder(
+        &self,
+        folder_id: &FolderId,
+        pagination: &Pagination,
+        mode: ArticleListMode,
+    ) -> DomainResult<Vec<ArticleListItem>>;
+    fn list_recently_viewed_by_account(
+        &self,
+        account_id: &AccountId,
+        pagination: &Pagination,
+        mode: ArticleListMode,
+    ) -> DomainResult<Vec<ArticleListHistoryItem>>;
+    fn search_list(
+        &self,
+        account_id: &AccountId,
+        query: &str,
+        pagination: &Pagination,
+    ) -> DomainResult<Vec<ArticleListItem>>;
 }

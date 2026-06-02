@@ -289,6 +289,19 @@ fn validate_feed_article_filters(
     Ok(())
 }
 
+fn resolve_feed_article_list_mode(
+    unread_only: Option<bool>,
+    starred_only: Option<bool>,
+) -> ArticleListMode {
+    if starred_only.unwrap_or(false) {
+        ArticleListMode::Starred
+    } else if unread_only.unwrap_or(false) {
+        ArticleListMode::Unread
+    } else {
+        ArticleListMode::All
+    }
+}
+
 fn repair_outdated_articles_for_render(
     repo: &SqliteArticleRepository<'_>,
     articles: Vec<Article>,
@@ -304,6 +317,15 @@ fn repair_outdated_articles_for_render(
             }
             Ok(article)
         })
+        .collect()
+}
+
+fn article_summary_list_dtos(
+    articles: Vec<crate::domain::article::ArticleListItem>,
+) -> Vec<ArticleDto> {
+    articles
+        .into_iter()
+        .map(ArticleDto::list_item_from_summary)
         .collect()
 }
 
@@ -852,6 +874,22 @@ fn validate_browser_embed_redirect(
 }
 
 #[tauri::command]
+pub fn get_article(state: State<'_, AppState>, article_id: String) -> Result<ArticleDto, AppError> {
+    let db = crate::commands::lock_db(&state.db)?;
+    let repo = SqliteArticleRepository::new(db.writer());
+    let article =
+        repo.find_by_id(&ArticleId(article_id))?
+            .ok_or_else(|| AppError::UserVisible {
+                message: "Article not found".to_string(),
+            })?;
+    let mut articles = repair_outdated_articles_for_render(&repo, vec![article])?;
+    let article = articles.pop().ok_or_else(|| AppError::UserVisible {
+        message: "Article not found".to_string(),
+    })?;
+    Ok(ArticleDto::from(article))
+}
+
+#[tauri::command]
 pub fn list_articles(
     state: State<'_, AppState>,
     feed_id: String,
@@ -864,15 +902,9 @@ pub fn list_articles(
     let db = crate::commands::lock_db(&state.db)?;
     let repo = SqliteArticleRepository::new(db.writer());
     let pagination = article_command_pagination(offset, limit, DEFAULT_ARTICLE_LIST_LIMIT)?;
-    let articles = if starred_only.unwrap_or(false) {
-        repo.find_starred_by_feed(&FeedId(feed_id), &pagination)?
-    } else if unread_only.unwrap_or(false) {
-        repo.find_unread_by_feed(&FeedId(feed_id), &pagination)?
-    } else {
-        repo.find_by_feed(&FeedId(feed_id), &pagination)?
-    };
-    let articles = repair_outdated_articles_for_render(&repo, articles)?;
-    Ok(articles.into_iter().map(ArticleDto::from).collect())
+    let mode = resolve_feed_article_list_mode(unread_only, starred_only);
+    let articles = repo.list_by_feed(&FeedId(feed_id), &pagination, mode)?;
+    Ok(article_summary_list_dtos(articles))
 }
 
 #[tauri::command]
@@ -886,13 +918,13 @@ pub fn list_account_articles(
     let db = crate::commands::lock_db(&state.db)?;
     let repo = SqliteArticleRepository::new(db.writer());
     let pagination = article_command_pagination(offset, limit, DEFAULT_ARTICLE_LIST_LIMIT)?;
-    let articles = if unread_only.unwrap_or(false) {
-        repo.find_unread_by_account(&AccountId(account_id), &pagination)?
+    let mode = if unread_only.unwrap_or(false) {
+        ArticleListMode::Unread
     } else {
-        repo.find_by_account(&AccountId(account_id), &pagination)?
+        ArticleListMode::All
     };
-    let articles = repair_outdated_articles_for_render(&repo, articles)?;
-    Ok(articles.into_iter().map(ArticleDto::from).collect())
+    let articles = repo.list_by_account(&AccountId(account_id), &pagination, mode)?;
+    Ok(article_summary_list_dtos(articles))
 }
 
 #[tauri::command]
@@ -926,13 +958,8 @@ pub fn list_folder_articles(
     let pagination = article_command_pagination(offset, limit, DEFAULT_ARTICLE_LIST_LIMIT)?;
     let mode = parse_article_list_mode(mode.as_deref())?;
     let folder_id = FolderId(folder_id);
-    let articles = match mode {
-        ArticleListMode::All => repo.find_by_folder(&folder_id, &pagination)?,
-        ArticleListMode::Unread => repo.find_unread_by_folder(&folder_id, &pagination)?,
-        ArticleListMode::Starred => repo.find_starred_by_folder(&folder_id, &pagination)?,
-    };
-    let articles = repair_outdated_articles_for_render(&repo, articles)?;
-    Ok(articles.into_iter().map(ArticleDto::from).collect())
+    let articles = repo.list_by_folder(&folder_id, &pagination, mode)?;
+    Ok(article_summary_list_dtos(articles))
 }
 
 #[tauri::command]
@@ -945,9 +972,12 @@ pub fn list_starred_articles(
     let db = crate::commands::lock_db(&state.db)?;
     let repo = SqliteArticleRepository::new(db.writer());
     let pagination = article_command_pagination(offset, limit, DEFAULT_ARTICLE_LIST_LIMIT)?;
-    let articles = repo.find_starred_by_account(&AccountId(account_id), &pagination)?;
-    let articles = repair_outdated_articles_for_render(&repo, articles)?;
-    Ok(articles.into_iter().map(ArticleDto::from).collect())
+    let articles = repo.list_by_account(
+        &AccountId(account_id),
+        &pagination,
+        ArticleListMode::Starred,
+    )?;
+    Ok(article_summary_list_dtos(articles))
 }
 
 #[tauri::command]
@@ -963,22 +993,10 @@ pub fn list_recent_articles(
     let pagination = article_command_pagination(offset, limit, DEFAULT_RECENT_ARTICLE_LIST_LIMIT)?;
     let mode = parse_article_list_mode(mode.as_deref())?;
     let articles =
-        repo.find_recently_viewed_by_account(&AccountId(account_id), &pagination, mode)?;
-    let articles = articles
-        .into_iter()
-        .map(|mut item| {
-            if item.article.sanitizer_version < sanitizer::SANITIZER_VERSION {
-                let sanitized = sanitizer::sanitize_html(&item.article.content_raw);
-                repo.update_sanitized(&item.article.id, &sanitized, sanitizer::SANITIZER_VERSION)?;
-                item.article.content_sanitized = sanitized;
-                item.article.sanitizer_version = sanitizer::SANITIZER_VERSION;
-            }
-            Ok(item)
-        })
-        .collect::<Result<Vec<_>, AppError>>()?;
+        repo.list_recently_viewed_by_account(&AccountId(account_id), &pagination, mode)?;
     Ok(articles
         .into_iter()
-        .map(|item| ArticleDto::from(item.article))
+        .map(ArticleDto::list_item_from_summary_view_history)
         .collect())
 }
 
@@ -1303,9 +1321,8 @@ pub fn search_articles(
     let repo = SqliteArticleRepository::new(db.writer());
     let pagination = article_command_pagination(offset, limit, DEFAULT_ARTICLE_LIST_LIMIT)?;
     let normalized_query = normalize_backend_article_search_query(&query);
-    let articles = repo.search(&AccountId(account_id), &normalized_query, &pagination)?;
-    let articles = repair_outdated_articles_for_render(&repo, articles)?;
-    Ok(articles.into_iter().map(ArticleDto::from).collect())
+    let articles = repo.search_list(&AccountId(account_id), &normalized_query, &pagination)?;
+    Ok(article_summary_list_dtos(articles))
 }
 
 #[cfg(test)]

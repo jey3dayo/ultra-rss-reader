@@ -27,9 +27,6 @@ export type TestMutationObserverMock = ObserverMock & {
   isDisconnected: () => boolean;
 };
 
-export type ResizeObserverMockInstance = TestResizeObserverMock;
-export type MutationObserverMockInstance = TestMutationObserverMock;
-
 const resizeObservers: TestResizeObserverMock[] = [];
 const mutationObservers: TestMutationObserverMock[] = [];
 

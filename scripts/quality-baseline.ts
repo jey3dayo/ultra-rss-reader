@@ -100,7 +100,7 @@ const reactDoctorBaselines = {
 } as const;
 
 const knipBaseline = {
-  issueCount: 46,
+  issueCount: 45,
   findingsCount: 84,
 } as const;
 

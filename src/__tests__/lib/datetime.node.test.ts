@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { Result } from "@praha/byethrow";
 import { describe, expect, it } from "vitest";
 import {
@@ -60,7 +62,16 @@ describe("datetime helpers", () => {
 
   it("formats local hour and minute with leading zeroes", () => {
     expect(formatLocalHourMinute(new Date(2026, 4, 1, 8, 5))).toBe("08:05");
+    expect(formatLocalHourMinute(new Date(2026, 4, 1, 0, 0))).toBe("00:00");
+    expect(formatLocalHourMinute(new Date(2026, 4, 1, 12, 30))).toBe("12:30");
     expect(formatLocalHourMinute("not-a-date")).toBeNull();
+  });
+
+  it("keeps the fixed local hour-minute formatter off the date-fns format graph", () => {
+    const source = readFileSync(join(process.cwd(), "src/lib/datetime.ts"), "utf8");
+
+    expect(source).not.toContain("format,");
+    expect(source).not.toContain('format(date, "HH:mm")');
   });
 
   it("formats locale hour and minute with invalid fallbacks", () => {

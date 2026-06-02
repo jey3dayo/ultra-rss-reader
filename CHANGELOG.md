@@ -4,6 +4,62 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.43.11] - 2026-06-02
+
+### Bug Fixes
+
+- release asset recovery workflow の認証、main branch dispatch、既存 asset 検証を見直し、release recovery が安全に再実行できるようにした
+- Rust cache 保存失敗で release workflow が止まりにくいようにした
+
+### Maintenance
+
+- Reader の記事一覧 payload と SQLite list query を軽量化し、一覧表示時に記事本文を不要に読み出さないようにした
+- Reader shell の scroll area を native scroll に置き換え、初期 bundle に入る Base UI runtime を減らした
+
+## [0.43.10] - 2026-05-27
+
+### Bug Fixes
+
+- アカウント一覧の読み込み後に選択中アカウントへ focus を戻し、キーボード操作でアカウントペインへ移動したときの focus を安定させた
+
+### Maintenance
+
+- 起動時に読み込む翻訳 namespace を reader 初期表示に必要な範囲へ絞り、settings / subscriptions の翻訳を必要時に読み込むようにした
+- 時刻表示と Tauri window API の vendor import を軽量化し、startup bundle に入る不要な依存を減らした
+
+## [0.43.9] - 2026-05-26
+
+### Bug Fixes
+
+- Smart View から unread folder を開いたとき、未読フォルダが自動展開されるようにした
+
+### Documentation
+
+- boundary ownership rule を追加し、refactor 時の責務境界と移動先判断を整理した
+
+### Maintenance
+
+- release skill の手順を phase ごとの参照ファイルに分割し、関連 contract test を追加した
+- dev / Storybook helper と mock runtime の責務境界を整理した
+- GReader origin 由来の未使用 title field を削除した
+- tag query / mutation の Result 処理を React Query adapter 境界へ寄せた
+- Windows dispatch の env schema 型を明示し、型アサーションを減らした
+- boundary rule 追加に合わせて repo contract の許可リストを更新した
+
+## [0.43.8] - 2026-05-25
+
+### Bug Fixes
+
+- Reader の context menu が reader chrome の下に隠れないようにした
+- 設定画面の switch ON 色をアイコンの暖色アクセントに合わせた warm bronze に調整した
+
+### Maintenance
+
+- React Doctor 指摘を解消し、component / helper / storybook specimen の責務境界を整理した
+- Settings action hook と Reader toolbar の非 component export を分離した
+- UI store の型 surface を整理した
+- 不要になった observer mock alias を削除した
+
 ## [0.43.7] - 2026-05-24
 
 ### Bug Fixes

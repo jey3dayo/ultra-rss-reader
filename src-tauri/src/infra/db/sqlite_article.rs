@@ -2,7 +2,9 @@ use chrono::{DateTime, Utc};
 use rusqlite::types::Type;
 use rusqlite::{params, Connection, OptionalExtension};
 
-use crate::domain::article::{Article, ArticleViewHistoryItem};
+use crate::domain::article::{
+    Article, ArticleListHistoryItem, ArticleListItem, ArticleViewHistoryItem,
+};
 #[cfg(test)]
 use crate::domain::constants::ARTICLE_MUTATION_TRANSACTION_CHUNK_SIZE;
 use crate::domain::constants::RECENT_ARTICLE_HISTORY_LIMIT;
@@ -39,6 +41,13 @@ pub struct FeedArticleSummary {
 impl<'a> SqliteArticleRepository<'a> {
     pub fn new(conn: &'a Connection) -> Self {
         Self { conn }
+    }
+
+    fn select_cols_prefixed(cols: &str, alias: &str) -> String {
+        cols.split(", ")
+            .map(|col| format!("{alias}.{col}"))
+            .collect::<Vec<_>>()
+            .join(", ")
     }
 
     pub fn count_orphaned_articles(&self) -> DomainResult<i64> {
@@ -218,6 +227,48 @@ impl<'a> SqliteArticleRepository<'a> {
             .collect::<Result<Vec<_>, _>>()?;
         Ok(articles)
     }
+
+    fn list_by_folder_with_filter(
+        &self,
+        folder_id: &FolderId,
+        pagination: &Pagination,
+        article_filter: Option<&str>,
+    ) -> DomainResult<Vec<ArticleListItem>> {
+        let select_cols_prefixed = Self::select_cols_prefixed(ARTICLE_LIST_SELECT_COLS, "a");
+        let mut filters = vec!["f.folder_id = ?1".to_string()];
+
+        if let Some(filter) = article_filter {
+            filters.push(filter.to_string());
+        }
+
+        if SqliteMuteKeywordRepository::new(self.conn).has_any()? {
+            filters.push(build_mute_keyword_exclusion_clause(
+                "a.title",
+                "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
+            ));
+        }
+
+        let where_clause = filters.join(" AND ");
+        let sql = format!(
+            "SELECT {select_cols_prefixed} FROM articles a
+             JOIN feeds f ON a.feed_id = f.id
+             WHERE {where_clause}
+             ORDER BY {ARTICLE_ORDER_DESC_PREFIXED}
+             LIMIT ?2 OFFSET ?3"
+        );
+        let mut stmt = self.conn.prepare(&sql)?;
+        let articles = stmt
+            .query_map(
+                params![
+                    folder_id.0,
+                    pagination.limit as i64,
+                    pagination.offset as i64
+                ],
+                row_to_article_list_item,
+            )?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(articles)
+    }
 }
 
 fn parse_datetime(s: &str) -> rusqlite::Result<DateTime<Utc>> {
@@ -249,6 +300,8 @@ fn row_to_article(row: &rusqlite::Row) -> rusqlite::Result<Article> {
 }
 
 const SELECT_COLS: &str = "id, feed_id, remote_id, title, content_raw, content_sanitized, sanitizer_version, summary, url, author, thumbnail, published_at, is_read, is_starred, fetched_at";
+const ARTICLE_LIST_SELECT_COLS: &str =
+    "id, feed_id, title, summary, url, author, published_at, thumbnail, is_read, is_starred";
 const ARTICLE_ORDER_DESC: &str = "published_at DESC, fetched_at DESC, id DESC";
 const ARTICLE_ORDER_DESC_PREFIXED: &str = "a.published_at DESC, a.fetched_at DESC, a.id DESC";
 
@@ -282,6 +335,34 @@ fn row_to_article_view_history_item(
     let viewed_at_str: String = row.get(16)?;
     Ok(ArticleViewHistoryItem {
         account_id: AccountId(row.get(15)?),
+        article,
+        viewed_at: parse_datetime(&viewed_at_str)?,
+    })
+}
+
+fn row_to_article_list_item(row: &rusqlite::Row) -> rusqlite::Result<ArticleListItem> {
+    let published_at_str: String = row.get(6)?;
+    Ok(ArticleListItem {
+        id: ArticleId(row.get(0)?),
+        feed_id: FeedId(row.get(1)?),
+        title: row.get(2)?,
+        summary: row.get(3)?,
+        url: row.get(4)?,
+        author: row.get(5)?,
+        published_at: parse_datetime(&published_at_str)?,
+        thumbnail: row.get(7)?,
+        is_read: row.get(8)?,
+        is_starred: row.get(9)?,
+    })
+}
+
+fn row_to_article_list_history_item(
+    row: &rusqlite::Row,
+) -> rusqlite::Result<ArticleListHistoryItem> {
+    let article = row_to_article_list_item(row)?;
+    let viewed_at_str: String = row.get(11)?;
+    Ok(ArticleListHistoryItem {
+        account_id: AccountId(row.get(10)?),
         article,
         viewed_at: parse_datetime(&viewed_at_str)?,
     })
@@ -431,6 +512,15 @@ pub(crate) fn mark_muted_unread_as_read_with_conn(
 }
 
 impl ArticleRepository for SqliteArticleRepository<'_> {
+    fn find_by_id(&self, id: &ArticleId) -> DomainResult<Option<Article>> {
+        let sql = format!("SELECT {SELECT_COLS} FROM articles WHERE id = ?1");
+        let article = self
+            .conn
+            .query_row(&sql, params![id.0], row_to_article)
+            .optional()?;
+        Ok(article)
+    }
+
     fn find_by_feed(
         &self,
         feed_id: &FeedId,
@@ -1206,6 +1296,194 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
             .collect::<Result<Vec<_>, _>>()?;
         Ok(articles)
     }
+
+    fn list_by_feed(
+        &self,
+        feed_id: &FeedId,
+        pagination: &Pagination,
+        mode: ArticleListMode,
+    ) -> DomainResult<Vec<ArticleListItem>> {
+        let mut filters = vec!["feed_id = ?1".to_string()];
+        if let Some(mode_filter) = mode.sql_filter("articles") {
+            filters.push(mode_filter);
+        }
+        if SqliteMuteKeywordRepository::new(self.conn).has_any()? {
+            filters.push(build_mute_keyword_exclusion_clause(
+                "title",
+                "CASE WHEN trim(coalesce(content_text, '')) = '' THEN coalesce(summary, '') ELSE content_text END",
+            ));
+        }
+        let where_clause = filters.join(" AND ");
+        let sql = format!(
+            "SELECT {ARTICLE_LIST_SELECT_COLS} FROM articles
+             WHERE {where_clause}
+             ORDER BY {ARTICLE_ORDER_DESC}
+             LIMIT ?2 OFFSET ?3"
+        );
+        let mut stmt = self.conn.prepare(&sql)?;
+        let articles = stmt
+            .query_map(
+                params![feed_id.0, pagination.limit as i64, pagination.offset as i64],
+                row_to_article_list_item,
+            )?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(articles)
+    }
+
+    fn list_by_account(
+        &self,
+        account_id: &AccountId,
+        pagination: &Pagination,
+        mode: ArticleListMode,
+    ) -> DomainResult<Vec<ArticleListItem>> {
+        let select_cols_prefixed = Self::select_cols_prefixed(ARTICLE_LIST_SELECT_COLS, "a");
+        let mut filters = vec!["f.account_id = ?1".to_string()];
+        if let Some(mode_filter) = mode.sql_filter("a") {
+            filters.push(mode_filter);
+        }
+        if SqliteMuteKeywordRepository::new(self.conn).has_any()? {
+            filters.push(build_mute_keyword_exclusion_clause(
+                "a.title",
+                "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
+            ));
+        }
+        let where_clause = filters.join(" AND ");
+        let sql = format!(
+            "SELECT {select_cols_prefixed} FROM articles a
+             JOIN feeds f ON a.feed_id = f.id
+             WHERE {where_clause}
+             ORDER BY {ARTICLE_ORDER_DESC_PREFIXED}
+             LIMIT ?2 OFFSET ?3"
+        );
+        let mut stmt = self.conn.prepare(&sql)?;
+        let articles = stmt
+            .query_map(
+                params![
+                    account_id.0,
+                    pagination.limit as i64,
+                    pagination.offset as i64
+                ],
+                row_to_article_list_item,
+            )?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(articles)
+    }
+
+    fn list_by_folder(
+        &self,
+        folder_id: &FolderId,
+        pagination: &Pagination,
+        mode: ArticleListMode,
+    ) -> DomainResult<Vec<ArticleListItem>> {
+        self.list_by_folder_with_filter(folder_id, pagination, mode.sql_filter("a").as_deref())
+    }
+
+    fn list_recently_viewed_by_account(
+        &self,
+        account_id: &AccountId,
+        pagination: &Pagination,
+        mode: ArticleListMode,
+    ) -> DomainResult<Vec<ArticleListHistoryItem>> {
+        let select_cols_prefixed = Self::select_cols_prefixed(ARTICLE_LIST_SELECT_COLS, "a");
+        let mut filters = vec![
+            "h.account_id = ?1".to_string(),
+            "f.account_id = ?1".to_string(),
+        ];
+        if let Some(mode_filter) = mode.sql_filter("a") {
+            filters.push(mode_filter);
+        }
+        if SqliteMuteKeywordRepository::new(self.conn).has_any()? {
+            filters.push(build_mute_keyword_exclusion_clause(
+                "a.title",
+                "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
+            ));
+        }
+        let where_clause = filters.join(" AND ");
+        let sql = format!(
+            "SELECT {select_cols_prefixed}, h.account_id, h.viewed_at
+             FROM article_view_history h
+             JOIN articles a ON h.article_id = a.id
+             JOIN feeds f ON a.feed_id = f.id
+             WHERE {where_clause}
+             ORDER BY h.viewed_at DESC
+             LIMIT ?2 OFFSET ?3"
+        );
+        let mut stmt = self.conn.prepare(&sql)?;
+        let items = stmt
+            .query_map(
+                params![
+                    account_id.0,
+                    pagination.limit as i64,
+                    pagination.offset as i64
+                ],
+                row_to_article_list_history_item,
+            )?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(items)
+    }
+
+    fn search_list(
+        &self,
+        account_id: &AccountId,
+        query: &str,
+        pagination: &Pagination,
+    ) -> DomainResult<Vec<ArticleListItem>> {
+        let Some(fts_query) = build_fts_query(query) else {
+            return Ok(Vec::new());
+        };
+        let select_cols_prefixed = Self::select_cols_prefixed(ARTICLE_LIST_SELECT_COLS, "a");
+        let mute_clause = build_mute_keyword_exclusion_clause(
+            "a.title",
+            "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
+        );
+        let search_sql = format!(
+            "WITH matched(article_id, published_at, fetched_at) AS (
+               SELECT a.id, a.published_at, a.fetched_at FROM articles a
+               JOIN feeds f ON a.feed_id = f.id
+               JOIN articles_fts fts ON a.rowid = fts.rowid
+               WHERE f.account_id = ?1
+                 AND articles_fts MATCH ?2
+                 AND {mute_clause}
+               UNION
+               SELECT a.id, a.published_at, a.fetched_at FROM articles a
+               JOIN feeds f ON a.feed_id = f.id
+               WHERE f.account_id = ?1
+                 AND (
+                   a.title LIKE ?3 ESCAPE '\\'
+                   OR (
+                     CASE
+                       WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '')
+                       ELSE a.content_text
+                     END
+                   ) LIKE ?3 ESCAPE '\\'
+                 )
+                 AND {mute_clause}
+             )
+             SELECT {select_cols_prefixed} FROM articles a
+             JOIN matched m ON m.article_id = a.id
+             ORDER BY m.published_at DESC, m.fetched_at DESC, m.article_id DESC
+             LIMIT ?4 OFFSET ?5"
+        );
+        let escaped_query = query
+            .replace('\\', "\\\\")
+            .replace('%', "\\%")
+            .replace('_', "\\_");
+        let like_pattern = format!("%{escaped_query}%");
+        let mut stmt = self.conn.prepare(&search_sql)?;
+        let articles = stmt
+            .query_map(
+                params![
+                    account_id.0,
+                    fts_query,
+                    like_pattern,
+                    pagination.limit as i64,
+                    pagination.offset as i64
+                ],
+                row_to_article_list_item,
+            )?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(articles)
+    }
 }
 
 #[cfg(test)]
@@ -1488,6 +1766,43 @@ mod tests {
                 panic!("article repository SQL should prepare: {error}\n{sql}")
             });
         }
+    }
+
+    #[test]
+    fn article_list_projection_omits_article_body_columns() {
+        assert!(!ARTICLE_LIST_SELECT_COLS.contains("content_raw"));
+        assert!(!ARTICLE_LIST_SELECT_COLS.contains("content_sanitized"));
+    }
+
+    #[test]
+    fn list_by_feed_returns_summary_items_without_loading_article_body() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let mut article = make_article(&feed_id, "Summary article");
+        article.content_raw = "raw body should stay out of list rows".to_string();
+        article.content_sanitized =
+            "<p>sanitized body should stay out of list rows</p>".to_string();
+        article.summary = Some("List summary".to_string());
+        article.url = Some("https://example.com/summary".to_string());
+        article.author = Some("Author".to_string());
+        repo.upsert(std::slice::from_ref(&article)).unwrap();
+
+        let listed = repo
+            .list_by_feed(&feed_id, &Pagination::default(), ArticleListMode::All)
+            .unwrap();
+        let full = repo.find_by_id(&article.id).unwrap().unwrap();
+
+        assert_eq!(listed.len(), 1);
+        assert_eq!(listed[0].id, article.id);
+        assert_eq!(listed[0].title, "Summary article");
+        assert_eq!(listed[0].summary.as_deref(), Some("List summary"));
+        assert_eq!(
+            full.content_sanitized,
+            "<p>sanitized body should stay out of list rows</p>"
+        );
     }
 
     #[test]

@@ -30,6 +30,7 @@ import {
   exportOpml,
   focusBrowserWebview,
   getAccountSyncStatus,
+  getArticle,
   getArticleTags,
   getDatabaseInfo,
   getPlatformInfo,
@@ -1155,6 +1156,7 @@ describe("safeInvoke response validation", () => {
       is_starred: false,
     };
     const articleCommandCases = [
+      ["get_article", () => getArticle("article-1")],
       ["list_articles", () => listArticles("feed-1")],
       ["list_account_articles", () => listAccountArticles("acc-1")],
       ["list_folder_articles", () => listFolderArticles("folder-1")],

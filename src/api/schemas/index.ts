@@ -46,6 +46,7 @@ export {
   discoverFeedsArgs,
   exportOpmlArgs,
   getAccountSyncStatusArgs,
+  getArticleArgs,
   getArticleTagsArgs,
   getCommandArgsSchema,
   getTagArticleCountsArgs,

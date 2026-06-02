@@ -442,8 +442,8 @@ mod tests {
     #[test]
     fn sql_clause_builder_callers_are_limited_to_repository_sql_surfaces() {
         let caller_inventory = [
-            ("sqlite_article.rs", include_str!("sqlite_article.rs"), 12),
-            ("sqlite_tag.rs", include_str!("sqlite_tag.rs"), 2),
+            ("sqlite_article.rs", include_str!("sqlite_article.rs"), 17),
+            ("sqlite_tag.rs", include_str!("sqlite_tag.rs"), 3),
             ("sqlite_feed.rs", include_str!("sqlite_feed.rs"), 2),
         ];
 

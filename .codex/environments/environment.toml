@@ -9,3 +9,8 @@ script = ""
 name = "Tauri実行"
 icon = "run"
 command = "mise app:dev"
+
+[[actions]]
+name = "storybook"
+icon = "run"
+command = "pnpm run storybook"

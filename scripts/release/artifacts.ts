@@ -384,6 +384,67 @@ const uploadReleaseProvenance = (): void => {
   uploadAssets("provenance upload", "provenance upload failure recovery", provenanceAssets);
 };
 
+const expectedReleaseAssetNames = (releaseTag: string): string[] => {
+  const releaseVersion = releaseTag.replace(/^v/, "");
+  return [
+    `Ultra.RSS.Reader_${releaseVersion}_aarch64.dmg`,
+    "Ultra.RSS.Reader_aarch64.app.tar.gz",
+    "Ultra.RSS.Reader_aarch64.app.tar.gz.sig",
+    "Ultra.RSS.Reader.app.tar.gz.sha256",
+    "cargo-licenses-darwin-aarch64.json",
+    "pnpm-licenses-darwin-aarch64.json",
+    "release-provenance-darwin-aarch64.json",
+    `Ultra.RSS.Reader_${releaseVersion}_x64-setup.exe`,
+    `Ultra.RSS.Reader_${releaseVersion}_x64-setup.exe.sig`,
+    `Ultra.RSS.Reader_${releaseVersion}_x64-setup.exe.sha256`,
+    `Ultra.RSS.Reader_${releaseVersion}_x64_en-US.msi`,
+    `Ultra.RSS.Reader_${releaseVersion}_x64_en-US.msi.sig`,
+    "latest.json",
+    "cargo-licenses-windows-x86_64.json",
+    "pnpm-licenses-windows-x86_64.json",
+    "release-provenance-windows-x86_64.json",
+  ];
+};
+
+const validateExistingReleaseAssets = (): void => {
+  const releaseTag = requiredEnv("RELEASE_TAG");
+  const view = spawnSync("gh", ["release", "view", releaseTag, "--json", "assets,isDraft,isPrerelease,tagName,url"], {
+    encoding: "utf8",
+  });
+  if (view.status !== 0) {
+    process.stderr.write(view.stderr ?? "");
+    process.exit(view.status ?? 1);
+  }
+
+  const release = JSON.parse(view.stdout) as GitHubReleaseView;
+  const expectedAssetNames = expectedReleaseAssetNames(releaseTag);
+  const uploadedNames = release.assets.map((asset) => asset.name);
+  const uploadedNameSet = new Set(uploadedNames);
+  const duplicateNames = uploadedNames.filter((name, index) => uploadedNames.indexOf(name) !== index);
+  const missingAssets = expectedAssetNames.filter((name) => !uploadedNameSet.has(name));
+  const expectedPrerelease = releaseTag.includes("-");
+
+  if (release.tagName !== releaseTag) {
+    fail(`release inventory tag ${release.tagName} does not match ${releaseTag}`);
+  }
+  if (!release.isDraft) {
+    fail(`release ${releaseTag} must remain draft before manual publish`);
+  }
+  if (release.isPrerelease !== expectedPrerelease) {
+    fail(`release ${releaseTag} prerelease=${release.isPrerelease} does not match tag policy`);
+  }
+  if (duplicateNames.length > 0) {
+    fail(`release ${releaseTag} has duplicate assets: ${duplicateNames.join(",")}`);
+  }
+  if (missingAssets.length > 0) {
+    fail(`release ${releaseTag} is missing expected assets: ${missingAssets.join(",")}`);
+  }
+
+  console.log(
+    `::notice::existing draft release asset inventory tag=${release.tagName} draft=${release.isDraft} prerelease=${release.isPrerelease} expected_assets=${expectedAssetNames.length} uploaded_assets=${uploadedNames.length} url=${release.url}`,
+  );
+};
+
 const command = process.argv[2];
 validateStaticAssetContract();
 
@@ -409,8 +470,11 @@ switch (command) {
   case "upload-release-provenance":
     uploadReleaseProvenance();
     break;
+  case "validate-existing-release-assets":
+    validateExistingReleaseAssets();
+    break;
   default:
     fail(
-      `unknown release artifacts command ${command ?? "(missing)"}; expected validate-updater-assets, validate-macos-app-signature, generate-updater-checksums, generate-dependency-provenance, generate-release-provenance, upload-updater-checksums, or upload-release-provenance`,
+      `unknown release artifacts command ${command ?? "(missing)"}; expected validate-updater-assets, validate-macos-app-signature, generate-updater-checksums, generate-dependency-provenance, generate-release-provenance, upload-updater-checksums, upload-release-provenance, or validate-existing-release-assets`,
     );
 }

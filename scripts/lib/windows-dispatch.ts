@@ -24,20 +24,29 @@ const EXPLICIT_FORWARDED_ENV_KEYS: ReadonlyMap<string, WindowsDispatchEnvRule> =
 >(WINDOWS_DISPATCH_ENV_ALLOWLIST.map((rule) => [rule.key, rule]));
 const SECRET_LIKE_VALUE_PATTERN = /(?:^|[^a-z0-9])(?:ghp|github_pat|sk|xox[baprs]|AKIA)[a-z0-9_-]{8,}/i;
 
-type WindowsDispatchEnvRule = {
-  key: string;
+type WindowsDispatchEnvRule<Key extends string = string> = {
+  key: Key;
   kind: "devCredential" | "passthrough";
 };
 
+type WindowsDispatchEnvSchema<Rules extends readonly WindowsDispatchEnvRule<string>[]> = Readonly<{
+  [Rule in Rules[number] as Rule["key"]]: Rule["kind"];
+}>;
+
 export type WindowsDispatchEnvKey = (typeof WINDOWS_DISPATCH_ENV_ALLOWLIST)[number]["key"];
 
-export const WINDOWS_DISPATCH_ENV_SCHEMA: Readonly<Record<WindowsDispatchEnvKey, WindowsDispatchEnvRule["kind"]>> =
-  Object.freeze(
-    Object.fromEntries(WINDOWS_DISPATCH_ENV_ALLOWLIST.map((rule) => [rule.key, rule.kind])) as Record<
-      WindowsDispatchEnvKey,
-      WindowsDispatchEnvRule["kind"]
-    >,
-  );
+export const WINDOWS_DISPATCH_ENV_SCHEMA = Object.freeze({
+  DEV_CREDENTIALS: "devCredential",
+  RUST_BACKTRACE: "passthrough",
+  RUST_LOG: "passthrough",
+  TAURI_DEV_PORT: "passthrough",
+  VITE_DEV_INTENT: "passthrough",
+  VITE_DEV_WEB_URL: "passthrough",
+  VITE_DEV_WINDOW_HEIGHT: "passthrough",
+  VITE_DEV_WINDOW_WIDTH: "passthrough",
+  VITE_ULTRA_RSS_DEV_INTENT: "passthrough",
+  VITE_ULTRA_RSS_DEV_WEB_URL: "passthrough",
+} satisfies WindowsDispatchEnvSchema<typeof WINDOWS_DISPATCH_ENV_ALLOWLIST>);
 
 export type SpawnSpec = {
   command: string;

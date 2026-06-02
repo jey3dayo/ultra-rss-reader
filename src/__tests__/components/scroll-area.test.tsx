@@ -1,4 +1,3 @@
-import { ScrollArea as ScrollAreaPrimitive } from "@base-ui/react/scroll-area";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -13,18 +12,13 @@ function renderScrollBar({
   thumbClassName?: string;
 } = {}) {
   render(
-    <ScrollAreaPrimitive.Root>
-      <ScrollAreaPrimitive.Viewport>
-        <div>Scrollable content</div>
-      </ScrollAreaPrimitive.Viewport>
-      <ScrollBar
-        className={className}
-        data-testid="scrollbar"
-        keepMounted
-        orientation={orientation}
-        thumbClassName={thumbClassName}
-      />
-    </ScrollAreaPrimitive.Root>,
+    <ScrollBar
+      className={className}
+      data-testid="scrollbar"
+      keepMounted
+      orientation={orientation}
+      thumbClassName={thumbClassName}
+    />,
   );
 }
 
@@ -51,18 +45,12 @@ describe("ScrollArea", () => {
 
     expect(viewport).toHaveClass("focus-visible:outline-border/80");
     expect(viewport).toHaveClass("focus-visible:ring-border/35");
+    expect(viewport).toHaveClass("overflow-auto");
     expect(viewport).not.toHaveClass("focus-visible:ring-ring/50");
   });
 
   it("passes scrollbar and thumb class overrides to the primitive slots", () => {
-    render(
-      <ScrollAreaPrimitive.Root>
-        <ScrollAreaPrimitive.Viewport>
-          <div>Scrollable content</div>
-        </ScrollAreaPrimitive.Viewport>
-        <ScrollBar className="custom-scrollbar" thumbClassName="custom-thumb" keepMounted />
-      </ScrollAreaPrimitive.Root>,
-    );
+    render(<ScrollBar className="custom-scrollbar" thumbClassName="custom-thumb" keepMounted />);
 
     const scrollbar = document.querySelector('[data-slot="scroll-area-scrollbar"]');
     const thumb = document.querySelector('[data-slot="scroll-area-thumb"]');
@@ -90,6 +78,19 @@ describe("ScrollArea", () => {
 
     expect(content).toHaveClass("pb-4");
     expect(content).toHaveClass("pr-3");
+  });
+
+  it("does not mount decorative scrollbar slots inside native scroll areas", () => {
+    render(
+      <ScrollArea data-testid="scroll-area" scrollbarClassName="custom-scrollbar" thumbClassName="custom-thumb">
+        <div>Scrollable content</div>
+      </ScrollArea>,
+    );
+
+    const scrollArea = screen.getByTestId("scroll-area");
+
+    expect(scrollArea.querySelector('[data-slot="scroll-area-scrollbar"]')).toBeNull();
+    expect(scrollArea.querySelector('[data-slot="scroll-area-thumb"]')).toBeNull();
   });
 
   it("keeps vertical scrollbar orientation attributes and classes by default", () => {

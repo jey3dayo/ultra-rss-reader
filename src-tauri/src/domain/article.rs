@@ -30,6 +30,27 @@ pub struct ArticleViewHistoryItem {
     pub viewed_at: DateTime<Utc>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ArticleListItem {
+    pub id: ArticleId,
+    pub feed_id: FeedId,
+    pub title: String,
+    pub summary: Option<String>,
+    pub url: Option<String>,
+    pub author: Option<String>,
+    pub published_at: DateTime<Utc>,
+    pub thumbnail: Option<String>,
+    pub is_read: bool,
+    pub is_starred: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ArticleListHistoryItem {
+    pub account_id: AccountId,
+    pub article: ArticleListItem,
+    pub viewed_at: DateTime<Utc>,
+}
+
 /// Generate a stable article ID. Account/feed-scoped to prevent cross-feed collision.
 /// Priority: 1) GUID  2) URL-based hash  3) title-based hash
 pub fn generate_entry_id(

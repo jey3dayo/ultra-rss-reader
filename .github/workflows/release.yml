@@ -14,6 +14,11 @@ on:
         required: false
         default: false
         type: boolean
+      reuse_existing_assets:
+        description: "Validate an existing draft release without rebuilding or uploading assets."
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -48,6 +53,7 @@ jobs:
           RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
           WORKFLOW_REF: ${{ github.ref }}
           WORKFLOW_REF_NAME: ${{ github.ref_name }}
+          REUSE_EXISTING_ASSETS: ${{ github.event_name == 'workflow_dispatch' && inputs.reuse_existing_assets || false }}
         run: node ./scripts/release/validate-source.ts
 
       - name: Resolve pnpm store path
@@ -81,6 +87,7 @@ jobs:
         shell: bash
         env:
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
+          REUSE_EXISTING_ASSETS: ${{ github.event_name == 'workflow_dispatch' && inputs.reuse_existing_assets || false }}
           TAURI_SIGNING_PRIVATE_KEY_SET: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD_SET: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD != '' }}
         run: |
@@ -88,7 +95,16 @@ jobs:
 
           if [[ "$DRY_RUN" == "true" ]]; then
             echo "should_publish=false" >> "$GITHUB_OUTPUT"
+            echo "should_build=false" >> "$GITHUB_OUTPUT"
             notice="release dry run validated source, versions, cache, and signing preflight; artifact build and draft release upload are skipped"
+            echo "::notice::$notice"
+            exit 0
+          fi
+
+          if [[ "$REUSE_EXISTING_ASSETS" == "true" ]]; then
+            echo "should_publish=true" >> "$GITHUB_OUTPUT"
+            echo "should_build=false" >> "$GITHUB_OUTPUT"
+            notice="release recovery will validate existing draft assets without rebuilding or uploading artifacts"
             echo "::notice::$notice"
             exit 0
           fi
@@ -108,9 +124,10 @@ jobs:
           fi
 
           echo "should_publish=true" >> "$GITHUB_OUTPUT"
+          echo "should_build=true" >> "$GITHUB_OUTPUT"
 
       - name: Run release quality preflight
-        if: steps.signing-preflight.outputs.should_publish == 'true'
+        if: steps.signing-preflight.outputs.should_build == 'true'
         shell: bash
         run: |
           mise run format:check
@@ -161,6 +178,7 @@ jobs:
           RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
           WORKFLOW_REF: ${{ github.ref }}
           WORKFLOW_REF_NAME: ${{ github.ref_name }}
+          REUSE_EXISTING_ASSETS: ${{ github.event_name == 'workflow_dispatch' && inputs.reuse_existing_assets || false }}
         run: node ./scripts/release/validate-source.ts
 
       - name: Resolve pnpm store path
@@ -192,6 +210,7 @@ jobs:
         with:
           workspaces: src-tauri
           shared-key: release-${{ runner.os }}-${{ hashFiles('src-tauri/Cargo.lock') }}
+          save-if: false
 
       - run: pnpm install --frozen-lockfile
 
@@ -206,6 +225,7 @@ jobs:
         shell: bash
         env:
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
+          REUSE_EXISTING_ASSETS: ${{ github.event_name == 'workflow_dispatch' && inputs.reuse_existing_assets || false }}
           TAURI_SIGNING_PRIVATE_KEY_SET: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD_SET: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD != '' }}
         run: |
@@ -213,7 +233,16 @@ jobs:
 
           if [[ "$DRY_RUN" == "true" ]]; then
             echo "should_publish=false" >> "$GITHUB_OUTPUT"
+            echo "should_build=false" >> "$GITHUB_OUTPUT"
             notice="release dry run validated source, versions, cache, and signing preflight; artifact build and draft release upload are skipped"
+            echo "::notice::$notice"
+            exit 0
+          fi
+
+          if [[ "$REUSE_EXISTING_ASSETS" == "true" ]]; then
+            echo "should_publish=true" >> "$GITHUB_OUTPUT"
+            echo "should_build=false" >> "$GITHUB_OUTPUT"
+            notice="release recovery will validate existing draft assets without rebuilding or uploading artifacts"
             echo "::notice::$notice"
             exit 0
           fi
@@ -233,14 +262,15 @@ jobs:
           fi
 
           echo "should_publish=true" >> "$GITHUB_OUTPUT"
+          echo "should_build=true" >> "$GITHUB_OUTPUT"
 
       - name: Validate release build contamination contract
-        if: steps.signing-preflight.outputs.should_publish == 'true'
+        if: steps.signing-preflight.outputs.should_build == 'true'
         shell: bash
         run: pnpm run check:release-contamination
 
       - name: Resolve release semver policy
-        if: steps.signing-preflight.outputs.should_publish == 'true'
+        if: steps.signing-preflight.outputs.should_build == 'true'
         id: release-policy
         shell: bash
         env:
@@ -258,7 +288,7 @@ jobs:
           echo "draft=true" >> "$GITHUB_OUTPUT"
 
       - name: Import Apple signing certificate
-        if: steps.signing-preflight.outputs.should_publish == 'true' && runner.os == 'macOS'
+        if: steps.signing-preflight.outputs.should_build == 'true' && runner.os == 'macOS'
         shell: bash
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
@@ -287,7 +317,7 @@ jobs:
 
       # tauri-apps/tauri-action@v0.6.2
       - uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5
-        if: steps.signing-preflight.outputs.should_publish == 'true'
+        if: steps.signing-preflight.outputs.should_build == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -304,7 +334,7 @@ jobs:
             --ci
 
       - name: Validate macOS app signing
-        if: steps.signing-preflight.outputs.should_publish == 'true' && runner.os == 'macOS'
+        if: steps.signing-preflight.outputs.should_build == 'true' && runner.os == 'macOS'
         shell: bash
         env:
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
@@ -314,31 +344,31 @@ jobs:
         run: node ./scripts/release/artifacts.ts validate-macos-app-signature
 
       - name: Validate updater manifest asset contract
-        if: steps.signing-preflight.outputs.should_publish == 'true'
+        if: steps.signing-preflight.outputs.should_build == 'true'
         shell: bash
         run: node ./scripts/release/artifacts.ts validate-updater-assets
 
       - name: Generate updater asset checksums
-        if: steps.signing-preflight.outputs.should_publish == 'true'
+        if: steps.signing-preflight.outputs.should_build == 'true'
         shell: bash
         run: node ./scripts/release/artifacts.ts generate-updater-checksums
 
       - name: Generate release dependency provenance
-        if: steps.signing-preflight.outputs.should_publish == 'true'
+        if: steps.signing-preflight.outputs.should_build == 'true'
         shell: bash
         run: |
           mise run report:licenses
           node ./scripts/release/artifacts.ts generate-dependency-provenance
 
       - name: Generate release provenance record
-        if: steps.signing-preflight.outputs.should_publish == 'true'
+        if: steps.signing-preflight.outputs.should_build == 'true'
         shell: bash
         env:
           RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
         run: node ./scripts/release/artifacts.ts generate-release-provenance
 
       - name: Upload updater asset checksums
-        if: steps.signing-preflight.outputs.should_publish == 'true'
+        if: steps.signing-preflight.outputs.should_build == 'true'
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -346,9 +376,17 @@ jobs:
         run: node ./scripts/release/artifacts.ts upload-updater-checksums
 
       - name: Upload release provenance assets
-        if: steps.signing-preflight.outputs.should_publish == 'true'
+        if: steps.signing-preflight.outputs.should_build == 'true'
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
         run: node ./scripts/release/artifacts.ts upload-release-provenance
+
+      - name: Validate existing draft release assets
+        if: steps.signing-preflight.outputs.should_publish == 'true' && steps.signing-preflight.outputs.should_build == 'false'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
+        run: node ./scripts/release/artifacts.ts validate-existing-release-assets

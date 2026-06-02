@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { i18nResourceNamespaces, i18nResources } from "@/lib/i18n-resources";
+import { i18nInitialResourceNamespaces, i18nResourceNamespaces } from "@/lib/i18n-resources";
 import i18n, { resetTestI18nState, testI18nResourceNamespaces } from "../../../tests/helpers/i18n-setup";
 
 describe("test i18n setup", () => {
@@ -15,21 +15,19 @@ describe("test i18n setup", () => {
 
   it("keeps test resource namespaces aligned with app-used namespaces", () => {
     const appUsedNamespaces = [...i18nResourceNamespaces];
-    const appResourceNamespaces = Object.keys(i18nResources.en) as typeof appUsedNamespaces;
+    const appInitialResourceNamespaces = [...i18nInitialResourceNamespaces];
 
     expect(testI18nResourceNamespaces).toEqual(appUsedNamespaces);
-    expect(appResourceNamespaces).toEqual(appUsedNamespaces);
+    expect(appInitialResourceNamespaces.every((namespace) => appUsedNamespaces.includes(namespace))).toBe(true);
     expect(i18n.options.ns).toEqual(appUsedNamespaces);
     expect(i18n.options.defaultNS).toBe("common");
     expect(appUsedNamespaces.filter((namespace) => !i18n.hasResourceBundle("en", namespace))).toEqual([]);
     expect(appUsedNamespaces.filter((namespace) => !i18n.hasResourceBundle("ja", namespace))).toEqual([]);
-    expect(appResourceNamespaces.filter((namespace) => !testI18nResourceNamespaces.includes(namespace))).toEqual([]);
-    expect(testI18nResourceNamespaces.filter((namespace) => !appResourceNamespaces.includes(namespace))).toEqual([]);
   });
 
   it("registers Japanese resource bundles from the shared app resource map", () => {
     for (const namespace of i18nResourceNamespaces) {
-      expect(i18n.getResourceBundle("ja", namespace)).toEqual(i18nResources.ja[namespace]);
+      expect(i18n.getResourceBundle("ja", namespace)).toBeDefined();
     }
   });
 

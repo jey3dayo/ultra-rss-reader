@@ -2,7 +2,6 @@ import type { Button as ButtonPrimitive } from "@base-ui/react/button";
 import type { Collapsible as CollapsiblePrimitive } from "@base-ui/react/collapsible";
 import type { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import type { Input as InputPrimitive } from "@base-ui/react/input";
-import type { ScrollArea as ScrollAreaPrimitive } from "@base-ui/react/scroll-area";
 import type { Select as SelectPrimitive } from "@base-ui/react/select";
 import type { VariantProps } from "class-variance-authority";
 import type * as React from "react";
@@ -85,8 +84,8 @@ describe("UI wrapper public API", () => {
     expectTypeOf<SelectSeparatorProps>().toEqualTypeOf<React.ComponentProps<"div">>();
   });
 
-  it("keeps ScrollAreaProps as the public Base UI Root pass-through surface", () => {
-    expectTypeOf<ScrollAreaProps>().toMatchTypeOf<ScrollAreaPrimitive.Root.Props>();
+  it("keeps ScrollAreaProps as the native scroll container surface", () => {
+    expectTypeOf<ScrollAreaProps>().toMatchTypeOf<React.ComponentProps<"div">>();
     expectTypeOf<ScrollAreaProps>().toHaveProperty("contentClassName").toEqualTypeOf<string | undefined>();
     expectTypeOf<ScrollAreaProps>().toHaveProperty("scrollbarClassName").toEqualTypeOf<string | undefined>();
     expectTypeOf<ScrollAreaProps>().toHaveProperty("thumbClassName").toEqualTypeOf<string | undefined>();

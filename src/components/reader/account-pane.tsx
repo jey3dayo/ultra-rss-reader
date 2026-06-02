@@ -39,7 +39,7 @@ export function AccountPane() {
     };
 
   useEffect(() => {
-    if (!accountPaneOpen) {
+    if (!accountPaneOpen || accounts.length === 0) {
       return;
     }
 
@@ -50,7 +50,7 @@ export function AccountPane() {
     });
 
     return cleanupFocusFrame;
-  }, [accountPaneOpen]);
+  }, [accountPaneOpen, accounts.length]);
 
   const handleKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
     if (event.defaultPrevented || accounts.length === 0) {

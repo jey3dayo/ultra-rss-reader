@@ -3,7 +3,7 @@ import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import { useArticleListData } from "@/components/reader/hooks/article-list/use-article-list-data";
 import { useArticleListSources } from "@/components/reader/hooks/article-list/use-article-list-sources";
 import { useAccounts } from "@/hooks/use-accounts";
-import { useArticles, useFolderArticles } from "@/hooks/use-articles";
+import { useArticle, useArticles, useFolderArticles } from "@/hooks/use-articles";
 import { useFolders } from "@/hooks/use-folders";
 import { useArticlesByTag, useTags } from "@/hooks/use-tags";
 import {
@@ -73,6 +73,7 @@ export function useArticleViewSelection(): ArticleViewSelectionState {
     mode: "all",
   });
   const { data: allTagArticles } = useArticlesByTag(selectedTagId, selectedAccountId, { mode: "all" });
+  const { data: fullSelectedArticle } = useArticle(selectedArticleId);
   const sortUnread = usePreferencesStore((s) => s.prefs.reading_sort ?? s.prefs.sort_unread ?? "newest_first");
   const groupBy = usePreferencesStore((s) => s.prefs.group_by ?? "date");
   const sources = useArticleListSources({
@@ -151,7 +152,7 @@ export function useArticleViewSelection(): ArticleViewSelectionState {
     return { kind: "not-found" };
   }
 
-  const article = Result.unwrap(articleResult);
+  const article = fullSelectedArticle ?? Result.unwrap(articleResult);
   const feed = sources.feeds?.find((candidate) => candidate.id === article.feed_id);
 
   return { kind: "article", article, feed };

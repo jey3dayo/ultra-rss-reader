@@ -75,6 +75,7 @@ const expectedCommandOwnerAllowlists = {
     "trigger_sync_account",
     "trigger_sync_feed",
     "trigger_automatic_sync",
+    "get_article",
     "list_articles",
     "list_account_articles",
     "list_feed_article_summaries",

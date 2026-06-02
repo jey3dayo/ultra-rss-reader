@@ -1591,12 +1591,16 @@ describe("repository static contracts", () => {
     expect(extractCssCustomProperty(globalCss, ":root.dark", "--tone-loading")).toBe("var(--theme-unread)");
     expect(extractCssCustomProperty(globalCss, ":root", "--dialog-scrim")).toBe("var(--dialog-overlay)");
     expect(extractCssCustomProperty(globalCss, ":root.dark", "--dialog-scrim")).toBe("var(--dialog-overlay)");
+    expect(extractCssCustomProperty(globalCss, ":root", "--control-active-warm")).toBe("#c08532");
+    expect(extractCssCustomProperty(globalCss, ":root.dark", "--control-active-warm")).toBe("#c08532");
 
     expect(colorRule).toContain("rgba(245, 78, 0, 0.26)");
     expect(colorRule).toContain("rgba(245, 78, 0, 0.38)");
     expect(colorRule).toContain("var(--gradient-switch-track-off)");
     expect(colorRule).not.toContain("oklch(0.65 0.15 250)");
-    expect(extractCssCustomProperty(globalCss, ":root", "--gradient-switch-track-on")).toBe("var(--color-primary)");
+    expect(extractCssCustomProperty(globalCss, ":root", "--gradient-switch-track-on")).toBe(
+      "var(--control-active-warm)",
+    );
     expect(extractCssCustomProperty(globalCss, ":root", "--gradient-switch-track-off")).toBe("var(--color-input)");
   });
 
@@ -1804,6 +1808,7 @@ describe("repository static contracts", () => {
     expect(claudeRuleLinks).toEqual([
       ".claude/rules/README.md",
       ".claude/rules/async-side-effect-policy.md",
+      ".claude/rules/boundary-ownership.md",
       ".claude/rules/contract-test-policy.md",
       ".claude/rules/preferences-pattern.md",
       ".claude/rules/quality-policy.md",
@@ -2425,6 +2430,7 @@ describe("repository static contracts", () => {
       "src/lib/ui/display-state.types.ts",
       "src/lib/ui/toast.types.ts",
       "src/stores/preferences-store.types.ts",
+      "src/stores/ui-store.types.ts",
     ];
     const typeSurfaceFiles = [
       ...collectTypeSurfaceFiles("src/components/reader"),

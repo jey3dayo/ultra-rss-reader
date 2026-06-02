@@ -1,4 +1,4 @@
-use crate::domain::article::Article;
+use crate::domain::article::{Article, ArticleListItem};
 use crate::domain::error::DomainResult;
 use crate::domain::tag::Tag;
 use crate::domain::types::{AccountId, ArticleId, TagId};
@@ -22,6 +22,13 @@ pub trait TagRepository {
         account_id: Option<&AccountId>,
         mode: ArticleListMode,
     ) -> DomainResult<Vec<Article>>;
+    fn list_articles_by_tag(
+        &self,
+        tag_id: &TagId,
+        pagination: &Pagination,
+        account_id: Option<&AccountId>,
+        mode: ArticleListMode,
+    ) -> DomainResult<Vec<ArticleListItem>>;
     /// Returns article counts per tag as (tag_id, count) pairs.
     /// When `account_id` is Some, only counts articles belonging to feeds of that account.
     fn count_articles_per_tag(
