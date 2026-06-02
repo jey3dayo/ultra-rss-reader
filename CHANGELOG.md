@@ -4,6 +4,18 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.43.11] - 2026-06-02
+
+### Bug Fixes
+
+- release asset recovery workflow の認証、main branch dispatch、既存 asset 検証を見直し、release recovery が安全に再実行できるようにした
+- Rust cache 保存失敗で release workflow が止まりにくいようにした
+
+### Maintenance
+
+- Reader の記事一覧 payload と SQLite list query を軽量化し、一覧表示時に記事本文を不要に読み出さないようにした
+- Reader shell の scroll area を native scroll に置き換え、初期 bundle に入る Base UI runtime を減らした
+
 ## [0.43.10] - 2026-05-27
 
 ### Bug Fixes
