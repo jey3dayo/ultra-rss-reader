@@ -11,6 +11,7 @@ import {
 } from "@/components/app-shell/settings-modal-preload";
 import { shouldStartDesktopTitlebarDrag } from "@/components/app-shell/titlebar-drag";
 import { type BrowserDebugGeometrySnapshot, getBrowserGeometryRows } from "@/lib/browser/browser-debug-geometry";
+import { isBrowserDebugGeometryDetail } from "@/lib/browser/browser-debug-geometry-guards";
 import { describeDebugHudEventTarget } from "@/lib/debug/debug-hud-active-element";
 import {
   buildDebugHudClipboardText,
@@ -193,18 +194,6 @@ function ToastLiveRegion() {
       ))}
     </output>
   );
-}
-
-function isBrowserDebugGeometrySnapshot(value: unknown): value is BrowserDebugGeometrySnapshot {
-  if (value === null || typeof value !== "object") {
-    return false;
-  }
-
-  return "layoutDiagnostics" in value && "nativeDiagnostics" in value;
-}
-
-function isBrowserDebugGeometryDetail(value: unknown): value is BrowserDebugGeometrySnapshot | null {
-  return value === null || isBrowserDebugGeometrySnapshot(value);
 }
 
 function reportSettingsModalBoundaryError(error: Error) {
