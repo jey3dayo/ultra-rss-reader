@@ -53,6 +53,7 @@ import { usePreferencesStore } from "../stores/preferences-store";
 import { useUiStore } from "../stores/ui-store";
 import { AppConfirmDialog } from "./app-confirm-dialog";
 import { AppLayout } from "./app-layout";
+import { APP_TOAST_PLACEMENTS } from "./shared/app-toast-placement";
 import { AppToastView } from "./shared/app-toast-view";
 
 const LazyFocusDebugHudView = lazy(async () => {
@@ -155,7 +156,7 @@ function Toast() {
     <AppToastView
       toastMessage={toastMessage}
       onClose={clearToast}
-      placement={browserUrl ? "browser-rail" : "bottom-right"}
+      placement={browserUrl ? APP_TOAST_PLACEMENTS.browserRail : APP_TOAST_PLACEMENTS.bottomRight}
       syncActionState={syncActive}
     />
   );
@@ -183,11 +184,11 @@ function ToastLiveRegion() {
   }, [clearToastAnnouncement, toastAnnouncements]);
 
   return (
-    <div aria-live="polite" aria-atomic="false" className="sr-only" data-testid="toast-live-region" role="status">
+    <output aria-live="polite" aria-atomic="false" className="sr-only" data-testid="toast-live-region">
       {toastAnnouncements.map((announcement) => (
         <div key={announcement.id}>{announcement.message}</div>
       ))}
-    </div>
+    </output>
   );
 }
 
