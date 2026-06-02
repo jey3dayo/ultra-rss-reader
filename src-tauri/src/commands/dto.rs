@@ -493,6 +493,25 @@ impl From<crate::domain::article::Article> for ArticleDto {
     }
 }
 
+impl From<crate::domain::article::ArticleListItem> for ArticleDto {
+    fn from(article: crate::domain::article::ArticleListItem) -> Self {
+        Self {
+            id: article.id.0,
+            feed_id: article.feed_id.0,
+            title: article.title,
+            content_sanitized: String::new(),
+            summary: article.summary,
+            url: article.url,
+            author: article.author,
+            published_at: article.published_at.to_rfc3339(),
+            thumbnail: article.thumbnail,
+            is_read: article.is_read,
+            is_starred: article.is_starred,
+            viewed_at: None,
+        }
+    }
+}
+
 impl ArticleDto {
     pub fn list_item_from(article: crate::domain::article::Article) -> Self {
         Self {
@@ -501,10 +520,22 @@ impl ArticleDto {
         }
     }
 
+    pub fn list_item_from_summary(article: crate::domain::article::ArticleListItem) -> Self {
+        Self::from(article)
+    }
+
     pub fn list_item_from_view_history(
         item: crate::domain::article::ArticleViewHistoryItem,
     ) -> Self {
         let mut dto = Self::list_item_from(item.article);
+        dto.viewed_at = Some(item.viewed_at.to_rfc3339());
+        dto
+    }
+
+    pub fn list_item_from_summary_view_history(
+        item: crate::domain::article::ArticleListHistoryItem,
+    ) -> Self {
+        let mut dto = Self::list_item_from_summary(item.article);
         dto.viewed_at = Some(item.viewed_at.to_rfc3339());
         dto
     }

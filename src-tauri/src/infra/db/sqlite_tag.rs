@@ -1,7 +1,7 @@
 use rusqlite::types::Type;
 use rusqlite::{params, Connection};
 
-use crate::domain::article::Article;
+use crate::domain::article::{Article, ArticleListItem};
 use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::tag::Tag;
 use crate::domain::types::{AccountId, ArticleId, FeedId, TagId};
@@ -98,6 +98,23 @@ fn row_to_article(row: &rusqlite::Row) -> rusqlite::Result<Article> {
 }
 
 const ARTICLE_SELECT_COLS: &str = "a.id, a.feed_id, a.remote_id, a.title, a.content_raw, a.content_sanitized, a.sanitizer_version, a.summary, a.url, a.author, a.thumbnail, a.published_at, a.is_read, a.is_starred, a.fetched_at";
+const ARTICLE_LIST_SELECT_COLS: &str = "a.id, a.feed_id, a.title, a.summary, a.url, a.author, a.published_at, a.thumbnail, a.is_read, a.is_starred";
+
+fn row_to_article_list_item(row: &rusqlite::Row) -> rusqlite::Result<ArticleListItem> {
+    let published_at_str: String = row.get(6)?;
+    Ok(ArticleListItem {
+        id: ArticleId(row.get(0)?),
+        feed_id: FeedId(row.get(1)?),
+        title: row.get(2)?,
+        summary: row.get(3)?,
+        url: row.get(4)?,
+        author: row.get(5)?,
+        published_at: parse_datetime(&published_at_str)?,
+        thumbnail: row.get(7)?,
+        is_read: row.get(8)?,
+        is_starred: row.get(9)?,
+    })
+}
 
 fn validate_tag_name(name: &str) -> DomainResult<()> {
     if name.trim().is_empty() {
@@ -234,6 +251,53 @@ impl TagRepository for SqliteTagRepository<'_> {
                     account_id_param
                 ],
                 row_to_article,
+            )?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(articles)
+    }
+
+    fn list_articles_by_tag(
+        &self,
+        tag_id: &TagId,
+        pagination: &Pagination,
+        account_id: Option<&AccountId>,
+        mode: ArticleListMode,
+    ) -> DomainResult<Vec<ArticleListItem>> {
+        let mut filters = vec![
+            "at.tag_id = ?1".to_string(),
+            "(?4 IS NULL OR f.account_id = ?4)".to_string(),
+        ];
+
+        if let Some(mode_filter) = mode.sql_filter("a") {
+            filters.push(mode_filter);
+        }
+
+        if SqliteMuteKeywordRepository::new(self.conn).has_any()? {
+            filters.push(build_mute_keyword_exclusion_clause(
+                "a.title",
+                "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
+            ));
+        }
+
+        let where_clause = filters.join(" AND ");
+        let sql = format!(
+            "SELECT {ARTICLE_LIST_SELECT_COLS} FROM articles a \
+             JOIN article_tags at ON a.id = at.article_id \
+             JOIN feeds f ON a.feed_id = f.id \
+             WHERE {where_clause} \
+             ORDER BY a.published_at DESC, a.fetched_at DESC, a.id DESC LIMIT ?2 OFFSET ?3"
+        );
+        let mut stmt = self.conn.prepare(&sql)?;
+        let account_id_param = account_id.map(|aid| aid.0.as_str());
+        let articles = stmt
+            .query_map(
+                params![
+                    tag_id.0,
+                    pagination.limit as i64,
+                    pagination.offset as i64,
+                    account_id_param
+                ],
+                row_to_article_list_item,
             )?
             .collect::<Result<Vec<_>, _>>()?;
         Ok(articles)

@@ -376,10 +376,10 @@ fn list_articles_by_tag_impl(
     let mode = parse_article_list_mode(mode.as_deref())?;
     let pagination = article_command_pagination(offset, limit, DEFAULT_ARTICLE_LIST_LIMIT)?;
     let aid = account_id.map(AccountId);
-    let articles = repo.find_articles_by_tag(&TagId(tag_id), &pagination, aid.as_ref(), mode)?;
+    let articles = repo.list_articles_by_tag(&TagId(tag_id), &pagination, aid.as_ref(), mode)?;
     Ok(articles
         .into_iter()
-        .map(ArticleDto::list_item_from)
+        .map(ArticleDto::list_item_from_summary)
         .collect())
 }
 

@@ -154,6 +154,11 @@ mod tests {
             "find_or_create",
             "find_tags_for_article",
             "find_articles_by_tag",
+            "list_articles_by_tag",
+            "list_by_account",
+            "list_by_feed",
+            "list_by_folder",
+            "list_recently_viewed_by_account",
             "count_unread_by_account",
             "count_starred_by_account",
             "count_articles_per_tag",
@@ -161,6 +166,7 @@ mod tests {
             "get",
             "has_any",
             "search",
+            "search_list",
         ];
         let write_methods = [
             "save",
