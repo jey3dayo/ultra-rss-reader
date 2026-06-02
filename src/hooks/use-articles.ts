@@ -138,6 +138,7 @@ function patchCachedArticleState(
   const nextArticle = resolveNextArticle(cachedArticle);
   const accountIds = resolveAccountIdsForArticle(qc, cachedArticle);
 
+  qc.setQueryData(queryKeys.articles.byId(articleId), nextArticle);
   patchArticleListQueries(qc, nextArticle, { insertIfMissing: false });
 
   if (accountIds.length > 0) {

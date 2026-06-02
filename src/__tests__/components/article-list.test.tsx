@@ -1510,6 +1510,8 @@ describe("ArticleList", () => {
       switch (cmd) {
         case "list_feeds":
           return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "get_article":
+          return articles.find((article) => article.id === args.articleId) ?? null;
         case "list_articles":
           return articles.filter((article) => article.feed_id === args.feedId);
         case "list_account_articles":
