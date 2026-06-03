@@ -1635,6 +1635,15 @@ mod tests {
         );
     }
 
+    fn assert_no_temp_order_sort(plan: &[String]) {
+        assert!(
+            !plan
+                .iter()
+                .any(|detail| detail.contains("USE TEMP B-TREE FOR ORDER BY")),
+            "query plan should use an ordered index instead of a temp ORDER BY sort: {plan:#?}"
+        );
+    }
+
     fn seed_representative_article_dataset(
         db: &DbManager,
     ) -> (AccountId, FeedId, FeedId, FolderId) {
@@ -1725,6 +1734,7 @@ mod tests {
             "idx_articles_is_read",
             "idx_articles_is_starred",
             "idx_articles_remote_id",
+            "idx_articles_feed_published_fetched_id",
         ] {
             assert!(
                 article_indexes.contains(index_name),
@@ -1828,8 +1838,26 @@ mod tests {
         assert_no_unindexed_article_scan(&feed_unread_plan);
         assert_plan_uses_any(
             &feed_unread_plan,
-            &["idx_articles_is_read", "idx_articles_feed_id"],
+            &[
+                "idx_articles_is_read",
+                "idx_articles_feed_id",
+                "idx_articles_feed_published_fetched_id",
+            ],
         );
+
+        let feed_list_plan = explain_query_plan(
+            &db,
+            &format!(
+                "SELECT {SELECT_COLS} FROM articles
+                 WHERE feed_id = '{}'
+                 ORDER BY {ARTICLE_ORDER_DESC}
+                 LIMIT 30 OFFSET 0",
+                feed_a.0
+            ),
+        );
+        assert_no_unindexed_article_scan(&feed_list_plan);
+        assert_no_temp_order_sort(&feed_list_plan);
+        assert_plan_uses_any(&feed_list_plan, &["idx_articles_feed_published_fetched_id"]);
 
         let account_starred_plan = explain_query_plan(
             &db,
@@ -1859,7 +1887,12 @@ mod tests {
         assert_no_unindexed_article_scan(&folder_plan);
         assert_plan_uses_any(
             &folder_plan,
-            &["idx_articles_feed_id", "idx_articles_published_at"],
+            &[
+                "idx_articles_feed_id",
+                "idx_articles_published_at",
+                "idx_articles_is_read",
+                "idx_articles_feed_published_fetched_id",
+            ],
         );
 
         let search_plan = explain_query_plan(

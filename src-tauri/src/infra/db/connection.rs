@@ -1479,6 +1479,9 @@ mod tests {
                 .execute("DROP INDEX idx_pending_mutations_unique_entry_type", [])
                 .unwrap();
             db.writer()
+                .execute("DROP INDEX idx_articles_feed_published_fetched_id", [])
+                .unwrap();
+            db.writer()
                 .execute("DELETE FROM schema_version", [])
                 .unwrap();
             db.writer()

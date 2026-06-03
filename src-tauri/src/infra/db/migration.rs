@@ -22,6 +22,8 @@ const MIGRATION_V16: &str =
     include_str!("../../../migrations/V16__account_connection_verification.sql");
 const MIGRATION_V17: &str = include_str!("../../../migrations/V17__article_view_history.sql");
 const MIGRATION_V18: &str = include_str!("../../../migrations/V18__db_repository_contracts.sql");
+const MIGRATION_V19: &str =
+    include_str!("../../../migrations/V19__article_list_ordered_indexes.sql");
 
 const V8_READER_MODE_COLUMN: &str = "reader_mode";
 const V8_WEB_PREVIEW_MODE_COLUMN: &str = "web_preview_mode";
@@ -52,7 +54,7 @@ impl MigrationResult {
     }
 }
 
-pub const LATEST_VERSION: i32 = 18;
+pub const LATEST_VERSION: i32 = 19;
 
 /// Applies every pending migration in one SQLite transaction.
 ///
@@ -128,6 +130,9 @@ pub fn run_migrations(conn: &mut Connection) -> DomainResult<MigrationResult> {
     }
     if from_version < 18 {
         tx.execute_batch(MIGRATION_V18)?;
+    }
+    if from_version < 19 {
+        tx.execute_batch(MIGRATION_V19)?;
     }
 
     let to_version = read_schema_version(&tx)?;
@@ -598,6 +603,23 @@ mod tests {
                  FROM pragma_index_list('pending_mutations')
                  WHERE name = 'idx_pending_mutations_unique_entry_type'
                    AND [unique] = 1",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(index_count, 1);
+    }
+
+    #[test]
+    fn latest_schema_includes_article_list_ordered_index() {
+        let mut conn = open_in_memory();
+        run_migrations(&mut conn).unwrap();
+
+        let index_count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*)
+                 FROM pragma_index_list('articles')
+                 WHERE name = 'idx_articles_feed_published_fetched_id'",
                 [],
                 |row| row.get(0),
             )
