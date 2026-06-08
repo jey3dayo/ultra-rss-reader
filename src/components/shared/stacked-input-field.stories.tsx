@@ -3,7 +3,7 @@ import { fn } from "storybook/test";
 import { StackedInputField } from "./stacked-input-field";
 
 const meta = {
-  title: "Shared/Fields/StackedInputField",
+  title: "Shared/Inputs/StackedInputField",
   component: StackedInputField,
   tags: ["autodocs"],
   decorators: [

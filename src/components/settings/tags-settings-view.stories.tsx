@@ -4,7 +4,7 @@ import { TAG_COLOR_PRESETS } from "@/components/shared/exception-palettes";
 import { TagsSettingsView } from "./tags-settings-view";
 
 const meta = {
-  title: "Settings/Page/TagsSettingsView",
+  title: "Settings/Category/TagsSettingsView",
   component: TagsSettingsView,
   tags: ["autodocs"],
   args: {

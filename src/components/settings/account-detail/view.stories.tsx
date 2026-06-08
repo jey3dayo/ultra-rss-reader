@@ -17,7 +17,7 @@ const keepReadItemsOptions = [
 ];
 
 const meta = {
-  title: "Settings/Page/AccountDetailView",
+  title: "Settings/Account/AccountDetailView",
   component: AccountDetailView,
   tags: ["autodocs"],
   args: {

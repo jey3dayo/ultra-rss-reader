@@ -96,7 +96,7 @@ const scrollbarFillerArticles = Array.from({ length: 7 }, (_, index) => ({
 }));
 
 const meta = {
-  title: "Reader/Article/ArticleListScreenView",
+  title: "Reader/Article List/ArticleListScreenView",
   component: ArticleListScreenView,
   tags: ["autodocs"],
   args: {

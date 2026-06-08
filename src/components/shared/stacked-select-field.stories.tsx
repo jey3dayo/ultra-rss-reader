@@ -3,7 +3,7 @@ import { fn } from "storybook/test";
 import { StackedSelectField } from "./stacked-select-field";
 
 const meta = {
-  title: "Shared/Fields/StackedSelectField",
+  title: "Shared/Inputs/StackedSelectField",
   component: StackedSelectField,
   tags: ["autodocs"],
   decorators: [

@@ -3,7 +3,7 @@ import { fn } from "storybook/test";
 import { DataSettingsView } from "./data-settings-view";
 
 const meta = {
-  title: "Settings/Page/DataSettingsView",
+  title: "Settings/Category/DataSettingsView",
   component: DataSettingsView,
   tags: ["autodocs"],
   args: {

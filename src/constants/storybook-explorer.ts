@@ -22,9 +22,9 @@ export const STORYBOOK_EXPLORER_SUBGROUPS = {
     "Navigation & Collections Canvas",
     "View Specimens Canvas",
   ],
-  shared: ["Layout", "Fields", "Rows", "Controls", "Dialogs", "Navigation", "Feedback"],
-  settings: ["Page", "Section", "Nav"],
-  reader: ["Article", "Sidebar", "Dialog", "Menu", "Browser"],
+  shared: ["Layout", "Inputs", "Rows", "Controls", "Dialogs", "Navigation", "Feedback", "Data Display"],
+  settings: ["Shell", "Category", "Account", "Section", "Nav"],
+  reader: ["Article List", "Article", "Sidebar", "Dialog", "Menu", "Browser"],
   subscriptions: ["Summary", "List", "Detail"],
   internal: ["Debug", "Review"],
 } as const;

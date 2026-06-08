@@ -9,7 +9,7 @@ const scopeOptions: MuteSettingsViewProps["scopeOptions"] = [
 ];
 
 const meta = {
-  title: "Settings/Page/MuteSettingsView",
+  title: "Settings/Category/MuteSettingsView",
   component: MuteSettingsView,
   tags: ["autodocs"],
   args: {

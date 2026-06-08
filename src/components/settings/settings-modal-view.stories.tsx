@@ -7,7 +7,7 @@ import { SettingsModalView } from "./settings-modal-view";
 import { SettingsNavView } from "./settings-nav-view";
 
 const meta = {
-  title: "Settings/Page/SettingsModalView",
+  title: "Settings/Shell/SettingsModalView",
   component: SettingsModalView,
   tags: ["autodocs"],
   parameters: {

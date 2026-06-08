@@ -22,18 +22,18 @@ export const denseNarrowViewportId = "mobile2";
 export const denseNarrowViewportStoryIds = [
   "reader-sidebar-feedtreeview--dense-narrow-a-11-y-state",
   "reader-sidebar-sidebarheaderview--dense-narrow-viewport",
-  "reader-article-articlelistscreenview--dense-narrow-viewport",
+  "reader-article-list-articlelistscreenview--dense-narrow-viewport",
   "reader-article-articletoolbarview--mobile-japanese-long-labels",
   "reader-article-articletoolbarview--mobile-a-11-y-disabled-state",
-  "settings-page-settingsmodalview--dense-narrow-viewport",
-  "settings-page-accountdetailview--japanese-long-labels-dense",
-  "settings-page-accountdetailview--dense-a-11-y-disabled-state",
+  "settings-shell-settingsmodalview--dense-narrow-viewport",
+  "settings-account-accountdetailview--japanese-long-labels-dense",
+  "settings-account-accountdetailview--dense-a-11-y-disabled-state",
 ] as const;
 export const storybookViewportMaxDimensionPx = 10_000;
 export const storybookSmokeStoryIds = [...uiReferenceCanvasStoryIds, ...denseNarrowViewportStoryIds] as const;
 export const visualRegressionSmokeStoryIds = [
   "reader-sidebar-feedtreeview--dense-narrow-a-11-y-state",
-  "settings-page-accountdetailview--dense-a-11-y-disabled-state",
+  "settings-account-accountdetailview--dense-a-11-y-disabled-state",
   "primitives-command--results",
   "primitives-command--empty",
   "reader-browser-browseroverlaystage--retryable-issue",

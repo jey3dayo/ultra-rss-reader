@@ -26,7 +26,7 @@ const visualSmokeCases = [
     screenshotSelector: "[data-testid='feed-tree-dense-smoke']",
   },
   {
-    storyId: "settings-page-accountdetailview--dense-a-11-y-disabled-state",
+    storyId: "settings-account-accountdetailview--dense-a-11-y-disabled-state",
     snapshotName: "settings-account-a11y-disabled-state.png",
     readySelector: "#storybook-root > *",
     screenshotSelector: "#storybook-root > *",

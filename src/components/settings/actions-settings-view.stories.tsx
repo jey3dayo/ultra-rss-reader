@@ -4,7 +4,7 @@ import { fn } from "storybook/test";
 import { ActionsSettingsView } from "./actions-settings-view";
 
 const meta = {
-  title: "Settings/Page/ActionsSettingsView",
+  title: "Settings/Category/ActionsSettingsView",
   component: ActionsSettingsView,
   tags: ["autodocs"],
   args: {

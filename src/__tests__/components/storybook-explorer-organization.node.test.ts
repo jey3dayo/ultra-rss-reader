@@ -313,10 +313,13 @@ describe("Storybook Explorer organization", () => {
     expect(settingsStories.groups).toEqual(sortedStoryTitles(STORYBOOK_EXPLORER_SUBGROUPS.settings));
     expect(settingsStories.titles.every((title) => title.split("/").length === 3)).toBe(true);
     expect(settingsStories.titles).toContain(
-      storybookExplorerTitle(STORYBOOK_EXPLORER_GROUPS.settings, "Page", "DataSettingsView"),
+      storybookExplorerTitle(STORYBOOK_EXPLORER_GROUPS.settings, "Category", "DataSettingsView"),
     );
     expect(settingsStories.titles).toContain(
-      storybookExplorerTitle(STORYBOOK_EXPLORER_GROUPS.settings, "Page", "MuteSettingsView"),
+      storybookExplorerTitle(STORYBOOK_EXPLORER_GROUPS.settings, "Category", "MuteSettingsView"),
+    );
+    expect(settingsStories.titles).toContain(
+      storybookExplorerTitle(STORYBOOK_EXPLORER_GROUPS.settings, "Account", "AccountDetailView"),
     );
   });
 
@@ -325,6 +328,12 @@ describe("Storybook Explorer organization", () => {
 
     expect(readerStories.groups).toEqual(sortedStoryTitles(STORYBOOK_EXPLORER_SUBGROUPS.reader));
     expect(readerStories.titles.every((title) => title.split("/").length === 3)).toBe(true);
+    expect(readerStories.titles).toContain(
+      storybookExplorerTitle(STORYBOOK_EXPLORER_GROUPS.reader, "Article List", "ArticleListScreenView"),
+    );
+    expect(readerStories.titles).toContain(
+      storybookExplorerTitle(STORYBOOK_EXPLORER_GROUPS.reader, "Article", "ArticleContentView"),
+    );
   });
 
   it("includes the sidebar feed-tree skeleton review story", () => {

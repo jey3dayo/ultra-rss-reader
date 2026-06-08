@@ -3,7 +3,7 @@ import { StoryQueryClientProvider } from "@/components/storybook/story-query-cli
 import { AddAccountForm, type AddAccountFormProps } from "./controller";
 
 const meta = {
-  title: "Settings/Page/AddAccountForm",
+  title: "Settings/Account/AddAccountForm",
   component: AddAccountForm,
   tags: ["autodocs"],
   args: {

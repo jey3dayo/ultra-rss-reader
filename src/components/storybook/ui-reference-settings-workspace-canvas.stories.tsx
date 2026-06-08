@@ -15,6 +15,7 @@ import {
   ReferencePage,
   SettingsHeaderSummarySpecimen,
 } from "@/components/storybook/ui-reference-settings-specimens";
+import { useI18nResourceNamespace } from "@/lib/i18n/use-i18n-resource-namespace";
 
 const settingsNavItems = [
   {
@@ -146,6 +147,16 @@ function SettingsWorkspaceShell({
 }
 
 export function SettingsWorkspaceCanvas() {
+  const settingsResourcesReady = useI18nResourceNamespace("settings");
+
+  if (!settingsResourcesReady) {
+    return (
+      <ReferencePage maxWidthClassName="max-w-[1180px]">
+        <div className="min-h-[12rem] rounded-md border border-border/70 bg-surface-1/84 p-4 shadow-none" />
+      </ReferencePage>
+    );
+  }
+
   return (
     <StoryQueryClientProvider>
       <ReferencePage maxWidthClassName="max-w-[1180px]">

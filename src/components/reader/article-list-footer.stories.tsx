@@ -3,7 +3,7 @@ import { fn } from "storybook/test";
 import { ArticleListFooter } from "./article-list-footer";
 
 const meta = {
-  title: "Reader/Article/ArticleListFooter",
+  title: "Reader/Article List/ArticleListFooter",
   component: ArticleListFooter,
   tags: ["autodocs"],
   args: {

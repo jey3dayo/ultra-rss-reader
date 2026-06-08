@@ -3,7 +3,7 @@ import { fn } from "storybook/test";
 import { GeneralSettingsView } from "./general-settings-view";
 
 const meta = {
-  title: "Settings/Page/GeneralSettingsView",
+  title: "Settings/Category/GeneralSettingsView",
   component: GeneralSettingsView,
   tags: ["autodocs"],
   args: {

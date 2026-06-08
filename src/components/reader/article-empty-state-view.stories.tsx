@@ -62,7 +62,7 @@ function ArticleEmptyStateStory({ scenario }: ArticleEmptyStateStoryProps) {
 }
 
 const meta = {
-  title: "Reader/Article/ArticleEmptyStateView",
+  title: "Reader/Article List/ArticleEmptyStateView",
   component: ArticleEmptyStateStory,
   tags: ["autodocs"],
   args: {
