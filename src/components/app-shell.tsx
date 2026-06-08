@@ -1,4 +1,3 @@
-import { listen } from "@tauri-apps/api/event";
 import { Component, lazy, type ReactNode, Suspense, useEffect, useReducer, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
@@ -12,6 +11,7 @@ import {
 } from "@/components/app-shell/settings-modal-preload";
 import { shouldStartDesktopTitlebarDrag } from "@/components/app-shell/titlebar-drag";
 import { type BrowserDebugGeometrySnapshot, getBrowserGeometryRows } from "@/lib/browser/browser-debug-geometry";
+import { isBrowserDebugGeometryDetail } from "@/lib/browser/browser-debug-geometry-guards";
 import { describeDebugHudEventTarget } from "@/lib/debug/debug-hud-active-element";
 import {
   buildDebugHudClipboardText,
@@ -46,13 +46,19 @@ import { useMouseNavigation } from "../hooks/use-mouse-navigation";
 import { useUpdater } from "../hooks/use-updater";
 import { useWindowAlwaysOnTop } from "../hooks/use-window-always-on-top";
 import { copyValueToClipboard } from "../lib/runtime/clipboard";
-import { attachTauriListeners, TAURI_EVENT_LISTENER_FAILURE_EVENT } from "../lib/runtime/tauri-event-listeners";
+import {
+  attachTauriListeners,
+  listenTauriEvent,
+  TAURI_EVENT_LISTENER_FAILURE_EVENT,
+} from "../lib/runtime/tauri-event-listeners";
 import { cn } from "../lib/utils";
+import { startWindowDragging } from "../lib/window/tauri-window";
 import { usePlatformStore } from "../stores/platform-store";
 import { usePreferencesStore } from "../stores/preferences-store";
 import { useUiStore } from "../stores/ui-store";
 import { AppConfirmDialog } from "./app-confirm-dialog";
 import { AppLayout } from "./app-layout";
+import { APP_TOAST_PLACEMENTS } from "./shared/app-toast-placement";
 import { AppToastView } from "./shared/app-toast-view";
 
 const LazyFocusDebugHudView = lazy(async () => {
@@ -85,8 +91,7 @@ function reportLazyChunkFailure(message: string) {
 }
 
 async function startDesktopTitlebarDrag() {
-  const { getCurrentWindow } = await import("@tauri-apps/api/window");
-  await getCurrentWindow().startDragging();
+  await startWindowDragging();
 }
 
 function reportSettingsModalPreloadFailure(error: unknown) {
@@ -148,13 +153,15 @@ function Toast() {
   const toastMessage = useUiStore((state) => state.toastMessage);
   const clearToast = useUiStore((state) => state.clearToast);
   const browserUrl = useUiStore((state) => state.browserUrl);
+  const syncActive = useUiStore((state) => state.syncProgress.active);
   if (!toastMessage) return null;
 
   return (
     <AppToastView
       toastMessage={toastMessage}
       onClose={clearToast}
-      placement={browserUrl ? "browser-rail" : "bottom-right"}
+      placement={browserUrl ? APP_TOAST_PLACEMENTS.browserRail : APP_TOAST_PLACEMENTS.bottomRight}
+      syncActionState={syncActive}
     />
   );
 }
@@ -181,24 +188,12 @@ function ToastLiveRegion() {
   }, [clearToastAnnouncement, toastAnnouncements]);
 
   return (
-    <div aria-live="polite" aria-atomic="false" className="sr-only" data-testid="toast-live-region" role="status">
+    <output aria-live="polite" aria-atomic="false" className="sr-only" data-testid="toast-live-region">
       {toastAnnouncements.map((announcement) => (
         <div key={announcement.id}>{announcement.message}</div>
       ))}
-    </div>
+    </output>
   );
-}
-
-function isBrowserDebugGeometrySnapshot(value: unknown): value is BrowserDebugGeometrySnapshot {
-  if (value === null || typeof value !== "object") {
-    return false;
-  }
-
-  return "layoutDiagnostics" in value && "nativeDiagnostics" in value;
-}
-
-function isBrowserDebugGeometryDetail(value: unknown): value is BrowserDebugGeometrySnapshot | null {
-  return value === null || isBrowserDebugGeometrySnapshot(value);
 }
 
 function reportSettingsModalBoundaryError(error: Error) {
@@ -348,7 +343,7 @@ function FocusDebugHud({ temporarilyHidden = false, avoidBottomRight = false }: 
   useEffect(() => {
     return attachTauriListeners(
       [
-        listen<string>("browser-webview-debug-input", (event) => {
+        listenTauriEvent<string>("browser-webview-debug-input", (event) => {
           dispatch({ type: "append-browser-trace", value: event.payload });
         }),
       ],
@@ -486,7 +481,7 @@ export function AppShell() {
   useEffect(() => {
     return attachTauriListeners(
       [
-        listen<void>(MAIN_WINDOW_CLOSE_BLOCKED_EVENT, () => {
+        listenTauriEvent<void>(MAIN_WINDOW_CLOSE_BLOCKED_EVENT, () => {
           const { showToast } = useUiStore.getState();
           showToast({
             message: MAIN_WINDOW_CLOSE_BLOCKED_TOAST,

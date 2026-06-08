@@ -11,6 +11,7 @@ describe("AppShell bundle boundary", () => {
     const source = readAppShellSource();
 
     expect(source).not.toContain('import { getCurrentWindow } from "@tauri-apps/api/window";');
-    expect(source).toContain('await import("@tauri-apps/api/window")');
+    expect(source).not.toContain('import("@tauri-apps/api/window")');
+    expect(source).toContain('from "../lib/window/tauri-window"');
   });
 });

@@ -4,13 +4,15 @@ import type { ToastData } from "@/lib/ui/toast.types";
 import { cn } from "@/lib/utils";
 import { APP_STACKING_CLASS_NAMES } from "@/lib/window/window-chrome";
 import { Button } from "../ui/button";
+import { APP_TOAST_PLACEMENTS, type AppToastPlacement } from "./app-toast-placement";
 
 type AppToastViewProps = {
   toastMessage: ToastData;
   onClose: () => void;
   position?: "fixed" | "static";
-  placement?: "bottom-right" | "browser-rail";
+  placement?: AppToastPlacement;
   testId?: string;
+  syncActionState?: boolean;
 };
 
 const UPDATE_TOAST_WIDTH_CLASS_NAME = "w-[min(320px,calc(100vw-2rem))]";
@@ -19,16 +21,22 @@ function clampProgressWidth(progress: number) {
   return Math.min(Math.max(progress, 0), 100);
 }
 
+function resolveActionDisabled(disabled: boolean | (() => boolean) | undefined): boolean {
+  return typeof disabled === "function" ? disabled() : disabled === true;
+}
+
 export function AppToastView({
   toastMessage,
   onClose,
   position = "fixed",
-  placement = "bottom-right",
+  placement = APP_TOAST_PLACEMENTS.bottomRight,
   testId = "app-toast",
+  syncActionState = false,
 }: AppToastViewProps) {
   const { t } = useTranslation("common");
   const { message, progress, actions, variant } = toastMessage;
-  const showInBrowserRail = position === "fixed" && placement === "browser-rail";
+  const showInBrowserRail = position === "fixed" && placement === APP_TOAST_PLACEMENTS.browserRail;
+  void syncActionState;
 
   return (
     <div
@@ -37,7 +45,7 @@ export function AppToastView({
       data-testid={testId}
       className={cn(
         MOTION_POPUP_SURFACE_CLASS_NAME,
-        position === "fixed" && placement === "bottom-right" && "fixed right-4 bottom-4",
+        position === "fixed" && placement === APP_TOAST_PLACEMENTS.bottomRight && "fixed right-4 bottom-4",
         showInBrowserRail && "fixed top-1 right-20",
         position === "fixed" && APP_STACKING_CLASS_NAMES.toast,
         position === "static" && "relative",
@@ -79,6 +87,7 @@ export function AppToastView({
               key={action.label}
               type="button"
               onClick={action.onClick}
+              disabled={resolveActionDisabled(action.disabled)}
               variant="ghost"
               size="xs"
               className="min-h-7 px-2.5 py-1 text-xs font-medium text-primary hover:bg-surface-1/72 hover:text-primary"

@@ -70,6 +70,7 @@ export function TagColorPicker({
         role="radiogroup"
         aria-orientation="horizontal"
         aria-labelledby={label ? labelId : undefined}
+        tabIndex={-1}
         className="flex flex-wrap items-center gap-1.5"
         onKeyDown={handleKeyDown}
       >

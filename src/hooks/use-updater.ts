@@ -1,5 +1,4 @@
 import { Result } from "@praha/byethrow";
-import { listen } from "@tauri-apps/api/event";
 import { useEffect } from "react";
 import {
   UpdateDownloadProgressEventPayloadSchema,
@@ -10,7 +9,7 @@ import { type AppError, checkForUpdate, downloadAndInstallUpdate, restartApp } f
 import { getAddFeedDialogRestartBlockerSnapshot } from "@/components/reader/hooks/feed-dialogs/use-add-feed-dialog-actions";
 import { getSettingsDirtyStateSnapshot } from "@/components/settings/hooks/settings-dirty-state-registry";
 import i18n from "@/lib/i18n";
-import { attachTauriListeners } from "@/lib/runtime/tauri-event-listeners";
+import { attachTauriListeners, listenTauriEvent } from "@/lib/runtime/tauri-event-listeners";
 import type { ToastData } from "@/lib/ui/toast.types";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -37,6 +36,10 @@ function clearToastIfCurrent(toast: ToastData): void {
   }
 
   useUiStore.getState().clearToast();
+}
+
+function isSyncActive(): boolean {
+  return useUiStore.getState().syncProgress.active;
 }
 
 function rememberStaleDownloadSession(): void {
@@ -67,6 +70,7 @@ export function showUpdateAvailableToast(version: string): void {
     actions: [
       {
         label: i18n.t("updater.update_now"),
+        disabled: isSyncActive,
         onClick: () => {
           startDownload(toast);
         },
@@ -129,6 +133,10 @@ function getErrorMessage(error: unknown): string {
 
 function startDownload(ownerToast?: ToastData): void {
   if (ownerToast && !isCurrentToast(ownerToast)) {
+    return;
+  }
+
+  if (isSyncActive()) {
     return;
   }
 
@@ -459,7 +467,7 @@ export function useUpdater(): void {
       [
         {
           owner: "updater:download-progress",
-          subscription: listen("update-download-progress", (event) => {
+          subscription: listenTauriEvent("update-download-progress", (event) => {
             if (!listenerActive) {
               return;
             }
@@ -481,7 +489,7 @@ export function useUpdater(): void {
         },
         {
           owner: "updater:ready",
-          subscription: listen("update-ready", (event) => {
+          subscription: listenTauriEvent("update-ready", (event) => {
             if (!listenerActive) {
               return;
             }

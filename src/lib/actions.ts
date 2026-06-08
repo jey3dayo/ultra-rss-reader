@@ -11,7 +11,7 @@ import { logRuntimeDiagnostic, type RuntimeDiagnosticPolicyId } from "@/lib/runt
 import { triggerManualSyncWithCooldown } from "@/lib/sync/manual-sync";
 import { resolveSyncFeedbackMessage, summarizeSyncResult } from "@/lib/sync/sync-result-feedback";
 import { classifyRuntimeActionErrorCategory, type RuntimeActionErrorCategory } from "@/lib/ui-errors";
-import { isWindowFullscreen, setWindowFullscreen } from "@/lib/window/windows";
+import { isWindowFullscreen, setWindowFullscreen } from "@/lib/window/tauri-window";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 

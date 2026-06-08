@@ -4,25 +4,18 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { useBrowserDebugGeometryEvents } from "@/components/reader/hooks/browser/use-browser-debug-geometry-events";
 import { APP_EVENTS } from "@/constants/events";
 import type { BrowserDebugGeometrySnapshot } from "@/lib/browser/browser-debug-geometry";
+import { isBrowserDebugGeometryDetail } from "@/lib/browser/browser-debug-geometry-guards";
 
 setupBrowserTestDom();
 
 type BrowserDebugGeometryDetail = BrowserDebugGeometrySnapshot | null;
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function isBrowserDebugGeometrySnapshot(value: unknown): value is BrowserDebugGeometrySnapshot {
-  return isRecord(value) && "layoutDiagnostics" in value && "nativeDiagnostics" in value;
-}
 
 function readBrowserDebugGeometryDetail(event: Event): BrowserDebugGeometryDetail {
   if (!(event instanceof CustomEvent)) {
     throw new TypeError("Expected browser debug geometry event to be a CustomEvent");
   }
 
-  if (event.detail === null || isBrowserDebugGeometrySnapshot(event.detail)) {
+  if (isBrowserDebugGeometryDetail(event.detail)) {
     return event.detail;
   }
 

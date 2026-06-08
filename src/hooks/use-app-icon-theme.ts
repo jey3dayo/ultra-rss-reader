@@ -2,7 +2,7 @@ import { Result } from "@praha/byethrow";
 import { useCallback, useEffect, useRef } from "react";
 import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
 import { readMatchMedia, subscribeMatchMediaChange } from "@/lib/runtime/match-media-listener";
-import { setWindowIcon } from "@/lib/window/windows";
+import { setWindowIcon } from "@/lib/window/tauri-window";
 import { resolvePreferenceValue } from "@/schemas/preferences";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";

@@ -1,6 +1,9 @@
 import type { i18n as I18nInstance } from "i18next";
 
 const countFallbackLocale = "en";
+const countNumberFormatOptions = {
+  maximumFractionDigits: 0,
+} satisfies Intl.NumberFormatOptions;
 const countNumberFormatters = new Map<string, Intl.NumberFormat>();
 
 export function resolveCountLocale(locale?: string, fallbackLocale = countFallbackLocale): string {
@@ -29,10 +32,7 @@ export function normalizeDisplayCount(value: unknown): number {
 export function formatDisplayCount(value: unknown, locale?: string): string {
   const resolvedLocale = resolveCountLocale(locale);
   const formatter =
-    countNumberFormatters.get(resolvedLocale) ??
-    new Intl.NumberFormat(resolvedLocale, {
-      maximumFractionDigits: 0,
-    });
+    countNumberFormatters.get(resolvedLocale) ?? Intl.NumberFormat(resolvedLocale, countNumberFormatOptions);
 
   countNumberFormatters.set(resolvedLocale, formatter);
   return formatter.format(normalizeDisplayCount(value));

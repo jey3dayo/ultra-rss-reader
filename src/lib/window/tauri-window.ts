@@ -2,6 +2,10 @@ import { Result } from "@praha/byethrow";
 
 const UNKNOWN_WINDOW_ERROR_MESSAGE = "Unknown window error";
 
+export type WindowBadgeCountTarget = {
+  setBadgeCount?: (count?: number) => Promise<void>;
+};
+
 function readErrorLikeMessage(error: object): string | null {
   try {
     const message = Reflect.get(error, "message");
@@ -84,4 +88,14 @@ export function setWindowIcon(iconPath: string) {
     },
     catch: toError,
   });
+}
+
+export async function startWindowDragging(): Promise<void> {
+  const { getCurrentWindow } = await import("@tauri-apps/api/window");
+  await getCurrentWindow().startDragging();
+}
+
+export async function getWindowBadgeCountTarget(): Promise<WindowBadgeCountTarget> {
+  const { getCurrentWindow } = await import("@tauri-apps/api/window");
+  return await getCurrentWindow();
 }
