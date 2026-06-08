@@ -1,7 +1,7 @@
 import { cleanup, configure } from "@testing-library/react";
 import { afterEach, beforeEach, vi } from "vitest";
 import "@testing-library/jest-dom/vitest";
-import { resetCommandHistoryStorageFailureWarnings } from "@/components/reader/hooks/command-palette/use-command-history";
+import { resetCommandHistoryStorageFailureWarnings } from "@/lib/command-palette/command-history-storage";
 import { resetStartupSyncStorageFailureWarnings } from "@/lib/sync/startup-sync-storage";
 import {
   clearWorkingStorage,

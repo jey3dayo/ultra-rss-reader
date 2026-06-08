@@ -1,10 +1,5 @@
 import { useEffect, useMemo } from "react";
 import type { ArticleDto, FeedDto, TagDto } from "@/api/tauri-commands";
-import {
-  getHistory,
-  projectCommandHistoryForExistingEntries,
-  writeNormalizedHistoryAfterResourceProjection,
-} from "@/components/reader/hooks/command-palette/use-command-history";
 import type { RuntimeDevScenario } from "@/dev/scenario-runtime";
 import { useRecentArticles, useSearchArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
@@ -13,6 +8,11 @@ import {
   type CommandPaletteHistoryEntry,
   parseCommandPaletteHistoryEntry,
 } from "@/lib/command-palette/command-history";
+import {
+  getHistory,
+  projectCommandHistoryForExistingEntries,
+  writeNormalizedHistoryAfterResourceProjection,
+} from "@/lib/command-palette/command-history-storage";
 import type { PaletteAction } from "../../command-palette.types";
 
 type UseCommandPaletteDataParams = {

@@ -1,5 +1,6 @@
 import { installNodeTestStorage } from "@tests/helpers/node-test-storage";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { MAX_COMMAND_HISTORY, MAX_COMMAND_HISTORY_STORAGE_LENGTH, STORAGE_KEYS } from "@/constants/storage";
 import {
   addToHistory,
   clearHistory,
@@ -9,13 +10,12 @@ import {
   projectCommandHistoryForExistingEntries,
   resetCommandHistoryStorageFailureWarnings,
   writeNormalizedHistoryAfterResourceProjection,
-} from "@/components/reader/hooks/command-palette/use-command-history";
-import { MAX_COMMAND_HISTORY, MAX_COMMAND_HISTORY_STORAGE_LENGTH, STORAGE_KEYS } from "@/constants/storage";
+} from "@/lib/command-palette/command-history-storage";
 import { resetRuntimeDiagnosticOnceSuppressionForTests } from "@/lib/runtime/diagnostics";
 
 const nodeTestStorage = installNodeTestStorage();
 
-describe("use-command-history", () => {
+describe("command-history-storage", () => {
   afterAll(() => {
     nodeTestStorage.restore();
   });

@@ -16,7 +16,7 @@ const { addToHistoryMock, executeActionMock, runRuntimeDevScenarioMock } = vi.ho
   runRuntimeDevScenarioMock: vi.fn(),
 }));
 
-vi.mock("@/components/reader/hooks/command-palette/use-command-history", () => ({
+vi.mock("@/lib/command-palette/command-history-storage", () => ({
   addToHistory: addToHistoryMock,
 }));
 

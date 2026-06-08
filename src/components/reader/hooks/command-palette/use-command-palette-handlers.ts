@@ -1,11 +1,11 @@
 import { Result } from "@praha/byethrow";
 import { useRef } from "react";
-import { addToHistory } from "@/components/reader/hooks/command-palette/use-command-history";
 import { type RuntimeDevScenario, runRuntimeDevScenario } from "@/dev/scenario-runtime";
 import type { FeedLandingFailure, FeedLandingResult } from "@/hooks/use-feed-landing";
 import { executeAction } from "@/lib/actions";
 import { isAppActionAvailable } from "@/lib/app-actions";
 import { createCommandPaletteHistoryValue } from "@/lib/command-palette/command-history";
+import { addToHistory } from "@/lib/command-palette/command-history-storage";
 import i18n from "@/lib/i18n";
 import type { ToastData } from "@/lib/ui/toast.types";
 import enReader from "@/locales/en/reader.json";

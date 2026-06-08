@@ -5,13 +5,13 @@ import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import { setPreference } from "@/api/tauri-commands";
+import { useSidebarStartupFolderExpansion } from "@/components/reader/hooks/sidebar/use-sidebar-startup-folder-expansion";
+import { STORAGE_KEYS } from "@/constants/storage";
 import {
   addToHistory,
   getHistory,
   resetCommandHistoryStorageFailureWarnings,
-} from "@/components/reader/hooks/command-palette/use-command-history";
-import { useSidebarStartupFolderExpansion } from "@/components/reader/hooks/sidebar/use-sidebar-startup-folder-expansion";
-import { STORAGE_KEYS } from "@/constants/storage";
+} from "@/lib/command-palette/command-history-storage";
 import { logRuntimeDiagnostic, resetRuntimeDiagnosticOnceSuppressionForTests } from "@/lib/runtime/diagnostics";
 import { resetPreferencesStoreRuntimeForTests, usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
