@@ -4,6 +4,19 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.43.12] - 2026-06-08
+
+### Bug Fixes
+
+- 同期中は updater action を無効化し、同期処理と更新操作が重ならないようにした
+
+### Maintenance
+
+- Reader 検索を FTS fast path 優先にし、通常の検索で LIKE fallback を常時実行しないようにして記事検索の負荷を減らした
+- 記事一覧向けの SQLite ordered index を追加し、feed ごとの記事一覧取得を安定して index で処理できるようにした
+- browser geometry guard、Tauri API import、toast placement の責務境界を整理し、React Doctor 指摘に沿って UI / runtime 周辺の保守性を上げた
+- JS toolchain、Tauri lockfile、capability schema を更新した
+
 ## [0.43.11] - 2026-06-02
 
 ### Bug Fixes
