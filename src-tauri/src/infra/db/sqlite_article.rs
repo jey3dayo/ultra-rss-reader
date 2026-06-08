@@ -328,6 +328,81 @@ fn build_fts_query(query: &str) -> Option<String> {
     }
 }
 
+fn escaped_like_pattern(query: &str) -> String {
+    let escaped_query = query
+        .replace('\\', "\\\\")
+        .replace('%', "\\%")
+        .replace('_', "\\_");
+    format!("%{escaped_query}%")
+}
+
+fn build_search_fts_sql(select_cols_prefixed: &str, mute_clause: &str) -> String {
+    format!(
+        "WITH matched(article_id, published_at, fetched_at) AS (
+           SELECT a.id, a.published_at, a.fetched_at FROM articles a
+           JOIN feeds f ON a.feed_id = f.id
+           JOIN articles_fts fts ON a.rowid = fts.rowid
+           WHERE f.account_id = ?1
+             AND articles_fts MATCH ?2
+             AND {mute_clause}
+         )
+         SELECT {select_cols_prefixed} FROM articles a
+         JOIN matched m ON m.article_id = a.id
+         ORDER BY m.published_at DESC, m.fetched_at DESC, m.article_id DESC
+         LIMIT ?3 OFFSET ?4"
+    )
+}
+
+fn build_search_list_fts_sql(select_cols_prefixed: &str, mute_clause: &str) -> String {
+    build_search_fts_sql(select_cols_prefixed, mute_clause)
+}
+
+fn build_search_like_sql(select_cols_prefixed: &str, mute_clause: &str) -> String {
+    format!(
+        "WITH matched(article_id, published_at, fetched_at) AS (
+           SELECT a.id, a.published_at, a.fetched_at FROM articles a
+           JOIN feeds f ON a.feed_id = f.id
+           WHERE f.account_id = ?1
+             AND (
+               a.title LIKE ?2 ESCAPE '\\'
+               OR (
+                 CASE
+                   WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '')
+                   ELSE a.content_text
+                 END
+               ) LIKE ?2 ESCAPE '\\'
+             )
+             AND {mute_clause}
+         )
+         SELECT {select_cols_prefixed} FROM articles a
+         JOIN matched m ON m.article_id = a.id
+         ORDER BY m.published_at DESC, m.fetched_at DESC, m.article_id DESC
+         LIMIT ?3 OFFSET ?4"
+    )
+}
+
+fn search_fts_has_any(
+    conn: &Connection,
+    account_id: &AccountId,
+    fts_query: &str,
+    mute_clause: &str,
+) -> DomainResult<bool> {
+    let sql = format!(
+        "SELECT 1 FROM articles a
+         JOIN feeds f ON a.feed_id = f.id
+         JOIN articles_fts fts ON a.rowid = fts.rowid
+         WHERE f.account_id = ?1
+           AND articles_fts MATCH ?2
+           AND {mute_clause}
+         LIMIT 1"
+    );
+    let has_any = conn
+        .query_row(&sql, params![account_id.0, fts_query], |_| Ok(()))
+        .optional()?
+        .is_some();
+    Ok(has_any)
+}
+
 fn row_to_article_view_history_item(
     row: &rusqlite::Row,
 ) -> rusqlite::Result<ArticleViewHistoryItem> {
@@ -1243,50 +1318,35 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
             "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
         );
 
-        // Run FTS and LIKE as a single paginated SQLite query. This keeps
-        // deduplication and ordering in SQL instead of materializing all hits
-        // into Rust before slicing the requested page.
-        let search_sql = format!(
-            "WITH matched(article_id, published_at, fetched_at) AS (
-               SELECT a.id, a.published_at, a.fetched_at FROM articles a
-               JOIN feeds f ON a.feed_id = f.id
-               JOIN articles_fts fts ON a.rowid = fts.rowid
-               WHERE f.account_id = ?1
-                 AND articles_fts MATCH ?2
-                 AND {mute_clause}
-               UNION
-               SELECT a.id, a.published_at, a.fetched_at FROM articles a
-               JOIN feeds f ON a.feed_id = f.id
-               WHERE f.account_id = ?1
-                 AND (
-                   a.title LIKE ?3 ESCAPE '\\'
-                   OR (
-                     CASE
-                       WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '')
-                       ELSE a.content_text
-                     END
-                   ) LIKE ?3 ESCAPE '\\'
-                 )
-                 AND {mute_clause}
-             )
-             SELECT {select_cols_prefixed} FROM articles a
-             JOIN matched m ON m.article_id = a.id
-             ORDER BY m.published_at DESC, m.fetched_at DESC, m.article_id DESC
-             LIMIT ?4 OFFSET ?5"
-        );
-
-        // Escape SQL LIKE wildcards in the query to match literal characters.
-        let escaped_query = query
-            .replace('\\', "\\\\")
-            .replace('%', "\\%")
-            .replace('_', "\\_");
-        let like_pattern = format!("%{escaped_query}%");
+        let search_sql = build_search_fts_sql(&select_cols_prefixed, &mute_clause);
         let mut stmt = self.conn.prepare(&search_sql)?;
         let articles = stmt
             .query_map(
                 params![
                     account_id.0,
                     fts_query,
+                    pagination.limit as i64,
+                    pagination.offset as i64
+                ],
+                row_to_article,
+            )?
+            .collect::<Result<Vec<_>, _>>()?;
+        if !articles.is_empty() {
+            return Ok(articles);
+        }
+        if pagination.offset > 0
+            && search_fts_has_any(self.conn, account_id, &fts_query, &mute_clause)?
+        {
+            return Ok(Vec::new());
+        }
+
+        let search_sql = build_search_like_sql(&select_cols_prefixed, &mute_clause);
+        let like_pattern = escaped_like_pattern(query);
+        let mut stmt = self.conn.prepare(&search_sql)?;
+        let articles = stmt
+            .query_map(
+                params![
+                    account_id.0,
                     like_pattern,
                     pagination.limit as i64,
                     pagination.offset as i64
@@ -1436,45 +1496,35 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
             "a.title",
             "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
         );
-        let search_sql = format!(
-            "WITH matched(article_id, published_at, fetched_at) AS (
-               SELECT a.id, a.published_at, a.fetched_at FROM articles a
-               JOIN feeds f ON a.feed_id = f.id
-               JOIN articles_fts fts ON a.rowid = fts.rowid
-               WHERE f.account_id = ?1
-                 AND articles_fts MATCH ?2
-                 AND {mute_clause}
-               UNION
-               SELECT a.id, a.published_at, a.fetched_at FROM articles a
-               JOIN feeds f ON a.feed_id = f.id
-               WHERE f.account_id = ?1
-                 AND (
-                   a.title LIKE ?3 ESCAPE '\\'
-                   OR (
-                     CASE
-                       WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '')
-                       ELSE a.content_text
-                     END
-                   ) LIKE ?3 ESCAPE '\\'
-                 )
-                 AND {mute_clause}
-             )
-             SELECT {select_cols_prefixed} FROM articles a
-             JOIN matched m ON m.article_id = a.id
-             ORDER BY m.published_at DESC, m.fetched_at DESC, m.article_id DESC
-             LIMIT ?4 OFFSET ?5"
-        );
-        let escaped_query = query
-            .replace('\\', "\\\\")
-            .replace('%', "\\%")
-            .replace('_', "\\_");
-        let like_pattern = format!("%{escaped_query}%");
+        let search_sql = build_search_list_fts_sql(&select_cols_prefixed, &mute_clause);
         let mut stmt = self.conn.prepare(&search_sql)?;
         let articles = stmt
             .query_map(
                 params![
                     account_id.0,
                     fts_query,
+                    pagination.limit as i64,
+                    pagination.offset as i64
+                ],
+                row_to_article_list_item,
+            )?
+            .collect::<Result<Vec<_>, _>>()?;
+        if !articles.is_empty() {
+            return Ok(articles);
+        }
+        if pagination.offset > 0
+            && search_fts_has_any(self.conn, account_id, &fts_query, &mute_clause)?
+        {
+            return Ok(Vec::new());
+        }
+
+        let search_sql = build_search_like_sql(&select_cols_prefixed, &mute_clause);
+        let like_pattern = escaped_like_pattern(query);
+        let mut stmt = self.conn.prepare(&search_sql)?;
+        let articles = stmt
+            .query_map(
+                params![
+                    account_id.0,
                     like_pattern,
                     pagination.limit as i64,
                     pagination.offset as i64
@@ -4011,6 +4061,35 @@ mod tests {
             Some("\"\"\"quoted\"\"\" \"OR\" \"prefix*\"".to_string())
         );
         assert_eq!(build_fts_query(" \n\t "), None);
+    }
+
+    #[test]
+    fn search_tokenized_fast_path_sql_does_not_include_like_fallback_union() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+        repo.upsert(&[make_article(&feed_id, "Rust Programming Guide")])
+            .unwrap();
+
+        let results = repo
+            .search_list(&account_id, "Rust", &Pagination::default())
+            .unwrap();
+        assert_eq!(results.len(), 1);
+
+        let select_cols_prefixed =
+            SqliteArticleRepository::select_cols_prefixed(ARTICLE_LIST_SELECT_COLS, "a");
+        let mute_clause = build_mute_keyword_exclusion_clause(
+            "a.title",
+            "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
+        );
+        let fast_path_sql = build_search_list_fts_sql(&select_cols_prefixed, &mute_clause);
+
+        assert!(fast_path_sql.contains("articles_fts MATCH ?2"));
+        assert!(
+            !fast_path_sql.contains("UNION"),
+            "tokenized FTS search should not always execute the LIKE fallback: {fast_path_sql}"
+        );
     }
 
     #[test]
