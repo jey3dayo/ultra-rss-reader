@@ -8,6 +8,7 @@ import type {
   MuteKeywordDto,
   TagDto,
 } from "@/api/tauri-commands";
+import { installStoryRuntimeTauriInternals } from "@/components/storybook/story-tauri-runtime";
 import { parseWithSchema } from "@/schemas/parse";
 import {
   createSampleAccounts,
@@ -468,6 +469,7 @@ function createDefaultHandler(): MockHandler {
 export function setupTauriMocks(handler?: MockHandler): void {
   const defaultHandler = createDefaultHandler();
   ensureTauriMockWindow();
+  installStoryRuntimeTauriInternals();
   mockWindows("main");
   mockIPC((cmd, payload) => {
     const args = validateArgs(cmd, payload);

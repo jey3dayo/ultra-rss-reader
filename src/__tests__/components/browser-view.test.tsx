@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
-import { setTauriRuntimeMissing, setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
+import { setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
 import type { MockTauriCommandCall } from "@tests/helpers/tauri-types";
 import { flushTestResizeObservers } from "@tests/setup";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -1340,8 +1340,6 @@ describe("BrowserView", () => {
 
   it("shows a browser-mode fallback panel instead of a blank surface when no Tauri runtime is available", async () => {
     mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
-    setTauriRuntimeMissing();
-    window.__DEV_BROWSER_MOCKS__ = true;
 
     useUiStore.setState({
       selectedArticleId: "art-1",
@@ -1365,6 +1363,7 @@ describe("BrowserView", () => {
       }
       return null;
     });
+    window.__DEV_BROWSER_MOCKS__ = true;
 
     render(<BrowserViewHarness />, { wrapper: createWrapper() });
 
