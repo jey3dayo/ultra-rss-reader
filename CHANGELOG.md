@@ -4,6 +4,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.44.0] - 2026-06-08
+
+### Maintenance
+
+- 設定、アカウントの骨格、タグ、ミュートキーワードを JSON の設定プロファイルとして書き出し・読み込みできるようにした。パスワードや記事データは含めず、Windows / macOS 間で再利用しやすい merge-only import にした
+- Storybook explorer のカテゴリ構成と command palette history storage の責務境界を整理し、UI 開発と履歴管理まわりの保守性を上げた
+
 ## [0.43.12] - 2026-06-08
 
 ### Bug Fixes
