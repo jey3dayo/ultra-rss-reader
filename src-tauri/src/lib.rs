@@ -874,6 +874,8 @@ pub fn run() {
             commands::mute_keyword_commands::set_mute_auto_mark_read,
             commands::preference_commands::get_preferences,
             commands::preference_commands::set_preference,
+            commands::settings_profile_commands::export_settings_profile,
+            commands::settings_profile_commands::import_settings_profile,
             commands::tag_commands::list_tags,
             commands::tag_commands::create_tag,
             commands::tag_commands::rename_tag,

@@ -1,3 +1,4 @@
+import { type ChangeEvent, useRef } from "react";
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
@@ -15,6 +16,15 @@ type DataSettingsViewProps = {
   safetyHeading: string;
   safetyDescription: string;
   safetyChecklist: readonly string[];
+  settingsProfileHeading: string;
+  settingsProfileDescription: string;
+  settingsProfileImportLabel: string;
+  settingsProfileImportActionLabel?: string;
+  settingsProfileExportLabel: string;
+  settingsProfileExportActionLabel?: string;
+  settingsProfileFileInputLabel: string;
+  importingSettingsProfile: boolean;
+  exportingSettingsProfile: boolean;
   optimizationHeading: string;
   vacuumDescription: string;
   vacuumLabel: string;
@@ -27,6 +37,8 @@ type DataSettingsViewProps = {
   openingLogDir: boolean;
   onVacuum: () => void;
   onOpenLogDir: () => void;
+  onImportSettingsProfile: (file: File) => void;
+  onExportSettingsProfile: () => void;
 };
 
 export function DataSettingsView({
@@ -40,6 +52,15 @@ export function DataSettingsView({
   safetyHeading,
   safetyDescription,
   safetyChecklist,
+  settingsProfileHeading,
+  settingsProfileDescription,
+  settingsProfileImportLabel,
+  settingsProfileImportActionLabel,
+  settingsProfileExportLabel,
+  settingsProfileExportActionLabel,
+  settingsProfileFileInputLabel,
+  importingSettingsProfile,
+  exportingSettingsProfile,
   optimizationHeading,
   vacuumDescription,
   vacuumLabel,
@@ -52,7 +73,10 @@ export function DataSettingsView({
   openingLogDir,
   onVacuum,
   onOpenLogDir,
+  onImportSettingsProfile,
+  onExportSettingsProfile,
 }: DataSettingsViewProps) {
+  const settingsProfileFileInputRef = useRef<HTMLInputElement | null>(null);
   const databaseSizeDisplayValue =
     databaseSizeStatus === "ready"
       ? databaseSizeValue
@@ -62,6 +86,20 @@ export function DataSettingsView({
   const vacuumUnavailable = databaseSizeStatus !== "ready";
   const vacuumDescriptionText =
     databaseSizeStatus === "ready" ? vacuumDescription : `${vacuumDescription} ${databaseSizeDisplayValue}`;
+  const settingsProfileActionUnavailable =
+    vacuuming || openingLogDir || importingSettingsProfile || exportingSettingsProfile;
+
+  const handleImportClick = () => {
+    settingsProfileFileInputRef.current?.click();
+  };
+
+  const handleImportFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0] ?? null;
+    event.currentTarget.value = "";
+    if (file) {
+      onImportSettingsProfile(file);
+    }
+  };
 
   return (
     <SettingsContentLayout title={title} outerTestId="data-settings-root">
@@ -79,6 +117,26 @@ export function DataSettingsView({
             <li key={item}>{item}</li>
           ))}
         </ul>
+      </SettingsSection>
+      <SettingsSection heading={settingsProfileHeading} surface="flat" className="mb-6 sm:mb-7">
+        <LabeledControlRow label={settingsProfileExportLabel} description={settingsProfileDescription}>
+          <SettingsActionButton disabled={settingsProfileActionUnavailable} onClick={onExportSettingsProfile}>
+            {settingsProfileExportActionLabel ?? settingsProfileExportLabel}
+          </SettingsActionButton>
+        </LabeledControlRow>
+        <LabeledControlRow label={settingsProfileImportLabel} description={settingsProfileFileInputLabel}>
+          <input
+            ref={settingsProfileFileInputRef}
+            type="file"
+            accept="application/json,.json"
+            className="sr-only"
+            aria-label={settingsProfileFileInputLabel}
+            onChange={handleImportFileChange}
+          />
+          <SettingsActionButton disabled={settingsProfileActionUnavailable} onClick={handleImportClick}>
+            {settingsProfileImportActionLabel ?? settingsProfileImportLabel}
+          </SettingsActionButton>
+        </LabeledControlRow>
       </SettingsSection>
       <SettingsSection heading={optimizationHeading} surface="flat" className="mb-6 sm:mb-7">
         <LabeledControlRow label={vacuumLabel} description={vacuumDescriptionText}>

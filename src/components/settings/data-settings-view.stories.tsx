@@ -17,6 +17,13 @@ const meta = {
     safetyHeading: "Backup and restore",
     safetyDescription: "Confirm a rollback path before changing user data.",
     safetyChecklist: ["Export OPML before destructive operations.", "Quit the app before restoring backups."],
+    settingsProfileHeading: "Settings profile",
+    settingsProfileDescription: "Export preferences, account skeletons, tags, and mute keywords.",
+    settingsProfileImportLabel: "Import profile",
+    settingsProfileExportLabel: "Export profile",
+    settingsProfileFileInputLabel: "Choose settings profile JSON",
+    importingSettingsProfile: false,
+    exportingSettingsProfile: false,
     optimizationHeading: "Optimization",
     vacuumDescription: "Reclaim unused database space after large cleanup operations.",
     vacuumLabel: "Optimize database",
@@ -27,6 +34,8 @@ const meta = {
     openingLogDir: false,
     onVacuum: fn(),
     onOpenLogDir: fn(),
+    onImportSettingsProfile: fn(),
+    onExportSettingsProfile: fn(),
   },
   decorators: [
     (Story) => (

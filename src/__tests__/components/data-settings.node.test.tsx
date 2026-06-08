@@ -10,8 +10,12 @@ const mocks = vi.hoisted(() => ({
     databaseSizeValue: "1.0 KB",
     vacuuming: false,
     openingLogDir: false,
+    exportingSettingsProfile: false,
+    importingSettingsProfile: false,
     handleVacuum: vi.fn(),
     handleOpenLogDir: vi.fn(),
+    handleExportSettingsProfile: vi.fn(),
+    handleImportSettingsProfileFile: vi.fn(),
   })),
   showToast: vi.fn(),
   setSettingsLoading: vi.fn(),
@@ -83,8 +87,12 @@ describe("DataSettings", () => {
       databaseSizeValue: "1.0 KB",
       vacuuming: true,
       openingLogDir: false,
+      exportingSettingsProfile: false,
+      importingSettingsProfile: false,
       handleVacuum: vi.fn(),
       handleOpenLogDir: vi.fn(),
+      handleExportSettingsProfile: vi.fn(),
+      handleImportSettingsProfileFile: vi.fn(),
     });
 
     render(<DataSettings />);
@@ -113,8 +121,12 @@ describe("DataSettings", () => {
       databaseSizeValue: "1.0 KB",
       vacuuming: true,
       openingLogDir: true,
+      exportingSettingsProfile: true,
+      importingSettingsProfile: false,
       handleVacuum: vi.fn(),
       handleOpenLogDir: vi.fn(),
+      handleExportSettingsProfile: vi.fn(),
+      handleImportSettingsProfileFile: vi.fn(),
     });
 
     render(<DataSettings />);
@@ -125,6 +137,10 @@ describe("DataSettings", () => {
         vacuumActionLabel: "data.vacuuming",
         openLogDirLabel: "data.open_log_dir",
         openLogDirActionLabel: "data.opening_log_dir",
+        settingsProfileExportLabel: "data.settings_profile_export",
+        settingsProfileExportActionLabel: "data.settings_profile_exporting",
+        settingsProfileImportLabel: "data.settings_profile_import",
+        settingsProfileImportActionLabel: "data.settings_profile_import",
       }),
     );
   });

@@ -5,10 +5,13 @@ import {
   deleteTagArgs,
   getArticleTagsArgs,
   getTagArticleCountsArgs,
+  importSettingsProfileArgs,
   listArticlesByTagArgs,
   NullResponseSchema,
   PreferencesDtoSchema,
   renameTagArgs,
+  SettingsProfileImportResultSchema,
+  StringResponseSchema,
   setPreferenceArgs,
   TagArticleCountsSchema,
   TagDtoListSchema,
@@ -22,6 +25,15 @@ export const getPreferences = () => safeInvoke("get_preferences", { response: Pr
 
 export const setPreference = (key: string, value: string) =>
   safeInvoke("set_preference", { response: NullResponseSchema, args: setPreferenceArgs }, { key, value });
+
+export const exportSettingsProfile = () => safeInvoke("export_settings_profile", { response: StringResponseSchema });
+
+export const importSettingsProfile = (profileJson: string) =>
+  safeInvoke(
+    "import_settings_profile",
+    { response: SettingsProfileImportResultSchema, args: importSettingsProfileArgs },
+    { profileJson },
+  );
 
 // Tags
 export const listTags = () => safeInvoke("list_tags", { response: TagDtoListSchema });

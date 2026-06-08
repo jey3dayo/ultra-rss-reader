@@ -4,5 +4,7 @@ description = "Allows settings and platform information commands."
 commands.allow = [
   "get_preferences",
   "set_preference",
+  "export_settings_profile",
+  "import_settings_profile",
   "get_platform_info",
 ]

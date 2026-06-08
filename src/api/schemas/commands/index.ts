@@ -5,6 +5,7 @@ export * from "./feed-folder";
 export * from "./integration";
 export * from "./mute-keyword";
 export * from "./registry";
+export * from "./settings-profile";
 export {
   ACCOUNT_NAME_MAX_CHARS,
   type ArticleListMode,

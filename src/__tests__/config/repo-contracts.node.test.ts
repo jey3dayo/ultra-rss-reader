@@ -1255,6 +1255,7 @@ describe("repository static contracts", () => {
       "platform-info",
       "preferences",
       "runtime-contracts",
+      "settings-profile",
       "starred-articles",
       "sync-progress",
       "sync-result",

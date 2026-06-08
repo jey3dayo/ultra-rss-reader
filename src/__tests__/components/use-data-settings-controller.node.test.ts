@@ -3,7 +3,13 @@ import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DatabaseInfoDtoSchema } from "@/api/schemas/database-info";
-import { getDatabaseInfo, openLogDir, vacuumDatabase } from "@/api/tauri-commands";
+import {
+  exportSettingsProfile,
+  getDatabaseInfo,
+  importSettingsProfile,
+  openLogDir,
+  vacuumDatabase,
+} from "@/api/tauri-commands";
 import type { DatabaseRecoveryActionSafety } from "@/components/settings/hooks/use-data-settings-controller";
 import {
   classifyDatabaseRuntimeRecoverySurface,
@@ -20,6 +26,7 @@ afterEach(() => {
 });
 
 vi.mock("@/api/tauri-commands", () => ({
+  exportSettingsProfile: vi.fn(async () => Result.succeed("{}")),
   getDatabaseInfo: vi.fn(async () =>
     Result.succeed({
       db_size_bytes: 1024,
@@ -29,6 +36,18 @@ vi.mock("@/api/tauri-commands", () => ({
     }),
   ),
   openLogDir: vi.fn(async () => Result.succeed(null)),
+  importSettingsProfile: vi.fn(async () =>
+    Result.succeed({
+      accounts_created: 0,
+      accounts_updated: 0,
+      preferences_imported: 0,
+      preferences_skipped: 0,
+      tags_created: 0,
+      tags_updated: 0,
+      mute_keywords_created: 0,
+      mute_keywords_skipped: 0,
+    }),
+  ),
   vacuumDatabase: vi.fn(async () =>
     Result.succeed({
       db_size_bytes: 512,
@@ -47,6 +66,19 @@ beforeEach(() => {
       wal_size_bytes: 0,
       shm_size_bytes: 0,
       total_size_bytes: 1024,
+    }),
+  );
+  vi.mocked(exportSettingsProfile).mockResolvedValue(Result.succeed("{}"));
+  vi.mocked(importSettingsProfile).mockResolvedValue(
+    Result.succeed({
+      accounts_created: 0,
+      accounts_updated: 0,
+      preferences_imported: 0,
+      preferences_skipped: 0,
+      tags_created: 0,
+      tags_updated: 0,
+      mute_keywords_created: 0,
+      mute_keywords_skipped: 0,
     }),
   );
 });
@@ -406,6 +438,96 @@ describe("useDataSettingsController", () => {
 
     expect(result.current.databaseSizeValue).toBe("2.0 KiB");
     expect(showToast).toHaveBeenCalledWith("Saved 0 B");
+  });
+
+  it("exports settings profile as a JSON download and blocks duplicate profile actions", async () => {
+    let resolveExport: (value: ReturnType<typeof Result.succeed<string>>) => void = () => undefined;
+    vi.mocked(exportSettingsProfile).mockReturnValue(
+      new Promise((resolve) => {
+        resolveExport = resolve;
+      }),
+    );
+    const createObjectUrl = vi.fn(() => "blob:settings-profile");
+    const revokeObjectUrl = vi.fn();
+    const click = vi.spyOn(HTMLElement.prototype, "click").mockImplementation(() => undefined);
+    vi.stubGlobal("URL", {
+      ...URL,
+      createObjectURL: createObjectUrl,
+      revokeObjectURL: revokeObjectUrl,
+    });
+    const showToast = vi.fn();
+    const { result } = renderHook(() =>
+      useDataSettingsController({
+        t: ((key: string) => key) as never,
+        showToast,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.databaseSizeStatus).toBe("ready");
+    });
+
+    void act(() => {
+      void result.current.handleExportSettingsProfile();
+    });
+    await waitFor(() => {
+      expect(result.current.exportingSettingsProfile).toBe(true);
+    });
+    await act(async () => {
+      await result.current.handleImportSettingsProfileFile(new File(["{}"], "profile.json"));
+    });
+    expect(importSettingsProfile).not.toHaveBeenCalled();
+
+    await act(async () => {
+      resolveExport(Result.succeed('{"version":1}'));
+    });
+    await waitFor(() => {
+      expect(result.current.exportingSettingsProfile).toBe(false);
+    });
+
+    expect(exportSettingsProfile).toHaveBeenCalledTimes(1);
+    expect(createObjectUrl).toHaveBeenCalledWith(expect.any(Blob));
+    expect(click).toHaveBeenCalledTimes(1);
+    expect(showToast).toHaveBeenCalledWith("data.settings_profile_export_success");
+
+    click.mockRestore();
+    vi.unstubAllGlobals();
+  });
+
+  it("imports settings profile files and reports merged counts", async () => {
+    vi.mocked(importSettingsProfile).mockResolvedValue(
+      Result.succeed({
+        accounts_created: 1,
+        accounts_updated: 2,
+        preferences_imported: 3,
+        preferences_skipped: 4,
+        tags_created: 5,
+        tags_updated: 6,
+        mute_keywords_created: 7,
+        mute_keywords_skipped: 8,
+      }),
+    );
+    const showToast = vi.fn();
+    const { result } = renderHook(() =>
+      useDataSettingsController({
+        t: ((key: string, options?: Record<string, number>) =>
+          key === "data.settings_profile_import_success"
+            ? `Imported ${options?.accountsCreated}/${options?.preferencesImported}/${options?.muteKeywordsSkipped}`
+            : key) as never,
+        showToast,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.databaseSizeStatus).toBe("ready");
+    });
+
+    await act(async () => {
+      await result.current.handleImportSettingsProfileFile(new File(['{"version":1}'], "profile.json"));
+    });
+
+    expect(importSettingsProfile).toHaveBeenCalledWith('{"version":1}');
+    expect(showToast).toHaveBeenCalledWith("Imported 1/3/8");
   });
 
   it("exposes write corruption from vacuum as runtime recovery surface", async () => {

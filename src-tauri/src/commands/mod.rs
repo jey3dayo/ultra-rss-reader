@@ -9,6 +9,7 @@ pub mod mute_keyword_commands;
 pub mod opml_commands;
 pub mod platform_commands;
 pub mod preference_commands;
+pub mod settings_profile_commands;
 pub mod share_commands;
 pub mod sync_commands;
 mod sync_providers;
@@ -47,6 +48,7 @@ pub(crate) fn command_db_lock_policy(command_name: &str) -> Option<CommandDbLock
         "get_database_info"
         | "vacuum_database"
         | "import_opml"
+        | "import_settings_profile"
         | "cleanup_feed_integrity_orphans" => CommandDbLockPolicy::TryLockDb,
         "open_in_browser"
         | "check_browser_embed_support"
@@ -104,6 +106,7 @@ pub(crate) fn command_db_lock_policy(command_name: &str) -> Option<CommandDbLock
         | "mark_folder_read"
         | "toggle_article_star"
         | "export_opml"
+        | "export_settings_profile"
         | "search_articles"
         | "list_mute_keywords"
         | "create_mute_keyword"
@@ -419,6 +422,7 @@ mod tests {
             ("get_database_info", CommandDbLockPolicy::TryLockDb),
             ("vacuum_database", CommandDbLockPolicy::TryLockDb),
             ("import_opml", CommandDbLockPolicy::TryLockDb),
+            ("import_settings_profile", CommandDbLockPolicy::TryLockDb),
             (
                 "cleanup_feed_integrity_orphans",
                 CommandDbLockPolicy::TryLockDb,
@@ -428,6 +432,7 @@ mod tests {
                 CommandDbLockPolicy::BlockingLock,
             ),
             ("export_opml", CommandDbLockPolicy::BlockingLock),
+            ("export_settings_profile", CommandDbLockPolicy::BlockingLock),
             ("search_articles", CommandDbLockPolicy::BlockingLock),
             ("get_article", CommandDbLockPolicy::BlockingLock),
             ("list_articles", CommandDbLockPolicy::BlockingLock),

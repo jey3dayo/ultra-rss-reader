@@ -13,7 +13,11 @@ export function DataSettings() {
     showToast,
     setSettingsLoading,
   });
-  const dataActionPending = controller.vacuuming || controller.openingLogDir;
+  const dataActionPending =
+    controller.vacuuming ||
+    controller.openingLogDir ||
+    controller.exportingSettingsProfile ||
+    controller.importingSettingsProfile;
   const safetyChecklist = t("data.safety_checklist", {
     returnObjects: true,
   }) as string[];
@@ -37,6 +41,19 @@ export function DataSettings() {
       safetyHeading={t("data.safety")}
       safetyDescription={t("data.safety_description")}
       safetyChecklist={safetyChecklist}
+      settingsProfileHeading={t("data.settings_profile")}
+      settingsProfileDescription={t("data.settings_profile_description")}
+      settingsProfileImportLabel={t("data.settings_profile_import")}
+      settingsProfileImportActionLabel={
+        controller.importingSettingsProfile ? t("data.settings_profile_importing") : t("data.settings_profile_import")
+      }
+      settingsProfileExportLabel={t("data.settings_profile_export")}
+      settingsProfileExportActionLabel={
+        controller.exportingSettingsProfile ? t("data.settings_profile_exporting") : t("data.settings_profile_export")
+      }
+      settingsProfileFileInputLabel={t("data.settings_profile_file_input")}
+      importingSettingsProfile={controller.importingSettingsProfile}
+      exportingSettingsProfile={controller.exportingSettingsProfile}
       optimizationHeading={t("data.optimization")}
       vacuumDescription={t("data.vacuum_description")}
       vacuumLabel={t("data.vacuum")}
@@ -49,6 +66,8 @@ export function DataSettings() {
       openingLogDir={controller.openingLogDir}
       onVacuum={() => void controller.handleVacuum()}
       onOpenLogDir={() => void controller.handleOpenLogDir()}
+      onImportSettingsProfile={(file) => void controller.handleImportSettingsProfileFile(file)}
+      onExportSettingsProfile={() => void controller.handleExportSettingsProfile()}
     />
   );
 }

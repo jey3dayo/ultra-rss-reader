@@ -28,6 +28,13 @@ describe("DataSettingsView", () => {
         safetyHeading="Backup and Restore"
         safetyDescription="Confirm rollback before changing user data."
         safetyChecklist={["Use OPML export.", "Quit before restoring backups."]}
+        settingsProfileHeading="Settings Profile"
+        settingsProfileDescription="Export preferences and tags."
+        settingsProfileImportLabel="Import profile"
+        settingsProfileExportLabel="Export profile"
+        settingsProfileFileInputLabel="Choose settings profile JSON"
+        importingSettingsProfile={false}
+        exportingSettingsProfile={false}
         optimizationHeading="Optimization"
         vacuumDescription="Optimize the database."
         vacuumLabel="Optimize now"
@@ -38,6 +45,8 @@ describe("DataSettingsView", () => {
         openingLogDir={false}
         onVacuum={onVacuum}
         onOpenLogDir={onOpenLogDir}
+        onImportSettingsProfile={vi.fn()}
+        onExportSettingsProfile={vi.fn()}
       />,
     );
 
@@ -79,6 +88,13 @@ describe("DataSettingsView", () => {
         safetyHeading="Backup and Restore"
         safetyDescription="Confirm rollback before changing user data."
         safetyChecklist={["Use OPML export.", "Quit before restoring backups."]}
+        settingsProfileHeading="Settings Profile"
+        settingsProfileDescription="Export preferences and tags."
+        settingsProfileImportLabel="Import profile"
+        settingsProfileExportLabel="Export profile"
+        settingsProfileFileInputLabel="Choose settings profile JSON"
+        importingSettingsProfile={false}
+        exportingSettingsProfile={false}
         optimizationHeading="Optimization"
         vacuumDescription="Optimize the database."
         vacuumLabel="Optimize now"
@@ -89,6 +105,8 @@ describe("DataSettingsView", () => {
         openingLogDir={false}
         onVacuum={onVacuum}
         onOpenLogDir={vi.fn()}
+        onImportSettingsProfile={vi.fn()}
+        onExportSettingsProfile={vi.fn()}
       />,
     );
 
@@ -119,6 +137,13 @@ describe("DataSettingsView", () => {
         safetyHeading="Backup and Restore"
         safetyDescription="Confirm rollback before changing user data."
         safetyChecklist={["Use OPML export.", "Quit before restoring backups."]}
+        settingsProfileHeading="Settings Profile"
+        settingsProfileDescription="Export preferences and tags."
+        settingsProfileImportLabel="Import profile"
+        settingsProfileExportLabel="Export profile"
+        settingsProfileFileInputLabel="Choose settings profile JSON"
+        importingSettingsProfile={false}
+        exportingSettingsProfile={false}
         optimizationHeading="Optimization"
         vacuumDescription="Optimize the database."
         vacuumLabel="Optimize now"
@@ -129,6 +154,8 @@ describe("DataSettingsView", () => {
         openingLogDir={false}
         onVacuum={vi.fn()}
         onOpenLogDir={onOpenLogDir}
+        onImportSettingsProfile={vi.fn()}
+        onExportSettingsProfile={vi.fn()}
       />,
     );
 
@@ -136,6 +163,106 @@ describe("DataSettingsView", () => {
     await user.keyboard("{Enter}");
 
     expect(onOpenLogDir).toHaveBeenCalledTimes(1);
+  });
+
+  it("exports and imports settings profiles through accessible controls", async () => {
+    const user = userEvent.setup();
+    const onExportSettingsProfile = vi.fn();
+    const onImportSettingsProfile = vi.fn();
+    const profileFile = new File(["{}"], "profile.json", {
+      type: "application/json",
+    });
+
+    render(
+      <DataSettingsView
+        title="Data"
+        databaseHeading="Database"
+        databaseSizeLabel="Database size"
+        databaseSizeStatus="ready"
+        databaseSizeValue="1.50 MB"
+        databaseSizeLoadingLabel="Loading..."
+        databaseSizeErrorLabel="Unavailable"
+        safetyHeading="Backup and Restore"
+        safetyDescription="Confirm rollback before changing user data."
+        safetyChecklist={["Use OPML export.", "Quit before restoring backups."]}
+        settingsProfileHeading="Settings Profile"
+        settingsProfileDescription="Export preferences and tags."
+        settingsProfileImportLabel="Import profile"
+        settingsProfileExportLabel="Export profile"
+        settingsProfileFileInputLabel="Choose settings profile JSON"
+        importingSettingsProfile={false}
+        exportingSettingsProfile={false}
+        optimizationHeading="Optimization"
+        vacuumDescription="Optimize the database."
+        vacuumLabel="Optimize now"
+        vacuuming={false}
+        logsHeading="Logs"
+        openLogDirDescription="Open the log directory."
+        openLogDirLabel="Open log directory"
+        openingLogDir={false}
+        onVacuum={vi.fn()}
+        onOpenLogDir={vi.fn()}
+        onImportSettingsProfile={onImportSettingsProfile}
+        onExportSettingsProfile={onExportSettingsProfile}
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: "Settings Profile" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Export profile" }));
+    await user.upload(screen.getByLabelText("Choose settings profile JSON"), profileFile);
+
+    expect(onExportSettingsProfile).toHaveBeenCalledTimes(1);
+    expect(onImportSettingsProfile).toHaveBeenCalledWith(profileFile);
+  });
+
+  it("disables settings profile actions while a profile import is pending", async () => {
+    const user = userEvent.setup();
+    const onExportSettingsProfile = vi.fn();
+
+    render(
+      <DataSettingsView
+        title="Data"
+        databaseHeading="Database"
+        databaseSizeLabel="Database size"
+        databaseSizeStatus="ready"
+        databaseSizeValue="1.50 MB"
+        databaseSizeLoadingLabel="Loading..."
+        databaseSizeErrorLabel="Unavailable"
+        safetyHeading="Backup and Restore"
+        safetyDescription="Confirm rollback before changing user data."
+        safetyChecklist={["Use OPML export.", "Quit before restoring backups."]}
+        settingsProfileHeading="Settings Profile"
+        settingsProfileDescription="Export preferences and tags."
+        settingsProfileImportLabel="Import profile"
+        settingsProfileImportActionLabel="Importing..."
+        settingsProfileExportLabel="Export profile"
+        settingsProfileFileInputLabel="Choose settings profile JSON"
+        importingSettingsProfile={true}
+        exportingSettingsProfile={false}
+        optimizationHeading="Optimization"
+        vacuumDescription="Optimize the database."
+        vacuumLabel="Optimize now"
+        vacuuming={false}
+        logsHeading="Logs"
+        openLogDirDescription="Open the log directory."
+        openLogDirLabel="Open log directory"
+        openingLogDir={false}
+        onVacuum={vi.fn()}
+        onOpenLogDir={vi.fn()}
+        onImportSettingsProfile={vi.fn()}
+        onExportSettingsProfile={onExportSettingsProfile}
+      />,
+    );
+
+    const importingButton = screen.getByRole("button", { name: "Importing..." });
+    const exportButton = screen.getByRole("button", { name: "Export profile" });
+
+    expect(importingButton).toBeDisabled();
+    expect(exportButton).toBeDisabled();
+
+    await user.click(exportButton);
+
+    expect(onExportSettingsProfile).not.toHaveBeenCalled();
   });
 
   it("shows the loading label while vacuuming and keeps the action disabled", async () => {
@@ -154,6 +281,13 @@ describe("DataSettingsView", () => {
         safetyHeading="Backup and Restore"
         safetyDescription="Confirm rollback before changing user data."
         safetyChecklist={["Use OPML export.", "Quit before restoring backups."]}
+        settingsProfileHeading="Settings Profile"
+        settingsProfileDescription="Export preferences and tags."
+        settingsProfileImportLabel="Import profile"
+        settingsProfileExportLabel="Export profile"
+        settingsProfileFileInputLabel="Choose settings profile JSON"
+        importingSettingsProfile={false}
+        exportingSettingsProfile={false}
         optimizationHeading="Optimization"
         vacuumDescription="Optimize the database."
         vacuumLabel="Optimizing..."
@@ -164,6 +298,8 @@ describe("DataSettingsView", () => {
         openingLogDir={false}
         onVacuum={onVacuum}
         onOpenLogDir={vi.fn()}
+        onImportSettingsProfile={vi.fn()}
+        onExportSettingsProfile={vi.fn()}
       />,
     );
 
@@ -192,6 +328,13 @@ describe("DataSettingsView", () => {
         safetyHeading="Backup and Restore"
         safetyDescription="Confirm rollback before changing user data."
         safetyChecklist={["Use OPML export.", "Quit before restoring backups."]}
+        settingsProfileHeading="Settings Profile"
+        settingsProfileDescription="Export preferences and tags."
+        settingsProfileImportLabel="Import profile"
+        settingsProfileExportLabel="Export profile"
+        settingsProfileFileInputLabel="Choose settings profile JSON"
+        importingSettingsProfile={false}
+        exportingSettingsProfile={false}
         optimizationHeading="Optimization"
         vacuumDescription="Optimize the database."
         vacuumLabel="Optimize now"
@@ -202,6 +345,8 @@ describe("DataSettingsView", () => {
         openingLogDir={true}
         onVacuum={onVacuum}
         onOpenLogDir={onOpenLogDir}
+        onImportSettingsProfile={vi.fn()}
+        onExportSettingsProfile={vi.fn()}
       />,
     );
 
@@ -236,6 +381,13 @@ describe("DataSettingsView", () => {
         safetyHeading="Backup and Restore"
         safetyDescription="Confirm rollback before changing user data."
         safetyChecklist={["Use OPML export.", "Quit before restoring backups."]}
+        settingsProfileHeading="Settings Profile"
+        settingsProfileDescription="Export preferences and tags."
+        settingsProfileImportLabel="Import profile"
+        settingsProfileExportLabel="Export profile"
+        settingsProfileFileInputLabel="Choose settings profile JSON"
+        importingSettingsProfile={false}
+        exportingSettingsProfile={false}
         optimizationHeading="Optimization"
         vacuumDescription="Optimize the database."
         vacuumLabel="Optimize now"
@@ -246,6 +398,8 @@ describe("DataSettingsView", () => {
         openingLogDir={false}
         onVacuum={onVacuum}
         onOpenLogDir={vi.fn()}
+        onImportSettingsProfile={vi.fn()}
+        onExportSettingsProfile={vi.fn()}
       />,
     );
 
@@ -271,6 +425,13 @@ describe("DataSettingsView", () => {
       safetyHeading: "Backup and Restore",
       safetyDescription: "Confirm rollback before changing user data.",
       safetyChecklist: ["Use OPML export.", "Quit before restoring backups."],
+      settingsProfileHeading: "Settings Profile",
+      settingsProfileDescription: "Export preferences and tags.",
+      settingsProfileImportLabel: "Import profile",
+      settingsProfileExportLabel: "Export profile",
+      settingsProfileFileInputLabel: "Choose settings profile JSON",
+      importingSettingsProfile: false,
+      exportingSettingsProfile: false,
       optimizationHeading: "Optimization",
       vacuumDescription: "Optimize the database.",
       vacuumLabel: "Optimize now",
@@ -281,6 +442,8 @@ describe("DataSettingsView", () => {
       openingLogDir: false,
       onVacuum: vi.fn(),
       onOpenLogDir: vi.fn(),
+      onImportSettingsProfile: vi.fn(),
+      onExportSettingsProfile: vi.fn(),
     };
 
     const { rerender } = render(<DataSettingsView {...props} databaseSizeStatus="loading" />);

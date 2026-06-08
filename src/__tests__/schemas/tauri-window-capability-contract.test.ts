@@ -117,7 +117,13 @@ const expectedCommandOwnerAllowlists = {
     "list_articles_by_tag",
     "get_tag_article_counts",
   ],
-  "settings-commands": ["get_preferences", "set_preference", "get_platform_info"],
+  "settings-commands": [
+    "get_preferences",
+    "set_preference",
+    "export_settings_profile",
+    "import_settings_profile",
+    "get_platform_info",
+  ],
   "share-commands": ["copy_to_clipboard", "add_to_reading_list"],
   "updater-commands": ["check_for_update", "download_and_install_update", "restart_app"],
 } as const satisfies Record<string, readonly string[]>;

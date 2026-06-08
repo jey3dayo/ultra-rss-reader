@@ -73,6 +73,8 @@ import {
   renameFeedArgs,
   renameTagArgs,
   SCHEMA_PARSE_FAILURE_ACTION_STATE,
+  SettingsProfileImportResultSchema,
+  SettingsProfileSchema,
   StringResponseSchema,
   SyncResultSchema,
   searchArticlesArgs,
@@ -128,6 +130,7 @@ function readRustCommandSources() {
     "opml_commands.rs",
     "platform_commands.rs",
     "preference_commands.rs",
+    "settings_profile_commands.rs",
     "share_commands.rs",
     "sync_commands.rs",
     "tag_commands.rs",
@@ -1404,6 +1407,91 @@ describe("PreferencesDtoSchema", () => {
       }),
     ).toThrow();
     expect(() => PreferencesDtoSchema.parse({ shortcut_unknown_action: "x" })).toThrow();
+  });
+});
+
+describe("SettingsProfileSchema", () => {
+  it("accepts v1 settings profiles and import result counts", () => {
+    expect(
+      SettingsProfileSchema.parse({
+        version: 1,
+        exported_at: "2026-06-08T00:00:00Z",
+        content_type: "application/vnd.ultra-rss-reader.settings-profile+json",
+        preferences: {
+          theme: "dark",
+          selected_account_id: "source-account",
+        },
+        accounts: [
+          {
+            source_id: "source-account",
+            kind: "FreshRss",
+            name: "Fresh",
+            server_url: "https://rss.example.com",
+            username: "alice",
+            sync_interval_secs: 3600,
+            sync_on_startup: true,
+            sync_on_wake: false,
+            keep_read_items_days: 30,
+          },
+        ],
+        tags: [{ name: "Tech", color: "#00FF00" }],
+        mute_keywords: [{ keyword: "spoiler", scope: "title" }],
+      }),
+    ).toMatchObject({
+      version: 1,
+      tags: [{ name: "Tech", color: "#00ff00" }],
+    });
+
+    expect(
+      SettingsProfileImportResultSchema.parse({
+        accounts_created: 1,
+        accounts_updated: 2,
+        preferences_imported: 3,
+        preferences_skipped: 4,
+        tags_created: 5,
+        tags_updated: 6,
+        mute_keywords_created: 7,
+        mute_keywords_skipped: 8,
+      }),
+    ).toEqual({
+      accounts_created: 1,
+      accounts_updated: 2,
+      preferences_imported: 3,
+      preferences_skipped: 4,
+      tags_created: 5,
+      tags_updated: 6,
+      mute_keywords_created: 7,
+      mute_keywords_skipped: 8,
+    });
+  });
+
+  it("rejects malformed settings profile shapes", () => {
+    const validProfile = {
+      version: 1,
+      exported_at: "2026-06-08T00:00:00Z",
+      content_type: "application/vnd.ultra-rss-reader.settings-profile+json",
+      preferences: {},
+      accounts: [],
+      tags: [],
+      mute_keywords: [],
+    };
+
+    expect(() => SettingsProfileSchema.parse({ ...validProfile, version: 2 })).toThrow();
+    expect(() => SettingsProfileSchema.parse({ ...validProfile, preferences: { theme: "invalid" } })).toThrow();
+    expect(() => SettingsProfileSchema.parse({ ...validProfile, accounts: [{ kind: "FreshRss" }] })).toThrow();
+    expect(() => SettingsProfileSchema.parse({ ...validProfile, tags: [{ name: "Tech", color: "green" }] })).toThrow();
+    expect(() =>
+      SettingsProfileImportResultSchema.parse({
+        accounts_created: -1,
+        accounts_updated: 0,
+        preferences_imported: 0,
+        preferences_skipped: 0,
+        tags_created: 0,
+        tags_updated: 0,
+        mute_keywords_created: 0,
+        mute_keywords_skipped: 0,
+      }),
+    ).toThrow();
   });
 });
 

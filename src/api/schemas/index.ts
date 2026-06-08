@@ -51,6 +51,7 @@ export {
   getCommandArgsSchema,
   getTagArticleCountsArgs,
   importOpmlArgs,
+  importSettingsProfileArgs,
   isCommandWithArgs,
   listAccountArticlesArgs,
   listArticlesArgs,
@@ -147,6 +148,12 @@ export {
   SCHEMA_PARSE_FAILURE_ACTION_STATE,
   type SchemaParseFailureActionState,
 } from "./runtime-contracts";
+export {
+  type SettingsProfile,
+  type SettingsProfileImportResult,
+  SettingsProfileImportResultSchema,
+  SettingsProfileSchema,
+} from "./settings-profile";
 export {
   NullableStarredArticlesSchema,
   NullableStarredCountSchema,

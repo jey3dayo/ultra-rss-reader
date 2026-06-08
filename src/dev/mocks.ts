@@ -4,7 +4,7 @@
  */
 
 import { mockIPC, mockWindows } from "@tauri-apps/api/mocks";
-import { type CommandArgsSchemaRegistry, commandArgsSchemas } from "@/api/schemas";
+import { type CommandArgsSchemaRegistry, commandArgsSchemas, SettingsProfileSchema } from "@/api/schemas";
 import type {
   AccountDto,
   AccountSyncStatusDto,
@@ -79,6 +79,8 @@ type ParsedBrowserMockArgs<TCommand extends MockCommandWithArgs> = SchemaOutput<
 >;
 type RawMockIpcPayload = unknown;
 
+type DevSettingsProfile = ReturnType<typeof SettingsProfileSchema.parse>;
+
 export type { RestoreDevMocks } from "@/dev/mock-runtime";
 
 function parseMockArgs<TCommand extends MockCommandWithArgs>(
@@ -105,6 +107,148 @@ function resetDevMockState() {
   resetDevMockDataState();
   resetDevMockDiagnostics();
   resetDevMockExternalOpens();
+}
+
+function normalizeSettingsProfileServerUrl(serverUrl: string | null): string | null {
+  if (!serverUrl) return null;
+  try {
+    const url = new URL(serverUrl.trim());
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    if (url.username || url.password) return null;
+    url.hash = "";
+    url.search = "";
+    return url.toString().replace(/\/+$/, "");
+  } catch {
+    return null;
+  }
+}
+
+function importSettingsProfileIntoDevMocks(profile: DevSettingsProfile) {
+  const accountIdMap = new Map<string, string>();
+  let accountsCreated = 0;
+  let accountsUpdated = 0;
+  let preferencesImported = 0;
+  let preferencesSkipped = 0;
+  let tagsCreated = 0;
+  let tagsUpdated = 0;
+  let muteKeywordsCreated = 0;
+  let muteKeywordsSkipped = 0;
+
+  for (const profileAccount of profile.accounts) {
+    const normalizedServerUrl =
+      profileAccount.kind === "FreshRss" ? normalizeSettingsProfileServerUrl(profileAccount.server_url) : null;
+    const username = profileAccount.kind === "FreshRss" ? profileAccount.username?.trim() || null : null;
+    if (profileAccount.kind === "FreshRss" && (!normalizedServerUrl || !username)) {
+      throw new Error("FreshRSS account profile requires a valid server_url and username.");
+    }
+    const matchingAccount = mockAccounts.find((account) => {
+      if (profileAccount.kind === "Local") {
+        return account.kind === "Local" && account.name.toLowerCase() === profileAccount.name.toLowerCase();
+      }
+      return (
+        account.kind === "FreshRss" &&
+        normalizeSettingsProfileServerUrl(account.server_url) === normalizedServerUrl &&
+        account.username === username
+      );
+    });
+    const conflictingAccount = mockAccounts.find(
+      (account) =>
+        account.name.toLowerCase() === profileAccount.name.toLowerCase() &&
+        (!matchingAccount || account.id !== matchingAccount.id),
+    );
+    if (conflictingAccount) {
+      throw new Error(`Account name "${profileAccount.name}" already exists.`);
+    }
+    if (matchingAccount) {
+      matchingAccount.name = profileAccount.name;
+      matchingAccount.server_url = normalizedServerUrl;
+      matchingAccount.username = username;
+      matchingAccount.sync_interval_secs = profileAccount.sync_interval_secs;
+      matchingAccount.sync_on_startup = profileAccount.sync_on_startup;
+      matchingAccount.sync_on_wake = profileAccount.sync_on_wake;
+      matchingAccount.keep_read_items_days = profileAccount.keep_read_items_days;
+      matchingAccount.connection_verification_status = "unverified";
+      matchingAccount.connection_verified_at = null;
+      matchingAccount.connection_verification_error = null;
+      accountIdMap.set(profileAccount.source_id, matchingAccount.id);
+      accountsUpdated++;
+    } else {
+      const account: AccountDto = {
+        id: `acc-profile-${mockAccounts.length + accountsCreated + 1}`,
+        kind: profileAccount.kind,
+        name: profileAccount.name,
+        server_url: normalizedServerUrl,
+        username,
+        sync_interval_secs: profileAccount.sync_interval_secs,
+        sync_on_startup: profileAccount.sync_on_startup,
+        sync_on_wake: profileAccount.sync_on_wake,
+        keep_read_items_days: profileAccount.keep_read_items_days,
+        connection_verification_status: "unverified",
+        connection_verified_at: null,
+        connection_verification_error: null,
+      };
+      mockAccounts.push(account);
+      accountIdMap.set(profileAccount.source_id, account.id);
+      accountsCreated++;
+    }
+  }
+
+  for (const [key, profileValue] of Object.entries(profile.preferences)) {
+    const value = key === "selected_account_id" ? accountIdMap.get(profileValue) : profileValue;
+    if (value == null) {
+      preferencesSkipped++;
+      continue;
+    }
+    mockPreferences.set(key, value);
+    preferencesImported++;
+  }
+
+  for (const profileTag of profile.tags) {
+    const tagName = profileTag.name.trim();
+    const existingTag = mockTags.find((tag) => tag.name.toLowerCase() === tagName.toLowerCase());
+    if (existingTag) {
+      existingTag.name = tagName;
+      existingTag.color = profileTag.color;
+      tagsUpdated++;
+    } else {
+      mockTags.push({ id: `dev-tag-${takeNextDevMockTagId()}`, name: tagName, color: profileTag.color });
+      tagsCreated++;
+    }
+  }
+
+  const muteKeywordIdentity = (keyword: string, scope: string) => `${keyword.trim().toLowerCase()}\u0000${scope}`;
+  const existingMuteKeywordIdentities = new Set(
+    mockMuteKeywords.map((rule) => muteKeywordIdentity(rule.keyword, rule.scope)),
+  );
+  for (const profileRule of profile.mute_keywords) {
+    const keyword = profileRule.keyword.trim();
+    const identity = muteKeywordIdentity(keyword, profileRule.scope);
+    if (existingMuteKeywordIdentities.has(identity)) {
+      muteKeywordsSkipped++;
+      continue;
+    }
+    const timestamp = getCurrentIsoTimestamp();
+    mockMuteKeywords.unshift({
+      id: `dev-mute-${takeNextDevMockMuteKeywordId()}`,
+      keyword,
+      scope: profileRule.scope,
+      created_at: timestamp,
+      updated_at: timestamp,
+    });
+    existingMuteKeywordIdentities.add(identity);
+    muteKeywordsCreated++;
+  }
+
+  return {
+    accounts_created: accountsCreated,
+    accounts_updated: accountsUpdated,
+    preferences_imported: preferencesImported,
+    preferences_skipped: preferencesSkipped,
+    tags_created: tagsCreated,
+    tags_updated: tagsUpdated,
+    mute_keywords_created: muteKeywordsCreated,
+    mute_keywords_skipped: muteKeywordsSkipped,
+  };
 }
 
 export function setupDevMocks(): RestoreDevMocks {
@@ -633,6 +777,42 @@ export function setupDevMocks(): RestoreDevMocks {
         const { key, value } = parseBrowserMockArgs("set_preference", rawIpcPayload);
         mockPreferences.set(key, value);
         return null;
+      }
+
+      case "export_settings_profile":
+        return JSON.stringify(
+          {
+            version: 1,
+            exported_at: new Date().toISOString(),
+            content_type: "application/vnd.ultra-rss-reader.settings-profile+json",
+            preferences: Object.fromEntries(mockPreferences),
+            accounts: mockAccounts.map((account) => ({
+              source_id: account.id,
+              kind: account.kind,
+              name: account.name,
+              server_url: account.server_url,
+              username: account.username,
+              sync_interval_secs: account.sync_interval_secs,
+              sync_on_startup: account.sync_on_startup,
+              sync_on_wake: account.sync_on_wake,
+              keep_read_items_days: account.keep_read_items_days,
+            })),
+            tags: mockTags.map((tag) => ({
+              name: tag.name,
+              color: tag.color,
+            })),
+            mute_keywords: mockMuteKeywords.map((rule) => ({
+              keyword: rule.keyword,
+              scope: rule.scope,
+            })),
+          },
+          null,
+          2,
+        );
+
+      case "import_settings_profile": {
+        const { profileJson } = parseBrowserMockArgs("import_settings_profile", rawIpcPayload);
+        return importSettingsProfileIntoDevMocks(SettingsProfileSchema.parse(JSON.parse(profileJson)));
       }
 
       case "set_mute_auto_mark_read": {

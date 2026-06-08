@@ -2,8 +2,15 @@ import { Result } from "@praha/byethrow";
 import type { QueryClient } from "@tanstack/react-query";
 import type { TFunction } from "i18next";
 import { useCallback, useEffect, useReducer, useRef } from "react";
+import type { SettingsProfileImportResult } from "@/api/schemas";
 import type { AppError } from "@/api/tauri-commands";
-import { getDatabaseInfo, openLogDir, vacuumDatabase } from "@/api/tauri-commands";
+import {
+  exportSettingsProfile,
+  getDatabaseInfo,
+  importSettingsProfile,
+  openLogDir,
+  vacuumDatabase,
+} from "@/api/tauri-commands";
 import {
   BYTES_PER_KIBIBYTE,
   BYTES_PER_MEBIBYTE,
@@ -29,8 +36,12 @@ type UseDataSettingsControllerResult = {
   databaseRuntimeRecoverySurface: DatabaseRuntimeRecoverySurface | null;
   vacuuming: boolean;
   openingLogDir: boolean;
+  exportingSettingsProfile: boolean;
+  importingSettingsProfile: boolean;
   handleVacuum: () => Promise<void>;
   handleOpenLogDir: () => Promise<void>;
+  handleExportSettingsProfile: () => Promise<void>;
+  handleImportSettingsProfileFile: (file: File) => Promise<void>;
 };
 
 export type DatabaseSizeStatus = "loading" | "ready" | "error";
@@ -108,6 +119,8 @@ type DataSettingsControllerState = {
   databaseRuntimeRecoverySurface: DatabaseRuntimeRecoverySurface | null;
   vacuuming: boolean;
   openingLogDir: boolean;
+  exportingSettingsProfile: boolean;
+  importingSettingsProfile: boolean;
 };
 
 type DataSettingsControllerAction =
@@ -121,7 +134,9 @@ type DataSettingsControllerAction =
       recoverySurface: DatabaseRuntimeRecoverySurface | null;
     }
   | { type: "set-vacuuming"; value: boolean }
-  | { type: "set-opening-log-dir"; value: boolean };
+  | { type: "set-opening-log-dir"; value: boolean }
+  | { type: "set-exporting-settings-profile"; value: boolean }
+  | { type: "set-importing-settings-profile"; value: boolean };
 
 const initialDataSettingsControllerState: DataSettingsControllerState = {
   databaseSizeStatus: "loading",
@@ -129,6 +144,8 @@ const initialDataSettingsControllerState: DataSettingsControllerState = {
   databaseRuntimeRecoverySurface: null,
   vacuuming: false,
   openingLogDir: false,
+  exportingSettingsProfile: false,
+  importingSettingsProfile: false,
 };
 
 type DataSettingsActionOwnerId = symbol;
@@ -211,9 +228,31 @@ function dataSettingsControllerReducer(
       return { ...state, vacuuming: action.value };
     case "set-opening-log-dir":
       return { ...state, openingLogDir: action.value };
+    case "set-exporting-settings-profile":
+      return { ...state, exportingSettingsProfile: action.value };
+    case "set-importing-settings-profile":
+      return { ...state, importingSettingsProfile: action.value };
     default:
       return state;
   }
+}
+
+const SETTINGS_PROFILE_EXPORT_FILENAME = "ultra-rss-reader-settings-profile.json";
+
+function buildSettingsProfileImportSuccessMessage(
+  t: TFunction<"settings">,
+  result: SettingsProfileImportResult,
+): string {
+  return t("data.settings_profile_import_success", {
+    accountsCreated: result.accounts_created,
+    accountsUpdated: result.accounts_updated,
+    preferencesImported: result.preferences_imported,
+    preferencesSkipped: result.preferences_skipped,
+    tagsCreated: result.tags_created,
+    tagsUpdated: result.tags_updated,
+    muteKeywordsCreated: result.mute_keywords_created,
+    muteKeywordsSkipped: result.mute_keywords_skipped,
+  });
 }
 
 function getErrorMessage(error: unknown): string {
@@ -402,9 +441,23 @@ export function useDataSettingsController({
     ...getDataSettingsActionLifecycle(),
   });
   const { databaseSizeStatus, totalSize, databaseRuntimeRecoverySurface, vacuuming, openingLogDir } = state;
+  const { exportingSettingsProfile, importingSettingsProfile } = state;
   const controllerIdRef = useRef<DataSettingsActionOwnerId>(Symbol("data-settings-controller"));
   const databaseSizeRequestRevisionRef = useRef(0);
   const mountedRef = useRef(false);
+  const pendingSettingsProfileExportUrlRef = useRef<string | null>(null);
+  const pendingSettingsProfileExportUrlTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const revokePendingSettingsProfileExportUrl = useCallback(() => {
+    if (pendingSettingsProfileExportUrlTimerRef.current !== null) {
+      clearTimeout(pendingSettingsProfileExportUrlTimerRef.current);
+      pendingSettingsProfileExportUrlTimerRef.current = null;
+    }
+    if (pendingSettingsProfileExportUrlRef.current !== null) {
+      URL.revokeObjectURL(pendingSettingsProfileExportUrlRef.current);
+      pendingSettingsProfileExportUrlRef.current = null;
+    }
+  }, []);
 
   const isActiveDatabaseSizeRequest = useCallback((requestRevision: number) => {
     return mountedRef.current && requestRevision === databaseSizeRequestRevisionRef.current;
@@ -467,8 +520,9 @@ export function useDataSettingsController({
       mountedRef.current = false;
       databaseSizeRequestRevisionRef.current += 1;
       unsubscribeFromActionLifecycle();
+      revokePendingSettingsProfileExportUrl();
     };
-  }, [fetchDbInfo]);
+  }, [fetchDbInfo, revokePendingSettingsProfileExportUrl]);
 
   const handleVacuum = async () => {
     if (!mountedRef.current || databaseSizeStatus !== "ready" || isDataSettingsActionInFlight()) {
@@ -554,13 +608,108 @@ export function useDataSettingsController({
     }
   };
 
+  const handleExportSettingsProfile = async () => {
+    if (!mountedRef.current || exportingSettingsProfile || importingSettingsProfile || isDataSettingsActionInFlight()) {
+      return;
+    }
+
+    dispatch({ type: "set-exporting-settings-profile", value: true });
+    setSettingsLoading?.(true);
+    try {
+      Result.pipe(
+        await exportSettingsProfile(),
+        Result.inspect((profileJson) => {
+          if (!mountedRef.current) {
+            return;
+          }
+          const blob = new Blob([profileJson], { type: "application/json" });
+          revokePendingSettingsProfileExportUrl();
+          const url = URL.createObjectURL(blob);
+          const anchor = document.createElement("a");
+          anchor.href = url;
+          anchor.download = SETTINGS_PROFILE_EXPORT_FILENAME;
+          pendingSettingsProfileExportUrlRef.current = url;
+          try {
+            anchor.click();
+            pendingSettingsProfileExportUrlTimerRef.current = setTimeout(() => {
+              revokePendingSettingsProfileExportUrl();
+            }, 1000);
+            showToast(t("data.settings_profile_export_success"));
+          } catch {
+            revokePendingSettingsProfileExportUrl();
+          }
+        }),
+        Result.inspectError((error) => {
+          if (!mountedRef.current) {
+            return;
+          }
+          console.error("Failed to export settings profile:", error);
+          showToast(t("data.settings_profile_export_failed", { message: error.message }));
+        }),
+      );
+    } catch (error) {
+      if (mountedRef.current) {
+        console.error("Failed to export settings profile:", error);
+        showToast(t("data.settings_profile_export_failed", { message: getErrorMessage(error) }));
+      }
+    } finally {
+      if (mountedRef.current) {
+        dispatch({ type: "set-exporting-settings-profile", value: false });
+      }
+      setSettingsLoading?.(false);
+    }
+  };
+
+  const handleImportSettingsProfileFile = async (file: File) => {
+    if (!mountedRef.current || exportingSettingsProfile || importingSettingsProfile || isDataSettingsActionInFlight()) {
+      return;
+    }
+
+    dispatch({ type: "set-importing-settings-profile", value: true });
+    setSettingsLoading?.(true);
+    try {
+      const profileJson = await file.text();
+      Result.pipe(
+        await importSettingsProfile(profileJson),
+        Result.inspect((importResult) => {
+          if (!mountedRef.current) {
+            return;
+          }
+          showToast(buildSettingsProfileImportSuccessMessage(t, importResult));
+          void fetchDbInfo();
+        }),
+        Result.inspectError((error) => {
+          if (!mountedRef.current) {
+            return;
+          }
+          console.error("Failed to import settings profile:", error);
+          showToast(t("data.settings_profile_import_failed", { message: error.message }));
+        }),
+      );
+    } catch (error) {
+      if (mountedRef.current) {
+        console.error("Failed to import settings profile:", error);
+        showToast(t("data.settings_profile_import_failed", { message: getErrorMessage(error) }));
+      }
+    } finally {
+      if (mountedRef.current) {
+        dispatch({ type: "set-importing-settings-profile", value: false });
+      }
+      setSettingsLoading?.(false);
+    }
+  };
+
   return {
     databaseSizeStatus,
     databaseSizeValue: totalSize != null ? formatBytes(totalSize) : "",
     databaseRuntimeRecoverySurface,
     vacuuming,
     openingLogDir,
+    exportingSettingsProfile,
+    importingSettingsProfile,
     handleVacuum,
     handleOpenLogDir,
+    handleExportSettingsProfile,
+    handleImportSettingsProfileFile,
   };
 }

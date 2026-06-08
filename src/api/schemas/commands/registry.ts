@@ -65,6 +65,7 @@ import {
   setMuteAutoMarkReadArgs,
   updateMuteKeywordArgs,
 } from "./mute-keyword";
+import { importSettingsProfileArgs } from "./settings-profile";
 import {
   createTagArgs,
   deleteTagArgs,
@@ -129,6 +130,7 @@ export const commandArgsSchemas = {
   set_browser_webview_bounds: setBrowserWebviewBoundsArgs,
   import_opml: importOpmlArgs,
   export_opml: exportOpmlArgs,
+  import_settings_profile: importSettingsProfileArgs,
   set_preference: setPreferenceArgs,
   copy_to_clipboard: copyToClipboardArgs,
   add_to_reading_list: addToReadingListArgs,

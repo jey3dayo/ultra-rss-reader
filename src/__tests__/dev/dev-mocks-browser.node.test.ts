@@ -26,6 +26,8 @@ import {
   MuteKeywordDtoSchema,
   PlatformInfoSchema,
   PreferencesDtoSchema,
+  SettingsProfileImportResultSchema,
+  SettingsProfileSchema,
   StringResponseSchema,
   SyncResultSchema,
   TagArticleCountsSchema,
@@ -50,6 +52,7 @@ import {
   deleteTag,
   discoverFeeds,
   exportOpml,
+  exportSettingsProfile,
   getAccountSyncStatus,
   getArticleTags,
   getDatabaseInfo,
@@ -61,6 +64,7 @@ import {
   goBackBrowserWebview,
   goForwardBrowserWebview,
   importOpml,
+  importSettingsProfile,
   listAccountArticles,
   listAccounts,
   listArticles,
@@ -437,11 +441,78 @@ describe("setupDevMocks", () => {
     expect(SyncResultSchema.parse(Result.unwrap(await syncFeed("feed-automaton")))).toBeDefined();
     expect(SyncResultSchema.parse(Result.unwrap(await triggerAutomaticSync()))).toBeDefined();
     expect(StringResponseSchema.parse(Result.unwrap(await exportOpml("acc-freshrss")))).toContain("<opml");
+    expect(SettingsProfileSchema.parse(JSON.parse(Result.unwrap(await exportSettingsProfile())))).toMatchObject({
+      version: 1,
+      content_type: "application/vnd.ultra-rss-reader.settings-profile+json",
+    });
     expect(
       CountResponseSchema.parse(Result.unwrap(await clearArticleViewHistory("acc-freshrss"))),
     ).toBeGreaterThanOrEqual(0);
     expect(DatabaseInfoDtoSchema.parse(Result.unwrap(await getDatabaseInfo()))).toBeDefined();
     expect(DatabaseInfoDtoSchema.parse(Result.unwrap(await vacuumDatabase()))).toBeDefined();
+  });
+
+  it("merges settings profile imports in browser-only mode like the backend contract", async () => {
+    setupDevMocks();
+
+    const result = Result.unwrap(
+      await importSettingsProfile(
+        JSON.stringify({
+          version: 1,
+          exported_at: "2026-01-01T00:00:00.000Z",
+          content_type: "application/vnd.ultra-rss-reader.settings-profile+json",
+          preferences: {
+            selected_account_id: "source-freshrss",
+            theme: "dark",
+          },
+          accounts: [
+            {
+              source_id: "source-freshrss",
+              kind: "FreshRss",
+              name: "Imported FreshRSS",
+              server_url: "https://freshrss.example.com/?ignored=true",
+              username: "user",
+              sync_interval_secs: 7200,
+              sync_on_startup: false,
+              sync_on_wake: true,
+              keep_read_items_days: 14,
+            },
+          ],
+          tags: [
+            { name: "important", color: "#00FF00" },
+            { name: "Profile", color: null },
+          ],
+          mute_keywords: [
+            { keyword: "browser-only", scope: "body" },
+            { keyword: " BROWSER-ONLY ", scope: "body" },
+          ],
+        }),
+      ),
+    );
+
+    expect(SettingsProfileImportResultSchema.parse(result)).toEqual({
+      accounts_created: 0,
+      accounts_updated: 1,
+      preferences_imported: 2,
+      preferences_skipped: 0,
+      tags_created: 1,
+      tags_updated: 1,
+      mute_keywords_created: 1,
+      mute_keywords_skipped: 1,
+    });
+    expect(Result.unwrap(await getPreferences())).toMatchObject({
+      selected_account_id: "acc-freshrss",
+      theme: "dark",
+    });
+    expect(Result.unwrap(await listAccounts()).find((account) => account.id === "acc-freshrss")).toMatchObject({
+      name: "Imported FreshRSS",
+      server_url: "https://freshrss.example.com",
+      sync_interval_secs: 7200,
+    });
+    expect(Result.unwrap(await listTags()).find((tag) => tag.name === "important")).toMatchObject({
+      color: "#00ff00",
+    });
+    expect(Result.unwrap(await listMuteKeywords()).some((rule) => rule.keyword === "browser-only")).toBe(true);
   });
 
   it("keeps browser-only external opener commands observable without calling window.open", async () => {
