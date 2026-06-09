@@ -102,6 +102,27 @@ describe("buildArticleListBodyEmptyState", () => {
     });
   });
 
+  it("offers subscription management when the selected feed has no articles", () => {
+    const onManageSelectedFeed = vi.fn();
+
+    const props = buildArticleListBodyEmptyState({
+      t,
+      isSearchEmptyState: false,
+      setupEmptyState: "none",
+      trimmedDebouncedQuery: "",
+      handleCloseSearch: vi.fn(),
+      onManageSelectedFeed,
+    });
+
+    expect(props).toMatchObject({
+      emptyStateVariant: "default",
+      emptyMessage: t("no_articles"),
+      emptyDescription: t("no_articles_description"),
+      emptyActionLabel: t("manage_subscription"),
+      onEmptyAction: onManageSelectedFeed,
+    });
+  });
+
   it.each([
     ["permission", "Permission required", "The article list is unavailable until access is restored."],
     ["auth", "Authentication required", "Reconnect the account before treating this list as empty."],

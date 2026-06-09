@@ -35,6 +35,8 @@
   "article_list_setup_no_feeds_title": "フィードを追加すると、ここに新着が並びます。",
   "article_list_setup_no_feeds_description": "アカウントの準備はできています。最初のフィードを追加してください。",
   "no_articles_description": "選択中の範囲にはまだ記事がありません。新着を同期するか、別の範囲を選んでください。",
+  "manage_subscription": "購読を管理",
+  "manage_subscription_aria": "「{{title}}」の購読を管理",
   "search_articles": "記事を検索",
   "search_articles_placeholder": "キーワードをそのまま検索…",
   "search_articles_description": "タイトルと本文を単語ごとにそのまま検索します。引用符、OR、NEAR、* は検索演算子として扱いません。",

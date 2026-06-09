@@ -108,6 +108,7 @@ export type UseArticleListViewPropsParams = {
   imagePreviews: string;
   selectionStyle: string;
   selectArticle: (articleId: string) => void;
+  onManageSelectedFeed?: (() => void) | null;
   effectiveViewMode: ViewMode;
   setViewMode: (viewMode: ViewMode) => void;
 } & Pick<
@@ -157,6 +158,7 @@ export type UseArticleListPresentationParams = {
   selectedArticleId: string | null;
   recentlyReadIds: Set<string>;
   selectedFeed: UseArticleListHeaderControllerParams["selectedFeed"];
+  onManageSelectedFeed?: (() => void) | null;
   layoutMode: UseArticleListHeaderControllerParams["layoutMode"];
   sidebarOpen: boolean;
   openSidebar: () => void;

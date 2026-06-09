@@ -39,6 +39,7 @@ type SummaryCardProps = {
   titleHref?: string | null;
   leadingVisual?: ReactNode;
   metrics: Array<{ label: string; value: ReactNode }>;
+  primaryAction?: ComponentProps<typeof FeedDetailPanel>["primaryAction"];
 };
 
 function renderSummaryCount(value: number, locale: string) {
@@ -47,7 +48,7 @@ function renderSummaryCount(value: number, locale: string) {
   return <MotionNumber key={label} value={label} />;
 }
 
-function SummaryEmptyState({ title, titleHref = null, leadingVisual, metrics }: SummaryCardProps) {
+function SummaryEmptyState({ title, titleHref = null, leadingVisual, metrics, primaryAction }: SummaryCardProps) {
   const { t } = useTranslation("reader");
 
   return (
@@ -67,6 +68,7 @@ function SummaryEmptyState({ title, titleHref = null, leadingVisual, metrics }: 
               links={[]}
               recentArticlesHeading={t("latest_article")}
               recentArticles={[]}
+              primaryAction={primaryAction}
             />
           </div>
         </div>
@@ -167,10 +169,34 @@ function SelectionSummaryEmptyState({ summary }: { summary: ArticleViewSummarySt
   const { t } = useTranslation("reader");
   const { t: sidebarT } = useTranslation("sidebar");
   const { i18n } = useTranslation("reader");
+  const selectedAccountId = useUiStore((state) => state.selectedAccountId);
+  const openSubscriptionsIndex = useUiStore((state) => state.openSubscriptionsIndex);
   const locale = resolveArticleDateLocale(i18n.language);
   const cardProps = buildSummaryCardProps(summary, locale, t, sidebarT);
+  const primaryAction =
+    summary.kind === "feed" && selectedAccountId !== null
+      ? {
+          label: t("manage_subscription"),
+          ariaLabel: t("manage_subscription_aria", { title: summary.feed.title }),
+          onClick: () => {
+            openSubscriptionsIndex({
+              accountId: selectedAccountId,
+              activeSummaryFilter: "all",
+              selectedFeedId: summary.feed.id,
+              expandedGroups: {},
+              listScrollTop: {
+                scrollTop: 0,
+                layoutGeneration: "reader-feed-detail-manage-link",
+                viewportHeight: 0,
+              },
+              keptFeedIds: [],
+              deferredFeedIds: [],
+            });
+          },
+        }
+      : undefined;
 
-  return <SummaryEmptyState {...cardProps} />;
+  return <SummaryEmptyState {...cardProps} primaryAction={primaryAction} />;
 }
 
 function EmptyState({

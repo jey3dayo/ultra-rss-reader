@@ -30,6 +30,7 @@ type UseArticleListBodyPropsParams = {
   imagePreviews: ArticleListBodyProps["imagePreviews"];
   selectionStyle: ArticleListBodyProps["selectionStyle"];
   selectArticle: ArticleListBodyProps["onSelectArticle"];
+  onManageSelectedFeed?: (() => void) | null;
   handleCloseSearch: () => void;
   handleMarkAllRead: () => void;
 };
@@ -37,7 +38,9 @@ type UseArticleListBodyPropsParams = {
 type BuildArticleListBodyEmptyStateParams = Pick<
   UseArticleListBodyPropsParams,
   "t" | "isSearchEmptyState" | "setupEmptyState" | "trimmedDebouncedQuery" | "handleCloseSearch"
->;
+> & {
+  onManageSelectedFeed?: (() => void) | null;
+};
 
 const ARTICLE_LIST_FAILURE_EMPTY_STATES = {
   permission: {
@@ -71,6 +74,7 @@ export function buildArticleListBodyEmptyState({
   setupEmptyState,
   trimmedDebouncedQuery,
   handleCloseSearch,
+  onManageSelectedFeed = null,
 }: BuildArticleListBodyEmptyStateParams): ArticleListBodyEmptyStateProps {
   const emptyStateVariant = isSearchEmptyState
     ? "default"
@@ -104,8 +108,16 @@ export function buildArticleListBodyEmptyState({
     emptyStateVariant,
     emptyMessage,
     emptyDescription,
-    emptyActionLabel: isSearchEmptyState ? t("clear_search_action") : undefined,
-    onEmptyAction: isSearchEmptyState ? handleCloseSearch : undefined,
+    emptyActionLabel: isSearchEmptyState
+      ? t("clear_search_action")
+      : setupEmptyState === "none" && onManageSelectedFeed
+        ? t("manage_subscription")
+        : undefined,
+    onEmptyAction: isSearchEmptyState
+      ? handleCloseSearch
+      : setupEmptyState === "none"
+        ? (onManageSelectedFeed ?? undefined)
+        : undefined,
   };
 }
 
@@ -130,6 +142,7 @@ export function useArticleListBodyProps({
   imagePreviews,
   selectionStyle,
   selectArticle,
+  onManageSelectedFeed = null,
   handleCloseSearch,
   handleMarkAllRead,
 }: UseArticleListBodyPropsParams): ArticleListBodyProps {
@@ -139,6 +152,7 @@ export function useArticleListBodyProps({
     setupEmptyState,
     trimmedDebouncedQuery,
     handleCloseSearch,
+    onManageSelectedFeed,
   });
 
   return {

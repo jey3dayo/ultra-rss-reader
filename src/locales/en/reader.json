@@ -35,6 +35,8 @@
   "article_list_setup_no_feeds_title": "Add a feed and new items will appear here.",
   "article_list_setup_no_feeds_description": "Your account is ready. Add the first feed to start filling the queue.",
   "no_articles_description": "There is nothing in the current scope yet. Try syncing for new items or pick a different scope.",
+  "manage_subscription": "Manage subscription",
+  "manage_subscription_aria": "Manage subscription for \"{{title}}\"",
   "search_articles": "Search articles",
   "search_articles_placeholder": "Search literal words…",
   "search_articles_description": "Words are searched literally in titles and article text. Quotes, OR, NEAR, and * are not search operators.",
