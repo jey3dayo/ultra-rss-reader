@@ -4,6 +4,20 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.45.0] - 2026-06-10
+
+### Features
+
+- 記事や未読がなくサイドバーから見えない購読でも、Reader の空状態や詳細パネルから購読一覧の該当項目を開き、編集や削除判断に進めるようにした
+
+### Bug Fixes
+
+- 開発環境でランタイム用のテーマ別アイコン画像が存在しない場合、アイコン切り替え失敗を不要な診断エラーとして出さないようにした
+
+### Maintenance
+
+- Windows の Tauri dev タスクを薄い `node ...` 呼び出しに戻し、子プロセスの PATH 正規化で Node と project-local executable の解決を安定させた
+
 ## [0.44.0] - 2026-06-08
 
 ### Maintenance
