@@ -38,6 +38,10 @@ function shouldSkipRuntimeIconReplacement({
   return !platformLoaded || !supportsRuntimeWindowIconReplacement;
 }
 
+function isMissingRuntimeIconPathError(error: Error): boolean {
+  return /(?:path.+not.+found|指定されたパスが見つかりません|os error 3)/i.test(error.message);
+}
+
 async function setAppIcon(
   theme: AppIconTheme,
   options: {
@@ -52,6 +56,10 @@ async function setAppIcon(
   Result.pipe(
     await setWindowIcon(APP_ICON_THEME_PATHS[theme]),
     Result.inspectError((error) => {
+      if (isMissingRuntimeIconPathError(error)) {
+        return;
+      }
+
       logRuntimeDiagnostic("app-icon-theme", `Failed to apply ${theme} app icon theme`, error);
     }),
   );

@@ -218,6 +218,28 @@ describe("useAppIconTheme", () => {
     consoleError.mockRestore();
   });
 
+  it("treats missing dev icon files as a no-op runtime icon replacement", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    stubMatchMedia(vi.fn(() => createMatchMedia(false)));
+    setIconMock.mockResolvedValue(Result.fail(new Error("指定されたパスが見つかりません。 (os error 3)")));
+    usePreferencesStore.setState({ prefs: { theme: "light" }, loaded: true });
+    setPlatformState({
+      loaded: true,
+      supportsRuntimeWindowIconReplacement: true,
+    });
+
+    render(<HookHarness />);
+
+    await waitFor(() => {
+      expect(setIconMock).toHaveBeenCalledWith("/icons/app-icon-light.png");
+    });
+    await flushMicrotasksAndRealTimer();
+
+    expect(consoleError).not.toHaveBeenCalled();
+
+    consoleError.mockRestore();
+  });
+
   it("tracks system theme changes", async () => {
     const mql = createMatchMedia(true);
     stubMatchMedia(vi.fn(() => mql));
