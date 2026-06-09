@@ -411,11 +411,33 @@ describe("buildWslTauriSpawnSpec", () => {
       TAURI_DEV_PORT: "1432",
     });
     expect(childEnv).toMatchObject({
-      PATH: "/usr/bin",
       DEV_CREDENTIALS: "1",
       VITE_DEV_INTENT: "open-subscriptions-index",
       TAURI_DEV_PORT: "1432",
       VITE_API_TOKEN: "secret-token",
     });
+    expect(childEnv.PATH).toContain("/usr/bin");
+  });
+
+  it("normalizes duplicate Windows PATH keys before spawning local commands", () => {
+    const spawnSpec = buildLocalTauriSpawnSpec(["dev"], "file:///C:/repo/scripts/tauri-cli-dispatch.ts", "win32");
+    const childEnv = buildChildEnvForSpawnSpec(
+      spawnSpec,
+      {
+        PATH: "C:\\stale",
+        Path: "C:\\Windows\\System32",
+      },
+      {
+        platform: "win32",
+        cwd: "C:\\repo",
+        execPath: "C:\\Tools\\node\\node.exe",
+      },
+    );
+
+    expect(Object.keys(childEnv).filter((key) => key.toLowerCase() === "path")).toEqual(["Path"]);
+    expect(childEnv.Path).toContain("C:\\Tools\\node");
+    expect(childEnv.Path).toContain("C:\\repo\\node_modules\\.bin");
+    expect(childEnv.Path).toContain("C:\\Windows\\System32");
+    expect(childEnv.Path).not.toContain("C:\\stale");
   });
 });

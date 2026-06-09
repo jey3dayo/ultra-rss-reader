@@ -272,20 +272,28 @@ run_windows = "pnpm.CMD run build-storybook"
 description = "Run native app in dev mode"
 env = { DEV_CREDENTIALS = "1" }
 run = "node ./scripts/tauri-cli-dispatch.ts dev -c src-tauri/tauri.dev.conf.json"
+run_windows = "node ./scripts/tauri-cli-dispatch.ts dev -c src-tauri/tauri.dev.conf.json"
+shell = "powershell.exe -NoProfile -Command"
 
 [tasks."app:dev:native-keyring"]
 description = "Run native app in dev mode with the OS keyring backend"
 run = "node ./scripts/tauri-cli-dispatch.ts dev -c src-tauri/tauri.dev.conf.json"
+run_windows = "node ./scripts/tauri-cli-dispatch.ts dev -c src-tauri/tauri.dev.conf.json"
+shell = "powershell.exe -NoProfile -Command"
 
 [tasks."app:dev:subscriptions-index"]
 description = "Run native app in dev mode and jump into the subscriptions index workspace"
 env = { DEV_CREDENTIALS = "1", VITE_DEV_INTENT = "open-subscriptions-index" }
 run = "node ./scripts/tauri-cli-dispatch.ts dev -c src-tauri/tauri.dev.conf.json"
+run_windows = "node ./scripts/tauri-cli-dispatch.ts dev -c src-tauri/tauri.dev.conf.json"
+shell = "powershell.exe -NoProfile -Command"
 
 [tasks."app:dev:web-preview"]
 description = "Run native app in dev mode and open VITE_DEV_WEB_URL directly in Web Preview (optionally sized by VITE_DEV_WINDOW_WIDTH/HEIGHT)"
 env = { DEV_CREDENTIALS = "1", VITE_DEV_INTENT = "open-web-preview-url" }
 run = "node ./scripts/tauri-cli-dispatch.ts dev -c src-tauri/tauri.dev.conf.json"
+run_windows = "node ./scripts/tauri-cli-dispatch.ts dev -c src-tauri/tauri.dev.conf.json"
+shell = "powershell.exe -NoProfile -Command"
 
 [tasks."app:dev:seed-from-prod"]
 description = "Seed the Dev app database from the packaged app data database"
@@ -311,6 +319,7 @@ run = "pnpm dev --host 127.0.0.1 --port 4173 --strictPort"
 description = "Check that the Tauri Vite dev port is available"
 run = "node ./scripts/tauri-dev-vite-manager.ts --check"
 run_windows = "node ./scripts/tauri-dev-vite-manager.ts --check"
+shell = "powershell.exe -NoProfile -Command"
 
 [tasks."app:build"]
 description = "Build native app for current platform (.app/.dmg on macOS, .msi/.exe on Windows)"

@@ -332,6 +332,33 @@ describe("package scripts", () => {
     expect(miseToml).toContain("node ./scripts/tauri-dev-vite-manager.ts --check");
   });
 
+  it("keeps Windows Tauri dev tasks on thin node commands", () => {
+    const miseToml = readWorkspaceFile("mise.toml");
+    const tauriDevTasks = ["app:dev", "app:dev:native-keyring", "app:dev:subscriptions-index", "app:dev:web-preview"];
+
+    for (const taskName of tauriDevTasks) {
+      const taskSection = extractMiseTaskSection(miseToml, taskName);
+
+      expect(extractMiseTaskCommand(miseToml, taskName, "run_windows")).toBe(
+        "node ./scripts/tauri-cli-dispatch.ts dev -c src-tauri/tauri.dev.conf.json",
+      );
+      expect(taskSection).toContain('shell = "powershell.exe -NoProfile -Command"');
+      expect(taskSection).not.toContain("windows-dev-env");
+      expect(taskSection).not.toContain("%SystemRoot%");
+      expect(taskSection).not.toContain("WindowsPowerShell");
+    }
+
+    const viteCheckSection = extractMiseTaskSection(miseToml, "app:dev:vite-check");
+
+    expect(extractMiseTaskCommand(miseToml, "app:dev:vite-check", "run_windows")).toBe(
+      "node ./scripts/tauri-dev-vite-manager.ts --check",
+    );
+    expect(viteCheckSection).toContain('shell = "powershell.exe -NoProfile -Command"');
+    expect(viteCheckSection).not.toContain("windows-dev-env");
+    expect(viteCheckSection).not.toContain("%SystemRoot%");
+    expect(viteCheckSection).not.toContain("WindowsPowerShell");
+  });
+
   it("keeps README mise commands backed by mise tasks", () => {
     const readmeCommands = extractReadmeMiseCommands(readWorkspaceFile("README.md"));
     const miseTasks = extractMiseTaskNames(readWorkspaceFile("mise.toml"));

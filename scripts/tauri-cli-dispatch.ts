@@ -166,8 +166,67 @@ export function buildWslTauriSpawnSpec(
 export function buildChildEnvForSpawnSpec(
   spawnSpec: SpawnSpec,
   baseEnv: NodeJS.ProcessEnv = process.env,
+  options: {
+    platform?: NodeJS.Platform;
+    cwd?: string;
+    execPath?: string;
+  } = {},
 ): NodeJS.ProcessEnv {
-  return spawnSpec.env ? { ...baseEnv, ...spawnSpec.env } : baseEnv;
+  const mergedEnv = spawnSpec.env ? { ...baseEnv, ...spawnSpec.env } : { ...baseEnv };
+  return normalizeChildEnvForPlatform(mergedEnv, {
+    platform: options.platform ?? process.platform,
+    cwd: options.cwd ?? process.cwd(),
+    execPath: options.execPath ?? process.execPath,
+  });
+}
+
+function appendUniquePathParts(pathValue: string, pathParts: readonly string[]): string {
+  const existingParts = pathValue.split(path.win32.delimiter).filter((part) => part.length > 0);
+  const normalizedExistingParts = new Set(existingParts.map((part) => path.win32.normalize(part).toLowerCase()));
+
+  for (const part of pathParts) {
+    const normalizedPart = path.win32.normalize(part).toLowerCase();
+    if (!normalizedExistingParts.has(normalizedPart)) {
+      existingParts.unshift(part);
+      normalizedExistingParts.add(normalizedPart);
+    }
+  }
+
+  return existingParts.join(path.win32.delimiter);
+}
+
+export function normalizeChildEnvForPlatform(
+  env: NodeJS.ProcessEnv,
+  {
+    platform = process.platform,
+    cwd = process.cwd(),
+    execPath = process.execPath,
+  }: {
+    platform?: NodeJS.Platform;
+    cwd?: string;
+    execPath?: string;
+  } = {},
+): NodeJS.ProcessEnv {
+  if (platform !== "win32") {
+    return env;
+  }
+
+  const pathKeys = Object.keys(env).filter((key) => key.toLowerCase() === "path");
+  const preferredPathKey = pathKeys.includes("Path") ? "Path" : (pathKeys[0] ?? "Path");
+  const pathValue = env[preferredPathKey] ?? "";
+
+  for (const key of pathKeys) {
+    if (key !== preferredPathKey) {
+      delete env[key];
+    }
+  }
+
+  env[preferredPathKey] = appendUniquePathParts(pathValue, [
+    path.win32.dirname(execPath),
+    path.win32.join(cwd, "node_modules", ".bin"),
+  ]);
+
+  return env;
 }
 
 async function resolveSpawnSpec(cliArgs: string[]): Promise<SpawnSpec> {
