@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use chrono::{DateTime, Utc};
 use rusqlite::types::Type;
 use rusqlite::{params, Connection, OptionalExtension};
@@ -1254,6 +1256,16 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
         pending_starred_remote_ids: &[String],
     ) -> DomainResult<()> {
         let tx = self.conn.unchecked_transaction()?;
+        let read_remote_id_set: HashSet<&str> =
+            read_remote_ids.iter().map(String::as_str).collect();
+        let starred_remote_id_set: HashSet<&str> =
+            starred_remote_ids.iter().map(String::as_str).collect();
+        let pending_read_remote_id_set: HashSet<&str> =
+            pending_read_remote_ids.iter().map(String::as_str).collect();
+        let pending_starred_remote_id_set: HashSet<&str> = pending_starred_remote_ids
+            .iter()
+            .map(String::as_str)
+            .collect();
 
         // Get all articles with remote_id in this account (via feed -> account join)
         let mut stmt = tx.prepare(
@@ -1279,16 +1291,20 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
             tx.prepare("UPDATE articles SET is_read = ?1, is_starred = ?2 WHERE id = ?3")?;
 
         for (article_id, remote_id, current_read, current_starred) in &rows {
-            let is_read = if pending_read_remote_ids.contains(remote_id) {
+            let remote_id = remote_id.as_str();
+            let is_read = if pending_read_remote_id_set.contains(remote_id) {
                 *current_read
             } else {
-                read_remote_ids.contains(remote_id)
+                read_remote_id_set.contains(remote_id)
             };
-            let is_starred = if pending_starred_remote_ids.contains(remote_id) {
+            let is_starred = if pending_starred_remote_id_set.contains(remote_id) {
                 *current_starred
             } else {
-                starred_remote_ids.contains(remote_id)
+                starred_remote_id_set.contains(remote_id)
             };
+            if is_read == *current_read && is_starred == *current_starred {
+                continue;
+            }
             update_stmt.execute(params![is_read, is_starred, article_id])?;
         }
 
@@ -3578,6 +3594,38 @@ mod tests {
 
         assert!(!find(&a3.id).is_read);
         assert!(!find(&a3.id).is_starred);
+    }
+
+    #[test]
+    fn apply_remote_state_skips_unchanged_rows() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let mut read_article = make_article(&feed_id, "Read Article");
+        read_article.remote_id = Some("r1".to_string());
+        read_article.is_read = true;
+        read_article.is_starred = false;
+
+        let mut starred_article = make_article(&feed_id, "Starred Article");
+        starred_article.remote_id = Some("r2".to_string());
+        starred_article.is_read = false;
+        starred_article.is_starred = true;
+
+        repo.upsert(&[read_article, starred_article]).unwrap();
+
+        let before = db.writer().total_changes();
+        repo.apply_remote_state(
+            &account_id,
+            &["r1".to_string()],
+            &["r2".to_string()],
+            &[],
+            &[],
+        )
+        .unwrap();
+
+        assert_eq!(db.writer().total_changes(), before);
     }
 
     #[test]
