@@ -15,6 +15,7 @@ use crate::domain::provider::{
 };
 use crate::domain::types::{AccountId, ArticleId, FeedId, FolderId};
 use crate::infra::db::connection::DbManager;
+use crate::infra::db::sqlite_article::mark_muted_unread_as_read_for_feed_with_conn;
 use crate::infra::db::sqlite_article::mark_muted_unread_as_read_with_conn;
 use crate::infra::db::sqlite_article::SqliteArticleRepository;
 use crate::infra::db::sqlite_feed::SqliteFeedRepository;
@@ -156,7 +157,7 @@ fn save_local_feed_sync_result_in_current_transaction(
             .collect::<Vec<ArticleId>>();
         mark_muted_unread_as_read_with_conn(conn, account_id, Some(&candidate_ids))?;
     } else {
-        mark_muted_unread_as_read_with_conn(conn, account_id, None)?;
+        mark_muted_unread_as_read_for_feed_with_conn(conn, account_id, &feed.id)?;
     }
     feed_repo.recalculate_unread_count(&feed.id)?;
 
@@ -1433,8 +1434,7 @@ async fn reconcile_greader_unread_state_for_feed(
     drop(db_guard);
 
     let db_guard = lock_db(db)?;
-    let article_repo = SqliteArticleRepository::new(db_guard.writer());
-    article_repo.mark_muted_unread_as_read(&account.id, None)?;
+    mark_muted_unread_as_read_for_feed_with_conn(db_guard.writer(), &account.id, &feed.id)?;
 
     Ok(())
 }
@@ -2788,6 +2788,19 @@ mod tests {
 
         let db = test_db();
         let (account, feed) = insert_account_and_feed(&db, &server.url());
+        let sibling_feed = Feed {
+            id: FeedId::new(),
+            account_id: account.id.clone(),
+            folder_id: None,
+            remote_id: Some("feed/https://example.com/sibling-rss".to_string()),
+            title: "Sibling Feed".to_string(),
+            url: "https://example.com/sibling-rss".to_string(),
+            site_url: "https://example.com".to_string(),
+            icon: None,
+            unread_count: 0,
+            reader_mode: "inherit".to_string(),
+            web_preview_mode: "inherit".to_string(),
+        };
         let local_articles = [
             Article {
                 id: generate_entry_id(
@@ -2835,13 +2848,58 @@ mod tests {
                 is_starred: false,
                 fetched_at: chrono::Utc::now(),
             },
+            Article {
+                id: generate_entry_id(
+                    account.id.as_ref(),
+                    Some("tag:google.com,2005:reader/item/sibling-muted"),
+                    &sibling_feed.url,
+                    Some("https://example.com/sibling-muted"),
+                    Some("Kindle Unlimited sibling"),
+                ),
+                feed_id: sibling_feed.id.clone(),
+                remote_id: Some("tag:google.com,2005:reader/item/sibling-muted".to_string()),
+                title: "Kindle Unlimited sibling".to_string(),
+                content_raw: "body".to_string(),
+                content_sanitized: "body".to_string(),
+                sanitizer_version: sanitizer::SANITIZER_VERSION,
+                summary: None,
+                url: Some("https://example.com/sibling-muted".to_string()),
+                author: None,
+                published_at: chrono::Utc::now(),
+                thumbnail: None,
+                is_read: false,
+                is_starred: false,
+                fetched_at: chrono::Utc::now(),
+            },
         ];
         {
             let db_guard = db.lock().unwrap();
             let article_repo = SqliteArticleRepository::new(db_guard.writer());
             let feed_repo = SqliteFeedRepository::new(db_guard.writer());
+            feed_repo.save(&sibling_feed).unwrap();
             article_repo.upsert(&local_articles).unwrap();
             feed_repo.update_unread_count(&feed.id, 2).unwrap();
+            feed_repo.update_unread_count(&sibling_feed.id, 77).unwrap();
+            db_guard
+                .writer()
+                .execute(
+                    "INSERT INTO preferences (key, value) VALUES ('mute_auto_mark_read', 'true')",
+                    [],
+                )
+                .unwrap();
+            db_guard
+                .writer()
+                .execute(
+                    "INSERT INTO mute_keywords (id, keyword, scope, created_at, updated_at)
+                     VALUES (?1, ?2, ?3, ?4, ?4)",
+                    rusqlite::params![
+                        uuid::Uuid::new_v4().to_string(),
+                        "kindle unlimited",
+                        "title",
+                        chrono::Utc::now().to_rfc3339()
+                    ],
+                )
+                .unwrap();
         }
 
         let provider = authenticated_provider(&server.url()).await;
@@ -2866,6 +2924,15 @@ mod tests {
             .find_by_feed(&feed.id, &Pagination::default())
             .unwrap();
         let reconciled_feed = feed_repo.find_by_id(&feed.id).unwrap().unwrap();
+        let sibling_feed_after = feed_repo.find_by_id(&sibling_feed.id).unwrap().unwrap();
+        let sibling_article_is_read: bool = db_guard
+            .reader()
+            .query_row(
+                "SELECT is_read FROM articles WHERE feed_id = ?1",
+                rusqlite::params![sibling_feed.id.as_ref()],
+                |row| row.get(0),
+            )
+            .unwrap();
         let read_by_remote_id = articles
             .iter()
             .map(|article| (article.remote_id.as_deref(), article.is_read))
@@ -2881,6 +2948,8 @@ mod tests {
             read_by_remote_id.get(&Some("tag:google.com,2005:reader/item/0000000000000002")),
             Some(&true)
         );
+        assert!(!sibling_article_is_read);
+        assert_eq!(sibling_feed_after.unread_count, 77);
     }
 
     #[tokio::test]
@@ -4781,6 +4850,7 @@ mod tests {
 
         let db = test_db();
         let (account, feed) = insert_local_account_and_feed(&db, &feed_url);
+        let sibling_feed = test_local_feed(&account.id, &format!("{}/sibling.xml", server.url()));
         let mut existing_article = Article {
             id: ArticleId("local-muted-article".to_string()),
             feed_id: feed.id.clone(),
@@ -4805,13 +4875,41 @@ mod tests {
             existing_article.url.as_deref(),
             Some(&existing_article.title),
         );
+        let mut sibling_article = Article {
+            id: ArticleId("local-muted-sibling-article".to_string()),
+            feed_id: sibling_feed.id.clone(),
+            remote_id: Some("local-guid-muted-sibling".to_string()),
+            title: "Kindle Unlimited sibling local".to_string(),
+            content_raw: "old".to_string(),
+            content_sanitized: "old".to_string(),
+            sanitizer_version: sanitizer::SANITIZER_VERSION,
+            summary: None,
+            url: Some("https://example.com/sibling-muted".to_string()),
+            author: None,
+            published_at: chrono::Utc::now(),
+            thumbnail: None,
+            is_read: false,
+            is_starred: false,
+            fetched_at: chrono::Utc::now(),
+        };
+        sibling_article.id = generate_entry_id(
+            account.id.as_ref(),
+            sibling_article.remote_id.as_deref(),
+            &sibling_feed.url,
+            sibling_article.url.as_deref(),
+            Some(&sibling_article.title),
+        );
         {
             let db_guard = db.lock().unwrap();
             let article_repo = SqliteArticleRepository::new(db_guard.writer());
             let feed_repo = SqliteFeedRepository::new(db_guard.writer());
             let sync_state_repo = SqliteSyncStateRepository::new(db_guard.writer());
-            article_repo.upsert(&[existing_article.clone()]).unwrap();
+            feed_repo.save(&sibling_feed).unwrap();
+            article_repo
+                .upsert(&[existing_article.clone(), sibling_article.clone()])
+                .unwrap();
             feed_repo.update_unread_count(&feed.id, 99).unwrap();
+            feed_repo.update_unread_count(&sibling_feed.id, 77).unwrap();
             db_guard
                 .writer()
                 .execute(
@@ -4872,9 +4970,27 @@ mod tests {
                 |row| row.get(0),
             )
             .unwrap();
+        let sibling_article_is_read: bool = db_guard
+            .reader()
+            .query_row(
+                "SELECT is_read FROM articles WHERE id = ?1",
+                rusqlite::params![sibling_article.id.as_ref()],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let sibling_unread_count: i64 = db_guard
+            .reader()
+            .query_row(
+                "SELECT unread_count FROM feeds WHERE id = ?1",
+                rusqlite::params![sibling_feed.id.as_ref()],
+                |row| row.get(0),
+            )
+            .unwrap();
 
         assert!(article_is_read);
         assert_eq!(unread_count, 0);
+        assert!(!sibling_article_is_read);
+        assert_eq!(sibling_unread_count, 77);
     }
 
     #[tokio::test]

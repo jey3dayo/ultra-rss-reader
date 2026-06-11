@@ -450,6 +450,31 @@ pub(crate) fn mark_muted_unread_as_read_with_conn(
     account_id: &AccountId,
     candidate_ids: Option<&[ArticleId]>,
 ) -> DomainResult<usize> {
+    let scope = candidate_ids
+        .map(MutedUnreadCandidateScope::ArticleIds)
+        .unwrap_or(MutedUnreadCandidateScope::Account);
+    mark_muted_unread_as_read_with_scope(conn, account_id, scope)
+}
+
+pub(crate) fn mark_muted_unread_as_read_for_feed_with_conn(
+    conn: &Connection,
+    account_id: &AccountId,
+    feed_id: &FeedId,
+) -> DomainResult<usize> {
+    mark_muted_unread_as_read_with_scope(conn, account_id, MutedUnreadCandidateScope::Feed(feed_id))
+}
+
+enum MutedUnreadCandidateScope<'a> {
+    Account,
+    Feed(&'a FeedId),
+    ArticleIds(&'a [ArticleId]),
+}
+
+fn mark_muted_unread_as_read_with_scope(
+    conn: &Connection,
+    account_id: &AccountId,
+    scope: MutedUnreadCandidateScope<'_>,
+) -> DomainResult<usize> {
     let auto_mark_read_enabled = conn
         .query_row(
             "SELECT value FROM preferences WHERE key = 'mute_auto_mark_read'",
@@ -463,7 +488,7 @@ pub(crate) fn mark_muted_unread_as_read_with_conn(
         return Ok(0);
     }
 
-    if candidate_ids.is_some_and(|ids| ids.is_empty()) {
+    if matches!(scope, MutedUnreadCandidateScope::ArticleIds([])) {
         return Ok(0);
     }
 
@@ -472,42 +497,36 @@ pub(crate) fn mark_muted_unread_as_read_with_conn(
         "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
     );
 
-    let (sql, params): (String, Vec<&dyn rusqlite::ToSql>) = if let Some(ids) = candidate_ids {
-        let placeholders = ids
-            .iter()
-            .enumerate()
-            .map(|(index, _)| format!("?{}", index + 2))
-            .collect::<Vec<_>>()
-            .join(", ");
-        let sql = format!(
-            "SELECT a.id, a.feed_id, a.remote_id, acc.kind, f.account_id, f.remote_id
-             FROM articles a
-             JOIN feeds f ON a.feed_id = f.id
-             JOIN accounts acc ON f.account_id = acc.id
-             WHERE f.account_id = ?1
-               AND a.is_read = 0
-               AND a.id IN ({placeholders})
-               AND {match_clause}"
-        );
-        let mut params: Vec<&dyn rusqlite::ToSql> = vec![&account_id.0];
-        for id in ids {
-            params.push(&id.0);
+    let (scope_clause, params): (String, Vec<&dyn rusqlite::ToSql>) = match scope {
+        MutedUnreadCandidateScope::Account => ("".to_string(), vec![&account_id.0]),
+        MutedUnreadCandidateScope::Feed(feed_id) => (
+            "AND a.feed_id = ?2".to_string(),
+            vec![&account_id.0, &feed_id.0],
+        ),
+        MutedUnreadCandidateScope::ArticleIds(ids) => {
+            let placeholders = ids
+                .iter()
+                .enumerate()
+                .map(|(index, _)| format!("?{}", index + 2))
+                .collect::<Vec<_>>()
+                .join(", ");
+            let mut params: Vec<&dyn rusqlite::ToSql> = vec![&account_id.0];
+            for id in ids {
+                params.push(&id.0);
+            }
+            (format!("AND a.id IN ({placeholders})"), params)
         }
-        (sql, params)
-    } else {
-        (
-            format!(
-                "SELECT a.id, a.feed_id, a.remote_id, acc.kind, f.account_id, f.remote_id
-                 FROM articles a
-                 JOIN feeds f ON a.feed_id = f.id
-                 JOIN accounts acc ON f.account_id = acc.id
-                 WHERE f.account_id = ?1
-                   AND a.is_read = 0
-                   AND {match_clause}"
-            ),
-            vec![&account_id.0],
-        )
     };
+    let sql = format!(
+        "SELECT a.id, a.feed_id, a.remote_id, acc.kind, f.account_id, f.remote_id
+         FROM articles a
+         JOIN feeds f ON a.feed_id = f.id
+         JOIN accounts acc ON f.account_id = acc.id
+         WHERE f.account_id = ?1
+           AND a.is_read = 0
+           {scope_clause}
+           AND {match_clause}"
+    );
 
     let mut stmt = conn.prepare(&sql)?;
     let rows = stmt
@@ -2811,6 +2830,74 @@ mod tests {
             .unwrap();
         assert_eq!(stored_unread_count, 0);
         assert!(!second_is_read);
+    }
+
+    #[test]
+    fn mark_muted_unread_as_read_for_feed_limits_empty_sync_repair_to_feed() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_a_id = insert_test_feed(&db, &account_id);
+        let feed_b_id = insert_test_feed(&db, &account_id);
+        db.writer()
+            .execute(
+                "INSERT INTO preferences (key, value) VALUES ('mute_auto_mark_read', 'true')",
+                [],
+            )
+            .unwrap();
+        insert_mute_keyword(&db, "kindle unlimited", "title");
+
+        let repo = SqliteArticleRepository::new(db.writer());
+        let feed_repo = crate::infra::db::sqlite_feed::SqliteFeedRepository::new(db.writer());
+
+        let feed_a_muted = make_article(&feed_a_id, "Kindle Unlimited current feed");
+        let feed_b_muted = make_article(&feed_b_id, "Kindle Unlimited sibling feed");
+        repo.upsert(&[feed_a_muted.clone(), feed_b_muted.clone()])
+            .unwrap();
+        feed_repo.update_unread_count(&feed_a_id, 99).unwrap();
+        feed_repo.update_unread_count(&feed_b_id, 77).unwrap();
+
+        let changed =
+            mark_muted_unread_as_read_for_feed_with_conn(db.writer(), &account_id, &feed_a_id)
+                .unwrap();
+
+        assert_eq!(changed, 1);
+        let feed_a_is_read: bool = db
+            .reader()
+            .query_row(
+                "SELECT is_read FROM articles WHERE id = ?1",
+                params![feed_a_muted.id.0],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let feed_b_is_read: bool = db
+            .reader()
+            .query_row(
+                "SELECT is_read FROM articles WHERE id = ?1",
+                params![feed_b_muted.id.0],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let feed_a_unread_count: i64 = db
+            .reader()
+            .query_row(
+                "SELECT unread_count FROM feeds WHERE id = ?1",
+                params![feed_a_id.0],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let feed_b_unread_count: i64 = db
+            .reader()
+            .query_row(
+                "SELECT unread_count FROM feeds WHERE id = ?1",
+                params![feed_b_id.0],
+                |row| row.get(0),
+            )
+            .unwrap();
+
+        assert!(feed_a_is_read);
+        assert!(!feed_b_is_read);
+        assert_eq!(feed_a_unread_count, 0);
+        assert_eq!(feed_b_unread_count, 77);
     }
 
     #[test]
