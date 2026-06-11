@@ -4,6 +4,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.45.1] - 2026-06-11
+
+### Maintenance
+
+- FreshRSS / GReader 同期で大量の記事状態を適用するときの判定処理を高速化し、既に同じ既読・スター状態の行は不要な更新を避けるようにした
+- ローカルフィードや provider-managed feed の同期修復で、ミュート自動既読の再評価を対象 feed に限定し、記事が更新されない同期でもアカウント全体を繰り返し走査しないようにした
+
 ## [0.45.0] - 2026-06-10
 
 ### Features
