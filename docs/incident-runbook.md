@@ -126,10 +126,11 @@ After each successful migration, the app retains only the three most recent pre-
 Steps:
 
 1. Quit the app completely.
-2. Locate the newest pre-migration backup in the `backups/` directory whose schema version matches the previous release.
+2. Locate the newest pre-migration backup in the `backups/` directory whose schema version matches the previous release. The downgrade block error message reports the app's supported version as `(v{LATEST_VERSION})`; that value is the `N` in the backup filename's `_v<N>_` segment.
 3. Download the previous release installer from GitHub Releases and reinstall. Do not launch the app yet.
-4. With the app closed, copy the backup `.db` file (and its `-wal` / `-shm` sidecars if present) over the live database file at the app data root. See `manual_restore_instruction()` in `backup.rs` for the exact copy command.
-5. Launch the app once and confirm successful startup.
+4. With the app closed, preserve the current live `.db` and any matching `-wal` / `-shm` sidecars by copying them to a safe location before overwriting anything. This preserves the migrated database if you need to return to fix-forward later or if the restore fails.
+5. Copy the backup `.db` file over the live database file at the app data root. If the backup set includes `-wal` / `-shm` sidecars, copy those too. If the backup set does not include `-wal` / `-shm` sidecars, delete the live `-wal` / `-shm` files if they exist; leaving stale sidecars from a newer schema against a restored older database will cause startup errors. See `manual_restore_instruction()` in `backup.rs` for the source and destination paths.
+6. Launch the app once and confirm successful startup.
 
 **Data loss warning:** Restoring a pre-migration backup discards all read state, starred articles, fetched articles, and any other changes recorded after the backup was taken.
 
@@ -257,7 +258,7 @@ Single-instance and deep-link triage:
 5. Confirm whether a matching `-wal` or `-shm` file exists for either the current database or the backup.
 6. If manual restore is needed, restore the complete backup set with the app closed, then reopen once and capture the result.
 7. If needed, continue from the migration recovery docs and issue tracking instead of improvising manual DB edits.
-8. If the error says the database schema is newer than the app supports, treat it as a blocked downgrade. Install a newer compatible app or restore a compatible backup; do not edit `schema_version`.
+8. If the error says the database schema is newer than the app supports, treat it as a blocked downgrade. Install a newer compatible app or restore a compatible backup; do not edit `schema_version`. For manual downgrade steps when a pre-migration backup exists, see [Schema Bump Release Regression](#schema-bump-release-regression).
 
 ### 2. Runtime Database Recovery
 
