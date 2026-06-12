@@ -105,6 +105,8 @@ Platform permission denied copy contract:
 - Automatic restore runs `integrity_check` on the backup before staging files, restores the `.db` plus matching `-wal` / `-shm` set through temporary files and rollback files, checkpoints WAL with `TRUNCATE`, and runs `integrity_check` on the restored database before reopening it.
 - Migrations run inside one SQLite transaction. If any migration step fails, the transaction rolls back to the original schema version; startup then restores the preserved pre-migration backup when one exists, otherwise the failed database and logs must be preserved for manual recovery.
 - Before a manual installer upgrade, app replacement, or updater test against a profile you care about, make an OS-level copy of the complete database backup set or app data directory and store it somewhere private.
+- On Windows, close the app before copying or replacing any database files; file locks can make partial restores look successful.
+- If restore fails, preserve the failed database, backup set, and release log before trying another restore path.
 
 #### Schema Bump Release Regression
 
@@ -119,6 +121,8 @@ Pre-migration backups are written to `backups/` inside the app data directory be
 - macOS: `~/Library/Application Support/com.jey3dayo.ultra-rss-reader/backups/`
 - Windows: `%APPDATA%\com.jey3dayo.ultra-rss-reader\backups\`
 
+After each successful migration, the app retains only the three most recent pre-migration backups and removes older ones. If multiple schema bumps are released in quick succession, the backup corresponding to the target downgrade version may no longer exist by the time a rollback is needed.
+
 Steps:
 
 1. Quit the app completely.
@@ -130,9 +134,6 @@ Steps:
 **Data loss warning:** Restoring a pre-migration backup discards all read state, starred articles, fetched articles, and any other changes recorded after the backup was taken.
 
 **No backup available:** Manual downgrade is not possible. Preserve the current database and logs, wait for a fix-forward release, and report the issue. Do not edit `schema_version` manually.
-
-- On Windows, close the app before copying or replacing any database files; file locks can make partial restores look successful.
-- If restore fails, preserve the failed database, backup set, and release log before trying another restore path.
 
 ### Private Data Reset And Uninstall
 
