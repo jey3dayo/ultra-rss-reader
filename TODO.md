@@ -56,18 +56,4 @@
 
 ### GReader / Sync Flow / Account Setup
 
-#### FreshRSS / GReader 双方向同期 conflict resolution contract test
-
-- [ ] priority: P2 / domain: provider-sync / work type: contract test
-  - created batch: 2026-06-13
-  - 対象: `src-tauri/src/service/sync_flow.rs`、`src-tauri/src/service/sync_scheduler.rs`、`src-tauri/src/repository/pending_mutation.rs` のテストコード
-  - scope: FreshRSS / GReader 双方向同期の競合解決規則を contract test として固定する。プロダクションコードの挙動変更はしない
-  - 対象境界値:
-    - (a) ローカル pending mutation(read / star)とリモート状態変更が衝突した場合にどちらが勝つか
-    - (b) pending mutation 再送の冪等性(同じ mutation が二重適用されても状態が壊れない)
-    - (c) 同期中断(部分失敗)後の再同期で状態が収束すること
-  - acceptance criteria: 上記 (a)(b)(c) が test 名から読める focused test として追加され、現在の実装挙動が固定される。意図と異なる挙動が見つかった場合は修正せず別 TODO に切り出す(defer 範囲)
-  - focused verification: `mise run check`(Rust tests 含む)
-  - 発見方法: 2026-06-13 プレモーテム分析(focused test で発見・固定する分類)
-
 ### Browser WebView / Runtime Diagnostics

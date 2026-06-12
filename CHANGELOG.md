@@ -4,6 +4,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+### Maintenance
+
+- FreshRSS / GReader 同期の競合解決規則(ローカル pending mutation 優先、再適用の冪等性、再同期の収束)を contract test として固定した
+
 ## [0.45.1] - 2026-06-11
 
 ### Maintenance
