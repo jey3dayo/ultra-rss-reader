@@ -21,6 +21,7 @@ paths:
 - `fail-fast: false` で一部のプラットフォーム失敗が他に波及しないようにする
 - macOS は Developer ID なし前提でリリースする。`src-tauri/tauri.release.conf.json` は ad-hoc signing (`signingIdentity: "-"`) を使い、workflow は `codesign --verify --deep --strict` を必須検証にする
 - Gatekeeper / notarization 評価は Apple 公証情報が設定されている場合のみ必須。未設定時の `spctl` reject は既知の配布制約として記録し、release failure 扱いにしない
+- schema bump（`src-tauri/src/infra/db/migration.rs` の `LATEST_VERSION` 変更）を含むリリースでは、リリースノートに「このバージョンへ更新後は旧バージョンへのダウングレード起動がブロックされる」旨を明記する
 
 ## バージョン管理
 
