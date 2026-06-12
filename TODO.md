@@ -36,22 +36,19 @@
 
 ### Release / Native / Keyboard / I18n / A11y
 
-#### Tauri updater adoption preflight
+### Database / Updater / Window
 
-- [ ] priority: P3 / domain: release-native / work type: adoption preflight / policy
+#### Tauri updater 署名鍵運用と rollout 方針の文書化
+
+- [ ] priority: P3 / domain: release-native / work type: policy / documentation
   - created batch: 2026-06-13
-  - 対象: `docs/` および `.claude/rules/` のみ(preflight 記録ドキュメント、または accepted-risk rule 追記)
-  - scope: 現状 auto-updater は未採用で配布は GitHub Release の手動取得のみ。P0 修正がユーザーへ確実に届く経路がない。Tauri updater 採用可否の判断材料を preflight として記録するか、採用しない場合は「手動配布のみ」を accepted-risk として `.claude/rules/` に明文化する
-  - preflight で記録する項目:
-    - updater 署名鍵の運用(鍵は 1Password に保管済み)
-    - DB schema downgrade block との相互作用(更新後に旧バージョンへ戻れない制約)
-    - rollout / rollback 方針
-    - 採用しない場合の accepted-risk 明文化先
-  - acceptance criteria: 採用可否の判断材料が揃った preflight ドキュメントが残るか、または「手動配布のみ」の accepted-risk が `.claude/rules/` に記録される。実装着手は別 TODO に切り出す(defer 範囲)
+  - 対象: `docs/` および `.claude/rules/` のみ(実装変更なし)
+  - scope: auto-updater は採用済み(`tauri-plugin-updater` + Ed25519 署名、GitHub Release の `latest.json` endpoint、pubkey は `src-tauri/tauri.conf.json` の `plugins.updater.pubkey` フィールドに焼き込み済み、鍵は 1Password に保管済み)。未文書化の運用ギャップを記録する:
+    - (a) updater 署名鍵のローテーション手順と、鍵喪失・漏洩時に更新配信を継続する復旧手順(pubkey はアプリバイナリに焼き込まれるため、鍵を失うと既存ユーザーへ更新を届けられなくなる)
+    - (b) staged rollout が無い(全ユーザーへ即時配信)ことを accepted-risk として明文化するか判断
+  - acceptance criteria: 鍵ローテーション・喪失時の手順が `docs/` か `.claude/rules/` に記録され、staged rollout 不在の扱い(accepted-risk か将来 TODO か)が明文化される。実装変更は別 TODO に切り出す(defer 範囲)
   - focused verification: ドキュメントゲート(markdown format check)
   - 発見方法: 2026-06-13 プレモーテム分析(implementation-time checklist 分類)
-
-### Database / Updater / Window
 
 ### Article List / Schema / Mute / Tags / Share
 
@@ -63,7 +60,7 @@
 
 - [ ] priority: P2 / domain: provider-sync / work type: contract test
   - created batch: 2026-06-13
-  - 対象: `src-tauri/` 内の sync service および pending mutation repository のテストコード
+  - 対象: `src-tauri/src/service/sync_flow.rs`、`src-tauri/src/service/sync_scheduler.rs`、`src-tauri/src/repository/pending_mutation.rs` のテストコード
   - scope: FreshRSS / GReader 双方向同期の競合解決規則を contract test として固定する。プロダクションコードの挙動変更はしない
   - 対象境界値:
     - (a) ローカル pending mutation(read / star)とリモート状態変更が衝突した場合にどちらが勝つか
