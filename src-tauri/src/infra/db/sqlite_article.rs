@@ -3869,10 +3869,10 @@ mod tests {
         // Remote reports neither entry as read; only r1 is pending on the read axis.
         repo.apply_remote_state(
             &account_id,
-            &[],                     // remote read ids
-            &[],                     // remote starred ids
-            &["r1".to_string()],     // pending read ids
-            &[],                     // pending starred ids
+            &[],                 // remote read ids
+            &[],                 // remote starred ids
+            &["r1".to_string()], // pending read ids
+            &[],                 // pending starred ids
         )
         .unwrap();
 
