@@ -4,9 +4,17 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.46.0] - 2026-06-13
+
+### Documentation
+
+- リリースに不具合が出た場合の fix-forward 方針と、最終手段の手動ダウングレード手順(現行 DB 退避・pre-migration バックアップ復元・stale な WAL/SHM の処理)を incident runbook に追記した
+- updater 署名鍵の運用(鍵ローテーションの安全な順序・鍵喪失/漏洩時の対応・段階配信が無いことの accepted-risk)をリリースワークフローのルールに明文化した
+
 ### Maintenance
 
 - FreshRSS / GReader 同期の競合解決規則(ローカル pending mutation 優先、再適用の冪等性、再同期の収束)を contract test として固定した
+- jsdom テストのファイル間分離を強化し(グローバルスタブと document インラインスタイルの自動復元)、順序依存で不安定だった購読一覧テストを quarantine ポリシーに沿って一時隔離した
 
 ## [0.45.1] - 2026-06-11
 
