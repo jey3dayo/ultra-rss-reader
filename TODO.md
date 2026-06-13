@@ -38,18 +38,6 @@
 
 ### Database / Updater / Window
 
-#### Tauri updater 署名鍵運用と rollout 方針の文書化
-
-- [ ] priority: P3 / domain: release-native / work type: policy / documentation
-  - created batch: 2026-06-13
-  - 対象: `docs/` および `.claude/rules/` のみ(実装変更なし)
-  - scope: auto-updater は採用済み(`tauri-plugin-updater` + Ed25519 署名、GitHub Release の `latest.json` endpoint、pubkey は `src-tauri/tauri.conf.json` の `plugins.updater.pubkey` フィールドに焼き込み済み、鍵は 1Password に保管済み)。未文書化の運用ギャップを記録する:
-    - (a) updater 署名鍵のローテーション手順と、鍵喪失・漏洩時に更新配信を継続する復旧手順(pubkey はアプリバイナリに焼き込まれるため、鍵を失うと既存ユーザーへ更新を届けられなくなる)
-    - (b) staged rollout が無い(全ユーザーへ即時配信)ことを accepted-risk として明文化するか判断
-  - acceptance criteria: 鍵ローテーション・喪失時の手順が `docs/` か `.claude/rules/` に記録され、staged rollout 不在の扱い(accepted-risk か将来 TODO か)が明文化される。実装変更は別 TODO に切り出す(defer 範囲)
-  - focused verification: ドキュメントゲート(markdown format check)
-  - 発見方法: 2026-06-13 プレモーテム分析(implementation-time checklist 分類)
-
 ### Article List / Schema / Mute / Tags / Share
 
 ### Feed / Folder / Storage / Settings Data
