@@ -3883,6 +3883,9 @@ mod tests {
         assert!(find(&pending_local.id).is_read);
         // r2 follows remote and stays unread (remote wins when there is no pending intent).
         assert!(!find(&remote_driven.id).is_read);
+        // Star axis was never touched by either remote or pending: both entries stay unstarred.
+        assert!(!find(&pending_local.id).is_starred);
+        assert!(!find(&remote_driven.id).is_starred);
     }
 
     // Conflict-resolution contract (b): re-applying the same remote state is
@@ -3914,6 +3917,8 @@ mod tests {
         assert!(find_first(&a2.id).is_starred);
 
         // Second apply with the identical remote state must be a no-op (idempotent).
+        // total_changes() is a session-cumulative counter: it counts only DML rows
+        // (INSERT/UPDATE/DELETE) and does not increment for SELECT statements.
         let before_second = db.writer().total_changes();
         repo.apply_remote_state(&account_id, &read_ids, &starred_ids, &[], &[])
             .unwrap();
@@ -3951,6 +3956,8 @@ mod tests {
             .unwrap();
         let mid = repo.find_by_feed(&feed_id, &Pagination::default()).unwrap();
         assert!(mid[0].is_read);
+        // Star axis was never involved: still unstarred at mid-phase.
+        assert!(!mid[0].is_starred);
 
         // Re-sync after the push succeeded and the pending mutation was cleared.
         // Remote now reflects the local change, so apply converges to remote=read.
