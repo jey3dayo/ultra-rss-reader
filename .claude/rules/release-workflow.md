@@ -65,6 +65,46 @@ paths:
 
 Tauri アプリのクロスプラットフォームビルドは OS 固有のツールチェーンが必要なため、GitHub Actions のマトリクスビルドで各プラットフォーム用 runner を使い分ける。`tauri-action` が Tauri CLI のインストールからビルド、Release 作成まで一括で行うため、手動構成より安全かつ簡潔。
 
+## updater 署名鍵運用
+
+### 鍵の所在と利用経路
+
+- 署名方式: Ed25519 / minisign（`tauri-plugin-updater` 標準形式）
+- 公開鍵: `src-tauri/tauri.conf.json` の `plugins.updater.pubkey` フィールドに base64 エンコードで焼き込み済み
+- 秘密鍵・パスワード・公開鍵: 1Password に保管
+- CI での利用: `tauri-apps/tauri-action` ステップが環境変数 `TAURI_SIGNING_PRIVATE_KEY` と `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` を受け取り、ビルド時に updater アーティファクトへ署名する
+  - これらは GitHub Actions secrets `TAURI_SIGNING_PRIVATE_KEY` および `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` として登録されている
+  - preflight ジョブが両 secrets の存在を確認し、未設定の場合はビルドを中断する
+
+### 鍵ローテーション手順
+
+1. `tauri signer generate -w <出力パス>` で新しい鍵ペアを生成する
+2. 生成された公開鍵を `src-tauri/tauri.conf.json` の `plugins.updater.pubkey` に更新してコミットする
+3. GitHub Actions secrets `TAURI_SIGNING_PRIVATE_KEY` と `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` を新しい鍵で更新する
+4. 1Password の保管内容を新しい鍵ペア（秘密鍵・パスワード・公開鍵）に更新する
+5. **注意**: 旧バージョンのユーザーが持つアプリには旧公開鍵が焼き込まれている。pubkey を切り替えたリリースに対して、旧バージョンの updater は新リリースの署名を旧公開鍵で検証しようとするため、検証に失敗し自動更新できなくなる。ローテーション後の最初のリリースでは、既存ユーザーへ手動再インストール案内を添えること。
+
+### 鍵喪失・漏洩時の対応
+
+**喪失時（秘密鍵が手元にない）**:
+
+- 既存ユーザーへの自動更新配信が不可能になる
+- 新しい鍵ペアで署名した新バージョンを GitHub Release に配布し、全ユーザーへ手動再インストールを案内する
+- 再インストール後は新公開鍵が焼き込まれるため、以降のリリースで自動更新が再開する
+
+**漏洩時（秘密鍵が第三者に知られた可能性がある）**:
+
+- 直ちに上記のローテーション手順を実施して旧鍵を無効化する
+- 漏洩した鍵で署名された不正アーティファクトが配布されるリスクがあるため、GitHub Release の整合性検証ログを確認し、不正なアーティファクトがないか確認する
+- 必要に応じて影響範囲のユーザーに注意喚起する
+
+### staged rollout 不在の accepted-risk
+
+現在の updater は `latest.json` を差し替えることで全ユーザーへ即時に更新を届ける構成であり、段階配信（staged rollout）は未実装である。これは以下の accepted-risk として明文化する:
+
+- リリース後に重大不具合が見つかった場合は fix-forward で対応する（`docs/incident-runbook.md` の Schema Bump Release Regression 参照）
+- 段階配信の実装は将来 TODO として分離する
+
 ## スコープ外（将来追加可能）
 
 - Developer ID / Apple notarization による macOS 配布
