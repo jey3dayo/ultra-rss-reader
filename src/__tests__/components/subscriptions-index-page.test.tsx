@@ -445,9 +445,10 @@ describe("SubscriptionsIndexPage", () => {
     expect(detailScrollRegion).toHaveClass("lg:overflow-y-auto");
   });
 
-  // flaky-quarantine: TODO=TODO.md; owner=jey3dayo; expires=2026-09-13; evidence=jsdom suite 3 failed, green on parent d992e6d0a; unskip=vitest subscriptions-index-page.test.tsx green 3x
-  it.skip("filters the list in place from the summary cards and restores all subscriptions", async () => {
-    const user = userEvent.setup();
+  it("filters the list in place from the summary cards and restores all subscriptions", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date("2026-03-31T00:00:00Z"));
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 
     render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
 
@@ -530,9 +531,10 @@ describe("SubscriptionsIndexPage", () => {
     expect(within(detailPane).getByRole("button", { name: /^(削除|delete)$/ })).toBeInTheDocument();
   });
 
-  // flaky-quarantine: TODO=TODO.md; owner=jey3dayo; expires=2026-09-13; evidence=jsdom suite 3 failed, green on parent d992e6d0a; unskip=vitest subscriptions-index-page.test.tsx green 3x
-  it.skip("removes deferred feeds from the active review filter and clears the detail pane", async () => {
-    const user = userEvent.setup();
+  it("removes deferred feeds from the active review filter and clears the detail pane", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date("2026-03-31T00:00:00Z"));
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 
     render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
 
@@ -569,8 +571,9 @@ describe("SubscriptionsIndexPage", () => {
     });
   });
 
-  // flaky-quarantine: TODO=TODO.md; owner=jey3dayo; expires=2026-09-13; evidence=jsdom suite 3 failed, green on parent d992e6d0a; unskip=vitest subscriptions-index-page.test.tsx green 3x
-  it.skip("restores a returned stale filter, collapsed group state, and list scroll position", async () => {
+  it("restores a returned stale filter, collapsed group state, and list scroll position", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date("2026-03-31T00:00:00Z"));
     useUiStore.setState({
       ...useUiStore.getState(),
       subscriptionsWorkspace: {
