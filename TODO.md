@@ -28,6 +28,17 @@
 
 ### Dev / Tooling / E2E / Test Helpers
 
+#### subscriptions-index-page filter/scroll restore tests quarantine 解除
+
+- [ ] priority: P2 / domain: quality-tooling / work type: defect fix
+  - created batch: 2026-06-13
+  - 対象: `src/__tests__/components/subscriptions-index-page.test.tsx` の 3 件(`filters the list in place from the summary cards and restores all subscriptions` / `removes deferred feeds from the active review filter and clears the detail pane` / `restores a returned stale filter, collapsed group state, and list scroll position`)
+  - scope: 上記 3 件が CI 親コミット d992e6d0a では緑だったが 6c439457 以降赤になり、ローカル darwin 単体実行でも決定的に 3/3 失敗する。filter 反映の同期 assertion / scrollTop 復元の timing 依存が疑われる。`it.skip` で flaky-quarantine 中(annotation 同梱)。root cause を特定して恒久修正し skip を解除する
+  - 関連: `tests/setup.ts` に document.body/documentElement の inline style リセットを追加済み(別ファイルの scroll-lock リーク対策)、`vitest.config.ts` に `unstubGlobals`/`unstubEnvs` 追加済み。これらだけでは当 3 件は直らなかった
+  - acceptance criteria: `pnpm exec vitest run --environment jsdom src/__tests__/components/subscriptions-index-page.test.tsx` が CI ubuntu で 3 回連続 0 failed になり、`it.skip` を `it` に戻して full suite も緑
+  - focused verification: `mise run test:unit:dom`
+  - 発見方法: 2026-06-13 リリース前 CI 確認(focused test で再現・固定する分類)
+
 ### Rust Provider / DB / Scheduler
 
 ### Query / Store / Browser Runtime

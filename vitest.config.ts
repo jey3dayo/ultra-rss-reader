@@ -82,6 +82,12 @@ export default defineConfig({
       },
     ],
     clearMocks: true,
+    // Stubs installed with vi.stubGlobal / vi.stubEnv (e.g. requestAnimationFrame,
+    // ResizeObserver, import.meta.env.DEV) otherwise leak across test files because
+    // clearMocks only resets call history. Auto-restoring them between tests prevents
+    // order-dependent flaky failures in DOM/scroll/motion-sensitive suites.
+    unstubGlobals: true,
+    unstubEnvs: true,
     slowTestThreshold: 300,
     testTimeout: 15_000,
     hookTimeout: 15_000,

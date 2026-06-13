@@ -45,6 +45,13 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  // Base UI dialogs/popovers lock scrolling by writing inline styles onto
+  // document.body (e.g. overflow: hidden, padding-right). Their restore can be
+  // deferred past a test file boundary, leaking the locked state into the next
+  // file and causing order-dependent flaky failures in scroll/layout-sensitive
+  // suites. Reset the document-level inline styles after every test.
+  document.body.style.cssText = "";
+  document.documentElement.style.cssText = "";
   teardownTauriMocks();
   resetTauriRuntimeFlags();
   resetCommandHistoryStorageFailureWarnings();
