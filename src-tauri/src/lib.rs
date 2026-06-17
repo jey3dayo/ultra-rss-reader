@@ -287,6 +287,21 @@ fn startup_focus_main_thread_warning(error: &impl std::fmt::Display) -> String {
     format!("Failed to schedule startup focus restore on the main thread: {error}")
 }
 
+#[cfg(not(test))]
+fn second_launch_main_window_show_warning(error: &impl std::fmt::Display) -> String {
+    format!("Failed to show main window after second launch request: {error}")
+}
+
+#[cfg(not(test))]
+fn second_launch_main_window_focus_warning(error: &impl std::fmt::Display) -> String {
+    format!("Failed to focus main window after second launch request: {error}")
+}
+
+#[cfg(not(test))]
+fn second_launch_main_webview_focus_warning(error: &impl std::fmt::Display) -> String {
+    format!("Failed to focus main webview after second launch request: {error}")
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum StartupFocusRestoreDecision {
     Restore,
@@ -463,6 +478,24 @@ fn focus_main_webview_on_startup<R: tauri::Runtime>(
 }
 
 #[cfg(not(test))]
+fn focus_main_webview_on_second_launch<R: tauri::Runtime>(app_handle: &tauri::AppHandle<R>) {
+    if let Some(window) = app_handle.get_webview_window("main") {
+        if let Err(error) = window.show() {
+            tracing::warn!("{}", second_launch_main_window_show_warning(&error));
+        }
+        if let Err(error) = window.set_focus() {
+            tracing::warn!("{}", second_launch_main_window_focus_warning(&error));
+        }
+    }
+
+    if let Some(webview) = app_handle.get_webview("main") {
+        if let Err(error) = webview.set_focus() {
+            tracing::warn!("{}", second_launch_main_webview_focus_warning(&error));
+        }
+    }
+}
+
+#[cfg(not(test))]
 fn emit_main_window_close_blocked(app_handle: &tauri::AppHandle) {
     if let Err(error) = app_handle.emit(MAIN_WINDOW_CLOSE_BLOCKED_EVENT, ()) {
         tracing::warn!("Failed to emit main window close blocked lifecycle event: {error}");
@@ -605,6 +638,11 @@ pub fn run() {
     install_redacting_panic_hook();
 
     let builder = tauri::Builder::default();
+
+    #[cfg(desktop)]
+    let builder = builder.plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+        focus_main_webview_on_second_launch(app);
+    }));
 
     #[cfg(debug_assertions)]
     let builder = builder.plugin(
@@ -1402,6 +1440,33 @@ mod tests {
         mark_startup_focus_restore_stopped(&active);
 
         assert!(!startup_focus_restore_is_active(&active));
+    }
+
+    #[test]
+    fn single_instance_plugin_is_registered_before_other_plugins() {
+        let lib_rs = include_str!("lib.rs");
+        let cargo_toml = include_str!("../Cargo.toml");
+
+        assert!(cargo_toml.contains("tauri-plugin-single-instance"));
+
+        let single_instance_index = lib_rs
+            .find("tauri_plugin_single_instance::init")
+            .expect("single-instance plugin should be initialized");
+        let mcp_bridge_index = lib_rs
+            .find("tauri_plugin_mcp_bridge::Builder")
+            .expect("MCP bridge plugin should remain initialized");
+        let release_log_index = lib_rs
+            .find("tauri_plugin_log::Builder")
+            .expect("release log plugin should remain initialized");
+
+        assert!(
+            single_instance_index < mcp_bridge_index,
+            "single-instance plugin must be registered before debug-only plugins"
+        );
+        assert!(
+            single_instance_index < release_log_index,
+            "single-instance plugin must be registered before release plugins"
+        );
     }
 
     #[test]
