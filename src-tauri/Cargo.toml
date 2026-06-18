@@ -1,6 +1,6 @@
 [package]
 name = "ultra-rss-reader"
-version = "0.46.0"
+version = "0.46.1"
 edition = "2021"
 description = "A Tauri-based RSS reader"
 
@@ -71,6 +71,9 @@ windows = { version = "0.61.2", features = [
   "Win32_UI_Input_KeyboardAndMouse",
   "Win32_UI_WindowsAndMessaging",
 ] }
+
+[target.'cfg(any(target_os = "macos", windows, target_os = "linux"))'.dependencies]
+tauri-plugin-single-instance = "2.4.2"
 
 [dev-dependencies]
 flate2 = "1"

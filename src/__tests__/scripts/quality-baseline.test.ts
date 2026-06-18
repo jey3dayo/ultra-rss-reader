@@ -22,13 +22,13 @@ import {
 describe("quality-baseline", () => {
   it("extracts JSON after tool version and log prefixes", () => {
     const output = [
-      "react-doctor 0.2.3",
+      "react-doctor 0.5.6",
       "info: running offline scan",
-      '{"version":"0.2.3","mode":"diff","summary":{"score":100,"errorCount":0,"warningCount":0,"affectedFileCount":0}}',
+      '{"version":"0.5.6","mode":"diff","summary":{"score":100,"errorCount":0,"warningCount":0,"affectedFileCount":0}}',
     ].join("\n");
 
     expect(parseReactDoctorReport(output)).toEqual({
-      version: "0.2.3",
+      version: "0.5.6",
       mode: "diff",
       summary: {
         score: 100,
@@ -41,7 +41,7 @@ describe("quality-baseline", () => {
 
   it("keeps nested braces and braces inside strings inside the JSON payload", () => {
     const output = [
-      "knip 6.15.0",
+      "knip 6.17.1",
       '{"issues":[{"file":"src/example.ts","exports":["useThing"],"note":"literal { brace }"}]}',
       "scan finished",
     ].join("\n");
@@ -66,12 +66,12 @@ describe("quality-baseline", () => {
   it("reads the React Doctor report after structured JSON log prefixes", () => {
     const output = [
       '{"level":"info","message":"scan started"}',
-      '{"version":"0.2.3","mode":"full","summary":{"score":85,"errorCount":0,"warningCount":228,"affectedFileCount":87}}',
+      '{"version":"0.5.6","mode":"full","summary":{"score":85,"errorCount":0,"warningCount":228,"affectedFileCount":87}}',
       "warning: trailing text",
     ].join("\n");
 
     expect(parseReactDoctorReport(output)).toEqual({
-      version: "0.2.3",
+      version: "0.5.6",
       mode: "full",
       summary: {
         score: 85,
@@ -84,10 +84,10 @@ describe("quality-baseline", () => {
 
   it("accepts React Doctor offline reports without score output", () => {
     const output =
-      '{"version":"0.2.3","mode":"diff","summary":{"score":null,"errorCount":0,"warningCount":0,"affectedFileCount":0}}';
+      '{"version":"0.5.6","mode":"diff","summary":{"score":null,"errorCount":0,"warningCount":0,"affectedFileCount":0}}';
 
     expect(parseReactDoctorReport(output)).toEqual({
-      version: "0.2.3",
+      version: "0.5.6",
       mode: "diff",
       summary: {
         score: null,
@@ -105,7 +105,7 @@ describe("quality-baseline", () => {
   });
 
   it("throws a stable error when tool output does not contain valid JSON", () => {
-    expect(() => readJsonPayload("react-doctor 0.2.3\nno json payload")).toThrow(
+    expect(() => readJsonPayload("react-doctor 0.5.6\nno json payload")).toThrow(
       "Tool output did not contain a JSON object.",
     );
   });
@@ -151,10 +151,10 @@ describe("quality-baseline", () => {
     });
 
     expect(
-      createReportDiagnostic("React Doctor", "pnpm exec react-doctor", "react-doctor 0.2.3\n{not json}", new Error()),
+      createReportDiagnostic("React Doctor", "pnpm exec react-doctor", "react-doctor 0.5.6\n{not json}", new Error()),
     ).toMatchObject({
       kind: "malformed-report",
-      stdout: "react-doctor 0.2.3\n{not json}",
+      stdout: "react-doctor 0.5.6\n{not json}",
     });
   });
 

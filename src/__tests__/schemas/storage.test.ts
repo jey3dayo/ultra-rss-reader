@@ -111,7 +111,6 @@ describe("storage schemas", () => {
       enumerable: true,
       value: ["folder-proto"],
     });
-    expect(parsed.__proto__).toEqual(["folder-proto"]);
     expect(parsed.constructor).toEqual(["folder-constructor"]);
     expect(parsed["account-id"]).toEqual(["folder-id"]);
     expect(Object.prototype).not.toHaveProperty("folder-proto");

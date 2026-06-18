@@ -4,6 +4,23 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.46.1] - 2026-06-18
+
+### Features
+
+- Storybook に Debug HUD の状態を確認できる story を追加し、開発時の表示確認をしやすくした
+
+### Bug Fixes
+
+- Tauri の single-instance 制御を復旧し、アプリを複数起動しようとしたときに既存ウィンドウへ戻るようにした
+
+### Maintenance
+
+- JS / Rust toolchain と lockfile を更新し、Biome / React Doctor / Knip の品質 baseline を現行バージョンへ揃えた
+- Reader の記事余白に関するテスト期待値を実装に合わせ、UI の padding 契約を固定した
+- jsdom の日時依存テストを固定時刻で安定化し、subscriptions index 周辺の高速テストを再現しやすくした
+- GitHub Actions の pnpm setup と mise toolchain を調整し、yamllint を uv 経由で解決して CI の toolchain setup を安定させた
+
 ## [0.46.0] - 2026-06-13
 
 ### Documentation
