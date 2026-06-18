@@ -330,12 +330,11 @@ const parseCspDirectives = (csp: string): Map<string, string[]> => {
   return directives;
 };
 
-const extractReleaseCacheBlock = (source: string): string => {
-  const value = source.match(
-    /- uses: actions\/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae\n(?<block>(?: {8}.+\n?)*)/,
-  )?.groups?.block;
+const extractPnpmSetupBlock = (source: string): string => {
+  const value = source.match(/- uses: pnpm\/setup@5d160c5bc68a09337ad0d5654e237e03253b5879\n(?<block>(?: {8}.+\n?)*)/)
+    ?.groups?.block;
   if (!value) {
-    throw new Error("Missing release pnpm cache block");
+    throw new Error("Missing pnpm setup block");
   }
   return value;
 };
@@ -351,9 +350,9 @@ const extractTaskBlock = (source: string, taskName: string): string => {
   return value;
 };
 
-const extractCacheBlocks = (source: string): string[] => {
-  const cachePattern = /- uses: actions\/cache@[^\n]+\n(?<block>(?: {8}.+\n?)*)/g;
-  return [...source.matchAll(cachePattern)].map((match) => match.groups?.block ?? "");
+const extractPnpmSetupBlocks = (source: string): string[] => {
+  const setupPattern = /- uses: pnpm\/setup@5d160c5bc68a09337ad0d5654e237e03253b5879\n(?<block>(?: {8}.+\n?)*)/g;
+  return [...source.matchAll(setupPattern)].map((match) => match.groups?.block ?? "");
 };
 
 const extractWorkflowUses = (source: string): string[] => {
@@ -743,7 +742,7 @@ describe("release repository contract", () => {
     expect(releaseSourceValidator).toContain('process.env.REUSE_EXISTING_ASSETS === "true"');
     expect(releaseSourceValidator).toContain("release recovery is validating existing assets");
     expect(releaseWorkflow.indexOf("Validate release source")).toBeLessThan(
-      releaseWorkflow.indexOf("Resolve pnpm store path"),
+      releaseWorkflow.indexOf("pnpm install --frozen-lockfile"),
     );
     expect(releaseWorkflow.indexOf("Validate release version parity")).toBeLessThan(
       releaseWorkflow.indexOf("tauri-apps/tauri-action"),
@@ -772,44 +771,30 @@ describe("release repository contract", () => {
     );
   });
 
-  it("keeps release dependency cache keyed by lockfile and toolchain drift", () => {
-    const releaseCacheBlock = extractReleaseCacheBlock(releaseWorkflow);
+  it("keeps release dependency cache handled by pinned pnpm setup", () => {
+    const releasePnpmSetupBlock = extractPnpmSetupBlock(releaseWorkflow);
 
-    expect(releaseCacheBlock).toContain(
-      "key: $" +
-        "{{ runner.os }}-pnpm-store-toolchain-$" +
-        "{{ hashFiles('mise.toml', 'package.json', 'pnpm-lock.yaml') }}",
+    expect(releasePnpmSetupBlock).toContain("runtime: node@24");
+    expect(releasePnpmSetupBlock).toContain("cache: true");
+    expect(releasePnpmSetupBlock).toContain("install: false");
+    expect(releaseWorkflow.indexOf("Validate release source")).toBeLessThan(
+      releaseWorkflow.indexOf("pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879"),
     );
-    expect(releaseCacheBlock).toContain("restore-keys:");
-    expect(releaseCacheBlock).toContain("$" + "{{ runner.os }}-pnpm-store-toolchain-");
-    expect(releaseCacheBlock).toContain("$" + "{{ runner.os }}-pnpm-store-");
+    expect(releaseWorkflow.indexOf("pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879")).toBeLessThan(
+      releaseWorkflow.indexOf("pnpm install --frozen-lockfile"),
+    );
   });
 
-  it("keeps CI pnpm cache restore keys bounded by frozen lockfile installs", () => {
-    const ciCacheBlocks = extractCacheBlocks(ciWorkflow);
+  it("keeps CI pnpm setup cache bounded by frozen lockfile installs", () => {
+    const ciPnpmSetupBlocks = extractPnpmSetupBlocks(ciWorkflow);
 
-    expect(ciCacheBlocks.length).toBeGreaterThan(0);
-    for (const cacheBlock of ciCacheBlocks) {
-      expect(cacheBlock).toContain(
-        "key: $" +
-          "{{ runner.os }}-pnpm-store-$" +
-          "{{ hashFiles('pnpm-lock.yaml') }}-node-$" +
-          "{{ steps.toolchain-cache.outputs.node }}-pnpm-$" +
-          "{{ steps.toolchain-cache.outputs.pnpm }}-mise-$" +
-          "{{ steps.toolchain-cache.outputs.mise }}",
-      );
-      expect(cacheBlock).toContain("restore-keys:");
-      expect(cacheBlock).toContain(
-        "$" +
-          "{{ runner.os }}-pnpm-store-$" +
-          "{{ hashFiles('pnpm-lock.yaml') }}-node-$" +
-          "{{ steps.toolchain-cache.outputs.node }}-pnpm-$" +
-          "{{ steps.toolchain-cache.outputs.pnpm }}-mise-$" +
-          "{{ steps.toolchain-cache.outputs.mise }}-",
-      );
-      expect(cacheBlock).toContain("$" + "{{ runner.os }}-pnpm-store-");
+    expect(ciPnpmSetupBlocks.length).toBeGreaterThan(0);
+    for (const setupBlock of ciPnpmSetupBlocks) {
+      expect(setupBlock).toContain("runtime: node@24");
+      expect(setupBlock).toContain("cache: true");
+      expect(setupBlock).toContain("install: false");
     }
-    expect(ciWorkflow.match(/pnpm install --frozen-lockfile/g)).toHaveLength(ciCacheBlocks.length);
+    expect(ciWorkflow.match(/pnpm install --frozen-lockfile/g)).toHaveLength(ciPnpmSetupBlocks.length);
     expect(ciWorkflow).not.toContain("node_modules");
   });
 
@@ -896,10 +881,10 @@ describe("release repository contract", () => {
     const expectedReleaseActions = [
       "actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd",
       "jdx/mise-action@1648a7812b9aeae629881980618f079932869151",
-      "actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae",
+      "pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879",
       "actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd",
       "jdx/mise-action@1648a7812b9aeae629881980618f079932869151",
-      "actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae",
+      "pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879",
       "dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9",
       "Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4",
       "tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5",
@@ -930,7 +915,7 @@ describe("release repository contract", () => {
     expect(extractReleaseStepBlock(releaseWorkflow, "Validate existing draft release assets")).toContain(
       "GH_TOKEN: $" + "{{ secrets.GITHUB_TOKEN }}",
     );
-    expect(extractReleaseCacheBlock(releaseWorkflow)).not.toContain("node_modules");
+    expect(extractPnpmSetupBlock(releaseWorkflow)).not.toContain("node_modules");
   });
 
   it("keeps CI apt mirror failures bounded by an explicit retry policy", () => {

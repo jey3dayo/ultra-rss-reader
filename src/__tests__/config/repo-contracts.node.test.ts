@@ -1408,51 +1408,18 @@ describe("repository static contracts", () => {
     expect(extractQualityGateNeeds(ciWorkflow)).toEqual(extractWorkflowCheckJobIds(ciWorkflow).toSorted());
   });
 
-  it("keeps CI check jobs caching the pnpm store before install", () => {
+  it("keeps CI check jobs setting up pnpm runtime cache before install", () => {
     const ciWorkflow = readRepoFile(".github/workflows/ci.yml");
-    const pnpmStorePathExpression = "$" + "{{ steps.pnpm-store.outputs.path }}";
-    const pnpmStoreKeyExpression =
-      "$" +
-      "{{ runner.os }}-pnpm-store-" +
-      "$" +
-      "{{ hashFiles('pnpm-lock.yaml') }}-node-" +
-      "$" +
-      "{{ steps.toolchain-cache.outputs.node }}-pnpm-" +
-      "$" +
-      "{{ steps.toolchain-cache.outputs.pnpm }}-mise-" +
-      "$" +
-      "{{ steps.toolchain-cache.outputs.mise }}";
-    const pnpmStoreVersionedRestoreKeyExpression =
-      "$" +
-      "{{ runner.os }}-pnpm-store-" +
-      "$" +
-      "{{ hashFiles('pnpm-lock.yaml') }}-node-" +
-      "$" +
-      "{{ steps.toolchain-cache.outputs.node }}-pnpm-" +
-      "$" +
-      "{{ steps.toolchain-cache.outputs.pnpm }}-mise-" +
-      "$" +
-      "{{ steps.toolchain-cache.outputs.mise }}-";
-    const pnpmStoreRestoreKeyExpression = "$" + "{{ runner.os }}-pnpm-store-";
 
     for (const { jobId, section } of extractWorkflowCheckJobSections(ciWorkflow)) {
-      const toolchainCacheIndex = section.indexOf("id: toolchain-cache");
-      const storePathIndex = section.indexOf("pnpm store path --silent");
-      const cacheIndex = section.indexOf("uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae");
+      const setupIndex = section.indexOf("uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879");
       const installIndex = section.indexOf("pnpm install --frozen-lockfile");
 
-      if (jobId === "toolchain") {
-        continue;
-      }
-
-      expect(toolchainCacheIndex, `${jobId} should resolve Node/pnpm/mise cache versions`).toBeGreaterThanOrEqual(0);
-      expect(storePathIndex, `${jobId} should resolve pnpm store path`).toBeGreaterThanOrEqual(0);
-      expect(cacheIndex, `${jobId} should use actions/cache for pnpm store`).toBeGreaterThan(storePathIndex);
-      expect(installIndex, `${jobId} should install pnpm dependencies`).toBeGreaterThan(cacheIndex);
-      expect(section).toContain(`path: ${pnpmStorePathExpression}`);
-      expect(section).toContain(`key: ${pnpmStoreKeyExpression}`);
-      expect(section).toContain(pnpmStoreVersionedRestoreKeyExpression);
-      expect(section).toContain(pnpmStoreRestoreKeyExpression);
+      expect(setupIndex, `${jobId} should use pnpm/setup for pnpm store cache`).toBeGreaterThanOrEqual(0);
+      expect(section, `${jobId} should install Node 24 through pnpm runtime`).toContain("runtime: node@24");
+      expect(section, `${jobId} should enable pnpm/setup store cache`).toContain("cache: true");
+      expect(section, `${jobId} should avoid automatic non-frozen install`).toContain("install: false");
+      expect(installIndex, `${jobId} should install pnpm dependencies after setup`).toBeGreaterThan(setupIndex);
     }
   });
 

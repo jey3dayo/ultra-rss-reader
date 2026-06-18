@@ -19,6 +19,7 @@ taplo = "latest"
 rtk = "latest"
 actionlint = "latest"
 shellcheck = "latest"
+uv = "latest"
 "pipx:yamllint" = "latest"
 "npm:pnpm" = "11.5.1"
 

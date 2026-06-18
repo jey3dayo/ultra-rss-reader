@@ -56,23 +56,12 @@ jobs:
           REUSE_EXISTING_ASSETS: ${{ github.event_name == 'workflow_dispatch' && inputs.reuse_existing_assets || false }}
         run: node ./scripts/release/validate-source.ts
 
-      - name: Resolve pnpm store path
-        id: pnpm-store
-        shell: bash
-        run: |
-          pnpm config set store-dir .pnpm-store
-          store_path="$(pnpm store path --silent)"
-          mkdir -p "$store_path"
-          echo "path=$store_path" >> "$GITHUB_OUTPUT"
-
-      # actions/cache@v5.0.5
-      - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+      # pnpm/setup@v1
+      - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879
         with:
-          path: ${{ steps.pnpm-store.outputs.path }}
-          key: ${{ runner.os }}-pnpm-store-toolchain-${{ hashFiles('mise.toml', 'package.json', 'pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-toolchain-
-            ${{ runner.os }}-pnpm-store-
+          runtime: node@24
+          cache: true
+          install: false
 
       - run: pnpm install --frozen-lockfile
 
@@ -181,23 +170,12 @@ jobs:
           REUSE_EXISTING_ASSETS: ${{ github.event_name == 'workflow_dispatch' && inputs.reuse_existing_assets || false }}
         run: node ./scripts/release/validate-source.ts
 
-      - name: Resolve pnpm store path
-        id: pnpm-store
-        shell: bash
-        run: |
-          pnpm config set store-dir .pnpm-store
-          store_path="$(pnpm store path --silent)"
-          mkdir -p "$store_path"
-          echo "path=$store_path" >> "$GITHUB_OUTPUT"
-
-      # actions/cache@v5.0.5
-      - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+      # pnpm/setup@v1
+      - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879
         with:
-          path: ${{ steps.pnpm-store.outputs.path }}
-          key: ${{ runner.os }}-pnpm-store-toolchain-${{ hashFiles('mise.toml', 'package.json', 'pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-toolchain-
-            ${{ runner.os }}-pnpm-store-
+          runtime: node@24
+          cache: true
+          install: false
 
       # dtolnay/rust-toolchain@stable
       - uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9

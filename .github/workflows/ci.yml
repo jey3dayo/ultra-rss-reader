@@ -32,32 +32,12 @@ jobs:
 
       - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151
 
-      - name: Resolve toolchain cache versions
-        id: toolchain-cache
-        shell: bash
-        run: |
-          {
-            echo "node=$(node --version)"
-            echo "pnpm=$(pnpm --version)"
-            echo "mise=$(mise --version | tr ' /' '--')"
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Resolve pnpm store path
-        id: pnpm-store
-        shell: bash
-        run: |
-          pnpm config set store-dir .pnpm-store
-          store_path="$(pnpm store path --silent)"
-          mkdir -p "$store_path"
-          echo "path=$store_path" >> "$GITHUB_OUTPUT"
-
-      - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+      # pnpm/setup@v1
+      - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879
         with:
-          path: ${{ steps.pnpm-store.outputs.path }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}-node-${{ steps.toolchain-cache.outputs.node }}-pnpm-${{ steps.toolchain-cache.outputs.pnpm }}-mise-${{ steps.toolchain-cache.outputs.mise }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}-node-${{ steps.toolchain-cache.outputs.node }}-pnpm-${{ steps.toolchain-cache.outputs.pnpm }}-mise-${{ steps.toolchain-cache.outputs.mise }}-
-            ${{ runner.os }}-pnpm-store-
+          runtime: node@24
+          cache: true
+          install: false
 
       - run: pnpm install --frozen-lockfile
 
@@ -112,32 +92,12 @@ jobs:
 
       - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151
 
-      - name: Resolve toolchain cache versions
-        id: toolchain-cache
-        shell: bash
-        run: |
-          {
-            echo "node=$(node --version)"
-            echo "pnpm=$(pnpm --version)"
-            echo "mise=$(mise --version | tr ' /' '--')"
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Resolve pnpm store path
-        id: pnpm-store
-        shell: bash
-        run: |
-          pnpm config set store-dir .pnpm-store
-          store_path="$(pnpm store path --silent)"
-          mkdir -p "$store_path"
-          echo "path=$store_path" >> "$GITHUB_OUTPUT"
-
-      - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+      # pnpm/setup@v1
+      - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879
         with:
-          path: ${{ steps.pnpm-store.outputs.path }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}-node-${{ steps.toolchain-cache.outputs.node }}-pnpm-${{ steps.toolchain-cache.outputs.pnpm }}-mise-${{ steps.toolchain-cache.outputs.mise }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}-node-${{ steps.toolchain-cache.outputs.node }}-pnpm-${{ steps.toolchain-cache.outputs.pnpm }}-mise-${{ steps.toolchain-cache.outputs.mise }}-
-            ${{ runner.os }}-pnpm-store-
+          runtime: node@24
+          cache: true
+          install: false
 
       - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8
         with:
@@ -167,32 +127,12 @@ jobs:
 
       - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151
 
-      - name: Resolve toolchain cache versions
-        id: toolchain-cache
-        shell: bash
-        run: |
-          {
-            echo "node=$(node --version)"
-            echo "pnpm=$(pnpm --version)"
-            echo "mise=$(mise --version | tr ' /' '--')"
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Resolve pnpm store path
-        id: pnpm-store
-        shell: bash
-        run: |
-          pnpm config set store-dir .pnpm-store
-          store_path="$(pnpm store path --silent)"
-          mkdir -p "$store_path"
-          echo "path=$store_path" >> "$GITHUB_OUTPUT"
-
-      - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+      # pnpm/setup@v1
+      - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879
         with:
-          path: ${{ steps.pnpm-store.outputs.path }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}-node-${{ steps.toolchain-cache.outputs.node }}-pnpm-${{ steps.toolchain-cache.outputs.pnpm }}-mise-${{ steps.toolchain-cache.outputs.mise }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}-node-${{ steps.toolchain-cache.outputs.node }}-pnpm-${{ steps.toolchain-cache.outputs.pnpm }}-mise-${{ steps.toolchain-cache.outputs.mise }}-
-            ${{ runner.os }}-pnpm-store-
+          runtime: node@24
+          cache: true
+          install: false
 
       - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8
         with:
@@ -250,32 +190,12 @@ jobs:
 
       - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151
 
-      - name: Resolve toolchain cache versions
-        id: toolchain-cache
-        shell: bash
-        run: |
-          {
-            echo "node=$(node --version)"
-            echo "pnpm=$(pnpm --version)"
-            echo "mise=$(mise --version | tr ' /' '--')"
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Resolve pnpm store path
-        id: pnpm-store
-        shell: bash
-        run: |
-          pnpm config set store-dir .pnpm-store
-          store_path="$(pnpm store path --silent)"
-          mkdir -p "$store_path"
-          echo "path=$store_path" >> "$GITHUB_OUTPUT"
-
-      - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+      # pnpm/setup@v1
+      - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879
         with:
-          path: ${{ steps.pnpm-store.outputs.path }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}-node-${{ steps.toolchain-cache.outputs.node }}-pnpm-${{ steps.toolchain-cache.outputs.pnpm }}-mise-${{ steps.toolchain-cache.outputs.mise }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}-node-${{ steps.toolchain-cache.outputs.node }}-pnpm-${{ steps.toolchain-cache.outputs.pnpm }}-mise-${{ steps.toolchain-cache.outputs.mise }}-
-            ${{ runner.os }}-pnpm-store-
+          runtime: node@24
+          cache: true
+          install: false
 
       - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8
 
@@ -325,32 +245,12 @@ jobs:
 
       - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151
 
-      - name: Resolve toolchain cache versions
-        id: toolchain-cache
-        shell: bash
-        run: |
-          {
-            echo "node=$(node --version)"
-            echo "pnpm=$(pnpm --version)"
-            echo "mise=$(mise --version | tr ' /' '--')"
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Resolve pnpm store path
-        id: pnpm-store
-        shell: bash
-        run: |
-          pnpm config set store-dir .pnpm-store
-          store_path="$(pnpm store path --silent)"
-          mkdir -p "$store_path"
-          echo "path=$store_path" >> "$GITHUB_OUTPUT"
-
-      - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+      # pnpm/setup@v1
+      - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879
         with:
-          path: ${{ steps.pnpm-store.outputs.path }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}-node-${{ steps.toolchain-cache.outputs.node }}-pnpm-${{ steps.toolchain-cache.outputs.pnpm }}-mise-${{ steps.toolchain-cache.outputs.mise }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}-node-${{ steps.toolchain-cache.outputs.node }}-pnpm-${{ steps.toolchain-cache.outputs.pnpm }}-mise-${{ steps.toolchain-cache.outputs.mise }}-
-            ${{ runner.os }}-pnpm-store-
+          runtime: node@24
+          cache: true
+          install: false
 
       - run: pnpm install --frozen-lockfile
 
@@ -384,32 +284,12 @@ jobs:
 
       - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151
 
-      - name: Resolve toolchain cache versions
-        id: toolchain-cache
-        shell: bash
-        run: |
-          {
-            echo "node=$(node --version)"
-            echo "pnpm=$(pnpm --version)"
-            echo "mise=$(mise --version | tr ' /' '--')"
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Resolve pnpm store path
-        id: pnpm-store
-        shell: bash
-        run: |
-          pnpm config set store-dir .pnpm-store
-          store_path="$(pnpm store path --silent)"
-          mkdir -p "$store_path"
-          echo "path=$store_path" >> "$GITHUB_OUTPUT"
-
-      - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+      # pnpm/setup@v1
+      - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879
         with:
-          path: ${{ steps.pnpm-store.outputs.path }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}-node-${{ steps.toolchain-cache.outputs.node }}-pnpm-${{ steps.toolchain-cache.outputs.pnpm }}-mise-${{ steps.toolchain-cache.outputs.mise }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}-node-${{ steps.toolchain-cache.outputs.node }}-pnpm-${{ steps.toolchain-cache.outputs.pnpm }}-mise-${{ steps.toolchain-cache.outputs.mise }}-
-            ${{ runner.os }}-pnpm-store-
+          runtime: node@24
+          cache: true
+          install: false
 
       - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8
 

@@ -33,23 +33,18 @@ function extractCheckJobSections(source: string) {
 }
 
 describe("CI workflow contract", () => {
-  it("includes Node, pnpm, and mise version drift in ci.yml pnpm cache keys", () => {
+  it("sets up pnpm and Node through the pinned pnpm setup action before frozen installs", () => {
     const ciWorkflow = readRepoFile(".github/workflows/ci.yml");
 
     for (const { jobId, section } of extractCheckJobSections(ciWorkflow)) {
-      expect(section, `${jobId} should resolve toolchain cache versions`).toContain("id: toolchain-cache");
-      expect(section, `${jobId} should include Node version in cache key`).toContain(
-        githubExpression("steps.toolchain-cache.outputs.node"),
-      );
-      expect(section, `${jobId} should include pnpm version in cache key`).toContain(
-        githubExpression("steps.toolchain-cache.outputs.pnpm"),
-      );
-      expect(section, `${jobId} should include mise version in cache key`).toContain(
-        githubExpression("steps.toolchain-cache.outputs.mise"),
-      );
-      expect(section, `${jobId} should keep lockfile content in cache key`).toContain(
-        githubExpression("hashFiles('pnpm-lock.yaml')"),
-      );
+      const setupIndex = section.indexOf("uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879");
+      const installIndex = section.indexOf("pnpm install --frozen-lockfile");
+
+      expect(setupIndex, `${jobId} should use pinned pnpm/setup`).toBeGreaterThanOrEqual(0);
+      expect(section, `${jobId} should install Node 24 through pnpm runtime`).toContain("runtime: node@24");
+      expect(section, `${jobId} should enable pnpm/setup store cache`).toContain("cache: true");
+      expect(section, `${jobId} should keep frozen-lockfile install explicit`).toContain("install: false");
+      expect(installIndex, `${jobId} should install after pnpm/setup`).toBeGreaterThan(setupIndex);
     }
   });
 
