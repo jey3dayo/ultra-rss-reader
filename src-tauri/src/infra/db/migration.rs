@@ -24,6 +24,8 @@ const MIGRATION_V17: &str = include_str!("../../../migrations/V17__article_view_
 const MIGRATION_V18: &str = include_str!("../../../migrations/V18__db_repository_contracts.sql");
 const MIGRATION_V19: &str =
     include_str!("../../../migrations/V19__article_list_ordered_indexes.sql");
+const MIGRATION_V20: &str =
+    include_str!("../../../migrations/V20__article_account_ordered_indexes.sql");
 
 const V8_READER_MODE_COLUMN: &str = "reader_mode";
 const V8_WEB_PREVIEW_MODE_COLUMN: &str = "web_preview_mode";
@@ -54,7 +56,7 @@ impl MigrationResult {
     }
 }
 
-pub const LATEST_VERSION: i32 = 19;
+pub const LATEST_VERSION: i32 = 20;
 
 /// Applies every pending migration in one SQLite transaction.
 ///
@@ -133,6 +135,9 @@ pub fn run_migrations(conn: &mut Connection) -> DomainResult<MigrationResult> {
     }
     if from_version < 19 {
         tx.execute_batch(MIGRATION_V19)?;
+    }
+    if from_version < 20 {
+        apply_v20_article_account_ordered_indexes(&tx)?;
     }
 
     let to_version = read_schema_version(&tx)?;
@@ -368,6 +373,17 @@ fn add_column_if_missing(
     Ok(true)
 }
 
+fn apply_v20_article_account_ordered_indexes(conn: &Connection) -> DomainResult<()> {
+    add_column_if_missing(
+        conn,
+        "articles",
+        "account_id",
+        "ALTER TABLE articles ADD COLUMN account_id TEXT",
+    )?;
+    conn.execute_batch(MIGRATION_V20)?;
+    Ok(())
+}
+
 fn set_schema_version(conn: &Connection, version: i32) -> DomainResult<()> {
     conn.execute("DELETE FROM schema_version", [])?;
     conn.execute(
@@ -414,6 +430,28 @@ mod tests {
         let conn = Connection::open_in_memory().unwrap();
         conn.execute_batch("PRAGMA foreign_keys = ON;").unwrap();
         conn
+    }
+
+    fn migrate_to_v19(conn: &Connection) {
+        conn.execute_batch(MIGRATION_V1).unwrap();
+        conn.execute_batch(MIGRATION_V2).unwrap();
+        conn.execute_batch(MIGRATION_V3).unwrap();
+        conn.execute_batch(MIGRATION_V4).unwrap();
+        conn.execute_batch(MIGRATION_V5).unwrap();
+        conn.execute_batch(MIGRATION_V6).unwrap();
+        conn.execute_batch(MIGRATION_V7).unwrap();
+        apply_v8_feed_reader_preview_modes(conn).unwrap();
+        conn.execute_batch(MIGRATION_V9).unwrap();
+        set_schema_version(conn, 10).unwrap();
+        conn.execute_batch(MIGRATION_V11).unwrap();
+        conn.execute_batch(MIGRATION_V12).unwrap();
+        conn.execute_batch(MIGRATION_V13).unwrap();
+        conn.execute_batch(MIGRATION_V14).unwrap();
+        conn.execute_batch(MIGRATION_V15).unwrap();
+        apply_v16_account_connection_verification(conn).unwrap();
+        conn.execute_batch(MIGRATION_V17).unwrap();
+        conn.execute_batch(MIGRATION_V18).unwrap();
+        conn.execute_batch(MIGRATION_V19).unwrap();
     }
 
     #[test]
@@ -625,6 +663,73 @@ mod tests {
             )
             .unwrap();
         assert_eq!(index_count, 1);
+    }
+
+    #[test]
+    fn v20_repairs_existing_article_account_id_mismatches() {
+        let mut conn = open_in_memory();
+        migrate_to_v19(&conn);
+        conn.execute_batch("ALTER TABLE articles ADD COLUMN account_id TEXT;")
+            .unwrap();
+
+        conn.execute(
+            "INSERT INTO accounts (id, kind, name) VALUES (?1, ?2, ?3), (?4, ?2, ?5)",
+            ("acc-a", "local", "Account A", "acc-b", "Account B"),
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO feeds (id, account_id, title, url, site_url)
+             VALUES (?1, ?2, ?3, ?4, ?5), (?6, ?7, ?8, ?9, ?10)",
+            (
+                "feed-a",
+                "acc-a",
+                "Feed A",
+                "https://example.com/a.xml",
+                "https://example.com/a",
+                "feed-b",
+                "acc-b",
+                "Feed B",
+                "https://example.com/b.xml",
+                "https://example.com/b",
+            ),
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO articles (id, account_id, feed_id, title, published_at, fetched_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?5), (?6, NULL, ?7, ?8, ?5, ?5)",
+            (
+                "article-wrong",
+                "acc-b",
+                "feed-a",
+                "Wrong account",
+                "2026-06-17T00:00:00Z",
+                "article-null",
+                "feed-b",
+                "Null account",
+            ),
+        )
+        .unwrap();
+
+        let result = run_migrations(&mut conn).unwrap();
+
+        assert_eq!(result.from_version, 19);
+        assert_eq!(result.to_version, LATEST_VERSION);
+        let rows = conn
+            .prepare("SELECT id, account_id FROM articles ORDER BY id")
+            .unwrap()
+            .query_map([], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+            })
+            .unwrap()
+            .collect::<rusqlite::Result<Vec<_>>>()
+            .unwrap();
+        assert_eq!(
+            rows,
+            vec![
+                ("article-null".to_string(), "acc-b".to_string()),
+                ("article-wrong".to_string(), "acc-a".to_string())
+            ]
+        );
     }
 
     #[test]

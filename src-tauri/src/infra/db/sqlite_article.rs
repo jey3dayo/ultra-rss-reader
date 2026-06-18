@@ -753,16 +753,10 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
         pagination: &Pagination,
     ) -> DomainResult<Vec<Article>> {
         if !SqliteMuteKeywordRepository::new(self.conn).has_any()? {
-            let select_cols_prefixed = SELECT_COLS
-                .split(", ")
-                .map(|col| format!("a.{col}"))
-                .collect::<Vec<_>>()
-                .join(", ");
             let sql = format!(
-                "SELECT {select_cols_prefixed} FROM articles a
-                 JOIN feeds f ON a.feed_id = f.id
-                 WHERE f.account_id = ?1
-                 ORDER BY {ARTICLE_ORDER_DESC_PREFIXED}
+                "SELECT {SELECT_COLS} FROM articles
+                 WHERE account_id = ?1
+                 ORDER BY {ARTICLE_ORDER_DESC}
                  LIMIT ?2 OFFSET ?3"
             );
             let mut stmt = self.conn.prepare(&sql)?;
@@ -779,21 +773,15 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
             return Ok(articles);
         }
 
-        let select_cols_prefixed = SELECT_COLS
-            .split(", ")
-            .map(|col| format!("a.{col}"))
-            .collect::<Vec<_>>()
-            .join(", ");
         let mute_clause = build_mute_keyword_exclusion_clause(
-            "a.title",
-            "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
+            "title",
+            "CASE WHEN trim(coalesce(content_text, '')) = '' THEN coalesce(summary, '') ELSE content_text END",
         );
         let sql = format!(
-            "SELECT {select_cols_prefixed} FROM articles a
-             JOIN feeds f ON a.feed_id = f.id
-             WHERE f.account_id = ?1
+            "SELECT {SELECT_COLS} FROM articles
+             WHERE account_id = ?1
                AND {mute_clause}
-             ORDER BY {ARTICLE_ORDER_DESC_PREFIXED}
+             ORDER BY {ARTICLE_ORDER_DESC}
              LIMIT ?2 OFFSET ?3"
         );
         let mut stmt = self.conn.prepare(&sql)?;
@@ -815,19 +803,12 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
         account_id: &AccountId,
         pagination: &Pagination,
     ) -> DomainResult<Vec<Article>> {
-        let select_cols_prefixed = SELECT_COLS
-            .split(", ")
-            .map(|col| format!("a.{col}"))
-            .collect::<Vec<_>>()
-            .join(", ");
-
         if !SqliteMuteKeywordRepository::new(self.conn).has_any()? {
             let sql = format!(
-                "SELECT {select_cols_prefixed} FROM articles a
-                 JOIN feeds f ON a.feed_id = f.id
-                 WHERE f.account_id = ?1
-                   AND a.is_read = 0
-                 ORDER BY {ARTICLE_ORDER_DESC_PREFIXED}
+                "SELECT {SELECT_COLS} FROM articles
+                 WHERE account_id = ?1
+                   AND is_read = 0
+                 ORDER BY {ARTICLE_ORDER_DESC}
                  LIMIT ?2 OFFSET ?3"
             );
             let mut stmt = self.conn.prepare(&sql)?;
@@ -845,16 +826,15 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
         }
 
         let mute_clause = build_mute_keyword_exclusion_clause(
-            "a.title",
-            "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
+            "title",
+            "CASE WHEN trim(coalesce(content_text, '')) = '' THEN coalesce(summary, '') ELSE content_text END",
         );
         let sql = format!(
-            "SELECT {select_cols_prefixed} FROM articles a
-             JOIN feeds f ON a.feed_id = f.id
-             WHERE f.account_id = ?1
-               AND a.is_read = 0
+            "SELECT {SELECT_COLS} FROM articles
+             WHERE account_id = ?1
+               AND is_read = 0
                AND {mute_clause}
-             ORDER BY {ARTICLE_ORDER_DESC_PREFIXED}
+             ORDER BY {ARTICLE_ORDER_DESC}
              LIMIT ?2 OFFSET ?3"
         );
         let mut stmt = self.conn.prepare(&sql)?;
@@ -900,19 +880,12 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
         account_id: &AccountId,
         pagination: &Pagination,
     ) -> DomainResult<Vec<Article>> {
-        let select_cols_prefixed = SELECT_COLS
-            .split(", ")
-            .map(|col| format!("a.{col}"))
-            .collect::<Vec<_>>()
-            .join(", ");
-
         if !SqliteMuteKeywordRepository::new(self.conn).has_any()? {
             let sql = format!(
-                "SELECT {select_cols_prefixed} FROM articles a
-                 JOIN feeds f ON a.feed_id = f.id
-                 WHERE f.account_id = ?1
-                   AND a.is_starred = 1
-                 ORDER BY {ARTICLE_ORDER_DESC_PREFIXED}
+                "SELECT {SELECT_COLS} FROM articles
+                 WHERE account_id = ?1
+                   AND is_starred = 1
+                 ORDER BY {ARTICLE_ORDER_DESC}
                  LIMIT ?2 OFFSET ?3"
             );
             let mut stmt = self.conn.prepare(&sql)?;
@@ -930,16 +903,15 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
         }
 
         let mute_clause = build_mute_keyword_exclusion_clause(
-            "a.title",
-            "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
+            "title",
+            "CASE WHEN trim(coalesce(content_text, '')) = '' THEN coalesce(summary, '') ELSE content_text END",
         );
         let sql = format!(
-            "SELECT {select_cols_prefixed} FROM articles a
-             JOIN feeds f ON a.feed_id = f.id
-             WHERE f.account_id = ?1
-               AND a.is_starred = 1
+            "SELECT {SELECT_COLS} FROM articles
+             WHERE account_id = ?1
+               AND is_starred = 1
                AND {mute_clause}
-             ORDER BY {ARTICLE_ORDER_DESC_PREFIXED}
+             ORDER BY {ARTICLE_ORDER_DESC}
              LIMIT ?2 OFFSET ?3"
         );
         let mut stmt = self.conn.prepare(&sql)?;
@@ -1007,7 +979,7 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
     fn count_unread_by_account(&self, account_id: &AccountId) -> DomainResult<i32> {
         if !SqliteMuteKeywordRepository::new(self.conn).has_any()? {
             let count = self.conn.query_row(
-                "SELECT COUNT(*) FROM articles a JOIN feeds f ON a.feed_id = f.id WHERE f.account_id = ?1 AND a.is_read = 0",
+                "SELECT COUNT(*) FROM articles WHERE account_id = ?1 AND is_read = 0",
                 params![account_id.0],
                 |row| row.get(0),
             )?;
@@ -1015,14 +987,13 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
         }
 
         let mute_clause = build_mute_keyword_exclusion_clause(
-            "a.title",
-            "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
+            "title",
+            "CASE WHEN trim(coalesce(content_text, '')) = '' THEN coalesce(summary, '') ELSE content_text END",
         );
         let sql = format!(
-            "SELECT COUNT(*) FROM articles a
-             JOIN feeds f ON a.feed_id = f.id
-             WHERE f.account_id = ?1
-               AND a.is_read = 0
+            "SELECT COUNT(*) FROM articles
+             WHERE account_id = ?1
+               AND is_read = 0
                AND {mute_clause}"
         );
         let count = self
@@ -1034,7 +1005,7 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
     fn count_starred_by_account(&self, account_id: &AccountId) -> DomainResult<i32> {
         if !SqliteMuteKeywordRepository::new(self.conn).has_any()? {
             let count = self.conn.query_row(
-                "SELECT COUNT(*) FROM articles a JOIN feeds f ON a.feed_id = f.id WHERE f.account_id = ?1 AND a.is_starred = 1",
+                "SELECT COUNT(*) FROM articles WHERE account_id = ?1 AND is_starred = 1",
                 params![account_id.0],
                 |row| row.get(0),
             )?;
@@ -1042,14 +1013,13 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
         }
 
         let mute_clause = build_mute_keyword_exclusion_clause(
-            "a.title",
-            "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
+            "title",
+            "CASE WHEN trim(coalesce(content_text, '')) = '' THEN coalesce(summary, '') ELSE content_text END",
         );
         let sql = format!(
-            "SELECT COUNT(*) FROM articles a
-             JOIN feeds f ON a.feed_id = f.id
-             WHERE f.account_id = ?1
-               AND a.is_starred = 1
+            "SELECT COUNT(*) FROM articles
+             WHERE account_id = ?1
+               AND is_starred = 1
                AND {mute_clause}"
         );
         let count = self
@@ -1103,9 +1073,11 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
         let tx = self.conn.unchecked_transaction()?;
         {
             let mut stmt = tx.prepare(
-                "INSERT INTO articles (id, feed_id, remote_id, title, content_raw, content_sanitized, sanitizer_version, summary, url, author, published_at, thumbnail, is_read, is_starred, fetched_at, content_text)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)
+                "INSERT INTO articles (id, account_id, feed_id, remote_id, title, content_raw, content_sanitized, sanitizer_version, summary, url, author, published_at, thumbnail, is_read, is_starred, fetched_at, content_text)
+                 VALUES (?1, (SELECT account_id FROM feeds WHERE id = ?2), ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)
                  ON CONFLICT(id) DO UPDATE SET
+                   account_id = excluded.account_id,
+                   feed_id = excluded.feed_id,
                    title = excluded.title,
                    content_raw = excluded.content_raw,
                    content_sanitized = excluded.content_sanitized,
@@ -1431,23 +1403,21 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
         pagination: &Pagination,
         mode: ArticleListMode,
     ) -> DomainResult<Vec<ArticleListItem>> {
-        let select_cols_prefixed = Self::select_cols_prefixed(ARTICLE_LIST_SELECT_COLS, "a");
-        let mut filters = vec!["f.account_id = ?1".to_string()];
-        if let Some(mode_filter) = mode.sql_filter("a") {
+        let mut filters = vec!["account_id = ?1".to_string()];
+        if let Some(mode_filter) = mode.sql_filter("articles") {
             filters.push(mode_filter);
         }
         if SqliteMuteKeywordRepository::new(self.conn).has_any()? {
             filters.push(build_mute_keyword_exclusion_clause(
-                "a.title",
-                "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
+                "title",
+                "CASE WHEN trim(coalesce(content_text, '')) = '' THEN coalesce(summary, '') ELSE content_text END",
             ));
         }
         let where_clause = filters.join(" AND ");
         let sql = format!(
-            "SELECT {select_cols_prefixed} FROM articles a
-             JOIN feeds f ON a.feed_id = f.id
+            "SELECT {ARTICLE_LIST_SELECT_COLS} FROM articles
              WHERE {where_clause}
-             ORDER BY {ARTICLE_ORDER_DESC_PREFIXED}
+             ORDER BY {ARTICLE_ORDER_DESC}
              LIMIT ?2 OFFSET ?3"
         );
         let mut stmt = self.conn.prepare(&sql)?;
@@ -1673,6 +1643,80 @@ mod tests {
         assert_utc_rfc3339(&fetched_at);
     }
 
+    #[test]
+    fn raw_insert_normalizes_article_account_id_from_feed() {
+        let db = test_db();
+        let target_account_id = insert_test_account(&db);
+        let other_account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &target_account_id);
+
+        db.writer()
+            .execute(
+                "INSERT INTO articles (
+                    id, account_id, feed_id, title, published_at, fetched_at
+                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                params![
+                    "raw-account-mismatch",
+                    other_account_id.0,
+                    feed_id.0,
+                    "Raw mismatch",
+                    "2026-06-17T00:00:00Z",
+                    "2026-06-17T00:00:00Z"
+                ],
+            )
+            .unwrap();
+
+        let stored_account_id: String = db
+            .reader()
+            .query_row(
+                "SELECT account_id FROM articles WHERE id = ?1",
+                params!["raw-account-mismatch"],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(stored_account_id, target_account_id.0);
+
+        let repo = SqliteArticleRepository::new(db.reader());
+        assert!(repo
+            .find_by_account(&other_account_id, &Pagination::default())
+            .unwrap()
+            .is_empty());
+        assert_eq!(
+            repo.find_by_account(&target_account_id, &Pagination::default())
+                .unwrap()
+                .len(),
+            1
+        );
+    }
+
+    #[test]
+    fn feed_account_update_syncs_denormalized_article_account_ids() {
+        let db = test_db();
+        let original_account_id = insert_test_account(&db);
+        let next_account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &original_account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+        let article = make_article(&feed_id, "Moved feed article");
+        repo.upsert(std::slice::from_ref(&article)).unwrap();
+
+        db.writer()
+            .execute(
+                "UPDATE feeds SET account_id = ?1 WHERE id = ?2",
+                params![next_account_id.0, feed_id.0],
+            )
+            .unwrap();
+
+        let stored_account_id: String = db
+            .reader()
+            .query_row(
+                "SELECT account_id FROM articles WHERE id = ?1",
+                params![article.id.0],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(stored_account_id, next_account_id.0);
+    }
+
     fn table_columns(db: &DbManager, table_name: &str) -> HashSet<String> {
         let pragma = format!("PRAGMA table_info({table_name})");
         let mut stmt = db.writer().prepare(&pragma).unwrap();
@@ -1799,6 +1843,10 @@ mod tests {
                 "article ordering references missing articles.{column}"
             );
         }
+        assert!(
+            article_columns.contains("account_id"),
+            "account-wide article listing should not need a feeds join for account scoping"
+        );
         for column in ["id", "account_id", "folder_id", "remote_id"] {
             assert!(
                 feed_columns.contains(column),
@@ -1820,6 +1868,9 @@ mod tests {
             "idx_articles_is_starred",
             "idx_articles_remote_id",
             "idx_articles_feed_published_fetched_id",
+            "idx_articles_account_published_fetched_id",
+            "idx_articles_account_unread_published_fetched_id",
+            "idx_articles_account_starred_published_fetched_id",
         ] {
             assert!(
                 article_indexes.contains(index_name),
@@ -1836,9 +1887,7 @@ mod tests {
             format!(
                 "SELECT {SELECT_COLS} FROM articles WHERE feed_id = ?1 ORDER BY {ARTICLE_ORDER_DESC} LIMIT ?2 OFFSET ?3"
             ),
-            format!(
-                "SELECT {select_cols_prefixed} FROM articles a JOIN feeds f ON a.feed_id = f.id WHERE f.account_id = ?1 ORDER BY {ARTICLE_ORDER_DESC_PREFIXED} LIMIT ?2 OFFSET ?3"
-            ),
+            format!("SELECT {SELECT_COLS} FROM articles WHERE account_id = ?1 ORDER BY {ARTICLE_ORDER_DESC} LIMIT ?2 OFFSET ?3"),
             format!(
                 "SELECT {select_cols_prefixed}, h.account_id, h.viewed_at FROM article_view_history h JOIN articles a ON h.article_id = a.id JOIN feeds f ON a.feed_id = f.id WHERE h.account_id = ?1 AND f.account_id = ?1 ORDER BY h.viewed_at DESC LIMIT ?2 OFFSET ?3"
             ),
@@ -1947,16 +1996,53 @@ mod tests {
         let account_starred_plan = explain_query_plan(
             &db,
             &format!(
-                "SELECT {select_cols_prefixed} FROM articles a
-                 JOIN feeds f ON a.feed_id = f.id
-                 WHERE f.account_id = '{}' AND a.is_starred = 1
-                 ORDER BY {ARTICLE_ORDER_DESC_PREFIXED}
+                "SELECT {SELECT_COLS} FROM articles
+                 WHERE account_id = '{}' AND is_starred = 1
+                 ORDER BY {ARTICLE_ORDER_DESC}
                  LIMIT 30 OFFSET 0",
                 account_id.0
             ),
         );
         assert_no_unindexed_article_scan(&account_starred_plan);
-        assert_plan_uses_any(&account_starred_plan, &["idx_articles_is_starred"]);
+        assert_no_temp_order_sort(&account_starred_plan);
+        assert_plan_uses_any(
+            &account_starred_plan,
+            &["idx_articles_account_starred_published_fetched_id"],
+        );
+
+        let account_unread_plan = explain_query_plan(
+            &db,
+            &format!(
+                "SELECT {SELECT_COLS} FROM articles
+                 WHERE account_id = '{}' AND is_read = 0
+                 ORDER BY {ARTICLE_ORDER_DESC}
+                 LIMIT 30 OFFSET 0",
+                account_id.0
+            ),
+        );
+        assert_no_unindexed_article_scan(&account_unread_plan);
+        assert_no_temp_order_sort(&account_unread_plan);
+        assert_plan_uses_any(
+            &account_unread_plan,
+            &["idx_articles_account_unread_published_fetched_id"],
+        );
+
+        let account_list_plan = explain_query_plan(
+            &db,
+            &format!(
+                "SELECT {SELECT_COLS} FROM articles
+                 WHERE account_id = '{}'
+                 ORDER BY {ARTICLE_ORDER_DESC}
+                 LIMIT 30 OFFSET 0",
+                account_id.0
+            ),
+        );
+        assert_no_unindexed_article_scan(&account_list_plan);
+        assert_no_temp_order_sort(&account_list_plan);
+        assert_plan_uses_any(
+            &account_list_plan,
+            &["idx_articles_account_published_fetched_id"],
+        );
 
         let folder_plan = explain_query_plan(
             &db,
