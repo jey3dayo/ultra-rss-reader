@@ -4,6 +4,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+### Maintenance
+
+- JS / Rust toolchain と lockfile を更新し、Biome / React Doctor / Knip の品質 baseline を現行バージョンへ揃えた
+
 ## [0.46.0] - 2026-06-13
 
 ### Documentation
