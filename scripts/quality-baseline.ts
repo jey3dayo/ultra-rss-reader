@@ -3,8 +3,8 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
-const reactDoctorVersion = "0.2.3";
-const knipVersion = "6.15.0";
+const reactDoctorVersion = "0.5.6";
+const knipVersion = "6.17.1";
 const qualityToolTimeoutMs = 120_000;
 const qualityToolMaxBufferBytes = 64 * 1024 * 1024;
 
@@ -93,22 +93,22 @@ const reactDoctorBaselines = {
   },
   full: {
     score: null,
-    errorCount: 18,
-    warningCount: 211,
-    affectedFileCount: 86,
+    errorCount: 15,
+    warningCount: 256,
+    affectedFileCount: 106,
   },
 } as const;
 
 const knipBaseline = {
-  issueCount: 45,
-  findingsCount: 82,
+  issueCount: 47,
+  findingsCount: 86,
 } as const;
 
 const lockfileDuplicateMajorBaseline = {
-  duplicatePackageCount: 40,
-  duplicateMajorCount: 82,
+  duplicatePackageCount: 43,
+  duplicateMajorCount: 88,
   directDuplicatePackageCount: 1,
-  unreviewedDuplicatePackageCount: 36,
+  unreviewedDuplicatePackageCount: 39,
 } as const;
 
 export const dependencyLicenseInventoryContract = {
@@ -303,7 +303,7 @@ export function runQualityBaseline(command: string | undefined = process.argv[2]
 }
 
 function runReactDoctor(mode: ReactDoctorMode, failOnDrift: boolean): void {
-  const modeFlag = mode === "diff" ? "--diff" : "--full";
+  const scopeArgs = mode === "diff" ? ["--scope", "files", "--base", "origin/main"] : ["--scope", "full"];
   const result = spawnSync(
     "pnpm",
     [
@@ -311,12 +311,12 @@ function runReactDoctor(mode: ReactDoctorMode, failOnDrift: boolean): void {
       "react-doctor",
       ".",
       "--verbose",
-      modeFlag,
-      "--offline",
+      ...scopeArgs,
       "--json",
       "--json-compact",
-      "--fail-on",
+      "--blocking",
       "none",
+      "--no-score",
       "--no-dead-code",
     ],
     { encoding: "utf8", timeout: qualityToolTimeoutMs },

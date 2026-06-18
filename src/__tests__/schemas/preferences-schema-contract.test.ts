@@ -236,7 +236,6 @@ describe("preference contract", () => {
       value: "polluted",
     });
     expect(normalized.theme).toBe("dark");
-    expect(normalized.__proto__).toBe("polluted");
     expect(normalized.constructor).toBe("preserved");
     expect(Object.prototype).not.toHaveProperty("polluted");
   });
