@@ -14,8 +14,9 @@ use crate::infra::db::connection::DbManager;
 use crate::infra::db::sqlite_account::SqliteAccountRepository;
 use crate::infra::db::sqlite_feed::SqliteFeedRepository;
 use crate::infra::db::sqlite_folder::SqliteFolderRepository;
+use crate::infra::provider::greader::GReaderProvider;
 use crate::infra::provider::local::LocalProvider;
-use crate::infra::provider::traits::FeedProvider;
+use crate::infra::provider::traits::{Credentials, FeedProvider};
 use crate::repository::feed::FeedRepository;
 use crate::repository::folder::FolderRepository;
 
@@ -322,7 +323,7 @@ fn recalculate_feed_unread_count_in_db(db: &DbManager, feed_id: &FeedId) -> Resu
 fn validate_add_local_feed_account_in_db(
     db: &DbManager,
     account_id: &AccountId,
-) -> Result<(), AppError> {
+) -> Result<crate::domain::account::Account, AppError> {
     let account_repo = SqliteAccountRepository::new(db.reader());
     let account = account_repo
         .find_by_id(account_id)?
@@ -330,12 +331,25 @@ fn validate_add_local_feed_account_in_db(
             message: "Account not found".into(),
         })?;
 
+    if !matches!(account.kind, ProviderKind::Local | ProviderKind::FreshRss) {
+        return Err(AppError::UserVisible {
+            message: "Feed can only be added to a Local or FreshRSS account".into(),
+        });
+    }
+
+    Ok(account)
+}
+
+fn validate_add_local_feed_account_still_local_in_db(
+    db: &DbManager,
+    account_id: &AccountId,
+) -> Result<(), AppError> {
+    let account = validate_add_local_feed_account_in_db(db, account_id)?;
     if !matches!(account.kind, ProviderKind::Local) {
         return Err(AppError::UserVisible {
             message: "Feed can only be added to a Local account".into(),
         });
     }
-
     Ok(())
 }
 
@@ -365,9 +379,13 @@ async fn add_local_feed_with_provider(
 ) -> Result<FeedDto, AppError> {
     let account_id = AccountId(account_id);
 
-    {
+    let account = {
         let db = lock_db(db)?;
-        validate_add_local_feed_account_in_db(&db, &account_id)?;
+        validate_add_local_feed_account_in_db(&db, &account_id)?
+    };
+
+    if matches!(account.kind, ProviderKind::FreshRss) {
+        return add_freshrss_feed_with_account(db, account, url).await;
     }
 
     // 1. Validate by fetching the feed
@@ -390,7 +408,7 @@ async fn add_local_feed_with_provider(
 
     {
         let db = lock_db(db)?;
-        validate_add_local_feed_account_in_db(&db, &account_id)?;
+        validate_add_local_feed_account_still_local_in_db(&db, &account_id)?;
         validate_add_local_feed_duplicate_url_in_db(&db, &account_id, &feed.url)?;
         let feed_repo = SqliteFeedRepository::new(db.writer());
         feed_repo.save(&feed)?;
@@ -431,6 +449,88 @@ async fn add_local_feed_with_provider(
             rollback_added_feed_after_command_error(db, &persisted_feed.id, &error);
             return Err(error);
         }
+    };
+    let mut updated_feed = persisted_feed;
+    updated_feed.unread_count = unread_count;
+    Ok(FeedDto::from(updated_feed))
+}
+
+async fn add_freshrss_feed_with_account(
+    db: &Mutex<DbManager>,
+    account: crate::domain::account::Account,
+    url: String,
+) -> Result<FeedDto, AppError> {
+    let username = account
+        .username
+        .clone()
+        .ok_or_else(|| AppError::UserVisible {
+            message: "FreshRSS username is required".into(),
+        })?;
+    let server_url = account
+        .server_url
+        .as_deref()
+        .ok_or_else(|| AppError::UserVisible {
+            message: "FreshRSS server URL is required".into(),
+        })?;
+
+    let mut provider = GReaderProvider::for_freshrss(server_url);
+    let password = super::sync_providers::get_greader_password(&account).await?;
+    provider
+        .authenticate(&Credentials {
+            token: Some(username),
+            password: Some(password),
+        })
+        .await?;
+
+    let sub = provider.create_subscription(&url, None).await?;
+    let feed = Feed {
+        id: FeedId::new(),
+        account_id: account.id.clone(),
+        folder_id: None,
+        remote_id: Some(sub.remote_id),
+        title: sub.title,
+        url: sub.url,
+        site_url: sub.site_url,
+        icon: None,
+        unread_count: 0,
+        reader_mode: "inherit".to_string(),
+        web_preview_mode: "inherit".to_string(),
+    };
+
+    {
+        let db = lock_db(db)?;
+        validate_add_local_feed_account_in_db(&db, &account.id)?;
+        validate_add_local_feed_duplicate_url_in_db(&db, &account.id, &feed.url)?;
+        let feed_repo = SqliteFeedRepository::new(db.writer());
+        feed_repo.save(&feed)?;
+    }
+
+    let persisted_feed = {
+        let db = lock_db(db)?;
+        let feed_repo = SqliteFeedRepository::new(db.reader());
+        let persisted_feed = feed_repo
+            .find_by_url(&account.id, &feed.url)?
+            .ok_or_else(|| AppError::UserVisible {
+                message: "Saved feed could not be reloaded".into(),
+            })?;
+        if persisted_feed.id != feed.id {
+            return Err(AppError::UserVisible {
+                message: "Feed URL is already subscribed".into(),
+            });
+        }
+        persisted_feed
+    };
+
+    if let Err(error) =
+        super::sync_providers::sync_greader_feed(db, &account, &persisted_feed, provider).await
+    {
+        rollback_added_feed(db, &persisted_feed.id, &error);
+        return Err(error);
+    }
+
+    let unread_count = {
+        let db_guard = lock_db(db)?;
+        recalculate_feed_unread_count_in_db(&db_guard, &persisted_feed.id)?
     };
     let mut updated_feed = persisted_feed;
     updated_feed.unread_count = unread_count;
@@ -1106,15 +1206,23 @@ mod tests {
     }
 
     #[test]
-    fn add_local_feed_preflight_rejects_non_local_accounts() {
+    fn add_local_feed_preflight_accepts_freshrss_accounts() {
         let db = test_db();
         let account_id = insert_test_account_with_kind(&db, "FreshRSS", "FreshRss");
+
+        validate_add_local_feed_account_in_db(&db, &account_id).unwrap();
+    }
+
+    #[test]
+    fn add_local_feed_preflight_rejects_quarantined_accounts() {
+        let db = test_db();
+        let account_id = insert_test_account_with_kind(&db, "Quarantined", "Quarantined");
         let error = validate_add_local_feed_account_in_db(&db, &account_id)
-            .expect_err("non-local account should be rejected");
+            .expect_err("quarantined account should be rejected");
 
         assert!(matches!(
             error,
-            AppError::UserVisible { message } if message == "Feed can only be added to a Local account"
+            AppError::UserVisible { message } if message == "Feed can only be added to a Local or FreshRSS account"
         ));
     }
 

@@ -42,7 +42,7 @@ use super::feed_commands::lock_db;
 
 const G_READER_PASSWORD_LOOKUP_TIMEOUT: Duration = Duration::from_secs(10);
 
-async fn get_greader_password(account: &Account) -> Result<String, AppError> {
+pub(super) async fn get_greader_password(account: &Account) -> Result<String, AppError> {
     get_greader_password_with_timeout(
         account.id.as_ref(),
         &account.name,
