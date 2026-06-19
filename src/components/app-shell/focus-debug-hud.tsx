@@ -24,10 +24,7 @@ import {
 } from "@/lib/window/window-events";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
-import {
-  getFocusDebugHudActiveElementDescription,
-  resolveFocusDebugHudPortalTarget,
-} from "./focus-debug-hud-dom";
+import { getFocusDebugHudActiveElementDescription, resolveFocusDebugHudPortalTarget } from "./focus-debug-hud-dom";
 
 type FocusDebugHudState = {
   activeElementDescription: string;

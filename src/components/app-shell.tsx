@@ -12,10 +12,7 @@ import {
   LAYER_POINTER_EVENT_CLASS_NAMES,
   shouldUseDesktopOverlayTitlebar,
 } from "@/lib/window/window-chrome";
-import {
-  bindWindowEvents,
-  createPointerEventListener,
-} from "@/lib/window/window-events";
+import { bindWindowEvents, createPointerEventListener } from "@/lib/window/window-events";
 import { resolvePreferenceValue } from "@/schemas/preferences";
 import { useAppIconTheme } from "../hooks/use-app-icon-theme";
 import { useBadge } from "../hooks/use-badge";
