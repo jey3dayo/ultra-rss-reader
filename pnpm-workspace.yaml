@@ -12,6 +12,9 @@ minimumReleaseAgeExclude:
   - react-dom@19.2.7
   - react@19.2.7
   - shadcn@4.11.0
+  - '@base-ui/react@1.6.0'
+  - '@base-ui/utils@0.3.1'
+  - lucide-react@1.21.0
 supportedArchitectures:
   os:
     - darwin
