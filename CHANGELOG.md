@@ -4,6 +4,24 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.47.0] - 2026-06-19
+
+### Features
+
+- FreshRSS アカウントでもフィード追加ダイアログから購読を追加できるようにした
+
+### Bug Fixes
+
+- フィード追加ダイアログを設定画面に合わせた簡潔な行レイアウトへ整理し、ラベル折り返しや過剰なセクション表示を抑えた
+- Focus Debug HUD を遅延読み込みにし、通常起動時の初期読み込み負荷を減らした
+- アカウント別の記事取得を最適化し、SQLite クエリの余計な走査を減らした
+
+### Maintenance
+
+- package / pnpm / Rust toolchain の lockfile を更新した
+- Vitest のキャッシュ削除テストと GitHub Actions の pnpm cache setup を調整し、CI の安定性を上げた
+- app shell の import 形式を formatter に合わせて整えた
+
 ## [0.46.1] - 2026-06-18
 
 ### Features
