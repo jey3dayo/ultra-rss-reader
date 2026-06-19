@@ -59,7 +59,7 @@ describe("Form fields", () => {
   it("add feed dialog input exposes a name attribute", () => {
     render(<AddFeedDialog open={true} onOpenChange={() => {}} accountId="acc-1" />, { wrapper: createWrapper() });
 
-    expect(screen.getByLabelText("Feed or Site URL")).toHaveAttribute("name");
+    expect(screen.getByLabelText("Feed")).toHaveAttribute("name");
   });
 
   it("add feed dialog folder select exposes an accessible name and selected folder label", async () => {
@@ -88,7 +88,7 @@ describe("Form fields", () => {
       wrapper: createWrapper(),
     });
 
-    await user.type(screen.getByLabelText("Feed or Site URL"), "https://example.com");
+    await user.type(screen.getByLabelText("Feed"), "https://example.com");
     await user.click(screen.getByRole("button", { name: "Discover" }));
 
     await waitFor(() => {
@@ -104,7 +104,7 @@ describe("Form fields", () => {
       wrapper: createWrapper(),
     });
 
-    const input = screen.getByLabelText("Feed or Site URL");
+    const input = screen.getByLabelText("Feed");
     await user.type(input, "example.com");
 
     expect(input).toBeInvalid();
