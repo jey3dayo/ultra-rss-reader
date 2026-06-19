@@ -25,6 +25,7 @@ export type FolderSelectViewProps = {
   onValueChange: (value: string) => void;
   onNewFolderNameChange: (value: string) => void;
   newFolderInputRef?: RefObject<HTMLInputElement | null>;
+  layout?: "stacked" | "inline";
 };
 
 function encodeFolderOptionValue(value: string) {
@@ -54,6 +55,7 @@ export function FolderSelectView({
   onValueChange,
   onNewFolderNameChange,
   newFolderInputRef,
+  layout = "stacked",
 }: FolderSelectViewProps) {
   const hasSelectedValue = value !== "" && value !== NEW_FOLDER_VALUE;
   const hasSelectedOption = options.some((option) => option.value === value);
@@ -76,7 +78,11 @@ export function FolderSelectView({
         options={selectOptions}
         onChange={(nextValue) => onValueChange(decodeFolderSelectValue(nextValue))}
         disabled={disabled}
-        triggerClassName="mt-1 w-full"
+        className={
+          layout === "inline" ? "grid gap-2 px-4 py-3.5 sm:grid-cols-[7rem_minmax(0,1fr)] sm:items-start" : undefined
+        }
+        labelClassName={layout === "inline" ? "mb-0 whitespace-nowrap sm:pt-2.5" : undefined}
+        triggerClassName={layout === "inline" ? "min-h-11 w-full bg-surface-2" : "mt-1 w-full"}
       />
 
       {canCreateFolder && isCreatingFolder && (
@@ -88,7 +94,11 @@ export function FolderSelectView({
           value={newFolderName}
           onChange={onNewFolderNameChange}
           placeholder={newFolderPlaceholder}
-          inputClassName="mt-1"
+          className={
+            layout === "inline" ? "grid gap-2 px-4 pb-3.5 sm:grid-cols-[7rem_minmax(0,1fr)] sm:items-start" : undefined
+          }
+          labelClassName={layout === "inline" ? "whitespace-nowrap sm:pt-2.5" : undefined}
+          inputClassName={layout === "inline" ? "min-h-11 bg-surface-2" : "mt-1"}
           disabled={disabled}
         />
       )}

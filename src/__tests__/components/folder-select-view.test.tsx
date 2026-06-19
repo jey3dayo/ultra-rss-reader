@@ -69,6 +69,35 @@ describe("FolderSelectView", () => {
     expect(onNewFolderNameChange).toHaveBeenLastCalledWith("Reading");
   });
 
+  it("uses non-wrapping settings-row controls in inline layout", () => {
+    render(
+      <FolderSelectView
+        labelId="folder-label"
+        label="Folder"
+        value=""
+        options={[
+          { value: "", label: "No folder" },
+          { value: "folder-1", label: "Work" },
+        ]}
+        canCreateFolder={true}
+        disabled={false}
+        isCreatingFolder={true}
+        newFolderOptionLabel="New folder"
+        newFolderLabel="Folder name"
+        newFolderName=""
+        newFolderPlaceholder="Enter folder name"
+        onValueChange={vi.fn()}
+        onNewFolderNameChange={vi.fn()}
+        layout="inline"
+      />,
+    );
+
+    expect(screen.getByText("Folder")).toHaveClass("whitespace-nowrap");
+    expect(screen.getByRole("combobox", { name: "Folder" })).toHaveClass("min-h-11", "w-full", "bg-surface-2");
+    expect(screen.getByText("Folder name")).toHaveClass("whitespace-nowrap");
+    expect(screen.getByLabelText("Folder name")).toHaveClass("min-h-11", "bg-surface-2");
+  });
+
   it("omits the new folder option when folder creation is disabled", async () => {
     const user = userEvent.setup();
 

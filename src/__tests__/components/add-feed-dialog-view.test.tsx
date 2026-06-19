@@ -61,7 +61,7 @@ describe("AddFeedDialogView", () => {
         labels={{
           title: "Add Feed",
           description: "Add a feed from a URL or website",
-          urlLabel: "Feed or Site URL",
+          urlLabel: "Feed",
           urlPlaceholder: "https://example.com/feed.xml",
           discover: "Discover",
           discovering: "Discovering",
@@ -78,27 +78,25 @@ describe("AddFeedDialogView", () => {
     expect(screen.getByRole("dialog")).toHaveClass("rounded-xl");
     expect(screen.getByRole("dialog")).toHaveClass("bg-surface-2", "shadow-elevation-3");
     expect(screen.getByText("Add a feed from a URL or website")).toHaveClass("text-foreground-soft");
-    expect(screen.getByLabelText("Feed or Site URL")).toHaveValue("https://example.com");
-    expect(screen.getByTestId("feed-dialog-url-section")).toHaveClass(
+    expect(screen.getByLabelText("Feed")).toHaveValue("https://example.com");
+    expect(screen.getByTestId("feed-dialog-form-panel")).toHaveClass(
+      "motion-content-swap",
       "motion-contextual-surface",
       "rounded-md",
-      "bg-surface-1/80",
+      "bg-surface-1/72",
+      "shadow-elevation-1",
     );
-    expect(screen.getByText("Feed or Site URL")).toHaveClass("text-foreground-soft");
+    expect(screen.getByTestId("feed-dialog-url-section")).toHaveClass("motion-contextual-surface", "grid");
+    expect(screen.getByText("Feed")).toHaveClass("whitespace-nowrap", "text-foreground-soft");
     expect(screen.queryByText("Paste a feed or site URL.")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Discover" })).toHaveClass(
-      "absolute",
-      "right-1",
-      "h-7",
-      "min-w-14",
-      "px-2",
-      "text-xs",
-    );
+    expect(screen.getByLabelText("Feed")).toHaveClass("min-h-11", "bg-surface-2");
+    expect(screen.getByRole("button", { name: "Discover" })).toHaveClass("min-h-11", "shrink-0", "px-3", "text-sm");
     expect(screen.getByText("Found 2 feeds").parentElement).toHaveClass("motion-content-swap");
-    expect(screen.getByTestId("feed-dialog-folder-section")).toHaveClass("motion-content-swap", "bg-surface-1/80");
+    expect(screen.getByTestId("feed-dialog-folder-section")).toHaveClass("motion-content-swap", "border-t");
     expect(screen.getByTestId("feed-dialog-folder-section")).toHaveAttribute("data-motion-phase", "entering");
     expect(screen.getByRole("radio", { name: "Tech Blog" })).toBeInTheDocument();
-    expect(screen.getByTestId("feed-dialog-folder-section")).toHaveClass("rounded-md");
+    expect(screen.getByRole("radio", { name: "Tech Blog" }).closest("label")).toHaveClass("min-h-11");
+    expect(screen.getByTestId("feed-dialog-folder-section")).toHaveClass("border-border/70");
     expect(screen.getByRole("combobox", { name: "Folder" })).toHaveTextContent("New folder");
     expect(screen.getByLabelText("Folder name")).toHaveValue("Reading");
     expect(screen.getByText("Feed detected").closest('[data-surface-card="info"]')).toHaveClass(
@@ -170,7 +168,7 @@ describe("AddFeedDialogView", () => {
         labels={{
           title: "Add Feed",
           description: "Add a feed from a URL or website",
-          urlLabel: "Feed or Site URL",
+          urlLabel: "Feed",
           urlPlaceholder: "https://example.com/feed.xml",
           discover: "Discover",
           discovering: "Discovering",
@@ -182,19 +180,15 @@ describe("AddFeedDialogView", () => {
       />,
     );
 
-    await user.type(screen.getByLabelText("Feed or Site URL"), "{Enter}");
+    await user.type(screen.getByLabelText("Feed"), "{Enter}");
 
-    const urlInput = screen.getByLabelText("Feed or Site URL");
+    const urlInput = screen.getByLabelText("Feed");
     const helperText = screen.getByText("Use a full URL like https://example.com");
 
     expect(helperText.id).not.toBe("");
     expect(screen.getByRole("dialog")).toHaveClass("rounded-xl");
     expect(screen.getByRole("dialog")).toHaveClass("bg-surface-2", "shadow-elevation-3");
-    expect(screen.getByTestId("feed-dialog-url-section")).toHaveClass(
-      "motion-contextual-surface",
-      "rounded-md",
-      "bg-surface-1/80",
-    );
+    expect(screen.getByTestId("feed-dialog-url-section")).toHaveClass("motion-contextual-surface", "grid");
     expect(helperText).toHaveClass("motion-content-swap", "rounded-md");
     expect(helperText).toHaveAttribute("data-motion-phase", "entering");
     expect(helperText).toHaveClass(
@@ -266,7 +260,7 @@ describe("AddFeedDialogView", () => {
         labels={{
           title: "Add Feed",
           description: "Add a feed from a URL or website",
-          urlLabel: "Feed or Site URL",
+          urlLabel: "Feed",
           urlPlaceholder: "https://example.com/feed.xml",
           discover: "Discover",
           discovering: "Discovering",
@@ -278,8 +272,16 @@ describe("AddFeedDialogView", () => {
       />,
     );
 
-    expect(screen.getByRole("radio", { name: "Tech Blog https://example.com/feed.xml" })).toBeChecked();
-    expect(screen.getByRole("radio", { name: "News Feed https://example.com/atom.xml" })).not.toBeChecked();
+    expect(
+      screen.getByRole("radio", {
+        name: "Tech Blog https://example.com/feed.xml",
+      }),
+    ).toBeChecked();
+    expect(
+      screen.getByRole("radio", {
+        name: "News Feed https://example.com/atom.xml",
+      }),
+    ).not.toBeChecked();
 
     const folderLabel = screen.getByText("Folder");
     const folderSelect = screen.getByRole("combobox", { name: "Folder" });
@@ -326,7 +328,7 @@ describe("AddFeedDialogView", () => {
         labels={{
           title: "Add Feed",
           description: "Add a feed from a URL or website",
-          urlLabel: "Feed or Site URL",
+          urlLabel: "Feed",
           urlPlaceholder: "https://example.com/feed.xml",
           discover: "Discover",
           discovering: "Discovering",
@@ -338,8 +340,8 @@ describe("AddFeedDialogView", () => {
       />,
     );
 
-    const urlInput = screen.getByRole("textbox", { name: "Feed or Site URL" });
-    const urlLabel = screen.getByText("Feed or Site URL").closest("label");
+    const urlInput = screen.getByRole("textbox", { name: "Feed" });
+    const urlLabel = screen.getByText("Feed").closest("label");
     const helperText = screen.getByText("Use a full URL like https://example.com");
 
     expect(urlInput.id).not.toBe("");

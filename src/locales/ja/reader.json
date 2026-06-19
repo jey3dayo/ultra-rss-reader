@@ -136,7 +136,7 @@
   "open_article_in_browser": "ブラウザで開く",
   "add_feed": "フィードを追加",
   "add_feed_description": "フィードURLまたはサイトURLからフィードを自動検出します。",
-  "feed_or_site_url": "フィードまたはサイトURL",
+  "feed_or_site_url": "フィード",
   "feed_url_placeholder": "https://example.com/feed.xml",
   "feed_url_help_example": "https://example.com のように入力してください",
   "feed_url_help_invalid": "https://example.com のように入力してください",

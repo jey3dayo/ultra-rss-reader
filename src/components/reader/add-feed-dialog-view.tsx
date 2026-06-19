@@ -71,34 +71,39 @@ export function AddFeedDialogView({
       onOpenChange={onOpenChange}
       onSubmit={onSubmit}
     >
-      <FeedDialogUrlSection
-        value={url}
-        onValueChange={onUrlChange}
-        onDiscover={onDiscover}
-        discoverLabel={labels.discover}
-        discoveringLabel={labels.discovering}
-        discovering={discovering}
-        disabled={loading || discovering}
-        discoverDisabled={isDiscoverDisabled}
-        label={labels.urlLabel}
-        placeholder={labels.urlPlaceholder}
-        inputRef={inputRef}
-        inputId={urlInputId}
-        helperTextId={urlHelperTextId}
-        discoveredFeedsFoundLabel={discoveredFeedsFoundLabel}
-        discoveredFeedOptions={discoveredFeedOptions}
-        selectedFeedUrl={selectedFeedUrl}
-        onSelectedFeedUrlChange={onSelectedFeedUrlChange}
-        helperText={urlHint}
-        helperTone={urlHintTone}
-      />
-
       <div
-        data-testid="feed-dialog-folder-section"
-        data-motion-phase="entering"
-        className={`${MOTION_CONTENT_SWAP_CLASS_NAME} rounded-md border border-border/70 bg-surface-1/80 px-4 py-3`}
+        data-testid="feed-dialog-form-panel"
+        className={`${MOTION_CONTENT_SWAP_CLASS_NAME} motion-contextual-surface overflow-hidden rounded-md border border-border/70 bg-surface-1/72 shadow-elevation-1`}
       >
-        <FolderSelectView {...folderSelectProps} />
+        <FeedDialogUrlSection
+          value={url}
+          onValueChange={onUrlChange}
+          onDiscover={onDiscover}
+          discoverLabel={labels.discover}
+          discoveringLabel={labels.discovering}
+          discovering={discovering}
+          disabled={loading || discovering}
+          discoverDisabled={isDiscoverDisabled}
+          label={labels.urlLabel}
+          placeholder={labels.urlPlaceholder}
+          inputRef={inputRef}
+          inputId={urlInputId}
+          helperTextId={urlHelperTextId}
+          discoveredFeedsFoundLabel={discoveredFeedsFoundLabel}
+          discoveredFeedOptions={discoveredFeedOptions}
+          selectedFeedUrl={selectedFeedUrl}
+          onSelectedFeedUrlChange={onSelectedFeedUrlChange}
+          helperText={urlHint}
+          helperTone={urlHintTone}
+        />
+
+        <div
+          data-testid="feed-dialog-folder-section"
+          data-motion-phase="entering"
+          className={`${MOTION_CONTENT_SWAP_CLASS_NAME} border-t border-border/70`}
+        >
+          <FolderSelectView {...folderSelectProps} layout="inline" />
+        </div>
       </div>
 
       <div role="status" aria-live="polite" aria-atomic="true">
