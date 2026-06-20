@@ -67,7 +67,7 @@ vi.mock("@base-ui/react/tooltip", () => {
   };
 });
 
-import { AppTooltip, TooltipProvider } from "@/components/ui/tooltip";
+import { AppTooltip, TooltipProvider } from "@/design-system";
 
 describe("AppTooltip", () => {
   beforeEach(() => {

@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
+import { MOTION_CONTENT_SWAP_CLASS_NAME } from "@/constants/motion";
 import {
   Command,
   CommandEmpty,
@@ -7,9 +8,12 @@ import {
   CommandItem,
   CommandList,
   CommandShortcut,
-} from "@/components/ui/command";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MOTION_CONTENT_SWAP_CLASS_NAME } from "@/constants/motion";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/design-system";
 import { useStableOpenTranslation } from "@/lib/i18n/use-stable-open-translation";
 import { getShortcutDisplay, type ShortcutDefinition, shortcutDefinitions } from "@/lib/keyboard/keyboard-shortcuts";
 import { usePlatformStore } from "@/stores/platform-store";

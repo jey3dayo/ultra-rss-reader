@@ -1,9 +1,9 @@
-import { WorkspaceHeader } from "@/components/shared/workspace-header";
 import {
   WORKSPACE_CANVAS_CLASS,
   WORKSPACE_CHROME_SPACING_CLASS,
+  WorkspaceHeader,
   workspaceSplitShellClassName,
-} from "@/components/shared/workspace-pane-layout";
+} from "@/design-system";
 import type { SubscriptionDecisionActions } from "@/lib/subscriptions/subscriptions-index";
 import type {
   SubscriptionDetailCandidate,

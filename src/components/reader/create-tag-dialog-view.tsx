@@ -1,6 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { FormDialogShell } from "@/components/shared/form-dialog-shell";
-import { StackedInputField } from "@/components/shared/stacked-input-field";
+import { FormDialogShell, StackedInputField } from "@/design-system";
 import { useTagDialogAutofocus } from "./use-tag-dialog-autofocus";
 
 type CreateTagDialogViewProps = {

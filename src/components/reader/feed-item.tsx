@@ -1,8 +1,5 @@
-import { ContextMenu } from "@base-ui/react/context-menu";
 import type { FeedDto } from "@/api/tauri-commands";
-import { FeedFavicon } from "@/components/shared/feed-favicon";
-import { MotionNumber } from "@/components/shared/motion-number";
-import { NavRowButton } from "@/components/shared/nav-row-button";
+import { ContextMenu, FeedFavicon, MotionNumber, NavRowButton } from "@/design-system";
 import { cn } from "@/lib/utils";
 import { FeedContextMenuContent } from "./feed-context-menu";
 

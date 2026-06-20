@@ -1,8 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AppLayout } from "@/components/app-layout";
-import { WORKSPACE_DETAIL_PANE_WIDTH } from "@/components/shared/workspace-pane-layout";
 import { ACCOUNT_PANE_WIDTH_PX, ARTICLE_LIST_PANE_WIDTH_PX, SIDEBAR_PANE_WIDTH_PX } from "@/constants/ui-layout";
+import { WORKSPACE_DETAIL_PANE_WIDTH } from "@/design-system";
 import { usePlatformStore } from "@/stores/platform-store";
 import { useUiStore } from "@/stores/ui-store";
 

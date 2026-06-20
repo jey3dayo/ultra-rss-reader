@@ -1,6 +1,6 @@
 import { type RefObject, useEffect } from "react";
-import { Input } from "@/components/ui/input";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
+import { Input } from "@/design-system";
 
 type ArticleListHeaderSearchProps = {
   searchInputRef: RefObject<HTMLInputElement | null>;

@@ -1,4 +1,4 @@
-import { ContextMenu } from "@base-ui/react/context-menu";
+import { ContextMenu } from "@/design-system";
 import { CONTEXT_MENU_ACTION_IDS } from "./context-menu-action-policy";
 import { contextMenuStyles } from "./context-menu-styles";
 import { OldUnreadContextMenuItems, type OldUnreadDayPreset } from "./old-unread-context-menu-items";

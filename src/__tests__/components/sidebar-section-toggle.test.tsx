@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { SidebarSectionToggle } from "@/components/shared/sidebar-section-toggle";
+import { SidebarSectionToggle } from "@/design-system";
 
 describe("SidebarSectionToggle", () => {
   it("uses the softened sidebar hover surface and toggles on click", () => {

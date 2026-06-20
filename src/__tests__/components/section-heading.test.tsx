@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { SectionHeading } from "@/components/shared/section-heading";
+import { SectionHeading } from "@/design-system";
 
 describe("SectionHeading", () => {
   it("renders a level-3 heading with shared styling", () => {

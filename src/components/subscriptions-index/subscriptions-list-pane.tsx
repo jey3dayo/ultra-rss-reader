@@ -1,9 +1,5 @@
 import { ChevronDown } from "lucide-react";
 import { useEffect, useRef } from "react";
-import { FeedFavicon } from "@/components/shared/feed-favicon";
-import { LabelChip } from "@/components/shared/label-chip";
-import { NavRowButton } from "@/components/shared/nav-row-button";
-import { AppTooltip, TooltipProvider } from "@/components/ui/tooltip";
 import {
   MOTION_CONTENT_SWAP_CLASS_NAME,
   MOTION_DATA_PHASE_ATTRIBUTE,
@@ -12,6 +8,7 @@ import {
   MOTION_STATE_CLOSED,
   MOTION_STATE_OPEN,
 } from "@/constants/motion";
+import { AppTooltip, FeedFavicon, LabelChip, NavRowButton, TooltipProvider } from "@/design-system";
 import { countSubscriptionGroupRows } from "@/lib/subscriptions/subscriptions-index";
 import type { SubscriptionListGroup, SubscriptionListRow } from "@/lib/subscriptions/subscriptions-index.types";
 import { cn } from "@/lib/utils";
@@ -184,7 +181,7 @@ export function SubscriptionsListPane({
                             leading={
                               <span
                                 className={cn(
-                                  "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border transition-[background-color,border-color] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+                                  "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border transition-[background-color,border-color] duration-200 ease-standard motion-reduce:transition-none",
                                   isSelected ? "bg-surface-1 text-foreground" : "bg-surface-2/88 text-foreground",
                                 )}
                                 style={{

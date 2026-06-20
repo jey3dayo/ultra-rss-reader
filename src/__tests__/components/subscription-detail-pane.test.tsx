@@ -1,8 +1,8 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { FeedDto } from "@/api/tauri-commands";
-import { WorkspaceManagementActionButton } from "@/components/shared/workspace-management-action-button";
 import { SubscriptionDetailPane } from "@/components/subscriptions-index/subscription-detail-pane";
+import { WorkspaceManagementActionButton } from "@/design-system";
 import type { SubscriptionDetailMetrics, SubscriptionListRow } from "@/lib/subscriptions/subscriptions-index.types";
 
 function buildFeed(overrides: Partial<FeedDto> = {}): FeedDto {

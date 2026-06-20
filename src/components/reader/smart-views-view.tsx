@@ -1,5 +1,5 @@
-import { ContextMenu } from "@base-ui/react/context-menu";
 import type { ReactNode } from "react";
+import { ContextMenu } from "@/design-system";
 import { SIDEBAR_SELECTED_TARGET_ATTRIBUTE, SIDEBAR_SMART_VIEW_KIND_ATTRIBUTE } from "@/lib/reader-focus";
 import type { SmartViewItemViewModel } from "@/lib/sidebar/sidebar-smart-views";
 import type { SmartViewKind } from "@/lib/sidebar/smart-view.types";

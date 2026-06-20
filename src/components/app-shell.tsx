@@ -10,6 +10,7 @@ import {
   resetSettingsModalPreloadSession,
 } from "@/components/app-shell/settings-modal-preload";
 import { shouldStartDesktopTitlebarDrag } from "@/components/app-shell/titlebar-drag";
+import { APP_TOAST_PLACEMENTS, AppToastView } from "@/design-system";
 import { type BrowserDebugGeometrySnapshot, getBrowserGeometryRows } from "@/lib/browser/browser-debug-geometry";
 import { isBrowserDebugGeometryDetail } from "@/lib/browser/browser-debug-geometry-guards";
 import { describeDebugHudEventTarget } from "@/lib/debug/debug-hud-active-element";
@@ -58,8 +59,6 @@ import { usePreferencesStore } from "../stores/preferences-store";
 import { useUiStore } from "../stores/ui-store";
 import { AppConfirmDialog } from "./app-confirm-dialog";
 import { AppLayout } from "./app-layout";
-import { APP_TOAST_PLACEMENTS } from "./shared/app-toast-placement";
-import { AppToastView } from "./shared/app-toast-view";
 
 const LazyFocusDebugHudView = lazy(async () => {
   const mod = await import("./debug/focus-debug-hud-view");

@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { LabeledControlRow } from "@/components/shared/labeled-control-row";
+import { LabeledControlRow } from "@/design-system";
 
 describe("LabeledControlRow", () => {
   it("uses softened label tone and keeps the row divider contract", () => {

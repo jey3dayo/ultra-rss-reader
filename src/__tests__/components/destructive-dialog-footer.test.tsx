@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { DestructiveDialogFooter } from "@/components/shared/destructive-dialog-footer";
+import { DestructiveDialogFooter } from "@/design-system";
 
 describe("DestructiveDialogFooter", () => {
   it("renders cancel and delete actions and disables both while pending", async () => {

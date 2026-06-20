@@ -4,12 +4,15 @@ import type { MuteKeywordScope } from "@/api/schemas";
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
-import { ConfirmDialogView } from "@/components/shared/confirm-dialog-view";
-import { GradientSwitch } from "@/components/shared/gradient-switch";
-import { LabeledActionInputRow } from "@/components/shared/labeled-action-input-row";
-import { ActionSelectControl, LabeledActionSelectRow } from "@/components/shared/labeled-action-select-row";
-import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
+import {
+  ActionSelectControl,
+  ConfirmDialogView,
+  GradientSwitch,
+  LabeledActionInputRow,
+  LabeledActionSelectRow,
+  LabeledControlRow,
+} from "@/design-system";
 import { handleMuteKeywordScopeSelectValue } from "./mute-keyword-scope-select";
 
 type MuteSettingsScopeOption = {

@@ -1,7 +1,7 @@
 import type { KeyboardEvent, RefObject } from "react";
 import { AccountDetailSettingsRow } from "@/components/settings/account-detail/settings-row";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
-import { LabeledInputRow } from "@/components/shared/labeled-input-row";
+import { LabeledInputRow } from "@/design-system";
 
 type AccountGeneralInfoRow = {
   label: string;

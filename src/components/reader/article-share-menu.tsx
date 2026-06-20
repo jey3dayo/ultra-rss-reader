@@ -1,7 +1,6 @@
-import { Menu } from "@base-ui/react/menu";
 import { BookmarkPlus, Copy, Mail, Share } from "lucide-react";
 import type { ArticleDto } from "@/api/tauri-commands";
-import { IconToolbarMenuTrigger } from "@/components/shared/icon-toolbar-control";
+import { IconToolbarMenuTrigger, Menu } from "@/design-system";
 import { toArticleActionError } from "@/lib/articles/article-actions";
 import { openArticleEmailShare } from "@/lib/articles/article-share";
 import { addArticleToReadingList, copyArticleLink } from "./article-browser-actions";

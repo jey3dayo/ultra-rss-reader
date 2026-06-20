@@ -3,9 +3,7 @@ import { type ComponentProps, lazy, type ReactNode, Suspense } from "react";
 import { useTranslation } from "react-i18next";
 import { useArticleViewSelection } from "@/components/reader/hooks/article/use-article-view-selection";
 import { useArticleViewUiState } from "@/components/reader/hooks/article/use-article-view-ui-state";
-import { FeedDetailPanel } from "@/components/shared/feed-detail-panel";
-import { FeedFavicon } from "@/components/shared/feed-favicon";
-import { MotionNumber } from "@/components/shared/motion-number";
+import { FeedDetailPanel, FeedFavicon, MotionNumber } from "@/design-system";
 import {
   type ArticleViewSummaryState,
   formatArticleSummaryDate,

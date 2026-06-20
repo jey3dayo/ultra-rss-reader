@@ -3,9 +3,8 @@ import { Switch as SwitchPrimitive } from "@base-ui/react/switch";
 import { cn } from "@/lib/utils";
 
 const switchTransitionClassName =
-  "transition-[color,background-color,border-color,box-shadow,opacity] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none";
-const switchThumbTransitionClassName =
-  "transition-transform duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none";
+  "transition-[color,background-color,border-color,box-shadow,opacity] duration-150 ease-standard motion-reduce:transition-none";
+const switchThumbTransitionClassName = "transition-transform duration-150 ease-standard motion-reduce:transition-none";
 
 function Switch({
   className,

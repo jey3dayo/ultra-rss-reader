@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { FormEvent } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { DecisionButton } from "@/components/shared/decision-button";
+import { DecisionButton } from "@/design-system";
 
 describe("DecisionButton", () => {
   it("maps keep, defer, and delete intents to distinct styles", () => {

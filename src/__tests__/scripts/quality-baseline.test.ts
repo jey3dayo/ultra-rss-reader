@@ -297,7 +297,7 @@ describe("quality-baseline", () => {
     expect(classifyTailwindArbitraryValue("supports-[backdrop-filter]:bg-background/80")).toBe("one-off-allowed");
   });
 
-  it("builds a Tailwind arbitrary value inventory without scanning unrelated ownership scopes", () => {
+  it("builds a Tailwind arbitrary value inventory across app UI ownership scopes", () => {
     expect(tailwindArbitraryValuesInventoryContract.categories).toEqual([
       "layout-critical",
       "motion-critical",
@@ -306,8 +306,8 @@ describe("quality-baseline", () => {
       "one-off-allowed",
     ]);
     expect(isTailwindArbitraryValueInventorySourcePath("src/components/app-shell.tsx")).toBe(true);
-    expect(isTailwindArbitraryValueInventorySourcePath("src/components/reader/article-list.tsx")).toBe(false);
-    expect(isTailwindArbitraryValueInventorySourcePath("src/components/settings/account-view.tsx")).toBe(false);
+    expect(isTailwindArbitraryValueInventorySourcePath("src/components/reader/article-list.tsx")).toBe(true);
+    expect(isTailwindArbitraryValueInventorySourcePath("src/components/settings/account-view.tsx")).toBe(true);
     expect(isTailwindArbitraryValueInventorySourcePath("src/__tests__/components/app.test.tsx")).toBe(false);
 
     const inventory = buildTailwindArbitraryValueInventory([
@@ -325,7 +325,7 @@ describe("quality-baseline", () => {
     ]);
 
     expect(inventory.summary).toEqual({
-      "layout-critical": 1,
+      "layout-critical": 2,
       "motion-critical": 1,
       "z-index": 1,
       "token-candidate": 1,
@@ -337,6 +337,7 @@ describe("quality-baseline", () => {
       "z-index:1:z-[60]",
       "motion-critical:2:motion-safe:duration-[180ms]",
       "one-off-allowed:2:supports-[backdrop-filter]:bg-background/80",
+      "layout-critical:1:max-w-[88ch]",
     ]);
   });
 

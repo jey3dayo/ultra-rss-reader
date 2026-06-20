@@ -67,6 +67,9 @@
   --shadow-elevation-1: var(--shadow-elevation-1);
   --shadow-elevation-2: var(--shadow-elevation-2);
   --shadow-elevation-3: var(--shadow-elevation-3);
+  --shadow-active-inset-highlight: var(--shadow-active-inset-highlight);
+  --ease-standard: var(--motion-ease-standard);
+  --ease-emphasized: var(--motion-ease-emphasized);
   --radius: 0.625rem;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -336,6 +339,7 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 1px 2px rgba(38, 37, 30, 0.06), 0 10px 24px rgba(38, 37, 30, 0.08);
   --shadow-elevation-2: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 16px 36px rgba(38, 37, 30, 0.12);
   --shadow-elevation-3: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 28px 70px rgba(38, 37, 30, 0.16);
+  --shadow-active-inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.08);
   --sidebar-selection-background: color-mix(in srgb, var(--surface-4) 76%, var(--background));
   --sidebar-selection-foreground: var(--foreground);
   --sidebar-selection-border: color-mix(in srgb, var(--foreground) 14%, transparent);

@@ -1,7 +1,6 @@
 import { type RefObject, useId } from "react";
-import { FormDialogShell } from "@/components/shared/form-dialog-shell";
-import { SurfaceCard } from "@/components/shared/surface-card";
 import { MOTION_CONTENT_SWAP_CLASS_NAME } from "@/constants/motion";
+import { FormDialogShell, SurfaceCard } from "@/design-system";
 import type { AddFeedDialogViewLabels, DiscoveredFeedOption } from "./add-feed-dialog.types";
 import { FeedDialogUrlSection } from "./feed-dialog-url-section";
 import { FolderSelectView, type FolderSelectViewProps } from "./folder-select-view";

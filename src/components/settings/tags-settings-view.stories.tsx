@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { fn } from "storybook/test";
-import { TAG_COLOR_PRESETS } from "@/components/shared/exception-palettes";
+import { TAG_COLOR_PRESETS } from "@/design-system";
 import { TagsSettingsView } from "./tags-settings-view";
 
 const meta = {

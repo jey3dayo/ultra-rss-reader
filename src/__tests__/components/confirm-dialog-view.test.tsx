@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { ConfirmDialogView } from "@/components/shared/confirm-dialog-view";
+import { ConfirmDialogView } from "@/design-system";
 
 describe("ConfirmDialogView", () => {
   it("renders accessible dialog copy and invokes confirm and cancel handlers", async () => {

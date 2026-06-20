@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { FreshRssLogoIcon } from "@/components/icons/provider-icons";
-import { FeedFavicon } from "@/components/shared/feed-favicon";
+import { FeedFavicon } from "@/design-system";
 
 describe("FeedFavicon", () => {
   it("uses softened fallback tones when the host cannot be resolved", () => {

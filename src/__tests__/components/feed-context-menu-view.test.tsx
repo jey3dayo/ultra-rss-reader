@@ -1,10 +1,10 @@
-import { ContextMenu } from "@base-ui/react/context-menu";
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { FeedContextMenuView } from "@/components/reader/feed-context-menu-view";
 import type { FeedTreeFeedViewModel } from "@/components/reader/feed-tree.types";
 import { FeedTreeRow } from "@/components/reader/feed-tree-row";
+import { ContextMenu } from "@/design-system";
 
 const baseFeed: FeedTreeFeedViewModel = {
   id: "feed-1",

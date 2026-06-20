@@ -45,7 +45,7 @@ describe("ArticleReaderBody", () => {
 
     const readerContent = container.querySelector("[data-article-slide-content]");
 
-    expect(readerContent).toHaveClass("w-full", "px-[clamp(1.75rem,4vw,4.5rem)]");
+    expect(readerContent).toHaveClass("w-full", "px-[clamp(1.75rem,3vw,4rem)]");
     expect(readerContent).not.toHaveClass("max-w-[44rem]");
     expect(readerContent).not.toHaveClass("max-w-[72rem]");
   });

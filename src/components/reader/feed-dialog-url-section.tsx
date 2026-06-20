@@ -1,6 +1,6 @@
 import type { RefObject } from "react";
-import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import { MOTION_CONTENT_SWAP_CLASS_NAME } from "@/constants/motion";
+import { LabeledInputRow } from "@/design-system";
 import type { DiscoveredFeedOption } from "./add-feed-dialog.types";
 import { DiscoveredFeedOptionsView } from "./discovered-feed-options-view";
 

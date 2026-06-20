@@ -2,7 +2,7 @@ import { type ChangeEvent, useRef } from "react";
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
-import { LabeledControlRow } from "@/components/shared/labeled-control-row";
+import { LabeledControlRow } from "@/design-system";
 import type { DatabaseSizeStatus } from "./hooks/use-data-settings-controller";
 
 type DataSettingsViewProps = {

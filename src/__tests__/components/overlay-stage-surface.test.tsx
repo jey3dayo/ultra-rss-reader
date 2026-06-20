@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { describe, expect, it } from "vitest";
-import { OverlayStageSurface } from "@/components/shared/overlay-stage-surface";
+import { OverlayStageSurface } from "@/design-system";
 
 describe("OverlayStageSurface", () => {
   it("requires scope to be explicit at the type level", () => {

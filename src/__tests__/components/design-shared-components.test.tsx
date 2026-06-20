@@ -2,13 +2,15 @@ import { render, screen, within } from "@testing-library/react";
 import { stubNavigatorPlatform } from "@tests/helpers/navigator-platform";
 import { resetTauriRuntimeFlags, setTauriRuntimePresent } from "@tests/helpers/tauri-runtime";
 import { afterEach, describe, expect, it } from "vitest";
-import { ArticleFilterToggleButton } from "@/components/shared/article-filter-toggle-button";
-import { ControlChipButton } from "@/components/shared/control-chip-button";
-import { GradientSwitch } from "@/components/shared/gradient-switch";
-import { LabelChip } from "@/components/shared/label-chip";
-import { NavRowButton } from "@/components/shared/nav-row-button";
-import { SectionHeading } from "@/components/shared/section-heading";
-import { WorkspaceHeader } from "@/components/shared/workspace-header";
+import {
+  ArticleFilterToggleButton,
+  ControlChipButton,
+  GradientSwitch,
+  LabelChip,
+  NavRowButton,
+  SectionHeading,
+  WorkspaceHeader,
+} from "@/design-system";
 import { LAYER_POINTER_EVENT_CLASS_NAMES, WORKSPACE_HEADER_STACKING_CLASS_NAMES } from "@/lib/window/window-chrome";
 import { usePlatformStore } from "@/stores/platform-store";
 

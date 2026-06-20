@@ -1,6 +1,6 @@
 import { Plus, RefreshCw } from "lucide-react";
 import { useEffect, useReducer, useRef } from "react";
-import { IconToolbarButton } from "@/components/shared/icon-toolbar-control";
+import { IconToolbarButton } from "@/design-system";
 import { cn } from "@/lib/utils";
 
 export type SidebarHeaderProps = {

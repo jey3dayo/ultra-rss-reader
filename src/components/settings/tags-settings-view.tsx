@@ -3,9 +3,7 @@ import { type FormEvent, useId } from "react";
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
-import { LabeledActionInputRow } from "@/components/shared/labeled-action-input-row";
-import { LabeledControlRow } from "@/components/shared/labeled-control-row";
-import { TagColorPicker } from "@/components/shared/tag-color-picker";
+import { LabeledActionInputRow, LabeledControlRow, TagColorPicker } from "@/design-system";
 import type { TagViewItem } from "@/lib/tags.types";
 
 type TagsSettingsListItem = TagViewItem;

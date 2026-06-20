@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PROVIDER_ICON_BG_CLASS, TAG_COLOR_PRESETS } from "@/components/shared/exception-palettes";
+import { PROVIDER_ICON_BG_CLASS, TAG_COLOR_PRESETS } from "@/design-system";
 
 describe("exception palettes", () => {
   it("keeps the tag palette centralized", () => {

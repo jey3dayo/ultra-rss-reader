@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { articleFilterToggleButtonClassName } from "@/components/shared/article-filter-toggle-button.styles";
+import { articleFilterToggleButtonClassName } from "@/design-system";
 
 describe("ArticleFilterToggleButton class contracts", () => {
   it("keeps the all-mode pressed contract neutral and shared with control chips", () => {

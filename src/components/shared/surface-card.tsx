@@ -5,7 +5,7 @@ import { MOTION_CONTEXTUAL_SURFACE_CLASS_NAME } from "@/constants";
 import { cn } from "@/lib/utils";
 
 const surfaceCardVariants = cva(
-  `${MOTION_CONTEXTUAL_SURFACE_CLASS_NAME} border text-card-foreground shadow-elevation-1 transition-[background-color,border-color,box-shadow] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none`,
+  `${MOTION_CONTEXTUAL_SURFACE_CLASS_NAME} border text-card-foreground shadow-elevation-1 transition-[background-color,border-color,box-shadow] duration-150 ease-standard motion-reduce:transition-none`,
   {
     variants: {
       variant: {

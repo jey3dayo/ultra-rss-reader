@@ -1,5 +1,5 @@
 import type { ComponentProps, ReactNode } from "react";
-import { LoadingActionContent } from "@/components/shared/loading-action-content";
+import { LoadingActionContent } from "@/design-system";
 import { cn } from "@/lib/utils";
 import { SettingsActionButton } from "./shared/settings-action-button";
 

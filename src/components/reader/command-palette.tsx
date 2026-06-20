@@ -1,6 +1,14 @@
 import { useCommandPaletteController } from "@/components/reader/hooks/command-palette/use-command-palette-controller";
-import { Command, CommandInput, CommandSeparator } from "../ui/command";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../ui/dialog";
+import {
+  Command,
+  CommandInput,
+  CommandSeparator,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/design-system";
 import { CommandPaletteResults } from "./command-palette-results";
 
 function getCommandItemValue(kind: "action" | "feed" | "tag" | "article" | "scenario", id: string): string {

@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { describe, expect, it } from "vitest";
-import { OverlayActionSurface } from "@/components/shared/overlay-action-surface";
+import { OverlayActionSurface } from "@/design-system";
 
 describe("OverlayActionSurface", () => {
   it("requires compact to be explicit at the type level", () => {

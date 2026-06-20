@@ -1,7 +1,6 @@
 import { ChevronDown, ChevronRight } from "lucide-react";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
-import { MotionNumber } from "@/components/shared/motion-number";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger, MotionNumber } from "@/design-system";
 import { sumUnreadCounts } from "@/lib/sidebar/sidebar";
 import { FeedItemView } from "./feed-item";
 

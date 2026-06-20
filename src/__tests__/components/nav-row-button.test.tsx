@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { createRef } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { NavRowButton } from "@/components/shared/nav-row-button";
+import { NavRowButton } from "@/design-system";
 
 describe("NavRowButton", () => {
   it("renders title, description, leading, trailing, and selected state", () => {

@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
-import { SectionHeading } from "@/components/shared/section-heading";
-import { SurfaceCard } from "@/components/shared/surface-card";
+import { SectionHeading, SurfaceCard } from "@/design-system";
 import { cn } from "@/lib/utils";
 
 type SettingsSectionProps = {

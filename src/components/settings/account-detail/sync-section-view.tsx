@@ -1,8 +1,7 @@
 import { SettingsLoadingActionButton } from "@/components/settings/settings-loading-action-button";
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
-import { LabeledSelectRow, type LabeledSelectRowProps } from "@/components/shared/labeled-select-row";
-import { LabeledSwitchRow } from "@/components/shared/labeled-switch-row";
+import { LabeledSelectRow, type LabeledSelectRowProps, LabeledSwitchRow } from "@/design-system";
 import { cn } from "@/lib/utils";
 
 const CONTROL_RAIL_CLASS = "ml-auto w-full max-w-[30rem]";

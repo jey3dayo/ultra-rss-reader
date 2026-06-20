@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { FeedDetailPanel } from "@/components/shared/feed-detail-panel";
+import { FeedDetailPanel } from "@/design-system";
 
 describe("FeedDetailPanel", () => {
   it("renders a leading visual and compact status styling", () => {

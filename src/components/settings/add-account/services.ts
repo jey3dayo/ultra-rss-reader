@@ -1,7 +1,7 @@
 import { Monitor, Rss, Thermometer } from "lucide-react";
 import type { ComponentType } from "react";
 import { FreshRssLogoIcon } from "@/components/icons/provider-icons";
-import { PROVIDER_ICON_BG_CLASS } from "@/components/shared/exception-palettes";
+import { PROVIDER_ICON_BG_CLASS } from "@/design-system";
 import type { AddAccountProviderKind } from "@/lib/account/add-account-form";
 
 type DisabledServiceKind = "Feedbin" | "Feedly" | "Fever" | "NewsBlur";

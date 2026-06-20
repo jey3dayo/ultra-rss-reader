@@ -7,11 +7,13 @@ import type { VariantProps } from "class-variance-authority";
 import type * as React from "react";
 import type { Ref } from "react";
 import { describe, expect, expectTypeOf, it } from "vitest";
-import type { ConfirmDialogVariant } from "@/components/shared/dialog.types";
-import type { Button } from "@/components/ui/button";
-import type { buttonVariants } from "@/components/ui/button-variants";
-import type { CollapsibleContentProps, CollapsibleProps, CollapsibleTriggerProps } from "@/components/ui/collapsible";
 import type {
+  Button,
+  buttonVariants,
+  CollapsibleContentProps,
+  CollapsibleProps,
+  CollapsibleTriggerProps,
+  ConfirmDialogVariant,
   DialogCloseProps,
   DialogContentProps,
   DialogDescriptionProps,
@@ -24,10 +26,8 @@ import type {
   DialogStackLayer,
   DialogTitleProps,
   DialogTriggerProps,
-} from "@/components/ui/dialog";
-import type { InputProps } from "@/components/ui/input";
-import type { ScrollAreaProps } from "@/components/ui/scroll-area";
-import type {
+  InputProps,
+  ScrollAreaProps,
   SelectGroupLabelProps,
   SelectGroupProps,
   SelectItemProps,
@@ -36,7 +36,7 @@ import type {
   SelectSeparatorProps,
   SelectTriggerProps,
   SelectValueProps,
-} from "@/components/ui/select";
+} from "@/design-system";
 import packageJson from "../../../package.json";
 
 describe("UI wrapper public API", () => {

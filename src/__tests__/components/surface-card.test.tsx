@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { describe, expect, it } from "vitest";
 
-import { SurfaceCard } from "@/components/shared/surface-card";
+import { SurfaceCard } from "@/design-system";
 
 describe("SurfaceCard", () => {
   it("requires an explicit variant in the component API", () => {

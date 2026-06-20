@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { DeleteButton } from "@/components/shared/delete-button";
+import { DeleteButton } from "@/design-system";
 
 describe("DeleteButton", () => {
   it("renders a shared delete action with the common marker", () => {

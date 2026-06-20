@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { CopyableReadonlyField } from "@/components/shared/copyable-readonly-field";
+import { CopyableReadonlyField } from "@/design-system";
 
 describe("CopyableReadonlyField", () => {
   it("renders a readonly field with a copy action and preserves external focus on mouse click", async () => {

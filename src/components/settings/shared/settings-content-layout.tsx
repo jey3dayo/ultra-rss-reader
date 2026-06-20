@@ -1,6 +1,6 @@
 import { type CSSProperties, createContext, type ReactNode, use, useId } from "react";
 import { useScrollOverflowState } from "@/components/settings/hooks/use-scroll-overflow-state";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ScrollArea } from "@/design-system";
 import { cn } from "@/lib/utils";
 
 const HIDDEN_SCROLLBAR_CLASS = "[&>[data-slot='scroll-area-scrollbar']]:hidden";

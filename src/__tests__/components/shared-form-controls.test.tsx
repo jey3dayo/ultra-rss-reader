@@ -2,15 +2,17 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { describe, expect, it, vi } from "vitest";
-import { FormActionButtons } from "@/components/shared/form-action-buttons";
-import { FormDialogShell } from "@/components/shared/form-dialog-shell";
-import { LabeledActionInputRow } from "@/components/shared/labeled-action-input-row";
-import { LabeledActionSelectRow } from "@/components/shared/labeled-action-select-row";
-import { LabeledInputRow } from "@/components/shared/labeled-input-row";
-import { LabeledSelectRow } from "@/components/shared/labeled-select-row";
-import { LabeledSwitchRow } from "@/components/shared/labeled-switch-row";
-import { LoadingActionContent } from "@/components/shared/loading-action-content";
-import { createSelectValueChangeHandler } from "@/components/shared/select-value-change-handler";
+import {
+  createSelectValueChangeHandler,
+  FormActionButtons,
+  FormDialogShell,
+  LabeledActionInputRow,
+  LabeledActionSelectRow,
+  LabeledInputRow,
+  LabeledSelectRow,
+  LabeledSwitchRow,
+  LoadingActionContent,
+} from "@/design-system";
 
 describe("shared form controls", () => {
   it("renders shared loading action content with default and custom loading states", () => {

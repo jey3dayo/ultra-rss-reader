@@ -1,12 +1,12 @@
 import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
-import { GradientSwitch } from "@/components/shared/gradient-switch";
 import {
   MOTION_CONTENT_SWAP_CLASS_NAME,
   MOTION_CONTEXTUAL_SURFACE_CLASS_NAME,
   MOTION_DATA_PHASE_ATTRIBUTE,
   MOTION_PHASE_ENTERING,
 } from "@/constants/motion";
+import { GradientSwitch } from "@/design-system";
 
 type ActionsSettingsActionRow = {
   id: string;

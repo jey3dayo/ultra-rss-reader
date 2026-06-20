@@ -7,19 +7,26 @@ import { SidebarFooterActions } from "@/components/reader/sidebar-footer-actions
 import { SidebarNavButton } from "@/components/reader/sidebar-nav-button";
 import { SmartViewsView } from "@/components/reader/smart-views-view";
 import { type AccountNavItem, AccountsNavView } from "@/components/settings/accounts-nav-view";
-import type { ArticleFilterToggleMode } from "@/components/shared/article-filter-toggle-button";
-import { StarIcon, UnreadIcon } from "@/components/shared/article-state-icon";
-import { controlChipIconVariants, controlChipVariants } from "@/components/shared/control-chip";
-import { TAG_COLOR_PRESETS } from "@/components/shared/exception-palettes";
-import { NavRowButton } from "@/components/shared/nav-row-button";
-import { SectionHeading } from "@/components/shared/section-heading";
-import { SurfaceCard } from "@/components/shared/surface-card";
-import { TagColorPicker } from "@/components/shared/tag-color-picker";
-import { Button } from "@/components/ui/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Skeleton } from "@/components/ui/skeleton";
-import { AppTooltip, TooltipProvider } from "@/components/ui/tooltip";
+import type { ArticleFilterToggleMode } from "@/design-system";
+import {
+  AppTooltip,
+  Button,
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+  controlChipIconVariants,
+  controlChipVariants,
+  NavRowButton,
+  ScrollArea,
+  SectionHeading,
+  Skeleton,
+  StarIcon,
+  SurfaceCard,
+  TAG_COLOR_PRESETS,
+  TagColorPicker,
+  TooltipProvider,
+  UnreadIcon,
+} from "@/design-system";
 import { cn } from "@/lib/utils";
 import { AnnotatedNote, ReferencePage } from "./ui-reference-canvas-specimens";
 

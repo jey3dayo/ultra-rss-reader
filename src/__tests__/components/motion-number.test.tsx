@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { MotionNumber } from "@/components/shared/motion-number";
 import { MOTION_DIGIT_ANIMATING_CLASS_NAME } from "@/constants";
+import { MotionNumber } from "@/design-system";
 
 describe("MotionNumber", () => {
   it("uses the shared content-swap treatment by default", () => {

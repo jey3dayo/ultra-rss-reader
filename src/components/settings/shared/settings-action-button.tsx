@@ -1,6 +1,6 @@
-import { Button as ButtonPrimitive } from "@base-ui/react/button";
 import { cva, type VariantProps } from "class-variance-authority";
 import type { ComponentProps } from "react";
+import { HeadlessButton } from "@/design-system";
 import { cn } from "@/lib/utils";
 
 const settingsActionButtonVariants = cva(
@@ -31,7 +31,7 @@ const settingsActionButtonVariants = cva(
   },
 );
 
-type SettingsActionButtonProps = ComponentProps<typeof ButtonPrimitive> &
+type SettingsActionButtonProps = ComponentProps<typeof HeadlessButton> &
   VariantProps<typeof settingsActionButtonVariants>;
 
 export function SettingsActionButton({
@@ -40,5 +40,5 @@ export function SettingsActionButton({
   size = "text",
   ...props
 }: SettingsActionButtonProps) {
-  return <ButtonPrimitive className={cn(settingsActionButtonVariants({ tone, size }), className)} {...props} />;
+  return <HeadlessButton className={cn(settingsActionButtonVariants({ tone, size }), className)} {...props} />;
 }
