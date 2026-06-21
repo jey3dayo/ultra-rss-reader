@@ -47,7 +47,7 @@ and compatibility regex next to the parser or schema that owns the fallback.
 ## Quality Gates
 
 - `mise run check` is the default day-to-day fast gate for the current OS and covers format, lint, Rust tests, and node Vitest.
-- `mise run check:linux-static` is the macOS/Linux/WSL static-analysis gate for formatter/linter stability. On macOS and Linux it runs directly; on Windows it delegates to a WSL checkout via `WSL_REPO_DIR`.
+- `mise run check:wsl` is the WSL-backed static-analysis gate for formatter/linter stability. On Windows it delegates to a WSL checkout via `WSL_REPO_DIR`.
 - `mise run test:unit:dom` runs the jsdom Vitest suite separately when DOM, React rendering, Testing Library, or browser global behavior is affected.
 - `mise run ci` is the unit-first full local gate including jsdom Vitest and build validation.
 - `mise run quality:react-doctor:diff` is the changed-file React Doctor regression gate.
@@ -106,7 +106,7 @@ and compatibility regex next to the parser or schema that owns the fallback.
 
 ## Native, Browser, And Skills
 
-- macOS is the primary day-to-day development environment. Treat Windows as authoritative for native Windows runtime/build checks, and use `mise run check:linux-static` when static-analysis stability is more important than exercising Windows shims.
+- macOS is the primary day-to-day development environment. Treat Windows as authoritative for native Windows runtime/build checks, and use `mise run check:wsl` when static-analysis stability is more important than exercising Windows shims.
 - Browser-only UI checks use `mise run app:dev:browser` plus the `agent-browser` skill.
 - Native desktop checks start from `mise run app:dev`; avoid duplicate app instances and operate the development app.
 - For native Tauri inspection, prefer `tauri-mcp-server` for DOM/computed-style/webview interaction and Computer Use for visible window state.

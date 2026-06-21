@@ -193,8 +193,8 @@ run = "pnpm exec tauri icon"
 description = "Fast local verification (format + lint + Rust tests + node Vitest)"
 depends = ["format", "lint", "test:rust", "test:unit:fast"]
 
-[tasks."check:linux-static"]
-description = "macOS/Linux/WSL static-analysis gate; Windows delegates to WSL_REPO_DIR"
+[tasks."check:wsl"]
+description = "WSL-backed static-analysis gate; Windows delegates to WSL_REPO_DIR"
 run = [
   { task = "format:check" },
   { task = "lint:types" },
@@ -203,7 +203,7 @@ run = [
   { task = "lint:actions-shell" },
   { task = "lint:workflow-pins" },
 ]
-run_windows = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/run-wsl-mise-task.ps1 check:linux-static"
+run_windows = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/run-wsl-mise-task.ps1 check:wsl"
 
 [tasks.ci]
 description = "CI equivalent, unit-first full gate (format:check + test:unit:ci + lint + test:rust + build)"
