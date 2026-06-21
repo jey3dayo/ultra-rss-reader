@@ -222,7 +222,7 @@ describe("seedDevDatabaseFromProdPlan", () => {
         copyFileImpl: async () => {
           throw new Error("copy should not run for an unmarked override");
         },
-        mkdirImpl: async () => {},
+        mkdirImpl: async () => undefined,
         rmImpl: async () => {},
       }),
     ).rejects.toThrow("Refusing to seed an unmarked Dev app data directory");
@@ -288,7 +288,7 @@ describe("seedDevDatabaseFromProdPlan", () => {
         lstatImpl: async () => {
           throw new Error("lstat should not run for an invalid plan");
         },
-        mkdirImpl: async () => {},
+        mkdirImpl: async () => undefined,
         rmImpl: async () => {
           throw new Error("rm should not run for an invalid plan");
         },
@@ -316,7 +316,7 @@ describe("seedDevDatabaseFromProdPlan", () => {
         lstatImpl: async () => {
           throw new Error("lstat should not run for an invalid plan");
         },
-        mkdirImpl: async () => {},
+        mkdirImpl: async () => undefined,
         rmImpl: async () => {
           throw new Error("rm should not run for an invalid plan");
         },
@@ -344,7 +344,7 @@ describe("seedDevDatabaseFromProdPlan", () => {
         lstatImpl: async () => {
           throw new Error("lstat should not run for an invalid plan");
         },
-        mkdirImpl: async () => {},
+        mkdirImpl: async () => undefined,
         rmImpl: async () => {
           throw new Error("rm should not run for an invalid plan");
         },
@@ -376,7 +376,7 @@ describe("seedDevDatabaseFromProdPlan", () => {
       seedDevDatabaseFromProdPlan(unsafePlan, {
         accessImpl: async () => {},
         copyFileImpl: async () => {},
-        mkdirImpl: async () => {},
+        mkdirImpl: async () => undefined,
         rmImpl: async () => {},
       }),
     ).rejects.toThrow("Refusing to copy a non-database source artifact");
@@ -610,7 +610,7 @@ describe("seedDevDatabaseFromProdPlan", () => {
             throw new Error("install failed");
           }
         },
-        mkdirImpl: async () => {},
+        mkdirImpl: async () => undefined,
         rmImpl: async (targetPath) => {
           const portableTargetPath = toPortablePath(String(targetPath));
           rmRequests.push(portableTargetPath);
@@ -645,7 +645,7 @@ describe("seedDevDatabaseFromProdPlan", () => {
       },
       lstatImpl: async () => createNonSymlinkStats(),
       copyFileImpl: async () => {},
-      mkdirImpl: async () => {},
+      mkdirImpl: async () => undefined,
       rmImpl: async () => {},
     });
 
@@ -702,7 +702,7 @@ describe("seedDevDatabaseFromProdPlan", () => {
           });
         }
       },
-      mkdirImpl: async () => {},
+      mkdirImpl: async () => undefined,
       rmImpl: async (targetPath) => {
         rmRequests.push(toPortablePath(String(targetPath)));
       },

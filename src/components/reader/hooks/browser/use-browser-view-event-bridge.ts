@@ -4,6 +4,7 @@ import { useBrowserViewSurfaceController } from "@/components/reader/hooks/brows
 import { useBrowserWebviewEvents } from "@/components/reader/hooks/browser/use-browser-webview-events";
 import { useBrowserWebviewStateChanged } from "@/components/reader/hooks/browser/use-browser-webview-state-changed";
 import type { BrowserSurfaceIssue } from "@/lib/browser/browser-surface-issue";
+import type { BrowserWebviewClosedPayload } from "@/lib/browser/browser-webview-event-payloads";
 import type { BrowserWebviewFallbackPayload } from "@/lib/browser/browser-webview-state";
 import { useUiStore } from "@/stores/ui-store";
 import type { BrowserWebviewDiagnosticsPayload, BrowserWebviewStateBinding } from "../../browser-view.types";
@@ -67,12 +68,16 @@ export function useBrowserViewEventBridge({
     ),
     onClosed: onBrowserWebviewClosed ?? onCloseOverlay,
     isClosedEventCurrent: useCallback(
-      (payload) => {
+      (payload: BrowserWebviewClosedPayload) => {
         const currentState = browserStateRef.current;
+        if (!currentState) {
+          return false;
+        }
+
         const requestedUrl = useUiStore.getState().browserUrl;
         return (
           requestedUrl === payload.url &&
-          currentState?.url === payload.url &&
+          currentState.url === payload.url &&
           currentState.load_generation === payload.load_generation
         );
       },
