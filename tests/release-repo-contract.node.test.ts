@@ -202,6 +202,8 @@ const RELEASE_CSP_FORBIDDEN_SOURCES = [
 ] as const;
 
 const readText = (path: string): string => readFileSync(path, "utf8");
+const readMiseTaskCorpus = (): string =>
+  ["mise.toml", "mise/format.toml", "mise/lint.toml", "mise/quality.toml", "mise/test.toml"].map(readText).join("\n");
 const readReleaseSkillCorpus = (): string =>
   [
     ".codex/skills/release/SKILL.md",
@@ -342,7 +344,9 @@ const extractPnpmSetupBlock = (source: string): string => {
 const extractTaskBlock = (source: string, taskName: string): string => {
   const escapedTaskName = escapeRegExp(taskName);
   const value = source.match(
-    new RegExp(`\\[tasks\\."${escapedTaskName}"\\]\\n(?<block>[\\s\\S]*?)(?=\\n\\[tasks\\.|$)`),
+    new RegExp(
+      `(?:\\[tasks\\."${escapedTaskName}"\\]|\\["${escapedTaskName}"\\])\\n(?<block>[\\s\\S]*?)(?=\\n(?:\\[tasks\\.|\\["[^"]+"\\])|$)`,
+    ),
   )?.groups?.block;
   if (!value) {
     throw new Error(`Missing mise task block: ${taskName}`);
@@ -646,7 +650,7 @@ describe("release repository contract", () => {
   const issueTemplateFileNames = readdirSync(".github/ISSUE_TEMPLATE").filter(
     (fileName) => fileName.endsWith(".yml") && fileName !== "config.yml",
   );
-  const miseToml = readText("mise.toml");
+  const miseToml = readMiseTaskCorpus();
   const nativeMenuSource = readText("src-tauri/src/menu.rs");
   const appActionsSource = readText("src/lib/app-actions.ts");
   const appIconThemeSource = readText("src/hooks/use-app-icon-theme.ts");
@@ -2337,8 +2341,7 @@ describe("release repository contract", () => {
   });
 
   it("keeps dependency audit manual until advisory policy is defined", () => {
-    expect(miseToml).toContain('[tasks."audit:deps"]');
-    expect(miseToml).toContain("Manual dependency security audit");
+    expect(extractTaskBlock(miseToml, "audit:deps")).toContain("Manual dependency security audit");
     expect(ciWorkflow).not.toMatch(/\b(?:pnpm|cargo)\s+audit\b/);
     expect(releaseWorkflow).not.toMatch(/\b(?:pnpm|cargo)\s+audit\b/);
     expect(miseToml).not.toMatch(/depends = \[[^\]]*"audit:deps"/);
@@ -2358,8 +2361,9 @@ describe("release repository contract", () => {
     expect(markdownlintConfig.ignores).toEqual([...markdownlintRepoContract.ignorePatterns]);
     expect(markdownlintRepoContract.rootMarkdownFiles.every((path) => markdownFiles.includes(path))).toBe(true);
     expect(markdownFiles.some((path) => path.startsWith("src-tauri/gen/"))).toBe(false);
-    expect(miseToml).toContain('[tasks."quality:markdownlint-contract"]');
-    expect(miseToml).toContain("Check markdownlint glob and ignore pattern contract");
+    expect(extractTaskBlock(miseToml, "quality:markdownlint-contract")).toContain(
+      "Check markdownlint glob and ignore pattern contract",
+    );
     expect(miseToml).toContain("src-tauri/gen/**");
   });
 
@@ -2390,7 +2394,7 @@ describe("release repository contract", () => {
   it("keeps live provider tests opt-in and secret-masked outside the default repo gate", () => {
     const normalizedReleaseManualVerification = releaseManualVerification.replace(/\s+/g, " ");
 
-    expect(miseToml).toContain(`[tasks."${liveProviderTestGateContract.taskName}"]`);
+    expect(extractTaskBlock(miseToml, liveProviderTestGateContract.taskName)).not.toBe("");
     for (const fragment of liveProviderTestGateContract.commandFragments) {
       expect(miseToml).toContain(fragment);
     }

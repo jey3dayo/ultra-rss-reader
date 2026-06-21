@@ -30,7 +30,8 @@ If you are new to the repository, use this order:
 2. Run `mise install` and `pnpm install`.
 3. Start the app with `mise run app:dev`.
 4. Use `mise run check` as the default fast local verification gate for day-to-day Codex work.
-5. Follow [docs/release-manual-verification.md](docs/release-manual-verification.md) before any release or packaged-build handoff.
+5. Use `mise run check:linux-static` when formatter/linter stability or macOS/Linux/WSL parity matters.
+6. Follow [docs/release-manual-verification.md](docs/release-manual-verification.md) before any release or packaged-build handoff.
 
 ## Quick Command Reference
 
@@ -38,6 +39,7 @@ If you are new to the repository, use this order:
 mise run app:dev      # default native development
 mise run app:dev:browser  # browser-only UI debugging
 mise run check        # fast format + lint + Rust + node Vitest
+mise run check:linux-static # macOS/Linux/WSL static-analysis gate
 mise run ci           # unit-first CI-equivalent local gate
 mise run test:unit:dom # jsdom Vitest gate for DOM/rendering changes
 mise run test:e2e     # Playwright browser-mode E2E tests
@@ -164,6 +166,7 @@ Practical guidance:
 
 ```bash
 mise run check        # fast format + lint + Rust + node Vitest  (Codex/day-to-day local dev loop)
+mise run check:linux-static # macOS/Linux/WSL static-analysis gate  (Windows delegates to WSL_REPO_DIR)
 mise run ci           # unit-first format + lint + test + build  (full CI gate)
 mise run format       # Biome + cargo fmt + taplo
 mise run lint         # tsc --noEmit + Biome + Clippy (-D warnings) + actionlint + yamllint
@@ -187,11 +190,12 @@ pnpm storybook                       # Launch Storybook for component developmen
 pnpm build-storybook                 # Build Storybook static output
 ```
 
-Always run `mise run check` before committing. Run `mise run test:unit:dom` for DOM, React rendering, Testing Library, or browser global changes; run `mise run ci` before PR handoff or when full repository confidence is needed.
+Always run `mise run check` before committing. Run `mise run check:linux-static` when formatter/linter stability should be checked on macOS, Linux, or WSL; on Windows it delegates to the WSL checkout set by `WSL_REPO_DIR`. Run `mise run test:unit:dom` for DOM, React rendering, Testing Library, or browser global changes; run `mise run ci` before PR handoff or when full repository confidence is needed.
 
 ### Test Scope
 
 - `mise run check` is the default fast verification loop for local work (format + lint + Rust tests + node Vitest).
+- `mise run check:linux-static` is the macOS/Linux/WSL static-analysis gate for formatter/linter stability. On Windows, install a WSL distribution visible to the current Windows user, then set `WSL_REPO_DIR` to that WSL checkout path before running it.
 - `mise run test` runs the full repository test set (Rust + Vitest).
 - `mise run test:ci` runs the quieter CI test gate with Vitest first, then Rust tests.
 - `mise run test:unit:dom` runs the jsdom Vitest suite for DOM, React rendering, Testing Library, and browser global coverage.

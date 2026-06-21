@@ -110,6 +110,12 @@ function readRepoFile(path: string) {
   return readFileSync(join(repoRoot, path), "utf8");
 }
 
+function readMiseTaskCorpus() {
+  return ["mise.toml", "mise/format.toml", "mise/lint.toml", "mise/quality.toml", "mise/test.toml"]
+    .map(readRepoFile)
+    .join("\n");
+}
+
 function githubExpression(expression: string) {
   return `${"$"}{{ ${expression} }}`;
 }
@@ -168,8 +174,8 @@ function extractSchemaBarrelExportTargets(source: string) {
 function extractMiseTaskNames(source: string) {
   const taskNames = new Set<string>();
 
-  for (const match of source.matchAll(/^\[tasks(?:\."([^"]+)"|\.([^\]\s]+))\]/gm)) {
-    taskNames.add(match[1] ?? match[2]);
+  for (const match of source.matchAll(/^(?:\[tasks(?:\."([^"]+)"|\.([^\]\s]+))\]|\["([^"\]\n]+)"\])/gm)) {
+    taskNames.add(match[1] ?? match[2] ?? match[3]);
   }
 
   return taskNames;
@@ -272,7 +278,7 @@ function extractMiseTaskSection(source: string, taskName: string) {
   return (
     source.match(
       new RegExp(
-        `^\\[tasks(?:\\."${escapedTaskName}"|\\.${escapedTaskName})\\]\\n([\\s\\S]*?)(?=^\\[|(?![\\s\\S]))`,
+        `^(?:\\[tasks(?:\\."${escapedTaskName}"|\\.${escapedTaskName})\\]|\\["${escapedTaskName}"\\])\\n([\\s\\S]*?)(?=^\\[|(?![\\s\\S]))`,
         "m",
       ),
     )?.[1] ?? ""
@@ -1179,7 +1185,7 @@ describe("repository static contracts", () => {
   });
 
   it("keeps Node and pnpm versions aligned between package.json and mise", () => {
-    const miseSource = readRepoFile("mise.toml");
+    const miseSource = readMiseTaskCorpus();
     const packageManagerVersion = extractPackageManagerVersion(packageJson.packageManager, "pnpm");
     const miseNodeVersion = extractMiseToolVersion(miseSource, "node");
     const misePnpmVersion = extractMiseToolVersion(miseSource, "npm:pnpm");
@@ -1198,10 +1204,11 @@ describe("repository static contracts", () => {
   });
 
   it("keeps markdown format and lint tasks on the same glob inventory", () => {
-    const miseSource = readRepoFile("mise.toml");
+    const miseSource = readMiseTaskCorpus();
     const markdownArguments = [
       "$MD_GLOB",
       "$MD_EXCLUDE_NODE_MODULES",
+      "$MD_EXCLUDE_PNPM_STORE",
       "$MD_EXCLUDE_WORKTREES",
       "$MD_EXCLUDE_TARGET",
       "$MD_EXCLUDE_TAURI_GEN",
@@ -1209,6 +1216,7 @@ describe("repository static contracts", () => {
     const markdownWindowsArguments = [
       "%MD_GLOB%",
       "%MD_EXCLUDE_NODE_MODULES%",
+      "%MD_EXCLUDE_PNPM_STORE%",
       "%MD_EXCLUDE_WORKTREES%",
       "%MD_EXCLUDE_TARGET%",
       "%MD_EXCLUDE_TAURI_GEN%",
@@ -1216,6 +1224,7 @@ describe("repository static contracts", () => {
 
     expect(extractMiseEnvValue(miseSource, "MD_GLOB")).toBe("**/*.md");
     expect(extractMiseEnvValue(miseSource, "MD_EXCLUDE_NODE_MODULES")).toBe("#**/node_modules/**");
+    expect(extractMiseEnvValue(miseSource, "MD_EXCLUDE_PNPM_STORE")).toBe("#**/.pnpm-store/**");
     expect(extractMiseEnvValue(miseSource, "MD_EXCLUDE_WORKTREES")).toBe("#**/.worktrees/**");
     expect(extractMiseEnvValue(miseSource, "MD_EXCLUDE_TARGET")).toBe("#**/target/**");
     expect(extractMiseEnvValue(miseSource, "MD_EXCLUDE_TAURI_GEN")).toBe("#src-tauri/gen/**");
@@ -1283,7 +1292,7 @@ describe("repository static contracts", () => {
     const gitignoreSource = readRepoFile(".gitignore");
     const ripgrepIgnoreSource = readRepoFile(".ignore");
     const claudeGuidance = readRepoFile("CLAUDE.md");
-    const miseSource = readRepoFile("mise.toml");
+    const miseSource = readMiseTaskCorpus();
     const ignoredArtifactPrefixes = [
       "dist/",
       "src-tauri/target/",
@@ -1378,7 +1387,7 @@ describe("repository static contracts", () => {
   });
 
   it("keeps CI mise tasks resolvable", () => {
-    const miseTasks = extractMiseTaskNames(readRepoFile("mise.toml"));
+    const miseTasks = extractMiseTaskNames(readMiseTaskCorpus());
     const ciTasks = extractMiseRunTasks(readRepoFile(".github/workflows/ci.yml"));
 
     expect([...new Set(ciTasks)].toSorted()).toEqual([
@@ -1393,7 +1402,7 @@ describe("repository static contracts", () => {
   });
 
   it("keeps YAML lint checking its own config", () => {
-    const miseSource = readRepoFile("mise.toml");
+    const miseSource = readMiseTaskCorpus();
 
     expect(miseSource).toContain('run = "yamllint -c .yamllint .github/ .yamllint pnpm-workspace.yaml"');
   });
@@ -1428,14 +1437,14 @@ describe("repository static contracts", () => {
     const toolchainSection = extractWorkflowCheckJobSections(ciWorkflow).find(
       ({ jobId }) => jobId === "toolchain",
     )?.section;
-    const miseSource = readRepoFile("mise.toml");
+    const miseSource = readMiseTaskCorpus();
     const packageJsonSource = readRepoFile("package.json");
 
     expect(toolchainSection).toContain("mise run quality:toolchain");
     expect(toolchainSection).toContain("Verify CI image toolchain contract");
     expect(toolchainSection).toContain("process.versions.node");
     expect(toolchainSection).toContain('execFileSync("pnpm", ["--version"]');
-    expect(miseSource).toContain('[tasks."quality:toolchain"]');
+    expect(extractMiseTaskSection(miseSource, "quality:toolchain")).not.toBe("");
     expect(packageJsonSource).toContain('"packageManager": "pnpm@11.8.0"');
     expect(packageJsonSource).toContain('"node": "24"');
     expect(packageJsonSource).toContain('"pnpm": "11.8.0"');
@@ -1605,7 +1614,7 @@ describe("repository static contracts", () => {
   it("keeps quality baseline diagnostics routed through the pinned script gate", () => {
     const packageScripts = expectPackageJsonStringRecord("scripts");
     const devDependencies = expectPackageJsonStringRecord("devDependencies");
-    const miseSource = readRepoFile("mise.toml");
+    const miseSource = readMiseTaskCorpus();
 
     expect(devDependencies["react-doctor"]).toBe("0.5.6");
     expect(devDependencies.knip).toBe("6.17.1");
@@ -1855,7 +1864,7 @@ describe("repository static contracts", () => {
 
   it("keeps historical command replacements pointed at current mise tasks", () => {
     const superpowersReadme = readRepoFile("docs/superpowers/README.md");
-    const miseTasks = extractMiseTaskNames(readRepoFile("mise.toml"));
+    const miseTasks = extractMiseTaskNames(readMiseTaskCorpus());
     const replacementTargets = extractMiseRunTasks(superpowersReadme);
 
     expect(replacementTargets).toEqual(["app:dev", "app:dev:browser"]);

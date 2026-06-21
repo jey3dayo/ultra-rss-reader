@@ -8,6 +8,12 @@ function readRepoFile(path: string) {
   return readFileSync(join(repoRoot, path), "utf8");
 }
 
+function readMiseTaskCorpus() {
+  return ["mise.toml", "mise/format.toml", "mise/lint.toml", "mise/quality.toml", "mise/test.toml"]
+    .map(readRepoFile)
+    .join("\n");
+}
+
 function githubExpression(expression: string) {
   return [`${String.fromCharCode(36)}{{`, expression, "}}"].join(" ");
 }
@@ -51,7 +57,7 @@ describe("CI workflow contract", () => {
   it("verifies package manager and engine contracts against local mise and the CI image", () => {
     const ciWorkflow = readRepoFile(".github/workflows/ci.yml");
     const toolchainSection = extractWorkflowJobSection(ciWorkflow, "toolchain");
-    const miseSource = readRepoFile("mise.toml");
+    const miseSource = readMiseTaskCorpus();
     const packageJsonSource = readRepoFile("package.json");
 
     expect(toolchainSection).toContain("Verify CI image toolchain contract");
@@ -59,7 +65,7 @@ describe("CI workflow contract", () => {
     expect(toolchainSection).toContain('execFileSync("pnpm", ["--version"]');
     expect(toolchainSection).toContain("local mise Node version drift");
     expect(toolchainSection).toContain("local pnpm version drift");
-    expect(miseSource).toContain('[tasks."quality:toolchain"]');
+    expect(miseSource).toContain('["quality:toolchain"]');
     expect(packageJsonSource).toContain('"packageManager": "pnpm@11.8.0"');
     expect(packageJsonSource).toContain('"node": "24"');
     expect(packageJsonSource).toContain('"pnpm": "11.8.0"');

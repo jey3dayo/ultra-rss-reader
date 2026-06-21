@@ -257,9 +257,11 @@ Similarity: 90.00%, Score: 12.3 points (lines 4~6, avg: 5.0)
   });
 
   it("keeps mise report task routed through the package script entrypoint", () => {
-    const miseToml = readFileSync("mise.toml", "utf8");
+    const miseToml = ["mise.toml", "mise/format.toml", "mise/lint.toml", "mise/quality.toml", "mise/test.toml"]
+      .map((path) => readFileSync(path, "utf8"))
+      .join("\n");
 
-    expect(miseToml).toContain('[tasks."report:similarity"]');
+    expect(miseToml).toContain('["report:similarity"]');
     expect(miseToml).toContain('run = "pnpm run report:similarity"');
     expect(miseToml).toContain('run_windows = "pnpm.CMD run report:similarity"');
     expect(buildSimilaritySummary.toString()).not.toContain("todoContent");

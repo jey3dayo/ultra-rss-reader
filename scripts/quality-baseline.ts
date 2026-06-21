@@ -23,6 +23,7 @@ export const markdownlintRepoContract = {
   glob: "**/*.md",
   ignorePatterns: [
     "node_modules",
+    ".pnpm-store",
     "dist",
     "tmp",
     "test-results",

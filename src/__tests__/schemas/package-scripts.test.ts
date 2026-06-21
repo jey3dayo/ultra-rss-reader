@@ -16,9 +16,17 @@ function readWorkspaceFile(path: string): string {
   return readFileSync(resolve(process.cwd(), path), "utf8");
 }
 
+function readMiseTaskCorpus(): string {
+  return ["mise.toml", "mise/format.toml", "mise/lint.toml", "mise/quality.toml", "mise/test.toml"]
+    .map(readWorkspaceFile)
+    .join("\n");
+}
+
 function extractMiseTaskNames(miseToml: string): Set<string> {
   return new Set(
-    [...miseToml.matchAll(/^\[tasks\.([^\]\n]+)\]/gm)].map((match) => match[1]?.replaceAll('"', "") ?? ""),
+    [...miseToml.matchAll(/^(?:\[tasks\.([^\]\n]+)\]|\["([^"\]\n]+)"\])/gm)].map((match) =>
+      (match[1] ?? match[2] ?? "").replaceAll('"', ""),
+    ),
   );
 }
 
@@ -30,14 +38,14 @@ function extractMiseTaskDepends(miseToml: string, taskName: string): string[] {
 }
 
 function extractMiseTaskSection(miseToml: string, taskName: string): string {
-  const lines = miseToml.split("\n");
-  const sectionStart = lines.indexOf(`[tasks."${taskName}"]`);
+  const lines = miseToml.split("\n").map((line) => line.trimEnd());
+  const sectionStart = lines.findIndex((line) => line === `[tasks."${taskName}"]` || line === `["${taskName}"]`);
   if (sectionStart === -1) {
     return "";
   }
 
   const sectionLines = lines.slice(sectionStart + 1);
-  const sectionEnd = sectionLines.findIndex((line) => line.startsWith("[tasks."));
+  const sectionEnd = sectionLines.findIndex((line) => line.startsWith("[tasks.") || /^\["[^"]+"\]$/.test(line));
   return sectionLines.slice(0, sectionEnd === -1 ? undefined : sectionEnd).join("\n");
 }
 
@@ -147,7 +155,7 @@ describe("package scripts", () => {
 
   it("keeps package engines aligned with mise tools and packageManager", () => {
     const packageJson = readPackageJson();
-    const miseToml = readWorkspaceFile("mise.toml");
+    const miseToml = readMiseTaskCorpus();
     const packageManagerVersion = extractPackageManagerVersion(packageJson.packageManager, "pnpm");
 
     expect(packageJson.engines?.node).toBe(extractMiseToolVersion(miseToml, "node"));
@@ -156,7 +164,7 @@ describe("package scripts", () => {
   });
 
   it("keeps markdown format and lint task globs aligned with env definitions", () => {
-    const miseToml = readWorkspaceFile("mise.toml");
+    const miseToml = readMiseTaskCorpus();
     const markdownEnv = extractMiseEnvMap(miseToml, "MD_");
     const markdownTargets = extractMiseEnvValues(miseToml, "MD_");
     const markdownEnvNames = [...markdownEnv.keys()];
@@ -170,6 +178,7 @@ describe("package scripts", () => {
     expect(markdownTargets).toEqual([
       "**/*.md",
       "#**/node_modules/**",
+      "#**/.pnpm-store/**",
       "#**/.worktrees/**",
       "#**/target/**",
       "#src-tauri/gen/**",
@@ -184,7 +193,7 @@ describe("package scripts", () => {
 
   it("keeps markdownlint-cli2 routed through mise tasks for the knip dependency contract", () => {
     const packageJson = readPackageJson();
-    const miseToml = readWorkspaceFile("mise.toml");
+    const miseToml = readMiseTaskCorpus();
 
     expect(packageJson.devDependencies?.["markdownlint-cli2"]).toBeDefined();
     expect(packageJson.knip?.ignoreDependencies).toEqual(["markdownlint-cli2"]);
@@ -234,7 +243,7 @@ describe("package scripts", () => {
 
   it("exposes Storybook E2E and build-storybook through mise tasks", () => {
     const packageJson = readPackageJson();
-    const miseToml = readWorkspaceFile("mise.toml");
+    const miseToml = readMiseTaskCorpus();
     const miseTasks = extractMiseTaskNames(miseToml);
 
     expect(packageJson.scripts?.["test:storybook:e2e"]).toBe(
@@ -270,7 +279,7 @@ describe("package scripts", () => {
 
   it("keeps Vitest unit test projects addressable from package and mise tasks", () => {
     const packageJson = readPackageJson();
-    const miseToml = readWorkspaceFile("mise.toml");
+    const miseToml = readMiseTaskCorpus();
     const vitestConfig = readWorkspaceFile("vitest.config.ts");
     const fastTask = extractMiseTaskSection(miseToml, "test:unit:fast");
     const fastWindowsCommand = extractMiseTaskCommand(miseToml, "test:unit:fast", "run_windows");
@@ -292,11 +301,11 @@ describe("package scripts", () => {
     expect(fastTask).not.toBe("");
     expect(fastTask).toContain("pnpm run test:node");
     expect(fastTask).not.toContain("test:jsdom");
-    expect(fastWindowsCommand).toContain("pnpm.CMD run test:node");
+    expect(fastWindowsCommand).toContain("vitest.CMD run --project node");
     expect(domTask).not.toBe("");
     expect(domTask).toContain("pnpm run test:jsdom");
     expect(domTask).not.toContain("test:node");
-    expect(domWindowsCommand).toContain("pnpm.CMD run test:jsdom");
+    expect(domWindowsCommand).toContain("vitest.CMD run --project jsdom");
     expect(ciTask).not.toBe("");
     expect(ciTask).toContain("pnpm run test:node --reporter=dot --silent=passed-only");
     expect(ciTask).toContain("pnpm run test:jsdom --reporter=dot --silent=passed-only");
@@ -313,7 +322,7 @@ describe("package scripts", () => {
   });
 
   it("keeps mise test:all semantics aligned with Storybook E2E", () => {
-    const miseToml = readWorkspaceFile("mise.toml");
+    const miseToml = readMiseTaskCorpus();
 
     expect(extractMiseTaskDepends(miseToml, "test:all")).toEqual([
       "test:rust",
@@ -324,7 +333,7 @@ describe("package scripts", () => {
   });
 
   it("exposes Tauri Vite manager check mode through mise", () => {
-    const miseToml = readWorkspaceFile("mise.toml");
+    const miseToml = readMiseTaskCorpus();
     const miseTasks = extractMiseTaskNames(miseToml);
 
     expect(readWorkspaceFile("scripts/tauri-dev-vite-manager.ts")).toContain('args.includes("--check")');
@@ -333,7 +342,7 @@ describe("package scripts", () => {
   });
 
   it("keeps Windows Tauri dev tasks on thin node commands", () => {
-    const miseToml = readWorkspaceFile("mise.toml");
+    const miseToml = readMiseTaskCorpus();
     const tauriDevTasks = ["app:dev", "app:dev:native-keyring", "app:dev:subscriptions-index", "app:dev:web-preview"];
 
     for (const taskName of tauriDevTasks) {
@@ -361,14 +370,14 @@ describe("package scripts", () => {
 
   it("keeps README mise commands backed by mise tasks", () => {
     const readmeCommands = extractReadmeMiseCommands(readWorkspaceFile("README.md"));
-    const miseTasks = extractMiseTaskNames(readWorkspaceFile("mise.toml"));
+    const miseTasks = extractMiseTaskNames(readMiseTaskCorpus());
 
     expect(readmeCommands.filter((command) => !miseTasks.has(command))).toEqual([]);
   });
 
   it("keeps local app install docs separate from published release verification", () => {
     const readme = readWorkspaceFile("README.md");
-    const miseToml = readWorkspaceFile("mise.toml");
+    const miseToml = readMiseTaskCorpus();
     const releaseManual = readWorkspaceFile("docs/release-manual-verification.md");
 
     expect(miseToml).toContain(
