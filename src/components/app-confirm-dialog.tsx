@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ConfirmDialogView } from "@/components/shared/confirm-dialog-view";
+import { ConfirmDialogView } from "@/design-system";
 import { getRestorableActiveElement, restoreFocusOnMicrotask } from "@/lib/dom/focus-restore";
 import { useUiStore } from "@/stores/ui-store";
 

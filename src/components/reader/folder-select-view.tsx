@@ -1,6 +1,5 @@
 import type { RefObject } from "react";
-import { StackedInputField } from "@/components/shared/stacked-input-field";
-import { StackedSelectField } from "@/components/shared/stacked-select-field";
+import { StackedInputField, StackedSelectField } from "@/design-system";
 
 export const NEW_FOLDER_VALUE = "__new__";
 const FOLDER_OPTION_VALUE_PREFIX = "folder:";

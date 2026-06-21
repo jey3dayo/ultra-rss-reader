@@ -2,7 +2,7 @@ import "@testing-library/jest-dom/vitest";
 import { render } from "@testing-library/react";
 import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { describe, expect, it } from "vitest";
-import { StarIcon, UnreadIcon } from "@/components/shared/article-state-icon";
+import { StarIcon, UnreadIcon } from "@/design-system";
 
 setupBrowserTestDom();
 

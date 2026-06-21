@@ -2,8 +2,7 @@ import { Copy } from "lucide-react";
 import type { ComponentProps, RefObject } from "react";
 import { SettingsLoadingActionButton } from "@/components/settings/settings-loading-action-button";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
-import { LabeledControlRow } from "@/components/shared/labeled-control-row";
-import { LabeledInputRow } from "@/components/shared/labeled-input-row";
+import { LabeledControlRow, LabeledInputRow } from "@/design-system";
 
 type AccountCredentialInputRow = {
   label: string;

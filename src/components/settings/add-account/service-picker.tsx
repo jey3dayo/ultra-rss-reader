@@ -1,6 +1,5 @@
 import { ChevronRight } from "lucide-react";
-import { NavRowButton } from "@/components/shared/nav-row-button";
-import { SectionHeading } from "@/components/shared/section-heading";
+import { NavRowButton, SectionHeading } from "@/design-system";
 import type { AddAccountProviderKind } from "@/lib/account/add-account-form";
 import { cn } from "@/lib/utils";
 import type { ServiceDefinition, ServicePresentation } from "./services";

@@ -1,9 +1,9 @@
-import { ContextMenu } from "@base-ui/react/context-menu";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import { FolderContextMenuContent } from "@/components/reader/folder-context-menu";
+import { ContextMenu } from "@/design-system";
 import { useUiStore } from "@/stores/ui-store";
 
 const markFolderReadMutate = vi.fn();

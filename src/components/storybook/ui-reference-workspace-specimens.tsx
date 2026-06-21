@@ -1,15 +1,18 @@
 import { Check, Clock3, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { ControlChipButton } from "@/components/shared/control-chip-button";
-import { DecisionButton, denseDecisionButtonClassName } from "@/components/shared/decision-button";
-import { FeedDetailPanel } from "@/components/shared/feed-detail-panel";
-import { LabelChip } from "@/components/shared/label-chip";
-import { MotionNumber } from "@/components/shared/motion-number";
-import { SectionHeading } from "@/components/shared/section-heading";
-import { SurfaceCard } from "@/components/shared/surface-card";
 import { SubscriptionsListPane } from "@/components/subscriptions-index/subscriptions-list-pane";
 import { SubscriptionsOverviewSummary } from "@/components/subscriptions-index/subscriptions-overview-summary";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
+import {
+  ControlChipButton,
+  DecisionButton,
+  denseDecisionButtonClassName,
+  FeedDetailPanel,
+  LabelChip,
+  MotionNumber,
+  SectionHeading,
+  SurfaceCard,
+} from "@/design-system";
 import type { SubscriptionListGroup, SubscriptionSummaryCard } from "@/lib/subscriptions/subscriptions-index.types";
 import { cn } from "@/lib/utils";
 import { AnnotatedNote, ReferencePage } from "./ui-reference-canvas-specimens";

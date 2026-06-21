@@ -1,9 +1,6 @@
 import type { RefObject } from "react";
-import { CopyableReadonlyFieldList } from "@/components/shared/copyable-readonly-field-list";
-import { FormDialogShell } from "@/components/shared/form-dialog-shell";
-import { StackedInputField } from "@/components/shared/stacked-input-field";
-import { StackedSelectField } from "@/components/shared/stacked-select-field";
 import { MOTION_CONTENT_SWAP_CLASS_NAME } from "@/constants/motion";
+import { CopyableReadonlyFieldList, FormDialogShell, StackedInputField, StackedSelectField } from "@/design-system";
 import type { FeedDialogSelectOption } from "./feed-dialog-form.types";
 import { FolderSelectView, type FolderSelectViewProps } from "./folder-select-view";
 import type { RenameFeedDialogUrlField } from "./rename-feed-dialog.types";

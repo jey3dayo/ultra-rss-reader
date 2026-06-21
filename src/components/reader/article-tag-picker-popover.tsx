@@ -1,7 +1,6 @@
 import { Plus } from "lucide-react";
 import type { KeyboardEventHandler, MutableRefObject, RefObject } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Button, Input } from "@/design-system";
 import { TagOptionRowButton } from "./article-tag-picker-buttons";
 import type { ArticleTagPickerViewProps } from "./article-tag-picker-view";
 

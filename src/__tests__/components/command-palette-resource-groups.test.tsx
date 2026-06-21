@@ -1,7 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CommandPaletteResourceGroups } from "@/components/reader/command-palette-resource-groups";
-import { Command, CommandList } from "@/components/ui/command";
+import { Command, CommandList } from "@/design-system";
 import { DEV_SCENARIO_ID } from "@/dev/scenario-ids";
 import { sampleArticles, sampleFeeds, sampleTags } from "../../../tests/helpers/fixtures";
 

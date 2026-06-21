@@ -1,4 +1,4 @@
-import type { SectionHeadingProps } from "@/components/shared/section-heading";
+import type { SectionHeadingProps } from "@/design-system";
 import { cn } from "@/lib/utils";
 
 type SettingsShellSectionLabelProps = SectionHeadingProps;

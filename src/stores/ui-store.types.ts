@@ -1,6 +1,6 @@
 import type { ComponentType } from "react";
 import type { SyncProgressEventDto } from "@/api/schemas/sync-progress";
-import type { ConfirmDialogVariant } from "@/components/shared/dialog.types";
+import type { ConfirmDialogVariant } from "@/design-system";
 import type { AccountSetupSession, AccountSetupSessionOwner } from "@/lib/account/account-setup-session.types";
 import type { AddAccountProviderKind } from "@/lib/account/add-account-form";
 import type {

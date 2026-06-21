@@ -1,9 +1,12 @@
 import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
-import { FormActionButtons } from "@/components/shared/form-action-buttons";
-import { LabeledInputRow } from "@/components/shared/labeled-input-row";
-import { LabeledSelectRow, type LabeledSelectRowProps } from "@/components/shared/labeled-select-row";
-import { SurfaceCard } from "@/components/shared/surface-card";
+import {
+  FormActionButtons,
+  LabeledInputRow,
+  LabeledSelectRow,
+  type LabeledSelectRowProps,
+  SurfaceCard,
+} from "@/design-system";
 
 const LABEL_COLUMN_CLASS_NAME = "sm:w-40 sm:shrink-0";
 const INPUT_CLASS_NAME = "h-10";

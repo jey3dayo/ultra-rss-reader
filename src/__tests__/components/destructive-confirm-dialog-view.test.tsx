@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { DestructiveConfirmDialogView } from "@/components/shared/destructive-confirm-dialog-view";
+import { DestructiveConfirmDialogView } from "@/design-system";
 
 describe("DestructiveConfirmDialogView", () => {
   it("renders shared confirmation copy and uses the shared delete button", async () => {

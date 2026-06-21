@@ -1,7 +1,6 @@
 import { LoaderCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { IndeterminateProgress } from "@/components/shared/indeterminate-progress";
-import { OverlayStageSurface } from "@/components/shared/overlay-stage-surface";
+import { IndeterminateProgress, OverlayStageSurface } from "@/design-system";
 import { BrowserSurfaceStateCard } from "./browser-surface-state-card";
 import type { BrowserOverlayStageController } from "./browser-view.types";
 

@@ -2,11 +2,13 @@ import type { SettingsPageControl, SettingsPageViewProps } from "@/components/se
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
-import { LabeledActionInputRow } from "@/components/shared/labeled-action-input-row";
-import { LabeledControlRow } from "@/components/shared/labeled-control-row";
-import { LabeledInputRow } from "@/components/shared/labeled-input-row";
-import { LabeledSelectRow } from "@/components/shared/labeled-select-row";
-import { LabeledSwitchRow } from "@/components/shared/labeled-switch-row";
+import {
+  LabeledActionInputRow,
+  LabeledControlRow,
+  LabeledInputRow,
+  LabeledSelectRow,
+  LabeledSwitchRow,
+} from "@/design-system";
 import { cn } from "@/lib/utils";
 
 type SettingsPageControlRowProps<Control> = {

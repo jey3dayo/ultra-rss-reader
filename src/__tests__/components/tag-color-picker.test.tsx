@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { TagColorPicker } from "@/components/shared/tag-color-picker";
+import { TagColorPicker } from "@/design-system";
 
 describe("TagColorPicker", () => {
   it("uses softened supporting text and semantic neutral surfaces", async () => {

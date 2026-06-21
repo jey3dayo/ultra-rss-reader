@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { SectionHeading } from "@/components/shared/section-heading";
+import { SectionHeading } from "@/design-system";
 import { cn } from "@/lib/utils";
 
 type AnnotatedNoteProps = {

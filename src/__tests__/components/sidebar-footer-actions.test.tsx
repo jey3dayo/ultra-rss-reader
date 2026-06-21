@@ -3,8 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SidebarFooterActions } from "@/components/reader/sidebar-footer-actions";
-import { SidebarFooterActionButton } from "@/components/shared/sidebar-footer-action-button";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { SidebarFooterActionButton, TooltipProvider } from "@/design-system";
 import { usePreferencesStore } from "@/stores/preferences-store";
 
 vi.mock("@/api/tauri-commands", () => ({

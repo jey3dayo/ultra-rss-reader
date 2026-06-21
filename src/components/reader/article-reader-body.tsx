@@ -1,7 +1,7 @@
 import { type KeyboardEvent, useCallback, useLayoutEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import type { ArticleDto } from "@/api/tauri-commands";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ScrollArea } from "@/design-system";
 import {
   formatArticleDate,
   resolveArticleDateLocale,

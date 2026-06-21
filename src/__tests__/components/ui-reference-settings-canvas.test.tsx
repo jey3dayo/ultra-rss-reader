@@ -23,19 +23,24 @@ import {
 } from "@/components/storybook/ui-reference-shell-specimens";
 import { ViewSpecimensCanvas } from "@/components/storybook/ui-reference-workspace-patterns-canvas.stories";
 import * as workspaceSpecimens from "@/components/storybook/ui-reference-workspace-specimens";
-import { Button } from "@/components/ui/button";
 import {
+  AppTooltip,
+  Button,
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
-import { AppTooltip, TooltipProvider } from "@/components/ui/tooltip";
+  ScrollArea,
+  Select,
+  SelectItem,
+  SelectPopup,
+  SelectTrigger,
+  SelectValue,
+  Skeleton,
+  TooltipProvider,
+} from "@/design-system";
 import i18n from "@/lib/i18n";
 
 const UI_COMPONENTS_DIR = resolve(process.cwd(), "src/components/ui");

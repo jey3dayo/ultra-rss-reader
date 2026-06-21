@@ -2,8 +2,7 @@ import { ChevronLeft, ChevronRight, ExternalLink, RotateCw, X } from "lucide-rea
 import type { ReactNode } from "react";
 import { cloneElement, isValidElement, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { IconToolbarSurfaceButton } from "@/components/shared/icon-toolbar-control";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { IconToolbarSurfaceButton, TooltipProvider } from "@/design-system";
 import { cn } from "@/lib/utils";
 import type {
   BrowserOverlayChromeController,

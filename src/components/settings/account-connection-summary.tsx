@@ -1,4 +1,4 @@
-import { LabelChip } from "@/components/shared/label-chip";
+import { LabelChip } from "@/design-system";
 import { cn } from "@/lib/utils";
 
 type AccountConnectionSummaryProps = {

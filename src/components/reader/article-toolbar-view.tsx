@@ -1,12 +1,17 @@
-import { Menu } from "@base-ui/react/menu";
-import { Toggle } from "@base-ui/react/toggle";
 import { Copy, Ellipsis, ExternalLink, Eye, X } from "lucide-react";
 import type { ReactNode } from "react";
-import { StarIcon, UnreadIcon } from "@/components/shared/article-state-icon";
-import { IconToolbarButton, IconToolbarMenuTrigger, IconToolbarToggle } from "@/components/shared/icon-toolbar-control";
-import { MotionIconSwap } from "@/components/shared/motion-icon-swap";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { MOTION_ICON_SWAP_STATE_A, MOTION_ICON_SWAP_STATE_B } from "@/constants";
+import {
+  IconToolbarButton,
+  IconToolbarMenuTrigger,
+  IconToolbarToggle,
+  Menu,
+  MotionIconSwap,
+  StarIcon,
+  Toggle,
+  TooltipProvider,
+  UnreadIcon,
+} from "@/design-system";
 import { cn } from "@/lib/utils";
 import type {
   ArticleToolbarActionOptions,

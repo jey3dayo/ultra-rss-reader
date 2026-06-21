@@ -1,4 +1,4 @@
-import { TagChip } from "@/components/shared/tag-chip";
+import { TagChip } from "@/design-system";
 import type { ArticleTagPickerViewProps } from "./article-tag-picker-view";
 
 type ArticleTagChipListProps = {

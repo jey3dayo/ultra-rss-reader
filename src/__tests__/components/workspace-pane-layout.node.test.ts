@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { ARTICLE_LIST_PANE_WIDTH_PX } from "@/constants/ui-layout";
 import {
   WORKSPACE_CANVAS_CLASS,
   WORKSPACE_CHROME_SPACING_CLASS,
@@ -7,8 +8,7 @@ import {
   WORKSPACE_DETAIL_PANE_WIDTH,
   workspaceSplitGridClassName,
   workspaceSplitShellClassName,
-} from "@/components/shared/workspace-pane-layout";
-import { ARTICLE_LIST_PANE_WIDTH_PX } from "@/constants/ui-layout";
+} from "@/design-system";
 
 describe("workspace-pane-layout", () => {
   it("exports the shared detail pane sizing tokens", () => {

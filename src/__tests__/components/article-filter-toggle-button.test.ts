@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { createElement } from "react";
 import { describe, expect, it } from "vitest";
-import { ArticleFilterToggleButton } from "@/components/shared/article-filter-toggle-button";
+import { ArticleFilterToggleButton } from "@/design-system";
 
 describe("ArticleFilterToggleButton DOM contracts", () => {
   it("keeps unread icon behavior while using the size shorthand", () => {

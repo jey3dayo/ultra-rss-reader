@@ -1,7 +1,7 @@
 import { type ChangeEvent, useId, useRef } from "react";
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
-import { DeleteButton } from "@/components/shared/delete-button";
+import { DeleteButton } from "@/design-system";
 
 type AccountDangerZoneViewProps = {
   dataHeading: string;

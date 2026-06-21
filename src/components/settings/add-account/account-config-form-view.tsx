@@ -1,9 +1,7 @@
 import { ChevronLeft } from "lucide-react";
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
-import { FormActionButtons } from "@/components/shared/form-action-buttons";
-import { LabeledInputRow } from "@/components/shared/labeled-input-row";
-import { SurfaceCard } from "@/components/shared/surface-card";
+import { FormActionButtons, LabeledInputRow, SurfaceCard } from "@/design-system";
 import { cn } from "@/lib/utils";
 import type { AddAccountCredentialsSection, AddAccountInputControl } from "./form-view";
 import type { ServicePresentation } from "./services";

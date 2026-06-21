@@ -138,7 +138,7 @@ export const dependencyUpdateSmokeContract = {
 export const tailwindArbitraryValuesInventoryContract = {
   sourcePathPrefixes: ["src/"],
   sourceFileExtensions: [".tsx", ".css"],
-  ignoredPathPrefixes: ["src/__tests__/", "src/components/reader/", "src/components/settings/"],
+  ignoredPathPrefixes: ["src/__tests__/"],
   categories: ["layout-critical", "motion-critical", "z-index", "token-candidate", "one-off-allowed"],
   reviewPolicy:
     "Classify arbitrary values before tokenizing; repeated semantic color, elevation, spacing, and z-index values should become token candidates.",

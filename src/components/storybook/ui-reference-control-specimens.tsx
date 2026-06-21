@@ -1,4 +1,3 @@
-import { Menu } from "@base-ui/react/menu";
 import { Check, ChevronLeft, Clock3, ExternalLink, Plus, RefreshCw, Save, Share, Trash2, X } from "lucide-react";
 import { type CSSProperties, useEffect, useReducer, useState } from "react";
 import { AccountSwitcherTriggerButton } from "@/components/reader/account-switcher-view";
@@ -7,23 +6,25 @@ import { ArticleToolbarActionStrip } from "@/components/reader/article-toolbar-v
 import { SettingsLoadingActionButton } from "@/components/settings/settings-loading-action-button";
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { ShortcutKeyButton } from "@/components/settings/shortcuts-settings-view";
-import { ArticleFilterToggleButton } from "@/components/shared/article-filter-toggle-button";
-import { DecisionButton, denseDecisionButtonClassName } from "@/components/shared/decision-button";
-import { DeleteButton } from "@/components/shared/delete-button";
-import { TAG_COLOR_PRESETS } from "@/components/shared/exception-palettes";
-import { FormActionButtons } from "@/components/shared/form-action-buttons";
 import {
+  ArticleFilterToggleButton,
+  Button,
+  DecisionButton,
+  DeleteButton,
+  denseDecisionButtonClassName,
+  FormActionButtons,
   IconToolbarButton,
   IconToolbarMenuTrigger,
   IconToolbarSurfaceButton,
-} from "@/components/shared/icon-toolbar-control";
-import { SectionHeading } from "@/components/shared/section-heading";
-import { SurfaceCard } from "@/components/shared/surface-card";
-import { TagChip } from "@/components/shared/tag-chip";
-import { TagColorPicker } from "@/components/shared/tag-color-picker";
-import { WorkspaceHeaderActionButton } from "@/components/shared/workspace-header";
-import { Button } from "@/components/ui/button";
-import { TooltipProvider } from "@/components/ui/tooltip";
+  Menu,
+  SectionHeading,
+  SurfaceCard,
+  TAG_COLOR_PRESETS,
+  TagChip,
+  TagColorPicker,
+  TooltipProvider,
+  WorkspaceHeaderActionButton,
+} from "@/design-system";
 import { useUiStore } from "@/stores/ui-store";
 
 export {

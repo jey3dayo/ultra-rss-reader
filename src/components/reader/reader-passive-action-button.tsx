@@ -1,5 +1,5 @@
 import type { ComponentPropsWithoutRef } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/design-system";
 
 type ReaderPassiveActionButtonProps = ComponentPropsWithoutRef<typeof Button>;
 

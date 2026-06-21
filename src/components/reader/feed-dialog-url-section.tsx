@@ -1,7 +1,6 @@
 import type { RefObject } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { MOTION_CONTENT_SWAP_CLASS_NAME } from "@/constants/motion";
+import { Button, Input } from "@/design-system";
 import { cn } from "@/lib/utils";
 import type { DiscoveredFeedOption } from "./add-feed-dialog.types";
 import { DiscoveredFeedOptionsView } from "./discovered-feed-options-view";

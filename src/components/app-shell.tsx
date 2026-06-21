@@ -4,6 +4,7 @@ import {
   resetSettingsModalPreloadSession,
 } from "@/components/app-shell/settings-modal-preload";
 import { shouldStartDesktopTitlebarDrag } from "@/components/app-shell/titlebar-drag";
+import { APP_TOAST_PLACEMENTS, AppToastView } from "@/design-system";
 import i18n from "@/lib/i18n";
 import { loadI18nResourceNamespace } from "@/lib/i18n-resources";
 import {
@@ -34,8 +35,6 @@ import { usePreferencesStore } from "../stores/preferences-store";
 import { useUiStore } from "../stores/ui-store";
 import { AppConfirmDialog } from "./app-confirm-dialog";
 import { AppLayout } from "./app-layout";
-import { APP_TOAST_PLACEMENTS } from "./shared/app-toast-placement";
-import { AppToastView } from "./shared/app-toast-view";
 
 const LazyFocusDebugHud = lazy(async () => {
   const mod = await import("./app-shell/focus-debug-hud");

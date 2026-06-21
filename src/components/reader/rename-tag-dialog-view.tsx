@@ -1,7 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { FormDialogShell } from "@/components/shared/form-dialog-shell";
-import { StackedInputField } from "@/components/shared/stacked-input-field";
-import { TagColorPicker } from "@/components/shared/tag-color-picker";
+import { FormDialogShell, StackedInputField, TagColorPicker } from "@/design-system";
 import { useTagDialogAutofocus } from "./use-tag-dialog-autofocus";
 
 const EMPTY_COLOR_OPTIONS: string[] = [];

@@ -1,7 +1,7 @@
 import type { KeyboardEvent as ReactKeyboardEvent, ReactNode, RefObject } from "react";
 import { useTranslation } from "react-i18next";
 import type { ArticleDto } from "@/api/tauri-commands";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ScrollArea } from "@/design-system";
 import { cn } from "@/lib/utils";
 import { ArticleGroupsView, type ArticleGroupsViewGroup } from "./article-groups-view";
 import { ReaderPassiveActionButton } from "./reader-passive-action-button";

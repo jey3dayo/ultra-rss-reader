@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { SidebarSectionShell } from "@/components/shared/sidebar-section-shell";
+import { SidebarSectionShell } from "@/design-system";
 
 type SidebarFeedSectionViewProps = {
   title: string;

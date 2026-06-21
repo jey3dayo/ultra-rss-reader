@@ -1,10 +1,12 @@
 import { Check, Clock3, Pencil, Trash2 } from "lucide-react";
-import { DecisionButton } from "@/components/shared/decision-button";
-import { FeedDetailPanel } from "@/components/shared/feed-detail-panel";
-import { FeedFavicon } from "@/components/shared/feed-favicon";
-import { SurfaceCard } from "@/components/shared/surface-card";
-import { WorkspaceManagementActionButton } from "@/components/shared/workspace-management-action-button";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
+import {
+  DecisionButton,
+  FeedDetailPanel,
+  FeedFavicon,
+  SurfaceCard,
+  WorkspaceManagementActionButton,
+} from "@/design-system";
 import type { SubscriptionDecisionActions } from "@/lib/subscriptions/subscriptions-index";
 import { formatSubscriptionDate } from "@/lib/subscriptions/subscriptions-index";
 import type {

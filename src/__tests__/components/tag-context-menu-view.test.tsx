@@ -1,8 +1,8 @@
-import { ContextMenu } from "@base-ui/react/context-menu";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { TagContextMenuView } from "@/components/reader/tag-context-menu-view";
+import { ContextMenu } from "@/design-system";
 
 describe("TagContextMenuView", () => {
   it("renders menu items and delegates actions", async () => {

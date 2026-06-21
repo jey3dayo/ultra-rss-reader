@@ -1,5 +1,5 @@
 import { Trans, useTranslation } from "react-i18next";
-import { DestructiveConfirmDialogView } from "@/components/shared/destructive-confirm-dialog-view";
+import { DestructiveConfirmDialogView } from "@/design-system";
 
 type DeleteTagDialogViewProps = {
   open: boolean;

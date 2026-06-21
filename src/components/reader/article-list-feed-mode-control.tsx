@@ -1,6 +1,4 @@
-import { AppSelectPopup } from "@/components/shared/app-select-popup";
-import { SelectOptionItems, SelectOptionValue } from "@/components/shared/select-option-content";
-import { Select, SelectTrigger } from "@/components/ui/select";
+import { AppSelectPopup, Select, SelectOptionItems, SelectOptionValue, SelectTrigger } from "@/design-system";
 import { type FeedDisplayPresetOption, isFeedDisplayPresetOption } from "@/lib/articles/article-display";
 
 type ArticleListFeedModeControlProps = {

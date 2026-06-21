@@ -1,6 +1,4 @@
-import { LabelChip } from "@/components/shared/label-chip";
-import { SectionHeading } from "@/components/shared/section-heading";
-import { SurfaceCard } from "@/components/shared/surface-card";
+import { LabelChip, SectionHeading, SurfaceCard } from "@/design-system";
 import { cn } from "@/lib/utils";
 import { AnnotatedNote, ReferencePage } from "./ui-reference-canvas-specimens";
 

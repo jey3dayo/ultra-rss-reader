@@ -4,10 +4,8 @@ import { useScrollOverflowState } from "@/components/settings/hooks/use-scroll-o
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { SettingsContentScrollBehaviorProvider } from "@/components/settings/shared/settings-content-layout";
 import { SettingsShellSectionLabel } from "@/components/settings/shared/settings-shell-section-label";
-import { IndeterminateProgress } from "@/components/shared/indeterminate-progress";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, IndeterminateProgress, ScrollArea } from "@/design-system";
 import { cn } from "@/lib/utils";
 
 type SettingsModalContentScrollBehavior = "auto" | "always" | "never";

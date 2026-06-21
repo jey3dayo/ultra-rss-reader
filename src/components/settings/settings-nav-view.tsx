@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { NavRowButton } from "@/components/shared/nav-row-button";
+import { NavRowButton } from "@/design-system";
 import type { SettingsCategory } from "@/lib/settings/settings-category.types";
 import { cn } from "@/lib/utils";
 
@@ -47,7 +47,7 @@ export function SettingsNavView<TItemId extends string = SettingsNavItemId>({
           leading={
             <span
               className={cn(
-                "flex size-5 items-center justify-center transition-colors duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+                "flex size-5 items-center justify-center transition-colors duration-150 ease-standard motion-reduce:transition-none",
                 item.isActive
                   ? "text-[var(--sidebar-selection-muted)]"
                   : "text-sidebar-foreground/44 group-hover:text-sidebar-foreground/64",

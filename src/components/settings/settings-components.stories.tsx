@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { AccountDetailSettingsRow } from "@/components/settings/account-detail/settings-row";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
-import { SectionHeading } from "@/components/shared/section-heading";
+import { SectionHeading } from "@/design-system";
 
 const sectionHeadingMeta = {
   title: "Settings/Section/SettingsComponents",

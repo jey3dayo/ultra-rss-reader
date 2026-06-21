@@ -1,9 +1,7 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import { Info } from "lucide-react";
 import type { ReactNode } from "react";
-import { LabelChip } from "@/components/shared/label-chip";
-import { MotionNumber } from "@/components/shared/motion-number";
-import { AppTooltip, TooltipProvider } from "@/components/ui/tooltip";
+import { AppTooltip, LabelChip, MotionNumber, TooltipProvider } from "@/design-system";
 import type { SubscriptionSummaryCard } from "@/lib/subscriptions/subscriptions-index.types";
 import { cn } from "@/lib/utils";
 
@@ -263,7 +261,7 @@ function SummaryFilterCardButton({
         <LabelChip
           tone="neutral"
           className={cn(
-            "px-2 py-0.75 text-[10px] text-foreground-soft transition-colors duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:text-foreground motion-reduce:transition-none",
+            "px-2 py-0.75 text-[10px] text-foreground-soft transition-colors duration-150 ease-standard group-hover:text-foreground motion-reduce:transition-none",
             summaryCard.isActive &&
               "border-border-strong/75 bg-surface-1 text-foreground shadow-[var(--subscriptions-summary-active-chip-shadow)]",
             isProminent && !summaryCard.isActive && "bg-surface-1/88",
@@ -272,7 +270,7 @@ function SummaryFilterCardButton({
           {resolveActionChipLabel({ filterKey: summaryCard.filterKey, isActive: summaryCard.isActive })}
         </LabelChip>
         {shouldShowCriteria ? (
-          <span className="inline-flex items-center gap-1 rounded-full border border-border/55 bg-surface-1/76 px-2 py-0.75 text-[10px] font-medium text-foreground-soft transition-colors duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:border-border-strong/65 group-hover:text-foreground motion-reduce:transition-none">
+          <span className="inline-flex items-center gap-1 rounded-full border border-border/55 bg-surface-1/76 px-2 py-0.75 text-[10px] font-medium text-foreground-soft transition-colors duration-150 ease-standard group-hover:border-border-strong/65 group-hover:text-foreground motion-reduce:transition-none">
             <Info className="size-3" aria-hidden="true" />
             {resolveCriteriaChipLabel()}
           </span>

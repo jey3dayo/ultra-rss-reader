@@ -1,19 +1,25 @@
-import { Radio } from "@base-ui/react/radio";
-import { RadioGroup } from "@base-ui/react/radio-group";
 import { useState } from "react";
 import { AccountConnectionSummary } from "@/components/settings/account-connection-summary";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
-import { GradientSwitch } from "@/components/shared/gradient-switch";
-import { LabeledControlRow } from "@/components/shared/labeled-control-row";
-import { LabeledInputRow } from "@/components/shared/labeled-input-row";
-import { LabeledSelectRow } from "@/components/shared/labeled-select-row";
-import { LabeledSwitchRow } from "@/components/shared/labeled-switch-row";
-import { SectionHeading } from "@/components/shared/section-heading";
-import { SurfaceCard } from "@/components/shared/surface-card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
+import {
+  Checkbox,
+  GradientSwitch,
+  Input,
+  LabeledControlRow,
+  LabeledInputRow,
+  LabeledSelectRow,
+  LabeledSwitchRow,
+  Radio,
+  RadioGroup,
+  SectionHeading,
+  Select,
+  SelectItem,
+  SelectPopup,
+  SelectTrigger,
+  SelectValue,
+  SurfaceCard,
+  Switch,
+} from "@/design-system";
 import { cn } from "@/lib/utils";
 import { AnnotatedNote, ReferencePage } from "./ui-reference-canvas-specimens";
 
@@ -47,7 +53,7 @@ export function ReferenceRadioGroup() {
                 <label
                   key={option.value}
                   className={cn(
-                    "inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-1.5 text-sm shadow-elevation-1 transition-colors duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+                    "inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-1.5 text-sm shadow-elevation-1 transition-colors duration-150 ease-standard motion-reduce:transition-none",
                     checked
                       ? "border-border-strong bg-surface-3 text-foreground"
                       : "border-border bg-surface-1 text-foreground/72 hover:bg-surface-2",
@@ -57,7 +63,7 @@ export function ReferenceRadioGroup() {
                     value={option.value}
                     aria-label={option.label}
                     className={cn(
-                      "flex size-4 items-center justify-center rounded-full border transition-colors duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+                      "flex size-4 items-center justify-center rounded-full border transition-colors duration-150 ease-standard motion-reduce:transition-none",
                       checked ? "border-primary bg-primary/10" : "border-border-strong bg-background",
                     )}
                   >

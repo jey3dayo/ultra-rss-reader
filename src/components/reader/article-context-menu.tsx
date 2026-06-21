@@ -1,9 +1,9 @@
-import { ContextMenu } from "@base-ui/react/context-menu";
 import type { ReactNode } from "react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { useArticleActions } from "@/components/reader/hooks/article/use-article-actions";
+import { ContextMenu } from "@/design-system";
 import { useSetRead, useToggleStar } from "@/hooks/use-articles";
 import { usePlatformStore } from "@/stores/platform-store";
 import { useUiStore } from "@/stores/ui-store";

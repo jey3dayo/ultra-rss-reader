@@ -1,8 +1,8 @@
-import { ContextMenu } from "@base-ui/react/context-menu";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SmartViewContextMenuContent } from "@/components/reader/smart-view-context-menu";
+import { ContextMenu } from "@/design-system";
 import i18n from "@/lib/i18n";
 import type { SmartViewItemViewModel } from "@/lib/sidebar/sidebar-smart-views";
 import { useUiStore } from "@/stores/ui-store";

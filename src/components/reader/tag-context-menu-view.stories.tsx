@@ -1,6 +1,6 @@
-import { ContextMenu } from "@base-ui/react/context-menu";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { fn } from "storybook/test";
+import { ContextMenu } from "@/design-system";
 import { TagContextMenuView } from "./tag-context-menu-view";
 
 const meta = {

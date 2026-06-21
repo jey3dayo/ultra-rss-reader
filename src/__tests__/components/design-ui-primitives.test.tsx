@@ -3,12 +3,6 @@ import { join } from "node:path";
 import { render, screen } from "@testing-library/react";
 import { extractSortedUniqueRegistryMatches, sortedRegistryValues } from "@tests/helpers/design-registry";
 import { describe, expect, it, vi } from "vitest";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { CommandDialog } from "@/components/ui/command";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   MOTION_ARTICLE_SLIDE_CLASS_NAME,
   MOTION_BUTTON_SURFACE_CLASS_NAME,
@@ -24,6 +18,22 @@ import {
   MOTION_POPUP_DIALOG_CLASS_NAME,
   MOTION_POPUP_OVERLAY_CLASS_NAME,
 } from "@/constants";
+import {
+  Button,
+  Checkbox,
+  CommandDialog,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  Input,
+  Select,
+  SelectItem,
+  SelectPopup,
+  SelectTrigger,
+  SelectValue,
+} from "@/design-system";
 
 const globalCss = readFileSync(join(process.cwd(), "src/styles/global.css"), "utf8");
 const motionCss = globalCss.slice(globalCss.indexOf("@keyframes vertical-wipe"), globalCss.indexOf("\n\nhtml,\nbody"));

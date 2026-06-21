@@ -2,7 +2,7 @@ import { useEffect, useReducer, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { normalizeTagColorForView } from "@/api/schemas/commands";
 import type { TagDto } from "@/api/tauri-commands";
-import { TAG_COLOR_PRESETS } from "@/components/shared/exception-palettes";
+import { TAG_COLOR_PRESETS } from "@/design-system";
 import { normalizeRenameInput } from "@/hooks/normalize-rename-input";
 import { useDeleteTag, useRenameTag } from "@/hooks/use-tags";
 import { getErrorMessage } from "@/lib/ui/errors";

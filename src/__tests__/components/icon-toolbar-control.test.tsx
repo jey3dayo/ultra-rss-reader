@@ -1,4 +1,3 @@
-import { Menu } from "@base-ui/react/menu";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Globe } from "lucide-react";
@@ -8,8 +7,9 @@ import {
   IconToolbarMenuTrigger,
   IconToolbarSurfaceButton,
   IconToolbarToggle,
-} from "@/components/shared/icon-toolbar-control";
-import { TooltipProvider } from "@/components/ui/tooltip";
+  Menu,
+  TooltipProvider,
+} from "@/design-system";
 
 describe("IconToolbarControl", () => {
   it("renders a shared icon button with tooltip semantics and click handling", async () => {

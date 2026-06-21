@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { Switch } from "@/components/ui/switch";
+import { Switch } from "@/design-system";
 
 describe("Switch", () => {
   it("uses the default size contract when size is omitted", () => {

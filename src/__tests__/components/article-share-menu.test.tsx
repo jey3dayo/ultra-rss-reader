@@ -6,8 +6,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SHARE_COMMAND_TEXT_MAX_CHARS } from "@/api/schemas/commands";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { ArticleShareMenu } from "@/components/reader/article-share-menu";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { APP_EVENTS } from "@/constants/events";
+import { TooltipProvider } from "@/design-system";
 
 const { addArticleToReadingListMock, copyArticleLinkMock, openExternalUrlMock, openInBrowserMock } = vi.hoisted(() => ({
   addArticleToReadingListMock: vi.fn(),

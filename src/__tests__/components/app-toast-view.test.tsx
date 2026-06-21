@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { AppToastView } from "@/components/shared/app-toast-view";
+import { AppToastView } from "@/design-system";
 
 describe("AppToastView", () => {
   it("clamps numeric progress width and keeps null progress indeterminate", () => {

@@ -1,7 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { Eye, X } from "lucide-react";
 import { describe, expect, it } from "vitest";
-import { MotionIconSwap } from "@/components/shared/motion-icon-swap";
 import {
   MOTION_DATA_ICON_ATTRIBUTE,
   MOTION_DATA_STATE_ATTRIBUTE,
@@ -11,6 +10,7 @@ import {
   MOTION_ICON_SWAP_STATE_A,
   MOTION_ICON_SWAP_STATE_B,
 } from "@/constants";
+import { MotionIconSwap } from "@/design-system";
 
 const motionIconSwapSelector = `.${MOTION_ICON_SWAP_CLASS_NAME}`;
 const motionIconSlotASelector = `[${MOTION_DATA_ICON_ATTRIBUTE}="${MOTION_ICON_SWAP_ICON_A}"]`;

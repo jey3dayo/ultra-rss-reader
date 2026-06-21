@@ -1,8 +1,5 @@
 import type { ReactNode } from "react";
-import {
-  DestructiveConfirmDialogView,
-  type DestructiveConfirmDialogViewProps,
-} from "@/components/shared/destructive-confirm-dialog-view";
+import { DestructiveConfirmDialogView, type DestructiveConfirmDialogViewProps } from "@/design-system";
 
 type UnsubscribeFeedDialogViewProps = Omit<DestructiveConfirmDialogViewProps, "description"> & {
   description: ReactNode;

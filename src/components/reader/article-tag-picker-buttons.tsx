@@ -1,5 +1,5 @@
 import type { ButtonHTMLAttributes, ReactNode, Ref } from "react";
-import { controlChipVariants } from "@/components/shared/control-chip";
+import { controlChipVariants } from "@/design-system";
 import { cn } from "@/lib/utils";
 
 type TagPickerTriggerButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -32,7 +32,7 @@ export function TagPickerTriggerButton({
         "justify-center rounded-full border text-foreground-soft select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45",
         "motion-interactive-surface",
         expanded
-          ? "border-border/60 bg-surface-2/88 text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+          ? "border-border/60 bg-surface-2/88 text-foreground shadow-active-inset-highlight"
           : "border-border/45 bg-background/12 hover:border-border/60 hover:bg-surface-1/72 hover:text-foreground focus-visible:border-border/60 focus-visible:bg-surface-1/72 focus-visible:text-foreground",
         className,
       )}

@@ -27,7 +27,7 @@ function ScrollArea({
       <div
         ref={viewportRef}
         data-slot="scroll-area-viewport"
-        className="size-full overflow-auto rounded-[inherit] transition-[color,box-shadow,outline-color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] outline-none focus-visible:outline-1 focus-visible:outline-border/80 focus-visible:ring-2 focus-visible:ring-border/35 motion-reduce:transition-none"
+        className="size-full overflow-auto rounded-[inherit] transition-[color,box-shadow,outline-color] duration-150 ease-standard outline-none focus-visible:outline-1 focus-visible:outline-border/80 focus-visible:ring-2 focus-visible:ring-border/35 motion-reduce:transition-none"
       >
         {contentClassName ? (
           <div data-slot="scroll-area-content" className={contentClassName}>
@@ -53,7 +53,7 @@ function ScrollBar({
       data-slot="scroll-area-scrollbar"
       data-orientation={orientation}
       className={cn(
-        "flex touch-none p-px transition-colors duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] select-none motion-reduce:transition-none",
+        "flex touch-none p-px transition-colors duration-150 ease-standard select-none motion-reduce:transition-none",
         scrollBarOrientationClassNames[orientation],
         className,
       )}

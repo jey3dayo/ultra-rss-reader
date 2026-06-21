@@ -1,6 +1,6 @@
 import { cva } from "class-variance-authority";
 import type { ComponentPropsWithoutRef, ReactNode, Ref } from "react";
-import { MotionNumber } from "@/components/shared/motion-number";
+import { MotionNumber } from "@/design-system";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
 import type { SidebarDensity } from "./sidebar-density";

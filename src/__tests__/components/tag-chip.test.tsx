@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { TagChip } from "@/components/shared/tag-chip";
+import { TagChip } from "@/design-system";
 
 describe("TagChip", () => {
   it("renders the label and optional color dot", () => {

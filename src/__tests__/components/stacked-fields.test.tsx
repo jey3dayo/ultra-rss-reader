@@ -2,9 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { describe, expect, it, vi } from "vitest";
-import { createSelectValueChangeHandler } from "@/components/shared/select-value-change-handler";
-import { StackedInputField } from "@/components/shared/stacked-input-field";
-import { StackedSelectField } from "@/components/shared/stacked-select-field";
+import { createSelectValueChangeHandler, StackedInputField, StackedSelectField } from "@/design-system";
 
 describe("stacked shared fields", () => {
   it("associates stacked input fields with their label", () => {

@@ -1,8 +1,6 @@
 import { CheckCheck, PanelLeft, Search, X } from "lucide-react";
 import type { ReactNode, RefObject } from "react";
-import { IconToolbarButton } from "@/components/shared/icon-toolbar-control";
-import { Button } from "@/components/ui/button";
-import { AppTooltip, TooltipProvider } from "@/components/ui/tooltip";
+import { AppTooltip, Button, IconToolbarButton, TooltipProvider } from "@/design-system";
 import { cn } from "@/lib/utils";
 
 type ArticleListHeaderActionsProps = {
@@ -42,7 +40,7 @@ export function ArticleListHeaderActions({
   searchArticlesButtonText: _searchArticlesButtonText,
   closeSearchLabel,
 }: ArticleListHeaderActionsProps) {
-  const iconToolbarActiveClassName = "bg-surface-3/88 text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]";
+  const iconToolbarActiveClassName = "bg-surface-3/88 text-foreground shadow-active-inset-highlight";
 
   return (
     <TooltipProvider>

@@ -2,13 +2,9 @@ import { AlertTriangle, BookOpen, Check, Clock3, Palette, RefreshCw, Save, Setti
 import { type ReactNode, useState } from "react";
 import { contextMenuStyles } from "@/components/reader/context-menu-styles";
 import { type SettingsNavItem, SettingsNavView } from "@/components/settings/settings-nav-view";
-import { AppToastView } from "@/components/shared/app-toast-view";
-import { StarIcon, UnreadIcon } from "@/components/shared/article-state-icon";
-import { iconToolbarButtonClassName } from "@/components/shared/icon-toolbar-control-styles";
-import { SectionHeading } from "@/components/shared/section-heading";
-import { SurfaceCard } from "@/components/shared/surface-card";
-import { Button } from "@/components/ui/button";
 import {
+  AppToastView,
+  Button,
   Command,
   CommandGroup,
   CommandInput,
@@ -16,7 +12,12 @@ import {
   CommandList,
   CommandSeparator,
   CommandShortcut,
-} from "@/components/ui/command";
+  iconToolbarButtonClassName,
+  SectionHeading,
+  StarIcon,
+  SurfaceCard,
+  UnreadIcon,
+} from "@/design-system";
 import type { ToastData } from "@/lib/ui/toast.types";
 import { cn } from "@/lib/utils";
 import { AnnotatedNote, ReferencePage } from "./ui-reference-canvas-specimens";
@@ -182,7 +183,7 @@ export function ShellExamplesSpecimen() {
                 aria-label="Starred"
                 className={cn(
                   iconToolbarButtonClassName,
-                  "bg-[var(--semantic-tone-starred-surface)] text-[var(--semantic-tone-starred-content-foreground)] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] hover:bg-[var(--semantic-tone-starred-surface)] hover:text-[var(--semantic-tone-starred-content-foreground)]",
+                  "bg-[var(--semantic-tone-starred-surface)] text-[var(--semantic-tone-starred-content-foreground)] shadow-active-inset-highlight hover:bg-[var(--semantic-tone-starred-surface)] hover:text-[var(--semantic-tone-starred-content-foreground)]",
                 )}
               >
                 <StarIcon starred={true} className="size-4" />
@@ -193,7 +194,7 @@ export function ShellExamplesSpecimen() {
                 aria-label="Preview"
                 className={cn(
                   iconToolbarButtonClassName,
-                  "bg-primary/12 text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] hover:bg-primary/12 hover:text-primary",
+                  "bg-primary/12 text-primary shadow-active-inset-highlight hover:bg-primary/12 hover:text-primary",
                 )}
               >
                 <Check className="size-4" />
