@@ -4,6 +4,22 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.47.1] - 2026-06-22
+
+### Bug Fixes
+
+- テストとブラウザイベント周辺の型契約を厳密化し、UI/runtime 境界の型安全性を高めた
+
+### Documentation
+
+- `@/design-system` を UI 公開 API として扱う方針を `DESIGN_REVIEW.md` に明文化した
+
+### Maintenance
+
+- UI 部品の利用経路を `@/design-system` 経由へ整理し、Base UI / shared component の実装所有境界を固定した
+- WSL 向け静的チェック task を追加・整理し、Windows 側でも format / lint の確認を走らせやすくした
+- EditorConfig を追加し、エディタ間の基本フォーマット設定を揃えた
+
 ## [0.47.0] - 2026-06-19
 
 ### Features
