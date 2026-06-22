@@ -28,6 +28,10 @@ After reading `DESIGN.md`, consult the Storybook UI Reference catalog in this or
 
 Routing rules:
 
+- `@/design-system` is the public UI API for app, feature, Storybook, and test code
+- `src/components/ui` owns primitive wrappers around headless UI dependencies
+- `src/components/shared` owns reusable app-specific building blocks
+- feature code should import shared UI through `@/design-system` instead of reaching into `src/components/ui` or `src/components/shared`
 - form rows, validation, and disabled states go in `Input Controls Canvas`
 - button variants, decision/delete/form actions, settings actions, and utility icon action strips go in `Button Controls Canvas`
 - settings-form row behavior, control rail alignment, and shared radius rules belong in `shared` once they repeat
