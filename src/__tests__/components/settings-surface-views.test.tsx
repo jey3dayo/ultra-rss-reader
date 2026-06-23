@@ -54,7 +54,7 @@ describe("Settings surface views", () => {
     );
 
     expect(screen.getByRole("heading", { level: 2, name: "General" })).toBeInTheDocument();
-    expect(screen.getByTestId("settings-content-header")).toHaveClass("min-h-[4.5rem]");
+    expect(screen.getByTestId("settings-content-header")).toHaveClass("min-h-[5rem]");
     expect(screen.getByTestId("settings-content-header")).toHaveClass("flex");
     expect(screen.getByTestId("settings-content-header")).toHaveClass("items-center");
     expect(screen.getByRole("heading", { level: 2, name: "General" })).toHaveClass(

@@ -237,7 +237,7 @@ describe("SettingsModalView", () => {
     const contentLane = screen.getByTestId("settings-content").closest('[data-slot="scroll-area-content"]');
 
     expect(navLane).toHaveClass("pr-3");
-    expect(contentLane).toHaveClass("px-5", "py-5");
+    expect(contentLane).toHaveClass("px-5", "py-6", "sm:px-8", "sm:py-8");
   });
 
   it("adds visual scroll affordances and a taller modal surface", () => {
