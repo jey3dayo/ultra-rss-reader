@@ -31,7 +31,7 @@ export function LabeledControlRow({
   const generatedDescriptionId = useId();
   const resolvedDescriptionId = description ? (descriptionId ?? generatedDescriptionId) : undefined;
   const labelClasses = cn(
-    "select-none font-sans text-[14px] leading-[1.35] text-[color:var(--form-row-label)]",
+    "select-none font-sans text-[13px] leading-[1.35] font-medium text-[color:var(--form-row-label)]",
     labelClassName,
   );
   const resolvedChildren =
@@ -51,7 +51,7 @@ export function LabeledControlRow({
     <div
       className={cn(
         MOTION_CONTEXTUAL_SURFACE_CLASS_NAME,
-        "grid min-h-[44px] grid-cols-1 items-start gap-y-2.5 border-b border-border/70 py-2.5 last:border-b-0 sm:grid-cols-[minmax(180px,220px)_minmax(0,1fr)] sm:items-center sm:gap-x-7 sm:gap-y-3",
+        "grid min-h-[48px] grid-cols-1 items-start gap-y-2.5 border-b border-border/60 py-3 last:border-b-0 sm:grid-cols-[minmax(180px,220px)_minmax(0,1fr)] sm:items-center sm:gap-x-8 sm:gap-y-3",
         className,
       )}
     >

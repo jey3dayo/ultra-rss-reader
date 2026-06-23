@@ -61,7 +61,7 @@ function SettingsPageTextRow({ control }: SettingsPageControlRowProps<SettingsPa
         disabled={control.disabled}
         rowClassName="gap-4"
         labelClassName="w-40 shrink-0"
-        inputClassName="h-10 flex-1"
+        inputClassName="h-11 flex-1"
         trailingControls={
           <SettingsActionButton
             type="button"
@@ -88,7 +88,7 @@ function SettingsPageTextRow({ control }: SettingsPageControlRowProps<SettingsPa
       rowClassName="gap-4"
       labelClassName="w-40 shrink-0"
       controlClassName="flex w-full items-center gap-2 sm:max-w-[30rem] sm:justify-end"
-      inputClassName="h-10 flex-1"
+      inputClassName="h-11 flex-1"
     />
   );
 }
@@ -139,8 +139,8 @@ export function SettingsPageView({ title, sections, sectionSurface = "flat" }: S
           heading={section.heading}
           note={section.note}
           surface={sectionSurface}
-          className={index === sections.length - 1 ? undefined : "mb-6 sm:mb-7"}
-          headingClassName="mb-1.5 sm:mb-2"
+          className={index === sections.length - 1 ? undefined : "mb-4 sm:mb-5"}
+          headingClassName="text-[11px] tracking-[0.04em]"
         >
           {section.controls.map((control) =>
             control.type === "select" ? (

@@ -34,7 +34,7 @@ describe("SettingsPageView", () => {
     );
 
     expect(screen.getByTestId("settings-page-root")).toHaveClass("flex", "h-full", "min-h-0");
-    expect(screen.getByTestId("settings-content-header")).toHaveClass("min-h-[4.5rem]", "shrink-0");
+    expect(screen.getByTestId("settings-content-header")).toHaveClass("min-h-[5rem]", "shrink-0");
     expect(screen.getByTestId("settings-content-scroll-area")).toHaveClass("h-full", "min-h-0");
     expect(screen.getByRole("heading", { level: 2, name: "General" })).toHaveClass(
       "text-[color:var(--settings-shell-content-title)]",
@@ -43,7 +43,7 @@ describe("SettingsPageView", () => {
       backgroundColor: "var(--settings-shell-content-header)",
     });
     expect(container.querySelector('[data-surface-card="section"]')).toBeNull();
-    expect(screen.getByRole("heading", { name: "Language" })).toHaveClass("mb-1.5");
+    expect(screen.getByRole("heading", { name: "Language" })).toHaveClass("mb-2.5");
     expect(screen.getByText("Changes apply after restart.")).toHaveClass("mt-1.5");
     expect(screen.getByRole("combobox", { name: "Language" })).toHaveClass("w-full");
   });
@@ -160,8 +160,12 @@ describe("SettingsPageView", () => {
 
     const input = screen.getByRole("textbox", { name: "Display name" });
     expect(input).toHaveValue("Main reader");
-    expect(input).toHaveClass("h-10", "flex-1");
-    expect(input.closest("div.flex.w-full.items-center.gap-2")).toHaveClass("sm:max-w-[30rem]", "sm:justify-end");
+    expect(input).toHaveClass("h-11", "flex-1");
+    expect(input.closest("div.flex.w-full.min-w-0.flex-col.gap-2")).toHaveClass(
+      "sm:max-w-[30rem]",
+      "sm:flex-row",
+      "sm:justify-end",
+    );
     expect(input.id).toBeTruthy();
     expect(document.querySelector(`label[for="${input.id}"]`)).toHaveTextContent("Display name");
 
