@@ -1,5 +1,5 @@
 import { ChevronDown, Search, X } from "lucide-react";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useId, useRef } from "react";
 import {
   MOTION_CONTENT_SWAP_CLASS_NAME,
   MOTION_DATA_PHASE_ATTRIBUTE,
@@ -71,7 +71,7 @@ export function SubscriptionGroupDisclosureButton({
       aria-controls={controlsId}
       onClick={() => onToggleGroup(group.key)}
       className={cn(
-        "motion-disclosure-trigger flex min-h-9 w-full items-center justify-between rounded-md px-1.5 py-1 text-left text-foreground transition-[background-color,color,box-shadow] duration-150 hover:bg-[color:var(--subscriptions-list-row-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-strong/45 motion-reduce:transition-none",
+        "motion-disclosure-trigger flex min-h-11 w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-foreground transition-[background-color,color,box-shadow] duration-150 hover:bg-[color:var(--subscriptions-list-row-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-strong/45 motion-reduce:transition-none",
         !expanded && "text-foreground-soft",
       )}
     >
@@ -82,7 +82,7 @@ export function SubscriptionGroupDisclosureButton({
             expanded ? "rotate-0" : "-rotate-90",
           )}
         />
-        <h3 className="min-w-0 truncate text-sm font-medium tracking-[-0.01em]">{group.label}</h3>
+        <h3 className="min-w-0 truncate text-[0.88rem] font-semibold tracking-[-0.01em]">{group.label}</h3>
       </span>
       <LabelChip tone="neutral" size="compact" className="shrink-0 bg-surface-1/70 text-[0.72rem]">
         {group.rows.length}
@@ -112,6 +112,7 @@ export function SubscriptionsListPane({
   onSearchQueryChange,
   onToggleGroup,
 }: SubscriptionsListPaneProps) {
+  const headingId = useId();
   const scrollRegionRef = useRef<HTMLDivElement | null>(null);
   const restoredScrollStateRef = useRef<{ scrollTop: number; resetKey: number } | null>(null);
   const pendingScrollTopRef = useRef<number | null>(null);
@@ -180,14 +181,18 @@ export function SubscriptionsListPane({
 
   return (
     <section
-      className="flex flex-col rounded-md px-4 py-5 sm:px-5 sm:py-5 lg:min-h-0 lg:border-r lg:border-[color:var(--subscriptions-pane-divider)]"
+      aria-labelledby={headingId}
+      className="flex flex-col rounded-md px-4 py-5 sm:px-5 sm:py-6 lg:min-h-0 lg:border-r lg:border-[color:var(--subscriptions-pane-divider)]"
       style={{
         backgroundColor: "var(--subscriptions-list-surface)",
       }}
     >
-      <div className="mb-5 flex flex-col gap-3 border-b border-border/50 pb-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-5 flex flex-col gap-3 border-b border-border/55 pb-4.5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 items-center justify-between gap-3">
-          <h2 className="min-w-0 truncate font-sans text-[1.02rem] font-normal tracking-[-0.02em] text-foreground">
+          <h2
+            id={headingId}
+            className="min-w-0 truncate font-sans text-[1.08rem] font-semibold tracking-[-0.025em] text-foreground"
+          >
             {heading}
           </h2>
           {hasRows ? <LabelChip tone="neutral">{totalRowCount}</LabelChip> : null}
@@ -195,7 +200,7 @@ export function SubscriptionsListPane({
         <div className="relative w-full sm:max-w-[20rem]">
           <Search
             aria-hidden="true"
-            className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-foreground-soft"
+            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground-soft"
           />
           <Input
             type="search"
@@ -203,16 +208,16 @@ export function SubscriptionsListPane({
             aria-label={searchLabel}
             placeholder={searchPlaceholder}
             onChange={(event) => onSearchQueryChange(event.currentTarget.value)}
-            className="h-8 rounded-full bg-background/25 pl-8 pr-8 text-[0.82rem] shadow-none"
+            className="h-11 rounded-md border-border/65 bg-surface-1/72 pl-10 pr-12 text-[0.88rem] shadow-[inset_0_1px_0_rgba(255,255,255,0.38)]"
           />
           {searchQuery.length > 0 ? (
             <button
               type="button"
               aria-label={searchClearLabel}
               onClick={() => onSearchQueryChange("")}
-              className="absolute right-1.5 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-foreground-soft transition-[background-color,color] duration-150 hover:bg-[color:var(--subscriptions-list-row-hover)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-strong/45 motion-reduce:transition-none"
+              className="absolute right-0 top-1/2 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-full text-foreground-soft transition-[background-color,color] duration-150 hover:bg-[color:var(--subscriptions-list-row-hover)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-strong/45 motion-reduce:transition-none"
             >
-              <X aria-hidden="true" className="h-3.5 w-3.5" />
+              <X aria-hidden="true" className="h-4 w-4" />
             </button>
           ) : null}
         </div>
@@ -220,16 +225,25 @@ export function SubscriptionsListPane({
       <div
         ref={scrollRegionRef}
         data-testid="subscriptions-list-scroll-region"
-        className="space-y-5 pr-1 lg:min-h-0 lg:flex-1 lg:overflow-y-auto"
+        className="space-y-5 pr-1.5 lg:min-h-0 lg:flex-1 lg:overflow-y-auto"
         onScroll={(event) => scheduleScrollTopCommit(event.currentTarget.scrollTop)}
       >
         {!hasRows ? (
-          <p
+          <div
             {...{ [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING }}
             className={`${MOTION_CONTENT_SWAP_CLASS_NAME} rounded-md border border-dashed border-border px-4 py-6 text-sm text-foreground-soft`}
           >
-            {emptyLabel}
-          </p>
+            <p className="text-foreground-soft">{emptyLabel}</p>
+            {searchQuery.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => onSearchQueryChange("")}
+                className="mt-3 inline-flex min-h-11 items-center justify-center rounded-md border border-border/70 px-3 text-sm font-medium text-foreground transition-[background-color,color,border-color] duration-150 hover:bg-[color:var(--subscriptions-list-row-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-strong/45 motion-reduce:transition-none"
+              >
+                {searchClearLabel}
+              </button>
+            ) : null}
+          </div>
         ) : (
           groups.map((group) => {
             const expanded = isGroupExpanded(group.key);
@@ -253,7 +267,7 @@ export function SubscriptionsListPane({
                   <div className="motion-disclosure-body">
                     <div
                       data-testid={`subscriptions-folder-tree-rail-${group.folderId ?? "ungrouped"}`}
-                      className="space-y-1.5 border-l border-[color:var(--subscriptions-list-divider)] pl-3 pt-2"
+                      className="space-y-2 border-l border-[color:var(--subscriptions-list-divider)] pl-3 pt-2"
                     >
                       {group.rows.map((row) => {
                         const isSelected = selectedFeedId === row.feed.id;
@@ -267,12 +281,12 @@ export function SubscriptionsListPane({
                               "motion-static-hover-surface items-center rounded-md border border-transparent px-3.5 py-3.5 shadow-none",
                               isSelected
                                 ? "border-[color:var(--subscriptions-list-row-selected-border)] bg-[color:var(--subscriptions-list-row-selected-surface)] shadow-[var(--subscriptions-list-row-selected-shadow)]"
-                                : "bg-background/15 hover:border-[color:var(--subscriptions-list-divider)] hover:bg-[color:var(--subscriptions-list-row-hover)]",
+                                : "bg-surface-1/36 hover:border-[color:var(--subscriptions-list-divider)] hover:bg-[color:var(--subscriptions-list-row-hover)]",
                             )}
                             leading={
                               <span
                                 className={cn(
-                                  "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border transition-[background-color,border-color] duration-200 ease-standard motion-reduce:transition-none",
+                                  "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border shadow-[inset_0_1px_0_rgba(255,255,255,0.32)] transition-[background-color,border-color] duration-200 ease-standard motion-reduce:transition-none",
                                   isSelected ? "bg-surface-1 text-foreground" : "bg-surface-2/88 text-foreground",
                                 )}
                                 style={{
@@ -292,7 +306,7 @@ export function SubscriptionsListPane({
                             }
                             title={
                               <div className="flex items-center gap-2">
-                                <span className="text-[0.95rem] font-medium tracking-[-0.02em] text-foreground">
+                                <span className="text-[0.95rem] font-semibold tracking-[-0.02em] text-foreground">
                                   {row.feed.title}
                                 </span>
                               </div>

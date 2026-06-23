@@ -79,6 +79,95 @@ function renderListPane(
 }
 
 describe("SubscriptionsListPane", () => {
+  it("names the list pane region from its visible heading", () => {
+    renderListPane([
+      {
+        feed: buildFeed({ title: "Named Feed" }),
+        folderId: null,
+        folderName: null,
+        latestArticleAt: null,
+        status: { tone: "neutral", labelKey: "normal" },
+        reasonTooltipKey: null,
+      },
+    ]);
+
+    expect(screen.getByRole("region", { name: "全購読" })).toBeInTheDocument();
+  });
+
+  it("keeps the search input and clear control on the shared touch target contract", async () => {
+    const user = userEvent.setup();
+    const onSearchQueryChange = vi.fn();
+    const row = {
+      feed: buildFeed({ title: "Searchable Feed" }),
+      folderId: null,
+      folderName: null,
+      latestArticleAt: null,
+      status: { tone: "neutral", labelKey: "normal" },
+      reasonTooltipKey: null,
+    } satisfies SubscriptionListRow;
+
+    render(
+      <SubscriptionsListPane
+        heading="全購読"
+        groups={[{ key: "__ungrouped__", label: "フォルダなし", folderId: null, rows: [row] }]}
+        selectedFeedId={row.feed.id}
+        emptyLabel="一致する購読はありません。"
+        searchQuery="Search"
+        searchLabel="購読を検索"
+        searchPlaceholder="検索"
+        searchClearLabel="検索をクリア"
+        statusLabels={statusLabels}
+        reasonTooltipLabels={reasonTooltipLabels}
+        formatUnreadCountLabel={(count) => `未読 ${count}件`}
+        formatLatestArticleLabel={(value) => (value ? `最終更新 ${value}` : "取得記事なし")}
+        isGroupExpanded={() => true}
+        onSelectFeed={vi.fn()}
+        onSearchQueryChange={onSearchQueryChange}
+        onToggleGroup={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("searchbox", { name: "購読を検索" })).toHaveClass("h-11", "pl-10", "pr-12");
+    expect(screen.getByRole("button", { name: "検索をクリア" })).toHaveClass("size-11");
+
+    await user.click(screen.getByRole("button", { name: "検索をクリア" }));
+
+    expect(onSearchQueryChange).toHaveBeenCalledWith("");
+  });
+
+  it("offers a clear-search recovery action when a query returns no subscriptions", async () => {
+    const user = userEvent.setup();
+    const onSearchQueryChange = vi.fn();
+
+    render(
+      <SubscriptionsListPane
+        heading="全購読"
+        groups={[{ key: "__ungrouped__", label: "フォルダなし", folderId: null, rows: [] }]}
+        selectedFeedId={null}
+        emptyLabel="一致する購読はありません。"
+        searchQuery="Missing"
+        searchLabel="購読を検索"
+        searchPlaceholder="検索"
+        searchClearLabel="検索をクリア"
+        statusLabels={statusLabels}
+        reasonTooltipLabels={reasonTooltipLabels}
+        formatUnreadCountLabel={(count) => `未読 ${count}件`}
+        formatLatestArticleLabel={(value) => (value ? `最終更新 ${value}` : "取得記事なし")}
+        isGroupExpanded={() => true}
+        onSelectFeed={vi.fn()}
+        onSearchQueryChange={onSearchQueryChange}
+        onToggleGroup={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("一致する購読はありません。")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "検索をクリア" })[1]).toHaveClass("min-h-11");
+
+    await user.click(screen.getAllByRole("button", { name: "検索をクリア" })[1]);
+
+    expect(onSearchQueryChange).toHaveBeenCalledWith("");
+  });
+
   it("shows why a feed with no fetched articles is not a review candidate", async () => {
     const user = userEvent.setup();
 
@@ -140,6 +229,7 @@ describe("SubscriptionsListPane", () => {
     const folderButton = screen.getByTestId("subscriptions-folder-row-ungrouped");
     expect(folderButton).toHaveAttribute("aria-expanded", "true");
     expect(folderButton).toHaveAttribute("aria-controls", "subscriptions-group-panel-__ungrouped__");
+    expect(folderButton).toHaveClass("min-h-11");
     expect(folderButton).not.toHaveClass("border");
     expect(folderButton).toHaveTextContent("1");
 

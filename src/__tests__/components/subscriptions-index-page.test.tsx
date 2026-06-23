@@ -296,14 +296,18 @@ describe("SubscriptionsIndexPage", () => {
     });
     const summarySection = totalSubscriptionsLabel.closest("section");
     expect(summarySection).not.toBeNull();
-    expect(summarySection).toHaveClass("rounded-md", "border-border/55");
+    expect(summarySection).toHaveClass(
+      "rounded-md",
+      "border-border/60",
+      "shadow-[0_18px_48px_-42px_rgba(38,37,30,0.32)]",
+    );
     expect(summarySection).toHaveStyle({
       backgroundColor: "var(--subscriptions-summary-surface)",
     });
-    expect(summarySection?.querySelector(".grid")).toHaveClass("grid-cols-1", "gap-3");
+    expect(summarySection?.querySelector(".grid")).toHaveClass("grid-cols-1", "gap-3.5");
     expect(summarySection?.querySelector(".grid")).toHaveClass(
       "sm:grid-cols-[repeat(auto-fit,minmax(13rem,1fr))]",
-      "lg:gap-3.5",
+      "lg:gap-4",
     );
     expect(await screen.findByRole("button", { name: /要確認/ })).toHaveClass(
       "rounded-md",
@@ -420,7 +424,7 @@ describe("SubscriptionsIndexPage", () => {
     expect(detailPane).toHaveStyle({
       backgroundColor: "var(--subscriptions-detail-surface)",
     });
-    expect(within(detailPane).getByRole("heading", { name: "購読の詳細" })).toHaveClass("text-foreground-soft");
+    expect(within(detailPane).getByRole("heading", { name: "購読の詳細" })).toHaveClass("text-foreground");
     expect(within(detailPane).getByRole("link", { name: "Example Feed" })).toHaveAttribute(
       "href",
       "https://example.com",

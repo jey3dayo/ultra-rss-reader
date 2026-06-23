@@ -36,14 +36,18 @@ describe("SubscriptionsOverviewSummary", () => {
 
     const summarySection = screen.getByRole("button", { name: /Needs review/ }).closest("section");
     expect(summarySection).not.toBeNull();
-    expect(summarySection).toHaveClass("rounded-md", "border-border/55");
+    expect(summarySection).toHaveClass(
+      "rounded-md",
+      "border-border/60",
+      "shadow-[0_18px_48px_-42px_rgba(38,37,30,0.32)]",
+    );
     expect(summarySection).toHaveStyle({
       backgroundColor: "var(--subscriptions-summary-surface)",
     });
     expect(summarySection?.querySelector(".grid")).toHaveClass(
       "grid-cols-1",
       "sm:grid-cols-[repeat(auto-fit,minmax(13rem,1fr))]",
-      "gap-3",
+      "gap-3.5",
     );
     expect(screen.queryByText("Needs review: quiet feeds or weak usage signals.")).toBeNull();
 

@@ -46,9 +46,9 @@ const summaryToneClassNames = {
 const summaryTextVariants = cva("", {
   variants: {
     variant: {
-      label: "text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase",
-      actionableValue: "mt-1.5 block text-[1.72rem] font-semibold tracking-[-0.04em] text-foreground sm:text-[1.96rem]",
-      staticValue: "mt-2 text-[1.56rem] font-semibold tracking-[-0.03em] text-foreground sm:text-[1.76rem]",
+      label: "text-[11px] font-semibold tracking-[0.12em] text-foreground-soft uppercase",
+      actionableValue: "mt-2 block text-[1.82rem] font-semibold tracking-[-0.04em] text-foreground sm:text-[2.05rem]",
+      staticValue: "mt-2 text-[1.62rem] font-semibold tracking-[-0.03em] text-foreground sm:text-[1.82rem]",
       actionableCaption:
         "mt-1 max-w-[24ch] text-[12px] leading-5 text-foreground-soft sm:max-w-[26ch] sm:text-[13px] sm:leading-[1.5]",
       staticCaption:
@@ -116,7 +116,7 @@ function resolveSummaryCardClassName({
   const toneClasses = resolveSummaryToneClasses(card.tone);
 
   return cn(
-    "motion-static-hover-surface relative flex min-h-[96px] w-full min-w-0 flex-col justify-between overflow-hidden rounded-md border px-3.5 py-3 text-left sm:min-h-[108px] sm:px-4.5 sm:py-4",
+    "motion-static-hover-surface relative flex min-h-[108px] w-full min-w-0 flex-col justify-between overflow-hidden rounded-md border px-4 py-3.5 text-left sm:min-h-[118px] sm:px-5 sm:py-4.5",
     toneClasses.card,
     isProminent && "shadow-[var(--subscriptions-summary-card-shadow)]",
     isProminent && "sm:col-span-2 lg:col-span-1",
@@ -227,7 +227,7 @@ function SummaryFilterCardButton({
         )}
       />
       <div>
-        <div className="mb-2 flex items-start justify-between gap-3">
+        <div className="mb-2.5 flex items-start justify-between gap-3">
           <SummaryText as="span" variant="label" className="block">
             {summaryCard.label}
           </SummaryText>
@@ -257,7 +257,7 @@ function SummaryFilterCardButton({
           </SummaryText>
         ) : null}
       </div>
-      <div className="mt-2 flex items-center justify-between gap-3">
+      <div className="mt-3 flex items-center justify-between gap-3">
         <LabelChip
           tone="neutral"
           className={cn(
@@ -305,12 +305,12 @@ export function SubscriptionsOverviewSummary({
 }: SubscriptionsOverviewSummaryProps) {
   return (
     <section
-      className="rounded-md border border-border/55 px-4 py-3 sm:px-5 sm:py-4"
+      className="rounded-md border border-border/60 px-4 py-4 shadow-[0_18px_48px_-42px_rgba(38,37,30,0.32)] sm:px-5 sm:py-5"
       style={{
         backgroundColor: "var(--subscriptions-summary-surface)",
       }}
     >
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fit,minmax(13rem,1fr))] lg:gap-3.5">
+      <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-[repeat(auto-fit,minmax(13rem,1fr))] lg:gap-4">
         {cards.map((card) => {
           const { value, viewState } = buildSummaryCardRenderModel({ card, renderValue });
 

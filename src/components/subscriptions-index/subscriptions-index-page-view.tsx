@@ -132,8 +132,8 @@ export function SubscriptionsIndexPageView({
         closeLabel={closeLabel}
         onClose={onClose}
       />
-      <div className={`${WORKSPACE_CHROME_SPACING_CLASS} pt-1 sm:pt-1.5`}>
-        <div className={`${WORKSPACE_CANVAS_CLASS} gap-3.5 sm:gap-4 ${useDesktopOverlay ? "pl-6 sm:pl-6" : ""}`}>
+      <div className={`${WORKSPACE_CHROME_SPACING_CLASS} pt-2 sm:pt-3`}>
+        <div className={`${WORKSPACE_CANVAS_CLASS} gap-4 sm:gap-5 ${useDesktopOverlay ? "pl-6 sm:pl-6" : ""}`}>
           <SubscriptionsOverviewSummary
             cards={summaryCards}
             reviewCriteriaLabel={reviewCriteriaLabel}
@@ -141,10 +141,11 @@ export function SubscriptionsIndexPageView({
           />
           <div
             data-testid="subscriptions-workspace-shell"
-            className={workspaceSplitShellClassName("mt-0 border-border/55")}
+            className={workspaceSplitShellClassName("mt-0 border-border/60 bg-clip-padding")}
             style={{
               backgroundColor: "var(--subscriptions-workspace-surface)",
-              boxShadow: "var(--subscriptions-workspace-shadow)",
+              boxShadow:
+                "inset 0 1px 0 rgba(255,255,255,0.38), 0 24px 64px -52px rgba(38,37,30,0.34), var(--subscriptions-workspace-shadow)",
             }}
           >
             <SubscriptionsListPane
