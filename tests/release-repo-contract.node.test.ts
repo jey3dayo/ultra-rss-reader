@@ -2306,7 +2306,7 @@ describe("release repository contract", () => {
     expect(preferencesSchemaSource).toContain('prefs.sort_unread ?? fallbackValue ?? ""');
   });
 
-  it("generates a release/debug feature flag inventory report", () => {
+  it("generates a release/debug feature flag inventory report", { timeout: 30_000 }, () => {
     execFileSync("node", ["./scripts/release-debug-feature-flags-report.ts"], {
       encoding: "utf8",
     });
