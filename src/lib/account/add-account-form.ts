@@ -162,6 +162,10 @@ export function buildAddAccountPayload(
   });
 }
 
+export function isAddAccountFormSubmittable(input: AddAccountFormInput): boolean {
+  return Result.isSuccess(buildAddAccountPayload(input));
+}
+
 export function matchAddAccountPayload<T>(
   input: AddAccountFormInput,
   handlers: {

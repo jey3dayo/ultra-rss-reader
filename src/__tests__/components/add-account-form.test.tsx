@@ -48,6 +48,9 @@ vi.mock("react-i18next", () => {
       "account.username": "Username",
       "account.password": "Password",
       "account.error_server_url_required": "Server URL is required",
+      "account.error_server_url_invalid": "Enter a valid server URL",
+      "account.error_username_required": "Username is required",
+      "account.error_password_required": "Password is required",
       "account.error_network": "Cannot connect to server. Please check the URL",
       "account.error_auth": "Authentication failed. Please check your username and API password",
       "account.error_auth_hint_freshrss": "You need to set an API password in FreshRSS Profile settings",
@@ -78,6 +81,9 @@ vi.mock("react-i18next", () => {
       "account.username": "ユーザー名",
       "account.password": "パスワード",
       "account.error_server_url_required": "サーバーURLを入力してください",
+      "account.error_server_url_invalid": "有効なサーバーURLを入力してください",
+      "account.error_username_required": "ユーザー名を入力してください",
+      "account.error_password_required": "パスワードを入力してください",
       "account.error_network": "サーバーに接続できません。URLを確認してください",
       "account.error_auth": "認証に失敗しました。ユーザー名とAPIパスワードを確認してください",
       "account.error_auth_hint_freshrss": "FreshRSSのプロフィール設定でAPIパスワードを設定してください",
@@ -475,7 +481,7 @@ describe("AddAccountForm", () => {
     expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
   });
 
-  it("keeps provider selection, config form, and validation state unchanged when FreshRSS fields are missing", async () => {
+  it("keeps FreshRSS submit disabled until required connection fields are valid", async () => {
     let addAccountCalls = 0;
     setupTauriMocks((cmd) => {
       if (cmd === "add_account") {
@@ -494,14 +500,46 @@ describe("AddAccountForm", () => {
     expect(screen.getByLabelText("Username")).toBeInTheDocument();
     expect(screen.getByLabelText("Password")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Add" }));
+    expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
+    const serverUrlInput = screen.getByLabelText("Server URL");
 
-    await waitFor(() => {
-      expect(useUiStore.getState().toastMessage).toEqual({
-        message: "Server URL is required",
-      });
-    });
+    await user.type(serverUrlInput, "https://freshrss.example.com");
+    expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
+    const usernameInput = screen.getByLabelText("Username");
+    expect(usernameInput).toHaveAttribute("aria-invalid", "true");
+    expect(document.getElementById(usernameInput.getAttribute("aria-errormessage") ?? "")).toHaveTextContent(
+      "Username is required",
+    );
+
+    await user.type(usernameInput, "alice");
+    expect(usernameInput).not.toHaveAttribute("aria-invalid");
+    expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
+    const passwordInput = screen.getByLabelText("Password");
+    expect(passwordInput).toHaveAttribute("aria-invalid", "true");
+    expect(document.getElementById(passwordInput.getAttribute("aria-errormessage") ?? "")).toHaveTextContent(
+      "Password is required",
+    );
+
+    await user.type(passwordInput, "secret");
+    expect(passwordInput).not.toHaveAttribute("aria-invalid");
+    expect(screen.getByRole("button", { name: "Add" })).not.toBeDisabled();
     expect(addAccountCalls).toBe(0);
+  });
+
+  it("shows FreshRSS server URL validation while editing", async () => {
+    const user = userEvent.setup();
+    render(<AddAccountForm />, { wrapper: createWrapper() });
+
+    await selectService(user, "FreshRSS");
+    const serverUrlInput = screen.getByLabelText("Server URL");
+
+    await user.type(serverUrlInput, "not a url");
+
+    expect(serverUrlInput).toHaveAttribute("aria-invalid", "true");
+    expect(document.getElementById(serverUrlInput.getAttribute("aria-errormessage") ?? "")).toHaveTextContent(
+      "Enter a valid server URL",
+    );
+    expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
   });
 
   it("shows network error toast when connection to FreshRSS server fails", async () => {

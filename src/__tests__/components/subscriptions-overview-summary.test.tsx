@@ -161,9 +161,10 @@ describe("SubscriptionsOverviewSummary", () => {
     );
     expect(activeCard).toHaveClass("shadow-[var(--subscriptions-summary-active-shadow-review)]");
     expect(activeCard).toHaveClass("ring-[color:var(--subscriptions-summary-active-ring-review)]");
-    const metric = within(activeCard).getByText("2").closest(".t-digit-group");
-    expect(metric).toHaveClass("t-digit-group", "tabular-nums");
-    expect(metric?.parentElement).toHaveClass("text-state-review-foreground");
+    const metric = within(activeCard).getByText("2");
+    expect(metric).toHaveClass("tabular-nums");
+    expect(metric.closest(".t-digit-group")).toBeNull();
+    expect(metric.parentElement).toHaveClass("text-state-review-foreground");
     expect(activeCard).toHaveAttribute("aria-pressed", "true");
   });
 
@@ -238,6 +239,45 @@ describe("SubscriptionsOverviewSummary", () => {
     const card = screen.getByRole("button", { name: /Total subscriptions/ });
     expect(within(card).getByText("すべて表示")).toBeInTheDocument();
     expect(within(card).queryByText("フィルタ中")).toBeNull();
+  });
+
+  it("softens zero-count review and stale cards without splitting numeric text", () => {
+    render(
+      <SubscriptionsOverviewSummary
+        cards={[
+          {
+            filterKey: "review",
+            label: "Needs review",
+            value: "0",
+            caption: "0 feeds need a decision",
+            tone: "review",
+            isActive: false,
+          },
+          {
+            filterKey: "stale",
+            label: "90-day stale",
+            value: "0",
+            caption: "0 feeds have gone quiet",
+            tone: "stale",
+            isActive: false,
+          },
+        ]}
+        onSelectFilter={vi.fn()}
+      />,
+    );
+
+    const reviewCard = screen.getByRole("button", { name: "Needs review を表示" });
+    const staleCard = screen.getByRole("button", { name: "90-day stale を表示" });
+
+    expect(reviewCard).toHaveClass("border-border/60", "bg-surface-1/62");
+    expect(reviewCard).not.toHaveClass("sm:col-span-2", "bg-state-review-surface/86");
+    expect(staleCard).toHaveClass("border-border/60", "bg-surface-1/62");
+    expect(staleCard).not.toHaveClass("bg-state-warning-surface/84");
+    expect(within(reviewCard).getByText("該当なし")).toBeInTheDocument();
+    expect(within(staleCard).getByText("該当なし")).toBeInTheDocument();
+    expect(within(reviewCard).getByText("0")).toHaveClass("tabular-nums");
+    expect(within(reviewCard).getByText("0").closest(".t-digit-group")).toBeNull();
+    expect(within(staleCard).getByText("0").closest(".t-digit-group")).toBeNull();
   });
 
   it("renders non-actionable values as static sibling cards instead of filter buttons", () => {

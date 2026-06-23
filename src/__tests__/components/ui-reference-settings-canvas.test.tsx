@@ -514,9 +514,9 @@ describe("UI Reference canvases", () => {
     }
     expect(chipMotionNumber).toHaveClass("t-digit-group", "tabular-nums");
     expect(screen.getByTestId("reference-summary-filter-card-frame")).toBeInTheDocument();
-    expect(screen.getByTestId("reference-summary-filter-card-frame").querySelectorAll(".t-digit-group")).toHaveLength(
-      3,
-    );
+    const summaryFilterCardFrame = screen.getByTestId("reference-summary-filter-card-frame");
+    expect(summaryFilterCardFrame.querySelectorAll(".t-digit-group")).toHaveLength(0);
+    expect(within(summaryFilterCardFrame).getByText("12")).toHaveClass("tabular-nums");
     expect(
       within(screen.getByTestId("reference-summary-filter-card-frame")).getByRole("button", { name: /確認待ち/ }),
     ).toHaveAttribute("aria-pressed", "false");

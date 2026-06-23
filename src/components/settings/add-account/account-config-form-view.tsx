@@ -22,6 +22,7 @@ type AccountConfigFormViewProps = {
   submitLabel: string;
   submittingLabel: string;
   submitting: boolean;
+  submitDisabled?: boolean;
   onBack: () => void;
   onCancel: () => void;
   onSubmit: () => void;
@@ -39,6 +40,7 @@ function AccountConfigInputRow({ control }: { control: AddAccountInputControl })
       labelClassName={LABEL_COLUMN_CLASS_NAME}
       inputClassName={INPUT_CLASS_NAME}
       disabled={control.disabled}
+      errorText={control.errorText}
     />
   );
 }
@@ -56,6 +58,7 @@ export function AccountConfigFormView({
   submitLabel,
   submittingLabel,
   submitting,
+  submitDisabled = false,
   onBack,
   onCancel,
   onSubmit,
@@ -126,7 +129,7 @@ export function AccountConfigFormView({
             submitLabel={submitLabel}
             submittingLabel={submittingLabel}
             loading={submitting}
-            submitDisabled={submitting}
+            submitDisabled={submitting || submitDisabled}
             cancelDisabled={submitting}
             onCancel={onCancel}
             submitType="submit"

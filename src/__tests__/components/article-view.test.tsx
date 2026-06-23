@@ -2047,6 +2047,7 @@ describe("ArticleView", () => {
     expect(within(summary).getByRole("heading", { level: 3, name: "Tech Blog" })).toBeInTheDocument();
     expect(within(summary).getByText("Latest Article")).toBeInTheDocument();
     expect(within(summary).getByText("First Article")).toBeInTheDocument();
+    expect(within(summary).getByText("Choose one from the middle list and it opens right away.")).toBeInTheDocument();
     expect(within(summary).getByText(/^(Latest Update|latest_update)/i)).toBeInTheDocument();
     expect(within(summary).getByText("example.com")).toBeInTheDocument();
     expect(within(summary).queryByRole("link", { name: "example.com" })).not.toBeInTheDocument();

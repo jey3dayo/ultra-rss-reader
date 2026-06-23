@@ -19,6 +19,7 @@ export type AddAccountInputControl = {
   type?: string;
   onChange: (value: string) => void;
   disabled: boolean;
+  errorText?: string;
 };
 
 export type AddAccountCredentialsSection = {
@@ -78,6 +79,7 @@ function AddAccountInputRow({ control }: AddAccountFormInputRowProps) {
       onChange={control.onChange}
       placeholder={control.placeholder}
       labelClassName={LABEL_COLUMN_CLASS_NAME}
+      errorText={control.errorText}
       inputClassName={INPUT_CLASS_NAME}
       disabled={control.disabled}
     />

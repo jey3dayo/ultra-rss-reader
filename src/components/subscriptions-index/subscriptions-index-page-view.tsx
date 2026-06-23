@@ -16,12 +16,16 @@ import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window/w
 import { usePlatformStore } from "@/stores/platform-store";
 import { SubscriptionDetailPane, type SubscriptionManagementActions } from "./subscription-detail-pane";
 import { SubscriptionsListPane } from "./subscriptions-list-pane";
-import { SubscriptionsOverviewSummary } from "./subscriptions-overview-summary";
+import {
+  SubscriptionsOverviewSummary,
+  type SubscriptionsOverviewSummaryLabels,
+} from "./subscriptions-overview-summary";
 
 type SubscriptionsIndexPageViewProps = {
   title: string;
   subtitle: string;
   summaryCards: SubscriptionSummaryCard[];
+  summaryLabels: SubscriptionsOverviewSummaryLabels;
   reviewCriteriaLabel: string;
   inventoryHeading: string;
   detailHeading: string;
@@ -71,6 +75,7 @@ export function SubscriptionsIndexPageView({
   title,
   subtitle,
   summaryCards,
+  summaryLabels,
   reviewCriteriaLabel,
   inventoryHeading,
   detailHeading,
@@ -136,6 +141,7 @@ export function SubscriptionsIndexPageView({
         <div className={`${WORKSPACE_CANVAS_CLASS} gap-4 sm:gap-5 ${useDesktopOverlay ? "pl-6 sm:pl-6" : ""}`}>
           <SubscriptionsOverviewSummary
             cards={summaryCards}
+            labels={summaryLabels}
             reviewCriteriaLabel={reviewCriteriaLabel}
             onSelectFilter={onSelectSummaryFilter}
           />

@@ -1,7 +1,7 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import { Info } from "lucide-react";
 import type { ReactNode } from "react";
-import { AppTooltip, LabelChip, MotionNumber, TooltipProvider } from "@/design-system";
+import { AppTooltip, LabelChip, TooltipProvider } from "@/design-system";
 import type { SubscriptionSummaryCard } from "@/lib/subscriptions/subscriptions-index.types";
 import { cn } from "@/lib/utils";
 
@@ -85,6 +85,7 @@ function canSelectSummaryFilterCard(card: SubscriptionSummaryCard) {
 }
 
 type SummaryFilterCardButtonProps = {
+  labels: SubscriptionsOverviewSummaryLabels;
   onSelect: (filterKey: SubscriptionSummaryCard["filterKey"]) => void;
   reviewCriteriaLabel?: string;
   renderValue?: (card: SubscriptionSummaryCard) => ReactNode;
@@ -103,6 +104,36 @@ type SummaryCardRenderModel = {
   value: ReactNode;
   viewState: SummaryCardViewState;
 };
+
+export type SubscriptionsOverviewSummaryLabels = {
+  activeBadge: string;
+  staticBadge: string;
+  showAll: string;
+  showFiltered: string;
+  filterAll: string;
+  filter: string;
+  noMatches: string;
+  criteria: string;
+};
+
+const DEFAULT_SUMMARY_LABELS: SubscriptionsOverviewSummaryLabels = {
+  activeBadge: "表示中",
+  staticBadge: "参照",
+  showAll: "全件表示",
+  showFiltered: "フィルタ中",
+  filterAll: "すべて表示",
+  filter: "絞り込む",
+  noMatches: "該当なし",
+  criteria: "条件",
+};
+
+function isZeroCountAttentionCard(card: SubscriptionSummaryCard) {
+  return (
+    (card.filterKey === "review" || card.filterKey === "stale") &&
+    isNumericSummaryValue(card.value) &&
+    Number(card.value) === 0
+  );
+}
 
 function resolveSummaryCardClassName({
   card,
@@ -127,23 +158,24 @@ function resolveSummaryCardClassName({
 function resolveSummaryCardViewState(card: SubscriptionSummaryCard): SummaryCardViewState {
   const isActionable = canSelectSummaryFilterCard(card);
   const isActiveActionable = isActionable && Boolean(card.isActive);
-  const isProminent = card.tone === "review";
-  const toneClasses = resolveSummaryToneClasses(card.tone);
+  const displayTone = isZeroCountAttentionCard(card) ? "neutral" : card.tone;
+  const isProminent = card.tone === "review" && !isZeroCountAttentionCard(card);
+  const toneClasses = resolveSummaryToneClasses(displayTone);
 
   return {
-    className: resolveSummaryCardClassName({ card, isActiveActionable, isProminent }),
+    className: resolveSummaryCardClassName({ card: { ...card, tone: displayTone }, isActiveActionable, isProminent }),
     isActionable,
     isProminent,
     toneClasses,
   };
 }
 
-function resolveActiveBadgeLabel() {
-  return "表示中";
+function resolveActiveBadgeLabel(labels: SubscriptionsOverviewSummaryLabels) {
+  return labels.activeBadge;
 }
 
-function resolveStaticBadgeLabel() {
-  return "参照";
+function resolveStaticBadgeLabel(labels: SubscriptionsOverviewSummaryLabels) {
+  return labels.staticBadge;
 }
 
 function resolveSummaryFilterCardAriaLabel(card: SubscriptionSummaryCard) {
@@ -153,19 +185,27 @@ function resolveSummaryFilterCardAriaLabel(card: SubscriptionSummaryCard) {
 function resolveActionChipLabel({
   filterKey,
   isActive,
+  isZeroAttention,
+  labels,
 }: {
   filterKey: SubscriptionSummaryCard["filterKey"];
   isActive?: boolean;
+  isZeroAttention?: boolean;
+  labels: SubscriptionsOverviewSummaryLabels;
 }) {
-  if (isActive) {
-    return filterKey === "all" ? "全件表示" : "フィルタ中";
+  if (isZeroAttention) {
+    return labels.noMatches;
   }
 
-  return filterKey === "all" ? "すべて表示" : "絞り込む";
+  if (isActive) {
+    return filterKey === "all" ? labels.showAll : labels.showFiltered;
+  }
+
+  return filterKey === "all" ? labels.filterAll : labels.filter;
 }
 
-function resolveCriteriaChipLabel() {
-  return "条件";
+function resolveCriteriaChipLabel(labels: SubscriptionsOverviewSummaryLabels) {
+  return labels.criteria;
 }
 
 function isNumericSummaryValue(value: string) {
@@ -174,7 +214,7 @@ function isNumericSummaryValue(value: string) {
 
 function renderDefaultSummaryValue(card: SubscriptionSummaryCard) {
   if (isNumericSummaryValue(card.value)) {
-    return <MotionNumber value={card.value} variant="digit-pop" />;
+    return <span className="tabular-nums">{card.value}</span>;
   }
 
   return card.value;
@@ -193,6 +233,7 @@ function buildSummaryCardRenderModel(params: {
 }
 
 function SummaryFilterCardButton({
+  labels,
   onSelect,
   reviewCriteriaLabel,
   renderValue,
@@ -206,6 +247,7 @@ function SummaryFilterCardButton({
     renderValue,
   });
   const shouldShowCriteria = summaryCard.filterKey === "review" && Boolean(reviewCriteriaLabel);
+  const isZeroAttention = isZeroCountAttentionCard(summaryCard);
 
   const cardButton = (
     <button
@@ -240,7 +282,7 @@ function SummaryFilterCardButton({
               )}
               aria-hidden={summaryCard.isActive ? undefined : "true"}
             >
-              {resolveActiveBadgeLabel()}
+              {resolveActiveBadgeLabel(labels)}
             </span>
           </span>
         </div>
@@ -267,12 +309,17 @@ function SummaryFilterCardButton({
             isProminent && !summaryCard.isActive && "bg-surface-1/88",
           )}
         >
-          {resolveActionChipLabel({ filterKey: summaryCard.filterKey, isActive: summaryCard.isActive })}
+          {resolveActionChipLabel({
+            filterKey: summaryCard.filterKey,
+            isActive: summaryCard.isActive,
+            isZeroAttention,
+            labels,
+          })}
         </LabelChip>
         {shouldShowCriteria ? (
           <span className="inline-flex items-center gap-1 rounded-full border border-border/55 bg-surface-1/76 px-2 py-0.75 text-[10px] font-medium text-foreground-soft transition-colors duration-150 ease-standard group-hover:border-border-strong/65 group-hover:text-foreground motion-reduce:transition-none">
             <Info className="size-3" aria-hidden="true" />
-            {resolveCriteriaChipLabel()}
+            {resolveCriteriaChipLabel(labels)}
           </span>
         ) : null}
       </div>
@@ -292,6 +339,7 @@ function SummaryFilterCardButton({
 
 type SubscriptionsOverviewSummaryProps = {
   cards: SubscriptionSummaryCard[];
+  labels?: SubscriptionsOverviewSummaryLabels;
   onSelectFilter: (filterKey: SubscriptionSummaryCard["filterKey"]) => void;
   renderValue?: (card: SubscriptionSummaryCard) => ReactNode;
   reviewCriteriaLabel?: string;
@@ -299,6 +347,7 @@ type SubscriptionsOverviewSummaryProps = {
 
 export function SubscriptionsOverviewSummary({
   cards,
+  labels = DEFAULT_SUMMARY_LABELS,
   onSelectFilter,
   renderValue,
   reviewCriteriaLabel,
@@ -318,6 +367,7 @@ export function SubscriptionsOverviewSummary({
             return (
               <SummaryFilterCardButton
                 key={card.label}
+                labels={labels}
                 onSelect={onSelectFilter}
                 reviewCriteriaLabel={reviewCriteriaLabel}
                 renderValue={renderValue}
@@ -338,7 +388,7 @@ export function SubscriptionsOverviewSummary({
                     {card.label}
                   </SummaryText>
                   <span className="rounded-full border border-border/55 bg-background/70 px-2.5 py-1 text-[10px] font-medium tracking-[0.12em] text-foreground-soft">
-                    {resolveStaticBadgeLabel()}
+                    {resolveStaticBadgeLabel(labels)}
                   </span>
                 </div>
                 <SummaryText as="p" variant="staticValue" className="text-foreground-soft">
