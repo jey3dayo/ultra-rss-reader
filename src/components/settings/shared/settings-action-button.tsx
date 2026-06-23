@@ -4,7 +4,7 @@ import { HeadlessButton } from "@/design-system";
 import { cn } from "@/lib/utils";
 
 const settingsActionButtonVariants = cva(
-  "motion-interactive-surface inline-flex shrink-0 items-center justify-center rounded-md bg-transparent outline-none select-none active:translate-y-0 disabled:pointer-events-none disabled:opacity-50",
+  "motion-interactive-surface inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md bg-transparent outline-none select-none active:translate-y-0 disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       tone: {

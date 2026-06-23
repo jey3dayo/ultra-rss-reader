@@ -229,6 +229,8 @@ describe("buildReadingSettingsViewProps", () => {
       expect.objectContaining({
         actionLabel: t("reading.clear_recent_articles"),
         actionAriaLabel: t("reading.clear_recent_articles_aria_label"),
+        actionLoading: false,
+        actionLoadingLabel: t("reading.clearing_recent_articles"),
         disabled: true,
       }),
     );
@@ -237,6 +239,25 @@ describe("buildReadingSettingsViewProps", () => {
 
     expect(showConfirm).not.toHaveBeenCalled();
     expect(clearHistory.mutate).not.toHaveBeenCalled();
+  });
+
+  it("marks recent history clearing as busy while the mutation is pending", () => {
+    const props = buildProps({
+      selectedAccountId: "acc-1",
+      clearHistory: {
+        isPending: true,
+        mutate: vi.fn(),
+      },
+    });
+
+    expect(getActionControl(props, "clear-recent-articles")).toEqual(
+      expect.objectContaining({
+        actionLabel: t("reading.clear_recent_articles"),
+        actionLoading: true,
+        actionLoadingLabel: t("reading.clearing_recent_articles"),
+        disabled: true,
+      }),
+    );
   });
 
   it.each([

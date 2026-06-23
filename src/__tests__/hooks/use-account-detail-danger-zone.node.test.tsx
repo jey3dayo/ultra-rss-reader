@@ -114,6 +114,7 @@ describe("useAccountDetailDangerZone", () => {
       secondExport = result.current.handleExportOpml();
     });
 
+    expect(result.current.exportingOpml).toBe(true);
     expect(exportOpmlMock).toHaveBeenCalledTimes(1);
     expect(exportOpmlMock).toHaveBeenCalledWith("acc-1");
 
@@ -121,7 +122,48 @@ describe("useAccountDetailDangerZone", () => {
     await firstExport;
     await secondExport;
 
+    await waitFor(() => {
+      expect(result.current.exportingOpml).toBe(false);
+    });
     expect(HTMLAnchorElement.prototype.click).toHaveBeenCalledTimes(1);
+  });
+
+  it("exposes import pending state and guards repeated OPML imports while in flight", async () => {
+    const importResult = createDeferred<ReturnType<typeof Result.succeed<null>>>();
+    importOpmlMock.mockReturnValue(importResult.promise);
+    const queryClient = createTestQueryClient();
+    const account = { ...sampleAccounts[0], id: "acc-1" };
+    const file = new File(["<opml />"], "feeds.opml");
+
+    const { result } = renderHook(() =>
+      useAccountDetailDangerZone({
+        account,
+        queryClient,
+        t,
+        onAccountDeleted: vi.fn(),
+      }),
+    );
+
+    let firstImport: Promise<void> | undefined;
+    let secondImport: Promise<void> | undefined;
+    act(() => {
+      firstImport = result.current.handleImportOpml(file);
+      secondImport = result.current.handleImportOpml(file);
+    });
+
+    expect(result.current.importingOpml).toBe(true);
+    await waitFor(() => {
+      expect(importOpmlMock).toHaveBeenCalledTimes(1);
+    });
+    expect(importOpmlMock).toHaveBeenCalledWith("acc-1", "<opml />");
+
+    importResult.resolve(Result.succeed(null));
+    await firstImport;
+    await secondImport;
+
+    await waitFor(() => {
+      expect(result.current.importingOpml).toBe(false);
+    });
   });
 
   it("uses the account snapshot from export start for the OPML command and filename", async () => {

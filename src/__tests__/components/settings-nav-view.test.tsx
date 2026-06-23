@@ -61,7 +61,7 @@ describe("SettingsNavView", () => {
     expect(generalButton).toHaveClass("rounded-md");
     expect(generalButton).toHaveClass("shrink-0");
     expect(generalButton).toHaveClass("text-[13px]");
-    expect(generalButton).toHaveClass("focus-visible:ring-0");
+    expect(generalButton).toHaveClass("focus-visible:ring-2", "focus-visible:ring-border-strong/45");
     expect(generalButton).toHaveAttribute("aria-current", "page");
     expect(generalButton).not.toHaveAttribute("aria-pressed");
     expect(appearanceButton).not.toHaveClass("bg-surface-selected");

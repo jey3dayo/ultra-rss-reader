@@ -145,7 +145,7 @@ export function TagsSettingsView({
                     type="button"
                     size="icon"
                     tone="subtle"
-                    className="size-8"
+                    className="size-11"
                     aria-label={editAriaLabel(tag.name)}
                     onClick={() => onEdit(tag.id)}
                   >
@@ -155,7 +155,7 @@ export function TagsSettingsView({
                     type="button"
                     size="icon"
                     tone="danger"
-                    className="size-8"
+                    className="size-11"
                     aria-label={deleteAriaLabel(tag.name)}
                     onClick={() => onDelete(tag.id)}
                   >

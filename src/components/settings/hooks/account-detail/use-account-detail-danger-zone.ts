@@ -1,7 +1,7 @@
 import { Result } from "@praha/byethrow";
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
 import type { TFunction } from "i18next";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { deleteAccount, exportOpml, importOpml } from "@/api/tauri-commands";
 import {
@@ -30,6 +30,8 @@ export type AccountDetailDangerZoneResult = {
   handleImportOpml: (file: File) => Promise<void>;
   handleExportOpml: () => Promise<void>;
   handleRequestDelete: () => void;
+  importingOpml: boolean;
+  exportingOpml: boolean;
 };
 
 export function buildOpmlExportFilename(accountName: string): string {
@@ -109,6 +111,8 @@ export function useAccountDetailDangerZone({
 }: AccountDetailDangerZoneParams): AccountDetailDangerZoneResult {
   const importInFlightRef = useRef(false);
   const exportInFlightRef = useRef(false);
+  const [importingOpml, setImportingOpml] = useState(false);
+  const [exportingOpml, setExportingOpml] = useState(false);
   const pendingExportUrlRef = useRef<string | null>(null);
   const pendingExportUrlTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mountedRef = useRef(true);
@@ -153,6 +157,7 @@ export function useAccountDetailDangerZone({
 
     const importAccountId = account.id;
     importInFlightRef.current = true;
+    setImportingOpml(true);
     try {
       const opmlContent = await file.text();
       const importResult = await importOpml(importAccountId, opmlContent);
@@ -174,6 +179,9 @@ export function useAccountDetailDangerZone({
       }
     } finally {
       importInFlightRef.current = false;
+      if (mountedRef.current) {
+        setImportingOpml(false);
+      }
     }
   };
 
@@ -187,6 +195,7 @@ export function useAccountDetailDangerZone({
       name: account.name,
     };
     exportInFlightRef.current = true;
+    setExportingOpml(true);
     try {
       const exportResult = await exportOpml(exportAccountSnapshot.id);
       if (!mountedRef.current) {
@@ -216,6 +225,9 @@ export function useAccountDetailDangerZone({
       );
     } finally {
       exportInFlightRef.current = false;
+      if (mountedRef.current) {
+        setExportingOpml(false);
+      }
     }
   };
 
@@ -261,5 +273,7 @@ export function useAccountDetailDangerZone({
     handleImportOpml,
     handleExportOpml,
     handleRequestDelete,
+    importingOpml,
+    exportingOpml,
   };
 }

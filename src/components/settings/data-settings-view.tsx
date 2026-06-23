@@ -1,5 +1,5 @@
 import { type ChangeEvent, useRef } from "react";
-import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
+import { SettingsLoadingActionButton } from "@/components/settings/settings-loading-action-button";
 import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { LabeledControlRow } from "@/design-system";
@@ -88,15 +88,20 @@ export function DataSettingsView({
     databaseSizeStatus === "ready" ? vacuumDescription : `${vacuumDescription} ${databaseSizeDisplayValue}`;
   const settingsProfileActionUnavailable =
     vacuuming || openingLogDir || importingSettingsProfile || exportingSettingsProfile;
+  const vacuumActionUnavailable = vacuuming || openingLogDir || vacuumUnavailable;
+  const openLogDirActionUnavailable = openingLogDir || vacuuming;
 
   const handleImportClick = () => {
+    if (settingsProfileActionUnavailable) {
+      return;
+    }
     settingsProfileFileInputRef.current?.click();
   };
 
   const handleImportFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.currentTarget.files?.[0] ?? null;
     event.currentTarget.value = "";
-    if (file) {
+    if (file && !settingsProfileActionUnavailable) {
       onImportSettingsProfile(file);
     }
   };
@@ -105,7 +110,12 @@ export function DataSettingsView({
     <SettingsContentLayout title={title} outerTestId="data-settings-root">
       <SettingsSection heading={databaseHeading} surface="flat" className="mb-6 sm:mb-7">
         <LabeledControlRow label={databaseSizeLabel}>
-          <span className="text-sm text-foreground-soft" data-database-size-status={databaseSizeStatus}>
+          <span
+            className="text-sm text-foreground-soft"
+            data-database-size-status={databaseSizeStatus}
+            role="status"
+            aria-live="polite"
+          >
             {databaseSizeDisplayValue}
           </span>
         </LabeledControlRow>
@@ -120,9 +130,14 @@ export function DataSettingsView({
       </SettingsSection>
       <SettingsSection heading={settingsProfileHeading} surface="flat" className="mb-6 sm:mb-7">
         <LabeledControlRow label={settingsProfileExportLabel} description={settingsProfileDescription}>
-          <SettingsActionButton disabled={settingsProfileActionUnavailable} onClick={onExportSettingsProfile}>
+          <SettingsLoadingActionButton
+            disabled={settingsProfileActionUnavailable}
+            loading={exportingSettingsProfile}
+            loadingLabel={settingsProfileExportActionLabel}
+            onClick={onExportSettingsProfile}
+          >
             {settingsProfileExportActionLabel ?? settingsProfileExportLabel}
-          </SettingsActionButton>
+          </SettingsLoadingActionButton>
         </LabeledControlRow>
         <LabeledControlRow label={settingsProfileImportLabel} description={settingsProfileFileInputLabel}>
           <input
@@ -131,31 +146,44 @@ export function DataSettingsView({
             accept="application/json,.json"
             className="sr-only"
             aria-label={settingsProfileFileInputLabel}
+            disabled={settingsProfileActionUnavailable}
             onChange={handleImportFileChange}
           />
-          <SettingsActionButton disabled={settingsProfileActionUnavailable} onClick={handleImportClick}>
+          <SettingsLoadingActionButton
+            disabled={settingsProfileActionUnavailable}
+            loading={importingSettingsProfile}
+            loadingLabel={settingsProfileImportActionLabel}
+            onClick={handleImportClick}
+          >
             {settingsProfileImportActionLabel ?? settingsProfileImportLabel}
-          </SettingsActionButton>
+          </SettingsLoadingActionButton>
         </LabeledControlRow>
       </SettingsSection>
       <SettingsSection heading={optimizationHeading} surface="flat" className="mb-6 sm:mb-7">
         <LabeledControlRow label={vacuumLabel} description={vacuumDescriptionText}>
           {({ descriptionId }) => (
-            <SettingsActionButton
+            <SettingsLoadingActionButton
               aria-describedby={descriptionId}
-              disabled={vacuuming || openingLogDir || vacuumUnavailable}
+              disabled={vacuumActionUnavailable}
+              loading={vacuuming}
+              loadingLabel={vacuumActionLabel}
               onClick={onVacuum}
             >
               {vacuumActionLabel ?? vacuumLabel}
-            </SettingsActionButton>
+            </SettingsLoadingActionButton>
           )}
         </LabeledControlRow>
       </SettingsSection>
       <SettingsSection heading={logsHeading} surface="flat">
         <LabeledControlRow label={openLogDirLabel} description={openLogDirDescription}>
-          <SettingsActionButton disabled={openingLogDir || vacuuming} onClick={onOpenLogDir}>
+          <SettingsLoadingActionButton
+            disabled={openLogDirActionUnavailable}
+            loading={openingLogDir}
+            loadingLabel={openLogDirActionLabel}
+            onClick={onOpenLogDir}
+          >
             {openLogDirActionLabel ?? openLogDirLabel}
-          </SettingsActionButton>
+          </SettingsLoadingActionButton>
         </LabeledControlRow>
       </SettingsSection>
     </SettingsContentLayout>

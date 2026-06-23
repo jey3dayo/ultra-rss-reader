@@ -211,6 +211,8 @@ describe("useDebugSettingsViewProps", () => {
         label: "Dev credential recovery",
         actionLabel: "Reset",
         actionAriaLabel: "Reset oversized dev credential store",
+        actionLoading: false,
+        actionLoadingLabel: "Resetting…",
         disabled: false,
       }),
     );

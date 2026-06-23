@@ -163,7 +163,7 @@ export function SettingsModalView({
             key={contentResetKey}
             data-testid="settings-content-motion"
             {...{ [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING }}
-            className={cn("min-h-0 flex-1", MOTION_CONTENT_SWAP_CLASS_NAME)}
+            className={cn("flex min-h-0 flex-1 flex-col overflow-hidden", MOTION_CONTENT_SWAP_CLASS_NAME)}
           >
             <SettingsContentScrollBehaviorProvider value={contentScrollBehavior}>
               {content}

@@ -180,6 +180,7 @@ export function MuteSettings() {
     scope,
     rules,
     addDisabled: createMuteKeyword.isPending || keywordLength < 3,
+    addPending: createMuteKeyword.isPending,
     autoMarkReadChecked: autoMarkReadEnabled,
     autoMarkReadDisabled: setMuteAutoMarkRead.isPending,
     confirmRule,

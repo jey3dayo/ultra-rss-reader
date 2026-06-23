@@ -7,7 +7,7 @@ function expectStandardSettingsActionButton(button: HTMLElement) {
   expect(button).toHaveClass("w-full");
   expect(button).toHaveClass("sm:w-auto");
   expect(button).toHaveClass("h-10", "px-4");
-  expect([...button.classList].filter((className) => className.includes("min-w"))).toEqual([]);
+  expect(button).toHaveClass("min-w-11");
 }
 
 describe("AccountSyncSectionView", () => {

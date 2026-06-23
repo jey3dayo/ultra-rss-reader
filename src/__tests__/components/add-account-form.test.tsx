@@ -181,8 +181,9 @@ describe("AddAccountForm", () => {
   });
 
   it("renders the service picker with categories", () => {
-    render(<AddAccountForm />, { wrapper: createI18nWrapper() });
+    const { container } = render(<AddAccountForm />, { wrapper: createI18nWrapper() });
 
+    expect(container.firstElementChild).toHaveClass("min-h-0", "flex-1", "overflow-y-auto", "p-6");
     expect(screen.getByText("Local Feeds")).toBeInTheDocument();
     expect(screen.getByText("FreshRSS")).toBeInTheDocument();
     expect(screen.getByText("Feedly")).toBeInTheDocument();
@@ -287,10 +288,11 @@ describe("AddAccountForm", () => {
   it("can start directly on the provider config screen for debugging", async () => {
     const user = userEvent.setup();
 
-    render(<AddAccountForm initialKind="FreshRss" />, {
+    const { container } = render(<AddAccountForm initialKind="FreshRss" />, {
       wrapper: createWrapper(),
     });
 
+    expect(container.firstElementChild).toHaveClass("min-h-0", "flex-1", "overflow-y-auto");
     expect(screen.getByLabelText("Name")).toBeInTheDocument();
     expect(screen.getByLabelText("Server URL")).toBeInTheDocument();
     expect(screen.queryByText("Local Feeds")).not.toBeInTheDocument();

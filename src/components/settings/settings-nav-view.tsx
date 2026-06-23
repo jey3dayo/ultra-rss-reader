@@ -40,7 +40,7 @@ export function SettingsNavView<TItemId extends string = SettingsNavItemId>({
           disabled={disabled}
           onClick={() => onSelectCategory(item.id)}
           className={cn(
-            "relative w-auto max-w-full shrink-0 items-center overflow-hidden rounded-md px-3 py-1.5 text-[13px] font-medium leading-[1.25] focus-visible:ring-0 focus-visible:ring-transparent sm:w-full",
+            "relative w-auto max-w-full shrink-0 items-center overflow-hidden rounded-md px-3 py-1.5 text-[13px] font-medium leading-[1.25] focus-visible:ring-2 focus-visible:ring-border-strong/45 sm:w-full",
             item.isActive &&
               "bg-surface-selected text-sidebar-accent-foreground shadow-[var(--sidebar-selection-inset-shadow)] before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:bg-border-strong",
           )}

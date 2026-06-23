@@ -186,6 +186,8 @@ export function buildReadingSettingsViewProps({
             label: t("reading.recent_articles_history"),
             actionLabel: t("reading.clear_recent_articles"),
             actionAriaLabel: t("reading.clear_recent_articles_aria_label"),
+            actionLoading: clearHistory.isPending,
+            actionLoadingLabel: t("reading.clearing_recent_articles"),
             onAction: handleClearRecentArticles,
             disabled: !hasSelectedAccountId || clearHistory.isPending,
           },

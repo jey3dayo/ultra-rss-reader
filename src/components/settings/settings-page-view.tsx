@@ -1,3 +1,4 @@
+import { SettingsLoadingActionButton } from "@/components/settings/settings-loading-action-button";
 import type { SettingsPageControl, SettingsPageViewProps } from "@/components/settings/settings-page.types";
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
@@ -99,15 +100,17 @@ function SettingsPageActionRow({ control }: SettingsPageControlRowProps<Settings
       className={control.rowClassName ?? "gap-4"}
       labelClassName={control.labelClassName}
     >
-      <SettingsActionButton
+      <SettingsLoadingActionButton
         type="button"
         size={control.actionSize ?? "compact"}
         onClick={control.onAction}
         disabled={control.disabled}
+        loading={control.actionLoading}
+        loadingLabel={control.actionLoadingLabel}
         aria-label={control.actionAriaLabel}
       >
         {control.actionLabel}
-      </SettingsActionButton>
+      </SettingsLoadingActionButton>
     </LabeledControlRow>
   );
 }
@@ -117,7 +120,7 @@ function SettingsPageInfoRow({ control }: SettingsPageControlRowProps<SettingsPa
     <LabeledControlRow label={control.label} className="gap-4">
       <span
         className={cn(
-          "block text-right font-serif text-sm leading-[1.45] text-foreground sm:max-w-[30rem]",
+          "block text-right font-serif text-sm leading-[1.45] break-words text-foreground sm:max-w-[30rem]",
           control.valueClassName,
         )}
       >

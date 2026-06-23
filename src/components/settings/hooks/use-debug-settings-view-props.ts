@@ -100,6 +100,8 @@ export function useDebugSettingsViewProps({
                     ? t("debug.credentials_resetting")
                     : t("debug.credentials_reset_action"),
                   actionAriaLabel: t("debug.credentials_reset_aria_label"),
+                  actionLoading: resettingDevCredentials,
+                  actionLoadingLabel: t("debug.credentials_resetting"),
                   disabled: resettingDevCredentials,
                   onAction: resetDevCredentials,
                 },

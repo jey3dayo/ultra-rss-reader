@@ -34,7 +34,7 @@ export function ServicePicker({ title, categories, onSelect }: ServicePickerProp
   return (
     <div
       data-testid="service-picker-surface"
-      className="rounded-lg border border-border bg-surface-1 p-6 shadow-elevation-1"
+      className="rounded-lg border border-border bg-surface-1 p-4 shadow-elevation-1 sm:p-6"
     >
       <h2 className="mb-6 text-center text-lg font-semibold">{title}</h2>
       <div className="space-y-4">

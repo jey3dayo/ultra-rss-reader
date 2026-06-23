@@ -120,7 +120,7 @@ export function AddAccountFormView({
         )}
 
         {errorMessage ? (
-          <SurfaceCard variant="info" tone="danger" padding="compact">
+          <SurfaceCard variant="info" tone="danger" padding="compact" role="alert" aria-live="assertive">
             <p className="font-serif text-sm leading-[1.5]">{errorMessage}</p>
           </SurfaceCard>
         ) : null}

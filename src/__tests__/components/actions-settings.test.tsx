@@ -13,8 +13,12 @@ describe("ActionsSettings", () => {
   it("only presents Copy Link as a configurable toolbar share action", () => {
     render(<ActionsSettings />);
 
+    const copyLinkLabel = screen.getByText("Copy Link");
+
     expect(screen.queryByText("Open Web Preview")).not.toBeInTheDocument();
-    expect(screen.getByText("Copy Link")).toBeInTheDocument();
+    expect(copyLinkLabel).toBeInTheDocument();
+    expect(copyLinkLabel).toHaveClass("min-w-0", "flex-1");
+    expect(copyLinkLabel.nextElementSibling).toHaveClass("shrink-0");
     expect(screen.queryByText("Open in External Browser")).not.toBeInTheDocument();
     expect(screen.queryByText("Share Menu")).not.toBeInTheDocument();
   });

@@ -3,8 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { TagsSettingsView } from "@/components/settings/tags-settings-view";
 
-function expectNoButtonMinWidth(button: HTMLElement) {
-  expect([...button.classList].filter((className) => className.includes("min-w"))).toEqual([]);
+function expectStandardSettingsActionButtonWidth(button: HTMLElement) {
+  expect(button).toHaveClass("min-w-11");
 }
 
 describe("TagsSettingsView", () => {
@@ -85,8 +85,8 @@ describe("TagsSettingsView", () => {
     expect(favName).toHaveAttribute("dir", "auto");
     expect(favName).toHaveAttribute("title", longTagName);
     expect(within(favRow).getByTestId("tags-settings-color-dot-tag-1")).toHaveClass("size-2.5", "rounded-full");
-    expect(within(favRow).getByRole("button", { name: `Edit ${longTagName}` })).toHaveClass("size-8");
-    expect(within(favRow).getByRole("button", { name: `Delete ${longTagName}` })).toHaveClass("size-8");
+    expect(within(favRow).getByRole("button", { name: `Edit ${longTagName}` })).toHaveClass("size-11");
+    expect(within(favRow).getByRole("button", { name: `Delete ${longTagName}` })).toHaveClass("size-11");
 
     const grayRow = screen.getByTestId("tags-settings-row-tag-2");
     expect(within(grayRow).queryByTestId("tags-settings-color-dot-tag-2")).toBeNull();
@@ -136,7 +136,7 @@ describe("TagsSettingsView", () => {
 
     const createButton = screen.getByRole("button", { name: "Create" });
     expect(createButton).toHaveClass("h-10", "px-4");
-    expectNoButtonMinWidth(createButton);
+    expectStandardSettingsActionButtonWidth(createButton);
 
     await user.type(input, " tag");
     await user.click(createButton);

@@ -66,7 +66,7 @@ export function AccountsNavView({
             disabled={disabled}
             onClick={() => onSelectAccount(account.id)}
             className={cn(
-              "relative w-auto max-w-full shrink-0 overflow-hidden rounded-md px-3 py-2 text-[13px] leading-[1.3] focus-visible:ring-0 focus-visible:ring-transparent sm:w-full",
+              "relative w-auto max-w-full shrink-0 overflow-hidden rounded-md px-3 py-2 text-[13px] leading-[1.3] focus-visible:ring-2 focus-visible:ring-border-strong/45 sm:w-full",
               account.isActive && ACCOUNT_SELECTED_CLASS_NAME,
             )}
             leading={ACCOUNT_ICON_BY_KIND[kindKey] ?? DEFAULT_ACCOUNT_ICON}
@@ -84,7 +84,7 @@ export function AccountsNavView({
         disabled={disabled}
         onClick={onAddAccount}
         className={cn(
-          "relative w-auto max-w-full shrink-0 items-center overflow-hidden rounded-md px-3 py-2 text-[13px] leading-[1.3] focus-visible:ring-0 focus-visible:ring-transparent sm:w-full",
+          "relative w-auto max-w-full shrink-0 items-center overflow-hidden rounded-md px-3 py-2 text-[13px] leading-[1.3] focus-visible:ring-2 focus-visible:ring-border-strong/45 sm:w-full",
           isAddAccountActive && ACCOUNT_SELECTED_CLASS_NAME,
         )}
         leading={ADD_ACCOUNT_ICON}

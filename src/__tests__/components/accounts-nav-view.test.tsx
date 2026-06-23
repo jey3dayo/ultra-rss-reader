@@ -198,7 +198,7 @@ describe("AccountsNavView", () => {
     expect(localButton).toHaveClass("rounded-md");
     expect(localButton).toHaveClass("shrink-0");
     expect(localButton).toHaveClass("text-[13px]");
-    expect(localButton).toHaveClass("focus-visible:ring-0");
+    expect(localButton).toHaveClass("focus-visible:ring-2", "focus-visible:ring-border-strong/45");
     expect(freshRssButton).toHaveClass("rounded-md");
     expect(freshRssButton).toHaveClass("shrink-0");
     expect(debugButton).toHaveClass("rounded-md");

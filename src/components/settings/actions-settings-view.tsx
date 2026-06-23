@@ -37,8 +37,8 @@ export function ActionsSettingsView({ title, heading, toggleLabel, services }: A
             <span className="flex size-8 items-center justify-center rounded-md bg-surface-1/72 text-foreground-soft">
               {service.icon}
             </span>
-            <span className="flex-1 text-sm text-foreground">{service.label}</span>
-            <div className="flex items-center gap-2">
+            <span className="min-w-0 flex-1 text-sm leading-5 text-foreground">{service.label}</span>
+            <div className="flex shrink-0 items-center gap-2">
               <span className="text-xs text-foreground-soft">{toggleLabel}</span>
               <GradientSwitch
                 checked={service.checked}

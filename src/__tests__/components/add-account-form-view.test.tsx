@@ -181,10 +181,10 @@ describe("AddAccountFormView", () => {
     expect(onNameChange).toHaveBeenCalledWith("W");
     expect(onSubmit).toHaveBeenCalledTimes(1);
     expect(onCancel).toHaveBeenCalledTimes(1);
-    expect(screen.getByText("Server URL is required").parentElement).toHaveClass(
-      "border-state-danger-border",
-      "bg-state-danger-surface",
-    );
+    const errorAlert = screen.getByRole("alert");
+    expect(errorAlert).toHaveTextContent("Server URL is required");
+    expect(errorAlert).toHaveAttribute("aria-live", "assertive");
+    expect(errorAlert).toHaveClass("border-state-danger-border", "bg-state-danger-surface");
   });
 
   it("uses native form submit semantics without browser navigation", () => {
@@ -227,6 +227,38 @@ describe("AddAccountFormView", () => {
     expect(dispatchResult).toBe(false);
     expect(submitEvent.defaultPrevented).toBe(true);
     expect(onSubmit).toHaveBeenCalledTimes(1);
+  });
+
+  it("announces account setup errors from the config step", () => {
+    render(
+      <AccountConfigFormView
+        title="Configure Account"
+        backLabel="Back"
+        backAriaLabel="Back to services"
+        accountHeading="Account"
+        accountName={{
+          label: "Name",
+          name: "account-name",
+          value: "Work RSS",
+          placeholder: "FreshRSS",
+          onChange: () => {},
+          disabled: false,
+        }}
+        errorMessage="Connection failed"
+        cancelLabel="Cancel"
+        submitLabel="Add"
+        submittingLabel="Adding…"
+        submitting={false}
+        onBack={() => {}}
+        onSubmit={() => {}}
+        onCancel={() => {}}
+      />,
+    );
+
+    const errorAlert = screen.getByRole("alert");
+    expect(errorAlert).toHaveTextContent("Connection failed");
+    expect(errorAlert).toHaveAttribute("aria-live", "assertive");
+    expect(errorAlert).toHaveClass("border-state-danger-border", "bg-state-danger-surface");
   });
 });
 
