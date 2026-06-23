@@ -43,6 +43,7 @@ function renderListPane(
   options?: {
     groups?: SubscriptionListGroup[];
     initialScrollTop?: number;
+    scrollResetKey?: number;
     isGroupExpanded?: (groupKey: string) => boolean;
     onSelectFeed?: (feedId: string) => void;
     onListScrollTopChange?: (scrollTop: number) => void;
@@ -58,14 +59,20 @@ function renderListPane(
       groups={groups}
       selectedFeedId={rows[0]?.feed.id ?? null}
       emptyLabel="一致する購読はありません。"
+      searchQuery=""
+      searchLabel="購読を検索"
+      searchPlaceholder="検索"
+      searchClearLabel="検索をクリア"
       statusLabels={statusLabels}
       reasonTooltipLabels={reasonTooltipLabels}
       formatUnreadCountLabel={(count) => `未読 ${count}件`}
       formatLatestArticleLabel={(value) => (value ? `最終更新 ${value}` : "取得記事なし")}
       isGroupExpanded={options?.isGroupExpanded ?? (() => true)}
       initialScrollTop={options?.initialScrollTop}
+      scrollResetKey={options?.scrollResetKey}
       onSelectFeed={options?.onSelectFeed ?? vi.fn()}
       onListScrollTopChange={options?.onListScrollTopChange}
+      onSearchQueryChange={vi.fn()}
       onToggleGroup={vi.fn()}
     />,
   );
@@ -111,6 +118,7 @@ describe("SubscriptionsListPane", () => {
       },
     ]);
 
+    await user.tab();
     await user.tab();
     await user.tab();
 
@@ -195,13 +203,19 @@ describe("SubscriptionsListPane", () => {
           groups={[{ key: "__ungrouped__", label: "フォルダなし", folderId: null, rows: [row] }]}
           selectedFeedId={row.feed.id}
           emptyLabel="一致する購読はありません。"
+          searchQuery=""
+          searchLabel="購読を検索"
+          searchPlaceholder="検索"
+          searchClearLabel="検索をクリア"
           statusLabels={statusLabels}
           reasonTooltipLabels={reasonTooltipLabels}
           formatUnreadCountLabel={(count) => `未読 ${count}件`}
           formatLatestArticleLabel={(value) => (value ? `最終更新 ${value}` : "取得記事なし")}
           isGroupExpanded={() => true}
           initialScrollTop={42}
+          scrollResetKey={0}
           onSelectFeed={vi.fn()}
+          onSearchQueryChange={vi.fn()}
           onToggleGroup={vi.fn()}
         />,
       );
@@ -212,13 +226,19 @@ describe("SubscriptionsListPane", () => {
           groups={[{ key: "__ungrouped__", label: "フォルダなし", folderId: null, rows: [row] }]}
           selectedFeedId={row.feed.id}
           emptyLabel="一致する購読はありません。"
+          searchQuery=""
+          searchLabel="購読を検索"
+          searchPlaceholder="検索"
+          searchClearLabel="検索をクリア"
           statusLabels={statusLabels}
           reasonTooltipLabels={reasonTooltipLabels}
           formatUnreadCountLabel={(count) => `未読 ${count}件`}
           formatLatestArticleLabel={(value) => (value ? `最終更新 ${value}` : "取得記事なし")}
           isGroupExpanded={() => true}
           initialScrollTop={84}
+          scrollResetKey={0}
           onSelectFeed={vi.fn()}
+          onSearchQueryChange={vi.fn()}
           onToggleGroup={vi.fn()}
         />,
       );
@@ -233,40 +253,183 @@ describe("SubscriptionsListPane", () => {
     }
   });
 
-  it("delegates feed clicks and list scroll position changes through separate callbacks", async () => {
-    const user = userEvent.setup();
-    const onSelectFeed = vi.fn();
-    const onListScrollTopChange = vi.fn();
-    const { container } = renderListPane(
-      [
-        {
-          feed: buildFeed({ id: "feed-scroll", title: "Scroll Callback Feed" }),
-          folderId: null,
-          folderName: null,
-          latestArticleAt: null,
-          status: { tone: "neutral", labelKey: "normal" },
-          reasonTooltipKey: null,
-        },
-      ],
-      { onSelectFeed, onListScrollTopChange },
-    );
-    const scrollRegion = container.firstElementChild?.children.item(1);
-    expect(scrollRegion).toBeInstanceOf(HTMLElement);
-    if (!(scrollRegion instanceof HTMLElement)) {
-      throw new Error("Expected subscriptions list scroll region");
+  it("delegates feed clicks and batches list scroll position changes through separate callbacks", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      const onSelectFeed = vi.fn();
+      const onListScrollTopChange = vi.fn();
+      renderListPane(
+        [
+          {
+            feed: buildFeed({ id: "feed-scroll", title: "Scroll Callback Feed" }),
+            folderId: null,
+            folderName: null,
+            latestArticleAt: null,
+            status: { tone: "neutral", labelKey: "normal" },
+            reasonTooltipKey: null,
+          },
+        ],
+        { onSelectFeed, onListScrollTopChange },
+      );
+      const scrollRegion = screen.getByTestId("subscriptions-list-scroll-region");
+
+      await user.click(screen.getByRole("button", { name: /Scroll Callback Feed/ }));
+
+      expect(onSelectFeed).toHaveBeenCalledOnce();
+      expect(onSelectFeed).toHaveBeenCalledWith("feed-scroll");
+      expect(onListScrollTopChange).not.toHaveBeenCalled();
+
+      scrollRegion.scrollTop = 96;
+      fireEvent.scroll(scrollRegion);
+      scrollRegion.scrollTop = 120;
+      fireEvent.scroll(scrollRegion);
+
+      expect(onListScrollTopChange).not.toHaveBeenCalled();
+
+      await vi.advanceTimersByTimeAsync(120);
+
+      expect(onListScrollTopChange).toHaveBeenCalledOnce();
+      expect(onListScrollTopChange).toHaveBeenCalledWith(120);
+    } finally {
+      vi.useRealTimers();
     }
+  });
 
-    await user.click(screen.getByRole("button", { name: /Scroll Callback Feed/ }));
+  it("flushes the latest pending list scroll position on unmount", () => {
+    vi.useFakeTimers();
+    try {
+      const onListScrollTopChange = vi.fn();
+      const { unmount } = renderListPane(
+        [
+          {
+            feed: buildFeed({ id: "feed-scroll", title: "Scroll Callback Feed" }),
+            folderId: null,
+            folderName: null,
+            latestArticleAt: null,
+            status: { tone: "neutral", labelKey: "normal" },
+            reasonTooltipKey: null,
+          },
+        ],
+        { onListScrollTopChange },
+      );
+      const scrollRegion = screen.getByTestId("subscriptions-list-scroll-region");
 
-    expect(onSelectFeed).toHaveBeenCalledOnce();
-    expect(onSelectFeed).toHaveBeenCalledWith("feed-scroll");
-    expect(onListScrollTopChange).not.toHaveBeenCalled();
+      scrollRegion.scrollTop = 144;
+      fireEvent.scroll(scrollRegion);
 
-    scrollRegion.scrollTop = 96;
-    fireEvent.scroll(scrollRegion);
+      expect(onListScrollTopChange).not.toHaveBeenCalled();
 
-    expect(onListScrollTopChange).toHaveBeenCalledOnce();
-    expect(onListScrollTopChange).toHaveBeenCalledWith(96);
+      unmount();
+
+      expect(onListScrollTopChange).toHaveBeenCalledOnce();
+      expect(onListScrollTopChange).toHaveBeenCalledWith(144);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("drops a pending list scroll position when the restored scroll top changes", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const onListScrollTopChange = vi.fn();
+      const row = {
+        feed: buildFeed({ id: "feed-scroll", title: "Scroll Callback Feed" }),
+        folderId: null,
+        folderName: null,
+        latestArticleAt: null,
+        status: { tone: "neutral", labelKey: "normal" },
+        reasonTooltipKey: null,
+      } satisfies SubscriptionListRow;
+      const groups = [{ key: "__ungrouped__", label: "フォルダなし", folderId: null, rows: [row] }];
+      const renderPane = (initialScrollTop: number, scrollResetKey = 0) => (
+        <SubscriptionsListPane
+          heading="全購読"
+          groups={groups}
+          selectedFeedId={row.feed.id}
+          emptyLabel="一致する購読はありません。"
+          searchQuery=""
+          searchLabel="購読を検索"
+          searchPlaceholder="検索"
+          searchClearLabel="検索をクリア"
+          statusLabels={statusLabels}
+          reasonTooltipLabels={reasonTooltipLabels}
+          formatUnreadCountLabel={(count) => `未読 ${count}件`}
+          formatLatestArticleLabel={(value) => (value ? `最終更新 ${value}` : "取得記事なし")}
+          isGroupExpanded={() => true}
+          initialScrollTop={initialScrollTop}
+          scrollResetKey={scrollResetKey}
+          onSelectFeed={vi.fn()}
+          onListScrollTopChange={onListScrollTopChange}
+          onSearchQueryChange={vi.fn()}
+          onToggleGroup={vi.fn()}
+        />
+      );
+      const { rerender } = render(renderPane(42));
+      const scrollRegion = screen.getByTestId("subscriptions-list-scroll-region");
+
+      scrollRegion.scrollTop = 144;
+      fireEvent.scroll(scrollRegion);
+      rerender(renderPane(0));
+
+      await vi.advanceTimersByTimeAsync(120);
+
+      expect(onListScrollTopChange).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("drops a pending list scroll position when reset identity changes with the same restored top", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const onListScrollTopChange = vi.fn();
+      const row = {
+        feed: buildFeed({ id: "feed-scroll", title: "Scroll Callback Feed" }),
+        folderId: null,
+        folderName: null,
+        latestArticleAt: null,
+        status: { tone: "neutral", labelKey: "normal" },
+        reasonTooltipKey: null,
+      } satisfies SubscriptionListRow;
+      const groups = [{ key: "__ungrouped__", label: "フォルダなし", folderId: null, rows: [row] }];
+      const renderPane = (scrollResetKey: number) => (
+        <SubscriptionsListPane
+          heading="全購読"
+          groups={groups}
+          selectedFeedId={row.feed.id}
+          emptyLabel="一致する購読はありません。"
+          searchQuery=""
+          searchLabel="購読を検索"
+          searchPlaceholder="検索"
+          searchClearLabel="検索をクリア"
+          statusLabels={statusLabels}
+          reasonTooltipLabels={reasonTooltipLabels}
+          formatUnreadCountLabel={(count) => `未読 ${count}件`}
+          formatLatestArticleLabel={(value) => (value ? `最終更新 ${value}` : "取得記事なし")}
+          isGroupExpanded={() => true}
+          initialScrollTop={0}
+          scrollResetKey={scrollResetKey}
+          onSelectFeed={vi.fn()}
+          onListScrollTopChange={onListScrollTopChange}
+          onSearchQueryChange={vi.fn()}
+          onToggleGroup={vi.fn()}
+        />
+      );
+      const { rerender } = render(renderPane(0));
+      const scrollRegion = screen.getByTestId("subscriptions-list-scroll-region");
+
+      scrollRegion.scrollTop = 144;
+      fireEvent.scroll(scrollRegion);
+      rerender(renderPane(1));
+
+      await vi.advanceTimersByTimeAsync(120);
+
+      expect(onListScrollTopChange).not.toHaveBeenCalled();
+      expect(scrollRegion.scrollTop).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("uses folder ids for duplicated folder label disclosure ids and test ids", () => {

@@ -264,6 +264,10 @@ export function SubscriptionGroupDisclosureSpecimen() {
           groups={SUBSCRIPTION_GROUPS}
           selectedFeedId={selectedFeedId}
           emptyLabel="購読はありません"
+          searchQuery=""
+          searchLabel="購読を検索"
+          searchPlaceholder="検索"
+          searchClearLabel="検索をクリア"
           statusLabels={{
             normal: "確認済み",
             review: "確認待ち",
@@ -283,6 +287,7 @@ export function SubscriptionGroupDisclosureSpecimen() {
           formatLatestArticleLabel={(value) => (value ? "最終更新あり" : "更新なし")}
           isGroupExpanded={(groupKey) => expandedGroups.has(groupKey)}
           onSelectFeed={setSelectedFeedId}
+          onSearchQueryChange={() => undefined}
           onToggleGroup={toggleGroup}
         />
       </div>

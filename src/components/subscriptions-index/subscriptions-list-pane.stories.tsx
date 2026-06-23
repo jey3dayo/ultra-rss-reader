@@ -177,6 +177,10 @@ const meta = {
     groups,
     selectedFeedId: "feed-1",
     emptyLabel: "No subscriptions match this filter.",
+    searchQuery: "",
+    searchLabel: "Search subscriptions",
+    searchPlaceholder: "Search subscriptions",
+    searchClearLabel: "Clear search",
     statusLabels,
     reasonTooltipLabels,
     formatUnreadCountLabel: (count: number) => `Unread ${count}`,
@@ -184,6 +188,7 @@ const meta = {
     isGroupExpanded: isEveryGroupExpanded,
     onSelectFeed: fn(),
     onListScrollTopChange: fn(),
+    onSearchQueryChange: fn(),
     onToggleGroup: fn(),
   },
   decorators: [

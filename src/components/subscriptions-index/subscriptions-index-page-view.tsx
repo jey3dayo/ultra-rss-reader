@@ -31,12 +31,17 @@ type SubscriptionsIndexPageViewProps = {
   selectedMetrics: SubscriptionDetailMetrics | null;
   selectedDetailCandidate: SubscriptionDetailCandidate | null;
   emptyLabel: string;
+  searchQuery: string;
+  searchLabel: string;
+  searchPlaceholder: string;
+  searchClearLabel: string;
   detailEmptyLabel: string;
   statusLabels: Record<SubscriptionListRow["status"]["labelKey"], string>;
   reasonTooltipLabels: Record<NonNullable<SubscriptionListRow["reasonTooltipKey"]>, string>;
   formatUnreadCountLabel: (count: number) => string;
   formatLatestArticleLabel: (value: string | null) => string;
   dateLocale: string;
+  listScrollResetKey: number;
   listScrollTop: number;
   folderLabel: string;
   latestArticleLabel: string;
@@ -56,6 +61,7 @@ type SubscriptionsIndexPageViewProps = {
   onSelectSummaryFilter: (filterKey: SubscriptionSummaryCard["filterKey"]) => void;
   onSelectFeed: (feedId: string) => void;
   onListScrollTopChange: (scrollTop: number) => void;
+  onSearchQueryChange: (query: string) => void;
   onToggleGroup: (groupKey: string) => void;
   onBack: () => void;
   onClose: () => void;
@@ -74,12 +80,17 @@ export function SubscriptionsIndexPageView({
   selectedMetrics,
   selectedDetailCandidate,
   emptyLabel,
+  searchQuery,
+  searchLabel,
+  searchPlaceholder,
+  searchClearLabel,
   detailEmptyLabel,
   statusLabels,
   reasonTooltipLabels,
   formatUnreadCountLabel,
   formatLatestArticleLabel,
   dateLocale,
+  listScrollResetKey,
   listScrollTop,
   folderLabel,
   latestArticleLabel,
@@ -99,6 +110,7 @@ export function SubscriptionsIndexPageView({
   onSelectSummaryFilter,
   onSelectFeed,
   onListScrollTopChange,
+  onSearchQueryChange,
   onToggleGroup,
   onBack,
   onClose,
@@ -140,14 +152,20 @@ export function SubscriptionsIndexPageView({
               groups={groups}
               selectedFeedId={selectedFeedId}
               emptyLabel={emptyLabel}
+              searchQuery={searchQuery}
+              searchLabel={searchLabel}
+              searchPlaceholder={searchPlaceholder}
+              searchClearLabel={searchClearLabel}
               statusLabels={statusLabels}
               reasonTooltipLabels={reasonTooltipLabels}
               formatUnreadCountLabel={formatUnreadCountLabel}
               formatLatestArticleLabel={formatLatestArticleLabel}
               isGroupExpanded={isGroupExpanded}
+              scrollResetKey={listScrollResetKey}
               initialScrollTop={listScrollTop}
               onSelectFeed={onSelectFeed}
               onListScrollTopChange={onListScrollTopChange}
+              onSearchQueryChange={onSearchQueryChange}
               onToggleGroup={onToggleGroup}
             />
             <SubscriptionDetailPane

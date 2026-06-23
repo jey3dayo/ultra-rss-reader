@@ -307,6 +307,10 @@ export function SubscriptionsIndexPage() {
         selectedMetrics={selectedMetrics}
         selectedDetailCandidate={selectedDetailCandidate}
         emptyLabel={t("empty")}
+        searchQuery={state.searchQuery}
+        searchLabel={t("search_label")}
+        searchPlaceholder={t("search_placeholder")}
+        searchClearLabel={t("search_clear")}
         detailEmptyLabel={t("detail_empty")}
         statusLabels={{
           normal: t("status_normal"),
@@ -331,6 +335,7 @@ export function SubscriptionsIndexPage() {
         }
         dateLocale={i18n.language}
         folderLabel={t("folder")}
+        listScrollResetKey={state.listScrollResetKey}
         listScrollTop={state.listScrollTop}
         latestArticleLabel={t("latest_article")}
         latestArticleEmptyLabel={t("meta_latest_article_none")}
@@ -349,6 +354,7 @@ export function SubscriptionsIndexPage() {
         onSelectSummaryFilter={state.setActiveSummaryFilter}
         onSelectFeed={state.setSelectedFeedId}
         onListScrollTopChange={state.setListScrollTop}
+        onSearchQueryChange={state.setSearchQuery}
         onToggleGroup={state.toggleGroup}
         onBack={() => closeSubscriptionsWorkspace()}
         onClose={() => closeSubscriptionsWorkspace()}

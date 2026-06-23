@@ -77,6 +77,16 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
       viewportHeight,
     }),
   );
+  const [listScrollResetKey, setListScrollResetKey] = useState(0);
+
+  const resetListScrollState = useCallback(() => {
+    setListScrollState({
+      scrollTop: 0,
+      layoutGeneration: listLayoutGeneration,
+      viewportHeight,
+    });
+    setListScrollResetKey((current) => current + 1);
+  }, [listLayoutGeneration, viewportHeight]);
 
   useEffect(() => {
     const nextAccountId = options?.accountId ?? null;
@@ -92,47 +102,31 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
     setSortKey("title");
     setExpandedGroups({});
     setActiveSummaryFilter("all");
-    setListScrollState({
-      scrollTop: 0,
-      layoutGeneration: listLayoutGeneration,
-      viewportHeight,
-    });
-  }, [activeAccountId, listLayoutGeneration, options?.accountId, viewportHeight]);
+    resetListScrollState();
+  }, [activeAccountId, options?.accountId, resetListScrollState]);
 
   const selectSummaryFilter = useCallback(
     (filterKey: SubscriptionSummaryFilterKey) => {
       setActiveSummaryFilter(filterKey);
-      setListScrollState({
-        scrollTop: 0,
-        layoutGeneration: listLayoutGeneration,
-        viewportHeight,
-      });
+      resetListScrollState();
     },
-    [listLayoutGeneration, viewportHeight],
+    [resetListScrollState],
   );
 
   const updateSearchQuery = useCallback(
     (query: string) => {
       setSearchQuery(query);
-      setListScrollState({
-        scrollTop: 0,
-        layoutGeneration: listLayoutGeneration,
-        viewportHeight,
-      });
+      resetListScrollState();
     },
-    [listLayoutGeneration, viewportHeight],
+    [resetListScrollState],
   );
 
   const updateSortKey = useCallback(
     (nextSortKey: SubscriptionSortKey) => {
       setSortKey(nextSortKey);
-      setListScrollState({
-        scrollTop: 0,
-        layoutGeneration: listLayoutGeneration,
-        viewportHeight,
-      });
+      resetListScrollState();
     },
-    [listLayoutGeneration, viewportHeight],
+    [resetListScrollState],
   );
 
   useEffect(() => {
@@ -144,6 +138,7 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
         return current;
       }
 
+      setListScrollResetKey((currentResetKey) => currentResetKey + 1);
       return {
         scrollTop: 0,
         layoutGeneration: listLayoutGeneration,
@@ -173,6 +168,7 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[], options?
     expandedGroups,
     keptFeedIds,
     listScrollState,
+    listScrollResetKey,
     listScrollTop: listScrollState.scrollTop,
     searchQuery,
     selectedFeedId,
