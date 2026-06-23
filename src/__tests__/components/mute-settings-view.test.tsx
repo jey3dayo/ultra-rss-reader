@@ -104,7 +104,7 @@ describe("MuteSettingsView", () => {
         onKeywordChange={vi.fn()}
         onScopeChange={vi.fn()}
         onAdd={vi.fn()}
-        addDisabled={true}
+        addDisabled={false}
         savedHeading="Saved rules"
         emptyState="No mute keywords yet."
         rules={[]}
@@ -180,7 +180,7 @@ describe("MuteSettingsView", () => {
     expect(screen.getByTestId("mute-settings-add-row")).toHaveClass("min-w-0", "sm:max-w-[30rem]");
     expect(screen.getByRole("textbox", { name: "Keyword" })).toHaveClass("min-w-0", "sm:w-[220px]");
     expect(screen.getByRole("combobox", { name: "Mute scope" })).toHaveClass("min-w-0", "sm:w-[192px]");
-    expect(screen.getByRole("combobox", { name: "Saved scope" })).toHaveClass("h-10", "sm:flex-1");
+    expect(screen.getByRole("combobox", { name: "Saved scope" })).toHaveClass("h-11", "sm:flex-1");
     expect(screen.getByRole("button", { name: "Add" })).toHaveClass("h-11", "px-4");
     expect(screen.getByRole("button", { name: "Add" })).toHaveClass("min-h-11", "min-w-11");
     expect(screen.getByRole("button", { name: "Delete" })).toHaveClass("h-11", "px-4");

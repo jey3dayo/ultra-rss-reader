@@ -122,7 +122,7 @@ export function TagsSettingsView({
                 data-testid={`tags-settings-row-${tag.id}`}
                 className="motion-contextual-surface flex min-h-[44px] items-center justify-between gap-3 border-b border-border/70 py-3"
               >
-                <div className="flex min-w-0 items-center gap-2.5">
+                <div className="flex min-w-0 flex-1 items-center gap-2.5">
                   {tag.color ? (
                     <span
                       aria-hidden="true"

@@ -122,9 +122,9 @@ describe("AddAccountFormView", () => {
     expect(screen.getByLabelText("Server URL")).toHaveClass("w-full");
     expect(screen.getByLabelText("Username")).toHaveClass("w-full");
     expect(screen.getByLabelText("Password")).toHaveClass("w-full");
-    expect(screen.getByLabelText("Server URL")).toHaveClass("h-10");
-    expect(screen.getByLabelText("Username")).toHaveClass("h-10");
-    expect(screen.getByLabelText("Password")).toHaveClass("h-10");
+    expect(screen.getByLabelText("Server URL")).toHaveClass("h-11");
+    expect(screen.getByLabelText("Username")).toHaveClass("h-11");
+    expect(screen.getByLabelText("Password")).toHaveClass("h-11");
     expect(screen.getByText("Server URL")).toHaveClass("sm:w-40");
     expect(screen.getByLabelText("Username")).toHaveValue("alice");
     expect(screen.getByLabelText("Password")).toHaveAttribute("type", "password");
@@ -185,6 +185,70 @@ describe("AddAccountFormView", () => {
     expect(errorAlert).toHaveTextContent("Server URL is required");
     expect(errorAlert).toHaveAttribute("aria-live", "assertive");
     expect(errorAlert).toHaveClass("border-state-danger-border", "bg-state-danger-surface");
+  });
+
+  it("associates field errors with their input row", () => {
+    render(
+      <AddAccountFormView
+        title="Add Account"
+        accountHeading="Account"
+        accountType={{
+          label: "Type",
+          name: "account-type",
+          value: "FreshRss",
+          options: [{ value: "FreshRss", label: "FreshRSS" }],
+          onChange: () => {},
+          disabled: false,
+        }}
+        accountName={{
+          label: "Name",
+          name: "account-name",
+          value: "",
+          placeholder: "FreshRSS",
+          onChange: () => {},
+          disabled: false,
+        }}
+        credentialsSection={{
+          heading: "Server",
+          serverUrl: {
+            label: "Server URL",
+            name: "server-url",
+            value: "",
+            placeholder: "https://freshrss.example.com",
+            onChange: () => {},
+            disabled: false,
+            errorText: "Server URL is required",
+          },
+          credential: {
+            label: "Username",
+            name: "username",
+            value: "",
+            onChange: () => {},
+            disabled: false,
+          },
+          password: {
+            label: "Password",
+            name: "password",
+            value: "",
+            onChange: () => {},
+            disabled: false,
+          },
+        }}
+        submitLabel="Add"
+        submittingLabel="Adding…"
+        cancelLabel="Cancel"
+        submitting={false}
+        onSubmit={() => {}}
+        onCancel={() => {}}
+      />,
+    );
+
+    const serverUrlInput = screen.getByLabelText("Server URL");
+    const fieldError = screen.getByText("Server URL is required");
+
+    expect(serverUrlInput).toHaveAttribute("aria-invalid", "true");
+    expect(serverUrlInput).toHaveAttribute("aria-errormessage", fieldError.id);
+    expect(fieldError).toHaveClass("text-state-danger-foreground");
   });
 
   it("uses native form submit semantics without browser navigation", () => {

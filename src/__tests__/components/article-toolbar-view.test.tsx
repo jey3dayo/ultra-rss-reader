@@ -451,12 +451,13 @@ describe("ArticleToolbarView", () => {
       const button = screen.getByRole("button", { name: label });
       const visibleLabel = button.querySelector(".max-w-16.truncate");
 
-      expect(button).toHaveClass("h-9", "min-w-9", "px-2");
+      expect(button).toHaveClass("h-11", "min-w-11", "px-2");
       expect(visibleLabel).not.toBeNull();
       expect(visibleLabel).toHaveClass("max-w-16", "truncate");
     }
 
-    expect(screen.getByRole("button", { name: "その他の記事操作" })).toHaveClass("size-11", "md:size-8");
+    expect(screen.getByRole("button", { name: "その他の記事操作" })).toHaveClass("size-11");
+    expect(screen.getByRole("button", { name: "その他の記事操作" })).not.toHaveClass("md:size-8");
   });
 
   it("hides the action strip when no article is selected", () => {
@@ -952,9 +953,9 @@ describe("ArticleToolbarView", () => {
     expect(screen.getByRole("button", { name: "Toggle read" })).toHaveTextContent("Read");
     expect(screen.getByRole("button", { name: "Toggle star" })).toHaveTextContent("Star");
     expect(screen.getByRole("button", { name: "Open Web Preview" })).toHaveTextContent("Preview");
-    expect(screen.getByRole("button", { name: "Toggle read" })).toHaveClass("h-9", "min-w-9", "rounded-md");
-    expect(screen.getByRole("button", { name: "Toggle star" })).toHaveClass("h-9", "min-w-9", "rounded-md");
-    expect(screen.getByRole("button", { name: "Open Web Preview" })).toHaveClass("h-9", "min-w-9", "rounded-md");
+    expect(screen.getByRole("button", { name: "Toggle read" })).toHaveClass("h-11", "min-w-11", "rounded-md");
+    expect(screen.getByRole("button", { name: "Toggle star" })).toHaveClass("h-11", "min-w-11", "rounded-md");
+    expect(screen.getByRole("button", { name: "Open Web Preview" })).toHaveClass("h-11", "min-w-11", "rounded-md");
     expect(screen.getByRole("button", { name: "Toggle read" })).toHaveClass(
       "bg-[var(--semantic-tone-unread-surface)]",
       "hover:bg-[var(--semantic-tone-unread-surface)]",
@@ -1080,7 +1081,7 @@ describe("ArticleToolbarView", () => {
     );
 
     expect(screen.getByRole("button", { name: "Close Web Preview" })).toHaveTextContent("Close");
-    expect(screen.getByRole("button", { name: "Close Web Preview" })).toHaveClass("h-9", "min-w-9", "rounded-md");
+    expect(screen.getByRole("button", { name: "Close Web Preview" })).toHaveClass("h-11", "min-w-11", "rounded-md");
     expect(screen.getByRole("button", { name: "Close Web Preview" })).toHaveClass(
       "bg-primary/12",
       "hover:bg-primary/12",

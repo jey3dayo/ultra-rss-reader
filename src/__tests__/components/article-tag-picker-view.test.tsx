@@ -45,7 +45,7 @@ describe("ArticleTagPickerView", () => {
     expect(addTagButton).not.toHaveClass("size-8");
     expect(addTagButton).toHaveClass("motion-interactive-surface");
     expect(addTagButton).toHaveClass("min-h-6", "rounded-full", "border", "bg-surface-2/88", "text-foreground");
-    expect(screen.getByRole("listbox", { name: "Available tags" })).toHaveClass(
+    expect(screen.getByRole("listbox", { name: "Available tags" }).closest("[data-open]")).toHaveClass(
       "motion-popup-surface",
       "rounded-lg",
       "bg-surface-2",
@@ -54,8 +54,16 @@ describe("ArticleTagPickerView", () => {
     expect(screen.getByRole("option", { name: "Important" })).toHaveClass("min-h-11", "rounded-md");
     expect(screen.getByRole("option", { name: "Important" })).toHaveClass("motion-static-hover-surface");
     expect(screen.getByRole("option", { name: "Important" })).toHaveClass("hover:bg-surface-1/72");
-    expect(screen.getByRole("textbox", { name: "Create tag" })).toHaveClass("h-10");
-    expect(screen.getByRole("button", { name: "Create tag" })).toHaveClass("size-10", "rounded-md");
+    expect(screen.getByRole("textbox", { name: "Create tag" })).toHaveClass("h-11");
+    expect(screen.getByRole("textbox", { name: "Create tag" })).toHaveClass(
+      "focus-visible:ring-2",
+      "focus-visible:ring-ring/60",
+    );
+    expect(screen.getByRole("textbox", { name: "Create tag" }).closest("div.flex.min-w-0.flex-col")).toHaveClass(
+      "sm:flex-row",
+      "sm:items-center",
+    );
+    expect(screen.getByRole("button", { name: "Create tag" })).toHaveClass("size-11", "rounded-md");
     expect(screen.getByRole("button", { name: "Create tag" })).toHaveClass(
       "text-foreground-soft",
       "hover:bg-surface-1/72",
@@ -76,7 +84,7 @@ describe("ArticleTagPickerView", () => {
     const getBoundingClientRectSpy = vi
       .spyOn(HTMLElement.prototype, "getBoundingClientRect")
       .mockImplementation(function getBoundingClientRectMock(this: HTMLElement) {
-        if (this.getAttribute("role") === "listbox") {
+        if (this.hasAttribute("data-open")) {
           return {
             x: 260,
             y: 40,
@@ -127,10 +135,10 @@ describe("ArticleTagPickerView", () => {
     );
 
     const listbox = screen.getByRole("listbox", { name: "Available tags" });
-    expect(listbox).toHaveClass("max-w-[calc(100vw-1rem)]");
+    expect(listbox.closest("[data-open]")).toHaveClass("max-w-[calc(100vw-1rem)]");
     expect(screen.getByRole("textbox", { name: "New tag name" })).toBeInTheDocument();
     await waitFor(() => {
-      expect(listbox).toHaveStyle({ marginLeft: "-208px" });
+      expect(listbox.closest("[data-open]")).toHaveStyle({ marginLeft: "-208px" });
     });
 
     Object.defineProperty(window, "innerWidth", { configurable: true, value: originalInnerWidth });
@@ -251,6 +259,131 @@ describe("ArticleTagPickerView", () => {
     await user.keyboard("{Enter}");
 
     expect(onCreateTag).toHaveBeenCalledWith("Fresh");
+  });
+
+  it("keeps text editing keys inside the new tag input instead of roving listbox focus", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ArticleTagPickerView
+        assignedTags={[]}
+        availableTags={[{ id: "tag-1", name: "Important", color: "#ff0000" }]}
+        newTagName="Fresh"
+        isExpanded
+        labels={{
+          addTag: "Add tag",
+          availableTags: "Available tags",
+          newTagPlaceholder: "Create tag",
+          createTag: "Create tag",
+          removeTag: (name) => `Remove tag ${name}`,
+        }}
+        onExpandedChange={vi.fn()}
+        onNewTagNameChange={vi.fn()}
+        onAssignTag={vi.fn()}
+        onRemoveTag={vi.fn()}
+        onCreateTag={vi.fn()}
+      />,
+    );
+
+    const input = screen.getByRole("textbox", { name: "Create tag" });
+    const option = screen.getByRole("option", { name: "Important" });
+    await user.click(input);
+
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    fireEvent.keyDown(input, { key: "ArrowUp" });
+    fireEvent.keyDown(input, { key: "Home" });
+    fireEvent.keyDown(input, { key: "End" });
+
+    expect(input).toHaveFocus();
+    expect(option).not.toHaveFocus();
+  });
+
+  it("blocks empty and pending tag creation from the keyboard path", async () => {
+    const user = userEvent.setup();
+    const onCreateTag = vi.fn();
+
+    const { rerender } = render(
+      <ArticleTagPickerView
+        assignedTags={[]}
+        availableTags={[]}
+        newTagName="   "
+        isExpanded
+        labels={{
+          addTag: "Add tag",
+          availableTags: "Available tags",
+          newTagPlaceholder: "Create tag",
+          createTag: "Create tag",
+          removeTag: (name) => `Remove tag ${name}`,
+        }}
+        onExpandedChange={vi.fn()}
+        onNewTagNameChange={vi.fn()}
+        onAssignTag={vi.fn()}
+        onRemoveTag={vi.fn()}
+        onCreateTag={onCreateTag}
+      />,
+    );
+
+    await user.click(screen.getByRole("textbox", { name: "Create tag" }));
+    await user.keyboard("{Enter}");
+    expect(onCreateTag).not.toHaveBeenCalled();
+
+    rerender(
+      <ArticleTagPickerView
+        assignedTags={[]}
+        availableTags={[]}
+        newTagName="Review"
+        isExpanded
+        isCreateTagPending
+        labels={{
+          addTag: "Add tag",
+          availableTags: "Available tags",
+          newTagPlaceholder: "Create tag",
+          createTag: "Create tag",
+          removeTag: (name) => `Remove tag ${name}`,
+        }}
+        onExpandedChange={vi.fn()}
+        onNewTagNameChange={vi.fn()}
+        onAssignTag={vi.fn()}
+        onRemoveTag={vi.fn()}
+        onCreateTag={onCreateTag}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Create tag" })).toBeDisabled();
+    await user.click(screen.getByRole("textbox", { name: "Create tag" }));
+    await user.keyboard("{Enter}");
+    expect(onCreateTag).not.toHaveBeenCalled();
+  });
+
+  it("associates new tag creation errors with the input", () => {
+    render(
+      <ArticleTagPickerView
+        assignedTags={[]}
+        availableTags={[]}
+        newTagName="Review"
+        newTagError="Tag already exists"
+        isExpanded
+        labels={{
+          addTag: "Add tag",
+          availableTags: "Available tags",
+          newTagPlaceholder: "Create tag",
+          createTag: "Create tag",
+          removeTag: (name) => `Remove tag ${name}`,
+        }}
+        onExpandedChange={vi.fn()}
+        onNewTagNameChange={vi.fn()}
+        onAssignTag={vi.fn()}
+        onRemoveTag={vi.fn()}
+        onCreateTag={vi.fn()}
+      />,
+    );
+
+    const input = screen.getByRole("textbox", { name: "Create tag" });
+    const error = screen.getByText("Tag already exists");
+
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    expect(input).toHaveAttribute("aria-describedby", error.id);
+    expect(error).toHaveClass("text-state-danger-foreground");
   });
 
   it("returns focus to the trigger and clears the draft when successful creation closes the picker", async () => {

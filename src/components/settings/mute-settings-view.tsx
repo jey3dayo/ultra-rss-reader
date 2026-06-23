@@ -106,7 +106,7 @@ export function MuteSettingsView({
 }: MuteSettingsViewProps) {
   const handleAddSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!addDisabled) {
+    if (!addDisabled && !addPending) {
       onAdd();
     }
   };
@@ -141,7 +141,7 @@ export function MuteSettingsView({
                       source: "add-row",
                     })
                   }
-                  triggerClassName="h-10 w-full min-w-0 sm:w-[192px] sm:flex-none"
+                  triggerClassName="h-11 w-full min-w-0 sm:w-[192px] sm:flex-none"
                 />
                 <SettingsLoadingActionButton
                   type="submit"
@@ -191,7 +191,7 @@ export function MuteSettingsView({
                   })
                 }
                 labelClassName="break-all sm:max-w-[280px] sm:shrink-0 sm:truncate sm:break-normal"
-                triggerClassName="h-10 w-full sm:flex-1"
+                triggerClassName="h-11 w-full sm:flex-1"
                 trailingControls={
                   <SettingsActionButton type="button" size="compact" onClick={() => onRequestDelete(rule.id)}>
                     {deleteLabel}

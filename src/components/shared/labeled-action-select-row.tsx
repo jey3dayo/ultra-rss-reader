@@ -50,7 +50,7 @@ export function ActionSelectControl({
       <SelectTrigger
         aria-label={ariaLabel ?? (labelId ? undefined : label)}
         aria-labelledby={ariaLabel ? undefined : labelId}
-        className={cn("h-10 w-full sm:flex-1", triggerClassName)}
+        className={cn("h-11 w-full sm:flex-1", triggerClassName)}
       >
         <SelectOptionValue options={options} />
       </SelectTrigger>

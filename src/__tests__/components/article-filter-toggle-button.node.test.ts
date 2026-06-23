@@ -10,7 +10,7 @@ describe("ArticleFilterToggleButton class contracts", () => {
 
     expect(className).toContain("motion-contextual-surface");
     expect(className).toContain("rounded-md");
-    expect(className).toContain("h-7");
+    expect(className).toContain("min-h-11");
     expect(className).toContain("text-[13px]");
     expect(className).toContain("data-[pressed]:bg-surface-4");
     expect(className).toContain("data-[pressed]:text-foreground");

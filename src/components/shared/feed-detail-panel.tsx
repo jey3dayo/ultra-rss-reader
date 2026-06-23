@@ -264,7 +264,7 @@ export function FeedDetailPanel({
               </Button>
             ) : null}
             {secondaryAction ? (
-              <Button variant="ghost" size="sm" className="px-4" onClick={secondaryAction.onClick}>
+              <Button variant="ghost" size="sm" className="min-h-11 px-4" onClick={secondaryAction.onClick}>
                 {secondaryAction.label}
               </Button>
             ) : null}

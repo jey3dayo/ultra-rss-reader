@@ -28,7 +28,7 @@ type AccountDetailSettingsRowProps =
 
 export function AccountDetailSettingsRow(props: AccountDetailSettingsRowProps) {
   const valueRailClassName = "flex w-full items-center gap-2 sm:max-w-[30rem] sm:justify-end";
-  const valueTextClassName = "flex min-h-10 w-full items-center px-3 text-left text-sm text-foreground-soft";
+  const valueTextClassName = "flex min-h-11 w-full items-center px-3 text-left text-sm text-foreground-soft";
 
   return (
     <LabeledControlRow label={props.label} labelClassName={props.labelClassName}>

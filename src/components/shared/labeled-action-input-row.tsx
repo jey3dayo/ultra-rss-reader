@@ -39,7 +39,10 @@ export function LabeledActionInputRow({
 }: LabeledActionInputRowProps) {
   const generatedInputId = useId();
   const resolvedInputId = inputId ?? generatedInputId;
-  const controlClassNames = cn("flex w-full items-center gap-2 sm:max-w-[30rem] sm:justify-end", controlClassName);
+  const controlClassNames = cn(
+    "flex w-full min-w-0 flex-col items-stretch gap-2 sm:max-w-[30rem] sm:flex-row sm:items-center sm:justify-end",
+    controlClassName,
+  );
   const controlContent = (
     <>
       <Input
@@ -50,7 +53,7 @@ export function LabeledActionInputRow({
         placeholder={placeholder}
         disabled={disabled}
         aria-label={label}
-        className={cn("h-10 flex-1", inputClassName)}
+        className={cn("h-11 flex-1", inputClassName)}
       />
       {trailingControls}
     </>

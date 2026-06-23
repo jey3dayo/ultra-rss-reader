@@ -9,7 +9,7 @@ import {
 } from "@/design-system";
 
 const LABEL_COLUMN_CLASS_NAME = "sm:w-40 sm:shrink-0";
-const INPUT_CLASS_NAME = "h-10";
+const INPUT_CLASS_NAME = "h-11";
 
 export type AddAccountInputControl = {
   label: string;
@@ -79,9 +79,9 @@ function AddAccountInputRow({ control }: AddAccountFormInputRowProps) {
       onChange={control.onChange}
       placeholder={control.placeholder}
       labelClassName={LABEL_COLUMN_CLASS_NAME}
-      errorText={control.errorText}
       inputClassName={INPUT_CLASS_NAME}
       disabled={control.disabled}
+      errorText={control.errorText}
     />
   );
 }

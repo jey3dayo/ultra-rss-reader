@@ -75,7 +75,7 @@ describe("FeedDetailPanel", () => {
     expect(screen.getByText("最近の記事タイトル")).toHaveClass("text-[0.88rem]", "leading-5");
     expect(screen.getByRole("button", { name: "フィードを編集" }).parentElement).toHaveClass("border-t", "pt-4");
     expect(screen.getByRole("button", { name: "フィードを編集" })).toHaveClass(
-      "h-9",
+      "min-h-11",
       "px-3",
       "sm:px-3.5",
       "border-border-strong",
@@ -115,6 +115,20 @@ describe("FeedDetailPanel", () => {
 
     expect(screen.getByRole("link", { name: "公式サイト" })).toHaveAttribute("href", "https://example.com/rss.xml");
     expect(screen.queryByText("https://example.com/rss.xml")).not.toBeInTheDocument();
+  });
+
+  it("keeps secondary actions on the shared touch target contract", () => {
+    render(
+      <FeedDetailPanel
+        title="Example Feed"
+        metrics={[{ label: "フォルダ", value: "Work" }]}
+        recentArticlesHeading="最近の記事"
+        recentArticles={[]}
+        secondaryAction={{ label: "後で確認", onClick: () => {} }}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "後で確認" })).toHaveClass("min-h-11", "px-4");
   });
 
   it("does not render invalid feed website title hrefs as links", () => {

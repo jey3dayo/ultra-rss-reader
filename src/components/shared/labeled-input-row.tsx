@@ -18,6 +18,7 @@ type LabeledInputRowProps = {
   ariaDescribedBy?: string;
   ariaErrorMessage?: string;
   ariaInvalid?: boolean;
+  errorText?: string;
   inputRef?: RefObject<HTMLInputElement | null>;
   onChange: (value: string) => void;
   onBlur?: () => void;
@@ -52,6 +53,7 @@ export function LabeledInputRow({
   ariaDescribedBy,
   ariaErrorMessage,
   ariaInvalid,
+  errorText,
   inputRef,
   onChange,
   onBlur,
@@ -74,6 +76,8 @@ export function LabeledInputRow({
 }: LabeledInputRowProps) {
   const generatedInputId = useId();
   const resolvedInputId = inputId ?? generatedInputId;
+  const errorMessageId = `${resolvedInputId}-error`;
+  const hasErrorText = errorText != null && errorText.trim().length > 0;
   const hasInsideAction = actionPlacement === "inside" && Boolean(actionLabel && onAction);
   const isInsideIconAction = hasInsideAction && Boolean(actionIcon);
   const resolvedActionVariant = actionVariant ?? (hasInsideAction ? "ghost" : "outline");
@@ -115,14 +119,17 @@ export function LabeledInputRow({
             readOnly={readOnly}
             title={title}
             aria-describedby={ariaDescribedBy}
-            aria-errormessage={ariaErrorMessage}
-            aria-invalid={ariaInvalid || undefined}
+            aria-errormessage={hasErrorText ? errorMessageId : ariaErrorMessage}
+            aria-invalid={ariaInvalid || hasErrorText || undefined}
             onChange={(event) => onChange(event.target.value)}
             onBlur={onBlur}
             onFocus={onFocus}
             onKeyDown={onKeyDown}
             placeholder={placeholder}
-            className={cn(hasInsideAction ? (isInsideIconAction ? "min-h-11 pr-12" : "min-h-11 pr-24") : undefined, inputClassName)}
+            className={cn(
+              hasInsideAction ? (isInsideIconAction ? "min-h-11 pr-12" : "min-h-11 pr-24") : undefined,
+              inputClassName,
+            )}
             disabled={disabled}
           />
           {actionPlacement === "inside" && actionButton ? (
@@ -131,6 +138,11 @@ export function LabeledInputRow({
             ) : (
               actionButton
             )
+          ) : null}
+          {hasErrorText ? (
+            <p id={errorMessageId} className="mt-1.5 font-serif text-xs leading-5 text-state-danger-foreground">
+              {errorText}
+            </p>
           ) : null}
         </div>
         {actionPlacement === "inline" && actionButton ? actionButton : null}

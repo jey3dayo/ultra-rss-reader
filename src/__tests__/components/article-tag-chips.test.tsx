@@ -468,9 +468,13 @@ describe("ArticleTagChips", () => {
     await user.type(input, "Review");
     await user.keyboard("{Enter}");
 
-    expect(await screen.findByText(error.message)).toBeInTheDocument();
+    const inlineError = await screen.findByText(error.message);
+    const newTagInput = screen.getByRole("textbox");
+    expect(inlineError).toBeInTheDocument();
+    expect(newTagInput).toHaveAttribute("aria-invalid", "true");
+    expect(newTagInput).toHaveAttribute("aria-describedby", inlineError.id);
     expect(screen.getByRole("listbox", { name: "Available tags" })).toBeInTheDocument();
-    expect(screen.getByRole("textbox")).toHaveValue("Review");
+    expect(newTagInput).toHaveValue("Review");
     expect(commands).toContainEqual({
       cmd: "create_tag",
       args: { name: "Review", color: undefined },

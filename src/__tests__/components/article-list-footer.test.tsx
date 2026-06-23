@@ -25,8 +25,9 @@ describe("ArticleListFooter", () => {
     expect(unreadButton).toHaveClass("text-foreground-soft");
     expect(unreadButton).toHaveClass("hover:text-[var(--semantic-tone-unread-content-foreground)]");
     expect(unreadButton).toHaveClass("h-11", "rounded-md", "font-medium");
-    expect(unreadButton).toHaveClass("focus-visible:bg-surface-3/72", "focus-visible:ring-0");
-    expect(unreadButton).not.toHaveClass("focus-visible:ring-ring/45");
+    expect(unreadButton).not.toHaveClass("sm:h-7");
+    expect(unreadButton).toHaveClass("focus-visible:bg-surface-3/72", "focus-visible:ring-2");
+    expect(unreadButton).toHaveClass("focus-visible:ring-ring/45");
     expect(starredButton).toHaveClass("text-foreground-soft");
     expect(starredButton).toHaveClass("hover:text-[var(--semantic-tone-starred-content-foreground)]");
     expect(starredButton).toHaveClass("h-11", "rounded-md", "font-medium");

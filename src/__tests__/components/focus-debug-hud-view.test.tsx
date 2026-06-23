@@ -208,7 +208,7 @@ describe("FocusDebugHudView", () => {
     expect(screen.getByRole("button", { name: "Hide debug HUD" })).toBeInTheDocument();
   });
 
-  it("uses compact header-style utility actions", async () => {
+  it("keeps HUD utility actions compact-looking with 44px hit targets", async () => {
     const user = userEvent.setup();
 
     render(
@@ -228,13 +228,13 @@ describe("FocusDebugHudView", () => {
     );
 
     expect(screen.getByRole("button", { name: "Expand debug HUD" })).toHaveAttribute("data-debug-hud-action-button");
-    expect(screen.getByRole("button", { name: "Expand debug HUD" })).toHaveClass("size-8", "px-0");
+    expect(screen.getByRole("button", { name: "Expand debug HUD" })).toHaveClass("size-11", "px-0");
     expect(screen.getByRole("button", { name: "Move debug HUD" })).toHaveAttribute("data-debug-hud-action-button");
-    expect(screen.getByRole("button", { name: "Move debug HUD" })).toHaveClass("size-8", "px-0");
+    expect(screen.getByRole("button", { name: "Move debug HUD" })).toHaveClass("size-11", "px-0");
     expect(screen.getByRole("button", { name: "Copy debug HUD" })).toHaveAttribute("data-debug-hud-action-button");
-    expect(screen.getByRole("button", { name: "Copy debug HUD" })).toHaveClass("size-8", "px-0");
+    expect(screen.getByRole("button", { name: "Copy debug HUD" })).toHaveClass("size-11", "px-0");
     expect(screen.getByRole("button", { name: "Hide debug HUD" })).toHaveAttribute("data-debug-hud-action-button");
-    expect(screen.getByRole("button", { name: "Hide debug HUD" })).toHaveClass("size-8", "px-0");
+    expect(screen.getByRole("button", { name: "Hide debug HUD" })).toHaveClass("size-11", "px-0");
     expect(screen.queryByText(/^More$/)).not.toBeInTheDocument();
     expect(screen.queryByText(/^Less$/)).not.toBeInTheDocument();
     expect(screen.queryByText(/^Copy$/)).not.toBeInTheDocument();
@@ -242,7 +242,7 @@ describe("FocusDebugHudView", () => {
     await user.click(screen.getByRole("button", { name: "Expand debug HUD" }));
 
     expect(screen.getByRole("button", { name: "Show" })).toHaveAttribute("data-debug-hud-action-button");
-    expect(screen.getByRole("button", { name: "Show" })).toHaveClass("h-8");
+    expect(screen.getByRole("button", { name: "Show" })).toHaveClass("min-h-11");
     expect(screen.getByRole("button", { name: "Show" })).toHaveClass("border-transparent", "bg-transparent");
   });
 

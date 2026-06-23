@@ -23,6 +23,10 @@ describe("Command primitives", () => {
 
     expect(screen.getByRole("option", { name: "Open settings" })).toBeInTheDocument();
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Search commands")).toHaveClass("h-11");
+    expect(screen.getByPlaceholderText("Search commands").closest('[data-slot="command-input-wrapper"]')).toHaveClass(
+      "h-11",
+    );
 
     await user.type(screen.getByPlaceholderText("Search commands"), "missing");
 
@@ -50,5 +54,6 @@ describe("Command primitives", () => {
     );
     expect(screen.getByRole("dialog", { name: "Run command" })).toHaveAttribute("data-stack-layer", "commandPalette");
     expect(screen.getByRole("dialog", { name: "Run command" })).toHaveClass("z-50");
+    expect(screen.getByPlaceholderText("Search commands")).toHaveClass("h-11");
   });
 });

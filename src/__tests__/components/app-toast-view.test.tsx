@@ -42,6 +42,9 @@ describe("AppToastView", () => {
       />,
     );
 
+    expect(screen.getByRole("button", { name: "Close" })).toHaveClass("size-11");
+    expect(screen.getByRole("button", { name: "Retry" })).toHaveClass("min-h-11");
+
     await user.tab();
     await user.keyboard("{Enter}");
     await user.tab();

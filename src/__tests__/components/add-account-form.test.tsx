@@ -459,9 +459,9 @@ describe("AddAccountForm", () => {
     expect(screen.getByText("freshrss.org")).toHaveClass("text-foreground-soft");
     expect(screen.getByLabelText("Name")).toHaveClass("w-full");
     expect(screen.getByLabelText("Server URL")).toHaveClass("w-full");
-    expect(screen.getByLabelText("Server URL")).toHaveClass("h-10");
-    expect(screen.getByLabelText("Username")).toHaveClass("h-10");
-    expect(screen.getByLabelText("Password")).toHaveClass("h-10");
+    expect(screen.getByLabelText("Server URL")).toHaveClass("h-11");
+    expect(screen.getByLabelText("Username")).toHaveClass("h-11");
+    expect(screen.getByLabelText("Password")).toHaveClass("h-11");
     expect(screen.getByText("Server URL")).toHaveClass("sm:w-40");
 
     await user.click(screen.getByRole("button", { name: /Back/ }));

@@ -67,9 +67,9 @@ function resolveMainStageGeometry(
   const compact = normalizedViewportWidth <= 768;
   const ultraCompact = normalizedViewportWidth <= 520;
   const chromeHorizontalInset = compact ? 12 : 16;
-  const visualHeaderHeight = compact ? 48 : 40;
+  const visualHeaderHeight = compact ? 48 : 44;
   const leadingSafeInset = overlayTitlebar ? (compact ? 64 : 72) : chromeHorizontalInset;
-  const actionButtonSize = compact ? 44 : 40;
+  const actionButtonSize = 44;
   const actionVerticalInset = (visualHeaderHeight - actionButtonSize) / 2;
   const leadingVerticalInset = actionVerticalInset;
   const diagnosticsTop = compact ? visualHeaderHeight + 2 : diagnosticsVisible ? visualHeaderHeight + 8 : 16;

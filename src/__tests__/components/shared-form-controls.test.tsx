@@ -293,9 +293,13 @@ describe("shared form controls", () => {
     expect(input).toHaveValue("News");
     expect(input.id).toBeTruthy();
     expect(document.querySelector(`label[for="${input.id}"]`)).toHaveTextContent("Tag name");
-    expect(input.closest("div.flex.w-full.items-center.gap-2")).toHaveClass("sm:max-w-[30rem]", "sm:justify-end");
-    expect(createButton.closest("div.flex.w-full.items-center.gap-2")).toBe(
-      input.closest("div.flex.w-full.items-center.gap-2"),
+    expect(input.closest("div.flex.w-full.min-w-0.flex-col.gap-2")).toHaveClass(
+      "sm:max-w-[30rem]",
+      "sm:flex-row",
+      "sm:justify-end",
+    );
+    expect(createButton.closest("div.flex.w-full.min-w-0.flex-col.gap-2")).toBe(
+      input.closest("div.flex.w-full.min-w-0.flex-col.gap-2"),
     );
   });
 
@@ -498,7 +502,7 @@ describe("shared form controls", () => {
     const deleteButton = screen.getByRole("button", { name: "Delete" });
 
     expect(combobox).toHaveTextContent("Title");
-    expect(combobox).toHaveClass("h-10", "sm:flex-1");
+    expect(combobox).toHaveClass("h-11", "sm:flex-1");
     expect(combobox.closest("div.flex.w-full.flex-col.gap-2")).toHaveClass("sm:max-w-[30rem]", "sm:justify-end");
     expect(deleteButton.closest("div.flex.w-full.flex-col.gap-2")).toBe(
       combobox.closest("div.flex.w-full.flex-col.gap-2"),

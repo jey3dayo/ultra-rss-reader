@@ -93,7 +93,7 @@ export function FormRowsSpecimen({ livePreview, onLivePreviewChange }: FormRowsS
         onChange={() => {}}
         placeholder="Main reader"
         controlClassName="flex w-full items-center gap-2 sm:max-w-[30rem] sm:justify-end"
-        inputClassName="h-10 flex-1"
+        inputClassName="h-11 flex-1"
         actionLabel="Reset"
         actionClassName="h-11 px-4 text-sm font-medium"
         onAction={() => {}}
@@ -106,7 +106,7 @@ export function FormRowsSpecimen({ livePreview, onLivePreviewChange }: FormRowsS
         onChange={() => {}}
         placeholder="News"
         controlClassName="flex-col items-stretch sm:flex-row sm:items-center"
-        inputClassName="h-10 flex-1"
+        inputClassName="h-11 flex-1"
         actionLabel="Create"
         actionAriaLabel="Create"
         actionClassName="h-11 w-full justify-center px-4 text-sm font-medium sm:w-auto"

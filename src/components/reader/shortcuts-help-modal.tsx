@@ -1,6 +1,9 @@
+import { XIcon } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { MOTION_CONTENT_SWAP_CLASS_NAME } from "@/constants/motion";
 import {
+  Button,
   Command,
   CommandEmpty,
   CommandGroup,
@@ -9,6 +12,7 @@ import {
   CommandList,
   CommandShortcut,
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -39,6 +43,7 @@ type ShortcutHelpItem = {
 
 export function ShortcutsHelpModal({ open, onOpenChange }: ShortcutsHelpModalProps) {
   const t = useStableOpenTranslation("reader", open);
+  const { t: tCommon } = useTranslation("common");
   const platformKind = usePlatformStore((state) => state.platform.kind);
   const shortcutPrefs = usePreferencesStore((state) => state.prefs);
   const [searchValue, setSearchValue] = useState("");
@@ -80,8 +85,23 @@ export function ShortcutsHelpModal({ open, onOpenChange }: ShortcutsHelpModalPro
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="overflow-hidden p-0 sm:max-w-2xl" showCloseButton={false}>
         <div className="border-b p-4">
-          <DialogHeader className="space-y-2">
-            <DialogTitle className="text-lg">{t("shortcuts_help.title")}</DialogTitle>
+          <DialogHeader className="relative space-y-2 pr-12">
+            <div className="flex min-h-11 items-start justify-between gap-3">
+              <DialogTitle className="text-lg">{t("shortcuts_help.title")}</DialogTitle>
+              <DialogClose
+                render={
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={tCommon(["dialog_close", "close"])}
+                    className="-mr-2 -mt-2 shrink-0"
+                  />
+                }
+              >
+                <XIcon aria-hidden="true" />
+              </DialogClose>
+            </div>
             <DialogDescription className="flex flex-wrap items-center gap-2">
               <span>{t("shortcuts_help.description")}</span>
               <kbd className="rounded-md border border-border/70 bg-surface-1/72 px-2 py-0.5 font-mono text-xs text-foreground-soft">
@@ -91,11 +111,13 @@ export function ShortcutsHelpModal({ open, onOpenChange }: ShortcutsHelpModalPro
           </DialogHeader>
         </div>
 
-        <Command shouldFilter={true} className="max-h-none rounded-none">
+        <Command shouldFilter={true} label={t("shortcuts_help.placeholder")} className="max-h-none rounded-none">
           <CommandInput
             value={searchValue}
             onValueChange={setSearchValue}
+            aria-label={t("shortcuts_help.placeholder")}
             placeholder={t("shortcuts_help.placeholder")}
+            autoFocus
           />
           <CommandList
             key={searchValue.trim().toLowerCase()}
@@ -113,7 +135,7 @@ export function ShortcutsHelpModal({ open, onOpenChange }: ShortcutsHelpModalPro
                     <CommandItem
                       key={shortcut.definition.id}
                       value={shortcut.searchValue}
-                      className="flex-col items-start gap-1.5 sm:flex-row sm:items-center"
+                      className="min-h-11 flex-col items-start gap-1.5 sm:flex-row sm:items-center"
                     >
                       <span className="min-w-0">{shortcut.label}</span>
                       <CommandShortcut className="ml-0 sm:ml-auto">{shortcut.displayKey}</CommandShortcut>

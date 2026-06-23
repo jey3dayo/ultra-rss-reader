@@ -9,7 +9,7 @@ describe("AccountDetailSettingsRow", () => {
     const value = screen.getByText("FreshRSS");
     expect(value.parentElement).toHaveClass("w-full");
     expect(value.parentElement).toHaveClass("text-left");
-    expect(value.parentElement).toHaveClass("min-h-10");
+    expect(value.parentElement).toHaveClass("min-h-11");
     expect(value.parentElement).toHaveClass("px-3");
     expect(value.parentElement).toHaveClass("text-foreground-soft");
   });

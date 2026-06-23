@@ -145,7 +145,7 @@ function ArticleToolbarMobilePrimaryButton({
       aria-label={label}
       disabled={disabled}
       className={cn(
-        "inline-flex h-9 min-w-9 items-center justify-center gap-1.5 rounded-md bg-transparent px-2 text-xs font-medium text-foreground-soft shadow-none select-none hover:bg-surface-2/64 hover:text-foreground focus-visible:bg-surface-2/72 focus-visible:ring-2 focus-visible:ring-ring/45 disabled:text-foreground-soft [&_svg]:pointer-events-none [&_svg]:shrink-0",
+        "inline-flex h-11 min-w-11 items-center justify-center gap-1.5 rounded-md bg-transparent px-2 text-xs font-medium text-foreground-soft shadow-none select-none hover:bg-surface-2/64 hover:text-foreground focus-visible:bg-surface-2/72 focus-visible:ring-2 focus-visible:ring-ring/45 disabled:text-foreground-soft [&_svg]:pointer-events-none [&_svg]:shrink-0",
         articleToolbarUnavailableClassName,
         active && articleToolbarVisualActiveClassNames[activeTone],
       )}

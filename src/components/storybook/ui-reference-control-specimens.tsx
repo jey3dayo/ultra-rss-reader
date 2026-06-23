@@ -321,9 +321,9 @@ export function IconUtilityButtonSpecimen() {
           >
             <div className="mb-2 flex items-center justify-between gap-3 text-[11px] font-medium tracking-[0.14em] text-[#f2f1ed]/60 uppercase">
               <span>Browser chrome</span>
-              <span>40px target / 20px icon</span>
+              <span>44px target / 20px icon</span>
             </div>
-            <div className="flex min-h-10 items-center gap-3">
+            <div className="flex min-h-11 items-center gap-3">
               <IconToolbarSurfaceButton label="Browser chrome close" variant="chrome" onClick={() => undefined}>
                 <X className="size-5" />
               </IconToolbarSurfaceButton>

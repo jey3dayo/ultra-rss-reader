@@ -347,7 +347,7 @@ describe("BrowserView", () => {
         cmd: "create_or_update_browser_webview",
         args: {
           url: "https://example.com/article",
-          bounds: { x: 0, y: 40, width: 1400, height: 860 },
+          bounds: { x: 0, y: 44, width: 1400, height: 856 },
         },
       });
     });
@@ -492,7 +492,7 @@ describe("BrowserView", () => {
         cmd: "create_or_update_browser_webview",
         args: {
           url: "https://example.com/article",
-          bounds: { x: 0, y: 50, width: 1750, height: 1075, unit: "physical" },
+          bounds: { x: 0, y: 55, width: 1750, height: 1070, unit: "physical" },
         },
       });
     });
@@ -615,7 +615,7 @@ describe("BrowserView", () => {
         cmd: "create_or_update_browser_webview",
         args: {
           url: "https://example.com/article",
-          bounds: { x: 0, y: 40, width: 1400, height: 860 },
+          bounds: { x: 0, y: 44, width: 1400, height: 856 },
         },
       });
     });
@@ -909,7 +909,7 @@ describe("BrowserView", () => {
     expectInlineStyles(stage, {
       left: "0px",
       right: "0px",
-      top: "40px",
+      top: "44px",
       bottom: "0px",
     });
     expect(stage).toHaveClass("rounded-none");
@@ -978,7 +978,7 @@ describe("BrowserView", () => {
     expectInlineStyles(stage, {
       left: "0px",
       right: "0px",
-      top: "40px",
+      top: "44px",
       bottom: "0px",
     });
     expect(topRail).toBeInTheDocument();
@@ -990,7 +990,7 @@ describe("BrowserView", () => {
       left: "0px",
       right: "0px",
       top: "0px",
-      height: "40px",
+      height: "44px",
     });
     expect(host).toHaveStyle({
       left: "0px",
@@ -1000,10 +1000,16 @@ describe("BrowserView", () => {
     });
     expect(
       within(chrome).getByRole("button", { name: "Close Web Preview" }).closest("[data-overlay-shell='action']"),
-    ).toHaveClass("size-11", "md:size-10");
+    ).toHaveClass("size-11");
+    expect(
+      within(chrome).getByRole("button", { name: "Close Web Preview" }).closest("[data-overlay-shell='action']"),
+    ).not.toHaveClass("md:size-10");
     expect(
       screen.getByRole("button", { name: /open in external browser/i }).closest("[data-overlay-shell='action']"),
-    ).toHaveClass("size-11", "md:size-10");
+    ).toHaveClass("size-11");
+    expect(
+      screen.getByRole("button", { name: /open in external browser/i }).closest("[data-overlay-shell='action']"),
+    ).not.toHaveClass("md:size-10");
     expect(chrome).toBeInTheDocument();
   });
 
@@ -1042,10 +1048,10 @@ describe("BrowserView", () => {
       const trailingActions = screen.getByTestId("browser-overlay-actions");
 
       expectInlineStyles(stage, {
-        top: "40px",
+        top: "44px",
       });
       expectInlineStyles(topRail, {
-        height: "40px",
+        height: "44px",
       });
       expect(topRail).toHaveAttribute("data-tauri-drag-region");
       expect(topRail).not.toHaveClass("pointer-events-none");
@@ -1145,7 +1151,7 @@ describe("BrowserView", () => {
     await waitFor(() => {
       expect(screen.queryByTestId("browser-overlay-diagnostics")).not.toBeInTheDocument();
     });
-    expect(stage).toHaveStyle({ top: "40px" });
+    expect(stage).toHaveStyle({ top: "44px" });
     expect(screen.getByTestId("browser-overlay-top-rail")).toBeInTheDocument();
   });
 
@@ -1176,7 +1182,7 @@ describe("BrowserView", () => {
 
       expectInlineStyles(screen.getByTestId("browser-overlay-stage-shell"), {
         left: "0px",
-        top: "40px",
+        top: "44px",
         right: "0px",
         bottom: "0px",
       });
@@ -1191,16 +1197,16 @@ describe("BrowserView", () => {
           cmd: "create_or_update_browser_webview",
           args: {
             url: "https://example.com/article",
-            bounds: { x: 0, y: 40, width: 1400, height: 860 },
+            bounds: { x: 0, y: 44, width: 1400, height: 856 },
           },
         });
       });
       await waitFor(() => {
         expect(geometryEvents[geometryEvents.length - 1]?.detail.layoutDiagnostics.hostLogical).toEqual({
           x: 0,
-          y: 40,
+          y: 44,
           width: 1400,
-          height: 860,
+          height: 856,
         });
       });
     } finally {
@@ -1474,7 +1480,7 @@ describe("BrowserView", () => {
         cmd: "create_or_update_browser_webview",
         args: {
           url: "https://example.com/article",
-          bounds: { x: 0, y: 40, width: 1400, height: 860 },
+          bounds: { x: 0, y: 44, width: 1400, height: 856 },
         },
       });
     });
@@ -1491,7 +1497,7 @@ describe("BrowserView", () => {
       expect(commands).toContainEqual({
         cmd: "set_browser_webview_bounds",
         args: {
-          bounds: { x: 0, y: 40, width: 1200, height: 760 },
+          bounds: { x: 0, y: 44, width: 1200, height: 756 },
         },
       });
     });
@@ -1535,7 +1541,7 @@ describe("BrowserView", () => {
         cmd: "create_or_update_browser_webview",
         args: {
           url: "https://example.com/article",
-          bounds: { x: 0, y: 40, width: 1400, height: 860 },
+          bounds: { x: 0, y: 44, width: 1400, height: 856 },
         },
       });
     });

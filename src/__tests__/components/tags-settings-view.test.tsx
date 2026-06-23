@@ -81,6 +81,7 @@ describe("TagsSettingsView", () => {
 
     const favRow = screen.getByTestId("tags-settings-row-tag-1");
     const favName = within(favRow).getByText(longTagName);
+    expect(favName.closest("div.flex.min-w-0")).toHaveClass("flex-1");
     expect(favName).toHaveClass("max-w-full", "truncate");
     expect(favName).toHaveAttribute("dir", "auto");
     expect(favName).toHaveAttribute("title", longTagName);
@@ -129,8 +130,12 @@ describe("TagsSettingsView", () => {
     );
 
     const input = screen.getByRole("textbox", { name: "Name" });
-    expect(input).toHaveClass("h-10", "flex-1");
-    expect(input.closest("div.flex.w-full.items-center.gap-2")).toHaveClass("sm:max-w-[30rem]", "sm:justify-end");
+    expect(input).toHaveClass("h-11", "flex-1");
+    expect(input.closest("div.flex.w-full.min-w-0.flex-col.gap-2")).toHaveClass(
+      "sm:max-w-[30rem]",
+      "sm:flex-row",
+      "sm:justify-end",
+    );
     expect(input.id).toBeTruthy();
     expect(document.querySelector(`label[for="${input.id}"]`)).toHaveTextContent("Name");
 
