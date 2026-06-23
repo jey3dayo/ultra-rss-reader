@@ -11,6 +11,18 @@ function getRequiredHTMLElement(element: Element | null, description: string) {
 }
 
 describe("SubscriptionsOverviewSummary", () => {
+  const englishLabels = {
+    activeBadge: "Showing",
+    staticBadge: "Reference",
+    showFilterAriaLabel: (label: string) => `Show ${label}`,
+    showAll: "Showing all",
+    showFiltered: "Filtered",
+    filterAll: "Show all",
+    filter: "Filter",
+    noMatches: "None",
+    criteria: "Criteria",
+  };
+
   it("uses semantic soft foreground text and neutral action chips", () => {
     render(
       <SubscriptionsOverviewSummary
@@ -98,6 +110,27 @@ describe("SubscriptionsOverviewSummary", () => {
     expect(await screen.findByText("Needs review: quiet feeds or weak usage signals.")).toHaveClass(
       "motion-popup-surface",
     );
+  });
+
+  it("uses localized accessible names for summary filter cards", () => {
+    render(
+      <SubscriptionsOverviewSummary
+        cards={[
+          {
+            filterKey: "review",
+            label: "Needs review",
+            value: "2",
+            caption: "Check these feeds",
+            tone: "review",
+          },
+        ]}
+        labels={englishLabels}
+        onSelectFilter={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Show Needs review" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Needs review を表示" })).not.toBeInTheDocument();
   });
 
   it("reserves the active badge slot to avoid layout shift", () => {

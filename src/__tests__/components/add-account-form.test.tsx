@@ -505,6 +505,8 @@ describe("AddAccountForm", () => {
 
     await user.type(serverUrlInput, "https://freshrss.example.com");
     expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
+    await user.keyboard("{Enter}");
+    expect(addAccountCalls).toBe(0);
     const usernameInput = screen.getByLabelText("Username");
     expect(usernameInput).toHaveAttribute("aria-invalid", "true");
     expect(document.getElementById(usernameInput.getAttribute("aria-errormessage") ?? "")).toHaveTextContent(

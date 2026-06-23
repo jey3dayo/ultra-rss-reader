@@ -108,6 +108,7 @@ type SummaryCardRenderModel = {
 export type SubscriptionsOverviewSummaryLabels = {
   activeBadge: string;
   staticBadge: string;
+  showFilterAriaLabel: (label: string) => string;
   showAll: string;
   showFiltered: string;
   filterAll: string;
@@ -119,6 +120,7 @@ export type SubscriptionsOverviewSummaryLabels = {
 const DEFAULT_SUMMARY_LABELS: SubscriptionsOverviewSummaryLabels = {
   activeBadge: "表示中",
   staticBadge: "参照",
+  showFilterAriaLabel: (label) => `${label} を表示`,
   showAll: "全件表示",
   showFiltered: "フィルタ中",
   filterAll: "すべて表示",
@@ -178,8 +180,8 @@ function resolveStaticBadgeLabel(labels: SubscriptionsOverviewSummaryLabels) {
   return labels.staticBadge;
 }
 
-function resolveSummaryFilterCardAriaLabel(card: SubscriptionSummaryCard) {
-  return `${card.label} を表示`;
+function resolveSummaryFilterCardAriaLabel(card: SubscriptionSummaryCard, labels: SubscriptionsOverviewSummaryLabels) {
+  return labels.showFilterAriaLabel(card.label);
 }
 
 function resolveActionChipLabel({
@@ -256,7 +258,7 @@ function SummaryFilterCardButton({
         cardClassName,
         "group cursor-pointer hover:border-border-strong/90 focus-visible:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45",
       )}
-      aria-label={resolveSummaryFilterCardAriaLabel(summaryCard)}
+      aria-label={resolveSummaryFilterCardAriaLabel(summaryCard, labels)}
       aria-pressed={Boolean(summaryCard.isActive)}
       onClick={() => onSelect(summaryCard.filterKey)}
     >

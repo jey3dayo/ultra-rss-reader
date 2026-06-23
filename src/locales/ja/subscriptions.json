@@ -10,6 +10,7 @@
   "summary_review_criteria": "要確認: 更新が長く止まっているか、取得済み記事に未読・スターがなく利用シグナルが弱い購読",
   "summary_active_badge": "表示中",
   "summary_static_badge": "参照",
+  "summary_action_show_filter_aria": "{{label}} を表示",
   "summary_action_show_all": "全件表示",
   "summary_action_filtered": "フィルタ中",
   "summary_action_filter_all": "すべて表示",

@@ -10,6 +10,7 @@
   "summary_review_criteria": "Needs review: feeds that have gone quiet, or fetched articles show weak usage signals with no unread items or stars.",
   "summary_active_badge": "Showing",
   "summary_static_badge": "Reference",
+  "summary_action_show_filter_aria": "Show {{label}}",
   "summary_action_show_all": "Showing all",
   "summary_action_filtered": "Filtered",
   "summary_action_filter_all": "Show all",

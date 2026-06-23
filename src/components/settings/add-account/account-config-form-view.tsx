@@ -101,6 +101,9 @@ export function AccountConfigFormView({
       <form
         onSubmit={(event) => {
           event.preventDefault();
+          if (submitting || submitDisabled) {
+            return;
+          }
           onSubmit();
         }}
         className="space-y-4"

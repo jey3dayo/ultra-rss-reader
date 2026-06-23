@@ -301,6 +301,7 @@ export function SubscriptionsIndexPage() {
         summaryLabels={{
           activeBadge: t("summary_active_badge"),
           staticBadge: t("summary_static_badge"),
+          showFilterAriaLabel: (label) => t("summary_action_show_filter_aria", { label }),
           showAll: t("summary_action_show_all"),
           showFiltered: t("summary_action_filtered"),
           filterAll: t("summary_action_filter_all"),
