@@ -49,7 +49,7 @@ describe("FeedTreeView visibility and density contract", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: /Example Feed/ })).toHaveClass("min-h-8", "py-0.5");
+    expect(screen.getByRole("button", { name: /Example Feed/ })).toHaveClass("min-h-11", "py-0.5");
   });
 
   it("keeps dense feed names constrained while preserving the full safe display name", () => {
@@ -74,7 +74,7 @@ describe("FeedTreeView visibility and density contract", () => {
     const name = screen.getByText("مثال very long user-created feed display name for dense rows");
     const row = screen.getByRole("button", { name: /very long user-created feed/ });
 
-    expect(row).toHaveClass("min-h-8", "py-0.5");
+    expect(row).toHaveClass("min-h-11", "py-0.5");
     expect(name).toHaveClass("max-w-full", "truncate");
     expect(name).toHaveAttribute("dir", "auto");
     expect(name).toHaveAttribute("title", "مثال very long user-created feed display name for dense rows");

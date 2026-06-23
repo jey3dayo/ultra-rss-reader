@@ -6,7 +6,7 @@ import { AccountDangerZoneView } from "@/components/settings/account-detail/dang
 function expectStandardSettingsActionButton(button: HTMLElement) {
   expect(button).toHaveClass("w-full");
   expect(button).toHaveClass("sm:w-auto");
-  expect(button).toHaveClass("h-10", "px-4");
+  expect(button).toHaveClass("h-11", "px-4");
   expect(button).toHaveClass("min-w-11");
 }
 
@@ -94,6 +94,37 @@ describe("AccountDangerZoneView", () => {
     expect(onImport).not.toHaveBeenCalled();
     expect(onExport).not.toHaveBeenCalled();
     expect(onRequestDelete).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { state: "disabled", props: { disabled: true } },
+    { state: "importing", props: { importing: true } },
+    { state: "exporting", props: { exporting: true } },
+  ])("blocks hidden OPML upload while actions are $state", async ({ props }) => {
+    const user = userEvent.setup();
+    const onImport = vi.fn();
+
+    render(
+      <AccountDangerZoneView
+        dataHeading="Data"
+        dangerHeading="Danger Zone"
+        importLabel="Import OPML"
+        exportLabel="Export OPML"
+        deleteLabel="Delete account"
+        onImport={onImport}
+        onExport={vi.fn()}
+        onRequestDelete={vi.fn()}
+        {...props}
+      />,
+    );
+
+    const input = screen.getByTestId("opml-import-input");
+
+    expect(input).toBeDisabled();
+
+    await user.upload(input, new File(["<opml />"], "feeds.opml"));
+
+    expect(onImport).not.toHaveBeenCalled();
   });
 
   it("shows busy feedback and blocks OPML actions while import is running", async () => {

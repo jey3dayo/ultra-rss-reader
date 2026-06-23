@@ -18,10 +18,10 @@ export type SidebarDensityTokens = {
 
 const densityMap: Record<SidebarDensity, SidebarDensityTokens> = {
   compact: {
-    navButton: "min-h-8 py-0.5",
+    navButton: "min-h-11 py-0.5",
     navButtonPaddingX: "px-1.5",
     navButtonContentGap: "gap-1.5",
-    leadingControl: "h-8 w-8",
+    leadingControl: "size-11",
     treeRailOffset: "-0.5rem",
     treeGap: "space-y-0",
     childGap: "space-y-0",
@@ -31,10 +31,10 @@ const densityMap: Record<SidebarDensity, SidebarDensityTokens> = {
     sectionLabelInset: "ml-1 px-2",
   },
   normal: {
-    navButton: "min-h-9 py-1",
+    navButton: "min-h-11 py-1",
     navButtonPaddingX: "px-1.5",
     navButtonContentGap: "gap-1.5",
-    leadingControl: "h-8 w-8",
+    leadingControl: "size-11",
     treeRailOffset: "-0.5rem",
     treeGap: "space-y-0.5",
     childGap: "space-y-0.5",
@@ -44,10 +44,10 @@ const densityMap: Record<SidebarDensity, SidebarDensityTokens> = {
     sectionLabelInset: "ml-1 px-2",
   },
   spacious: {
-    navButton: "min-h-10 py-1.5",
+    navButton: "min-h-11 py-1.5",
     navButtonPaddingX: "px-2",
     navButtonContentGap: "gap-2",
-    leadingControl: "h-8 w-8",
+    leadingControl: "size-11",
     treeRailOffset: "-0.75rem",
     treeGap: "space-y-1",
     childGap: "space-y-1",

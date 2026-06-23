@@ -193,11 +193,11 @@ describe("UI Reference canvases", () => {
     expect(screen.getByTestId("reference-validation-frame")).toHaveClass("rounded-md");
     expect(screen.getByTestId("reference-disabled-switch-frame")).toHaveClass("rounded-md");
     expect(screen.getAllByRole("textbox", { name: "Display name" })[0]).toHaveClass("h-10", "flex-1");
-    expect(screen.getByRole("button", { name: "Reset: Display name" })).toHaveClass("h-10", "px-4");
+    expect(screen.getByRole("button", { name: "Reset: Display name" })).toHaveClass("h-11", "px-4");
     expect(screen.getByRole("textbox", { name: "Tag name" })).toHaveClass("h-10", "flex-1");
-    expect(screen.getByRole("button", { name: "Create" })).toHaveClass("h-10", "px-4");
-    expect(screen.getByRole("textbox", { name: "Feed URL" })).toHaveClass("pr-20");
-    expect(screen.getByRole("button", { name: "Discover feed" })).toHaveClass("absolute", "right-1", "h-7", "min-w-14");
+    expect(screen.getByRole("button", { name: "Create" })).toHaveClass("h-11", "px-4");
+    expect(screen.getByRole("textbox", { name: "Feed URL" })).toHaveClass("min-h-11", "pr-24");
+    expect(screen.getByRole("button", { name: "Discover feed" })).toHaveClass("absolute", "right-1", "h-11", "min-w-20");
     expect(screen.getByRole("combobox", { name: "Density" })).toBeInTheDocument();
     expect(screen.getByRole("switch", { name: "Live Preview" })).toBeInTheDocument();
 
@@ -248,8 +248,8 @@ describe("UI Reference canvases", () => {
       expect(screen.getByRole("button", { name: "Discover feed" })).toHaveClass(
         "absolute",
         "right-1",
-        "h-7",
-        "min-w-14",
+        "h-11",
+        "min-w-20",
       );
       inputControlsRender.unmount();
 

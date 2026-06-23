@@ -135,7 +135,7 @@ describe("TagsSettingsView", () => {
     expect(document.querySelector(`label[for="${input.id}"]`)).toHaveTextContent("Name");
 
     const createButton = screen.getByRole("button", { name: "Create" });
-    expect(createButton).toHaveClass("h-10", "px-4");
+    expect(createButton).toHaveClass("h-11", "px-4");
     expectStandardSettingsActionButtonWidth(createButton);
 
     await user.type(input, " tag");

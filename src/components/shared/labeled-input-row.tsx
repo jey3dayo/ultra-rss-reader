@@ -77,7 +77,7 @@ export function LabeledInputRow({
   const hasInsideAction = actionPlacement === "inside" && Boolean(actionLabel && onAction);
   const isInsideIconAction = hasInsideAction && Boolean(actionIcon);
   const resolvedActionVariant = actionVariant ?? (hasInsideAction ? "ghost" : "outline");
-  const resolvedActionSize = actionSize ?? (hasInsideAction ? (isInsideIconAction ? "icon-sm" : "sm") : "default");
+  const resolvedActionSize = actionSize ?? (hasInsideAction ? (isInsideIconAction ? "icon" : "default") : "default");
   const resolvedActionDisabled = actionDisabled ?? disabled;
   const actionButton =
     actionLabel && onAction ? (
@@ -92,7 +92,8 @@ export function LabeledInputRow({
         className={cn(
           actionPlacement === "inside" &&
             "absolute top-1/2 right-1 -translate-y-1/2 text-foreground-soft transition-colors duration-200 hover:text-foreground active:not-aria-[haspopup]:-translate-y-1/2 motion-reduce:transition-none",
-          actionPlacement === "inside" && !actionIcon && "h-7 min-w-14 px-2 text-xs font-medium",
+          actionPlacement === "inside" && !actionIcon && "h-11 min-w-20 px-3 text-xs font-medium",
+          actionPlacement === "inside" && actionIcon && "size-11",
           actionClassName,
         )}
       >
@@ -121,7 +122,7 @@ export function LabeledInputRow({
             onFocus={onFocus}
             onKeyDown={onKeyDown}
             placeholder={placeholder}
-            className={cn(hasInsideAction ? (isInsideIconAction ? "pr-11" : "pr-20") : undefined, inputClassName)}
+            className={cn(hasInsideAction ? (isInsideIconAction ? "min-h-11 pr-12" : "min-h-11 pr-24") : undefined, inputClassName)}
             disabled={disabled}
           />
           {actionPlacement === "inside" && actionButton ? (

@@ -85,7 +85,7 @@ describe("AccountCredentialsSectionView", () => {
     expect(button).toHaveAttribute("aria-busy", "true");
     expect(button).toHaveClass("w-full");
     expect(button).toHaveClass("sm:w-auto");
-    expect(button).toHaveClass("h-10", "px-4");
+    expect(button).toHaveClass("h-11", "px-4");
     expectStandardSettingsActionButtonWidth(button);
     expect(button).toHaveClass("border", "border-border/65", "bg-surface-2/82", "text-foreground");
     expect(screen.getByText("Test Connection")).toHaveClass("sm:w-40");

@@ -1071,7 +1071,7 @@ describe("Sidebar", () => {
     render(<Sidebar />, { wrapper: createWrapper() });
 
     const folderToggle = await screen.findByRole("button", { name: "Toggle folder Work" });
-    expect(folderToggle).toHaveClass("h-8");
+    expect(folderToggle).toHaveClass("size-11");
   });
 
   it("shows only unread feeds from the selected folder when viewMode is unread", async () => {

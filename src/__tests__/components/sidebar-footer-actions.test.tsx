@@ -124,7 +124,7 @@ describe("SidebarFooterActions", () => {
     const button = screen.getByRole("button", { name: "Manage Subscriptions" });
 
     expect(button).toHaveClass(
-      "h-8",
+      "h-11",
       "rounded-md",
       "border-0",
       "bg-transparent",

@@ -59,7 +59,7 @@ describe("FolderSectionView", () => {
     const feedButton = screen.getByRole("button", { name: /Beta/i });
 
     expect(trigger).toHaveAttribute("aria-expanded", "true");
-    expect(trigger).toHaveClass("min-h-9");
+    expect(trigger).toHaveClass("min-h-11");
     const disclosureIcon = trigger.querySelector("svg");
     expect(disclosureIcon).toHaveClass("size-3");
     expect(disclosureIcon).not.toHaveClass("h-3", "w-3");
@@ -69,7 +69,7 @@ describe("FolderSectionView", () => {
     expect(screen.getByText("12")).toHaveAttribute("data-motion-phase", "entering");
     expect(feedButton).toHaveClass("bg-surface-selected");
     expect(feedButton).toHaveClass("before:bg-border-strong");
-    expect(feedButton).toHaveClass("min-h-9");
+    expect(feedButton).toHaveClass("min-h-11");
     expect(feedButton).not.toHaveAttribute("aria-haspopup");
     expect(container.querySelector('[data-slot="collapsible-content"]')).not.toBeNull();
 

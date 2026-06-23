@@ -428,8 +428,8 @@ describe("shared form controls", () => {
     const input = screen.getByRole("textbox", { name: "Feed URL" });
     const actionButton = screen.getByRole("button", { name: "Discover feed" });
 
-    expect(input).toHaveClass("pr-20");
-    expect(actionButton).toHaveClass("absolute", "right-1", "h-7", "min-w-14", "px-2", "text-xs");
+    expect(input).toHaveClass("min-h-11", "pr-24");
+    expect(actionButton).toHaveClass("absolute", "right-1", "h-11", "min-w-20", "px-3", "text-xs");
   });
 
   it("exposes select and switch rows with label-driven accessible names", async () => {

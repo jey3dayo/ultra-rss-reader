@@ -48,7 +48,7 @@ export function AccountDangerZoneView({
   const handleImportFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.currentTarget.files?.[0];
     event.currentTarget.value = "";
-    if (file) {
+    if (file && !importDisabled) {
       onImport(file);
     }
   };
@@ -68,6 +68,7 @@ export function AccountDangerZoneView({
             accept=".opml,.xml"
             aria-label={importLabel}
             className="hidden"
+            disabled={importDisabled}
             tabIndex={-1}
             onChange={handleImportFileChange}
           />

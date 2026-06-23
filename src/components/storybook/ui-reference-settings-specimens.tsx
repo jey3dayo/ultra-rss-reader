@@ -95,7 +95,7 @@ export function FormRowsSpecimen({ livePreview, onLivePreviewChange }: FormRowsS
         controlClassName="flex w-full items-center gap-2 sm:max-w-[30rem] sm:justify-end"
         inputClassName="h-10 flex-1"
         actionLabel="Reset"
-        actionClassName="h-10 px-4 text-sm font-medium"
+        actionClassName="h-11 px-4 text-sm font-medium"
         onAction={() => {}}
         actionDisabled={false}
       />
@@ -109,7 +109,7 @@ export function FormRowsSpecimen({ livePreview, onLivePreviewChange }: FormRowsS
         inputClassName="h-10 flex-1"
         actionLabel="Create"
         actionAriaLabel="Create"
-        actionClassName="h-10 w-full justify-center px-4 text-sm font-medium sm:w-auto"
+        actionClassName="h-11 w-full justify-center px-4 text-sm font-medium sm:w-auto"
         onAction={() => {}}
         actionDisabled={false}
       />

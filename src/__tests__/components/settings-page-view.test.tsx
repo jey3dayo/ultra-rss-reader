@@ -166,7 +166,7 @@ describe("SettingsPageView", () => {
     expect(document.querySelector(`label[for="${input.id}"]`)).toHaveTextContent("Display name");
 
     const action = screen.getByRole("button", { name: "Reset display name" });
-    expect(action).toHaveClass("h-10", "px-4");
+    expect(action).toHaveClass("h-11", "px-4");
     expect(action).toHaveClass("min-h-11", "min-w-11");
 
     await user.clear(input);

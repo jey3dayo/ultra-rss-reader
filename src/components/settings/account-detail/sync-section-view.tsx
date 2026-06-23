@@ -77,6 +77,8 @@ export function AccountSyncSectionView({
   isDevCredentialsRecoveryInFlight,
 }: AccountSyncSectionViewProps) {
   const normalizedProgressValue = typeof progressValue === "number" ? clampProgressValue(progressValue) : null;
+  const syncActionDisabled = Boolean(isSyncing || isDevCredentialsRecoveryInFlight);
+  const devCredentialsRecoveryDisabled = Boolean(isSyncing || isDevCredentialsRecoveryInFlight);
 
   return (
     <SettingsSection heading={heading} note={note} surface="flat" className="mb-6 sm:mb-7">
@@ -147,7 +149,7 @@ export function AccountSyncSectionView({
       {(onSyncNow || onSecondaryAction || onDevCredentialsRecoveryAction) && (
         <div className={cn(CONTROL_RAIL_CLASS, "flex flex-col-reverse gap-2 pt-4 sm:flex-row sm:justify-end")}>
           {onSecondaryAction && secondaryActionLabel ? (
-            <SettingsActionButton onClick={onSecondaryAction} disabled={isSyncing}>
+            <SettingsActionButton onClick={onSecondaryAction} disabled={syncActionDisabled}>
               {secondaryActionLabel}
             </SettingsActionButton>
           ) : null}
@@ -156,12 +158,18 @@ export function AccountSyncSectionView({
               onClick={onDevCredentialsRecoveryAction}
               loading={isDevCredentialsRecoveryInFlight}
               loadingLabel={devCredentialsRecoveryLoadingLabel}
+              disabled={devCredentialsRecoveryDisabled}
             >
               {devCredentialsRecoveryActionLabel}
             </SettingsLoadingActionButton>
           ) : null}
           {onSyncNow ? (
-            <SettingsLoadingActionButton onClick={onSyncNow} loading={isSyncing} loadingLabel={syncingLabel}>
+            <SettingsLoadingActionButton
+              onClick={onSyncNow}
+              loading={isSyncing}
+              loadingLabel={syncingLabel}
+              disabled={syncActionDisabled}
+            >
               {syncNowLabel}
             </SettingsLoadingActionButton>
           ) : null}
