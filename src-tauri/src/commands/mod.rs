@@ -78,7 +78,6 @@ pub(crate) fn command_db_lock_policy(command_name: &str) -> Option<CommandDbLock
         | "list_folders"
         | "create_folder"
         | "list_feeds"
-        | "delete_feed"
         | "rename_feed"
         | "update_feed_folder"
         | "update_feed_display_settings"
@@ -128,6 +127,7 @@ pub(crate) fn command_db_lock_policy(command_name: &str) -> Option<CommandDbLock
         "add_account"
         | "test_account_connection"
         | "add_local_feed"
+        | "delete_feed"
         | "trigger_sync"
         | "trigger_startup_sync"
         | "trigger_sync_account"
@@ -446,7 +446,7 @@ mod tests {
                 CommandDbLockPolicy::AsyncCommandBlockingLock,
             ),
             ("list_accounts", CommandDbLockPolicy::BlockingLock),
-            ("delete_feed", CommandDbLockPolicy::BlockingLock),
+            ("delete_feed", CommandDbLockPolicy::AsyncCommandBlockingLock),
             (
                 "trigger_sync",
                 CommandDbLockPolicy::AsyncCommandBlockingLock,

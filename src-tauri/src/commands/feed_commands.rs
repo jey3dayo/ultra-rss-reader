@@ -5,10 +5,11 @@ use tauri::State;
 
 use crate::commands::dto::{AppError, FeedDto, FolderDto};
 use crate::commands::AppState;
+use crate::domain::account::Account;
 use crate::domain::error::DomainError;
 use crate::domain::feed::Feed;
 use crate::domain::folder::normalize_folder_name as normalize_folder_domain_name;
-use crate::domain::provider::ProviderKind;
+use crate::domain::provider::{FeedIdentifier, ProviderKind};
 use crate::domain::types::{AccountId, FeedId, FolderId};
 use crate::infra::db::connection::DbManager;
 use crate::infra::db::sqlite_account::SqliteAccountRepository;
@@ -183,10 +184,11 @@ fn create_folder_in_db(
 }
 
 #[tauri::command]
-pub fn delete_feed(state: State<'_, AppState>, feed_id: String) -> Result<(), AppError> {
-    delete_feed_with_sync_boundary(&state.db, state.syncing.as_ref(), feed_id)
+pub async fn delete_feed(state: State<'_, AppState>, feed_id: String) -> Result<(), AppError> {
+    delete_feed_with_remote_sync_boundary(&state.db, state.syncing.as_ref(), feed_id).await
 }
 
+#[cfg(test)]
 fn delete_feed_with_sync_boundary(
     db: &Mutex<DbManager>,
     syncing: &AtomicBool,
@@ -201,6 +203,122 @@ fn delete_feed_in_db(db: &DbManager, feed_id: String) -> Result<(), AppError> {
     let repo = SqliteFeedRepository::new(db.writer());
     repo.delete(&FeedId(feed_id))?;
     Ok(())
+}
+
+fn load_feed_for_delete(db: &DbManager, feed_id: &FeedId) -> Result<Feed, AppError> {
+    let repo = SqliteFeedRepository::new(db.reader());
+    repo.find_by_id(feed_id)?
+        .ok_or_else(|| AppError::UserVisible {
+            message: "Validation error: feed not found".into(),
+        })
+}
+
+fn load_delete_feed_account(db: &DbManager, account_id: &AccountId) -> Result<Account, AppError> {
+    let repo = SqliteAccountRepository::new(db.reader());
+    repo.find_by_id(account_id)?
+        .ok_or_else(|| AppError::UserVisible {
+            message: "Account not found".into(),
+        })
+}
+
+#[cfg(test)]
+async fn delete_feed_with_provider_sync_boundary<P: FeedProvider>(
+    db: &Mutex<DbManager>,
+    syncing: &AtomicBool,
+    feed_id: String,
+    provider: &P,
+) -> Result<(), AppError> {
+    let _guard = crate::commands::start_database_maintenance(syncing)?;
+    delete_feed_after_provider_unsubscribe(db, feed_id, provider).await
+}
+
+async fn delete_feed_after_provider_unsubscribe<P: FeedProvider>(
+    db: &Mutex<DbManager>,
+    feed_id: String,
+    provider: &P,
+) -> Result<(), AppError> {
+    let feed_id = FeedId(feed_id);
+    let feed = {
+        let db = lock_db(db)?;
+        load_feed_for_delete(&db, &feed_id)?
+    };
+
+    let remote_id = resolve_remote_subscription_id_for_delete(provider, &feed)
+        .await?
+        .ok_or_else(|| AppError::UserVisible {
+            message: "Remote subscription could not be found".into(),
+        })?;
+    provider
+        .delete_subscription(&FeedIdentifier::Remote { remote_id })
+        .await?;
+
+    let db = lock_db(db)?;
+    delete_feed_in_db(&db, feed_id.0)
+}
+
+async fn resolve_remote_subscription_id_for_delete<P: FeedProvider>(
+    provider: &P,
+    feed: &Feed,
+) -> Result<Option<String>, AppError> {
+    if let Some(remote_id) = feed.remote_id.clone() {
+        return Ok(Some(remote_id));
+    }
+
+    let subscriptions = provider.get_subscriptions().await?;
+    Ok(subscriptions
+        .into_iter()
+        .find(|subscription| subscription.url == feed.url)
+        .map(|subscription| subscription.remote_id))
+}
+
+async fn delete_feed_with_remote_sync_boundary(
+    db: &Mutex<DbManager>,
+    syncing: &AtomicBool,
+    feed_id: String,
+) -> Result<(), AppError> {
+    let _guard = crate::commands::start_database_maintenance(syncing)?;
+    let feed_id = FeedId(feed_id);
+    let feed = {
+        let db = lock_db(db)?;
+        load_feed_for_delete(&db, &feed_id)?
+    };
+
+    let account = {
+        let db = lock_db(db)?;
+        load_delete_feed_account(&db, &feed.account_id)?
+    };
+    if matches!(account.kind, ProviderKind::FreshRss) {
+        let provider = authenticated_freshrss_provider(&account).await?;
+        return delete_feed_after_provider_unsubscribe(db, feed_id.0, &provider).await;
+    }
+
+    let db = lock_db(db)?;
+    delete_feed_in_db(&db, feed_id.0)
+}
+
+async fn authenticated_freshrss_provider(account: &Account) -> Result<GReaderProvider, AppError> {
+    let username = account
+        .username
+        .clone()
+        .ok_or_else(|| AppError::UserVisible {
+            message: "FreshRSS username is required".into(),
+        })?;
+    let server_url = account
+        .server_url
+        .as_deref()
+        .ok_or_else(|| AppError::UserVisible {
+            message: "FreshRSS server URL is required".into(),
+        })?;
+
+    let mut provider = GReaderProvider::for_freshrss(server_url);
+    let password = super::sync_providers::get_greader_password(account).await?;
+    provider
+        .authenticate(&Credentials {
+            token: Some(username),
+            password: Some(password),
+        })
+        .await?;
+    Ok(provider)
 }
 
 #[tauri::command]
@@ -353,6 +471,39 @@ fn validate_add_local_feed_account_still_local_in_db(
     Ok(())
 }
 
+fn validate_add_freshrss_feed_preflight_in_db(
+    db: &DbManager,
+    account_id: &AccountId,
+    url: &str,
+) -> Result<(), AppError> {
+    let account = validate_add_local_feed_account_in_db(db, account_id)?;
+    if !matches!(account.kind, ProviderKind::FreshRss) {
+        return Err(AppError::UserVisible {
+            message: "Feed can only be added to a FreshRSS account".into(),
+        });
+    }
+    validate_add_local_feed_duplicate_url_in_db(db, account_id, url)
+}
+
+fn validate_add_freshrss_subscription_unique_in_db(
+    db: &DbManager,
+    account_id: &AccountId,
+    url: &str,
+    remote_id: &str,
+) -> Result<(), AppError> {
+    validate_add_local_feed_duplicate_url_in_db(db, account_id, url)?;
+    let feed_repo = SqliteFeedRepository::new(db.reader());
+    if feed_repo
+        .find_by_remote_id(account_id, remote_id)?
+        .is_some()
+    {
+        return Err(AppError::UserVisible {
+            message: "Feed URL is already subscribed".into(),
+        });
+    }
+    Ok(())
+}
+
 #[tauri::command]
 pub async fn add_local_feed(
     state: State<'_, AppState>,
@@ -460,6 +611,11 @@ async fn add_freshrss_feed_with_account(
     account: crate::domain::account::Account,
     url: String,
 ) -> Result<FeedDto, AppError> {
+    {
+        let db = lock_db(db)?;
+        validate_add_freshrss_feed_preflight_in_db(&db, &account.id, &url)?;
+    }
+
     let username = account
         .username
         .clone()
@@ -499,8 +655,15 @@ async fn add_freshrss_feed_with_account(
 
     {
         let db = lock_db(db)?;
-        validate_add_local_feed_account_in_db(&db, &account.id)?;
-        validate_add_local_feed_duplicate_url_in_db(&db, &account.id, &feed.url)?;
+        validate_add_freshrss_feed_preflight_in_db(&db, &account.id, &feed.url)?;
+        if let Some(remote_id) = feed.remote_id.as_deref() {
+            validate_add_freshrss_subscription_unique_in_db(
+                &db,
+                &account.id,
+                &feed.url,
+                remote_id,
+            )?;
+        }
         let feed_repo = SqliteFeedRepository::new(db.writer());
         feed_repo.save(&feed)?;
     }
@@ -524,8 +687,7 @@ async fn add_freshrss_feed_with_account(
     if let Err(error) =
         super::sync_providers::sync_greader_feed(db, &account, &persisted_feed, provider).await
     {
-        rollback_added_feed(db, &persisted_feed.id, &error);
-        return Err(error);
+        tracing::warn!("FreshRSS feed was added but initial article sync failed: {error}");
     }
 
     let unread_count = {
@@ -651,6 +813,7 @@ pub async fn discover_feeds(url: String) -> Result<Vec<DiscoveredFeedDto>, AppEr
 
 #[cfg(test)]
 mod tests {
+    use async_trait::async_trait;
     use rusqlite::params;
     use std::net::TcpListener;
     use std::sync::atomic::{AtomicBool, Ordering};
@@ -660,16 +823,30 @@ mod tests {
 
     use super::{
         add_local_feed_with_db, add_local_feed_with_provider, classify_update_feed_folder_error,
-        create_folder_in_db, delete_feed_in_db, delete_feed_with_sync_boundary, lock_db,
+        create_folder_in_db, delete_feed_in_db, delete_feed_with_provider_sync_boundary,
+        delete_feed_with_remote_sync_boundary, delete_feed_with_sync_boundary, lock_db,
         recalculate_feed_unread_count_in_db, rename_feed_in_db, update_feed_display_settings_in_db,
-        update_feed_folder_in_db, validate_add_local_feed_account_in_db,
+        update_feed_folder_in_db, validate_add_freshrss_feed_preflight_in_db,
+        validate_add_freshrss_subscription_unique_in_db, validate_add_local_feed_account_in_db,
         validate_add_local_feed_duplicate_url_in_db, UPDATE_FEED_FOLDER_TARGET_VALIDATION_MESSAGE,
     };
     use crate::commands::dto::AppError;
-    use crate::domain::error::DomainError;
+    use crate::domain::account::{Account, ConnectionVerificationStatus};
+    use crate::domain::error::{DomainError, DomainResult};
+    use crate::domain::provider::{
+        FeedIdentifier, Mutation, ProviderCapabilities, ProviderKind, PullResult, PullScope,
+        RemoteFolder, RemoteState, RemoteSubscription, SyncCursor,
+    };
     use crate::domain::types::{AccountId, FeedId, FolderId};
     use crate::infra::db::connection::DbManager;
+    use crate::infra::db::sqlite_account::SqliteAccountRepository;
+    use crate::infra::db::sqlite_feed::SqliteFeedRepository;
+    use crate::infra::keyring_store;
     use crate::infra::provider::local::LocalProvider;
+    use crate::infra::provider::traits::{Credentials, FeedProvider};
+    use crate::repository::account::AccountRepository;
+    use crate::repository::feed::FeedRepository;
+    use mockito::Matcher;
 
     const SAMPLE_RSS: &str = r#"<?xml version="1.0" encoding="UTF-8"?>
     <rss version="2.0">
@@ -682,6 +859,25 @@ mod tests {
         </item>
       </channel>
     </rss>"#;
+    static DEV_CREDENTIALS_ENV_LOCK: std::sync::LazyLock<tokio::sync::Mutex<()>> =
+        std::sync::LazyLock::new(|| tokio::sync::Mutex::new(()));
+
+    struct DevCredentialsContext {
+        _guard: tokio::sync::MutexGuard<'static, ()>,
+        _dir: tempfile::TempDir,
+        previous_home: Option<String>,
+    }
+
+    impl Drop for DevCredentialsContext {
+        fn drop(&mut self) {
+            std::env::remove_var("DEV_CREDENTIALS");
+            std::env::remove_var("XDG_DATA_HOME");
+            match self.previous_home.as_ref() {
+                Some(home) => std::env::set_var("HOME", home),
+                None => std::env::remove_var("HOME"),
+            }
+        }
+    }
 
     fn test_db() -> DbManager {
         DbManager::new_in_memory().unwrap()
@@ -702,6 +898,52 @@ mod tests {
         insert_test_account_with_kind(db, name, "Local")
     }
 
+    fn insert_freshrss_account(db: &DbManager, server_url: &str) -> AccountId {
+        let account = Account {
+            id: AccountId::new(),
+            kind: ProviderKind::FreshRss,
+            name: "FreshRSS".to_string(),
+            server_url: Some(server_url.to_string()),
+            username: Some("u".to_string()),
+            sync_interval_secs: 900,
+            sync_on_startup: false,
+            sync_on_wake: false,
+            keep_read_items_days: 30,
+            connection_verification_status: ConnectionVerificationStatus::Verified,
+            connection_verified_at: None,
+            connection_verification_error: None,
+        };
+        let id = account.id.clone();
+        SqliteAccountRepository::new(db.writer())
+            .save(&account)
+            .unwrap();
+        id
+    }
+
+    async fn configure_dev_credentials(account_id: &AccountId) -> DevCredentialsContext {
+        let guard = DEV_CREDENTIALS_ENV_LOCK.lock().await;
+        let previous_home = std::env::var("HOME").ok();
+        std::env::set_var("DEV_CREDENTIALS", "1");
+        let credentials_dir = tempfile::tempdir().unwrap();
+        std::env::set_var("XDG_DATA_HOME", credentials_dir.path());
+        std::env::set_var("HOME", credentials_dir.path());
+        std::fs::create_dir_all(credentials_dir.path().join("ultra-rss-reader")).unwrap();
+        std::fs::write(
+            credentials_dir
+                .path()
+                .join("ultra-rss-reader")
+                .join("dev-credentials.json"),
+            "{}",
+        )
+        .unwrap();
+        keyring_store::set_password(account_id.as_ref(), "p").unwrap();
+        DevCredentialsContext {
+            _guard: guard,
+            _dir: credentials_dir,
+            previous_home,
+        }
+    }
+
     fn insert_test_feed(db: &DbManager, account_id: &AccountId) -> FeedId {
         let id = FeedId::new();
         db.writer()
@@ -711,6 +953,78 @@ mod tests {
             )
             .unwrap();
         id
+    }
+
+    fn insert_remote_test_feed(db: &DbManager, account_id: &AccountId, remote_id: &str) -> FeedId {
+        let id = FeedId::new();
+        db.writer()
+            .execute(
+                "INSERT INTO feeds (id, account_id, remote_id, title, url) VALUES (?1, ?2, ?3, ?4, ?5)",
+                params![id.0, account_id.0, remote_id, "Feed", "http://example.com/rss"],
+            )
+            .unwrap();
+        id
+    }
+
+    struct RecordingDeleteProvider {
+        deleted_ids: Mutex<Vec<FeedIdentifier>>,
+        subscriptions: Vec<RemoteSubscription>,
+    }
+
+    #[async_trait]
+    impl FeedProvider for RecordingDeleteProvider {
+        fn kind(&self) -> ProviderKind {
+            ProviderKind::FreshRss
+        }
+
+        fn capabilities(&self) -> ProviderCapabilities {
+            ProviderKind::FreshRss.capabilities()
+        }
+
+        async fn authenticate(&mut self, _credentials: &Credentials) -> DomainResult<()> {
+            Ok(())
+        }
+
+        async fn get_subscriptions(&self) -> DomainResult<Vec<RemoteSubscription>> {
+            Ok(self.subscriptions.clone())
+        }
+
+        async fn get_folders(&self) -> DomainResult<Vec<RemoteFolder>> {
+            Ok(Vec::new())
+        }
+
+        async fn pull_entries(
+            &self,
+            _scope: PullScope,
+            _cursor: Option<SyncCursor>,
+        ) -> DomainResult<PullResult> {
+            Err(DomainError::Validation(
+                "test provider does not pull entries".to_string(),
+            ))
+        }
+
+        async fn pull_state(&self) -> DomainResult<RemoteState> {
+            Ok(RemoteState::default())
+        }
+
+        async fn push_mutations(&self, _mutations: &[Mutation]) -> DomainResult<()> {
+            Ok(())
+        }
+
+        async fn create_subscription(
+            &self,
+            _url: &str,
+            _folder: Option<&str>,
+        ) -> DomainResult<RemoteSubscription> {
+            Err(DomainError::Validation(
+                "test provider does not create subscriptions".to_string(),
+            ))
+        }
+
+        async fn delete_subscription(&self, id: &FeedIdentifier) -> DomainResult<()> {
+            self.deleted_ids.lock().unwrap().push(id.clone());
+            Ok(())
+        }
     }
 
     #[test]
@@ -746,6 +1060,135 @@ mod tests {
             AppError::UserVisible { message }
                 if message == "Folder belongs to another account"
         ));
+    }
+
+    #[test]
+    fn add_freshrss_feed_preflight_rejects_duplicate_before_remote_create() {
+        let db = test_db();
+        let account_id = insert_test_account_with_kind(&db, "FreshRSS", "FreshRss");
+        insert_test_feed(&db, &account_id);
+
+        let error =
+            validate_add_freshrss_feed_preflight_in_db(&db, &account_id, "http://example.com/rss")
+                .expect_err("duplicate FreshRSS feed should be rejected before remote create");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message } if message == "Feed URL is already subscribed"
+        ));
+    }
+
+    #[test]
+    fn add_freshrss_feed_rejects_returned_remote_id_duplicate_before_local_save() {
+        let db = test_db();
+        let account_id = insert_test_account_with_kind(&db, "FreshRSS", "FreshRss");
+        insert_remote_test_feed(&db, &account_id, "feed/remote-existing");
+
+        let error = validate_add_freshrss_subscription_unique_in_db(
+            &db,
+            &account_id,
+            "http://example.com/new-rss",
+            "feed/remote-existing",
+        )
+        .expect_err("duplicate returned FreshRSS remote id should be rejected before local save");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message } if message == "Feed URL is already subscribed"
+        ));
+
+        let feed_count: i64 = db
+            .reader()
+            .query_row("SELECT COUNT(*) FROM feeds", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(feed_count, 1);
+    }
+
+    #[tokio::test]
+    async fn add_freshrss_feed_keeps_local_feed_when_initial_sync_fails() {
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(200)
+            .with_body("Auth=tok\n")
+            .create_async()
+            .await;
+        server
+            .mock(
+                "POST",
+                "/api/greader.php/reader/api/0/subscription/quickadd",
+            )
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_status(200)
+            .with_body(
+                r#"{
+                    "streamId": "feed/https://example.com/rss",
+                    "query": "Example Feed"
+                }"#,
+            )
+            .create_async()
+            .await;
+        server
+            .mock(
+                "GET",
+                "/api/greader.php/reader/api/0/subscription/list?output=json",
+            )
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_status(200)
+            .with_body(
+                r#"{
+                    "subscriptions": [
+                        {
+                            "id": "feed/https://example.com/rss",
+                            "title": "Example Feed",
+                            "url": "https://example.com/rss",
+                            "htmlUrl": "https://example.com"
+                        }
+                    ]
+                }"#,
+            )
+            .create_async()
+            .await;
+        server
+            .mock(
+                "GET",
+                "/api/greader.php/reader/api/0/stream/contents/feed%2Fhttps%3A%2F%2Fexample.com%2Frss",
+            )
+            .match_query(Matcher::AllOf(vec![
+                Matcher::UrlEncoded("output".into(), "json".into()),
+                Matcher::UrlEncoded("n".into(), "200".into()),
+                Matcher::UrlEncoded("xt".into(), "user/-/state/com.google/read".into()),
+            ]))
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_status(500)
+            .create_async()
+            .await;
+
+        let db = Mutex::new(test_db());
+        let account_id = {
+            let guard = db.lock().unwrap();
+            insert_freshrss_account(&guard, &server.url())
+        };
+        let _credentials = configure_dev_credentials(&account_id).await;
+
+        let added_feed = add_local_feed_with_db(
+            &db,
+            account_id.0.clone(),
+            "https://example.com/rss".to_string(),
+        )
+        .await
+        .expect("initial article sync failure should not roll back a remote-created subscription");
+
+        assert_eq!(
+            added_feed.remote_id.as_deref(),
+            Some("feed/https://example.com/rss")
+        );
+        let guard = db.lock().unwrap();
+        let feed_repo = SqliteFeedRepository::new(guard.reader());
+        let persisted_feed = feed_repo
+            .find_by_remote_id(&account_id, "feed/https://example.com/rss")
+            .unwrap();
+        assert!(persisted_feed.is_some());
     }
 
     #[test]
@@ -790,6 +1233,142 @@ mod tests {
             .expect("feed delete should succeed");
 
         assert!(!syncing.load(Ordering::SeqCst));
+    }
+
+    #[tokio::test]
+    async fn delete_feed_command_unsubscribes_remote_feed_before_local_delete() {
+        let db = Mutex::new(test_db());
+        let account_id = {
+            let guard = db.lock().unwrap();
+            insert_test_account_with_kind(&guard, "Primary", "FreshRss")
+        };
+        let feed_id = {
+            let guard = db.lock().unwrap();
+            insert_remote_test_feed(&guard, &account_id, "feed/http://example.com/rss")
+        };
+        let syncing = AtomicBool::new(false);
+        let provider = RecordingDeleteProvider {
+            deleted_ids: Mutex::new(Vec::new()),
+            subscriptions: Vec::new(),
+        };
+
+        delete_feed_with_provider_sync_boundary(&db, &syncing, feed_id.0.clone(), &provider)
+            .await
+            .expect("remote feed delete should succeed");
+
+        let deleted_ids = provider.deleted_ids.lock().unwrap();
+        assert_eq!(deleted_ids.len(), 1);
+        assert!(matches!(
+            &deleted_ids[0],
+            FeedIdentifier::Remote { remote_id }
+                if remote_id == "feed/http://example.com/rss"
+        ));
+        let guard = db.lock().unwrap();
+        let feed_repo = SqliteFeedRepository::new(guard.reader());
+        assert!(feed_repo.find_by_id(&feed_id).unwrap().is_none());
+    }
+
+    #[tokio::test]
+    async fn delete_feed_command_resolves_missing_remote_id_before_local_delete() {
+        let db = Mutex::new(test_db());
+        let account_id = {
+            let guard = db.lock().unwrap();
+            insert_test_account_with_kind(&guard, "Primary", "FreshRss")
+        };
+        let feed_id = {
+            let guard = db.lock().unwrap();
+            insert_test_feed(&guard, &account_id)
+        };
+        let syncing = AtomicBool::new(false);
+        let provider = RecordingDeleteProvider {
+            deleted_ids: Mutex::new(Vec::new()),
+            subscriptions: vec![RemoteSubscription {
+                remote_id: "feed/http://example.com/rss".to_string(),
+                title: "Feed".to_string(),
+                url: "http://example.com/rss".to_string(),
+                site_url: "http://example.com".to_string(),
+                folder_remote_id: None,
+                icon_url: None,
+            }],
+        };
+
+        delete_feed_with_provider_sync_boundary(&db, &syncing, feed_id.0.clone(), &provider)
+            .await
+            .expect("remote id should be resolved before delete");
+
+        let deleted_ids = provider.deleted_ids.lock().unwrap();
+        assert_eq!(deleted_ids.len(), 1);
+        assert!(matches!(
+            &deleted_ids[0],
+            FeedIdentifier::Remote { remote_id }
+                if remote_id == "feed/http://example.com/rss"
+        ));
+        let guard = db.lock().unwrap();
+        let feed_repo = SqliteFeedRepository::new(guard.reader());
+        assert!(feed_repo.find_by_id(&feed_id).unwrap().is_none());
+    }
+
+    #[tokio::test]
+    async fn delete_feed_command_resolves_missing_remote_id_in_freshrss_path() {
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(200)
+            .with_body("Auth=tok\n")
+            .create_async()
+            .await;
+        server
+            .mock(
+                "GET",
+                "/api/greader.php/reader/api/0/subscription/list?output=json",
+            )
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_status(200)
+            .with_body(
+                r#"{
+                    "subscriptions": [
+                        {
+                            "id": "feed/http://example.com/rss",
+                            "title": "Feed",
+                            "url": "http://example.com/rss",
+                            "htmlUrl": "http://example.com"
+                        }
+                    ]
+                }"#,
+            )
+            .create_async()
+            .await;
+        let unsubscribe_mock = server
+            .mock("POST", "/api/greader.php/reader/api/0/subscription/edit")
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .match_body(Matcher::AllOf(vec![
+                Matcher::Regex("(^|&)ac=unsubscribe(&|$)".to_string()),
+                Matcher::Regex("(^|&)s=feed%2Fhttp%3A%2F%2Fexample.com%2Frss(&|$)".to_string()),
+            ]))
+            .with_status(200)
+            .create_async()
+            .await;
+
+        let db = Mutex::new(test_db());
+        let account_id = {
+            let guard = db.lock().unwrap();
+            insert_freshrss_account(&guard, &server.url())
+        };
+        let feed_id = {
+            let guard = db.lock().unwrap();
+            insert_test_feed(&guard, &account_id)
+        };
+        let _credentials = configure_dev_credentials(&account_id).await;
+        let syncing = AtomicBool::new(false);
+
+        delete_feed_with_remote_sync_boundary(&db, &syncing, feed_id.0.clone())
+            .await
+            .expect("FreshRSS delete should resolve missing remote id before local delete");
+
+        unsubscribe_mock.assert_async().await;
+        let guard = db.lock().unwrap();
+        let feed_repo = SqliteFeedRepository::new(guard.reader());
+        assert!(feed_repo.find_by_id(&feed_id).unwrap().is_none());
     }
 
     #[test]

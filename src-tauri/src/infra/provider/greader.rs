@@ -253,6 +253,25 @@ fn quickadd_match_keys(requested_url: &str, response_body: &str) -> HashSet<Stri
     keys
 }
 
+fn quickadd_fallback_subscription(
+    requested_url: &str,
+    response_body: &str,
+) -> Option<RemoteSubscription> {
+    let response = serde_json::from_str::<QuickAddResponse>(response_body).ok()?;
+    let remote_id = response.stream_id?;
+    let url = feed_stream_url(&remote_id)
+        .unwrap_or(requested_url)
+        .to_string();
+    Some(RemoteSubscription {
+        remote_id,
+        title: response.query.unwrap_or_else(|| requested_url.to_string()),
+        url,
+        site_url: requested_url.to_string(),
+        folder_remote_id: None,
+        icon_url: None,
+    })
+}
+
 fn subscription_matches_quickadd_keys(
     subscription: &RemoteSubscription,
     quickadd_keys: &HashSet<String>,
@@ -872,8 +891,21 @@ impl FeedProvider for GReaderProvider {
 
         let response_body = resp.text().await?;
 
-        // After quickadd, fetch subscriptions to find the new one
-        let subs = self.get_subscriptions().await?;
+        // After quickadd, fetch subscriptions to find the new one. If the
+        // verification fetch fails after the remote mutation succeeded, keep a
+        // minimal local subscription when the quickadd response gives us a stream id.
+        let subs = match self.get_subscriptions().await {
+            Ok(subs) => subs,
+            Err(error) => {
+                if let Some(subscription) = quickadd_fallback_subscription(url, &response_body) {
+                    tracing::warn!(
+                        "GReader quickadd succeeded but subscription verification failed: {error}"
+                    );
+                    return Ok(subscription);
+                }
+                return Err(error);
+            }
+        };
         let quickadd_keys = quickadd_match_keys(url, &response_body);
         let mut matches = subs
             .into_iter()
@@ -3463,6 +3495,63 @@ mod tests {
             .unwrap();
 
         assert_eq!(subscription.remote_id, "feed/opaque-remote-id");
+        quickadd_mock.assert_async().await;
+        sub_mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn create_subscription_uses_quickadd_stream_id_when_subscription_lookup_fails() {
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(200)
+            .with_body("Auth=tok\n")
+            .create_async()
+            .await;
+
+        let quickadd_mock = server
+            .mock(
+                "POST",
+                "/api/greader.php/reader/api/0/subscription/quickadd",
+            )
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_status(200)
+            .with_body(
+                r#"{
+                    "streamId": "feed/https://example.com/rss",
+                    "query": "Example Feed"
+                }"#,
+            )
+            .create_async()
+            .await;
+
+        let sub_mock = server
+            .mock(
+                "GET",
+                "/api/greader.php/reader/api/0/subscription/list?output=json",
+            )
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_status(500)
+            .create_async()
+            .await;
+
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
+        provider
+            .authenticate(&Credentials {
+                password: Some("p".into()),
+                token: Some("u".into()),
+            })
+            .await
+            .unwrap();
+
+        let subscription = provider
+            .create_subscription("https://example.com/rss", None)
+            .await
+            .unwrap();
+
+        assert_eq!(subscription.remote_id, "feed/https://example.com/rss");
+        assert_eq!(subscription.url, "https://example.com/rss");
+        assert_eq!(subscription.title, "Example Feed");
         quickadd_mock.assert_async().await;
         sub_mock.assert_async().await;
     }
