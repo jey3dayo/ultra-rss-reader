@@ -10,6 +10,7 @@ type TagColorPickerProps = {
   colorOptions: readonly string[];
   noColorLabel: string;
   optionAriaLabel: (color: string) => string;
+  disabled?: boolean;
   onChange: (value: string | null) => void;
 };
 
@@ -19,6 +20,7 @@ export function TagColorPicker({
   colorOptions,
   noColorLabel,
   optionAriaLabel,
+  disabled = false,
   onChange,
 }: TagColorPickerProps) {
   const labelId = useId();
@@ -35,6 +37,9 @@ export function TagColorPicker({
   const selectedIndex = radioValues.indexOf(normalizedColor);
   const checkedIndex = selectedIndex >= 0 ? selectedIndex : 0;
   const selectByIndex = (index: number, shouldFocus = false) => {
+    if (disabled) {
+      return;
+    }
     onChange(radioValues[index] ?? null);
     if (shouldFocus) {
       radioRefs.current[index]?.focus();
@@ -71,7 +76,7 @@ export function TagColorPicker({
         aria-orientation="horizontal"
         aria-labelledby={label ? labelId : undefined}
         tabIndex={-1}
-        className="flex flex-wrap items-center gap-1.5"
+        className="flex flex-wrap items-center gap-2"
         onKeyDown={handleKeyDown}
       >
         <label title={noColorLabel}>
@@ -84,12 +89,14 @@ export function TagColorPicker({
             checked={normalizedColor === null}
             aria-label={noColorLabel}
             className="peer sr-only"
-            tabIndex={checkedIndex === 0 ? 0 : -1}
+            disabled={disabled}
+            tabIndex={!disabled && checkedIndex === 0 ? 0 : -1}
             onChange={() => onChange(null)}
           />
           <span
             className={cn(
-              "motion-interactive-surface flex size-8 items-center justify-center rounded-full border bg-surface-1 text-[11px] text-foreground-soft peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-ring/50",
+              "motion-interactive-surface flex size-11 items-center justify-center rounded-full border bg-surface-1 text-[11px] text-foreground-soft peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-ring/50",
+              disabled && "cursor-not-allowed opacity-50",
               normalizedColor === null
                 ? "border-border-strong bg-surface-2 text-foreground ring-2 ring-ring/35"
                 : "border-border/70 hover:border-border-strong hover:bg-surface-2 hover:text-foreground",
@@ -109,12 +116,14 @@ export function TagColorPicker({
               checked={normalizedColor === option}
               aria-label={optionAriaLabel(option)}
               className="peer sr-only"
-              tabIndex={checkedIndex === optionIndex + 1 ? 0 : -1}
+              disabled={disabled}
+              tabIndex={!disabled && checkedIndex === optionIndex + 1 ? 0 : -1}
               onChange={() => onChange(option)}
             />
             <span
               className={cn(
-                "motion-interactive-surface relative flex size-8 items-center justify-center rounded-full border-2 peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-ring/50",
+                "motion-interactive-surface relative flex size-11 items-center justify-center rounded-full border-2 peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-ring/50",
+                disabled && "cursor-not-allowed opacity-50",
                 normalizedColor === option
                   ? "scale-110 border-white/85 shadow-[var(--tag-color-selected-shadow)]"
                   : "border-border/60 hover:border-border-strong",

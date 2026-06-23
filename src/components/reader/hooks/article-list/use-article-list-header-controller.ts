@@ -14,6 +14,7 @@ export function useArticleListHeaderController({
   filteredArticles,
   layoutMode,
   sidebarOpen,
+  showSearch,
   sidebarSubscriptionsLabel,
   feedDisplayLabel,
   showSidebarLabel,
@@ -33,6 +34,7 @@ export function useArticleListHeaderController({
   const headerControls = useArticleListHeaderControls({
     layoutMode,
     sidebarOpen,
+    showSearch,
     sidebarSubscriptionsLabel,
     feedDisplayLabel,
     showSidebarLabel,

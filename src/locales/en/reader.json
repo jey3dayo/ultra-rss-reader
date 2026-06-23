@@ -199,6 +199,7 @@
   "command_palette": {
     "placeholder": "Search commands…",
     "no_results": "No results found",
+    "results_label": "Command palette results",
     "recent_actions": "Recent Actions",
     "actions": "Actions",
     "dev_scenarios": "Dev Scenarios",
@@ -226,6 +227,7 @@
     "title": "Keyboard shortcuts",
     "description": "Search shortcuts or press ? to reopen this overlay.",
     "placeholder": "Search shortcuts…",
+    "results_label": "Keyboard shortcut results",
     "no_results": "No shortcuts found"
   },
   "shortcuts": {

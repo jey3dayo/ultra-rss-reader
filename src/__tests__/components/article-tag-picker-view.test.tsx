@@ -54,7 +54,7 @@ describe("ArticleTagPickerView", () => {
     expect(screen.getByRole("option", { name: "Important" })).toHaveClass("min-h-11", "rounded-md");
     expect(screen.getByRole("option", { name: "Important" })).toHaveClass("motion-static-hover-surface");
     expect(screen.getByRole("option", { name: "Important" })).toHaveClass("hover:bg-surface-1/72");
-    expect(screen.getByRole("textbox", { name: "" })).toHaveClass("h-10");
+    expect(screen.getByRole("textbox", { name: "Create tag" })).toHaveClass("h-10");
     expect(screen.getByRole("button", { name: "Create tag" })).toHaveClass("size-10", "rounded-md");
     expect(screen.getByRole("button", { name: "Create tag" })).toHaveClass(
       "text-foreground-soft",
@@ -70,6 +70,71 @@ describe("ArticleTagPickerView", () => {
     expect(onExpandedChange).not.toHaveBeenCalled();
     expect(onNewTagNameChange).not.toHaveBeenCalled();
     expect(onCreateTag).not.toHaveBeenCalled();
+  });
+
+  it("keeps the picker popover inside a narrow viewport", async () => {
+    const getBoundingClientRectSpy = vi
+      .spyOn(HTMLElement.prototype, "getBoundingClientRect")
+      .mockImplementation(function getBoundingClientRectMock(this: HTMLElement) {
+        if (this.getAttribute("role") === "listbox") {
+          return {
+            x: 260,
+            y: 40,
+            width: 260,
+            height: 120,
+            top: 40,
+            right: 520,
+            bottom: 160,
+            left: 260,
+            toJSON: () => ({}),
+          };
+        }
+
+        return {
+          x: 0,
+          y: 0,
+          width: 0,
+          height: 0,
+          top: 0,
+          right: 0,
+          bottom: 0,
+          left: 0,
+          toJSON: () => ({}),
+        };
+      });
+    const originalInnerWidth = window.innerWidth;
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 320 });
+
+    render(
+      <ArticleTagPickerView
+        assignedTags={[{ id: "tag-1", name: "Later", color: null }]}
+        availableTags={[{ id: "tag-2", name: "Important", color: "#ff0000" }]}
+        newTagName=""
+        isExpanded
+        labels={{
+          addTag: "Add tag",
+          availableTags: "Available tags",
+          newTagPlaceholder: "New tag name",
+          createTag: "Create tag",
+          removeTag: (name) => `Remove tag ${name}`,
+        }}
+        onExpandedChange={vi.fn()}
+        onNewTagNameChange={vi.fn()}
+        onAssignTag={vi.fn()}
+        onRemoveTag={vi.fn()}
+        onCreateTag={vi.fn()}
+      />,
+    );
+
+    const listbox = screen.getByRole("listbox", { name: "Available tags" });
+    expect(listbox).toHaveClass("max-w-[calc(100vw-1rem)]");
+    expect(screen.getByRole("textbox", { name: "New tag name" })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(listbox).toHaveStyle({ marginLeft: "-208px" });
+    });
+
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: originalInnerWidth });
+    getBoundingClientRectSpy.mockRestore();
   });
 
   it("requests expand and close state changes from trigger and escape", async () => {
@@ -132,7 +197,7 @@ describe("ArticleTagPickerView", () => {
     expect(trigger).toHaveAttribute("aria-expanded", "true");
     expect(trigger).toHaveClass("bg-surface-2/88", "text-foreground");
 
-    await user.click(screen.getByRole("textbox", { name: "" }));
+    await user.click(screen.getByRole("textbox", { name: "Create tag" }));
     await user.keyboard("{Escape}");
 
     await waitFor(() => {

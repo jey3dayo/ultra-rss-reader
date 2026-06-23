@@ -21,6 +21,8 @@ type ArticleReaderBodyProps = {
   onOpenArticleTitleInWebPreview?: () => void;
 };
 
+const ARTICLE_READER_SCROLL_POSITION_COMMIT_DELAY_MS = 120;
+
 function resolveArticleContentLinkUrl(href: string, articleUrl: string | null | undefined): string | null {
   const trimmedHref = href.trim();
   if (!trimmedHref) {
@@ -76,8 +78,46 @@ export function ArticleReaderBody({ article, feedName, onOpenArticleTitleInWebPr
     },
   );
   const currentArticleIdRef = useRef(article.id);
+  const pendingScrollPositionRef = useRef<{ articleId: string; scrollTop: number } | null>(null);
+  const scrollPositionCommitTimerRef = useRef<number | null>(null);
   const articleUrl = article.url;
   const articleContentHtml = fromSanitizedArticleHtml(article.content_sanitized);
+
+  const clearPendingScrollPositionCommit = useCallback(() => {
+    if (scrollPositionCommitTimerRef.current !== null) {
+      window.clearTimeout(scrollPositionCommitTimerRef.current);
+      scrollPositionCommitTimerRef.current = null;
+    }
+  }, []);
+
+  const commitPendingScrollPosition = useCallback(() => {
+    scrollPositionCommitTimerRef.current = null;
+    const pending = pendingScrollPositionRef.current;
+    if (!pending) {
+      return false;
+    }
+
+    pendingScrollPositionRef.current = null;
+    setArticleReaderScrollPosition(pending.articleId, pending.scrollTop);
+    return true;
+  }, [setArticleReaderScrollPosition]);
+
+  const flushPendingScrollPosition = useCallback(() => {
+    clearPendingScrollPositionCommit();
+    return commitPendingScrollPosition();
+  }, [clearPendingScrollPositionCommit, commitPendingScrollPosition]);
+
+  const scheduleScrollPositionCommit = useCallback(
+    (articleId: string, scrollTop: number) => {
+      pendingScrollPositionRef.current = { articleId, scrollTop };
+      clearPendingScrollPositionCommit();
+      scrollPositionCommitTimerRef.current = window.setTimeout(
+        commitPendingScrollPosition,
+        ARTICLE_READER_SCROLL_POSITION_COMMIT_DELAY_MS,
+      );
+    },
+    [clearPendingScrollPositionCommit, commitPendingScrollPosition],
+  );
 
   useLayoutEffect(() => {
     const viewport = viewportRef.current;
@@ -92,9 +132,12 @@ export function ArticleReaderBody({ article, feedName, onOpenArticleTitleInWebPr
       return;
     }
 
-    setArticleReaderScrollPosition(previousArticleId, viewport.scrollTop);
+    const didFlushPendingScrollPosition = flushPendingScrollPosition();
+    if (!didFlushPendingScrollPosition) {
+      setArticleReaderScrollPosition(previousArticleId, viewport.scrollTop);
+    }
     viewport.scrollTop = useUiStore.getState().articleReaderScrollPositions.get(article.id) ?? 0;
-  }, [article.id, setArticleReaderScrollPosition]);
+  }, [article.id, flushPendingScrollPosition, setArticleReaderScrollPosition]);
 
   useLayoutEffect(() => {
     currentArticleIdRef.current = article.id;
@@ -106,16 +149,17 @@ export function ArticleReaderBody({ article, feedName, onOpenArticleTitleInWebPr
       return;
     }
 
-    const handleScroll = () => {
-      setArticleReaderScrollPosition(currentArticleIdRef.current, viewport.scrollTop);
-    };
+    const handleScroll = () => scheduleScrollPositionCommit(currentArticleIdRef.current, viewport.scrollTop);
 
     viewport.addEventListener("scroll", handleScroll, { passive: true });
     return () => {
       viewport.removeEventListener("scroll", handleScroll);
-      setArticleReaderScrollPosition(currentArticleIdRef.current, viewport.scrollTop);
+      const didFlushPendingScrollPosition = flushPendingScrollPosition();
+      if (!didFlushPendingScrollPosition) {
+        setArticleReaderScrollPosition(currentArticleIdRef.current, viewport.scrollTop);
+      }
     };
-  }, [setArticleReaderScrollPosition]);
+  }, [flushPendingScrollPosition, scheduleScrollPositionCommit, setArticleReaderScrollPosition]);
 
   const openArticleTitle = useCallback(
     (url: string, metaKey = false, ctrlKey = false) => {
@@ -204,9 +248,9 @@ export function ArticleReaderBody({ article, feedName, onOpenArticleTitleInWebPr
       event.preventDefault();
       const scrollAmount = Math.max(72, Math.round(viewport.clientHeight * 0.8));
       viewport.scrollTop += direction * scrollAmount;
-      setArticleReaderScrollPosition(article.id, viewport.scrollTop);
+      scheduleScrollPositionCommit(article.id, viewport.scrollTop);
     },
-    [article.id, setArticleReaderScrollPosition],
+    [article.id, scheduleScrollPositionCommit],
   );
 
   return (

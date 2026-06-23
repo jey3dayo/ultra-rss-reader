@@ -43,6 +43,7 @@ type CommandPaletteResultsVisibility = {
 
 type CommandPaletteResultsHeadings = {
   noResultsLabel: string;
+  resultsLabel: string;
   recentActionsHeading: string;
   actionsHeading: string;
   devScenariosHeading: string;

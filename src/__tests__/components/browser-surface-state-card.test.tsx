@@ -66,6 +66,7 @@ describe("BrowserSurfaceStateCard", () => {
     expect(screen.queryByText("Technical detail")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Retry Web Preview" })).not.toBeInTheDocument();
     expect(openButton).toHaveAttribute("data-reader-passive-action", "true");
+    expect(openButton).toHaveClass("min-h-11", "min-w-11");
     expect(openButton).toBeEnabled();
   });
 
@@ -140,6 +141,8 @@ describe("BrowserSurfaceStateCard", () => {
     expect(detail).toHaveClass("[overflow-wrap:anywhere]");
     expect(retryButton).toHaveAttribute("data-reader-passive-action", "true");
     expect(externalButton).toHaveAttribute("data-reader-passive-action", "true");
+    expect(retryButton).toHaveClass("min-h-11", "min-w-11");
+    expect(externalButton).toHaveClass("min-h-11", "min-w-11");
     expect(retryButton).not.toHaveAccessibleName(/Technical detail/);
     expect(externalButton).not.toHaveAccessibleName(/The embedded browser/);
   });

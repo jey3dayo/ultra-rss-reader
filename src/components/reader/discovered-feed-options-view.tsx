@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
 import { Radio, RadioGroup } from "@/design-system";
 import type { DiscoveredFeedOption } from "./add-feed-dialog.types";
@@ -17,15 +18,20 @@ export function DiscoveredFeedOptionsView({
   options,
   onValueChange,
 }: DiscoveredFeedOptionsViewProps) {
+  const summaryId = useId();
+
   return (
     <div
       {...{ [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING }}
       className={`${MOTION_CONTENT_SWAP_CLASS_NAME} mt-3 space-y-1.5`}
     >
-      <p className="text-xs text-foreground-soft">{summary}</p>
+      <p id={summaryId} className="text-xs text-foreground-soft">
+        {summary}
+      </p>
       <RadioGroup
         name={name}
         value={value}
+        aria-labelledby={summaryId}
         onValueChange={onValueChange}
         className="grid max-h-32 gap-1 overflow-y-auto"
       >
@@ -47,7 +53,7 @@ export function DiscoveredFeedOptionsView({
             <span className="min-w-0" aria-hidden="true">
               <span className="block truncate">{option.label}</span>
               {option.description ? (
-                <span className="block truncate text-xs text-foreground-muted">{option.description}</span>
+                <span className="block break-all text-xs leading-snug text-foreground-muted">{option.description}</span>
               ) : null}
             </span>
           </label>

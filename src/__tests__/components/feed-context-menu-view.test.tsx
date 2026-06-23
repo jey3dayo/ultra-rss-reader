@@ -70,8 +70,8 @@ describe("FeedContextMenuView", () => {
     fireEvent.click(screen.getByRole("menuitem", { name: "Open site" }));
     fireEvent.click(screen.getByRole("menuitem", { name: "Mark all as read" }));
     expect(screen.getByText("Display mode")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("menuitem", { name: "Standard" }));
-    fireEvent.click(screen.getByRole("menuitem", { name: "Preview" }));
+    fireEvent.click(screen.getByRole("menuitemradio", { name: "Standard" }));
+    fireEvent.click(screen.getByRole("menuitemradio", { name: "Preview" }));
     fireEvent.click(screen.getByRole("menuitem", { name: "Unsubscribe…" }));
     fireEvent.click(screen.getByRole("menuitem", { name: "Edit…" }));
 
@@ -85,11 +85,14 @@ describe("FeedContextMenuView", () => {
       "data-action-id",
       "feed-mark-old-unread-read",
     );
-    expect(screen.getByRole("menuitem", { name: "Standard" })).toHaveAttribute(
+    expect(screen.getByRole("menuitemradio", { name: "Default" })).toBeChecked();
+    expect(screen.getByRole("menuitemradio", { name: "Standard" })).not.toBeChecked();
+    expect(screen.getByRole("menuitemradio", { name: "Preview" })).not.toBeChecked();
+    expect(screen.getByRole("menuitemradio", { name: "Standard" })).toHaveAttribute(
       "data-action-id",
       "feed-set-display-preset",
     );
-    expect(screen.getByRole("menuitem", { name: "Standard" })).toHaveAttribute("data-action-value", "standard");
+    expect(screen.getByRole("menuitemradio", { name: "Standard" })).toHaveAttribute("data-action-value", "standard");
     expect(screen.getByRole("menuitem", { name: "Unsubscribe…" })).toHaveAttribute(
       "data-action-id",
       "feed-unsubscribe",
@@ -170,18 +173,11 @@ describe("FeedContextMenuView", () => {
       </ContextMenu.Root>,
     );
 
-    const menuItems = screen.getAllByRole("menuitem").map((item) => item.textContent?.trim());
+    const actionItems = screen.getAllByRole("menuitem").map((item) => item.textContent?.trim());
+    const displayModeItems = screen.getAllByRole("menuitemradio").map((item) => item.textContent?.trim());
 
-    expect(menuItems).toEqual([
-      "Edit…",
-      "Open site",
-      "Mark all as read",
-      "Mark old unread as read",
-      "✓Default",
-      "Standard",
-      "Preview",
-      "Unsubscribe…",
-    ]);
+    expect(actionItems).toEqual(["Edit…", "Open site", "Mark all as read", "Mark old unread as read", "Unsubscribe…"]);
+    expect(displayModeItems).toEqual(["✓Default", "Standard", "Preview"]);
   });
 
   it("hides mark all read when the feed has no unread articles", () => {

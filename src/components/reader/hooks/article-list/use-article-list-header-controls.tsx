@@ -36,7 +36,7 @@ export function resolveArticleListHeaderControlAvailability({
   return {
     showSidebarButton: layoutMode === "mobile" || layoutMode === "wide" || layoutMode === "compact",
     isSidebarTogglePressed: layoutMode === "wide" ? sidebarOpen : undefined,
-    showFeedDisplaySelect: hasResolvedFeedId,
+    showFeedDisplaySelect: hasResolvedFeedId && !showSearch,
     showMarkAllRead: true,
     showSearchToggle: true,
     showCloseSearch: showSearch,
@@ -46,6 +46,7 @@ export function resolveArticleListHeaderControlAvailability({
 export function useArticleListHeaderControls({
   layoutMode,
   sidebarOpen,
+  showSearch,
   sidebarSubscriptionsLabel,
   feedDisplayLabel,
   showSidebarLabel,
@@ -61,7 +62,7 @@ export function useArticleListHeaderControls({
     layoutMode,
     sidebarOpen,
     resolvedFeedId,
-    showSearch: false,
+    showSearch,
   });
   const handleSidebarToggle = useCallback(() => {
     if (layoutMode === "wide") {

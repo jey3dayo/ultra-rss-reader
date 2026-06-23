@@ -82,7 +82,8 @@ export function FeedDialogUrlSection({
             variant="outline"
             size="sm"
             onClick={onDiscover}
-            disabled={discoverDisabled}
+            disabled={disabled || discoverDisabled}
+            aria-busy={discovering || undefined}
             aria-label={discovering ? discoveringLabel : discoverLabel}
             className={cn("min-h-11 shrink-0 px-3 text-sm font-medium", discovering && "text-foreground-soft")}
           >

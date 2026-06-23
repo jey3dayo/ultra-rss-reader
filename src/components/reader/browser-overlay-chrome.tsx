@@ -209,19 +209,21 @@ export function BrowserOverlayChrome(props: BrowserOverlayChromeProps) {
           >
             <ExternalLink aria-hidden="true" className="size-4" />
           </BrowserOverlayIconAction>
-          {toolbarActions?.map((action) => (
-            <BrowserOverlayIconAction
-              key={action.key}
-              actionKey={action.key}
-              compact={presentation.actionButtonSurface.compact}
-              label={action.label}
-              tooltipSide="left"
-              onClick={action.onClick}
-              disabled={action.disabled}
-            >
-              {action.icon}
-            </BrowserOverlayIconAction>
-          ))}
+          {controller.geometry.ultraCompact
+            ? null
+            : toolbarActions?.map((action) => (
+                <BrowserOverlayIconAction
+                  key={action.key}
+                  actionKey={action.key}
+                  compact={presentation.actionButtonSurface.compact}
+                  label={action.label}
+                  tooltipSide="left"
+                  onClick={action.onClick}
+                  disabled={action.disabled}
+                >
+                  {action.icon}
+                </BrowserOverlayIconAction>
+              ))}
         </div>
       </div>
     </TooltipProvider>

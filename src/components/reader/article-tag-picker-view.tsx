@@ -11,6 +11,7 @@ type ArticleTagPickerViewLabels = Readonly<{
   sectionHint?: string;
   addTag: string;
   availableTags: string;
+  newTagInputLabel?: string;
   newTagPlaceholder: string;
   createTag: string;
   removeTag: (name: string) => string;

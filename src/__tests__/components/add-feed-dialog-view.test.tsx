@@ -76,7 +76,13 @@ describe("AddFeedDialogView", () => {
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.getByRole("dialog")).toHaveClass("rounded-xl");
-    expect(screen.getByRole("dialog")).toHaveClass("bg-surface-2", "shadow-elevation-3");
+    expect(screen.getByRole("dialog")).toHaveClass(
+      "flex",
+      "max-h-[calc(100dvh-2rem)]",
+      "flex-col",
+      "bg-surface-2",
+      "shadow-elevation-3",
+    );
     expect(screen.getByText("Add a feed from a URL or website")).toHaveClass("text-foreground-soft");
     expect(screen.getByLabelText("Feed")).toHaveValue("https://example.com");
     expect(screen.getByTestId("feed-dialog-form-panel")).toHaveClass(
@@ -95,6 +101,7 @@ describe("AddFeedDialogView", () => {
     expect(screen.getByTestId("feed-dialog-folder-section")).toHaveClass("motion-content-swap", "border-t");
     expect(screen.getByTestId("feed-dialog-folder-section")).toHaveAttribute("data-motion-phase", "entering");
     expect(screen.getByRole("radio", { name: "Tech Blog" })).toBeInTheDocument();
+    expect(screen.getByRole("radiogroup", { name: "Found 2 feeds" })).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "Tech Blog" }).closest("label")).toHaveClass("min-h-11");
     expect(screen.getByTestId("feed-dialog-folder-section")).toHaveClass("border-border/70");
     expect(screen.getByRole("combobox", { name: "Folder" })).toHaveTextContent("New folder");
@@ -113,6 +120,7 @@ describe("AddFeedDialogView", () => {
     expect(screen.getByRole("button", { name: "Add" }).closest('[data-slot="dialog-footer"]')).toHaveClass(
       "mx-0",
       "mb-0",
+      "shrink-0",
     );
 
     await user.click(screen.getByRole("button", { name: "Discover" }));
@@ -277,6 +285,11 @@ describe("AddFeedDialogView", () => {
         name: "Tech Blog https://example.com/feed.xml",
       }),
     ).toBeChecked();
+    expect(screen.getByRole("radiogroup", { name: "Found 2 feeds" })).toContainElement(
+      screen.getByRole("radio", {
+        name: "Tech Blog https://example.com/feed.xml",
+      }),
+    );
     expect(
       screen.getByRole("radio", {
         name: "News Feed https://example.com/atom.xml",
@@ -350,5 +363,68 @@ describe("AddFeedDialogView", () => {
     expect(urlInput).toHaveAccessibleDescription("Use a full URL like https://example.com");
     expect(urlInput).toHaveAttribute("aria-errormessage", helperText.id);
     expect(urlInput).toHaveAttribute("aria-invalid", "true");
+  });
+
+  it("keeps discovery disabled and busy while discovery is pending", async () => {
+    const user = userEvent.setup();
+    const onDiscover = vi.fn();
+
+    render(
+      <AddFeedDialogView
+        open={true}
+        onOpenChange={vi.fn()}
+        url="https://example.com"
+        onUrlChange={vi.fn()}
+        onDiscover={onDiscover}
+        discovering
+        loading={false}
+        discoveredFeedsFoundLabel={null}
+        discoveredFeedOptions={[]}
+        selectedFeedUrl=""
+        onSelectedFeedUrlChange={vi.fn()}
+        folderSelectProps={{
+          labelId: "folder-label",
+          label: "Folder",
+          value: "",
+          options: [{ value: "", label: "No folder" }],
+          canCreateFolder: true,
+          disabled: false,
+          isCreatingFolder: false,
+          newFolderOptionLabel: "New folder",
+          newFolderLabel: "Folder name",
+          newFolderName: "",
+          newFolderPlaceholder: "Enter folder name",
+          onValueChange: vi.fn(),
+          onNewFolderNameChange: vi.fn(),
+        }}
+        error={null}
+        successMessage={null}
+        urlHint={null}
+        urlHintTone="muted"
+        isDiscoverDisabled={false}
+        isSubmitDisabled={false}
+        labels={{
+          title: "Add Feed",
+          description: "Add a feed from a URL or website",
+          urlLabel: "Feed",
+          urlPlaceholder: "https://example.com/feed.xml",
+          discover: "Discover",
+          discovering: "Discovering",
+          cancel: "Cancel",
+          add: "Add",
+          adding: "Adding",
+        }}
+        onSubmit={vi.fn()}
+      />,
+    );
+
+    const discoverButton = screen.getByRole("button", { name: "Discovering" });
+
+    expect(discoverButton).toBeDisabled();
+    expect(discoverButton).toHaveAttribute("aria-busy", "true");
+
+    await user.click(discoverButton);
+
+    expect(onDiscover).not.toHaveBeenCalled();
   });
 });

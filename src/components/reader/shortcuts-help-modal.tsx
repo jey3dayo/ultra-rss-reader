@@ -99,6 +99,7 @@ export function ShortcutsHelpModal({ open, onOpenChange }: ShortcutsHelpModalPro
           />
           <CommandList
             key={searchValue.trim().toLowerCase()}
+            label={t("shortcuts_help.results_label")}
             data-testid="shortcuts-help-results"
             data-motion-phase="entering"
             className={`${MOTION_CONTENT_SWAP_CLASS_NAME} max-h-[360px]`}
@@ -114,7 +115,7 @@ export function ShortcutsHelpModal({ open, onOpenChange }: ShortcutsHelpModalPro
                       value={shortcut.searchValue}
                       className="flex-col items-start gap-1.5 sm:flex-row sm:items-center"
                     >
-                      <span>{shortcut.label}</span>
+                      <span className="min-w-0">{shortcut.label}</span>
                       <CommandShortcut className="ml-0 sm:ml-auto">{shortcut.displayKey}</CommandShortcut>
                     </CommandItem>
                   ))}

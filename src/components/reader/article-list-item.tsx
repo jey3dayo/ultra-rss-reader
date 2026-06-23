@@ -103,12 +103,12 @@ export function ArticleListItem({
       )}
     >
       <div className="flex items-start gap-2">
-        <div className="flex flex-1 items-start gap-2">
+        <div className="flex min-w-0 flex-1 items-start gap-2">
           <UnreadIcon
             unread={presentation.isUnread}
             className={cn("mt-1.5 size-2", !presentation.isUnread && "invisible")}
           />
-          <div className="flex flex-1 items-start gap-1.5">
+          <div className="flex min-w-0 flex-1 items-start gap-1.5">
             <h3
               className={cn(
                 "line-clamp-2 flex-1 text-sm leading-snug",

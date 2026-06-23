@@ -59,6 +59,7 @@ describe("ShortcutsHelpModal", () => {
     renderShortcutsHelpModal(<ShortcutsHelpModal open={true} onOpenChange={() => {}} />);
 
     expect(await screen.findByRole("dialog", { name: "Keyboard shortcuts" })).toBeInTheDocument();
+    expect(screen.getByRole("listbox", { name: "Keyboard shortcut results" })).toBeInTheDocument();
     const input = screen.getByPlaceholderText("Search shortcuts…");
     await user.type(input, "settings");
 

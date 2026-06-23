@@ -31,7 +31,7 @@ function CommandPaletteActionItems({
         onSelect={() => onActionSelect(action.id)}
       >
         <Icon />
-        <span>{action.label}</span>
+        <span className="min-w-0 truncate">{action.label}</span>
         {action.shortcut ? <CommandShortcut>{action.shortcut}</CommandShortcut> : null}
       </CommandItem>
     );

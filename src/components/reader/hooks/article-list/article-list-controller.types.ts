@@ -207,6 +207,7 @@ export type UseArticleListHeaderControllerParams = {
   filteredArticles: ArticleDto[];
   layoutMode: LayoutMode;
   sidebarOpen: boolean;
+  showSearch: boolean;
   sidebarSubscriptionsLabel: string;
   feedDisplayLabel: string;
   showSidebarLabel: string;
@@ -222,6 +223,7 @@ export type UseArticleListHeaderControllerResult = UseArticleListHeaderControlsR
 export type UseArticleListHeaderControlsParams = {
   layoutMode: LayoutMode;
   sidebarOpen: boolean;
+  showSearch: boolean;
   sidebarSubscriptionsLabel: string;
   feedDisplayLabel: string;
   showSidebarLabel: string;

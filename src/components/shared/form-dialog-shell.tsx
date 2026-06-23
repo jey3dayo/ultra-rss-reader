@@ -72,12 +72,12 @@ export function FormDialogShell({
       <DialogContent
         showCloseButton={false}
         className={cn(
-          "overflow-hidden rounded-xl border border-border/70 bg-surface-2 p-0 shadow-elevation-3",
+          "flex max-h-[calc(100dvh-2rem)] flex-col overflow-hidden rounded-xl border border-border/70 bg-surface-2 p-0 shadow-elevation-3",
           formDialogSizeClassName[size],
           contentClassName,
         )}
       >
-        <DialogHeader className="border-b border-border/70 px-6 py-4">
+        <DialogHeader className="shrink-0 border-b border-border/70 px-6 py-4">
           <DialogTitle className="text-[1.35rem] font-semibold tracking-tight">{title}</DialogTitle>
           {description ? (
             <DialogDescription className="max-w-[46ch] text-[0.82rem] leading-5 text-foreground-soft">
@@ -85,10 +85,13 @@ export function FormDialogShell({
             </DialogDescription>
           ) : null}
         </DialogHeader>
-        <form onSubmit={handleSubmit} className={cn("space-y-4 px-6 py-4", bodyClassName)}>
+        <form
+          onSubmit={handleSubmit}
+          className={cn("min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-4", bodyClassName)}
+        >
           {children}
         </form>
-        <DialogFooter className="mx-0 mb-0 border-t border-border/70 bg-surface-1/72 px-6 py-4">
+        <DialogFooter className="mx-0 mb-0 shrink-0 border-t border-border/70 bg-surface-1/72 px-6 py-4">
           <FormActionButtons
             cancelLabel={cancelLabel}
             submitLabel={submitLabel}

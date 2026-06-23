@@ -68,7 +68,7 @@ export function CommandPaletteResourceGroups({
               onSelect={() => handlers.onDevScenarioSelect(scenario.id)}
             >
               <FlaskConicalIcon />
-              <span>{scenario.title}</span>
+              <span className="min-w-0 truncate">{scenario.title}</span>
             </CommandItem>
           ))}
         </CommandGroup>
@@ -83,7 +83,7 @@ export function CommandPaletteResourceGroups({
               onSelect={() => handlers.onFeedSelect(feed.id)}
             >
               <RssIcon />
-              <span>{feed.title}</span>
+              <span className="min-w-0 truncate">{feed.title}</span>
               <span className="ml-auto truncate pl-3 text-xs text-foreground-soft">
                 {feed.site_url.trim() || feed.url}
               </span>
@@ -101,7 +101,7 @@ export function CommandPaletteResourceGroups({
               onSelect={() => handlers.onTagSelect(tag.id)}
             >
               <HashIcon />
-              <span>{tag.name}</span>
+              <span className="min-w-0 truncate">{tag.name}</span>
               {tag.color ? <span className="ml-auto text-xs text-foreground-soft">{tag.color}</span> : null}
             </CommandItem>
           ))}
@@ -117,7 +117,7 @@ export function CommandPaletteResourceGroups({
               onSelect={() => handlers.onArticleSelect(article.feed_id, article.id)}
             >
               <NewspaperIcon />
-              <span>{article.title}</span>
+              <span className="min-w-0 truncate">{article.title}</span>
               <span className="ml-auto truncate pl-3 text-xs text-foreground-soft">
                 {getArticleResourceDetail(article)}
               </span>

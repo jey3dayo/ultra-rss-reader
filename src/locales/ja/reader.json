@@ -199,6 +199,7 @@
   "command_palette": {
     "placeholder": "コマンドを検索…",
     "no_results": "結果が見つかりません",
+    "results_label": "コマンドパレットの結果",
     "recent_actions": "最近のアクション",
     "actions": "アクション",
     "dev_scenarios": "開発シナリオ",
@@ -226,6 +227,7 @@
     "title": "キーボードショートカット",
     "description": "ショートカットを検索できます。? でこのヘルプを再表示できます。",
     "placeholder": "ショートカットを検索…",
+    "results_label": "キーボードショートカットの結果",
     "no_results": "ショートカットが見つかりません"
   },
   "shortcuts": {

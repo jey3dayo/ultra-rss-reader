@@ -396,6 +396,41 @@ describe("BrowserOverlayChrome", () => {
     expect(onCustomAction).toHaveBeenCalledTimes(1);
   });
 
+  it("hides custom trailing toolbar actions in ultra compact chrome to avoid overlap", () => {
+    const controller = createController({
+      geometry: {
+        ...createController().geometry,
+        ultraCompact: true,
+      },
+    });
+
+    render(
+      <BrowserOverlayChrome
+        controller={controller}
+        presentation={createSurfacePresentation()}
+        closeWebPreviewLabel="Close Web Preview"
+        toolbarActions={[
+          {
+            key: "a",
+            label: "Custom Action A",
+            onClick: vi.fn(),
+            icon: <span>A</span>,
+          },
+          {
+            key: "b",
+            label: "Custom Action B",
+            onClick: vi.fn(),
+            icon: <span>B</span>,
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Open in External Browser" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Custom Action A" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Custom Action B" })).not.toBeInTheDocument();
+  });
+
   it("keeps only page actions and custom trailing actions on the right side", () => {
     const controller = createController();
     const presentation = createSurfacePresentation();

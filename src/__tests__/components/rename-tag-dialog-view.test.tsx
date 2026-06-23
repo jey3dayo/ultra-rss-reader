@@ -31,6 +31,7 @@ describe("RenameTagDialogView", () => {
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.getByLabelText("Name")).toHaveValue("Work");
+    expect(screen.getByLabelText("Name")).toHaveClass("h-9");
     expect(screen.getByRole("button", { name: "Save" })).toHaveClass("min-h-11");
     expect(screen.getByRole("button", { name: "Cancel" })).toHaveClass("min-h-11");
 
@@ -63,6 +64,34 @@ describe("RenameTagDialogView", () => {
 
     expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
     expect(screen.queryByText("Tag already exists")).not.toBeInTheDocument();
+  });
+
+  it("disables color selection while saving", async () => {
+    const user = userEvent.setup();
+    const onColorChange = vi.fn();
+
+    render(
+      <RenameTagDialogView
+        open={true}
+        name="Work"
+        color={null}
+        loading
+        onOpenChange={vi.fn()}
+        onNameChange={vi.fn()}
+        onColorChange={onColorChange}
+        colorOptions={["#ef4444", "#3b82f6"]}
+        noColorLabel="No color"
+        onSubmit={vi.fn()}
+      />,
+    );
+
+    const red = screen.getByRole("radio", { name: "Color #ef4444" });
+
+    expect(red).toBeDisabled();
+
+    await user.click(red);
+
+    expect(onColorChange).not.toHaveBeenCalled();
   });
 
   it("cleans up the pending autofocus frame when the dialog closes", () => {

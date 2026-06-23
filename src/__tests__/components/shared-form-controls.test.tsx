@@ -183,11 +183,27 @@ describe("shared form controls", () => {
     );
 
     const dialog = screen.getByRole("dialog", { name: "Edit feed" });
-    expect(dialog).toHaveClass("rounded-xl", "bg-surface-2", "shadow-elevation-3");
+    expect(dialog).toHaveClass(
+      "flex",
+      "max-h-[calc(100dvh-2rem)]",
+      "flex-col",
+      "rounded-xl",
+      "bg-surface-2",
+      "shadow-elevation-3",
+    );
     expect(screen.getByText("Adjust the feed settings.")).toHaveClass("text-foreground-soft");
+    expect(screen.getByText("Adjust the feed settings.").closest('[data-slot="dialog-header"]')).toHaveClass(
+      "shrink-0",
+    );
+    expect(screen.getByRole("textbox", { name: "Feed URL" }).closest("form")).toHaveClass(
+      "min-h-0",
+      "flex-1",
+      "overflow-y-auto",
+    );
     expect(screen.getByRole("button", { name: "Save" }).closest('[data-slot="dialog-footer"]')).toHaveClass(
       "border-t",
       "bg-surface-1/72",
+      "shrink-0",
     );
 
     await user.click(screen.getByRole("textbox", { name: "Feed URL" }));

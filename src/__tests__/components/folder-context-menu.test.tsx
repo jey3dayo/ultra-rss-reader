@@ -119,7 +119,7 @@ describe("FolderContextMenuContent", () => {
       </ContextMenu.Root>,
     );
 
-    await user.click(screen.getByRole("menuitem", { name: "Preview" }));
+    await user.click(screen.getByRole("menuitemradio", { name: "Preview" }));
 
     await waitFor(() => {
       expect(updateFeedDisplaySettingsMock).toHaveBeenNthCalledWith(1, "feed-1", "on", "on");
@@ -160,7 +160,7 @@ describe("FolderContextMenuContent", () => {
       </ContextMenu.Root>,
     );
 
-    await user.click(screen.getByRole("menuitem", { name: "Preview" }));
+    await user.click(screen.getByRole("menuitemradio", { name: "Preview" }));
 
     await waitFor(() => {
       expect(updateFeedDisplaySettingsMock).toHaveBeenCalledWith("feed-1", "on", "on");
@@ -208,9 +208,9 @@ describe("FolderContextMenuContent", () => {
       </ContextMenu.Root>,
     );
 
-    expect(screen.getByRole("menuitem", { name: "Default" })).not.toHaveTextContent("✓");
-    expect(screen.getByRole("menuitem", { name: "Standard" })).not.toHaveTextContent("✓");
-    expect(screen.getByRole("menuitem", { name: "Preview" })).not.toHaveTextContent("✓");
+    expect(screen.getByRole("menuitemradio", { name: "Default" })).toHaveAttribute("aria-checked", "false");
+    expect(screen.getByRole("menuitemradio", { name: "Standard" })).toHaveAttribute("aria-checked", "false");
+    expect(screen.getByRole("menuitemradio", { name: "Preview" })).toHaveAttribute("aria-checked", "false");
   });
 
   it("hides mark all read when folder unread count is zero", () => {

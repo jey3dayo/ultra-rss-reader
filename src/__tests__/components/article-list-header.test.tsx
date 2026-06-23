@@ -45,7 +45,7 @@ describe("ArticleListHeader", () => {
     ).toEqual({
       showSidebarButton: true,
       isSidebarTogglePressed: true,
-      showFeedDisplaySelect: true,
+      showFeedDisplaySelect: false,
       showMarkAllRead: true,
       showSearchToggle: true,
       showCloseSearch: true,
@@ -126,6 +126,7 @@ describe("ArticleListHeader", () => {
           ...defaultParams,
           layoutMode,
           sidebarOpen,
+          showSearch: false,
         }),
       {
         initialProps,
@@ -179,6 +180,7 @@ describe("ArticleListHeader", () => {
         useArticleListHeaderControls({
           layoutMode: "wide",
           sidebarOpen: true,
+          showSearch: false,
           sidebarSubscriptionsLabel: "Subscriptions",
           feedDisplayLabel: "Feed display",
           showSidebarLabel: "Show sidebar",
@@ -262,6 +264,7 @@ describe("ArticleListHeader", () => {
       "Words are searched literally in titles and article text. Quotes, OR, NEAR, and * are not search operators.",
     );
     expect(screen.getByRole("textbox", { name: "Search articles" })).toHaveClass(
+      "min-h-11",
       "focus:ring-2",
       "focus:ring-[color:color-mix(in_srgb,var(--foreground)_10%,transparent)]",
       "focus-visible:ring-2",
@@ -579,7 +582,49 @@ describe("ArticleListHeader", () => {
     const button = screen.getByRole("button", { name: "Show sidebar" });
 
     expect(button).toHaveTextContent("Subscriptions");
+    expect(button).toHaveClass("min-h-11");
     expect(button).toHaveClass("text-foreground-soft");
+  });
+
+  it("uses a shrinkable feed mode control and hides it while article search is open", () => {
+    const { result, rerender } = renderHook(
+      ({ showSearch }) =>
+        useArticleListHeaderControls({
+          layoutMode: "compact",
+          sidebarOpen: false,
+          showSearch,
+          sidebarSubscriptionsLabel: "Subscriptions",
+          feedDisplayLabel: "Feed display",
+          showSidebarLabel: "Show sidebar",
+          hideSidebarLabel: "Hide sidebar",
+          resolvedFeedId: "feed-1",
+          selectedFeedDisplayPreset: "standard",
+          displayPresetOptions: [
+            { value: "standard", label: "Standard" },
+            { value: "preview", label: "Preview" },
+          ],
+          onSetDisplayMode: vi.fn(),
+          openSidebar: vi.fn(),
+          toggleSidebar: vi.fn(),
+        }),
+      {
+        initialProps: {
+          showSearch: false,
+        },
+      },
+    );
+
+    const { container } = render(result.current.feedModeControl, { wrapper: createWrapper() });
+
+    expect(container.querySelector('[aria-label="Feed display"]')).toHaveClass(
+      "min-w-0",
+      "max-w-[148px]",
+      "sm:max-w-[168px]",
+    );
+
+    rerender({ showSearch: true });
+
+    expect(result.current.feedModeControl).toBeNull();
   });
 
   it("uses icon-dominant toolbar controls in mobile layout", () => {

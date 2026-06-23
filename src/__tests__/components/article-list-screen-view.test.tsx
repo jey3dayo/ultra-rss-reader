@@ -309,4 +309,53 @@ describe("ArticleListScreenView", () => {
     );
     expect(screen.queryByRole("listbox", { name: "Article list" })).not.toBeInTheDocument();
   });
+
+  it("allows long article titles to shrink inside the row text lane", () => {
+    render(
+      <ArticleListScreenView
+        listAriaLabel="Article list"
+        listRef={{ current: null }}
+        isLoading={false}
+        emptyMessage="No articles"
+        loadingMessage="Loading articles"
+        groups={[
+          {
+            id: "today",
+            label: "Today",
+            showLabel: true,
+            items: [
+              {
+                article: {
+                  ...sampleArticles[0],
+                  id: "long-title",
+                  title: "https://example.com/very/long/unbroken/article/title/that/should/not/push/the/list/wider",
+                  thumbnail: "https://example.com/thumb.jpg",
+                  is_starred: true,
+                },
+                feedName: "Tech Blog",
+                isSelected: true,
+                isRecentlyRead: false,
+              },
+            ],
+          },
+        ]}
+        dimArchived="true"
+        textPreview="true"
+        imagePreviews="large"
+        selectionStyle="modern"
+        onSelectArticle={vi.fn()}
+        renderRow={({ content }) => content}
+      />,
+    );
+
+    const heading = screen.getByRole("heading", {
+      name: "https://example.com/very/long/unbroken/article/title/that/should/not/push/the/list/wider",
+    });
+    const titleLane = heading.parentElement;
+    const rowLane = titleLane?.parentElement;
+
+    expect(titleLane).toHaveClass("min-w-0", "flex-1");
+    expect(rowLane).toHaveClass("min-w-0", "flex-1");
+    expect(heading).toHaveClass("line-clamp-2", "flex-1");
+  });
 });

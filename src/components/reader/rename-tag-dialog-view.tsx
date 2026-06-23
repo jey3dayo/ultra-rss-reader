@@ -64,6 +64,7 @@ export function RenameTagDialogView({
           colorOptions={colorOptions}
           noColorLabel={noColorLabel ?? t("no_color")}
           optionAriaLabel={(option) => `${t("color")} ${option}`}
+          disabled={loading}
           onChange={onColorChange}
         />
       )}

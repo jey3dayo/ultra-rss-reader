@@ -35,7 +35,9 @@ describe("TagColorPicker", () => {
     expect(noColorButton).toHaveAttribute("tabindex", "-1");
     expect(selectedColorButton).toHaveAttribute("tabindex", "0");
     expect(noColorSwatch).toHaveClass("motion-interactive-surface");
+    expect(noColorSwatch).toHaveClass("size-11");
     expect(selectedColorSwatch).toHaveClass("motion-interactive-surface");
+    expect(selectedColorSwatch).toHaveClass("size-11");
     expect(noColorSwatch).not.toHaveClass("bg-surface-2", "border-border-strong", "text-foreground");
     expect(selectedColorSwatch).toHaveClass(
       "scale-110",
@@ -143,5 +145,35 @@ describe("TagColorPicker", () => {
 
     expect(noColor).toBeChecked();
     expect(noColor).toHaveFocus();
+  });
+
+  it("disables color radios when the picker is disabled", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+
+    render(
+      <TagColorPicker
+        label="Tag color"
+        color={null}
+        colorOptions={["#6f8eb8", "#cf7868"]}
+        noColorLabel="No color"
+        optionAriaLabel={(option) => `Select ${option}`}
+        disabled
+        onChange={onChange}
+      />,
+    );
+
+    const noColor = screen.getByRole("radio", { name: "No color" });
+    const blue = screen.getByRole("radio", { name: "Select #6f8eb8" });
+
+    expect(noColor).toBeDisabled();
+    expect(blue).toBeDisabled();
+    expect(noColor).toHaveAttribute("tabindex", "-1");
+    expect(noColor.nextElementSibling).toHaveClass("cursor-not-allowed", "opacity-50");
+
+    await user.click(blue);
+    await user.keyboard("{ArrowRight}");
+
+    expect(onChange).not.toHaveBeenCalled();
   });
 });
