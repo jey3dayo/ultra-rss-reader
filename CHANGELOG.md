@@ -4,6 +4,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.48.1] - 2026-06-24
+
+### Bug Fixes
+
+- モバイル設定モーダルのナビゲーション領域を広げ、アカウント rail が狭幅で見切れにくいようにした
+
+### Maintenance
+
+- モバイル記事ツールバーの shrinkable label 契約に Storybook density / component tests を追従させ、release preflight を通るようにした
+
 ## [0.48.0] - 2026-06-24
 
 ### Bug Fixes
