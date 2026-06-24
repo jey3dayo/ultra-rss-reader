@@ -80,7 +80,7 @@ export function SettingsContentLayout({
         <header
           data-testid="settings-content-header"
           className={cn(
-            "flex min-h-[5rem] shrink-0 items-center justify-center border-b px-5 text-center backdrop-blur-sm sm:px-8",
+            "flex min-h-[4rem] shrink-0 items-center justify-center px-5 text-center backdrop-blur-sm sm:px-8",
             SETTINGS_DIVIDER_CLASS,
           )}
           style={{ backgroundColor: "var(--settings-shell-content-header)" }}
@@ -97,7 +97,7 @@ export function SettingsContentLayout({
         <header
           data-testid="settings-content-header"
           className={cn(
-            "flex min-h-[5rem] shrink-0 items-center border-b px-5 py-0 backdrop-blur-sm sm:px-8",
+            "flex min-h-[4rem] shrink-0 items-center px-5 py-0 backdrop-blur-sm sm:px-8",
             SETTINGS_DIVIDER_CLASS,
           )}
           style={{ backgroundColor: "var(--settings-shell-content-header)" }}

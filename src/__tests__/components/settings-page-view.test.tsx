@@ -34,7 +34,7 @@ describe("SettingsPageView", () => {
     );
 
     expect(screen.getByTestId("settings-page-root")).toHaveClass("flex", "h-full", "min-h-0");
-    expect(screen.getByTestId("settings-content-header")).toHaveClass("min-h-[5rem]", "shrink-0");
+    expect(screen.getByTestId("settings-content-header")).toHaveClass("min-h-[4rem]", "shrink-0");
     expect(screen.getByTestId("settings-content-scroll-area")).toHaveClass("h-full", "min-h-0");
     expect(screen.getByRole("heading", { level: 2, name: "General" })).toHaveClass(
       "text-[color:var(--settings-shell-content-title)]",

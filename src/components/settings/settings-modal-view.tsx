@@ -77,7 +77,7 @@ export function SettingsModalView({
           <DialogHeader
             data-testid="settings-modal-header"
             className={cn(
-              "flex min-h-[5rem] flex-row items-center gap-3 border-b px-5 py-0 backdrop-blur-sm",
+              "flex min-h-[4rem] flex-row items-center gap-3 px-5 py-0 backdrop-blur-sm",
               SETTINGS_DIVIDER_CLASS,
             )}
             style={{ backgroundColor: "var(--settings-shell-rail)" }}
