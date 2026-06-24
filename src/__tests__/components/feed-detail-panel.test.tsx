@@ -35,20 +35,18 @@ describe("FeedDetailPanel", () => {
     );
 
     expect(screen.getByTestId("detail-leading-visual")).toBeInTheDocument();
-    const panelBody = screen
+    const panelHeader = screen
       .getByTestId("feed-detail-leading-visual")
       .closest('[data-surface-card="section"]')?.firstElementChild;
-    expect(panelBody).not.toBeNull();
-    expect(panelBody).toHaveClass("space-y-4");
+    expect(panelHeader).not.toBeNull();
+    expect(panelHeader).toHaveClass("relative", "overflow-hidden", "border-b");
     expect(screen.getByTestId("feed-detail-leading-visual")).toHaveClass(
       "size-10",
       "rounded-md",
       "border",
       "bg-surface-1/88",
     );
-    expect(screen.getByTestId("feed-detail-secondary-column").contains(screen.getByTestId("feed-detail-status"))).toBe(
-      true,
-    );
+    expect(screen.getByTestId("feed-detail-main-column").contains(screen.getByTestId("feed-detail-status"))).toBe(true);
     expect(
       screen.getByTestId("feed-detail-secondary-column").contains(screen.getByTestId("feed-detail-reason-box")),
     ).toBe(true);
@@ -57,13 +55,13 @@ describe("FeedDetailPanel", () => {
     expect(screen.getByTestId("feed-detail-reason-box").closest('[data-surface-card="section"]')).toHaveClass(
       "bg-card/38",
     );
-    expect(screen.getByText("静かな購読です。").closest('[data-surface-card="info"]')).toHaveClass("bg-surface-1/76");
+    expect(screen.getByText("静かな購読です。")).toHaveClass("text-foreground-soft");
+    expect(screen.getByText("静かな購読です。").closest('[data-surface-card="info"]')).toBeNull();
     expect(screen.getByTestId("feed-detail-reason-box")).toHaveClass(
       "border-state-warning-border/80",
       "bg-state-warning-surface/80",
       "text-state-warning-foreground",
     );
-    expect(screen.getByText("静かな購読です。")).toHaveClass("text-foreground-soft");
     expect(screen.getByText("2026/04/17")).toHaveClass("text-foreground-soft");
     expect(screen.getByText("整理の判断材料")).toHaveClass("text-current");
     expect(screen.getByText("未読 0件 / スター 0件")).toHaveClass("text-current");
@@ -161,5 +159,46 @@ describe("FeedDetailPanel", () => {
     expect(
       screen.getByRole("heading", { level: 3, name: "Example Feed" }).closest('[data-surface-card="section"]'),
     ).toHaveClass("rounded-3xl", "bg-card/38");
+  });
+
+  it("omits the low-wire right divider on a final odd metric", () => {
+    render(
+      <FeedDetailPanel
+        surface="low-wire"
+        title="Example Feed"
+        metrics={[
+          { label: "フォルダ", value: "Work" },
+          { label: "最終記事", value: "2026/04/17" },
+          { label: "未読", value: 0 },
+          { label: "スター", value: 0 },
+          { label: "表示", value: "既定の表示" },
+        ]}
+        recentArticlesHeading="最近の記事"
+        recentArticles={[]}
+      />,
+    );
+
+    const metricsList = screen.getByText("フォルダ").closest("dl");
+    expect(metricsList).toHaveClass("[&>*:nth-child(odd):not(:last-child)]:sm:border-r");
+    expect(metricsList).not.toHaveClass("[&>*:nth-child(odd)]:sm:border-r");
+    expect(screen.getByText("既定の表示").closest("div")).toHaveClass("last:border-b-0");
+  });
+
+  it("uses the low-wire action surface for embedded actions", () => {
+    render(
+      <FeedDetailPanel
+        surface="low-wire"
+        title="Example Feed"
+        metrics={[{ label: "フォルダ", value: "Work" }]}
+        recentArticlesHeading="最近の記事"
+        recentArticles={[]}
+        primaryAction={{ label: "購読を管理", onClick: () => {} }}
+      />,
+    );
+
+    expect(screen.getByTestId("feed-detail-action-bar")).toHaveClass(
+      "border-[var(--workspace-low-wire-divider)]",
+      "bg-[var(--workspace-low-wire-action-surface)]",
+    );
   });
 });

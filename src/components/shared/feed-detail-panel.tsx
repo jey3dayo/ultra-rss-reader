@@ -28,6 +28,7 @@ const EMPTY_LINKS: FeedDetailLink[] = [];
 type FeedDetailPanelProps = {
   title: string;
   className?: string;
+  surface?: "card" | "low-wire";
   titleHref?: string | null;
   badgeLabel?: string;
   badgeTone?: FeedDetailTone;
@@ -95,6 +96,7 @@ function resolveReasonBoxClassName(tone: FeedDetailTone) {
 export function FeedDetailPanel({
   title,
   className,
+  surface = "card",
   titleHref = null,
   badgeLabel,
   badgeTone = "neutral",
@@ -110,30 +112,56 @@ export function FeedDetailPanel({
   secondaryAction,
 }: FeedDetailPanelProps) {
   const resolvedTitleHref = titleHref ? normalizeFeedWebsiteUrlCandidate(titleHref) : null;
+  const isLowWire = surface === "low-wire";
 
   return (
     <FeedDetailCard
       data-feed-detail-panel=""
-      className={cn("overflow-hidden border-border/65 bg-card/38 p-0 shadow-none", className)}
+      className={cn(
+        "overflow-hidden p-0 shadow-none",
+        isLowWire ? "border-transparent bg-[var(--workspace-low-wire-group-surface)]" : "border-border/65 bg-card/38",
+        className,
+      )}
     >
-      <div className="space-y-4 border-b border-border/50 bg-surface-1/48 px-4 py-4 sm:px-5">
-        <div className={cn("grid items-start gap-3", leadingVisual ? "grid-cols-[auto_minmax(0,1fr)]" : "grid-cols-1")}>
+      <div
+        className={cn(
+          "relative overflow-hidden px-4 py-4 sm:px-5 sm:py-5",
+          isLowWire
+            ? "border-b border-[var(--workspace-low-wire-divider)] bg-[var(--workspace-low-wire-header-surface)]"
+            : "border-b border-border/50 bg-surface-1/48",
+        )}
+      >
+        <div
+          aria-hidden="true"
+          className={cn(
+            "pointer-events-none absolute inset-x-0 top-0 h-px",
+            isLowWire ? "bg-[var(--workspace-low-wire-highlight)]" : "bg-transparent",
+          )}
+        />
+        <div
+          className={cn("grid items-start gap-3.5", leadingVisual ? "grid-cols-[auto_minmax(0,1fr)]" : "grid-cols-1")}
+        >
           {leadingVisual ? (
             <div
               data-testid="feed-detail-leading-visual"
-              className="flex size-10 shrink-0 items-center justify-center rounded-md border border-border/65 bg-surface-1/88 text-foreground shadow-none"
+              className={cn(
+                "flex shrink-0 items-center justify-center rounded-md text-foreground shadow-none",
+                isLowWire
+                  ? "size-12 border border-[var(--workspace-low-wire-section-border)] bg-surface-1/88 ring-1 ring-[var(--workspace-low-wire-highlight)]"
+                  : "size-10 border border-border/65 bg-surface-1/88",
+              )}
             >
               {leadingVisual}
             </div>
           ) : null}
           <div data-testid="feed-detail-main-column" className="min-w-0">
-            <div className="min-w-0">
+            <div className="flex min-w-0 flex-wrap items-start justify-between gap-2.5">
               {resolvedTitleHref ? (
                 <a
                   href={resolvedTitleHref}
                   target="_blank"
                   rel="noreferrer"
-                  className={cn(detailLinkClassName, "inline-flex max-w-full items-start gap-2 no-underline")}
+                  className={cn(detailLinkClassName, "inline-flex min-w-0 max-w-full items-start gap-2 no-underline")}
                 >
                   <h3 className="font-sans text-[1.28rem] font-medium leading-tight tracking-[-0.03em] text-foreground">
                     {title}
@@ -145,29 +173,32 @@ export function FeedDetailPanel({
                   {title}
                 </h3>
               )}
+              {badgeLabel ? (
+                <LabelChip
+                  data-testid="feed-detail-status"
+                  tone={resolveBadgeClassName(badgeTone)}
+                  className="mt-0.5 self-start rounded-md px-2 py-0.5 text-[10px] tracking-[0.08em]"
+                >
+                  {badgeLabel}
+                </LabelChip>
+              ) : null}
             </div>
+            {summaryText ? (
+              <p
+                className={cn(
+                  "mt-3 max-w-[48rem] font-serif text-[1rem] leading-7 text-foreground-soft",
+                  isLowWire && "text-foreground-soft/95",
+                )}
+              >
+                {summaryText}
+              </p>
+            ) : null}
           </div>
         </div>
       </div>
 
-      <div className="space-y-4 px-4 py-4 sm:px-5">
+      <div className={cn("space-y-4 px-4 py-4 sm:px-5", isLowWire && "pt-4")}>
         <div data-testid="feed-detail-secondary-column" className="space-y-3">
-          {badgeLabel ? (
-            <LabelChip
-              data-testid="feed-detail-status"
-              tone={resolveBadgeClassName(badgeTone)}
-              className="self-start rounded-md px-2 py-0.5 text-[10px] tracking-[0.08em]"
-            >
-              {badgeLabel}
-            </LabelChip>
-          ) : null}
-
-          {summaryText ? (
-            <SurfaceCard variant="info" tone="subtle" padding="compact" className="bg-surface-1/76 shadow-none">
-              <p className="font-serif text-[0.98rem] leading-7 text-foreground-soft">{summaryText}</p>
-            </SurfaceCard>
-          ) : null}
-
           {reasonBox ? (
             <SurfaceCard
               data-testid="feed-detail-reason-box"
@@ -176,6 +207,7 @@ export function FeedDetailPanel({
               padding="compact"
               className={cn(
                 "shadow-none",
+                isLowWire && "border-[var(--workspace-low-wire-section-border)]",
                 reasonBox.tone === "medium" &&
                   "border-state-warning-border/80 bg-state-warning-surface/80 text-state-warning-foreground",
               )}
@@ -199,9 +231,21 @@ export function FeedDetailPanel({
         </div>
 
         <div className="grid gap-3">
-          <dl className="grid gap-2.5 border-t border-border/55 pt-3 text-sm sm:grid-cols-2">
+          <dl
+            className={cn(
+              "grid text-sm",
+              isLowWire
+                ? "overflow-hidden rounded-md border border-[var(--workspace-low-wire-section-border)] bg-surface-1/48 sm:grid-cols-2 [&>*:last-child:nth-child(odd)]:sm:col-span-2 [&>*:nth-last-child(-n+2)]:sm:border-b-0 [&>*:nth-child(odd):not(:last-child)]:sm:border-r [&>*:nth-child(odd):not(:last-child)]:sm:border-[var(--workspace-low-wire-divider)]"
+                : "gap-2.5 border-t border-border/55 pt-3 sm:grid-cols-2",
+            )}
+          >
             {metrics.map((metric) => (
-              <FeedDetailRow key={String(metric.label)} label={metric.label} value={metric.value} />
+              <FeedDetailRow
+                key={String(metric.label)}
+                label={metric.label}
+                value={metric.value}
+                surface={isLowWire ? "low-wire" : "card"}
+              />
             ))}
           </dl>
 
@@ -217,7 +261,13 @@ export function FeedDetailPanel({
           ) : null}
 
           {recentArticles.length > 0 ? (
-            <div data-testid="feed-detail-recent-articles" className="space-y-2 border-t border-border/55 pt-3">
+            <div
+              data-testid="feed-detail-recent-articles"
+              className={cn(
+                "space-y-2 pt-3",
+                isLowWire ? "border-t border-[var(--workspace-low-wire-divider)]" : "border-t border-border/55",
+              )}
+            >
               <h4 className="font-sans text-sm font-medium text-foreground">{recentArticlesHeading}</h4>
               <div className="space-y-1">
                 {recentArticles.map((article) => (
@@ -226,7 +276,7 @@ export function FeedDetailPanel({
                     variant="info"
                     tone="subtle"
                     padding="compact"
-                    className="px-3 py-2 shadow-none"
+                    className={cn("px-3 py-2 shadow-none", isLowWire && "border-transparent bg-surface-1/36")}
                   >
                     <div className="flex items-center justify-between gap-3">
                       {article.url ? (
@@ -234,9 +284,9 @@ export function FeedDetailPanel({
                           href={article.url}
                           target="_blank"
                           rel="noreferrer"
-                          className={cn(detailLinkClassName, "line-clamp-2 no-underline")}
+                          className={cn(detailLinkClassName, "min-w-0 items-start gap-1.5 no-underline")}
                         >
-                          <span className="font-serif text-[0.88rem] font-normal leading-5 text-foreground">
+                          <span className="line-clamp-2 min-w-0 font-serif text-[0.88rem] font-normal leading-5 text-foreground">
                             {article.title}
                           </span>
                           <ExternalLink aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
@@ -256,7 +306,15 @@ export function FeedDetailPanel({
         </div>
 
         {primaryAction || secondaryAction ? (
-          <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border/55 pt-3">
+          <div
+            data-testid="feed-detail-action-bar"
+            className={cn(
+              "flex flex-wrap items-center justify-end gap-2 border-t pt-3",
+              isLowWire
+                ? "border-[var(--workspace-low-wire-divider)] bg-[var(--workspace-low-wire-action-surface)]"
+                : "border-border/55",
+            )}
+          >
             {primaryAction ? (
               <Button
                 aria-label={primaryAction.ariaLabel ?? primaryAction.label}

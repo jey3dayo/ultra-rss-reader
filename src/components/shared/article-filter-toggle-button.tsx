@@ -28,8 +28,10 @@ export function ArticleFilterToggleButton({
 }: ArticleFilterToggleButtonProps) {
   return (
     <Toggle className={articleFilterToggleButtonClassName({ mode, size, className })} {...props}>
-      {showIcon ? <ArticleFilterToggleIcon mode={mode} pressed={props.pressed === true} size={size} /> : null}
-      {children}
+      <span data-filter-toggle-content="true" className="inline-flex items-center gap-[inherit]">
+        {showIcon ? <ArticleFilterToggleIcon mode={mode} pressed={props.pressed === true} size={size} /> : null}
+        {children}
+      </span>
     </Toggle>
   );
 }

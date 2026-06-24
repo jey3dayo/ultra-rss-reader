@@ -24,8 +24,8 @@ export function articleFilterToggleButtonClassName({
 }) {
   return cn(
     controlChipVariants({ size, interaction: "toggle" }),
-    "motion-interactive-surface motion-contextual-surface rounded-md border-0 bg-transparent shadow-none select-none",
-    className,
+    "motion-filter-toggle rounded-md border-0 bg-transparent shadow-none select-none",
     ARTICLE_FILTER_TONE_CLASSNAMES[mode],
+    className,
   );
 }

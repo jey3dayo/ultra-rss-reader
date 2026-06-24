@@ -8,11 +8,11 @@ describe("ArticleFilterToggleButton class contracts", () => {
       size: "filter",
     });
 
-    expect(className).toContain("motion-contextual-surface");
+    expect(className).toContain("motion-filter-toggle");
     expect(className).toContain("rounded-md");
     expect(className).toContain("min-h-11");
     expect(className).toContain("text-[13px]");
-    expect(className).toContain("data-[pressed]:bg-surface-4");
+    expect(className).toContain("data-[pressed]:bg-transparent");
     expect(className).toContain("data-[pressed]:text-foreground");
     expect(className).toContain("border-0");
     expect(className).toContain("bg-transparent");
@@ -32,12 +32,14 @@ describe("ArticleFilterToggleButton class contracts", () => {
       size: "filter",
     });
 
-    expect(unreadClassName).toContain("data-[pressed]:bg-[var(--semantic-tone-unread-surface)]");
+    expect(unreadClassName).toContain("data-[pressed]:bg-transparent");
     expect(unreadClassName).toContain("data-[pressed]:text-[var(--semantic-tone-unread-content-foreground)]");
+    expect(unreadClassName).not.toContain("semantic-tone-unread-surface");
     expect(unreadClassName).not.toContain("semantic-tone-starred");
 
-    expect(starredClassName).toContain("data-[pressed]:bg-[var(--semantic-tone-starred-surface)]");
+    expect(starredClassName).toContain("data-[pressed]:bg-transparent");
     expect(starredClassName).toContain("data-[pressed]:text-[var(--semantic-tone-starred-content-foreground)]");
+    expect(starredClassName).not.toContain("semantic-tone-starred-surface");
     expect(starredClassName).not.toContain("semantic-tone-unread");
   });
 

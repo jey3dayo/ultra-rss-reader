@@ -179,12 +179,18 @@ describe("Design-themed shared components", () => {
     );
 
     expect(screen.getByRole("button", { name: "Unread" })).toHaveClass(
-      "data-[pressed]:bg-[var(--semantic-tone-unread-surface)]",
+      "data-[pressed]:bg-transparent",
       "data-[pressed]:text-[var(--semantic-tone-unread-content-foreground)]",
     );
+    expect(screen.getByRole("button", { name: "Unread" })).not.toHaveClass(
+      "data-[pressed]:bg-[var(--semantic-tone-unread-surface)]",
+    );
     expect(screen.getByRole("button", { name: "Starred" })).toHaveClass(
-      "data-[pressed]:bg-[var(--semantic-tone-starred-surface)]",
+      "data-[pressed]:bg-transparent",
       "data-[pressed]:text-[var(--semantic-tone-starred-content-foreground)]",
+    );
+    expect(screen.getByRole("button", { name: "Starred" })).not.toHaveClass(
+      "data-[pressed]:bg-[var(--semantic-tone-starred-surface)]",
     );
   });
 

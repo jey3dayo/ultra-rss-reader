@@ -24,7 +24,7 @@ const DEFAULT_VISIBLE_MODES: readonly ViewMode[] = ["unread", "all", "starred"];
 const EMPTY_DISABLED_MODES: readonly ViewMode[] = [];
 
 const compactFooterButtonClassName =
-  "h-11 rounded-md border-0 bg-transparent px-3.5 text-[0.82rem] font-medium tracking-[0.01em] shadow-none hover:bg-surface-2/36 hover:text-foreground focus-visible:bg-surface-2/56 focus-visible:ring-2 focus-visible:ring-ring/45 data-[pressed]:bg-surface-2/72 data-[pressed]:text-foreground data-[pressed]:shadow-active-inset-highlight sm:rounded-md sm:bg-transparent sm:px-3 sm:text-[13px] sm:font-medium sm:tracking-normal sm:shadow-none";
+  "h-11 rounded-md border-0 bg-transparent px-0 text-[0.82rem] font-medium tracking-[0.01em] shadow-none hover:bg-transparent hover:text-foreground focus-visible:bg-transparent focus-visible:ring-2 focus-visible:ring-ring/45 data-[pressed]:bg-transparent data-[pressed]:text-foreground sm:rounded-md sm:bg-transparent sm:px-0 sm:text-[13px] sm:font-medium sm:tracking-normal sm:shadow-none [&_[data-filter-toggle-content]]:rounded-md [&_[data-filter-toggle-content]]:px-3.5 [&_[data-filter-toggle-content]]:py-2 [&_[data-filter-toggle-content]]:transition-colors hover:[&_[data-filter-toggle-content]]:bg-surface-2/36 focus-visible:[&_[data-filter-toggle-content]]:bg-surface-2/56 data-[pressed]:[&_[data-filter-toggle-content]]:bg-surface-2/72 data-[pressed]:[&_[data-filter-toggle-content]]:shadow-active-inset-highlight sm:[&_[data-filter-toggle-content]]:px-3";
 
 function isViewMode(value: string | undefined): value is ViewMode {
   return VIEW_MODES.some((mode) => mode.value === value);
