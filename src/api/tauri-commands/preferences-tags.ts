@@ -3,6 +3,7 @@ import {
   type ArticleListMode,
   createTagArgs,
   deleteTagArgs,
+  exportSettingsProfileToFileArgs,
   getArticleTagsArgs,
   getTagArticleCountsArgs,
   importSettingsProfileArgs,
@@ -27,6 +28,13 @@ export const setPreference = (key: string, value: string) =>
   safeInvoke("set_preference", { response: NullResponseSchema, args: setPreferenceArgs }, { key, value });
 
 export const exportSettingsProfile = () => safeInvoke("export_settings_profile", { response: StringResponseSchema });
+
+export const exportSettingsProfileToFile = (path: string) =>
+  safeInvoke(
+    "export_settings_profile_to_file",
+    { response: NullResponseSchema, args: exportSettingsProfileToFileArgs },
+    { path },
+  );
 
 export const importSettingsProfile = (profileJson: string) =>
   safeInvoke(

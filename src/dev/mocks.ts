@@ -810,6 +810,10 @@ export function setupDevMocks(): RestoreDevMocks {
           2,
         );
 
+      case "export_settings_profile_to_file":
+        parseBrowserMockArgs("export_settings_profile_to_file", rawIpcPayload);
+        return null;
+
       case "import_settings_profile": {
         const { profileJson } = parseBrowserMockArgs("import_settings_profile", rawIpcPayload);
         return importSettingsProfileIntoDevMocks(SettingsProfileSchema.parse(JSON.parse(profileJson)));

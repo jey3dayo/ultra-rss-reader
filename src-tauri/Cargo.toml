@@ -57,6 +57,7 @@ open = "5"
 futures = "0.3.32"
 sys-locale = "0.3"
 unicode-normalization = "0.1"
+tauri-plugin-dialog = "2"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 block2 = "0.6.2"

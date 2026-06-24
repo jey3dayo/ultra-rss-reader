@@ -45,6 +45,7 @@ export {
   deleteTagArgs,
   discoverFeedsArgs,
   exportOpmlArgs,
+  exportSettingsProfileToFileArgs,
   getAccountSyncStatusArgs,
   getArticleArgs,
   getArticleTagsArgs,

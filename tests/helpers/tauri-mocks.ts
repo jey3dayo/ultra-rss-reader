@@ -350,6 +350,8 @@ function createDefaultHandler(): MockHandler {
         return {};
       case "set_preference":
         return null;
+      case "export_settings_profile_to_file":
+        return null;
       case "get_tag_article_counts":
         return {};
       case "add_local_feed":

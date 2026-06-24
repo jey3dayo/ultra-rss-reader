@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::path::PathBuf;
 
 use chrono::Utc;
 use rusqlite::{params, TransactionBehavior};
@@ -85,6 +86,16 @@ pub fn export_settings_profile(state: State<'_, AppState>) -> Result<String, App
 }
 
 #[tauri::command]
+pub fn export_settings_profile_to_file(
+    state: State<'_, AppState>,
+    path: String,
+) -> Result<(), AppError> {
+    let path = validate_settings_profile_export_path(path)?;
+    let db = crate::commands::lock_db(&state.db)?;
+    export_settings_profile_to_file_from_db(&db, path)
+}
+
+#[tauri::command]
 pub fn import_settings_profile(
     app: AppHandle,
     state: State<'_, AppState>,
@@ -94,6 +105,26 @@ pub fn import_settings_profile(
     let (result, side_effects) = import_settings_profile_into_db(&db, &profile_json)?;
     apply_imported_preference_runtime_side_effects(&app, side_effects)?;
     Ok(result)
+}
+
+fn validate_settings_profile_export_path(path: String) -> Result<PathBuf, AppError> {
+    let trimmed = path.trim();
+    if trimmed.is_empty() {
+        return Err(AppError::UserVisible {
+            message: "Settings profile export path cannot be empty".to_string(),
+        });
+    }
+    Ok(PathBuf::from(trimmed))
+}
+
+fn export_settings_profile_to_file_from_db(
+    db: &crate::infra::db::connection::DbManager,
+    path: PathBuf,
+) -> Result<(), AppError> {
+    let profile_json = export_settings_profile_from_db(db)?;
+    std::fs::write(&path, profile_json).map_err(|error| AppError::UserVisible {
+        message: format!("Failed to write settings profile: {error}"),
+    })
 }
 
 fn export_settings_profile_from_db(
@@ -712,6 +743,22 @@ mod tests {
         assert!(!exported.contains("connection_verification"));
         assert!(!exported.contains("feeds"));
         assert!(!exported.contains("articles"));
+    }
+
+    #[test]
+    fn export_profile_to_file_writes_selected_json_path() {
+        let db = test_db();
+        insert_account(&db, &local_account("acc-1", "Local"));
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("profile.json");
+
+        export_settings_profile_to_file_from_db(&db, path.clone()).unwrap();
+
+        let exported = std::fs::read_to_string(path).unwrap();
+        let profile: SettingsProfile = serde_json::from_str(&exported).unwrap();
+        assert_eq!(profile.version, SETTINGS_PROFILE_VERSION);
+        assert_eq!(profile.accounts.len(), 1);
+        assert_eq!(profile.accounts[0].name, "Local");
     }
 
     #[test]

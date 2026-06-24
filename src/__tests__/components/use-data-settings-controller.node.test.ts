@@ -4,7 +4,7 @@ import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DatabaseInfoDtoSchema } from "@/api/schemas/database-info";
 import {
-  exportSettingsProfile,
+  exportSettingsProfileToFile,
   getDatabaseInfo,
   importSettingsProfile,
   openLogDir,
@@ -18,6 +18,7 @@ import {
   useDataSettingsController,
 } from "@/components/settings/hooks/use-data-settings-controller";
 import { STORAGE_KEYS } from "@/constants/storage";
+import { showSaveDialog } from "@/lib/platform/save-dialog";
 
 setupBrowserTestDom();
 
@@ -26,7 +27,7 @@ afterEach(() => {
 });
 
 vi.mock("@/api/tauri-commands", () => ({
-  exportSettingsProfile: vi.fn(async () => Result.succeed("{}")),
+  exportSettingsProfileToFile: vi.fn(async () => Result.succeed(null)),
   getDatabaseInfo: vi.fn(async () =>
     Result.succeed({
       db_size_bytes: 1024,
@@ -58,6 +59,10 @@ vi.mock("@/api/tauri-commands", () => ({
   ),
 }));
 
+vi.mock("@/lib/platform/save-dialog", () => ({
+  showSaveDialog: vi.fn(async () => "/tmp/ultra-rss-reader-settings-profile.json"),
+}));
+
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(getDatabaseInfo).mockResolvedValue(
@@ -68,7 +73,8 @@ beforeEach(() => {
       total_size_bytes: 1024,
     }),
   );
-  vi.mocked(exportSettingsProfile).mockResolvedValue(Result.succeed("{}"));
+  vi.mocked(exportSettingsProfileToFile).mockResolvedValue(Result.succeed(null));
+  vi.mocked(showSaveDialog).mockResolvedValue("/tmp/ultra-rss-reader-settings-profile.json");
   vi.mocked(importSettingsProfile).mockResolvedValue(
     Result.succeed({
       accounts_created: 0,
@@ -440,21 +446,13 @@ describe("useDataSettingsController", () => {
     expect(showToast).toHaveBeenCalledWith("Saved 0 B");
   });
 
-  it("exports settings profile as a JSON download and blocks duplicate profile actions", async () => {
-    let resolveExport: (value: ReturnType<typeof Result.succeed<string>>) => void = () => undefined;
-    vi.mocked(exportSettingsProfile).mockReturnValue(
+  it("exports settings profile to a selected JSON file and blocks duplicate profile actions", async () => {
+    let resolveExport: (value: ReturnType<typeof Result.succeed<null>>) => void = () => undefined;
+    vi.mocked(exportSettingsProfileToFile).mockReturnValue(
       new Promise((resolve) => {
         resolveExport = resolve;
       }),
     );
-    const createObjectUrl = vi.fn(() => "blob:settings-profile");
-    const revokeObjectUrl = vi.fn();
-    const click = vi.spyOn(HTMLElement.prototype, "click").mockImplementation(() => undefined);
-    vi.stubGlobal("URL", {
-      ...URL,
-      createObjectURL: createObjectUrl,
-      revokeObjectURL: revokeObjectUrl,
-    });
     const showToast = vi.fn();
     const { result } = renderHook(() =>
       useDataSettingsController({
@@ -479,19 +477,42 @@ describe("useDataSettingsController", () => {
     expect(importSettingsProfile).not.toHaveBeenCalled();
 
     await act(async () => {
-      resolveExport(Result.succeed('{"version":1}'));
+      resolveExport(Result.succeed(null));
     });
     await waitFor(() => {
       expect(result.current.exportingSettingsProfile).toBe(false);
     });
 
-    expect(exportSettingsProfile).toHaveBeenCalledTimes(1);
-    expect(createObjectUrl).toHaveBeenCalledWith(expect.any(Blob));
-    expect(click).toHaveBeenCalledTimes(1);
+    expect(exportSettingsProfileToFile).toHaveBeenCalledTimes(1);
+    expect(showSaveDialog).toHaveBeenCalledWith({
+      defaultPath: "ultra-rss-reader-settings-profile.json",
+      filters: [{ name: "JSON", extensions: ["json"] }],
+    });
+    expect(exportSettingsProfileToFile).toHaveBeenCalledWith("/tmp/ultra-rss-reader-settings-profile.json");
     expect(showToast).toHaveBeenCalledWith("data.settings_profile_export_success");
+  });
 
-    click.mockRestore();
-    vi.unstubAllGlobals();
+  it("does not export settings profile when the save dialog is canceled", async () => {
+    vi.mocked(showSaveDialog).mockResolvedValue(null);
+    const showToast = vi.fn();
+    const { result } = renderHook(() =>
+      useDataSettingsController({
+        t: ((key: string) => key) as never,
+        showToast,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.databaseSizeStatus).toBe("ready");
+    });
+
+    await act(async () => {
+      await result.current.handleExportSettingsProfile();
+    });
+
+    expect(showSaveDialog).toHaveBeenCalledTimes(1);
+    expect(exportSettingsProfileToFile).not.toHaveBeenCalled();
+    expect(showToast).not.toHaveBeenCalledWith("data.settings_profile_export_success");
   });
 
   it("imports settings profile files and reports merged counts", async () => {

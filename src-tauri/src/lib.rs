@@ -668,6 +668,7 @@ pub fn run() {
 
     builder
         .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .on_window_event(|window, event| {
@@ -913,6 +914,7 @@ pub fn run() {
             commands::preference_commands::get_preferences,
             commands::preference_commands::set_preference,
             commands::settings_profile_commands::export_settings_profile,
+            commands::settings_profile_commands::export_settings_profile_to_file,
             commands::settings_profile_commands::import_settings_profile,
             commands::tag_commands::list_tags,
             commands::tag_commands::create_tag,

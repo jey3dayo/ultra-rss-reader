@@ -11,6 +11,7 @@
         "allow": [{ "url": "http://*" }, { "url": "https://*" }, { "url": "mailto:*" }]
       },
       "clipboard-manager:allow-write-text",
+      "dialog:allow-save",
       "core:window:allow-center",
       "core:window:allow-is-fullscreen",
       "core:window:allow-set-always-on-top",

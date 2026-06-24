@@ -5,7 +5,7 @@ import { useCallback, useEffect, useReducer, useRef } from "react";
 import type { SettingsProfileImportResult } from "@/api/schemas";
 import type { AppError } from "@/api/tauri-commands";
 import {
-  exportSettingsProfile,
+  exportSettingsProfileToFile,
   getDatabaseInfo,
   importSettingsProfile,
   openLogDir,
@@ -18,6 +18,7 @@ import {
   DATA_SIZE_UNIT_LABELS,
 } from "@/constants/data-size";
 import { resolveRestoredAccountSelection } from "@/lib/account/account-selection";
+import { showSaveDialog } from "@/lib/platform/save-dialog";
 import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
 import {
   DATABASE_RESTORE_STORAGE_RECONCILIATION_POLICY,
@@ -445,19 +446,6 @@ export function useDataSettingsController({
   const controllerIdRef = useRef<DataSettingsActionOwnerId>(Symbol("data-settings-controller"));
   const databaseSizeRequestRevisionRef = useRef(0);
   const mountedRef = useRef(false);
-  const pendingSettingsProfileExportUrlRef = useRef<string | null>(null);
-  const pendingSettingsProfileExportUrlTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const revokePendingSettingsProfileExportUrl = useCallback(() => {
-    if (pendingSettingsProfileExportUrlTimerRef.current !== null) {
-      clearTimeout(pendingSettingsProfileExportUrlTimerRef.current);
-      pendingSettingsProfileExportUrlTimerRef.current = null;
-    }
-    if (pendingSettingsProfileExportUrlRef.current !== null) {
-      URL.revokeObjectURL(pendingSettingsProfileExportUrlRef.current);
-      pendingSettingsProfileExportUrlRef.current = null;
-    }
-  }, []);
 
   const isActiveDatabaseSizeRequest = useCallback((requestRevision: number) => {
     return mountedRef.current && requestRevision === databaseSizeRequestRevisionRef.current;
@@ -520,9 +508,8 @@ export function useDataSettingsController({
       mountedRef.current = false;
       databaseSizeRequestRevisionRef.current += 1;
       unsubscribeFromActionLifecycle();
-      revokePendingSettingsProfileExportUrl();
     };
-  }, [fetchDbInfo, revokePendingSettingsProfileExportUrl]);
+  }, [fetchDbInfo]);
 
   const handleVacuum = async () => {
     if (!mountedRef.current || databaseSizeStatus !== "ready" || isDataSettingsActionInFlight()) {
@@ -616,28 +603,20 @@ export function useDataSettingsController({
     dispatch({ type: "set-exporting-settings-profile", value: true });
     setSettingsLoading?.(true);
     try {
+      const path = await showSaveDialog({
+        defaultPath: SETTINGS_PROFILE_EXPORT_FILENAME,
+        filters: [{ name: "JSON", extensions: ["json"] }],
+      });
+      if (path === null || !mountedRef.current) {
+        return;
+      }
       Result.pipe(
-        await exportSettingsProfile(),
-        Result.inspect((profileJson) => {
+        await exportSettingsProfileToFile(path),
+        Result.inspect(() => {
           if (!mountedRef.current) {
             return;
           }
-          const blob = new Blob([profileJson], { type: "application/json" });
-          revokePendingSettingsProfileExportUrl();
-          const url = URL.createObjectURL(blob);
-          const anchor = document.createElement("a");
-          anchor.href = url;
-          anchor.download = SETTINGS_PROFILE_EXPORT_FILENAME;
-          pendingSettingsProfileExportUrlRef.current = url;
-          try {
-            anchor.click();
-            pendingSettingsProfileExportUrlTimerRef.current = setTimeout(() => {
-              revokePendingSettingsProfileExportUrl();
-            }, 1000);
-            showToast(t("data.settings_profile_export_success"));
-          } catch {
-            revokePendingSettingsProfileExportUrl();
-          }
+          showToast(t("data.settings_profile_export_success"));
         }),
         Result.inspectError((error) => {
           if (!mountedRef.current) {

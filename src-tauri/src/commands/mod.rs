@@ -106,6 +106,7 @@ pub(crate) fn command_db_lock_policy(command_name: &str) -> Option<CommandDbLock
         | "toggle_article_star"
         | "export_opml"
         | "export_settings_profile"
+        | "export_settings_profile_to_file"
         | "search_articles"
         | "list_mute_keywords"
         | "create_mute_keyword"
@@ -433,6 +434,10 @@ mod tests {
             ),
             ("export_opml", CommandDbLockPolicy::BlockingLock),
             ("export_settings_profile", CommandDbLockPolicy::BlockingLock),
+            (
+                "export_settings_profile_to_file",
+                CommandDbLockPolicy::BlockingLock,
+            ),
             ("search_articles", CommandDbLockPolicy::BlockingLock),
             ("get_article", CommandDbLockPolicy::BlockingLock),
             ("list_articles", CommandDbLockPolicy::BlockingLock),

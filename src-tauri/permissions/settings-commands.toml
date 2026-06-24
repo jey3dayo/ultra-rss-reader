@@ -5,6 +5,7 @@ commands.allow = [
   "get_preferences",
   "set_preference",
   "export_settings_profile",
+  "export_settings_profile_to_file",
   "import_settings_profile",
   "get_platform_info",
 ]

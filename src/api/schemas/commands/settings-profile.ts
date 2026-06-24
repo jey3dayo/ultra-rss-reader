@@ -5,3 +5,9 @@ export const importSettingsProfileArgs = z
     profileJson: z.string().trim().min(1),
   })
   .strict();
+
+export const exportSettingsProfileToFileArgs = z
+  .object({
+    path: z.string().trim().min(1),
+  })
+  .strict();

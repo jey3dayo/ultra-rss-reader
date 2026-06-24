@@ -15,6 +15,7 @@ const expectedMainWebviewPermissions = [
   "core:default",
   "opener:allow-open-url",
   "clipboard-manager:allow-write-text",
+  "dialog:allow-save",
   "core:window:allow-center",
   "core:window:allow-is-fullscreen",
   "core:window:allow-set-always-on-top",
@@ -121,6 +122,7 @@ const expectedCommandOwnerAllowlists = {
     "get_preferences",
     "set_preference",
     "export_settings_profile",
+    "export_settings_profile_to_file",
     "import_settings_profile",
     "get_platform_info",
   ],
@@ -228,9 +230,15 @@ describe("tauri window capability contract", () => {
     const tauriLib = readWorkspaceFile("src-tauri/src/lib.rs");
 
     expect(permissionIds).toEqual(
-      expect.arrayContaining(["opener:allow-open-url", "clipboard-manager:allow-write-text", "updater-commands"]),
+      expect.arrayContaining([
+        "opener:allow-open-url",
+        "clipboard-manager:allow-write-text",
+        "dialog:allow-save",
+        "updater-commands",
+      ]),
     );
     expect(tauriLib).toContain("tauri_plugin_clipboard_manager::init()");
+    expect(tauriLib).toContain("tauri_plugin_dialog::init()");
     expect(tauriLib).toContain("tauri_plugin_opener::init()");
     expect(tauriLib).toContain("tauri_plugin_updater::Builder::new().build()");
   });
