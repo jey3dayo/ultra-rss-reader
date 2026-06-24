@@ -1,6 +1,6 @@
 {
-  "preferences": "Preferences",
-  "close_preferences": "Close preferences",
+  "preferences": "Settings",
+  "close_preferences": "Close settings",
   "accounts_heading": "Accounts",
   "add_account_ellipsis": "Add account…",
   "dirty_state": {

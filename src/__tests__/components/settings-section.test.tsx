@@ -14,7 +14,7 @@ describe("SettingsSection", () => {
 
     expect(surface).not.toBeNull();
     expect(surface).toHaveAttribute("data-surface-card", "section");
-    expect(surface).toHaveClass("rounded-lg");
+    expect(surface).toHaveClass("rounded-md");
     expect(screen.getByText("Account")).toBeInTheDocument();
     expect(screen.getByText("Account")).toHaveClass("select-none");
     expect(screen.getByText("Body content")).toBeInTheDocument();

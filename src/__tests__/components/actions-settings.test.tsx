@@ -17,8 +17,9 @@ describe("ActionsSettings", () => {
 
     expect(screen.queryByText("Open Web Preview")).not.toBeInTheDocument();
     expect(copyLinkLabel).toBeInTheDocument();
-    expect(copyLinkLabel).toHaveClass("min-w-0", "flex-1");
-    expect(copyLinkLabel.nextElementSibling).toHaveClass("shrink-0");
+    expect(copyLinkLabel).toHaveClass("text-[color:var(--form-row-label)]");
+    expect(copyLinkLabel.closest(".grid")).toHaveClass("lg:grid-cols-[minmax(180px,220px)_minmax(0,1fr)]");
+    expect(screen.getByRole("switch", { name: "Show in toolbar: Copy Link" })).toBeInTheDocument();
     expect(screen.queryByText("Open in External Browser")).not.toBeInTheDocument();
     expect(screen.queryByText("Share Menu")).not.toBeInTheDocument();
   });

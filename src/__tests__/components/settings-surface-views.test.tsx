@@ -196,7 +196,9 @@ describe("Settings surface views", () => {
       "motion-contextual-surface",
     );
     expect(screen.getByText("Show in toolbar")).toHaveClass("text-foreground-soft");
-    expect(screen.getByText("Copy link").previousElementSibling).toHaveClass("bg-surface-1/72", "text-foreground-soft");
+    const actionRow = screen.getByText("Copy link").closest(".motion-content-swap");
+    const iconSurface = actionRow?.querySelector(".bg-surface-1\\/72");
+    expect(iconSurface).toHaveClass("bg-surface-1/72", "text-foreground-soft");
 
     await user.click(screen.getByRole("switch", { name: "Show Copy link in toolbar" }));
 

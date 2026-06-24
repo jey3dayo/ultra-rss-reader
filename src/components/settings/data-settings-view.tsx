@@ -41,6 +41,8 @@ type DataSettingsViewProps = {
   onExportSettingsProfile: () => void;
 };
 
+const DATA_ACTION_ROW_CLASS_NAME = "lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-x-6 [&>div:last-child]:lg:pr-0";
+
 export function DataSettingsView({
   title,
   databaseHeading,
@@ -129,7 +131,11 @@ export function DataSettingsView({
         </ul>
       </SettingsSection>
       <SettingsSection heading={settingsProfileHeading} surface="flat" className="mb-6 sm:mb-7">
-        <LabeledControlRow label={settingsProfileExportLabel} description={settingsProfileDescription}>
+        <LabeledControlRow
+          label={settingsProfileExportLabel}
+          description={settingsProfileDescription}
+          className={DATA_ACTION_ROW_CLASS_NAME}
+        >
           <SettingsLoadingActionButton
             disabled={settingsProfileActionUnavailable}
             loading={exportingSettingsProfile}
@@ -139,7 +145,11 @@ export function DataSettingsView({
             {settingsProfileExportActionLabel ?? settingsProfileExportLabel}
           </SettingsLoadingActionButton>
         </LabeledControlRow>
-        <LabeledControlRow label={settingsProfileImportLabel} description={settingsProfileFileInputLabel}>
+        <LabeledControlRow
+          label={settingsProfileImportLabel}
+          description={settingsProfileFileInputLabel}
+          className={DATA_ACTION_ROW_CLASS_NAME}
+        >
           <input
             ref={settingsProfileFileInputRef}
             type="file"
@@ -160,7 +170,11 @@ export function DataSettingsView({
         </LabeledControlRow>
       </SettingsSection>
       <SettingsSection heading={optimizationHeading} surface="flat" className="mb-6 sm:mb-7">
-        <LabeledControlRow label={vacuumLabel} description={vacuumDescriptionText}>
+        <LabeledControlRow
+          label={vacuumLabel}
+          description={vacuumDescriptionText}
+          className={DATA_ACTION_ROW_CLASS_NAME}
+        >
           {({ descriptionId }) => (
             <SettingsLoadingActionButton
               aria-describedby={descriptionId}
@@ -175,7 +189,11 @@ export function DataSettingsView({
         </LabeledControlRow>
       </SettingsSection>
       <SettingsSection heading={logsHeading} surface="flat">
-        <LabeledControlRow label={openLogDirLabel} description={openLogDirDescription}>
+        <LabeledControlRow
+          label={openLogDirLabel}
+          description={openLogDirDescription}
+          className={DATA_ACTION_ROW_CLASS_NAME}
+        >
           <SettingsLoadingActionButton
             disabled={openLogDirActionUnavailable}
             loading={openingLogDir}

@@ -422,7 +422,7 @@ describe("AddAccountForm", () => {
     render(<AddAccountForm />, { wrapper: createWrapper() });
 
     expect(screen.getByTestId("service-picker-surface")).toHaveClass(
-      "rounded-lg",
+      "rounded-md",
       "border",
       "border-border",
       "bg-surface-1",

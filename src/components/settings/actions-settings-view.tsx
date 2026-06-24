@@ -1,12 +1,7 @@
 import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
-import {
-  MOTION_CONTENT_SWAP_CLASS_NAME,
-  MOTION_CONTEXTUAL_SURFACE_CLASS_NAME,
-  MOTION_DATA_PHASE_ATTRIBUTE,
-  MOTION_PHASE_ENTERING,
-} from "@/constants/motion";
-import { GradientSwitch } from "@/design-system";
+import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
+import { GradientSwitch, LabeledControlRow } from "@/design-system";
 
 type ActionsSettingsActionRow = {
   id: string;
@@ -29,15 +24,13 @@ export function ActionsSettingsView({ title, heading, toggleLabel, services }: A
     <SettingsContentLayout title={title} outerTestId="actions-settings-root">
       <SettingsSection heading={heading} surface="flat">
         {services.map((service) => (
-          <div
+          <LabeledControlRow
             key={service.id}
+            label={service.label}
+            leading={service.icon}
             {...{ [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING }}
-            className={`${MOTION_CONTENT_SWAP_CLASS_NAME} ${MOTION_CONTEXTUAL_SURFACE_CLASS_NAME} flex min-h-[56px] items-center gap-3 border-b border-border py-3`}
+            className={MOTION_CONTENT_SWAP_CLASS_NAME}
           >
-            <span className="flex size-8 items-center justify-center rounded-md bg-surface-1/72 text-foreground-soft">
-              {service.icon}
-            </span>
-            <span className="min-w-0 flex-1 text-sm leading-5 text-foreground">{service.label}</span>
             <div className="flex shrink-0 items-center gap-2">
               <span className="text-xs text-foreground-soft">{toggleLabel}</span>
               <GradientSwitch
@@ -46,7 +39,7 @@ export function ActionsSettingsView({ title, heading, toggleLabel, services }: A
                 aria-label={service.toggleAriaLabel}
               />
             </div>
-          </div>
+          </LabeledControlRow>
         ))}
       </SettingsSection>
     </SettingsContentLayout>

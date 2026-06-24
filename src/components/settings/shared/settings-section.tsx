@@ -27,7 +27,7 @@ export function SettingsSection({
     return (
       <section
         className={cn(
-          "rounded-lg border border-border/55 bg-[color-mix(in_srgb,var(--color-surface-1)_62%,transparent)] px-4 py-3.5 shadow-[0_14px_34px_-30px_rgba(38,37,30,0.32)] backdrop-blur-sm sm:px-5 sm:py-4",
+          "rounded-md border border-border/55 bg-[color-mix(in_srgb,var(--color-surface-1)_62%,transparent)] px-4 py-3.5 shadow-[0_14px_34px_-30px_rgba(38,37,30,0.32)] backdrop-blur-sm sm:px-5 sm:py-4",
           className,
         )}
       >
@@ -42,7 +42,7 @@ export function SettingsSection({
     <section className={className}>
       <SurfaceCard
         variant="section"
-        className="rounded-lg border-border/55 bg-[color-mix(in_srgb,var(--color-surface-1)_62%,transparent)] shadow-[0_14px_34px_-30px_rgba(38,37,30,0.32)]"
+        className="rounded-md border-border/55 bg-[color-mix(in_srgb,var(--color-surface-1)_62%,transparent)] shadow-[0_14px_34px_-30px_rgba(38,37,30,0.32)]"
       >
         <SectionHeading className={cn("mb-2.5 sm:mb-3", headingClassName)}>{heading}</SectionHeading>
         <div className={contentClassName}>{children}</div>

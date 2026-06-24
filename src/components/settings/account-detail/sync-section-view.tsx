@@ -103,7 +103,7 @@ export function AccountSyncSectionView({
           aria-atomic="true"
           className={cn(
             CONTROL_RAIL_CLASS,
-            "mt-4 space-y-2 rounded-lg border border-border/70 bg-surface-1/72 px-4 py-3",
+            "mt-4 space-y-2 rounded-md border border-border/70 bg-surface-1/72 px-4 py-3",
           )}
         >
           <div className="flex items-center justify-between gap-3 text-sm">
@@ -130,7 +130,7 @@ export function AccountSyncSectionView({
         <div
           className={cn(
             CONTROL_RAIL_CLASS,
-            "mt-4 rounded-lg border border-border/70 bg-surface-1/72 px-4 py-3 text-sm",
+            "mt-4 rounded-md border border-border/70 bg-surface-1/72 px-4 py-3 text-sm",
           )}
         >
           {statusRows.map((row) => (

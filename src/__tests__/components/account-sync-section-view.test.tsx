@@ -316,7 +316,7 @@ describe("AccountSyncSectionView", () => {
       />,
     );
 
-    const statusSurface = screen.getByText("Today at 10:30").closest("div.rounded-lg");
+    const statusSurface = screen.getByText("Today at 10:30").closest("div.rounded-md");
 
     expect(statusSurface).toHaveClass("bg-surface-1/72");
     expect(screen.getByText("Next sync")).toHaveClass("text-[11px]", "text-foreground-soft");

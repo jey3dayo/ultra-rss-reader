@@ -1,4 +1,4 @@
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Trash2 } from "lucide-react";
 import type { FormEvent } from "react";
 import type { MuteKeywordScope } from "@/api/schemas";
 import { SettingsLoadingActionButton } from "@/components/settings/settings-loading-action-button";
@@ -123,8 +123,8 @@ export function MuteSettingsView({
             placeholder={keywordPlaceholder}
             rowClassName="items-start sm:items-center"
             labelClassName="sm:w-40 sm:shrink-0"
-            controlClassName="min-w-0 flex-col sm:w-full sm:max-w-[30rem] sm:flex-row"
-            inputClassName="w-full min-w-0 sm:w-[220px] sm:flex-1"
+            controlClassName="grid min-w-0 gap-2 sm:w-full sm:max-w-[30rem] sm:grid-cols-[minmax(0,1fr)_auto]"
+            inputClassName="w-full min-w-0 sm:col-span-2"
             formProps={{
               "data-testid": "mute-settings-add-row",
               onSubmit: handleAddSubmit,
@@ -193,8 +193,15 @@ export function MuteSettingsView({
                 labelClassName="break-all sm:max-w-[280px] sm:shrink-0 sm:truncate sm:break-normal"
                 triggerClassName="h-11 w-full sm:flex-1"
                 trailingControls={
-                  <SettingsActionButton type="button" size="compact" onClick={() => onRequestDelete(rule.id)}>
-                    {deleteLabel}
+                  <SettingsActionButton
+                    type="button"
+                    size="icon"
+                    tone="danger"
+                    className="size-11"
+                    aria-label={deleteLabel}
+                    onClick={() => onRequestDelete(rule.id)}
+                  >
+                    <Trash2 className="size-4" aria-hidden="true" />
                   </SettingsActionButton>
                 }
               />

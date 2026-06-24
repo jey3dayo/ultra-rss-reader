@@ -55,7 +55,7 @@ describe("SettingsModal", () => {
 
     render(<SettingsModal />, { wrapper: createWrapper() });
 
-    await user.click(screen.getByRole("button", { name: "Close preferences" }));
+    await user.click(screen.getByRole("button", { name: "Close settings" }));
 
     await waitFor(() => {
       expect(useUiStore.getState().settingsOpen).toBe(false);
@@ -65,14 +65,14 @@ describe("SettingsModal", () => {
   it("keeps open modal chrome on one locale while language changes", async () => {
     render(<SettingsModal />, { wrapper: createWrapper() });
 
-    expect(screen.getByRole("heading", { name: "Preferences" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Close preferences" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Settings" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Close settings" })).toBeInTheDocument();
 
     await i18n.changeLanguage("ja");
 
-    expect(screen.getByRole("heading", { name: "Preferences" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Close preferences" })).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "設定" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Settings" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Close settings" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "環境設定" })).not.toBeInTheDocument();
   });
 
   it("locks close and navigation while preference saves are pending", async () => {
@@ -81,7 +81,7 @@ describe("SettingsModal", () => {
 
     render(<SettingsModal />, { wrapper: createWrapper() });
 
-    await user.click(screen.getByRole("button", { name: "Close preferences" }));
+    await user.click(screen.getByRole("button", { name: "Close settings" }));
     await user.click(screen.getByRole("button", { name: "Reading" }));
 
     expect(useUiStore.getState()).toEqual(
@@ -305,7 +305,7 @@ describe("SettingsModal", () => {
       });
     });
 
-    await user.click(screen.getByRole("button", { name: "Close preferences" }));
+    await user.click(screen.getByRole("button", { name: "Close settings" }));
     await user.click(screen.getByRole("button", { name: "Reading" }));
     await user.click(screen.getByRole("button", { name: /FreshRSS/i }));
 
