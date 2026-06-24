@@ -366,7 +366,7 @@ describe("SettingsModalView", () => {
     expect(screen.queryByTestId("settings-content-fade-bottom")).not.toBeInTheDocument();
   });
 
-  it("shows content scrollbar affordances when the content overflows", async () => {
+  it("shows a trailing content scrollbar affordance when the content overflows", async () => {
     render(
       <SettingsModalView
         open={true}
@@ -387,11 +387,8 @@ describe("SettingsModalView", () => {
       "[&>[data-slot='scroll-area-scrollbar']]:hidden",
     );
 
-    expect(screen.getByTestId("settings-content-fade-top")).toBeInTheDocument();
+    expect(screen.queryByTestId("settings-content-fade-top")).not.toBeInTheDocument();
     expect(screen.getByTestId("settings-content-fade-bottom")).toBeInTheDocument();
-    expect(screen.getByTestId("settings-content-fade-top")).toHaveStyle({
-      backgroundImage: "var(--settings-shell-content-fade)",
-    });
     expect(screen.getByTestId("settings-content-fade-bottom")).toHaveStyle({
       backgroundImage: "var(--settings-shell-content-fade-reverse)",
     });

@@ -127,14 +127,6 @@ export function SettingsContentLayout({
         </header>
       )}
       <div className="relative min-h-0 flex-1">
-        {contentHasOverflow ? (
-          <div
-            data-testid="settings-content-fade-top"
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-x-0 top-0 z-10 h-5"
-            style={{ backgroundImage: "var(--settings-shell-content-fade)" }}
-          />
-        ) : null}
         <ScrollArea
           data-testid="settings-content-scroll-area"
           viewportRef={contentOverflow.viewportRef}

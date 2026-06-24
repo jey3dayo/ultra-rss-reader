@@ -43,10 +43,13 @@ describe("AccountDangerZoneView", () => {
     expectStandardSettingsActionButton(screen.getByRole("button", { name: "Export OPML" }));
     expect(screen.getByRole("button", { name: "Delete account" })).toHaveAttribute("data-delete-button");
     expect(screen.getByRole("button", { name: "Delete account" })).toHaveClass("w-full");
-    expect(screen.getByRole("button", { name: "Import OPML" }).parentElement?.parentElement).toHaveClass("pl-2");
-    expect(screen.getByRole("button", { name: "Export OPML" }).parentElement?.parentElement).toHaveClass("pl-2");
-    expect(screen.getByRole("button", { name: "Delete account" }).parentElement).toHaveClass("pl-2");
-    expect(container.querySelectorAll('[data-surface-card="section"]')).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "Import OPML" }).parentElement?.parentElement).toHaveClass("pt-1");
+    expect(screen.getByRole("button", { name: "Export OPML" }).parentElement?.parentElement).toHaveClass("pt-1");
+    expect(screen.getByRole("button", { name: "Delete account" }).parentElement).toHaveClass("pt-1");
+    expect(container.querySelectorAll('[data-surface-card="section"]')).toHaveLength(0);
+    for (const section of container.querySelectorAll("section")) {
+      expect(section).not.toHaveClass("border-t");
+    }
     expect(onImport).toHaveBeenCalledWith(expect.objectContaining({ name: "feeds.opml" }));
     expect(onExport).toHaveBeenCalledTimes(1);
     expect(onRequestDelete).toHaveBeenCalledTimes(1);

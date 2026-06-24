@@ -10,6 +10,7 @@ type TagColorPickerProps = {
   colorOptions: readonly string[];
   noColorLabel: string;
   optionAriaLabel: (color: string) => string;
+  density?: "default" | "compact";
   disabled?: boolean;
   onChange: (value: string | null) => void;
 };
@@ -20,6 +21,7 @@ export function TagColorPicker({
   colorOptions,
   noColorLabel,
   optionAriaLabel,
+  density = "default",
   disabled = false,
   onChange,
 }: TagColorPickerProps) {
@@ -63,9 +65,11 @@ export function TagColorPicker({
     const direction = event.key === "ArrowRight" || event.key === "ArrowDown" ? 1 : -1;
     selectByIndex((checkedIndex + direction + radioValues.length) % radioValues.length, true);
   };
+  const swatchClassName = density === "compact" ? "size-8" : "size-11";
+  const selectedIconClassName = density === "compact" ? "size-3" : "size-4";
 
   return (
-    <div className="space-y-3">
+    <div className={cn(density === "compact" ? "space-y-2" : "space-y-3")}>
       {label ? (
         <span id={labelId} className="block text-sm font-medium text-foreground-soft">
           {label}
@@ -76,7 +80,7 @@ export function TagColorPicker({
         aria-orientation="horizontal"
         aria-labelledby={label ? labelId : undefined}
         tabIndex={-1}
-        className="flex flex-wrap items-center gap-2"
+        className={cn("flex flex-wrap items-center", density === "compact" ? "gap-1.5" : "gap-2")}
         onKeyDown={handleKeyDown}
       >
         <label title={noColorLabel}>
@@ -95,7 +99,8 @@ export function TagColorPicker({
           />
           <span
             className={cn(
-              "motion-interactive-surface flex size-11 items-center justify-center rounded-full border bg-surface-1 text-[11px] text-foreground-soft peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-ring/50",
+              "motion-interactive-surface flex items-center justify-center rounded-full border bg-surface-1 text-[11px] text-foreground-soft peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-ring/50",
+              swatchClassName,
               disabled && "cursor-not-allowed opacity-50",
               normalizedColor === null
                 ? "border-border-strong bg-surface-2 text-foreground ring-2 ring-ring/35"
@@ -122,7 +127,8 @@ export function TagColorPicker({
             />
             <span
               className={cn(
-                "motion-interactive-surface relative flex size-11 items-center justify-center rounded-full border-2 peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-ring/50",
+                "motion-interactive-surface relative flex items-center justify-center rounded-full border-2 peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-ring/50",
+                swatchClassName,
                 disabled && "cursor-not-allowed opacity-50",
                 normalizedColor === option
                   ? "scale-110 border-white/85 shadow-[var(--tag-color-selected-shadow)]"
@@ -131,7 +137,9 @@ export function TagColorPicker({
               style={{ backgroundColor: option }}
             >
               {normalizedColor === option ? (
-                <Check className="size-4 text-white drop-shadow-[var(--tag-color-check-shadow)]" />
+                <Check
+                  className={cn(selectedIconClassName, "text-white drop-shadow-[var(--tag-color-check-shadow)]")}
+                />
               ) : null}
             </span>
           </label>

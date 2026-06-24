@@ -86,8 +86,8 @@ describe("TagsSettingsView", () => {
     expect(favName).toHaveAttribute("dir", "auto");
     expect(favName).toHaveAttribute("title", longTagName);
     expect(within(favRow).getByTestId("tags-settings-color-dot-tag-1")).toHaveClass("size-2.5", "rounded-full");
-    expect(within(favRow).getByRole("button", { name: `Edit ${longTagName}` })).toHaveClass("size-11");
-    expect(within(favRow).getByRole("button", { name: `Delete ${longTagName}` })).toHaveClass("size-11");
+    expect(within(favRow).getByRole("button", { name: `Edit ${longTagName}` })).toHaveClass("size-8");
+    expect(within(favRow).getByRole("button", { name: `Delete ${longTagName}` })).toHaveClass("size-8");
 
     const grayRow = screen.getByTestId("tags-settings-row-tag-2");
     expect(within(grayRow).queryByTestId("tags-settings-color-dot-tag-2")).toBeNull();
@@ -130,17 +130,13 @@ describe("TagsSettingsView", () => {
     );
 
     const input = screen.getByRole("textbox", { name: "Name" });
-    expect(input).toHaveClass("h-11", "flex-1");
-    expect(input.closest("div.flex.w-full.min-w-0.flex-col.gap-2")).toHaveClass(
-      "sm:max-w-[30rem]",
-      "sm:flex-row",
-      "sm:justify-end",
-    );
+    expect(input).toHaveClass("h-9", "flex-1");
+    expect(input.closest("div.flex.min-w-0.gap-2")).toBeInTheDocument();
     expect(input.id).toBeTruthy();
     expect(document.querySelector(`label[for="${input.id}"]`)).toHaveTextContent("Name");
 
     const createButton = screen.getByRole("button", { name: "Create" });
-    expect(createButton).toHaveClass("h-11", "px-4");
+    expect(createButton).toHaveClass("h-9", "px-4");
     expectStandardSettingsActionButtonWidth(createButton);
 
     await user.type(input, " tag");

@@ -23,18 +23,14 @@ describe("SettingsContentLayout", () => {
     expect(screen.getByText("Tune reading behavior.")).toHaveClass("text-[13px]");
   });
 
-  it("keeps overflow fades decorative and token-driven", () => {
+  it("keeps the trailing overflow fade decorative and token-driven", () => {
     render(
       <SettingsContentLayout title="General" scrollBehavior="always">
         <div>Body</div>
       </SettingsContentLayout>,
     );
 
-    expect(screen.getByTestId("settings-content-fade-top")).toHaveAttribute("aria-hidden", "true");
-    expect(screen.getByTestId("settings-content-fade-top")).toHaveClass("pointer-events-none");
-    expect(screen.getByTestId("settings-content-fade-top")).toHaveStyle({
-      backgroundImage: "var(--settings-shell-content-fade)",
-    });
+    expect(screen.queryByTestId("settings-content-fade-top")).not.toBeInTheDocument();
     expect(screen.getByTestId("settings-content-fade-bottom")).toHaveAttribute("aria-hidden", "true");
     expect(screen.getByTestId("settings-content-fade-bottom")).toHaveClass("pointer-events-none");
     expect(screen.getByTestId("settings-content-fade-bottom")).toHaveStyle({
@@ -51,7 +47,7 @@ describe("SettingsContentLayout", () => {
       </SettingsContentScrollBehaviorProvider>,
     );
 
-    expect(screen.getByTestId("settings-content-fade-top")).toBeInTheDocument();
+    expect(screen.queryByTestId("settings-content-fade-top")).not.toBeInTheDocument();
     expect(screen.getByTestId("settings-content-fade-bottom")).toBeInTheDocument();
   });
 

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { AccountConnectionSummary } from "@/components/settings/account-connection-summary";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
+import { SETTINGS_CONTROL_SURFACE_CLASS } from "@/components/settings/shared/settings-surface";
 import {
   Checkbox,
   GradientSwitch,
@@ -53,7 +54,8 @@ export function ReferenceRadioGroup() {
                 <label
                   key={option.value}
                   className={cn(
-                    "inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-1.5 text-sm shadow-elevation-1 transition-colors duration-150 ease-standard motion-reduce:transition-none",
+                    "inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-1.5 text-sm transition-colors duration-150 ease-standard motion-reduce:transition-none",
+                    SETTINGS_CONTROL_SURFACE_CLASS,
                     checked
                       ? "border-border-strong bg-surface-3 text-foreground"
                       : "border-border bg-surface-1 text-foreground/72 hover:bg-surface-2",
