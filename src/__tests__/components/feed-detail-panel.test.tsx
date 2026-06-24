@@ -46,42 +46,81 @@ describe("FeedDetailPanel", () => {
       "border",
       "bg-surface-1/88",
     );
-    expect(screen.getByTestId("feed-detail-secondary-column").contains(screen.getByTestId("feed-detail-status"))).toBe(
-      true,
+    expect(
+      screen
+        .getByTestId("feed-detail-secondary-column")
+        .contains(screen.getByTestId("feed-detail-status")),
+    ).toBe(true);
+    expect(
+      screen
+        .getByTestId("feed-detail-secondary-column")
+        .contains(screen.getByTestId("feed-detail-reason-box")),
+    ).toBe(true);
+    expect(screen.getByTestId("feed-detail-secondary-column")).not.toHaveClass(
+      "grid-cols-[auto_minmax(0,1fr)]",
+    );
+    expect(screen.getByTestId("feed-detail-status")).toHaveClass(
+      "rounded-md",
+      "self-start",
     );
     expect(
-      screen.getByTestId("feed-detail-secondary-column").contains(screen.getByTestId("feed-detail-reason-box")),
-    ).toBe(true);
-    expect(screen.getByTestId("feed-detail-secondary-column")).not.toHaveClass("grid-cols-[auto_minmax(0,1fr)]");
-    expect(screen.getByTestId("feed-detail-status")).toHaveClass("rounded-md", "self-start");
-    expect(screen.getByTestId("feed-detail-reason-box").closest('[data-surface-card="section"]')).toHaveClass(
-      "bg-card/38",
-    );
-    expect(screen.getByText("静かな購読です。").closest('[data-surface-card="info"]')).toHaveClass("bg-surface-1/76");
+      screen
+        .getByTestId("feed-detail-reason-box")
+        .closest('[data-surface-card="section"]'),
+    ).toHaveClass("bg-card/38");
+    expect(
+      screen
+        .getByText("静かな購読です。")
+        .closest('[data-surface-card="info"]'),
+    ).toHaveClass("bg-surface-1/76");
     expect(screen.getByTestId("feed-detail-reason-box")).toHaveClass(
       "border-state-warning-border/80",
       "bg-state-warning-surface/80",
       "text-state-warning-foreground",
     );
-    expect(screen.getByText("静かな購読です。")).toHaveClass("text-foreground-soft");
+    expect(screen.getByText("静かな購読です。")).toHaveClass(
+      "text-foreground-soft",
+    );
     expect(screen.getByText("2026/04/17")).toHaveClass("text-foreground-soft");
     expect(screen.getByText("整理の判断材料")).toHaveClass("text-current");
-    expect(screen.getByText("未読 0件 / スター 0件")).toHaveClass("text-current");
-    expect(screen.getByText("フォルダ").closest("dt")).toHaveClass("text-foreground-soft");
-    expect(screen.getByText("Work").closest("dd")).toHaveClass("text-foreground");
-    expect(screen.getByRole("link", { name: "Help" })).toHaveAttribute("href", "https://example.com/help");
-    expect(screen.getByRole("link", { name: "Help" })).toHaveClass("text-foreground-soft");
-    expect(screen.getByTestId("feed-detail-recent-articles")).toHaveClass("space-y-2", "border-t", "pt-3");
-    expect(screen.getByText("最近の記事タイトル")).toHaveClass("text-[0.88rem]", "leading-5");
-    expect(screen.getByRole("button", { name: "フィードを編集" }).parentElement).toHaveClass("border-t", "pt-4");
-    expect(screen.getByRole("button", { name: "フィードを編集" })).toHaveClass(
-      "min-h-11",
-      "px-3",
-      "sm:px-3.5",
-      "border-border-strong",
-      "bg-surface-1/88",
+    expect(screen.getByText("未読 0件 / スター 0件")).toHaveClass(
+      "text-current",
     );
-    expect(screen.getByRole("button", { name: "フィードを編集" })).not.toHaveClass("rounded-full");
+    expect(screen.getByText("フォルダ").closest("dt")).toHaveClass(
+      "text-foreground-soft",
+    );
+    expect(screen.getByText("Work").closest("dd")).toHaveClass(
+      "text-foreground",
+    );
+    expect(screen.getByRole("link", { name: "Help" })).toHaveAttribute(
+      "href",
+      "https://example.com/help",
+    );
+    expect(screen.getByRole("link", { name: "Help" })).toHaveClass(
+      "text-foreground-soft",
+    );
+    expect(screen.getByTestId("feed-detail-recent-articles")).toHaveClass(
+      "space-y-2",
+      "border-t",
+      "pt-3",
+    );
+    expect(screen.getByText("最近の記事タイトル")).toHaveClass(
+      "text-[0.88rem]",
+      "leading-5",
+    );
+    expect(
+      screen.getByRole("button", { name: "フィードを編集" }).parentElement,
+    ).toHaveClass("border-t", "pt-3");
+    expect(screen.getByRole("button", { name: "フィードを編集" })).toHaveClass(
+      "min-h-9",
+      "w-auto",
+      "px-3",
+      "border-border/70",
+      "bg-surface-1/72",
+    );
+    expect(
+      screen.getByRole("button", { name: "フィードを編集" }),
+    ).not.toHaveClass("rounded-full");
   });
 
   it("renders neutral reason chips instead of muted chips", () => {
@@ -96,10 +135,20 @@ describe("FeedDetailPanel", () => {
       />,
     );
 
-    expect(screen.getByText("整理候補").closest("span")).toHaveAttribute("data-label-chip", "neutral");
-    expect(screen.getByText("整理候補").closest("span")).toHaveClass("bg-surface-1/80");
-    expect(screen.getByText("整理候補").closest("span")).toHaveClass("rounded-md");
-    expect(screen.getByText("未読 0件").closest("span")).toHaveAttribute("data-label-chip", "neutral");
+    expect(screen.getByText("整理候補").closest("span")).toHaveAttribute(
+      "data-label-chip",
+      "neutral",
+    );
+    expect(screen.getByText("整理候補").closest("span")).toHaveClass(
+      "bg-surface-1/80",
+    );
+    expect(screen.getByText("整理候補").closest("span")).toHaveClass(
+      "rounded-md",
+    );
+    expect(screen.getByText("未読 0件").closest("span")).toHaveAttribute(
+      "data-label-chip",
+      "neutral",
+    );
   });
 
   it("uses the feed detail link label as the displayed link text", () => {
@@ -113,8 +162,13 @@ describe("FeedDetailPanel", () => {
       />,
     );
 
-    expect(screen.getByRole("link", { name: "公式サイト" })).toHaveAttribute("href", "https://example.com/rss.xml");
-    expect(screen.queryByText("https://example.com/rss.xml")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "公式サイト" })).toHaveAttribute(
+      "href",
+      "https://example.com/rss.xml",
+    );
+    expect(
+      screen.queryByText("https://example.com/rss.xml"),
+    ).not.toBeInTheDocument();
   });
 
   it("keeps secondary actions on the shared touch target contract", () => {
@@ -128,7 +182,10 @@ describe("FeedDetailPanel", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "後で確認" })).toHaveClass("min-h-11", "px-4");
+    expect(screen.getByRole("button", { name: "後で確認" })).toHaveClass(
+      "min-h-11",
+      "px-4",
+    );
   });
 
   it("does not render invalid feed website title hrefs as links", () => {
@@ -142,9 +199,15 @@ describe("FeedDetailPanel", () => {
       />,
     );
 
-    expect(screen.getByRole("heading", { level: 3, name: "Private Feed" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 3, name: "Private Feed" }),
+    ).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Private Feed/ })).toBeNull();
-    expect(screen.queryByText("https://user:secret@example.com/private.xml?token=hidden")).toBeNull();
+    expect(
+      screen.queryByText(
+        "https://user:secret@example.com/private.xml?token=hidden",
+      ),
+    ).toBeNull();
   });
 
   it("allows reader shells to share the detail panel surface treatment", () => {
@@ -159,7 +222,9 @@ describe("FeedDetailPanel", () => {
     );
 
     expect(
-      screen.getByRole("heading", { level: 3, name: "Example Feed" }).closest('[data-surface-card="section"]'),
+      screen
+        .getByRole("heading", { level: 3, name: "Example Feed" })
+        .closest('[data-surface-card="section"]'),
     ).toHaveClass("rounded-3xl", "bg-card/38");
   });
 });
