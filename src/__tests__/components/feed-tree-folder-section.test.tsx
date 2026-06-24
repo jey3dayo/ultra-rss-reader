@@ -38,7 +38,7 @@ describe("FeedTreeFolderSection", () => {
     expect(folderButton).toHaveClass("rounded-lg");
     expect(folderButton).not.toHaveClass("pl-0");
     expect(toggleButton).toHaveClass("select-none", "hover:bg-[var(--sidebar-hover-surface)]");
-    expect(toggleButton).toHaveClass("size-11");
+    expect(toggleButton).toHaveClass("size-9");
     expect(screen.getByText("Comic")).toHaveClass("font-medium");
     expect(screen.getByText("9,274")).toHaveClass("text-[0.72rem]", "text-sidebar-foreground/54");
   });
