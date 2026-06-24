@@ -55,7 +55,7 @@ const iconToolbarControlVariants = cva(iconToolbarButtonClassName, {
 });
 
 const iconToolbarSurfaceButtonClassName = cn(
-  "motion-interactive-surface inline-flex size-11 shrink-0 items-center justify-center rounded-lg bg-transparent text-inherit shadow-none outline-none select-none transition-none md:size-8 hover:bg-transparent hover:text-inherit aria-expanded:bg-transparent focus-visible:ring-0 active:translate-y-0 disabled:pointer-events-none disabled:opacity-100 disabled:text-foreground-soft [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "motion-interactive-surface inline-flex size-11 shrink-0 items-center justify-center rounded-lg bg-transparent text-inherit shadow-none outline-none select-none transition-none hover:bg-transparent hover:text-inherit aria-expanded:bg-transparent focus-visible:ring-0 active:translate-y-0 disabled:pointer-events-none disabled:opacity-100 disabled:text-foreground-soft [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
 );
 
 type IconToolbarSurfaceButtonProps = IconToolbarButtonProps & {
@@ -129,14 +129,12 @@ export function IconToolbarSurfaceButton({
   tone = "default",
   variant = "default",
 }: IconToolbarSurfaceButtonProps) {
-  const chromeTargetClassName = variant === "chrome" ? "md:size-10" : undefined;
-
   return (
-    <OverlayActionSurface compact={compact} tone={tone} variant={variant} className={chromeTargetClassName}>
+    <OverlayActionSurface compact={compact} tone={tone} variant={variant}>
       <AppTooltip label={tooltipLabel ?? label} side={tooltipSide} align={tooltipAlign} sideOffset={tooltipSideOffset}>
         <ButtonPrimitive
           onClick={onClick}
-          className={cn(iconToolbarSurfaceButtonClassName, chromeTargetClassName, className)}
+          className={cn(iconToolbarSurfaceButtonClassName, className)}
           disabled={disabled}
           aria-label={label}
         >

@@ -98,17 +98,20 @@ describe("CommandPaletteResourceGroups", () => {
 
     expect(screen.getByRole("group", { name: "Feeds" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: /Tech Blog/ })).toBeInTheDocument();
+    expect(screen.getByText("Tech Blog")).toHaveClass("min-w-0", "truncate");
     expect(screen.getByText("https://example.com")).toHaveClass("text-foreground-soft");
     expect(screen.queryByRole("option", { name: /News/ })).not.toBeInTheDocument();
 
     const tagsGroup = screen.getByRole("group", { name: "Tags" });
     expect(tagsGroup).toBeInTheDocument();
     expect(within(tagsGroup).getByRole("option", { name: /Tech/ })).toBeInTheDocument();
+    expect(within(tagsGroup).getByText("Tech")).toHaveClass("min-w-0", "truncate");
     expect(screen.getByText("#6f8eb8")).toHaveClass("text-foreground-soft");
     expect(screen.queryByRole("option", { name: /Later/ })).not.toBeInTheDocument();
 
     expect(screen.getByRole("group", { name: "Articles" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: /First Article/ })).toBeInTheDocument();
+    expect(screen.getByText("First Article")).toHaveClass("min-w-0", "truncate");
     expect(screen.getByText("https://example.com/1")).toHaveClass("text-foreground-soft");
     expect(screen.queryByRole("option", { name: /Second Article/ })).not.toBeInTheDocument();
   });

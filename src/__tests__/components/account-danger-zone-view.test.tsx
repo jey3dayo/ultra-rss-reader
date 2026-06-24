@@ -6,8 +6,8 @@ import { AccountDangerZoneView } from "@/components/settings/account-detail/dang
 function expectStandardSettingsActionButton(button: HTMLElement) {
   expect(button).toHaveClass("w-full");
   expect(button).toHaveClass("sm:w-auto");
-  expect(button).toHaveClass("h-10", "px-4");
-  expect([...button.classList].filter((className) => className.includes("min-w"))).toEqual([]);
+  expect(button).toHaveClass("h-11", "px-4");
+  expect(button).toHaveClass("min-w-11");
 }
 
 describe("AccountDangerZoneView", () => {
@@ -94,5 +94,106 @@ describe("AccountDangerZoneView", () => {
     expect(onImport).not.toHaveBeenCalled();
     expect(onExport).not.toHaveBeenCalled();
     expect(onRequestDelete).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { state: "disabled", props: { disabled: true } },
+    { state: "importing", props: { importing: true } },
+    { state: "exporting", props: { exporting: true } },
+  ])("blocks hidden OPML upload while actions are $state", async ({ props }) => {
+    const user = userEvent.setup();
+    const onImport = vi.fn();
+
+    render(
+      <AccountDangerZoneView
+        dataHeading="Data"
+        dangerHeading="Danger Zone"
+        importLabel="Import OPML"
+        exportLabel="Export OPML"
+        deleteLabel="Delete account"
+        onImport={onImport}
+        onExport={vi.fn()}
+        onRequestDelete={vi.fn()}
+        {...props}
+      />,
+    );
+
+    const input = screen.getByTestId("opml-import-input");
+
+    expect(input).toBeDisabled();
+
+    await user.upload(input, new File(["<opml />"], "feeds.opml"));
+
+    expect(onImport).not.toHaveBeenCalled();
+  });
+
+  it("shows busy feedback and blocks OPML actions while import is running", async () => {
+    const user = userEvent.setup();
+    const onImport = vi.fn();
+    const onExport = vi.fn();
+
+    render(
+      <AccountDangerZoneView
+        dataHeading="Data"
+        dangerHeading="Danger Zone"
+        importLabel="Import OPML"
+        importingLabel="Importing OPML..."
+        exportLabel="Export OPML"
+        exportingLabel="Exporting OPML..."
+        deleteLabel="Delete account"
+        importing
+        onImport={onImport}
+        onExport={onExport}
+        onRequestDelete={vi.fn()}
+      />,
+    );
+
+    const importingButton = screen.getByRole("button", { name: "Importing OPML..." });
+    const exportButton = screen.getByRole("button", { name: "Export OPML" });
+
+    expect(importingButton).toBeDisabled();
+    expect(importingButton).toHaveAttribute("aria-busy", "true");
+    expect(exportButton).toBeDisabled();
+
+    await user.click(importingButton);
+    await user.click(exportButton);
+
+    expect(onImport).not.toHaveBeenCalled();
+    expect(onExport).not.toHaveBeenCalled();
+  });
+
+  it("shows busy feedback and blocks OPML actions while export is running", async () => {
+    const user = userEvent.setup();
+    const onImport = vi.fn();
+    const onExport = vi.fn();
+
+    render(
+      <AccountDangerZoneView
+        dataHeading="Data"
+        dangerHeading="Danger Zone"
+        importLabel="Import OPML"
+        importingLabel="Importing OPML..."
+        exportLabel="Export OPML"
+        exportingLabel="Exporting OPML..."
+        deleteLabel="Delete account"
+        exporting
+        onImport={onImport}
+        onExport={onExport}
+        onRequestDelete={vi.fn()}
+      />,
+    );
+
+    const importButton = screen.getByRole("button", { name: "Import OPML" });
+    const exportingButton = screen.getByRole("button", { name: "Exporting OPML..." });
+
+    expect(importButton).toBeDisabled();
+    expect(exportingButton).toBeDisabled();
+    expect(exportingButton).toHaveAttribute("aria-busy", "true");
+
+    await user.click(importButton);
+    await user.click(exportingButton);
+
+    expect(onImport).not.toHaveBeenCalled();
+    expect(onExport).not.toHaveBeenCalled();
   });
 });

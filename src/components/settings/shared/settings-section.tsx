@@ -25,9 +25,14 @@ export function SettingsSection({
 
   if (surface === "flat") {
     return (
-      <section className={className}>
-        <SectionHeading className={cn("mb-1.5 sm:mb-2", headingClassName)}>{heading}</SectionHeading>
-        <div className={cn("[&>*:first-child]:pt-0", contentClassName)}>{children}</div>
+      <section
+        className={cn(
+          "rounded-md border border-border/55 bg-[color-mix(in_srgb,var(--color-surface-1)_62%,transparent)] px-4 py-3.5 shadow-[0_14px_34px_-30px_rgba(38,37,30,0.32)] backdrop-blur-sm sm:px-5 sm:py-4",
+          className,
+        )}
+      >
+        <SectionHeading className={cn("mb-2.5 sm:mb-3", headingClassName)}>{heading}</SectionHeading>
+        <div className={cn("[&>*:first-child]:pt-0 [&>*:last-child]:pb-0", contentClassName)}>{children}</div>
         {note ? <p className={noteClassName}>{note}</p> : null}
       </section>
     );
@@ -35,8 +40,11 @@ export function SettingsSection({
 
   return (
     <section className={className}>
-      <SurfaceCard variant="section">
-        <SectionHeading className={headingClassName}>{heading}</SectionHeading>
+      <SurfaceCard
+        variant="section"
+        className="rounded-md border-border/55 bg-[color-mix(in_srgb,var(--color-surface-1)_62%,transparent)] shadow-[0_14px_34px_-30px_rgba(38,37,30,0.32)]"
+      >
+        <SectionHeading className={cn("mb-2.5 sm:mb-3", headingClassName)}>{heading}</SectionHeading>
         <div className={contentClassName}>{children}</div>
         {note ? <p className={noteClassName}>{note}</p> : null}
       </SurfaceCard>

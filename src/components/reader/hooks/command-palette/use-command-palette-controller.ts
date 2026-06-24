@@ -112,6 +112,7 @@ export function useCommandPaletteController(): CommandPaletteControllerResult {
       description: t("command_palette.placeholder"),
       placeholder: t("command_palette.placeholder"),
       noResultsLabel: t("command_palette.no_results"),
+      resultsLabel: t("command_palette.results_label"),
       recentActionsHeading: t("command_palette.recent_actions"),
       actionsHeading: t("command_palette.actions"),
       devScenariosHeading: t("command_palette.dev_scenarios"),

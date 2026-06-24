@@ -27,14 +27,20 @@ export function AddAccountForm({ initialKind, debugState }: AddAccountFormProps 
   }, []);
 
   if (step.type === "config") {
-    return <AccountConfigForm kind={step.kind} onBack={handleBack} debugState={debugState} />;
+    return (
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <AccountConfigForm kind={step.kind} onBack={handleBack} debugState={debugState} />
+      </div>
+    );
   }
 
   return (
-    <ServicePicker
-      title={`${t("account.heading")}…`}
-      categories={buildServicePickerCategories(t)}
-      onSelect={handleSelect}
-    />
+    <div className="min-h-0 flex-1 overflow-y-auto p-6">
+      <ServicePicker
+        title={`${t("account.heading")}…`}
+        categories={buildServicePickerCategories(t)}
+        onSelect={handleSelect}
+      />
+    </div>
   );
 }

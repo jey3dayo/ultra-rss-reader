@@ -36,7 +36,7 @@ describe("FeedTreeView visibility and density contract", () => {
   });
 
   it("projects the selected density tokens onto feed rows", () => {
-    render(
+    const { container } = render(
       <FeedTreeView
         isOpen={true}
         sidebarDensity="compact"
@@ -49,6 +49,8 @@ describe("FeedTreeView visibility and density contract", () => {
       />,
     );
 
+    expect(container.firstElementChild).toHaveClass("pl-3", "pr-2");
+    expect(container.querySelector(".border-l")).toHaveClass("ml-2", "pl-3");
     expect(screen.getByRole("button", { name: /Example Feed/ })).toHaveClass("min-h-8", "py-0.5");
   });
 

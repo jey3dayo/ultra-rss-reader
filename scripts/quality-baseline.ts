@@ -3,8 +3,8 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
-const reactDoctorVersion = "0.5.6";
-const knipVersion = "6.17.1";
+const reactDoctorVersion = "0.5.8";
+const knipVersion = "6.18.0";
 const qualityToolTimeoutMs = 120_000;
 const qualityToolMaxBufferBytes = 64 * 1024 * 1024;
 

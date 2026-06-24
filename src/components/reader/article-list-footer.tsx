@@ -24,7 +24,7 @@ const DEFAULT_VISIBLE_MODES: readonly ViewMode[] = ["unread", "all", "starred"];
 const EMPTY_DISABLED_MODES: readonly ViewMode[] = [];
 
 const compactFooterButtonClassName =
-  "h-11 rounded-md border border-transparent bg-transparent px-3.5 text-[0.82rem] font-medium tracking-[0.01em] shadow-none hover:bg-surface-2/58 hover:text-foreground focus-visible:border-transparent focus-visible:bg-surface-3/72 focus-visible:ring-0 data-[pressed]:border-border/55 data-[pressed]:bg-surface-3/92 data-[pressed]:text-foreground data-[pressed]:shadow-active-inset-highlight sm:h-7 sm:rounded-md sm:border-0 sm:bg-transparent sm:px-3 sm:text-[13px] sm:font-medium sm:tracking-normal sm:shadow-none";
+  "h-11 rounded-md border border-transparent bg-transparent px-3.5 text-[0.82rem] font-medium tracking-[0.01em] shadow-none hover:bg-surface-2/58 hover:text-foreground focus-visible:border-ring focus-visible:bg-surface-3/72 focus-visible:ring-2 focus-visible:ring-ring/45 data-[pressed]:border-border/55 data-[pressed]:bg-surface-3/92 data-[pressed]:text-foreground data-[pressed]:shadow-active-inset-highlight sm:rounded-md sm:border-transparent sm:bg-transparent sm:px-3 sm:text-[13px] sm:font-medium sm:tracking-normal sm:shadow-none";
 
 function isViewMode(value: string | undefined): value is ViewMode {
   return VIEW_MODES.some((mode) => mode.value === value);
@@ -49,7 +49,7 @@ export function ArticleListFooter({ viewMode, modes, disabledModes, onSetViewMod
   }
 
   return (
-    <div className="flex h-10 items-center justify-center border-t border-border bg-card px-4">
+    <div className="flex min-h-11 items-center justify-center border-t border-border bg-card px-4">
       <ToggleGroup value={[viewMode]} onValueChange={handleChange} className="flex items-center gap-1">
         {visibleModes.map((mode) => {
           const isDisabled = resolvedDisabledModes.includes(mode.value);

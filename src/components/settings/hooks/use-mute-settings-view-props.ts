@@ -10,6 +10,7 @@ type UseMuteSettingsViewPropsParams = {
   scope: MuteKeywordScope;
   rules: MuteKeywordDto[];
   addDisabled: boolean;
+  addPending?: boolean;
   autoMarkReadChecked: boolean;
   autoMarkReadDisabled: boolean;
   confirmRule: MuteKeywordDto | null;
@@ -30,6 +31,7 @@ export function useMuteSettingsViewProps({
   scope,
   rules,
   addDisabled,
+  addPending,
   autoMarkReadChecked,
   autoMarkReadDisabled,
   confirmRule,
@@ -66,10 +68,12 @@ export function useMuteSettingsViewProps({
     scopeValue: scope,
     scopeOptions,
     addLabel: t("mute.add"),
+    addPendingLabel: t("mute.adding"),
     onKeywordChange,
     onScopeChange,
     onAdd,
     addDisabled,
+    addPending,
     savedHeading: t("mute.saved"),
     emptyState: t("mute.empty_state"),
     rules: savedRules,

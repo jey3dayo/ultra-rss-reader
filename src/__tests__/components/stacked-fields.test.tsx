@@ -11,6 +11,7 @@ describe("stacked shared fields", () => {
     });
 
     expect(screen.getByLabelText("Feed title")).toHaveValue("Ultra RSS");
+    expect(screen.getByLabelText("Feed title")).toHaveClass("min-h-11");
     expect(screen.getByText("Feed title").closest("label")).toHaveClass("text-foreground-soft");
   });
 
@@ -35,6 +36,7 @@ describe("stacked shared fields", () => {
 
     const combobox = screen.getByRole("combobox", { name: "Display mode" });
     expect(combobox).toHaveTextContent("Web Preview");
+    expect(combobox).toHaveClass("min-h-11");
     expect(screen.getByText("Display mode").parentElement).toHaveClass("text-foreground-soft");
 
     await user.click(combobox);

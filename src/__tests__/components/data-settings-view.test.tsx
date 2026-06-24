@@ -6,8 +6,8 @@ import { DataSettingsView } from "@/components/settings/data-settings-view";
 function expectStandardSettingsActionButton(button: HTMLElement) {
   expect(button).toHaveClass("w-full");
   expect(button).toHaveClass("sm:w-auto");
-  expect(button).toHaveClass("h-10", "px-4");
-  expect([...button.classList].filter((className) => className.includes("min-w"))).toEqual([]);
+  expect(button).toHaveClass("h-11", "px-4");
+  expect(button).toHaveClass("min-h-11", "min-w-11");
 }
 
 describe("DataSettingsView", () => {
@@ -218,6 +218,7 @@ describe("DataSettingsView", () => {
   it("disables settings profile actions while a profile import is pending", async () => {
     const user = userEvent.setup();
     const onExportSettingsProfile = vi.fn();
+    const onImportSettingsProfile = vi.fn();
 
     render(
       <DataSettingsView
@@ -249,20 +250,82 @@ describe("DataSettingsView", () => {
         openingLogDir={false}
         onVacuum={vi.fn()}
         onOpenLogDir={vi.fn()}
-        onImportSettingsProfile={vi.fn()}
+        onImportSettingsProfile={onImportSettingsProfile}
         onExportSettingsProfile={onExportSettingsProfile}
       />,
     );
 
     const importingButton = screen.getByRole("button", { name: "Importing..." });
     const exportButton = screen.getByRole("button", { name: "Export profile" });
+    const fileInput = screen.getByLabelText("Choose settings profile JSON");
 
     expect(importingButton).toBeDisabled();
+    expect(importingButton).toHaveAttribute("aria-busy", "true");
     expect(exportButton).toBeDisabled();
+    expect(fileInput).toBeDisabled();
 
     await user.click(exportButton);
+    await user.upload(fileInput, new File(["{}"], "profile.json", { type: "application/json" }));
 
     expect(onExportSettingsProfile).not.toHaveBeenCalled();
+    expect(onImportSettingsProfile).not.toHaveBeenCalled();
+  });
+
+  it("shows busy feedback and blocks settings profile actions while export is pending", async () => {
+    const user = userEvent.setup();
+    const onExportSettingsProfile = vi.fn();
+    const onImportSettingsProfile = vi.fn();
+
+    render(
+      <DataSettingsView
+        title="Data"
+        databaseHeading="Database"
+        databaseSizeLabel="Database size"
+        databaseSizeStatus="ready"
+        databaseSizeValue="1.50 MB"
+        databaseSizeLoadingLabel="Loading..."
+        databaseSizeErrorLabel="Unavailable"
+        safetyHeading="Backup and Restore"
+        safetyDescription="Confirm rollback before changing user data."
+        safetyChecklist={["Use OPML export.", "Quit before restoring backups."]}
+        settingsProfileHeading="Settings Profile"
+        settingsProfileDescription="Export preferences and tags."
+        settingsProfileImportLabel="Import profile"
+        settingsProfileExportLabel="Export profile"
+        settingsProfileExportActionLabel="Exporting..."
+        settingsProfileFileInputLabel="Choose settings profile JSON"
+        importingSettingsProfile={false}
+        exportingSettingsProfile={true}
+        optimizationHeading="Optimization"
+        vacuumDescription="Optimize the database."
+        vacuumLabel="Optimize now"
+        vacuuming={false}
+        logsHeading="Logs"
+        openLogDirDescription="Open the log directory."
+        openLogDirLabel="Open log directory"
+        openingLogDir={false}
+        onVacuum={vi.fn()}
+        onOpenLogDir={vi.fn()}
+        onImportSettingsProfile={onImportSettingsProfile}
+        onExportSettingsProfile={onExportSettingsProfile}
+      />,
+    );
+
+    const exportingButton = screen.getByRole("button", { name: "Exporting..." });
+    const importButton = screen.getByRole("button", { name: "Import profile" });
+    const fileInput = screen.getByLabelText("Choose settings profile JSON");
+
+    expect(exportingButton).toBeDisabled();
+    expect(exportingButton).toHaveAttribute("aria-busy", "true");
+    expect(importButton).toBeDisabled();
+    expect(fileInput).toBeDisabled();
+
+    await user.click(exportingButton);
+    await user.click(importButton);
+    await user.upload(fileInput, new File(["{}"], "profile.json", { type: "application/json" }));
+
+    expect(onExportSettingsProfile).not.toHaveBeenCalled();
+    expect(onImportSettingsProfile).not.toHaveBeenCalled();
   });
 
   it("shows the loading label while vacuuming and keeps the action disabled", async () => {
@@ -305,6 +368,7 @@ describe("DataSettingsView", () => {
 
     const vacuumButton = screen.getByRole("button", { name: "Optimizing..." });
     expect(vacuumButton).toBeDisabled();
+    expect(vacuumButton).toHaveAttribute("aria-busy", "true");
 
     await user.click(vacuumButton);
 
@@ -356,6 +420,7 @@ describe("DataSettingsView", () => {
     const optimizeButton = screen.getByRole("button", { name: "Optimize now" });
 
     expect(openLogDirectoryButton).toBeDisabled();
+    expect(openLogDirectoryButton).toHaveAttribute("aria-busy", "true");
     expect(optimizeButton).toBeDisabled();
 
     await user.click(openLogDirectoryButton);
@@ -448,16 +513,20 @@ describe("DataSettingsView", () => {
 
     const { rerender } = render(<DataSettingsView {...props} databaseSizeStatus="loading" />);
 
-    expect(screen.getByText("Loading database size")).toHaveAttribute("data-database-size-status", "loading");
+    expect(screen.getByRole("status")).toHaveTextContent("Loading database size");
+    expect(screen.getByRole("status")).toHaveAttribute("aria-live", "polite");
+    expect(screen.getByRole("status")).toHaveAttribute("data-database-size-status", "loading");
     expect(screen.queryByText("1.50 MB")).not.toBeInTheDocument();
 
     rerender(<DataSettingsView {...props} databaseSizeStatus="ready" />);
 
-    expect(screen.getByText("1.50 MB")).toHaveAttribute("data-database-size-status", "ready");
+    expect(screen.getByRole("status")).toHaveTextContent("1.50 MB");
+    expect(screen.getByRole("status")).toHaveAttribute("data-database-size-status", "ready");
 
     rerender(<DataSettingsView {...props} databaseSizeStatus="error" />);
 
-    expect(screen.getByText("Database size unavailable")).toHaveAttribute("data-database-size-status", "error");
+    expect(screen.getByRole("status")).toHaveTextContent("Database size unavailable");
+    expect(screen.getByRole("status")).toHaveAttribute("data-database-size-status", "error");
     expect(screen.queryByText("Loading database size")).not.toBeInTheDocument();
   });
 });

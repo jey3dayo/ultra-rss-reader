@@ -23,6 +23,8 @@ type SettingsPageInlineAction = {
   actionLabel: string;
   onAction: () => void;
   actionSize?: SettingsPageActionSize;
+  actionLoading?: boolean;
+  actionLoadingLabel?: string;
 };
 
 type SettingsPageTextAction = SettingsPageInlineAction & {

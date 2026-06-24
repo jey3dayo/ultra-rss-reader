@@ -1195,7 +1195,7 @@ describe("repository static contracts", () => {
     expect(packageJson.engines.pnpm).toBe(packageManagerVersion);
     expect(packageJson.packageManager).toBe(`pnpm@${packageJson.engines.pnpm}`);
     expect(miseNodeVersion).toBe(packageJson.engines.node);
-    expect(packageManagerVersion).toBe("11.8.0");
+    expect(packageManagerVersion).toBe("11.9.0");
     expect(misePnpmVersion).toBe(packageManagerVersion);
   });
 
@@ -1445,9 +1445,9 @@ describe("repository static contracts", () => {
     expect(toolchainSection).toContain("process.versions.node");
     expect(toolchainSection).toContain('execFileSync("pnpm", ["--version"]');
     expect(extractMiseTaskSection(miseSource, "quality:toolchain")).not.toBe("");
-    expect(packageJsonSource).toContain('"packageManager": "pnpm@11.8.0"');
+    expect(packageJsonSource).toContain('"packageManager": "pnpm@11.9.0"');
     expect(packageJsonSource).toContain('"node": "24"');
-    expect(packageJsonSource).toContain('"pnpm": "11.8.0"');
+    expect(packageJsonSource).toContain('"pnpm": "11.9.0"');
   });
 
   it("keeps CI quality gate summary explicit for skipped or cancelled required matrix jobs", () => {
@@ -1616,8 +1616,8 @@ describe("repository static contracts", () => {
     const devDependencies = expectPackageJsonStringRecord("devDependencies");
     const miseSource = readMiseTaskCorpus();
 
-    expect(devDependencies["react-doctor"]).toBe("0.5.6");
-    expect(devDependencies.knip).toBe("6.17.1");
+    expect(devDependencies["react-doctor"]).toBe("0.5.8");
+    expect(devDependencies.knip).toBe("6.18.0");
     expect(packageScripts["quality:react-doctor:diff"]).toBe("node ./scripts/quality-baseline.ts react-doctor:diff");
     expect(packageScripts["quality:react-doctor:full"]).toBe("node ./scripts/quality-baseline.ts react-doctor:full");
     expect(packageScripts["quality:knip"]).toBe("node ./scripts/quality-baseline.ts knip");

@@ -67,7 +67,7 @@ function ShortcutResetButton({
   return (
     <button
       type="button"
-      className="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-foreground-soft/72 transition-colors duration-150 ease-standard hover:bg-surface-2/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-45 motion-reduce:transition-none"
+      className="inline-flex size-11 shrink-0 items-center justify-center rounded-md text-foreground-soft/72 transition-colors duration-150 ease-standard hover:bg-surface-2/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-45 motion-reduce:transition-none"
       disabled={disabled}
       onClick={item.onReset}
       aria-label={item.resetAriaLabel}
@@ -91,7 +91,7 @@ export function ShortcutKeyButton({
       ref={ref}
       type={type}
       className={cn(
-        "w-full rounded-md border px-2.5 py-1 text-center font-mono text-[13px] leading-none font-medium tracking-[0.02em] transition-colors duration-150 ease-standard sm:w-auto motion-reduce:transition-none",
+        "min-h-11 w-full rounded-md border px-2.5 py-1 text-center font-mono text-[13px] leading-none font-medium tracking-[0.02em] transition-colors duration-150 ease-standard sm:w-auto motion-reduce:transition-none",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
         recording
           ? "animate-pulse border-ring bg-ring/14 text-foreground"
@@ -137,7 +137,9 @@ function ShortcutKeyBadge({ item, pressAKeyLabel, resetDisabled }: ShortcutKeyBa
         </ShortcutKeyButton>
       </div>
       {item.conflictLabel && !item.isRecording && (
-        <span className="text-[10px] text-state-danger-foreground">{item.conflictLabel}</span>
+        <span className="max-w-full break-words text-xs leading-tight text-state-danger-foreground">
+          {item.conflictLabel}
+        </span>
       )}
     </div>
   );
@@ -181,7 +183,7 @@ export function ShortcutsSettingsView({
                   <ShortcutResetButton item={item} disabled={true} forceVisible={showLockedReset} />
                   <kbd
                     data-testid={`shortcut-badge-${item.id}`}
-                    className="w-full rounded-md border border-border/70 bg-surface-1 px-2.5 py-1 text-center font-mono text-[13px] font-medium leading-none tracking-[0.02em] text-foreground-soft sm:w-auto"
+                    className="inline-flex min-h-11 w-full items-center justify-center rounded-md border border-border/70 bg-surface-1 px-2.5 py-1 text-center font-mono text-[13px] font-medium leading-none tracking-[0.02em] text-foreground-soft sm:w-auto"
                   >
                     {item.displayKey}
                   </kbd>

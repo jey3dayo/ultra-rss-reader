@@ -233,6 +233,9 @@
   --subscriptions-list-surface: rgba(242, 241, 237, 0.42);
   --subscriptions-detail-surface: rgba(235, 234, 229, 0.5);
   --subscriptions-list-divider: rgba(38, 37, 30, 0.12);
+  --subscriptions-list-tree-rail: rgba(38, 37, 30, 0.2);
+  --subscriptions-list-tree-node-border: rgba(38, 37, 30, 0.22);
+  --subscriptions-list-tree-node-surface: rgba(247, 247, 244, 0.92);
   --subscriptions-list-favicon-surface: rgba(247, 247, 244, 0.88);
   --subscriptions-list-favicon-surface-muted: rgba(235, 234, 229, 0.88);
   --subscriptions-list-meta-divider: rgba(38, 37, 30, 0.25);
@@ -242,13 +245,10 @@
   --subscriptions-list-row-selected-shadow: 0 8px 20px -18px rgba(38, 37, 30, 0.28);
   --subscriptions-list-group-collapsed-shadow: 0 10px 28px -24px rgba(38, 37, 30, 0.42);
   --subscriptions-summary-card-shadow: 0 18px 44px -36px rgba(38, 37, 30, 0.28);
-  --subscriptions-summary-active-shadow-neutral:
-    0 0 0 1px rgba(38, 37, 30, 0.18), 0 18px 38px -24px rgba(0, 0, 0, 0.34);
-  --subscriptions-summary-active-shadow-review: 0 0 0 1px rgba(245, 78, 0, 0.26), 0 20px 42px -24px rgba(0, 0, 0, 0.42);
-  --subscriptions-summary-active-shadow-stale:
-    0 0 0 1px rgba(192, 133, 50, 0.28), 0 18px 38px -24px rgba(0, 0, 0, 0.38);
-  --subscriptions-summary-active-shadow-danger:
-    0 0 0 1px rgba(207, 45, 86, 0.34), 0 18px 38px -24px rgba(0, 0, 0, 0.42);
+  --subscriptions-summary-active-shadow-neutral: 0 18px 38px -24px rgba(0, 0, 0, 0.34);
+  --subscriptions-summary-active-shadow-review: 0 20px 42px -24px rgba(0, 0, 0, 0.42);
+  --subscriptions-summary-active-shadow-stale: 0 18px 38px -24px rgba(0, 0, 0, 0.38);
+  --subscriptions-summary-active-shadow-danger: 0 18px 38px -24px rgba(0, 0, 0, 0.42);
   --subscriptions-summary-active-ring-neutral: color-mix(in srgb, var(--color-border-strong) 60%, transparent);
   --subscriptions-summary-active-ring-review: color-mix(in srgb, var(--color-state-review-border) 45%, transparent);
   --subscriptions-summary-active-ring-stale: color-mix(in srgb, var(--color-state-warning-border) 45%, transparent);
@@ -500,6 +500,9 @@
   --subscriptions-list-surface: rgba(28, 25, 21, 0.34);
   --subscriptions-detail-surface: rgba(35, 31, 26, 0.44);
   --subscriptions-list-divider: rgba(243, 239, 230, 0.12);
+  --subscriptions-list-tree-rail: rgba(243, 239, 230, 0.2);
+  --subscriptions-list-tree-node-border: rgba(243, 239, 230, 0.22);
+  --subscriptions-list-tree-node-surface: rgba(34, 30, 25, 0.92);
   --subscriptions-list-favicon-surface: rgba(34, 30, 25, 0.9);
   --subscriptions-list-favicon-surface-muted: rgba(45, 40, 34, 0.88);
   --subscriptions-list-meta-divider: rgba(243, 239, 230, 0.25);
@@ -509,13 +512,10 @@
   --subscriptions-list-row-selected-shadow: 0 8px 20px -18px rgba(0, 0, 0, 0.34);
   --subscriptions-list-group-collapsed-shadow: 0 10px 28px -24px rgba(0, 0, 0, 0.48);
   --subscriptions-summary-card-shadow: 0 14px 34px -28px rgba(0, 0, 0, 0.28);
-  --subscriptions-summary-active-shadow-neutral:
-    0 0 0 1px rgba(243, 239, 230, 0.14), 0 18px 38px -24px rgba(0, 0, 0, 0.4);
-  --subscriptions-summary-active-shadow-review: 0 0 0 1px rgba(245, 78, 0, 0.22), 0 20px 42px -24px rgba(0, 0, 0, 0.48);
-  --subscriptions-summary-active-shadow-stale:
-    0 0 0 1px rgba(192, 133, 50, 0.24), 0 18px 38px -24px rgba(0, 0, 0, 0.44);
-  --subscriptions-summary-active-shadow-danger:
-    0 0 0 1px rgba(207, 45, 86, 0.28), 0 18px 38px -24px rgba(0, 0, 0, 0.48);
+  --subscriptions-summary-active-shadow-neutral: 0 18px 38px -24px rgba(0, 0, 0, 0.4);
+  --subscriptions-summary-active-shadow-review: 0 20px 42px -24px rgba(0, 0, 0, 0.48);
+  --subscriptions-summary-active-shadow-stale: 0 18px 38px -24px rgba(0, 0, 0, 0.44);
+  --subscriptions-summary-active-shadow-danger: 0 18px 38px -24px rgba(0, 0, 0, 0.48);
   --subscriptions-summary-active-ring-neutral: color-mix(in srgb, var(--color-border-strong) 60%, transparent);
   --subscriptions-summary-active-ring-review: color-mix(in srgb, var(--color-state-review-border) 45%, transparent);
   --subscriptions-summary-active-ring-stale: color-mix(in srgb, var(--color-state-warning-border) 45%, transparent);
@@ -1054,8 +1054,9 @@ html.vertical-wipe-transition::view-transition-new(root) {
 
 .motion-resize-surface {
   transition-property:
-    width, height, min-height, max-width, max-height, padding, grid-template-columns, grid-template-rows, opacity,
-    transform, border-color, background-color, color;
+    width, height, min-height, max-width, max-height, padding,
+    grid-template-columns, grid-template-rows, opacity, transform, border-color,
+    background-color, color;
   transition-duration: var(--motion-duration-resize);
   transition-timing-function: var(--motion-ease-emphasized);
   will-change: width, height, min-height, max-width, max-height;

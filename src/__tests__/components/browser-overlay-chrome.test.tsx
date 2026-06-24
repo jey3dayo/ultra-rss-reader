@@ -202,16 +202,16 @@ describe("BrowserOverlayChrome", () => {
 
     expect(getLeadingButtonLabels()).toEqual(["Close Web Preview", "Web back", "Web forward", "Reload page"]);
     expect(closeButton.closest("[data-overlay-shell='action']")).toHaveClass("size-11");
-    expect(closeButton.closest("[data-overlay-shell='action']")).toHaveClass("md:size-10");
+    expect(closeButton.closest("[data-overlay-shell='action']")).not.toHaveClass("md:size-10");
     expect(closeButton.querySelector(".lucide-x")).toHaveClass("size-5");
     expect(backButton.closest("[data-overlay-shell='action']")).toHaveClass("size-11");
-    expect(backButton.closest("[data-overlay-shell='action']")).toHaveClass("md:size-10");
+    expect(backButton.closest("[data-overlay-shell='action']")).not.toHaveClass("md:size-10");
     expect(backButton.querySelector(".lucide-chevron-left")).toHaveClass("size-5");
     expect(forwardButton.closest("[data-overlay-shell='action']")).toHaveClass("size-11");
-    expect(forwardButton.closest("[data-overlay-shell='action']")).toHaveClass("md:size-10");
+    expect(forwardButton.closest("[data-overlay-shell='action']")).not.toHaveClass("md:size-10");
     expect(forwardButton.querySelector(".lucide-chevron-right")).toHaveClass("size-5");
     expect(reloadButton.closest("[data-overlay-shell='action']")).toHaveClass("size-11");
-    expect(reloadButton.closest("[data-overlay-shell='action']")).toHaveClass("md:size-10");
+    expect(reloadButton.closest("[data-overlay-shell='action']")).not.toHaveClass("md:size-10");
     expect(reloadButton.querySelector(".lucide-rotate-cw")).toHaveClass("size-5");
     expect(backButton.querySelector(".lucide-chevron-left")).not.toBeNull();
     expect(closeButton.querySelector(".lucide-x")).not.toBeNull();
@@ -394,6 +394,41 @@ describe("BrowserOverlayChrome", () => {
     await user.click(screen.getByRole("button", { name: "Custom Action A" }));
 
     expect(onCustomAction).toHaveBeenCalledTimes(1);
+  });
+
+  it("hides custom trailing toolbar actions in ultra compact chrome to avoid overlap", () => {
+    const controller = createController({
+      geometry: {
+        ...createController().geometry,
+        ultraCompact: true,
+      },
+    });
+
+    render(
+      <BrowserOverlayChrome
+        controller={controller}
+        presentation={createSurfacePresentation()}
+        closeWebPreviewLabel="Close Web Preview"
+        toolbarActions={[
+          {
+            key: "a",
+            label: "Custom Action A",
+            onClick: vi.fn(),
+            icon: <span>A</span>,
+          },
+          {
+            key: "b",
+            label: "Custom Action B",
+            onClick: vi.fn(),
+            icon: <span>B</span>,
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Open in External Browser" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Custom Action A" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Custom Action B" })).not.toBeInTheDocument();
   });
 
   it("keeps only page actions and custom trailing actions on the right side", () => {

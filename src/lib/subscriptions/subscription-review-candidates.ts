@@ -2,31 +2,28 @@ import type { FeedArticleSummaryDto, FeedDto, FolderDto } from "@/api/tauri-comm
 import { parseDateInput } from "@/lib/datetime";
 import { normalizeSubscriptionCount } from "@/lib/subscriptions/subscription-count";
 
-export type SubscriptionReviewReasonKey = "stale_90d" | "no_unread" | "no_stars";
+export type SubscriptionReviewReasonKey = "stale_90d" | "quiet_no_unread";
 export type SubscriptionReviewTone = "high" | "medium" | "low";
 export type SubscriptionReviewTitleKey = "review_now" | "consider" | "keep";
 export type SubscriptionCleanupRecommendation = "cleanup_candidate" | "watch" | "retain";
 export type SubscriptionReviewSummaryKey =
   | "stale_and_inactive"
-  | "stale_with_no_stars"
-  | "inactive_without_signals"
+  | "quiet_without_unread"
   | "stale_but_supported"
   | "healthy_feed";
 
-export type SubscriptionReviewReasonFactKey = "stale_days" | "unread_count" | "starred_count";
+export type SubscriptionReviewReasonFactKey = "stale_days" | "unread_count";
 
 type SubscriptionReviewSummaryTranslationKey =
   | "detail_reason_stale_and_inactive"
-  | "detail_reason_stale_with_no_stars"
-  | "detail_reason_inactive_without_signals"
+  | "detail_reason_quiet_without_unread"
   | "detail_reason_stale_but_supported"
   | "detail_reason_normal";
-type SubscriptionReviewReasonFactTranslationKey = "fact_stale_days" | "fact_unread_count" | "fact_starred_count";
+type SubscriptionReviewReasonFactTranslationKey = "fact_stale_days" | "fact_unread_count";
 
 const SUBSCRIPTION_REVIEW_SUMMARY_TRANSLATION_KEY_BY_SUMMARY = {
   stale_and_inactive: "detail_reason_stale_and_inactive",
-  stale_with_no_stars: "detail_reason_stale_with_no_stars",
-  inactive_without_signals: "detail_reason_inactive_without_signals",
+  quiet_without_unread: "detail_reason_quiet_without_unread",
   stale_but_supported: "detail_reason_stale_but_supported",
   healthy_feed: "detail_reason_normal",
 } satisfies Record<SubscriptionReviewSummaryKey, SubscriptionReviewSummaryTranslationKey>;
@@ -34,8 +31,10 @@ const SUBSCRIPTION_REVIEW_SUMMARY_TRANSLATION_KEY_BY_SUMMARY = {
 const SUBSCRIPTION_REVIEW_REASON_FACT_TRANSLATION_KEY_BY_FACT = {
   stale_days: "fact_stale_days",
   unread_count: "fact_unread_count",
-  starred_count: "fact_starred_count",
 } satisfies Record<SubscriptionReviewReasonFactKey, SubscriptionReviewReasonFactTranslationKey>;
+
+const SUBSCRIPTION_REVIEW_STALE_DAYS = 90;
+const SUBSCRIPTION_REVIEW_QUIET_UNREAD_DAYS = 30;
 
 export type SubscriptionReviewCandidate = {
   feedId: string;
@@ -82,10 +81,9 @@ export function summarizeSubscriptionReviewCandidate(candidate: SubscriptionRevi
   summaryKey: SubscriptionReviewSummaryKey;
 } {
   const hasStale = hasSubscriptionReviewReason(candidate, "stale_90d");
-  const hasNoUnread = hasSubscriptionReviewReason(candidate, "no_unread");
-  const hasNoStars = hasSubscriptionReviewReason(candidate, "no_stars");
+  const hasQuietNoUnread = hasSubscriptionReviewReason(candidate, "quiet_no_unread");
 
-  if (hasStale && hasNoUnread) {
+  if (hasStale && hasQuietNoUnread) {
     return {
       tone: "high",
       titleKey: "review_now",
@@ -93,19 +91,11 @@ export function summarizeSubscriptionReviewCandidate(candidate: SubscriptionRevi
     };
   }
 
-  if (hasStale && hasNoStars) {
+  if (hasQuietNoUnread) {
     return {
       tone: "medium",
       titleKey: "consider",
-      summaryKey: "stale_with_no_stars",
-    };
-  }
-
-  if (hasNoUnread && hasNoStars) {
-    return {
-      tone: "medium",
-      titleKey: "consider",
-      summaryKey: "inactive_without_signals",
+      summaryKey: "quiet_without_unread",
     };
   }
 
@@ -149,11 +139,8 @@ export function buildSubscriptionReviewReasonFacts(candidate: SubscriptionReview
   if (hasSubscriptionReviewReason(candidate, "stale_90d") && candidate.staleDays != null) {
     facts.push({ key: "stale_days", value: candidate.staleDays });
   }
-  if (hasSubscriptionReviewReason(candidate, "no_unread")) {
+  if (hasSubscriptionReviewReason(candidate, "quiet_no_unread")) {
     facts.push({ key: "unread_count", value: candidate.unreadCount });
-  }
-  if (hasSubscriptionReviewReason(candidate, "no_stars")) {
-    facts.push({ key: "starred_count", value: candidate.starredCount });
   }
 
   return facts;
@@ -218,14 +205,16 @@ export function buildSubscriptionReviewCandidates({
     const hasFetchedArticle = latestArticleAt !== null;
     const reasonKeys: SubscriptionReviewReasonKey[] = [];
 
-    if (staleDays != null && staleDays >= 90) {
+    if (staleDays != null && staleDays >= SUBSCRIPTION_REVIEW_STALE_DAYS) {
       reasonKeys.push("stale_90d");
     }
-    if (hasFetchedArticle && unreadCount === 0) {
-      reasonKeys.push("no_unread");
-    }
-    if (hasFetchedArticle && starredCount === 0) {
-      reasonKeys.push("no_stars");
+    if (
+      hasFetchedArticle &&
+      staleDays != null &&
+      staleDays >= SUBSCRIPTION_REVIEW_QUIET_UNREAD_DAYS &&
+      unreadCount === 0
+    ) {
+      reasonKeys.push("quiet_no_unread");
     }
 
     candidates.push({
@@ -255,11 +244,6 @@ export function buildSubscriptionReviewCandidates({
     const unreadDelta = left.unreadCount - right.unreadCount;
     if (unreadDelta !== 0) {
       return unreadDelta;
-    }
-
-    const starredDelta = left.starredCount - right.starredCount;
-    if (starredDelta !== 0) {
-      return starredDelta;
     }
 
     return left.title.localeCompare(right.title);

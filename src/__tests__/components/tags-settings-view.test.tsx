@@ -3,8 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { TagsSettingsView } from "@/components/settings/tags-settings-view";
 
-function expectNoButtonMinWidth(button: HTMLElement) {
-  expect([...button.classList].filter((className) => className.includes("min-w"))).toEqual([]);
+function expectStandardSettingsActionButtonWidth(button: HTMLElement) {
+  expect(button).toHaveClass("min-w-11");
 }
 
 describe("TagsSettingsView", () => {
@@ -81,12 +81,13 @@ describe("TagsSettingsView", () => {
 
     const favRow = screen.getByTestId("tags-settings-row-tag-1");
     const favName = within(favRow).getByText(longTagName);
+    expect(favName.closest("div.flex.min-w-0")).toHaveClass("flex-1");
     expect(favName).toHaveClass("max-w-full", "truncate");
     expect(favName).toHaveAttribute("dir", "auto");
     expect(favName).toHaveAttribute("title", longTagName);
     expect(within(favRow).getByTestId("tags-settings-color-dot-tag-1")).toHaveClass("size-2.5", "rounded-full");
-    expect(within(favRow).getByRole("button", { name: `Edit ${longTagName}` })).toHaveClass("size-8");
-    expect(within(favRow).getByRole("button", { name: `Delete ${longTagName}` })).toHaveClass("size-8");
+    expect(within(favRow).getByRole("button", { name: `Edit ${longTagName}` })).toHaveClass("size-11");
+    expect(within(favRow).getByRole("button", { name: `Delete ${longTagName}` })).toHaveClass("size-11");
 
     const grayRow = screen.getByTestId("tags-settings-row-tag-2");
     expect(within(grayRow).queryByTestId("tags-settings-color-dot-tag-2")).toBeNull();
@@ -129,14 +130,18 @@ describe("TagsSettingsView", () => {
     );
 
     const input = screen.getByRole("textbox", { name: "Name" });
-    expect(input).toHaveClass("h-10", "flex-1");
-    expect(input.closest("div.flex.w-full.items-center.gap-2")).toHaveClass("sm:max-w-[30rem]", "sm:justify-end");
+    expect(input).toHaveClass("h-11", "flex-1");
+    expect(input.closest("div.flex.w-full.min-w-0.flex-col.gap-2")).toHaveClass(
+      "sm:max-w-[30rem]",
+      "sm:flex-row",
+      "sm:justify-end",
+    );
     expect(input.id).toBeTruthy();
     expect(document.querySelector(`label[for="${input.id}"]`)).toHaveTextContent("Name");
 
     const createButton = screen.getByRole("button", { name: "Create" });
-    expect(createButton).toHaveClass("h-10", "px-4");
-    expectNoButtonMinWidth(createButton);
+    expect(createButton).toHaveClass("h-11", "px-4");
+    expectStandardSettingsActionButtonWidth(createButton);
 
     await user.type(input, " tag");
     await user.click(createButton);

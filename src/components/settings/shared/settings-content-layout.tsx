@@ -63,7 +63,7 @@ export function SettingsContentLayout({
   const headerContentClassName = cn("w-full", titleLayout === "stacked-left" && "mx-auto", maxWidthClassName);
   const bodyContentClassName = cn(
     "w-full",
-    titleLayout === "sticky-centered" ? "px-5 py-5 sm:px-6 sm:py-6" : "p-5 sm:p-6",
+    titleLayout === "sticky-centered" ? "px-5 py-6 sm:px-8 sm:py-8" : "p-5 sm:p-6",
     titleLayout === "stacked-left" && "mx-auto",
     maxWidthClassName,
   );
@@ -78,13 +78,13 @@ export function SettingsContentLayout({
       {titleLayout === "sticky-centered" ? (
         <header
           data-testid="settings-content-header"
-          className="flex min-h-[4.5rem] shrink-0 items-center justify-center border-b border-border/80 px-5 text-center backdrop-blur-sm sm:px-6"
+          className="flex min-h-[5rem] shrink-0 items-center justify-center border-b border-border/70 px-5 text-center backdrop-blur-sm sm:px-8"
           style={{ backgroundColor: "var(--settings-shell-content-header)" }}
         >
           <h2
             id={titleId}
             data-testid="settings-content-title"
-            className="font-sans text-[19px] font-medium tracking-[-0.02em] text-[color:var(--settings-shell-content-title)]"
+            className="font-sans text-[21px] leading-tight font-semibold tracking-[-0.02em] text-[color:var(--settings-shell-content-title)]"
           >
             {title}
           </h2>
@@ -92,7 +92,7 @@ export function SettingsContentLayout({
       ) : (
         <header
           data-testid="settings-content-header"
-          className="flex min-h-[4.5rem] shrink-0 items-center border-b border-border/80 px-5 py-0 backdrop-blur-sm sm:px-6"
+          className="flex min-h-[5rem] shrink-0 items-center border-b border-border/70 px-5 py-0 backdrop-blur-sm sm:px-8"
           style={{ backgroundColor: "var(--settings-shell-content-header)" }}
         >
           <div

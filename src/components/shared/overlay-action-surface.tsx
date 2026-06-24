@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 const overlayActionSurfaceVariants = cva("motion-pressable-surface pointer-events-auto rounded-lg text-foreground", {
   variants: {
     compact: {
-      true: "size-11 md:size-8",
+      true: "size-11",
       false: "h-8 px-3 text-[0.78rem] font-medium tracking-[0.02em]",
     },
     variant: {

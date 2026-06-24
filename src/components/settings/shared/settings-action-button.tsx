@@ -4,7 +4,7 @@ import { HeadlessButton } from "@/design-system";
 import { cn } from "@/lib/utils";
 
 const settingsActionButtonVariants = cva(
-  "motion-interactive-surface inline-flex shrink-0 items-center justify-center rounded-md bg-transparent outline-none select-none active:translate-y-0 disabled:pointer-events-none disabled:opacity-50",
+  "motion-interactive-surface inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md bg-transparent outline-none select-none active:translate-y-0 disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       tone: {
@@ -19,9 +19,9 @@ const settingsActionButtonVariants = cva(
           "text-state-danger-foreground/72 hover:bg-state-danger-surface hover:text-state-danger-foreground focus-visible:bg-state-danger-surface focus-visible:text-state-danger-foreground focus-visible:ring-2 focus-visible:ring-destructive/20",
       },
       size: {
-        icon: "size-9 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-        text: "h-10 w-full px-4 text-sm font-medium sm:w-auto",
-        compact: "h-10 px-4 text-sm font-medium",
+        icon: "size-11 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        text: "h-11 w-full px-4 text-sm font-medium sm:w-auto",
+        compact: "h-11 px-4 text-sm font-medium",
       },
     },
     defaultVariants: {

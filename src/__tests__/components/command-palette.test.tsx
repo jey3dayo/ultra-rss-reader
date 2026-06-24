@@ -353,6 +353,7 @@ describe("CommandPalette", () => {
     const recentSettings = within(recentGroup).getByRole("option", { name: "Open settings" });
 
     expect(results).toContainElement(recentGroup);
+    expect(recentSettings.querySelector("span")).toHaveClass("min-w-0", "truncate");
     expect(recentSettings.querySelector('[data-slot="command-shortcut"]')).toHaveAttribute("aria-hidden", "true");
 
     const input = screen.getByPlaceholderText("Search commands…");

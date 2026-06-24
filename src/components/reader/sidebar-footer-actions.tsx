@@ -23,13 +23,13 @@ export function SidebarFooterActions({
   const theme = usePreferencesStore((state) => resolvePreferenceValue(state.prefs, "theme"));
   const setPref = usePreferencesStore((state) => state.setPref);
   const isDarkTheme = theme === "dark";
-  const iconButtonClassName = "size-8 px-0";
+  const iconButtonClassName = "size-11 px-0";
   const subscriptionsButtonClassName =
     "mr-auto min-w-0 max-w-[calc(100%-4.5rem)] justify-start gap-1.5 px-2 text-[0.86rem] font-medium";
 
   return (
     <TooltipProvider>
-      <div className="flex h-10 items-center gap-1.5 border-t border-[var(--sidebar-frame-border)] bg-[var(--sidebar-frame-solid-surface)] px-2">
+      <div className="flex min-h-11 items-center gap-1.5 border-t border-[var(--sidebar-frame-border)] bg-[var(--sidebar-frame-solid-surface)] px-2">
         <SidebarFooterActionButton
           label={subscriptionsIndexLabel}
           tooltipLabel={subscriptionsIndexLabel}

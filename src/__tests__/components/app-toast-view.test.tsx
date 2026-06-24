@@ -27,6 +27,34 @@ describe("AppToastView", () => {
     expect(screen.getByTestId("app-toast")).toHaveClass("fixed", "z-[100]");
   });
 
+  it("uses compact bottom-right density for transient toasts", () => {
+    render(<AppToastView toastMessage={{ message: "Saved" }} onClose={vi.fn()} />);
+
+    expect(screen.getByTestId("app-toast")).toHaveClass(
+      "max-w-[min(22rem,calc(100vw-2rem))]",
+      "rounded-md",
+      "px-3",
+      "py-2",
+    );
+    expect(screen.getByRole("button", { name: "Close" })).toHaveClass("ml-1", "size-8");
+  });
+
+  it("keeps long toast messages from pushing dismiss and actions out of the row", () => {
+    render(
+      <AppToastView
+        toastMessage={{
+          message: "https://example.com/really/long/path/that/should/wrap/instead/of/pushing/the/dismiss/button",
+          actions: [{ label: "Retry", onClick: vi.fn() }],
+        }}
+        onClose={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText(/really\/long\/path/)).toHaveClass("min-w-0", "break-words", "leading-snug");
+    expect(screen.getByRole("button", { name: "Close" })).toHaveClass("shrink-0");
+    expect(screen.getByRole("button", { name: "Retry" })).toHaveClass("min-h-8");
+  });
+
   it("keeps recovery toast actions and dismiss reachable from the keyboard", async () => {
     const user = userEvent.setup();
     const onRetry = vi.fn();
@@ -41,6 +69,9 @@ describe("AppToastView", () => {
         onClose={onClose}
       />,
     );
+
+    expect(screen.getByRole("button", { name: "Close" })).toHaveClass("size-8");
+    expect(screen.getByRole("button", { name: "Retry" })).toHaveClass("min-h-8");
 
     await user.tab();
     await user.keyboard("{Enter}");

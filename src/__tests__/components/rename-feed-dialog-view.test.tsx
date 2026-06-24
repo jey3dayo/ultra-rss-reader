@@ -78,8 +78,10 @@ describe("RenameFeedDialogView", () => {
     );
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByRole("dialog")).toHaveClass("rounded-xl");
+    expect(screen.getByRole("dialog")).toHaveClass("flex", "max-h-[calc(100dvh-2rem)]", "flex-col", "rounded-xl");
     expect(screen.getByLabelText("Title")).toHaveValue("Tech Blog");
+    expect(screen.getByLabelText("Title")).toHaveClass("min-h-11");
+    expect(screen.getByLabelText("Title").closest("form")).toHaveClass("min-h-0", "flex-1", "overflow-y-auto");
     expect(screen.getByLabelText("Website URL")).toHaveValue("https://example.com");
     expect(screen.getByLabelText("Feed URL")).toHaveValue("https://example.com/feed.xml");
     expect(screen.getByRole("button", { name: "Copy Website URL" })).toHaveClass(
@@ -89,10 +91,12 @@ describe("RenameFeedDialogView", () => {
       "active:not-aria-[haspopup]:-translate-y-1/2",
     );
     expect(screen.getByRole("combobox", { name: "Display Mode" })).toHaveTextContent("Preview");
+    expect(screen.getByRole("combobox", { name: "Display Mode" })).toHaveClass("min-h-11");
     expect(screen.getByTestId("feed-dialog-folder-section")).toHaveClass("rounded-md");
     expect(screen.getByRole("combobox", { name: "Folder" })).toHaveTextContent("Work");
     expect(screen.getByRole("button", { name: "Save" })).toHaveClass("min-h-11");
     expect(screen.getByRole("button", { name: "Cancel" })).toHaveClass("min-h-11");
+    expect(screen.getByRole("button", { name: "Save" }).closest('[data-slot="dialog-footer"]')).toHaveClass("shrink-0");
 
     const titleInput = screen.getByLabelText("Title");
     titleInput.focus();

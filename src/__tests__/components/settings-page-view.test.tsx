@@ -4,10 +4,6 @@ import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { SettingsPageView } from "@/components/settings/settings-page-view";
 
-function expectNoButtonMinWidth(button: HTMLElement) {
-  expect([...button.classList].filter((className) => className.includes("min-w"))).toEqual([]);
-}
-
 describe("SettingsPageView", () => {
   it("keeps the title fixed above the settings content scroll area", () => {
     const { container } = render(
@@ -38,7 +34,7 @@ describe("SettingsPageView", () => {
     );
 
     expect(screen.getByTestId("settings-page-root")).toHaveClass("flex", "h-full", "min-h-0");
-    expect(screen.getByTestId("settings-content-header")).toHaveClass("min-h-[4.5rem]", "shrink-0");
+    expect(screen.getByTestId("settings-content-header")).toHaveClass("min-h-[5rem]", "shrink-0");
     expect(screen.getByTestId("settings-content-scroll-area")).toHaveClass("h-full", "min-h-0");
     expect(screen.getByRole("heading", { level: 2, name: "General" })).toHaveClass(
       "text-[color:var(--settings-shell-content-title)]",
@@ -47,7 +43,7 @@ describe("SettingsPageView", () => {
       backgroundColor: "var(--settings-shell-content-header)",
     });
     expect(container.querySelector('[data-surface-card="section"]')).toBeNull();
-    expect(screen.getByRole("heading", { name: "Language" })).toHaveClass("mb-1.5");
+    expect(screen.getByRole("heading", { name: "Language" })).toHaveClass("mb-2.5");
     expect(screen.getByText("Changes apply after restart.")).toHaveClass("mt-1.5");
     expect(screen.getByRole("combobox", { name: "Language" })).toHaveClass("w-full");
   });
@@ -164,14 +160,18 @@ describe("SettingsPageView", () => {
 
     const input = screen.getByRole("textbox", { name: "Display name" });
     expect(input).toHaveValue("Main reader");
-    expect(input).toHaveClass("h-10", "flex-1");
-    expect(input.closest("div.flex.w-full.items-center.gap-2")).toHaveClass("sm:max-w-[30rem]", "sm:justify-end");
+    expect(input).toHaveClass("h-11", "flex-1");
+    expect(input.closest("div.flex.w-full.min-w-0.flex-col.gap-2")).toHaveClass(
+      "sm:max-w-[30rem]",
+      "sm:flex-row",
+      "sm:justify-end",
+    );
     expect(input.id).toBeTruthy();
     expect(document.querySelector(`label[for="${input.id}"]`)).toHaveTextContent("Display name");
 
     const action = screen.getByRole("button", { name: "Reset display name" });
-    expect(action).toHaveClass("h-10", "px-4");
-    expectNoButtonMinWidth(action);
+    expect(action).toHaveClass("h-11", "px-4");
+    expect(action).toHaveClass("min-h-11", "min-w-11");
 
     await user.clear(input);
     await user.type(input, "Reader");
@@ -255,6 +255,38 @@ describe("SettingsPageView", () => {
 
     expect(screen.getByRole("button", { name: "Clear recent history" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Clear: Recent history" })).toBeNull();
+  });
+
+  it("exposes semantic busy feedback for action rows", () => {
+    render(
+      <SettingsPageView
+        title="General"
+        sections={[
+          {
+            id: "history",
+            heading: "History",
+            controls: [
+              {
+                id: "clear-history",
+                type: "action",
+                label: "Recent history",
+                actionLabel: "Clear",
+                actionLoading: true,
+                actionLoadingLabel: "Clearing",
+                actionAriaLabel: "Clear recent history",
+                onAction: vi.fn(),
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+
+    const action = screen.getByRole("button", { name: "Clear recent history" });
+
+    expect(action).toBeDisabled();
+    expect(action).toHaveAttribute("aria-busy", "true");
+    expect(action).toHaveTextContent("Clearing");
   });
 
   it("disables inline text actions when the input or action is disabled", () => {

@@ -32,7 +32,7 @@ describe("FolderContextMenuView", () => {
     );
 
     await user.click(screen.getByRole("menuitem", { name: "Mark all as read" }));
-    await user.click(screen.getByRole("menuitem", { name: "Standard" }));
+    await user.click(screen.getByRole("menuitemradio", { name: "Standard" }));
 
     expect(onMarkAllRead).toHaveBeenCalledTimes(1);
     expect(onSetDisplayPreset).toHaveBeenCalledWith("standard");
@@ -44,13 +44,15 @@ describe("FolderContextMenuView", () => {
       "data-action-id",
       "folder-mark-old-unread-read",
     );
-    expect(screen.getByRole("menuitem", { name: "Standard" })).toHaveAttribute(
+    expect(screen.getByRole("menuitemradio", { name: "Preview" })).toBeChecked();
+    expect(screen.getByRole("menuitemradio", { name: "Standard" })).not.toBeChecked();
+    expect(screen.getByRole("menuitemradio", { name: "Standard" })).toHaveAttribute(
       "data-action-id",
       "folder-set-display-preset",
     );
-    expect(screen.getByRole("menuitem", { name: "Standard" })).toHaveAttribute("data-action-value", "standard");
+    expect(screen.getByRole("menuitemradio", { name: "Standard" })).toHaveAttribute("data-action-value", "standard");
     expect(screen.getByText("Display mode")).toBeInTheDocument();
-    expect(screen.getByRole("menuitem", { name: "Preview" })).toHaveTextContent("✓Preview");
+    expect(screen.getByRole("menuitemradio", { name: "Preview" })).toHaveTextContent("✓Preview");
   });
 
   it("renders old unread day presets and delegates the selected day", async () => {
@@ -114,9 +116,12 @@ describe("FolderContextMenuView", () => {
       </ContextMenu.Root>,
     );
 
-    expect(screen.getByRole("menuitem", { name: "Default" })).not.toHaveTextContent("✓");
-    expect(screen.getByRole("menuitem", { name: "Standard" })).not.toHaveTextContent("✓");
-    expect(screen.getByRole("menuitem", { name: "Preview" })).not.toHaveTextContent("✓");
+    expect(screen.getByRole("menuitemradio", { name: "Default" })).not.toBeChecked();
+    expect(screen.getByRole("menuitemradio", { name: "Standard" })).not.toBeChecked();
+    expect(screen.getByRole("menuitemradio", { name: "Preview" })).not.toBeChecked();
+    expect(screen.getByRole("menuitemradio", { name: "Default" })).not.toHaveTextContent("✓");
+    expect(screen.getByRole("menuitemradio", { name: "Standard" })).not.toHaveTextContent("✓");
+    expect(screen.getByRole("menuitemradio", { name: "Preview" })).not.toHaveTextContent("✓");
   });
 
   it("hides mark all read when the folder has no unread articles", () => {

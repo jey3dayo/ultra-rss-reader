@@ -38,7 +38,7 @@ describe("FeedTreeFolderSection", () => {
     expect(folderButton).toHaveClass("rounded-lg");
     expect(folderButton).not.toHaveClass("pl-0");
     expect(toggleButton).toHaveClass("select-none", "hover:bg-[var(--sidebar-hover-surface)]");
-    expect(toggleButton).toHaveClass("h-8", "w-8");
+    expect(toggleButton).toHaveClass("size-9");
     expect(screen.getByText("Comic")).toHaveClass("font-medium");
     expect(screen.getByText("9,274")).toHaveClass("text-[0.72rem]", "text-sidebar-foreground/54");
   });
@@ -202,6 +202,7 @@ describe("FeedTreeFolderSection", () => {
     expect(toggleButton).toHaveClass("motion-disclosure-trigger");
     expect(toggleButton.querySelector("svg")).toHaveClass("motion-disclosure-icon");
     expect(folderPanel).toHaveAttribute("aria-hidden", "true");
+    expect(folderPanel).toHaveAttribute("inert");
     expect(folderPanel).toHaveClass("motion-disclosure-panel");
   });
 
@@ -224,6 +225,7 @@ describe("FeedTreeFolderSection", () => {
     expect(panelId).toBe("feed-tree-folder-panel-folder-1");
     expect(toggleButton).toHaveAttribute("aria-expanded", "false");
     expect(document.getElementById(panelId ?? "")).toHaveAttribute("aria-hidden", "true");
+    expect(document.getElementById(panelId ?? "")).toHaveAttribute("inert");
   });
 
   it("pairs the folder disclosure control with the expanded panel aria state when children exist", () => {
@@ -260,8 +262,10 @@ describe("FeedTreeFolderSection", () => {
       name: "Toggle folder Comic",
     });
     const panelId = toggleButton.getAttribute("aria-controls");
+    const panel = document.getElementById(panelId ?? "");
     expect(toggleButton).toHaveAttribute("aria-expanded", "true");
-    expect(document.getElementById(panelId ?? "")).toHaveAttribute("aria-hidden", "false");
+    expect(panel).toHaveAttribute("aria-hidden", "false");
+    expect(panel).not.toHaveAttribute("inert");
     expect(screen.getByRole("button", { name: /Alpha/ }).closest(`#${panelId}`)).toBeInTheDocument();
   });
 });

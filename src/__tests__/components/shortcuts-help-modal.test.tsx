@@ -59,7 +59,9 @@ describe("ShortcutsHelpModal", () => {
     renderShortcutsHelpModal(<ShortcutsHelpModal open={true} onOpenChange={() => {}} />);
 
     expect(await screen.findByRole("dialog", { name: "Keyboard shortcuts" })).toBeInTheDocument();
-    const input = screen.getByPlaceholderText("Search shortcuts…");
+    expect(screen.getByRole("button", { name: "Close dialog" })).toHaveClass("size-11");
+    expect(screen.getByRole("listbox", { name: "Keyboard shortcut results" })).toBeInTheDocument();
+    const input = screen.getByRole("combobox", { name: "Search shortcuts…" });
     await user.type(input, "settings");
 
     const option = await screen.findByRole("option", {
@@ -68,7 +70,7 @@ describe("ShortcutsHelpModal", () => {
     expect(option).toHaveTextContent("Ctrl ,");
     expect(screen.getByText("?").closest("kbd")).toHaveClass("text-foreground-soft", "bg-surface-1/72");
     expect(screen.getByText("?").closest("p")).toHaveClass("flex-wrap");
-    expect(option).toHaveClass("flex-col");
+    expect(option).toHaveClass("min-h-11", "flex-col");
     expect(option.querySelector("[data-slot='command-shortcut']")).toHaveClass("ml-0");
     expect(screen.getByTestId("shortcuts-help-results")).toHaveClass("motion-content-swap");
     expect(screen.getByTestId("shortcuts-help-results")).toHaveAttribute("data-motion-phase", "entering");

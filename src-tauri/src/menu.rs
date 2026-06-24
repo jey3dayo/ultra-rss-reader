@@ -7,7 +7,7 @@ use tauri::menu::{
 };
 use tauri::{menu::Menu, AppHandle, Emitter, Manager};
 
-use crate::commands::updater_commands::is_updater_enabled_by_release_config;
+use crate::commands::updater_commands::is_updater_manual_check_configured;
 use crate::menu_i18n;
 
 pub(crate) const MENU_ACTION_EVENT: &str = "menu-action";
@@ -106,8 +106,8 @@ fn item_menu_label(label: &str, menu_id: &str) -> String {
     }
 }
 
-fn is_check_for_updates_menu_available(_updater_initialization_available: bool) -> bool {
-    _updater_initialization_available
+fn is_check_for_updates_menu_available(updater_manual_check_configured: bool) -> bool {
+    updater_manual_check_configured
 }
 
 fn is_reading_list_menu_available() -> bool {
@@ -207,7 +207,7 @@ pub fn build(app: &AppHandle, prefs: &HashMap<String, String>) -> tauri::Result<
     let check_updates_item =
         MenuItemBuilder::with_id(CHECK_FOR_UPDATES_MENU_ID, labels.check_for_updates)
             .enabled(is_check_for_updates_menu_available(
-                is_updater_enabled_by_release_config(app.config()),
+                is_updater_manual_check_configured(app.config()),
             ))
             .build(app)?;
 
@@ -747,7 +747,7 @@ mod tests {
     }
 
     #[test]
-    fn check_for_updates_menu_availability_follows_release_updater_config_availability() {
+    fn check_for_updates_menu_availability_follows_manual_updater_config_availability() {
         assert!(is_check_for_updates_menu_available(true));
         assert!(!is_check_for_updates_menu_available(false));
         assert_eq!(

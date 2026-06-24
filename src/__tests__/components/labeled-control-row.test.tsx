@@ -15,7 +15,7 @@ describe("LabeledControlRow", () => {
     expect(screen.getByText("Open links").closest("div")).toHaveClass(
       "motion-contextual-surface",
       "border-b",
-      "border-border/70",
+      "border-border/60",
     );
   });
 

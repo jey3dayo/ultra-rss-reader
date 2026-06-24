@@ -59,12 +59,12 @@ export function SettingsModalView({
         {isLoading && <IndeterminateProgress className="absolute inset-x-0 top-0 z-10" />}
         <div
           data-testid="settings-nav-shell"
-          className="flex max-h-[15rem] w-full shrink-0 flex-col border-b border-border/80 sm:h-auto sm:max-h-none sm:w-[292px] sm:border-r sm:border-b-0"
+          className="flex max-h-[18rem] w-full shrink-0 flex-col border-b border-border/80 sm:h-auto sm:max-h-none sm:w-[292px] sm:border-r sm:border-b-0"
           style={{ backgroundColor: "var(--settings-shell-rail)" }}
         >
           <DialogHeader
             data-testid="settings-modal-header"
-            className="flex min-h-[4.5rem] flex-row items-center gap-3 border-b border-border/80 px-5 py-0 backdrop-blur-sm"
+            className="flex min-h-[5rem] flex-row items-center gap-3 border-b border-border/80 px-5 py-0 backdrop-blur-sm"
             style={{ backgroundColor: "var(--settings-shell-rail)" }}
           >
             <SettingsActionButton
@@ -116,8 +116,8 @@ export function SettingsModalView({
               >
                 <ScrollArea
                   data-testid="settings-mobile-accounts-scroll-area"
-                  className="min-h-0 max-h-[4rem]"
-                  contentClassName="px-3 py-1.5 pr-5"
+                  className="min-h-0 max-h-[4.75rem]"
+                  contentClassName="flex w-max min-w-full gap-1.5 px-3 py-1.5 pr-5"
                 >
                   {accountsHeading ? (
                     <SettingsShellSectionLabel className="sr-only">{accountsHeading}</SettingsShellSectionLabel>
@@ -163,7 +163,7 @@ export function SettingsModalView({
             key={contentResetKey}
             data-testid="settings-content-motion"
             {...{ [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING }}
-            className={cn("min-h-0 flex-1", MOTION_CONTENT_SWAP_CLASS_NAME)}
+            className={cn("flex min-h-0 flex-1 flex-col overflow-hidden", MOTION_CONTENT_SWAP_CLASS_NAME)}
           >
             <SettingsContentScrollBehaviorProvider value={contentScrollBehavior}>
               {content}

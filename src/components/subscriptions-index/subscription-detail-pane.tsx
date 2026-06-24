@@ -1,4 +1,5 @@
 import { Check, Clock3, Pencil, Trash2 } from "lucide-react";
+import { useId } from "react";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
 import {
   DecisionButton,
@@ -102,22 +103,27 @@ export function SubscriptionDetailPane({
   decisionActions,
   managementActions,
 }: SubscriptionDetailPaneProps) {
+  const headingId = useId();
+
   return (
     <section
       data-testid="subscriptions-detail-pane"
-      className="flex flex-col rounded-md px-4 py-5 sm:px-6 sm:py-5 lg:min-h-0"
+      aria-labelledby={headingId}
+      className="flex flex-col rounded-md px-4 py-5 sm:px-6 sm:py-6 lg:min-h-0"
       style={{
         backgroundColor: "var(--subscriptions-detail-surface)",
       }}
     >
-      <div className="mb-5 border-b border-border/50 pb-4">
-        <h2 className="font-sans text-[1.02rem] font-normal tracking-[-0.02em] text-foreground-soft">{heading}</h2>
+      <div className="mb-5 border-b border-border/55 pb-4.5">
+        <h2 id={headingId} className="font-sans text-[1.08rem] font-semibold tracking-[-0.025em] text-foreground">
+          {heading}
+        </h2>
       </div>
       {!row || !metrics ? (
         <div className="flex items-center lg:min-h-0 lg:flex-1">
           <p
             {...{ [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING }}
-            className={`${MOTION_CONTENT_SWAP_CLASS_NAME} w-full rounded-md border border-dashed border-border/70 bg-surface-1/78 px-5 py-6 text-sm text-foreground-soft`}
+            className={`${MOTION_CONTENT_SWAP_CLASS_NAME} w-full rounded-md border border-dashed border-border/70 bg-surface-1/78 px-5 py-6 text-sm text-foreground-soft shadow-[0_16px_42px_-38px_rgba(38,37,30,0.32)]`}
           >
             {emptyLabel}
           </p>
@@ -129,7 +135,7 @@ export function SubscriptionDetailPane({
           {...{ [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING }}
           className={`${MOTION_CONTENT_SWAP_CLASS_NAME} lg:min-h-0 lg:flex-1 lg:overflow-y-auto`}
         >
-          <div className="flex w-full flex-col gap-4 pb-7 pt-1 lg:min-h-full">
+          <div className="flex w-full flex-col gap-4.5 pb-7 pt-1 lg:min-h-full">
             <FeedDetailPanel
               title={row.feed.title}
               titleHref={row.feed.site_url}
@@ -176,7 +182,7 @@ export function SubscriptionDetailPane({
                 variant="section"
                 tone="default"
                 padding="compact"
-                className={`${MOTION_CONTENT_SWAP_CLASS_NAME} grid grid-cols-3 gap-2 rounded-md px-4 shadow-none sm:px-5`}
+                className={`${MOTION_CONTENT_SWAP_CLASS_NAME} grid grid-cols-1 gap-2.5 rounded-md border-border/60 bg-surface-1/68 px-4 shadow-[0_18px_48px_-42px_rgba(38,37,30,0.34)] sm:grid-cols-3 sm:px-5`}
               >
                 {buildDecisionActionConfigs(decisionActions).map((action) => {
                   const Icon = action.icon;
@@ -199,7 +205,7 @@ export function SubscriptionDetailPane({
               <div
                 data-testid="subscriptions-detail-management-bar"
                 {...{ [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING }}
-                className={`${MOTION_CONTENT_SWAP_CLASS_NAME} grid grid-cols-2 gap-2`}
+                className={`${MOTION_CONTENT_SWAP_CLASS_NAME} grid grid-cols-2 gap-2.5`}
               >
                 <WorkspaceManagementActionButton
                   intent="edit"

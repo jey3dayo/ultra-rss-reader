@@ -15,7 +15,7 @@ export function CommandPaletteResults({
   return (
     <CommandList
       key={resultsMotionKey}
-      label="Command palette results"
+      label={headings.resultsLabel}
       data-testid="command-palette-results"
       {...{ [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING }}
       className={MOTION_CONTENT_SWAP_CLASS_NAME}

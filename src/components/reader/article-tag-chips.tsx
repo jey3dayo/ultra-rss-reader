@@ -12,11 +12,13 @@ type ArticleTagChipsProps = {
 type ArticleTagChipsState = {
   showPicker: boolean;
   newTagName: string;
+  newTagError?: string;
 };
 
 type ArticleTagChipsAction =
   | { type: "set-show-picker"; value: boolean }
   | { type: "set-new-tag-name"; value: string }
+  | { type: "set-new-tag-error"; value: string }
   | { type: "finish-create-tag" };
 
 const initialArticleTagChipsState: ArticleTagChipsState = {
@@ -27,9 +29,11 @@ const initialArticleTagChipsState: ArticleTagChipsState = {
 function articleTagChipsReducer(state: ArticleTagChipsState, action: ArticleTagChipsAction): ArticleTagChipsState {
   switch (action.type) {
     case "set-show-picker":
-      return { ...state, showPicker: action.value };
+      return { ...state, showPicker: action.value, newTagError: undefined };
     case "set-new-tag-name":
-      return { ...state, newTagName: action.value };
+      return { ...state, newTagName: action.value, newTagError: undefined };
+    case "set-new-tag-error":
+      return { ...state, newTagError: action.value };
     case "finish-create-tag":
       return { showPicker: false, newTagName: "" };
     default:
@@ -69,7 +73,9 @@ export function ArticleTagChips({ articleId }: ArticleTagChipsProps) {
           showToast(t("article_tag_added_recovery"));
         },
         onError: (error) => {
-          showToast(toArticleTagAssignErrorMessage(error));
+          const message = toArticleTagAssignErrorMessage(error);
+          dispatch({ type: "set-new-tag-error", value: message });
+          showToast(message);
         },
       },
     );
@@ -95,7 +101,9 @@ export function ArticleTagChips({ articleId }: ArticleTagChipsProps) {
           assignExistingTag(tag.id);
         },
         onError: (error) => {
-          showToast(toArticleTagAssignErrorMessage(error));
+          const message = toArticleTagAssignErrorMessage(error);
+          dispatch({ type: "set-new-tag-error", value: message });
+          showToast(message);
         },
       },
     );
@@ -106,6 +114,7 @@ export function ArticleTagChips({ articleId }: ArticleTagChipsProps) {
       assignedTags={assignedTags}
       availableTags={availableTags}
       newTagName={newTagName}
+      newTagError={state.newTagError}
       isExpanded={showPicker}
       isCreateTagPending={createTagMutation.isPending}
       labels={{

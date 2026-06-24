@@ -138,8 +138,7 @@ const statusLabels = {
   normal: "No action",
   review: "Review",
   stale_90d: "90 days stale",
-  no_unread: "No unread",
-  no_stars: "No stars",
+  quiet_no_unread: "Quiet with no unread",
 } satisfies Record<SubscriptionListRow["status"]["labelKey"], string>;
 
 const reasonTooltipLabels = {
@@ -147,8 +146,7 @@ const reasonTooltipLabels = {
   normal: "No action needed",
   review: "Review signal",
   stale_90d: "Latest article is older than 90 days",
-  no_unread: "No unread articles",
-  no_stars: "No starred articles",
+  quiet_no_unread: "This feed has stayed quiet and has no unread items",
 } satisfies Record<NonNullable<SubscriptionListRow["reasonTooltipKey"]>, string>;
 
 function isEveryGroupExpanded(_groupKey?: string) {
@@ -177,6 +175,10 @@ const meta = {
     groups,
     selectedFeedId: "feed-1",
     emptyLabel: "No subscriptions match this filter.",
+    searchQuery: "",
+    searchLabel: "Search subscriptions",
+    searchPlaceholder: "Search subscriptions",
+    searchClearLabel: "Clear search",
     statusLabels,
     reasonTooltipLabels,
     formatUnreadCountLabel: (count: number) => `Unread ${count}`,
@@ -184,6 +186,7 @@ const meta = {
     isGroupExpanded: isEveryGroupExpanded,
     onSelectFeed: fn(),
     onListScrollTopChange: fn(),
+    onSearchQueryChange: fn(),
     onToggleGroup: fn(),
   },
   decorators: [

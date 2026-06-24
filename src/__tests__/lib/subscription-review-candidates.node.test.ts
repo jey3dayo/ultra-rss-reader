@@ -169,7 +169,7 @@ describe("buildSubscriptionReviewCandidates", () => {
       latestArticleAt: "2025-01-01T00:00:00Z",
       staleDays: 459,
       starredCount: 7,
-      reasonKeys: ["stale_90d", "no_unread"],
+      reasonKeys: ["stale_90d", "quiet_no_unread"],
     });
   });
 
@@ -183,8 +183,8 @@ describe("buildSubscriptionReviewCandidates", () => {
     });
 
     expect(candidates.map((candidate) => candidate.feedId)).toEqual(["feed-stale", "feed-mid", "feed-active"]);
-    expect(candidates[0]?.reasonKeys).toEqual(["stale_90d", "no_unread"]);
-    expect(candidates[1]?.reasonKeys).toEqual(["stale_90d", "no_unread", "no_stars"]);
+    expect(candidates[0]?.reasonKeys).toEqual(["stale_90d", "quiet_no_unread"]);
+    expect(candidates[1]?.reasonKeys).toEqual(["stale_90d", "quiet_no_unread"]);
     expect(candidates[2]?.reasonKeys).toEqual([]);
     expect(candidates[0]?.staleDays).toBeGreaterThan(90);
   });
@@ -204,7 +204,7 @@ describe("buildSubscriptionReviewCandidates", () => {
       throw new Error("expected review candidates to include the multi-reason feed");
     }
 
-    expect(multiReasonCandidate.reasonKeys).toEqual(["stale_90d", "no_unread", "no_stars"]);
+    expect(multiReasonCandidate.reasonKeys).toEqual(["stale_90d", "quiet_no_unread"]);
     expect(summarizeSubscriptionReviewCandidate(multiReasonCandidate)).toEqual({
       tone: "high",
       titleKey: "review_now",
@@ -213,7 +213,6 @@ describe("buildSubscriptionReviewCandidates", () => {
     expect(buildSubscriptionReviewReasonFacts(multiReasonCandidate)).toEqual([
       { key: "stale_days", value: 94 },
       { key: "unread_count", value: 0 },
-      { key: "starred_count", value: 0 },
     ]);
   });
 
@@ -246,6 +245,49 @@ describe("buildSubscriptionReviewCandidates", () => {
     });
     expect(candidates.find((candidate) => candidate.feedId === "feed-recent-boundary")).toMatchObject({
       staleDays: 89,
+      reasonKeys: [],
+    });
+  });
+
+  it("marks quiet unread feeds at the 30 day boundary only", () => {
+    const candidates = buildSubscriptionReviewCandidates({
+      feeds: [
+        { ...feeds[0], id: "feed-quiet-boundary", unread_count: 0 },
+        { ...feeds[1], id: "feed-recent-unread-boundary", unread_count: 0 },
+        { ...feeds[2], id: "feed-quiet-with-unread", unread_count: 1 },
+      ],
+      folders,
+      feedArticleSummaries: [
+        {
+          feed_id: "feed-quiet-boundary",
+          latest_article_at: "2026-03-06T00:00:00Z",
+          starred_count: 0,
+        },
+        {
+          feed_id: "feed-recent-unread-boundary",
+          latest_article_at: "2026-03-07T00:00:00Z",
+          starred_count: 0,
+        },
+        {
+          feed_id: "feed-quiet-with-unread",
+          latest_article_at: "2026-03-06T00:00:00Z",
+          starred_count: 0,
+        },
+      ],
+      now: new Date("2026-04-05T00:00:00Z"),
+      hiddenFeedIds: new Set(),
+    });
+
+    expect(candidates.find((candidate) => candidate.feedId === "feed-quiet-boundary")).toMatchObject({
+      staleDays: 30,
+      reasonKeys: ["quiet_no_unread"],
+    });
+    expect(candidates.find((candidate) => candidate.feedId === "feed-recent-unread-boundary")).toMatchObject({
+      staleDays: 29,
+      reasonKeys: [],
+    });
+    expect(candidates.find((candidate) => candidate.feedId === "feed-quiet-with-unread")).toMatchObject({
+      staleDays: 30,
       reasonKeys: [],
     });
   });
@@ -479,16 +521,15 @@ describe("buildSubscriptionReviewCandidates", () => {
       feedId: "feed-negative-signals",
       unreadCount: 0,
       starredCount: 0,
-      reasonKeys: ["stale_90d", "no_unread", "no_stars"],
+      reasonKeys: ["stale_90d", "quiet_no_unread"],
     });
     expect(buildSubscriptionReviewReasonFacts(candidates[0])).toEqual([
       { key: "stale_days", value: 94 },
       { key: "unread_count", value: 0 },
-      { key: "starred_count", value: 0 },
     ]);
   });
 
-  it("sorts equally stale candidates by reason count, unread count, starred count, then title", () => {
+  it("sorts equally stale candidates by reason count, unread count, then title without using stars", () => {
     const candidates = buildSubscriptionReviewCandidates({
       feeds: [
         {
@@ -532,12 +573,12 @@ describe("buildSubscriptionReviewCandidates", () => {
         {
           feed_id: "feed-fewer-unread",
           latest_article_at: "2026-01-01T00:00:00Z",
-          starred_count: 2,
+          starred_count: 0,
         },
         {
           feed_id: "feed-fewer-stars",
           latest_article_at: "2026-01-01T00:00:00Z",
-          starred_count: 1,
+          starred_count: 10,
         },
         {
           feed_id: "feed-title-tie",
@@ -586,7 +627,7 @@ describe("buildSubscriptionReviewCandidates", () => {
     });
   });
 
-  it("summarizes each stale, unread, and starred signal combination for review copy", () => {
+  it("summarizes each stale and quiet unread signal combination for review copy", () => {
     const candidate = {
       feedId: "feed-signals",
       title: "Signal Feed",
@@ -601,22 +642,12 @@ describe("buildSubscriptionReviewCandidates", () => {
     expect(
       summarizeSubscriptionReviewCandidate({
         ...candidate,
-        reasonKeys: ["stale_90d", "no_stars"],
+        reasonKeys: ["quiet_no_unread"],
       }),
     ).toEqual({
       tone: "medium",
       titleKey: "consider",
-      summaryKey: "stale_with_no_stars",
-    });
-    expect(
-      summarizeSubscriptionReviewCandidate({
-        ...candidate,
-        reasonKeys: ["no_unread", "no_stars"],
-      }),
-    ).toEqual({
-      tone: "medium",
-      titleKey: "consider",
-      summaryKey: "inactive_without_signals",
+      summaryKey: "quiet_without_unread",
     });
     expect(
       summarizeSubscriptionReviewCandidate({
@@ -631,7 +662,7 @@ describe("buildSubscriptionReviewCandidates", () => {
     expect(
       summarizeSubscriptionReviewCandidate({
         ...candidate,
-        reasonKeys: ["no_stars"],
+        reasonKeys: [],
       }),
     ).toEqual({
       tone: "low",
@@ -655,27 +686,21 @@ describe("buildSubscriptionReviewCandidates", () => {
     expect(
       resolveSubscriptionCleanupRecommendation({
         ...candidate,
-        reasonKeys: ["stale_90d", "no_unread"],
+        reasonKeys: ["stale_90d", "quiet_no_unread"],
       }),
     ).toBe("cleanup_candidate");
     expect(
       resolveSubscriptionCleanupRecommendation({
         ...candidate,
-        reasonKeys: ["stale_90d", "no_stars"],
+        reasonKeys: ["stale_90d"],
       }),
     ).toBe("watch");
     expect(
       resolveSubscriptionCleanupRecommendation({
         ...candidate,
-        reasonKeys: ["no_unread", "no_stars"],
+        reasonKeys: ["quiet_no_unread"],
       }),
     ).toBe("watch");
-    expect(
-      resolveSubscriptionCleanupRecommendation({
-        ...candidate,
-        reasonKeys: ["no_stars"],
-      }),
-    ).toBe("retain");
   });
 
   it("builds reason facts only for active review reasons", () => {
@@ -694,7 +719,6 @@ describe("buildSubscriptionReviewCandidates", () => {
     expect(buildSubscriptionReviewReasonFacts(candidates[1])).toEqual([
       { key: "stale_days", value: 94 },
       { key: "unread_count", value: 0 },
-      { key: "starred_count", value: 0 },
     ]);
     expect(buildSubscriptionReviewReasonFacts(candidates[2])).toEqual([]);
   });
@@ -703,11 +727,8 @@ describe("buildSubscriptionReviewCandidates", () => {
     expect(resolveSubscriptionReviewSummaryTranslationKey("stale_and_inactive")).toBe(
       "detail_reason_stale_and_inactive",
     );
-    expect(resolveSubscriptionReviewSummaryTranslationKey("stale_with_no_stars")).toBe(
-      "detail_reason_stale_with_no_stars",
-    );
-    expect(resolveSubscriptionReviewSummaryTranslationKey("inactive_without_signals")).toBe(
-      "detail_reason_inactive_without_signals",
+    expect(resolveSubscriptionReviewSummaryTranslationKey("quiet_without_unread")).toBe(
+      "detail_reason_quiet_without_unread",
     );
     expect(resolveSubscriptionReviewSummaryTranslationKey("stale_but_supported")).toBe(
       "detail_reason_stale_but_supported",
@@ -718,6 +739,5 @@ describe("buildSubscriptionReviewCandidates", () => {
   it("resolves review reason fact translation keys", () => {
     expect(resolveSubscriptionReviewReasonFactTranslationKey("stale_days")).toBe("fact_stale_days");
     expect(resolveSubscriptionReviewReasonFactTranslationKey("unread_count")).toBe("fact_unread_count");
-    expect(resolveSubscriptionReviewReasonFactTranslationKey("starred_count")).toBe("fact_starred_count");
   });
 });

@@ -49,7 +49,7 @@ describe("DiscoveredFeedOptionsView", () => {
     );
 
     expect(screen.getAllByText("Updates")).toHaveLength(2);
-    expect(screen.getByText("example.com/feed.xml")).toHaveClass("text-foreground-muted");
+    expect(screen.getByText("example.com/feed.xml")).toHaveClass("break-all", "text-foreground-muted");
     expect(screen.getByRole("radio", { name: "Updates example.com/feed.xml" })).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "Updates example.com/atom.xml" })).toBeInTheDocument();
   });

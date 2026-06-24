@@ -10,6 +10,7 @@ type UseCommandPaletteViewPropsParams = {
   description: string;
   placeholder: string;
   noResultsLabel: string;
+  resultsLabel: string;
   recentActionsHeading: string;
   actionsHeading: string;
   devScenariosHeading: string;
@@ -48,6 +49,7 @@ export function useCommandPaletteViewProps({
   description,
   placeholder,
   noResultsLabel,
+  resultsLabel,
   recentActionsHeading,
   actionsHeading,
   devScenariosHeading,
@@ -108,6 +110,7 @@ export function useCommandPaletteViewProps({
       },
       headings: {
         noResultsLabel,
+        resultsLabel,
         recentActionsHeading,
         actionsHeading,
         devScenariosHeading,

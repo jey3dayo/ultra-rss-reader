@@ -41,7 +41,7 @@ export function StackedSelectField({
         {label}
       </span>
       <Select name={name} value={value} onValueChange={handleValueChange} disabled={disabled}>
-        <SelectTrigger aria-labelledby={resolvedLabelId} className={triggerClassName}>
+        <SelectTrigger aria-labelledby={resolvedLabelId} className={cn("min-h-11", triggerClassName)}>
           <SelectOptionValue options={options} />
         </SelectTrigger>
         <AppSelectPopup>

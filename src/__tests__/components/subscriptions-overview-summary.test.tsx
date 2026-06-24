@@ -11,6 +11,18 @@ function getRequiredHTMLElement(element: Element | null, description: string) {
 }
 
 describe("SubscriptionsOverviewSummary", () => {
+  const englishLabels = {
+    activeBadge: "Showing",
+    staticBadge: "Reference",
+    showFilterAriaLabel: (label: string) => `Show ${label}`,
+    showAll: "Showing all",
+    showFiltered: "Filtered",
+    filterAll: "Show all",
+    filter: "Filter",
+    noMatches: "None",
+    criteria: "Criteria",
+  };
+
   it("uses semantic soft foreground text and neutral action chips", () => {
     render(
       <SubscriptionsOverviewSummary
@@ -36,14 +48,18 @@ describe("SubscriptionsOverviewSummary", () => {
 
     const summarySection = screen.getByRole("button", { name: /Needs review/ }).closest("section");
     expect(summarySection).not.toBeNull();
-    expect(summarySection).toHaveClass("rounded-md", "border-border/55");
+    expect(summarySection).toHaveClass(
+      "rounded-md",
+      "border-border/60",
+      "shadow-[0_18px_48px_-42px_rgba(38,37,30,0.32)]",
+    );
     expect(summarySection).toHaveStyle({
       backgroundColor: "var(--subscriptions-summary-surface)",
     });
     expect(summarySection?.querySelector(".grid")).toHaveClass(
       "grid-cols-1",
       "sm:grid-cols-[repeat(auto-fit,minmax(13rem,1fr))]",
-      "gap-3",
+      "gap-3.5",
     );
     expect(screen.queryByText("Needs review: quiet feeds or weak usage signals.")).toBeNull();
 
@@ -94,6 +110,27 @@ describe("SubscriptionsOverviewSummary", () => {
     expect(await screen.findByText("Needs review: quiet feeds or weak usage signals.")).toHaveClass(
       "motion-popup-surface",
     );
+  });
+
+  it("uses localized accessible names for summary filter cards", () => {
+    render(
+      <SubscriptionsOverviewSummary
+        cards={[
+          {
+            filterKey: "review",
+            label: "Needs review",
+            value: "2",
+            caption: "Check these feeds",
+            tone: "review",
+          },
+        ]}
+        labels={englishLabels}
+        onSelectFilter={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Show Needs review" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Needs review を表示" })).not.toBeInTheDocument();
   });
 
   it("reserves the active badge slot to avoid layout shift", () => {
@@ -156,10 +193,11 @@ describe("SubscriptionsOverviewSummary", () => {
       "shadow-[var(--subscriptions-summary-active-chip-shadow)]",
     );
     expect(activeCard).toHaveClass("shadow-[var(--subscriptions-summary-active-shadow-review)]");
-    expect(activeCard).toHaveClass("ring-[color:var(--subscriptions-summary-active-ring-review)]");
-    const metric = within(activeCard).getByText("2").closest(".t-digit-group");
-    expect(metric).toHaveClass("t-digit-group", "tabular-nums");
-    expect(metric?.parentElement).toHaveClass("text-state-review-foreground");
+    expect(activeCard).not.toHaveClass("ring-1");
+    const metric = within(activeCard).getByText("2");
+    expect(metric).toHaveClass("tabular-nums");
+    expect(metric.closest(".t-digit-group")).toBeNull();
+    expect(metric.parentElement).toHaveClass("text-state-review-foreground");
     expect(activeCard).toHaveAttribute("aria-pressed", "true");
   });
 
@@ -234,6 +272,45 @@ describe("SubscriptionsOverviewSummary", () => {
     const card = screen.getByRole("button", { name: /Total subscriptions/ });
     expect(within(card).getByText("すべて表示")).toBeInTheDocument();
     expect(within(card).queryByText("フィルタ中")).toBeNull();
+  });
+
+  it("softens zero-count review and stale cards without splitting numeric text", () => {
+    render(
+      <SubscriptionsOverviewSummary
+        cards={[
+          {
+            filterKey: "review",
+            label: "Needs review",
+            value: "0",
+            caption: "0 feeds need a decision",
+            tone: "review",
+            isActive: false,
+          },
+          {
+            filterKey: "stale",
+            label: "90-day stale",
+            value: "0",
+            caption: "0 feeds have gone quiet",
+            tone: "stale",
+            isActive: false,
+          },
+        ]}
+        onSelectFilter={vi.fn()}
+      />,
+    );
+
+    const reviewCard = screen.getByRole("button", { name: "Needs review を表示" });
+    const staleCard = screen.getByRole("button", { name: "90-day stale を表示" });
+
+    expect(reviewCard).toHaveClass("border-border/60", "bg-surface-1/62");
+    expect(reviewCard).not.toHaveClass("sm:col-span-2", "bg-state-review-surface/86");
+    expect(staleCard).toHaveClass("border-border/60", "bg-surface-1/62");
+    expect(staleCard).not.toHaveClass("bg-state-warning-surface/84");
+    expect(within(reviewCard).getByText("該当なし")).toBeInTheDocument();
+    expect(within(staleCard).getByText("該当なし")).toBeInTheDocument();
+    expect(within(reviewCard).getByText("0")).toHaveClass("tabular-nums");
+    expect(within(reviewCard).getByText("0").closest(".t-digit-group")).toBeNull();
+    expect(within(staleCard).getByText("0").closest(".t-digit-group")).toBeNull();
   });
 
   it("renders non-actionable values as static sibling cards instead of filter buttons", () => {

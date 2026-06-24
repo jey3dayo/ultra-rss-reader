@@ -159,6 +159,8 @@ Elevation scale:
 - Sidebar and settings layouts should keep warm section separation without harsh visual breaks
 - Desktop settings forms should use a stable two-column grid: a fixed or semifixed label column on the left and a right control column with a shared endpoint.
 - In settings-style forms, the control column should feel like one rail. Wide controls may stop short with a max width, but compact controls should still align to that same rail.
+- Settings form rows should switch to the two-column label/control rail only when the row's container has enough room. Narrow settings cards and constrained Storybook fixtures should keep controls stacked instead of forcing a desktop rail from viewport width alone.
+- Icon-led action rows in settings should use the shared settings row primitive for label, icon, divider, and control alignment. Destructive compact actions should use a labeled icon-only danger button rather than a local text button when adjacent settings surfaces already use icon actions.
 
 ### Whitespace Philosophy
 
@@ -320,6 +322,7 @@ Manual/a11y smoke:
 - Multi-column cards collapse to single column cleanly
 - Timeline or preview layouts can switch from horizontal emphasis to vertical stacking
 - Mobile settings navigation may collapse into more compact controls, but settings content should keep priority over navigation chrome so the first editable rows remain visible without excessive scrolling.
+- Settings navigation density should preserve readable labels without stretching the rail. Keep selected, idle, and focused rows on the same outer geometry, and tune gaps or inset emphasis before increasing row padding.
 
 ## Do's and Don'ts
 

@@ -1,5 +1,5 @@
 import { type ChangeEvent, useId, useRef } from "react";
-import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
+import { SettingsLoadingActionButton } from "@/components/settings/settings-loading-action-button";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { DeleteButton } from "@/design-system";
 
@@ -7,11 +7,15 @@ type AccountDangerZoneViewProps = {
   dataHeading: string;
   dangerHeading: string;
   importLabel: string;
+  importingLabel?: string;
   exportLabel: string;
+  exportingLabel?: string;
   deleteLabel: string;
   onImport: (file: File) => void;
   onExport: () => void;
   onRequestDelete: () => void;
+  importing?: boolean;
+  exporting?: boolean;
   disabled?: boolean;
   disabledReason?: string;
 };
@@ -20,24 +24,31 @@ export function AccountDangerZoneView({
   dataHeading,
   dangerHeading,
   importLabel,
+  importingLabel,
   exportLabel,
+  exportingLabel,
   deleteLabel,
   onImport,
   onExport,
   onRequestDelete,
+  importing = false,
+  exporting = false,
   disabled = false,
   disabledReason,
 }: AccountDangerZoneViewProps) {
   const disabledReasonId = useId();
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const showDisabledReason = disabled && disabledReason != null && disabledReason.trim().length > 0;
+  const importDisabled = disabled || importing || exporting;
+  const exportDisabled = disabled || importing || exporting;
   const handleImportClick = () => {
+    if (importDisabled) return;
     importInputRef.current?.click();
   };
   const handleImportFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.currentTarget.files?.[0];
     event.currentTarget.value = "";
-    if (file) {
+    if (file && !importDisabled) {
       onImport(file);
     }
   };
@@ -57,15 +68,26 @@ export function AccountDangerZoneView({
             accept=".opml,.xml"
             aria-label={importLabel}
             className="hidden"
+            disabled={importDisabled}
             tabIndex={-1}
             onChange={handleImportFileChange}
           />
-          <SettingsActionButton onClick={handleImportClick} disabled={disabled}>
+          <SettingsLoadingActionButton
+            onClick={handleImportClick}
+            loading={importing}
+            loadingLabel={importingLabel}
+            disabled={importDisabled}
+          >
             {importLabel}
-          </SettingsActionButton>
-          <SettingsActionButton onClick={onExport} disabled={disabled}>
+          </SettingsLoadingActionButton>
+          <SettingsLoadingActionButton
+            onClick={onExport}
+            loading={exporting}
+            loadingLabel={exportingLabel}
+            disabled={exportDisabled}
+          >
             {exportLabel}
-          </SettingsActionButton>
+          </SettingsLoadingActionButton>
         </div>
       </SettingsSection>
 

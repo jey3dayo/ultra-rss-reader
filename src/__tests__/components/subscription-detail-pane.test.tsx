@@ -54,6 +54,8 @@ const baseProps = {
   recentArticlesHeading: "Recent articles",
   displayModeLabel: "Display",
   displayModeValue: "Default",
+  decisionActions: null,
+  managementActions: null,
   dateLocale: "en",
 };
 
@@ -67,6 +69,12 @@ function getLatestArticleMetricRow(): HTMLElement {
 }
 
 describe("SubscriptionDetailPane", () => {
+  it("names the detail pane region from its visible heading", () => {
+    render(<SubscriptionDetailPane {...baseProps} />);
+
+    expect(screen.getByRole("region", { name: "Details" })).toBeInTheDocument();
+  });
+
   it("renders shared workspace management action button styles by intent", () => {
     render(
       <>
@@ -113,7 +121,7 @@ describe("SubscriptionDetailPane", () => {
       <SubscriptionDetailPane {...baseProps} decisionActions={decisionActions} managementActions={managementActions} />,
     );
 
-    expect(screen.getByTestId("subscriptions-detail-decision-bar")).toBeInTheDocument();
+    expect(screen.getByTestId("subscriptions-detail-decision-bar")).toHaveClass("grid-cols-1", "sm:grid-cols-3");
     expect(screen.queryByTestId("subscriptions-detail-management-bar")).not.toBeInTheDocument();
     for (const label of ["Keep", "Later", "Delete"]) {
       const actionButton = screen.getByRole("button", { name: label });

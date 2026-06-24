@@ -94,6 +94,7 @@ export function useArticleListPresentation({
     filteredArticles,
     layoutMode,
     sidebarOpen,
+    showSearch,
     sidebarSubscriptionsLabel: ts("subscriptions"),
     feedDisplayLabel: t("display_mode"),
     showSidebarLabel: t("show_sidebar"),

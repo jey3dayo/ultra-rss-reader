@@ -156,6 +156,7 @@ export function FeedTreeFolderSection({
         id={panelId}
         data-state={folder.isExpanded ? "open" : "closed"}
         aria-hidden={folder.isExpanded ? "false" : "true"}
+        inert={folder.isExpanded ? undefined : true}
         className="motion-disclosure-panel"
       >
         <div className="motion-disclosure-body">

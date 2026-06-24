@@ -13,7 +13,7 @@ const DEBUG_HUD_INNER_CARD_LIGHT_CLASS = `${DEBUG_HUD_INNER_CARD_CLASS} bg-white
 const DEBUG_HUD_INNER_CARD_DARK_CLASS = `${DEBUG_HUD_INNER_CARD_CLASS} bg-black/24`;
 const DEBUG_HUD_QUIET_BADGE_CLASS =
   "rounded-full border border-white/8 bg-white/[0.05] px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-white/58";
-const DEBUG_HUD_ICON_ACTION_CLASS = "size-8 px-0";
+const DEBUG_HUD_ICON_ACTION_CLASS = "size-11 px-0";
 const DEBUG_HUD_POSITIONS = ["bottom-right", "top-left", "top-right", "bottom-left"] as const;
 const DEBUG_HUD_COPY = {
   title: "Debug HUD",
@@ -214,7 +214,7 @@ export function FocusDebugHudView({
                   onClick={() => setShowGeometry((current) => !current)}
                   aria-expanded={showGeometry}
                   aria-controls={geometryPanelId}
-                  className="h-8 border-transparent bg-transparent px-2 text-[11px] text-white/56 shadow-none hover:border-transparent hover:bg-white/[0.04] hover:text-white/82 focus-visible:border-transparent focus-visible:bg-white/[0.04] focus-visible:text-white/82"
+                  className="min-h-11 border-transparent bg-transparent px-3 text-[11px] text-white/56 shadow-none hover:border-transparent hover:bg-white/[0.04] hover:text-white/82 focus-visible:border-transparent focus-visible:bg-white/[0.04] focus-visible:text-white/82"
                 >
                   {showGeometry ? DEBUG_HUD_COPY.hideGeometry : DEBUG_HUD_COPY.showGeometry}
                 </DebugHudActionButton>

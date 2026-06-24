@@ -77,6 +77,8 @@ export function AccountSyncSectionView({
   isDevCredentialsRecoveryInFlight,
 }: AccountSyncSectionViewProps) {
   const normalizedProgressValue = typeof progressValue === "number" ? clampProgressValue(progressValue) : null;
+  const syncActionDisabled = Boolean(isSyncing || isDevCredentialsRecoveryInFlight);
+  const devCredentialsRecoveryDisabled = Boolean(isSyncing || isDevCredentialsRecoveryInFlight);
 
   return (
     <SettingsSection heading={heading} note={note} surface="flat" className="mb-6 sm:mb-7">
@@ -101,7 +103,7 @@ export function AccountSyncSectionView({
           aria-atomic="true"
           className={cn(
             CONTROL_RAIL_CLASS,
-            "mt-4 space-y-2 rounded-lg border border-border/70 bg-surface-1/72 px-4 py-3",
+            "mt-4 space-y-2 rounded-md border border-border/70 bg-surface-1/72 px-4 py-3",
           )}
         >
           <div className="flex items-center justify-between gap-3 text-sm">
@@ -128,7 +130,7 @@ export function AccountSyncSectionView({
         <div
           className={cn(
             CONTROL_RAIL_CLASS,
-            "mt-4 rounded-lg border border-border/70 bg-surface-1/72 px-4 py-3 text-sm",
+            "mt-4 rounded-md border border-border/70 bg-surface-1/72 px-4 py-3 text-sm",
           )}
         >
           {statusRows.map((row) => (
@@ -147,7 +149,7 @@ export function AccountSyncSectionView({
       {(onSyncNow || onSecondaryAction || onDevCredentialsRecoveryAction) && (
         <div className={cn(CONTROL_RAIL_CLASS, "flex flex-col-reverse gap-2 pt-4 sm:flex-row sm:justify-end")}>
           {onSecondaryAction && secondaryActionLabel ? (
-            <SettingsActionButton onClick={onSecondaryAction} disabled={isSyncing}>
+            <SettingsActionButton onClick={onSecondaryAction} disabled={syncActionDisabled}>
               {secondaryActionLabel}
             </SettingsActionButton>
           ) : null}
@@ -156,12 +158,18 @@ export function AccountSyncSectionView({
               onClick={onDevCredentialsRecoveryAction}
               loading={isDevCredentialsRecoveryInFlight}
               loadingLabel={devCredentialsRecoveryLoadingLabel}
+              disabled={devCredentialsRecoveryDisabled}
             >
               {devCredentialsRecoveryActionLabel}
             </SettingsLoadingActionButton>
           ) : null}
           {onSyncNow ? (
-            <SettingsLoadingActionButton onClick={onSyncNow} loading={isSyncing} loadingLabel={syncingLabel}>
+            <SettingsLoadingActionButton
+              onClick={onSyncNow}
+              loading={isSyncing}
+              loadingLabel={syncingLabel}
+              disabled={syncActionDisabled}
+            >
               {syncNowLabel}
             </SettingsLoadingActionButton>
           ) : null}

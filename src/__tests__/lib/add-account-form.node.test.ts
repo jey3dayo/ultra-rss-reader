@@ -4,6 +4,7 @@ import {
   buildAddAccountPayload,
   formatAddAccountValidationError,
   getAddAccountFormConfig,
+  isAddAccountFormSubmittable,
 } from "@/lib/account/add-account-form";
 import enSettings from "@/locales/en/settings.json";
 import jaSettings from "@/locales/ja/settings.json";
@@ -139,6 +140,46 @@ describe("add-account-form utils", () => {
     expect(Result.unwrapError(missingUsername)).toBe("missing_username");
     expect(Result.unwrapError(missingPassword)).toBe("missing_password");
   });
+
+  it("reports whether the current form can be submitted", () => {
+    expect(
+      isAddAccountFormSubmittable({
+        kind: "Local",
+        name: "",
+        serverUrl: "",
+        username: "",
+        password: "",
+      }),
+    ).toBe(true);
+    expect(
+      isAddAccountFormSubmittable({
+        kind: "FreshRss",
+        name: "",
+        serverUrl: "",
+        username: "",
+        password: "",
+      }),
+    ).toBe(false);
+    expect(
+      isAddAccountFormSubmittable({
+        kind: "FreshRss",
+        name: "",
+        serverUrl: "https://freshrss.example.com",
+        username: "",
+        password: "",
+      }),
+    ).toBe(false);
+    expect(
+      isAddAccountFormSubmittable({
+        kind: "FreshRss",
+        name: "",
+        serverUrl: "https://freshrss.example.com",
+        username: "alice",
+        password: "secret",
+      }),
+    ).toBe(true);
+  });
+
   it("formats validation errors for toasts", () => {
     expect(formatAddAccountValidationError("FreshRss", "missing_server_url")).toBe("account.error_server_url_required");
     expect(formatAddAccountValidationError("FreshRss", "invalid_server_url")).toBe("account.error_server_url_invalid");

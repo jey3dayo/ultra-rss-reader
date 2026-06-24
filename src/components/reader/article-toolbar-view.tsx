@@ -145,13 +145,13 @@ function ArticleToolbarMobilePrimaryButton({
       aria-label={label}
       disabled={disabled}
       className={cn(
-        "inline-flex h-9 min-w-9 items-center justify-center gap-1.5 rounded-md bg-transparent px-2 text-xs font-medium text-foreground-soft shadow-none select-none hover:bg-surface-2/64 hover:text-foreground focus-visible:bg-surface-2/72 focus-visible:ring-2 focus-visible:ring-ring/45 disabled:text-foreground-soft [&_svg]:pointer-events-none [&_svg]:shrink-0",
+        "inline-flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-md bg-transparent px-1.5 text-xs font-medium text-foreground-soft shadow-none select-none hover:bg-surface-2/64 hover:text-foreground focus-visible:bg-surface-2/72 focus-visible:ring-2 focus-visible:ring-ring/45 disabled:text-foreground-soft sm:min-w-11 sm:px-2 [&_svg]:pointer-events-none [&_svg]:shrink-0",
         articleToolbarUnavailableClassName,
         active && articleToolbarVisualActiveClassNames[activeTone],
       )}
     >
       {children}
-      <span className="max-w-16 truncate">{visibleLabel}</span>
+      <span className="min-w-0 max-w-14 truncate sm:max-w-16">{visibleLabel}</span>
     </Toggle>
   );
 }
@@ -210,7 +210,7 @@ export function ArticleToolbarActionStrip({
   }
 
   return (
-    <div className="flex items-center gap-1">
+    <div className={cn("flex items-center gap-1", isMobile && "min-w-0 flex-1 justify-end gap-0.5")}>
       {isMobile ? (
         <>
           <ArticleToolbarMobilePrimaryButton
@@ -329,9 +329,13 @@ export function ArticleToolbarView({
   ...actionStripProps
 }: ArticleToolbarViewProps) {
   const { labels } = actionStripProps;
+  const isMobile = actionStripProps.layoutMode === "mobile";
   return (
     <div
-      className="sticky top-0 z-10 flex h-12 items-center border-b border-border/70 px-4 backdrop-blur-sm"
+      className={cn(
+        "sticky top-0 z-10 flex h-12 items-center border-b border-border/70 px-4 backdrop-blur-sm",
+        isMobile && "px-2",
+      )}
       style={{ backgroundColor: "var(--reader-toolbar-surface)" }}
     >
       <TooltipProvider>
@@ -342,7 +346,7 @@ export function ArticleToolbarView({
             </IconToolbarButton>
           )}
         </div>
-        <div data-tauri-drag-region className="mx-3 h-full min-w-0 flex-1" />
+        <div data-tauri-drag-region className={cn("h-full min-w-0 flex-1", isMobile ? "mx-1" : "mx-3")} />
         {!hideActionStrip ? <ArticleToolbarActionStrip {...actionStripProps} /> : null}
       </TooltipProvider>
     </div>

@@ -71,6 +71,16 @@ function setupAutoMarkMocks(calls: MockTauriCommandCall[]) {
   });
 }
 
+it("names the focusable article content pane with the article title", () => {
+  render(<ArticlePane {...requirePrimaryArticlePaneProps()} />, {
+    wrapper: createWrapper(),
+  });
+
+  const pane = screen.getByTestId("article-pane");
+  expect(screen.getByRole("region", { name: primaryArticle.title })).toBe(pane);
+  expect(pane).toHaveAttribute("data-article-content-pane", "true");
+});
+
 function setupArticleViewRecordingMocks(calls: MockTauriCommandCall[]) {
   setupTauriMocks((cmd, args) => {
     calls.push({ cmd, args });
@@ -2037,6 +2047,7 @@ describe("ArticleView", () => {
     expect(within(summary).getByRole("heading", { level: 3, name: "Tech Blog" })).toBeInTheDocument();
     expect(within(summary).getByText("Latest Article")).toBeInTheDocument();
     expect(within(summary).getByText("First Article")).toBeInTheDocument();
+    expect(within(summary).getByText("Choose one from the middle list and it opens right away.")).toBeInTheDocument();
     expect(within(summary).getByText(/^(Latest Update|latest_update)/i)).toBeInTheDocument();
     expect(within(summary).getByText("example.com")).toBeInTheDocument();
     expect(within(summary).queryByRole("link", { name: "example.com" })).not.toBeInTheDocument();
@@ -2499,6 +2510,58 @@ describe("ArticleView", () => {
     expect(viewport.scrollTop).toBe(0);
   });
 
+  it("batches article reader keyboard scroll position updates", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      setupTauriMocks((cmd) => {
+        switch (cmd) {
+          case "list_tags":
+            return [];
+          case "get_article_tags":
+            return [];
+          default:
+            return undefined;
+        }
+      });
+      const originalSetArticleReaderScrollPosition = useUiStore.getState().setArticleReaderScrollPosition;
+      const setArticleReaderScrollPosition = vi.fn(originalSetArticleReaderScrollPosition);
+      useUiStore.setState({ setArticleReaderScrollPosition });
+      const longArticle = {
+        ...primaryArticle,
+        content_sanitized: Array.from(
+          { length: 16 },
+          (_, index) =>
+            `<p>Long reader keyboard test paragraph ${index + 1}. This paragraph keeps the article scrollable.</p>`,
+        ).join(""),
+      };
+
+      render(<ArticlePane article={longArticle} feed={{ ...primaryFeed, reader_mode: "on" }} feedName="Tech Blog" />, {
+        wrapper: createWrapper(),
+      });
+
+      await screen.findByRole("heading", { level: 1, name: "First Article" });
+      const viewport = getArticleReaderViewport();
+      Object.defineProperty(viewport, "clientHeight", {
+        configurable: true,
+        value: 500,
+      });
+      viewport.scrollTop = 0;
+
+      fireEvent.keyDown(viewport, { key: "ArrowDown" });
+      fireEvent.keyDown(viewport, { key: "ArrowDown" });
+
+      expect(viewport.scrollTop).toBe(800);
+      expect(setArticleReaderScrollPosition).not.toHaveBeenCalled();
+
+      await vi.advanceTimersByTimeAsync(120);
+
+      expect(setArticleReaderScrollPosition).toHaveBeenCalledOnce();
+      expect(setArticleReaderScrollPosition).toHaveBeenCalledWith(primaryArticle.id, 800);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("retains scroll position for article revisits and resets unread positions for new articles", async () => {
     setupTauriMocks((cmd) => {
       switch (cmd) {
@@ -2540,6 +2603,92 @@ describe("ArticleView", () => {
 
     await screen.findByRole("heading", { level: 1, name: "First Article" });
     expect(viewport.scrollTop).toBe(320);
+  });
+
+  it("batches article reader scroll position updates while preserving the latest position", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      setupTauriMocks((cmd) => {
+        switch (cmd) {
+          case "list_tags":
+            return [];
+          case "get_article_tags":
+            return [];
+          default:
+            return undefined;
+        }
+      });
+      const originalSetArticleReaderScrollPosition = useUiStore.getState().setArticleReaderScrollPosition;
+      const setArticleReaderScrollPosition = vi.fn(originalSetArticleReaderScrollPosition);
+      useUiStore.setState({ setArticleReaderScrollPosition });
+
+      render(
+        <ArticlePane article={primaryArticle} feed={{ ...primaryFeed, reader_mode: "on" }} feedName="Tech Blog" />,
+        {
+          wrapper: createWrapper(),
+        },
+      );
+
+      await screen.findByRole("heading", { level: 1, name: "First Article" });
+      const viewport = getArticleReaderViewport();
+
+      viewport.scrollTop = 240;
+      fireEvent.scroll(viewport);
+      viewport.scrollTop = 360;
+      fireEvent.scroll(viewport);
+
+      expect(setArticleReaderScrollPosition).not.toHaveBeenCalled();
+
+      await vi.advanceTimersByTimeAsync(120);
+
+      expect(setArticleReaderScrollPosition).toHaveBeenCalledOnce();
+      expect(setArticleReaderScrollPosition).toHaveBeenCalledWith(primaryArticle.id, 360);
+      expect(useUiStore.getState().articleReaderScrollPositions.get(primaryArticle.id)).toBe(360);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("flushes a pending article reader scroll position on unmount", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      setupTauriMocks((cmd) => {
+        switch (cmd) {
+          case "list_tags":
+            return [];
+          case "get_article_tags":
+            return [];
+          default:
+            return undefined;
+        }
+      });
+      const originalSetArticleReaderScrollPosition = useUiStore.getState().setArticleReaderScrollPosition;
+      const setArticleReaderScrollPosition = vi.fn(originalSetArticleReaderScrollPosition);
+      useUiStore.setState({ setArticleReaderScrollPosition });
+
+      const { unmount } = render(
+        <ArticlePane article={primaryArticle} feed={{ ...primaryFeed, reader_mode: "on" }} feedName="Tech Blog" />,
+        {
+          wrapper: createWrapper(),
+        },
+      );
+
+      await screen.findByRole("heading", { level: 1, name: "First Article" });
+      const viewport = getArticleReaderViewport();
+
+      viewport.scrollTop = 280;
+      fireEvent.scroll(viewport);
+
+      expect(setArticleReaderScrollPosition).not.toHaveBeenCalled();
+
+      unmount();
+
+      expect(setArticleReaderScrollPosition).toHaveBeenCalledOnce();
+      expect(setArticleReaderScrollPosition).toHaveBeenCalledWith(primaryArticle.id, 280);
+      expect(useUiStore.getState().articleReaderScrollPositions.get(primaryArticle.id)).toBe(280);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("marks the reader body with the next-article slide direction", async () => {
@@ -2665,7 +2814,8 @@ describe("ArticleView", () => {
     const shareButton = (await screen.findAllByRole("button", { name: "Share" }))[0];
     expect(shareButton).toBeInTheDocument();
     expect(shareButton).toBeEnabled();
-    expect(shareButton).toHaveClass("size-11", "md:size-8", "rounded-md", "text-foreground-soft");
+    expect(shareButton).toHaveClass("size-11", "rounded-md", "text-foreground-soft");
+    expect(shareButton).not.toHaveClass("md:size-8");
   });
 
   it("hides the share menu button when no article is selected", async () => {

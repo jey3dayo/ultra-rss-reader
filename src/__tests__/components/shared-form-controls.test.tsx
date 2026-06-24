@@ -183,11 +183,27 @@ describe("shared form controls", () => {
     );
 
     const dialog = screen.getByRole("dialog", { name: "Edit feed" });
-    expect(dialog).toHaveClass("rounded-xl", "bg-surface-2", "shadow-elevation-3");
+    expect(dialog).toHaveClass(
+      "flex",
+      "max-h-[calc(100dvh-2rem)]",
+      "flex-col",
+      "rounded-xl",
+      "bg-surface-2",
+      "shadow-elevation-3",
+    );
     expect(screen.getByText("Adjust the feed settings.")).toHaveClass("text-foreground-soft");
+    expect(screen.getByText("Adjust the feed settings.").closest('[data-slot="dialog-header"]')).toHaveClass(
+      "shrink-0",
+    );
+    expect(screen.getByRole("textbox", { name: "Feed URL" }).closest("form")).toHaveClass(
+      "min-h-0",
+      "flex-1",
+      "overflow-y-auto",
+    );
     expect(screen.getByRole("button", { name: "Save" }).closest('[data-slot="dialog-footer"]')).toHaveClass(
       "border-t",
       "bg-surface-1/72",
+      "shrink-0",
     );
 
     await user.click(screen.getByRole("textbox", { name: "Feed URL" }));
@@ -277,9 +293,13 @@ describe("shared form controls", () => {
     expect(input).toHaveValue("News");
     expect(input.id).toBeTruthy();
     expect(document.querySelector(`label[for="${input.id}"]`)).toHaveTextContent("Tag name");
-    expect(input.closest("div.flex.w-full.items-center.gap-2")).toHaveClass("sm:max-w-[30rem]", "sm:justify-end");
-    expect(createButton.closest("div.flex.w-full.items-center.gap-2")).toBe(
-      input.closest("div.flex.w-full.items-center.gap-2"),
+    expect(input.closest("div.flex.w-full.min-w-0.flex-col.gap-2")).toHaveClass(
+      "sm:max-w-[30rem]",
+      "sm:flex-row",
+      "sm:justify-end",
+    );
+    expect(createButton.closest("div.flex.w-full.min-w-0.flex-col.gap-2")).toBe(
+      input.closest("div.flex.w-full.min-w-0.flex-col.gap-2"),
     );
   });
 
@@ -412,8 +432,8 @@ describe("shared form controls", () => {
     const input = screen.getByRole("textbox", { name: "Feed URL" });
     const actionButton = screen.getByRole("button", { name: "Discover feed" });
 
-    expect(input).toHaveClass("pr-20");
-    expect(actionButton).toHaveClass("absolute", "right-1", "h-7", "min-w-14", "px-2", "text-xs");
+    expect(input).toHaveClass("min-h-11", "pr-24");
+    expect(actionButton).toHaveClass("absolute", "right-1", "h-11", "min-w-20", "px-3", "text-xs");
   });
 
   it("exposes select and switch rows with label-driven accessible names", async () => {
@@ -447,7 +467,7 @@ describe("shared form controls", () => {
     const switchControl = screen.getByRole("switch", { name: "Open links in background" });
     expect(combobox).toHaveTextContent("FreshRSS");
     expect(combobox).toHaveClass("sm:w-[220px]", "motion-reduce:transition-none");
-    expect(switchControl.parentElement).toHaveClass("sm:justify-end");
+    expect(switchControl.parentElement).toHaveClass("lg:justify-end");
     expect(switchControl).toHaveClass("motion-reduce:transition-none");
     expect(switchControl).toHaveAccessibleDescription("Keep the reader visible when opening links.");
 
@@ -482,7 +502,7 @@ describe("shared form controls", () => {
     const deleteButton = screen.getByRole("button", { name: "Delete" });
 
     expect(combobox).toHaveTextContent("Title");
-    expect(combobox).toHaveClass("h-10", "sm:flex-1");
+    expect(combobox).toHaveClass("h-11", "sm:flex-1");
     expect(combobox.closest("div.flex.w-full.flex-col.gap-2")).toHaveClass("sm:max-w-[30rem]", "sm:justify-end");
     expect(deleteButton.closest("div.flex.w-full.flex-col.gap-2")).toBe(
       combobox.closest("div.flex.w-full.flex-col.gap-2"),

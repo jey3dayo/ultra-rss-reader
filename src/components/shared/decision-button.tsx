@@ -15,7 +15,7 @@ const decisionIntentClassName: Record<DecisionButtonProps["intent"], string> = {
 };
 
 export const workspaceCompactActionButtonClassName =
-  "justify-center rounded-md px-3 font-medium sm:px-3.5 [&_svg]:size-3.5";
+  "min-h-11 justify-center rounded-md px-3 font-medium sm:px-3.5 [&_svg]:size-3.5";
 
 export const denseDecisionButtonClassName = "min-w-[7.5rem] sm:min-w-[8.5rem]";
 

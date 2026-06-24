@@ -9,7 +9,7 @@ import {
 } from "@/design-system";
 
 const LABEL_COLUMN_CLASS_NAME = "sm:w-40 sm:shrink-0";
-const INPUT_CLASS_NAME = "h-10";
+const INPUT_CLASS_NAME = "h-11";
 
 export type AddAccountInputControl = {
   label: string;
@@ -19,6 +19,7 @@ export type AddAccountInputControl = {
   type?: string;
   onChange: (value: string) => void;
   disabled: boolean;
+  errorText?: string;
 };
 
 export type AddAccountCredentialsSection = {
@@ -80,6 +81,7 @@ function AddAccountInputRow({ control }: AddAccountFormInputRowProps) {
       labelClassName={LABEL_COLUMN_CLASS_NAME}
       inputClassName={INPUT_CLASS_NAME}
       disabled={control.disabled}
+      errorText={control.errorText}
     />
   );
 }
@@ -120,7 +122,7 @@ export function AddAccountFormView({
         )}
 
         {errorMessage ? (
-          <SurfaceCard variant="info" tone="danger" padding="compact">
+          <SurfaceCard variant="info" tone="danger" padding="compact" role="alert" aria-live="assertive">
             <p className="font-serif text-sm leading-[1.5]">{errorMessage}</p>
           </SurfaceCard>
         ) : null}

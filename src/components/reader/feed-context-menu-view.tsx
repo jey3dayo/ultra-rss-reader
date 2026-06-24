@@ -76,20 +76,22 @@ export function FeedContextMenuView({
           />
           <ContextMenu.Separator className={contextMenuStyles.separator} />
           <div className="px-3 py-1 text-xs font-medium text-foreground-soft">{displayModeLabel}</div>
-          {displayPresetOptions.map((option) => (
-            <ContextMenu.Item
-              key={option.value}
-              data-action-id={CONTEXT_MENU_ACTION_IDS.feedSetDisplayPreset}
-              data-action-value={option.value}
-              className={contextMenuStyles.item}
-              onClick={() => onSetDisplayPreset(option.value)}
-            >
-              <span aria-hidden="true" className="mr-2 inline-flex w-4 justify-center">
-                {selectedDisplayPreset === option.value ? "✓" : ""}
-              </span>
-              {option.label}
-            </ContextMenu.Item>
-          ))}
+          <ContextMenu.RadioGroup value={selectedDisplayPreset} onValueChange={(value) => onSetDisplayPreset(value)}>
+            {displayPresetOptions.map((option) => (
+              <ContextMenu.RadioItem
+                key={option.value}
+                value={option.value}
+                data-action-id={CONTEXT_MENU_ACTION_IDS.feedSetDisplayPreset}
+                data-action-value={option.value}
+                className={contextMenuStyles.item}
+              >
+                <span aria-hidden="true" className="mr-2 inline-flex w-4 justify-center">
+                  <ContextMenu.RadioItemIndicator>✓</ContextMenu.RadioItemIndicator>
+                </span>
+                {option.label}
+              </ContextMenu.RadioItem>
+            ))}
+          </ContextMenu.RadioGroup>
           <ContextMenu.Separator className={contextMenuStyles.separator} />
           <ContextMenu.Item
             data-action-id={CONTEXT_MENU_ACTION_IDS.feedUnsubscribe}

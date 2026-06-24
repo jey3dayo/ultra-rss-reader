@@ -6,8 +6,8 @@ import { AccountSyncSectionView } from "@/components/settings/account-detail/syn
 function expectStandardSettingsActionButton(button: HTMLElement) {
   expect(button).toHaveClass("w-full");
   expect(button).toHaveClass("sm:w-auto");
-  expect(button).toHaveClass("h-10", "px-4");
-  expect([...button.classList].filter((className) => className.includes("min-w"))).toEqual([]);
+  expect(button).toHaveClass("h-11", "px-4");
+  expect(button).toHaveClass("min-w-11");
 }
 
 describe("AccountSyncSectionView", () => {
@@ -316,7 +316,7 @@ describe("AccountSyncSectionView", () => {
       />,
     );
 
-    const statusSurface = screen.getByText("Today at 10:30").closest("div.rounded-lg");
+    const statusSurface = screen.getByText("Today at 10:30").closest("div.rounded-md");
 
     expect(statusSurface).toHaveClass("bg-surface-1/72");
     expect(screen.getByText("Next sync")).toHaveClass("text-[11px]", "text-foreground-soft");
@@ -434,7 +434,11 @@ describe("AccountSyncSectionView", () => {
     expect(onRecoverDevCredentials).toHaveBeenCalledOnce();
   });
 
-  it("shows the dev credential recovery loading state without replacing the sync loading label", () => {
+  it("shows the dev credential recovery loading state and blocks competing sync actions", async () => {
+    const user = userEvent.setup();
+    const onSyncNow = vi.fn();
+    const onRecoverDevCredentials = vi.fn();
+
     render(
       <AccountSyncSectionView
         heading="Initial setup failed"
@@ -464,22 +468,33 @@ describe("AccountSyncSectionView", () => {
         }}
         syncNowLabel="Retry setup"
         syncingLabel="Syncing now"
-        onSyncNow={() => {}}
+        onSyncNow={onSyncNow}
         devCredentialsRecoveryActionLabel="Recover Dev credentials"
         devCredentialsRecoveryLoadingLabel="Recovering..."
-        onDevCredentialsRecoveryAction={() => {}}
+        onDevCredentialsRecoveryAction={onRecoverDevCredentials}
         isDevCredentialsRecoveryInFlight={true}
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Retry setup" })).not.toBeDisabled();
+    const retryButton = screen.getByRole("button", { name: "Retry setup" });
+    expect(retryButton).toBeDisabled();
     const recoveryButton = screen.getByRole("button", { name: "Recovering..." });
     expect(recoveryButton).toBeDisabled();
     expect(recoveryButton).toHaveAttribute("aria-busy", "true");
     expect(recoveryButton.querySelector("[data-slot='loading-spinner']")).not.toBeNull();
+
+    await user.click(retryButton);
+    await user.click(recoveryButton);
+
+    expect(onSyncNow).not.toHaveBeenCalled();
+    expect(onRecoverDevCredentials).not.toHaveBeenCalled();
   });
 
-  it("disables the secondary action while a sync action is in flight", () => {
+  it("disables secondary and dev credential recovery actions while a sync action is in flight", async () => {
+    const user = userEvent.setup();
+    const onSecondaryAction = vi.fn();
+    const onDevCredentialsRecoveryAction = vi.fn();
+
     render(
       <AccountSyncSectionView
         heading="Initial setup failed"
@@ -516,11 +531,22 @@ describe("AccountSyncSectionView", () => {
         onSyncNow={() => {}}
         isSyncing={true}
         secondaryActionLabel="Edit credentials"
-        onSecondaryAction={() => {}}
+        onSecondaryAction={onSecondaryAction}
+        devCredentialsRecoveryActionLabel="Recover Dev credentials"
+        onDevCredentialsRecoveryAction={onDevCredentialsRecoveryAction}
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Edit credentials" })).toBeDisabled();
+    const secondaryButton = screen.getByRole("button", { name: "Edit credentials" });
+    const recoveryButton = screen.getByRole("button", { name: "Recover Dev credentials" });
+    expect(secondaryButton).toBeDisabled();
+    expect(recoveryButton).toBeDisabled();
     expect(screen.getByRole("button", { name: "Syncing now" })).toBeDisabled();
+
+    await user.click(secondaryButton);
+    await user.click(recoveryButton);
+
+    expect(onSecondaryAction).not.toHaveBeenCalled();
+    expect(onDevCredentialsRecoveryAction).not.toHaveBeenCalled();
   });
 });

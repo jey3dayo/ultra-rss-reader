@@ -19,7 +19,7 @@ type FeedItemContentProps = {
 
 function getFeedItemClassName(isSelected: boolean) {
   return cn(
-    "relative min-h-9 items-center overflow-hidden rounded-md px-2 py-1 text-sm hover:bg-[var(--sidebar-hover-surface)]",
+    "relative min-h-11 items-center overflow-hidden rounded-md px-2 py-1 text-sm hover:bg-[var(--sidebar-hover-surface)]",
     isSelected
       ? "border border-border-strong bg-surface-selected text-sidebar-accent-foreground shadow-none before:absolute before:inset-y-1.5 before:left-0 before:w-1.5 before:rounded-full before:bg-border-strong"
       : "text-sidebar-foreground",

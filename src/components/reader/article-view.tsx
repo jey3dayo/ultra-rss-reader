@@ -36,6 +36,7 @@ type SummaryCardProps = {
   title: string;
   titleHref?: string | null;
   leadingVisual?: ReactNode;
+  summaryText?: string;
   metrics: Array<{ label: string; value: ReactNode }>;
   primaryAction?: ComponentProps<typeof FeedDetailPanel>["primaryAction"];
 };
@@ -46,7 +47,14 @@ function renderSummaryCount(value: number, locale: string) {
   return <MotionNumber key={label} value={label} />;
 }
 
-function SummaryEmptyState({ title, titleHref = null, leadingVisual, metrics, primaryAction }: SummaryCardProps) {
+function SummaryEmptyState({
+  title,
+  titleHref = null,
+  leadingVisual,
+  summaryText,
+  metrics,
+  primaryAction,
+}: SummaryCardProps) {
   const { t } = useTranslation("reader");
 
   return (
@@ -62,6 +70,7 @@ function SummaryEmptyState({ title, titleHref = null, leadingVisual, metrics, pr
               title={title}
               titleHref={titleHref}
               leadingVisual={leadingVisual}
+              summaryText={summaryText}
               metrics={metrics}
               links={[]}
               recentArticlesHeading={t("latest_article")}
@@ -194,7 +203,9 @@ function SelectionSummaryEmptyState({ summary }: { summary: ArticleViewSummarySt
         }
       : undefined;
 
-  return <SummaryEmptyState {...cardProps} primaryAction={primaryAction} />;
+  return (
+    <SummaryEmptyState {...cardProps} summaryText={t("empty_state_pick_from_list")} primaryAction={primaryAction} />
+  );
 }
 
 function EmptyState({

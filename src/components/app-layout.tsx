@@ -101,7 +101,9 @@ function SlidingPaneLayout({
   if (subscriptionsWorkspaceOpen) {
     return (
       <div className="h-full overflow-hidden bg-background text-foreground">
-        <ArticleView />
+        <main data-testid="main-stage" className="h-full">
+          <ArticleView />
+        </main>
       </div>
     );
   }
@@ -128,7 +130,7 @@ function SlidingPaneLayout({
         >
           <AccountPane />
         </HiddenPaneBoundary>
-        <div className="min-w-0 flex-1 overflow-clip">
+        <main data-testid="main-stage" className="min-w-0 flex-1 overflow-clip">
           <div
             data-testid="sliding-pane-tray"
             className="flex h-full transition-transform duration-300 ease-in-out motion-reduce:transition-none"
@@ -158,7 +160,7 @@ function SlidingPaneLayout({
               <ArticleView />
             </HiddenPaneBoundary>
           </div>
-        </div>
+        </main>
       </div>
     </div>
   );

@@ -11,6 +11,7 @@ type ArticleTagPickerViewLabels = Readonly<{
   sectionHint?: string;
   addTag: string;
   availableTags: string;
+  newTagInputLabel?: string;
   newTagPlaceholder: string;
   createTag: string;
   removeTag: (name: string) => string;
@@ -25,6 +26,7 @@ export type ArticleTagPickerViewProps = Readonly<{
   isExpanded: boolean;
   isCreateTagPending?: boolean;
   labels: ArticleTagPickerViewLabels;
+  newTagError?: string;
   onExpandedChange: (expanded: boolean) => void;
   onNewTagNameChange: (value: string) => void;
   onAssignTag: (tagId: string) => void;
@@ -39,6 +41,7 @@ export function ArticleTagPickerView({
   isExpanded,
   isCreateTagPending = false,
   labels,
+  newTagError,
   onExpandedChange,
   onNewTagNameChange,
   onAssignTag,
@@ -104,6 +107,7 @@ export function ArticleTagPickerView({
                 labels={labels}
                 availableTags={availableTags}
                 newTagName={newTagName}
+                newTagError={newTagError}
                 isCreateTagPending={isCreateTagPending}
                 newTagInputRef={newTagInputRef}
                 tagOptionRefs={tagOptionRefs}

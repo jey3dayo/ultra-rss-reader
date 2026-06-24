@@ -104,7 +104,7 @@ describe("MuteSettingsView", () => {
         onKeywordChange={vi.fn()}
         onScopeChange={vi.fn()}
         onAdd={vi.fn()}
-        addDisabled={true}
+        addDisabled={false}
         savedHeading="Saved rules"
         emptyState="No mute keywords yet."
         rules={[]}
@@ -177,12 +177,19 @@ describe("MuteSettingsView", () => {
       />,
     );
 
-    expect(screen.getByTestId("mute-settings-add-row")).toHaveClass("sm:min-w-[30rem]", "sm:justify-end");
-    expect(screen.getByRole("textbox", { name: "Keyword" })).toHaveClass("sm:w-[220px]");
-    expect(screen.getByRole("combobox", { name: "Mute scope" })).toHaveClass("sm:w-[192px]");
-    expect(screen.getByRole("combobox", { name: "Saved scope" })).toHaveClass("h-10", "sm:flex-1");
-    expect(screen.getByRole("button", { name: "Add" })).toHaveClass("h-10", "px-4");
-    expect(screen.getByRole("button", { name: "Delete" })).toHaveClass("h-10", "px-4");
+    expect(screen.getByTestId("mute-settings-add-row")).toHaveClass("min-w-0", "sm:max-w-[30rem]");
+    expect(screen.getByTestId("mute-settings-add-row")).toHaveClass("grid", "sm:grid-cols-[minmax(0,1fr)_auto]");
+    expect(screen.getByRole("textbox", { name: "Keyword" })).toHaveClass("min-w-0", "sm:col-span-2");
+    expect(screen.getByRole("combobox", { name: "Mute scope" })).toHaveClass("min-w-0", "w-full");
+    expect(screen.getByRole("combobox", { name: "Saved scope" })).toHaveClass("h-11", "sm:flex-1");
+    expect(screen.getByRole("button", { name: "Add" })).toHaveClass("h-11", "px-4");
+    expect(screen.getByRole("button", { name: "Add" })).toHaveClass("min-h-11", "min-w-11");
+    expect(screen.getByRole("button", { name: "Delete" })).toHaveClass("size-11");
+    expect(screen.getByRole("button", { name: "Delete" }).querySelector("svg")).toBeInTheDocument();
+    expect(screen.getByRole("switch", { name: "Mark muted items as read" })).toHaveClass(
+      "before:inset-[-10px]",
+      "before:content-['']",
+    );
 
     await user.click(screen.getByRole("combobox", { name: "Mute scope" }));
     await user.click(await screen.findByRole("option", { name: "Body" }));
@@ -284,5 +291,120 @@ describe("MuteSettingsView", () => {
     expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
     await user.type(screen.getByRole("textbox", { name: "Keyword" }), "{Enter}");
     expect(onAdd).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows pending feedback and blocks repeated mute keyword creation", async () => {
+    const user = userEvent.setup();
+    const onAdd = vi.fn();
+
+    render(
+      <MuteSettingsView
+        title="Mute"
+        addHeading="Add muted keyword"
+        intro="Hide articles that match these rules."
+        keywordLabel="Keyword"
+        keywordValue="spoiler"
+        keywordPlaceholder="spoiler"
+        scopeAriaLabel="Mute scope"
+        scopeValue="title"
+        scopeOptions={[
+          { value: "title", label: "Title" },
+          { value: "body", label: "Body" },
+          { value: "title_and_body", label: "Title and body" },
+        ]}
+        addLabel="Add"
+        addPendingLabel="Adding..."
+        addPending
+        onKeywordChange={vi.fn()}
+        onScopeChange={vi.fn()}
+        onAdd={onAdd}
+        addDisabled={true}
+        savedHeading="Saved rules"
+        emptyState="No mute keywords yet."
+        rules={[]}
+        savedScopeAriaLabel={() => "Saved scope"}
+        onRuleScopeChange={vi.fn()}
+        deleteLabel="Delete"
+        onRequestDelete={vi.fn()}
+        autoMarkReadHeading="Auto mark as read"
+        autoMarkReadLabel="Mark muted items as read"
+        autoMarkReadChecked={false}
+        autoMarkReadDisabled={false}
+        autoMarkReadHint="Existing matches are marked read immediately."
+        onAutoMarkReadChange={vi.fn()}
+        confirmOpen={false}
+        confirmMessage="Delete muted keyword?"
+        confirmActionLabel="Delete"
+        cancelLabel="Cancel"
+        onConfirmDelete={vi.fn()}
+        onCancelDelete={vi.fn()}
+      />,
+    );
+
+    const addButton = screen.getByRole("button", { name: "Adding..." });
+
+    expect(addButton).toBeDisabled();
+    expect(addButton).toHaveAttribute("aria-busy", "true");
+
+    await user.click(addButton);
+    await user.type(screen.getByRole("textbox", { name: "Keyword" }), "{Enter}");
+
+    expect(onAdd).not.toHaveBeenCalled();
+  });
+
+  it("protects long saved mute keywords from mobile overflow", () => {
+    render(
+      <MuteSettingsView
+        title="Mute"
+        addHeading="Add muted keyword"
+        intro="Hide articles that match these rules."
+        keywordLabel="Keyword"
+        keywordValue=""
+        keywordPlaceholder="spoiler"
+        scopeAriaLabel="Mute scope"
+        scopeValue="title"
+        scopeOptions={[
+          { value: "title", label: "Title" },
+          { value: "body", label: "Body" },
+          { value: "title_and_body", label: "Title and body" },
+        ]}
+        addLabel="Add"
+        onKeywordChange={vi.fn()}
+        onScopeChange={vi.fn()}
+        onAdd={vi.fn()}
+        addDisabled={true}
+        savedHeading="Saved rules"
+        emptyState="No mute keywords yet."
+        rules={[
+          {
+            id: "rule-1",
+            keyword: "averyveryveryveryveryveryveryverylongunbrokenkeyword",
+            scope: "title_and_body",
+          },
+        ]}
+        savedScopeAriaLabel={() => "Saved scope"}
+        onRuleScopeChange={vi.fn()}
+        deleteLabel="Delete"
+        onRequestDelete={vi.fn()}
+        autoMarkReadHeading="Auto mark as read"
+        autoMarkReadLabel="Mark muted items as read"
+        autoMarkReadChecked={false}
+        autoMarkReadDisabled={false}
+        autoMarkReadHint="Existing matches are marked read immediately."
+        onAutoMarkReadChange={vi.fn()}
+        confirmOpen={false}
+        confirmMessage="Delete muted keyword?"
+        confirmActionLabel="Delete"
+        cancelLabel="Cancel"
+        onConfirmDelete={vi.fn()}
+        onCancelDelete={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("averyveryveryveryveryveryveryverylongunbrokenkeyword")).toHaveClass(
+      "break-all",
+      "sm:truncate",
+      "sm:break-normal",
+    );
   });
 });

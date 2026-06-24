@@ -264,25 +264,28 @@ export function SubscriptionGroupDisclosureSpecimen() {
           groups={SUBSCRIPTION_GROUPS}
           selectedFeedId={selectedFeedId}
           emptyLabel="購読はありません"
+          searchQuery=""
+          searchLabel="購読を検索"
+          searchPlaceholder="検索"
+          searchClearLabel="検索をクリア"
           statusLabels={{
             normal: "確認済み",
             review: "確認待ち",
             stale_90d: "90日以上更新なし",
-            no_unread: "未読なし",
-            no_stars: "スターなし",
+            quiet_no_unread: "更新停止かつ未読なし",
           }}
           reasonTooltipLabels={{
             no_articles: "記事がまだ取れていないため、見直し候補にはしていません",
             normal: "最近も動きがあります",
             review: "見直しの判断材料があります",
             stale_90d: "最後に取得した記事から90日以上たっています",
-            no_unread: "取得済みの記事に未読がありません",
-            no_stars: "取得済みの記事にスターがありません",
+            quiet_no_unread: "更新停止が続いていて、未読もありません",
           }}
           formatUnreadCountLabel={(count) => `${count} unread`}
           formatLatestArticleLabel={(value) => (value ? "最終更新あり" : "更新なし")}
           isGroupExpanded={(groupKey) => expandedGroups.has(groupKey)}
           onSelectFeed={setSelectedFeedId}
+          onSearchQueryChange={() => undefined}
           onToggleGroup={toggleGroup}
         />
       </div>

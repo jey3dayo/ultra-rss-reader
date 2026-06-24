@@ -84,6 +84,7 @@ describe("AppLayout", () => {
 
     render(<AppLayout />);
 
+    expect(screen.getByRole("main")).toBe(screen.getByTestId("main-stage"));
     expect(screen.getByText("Article View")).toBeInTheDocument();
     expect(screen.queryByTestId("sliding-pane-tray")).not.toBeInTheDocument();
     expect(screen.queryByText("Article List")).not.toBeInTheDocument();
@@ -243,6 +244,7 @@ describe("AppLayout", () => {
 
     render(<AppLayout />);
 
+    expect(screen.getByRole("main")).toBe(screen.getByTestId("main-stage"));
     const tray = screen.getByTestId("sliding-pane-tray");
     const [sidebarPane, listPane, contentPane] = Array.from(tray.children);
 
@@ -262,6 +264,7 @@ describe("AppLayout", () => {
 
     render(<AppLayout />);
 
+    expect(screen.getByRole("main")).toBe(screen.getByTestId("main-stage"));
     const tray = screen.getByTestId("sliding-pane-tray");
     const [sidebarPane, listPane, contentPane] = Array.from(tray.children);
 

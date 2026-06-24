@@ -115,8 +115,8 @@ describe("Storybook viewport density fixtures", () => {
     expect(longLabelContainer.querySelector("[data-tauri-drag-region]")).toHaveClass("min-w-0");
     expect(screen.getByRole("button", { name: "この記事を既読または未読に切り替える" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Webプレビューを開く" })).toBeInTheDocument();
-    expect(screen.getByText("未読にする")).toHaveClass("max-w-16", "truncate");
-    expect(screen.getByText("プレビューを開く")).toHaveClass("max-w-16", "truncate");
+    expect(screen.getByText("未読にする")).toHaveClass("min-w-0", "max-w-14", "truncate", "sm:max-w-16");
+    expect(screen.getByText("プレビューを開く")).toHaveClass("min-w-0", "max-w-14", "truncate", "sm:max-w-16");
 
     cleanup();
     renderStory(articleToolbarMeta, ArticleToolbarMobileA11yDisabledState);

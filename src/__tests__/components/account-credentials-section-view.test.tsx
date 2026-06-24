@@ -3,8 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { AccountCredentialsSectionView } from "@/components/settings/account-detail/credentials-section-view";
 
-function expectNoButtonMinWidth(button: HTMLElement) {
-  expect([...button.classList].filter((className) => className.includes("min-w"))).toEqual([]);
+function expectStandardSettingsActionButtonWidth(button: HTMLElement) {
+  expect(button).toHaveClass("min-w-11");
 }
 
 describe("AccountCredentialsSectionView", () => {
@@ -85,8 +85,8 @@ describe("AccountCredentialsSectionView", () => {
     expect(button).toHaveAttribute("aria-busy", "true");
     expect(button).toHaveClass("w-full");
     expect(button).toHaveClass("sm:w-auto");
-    expect(button).toHaveClass("h-10", "px-4");
-    expectNoButtonMinWidth(button);
+    expect(button).toHaveClass("h-11", "px-4");
+    expectStandardSettingsActionButtonWidth(button);
     expect(button).toHaveClass("border", "border-border/65", "bg-surface-2/82", "text-foreground");
     expect(screen.getByText("Test Connection")).toHaveClass("sm:w-40");
     expect(button.querySelector("[data-slot='loading-spinner']")).not.toBeNull();

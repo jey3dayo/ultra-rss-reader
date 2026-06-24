@@ -16,12 +16,16 @@ import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window/w
 import { usePlatformStore } from "@/stores/platform-store";
 import { SubscriptionDetailPane, type SubscriptionManagementActions } from "./subscription-detail-pane";
 import { SubscriptionsListPane } from "./subscriptions-list-pane";
-import { SubscriptionsOverviewSummary } from "./subscriptions-overview-summary";
+import {
+  SubscriptionsOverviewSummary,
+  type SubscriptionsOverviewSummaryLabels,
+} from "./subscriptions-overview-summary";
 
 type SubscriptionsIndexPageViewProps = {
   title: string;
   subtitle: string;
   summaryCards: SubscriptionSummaryCard[];
+  summaryLabels: SubscriptionsOverviewSummaryLabels;
   reviewCriteriaLabel: string;
   inventoryHeading: string;
   detailHeading: string;
@@ -31,12 +35,17 @@ type SubscriptionsIndexPageViewProps = {
   selectedMetrics: SubscriptionDetailMetrics | null;
   selectedDetailCandidate: SubscriptionDetailCandidate | null;
   emptyLabel: string;
+  searchQuery: string;
+  searchLabel: string;
+  searchPlaceholder: string;
+  searchClearLabel: string;
   detailEmptyLabel: string;
   statusLabels: Record<SubscriptionListRow["status"]["labelKey"], string>;
   reasonTooltipLabels: Record<NonNullable<SubscriptionListRow["reasonTooltipKey"]>, string>;
   formatUnreadCountLabel: (count: number) => string;
   formatLatestArticleLabel: (value: string | null) => string;
   dateLocale: string;
+  listScrollResetKey: number;
   listScrollTop: number;
   folderLabel: string;
   latestArticleLabel: string;
@@ -56,6 +65,7 @@ type SubscriptionsIndexPageViewProps = {
   onSelectSummaryFilter: (filterKey: SubscriptionSummaryCard["filterKey"]) => void;
   onSelectFeed: (feedId: string) => void;
   onListScrollTopChange: (scrollTop: number) => void;
+  onSearchQueryChange: (query: string) => void;
   onToggleGroup: (groupKey: string) => void;
   onBack: () => void;
   onClose: () => void;
@@ -65,6 +75,7 @@ export function SubscriptionsIndexPageView({
   title,
   subtitle,
   summaryCards,
+  summaryLabels,
   reviewCriteriaLabel,
   inventoryHeading,
   detailHeading,
@@ -74,12 +85,17 @@ export function SubscriptionsIndexPageView({
   selectedMetrics,
   selectedDetailCandidate,
   emptyLabel,
+  searchQuery,
+  searchLabel,
+  searchPlaceholder,
+  searchClearLabel,
   detailEmptyLabel,
   statusLabels,
   reasonTooltipLabels,
   formatUnreadCountLabel,
   formatLatestArticleLabel,
   dateLocale,
+  listScrollResetKey,
   listScrollTop,
   folderLabel,
   latestArticleLabel,
@@ -99,6 +115,7 @@ export function SubscriptionsIndexPageView({
   onSelectSummaryFilter,
   onSelectFeed,
   onListScrollTopChange,
+  onSearchQueryChange,
   onToggleGroup,
   onBack,
   onClose,
@@ -120,19 +137,21 @@ export function SubscriptionsIndexPageView({
         closeLabel={closeLabel}
         onClose={onClose}
       />
-      <div className={`${WORKSPACE_CHROME_SPACING_CLASS} pt-1 sm:pt-1.5`}>
-        <div className={`${WORKSPACE_CANVAS_CLASS} gap-3.5 sm:gap-4 ${useDesktopOverlay ? "pl-6 sm:pl-6" : ""}`}>
+      <div className={`${WORKSPACE_CHROME_SPACING_CLASS} pt-2 sm:pt-3`}>
+        <div className={`${WORKSPACE_CANVAS_CLASS} gap-4 sm:gap-5 ${useDesktopOverlay ? "pl-6 sm:pl-6" : ""}`}>
           <SubscriptionsOverviewSummary
             cards={summaryCards}
+            labels={summaryLabels}
             reviewCriteriaLabel={reviewCriteriaLabel}
             onSelectFilter={onSelectSummaryFilter}
           />
           <div
             data-testid="subscriptions-workspace-shell"
-            className={workspaceSplitShellClassName("mt-0 border-border/55")}
+            className={workspaceSplitShellClassName("mt-0 border-border/60 bg-clip-padding")}
             style={{
               backgroundColor: "var(--subscriptions-workspace-surface)",
-              boxShadow: "var(--subscriptions-workspace-shadow)",
+              boxShadow:
+                "inset 0 1px 0 rgba(255,255,255,0.38), 0 24px 64px -52px rgba(38,37,30,0.34), var(--subscriptions-workspace-shadow)",
             }}
           >
             <SubscriptionsListPane
@@ -140,14 +159,20 @@ export function SubscriptionsIndexPageView({
               groups={groups}
               selectedFeedId={selectedFeedId}
               emptyLabel={emptyLabel}
+              searchQuery={searchQuery}
+              searchLabel={searchLabel}
+              searchPlaceholder={searchPlaceholder}
+              searchClearLabel={searchClearLabel}
               statusLabels={statusLabels}
               reasonTooltipLabels={reasonTooltipLabels}
               formatUnreadCountLabel={formatUnreadCountLabel}
               formatLatestArticleLabel={formatLatestArticleLabel}
               isGroupExpanded={isGroupExpanded}
+              scrollResetKey={listScrollResetKey}
               initialScrollTop={listScrollTop}
               onSelectFeed={onSelectFeed}
               onListScrollTopChange={onListScrollTopChange}
+              onSearchQueryChange={onSearchQueryChange}
               onToggleGroup={onToggleGroup}
             />
             <SubscriptionDetailPane

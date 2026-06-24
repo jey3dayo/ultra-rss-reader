@@ -15,8 +15,8 @@ const meta = {
   },
   args: {
     open: true,
-    title: "Preferences",
-    closeLabel: "Close preferences",
+    title: "Settings",
+    closeLabel: "Close settings",
     accountsHeading: "Accounts",
     navigation: (
       <SettingsNavView

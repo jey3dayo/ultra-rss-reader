@@ -30,7 +30,7 @@ type Story = StoryObj<typeof meta>;
 export const WithTrailingAction: Story = {
   args: {
     trailingControls: (
-      <button type="button" className="h-10 rounded-md border border-border/65 px-4 text-sm font-medium">
+      <button type="button" className="h-11 rounded-md border border-border/65 px-4 text-sm font-medium">
         Create
       </button>
     ),

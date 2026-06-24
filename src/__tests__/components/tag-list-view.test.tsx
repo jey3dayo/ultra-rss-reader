@@ -27,6 +27,26 @@ describe("TagListView", () => {
     expect(screen.queryByRole("button", { name: "No tags yet" })).not.toBeInTheDocument();
   });
 
+  it("removes closed tag rows from the tab order", () => {
+    render(
+      <TagListView
+        tagsLabel="Tags"
+        isOpen={false}
+        onToggleOpen={vi.fn()}
+        tags={[{ id: "tag-1", name: "Important", color: null, articleCount: 1, isSelected: false }]}
+        onSelectTag={vi.fn()}
+      />,
+    );
+
+    const toggle = screen.getByRole("button", { name: "Tags" });
+    const panel = document.querySelector("#sidebar-tag-section-panel");
+
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(panel).toHaveAttribute("data-state", "closed");
+    expect(panel).toHaveAttribute("aria-hidden", "true");
+    expect(screen.queryByRole("button", { name: /Important/ })).not.toBeInTheDocument();
+  });
+
   it("keeps the right-clicked tag as the context menu target when tag data updates while open", () => {
     const renderContextMenu = vi.fn((tag: { name: string }) => <div data-testid="tag-context-target">{tag.name}</div>);
     const makeTagList = (name: string) => (

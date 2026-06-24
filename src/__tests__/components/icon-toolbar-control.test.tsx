@@ -38,7 +38,8 @@ describe("IconToolbarControl", () => {
       </TooltipProvider>,
     );
 
-    expect(screen.getByRole("button", { name: "Copy link" })).toHaveClass("size-11", "md:size-8", "shrink-0");
+    expect(screen.getByRole("button", { name: "Copy link" })).toHaveClass("size-11", "shrink-0");
+    expect(screen.getByRole("button", { name: "Copy link" })).not.toHaveClass("md:size-8");
   });
 
   it("keeps tooltip semantics but does not activate aria-disabled icon buttons by click or keyboard", async () => {
@@ -195,10 +196,10 @@ describe("IconToolbarControl", () => {
       "motion-interactive-surface",
       "inline-flex",
       "size-11",
-      "md:size-8",
       "rounded-md",
       "text-foreground-soft",
     );
+    expect(menuTrigger).not.toHaveClass("md:size-8");
     expect(menuTrigger).not.toHaveClass("text-muted-foreground");
 
     await user.click(menuTrigger);
@@ -221,16 +222,17 @@ describe("IconToolbarControl", () => {
     const button = screen.getByRole("button", { name: "Close Web Preview" });
     const surface = button.closest("[data-overlay-shell='action']");
 
-    expect(surface).toHaveClass("motion-pressable-surface", "rounded-lg", "size-11", "md:size-8");
+    expect(surface).toHaveClass("motion-pressable-surface", "rounded-lg", "size-11");
+    expect(surface).not.toHaveClass("md:size-8");
     expect(button).toHaveClass(
       "motion-interactive-surface",
       "size-11",
-      "md:size-8",
       "rounded-lg",
       "text-inherit",
       "disabled:opacity-100",
       "disabled:text-foreground-soft",
     );
+    expect(button).not.toHaveClass("md:size-8");
 
     await user.click(button);
 

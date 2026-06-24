@@ -46,12 +46,12 @@ export function BrowserSurfaceStateCard({
       ) : null}
       <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
         {issue.canRetry ? (
-          <ReaderPassiveActionButton variant="outline" size="sm" onClick={onRetry}>
+          <ReaderPassiveActionButton variant="outline" size="sm" className="min-h-11 min-w-11" onClick={onRetry}>
             <RotateCcw className="size-3.5" />
             {labels.retryWebPreview}
           </ReaderPassiveActionButton>
         ) : null}
-        <ReaderPassiveActionButton variant="secondary" size="sm" onClick={onOpenExternal}>
+        <ReaderPassiveActionButton variant="secondary" size="sm" className="min-h-11 min-w-11" onClick={onOpenExternal}>
           <ExternalLink className="size-3.5" />
           {labels.openInExternalBrowser}
         </ReaderPassiveActionButton>

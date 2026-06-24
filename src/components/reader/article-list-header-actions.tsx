@@ -55,7 +55,7 @@ export function ArticleListHeaderActions({
                 aria-label={sidebarButtonLabel}
                 aria-pressed={isSidebarVisible}
                 className={cn(
-                  "gap-2 px-3 text-sm font-medium text-foreground-soft transition-colors duration-200 hover:text-foreground motion-reduce:transition-none",
+                  "min-h-11 gap-2 px-3 text-sm font-medium text-foreground-soft transition-colors duration-200 hover:text-foreground motion-reduce:transition-none",
                   isSidebarVisible && "bg-surface-1/72 text-foreground",
                 )}
               >

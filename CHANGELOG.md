@@ -4,6 +4,85 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.49.3] - 2026-06-24
+
+### Maintenance
+
+- フッターのフィルタートグルの shadow token テストを実装済みの UI 契約に揃え、release preflight の jsdom チェックを安定させた。
+
+## [0.49.2] - 2026-06-24
+
+### Fixed
+
+- 購読一覧のツリー表現、見直し候補の判定文言、手動アップデートメニューの表示条件を調整し、レビュー指摘後の UI と契約を安定させた。
+
+## [0.49.1] - 2026-06-24
+
+### Maintenance
+
+- フィードツリー密度のテスト期待値を実装済みの compact / normal tokens に揃え、CI の jsdom 契約を安定させた
+
+## [0.49.0] - 2026-06-24
+
+### Bug Fixes
+
+- 設定画面のフォーム行、ナビゲーション密度、削除アイコン、データ管理ページの折り返しを整え、狭い設定カードでも操作部品が重ならないようにした
+- 購読ツリーの密度と購読管理サマリーの選択表示を調整し、左ペインと見直しカードの視覚ノイズを抑えた
+
+### Documentation
+
+- 設定画面の行レイアウト、削除アイコン、ナビゲーション密度の design guidance を更新した
+
+## [0.48.2] - 2026-06-24
+
+### Bug Fixes
+
+- Toast の表示密度を抑え、通知が画面上で過度に目立たないようにした
+
+### Maintenance
+
+- pnpm とフロントエンド品質ツール群を更新し、package / lockfile / contract test の固定値を現行バージョンへ揃えた
+
+## [0.48.1] - 2026-06-24
+
+### Bug Fixes
+
+- モバイル設定モーダルのナビゲーション領域を広げ、アカウント rail が狭幅で見切れにくいようにした
+
+### Maintenance
+
+- モバイル記事ツールバーの shrinkable label 契約に Storybook density / component tests を追従させ、release preflight を通るようにした
+
+## [0.48.0] - 2026-06-24
+
+### Bug Fixes
+
+- Reader のモバイル記事ツールバー、設定モーダル、設定行、購読一覧ヘッダーの狭幅・高密度レイアウトで横 overflow が出ないようにした
+
+## [0.47.2] - 2026-06-24
+
+### Bug Fixes
+
+- Reader、設定、購読管理画面の余白・密度・操作面を整え、主要フローの見た目とタッチターゲットを安定させた
+- 購読管理サマリーの表示文言と操作状態をローカライズし、一覧と詳細ペインのレビュー判断を読み取りやすくした
+- フィード lifecycle 操作をリモート provider 経由でも扱えるようにし、購読管理まわりの同期境界を改善した
+
+## [0.47.1] - 2026-06-22
+
+### Bug Fixes
+
+- テストとブラウザイベント周辺の型契約を厳密化し、UI/runtime 境界の型安全性を高めた
+
+### Documentation
+
+- `@/design-system` を UI 公開 API として扱う方針を `DESIGN_REVIEW.md` に明文化した
+
+### Maintenance
+
+- UI 部品の利用経路を `@/design-system` 経由へ整理し、Base UI / shared component の実装所有境界を固定した
+- WSL 向け静的チェック task を追加・整理し、Windows 側でも format / lint の確認を走らせやすくした
+- EditorConfig を追加し、エディタ間の基本フォーマット設定を揃えた
+
 ## [0.47.0] - 2026-06-19
 
 ### Features

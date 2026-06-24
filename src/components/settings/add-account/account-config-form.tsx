@@ -4,10 +4,12 @@ import { useTranslation } from "react-i18next";
 import { runAccountSetupSync } from "@/components/settings/hooks/account-detail/use-account-detail-sync-controls";
 import {
   type AddAccountProviderKind,
+  type AddAccountValidationError,
   addAccountFormInitialState,
   addAccountFormReducer,
   formatAddAccountValidationError,
   getAddAccountFormConfig,
+  isAddAccountFormSubmittable,
   matchAddAccountPayload,
 } from "@/lib/account/add-account-form";
 import { invalidateQueryKeysLogOnly, queryKeys } from "@/lib/query/query-invalidation";
@@ -34,11 +36,13 @@ export type AccountConfigFormProps = {
 type AccountConfigUiState = {
   submitting: boolean;
   errorMessage: string | null;
+  validationError: AddAccountValidationError | null;
 };
 
 type AccountConfigUiAction =
   | { type: "set-submitting"; value: boolean }
-  | { type: "set-error-message"; value: string | null };
+  | { type: "set-error-message"; value: string | null }
+  | { type: "set-validation-error"; value: AddAccountValidationError | null };
 
 type AddAccountRequestSnapshot = {
   requestId: number;
@@ -52,6 +56,7 @@ type AddAccountRequestSnapshot = {
 const initialAccountConfigUiState: AccountConfigUiState = {
   submitting: false,
   errorMessage: null,
+  validationError: null,
 };
 
 const ACCOUNT_KIND_TITLE_KEY: Record<AddAccountProviderKind, "account.local" | "account.freshrss"> = {
@@ -65,9 +70,67 @@ function accountConfigUiReducer(state: AccountConfigUiState, action: AccountConf
       return { ...state, submitting: action.value };
     case "set-error-message":
       return { ...state, errorMessage: action.value };
+    case "set-validation-error":
+      return { ...state, validationError: action.value };
     default:
       return state;
   }
+}
+
+function getAddAccountValidationErrorField(error: AddAccountValidationError): "serverUrl" | "username" | "password" {
+  switch (error) {
+    case "missing_server_url":
+    case "invalid_server_url":
+    case "server_url_credentials":
+      return "serverUrl";
+    case "missing_username":
+      return "username";
+    case "missing_password":
+      return "password";
+  }
+}
+
+function getFreshRssLiveValidationError(form: {
+  kind: AddAccountProviderKind;
+  serverUrl: string;
+  username: string;
+  password: string;
+}): AddAccountValidationError | null {
+  if (form.kind !== "FreshRss") {
+    return null;
+  }
+
+  const serverUrl = form.serverUrl.trim();
+  if (serverUrl.length === 0) {
+    return null;
+  }
+
+  const serverUrlOnlyPayload = matchAddAccountPayload(
+    {
+      kind: form.kind,
+      name: "",
+      serverUrl,
+      username: "validation-placeholder",
+      password: "validation-placeholder",
+    },
+    {
+      success: () => null,
+      failure: (error) => error,
+    },
+  );
+  if (serverUrlOnlyPayload === "invalid_server_url" || serverUrlOnlyPayload === "server_url_credentials") {
+    return serverUrlOnlyPayload;
+  }
+
+  if (!form.username.trim()) {
+    return "missing_username";
+  }
+
+  if (!form.password.trim()) {
+    return "missing_password";
+  }
+
+  return null;
 }
 
 export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFormProps) {
@@ -89,7 +152,7 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
     submitting: debugState?.submitting ?? initialAccountConfigUiState.submitting,
     errorMessage: debugState?.errorMessage ?? initialAccountConfigUiState.errorMessage,
   });
-  const { submitting, errorMessage } = uiState;
+  const { submitting, errorMessage, validationError } = uiState;
   const submittingRef = useRef(submitting);
   const submittedSuccessfullyRef = useRef(false);
   const mountedRef = useRef(false);
@@ -129,6 +192,7 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
     }
 
     dispatchUi({ type: "set-error-message", value: null });
+    dispatchUi({ type: "set-validation-error", value: null });
     if (debugState?.submitMessage) {
       dispatchUi({
         type: "set-error-message",
@@ -142,6 +206,7 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
       failure: (error) => {
         const message = t(formatAddAccountValidationError(form.kind, error));
         dispatchUi({ type: "set-error-message", value: message });
+        dispatchUi({ type: "set-validation-error", value: error });
         useUiStore.getState().showToast(message);
         return null;
       },
@@ -226,6 +291,26 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
     }
   };
 
+  const handleFieldChange = (field: "name" | "serverUrl" | "username" | "password", value: string) => {
+    dispatch({ type: "setField", field, value });
+    if (validationError != null && getAddAccountValidationErrorField(validationError) === field) {
+      dispatchUi({ type: "set-validation-error", value: null });
+    }
+  };
+
+  const validationErrorField = validationError != null ? getAddAccountValidationErrorField(validationError) : null;
+  const liveValidationError = getFreshRssLiveValidationError(form);
+  const resolvedValidationError = validationError ?? liveValidationError;
+  const resolvedValidationErrorField =
+    resolvedValidationError != null ? getAddAccountValidationErrorField(resolvedValidationError) : validationErrorField;
+  const validationErrorMessage =
+    resolvedValidationError != null
+      ? t(formatAddAccountValidationError(form.kind, resolvedValidationError))
+      : undefined;
+  const validationErrorFor = (field: "serverUrl" | "username" | "password") =>
+    resolvedValidationErrorField === field ? validationErrorMessage : undefined;
+  const submitDisabled = !isAddAccountFormSubmittable(form);
+
   return (
     <AccountConfigFormView
       title={t(ACCOUNT_KIND_TITLE_KEY[kind])}
@@ -246,7 +331,7 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
         label: t("account.name"),
         name: "account-name",
         value: form.name,
-        onChange: (value) => dispatch({ type: "setField", field: "name", value }),
+        onChange: (value) => handleFieldChange("name", value),
         placeholder: form.kind,
         disabled: submitting,
       }}
@@ -259,25 +344,28 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
                     label: t("account.server_url"),
                     name: "server-url",
                     value: form.serverUrl,
-                    onChange: (value) => dispatch({ type: "setField", field: "serverUrl", value }),
+                    onChange: (value) => handleFieldChange("serverUrl", value),
                     placeholder: t("account.server_url_placeholder"),
                     disabled: submitting,
+                    errorText: validationErrorFor("serverUrl"),
                   }
                 : undefined,
               credential: {
                 label: formConfig.credentialLabel ?? "",
                 name: formConfig.credentialName ?? "",
                 value: form.username,
-                onChange: (value) => dispatch({ type: "setField", field: "username", value }),
+                onChange: (value) => handleFieldChange("username", value),
                 disabled: submitting,
+                errorText: validationErrorFor("username"),
               },
               password: {
                 label: t("account.password"),
                 name: "password",
                 type: "password",
                 value: form.password,
-                onChange: (value) => dispatch({ type: "setField", field: "password", value }),
+                onChange: (value) => handleFieldChange("password", value),
                 disabled: submitting,
+                errorText: validationErrorFor("password"),
               },
             }
           : undefined
@@ -287,6 +375,7 @@ export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFor
       submitLabel={tc("add")}
       submittingLabel={formConfig.requiresCredentials ? tc("connection_testing") : tc("adding")}
       submitting={submitting}
+      submitDisabled={submitDisabled}
       onBack={onBack}
       onCancel={() => setSettingsAddAccount(false)}
       onSubmit={() => void handleSubmit()}

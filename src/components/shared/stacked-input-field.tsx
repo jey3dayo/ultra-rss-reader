@@ -42,7 +42,7 @@ export function StackedInputField({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className={inputClassName}
+        className={cn("min-h-11", inputClassName)}
         disabled={disabled}
       />
     </label>

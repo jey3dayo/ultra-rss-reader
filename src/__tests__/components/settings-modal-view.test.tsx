@@ -85,6 +85,13 @@ describe("SettingsModalView", () => {
     expect(screen.getByText("Settings content")).toBeInTheDocument();
     expect(screen.getByTestId("settings-content-motion")).toHaveAttribute("data-motion-phase", "entering");
     expect(screen.getByTestId("settings-content-motion")).toHaveClass("motion-content-swap");
+    expect(screen.getByTestId("settings-content-motion")).toHaveClass(
+      "flex",
+      "min-h-0",
+      "flex-1",
+      "flex-col",
+      "overflow-hidden",
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "Close preferences" }));
 
@@ -230,7 +237,7 @@ describe("SettingsModalView", () => {
     const contentLane = screen.getByTestId("settings-content").closest('[data-slot="scroll-area-content"]');
 
     expect(navLane).toHaveClass("pr-3");
-    expect(contentLane).toHaveClass("px-5", "py-5");
+    expect(contentLane).toHaveClass("px-5", "py-6", "sm:px-8", "sm:py-8");
   });
 
   it("adds visual scroll affordances and a taller modal surface", () => {
@@ -257,7 +264,7 @@ describe("SettingsModalView", () => {
     expect(screen.getByTestId("settings-modal-surface")).toHaveClass("shadow-elevation-3");
     expect(screen.getByTestId("settings-nav-shell")).not.toHaveClass("rounded-xl");
     expect(screen.getByTestId("settings-content-shell")).not.toHaveClass("rounded-xl");
-    expect(screen.getByTestId("settings-modal-header")).toHaveClass("min-h-[4.5rem]");
+    expect(screen.getByTestId("settings-modal-header")).toHaveClass("min-h-[5rem]");
     expect(screen.getByTestId("settings-modal-header")).toHaveClass("py-0");
     expect(screen.getByTestId("settings-modal-header")).toHaveStyle({
       backgroundColor: "var(--settings-shell-rail)",
@@ -269,7 +276,7 @@ describe("SettingsModalView", () => {
     expect(screen.getByTestId("settings-nav-shell")).toHaveStyle({
       backgroundColor: "var(--settings-shell-rail)",
     });
-    expect(screen.getByTestId("settings-nav-shell")).toHaveClass("max-h-[15rem]");
+    expect(screen.getByTestId("settings-nav-shell")).toHaveClass("max-h-[18rem]");
     expect(screen.getByTestId("settings-nav-shell")).toHaveClass("sm:h-auto");
     expect(screen.getByTestId("settings-accounts-section")).toHaveClass("p-3");
     expect(screen.getByTestId("settings-accounts-section")).toHaveClass("rounded-md");
@@ -308,7 +315,7 @@ describe("SettingsModalView", () => {
     expect(screen.getByTestId("settings-mobile-accounts-section")).toHaveClass("rounded-md");
     expect(screen.getByTestId("settings-mobile-accounts-section")).toHaveClass("border-border/60");
     expect(screen.getByTestId("settings-mobile-accounts-section")).toHaveClass("shadow-none");
-    expect(screen.getByTestId("settings-mobile-accounts-scroll-area")).toHaveClass("max-h-[4rem]");
+    expect(screen.getByTestId("settings-mobile-accounts-scroll-area")).toHaveClass("max-h-[4.75rem]");
     expect(screen.getAllByText("Accounts navigation")[0].closest('[data-slot="scroll-area-content"]')).toHaveClass(
       "px-3",
       "py-1.5",
@@ -414,7 +421,7 @@ describe("SettingsModalView", () => {
     expect(surface).toHaveClass("flex-col");
     expect(surface).toHaveClass("sm:flex-row");
     expect(navPane).toHaveClass("w-full");
-    expect(navPane).toHaveClass("max-h-[15rem]");
+    expect(navPane).toHaveClass("max-h-[18rem]");
     expect(navPane).not.toHaveClass("h-[18rem]");
     expect(navPane).toHaveClass("sm:h-auto");
     expect(navPane).toHaveClass("sm:w-[292px]");

@@ -49,21 +49,21 @@ export function AppToastView({
         showInBrowserRail && "fixed top-1 right-20",
         position === "fixed" && APP_STACKING_CLASS_NAMES.toast,
         position === "static" && "relative",
-        "flex max-w-sm flex-col gap-2 rounded-lg border border-border bg-card px-4 py-3 text-sm text-foreground shadow-elevation-2",
+        "flex max-w-[min(22rem,calc(100vw-2rem))] flex-col gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground shadow-elevation-2",
         showInBrowserRail &&
           "max-w-[min(22rem,calc(100vw-12rem))] gap-0 rounded-md px-3 py-1 text-xs shadow-elevation-1",
         variant === "update" && UPDATE_TOAST_WIDTH_CLASS_NAME,
       )}
     >
       <div className="flex items-center gap-2">
-        <span className="flex-1">{message}</span>
+        <span className="min-w-0 flex-1 break-words leading-snug">{message}</span>
         <Button
           type="button"
           onClick={onClose}
           aria-label={t("close")}
           variant="ghost"
-          size="xs"
-          className="ml-2 h-7 min-w-7 shrink-0 px-0 text-foreground-soft hover:bg-surface-1/72"
+          size="icon-sm"
+          className="ml-1 size-8 shrink-0 text-foreground-soft hover:bg-surface-1/72"
         >
           &times;
         </Button>
@@ -89,8 +89,8 @@ export function AppToastView({
               onClick={action.onClick}
               disabled={resolveActionDisabled(action.disabled)}
               variant="ghost"
-              size="xs"
-              className="min-h-7 px-2.5 py-1 text-xs font-medium text-primary hover:bg-surface-1/72 hover:text-primary"
+              size="sm"
+              className="min-h-8 px-3 py-1 text-xs font-medium text-primary hover:bg-surface-1/72 hover:text-primary"
             >
               {action.label}
             </Button>

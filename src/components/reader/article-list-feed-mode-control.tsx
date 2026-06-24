@@ -24,7 +24,7 @@ export function ArticleListFeedModeControl({
         }
       }}
     >
-      <SelectTrigger aria-label={ariaLabel} className="min-w-[168px]">
+      <SelectTrigger aria-label={ariaLabel} className="min-w-0 max-w-[148px] sm:max-w-[168px]">
         <SelectOptionValue options={options} />
       </SelectTrigger>
       <AppSelectPopup>

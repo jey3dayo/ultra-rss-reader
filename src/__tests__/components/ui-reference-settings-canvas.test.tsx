@@ -117,7 +117,7 @@ describe("UI Reference canvases", () => {
     expect(screen.getByTestId("reference-reader-header-action-strip")).toBeInTheDocument();
     expect(screen.getByTestId("reference-icon-utility-buttons")).toBeInTheDocument();
     expect(screen.getByTestId("reference-browser-chrome-buttons")).toBeInTheDocument();
-    expect(screen.getByText("40px target / 20px icon")).toBeInTheDocument();
+    expect(screen.getByText("44px target / 20px icon")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Browser chrome reload" }).querySelector("svg")).toHaveClass("size-5");
     expect(screen.getByTestId("reference-navigation-button-patterns")).toBeInTheDocument();
     expect(screen.getByTestId("reference-specialized-button-patterns")).toBeInTheDocument();
@@ -192,12 +192,17 @@ describe("UI Reference canvases", () => {
     expect(screen.getAllByTestId("reference-annotated-note")[0]).toHaveClass("rounded-md");
     expect(screen.getByTestId("reference-validation-frame")).toHaveClass("rounded-md");
     expect(screen.getByTestId("reference-disabled-switch-frame")).toHaveClass("rounded-md");
-    expect(screen.getAllByRole("textbox", { name: "Display name" })[0]).toHaveClass("h-10", "flex-1");
-    expect(screen.getByRole("button", { name: "Reset: Display name" })).toHaveClass("h-10", "px-4");
-    expect(screen.getByRole("textbox", { name: "Tag name" })).toHaveClass("h-10", "flex-1");
-    expect(screen.getByRole("button", { name: "Create" })).toHaveClass("h-10", "px-4");
-    expect(screen.getByRole("textbox", { name: "Feed URL" })).toHaveClass("pr-20");
-    expect(screen.getByRole("button", { name: "Discover feed" })).toHaveClass("absolute", "right-1", "h-7", "min-w-14");
+    expect(screen.getAllByRole("textbox", { name: "Display name" })[0]).toHaveClass("h-11", "flex-1");
+    expect(screen.getByRole("button", { name: "Reset: Display name" })).toHaveClass("h-11", "px-4");
+    expect(screen.getByRole("textbox", { name: "Tag name" })).toHaveClass("h-11", "flex-1");
+    expect(screen.getByRole("button", { name: "Create" })).toHaveClass("h-11", "px-4");
+    expect(screen.getByRole("textbox", { name: "Feed URL" })).toHaveClass("min-h-11", "pr-24");
+    expect(screen.getByRole("button", { name: "Discover feed" })).toHaveClass(
+      "absolute",
+      "right-1",
+      "h-11",
+      "min-w-20",
+    );
     expect(screen.getByRole("combobox", { name: "Density" })).toBeInTheDocument();
     expect(screen.getByRole("switch", { name: "Live Preview" })).toBeInTheDocument();
 
@@ -244,12 +249,12 @@ describe("UI Reference canvases", () => {
       await i18n.changeLanguage(localeCase.language);
 
       const inputControlsRender = render(<InputControlsCanvas />);
-      expect(screen.getByRole("textbox", { name: "Display name" })).toHaveClass("h-10", "flex-1");
+      expect(screen.getByRole("textbox", { name: "Display name" })).toHaveClass("h-11", "flex-1");
       expect(screen.getByRole("button", { name: "Discover feed" })).toHaveClass(
         "absolute",
         "right-1",
-        "h-7",
-        "min-w-14",
+        "h-11",
+        "min-w-20",
       );
       inputControlsRender.unmount();
 
@@ -257,7 +262,7 @@ describe("UI Reference canvases", () => {
       const addAccountShell = screen.getByTestId("reference-settings-workspace-add-shell");
       expect(addAccountShell.querySelector(".flex-wrap")).toBeInTheDocument();
       expect(within(addAccountShell).getByRole("heading", { name: localeCase.accountHeading })).toBeInTheDocument();
-      expect(within(addAccountShell).getByRole("textbox", { name: localeCase.serverUrlLabel })).toHaveClass("h-10");
+      expect(within(addAccountShell).getByRole("textbox", { name: localeCase.serverUrlLabel })).toHaveClass("h-11");
       expect(within(addAccountShell).getByRole("button", { name: localeCase.cancelLabel })).toHaveClass("min-h-11");
       expect(within(addAccountShell).getByRole("button", { name: localeCase.submitLabel })).toHaveClass("min-h-11");
       settingsWorkspaceRender.unmount();
@@ -514,9 +519,9 @@ describe("UI Reference canvases", () => {
     }
     expect(chipMotionNumber).toHaveClass("t-digit-group", "tabular-nums");
     expect(screen.getByTestId("reference-summary-filter-card-frame")).toBeInTheDocument();
-    expect(screen.getByTestId("reference-summary-filter-card-frame").querySelectorAll(".t-digit-group")).toHaveLength(
-      3,
-    );
+    const summaryFilterCardFrame = screen.getByTestId("reference-summary-filter-card-frame");
+    expect(summaryFilterCardFrame.querySelectorAll(".t-digit-group")).toHaveLength(0);
+    expect(within(summaryFilterCardFrame).getByText("12")).toHaveClass("tabular-nums");
     expect(
       within(screen.getByTestId("reference-summary-filter-card-frame")).getByRole("button", { name: /確認待ち/ }),
     ).toHaveAttribute("aria-pressed", "false");

@@ -298,6 +298,17 @@ export function SubscriptionsIndexPage() {
         title={t("title")}
         subtitle={t("subtitle")}
         summaryCards={summaryCards}
+        summaryLabels={{
+          activeBadge: t("summary_active_badge"),
+          staticBadge: t("summary_static_badge"),
+          showFilterAriaLabel: (label) => t("summary_action_show_filter_aria", { label }),
+          showAll: t("summary_action_show_all"),
+          showFiltered: t("summary_action_filtered"),
+          filterAll: t("summary_action_filter_all"),
+          filter: t("summary_action_filter"),
+          noMatches: t("summary_action_no_matches"),
+          criteria: t("summary_criteria_chip"),
+        }}
         reviewCriteriaLabel={t("summary_review_criteria")}
         inventoryHeading={inventoryHeading}
         detailHeading={t("detail_heading")}
@@ -307,21 +318,23 @@ export function SubscriptionsIndexPage() {
         selectedMetrics={selectedMetrics}
         selectedDetailCandidate={selectedDetailCandidate}
         emptyLabel={t("empty")}
+        searchQuery={state.searchQuery}
+        searchLabel={t("search_label")}
+        searchPlaceholder={t("search_placeholder")}
+        searchClearLabel={t("search_clear")}
         detailEmptyLabel={t("detail_empty")}
         statusLabels={{
           normal: t("status_normal"),
           review: t("status_review"),
           stale_90d: t("status_stale_90d"),
-          no_unread: t("status_no_unread"),
-          no_stars: t("status_no_stars"),
+          quiet_no_unread: t("status_quiet_no_unread"),
         }}
         reasonTooltipLabels={{
           no_articles: t("tooltip_reason_no_articles"),
           normal: t("detail_reason_normal"),
           review: t("tooltip_reason_review"),
           stale_90d: t("tooltip_reason_stale_90d"),
-          no_unread: t("tooltip_reason_no_unread"),
-          no_stars: t("tooltip_reason_no_stars"),
+          quiet_no_unread: t("tooltip_reason_quiet_no_unread"),
         }}
         formatUnreadCountLabel={(count) => t("meta_unread_count", { count })}
         formatLatestArticleLabel={(value) =>
@@ -331,6 +344,7 @@ export function SubscriptionsIndexPage() {
         }
         dateLocale={i18n.language}
         folderLabel={t("folder")}
+        listScrollResetKey={state.listScrollResetKey}
         listScrollTop={state.listScrollTop}
         latestArticleLabel={t("latest_article")}
         latestArticleEmptyLabel={t("meta_latest_article_none")}
@@ -349,6 +363,7 @@ export function SubscriptionsIndexPage() {
         onSelectSummaryFilter={state.setActiveSummaryFilter}
         onSelectFeed={state.setSelectedFeedId}
         onListScrollTopChange={state.setListScrollTop}
+        onSearchQueryChange={state.setSearchQuery}
         onToggleGroup={state.toggleGroup}
         onBack={() => closeSubscriptionsWorkspace()}
         onClose={() => closeSubscriptionsWorkspace()}

@@ -45,7 +45,7 @@ export function ArticleListHeaderSearch({
         name="article-search"
         type="text"
         value={searchQuery}
-        className="border-[var(--sidebar-frame-border)] bg-[var(--workspace-header-surface)] shadow-none focus:border-[color:color-mix(in_srgb,var(--foreground)_22%,var(--border))] focus:ring-2 focus:ring-[color:color-mix(in_srgb,var(--foreground)_10%,transparent)] focus-visible:border-[color:color-mix(in_srgb,var(--foreground)_22%,var(--border))] focus-visible:ring-2 focus-visible:ring-[color:color-mix(in_srgb,var(--foreground)_10%,transparent)]"
+        className="min-h-11 border-[var(--sidebar-frame-border)] bg-[var(--workspace-header-surface)] shadow-none focus:border-[color:color-mix(in_srgb,var(--foreground)_22%,var(--border))] focus:ring-2 focus:ring-[color:color-mix(in_srgb,var(--foreground)_10%,transparent)] focus-visible:border-[color:color-mix(in_srgb,var(--foreground)_22%,var(--border))] focus-visible:ring-2 focus-visible:ring-[color:color-mix(in_srgb,var(--foreground)_10%,transparent)]"
         onChange={(e) => onSearchQueryChange(e.target.value)}
         onKeyDown={(event) => {
           if (event.key === "Escape") {

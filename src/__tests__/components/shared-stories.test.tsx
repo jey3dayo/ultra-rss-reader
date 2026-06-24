@@ -193,7 +193,7 @@ describe("Shared stories", () => {
       "placeholder",
       "https://example.com/feed.xml",
     );
-    expect(screen.getByRole("button", { name: "Discover feed" })).toHaveClass("h-7", "min-w-14");
+    expect(screen.getByRole("button", { name: "Discover feed" })).toHaveClass("h-11", "min-w-20");
 
     cleanup();
     renderStory(labeledInputRowMeta, LabeledInputRowDisabled);

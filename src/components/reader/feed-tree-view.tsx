@@ -68,7 +68,7 @@ export function FeedTreeView({
 
   return (
     <>
-      <div className={cn("px-2", tokens.treeGap)}>
+      <div className={cn(tokens.treeRootPadding, tokens.treeGap)}>
         {showUnfolderedDropZone ? (
           <FeedTreeUnfolderedDropZone
             enabled={canDragFeeds}

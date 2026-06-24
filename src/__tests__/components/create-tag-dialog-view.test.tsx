@@ -31,6 +31,7 @@ describe("CreateTagDialogView", () => {
     );
 
     const input = screen.getByLabelText("Name") as HTMLInputElement;
+    expect(input).toHaveClass("h-9");
     const selectSpy = vi.spyOn(input, "select");
 
     if (pendingFrames.length === 0) {

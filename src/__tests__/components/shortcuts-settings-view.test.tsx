@@ -4,10 +4,6 @@ import { createRef } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { ShortcutKeyButton, ShortcutsSettingsView } from "@/components/settings/shortcuts-settings-view";
 
-function expectNoButtonMinWidth(button: HTMLElement) {
-  expect([...button.classList].filter((className) => className.includes("min-w"))).toEqual([]);
-}
-
 describe("ShortcutsSettingsView", () => {
   it("passes explicit ref props from ShortcutKeyButton to the underlying button", () => {
     const buttonRef = createRef<HTMLButtonElement>();
@@ -76,15 +72,17 @@ describe("ShortcutsSettingsView", () => {
     expect(screen.getByText("⌘ ,")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Reset Open settings shortcut" })).toBeNull();
     expect(screen.getByRole("button", { name: "J" })).toHaveClass(
+      "min-h-11",
       "border-state-danger-border",
       "bg-state-danger-surface",
       "text-state-danger-foreground",
     );
-    expect(screen.getByRole("button", { name: "Reset Next article shortcut" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Reset Next article shortcut" })).toHaveClass("size-11");
     expect(screen.getByRole("button", { name: "Reset all to defaults" })).toHaveClass("w-full");
     expect(screen.queryByRole("button", { name: "Reset to defaults" })).toBeNull();
     expect(screen.getByRole("button", { name: "J" })).toHaveClass("w-full");
-    expect(screen.getByText("⌘ ,")).toHaveClass("bg-surface-1", "text-foreground-soft");
+    expect(screen.getByText("Already used")).toHaveClass("text-xs", "break-words");
+    expect(screen.getByText("⌘ ,")).toHaveClass("min-h-11", "bg-surface-1", "text-foreground-soft");
 
     await user.click(screen.getByRole("button", { name: "J" }));
 
@@ -93,7 +91,7 @@ describe("ShortcutsSettingsView", () => {
       name: "Reset all to defaults",
     });
     expect(resetButton).toBeDisabled();
-    expectNoButtonMinWidth(resetButton);
+    expect(resetButton).toHaveClass("min-h-11", "min-w-11");
   });
 
   it("only shows row reset for custom bindings and activates focused row reset from the keyboard", async () => {
@@ -257,6 +255,7 @@ describe("ShortcutsSettingsView", () => {
 
     const recordingButton = screen.getByRole("button", { name: "Press a key" });
     expect(recordingButton).toHaveClass("w-full");
+    expect(recordingButton).toHaveClass("min-h-11");
     expect(recordingButton).toHaveClass("bg-ring/14");
     expect(screen.getByRole("button", { name: "Reset all to defaults" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Reset Next article shortcut" })).toBeDisabled();
