@@ -3,6 +3,7 @@ import type { SettingsPageControl, SettingsPageViewProps } from "@/components/se
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
+import { SETTINGS_CONTROL_SURFACE_CLASS } from "@/components/settings/shared/settings-surface";
 import {
   LabeledActionInputRow,
   LabeledControlRow,
@@ -32,7 +33,7 @@ function SettingsPageSelectRow({ control }: SettingsPageControlRowProps<Settings
       onChange={control.onChange}
       disabled={control.disabled}
       open={control.open}
-      triggerClassName="sm:w-[192px]"
+      triggerClassName={cn(SETTINGS_CONTROL_SURFACE_CLASS, "sm:w-[192px]")}
     />
   );
 }
@@ -61,7 +62,7 @@ function SettingsPageTextRow({ control }: SettingsPageControlRowProps<SettingsPa
         disabled={control.disabled}
         rowClassName="gap-4"
         labelClassName="w-40 shrink-0"
-        inputClassName="h-11 flex-1"
+        inputClassName={cn("h-11 flex-1", SETTINGS_CONTROL_SURFACE_CLASS)}
         trailingControls={
           <SettingsActionButton
             type="button"
@@ -88,7 +89,7 @@ function SettingsPageTextRow({ control }: SettingsPageControlRowProps<SettingsPa
       rowClassName="gap-4"
       labelClassName="w-40 shrink-0"
       controlClassName="flex w-full items-center gap-2 sm:max-w-[30rem] sm:justify-end"
-      inputClassName="h-11 flex-1"
+      inputClassName={cn("h-11 flex-1", SETTINGS_CONTROL_SURFACE_CLASS)}
     />
   );
 }

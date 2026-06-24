@@ -3,8 +3,10 @@ import { type FormEvent, useId } from "react";
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
+import { SETTINGS_CONTROL_SURFACE_CLASS, SETTINGS_DIVIDER_CLASS } from "@/components/settings/shared/settings-surface";
 import { LabeledActionInputRow, LabeledControlRow, TagColorPicker } from "@/design-system";
 import type { TagViewItem } from "@/lib/tags.types";
+import { cn } from "@/lib/utils";
 
 type TagsSettingsListItem = TagViewItem;
 
@@ -87,6 +89,7 @@ export function TagsSettingsView({
             onChange={onNameChange}
             rowClassName="items-start sm:items-center"
             labelClassName="sm:w-40 sm:shrink-0"
+            inputClassName={SETTINGS_CONTROL_SURFACE_CLASS}
             trailingControls={
               <SettingsActionButton type="submit" size="compact" disabled={createDisabled}>
                 {createLabel}
@@ -109,18 +112,24 @@ export function TagsSettingsView({
 
       <SettingsSection heading={savedHeading} surface="flat">
         {loadFailureState ? (
-          <p className="border-b border-border py-3 text-sm text-foreground-soft" data-tags-settings-state="error">
+          <p
+            className={cn("border-b py-3 text-sm text-foreground-soft", SETTINGS_DIVIDER_CLASS)}
+            data-tags-settings-state="error"
+          >
             {loadFailureState}
           </p>
         ) : tags.length === 0 ? (
-          <p className="border-b border-border py-3 text-sm text-foreground-soft">{emptyState}</p>
+          <p className={cn("border-b py-3 text-sm text-foreground-soft", SETTINGS_DIVIDER_CLASS)}>{emptyState}</p>
         ) : (
-          <div className="border-t border-border/70">
+          <div className={cn("border-t", SETTINGS_DIVIDER_CLASS)}>
             {tags.map((tag) => (
               <div
                 key={tag.id}
                 data-testid={`tags-settings-row-${tag.id}`}
-                className="motion-contextual-surface flex min-h-[44px] items-center justify-between gap-3 border-b border-border/70 py-3"
+                className={cn(
+                  "motion-contextual-surface flex min-h-[44px] items-center justify-between gap-3 border-b py-3",
+                  SETTINGS_DIVIDER_CLASS,
+                )}
               >
                 <div className="flex min-w-0 flex-1 items-center gap-2.5">
                   {tag.color ? (

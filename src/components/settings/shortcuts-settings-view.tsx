@@ -3,6 +3,7 @@ import { type ComponentPropsWithoutRef, type ReactNode, type Ref, useEffect, use
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
+import { SETTINGS_CONTROL_SURFACE_CLASS } from "@/components/settings/shared/settings-surface";
 import { LabeledControlRow } from "@/design-system";
 import { cn } from "@/lib/utils";
 import { bindWindowEvents, createKeyboardEventListener } from "@/lib/window/window-events";
@@ -97,7 +98,10 @@ export function ShortcutKeyButton({
           ? "animate-pulse border-ring bg-ring/14 text-foreground"
           : conflict
             ? "border-state-danger-border bg-state-danger-surface text-state-danger-foreground"
-            : "cursor-pointer border-border/70 bg-surface-1 text-foreground-soft hover:border-border-strong hover:bg-surface-2 hover:text-foreground",
+            : cn(
+                "cursor-pointer bg-surface-1 text-foreground-soft hover:border-border-strong hover:bg-surface-2 hover:text-foreground",
+                SETTINGS_CONTROL_SURFACE_CLASS,
+              ),
         className,
       )}
       {...props}
@@ -183,7 +187,10 @@ export function ShortcutsSettingsView({
                   <ShortcutResetButton item={item} disabled={true} forceVisible={showLockedReset} />
                   <kbd
                     data-testid={`shortcut-badge-${item.id}`}
-                    className="inline-flex min-h-11 w-full items-center justify-center rounded-md border border-border/70 bg-surface-1 px-2.5 py-1 text-center font-mono text-[13px] font-medium leading-none tracking-[0.02em] text-foreground-soft sm:w-auto"
+                    className={cn(
+                      "inline-flex min-h-11 w-full items-center justify-center rounded-md border bg-surface-1 px-2.5 py-1 text-center font-mono text-[13px] leading-none font-medium tracking-[0.02em] text-foreground-soft sm:w-auto",
+                      SETTINGS_CONTROL_SURFACE_CLASS,
+                    )}
                   >
                     {item.displayKey}
                   </kbd>

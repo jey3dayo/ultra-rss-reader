@@ -261,7 +261,7 @@ describe("SettingsModalView", () => {
     expect(screen.getByTestId("settings-modal-surface")).toHaveClass("max-w-[980px]");
     expect(screen.getByTestId("settings-modal-surface")).toHaveClass("bg-popover");
     expect(screen.getByTestId("settings-modal-surface")).toHaveClass("rounded-xl");
-    expect(screen.getByTestId("settings-modal-surface")).toHaveClass("shadow-elevation-3");
+    expect(screen.getByTestId("settings-modal-surface")).toHaveClass("shadow-[var(--settings-shell-shadow)]");
     expect(screen.getByTestId("settings-nav-shell")).not.toHaveClass("rounded-xl");
     expect(screen.getByTestId("settings-content-shell")).not.toHaveClass("rounded-xl");
     expect(screen.getByTestId("settings-modal-header")).toHaveClass("min-h-[5rem]");
@@ -280,7 +280,9 @@ describe("SettingsModalView", () => {
     expect(screen.getByTestId("settings-nav-shell")).toHaveClass("sm:h-auto");
     expect(screen.getByTestId("settings-accounts-section")).toHaveClass("p-3");
     expect(screen.getByTestId("settings-accounts-section")).toHaveClass("rounded-md");
-    expect(screen.getByTestId("settings-accounts-section")).toHaveClass("border-border/60");
+    expect(screen.getByTestId("settings-accounts-section")).toHaveClass(
+      "border-[var(--settings-shell-section-border)]",
+    );
     expect(screen.getByTestId("settings-accounts-section")).toHaveClass("shadow-none");
     expect(screen.getByTestId("settings-accounts-section")).toHaveStyle({
       backgroundColor: "var(--settings-shell-account-surface)",
@@ -313,7 +315,9 @@ describe("SettingsModalView", () => {
 
     expect(screen.getByTestId("settings-mobile-accounts-section")).toBeInTheDocument();
     expect(screen.getByTestId("settings-mobile-accounts-section")).toHaveClass("rounded-md");
-    expect(screen.getByTestId("settings-mobile-accounts-section")).toHaveClass("border-border/60");
+    expect(screen.getByTestId("settings-mobile-accounts-section")).toHaveClass(
+      "border-[var(--settings-shell-section-border)]",
+    );
     expect(screen.getByTestId("settings-mobile-accounts-section")).toHaveClass("shadow-none");
     expect(screen.getByTestId("settings-mobile-accounts-scroll-area")).toHaveClass("max-h-[4.75rem]");
     expect(screen.getAllByText("Accounts navigation")[0].closest('[data-slot="scroll-area-content"]')).toHaveClass(

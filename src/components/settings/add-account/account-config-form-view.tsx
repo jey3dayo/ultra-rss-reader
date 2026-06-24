@@ -1,13 +1,14 @@
 import { ChevronLeft } from "lucide-react";
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
+import { SETTINGS_CONTROL_SURFACE_CLASS, SETTINGS_DIVIDER_CLASS } from "@/components/settings/shared/settings-surface";
 import { FormActionButtons, LabeledInputRow, SurfaceCard } from "@/design-system";
 import { cn } from "@/lib/utils";
 import type { AddAccountCredentialsSection, AddAccountInputControl } from "./form-view";
 import type { ServicePresentation } from "./services";
 
 const LABEL_COLUMN_CLASS_NAME = "sm:w-40 sm:shrink-0";
-const INPUT_CLASS_NAME = "h-11";
+const INPUT_CLASS_NAME = `h-11 ${SETTINGS_CONTROL_SURFACE_CLASS}`;
 
 type AccountConfigFormViewProps = {
   title: string;
@@ -65,7 +66,9 @@ export function AccountConfigFormView({
 }: AccountConfigFormViewProps) {
   return (
     <div className="p-6">
-      <div className="mb-5 grid grid-cols-[auto_1fr_auto] items-center gap-3 border-b border-border/60 pb-4">
+      <div
+        className={cn("mb-5 grid grid-cols-[auto_1fr_auto] items-center gap-3 border-b pb-4", SETTINGS_DIVIDER_CLASS)}
+      >
         <SettingsActionButton
           type="button"
           tone="subtle"

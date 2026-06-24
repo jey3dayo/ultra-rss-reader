@@ -5,6 +5,7 @@ import { SettingsLoadingActionButton } from "@/components/settings/settings-load
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
+import { SETTINGS_CONTROL_SURFACE_CLASS, SETTINGS_DIVIDER_CLASS } from "@/components/settings/shared/settings-surface";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
 import {
   ActionSelectControl,
@@ -14,6 +15,7 @@ import {
   LabeledActionSelectRow,
   LabeledControlRow,
 } from "@/design-system";
+import { cn } from "@/lib/utils";
 import { handleMuteKeywordScopeSelectValue } from "./mute-keyword-scope-select";
 
 type MuteSettingsScopeOption = {
@@ -124,7 +126,7 @@ export function MuteSettingsView({
             rowClassName="items-start sm:items-center"
             labelClassName="sm:w-40 sm:shrink-0"
             controlClassName="grid min-w-0 gap-2 sm:w-full sm:max-w-[30rem] sm:grid-cols-[minmax(0,1fr)_auto]"
-            inputClassName="w-full min-w-0 sm:col-span-2"
+            inputClassName={cn("w-full min-w-0 sm:col-span-2", SETTINGS_CONTROL_SURFACE_CLASS)}
             formProps={{
               "data-testid": "mute-settings-add-row",
               onSubmit: handleAddSubmit,
@@ -141,7 +143,7 @@ export function MuteSettingsView({
                       source: "add-row",
                     })
                   }
-                  triggerClassName="h-11 w-full min-w-0 sm:w-[192px] sm:flex-none"
+                  triggerClassName={cn("h-11 w-full min-w-0 sm:w-[192px] sm:flex-none", SETTINGS_CONTROL_SURFACE_CLASS)}
                 />
                 <SettingsLoadingActionButton
                   type="submit"
@@ -172,7 +174,11 @@ export function MuteSettingsView({
           {rules.length === 0 ? (
             <p
               {...{ [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING }}
-              className={`${MOTION_CONTENT_SWAP_CLASS_NAME} border-b border-border py-3 text-sm text-foreground-soft`}
+              className={cn(
+                MOTION_CONTENT_SWAP_CLASS_NAME,
+                "border-b py-3 text-sm text-foreground-soft",
+                SETTINGS_DIVIDER_CLASS,
+              )}
             >
               {emptyState}
             </p>
@@ -191,7 +197,7 @@ export function MuteSettingsView({
                   })
                 }
                 labelClassName="break-all sm:max-w-[280px] sm:shrink-0 sm:truncate sm:break-normal"
-                triggerClassName="h-11 w-full sm:flex-1"
+                triggerClassName={cn("h-11 w-full sm:flex-1", SETTINGS_CONTROL_SURFACE_CLASS)}
                 trailingControls={
                   <SettingsActionButton
                     type="button"

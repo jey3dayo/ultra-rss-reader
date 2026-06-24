@@ -1,6 +1,11 @@
 import { SettingsLoadingActionButton } from "@/components/settings/settings-loading-action-button";
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
+import {
+  SETTINGS_CONTROL_SURFACE_CLASS,
+  SETTINGS_DIVIDER_CLASS,
+  SETTINGS_INFO_SURFACE_CLASS,
+} from "@/components/settings/shared/settings-surface";
 import { LabeledSelectRow, type LabeledSelectRowProps, LabeledSwitchRow } from "@/design-system";
 import { cn } from "@/lib/utils";
 
@@ -101,10 +106,7 @@ export function AccountSyncSectionView({
           role="status"
           aria-live="polite"
           aria-atomic="true"
-          className={cn(
-            CONTROL_RAIL_CLASS,
-            "mt-4 space-y-2 rounded-md border border-border/70 bg-surface-1/72 px-4 py-3",
-          )}
+          className={cn(CONTROL_RAIL_CLASS, "mt-4 space-y-2 px-4 py-3", SETTINGS_INFO_SURFACE_CLASS)}
         >
           <div className="flex items-center justify-between gap-3 text-sm">
             <span className="font-medium text-foreground">{progressLabel}</span>
@@ -127,16 +129,14 @@ export function AccountSyncSectionView({
         </div>
       ) : null}
       {statusRows && statusRows.length > 0 ? (
-        <div
-          className={cn(
-            CONTROL_RAIL_CLASS,
-            "mt-4 rounded-md border border-border/70 bg-surface-1/72 px-4 py-3 text-sm",
-          )}
-        >
+        <div className={cn(CONTROL_RAIL_CLASS, "mt-4 px-4 py-3 text-sm", SETTINGS_INFO_SURFACE_CLASS)}>
           {statusRows.map((row) => (
             <div
               key={row.label}
-              className="space-y-1 border-border/50 py-3 first:pt-0 last:pb-0 [&:not(:last-child)]:border-b"
+              className={cn(
+                "space-y-1 py-3 first:pt-0 last:pb-0 [&:not(:last-child)]:border-b",
+                SETTINGS_DIVIDER_CLASS,
+              )}
             >
               <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-foreground-soft">
                 {row.label}
@@ -188,6 +188,7 @@ function AccountSelectRow({ control }: AccountSelectRowProps) {
       options={control.options}
       onChange={control.onChange}
       disabled={control.disabled}
+      triggerClassName={SETTINGS_CONTROL_SURFACE_CLASS}
     />
   );
 }

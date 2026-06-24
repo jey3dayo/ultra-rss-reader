@@ -276,7 +276,13 @@ describe("AccountSyncSectionView", () => {
     expect(button).toBeDisabled();
     expect(button).toHaveAttribute("aria-busy", "true");
     expectStandardSettingsActionButton(button);
-    expect(button).toHaveClass("border", "border-border/65", "bg-surface-2/82", "text-foreground");
+    expect(button).toHaveClass(
+      "border",
+      "border-[var(--settings-shell-control-border)]",
+      "shadow-[var(--settings-shell-control-shadow)]",
+      "bg-surface-2/82",
+      "text-foreground",
+    );
     expect(button.querySelector("[data-slot='loading-spinner']")).not.toBeNull();
     expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
   });

@@ -2,6 +2,7 @@ import { Copy } from "lucide-react";
 import type { ComponentProps, RefObject } from "react";
 import { SettingsLoadingActionButton } from "@/components/settings/settings-loading-action-button";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
+import { SETTINGS_CONTROL_SURFACE_CLASS } from "@/components/settings/shared/settings-surface";
 import { LabeledControlRow, LabeledInputRow } from "@/design-system";
 
 type AccountCredentialInputRow = {
@@ -95,7 +96,7 @@ export function AccountCredentialsSectionView({
           onChange={onServerUrlChange}
           onBlur={!disabled ? onServerUrlBlur : undefined}
           labelClassName={labelColumnClassName}
-          inputClassName="h-11"
+          inputClassName={`h-11 ${SETTINGS_CONTROL_SURFACE_CLASS}`}
           actionLabel={serverUrlCopyLabel}
           actionAriaLabel={serverUrlCopyLabel}
           actionTooltipLabel={serverUrlCopyLabel}
@@ -120,7 +121,7 @@ export function AccountCredentialsSectionView({
           onBlur={!disabled ? row.onBlur : undefined}
           placeholder={row.placeholder}
           labelClassName={labelColumnClassName}
-          inputClassName="h-11"
+          inputClassName={`h-11 ${SETTINGS_CONTROL_SURFACE_CLASS}`}
           disabled={disabled}
         />
       ))}
@@ -131,7 +132,7 @@ export function AccountCredentialsSectionView({
         onChange={onUsernameChange}
         onBlur={!disabled ? onUsernameBlur : undefined}
         labelClassName={labelColumnClassName}
-        inputClassName="h-11"
+        inputClassName={`h-11 ${SETTINGS_CONTROL_SURFACE_CLASS}`}
         disabled={disabled}
       />
       <LabeledInputRow
@@ -143,7 +144,7 @@ export function AccountCredentialsSectionView({
         onBlur={!disabled ? onPasswordBlur : undefined}
         placeholder={passwordPlaceholder}
         labelClassName={labelColumnClassName}
-        inputClassName="h-11"
+        inputClassName={`h-11 ${SETTINGS_CONTROL_SURFACE_CLASS}`}
         disabled={disabled}
       />
       {onTestConnection && (

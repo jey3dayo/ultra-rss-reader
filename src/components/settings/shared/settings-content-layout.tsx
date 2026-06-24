@@ -2,6 +2,7 @@ import { type CSSProperties, createContext, type ReactNode, use, useId } from "r
 import { useScrollOverflowState } from "@/components/settings/hooks/use-scroll-overflow-state";
 import { ScrollArea } from "@/design-system";
 import { cn } from "@/lib/utils";
+import { SETTINGS_DIVIDER_CLASS } from "./settings-surface";
 
 const HIDDEN_SCROLLBAR_CLASS = "[&>[data-slot='scroll-area-scrollbar']]:hidden";
 
@@ -78,7 +79,10 @@ export function SettingsContentLayout({
       {titleLayout === "sticky-centered" ? (
         <header
           data-testid="settings-content-header"
-          className="flex min-h-[5rem] shrink-0 items-center justify-center border-b border-border/70 px-5 text-center backdrop-blur-sm sm:px-8"
+          className={cn(
+            "flex min-h-[5rem] shrink-0 items-center justify-center border-b px-5 text-center backdrop-blur-sm sm:px-8",
+            SETTINGS_DIVIDER_CLASS,
+          )}
           style={{ backgroundColor: "var(--settings-shell-content-header)" }}
         >
           <h2
@@ -92,7 +96,10 @@ export function SettingsContentLayout({
       ) : (
         <header
           data-testid="settings-content-header"
-          className="flex min-h-[5rem] shrink-0 items-center border-b border-border/70 px-5 py-0 backdrop-blur-sm sm:px-8"
+          className={cn(
+            "flex min-h-[5rem] shrink-0 items-center border-b px-5 py-0 backdrop-blur-sm sm:px-8",
+            SETTINGS_DIVIDER_CLASS,
+          )}
           style={{ backgroundColor: "var(--settings-shell-content-header)" }}
         >
           <div

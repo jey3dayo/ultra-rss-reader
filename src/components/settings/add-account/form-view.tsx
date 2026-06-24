@@ -1,5 +1,6 @@
 import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
+import { SETTINGS_CONTROL_SURFACE_CLASS } from "@/components/settings/shared/settings-surface";
 import {
   FormActionButtons,
   LabeledInputRow,
@@ -9,7 +10,7 @@ import {
 } from "@/design-system";
 
 const LABEL_COLUMN_CLASS_NAME = "sm:w-40 sm:shrink-0";
-const INPUT_CLASS_NAME = "h-11";
+const INPUT_CLASS_NAME = `h-11 ${SETTINGS_CONTROL_SURFACE_CLASS}`;
 
 export type AddAccountInputControl = {
   label: string;
@@ -65,6 +66,7 @@ function AddAccountSelectRow({ control }: AddAccountFormSelectRowProps) {
       options={control.options}
       onChange={control.onChange}
       disabled={control.disabled}
+      triggerClassName={SETTINGS_CONTROL_SURFACE_CLASS}
     />
   );
 }

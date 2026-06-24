@@ -87,7 +87,13 @@ describe("AccountCredentialsSectionView", () => {
     expect(button).toHaveClass("sm:w-auto");
     expect(button).toHaveClass("h-11", "px-4");
     expectStandardSettingsActionButtonWidth(button);
-    expect(button).toHaveClass("border", "border-border/65", "bg-surface-2/82", "text-foreground");
+    expect(button).toHaveClass(
+      "border",
+      "border-[var(--settings-shell-control-border)]",
+      "shadow-[var(--settings-shell-control-shadow)]",
+      "bg-surface-2/82",
+      "text-foreground",
+    );
     expect(screen.getByText("Test Connection")).toHaveClass("sm:w-40");
     expect(button.querySelector("[data-slot='loading-spinner']")).not.toBeNull();
   });

@@ -1,6 +1,7 @@
 import type { KeyboardEvent, RefObject } from "react";
 import { AccountDetailSettingsRow } from "@/components/settings/account-detail/settings-row";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
+import { SETTINGS_CONTROL_SURFACE_CLASS } from "@/components/settings/shared/settings-surface";
 import { LabeledInputRow } from "@/design-system";
 
 type AccountGeneralInfoRow = {
@@ -58,7 +59,7 @@ export function AccountGeneralSectionView({
         onFocus={!disabled && !isEditingName ? onStartEditingName : undefined}
         onKeyDown={!disabled && isEditingName ? onNameKeyDown : undefined}
         labelClassName={labelColumnClassName}
-        inputClassName="h-11"
+        inputClassName={`h-11 ${SETTINGS_CONTROL_SURFACE_CLASS}`}
         disabled={disabled || isSavingName}
       />
       {infoRows.map((row) => (

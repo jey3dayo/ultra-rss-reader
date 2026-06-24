@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { SectionHeading, SurfaceCard } from "@/design-system";
 import { cn } from "@/lib/utils";
+import { SETTINGS_SECTION_BORDER_CLASS } from "./settings-surface";
 
 type SettingsSectionProps = {
   heading: string;
@@ -27,7 +28,8 @@ export function SettingsSection({
     return (
       <section
         className={cn(
-          "rounded-md border border-border/55 bg-[color-mix(in_srgb,var(--color-surface-1)_62%,transparent)] px-4 py-3.5 shadow-[0_14px_34px_-30px_rgba(38,37,30,0.32)] backdrop-blur-sm sm:px-5 sm:py-4",
+          "rounded-md border bg-[color-mix(in_srgb,var(--color-surface-1)_62%,transparent)] px-4 py-3.5 shadow-[var(--settings-shell-section-shadow)] backdrop-blur-sm sm:px-5 sm:py-4",
+          SETTINGS_SECTION_BORDER_CLASS,
           className,
         )}
       >
@@ -42,7 +44,10 @@ export function SettingsSection({
     <section className={className}>
       <SurfaceCard
         variant="section"
-        className="rounded-md border-border/55 bg-[color-mix(in_srgb,var(--color-surface-1)_62%,transparent)] shadow-[0_14px_34px_-30px_rgba(38,37,30,0.32)]"
+        className={cn(
+          "rounded-md bg-[color-mix(in_srgb,var(--color-surface-1)_62%,transparent)] shadow-[var(--settings-shell-section-shadow)]",
+          SETTINGS_SECTION_BORDER_CLASS,
+        )}
       >
         <SectionHeading className={cn("mb-2.5 sm:mb-3", headingClassName)}>{heading}</SectionHeading>
         <div className={contentClassName}>{children}</div>

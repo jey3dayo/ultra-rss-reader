@@ -1,4 +1,5 @@
 import { ChevronRight } from "lucide-react";
+import { SETTINGS_INFO_SURFACE_CLASS } from "@/components/settings/shared/settings-surface";
 import { NavRowButton, SectionHeading } from "@/design-system";
 import type { AddAccountProviderKind } from "@/lib/account/add-account-form";
 import { cn } from "@/lib/utils";
@@ -32,10 +33,7 @@ type ServicePickerProps = {
 
 export function ServicePicker({ title, categories, onSelect }: ServicePickerProps) {
   return (
-    <div
-      data-testid="service-picker-surface"
-      className="rounded-md border border-border bg-surface-1 p-4 shadow-elevation-1 sm:p-6"
-    >
+    <div data-testid="service-picker-surface" className={cn("p-4 sm:p-6", SETTINGS_INFO_SURFACE_CLASS)}>
       <h2 className="mb-6 text-center text-lg font-semibold">{title}</h2>
       <div className="space-y-4">
         {categories.map((category) => {

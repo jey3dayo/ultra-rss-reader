@@ -1,7 +1,9 @@
 import { type ChangeEvent, useId, useRef } from "react";
 import { SettingsLoadingActionButton } from "@/components/settings/settings-loading-action-button";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
+import { SETTINGS_DIVIDER_CLASS } from "@/components/settings/shared/settings-surface";
 import { DeleteButton } from "@/design-system";
+import { cn } from "@/lib/utils";
 
 type AccountDangerZoneViewProps = {
   dataHeading: string;
@@ -57,7 +59,7 @@ export function AccountDangerZoneView({
     <>
       <SettingsSection
         heading={dataHeading}
-        className="mt-6 border-t border-border pt-6"
+        className={cn("mt-6 border-t pt-6", SETTINGS_DIVIDER_CLASS)}
         contentClassName="pl-2 sm:pl-3"
       >
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
@@ -93,7 +95,7 @@ export function AccountDangerZoneView({
 
       <SettingsSection
         heading={dangerHeading}
-        className="mt-2 border-t border-border pt-6"
+        className={cn("mt-2 border-t pt-6", SETTINGS_DIVIDER_CLASS)}
         headingClassName="text-state-danger-foreground/72"
         contentClassName="pl-2 sm:pl-3"
       >

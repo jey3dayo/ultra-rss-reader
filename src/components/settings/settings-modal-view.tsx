@@ -4,6 +4,11 @@ import { useScrollOverflowState } from "@/components/settings/hooks/use-scroll-o
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { SettingsContentScrollBehaviorProvider } from "@/components/settings/shared/settings-content-layout";
 import { SettingsShellSectionLabel } from "@/components/settings/shared/settings-shell-section-label";
+import {
+  SETTINGS_DIVIDER_CLASS,
+  SETTINGS_SECTION_BORDER_CLASS,
+  SETTINGS_SHELL_SHADOW_CLASS,
+} from "@/components/settings/shared/settings-surface";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, IndeterminateProgress, ScrollArea } from "@/design-system";
 import { cn } from "@/lib/utils";
@@ -52,19 +57,29 @@ export function SettingsModalView({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         data-testid="settings-modal-surface"
-        className="flex h-[88vh] max-h-[860px] max-w-[980px] flex-col gap-0 overflow-hidden rounded-xl border border-border/70 bg-popover p-0 shadow-elevation-3 sm:flex-row sm:max-w-[980px]"
+        className={cn(
+          "flex h-[88vh] max-h-[860px] max-w-[980px] flex-col gap-0 overflow-hidden rounded-xl border bg-popover p-0 sm:flex-row sm:max-w-[980px]",
+          SETTINGS_DIVIDER_CLASS,
+          SETTINGS_SHELL_SHADOW_CLASS,
+        )}
         overlayPreset="readable"
         showCloseButton={false}
       >
         {isLoading && <IndeterminateProgress className="absolute inset-x-0 top-0 z-10" />}
         <div
           data-testid="settings-nav-shell"
-          className="flex max-h-[18rem] w-full shrink-0 flex-col border-b border-border/80 sm:h-auto sm:max-h-none sm:w-[292px] sm:border-r sm:border-b-0"
+          className={cn(
+            "flex max-h-[18rem] w-full shrink-0 flex-col border-b sm:h-auto sm:max-h-none sm:w-[292px] sm:border-r sm:border-b-0",
+            SETTINGS_DIVIDER_CLASS,
+          )}
           style={{ backgroundColor: "var(--settings-shell-rail)" }}
         >
           <DialogHeader
             data-testid="settings-modal-header"
-            className="flex min-h-[5rem] flex-row items-center gap-3 border-b border-border/80 px-5 py-0 backdrop-blur-sm"
+            className={cn(
+              "flex min-h-[5rem] flex-row items-center gap-3 border-b px-5 py-0 backdrop-blur-sm",
+              SETTINGS_DIVIDER_CLASS,
+            )}
             style={{ backgroundColor: "var(--settings-shell-rail)" }}
           >
             <SettingsActionButton
@@ -109,7 +124,10 @@ export function SettingsModalView({
               {navigation}
               <div
                 data-testid="settings-mobile-accounts-section"
-                className="mx-3 mb-3 overflow-hidden rounded-md border border-border/60 shadow-none sm:hidden"
+                className={cn(
+                  "mx-3 mb-3 overflow-hidden rounded-md border shadow-none sm:hidden",
+                  SETTINGS_SECTION_BORDER_CLASS,
+                )}
                 style={{
                   backgroundColor: "var(--settings-shell-account-surface)",
                 }}
@@ -140,7 +158,7 @@ export function SettingsModalView({
 
           <div
             data-testid="settings-accounts-section"
-            className="mx-3 mb-3 hidden rounded-md border border-border/60 p-3 shadow-none sm:block"
+            className={cn("mx-3 mb-3 hidden rounded-md border p-3 shadow-none sm:block", SETTINGS_SECTION_BORDER_CLASS)}
             style={{ backgroundColor: "var(--settings-shell-account-surface)" }}
           >
             {accountsHeading ? <SettingsShellSectionLabel>{accountsHeading}</SettingsShellSectionLabel> : null}
