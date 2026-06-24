@@ -200,7 +200,11 @@ export function SubscriptionsListPane({
           >
             {heading}
           </h2>
-          {hasRows ? <LabelChip tone="neutral">{totalRowCount}</LabelChip> : null}
+          {hasRows ? (
+            <LabelChip tone="neutral" className="rounded-sm">
+              {totalRowCount}
+            </LabelChip>
+          ) : null}
         </div>
         <div className="relative w-full sm:max-w-[20rem]">
           <Search
@@ -220,7 +224,7 @@ export function SubscriptionsListPane({
               type="button"
               aria-label={searchClearLabel}
               onClick={() => onSearchQueryChange("")}
-              className="absolute right-0 top-1/2 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-full text-foreground-soft transition-[background-color,color] duration-150 hover:bg-[color:var(--subscriptions-list-row-hover)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-strong/45 motion-reduce:transition-none"
+              className="absolute right-0 top-1/2 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-md text-foreground-soft transition-[background-color,color] duration-150 hover:bg-[color:var(--subscriptions-list-row-hover)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-strong/45 motion-reduce:transition-none"
             >
               <X aria-hidden="true" className="h-4 w-4" />
             </button>

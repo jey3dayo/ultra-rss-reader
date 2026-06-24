@@ -81,7 +81,7 @@ export function ArticleListScreenView({
                 "w-full max-w-sm px-5 py-5 text-left",
                 !isSetupEmptyState ? readerListPassiveCardOffsetClassName : undefined,
                 isSetupEmptyState
-                  ? "rounded-2xl border border-border/65 bg-surface-1/48 shadow-[0_18px_48px_-40px_rgba(38,37,30,0.18)] dark:border-border/75 dark:bg-[rgba(38,34,29,0.52)] dark:shadow-none"
+                  ? "rounded-md border border-border/65 bg-surface-1/48 shadow-[0_18px_48px_-40px_rgba(38,37,30,0.18)] dark:border-border/75 dark:bg-[rgba(38,34,29,0.52)] dark:shadow-none"
                   : undefined,
               )}
             >
@@ -123,7 +123,7 @@ export function ArticleListScreenView({
     <div className="relative h-full overflow-hidden">
       <ScrollArea
         className="relative z-10 h-full"
-        contentClassName="pb-4 pr-3"
+        contentClassName="pb-4"
         scrollbarClassName="data-vertical:bg-[color-mix(in_srgb,var(--background)_42%,var(--surface-2)_58%)] data-vertical:border-l-[color-mix(in_srgb,var(--color-border)_58%,transparent)]"
         thumbClassName="bg-[color-mix(in_srgb,var(--color-border-strong)_72%,transparent)]"
         viewportRef={viewportRef}

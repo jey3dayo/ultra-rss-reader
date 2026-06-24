@@ -18,7 +18,7 @@ function SidebarFeedTreeSkeletonRow({
         <Skeleton aria-hidden="true" className="h-3.5 flex-1 max-w-[10.5rem] bg-surface-4/70" />
         <Skeleton
           aria-hidden="true"
-          className={`h-3 min-w-8 rounded-full bg-surface-4/55 ${countWidthClassName ?? "w-8"}`}
+          className={`h-3 min-w-8 rounded-sm bg-surface-4/55 ${countWidthClassName ?? "w-8"}`}
         />
       </div>
     </div>

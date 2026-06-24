@@ -58,7 +58,7 @@ export function AccountSwitcherTriggerButton({
       aria-expanded={hasMultipleAccounts ? isExpanded : undefined}
       aria-controls={hasMultipleAccounts ? controlsId : undefined}
       className={cn(
-        "group flex w-full flex-col items-start gap-1 rounded-xl text-left select-none transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 motion-reduce:transition-none",
+        "group flex w-full flex-col items-start gap-1 rounded-md text-left select-none transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 motion-reduce:transition-none",
         canOpenAccountList
           ? "cursor-pointer text-sidebar-foreground/92 hover:text-sidebar-foreground"
           : "cursor-default text-sidebar-foreground",

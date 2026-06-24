@@ -29,7 +29,7 @@ export function TagPickerTriggerButton({
       type={type}
       className={cn(
         controlChipVariants({ size: compact ? "pickerCompact" : "picker", interaction: "action" }),
-        "justify-center rounded-full border text-foreground-soft select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45",
+        "justify-center rounded-md border text-foreground-soft select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45",
         "motion-interactive-surface",
         expanded
           ? "border-border/60 bg-surface-2/88 text-foreground shadow-active-inset-highlight"

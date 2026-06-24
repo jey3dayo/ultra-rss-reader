@@ -36,13 +36,13 @@ export function ArticleEmptyStateView({
     >
       <div
         className={cn(
-          "relative w-full max-w-[40rem] overflow-hidden rounded-xl border border-border/75 bg-surface-1/72 px-6 py-6 text-left text-foreground-soft shadow-[var(--shadow-elevation-1)] dark:border-border/90 dark:bg-surface-2/72",
+          "relative w-full max-w-[40rem] overflow-hidden rounded-md border border-border/75 bg-surface-1/72 px-6 py-6 text-left text-foreground-soft shadow-[var(--shadow-elevation-1)] dark:border-border/90 dark:bg-surface-2/72",
           hints.length > 0 && "min-h-44",
           cardClassName,
         )}
       >
         {eyebrow ? (
-          <div className="mb-4 inline-flex rounded-full border border-border/70 bg-surface-1/88 px-3 py-1 text-[0.68rem] font-medium tracking-[0.14em] text-foreground-soft uppercase">
+          <div className="mb-4 inline-flex rounded-md border border-border/70 bg-surface-1/88 px-3 py-1 text-[0.68rem] font-medium tracking-[0.14em] text-foreground-soft uppercase">
             {eyebrow}
           </div>
         ) : null}
