@@ -4,6 +4,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.48.2] - 2026-06-24
+
+### Bug Fixes
+
+- Toast の表示密度を抑え、通知が画面上で過度に目立たないようにした
+
+### Maintenance
+
+- pnpm とフロントエンド品質ツール群を更新し、package / lockfile / contract test の固定値を現行バージョンへ揃えた
+
 ## [0.48.1] - 2026-06-24
 
 ### Bug Fixes
