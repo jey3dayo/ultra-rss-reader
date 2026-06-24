@@ -5,6 +5,7 @@ pub mod display_name;
 pub mod error;
 pub mod feed;
 pub mod folder;
+pub mod local_account_sync;
 pub mod mute_keyword;
 pub mod preference;
 pub mod provider;
