@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.49.1] - 2026-06-24
+
+### Maintenance
+
+- フィードツリー密度のテスト期待値を実装済みの compact / normal tokens に揃え、CI の jsdom 契約を安定させた
+
 ## [0.49.0] - 2026-06-24
 
 ### Bug Fixes
