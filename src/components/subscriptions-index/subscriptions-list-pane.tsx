@@ -191,7 +191,7 @@ export function SubscriptionsListPane({
         <div className="flex min-w-0 items-center justify-between gap-3">
           <h2
             id={headingId}
-            className="min-w-0 truncate font-sans text-[1.08rem] font-semibold tracking-[-0.025em] text-foreground"
+            className="min-w-[4rem] truncate font-sans text-[1.08rem] font-semibold tracking-[-0.025em] text-foreground"
           >
             {heading}
           </h2>

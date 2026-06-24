@@ -64,7 +64,7 @@ export function LabeledControlRow({
           {labelContent}
         </span>
       )}
-      <div className="min-w-0 sm:flex sm:items-center sm:justify-end">{resolvedChildren}</div>
+      <div className="min-w-0 overflow-visible sm:flex sm:items-center sm:justify-end sm:pr-2">{resolvedChildren}</div>
     </div>
   );
 }

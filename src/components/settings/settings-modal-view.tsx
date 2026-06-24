@@ -116,8 +116,8 @@ export function SettingsModalView({
               >
                 <ScrollArea
                   data-testid="settings-mobile-accounts-scroll-area"
-                  className="min-h-0 max-h-[4rem]"
-                  contentClassName="px-3 py-1.5 pr-5"
+                  className="min-h-0 max-h-[4.75rem]"
+                  contentClassName="flex w-max min-w-full gap-1.5 px-3 py-1.5 pr-5"
                 >
                   {accountsHeading ? (
                     <SettingsShellSectionLabel className="sr-only">{accountsHeading}</SettingsShellSectionLabel>
