@@ -10,8 +10,7 @@ type SubscriptionSummaryTone = NonNullable<SubscriptionSummaryCard["tone"]>;
 const summaryToneClassNames = {
   neutral: {
     card: "border-border/60 bg-surface-1/62",
-    activeCard:
-      "border-border-strong bg-surface-1 shadow-[var(--subscriptions-summary-active-shadow-neutral)] ring-1 ring-[color:var(--subscriptions-summary-active-ring-neutral)]",
+    activeCard: "border-border-strong bg-surface-1 shadow-[var(--subscriptions-summary-active-shadow-neutral)]",
     activeAccent: "bg-secondary",
     activeBadge: "border-border-strong/70 bg-surface-1 text-foreground",
     activeValue: "text-foreground",
@@ -19,7 +18,7 @@ const summaryToneClassNames = {
   stale: {
     card: "border-state-warning-border/75 bg-state-warning-surface/84",
     activeCard:
-      "border-state-warning-border/90 bg-state-warning-surface shadow-[var(--subscriptions-summary-active-shadow-stale)] ring-1 ring-[color:var(--subscriptions-summary-active-ring-stale)]",
+      "border-state-warning-border/90 bg-state-warning-surface shadow-[var(--subscriptions-summary-active-shadow-stale)]",
     activeAccent: "bg-state-warning-border",
     activeBadge: "border-state-warning-border/75 bg-state-warning-surface/92 text-state-warning-foreground",
     activeValue: "text-state-warning-foreground",
@@ -27,7 +26,7 @@ const summaryToneClassNames = {
   review: {
     card: "border-state-review-border/80 bg-state-review-surface/86",
     activeCard:
-      "border-state-review-border/95 bg-state-review-surface shadow-[var(--subscriptions-summary-active-shadow-review)] ring-1 ring-[color:var(--subscriptions-summary-active-ring-review)]",
+      "border-state-review-border/95 bg-state-review-surface shadow-[var(--subscriptions-summary-active-shadow-review)]",
     activeAccent: "bg-state-review-border",
     activeBadge: "border-state-review-border/75 bg-state-review-surface/92 text-state-review-foreground",
     activeValue: "text-state-review-foreground",
@@ -265,7 +264,7 @@ function SummaryFilterCardButton({
       <span
         aria-hidden="true"
         className={cn(
-          "absolute inset-x-0 top-0 h-1.5 transition-opacity duration-150",
+          "absolute inset-x-0 top-0 h-1 transition-opacity duration-150",
           toneClasses.activeAccent,
           summaryCard.isActive ? "opacity-100" : "opacity-0",
         )}

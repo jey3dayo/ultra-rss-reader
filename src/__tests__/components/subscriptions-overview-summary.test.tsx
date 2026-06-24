@@ -193,7 +193,7 @@ describe("SubscriptionsOverviewSummary", () => {
       "shadow-[var(--subscriptions-summary-active-chip-shadow)]",
     );
     expect(activeCard).toHaveClass("shadow-[var(--subscriptions-summary-active-shadow-review)]");
-    expect(activeCard).toHaveClass("ring-[color:var(--subscriptions-summary-active-ring-review)]");
+    expect(activeCard).not.toHaveClass("ring-1");
     const metric = within(activeCard).getByText("2");
     expect(metric).toHaveClass("tabular-nums");
     expect(metric.closest(".t-digit-group")).toBeNull();
