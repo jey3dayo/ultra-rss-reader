@@ -4,6 +4,24 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.49.3] - 2026-06-24
+
+### Maintenance
+
+- フッターのフィルタートグルの shadow token テストを実装済みの UI 契約に揃え、release preflight の jsdom チェックを安定させた。
+
+## [0.49.2] - 2026-06-24
+
+### Fixed
+
+- 購読一覧のツリー表現、見直し候補の判定文言、手動アップデートメニューの表示条件を調整し、レビュー指摘後の UI と契約を安定させた。
+
+## [0.49.1] - 2026-06-24
+
+### Maintenance
+
+- フィードツリー密度のテスト期待値を実装済みの compact / normal tokens に揃え、CI の jsdom 契約を安定させた
+
 ## [0.49.0] - 2026-06-24
 
 ### Bug Fixes

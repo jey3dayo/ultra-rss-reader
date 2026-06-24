@@ -111,7 +111,7 @@ describe("article retention", () => {
       staleDays: 94,
       unreadCount: 0,
       starredCount: 1,
-      reasonKeys: ["stale_90d", "no_unread"],
+      reasonKeys: ["stale_90d", "quiet_no_unread"],
     });
 
     expect(retainedArticleIds).toEqual(new Set(["art-active"]));

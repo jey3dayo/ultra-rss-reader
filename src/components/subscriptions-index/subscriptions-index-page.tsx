@@ -327,16 +327,14 @@ export function SubscriptionsIndexPage() {
           normal: t("status_normal"),
           review: t("status_review"),
           stale_90d: t("status_stale_90d"),
-          no_unread: t("status_no_unread"),
-          no_stars: t("status_no_stars"),
+          quiet_no_unread: t("status_quiet_no_unread"),
         }}
         reasonTooltipLabels={{
           no_articles: t("tooltip_reason_no_articles"),
           normal: t("detail_reason_normal"),
           review: t("tooltip_reason_review"),
           stale_90d: t("tooltip_reason_stale_90d"),
-          no_unread: t("tooltip_reason_no_unread"),
-          no_stars: t("tooltip_reason_no_stars"),
+          quiet_no_unread: t("tooltip_reason_quiet_no_unread"),
         }}
         formatUnreadCountLabel={(count) => t("meta_unread_count", { count })}
         formatLatestArticleLabel={(value) =>

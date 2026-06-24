@@ -188,7 +188,7 @@ describe("subscriptions index helpers", () => {
 
     expect(buildSubscriptionsIndexSummary({ feeds, candidates })).toEqual({
       totalCount: 4,
-      reviewCount: 3,
+      reviewCount: 2,
       staleCount: 2,
     });
   });
@@ -231,7 +231,7 @@ describe("subscriptions index helpers", () => {
       ...firstCandidate,
       title: "Second duplicate",
       staleDays: 94,
-      reasonKeys: ["stale_90d", "no_unread"],
+      reasonKeys: ["stale_90d", "quiet_no_unread"],
     };
     const candidateMap = buildSubscriptionReviewCandidateMap([firstCandidate, secondCandidate]);
 
@@ -289,7 +289,7 @@ describe("subscriptions index helpers", () => {
       resolveSubscriptionRowStatus({
         candidate: candidateMap.get("feed-dormant"),
       }),
-    ).toEqual({ tone: "medium", labelKey: "no_unread" });
+    ).toEqual({ tone: "neutral", labelKey: "normal" });
 
     expect(
       resolveSubscriptionRowStatus({
@@ -302,7 +302,7 @@ describe("subscriptions index helpers", () => {
           staleDays: 4,
           unreadCount: 2,
           starredCount: 0,
-          reasonKeys: ["no_stars"],
+          reasonKeys: [],
         },
       }),
     ).toEqual({ tone: "neutral", labelKey: "normal" });
@@ -457,7 +457,7 @@ describe("subscriptions index helpers", () => {
 
   it("builds summary cards and derives the filtered inventory heading", () => {
     const summaryCards = buildSubscriptionSummaryCards({
-      summary: { totalCount: 4, reviewCount: 3, staleCount: 2 },
+      summary: { totalCount: 4, reviewCount: 2, staleCount: 2 },
       activeSummaryFilter: "review",
       labels: {
         total: "All",
@@ -471,7 +471,7 @@ describe("subscriptions index helpers", () => {
 
     expect(summaryCards).toMatchObject([
       { filterKey: "all", value: "4", isActive: false },
-      { filterKey: "review", value: "3", isActive: true },
+      { filterKey: "review", value: "2", isActive: true },
       { filterKey: "stale", value: "2", isActive: false },
     ]);
     expect(
@@ -608,9 +608,9 @@ describe("subscriptions index helpers", () => {
     expect(
       resolveSubscriptionRowReasonTooltipKey({
         latestArticleAt: "2026-04-01T09:00:00Z",
-        status: { tone: "medium", labelKey: "no_stars" },
+        status: { tone: "medium", labelKey: "quiet_no_unread" },
       }),
-    ).toBe("no_stars");
+    ).toBe("quiet_no_unread");
     expect(
       resolveSubscriptionRowReasonTooltipKey({
         latestArticleAt: null,
@@ -779,7 +779,7 @@ describe("subscriptions index helpers", () => {
     const visibleRows = buildVisibleSubscriptionRows({
       rows,
       activeSummaryFilter: "review",
-      keptFeedIds: new Set(["feed-dormant"]),
+      keptFeedIds: new Set(),
       deferredFeedIds: new Set(),
       searchQuery: "",
       sortKey: "updated_at",
@@ -796,7 +796,7 @@ describe("subscriptions index helpers", () => {
         searchQuery: "",
         sortKey: "updated_at",
       }).map((row) => row.feed.id),
-    ).toEqual(["feed-dormant", "feed-stale"]);
+    ).toEqual(["feed-stale"]);
   });
 
   it("keeps visible row sorting from mutating the caller-owned rows", () => {
@@ -858,7 +858,7 @@ describe("subscriptions index helpers", () => {
         searchQuery: "",
         sortKey: "title",
       }).map((row) => row.feed.id),
-    ).toEqual(["feed-dormant"]);
+    ).toEqual([]);
 
     expect(
       buildVisibleSubscriptionRows({
@@ -1364,7 +1364,7 @@ describe("subscriptions index helpers", () => {
       statusLabel: "stale_90d",
       summary: "stale_and_inactive",
       reasonBoxBody: "stale_days:155 / unread_count:0",
-      reasonLabels: ["stale_90d", "no_unread"],
+      reasonLabels: ["stale_90d", "quiet_no_unread"],
     });
   });
 });

@@ -79,12 +79,12 @@ describe("FeedTreeView", () => {
     expect(screen.getByText("Beta")).toBeInTheDocument();
     expect(screen.getByText("No folder")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Toggle folder Work" })).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByRole("button", { name: "Toggle folder Work" })).toHaveClass("size-11");
-    expect(screen.getByRole("button", { name: "Select folder Work" })).toHaveClass("min-h-11");
+    expect(screen.getByRole("button", { name: "Toggle folder Work" })).toHaveClass("size-9");
+    expect(screen.getByRole("button", { name: "Select folder Work" })).toHaveClass("min-h-9");
     expect(screen.getByRole("button", { name: "Select folder Work" })).toHaveClass("motion-contextual-surface");
-    expect(screen.getByRole("button", { name: /Alpha/ })).toHaveClass("min-h-11");
+    expect(screen.getByRole("button", { name: /Alpha/ })).toHaveClass("min-h-9");
     expect(screen.getByRole("button", { name: /Alpha/ })).toHaveClass("motion-contextual-surface");
-    expect(screen.getByRole("button", { name: /Beta/ })).toHaveClass("min-h-11");
+    expect(screen.getByRole("button", { name: /Beta/ })).toHaveClass("min-h-9");
 
     await user.click(screen.getByRole("button", { name: "Toggle folder Work" }));
     await user.click(screen.getByRole("button", { name: /Alpha/ }));
@@ -436,7 +436,7 @@ describe("FeedTreeView", () => {
 
     const handle = screen.getByRole("button", { name: "Drag Beta" });
     const feedButton = document.querySelector('[data-feed-id="feed-2"]');
-    expect(handle).toHaveClass("size-11");
+    expect(handle).toHaveClass("size-9");
     expect(handle).toHaveClass("group-hover/feed-row:opacity-100");
     expect(feedButton).not.toBeNull();
     expect(feedButton).not.toHaveClass("pl-7");
@@ -498,10 +498,10 @@ describe("FeedTreeView", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Drag Beta" })).toHaveClass("size-11");
+    expect(screen.getByRole("button", { name: "Drag Beta" })).toHaveClass("size-8");
     expect(document.querySelector('[data-feed-id="feed-2"]')).not.toHaveClass("pl-8");
     expect(document.querySelector('[data-feed-id="feed-2"]')).toHaveClass("px-1.5");
-    expect(screen.getByRole("button", { name: "Toggle folder Empty" })).toHaveClass("size-11");
+    expect(screen.getByRole("button", { name: "Toggle folder Empty" })).toHaveClass("size-8");
   });
 
   it("accepts folder moves anywhere inside an expanded folder section", () => {

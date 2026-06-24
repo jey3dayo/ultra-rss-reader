@@ -73,13 +73,13 @@ describe("FeedDetailPanel", () => {
     expect(screen.getByRole("link", { name: "Help" })).toHaveClass("text-foreground-soft");
     expect(screen.getByTestId("feed-detail-recent-articles")).toHaveClass("space-y-2", "border-t", "pt-3");
     expect(screen.getByText("最近の記事タイトル")).toHaveClass("text-[0.88rem]", "leading-5");
-    expect(screen.getByRole("button", { name: "フィードを編集" }).parentElement).toHaveClass("border-t", "pt-4");
+    expect(screen.getByRole("button", { name: "フィードを編集" }).parentElement).toHaveClass("border-t", "pt-3");
     expect(screen.getByRole("button", { name: "フィードを編集" })).toHaveClass(
-      "min-h-11",
+      "min-h-9",
+      "w-auto",
       "px-3",
-      "sm:px-3.5",
-      "border-border-strong",
-      "bg-surface-1/88",
+      "border-border/70",
+      "bg-surface-1/72",
     );
     expect(screen.getByRole("button", { name: "フィードを編集" })).not.toHaveClass("rounded-full");
   });

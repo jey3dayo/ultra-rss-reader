@@ -374,8 +374,10 @@ describe("SubscriptionsIndexPage", () => {
     expect(firstGroupButton).toHaveClass("motion-disclosure-trigger");
     expect(firstGroupButton.className).toMatch(/rounded-(md|lg|xl)/);
     expect(secondGroupButton.className).toMatch(/rounded-(md|lg|xl)/);
-    expect(firstGroupButton).not.toHaveClass("border");
-    expect(screen.getByTestId("subscriptions-folder-tree-rail-folder-1")).toHaveClass("border-l");
+    expect(firstGroupButton).toHaveClass("border", "border-transparent");
+    expect(screen.getByTestId("subscriptions-folder-tree-rail-folder-1")).toHaveClass(
+      "before:bg-[color:var(--subscriptions-list-tree-rail)]",
+    );
   });
 
   it("collapses and re-expands a single group while keeping the current detail selection", async () => {
