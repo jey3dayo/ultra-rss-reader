@@ -35,6 +35,30 @@ pub(crate) fn is_updater_enabled_by_release_config(config: &Config) -> bool {
     )
 }
 
+pub(crate) fn is_updater_manual_check_configured(config: &Config) -> bool {
+    let Some(updater_config) = config.plugins.0.get("updater") else {
+        return false;
+    };
+
+    let has_endpoint = updater_config
+        .get("endpoints")
+        .and_then(|value| value.as_array())
+        .is_some_and(|endpoints| {
+            endpoints.iter().any(|endpoint| {
+                endpoint
+                    .as_str()
+                    .is_some_and(|endpoint| !endpoint.trim().is_empty())
+            })
+        });
+
+    let has_pubkey = updater_config
+        .get("pubkey")
+        .and_then(|value| value.as_str())
+        .is_some_and(|pubkey| !pubkey.trim().is_empty());
+
+    has_endpoint && has_pubkey
+}
+
 fn clear_pending_update<T>(pending: &mut Option<T>) {
     *pending = None;
 }
@@ -444,7 +468,8 @@ mod tests {
     use super::{
         clear_pending_update, is_prerelease_version, is_strictly_newer_version,
         is_update_download_in_flight, is_updater_enabled_by_release_config,
-        next_download_progress_percent, next_download_session_id, parse_semantic_version_parts,
+        is_updater_manual_check_configured, next_download_progress_percent,
+        next_download_session_id, parse_semantic_version_parts,
         pending_update_metadata_matches_parts, update_event_emit_warning,
         update_policy_error_parts, updater_endpoint_error_message,
         updater_initialization_error_message, DownloadGuard, SyncInstallGuard,
@@ -502,6 +527,39 @@ mod tests {
         config.bundle.create_updater_artifacts =
             Updater::String(tauri::utils::config::V1Compatible::V1Compatible);
         assert!(is_updater_enabled_by_release_config(&config));
+    }
+
+    #[test]
+    fn manual_update_check_availability_follows_updater_plugin_config() {
+        let mut config = Config::default();
+        assert!(!is_updater_manual_check_configured(&config));
+
+        config.plugins.0.insert(
+            "updater".to_string(),
+            serde_json::json!({
+                "endpoints": ["https://example.com/latest.json"],
+                "pubkey": "test-pubkey"
+            }),
+        );
+        assert!(is_updater_manual_check_configured(&config));
+
+        config.plugins.0.insert(
+            "updater".to_string(),
+            serde_json::json!({
+                "endpoints": ["   "],
+                "pubkey": "test-pubkey"
+            }),
+        );
+        assert!(!is_updater_manual_check_configured(&config));
+
+        config.plugins.0.insert(
+            "updater".to_string(),
+            serde_json::json!({
+                "endpoints": ["https://example.com/latest.json"],
+                "pubkey": "   "
+            }),
+        );
+        assert!(!is_updater_manual_check_configured(&config));
     }
 
     #[test]
