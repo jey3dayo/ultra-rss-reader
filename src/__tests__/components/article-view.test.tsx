@@ -2043,7 +2043,7 @@ describe("ArticleView", () => {
     expect(summary).toHaveClass(readerPassiveCardOffsetClassName);
     expect(
       within(summary).getByRole("heading", { level: 3, name: "Tech Blog" }).closest('[data-surface-card="section"]'),
-    ).toHaveClass("rounded-3xl", "bg-card/38", "shadow-none", "dark:bg-card/38");
+    ).toHaveClass("rounded-md", "bg-card/38", "shadow-none", "dark:bg-card/38");
     expect(within(summary).getByRole("heading", { level: 3, name: "Tech Blog" })).toBeInTheDocument();
     expect(within(summary).getByText("Latest Article")).toBeInTheDocument();
     expect(within(summary).getByText("First Article")).toBeInTheDocument();
@@ -2190,6 +2190,7 @@ describe("ArticleView", () => {
     });
     expect(within(summary).getByText("Feeds")).toBeInTheDocument();
     expect(within(summary).getByText(/^(Latest Update|latest_update)/i)).toBeInTheDocument();
+    expect(within(summary).queryByText("Choose one from the middle list and it opens right away.")).toBeNull();
   });
 
   it("renders a starred smart-view summary card when starred is selected without an article", async () => {
@@ -2212,6 +2213,7 @@ describe("ArticleView", () => {
     });
     expect(within(summary).getByText("Feeds")).toBeInTheDocument();
     expect(within(summary).getByText("Latest Update")).toBeInTheDocument();
+    expect(within(summary).queryByText("Choose one from the middle list and it opens right away.")).toBeNull();
   });
 
   it("renders account setup guidance when no accounts are available", async () => {

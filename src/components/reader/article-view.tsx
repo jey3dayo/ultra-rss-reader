@@ -204,7 +204,11 @@ function SelectionSummaryEmptyState({ summary }: { summary: ArticleViewSummarySt
       : undefined;
 
   return (
-    <SummaryEmptyState {...cardProps} summaryText={t("empty_state_pick_from_list")} primaryAction={primaryAction} />
+    <SummaryEmptyState
+      {...cardProps}
+      summaryText={summary.kind === "smart" ? undefined : t("empty_state_pick_from_list")}
+      primaryAction={primaryAction}
+    />
   );
 }
 
