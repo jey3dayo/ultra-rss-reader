@@ -34,13 +34,38 @@ describe("FeedTreeFolderSection", () => {
       name: "Toggle folder Comic",
     });
 
-    expect(folderButton).toHaveClass("pl-5");
+    expect(folderButton).toHaveClass("pl-0.5");
+    expect(folderButton).toHaveClass("-ml-1");
+    expect(folderButton.querySelector("span")).not.toHaveClass("-ml-1");
     expect(folderButton).toHaveClass("rounded-lg");
     expect(folderButton).not.toHaveClass("pl-0");
     expect(toggleButton).toHaveClass("select-none", "hover:bg-[var(--sidebar-hover-surface)]");
     expect(toggleButton).toHaveClass("size-9");
     expect(screen.getByText("Comic")).toHaveClass("font-medium");
     expect(screen.getByText("9,274")).toHaveClass("text-[0.72rem]", "text-sidebar-foreground/54");
+    expect(folderButton.querySelector("svg")).not.toBeInTheDocument();
+  });
+
+  it("adds a folder icon slot when feed favicons are visible", () => {
+    render(
+      <FeedTreeFolderSection
+        folder={baseFolder}
+        activeDropTarget={null}
+        onToggleFolder={vi.fn()}
+        onSelectFolder={vi.fn()}
+        onSelectFeed={vi.fn()}
+        displayFavicons={true}
+      />,
+    );
+
+    const folderButton = screen.getByRole("button", {
+      name: "Select folder Comic",
+    });
+
+    expect(folderButton).toHaveClass("pl-0.5");
+    expect(folderButton).toHaveClass("-ml-1");
+    expect(folderButton.querySelector("span")).not.toHaveClass("-ml-1");
+    expect(folderButton.querySelector("svg")).toHaveClass("size-3.5");
   });
 
   it("keeps the folder toggle in normal row flow so the selection bar stays off the chevron rail", () => {
@@ -60,9 +85,46 @@ describe("FeedTreeFolderSection", () => {
     });
     const selectedIndicator = document.querySelector<HTMLElement>("[data-folder-row-selected-indicator='folder-1']");
 
-    expect(folderButton).toHaveClass("pl-5");
+    expect(folderButton).toHaveClass("pl-0.5");
     expect(folderButton).not.toHaveClass("pl-7");
     expect(selectedIndicator?.parentElement).toHaveClass("flex", "items-center", "gap-0.5");
+  });
+
+  it("aligns the child rail with the disclosure chevron wire", () => {
+    render(
+      <FeedTreeFolderSection
+        folder={{
+          ...baseFolder,
+          isExpanded: true,
+          feeds: [
+            {
+              id: "feed-1",
+              accountId: "acc-1",
+              folderId: "folder-1",
+              title: "Alpha",
+              url: "https://example.com/feed.xml",
+              siteUrl: "https://example.com",
+              unreadCount: 1,
+              readerMode: "on",
+              webPreviewMode: "off",
+              isSelected: false,
+              grayscaleFavicon: false,
+            },
+          ],
+        }}
+        activeDropTarget={null}
+        onToggleFolder={vi.fn()}
+        onSelectFolder={vi.fn()}
+        onSelectFeed={vi.fn()}
+        displayFavicons={true}
+      />,
+    );
+
+    const folderPanel = document.getElementById("feed-tree-folder-panel-folder-1");
+    const childRail = folderPanel?.querySelector(".border-l");
+
+    expect(childRail).toHaveClass("ml-[1.125rem]", "pl-3");
+    expect(childRail).not.toHaveClass("ml-2");
   });
 
   it("does not mark a zero-unread folder read on middle click", () => {

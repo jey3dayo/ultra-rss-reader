@@ -1,4 +1,4 @@
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Folder } from "lucide-react";
 import type { MouseEvent as ReactMouseEvent, ReactNode, PointerEvent as ReactPointerEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { ContextMenu } from "@/design-system";
@@ -12,6 +12,9 @@ import { FeedTreeRow } from "./feed-tree-row";
 import { getSidebarDensityTokens, type SidebarDensity } from "./sidebar-density";
 import { SidebarLeadingControlButton } from "./sidebar-leading-control-button";
 import { SidebarNavButton } from "./sidebar-nav-button";
+
+const folderParentRailClassName = "-ml-1 pl-0.5";
+const folderChildRailClassName = "ml-[1.125rem] pl-3";
 
 type FeedTreeFolderSectionProps = {
   sidebarDensity?: SidebarDensity;
@@ -135,7 +138,8 @@ export function FeedTreeFolderSection({
                     }
                   : {})}
                 className={cn(
-                  "flex-1 rounded-lg px-0.5 pl-5",
+                  "flex-1 rounded-lg px-0.5",
+                  folderParentRailClassName,
                   isActive && "border-dashed bg-[var(--feed-tree-drop-target-surface)] ring-1 ring-sidebar-border",
                 )}
               />
@@ -145,6 +149,11 @@ export function FeedTreeFolderSection({
             onClick={() => onSelectFolder?.(folder.id)}
             onMouseDown={handleMiddleMouseDown}
           >
+            {displayFavicons ? (
+              <span className="flex size-5 shrink-0 items-center justify-center text-sidebar-foreground/46">
+                <Folder className="size-3.5" aria-hidden="true" />
+              </span>
+            ) : null}
             <span className="max-w-full truncate font-medium tracking-[-0.01em]" dir="auto" title={folder.name}>
               {folder.name}
             </span>
@@ -161,7 +170,11 @@ export function FeedTreeFolderSection({
       >
         <div className="motion-disclosure-body">
           <div
-            className={cn("mt-0.5 border-l border-[var(--feed-tree-rail-border)]", tokens.treeInset, tokens.childGap)}
+            className={cn(
+              "mt-0.5 border-l border-[var(--feed-tree-rail-border)]",
+              folderChildRailClassName,
+              tokens.childGap,
+            )}
           >
             {folder.feeds.map((feed) => (
               <FeedTreeRow
