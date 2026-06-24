@@ -228,6 +228,12 @@
   --settings-shell-content-title: rgba(38, 37, 30, 0.92);
   --settings-shell-section-label: rgba(104, 72, 42, 0.95);
   --settings-shell-field-label: rgba(38, 37, 30, 0.76);
+  --settings-shell-divider-border: rgba(38, 37, 30, 0.08);
+  --settings-shell-section-border: rgba(38, 37, 30, 0.04);
+  --settings-shell-control-border: rgba(38, 37, 30, 0.08);
+  --settings-shell-shadow: var(--shadow-elevation-3);
+  --settings-shell-section-shadow: none;
+  --settings-shell-control-shadow: none;
   --subscriptions-shell-bg: var(--background);
   --subscriptions-summary-surface: rgba(247, 247, 244, 0.72);
   --subscriptions-list-surface: rgba(242, 241, 237, 0.42);
@@ -258,6 +264,16 @@
   --control-chip-pressed-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-border-strong) 60%, transparent);
   --subscriptions-workspace-surface: rgba(247, 247, 244, 0.58);
   --subscriptions-workspace-shadow: 0 14px 34px -30px rgba(38, 37, 30, 0.14);
+  --workspace-low-wire-group-surface: rgba(247, 247, 244, 0.42);
+  --workspace-low-wire-header-surface: linear-gradient(
+    135deg,
+    rgba(247, 247, 244, 0.78) 0%,
+    rgba(235, 234, 229, 0.34) 100%
+  );
+  --workspace-low-wire-highlight: rgba(255, 255, 255, 0.6);
+  --workspace-low-wire-section-border: rgba(38, 37, 30, 0.05);
+  --workspace-low-wire-divider: rgba(38, 37, 30, 0.08);
+  --workspace-low-wire-action-surface: rgba(247, 247, 244, 0.7);
   --subscriptions-pane-divider: rgba(38, 37, 30, 0.08);
   --subscriptions-list-group-surface: rgba(247, 247, 244, 0.74);
   --reader-list-pane-surface: linear-gradient(
@@ -495,6 +511,12 @@
   --settings-shell-content-title: rgba(243, 239, 230, 0.96);
   --settings-shell-section-label: rgba(213, 184, 145, 0.74);
   --settings-shell-field-label: rgba(243, 239, 230, 0.76);
+  --settings-shell-divider-border: rgba(243, 239, 230, 0.1);
+  --settings-shell-section-border: rgba(243, 239, 230, 0.05);
+  --settings-shell-control-border: rgba(243, 239, 230, 0.1);
+  --settings-shell-shadow: var(--shadow-elevation-3);
+  --settings-shell-section-shadow: none;
+  --settings-shell-control-shadow: none;
   --subscriptions-shell-bg: var(--background);
   --subscriptions-summary-surface: rgba(34, 30, 25, 0.68);
   --subscriptions-list-surface: rgba(28, 25, 21, 0.34);
@@ -525,6 +547,12 @@
   --control-chip-pressed-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-border-strong) 60%, transparent);
   --subscriptions-workspace-surface: rgba(34, 30, 25, 0.5);
   --subscriptions-workspace-shadow: 0 16px 38px -34px rgba(0, 0, 0, 0.24);
+  --workspace-low-wire-group-surface: rgba(34, 30, 25, 0.42);
+  --workspace-low-wire-header-surface: linear-gradient(135deg, rgba(34, 30, 25, 0.82) 0%, rgba(44, 38, 31, 0.48) 100%);
+  --workspace-low-wire-highlight: rgba(243, 239, 230, 0.08);
+  --workspace-low-wire-section-border: rgba(243, 239, 230, 0.06);
+  --workspace-low-wire-divider: rgba(243, 239, 230, 0.09);
+  --workspace-low-wire-action-surface: rgba(34, 30, 25, 0.7);
   --subscriptions-pane-divider: rgba(243, 239, 230, 0.08);
   --subscriptions-list-group-surface: rgba(34, 30, 25, 0.62);
   --reader-list-pane-surface: linear-gradient(
@@ -903,6 +931,27 @@ html.vertical-wipe-transition::view-transition-new(root) {
   transition-timing-function: var(--motion-ease-standard);
 }
 
+.motion-filter-toggle {
+  transition-property: background-color, border-color, color, box-shadow, opacity;
+  transition-duration: var(--motion-duration-contextual);
+  transition-timing-function: var(--motion-ease-standard);
+}
+
+.motion-filter-toggle > [data-filter-toggle-content="true"] {
+  transform: translateY(0);
+  transition:
+    opacity var(--motion-duration-contextual) var(--motion-ease-standard),
+    transform var(--motion-duration-contextual) var(--motion-ease-standard);
+}
+
+.motion-filter-toggle[data-pressed] > [data-filter-toggle-content="true"] {
+  transform: translateY(-1px);
+}
+
+.motion-filter-toggle:active > [data-filter-toggle-content="true"] {
+  transform: translateY(0);
+}
+
 .motion-static-hover-surface {
   transition-property: background-color, border-color, color, box-shadow, opacity;
   transition-duration: var(--motion-duration-contextual);
@@ -1183,6 +1232,8 @@ html.vertical-wipe-transition::view-transition-new(root) {
   .motion-pressable-surface,
   .motion-button-surface,
   .motion-contextual-surface,
+  .motion-filter-toggle,
+  .motion-filter-toggle > [data-filter-toggle-content="true"],
   .motion-static-hover-surface,
   .motion-content-swap,
   .motion-resize-surface,
@@ -1203,6 +1254,8 @@ html.vertical-wipe-transition::view-transition-new(root) {
   .motion-interactive-surface:hover,
   .motion-interactive-surface:active,
   .motion-interactive-surface:focus-visible,
+  .motion-filter-toggle[data-pressed] > [data-filter-toggle-content="true"],
+  .motion-filter-toggle:active > [data-filter-toggle-content="true"],
   .motion-contextual-surface:hover,
   .motion-contextual-surface:active,
   .motion-contextual-surface:focus-within,
