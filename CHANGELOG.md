@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.48.0] - 2026-06-24
+
+### Bug Fixes
+
+- Reader のモバイル記事ツールバー、設定モーダル、設定行、購読一覧ヘッダーの狭幅・高密度レイアウトで横 overflow が出ないようにした
+
 ## [0.47.2] - 2026-06-24
 
 ### Bug Fixes
