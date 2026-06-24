@@ -30,11 +30,12 @@ pub fn local_sync_operation_path(
     account_root: &Path,
     device_id: &LocalSyncDeviceId,
     sequence: u64,
-) -> PathBuf {
-    account_root
+) -> DomainResult<PathBuf> {
+    let device_dir = validated_device_dir_name(device_id)?;
+    Ok(account_root
         .join("ops")
-        .join(&device_id.0)
-        .join(format!("{sequence:08}.json"))
+        .join(device_dir)
+        .join(format!("{sequence:08}.json")))
 }
 
 pub fn write_local_sync_operation_file(
@@ -42,7 +43,7 @@ pub fn write_local_sync_operation_file(
     operation: &LocalAccountSyncOperation,
     sequence: u64,
 ) -> DomainResult<PathBuf> {
-    let path = local_sync_operation_path(account_root, &operation.device_id, sequence);
+    let path = local_sync_operation_path(account_root, &operation.device_id, sequence)?;
     write_local_sync_operation_file_at(&path, operation)?;
     Ok(path)
 }
@@ -89,11 +90,17 @@ pub fn write_local_sync_operation_file_at(
             redacted_sync_path_label(&temp_path)
         ))
     })?;
-    fs::rename(&temp_path, path).map_err(|error| {
+    fs::hard_link(&temp_path, path).map_err(|error| {
         let _ = fs::remove_file(&temp_path);
         DomainError::Persistence(format!(
             "Failed to finalize local sync operation file {}: {error}",
             redacted_sync_path_label(path)
+        ))
+    })?;
+    fs::remove_file(&temp_path).map_err(|error| {
+        DomainError::Persistence(format!(
+            "Failed to remove finalized local sync temp file {}: {error}",
+            redacted_sync_path_label(&temp_path)
         ))
     })?;
     Ok(())
@@ -197,12 +204,27 @@ fn read_local_sync_operation_file(path: &Path) -> DomainResult<LocalAccountSyncO
     parse_operation_file(&content).map(|file| file.operation)
 }
 
+fn validated_device_dir_name(device_id: &LocalSyncDeviceId) -> DomainResult<&str> {
+    let value = device_id.0.as_str();
+    if value.is_empty()
+        || !value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-' || byte == b'_')
+    {
+        return Err(DomainError::Validation(
+            "Local sync device ID cannot be used as a file path component".to_string(),
+        ));
+    }
+    Ok(value)
+}
+
 fn temp_operation_path(path: &Path) -> PathBuf {
     let file_name = path
         .file_name()
         .and_then(|value| value.to_str())
         .unwrap_or("operation.json");
-    path.with_file_name(format!(".{file_name}.tmp"))
+    let suffix = uuid::Uuid::new_v4();
+    path.with_file_name(format!(".{file_name}.{suffix}.tmp"))
 }
 
 fn redacted_sync_path_label(path: &Path) -> String {
@@ -242,6 +264,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let path = write_local_sync_operation_file(dir.path(), &operation("op-1"), 1)
             .expect("operation file should be written");
+        let original_content = fs::read_to_string(&path).unwrap();
 
         assert!(path.exists());
         assert!(
@@ -257,6 +280,29 @@ mod tests {
             "successful write should not leave a temp file behind"
         );
         assert!(write_local_sync_operation_file(dir.path(), &operation("op-2"), 1).is_err());
+        assert_eq!(fs::read_to_string(&path).unwrap(), original_content);
+    }
+
+    #[test]
+    fn rejects_device_ids_that_are_not_safe_path_components() {
+        let dir = tempfile::tempdir().unwrap();
+        for device_id in [
+            "",
+            "../escape",
+            "nested/device",
+            "nested\\device",
+            ".hidden",
+        ] {
+            let mut operation = operation("op-invalid-device");
+            operation.device_id = LocalSyncDeviceId(device_id.to_string());
+
+            let error = write_local_sync_operation_file(dir.path(), &operation, 1)
+                .expect_err("unsafe device ID should be rejected");
+
+            assert!(error
+                .to_string()
+                .contains("Local sync device ID cannot be used as a file path component"));
+        }
     }
 
     #[test]
