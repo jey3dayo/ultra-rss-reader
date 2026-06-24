@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.49.2] - 2026-06-24
+
+### Fixed
+
+- 購読一覧のツリー表現、見直し候補の判定文言、手動アップデートメニューの表示条件を調整し、レビュー指摘後の UI と契約を安定させた。
+
 ## [0.49.1] - 2026-06-24
 
 ### Maintenance
