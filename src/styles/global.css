@@ -233,6 +233,9 @@
   --subscriptions-list-surface: rgba(242, 241, 237, 0.42);
   --subscriptions-detail-surface: rgba(235, 234, 229, 0.5);
   --subscriptions-list-divider: rgba(38, 37, 30, 0.12);
+  --subscriptions-list-tree-rail: rgba(38, 37, 30, 0.2);
+  --subscriptions-list-tree-node-border: rgba(38, 37, 30, 0.22);
+  --subscriptions-list-tree-node-surface: rgba(247, 247, 244, 0.92);
   --subscriptions-list-favicon-surface: rgba(247, 247, 244, 0.88);
   --subscriptions-list-favicon-surface-muted: rgba(235, 234, 229, 0.88);
   --subscriptions-list-meta-divider: rgba(38, 37, 30, 0.25);
@@ -497,6 +500,9 @@
   --subscriptions-list-surface: rgba(28, 25, 21, 0.34);
   --subscriptions-detail-surface: rgba(35, 31, 26, 0.44);
   --subscriptions-list-divider: rgba(243, 239, 230, 0.12);
+  --subscriptions-list-tree-rail: rgba(243, 239, 230, 0.2);
+  --subscriptions-list-tree-node-border: rgba(243, 239, 230, 0.22);
+  --subscriptions-list-tree-node-surface: rgba(34, 30, 25, 0.92);
   --subscriptions-list-favicon-surface: rgba(34, 30, 25, 0.9);
   --subscriptions-list-favicon-surface-muted: rgba(45, 40, 34, 0.88);
   --subscriptions-list-meta-divider: rgba(243, 239, 230, 0.25);
@@ -1048,8 +1054,9 @@ html.vertical-wipe-transition::view-transition-new(root) {
 
 .motion-resize-surface {
   transition-property:
-    width, height, min-height, max-width, max-height, padding, grid-template-columns, grid-template-rows, opacity,
-    transform, border-color, background-color, color;
+    width, height, min-height, max-width, max-height, padding,
+    grid-template-columns, grid-template-rows, opacity, transform, border-color,
+    background-color, color;
   transition-duration: var(--motion-duration-resize);
   transition-timing-function: var(--motion-ease-emphasized);
   will-change: width, height, min-height, max-width, max-height;

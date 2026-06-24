@@ -230,12 +230,12 @@ describe("SubscriptionsListPane", () => {
     expect(folderButton).toHaveAttribute("aria-expanded", "true");
     expect(folderButton).toHaveAttribute("aria-controls", "subscriptions-group-panel-__ungrouped__");
     expect(folderButton).toHaveClass("min-h-11");
-    expect(folderButton).not.toHaveClass("border");
+    expect(folderButton).toHaveClass("border", "border-transparent");
     expect(folderButton).toHaveTextContent("1");
 
     const rail = screen.getByTestId("subscriptions-folder-tree-rail-ungrouped");
-    expect(rail).toHaveClass("border-l");
-    expect(rail).toHaveClass("pl-3");
+    expect(rail).toHaveClass("before:bg-[color:var(--subscriptions-list-tree-rail)]");
+    expect(rail).toHaveClass("pl-5");
   });
 
   it("keeps collapsed folder panels hidden and inert", () => {
