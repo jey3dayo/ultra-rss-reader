@@ -249,6 +249,49 @@ describe("buildSubscriptionReviewCandidates", () => {
     });
   });
 
+  it("marks quiet unread feeds at the 30 day boundary only", () => {
+    const candidates = buildSubscriptionReviewCandidates({
+      feeds: [
+        { ...feeds[0], id: "feed-quiet-boundary", unread_count: 0 },
+        { ...feeds[1], id: "feed-recent-unread-boundary", unread_count: 0 },
+        { ...feeds[2], id: "feed-quiet-with-unread", unread_count: 1 },
+      ],
+      folders,
+      feedArticleSummaries: [
+        {
+          feed_id: "feed-quiet-boundary",
+          latest_article_at: "2026-03-06T00:00:00Z",
+          starred_count: 0,
+        },
+        {
+          feed_id: "feed-recent-unread-boundary",
+          latest_article_at: "2026-03-07T00:00:00Z",
+          starred_count: 0,
+        },
+        {
+          feed_id: "feed-quiet-with-unread",
+          latest_article_at: "2026-03-06T00:00:00Z",
+          starred_count: 0,
+        },
+      ],
+      now: new Date("2026-04-05T00:00:00Z"),
+      hiddenFeedIds: new Set(),
+    });
+
+    expect(candidates.find((candidate) => candidate.feedId === "feed-quiet-boundary")).toMatchObject({
+      staleDays: 30,
+      reasonKeys: ["quiet_no_unread"],
+    });
+    expect(candidates.find((candidate) => candidate.feedId === "feed-recent-unread-boundary")).toMatchObject({
+      staleDays: 29,
+      reasonKeys: [],
+    });
+    expect(candidates.find((candidate) => candidate.feedId === "feed-quiet-with-unread")).toMatchObject({
+      staleDays: 30,
+      reasonKeys: [],
+    });
+  });
+
   it("does not expose stale review state for future latest article dates", () => {
     const candidates = buildSubscriptionReviewCandidates({
       feeds: [
@@ -486,7 +529,7 @@ describe("buildSubscriptionReviewCandidates", () => {
     ]);
   });
 
-  it("sorts equally stale candidates by reason count, unread count, starred count, then title", () => {
+  it("sorts equally stale candidates by reason count, unread count, then title without using stars", () => {
     const candidates = buildSubscriptionReviewCandidates({
       feeds: [
         {
@@ -530,12 +573,12 @@ describe("buildSubscriptionReviewCandidates", () => {
         {
           feed_id: "feed-fewer-unread",
           latest_article_at: "2026-01-01T00:00:00Z",
-          starred_count: 2,
+          starred_count: 0,
         },
         {
           feed_id: "feed-fewer-stars",
           latest_article_at: "2026-01-01T00:00:00Z",
-          starred_count: 1,
+          starred_count: 10,
         },
         {
           feed_id: "feed-title-tie",

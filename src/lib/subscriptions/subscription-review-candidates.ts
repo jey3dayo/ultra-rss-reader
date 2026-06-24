@@ -246,11 +246,6 @@ export function buildSubscriptionReviewCandidates({
       return unreadDelta;
     }
 
-    const starredDelta = left.starredCount - right.starredCount;
-    if (starredDelta !== 0) {
-      return starredDelta;
-    }
-
     return left.title.localeCompare(right.title);
   });
 }
