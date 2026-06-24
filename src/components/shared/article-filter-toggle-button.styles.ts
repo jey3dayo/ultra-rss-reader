@@ -7,10 +7,10 @@ export type ArticleFilterToggleSize = "compact" | "filter" | "comfortable";
 
 const ARTICLE_FILTER_TONE_CLASSNAMES: Record<ArticleFilterToggleMode, string> = {
   unread:
-    "text-foreground-soft hover:bg-[var(--semantic-tone-unread-surface)] hover:text-[var(--semantic-tone-unread-content-foreground)] data-[pressed]:bg-[var(--semantic-tone-unread-surface)] data-[pressed]:text-[var(--semantic-tone-unread-content-foreground)]",
-  all: "text-foreground-soft hover:bg-surface-3/60 hover:text-foreground data-[pressed]:bg-surface-4 data-[pressed]:text-foreground",
+    "text-foreground-soft hover:bg-transparent hover:text-[var(--semantic-tone-unread-content-foreground)] data-[pressed]:bg-transparent data-[pressed]:text-[var(--semantic-tone-unread-content-foreground)]",
+  all: "text-foreground-soft hover:bg-transparent hover:text-foreground data-[pressed]:bg-transparent data-[pressed]:text-foreground",
   starred:
-    "text-foreground-soft hover:bg-[var(--semantic-tone-starred-surface)] hover:text-[var(--semantic-tone-starred-content-foreground)] data-[pressed]:bg-[var(--semantic-tone-starred-surface)] data-[pressed]:text-[var(--semantic-tone-starred-content-foreground)]",
+    "text-foreground-soft hover:bg-transparent hover:text-[var(--semantic-tone-starred-content-foreground)] data-[pressed]:bg-transparent data-[pressed]:text-[var(--semantic-tone-starred-content-foreground)]",
 };
 
 export function articleFilterToggleButtonClassName({

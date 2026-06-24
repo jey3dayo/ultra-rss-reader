@@ -13,7 +13,8 @@ const buttonVariants = cva(
           "border-border-strong bg-surface-1 text-foreground shadow-elevation-1 hover:bg-surface-2 hover:text-foreground aria-expanded:bg-surface-2",
         secondary:
           "border-border bg-surface-4 text-foreground-soft shadow-none hover:bg-surface-3 hover:text-foreground aria-expanded:bg-surface-3",
-        ghost: "text-foreground-soft shadow-none hover:bg-surface-2 hover:text-foreground aria-expanded:bg-surface-2",
+        ghost:
+          "bg-transparent text-foreground-soft shadow-none hover:bg-transparent hover:text-foreground aria-expanded:bg-transparent aria-expanded:text-foreground",
         destructive:
           "border-state-danger-border bg-state-danger-surface text-state-danger-foreground shadow-none hover:border-state-danger-border hover:bg-state-danger-surface focus-visible:border-state-danger-border focus-visible:ring-destructive/20",
         link: "border-transparent p-0 text-[color:color-mix(in_srgb,var(--primary)_68%,var(--foreground))] shadow-none underline-offset-4 hover:text-primary hover:underline",

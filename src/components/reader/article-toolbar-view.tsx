@@ -2,6 +2,7 @@ import { Copy, Ellipsis, ExternalLink, Eye, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { MOTION_ICON_SWAP_STATE_A, MOTION_ICON_SWAP_STATE_B } from "@/constants";
 import {
+  ghostUtilityActionInteractionClassName,
   IconToolbarButton,
   IconToolbarMenuTrigger,
   IconToolbarToggle,
@@ -57,13 +58,13 @@ type ArticleToolbarVisualActiveTone = "unread" | "neutral" | "accent" | "starred
 
 const articleToolbarVisualActiveClassNames: Record<ArticleToolbarVisualActiveTone, string> = {
   unread:
-    "bg-[var(--semantic-tone-unread-surface)] text-[var(--semantic-tone-unread-content-foreground)] hover:bg-[var(--semantic-tone-unread-surface)] hover:text-[var(--semantic-tone-unread-content-foreground)] focus-visible:bg-[var(--semantic-tone-unread-surface)] focus-visible:text-[var(--semantic-tone-unread-content-foreground)]",
+    "bg-transparent text-[var(--semantic-tone-unread-content-foreground)] hover:bg-transparent hover:text-[var(--semantic-tone-unread-content-foreground)] focus-visible:bg-transparent focus-visible:text-[var(--semantic-tone-unread-content-foreground)]",
   neutral:
-    "bg-surface-3/72 text-foreground hover:bg-surface-3/72 hover:text-foreground focus-visible:bg-surface-3/72 focus-visible:text-foreground",
+    "bg-transparent text-foreground hover:bg-transparent hover:text-foreground focus-visible:bg-transparent focus-visible:text-foreground",
   accent:
-    "bg-primary/12 text-primary hover:bg-primary/12 hover:text-primary focus-visible:bg-primary/12 focus-visible:text-primary",
+    "bg-transparent text-primary hover:bg-transparent hover:text-primary focus-visible:bg-transparent focus-visible:text-primary",
   starred:
-    "bg-[var(--semantic-tone-starred-surface)] text-[var(--semantic-tone-starred-content-foreground)] hover:bg-[var(--semantic-tone-starred-surface)] hover:text-[var(--semantic-tone-starred-content-foreground)] focus-visible:bg-[var(--semantic-tone-starred-surface)] focus-visible:text-[var(--semantic-tone-starred-content-foreground)]",
+    "bg-transparent text-[var(--semantic-tone-starred-content-foreground)] hover:bg-transparent hover:text-[var(--semantic-tone-starred-content-foreground)] focus-visible:bg-transparent focus-visible:text-[var(--semantic-tone-starred-content-foreground)]",
 };
 
 const articleToolbarUnavailableClassName =
@@ -145,7 +146,8 @@ function ArticleToolbarMobilePrimaryButton({
       aria-label={label}
       disabled={disabled}
       className={cn(
-        "inline-flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-md bg-transparent px-1.5 text-xs font-medium text-foreground-soft shadow-none select-none hover:bg-surface-2/64 hover:text-foreground focus-visible:bg-surface-2/72 focus-visible:ring-2 focus-visible:ring-ring/45 disabled:text-foreground-soft sm:min-w-11 sm:px-2 [&_svg]:pointer-events-none [&_svg]:shrink-0",
+        "inline-flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-md px-1.5 text-xs font-medium text-foreground-soft select-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/45 disabled:text-foreground-soft sm:min-w-11 sm:px-2 [&_svg]:pointer-events-none [&_svg]:shrink-0",
+        ghostUtilityActionInteractionClassName,
         articleToolbarUnavailableClassName,
         active && articleToolbarVisualActiveClassNames[activeTone],
       )}

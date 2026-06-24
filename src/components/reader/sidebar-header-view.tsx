@@ -71,7 +71,7 @@ export function SidebarHeaderView({
   const isSyncCoolingDown = syncState.status === "cooldown";
   const isAddFeedDisabled = actionAvailability?.addFeed === "disabled";
   const feedbackSpinTimerRef = useRef<number | null>(null);
-  const headerActionButtonClassName = "hover:bg-[var(--sidebar-hover-surface)] hover:text-sidebar-foreground md:px-0";
+  const headerActionButtonClassName = "hover:bg-transparent hover:text-sidebar-foreground md:px-0";
   const mobileHeaderActionButtonClassName = "h-11 min-w-11 gap-1.5 px-3 text-xs font-medium";
 
   useEffect(() => {

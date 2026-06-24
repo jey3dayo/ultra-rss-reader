@@ -42,11 +42,11 @@ const iconToolbarControlVariants = cva(iconToolbarButtonClassName, {
     pressedTone: {
       none: "data-[pressed]:bg-transparent data-[pressed]:text-foreground-soft data-[pressed]:shadow-none data-[pressed]:focus-visible:bg-transparent",
       neutral:
-        "data-[pressed]:bg-surface-3/88 data-[pressed]:text-foreground data-[pressed]:hover:bg-surface-3/88 data-[pressed]:hover:text-foreground data-[pressed]:focus-visible:bg-surface-3/88 data-[pressed]:focus-visible:text-foreground",
+        "data-[pressed]:bg-transparent data-[pressed]:text-foreground data-[pressed]:hover:bg-transparent data-[pressed]:hover:text-foreground data-[pressed]:focus-visible:bg-transparent data-[pressed]:focus-visible:text-foreground",
       accent:
-        "data-[pressed]:bg-primary/12 data-[pressed]:text-primary data-[pressed]:hover:bg-primary/12 data-[pressed]:hover:text-primary data-[pressed]:focus-visible:bg-primary/12 data-[pressed]:focus-visible:text-primary",
+        "data-[pressed]:bg-transparent data-[pressed]:text-primary data-[pressed]:hover:bg-transparent data-[pressed]:hover:text-primary data-[pressed]:focus-visible:bg-transparent data-[pressed]:focus-visible:text-primary",
       starred:
-        "data-[pressed]:bg-[var(--semantic-tone-starred-surface)] data-[pressed]:text-[var(--semantic-tone-starred-content-foreground)] data-[pressed]:hover:bg-[var(--semantic-tone-starred-surface)] data-[pressed]:hover:text-[var(--semantic-tone-starred-content-foreground)] data-[pressed]:focus-visible:bg-[var(--semantic-tone-starred-surface)] data-[pressed]:focus-visible:text-[var(--semantic-tone-starred-content-foreground)]",
+        "data-[pressed]:bg-transparent data-[pressed]:text-[var(--semantic-tone-starred-content-foreground)] data-[pressed]:hover:bg-transparent data-[pressed]:hover:text-[var(--semantic-tone-starred-content-foreground)] data-[pressed]:focus-visible:bg-transparent data-[pressed]:focus-visible:text-[var(--semantic-tone-starred-content-foreground)]",
     },
   },
   defaultVariants: {

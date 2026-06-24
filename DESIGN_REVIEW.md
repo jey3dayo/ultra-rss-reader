@@ -69,6 +69,7 @@ Promote a fix into `shared` only when all of these are true:
 - the pattern is repeated or clearly reusable
 - the row alignment rule or radius rule should stay consistent across multiple settings surfaces
 - compact utility-action chrome keeps the same borderless resting state, focus treatment, and tonal selected treatment across screens
+- compact ghost utility actions that share the same semantic role and state model should reuse the same shared interaction class or shared primitive for hover, focus, active, disabled, and pressed behavior
 - button families can preserve their semantic role names instead of collapsing into a generic `Button`
 
 Do not promote a component into `shared` only because it looks similar.
@@ -151,6 +152,7 @@ When reviewing compact icon-only action strips, check semantic state and visual 
 - baseline states such as read, default, or closed should stay visually quiet unless the product meaning requires emphasis
 - semantic states such as starred or unread may use tokenized icon tint or a quiet tonal surface, but avoid making every state look equally selected
 - keyboard focus must remain visible even when the pressed surface is intentionally transparent
+- hover, focus, active, disabled, and pressed behavior should come from a shared utility-action primitive or shared interaction class when the controls perform the same kind of action
 - compare sidebar header, reader header, article toolbar, and browser-overlay action strips in `UI Reference / Button Controls Canvas` before adding a local button style
 
 ## Escalation

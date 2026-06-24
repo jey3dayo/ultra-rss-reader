@@ -40,7 +40,7 @@ export function ArticleListHeaderActions({
   searchArticlesButtonText: _searchArticlesButtonText,
   closeSearchLabel,
 }: ArticleListHeaderActionsProps) {
-  const iconToolbarActiveClassName = "bg-surface-3/88 text-foreground shadow-active-inset-highlight";
+  const iconToolbarActiveClassName = "bg-transparent text-foreground shadow-none";
 
   return (
     <TooltipProvider>
@@ -56,7 +56,7 @@ export function ArticleListHeaderActions({
                 aria-pressed={isSidebarVisible}
                 className={cn(
                   "min-h-11 gap-2 px-3 text-sm font-medium text-foreground-soft transition-colors duration-200 hover:text-foreground motion-reduce:transition-none",
-                  isSidebarVisible && "bg-surface-1/72 text-foreground",
+                  isSidebarVisible && "bg-transparent text-foreground",
                 )}
               >
                 <PanelLeft className="size-4" />
