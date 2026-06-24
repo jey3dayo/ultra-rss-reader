@@ -1,6 +1,6 @@
 import type { QueryKey } from "@tanstack/react-query";
 import type { AccountDto, ArticleDto, FeedDto, TagDto } from "@/api/tauri-commands";
-import { loadDevRuntimeOptions, readDevWebUrl, readDevWindowSize } from "@/dev/intent";
+import { type DevWindowSize, loadDevRuntimeOptions, readDevWebUrl, readDevWindowSize } from "@/dev/intent";
 import { DEV_SCENARIO_ID } from "@/dev/scenario-ids";
 import {
   DEV_FEED_DISPLAY_MODE_SCORE,
@@ -306,10 +306,7 @@ type WindowSizeLike = {
   height: number;
 };
 
-type RequestedWindowSize = {
-  width?: number | null;
-  height?: number | null;
-};
+type RequestedWindowSize = Partial<DevWindowSize>;
 
 type DevWindowLike = {
   scaleFactor(): Promise<number>;

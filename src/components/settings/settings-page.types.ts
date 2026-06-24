@@ -1,7 +1,6 @@
-type SettingsPageOption = {
-  value: string;
-  label: string;
-};
+import type { OptionWithLabel } from "@/lib/ui/options";
+
+type SettingsPageOption = OptionWithLabel;
 
 type SettingsPageControlIdentity = {
   id: string;

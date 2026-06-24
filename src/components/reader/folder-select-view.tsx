@@ -1,13 +1,11 @@
 import type { RefObject } from "react";
 import { StackedInputField, StackedSelectField } from "@/design-system";
+import type { OptionWithLabel } from "@/lib/ui/options";
 
 export const NEW_FOLDER_VALUE = "__new__";
 const FOLDER_OPTION_VALUE_PREFIX = "folder:";
 
-export type FolderSelectOption = {
-  value: string;
-  label: string;
-};
+export type FolderSelectOption = OptionWithLabel;
 
 export type FolderSelectViewProps = {
   labelId?: string;
