@@ -59,7 +59,7 @@ export function SettingsModalView({
         {isLoading && <IndeterminateProgress className="absolute inset-x-0 top-0 z-10" />}
         <div
           data-testid="settings-nav-shell"
-          className="flex max-h-[15rem] w-full shrink-0 flex-col border-b border-border/80 sm:h-auto sm:max-h-none sm:w-[292px] sm:border-r sm:border-b-0"
+          className="flex max-h-[18rem] w-full shrink-0 flex-col border-b border-border/80 sm:h-auto sm:max-h-none sm:w-[292px] sm:border-r sm:border-b-0"
           style={{ backgroundColor: "var(--settings-shell-rail)" }}
         >
           <DialogHeader
