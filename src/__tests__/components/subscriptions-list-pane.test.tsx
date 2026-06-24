@@ -25,8 +25,7 @@ const statusLabels = {
   normal: "対応不要",
   review: "見直し候補",
   stale_90d: "90日以上更新なし",
-  no_unread: "見直し候補",
-  no_stars: "見直し候補",
+  quiet_no_unread: "見直し候補",
 } satisfies Record<SubscriptionListRow["status"]["labelKey"], string>;
 
 const reasonTooltipLabels = {
@@ -34,8 +33,7 @@ const reasonTooltipLabels = {
   normal: "最近も動きがあります。今はそのままでよさそうです。",
   review: "見直しの判断材料があります",
   stale_90d: "最後に取得した記事から90日以上たっています",
-  no_unread: "取得済みの記事に未読がありません",
-  no_stars: "取得済みの記事にスターがありません",
+  quiet_no_unread: "更新停止が続いていて、未読もありません",
 } satisfies Record<NonNullable<SubscriptionListRow["reasonTooltipKey"]>, string>;
 
 function renderListPane(
@@ -202,8 +200,8 @@ describe("SubscriptionsListPane", () => {
         folderId: null,
         folderName: null,
         latestArticleAt: "2025-01-01T00:00:00Z",
-        status: { tone: "medium", labelKey: "no_unread" },
-        reasonTooltipKey: "no_unread",
+        status: { tone: "medium", labelKey: "quiet_no_unread" },
+        reasonTooltipKey: "quiet_no_unread",
       },
     ]);
 
@@ -211,7 +209,7 @@ describe("SubscriptionsListPane", () => {
     await user.tab();
     await user.tab();
 
-    expect(await screen.findByText("取得済みの記事に未読がありません")).toHaveClass("motion-popup-surface");
+    expect(await screen.findByText("更新停止が続いていて、未読もありません")).toHaveClass("motion-popup-surface");
   });
 
   it("renders folder disclosure rows as a tree section with count and rail", () => {
@@ -230,12 +228,12 @@ describe("SubscriptionsListPane", () => {
     expect(folderButton).toHaveAttribute("aria-expanded", "true");
     expect(folderButton).toHaveAttribute("aria-controls", "subscriptions-group-panel-__ungrouped__");
     expect(folderButton).toHaveClass("min-h-11");
-    expect(folderButton).not.toHaveClass("border");
+    expect(folderButton).toHaveClass("border", "border-transparent");
     expect(folderButton).toHaveTextContent("1");
 
     const rail = screen.getByTestId("subscriptions-folder-tree-rail-ungrouped");
-    expect(rail).toHaveClass("border-l");
-    expect(rail).toHaveClass("pl-3");
+    expect(rail).toHaveClass("before:bg-[color:var(--subscriptions-list-tree-rail)]");
+    expect(rail).toHaveClass("pl-5");
   });
 
   it("keeps collapsed folder panels hidden and inert", () => {

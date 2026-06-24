@@ -367,7 +367,7 @@ export function ArticleFilterToggleButtonSpecimen() {
       <div data-testid="reference-article-filter-toggle-buttons" className="grid gap-3 lg:grid-cols-2">
         <div className="rounded-md border border-border/60 bg-surface-1/70 p-3">
           <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
-            Colored state filters
+            Ghost state filters
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <ArticleFilterToggleButton mode="unread" pressed value="unread" aria-label="Unread">

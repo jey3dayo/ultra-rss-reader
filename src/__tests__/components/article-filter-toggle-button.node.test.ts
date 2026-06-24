@@ -14,7 +14,10 @@ describe("ArticleFilterToggleButton class contracts", () => {
     expect(className).toContain("text-[13px]");
     expect(className).toContain("data-[pressed]:bg-surface-4");
     expect(className).toContain("data-[pressed]:text-foreground");
-    expect(className).toContain("data-[pressed]:shadow-[var(--control-chip-pressed-shadow)]");
+    expect(className).toContain("border-0");
+    expect(className).toContain("bg-transparent");
+    expect(className).toContain("shadow-none");
+    expect(className).not.toContain("data-[pressed]:shadow-[var(--control-chip-pressed-shadow)]");
     expect(className).not.toContain("semantic-tone-unread");
     expect(className).not.toContain("semantic-tone-starred");
   });

@@ -10,7 +10,7 @@ export type SubscriptionRowStatus =
   | { tone: "neutral"; labelKey: "normal" }
   | {
       tone: "medium";
-      labelKey: "review" | "stale_90d" | "no_unread" | "no_stars";
+      labelKey: "review" | "stale_90d" | "quiet_no_unread";
     };
 
 export type SubscriptionSummaryCard = {

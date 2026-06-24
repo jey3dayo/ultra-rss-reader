@@ -112,8 +112,11 @@ export function FeedDetailPanel({
   const resolvedTitleHref = titleHref ? normalizeFeedWebsiteUrlCandidate(titleHref) : null;
 
   return (
-    <FeedDetailCard data-feed-detail-panel="" className={cn("border-border/65 bg-card/38 shadow-none", className)}>
-      <div className="space-y-4">
+    <FeedDetailCard
+      data-feed-detail-panel=""
+      className={cn("overflow-hidden border-border/65 bg-card/38 p-0 shadow-none", className)}
+    >
+      <div className="space-y-4 border-b border-border/50 bg-surface-1/48 px-4 py-4 sm:px-5">
         <div className={cn("grid items-start gap-3", leadingVisual ? "grid-cols-[auto_minmax(0,1fr)]" : "grid-cols-1")}>
           {leadingVisual ? (
             <div
@@ -132,22 +135,28 @@ export function FeedDetailPanel({
                   rel="noreferrer"
                   className={cn(detailLinkClassName, "inline-flex max-w-full items-start gap-2 no-underline")}
                 >
-                  <h3 className="font-sans text-[1.6rem] font-normal tracking-[-0.03em] text-foreground">{title}</h3>
-                  <ExternalLink aria-hidden="true" className="mt-1 size-4 shrink-0" />
+                  <h3 className="font-sans text-[1.28rem] font-medium leading-tight tracking-[-0.03em] text-foreground">
+                    {title}
+                  </h3>
+                  <ExternalLink aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
                 </a>
               ) : (
-                <h3 className="font-sans text-[1.6rem] font-normal tracking-[-0.03em] text-foreground">{title}</h3>
+                <h3 className="font-sans text-[1.28rem] font-medium leading-tight tracking-[-0.03em] text-foreground">
+                  {title}
+                </h3>
               )}
             </div>
           </div>
         </div>
+      </div>
 
+      <div className="space-y-4 px-4 py-4 sm:px-5">
         <div data-testid="feed-detail-secondary-column" className="space-y-3">
           {badgeLabel ? (
             <LabelChip
               data-testid="feed-detail-status"
               tone={resolveBadgeClassName(badgeTone)}
-              className="self-start rounded-md px-2.5 py-1 text-[10px] tracking-[0.02em]"
+              className="self-start rounded-md px-2 py-0.5 text-[10px] tracking-[0.08em]"
             >
               {badgeLabel}
             </LabelChip>
@@ -190,7 +199,7 @@ export function FeedDetailPanel({
         </div>
 
         <div className="grid gap-3">
-          <dl className="grid gap-3 border-t border-border/55 pt-3 text-sm">
+          <dl className="grid gap-2.5 border-t border-border/55 pt-3 text-sm sm:grid-cols-2">
             {metrics.map((metric) => (
               <FeedDetailRow key={String(metric.label)} label={metric.label} value={metric.value} />
             ))}
@@ -247,15 +256,15 @@ export function FeedDetailPanel({
         </div>
 
         {primaryAction || secondaryAction ? (
-          <div className="flex flex-wrap gap-3 border-t border-border/55 pt-4">
+          <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border/55 pt-3">
             {primaryAction ? (
               <Button
                 aria-label={primaryAction.ariaLabel ?? primaryAction.label}
                 variant="outline"
-                size="lg"
+                size="sm"
                 className={cn(
                   workspaceCompactActionButtonClassName,
-                  "w-full border-border-strong bg-surface-1/88 text-foreground-soft shadow-none hover:bg-surface-2 hover:text-foreground",
+                  "min-h-9 w-auto border-border/70 bg-surface-1/72 px-3 text-[12px] text-foreground-soft shadow-none hover:bg-surface-2 hover:text-foreground",
                 )}
                 onClick={primaryAction.onClick}
               >

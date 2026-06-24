@@ -2,7 +2,7 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 
 use serde::Serialize;
-use tauri::utils::config::{Config, Updater};
+use tauri::utils::config::Config;
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_updater::{Update, UpdaterExt};
 use tokio::sync::Mutex;
@@ -27,13 +27,6 @@ pub(crate) struct PendingUpdateHandle {
 /// metadata is verified again before install so a stale handle cannot be used
 /// after a later check cleared or replaced the pending update.
 pub struct PendingUpdate(pub(crate) Arc<Mutex<Option<PendingUpdateHandle>>>);
-
-pub(crate) fn is_updater_enabled_by_release_config(config: &Config) -> bool {
-    matches!(
-        config.bundle.create_updater_artifacts,
-        Updater::Bool(true) | Updater::String(_)
-    )
-}
 
 pub(crate) fn is_updater_manual_check_configured(config: &Config) -> bool {
     let Some(updater_config) = config.plugins.0.get("updater") else {
@@ -467,9 +460,8 @@ mod tests {
 
     use super::{
         clear_pending_update, is_prerelease_version, is_strictly_newer_version,
-        is_update_download_in_flight, is_updater_enabled_by_release_config,
-        is_updater_manual_check_configured, next_download_progress_percent,
-        next_download_session_id, parse_semantic_version_parts,
+        is_update_download_in_flight, is_updater_manual_check_configured,
+        next_download_progress_percent, next_download_session_id, parse_semantic_version_parts,
         pending_update_metadata_matches_parts, update_event_emit_warning,
         update_policy_error_parts, updater_endpoint_error_message,
         updater_initialization_error_message, DownloadGuard, SyncInstallGuard,
@@ -513,20 +505,6 @@ mod tests {
             "1.2.4",
             "stale-cache"
         ));
-    }
-
-    #[test]
-    fn updater_availability_follows_release_artifact_config() {
-        let mut config = Config::default();
-        config.bundle.create_updater_artifacts = Updater::Bool(false);
-        assert!(!is_updater_enabled_by_release_config(&config));
-
-        config.bundle.create_updater_artifacts = Updater::Bool(true);
-        assert!(is_updater_enabled_by_release_config(&config));
-
-        config.bundle.create_updater_artifacts =
-            Updater::String(tauri::utils::config::V1Compatible::V1Compatible);
-        assert!(is_updater_enabled_by_release_config(&config));
     }
 
     #[test]

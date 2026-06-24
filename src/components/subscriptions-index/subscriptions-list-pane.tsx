@@ -1,4 +1,4 @@
-import { ChevronDown, Search, X } from "lucide-react";
+import { ChevronDown, FolderOpen, Search, X } from "lucide-react";
 import { useCallback, useEffect, useId, useRef } from "react";
 import {
   MOTION_CONTENT_SWAP_CLASS_NAME,
@@ -71,17 +71,19 @@ export function SubscriptionGroupDisclosureButton({
       aria-controls={controlsId}
       onClick={() => onToggleGroup(group.key)}
       className={cn(
-        "motion-disclosure-trigger flex min-h-11 w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-foreground transition-[background-color,color,box-shadow] duration-150 hover:bg-[color:var(--subscriptions-list-row-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-strong/45 motion-reduce:transition-none",
-        !expanded && "text-foreground-soft",
+        "motion-disclosure-trigger flex min-h-11 w-full items-center justify-between rounded-md border border-transparent px-2.5 py-1.5 text-left text-foreground transition-[background-color,border-color,color,box-shadow] duration-150 hover:border-[color:var(--subscriptions-list-divider)] hover:bg-[color:var(--subscriptions-list-row-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-strong/45 motion-reduce:transition-none",
+        expanded
+          ? "bg-[color:var(--subscriptions-list-group-surface)] shadow-[var(--subscriptions-list-group-collapsed-shadow)]"
+          : "text-foreground-soft",
       )}
     >
-      <span className="flex min-w-0 items-center gap-1.5">
-        <ChevronDown
-          className={cn(
-            "motion-disclosure-icon h-3 w-3 shrink-0 text-foreground-soft",
-            expanded ? "rotate-0" : "-rotate-90",
-          )}
-        />
+      <span className="flex min-w-0 items-center gap-2">
+        <span className="relative flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-surface-2/70 text-foreground-soft">
+          <ChevronDown
+            className={cn("motion-disclosure-icon h-3 w-3 shrink-0", expanded ? "rotate-0" : "-rotate-90")}
+          />
+        </span>
+        <FolderOpen aria-hidden="true" className="h-4 w-4 shrink-0 text-foreground-soft" />
         <h3 className="min-w-0 truncate text-[0.88rem] font-semibold tracking-[-0.01em]">{group.label}</h3>
       </span>
       <LabelChip tone="neutral" size="compact" className="shrink-0 bg-surface-1/70 text-[0.72rem]">
@@ -114,7 +116,10 @@ export function SubscriptionsListPane({
 }: SubscriptionsListPaneProps) {
   const headingId = useId();
   const scrollRegionRef = useRef<HTMLDivElement | null>(null);
-  const restoredScrollStateRef = useRef<{ scrollTop: number; resetKey: number } | null>(null);
+  const restoredScrollStateRef = useRef<{
+    scrollTop: number;
+    resetKey: number;
+  } | null>(null);
   const pendingScrollTopRef = useRef<number | null>(null);
   const committedScrollTopRef = useRef<number | null>(null);
   const scrollCommitTimerRef = useRef<number | null>(null);
@@ -250,7 +255,7 @@ export function SubscriptionsListPane({
             const groupBodyId = `subscriptions-group-panel-${group.key}`;
 
             return (
-              <div key={group.key} className="space-y-1.5">
+              <div key={group.key} className="relative space-y-1.5">
                 <SubscriptionGroupDisclosureButton
                   group={group}
                   expanded={expanded}
@@ -259,7 +264,9 @@ export function SubscriptionsListPane({
                 />
                 <div
                   id={groupBodyId}
-                  {...{ [MOTION_DATA_STATE_ATTRIBUTE]: expanded ? MOTION_STATE_OPEN : MOTION_STATE_CLOSED }}
+                  {...{
+                    [MOTION_DATA_STATE_ATTRIBUTE]: expanded ? MOTION_STATE_OPEN : MOTION_STATE_CLOSED,
+                  }}
                   aria-hidden={expanded ? "false" : "true"}
                   inert={expanded ? undefined : true}
                   className="motion-disclosure-panel"
@@ -267,7 +274,7 @@ export function SubscriptionsListPane({
                   <div className="motion-disclosure-body">
                     <div
                       data-testid={`subscriptions-folder-tree-rail-${group.folderId ?? "ungrouped"}`}
-                      className="space-y-2 border-l border-[color:var(--subscriptions-list-divider)] pl-3 pt-2"
+                      className="relative ml-5 space-y-2 pl-5 pt-2 before:absolute before:bottom-5 before:left-0 before:top-0 before:w-px before:bg-[color:var(--subscriptions-list-tree-rail)] before:content-['']"
                     >
                       {group.rows.map((row) => {
                         const isSelected = selectedFeedId === row.feed.id;
@@ -316,11 +323,21 @@ export function SubscriptionsListPane({
                                 <LabelChip tone={resolveStatusTone(row.status.labelKey)} size="compact">
                                   {statusLabels[row.status.labelKey]}
                                 </LabelChip>
-                                <span aria-hidden="true" style={{ color: "var(--subscriptions-list-meta-divider)" }}>
+                                <span
+                                  aria-hidden="true"
+                                  style={{
+                                    color: "var(--subscriptions-list-meta-divider)",
+                                  }}
+                                >
                                   •
                                 </span>
                                 <span>{formatUnreadCountLabel(row.feed.unread_count)}</span>
-                                <span aria-hidden="true" style={{ color: "var(--subscriptions-list-meta-divider)" }}>
+                                <span
+                                  aria-hidden="true"
+                                  style={{
+                                    color: "var(--subscriptions-list-meta-divider)",
+                                  }}
+                                >
                                   •
                                 </span>
                                 <span>{formatLatestArticleLabel(row.latestArticleAt)}</span>
@@ -329,14 +346,28 @@ export function SubscriptionsListPane({
                           />
                         );
 
+                        const treeRow = (
+                          <div key={`${row.feed.id}-tree-row`} className="relative">
+                            <span
+                              aria-hidden="true"
+                              className="absolute left-[-1.25rem] top-1/2 h-px w-4 bg-[color:var(--subscriptions-list-tree-rail)]"
+                            />
+                            <span
+                              aria-hidden="true"
+                              className="absolute left-[-1.3125rem] top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[color:var(--subscriptions-list-tree-node-border)] bg-[color:var(--subscriptions-list-tree-node-surface)]"
+                            />
+                            {rowButton}
+                          </div>
+                        );
+
                         return row.reasonTooltipKey ? (
                           <TooltipProvider key={row.feed.id}>
                             <AppTooltip label={reasonTooltipLabels[row.reasonTooltipKey]} side="top" align="start">
-                              {rowButton}
+                              {treeRow}
                             </AppTooltip>
                           </TooltipProvider>
                         ) : (
-                          <div key={row.feed.id}>{rowButton}</div>
+                          <div key={row.feed.id}>{treeRow}</div>
                         );
                       })}
                     </div>
