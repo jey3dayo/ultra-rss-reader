@@ -70,7 +70,9 @@ function rowMatchesSubscriptionSummaryFilter(
 
   if (filterKey === "review") {
     return (
-      row.status.labelKey === "review" || row.status.labelKey === "stale_90d" || row.status.labelKey === "no_unread"
+      row.status.labelKey === "review" ||
+      row.status.labelKey === "stale_90d" ||
+      row.status.labelKey === "quiet_no_unread"
     );
   }
 
@@ -259,7 +261,7 @@ export function buildSubscriptionDetailCandidate(params: {
     statusLabel: (labelKey: SubscriptionRowStatus["labelKey"]) => string;
     normalReason: string;
     summaryText: (summaryKey: ReturnType<typeof summarizeSubscriptionReviewCandidate>["summaryKey"]) => string;
-    reasonFact: (fact: { key: "stale_days" | "unread_count" | "starred_count"; value: number }) => string;
+    reasonFact: (fact: { key: "stale_days" | "unread_count"; value: number }) => string;
     reasonLabel: (reasonKey: SubscriptionReviewCandidate["reasonKeys"][number]) => string;
   };
 }): SubscriptionDetailCandidate | null {
@@ -485,12 +487,8 @@ export function resolveSubscriptionRowStatus({
     return { tone: "medium", labelKey: "stale_90d" };
   }
 
-  if (hasSubscriptionReviewReason(candidate, "no_unread")) {
-    return { tone: "medium", labelKey: "no_unread" };
-  }
-
-  if (hasSubscriptionReviewReason(candidate, "no_stars")) {
-    return { tone: "medium", labelKey: "no_stars" };
+  if (hasSubscriptionReviewReason(candidate, "quiet_no_unread")) {
+    return { tone: "medium", labelKey: "quiet_no_unread" };
   }
 
   return { tone: "medium", labelKey: "review" };
