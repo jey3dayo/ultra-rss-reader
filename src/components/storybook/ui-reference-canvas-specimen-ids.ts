@@ -44,5 +44,6 @@ export const UI_REFERENCE_PRIMARY_SPECIMEN_ANCHOR_IDS = [
 
 export const UI_REFERENCE_DECORATIVE_TEST_IDS = [
   "reference-annotated-note",
+  "reference-article-filter-inset-selection",
   "reference-browser-chrome-buttons",
 ] as const;

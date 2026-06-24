@@ -124,6 +124,9 @@ const BUTTON_FAMILY_GUIDE = [
   },
 ] as const;
 
+const compactFilterInsetSelectionClassName =
+  "h-11 rounded-md border-0 bg-transparent px-0 text-[0.82rem] font-medium tracking-[0.01em] shadow-none hover:bg-transparent hover:text-foreground focus-visible:bg-transparent focus-visible:ring-2 focus-visible:ring-ring/45 data-[pressed]:bg-transparent data-[pressed]:text-foreground [&_[data-filter-toggle-content]]:rounded-md [&_[data-filter-toggle-content]]:px-3.5 [&_[data-filter-toggle-content]]:py-2 [&_[data-filter-toggle-content]]:transition-colors hover:[&_[data-filter-toggle-content]]:bg-surface-2/36 focus-visible:[&_[data-filter-toggle-content]]:bg-surface-2/56 data-[pressed]:[&_[data-filter-toggle-content]]:bg-surface-2/72 data-[pressed]:[&_[data-filter-toggle-content]]:shadow-active-inset-highlight";
+
 export function ButtonFamilyGuideSpecimen() {
   return (
     <SurfaceCard variant="section">
@@ -364,7 +367,7 @@ export function ArticleFilterToggleButtonSpecimen() {
   return (
     <SurfaceCard variant="section">
       <SectionHeading className="mb-2">Article filter toggle buttons</SectionHeading>
-      <div data-testid="reference-article-filter-toggle-buttons" className="grid gap-3 lg:grid-cols-2">
+      <div data-testid="reference-article-filter-toggle-buttons" className="grid gap-3 lg:grid-cols-3">
         <div className="rounded-md border border-border/60 bg-surface-1/70 p-3">
           <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
             Ghost state filters
@@ -399,6 +402,34 @@ export function ArticleFilterToggleButtonSpecimen() {
               Starred
             </ArticleFilterToggleButton>
           </div>
+        </div>
+        <div className="rounded-md border border-border/60 bg-surface-1/70 p-3">
+          <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
+            Inset selection target
+          </div>
+          <div data-testid="reference-article-filter-inset-selection" className="flex min-h-11 items-center gap-1">
+            <ArticleFilterToggleButton
+              mode="unread"
+              pressed
+              value="unread"
+              aria-label="Unread inset"
+              className={compactFilterInsetSelectionClassName}
+            >
+              Unread
+            </ArticleFilterToggleButton>
+            <ArticleFilterToggleButton
+              mode="all"
+              pressed={false}
+              value="all"
+              aria-label="All inset"
+              className={compactFilterInsetSelectionClassName}
+            >
+              All
+            </ArticleFilterToggleButton>
+          </div>
+          <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/72">
+            Outer target stays 44px tall; the selected tonal surface is constrained to the inner label pill.
+          </p>
         </div>
       </div>
     </SurfaceCard>

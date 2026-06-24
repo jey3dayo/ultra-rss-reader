@@ -114,6 +114,13 @@ describe("UI Reference canvases", () => {
     expect(screen.getByTestId("reference-form-loading-actions")).toBeInTheDocument();
     expect(screen.getByTestId("reference-semantic-action-buttons")).toBeInTheDocument();
     expect(screen.getByTestId("reference-article-filter-toggle-buttons")).toBeInTheDocument();
+    const insetFilter = screen.getByTestId("reference-article-filter-inset-selection");
+    expect(insetFilter).toBeInTheDocument();
+    expect(within(insetFilter).getByRole("button", { name: "Unread inset" })).toHaveClass(
+      "h-11",
+      "data-[pressed]:bg-transparent",
+      "data-[pressed]:[&_[data-filter-toggle-content]]:bg-surface-2/72",
+    );
     expect(screen.getByTestId("reference-reader-header-action-strip")).toBeInTheDocument();
     expect(screen.getByTestId("reference-icon-utility-buttons")).toBeInTheDocument();
     expect(screen.getByTestId("reference-browser-chrome-buttons")).toBeInTheDocument();
@@ -125,8 +132,8 @@ describe("UI Reference canvases", () => {
     expect(screen.getByRole("button", { name: "Shortcut" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Remove design" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Press a key" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Add tag" })).toHaveClass("rounded-full", "min-h-6");
-    expect(screen.getByRole("button", { name: "Add compact tag" })).toHaveClass("rounded-full", "gap-0");
+    expect(screen.getByRole("button", { name: "Add tag" })).toHaveClass("rounded-md", "min-h-6");
+    expect(screen.getByRole("button", { name: "Add compact tag" })).toHaveClass("rounded-md", "gap-0");
     expect(screen.getByRole("button", { name: "design" })).toHaveClass("motion-static-hover-surface", "rounded-md");
     expect(screen.getByRole("button", { name: "Local Today at 10:42" })).toHaveAttribute("aria-haspopup", "menu");
     expect(screen.getByRole("button", { name: "Single Not synced yet" })).not.toHaveAttribute("aria-haspopup");
@@ -586,7 +593,7 @@ describe("UI Reference canvases", () => {
     expect(screen.getAllByRole("button", { name: "Add account…" }).length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "Test Connection" })).toHaveClass(
       "border",
-      "border-border/65",
+      "border-[var(--settings-shell-control-border)]",
       "bg-surface-2/82",
       "text-foreground",
     );
