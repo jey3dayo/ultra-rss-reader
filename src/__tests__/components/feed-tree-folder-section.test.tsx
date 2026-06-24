@@ -34,7 +34,7 @@ describe("FeedTreeFolderSection", () => {
       name: "Toggle folder Comic",
     });
 
-    expect(folderButton).toHaveClass("pl-1.5");
+    expect(folderButton).toHaveClass("pl-5");
     expect(folderButton).toHaveClass("rounded-lg");
     expect(folderButton).not.toHaveClass("pl-0");
     expect(toggleButton).toHaveClass("select-none", "hover:bg-[var(--sidebar-hover-surface)]");
@@ -60,7 +60,7 @@ describe("FeedTreeFolderSection", () => {
     });
     const selectedIndicator = document.querySelector<HTMLElement>("[data-folder-row-selected-indicator='folder-1']");
 
-    expect(folderButton).toHaveClass("pl-1.5");
+    expect(folderButton).toHaveClass("pl-5");
     expect(folderButton).not.toHaveClass("pl-7");
     expect(selectedIndicator?.parentElement).toHaveClass("flex", "items-center", "gap-0.5");
   });

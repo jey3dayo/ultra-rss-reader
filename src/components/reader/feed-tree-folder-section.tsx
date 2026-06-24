@@ -135,7 +135,7 @@ export function FeedTreeFolderSection({
                     }
                   : {})}
                 className={cn(
-                  "flex-1 rounded-lg px-0.5 pl-1.5",
+                  "flex-1 rounded-lg px-0.5 pl-5",
                   isActive && "border-dashed bg-[var(--feed-tree-drop-target-surface)] ring-1 ring-sidebar-border",
                 )}
               />
