@@ -109,101 +109,125 @@ export function DataSettingsView({
   };
 
   return (
-    <SettingsContentLayout title={title} outerTestId="data-settings-root">
-      <SettingsSection heading={databaseHeading} surface="flat" className="mb-6 sm:mb-7">
-        <LabeledControlRow label={databaseSizeLabel}>
-          <span
-            className="text-sm text-foreground-soft"
-            data-database-size-status={databaseSizeStatus}
-            role="status"
-            aria-live="polite"
-          >
-            {databaseSizeDisplayValue}
-          </span>
-        </LabeledControlRow>
-      </SettingsSection>
-      <SettingsSection heading={safetyHeading} surface="flat" className="mb-6 sm:mb-7">
-        <p className="mb-3 font-serif text-sm text-foreground-soft">{safetyDescription}</p>
-        <ul className="list-disc space-y-1 pl-5 font-serif text-sm text-foreground-soft">
-          {safetyChecklist.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ul>
-      </SettingsSection>
-      <SettingsSection heading={settingsProfileHeading} surface="flat" className="mb-6 sm:mb-7">
-        <LabeledControlRow
-          label={settingsProfileExportLabel}
-          description={settingsProfileDescription}
-          className={DATA_ACTION_ROW_CLASS_NAME}
-        >
-          <SettingsLoadingActionButton
-            disabled={settingsProfileActionUnavailable}
-            loading={exportingSettingsProfile}
-            loadingLabel={settingsProfileExportActionLabel}
-            onClick={onExportSettingsProfile}
-          >
-            {settingsProfileExportActionLabel ?? settingsProfileExportLabel}
-          </SettingsLoadingActionButton>
-        </LabeledControlRow>
-        <LabeledControlRow
-          label={settingsProfileImportLabel}
-          description={settingsProfileFileInputLabel}
-          className={DATA_ACTION_ROW_CLASS_NAME}
-        >
-          <input
-            ref={settingsProfileFileInputRef}
-            type="file"
-            accept="application/json,.json"
-            className="sr-only"
-            aria-label={settingsProfileFileInputLabel}
-            disabled={settingsProfileActionUnavailable}
-            onChange={handleImportFileChange}
-          />
-          <SettingsLoadingActionButton
-            disabled={settingsProfileActionUnavailable}
-            loading={importingSettingsProfile}
-            loadingLabel={settingsProfileImportActionLabel}
-            onClick={handleImportClick}
-          >
-            {settingsProfileImportActionLabel ?? settingsProfileImportLabel}
-          </SettingsLoadingActionButton>
-        </LabeledControlRow>
-      </SettingsSection>
-      <SettingsSection heading={optimizationHeading} surface="flat" className="mb-6 sm:mb-7">
-        <LabeledControlRow
-          label={vacuumLabel}
-          description={vacuumDescriptionText}
-          className={DATA_ACTION_ROW_CLASS_NAME}
-        >
-          {({ descriptionId }) => (
-            <SettingsLoadingActionButton
-              aria-describedby={descriptionId}
-              disabled={vacuumActionUnavailable}
-              loading={vacuuming}
-              loadingLabel={vacuumActionLabel}
-              onClick={onVacuum}
+    <SettingsContentLayout title={title} titleLayout="stacked-left" outerTestId="data-settings-root">
+      <div className="-mb-3 grid gap-4 md:grid-cols-2 md:items-start">
+        <div className="grid gap-4">
+          <SettingsSection heading={databaseHeading} surface="flat" className="px-3 py-2.5 sm:px-4 sm:py-3">
+            <LabeledControlRow label={databaseSizeLabel}>
+              <span
+                className="text-sm text-foreground-soft"
+                data-database-size-status={databaseSizeStatus}
+                role="status"
+                aria-live="polite"
+              >
+                {databaseSizeDisplayValue}
+              </span>
+            </LabeledControlRow>
+          </SettingsSection>
+          <SettingsSection heading={settingsProfileHeading} surface="flat" className="px-3 py-2.5 sm:px-4 sm:py-3">
+            <LabeledControlRow
+              label={settingsProfileExportLabel}
+              description={settingsProfileDescription}
+              className={DATA_ACTION_ROW_CLASS_NAME}
             >
-              {vacuumActionLabel ?? vacuumLabel}
-            </SettingsLoadingActionButton>
-          )}
-        </LabeledControlRow>
-      </SettingsSection>
-      <SettingsSection heading={logsHeading} surface="flat">
-        <LabeledControlRow
-          label={openLogDirLabel}
-          description={openLogDirDescription}
-          className={DATA_ACTION_ROW_CLASS_NAME}
-        >
-          <SettingsLoadingActionButton
-            disabled={openLogDirActionUnavailable}
-            loading={openingLogDir}
-            loadingLabel={openLogDirActionLabel}
-            onClick={onOpenLogDir}
+              <SettingsLoadingActionButton
+                disabled={settingsProfileActionUnavailable}
+                loading={exportingSettingsProfile}
+                loadingLabel={settingsProfileExportActionLabel}
+                onClick={onExportSettingsProfile}
+              >
+                {settingsProfileExportActionLabel ?? settingsProfileExportLabel}
+              </SettingsLoadingActionButton>
+            </LabeledControlRow>
+            <LabeledControlRow
+              label={settingsProfileImportLabel}
+              description={settingsProfileFileInputLabel}
+              className={DATA_ACTION_ROW_CLASS_NAME}
+            >
+              <input
+                ref={settingsProfileFileInputRef}
+                type="file"
+                accept="application/json,.json"
+                className="sr-only"
+                aria-label={settingsProfileFileInputLabel}
+                disabled={settingsProfileActionUnavailable}
+                onChange={handleImportFileChange}
+              />
+              <SettingsLoadingActionButton
+                disabled={settingsProfileActionUnavailable}
+                loading={importingSettingsProfile}
+                loadingLabel={settingsProfileImportActionLabel}
+                onClick={handleImportClick}
+              >
+                {settingsProfileImportActionLabel ?? settingsProfileImportLabel}
+              </SettingsLoadingActionButton>
+            </LabeledControlRow>
+          </SettingsSection>
+          <SettingsSection heading={logsHeading} surface="flat" className="px-3 py-2.5 sm:px-4 sm:py-3">
+            <LabeledControlRow
+              label={openLogDirLabel}
+              description={openLogDirDescription}
+              className={DATA_ACTION_ROW_CLASS_NAME}
+            >
+              <SettingsLoadingActionButton
+                disabled={openLogDirActionUnavailable}
+                loading={openingLogDir}
+                loadingLabel={openLogDirActionLabel}
+                onClick={onOpenLogDir}
+              >
+                {openLogDirActionLabel ?? openLogDirLabel}
+              </SettingsLoadingActionButton>
+            </LabeledControlRow>
+          </SettingsSection>
+        </div>
+        <div className="grid gap-4">
+          <SettingsSection
+            heading={safetyHeading}
+            surface="flat"
+            className="px-3 py-2.5 sm:px-4 sm:py-3"
+            contentClassName="[&>*:last-child]:pb-0"
           >
-            {openLogDirActionLabel ?? openLogDirLabel}
-          </SettingsLoadingActionButton>
-        </LabeledControlRow>
-      </SettingsSection>
+            <p className="border-b border-[var(--settings-shell-divider-border)] pb-2 text-[13px] leading-5 text-foreground">
+              {safetyDescription}
+            </p>
+            <ol className="text-[13px] leading-5 text-foreground-soft">
+              {safetyChecklist.map((item, index) => (
+                <li
+                  key={item}
+                  className="grid grid-cols-[1.5rem_minmax(0,1fr)] gap-2 border-b border-[var(--settings-shell-divider-border)] py-2"
+                >
+                  <span
+                    className="mt-0.5 inline-flex size-5 items-center justify-center rounded-md bg-surface-2 font-mono text-[11px] leading-none text-foreground-soft"
+                    aria-hidden="true"
+                  >
+                    {index + 1}
+                  </span>
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ol>
+          </SettingsSection>
+          <SettingsSection heading={optimizationHeading} surface="flat" className="px-3 py-2.5 sm:px-4 sm:py-3">
+            <LabeledControlRow
+              label={vacuumLabel}
+              description={vacuumDescriptionText}
+              className={DATA_ACTION_ROW_CLASS_NAME}
+            >
+              {({ descriptionId }) => (
+                <SettingsLoadingActionButton
+                  aria-describedby={descriptionId}
+                  disabled={vacuumActionUnavailable}
+                  loading={vacuuming}
+                  loadingLabel={vacuumActionLabel}
+                  onClick={onVacuum}
+                >
+                  {vacuumActionLabel ?? vacuumLabel}
+                </SettingsLoadingActionButton>
+              )}
+            </LabeledControlRow>
+          </SettingsSection>
+        </div>
+      </div>
     </SettingsContentLayout>
   );
 }

@@ -11,7 +11,7 @@ import {
   ActionSelectControl,
   ConfirmDialogView,
   GradientSwitch,
-  LabeledActionInputRow,
+  Input,
   LabeledActionSelectRow,
   LabeledControlRow,
 } from "@/design-system";
@@ -115,105 +115,121 @@ export function MuteSettingsView({
 
   return (
     <>
-      <SettingsContentLayout title={title} outerTestId="mute-settings-root">
-        <SettingsSection heading={addHeading} note={intro} surface="flat" className="mb-6 sm:mb-7">
-          <LabeledActionInputRow
-            label={keywordLabel}
-            name="mute_keyword"
-            value={keywordValue}
-            onChange={onKeywordChange}
-            placeholder={keywordPlaceholder}
-            rowClassName="items-start sm:items-center"
-            labelClassName="sm:w-40 sm:shrink-0"
-            controlClassName="grid min-w-0 gap-2 sm:w-full sm:max-w-[30rem] sm:grid-cols-[minmax(0,1fr)_auto]"
-            inputClassName={cn("w-full min-w-0 sm:col-span-2", SETTINGS_CONTROL_SURFACE_CLASS)}
-            formProps={{
-              "data-testid": "mute-settings-add-row",
-              onSubmit: handleAddSubmit,
-            }}
-            trailingControls={
-              <>
-                <ActionSelectControl
-                  label={scopeAriaLabel}
-                  name="mute_keyword_scope"
-                  value={scopeValue}
+      <SettingsContentLayout title={title} titleLayout="stacked-left" outerTestId="mute-settings-root">
+        <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)] md:items-start">
+          <div className="grid gap-4">
+            <SettingsSection heading={addHeading} note={intro} surface="flat" className="px-3 py-2.5 sm:px-4 sm:py-3">
+              <form data-testid="mute-settings-add-row" onSubmit={handleAddSubmit} className="space-y-2.5">
+                <div className="space-y-1.5">
+                  <label
+                    className="block text-[12px] font-medium text-[color:var(--form-row-label)]"
+                    htmlFor="mute-keyword"
+                  >
+                    {keywordLabel}
+                  </label>
+                  <Input
+                    id="mute-keyword"
+                    name="mute_keyword"
+                    value={keywordValue}
+                    onChange={(event) => onKeywordChange(event.currentTarget.value)}
+                    placeholder={keywordPlaceholder}
+                    className={cn("h-9", SETTINGS_CONTROL_SURFACE_CLASS)}
+                  />
+                </div>
+                <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-2">
+                  <ActionSelectControl
+                    label={scopeAriaLabel}
+                    name="mute_keyword_scope"
+                    value={scopeValue}
+                    options={scopeOptions}
+                    onValueChange={(value) =>
+                      handleMuteKeywordScopeSelectValue(value, onScopeChange, {
+                        source: "add-row",
+                      })
+                    }
+                    triggerClassName={cn("h-9 w-full min-w-0", SETTINGS_CONTROL_SURFACE_CLASS)}
+                  />
+                  <SettingsLoadingActionButton
+                    type="submit"
+                    size="compact"
+                    className="h-9 min-h-9"
+                    disabled={addDisabled}
+                    loading={addPending}
+                    loadingLabel={addPendingLabel}
+                  >
+                    {addLabel}
+                  </SettingsLoadingActionButton>
+                </div>
+              </form>
+            </SettingsSection>
+
+            <SettingsSection
+              heading={autoMarkReadHeading}
+              note={autoMarkReadHint}
+              surface="flat"
+              className="px-3 py-2.5 sm:px-4 sm:py-3"
+            >
+              <LabeledControlRow label={autoMarkReadLabel}>
+                <GradientSwitch
+                  checked={autoMarkReadChecked}
+                  disabled={autoMarkReadDisabled}
+                  aria-label={autoMarkReadLabel}
+                  onCheckedChange={onAutoMarkReadChange}
+                />
+              </LabeledControlRow>
+            </SettingsSection>
+          </div>
+
+          <SettingsSection
+            heading={savedHeading}
+            surface="flat"
+            className="px-3 py-2.5 sm:px-4 sm:py-3"
+            contentClassName="[&>*:first-child]:pt-0 [&>*:last-child]:pb-0"
+          >
+            {rules.length === 0 ? (
+              <p
+                {...{ [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING }}
+                className={cn(
+                  MOTION_CONTENT_SWAP_CLASS_NAME,
+                  "border-b py-2 text-sm text-foreground-soft",
+                  SETTINGS_DIVIDER_CLASS,
+                )}
+              >
+                {emptyState}
+              </p>
+            ) : (
+              rules.map((rule) => (
+                <LabeledActionSelectRow
+                  key={rule.id}
+                  label={rule.keyword}
+                  value={rule.scope}
                   options={scopeOptions}
+                  selectAriaLabel={savedScopeAriaLabel(rule.keyword)}
                   onValueChange={(value) =>
-                    handleMuteKeywordScopeSelectValue(value, onScopeChange, {
-                      source: "add-row",
+                    handleMuteKeywordScopeSelectValue(value, (scope) => onRuleScopeChange(rule.id, scope), {
+                      source: "saved-rule",
+                      ruleId: rule.id,
                     })
                   }
-                  triggerClassName={cn("h-11 w-full min-w-0 sm:w-[192px] sm:flex-none", SETTINGS_CONTROL_SURFACE_CLASS)}
+                  labelClassName="break-all sm:max-w-[280px] sm:shrink-0 sm:truncate sm:break-normal"
+                  triggerClassName={cn("h-11 w-full sm:flex-1", SETTINGS_CONTROL_SURFACE_CLASS)}
+                  trailingControls={
+                    <SettingsActionButton
+                      type="button"
+                      size="icon"
+                      tone="danger"
+                      className="size-8 min-h-8 min-w-8"
+                      aria-label={deleteLabel}
+                      onClick={() => onRequestDelete(rule.id)}
+                    >
+                      <Trash2 className="size-3.5" aria-hidden="true" />
+                    </SettingsActionButton>
+                  }
                 />
-                <SettingsLoadingActionButton
-                  type="submit"
-                  size="compact"
-                  disabled={addDisabled}
-                  loading={addPending}
-                  loadingLabel={addPendingLabel}
-                >
-                  {addLabel}
-                </SettingsLoadingActionButton>
-              </>
-            }
-          />
-        </SettingsSection>
-
-        <SettingsSection heading={autoMarkReadHeading} note={autoMarkReadHint} surface="flat" className="mb-6 sm:mb-7">
-          <LabeledControlRow label={autoMarkReadLabel}>
-            <GradientSwitch
-              checked={autoMarkReadChecked}
-              disabled={autoMarkReadDisabled}
-              aria-label={autoMarkReadLabel}
-              onCheckedChange={onAutoMarkReadChange}
-            />
-          </LabeledControlRow>
-        </SettingsSection>
-
-        <SettingsSection heading={savedHeading} surface="flat">
-          {rules.length === 0 ? (
-            <p
-              {...{ [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING }}
-              className={cn(
-                MOTION_CONTENT_SWAP_CLASS_NAME,
-                "border-b py-3 text-sm text-foreground-soft",
-                SETTINGS_DIVIDER_CLASS,
-              )}
-            >
-              {emptyState}
-            </p>
-          ) : (
-            rules.map((rule) => (
-              <LabeledActionSelectRow
-                key={rule.id}
-                label={rule.keyword}
-                value={rule.scope}
-                options={scopeOptions}
-                selectAriaLabel={savedScopeAriaLabel(rule.keyword)}
-                onValueChange={(value) =>
-                  handleMuteKeywordScopeSelectValue(value, (scope) => onRuleScopeChange(rule.id, scope), {
-                    source: "saved-rule",
-                    ruleId: rule.id,
-                  })
-                }
-                labelClassName="break-all sm:max-w-[280px] sm:shrink-0 sm:truncate sm:break-normal"
-                triggerClassName={cn("h-11 w-full sm:flex-1", SETTINGS_CONTROL_SURFACE_CLASS)}
-                trailingControls={
-                  <SettingsActionButton
-                    type="button"
-                    size="icon"
-                    tone="danger"
-                    className="size-11"
-                    aria-label={deleteLabel}
-                    onClick={() => onRequestDelete(rule.id)}
-                  >
-                    <Trash2 className="size-4" aria-hidden="true" />
-                  </SettingsActionButton>
-                }
-              />
-            ))
-          )}
-        </SettingsSection>
+              ))
+            )}
+          </SettingsSection>
+        </div>
       </SettingsContentLayout>
 
       <ConfirmDialogView
