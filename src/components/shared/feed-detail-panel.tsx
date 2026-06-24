@@ -1,7 +1,10 @@
 import { ExternalLink, List } from "lucide-react";
 import type { ReactNode } from "react";
 import { workspaceCompactActionButtonClassName } from "@/components/shared/decision-button";
-import { FeedDetailCard, FeedDetailRow } from "@/components/shared/feed-detail-card";
+import {
+  FeedDetailCard,
+  FeedDetailRow,
+} from "@/components/shared/feed-detail-card";
 import { LabelChip } from "@/components/shared/label-chip";
 import { SurfaceCard } from "@/components/shared/surface-card";
 import { Button } from "@/components/ui/button";
@@ -109,12 +112,25 @@ export function FeedDetailPanel({
   primaryAction,
   secondaryAction,
 }: FeedDetailPanelProps) {
-  const resolvedTitleHref = titleHref ? normalizeFeedWebsiteUrlCandidate(titleHref) : null;
+  const resolvedTitleHref = titleHref
+    ? normalizeFeedWebsiteUrlCandidate(titleHref)
+    : null;
 
   return (
-    <FeedDetailCard data-feed-detail-panel="" className={cn("border-border/65 bg-card/38 shadow-none", className)}>
-      <div className="space-y-4">
-        <div className={cn("grid items-start gap-3", leadingVisual ? "grid-cols-[auto_minmax(0,1fr)]" : "grid-cols-1")}>
+    <FeedDetailCard
+      data-feed-detail-panel=""
+      className={cn(
+        "overflow-hidden border-border/65 bg-card/38 p-0 shadow-none",
+        className,
+      )}
+    >
+      <div className="space-y-4 border-b border-border/50 bg-surface-1/48 px-4 py-4 sm:px-5">
+        <div
+          className={cn(
+            "grid items-start gap-3",
+            leadingVisual ? "grid-cols-[auto_minmax(0,1fr)]" : "grid-cols-1",
+          )}
+        >
           {leadingVisual ? (
             <div
               data-testid="feed-detail-leading-visual"
@@ -130,32 +146,51 @@ export function FeedDetailPanel({
                   href={resolvedTitleHref}
                   target="_blank"
                   rel="noreferrer"
-                  className={cn(detailLinkClassName, "inline-flex max-w-full items-start gap-2 no-underline")}
+                  className={cn(
+                    detailLinkClassName,
+                    "inline-flex max-w-full items-start gap-2 no-underline",
+                  )}
                 >
-                  <h3 className="font-sans text-[1.6rem] font-normal tracking-[-0.03em] text-foreground">{title}</h3>
-                  <ExternalLink aria-hidden="true" className="mt-1 size-4 shrink-0" />
+                  <h3 className="font-sans text-[1.28rem] font-medium leading-tight tracking-[-0.03em] text-foreground">
+                    {title}
+                  </h3>
+                  <ExternalLink
+                    aria-hidden="true"
+                    className="mt-0.5 size-3.5 shrink-0"
+                  />
                 </a>
               ) : (
-                <h3 className="font-sans text-[1.6rem] font-normal tracking-[-0.03em] text-foreground">{title}</h3>
+                <h3 className="font-sans text-[1.28rem] font-medium leading-tight tracking-[-0.03em] text-foreground">
+                  {title}
+                </h3>
               )}
             </div>
           </div>
         </div>
+      </div>
 
+      <div className="space-y-4 px-4 py-4 sm:px-5">
         <div data-testid="feed-detail-secondary-column" className="space-y-3">
           {badgeLabel ? (
             <LabelChip
               data-testid="feed-detail-status"
               tone={resolveBadgeClassName(badgeTone)}
-              className="self-start rounded-md px-2.5 py-1 text-[10px] tracking-[0.02em]"
+              className="self-start rounded-md px-2 py-0.5 text-[10px] tracking-[0.08em]"
             >
               {badgeLabel}
             </LabelChip>
           ) : null}
 
           {summaryText ? (
-            <SurfaceCard variant="info" tone="subtle" padding="compact" className="bg-surface-1/76 shadow-none">
-              <p className="font-serif text-[0.98rem] leading-7 text-foreground-soft">{summaryText}</p>
+            <SurfaceCard
+              variant="info"
+              tone="subtle"
+              padding="compact"
+              className="bg-surface-1/76 shadow-none"
+            >
+              <p className="font-serif text-[0.98rem] leading-7 text-foreground-soft">
+                {summaryText}
+              </p>
             </SurfaceCard>
           ) : null}
 
@@ -174,14 +209,21 @@ export function FeedDetailPanel({
               <p className="font-sans text-[11px] font-medium tracking-[0.08em] text-current uppercase">
                 {reasonBox.title}
               </p>
-              <p className="mt-1.5 font-serif text-sm leading-6 text-current">{reasonBox.body}</p>
+              <p className="mt-1.5 font-serif text-sm leading-6 text-current">
+                {reasonBox.body}
+              </p>
             </SurfaceCard>
           ) : null}
 
           {reasonChips.length > 0 && !reasonBox ? (
             <div className="flex flex-wrap gap-2">
               {reasonChips.map((chip) => (
-                <LabelChip key={chip} tone="neutral" size="compact" className="rounded-md px-2 py-1">
+                <LabelChip
+                  key={chip}
+                  tone="neutral"
+                  size="compact"
+                  className="rounded-md px-2 py-1"
+                >
                   {chip}
                 </LabelChip>
               ))}
@@ -190,26 +232,46 @@ export function FeedDetailPanel({
         </div>
 
         <div className="grid gap-3">
-          <dl className="grid gap-3 border-t border-border/55 pt-3 text-sm">
+          <dl className="grid gap-2.5 border-t border-border/55 pt-3 text-sm sm:grid-cols-2">
             {metrics.map((metric) => (
-              <FeedDetailRow key={String(metric.label)} label={metric.label} value={metric.value} />
+              <FeedDetailRow
+                key={String(metric.label)}
+                label={metric.label}
+                value={metric.value}
+              />
             ))}
           </dl>
 
           {links.length > 0 ? (
             <div className="grid gap-2 text-sm">
               {links.map((link) => (
-                <a key={link.href} href={link.href} target="_blank" rel="noreferrer" className={detailLinkClassName}>
-                  <ExternalLink aria-hidden="true" className="size-4 shrink-0" />
-                  <span className="underline decoration-border underline-offset-4">{link.label}</span>
+                <a
+                  key={link.href}
+                  href={link.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={detailLinkClassName}
+                >
+                  <ExternalLink
+                    aria-hidden="true"
+                    className="size-4 shrink-0"
+                  />
+                  <span className="underline decoration-border underline-offset-4">
+                    {link.label}
+                  </span>
                 </a>
               ))}
             </div>
           ) : null}
 
           {recentArticles.length > 0 ? (
-            <div data-testid="feed-detail-recent-articles" className="space-y-2 border-t border-border/55 pt-3">
-              <h4 className="font-sans text-sm font-medium text-foreground">{recentArticlesHeading}</h4>
+            <div
+              data-testid="feed-detail-recent-articles"
+              className="space-y-2 border-t border-border/55 pt-3"
+            >
+              <h4 className="font-sans text-sm font-medium text-foreground">
+                {recentArticlesHeading}
+              </h4>
               <div className="space-y-1">
                 {recentArticles.map((article) => (
                   <SurfaceCard
@@ -225,19 +287,27 @@ export function FeedDetailPanel({
                           href={article.url}
                           target="_blank"
                           rel="noreferrer"
-                          className={cn(detailLinkClassName, "line-clamp-2 no-underline")}
+                          className={cn(
+                            detailLinkClassName,
+                            "line-clamp-2 no-underline",
+                          )}
                         >
                           <span className="font-serif text-[0.88rem] font-normal leading-5 text-foreground">
                             {article.title}
                           </span>
-                          <ExternalLink aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
+                          <ExternalLink
+                            aria-hidden="true"
+                            className="mt-0.5 size-3.5 shrink-0"
+                          />
                         </a>
                       ) : (
                         <span className="line-clamp-2 font-serif text-[0.88rem] font-normal leading-5 text-foreground">
                           {article.title}
                         </span>
                       )}
-                      <span className="shrink-0 text-xs text-foreground-soft">{article.publishedAt}</span>
+                      <span className="shrink-0 text-xs text-foreground-soft">
+                        {article.publishedAt}
+                      </span>
                     </div>
                   </SurfaceCard>
                 ))}
@@ -247,15 +317,15 @@ export function FeedDetailPanel({
         </div>
 
         {primaryAction || secondaryAction ? (
-          <div className="flex flex-wrap gap-3 border-t border-border/55 pt-4">
+          <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border/55 pt-3">
             {primaryAction ? (
               <Button
                 aria-label={primaryAction.ariaLabel ?? primaryAction.label}
                 variant="outline"
-                size="lg"
+                size="sm"
                 className={cn(
                   workspaceCompactActionButtonClassName,
-                  "w-full border-border-strong bg-surface-1/88 text-foreground-soft shadow-none hover:bg-surface-2 hover:text-foreground",
+                  "min-h-9 w-auto border-border/70 bg-surface-1/72 px-3 text-[12px] text-foreground-soft shadow-none hover:bg-surface-2 hover:text-foreground",
                 )}
                 onClick={primaryAction.onClick}
               >
@@ -264,7 +334,12 @@ export function FeedDetailPanel({
               </Button>
             ) : null}
             {secondaryAction ? (
-              <Button variant="ghost" size="sm" className="min-h-11 px-4" onClick={secondaryAction.onClick}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="min-h-11 px-4"
+                onClick={secondaryAction.onClick}
+              >
                 {secondaryAction.label}
               </Button>
             ) : null}

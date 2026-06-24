@@ -29,9 +29,9 @@ export function FeedDetailCard({ children, className, style }: FeedDetailCardPro
 
 export function FeedDetailRow({ label, value }: FeedDetailRowProps) {
   return (
-    <div className="flex flex-col items-start gap-1.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-      <dt className="font-sans text-[11px] tracking-[0.08em] text-foreground-soft uppercase">{label}</dt>
-      <dd className="text-sm font-medium text-foreground">{value}</dd>
+    <div className="rounded-md border border-border/55 bg-surface-1/48 px-3 py-2.5 shadow-none">
+      <dt className="font-sans text-[10px] tracking-[0.1em] text-foreground-soft uppercase">{label}</dt>
+      <dd className="mt-1 truncate text-sm font-medium text-foreground">{value}</dd>
     </div>
   );
 }
