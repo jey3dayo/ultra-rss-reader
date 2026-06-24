@@ -114,7 +114,7 @@ export function SubscriptionDetailPane({
         backgroundColor: "var(--subscriptions-detail-surface)",
       }}
     >
-      <div className="mb-5 border-b border-border/55 pb-4.5">
+      <div className="mb-5 border-b border-[var(--workspace-low-wire-divider)] pb-4.5">
         <h2 id={headingId} className="font-sans text-[1.08rem] font-semibold tracking-[-0.025em] text-foreground">
           {heading}
         </h2>
@@ -123,7 +123,7 @@ export function SubscriptionDetailPane({
         <div className="flex items-center lg:min-h-0 lg:flex-1">
           <p
             {...{ [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING }}
-            className={`${MOTION_CONTENT_SWAP_CLASS_NAME} w-full rounded-md border border-dashed border-border/70 bg-surface-1/78 px-5 py-6 text-sm text-foreground-soft shadow-[0_16px_42px_-38px_rgba(38,37,30,0.32)]`}
+            className={`${MOTION_CONTENT_SWAP_CLASS_NAME} w-full rounded-md border border-dashed border-[var(--workspace-low-wire-section-border)] bg-[var(--workspace-low-wire-group-surface)] px-5 py-6 text-sm text-foreground-soft shadow-none`}
           >
             {emptyLabel}
           </p>
@@ -137,6 +137,7 @@ export function SubscriptionDetailPane({
         >
           <div className="flex w-full flex-col gap-4.5 pb-7 pt-1 lg:min-h-full">
             <FeedDetailPanel
+              surface="low-wire"
               title={row.feed.title}
               titleHref={row.feed.site_url}
               leadingVisual={
@@ -182,7 +183,7 @@ export function SubscriptionDetailPane({
                 variant="section"
                 tone="default"
                 padding="compact"
-                className={`${MOTION_CONTENT_SWAP_CLASS_NAME} grid grid-cols-1 gap-2.5 rounded-md border-border/60 bg-surface-1/68 px-4 shadow-[0_18px_48px_-42px_rgba(38,37,30,0.34)] sm:grid-cols-3 sm:px-5`}
+                className={`${MOTION_CONTENT_SWAP_CLASS_NAME} grid grid-cols-1 gap-2.5 rounded-md border-transparent bg-[var(--workspace-low-wire-action-surface)] px-4 shadow-none sm:grid-cols-3 sm:px-5`}
               >
                 {buildDecisionActionConfigs(decisionActions).map((action) => {
                   const Icon = action.icon;
