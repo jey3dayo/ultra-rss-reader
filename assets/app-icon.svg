@@ -1,35 +1,45 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" fill="none">
   <defs>
-    <!-- Dark navy background gradient -->
-    <linearGradient id="bg" x1="0" y1="0" x2="0.3" y2="1">
-      <stop offset="0%" stop-color="#4A5E78"/>
-      <stop offset="100%" stop-color="#2A3A50"/>
+    <linearGradient id="base" x1="160" y1="80" x2="864" y2="944" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#263142"/>
+      <stop offset="0.55" stop-color="#171F2B"/>
+      <stop offset="1" stop-color="#0C111A"/>
     </linearGradient>
-    <!-- Copper/rose-gold gradient for RSS symbol -->
-    <linearGradient id="copper" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#F0C4A8"/>
-      <stop offset="50%" stop-color="#D4956E"/>
-      <stop offset="100%" stop-color="#B87550"/>
+    <linearGradient id="rim" x1="178" y1="112" x2="846" y2="916" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6F8791"/>
+      <stop offset="0.55" stop-color="#364657"/>
+      <stop offset="1" stop-color="#8E674D"/>
     </linearGradient>
-    <!-- Darker lines -->
-    <linearGradient id="lines" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#1A2636"/>
-      <stop offset="100%" stop-color="#0F1A28"/>
+    <linearGradient id="signal" x1="246" y1="240" x2="790" y2="768" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7BB6BC"/>
+      <stop offset="0.48" stop-color="#5FA9B0"/>
+      <stop offset="1" stop-color="#3E7F89"/>
     </linearGradient>
+    <linearGradient id="hot" x1="322" y1="318" x2="654" y2="716" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#DDB078"/>
+      <stop offset="0.52" stop-color="#B97845"/>
+      <stop offset="1" stop-color="#8F5638"/>
+    </linearGradient>
+    <filter id="shadow" x="-15%" y="-15%" width="130%" height="130%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#000814" flood-opacity="0.36"/>
+    </filter>
   </defs>
 
-  <!-- Full square dark background -->
-  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <rect width="1024" height="1024" rx="232" fill="url(#base)"/>
+  <rect x="48" y="48" width="928" height="928" rx="202" stroke="url(#rim)" stroke-width="18" opacity="0.48"/>
+  <path d="M166 722C304 802 456 804 572 728C688 652 734 516 704 374" stroke="#0B1020" stroke-width="172" stroke-linecap="round" opacity="0.36"/>
 
-  <!-- Three horizontal lines (article list) -->
-  <rect x="120" y="340" width="420" height="56" rx="28" fill="url(#lines)"/>
-  <rect x="120" y="460" width="350" height="56" rx="28" fill="url(#lines)"/>
-  <rect x="120" y="590" width="390" height="56" rx="28" fill="url(#lines)"/>
-
-  <!-- RSS symbol (top-right area) -->
-  <g transform="translate(480, 80)">
-    <circle cx="80" cy="380" r="56" fill="url(#copper)"/>
-    <path d="M80 240 A140 140 0 0 1 220 380" stroke="url(#copper)" stroke-width="56" stroke-linecap="round" fill="none"/>
-    <path d="M80 100 A280 280 0 0 1 360 380" stroke="url(#copper)" stroke-width="56" stroke-linecap="round" fill="none"/>
+  <g filter="url(#shadow)">
+    <path d="M254 655C397 753 579 716 676 572C757 453 739 295 632 198" stroke="url(#signal)" stroke-width="112" stroke-linecap="round"/>
+    <path d="M308 500C382 555 488 540 544 466C590 405 584 322 530 268" stroke="url(#hot)" stroke-width="104" stroke-linecap="round"/>
+    <circle cx="350" cy="660" r="84" fill="url(#hot)"/>
   </g>
+
+  <g opacity="0.95">
+    <path d="M260 350L430 474L326 572" stroke="#6BAAB0" stroke-width="88" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M430 474L590 590" stroke="#A97956" stroke-width="88" stroke-linecap="round"/>
+  </g>
+
+  <path d="M214 206C294 148 412 124 528 146" stroke="#FFFFFF" stroke-width="34" stroke-linecap="round" opacity="0.22"/>
+  <path d="M716 808C774 760 818 692 836 606" stroke="#FFFFFF" stroke-width="30" stroke-linecap="round" opacity="0.16"/>
 </svg>
