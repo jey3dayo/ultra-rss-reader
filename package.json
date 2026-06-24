@@ -3,10 +3,10 @@
   "private": true,
   "version": "0.48.1",
   "type": "module",
-  "packageManager": "pnpm@11.8.0",
+  "packageManager": "pnpm@11.9.0",
   "engines": {
     "node": "24",
-    "pnpm": "11.8.0"
+    "pnpm": "11.9.0"
   },
   "scripts": {
     "dev": "pnpm exec vite",
@@ -56,13 +56,13 @@
   "dependencies": {
     "@base-ui/react": "^1.6.0",
     "@praha/byethrow": "^0.12.0",
-    "@tanstack/react-query": "^5.101.0",
+    "@tanstack/react-query": "^5.101.1",
     "@tauri-apps/api": "^2.11.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "^4.4.0",
-    "i18next": "^26.3.1",
+    "i18next": "^26.3.2",
     "i18next-browser-languagedetector": "^8.2.1",
     "lucide-react": "^1.21.0",
     "react": "^19.2.7",
@@ -75,8 +75,8 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.0",
-    "@playwright/test": "^1.61.0",
+    "@biomejs/biome": "^2.5.1",
+    "@playwright/test": "^1.61.1",
     "@storybook/addon-a11y": "^10.4.6",
     "@storybook/addon-docs": "^10.4.6",
     "@storybook/react-vite": "^10.4.6",
@@ -85,19 +85,19 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
-    "@types/node": "^25.9.3",
+    "@types/node": "^26.0.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.2",
+    "@vitejs/plugin-react": "^6.0.3",
     "jsdom": "^29.1.1",
-    "knip": "6.17.1",
+    "knip": "6.18.0",
     "markdownlint-cli2": "^0.22.1",
     "portless": "^0.14.0",
-    "react-doctor": "0.5.6",
+    "react-doctor": "0.5.8",
     "storybook": "^10.4.6",
     "tailwindcss": "^4.3.1",
     "typescript": "^6.0.3",
-    "vite": "^8.0.16",
+    "vite": "^8.1.0",
     "vitest": "^4.1.9"
   }
 }

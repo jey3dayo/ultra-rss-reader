@@ -22,7 +22,7 @@ actionlint = "latest"
 shellcheck = "latest"
 uv = "latest"
 "pipx:yamllint" = "latest"
-"npm:pnpm" = "11.8.0"
+"npm:pnpm" = "11.9.0"
 
 [task_config]
 includes = [
