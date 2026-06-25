@@ -54,7 +54,7 @@ export function TagListView({
       >
         {isOpen ? (
           <div className="motion-disclosure-body">
-            <div className={cn("px-2", tokens.tagListGap)}>
+            <div className={cn(tokens.treeRootPadding, tokens.tagListGap)}>
               {isEmpty ? (
                 emptyLabel ? (
                   <p className="select-none px-2 py-1.5 text-sm text-sidebar-foreground/65">{emptyLabel}</p>
@@ -98,7 +98,15 @@ function TagListItem({ tag, sidebarDensity, onSelectTag, renderContextMenu }: Ta
             selected={tag.isSelected}
             {...(tag.isSelected ? { [SIDEBAR_SELECTED_TARGET_ATTRIBUTE]: "true" } : {})}
             trailing={tag.articleCount > 0 ? tag.articleCount.toLocaleString() : undefined}
-            className={!tag.isSelected ? "text-sidebar-foreground" : undefined}
+            trailingClassName={
+              tag.isSelected
+                ? "text-[0.72rem] text-[var(--sidebar-selection-muted)]"
+                : "mr-1 text-[0.72rem] text-sidebar-foreground/52"
+            }
+            className={cn(
+              "ml-[1.875rem] w-[calc(100%-1.875rem)] rounded-lg px-0.5",
+              !tag.isSelected && "text-sidebar-foreground",
+            )}
           />
         }
         onContextMenu={captureTarget}

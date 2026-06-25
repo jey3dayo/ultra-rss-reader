@@ -26,7 +26,7 @@ export function ArticleListFeedModeControl({
     >
       <SelectTrigger
         aria-label={ariaLabel}
-        className="min-w-0 max-w-[148px] border-0 bg-surface-1/72 shadow-none hover:bg-surface-2/72 focus-visible:ring-2 focus-visible:ring-ring/45 sm:max-w-[168px]"
+        className="min-h-9 min-w-0 max-w-[148px] border-transparent bg-transparent px-2.5 py-1.5 text-[13px] text-foreground-soft shadow-none hover:border-border/70 hover:bg-[var(--workspace-header-action-surface)] hover:text-foreground focus-visible:border-border-strong/60 focus-visible:bg-[var(--workspace-header-action-surface)] focus-visible:ring-2 focus-visible:ring-ring/35 sm:max-w-[168px]"
       >
         <SelectOptionValue options={options} />
       </SelectTrigger>

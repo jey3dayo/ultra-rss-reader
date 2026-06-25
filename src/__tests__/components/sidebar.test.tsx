@@ -1033,7 +1033,7 @@ describe("Sidebar", () => {
     );
   });
 
-  it("passes the compact sidebar density preference through to folder toggles", async () => {
+  it("passes the compact sidebar density preference through to folder rows", async () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_accounts":
@@ -1070,8 +1070,9 @@ describe("Sidebar", () => {
 
     render(<Sidebar />, { wrapper: createWrapper() });
 
-    const folderToggle = await screen.findByRole("button", { name: "Toggle folder Work" });
-    expect(folderToggle).toHaveClass("size-8");
+    const folderRow = await screen.findByRole("button", { name: "Select folder Work" });
+    expect(folderRow).toHaveClass("min-h-8");
+    expect(folderRow).toHaveAttribute("aria-expanded", "true");
   });
 
   it("shows only unread feeds from the selected folder when viewMode is unread", async () => {

@@ -30,20 +30,17 @@ describe("FeedTreeFolderSection", () => {
     const folderButton = screen.getByRole("button", {
       name: "Select folder Comic",
     });
-    const toggleButton = screen.getByRole("button", {
-      name: "Toggle folder Comic",
-    });
 
     expect(folderButton).toHaveClass("pl-0.5");
     expect(folderButton).toHaveClass("-ml-1");
     expect(folderButton.querySelector("span")).not.toHaveClass("-ml-1");
     expect(folderButton).toHaveClass("rounded-lg");
     expect(folderButton).not.toHaveClass("pl-0");
-    expect(toggleButton).toHaveClass("select-none", "hover:bg-[var(--sidebar-hover-surface)]");
-    expect(toggleButton).toHaveClass("size-9");
+    expect(folderButton).toHaveClass("motion-contextual-surface", "bg-[image:var(--sidebar-selection-gradient)]");
+    expect(folderButton).toHaveAttribute("aria-expanded", "false");
     expect(screen.getByText("Comic")).toHaveClass("font-medium");
     expect(screen.getByText("9,274")).toHaveClass("mr-1", "text-[0.72rem]", "text-sidebar-foreground/54");
-    expect(folderButton.querySelector("svg")).not.toBeInTheDocument();
+    expect(folderButton.querySelector(".motion-disclosure-icon")).toHaveClass("h-3", "w-3", "-rotate-90");
   });
 
   it("adds a folder icon slot when feed favicons are visible", () => {
@@ -65,7 +62,8 @@ describe("FeedTreeFolderSection", () => {
     expect(folderButton).toHaveClass("pl-0.5");
     expect(folderButton).toHaveClass("-ml-1");
     expect(folderButton.querySelector("span")).not.toHaveClass("-ml-1");
-    expect(folderButton.querySelector("svg")).toHaveClass("size-3.5");
+    expect(folderButton.querySelector(".motion-disclosure-icon")).toHaveClass("h-3", "w-3");
+    expect(folderButton.querySelector(".text-sidebar-foreground\\/46 svg")).toHaveClass("size-3.5");
   });
 
   it("keeps the folder toggle in normal row flow so the selection bar stays off the chevron rail", () => {
@@ -256,19 +254,19 @@ describe("FeedTreeFolderSection", () => {
       />,
     );
 
-    const toggleButton = screen.getByRole("button", {
-      name: "Toggle folder Comic",
+    const folderButton = screen.getByRole("button", {
+      name: "Select folder Comic",
     });
     const folderPanel = document.getElementById("feed-tree-folder-panel-folder-1");
 
-    expect(toggleButton).toHaveClass("motion-disclosure-trigger");
-    expect(toggleButton.querySelector("svg")).toHaveClass("motion-disclosure-icon");
+    expect(folderButton.querySelector(".motion-disclosure-trigger")).toBeInTheDocument();
+    expect(folderButton.querySelector("svg")).toHaveClass("motion-disclosure-icon");
     expect(folderPanel).toHaveAttribute("aria-hidden", "true");
     expect(folderPanel).toHaveAttribute("inert");
     expect(folderPanel).toHaveClass("motion-disclosure-panel");
   });
 
-  it("pairs the folder disclosure control with the collapsed panel aria state", () => {
+  it("pairs the folder row control with the collapsed panel aria state", () => {
     render(
       <FeedTreeFolderSection
         folder={{ ...baseFolder, isExpanded: false }}
@@ -280,17 +278,17 @@ describe("FeedTreeFolderSection", () => {
       />,
     );
 
-    const toggleButton = screen.getByRole("button", {
-      name: "Toggle folder Comic",
+    const folderButton = screen.getByRole("button", {
+      name: "Select folder Comic",
     });
-    const panelId = toggleButton.getAttribute("aria-controls");
+    const panelId = folderButton.getAttribute("aria-controls");
     expect(panelId).toBe("feed-tree-folder-panel-folder-1");
-    expect(toggleButton).toHaveAttribute("aria-expanded", "false");
+    expect(folderButton).toHaveAttribute("aria-expanded", "false");
     expect(document.getElementById(panelId ?? "")).toHaveAttribute("aria-hidden", "true");
     expect(document.getElementById(panelId ?? "")).toHaveAttribute("inert");
   });
 
-  it("pairs the folder disclosure control with the expanded panel aria state when children exist", () => {
+  it("pairs the folder row control with the expanded panel aria state when children exist", () => {
     render(
       <FeedTreeFolderSection
         folder={{
@@ -320,12 +318,12 @@ describe("FeedTreeFolderSection", () => {
       />,
     );
 
-    const toggleButton = screen.getByRole("button", {
-      name: "Toggle folder Comic",
+    const folderButton = screen.getByRole("button", {
+      name: "Select folder Comic",
     });
-    const panelId = toggleButton.getAttribute("aria-controls");
+    const panelId = folderButton.getAttribute("aria-controls");
     const panel = document.getElementById(panelId ?? "");
-    expect(toggleButton).toHaveAttribute("aria-expanded", "true");
+    expect(folderButton).toHaveAttribute("aria-expanded", "true");
     expect(panel).toHaveAttribute("aria-hidden", "false");
     expect(panel).not.toHaveAttribute("inert");
     expect(screen.getByRole("button", { name: /Alpha/ }).closest(`#${panelId}`)).toBeInTheDocument();

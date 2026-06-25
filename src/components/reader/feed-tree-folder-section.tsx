@@ -10,7 +10,6 @@ import type { ActiveDropTarget, FeedTreeFeedViewModel, FeedTreeFolderViewModel }
 import { handleMiddleMouseMarkRead } from "./feed-tree-middle-click";
 import { FeedTreeRow } from "./feed-tree-row";
 import { getSidebarDensityTokens, type SidebarDensity } from "./sidebar-density";
-import { SidebarLeadingControlButton } from "./sidebar-leading-control-button";
 import { SidebarNavButton } from "./sidebar-nav-button";
 
 const folderParentRailClassName = "-ml-1 pl-0.5";
@@ -100,23 +99,6 @@ export function FeedTreeFolderSection({
             className="pointer-events-none absolute inset-y-1.5 left-0 z-0 w-0.5 rounded-full bg-primary/85 transition-[opacity,transform,background-color] duration-200 ease-standard motion-reduce:transition-none"
           />
         ) : null}
-        <SidebarLeadingControlButton
-          aria-label={t("toggle_folder", {
-            defaultValue: "Toggle folder {{name}}",
-            name: folder.name,
-          })}
-          aria-expanded={folder.isExpanded}
-          aria-controls={panelId}
-          density={sidebarDensity}
-          className={cn(
-            "motion-disclosure-trigger -mr-1 text-foreground-soft hover:bg-[var(--sidebar-hover-surface)] hover:text-sidebar-foreground",
-          )}
-          onClick={() => onToggleFolder(folder.id)}
-        >
-          <ChevronDown
-            className={cn("motion-disclosure-icon h-3 w-3", folder.isExpanded ? "rotate-0" : "-rotate-90")}
-          />
-        </SidebarLeadingControlButton>
         <ContextMenu.Root onOpenChange={(open) => !open && clearTarget()}>
           <ContextMenu.Trigger
             render={
@@ -126,6 +108,8 @@ export function FeedTreeFolderSection({
                   defaultValue: "Select folder {{name}}",
                   name: folder.name,
                 })}
+                aria-expanded={folder.isExpanded}
+                aria-controls={panelId}
                 selected={folder.isSelected}
                 selectedIndicatorMode="hidden"
                 trailing={folder.unreadCount > 0 ? folder.unreadCount.toLocaleString() : undefined}
@@ -146,9 +130,22 @@ export function FeedTreeFolderSection({
             }
             onContextMenu={captureTarget}
             onKeyDownCapture={captureKeyboardTarget}
-            onClick={() => onSelectFolder?.(folder.id)}
+            onClick={() => {
+              if (!folder.isExpanded) {
+                onToggleFolder(folder.id);
+              }
+              onSelectFolder?.(folder.id);
+            }}
             onMouseDown={handleMiddleMouseDown}
           >
+            <span
+              aria-hidden="true"
+              className="motion-disclosure-trigger flex size-5 shrink-0 items-center justify-center text-foreground-soft"
+            >
+              <ChevronDown
+                className={cn("motion-disclosure-icon h-3 w-3", folder.isExpanded ? "rotate-0" : "-rotate-90")}
+              />
+            </span>
             {displayFavicons ? (
               <span className="flex size-5 shrink-0 items-center justify-center text-sidebar-foreground/46">
                 <Folder className="size-3.5" aria-hidden="true" />

@@ -47,6 +47,24 @@ describe("TagListView", () => {
     expect(screen.queryByRole("button", { name: /Important/ })).not.toBeInTheDocument();
   });
 
+  it("aligns tag rows to the feed tree name rail", () => {
+    render(
+      <TagListView
+        tagsLabel="Tags"
+        isOpen
+        onToggleOpen={vi.fn()}
+        tags={[{ id: "tag-1", name: "Important", color: "#d97706", articleCount: 1, isSelected: false }]}
+        onSelectTag={vi.fn()}
+      />,
+    );
+
+    const tagButton = screen.getByRole("button", { name: /Important/ });
+
+    expect(tagButton).toHaveClass("ml-[1.875rem]");
+    expect(tagButton).toHaveClass("w-[calc(100%-1.875rem)]");
+    expect(tagButton).toHaveClass("rounded-lg");
+  });
+
   it("keeps the right-clicked tag as the context menu target when tag data updates while open", () => {
     const renderContextMenu = vi.fn((tag: { name: string }) => <div data-testid="tag-context-target">{tag.name}</div>);
     const makeTagList = (name: string) => (

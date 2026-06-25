@@ -93,9 +93,9 @@ export function ArticleListItem({
               isSelected &&
                 cn(
                   activePane
-                    ? "bg-[image:var(--sidebar-selection-gradient)] after:bg-border-strong focus-visible:bg-[image:var(--sidebar-selection-gradient)]"
-                    : "bg-[image:var(--sidebar-hover-gradient)] after:bg-border-strong/60 focus-visible:bg-[image:var(--sidebar-hover-gradient)]",
-                  "after:absolute after:inset-y-1.5 after:left-1 after:w-1 after:rounded-sm",
+                    ? "bg-surface-2/45 after:bg-border-strong focus-visible:bg-surface-2/55"
+                    : "bg-surface-2/28 after:bg-border-strong/50 focus-visible:bg-surface-2/38",
+                  "after:absolute after:inset-y-2 after:left-2 after:w-0.5 after:rounded-full",
                 ),
             ),
         !isSelected && "hover:bg-surface-1/72 focus-visible:bg-[image:var(--sidebar-focus-gradient)]",
