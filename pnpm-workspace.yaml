@@ -21,6 +21,9 @@ minimumReleaseAgeExclude:
   - playwright-core@1.61.1
   - playwright@1.61.1
   - vite@8.1.0
+  - '@types/node@26.0.1'
+  - knip@6.20.0
+  - portless@0.15.0
 supportedArchitectures:
   os:
     - darwin
