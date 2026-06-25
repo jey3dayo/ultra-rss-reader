@@ -161,7 +161,7 @@ export function FeedDetailPanel({
                   href={resolvedTitleHref}
                   target="_blank"
                   rel="noreferrer"
-                  className={cn(detailLinkClassName, "inline-flex min-w-0 max-w-full items-start gap-2 no-underline")}
+                  className={cn(detailLinkClassName, "inline-flex min-w-0 max-w-full items-center gap-2 no-underline")}
                 >
                   <h3 className="font-sans text-[1.12rem] font-semibold leading-tight tracking-[-0.025em] text-foreground">
                     {title}
@@ -235,7 +235,7 @@ export function FeedDetailPanel({
             className={cn(
               "grid text-sm",
               isLowWire
-                ? "overflow-hidden rounded-md border border-[var(--workspace-low-wire-section-border)] bg-surface-1/48 sm:grid-cols-2 [&>*:last-child:nth-child(odd)]:sm:col-span-2 [&>*:nth-last-child(-n+2)]:sm:border-b-0 [&>*:nth-child(odd):not(:last-child)]:sm:border-r [&>*:nth-child(odd):not(:last-child)]:sm:border-[var(--workspace-low-wire-divider)]"
+                ? "border-y border-[var(--workspace-low-wire-divider)] bg-transparent sm:grid-cols-2 [&>*:last-child:nth-child(odd)]:sm:col-span-2 [&>*:nth-last-child(-n+2)]:sm:border-b-0 [&>*:nth-child(odd):not(:last-child)]:sm:border-r [&>*:nth-child(odd):not(:last-child)]:sm:border-[var(--workspace-low-wire-divider)]"
                 : "gap-2.5 border-t border-border/55 pt-3 sm:grid-cols-2",
             )}
           >
@@ -276,7 +276,11 @@ export function FeedDetailPanel({
                     variant="info"
                     tone="subtle"
                     padding="compact"
-                    className={cn("px-3 py-2 shadow-none", isLowWire && "border-transparent bg-surface-1/36")}
+                    className={cn(
+                      "px-3 py-2 shadow-none",
+                      isLowWire &&
+                        "rounded-none border-x-0 border-t-0 border-b border-[var(--workspace-low-wire-divider)] bg-transparent px-0 last:border-b-0",
+                    )}
                   >
                     <div className="flex items-center justify-between gap-3">
                       {article.url ? (

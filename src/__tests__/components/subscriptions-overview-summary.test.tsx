@@ -15,11 +15,8 @@ describe("SubscriptionsOverviewSummary", () => {
     activeBadge: "Showing",
     staticBadge: "Reference",
     showFilterAriaLabel: (label: string) => `Show ${label}`,
-    showAll: "Showing all",
-    showFiltered: "Filtered",
     filterAll: "Show all",
     filter: "Filter",
-    noMatches: "None",
     criteria: "Criteria",
   };
 
@@ -182,9 +179,8 @@ describe("SubscriptionsOverviewSummary", () => {
       "text-state-review-foreground",
       "shadow-[var(--subscriptions-summary-badge-shadow)]",
     );
-    expect(within(activeCard).getByText("フィルタ中").closest("[data-label-chip]")).toHaveClass(
-      "shadow-[var(--subscriptions-summary-active-chip-shadow)]",
-    );
+    expect(within(activeCard).queryByText("フィルタ中")).toBeNull();
+    expect(within(activeCard).queryByText("表示中", { selector: "[data-label-chip] *" })).toBeNull();
     expect(activeCard).toHaveClass("shadow-[var(--subscriptions-summary-active-shadow-review)]");
     expect(activeCard).not.toHaveClass("ring-1");
     const metric = within(activeCard).getByText("2");
@@ -242,7 +238,7 @@ describe("SubscriptionsOverviewSummary", () => {
       name: /Total subscriptions/,
     });
     expect(within(activeCard).getByText("表示中")).toBeInTheDocument();
-    expect(within(activeCard).getByText("全件表示")).toBeInTheDocument();
+    expect(within(activeCard).queryByText("全件表示")).toBeNull();
     expect(within(activeCard).queryByText("フィルタ中")).toBeNull();
   });
 
@@ -299,8 +295,8 @@ describe("SubscriptionsOverviewSummary", () => {
     expect(reviewCard).not.toHaveClass("sm:col-span-2", "bg-state-review-surface/86");
     expect(staleCard).toHaveClass("border-border/60", "bg-surface-1/62");
     expect(staleCard).not.toHaveClass("bg-state-warning-surface/84");
-    expect(within(reviewCard).getByText("該当なし")).toBeInTheDocument();
-    expect(within(staleCard).getByText("該当なし")).toBeInTheDocument();
+    expect(within(reviewCard).queryByText("該当なし")).toBeNull();
+    expect(within(staleCard).queryByText("該当なし")).toBeNull();
     expect(within(reviewCard).getByText("0")).toHaveClass("tabular-nums");
     expect(within(reviewCard).getByText("0").closest(".t-digit-group")).toBeNull();
     expect(within(staleCard).getByText("0").closest(".t-digit-group")).toBeNull();

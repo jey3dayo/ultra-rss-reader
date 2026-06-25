@@ -302,11 +302,8 @@ export function SubscriptionsIndexPage() {
           activeBadge: t("summary_active_badge"),
           staticBadge: t("summary_static_badge"),
           showFilterAriaLabel: (label) => t("summary_action_show_filter_aria", { label }),
-          showAll: t("summary_action_show_all"),
-          showFiltered: t("summary_action_filtered"),
           filterAll: t("summary_action_filter_all"),
           filter: t("summary_action_filter"),
-          noMatches: t("summary_action_no_matches"),
           criteria: t("summary_criteria_chip"),
         }}
         reviewCriteriaLabel={t("summary_review_criteria")}

@@ -231,9 +231,7 @@ describe("Design-themed shared components", () => {
     const titleGroupDragRegion = screen.getByTestId("workspace-header-title-group-drag-region");
     const topRow = screen.getByTestId("workspace-header-top-row");
 
-    expect(backButton).toHaveStyle({
-      backgroundColor: "var(--workspace-header-action-surface)",
-    });
+    expect(backButton).toHaveClass("border-0", "bg-transparent", "hover:bg-transparent");
     expect(screen.getByTestId("workspace-header-drag-region")).toHaveAttribute("data-tauri-drag-region");
     expect(screen.getByTestId("workspace-header-drag-region")).toHaveStyle({
       width: "72px",

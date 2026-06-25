@@ -50,7 +50,7 @@ const motionTextClassNames: Record<MotionTextVariant, string> = {
 };
 
 const workspaceHeaderActionClassName =
-  "rounded-md border border-border/60 font-sans text-[0.8rem] font-normal text-foreground-soft shadow-none hover:bg-surface-2 hover:text-foreground";
+  "rounded-md border-0 bg-transparent font-sans text-[0.8rem] font-normal text-foreground-soft shadow-none hover:bg-transparent hover:text-foreground";
 
 type WorkspaceHeaderActionButtonProps = Omit<ComponentProps<typeof Button>, "size" | "variant"> & {
   presentation?: "icon" | "text";
@@ -71,7 +71,7 @@ export function WorkspaceHeaderActionButton({
         presentation === "icon" ? "size-9 justify-center px-0" : "h-9 px-3",
         className,
       )}
-      style={{ backgroundColor: "var(--workspace-header-action-surface)", ...style }}
+      style={style}
       {...props}
     />
   );

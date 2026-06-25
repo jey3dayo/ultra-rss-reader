@@ -209,11 +209,9 @@ describe("SubscriptionsIndexPage", () => {
     expect(screen.getByRole("button", { name: "閉じる" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "全購読" })).toBeInTheDocument();
     expect(screen.getByText("総購読数")).toBeInTheDocument();
-    expect(screen.getByText("更新を見直す購読")).toBeInTheDocument();
+    expect(screen.getByText("見直し候補")).toBeInTheDocument();
     expect(screen.getByText("対象")).toBeInTheDocument();
-    expect(
-      screen.queryByText("更新を見直す購読: 更新が止まっている、または更新がないまま未読も残っていない購読"),
-    ).toBeNull();
+    expect(screen.queryByText("見直し候補: 更新が止まっている、または更新がないまま未読も残っていない購読")).toBeNull();
     expect(screen.getByText("90日更新なし")).toBeInTheDocument();
     expect(await screen.findAllByRole("heading", { name: "Work" })).toHaveLength(2);
     expect(document.querySelectorAll('img[src*="google.com/s2/favicons?domain=example.com"]').length).toBeGreaterThan(
@@ -302,12 +300,12 @@ describe("SubscriptionsIndexPage", () => {
       "sm:grid-cols-[repeat(auto-fit,minmax(13rem,1fr))]",
       "lg:gap-3",
     );
-    expect(await screen.findByRole("button", { name: /更新を見直す購読/ })).toHaveClass(
+    expect(await screen.findByRole("button", { name: /見直し候補/ })).toHaveClass(
       "rounded-md",
       "border-state-review-border/80",
       "bg-state-review-surface/86",
     );
-    expect(await screen.findByRole("button", { name: /更新を見直す購読/ })).toHaveClass(
+    expect(await screen.findByRole("button", { name: /見直し候補/ })).toHaveClass(
       "shadow-[var(--subscriptions-summary-card-shadow)]",
     );
     expect(await screen.findByRole("button", { name: /90日更新なし/ })).toHaveClass("rounded-md");
@@ -457,12 +455,12 @@ describe("SubscriptionsIndexPage", () => {
     expect(screen.queryByRole("button", { name: "まとめて処理" })).toBeNull();
     expect(screen.queryByRole("button", { name: /参照エラー/ })).toBeNull();
 
-    await user.click(screen.getByRole("button", { name: /更新を見直す購読/ }));
+    await user.click(screen.getByRole("button", { name: /見直し候補/ }));
 
     expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
       kind: "index",
     });
-    expect(screen.getByRole("heading", { name: "更新を見直す購読" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "見直し候補" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Fresh Feed/ })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Example Feed/ })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Loose Feed/ })).not.toBeInTheDocument();
@@ -537,7 +535,7 @@ describe("SubscriptionsIndexPage", () => {
 
     render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("button", { name: /更新を見直す購読/ }));
+    await user.click(await screen.findByRole("button", { name: /見直し候補/ }));
     expect(await screen.findByRole("button", { name: /Example Feed/ })).toBeInTheDocument();
 
     const detailPane = screen.getByTestId("subscriptions-detail-pane");
@@ -555,7 +553,7 @@ describe("SubscriptionsIndexPage", () => {
 
     render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("button", { name: /更新を見直す購読/ }));
+    await user.click(await screen.findByRole("button", { name: /見直し候補/ }));
 
     expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
       kind: "index",

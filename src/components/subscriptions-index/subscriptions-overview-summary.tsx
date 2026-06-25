@@ -109,11 +109,8 @@ export type SubscriptionsOverviewSummaryLabels = {
   activeBadge: string;
   staticBadge: string;
   showFilterAriaLabel: (label: string) => string;
-  showAll: string;
-  showFiltered: string;
   filterAll: string;
   filter: string;
-  noMatches: string;
   criteria: string;
 };
 
@@ -121,11 +118,8 @@ const DEFAULT_SUMMARY_LABELS: SubscriptionsOverviewSummaryLabels = {
   activeBadge: "表示中",
   staticBadge: "参照",
   showFilterAriaLabel: (label) => `${label} を表示`,
-  showAll: "全件表示",
-  showFiltered: "フィルタ中",
   filterAll: "すべて表示",
   filter: "絞り込む",
-  noMatches: "該当なし",
   criteria: "条件",
 };
 
@@ -186,23 +180,11 @@ function resolveSummaryFilterCardAriaLabel(card: SubscriptionSummaryCard, labels
 
 function resolveActionChipLabel({
   filterKey,
-  isActive,
-  isZeroAttention,
   labels,
 }: {
   filterKey: SubscriptionSummaryCard["filterKey"];
-  isActive?: boolean;
-  isZeroAttention?: boolean;
   labels: SubscriptionsOverviewSummaryLabels;
 }) {
-  if (isZeroAttention) {
-    return labels.noMatches;
-  }
-
-  if (isActive) {
-    return filterKey === "all" ? labels.showAll : labels.showFiltered;
-  }
-
   return filterKey === "all" ? labels.filterAll : labels.filter;
 }
 
@@ -250,6 +232,7 @@ function SummaryFilterCardButton({
   });
   const shouldShowCriteria = summaryCard.filterKey === "review" && Boolean(reviewCriteriaLabel);
   const isZeroAttention = isZeroCountAttentionCard(summaryCard);
+  const shouldShowActionChip = !summaryCard.isActive && !isZeroAttention;
 
   const cardButton = (
     <button
@@ -302,22 +285,22 @@ function SummaryFilterCardButton({
         ) : null}
       </div>
       <div className="mt-2.5 flex items-center justify-between gap-3">
-        <LabelChip
-          tone="neutral"
-          className={cn(
-            "px-2 py-0.75 text-[10px] text-foreground-soft transition-colors duration-150 ease-standard group-hover:text-foreground motion-reduce:transition-none",
-            summaryCard.isActive &&
-              "border-border-strong/75 bg-surface-1 text-foreground shadow-[var(--subscriptions-summary-active-chip-shadow)]",
-            isProminent && !summaryCard.isActive && "bg-surface-1/88",
-          )}
-        >
-          {resolveActionChipLabel({
-            filterKey: summaryCard.filterKey,
-            isActive: summaryCard.isActive,
-            isZeroAttention,
-            labels,
-          })}
-        </LabelChip>
+        {shouldShowActionChip ? (
+          <LabelChip
+            tone="neutral"
+            className={cn(
+              "px-2 py-0.75 text-[10px] text-foreground-soft transition-colors duration-150 ease-standard group-hover:text-foreground motion-reduce:transition-none",
+              isProminent && "bg-surface-1/88",
+            )}
+          >
+            {resolveActionChipLabel({
+              filterKey: summaryCard.filterKey,
+              labels,
+            })}
+          </LabelChip>
+        ) : (
+          <span aria-hidden="true" />
+        )}
         {shouldShowCriteria ? (
           <span className="inline-flex items-center gap-1 rounded-full border border-border/55 bg-surface-1/76 px-2 py-0.75 text-[10px] font-medium text-foreground-soft transition-colors duration-150 ease-standard group-hover:border-border-strong/65 group-hover:text-foreground motion-reduce:transition-none">
             <Info className="size-3" aria-hidden="true" />
