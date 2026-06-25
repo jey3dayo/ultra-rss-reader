@@ -1,4 +1,5 @@
 import type { ComponentProps, ReactNode } from "react";
+import { workspaceCompactActionButtonClassName } from "@/components/shared/decision-button";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -25,13 +26,9 @@ export function WorkspaceManagementActionButton({
       {...props}
       type={type}
       variant="ghost"
-      size="lg"
+      size="sm"
       aria-label={label}
-      className={cn(
-        "justify-center rounded-md px-3 font-medium shadow-none sm:px-3.5",
-        workspaceManagementActionIntentClassName[intent],
-        className,
-      )}
+      className={cn(workspaceCompactActionButtonClassName, workspaceManagementActionIntentClassName[intent], className)}
     />
   );
 }

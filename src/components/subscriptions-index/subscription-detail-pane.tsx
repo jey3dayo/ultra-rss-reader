@@ -206,7 +206,7 @@ export function SubscriptionDetailPane({
               <div
                 data-testid="subscriptions-detail-management-bar"
                 {...{ [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING }}
-                className={`${MOTION_CONTENT_SWAP_CLASS_NAME} grid grid-cols-2 gap-2.5`}
+                className={`${MOTION_CONTENT_SWAP_CLASS_NAME} flex flex-wrap justify-end gap-2`}
               >
                 <WorkspaceManagementActionButton
                   intent="edit"

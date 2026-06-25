@@ -90,12 +90,14 @@ describe("SubscriptionDetailPane", () => {
     expect(screen.getByRole("button", { name: "Edit" })).toHaveClass(
       "justify-center",
       "rounded-md",
+      "min-h-11",
       "bg-surface-1/88",
       "text-foreground-soft",
     );
     expect(screen.getByRole("button", { name: "Remove" })).toHaveClass(
       "justify-center",
       "rounded-md",
+      "min-h-11",
       "bg-state-danger-surface",
       "text-state-danger-foreground",
     );
@@ -151,7 +153,7 @@ describe("SubscriptionDetailPane", () => {
     render(<SubscriptionDetailPane {...baseProps} decisionActions={null} managementActions={managementActions} />);
 
     expect(screen.queryByTestId("subscriptions-detail-decision-bar")).not.toBeInTheDocument();
-    expect(screen.getByTestId("subscriptions-detail-management-bar")).toBeInTheDocument();
+    expect(screen.getByTestId("subscriptions-detail-management-bar")).toHaveClass("flex", "flex-wrap", "justify-end");
     for (const label of ["Edit", "Remove"]) {
       const actionButton = screen.getByRole("button", { name: label });
       expect(actionButton).toBeVisible();
