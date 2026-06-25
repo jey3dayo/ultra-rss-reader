@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.50.1] - 2026-06-25
+
+### Bug Fixes
+
+- アップデートのダウンロードが 100% に達した後の toast を「インストール準備中…」へ切り替え、処理継続中であることを分かりやすくした。
+
 ## [0.50.0] - 2026-06-25
 
 ### Features
