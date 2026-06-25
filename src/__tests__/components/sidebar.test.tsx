@@ -3060,7 +3060,7 @@ describe("Sidebar", () => {
     expect(settingsButton.closest('[data-slot="scroll-area"]')).toBeNull();
     expect(scrollArea).toBeInTheDocument();
     expect(footerRow).toHaveClass("border-[var(--sidebar-frame-border)]", "bg-[var(--sidebar-frame-solid-surface)]");
-    expect(subscriptionsIndexButton).toHaveClass("focus-visible:bg-[var(--sidebar-hover-surface)]");
+    expect(subscriptionsIndexButton).toHaveClass("focus-visible:bg-transparent");
     expect(subscriptionsIndexButton).toHaveClass("focus-visible:ring-0");
     expect(subscriptionsIndexButton).not.toHaveClass("focus-visible:ring-ring/40");
 

@@ -46,7 +46,7 @@ describe("AccountSwitcherView", () => {
 
     expect(trigger).toHaveAttribute("aria-expanded", "true");
     expect(trigger).toHaveClass("select-none");
-    expect(trigger).toHaveClass("rounded-xl", "text-sidebar-foreground/92");
+    expect(trigger).toHaveClass("rounded-md", "text-sidebar-foreground/92");
     expect(triggerRef.current).toBe(trigger);
     expect(screen.getByRole("menu", { name: "Accounts" })).toBeInTheDocument();
     expect(screen.getAllByRole("menuitemradio")).toHaveLength(2);

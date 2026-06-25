@@ -128,7 +128,8 @@ describe("Design-themed UI primitives", () => {
     );
     expectGlobalCssToContainMotionContract();
     expectGlobalCssToContain("@starting-style", `.${MOTION_DISCLOSURE_TRIGGER_CLASS_NAME}:hover`);
-    expect(globalCss).not.toContain("transform: translateY(-1px);");
+    expect(globalCss).toContain(".motion-filter-toggle[data-pressed]");
+    expect(globalCss).toContain("transform: translateY(-1px);");
     expect(globalCss).not.toContain(
       "box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-border-strong) 28%, transparent);",
     );

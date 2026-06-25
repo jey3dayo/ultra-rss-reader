@@ -177,14 +177,15 @@ describe("MuteSettingsView", () => {
       />,
     );
 
-    expect(screen.getByTestId("mute-settings-add-row")).toHaveClass("min-w-0", "sm:max-w-[30rem]");
-    expect(screen.getByTestId("mute-settings-add-row")).toHaveClass("grid", "sm:grid-cols-[minmax(0,1fr)_auto]");
-    expect(screen.getByRole("textbox", { name: "Keyword" })).toHaveClass("min-w-0", "sm:col-span-2");
+    expect(screen.getByTestId("mute-settings-add-row")).toHaveClass("space-y-2.5");
+    expect(screen.getByTestId("mute-settings-add-row")).not.toHaveClass("sm:max-w-[30rem]");
+    expect(screen.getByRole("textbox", { name: "Keyword" })).toHaveClass("min-w-0", "h-9");
+    expect(screen.getByRole("textbox", { name: "Keyword" })).not.toHaveClass("sm:col-span-2");
     expect(screen.getByRole("combobox", { name: "Mute scope" })).toHaveClass("min-w-0", "w-full");
     expect(screen.getByRole("combobox", { name: "Saved scope" })).toHaveClass("h-11", "sm:flex-1");
-    expect(screen.getByRole("button", { name: "Add" })).toHaveClass("h-11", "px-4");
-    expect(screen.getByRole("button", { name: "Add" })).toHaveClass("min-h-11", "min-w-11");
-    expect(screen.getByRole("button", { name: "Delete" })).toHaveClass("size-11");
+    expect(screen.getByRole("button", { name: "Add" })).toHaveClass("h-9", "px-4");
+    expect(screen.getByRole("button", { name: "Add" })).toHaveClass("min-h-9", "min-w-11");
+    expect(screen.getByRole("button", { name: "Delete" })).toHaveClass("size-8");
     expect(screen.getByRole("button", { name: "Delete" }).querySelector("svg")).toBeInTheDocument();
     expect(screen.getByRole("switch", { name: "Mark muted items as read" })).toHaveClass(
       "before:inset-[-10px]",

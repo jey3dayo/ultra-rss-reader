@@ -44,7 +44,7 @@ describe("ArticleTagPickerView", () => {
     expect(screen.queryByText("Tags")).not.toBeInTheDocument();
     expect(addTagButton).not.toHaveClass("size-8");
     expect(addTagButton).toHaveClass("motion-interactive-surface");
-    expect(addTagButton).toHaveClass("min-h-6", "rounded-full", "border", "bg-surface-2/88", "text-foreground");
+    expect(addTagButton).toHaveClass("min-h-6", "rounded-md", "border", "bg-surface-2/88", "text-foreground");
     expect(screen.getByRole("listbox", { name: "Available tags" }).closest("[data-open]")).toHaveClass(
       "motion-popup-surface",
       "rounded-lg",
@@ -173,7 +173,7 @@ describe("ArticleTagPickerView", () => {
 
     const trigger = screen.getByRole("button", { name: "Add tag" });
     expect(trigger).toHaveTextContent("Add tag");
-    expect(trigger).toHaveClass("min-h-6", "rounded-full");
+    expect(trigger).toHaveClass("min-h-6", "rounded-md");
     expect(trigger).toHaveAttribute("aria-expanded", "false");
 
     await user.click(trigger);

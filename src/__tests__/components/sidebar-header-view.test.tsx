@@ -39,17 +39,9 @@ describe("SidebarHeaderView", () => {
     expect(container.firstElementChild).toHaveClass("border-b");
     expect(container.firstElementChild).not.toHaveAttribute("data-tauri-drag-region");
     expect(container.querySelector("[data-tauri-drag-region]")).not.toBeNull();
-    expect(screen.getByLabelText("Sync feeds")).toHaveClass(
-      "text-foreground-soft",
-      "hover:bg-[var(--sidebar-hover-surface)]",
-      "size-11",
-    );
+    expect(screen.getByLabelText("Sync feeds")).toHaveClass("text-foreground-soft", "hover:bg-transparent", "size-11");
     expect(screen.getByLabelText("Sync feeds")).not.toHaveClass("md:size-8");
-    expect(screen.getByLabelText("Add feed")).toHaveClass(
-      "text-foreground-soft",
-      "hover:bg-[var(--sidebar-hover-surface)]",
-      "size-11",
-    );
+    expect(screen.getByLabelText("Add feed")).toHaveClass("text-foreground-soft", "hover:bg-transparent", "size-11");
     expect(screen.getByLabelText("Add feed")).not.toHaveClass("md:size-8");
 
     await user.click(screen.getByLabelText("Sync feeds"));

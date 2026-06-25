@@ -97,10 +97,10 @@ describe("IconToolbarControl", () => {
 
     expect(screen.getByRole("button", { name: "Close browser window" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("button", { name: "Close browser window" })).toHaveClass(
-      "data-[pressed]:bg-primary/12",
+      "data-[pressed]:bg-transparent",
       "data-[pressed]:text-primary",
-      "data-[pressed]:hover:bg-primary/12",
-      "data-[pressed]:focus-visible:bg-primary/12",
+      "data-[pressed]:hover:bg-transparent",
+      "data-[pressed]:focus-visible:bg-transparent",
     );
   });
 
@@ -114,10 +114,10 @@ describe("IconToolbarControl", () => {
     );
 
     expect(screen.getByRole("button", { name: "Toggle read" })).toHaveClass(
-      "data-[pressed]:bg-surface-3/88",
+      "data-[pressed]:bg-transparent",
       "data-[pressed]:text-foreground",
-      "data-[pressed]:hover:bg-surface-3/88",
-      "data-[pressed]:focus-visible:bg-surface-3/88",
+      "data-[pressed]:hover:bg-transparent",
+      "data-[pressed]:focus-visible:bg-transparent",
     );
   });
 
@@ -131,10 +131,10 @@ describe("IconToolbarControl", () => {
     );
 
     expect(screen.getByRole("button", { name: "Toggle star" })).toHaveClass(
-      "data-[pressed]:bg-[var(--semantic-tone-starred-surface)]",
+      "data-[pressed]:bg-transparent",
       "data-[pressed]:text-[var(--semantic-tone-starred-content-foreground)]",
-      "data-[pressed]:hover:bg-[var(--semantic-tone-starred-surface)]",
-      "data-[pressed]:focus-visible:bg-[var(--semantic-tone-starred-surface)]",
+      "data-[pressed]:hover:bg-transparent",
+      "data-[pressed]:focus-visible:bg-transparent",
     );
   });
 
@@ -255,6 +255,6 @@ describe("IconToolbarControl", () => {
     expect(surface).not.toHaveClass("border");
     expect(surface).not.toHaveClass("border-transparent");
     expect(surface?.className).toContain("hover:bg-transparent");
-    expect(surface?.className).toContain("has-[:active]:bg-overlay-action-surface-chrome-active");
+    expect(surface?.className).toContain("has-[:active]:bg-transparent");
   });
 });

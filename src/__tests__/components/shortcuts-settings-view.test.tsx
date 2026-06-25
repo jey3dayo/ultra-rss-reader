@@ -72,17 +72,17 @@ describe("ShortcutsSettingsView", () => {
     expect(screen.getByText("⌘ ,")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Reset Open settings shortcut" })).toBeNull();
     expect(screen.getByRole("button", { name: "J" })).toHaveClass(
-      "min-h-11",
+      "min-h-8",
       "border-state-danger-border",
       "bg-state-danger-surface",
       "text-state-danger-foreground",
     );
-    expect(screen.getByRole("button", { name: "Reset Next article shortcut" })).toHaveClass("size-11");
+    expect(screen.getByRole("button", { name: "Reset Next article shortcut" })).toHaveClass("size-8");
     expect(screen.getByRole("button", { name: "Reset all to defaults" })).toHaveClass("w-full");
     expect(screen.queryByRole("button", { name: "Reset to defaults" })).toBeNull();
-    expect(screen.getByRole("button", { name: "J" })).toHaveClass("w-full");
+    expect(screen.getByRole("button", { name: "J" })).not.toHaveClass("w-full");
     expect(screen.getByText("Already used")).toHaveClass("text-xs", "break-words");
-    expect(screen.getByText("⌘ ,")).toHaveClass("min-h-11", "bg-surface-1", "text-foreground-soft");
+    expect(screen.getByText("⌘ ,")).toHaveClass("min-h-8", "text-foreground-soft");
 
     await user.click(screen.getByRole("button", { name: "J" }));
 
@@ -254,8 +254,8 @@ describe("ShortcutsSettingsView", () => {
     );
 
     const recordingButton = screen.getByRole("button", { name: "Press a key" });
-    expect(recordingButton).toHaveClass("w-full");
-    expect(recordingButton).toHaveClass("min-h-11");
+    expect(recordingButton).not.toHaveClass("w-full");
+    expect(recordingButton).toHaveClass("min-h-8");
     expect(recordingButton).toHaveClass("bg-ring/14");
     expect(screen.getByRole("button", { name: "Reset all to defaults" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Reset Next article shortcut" })).toBeDisabled();

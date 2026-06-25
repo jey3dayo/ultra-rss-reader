@@ -4,6 +4,30 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.50.0] - 2026-06-25
+
+### Features
+
+- ローカルアカウント同期の基盤と投影処理を追加し、ローカル購読データの同期状態を扱えるようにした。
+- 設定プロファイルの書き出しで保存ダイアログを使えるようにし、出力先を選びやすくした。
+
+### Bug Fixes
+
+- Reader の低密度ワイヤー、フォルダツリーのインデント、フィルタートグル、ゴーストボタン、コントロール角丸を揃え、購読一覧と記事操作の視覚的なずれを抑えた。
+- 設定画面のヘッダー、カード密度、説明行、データ管理文言、長いラベルやコマンド値の折り返しを再構成し、狭いモーダル幅でも操作部品が重なりにくいようにした。
+- updater 設定がある環境で手動アップデート確認を実行できるようにした。
+- 購読詳細パネルの low-wire surface を適用し、設定・Reader と近い見た目に揃えた。
+
+### Documentation
+
+- 設定画面の説明行と inset filter controls の設計ガイドを追記した。
+
+### Maintenance
+
+- option shape 型を整理し、重複した型定義を減らした。
+- アプリアイコン assets と article filter footer のテスト契約を更新した。
+- 購読ツリー breakdown UI と article filter toggle の ghost style を調整した。
+
 ## [0.49.3] - 2026-06-24
 
 ### Maintenance

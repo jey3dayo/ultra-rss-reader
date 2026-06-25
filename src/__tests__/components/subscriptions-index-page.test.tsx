@@ -819,7 +819,7 @@ describe("SubscriptionsIndexPage", () => {
 
     const emptyDetail = await screen.findByText("購読を選ぶと詳細が表示されます。");
     expect(emptyDetail.className).toMatch(/rounded-(md|lg|xl)/);
-    expect(emptyDetail).toHaveClass("bg-surface-1/78");
+    expect(emptyDetail).toHaveClass("bg-[var(--workspace-low-wire-group-surface)]");
     expect(emptyDetail).toHaveClass("text-foreground-soft");
   });
 
@@ -868,7 +868,7 @@ describe("SubscriptionsIndexPage", () => {
 
     expect(emptySurface.className).toMatch(/rounded-(md|lg|xl)/);
     expect(emptySurface).toHaveClass("border-dashed");
-    expect(emptySurface).toHaveClass("bg-surface-1/78");
+    expect(emptySurface).toHaveClass("bg-[var(--workspace-low-wire-group-surface)]");
     expect(emptySurface).toHaveClass("text-foreground-soft");
   });
 

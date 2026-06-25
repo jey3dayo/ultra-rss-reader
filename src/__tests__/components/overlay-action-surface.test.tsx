@@ -55,7 +55,7 @@ describe("OverlayActionSurface", () => {
 
     expect(chrome).toHaveClass("bg-transparent", "text-foreground-soft", "shadow-none");
     expect(chrome.className).toContain("has-[:focus-visible]:ring-0");
-    expect(chrome.className).toContain("has-[:active]:bg-overlay-action-surface-chrome-active");
+    expect(chrome.className).toContain("has-[:active]:bg-transparent");
     expect(chrome).not.toHaveClass("border");
   });
 });

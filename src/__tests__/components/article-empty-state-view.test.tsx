@@ -68,7 +68,7 @@ describe("ArticleEmptyStateView", () => {
     expect(layout).toHaveClass("relative");
     expect(layout).toHaveClass("overflow-hidden");
     expect(layout).toHaveClass("-translate-y-[14%]");
-    expect(container).toHaveClass("rounded-xl");
+    expect(container).toHaveClass("rounded-md");
     expect(container).toHaveClass("border");
     expect(container).toHaveClass("dark:border-border/90");
     expect(container).toHaveClass("px-6");

@@ -198,8 +198,8 @@ describe("ArticleToolbarView", () => {
     expect(starButton).toHaveClass("text-foreground-soft");
     expect(readButton).toHaveAttribute("aria-pressed", "true");
     expect(starButton).toHaveAttribute("aria-pressed", "false");
-    expect(starButton).toHaveClass("data-[pressed]:bg-[var(--semantic-tone-starred-surface)]");
-    expect(starButton).toHaveClass("data-[pressed]:focus-visible:bg-[var(--semantic-tone-starred-surface)]");
+    expect(starButton).toHaveClass("data-[pressed]:bg-transparent");
+    expect(starButton).toHaveClass("data-[pressed]:focus-visible:bg-transparent");
     expect(previewButton).toHaveAttribute("aria-pressed", "false");
     expect(readIcon).not.toBeNull();
     expect(readIcon).not.toHaveClass("text-[var(--tone-unread)]");
@@ -276,10 +276,10 @@ describe("ArticleToolbarView", () => {
 
     expect(readButton).toHaveAttribute("aria-pressed", "false");
     expect(readButton).toHaveClass(
-      "bg-[var(--semantic-tone-unread-surface)]",
+      "bg-transparent",
       "text-[var(--semantic-tone-unread-content-foreground)]",
-      "hover:bg-[var(--semantic-tone-unread-surface)]",
-      "focus-visible:bg-[var(--semantic-tone-unread-surface)]",
+      "hover:bg-transparent",
+      "focus-visible:bg-transparent",
     );
     expect(readIcon).not.toBeNull();
     expect(readIcon).toHaveClass("bg-[var(--tone-unread)]");
@@ -287,10 +287,10 @@ describe("ArticleToolbarView", () => {
 
     expect(starButton).toHaveAttribute("aria-pressed", "true");
     expect(starButton).toHaveClass(
-      "data-[pressed]:bg-[var(--semantic-tone-starred-surface)]",
+      "data-[pressed]:bg-transparent",
       "data-[pressed]:text-[var(--semantic-tone-starred-content-foreground)]",
-      "data-[pressed]:hover:bg-[var(--semantic-tone-starred-surface)]",
-      "data-[pressed]:focus-visible:bg-[var(--semantic-tone-starred-surface)]",
+      "data-[pressed]:hover:bg-transparent",
+      "data-[pressed]:focus-visible:bg-transparent",
     );
     expect(starIcon).not.toBeNull();
     expect(starIcon).toHaveClass("text-[var(--tone-starred)]");
@@ -671,9 +671,9 @@ describe("ArticleToolbarView", () => {
     expect(screen.getByRole("button", { name: "Close Web Preview" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Close Web Preview" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("button", { name: "Close Web Preview" })).toHaveClass(
-      "data-[pressed]:bg-primary/12",
-      "data-[pressed]:hover:bg-primary/12",
-      "data-[pressed]:focus-visible:bg-primary/12",
+      "data-[pressed]:bg-transparent",
+      "data-[pressed]:hover:bg-transparent",
+      "data-[pressed]:focus-visible:bg-transparent",
     );
     expect(
       screen.getByRole("button", { name: "Close Web Preview" }).querySelector(motionIconSwapSelector),
@@ -957,9 +957,9 @@ describe("ArticleToolbarView", () => {
     expect(screen.getByRole("button", { name: "Toggle star" })).toHaveClass("h-11", "min-w-0", "rounded-md");
     expect(screen.getByRole("button", { name: "Open Web Preview" })).toHaveClass("h-11", "min-w-0", "rounded-md");
     expect(screen.getByRole("button", { name: "Toggle read" })).toHaveClass(
-      "bg-[var(--semantic-tone-unread-surface)]",
-      "hover:bg-[var(--semantic-tone-unread-surface)]",
-      "focus-visible:bg-[var(--semantic-tone-unread-surface)]",
+      "bg-transparent",
+      "hover:bg-transparent",
+      "focus-visible:bg-transparent",
     );
     for (const label of ["Toggle read", "Toggle star", "Open Web Preview"]) {
       expect(screen.getByRole("button", { name: label })).toHaveClass("inline-flex", "items-center", "justify-center");
@@ -1083,9 +1083,9 @@ describe("ArticleToolbarView", () => {
     expect(screen.getByRole("button", { name: "Close Web Preview" })).toHaveTextContent("Close");
     expect(screen.getByRole("button", { name: "Close Web Preview" })).toHaveClass("h-11", "min-w-0", "rounded-md");
     expect(screen.getByRole("button", { name: "Close Web Preview" })).toHaveClass(
-      "bg-primary/12",
-      "hover:bg-primary/12",
-      "focus-visible:bg-primary/12",
+      "bg-transparent",
+      "hover:bg-transparent",
+      "focus-visible:bg-transparent",
     );
     expect(
       screen.getByRole("button", { name: "Close Web Preview" }).querySelector(motionIconSwapSelector),

@@ -424,9 +424,9 @@ describe("AddAccountForm", () => {
     expect(screen.getByTestId("service-picker-surface")).toHaveClass(
       "rounded-md",
       "border",
-      "border-border",
-      "bg-surface-1",
-      "shadow-elevation-1",
+      "border-[var(--settings-shell-section-border)]",
+      "bg-surface-1/72",
+      "shadow-[var(--settings-shell-section-shadow)]",
     );
   });
 

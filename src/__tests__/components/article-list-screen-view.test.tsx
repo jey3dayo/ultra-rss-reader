@@ -37,7 +37,7 @@ describe("ArticleListScreenView", () => {
   });
 
   it("renders empty and populated article bodies", () => {
-    const { container, rerender } = render(
+    const { rerender } = render(
       <ArticleListScreenView
         listAriaLabel="Article list"
         listRef={{ current: null }}
@@ -55,7 +55,9 @@ describe("ArticleListScreenView", () => {
     );
 
     expect(screen.getByText("No articles")).toBeInTheDocument();
-    expect(container.querySelector(".rounded-3xl")).toHaveClass(...readerPassiveCardClassName.split(" "));
+    expect(screen.getByText("No articles").closest(".rounded-md")).toHaveClass(
+      ...readerPassiveCardClassName.split(" "),
+    );
 
     rerender(
       <ArticleListScreenView
@@ -95,7 +97,7 @@ describe("ArticleListScreenView", () => {
   });
 
   it("renders a quieter setup placeholder when the list is waiting for initial setup", () => {
-    const { container } = render(
+    render(
       <ArticleListScreenView
         listAriaLabel="Article list"
         listRef={{ current: null }}
@@ -116,7 +118,7 @@ describe("ArticleListScreenView", () => {
 
     expect(screen.getByText("Add an account and your articles will appear here.")).toBeInTheDocument();
     expect(screen.queryByText("Queue")).not.toBeInTheDocument();
-    expect(container.querySelector(".rounded-2xl")).toHaveClass(
+    expect(screen.getByText("Add an account and your articles will appear here.").closest(".rounded-md")).toHaveClass(
       "border-border/65",
       "bg-surface-1/48",
       "dark:border-border/75",
@@ -184,7 +186,8 @@ describe("ArticleListScreenView", () => {
     const contentLane = screen.getByTestId("article-list-scroll-content").closest('[data-slot="scroll-area-content"]');
     const scrollbarLane = screen.getByTestId("article-list-scrollbar-lane");
 
-    expect(contentLane).toHaveClass("pr-3", "pb-4");
+    expect(contentLane).toHaveClass("pb-4");
+    expect(contentLane).not.toHaveClass("pr-3");
     expect(scrollbarLane).toHaveClass(
       "w-3",
       "border-l",
@@ -298,7 +301,7 @@ describe("ArticleListScreenView", () => {
 
     expect(screen.getByRole("button", { name: "Clear search" })).toHaveAttribute("data-reader-passive-action", "true");
     expect(screen.getByText("Queue")).toBeInTheDocument();
-    expect(screen.getByText('No matches for "Nope"').closest(".rounded-3xl")).toHaveClass("-translate-y-[5%]");
+    expect(screen.getByText('No matches for "Nope"').closest(".rounded-md")).toHaveClass("-translate-y-[5%]");
     expect(screen.getByText('No matches for "Nope"')).toHaveClass("min-h-11");
     expect(screen.getByText("Try a different keyword or clear the current search.")).toHaveClass(
       "mt-3",
