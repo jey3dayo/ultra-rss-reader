@@ -177,5 +177,7 @@ export function useArticleListBodyProps({
     onSelectArticle: selectArticle,
     markAllReadLabel: t("mark_all_as_read"),
     onMarkAllRead: handleMarkAllRead,
+    manageSelectedFeedLabel: onManageSelectedFeed ? t("edit_feed_ellipsis") : undefined,
+    onManageSelectedFeed: onManageSelectedFeed ?? undefined,
   };
 }

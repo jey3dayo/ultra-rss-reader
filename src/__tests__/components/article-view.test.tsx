@@ -330,6 +330,20 @@ describe("ArticleView", () => {
     });
   });
 
+  it("opens article actions from the right pane reader body context menu", async () => {
+    render(<ArticlePane {...requirePrimaryArticlePaneProps()} />, {
+      wrapper: createWrapper(),
+    });
+
+    fireEvent.contextMenu(await screen.findByTestId("article-reader-body"));
+
+    expect(await screen.findByRole("menuitem", { name: "Mark as Read" })).toHaveAttribute(
+      "data-action-id",
+      "article-toggle-read",
+    );
+    expect(screen.getByRole("menuitem", { name: "Star" })).toHaveAttribute("data-action-id", "article-toggle-star");
+  });
+
   it("records article views outside the recent smart view", async () => {
     const calls: MockTauriCommandCall[] = [];
     setupArticleViewRecordingMocks(calls);

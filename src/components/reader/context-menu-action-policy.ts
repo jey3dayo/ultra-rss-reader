@@ -10,6 +10,7 @@ export const CONTEXT_MENU_ACTION_IDS = {
   articleShareEmail: "article-share-email",
   articleToggleRead: "article-toggle-read",
   articleToggleStar: "article-toggle-star",
+  articleListFeedEdit: "article-list-feed-edit",
   feedEdit: "feed-edit",
   feedMarkAllRead: "feed-mark-all-read",
   feedMarkOldUnreadRead: "feed-mark-old-unread-read",

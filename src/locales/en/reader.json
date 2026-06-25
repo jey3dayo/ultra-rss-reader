@@ -161,6 +161,7 @@
   "unsubscribe": "Unsubscribe",
   "unsubscribe_ellipsis": "Unsubscribe…",
   "edit_ellipsis": "Edit…",
+  "edit_feed_ellipsis": "Edit feed…",
   "unsubscribed_from": "Unsubscribed from {{title}}",
   "failed_to_unsubscribe": "Failed to unsubscribe: {{message}}",
   "confirm_mark_read_one": "Mark 1 article as read?",

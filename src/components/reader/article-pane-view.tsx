@@ -11,6 +11,7 @@ import {
 } from "@/constants/motion";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
+import { ArticleContextMenu } from "./article-context-menu";
 import { ArticleReaderBody } from "./article-reader-body";
 import { ArticleToolbarView } from "./article-toolbar-view";
 import { BrowserOverlaySurface } from "./article-view-state";
@@ -95,18 +96,20 @@ export function ArticlePane({ article, feed, feedName }: ArticlePaneProps) {
           </div>
         ) : null}
         {showReaderBody ? (
-          <div
-            {...readerBodyStateProps}
-            {...{ [MOTION_DATA_DIRECTION_ATTRIBUTE]: motionDirection }}
-            className={cn("min-h-0 flex-1", MOTION_ARTICLE_SLIDE_CLASS_NAME)}
-            data-testid="article-reader-body"
-          >
-            <ArticleReaderBody
-              article={article}
-              feedName={feedName}
-              onOpenArticleTitleInWebPreview={onOpenArticleTitleInWebPreview}
-            />
-          </div>
+          <ArticleContextMenu article={article}>
+            <div
+              {...readerBodyStateProps}
+              {...{ [MOTION_DATA_DIRECTION_ATTRIBUTE]: motionDirection }}
+              className={cn("min-h-0 flex-1", MOTION_ARTICLE_SLIDE_CLASS_NAME)}
+              data-testid="article-reader-body"
+            >
+              <ArticleReaderBody
+                article={article}
+                feedName={feedName}
+                onOpenArticleTitleInWebPreview={onOpenArticleTitleInWebPreview}
+              />
+            </div>
+          </ArticleContextMenu>
         ) : (
           <div className="h-full bg-background" />
         )}

@@ -4,6 +4,7 @@ import { ArticleContextMenu } from "./article-context-menu";
 import type { ArticleGroupsViewGroup } from "./article-groups-view";
 import type { ArticleListEmptyStateVariant } from "./article-list-screen-view";
 import { ArticleListScreenView } from "./article-list-screen-view";
+import { CONTEXT_MENU_ACTION_IDS } from "./context-menu-action-policy";
 import { contextMenuStyles } from "./context-menu-styles";
 
 export type ArticleListBodyProps = {
@@ -26,6 +27,8 @@ export type ArticleListBodyProps = {
   onSelectArticle: (articleId: string) => void;
   markAllReadLabel: string;
   onMarkAllRead: () => void;
+  manageSelectedFeedLabel?: string;
+  onManageSelectedFeed?: () => void;
 };
 
 export function ArticleListBody({
@@ -48,6 +51,8 @@ export function ArticleListBody({
   onSelectArticle,
   markAllReadLabel,
   onMarkAllRead,
+  manageSelectedFeedLabel,
+  onManageSelectedFeed,
 }: ArticleListBodyProps) {
   const hasArticles = groups.some((group) => group.items.length > 0);
   const showBodyContextMenu = !isLoading && hasArticles;
@@ -83,6 +88,18 @@ export function ArticleListBody({
               <ContextMenu.Item className={contextMenuStyles.item} onClick={onMarkAllRead}>
                 {markAllReadLabel}
               </ContextMenu.Item>
+              {onManageSelectedFeed && manageSelectedFeedLabel ? (
+                <>
+                  <ContextMenu.Separator className={contextMenuStyles.separator} />
+                  <ContextMenu.Item
+                    data-action-id={CONTEXT_MENU_ACTION_IDS.articleListFeedEdit}
+                    className={contextMenuStyles.item}
+                    onClick={onManageSelectedFeed}
+                  >
+                    {manageSelectedFeedLabel}
+                  </ContextMenu.Item>
+                </>
+              ) : null}
             </ContextMenu.Popup>
           </ContextMenu.Positioner>
         </ContextMenu.Portal>

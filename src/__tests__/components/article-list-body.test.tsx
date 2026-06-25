@@ -34,6 +34,8 @@ function renderArticleListBody({
   ],
   onSelectArticle = vi.fn(),
   onMarkAllRead = vi.fn(),
+  manageSelectedFeedLabel,
+  onManageSelectedFeed,
 }: {
   emptyStateVariant?: "default" | "setup" | "hidden";
   emptyMessage?: string;
@@ -44,6 +46,8 @@ function renderArticleListBody({
   groups?: ComponentProps<typeof ArticleListBody>["groups"];
   onSelectArticle?: (articleId: string) => void;
   onMarkAllRead?: () => void;
+  manageSelectedFeedLabel?: string;
+  onManageSelectedFeed?: () => void;
 } = {}) {
   render(
     <ArticleListBody
@@ -66,11 +70,13 @@ function renderArticleListBody({
       onSelectArticle={onSelectArticle}
       markAllReadLabel="Mark all as read"
       onMarkAllRead={onMarkAllRead}
+      manageSelectedFeedLabel={manageSelectedFeedLabel}
+      onManageSelectedFeed={onManageSelectedFeed}
     />,
     { wrapper: createWrapper() },
   );
 
-  return { onSelectArticle, onMarkAllRead };
+  return { onSelectArticle, onMarkAllRead, onManageSelectedFeed };
 }
 
 describe("ArticleListBody", () => {
@@ -136,6 +142,24 @@ describe("ArticleListBody", () => {
 
     expect(onMarkAllRead).toHaveBeenCalledTimes(1);
     expect(onSelectArticle).not.toHaveBeenCalled();
+  });
+
+  it("exposes feed management from the list background only when a selected feed action is available", async () => {
+    const onManageSelectedFeed = vi.fn();
+
+    renderArticleListBody({
+      manageSelectedFeedLabel: "Edit feed…",
+      onManageSelectedFeed,
+    });
+
+    fireEvent.contextMenu(screen.getByTestId("article-list-scroll-content"));
+
+    const editFeedItem = await screen.findByRole("menuitem", { name: "Edit feed…" });
+    expect(editFeedItem).toHaveAttribute("data-action-id", "article-list-feed-edit");
+
+    fireEvent.click(editFeedItem);
+
+    expect(onManageSelectedFeed).toHaveBeenCalledTimes(1);
   });
 
   it("does not expose mark all read from an empty list body context menu", () => {
