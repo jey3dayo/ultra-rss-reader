@@ -4,6 +4,17 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.51.1] - 2026-06-25
+
+### Features
+
+- 開発用 Agentation toolbar を追加し、UI 調整時の視覚フィードバックを扱いやすくした。
+
+### Bug Fixes
+
+- Reader サイドバーのフォルダ行で chevron を独立操作ではなく行全体の展開状態表示として扱い、タグ行や記事選択状態の密度も揃えた。
+- 購読管理画面の一覧・詳細・サマリーの余白とレビュー文言を整理し、低密度の画面構成を読み取りやすくした。
+
 ## [0.51.0] - 2026-06-25
 
 ### Features
