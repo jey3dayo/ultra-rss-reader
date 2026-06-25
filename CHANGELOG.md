@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.51.2] - 2026-06-25
+
+### Maintenance
+
+- CI release preflight の jsdom テスト期待値を、Reader の選択行と購読詳細パネルの現行 UI class contract に揃えた。
+
 ## [0.51.1] - 2026-06-25
 
 ### Features
