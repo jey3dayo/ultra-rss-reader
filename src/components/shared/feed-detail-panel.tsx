@@ -118,7 +118,7 @@ export function FeedDetailPanel({
     <FeedDetailCard
       data-feed-detail-panel=""
       className={cn(
-        "overflow-hidden p-0 shadow-none",
+        "overflow-hidden px-0 py-0 shadow-none sm:px-0 sm:py-0",
         isLowWire ? "border-transparent bg-[var(--workspace-low-wire-group-surface)]" : "border-border/65 bg-card/38",
         className,
       )}
@@ -197,7 +197,7 @@ export function FeedDetailPanel({
         </div>
       </div>
 
-      <div className={cn("space-y-4 px-4 py-4 sm:px-5", isLowWire && "pt-4")}>
+      <div className={cn("space-y-4 py-4", isLowWire ? "px-0 pt-4" : "px-4 sm:px-5")}>
         <div data-testid="feed-detail-secondary-column" className="space-y-3">
           {reasonBox ? (
             <SurfaceCard
