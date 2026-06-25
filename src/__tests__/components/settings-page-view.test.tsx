@@ -102,7 +102,7 @@ describe("SettingsPageView", () => {
     expect(screen.queryByRole("textbox", { name: "Storage backend" })).toBeNull();
   });
 
-  it("keeps desktop switch labels on one line when the control is compact", () => {
+  it("lets settings switch labels wrap instead of crowding the toggle", () => {
     render(
       <SettingsPageView
         title="Reading"
@@ -124,7 +124,38 @@ describe("SettingsPageView", () => {
       />,
     );
 
-    expect(screen.getByText("フィード切り替え時にトップへスクロール")).toHaveClass("sm:whitespace-nowrap");
+    expect(screen.getByText("フィード切り替え時にトップへスクロール")).toHaveClass("max-w-[24rem]");
+    expect(screen.getByText("フィード切り替え時にトップへスクロール")).not.toHaveClass("sm:whitespace-nowrap");
+  });
+
+  it("stacks long read-only info values so command text is not squeezed", () => {
+    render(
+      <SettingsPageView
+        title="Debug"
+        sections={[
+          {
+            id: "dev-data",
+            heading: "Dev data seed",
+            controls: [
+              {
+                id: "debug-dev-data-command",
+                type: "info",
+                label: "Command",
+                value: "mise run app:dev:seed-from-prod",
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+
+    const command = screen.getByText("mise run app:dev:seed-from-prod");
+    const row = command.parentElement?.parentElement;
+
+    expect(row).not.toBeNull();
+    expect(row).toHaveClass("lg:grid-cols-1", "lg:items-start");
+    expect(command).toHaveClass("max-w-full", "text-left", "font-mono");
+    expect(command).not.toHaveClass("text-right");
   });
 
   it("packs multiple settings sections into compact desktop columns", () => {
@@ -177,10 +208,10 @@ describe("SettingsPageView", () => {
       />,
     );
 
-    expect(screen.getByTestId("settings-section-grid")).toHaveClass("gap-3", "md:grid-cols-2", "md:gap-4");
+    expect(screen.getByTestId("settings-section-grid")).toHaveClass("gap-3", "xl:grid-cols-2", "xl:gap-4");
     const columns = screen.getAllByTestId("settings-section-column");
     expect(columns).toHaveLength(2);
-    expect(columns[0]).toHaveClass("gap-3", "md:gap-4");
+    expect(columns[0]).toHaveClass("gap-3", "xl:gap-4");
     expect(screen.getByRole("heading", { name: "App" }).parentElement?.parentElement).toBe(
       screen.getByRole("heading", { name: "Sync" }).parentElement?.parentElement,
     );

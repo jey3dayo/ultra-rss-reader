@@ -23,6 +23,8 @@ type SettingsPageTextControl = Extract<SettingsPageControl, { type: "text" }>;
 type SettingsPageActionControl = Extract<SettingsPageControl, { type: "action" }>;
 type SettingsPageInfoControl = Extract<SettingsPageControl, { type: "info" }>;
 
+const SETTINGS_PAGE_INLINE_ROW_CLASS = "gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-x-4";
+
 function SettingsPageSelectRow({ control }: SettingsPageControlRowProps<SettingsPageSelectControl>) {
   return (
     <LabeledSelectRow
@@ -33,6 +35,7 @@ function SettingsPageSelectRow({ control }: SettingsPageControlRowProps<Settings
       onChange={control.onChange}
       disabled={control.disabled}
       open={control.open}
+      rowClassName={SETTINGS_PAGE_INLINE_ROW_CLASS}
       triggerClassName={cn(SETTINGS_CONTROL_SURFACE_CLASS, "sm:w-[192px]")}
     />
   );
@@ -45,7 +48,8 @@ function SettingsPageSwitchRow({ control }: SettingsPageControlRowProps<Settings
       checked={control.checked}
       onChange={control.onChange}
       disabled={control.disabled}
-      labelClassName="sm:whitespace-nowrap"
+      rowClassName={SETTINGS_PAGE_INLINE_ROW_CLASS}
+      labelClassName="max-w-[24rem]"
     />
   );
 }
@@ -60,8 +64,7 @@ function SettingsPageTextRow({ control }: SettingsPageControlRowProps<SettingsPa
         onChange={control.onChange}
         placeholder={control.placeholder}
         disabled={control.disabled}
-        rowClassName="gap-4"
-        labelClassName="w-40 shrink-0"
+        rowClassName="gap-3 lg:grid-cols-1 lg:items-start [&>div]:lg:justify-start [&>div]:lg:pr-0"
         inputClassName={cn("h-11 flex-1", SETTINGS_CONTROL_SURFACE_CLASS)}
         trailingControls={
           <SettingsActionButton
@@ -86,9 +89,8 @@ function SettingsPageTextRow({ control }: SettingsPageControlRowProps<SettingsPa
       onChange={control.onChange}
       placeholder={control.placeholder}
       disabled={control.disabled}
-      rowClassName="gap-4"
-      labelClassName="w-40 shrink-0"
-      controlClassName="flex w-full items-center gap-2 sm:max-w-[30rem] sm:justify-end"
+      rowClassName="gap-3 lg:grid-cols-1 lg:items-start [&>div]:lg:justify-start [&>div]:lg:pr-0"
+      controlClassName="flex w-full items-center gap-2 sm:max-w-[30rem]"
       inputClassName={cn("h-11 flex-1", SETTINGS_CONTROL_SURFACE_CLASS)}
     />
   );
@@ -98,7 +100,7 @@ function SettingsPageActionRow({ control }: SettingsPageControlRowProps<Settings
   return (
     <LabeledControlRow
       label={control.label}
-      className={control.rowClassName ?? "gap-4"}
+      className={control.rowClassName ?? SETTINGS_PAGE_INLINE_ROW_CLASS}
       labelClassName={control.labelClassName}
     >
       <SettingsLoadingActionButton
@@ -117,11 +119,31 @@ function SettingsPageActionRow({ control }: SettingsPageControlRowProps<Settings
 }
 
 function SettingsPageInfoRow({ control }: SettingsPageControlRowProps<SettingsPageInfoControl>) {
+  const usesStackedValue = control.value.length > 22;
+
+  if (usesStackedValue) {
+    return (
+      <LabeledControlRow
+        label={control.label}
+        className="gap-2 lg:grid-cols-1 lg:items-start [&>div]:lg:justify-start [&>div]:lg:pr-0"
+      >
+        <span
+          className={cn(
+            "block max-w-full text-left font-mono text-[13px] leading-[1.55] break-words text-foreground",
+            control.valueClassName,
+          )}
+        >
+          {control.value}
+        </span>
+      </LabeledControlRow>
+    );
+  }
+
   return (
-    <LabeledControlRow label={control.label} className="gap-4">
+    <LabeledControlRow label={control.label} className={SETTINGS_PAGE_INLINE_ROW_CLASS}>
       <span
         className={cn(
-          "block text-right font-serif text-sm leading-[1.45] break-words text-foreground sm:max-w-[30rem]",
+          "block text-right font-serif text-sm leading-[1.45] whitespace-nowrap text-foreground sm:max-w-[30rem]",
           control.valueClassName,
         )}
       >
@@ -170,13 +192,13 @@ export function SettingsPageView({ title, sections, sectionSurface = "flat" }: S
     <SettingsContentLayout title={title} titleLayout="stacked-left" outerTestId="settings-page-root">
       <div
         data-testid={usesSectionGrid ? "settings-section-grid" : undefined}
-        className={cn(usesSectionGrid ? "grid gap-3 md:grid-cols-2 md:items-start md:gap-4" : undefined)}
+        className={cn(usesSectionGrid ? "grid gap-3 xl:grid-cols-2 xl:items-start xl:gap-4" : undefined)}
       >
         {gridColumns.map((columnSections, columnIndex) => (
           <div
             key={sectionColumnKeys[columnIndex] ?? columnSections.map((section) => section.id).join(":")}
             data-testid={usesSectionGrid ? "settings-section-column" : undefined}
-            className={cn(usesSectionGrid && "grid gap-3 md:gap-4")}
+            className={cn(usesSectionGrid && "grid gap-3 xl:gap-4")}
           >
             {columnSections.map((section, index) => renderSection(section, index))}
           </div>
