@@ -133,36 +133,53 @@ function SettingsPageInfoRow({ control }: SettingsPageControlRowProps<SettingsPa
 
 export function SettingsPageView({ title, sections, sectionSurface = "flat" }: SettingsPageViewProps) {
   const usesSectionGrid = sections.length > 1;
+  const sectionColumnKeys = ["primary", "secondary"] as const;
+  const gridColumns = usesSectionGrid
+    ? [sections.filter((_, index) => index % 2 === 0), sections.filter((_, index) => index % 2 === 1)]
+    : [sections];
+
+  const renderSection = (section: SettingsPageViewProps["sections"][number], index: number) => (
+    <SettingsSection
+      key={section.id}
+      heading={section.heading}
+      note={section.note}
+      surface={sectionSurface}
+      className={cn(
+        sectionSurface === "flat" && "px-3 py-2.5 sm:px-4 sm:py-3",
+        !usesSectionGrid && index !== sections.length - 1 && "mb-4 sm:mb-5",
+      )}
+      headingClassName="text-[11px] tracking-[0.04em]"
+    >
+      {section.controls.map((control) =>
+        control.type === "select" ? (
+          <SettingsPageSelectRow key={control.id} control={control} />
+        ) : control.type === "switch" ? (
+          <SettingsPageSwitchRow key={control.id} control={control} />
+        ) : control.type === "text" ? (
+          <SettingsPageTextRow key={control.id} control={control} />
+        ) : control.type === "info" ? (
+          <SettingsPageInfoRow key={control.id} control={control} />
+        ) : (
+          <SettingsPageActionRow key={control.id} control={control} />
+        ),
+      )}
+    </SettingsSection>
+  );
 
   return (
     <SettingsContentLayout title={title} titleLayout="stacked-left" outerTestId="settings-page-root">
-      <div className={cn(usesSectionGrid ? "grid gap-4 md:grid-cols-2 md:items-start" : undefined)}>
-        {sections.map((section, index) => (
-          <SettingsSection
-            key={section.id}
-            heading={section.heading}
-            note={section.note}
-            surface={sectionSurface}
-            className={cn(
-              sectionSurface === "flat" && "px-3 py-2.5 sm:px-4 sm:py-3",
-              !usesSectionGrid && index !== sections.length - 1 && "mb-4 sm:mb-5",
-            )}
-            headingClassName="text-[11px] tracking-[0.04em]"
+      <div
+        data-testid={usesSectionGrid ? "settings-section-grid" : undefined}
+        className={cn(usesSectionGrid ? "grid gap-3 md:grid-cols-2 md:items-start md:gap-4" : undefined)}
+      >
+        {gridColumns.map((columnSections, columnIndex) => (
+          <div
+            key={sectionColumnKeys[columnIndex] ?? columnSections.map((section) => section.id).join(":")}
+            data-testid={usesSectionGrid ? "settings-section-column" : undefined}
+            className={cn(usesSectionGrid && "grid gap-3 md:gap-4")}
           >
-            {section.controls.map((control) =>
-              control.type === "select" ? (
-                <SettingsPageSelectRow key={control.id} control={control} />
-              ) : control.type === "switch" ? (
-                <SettingsPageSwitchRow key={control.id} control={control} />
-              ) : control.type === "text" ? (
-                <SettingsPageTextRow key={control.id} control={control} />
-              ) : control.type === "info" ? (
-                <SettingsPageInfoRow key={control.id} control={control} />
-              ) : (
-                <SettingsPageActionRow key={control.id} control={control} />
-              ),
-            )}
-          </SettingsSection>
+            {columnSections.map((section, index) => renderSection(section, index))}
+          </div>
         ))}
       </div>
     </SettingsContentLayout>

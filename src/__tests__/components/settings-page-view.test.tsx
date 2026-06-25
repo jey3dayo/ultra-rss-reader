@@ -127,6 +127,65 @@ describe("SettingsPageView", () => {
     expect(screen.getByText("フィード切り替え時にトップへスクロール")).toHaveClass("sm:whitespace-nowrap");
   });
 
+  it("packs multiple settings sections into compact desktop columns", () => {
+    render(
+      <SettingsPageView
+        title="General"
+        sections={[
+          {
+            id: "app",
+            heading: "App",
+            controls: [
+              {
+                id: "language",
+                type: "select",
+                name: "language",
+                label: "Language",
+                value: "system",
+                options: [{ value: "system", label: "Follow system" }],
+                onChange: vi.fn(),
+              },
+            ],
+          },
+          {
+            id: "sidebar",
+            heading: "Sidebar",
+            controls: [
+              {
+                id: "show-unread",
+                type: "switch",
+                label: "Show unread",
+                checked: true,
+                onChange: vi.fn(),
+              },
+            ],
+          },
+          {
+            id: "sync",
+            heading: "Sync",
+            controls: [
+              {
+                id: "sync-on-start",
+                type: "switch",
+                label: "Sync on startup",
+                checked: true,
+                onChange: vi.fn(),
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByTestId("settings-section-grid")).toHaveClass("gap-3", "md:grid-cols-2", "md:gap-4");
+    const columns = screen.getAllByTestId("settings-section-column");
+    expect(columns).toHaveLength(2);
+    expect(columns[0]).toHaveClass("gap-3", "md:gap-4");
+    expect(screen.getByRole("heading", { name: "App" }).parentElement?.parentElement).toBe(
+      screen.getByRole("heading", { name: "Sync" }).parentElement?.parentElement,
+    );
+  });
+
   it("uses the shared labeled input row for text controls with inline actions", async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();

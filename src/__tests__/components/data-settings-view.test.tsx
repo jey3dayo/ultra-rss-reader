@@ -51,6 +51,7 @@ describe("DataSettingsView", () => {
     );
 
     expect(screen.getByRole("heading", { name: "Data" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Optimization" })).not.toBeInTheDocument();
     expect(screen.getByText("1.50 MB")).toHaveClass("text-foreground-soft");
     expect(screen.getByRole("heading", { name: "Backup and Restore" })).toBeInTheDocument();
     expect(screen.getByText("Use OPML export.")).toBeInTheDocument();
@@ -62,6 +63,9 @@ describe("DataSettingsView", () => {
     const openLogDirectoryButton = screen.getByRole("button", {
       name: "Open log directory",
     });
+    expect(optimizeButton.closest("section")).toBe(
+      screen.getByRole("heading", { name: "Database" }).closest("section"),
+    );
     expectStandardSettingsActionButton(optimizeButton);
     expectStandardSettingsActionButton(openLogDirectoryButton);
 
