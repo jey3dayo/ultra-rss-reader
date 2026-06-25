@@ -90,6 +90,14 @@ function getUpdateFailureToastMessage(message: string): string {
   return message === SHARED_OPERATION_BUSY_ERROR ? message : i18n.t("updater.download_failed_keep_current");
 }
 
+function getDownloadProgressToastMessage(percent: number | null): string {
+  if (percent === 100) {
+    return i18n.t("updater.installing");
+  }
+
+  return percent != null ? i18n.t("updater.downloading_percent", { percent }) : i18n.t("updater.downloading");
+}
+
 function showUpdateFailureToast(message: string): void {
   const store = useUiStore.getState();
   console.error("Update download failed:", message);
@@ -477,8 +485,7 @@ export function useUpdater(): void {
             if (percent === undefined) {
               return;
             }
-            const message =
-              percent != null ? i18n.t("updater.downloading_percent", { percent }) : i18n.t("updater.downloading");
+            const message = getDownloadProgressToastMessage(percent);
             store.showToast({
               message,
               persistent: true,

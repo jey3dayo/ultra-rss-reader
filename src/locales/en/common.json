@@ -24,6 +24,7 @@
     "check_again": "Check again",
     "downloading": "Downloading…",
     "downloading_percent": "Downloading… {{percent}}%",
+    "installing": "Preparing install…",
     "restart_failed_ready": "Restart failed. The update is ready.",
     "restart_again": "Restart again",
     "restart_blocked_dirty_or_pending": "Finish or save the current change before restarting.",

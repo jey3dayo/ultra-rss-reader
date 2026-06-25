@@ -1153,25 +1153,25 @@ describe("performUpdateCheck", () => {
 
     progressListeners[0]?.({ payload: { session_id: 1, percent: 100 } });
     expect(useUiStore.getState().toastMessage).toMatchObject({
-      message: "ダウンロード中… 100%",
+      message: "インストール準備中…",
       progress: 100,
     });
 
     progressListeners[0]?.({ payload: { session_id: 1, percent: -12 } });
     expect(useUiStore.getState().toastMessage).toMatchObject({
-      message: "ダウンロード中… 100%",
+      message: "インストール準備中…",
       progress: 100,
     });
 
     progressListeners[0]?.({ payload: { session_id: 1, percent: 120 } });
     expect(useUiStore.getState().toastMessage).toMatchObject({
-      message: "ダウンロード中… 100%",
+      message: "インストール準備中…",
       progress: 100,
     });
 
     progressListeners[0]?.({ payload: { session_id: 1, percent: 42.4 } });
     expect(useUiStore.getState().toastMessage).toMatchObject({
-      message: "ダウンロード中… 100%",
+      message: "インストール準備中…",
       progress: 100,
     });
 

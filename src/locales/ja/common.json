@@ -24,6 +24,7 @@
     "check_again": "もう一度確認",
     "downloading": "ダウンロード中…",
     "downloading_percent": "ダウンロード中… {{percent}}%",
+    "installing": "インストール準備中…",
     "restart_failed_ready": "再起動に失敗しました。更新の準備は完了しています。",
     "restart_again": "もう一度再起動",
     "restart_blocked_dirty_or_pending": "編集中または保存中の変更があるため、再起動できません。",
