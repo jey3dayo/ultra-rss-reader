@@ -48,6 +48,49 @@ pub fn write_local_sync_operation_file(
     Ok(path)
 }
 
+pub fn next_local_sync_operation_sequence(
+    account_root: &Path,
+    device_id: &LocalSyncDeviceId,
+) -> DomainResult<u64> {
+    let operation_dir = local_sync_operation_path(account_root, device_id, 1)?
+        .parent()
+        .ok_or_else(|| {
+            DomainError::Persistence("Cannot determine local sync operation directory".to_string())
+        })?
+        .to_path_buf();
+    if !operation_dir.exists() {
+        return Ok(1);
+    }
+
+    let mut max_sequence = 0_u64;
+    for entry in fs::read_dir(&operation_dir).map_err(|error| {
+        DomainError::Persistence(format!(
+            "Failed to read local sync operation directory {}: {error}",
+            redacted_sync_path_label(&operation_dir)
+        ))
+    })? {
+        let entry = entry.map_err(|error| {
+            DomainError::Persistence(format!(
+                "Failed to read local sync operation directory entry: {error}"
+            ))
+        })?;
+        let path = entry.path();
+        if path.extension().and_then(|value| value.to_str()) != Some("json") {
+            continue;
+        }
+        let Some(sequence) = path
+            .file_stem()
+            .and_then(|value| value.to_str())
+            .and_then(|stem| stem.parse::<u64>().ok())
+        else {
+            continue;
+        };
+        max_sequence = max_sequence.max(sequence);
+    }
+
+    Ok(max_sequence.saturating_add(1))
+}
+
 pub fn write_local_sync_operation_file_at(
     path: &Path,
     operation: &LocalAccountSyncOperation,
@@ -281,6 +324,25 @@ mod tests {
         );
         assert!(write_local_sync_operation_file(dir.path(), &operation("op-2"), 1).is_err());
         assert_eq!(fs::read_to_string(&path).unwrap(), original_content);
+    }
+
+    #[test]
+    fn next_operation_sequence_appends_after_existing_json_files() {
+        let dir = tempfile::tempdir().unwrap();
+        let account_root = dir.path();
+        write_local_sync_operation_file(account_root, &operation("op-1"), 1).unwrap();
+        write_local_sync_operation_file(account_root, &operation("op-3"), 3).unwrap();
+        let op_dir = account_root.join("ops").join("device-a");
+        fs::write(op_dir.join("not-a-sequence.json"), "{}").unwrap();
+        fs::write(op_dir.join("00000099.txt"), "{}").unwrap();
+
+        let next = next_local_sync_operation_sequence(
+            account_root,
+            &LocalSyncDeviceId("device-a".to_string()),
+        )
+        .unwrap();
+
+        assert_eq!(next, 4);
     }
 
     #[test]

@@ -126,6 +126,7 @@ function readRustCommandSources() {
     "database_commands.rs",
     "feed_commands.rs",
     "log_commands.rs",
+    "local_account_sync_commands.rs",
     "mute_keyword_commands.rs",
     "opml_commands.rs",
     "platform_commands.rs",

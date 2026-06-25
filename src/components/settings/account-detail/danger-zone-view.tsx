@@ -10,6 +10,25 @@ type AccountDangerZoneViewProps = {
   importingLabel?: string;
   exportLabel: string;
   exportingLabel?: string;
+  localSyncHeading?: string;
+  localSyncDescription?: string;
+  localSyncFolderLabel?: string;
+  localSyncFolderPlaceholder?: string;
+  localSyncFolderValue?: string;
+  onLocalSyncFolderChange?: (value: string) => void;
+  saveLocalSyncFolderLabel?: string;
+  savingLocalSyncFolderLabel?: string;
+  exportLocalSyncLabel?: string;
+  exportingLocalSyncLabel?: string;
+  importLocalSyncLabel?: string;
+  importingLocalSyncLabel?: string;
+  onSaveLocalSyncFolder?: () => void;
+  onExportLocalSync?: () => void;
+  onImportLocalSync?: () => void;
+  loadingLocalSyncFolder?: boolean;
+  savingLocalSyncFolder?: boolean;
+  exportingLocalSync?: boolean;
+  importingLocalSync?: boolean;
   deleteLabel: string;
   onImport: (file: File) => void;
   onExport: () => void;
@@ -27,6 +46,25 @@ export function AccountDangerZoneView({
   importingLabel,
   exportLabel,
   exportingLabel,
+  localSyncHeading,
+  localSyncDescription,
+  localSyncFolderLabel,
+  localSyncFolderPlaceholder,
+  localSyncFolderValue = "",
+  onLocalSyncFolderChange,
+  saveLocalSyncFolderLabel,
+  savingLocalSyncFolderLabel,
+  exportLocalSyncLabel,
+  exportingLocalSyncLabel,
+  importLocalSyncLabel,
+  importingLocalSyncLabel,
+  onSaveLocalSyncFolder,
+  onExportLocalSync,
+  onImportLocalSync,
+  loadingLocalSyncFolder = false,
+  savingLocalSyncFolder = false,
+  exportingLocalSync = false,
+  importingLocalSync = false,
   deleteLabel,
   onImport,
   onExport,
@@ -41,6 +79,18 @@ export function AccountDangerZoneView({
   const showDisabledReason = disabled && disabledReason != null && disabledReason.trim().length > 0;
   const importDisabled = disabled || importing || exporting;
   const exportDisabled = disabled || importing || exporting;
+  const hasLocalSyncControls =
+    localSyncHeading &&
+    localSyncFolderLabel &&
+    onLocalSyncFolderChange &&
+    saveLocalSyncFolderLabel &&
+    exportLocalSyncLabel &&
+    importLocalSyncLabel &&
+    onSaveLocalSyncFolder &&
+    onExportLocalSync &&
+    onImportLocalSync;
+  const localSyncBusy = loadingLocalSyncFolder || savingLocalSyncFolder || exportingLocalSync || importingLocalSync;
+  const localSyncDisabled = disabled || localSyncBusy;
   const handleImportClick = () => {
     if (importDisabled) return;
     importInputRef.current?.click();
@@ -56,6 +106,52 @@ export function AccountDangerZoneView({
   return (
     <>
       <SettingsSection heading={dataHeading} surface="flat" className="mt-6" contentClassName="pt-1">
+        {hasLocalSyncControls ? (
+          <div className="mb-4 flex flex-col gap-3 rounded-md border border-border-subtle/70 p-3">
+            <div>
+              <h3 className="text-sm font-semibold text-foreground">{localSyncHeading}</h3>
+              {localSyncDescription ? (
+                <p className="mt-1 font-serif text-sm text-foreground-soft">{localSyncDescription}</p>
+              ) : null}
+            </div>
+            <label className="flex flex-col gap-1 text-sm font-medium text-foreground">
+              {localSyncFolderLabel}
+              <input
+                value={localSyncFolderValue}
+                placeholder={localSyncFolderPlaceholder}
+                disabled={localSyncDisabled}
+                onChange={(event) => onLocalSyncFolderChange(event.currentTarget.value)}
+                className="h-9 rounded-md border border-input-border bg-input px-3 text-sm text-foreground shadow-sm outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-60"
+              />
+            </label>
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+              <SettingsLoadingActionButton
+                onClick={onSaveLocalSyncFolder}
+                loading={savingLocalSyncFolder}
+                loadingLabel={savingLocalSyncFolderLabel}
+                disabled={localSyncDisabled || localSyncFolderValue.trim().length === 0}
+              >
+                {saveLocalSyncFolderLabel}
+              </SettingsLoadingActionButton>
+              <SettingsLoadingActionButton
+                onClick={onExportLocalSync}
+                loading={exportingLocalSync}
+                loadingLabel={exportingLocalSyncLabel}
+                disabled={localSyncDisabled || localSyncFolderValue.trim().length === 0}
+              >
+                {exportLocalSyncLabel}
+              </SettingsLoadingActionButton>
+              <SettingsLoadingActionButton
+                onClick={onImportLocalSync}
+                loading={importingLocalSync}
+                loadingLabel={importingLocalSyncLabel}
+                disabled={localSyncDisabled || localSyncFolderValue.trim().length === 0}
+              >
+                {importLocalSyncLabel}
+              </SettingsLoadingActionButton>
+            </div>
+          </div>
+        ) : null}
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           <input
             ref={importInputRef}

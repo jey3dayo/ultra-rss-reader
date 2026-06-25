@@ -13,19 +13,41 @@ import { queryKeys } from "@/lib/query/query-invalidation";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
-const { deleteAccountMock, exportOpmlMock, getPreferencesMock, importOpmlMock, setPreferenceMock } = vi.hoisted(() => ({
+const TAGS_QUERY_KEY = ["tags"] as const;
+const ARTICLE_TAGS_QUERY_KEY = ["articleTags"] as const;
+const MUTE_KEYWORD_QUERY_KEY = ["muteKeywords"] as const;
+
+const {
+  deleteAccountMock,
+  exportLocalAccountSyncOperationsMock,
+  exportOpmlMock,
+  getLocalAccountSyncSettingsMock,
+  getPreferencesMock,
+  importLocalAccountSyncOperationsMock,
+  importOpmlMock,
+  setLocalAccountSyncSettingsMock,
+  setPreferenceMock,
+} = vi.hoisted(() => ({
   deleteAccountMock: vi.fn(),
+  exportLocalAccountSyncOperationsMock: vi.fn(),
   exportOpmlMock: vi.fn(),
+  getLocalAccountSyncSettingsMock: vi.fn(),
   getPreferencesMock: vi.fn(),
+  importLocalAccountSyncOperationsMock: vi.fn(),
   importOpmlMock: vi.fn(),
+  setLocalAccountSyncSettingsMock: vi.fn(),
   setPreferenceMock: vi.fn(),
 }));
 
 vi.mock("@/api/tauri-commands", () => ({
   deleteAccount: deleteAccountMock,
+  exportLocalAccountSyncOperations: exportLocalAccountSyncOperationsMock,
   exportOpml: exportOpmlMock,
+  getLocalAccountSyncSettings: getLocalAccountSyncSettingsMock,
   getPreferences: getPreferencesMock,
+  importLocalAccountSyncOperations: importLocalAccountSyncOperationsMock,
   importOpml: importOpmlMock,
+  setLocalAccountSyncSettings: setLocalAccountSyncSettingsMock,
   setPreference: setPreferenceMock,
 }));
 
@@ -59,10 +81,46 @@ describe("useAccountDetailDangerZone", () => {
     });
     vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
     exportOpmlMock.mockReset();
+    exportLocalAccountSyncOperationsMock.mockReset();
     deleteAccountMock.mockReset();
+    getLocalAccountSyncSettingsMock.mockReset();
     getPreferencesMock.mockReset();
+    importLocalAccountSyncOperationsMock.mockReset();
     importOpmlMock.mockReset();
+    setLocalAccountSyncSettingsMock.mockReset();
     setPreferenceMock.mockReset();
+    getLocalAccountSyncSettingsMock.mockResolvedValue(Result.succeed(null));
+    exportLocalAccountSyncOperationsMock.mockResolvedValue(Result.succeed({ operations_written: 0 }));
+    importLocalAccountSyncOperationsMock.mockResolvedValue(
+      Result.succeed({
+        loaded_operations: 0,
+        applied_operations: 0,
+        rejected_operations: 0,
+        rejected_files: 0,
+        conflicted_candidates: 0,
+        applied: true,
+        folders_upserted: 0,
+        feeds_upserted: 0,
+        article_states_applied: 0,
+        tags_upserted: 0,
+        article_tags_added: 0,
+        article_tags_removed: 0,
+        mute_keywords_upserted: 0,
+        mute_keywords_removed: 0,
+        unmatched_article_keys: 0,
+        skipped_removed_tags: 0,
+        conflict_count: 0,
+      }),
+    );
+    setLocalAccountSyncSettingsMock.mockResolvedValue(
+      Result.succeed({
+        account_id: "acc-1",
+        sync_folder_path: "/tmp/UltraRSSReader",
+        sync_account_id: "sync-account-1",
+        device_id: "device-1",
+        enabled: true,
+      }),
+    );
     setPreferenceMock.mockResolvedValue(Result.succeed(null));
     useUiStore.setState(useUiStore.getInitialState());
     usePreferencesStore.setState({ prefs: {}, loaded: false });
@@ -466,5 +524,75 @@ describe("useAccountDetailDangerZone", () => {
     await waitFor(() => {
       expect(useUiStore.getState().toastMessage?.message).toBe("Failed to save setting: disk full");
     });
+  });
+
+  it("invalidates local sync import caches for feeds, articles, tags, and mute keywords", async () => {
+    const queryClient = createTestQueryClient();
+    const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
+    getLocalAccountSyncSettingsMock.mockResolvedValue(
+      Result.succeed({
+        account_id: "acc-1",
+        sync_folder_path: "/tmp/UltraRSSReader",
+        sync_account_id: "sync-account-1",
+        device_id: "device-1",
+        enabled: true,
+      }),
+    );
+    importLocalAccountSyncOperationsMock.mockResolvedValue(
+      Result.succeed({
+        loaded_operations: 4,
+        applied_operations: 4,
+        rejected_operations: 0,
+        rejected_files: 0,
+        conflicted_candidates: 0,
+        applied: true,
+        folders_upserted: 1,
+        feeds_upserted: 1,
+        article_states_applied: 1,
+        tags_upserted: 1,
+        article_tags_added: 1,
+        article_tags_removed: 0,
+        mute_keywords_upserted: 1,
+        mute_keywords_removed: 0,
+        unmatched_article_keys: 0,
+        skipped_removed_tags: 0,
+        conflict_count: 0,
+      }),
+    );
+
+    const { result } = renderHook(() =>
+      useAccountDetailDangerZone({
+        account: { ...sampleAccounts[0], kind: "Local" },
+        queryClient,
+        t,
+        onAccountDeleted: vi.fn(),
+      }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.localSyncFolderPath).toBe("/tmp/UltraRSSReader");
+    });
+    await act(async () => {
+      await result.current.handleImportLocalSyncOperations();
+    });
+
+    expect(importLocalAccountSyncOperationsMock).toHaveBeenCalledWith("acc-1");
+    for (const queryKey of [
+      queryKeys.feeds.root,
+      queryKeys.folders.root,
+      queryKeys.articles.root,
+      queryKeys.accountArticles.root,
+      queryKeys.folderArticles.root,
+      queryKeys.starredArticles.root,
+      queryKeys.recentArticles.root,
+      queryKeys.feedArticleSummaries.root,
+      TAGS_QUERY_KEY,
+      ARTICLE_TAGS_QUERY_KEY,
+      queryKeys.articlesByTag.root,
+      queryKeys.tagArticleCounts.root,
+      MUTE_KEYWORD_QUERY_KEY,
+    ]) {
+      expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey });
+    }
   });
 });

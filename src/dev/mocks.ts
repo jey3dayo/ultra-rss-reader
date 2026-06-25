@@ -80,6 +80,15 @@ type ParsedBrowserMockArgs<TCommand extends MockCommandWithArgs> = SchemaOutput<
 type RawMockIpcPayload = unknown;
 
 type DevSettingsProfile = ReturnType<typeof SettingsProfileSchema.parse>;
+type DevLocalSyncSettings = {
+  account_id: string;
+  sync_folder_path: string;
+  sync_account_id: string;
+  device_id: string;
+  enabled: boolean;
+};
+
+const mockLocalSyncSettings = new Map<string, DevLocalSyncSettings>();
 
 export type { RestoreDevMocks } from "@/dev/mock-runtime";
 
@@ -107,6 +116,7 @@ function resetDevMockState() {
   resetDevMockDataState();
   resetDevMockDiagnostics();
   resetDevMockExternalOpens();
+  mockLocalSyncSettings.clear();
 }
 
 function normalizeSettingsProfileServerUrl(serverUrl: string | null): string | null {
@@ -777,6 +787,56 @@ export function setupDevMocks(): RestoreDevMocks {
         const { key, value } = parseBrowserMockArgs("set_preference", rawIpcPayload);
         mockPreferences.set(key, value);
         return null;
+      }
+
+      case "get_local_account_sync_settings": {
+        const { accountId } = parseBrowserMockArgs("get_local_account_sync_settings", rawIpcPayload);
+        return mockLocalSyncSettings.get(accountId) ?? null;
+      }
+
+      case "set_local_account_sync_settings": {
+        const { accountId, syncFolderPath, enabled } = parseBrowserMockArgs(
+          "set_local_account_sync_settings",
+          rawIpcPayload,
+        );
+        const existing = mockLocalSyncSettings.get(accountId);
+        const settings = {
+          account_id: accountId,
+          sync_folder_path: syncFolderPath,
+          sync_account_id: existing?.sync_account_id ?? `dev-sync-${accountId}`,
+          device_id: existing?.device_id ?? "dev-device",
+          enabled,
+        };
+        mockLocalSyncSettings.set(accountId, settings);
+        return settings;
+      }
+
+      case "export_local_account_sync_operations": {
+        parseBrowserMockArgs("export_local_account_sync_operations", rawIpcPayload);
+        return { operations_written: 0 };
+      }
+
+      case "import_local_account_sync_operations": {
+        parseBrowserMockArgs("import_local_account_sync_operations", rawIpcPayload);
+        return {
+          loaded_operations: 0,
+          applied_operations: 0,
+          rejected_operations: 0,
+          rejected_files: 0,
+          conflicted_candidates: 0,
+          applied: true,
+          folders_upserted: 0,
+          feeds_upserted: 0,
+          article_states_applied: 0,
+          tags_upserted: 0,
+          article_tags_added: 0,
+          article_tags_removed: 0,
+          mute_keywords_upserted: 0,
+          mute_keywords_removed: 0,
+          unmatched_article_keys: 0,
+          skipped_removed_tags: 0,
+          conflict_count: 0,
+        };
       }
 
       case "export_settings_profile":

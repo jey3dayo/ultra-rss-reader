@@ -3,7 +3,15 @@ import type { QueryClient, QueryKey } from "@tanstack/react-query";
 import type { TFunction } from "i18next";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { deleteAccount, exportOpml, importOpml } from "@/api/tauri-commands";
+import {
+  deleteAccount,
+  exportLocalAccountSyncOperations,
+  exportOpml,
+  getLocalAccountSyncSettings,
+  importLocalAccountSyncOperations,
+  importOpml,
+  setLocalAccountSyncSettings,
+} from "@/api/tauri-commands";
 import {
   getQueryKeyRootName,
   getQueryKeyScopeValue,
@@ -26,12 +34,25 @@ type AccountDetailDangerZoneParams = {
   onAccountDeleted: () => void;
 };
 
+const TAGS_QUERY_KEY = ["tags"] as const;
+const ARTICLE_TAGS_QUERY_KEY = ["articleTags"] as const;
+const MUTE_KEYWORD_QUERY_KEY = ["muteKeywords"] as const;
+
 export type AccountDetailDangerZoneResult = {
   handleImportOpml: (file: File) => Promise<void>;
   handleExportOpml: () => Promise<void>;
+  localSyncFolderPath: string;
+  setLocalSyncFolderPath: (value: string) => void;
+  handleSaveLocalSyncFolder: () => Promise<void>;
+  handleExportLocalSyncOperations: () => Promise<void>;
+  handleImportLocalSyncOperations: () => Promise<void>;
   handleRequestDelete: () => void;
   importingOpml: boolean;
   exportingOpml: boolean;
+  loadingLocalSyncSettings: boolean;
+  savingLocalSyncSettings: boolean;
+  exportingLocalSyncOperations: boolean;
+  importingLocalSyncOperations: boolean;
 };
 
 export function buildOpmlExportFilename(accountName: string): string {
@@ -103,6 +124,15 @@ function removeDeletedAccountArticleCaches(queryClient: QueryClient, deletedAcco
   });
 }
 
+function invalidateLocalAccountSyncImportQueries(queryClient: QueryClient): void {
+  invalidateOpmlImportQueries(queryClient);
+  invalidateArticleQueries(queryClient, {
+    includeFeeds: false,
+    includeTagArticleCounts: true,
+  });
+  invalidateQueryKeysLogOnly(queryClient, [TAGS_QUERY_KEY, ARTICLE_TAGS_QUERY_KEY, MUTE_KEYWORD_QUERY_KEY]);
+}
+
 export function useAccountDetailDangerZone({
   account,
   queryClient,
@@ -113,6 +143,11 @@ export function useAccountDetailDangerZone({
   const exportInFlightRef = useRef(false);
   const [importingOpml, setImportingOpml] = useState(false);
   const [exportingOpml, setExportingOpml] = useState(false);
+  const [localSyncFolderPath, setLocalSyncFolderPath] = useState("");
+  const [loadingLocalSyncSettings, setLoadingLocalSyncSettings] = useState(false);
+  const [savingLocalSyncSettings, setSavingLocalSyncSettings] = useState(false);
+  const [exportingLocalSyncOperations, setExportingLocalSyncOperations] = useState(false);
+  const [importingLocalSyncOperations, setImportingLocalSyncOperations] = useState(false);
   const pendingExportUrlRef = useRef<string | null>(null);
   const pendingExportUrlTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mountedRef = useRef(true);
@@ -120,6 +155,18 @@ export function useAccountDetailDangerZone({
   const showConfirm = useUiStore((state) => state.showConfirm);
   const showImportError = createAccountDetailErrorToast(t, "account.failed_to_import_opml");
   const showExportError = createAccountDetailErrorToast(t, "account.failed_to_export_opml");
+  const showLocalSyncSettingsError = useCallback(
+    createAccountDetailErrorToast(t, "account.local_sync_settings_failed"),
+    [],
+  );
+  const showLocalSyncExportError = useCallback(
+    createAccountDetailErrorToast(t, "account.local_sync_export_failed"),
+    [],
+  );
+  const showLocalSyncImportError = useCallback(
+    createAccountDetailErrorToast(t, "account.local_sync_import_failed"),
+    [],
+  );
   const showDeleteError = createAccountDetailErrorToast(t, "account.failed_to_delete");
   const savedAccountId = usePreferencesStore((state) => state.prefs.selected_account_id ?? "");
   const setPref = usePreferencesStore((state) => state.setPref);
@@ -149,6 +196,36 @@ export function useAccountDetailDangerZone({
     void accountId;
     revokePendingExportUrl();
   }, [account.id, revokePendingExportUrl]);
+
+  useEffect(() => {
+    if (account.kind !== "Local") {
+      setLocalSyncFolderPath("");
+      return;
+    }
+
+    let cancelled = false;
+    setLoadingLocalSyncSettings(true);
+    void getLocalAccountSyncSettings(account.id)
+      .then((result) => {
+        if (cancelled || !mountedRef.current) return;
+        Result.pipe(
+          result,
+          Result.inspectError(showLocalSyncSettingsError),
+          Result.inspect((settings) => {
+            setLocalSyncFolderPath(settings?.sync_folder_path ?? "");
+          }),
+        );
+      })
+      .finally(() => {
+        if (!cancelled && mountedRef.current) {
+          setLoadingLocalSyncSettings(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [account.id, account.kind, showLocalSyncSettingsError]);
 
   const handleImportOpml = async (file: File) => {
     if (importInFlightRef.current) {
@@ -231,6 +308,71 @@ export function useAccountDetailDangerZone({
     }
   };
 
+  const handleSaveLocalSyncFolder = async () => {
+    if (account.kind !== "Local" || savingLocalSyncSettings) return;
+    setSavingLocalSyncSettings(true);
+    try {
+      Result.pipe(
+        await setLocalAccountSyncSettings(account.id, localSyncFolderPath, true),
+        Result.inspectError(showLocalSyncSettingsError),
+        Result.inspect((settings) => {
+          setLocalSyncFolderPath(settings.sync_folder_path);
+          useUiStore.getState().showToast(t("account.local_sync_settings_saved"));
+        }),
+      );
+    } finally {
+      if (mountedRef.current) {
+        setSavingLocalSyncSettings(false);
+      }
+    }
+  };
+
+  const handleExportLocalSyncOperations = async () => {
+    if (account.kind !== "Local" || exportingLocalSyncOperations) return;
+    setExportingLocalSyncOperations(true);
+    try {
+      Result.pipe(
+        await exportLocalAccountSyncOperations(account.id),
+        Result.inspectError(showLocalSyncExportError),
+        Result.inspect((report) => {
+          useUiStore.getState().showToast(t("account.local_sync_export_success", { count: report.operations_written }));
+        }),
+      );
+    } finally {
+      if (mountedRef.current) {
+        setExportingLocalSyncOperations(false);
+      }
+    }
+  };
+
+  const handleImportLocalSyncOperations = async () => {
+    if (account.kind !== "Local" || importingLocalSyncOperations) return;
+    setImportingLocalSyncOperations(true);
+    try {
+      Result.pipe(
+        await importLocalAccountSyncOperations(account.id),
+        Result.inspectError(showLocalSyncImportError),
+        Result.inspect((report) => {
+          if (report.applied) {
+            invalidateLocalAccountSyncImportQueries(queryClient);
+          }
+          useUiStore.getState().showToast(
+            report.applied
+              ? t("account.local_sync_import_success", { count: report.applied_operations })
+              : t("account.local_sync_import_blocked", {
+                  rejected: report.rejected_files,
+                  conflicted: report.conflicted_candidates,
+                }),
+          );
+        }),
+      );
+    } finally {
+      if (mountedRef.current) {
+        setImportingLocalSyncOperations(false);
+      }
+    }
+  };
+
   const handleDelete = async () => {
     Result.pipe(
       await deleteAccount(account.id),
@@ -272,8 +414,17 @@ export function useAccountDetailDangerZone({
   return {
     handleImportOpml,
     handleExportOpml,
+    localSyncFolderPath,
+    setLocalSyncFolderPath,
+    handleSaveLocalSyncFolder,
+    handleExportLocalSyncOperations,
+    handleImportLocalSyncOperations,
     handleRequestDelete,
     importingOpml,
     exportingOpml,
+    loadingLocalSyncSettings,
+    savingLocalSyncSettings,
+    exportingLocalSyncOperations,
+    importingLocalSyncOperations,
   };
 }

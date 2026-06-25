@@ -44,13 +44,16 @@ export {
   deleteMuteKeywordArgs,
   deleteTagArgs,
   discoverFeedsArgs,
+  exportLocalAccountSyncOperationsArgs,
   exportOpmlArgs,
   exportSettingsProfileToFileArgs,
   getAccountSyncStatusArgs,
   getArticleArgs,
   getArticleTagsArgs,
   getCommandArgsSchema,
+  getLocalAccountSyncSettingsArgs,
   getTagArticleCountsArgs,
+  importLocalAccountSyncOperationsArgs,
   importOpmlArgs,
   importSettingsProfileArgs,
   isCommandWithArgs,
@@ -80,6 +83,7 @@ export {
   renameTagArgs,
   searchArticlesArgs,
   setBrowserWebviewBoundsArgs,
+  setLocalAccountSyncSettingsArgs,
   setMuteAutoMarkReadArgs,
   setPreferenceArgs,
   startupSyncArgs,
@@ -125,6 +129,14 @@ export {
   FeedIntegrityReportDtoSchema,
 } from "./feed-integrity";
 export { type FolderDto, FolderDtoListSchema, FolderDtoSchema } from "./folder";
+export {
+  type LocalAccountSyncExportReportDto,
+  LocalAccountSyncExportReportDtoSchema,
+  type LocalAccountSyncImportReportDto,
+  LocalAccountSyncImportReportDtoSchema,
+  type LocalAccountSyncSettingsDto,
+  LocalAccountSyncSettingsDtoSchema,
+} from "./local-account-sync";
 export {
   type MuteKeywordDto,
   MuteKeywordDtoListSchema,

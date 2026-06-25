@@ -1260,6 +1260,7 @@ describe("repository static contracts", () => {
       "feed-article-summary",
       "feed-integrity",
       "folder",
+      "local-account-sync",
       "mute-keyword",
       "platform-info",
       "preferences",
@@ -1617,7 +1618,7 @@ describe("repository static contracts", () => {
     const miseSource = readMiseTaskCorpus();
 
     expect(devDependencies["react-doctor"]).toBe("0.5.8");
-    expect(devDependencies.knip).toBe("6.18.0");
+    expect(devDependencies.knip).toBe("6.20.0");
     expect(packageScripts["quality:react-doctor:diff"]).toBe("node ./scripts/quality-baseline.ts react-doctor:diff");
     expect(packageScripts["quality:react-doctor:full"]).toBe("node ./scripts/quality-baseline.ts react-doctor:full");
     expect(packageScripts["quality:knip"]).toBe("node ./scripts/quality-baseline.ts knip");

@@ -106,6 +106,16 @@ function createDefaultHandler(): MockHandler {
   const mockFeeds = createSampleFeeds();
   let mockArticles = createSampleArticles();
   let mockTags = createSampleTags();
+  const mockLocalSyncSettings = new Map<
+    string,
+    {
+      account_id: string;
+      sync_folder_path: string;
+      sync_account_id: string;
+      device_id: string;
+      enabled: boolean;
+    }
+  >();
 
   return (cmd, args) => {
     switch (cmd) {
@@ -350,6 +360,38 @@ function createDefaultHandler(): MockHandler {
         return {};
       case "set_preference":
         return null;
+      case "get_local_account_sync_settings":
+        return structuredClone(mockLocalSyncSettings.get(String(args.accountId)) ?? null);
+      case "set_local_account_sync_settings": {
+        const accountId = String(args.accountId);
+        const nextSettings = {
+          account_id: accountId,
+          sync_folder_path: String(args.syncFolderPath),
+          sync_account_id: `dev-sync-${accountId}`,
+          device_id: "dev-device",
+          enabled: args.enabled !== false,
+        };
+        mockLocalSyncSettings.set(accountId, nextSettings);
+        return structuredClone(nextSettings);
+      }
+      case "export_local_account_sync_operations":
+        return { operations_written: 0 };
+      case "import_local_account_sync_operations":
+        return {
+          applied: true,
+          files_loaded: 0,
+          operations_loaded: 0,
+          rejected_files: 0,
+          conflicted_candidates: 0,
+          apply_report: {
+            folders_upserted: 0,
+            feeds_upserted: 0,
+            article_states_upserted: 0,
+            tags_upserted: 0,
+            article_tags_upserted: 0,
+            mute_keywords_upserted: 0,
+          },
+        };
       case "export_settings_profile_to_file":
         return null;
       case "get_tag_article_counts":

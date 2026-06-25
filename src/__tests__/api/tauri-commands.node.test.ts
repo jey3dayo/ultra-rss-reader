@@ -5,6 +5,11 @@ import { sampleAccounts, sampleArticles, sampleFeeds } from "@tests/helpers/fixt
 import { runValidationCommandCases } from "@tests/helpers/tauri-command-contract";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest";
+import type {
+  LocalAccountSyncExportReportDto,
+  LocalAccountSyncImportReportDto,
+  LocalAccountSyncSettingsDto,
+} from "@/api/schemas";
 import {
   type AccountDto,
   addAccount,
@@ -27,16 +32,19 @@ import {
   deleteMuteKeyword,
   deleteTag,
   discoverFeeds,
+  type exportLocalAccountSyncOperations,
   exportOpml,
   focusBrowserWebview,
   getAccountSyncStatus,
   getArticle,
   getArticleTags,
   getDatabaseInfo,
+  type getLocalAccountSyncSettings,
   getPlatformInfo,
   getPreferences,
   goBackBrowserWebview,
   goForwardBrowserWebview,
+  type importLocalAccountSyncOperations,
   listAccountArticles,
   listAccounts,
   listArticles,
@@ -945,6 +953,15 @@ describe("tauri-commands with custom handler", () => {
 describe("safeInvoke response validation", () => {
   it("keeps schema-backed command return types derived from response schemas", () => {
     expectTypeOf<CommandSuccess<typeof listAccounts>>().toEqualTypeOf<AccountDto[]>();
+    expectTypeOf<
+      CommandSuccess<typeof getLocalAccountSyncSettings>
+    >().toEqualTypeOf<LocalAccountSyncSettingsDto | null>();
+    expectTypeOf<
+      CommandSuccess<typeof exportLocalAccountSyncOperations>
+    >().toEqualTypeOf<LocalAccountSyncExportReportDto>();
+    expectTypeOf<
+      CommandSuccess<typeof importLocalAccountSyncOperations>
+    >().toEqualTypeOf<LocalAccountSyncImportReportDto>();
     expectTypeOf<CommandSuccess<typeof getPreferences>>().toEqualTypeOf<PreferencesDto>();
     expectTypeOf<CommandSuccess<typeof checkForUpdate>>().toEqualTypeOf<UpdateInfoDto | null>();
     expectTypeOf<CommandSuccess<typeof restartApp>>().toEqualTypeOf<null>();

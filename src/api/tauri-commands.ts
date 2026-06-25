@@ -2,6 +2,7 @@ export * from "./tauri-commands/accounts";
 export * from "./tauri-commands/articles";
 export * from "./tauri-commands/browser";
 export * from "./tauri-commands/feeds";
+export * from "./tauri-commands/local-account-sync";
 export * from "./tauri-commands/mute-keywords";
 export * from "./tauri-commands/preferences-tags";
 export * from "./tauri-commands/share";

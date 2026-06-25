@@ -3,6 +3,7 @@ export * from "./article";
 export * from "./browser-webview";
 export * from "./feed-folder";
 export * from "./integration";
+export * from "./local-account-sync";
 export * from "./mute-keyword";
 export * from "./registry";
 export * from "./settings-profile";

@@ -60,6 +60,12 @@ import {
   setPreferenceArgs,
 } from "./integration";
 import {
+  exportLocalAccountSyncOperationsArgs,
+  getLocalAccountSyncSettingsArgs,
+  importLocalAccountSyncOperationsArgs,
+  setLocalAccountSyncSettingsArgs,
+} from "./local-account-sync";
+import {
   createMuteKeywordArgs,
   deleteMuteKeywordArgs,
   setMuteAutoMarkReadArgs,
@@ -147,6 +153,10 @@ export const commandArgsSchemas = {
   update_mute_keyword: updateMuteKeywordArgs,
   delete_mute_keyword: deleteMuteKeywordArgs,
   set_mute_auto_mark_read: setMuteAutoMarkReadArgs,
+  get_local_account_sync_settings: getLocalAccountSyncSettingsArgs,
+  set_local_account_sync_settings: setLocalAccountSyncSettingsArgs,
+  export_local_account_sync_operations: exportLocalAccountSyncOperationsArgs,
+  import_local_account_sync_operations: importLocalAccountSyncOperationsArgs,
 } as const satisfies Record<string, CommandArgsSchema>;
 
 export type CommandArgsSchemaRegistry = typeof commandArgsSchemas;

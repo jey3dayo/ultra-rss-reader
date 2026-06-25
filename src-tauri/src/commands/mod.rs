@@ -4,6 +4,7 @@ pub mod browser_webview_commands;
 pub mod database_commands;
 pub mod dto;
 pub mod feed_commands;
+pub mod local_account_sync_commands;
 pub mod log_commands;
 pub mod mute_keyword_commands;
 pub mod opml_commands;
@@ -113,6 +114,10 @@ pub(crate) fn command_db_lock_policy(command_name: &str) -> Option<CommandDbLock
         | "update_mute_keyword"
         | "delete_mute_keyword"
         | "set_mute_auto_mark_read"
+        | "get_local_account_sync_settings"
+        | "set_local_account_sync_settings"
+        | "export_local_account_sync_operations"
+        | "import_local_account_sync_operations"
         | "get_preferences"
         | "set_preference"
         | "list_tags"

@@ -105,6 +105,7 @@ const MIGRATION_OWNER_BY_DESCRIPTION_PATTERN = [
   [/^feed_/, "feeds"],
   [/^reader_/, "reader"],
   [/^account_/, "accounts"],
+  [/^local_account_sync_/, "local-account-sync"],
   [/^sync_/, "sync"],
   [/^mute_/, "mute-keywords"],
   [/^article_/, "articles"],
@@ -2127,6 +2128,7 @@ describe("release repository contract", () => {
       "V18__db_repository_contracts.sql",
       "V19__article_list_ordered_indexes.sql",
       "V20__article_account_ordered_indexes.sql",
+      "V21__local_account_sync_settings.sql",
     ]);
     expect(new Set(migrationVersions).size).toBe(migrationVersions.length);
     for (let version = 1; version <= latestMigrationVersion; version += 1) {

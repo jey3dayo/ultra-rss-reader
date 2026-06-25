@@ -121,6 +121,10 @@ const expectedCommandOwnerAllowlists = {
   "settings-commands": [
     "get_preferences",
     "set_preference",
+    "get_local_account_sync_settings",
+    "set_local_account_sync_settings",
+    "export_local_account_sync_operations",
+    "import_local_account_sync_operations",
     "export_settings_profile",
     "export_settings_profile_to_file",
     "import_settings_profile",

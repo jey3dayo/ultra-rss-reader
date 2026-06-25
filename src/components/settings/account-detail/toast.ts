@@ -13,6 +13,9 @@ type AccountDetailErrorToastKey =
   | "account.sync_failed"
   | "account.failed_to_import_opml"
   | "account.failed_to_export_opml"
+  | "account.local_sync_settings_failed"
+  | "account.local_sync_export_failed"
+  | "account.local_sync_import_failed"
   | "account.failed_to_delete";
 
 export function createAccountDetailErrorToast(t: TFunction<"settings">, key: AccountDetailErrorToastKey) {

@@ -26,6 +26,8 @@ const MIGRATION_V19: &str =
     include_str!("../../../migrations/V19__article_list_ordered_indexes.sql");
 const MIGRATION_V20: &str =
     include_str!("../../../migrations/V20__article_account_ordered_indexes.sql");
+const MIGRATION_V21: &str =
+    include_str!("../../../migrations/V21__local_account_sync_settings.sql");
 
 const V8_READER_MODE_COLUMN: &str = "reader_mode";
 const V8_WEB_PREVIEW_MODE_COLUMN: &str = "web_preview_mode";
@@ -56,7 +58,7 @@ impl MigrationResult {
     }
 }
 
-pub const LATEST_VERSION: i32 = 20;
+pub const LATEST_VERSION: i32 = 21;
 
 /// Applies every pending migration in one SQLite transaction.
 ///
@@ -138,6 +140,9 @@ pub fn run_migrations(conn: &mut Connection) -> DomainResult<MigrationResult> {
     }
     if from_version < 20 {
         apply_v20_article_account_ordered_indexes(&tx)?;
+    }
+    if from_version < 21 {
+        tx.execute_batch(MIGRATION_V21)?;
     }
 
     let to_version = read_schema_version(&tx)?;
