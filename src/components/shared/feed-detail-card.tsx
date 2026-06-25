@@ -26,7 +26,7 @@ export function FeedDetailRow({ label, value, surface = "card" }: FeedDetailRowP
       className={cn(
         "min-w-0 px-3 py-2.5 shadow-none",
         surface === "low-wire"
-          ? "border-b border-[var(--workspace-low-wire-divider)] bg-transparent last:border-b-0 sm:px-4 sm:py-3"
+          ? "border-b border-[var(--workspace-low-wire-divider)] bg-transparent last:border-b-0 sm:px-3.5 sm:py-2.5"
           : "rounded-md border border-border/55 bg-surface-1/48",
       )}
     >

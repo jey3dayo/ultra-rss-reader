@@ -239,7 +239,7 @@ describe("Design-themed shared components", () => {
       width: "72px",
     });
     expect(backButton).not.toHaveClass("rounded-full");
-    expect(backButton).toHaveClass("size-11");
+    expect(backButton).toHaveClass("size-9");
     expect(backButton).not.toHaveClass("size-7", "h-7", "w-7");
     expect(backButton).toHaveAttribute("aria-label", "戻る");
     expect(within(titleGroup).getByRole("button", { name: "戻る" })).toBeInTheDocument();

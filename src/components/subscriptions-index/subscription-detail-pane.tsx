@@ -109,12 +109,12 @@ export function SubscriptionDetailPane({
     <section
       data-testid="subscriptions-detail-pane"
       aria-labelledby={headingId}
-      className="flex flex-col rounded-md px-4 py-5 sm:px-6 sm:py-6 lg:min-h-0"
+      className="flex flex-col rounded-md px-4 py-4 sm:px-5 sm:py-5 lg:min-h-0"
       style={{
         backgroundColor: "var(--subscriptions-detail-surface)",
       }}
     >
-      <div className="mb-5 border-b border-[var(--workspace-low-wire-divider)] pb-4.5">
+      <div className="mb-4 border-b border-[var(--workspace-low-wire-divider)] pb-3.5">
         <h2 id={headingId} className="font-sans text-[1.08rem] font-semibold tracking-[-0.025em] text-foreground">
           {heading}
         </h2>
@@ -135,7 +135,7 @@ export function SubscriptionDetailPane({
           {...{ [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING }}
           className={`${MOTION_CONTENT_SWAP_CLASS_NAME} lg:min-h-0 lg:flex-1 lg:overflow-y-auto`}
         >
-          <div className="flex w-full flex-col gap-4.5 pb-7 pt-1 lg:min-h-full">
+          <div className="flex w-full flex-col gap-3.5 pb-5 pt-0.5 lg:min-h-full">
             <FeedDetailPanel
               surface="low-wire"
               title={row.feed.title}
@@ -183,7 +183,7 @@ export function SubscriptionDetailPane({
                 variant="section"
                 tone="default"
                 padding="compact"
-                className={`${MOTION_CONTENT_SWAP_CLASS_NAME} grid grid-cols-1 gap-2.5 rounded-md border-transparent bg-[var(--workspace-low-wire-action-surface)] px-4 shadow-none sm:grid-cols-3 sm:px-5`}
+                className={`${MOTION_CONTENT_SWAP_CLASS_NAME} grid grid-cols-1 gap-2.5 rounded-md border-transparent bg-[var(--workspace-low-wire-action-surface)] px-3.5 shadow-none sm:grid-cols-3 sm:px-4`}
               >
                 {buildDecisionActionConfigs(decisionActions).map((action) => {
                   const Icon = action.icon;

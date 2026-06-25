@@ -45,13 +45,14 @@ const summaryToneClassNames = {
 const summaryTextVariants = cva("", {
   variants: {
     variant: {
-      label: "text-[11px] font-semibold tracking-[0.12em] text-foreground-soft uppercase",
-      actionableValue: "mt-2 block text-[1.82rem] font-semibold tracking-[-0.04em] text-foreground sm:text-[2.05rem]",
-      staticValue: "mt-2 text-[1.62rem] font-semibold tracking-[-0.03em] text-foreground sm:text-[1.82rem]",
+      label: "text-[10px] font-semibold tracking-[0.12em] text-foreground-soft uppercase",
+      actionableValue:
+        "mt-1.5 block text-[1.58rem] font-semibold tracking-[-0.035em] text-foreground sm:text-[1.78rem]",
+      staticValue: "mt-1.5 text-[1.48rem] font-semibold tracking-[-0.03em] text-foreground sm:text-[1.62rem]",
       actionableCaption:
-        "mt-1 max-w-[24ch] text-[12px] leading-5 text-foreground-soft sm:max-w-[26ch] sm:text-[13px] sm:leading-[1.5]",
+        "mt-0.5 max-w-[26ch] text-[12px] leading-[1.45] text-foreground-soft sm:max-w-[28ch] sm:text-[12px]",
       staticCaption:
-        "mt-1.5 max-w-[24ch] text-[13px] leading-5 text-foreground-soft sm:mt-2 sm:max-w-[26ch] sm:text-sm sm:leading-[1.55]",
+        "mt-1 max-w-[26ch] text-[12px] leading-[1.45] text-foreground-soft sm:max-w-[28ch] sm:text-[13px] sm:leading-[1.5]",
     },
   },
 });
@@ -148,7 +149,7 @@ function resolveSummaryCardClassName({
   const toneClasses = resolveSummaryToneClasses(card.tone);
 
   return cn(
-    "motion-static-hover-surface relative flex min-h-[108px] w-full min-w-0 flex-col justify-between overflow-hidden rounded-md border px-4 py-3.5 text-left sm:min-h-[118px] sm:px-5 sm:py-4.5",
+    "motion-static-hover-surface relative flex min-h-[92px] w-full min-w-0 flex-col justify-between overflow-hidden rounded-md border px-3.5 py-3 text-left sm:min-h-[102px] sm:px-4 sm:py-3.5",
     toneClasses.card,
     isProminent && "shadow-[var(--subscriptions-summary-card-shadow)]",
     isProminent && "sm:col-span-2 lg:col-span-1",
@@ -270,14 +271,14 @@ function SummaryFilterCardButton({
         )}
       />
       <div>
-        <div className="mb-2.5 flex items-start justify-between gap-3">
+        <div className="mb-2 flex items-start justify-between gap-3">
           <SummaryText as="span" variant="label" className="block">
             {summaryCard.label}
           </SummaryText>
-          <span data-testid="subscriptions-summary-card-badge-slot" className="flex min-w-[4.75rem] justify-end">
+          <span data-testid="subscriptions-summary-card-badge-slot" className="flex min-w-[3.75rem] justify-end">
             <span
               className={cn(
-                "inline-flex h-6 items-center rounded-full border border-border-strong/70 bg-surface-1 px-2.5 text-[10px] font-medium tracking-[0.12em] text-foreground uppercase shadow-[var(--subscriptions-summary-badge-shadow)]",
+                "inline-flex h-5 items-center rounded-full border border-border-strong/70 bg-surface-1 px-2 text-[10px] font-medium tracking-[0.12em] text-foreground uppercase shadow-[var(--subscriptions-summary-badge-shadow)]",
                 summaryCard.isActive && toneClasses.activeBadge,
                 !summaryCard.isActive && "invisible",
               )}
@@ -300,7 +301,7 @@ function SummaryFilterCardButton({
           </SummaryText>
         ) : null}
       </div>
-      <div className="mt-3 flex items-center justify-between gap-3">
+      <div className="mt-2.5 flex items-center justify-between gap-3">
         <LabelChip
           tone="neutral"
           className={cn(
@@ -354,13 +355,8 @@ export function SubscriptionsOverviewSummary({
   reviewCriteriaLabel,
 }: SubscriptionsOverviewSummaryProps) {
   return (
-    <section
-      className="rounded-md border border-border/60 px-4 py-4 shadow-[0_18px_48px_-42px_rgba(38,37,30,0.32)] sm:px-5 sm:py-5"
-      style={{
-        backgroundColor: "var(--subscriptions-summary-surface)",
-      }}
-    >
-      <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-[repeat(auto-fit,minmax(13rem,1fr))] lg:gap-4">
+    <section className="rounded-md border border-transparent p-0 shadow-none">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fit,minmax(13rem,1fr))] lg:gap-3">
         {cards.map((card) => {
           const { value, viewState } = buildSummaryCardRenderModel({ card, renderValue });
 

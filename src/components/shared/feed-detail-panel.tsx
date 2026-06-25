@@ -125,7 +125,7 @@ export function FeedDetailPanel({
     >
       <div
         className={cn(
-          "relative overflow-hidden px-4 py-4 sm:px-5 sm:py-5",
+          "relative overflow-hidden px-4 py-3.5 sm:px-4 sm:py-4",
           isLowWire
             ? "border-b border-[var(--workspace-low-wire-divider)] bg-[var(--workspace-low-wire-header-surface)]"
             : "border-b border-border/50 bg-surface-1/48",
@@ -147,7 +147,7 @@ export function FeedDetailPanel({
               className={cn(
                 "flex shrink-0 items-center justify-center rounded-md text-foreground shadow-none",
                 isLowWire
-                  ? "size-12 border border-[var(--workspace-low-wire-section-border)] bg-surface-1/88 ring-1 ring-[var(--workspace-low-wire-highlight)]"
+                  ? "size-10 border border-[var(--workspace-low-wire-section-border)] bg-surface-1/88 ring-1 ring-[var(--workspace-low-wire-highlight)]"
                   : "size-10 border border-border/65 bg-surface-1/88",
               )}
             >
@@ -163,13 +163,13 @@ export function FeedDetailPanel({
                   rel="noreferrer"
                   className={cn(detailLinkClassName, "inline-flex min-w-0 max-w-full items-start gap-2 no-underline")}
                 >
-                  <h3 className="font-sans text-[1.28rem] font-medium leading-tight tracking-[-0.03em] text-foreground">
+                  <h3 className="font-sans text-[1.12rem] font-semibold leading-tight tracking-[-0.025em] text-foreground">
                     {title}
                   </h3>
                   <ExternalLink aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
                 </a>
               ) : (
-                <h3 className="font-sans text-[1.28rem] font-medium leading-tight tracking-[-0.03em] text-foreground">
+                <h3 className="font-sans text-[1.12rem] font-semibold leading-tight tracking-[-0.025em] text-foreground">
                   {title}
                 </h3>
               )}
@@ -197,7 +197,7 @@ export function FeedDetailPanel({
         </div>
       </div>
 
-      <div className={cn("space-y-4 py-4", isLowWire ? "px-0 pt-4" : "px-4 sm:px-5")}>
+      <div className={cn("space-y-3.5 py-3.5", isLowWire ? "px-0 pt-3.5" : "px-4 sm:px-5")}>
         <div data-testid="feed-detail-secondary-column" className="space-y-3">
           {reasonBox ? (
             <SurfaceCard
@@ -206,7 +206,7 @@ export function FeedDetailPanel({
               tone={resolveReasonBoxClassName(reasonBox.tone)}
               padding="compact"
               className={cn(
-                "shadow-none",
+                "rounded-md px-3.5 py-3 shadow-none",
                 isLowWire && "border-[var(--workspace-low-wire-section-border)]",
                 reasonBox.tone === "medium" &&
                   "border-state-warning-border/80 bg-state-warning-surface/80 text-state-warning-foreground",
@@ -264,7 +264,7 @@ export function FeedDetailPanel({
             <div
               data-testid="feed-detail-recent-articles"
               className={cn(
-                "space-y-2 pt-3",
+                "space-y-2 pt-2.5",
                 isLowWire ? "border-t border-[var(--workspace-low-wire-divider)]" : "border-t border-border/55",
               )}
             >

@@ -192,8 +192,8 @@ export function SubscriptionsListPane({
         backgroundColor: "var(--subscriptions-list-surface)",
       }}
     >
-      <div className="mb-5 flex flex-col gap-3 border-b border-border/55 pb-4.5 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex min-w-0 items-center justify-between gap-3">
+      <div className="mb-4 flex flex-col gap-3 border-b border-border/55 pb-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-2.5">
           <h2
             id={headingId}
             className="min-w-[4rem] truncate font-sans text-[1.08rem] font-semibold tracking-[-0.025em] text-foreground"
@@ -201,9 +201,9 @@ export function SubscriptionsListPane({
             {heading}
           </h2>
           {hasRows ? (
-            <LabelChip tone="neutral" className="rounded-sm">
+            <span className="inline-flex h-6 min-w-8 shrink-0 items-center justify-center rounded-md border border-border/60 bg-surface-1/58 px-2 font-sans text-[11px] font-medium tabular-nums text-foreground-soft shadow-none">
               {totalRowCount}
-            </LabelChip>
+            </span>
           ) : null}
         </div>
         <div className="relative w-full sm:max-w-[20rem]">

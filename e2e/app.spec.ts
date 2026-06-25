@@ -8,9 +8,9 @@ import {
 
 const starredSmartViewButtonName = /^(starred|スター)(\s+\d+)?$/i;
 const unreadSmartViewButtonName = /^(unread|未読)(\s+\d+)?$/i;
-const subscriptionsReviewFilterButtonName = /(Needs review|要確認)\s*を表示/i;
+const subscriptionsReviewFilterButtonName = /(Feeds to revisit|更新を見直す購読)\s*を表示/i;
 const subscriptionsInventoryHeadingName = /All subscriptions|全購読/i;
-const subscriptionsReviewHeadingName = /Needs review|要確認/i;
+const subscriptionsReviewHeadingName = /Feeds to revisit|更新を見直す購読/i;
 const appLayoutHiddenPaneSelector = [
   '[data-testid="compact-account-pane-shell"][aria-hidden="true"]',
   '[data-testid="wide-account-pane-content"][aria-hidden="true"]',

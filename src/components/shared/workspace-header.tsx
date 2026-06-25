@@ -68,7 +68,7 @@ export function WorkspaceHeaderActionButton({
       size={presentation === "icon" ? "icon-sm" : "sm"}
       className={cn(
         workspaceHeaderActionClassName,
-        presentation === "icon" ? "size-11 justify-center px-0" : "h-11 px-3",
+        presentation === "icon" ? "size-9 justify-center px-0" : "h-9 px-3",
         className,
       )}
       style={{ backgroundColor: "var(--workspace-header-action-surface)", ...style }}

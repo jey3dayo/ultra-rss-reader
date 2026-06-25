@@ -48,18 +48,11 @@ describe("SubscriptionsOverviewSummary", () => {
 
     const summarySection = screen.getByRole("button", { name: /Needs review/ }).closest("section");
     expect(summarySection).not.toBeNull();
-    expect(summarySection).toHaveClass(
-      "rounded-md",
-      "border-border/60",
-      "shadow-[0_18px_48px_-42px_rgba(38,37,30,0.32)]",
-    );
-    expect(summarySection).toHaveStyle({
-      backgroundColor: "var(--subscriptions-summary-surface)",
-    });
+    expect(summarySection).toHaveClass("rounded-md", "border-transparent", "p-0", "shadow-none");
     expect(summarySection?.querySelector(".grid")).toHaveClass(
       "grid-cols-1",
       "sm:grid-cols-[repeat(auto-fit,minmax(13rem,1fr))]",
-      "gap-3.5",
+      "gap-3",
     );
     expect(screen.queryByText("Needs review: quiet feeds or weak usage signals.")).toBeNull();
 
@@ -159,8 +152,8 @@ describe("SubscriptionsOverviewSummary", () => {
 
     const cards = screen.getAllByTestId("subscriptions-summary-card-badge-slot");
     expect(cards).toHaveLength(2);
-    expect(cards[0]).toHaveClass("min-w-[4.75rem]");
-    expect(cards[1]).toHaveClass("min-w-[4.75rem]");
+    expect(cards[0]).toHaveClass("min-w-[3.75rem]");
+    expect(cards[1]).toHaveClass("min-w-[3.75rem]");
     expect(within(cards[0]).getByText("表示中")).toBeInTheDocument();
     expect(within(cards[1]).getByText("表示中")).toHaveClass("invisible");
   });
