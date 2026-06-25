@@ -69,7 +69,7 @@ describe("FeedDetailPanel", () => {
     expect(screen.getByText("Work").closest("dd")).toHaveClass("text-foreground");
     expect(screen.getByRole("link", { name: "Help" })).toHaveAttribute("href", "https://example.com/help");
     expect(screen.getByRole("link", { name: "Help" })).toHaveClass("text-foreground-soft");
-    expect(screen.getByTestId("feed-detail-recent-articles")).toHaveClass("space-y-2", "border-t", "pt-3");
+    expect(screen.getByTestId("feed-detail-recent-articles")).toHaveClass("space-y-2", "border-t", "pt-2.5");
     expect(screen.getByText("最近の記事タイトル")).toHaveClass("text-[0.88rem]", "leading-5");
     expect(screen.getByRole("button", { name: "フィードを編集" }).parentElement).toHaveClass("border-t", "pt-3");
     expect(screen.getByRole("button", { name: "フィードを編集" })).toHaveClass(

@@ -488,7 +488,7 @@ describe("ArticleListItem", () => {
     const selectedOption = screen.getByRole("option", {
       name: "First Article (unread)",
     });
-    expect(selectedOption).toHaveClass("bg-[image:var(--sidebar-selection-gradient)]");
+    expect(selectedOption).toHaveClass("bg-surface-2/45");
     expect(selectedOption).not.toHaveClass("ring-1");
     expect(selectedOption).not.toHaveClass("ring-border-strong");
     expect(selectedOption).toHaveClass("after:bg-border-strong");
@@ -532,7 +532,7 @@ describe("ArticleListItem", () => {
       name: "First Article (unread)",
     });
     expect(inactiveOption).toHaveAttribute("data-active-pane", "false");
-    expect(inactiveOption).toHaveClass("bg-[image:var(--sidebar-hover-gradient)]");
+    expect(inactiveOption).toHaveClass("bg-surface-2/28");
     expect(inactiveOption).not.toHaveClass("shadow-[var(--sidebar-selection-shadow)]");
 
     rerender(
@@ -554,7 +554,7 @@ describe("ArticleListItem", () => {
       name: "First Article (unread)",
     });
     expect(activeOption).toHaveAttribute("data-active-pane", "true");
-    expect(activeOption).toHaveClass("bg-[image:var(--sidebar-selection-gradient)]");
+    expect(activeOption).toHaveClass("bg-surface-2/45");
     expect(activeOption).toHaveClass("after:bg-border-strong");
   });
 
