@@ -174,13 +174,6 @@ export function buildReadingSettingsViewProps({
         heading: t("reading.history"),
         controls: [
           {
-            id: "recent-articles-history-enabled",
-            type: "switch",
-            label: t("reading.recent_articles_history_enabled"),
-            checked: resolvePreferenceValue(prefs, "recent_articles_history_enabled") === "true",
-            onChange: (checked) => setPref("recent_articles_history_enabled", String(checked)),
-          },
-          {
             id: "clear-recent-articles",
             type: "action",
             label: t("reading.recent_articles_history"),

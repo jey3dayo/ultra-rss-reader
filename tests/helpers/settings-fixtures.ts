@@ -52,7 +52,6 @@ export const settingsPreferenceLabelKeys = {
   debug_browser_hud: "debug.web_preview_hud",
   debug_web_preview_url: "debug.web_preview_url",
   mute_auto_mark_read: "mute.auto_mark_read",
-  recent_articles_history_enabled: "reading.recent_articles_history_enabled",
 } as const satisfies Record<Exclude<VisiblePreferenceDefaultKey, `shortcut_${string}`>, string>;
 
 export const sampleAccountSeeds: ReadonlyFixtureSeed<AccountFixture> = [

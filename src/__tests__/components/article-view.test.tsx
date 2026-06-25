@@ -333,6 +333,10 @@ describe("ArticleView", () => {
   it("records article views outside the recent smart view", async () => {
     const calls: MockTauriCommandCall[] = [];
     setupArticleViewRecordingMocks(calls);
+    usePreferencesStore.setState({
+      prefs: { recent_articles_history_enabled: "false" },
+      loaded: true,
+    });
 
     render(<ArticlePane {...requirePrimaryArticlePaneProps()} />, {
       wrapper: createWrapper(),

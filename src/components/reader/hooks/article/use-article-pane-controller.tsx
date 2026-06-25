@@ -6,8 +6,6 @@ import { useArticleBrowserOverlay } from "@/components/reader/hooks/article/use-
 import { useArticleToolbarControls } from "@/components/reader/hooks/article/use-article-toolbar-controls";
 import { useArticleViewUiState } from "@/components/reader/hooks/article/use-article-view-ui-state";
 import { useRecordArticleView, useSetRead } from "@/hooks/use-articles";
-import { resolvePreferenceValue } from "@/schemas/preferences";
-import { usePreferencesStore } from "@/stores/preferences-store";
 import type { ArticlePaneProps, ArticlePaneToolbarState } from "../../article-pane-view";
 import type { BrowserOverlayToolbarAction } from "../../browser-view.types";
 
@@ -71,9 +69,6 @@ export function useArticlePaneController({ article, feed }: ArticlePaneProps): A
   });
   const setRead = useSetRead();
   const recordArticleView = useRecordArticleView();
-  const historyEnabled = usePreferencesStore(
-    (state) => resolvePreferenceValue(state.prefs, "recent_articles_history_enabled") === "true",
-  );
   const isRecentSmartView = selection.type === "smart" && selection.kind === "recent";
   const recordedSelectionRef = useRef<string | null>(null);
 
@@ -89,7 +84,7 @@ export function useArticlePaneController({ article, feed }: ArticlePaneProps): A
   });
 
   useEffect(() => {
-    if (!historyEnabled || isRecentSmartView || !feed?.account_id) {
+    if (isRecentSmartView || !feed?.account_id) {
       return;
     }
 
@@ -108,7 +103,7 @@ export function useArticlePaneController({ article, feed }: ArticlePaneProps): A
         },
       },
     );
-  }, [article.id, feed?.account_id, historyEnabled, isRecentSmartView, recordArticleView, showToast]);
+  }, [article.id, feed?.account_id, isRecentSmartView, recordArticleView, showToast]);
 
   const handleCloseView = useCallback(() => {
     clearArticle();

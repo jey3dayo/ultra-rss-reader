@@ -1630,7 +1630,8 @@ describe("usePreferencesStore preferences", () => {
     );
   });
 
-  it("defaults recently viewed history recording to enabled and normalizes invalid values", () => {
+  it("keeps the retired recent history recording preference hidden but normalized", () => {
+    expect(preferenceDefaults).not.toHaveProperty("recent_articles_history_enabled");
     expect(resolvePreferenceValue({}, "recent_articles_history_enabled")).toBe("true");
     expect(
       resolvePreferenceValue({ recent_articles_history_enabled: "maybe" }, "recent_articles_history_enabled"),

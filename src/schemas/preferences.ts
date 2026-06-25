@@ -134,6 +134,7 @@ const typoDetectionCandidateKeys = [
 ] as const;
 
 const hiddenPreferenceDefaultKeys = [
+  "recent_articles_history_enabled",
   "sort_subscriptions",
   "action_open_browser",
 ] as const satisfies readonly KnownPreferenceKey[];
@@ -217,6 +218,7 @@ const corePreferenceDefaults = {
 
 const hiddenPreferenceDefaults: Record<HiddenPreferenceKey, string> = {
   action_open_browser: corePreferenceDefaults.action_open_browser,
+  recent_articles_history_enabled: corePreferenceDefaults.recent_articles_history_enabled,
   sort_subscriptions: corePreferenceDefaults.sort_subscriptions,
 };
 

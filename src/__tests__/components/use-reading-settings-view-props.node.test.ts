@@ -241,6 +241,16 @@ describe("buildReadingSettingsViewProps", () => {
     expect(clearHistory.mutate).not.toHaveBeenCalled();
   });
 
+  it("keeps recent history recording out of reading settings while preserving clear history", () => {
+    const props = buildProps({ selectedAccountId: "acc-1" });
+    const historySection = props.sections.find((section) => section.id === "history");
+
+    expect(historySection?.controls.map((control) => control.id)).toEqual(["clear-recent-articles"]);
+    expect(() => getControl(props, "recent-articles-history-enabled")).toThrow(
+      "Missing reading settings control: recent-articles-history-enabled",
+    );
+  });
+
   it("marks recent history clearing as busy while the mutation is pending", () => {
     const props = buildProps({
       selectedAccountId: "acc-1",

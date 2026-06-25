@@ -861,9 +861,7 @@ describe("SettingsModal", () => {
     expect(usePreferencesStore.getState().prefs.open_first_article_on_feed_selection).toBe("true");
   });
 
-  it("renders recently viewed reading controls and updates the history preference", async () => {
-    const user = userEvent.setup();
-
+  it("renders recent history clearing without a history recording preference", () => {
     usePreferencesStore.setState({
       prefs: {},
       loaded: true,
@@ -875,10 +873,7 @@ describe("SettingsModal", () => {
 
     render(<ReadingSettings />, { wrapper: createWrapper() });
 
-    const historySwitch = screen.getByRole("switch", {
-      name: "Record recently viewed articles",
-    });
-    expect(historySwitch).toBeChecked();
+    expect(screen.queryByRole("switch", { name: "Record recently viewed articles" })).not.toBeInTheDocument();
     expect(
       screen.getByRole("button", {
         name: "Clear recently viewed history for the current account. This cannot be undone.",
@@ -889,9 +884,5 @@ describe("SettingsModal", () => {
         name: "Open the first article when selecting a feed",
       }),
     ).toBeInTheDocument();
-
-    await user.click(historySwitch);
-
-    expect(usePreferencesStore.getState().prefs.recent_articles_history_enabled).toBe("false");
   });
 });
