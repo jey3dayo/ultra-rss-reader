@@ -4,6 +4,17 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.51.0] - 2026-06-25
+
+### Features
+
+- ローカルアカウントごとに同期フォルダを設定し、購読フィード、フォルダ、既読 / スター、タグ、記事タグ、ミュートキーワードを専用 operation ファイルで読み書きできるようにした。
+- 同期ファイルの parse error、schema version 不一致、partial temp file、conflicted copy を検出し、ローカル DB を黙って壊さずに import を止めるようにした。
+
+### Maintenance
+
+- knip と portless を更新し、開発・品質チェックまわりの依存を現行版へ揃えた。
+
 ## [0.50.1] - 2026-06-25
 
 ### Bug Fixes
