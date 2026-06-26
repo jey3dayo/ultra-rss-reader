@@ -1405,11 +1405,11 @@ describe("repository static contracts", () => {
   it("keeps YAML lint checking its own config", () => {
     const miseSource = readMiseTaskCorpus();
 
-    expect(miseSource).toContain('run = "yamllint -c .yamllint .github/ .yamllint pnpm-workspace.yaml"');
+    expect(miseSource).toContain('run = "yamllint -c .yamllint .github/ .yamllint apm.yml pnpm-workspace.yaml"');
   });
 
   it("keeps root-level YAML additions out of the lint blind spot", () => {
-    expect(listRepoRootYamlFiles()).toEqual(["pnpm-workspace.yaml"]);
+    expect(listRepoRootYamlFiles()).toEqual(["apm.yml", "pnpm-workspace.yaml"]);
   });
 
   it("keeps CI quality gate waiting on every check job", () => {
