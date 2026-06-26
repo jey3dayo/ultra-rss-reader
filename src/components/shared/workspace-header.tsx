@@ -17,7 +17,7 @@ import {
 import { usePlatformStore } from "@/stores/platform-store";
 
 type WorkspaceHeaderProps = {
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
   subtitle: string;
   backLabel?: string;
@@ -107,11 +107,12 @@ export function WorkspaceHeader({
     hasTauriRuntime: hasRuntime,
   });
   const hasBackAction = Boolean(backLabel && onBack);
+  const hasEyebrow = Boolean(eyebrow);
   const isDesktopApp = hasRuntime;
   const useCompactDesktopHeader = isDesktopApp && !useDesktopOverlay;
-  const showEyebrowInTopRow = isBrowserPreview || useCompactDesktopHeader;
-  const showEyebrowInTitleGroup = isDesktopApp && !useCompactDesktopHeader;
-  const contentKey = `${eyebrow}::${title}::${subtitle}`;
+  const showEyebrowInTopRow = hasEyebrow && (isBrowserPreview || useCompactDesktopHeader);
+  const showEyebrowInTitleGroup = hasEyebrow && isDesktopApp && !useCompactDesktopHeader;
+  const contentKey = `${eyebrow ?? ""}::${title}::${subtitle}`;
   const previousContentKeyRef = useRef(contentKey);
   const [contentMotionPhase, setContentMotionPhase] = useState<MotionPhase>(MOTION_PHASE_STEADY);
 

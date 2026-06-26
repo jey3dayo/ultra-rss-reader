@@ -18,7 +18,7 @@ import { useUiStore } from "@/stores/ui-store";
 import { ArticleEmptyStateView } from "./article-empty-state-view";
 import { ArticlePane, ArticleToolbar } from "./article-pane-view";
 import { ArticleEmptyStateShell, ArticleNotFoundStateView, BrowserOnlyStateView } from "./article-view-state";
-import { readerPassiveCardClassName, readerPassiveCardOffsetClassName } from "./reader-passive-card";
+import { readerPassiveCardOffsetClassName } from "./reader-passive-card";
 
 const LazySubscriptionsIndexPage = lazy(async () => {
   await loadI18nResourceNamespace(i18n, "subscriptions");
@@ -28,7 +28,7 @@ const LazySubscriptionsIndexPage = lazy(async () => {
 
 export { ArticlePane, ArticleToolbar } from "./article-pane-view";
 
-const SUMMARY_CONTAINER_CLASS_NAME = `w-full max-w-[42rem] ${readerPassiveCardOffsetClassName}`;
+const SUMMARY_CONTAINER_CLASS_NAME = `w-full max-w-[48rem] ${readerPassiveCardOffsetClassName}`;
 
 type ArticleEmptyStateViewProps = ComponentProps<typeof ArticleEmptyStateView>;
 
@@ -66,7 +66,7 @@ function SummaryEmptyState({
         <div className="flex flex-1 items-center justify-center overflow-hidden px-6 pt-6 pb-12">
           <div data-testid="article-selection-summary" className={SUMMARY_CONTAINER_CLASS_NAME}>
             <FeedDetailPanel
-              className={readerPassiveCardClassName}
+              surface="low-wire"
               title={title}
               titleHref={titleHref}
               leadingVisual={leadingVisual}

@@ -278,10 +278,12 @@ export function SubscriptionsListPane({
                   <div className="motion-disclosure-body">
                     <div
                       data-testid={`subscriptions-folder-tree-rail-${group.folderId ?? "ungrouped"}`}
-                      className="relative ml-5 space-y-2 pl-5 pt-2 before:absolute before:bottom-5 before:left-0 before:top-0 before:w-px before:bg-[color:var(--subscriptions-list-tree-rail)] before:content-['']"
+                      className="relative ml-5 space-y-2 pl-5 pt-2"
                     >
-                      {group.rows.map((row) => {
+                      {group.rows.map((row, rowIndex) => {
                         const isSelected = selectedFeedId === row.feed.id;
+                        const isFirstRow = rowIndex === 0;
+                        const isLastRow = rowIndex === group.rows.length - 1;
                         const rowButton = (
                           <NavRowButton
                             key={row.feed.id}
@@ -351,7 +353,14 @@ export function SubscriptionsListPane({
                         );
 
                         const treeRow = (
-                          <div key={`${row.feed.id}-tree-row`} className="relative">
+                          <div
+                            key={`${row.feed.id}-tree-row`}
+                            className={cn(
+                              "relative before:absolute before:left-[-1.25rem] before:w-px before:bg-[color:var(--subscriptions-list-tree-rail)] before:content-['']",
+                              isFirstRow ? "before:top-1/2" : "before:-top-1",
+                              isLastRow ? "before:bottom-1/2" : "before:-bottom-1",
+                            )}
+                          >
                             <span
                               aria-hidden="true"
                               className="absolute left-[-1.25rem] top-1/2 h-px w-4 bg-[color:var(--subscriptions-list-tree-rail)]"
@@ -371,7 +380,7 @@ export function SubscriptionsListPane({
                             </AppTooltip>
                           </TooltipProvider>
                         ) : (
-                          <div key={row.feed.id}>{treeRow}</div>
+                          treeRow
                         );
                       })}
                     </div>

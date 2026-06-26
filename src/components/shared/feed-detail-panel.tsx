@@ -201,8 +201,8 @@ export function FeedDetailPanel({
         </div>
       </div>
 
-      <div className={cn("space-y-3.5 py-3.5", isLowWire ? "px-0 pt-3.5" : "px-4 sm:px-5")}>
-        <div data-testid="feed-detail-secondary-column" className="space-y-3">
+      <div className={cn("space-y-4 py-4", isLowWire ? "px-4 sm:px-4" : "px-4 sm:px-5")}>
+        <div data-testid="feed-detail-secondary-column" className="space-y-3.5">
           {reasonBox ? (
             <SurfaceCard
               data-testid="feed-detail-reason-box"
@@ -237,9 +237,9 @@ export function FeedDetailPanel({
         <div className="grid gap-3">
           <dl
             className={cn(
-              "grid text-sm",
+              "grid overflow-hidden text-sm",
               isLowWire
-                ? "border-y border-[var(--workspace-low-wire-divider)] bg-transparent sm:grid-cols-2 [&>*:last-child:nth-child(odd)]:sm:col-span-2 [&>*:nth-last-child(-n+2)]:sm:border-b-0 [&>*:nth-child(odd):not(:last-child)]:sm:border-r [&>*:nth-child(odd):not(:last-child)]:sm:border-[var(--workspace-low-wire-divider)]"
+                ? "gap-px rounded-md border border-[var(--workspace-low-wire-divider)] bg-[var(--workspace-low-wire-divider)] sm:grid-cols-2 [&>*:last-child:nth-child(odd)]:sm:col-span-2"
                 : cn("gap-2.5 sm:grid-cols-2", showMetricsTopDivider ? "border-t border-border/55 pt-3" : "pt-1"),
             )}
           >
@@ -268,12 +268,12 @@ export function FeedDetailPanel({
             <div
               data-testid="feed-detail-recent-articles"
               className={cn(
-                "space-y-2 pt-2.5",
+                "space-y-2 pt-3",
                 isLowWire ? "border-t border-[var(--workspace-low-wire-divider)]" : "border-t border-border/55",
               )}
             >
               <h4 className="font-sans text-sm font-medium text-foreground">{recentArticlesHeading}</h4>
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 {recentArticles.map((article) => (
                   <SurfaceCard
                     key={article.id}
@@ -283,16 +283,20 @@ export function FeedDetailPanel({
                     className={cn(
                       "px-3 py-2 shadow-none",
                       isLowWire &&
-                        "rounded-none border-x-0 border-t-0 border-b border-[var(--workspace-low-wire-divider)] bg-transparent px-0 last:border-b-0",
+                        "rounded-md border border-[var(--workspace-low-wire-section-border)] bg-[var(--workspace-low-wire-group-surface)] px-3 py-2.5",
                     )}
                   >
-                    <div className="flex items-center justify-between gap-3">
+                    <div className={cn("min-w-0", isLowWire ? "space-y-1" : "flex items-center justify-between gap-3")}>
                       {article.url ? (
                         <a
                           href={article.url}
                           target="_blank"
                           rel="noreferrer"
-                          className={cn(detailLinkClassName, "min-w-0 items-start gap-1.5 no-underline")}
+                          className={cn(
+                            detailLinkClassName,
+                            "min-w-0 items-start gap-1.5 no-underline",
+                            isLowWire && "flex w-full",
+                          )}
                         >
                           <span className="line-clamp-2 min-w-0 font-serif text-[0.88rem] font-normal leading-5 text-foreground">
                             {article.title}
@@ -304,7 +308,9 @@ export function FeedDetailPanel({
                           {article.title}
                         </span>
                       )}
-                      <span className="shrink-0 text-xs text-foreground-soft">{article.publishedAt}</span>
+                      <span className={cn("text-xs text-foreground-soft", !isLowWire && "shrink-0")}>
+                        {article.publishedAt}
+                      </span>
                     </div>
                   </SurfaceCard>
                 ))}

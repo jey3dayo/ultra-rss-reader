@@ -294,7 +294,9 @@ describe("SubscriptionsIndexPage", () => {
     });
     const summarySection = totalSubscriptionsLabel.closest("section");
     expect(summarySection).not.toBeNull();
-    expect(summarySection).toHaveClass("rounded-md", "border-transparent", "p-0", "shadow-none");
+    expect(screen.queryByText("Workspace")).not.toBeInTheDocument();
+    expect(summarySection).toHaveClass("p-0", "shadow-none");
+    expect(summarySection).not.toHaveClass("rounded-md", "border");
     expect(summarySection?.querySelector(".grid")).toHaveClass("grid-cols-1", "gap-3");
     expect(summarySection?.querySelector(".grid")).toHaveClass(
       "sm:grid-cols-[repeat(auto-fit,minmax(13rem,1fr))]",
@@ -302,13 +304,17 @@ describe("SubscriptionsIndexPage", () => {
     );
     expect(await screen.findByRole("button", { name: /見直し候補/ })).toHaveClass(
       "rounded-md",
-      "border-state-review-border/80",
-      "bg-state-review-surface/86",
+      "border-state-warning-border/78",
+      "bg-state-warning-surface/86",
     );
     expect(await screen.findByRole("button", { name: /見直し候補/ })).toHaveClass(
       "shadow-[var(--subscriptions-summary-card-shadow)]",
     );
-    expect(await screen.findByRole("button", { name: /90日更新なし/ })).toHaveClass("rounded-md");
+    expect(await screen.findByRole("button", { name: /90日更新なし/ })).toHaveClass(
+      "rounded-md",
+      "border-state-danger-border/72",
+      "bg-state-danger-surface/82",
+    );
     expect(screen.queryByRole("button", { name: /参照エラー/ })).not.toBeInTheDocument();
   });
 

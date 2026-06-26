@@ -129,7 +129,6 @@ export function SubscriptionsIndexPageView({
   return (
     <div className="flex h-dvh max-h-dvh min-h-0 flex-1 flex-col overflow-y-auto bg-background lg:overflow-hidden">
       <WorkspaceHeader
-        eyebrow="Workspace"
         title={title}
         subtitle={subtitle}
         backLabel={backLabel}

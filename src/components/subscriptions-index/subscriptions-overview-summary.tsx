@@ -9,27 +9,29 @@ type SubscriptionSummaryTone = NonNullable<SubscriptionSummaryCard["tone"]>;
 
 const summaryToneClassNames = {
   neutral: {
-    card: "border-border/60 bg-surface-1/62",
-    activeCard: "border-border-strong bg-surface-1 shadow-[var(--subscriptions-summary-active-shadow-neutral)]",
-    activeAccent: "bg-secondary",
-    activeBadge: "border-border-strong/70 bg-surface-1 text-foreground",
+    card: "border-[color:color-mix(in_srgb,var(--ring)_22%,var(--border))] bg-[color:color-mix(in_srgb,var(--ring)_6%,var(--surface-1))]",
+    activeCard:
+      "border-[color:color-mix(in_srgb,var(--ring)_46%,var(--border-strong))] bg-[color:color-mix(in_srgb,var(--ring)_10%,var(--surface-1))] shadow-[var(--subscriptions-summary-active-shadow-neutral)]",
+    activeAccent: "bg-ring",
+    activeBadge:
+      "border-[color:color-mix(in_srgb,var(--ring)_42%,var(--border-strong))] bg-[color:color-mix(in_srgb,var(--ring)_10%,var(--surface-1))] text-foreground",
     activeValue: "text-foreground",
   },
   stale: {
-    card: "border-state-warning-border/75 bg-state-warning-surface/84",
+    card: "border-state-danger-border/72 bg-state-danger-surface/82",
     activeCard:
-      "border-state-warning-border/90 bg-state-warning-surface shadow-[var(--subscriptions-summary-active-shadow-stale)]",
+      "border-state-danger-border/90 bg-state-danger-surface shadow-[var(--subscriptions-summary-active-shadow-stale)]",
+    activeAccent: "bg-state-danger-border",
+    activeBadge: "border-state-danger-border/75 bg-state-danger-surface/92 text-state-danger-foreground",
+    activeValue: "text-state-danger-foreground",
+  },
+  review: {
+    card: "border-state-warning-border/78 bg-state-warning-surface/86",
+    activeCard:
+      "border-state-warning-border/95 bg-state-warning-surface shadow-[var(--subscriptions-summary-active-shadow-review)]",
     activeAccent: "bg-state-warning-border",
     activeBadge: "border-state-warning-border/75 bg-state-warning-surface/92 text-state-warning-foreground",
     activeValue: "text-state-warning-foreground",
-  },
-  review: {
-    card: "border-state-review-border/80 bg-state-review-surface/86",
-    activeCard:
-      "border-state-review-border/95 bg-state-review-surface shadow-[var(--subscriptions-summary-active-shadow-review)]",
-    activeAccent: "bg-state-review-border",
-    activeBadge: "border-state-review-border/75 bg-state-review-surface/92 text-state-review-foreground",
-    activeValue: "text-state-review-foreground",
   },
 } as const satisfies Record<
   SubscriptionSummaryTone,
@@ -338,7 +340,7 @@ export function SubscriptionsOverviewSummary({
   reviewCriteriaLabel,
 }: SubscriptionsOverviewSummaryProps) {
   return (
-    <section className="rounded-md border border-transparent p-0 shadow-none">
+    <section className="p-0 shadow-none">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fit,minmax(13rem,1fr))] lg:gap-3">
         {cards.map((card) => {
           const { value, viewState } = buildSummaryCardRenderModel({ card, renderValue });

@@ -2058,10 +2058,10 @@ describe("ArticleView", () => {
     render(<ArticleView />, { wrapper: createWrapper() });
 
     const summary = await screen.findByTestId("article-selection-summary");
-    expect(summary).toHaveClass(readerPassiveCardOffsetClassName);
+    expect(summary).toHaveClass(readerPassiveCardOffsetClassName, "max-w-[48rem]");
     expect(
       within(summary).getByRole("heading", { level: 3, name: "Tech Blog" }).closest('[data-surface-card="section"]'),
-    ).toHaveClass("rounded-md", "bg-card/38", "shadow-none", "dark:bg-card/38");
+    ).toHaveClass("rounded-md", "border-transparent", "bg-[var(--workspace-low-wire-group-surface)]", "shadow-none");
     expect(within(summary).getByRole("heading", { level: 3, name: "Tech Blog" })).toBeInTheDocument();
     expect(within(summary).getByText("Latest Article")).toBeInTheDocument();
     expect(within(summary).getByText("First Article")).toBeInTheDocument();

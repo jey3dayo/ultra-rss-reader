@@ -76,7 +76,7 @@ describe("FeedDetailPanel", () => {
     expect(screen.getByText("フォルダ").closest("dl")).toHaveClass("border-t", "border-border/55", "pt-3");
     expect(screen.getByRole("link", { name: "Help" })).toHaveAttribute("href", "https://example.com/help");
     expect(screen.getByRole("link", { name: "Help" })).toHaveClass("text-foreground-soft");
-    expect(screen.getByTestId("feed-detail-recent-articles")).toHaveClass("space-y-2", "border-t", "pt-2.5");
+    expect(screen.getByTestId("feed-detail-recent-articles")).toHaveClass("space-y-2", "border-t", "pt-3");
     expect(screen.getByText("最近の記事タイトル")).toHaveClass("text-[0.88rem]", "leading-5");
     expect(screen.getByRole("button", { name: "フィードを編集" }).parentElement).toHaveClass("border-t", "pt-3");
     expect(screen.getByRole("button", { name: "フィードを編集" })).toHaveClass(
@@ -201,7 +201,7 @@ describe("FeedDetailPanel", () => {
     ).toHaveClass("rounded-3xl", "bg-card/38");
   });
 
-  it("omits the low-wire right divider on a final odd metric", () => {
+  it("keeps low-wire metrics in one unbroken grouped surface", () => {
     render(
       <FeedDetailPanel
         surface="low-wire"
@@ -220,16 +220,21 @@ describe("FeedDetailPanel", () => {
 
     const metricsList = screen.getByText("フォルダ").closest("dl");
     const panel = metricsList?.closest("[data-feed-detail-panel]");
-    expect(metricsList).toHaveClass("[&>*:nth-child(odd):not(:last-child)]:sm:border-r");
-    expect(metricsList).toHaveClass("border-y", "border-[var(--workspace-low-wire-divider)]", "bg-transparent");
-    expect(metricsList).not.toHaveClass("rounded-md", "border-[var(--workspace-low-wire-section-border)]");
-    expect(metricsList).not.toHaveClass("[&>*:nth-child(odd)]:sm:border-r");
+    expect(metricsList).toHaveClass(
+      "overflow-hidden",
+      "gap-px",
+      "rounded-md",
+      "border",
+      "border-[var(--workspace-low-wire-divider)]",
+      "bg-[var(--workspace-low-wire-divider)]",
+    );
+    expect(metricsList).not.toHaveClass("border-y", "[&>*:nth-child(odd):not(:last-child)]:sm:border-r");
     expect(panel).toHaveClass("px-0", "py-0", "sm:px-0", "sm:py-0");
-    expect(panel?.children[1]).toHaveClass("px-0");
-    expect(screen.getByText("既定の表示").closest("div")).toHaveClass("last:border-b-0");
+    expect(panel?.children[1]).toHaveClass("px-4");
+    expect(screen.getByText("既定の表示").closest("div")).toHaveClass("bg-[var(--workspace-low-wire-group-surface)]");
   });
 
-  it("keeps low-wire recent articles as divided rows instead of nested cards", () => {
+  it("lets low-wire recent article dates sit below the title", () => {
     render(
       <FeedDetailPanel
         surface="low-wire"
@@ -247,13 +252,16 @@ describe("FeedDetailPanel", () => {
       />,
     );
 
-    expect(screen.getByText("最近の記事タイトル").closest('[data-surface-card="info"]')).toHaveClass(
-      "rounded-none",
-      "border-x-0",
-      "border-t-0",
-      "border-b",
-      "bg-transparent",
+    const articleCard = screen.getByText("最近の記事タイトル").closest('[data-surface-card="info"]');
+    expect(articleCard).toHaveClass(
+      "rounded-md",
+      "border",
+      "border-[var(--workspace-low-wire-section-border)]",
+      "bg-[var(--workspace-low-wire-group-surface)]",
     );
+    expect(screen.getByText("2026/04/17")).toHaveClass("text-foreground-soft");
+    expect(screen.getByText("2026/04/17")).not.toHaveClass("shrink-0");
+    expect(screen.getByText("2026/04/17").parentElement).toHaveClass("space-y-1");
   });
 
   it("uses the low-wire action surface for embedded actions", () => {

@@ -232,8 +232,55 @@ describe("SubscriptionsListPane", () => {
     expect(folderButton).toHaveTextContent("1");
 
     const rail = screen.getByTestId("subscriptions-folder-tree-rail-ungrouped");
-    expect(rail).toHaveClass("before:bg-[color:var(--subscriptions-list-tree-rail)]");
     expect(rail).toHaveClass("pl-5");
+    expect(rail).not.toHaveClass("before:bg-[color:var(--subscriptions-list-tree-rail)]");
+    expect(screen.getByRole("button", { name: /Tree Feed/ }).parentElement).toHaveClass(
+      "before:top-1/2",
+      "before:bottom-1/2",
+      "before:bg-[color:var(--subscriptions-list-tree-rail)]",
+    );
+  });
+
+  it("draws subscription tree rails only between visible feed rows", () => {
+    renderListPane([
+      {
+        feed: buildFeed({ id: "feed-first", title: "First Tree Feed", unread_count: 2 }),
+        folderId: null,
+        folderName: null,
+        latestArticleAt: "2026-05-07T00:00:00Z",
+        status: { tone: "neutral", labelKey: "normal" },
+        reasonTooltipKey: null,
+      },
+      {
+        feed: buildFeed({ id: "feed-middle", title: "Middle Tree Feed", unread_count: 0 }),
+        folderId: null,
+        folderName: null,
+        latestArticleAt: null,
+        status: { tone: "neutral", labelKey: "normal" },
+        reasonTooltipKey: null,
+      },
+      {
+        feed: buildFeed({ id: "feed-last", title: "Last Tree Feed", unread_count: 0 }),
+        folderId: null,
+        folderName: null,
+        latestArticleAt: null,
+        status: { tone: "neutral", labelKey: "normal" },
+        reasonTooltipKey: null,
+      },
+    ]);
+
+    expect(screen.getByRole("button", { name: /First Tree Feed/ }).parentElement).toHaveClass(
+      "before:top-1/2",
+      "before:-bottom-1",
+    );
+    expect(screen.getByRole("button", { name: /Middle Tree Feed/ }).parentElement).toHaveClass(
+      "before:-top-1",
+      "before:-bottom-1",
+    );
+    expect(screen.getByRole("button", { name: /Last Tree Feed/ }).parentElement).toHaveClass(
+      "before:-top-1",
+      "before:bottom-1/2",
+    );
   });
 
   it("keeps collapsed folder panels hidden and inert", () => {

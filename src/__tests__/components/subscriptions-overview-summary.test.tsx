@@ -45,7 +45,8 @@ describe("SubscriptionsOverviewSummary", () => {
 
     const summarySection = screen.getByRole("button", { name: /Needs review/ }).closest("section");
     expect(summarySection).not.toBeNull();
-    expect(summarySection).toHaveClass("rounded-md", "border-transparent", "p-0", "shadow-none");
+    expect(summarySection).toHaveClass("p-0", "shadow-none");
+    expect(summarySection).not.toHaveClass("rounded-md", "border");
     expect(summarySection?.querySelector(".grid")).toHaveClass(
       "grid-cols-1",
       "sm:grid-cols-[repeat(auto-fit,minmax(13rem,1fr))]",
@@ -174,9 +175,9 @@ describe("SubscriptionsOverviewSummary", () => {
 
     const activeCard = screen.getByRole("button", { name: /Needs review/ });
     expect(within(activeCard).getByText("表示中")).toHaveClass(
-      "border-state-review-border/75",
-      "bg-state-review-surface/92",
-      "text-state-review-foreground",
+      "border-state-warning-border/75",
+      "bg-state-warning-surface/92",
+      "text-state-warning-foreground",
       "shadow-[var(--subscriptions-summary-badge-shadow)]",
     );
     expect(within(activeCard).queryByText("フィルタ中")).toBeNull();
@@ -186,7 +187,7 @@ describe("SubscriptionsOverviewSummary", () => {
     const metric = within(activeCard).getByText("2");
     expect(metric).toHaveClass("tabular-nums");
     expect(metric.closest(".t-digit-group")).toBeNull();
-    expect(metric.parentElement).toHaveClass("text-state-review-foreground");
+    expect(metric.parentElement).toHaveClass("text-state-warning-foreground");
     expect(activeCard).toHaveAttribute("aria-pressed", "true");
   });
 
@@ -291,10 +292,16 @@ describe("SubscriptionsOverviewSummary", () => {
     const reviewCard = screen.getByRole("button", { name: "Needs review を表示" });
     const staleCard = screen.getByRole("button", { name: "90-day stale を表示" });
 
-    expect(reviewCard).toHaveClass("border-border/60", "bg-surface-1/62");
-    expect(reviewCard).not.toHaveClass("sm:col-span-2", "bg-state-review-surface/86");
-    expect(staleCard).toHaveClass("border-border/60", "bg-surface-1/62");
-    expect(staleCard).not.toHaveClass("bg-state-warning-surface/84");
+    expect(reviewCard).toHaveClass(
+      "border-[color:color-mix(in_srgb,var(--ring)_22%,var(--border))]",
+      "bg-[color:color-mix(in_srgb,var(--ring)_6%,var(--surface-1))]",
+    );
+    expect(reviewCard).not.toHaveClass("sm:col-span-2", "bg-state-warning-surface/86");
+    expect(staleCard).toHaveClass(
+      "border-[color:color-mix(in_srgb,var(--ring)_22%,var(--border))]",
+      "bg-[color:color-mix(in_srgb,var(--ring)_6%,var(--surface-1))]",
+    );
+    expect(staleCard).not.toHaveClass("bg-state-danger-surface/82");
     expect(within(reviewCard).queryByText("該当なし")).toBeNull();
     expect(within(staleCard).queryByText("該当なし")).toBeNull();
     expect(within(reviewCard).getByText("0")).toHaveClass("tabular-nums");
