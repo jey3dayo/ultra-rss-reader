@@ -18,6 +18,8 @@ import {
   mockTags,
   resetMockDataForDevMocks,
 } from "@/dev/mock-data";
+import { buildSubscriptionReviewCandidates } from "@/lib/subscriptions/subscription-review-candidates";
+import { buildSubscriptionsIndexSummary } from "@/lib/subscriptions/subscriptions-index";
 
 function requireFirstItem<T>(items: readonly T[], label: string): T {
   const item = items[0];
@@ -25,6 +27,23 @@ function requireFirstItem<T>(items: readonly T[], label: string): T {
     throw new Error(`${label} fixture is empty`);
   }
   return item;
+}
+
+function buildMockFeedArticleSummaries() {
+  return mockFeeds.map((feed) => {
+    const feedArticles = mockArticles.filter((article) => article.feed_id === feed.id);
+    const latestArticleAt = feedArticles
+      .map((article) => article.published_at)
+      .filter((publishedAt): publishedAt is string => publishedAt !== null)
+      .sort()
+      .at(-1);
+
+    return {
+      feed_id: feed.id,
+      latest_article_at: latestArticleAt ?? null,
+      starred_count: feedArticles.filter((article) => article.is_starred).length,
+    };
+  });
 }
 
 describe("dev mock data", () => {
@@ -172,6 +191,24 @@ describe("dev mock data", () => {
     expect(mockFolders.filter((folder) => folder.account_id === "acc-freshrss").length).toBeGreaterThanOrEqual(5);
     expect(freshRssFeedIds.size).toBeGreaterThanOrEqual(12);
     expect(freshRssArticles.length).toBeGreaterThanOrEqual(20);
+  });
+
+  it("provides non-zero subscription review and stale samples for workspace debugging", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-26T13:00:00+09:00"));
+    resetMockDataForDevMocks();
+
+    const candidates = buildSubscriptionReviewCandidates({
+      feeds: mockFeeds,
+      folders: mockFolders,
+      feedArticleSummaries: buildMockFeedArticleSummaries(),
+      now: new Date("2026-06-26T13:00:00+09:00"),
+      hiddenFeedIds: new Set(),
+    });
+    const summary = buildSubscriptionsIndexSummary({ feeds: mockFeeds, candidates });
+
+    expect(summary.reviewCount).toBeGreaterThanOrEqual(3);
+    expect(summary.staleCount).toBeGreaterThanOrEqual(3);
   });
 
   it("documents fixture boundaries by dev usage surface", () => {

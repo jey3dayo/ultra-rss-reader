@@ -98,6 +98,8 @@ import { DEFAULT_PLATFORM_INFO } from "@/constants/platform";
 import { mockArticles } from "@/dev/mock-data";
 import { setupDevMocks } from "@/dev/mocks";
 import type { BrowserWebviewBounds } from "@/lib/browser/browser-webview";
+import { buildSubscriptionReviewCandidates } from "@/lib/subscriptions/subscription-review-candidates";
+import { buildSubscriptionsIndexSummary } from "@/lib/subscriptions/subscriptions-index";
 
 type DevMockDiagnosticsTestWindow = Window & {
   __ULTRA_RSS_DEV_MOCK_DIAGNOSTICS__?: Array<{
@@ -799,6 +801,27 @@ describe("setupDevMocks", () => {
       "art-2",
       "art-1",
     ]);
+  });
+
+  it("provides subscription review and stale samples through browser mock commands", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-26T13:00:00+09:00"));
+    setupDevMocks();
+
+    const feeds = Result.unwrap(await listFeeds("acc-freshrss"));
+    const folders = Result.unwrap(await listFolders("acc-freshrss"));
+    const feedArticleSummaries = Result.unwrap(await listFeedArticleSummaries("acc-freshrss"));
+    const candidates = buildSubscriptionReviewCandidates({
+      feeds,
+      folders,
+      feedArticleSummaries,
+      now: new Date("2026-06-26T13:00:00+09:00"),
+      hiddenFeedIds: new Set(),
+    });
+    const summary = buildSubscriptionsIndexSummary({ feeds, candidates });
+
+    expect(summary.reviewCount).toBeGreaterThanOrEqual(3);
+    expect(summary.staleCount).toBeGreaterThanOrEqual(3);
   });
 
   it("resets mutable browser-only mock state on each setup", async () => {

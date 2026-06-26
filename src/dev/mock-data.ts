@@ -22,7 +22,7 @@ function mockArticlePublishedAt(baseDate: Date, hours: number, minutes: number):
   return toIsoTimestamp(createLocalDateTime(baseDate, hours, minutes));
 }
 
-const relativeMockArticlePublishedAt: Record<string, { dayOffset: 0 | -1; hours: number; minutes: number }> = {
+const relativeMockArticlePublishedAt: Record<string, { dayOffset: number; hours: number; minutes: number }> = {
   "art-1": { dayOffset: 0, hours: 9, minutes: 7 },
   "art-2": { dayOffset: 0, hours: 8, minutes: 30 },
   "art-3": { dayOffset: -1, hours: 18, minutes: 24 },
@@ -31,6 +31,9 @@ const relativeMockArticlePublishedAt: Record<string, { dayOffset: 0 | -1; hours:
   "art-6": { dayOffset: 0, hours: 15, minutes: 56 },
   "art-7": { dayOffset: 0, hours: 11, minutes: 30 },
   "art-8": { dayOffset: -1, hours: 14, minutes: 0 },
+  "art-27": { dayOffset: -140, hours: 10, minutes: 15 },
+  "art-28": { dayOffset: -140, hours: 9, minutes: 40 },
+  "art-29": { dayOffset: -140, hours: 8, minutes: 20 },
 };
 
 const mockAccountSeeds = [
@@ -557,6 +560,42 @@ const generatedMockArticles = [
     hours: 10,
     minutes: 42,
     thumbnail: null,
+  }),
+  createMockArticle({
+    id: "art-27",
+    feedId: "feed-techno",
+    title: "スマートグラス市場の転換点を振り返る、春モデル以降の停滞感",
+    summary: "更新が長く止まっている購読を確認しやすくするための開発用サンプル記事です。",
+    url: "https://www.techno-edge.net/mock/stale-smart-glasses",
+    author: "techno-edge",
+    date: addLocalDays(now, -140),
+    hours: 10,
+    minutes: 15,
+    isRead: true,
+  }),
+  createMockArticle({
+    id: "art-28",
+    feedId: "feed-jxck",
+    title: "Web Platform の互換性メモ、次に見直すべき監視項目",
+    summary: "未読がなく、最終更新が古い購読を表現するための開発用サンプル記事です。",
+    url: "https://blog.jxck.io/entries/mock-stale-platform.html",
+    author: "Jxck",
+    date: addLocalDays(now, -140),
+    hours: 9,
+    minutes: 40,
+    isRead: true,
+  }),
+  createMockArticle({
+    id: "art-29",
+    feedId: "feed-chimolog",
+    title: "旧世代構成のベンチマークを整理する、春時点の検証ログ",
+    summary: "90日更新なしカードの見た目を確認するための開発用サンプル記事です。",
+    url: "https://chimolog.co/mock-stale-benchmark/",
+    author: "ちもろぐ",
+    date: addLocalDays(now, -140),
+    hours: 8,
+    minutes: 20,
+    isRead: true,
   }),
 ] satisfies readonly ArticleDto[];
 
