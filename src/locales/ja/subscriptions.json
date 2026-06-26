@@ -13,7 +13,7 @@
   "summary_action_show_filter_aria": "{{label}} を表示",
   "summary_action_filter_all": "すべて表示",
   "summary_action_filter": "絞り込む",
-  "summary_criteria_chip": "対象",
+  "summary_criteria_chip": "条件",
   "summary_stale": "90日更新なし",
   "summary_stale_caption_one": "1 件が長く止まっています",
   "summary_stale_caption_other": "{{count, count}} 件が長く止まっています",
