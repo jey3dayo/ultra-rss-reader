@@ -1,4 +1,4 @@
-import { FolderClosed, Inbox, Star, Tag as TagIcon } from "lucide-react";
+import { FolderClosed, History, Inbox, Star, Tag as TagIcon } from "lucide-react";
 import { type ComponentProps, lazy, type ReactNode, Suspense } from "react";
 import { useTranslation } from "react-i18next";
 import { useArticleViewSelection } from "@/components/reader/hooks/article/use-article-view-selection";
@@ -36,6 +36,7 @@ type SummaryCardProps = {
   title: string;
   titleHref?: string | null;
   leadingVisual?: ReactNode;
+  accentTone?: ComponentProps<typeof FeedDetailPanel>["accentTone"];
   summaryText?: string;
   metrics: Array<{ label: string; value: ReactNode }>;
   primaryAction?: ComponentProps<typeof FeedDetailPanel>["primaryAction"];
@@ -51,6 +52,7 @@ function SummaryEmptyState({
   title,
   titleHref = null,
   leadingVisual,
+  accentTone,
   summaryText,
   metrics,
   primaryAction,
@@ -67,6 +69,7 @@ function SummaryEmptyState({
           <div data-testid="article-selection-summary" className={SUMMARY_CONTAINER_CLASS_NAME}>
             <FeedDetailPanel
               surface="low-wire"
+              accentTone={accentTone}
               title={title}
               titleHref={titleHref}
               leadingVisual={leadingVisual}
@@ -157,14 +160,28 @@ function buildSummaryCardProps(
     };
   }
 
+  const smartSummaryView = {
+    unread: {
+      title: sidebarT("unread"),
+      leadingVisual: <Inbox className="size-5" />,
+      accentTone: "unread" as const,
+    },
+    starred: {
+      title: sidebarT("starred"),
+      leadingVisual: <Star className="size-5" />,
+      accentTone: "starred" as const,
+    },
+    recent: {
+      title: sidebarT("recent_articles"),
+      leadingVisual: <History className="size-5 text-foreground-soft" />,
+      accentTone: undefined,
+    },
+  }[summary.smartKind];
+
   return {
-    title: summary.smartKind === "unread" ? sidebarT("unread") : sidebarT("starred"),
-    leadingVisual:
-      summary.smartKind === "unread" ? (
-        <Inbox className="size-5 text-foreground-soft" />
-      ) : (
-        <Star className="size-5 text-foreground-soft" />
-      ),
+    title: smartSummaryView.title,
+    leadingVisual: smartSummaryView.leadingVisual,
+    accentTone: smartSummaryView.accentTone,
     metrics: [
       { label: readerT("articles"), value: renderSummaryCount(summary.articleCount, locale) },
       { label: sidebarT("feeds"), value: renderSummaryCount(summary.feedCount, locale) },

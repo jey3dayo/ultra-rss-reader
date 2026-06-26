@@ -10,6 +10,7 @@ type FeedDetailRowProps = {
   label: ReactNode;
   value: ReactNode;
   surface?: "card" | "low-wire";
+  className?: string;
 };
 
 export function FeedDetailCard({ children, className, ...props }: FeedDetailCardProps) {
@@ -20,7 +21,7 @@ export function FeedDetailCard({ children, className, ...props }: FeedDetailCard
   );
 }
 
-export function FeedDetailRow({ label, value, surface = "card" }: FeedDetailRowProps) {
+export function FeedDetailRow({ label, value, surface = "card", className }: FeedDetailRowProps) {
   return (
     <div
       className={cn(
@@ -28,6 +29,7 @@ export function FeedDetailRow({ label, value, surface = "card" }: FeedDetailRowP
         surface === "low-wire"
           ? "bg-[var(--workspace-low-wire-group-surface)] sm:px-3.5 sm:py-3"
           : "rounded-md border border-border/55 bg-surface-1/48",
+        className,
       )}
     >
       <dt className="font-sans text-[10px] tracking-[0.1em] text-foreground-soft uppercase">{label}</dt>

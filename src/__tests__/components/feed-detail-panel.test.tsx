@@ -78,14 +78,16 @@ describe("FeedDetailPanel", () => {
     expect(screen.getByRole("link", { name: "Help" })).toHaveClass("text-foreground-soft");
     expect(screen.getByTestId("feed-detail-recent-articles")).toHaveClass("space-y-2", "border-t", "pt-3");
     expect(screen.getByText("最近の記事タイトル")).toHaveClass("text-[0.88rem]", "leading-5");
-    expect(screen.getByRole("button", { name: "フィードを編集" }).parentElement).toHaveClass("border-t", "pt-3");
+    expect(screen.getByTestId("feed-detail-primary-action").parentElement).toHaveClass("items-center", "min-h-10");
+    expect(screen.queryByTestId("feed-detail-action-bar")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "フィードを編集" })).toHaveClass(
-      "min-h-9",
-      "w-auto",
-      "px-3",
-      "border-border/70",
-      "bg-surface-1/72",
+      "size-8",
+      "border-transparent",
+      "bg-transparent",
+      "p-0",
+      "text-foreground-soft",
     );
+    expect(screen.getByRole("button", { name: "フィードを編集" })).toHaveAttribute("title", "フィードを編集");
     expect(screen.getByRole("button", { name: "フィードを編集" })).not.toHaveClass("rounded-full");
   });
 
@@ -234,6 +236,53 @@ describe("FeedDetailPanel", () => {
     expect(screen.getByText("既定の表示").closest("div")).toHaveClass("bg-[var(--workspace-low-wire-group-surface)]");
   });
 
+  it("applies semantic accents only to low-wire panels", () => {
+    render(
+      <FeedDetailPanel
+        surface="low-wire"
+        accentTone="unread"
+        title="Unread"
+        leadingVisual={<span>U</span>}
+        metrics={[{ label: "記事", value: "24" }]}
+        recentArticlesHeading="最近の記事"
+        recentArticles={[]}
+      />,
+    );
+
+    const panel = screen.getByRole("heading", { level: 3, name: "Unread" }).closest('[data-surface-card="section"]');
+    expect(panel).toHaveAttribute("data-feed-detail-accent", "unread");
+    expect(panel).toHaveClass("feed-detail-accent-unread", "bg-[var(--feed-detail-accent-unread-panel-surface)]");
+    expect(screen.getByTestId("feed-detail-leading-visual")).toHaveClass(
+      "bg-[var(--feed-detail-accent-unread-visual-surface)]",
+      "text-[var(--feed-detail-accent-unread-visual-foreground)]",
+    );
+    expect(screen.getByText("記事").closest("div")).toHaveClass("bg-[var(--feed-detail-accent-unread-row-surface)]");
+  });
+
+  it("keeps semantic accents from changing the default card surface", () => {
+    render(
+      <FeedDetailPanel
+        accentTone="unread"
+        title="Example Feed"
+        leadingVisual={<span>EF</span>}
+        metrics={[{ label: "フォルダ", value: "Work" }]}
+        recentArticlesHeading="最近の記事"
+        recentArticles={[]}
+      />,
+    );
+
+    const panel = screen
+      .getByRole("heading", { level: 3, name: "Example Feed" })
+      .closest('[data-surface-card="section"]');
+    expect(panel).toHaveClass("border-border/65", "bg-card/38");
+    expect(panel).not.toHaveAttribute("data-feed-detail-accent");
+    expect(panel).not.toHaveClass("feed-detail-accent-unread", "bg-[var(--feed-detail-accent-unread-panel-surface)]");
+    expect(screen.getByTestId("feed-detail-leading-visual")).toHaveClass("bg-surface-1/88");
+    expect(screen.getByTestId("feed-detail-leading-visual")).not.toHaveClass(
+      "bg-[var(--feed-detail-accent-unread-visual-surface)]",
+    );
+  });
+
   it("lets low-wire recent article dates sit below the title", () => {
     render(
       <FeedDetailPanel
@@ -264,7 +313,7 @@ describe("FeedDetailPanel", () => {
     expect(screen.getByText("2026/04/17").parentElement).toHaveClass("space-y-1");
   });
 
-  it("uses the low-wire action surface for embedded actions", () => {
+  it("keeps primary low-wire actions in the header without adding footer whitespace", () => {
     render(
       <FeedDetailPanel
         surface="low-wire"
@@ -276,9 +325,11 @@ describe("FeedDetailPanel", () => {
       />,
     );
 
-    expect(screen.getByTestId("feed-detail-action-bar")).toHaveClass(
-      "border-[var(--workspace-low-wire-divider)]",
-      "bg-[var(--workspace-low-wire-action-surface)]",
+    expect(screen.queryByTestId("feed-detail-action-bar")).not.toBeInTheDocument();
+    expect(screen.getByTestId("feed-detail-primary-action")).toHaveClass(
+      "size-8",
+      "bg-transparent",
+      "text-foreground-soft",
     );
   });
 });

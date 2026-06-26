@@ -1,6 +1,5 @@
 import { ExternalLink, List } from "lucide-react";
 import type { ReactNode } from "react";
-import { workspaceCompactActionButtonClassName } from "@/components/shared/decision-button";
 import { FeedDetailCard, FeedDetailRow } from "@/components/shared/feed-detail-card";
 import { LabelChip } from "@/components/shared/label-chip";
 import { SurfaceCard } from "@/components/shared/surface-card";
@@ -9,6 +8,7 @@ import { normalizeFeedWebsiteUrlCandidate } from "@/lib/feed/feed";
 import { cn } from "@/lib/utils";
 
 type FeedDetailTone = "neutral" | "low" | "medium" | "high";
+type FeedDetailAccentTone = "unread" | "starred";
 
 type FeedDetailLink = {
   href: string;
@@ -29,6 +29,7 @@ type FeedDetailPanelProps = {
   title: string;
   className?: string;
   surface?: "card" | "low-wire";
+  accentTone?: FeedDetailAccentTone;
   titleHref?: string | null;
   badgeLabel?: string;
   badgeTone?: FeedDetailTone;
@@ -61,6 +62,38 @@ type FeedDetailPanelProps = {
 
 const detailLinkClassName =
   "inline-flex items-center gap-1 cursor-pointer text-foreground-soft underline decoration-border underline-offset-4 transition-colors duration-150 ease-standard hover:text-foreground motion-reduce:transition-none";
+
+const lowWireAccentClassNames: Record<
+  FeedDetailAccentTone,
+  {
+    panel: string;
+    header: string;
+    visual: string;
+    metrics: string;
+    row: string;
+  }
+> = {
+  unread: {
+    panel:
+      "feed-detail-accent-unread border-[var(--feed-detail-accent-unread-panel-border)] bg-[var(--feed-detail-accent-unread-panel-surface)]",
+    header: "bg-[var(--feed-detail-accent-unread-header-surface)]",
+    visual:
+      "border-[var(--feed-detail-accent-unread-visual-border)] bg-[var(--feed-detail-accent-unread-visual-surface)] text-[var(--feed-detail-accent-unread-visual-foreground)]",
+    metrics:
+      "border-[var(--feed-detail-accent-unread-metrics-border)] bg-[var(--feed-detail-accent-unread-metrics-surface)]",
+    row: "bg-[var(--feed-detail-accent-unread-row-surface)]",
+  },
+  starred: {
+    panel:
+      "feed-detail-accent-starred border-[var(--feed-detail-accent-starred-panel-border)] bg-[var(--feed-detail-accent-starred-panel-surface)]",
+    header: "bg-[var(--feed-detail-accent-starred-header-surface)]",
+    visual:
+      "border-[var(--feed-detail-accent-starred-visual-border)] bg-[var(--feed-detail-accent-starred-visual-surface)] text-[var(--feed-detail-accent-starred-visual-foreground)]",
+    metrics:
+      "border-[var(--feed-detail-accent-starred-metrics-border)] bg-[var(--feed-detail-accent-starred-metrics-surface)]",
+    row: "bg-[var(--feed-detail-accent-starred-row-surface)]",
+  },
+};
 
 function resolveBadgeClassName(tone: FeedDetailTone) {
   if (tone === "high") {
@@ -98,6 +131,7 @@ export function FeedDetailPanel({
   title,
   className,
   surface = "card",
+  accentTone,
   titleHref = null,
   badgeLabel,
   badgeTone = "neutral",
@@ -115,13 +149,16 @@ export function FeedDetailPanel({
 }: FeedDetailPanelProps) {
   const resolvedTitleHref = titleHref ? normalizeFeedWebsiteUrlCandidate(titleHref) : null;
   const isLowWire = surface === "low-wire";
+  const lowWireAccent = isLowWire && accentTone ? lowWireAccentClassNames[accentTone] : null;
 
   return (
     <FeedDetailCard
       data-feed-detail-panel=""
+      data-feed-detail-accent={lowWireAccent ? accentTone : undefined}
       className={cn(
         "overflow-hidden px-0 py-0 shadow-none sm:px-0 sm:py-0",
         isLowWire ? "border-transparent bg-[var(--workspace-low-wire-group-surface)]" : "border-border/65 bg-card/38",
+        lowWireAccent?.panel,
         className,
       )}
     >
@@ -131,6 +168,7 @@ export function FeedDetailPanel({
           isLowWire
             ? "border-b border-[var(--workspace-low-wire-divider)] bg-[var(--workspace-low-wire-header-surface)]"
             : "border-b border-border/50 bg-surface-1/48",
+          lowWireAccent?.header,
         )}
       >
         <div
@@ -151,6 +189,7 @@ export function FeedDetailPanel({
                 isLowWire
                   ? "size-10 border border-[var(--workspace-low-wire-section-border)] bg-surface-1/88 ring-1 ring-[var(--workspace-low-wire-highlight)]"
                   : "size-10 border border-border/65 bg-surface-1/88",
+                lowWireAccent?.visual,
               )}
             >
               {leadingVisual}
@@ -185,6 +224,22 @@ export function FeedDetailPanel({
                 >
                   {badgeLabel}
                 </LabelChip>
+              ) : null}
+              {primaryAction ? (
+                <Button
+                  aria-label={primaryAction.ariaLabel ?? primaryAction.label}
+                  variant="ghost"
+                  size="icon-xs"
+                  data-testid="feed-detail-primary-action"
+                  className={cn(
+                    "size-8 border-transparent bg-transparent p-0 text-foreground-soft shadow-none hover:bg-transparent hover:text-foreground",
+                    isLowWire && "hover:text-foreground",
+                  )}
+                  title={primaryAction.label}
+                  onClick={primaryAction.onClick}
+                >
+                  <List className="size-3.5" aria-hidden="true" />
+                </Button>
               ) : null}
             </div>
             {summaryText ? (
@@ -241,6 +296,7 @@ export function FeedDetailPanel({
               isLowWire
                 ? "gap-px rounded-md border border-[var(--workspace-low-wire-divider)] bg-[var(--workspace-low-wire-divider)] sm:grid-cols-2 [&>*:last-child:nth-child(odd)]:sm:col-span-2"
                 : cn("gap-2.5 sm:grid-cols-2", showMetricsTopDivider ? "border-t border-border/55 pt-3" : "pt-1"),
+              lowWireAccent?.metrics,
             )}
           >
             {metrics.map((metric) => (
@@ -249,6 +305,7 @@ export function FeedDetailPanel({
                 label={metric.label}
                 value={metric.value}
                 surface={isLowWire ? "low-wire" : "card"}
+                className={lowWireAccent?.row}
               />
             ))}
           </dl>
@@ -319,7 +376,7 @@ export function FeedDetailPanel({
           ) : null}
         </div>
 
-        {primaryAction || secondaryAction ? (
+        {secondaryAction ? (
           <div
             data-testid="feed-detail-action-bar"
             className={cn(
@@ -329,26 +386,9 @@ export function FeedDetailPanel({
                 : "border-border/55",
             )}
           >
-            {primaryAction ? (
-              <Button
-                aria-label={primaryAction.ariaLabel ?? primaryAction.label}
-                variant="outline"
-                size="sm"
-                className={cn(
-                  workspaceCompactActionButtonClassName,
-                  "min-h-9 w-auto border-border/70 bg-surface-1/72 px-3 text-[12px] text-foreground-soft shadow-none hover:bg-surface-2 hover:text-foreground",
-                )}
-                onClick={primaryAction.onClick}
-              >
-                <List className="size-4" />
-                {primaryAction.label}
-              </Button>
-            ) : null}
-            {secondaryAction ? (
-              <Button variant="ghost" size="sm" className="min-h-11 px-4" onClick={secondaryAction.onClick}>
-                {secondaryAction.label}
-              </Button>
-            ) : null}
+            <Button variant="ghost" size="sm" className="min-h-11 px-4" onClick={secondaryAction.onClick}>
+              {secondaryAction.label}
+            </Button>
           </div>
         ) : null}
       </div>

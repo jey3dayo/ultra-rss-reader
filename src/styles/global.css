@@ -274,6 +274,80 @@
   --workspace-low-wire-section-border: rgba(38, 37, 30, 0.05);
   --workspace-low-wire-divider: rgba(38, 37, 30, 0.08);
   --workspace-low-wire-action-surface: rgba(247, 247, 244, 0.7);
+  --feed-detail-accent-unread-panel-border: color-mix(
+    in srgb,
+    var(--tone-unread) 16%,
+    var(--workspace-low-wire-section-border)
+  );
+  --feed-detail-accent-unread-panel-surface: color-mix(
+    in srgb,
+    var(--semantic-tone-unread-surface) 38%,
+    var(--workspace-low-wire-group-surface)
+  );
+  --feed-detail-accent-unread-header-surface: color-mix(
+    in srgb,
+    var(--semantic-tone-unread-surface) 34%,
+    var(--surface-1)
+  );
+  --feed-detail-accent-unread-visual-border: color-mix(
+    in srgb,
+    var(--tone-unread) 28%,
+    var(--workspace-low-wire-section-border)
+  );
+  --feed-detail-accent-unread-visual-surface: var(--semantic-tone-unread-surface);
+  --feed-detail-accent-unread-visual-foreground: var(--semantic-tone-unread-content-foreground);
+  --feed-detail-accent-unread-metrics-border: color-mix(
+    in srgb,
+    var(--tone-unread) 18%,
+    var(--workspace-low-wire-divider)
+  );
+  --feed-detail-accent-unread-metrics-surface: color-mix(
+    in srgb,
+    var(--tone-unread) 14%,
+    var(--workspace-low-wire-divider)
+  );
+  --feed-detail-accent-unread-row-surface: color-mix(
+    in srgb,
+    var(--semantic-tone-unread-surface) 22%,
+    var(--surface-1)
+  );
+  --feed-detail-accent-starred-panel-border: color-mix(
+    in srgb,
+    var(--tone-starred) 14%,
+    var(--workspace-low-wire-section-border)
+  );
+  --feed-detail-accent-starred-panel-surface: color-mix(
+    in srgb,
+    var(--semantic-tone-starred-surface) 30%,
+    var(--workspace-low-wire-group-surface)
+  );
+  --feed-detail-accent-starred-header-surface: color-mix(
+    in srgb,
+    var(--semantic-tone-starred-surface) 24%,
+    var(--surface-1)
+  );
+  --feed-detail-accent-starred-visual-border: color-mix(
+    in srgb,
+    var(--tone-starred) 28%,
+    var(--workspace-low-wire-section-border)
+  );
+  --feed-detail-accent-starred-visual-surface: var(--semantic-tone-starred-surface);
+  --feed-detail-accent-starred-visual-foreground: var(--semantic-tone-starred-content-foreground);
+  --feed-detail-accent-starred-metrics-border: color-mix(
+    in srgb,
+    var(--tone-starred) 16%,
+    var(--workspace-low-wire-divider)
+  );
+  --feed-detail-accent-starred-metrics-surface: color-mix(
+    in srgb,
+    var(--tone-starred) 10%,
+    var(--workspace-low-wire-divider)
+  );
+  --feed-detail-accent-starred-row-surface: color-mix(
+    in srgb,
+    var(--semantic-tone-starred-surface) 18%,
+    var(--surface-1)
+  );
   --subscriptions-pane-divider: rgba(38, 37, 30, 0.08);
   --subscriptions-list-group-surface: rgba(247, 247, 244, 0.74);
   --reader-list-pane-surface: linear-gradient(
@@ -553,6 +627,80 @@
   --workspace-low-wire-section-border: rgba(243, 239, 230, 0.06);
   --workspace-low-wire-divider: rgba(243, 239, 230, 0.09);
   --workspace-low-wire-action-surface: rgba(34, 30, 25, 0.7);
+  --feed-detail-accent-unread-panel-border: color-mix(
+    in srgb,
+    var(--tone-unread) 20%,
+    var(--workspace-low-wire-section-border)
+  );
+  --feed-detail-accent-unread-panel-surface: color-mix(
+    in srgb,
+    var(--semantic-tone-unread-surface) 34%,
+    var(--workspace-low-wire-group-surface)
+  );
+  --feed-detail-accent-unread-header-surface: color-mix(
+    in srgb,
+    var(--semantic-tone-unread-surface) 26%,
+    var(--surface-1)
+  );
+  --feed-detail-accent-unread-visual-border: color-mix(
+    in srgb,
+    var(--tone-unread) 34%,
+    var(--workspace-low-wire-section-border)
+  );
+  --feed-detail-accent-unread-visual-surface: var(--semantic-tone-unread-surface);
+  --feed-detail-accent-unread-visual-foreground: var(--semantic-tone-unread-content-foreground);
+  --feed-detail-accent-unread-metrics-border: color-mix(
+    in srgb,
+    var(--tone-unread) 18%,
+    var(--workspace-low-wire-divider)
+  );
+  --feed-detail-accent-unread-metrics-surface: color-mix(
+    in srgb,
+    var(--tone-unread) 12%,
+    var(--workspace-low-wire-divider)
+  );
+  --feed-detail-accent-unread-row-surface: color-mix(
+    in srgb,
+    var(--semantic-tone-unread-surface) 18%,
+    var(--surface-1)
+  );
+  --feed-detail-accent-starred-panel-border: color-mix(
+    in srgb,
+    var(--tone-starred) 20%,
+    var(--workspace-low-wire-section-border)
+  );
+  --feed-detail-accent-starred-panel-surface: color-mix(
+    in srgb,
+    var(--semantic-tone-starred-surface) 28%,
+    var(--workspace-low-wire-group-surface)
+  );
+  --feed-detail-accent-starred-header-surface: color-mix(
+    in srgb,
+    var(--semantic-tone-starred-surface) 22%,
+    var(--surface-1)
+  );
+  --feed-detail-accent-starred-visual-border: color-mix(
+    in srgb,
+    var(--tone-starred) 34%,
+    var(--workspace-low-wire-section-border)
+  );
+  --feed-detail-accent-starred-visual-surface: var(--semantic-tone-starred-surface);
+  --feed-detail-accent-starred-visual-foreground: var(--semantic-tone-starred-content-foreground);
+  --feed-detail-accent-starred-metrics-border: color-mix(
+    in srgb,
+    var(--tone-starred) 18%,
+    var(--workspace-low-wire-divider)
+  );
+  --feed-detail-accent-starred-metrics-surface: color-mix(
+    in srgb,
+    var(--tone-starred) 12%,
+    var(--workspace-low-wire-divider)
+  );
+  --feed-detail-accent-starred-row-surface: color-mix(
+    in srgb,
+    var(--semantic-tone-starred-surface) 16%,
+    var(--surface-1)
+  );
   --subscriptions-pane-divider: rgba(243, 239, 230, 0.08);
   --subscriptions-list-group-surface: rgba(34, 30, 25, 0.62);
   --reader-list-pane-surface: linear-gradient(

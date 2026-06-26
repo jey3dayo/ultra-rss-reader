@@ -2203,6 +2203,15 @@ describe("ArticleView", () => {
 
     const summary = await screen.findByTestId("article-selection-summary");
     expect(within(summary).getByRole("heading", { level: 3, name: /^Unread$/i })).toBeInTheDocument();
+    expect(
+      within(summary)
+        .getByRole("heading", { level: 3, name: /^Unread$/i })
+        .closest('[data-surface-card="section"]'),
+    ).toHaveAttribute("data-feed-detail-accent", "unread");
+    expect(within(summary).getByTestId("feed-detail-leading-visual")).toHaveClass(
+      "bg-[var(--feed-detail-accent-unread-visual-surface)]",
+      "text-[var(--feed-detail-accent-unread-visual-foreground)]",
+    );
     expectSummaryLeadingVisual(summary, "size-5");
     await waitFor(() => {
       expectSummaryMetricMotionValue(summary, "Articles", "1");
@@ -2233,6 +2242,29 @@ describe("ArticleView", () => {
     expect(within(summary).getByText("Feeds")).toBeInTheDocument();
     expect(within(summary).getByText("Latest Update")).toBeInTheDocument();
     expect(within(summary).queryByText("Choose one from the middle list and it opens right away.")).toBeNull();
+  });
+
+  it("renders a recent smart-view summary card without the starred treatment", async () => {
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "smart", kind: "recent" },
+      selectedArticleId: null,
+      contentMode: "empty",
+      viewMode: "all",
+    });
+
+    render(<ArticleView />, { wrapper: createWrapper() });
+
+    const summary = await screen.findByTestId("article-selection-summary");
+    const panel = within(summary)
+      .getByRole("heading", { level: 3, name: /^(Recently Viewed|recent_articles)$/i })
+      .closest('[data-surface-card="section"]');
+    expect(panel).not.toHaveAttribute("data-feed-detail-accent");
+    expect(within(summary).queryByRole("heading", { level: 3, name: /^Starred$/i })).not.toBeInTheDocument();
+    const leadingIcon = within(summary).getByTestId("feed-detail-leading-visual").querySelector("svg");
+    expect(leadingIcon).toHaveClass("text-foreground-soft");
+    expect(leadingIcon).not.toHaveClass("text-[var(--feed-detail-accent-starred-visual-foreground)]");
   });
 
   it("renders account setup guidance when no accounts are available", async () => {
