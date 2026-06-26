@@ -14,6 +14,8 @@ type UseDebugSettingsViewPropsParams = SettingsPreferenceViewPropsParams & {
   runReadingDisplayModeScenario: () => void;
 };
 
+const DEBUG_SCENARIO_ACTION_ROW_CLASS = "gap-3 lg:grid-cols-1 lg:items-start [&>div]:lg:justify-start [&>div]:lg:pr-0";
+
 export function useDebugSettingsViewProps({
   t,
   prefs,
@@ -140,8 +142,7 @@ export function useDebugSettingsViewProps({
             label: t("debug.web_preview_geometry_check"),
             actionLabel: t("debug.open_short"),
             actionAriaLabel: t("debug.open_web_preview_geometry_check_aria_label"),
-            rowClassName: "gap-4 sm:grid-cols-[minmax(240px,320px)_minmax(0,1fr)]",
-            labelClassName: "whitespace-nowrap",
+            rowClassName: DEBUG_SCENARIO_ACTION_ROW_CLASS,
             disabled: !devBuild,
             onAction: () => runDevAction(openWebPreviewGeometryCheck),
           },
@@ -151,8 +152,7 @@ export function useDebugSettingsViewProps({
             label: t("debug.web_preview_toast_check"),
             actionLabel: t("debug.open_short"),
             actionAriaLabel: t("debug.open_web_preview_toast_check_aria_label"),
-            rowClassName: "gap-4 sm:grid-cols-[minmax(240px,320px)_minmax(0,1fr)]",
-            labelClassName: "whitespace-nowrap",
+            rowClassName: DEBUG_SCENARIO_ACTION_ROW_CLASS,
             disabled: !devBuild,
             onAction: () => runDevAction(openWebPreviewToastCheck),
           },
@@ -162,8 +162,7 @@ export function useDebugSettingsViewProps({
             label: t("debug.reading_display_mode"),
             actionLabel: t("debug.open_short"),
             actionAriaLabel: t("debug.open_reading_display_mode_aria_label"),
-            rowClassName: "gap-4 sm:grid-cols-[minmax(240px,320px)_minmax(0,1fr)]",
-            labelClassName: "whitespace-nowrap",
+            rowClassName: DEBUG_SCENARIO_ACTION_ROW_CLASS,
             disabled: !devBuild,
             onAction: () => runDevAction(runReadingDisplayModeScenario),
           },

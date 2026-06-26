@@ -155,12 +155,22 @@ describe("DebugSettings", () => {
     });
   });
 
-  it("keeps long debug action labels on one line", () => {
+  it("stacks long debug action rows so labels can wrap in narrow cards", () => {
     render(<DebugSettings />, { wrapper: createWrapper() });
 
-    expect(screen.getByText("Web preview geometry check")).toHaveClass("whitespace-nowrap");
-    expect(screen.getByText("Web preview toast check")).toHaveClass("whitespace-nowrap");
-    expect(screen.getByText("Reading display mode settings")).toHaveClass("whitespace-nowrap");
+    const geometryLabel = screen.getByText("Web preview geometry check");
+    const toastLabel = screen.getByText("Web preview toast check");
+    const displayModeLabel = screen.getByText("Reading display mode settings");
+
+    expect(geometryLabel).not.toHaveClass("whitespace-nowrap");
+    expect(toastLabel).not.toHaveClass("whitespace-nowrap");
+    expect(displayModeLabel).not.toHaveClass("whitespace-nowrap");
+    expect(geometryLabel.closest(".motion-contextual-surface")).toHaveClass("lg:grid-cols-1");
+    expect(toastLabel.closest(".motion-contextual-surface")).toHaveClass("lg:grid-cols-1");
+    expect(displayModeLabel.closest(".motion-contextual-surface")).toHaveClass("lg:grid-cols-1");
+    expect(screen.getByRole("button", { name: "Open geometry check" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open toast check" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open reading display mode check" })).toBeInTheDocument();
   });
 
   it("shows the current credentials backend and restart hint", async () => {

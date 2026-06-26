@@ -58,7 +58,7 @@ export function SettingsModalView({
       <DialogContent
         data-testid="settings-modal-surface"
         className={cn(
-          "flex h-[88vh] max-h-[860px] max-w-[980px] flex-col gap-0 overflow-hidden rounded-xl border bg-popover p-0 sm:flex-row sm:max-w-[980px]",
+          "flex h-[88vh] max-h-[860px] max-w-[1120px] flex-col gap-0 overflow-hidden rounded-xl border bg-popover p-0 sm:flex-row sm:max-w-[1120px]",
           SETTINGS_DIVIDER_CLASS,
           SETTINGS_SHELL_SHADOW_CLASS,
         )}

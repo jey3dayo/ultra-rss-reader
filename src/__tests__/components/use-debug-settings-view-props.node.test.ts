@@ -137,6 +137,32 @@ describe("useDebugSettingsViewProps", () => {
     ]);
   });
 
+  it("stacks debug scenario action rows so localized labels can wrap in narrow cards", () => {
+    const props = createProps({ devBuild: true });
+
+    const scenariosSection = props.sections.find((section) => section.id === "debug-scenarios");
+    const scenarioControls = scenariosSection?.controls ?? [];
+
+    for (const control of scenarioControls) {
+      expect(control).toEqual(
+        expect.objectContaining({
+          type: "action",
+          rowClassName: expect.stringContaining("lg:grid-cols-1"),
+        }),
+      );
+      expect(control).toEqual(
+        expect.objectContaining({
+          rowClassName: expect.stringContaining("[&>div]:lg:justify-start"),
+        }),
+      );
+      expect(control).not.toEqual(
+        expect.objectContaining({
+          labelClassName: expect.stringContaining("whitespace-nowrap"),
+        }),
+      );
+    }
+  });
+
   it("maps ja debug scenario action accessible names from locale keys", () => {
     const props = createProps({ t: jaT, devBuild: true });
 

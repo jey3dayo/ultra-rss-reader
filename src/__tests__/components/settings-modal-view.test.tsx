@@ -258,7 +258,7 @@ describe("SettingsModalView", () => {
 
     expect(screen.getByTestId("settings-modal-surface")).toHaveClass("h-[88vh]");
     expect(screen.getByTestId("settings-modal-surface")).toHaveClass("max-h-[860px]");
-    expect(screen.getByTestId("settings-modal-surface")).toHaveClass("max-w-[980px]");
+    expect(screen.getByTestId("settings-modal-surface")).toHaveClass("max-w-[1120px]");
     expect(screen.getByTestId("settings-modal-surface")).toHaveClass("bg-popover");
     expect(screen.getByTestId("settings-modal-surface")).toHaveClass("rounded-xl");
     expect(screen.getByTestId("settings-modal-surface")).toHaveClass("shadow-[var(--settings-shell-shadow)]");
