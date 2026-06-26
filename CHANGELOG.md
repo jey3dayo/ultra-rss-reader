@@ -4,6 +4,24 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.51.3] - 2026-06-26
+
+### Features
+
+- Reader のフィード行コンテキストメニューから購読管理へ進める導線を追加した。
+- 開発時に Agentation overlay の表示設定と APM / MCP metadata を扱えるようにした。
+
+### Bug Fixes
+
+- Reader の passive summary card を semantic tone と low-wire surface に揃え、未読・スター・最近見た記事・フィード summary の表示崩れと余白過多を抑えた。
+- 設定画面のデバッグページや compact select の折り返しを調整し、日本語ラベルでも窮屈に見えにくくした。
+- 購読管理画面の詳細 surface、見直し候補 chip、管理アクションの密度を揃え、一覧・詳細・summary の視覚的なずれを減らした。
+- 開発用 seed と app dev task を更新し、購読レビューサンプルとローカル起動タスクを扱いやすくした。
+
+### Maintenance
+
+- APM metadata と Agentation MCP 設定を追加し、root YAML lint contract を更新した。
+
 ## [0.51.2] - 2026-06-25
 
 ### Maintenance
