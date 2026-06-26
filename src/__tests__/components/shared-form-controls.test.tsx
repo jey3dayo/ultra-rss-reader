@@ -466,6 +466,7 @@ describe("shared form controls", () => {
     const combobox = screen.getByRole("combobox", { name: "Account type" });
     const switchControl = screen.getByRole("switch", { name: "Open links in background" });
     expect(combobox).toHaveTextContent("FreshRSS");
+    expect(screen.getByText("Account type")).toHaveClass("whitespace-nowrap");
     expect(combobox).toHaveClass("sm:w-[220px]", "motion-reduce:transition-none");
     expect(switchControl.parentElement).toHaveClass("lg:justify-end");
     expect(switchControl).toHaveClass("motion-reduce:transition-none");
@@ -605,6 +606,26 @@ describe("shared form controls", () => {
     await user.click(await screen.findByRole("option", { name: "Standard" }));
 
     expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("lets labeled select row callers override the default nowrap label policy", () => {
+    render(
+      <LabeledSelectRow
+        label="Very long select label"
+        name="display-mode"
+        value="preview"
+        options={[
+          { value: "standard", label: "Standard" },
+          { value: "preview", label: "Preview" },
+        ]}
+        labelClassName="whitespace-normal"
+        onChange={vi.fn()}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    expect(screen.getByText("Very long select label")).toHaveClass("whitespace-normal");
+    expect(screen.getByText("Very long select label")).not.toHaveClass("whitespace-nowrap");
   });
 
   it("drops disabled and null labeled select values before calling change handlers", () => {

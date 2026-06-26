@@ -16,6 +16,7 @@ export type LabeledSelectRowProps = {
   disabled?: boolean;
   open?: boolean;
   rowClassName?: string;
+  labelClassName?: string;
   triggerClassName?: string;
 };
 
@@ -28,13 +29,19 @@ export function LabeledSelectRow({
   disabled,
   open,
   rowClassName,
+  labelClassName,
   triggerClassName,
 }: LabeledSelectRowProps) {
   const labelId = useId();
   const handleValueChange = createSelectValueChangeHandler({ disabled, onChange });
 
   return (
-    <LabeledControlRow label={label} labelId={labelId} className={rowClassName}>
+    <LabeledControlRow
+      label={label}
+      labelId={labelId}
+      className={rowClassName}
+      labelClassName={cn("whitespace-nowrap", labelClassName)}
+    >
       <Select name={name} value={value} onValueChange={handleValueChange} disabled={disabled} open={open}>
         <SelectTrigger aria-labelledby={labelId} className={cn("w-full sm:w-[220px]", triggerClassName)}>
           <SelectOptionValue options={options} />

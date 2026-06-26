@@ -128,6 +128,47 @@ describe("SettingsPageView", () => {
     expect(screen.getByText("フィード切り替え時にトップへスクロール")).not.toHaveClass("sm:whitespace-nowrap");
   });
 
+  it("keeps compact select labels on one line in two-column settings cards", () => {
+    render(
+      <SettingsPageView
+        title="General"
+        sections={[
+          {
+            id: "app",
+            heading: "App",
+            controls: [
+              {
+                id: "unread-badge",
+                type: "select",
+                name: "unread_badge",
+                label: "未読バッジ",
+                value: "dont_display",
+                options: [{ value: "dont_display", label: "表示しない" }],
+                onChange: vi.fn(),
+              },
+            ],
+          },
+          {
+            id: "sync",
+            heading: "Sync",
+            controls: [
+              {
+                id: "sync-on-startup",
+                type: "switch",
+                label: "アプリ起動時に同期",
+                checked: true,
+                onChange: vi.fn(),
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("未読バッジ")).toHaveClass("whitespace-nowrap");
+    expect(screen.getByText("アプリ起動時に同期")).not.toHaveClass("whitespace-nowrap");
+  });
+
   it("stacks long read-only info values so command text is not squeezed", () => {
     render(
       <SettingsPageView
