@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ContextMenu } from "@/design-system";
+import { ContextMenu, sidebarSectionLabelClassName } from "@/design-system";
 import { SIDEBAR_SELECTED_TARGET_ATTRIBUTE, SIDEBAR_SMART_VIEW_KIND_ATTRIBUTE } from "@/lib/reader-focus";
 import type { SmartViewItemViewModel } from "@/lib/sidebar/sidebar-smart-views";
 import type { SmartViewKind } from "@/lib/sidebar/smart-view.types";
@@ -40,11 +40,7 @@ const SMART_VIEW_TONE_CLASSNAMES: Record<SmartViewKind, SmartViewToneClassNames>
 export function SmartViewsView({ title, views, onSelectSmartView, renderContextMenu }: SidebarSmartViewsProps) {
   return (
     <div className="space-y-2.5 px-3 py-2">
-      {title ? (
-        <div className="select-none px-2 text-[0.66rem] font-semibold tracking-[0.12em] text-sidebar-foreground/50 uppercase">
-          {title}
-        </div>
-      ) : null}
+      {title ? <div className={cn("select-none px-1.5", sidebarSectionLabelClassName)}>{title}</div> : null}
       {views.map((view) => (
         <ContextMenu.Root key={view.kind}>
           <ContextMenu.Trigger

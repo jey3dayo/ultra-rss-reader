@@ -15,6 +15,13 @@ describe("SidebarSectionToggle", () => {
     expect(button).not.toHaveClass("focus-visible:ring-ring/45");
     expect(button.querySelector("svg")).toHaveClass("text-sidebar-foreground/54");
     expect(button.querySelector("svg")).toHaveClass("motion-disclosure-icon");
+    expect(screen.getByText("Feeds")).toHaveClass(
+      "text-[0.72rem]",
+      "font-semibold",
+      "tracking-[0.12em]",
+      "text-[var(--sidebar-foreground-soft-strong)]",
+      "uppercase",
+    );
 
     fireEvent.click(button);
 

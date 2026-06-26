@@ -1,6 +1,6 @@
 import { type ReactNode, useId } from "react";
 import { cn } from "@/lib/utils";
-import { SidebarSectionToggle } from "./sidebar-section-toggle";
+import { SidebarSectionToggle, sidebarSectionLabelClassName } from "./sidebar-section-toggle";
 
 type SidebarSectionShellProps = {
   title?: string;
@@ -41,11 +41,7 @@ export function SidebarSectionShell({
               contextMenu={contextMenu}
             />
           ) : null}
-          {!onToggle ? (
-            <div className="px-1 text-[0.72rem] font-medium tracking-[0.12em] text-[var(--sidebar-foreground-soft-strong)] uppercase">
-              {title}
-            </div>
-          ) : null}
+          {!onToggle ? <div className={cn("px-1", sidebarSectionLabelClassName)}>{title}</div> : null}
         </div>
       ) : null}
       {hasBody ? (

@@ -22,9 +22,10 @@ describe("SmartViewsView", () => {
     expect(screen.getByText("Smart views")).toBeInTheDocument();
     expect(screen.getByText("Smart views")).toHaveClass(
       "select-none",
-      "px-2",
+      "px-1.5",
+      "text-[0.72rem]",
       "font-semibold",
-      "text-sidebar-foreground/50",
+      "text-[var(--sidebar-foreground-soft-strong)]",
     );
 
     const unreadButton = screen.getByRole("button", { name: /Unread/ });
