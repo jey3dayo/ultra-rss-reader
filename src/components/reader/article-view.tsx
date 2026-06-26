@@ -72,6 +72,7 @@ function SummaryEmptyState({
               leadingVisual={leadingVisual}
               summaryText={summaryText}
               metrics={metrics}
+              showMetricsTopDivider={false}
               links={[]}
               recentArticlesHeading={t("latest_article")}
               recentArticles={[]}
@@ -203,13 +204,7 @@ function SelectionSummaryEmptyState({ summary }: { summary: ArticleViewSummarySt
         }
       : undefined;
 
-  return (
-    <SummaryEmptyState
-      {...cardProps}
-      summaryText={summary.kind === "smart" ? undefined : t("empty_state_pick_from_list")}
-      primaryAction={primaryAction}
-    />
-  );
+  return <SummaryEmptyState {...cardProps} primaryAction={primaryAction} />;
 }
 
 function EmptyState({

@@ -51,7 +51,13 @@ describe("FeedDetailPanel", () => {
       screen.getByTestId("feed-detail-secondary-column").contains(screen.getByTestId("feed-detail-reason-box")),
     ).toBe(true);
     expect(screen.getByTestId("feed-detail-secondary-column")).not.toHaveClass("grid-cols-[auto_minmax(0,1fr)]");
-    expect(screen.getByTestId("feed-detail-status")).toHaveClass("rounded-md", "self-start");
+    expect(screen.getByRole("heading", { level: 3, name: "Example Feed" })).toHaveClass("leading-none");
+    expect(screen.getByRole("heading", { level: 3, name: "Example Feed" }).parentElement).toHaveClass(
+      "items-center",
+      "min-h-10",
+    );
+    expect(screen.getByTestId("feed-detail-status")).toHaveClass("rounded-md");
+    expect(screen.getByTestId("feed-detail-status")).not.toHaveClass("self-start", "mt-0.5");
     expect(screen.getByTestId("feed-detail-reason-box").closest('[data-surface-card="section"]')).toHaveClass(
       "bg-card/38",
     );
@@ -67,6 +73,7 @@ describe("FeedDetailPanel", () => {
     expect(screen.getByText("未読 0件 / スター 0件")).toHaveClass("text-current");
     expect(screen.getByText("フォルダ").closest("dt")).toHaveClass("text-foreground-soft");
     expect(screen.getByText("Work").closest("dd")).toHaveClass("text-foreground");
+    expect(screen.getByText("フォルダ").closest("dl")).toHaveClass("border-t", "border-border/55", "pt-3");
     expect(screen.getByRole("link", { name: "Help" })).toHaveAttribute("href", "https://example.com/help");
     expect(screen.getByRole("link", { name: "Help" })).toHaveClass("text-foreground-soft");
     expect(screen.getByTestId("feed-detail-recent-articles")).toHaveClass("space-y-2", "border-t", "pt-2.5");
@@ -115,6 +122,23 @@ describe("FeedDetailPanel", () => {
     expect(screen.queryByText("https://example.com/rss.xml")).not.toBeInTheDocument();
   });
 
+  it("keeps title links centered with their external-link icon", () => {
+    render(
+      <FeedDetailPanel
+        title="Example Feed"
+        titleHref="https://example.com"
+        metrics={[{ label: "フォルダ", value: "Work" }]}
+        recentArticlesHeading="最近の記事"
+        recentArticles={[]}
+      />,
+    );
+
+    const titleLink = screen.getByRole("link", { name: "Example Feed" });
+    expect(titleLink).toHaveClass("items-center");
+    expect(screen.getByRole("heading", { level: 3, name: "Example Feed" })).toHaveClass("leading-none");
+    expect(titleLink.querySelector(".lucide-external-link")).not.toHaveClass("mt-0.5");
+  });
+
   it("keeps secondary actions on the shared touch target contract", () => {
     render(
       <FeedDetailPanel
@@ -127,6 +151,22 @@ describe("FeedDetailPanel", () => {
     );
 
     expect(screen.getByRole("button", { name: "後で確認" })).toHaveClass("min-h-11", "px-4");
+  });
+
+  it("can omit the default metrics top divider inside passive reader summaries", () => {
+    render(
+      <FeedDetailPanel
+        title="Example Feed"
+        metrics={[{ label: "フォルダ", value: "Work" }]}
+        recentArticlesHeading="最近の記事"
+        recentArticles={[]}
+        showMetricsTopDivider={false}
+      />,
+    );
+
+    const metricsList = screen.getByText("フォルダ").closest("dl");
+    expect(metricsList).not.toHaveClass("border-t");
+    expect(metricsList).toHaveClass("pt-1");
   });
 
   it("does not render invalid feed website title hrefs as links", () => {

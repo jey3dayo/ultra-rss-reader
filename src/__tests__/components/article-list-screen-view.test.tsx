@@ -300,7 +300,7 @@ describe("ArticleListScreenView", () => {
     );
 
     expect(screen.getByRole("button", { name: "Clear search" })).toHaveAttribute("data-reader-passive-action", "true");
-    expect(screen.getByText("Queue")).toBeInTheDocument();
+    expect(screen.queryByText("Queue")).not.toBeInTheDocument();
     expect(screen.getByText('No matches for "Nope"').closest(".rounded-md")).toHaveClass("-translate-y-[5%]");
     expect(screen.getByText('No matches for "Nope"')).toHaveClass("min-h-11");
     expect(screen.getByText("Try a different keyword or clear the current search.")).toHaveClass(

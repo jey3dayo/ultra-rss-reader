@@ -1,5 +1,4 @@
 import type { KeyboardEvent as ReactKeyboardEvent, ReactNode, RefObject } from "react";
-import { useTranslation } from "react-i18next";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { ScrollArea } from "@/design-system";
 import { cn } from "@/lib/utils";
@@ -50,8 +49,6 @@ export function ArticleListScreenView({
   onSelectArticle,
   renderRow,
 }: ArticleListScreenViewProps) {
-  const { t } = useTranslation("reader");
-
   if (isLoading) {
     return (
       <ScrollArea className="h-full" viewportRef={viewportRef}>
@@ -85,11 +82,6 @@ export function ArticleListScreenView({
                   : undefined,
               )}
             >
-              {isSetupEmptyState ? null : (
-                <div className="mb-3 inline-flex rounded-full border border-border/70 bg-surface-1/88 px-2.5 py-1 text-[0.65rem] font-medium tracking-[0.12em] text-foreground-soft uppercase">
-                  {t("queue_label")}
-                </div>
-              )}
               <p
                 className={cn(
                   "text-foreground",

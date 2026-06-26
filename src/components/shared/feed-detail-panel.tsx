@@ -40,6 +40,7 @@ type FeedDetailPanelProps = {
     tone: FeedDetailTone;
   } | null;
   reasonChips?: string[];
+  showMetricsTopDivider?: boolean;
   metrics: Array<{
     label: string;
     value: ReactNode;
@@ -104,6 +105,7 @@ export function FeedDetailPanel({
   summaryText,
   reasonBox = null,
   reasonChips = EMPTY_REASON_CHIPS,
+  showMetricsTopDivider = true,
   metrics,
   links = EMPTY_LINKS,
   recentArticlesHeading,
@@ -155,7 +157,9 @@ export function FeedDetailPanel({
             </div>
           ) : null}
           <div data-testid="feed-detail-main-column" className="min-w-0">
-            <div className="flex min-w-0 flex-wrap items-start justify-between gap-2.5">
+            <div
+              className={cn("flex min-w-0 flex-wrap items-center justify-between gap-2.5", leadingVisual && "min-h-10")}
+            >
               {resolvedTitleHref ? (
                 <a
                   href={resolvedTitleHref}
@@ -163,13 +167,13 @@ export function FeedDetailPanel({
                   rel="noreferrer"
                   className={cn(detailLinkClassName, "inline-flex min-w-0 max-w-full items-center gap-2 no-underline")}
                 >
-                  <h3 className="font-sans text-[1.12rem] font-semibold leading-tight tracking-[-0.025em] text-foreground">
+                  <h3 className="font-sans text-[1.12rem] font-semibold leading-none tracking-[-0.025em] text-foreground">
                     {title}
                   </h3>
-                  <ExternalLink aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
+                  <ExternalLink aria-hidden="true" className="size-3.5 shrink-0" />
                 </a>
               ) : (
-                <h3 className="font-sans text-[1.12rem] font-semibold leading-tight tracking-[-0.025em] text-foreground">
+                <h3 className="font-sans text-[1.12rem] font-semibold leading-none tracking-[-0.025em] text-foreground">
                   {title}
                 </h3>
               )}
@@ -177,7 +181,7 @@ export function FeedDetailPanel({
                 <LabelChip
                   data-testid="feed-detail-status"
                   tone={resolveBadgeClassName(badgeTone)}
-                  className="mt-0.5 self-start rounded-md px-2 py-0.5 text-[10px] tracking-[0.08em]"
+                  className="rounded-md px-2 py-0.5 text-[10px] tracking-[0.08em]"
                 >
                   {badgeLabel}
                 </LabelChip>
@@ -236,7 +240,7 @@ export function FeedDetailPanel({
               "grid text-sm",
               isLowWire
                 ? "border-y border-[var(--workspace-low-wire-divider)] bg-transparent sm:grid-cols-2 [&>*:last-child:nth-child(odd)]:sm:col-span-2 [&>*:nth-last-child(-n+2)]:sm:border-b-0 [&>*:nth-child(odd):not(:last-child)]:sm:border-r [&>*:nth-child(odd):not(:last-child)]:sm:border-[var(--workspace-low-wire-divider)]"
-                : "gap-2.5 border-t border-border/55 pt-3 sm:grid-cols-2",
+                : cn("gap-2.5 sm:grid-cols-2", showMetricsTopDivider ? "border-t border-border/55 pt-3" : "pt-1"),
             )}
           >
             {metrics.map((metric) => (
