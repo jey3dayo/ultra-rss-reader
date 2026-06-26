@@ -1,4 +1,11 @@
 [mcp_servers.tauri-mcp-server]
 command = "npx"
-args = ["-y", "@hypothesi/tauri-mcp-server"]
+args = [ "-y", "@hypothesi/tauri-mcp-server",]
 startup_timeout_sec = 30
+
+[mcp_servers.agentation]
+command = "npx"
+args = [ "-y", "agentation-mcp", "server",]
+id = ""
+
+[mcp_servers.agentation.env]
