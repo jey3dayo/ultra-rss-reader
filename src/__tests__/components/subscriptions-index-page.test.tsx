@@ -372,7 +372,8 @@ describe("SubscriptionsIndexPage", () => {
     expect(firstGroupButton.className).toMatch(/rounded-(md|lg|xl)/);
     expect(secondGroupButton.className).toMatch(/rounded-(md|lg|xl)/);
     expect(firstGroupButton).toHaveClass("border", "border-transparent");
-    expect(screen.getByTestId("subscriptions-folder-tree-rail-folder-1")).toHaveClass(
+    expect(screen.getByTestId("subscriptions-folder-tree-rail-folder-1")).toHaveClass("pl-5");
+    expect(screen.getByRole("button", { name: /Example Feed/ }).parentElement).toHaveClass(
       "before:bg-[color:var(--subscriptions-list-tree-rail)]",
     );
   });
