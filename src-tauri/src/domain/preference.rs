@@ -41,6 +41,7 @@ const ALLOWED_KEYS: &[&str] = &[
     "action_open_browser",
     "mute_auto_mark_read",
     "recent_articles_history_enabled",
+    "debug_agentation_visibility",
     "debug_browser_hud",
     "debug_web_preview_url",
     "selected_account_id",

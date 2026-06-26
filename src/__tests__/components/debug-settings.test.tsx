@@ -52,6 +52,21 @@ describe("DebugSettings", () => {
     expect(usePreferencesStore.getState().prefs.debug_browser_hud).toBe("true");
   });
 
+  it("lets Agentation visibility be managed from debug overlays", async () => {
+    const user = userEvent.setup();
+
+    render(<DebugSettings />, { wrapper: createWrapper() });
+
+    expect(screen.getByText("Developer Overlays")).toBeInTheDocument();
+    const visibilitySelect = screen.getByRole("combobox", { name: "Agentation" });
+    expect(visibilitySelect).toHaveTextContent("Hide while settings is open");
+
+    await user.click(visibilitySelect);
+    await user.click(await screen.findByRole("option", { name: "Always show" }));
+
+    expect(usePreferencesStore.getState().prefs.debug_agentation_visibility).toBe("always");
+  });
+
   it("opens the saved web preview url from settings", async () => {
     const user = userEvent.setup();
 

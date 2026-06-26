@@ -1,6 +1,7 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { lazy, Suspense, useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { listAccounts, syncAccount, triggerStartupSync } from "./api/tauri-commands";
+import { AgentationMount } from "./components/app/agentation-mount";
 import { AppShell } from "./components/app-shell";
 import { APP_HIDDEN_DURATION_SYNC_THRESHOLD_MS } from "./constants/ui-runtime";
 import { useDevIntent } from "./dev/use-dev-intent";
@@ -19,13 +20,6 @@ import {
 import { markStartupSyncTriggered, shouldThrottleStartupSync } from "./lib/sync/startup-sync-storage";
 import { usePreferencesStore } from "./stores/preferences-store";
 import { useUiStore } from "./stores/ui-store";
-
-const AgentationToolbar = import.meta.env.DEV
-  ? lazy(async () => {
-      const { Agentation } = await import("agentation");
-      return { default: Agentation };
-    })
-  : null;
 
 function AppInner() {
   const loadPreferences = usePreferencesStore((s) => s.loadPreferences);
@@ -162,11 +156,7 @@ export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AppInner />
-      {AgentationToolbar ? (
-        <Suspense fallback={null}>
-          <AgentationToolbar />
-        </Suspense>
-      ) : null}
+      <AgentationMount />
     </QueryClientProvider>
   );
 }

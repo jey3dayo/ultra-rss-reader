@@ -388,6 +388,11 @@
   },
   "debug": {
     "heading": "デバッグ",
+    "overlays": "開発オーバーレイ",
+    "agentation_visibility": "Agentation",
+    "agentation_always": "常に表示",
+    "agentation_hide_in_settings": "設定画面中は非表示",
+    "agentation_off": "表示しない",
     "browser": "Webプレビュー",
     "web_preview_hud": "レイアウト HUD を表示",
     "browser_note": "Webプレビューの配置確認に使います。",

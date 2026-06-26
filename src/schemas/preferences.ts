@@ -26,6 +26,7 @@ const imagePreviewsSchema = z.enum(["off", "small", "medium", "large"]);
 const afterReadingSchema = z.enum(["never", "immediately", "after_0_3s", "after_0_5s", "after_1s"]);
 const sortSubscriptionsSchema = z.enum(["folders_first", "alphabetical", "newest_first", "oldest_first"]);
 const startupFolderExpansionSchema = z.enum(["all_collapsed", "unread_folders", "restore_previous"]);
+const debugAgentationVisibilitySchema = z.enum(["always", "hide_in_settings", "off"]);
 const persistedBooleanPreferenceSchema = z.enum(["true", "false"]);
 export const preferenceKeyMaxLength = 128;
 export const preferenceValueMaxUtf8Bytes = 1024;
@@ -63,6 +64,7 @@ export type SidebarDensityPreference = z.infer<typeof sidebarDensitySchema>;
 export type StartupFolderExpansionPreference = z.infer<typeof startupFolderExpansionSchema>;
 export type FontStylePreference = z.infer<typeof fontStyleSchema>;
 export type FontSizePreference = z.infer<typeof fontSizeSchema>;
+export type DebugAgentationVisibilityPreference = z.infer<typeof debugAgentationVisibilitySchema>;
 
 export const preferenceSchemas = {
   language: languageSchema,
@@ -107,6 +109,7 @@ export const preferenceSchemas = {
   action_open_browser: booleanStringSchema,
   debug_browser_hud: booleanStringSchema,
   debug_web_preview_url: debugWebPreviewUrlSchema,
+  debug_agentation_visibility: debugAgentationVisibilitySchema,
   mute_auto_mark_read: booleanStringSchema,
 };
 
@@ -211,6 +214,7 @@ const corePreferenceDefaults = {
   // Debug
   debug_browser_hud: "false",
   debug_web_preview_url: "",
+  debug_agentation_visibility: "hide_in_settings",
   mute_auto_mark_read: "false",
 } satisfies {
   [K in KnownPreferenceKey]: z.input<(typeof preferenceSchemas)[K]>;

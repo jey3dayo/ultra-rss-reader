@@ -49,6 +49,7 @@ export const settingsPreferenceLabelKeys = {
   open_first_article_on_feed_selection: "reading.open_first_article_on_feed_selection",
   sync_on_startup: "general.sync_on_startup",
   action_copy_link: "actions.copy_link",
+  debug_agentation_visibility: "debug.agentation_visibility",
   debug_browser_hud: "debug.web_preview_hud",
   debug_web_preview_url: "debug.web_preview_url",
   mute_auto_mark_read: "mute.auto_mark_read",

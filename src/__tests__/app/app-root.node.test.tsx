@@ -13,6 +13,7 @@ setupBrowserTestDom();
 
 type UiState = {
   selectedAccountId: string | null;
+  settingsOpen: boolean;
 };
 
 const {
@@ -26,7 +27,7 @@ const {
 } = await vi.hoisted(async () => {
   const { createDevIntentState } = await import("@tests/helpers/dev-intent");
   const devIntentState: DevIntentState = createDevIntentState();
-  const uiState: UiState = { selectedAccountId: null };
+  const uiState: UiState = { selectedAccountId: null, settingsOpen: false };
 
   return {
     loadPreferencesMock: vi.fn(),
@@ -64,9 +65,10 @@ vi.mock("@/stores/preferences-store", () => ({
 }));
 
 vi.mock("@/stores/ui-store", () => ({
-  useUiStore: <T,>(selector: (state: { selectedAccountId: string | null }) => T) =>
+  useUiStore: <T,>(selector: (state: { selectedAccountId: string | null; settingsOpen: boolean }) => T) =>
     selector({
       selectedAccountId: uiState.selectedAccountId,
+      settingsOpen: uiState.settingsOpen,
     }),
 }));
 
@@ -85,6 +87,10 @@ vi.mock("@/dev/use-resolved-dev-intent", () => ({
 
 vi.mock("@tauri-apps/api/event", () => ({
   listen: vi.fn(async () => () => {}),
+}));
+
+vi.mock("agentation", () => ({
+  Agentation: () => <div data-testid="agentation-toolbar" />,
 }));
 
 function createAccount(overrides: Partial<AccountDto> = {}): AccountDto {
@@ -132,6 +138,24 @@ describe("App", () => {
     preferencesState.loaded = true;
     resetDevIntentState(devIntentState);
     uiState.selectedAccountId = null;
+    uiState.settingsOpen = false;
+  });
+
+  it("hides Agentation while settings is open by default", () => {
+    uiState.settingsOpen = true;
+
+    const view = render(<App />);
+
+    expect(view.queryByTestId("agentation-toolbar")).toBeNull();
+  });
+
+  it("shows Agentation over settings when debug visibility is always", async () => {
+    preferencesState.prefs = { debug_agentation_visibility: "always" };
+    uiState.settingsOpen = true;
+
+    const view = render(<App />);
+
+    expect(await view.findByTestId("agentation-toolbar")).not.toBeNull();
   });
 
   it("triggers one full sync on mount when startup sync is enabled", async () => {

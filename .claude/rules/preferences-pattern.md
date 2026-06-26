@@ -70,6 +70,7 @@ Preference は UI state であると同時に local persisted data でもある�
 | `action_open_browser` | frontend schema | required unless hidden |
 | `mute_auto_mark_read` | frontend schema | required unless hidden |
 | `recent_articles_history_enabled` | frontend schema | required unless hidden |
+| `debug_agentation_visibility` | frontend schema | required unless hidden |
 | `debug_browser_hud` | frontend schema | required unless hidden |
 | `debug_web_preview_url` | frontend schema | required unless hidden |
 | `selected_account_id` | backend-owned | backend/runtime only |

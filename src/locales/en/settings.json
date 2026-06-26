@@ -388,6 +388,11 @@
   },
   "debug": {
     "heading": "Debug",
+    "overlays": "Developer Overlays",
+    "agentation_visibility": "Agentation",
+    "agentation_always": "Always show",
+    "agentation_hide_in_settings": "Hide while settings is open",
+    "agentation_off": "Do not show",
     "browser": "Web Preview",
     "web_preview_hud": "Show layout HUD",
     "browser_note": "Use this to check Web Preview placement.",

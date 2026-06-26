@@ -54,6 +54,25 @@ export function useDebugSettingsViewProps({
     title: t("debug.heading"),
     sections: [
       {
+        id: "debug-overlays",
+        heading: t("debug.overlays"),
+        controls: [
+          {
+            id: "debug-agentation-visibility",
+            type: "select",
+            name: "debug_agentation_visibility",
+            label: t("debug.agentation_visibility"),
+            value: resolvePreferenceValue(prefs, "debug_agentation_visibility"),
+            options: [
+              { value: "always", label: t("debug.agentation_always") },
+              { value: "hide_in_settings", label: t("debug.agentation_hide_in_settings") },
+              { value: "off", label: t("debug.agentation_off") },
+            ],
+            onChange: (value) => setPref("debug_agentation_visibility", value),
+          },
+        ],
+      },
+      {
         id: "debug-browser",
         heading: t("debug.browser"),
         note: t("debug.browser_note"),
