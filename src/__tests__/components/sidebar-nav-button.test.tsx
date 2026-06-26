@@ -98,7 +98,7 @@ describe("SidebarNavButton", () => {
     render(<SidebarNavButton trailing={12}>Feed row</SidebarNavButton>);
 
     expect(screen.getByText("12")).toHaveClass("motion-content-swap", "tabular-nums");
-    expect(screen.getByText("12")).toHaveClass("min-w-7", "justify-end", "text-right");
+    expect(screen.getByText("12")).toHaveClass("min-w-8", "justify-end", "text-right");
     expect(screen.getByText("12")).toHaveAttribute("data-motion-phase", "entering");
   });
 

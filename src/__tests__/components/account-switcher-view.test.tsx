@@ -53,6 +53,7 @@ describe("AccountSwitcherView", () => {
     expect(screen.getByRole("heading", { name: "Local" })).toHaveClass("font-medium");
     expect(screen.getByText("Not synced yet")).toHaveClass("text-[0.72rem]", "tracking-[0.04em]");
     expect(screen.getByRole("heading", { name: "Local" }).querySelector(".lucide-chevron-down")).toHaveClass(
+      "-translate-y-1",
       "text-sidebar-foreground/56",
     );
     expect(screen.getByText("Retrying at 12:15")).toBeInTheDocument();

@@ -39,7 +39,14 @@ describe("FeedTreeFolderSection", () => {
     expect(folderButton).toHaveClass("motion-contextual-surface", "bg-[image:var(--sidebar-selection-gradient)]");
     expect(folderButton).toHaveAttribute("aria-expanded", "false");
     expect(screen.getByText("Comic")).toHaveClass("font-medium");
-    expect(screen.getByText("9,274")).toHaveClass("mr-1", "text-[0.72rem]", "text-sidebar-foreground/54");
+    expect(screen.getByText("9,274")).toHaveClass(
+      "min-w-8",
+      "justify-end",
+      "text-right",
+      "text-[0.72rem]",
+      "text-sidebar-foreground/54",
+    );
+    expect(screen.getByText("9,274")).not.toHaveClass("mr-1");
     expect(folderButton.querySelector(".motion-disclosure-icon")).toHaveClass("h-3", "w-3", "-rotate-90");
   });
 

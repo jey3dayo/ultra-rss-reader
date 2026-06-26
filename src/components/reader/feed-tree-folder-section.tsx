@@ -113,7 +113,7 @@ export function FeedTreeFolderSection({
                 selected={folder.isSelected}
                 selectedIndicatorMode="hidden"
                 trailing={folder.unreadCount > 0 ? folder.unreadCount.toLocaleString() : undefined}
-                trailingClassName="mr-1 text-[0.72rem] text-sidebar-foreground/54"
+                trailingClassName="text-[0.72rem] text-sidebar-foreground/54"
                 {...(folder.isSelected ? { [SIDEBAR_SELECTED_TARGET_ATTRIBUTE]: "true" } : {})}
                 {...(canDragFeeds
                   ? {

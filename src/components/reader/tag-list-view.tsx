@@ -36,7 +36,7 @@ export function TagListView({
 
   return (
     <div>
-      <div className="p-2">
+      <div className="-mr-3 px-3 pt-3 pb-1.5">
         <SidebarSectionToggle
           label={tagsLabel}
           isOpen={isOpen}
@@ -101,10 +101,10 @@ function TagListItem({ tag, sidebarDensity, onSelectTag, renderContextMenu }: Ta
             trailingClassName={
               tag.isSelected
                 ? "text-[0.72rem] text-[var(--sidebar-selection-muted)]"
-                : "mr-1 text-[0.72rem] text-sidebar-foreground/52"
+                : "text-[0.72rem] text-sidebar-foreground/52"
             }
             className={cn(
-              "ml-[1.875rem] w-[calc(100%-1.875rem)] rounded-lg px-0.5",
+              "ml-[1.375rem] w-[calc(100%-1.375rem)] rounded-lg px-0.5",
               !tag.isSelected && "text-sidebar-foreground",
             )}
           />

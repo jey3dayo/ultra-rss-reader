@@ -57,7 +57,7 @@ export function SidebarNavButton({
   const focusedPane = useUiStore((state) => state.focusedPane);
   const activePane = activePaneProp ?? focusedPane === "sidebar";
   const trailingClassNames = cn(
-    "ml-3 inline-flex min-w-7 shrink-0 justify-end text-right text-[0.75rem] font-medium text-[var(--sidebar-foreground-muted-strong)]",
+    "ml-3 inline-flex min-w-8 shrink-0 justify-end text-right text-[0.75rem] font-medium text-[var(--sidebar-foreground-muted-strong)]",
     selected && activePane && "text-[var(--sidebar-selection-muted)]",
     trailingClassName,
   );

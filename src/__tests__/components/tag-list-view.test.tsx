@@ -27,6 +27,12 @@ describe("TagListView", () => {
     expect(screen.queryByRole("button", { name: "No tags yet" })).not.toBeInTheDocument();
   });
 
+  it("uses the same section toggle inset as the subscriptions header", () => {
+    render(<TagListView tagsLabel="Tags" isOpen onToggleOpen={vi.fn()} tags={[]} onSelectTag={vi.fn()} />);
+
+    expect(screen.getByRole("button", { name: "Tags" }).parentElement).toHaveClass("-mr-3", "px-3", "pt-3", "pb-1.5");
+  });
+
   it("removes closed tag rows from the tab order", () => {
     render(
       <TagListView
@@ -47,7 +53,7 @@ describe("TagListView", () => {
     expect(screen.queryByRole("button", { name: /Important/ })).not.toBeInTheDocument();
   });
 
-  it("aligns tag rows to the feed tree name rail", () => {
+  it("aligns tag rows to the folder icon rail", () => {
     render(
       <TagListView
         tagsLabel="Tags"
@@ -60,9 +66,11 @@ describe("TagListView", () => {
 
     const tagButton = screen.getByRole("button", { name: /Important/ });
 
-    expect(tagButton).toHaveClass("ml-[1.875rem]");
-    expect(tagButton).toHaveClass("w-[calc(100%-1.875rem)]");
+    expect(tagButton).toHaveClass("ml-[1.375rem]");
+    expect(tagButton).toHaveClass("w-[calc(100%-1.375rem)]");
     expect(tagButton).toHaveClass("rounded-lg");
+    expect(screen.getByText("1")).toHaveClass("min-w-8", "justify-end", "text-right");
+    expect(screen.getByText("1")).not.toHaveClass("mr-1");
   });
 
   it("keeps the right-clicked tag as the context menu target when tag data updates while open", () => {
