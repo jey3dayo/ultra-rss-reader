@@ -7,6 +7,18 @@ import "./styles/global.css";
 export const APP_ROOT_MISSING_FALLBACK_TEXT = "アプリの起動に失敗しました。ウィンドウを再読み込みしてください。";
 const APP_ROOT_SELECTOR = "#root";
 
+type BrowserMockBootstrapOptions = {
+  isDev?: boolean;
+  ownerWindow?: Window;
+};
+
+export function shouldSetupBrowserMocks({
+  isDev = import.meta.env.DEV,
+  ownerWindow = window,
+}: BrowserMockBootstrapOptions = {}): boolean {
+  return isDev || ownerWindow.__TAURI_INTERNALS__ == null;
+}
+
 export function renderAppRootMissingFallback(ownerDocument: Document = document) {
   const fallback = ownerDocument.createElement("div");
   fallback.setAttribute("role", "alert");
@@ -45,7 +57,7 @@ export function mountApp(rootElement: HTMLElement | null = resolveAppRoot()) {
   }
 }
 
-if (import.meta.env.DEV) {
+if (shouldSetupBrowserMocks()) {
   const { setupDevMocks } = await import("@/dev/mocks");
   setupDevMocks();
 }

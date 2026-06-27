@@ -281,6 +281,9 @@ export function setupDevMocks(): RestoreDevMocks {
   mockWindows("main");
   mockIPC(async (cmd, rawIpcPayload) => {
     switch (cmd) {
+      case "plugin:window|set_badge_count":
+        return null;
+
       case "list_accounts":
         return cloneMockResponse(mockAccounts);
 

@@ -282,6 +282,13 @@ describe("setupDevMocks", () => {
     expect(platform).toEqual(DEFAULT_PLATFORM_INFO);
   });
 
+  it("treats browser-only unread badge updates as a no-op", async () => {
+    setupDevMocks();
+
+    await expect(invoke("plugin:window|set_badge_count", { count: 4 })).resolves.toBeNull();
+    expect((window as DevMockDiagnosticsTestWindow).__ULTRA_RSS_DEV_MOCK_DIAGNOSTICS__).toEqual([]);
+  });
+
   it("returns account sync status for browser-only account settings checks", async () => {
     setupDevMocks();
 

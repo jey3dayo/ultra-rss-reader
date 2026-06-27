@@ -20,6 +20,17 @@ const allowedDirectStoryImportFiles = new Set([
   ["src", "__tests__", "components", "shared-stories.test.tsx"].join(sep),
   ["src", "__tests__", "components", "storybook-decorator-runtime-provider-parity.test.tsx"].join(sep),
 ]);
+const allowedDirectCommandPrimitiveImportFiles = new Set([
+  ["src", "__tests__", "components", "command-palette-resource-groups.test.tsx"].join(sep),
+  ["src", "__tests__", "components", "command.test.tsx"].join(sep),
+  ["src", "__tests__", "components", "design-ui-primitives.test.tsx"].join(sep),
+  ["src", "components", "reader", "command-palette-action-groups.tsx"].join(sep),
+  ["src", "components", "reader", "command-palette-resource-groups.tsx"].join(sep),
+  ["src", "components", "reader", "command-palette-results.tsx"].join(sep),
+  ["src", "components", "reader", "command-palette.tsx"].join(sep),
+  ["src", "components", "reader", "shortcuts-help-modal.tsx"].join(sep),
+  ["src", "components", "storybook", "ui-reference-shell-specimens.tsx"].join(sep),
+]);
 
 const sourceFiles = globSync("{src,tests,e2e,.storybook}/**/*.{ts,tsx}", {
   cwd: process.cwd(),
@@ -73,6 +84,10 @@ function getImportSpecifiers(path: string): string[] {
 
 function isDirectDesignImplementationImport(importerPath: string, specifier: string): boolean {
   if (isAllowedStoryImport(importerPath, specifier)) {
+    return false;
+  }
+
+  if (allowedDirectCommandPrimitiveImportFiles.has(importerPath) && specifier === "@/components/ui/command") {
     return false;
   }
 

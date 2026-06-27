@@ -97,4 +97,20 @@ describe("main app root bootstrap", () => {
     consoleError.mockRestore();
     dispatchEvent.mockRestore();
   });
+
+  it("enables browser mocks outside Tauri even for production preview", async () => {
+    const { shouldSetupBrowserMocks } = await import("@/main");
+
+    expect(shouldSetupBrowserMocks({ isDev: false, ownerWindow: window })).toBe(true);
+  });
+
+  it("does not enable browser mocks inside production Tauri runtime", async () => {
+    const { shouldSetupBrowserMocks } = await import("@/main");
+    Object.defineProperty(window, "__TAURI_INTERNALS__", {
+      configurable: true,
+      value: {},
+    });
+
+    expect(shouldSetupBrowserMocks({ isDev: false, ownerWindow: window })).toBe(false);
+  });
 });
