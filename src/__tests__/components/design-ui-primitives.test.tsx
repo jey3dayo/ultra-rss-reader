@@ -18,10 +18,10 @@ import {
   MOTION_POPUP_DIALOG_CLASS_NAME,
   MOTION_POPUP_OVERLAY_CLASS_NAME,
 } from "@/constants";
+import { CommandDialog } from "@/components/ui/command";
 import {
   Button,
   Checkbox,
-  CommandDialog,
   Dialog,
   DialogContent,
   DialogDescription,

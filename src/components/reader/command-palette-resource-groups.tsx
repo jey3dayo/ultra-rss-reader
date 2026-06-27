@@ -1,5 +1,5 @@
 import { FlaskConicalIcon, HashIcon, NewspaperIcon, RssIcon } from "lucide-react";
-import { CommandGroup, CommandItem } from "@/design-system";
+import { CommandGroup, CommandItem } from "@/components/ui/command";
 import type { CommandPaletteResultsProps } from "./command-palette.types";
 
 type CommandPaletteResourceGroupsProps = Pick<CommandPaletteResultsProps, "getCommandItemValue"> & {

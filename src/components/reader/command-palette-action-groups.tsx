@@ -1,4 +1,4 @@
-import { CommandGroup, CommandItem, CommandShortcut } from "@/design-system";
+import { CommandGroup, CommandItem, CommandShortcut } from "@/components/ui/command";
 import type { CommandPaletteActionItem, CommandPaletteResultsProps } from "./command-palette.types";
 
 type CommandPaletteActionGroupsProps = Pick<CommandPaletteResultsProps, "getCommandItemValue"> & {

@@ -3,8 +3,6 @@ import { type ReactNode, useState } from "react";
 import { contextMenuStyles } from "@/components/reader/context-menu-styles";
 import { type SettingsNavItem, SettingsNavView } from "@/components/settings/settings-nav-view";
 import {
-  AppToastView,
-  Button,
   Command,
   CommandGroup,
   CommandInput,
@@ -12,6 +10,10 @@ import {
   CommandList,
   CommandSeparator,
   CommandShortcut,
+} from "@/components/ui/command";
+import {
+  AppToastView,
+  Button,
   iconToolbarButtonClassName,
   SectionHeading,
   StarIcon,

@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { Command, CommandDialog, CommandEmpty, CommandInput, CommandItem, CommandList } from "@/design-system";
+import { Command, CommandDialog, CommandEmpty, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 
 describe("Command primitives", () => {
   beforeEach(() => {
