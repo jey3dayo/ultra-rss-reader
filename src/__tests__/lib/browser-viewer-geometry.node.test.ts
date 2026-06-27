@@ -12,8 +12,8 @@ describe("resolveBrowserViewerGeometry", () => {
     expect(geometry.compact).toBe(false);
     expect(geometry.ultraCompact).toBe(false);
     expect(geometry.chromeRail.visible).toBe(false);
-    expect(geometry.stage).toEqual({ left: 16, top: 16, right: 16, bottom: 16 });
-    expect(geometry.host).toEqual({ left: 0, top: 0, right: 0, bottom: 0 });
+    expect(geometry.stage).toEqual({ left: 0, top: 0, right: 0, bottom: 0 });
+    expect(geometry.host).toEqual({ left: 28, top: 52, right: 28, bottom: 56 });
     expect(geometry.chrome.visualHeaderHeight).toBe(46);
     expect(geometry.chrome.action.size).toBe(46);
     expect(geometry.diagnostics).toEqual({ compact: false, top: 16 });
@@ -26,7 +26,7 @@ describe("resolveBrowserViewerGeometry", () => {
       diagnosticsVisible: true,
     });
 
-    expect(geometry.stage).toEqual({ left: 16, top: 56, right: 16, bottom: 16 });
+    expect(geometry.stage).toEqual({ left: 0, top: 48, right: 0, bottom: 0 });
     expect(geometry.diagnostics.top).toBe(16);
   });
 
