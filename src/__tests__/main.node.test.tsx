@@ -32,9 +32,11 @@ async function importMainAndWaitForBootstrap() {
 describe("main app root bootstrap", () => {
   beforeEach(() => {
     vi.resetModules();
+    vi.unstubAllEnvs();
     createRootMock.mockClear();
     renderMock.mockClear();
     setupDevMocksMock.mockClear();
+    Reflect.deleteProperty(window, "__TAURI_INTERNALS__");
     document.body.innerHTML = "";
   });
 
@@ -112,5 +114,20 @@ describe("main app root bootstrap", () => {
     });
 
     expect(shouldSetupBrowserMocks({ isDev: false, ownerWindow: window })).toBe(false);
+  });
+
+  it("skips browser mock bootstrap inside production Tauri runtime", async () => {
+    vi.stubEnv("DEV", false);
+    Object.defineProperty(window, "__TAURI_INTERNALS__", {
+      configurable: true,
+      value: {},
+    });
+    document.body.innerHTML = '<div id="root"></div>';
+
+    await import("@/main");
+
+    expect(setupDevMocksMock).not.toHaveBeenCalled();
+    expect(createRootMock).toHaveBeenCalledOnce();
+    expect(renderMock).toHaveBeenCalledOnce();
   });
 });
