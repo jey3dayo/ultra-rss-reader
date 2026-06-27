@@ -32,9 +32,8 @@ describe("OverlayStageSurface", () => {
     expect(mainStage).toHaveClass("bg-background");
 
     expect(contentPane).toHaveAttribute("data-overlay-shell", "stage");
-    expect(contentPane).toHaveClass("border");
-    expect(contentPane).toHaveClass("border-border/60");
-    expect(contentPane).toHaveClass("rounded-lg");
-    expect(contentPane).toHaveClass("shadow-elevation-3");
+    expect(contentPane).not.toHaveClass("border");
+    expect(contentPane).toHaveClass("rounded-none");
+    expect(contentPane).toHaveClass("bg-browser-overlay-shell");
   });
 });
