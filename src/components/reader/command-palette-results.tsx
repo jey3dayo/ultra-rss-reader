@@ -1,5 +1,5 @@
-import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
 import { CommandEmpty, CommandList } from "@/components/ui/command";
+import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
 import type { CommandPaletteResultsProps } from "./command-palette.types";
 import { CommandPaletteActionGroups } from "./command-palette-action-groups";
 import { CommandPaletteResourceGroups } from "./command-palette-resource-groups";

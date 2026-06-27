@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { render, screen } from "@testing-library/react";
 import { extractSortedUniqueRegistryMatches, sortedRegistryValues } from "@tests/helpers/design-registry";
 import { describe, expect, it, vi } from "vitest";
+import { CommandDialog } from "@/components/ui/command";
 import {
   MOTION_ARTICLE_SLIDE_CLASS_NAME,
   MOTION_BUTTON_SURFACE_CLASS_NAME,
@@ -18,7 +19,6 @@ import {
   MOTION_POPUP_DIALOG_CLASS_NAME,
   MOTION_POPUP_OVERLAY_CLASS_NAME,
 } from "@/constants";
-import { CommandDialog } from "@/components/ui/command";
 import {
   Button,
   Checkbox,
