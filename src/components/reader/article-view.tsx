@@ -318,6 +318,7 @@ export function ArticleView() {
   const openBrowser = useUiStore((state) => state.openBrowser);
   const selection = useUiStore((state) => state.selection);
   const viewMode = useUiStore((state) => state.viewMode);
+  const focusedPane = useUiStore((state) => state.focusedPane);
   const landedSelectionKeyRef = useRef<string | null>(null);
   const selectionLandingKey = resolveSelectionLandingKey(selection, viewMode);
   const landingCandidate = selectionState.kind === "empty" ? selectionState.landingCandidate : undefined;
@@ -342,8 +343,12 @@ export function ArticleView() {
     selectArticle(landingArticleId);
     if (landingBrowserUrl) {
       openBrowser(landingBrowserUrl);
+      return;
     }
-  }, [landingArticleId, landingBrowserUrl, openBrowser, selectArticle, selectionLandingKey, selectionState.kind]);
+    if (focusedPane === "list") {
+      useUiStore.setState({ focusedPane: "list" });
+    }
+  }, [focusedPane, landingArticleId, landingBrowserUrl, openBrowser, selectArticle, selectionLandingKey, selectionState.kind]);
 
   if (selectionState.kind === "subscriptions-index") {
     return (

@@ -13,15 +13,15 @@ import {
   resolveVisiblePane,
 } from "../../hooks/use-layout";
 
-const CONTENT_MODES = ["empty", "reader", "browser", "loading"] as const;
+const CONTENT_MODES = ["empty", "reader", "loading"] as const;
 
 describe("resolveLayout", () => {
   it("wide: 3 panes", () => {
     expect(resolveLayout("wide", "sidebar", "reader")).toEqual(["sidebar", "list", "content"]);
   });
 
-  it("wide+browser: keeps the reader layout because browsing happens in a separate window", () => {
-    expect(resolveLayout("wide", "sidebar", "browser")).toEqual(["sidebar", "list", "content"]);
+  it("wide+browser: hides the folder sidebar and keeps articles plus contents", () => {
+    expect(resolveLayout("wide", "sidebar", "browser")).toEqual(["list", "content"]);
   });
 
   it("compact+sidebar: sidebar+list", () => {

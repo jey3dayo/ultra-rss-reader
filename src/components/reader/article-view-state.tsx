@@ -1,7 +1,7 @@
 import { lazy, type ReactNode, Suspense } from "react";
 import { useTranslation } from "react-i18next";
 import type { UiDisplayState } from "@/lib/ui/display-state.types";
-import type { BrowserOverlayCloseHandler, BrowserOverlayToolbarAction } from "./browser-view.types";
+import type { BrowserOverlayCloseHandler, BrowserOverlayToolbarAction, BrowserViewScope } from "./browser-view.types";
 
 const LazyBrowserView = lazy(async () => {
   const mod = await import("./browser-view");
@@ -13,6 +13,7 @@ type BrowserOverlaySurfaceProps = {
   onCloseOverlay: () => void;
   onBrowserWebviewClosed?: () => void;
   showBrowserView?: boolean;
+  scope?: BrowserViewScope;
   toolbarActions?: BrowserOverlayToolbarAction[];
 };
 
@@ -30,6 +31,7 @@ export function BrowserOverlaySurface({
   onCloseOverlay,
   onBrowserWebviewClosed,
   showBrowserView = true,
+  scope = "content-pane",
   toolbarActions,
 }: BrowserOverlaySurfaceProps) {
   const { t } = useTranslation("reader");
@@ -40,7 +42,7 @@ export function BrowserOverlaySurface({
       {showBrowserView ? (
         <Suspense fallback={null}>
           <LazyBrowserView
-            scope="main-stage"
+            scope={scope}
             onCloseOverlay={onCloseOverlay}
             onBrowserWebviewClosed={onBrowserWebviewClosed}
             labels={{
@@ -66,7 +68,7 @@ export function ArticleEmptyStateShell({ toolbar, body }: ArticleEmptyStateShell
 export function BrowserOnlyStateView({ onCloseOverlay }: BrowserOnlyStateViewProps) {
   return (
     <div className="relative flex h-full flex-1 flex-col bg-background">
-      <BrowserOverlaySurface onCloseOverlay={onCloseOverlay} />
+      <BrowserOverlaySurface scope="main-stage" onCloseOverlay={onCloseOverlay} />
     </div>
   );
 }
