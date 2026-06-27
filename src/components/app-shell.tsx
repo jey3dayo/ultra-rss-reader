@@ -197,9 +197,6 @@ export function AppShell() {
   const settingsOpen = useUiStore((state) => state.settingsOpen);
   const confirmDialogOpen = useUiStore((state) => state.confirmDialog.open);
   const closeSettings = useUiStore((state) => state.closeSettings);
-  const contentMode = useUiStore((state) => state.contentMode);
-  const browserUrl = useUiStore((state) => state.browserUrl);
-  const browserCloseInFlight = useUiStore((state) => state.browserCloseInFlight);
   const toastMessage = useUiStore((state) => state.toastMessage);
   const prefs = usePreferencesStore((state) => state.prefs);
   const settingsPreloadSessionOpenedRef = useRef(false);
@@ -209,7 +206,6 @@ export function AppShell() {
   });
   const showFocusDebugHud = resolvePreferenceValue(prefs, "debug_browser_hud") === "true";
   const focusDebugHudTemporarilyHidden = settingsOpen || confirmDialogOpen || shortcutsHelpOpen || commandPaletteOpen;
-  const browserOverlayRootInteractive = contentMode === "browser" && browserUrl !== null && !browserCloseInFlight;
 
   useEffect(() => {
     loadPlatformInfo();
@@ -298,9 +294,7 @@ export function AppShell() {
         className={cn(
           "absolute inset-0",
           APP_STACKING_CLASS_NAMES.browserOverlayRoot,
-          browserOverlayRootInteractive
-            ? LAYER_POINTER_EVENT_CLASS_NAMES.interactive
-            : LAYER_POINTER_EVENT_CLASS_NAMES.inert,
+          LAYER_POINTER_EVENT_CLASS_NAMES.inert,
           // Keep the overlay root aligned to the shell; traffic-light safe area is handled by browser geometry.
           overlayTitlebar && "desktop-overlay-titlebar",
         )}

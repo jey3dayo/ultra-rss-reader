@@ -3,11 +3,21 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const browserViewMock = vi.hoisted(() =>
-  vi.fn(({ labels, onCloseOverlay }: { labels: { closeWebPreview: string }; onCloseOverlay: () => void }) => (
-    <button type="button" aria-label={labels.closeWebPreview} onClick={onCloseOverlay}>
-      Web Preview
-    </button>
-  )),
+  vi.fn(
+    ({
+      labels,
+      onCloseOverlay,
+      scope,
+    }: {
+      labels: { closeWebPreview: string };
+      onCloseOverlay: () => void;
+      scope?: "content-pane" | "main-stage";
+    }) => (
+      <button type="button" aria-label={labels.closeWebPreview} data-scope={scope} onClick={onCloseOverlay}>
+        Web Preview
+      </button>
+    ),
+  ),
 );
 
 vi.mock("react-i18next", () => ({
@@ -23,6 +33,7 @@ vi.mock("@/components/reader/browser-view", () => ({
 import {
   ArticleEmptyStateShell,
   ArticleNotFoundStateView,
+  BrowserOnlyStateView,
   BrowserOverlaySurface,
 } from "@/components/reader/article-view-state";
 
@@ -52,6 +63,30 @@ describe("BrowserOverlaySurface", () => {
     await user.click(await screen.findByRole("button", { name: "Close Web Preview" }));
 
     expect(onCloseOverlay).toHaveBeenCalledTimes(1);
+  });
+
+  it("mounts the article-pane Web Preview in content-pane scope by default", async () => {
+    render(<BrowserOverlaySurface onCloseOverlay={vi.fn()} />);
+
+    expect(await screen.findByRole("button", { name: "Close Web Preview" })).toHaveAttribute(
+      "data-scope",
+      "content-pane",
+    );
+  });
+});
+
+describe("BrowserOnlyStateView", () => {
+  beforeEach(() => {
+    browserViewMock.mockClear();
+  });
+
+  it("keeps the browser-only empty state inside the content-pane scope", async () => {
+    render(<BrowserOnlyStateView onCloseOverlay={vi.fn()} />);
+
+    expect(await screen.findByRole("button", { name: "Close Web Preview" })).toHaveAttribute(
+      "data-scope",
+      "content-pane",
+    );
   });
 });
 

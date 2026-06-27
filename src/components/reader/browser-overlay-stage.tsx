@@ -76,6 +76,7 @@ export function BrowserOverlayStage({ controller }: BrowserOverlayStageProps) {
     <OverlayStageSurface
       data-testid="browser-overlay-stage-shell"
       scope={controller.presentation.stageSurface.scope}
+      className="pointer-events-auto"
       style={{
         left: `${controller.geometry.stage.left}px`,
         top: `${controller.geometry.stage.top}px`,

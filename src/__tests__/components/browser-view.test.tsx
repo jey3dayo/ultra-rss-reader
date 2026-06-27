@@ -943,14 +943,14 @@ describe("BrowserView", () => {
     const stage = screen.getByTestId("browser-overlay-stage-shell");
     expect(shell.closest("[data-browser-overlay-root]")).toBeNull();
     expectInlineStyles(stage, {
-      left: "16px",
-      right: "16px",
-      top: "16px",
-      bottom: "16px",
+      left: "0px",
+      right: "0px",
+      top: "0px",
+      bottom: "0px",
     });
     expect(screen.queryByTestId("browser-overlay-top-rail")).not.toBeInTheDocument();
     expect(screen.getByTestId("browser-webview-host")).toHaveStyle({
-      top: "0px",
+      top: "52px",
     });
   });
 
@@ -967,11 +967,15 @@ describe("BrowserView", () => {
 
     const stage = screen.getByTestId("browser-overlay-stage-shell");
     const chrome = screen.getByTestId("browser-overlay-chrome");
+    const shell = screen.getByTestId("browser-overlay-shell");
+    const scrim = screen.getByTestId("browser-overlay-scrim");
     const topRail = screen.getByTestId("browser-overlay-top-rail");
     const host = screen.getByTestId("browser-webview-host");
 
+    expect(shell).toHaveClass("pointer-events-none");
+    expect(scrim).toHaveClass("pointer-events-none");
     expect(stage).toHaveAttribute("data-overlay-shell", "stage");
-    expect(stage).toHaveClass("absolute", "z-10", "overflow-hidden", "bg-background");
+    expect(stage).toHaveClass("absolute", "z-10", "overflow-hidden", "bg-background", "pointer-events-auto");
     expect(stage.className).not.toMatch(/\bborder\b/);
     expect(stage.className).not.toMatch(/\bshadow-/);
     expect(stage).toHaveClass("rounded-none");
@@ -1011,6 +1015,7 @@ describe("BrowserView", () => {
       screen.getByRole("button", { name: /open in external browser/i }).closest("[data-overlay-shell='action']"),
     ).not.toHaveClass("md:size-10");
     expect(chrome).toBeInTheDocument();
+    expect(chrome).toHaveClass("pointer-events-auto");
   });
 
   it("keeps the visual header height while moving the leading action away from macOS traffic lights", () => {
@@ -1229,12 +1234,12 @@ describe("BrowserView", () => {
 
     const stage = screen.getByTestId("browser-overlay-stage-shell");
     expectInlineStyles(stage, {
-      left: "16px",
-      top: "16px",
-      right: "16px",
-      bottom: "16px",
+      left: "0px",
+      top: "0px",
+      right: "0px",
+      bottom: "0px",
     });
-    expect(stage).not.toHaveClass("rounded-none");
+    expect(stage).toHaveClass("rounded-none");
     expect(screen.queryByTestId("browser-overlay-top-rail")).not.toBeInTheDocument();
 
     await waitFor(() => {
@@ -1242,7 +1247,7 @@ describe("BrowserView", () => {
         cmd: "create_or_update_browser_webview",
         args: {
           url: "https://example.com/article",
-          bounds: { x: 16, y: 16, width: 1368, height: 868 },
+          bounds: { x: 28, y: 52, width: 1344, height: 792 },
         },
       });
     });

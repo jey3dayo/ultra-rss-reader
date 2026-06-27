@@ -218,6 +218,7 @@ function BrowserOverlayShell({
       className={cn(
         MOTION_BROWSER_OVERLAY_CLASS_NAME,
         "absolute inset-0 z-20 isolate overflow-hidden bg-browser-overlay-shell backdrop-blur-sm",
+        scope === "main-stage" ? "pointer-events-none" : "pointer-events-auto",
       )}
     >
       <div
@@ -248,7 +249,10 @@ function BrowserOverlayShell({
       <div
         aria-hidden="true"
         data-testid="browser-overlay-scrim"
-        className="absolute inset-0 z-0 cursor-default bg-background/0"
+        className={cn(
+          "absolute inset-0 z-0 cursor-default bg-background/0",
+          scope === "main-stage" && "pointer-events-none",
+        )}
         onClick={scope === "main-stage" ? undefined : controller.handleCloseOverlay}
       />
       <BrowserOverlayChrome

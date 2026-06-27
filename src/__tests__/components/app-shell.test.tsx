@@ -404,7 +404,7 @@ describe("AppShell", () => {
     expect(overlayRoot?.compareDocumentPosition(appLayout)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 
-  it("keeps the browser overlay root non-interactive until browser mode is active", () => {
+  it("keeps the browser overlay root non-interactive so overlay children do not block the reader panes", () => {
     const { container, rerender } = render(<AppShell />, {
       wrapper: createWrapper(),
     });
@@ -420,8 +420,8 @@ describe("AppShell", () => {
     });
     rerender(<AppShell />);
 
-    expect(overlayRoot).toHaveClass("pointer-events-auto");
-    expect(overlayRoot).not.toHaveClass("pointer-events-none");
+    expect(overlayRoot).toHaveClass("pointer-events-none");
+    expect(overlayRoot).not.toHaveClass("pointer-events-auto");
 
     useUiStore.setState({
       browserCloseInFlight: true,
@@ -436,8 +436,8 @@ describe("AppShell", () => {
     });
     rerender(<AppShell />);
 
-    expect(overlayRoot).toHaveClass("pointer-events-auto");
-    expect(overlayRoot).not.toHaveClass("pointer-events-none");
+    expect(overlayRoot).toHaveClass("pointer-events-none");
+    expect(overlayRoot).not.toHaveClass("pointer-events-auto");
 
     useUiStore.setState({
       contentMode: "reader",
