@@ -4,6 +4,17 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.52.0] - 2026-06-27
+
+### Bug Fixes
+
+- command palette の `cmdk` 依存を design-system barrel から分離し、初期 bundle に command primitive が混入しにくい構成へ整理した。
+- Tauri 外の production preview でも browser mock IPC を有効化し、外部ブラウザでの preview 動作確認時に unread badge 更新の IPC error が出ないようにした。
+
+### Maintenance
+
+- command primitive の直接 import 例外と production Tauri runtime の mock bootstrap 契約をテストで固定した。
+
 ## [0.51.3] - 2026-06-26
 
 ### Features
