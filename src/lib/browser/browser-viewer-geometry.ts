@@ -137,16 +137,16 @@ export function resolveBrowserViewerGeometry({
       height: 46,
     },
     stage: {
-      left: 16,
-      top: diagnosticsVisible ? 56 : 16,
-      right: 16,
-      bottom: 16,
-    },
-    host: {
       left: 0,
-      top: 0,
+      top: diagnosticsVisible ? 48 : 0,
       right: 0,
       bottom: 0,
+    },
+    host: {
+      left: 28,
+      top: 52,
+      right: 28,
+      bottom: 56,
     },
     chrome: {
       visualHeaderHeight: 46,

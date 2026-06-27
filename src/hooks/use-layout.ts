@@ -32,6 +32,9 @@ function shouldRenderCompactContentPane(focusedPane: FocusedPane, contentMode: C
 
 export function resolveLayout(layoutMode: LayoutMode, focusedPane: FocusedPane, contentMode: ContentMode): Pane[] {
   if (layoutMode === "wide") {
+    if (contentMode === "browser") {
+      return ["list", "content"];
+    }
     return ["sidebar", "list", "content"];
   }
   if (layoutMode === "compact") {

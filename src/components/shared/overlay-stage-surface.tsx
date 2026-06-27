@@ -3,11 +3,11 @@ import type { HTMLAttributes } from "react";
 
 import { cn } from "@/lib/utils";
 
-const overlayStageSurfaceVariants = cva("absolute z-10 overflow-hidden bg-background", {
+const overlayStageSurfaceVariants = cva("absolute z-10 overflow-hidden", {
   variants: {
     scope: {
-      "main-stage": "rounded-none",
-      "content-pane": "rounded-lg border border-border/60 shadow-elevation-3",
+      "main-stage": "rounded-none bg-background",
+      "content-pane": "rounded-none bg-browser-overlay-shell",
     },
   },
 });
