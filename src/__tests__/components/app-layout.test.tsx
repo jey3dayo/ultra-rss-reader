@@ -146,6 +146,32 @@ describe("AppLayout", () => {
     });
   });
 
+  it("uses an articles and contents two-pane layout in wide browser mode", () => {
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      layoutMode: "wide",
+      focusedPane: "content",
+      sidebarOpen: true,
+      accountPaneOpen: true,
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://example.com/article",
+    });
+
+    render(<AppLayout />);
+
+    expect(screen.queryByTestId("wide-account-pane-shell")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("wide-sidebar-shell")).not.toBeInTheDocument();
+    expect(screen.queryByText("Sidebar")).not.toBeInTheDocument();
+    expect(screen.queryByText("Account Pane")).not.toBeInTheDocument();
+    expect(screen.getByText("Article List")).toBeInTheDocument();
+    expect(screen.getByText("Article View")).toBeInTheDocument();
+    expect(screen.getByTestId("main-stage").children).toHaveLength(2);
+    expect(screen.getByTestId("main-stage").firstElementChild).toHaveStyle({
+      width: `${ARTICLE_LIST_PANE_WIDTH_PX}px`,
+    });
+  });
+
   it("keeps app shell responsive constraints outside the workspace split helper", () => {
     useUiStore.setState({
       ...useUiStore.getInitialState(),

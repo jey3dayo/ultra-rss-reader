@@ -348,7 +348,15 @@ export function ArticleView() {
     if (focusedPane === "list") {
       useUiStore.setState({ focusedPane: "list" });
     }
-  }, [focusedPane, landingArticleId, landingBrowserUrl, openBrowser, selectArticle, selectionLandingKey, selectionState.kind]);
+  }, [
+    focusedPane,
+    landingArticleId,
+    landingBrowserUrl,
+    openBrowser,
+    selectArticle,
+    selectionLandingKey,
+    selectionState.kind,
+  ]);
 
   if (selectionState.kind === "subscriptions-index") {
     return (
