@@ -391,7 +391,7 @@ describe("buildArticleViewSummary", () => {
     });
   });
 
-  it("counts folder feeds and unread visible articles for folder summaries", () => {
+  it("counts folder feeds and feed unread totals for folder summaries", () => {
     const folders: FolderDto[] = [
       {
         id: "folder-1",
@@ -430,7 +430,7 @@ describe("buildArticleViewSummary", () => {
     expect(Result.unwrap(result)).toMatchObject({
       kind: "folder",
       feedCount: 2,
-      unreadCount: 1,
+      unreadCount: 5,
       latestArticlePublishedAt: "2026-03-02T10:00:00Z",
     });
     expect(
@@ -446,12 +446,12 @@ describe("buildArticleViewSummary", () => {
     ).toMatchObject({
       kind: "folder",
       feedCount: 2,
-      unreadCount: 1,
+      unreadCount: 5,
       latestArticlePublishedAt: "2026-03-02T10:00:00Z",
     });
   });
 
-  it("keeps folder latest article and unread count independent from visible filters", () => {
+  it("keeps folder latest article independent from visible filters while using feed unread totals", () => {
     const folders: FolderDto[] = [
       {
         id: "folder-1",
@@ -492,7 +492,7 @@ describe("buildArticleViewSummary", () => {
     expect(Result.unwrap(result)).toMatchObject({
       kind: "folder",
       feedCount: 2,
-      unreadCount: 2,
+      unreadCount: 5,
       latestArticlePublishedAt: "2026-04-01T10:00:00Z",
     });
   });

@@ -11,6 +11,7 @@ import {
   buildArticleViewSummaryResult,
   findSelectedArticle,
 } from "@/lib/articles/article-view";
+import { resolveFeedLandingDisplay } from "@/lib/feed/feed-landing";
 import { resolveReaderSelectionSourceKind, resolveReaderSourceArticles } from "@/lib/reader/reader-source-articles";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -19,6 +20,7 @@ type ArticleViewEmptyState = {
   kind: "empty";
   emptyReason: "default" | "no-accounts" | "no-feeds";
   summary?: ArticleViewSummaryState;
+  landingCandidate?: ArticleViewLandingCandidate;
 };
 
 export type ArticleViewSelectionState =
@@ -28,13 +30,20 @@ export type ArticleViewSelectionState =
   | { kind: "not-found" }
   | { kind: "article"; article: ArticleDto; feed?: FeedDto };
 
+export type ArticleViewLandingCandidate = {
+  article: ArticleDto;
+  feed?: FeedDto;
+  browserUrl: string | null;
+};
+
 function resolveEmptyArticleViewState(params: {
   accountsCount: number | undefined;
   selectedAccountId: string | null;
   feeds: FeedDto[] | undefined;
   summary: ArticleViewSummaryState | undefined;
+  landingCandidate: ArticleViewLandingCandidate | undefined;
 }): ArticleViewEmptyState {
-  const { accountsCount, selectedAccountId, feeds, summary } = params;
+  const { accountsCount, selectedAccountId, feeds, summary, landingCandidate } = params;
 
   if (accountsCount === 0) {
     return { kind: "empty", emptyReason: "no-accounts" };
@@ -48,6 +57,7 @@ function resolveEmptyArticleViewState(params: {
     kind: "empty",
     emptyReason: "default",
     summary,
+    landingCandidate,
   };
 }
 
@@ -74,6 +84,7 @@ export function useArticleViewSelection(): ArticleViewSelectionState {
   });
   const { data: allTagArticles } = useArticlesByTag(selectedTagId, selectedAccountId, { mode: "all" });
   const { data: fullSelectedArticle } = useArticle(selectedArticleId);
+  const prefs = usePreferencesStore((s) => s.prefs);
   const sortUnread = usePreferencesStore((s) => s.prefs.reading_sort ?? s.prefs.sort_unread ?? "newest_first");
   const groupBy = usePreferencesStore((s) => s.prefs.group_by ?? "date");
   const sources = useArticleListSources({
@@ -127,12 +138,31 @@ export function useArticleViewSelection(): ArticleViewSelectionState {
       allFeedArticles,
     });
     const summary = Result.isSuccess(summaryResult) ? Result.unwrap(summaryResult) : undefined;
+    const landingArticle = selection.type === "all" ? undefined : data.filteredArticles[0];
+    const landingFeed = landingArticle
+      ? sources.feeds?.find((candidate) => candidate.id === landingArticle.feed_id)
+      : undefined;
+    const landingDisplay = landingArticle
+      ? resolveFeedLandingDisplay({
+          feed: landingFeed,
+          prefs,
+          articleUrl: landingArticle.url,
+        })
+      : null;
+    const landingCandidate = landingArticle
+      ? {
+          article: landingArticle,
+          feed: landingFeed,
+          browserUrl: landingDisplay?.webPreviewMode && landingArticle.url ? landingArticle.url : null,
+        }
+      : undefined;
 
     return resolveEmptyArticleViewState({
       accountsCount: accounts?.length,
       selectedAccountId,
       feeds: sources.feeds,
       summary,
+      landingCandidate,
     });
   }
 

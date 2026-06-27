@@ -16,7 +16,6 @@ import type { MockTauriCommandCall } from "@tests/helpers/tauri-types";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ArticlePane, ArticleToolbar, ArticleView } from "@/components/reader/article-view";
 import { clearManualUnreadAutoMarkSuppressionsForTests } from "@/components/reader/hooks/article/use-article-auto-mark";
-import { readerPassiveCardOffsetClassName } from "@/components/reader/reader-passive-card";
 import { BROWSER_OVERLAY_CLOSE_DELAY_MS, MOTION_ARTICLE_SLIDE_CLASS_NAME } from "@/constants/motion";
 import { keyboardEvents } from "@/lib/keyboard/keyboard-shortcuts";
 import { usePlatformStore } from "@/stores/platform-store";
@@ -97,25 +96,19 @@ function setupArticleViewRecordingMocks(calls: MockTauriCommandCall[]) {
 }
 
 function expectSummaryMetricMotionValue(summary: HTMLElement, label: string, value: string) {
-  const labelNode = within(summary).getByText(new RegExp(`^${label}$`, "i"));
-  const row = labelNode.closest("div");
-
-  if (!row) {
-    throw new Error(`Summary metric row was not found for ${label}`);
-  }
-
-  expect(within(row).getByText(value)).toHaveClass("motion-content-swap", "tabular-nums");
+  expect(within(summary).getByText(new RegExp(`^${label}$`, "i"))).toBeInTheDocument();
+  expect(within(summary).getByText(value)).toHaveClass("motion-content-swap", "tabular-nums");
 }
 
 function expectSummaryLeadingVisual(summary: HTMLElement, expectedClassName: string) {
-  const leadingVisual = within(summary).getByTestId("feed-detail-leading-visual");
+  const leadingVisual = within(summary).getByTestId("article-selection-leading-visual");
   const visual = leadingVisual.firstElementChild;
 
   if (!(visual instanceof HTMLElement || visual instanceof SVGElement)) {
     throw new Error("Summary leading visual was not rendered");
   }
 
-  expect(leadingVisual).toHaveClass("size-10");
+  expect(leadingVisual).toHaveClass("size-16");
   expect(visual).toHaveClass(expectedClassName);
 }
 
@@ -2046,7 +2039,7 @@ describe("ArticleView", () => {
     expect(screen.queryByRole("button", { name: "Open Web Preview" })).not.toBeInTheDocument();
   });
 
-  it("renders a feed summary card when a feed is selected without an article", async () => {
+  it("lands on the first feed article when a feed is selected without an article", async () => {
     useUiStore.setState({
       ...useUiStore.getInitialState(),
       selectedAccountId: "acc-1",
@@ -2057,19 +2050,12 @@ describe("ArticleView", () => {
 
     render(<ArticleView />, { wrapper: createWrapper() });
 
-    const summary = await screen.findByTestId("article-selection-summary");
-    expect(summary).toHaveClass(readerPassiveCardOffsetClassName, "max-w-[48rem]");
-    expect(
-      within(summary).getByRole("heading", { level: 3, name: "Tech Blog" }).closest('[data-surface-card="section"]'),
-    ).toHaveClass("rounded-md", "border-transparent", "bg-[var(--workspace-low-wire-group-surface)]", "shadow-none");
-    expect(within(summary).getByRole("heading", { level: 3, name: "Tech Blog" })).toBeInTheDocument();
-    expect(within(summary).getByText("Latest Article")).toBeInTheDocument();
-    expect(within(summary).getByText("First Article")).toBeInTheDocument();
-    expect(within(summary).getByText("Latest Article").closest("dl")).not.toHaveClass("border-t");
-    expect(within(summary).queryByText("Choose one from the middle list and it opens right away.")).toBeNull();
-    expect(within(summary).getByText(/^(Latest Update|latest_update)/i)).toBeInTheDocument();
-    expect(within(summary).getByText("example.com")).toBeInTheDocument();
-    expect(within(summary).queryByRole("link", { name: "example.com" })).not.toBeInTheDocument();
+    expect(await screen.findByTestId("article-pane")).toHaveAttribute("aria-label", "First Article");
+    await waitFor(() => {
+      expect(useUiStore.getState().selectedArticleId).toBe("art-1");
+      expect(useUiStore.getState().contentMode).not.toBe("empty");
+    });
+    expect(screen.queryByTestId("article-selection-summary")).not.toBeInTheDocument();
     expect(screen.queryByText("Select an article")).not.toBeInTheDocument();
   });
 
@@ -2102,11 +2088,75 @@ describe("ArticleView", () => {
 
     const summary = await screen.findByTestId("article-selection-summary");
     expect(within(summary).getByRole("heading", { level: 3, name: "Tech Blog" })).toBeInTheDocument();
-    expect(within(summary).getAllByText("—").length).toBeGreaterThan(0);
+    expectSummaryLeadingVisual(summary, "h-7");
+    expectSummaryMetricMotionValue(summary, "Unread", "5");
+    expect(within(summary).getByRole("button", { name: /Manage subscription.*Tech Blog/i })).toBeInTheDocument();
+    expect(within(summary).queryByText("Latest Article")).not.toBeInTheDocument();
+    expect(within(summary).queryByText(/^(Latest Update|latest_update)$/i)).not.toBeInTheDocument();
+    expect(within(summary).queryByText("example.com")).not.toBeInTheDocument();
     expect(screen.queryByText("Select an article")).not.toBeInTheDocument();
   });
 
-  it("renders a folder summary card when a folder is selected without an article", async () => {
+  it("renders a folder identity summary without history metadata when the selected folder has no articles", async () => {
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_folders":
+          return [
+            {
+              id: "folder-1",
+              account_id: "acc-1",
+              name: "Gaming",
+              sort_order: 0,
+            },
+          ];
+        case "list_feeds":
+          return [
+            {
+              id: "feed-folder-empty",
+              account_id: args.accountId,
+              folder_id: "folder-1",
+              remote_id: null,
+              title: "Quiet Feed",
+              url: "https://example.com/quiet.xml",
+              site_url: "https://example.com/quiet",
+              unread_count: 3,
+              reader_mode: "inherit",
+              web_preview_mode: "inherit",
+            },
+          ];
+        case "list_account_articles":
+        case "list_folder_articles":
+          return [];
+        case "list_tags":
+        case "get_article_tags":
+          return [];
+        default:
+          return undefined;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "folder", folderId: "folder-1" },
+      selectedArticleId: null,
+      contentMode: "empty",
+    });
+
+    render(<ArticleView />, { wrapper: createWrapper() });
+
+    const summary = await screen.findByTestId("article-selection-summary");
+    expect(within(summary).getByRole("heading", { level: 3, name: "Gaming" })).toBeInTheDocument();
+    expectSummaryLeadingVisual(summary, "size-9");
+    expectSummaryMetricMotionValue(summary, "Unread", "3");
+    expect(within(summary).queryByText("Feeds")).not.toBeInTheDocument();
+    expect(within(summary).queryByText(/^(Latest Update|latest_update)$/i)).not.toBeInTheDocument();
+    expect(screen.queryByText("Select an article")).not.toBeInTheDocument();
+  });
+
+  it("lands on the first folder article when a folder is selected without an article", async () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_accounts":
@@ -2144,16 +2194,17 @@ describe("ArticleView", () => {
 
     render(<ArticleView />, { wrapper: createWrapper() });
 
-    const summary = await screen.findByTestId("article-selection-summary");
-    expect(within(summary).getByRole("heading", { level: 3, name: "Gaming" })).toBeInTheDocument();
-    expectSummaryLeadingVisual(summary, "size-5");
-    expectSummaryMetricMotionValue(summary, "Feeds", "1");
-    expectSummaryMetricMotionValue(summary, "Unread", "1");
-    expect(within(summary).getByText(/^(Latest Update|latest_update)/i)).toBeInTheDocument();
+    expect(await screen.findByTestId("article-pane")).toHaveAttribute("aria-label", "First Article");
+    await waitFor(() => {
+      expect(useUiStore.getState().selection).toEqual({ type: "folder", folderId: "folder-1" });
+      expect(useUiStore.getState().selectedArticleId).toBe("art-1");
+      expect(useUiStore.getState().contentMode).not.toBe("empty");
+    });
+    expect(screen.queryByTestId("article-selection-summary")).not.toBeInTheDocument();
     expect(screen.queryByText("Select an article")).not.toBeInTheDocument();
   });
 
-  it("renders a tag summary card when a tag is selected without an article", async () => {
+  it("lands on the first tagged article when a tag is selected without an article", async () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_accounts":
@@ -2182,15 +2233,16 @@ describe("ArticleView", () => {
 
     render(<ArticleView />, { wrapper: createWrapper() });
 
-    const summary = await screen.findByTestId("article-selection-summary");
-    expect(within(summary).getByRole("heading", { level: 3, name: "Tech" })).toBeInTheDocument();
-    expectSummaryLeadingVisual(summary, "size-3");
-    expectSummaryMetricMotionValue(summary, "Articles", "2");
-    expectSummaryMetricMotionValue(summary, "Feeds", "2");
-    expect(within(summary).getByText(/^(Latest Update|latest_update)/i)).toBeInTheDocument();
+    expect(await screen.findByTestId("article-pane")).toHaveAttribute("aria-label", "First Article");
+    await waitFor(() => {
+      expect(useUiStore.getState().selection).toEqual({ type: "tag", tagId: "tag-1" });
+      expect(useUiStore.getState().selectedArticleId).toBe("art-1");
+      expect(useUiStore.getState().contentMode).not.toBe("empty");
+    });
+    expect(screen.queryByTestId("article-selection-summary")).not.toBeInTheDocument();
   });
 
-  it("renders an unread smart-view summary card when unread is selected without an article", async () => {
+  it("lands on the first unread smart-view article when unread is selected without an article", async () => {
     useUiStore.setState({
       ...useUiStore.getInitialState(),
       selectedAccountId: "acc-1",
@@ -2201,27 +2253,15 @@ describe("ArticleView", () => {
 
     render(<ArticleView />, { wrapper: createWrapper() });
 
-    const summary = await screen.findByTestId("article-selection-summary");
-    expect(within(summary).getByRole("heading", { level: 3, name: /^Unread$/i })).toBeInTheDocument();
-    expect(
-      within(summary)
-        .getByRole("heading", { level: 3, name: /^Unread$/i })
-        .closest('[data-surface-card="section"]'),
-    ).toHaveAttribute("data-feed-detail-accent", "unread");
-    expect(within(summary).getByTestId("feed-detail-leading-visual")).toHaveClass(
-      "bg-[var(--feed-detail-accent-unread-visual-surface)]",
-      "text-[var(--feed-detail-accent-unread-visual-foreground)]",
-    );
-    expectSummaryLeadingVisual(summary, "size-5");
+    expect(await screen.findByTestId("article-pane")).toHaveAttribute("aria-label", "First Article");
     await waitFor(() => {
-      expectSummaryMetricMotionValue(summary, "Articles", "1");
+      expect(useUiStore.getState().selectedArticleId).toBe("art-1");
+      expect(useUiStore.getState().contentMode).not.toBe("empty");
     });
-    expect(within(summary).getByText("Feeds")).toBeInTheDocument();
-    expect(within(summary).getByText(/^(Latest Update|latest_update)/i)).toBeInTheDocument();
-    expect(within(summary).queryByText("Choose one from the middle list and it opens right away.")).toBeNull();
+    expect(screen.queryByTestId("article-selection-summary")).not.toBeInTheDocument();
   });
 
-  it("renders a starred smart-view summary card when starred is selected without an article", async () => {
+  it("lands on the first starred smart-view article when starred is selected without an article", async () => {
     useUiStore.setState({
       ...useUiStore.getInitialState(),
       selectedAccountId: "acc-1",
@@ -2233,15 +2273,12 @@ describe("ArticleView", () => {
 
     render(<ArticleView />, { wrapper: createWrapper() });
 
-    const summary = await screen.findByTestId("article-selection-summary");
-    expect(within(summary).getByRole("heading", { level: 3, name: /^Starred$/i })).toBeInTheDocument();
-    expectSummaryLeadingVisual(summary, "size-5");
+    expect(await screen.findByTestId("article-pane")).toHaveAttribute("aria-label", "Second Article");
     await waitFor(() => {
-      expectSummaryMetricMotionValue(summary, "Articles", "1");
+      expect(useUiStore.getState().selectedArticleId).toBe("art-2");
+      expect(useUiStore.getState().contentMode).not.toBe("empty");
     });
-    expect(within(summary).getByText("Feeds")).toBeInTheDocument();
-    expect(within(summary).getByText("Latest Update")).toBeInTheDocument();
-    expect(within(summary).queryByText("Choose one from the middle list and it opens right away.")).toBeNull();
+    expect(screen.queryByTestId("article-selection-summary")).not.toBeInTheDocument();
   });
 
   it("renders a recent smart-view summary card without the starred treatment", async () => {
@@ -2257,12 +2294,10 @@ describe("ArticleView", () => {
     render(<ArticleView />, { wrapper: createWrapper() });
 
     const summary = await screen.findByTestId("article-selection-summary");
-    const panel = within(summary)
-      .getByRole("heading", { level: 3, name: /^(Recently Viewed|recent_articles)$/i })
-      .closest('[data-surface-card="section"]');
-    expect(panel).not.toHaveAttribute("data-feed-detail-accent");
+    expect(summary).not.toHaveAttribute("data-selection-identity-accent");
+    expect(within(summary).getByRole("heading", { level: 3, name: /^(Recently Viewed|recent_articles)$/i }));
     expect(within(summary).queryByRole("heading", { level: 3, name: /^Starred$/i })).not.toBeInTheDocument();
-    const leadingIcon = within(summary).getByTestId("feed-detail-leading-visual").querySelector("svg");
+    const leadingIcon = within(summary).getByTestId("article-selection-leading-visual").querySelector("svg");
     expect(leadingIcon).toHaveClass("text-foreground-soft");
     expect(leadingIcon).not.toHaveClass("text-[var(--feed-detail-accent-starred-visual-foreground)]");
   });

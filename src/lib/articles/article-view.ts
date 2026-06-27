@@ -1,6 +1,5 @@
 import { Result } from "@praha/byethrow";
 import type { ArticleDto, FeedDto, FolderDto, TagDto } from "@/api/tauri-commands";
-import { countUnreadArticles } from "@/lib/articles/article-list";
 import { normalizeReaderContentImageUrl } from "@/lib/content/html";
 import { formatMediumDateOrDash, getDateInputTimeMs, parseDateInput, resolveDateTimeLocale } from "@/lib/datetime";
 import { resolveFeedWebsiteHref, resolveSiteHostLabel } from "@/lib/feed/feed";
@@ -93,6 +92,16 @@ function buildArticleViewSummaryStats(filteredArticles: ArticleDto[]): ArticleVi
     feedCount: visibleFeedIds.size,
     latestArticlePublishedAt: latestVisibleArticle?.published_at ?? null,
   };
+}
+
+function countUnreadFeedsInFolder(feeds: FeedDto[] | undefined, folderId: string): number {
+  return (feeds ?? []).reduce((total, feed) => {
+    if (feed.folder_id !== folderId) {
+      return total;
+    }
+
+    return total + feed.unread_count;
+  }, 0);
 }
 
 export function findSelectedArticle(params: FindSelectedArticleParams): Result.Result<ArticleDto, "article_not_found"> {
@@ -273,7 +282,7 @@ export function buildArticleViewSummaryResult(
       kind: "folder",
       folder,
       feedCount: countFeedsInFolder(feeds, folder.id),
-      unreadCount: countUnreadArticles(summaryArticles),
+      unreadCount: countUnreadFeedsInFolder(feeds, folder.id),
       latestArticlePublishedAt: summaryStats.latestArticlePublishedAt,
     });
   }

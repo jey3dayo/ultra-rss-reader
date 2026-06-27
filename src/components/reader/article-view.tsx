@@ -1,16 +1,10 @@
-import { FolderClosed, History, Inbox, Star, Tag as TagIcon } from "lucide-react";
-import { type ComponentProps, lazy, type ReactNode, Suspense } from "react";
+import { FolderClosed, History, Inbox, List, Star, Tag as TagIcon } from "lucide-react";
+import { type ComponentProps, lazy, type ReactNode, Suspense, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useArticleViewSelection } from "@/components/reader/hooks/article/use-article-view-selection";
 import { useArticleViewUiState } from "@/components/reader/hooks/article/use-article-view-ui-state";
-import { FeedDetailPanel, FeedFavicon, MotionNumber } from "@/design-system";
-import {
-  type ArticleViewSummaryState,
-  formatArticleSummaryDate,
-  resolveArticleDateLocale,
-  resolveArticleSummaryWebsiteHref,
-  resolveArticleSummaryWebsiteLabel,
-} from "@/lib/articles/article-view";
+import { Button, FeedFavicon, MotionNumber } from "@/design-system";
+import { type ArticleViewSummaryState, resolveArticleDateLocale } from "@/lib/articles/article-view";
 import i18n from "@/lib/i18n";
 import { useI18nResourceNamespace } from "@/lib/i18n/use-i18n-resource-namespace";
 import { loadI18nResourceNamespace } from "@/lib/i18n-resources";
@@ -32,15 +26,36 @@ const SUMMARY_CONTAINER_CLASS_NAME = `w-full max-w-[48rem] ${readerPassiveCardOf
 
 type ArticleEmptyStateViewProps = ComponentProps<typeof ArticleEmptyStateView>;
 
-type SummaryCardProps = {
+type SummaryIdentityProps = {
   title: string;
-  titleHref?: string | null;
   leadingVisual?: ReactNode;
-  accentTone?: ComponentProps<typeof FeedDetailPanel>["accentTone"];
-  summaryText?: string;
-  metrics: Array<{ label: string; value: ReactNode }>;
-  primaryAction?: ComponentProps<typeof FeedDetailPanel>["primaryAction"];
+  countLabel: string;
+  countValue: ReactNode;
+  accentTone?: "unread" | "starred";
+  primaryAction?: {
+    label: string;
+    ariaLabel?: string;
+    onClick: () => void;
+  };
 };
+
+function resolveSelectionLandingKey(
+  selection: ReturnType<typeof useUiStore.getState>["selection"],
+  viewMode: ReturnType<typeof useUiStore.getState>["viewMode"],
+) {
+  switch (selection.type) {
+    case "feed":
+      return `feed:${selection.feedId}:${viewMode}`;
+    case "folder":
+      return `folder:${selection.folderId}:${viewMode}`;
+    case "smart":
+      return `smart:${selection.kind}:${viewMode}`;
+    case "tag":
+      return `tag:${selection.tagId}:${viewMode}`;
+    case "all":
+      return `all:${viewMode}`;
+  }
+}
 
 function renderSummaryCount(value: number, locale: string) {
   const label = value.toLocaleString(locale);
@@ -50,15 +65,12 @@ function renderSummaryCount(value: number, locale: string) {
 
 function SummaryEmptyState({
   title,
-  titleHref = null,
   leadingVisual,
   accentTone,
-  summaryText,
-  metrics,
+  countLabel,
+  countValue,
   primaryAction,
-}: SummaryCardProps) {
-  const { t } = useTranslation("reader");
-
+}: SummaryIdentityProps) {
   return (
     <ArticleEmptyStateShell
       toolbar={
@@ -66,21 +78,47 @@ function SummaryEmptyState({
       }
       body={
         <div className="flex flex-1 items-center justify-center overflow-hidden px-6 pt-6 pb-12">
-          <div data-testid="article-selection-summary" className={SUMMARY_CONTAINER_CLASS_NAME}>
-            <FeedDetailPanel
-              surface="low-wire"
-              accentTone={accentTone}
-              title={title}
-              titleHref={titleHref}
-              leadingVisual={leadingVisual}
-              summaryText={summaryText}
-              metrics={metrics}
-              showMetricsTopDivider={false}
-              links={[]}
-              recentArticlesHeading={t("latest_article")}
-              recentArticles={[]}
-              primaryAction={primaryAction}
-            />
+          <div
+            data-testid="article-selection-summary"
+            data-selection-identity=""
+            data-selection-identity-accent={accentTone}
+            className={SUMMARY_CONTAINER_CLASS_NAME}
+          >
+            <section
+              aria-label={title}
+              className="mx-auto flex min-h-[18rem] max-w-[34rem] flex-col items-center justify-center px-4 text-center"
+            >
+              {leadingVisual ? (
+                <div
+                  data-testid="article-selection-leading-visual"
+                  className="mb-5 flex size-16 items-center justify-center text-foreground-soft"
+                >
+                  {leadingVisual}
+                </div>
+              ) : null}
+              <h3 className="max-w-full truncate font-sans text-xl font-medium leading-tight text-foreground">
+                {title}
+              </h3>
+              <p className="mt-1 font-sans text-sm font-medium text-[var(--color-unread)]">
+                <span className="tabular-nums">{countValue}</span>
+                <span className="ml-1">{countLabel}</span>
+              </p>
+              {primaryAction ? (
+                <div className="mt-6">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    aria-label={primaryAction.ariaLabel}
+                    onClick={primaryAction.onClick}
+                    className="h-8 text-foreground-soft hover:text-foreground"
+                  >
+                    <List className="size-4" aria-hidden="true" />
+                    <span>{primaryAction.label}</span>
+                  </Button>
+                </div>
+              ) : null}
+            </section>
           </div>
         </div>
       }
@@ -88,59 +126,31 @@ function SummaryEmptyState({
   );
 }
 
-function buildSummaryCardProps(
+function buildSummaryIdentityProps(
   summary: ArticleViewSummaryState,
   locale: string,
   readerT: ReturnType<typeof useTranslation<"reader">>["t"],
   sidebarT: ReturnType<typeof useTranslation<"sidebar">>["t"],
-): SummaryCardProps {
+): SummaryIdentityProps {
   if (summary.kind === "feed") {
-    const websiteHref = resolveArticleSummaryWebsiteHref(summary.feed);
-    const websiteLabel = resolveArticleSummaryWebsiteLabel(summary.feed);
-
     return {
       title: summary.feed.title,
-      titleHref: websiteHref,
       leadingVisual: (
         <FeedFavicon title={summary.feed.title} url={summary.feed.url} siteUrl={summary.feed.site_url} size="lg" />
       ),
-      metrics: [
-        {
-          label: readerT("latest_article"),
-          value: (
-            <span className="block max-w-[24rem] truncate" title={summary.latestArticleTitle ?? undefined}>
-              {summary.latestArticleTitle ?? "—"}
-            </span>
-          ),
-        },
-        {
-          label: readerT("latest_update"),
-          value: formatArticleSummaryDate(summary.latestArticlePublishedAt, locale),
-        },
-        {
-          label: readerT("website_url"),
-          value:
-            websiteHref && websiteLabel ? (
-              <span className="block max-w-[24rem] truncate text-foreground-soft" title={websiteHref} translate="no">
-                {websiteLabel}
-              </span>
-            ) : (
-              "—"
-            ),
-        },
-      ],
+      countLabel: readerT("unread"),
+      countValue: renderSummaryCount(summary.feed.unread_count, locale),
+      accentTone: "unread",
     };
   }
 
   if (summary.kind === "folder") {
     return {
       title: summary.folder.name,
-      leadingVisual: <FolderClosed className="size-5 text-foreground-soft" />,
-      metrics: [
-        { label: sidebarT("feeds"), value: renderSummaryCount(summary.feedCount, locale) },
-        { label: readerT("unread"), value: renderSummaryCount(summary.unreadCount, locale) },
-        { label: readerT("latest_update"), value: formatArticleSummaryDate(summary.latestArticlePublishedAt, locale) },
-      ],
+      leadingVisual: <FolderClosed className="size-9 stroke-[1.5] text-foreground-soft" />,
+      countLabel: readerT("unread"),
+      countValue: renderSummaryCount(summary.unreadCount, locale),
+      accentTone: "unread",
     };
   }
 
@@ -148,15 +158,12 @@ function buildSummaryCardProps(
     return {
       title: summary.tag.name,
       leadingVisual: summary.tag.color ? (
-        <span className="inline-block size-3 rounded-full" style={{ backgroundColor: summary.tag.color }} />
+        <span className="inline-block size-8 rounded-full" style={{ backgroundColor: summary.tag.color }} />
       ) : (
-        <TagIcon className="size-5 text-foreground-soft" />
+        <TagIcon className="size-9 stroke-[1.5] text-foreground-soft" />
       ),
-      metrics: [
-        { label: readerT("articles"), value: renderSummaryCount(summary.articleCount, locale) },
-        { label: sidebarT("feeds"), value: renderSummaryCount(summary.feedCount, locale) },
-        { label: readerT("latest_update"), value: formatArticleSummaryDate(summary.latestArticlePublishedAt, locale) },
-      ],
+      countLabel: readerT("articles"),
+      countValue: renderSummaryCount(summary.articleCount, locale),
     };
   }
 
@@ -182,11 +189,8 @@ function buildSummaryCardProps(
     title: smartSummaryView.title,
     leadingVisual: smartSummaryView.leadingVisual,
     accentTone: smartSummaryView.accentTone,
-    metrics: [
-      { label: readerT("articles"), value: renderSummaryCount(summary.articleCount, locale) },
-      { label: sidebarT("feeds"), value: renderSummaryCount(summary.feedCount, locale) },
-      { label: readerT("latest_update"), value: formatArticleSummaryDate(summary.latestArticlePublishedAt, locale) },
-    ],
+    countLabel: readerT("articles"),
+    countValue: renderSummaryCount(summary.articleCount, locale),
   };
 }
 
@@ -197,7 +201,7 @@ function SelectionSummaryEmptyState({ summary }: { summary: ArticleViewSummarySt
   const selectedAccountId = useUiStore((state) => state.selectedAccountId);
   const openSubscriptionsIndex = useUiStore((state) => state.openSubscriptionsIndex);
   const locale = resolveArticleDateLocale(i18n.language);
-  const cardProps = buildSummaryCardProps(summary, locale, t, sidebarT);
+  const identityProps = buildSummaryIdentityProps(summary, locale, t, sidebarT);
   const primaryAction =
     summary.kind === "feed" && selectedAccountId !== null
       ? {
@@ -221,7 +225,7 @@ function SelectionSummaryEmptyState({ summary }: { summary: ArticleViewSummarySt
         }
       : undefined;
 
-  return <SummaryEmptyState {...cardProps} primaryAction={primaryAction} />;
+  return <SummaryEmptyState {...identityProps} primaryAction={primaryAction} />;
 }
 
 function EmptyState({
@@ -310,6 +314,36 @@ function BrowserOnlyState() {
 export function ArticleView() {
   const { t } = useTranslation("reader");
   const selectionState = useArticleViewSelection();
+  const selectArticle = useUiStore((state) => state.selectArticle);
+  const openBrowser = useUiStore((state) => state.openBrowser);
+  const selection = useUiStore((state) => state.selection);
+  const viewMode = useUiStore((state) => state.viewMode);
+  const landedSelectionKeyRef = useRef<string | null>(null);
+  const selectionLandingKey = resolveSelectionLandingKey(selection, viewMode);
+  const landingCandidate = selectionState.kind === "empty" ? selectionState.landingCandidate : undefined;
+  const landingArticleId = landingCandidate?.article.id;
+  const landingBrowserUrl = landingCandidate?.browserUrl;
+
+  useEffect(() => {
+    if (selectionState.kind === "article") {
+      landedSelectionKeyRef.current = selectionLandingKey;
+      return;
+    }
+
+    if (!landingArticleId) {
+      return;
+    }
+
+    if (landedSelectionKeyRef.current === selectionLandingKey) {
+      return;
+    }
+    landedSelectionKeyRef.current = selectionLandingKey;
+
+    selectArticle(landingArticleId);
+    if (landingBrowserUrl) {
+      openBrowser(landingBrowserUrl);
+    }
+  }, [landingArticleId, landingBrowserUrl, openBrowser, selectArticle, selectionLandingKey, selectionState.kind]);
 
   if (selectionState.kind === "subscriptions-index") {
     return (

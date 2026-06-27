@@ -191,7 +191,7 @@ describe("useArticleViewSelection", () => {
     });
   });
 
-  it("builds empty folder summaries from all folder articles instead of visible filtered articles", () => {
+  it("builds empty folder summaries from all folder articles and feed unread totals", () => {
     const visibleArticle = {
       ...sampleArticles[0],
       feed_id: "feed-1",
@@ -251,7 +251,7 @@ describe("useArticleViewSelection", () => {
       summary: {
         kind: "folder",
         feedCount: 2,
-        unreadCount: 2,
+        unreadCount: 5,
         latestArticlePublishedAt: "2026-04-01T10:00:00Z",
       },
     });
