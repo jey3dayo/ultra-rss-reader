@@ -46,6 +46,7 @@ export function useDebugSettingsViewProps({
               type: "info",
               label: t("debug.dev_data_command"),
               value: "mise run app:dev:seed-from-prod",
+              valueTone: "code",
             },
           ],
         },

@@ -70,6 +70,7 @@ type SettingsPageActionControl = SettingsPageControlHeader<"action"> &
 
 type SettingsPageInfoControl = SettingsPageControlHeader<"info"> & {
   value: string;
+  valueTone?: "text" | "code";
   valueClassName?: string;
 };
 

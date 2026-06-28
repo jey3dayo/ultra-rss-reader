@@ -111,7 +111,7 @@ export function AccountDangerZoneView({
             <div>
               <h3 className="text-sm font-semibold text-foreground">{localSyncHeading}</h3>
               {localSyncDescription ? (
-                <p className="mt-1 font-serif text-sm text-foreground-soft">{localSyncDescription}</p>
+                <p className="mt-1 text-sm text-foreground-soft">{localSyncDescription}</p>
               ) : null}
             </div>
             <label className="flex flex-col gap-1 text-sm font-medium text-foreground">
@@ -199,7 +199,7 @@ export function AccountDangerZoneView({
           {deleteLabel}
         </DeleteButton>
         {showDisabledReason ? (
-          <p id={disabledReasonId} className="mt-2 max-w-[32rem] font-serif text-sm text-foreground-soft">
+          <p id={disabledReasonId} className="mt-2 max-w-[32rem] text-sm text-foreground-soft">
             {disabledReason}
           </p>
         ) : null}

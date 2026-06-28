@@ -120,6 +120,7 @@ function SettingsPageActionRow({ control }: SettingsPageControlRowProps<Settings
 
 function SettingsPageInfoRow({ control }: SettingsPageControlRowProps<SettingsPageInfoControl>) {
   const usesStackedValue = control.value.length > 22;
+  const usesCodeValue = control.valueTone === "code";
 
   if (usesStackedValue) {
     return (
@@ -129,7 +130,8 @@ function SettingsPageInfoRow({ control }: SettingsPageControlRowProps<SettingsPa
       >
         <span
           className={cn(
-            "block max-w-full text-left font-mono text-[13px] leading-[1.55] break-words text-foreground",
+            "block max-w-full text-left text-[13px] leading-[1.55] break-words text-foreground",
+            usesCodeValue && "font-mono",
             control.valueClassName,
           )}
         >
@@ -143,7 +145,8 @@ function SettingsPageInfoRow({ control }: SettingsPageControlRowProps<SettingsPa
     <LabeledControlRow label={control.label} className={SETTINGS_PAGE_INLINE_ROW_CLASS}>
       <span
         className={cn(
-          "block text-right font-serif text-sm leading-[1.45] whitespace-nowrap text-foreground sm:max-w-[30rem]",
+          "block text-right text-sm leading-[1.45] whitespace-nowrap text-foreground sm:max-w-[30rem]",
+          usesCodeValue && "font-mono text-[13px]",
           control.valueClassName,
         )}
       >

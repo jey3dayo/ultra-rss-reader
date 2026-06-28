@@ -95,7 +95,7 @@ export function AccountConfigFormView({
               <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                 <span>{serviceSummary.name}</span>
               </div>
-              <div className="font-serif text-xs leading-[1.45] text-foreground-soft">{serviceSummary.description}</div>
+              <div className="text-xs leading-[1.45] text-foreground-soft">{serviceSummary.description}</div>
             </div>
           </div>
         </SurfaceCard>
@@ -125,7 +125,7 @@ export function AccountConfigFormView({
 
         {errorMessage ? (
           <SurfaceCard variant="info" tone="danger" padding="compact" role="alert" aria-live="assertive">
-            <p className="font-serif text-sm leading-[1.5]">{errorMessage}</p>
+            <p className="text-sm leading-[1.5]">{errorMessage}</p>
           </SurfaceCard>
         ) : null}
 

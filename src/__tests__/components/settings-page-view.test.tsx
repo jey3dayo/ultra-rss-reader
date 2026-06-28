@@ -98,7 +98,7 @@ describe("SettingsPageView", () => {
     );
 
     expect(screen.getByText("Storage backend")).toBeInTheDocument();
-    expect(screen.getByText("OS keyring")).toBeInTheDocument();
+    expect(screen.getByText("OS keyring")).not.toHaveClass("font-serif", "font-mono");
     expect(screen.queryByRole("textbox", { name: "Storage backend" })).toBeNull();
   });
 
@@ -183,6 +183,7 @@ describe("SettingsPageView", () => {
                 type: "info",
                 label: "Command",
                 value: "mise run app:dev:seed-from-prod",
+                valueTone: "code",
               },
             ],
           },
