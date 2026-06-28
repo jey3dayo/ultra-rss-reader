@@ -92,7 +92,7 @@ describe("RenameFeedDialogView", () => {
     );
     expect(screen.getByRole("combobox", { name: "Display Mode" })).toHaveTextContent("Preview");
     expect(screen.getByRole("combobox", { name: "Display Mode" })).toHaveClass("min-h-11");
-    expect(screen.getByTestId("feed-dialog-folder-section")).toHaveClass("rounded-md");
+    expect(screen.getByTestId("feed-dialog-folder-section")).not.toHaveClass("rounded-md", "border", "bg-surface-1/80");
     expect(screen.getByRole("combobox", { name: "Folder" })).toHaveTextContent("Work");
     expect(screen.getByRole("button", { name: "Save" })).toHaveClass("min-h-11");
     expect(screen.getByRole("button", { name: "Cancel" })).toHaveClass("min-h-11");
@@ -158,7 +158,7 @@ describe("RenameFeedDialogView", () => {
     );
 
     expect(screen.getByRole("dialog")).toHaveClass("rounded-xl");
-    expect(screen.getByTestId("feed-dialog-folder-section")).toHaveClass("rounded-md");
+    expect(screen.getByTestId("feed-dialog-folder-section")).not.toHaveClass("rounded-md", "border", "bg-surface-1/80");
     expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
   });
 });

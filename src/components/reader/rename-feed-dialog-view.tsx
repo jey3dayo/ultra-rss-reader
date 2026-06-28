@@ -95,7 +95,7 @@ export function RenameFeedDialogView({
         <div
           data-testid="feed-dialog-folder-section"
           data-motion-phase="entering"
-          className={`${MOTION_CONTENT_SWAP_CLASS_NAME} rounded-md border border-border/70 bg-surface-1/80 px-4 py-4`}
+          className={MOTION_CONTENT_SWAP_CLASS_NAME}
         >
           <FolderSelectView {...folderSelectProps} />
         </div>
