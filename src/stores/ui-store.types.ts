@@ -3,6 +3,7 @@ import type { SyncProgressEventDto } from "@/api/schemas/sync-progress";
 import type { ConfirmDialogVariant } from "@/design-system";
 import type { AccountSetupSession, AccountSetupSessionOwner } from "@/lib/account/account-setup-session.types";
 import type { AddAccountProviderKind } from "@/lib/account/add-account-form";
+import type { WebPreviewSessionMode } from "@/lib/articles/article-display";
 import type {
   ArticleNavigationDirection,
   BrowserNavigationState,
@@ -72,6 +73,7 @@ export type UiState = {
   viewMode: ViewMode;
   searchQuery: string;
   browserUrl: string | null;
+  webPreviewSessionMode: WebPreviewSessionMode;
   browserNavigationState: BrowserNavigationState | null;
   browserCloseInFlight: boolean;
   pendingBrowserCloseAction: PendingBrowserCloseAction | null;
@@ -135,6 +137,7 @@ export type UiActions = {
   clearArticle: () => void;
   openBrowser: (url: string) => void;
   closeBrowser: () => void;
+  setWebPreviewSessionMode: (mode: WebPreviewSessionMode) => void;
   setBrowserNavigationState: (state: BrowserNavigationState | null) => void;
   setBrowserCloseInFlight: (inFlight: boolean) => void;
   setPendingBrowserCloseAction: (action: PendingBrowserCloseAction | null) => void;
@@ -224,6 +227,7 @@ export type UiStoreReaderState = Pick<
   | "viewMode"
   | "contentMode"
   | "browserUrl"
+  | "webPreviewSessionMode"
   | "browserNavigationState"
   | "browserCloseInFlight"
   | "pendingBrowserCloseAction"
@@ -301,6 +305,7 @@ export type UiStoreReaderActions = Pick<
   | "clearArticle"
   | "openBrowser"
   | "closeBrowser"
+  | "setWebPreviewSessionMode"
   | "setBrowserNavigationState"
   | "setBrowserCloseInFlight"
   | "setPendingBrowserCloseAction"
@@ -339,6 +344,7 @@ export type UiStoreReaderSelectionActions = Pick<
   | "clearArticle"
   | "openBrowser"
   | "closeBrowser"
+  | "setWebPreviewSessionMode"
   | "setBrowserNavigationState"
   | "setBrowserCloseInFlight"
   | "setPendingBrowserCloseAction"

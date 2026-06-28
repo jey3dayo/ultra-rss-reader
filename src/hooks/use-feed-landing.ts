@@ -28,7 +28,13 @@ export type FeedLandingResult = Result.Result<FeedLandingSuccess, FeedLandingFai
 
 type FeedLandingUiSnapshot = Pick<
   ReturnType<typeof useUiStore.getState>,
-  "browserUrl" | "contentMode" | "focusedPane" | "selectedArticleId" | "selection" | "viewMode"
+  | "browserUrl"
+  | "contentMode"
+  | "focusedPane"
+  | "selectedArticleId"
+  | "selection"
+  | "viewMode"
+  | "webPreviewSessionMode"
 >;
 
 function captureFeedLandingUiSnapshot(store: ReturnType<typeof useUiStore.getState>): FeedLandingUiSnapshot {
@@ -39,6 +45,7 @@ function captureFeedLandingUiSnapshot(store: ReturnType<typeof useUiStore.getSta
     selectedArticleId: store.selectedArticleId,
     selection: store.selection,
     viewMode: store.viewMode,
+    webPreviewSessionMode: store.webPreviewSessionMode,
   };
 }
 
@@ -183,6 +190,7 @@ export function useFeedLanding() {
             feed,
             prefs,
             articleUrl: landingArticle.url,
+            webPreviewSessionMode: useUiStore.getState().webPreviewSessionMode,
           });
 
           const landingArticleUrl = landingArticle.url;

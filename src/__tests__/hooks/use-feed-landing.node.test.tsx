@@ -235,6 +235,54 @@ describe("useFeedLanding", () => {
     });
   });
 
+  it("keeps a user-opened Web Preview session when landing on a standard feed", async () => {
+    useUiStore.setState({ webPreviewSessionMode: "forced-on" });
+
+    const { result } = renderHook(() => useFeedLanding(), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await result.current("feed-1");
+    });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().selectedArticleId).toBe("art-1");
+      expect(useUiStore.getState().contentMode).toBe("browser");
+      expect(useUiStore.getState().browserUrl).toBe("https://example.com/1");
+      expect(useUiStore.getState().webPreviewSessionMode).toBe("forced-on");
+    });
+  });
+
+  it("keeps a user-closed Web Preview session in reader mode for preview-enabled feeds", async () => {
+    useUiStore.setState({ webPreviewSessionMode: "forced-off" });
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_feeds":
+          return listAccountFeedsWithLandingMode(args.accountId);
+        case "list_articles":
+          return listSampleArticlesByFeedId(args.feedId);
+        default:
+          return undefined;
+      }
+    });
+
+    const { result } = renderHook(() => useFeedLanding(), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await result.current("feed-1");
+    });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().selectedArticleId).toBe("art-1");
+      expect(useUiStore.getState().contentMode).toBe("reader");
+      expect(useUiStore.getState().browserUrl).toBeNull();
+      expect(useUiStore.getState().webPreviewSessionMode).toBe("forced-off");
+    });
+  });
+
   it("keeps reader mode for preview-enabled feeds when the landing article has no URL", async () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {

@@ -19,6 +19,7 @@ import {
   resolveFeedDisplayPreset,
   resolveFeedDisplayPresetLabel,
   resolveFolderDisplayPreset,
+  webPreviewSessionModeToOverride,
 } from "@/lib/articles/article-display";
 
 describe("article-display preset conversions", () => {
@@ -231,6 +232,12 @@ describe("article-display preset conversions", () => {
 });
 
 describe("resolveArticleDisplay", () => {
+  it("maps Web Preview session mode to temporary display overrides", () => {
+    expect(webPreviewSessionModeToOverride("auto")).toBeNull();
+    expect(webPreviewSessionModeToOverride("forced-on")).toBe("on");
+    expect(webPreviewSessionModeToOverride("forced-off")).toBe("off");
+  });
+
   it("resolves app defaults without overrides", () => {
     expect(
       resolveArticleDisplay({

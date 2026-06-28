@@ -208,6 +208,7 @@ type AccountSelectionResetState = Pick<
   | "focusedPane"
   | "expandedFolderIds"
   | "browserUrl"
+  | "webPreviewSessionMode"
   | "browserNavigationState"
   | "browserCloseInFlight"
   | "pendingBrowserCloseAction"
@@ -238,6 +239,7 @@ function getAccountSelectionResetState({
     contentMode: "empty",
     focusedPane,
     expandedFolderIds: new Set(),
+    webPreviewSessionMode: "auto",
     ...getResetBrowserState(),
     ...getResetArticleReaderScrollState(),
     recentlyReadIds: new Set(),
@@ -308,6 +310,7 @@ const initialState: UiState = {
   viewMode: "unread",
   searchQuery: "",
   browserUrl: null,
+  webPreviewSessionMode: "auto",
   browserNavigationState: null,
   browserCloseInFlight: false,
   pendingBrowserCloseAction: null,
@@ -537,6 +540,7 @@ export const useUiStore = create<UiState & UiActions>()((set, get) => ({
       pendingBrowserCloseAction: null,
       pendingBrowserCloseActionQueue: [],
     })),
+  setWebPreviewSessionMode: (mode) => set({ webPreviewSessionMode: mode }),
   setBrowserNavigationState: (state) => set({ browserNavigationState: state }),
   setBrowserCloseInFlight: (inFlight) => set({ browserCloseInFlight: inFlight }),
   setPendingBrowserCloseAction: (action) =>

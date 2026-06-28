@@ -3,6 +3,7 @@ import type { PreferencesDto } from "@/api/schemas/preferences";
 export type ArticleDisplayPreset = "standard" | "preview";
 export type BinaryDisplayMode = "on" | "off";
 export type TriStateDisplayMode = "inherit" | BinaryDisplayMode;
+export type WebPreviewSessionMode = "auto" | "forced-on" | "forced-off";
 type ArticleDisplayFallbackReason = "missing_web_preview" | "invalid_empty_display" | null;
 export type FeedDisplayPresetOption = "default" | ArticleDisplayPreset;
 type PreferenceBooleanValue = "true" | "false";
@@ -214,6 +215,18 @@ export function isArticleDisplayPreset(value: string): value is ArticleDisplayPr
 
 export function isTriStateDisplayMode(value: string | null | undefined): value is TriStateDisplayMode {
   return value === "inherit" || value === "on" || value === "off";
+}
+
+export function webPreviewSessionModeToOverride(mode: WebPreviewSessionMode): BinaryDisplayMode | null {
+  if (mode === "forced-on") {
+    return "on";
+  }
+
+  if (mode === "forced-off") {
+    return "off";
+  }
+
+  return null;
 }
 
 function hasInvalidDisplayAxis(feed: FeedLikeDisplaySettings): boolean {

@@ -70,6 +70,7 @@ export function useArticleViewSelection(): ArticleViewSelectionState {
   const selection = useUiStore((s) => s.selection);
   const retainedArticleIds = useUiStore((s) => s.retainedArticleIds);
   const viewMode = useUiStore((s) => s.viewMode);
+  const webPreviewSessionMode = useUiStore((s) => s.webPreviewSessionMode);
   const selectedFeedId = selection.type === "feed" ? selection.feedId : null;
   const selectedFolderId = selection.type === "folder" ? selection.folderId : null;
   const selectedTagId = selection.type === "tag" ? selection.tagId : null;
@@ -147,6 +148,7 @@ export function useArticleViewSelection(): ArticleViewSelectionState {
           feed: landingFeed,
           prefs,
           articleUrl: landingArticle.url,
+          webPreviewSessionMode,
         })
       : null;
     const landingCandidate = landingArticle

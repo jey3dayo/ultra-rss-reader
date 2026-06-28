@@ -191,6 +191,112 @@ describe("useArticleViewSelection", () => {
     });
   });
 
+  it("keeps empty-state landing in reader mode when Web Preview was closed for the session", () => {
+    const landingArticle = {
+      ...sampleArticles[0],
+      feed_id: "feed-1",
+      url: "https://example.com/landing",
+    };
+    const previewFeed = {
+      ...sampleFeeds[0],
+      id: "feed-1",
+      reader_mode: "on",
+      web_preview_mode: "on",
+    };
+
+    useUiStore.setState({
+      contentMode: "empty",
+      browserUrl: null,
+      selectedArticleId: null,
+      selection: { type: "feed", feedId: "feed-1" },
+      subscriptionsWorkspace: null,
+      selectedAccountId: "acc-1",
+      retainedArticleIds: new Set(),
+      viewMode: "unread",
+      webPreviewSessionMode: "forced-off",
+    });
+    useArticleListSourcesMock.mockReturnValue({
+      accountArticles: [],
+      accountListScopeId: "acc-1",
+      articles: [],
+      feedId: "feed-1",
+      feeds: [previewFeed],
+      folderId: null,
+      sourcePlan: { kind: "feed", mode: "unread" },
+      tagArticles: [],
+      tagId: null,
+    });
+    useArticleListDataMock.mockReturnValue({
+      feedId: "feed-1",
+      filteredArticles: [landingArticle],
+      tagId: null,
+    });
+    useArticlesMock.mockReturnValue({ data: [landingArticle] });
+
+    const { result } = renderHook(() => useArticleViewSelection());
+
+    expect(result.current).toMatchObject({
+      kind: "empty",
+      landingCandidate: {
+        article: { id: landingArticle.id },
+        browserUrl: null,
+      },
+    });
+  });
+
+  it("keeps empty-state landing in Web Preview when Web Preview was opened for the session", () => {
+    const landingArticle = {
+      ...sampleArticles[0],
+      feed_id: "feed-1",
+      url: "https://example.com/landing",
+    };
+    const standardFeed = {
+      ...sampleFeeds[0],
+      id: "feed-1",
+      reader_mode: "on",
+      web_preview_mode: "off",
+    };
+
+    useUiStore.setState({
+      contentMode: "empty",
+      browserUrl: null,
+      selectedArticleId: null,
+      selection: { type: "feed", feedId: "feed-1" },
+      subscriptionsWorkspace: null,
+      selectedAccountId: "acc-1",
+      retainedArticleIds: new Set(),
+      viewMode: "unread",
+      webPreviewSessionMode: "forced-on",
+    });
+    useArticleListSourcesMock.mockReturnValue({
+      accountArticles: [],
+      accountListScopeId: "acc-1",
+      articles: [],
+      feedId: "feed-1",
+      feeds: [standardFeed],
+      folderId: null,
+      sourcePlan: { kind: "feed", mode: "unread" },
+      tagArticles: [],
+      tagId: null,
+    });
+    useArticleListDataMock.mockReturnValue({
+      feedId: "feed-1",
+      filteredArticles: [landingArticle],
+      tagId: null,
+    });
+    useArticlesMock.mockReturnValue({ data: [landingArticle] });
+
+    const { result } = renderHook(() => useArticleViewSelection());
+
+    expect(result.current).toMatchObject({
+      kind: "empty",
+      landingCandidate: {
+        article: { id: landingArticle.id },
+        browserUrl: "https://example.com/landing",
+      },
+    });
+  });
+
   it("builds empty folder summaries from all folder articles and feed unread totals", () => {
     const visibleArticle = {
       ...sampleArticles[0],

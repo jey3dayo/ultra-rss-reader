@@ -146,4 +146,30 @@ describe("resolveFeedLandingDisplay", () => {
     expect(display.webPreviewMode).toBe(false);
     expect(display.fallbackReason).toBe("missing_web_preview");
   });
+
+  it("lets a user-opened Web Preview session override a standard feed landing display", () => {
+    const display = resolveFeedLandingDisplay({
+      feed: { reader_mode: "on", web_preview_mode: "off" },
+      prefs: { reader_mode_default: "true", web_preview_mode_default: "false" },
+      articleUrl: "https://example.com/new",
+      webPreviewSessionMode: "forced-on",
+    });
+
+    expect(display.readerMode).toBe(true);
+    expect(display.webPreviewMode).toBe(true);
+    expect(display.fallbackReason).toBeNull();
+  });
+
+  it("lets a user-closed Web Preview session override a preview-enabled feed landing display", () => {
+    const display = resolveFeedLandingDisplay({
+      feed: { reader_mode: "on", web_preview_mode: "on" },
+      prefs: { reader_mode_default: "true", web_preview_mode_default: "false" },
+      articleUrl: "https://example.com/new",
+      webPreviewSessionMode: "forced-off",
+    });
+
+    expect(display.readerMode).toBe(true);
+    expect(display.webPreviewMode).toBe(false);
+    expect(display.fallbackReason).toBeNull();
+  });
 });

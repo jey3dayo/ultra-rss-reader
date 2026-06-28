@@ -926,7 +926,7 @@ describe("ArticleList", () => {
     });
   });
 
-  it("returns to reader mode when selecting another article directly while web preview is open", async () => {
+  it("keeps web preview open when selecting another article directly", async () => {
     useUiStore.getState().selectAccount("acc-1");
     useUiStore.getState().selectFeed("feed-1");
     useUiStore.getState().setViewMode("all");
@@ -953,8 +953,8 @@ describe("ArticleList", () => {
 
     await waitFor(() => {
       expect(useUiStore.getState().selectedArticleId).toBe("art-2");
-      expect(useUiStore.getState().contentMode).toBe("reader");
-      expect(useUiStore.getState().browserUrl).toBeNull();
+      expect(useUiStore.getState().contentMode).toBe("browser");
+      expect(useUiStore.getState().browserUrl).toBe("https://example.com/2");
     });
   });
 
@@ -1048,6 +1048,16 @@ describe("ArticleList", () => {
         args: { feedId: "feed-1", readerMode: "on", webPreviewMode: "on" },
       });
       expect(screen.getByRole("combobox", { name: "Article display" })).toHaveTextContent("Web Preview");
+    });
+
+    await user.click(screen.getByRole("combobox", { name: "Article display" }));
+    await user.click(await screen.findByRole("option", { name: "Use default" }));
+
+    await waitFor(() => {
+      expect(commands).toContainEqual({
+        cmd: "update_feed_display_settings",
+        args: { feedId: "feed-1", readerMode: "inherit", webPreviewMode: "inherit" },
+      });
     });
   });
 

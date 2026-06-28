@@ -6,6 +6,8 @@ import {
   resolveAppDefaultDisplayModes,
   resolveArticleDisplay,
   resolveFeedDisplayOverrides,
+  type WebPreviewSessionMode,
+  webPreviewSessionModeToOverride,
 } from "@/lib/articles/article-display";
 import { selectVisibleArticles } from "@/lib/articles/article-list";
 import type { ReaderFilter } from "@/lib/reader/reader-query";
@@ -73,11 +75,15 @@ export function resolveFeedLandingDisplay(params: {
     | undefined;
   prefs: PreferencesDto;
   articleUrl: string | null | undefined;
+  webPreviewSessionMode?: WebPreviewSessionMode;
 }): ResolvedArticleDisplay {
   return resolveArticleDisplay({
     appDefault: resolveAppDefaultDisplayModes(params.prefs),
     feedOverride: resolveFeedDisplayOverrides(params.feed),
-    temporaryOverride: { readerMode: null, webPreviewMode: null },
+    temporaryOverride: {
+      readerMode: null,
+      webPreviewMode: webPreviewSessionModeToOverride(params.webPreviewSessionMode ?? "auto"),
+    },
     articleCapabilities: { hasWebPreview: hasAnyWebPreviewUrl([params.articleUrl, params.feed?.site_url]) },
   });
 }
