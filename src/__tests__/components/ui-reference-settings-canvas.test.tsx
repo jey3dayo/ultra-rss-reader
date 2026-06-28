@@ -120,6 +120,7 @@ describe("UI Reference canvases", () => {
       "h-11",
       "data-[pressed]:bg-transparent",
       "data-[pressed]:[&_[data-filter-toggle-content]]:bg-surface-2/72",
+      "dark:data-[pressed]:[&_[data-filter-toggle-content]]:bg-surface-3/72",
     );
     expect(screen.getByTestId("reference-reader-header-action-strip")).toBeInTheDocument();
     expect(screen.getByTestId("reference-icon-utility-buttons")).toBeInTheDocument();

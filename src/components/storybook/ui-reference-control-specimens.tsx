@@ -8,6 +8,7 @@ import { SettingsActionButton } from "@/components/settings/shared/settings-acti
 import { ShortcutKeyButton } from "@/components/settings/shortcuts-settings-view";
 import {
   ArticleFilterToggleButton,
+  articleFilterInsetSelectionClassName,
   Button,
   DecisionButton,
   DeleteButton,
@@ -123,9 +124,6 @@ const BUTTON_FAMILY_GUIDE = [
     example: "Close workspace",
   },
 ] as const;
-
-const compactFilterInsetSelectionClassName =
-  "h-11 rounded-md border-0 bg-transparent px-0 text-[0.82rem] font-medium tracking-[0.01em] shadow-none hover:bg-transparent hover:text-foreground focus-visible:bg-transparent focus-visible:ring-2 focus-visible:ring-ring/45 data-[pressed]:bg-transparent data-[pressed]:text-foreground [&_[data-filter-toggle-content]]:rounded-md [&_[data-filter-toggle-content]]:px-3.5 [&_[data-filter-toggle-content]]:py-2 [&_[data-filter-toggle-content]]:transition-colors hover:[&_[data-filter-toggle-content]]:bg-surface-2/36 focus-visible:[&_[data-filter-toggle-content]]:bg-surface-2/56 data-[pressed]:[&_[data-filter-toggle-content]]:bg-surface-2/72 data-[pressed]:[&_[data-filter-toggle-content]]:shadow-active-inset-highlight";
 
 export function ButtonFamilyGuideSpecimen() {
   return (
@@ -413,7 +411,7 @@ export function ArticleFilterToggleButtonSpecimen() {
               pressed
               value="unread"
               aria-label="Unread inset"
-              className={compactFilterInsetSelectionClassName}
+              className={articleFilterInsetSelectionClassName}
             >
               Unread
             </ArticleFilterToggleButton>
@@ -422,7 +420,7 @@ export function ArticleFilterToggleButtonSpecimen() {
               pressed={false}
               value="all"
               aria-label="All inset"
-              className={compactFilterInsetSelectionClassName}
+              className={articleFilterInsetSelectionClassName}
             >
               All
             </ArticleFilterToggleButton>

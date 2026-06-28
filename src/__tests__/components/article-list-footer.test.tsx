@@ -41,6 +41,7 @@ describe("ArticleListFooter", () => {
     expect(allButton).toHaveClass("data-[pressed]:bg-transparent");
     expect(allButton).toHaveClass("bg-transparent", "shadow-none");
     expect(allButton).toHaveClass("data-[pressed]:[&_[data-filter-toggle-content]]:bg-surface-2/72");
+    expect(allButton).toHaveClass("dark:data-[pressed]:[&_[data-filter-toggle-content]]:bg-surface-3/72");
     expect(allButton).toHaveClass("data-[pressed]:[&_[data-filter-toggle-content]]:shadow-active-inset-highlight");
     expect(allButton).not.toHaveClass("data-[pressed]:shadow-[var(--control-chip-pressed-shadow)]");
     expect(unreadIcon).not.toBeNull();

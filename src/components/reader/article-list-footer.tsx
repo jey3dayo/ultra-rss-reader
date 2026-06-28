@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { ArticleFilterToggleButton, ToggleGroup } from "@/design-system";
+import { ArticleFilterToggleButton, articleFilterInsetSelectionClassName, ToggleGroup } from "@/design-system";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
 
 export type ArticleListFooterProps = {
@@ -22,9 +22,6 @@ const VIEW_MODES = [
 ] satisfies readonly ArticleListFooterMode[];
 const DEFAULT_VISIBLE_MODES: readonly ViewMode[] = ["unread", "all", "starred"];
 const EMPTY_DISABLED_MODES: readonly ViewMode[] = [];
-
-const compactFooterButtonClassName =
-  "h-11 rounded-md border-0 bg-transparent px-0 text-[0.82rem] font-medium tracking-[0.01em] shadow-none hover:bg-transparent hover:text-foreground focus-visible:bg-transparent focus-visible:ring-2 focus-visible:ring-ring/45 data-[pressed]:bg-transparent data-[pressed]:text-foreground sm:rounded-md sm:bg-transparent sm:px-0 sm:text-[13px] sm:font-medium sm:tracking-normal sm:shadow-none [&_[data-filter-toggle-content]]:rounded-md [&_[data-filter-toggle-content]]:px-3.5 [&_[data-filter-toggle-content]]:py-2 [&_[data-filter-toggle-content]]:transition-colors hover:[&_[data-filter-toggle-content]]:bg-surface-2/36 focus-visible:[&_[data-filter-toggle-content]]:bg-surface-2/56 data-[pressed]:[&_[data-filter-toggle-content]]:bg-surface-2/72 data-[pressed]:[&_[data-filter-toggle-content]]:shadow-active-inset-highlight sm:[&_[data-filter-toggle-content]]:px-3";
 
 function isViewMode(value: string | undefined): value is ViewMode {
   return VIEW_MODES.some((mode) => mode.value === value);
@@ -61,7 +58,7 @@ export function ArticleListFooter({ viewMode, modes, disabledModes, onSetViewMod
               pressed={viewMode === mode.value}
               aria-label={t(mode.labelKey)}
               disabled={isDisabled}
-              className={compactFooterButtonClassName}
+              className={articleFilterInsetSelectionClassName}
             >
               {t(mode.labelKey)}
             </ArticleFilterToggleButton>
