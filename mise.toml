@@ -177,7 +177,7 @@ run_windows = "node ./scripts/tauri-cli-dispatch.ts build --debug"
 
 [tasks."app:icon"]
 description = "Generate app icons from source image"
-run = "tauri icon"
+run = "tauri icon assets/app-icon-tauri-source.png"
 
 # ========================================
 # エイリアス（まとめ実行）

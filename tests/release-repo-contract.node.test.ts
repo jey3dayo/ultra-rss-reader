@@ -120,48 +120,48 @@ const PACKAGED_WINDOW_ICON_PATHS = [
 ] as const;
 const MOBILE_ICON_ASSET_HASHES = {
   "icons/android/mipmap-anydpi-v26/ic_launcher.xml": "760d4b8a06bf7163dd010c33ad2cac9e4a75fa0177afaba042f83e311eef0c3e",
-  "icons/android/mipmap-hdpi/ic_launcher.png": "f6db56edbf789b647cdf76616dfa43fa8e6969ba1e2899c7ec57e7f12d29af3d",
+  "icons/android/mipmap-hdpi/ic_launcher.png": "98980404d2c757b454027f3e55a99a49bd08f4bc00a410b2b7f3eeba615fac15",
   "icons/android/mipmap-hdpi/ic_launcher_foreground.png":
-    "2c17feea1734b7a8ea8042c16dc08d17ab81ed697534fe7a9aab845e55618027",
-  "icons/android/mipmap-hdpi/ic_launcher_round.png": "b7493c78d00a73433222984f669b7cbd8e6fbfbd63b98f3e0e57622e7f145670",
-  "icons/android/mipmap-mdpi/ic_launcher.png": "712ea10e498628d013f8921435c62b61bef6cafc0710f3c002b9defd1c6082ca",
+    "85e4a6554640ce04b921af72f76361c6f89e83649cf486d441376a1c58940562",
+  "icons/android/mipmap-hdpi/ic_launcher_round.png": "5514684720a498c58b2ffadd4704534b80ec4cd248a9d9d268e05d0afe236fb0",
+  "icons/android/mipmap-mdpi/ic_launcher.png": "47fb0d591c992a0a01ead0e8f86ac3d66c0f7e4d37057cc4d6ce4b5b8ef9eb5a",
   "icons/android/mipmap-mdpi/ic_launcher_foreground.png":
-    "7c1fefe0e02024f13cdffb4974359738c04a51d4571ff8a81deac3676b817c9e",
-  "icons/android/mipmap-mdpi/ic_launcher_round.png": "6b9e16fffc59ca6ccf8be7b045f36d8e0d3298094a3ef2c591d07334adaa3ac6",
-  "icons/android/mipmap-xhdpi/ic_launcher.png": "d42b553bcf56d441ca956f2e53c6d99ad1057cf588db051d3ee9189d26639add",
+    "4e5cfe8b4e7171063ae74ca762fa4ca18d5866070802cc8bddc04b5c26dc6e95",
+  "icons/android/mipmap-mdpi/ic_launcher_round.png": "e238a9e1854a43278d564c9e92a8c4034956b27066dfdd9331cb99722af5575e",
+  "icons/android/mipmap-xhdpi/ic_launcher.png": "329815e0e2327e99c484a621233cf7a140f1d195100b8ddc771bc56bb07c7dd3",
   "icons/android/mipmap-xhdpi/ic_launcher_foreground.png":
-    "b7d099669f49df5acec113f5c9870df01ace758b19e0f5ecb91701793061f26e",
+    "897646e0da535d088c9cb76af3c2e71167e5a639666cccb2403b6c476e4adfb2",
   "icons/android/mipmap-xhdpi/ic_launcher_round.png":
-    "cfef9a4123d0ed87e5ed9b7c59d2c6e31afc297155fdff8a51b4101bfc48395c",
-  "icons/android/mipmap-xxhdpi/ic_launcher.png": "7a8495748444dac515de7cea7ad16db2e4f5a4ef39b716e49399a36700641503",
+    "ee7c3d43eb898b0069661c61a6fba86cac673da48aa32b021810eaa24ba9aa9f",
+  "icons/android/mipmap-xxhdpi/ic_launcher.png": "2df202406096ca4e9c5c93fe057c0c4bc0774b8c6293112e578ddfbf0a4ef362",
   "icons/android/mipmap-xxhdpi/ic_launcher_foreground.png":
-    "b084f992d7cff9336eba9326f65bd41bb40ccf445323ca63ef392e23a61958f8",
+    "74db2c1ba9587caa3957d9a970d4b2cde0231e04df319f0ced4416b62c4b6296",
   "icons/android/mipmap-xxhdpi/ic_launcher_round.png":
-    "f1b9f3918b160756ba2f193c62b2f84045e60f51b4a808a3f9b6981f07542786",
-  "icons/android/mipmap-xxxhdpi/ic_launcher.png": "721cf452cb1156bcdecfd7e8e259d3324d87f3e76602d94da7452f72cf8f10a0",
+    "20cecb2840564efe724697b2b95f7f300b3ae2979e5f38efad993da9e51e4344",
+  "icons/android/mipmap-xxxhdpi/ic_launcher.png": "88ebea345d5e5426cc59c54eb595aeebeaffd7ab563ab8310e3e6c9d1b8c8a85",
   "icons/android/mipmap-xxxhdpi/ic_launcher_foreground.png":
-    "d3b24dd4a64963a793715229537e8595faa847dec092bbdaca3c1a446be0449c",
+    "169fc747cc35397e6092b6811161e34fa7888c4476f42c5713bc19a322ca1465",
   "icons/android/mipmap-xxxhdpi/ic_launcher_round.png":
-    "cc751100cfdf7bc4541c20096e83ce98b34edb0aff48005a72c35da9076790f1",
+    "6660088c75d863f4d9fa6af14a973514a22c40901d9427261d92142067020536",
   "icons/android/values/ic_launcher_background.xml": "0687336f0ccc6f7ee09c7c95110667c63b75931238df779a21af401fb864cd34",
-  "icons/ios/AppIcon-20x20@1x.png": "e37f34e5be0c3f3fdc24081340e989c25c600b940b6913405a729adb86cb8f0f",
-  "icons/ios/AppIcon-20x20@2x-1.png": "95332e8752db896a3bd1bf8c81fce93a75e22a92e4a684827c4aeeadef3c428b",
-  "icons/ios/AppIcon-20x20@2x.png": "95332e8752db896a3bd1bf8c81fce93a75e22a92e4a684827c4aeeadef3c428b",
-  "icons/ios/AppIcon-20x20@3x.png": "c483a16dd563999a39a9bcbb6fe8b9cb9d95abaa813a5df3a304fed7f50cdab0",
-  "icons/ios/AppIcon-29x29@1x.png": "2226653845b96ea0504eeb3280569264c6ac2739fea0a895274d78346c8438f8",
-  "icons/ios/AppIcon-29x29@2x-1.png": "8c63d1bf9c67abc3d000b8e1ec3dd97f0cb6391a03481f76ef25f3b0e992a2eb",
-  "icons/ios/AppIcon-29x29@2x.png": "8c63d1bf9c67abc3d000b8e1ec3dd97f0cb6391a03481f76ef25f3b0e992a2eb",
-  "icons/ios/AppIcon-29x29@3x.png": "5a4750ac43c0b8f6226cfb5575a6684c42542df75ac7bef6a083178b03cfc514",
-  "icons/ios/AppIcon-40x40@1x.png": "95332e8752db896a3bd1bf8c81fce93a75e22a92e4a684827c4aeeadef3c428b",
-  "icons/ios/AppIcon-40x40@2x-1.png": "ae0110894dc8a66b5dfbcaaf6bd3bc79922bef917ca3678a1f71b311e90c20e3",
-  "icons/ios/AppIcon-40x40@2x.png": "ae0110894dc8a66b5dfbcaaf6bd3bc79922bef917ca3678a1f71b311e90c20e3",
-  "icons/ios/AppIcon-40x40@3x.png": "7949472cccd570f2ae0f33f4866fd0d34858b3484dc8ae40811c51bf7bdbd545",
-  "icons/ios/AppIcon-512@2x.png": "1314ccbe495082e6faecb3213f68c93972a0dfe8230d819fea16721bd9edfc25",
-  "icons/ios/AppIcon-60x60@2x.png": "7949472cccd570f2ae0f33f4866fd0d34858b3484dc8ae40811c51bf7bdbd545",
-  "icons/ios/AppIcon-60x60@3x.png": "39c6bd7f391ad19dd64c43b9cc8cd7f5ef29079c80eda52716c92f009fd202d6",
-  "icons/ios/AppIcon-76x76@1x.png": "21a6a85f04b3257367ee5d5765b981ebc7c3ab0d9e7668edf5d7b1a0c584307f",
-  "icons/ios/AppIcon-76x76@2x.png": "54ec88e5f7e41d8c51511470aad1839ad0ddf85689742cc3cbce58732e57e900",
-  "icons/ios/AppIcon-83.5x83.5@2x.png": "1fe8f4d9a83243d53ab3ee667e17311a2f7f94525f61d3d546af1b04418b2cb1",
+  "icons/ios/AppIcon-20x20@1x.png": "14c23ec5181110039a60d3a14605f43c0f3a6d8e413d83f3f55dff7c7d4a67a1",
+  "icons/ios/AppIcon-20x20@2x-1.png": "d980a37a4535cf5fde5ad4d87c2703560c7d8c29e04fa1ced09a4dbf77480a5e",
+  "icons/ios/AppIcon-20x20@2x.png": "d980a37a4535cf5fde5ad4d87c2703560c7d8c29e04fa1ced09a4dbf77480a5e",
+  "icons/ios/AppIcon-20x20@3x.png": "b3b072d0e62ae9deb9e2ae803adf6d8802f3cc3ed7f7d8fa2e77ad93359b0235",
+  "icons/ios/AppIcon-29x29@1x.png": "9f01bf1b1f0fefa7597846779068f80ef885b6b6d6fd567bd6de977d8cc9af7f",
+  "icons/ios/AppIcon-29x29@2x-1.png": "e1c7c2d0a5500457dbb7836c8bd4762371724cfb040b86b41090679e9a6b7c3d",
+  "icons/ios/AppIcon-29x29@2x.png": "e1c7c2d0a5500457dbb7836c8bd4762371724cfb040b86b41090679e9a6b7c3d",
+  "icons/ios/AppIcon-29x29@3x.png": "0b33956abfed269de510ec1c81589313dbf7ce87c1fbf399a6e2b782d220f342",
+  "icons/ios/AppIcon-40x40@1x.png": "d980a37a4535cf5fde5ad4d87c2703560c7d8c29e04fa1ced09a4dbf77480a5e",
+  "icons/ios/AppIcon-40x40@2x-1.png": "f243254f07d95275e98881c054e1627e628a44c896b8e97a6c17e30be77d0c77",
+  "icons/ios/AppIcon-40x40@2x.png": "f243254f07d95275e98881c054e1627e628a44c896b8e97a6c17e30be77d0c77",
+  "icons/ios/AppIcon-40x40@3x.png": "6039a21c5ec97c9dd8c5f27f8899199226a9fef6cfd0e8126852966d14eecef8",
+  "icons/ios/AppIcon-512@2x.png": "6980920277bfa1bd268ae2d3acfc428eb9440b077971180c25a78714628c6330",
+  "icons/ios/AppIcon-60x60@2x.png": "6039a21c5ec97c9dd8c5f27f8899199226a9fef6cfd0e8126852966d14eecef8",
+  "icons/ios/AppIcon-60x60@3x.png": "974bc7ef7cdb3c939a798326f9fe1f5ab607c7608d2a05f0b1abaf2afbb23af6",
+  "icons/ios/AppIcon-76x76@1x.png": "6445a8419fcc51a196b5a6acac0db799135f71c57fd66a743b7ddfa60d30740c",
+  "icons/ios/AppIcon-76x76@2x.png": "c422e8c63713eba7cf58df81da4d611d10bcc5fa68b071a05be56d6d3f16b707",
+  "icons/ios/AppIcon-83.5x83.5@2x.png": "c2b2651393abc74a043918a08eb98ecd51fa77d526c717fe6b369e801b97b19f",
 } as const;
 const UPDATER_PUBKEY_PLACEHOLDER_PATTERN = /(?:placeholder|change[_-]?me|todo)/i;
 const RELEASE_UPDATER_ASSET_CONTRACT = [
@@ -1496,8 +1496,10 @@ describe("release repository contract", () => {
       expect(readSha256(`src-tauri/${iconPath}`), iconPath).toBe(expectedHash);
     }
 
-    expect(readText("mise.toml")).toContain('run = "tauri icon"');
-    expect(readText("docs/README.md")).toContain("`src-tauri/icons/icon.png` is the checked-in source image");
+    expect(readText("mise.toml")).toContain('run = "tauri icon assets/app-icon-tauri-source.png"');
+    expect(readText("docs/README.md")).toContain(
+      "`assets/app-icon-tauri-source.png` is the checked-in Tauri source image",
+    );
   });
 
   it("keeps updater manifest platforms mapped back to release assets and checksums", () => {

@@ -2067,10 +2067,13 @@ describe("repository static contracts", () => {
     for (const iconPath of bundleIcons) {
       expect(existsSync(join(repoRoot, "src-tauri", iconPath)), iconPath).toBe(true);
     }
+    expect(existsSync(join(repoRoot, "assets/app-icon.png"))).toBe(true);
+    expect(existsSync(join(repoRoot, "assets/app-icon-tauri-source.png"))).toBe(true);
     expect(existsSync(join(repoRoot, "src-tauri/icons/icon.png"))).toBe(true);
-    expect(appIconTask).toContain("tauri icon");
+    expect(appIconTask).toContain("tauri icon assets/app-icon-tauri-source.png");
     expect(docsReadme).toContain("Bundled app icon provenance");
-    expect(docsReadme).toContain("`src-tauri/icons/icon.png` is the checked-in source image");
+    expect(docsReadme).toContain("`assets/app-icon.png` is the checked-in raster design master");
+    expect(docsReadme).toContain("`assets/app-icon-tauri-source.png` is the checked-in Tauri source image");
     expect(docsReadme).toContain("project-owned artwork with no third-party attribution requirement");
     expect(docsReadme).toContain("source URL, license, and attribution note");
   });
