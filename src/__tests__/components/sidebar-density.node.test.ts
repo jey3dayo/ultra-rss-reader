@@ -25,7 +25,7 @@ describe("getSidebarDensityTokens", () => {
 
     expect(compact.navButton).toContain("min-h-8");
     expect(compact.leadingControl).toBe("size-8");
-    expect(compact.treeRootPadding).toBe("pl-3 pr-2");
+    expect(compact.treeRootPadding).toBe("pl-3 pr-0");
     expect(compact.treeInset).toBe("ml-2 pl-3");
     expect(compact.tagListGap).toBe("space-y-0");
   });

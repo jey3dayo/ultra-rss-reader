@@ -32,6 +32,7 @@ describe("FeedTreeFolderSection", () => {
     });
 
     expect(folderButton).toHaveClass("pl-0.5");
+    expect(folderButton).toHaveClass("pr-1.5");
     expect(folderButton).toHaveClass("-ml-1");
     expect(folderButton.querySelector("span")).not.toHaveClass("-ml-1");
     expect(folderButton).toHaveClass("rounded-lg");
@@ -40,9 +41,9 @@ describe("FeedTreeFolderSection", () => {
     expect(folderButton).toHaveAttribute("aria-expanded", "false");
     expect(screen.getByText("Comic")).toHaveClass("font-medium");
     expect(screen.getByText("9,274")).toHaveClass(
-      "min-w-8",
-      "justify-end",
-      "text-right",
+      "w-8",
+      "justify-center",
+      "text-center",
       "text-[0.72rem]",
       "text-sidebar-foreground/54",
     );
@@ -67,6 +68,7 @@ describe("FeedTreeFolderSection", () => {
     });
 
     expect(folderButton).toHaveClass("pl-0.5");
+    expect(folderButton).toHaveClass("pr-1.5");
     expect(folderButton).toHaveClass("-ml-1");
     expect(folderButton.querySelector("span")).not.toHaveClass("-ml-1");
     expect(folderButton.querySelector(".motion-disclosure-icon")).toHaveClass("h-3", "w-3");
@@ -91,6 +93,7 @@ describe("FeedTreeFolderSection", () => {
     const selectedIndicator = document.querySelector<HTMLElement>("[data-folder-row-selected-indicator='folder-1']");
 
     expect(folderButton).toHaveClass("pl-0.5");
+    expect(folderButton).toHaveClass("pr-1.5");
     expect(folderButton).not.toHaveClass("pl-7");
     expect(selectedIndicator?.parentElement).toHaveClass("flex", "items-center", "gap-0.5");
   });
