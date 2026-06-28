@@ -1,5 +1,6 @@
 import { useReducer, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { normalizeTagColorForCommand, normalizeTagColorForView } from "@/api/schemas/commands";
 import type { TagDto } from "@/api/tauri-commands";
 import { DeleteTagDialogView } from "@/components/reader/delete-tag-dialog-view";
 import { RenameTagDialogView } from "@/components/reader/rename-tag-dialog-view";
@@ -70,7 +71,7 @@ function tagsSettingsReducer(state: TagsSettingsState, action: TagsSettingsActio
         editingTag: action.tag,
         editRevision: state.editRevision + 1,
         renameName: action.tag?.name ?? "",
-        renameColor: action.tag?.color ?? null,
+        renameColor: normalizeTagColorForView(action.tag?.color),
       };
     case "close-edit":
       return {
@@ -118,7 +119,9 @@ export function TagsSettings() {
   tagsRef.current = tags;
   const { name, color, createRevision, editingTag, editRevision, deletingTag, renameName, renameColor } = state;
   const createDirty = name.trim().length > 0 || color !== null;
-  const editDirty = editingTag !== null && (renameName.trim() !== editingTag.name || renameColor !== editingTag.color);
+  const editDirty =
+    editingTag !== null &&
+    (renameName.trim() !== editingTag.name || renameColor !== normalizeTagColorForView(editingTag.color));
   const tagPending = createTag.isPending || renameTag.isPending || deleteTag.isPending;
   const deleteTargetKnown = deletingTag === null || tags.some((tag) => tag.id === deletingTag.id);
   useRegisterSettingsDirtyState({
@@ -169,7 +172,9 @@ export function TagsSettings() {
 
     const trimmed = renameName.trim();
     const nameChanged = trimmed !== editingTag.name;
-    const colorChanged = renameColor !== editingTag.color;
+    const nextColor = normalizeTagColorForCommand(renameColor);
+    const currentColor = normalizeTagColorForView(editingTag.color);
+    const colorChanged = nextColor !== currentColor;
     if (!trimmed || (!nameChanged && !colorChanged)) {
       dispatch({ type: "close-edit" });
       return;
@@ -181,7 +186,7 @@ export function TagsSettings() {
       await renameTag.mutateAsync({
         tagId: requestTagId,
         name: trimmed,
-        color: renameColor,
+        color: nextColor,
       });
       if (stateRef.current.editingTag?.id !== requestTagId || stateRef.current.editRevision !== requestRevision) {
         return;

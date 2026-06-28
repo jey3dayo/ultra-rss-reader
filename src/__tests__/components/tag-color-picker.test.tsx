@@ -39,11 +39,7 @@ describe("TagColorPicker", () => {
     expect(selectedColorSwatch).toHaveClass("motion-interactive-surface");
     expect(selectedColorSwatch).toHaveClass("size-11");
     expect(noColorSwatch).not.toHaveClass("bg-surface-2", "border-border-strong", "text-foreground");
-    expect(selectedColorSwatch).toHaveClass(
-      "scale-110",
-      "border-white/85",
-      "shadow-[var(--tag-color-selected-shadow)]",
-    );
+    expect(selectedColorSwatch).toHaveClass("border-white/90", "shadow-[var(--tag-color-selected-shadow)]");
     expect(selectedColorSwatch?.querySelector("svg")).toHaveClass("drop-shadow-[var(--tag-color-check-shadow)]");
 
     await user.click(screen.getByRole("radio", { name: "Select #cf7868" }));

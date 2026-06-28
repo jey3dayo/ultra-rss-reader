@@ -1,6 +1,6 @@
 import { useEffect, useReducer, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { normalizeTagColorForView } from "@/api/schemas/commands";
+import { normalizeTagColorForCommand, normalizeTagColorForView } from "@/api/schemas/commands";
 import type { TagDto } from "@/api/tauri-commands";
 import { TAG_COLOR_PRESETS } from "@/design-system";
 import { normalizeRenameInput } from "@/hooks/normalize-rename-input";
@@ -25,7 +25,7 @@ type TagContextMenuState = {
 type TagContextMenuAction =
   | { type: "open-rename-dialog"; tag: TagDto }
   | { type: "close-rename-dialog" }
-  | { type: "sync-rename-draft"; tag: TagDto }
+  | { type: "sync-rename-draft"; name: string; color: string | null }
   | { type: "set-delete-dialog"; value: boolean }
   | { type: "set-rename-name"; value: string }
   | { type: "set-rename-color"; value: string | null };
@@ -53,8 +53,8 @@ function tagContextMenuReducer(state: TagContextMenuState, action: TagContextMen
     case "sync-rename-draft":
       return {
         ...state,
-        renameName: action.tag.name,
-        renameColor: normalizeTagColorForView(action.tag.color),
+        renameName: action.name,
+        renameColor: action.color,
       };
     case "set-delete-dialog":
       return { ...state, showDeleteDialog: action.value };
@@ -75,15 +75,22 @@ export function TagContextMenuContent({ tag }: TagContextMenuContentProps) {
   const renameTag = useRenameTag();
   const deleteTag = useDeleteTag();
   const deleteInFlightRef = useRef(false);
+  const renameDraftTagIdRef = useRef<string | null>(null);
   const [deleteInFlight, setDeleteInFlight] = useState(false);
 
   useEffect(() => {
     if (!showRenameDialog) {
+      renameDraftTagIdRef.current = null;
       return;
     }
 
-    dispatch({ type: "sync-rename-draft", tag });
-  }, [showRenameDialog, tag]);
+    if (renameDraftTagIdRef.current === tag.id) {
+      return;
+    }
+
+    renameDraftTagIdRef.current = tag.id;
+    dispatch({ type: "sync-rename-draft", name: tag.name, color: normalizeTagColorForView(tag.color) });
+  }, [showRenameDialog, tag.id, tag.name, tag.color]);
 
   const handleRenameOpenChange = (open: boolean) => {
     if (open) {
@@ -105,14 +112,15 @@ export function TagContextMenuContent({ tag }: TagContextMenuContentProps) {
   const handleRenameSubmit = () => {
     const trimmed = normalizeRenameInput(renameName);
     const nameChanged = trimmed !== tag.name;
-    const colorChanged = renameColor !== tag.color;
+    const nextColor = normalizeTagColorForCommand(renameColor);
+    const colorChanged = nextColor !== normalizeTagColorForView(tag.color);
     if (!trimmed || (!nameChanged && !colorChanged)) {
       handleRenameOpenChange(false);
       return;
     }
 
     renameTag.mutate(
-      { tagId: tag.id, name: trimmed, color: renameColor },
+      { tagId: tag.id, name: trimmed, color: nextColor },
       {
         onSuccess: () => {
           handleRenameOpenChange(false);

@@ -180,6 +180,48 @@ describe("TagsSettings", () => {
     });
   });
 
+  it("saves tag color changes from the edit dialog", async () => {
+    const user = userEvent.setup();
+    tagHooks.tagsData = [{ id: "tag-1", name: "Review", color: "#cf7868" }];
+    tagHooks.renameTagMutateAsync.mockResolvedValueOnce({});
+
+    render(<TagsSettings />);
+
+    await user.click(screen.getByRole("button", { name: /Edit/ }));
+    const dialog = screen.getByRole("dialog");
+    await user.click(within(dialog).getByRole("radio", { name: "Color #6f8eb8" }));
+    await user.click(within(dialog).getByRole("button", { name: /^(Save|common\.save)$/ }));
+
+    await waitFor(() => {
+      expect(tagHooks.renameTagMutateAsync).toHaveBeenCalledWith({
+        tagId: "tag-1",
+        name: "Review",
+        color: "#6f8eb8",
+      });
+    });
+  });
+
+  it("clears tag color from the edit dialog", async () => {
+    const user = userEvent.setup();
+    tagHooks.tagsData = [{ id: "tag-1", name: "Review", color: "#cf7868" }];
+    tagHooks.renameTagMutateAsync.mockResolvedValueOnce({});
+
+    render(<TagsSettings />);
+
+    await user.click(screen.getByRole("button", { name: /Edit/ }));
+    const dialog = screen.getByRole("dialog");
+    await user.click(within(dialog).getByRole("radio", { name: /No color|reader\.no_color/ }));
+    await user.click(within(dialog).getByRole("button", { name: /^(Save|common\.save)$/ }));
+
+    await waitFor(() => {
+      expect(tagHooks.renameTagMutateAsync).toHaveBeenCalledWith({
+        tagId: "tag-1",
+        name: "Review",
+        color: null,
+      });
+    });
+  });
+
   it("closes edit dialog without renaming when the target tag disappears", async () => {
     const user = userEvent.setup();
     const showToast = vi.fn();

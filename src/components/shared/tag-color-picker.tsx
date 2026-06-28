@@ -1,4 +1,4 @@
-import { Check } from "lucide-react";
+import { Check, X } from "lucide-react";
 import { type KeyboardEvent, useId, useRef } from "react";
 import { cn } from "@/lib/utils";
 
@@ -67,6 +67,7 @@ export function TagColorPicker({
   };
   const swatchClassName = density === "compact" ? "size-8" : "size-11";
   const selectedIconClassName = density === "compact" ? "size-3" : "size-4";
+  const noColorIconClassName = density === "compact" ? "size-3" : "size-3.5";
 
   return (
     <div className={cn(density === "compact" ? "space-y-2" : "space-y-3")}>
@@ -83,7 +84,7 @@ export function TagColorPicker({
         className={cn("flex flex-wrap items-center", density === "compact" ? "gap-1.5" : "gap-2")}
         onKeyDown={handleKeyDown}
       >
-        <label title={noColorLabel}>
+        <label className="cursor-pointer" title={noColorLabel}>
           <input
             ref={(node) => {
               radioRefs.current[0] = node;
@@ -99,19 +100,19 @@ export function TagColorPicker({
           />
           <span
             className={cn(
-              "motion-interactive-surface flex items-center justify-center rounded-full border bg-surface-1 text-[11px] text-foreground-soft peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-ring/50",
+              "motion-interactive-surface flex items-center justify-center rounded-full border bg-surface-1 text-foreground-soft peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-ring/50",
               swatchClassName,
               disabled && "cursor-not-allowed opacity-50",
               normalizedColor === null
-                ? "border-border-strong bg-surface-2 text-foreground ring-2 ring-ring/35"
+                ? "border-border-strong bg-surface-2 text-foreground shadow-[var(--tag-color-selected-shadow)]"
                 : "border-border/70 hover:border-border-strong hover:bg-surface-2 hover:text-foreground",
             )}
           >
-            <span className="leading-none">X</span>
+            <X aria-hidden="true" className={noColorIconClassName} strokeWidth={1.8} />
           </span>
         </label>
         {colorRadioValues.map((option, optionIndex) => (
-          <label key={option} title={optionAriaLabel(option)}>
+          <label key={option} className="cursor-pointer" title={optionAriaLabel(option)}>
             <input
               ref={(node) => {
                 radioRefs.current[optionIndex + 1] = node;
@@ -131,7 +132,7 @@ export function TagColorPicker({
                 swatchClassName,
                 disabled && "cursor-not-allowed opacity-50",
                 normalizedColor === option
-                  ? "scale-110 border-white/85 shadow-[var(--tag-color-selected-shadow)]"
+                  ? "border-white/90 shadow-[var(--tag-color-selected-shadow)]"
                   : "border-border/60 hover:border-border-strong",
               )}
               style={{ backgroundColor: option }}
