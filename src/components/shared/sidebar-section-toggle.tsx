@@ -35,9 +35,11 @@ export function SidebarSectionToggle({
       )}
     >
       <span className={sidebarSectionLabelClassName}>{label}</span>
-      <ChevronDown
-        className={cn("motion-disclosure-icon h-3.5 w-3.5 text-sidebar-foreground/54", !isOpen && "-rotate-90")}
-      />
+      <span className="ml-3 inline-flex w-8 shrink-0 justify-center">
+        <ChevronDown
+          className={cn("motion-disclosure-icon h-3.5 w-3.5 text-sidebar-foreground/54", !isOpen && "-rotate-90")}
+        />
+      </span>
     </button>
   );
 
