@@ -131,6 +131,7 @@ export function DataSettingsView({
             {({ descriptionId }) => (
               <SettingsLoadingActionButton
                 aria-describedby={descriptionId}
+                size="standalone"
                 disabled={vacuumActionUnavailable}
                 loading={vacuuming}
                 loadingLabel={vacuumActionLabel}
@@ -176,6 +177,7 @@ export function DataSettingsView({
             className={DATA_ACTION_ROW_CLASS_NAME}
           >
             <SettingsLoadingActionButton
+              size="standalone"
               disabled={settingsProfileActionUnavailable}
               loading={exportingSettingsProfile}
               loadingLabel={settingsProfileExportActionLabel}
@@ -199,6 +201,7 @@ export function DataSettingsView({
               onChange={handleImportFileChange}
             />
             <SettingsLoadingActionButton
+              size="standalone"
               disabled={settingsProfileActionUnavailable}
               loading={importingSettingsProfile}
               loadingLabel={settingsProfileImportActionLabel}
@@ -216,6 +219,7 @@ export function DataSettingsView({
             className={DATA_ACTION_ROW_CLASS_NAME}
           >
             <SettingsLoadingActionButton
+              size="standalone"
               disabled={openLogDirActionUnavailable}
               loading={openingLogDir}
               loadingLabel={openLogDirActionLabel}

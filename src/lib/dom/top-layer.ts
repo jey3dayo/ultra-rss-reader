@@ -85,9 +85,15 @@ export function hideElementsOutsideDialog(
     return () => undefined;
   }
 
-  const dialogElements = Array.from(ownerDocument.querySelectorAll(`[data-dialog-stack-id="${dialogId}"]`)).filter(
-    (element): element is HTMLElement => isOwnerDocumentHtmlElement(element, ownerDocument),
-  );
+  const dialogElements = Array.from(
+    ownerDocument.querySelectorAll(
+      [
+        `[data-dialog-stack-id="${dialogId}"]`,
+        '[data-slot="dialog-overlay"][data-dialog-stack-id][data-open]',
+        '[data-slot="dialog-content"][data-dialog-stack-id][data-open]',
+      ].join(","),
+    ),
+  ).filter((element): element is HTMLElement => isOwnerDocumentHtmlElement(element, ownerDocument));
   const hiddenElements: HiddenDialogSibling[] = [];
   const outsideElements = Array.from(ownerDocument.body.children).flatMap((child) =>
     isOwnerDocumentHtmlElement(child, ownerDocument) ? collectOutsideDialogElements(child, dialogElements) : [],

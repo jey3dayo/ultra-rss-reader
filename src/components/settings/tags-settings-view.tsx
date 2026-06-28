@@ -115,6 +115,7 @@ export function TagsSettingsView({
                 noColorLabel={noColorLabel}
                 optionAriaLabel={colorOptionAriaLabel}
                 density="compact"
+                showNoColorOption={false}
                 onChange={onColorChange}
               />
             </div>

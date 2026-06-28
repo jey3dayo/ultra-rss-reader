@@ -1,3 +1,4 @@
+import type { ComponentProps } from "react";
 import { useTranslation } from "react-i18next";
 import { FormDialogShell, StackedInputField, TagColorPicker } from "@/design-system";
 import { useTagDialogAutofocus } from "./use-tag-dialog-autofocus";
@@ -7,6 +8,8 @@ const NO_OP_COLOR_CHANGE = () => {};
 
 type RenameTagDialogViewProps = {
   open: boolean;
+  modal?: boolean;
+  portalContainer?: ComponentProps<typeof FormDialogShell>["portalContainer"];
   name: string;
   color?: string | null;
   loading: boolean;
@@ -20,6 +23,8 @@ type RenameTagDialogViewProps = {
 
 export function RenameTagDialogView({
   open,
+  modal = true,
+  portalContainer,
   name,
   color = null,
   loading,
@@ -37,6 +42,8 @@ export function RenameTagDialogView({
   return (
     <FormDialogShell
       open={open}
+      modal={modal}
+      portalContainer={portalContainer}
       title={t("edit_tag")}
       cancelLabel={tc("cancel")}
       submitLabel={tc("save")}
@@ -64,6 +71,8 @@ export function RenameTagDialogView({
           colorOptions={colorOptions}
           noColorLabel={noColorLabel ?? t("no_color")}
           optionAriaLabel={(option) => `${t("color")} ${option}`}
+          density="compact"
+          showNoColorOption={false}
           disabled={loading}
           onChange={onColorChange}
         />

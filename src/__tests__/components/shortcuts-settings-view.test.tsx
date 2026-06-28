@@ -78,7 +78,8 @@ describe("ShortcutsSettingsView", () => {
       "text-state-danger-foreground",
     );
     expect(screen.getByRole("button", { name: "Reset Next article shortcut" })).toHaveClass("size-8");
-    expect(screen.getByRole("button", { name: "Reset all to defaults" })).toHaveClass("w-full");
+    expect(screen.getByRole("button", { name: "Reset all to defaults" })).toHaveClass("h-9", "min-h-9", "px-3");
+    expect(screen.getByRole("button", { name: "Reset all to defaults" })).not.toHaveClass("w-full");
     expect(screen.queryByRole("button", { name: "Reset to defaults" })).toBeNull();
     expect(screen.getByRole("button", { name: "J" })).not.toHaveClass("w-full");
     expect(screen.getByText("Already used")).toHaveClass("text-xs", "break-words");
@@ -91,7 +92,8 @@ describe("ShortcutsSettingsView", () => {
       name: "Reset all to defaults",
     });
     expect(resetButton).toBeDisabled();
-    expect(resetButton).toHaveClass("min-h-11", "min-w-11");
+    expect(resetButton).toHaveClass("h-9", "min-h-9", "px-3");
+    expect(resetButton).not.toHaveClass("min-h-11", "min-w-11");
   });
 
   it("only shows row reset for custom bindings and activates focused row reset from the keyboard", async () => {

@@ -126,6 +126,7 @@ export function AccountDangerZoneView({
             </label>
             <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
               <SettingsLoadingActionButton
+                size="standalone"
                 onClick={onSaveLocalSyncFolder}
                 loading={savingLocalSyncFolder}
                 loadingLabel={savingLocalSyncFolderLabel}
@@ -134,6 +135,7 @@ export function AccountDangerZoneView({
                 {saveLocalSyncFolderLabel}
               </SettingsLoadingActionButton>
               <SettingsLoadingActionButton
+                size="standalone"
                 onClick={onExportLocalSync}
                 loading={exportingLocalSync}
                 loadingLabel={exportingLocalSyncLabel}
@@ -142,6 +144,7 @@ export function AccountDangerZoneView({
                 {exportLocalSyncLabel}
               </SettingsLoadingActionButton>
               <SettingsLoadingActionButton
+                size="standalone"
                 onClick={onImportLocalSync}
                 loading={importingLocalSync}
                 loadingLabel={importingLocalSyncLabel}
@@ -165,6 +168,7 @@ export function AccountDangerZoneView({
             onChange={handleImportFileChange}
           />
           <SettingsLoadingActionButton
+            size="standalone"
             onClick={handleImportClick}
             loading={importing}
             loadingLabel={importingLabel}
@@ -173,6 +177,7 @@ export function AccountDangerZoneView({
             {importLabel}
           </SettingsLoadingActionButton>
           <SettingsLoadingActionButton
+            size="standalone"
             onClick={onExport}
             loading={exporting}
             loadingLabel={exportingLabel}

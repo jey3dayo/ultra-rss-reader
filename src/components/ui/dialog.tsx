@@ -22,6 +22,7 @@ export type DialogContentProps = DialogPrimitive.Popup.Props & {
   closeLabel?: string;
   overlayPreset?: DialogOverlayPreset;
   overlayClassName?: string;
+  portalContainer?: DialogPortalProps["container"];
   stackLayer?: DialogStackLayer;
 };
 export type DialogHeaderProps = React.ComponentProps<"div">;
@@ -91,6 +92,7 @@ function DialogContent({
   closeLabel,
   overlayPreset = "modal",
   overlayClassName,
+  portalContainer,
   stackLayer = "dialog",
   ...props
 }: DialogContentProps) {
@@ -120,8 +122,8 @@ function DialogContent({
     return hideElementsOutsideDialog(dialogId);
   }, [dialogId, modal, open]);
 
-  return (
-    <DialogPortal>
+  const content = (
+    <>
       <DialogOverlay className={[stackClassName, resolvedOverlayClassName].join(" ")} data-dialog-stack-id={dialogId} />
       <DialogPrimitive.Popup
         data-slot="dialog-content"
@@ -146,8 +148,10 @@ function DialogContent({
           </DialogPrimitive.Close>
         )}
       </DialogPrimitive.Popup>
-    </DialogPortal>
+    </>
   );
+
+  return <DialogPortal container={portalContainer}>{content}</DialogPortal>;
 }
 
 function DialogHeader({ className, ...props }: DialogHeaderProps) {

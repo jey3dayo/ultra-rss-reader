@@ -105,7 +105,7 @@ function SettingsPageActionRow({ control }: SettingsPageControlRowProps<Settings
     >
       <SettingsLoadingActionButton
         type="button"
-        size={control.actionSize ?? "compact"}
+        size={control.actionSize ?? "standalone"}
         onClick={control.onAction}
         disabled={control.disabled}
         loading={control.actionLoading}

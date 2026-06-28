@@ -30,12 +30,18 @@ type TagContextMenuAction =
   | { type: "set-rename-name"; value: string }
   | { type: "set-rename-color"; value: string | null };
 
+const DEFAULT_RENAME_TAG_COLOR = TAG_COLOR_PRESETS[0] ?? null;
+
+function getEditableTagColor(color: string | null | undefined): string | null {
+  return normalizeTagColorForView(color) ?? DEFAULT_RENAME_TAG_COLOR;
+}
+
 function createInitialTagContextMenuState(tag: TagDto): TagContextMenuState {
   return {
     showRenameDialog: false,
     showDeleteDialog: false,
     renameName: tag.name,
-    renameColor: normalizeTagColorForView(tag.color),
+    renameColor: getEditableTagColor(tag.color),
   };
 }
 
@@ -46,7 +52,7 @@ function tagContextMenuReducer(state: TagContextMenuState, action: TagContextMen
         ...state,
         showRenameDialog: true,
         renameName: action.tag.name,
-        renameColor: normalizeTagColorForView(action.tag.color),
+        renameColor: getEditableTagColor(action.tag.color),
       };
     case "close-rename-dialog":
       return { ...state, showRenameDialog: false };
@@ -89,7 +95,7 @@ export function TagContextMenuContent({ tag }: TagContextMenuContentProps) {
     }
 
     renameDraftTagIdRef.current = tag.id;
-    dispatch({ type: "sync-rename-draft", name: tag.name, color: normalizeTagColorForView(tag.color) });
+    dispatch({ type: "sync-rename-draft", name: tag.name, color: getEditableTagColor(tag.color) });
   }, [showRenameDialog, tag.id, tag.name, tag.color]);
 
   const handleRenameOpenChange = (open: boolean) => {
@@ -113,7 +119,7 @@ export function TagContextMenuContent({ tag }: TagContextMenuContentProps) {
     const trimmed = normalizeRenameInput(renameName);
     const nameChanged = trimmed !== tag.name;
     const nextColor = normalizeTagColorForCommand(renameColor);
-    const colorChanged = nextColor !== normalizeTagColorForView(tag.color);
+    const colorChanged = nextColor !== getEditableTagColor(tag.color);
     if (!trimmed || (!nameChanged && !colorChanged)) {
       handleRenameOpenChange(false);
       return;

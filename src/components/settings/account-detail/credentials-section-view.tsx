@@ -152,6 +152,7 @@ export function AccountCredentialsSectionView({
           <div className={`${CONTROL_RAIL_CLASS} flex justify-end`}>
             <SettingsLoadingActionButton
               tone={testConnectionTone}
+              size="standalone"
               onClick={onTestConnection}
               loading={isTestingConnection}
               loadingLabel={testingConnectionLabel}

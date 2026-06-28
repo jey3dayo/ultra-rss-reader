@@ -11,6 +11,7 @@ type TagColorPickerProps = {
   noColorLabel: string;
   optionAriaLabel: (color: string) => string;
   density?: "default" | "compact";
+  showNoColorOption?: boolean;
   disabled?: boolean;
   onChange: (value: string | null) => void;
 };
@@ -22,6 +23,7 @@ export function TagColorPicker({
   noColorLabel,
   optionAriaLabel,
   density = "default",
+  showNoColorOption = true,
   disabled = false,
   onChange,
 }: TagColorPickerProps) {
@@ -30,13 +32,17 @@ export function TagColorPicker({
   const radioRefs = useRef<Array<HTMLInputElement | null>>([]);
   const normalizedColor = normalizePickerColor(color);
   const uniqueColorOptions = normalizeUniquePickerColors(colorOptions);
+  const resolvedColor =
+    !showNoColorOption && normalizedColor === null && uniqueColorOptions.length > 0
+      ? uniqueColorOptions[0]
+      : normalizedColor;
   const radioValues = [
-    null,
+    ...(showNoColorOption ? [null] : []),
     ...(normalizedColor !== null && !uniqueColorOptions.includes(normalizedColor) ? [normalizedColor] : []),
     ...uniqueColorOptions,
   ] as const;
-  const colorRadioValues = radioValues.slice(1) as readonly string[];
-  const selectedIndex = radioValues.indexOf(normalizedColor);
+  const colorRadioValues = radioValues.filter((value): value is string => value !== null);
+  const selectedIndex = radioValues.indexOf(resolvedColor);
   const checkedIndex = selectedIndex >= 0 ? selectedIndex : 0;
   const selectByIndex = (index: number, shouldFocus = false) => {
     if (disabled) {
@@ -84,46 +90,48 @@ export function TagColorPicker({
         className={cn("flex flex-wrap items-center", density === "compact" ? "gap-1.5" : "gap-2")}
         onKeyDown={handleKeyDown}
       >
-        <label className="cursor-pointer" title={noColorLabel}>
-          <input
-            ref={(node) => {
-              radioRefs.current[0] = node;
-            }}
-            type="radio"
-            name={radioName}
-            checked={normalizedColor === null}
-            aria-label={noColorLabel}
-            className="peer sr-only"
-            disabled={disabled}
-            tabIndex={!disabled && checkedIndex === 0 ? 0 : -1}
-            onChange={() => onChange(null)}
-          />
-          <span
-            className={cn(
-              "motion-interactive-surface flex items-center justify-center rounded-full border bg-surface-1 text-foreground-soft peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-ring/50",
-              swatchClassName,
-              disabled && "cursor-not-allowed opacity-50",
-              normalizedColor === null
-                ? "border-border-strong bg-surface-2 text-foreground shadow-[var(--tag-color-selected-shadow)]"
-                : "border-border/70 hover:border-border-strong hover:bg-surface-2 hover:text-foreground",
-            )}
-          >
-            <X aria-hidden="true" className={noColorIconClassName} strokeWidth={1.8} />
-          </span>
-        </label>
+        {showNoColorOption ? (
+          <label className="cursor-pointer" title={noColorLabel}>
+            <input
+              ref={(node) => {
+                radioRefs.current[0] = node;
+              }}
+              type="radio"
+              name={radioName}
+              checked={resolvedColor === null}
+              aria-label={noColorLabel}
+              className="peer sr-only"
+              disabled={disabled}
+              tabIndex={!disabled && checkedIndex === 0 ? 0 : -1}
+              onChange={() => onChange(null)}
+            />
+            <span
+              className={cn(
+                "motion-interactive-surface flex items-center justify-center rounded-full border bg-surface-1 text-foreground-soft peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-ring/50",
+                swatchClassName,
+                disabled && "cursor-not-allowed opacity-50",
+                resolvedColor === null
+                  ? "border-border-strong bg-surface-2 text-foreground shadow-[var(--tag-color-selected-shadow)]"
+                  : "border-border/70 hover:border-border-strong hover:bg-surface-2 hover:text-foreground",
+              )}
+            >
+              <X aria-hidden="true" className={noColorIconClassName} strokeWidth={1.8} />
+            </span>
+          </label>
+        ) : null}
         {colorRadioValues.map((option, optionIndex) => (
           <label key={option} className="cursor-pointer" title={optionAriaLabel(option)}>
             <input
               ref={(node) => {
-                radioRefs.current[optionIndex + 1] = node;
+                radioRefs.current[showNoColorOption ? optionIndex + 1 : optionIndex] = node;
               }}
               type="radio"
               name={radioName}
-              checked={normalizedColor === option}
+              checked={resolvedColor === option}
               aria-label={optionAriaLabel(option)}
               className="peer sr-only"
               disabled={disabled}
-              tabIndex={!disabled && checkedIndex === optionIndex + 1 ? 0 : -1}
+              tabIndex={!disabled && checkedIndex === (showNoColorOption ? optionIndex + 1 : optionIndex) ? 0 : -1}
               onChange={() => onChange(option)}
             />
             <span
@@ -131,13 +139,13 @@ export function TagColorPicker({
                 "motion-interactive-surface relative flex items-center justify-center rounded-full border-2 peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-ring/50",
                 swatchClassName,
                 disabled && "cursor-not-allowed opacity-50",
-                normalizedColor === option
+                resolvedColor === option
                   ? "border-white/90 shadow-[var(--tag-color-selected-shadow)]"
                   : "border-border/60 hover:border-border-strong",
               )}
               style={{ backgroundColor: option }}
             >
-              {normalizedColor === option ? (
+              {resolvedColor === option ? (
                 <Check
                   className={cn(selectedIconClassName, "text-white drop-shadow-[var(--tag-color-check-shadow)]")}
                 />

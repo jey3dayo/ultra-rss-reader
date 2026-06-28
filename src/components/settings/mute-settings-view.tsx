@@ -7,14 +7,7 @@ import { SettingsContentLayout } from "@/components/settings/shared/settings-con
 import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { SETTINGS_CONTROL_SURFACE_CLASS, SETTINGS_DIVIDER_CLASS } from "@/components/settings/shared/settings-surface";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
-import {
-  ActionSelectControl,
-  ConfirmDialogView,
-  GradientSwitch,
-  Input,
-  LabeledActionSelectRow,
-  LabeledControlRow,
-} from "@/design-system";
+import { ActionSelectControl, ConfirmDialogView, GradientSwitch, Input, LabeledControlRow } from "@/design-system";
 import { cn } from "@/lib/utils";
 import { handleMuteKeywordScopeSelectValue } from "./mute-keyword-scope-select";
 
@@ -184,6 +177,7 @@ export function MuteSettingsView({
             heading={savedHeading}
             surface="flat"
             className="px-3 py-2.5 sm:px-4 sm:py-3"
+            headingClassName="mb-2"
             contentClassName="[&>*:first-child]:pt-0 [&>*:last-child]:pb-0"
           >
             {rules.length === 0 ? (
@@ -198,35 +192,51 @@ export function MuteSettingsView({
                 {emptyState}
               </p>
             ) : (
-              rules.map((rule) => (
-                <LabeledActionSelectRow
-                  key={rule.id}
-                  label={rule.keyword}
-                  value={rule.scope}
-                  options={scopeOptions}
-                  selectAriaLabel={savedScopeAriaLabel(rule.keyword)}
-                  onValueChange={(value) =>
-                    handleMuteKeywordScopeSelectValue(value, (scope) => onRuleScopeChange(rule.id, scope), {
-                      source: "saved-rule",
-                      ruleId: rule.id,
-                    })
-                  }
-                  labelClassName="break-all sm:max-w-[280px] sm:shrink-0 sm:truncate sm:break-normal"
-                  triggerClassName={cn("h-11 w-full sm:flex-1", SETTINGS_CONTROL_SURFACE_CLASS)}
-                  trailingControls={
-                    <SettingsActionButton
-                      type="button"
-                      size="icon"
-                      tone="danger"
-                      className="size-8 min-h-8 min-w-8"
-                      aria-label={deleteLabel}
-                      onClick={() => onRequestDelete(rule.id)}
+              <div>
+                {rules.map((rule) => (
+                  <div
+                    key={rule.id}
+                    data-testid={`mute-settings-row-${rule.id}`}
+                    className={cn(
+                      "motion-contextual-surface flex min-h-12 items-center justify-between gap-3 border-b py-1.5",
+                      SETTINGS_DIVIDER_CLASS,
+                    )}
+                  >
+                    <span
+                      className="min-w-0 flex-1 truncate text-[13px] leading-[1.35] text-[color:var(--form-row-label)]"
+                      dir="auto"
+                      title={rule.keyword}
                     >
-                      <Trash2 className="size-3.5" aria-hidden="true" />
-                    </SettingsActionButton>
-                  }
-                />
-              ))
+                      {rule.keyword}
+                    </span>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <ActionSelectControl
+                        label={rule.keyword}
+                        ariaLabel={savedScopeAriaLabel(rule.keyword)}
+                        value={rule.scope}
+                        options={scopeOptions}
+                        onValueChange={(value) =>
+                          handleMuteKeywordScopeSelectValue(value, (scope) => onRuleScopeChange(rule.id, scope), {
+                            source: "saved-rule",
+                            ruleId: rule.id,
+                          })
+                        }
+                        triggerClassName={cn("h-9 w-[9.5rem]", SETTINGS_CONTROL_SURFACE_CLASS)}
+                      />
+                      <SettingsActionButton
+                        type="button"
+                        size="icon"
+                        tone="danger"
+                        className="size-8 min-h-8 min-w-8"
+                        aria-label={deleteLabel}
+                        onClick={() => onRequestDelete(rule.id)}
+                      >
+                        <Trash2 className="size-3.5" aria-hidden="true" />
+                      </SettingsActionButton>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </SettingsSection>
         </div>

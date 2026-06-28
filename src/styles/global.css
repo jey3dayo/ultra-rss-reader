@@ -176,6 +176,7 @@
   --ring: rgba(112, 132, 158, 0.38);
   --sidebar: var(--theme-surface-3);
   --sidebar-foreground: var(--theme-foreground);
+  --sidebar-foreground-muted-strong: var(--foreground-soft);
   --sidebar-accent: #dcd8cf;
   --sidebar-accent-foreground: var(--theme-foreground);
   --sidebar-border: rgba(38, 37, 30, 0.12);
@@ -533,6 +534,7 @@
   --ring: rgba(159, 187, 224, 0.42);
   --sidebar: #171410;
   --sidebar-foreground: #efe8db;
+  --sidebar-foreground-muted-strong: var(--foreground-soft);
   --sidebar-accent: #26211b;
   --sidebar-accent-foreground: var(--theme-foreground);
   --sidebar-border: rgba(243, 239, 230, 0.12);

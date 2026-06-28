@@ -23,6 +23,30 @@ export const mockArticleViewHistory: {
   viewedAt: string;
 }[] = [];
 
+const initialMockMuteKeywords: MuteKeywordDto[] = [
+  {
+    id: "dev-mute-sale",
+    keyword: "セール告知",
+    scope: "title_and_body",
+    created_at: "2026-04-20T10:10:00Z",
+    updated_at: "2026-04-20T10:10:00Z",
+  },
+  {
+    id: "dev-mute-pr",
+    keyword: "PR",
+    scope: "title",
+    created_at: "2026-04-20T10:05:00Z",
+    updated_at: "2026-04-20T10:05:00Z",
+  },
+  {
+    id: "dev-mute-sponsored",
+    keyword: "sponsored",
+    scope: "body",
+    created_at: "2026-04-20T10:00:00Z",
+    updated_at: "2026-04-20T10:00:00Z",
+  },
+];
+
 const initialMockArticleViewHistory: typeof mockArticleViewHistory = [
   {
     accountId: "acc-freshrss",
@@ -43,7 +67,7 @@ export function resetDevMockDataState() {
   nextTagId = 100;
   nextMuteKeywordId = 100;
   mockPreferences.clear();
-  mockMuteKeywords.splice(0);
+  mockMuteKeywords.splice(0, mockMuteKeywords.length, ...initialMockMuteKeywords.map((item) => structuredClone(item)));
   mockArticleViewHistory.splice(
     0,
     mockArticleViewHistory.length,

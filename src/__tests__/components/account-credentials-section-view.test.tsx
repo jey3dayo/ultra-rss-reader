@@ -3,8 +3,10 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { AccountCredentialsSectionView } from "@/components/settings/account-detail/credentials-section-view";
 
-function expectStandardSettingsActionButtonWidth(button: HTMLElement) {
-  expect(button).toHaveClass("min-w-11");
+function expectStandaloneSettingsActionButton(button: HTMLElement) {
+  expect(button).toHaveClass("h-9", "min-h-9", "px-3");
+  expect(button).toHaveClass("text-[13px]", "font-medium");
+  expect(button).not.toHaveClass("h-11", "px-4");
 }
 
 describe("AccountCredentialsSectionView", () => {
@@ -83,10 +85,7 @@ describe("AccountCredentialsSectionView", () => {
     const button = screen.getByRole("button", { name: "Testing..." });
     expect(button).toBeDisabled();
     expect(button).toHaveAttribute("aria-busy", "true");
-    expect(button).toHaveClass("w-full");
-    expect(button).toHaveClass("sm:w-auto");
-    expect(button).toHaveClass("h-11", "px-4");
-    expectStandardSettingsActionButtonWidth(button);
+    expectStandaloneSettingsActionButton(button);
     expect(button).toHaveClass(
       "border",
       "border-[var(--settings-shell-control-border)]",

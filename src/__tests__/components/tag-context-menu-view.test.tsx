@@ -77,7 +77,7 @@ describe("TagContextMenuView", () => {
     );
   });
 
-  it("clears color from the tag context menu edit dialog", async () => {
+  it("does not show a no-color option in the tag context menu edit dialog", async () => {
     const user = userEvent.setup();
 
     render(
@@ -88,14 +88,34 @@ describe("TagContextMenuView", () => {
 
     await user.click(screen.getByRole("menuitem", { name: "Edit…" }));
     const dialog = screen.getByRole("dialog");
-    await user.click(within(dialog).getByRole("radio", { name: /No color|reader\.no_color/ }));
+
+    expect(within(dialog).queryByRole("radio", { name: /No color|reader\.no_color/ })).not.toBeInTheDocument();
+    expect(within(dialog).getByRole("radio", { name: "Color #cf7868" })).toBeChecked();
+  });
+
+  it("saves the visible default color when editing a tag without a color from the context menu", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ContextMenu.Root open>
+        <TagContextMenuContent tag={{ id: "tag-1", name: "Review", color: null }} />
+      </ContextMenu.Root>,
+    );
+
+    await user.click(screen.getByRole("menuitem", { name: "Edit…" }));
+    const dialog = screen.getByRole("dialog");
+    const nameInput = within(dialog).getByRole("textbox");
+    expect(within(dialog).getByRole("radio", { name: "Color #cf7868" })).toBeChecked();
+
+    await user.clear(nameInput);
+    await user.type(nameInput, "Reading");
     await user.click(within(dialog).getByRole("button", { name: /^(Save|common\.save)$/ }));
 
     expect(tagHooks.renameTagMutate).toHaveBeenCalledWith(
       {
         tagId: "tag-1",
-        name: "Review",
-        color: null,
+        name: "Reading",
+        color: "#cf7868",
       },
       expect.any(Object),
     );

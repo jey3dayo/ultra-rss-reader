@@ -385,7 +385,9 @@ describe("SettingsPageView", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Clear recent history" })).toBeInTheDocument();
+    const action = screen.getByRole("button", { name: "Clear recent history" });
+    expect(action).toBeInTheDocument();
+    expect(action).toHaveClass("h-9", "min-h-9", "px-3");
     expect(screen.queryByRole("button", { name: "Clear: Recent history" })).toBeNull();
   });
 

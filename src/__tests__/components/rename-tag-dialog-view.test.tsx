@@ -94,6 +94,35 @@ describe("RenameTagDialogView", () => {
     expect(onColorChange).not.toHaveBeenCalled();
   });
 
+  it("keeps the dialog open when selecting a color", async () => {
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+    const onColorChange = vi.fn();
+    const onSubmit = vi.fn();
+
+    render(
+      <RenameTagDialogView
+        open={true}
+        name="Work"
+        color={null}
+        loading={false}
+        onOpenChange={onOpenChange}
+        onNameChange={vi.fn()}
+        onColorChange={onColorChange}
+        colorOptions={["#ef4444", "#3b82f6"]}
+        noColorLabel="No color"
+        onSubmit={onSubmit}
+      />,
+    );
+
+    await user.click(screen.getByRole("radio", { name: "Color #3b82f6" }));
+
+    expect(onColorChange).toHaveBeenCalledWith("#3b82f6");
+    expect(onOpenChange).not.toHaveBeenCalled();
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+
   it("cleans up the pending autofocus frame when the dialog closes", () => {
     const scheduledFrames: FrameRequestCallback[] = [];
     vi.stubGlobal(

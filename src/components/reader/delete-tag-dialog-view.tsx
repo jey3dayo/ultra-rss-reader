@@ -1,8 +1,10 @@
 import { Trans, useTranslation } from "react-i18next";
-import { DestructiveConfirmDialogView } from "@/design-system";
+import { DestructiveConfirmDialogView, type DestructiveConfirmDialogViewProps } from "@/design-system";
 
 type DeleteTagDialogViewProps = {
   open: boolean;
+  modal?: boolean;
+  portalContainer?: DestructiveConfirmDialogViewProps["portalContainer"];
   tagName: string;
   loading?: boolean;
   confirmDisabled?: boolean;
@@ -13,6 +15,8 @@ type DeleteTagDialogViewProps = {
 
 export function DeleteTagDialogView({
   open,
+  modal = true,
+  portalContainer,
   tagName,
   loading = false,
   confirmDisabled = false,
@@ -26,6 +30,8 @@ export function DeleteTagDialogView({
   return (
     <DestructiveConfirmDialogView
       open={open}
+      modal={modal}
+      portalContainer={portalContainer}
       title={t("delete_tag")}
       description={
         <Trans i18nKey="confirm_delete_tag" ns="reader" values={{ name: tagName }}>

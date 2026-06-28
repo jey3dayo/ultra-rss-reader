@@ -11,6 +11,12 @@ import { useCreateTag, useDeleteTag, useRenameTag, useTags } from "@/hooks/use-t
 import { getErrorMessage } from "@/lib/ui/errors";
 import { useUiStore } from "@/stores/ui-store";
 
+const DEFAULT_TAG_CREATE_COLOR = TAG_COLOR_PRESETS[0] ?? null;
+
+function getEditableTagColor(color: string | null | undefined): string | null {
+  return normalizeTagColorForView(color) ?? DEFAULT_TAG_CREATE_COLOR;
+}
+
 type TagsSettingsState = {
   name: string;
   color: string | null;
@@ -35,7 +41,7 @@ type TagsSettingsAction =
 
 const initialTagsSettingsState: TagsSettingsState = {
   name: "",
-  color: null,
+  color: DEFAULT_TAG_CREATE_COLOR,
   createRevision: 0,
   editingTag: null,
   editRevision: 0,
@@ -62,7 +68,7 @@ function tagsSettingsReducer(state: TagsSettingsState, action: TagsSettingsActio
       return {
         ...state,
         name: "",
-        color: null,
+        color: DEFAULT_TAG_CREATE_COLOR,
         createRevision: state.createRevision + 1,
       };
     case "start-edit":
@@ -71,7 +77,7 @@ function tagsSettingsReducer(state: TagsSettingsState, action: TagsSettingsActio
         editingTag: action.tag,
         editRevision: state.editRevision + 1,
         renameName: action.tag?.name ?? "",
-        renameColor: normalizeTagColorForView(action.tag?.color),
+        renameColor: getEditableTagColor(action.tag?.color),
       };
     case "close-edit":
       return {
@@ -113,15 +119,16 @@ export function TagsSettings() {
   const showToast = useUiStore((state) => state.showToast);
   const [state, dispatch] = useReducer(tagsSettingsReducer, initialTagsSettingsState);
   const createInFlightRef = useRef(false);
+  const nestedDialogPortalRef = useRef<HTMLDivElement>(null);
   const stateRef = useRef(state);
   stateRef.current = state;
   const tagsRef = useRef(tags);
   tagsRef.current = tags;
   const { name, color, createRevision, editingTag, editRevision, deletingTag, renameName, renameColor } = state;
-  const createDirty = name.trim().length > 0 || color !== null;
+  const createDirty = name.trim().length > 0;
   const editDirty =
     editingTag !== null &&
-    (renameName.trim() !== editingTag.name || renameColor !== normalizeTagColorForView(editingTag.color));
+    (renameName.trim() !== editingTag.name || renameColor !== getEditableTagColor(editingTag.color));
   const tagPending = createTag.isPending || renameTag.isPending || deleteTag.isPending;
   const deleteTargetKnown = deletingTag === null || tags.some((tag) => tag.id === deletingTag.id);
   useRegisterSettingsDirtyState({
@@ -173,7 +180,7 @@ export function TagsSettings() {
     const trimmed = renameName.trim();
     const nameChanged = trimmed !== editingTag.name;
     const nextColor = normalizeTagColorForCommand(renameColor);
-    const currentColor = normalizeTagColorForView(editingTag.color);
+    const currentColor = getEditableTagColor(editingTag.color);
     const colorChanged = nextColor !== currentColor;
     if (!trimmed || (!nameChanged && !colorChanged)) {
       dispatch({ type: "close-edit" });
@@ -222,7 +229,7 @@ export function TagsSettings() {
   };
 
   return (
-    <>
+    <div ref={nestedDialogPortalRef} className="contents">
       <TagsSettingsView
         title={t("tags.heading")}
         addHeading={t("tags.add_heading")}
@@ -263,6 +270,8 @@ export function TagsSettings() {
       />
       <RenameTagDialogView
         open={editingTag !== null}
+        modal={false}
+        portalContainer={nestedDialogPortalRef}
         name={renameName}
         color={renameColor}
         loading={renameTag.isPending}
@@ -275,6 +284,8 @@ export function TagsSettings() {
       />
       <DeleteTagDialogView
         open={deletingTag !== null}
+        modal={false}
+        portalContainer={nestedDialogPortalRef}
         tagName={deletingTag?.name ?? ""}
         loading={deleteTag.isPending}
         confirmDisabled={!deleteTargetKnown}
@@ -282,6 +293,6 @@ export function TagsSettings() {
         onOpenChange={(open) => !open && dispatch({ type: "close-delete" })}
         onConfirm={() => void handleDelete()}
       />
-    </>
+    </div>
   );
 }

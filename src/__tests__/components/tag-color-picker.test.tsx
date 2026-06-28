@@ -101,6 +101,24 @@ describe("TagColorPicker", () => {
     expect(screen.getByRole("radio", { name: "Select #cf7868" })).not.toBeChecked();
   });
 
+  it("can hide the no-color option and use the first preset as the visual fallback", () => {
+    const onChange = vi.fn();
+
+    render(
+      <TagColorPicker
+        color={null}
+        colorOptions={["#6f8eb8", "#cf7868"]}
+        noColorLabel="No color"
+        optionAriaLabel={(color) => `Select ${color}`}
+        showNoColorOption={false}
+        onChange={onChange}
+      />,
+    );
+
+    expect(screen.queryByRole("radio", { name: "No color" })).not.toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Select #6f8eb8" })).toBeChecked();
+  });
+
   it("updates radio checked state from keyboard selection", async () => {
     const user = userEvent.setup();
 

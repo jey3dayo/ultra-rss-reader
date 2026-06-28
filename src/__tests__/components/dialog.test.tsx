@@ -1,5 +1,6 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useRef } from "react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { Dialog, DialogContent, DialogFooter, DialogTitle } from "@/design-system";
 import i18n from "@/lib/i18n";
@@ -22,6 +23,33 @@ function renderDialogFooter(props: Partial<React.ComponentProps<typeof DialogFoo
         <DialogFooter showCloseButton {...props} />
       </DialogContent>
     </Dialog>,
+  );
+}
+
+function NestedDialogFixture() {
+  const nestedDialogPortalRef = useRef<HTMLDivElement>(null);
+
+  return (
+    <>
+      <main data-testid="background-shell">
+        <button type="button">Background action</button>
+      </main>
+      <Dialog open>
+        <DialogContent>
+          <DialogTitle>Outer dialog</DialogTitle>
+          <div ref={nestedDialogPortalRef}>
+            <button type="button">Outer action</button>
+            <Dialog modal={false} open>
+              <DialogContent portalContainer={nestedDialogPortalRef}>
+                <DialogTitle>Inner dialog</DialogTitle>
+                <label htmlFor="inner-field">Inner field</label>
+                <input id="inner-field" />
+              </DialogContent>
+            </Dialog>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
@@ -135,6 +163,26 @@ describe("DialogContent", () => {
     });
     expect(screen.getByRole("dialog", { name: "Outer dialog" })).not.toHaveAttribute("aria-hidden");
     expect(screen.getByRole("dialog", { name: "Outer dialog" })).not.toHaveAttribute("inert");
+  });
+
+  it("keeps nested dialog controls interactive while the parent modal remains open", async () => {
+    const user = userEvent.setup();
+
+    render(<NestedDialogFixture />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("background-shell").closest("[aria-hidden='true']")).toHaveAttribute("inert");
+    });
+
+    const innerDialog = screen.getByRole("dialog", { name: "Inner dialog" });
+    const innerInput = screen.getByLabelText("Inner field");
+
+    expect(screen.getByRole("dialog", { name: "Outer dialog" })).not.toHaveAttribute("inert");
+    expect(innerDialog).not.toHaveAttribute("aria-hidden");
+    expect(innerDialog).not.toHaveAttribute("inert");
+
+    await user.click(innerInput);
+    expect(innerInput).toHaveFocus();
   });
 
   it("keeps a modal dialog above command and popover surfaces and hides the lower top layer", async () => {

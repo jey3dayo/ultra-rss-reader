@@ -1,4 +1,4 @@
-import type { FormEventHandler, ReactNode } from "react";
+import type { ComponentProps, FormEventHandler, ReactNode } from "react";
 import { FormActionButtons } from "@/components/shared/form-action-buttons";
 import {
   Dialog,
@@ -14,6 +14,8 @@ type FormDialogShellSize = "compact" | "wide";
 
 type FormDialogShellProps = {
   open: boolean;
+  modal?: boolean;
+  portalContainer?: ComponentProps<typeof DialogContent>["portalContainer"];
   title: ReactNode;
   description?: ReactNode;
   children: ReactNode;
@@ -37,6 +39,8 @@ const formDialogSizeClassName: Record<FormDialogShellSize, string> = {
 
 export function FormDialogShell({
   open,
+  modal = true,
+  portalContainer,
   title,
   description,
   children,
@@ -68,9 +72,10 @@ export function FormDialogShell({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog modal={modal} open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
+        portalContainer={portalContainer}
         className={cn(
           "flex max-h-[calc(100dvh-2rem)] flex-col overflow-hidden rounded-xl border border-border/70 bg-surface-2 p-0 shadow-elevation-3",
           formDialogSizeClassName[size],

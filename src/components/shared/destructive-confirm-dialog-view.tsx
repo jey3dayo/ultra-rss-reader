@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { DestructiveDialogFooter } from "@/components/shared/destructive-dialog-footer";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -6,6 +6,8 @@ import { getRestorableActiveElement, restoreFocusOnMicrotask } from "@/lib/dom/f
 
 export type DestructiveConfirmDialogViewProps = {
   open: boolean;
+  modal?: boolean;
+  portalContainer?: ComponentProps<typeof DialogContent>["portalContainer"];
   title: string;
   description: ReactNode;
   cancelLabel: string;
@@ -20,6 +22,8 @@ export type DestructiveConfirmDialogViewProps = {
 
 export function DestructiveConfirmDialogView({
   open,
+  modal = true,
+  portalContainer,
   title,
   description,
   cancelLabel,
@@ -85,8 +89,13 @@ export function DestructiveConfirmDialogView({
   }, [confirmDisabled, onConfirm, pending]);
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent showCloseButton={false} className="sm:max-w-md" aria-busy={actionPending}>
+    <Dialog modal={modal} open={open} onOpenChange={handleOpenChange}>
+      <DialogContent
+        showCloseButton={false}
+        portalContainer={portalContainer}
+        className="sm:max-w-md"
+        aria-busy={actionPending}
+      >
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>

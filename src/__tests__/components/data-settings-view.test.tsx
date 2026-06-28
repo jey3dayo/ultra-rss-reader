@@ -4,10 +4,9 @@ import { describe, expect, it, vi } from "vitest";
 import { DataSettingsView } from "@/components/settings/data-settings-view";
 
 function expectStandardSettingsActionButton(button: HTMLElement) {
-  expect(button).toHaveClass("w-full");
-  expect(button).toHaveClass("sm:w-auto");
-  expect(button).toHaveClass("h-11", "px-4");
-  expect(button).toHaveClass("min-h-11", "min-w-11");
+  expect(button).toHaveClass("h-9", "min-h-9", "px-3");
+  expect(button).toHaveClass("text-[13px]", "font-medium");
+  expect(button).not.toHaveClass("h-11", "px-4");
 }
 
 describe("DataSettingsView", () => {

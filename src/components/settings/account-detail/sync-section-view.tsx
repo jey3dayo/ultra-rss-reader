@@ -149,12 +149,13 @@ export function AccountSyncSectionView({
       {(onSyncNow || onSecondaryAction || onDevCredentialsRecoveryAction) && (
         <div className={cn(CONTROL_RAIL_CLASS, "flex flex-col-reverse gap-2 pt-4 sm:flex-row sm:justify-end")}>
           {onSecondaryAction && secondaryActionLabel ? (
-            <SettingsActionButton onClick={onSecondaryAction} disabled={syncActionDisabled}>
+            <SettingsActionButton size="standalone" onClick={onSecondaryAction} disabled={syncActionDisabled}>
               {secondaryActionLabel}
             </SettingsActionButton>
           ) : null}
           {onDevCredentialsRecoveryAction && devCredentialsRecoveryActionLabel ? (
             <SettingsLoadingActionButton
+              size="standalone"
               onClick={onDevCredentialsRecoveryAction}
               loading={isDevCredentialsRecoveryInFlight}
               loadingLabel={devCredentialsRecoveryLoadingLabel}
@@ -165,6 +166,7 @@ export function AccountSyncSectionView({
           ) : null}
           {onSyncNow ? (
             <SettingsLoadingActionButton
+              size="standalone"
               onClick={onSyncNow}
               loading={isSyncing}
               loadingLabel={syncingLabel}

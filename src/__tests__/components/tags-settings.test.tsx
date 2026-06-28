@@ -10,6 +10,7 @@ const tagHooks = vi.hoisted(() => ({
   createTagMutateAsync: vi.fn<(input: { name: string; color?: string }) => Promise<unknown>>(),
   renameTagMutateAsync: vi.fn<(input: { tagId: string; name: string; color?: string | null }) => Promise<unknown>>(),
   deleteTagMutateAsync: vi.fn<(input: { tagId: string }) => Promise<unknown>>(),
+  useRegisterSettingsDirtyState: vi.fn(),
 }));
 
 vi.mock("@/hooks/use-tags", () => ({
@@ -28,6 +29,10 @@ vi.mock("@/hooks/use-tags", () => ({
   }),
 }));
 
+vi.mock("@/components/settings/hooks/use-settings-dirty-state-registry", () => ({
+  useRegisterSettingsDirtyState: tagHooks.useRegisterSettingsDirtyState,
+}));
+
 describe("TagsSettings", () => {
   beforeEach(() => {
     tagHooks.tagsData = [];
@@ -35,8 +40,20 @@ describe("TagsSettings", () => {
     tagHooks.createTagMutateAsync.mockReset();
     tagHooks.renameTagMutateAsync.mockReset();
     tagHooks.deleteTagMutateAsync.mockReset();
+    tagHooks.useRegisterSettingsDirtyState.mockReset();
     tagHooks.createTagMutateAsync.mockReturnValue(new Promise(() => {}));
     useUiStore.setState(useUiStore.getInitialState());
+  });
+
+  it("does not mark the settings modal dirty when the tag page opens with its default color", () => {
+    render(<TagsSettings />);
+
+    expect(tagHooks.useRegisterSettingsDirtyState).toHaveBeenLastCalledWith({
+      owner: "tag",
+      dirty: false,
+      pending: false,
+      blockingReason: null,
+    });
   });
 
   it("guards tag creation from repeated clicks before pending state is reflected", async () => {
@@ -65,7 +82,7 @@ describe("TagsSettings", () => {
     expect(tagHooks.createTagMutateAsync).toHaveBeenCalledTimes(1);
     expect(tagHooks.createTagMutateAsync).toHaveBeenCalledWith({
       name: "Review",
-      color: undefined,
+      color: "#cf7868",
     });
   });
 
@@ -88,7 +105,7 @@ describe("TagsSettings", () => {
     expect(tagHooks.createTagMutateAsync).toHaveBeenCalledTimes(1);
     expect(tagHooks.createTagMutateAsync).toHaveBeenCalledWith({
       name: "Review",
-      color: undefined,
+      color: "#cf7868",
     });
   });
 
@@ -175,7 +192,32 @@ describe("TagsSettings", () => {
       expect(tagHooks.renameTagMutateAsync).toHaveBeenCalledWith({
         tagId: "tag-1",
         name: "Reading",
-        color: null,
+        color: "#cf7868",
+      });
+    });
+  });
+
+  it("saves the visible default color when editing an existing tag without a color", async () => {
+    const user = userEvent.setup();
+    tagHooks.tagsData = [{ id: "tag-1", name: "Review", color: null }];
+    tagHooks.renameTagMutateAsync.mockResolvedValueOnce({});
+
+    render(<TagsSettings />);
+
+    await user.click(screen.getByRole("button", { name: /Edit/ }));
+    const dialog = screen.getByRole("dialog");
+    const nameInput = within(dialog).getByRole("textbox");
+    expect(within(dialog).getByRole("radio", { name: "Color #cf7868" })).toBeChecked();
+
+    await user.clear(nameInput);
+    await user.type(nameInput, "Reading");
+    await user.click(within(dialog).getByRole("button", { name: /^(Save|common\.save)$/ }));
+
+    await waitFor(() => {
+      expect(tagHooks.renameTagMutateAsync).toHaveBeenCalledWith({
+        tagId: "tag-1",
+        name: "Reading",
+        color: "#cf7868",
       });
     });
   });
@@ -201,25 +243,17 @@ describe("TagsSettings", () => {
     });
   });
 
-  it("clears tag color from the edit dialog", async () => {
+  it("does not show a no-color option in the edit dialog", async () => {
     const user = userEvent.setup();
     tagHooks.tagsData = [{ id: "tag-1", name: "Review", color: "#cf7868" }];
-    tagHooks.renameTagMutateAsync.mockResolvedValueOnce({});
 
     render(<TagsSettings />);
 
     await user.click(screen.getByRole("button", { name: /Edit/ }));
     const dialog = screen.getByRole("dialog");
-    await user.click(within(dialog).getByRole("radio", { name: /No color|reader\.no_color/ }));
-    await user.click(within(dialog).getByRole("button", { name: /^(Save|common\.save)$/ }));
 
-    await waitFor(() => {
-      expect(tagHooks.renameTagMutateAsync).toHaveBeenCalledWith({
-        tagId: "tag-1",
-        name: "Review",
-        color: null,
-      });
-    });
+    expect(within(dialog).queryByRole("radio", { name: /No color|reader\.no_color/ })).not.toBeInTheDocument();
+    expect(within(dialog).getByRole("radio", { name: "Color #cf7868" })).toBeChecked();
   });
 
   it("closes edit dialog without renaming when the target tag disappears", async () => {

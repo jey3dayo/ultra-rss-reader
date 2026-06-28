@@ -27,6 +27,7 @@ const settingsActionButtonVariants = cva(
         icon: "size-11 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         text: "h-11 w-full px-4 text-sm font-medium sm:w-auto",
         compact: "h-11 px-4 text-sm font-medium",
+        standalone: "h-9 min-h-9 px-3 text-[13px] font-medium",
       },
     },
     defaultVariants: {

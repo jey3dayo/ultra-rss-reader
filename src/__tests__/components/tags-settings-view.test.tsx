@@ -254,11 +254,10 @@ describe("TagsSettingsView", () => {
 
     expect(screen.getByRole("radio", { name: "Color #cf7868" })).toBeChecked();
     expect(screen.getByRole("radio", { name: "Color #6f8eb8" })).not.toBeChecked();
+    expect(screen.queryByRole("radio", { name: "No color" })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("radio", { name: "Color #6f8eb8" }));
-    await user.click(screen.getByRole("radio", { name: "No color" }));
 
     expect(onColorChange).toHaveBeenNthCalledWith(1, "#6f8eb8");
-    expect(onColorChange).toHaveBeenNthCalledWith(2, null);
   });
 });

@@ -16,7 +16,7 @@ type SettingsPageControlHeader<Type extends string> = SettingsPageControlIdentit
   disabled?: boolean;
 };
 
-type SettingsPageActionSize = "text" | "compact";
+type SettingsPageActionSize = "text" | "compact" | "standalone";
 
 type SettingsPageInlineAction = {
   actionLabel: string;
