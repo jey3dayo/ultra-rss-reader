@@ -27,6 +27,8 @@ export type ArticleViewSummaryState =
       feed: FeedDto;
       articleCount: number;
       feedCount: number;
+      todayArticleCount: number;
+      weekArticleCount: number;
       recentFeeds: ArticleViewSummaryFeed[];
       latestArticleTitle?: string | null;
       latestArticlePublishedAt?: string | null;
@@ -37,6 +39,8 @@ export type ArticleViewSummaryState =
       feedCount: number;
       unreadCount: number;
       articleCount: number;
+      todayArticleCount: number;
+      weekArticleCount: number;
       recentFeeds: ArticleViewSummaryFeed[];
       latestArticlePublishedAt?: string | null;
     }
@@ -46,6 +50,8 @@ export type ArticleViewSummaryState =
       articleCount: number;
       feedCount: number;
       unreadCount: number;
+      todayArticleCount: number;
+      weekArticleCount: number;
       recentFeeds: ArticleViewSummaryFeed[];
       latestArticlePublishedAt?: string | null;
     }
@@ -55,6 +61,8 @@ export type ArticleViewSummaryState =
       articleCount: number;
       feedCount: number;
       unreadCount: number;
+      todayArticleCount: number;
+      weekArticleCount: number;
       recentFeeds: ArticleViewSummaryFeed[];
       latestArticlePublishedAt?: string | null;
     };
@@ -62,6 +70,8 @@ export type ArticleViewSummaryState =
 type ArticleViewSummaryStats = {
   articleCount: number;
   feedCount: number;
+  todayArticleCount: number;
+  weekArticleCount: number;
   latestArticlePublishedAt: string | null;
 };
 
@@ -97,10 +107,27 @@ function buildArticleViewSummaryStats(filteredArticles: ArticleDto[]): ArticleVi
   const latestVisibleArticle = Result.isSuccess(latestVisibleArticleResult)
     ? Result.unwrap(latestVisibleArticleResult)
     : null;
+  const now = new Date();
+  const todayStart = new Date(now);
+  todayStart.setHours(0, 0, 0, 0);
+  const weekStart = new Date(todayStart);
+  weekStart.setDate(todayStart.getDate() - 6);
+  const todayStartTime = todayStart.getTime();
+  const weekStartTime = weekStart.getTime();
+  const todayArticleCount = filteredArticles.filter((article) => {
+    const publishedTime = getDateInputTimeMs(article.published_at);
+    return publishedTime !== null && publishedTime >= todayStartTime;
+  }).length;
+  const weekArticleCount = filteredArticles.filter((article) => {
+    const publishedTime = getDateInputTimeMs(article.published_at);
+    return publishedTime !== null && publishedTime >= weekStartTime;
+  }).length;
 
   return {
     articleCount: filteredArticles.length,
     feedCount: visibleFeedIds.size,
+    todayArticleCount,
+    weekArticleCount,
     latestArticlePublishedAt: latestVisibleArticle?.published_at ?? null,
   };
 }
@@ -333,6 +360,8 @@ export function buildArticleViewSummaryResult(
           feed,
           articleCount: summaryStats.articleCount,
           feedCount: 1,
+          todayArticleCount: summaryStats.todayArticleCount,
+          weekArticleCount: summaryStats.weekArticleCount,
           recentFeeds: buildRecentSummaryFeeds({
             feeds,
             feedIds: new Set([feed.id]),
@@ -356,6 +385,8 @@ export function buildArticleViewSummaryResult(
       feedCount: countFeedsInFolder(feeds, folder.id),
       unreadCount: countUnreadFeedsInFolder(feeds, folder.id),
       articleCount: summaryStats.articleCount,
+      todayArticleCount: summaryStats.todayArticleCount,
+      weekArticleCount: summaryStats.weekArticleCount,
       recentFeeds: buildRecentSummaryFeeds({
         feeds,
         feedIds: new Set((feeds ?? []).filter((feed) => feed.folder_id === folder.id).map((feed) => feed.id)),

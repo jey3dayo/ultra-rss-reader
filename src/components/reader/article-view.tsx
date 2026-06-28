@@ -6,7 +6,6 @@ import { FeedFavicon, MotionNumber } from "@/design-system";
 import {
   type ArticleViewSummaryFeed,
   type ArticleViewSummaryState,
-  formatArticleSummaryDate,
   resolveArticleDateLocale,
 } from "@/lib/articles/article-view";
 import i18n from "@/lib/i18n";
@@ -26,7 +25,7 @@ const LazySubscriptionsIndexPage = lazy(async () => {
 
 export { ArticlePane, ArticleToolbar } from "./article-pane-view";
 
-const SUMMARY_CONTAINER_CLASS_NAME = `w-full max-w-[48rem] ${readerPassiveCardOffsetClassName}`;
+const SUMMARY_CONTAINER_CLASS_NAME = "w-full max-w-[39rem]";
 
 type ArticleEmptyStateViewProps = ComponentProps<typeof ArticleEmptyStateView>;
 
@@ -70,13 +69,13 @@ function renderSummaryCount(value: number, locale: string) {
 function SummaryMetric({ label, value, kind = "count" }: SummaryIdentityProps) {
   const valueClassName =
     kind === "date"
-      ? "flex h-[1.45rem] items-end font-sans text-[1.12rem] font-medium leading-[1.08] tracking-normal text-foreground tabular-nums"
-      : "font-sans text-[1.45rem] font-medium leading-none tracking-[-0.03em] text-foreground tabular-nums";
+      ? "flex h-[1.55rem] items-end font-sans text-[1.08rem] font-medium leading-[1.08] tracking-normal text-foreground tabular-nums"
+      : "font-sans text-[1.55rem] font-medium leading-none tracking-normal text-foreground tabular-nums";
 
   return (
     <div className="min-w-0" data-summary-metric-kind={kind}>
       <p className={valueClassName}>{value}</p>
-      <p className="mt-1 text-[0.72rem] leading-tight text-foreground-soft">{label}</p>
+      <p className="mt-1 text-[0.7rem] leading-tight text-foreground-soft">{label}</p>
     </div>
   );
 }
@@ -104,7 +103,7 @@ function SummaryEmptyState({ title, metrics, recentFeeds, accentTone }: SummaryS
         <ArticleToolbar article={null} isBrowserOpen={false} onCloseView={() => {}} onToggleBrowserOverlay={() => {}} />
       }
       body={
-        <div className="flex flex-1 items-start justify-center overflow-hidden px-8 pt-[9vh] pb-12">
+        <div className="flex flex-1 items-start justify-start overflow-hidden px-10 pt-[7vh] pb-12">
           <section
             data-testid="article-selection-summary"
             data-selection-identity=""
@@ -112,9 +111,9 @@ function SummaryEmptyState({ title, metrics, recentFeeds, accentTone }: SummaryS
             aria-label={title}
             className={SUMMARY_CONTAINER_CLASS_NAME}
           >
-            <div className="mx-auto w-full max-w-[34rem] px-1">
+            <div className="w-full px-1">
               <div
-                className="grid grid-cols-2 gap-x-7 gap-y-5 min-[34rem]:grid-cols-[repeat(3,minmax(3.5rem,1fr))_minmax(8.5rem,1.45fr)]"
+                className="grid grid-cols-2 gap-x-9 gap-y-5 min-[34rem]:grid-cols-[repeat(3,minmax(4rem,1fr))_minmax(7.5rem,1.2fr)]"
                 data-testid="article-selection-summary-metrics"
               >
                 {metrics.map((metric) => (
@@ -122,9 +121,9 @@ function SummaryEmptyState({ title, metrics, recentFeeds, accentTone }: SummaryS
                 ))}
               </div>
               {recentFeeds.length > 0 ? (
-                <div className="mt-9">
+                <div className="mt-8">
                   <h3 className="text-sm font-medium text-foreground">{t("recent_feeds")}</h3>
-                  <ul className="mt-3 grid grid-cols-2 gap-2.5">
+                  <ul className="mt-3 grid grid-cols-2 gap-2">
                     {recentFeeds.map((feed) => (
                       <RecentFeedRow key={feed.id} feed={feed} />
                     ))}
@@ -139,29 +138,60 @@ function SummaryEmptyState({ title, metrics, recentFeeds, accentTone }: SummaryS
   );
 }
 
+function formatRelativeSummaryTime(value: string | null | undefined, locale: string): string {
+  if (!value) {
+    return "—";
+  }
+
+  const publishedTime = new Date(value).getTime();
+  if (Number.isNaN(publishedTime)) {
+    return "—";
+  }
+
+  const diffMs = Date.now() - publishedTime;
+  if (diffMs < 0) {
+    return new Intl.RelativeTimeFormat(locale, { numeric: "auto" }).format(0, "minute");
+  }
+
+  const minute = 60 * 1000;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+  const formatter = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
+
+  if (diffMs < hour) {
+    return formatter.format(-Math.max(1, Math.round(diffMs / minute)), "minute");
+  }
+
+  if (diffMs < day) {
+    return formatter.format(-Math.round(diffMs / hour), "hour");
+  }
+
+  return formatter.format(-Math.round(diffMs / day), "day");
+}
+
 function buildSummaryIdentityProps(
   summary: ArticleViewSummaryState,
   locale: string,
   readerT: ReturnType<typeof useTranslation<"reader">>["t"],
   sidebarT: ReturnType<typeof useTranslation<"sidebar">>["t"],
 ): SummaryScopeProps {
-  const latestUpdate = formatArticleSummaryDate(summary.latestArticlePublishedAt, locale);
+  const latestUpdate = formatRelativeSummaryTime(summary.latestArticlePublishedAt, locale);
   const buildMetrics = (params: {
     unreadCount: number;
-    articleCount: number;
-    feedCount: number;
+    todayArticleCount: number;
+    weekArticleCount: number;
   }): SummaryIdentityProps[] => [
     {
       label: readerT("unread"),
       value: renderSummaryCount(params.unreadCount, locale),
     },
     {
-      label: readerT("articles"),
-      value: renderSummaryCount(params.articleCount, locale),
+      label: readerT("today_published"),
+      value: renderSummaryCount(params.todayArticleCount, locale),
     },
     {
-      label: readerT("feeds"),
-      value: renderSummaryCount(params.feedCount, locale),
+      label: readerT("week_new"),
+      value: renderSummaryCount(params.weekArticleCount, locale),
     },
     {
       label: readerT("latest_update"),
@@ -175,10 +205,10 @@ function buildSummaryIdentityProps(
       title: summary.feed.title,
       metrics: buildMetrics({
         unreadCount: summary.feed.unread_count,
-        articleCount: summary.articleCount,
-        feedCount: summary.feedCount,
+        todayArticleCount: summary.todayArticleCount,
+        weekArticleCount: summary.weekArticleCount,
       }),
-      recentFeeds: summary.recentFeeds,
+      recentFeeds: [],
       accentTone: "unread",
     };
   }
@@ -188,8 +218,8 @@ function buildSummaryIdentityProps(
       title: summary.folder.name,
       metrics: buildMetrics({
         unreadCount: summary.unreadCount,
-        articleCount: summary.articleCount,
-        feedCount: summary.feedCount,
+        todayArticleCount: summary.todayArticleCount,
+        weekArticleCount: summary.weekArticleCount,
       }),
       recentFeeds: summary.recentFeeds,
       accentTone: "unread",
@@ -201,8 +231,8 @@ function buildSummaryIdentityProps(
       title: summary.tag.name,
       metrics: buildMetrics({
         unreadCount: summary.unreadCount,
-        articleCount: summary.articleCount,
-        feedCount: summary.feedCount,
+        todayArticleCount: summary.todayArticleCount,
+        weekArticleCount: summary.weekArticleCount,
       }),
       recentFeeds: summary.recentFeeds,
     };
@@ -228,8 +258,8 @@ function buildSummaryIdentityProps(
     accentTone: smartSummaryView.accentTone,
     metrics: buildMetrics({
       unreadCount: summary.unreadCount,
-      articleCount: summary.articleCount,
-      feedCount: summary.feedCount,
+      todayArticleCount: summary.todayArticleCount,
+      weekArticleCount: summary.weekArticleCount,
     }),
     recentFeeds: summary.recentFeeds,
   };

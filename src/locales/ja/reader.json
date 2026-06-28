@@ -13,6 +13,8 @@
   "select_article_to_read": "記事を選んでください",
   "latest_article": "最新記事",
   "latest_update": "最終更新",
+  "today_published": "今日の発行",
+  "week_new": "今週の新着",
   "recent_feeds": "最近のフィード",
   "empty_state_default_description": "左の一覧で範囲を選び、中央の記事一覧から読みたいものを開いてください。",
   "empty_state_no_accounts_eyebrow": "はじめに",

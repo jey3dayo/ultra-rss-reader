@@ -118,7 +118,7 @@ function expectSummaryMetricKind(summary: HTMLElement, label: string, kind: "cou
 
   if (kind === "date") {
     const valueElement = metricCell.firstElementChild;
-    expect(valueElement).toHaveClass("h-[1.45rem]", "items-end");
+    expect(valueElement).toHaveClass("h-[1.55rem]", "items-end");
   }
 }
 
@@ -2104,9 +2104,10 @@ describe("ArticleView", () => {
     const summary = await screen.findByTestId("article-selection-summary");
     expectSummaryScopeLabel(summary, "Tech Blog");
     expectSummaryMetricMotionValue(summary, "Unread", "5");
-    expectSummaryMetricMotionValue(summary, "Feeds", "1");
-    expect(within(summary).getByText("Recent feeds")).toBeInTheDocument();
-    expect(within(summary).getByText("Tech Blog")).toBeInTheDocument();
+    expectSummaryMetricMotionValue(summary, "Published today", "0");
+    expectSummaryMetricMotionValue(summary, "New this week", "0");
+    expect(within(summary).queryByText("Recent feeds")).not.toBeInTheDocument();
+    expect(within(summary).queryByText("Tech Blog")).not.toBeInTheDocument();
     expect(within(summary).queryByRole("button", { name: /Manage subscription.*Tech Blog/i })).not.toBeInTheDocument();
     expect(within(summary).queryByText("Latest Article")).not.toBeInTheDocument();
     expect(within(summary).getByText("Latest Update")).toBeInTheDocument();
@@ -2168,7 +2169,8 @@ describe("ArticleView", () => {
     const summary = await screen.findByTestId("article-selection-summary");
     expect(within(summary).queryByText(/^Overview$/i)).not.toBeInTheDocument();
     expectSummaryMetricMotionValue(summary, "Unread", "3");
-    expectSummaryMetricMotionValue(summary, "Feeds", "1");
+    expectSummaryMetricMotionValue(summary, "Published today", "0");
+    expectSummaryMetricMotionValue(summary, "New this week", "0");
     expect(within(summary).getByText("Recent feeds")).toBeInTheDocument();
     expect(within(summary).getByText("Quiet Feed")).toBeInTheDocument();
     expect(within(summary).getByText("Latest Update")).toBeInTheDocument();
@@ -2317,7 +2319,8 @@ describe("ArticleView", () => {
     expectSummaryScopeLabel(summary, /^(Recently Viewed|recent_articles)$/i);
     expect(within(summary).queryByRole("heading", { level: 3, name: /^Starred$/i })).not.toBeInTheDocument();
     expect(within(summary).queryByTestId("article-selection-leading-visual")).not.toBeInTheDocument();
-    expectSummaryMetricMotionValue(summary, "Articles", "0");
+    expectSummaryMetricMotionValue(summary, "Published today", "0");
+    expectSummaryMetricMotionValue(summary, "New this week", "0");
   });
 
   it("renders account setup guidance when no accounts are available", async () => {
