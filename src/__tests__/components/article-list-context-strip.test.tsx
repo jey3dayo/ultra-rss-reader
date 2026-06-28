@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { ArticleListContextStrip } from "@/components/reader/article-list-context-strip";
 
 describe("ArticleListContextStrip", () => {
-  it("renders smart view context as a band with a tone hint", () => {
+  it("renders smart view context as quiet list metadata", () => {
     render(<ArticleListContextStrip primaryLabel="Starred" tone="starred" />);
     const strip = screen.getByTestId("article-list-context-strip");
     const label = screen.getByText("Starred");
@@ -14,28 +14,25 @@ describe("ArticleListContextStrip", () => {
     }
 
     expect(label).toHaveAttribute("data-emphasis", "primary");
-    expect(label).toHaveClass(
-      "text-[color-mix(in_srgb,var(--tone-starred)_var(--tone-foreground-strength),var(--sidebar-selection-foreground))]",
-    );
-    expect(label).toHaveClass("tracking-[0.12em]");
-    expect(strip).toHaveAttribute("data-style", "band");
+    expect(label).toHaveClass("text-[var(--sidebar-foreground-soft-strong)]");
+    expect(label).toHaveClass("tracking-[0.04em]");
+    expect(label).not.toHaveClass("uppercase");
+    expect(strip).toHaveAttribute("data-style", "metadata");
     expect(strip).toHaveAttribute("data-tone", "starred");
     expect(strip).toHaveAttribute("data-motion-phase", "entering");
     expect(strip).toHaveClass("motion-content-swap");
     expect(strip).toHaveClass("select-none");
     expect(strip).toHaveClass("border-[var(--reader-context-border)]");
-    expect(strip).toHaveClass("bg-surface-1/72");
+    expect(strip).toHaveClass("bg-transparent", "h-8");
     expect(screen.queryByRole("button", { name: "Starred" })).not.toBeInTheDocument();
     expect(strip).not.toHaveAttribute("aria-label");
   });
 
-  it("emphasizes unread context more strongly than neutral section labels", () => {
+  it("keeps unread context in the same quiet metadata tone", () => {
     render(<ArticleListContextStrip primaryLabel="Unread" tone="unread" />);
 
-    expect(screen.getByText("Unread")).toHaveClass(
-      "font-semibold",
-      "text-[color-mix(in_srgb,var(--tone-unread)_var(--tone-foreground-strength),var(--sidebar-selection-foreground))]",
-    );
+    expect(screen.getByText("Unread")).toHaveClass("font-medium", "text-[var(--sidebar-foreground-soft-strong)]");
+    expect(screen.getByText("Unread")).not.toHaveClass("font-semibold");
   });
 
   it("keeps the secondary label on a neutral supporting tone for semantic strips", () => {
@@ -45,8 +42,7 @@ describe("ArticleListContextStrip", () => {
 
     expect(secondaryLabel).toHaveAttribute("data-emphasis", "secondary");
     expect(secondaryLabel).toHaveClass("text-[var(--sidebar-foreground-soft-strong)]");
-    expect(secondaryLabel).not.toHaveClass(
-      "text-[color-mix(in_srgb,var(--tone-unread)_var(--tone-foreground-strength),var(--sidebar-selection-foreground))]",
-    );
+    expect(secondaryLabel).toHaveClass("tracking-[0.04em]");
+    expect(secondaryLabel).not.toHaveClass("uppercase");
   });
 });
