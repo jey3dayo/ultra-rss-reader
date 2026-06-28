@@ -22,9 +22,11 @@ let activeDownloadSessionId: number | null = null;
 let activeDownloadProgressPercent: number | null = null;
 let activeDownloadRequestId: number | null = null;
 let nextDownloadRequestId = 0;
+let updateCheckGeneration = 0;
 const staleDownloadSessionIds = new Set<number>();
 const SHARED_OPERATION_BUSY_ERROR =
   "Database maintenance is unavailable while syncing. Try again after sync completes.";
+const STARTUP_UPDATE_CHECK_DELAY_MS = 1_500;
 
 function isCurrentToast(toast: ToastData): boolean {
   return useUiStore.getState().toastMessage === toast;
@@ -392,6 +394,7 @@ export function showRestartToast(): void {
 export async function performUpdateCheckResult(): Result.ResultAsync<UpdateInfo | null, AppError> {
   if (checkInFlight) return checkInFlight;
 
+  updateCheckGeneration += 1;
   checkInFlight = (async () => {
     return await checkForUpdate();
   })();
@@ -449,27 +452,41 @@ export function useUpdater(): void {
   useEffect(() => {
     let cancelled = false;
     let listenerActive = true;
+    const startupCheckGeneration = updateCheckGeneration;
 
-    // Startup check (silent on failure)
-    if (!isUpdaterRuntimeUnavailable()) {
-      performUpdateCheckResult().then((result) => {
-        if (cancelled) {
-          return;
-        }
+    // Startup check (silent on failure). Delay it so a freshly reloaded app
+    // does not surface an actionable update toast while the shell is still settling.
+    const startupCheckTimer = isUpdaterRuntimeUnavailable()
+      ? null
+      : window.setTimeout(() => {
+          if (startupCheckGeneration !== updateCheckGeneration) {
+            return;
+          }
 
-        Result.pipe(
-          result,
-          Result.inspect((info) => {
-            if (info) {
-              showUpdateAvailableToast(info.version);
-            }
-          }),
-          Result.inspectError((error) => {
-            console.warn("Startup update check failed (silent):", error);
-          }),
-        );
-      });
-    }
+          void performUpdateCheckResult()
+            .then((result) => {
+              if (cancelled) {
+                return;
+              }
+
+              Result.pipe(
+                result,
+                Result.inspect((info) => {
+                  if (info) {
+                    showUpdateAvailableToast(info.version);
+                  }
+                }),
+                Result.inspectError((error) => {
+                  console.warn("Startup update check failed (silent):", error);
+                }),
+              );
+            })
+            .catch((error: unknown) => {
+              if (!cancelled) {
+                console.warn("Startup update check failed (silent):", error);
+              }
+            });
+        }, STARTUP_UPDATE_CHECK_DELAY_MS);
 
     const disposeTauriListeners = attachTauriListeners(
       [
@@ -517,6 +534,9 @@ export function useUpdater(): void {
     return () => {
       cancelled = true;
       listenerActive = false;
+      if (startupCheckTimer !== null) {
+        window.clearTimeout(startupCheckTimer);
+      }
       disposeTauriListeners();
     };
   }, []);

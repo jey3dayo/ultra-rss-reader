@@ -35,6 +35,7 @@ type UpdateInfo = {
 } | null;
 
 const sharedOperationBusyMessage = "Database maintenance is unavailable while syncing. Try again after sync completes.";
+const startupUpdateCheckDelayMs = 1_500;
 
 function updateInfo(version: string): NonNullable<UpdateInfo> {
   return {
@@ -104,46 +105,82 @@ describe("performUpdateCheck", () => {
   });
 
   it("shares a single in-flight update check between startup and manual triggers", async () => {
+    vi.useFakeTimers();
     const deferred = createDeferred<ReturnType<typeof Result.succeed<UpdateInfo>>>();
     mockCheckForUpdate.mockReturnValue(deferred.promise);
 
-    const {
-      updaterModule: { runManualUpdateCheck, useUpdater },
-      useUiStore,
-    } = await getUpdaterModuleAndUiStore();
-    useUiStore.setState(useUiStore.getInitialState());
+    try {
+      const {
+        updaterModule: { runManualUpdateCheck, useUpdater },
+        useUiStore,
+      } = await getUpdaterModuleAndUiStore();
+      useUiStore.setState(useUiStore.getInitialState());
 
-    renderHook(() => useUpdater());
-    const manualCheck = runManualUpdateCheck();
+      renderHook(() => useUpdater());
+      await vi.advanceTimersByTimeAsync(startupUpdateCheckDelayMs);
+      const manualCheck = runManualUpdateCheck();
 
-    expect(mockCheckForUpdate).toHaveBeenCalledTimes(1);
+      expect(mockCheckForUpdate).toHaveBeenCalledTimes(1);
 
-    deferred.resolve(Result.succeed(updateInfo("1.2.3")));
-    await manualCheck;
+      deferred.resolve(Result.succeed(updateInfo("1.2.3")));
+      await manualCheck;
 
-    expect(useUiStore.getState().toastMessage?.message).toBe("v1.2.3 が利用可能です");
+      expect(useUiStore.getState().toastMessage?.message).toBe("v1.2.3 が利用可能です");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("skips the delayed startup check when a manual check already ran after reload", async () => {
+    vi.useFakeTimers();
+    mockCheckForUpdate.mockResolvedValue(Result.succeed(null));
+
+    try {
+      const {
+        updaterModule: { runManualUpdateCheck, useUpdater },
+        useUiStore,
+      } = await getUpdaterModuleAndUiStore();
+      useUiStore.setState(useUiStore.getInitialState());
+
+      renderHook(() => useUpdater());
+      await runManualUpdateCheck();
+      await vi.advanceTimersByTimeAsync(startupUpdateCheckDelayMs);
+      await flushMicrotasksAndRealTimer();
+
+      expect(mockCheckForUpdate).toHaveBeenCalledTimes(1);
+      expect(useUiStore.getState().toastMessage?.message).toBe("最新バージョンです");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("shares a single startup update check across React StrictMode double mount", async () => {
+    vi.useFakeTimers();
     const deferred = createDeferred<ReturnType<typeof Result.succeed<UpdateInfo>>>();
     mockCheckForUpdate.mockReturnValue(deferred.promise);
 
-    const {
-      updaterModule: { useUpdater },
-      useUiStore,
-    } = await getUpdaterModuleAndUiStore();
-    useUiStore.setState(useUiStore.getInitialState());
+    try {
+      const {
+        updaterModule: { useUpdater },
+        useUiStore,
+      } = await getUpdaterModuleAndUiStore();
+      useUiStore.setState(useUiStore.getInitialState());
 
-    renderHook(() => useUpdater(), {
-      wrapper: ({ children }: PropsWithChildren) => createElement(StrictMode, null, children),
-    });
+      renderHook(() => useUpdater(), {
+        wrapper: ({ children }: PropsWithChildren) => createElement(StrictMode, null, children),
+      });
 
-    expect(mockCheckForUpdate).toHaveBeenCalledTimes(1);
+      expect(mockCheckForUpdate).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(startupUpdateCheckDelayMs);
+      expect(mockCheckForUpdate).toHaveBeenCalledTimes(1);
 
-    deferred.resolve(Result.succeed(updateInfo("1.2.3")));
-    await flushMicrotasksAndRealTimer();
+      deferred.resolve(Result.succeed(updateInfo("1.2.3")));
+      await flushMicrotasksAndRealTimer();
 
-    expect(useUiStore.getState().toastMessage?.message).toBe("v1.2.3 が利用可能です");
+      expect(useUiStore.getState().toastMessage?.message).toBe("v1.2.3 が利用可能です");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("clears the in-flight guard after a shared failure so later checks can retry", async () => {
@@ -453,30 +490,36 @@ describe("performUpdateCheck", () => {
   });
 
   it("keeps startup update check failures silent while manual failures show a toast", async () => {
+    vi.useFakeTimers();
     const error = testUserVisibleAppError("network down");
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     mockCheckForUpdate.mockResolvedValue(Result.fail(error));
 
-    const {
-      updaterModule: { runManualUpdateCheck, useUpdater },
-      useUiStore,
-    } = await getUpdaterModuleAndUiStore();
-    useUiStore.setState(useUiStore.getInitialState());
+    try {
+      const {
+        updaterModule: { runManualUpdateCheck, useUpdater },
+        useUiStore,
+      } = await getUpdaterModuleAndUiStore();
+      useUiStore.setState(useUiStore.getInitialState());
 
-    renderHook(() => useUpdater());
-    await flushMicrotasksAndRealTimer();
+      renderHook(() => useUpdater());
+      expect(mockCheckForUpdate).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(startupUpdateCheckDelayMs);
+      await flushMicrotasksAndRealTimer();
 
-    expect(warnSpy).toHaveBeenCalledWith("Startup update check failed (silent):", error);
-    expect(useUiStore.getState().toastMessage).toBeNull();
+      expect(warnSpy).toHaveBeenCalledWith("Startup update check failed (silent):", error);
+      expect(useUiStore.getState().toastMessage).toBeNull();
 
-    await runManualUpdateCheck();
+      await runManualUpdateCheck();
 
-    expect(errorSpy).toHaveBeenCalledWith("Manual update check failed:", error);
-    expect(useUiStore.getState().toastMessage?.message).toBe("アップデートの確認に失敗しました");
-
-    warnSpy.mockRestore();
-    errorSpy.mockRestore();
+      expect(errorSpy).toHaveBeenCalledWith("Manual update check failed:", error);
+      expect(useUiStore.getState().toastMessage?.message).toBe("アップデートの確認に失敗しました");
+    } finally {
+      warnSpy.mockRestore();
+      errorSpy.mockRestore();
+      vi.useRealTimers();
+    }
   });
 
   it("surfaces updater runtime and endpoint failures through the manual check recovery toast", async () => {
@@ -508,33 +551,38 @@ describe("performUpdateCheck", () => {
   });
 
   it("keeps manual failure feedback when sharing the startup in-flight check", async () => {
+    vi.useFakeTimers();
     const error = testUserVisibleAppError("network down");
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const deferred = createDeferred<ReturnType<typeof Result.fail<TestUserVisibleAppError>>>();
     mockCheckForUpdate.mockReturnValue(deferred.promise);
 
-    const {
-      updaterModule: { runManualUpdateCheck, useUpdater },
-      useUiStore,
-    } = await getUpdaterModuleAndUiStore();
-    useUiStore.setState(useUiStore.getInitialState());
+    try {
+      const {
+        updaterModule: { runManualUpdateCheck, useUpdater },
+        useUiStore,
+      } = await getUpdaterModuleAndUiStore();
+      useUiStore.setState(useUiStore.getInitialState());
 
-    renderHook(() => useUpdater());
-    const manualCheck = runManualUpdateCheck();
+      renderHook(() => useUpdater());
+      await vi.advanceTimersByTimeAsync(startupUpdateCheckDelayMs);
+      const manualCheck = runManualUpdateCheck();
 
-    expect(mockCheckForUpdate).toHaveBeenCalledTimes(1);
+      expect(mockCheckForUpdate).toHaveBeenCalledTimes(1);
 
-    deferred.resolve(Result.fail(error));
-    await manualCheck;
-    await flushMicrotasksAndRealTimer();
+      deferred.resolve(Result.fail(error));
+      await manualCheck;
+      await flushMicrotasksAndRealTimer();
 
-    expect(warnSpy).toHaveBeenCalledWith("Startup update check failed (silent):", error);
-    expect(errorSpy).toHaveBeenCalledWith("Manual update check failed:", error);
-    expect(useUiStore.getState().toastMessage?.message).toBe("アップデートの確認に失敗しました");
-
-    warnSpy.mockRestore();
-    errorSpy.mockRestore();
+      expect(warnSpy).toHaveBeenCalledWith("Startup update check failed (silent):", error);
+      expect(errorSpy).toHaveBeenCalledWith("Manual update check failed:", error);
+      expect(useUiStore.getState().toastMessage?.message).toBe("アップデートの確認に失敗しました");
+    } finally {
+      warnSpy.mockRestore();
+      errorSpy.mockRestore();
+      vi.useRealTimers();
+    }
   });
 
   it("keeps manual success feedback for each caller while sharing the in-flight check", async () => {
