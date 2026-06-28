@@ -9,6 +9,7 @@ const AgentationToolbar = import.meta.env.DEV
       return { default: Agentation };
     })
   : null;
+const AGENTATION_ENDPOINT = "http://127.0.0.1:4747";
 
 export function AgentationMount() {
   const prefs = usePreferencesStore((s) => s.prefs);
@@ -25,7 +26,7 @@ export function AgentationMount() {
 
   return (
     <Suspense fallback={null}>
-      <AgentationToolbar />
+      <AgentationToolbar endpoint={AGENTATION_ENDPOINT} />
     </Suspense>
   );
 }

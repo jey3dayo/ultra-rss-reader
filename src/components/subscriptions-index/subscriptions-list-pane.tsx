@@ -217,7 +217,7 @@ export function SubscriptionsListPane({
             aria-label={searchLabel}
             placeholder={searchPlaceholder}
             onChange={(event) => onSearchQueryChange(event.currentTarget.value)}
-            className="h-11 rounded-md border-border/65 bg-surface-1/72 pl-10 pr-12 text-[0.88rem] shadow-[inset_0_1px_0_rgba(255,255,255,0.38)]"
+            className="h-11 rounded-md border-[var(--workspace-low-wire-section-border)] bg-[var(--workspace-low-wire-group-surface)] pl-10 pr-12 text-[0.88rem] shadow-none"
           />
           {searchQuery.length > 0 ? (
             <button
@@ -367,7 +367,7 @@ export function SubscriptionsListPane({
                             />
                             <span
                               aria-hidden="true"
-                              className="absolute left-[-1.3125rem] top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[color:var(--subscriptions-list-tree-node-border)] bg-[color:var(--subscriptions-list-tree-node-surface)]"
+                              className="absolute left-[-1.25rem] top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[color:var(--subscriptions-list-tree-node-border)] bg-[color:var(--subscriptions-list-tree-node-surface)]"
                             />
                             {rowButton}
                           </div>

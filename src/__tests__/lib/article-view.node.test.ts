@@ -497,6 +497,79 @@ describe("buildArticleViewSummary", () => {
     });
   });
 
+  it("orders folder recent feeds by the latest article in each feed", () => {
+    const folders: FolderDto[] = [
+      {
+        id: "folder-1",
+        account_id: "acc-1",
+        name: "Work",
+        sort_order: 0,
+      },
+    ];
+    const folderFeeds = sampleFeeds.slice(0, 3).map((feed) => ({
+      ...feed,
+      folder_id: "folder-1",
+    }));
+    const oldestHighUnreadFeed = {
+      ...folderFeeds[0],
+      id: "feed-old-high-unread",
+      title: "Old high unread",
+      unread_count: 99,
+    };
+    const middleFeed = {
+      ...folderFeeds[1],
+      id: "feed-middle",
+      title: "Middle feed",
+      unread_count: 3,
+    };
+    const newestLowUnreadFeed = {
+      ...folderFeeds[2],
+      id: "feed-newest-low-unread",
+      title: "Newest low unread",
+      unread_count: 1,
+    };
+    const summaryArticles = [
+      {
+        ...sampleArticles[0],
+        id: "oldest-article",
+        feed_id: oldestHighUnreadFeed.id,
+        published_at: "2026-03-01T10:00:00Z",
+      },
+      {
+        ...sampleArticles[1],
+        id: "newest-article",
+        feed_id: newestLowUnreadFeed.id,
+        published_at: "2026-05-01T10:00:00Z",
+      },
+      {
+        ...sampleArticles[0],
+        id: "middle-article",
+        feed_id: middleFeed.id,
+        published_at: "2026-04-01T10:00:00Z",
+      },
+    ];
+
+    const result = buildArticleViewSummaryResult({
+      selection: { type: "folder", folderId: "folder-1" },
+      selectedFeedId: null,
+      feeds: [oldestHighUnreadFeed, middleFeed, newestLowUnreadFeed],
+      folders,
+      tags: [],
+      filteredArticles: summaryArticles,
+      summaryArticles,
+      allFeedArticles: [],
+    });
+
+    expect(Result.unwrap(result)).toMatchObject({
+      kind: "folder",
+      recentFeeds: [
+        expect.objectContaining({ id: newestLowUnreadFeed.id }),
+        expect.objectContaining({ id: middleFeed.id }),
+        expect.objectContaining({ id: oldestHighUnreadFeed.id }),
+      ],
+    });
+  });
+
   it("keeps tag article stats independent from the currently visible articles", () => {
     const visibleArticle = {
       ...sampleArticles[0],

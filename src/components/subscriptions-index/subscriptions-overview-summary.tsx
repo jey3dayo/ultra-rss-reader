@@ -1,7 +1,6 @@
 import { cva, type VariantProps } from "class-variance-authority";
-import { Info } from "lucide-react";
 import type { ReactNode } from "react";
-import { AppTooltip, LabelChip, TooltipProvider } from "@/design-system";
+import { AppTooltip, TooltipProvider } from "@/design-system";
 import type { SubscriptionSummaryCard } from "@/lib/subscriptions/subscriptions-index.types";
 import { cn } from "@/lib/utils";
 
@@ -48,13 +47,12 @@ const summaryTextVariants = cva("", {
   variants: {
     variant: {
       label: "text-[10px] font-semibold tracking-[0.12em] text-foreground-soft uppercase",
-      actionableValue:
-        "mt-1.5 block text-[1.58rem] font-semibold tracking-[-0.035em] text-foreground sm:text-[1.78rem]",
-      staticValue: "mt-1.5 text-[1.48rem] font-semibold tracking-[-0.03em] text-foreground sm:text-[1.62rem]",
+      actionableValue: "mt-1 block text-[1.42rem] font-semibold tracking-[-0.032em] text-foreground sm:text-[1.58rem]",
+      staticValue: "mt-1 text-[1.36rem] font-semibold tracking-[-0.03em] text-foreground sm:text-[1.48rem]",
       actionableCaption:
-        "mt-0.5 max-w-[26ch] text-[12px] leading-[1.45] text-foreground-soft sm:max-w-[28ch] sm:text-[12px]",
+        "mt-0.5 max-w-[28ch] text-[12px] leading-[1.35] text-foreground-soft sm:max-w-[30ch] sm:text-[12px]",
       staticCaption:
-        "mt-1 max-w-[26ch] text-[12px] leading-[1.45] text-foreground-soft sm:max-w-[28ch] sm:text-[13px] sm:leading-[1.5]",
+        "mt-0.5 max-w-[28ch] text-[12px] leading-[1.35] text-foreground-soft sm:max-w-[30ch] sm:text-[12px]",
     },
   },
 });
@@ -145,7 +143,7 @@ function resolveSummaryCardClassName({
   const toneClasses = resolveSummaryToneClasses(card.tone);
 
   return cn(
-    "motion-static-hover-surface relative flex min-h-[92px] w-full min-w-0 flex-col justify-between overflow-hidden rounded-md border px-3.5 py-3 text-left sm:min-h-[102px] sm:px-4 sm:py-3.5",
+    "motion-static-hover-surface relative flex min-h-[76px] w-full min-w-0 flex-col justify-between overflow-hidden rounded-md border px-3.5 py-2.5 text-left sm:min-h-[84px] sm:px-4 sm:py-3",
     toneClasses.card,
     isProminent && "shadow-[var(--subscriptions-summary-card-shadow)]",
     isProminent && "sm:col-span-2 lg:col-span-1",
@@ -190,10 +188,6 @@ function resolveActionChipLabel({
   return filterKey === "all" ? labels.filterAll : labels.filter;
 }
 
-function resolveCriteriaChipLabel(labels: SubscriptionsOverviewSummaryLabels) {
-  return labels.criteria;
-}
-
 function isNumericSummaryValue(value: string) {
   return value.trim() !== "" && !Number.isNaN(Number(value));
 }
@@ -227,14 +221,12 @@ function SummaryFilterCardButton({
 }: SummaryFilterCardButtonProps) {
   const {
     value,
-    viewState: { className: cardClassName, isProminent, toneClasses },
+    viewState: { className: cardClassName, toneClasses },
   } = buildSummaryCardRenderModel({
     card: summaryCard,
     renderValue,
   });
-  const shouldShowCriteria = summaryCard.filterKey === "review" && Boolean(reviewCriteriaLabel);
   const isZeroAttention = isZeroCountAttentionCard(summaryCard);
-  const shouldShowActionChip = !summaryCard.isActive && !isZeroAttention;
 
   const cardButton = (
     <button
@@ -256,7 +248,7 @@ function SummaryFilterCardButton({
         )}
       />
       <div>
-        <div className="mb-2 flex items-start justify-between gap-3">
+        <div className="mb-1.5 flex items-start justify-between gap-3">
           <SummaryText as="span" variant="label" className="block">
             {summaryCard.label}
           </SummaryText>
@@ -286,34 +278,13 @@ function SummaryFilterCardButton({
           </SummaryText>
         ) : null}
       </div>
-      <div className="mt-2.5 flex items-center justify-between gap-3">
-        {shouldShowActionChip ? (
-          <LabelChip
-            tone="neutral"
-            className={cn(
-              "px-2 py-0.75 text-[10px] text-foreground-soft transition-colors duration-150 ease-standard group-hover:text-foreground motion-reduce:transition-none",
-              isProminent && "bg-surface-1/88",
-            )}
-          >
-            {resolveActionChipLabel({
-              filterKey: summaryCard.filterKey,
-              labels,
-            })}
-          </LabelChip>
-        ) : (
-          <span aria-hidden="true" />
-        )}
-        {shouldShowCriteria ? (
-          <span className="inline-flex items-center gap-1 rounded-full border border-border/55 bg-surface-1/76 px-2 py-0.75 text-[10px] font-medium text-foreground-soft transition-colors duration-150 ease-standard group-hover:border-border-strong/65 group-hover:text-foreground motion-reduce:transition-none">
-            <Info className="size-3" aria-hidden="true" />
-            {resolveCriteriaChipLabel(labels)}
-          </span>
-        ) : null}
-      </div>
+      {!summaryCard.isActive && !isZeroAttention ? (
+        <span className="sr-only">{resolveActionChipLabel({ filterKey: summaryCard.filterKey, labels })}</span>
+      ) : null}
     </button>
   );
 
-  return shouldShowCriteria && reviewCriteriaLabel ? (
+  return summaryCard.filterKey === "review" && reviewCriteriaLabel ? (
     <TooltipProvider>
       <AppTooltip label={reviewCriteriaLabel} side="bottom" align="start">
         {cardButton}

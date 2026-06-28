@@ -113,10 +113,8 @@ export function useArticleBrowserOverlayClose({
     void closeBrowserWebviewBeforeReaderMode().finally(() => {
       emitDebugInputTrace("close-browser finalize");
     });
-    if (mountedRef.current) {
-      closeInFlightByHookRef.current = false;
-      finalizeCloseBrowserOverlay();
-    }
+    closeInFlightByHookRef.current = false;
+    finalizeCloseBrowserOverlay();
   }, [finalizeCloseBrowserOverlay, setBrowserCloseInFlight]);
 
   const finalizeClosedBrowserOverlay = useCallback(() => {

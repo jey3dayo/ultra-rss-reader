@@ -5,6 +5,7 @@ export function useArticleListViewProps({
   t,
   tc,
   layoutMode,
+  contentMode,
   showSearch,
   searchQuery,
   searchInputRef,
@@ -71,6 +72,7 @@ export function useArticleListViewProps({
 
   return {
     layoutMode,
+    contentMode,
     headerProps: {
       showSearch,
       searchQuery,

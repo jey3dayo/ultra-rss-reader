@@ -210,7 +210,7 @@ describe("SubscriptionsIndexPage", () => {
     expect(screen.getByRole("heading", { name: "全購読" })).toBeInTheDocument();
     expect(screen.getByText("総購読数")).toBeInTheDocument();
     expect(screen.getByText("見直し候補")).toBeInTheDocument();
-    expect(screen.getByText("条件")).toBeInTheDocument();
+    expect(screen.queryByText("条件")).toBeNull();
     expect(screen.queryByText("見直し候補: 更新が止まっている、または更新がないまま未読も残っていない購読")).toBeNull();
     expect(screen.getByText("90日更新なし")).toBeInTheDocument();
     expect(await screen.findAllByRole("heading", { name: "Work" })).toHaveLength(2);

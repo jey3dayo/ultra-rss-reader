@@ -1153,20 +1153,24 @@ describe("useUiStore", () => {
 
   it("closeBrowser returns to reader and list focus if article selected", () => {
     useUiStore.getState().selectArticle("a1");
+    useUiStore.getState().closeSidebar();
     useUiStore.getState().openBrowser("https://ex.com");
     useUiStore.getState().closeBrowser();
     expect(useUiStore.getState().contentMode).toBe("reader");
     expect(useUiStore.getState().focusedPane).toBe("list");
+    expect(useUiStore.getState().sidebarOpen).toBe(true);
   });
 
   it("closeBrowser returns to the list when no article is selected", () => {
     useUiStore.getState().setFocusedPane("sidebar");
+    useUiStore.getState().closeSidebar();
     useUiStore.getState().openBrowser("https://ex.com");
     useUiStore.getState().closeBrowser();
 
     expect(useUiStore.getState().contentMode).toBe("empty");
     expect(useUiStore.getState().browserUrl).toBeNull();
     expect(useUiStore.getState().focusedPane).toBe("list");
+    expect(useUiStore.getState().sidebarOpen).toBe(true);
   });
 
   it("closeBrowser clears in-flight browser state and returns focus to the list", () => {
@@ -1190,6 +1194,7 @@ describe("useUiStore", () => {
         browserCloseInFlight: false,
         pendingBrowserCloseAction: null,
         pendingBrowserCloseActionQueue: [],
+        sidebarOpen: true,
         focusedPane: "list",
       }),
     );
@@ -1214,6 +1219,36 @@ describe("useUiStore", () => {
         browserCloseInFlight: false,
         pendingBrowserCloseAction: null,
         pendingBrowserCloseActionQueue: [],
+        focusedPane: "list",
+      }),
+    );
+  });
+
+  it("forcing Web Preview off exits browser mode and restores sidebar navigation", () => {
+    useUiStore.setState({
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://example.com",
+      browserNavigationState: { canGoBack: true, canGoForward: false },
+      browserCloseInFlight: true,
+      pendingBrowserCloseAction: "next-article",
+      pendingBrowserCloseActionQueue: ["next-article"],
+      sidebarOpen: false,
+      focusedPane: "content",
+    });
+
+    useUiStore.getState().setWebPreviewSessionMode("forced-off");
+
+    expect(useUiStore.getState()).toEqual(
+      expect.objectContaining({
+        webPreviewSessionMode: "forced-off",
+        contentMode: "reader",
+        browserUrl: null,
+        browserNavigationState: null,
+        browserCloseInFlight: false,
+        pendingBrowserCloseAction: null,
+        pendingBrowserCloseActionQueue: [],
+        sidebarOpen: true,
         focusedPane: "list",
       }),
     );

@@ -25,6 +25,9 @@ export type ArticleViewSummaryState =
   | {
       kind: "feed";
       feed: FeedDto;
+      articleCount: number;
+      feedCount: number;
+      recentFeeds: ArticleViewSummaryFeed[];
       latestArticleTitle?: string | null;
       latestArticlePublishedAt?: string | null;
     }
@@ -33,6 +36,8 @@ export type ArticleViewSummaryState =
       folder: FolderDto;
       feedCount: number;
       unreadCount: number;
+      articleCount: number;
+      recentFeeds: ArticleViewSummaryFeed[];
       latestArticlePublishedAt?: string | null;
     }
   | {
@@ -40,6 +45,8 @@ export type ArticleViewSummaryState =
       tag: TagDto;
       articleCount: number;
       feedCount: number;
+      unreadCount: number;
+      recentFeeds: ArticleViewSummaryFeed[];
       latestArticlePublishedAt?: string | null;
     }
   | {
@@ -47,6 +54,8 @@ export type ArticleViewSummaryState =
       smartKind: SmartViewKind;
       articleCount: number;
       feedCount: number;
+      unreadCount: number;
+      recentFeeds: ArticleViewSummaryFeed[];
       latestArticlePublishedAt?: string | null;
     };
 
@@ -62,6 +71,8 @@ type ArticleViewSummarySelection =
   | { type: "smart"; kind: SmartViewKind }
   | { type: "tag"; tagId: string }
   | { type: "all" };
+
+export type ArticleViewSummaryFeed = Pick<FeedDto, "id" | "title" | "url" | "site_url" | "unread_count">;
 
 export type BuildArticleViewSummaryParams = {
   selection: ArticleViewSummarySelection;
@@ -102,6 +113,60 @@ function countUnreadFeedsInFolder(feeds: FeedDto[] | undefined, folderId: string
 
     return total + feed.unread_count;
   }, 0);
+}
+
+function buildLatestArticleTimeByFeedId(articles: ArticleDto[]): Map<string, number> {
+  const latestTimeByFeedId = new Map<string, number>();
+
+  for (const article of articles) {
+    const articleTime = getDateInputTimeMs(article.published_at);
+    if (articleTime === null) {
+      continue;
+    }
+
+    const currentLatestTime = latestTimeByFeedId.get(article.feed_id);
+    if (currentLatestTime === undefined || articleTime > currentLatestTime) {
+      latestTimeByFeedId.set(article.feed_id, articleTime);
+    }
+  }
+
+  return latestTimeByFeedId;
+}
+
+function buildRecentSummaryFeeds({
+  feeds,
+  feedIds,
+  articles,
+}: {
+  feeds: FeedDto[] | undefined;
+  feedIds: Set<string> | undefined;
+  articles: ArticleDto[];
+}): ArticleViewSummaryFeed[] {
+  const candidates = feeds?.filter((feed) => (feedIds ? feedIds.has(feed.id) : true)) ?? [];
+  const latestTimeByFeedId = buildLatestArticleTimeByFeedId(articles);
+
+  return candidates
+    .toSorted((a, b) => {
+      const aLatestTime = latestTimeByFeedId.get(a.id) ?? Number.NEGATIVE_INFINITY;
+      const bLatestTime = latestTimeByFeedId.get(b.id) ?? Number.NEGATIVE_INFINITY;
+      if (aLatestTime !== bLatestTime) {
+        return bLatestTime - aLatestTime;
+      }
+
+      return a.title.localeCompare(b.title);
+    })
+    .slice(0, 6)
+    .map((feed) => ({
+      id: feed.id,
+      title: feed.title,
+      url: feed.url,
+      site_url: feed.site_url,
+      unread_count: feed.unread_count,
+    }));
+}
+
+function buildFeedIdsFromArticles(articles: ArticleDto[]): Set<string> {
+  return new Set(articles.map((article) => article.feed_id));
 }
 
 export function findSelectedArticle(params: FindSelectedArticleParams): Result.Result<ArticleDto, "article_not_found"> {
@@ -266,6 +331,13 @@ export function buildArticleViewSummaryResult(
       ? Result.succeed({
           kind: "feed",
           feed,
+          articleCount: summaryStats.articleCount,
+          feedCount: 1,
+          recentFeeds: buildRecentSummaryFeeds({
+            feeds,
+            feedIds: new Set([feed.id]),
+            articles: summaryArticles,
+          }),
           latestArticleTitle: latestFeedArticle?.title ?? null,
           latestArticlePublishedAt: latestFeedArticle?.published_at ?? null,
         })
@@ -283,6 +355,12 @@ export function buildArticleViewSummaryResult(
       folder,
       feedCount: countFeedsInFolder(feeds, folder.id),
       unreadCount: countUnreadFeedsInFolder(feeds, folder.id),
+      articleCount: summaryStats.articleCount,
+      recentFeeds: buildRecentSummaryFeeds({
+        feeds,
+        feedIds: new Set((feeds ?? []).filter((feed) => feed.folder_id === folder.id).map((feed) => feed.id)),
+        articles: summaryArticles,
+      }),
       latestArticlePublishedAt: summaryStats.latestArticlePublishedAt,
     });
   }
@@ -297,6 +375,12 @@ export function buildArticleViewSummaryResult(
       kind: "tag",
       tag,
       ...summaryStats,
+      unreadCount: filteredArticles.filter((article) => !article.is_read).length,
+      recentFeeds: buildRecentSummaryFeeds({
+        feeds,
+        feedIds: buildFeedIdsFromArticles(summaryArticles),
+        articles: summaryArticles,
+      }),
     });
   }
 
@@ -304,6 +388,12 @@ export function buildArticleViewSummaryResult(
     kind: "smart",
     smartKind: selection.kind,
     ...summaryStats,
+    unreadCount: filteredArticles.filter((article) => !article.is_read).length,
+    recentFeeds: buildRecentSummaryFeeds({
+      feeds,
+      feedIds: buildFeedIdsFromArticles(summaryArticles),
+      articles: summaryArticles,
+    }),
   });
 }
 

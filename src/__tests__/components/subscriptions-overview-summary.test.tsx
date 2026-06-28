@@ -62,13 +62,9 @@ describe("SubscriptionsOverviewSummary", () => {
     expect(actionableCard).toBeVisible();
     expect(within(actionableCard).getByText("Needs review")).toHaveClass("text-foreground-soft");
     expect(within(actionableCard).getByText("Check these feeds")).toHaveClass("text-foreground-soft");
-    expect(within(actionableCard).getByText("絞り込む").closest("span")).toHaveAttribute("data-label-chip", "neutral");
-    expect(within(actionableCard).getByText("条件")).toHaveClass("text-foreground-soft");
-    const statusIcon = actionableCard.querySelector("svg[aria-hidden='true']");
-    expect(statusIcon).not.toBeNull();
-    expect(statusIcon).toHaveClass("size-3");
-    expect(statusIcon).toBeVisible();
-    expect(within(actionableCard).getByText("条件")).toBeVisible();
+    expect(within(actionableCard).getByText("絞り込む")).toHaveClass("sr-only");
+    expect(within(actionableCard).queryByText("条件")).toBeNull();
+    expect(actionableCard.querySelector("svg[aria-hidden='true']")).toBeNull();
 
     const neutralCard = screen.getByRole("button", { name: /Healthy/ });
     expect(neutralCard).not.toBeNull();
@@ -361,6 +357,6 @@ describe("SubscriptionsOverviewSummary", () => {
     expect(card).toHaveClass("rounded-md", "w-full");
     expect(within(card).getByTestId("subscriptions-summary-card-badge-slot")).toBeInTheDocument();
     expect(within(card).getByTestId("custom-summary-value")).toHaveTextContent("2 feeds");
-    expect(within(card).getByText("絞り込む").closest("[data-label-chip]")).toBeInTheDocument();
+    expect(within(card).getByText("絞り込む")).toHaveClass("sr-only");
   });
 });

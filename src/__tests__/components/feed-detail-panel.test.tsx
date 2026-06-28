@@ -70,7 +70,7 @@ describe("FeedDetailPanel", () => {
     );
     expect(screen.getByText("2026/04/17")).toHaveClass("text-foreground-soft");
     expect(screen.getByText("整理の判断材料")).toHaveClass("text-current");
-    expect(screen.getByText("未読 0件 / スター 0件")).toHaveClass("text-current");
+    expect(screen.getByText("未読 0件 / スター 0件")).toHaveClass("font-sans", "text-current");
     expect(screen.getByText("フォルダ").closest("dt")).toHaveClass("text-foreground-soft");
     expect(screen.getByText("Work").closest("dd")).toHaveClass("text-foreground");
     expect(screen.getByText("フォルダ").closest("dl")).toHaveClass("border-t", "border-border/55", "pt-3");
@@ -89,6 +89,36 @@ describe("FeedDetailPanel", () => {
     );
     expect(screen.getByRole("button", { name: "フィードを編集" })).toHaveAttribute("title", "フィードを編集");
     expect(screen.getByRole("button", { name: "フィードを編集" })).not.toHaveClass("rounded-full");
+  });
+
+  it("keeps low-wire reason copy and recent articles visually quiet", () => {
+    render(
+      <FeedDetailPanel
+        surface="low-wire"
+        title="Example Feed"
+        summaryText="最近も動きがあります。"
+        reasonBox={{
+          title: "見直しの判断材料",
+          body: "今はそのままでよさそうです。",
+          tone: "low",
+        }}
+        metrics={[{ label: "フォルダ", value: "Work" }]}
+        recentArticlesHeading="最近の記事"
+        recentArticles={[
+          {
+            id: "art-1",
+            title: "最近の記事タイトル",
+            publishedAt: "2026/04/17",
+            url: null,
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("最近も動きがあります。")).toHaveClass("font-sans", "text-sm");
+    expect(screen.getByText("今はそのままでよさそうです。")).toHaveClass("font-sans");
+    expect(screen.getByTestId("feed-detail-recent-articles")).toHaveClass("space-y-2", "pt-1");
+    expect(screen.getByTestId("feed-detail-recent-articles")).not.toHaveClass("border-t");
   });
 
   it("renders neutral reason chips instead of muted chips", () => {

@@ -1,9 +1,9 @@
 import type { TFunction } from "i18next";
 import type { KeyboardEvent, ReactNode, RefObject } from "react";
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
-import type { FeedDisplayPresetOption } from "@/lib/articles/article-display";
+import type { FeedDisplayPresetOption, WebPreviewSessionMode } from "@/lib/articles/article-display";
 import type { KeyboardShortcutPrefs } from "@/lib/keyboard/keyboard-shortcuts";
-import type { FocusedPane, LayoutMode } from "@/lib/layout/layout-state.types";
+import type { ContentMode, FocusedPane, LayoutMode } from "@/lib/layout/layout-state.types";
 import type { ReaderSourcePlan } from "@/lib/reader/reader-query";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
 import type { SmartViewKind } from "@/lib/sidebar/smart-view.types";
@@ -23,6 +23,7 @@ export type ArticleListSelection =
 
 export type UseArticleListViewPropsResult = {
   layoutMode: LayoutMode;
+  contentMode: ContentMode;
   headerProps: ArticleListHeaderProps;
   contextStripProps: ArticleListContextStripProps;
   bodyProps: ArticleListBodyProps;
@@ -86,6 +87,7 @@ export type UseArticleListViewPropsParams = {
   t: TFunction<"reader">;
   tc: TFunction<"common">;
   layoutMode: LayoutMode;
+  contentMode: ContentMode;
   showSearch: boolean;
   searchQuery: string;
   searchInputRef: RefObject<HTMLInputElement | null>;
@@ -160,9 +162,11 @@ export type UseArticleListPresentationParams = {
   selectedFeed: UseArticleListHeaderControllerParams["selectedFeed"];
   onManageSelectedFeed?: (() => void) | null;
   layoutMode: UseArticleListHeaderControllerParams["layoutMode"];
+  contentMode: ContentMode;
   sidebarOpen: boolean;
   openSidebar: () => void;
   toggleSidebar: () => void;
+  setWebPreviewSessionMode: (mode: WebPreviewSessionMode) => void;
   selectArticle: (articleId: string) => void;
   clearArticle: () => void;
   openSearch: () => void;
@@ -208,12 +212,14 @@ export type UseArticleListHeaderControllerParams = {
   layoutMode: LayoutMode;
   sidebarOpen: boolean;
   showSearch: boolean;
+  contentMode: ContentMode;
   sidebarSubscriptionsLabel: string;
   feedDisplayLabel: string;
   showSidebarLabel: string;
   hideSidebarLabel: string;
   openSidebar: () => void;
   toggleSidebar: () => void;
+  setWebPreviewSessionMode: (mode: WebPreviewSessionMode) => void;
 };
 
 export type UseArticleListHeaderControllerResult = UseArticleListHeaderControlsResult & {
@@ -224,6 +230,7 @@ export type UseArticleListHeaderControlsParams = {
   layoutMode: LayoutMode;
   sidebarOpen: boolean;
   showSearch: boolean;
+  contentMode: ContentMode;
   sidebarSubscriptionsLabel: string;
   feedDisplayLabel: string;
   showSidebarLabel: string;
@@ -237,6 +244,7 @@ export type UseArticleListHeaderControlsParams = {
   onSetDisplayMode: (value: FeedDisplayPresetOption) => void;
   openSidebar: () => void;
   toggleSidebar: () => void;
+  setWebPreviewSessionMode: (mode: WebPreviewSessionMode) => void;
 };
 
 export type UseArticleListHeaderControlsResult = {

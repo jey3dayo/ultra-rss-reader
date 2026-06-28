@@ -52,7 +52,7 @@ export function ArticleListHeader({
 
   return (
     <>
-      <div className="flex h-12 items-center border-b border-border/70 bg-[var(--workspace-header-surface)] px-3 backdrop-blur-sm">
+      <div className="-mr-px flex h-12 items-center border-r border-b border-[var(--subscriptions-pane-divider)] bg-[var(--workspace-header-surface)] px-3 backdrop-blur-sm">
         <ArticleListHeaderActions
           showSearch={showSearch}
           showSidebarButton={showSidebarButton}

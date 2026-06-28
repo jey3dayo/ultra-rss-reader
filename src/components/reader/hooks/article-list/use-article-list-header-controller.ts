@@ -15,12 +15,14 @@ export function useArticleListHeaderController({
   layoutMode,
   sidebarOpen,
   showSearch,
+  contentMode,
   sidebarSubscriptionsLabel,
   feedDisplayLabel,
   showSidebarLabel,
   hideSidebarLabel,
   openSidebar,
   toggleSidebar,
+  setWebPreviewSessionMode,
 }: UseArticleListHeaderControllerParams): UseArticleListHeaderControllerResult {
   const { selectedFeedDisplayPreset, displayPresetOptions, handleSetDisplayMode, handleMarkAllRead } =
     useArticleListHeaderActions({
@@ -35,6 +37,7 @@ export function useArticleListHeaderController({
     layoutMode,
     sidebarOpen,
     showSearch,
+    contentMode,
     sidebarSubscriptionsLabel,
     feedDisplayLabel,
     showSidebarLabel,
@@ -47,6 +50,7 @@ export function useArticleListHeaderController({
     },
     openSidebar,
     toggleSidebar,
+    setWebPreviewSessionMode,
   });
 
   return {

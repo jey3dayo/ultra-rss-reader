@@ -25,7 +25,7 @@ describe("SmartViewsView", () => {
       "px-1.5",
       "text-[0.72rem]",
       "font-semibold",
-      "text-[var(--sidebar-foreground-soft-strong)]",
+      "text-sidebar-foreground/56",
     );
 
     const unreadButton = screen.getByRole("button", { name: /Unread/ });

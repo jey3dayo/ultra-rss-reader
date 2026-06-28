@@ -39,6 +39,7 @@ describe("ArticleListHeader", () => {
       resolveArticleListHeaderControlAvailability({
         layoutMode: "wide",
         sidebarOpen: true,
+        contentMode: "reader",
         resolvedFeedId: "feed-1",
         showSearch: true,
       }),
@@ -55,6 +56,7 @@ describe("ArticleListHeader", () => {
       resolveArticleListHeaderControlAvailability({
         layoutMode: "mobile",
         sidebarOpen: false,
+        contentMode: "reader",
         resolvedFeedId: null,
         showSearch: false,
       }),
@@ -71,6 +73,7 @@ describe("ArticleListHeader", () => {
       resolveArticleListHeaderControlAvailability({
         layoutMode: "wide",
         sidebarOpen: false,
+        contentMode: "reader",
         resolvedFeedId: "",
         showSearch: false,
       }),
@@ -87,6 +90,7 @@ describe("ArticleListHeader", () => {
       resolveArticleListHeaderControlAvailability({
         layoutMode: "wide",
         sidebarOpen: false,
+        contentMode: "reader",
         resolvedFeedId: "   ",
         showSearch: false,
       }),
@@ -109,11 +113,13 @@ describe("ArticleListHeader", () => {
       showSidebarLabel: "Show sidebar",
       hideSidebarLabel: "Hide sidebar",
       resolvedFeedId: "feed-1",
+      contentMode: "reader" as const,
       selectedFeedDisplayPreset: "standard" as const,
       displayPresetOptions: [{ value: "standard" as const, label: "Standard" }],
       onSetDisplayMode: vi.fn(),
       openSidebar,
       toggleSidebar,
+      setWebPreviewSessionMode: vi.fn(),
     };
     const initialProps: HeaderControlsHookProps = {
       layoutMode: "wide",
@@ -181,6 +187,7 @@ describe("ArticleListHeader", () => {
           layoutMode: "wide",
           sidebarOpen: true,
           showSearch: false,
+          contentMode: "reader",
           sidebarSubscriptionsLabel: "Subscriptions",
           feedDisplayLabel: "Feed display",
           showSidebarLabel: "Show sidebar",
@@ -191,6 +198,7 @@ describe("ArticleListHeader", () => {
           onSetDisplayMode: vi.fn(),
           openSidebar: vi.fn(),
           toggleSidebar: vi.fn(),
+          setWebPreviewSessionMode: vi.fn(),
         }),
       {
         initialProps: {
@@ -235,6 +243,27 @@ describe("ArticleListHeader", () => {
     const header = container.firstElementChild;
     expect(header).not.toHaveAttribute("data-tauri-drag-region");
     expect(header?.querySelector("[data-tauri-drag-region]")).not.toBeNull();
+  });
+
+  it("keeps the list header visually separated from the article pane", () => {
+    const { container } = render(
+      <ArticleListHeader
+        showSearch={false}
+        searchQuery=""
+        searchInputRef={createRef<HTMLInputElement>()}
+        labels={articleListHeaderLabels}
+        showSidebarButton={false}
+        sidebarButtonLabel="Show sidebar"
+        onMarkAllRead={vi.fn()}
+        onToggleSidebar={vi.fn()}
+        onToggleSearch={vi.fn()}
+        onCloseSearch={vi.fn()}
+        onSearchQueryChange={vi.fn()}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    expect(container.firstElementChild).toHaveClass("border-r");
   });
 
   it("labels the search input accessibly and explains literal search syntax", () => {
@@ -329,6 +358,7 @@ describe("ArticleListHeader", () => {
         t: i18n.getFixedT("en", "reader"),
         tc: i18n.getFixedT("en", "common"),
         layoutMode: "wide",
+        contentMode: "reader",
         showSearch: true,
         searchQuery: "query",
         searchInputRef,
@@ -593,6 +623,7 @@ describe("ArticleListHeader", () => {
           layoutMode: "compact",
           sidebarOpen: false,
           showSearch,
+          contentMode: "reader",
           sidebarSubscriptionsLabel: "Subscriptions",
           feedDisplayLabel: "Feed display",
           showSidebarLabel: "Show sidebar",
@@ -606,6 +637,7 @@ describe("ArticleListHeader", () => {
           onSetDisplayMode: vi.fn(),
           openSidebar: vi.fn(),
           toggleSidebar: vi.fn(),
+          setWebPreviewSessionMode: vi.fn(),
         }),
       {
         initialProps: {

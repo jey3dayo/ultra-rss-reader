@@ -177,6 +177,7 @@ describe("ArticleToolbarView", () => {
     );
 
     expect(container.firstElementChild).toHaveClass("h-12");
+    expect(container.firstElementChild).not.toHaveClass("h-10");
     expect(container.firstElementChild).not.toHaveAttribute("data-tauri-drag-region");
     expect(container.firstElementChild).toHaveStyle({
       backgroundColor: "var(--reader-toolbar-surface)",
@@ -224,6 +225,56 @@ describe("ArticleToolbarView", () => {
     expect(onCopyLink).toHaveBeenCalledTimes(1);
     expect(onOpenInBrowser).toHaveBeenCalledTimes(1);
     expect(onOpenInExternalBrowser).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses compact toolbar chrome when Web Preview owns the content pane", () => {
+    const { container } = render(
+      <ArticleToolbarView
+        showCloseButton={false}
+        hideActionStrip
+        compactChrome
+        articleState={{
+          hasArticle: true,
+          isRead: false,
+          isStarred: false,
+          isBrowserOpen: true,
+        }}
+        actionOptions={{
+          canToggleRead: false,
+          canToggleStar: false,
+          showCopyLinkButton: false,
+          canCopyLink: false,
+          showOpenInBrowserButton: false,
+          canOpenInBrowser: false,
+          showOpenInExternalBrowserButton: false,
+          canOpenInExternalBrowser: false,
+        }}
+        labels={{
+          closeView: "Close article",
+          toggleRead: "Toggle read",
+          toggleReadShort: "Read",
+          toggleStar: "Toggle star",
+          toggleStarShort: "Star",
+          copyLink: "Copy link",
+          previewToggleOff: "Open Web Preview",
+          previewToggleOffShort: "Preview",
+          previewToggleOn: "Close Web Preview",
+          previewToggleOnShort: "Close",
+          openInExternalBrowser: "Open in External Browser",
+          moreActions: "More actions",
+        }}
+        onCloseView={vi.fn()}
+        onToggleRead={vi.fn()}
+        onToggleStar={vi.fn()}
+        onCopyLink={vi.fn()}
+        onOpenInBrowser={vi.fn()}
+        onOpenInExternalBrowser={vi.fn()}
+      />,
+    );
+
+    expect(container.firstElementChild).toHaveClass("h-10");
+    expect(container.firstElementChild).not.toHaveClass("h-12");
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
   it("applies semantic tones only to active article states in toolbar toggles", () => {
@@ -294,7 +345,8 @@ describe("ArticleToolbarView", () => {
     );
     expect(starIcon).not.toBeNull();
     expect(starIcon).toHaveClass("text-[var(--tone-starred)]");
-    expect(starIcon).toHaveClass("fill-[var(--tone-starred)]");
+    expect(starIcon).toHaveClass("fill-current", "stroke-current");
+    expect(starIcon).toHaveAttribute("fill", "currentColor");
   });
 
   it("hides optional actions and the unavailable article action strip", () => {

@@ -143,6 +143,29 @@ function getResetBrowserState() {
   };
 }
 
+type ClosedBrowserReaderState = Pick<
+  UiState,
+  | "accountPaneOpen"
+  | "contentMode"
+  | "sidebarOpen"
+  | "focusedPane"
+  | "browserUrl"
+  | "browserNavigationState"
+  | "browserCloseInFlight"
+  | "pendingBrowserCloseAction"
+  | "pendingBrowserCloseActionQueue"
+>;
+
+function getClosedBrowserReaderState(state: Pick<UiState, "selectedArticleId">): ClosedBrowserReaderState {
+  return {
+    accountPaneOpen: false,
+    contentMode: state.selectedArticleId ? ("reader" as const) : ("empty" as const),
+    sidebarOpen: true,
+    focusedPane: "list" as const,
+    ...getResetBrowserState(),
+  };
+}
+
 function getResetArticleReaderScrollState() {
   return {
     articleReaderScrollPositions: new Map<string, number>(),
@@ -529,18 +552,12 @@ export const useUiStore = create<UiState & UiActions>()((set, get) => ({
       pendingBrowserCloseAction: null,
       pendingBrowserCloseActionQueue: [],
     }),
-  closeBrowser: () =>
-    set((s) => ({
-      accountPaneOpen: false,
-      contentMode: s.selectedArticleId ? "reader" : "empty",
-      browserUrl: null,
-      browserNavigationState: null,
-      focusedPane: "list",
-      browserCloseInFlight: false,
-      pendingBrowserCloseAction: null,
-      pendingBrowserCloseActionQueue: [],
+  closeBrowser: () => set((s) => getClosedBrowserReaderState(s)),
+  setWebPreviewSessionMode: (mode) =>
+    set((state) => ({
+      webPreviewSessionMode: mode,
+      ...(mode === "forced-off" && state.contentMode === "browser" ? getClosedBrowserReaderState(state) : {}),
     })),
-  setWebPreviewSessionMode: (mode) => set({ webPreviewSessionMode: mode }),
   setBrowserNavigationState: (state) => set({ browserNavigationState: state }),
   setBrowserCloseInFlight: (inFlight) => set({ browserCloseInFlight: inFlight }),
   setPendingBrowserCloseAction: (action) =>

@@ -601,6 +601,30 @@ describe("ArticleList", () => {
     expect(useUiStore.getState().focusedPane).toBe("sidebar");
   });
 
+  it("removes the article list header while web preview owns the content pane", async () => {
+    useUiStore.getState().selectAccount("acc-1");
+    useUiStore.getState().selectFeed("feed-1");
+    useUiStore.setState({
+      layoutMode: "wide",
+      focusedPane: "content",
+      sidebarOpen: true,
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://example.com/1",
+      webPreviewSessionMode: "forced-on",
+    });
+
+    render(<ArticleList />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.getByText(sampleArticles[0].title)).toBeInTheDocument();
+    });
+
+    expect(screen.queryByRole("button", { name: "Show sidebar" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Hide sidebar" })).not.toBeInTheDocument();
+    expect(screen.getByRole("listbox", { name: "Article list" })).toBeInTheDocument();
+  });
+
   it("returns focus to the selected article row when closing web preview", async () => {
     useUiStore.getState().selectAccount("acc-1");
     useUiStore.getState().selectFeed("feed-1");

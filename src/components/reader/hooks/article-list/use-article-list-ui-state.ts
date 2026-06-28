@@ -6,10 +6,12 @@ export function useArticleListUiState() {
   const selectedAccountId = useUiStore((s) => s.selectedAccountId);
   const focusedPane = useUiStore((s) => s.focusedPane);
   const selectedArticleId = useUiStore((s) => s.selectedArticleId);
+  const contentMode = useUiStore((s) => s.contentMode);
   const selectArticle = useUiStore((s) => s.selectArticle);
   const clearArticle = useUiStore((s) => s.clearArticle);
   const openSidebar = useUiStore((s) => s.openSidebar);
   const toggleSidebar = useUiStore((s) => s.toggleSidebar);
+  const setWebPreviewSessionMode = useUiStore((s) => s.setWebPreviewSessionMode);
   const sidebarOpen = useUiStore((s) => s.sidebarOpen);
   const viewMode = useUiStore((s) => s.viewMode);
   const setViewMode = useUiStore((s) => s.setViewMode);
@@ -31,10 +33,12 @@ export function useArticleListUiState() {
     selectedAccountId,
     focusedPane,
     selectedArticleId,
+    contentMode,
     selectArticle,
     clearArticle,
     openSidebar,
     toggleSidebar,
+    setWebPreviewSessionMode,
     sidebarOpen,
     viewMode,
     setViewMode,

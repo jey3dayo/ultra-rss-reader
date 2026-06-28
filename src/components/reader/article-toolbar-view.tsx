@@ -39,6 +39,7 @@ type ArticleToolbarViewLabels = {
 type ArticleToolbarViewProps = {
   showCloseButton: boolean;
   hideActionStrip?: boolean;
+  compactChrome?: boolean;
   layoutMode?: ArticleToolbarLayoutMode;
   articleState: ArticleToolbarArticleState;
   actionOptions: ArticleToolbarActionOptions;
@@ -328,6 +329,7 @@ export function ArticleToolbarActionStrip({
 export function ArticleToolbarView({
   showCloseButton,
   hideActionStrip = false,
+  compactChrome = false,
   ...actionStripProps
 }: ArticleToolbarViewProps) {
   const { labels } = actionStripProps;
@@ -335,7 +337,8 @@ export function ArticleToolbarView({
   return (
     <div
       className={cn(
-        "sticky top-0 z-10 flex h-12 items-center border-b border-border/70 px-4 backdrop-blur-sm",
+        "sticky top-0 z-10 flex items-center border-b border-border/70 px-4 backdrop-blur-sm",
+        compactChrome ? "h-10" : "h-12",
         isMobile && "px-2",
       )}
       style={{ backgroundColor: "var(--reader-toolbar-surface)" }}

@@ -19,7 +19,7 @@ import { usePlatformStore } from "@/stores/platform-store";
 type WorkspaceHeaderProps = {
   eyebrow?: string;
   title: string;
-  subtitle: string;
+  subtitle?: string;
   backLabel?: string;
   onBack?: () => void;
   closeLabel: string;
@@ -108,11 +108,12 @@ export function WorkspaceHeader({
   });
   const hasBackAction = Boolean(backLabel && onBack);
   const hasEyebrow = Boolean(eyebrow);
+  const hasSubtitle = Boolean(subtitle);
   const isDesktopApp = hasRuntime;
   const useCompactDesktopHeader = isDesktopApp && !useDesktopOverlay;
   const showEyebrowInTopRow = hasEyebrow && (isBrowserPreview || useCompactDesktopHeader);
   const showEyebrowInTitleGroup = hasEyebrow && isDesktopApp && !useCompactDesktopHeader;
-  const contentKey = `${eyebrow ?? ""}::${title}::${subtitle}`;
+  const contentKey = `${eyebrow ?? ""}::${title}::${subtitle ?? ""}`;
   const previousContentKeyRef = useRef(contentKey);
   const [contentMotionPhase, setContentMotionPhase] = useState<MotionPhase>(MOTION_PHASE_STEADY);
 
@@ -282,23 +283,25 @@ export function WorkspaceHeader({
               {title}
             </MotionText>
           )}
-          <div
-            className={cn(
-              "relative",
-              workspaceHeaderStackingClassNames.passiveContent,
-              useDesktopOverlay && layerPointerEventClassNames.inert,
-            )}
-          >
-            <MotionText
-              as="p"
-              phase={contentMotionPhase}
-              variant="subtitle"
-              testId="workspace-header-subtitle-content"
-              className={cn(useDesktopOverlay && layerPointerEventClassNames.inert)}
+          {hasSubtitle ? (
+            <div
+              className={cn(
+                "relative",
+                workspaceHeaderStackingClassNames.passiveContent,
+                useDesktopOverlay && layerPointerEventClassNames.inert,
+              )}
             >
-              {subtitle}
-            </MotionText>
-          </div>
+              <MotionText
+                as="p"
+                phase={contentMotionPhase}
+                variant="subtitle"
+                testId="workspace-header-subtitle-content"
+                className={cn(useDesktopOverlay && layerPointerEventClassNames.inert)}
+              >
+                {subtitle}
+              </MotionText>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

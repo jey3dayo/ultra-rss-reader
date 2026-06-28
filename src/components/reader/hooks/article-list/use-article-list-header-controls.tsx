@@ -8,6 +8,7 @@ import type {
 export type ArticleListHeaderControlAvailabilityInput = {
   layoutMode: UseArticleListHeaderControlsParams["layoutMode"];
   sidebarOpen: boolean;
+  contentMode: UseArticleListHeaderControlsParams["contentMode"];
   resolvedFeedId: string | null;
   showSearch: boolean;
 };
@@ -28,14 +29,16 @@ function hasConcreteResolvedFeedId(resolvedFeedId: string | null): boolean {
 export function resolveArticleListHeaderControlAvailability({
   layoutMode,
   sidebarOpen,
+  contentMode,
   resolvedFeedId,
   showSearch,
 }: ArticleListHeaderControlAvailabilityInput): ArticleListHeaderControlAvailability {
   const hasResolvedFeedId = hasConcreteResolvedFeedId(resolvedFeedId);
+  const isWideBrowserMode = layoutMode === "wide" && contentMode === "browser";
 
   return {
     showSidebarButton: layoutMode === "mobile" || layoutMode === "wide" || layoutMode === "compact",
-    isSidebarTogglePressed: layoutMode === "wide" ? sidebarOpen : undefined,
+    isSidebarTogglePressed: layoutMode === "wide" ? (isWideBrowserMode ? false : sidebarOpen) : undefined,
     showFeedDisplaySelect: hasResolvedFeedId && !showSearch,
     showMarkAllRead: true,
     showSearchToggle: true,
@@ -47,6 +50,7 @@ export function useArticleListHeaderControls({
   layoutMode,
   sidebarOpen,
   showSearch,
+  contentMode,
   sidebarSubscriptionsLabel,
   feedDisplayLabel,
   showSidebarLabel,
@@ -57,21 +61,28 @@ export function useArticleListHeaderControls({
   onSetDisplayMode,
   openSidebar,
   toggleSidebar,
+  setWebPreviewSessionMode,
 }: UseArticleListHeaderControlsParams): UseArticleListHeaderControlsResult {
   const availability = resolveArticleListHeaderControlAvailability({
     layoutMode,
     sidebarOpen,
+    contentMode,
     resolvedFeedId,
     showSearch,
   });
   const handleSidebarToggle = useCallback(() => {
+    if (layoutMode === "wide" && contentMode === "browser") {
+      setWebPreviewSessionMode("forced-off");
+      return;
+    }
+
     if (layoutMode === "wide") {
       toggleSidebar();
       return;
     }
 
     openSidebar();
-  }, [layoutMode, openSidebar, toggleSidebar]);
+  }, [contentMode, layoutMode, openSidebar, setWebPreviewSessionMode, toggleSidebar]);
 
   const feedModeControl = useMemo(
     () =>
@@ -94,7 +105,12 @@ export function useArticleListHeaderControls({
 
   return {
     showSidebarButton: availability.showSidebarButton,
-    sidebarButtonLabel: layoutMode === "wide" ? (sidebarOpen ? hideSidebarLabel : showSidebarLabel) : showSidebarLabel,
+    sidebarButtonLabel:
+      layoutMode === "wide" && contentMode !== "browser"
+        ? sidebarOpen
+          ? hideSidebarLabel
+          : showSidebarLabel
+        : showSidebarLabel,
     sidebarButtonText: layoutMode === "compact" ? sidebarSubscriptionsLabel : undefined,
     isSidebarVisible: availability.isSidebarTogglePressed,
     feedModeControl,

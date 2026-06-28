@@ -246,7 +246,7 @@ export function FeedDetailPanel({
               <p
                 className={cn(
                   "mt-3 max-w-[48rem] font-serif text-[1rem] leading-7 text-foreground-soft",
-                  isLowWire && "text-foreground-soft/95",
+                  isLowWire && "font-sans text-sm leading-6 text-foreground-soft/95",
                 )}
               >
                 {summaryText}
@@ -274,7 +274,7 @@ export function FeedDetailPanel({
               <p className="font-sans text-[11px] font-medium tracking-[0.08em] text-current uppercase">
                 {reasonBox.title}
               </p>
-              <p className="mt-1.5 font-serif text-sm leading-6 text-current">{reasonBox.body}</p>
+              <p className="mt-1.5 font-sans text-sm leading-6 text-current">{reasonBox.body}</p>
             </SurfaceCard>
           ) : null}
 
@@ -324,10 +324,7 @@ export function FeedDetailPanel({
           {recentArticles.length > 0 ? (
             <div
               data-testid="feed-detail-recent-articles"
-              className={cn(
-                "space-y-2 pt-3",
-                isLowWire ? "border-t border-[var(--workspace-low-wire-divider)]" : "border-t border-border/55",
-              )}
+              className={cn("space-y-2", isLowWire ? "pt-1" : "border-t border-border/55 pt-3")}
             >
               <h4 className="font-sans text-sm font-medium text-foreground">{recentArticlesHeading}</h4>
               <div className="space-y-1.5">

@@ -41,15 +41,19 @@ export function ArticleToolbar({
     onToggleBrowserOverlay,
   });
 
+  if (isBrowserOpen) {
+    return null;
+  }
+
   return (
     <ArticleToolbarView
-      showCloseButton={article !== null && !isBrowserOpen}
-      hideActionStrip={isBrowserOpen}
+      showCloseButton={article !== null}
+      hideActionStrip={false}
       onCloseView={onCloseView}
       {...actionStripProps}
       articleState={{
         ...actionStripProps.articleState,
-        hideBrowserOverlayActions: isBrowserOpen,
+        hideBrowserOverlayActions: false,
       }}
     />
   );

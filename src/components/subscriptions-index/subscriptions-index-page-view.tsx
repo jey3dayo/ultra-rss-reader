@@ -73,7 +73,6 @@ type SubscriptionsIndexPageViewProps = {
 
 export function SubscriptionsIndexPageView({
   title,
-  subtitle,
   summaryCards,
   summaryLabels,
   reviewCriteriaLabel,
@@ -128,14 +127,7 @@ export function SubscriptionsIndexPageView({
 
   return (
     <div className="flex h-dvh max-h-dvh min-h-0 flex-1 flex-col overflow-y-auto bg-background lg:overflow-hidden">
-      <WorkspaceHeader
-        title={title}
-        subtitle={subtitle}
-        backLabel={backLabel}
-        onBack={onBack}
-        closeLabel={closeLabel}
-        onClose={onClose}
-      />
+      <WorkspaceHeader title={title} backLabel={backLabel} onBack={onBack} closeLabel={closeLabel} onClose={onClose} />
       <div className={`${WORKSPACE_CHROME_SPACING_CLASS} pt-2 sm:pt-3`}>
         <div className={`${WORKSPACE_CANVAS_CLASS} gap-4 sm:gap-5 ${useDesktopOverlay ? "pl-6 sm:pl-6" : ""}`}>
           <SubscriptionsOverviewSummary

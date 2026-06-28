@@ -13,7 +13,7 @@ type SidebarSectionToggleProps = {
 };
 
 export const sidebarSectionLabelClassName =
-  "text-[0.72rem] font-semibold tracking-[0.12em] text-[var(--sidebar-foreground-soft-strong)] uppercase";
+  "text-[0.72rem] font-semibold tracking-[0.12em] text-sidebar-foreground/56 uppercase";
 
 export function SidebarSectionToggle({
   label,

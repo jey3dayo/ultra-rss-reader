@@ -43,8 +43,10 @@ describe("UnreadIcon", () => {
 
     const icon = container.firstElementChild;
     expect(icon).not.toBeNull();
-    expect(icon).toHaveClass("fill-[var(--tone-starred)]");
+    expect(icon).toHaveClass("fill-current");
+    expect(icon).toHaveClass("stroke-current");
     expect(icon).toHaveClass("text-[var(--tone-starred)]");
+    expect(icon).toHaveAttribute("fill", "currentColor");
   });
 
   it("can keep the starred tone visible even when the item is not starred", () => {
@@ -53,7 +55,8 @@ describe("UnreadIcon", () => {
     const icon = container.firstElementChild;
     expect(icon).not.toBeNull();
     expect(icon).toHaveClass("text-[var(--tone-starred)]");
-    expect(icon).not.toHaveClass("fill-[var(--tone-starred)]");
+    expect(icon).not.toHaveClass("fill-current");
+    expect(icon).toHaveAttribute("fill", "none");
   });
 
   it("can render the starred shape without applying the starred tone", () => {
@@ -62,6 +65,7 @@ describe("UnreadIcon", () => {
     const icon = container.firstElementChild;
     expect(icon).not.toBeNull();
     expect(icon).not.toHaveClass("text-[var(--tone-starred)]");
-    expect(icon).not.toHaveClass("fill-[var(--tone-starred)]");
+    expect(icon).not.toHaveClass("fill-current");
+    expect(icon).toHaveAttribute("fill", "none");
   });
 });

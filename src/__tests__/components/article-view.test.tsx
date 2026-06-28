@@ -96,20 +96,35 @@ function setupArticleViewRecordingMocks(calls: MockTauriCommandCall[]) {
 }
 
 function expectSummaryMetricMotionValue(summary: HTMLElement, label: string, value: string) {
-  expect(within(summary).getByText(new RegExp(`^${label}$`, "i"))).toBeInTheDocument();
-  expect(within(summary).getByText(value)).toHaveClass("motion-content-swap", "tabular-nums");
-}
-
-function expectSummaryLeadingVisual(summary: HTMLElement, expectedClassName: string) {
-  const leadingVisual = within(summary).getByTestId("article-selection-leading-visual");
-  const visual = leadingVisual.firstElementChild;
-
-  if (!(visual instanceof HTMLElement || visual instanceof SVGElement)) {
-    throw new Error("Summary leading visual was not rendered");
+  const metrics = within(summary).getByTestId("article-selection-summary-metrics");
+  const labelElement = within(metrics).getByText(new RegExp(`^${label}$`, "i"));
+  const metricCell = labelElement.closest(".min-w-0");
+  if (!(metricCell instanceof HTMLElement)) {
+    throw new Error(`Summary metric cell for ${label} was not rendered`);
   }
 
-  expect(leadingVisual).toHaveClass("size-16");
-  expect(visual).toHaveClass(expectedClassName);
+  expect(within(metricCell).getByText(value)).toHaveClass("motion-content-swap", "tabular-nums");
+}
+
+function expectSummaryMetricKind(summary: HTMLElement, label: string, kind: "count" | "date") {
+  const metrics = within(summary).getByTestId("article-selection-summary-metrics");
+  const labelElement = within(metrics).getByText(new RegExp(`^${label}$`, "i"));
+  const metricCell = labelElement.closest(".min-w-0");
+  if (!(metricCell instanceof HTMLElement)) {
+    throw new Error(`Summary metric cell for ${label} was not rendered`);
+  }
+
+  expect(metricCell).toHaveAttribute("data-summary-metric-kind", kind);
+
+  if (kind === "date") {
+    const valueElement = metricCell.firstElementChild;
+    expect(valueElement).toHaveClass("h-[1.45rem]", "items-end");
+  }
+}
+
+function expectSummaryScopeLabel(summary: HTMLElement, label: string | RegExp) {
+  expect(summary).toHaveAccessibleName(label);
+  expect(within(summary).queryByRole("heading", { name: label })).not.toBeInTheDocument();
 }
 
 async function expectArticleAutoMarksAsRead({
@@ -2087,12 +2102,15 @@ describe("ArticleView", () => {
     render(<ArticleView />, { wrapper: createWrapper() });
 
     const summary = await screen.findByTestId("article-selection-summary");
-    expect(within(summary).getByRole("heading", { level: 3, name: "Tech Blog" })).toBeInTheDocument();
-    expectSummaryLeadingVisual(summary, "h-7");
+    expectSummaryScopeLabel(summary, "Tech Blog");
     expectSummaryMetricMotionValue(summary, "Unread", "5");
-    expect(within(summary).getByRole("button", { name: /Manage subscription.*Tech Blog/i })).toBeInTheDocument();
+    expectSummaryMetricMotionValue(summary, "Feeds", "1");
+    expect(within(summary).getByText("Recent feeds")).toBeInTheDocument();
+    expect(within(summary).getByText("Tech Blog")).toBeInTheDocument();
+    expect(within(summary).queryByRole("button", { name: /Manage subscription.*Tech Blog/i })).not.toBeInTheDocument();
     expect(within(summary).queryByText("Latest Article")).not.toBeInTheDocument();
-    expect(within(summary).queryByText(/^(Latest Update|latest_update)$/i)).not.toBeInTheDocument();
+    expect(within(summary).getByText("Latest Update")).toBeInTheDocument();
+    expectSummaryMetricKind(summary, "Latest Update", "date");
     expect(within(summary).queryByText("example.com")).not.toBeInTheDocument();
     expect(screen.queryByText("Select an article")).not.toBeInTheDocument();
   });
@@ -2148,11 +2166,12 @@ describe("ArticleView", () => {
     render(<ArticleView />, { wrapper: createWrapper() });
 
     const summary = await screen.findByTestId("article-selection-summary");
-    expect(within(summary).getByRole("heading", { level: 3, name: "Gaming" })).toBeInTheDocument();
-    expectSummaryLeadingVisual(summary, "size-9");
+    expect(within(summary).queryByText(/^Overview$/i)).not.toBeInTheDocument();
     expectSummaryMetricMotionValue(summary, "Unread", "3");
-    expect(within(summary).queryByText("Feeds")).not.toBeInTheDocument();
-    expect(within(summary).queryByText(/^(Latest Update|latest_update)$/i)).not.toBeInTheDocument();
+    expectSummaryMetricMotionValue(summary, "Feeds", "1");
+    expect(within(summary).getByText("Recent feeds")).toBeInTheDocument();
+    expect(within(summary).getByText("Quiet Feed")).toBeInTheDocument();
+    expect(within(summary).getByText("Latest Update")).toBeInTheDocument();
     expect(screen.queryByText("Select an article")).not.toBeInTheDocument();
   });
 
@@ -2295,11 +2314,10 @@ describe("ArticleView", () => {
 
     const summary = await screen.findByTestId("article-selection-summary");
     expect(summary).not.toHaveAttribute("data-selection-identity-accent");
-    expect(within(summary).getByRole("heading", { level: 3, name: /^(Recently Viewed|recent_articles)$/i }));
+    expectSummaryScopeLabel(summary, /^(Recently Viewed|recent_articles)$/i);
     expect(within(summary).queryByRole("heading", { level: 3, name: /^Starred$/i })).not.toBeInTheDocument();
-    const leadingIcon = within(summary).getByTestId("article-selection-leading-visual").querySelector("svg");
-    expect(leadingIcon).toHaveClass("text-foreground-soft");
-    expect(leadingIcon).not.toHaveClass("text-[var(--feed-detail-accent-starred-visual-foreground)]");
+    expect(within(summary).queryByTestId("article-selection-leading-visual")).not.toBeInTheDocument();
+    expectSummaryMetricMotionValue(summary, "Articles", "0");
   });
 
   it("renders account setup guidance when no accounts are available", async () => {

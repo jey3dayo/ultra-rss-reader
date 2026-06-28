@@ -42,13 +42,15 @@ export function UnreadIcon({ unread, forceTone = false, tone = "state", classNam
 
 export function StarIcon({ starred, forceTone = false, tone = "state", className, ...props }: StarIconProps) {
   const showSemanticTone = tone === "state" && (starred || forceTone);
+  const fill = showSemanticTone && starred ? "currentColor" : "none";
 
   return (
     <Star
+      fill={fill}
       className={cn(
         className,
         showSemanticTone && "text-[var(--tone-starred)]",
-        showSemanticTone && starred && "fill-[var(--tone-starred)]",
+        showSemanticTone && starred && "fill-current stroke-current",
       )}
       aria-hidden="true"
       {...props}

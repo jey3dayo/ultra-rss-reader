@@ -55,7 +55,7 @@ export function ArticleListHeaderActions({
                 aria-label={sidebarButtonLabel}
                 aria-pressed={isSidebarVisible}
                 className={cn(
-                  "min-h-11 gap-2 px-3 text-sm font-medium text-foreground-soft transition-colors duration-200 hover:text-foreground motion-reduce:transition-none",
+                  "-ml-1.5 min-h-11 gap-2 px-3 text-sm font-medium text-foreground-soft transition-colors duration-200 hover:text-foreground motion-reduce:transition-none",
                   isSidebarVisible && "bg-transparent text-foreground",
                 )}
               >
@@ -68,7 +68,7 @@ export function ArticleListHeaderActions({
               label={sidebarButtonLabel}
               onClick={onToggleSidebar}
               ariaPressed={isSidebarVisible}
-              className={cn(isSidebarVisible && iconToolbarActiveClassName)}
+              className={cn("-ml-1.5", isSidebarVisible && iconToolbarActiveClassName)}
             >
               <PanelLeft className="size-4" />
             </IconToolbarButton>

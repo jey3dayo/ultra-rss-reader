@@ -206,6 +206,36 @@ describe("App", () => {
     });
   });
 
+  it("wide: restores the folder sidebar after closing Web Preview", () => {
+    useUiStore.setState({
+      layoutMode: "wide",
+      focusedPane: "content",
+      selectedArticleId: "article-1",
+      contentMode: "browser",
+      browserUrl: "https://example.com/article-1",
+      sidebarOpen: false,
+    });
+
+    const { rerender } = render(<AppLayout />, { wrapper: createWrapper() });
+
+    expect(screen.getByTestId("wide-sidebar-shell")).toHaveStyle({ width: "0px" });
+    expect(screen.getByTestId("wide-sidebar-content")).toHaveAttribute("inert");
+    expect(screen.getByTestId("main-stage").firstElementChild).toHaveStyle({
+      width: `${ARTICLE_LIST_PANE_WIDTH_PX}px`,
+    });
+
+    act(() => {
+      useUiStore.getState().closeBrowser();
+    });
+    rerender(<AppLayout />);
+
+    expect(screen.getByTestId("wide-sidebar-shell")).toHaveStyle({ width: `${SIDEBAR_PANE_WIDTH_PX}px` });
+    expect(screen.getByTestId("wide-sidebar-content")).not.toHaveAttribute("inert");
+    expect(screen.getByTestId("main-stage").firstElementChild).toHaveStyle({
+      width: `${ARTICLE_LIST_PANE_WIDTH_PX}px`,
+    });
+  });
+
   it("uses overlay titlebar only when tauri runtime is available on macos platform info", () => {
     expect(
       shouldUseDesktopOverlayTitlebar({

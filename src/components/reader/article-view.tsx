@@ -1,10 +1,14 @@
-import { FolderClosed, History, Inbox, List, Star, Tag as TagIcon } from "lucide-react";
 import { type ComponentProps, lazy, type ReactNode, Suspense, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useArticleViewSelection } from "@/components/reader/hooks/article/use-article-view-selection";
 import { useArticleViewUiState } from "@/components/reader/hooks/article/use-article-view-ui-state";
-import { Button, FeedFavicon, MotionNumber } from "@/design-system";
-import { type ArticleViewSummaryState, resolveArticleDateLocale } from "@/lib/articles/article-view";
+import { FeedFavicon, MotionNumber } from "@/design-system";
+import {
+  type ArticleViewSummaryFeed,
+  type ArticleViewSummaryState,
+  formatArticleSummaryDate,
+  resolveArticleDateLocale,
+} from "@/lib/articles/article-view";
 import i18n from "@/lib/i18n";
 import { useI18nResourceNamespace } from "@/lib/i18n/use-i18n-resource-namespace";
 import { loadI18nResourceNamespace } from "@/lib/i18n-resources";
@@ -27,16 +31,16 @@ const SUMMARY_CONTAINER_CLASS_NAME = `w-full max-w-[48rem] ${readerPassiveCardOf
 type ArticleEmptyStateViewProps = ComponentProps<typeof ArticleEmptyStateView>;
 
 type SummaryIdentityProps = {
+  label: string;
+  value: ReactNode;
+  kind?: "count" | "date";
+};
+
+type SummaryScopeProps = {
   title: string;
-  leadingVisual?: ReactNode;
-  countLabel: string;
-  countValue: ReactNode;
+  metrics: SummaryIdentityProps[];
+  recentFeeds: ArticleViewSummaryFeed[];
   accentTone?: "unread" | "starred";
-  primaryAction?: {
-    label: string;
-    ariaLabel?: string;
-    onClick: () => void;
-  };
 };
 
 function resolveSelectionLandingKey(
@@ -63,63 +67,72 @@ function renderSummaryCount(value: number, locale: string) {
   return <MotionNumber key={label} value={label} />;
 }
 
-function SummaryEmptyState({
-  title,
-  leadingVisual,
-  accentTone,
-  countLabel,
-  countValue,
-  primaryAction,
-}: SummaryIdentityProps) {
+function SummaryMetric({ label, value, kind = "count" }: SummaryIdentityProps) {
+  const valueClassName =
+    kind === "date"
+      ? "flex h-[1.45rem] items-end font-sans text-[1.12rem] font-medium leading-[1.08] tracking-normal text-foreground tabular-nums"
+      : "font-sans text-[1.45rem] font-medium leading-none tracking-[-0.03em] text-foreground tabular-nums";
+
+  return (
+    <div className="min-w-0" data-summary-metric-kind={kind}>
+      <p className={valueClassName}>{value}</p>
+      <p className="mt-1 text-[0.72rem] leading-tight text-foreground-soft">{label}</p>
+    </div>
+  );
+}
+
+function RecentFeedRow({ feed }: { feed: ArticleViewSummaryFeed }) {
+  return (
+    <li className="min-w-0">
+      <div className="flex h-9 min-w-0 items-center gap-2 rounded-md border border-border/55 bg-surface-1/52 px-2.5 text-sm shadow-none dark:border-border/70 dark:bg-surface-2/42">
+        <FeedFavicon title={feed.title} url={feed.url} siteUrl={feed.site_url} size="sm" />
+        <span className="min-w-0 flex-1 truncate text-foreground" dir="auto">
+          {feed.title}
+        </span>
+        <span className="shrink-0 text-xs text-foreground-soft tabular-nums">{feed.unread_count.toLocaleString()}</span>
+      </div>
+    </li>
+  );
+}
+
+function SummaryEmptyState({ title, metrics, recentFeeds, accentTone }: SummaryScopeProps) {
+  const { t } = useTranslation("reader");
+
   return (
     <ArticleEmptyStateShell
       toolbar={
         <ArticleToolbar article={null} isBrowserOpen={false} onCloseView={() => {}} onToggleBrowserOverlay={() => {}} />
       }
       body={
-        <div className="flex flex-1 items-center justify-center overflow-hidden px-6 pt-6 pb-12">
-          <div
+        <div className="flex flex-1 items-start justify-center overflow-hidden px-8 pt-[9vh] pb-12">
+          <section
             data-testid="article-selection-summary"
             data-selection-identity=""
             data-selection-identity-accent={accentTone}
+            aria-label={title}
             className={SUMMARY_CONTAINER_CLASS_NAME}
           >
-            <section
-              aria-label={title}
-              className="mx-auto flex min-h-[18rem] max-w-[34rem] flex-col items-center justify-center px-4 text-center"
-            >
-              {leadingVisual ? (
-                <div
-                  data-testid="article-selection-leading-visual"
-                  className="mb-5 flex size-16 items-center justify-center text-foreground-soft"
-                >
-                  {leadingVisual}
+            <div className="mx-auto w-full max-w-[34rem] px-1">
+              <div
+                className="grid grid-cols-2 gap-x-7 gap-y-5 min-[34rem]:grid-cols-[repeat(3,minmax(3.5rem,1fr))_minmax(8.5rem,1.45fr)]"
+                data-testid="article-selection-summary-metrics"
+              >
+                {metrics.map((metric) => (
+                  <SummaryMetric key={metric.label} {...metric} />
+                ))}
+              </div>
+              {recentFeeds.length > 0 ? (
+                <div className="mt-9">
+                  <h3 className="text-sm font-medium text-foreground">{t("recent_feeds")}</h3>
+                  <ul className="mt-3 grid grid-cols-2 gap-2.5">
+                    {recentFeeds.map((feed) => (
+                      <RecentFeedRow key={feed.id} feed={feed} />
+                    ))}
+                  </ul>
                 </div>
               ) : null}
-              <h3 className="max-w-full truncate font-sans text-xl font-medium leading-tight text-foreground">
-                {title}
-              </h3>
-              <p className="mt-1 font-sans text-sm font-medium text-[var(--color-unread)]">
-                <span className="tabular-nums">{countValue}</span>
-                <span className="ml-1">{countLabel}</span>
-              </p>
-              {primaryAction ? (
-                <div className="mt-6">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    aria-label={primaryAction.ariaLabel}
-                    onClick={primaryAction.onClick}
-                    className="h-8 text-foreground-soft hover:text-foreground"
-                  >
-                    <List className="size-4" aria-hidden="true" />
-                    <span>{primaryAction.label}</span>
-                  </Button>
-                </div>
-              ) : null}
-            </section>
-          </div>
+            </div>
+          </section>
         </div>
       }
     />
@@ -131,15 +144,41 @@ function buildSummaryIdentityProps(
   locale: string,
   readerT: ReturnType<typeof useTranslation<"reader">>["t"],
   sidebarT: ReturnType<typeof useTranslation<"sidebar">>["t"],
-): SummaryIdentityProps {
+): SummaryScopeProps {
+  const latestUpdate = formatArticleSummaryDate(summary.latestArticlePublishedAt, locale);
+  const buildMetrics = (params: {
+    unreadCount: number;
+    articleCount: number;
+    feedCount: number;
+  }): SummaryIdentityProps[] => [
+    {
+      label: readerT("unread"),
+      value: renderSummaryCount(params.unreadCount, locale),
+    },
+    {
+      label: readerT("articles"),
+      value: renderSummaryCount(params.articleCount, locale),
+    },
+    {
+      label: readerT("feeds"),
+      value: renderSummaryCount(params.feedCount, locale),
+    },
+    {
+      label: readerT("latest_update"),
+      value: latestUpdate,
+      kind: "date",
+    },
+  ];
+
   if (summary.kind === "feed") {
     return {
       title: summary.feed.title,
-      leadingVisual: (
-        <FeedFavicon title={summary.feed.title} url={summary.feed.url} siteUrl={summary.feed.site_url} size="lg" />
-      ),
-      countLabel: readerT("unread"),
-      countValue: renderSummaryCount(summary.feed.unread_count, locale),
+      metrics: buildMetrics({
+        unreadCount: summary.feed.unread_count,
+        articleCount: summary.articleCount,
+        feedCount: summary.feedCount,
+      }),
+      recentFeeds: summary.recentFeeds,
       accentTone: "unread",
     };
   }
@@ -147,9 +186,12 @@ function buildSummaryIdentityProps(
   if (summary.kind === "folder") {
     return {
       title: summary.folder.name,
-      leadingVisual: <FolderClosed className="size-9 stroke-[1.5] text-foreground-soft" />,
-      countLabel: readerT("unread"),
-      countValue: renderSummaryCount(summary.unreadCount, locale),
+      metrics: buildMetrics({
+        unreadCount: summary.unreadCount,
+        articleCount: summary.articleCount,
+        feedCount: summary.feedCount,
+      }),
+      recentFeeds: summary.recentFeeds,
       accentTone: "unread",
     };
   }
@@ -157,40 +199,39 @@ function buildSummaryIdentityProps(
   if (summary.kind === "tag") {
     return {
       title: summary.tag.name,
-      leadingVisual: summary.tag.color ? (
-        <span className="inline-block size-8 rounded-full" style={{ backgroundColor: summary.tag.color }} />
-      ) : (
-        <TagIcon className="size-9 stroke-[1.5] text-foreground-soft" />
-      ),
-      countLabel: readerT("articles"),
-      countValue: renderSummaryCount(summary.articleCount, locale),
+      metrics: buildMetrics({
+        unreadCount: summary.unreadCount,
+        articleCount: summary.articleCount,
+        feedCount: summary.feedCount,
+      }),
+      recentFeeds: summary.recentFeeds,
     };
   }
 
   const smartSummaryView = {
     unread: {
       title: sidebarT("unread"),
-      leadingVisual: <Inbox className="size-5" />,
       accentTone: "unread" as const,
     },
     starred: {
       title: sidebarT("starred"),
-      leadingVisual: <Star className="size-5" />,
       accentTone: "starred" as const,
     },
     recent: {
       title: sidebarT("recent_articles"),
-      leadingVisual: <History className="size-5 text-foreground-soft" />,
       accentTone: undefined,
     },
   }[summary.smartKind];
 
   return {
     title: smartSummaryView.title,
-    leadingVisual: smartSummaryView.leadingVisual,
     accentTone: smartSummaryView.accentTone,
-    countLabel: readerT("articles"),
-    countValue: renderSummaryCount(summary.articleCount, locale),
+    metrics: buildMetrics({
+      unreadCount: summary.unreadCount,
+      articleCount: summary.articleCount,
+      feedCount: summary.feedCount,
+    }),
+    recentFeeds: summary.recentFeeds,
   };
 }
 
@@ -198,34 +239,10 @@ function SelectionSummaryEmptyState({ summary }: { summary: ArticleViewSummarySt
   const { t } = useTranslation("reader");
   const { t: sidebarT } = useTranslation("sidebar");
   const { i18n } = useTranslation("reader");
-  const selectedAccountId = useUiStore((state) => state.selectedAccountId);
-  const openSubscriptionsIndex = useUiStore((state) => state.openSubscriptionsIndex);
   const locale = resolveArticleDateLocale(i18n.language);
   const identityProps = buildSummaryIdentityProps(summary, locale, t, sidebarT);
-  const primaryAction =
-    summary.kind === "feed" && selectedAccountId !== null
-      ? {
-          label: t("manage_subscription"),
-          ariaLabel: t("manage_subscription_aria", { title: summary.feed.title }),
-          onClick: () => {
-            openSubscriptionsIndex({
-              accountId: selectedAccountId,
-              activeSummaryFilter: "all",
-              selectedFeedId: summary.feed.id,
-              expandedGroups: {},
-              listScrollTop: {
-                scrollTop: 0,
-                layoutGeneration: "reader-feed-detail-manage-link",
-                viewportHeight: 0,
-              },
-              keptFeedIds: [],
-              deferredFeedIds: [],
-            });
-          },
-        }
-      : undefined;
 
-  return <SummaryEmptyState {...identityProps} primaryAction={primaryAction} />;
+  return <SummaryEmptyState {...identityProps} />;
 }
 
 function EmptyState({
