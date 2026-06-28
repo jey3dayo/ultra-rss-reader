@@ -779,7 +779,7 @@ describe("release repository contract", () => {
   it("keeps release dependency cache handled by pinned pnpm setup", () => {
     const releasePnpmSetupBlock = extractPnpmSetupBlock(releaseWorkflow);
 
-    expect(releasePnpmSetupBlock).toContain("runtime: node@24");
+    expect(releasePnpmSetupBlock).toContain("runtime: node@26.4.0");
     expect(releasePnpmSetupBlock).toContain("cache: true");
     expect(releasePnpmSetupBlock).toContain("install: false");
     expect(releaseWorkflow.indexOf("Validate release source")).toBeLessThan(
@@ -795,7 +795,7 @@ describe("release repository contract", () => {
 
     expect(ciPnpmSetupBlocks.length).toBeGreaterThan(0);
     for (const setupBlock of ciPnpmSetupBlocks) {
-      expect(setupBlock).toContain("runtime: node@24");
+      expect(setupBlock).toContain("runtime: node@26.4.0");
       expect(setupBlock).toContain("cache: true");
       expect(setupBlock).toContain("install: false");
     }

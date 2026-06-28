@@ -14,7 +14,7 @@ MD_EXCLUDE_TARGET = "#**/target/**"
 MD_EXCLUDE_TAURI_GEN = "#src-tauri/gen/**"
 
 [tools]
-node = "24"
+node = "26.4.0"
 rust = "stable"
 taplo = "latest"
 actionlint = "latest"
@@ -22,6 +22,7 @@ shellcheck = "latest"
 uv = "latest"
 "pipx:yamllint" = "latest"
 "npm:pnpm" = "11.9.0"
+"npm:npm-check-updates" = "22.2.8"
 
 [task_config]
 includes = [

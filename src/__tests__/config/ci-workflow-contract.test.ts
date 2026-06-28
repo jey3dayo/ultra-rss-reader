@@ -47,7 +47,7 @@ describe("CI workflow contract", () => {
       const installIndex = section.indexOf("pnpm install --frozen-lockfile");
 
       expect(setupIndex, `${jobId} should use pinned pnpm/setup`).toBeGreaterThanOrEqual(0);
-      expect(section, `${jobId} should install Node 24 through pnpm runtime`).toContain("runtime: node@24");
+      expect(section, `${jobId} should install Node 26.4.0 through pnpm runtime`).toContain("runtime: node@26.4.0");
       expect(section, `${jobId} should enable pnpm/setup store cache`).toContain("cache: true");
       expect(section, `${jobId} should keep frozen-lockfile install explicit`).toContain("install: false");
       expect(installIndex, `${jobId} should install after pnpm/setup`).toBeGreaterThan(setupIndex);
@@ -67,7 +67,7 @@ describe("CI workflow contract", () => {
     expect(toolchainSection).toContain("local pnpm version drift");
     expect(miseSource).toContain('["quality:toolchain"]');
     expect(packageJsonSource).toContain('"packageManager": "pnpm@11.9.0"');
-    expect(packageJsonSource).toContain('"node": "24"');
+    expect(packageJsonSource).toContain('"node": "26.4.0"');
     expect(packageJsonSource).toContain('"pnpm": "11.9.0"');
   });
 

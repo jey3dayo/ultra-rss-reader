@@ -161,6 +161,7 @@ describe("package scripts", () => {
     expect(packageJson.engines?.node).toBe(extractMiseToolVersion(miseToml, "node"));
     expect(packageJson.engines?.pnpm).toBe(extractMiseToolVersion(miseToml, "npm:pnpm"));
     expect(packageJson.engines?.pnpm).toBe(packageManagerVersion);
+    expect(extractMiseToolVersion(miseToml, "npm:npm-check-updates")).toBe("22.2.8");
   });
 
   it("keeps markdown format and lint task globs aligned with env definitions", () => {

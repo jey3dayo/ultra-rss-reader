@@ -35,7 +35,7 @@ jobs:
       # pnpm/setup@v1
       - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879
         with:
-          runtime: node@24
+          runtime: node@26.4.0
           cache: true
           install: false
 
@@ -53,23 +53,22 @@ jobs:
 
           const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
           const miseToml = readFileSync("mise.toml", "utf8");
-          const expectedNodeMajor = String(packageJson.engines?.node ?? "");
+          const expectedNode = String(packageJson.engines?.node ?? "");
           const expectedPnpm = String(packageJson.engines?.pnpm ?? "");
           const packageManagerPnpm = packageJson.packageManager?.match(/^pnpm@(.+)$/)?.[1] ?? "";
           const miseNode = miseToml.match(/^node = "([^"]+)"$/m)?.[1] ?? "";
           const misePnpm = miseToml.match(/^"npm:pnpm" = "([^"]+)"$/m)?.[1] ?? "";
-          const actualNodeMajor = process.versions.node.split(".")[0];
           const actualPnpm = execFileSync("pnpm", ["--version"], { encoding: "utf8" }).trim();
           const failures = [];
 
-          if (expectedNodeMajor !== miseNode) {
-            failures.push(`local mise Node version drift: package.json engines.node=${expectedNodeMajor}, mise.toml=${miseNode}`);
+          if (expectedNode !== miseNode) {
+            failures.push(`local mise Node version drift: package.json engines.node=${expectedNode}, mise.toml=${miseNode}`);
           }
           if (expectedPnpm !== packageManagerPnpm || expectedPnpm !== misePnpm) {
             failures.push(`local pnpm version drift: engines.pnpm=${expectedPnpm}, packageManager=${packageManagerPnpm}, mise.toml=${misePnpm}`);
           }
-          if (actualNodeMajor !== expectedNodeMajor) {
-            failures.push(`CI Node version drift: expected major ${expectedNodeMajor}, got ${process.versions.node}`);
+          if (process.versions.node !== expectedNode) {
+            failures.push(`CI Node version drift: expected ${expectedNode}, got ${process.versions.node}`);
           }
           if (actualPnpm !== expectedPnpm) {
             failures.push(`CI pnpm version drift: expected ${expectedPnpm}, got ${actualPnpm}`);
@@ -95,7 +94,7 @@ jobs:
       # pnpm/setup@v1
       - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879
         with:
-          runtime: node@24
+          runtime: node@26.4.0
           cache: true
           install: false
 
@@ -130,7 +129,7 @@ jobs:
       # pnpm/setup@v1
       - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879
         with:
-          runtime: node@24
+          runtime: node@26.4.0
           cache: true
           install: false
 
@@ -193,7 +192,7 @@ jobs:
       # pnpm/setup@v1
       - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879
         with:
-          runtime: node@24
+          runtime: node@26.4.0
           cache: true
           install: false
 
@@ -248,7 +247,7 @@ jobs:
       # pnpm/setup@v1
       - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879
         with:
-          runtime: node@24
+          runtime: node@26.4.0
           cache: true
           install: false
 
@@ -287,7 +286,7 @@ jobs:
       # pnpm/setup@v1
       - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879
         with:
-          runtime: node@24
+          runtime: node@26.4.0
           cache: true
           install: false
 

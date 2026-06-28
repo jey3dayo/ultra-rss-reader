@@ -1189,14 +1189,16 @@ describe("repository static contracts", () => {
     const packageManagerVersion = extractPackageManagerVersion(packageJson.packageManager, "pnpm");
     const miseNodeVersion = extractMiseToolVersion(miseSource, "node");
     const misePnpmVersion = extractMiseToolVersion(miseSource, "npm:pnpm");
+    const miseNcuVersion = extractMiseToolVersion(miseSource, "npm:npm-check-updates");
 
-    expect(packageJson.engines.node).toBe("24");
+    expect(packageJson.engines.node).toBe("26.4.0");
     expect(Object.keys(packageJson.engines).toSorted()).toEqual(["node", "pnpm"]);
     expect(packageJson.engines.pnpm).toBe(packageManagerVersion);
     expect(packageJson.packageManager).toBe(`pnpm@${packageJson.engines.pnpm}`);
     expect(miseNodeVersion).toBe(packageJson.engines.node);
     expect(packageManagerVersion).toBe("11.9.0");
     expect(misePnpmVersion).toBe(packageManagerVersion);
+    expect(miseNcuVersion).toBe("22.2.8");
   });
 
   it("keeps the base Tauri config on the official v2 schema URL", () => {
@@ -1426,7 +1428,7 @@ describe("repository static contracts", () => {
       const installIndex = section.indexOf("pnpm install --frozen-lockfile");
 
       expect(setupIndex, `${jobId} should use pnpm/setup for pnpm store cache`).toBeGreaterThanOrEqual(0);
-      expect(section, `${jobId} should install Node 24 through pnpm runtime`).toContain("runtime: node@24");
+      expect(section, `${jobId} should install Node 26.4.0 through pnpm runtime`).toContain("runtime: node@26.4.0");
       expect(section, `${jobId} should enable pnpm/setup store cache`).toContain("cache: true");
       expect(section, `${jobId} should avoid automatic non-frozen install`).toContain("install: false");
       expect(installIndex, `${jobId} should install pnpm dependencies after setup`).toBeGreaterThan(setupIndex);
@@ -1447,7 +1449,7 @@ describe("repository static contracts", () => {
     expect(toolchainSection).toContain('execFileSync("pnpm", ["--version"]');
     expect(extractMiseTaskSection(miseSource, "quality:toolchain")).not.toBe("");
     expect(packageJsonSource).toContain('"packageManager": "pnpm@11.9.0"');
-    expect(packageJsonSource).toContain('"node": "24"');
+    expect(packageJsonSource).toContain('"node": "26.4.0"');
     expect(packageJsonSource).toContain('"pnpm": "11.9.0"');
   });
 
@@ -1618,7 +1620,7 @@ describe("repository static contracts", () => {
     const miseSource = readMiseTaskCorpus();
 
     expect(devDependencies["react-doctor"]).toBe("0.5.8");
-    expect(devDependencies.knip).toBe("6.20.0");
+    expect(devDependencies.knip).toBe("6.23.0");
     expect(packageScripts["quality:react-doctor:diff"]).toBe("node ./scripts/quality-baseline.ts react-doctor:diff");
     expect(packageScripts["quality:react-doctor:full"]).toBe("node ./scripts/quality-baseline.ts react-doctor:full");
     expect(packageScripts["quality:knip"]).toBe("node ./scripts/quality-baseline.ts knip");

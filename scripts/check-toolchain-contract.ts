@@ -8,6 +8,8 @@ const expectedPnpm = packageJson.engines?.pnpm;
 const packageManagerPnpm = packageJson.packageManager?.match(/^pnpm@(.+)$/)?.[1];
 const miseNode = miseToml.match(/^node = "([^"]+)"$/m)?.[1];
 const misePnpm = miseToml.match(/^"npm:pnpm" = "([^"]+)"$/m)?.[1];
+const miseNcu = miseToml.match(/^"npm:npm-check-updates" = "([^"]+)"$/m)?.[1];
+const expectedNcu = "22.2.8";
 
 const failures: string[] = [];
 if (!expectedNode || !expectedPnpm || !packageManagerPnpm) {
@@ -21,10 +23,13 @@ if (expectedPnpm !== packageManagerPnpm || expectedPnpm !== misePnpm) {
     `pnpm version drift: engines.pnpm=${expectedPnpm} packageManager=${packageManagerPnpm} mise.toml=${misePnpm}`,
   );
 }
+if (miseNcu !== expectedNcu) {
+  failures.push(`ncu version drift: expected ${expectedNcu} mise.toml=${miseNcu}`);
+}
 
 if (failures.length > 0) {
   console.error(failures.join("\n"));
   process.exit(1);
 }
 
-console.log(`toolchain contract ok: node ${expectedNode}, pnpm ${expectedPnpm}`);
+console.log(`toolchain contract ok: node ${expectedNode}, pnpm ${expectedPnpm}, ncu ${expectedNcu}`);

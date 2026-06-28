@@ -99,7 +99,7 @@ Keep labels short enough for dense controls, prefer natural Japanese over litera
 ## Prerequisites
 
 - [mise](https://mise.jdx.dev/) — task runner and tool version manager
-- Node.js 24+ and pnpm (installed automatically via mise)
+- Node.js 26+ and pnpm (installed automatically via mise)
 - Rust stable toolchain
 - Platform-specific Tauri prerequisites: [tauri.app/v2/guides/prerequisites](https://tauri.app/v2/guides/prerequisites)
 
