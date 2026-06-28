@@ -9,7 +9,6 @@ When current product behavior, architecture, commands, or verification scope mat
 - [../CLAUDE.md](../CLAUDE.md): short repository-local agent workflow, quality gates, and rule routing
 - [../AGENTS.md](../AGENTS.md): thin entry point for agents that read it before repository-local guidance
 - [../llms.txt](../llms.txt): compressed LLM-oriented map of sources, constraints, and main code areas
-- [../RTK.md](../RTK.md): repository command execution policy and RTK usage guidance
 - [../TODO.md](../TODO.md): active and upcoming work only
 - [../CHANGELOG.md](../CHANGELOG.md): completed user-visible changes
 

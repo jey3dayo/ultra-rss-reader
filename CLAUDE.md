@@ -35,7 +35,6 @@ Do not duplicate the same fact across documents; update the owning source and ke
 | Domain and repository contracts | [src-tauri/src/domain/](src-tauri/src/domain/) and [src-tauri/src/repository/](src-tauri/src/repository/) | Core domain types and data-access trait boundaries |
 | App action IDs and protocol-like markers | [src/lib/app-actions.ts](src/lib/app-actions.ts) and [src/lib/actions.ts](src/lib/actions.ts) | Keyboard, menu, command palette, and dev-scenario action identifiers and execution routing |
 | Build, verification commands, and tool versions | [mise.toml](mise.toml), `mise/*.toml`, and [package.json](package.json) | mise tasks, package scripts, package manager version, engines, and toolchain contract |
-| RTK command execution policy | [RTK.md](RTK.md) | Repository command wrapping and noisy-output handling policy |
 | Active work tracking | [TODO.md](TODO.md) | In-progress work, follow-up tasks, known gaps, and TODO triage inputs |
 | Completed user-visible changes | [CHANGELOG.md](CHANGELOG.md) | Completed user-visible changes and release readiness notes |
 | Generated artifacts | `dist/` and `src-tauri/gen/schemas/` | Not source of truth; regenerate from owning source before reviewing or committing artifact drift |

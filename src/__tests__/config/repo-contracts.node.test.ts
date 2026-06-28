@@ -1228,11 +1228,15 @@ describe("repository static contracts", () => {
     expect(extractMiseEnvValue(miseSource, "MD_EXCLUDE_WORKTREES")).toBe("#**/.worktrees/**");
     expect(extractMiseEnvValue(miseSource, "MD_EXCLUDE_TARGET")).toBe("#**/target/**");
     expect(extractMiseEnvValue(miseSource, "MD_EXCLUDE_TAURI_GEN")).toBe("#src-tauri/gen/**");
-    expect(extractMiseTaskCommand(miseSource, "format:md")).toBe(`pnpm markdownlint-cli2 ${markdownArguments} --fix`);
+    expect(extractMiseTaskCommand(miseSource, "format:md")).toBe(
+      `mise exec -- pnpm markdownlint-cli2 ${markdownArguments} --fix`,
+    );
     expect(extractMiseTaskCommand(miseSource, "format:md", "run_windows")).toBe(
       `markdownlint-cli2.CMD ${markdownWindowsArguments} --fix`,
     );
-    expect(extractMiseTaskCommand(miseSource, "lint:md")).toBe(`pnpm markdownlint-cli2 ${markdownArguments}`);
+    expect(extractMiseTaskCommand(miseSource, "lint:md")).toBe(
+      `mise exec -- pnpm markdownlint-cli2 ${markdownArguments}`,
+    );
     expect(extractMiseTaskCommand(miseSource, "lint:md", "run_windows")).toBe(
       `markdownlint-cli2.CMD ${markdownWindowsArguments}`,
     );
@@ -1625,9 +1629,13 @@ describe("repository static contracts", () => {
     expect(packageScripts["quality:lockfile-duplicate-majors"]).toBe(
       "node ./scripts/quality-baseline.ts lockfile-duplicate-majors",
     );
-    expect(extractMiseTaskCommand(miseSource, "quality:react-doctor:diff")).toBe("pnpm run quality:react-doctor:diff");
-    expect(extractMiseTaskCommand(miseSource, "quality:react-doctor:full")).toBe("pnpm run quality:react-doctor:full");
-    expect(extractMiseTaskCommand(miseSource, "quality:knip")).toBe("pnpm run quality:knip");
+    expect(extractMiseTaskCommand(miseSource, "quality:react-doctor:diff")).toBe(
+      "mise exec -- pnpm run quality:react-doctor:diff",
+    );
+    expect(extractMiseTaskCommand(miseSource, "quality:react-doctor:full")).toBe(
+      "mise exec -- pnpm run quality:react-doctor:full",
+    );
+    expect(extractMiseTaskCommand(miseSource, "quality:knip")).toBe("mise exec -- pnpm run quality:knip");
   });
 
   it("classifies knip file-level cleanup candidates by their runtime owner", () => {
@@ -1798,11 +1806,11 @@ describe("repository static contracts", () => {
     expect(missingFromIndex).toEqual([]);
   });
 
-  it("keeps the docs index linked to top-level RTK guidance", () => {
+  it("keeps the docs index free of retired command-wrapper guidance", () => {
     const docsIndex = readRepoFile("docs/README.md");
     const topLevelDocsSection = docsIndex.match(/^## Top-Level Docs\n\n([\s\S]*?)(?=^## )/m)?.[1] ?? "";
 
-    expect(topLevelDocsSection).toContain("[../RTK.md](../RTK.md)");
+    expect(topLevelDocsSection).not.toContain(["R", "T", "K"].join(""));
   });
 
   it("keeps TODO limited to active backlog entries", () => {

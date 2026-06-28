@@ -945,7 +945,7 @@ describe("release repository contract", () => {
 
     expect(rustTestTask).toContain("Windows CI is scoped to integration_test");
     expect(rustTestTask).toContain("Linux runs the full Rust suite");
-    expect(rustTestTask).toContain('run = "rtk test cargo test --manifest-path src-tauri/Cargo.toml"');
+    expect(rustTestTask).toContain('run = "cargo test --manifest-path src-tauri/Cargo.toml"');
     expect(rustTestTask).toContain(
       'run_windows = "cargo test --manifest-path src-tauri/Cargo.toml --target-dir src-tauri/target/test-rust --test integration_test"',
     );
@@ -1496,7 +1496,7 @@ describe("release repository contract", () => {
       expect(readSha256(`src-tauri/${iconPath}`), iconPath).toBe(expectedHash);
     }
 
-    expect(readText("mise.toml")).toContain('run = "pnpm exec tauri icon"');
+    expect(readText("mise.toml")).toContain('run = "mise exec -- pnpm exec tauri icon"');
     expect(readText("docs/README.md")).toContain("`src-tauri/icons/icon.png` is the checked-in source image");
   });
 

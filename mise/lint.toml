@@ -1,24 +1,24 @@
 ["lint:types"]
 description = "TypeScript type check"
-run = "rtk pnpm exec tsc --noEmit"
+run = "mise exec -- pnpm exec tsc --noEmit"
 run_windows = "tsc.CMD --noEmit"
 
 ["lint:biome"]
 description = "Biome lint check"
-run = "rtk pnpm run lint"
+run = "mise exec -- pnpm run lint"
 run_windows = "biome.CMD lint ."
 
 ["lint:clippy"]
 description = "Rust clippy for dev and release profiles"
 run = """
-rtk err cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings
-rtk err cargo clippy --release --manifest-path src-tauri/Cargo.toml -- -D warnings
+cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings
+cargo clippy --release --manifest-path src-tauri/Cargo.toml -- -D warnings
 """
 run_windows = "cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings && cargo clippy --release --manifest-path src-tauri/Cargo.toml -- -D warnings"
 
 ["lint:md"]
 description = "Markdown lint check"
-run = "pnpm markdownlint-cli2 $MD_GLOB $MD_EXCLUDE_NODE_MODULES $MD_EXCLUDE_PNPM_STORE $MD_EXCLUDE_WORKTREES $MD_EXCLUDE_TARGET $MD_EXCLUDE_TAURI_GEN"
+run = "mise exec -- pnpm markdownlint-cli2 $MD_GLOB $MD_EXCLUDE_NODE_MODULES $MD_EXCLUDE_PNPM_STORE $MD_EXCLUDE_WORKTREES $MD_EXCLUDE_TARGET $MD_EXCLUDE_TAURI_GEN"
 run_windows = "markdownlint-cli2.CMD %MD_GLOB% %MD_EXCLUDE_NODE_MODULES% %MD_EXCLUDE_PNPM_STORE% %MD_EXCLUDE_WORKTREES% %MD_EXCLUDE_TARGET% %MD_EXCLUDE_TAURI_GEN%"
 
 ["lint:yaml"]
@@ -39,5 +39,5 @@ run = "node scripts/check-workflow-pins.mjs"
 
 ["audit:deps"]
 description = "Manual dependency security audit; not part of CI or release preflight until advisory policy is defined"
-run = "pnpm audit --audit-level high"
+run = "mise exec -- pnpm audit --audit-level high"
 run_windows = "pnpm.CMD audit --audit-level high"

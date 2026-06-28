@@ -199,10 +199,16 @@ describe("package scripts", () => {
     expect(packageJson.knip?.ignoreDependencies).toEqual(["markdownlint-cli2"]);
 
     expect(extractMarkdownlintInvocation(extractMiseTaskCommand(miseToml, "format:md", "run"))).toEqual([
+      "mise",
+      "exec",
+      "--",
       "pnpm",
       "markdownlint-cli2",
     ]);
     expect(extractMarkdownlintInvocation(extractMiseTaskCommand(miseToml, "lint:md", "run"))).toEqual([
+      "mise",
+      "exec",
+      "--",
       "pnpm",
       "markdownlint-cli2",
     ]);

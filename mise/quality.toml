@@ -4,7 +4,7 @@ run = "node ./scripts/check-toolchain-contract.ts"
 
 ["quality:markdownlint-contract"]
 description = "Check markdownlint glob and ignore pattern contract"
-run = "pnpm markdownlint-cli2 $MD_GLOB $MD_EXCLUDE_NODE_MODULES $MD_EXCLUDE_PNPM_STORE $MD_EXCLUDE_WORKTREES $MD_EXCLUDE_TARGET $MD_EXCLUDE_TAURI_GEN"
+run = "mise exec -- pnpm markdownlint-cli2 $MD_GLOB $MD_EXCLUDE_NODE_MODULES $MD_EXCLUDE_PNPM_STORE $MD_EXCLUDE_WORKTREES $MD_EXCLUDE_TARGET $MD_EXCLUDE_TAURI_GEN"
 run_windows = "markdownlint-cli2.CMD %MD_GLOB% %MD_EXCLUDE_NODE_MODULES% %MD_EXCLUDE_PNPM_STORE% %MD_EXCLUDE_WORKTREES% %MD_EXCLUDE_TARGET% %MD_EXCLUDE_TAURI_GEN%"
 
 ["report:licenses"]
@@ -14,20 +14,20 @@ run_windows = "node ./scripts/report-dependency-licenses.ts"
 
 ["quality:react-doctor:diff"]
 description = "React Doctor diff regression gate; pinned tool and baseline"
-run = "pnpm run quality:react-doctor:diff"
+run = "mise exec -- pnpm run quality:react-doctor:diff"
 run_windows = "pnpm.CMD run quality:react-doctor:diff"
 
 ["quality:react-doctor:full"]
 description = "React Doctor full scan report; pinned tool and informational baseline"
-run = "pnpm run quality:react-doctor:full"
+run = "mise exec -- pnpm run quality:react-doctor:full"
 run_windows = "pnpm.CMD run quality:react-doctor:full"
 
 ["quality:knip"]
 description = "Knip baseline drift gate; pinned tool and issue count"
-run = "pnpm run quality:knip"
+run = "mise exec -- pnpm run quality:knip"
 run_windows = "pnpm.CMD run quality:knip"
 
 ["report:similarity"]
 description = "Similarity scan report with TODO false-positive baseline"
-run = "pnpm run report:similarity"
+run = "mise exec -- pnpm run report:similarity"
 run_windows = "pnpm.CMD run report:similarity"

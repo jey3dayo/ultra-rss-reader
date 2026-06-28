@@ -682,7 +682,7 @@ function readInlineCode(value: string): string[] {
 }
 
 function isVerificationCommand(value: string): boolean {
-  return /^(?:pnpm|mise|git|cargo|node|rtk|vitest|npx)\b/.test(value);
+  return /^(?:pnpm|mise|git|cargo|node|vitest|npx)\b/.test(value);
 }
 
 function appendSentence(current: string | null, next: string): string {

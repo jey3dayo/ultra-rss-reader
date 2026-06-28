@@ -13,20 +13,20 @@ run = "taplo fmt mise.toml mise/*.toml src-tauri/Cargo.toml"
 
 ["format:md"]
 description = "Markdown format + lint autofix"
-run = "pnpm markdownlint-cli2 $MD_GLOB $MD_EXCLUDE_NODE_MODULES $MD_EXCLUDE_PNPM_STORE $MD_EXCLUDE_WORKTREES $MD_EXCLUDE_TARGET $MD_EXCLUDE_TAURI_GEN --fix"
+run = "mise exec -- pnpm markdownlint-cli2 $MD_GLOB $MD_EXCLUDE_NODE_MODULES $MD_EXCLUDE_PNPM_STORE $MD_EXCLUDE_WORKTREES $MD_EXCLUDE_TARGET $MD_EXCLUDE_TAURI_GEN --fix"
 run_windows = "markdownlint-cli2.CMD %MD_GLOB% %MD_EXCLUDE_NODE_MODULES% %MD_EXCLUDE_PNPM_STORE% %MD_EXCLUDE_WORKTREES% %MD_EXCLUDE_TARGET% %MD_EXCLUDE_TAURI_GEN% --fix"
 
 ["format:biome:check"]
 description = "Biome format + lint check (no writes)"
-run = "rtk err biome check --formatter-enabled=true --linter-enabled=true ."
+run = "biome check --formatter-enabled=true --linter-enabled=true ."
 run_windows = "biome.CMD check --formatter-enabled=true --linter-enabled=true ."
 
 ["format:rust:check"]
 description = "Rust format check (no writes)"
-run = "rtk err cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check"
+run = "cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check"
 run_windows = "cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check"
 
 ["format:toml:check"]
 description = "TOML format check (no writes)"
-run = "rtk err taplo fmt --check mise.toml mise/*.toml src-tauri/Cargo.toml"
+run = "taplo fmt --check mise.toml mise/*.toml src-tauri/Cargo.toml"
 run_windows = "taplo fmt --check mise.toml mise/*.toml src-tauri/Cargo.toml"
