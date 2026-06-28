@@ -12,19 +12,11 @@ const meta = {
     markAllReadLabel: "Mark all as read",
     markOldUnreadReadLabel: "Mark old unread as read",
     oldUnreadDayLabel: (days) => `${days} days`,
-    displayModeLabel: "Display mode",
-    displayPresetOptions: [
-      { value: "default", label: "Default" },
-      { value: "standard", label: "Standard" },
-      { value: "preview", label: "Preview" },
-    ],
-    selectedDisplayPreset: "default",
     unsubscribeLabel: "Unsubscribe…",
     editLabel: "Edit…",
     onOpenSite: fn(),
     onMarkAllRead: fn(),
     onMarkOldUnreadRead: fn(),
-    onSetDisplayPreset: fn(),
     onUnsubscribe: fn(),
     onEdit: fn(),
   },
@@ -44,9 +36,3 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
-
-export const ReaderAndPreview: Story = {
-  args: {
-    selectedDisplayPreset: "preview",
-  },
-};

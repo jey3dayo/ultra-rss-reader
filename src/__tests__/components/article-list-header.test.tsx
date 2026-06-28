@@ -40,13 +40,11 @@ describe("ArticleListHeader", () => {
         layoutMode: "wide",
         sidebarOpen: true,
         contentMode: "reader",
-        resolvedFeedId: "feed-1",
         showSearch: true,
       }),
     ).toEqual({
       showSidebarButton: true,
       isSidebarTogglePressed: true,
-      showFeedDisplaySelect: false,
       showMarkAllRead: true,
       showSearchToggle: true,
       showCloseSearch: true,
@@ -57,13 +55,11 @@ describe("ArticleListHeader", () => {
         layoutMode: "mobile",
         sidebarOpen: false,
         contentMode: "reader",
-        resolvedFeedId: null,
         showSearch: false,
       }),
     ).toEqual({
       showSidebarButton: true,
       isSidebarTogglePressed: undefined,
-      showFeedDisplaySelect: false,
       showMarkAllRead: true,
       showSearchToggle: true,
       showCloseSearch: false,
@@ -74,13 +70,11 @@ describe("ArticleListHeader", () => {
         layoutMode: "wide",
         sidebarOpen: false,
         contentMode: "reader",
-        resolvedFeedId: "",
         showSearch: false,
       }),
     ).toEqual({
       showSidebarButton: true,
       isSidebarTogglePressed: false,
-      showFeedDisplaySelect: false,
       showMarkAllRead: true,
       showSearchToggle: true,
       showCloseSearch: false,
@@ -91,13 +85,11 @@ describe("ArticleListHeader", () => {
         layoutMode: "wide",
         sidebarOpen: false,
         contentMode: "reader",
-        resolvedFeedId: "   ",
         showSearch: false,
       }),
     ).toEqual({
       showSidebarButton: true,
       isSidebarTogglePressed: false,
-      showFeedDisplaySelect: false,
       showMarkAllRead: true,
       showSearchToggle: true,
       showCloseSearch: false,
@@ -109,14 +101,9 @@ describe("ArticleListHeader", () => {
     const toggleSidebar = vi.fn();
     const defaultParams = {
       sidebarSubscriptionsLabel: "Subscriptions",
-      feedDisplayLabel: "Feed display",
       showSidebarLabel: "Show sidebar",
       hideSidebarLabel: "Hide sidebar",
-      resolvedFeedId: "feed-1",
       contentMode: "reader" as const,
-      selectedFeedDisplayPreset: "standard" as const,
-      displayPresetOptions: [{ value: "standard" as const, label: "Standard" }],
-      onSetDisplayMode: vi.fn(),
       openSidebar,
       toggleSidebar,
       setWebPreviewSessionMode: vi.fn(),
@@ -178,48 +165,6 @@ describe("ArticleListHeader", () => {
 
     expect(toggleSidebar).toHaveBeenCalledTimes(1);
     expect(openSidebar).toHaveBeenCalledTimes(2);
-  });
-
-  it("omits feed mode control when no concrete feed is selected", () => {
-    const { result, rerender } = renderHook(
-      ({ resolvedFeedId }) =>
-        useArticleListHeaderControls({
-          layoutMode: "wide",
-          sidebarOpen: true,
-          showSearch: false,
-          contentMode: "reader",
-          sidebarSubscriptionsLabel: "Subscriptions",
-          feedDisplayLabel: "Feed display",
-          showSidebarLabel: "Show sidebar",
-          hideSidebarLabel: "Hide sidebar",
-          resolvedFeedId,
-          selectedFeedDisplayPreset: "standard",
-          displayPresetOptions: [{ value: "standard", label: "Standard" }],
-          onSetDisplayMode: vi.fn(),
-          openSidebar: vi.fn(),
-          toggleSidebar: vi.fn(),
-          setWebPreviewSessionMode: vi.fn(),
-        }),
-      {
-        initialProps: {
-          resolvedFeedId: null as string | null,
-        },
-      },
-    );
-
-    expect(result.current.feedModeControl).toBeNull();
-
-    rerender({ resolvedFeedId: "" });
-
-    expect(result.current.feedModeControl).toBeNull();
-
-    rerender({ resolvedFeedId: "   " });
-
-    expect(result.current.feedModeControl).toBeNull();
-
-    rerender({ resolvedFeedId: "feed-1" });
-
-    expect(result.current.feedModeControl).not.toBeNull();
   });
 
   it("keeps the drag region separate from interactive controls", () => {
@@ -366,7 +311,6 @@ describe("ArticleListHeader", () => {
         sidebarButtonLabel: "Hide sidebar",
         sidebarButtonText: undefined,
         isSidebarVisible: true,
-        feedModeControl: null,
         handleMarkAllRead,
         handleSidebarToggle,
         handleToggleSearch,
@@ -614,49 +558,6 @@ describe("ArticleListHeader", () => {
     expect(button).toHaveTextContent("Subscriptions");
     expect(button).toHaveClass("min-h-11");
     expect(button).toHaveClass("text-foreground-soft");
-  });
-
-  it("uses a shrinkable feed mode control and hides it while article search is open", () => {
-    const { result, rerender } = renderHook(
-      ({ showSearch }) =>
-        useArticleListHeaderControls({
-          layoutMode: "compact",
-          sidebarOpen: false,
-          showSearch,
-          contentMode: "reader",
-          sidebarSubscriptionsLabel: "Subscriptions",
-          feedDisplayLabel: "Feed display",
-          showSidebarLabel: "Show sidebar",
-          hideSidebarLabel: "Hide sidebar",
-          resolvedFeedId: "feed-1",
-          selectedFeedDisplayPreset: "standard",
-          displayPresetOptions: [
-            { value: "standard", label: "Standard" },
-            { value: "preview", label: "Preview" },
-          ],
-          onSetDisplayMode: vi.fn(),
-          openSidebar: vi.fn(),
-          toggleSidebar: vi.fn(),
-          setWebPreviewSessionMode: vi.fn(),
-        }),
-      {
-        initialProps: {
-          showSearch: false,
-        },
-      },
-    );
-
-    const { container } = render(result.current.feedModeControl, { wrapper: createWrapper() });
-
-    expect(container.querySelector('[aria-label="Feed display"]')).toHaveClass(
-      "min-w-0",
-      "max-w-[148px]",
-      "sm:max-w-[168px]",
-    );
-
-    rerender({ showSearch: true });
-
-    expect(result.current.feedModeControl).toBeNull();
   });
 
   it("uses icon-dominant toolbar controls in mobile layout", () => {

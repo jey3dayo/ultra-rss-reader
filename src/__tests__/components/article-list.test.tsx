@@ -12,8 +12,6 @@ import { Sidebar } from "@/components/reader/sidebar";
 import { APP_EVENTS } from "@/constants/events";
 import * as articleHooks from "@/hooks/use-articles";
 import * as tagHooks from "@/hooks/use-tags";
-import type { TriStateDisplayMode } from "@/lib/articles/article-display";
-import { isTriStateDisplayMode } from "@/lib/articles/article-display";
 import { keyboardEvents } from "@/lib/keyboard/keyboard-shortcuts";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -28,14 +26,6 @@ const asHtmlDivElementOrNull = (element: Element | null, message: string): HTMLD
   }
   return element;
 };
-
-function requireTriStateDisplayMode(value: unknown, fieldName: string): TriStateDisplayMode {
-  if (typeof value === "string" && isTriStateDisplayMode(value)) {
-    return value;
-  }
-
-  throw new Error(`${fieldName} must be a tri-state display mode`);
-}
 
 function requireStringArray(value: unknown, fieldName: string): string[] {
   if (Array.isArray(value) && value.every((item): item is string => typeof item === "string")) {
@@ -1019,8 +1009,8 @@ describe("ArticleList", () => {
     });
   });
 
-  it("updates the selected feed display preset from the header select", async () => {
-    let feeds = sampleFeeds.filter((feed) => feed.account_id === "acc-1");
+  it("omits the selected feed display preset control from the header", async () => {
+    const feeds = sampleFeeds.filter((feed) => feed.account_id === "acc-1");
     const commands: Array<{ cmd: string; args: Record<string, unknown> }> = [];
 
     setupTauriMocks((cmd, args) => {
@@ -1039,15 +1029,6 @@ describe("ArticleList", () => {
         case "search_articles":
           return [];
         case "update_feed_display_settings":
-          feeds = feeds.map((feed) =>
-            feed.id === args.feedId
-              ? {
-                  ...feed,
-                  reader_mode: requireTriStateDisplayMode(args.readerMode, "readerMode"),
-                  web_preview_mode: requireTriStateDisplayMode(args.webPreviewMode, "webPreviewMode"),
-                }
-              : feed,
-          );
           return null;
         default:
           return undefined;
@@ -1057,32 +1038,14 @@ describe("ArticleList", () => {
     useUiStore.getState().selectAccount("acc-1");
     useUiStore.getState().selectFeed("feed-1");
 
-    const user = userEvent.setup();
     render(<ArticleList />, { wrapper: createWrapper() });
 
-    const displayPresetSelect = await screen.findByRole("combobox", { name: "Article display" });
-    expect(displayPresetSelect).toHaveTextContent("Use default");
-
-    await user.click(displayPresetSelect);
-    await user.click(await screen.findByRole("option", { name: "Web Preview" }));
-
     await waitFor(() => {
-      expect(commands).toContainEqual({
-        cmd: "update_feed_display_settings",
-        args: { feedId: "feed-1", readerMode: "on", webPreviewMode: "on" },
-      });
-      expect(screen.getByRole("combobox", { name: "Article display" })).toHaveTextContent("Web Preview");
+      expect(screen.getByText(sampleArticles[0].title)).toBeInTheDocument();
     });
 
-    await user.click(screen.getByRole("combobox", { name: "Article display" }));
-    await user.click(await screen.findByRole("option", { name: "Use default" }));
-
-    await waitFor(() => {
-      expect(commands).toContainEqual({
-        cmd: "update_feed_display_settings",
-        args: { feedId: "feed-1", readerMode: "inherit", webPreviewMode: "inherit" },
-      });
-    });
+    expect(screen.queryByRole("combobox", { name: "Article display" })).not.toBeInTheDocument();
+    expect(commands.some((call) => call.cmd === "update_feed_display_settings")).toBe(false);
   });
 
   it("renders feed articles even when account-wide loading is still pending", async () => {

@@ -8,7 +8,7 @@ import { FeedContextMenuContent } from "@/components/reader/feed-context-menu";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
-const { deleteFeedMutateAsyncMock, unsubscribeDialogPropsRef, updateFeedDisplaySettingsMock } = vi.hoisted(() => ({
+const { deleteFeedMutateAsyncMock, unsubscribeDialogPropsRef } = vi.hoisted(() => ({
   deleteFeedMutateAsyncMock: vi.fn(),
   unsubscribeDialogPropsRef: {
     current: null as null | {
@@ -17,7 +17,6 @@ const { deleteFeedMutateAsyncMock, unsubscribeDialogPropsRef, updateFeedDisplayS
       onConfirm: () => void;
     },
   },
-  updateFeedDisplaySettingsMock: vi.fn(),
 }));
 
 vi.mock("@/components/reader/feed-context-menu-view", () => ({
@@ -25,21 +24,16 @@ vi.mock("@/components/reader/feed-context-menu-view", () => ({
     openSiteLabel,
     hasUnreadArticles,
     onOpenSite,
-    onSetDisplayPreset,
     onUnsubscribe,
   }: {
     openSiteLabel: string;
     hasUnreadArticles: boolean;
     onOpenSite: () => void;
-    onSetDisplayPreset: (value: string) => void;
     onUnsubscribe: () => void;
   }) => (
     <>
       <button type="button" data-has-unread-articles={String(hasUnreadArticles)} onClick={onOpenSite}>
         {openSiteLabel}
-      </button>
-      <button type="button" onClick={() => onSetDisplayPreset("preview")}>
-        Preview
       </button>
       <button type="button" onClick={onUnsubscribe}>
         Unsubscribe…
@@ -72,10 +66,6 @@ vi.mock("@/hooks/use-delete-feed", () => ({
   useDeleteFeed: () => ({ isPending: false, mutateAsync: deleteFeedMutateAsyncMock }),
 }));
 
-vi.mock("@/hooks/use-update-feed-display-mode", () => ({
-  useUpdateFeedDisplaySettings: () => updateFeedDisplaySettingsMock,
-}));
-
 describe("FeedContextMenuContent", () => {
   let calls: MockTauriCommandCall[] = [];
 
@@ -84,7 +74,6 @@ describe("FeedContextMenuContent", () => {
     vi.clearAllMocks();
     unsubscribeDialogPropsRef.current = null;
     deleteFeedMutateAsyncMock.mockResolvedValue(undefined);
-    updateFeedDisplaySettingsMock.mockResolvedValue(true);
     calls = [];
     usePreferencesStore.setState({ prefs: {}, loaded: true });
     useUiStore.setState(useUiStore.getInitialState());
@@ -153,21 +142,6 @@ describe("FeedContextMenuContent", () => {
 
     await waitFor(() => {
       expect(showToast).toHaveBeenCalledWith("Native command rejected");
-    });
-  });
-
-  it("surfaces rejected display preset updates with a toast while keeping the optimistic action fire-and-forget", async () => {
-    const showToast = vi.fn();
-    updateFeedDisplaySettingsMock.mockRejectedValue(new Error("Preference write failed"));
-    useUiStore.setState({ showToast });
-
-    render(<FeedContextMenuContent feed={sampleFeeds[0]} />);
-
-    fireEvent.click(screen.getByRole("button", { name: "Preview" }));
-
-    await waitFor(() => {
-      expect(updateFeedDisplaySettingsMock).toHaveBeenCalledWith("feed-1", "on", "on");
-      expect(showToast).toHaveBeenCalledWith("Preference write failed");
     });
   });
 

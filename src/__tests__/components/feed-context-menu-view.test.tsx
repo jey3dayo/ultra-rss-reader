@@ -25,7 +25,6 @@ describe("FeedContextMenuView", () => {
     const onOpenSite = vi.fn();
     const onMarkAllRead = vi.fn();
     const onMarkOldUnreadRead = vi.fn();
-    const onSetDisplayPreset = vi.fn();
     const onUnsubscribe = vi.fn();
     const onEdit = vi.fn();
 
@@ -36,19 +35,11 @@ describe("FeedContextMenuView", () => {
           markAllReadLabel="Mark all as read"
           markOldUnreadReadLabel="Mark old unread as read"
           oldUnreadDayLabel={(days) => `${days} days`}
-          displayModeLabel="Display mode"
-          displayPresetOptions={[
-            { value: "default", label: "Default" },
-            { value: "standard", label: "Standard" },
-            { value: "preview", label: "Preview" },
-          ]}
-          selectedDisplayPreset="default"
           unsubscribeLabel="Unsubscribe…"
           editLabel="Edit…"
           onOpenSite={onOpenSite}
           onMarkAllRead={onMarkAllRead}
           onMarkOldUnreadRead={onMarkOldUnreadRead}
-          onSetDisplayPreset={onSetDisplayPreset}
           onUnsubscribe={onUnsubscribe}
           onEdit={onEdit}
         />
@@ -64,7 +55,7 @@ describe("FeedContextMenuView", () => {
       "min-h-11",
       "data-highlighted:bg-surface-1/72",
     );
-    expect(screen.getByText("Display mode")).toHaveClass("text-foreground-soft");
+    expect(screen.queryByText("Display mode")).not.toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "Unsubscribe…" })).toHaveClass(
       "min-h-11",
       "text-state-danger-foreground",
@@ -73,9 +64,6 @@ describe("FeedContextMenuView", () => {
 
     fireEvent.click(screen.getByRole("menuitem", { name: "Open site" }));
     fireEvent.click(screen.getByRole("menuitem", { name: "Mark all as read" }));
-    expect(screen.getByText("Display mode")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("menuitemradio", { name: "Standard" }));
-    fireEvent.click(screen.getByRole("menuitemradio", { name: "Preview" }));
     fireEvent.click(screen.getByRole("menuitem", { name: "Unsubscribe…" }));
     fireEvent.click(screen.getByRole("menuitem", { name: "Edit…" }));
 
@@ -89,22 +77,13 @@ describe("FeedContextMenuView", () => {
       "data-action-id",
       "feed-mark-old-unread-read",
     );
-    expect(screen.getByRole("menuitemradio", { name: "Default" })).toBeChecked();
-    expect(screen.getByRole("menuitemradio", { name: "Standard" })).not.toBeChecked();
-    expect(screen.getByRole("menuitemradio", { name: "Preview" })).not.toBeChecked();
-    expect(screen.getByRole("menuitemradio", { name: "Standard" })).toHaveAttribute(
-      "data-action-id",
-      "feed-set-display-preset",
-    );
-    expect(screen.getByRole("menuitemradio", { name: "Standard" })).toHaveAttribute("data-action-value", "standard");
+    expect(screen.queryByRole("menuitemradio")).not.toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "Unsubscribe…" })).toHaveAttribute(
       "data-action-id",
       "feed-unsubscribe",
     );
     expect(onOpenSite).toHaveBeenCalledTimes(1);
     expect(onMarkAllRead).toHaveBeenCalledTimes(1);
-    expect(onSetDisplayPreset).toHaveBeenCalledWith("standard");
-    expect(onSetDisplayPreset).toHaveBeenCalledWith("preview");
     expect(onUnsubscribe).toHaveBeenCalledTimes(1);
     expect(onEdit).toHaveBeenCalledTimes(1);
   });
@@ -120,19 +99,11 @@ describe("FeedContextMenuView", () => {
           markAllReadLabel="Mark all as read"
           markOldUnreadReadLabel="Mark old unread as read"
           oldUnreadDayLabel={(days) => `${days} days`}
-          displayModeLabel="Display mode"
-          displayPresetOptions={[
-            { value: "default", label: "Default" },
-            { value: "standard", label: "Standard" },
-            { value: "preview", label: "Preview" },
-          ]}
-          selectedDisplayPreset="default"
           unsubscribeLabel="Unsubscribe…"
           editLabel="Edit…"
           onOpenSite={vi.fn()}
           onMarkAllRead={vi.fn()}
           onMarkOldUnreadRead={onMarkOldUnreadRead}
-          onSetDisplayPreset={vi.fn()}
           onUnsubscribe={vi.fn()}
           onEdit={vi.fn()}
         />
@@ -158,19 +129,11 @@ describe("FeedContextMenuView", () => {
           markAllReadLabel="Mark all as read"
           markOldUnreadReadLabel="Mark old unread as read"
           oldUnreadDayLabel={(days) => `${days} days`}
-          displayModeLabel="Display mode"
-          displayPresetOptions={[
-            { value: "default", label: "Default" },
-            { value: "standard", label: "Standard" },
-            { value: "preview", label: "Preview" },
-          ]}
-          selectedDisplayPreset="default"
           unsubscribeLabel="Unsubscribe…"
           editLabel="Edit…"
           onOpenSite={vi.fn()}
           onMarkAllRead={vi.fn()}
           onMarkOldUnreadRead={vi.fn()}
-          onSetDisplayPreset={vi.fn()}
           onUnsubscribe={vi.fn()}
           onEdit={vi.fn()}
         />
@@ -178,10 +141,9 @@ describe("FeedContextMenuView", () => {
     );
 
     const actionItems = screen.getAllByRole("menuitem").map((item) => item.textContent?.trim());
-    const displayModeItems = screen.getAllByRole("menuitemradio").map((item) => item.textContent?.trim());
 
     expect(actionItems).toEqual(["Edit…", "Open site", "Mark all as read", "Mark old unread as read", "Unsubscribe…"]);
-    expect(displayModeItems).toEqual(["✓Default", "Standard", "Preview"]);
+    expect(screen.queryByRole("menuitemradio")).not.toBeInTheDocument();
   });
 
   it("hides mark all read when the feed has no unread articles", () => {
@@ -194,20 +156,12 @@ describe("FeedContextMenuView", () => {
           markAllReadLabel="Mark all as read"
           markOldUnreadReadLabel="Mark old unread as read"
           oldUnreadDayLabel={(days) => `${days} days`}
-          displayModeLabel="Display mode"
-          displayPresetOptions={[
-            { value: "default", label: "Default" },
-            { value: "standard", label: "Standard" },
-            { value: "preview", label: "Preview" },
-          ]}
-          selectedDisplayPreset="default"
           hasUnreadArticles={false}
           unsubscribeLabel="Unsubscribe…"
           editLabel="Edit…"
           onOpenSite={vi.fn()}
           onMarkAllRead={onMarkAllRead}
           onMarkOldUnreadRead={vi.fn()}
-          onSetDisplayPreset={vi.fn()}
           onUnsubscribe={vi.fn()}
           onEdit={vi.fn()}
         />

@@ -1,5 +1,4 @@
-import { useCallback, useMemo } from "react";
-import { ArticleListFeedModeControl } from "../../article-list-feed-mode-control";
+import { useCallback } from "react";
 import type {
   UseArticleListHeaderControlsParams,
   UseArticleListHeaderControlsResult,
@@ -9,37 +8,28 @@ export type ArticleListHeaderControlAvailabilityInput = {
   layoutMode: UseArticleListHeaderControlsParams["layoutMode"];
   sidebarOpen: boolean;
   contentMode: UseArticleListHeaderControlsParams["contentMode"];
-  resolvedFeedId: string | null;
   showSearch: boolean;
 };
 
 export type ArticleListHeaderControlAvailability = {
   showSidebarButton: boolean;
   isSidebarTogglePressed: boolean | undefined;
-  showFeedDisplaySelect: boolean;
   showMarkAllRead: boolean;
   showSearchToggle: boolean;
   showCloseSearch: boolean;
 };
 
-function hasConcreteResolvedFeedId(resolvedFeedId: string | null): boolean {
-  return resolvedFeedId !== null && resolvedFeedId.trim().length > 0;
-}
-
 export function resolveArticleListHeaderControlAvailability({
   layoutMode,
   sidebarOpen,
   contentMode,
-  resolvedFeedId,
   showSearch,
 }: ArticleListHeaderControlAvailabilityInput): ArticleListHeaderControlAvailability {
-  const hasResolvedFeedId = hasConcreteResolvedFeedId(resolvedFeedId);
   const isWideBrowserMode = layoutMode === "wide" && contentMode === "browser";
 
   return {
     showSidebarButton: layoutMode === "mobile" || layoutMode === "wide" || layoutMode === "compact",
     isSidebarTogglePressed: layoutMode === "wide" ? (isWideBrowserMode ? false : sidebarOpen) : undefined,
-    showFeedDisplaySelect: hasResolvedFeedId && !showSearch,
     showMarkAllRead: true,
     showSearchToggle: true,
     showCloseSearch: showSearch,
@@ -52,13 +42,8 @@ export function useArticleListHeaderControls({
   showSearch,
   contentMode,
   sidebarSubscriptionsLabel,
-  feedDisplayLabel,
   showSidebarLabel,
   hideSidebarLabel,
-  resolvedFeedId,
-  selectedFeedDisplayPreset,
-  displayPresetOptions,
-  onSetDisplayMode,
   openSidebar,
   toggleSidebar,
   setWebPreviewSessionMode,
@@ -67,7 +52,6 @@ export function useArticleListHeaderControls({
     layoutMode,
     sidebarOpen,
     contentMode,
-    resolvedFeedId,
     showSearch,
   });
   const handleSidebarToggle = useCallback(() => {
@@ -84,25 +68,6 @@ export function useArticleListHeaderControls({
     openSidebar();
   }, [contentMode, layoutMode, openSidebar, setWebPreviewSessionMode, toggleSidebar]);
 
-  const feedModeControl = useMemo(
-    () =>
-      availability.showFeedDisplaySelect ? (
-        <ArticleListFeedModeControl
-          ariaLabel={feedDisplayLabel}
-          value={selectedFeedDisplayPreset}
-          options={displayPresetOptions}
-          onValueChange={onSetDisplayMode}
-        />
-      ) : null,
-    [
-      availability.showFeedDisplaySelect,
-      displayPresetOptions,
-      feedDisplayLabel,
-      onSetDisplayMode,
-      selectedFeedDisplayPreset,
-    ],
-  );
-
   return {
     showSidebarButton: availability.showSidebarButton,
     sidebarButtonLabel:
@@ -113,7 +78,6 @@ export function useArticleListHeaderControls({
         : showSidebarLabel,
     sidebarButtonText: layoutMode === "compact" ? sidebarSubscriptionsLabel : undefined,
     isSidebarVisible: availability.isSidebarTogglePressed,
-    feedModeControl,
     handleSidebarToggle,
   };
 }

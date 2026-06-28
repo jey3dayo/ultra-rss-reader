@@ -9,7 +9,6 @@ describe("FolderContextMenuView", () => {
     const user = userEvent.setup();
     const onMarkAllRead = vi.fn();
     const onMarkOldUnreadRead = vi.fn();
-    const onSetDisplayPreset = vi.fn();
 
     render(
       <ContextMenu.Root open>
@@ -17,25 +16,15 @@ describe("FolderContextMenuView", () => {
           markAllReadLabel="Mark all as read"
           markOldUnreadReadLabel="Mark old unread as read"
           oldUnreadDayLabel={(days) => `${days} days`}
-          displayModeLabel="Display mode"
-          displayPresetOptions={[
-            { value: "default", label: "Default" },
-            { value: "standard", label: "Standard" },
-            { value: "preview", label: "Preview" },
-          ]}
-          selectedDisplayPreset="preview"
           onMarkAllRead={onMarkAllRead}
           onMarkOldUnreadRead={onMarkOldUnreadRead}
-          onSetDisplayPreset={onSetDisplayPreset}
         />
       </ContextMenu.Root>,
     );
 
     await user.click(screen.getByRole("menuitem", { name: "Mark all as read" }));
-    await user.click(screen.getByRole("menuitemradio", { name: "Standard" }));
 
     expect(onMarkAllRead).toHaveBeenCalledTimes(1);
-    expect(onSetDisplayPreset).toHaveBeenCalledWith("standard");
     expect(screen.getByRole("menuitem", { name: "Mark all as read" })).toHaveAttribute(
       "data-action-id",
       "folder-mark-all-read",
@@ -44,15 +33,8 @@ describe("FolderContextMenuView", () => {
       "data-action-id",
       "folder-mark-old-unread-read",
     );
-    expect(screen.getByRole("menuitemradio", { name: "Preview" })).toBeChecked();
-    expect(screen.getByRole("menuitemradio", { name: "Standard" })).not.toBeChecked();
-    expect(screen.getByRole("menuitemradio", { name: "Standard" })).toHaveAttribute(
-      "data-action-id",
-      "folder-set-display-preset",
-    );
-    expect(screen.getByRole("menuitemradio", { name: "Standard" })).toHaveAttribute("data-action-value", "standard");
-    expect(screen.getByText("Display mode")).toBeInTheDocument();
-    expect(screen.getByRole("menuitemradio", { name: "Preview" })).toHaveTextContent("✓Preview");
+    expect(screen.queryByRole("menuitemradio")).not.toBeInTheDocument();
+    expect(screen.queryByText("Display mode")).not.toBeInTheDocument();
   });
 
   it("renders old unread day presets and delegates the selected day", async () => {
@@ -65,16 +47,8 @@ describe("FolderContextMenuView", () => {
           markAllReadLabel="Mark all as read"
           markOldUnreadReadLabel="Mark old unread as read"
           oldUnreadDayLabel={(days) => `${days} days`}
-          displayModeLabel="Display mode"
-          displayPresetOptions={[
-            { value: "default", label: "Default" },
-            { value: "standard", label: "Standard" },
-            { value: "preview", label: "Preview" },
-          ]}
-          selectedDisplayPreset="preview"
           onMarkAllRead={vi.fn()}
           onMarkOldUnreadRead={onMarkOldUnreadRead}
-          onSetDisplayPreset={vi.fn()}
         />
       </ContextMenu.Root>,
     );
@@ -95,35 +69,6 @@ describe("FolderContextMenuView", () => {
     expect(onMarkOldUnreadRead).toHaveBeenCalledWith(30);
   });
 
-  it("shows no selected preset marker when folder feeds have mixed display modes", () => {
-    render(
-      <ContextMenu.Root open>
-        <FolderContextMenuView
-          markAllReadLabel="Mark all as read"
-          markOldUnreadReadLabel="Mark old unread as read"
-          oldUnreadDayLabel={(days) => `${days} days`}
-          displayModeLabel="Display mode"
-          displayPresetOptions={[
-            { value: "default", label: "Default" },
-            { value: "standard", label: "Standard" },
-            { value: "preview", label: "Preview" },
-          ]}
-          selectedDisplayPreset={null}
-          onMarkAllRead={vi.fn()}
-          onMarkOldUnreadRead={vi.fn()}
-          onSetDisplayPreset={vi.fn()}
-        />
-      </ContextMenu.Root>,
-    );
-
-    expect(screen.getByRole("menuitemradio", { name: "Default" })).not.toBeChecked();
-    expect(screen.getByRole("menuitemradio", { name: "Standard" })).not.toBeChecked();
-    expect(screen.getByRole("menuitemradio", { name: "Preview" })).not.toBeChecked();
-    expect(screen.getByRole("menuitemradio", { name: "Default" })).not.toHaveTextContent("✓");
-    expect(screen.getByRole("menuitemradio", { name: "Standard" })).not.toHaveTextContent("✓");
-    expect(screen.getByRole("menuitemradio", { name: "Preview" })).not.toHaveTextContent("✓");
-  });
-
   it("hides mark all read when the folder has no unread articles", () => {
     const onMarkAllRead = vi.fn();
 
@@ -133,17 +78,9 @@ describe("FolderContextMenuView", () => {
           markAllReadLabel="Mark all as read"
           markOldUnreadReadLabel="Mark old unread as read"
           oldUnreadDayLabel={(days) => `${days} days`}
-          displayModeLabel="Display mode"
-          displayPresetOptions={[
-            { value: "default", label: "Default" },
-            { value: "standard", label: "Standard" },
-            { value: "preview", label: "Preview" },
-          ]}
-          selectedDisplayPreset="preview"
           hasUnreadArticles={false}
           onMarkAllRead={onMarkAllRead}
           onMarkOldUnreadRead={vi.fn()}
-          onSetDisplayPreset={vi.fn()}
         />
       </ContextMenu.Root>,
     );

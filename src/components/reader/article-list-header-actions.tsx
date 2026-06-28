@@ -1,5 +1,5 @@
 import { CheckCheck, PanelLeft, Search, X } from "lucide-react";
-import type { ReactNode, RefObject } from "react";
+import type { RefObject } from "react";
 import { AppTooltip, Button, IconToolbarButton, TooltipProvider } from "@/design-system";
 import { cn } from "@/lib/utils";
 
@@ -9,7 +9,6 @@ type ArticleListHeaderActionsProps = {
   sidebarButtonLabel: string;
   sidebarButtonText?: string;
   isSidebarVisible?: boolean;
-  feedModeControl?: ReactNode;
   onMarkAllRead: () => void;
   onToggleSidebar: () => void;
   onToggleSearch: () => void;
@@ -28,7 +27,6 @@ export function ArticleListHeaderActions({
   sidebarButtonLabel,
   sidebarButtonText,
   isSidebarVisible,
-  feedModeControl,
   onMarkAllRead,
   onToggleSidebar,
   onToggleSearch,
@@ -76,8 +74,6 @@ export function ArticleListHeaderActions({
       </div>
       <div data-tauri-drag-region aria-hidden="true" className="h-full min-w-0 flex-1" />
       <div className="flex items-center gap-2">
-        {feedModeControl}
-        {feedModeControl && <hr className="mx-0.5 h-5 w-px border-0 bg-border" />}
         <IconToolbarButton label={markAllReadLabel} onClick={onMarkAllRead}>
           <CheckCheck className="size-4" />
         </IconToolbarButton>

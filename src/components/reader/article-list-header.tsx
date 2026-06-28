@@ -1,4 +1,4 @@
-import { type ReactNode, type RefObject, useCallback, useRef } from "react";
+import { type RefObject, useCallback, useRef } from "react";
 import { ArticleListHeaderActions } from "./article-list-header-actions";
 import { ArticleListHeaderSearch } from "./article-list-header-search";
 
@@ -21,7 +21,6 @@ export type ArticleListHeaderProps = {
   sidebarButtonLabel: string;
   sidebarButtonText?: string;
   isSidebarVisible?: boolean;
-  feedModeControl?: ReactNode;
   onMarkAllRead: () => void;
   onToggleSidebar: () => void;
   onToggleSearch: () => void;
@@ -38,7 +37,6 @@ export function ArticleListHeader({
   sidebarButtonLabel,
   sidebarButtonText,
   isSidebarVisible,
-  feedModeControl,
   onMarkAllRead,
   onToggleSidebar,
   onToggleSearch,
@@ -59,7 +57,6 @@ export function ArticleListHeader({
           sidebarButtonLabel={sidebarButtonLabel}
           sidebarButtonText={sidebarButtonText}
           isSidebarVisible={isSidebarVisible}
-          feedModeControl={feedModeControl}
           onMarkAllRead={onMarkAllRead}
           onToggleSidebar={onToggleSidebar}
           onToggleSearch={onToggleSearch}

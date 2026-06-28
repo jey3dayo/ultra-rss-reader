@@ -11,16 +11,8 @@ const meta = {
     markAllReadLabel: "Mark all as read",
     markOldUnreadReadLabel: "Mark old unread as read",
     oldUnreadDayLabel: (days) => `${days} days`,
-    displayModeLabel: "Display mode",
-    displayPresetOptions: [
-      { value: "default", label: "Default" },
-      { value: "standard", label: "Standard" },
-      { value: "preview", label: "Preview" },
-    ],
-    selectedDisplayPreset: "default",
     onMarkAllRead: fn(),
     onMarkOldUnreadRead: fn(),
-    onSetDisplayPreset: fn(),
   },
   render: (args) => (
     <div className="min-h-48 bg-background p-16">

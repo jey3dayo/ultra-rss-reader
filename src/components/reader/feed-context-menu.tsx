@@ -5,13 +5,6 @@ import { useOldUnreadReadAction } from "@/components/reader/hooks/feed-actions/u
 import { useMarkFeedRead } from "@/hooks/use-articles";
 import { useConfirmMarkAllRead } from "@/hooks/use-confirm-mark-all-read";
 import { useDeleteFeed } from "@/hooks/use-delete-feed";
-import { useUpdateFeedDisplaySettings } from "@/hooks/use-update-feed-display-mode";
-import {
-  buildFeedDisplayPresetOptions,
-  displayPresetToTriStateModes,
-  isFeedDisplayPresetOption,
-  resolveFeedDisplayPreset,
-} from "@/lib/articles/article-display";
 import { resolveSiteHostLabel } from "@/lib/feed/feed";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -59,18 +52,11 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
   const markFeedRead = useMarkFeedRead();
   const markOldUnreadRead = useOldUnreadReadAction("feed", feed.id);
   const deleteFeedMutation = useDeleteFeed();
-  const updateFeedDisplaySettings = useUpdateFeedDisplaySettings();
   const showToast = useUiStore((s) => s.showToast);
   const unsubscribePendingRef = useRef(false);
   const [unsubscribePending, setUnsubscribePending] = useState(false);
 
   const siteHost = resolveSiteHostLabel(feed.site_url, feed.url);
-  const selectedDisplayPreset = resolveFeedDisplayPreset(feed);
-  const displayPresetOptions = buildFeedDisplayPresetOptions({
-    default: t("display_mode_default"),
-    standard: t("display_mode_standard"),
-    preview: t("display_mode_preview"),
-  });
 
   const handleOpenSite = useCallback(async () => {
     const url = feed.site_url || feed.url;
@@ -89,18 +75,6 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
       }),
     );
   }, [confirmMarkAllRead, feed.id, feed.unread_count, markFeedRead]);
-
-  const handleSetDisplayPreset = useCallback(
-    (value: string) => {
-      if (!isFeedDisplayPresetOption(value)) {
-        return;
-      }
-
-      const nextModes = displayPresetToTriStateModes(value);
-      return updateFeedDisplaySettings(feed.id, nextModes.readerMode, nextModes.webPreviewMode);
-    },
-    [feed.id, updateFeedDisplaySettings],
-  );
 
   const handleOpenUnsubscribeDialog = useCallback(() => {
     dispatch({ type: "set-unsubscribe-dialog", value: true });
@@ -139,9 +113,6 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
         markAllReadLabel={t("mark_all_as_read")}
         markOldUnreadReadLabel={t("mark_old_unread_read")}
         oldUnreadDayLabel={(days) => t("old_unread_older_than_days", { count: days })}
-        displayModeLabel={t("display_mode")}
-        displayPresetOptions={displayPresetOptions}
-        selectedDisplayPreset={selectedDisplayPreset}
         unsubscribeLabel={t("unsubscribe_ellipsis")}
         editLabel={t("edit_ellipsis")}
         hasUnreadArticles={feed.unread_count > 0}
@@ -156,15 +127,6 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
             {
               showToast,
             },
-          )();
-        }}
-        onSetDisplayPreset={(value) => {
-          createMenuActionHandler(
-            CONTEXT_MENU_ACTION_IDS.feedSetDisplayPreset,
-            async () => {
-              await handleSetDisplayPreset(value);
-            },
-            { showToast },
           )();
         }}
         onUnsubscribe={handleOpenUnsubscribeDialog}

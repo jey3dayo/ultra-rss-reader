@@ -8,16 +8,12 @@ type FeedContextMenuViewProps = {
   markAllReadLabel: string;
   markOldUnreadReadLabel: string;
   oldUnreadDayLabel: (days: OldUnreadDayPreset) => string;
-  displayModeLabel: string;
-  displayPresetOptions: Array<{ value: string; label: string }>;
-  selectedDisplayPreset: string;
   hasUnreadArticles?: boolean;
   unsubscribeLabel: string;
   editLabel: string;
   onOpenSite: () => void;
   onMarkAllRead: () => void;
   onMarkOldUnreadRead: (days: OldUnreadDayPreset) => void;
-  onSetDisplayPreset: (value: string) => void;
   onUnsubscribe: () => void;
   onEdit: () => void;
 };
@@ -27,16 +23,12 @@ export function FeedContextMenuView({
   markAllReadLabel,
   markOldUnreadReadLabel,
   oldUnreadDayLabel,
-  displayModeLabel,
-  displayPresetOptions,
-  selectedDisplayPreset,
   hasUnreadArticles = true,
   unsubscribeLabel,
   editLabel,
   onOpenSite,
   onMarkAllRead,
   onMarkOldUnreadRead,
-  onSetDisplayPreset,
   onUnsubscribe,
   onEdit,
 }: FeedContextMenuViewProps) {
@@ -74,24 +66,6 @@ export function FeedContextMenuView({
             dayLabel={oldUnreadDayLabel}
             onSelect={onMarkOldUnreadRead}
           />
-          <ContextMenu.Separator className={contextMenuStyles.separator} />
-          <div className="px-3 py-1 text-xs font-medium text-foreground-soft">{displayModeLabel}</div>
-          <ContextMenu.RadioGroup value={selectedDisplayPreset} onValueChange={(value) => onSetDisplayPreset(value)}>
-            {displayPresetOptions.map((option) => (
-              <ContextMenu.RadioItem
-                key={option.value}
-                value={option.value}
-                data-action-id={CONTEXT_MENU_ACTION_IDS.feedSetDisplayPreset}
-                data-action-value={option.value}
-                className={contextMenuStyles.item}
-              >
-                <span aria-hidden="true" className="mr-2 inline-flex w-4 justify-center">
-                  <ContextMenu.RadioItemIndicator>✓</ContextMenu.RadioItemIndicator>
-                </span>
-                {option.label}
-              </ContextMenu.RadioItem>
-            ))}
-          </ContextMenu.RadioGroup>
           <ContextMenu.Separator className={contextMenuStyles.separator} />
           <ContextMenu.Item
             data-action-id={CONTEXT_MENU_ACTION_IDS.feedUnsubscribe}

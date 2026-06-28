@@ -1,7 +1,7 @@
 import type { TFunction } from "i18next";
-import type { KeyboardEvent, ReactNode, RefObject } from "react";
+import type { KeyboardEvent, RefObject } from "react";
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
-import type { FeedDisplayPresetOption, WebPreviewSessionMode } from "@/lib/articles/article-display";
+import type { WebPreviewSessionMode } from "@/lib/articles/article-display";
 import type { KeyboardShortcutPrefs } from "@/lib/keyboard/keyboard-shortcuts";
 import type { ContentMode, FocusedPane, LayoutMode } from "@/lib/layout/layout-state.types";
 import type { ReaderSourcePlan } from "@/lib/reader/reader-query";
@@ -115,12 +115,7 @@ export type UseArticleListViewPropsParams = {
   setViewMode: (viewMode: ViewMode) => void;
 } & Pick<
   UseArticleListHeaderControlsResult,
-  | "showSidebarButton"
-  | "sidebarButtonLabel"
-  | "sidebarButtonText"
-  | "isSidebarVisible"
-  | "feedModeControl"
-  | "handleSidebarToggle"
+  "showSidebarButton" | "sidebarButtonLabel" | "sidebarButtonText" | "isSidebarVisible" | "handleSidebarToggle"
 > &
   Pick<
     UseArticleListViewStateResult,
@@ -194,12 +189,6 @@ export type UseArticleListHeaderActionsParams = {
 };
 
 export type UseArticleListHeaderActionsResult = {
-  selectedFeedDisplayPreset: FeedDisplayPresetOption;
-  displayPresetOptions: Array<{
-    value: FeedDisplayPresetOption;
-    label: string;
-  }>;
-  handleSetDisplayMode: (nextPreset: FeedDisplayPresetOption) => Promise<void>;
   handleMarkAllRead: () => void;
 };
 
@@ -214,7 +203,6 @@ export type UseArticleListHeaderControllerParams = {
   showSearch: boolean;
   contentMode: ContentMode;
   sidebarSubscriptionsLabel: string;
-  feedDisplayLabel: string;
   showSidebarLabel: string;
   hideSidebarLabel: string;
   openSidebar: () => void;
@@ -232,16 +220,8 @@ export type UseArticleListHeaderControlsParams = {
   showSearch: boolean;
   contentMode: ContentMode;
   sidebarSubscriptionsLabel: string;
-  feedDisplayLabel: string;
   showSidebarLabel: string;
   hideSidebarLabel: string;
-  resolvedFeedId: string | null;
-  selectedFeedDisplayPreset: FeedDisplayPresetOption;
-  displayPresetOptions: Array<{
-    value: FeedDisplayPresetOption;
-    label: string;
-  }>;
-  onSetDisplayMode: (value: FeedDisplayPresetOption) => void;
   openSidebar: () => void;
   toggleSidebar: () => void;
   setWebPreviewSessionMode: (mode: WebPreviewSessionMode) => void;
@@ -252,7 +232,6 @@ export type UseArticleListHeaderControlsResult = {
   sidebarButtonLabel: string;
   sidebarButtonText?: string;
   isSidebarVisible?: boolean;
-  feedModeControl: ReactNode;
   handleSidebarToggle: () => void;
 };
 

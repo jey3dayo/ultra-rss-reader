@@ -99,7 +99,6 @@ export function useArticleListPresentation({
     showSearch,
     contentMode,
     sidebarSubscriptionsLabel: ts("subscriptions"),
-    feedDisplayLabel: t("display_mode"),
     showSidebarLabel: t("show_sidebar"),
     hideSidebarLabel: t("hide_sidebar"),
     openSidebar,

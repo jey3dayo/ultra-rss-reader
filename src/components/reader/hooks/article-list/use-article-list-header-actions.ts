@@ -1,14 +1,6 @@
 import { useCallback, useMemo } from "react";
-import { useTranslation } from "react-i18next";
 import { useMarkAllRead, useMarkFeedRead, useMarkFolderRead } from "@/hooks/use-articles";
 import { useConfirmMarkAllRead } from "@/hooks/use-confirm-mark-all-read";
-import { useUpdateFeedDisplaySettings } from "@/hooks/use-update-feed-display-mode";
-import {
-  buildFeedDisplayPresetOptions,
-  displayPresetToTriStateModes,
-  type FeedDisplayPresetOption,
-  resolveFeedDisplayPreset,
-} from "@/lib/articles/article-display";
 import { getUnreadArticleIds, resolveArticleListMarkAllReadCount } from "@/lib/articles/article-list";
 import { countUnreadFeedsInFolder } from "@/lib/sidebar/sidebar";
 import type {
@@ -23,32 +15,10 @@ export function useArticleListHeaderActions({
   selectedFeed,
   filteredArticles,
 }: UseArticleListHeaderActionsParams): UseArticleListHeaderActionsResult {
-  const { t } = useTranslation("reader");
   const confirmMarkAllRead = useConfirmMarkAllRead();
-  const updateFeedDisplaySettings = useUpdateFeedDisplaySettings();
   const markAllRead = useMarkAllRead();
   const markFeedRead = useMarkFeedRead();
   const markFolderRead = useMarkFolderRead();
-
-  const selectedFeedDisplayPreset = resolveFeedDisplayPreset(selectedFeed);
-  const displayPresetOptions = useMemo<Array<{ value: FeedDisplayPresetOption; label: string }>>(
-    () =>
-      buildFeedDisplayPresetOptions({
-        default: t("display_mode_default"),
-        standard: t("display_mode_standard"),
-        preview: t("display_mode_preview"),
-      }),
-    [t],
-  );
-
-  const handleSetDisplayMode = useCallback(
-    async (nextPreset: FeedDisplayPresetOption) => {
-      if (!feedId) return;
-      const nextModes = displayPresetToTriStateModes(nextPreset);
-      await updateFeedDisplaySettings(feedId, nextModes.readerMode, nextModes.webPreviewMode);
-    },
-    [feedId, updateFeedDisplaySettings],
-  );
 
   const folderUnreadCount = useMemo(() => {
     if (selection.type !== "folder") {
@@ -100,9 +70,6 @@ export function useArticleListHeaderActions({
   }, [confirmMarkAllRead, doMarkAllRead, feedId, markAllReadCount, markFeedRead, markFolderRead, selection]);
 
   return {
-    selectedFeedDisplayPreset,
-    displayPresetOptions,
-    handleSetDisplayMode,
     handleMarkAllRead,
   };
 }
