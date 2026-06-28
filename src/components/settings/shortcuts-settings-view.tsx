@@ -214,7 +214,7 @@ export function ShortcutsSettingsView({
       titleLayout="stacked-left"
       outerTestId="shortcuts-settings-root"
       headerSummary={
-        <div className="flex justify-end">
+        <div className="flex justify-end sm:-mr-2">
           <SettingsActionButton tone="header" onClick={onResetAll} disabled={resetDisabled || hasRecordingShortcut}>
             {resetAllLabel}
           </SettingsActionButton>

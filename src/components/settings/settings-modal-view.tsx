@@ -77,7 +77,7 @@ export function SettingsModalView({
           <DialogHeader
             data-testid="settings-modal-header"
             className={cn(
-              "flex min-h-[4rem] flex-row items-center gap-3 px-5 py-0 backdrop-blur-sm",
+              "relative flex min-h-[4rem] flex-row items-center justify-center px-5 py-0 backdrop-blur-sm",
               SETTINGS_DIVIDER_CLASS,
             )}
             style={{ backgroundColor: "var(--settings-shell-rail)" }}
@@ -88,10 +88,11 @@ export function SettingsModalView({
               onClick={onClose}
               disabled={isCloseDisabled}
               aria-label={closeLabel}
+              className="absolute left-3 size-8 min-h-8 min-w-8 rounded-md"
             >
               <X className="size-4" />
             </SettingsActionButton>
-            <div className="min-w-0">
+            <div className="min-w-0 max-w-[11rem] px-8 text-center">
               <DialogTitle className="font-sans text-[15px] font-medium tracking-[-0.01em] text-sidebar-foreground">
                 {title}
               </DialogTitle>
