@@ -1,6 +1,6 @@
 import type { RefObject } from "react";
 import { MOTION_CONTENT_SWAP_CLASS_NAME } from "@/constants/motion";
-import { Button, Input } from "@/design-system";
+import { Button, Input, LabeledControlRow } from "@/design-system";
 import { cn } from "@/lib/utils";
 import type { DiscoveredFeedOption } from "./add-feed-dialog.types";
 import { DiscoveredFeedOptionsView } from "./discovered-feed-options-view";
@@ -30,6 +30,14 @@ type FeedDialogUrlSectionViewProps = FeedDialogUrlSectionProps & {
   helperTextId: string;
 };
 
+const FEED_DIALOG_ROW_CLASS_NAME =
+  "min-h-[52px] border-b-0 py-2.5 sm:grid-cols-[minmax(8.5rem,12rem)_minmax(0,1fr)] sm:items-start sm:gap-x-8 [&>div]:sm:flex [&>div]:sm:items-start [&>div]:sm:justify-end [&>div]:lg:pr-0";
+const FEED_DIALOG_CONTROL_CLASS_NAME =
+  "grid min-w-0 gap-2 sm:w-[20rem] min-[560px]:grid-cols-[minmax(0,1fr)_auto] min-[560px]:items-center";
+const FEED_DIALOG_INPUT_CLASS_NAME = "min-h-11 bg-surface-1/78 shadow-none";
+const FEED_DIALOG_DISCOVER_BUTTON_CLASS_NAME =
+  "min-h-11 shrink-0 border-border/60 bg-surface-1/78 px-3 text-sm font-medium shadow-none";
+
 export function FeedDialogUrlSection({
   label,
   value,
@@ -54,15 +62,14 @@ export function FeedDialogUrlSection({
   const hasError = helperTone === "error" && Boolean(helperText);
 
   return (
-    <div
-      data-testid="feed-dialog-url-section"
-      className="motion-contextual-surface grid gap-2 px-4 py-3.5 sm:grid-cols-[7rem_minmax(0,1fr)] sm:items-start"
+    <LabeledControlRow
+      label={label}
+      htmlFor={inputId}
+      className={FEED_DIALOG_ROW_CLASS_NAME}
+      labelClassName="whitespace-nowrap"
     >
-      <label htmlFor={inputId} className="block text-sm whitespace-nowrap text-foreground-soft sm:pt-2.5">
-        {label}
-      </label>
-      <div className="min-w-0">
-        <div className="grid min-w-0 gap-2 min-[460px]:grid-cols-[minmax(0,1fr)_auto] min-[460px]:items-center">
+      <div data-testid="feed-dialog-url-section" className="min-w-0">
+        <div className={FEED_DIALOG_CONTROL_CLASS_NAME}>
           <Input
             id={inputId}
             ref={inputRef}
@@ -75,7 +82,7 @@ export function FeedDialogUrlSection({
             aria-describedby={hasError ? helperTextId : undefined}
             aria-errormessage={hasError ? helperTextId : undefined}
             aria-invalid={hasError || undefined}
-            className="min-h-11 min-w-0 bg-surface-2"
+            className={FEED_DIALOG_INPUT_CLASS_NAME}
           />
           <Button
             type="button"
@@ -85,7 +92,7 @@ export function FeedDialogUrlSection({
             disabled={disabled || discoverDisabled}
             aria-busy={discovering || undefined}
             aria-label={discovering ? discoveringLabel : discoverLabel}
-            className={cn("min-h-11 shrink-0 px-3 text-sm font-medium", discovering && "text-foreground-soft")}
+            className={cn(FEED_DIALOG_DISCOVER_BUTTON_CLASS_NAME, discovering && "text-foreground-soft")}
           >
             {discovering ? discoveringLabel : discoverLabel}
           </Button>
@@ -111,6 +118,6 @@ export function FeedDialogUrlSection({
           </p>
         ) : null}
       </div>
-    </div>
+    </LabeledControlRow>
   );
 }

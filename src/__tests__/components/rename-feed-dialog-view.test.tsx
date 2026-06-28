@@ -81,19 +81,31 @@ describe("RenameFeedDialogView", () => {
     expect(screen.getByRole("dialog")).toHaveClass("flex", "max-h-[calc(100dvh-2rem)]", "flex-col", "rounded-xl");
     expect(screen.getByLabelText("Title")).toHaveValue("Tech Blog");
     expect(screen.getByLabelText("Title")).toHaveClass("min-h-11");
+    expect(screen.getByText("Title").closest(".grid")).toHaveClass(
+      "sm:grid-cols-[minmax(8.5rem,12rem)_minmax(0,1fr)]",
+      "border-b-0",
+    );
     expect(screen.getByLabelText("Title").closest("form")).toHaveClass("min-h-0", "flex-1", "overflow-y-auto");
-    expect(screen.getByLabelText("Website URL")).toHaveValue("https://example.com");
-    expect(screen.getByLabelText("Feed URL")).toHaveValue("https://example.com/feed.xml");
-    expect(screen.getByRole("button", { name: "Copy Website URL" })).toHaveClass(
-      "active:not-aria-[haspopup]:-translate-y-1/2",
+    expect(screen.getByText("https://example.com")).not.toHaveAttribute("title");
+    expect(screen.getByText("Website URL").closest(".grid")).toHaveClass(
+      "sm:grid-cols-[minmax(8.5rem,12rem)_minmax(0,1fr)]",
+      "border-b-0",
     );
-    expect(screen.getByRole("button", { name: "Copy Feed URL" })).toHaveClass(
-      "active:not-aria-[haspopup]:-translate-y-1/2",
-    );
+    expect(screen.getByText("https://example.com/feed.xml")).not.toHaveAttribute("title");
+    expect(screen.getByRole("button", { name: "Copy Website URL" })).toHaveClass("bg-transparent", "shadow-none");
+    expect(screen.getByRole("button", { name: "Copy Feed URL" })).toHaveClass("bg-transparent", "shadow-none");
     expect(screen.getByRole("combobox", { name: "Display Mode" })).toHaveTextContent("Preview");
     expect(screen.getByRole("combobox", { name: "Display Mode" })).toHaveClass("min-h-11");
+    expect(screen.getByText("Display Mode").closest(".grid")).toHaveClass(
+      "sm:grid-cols-[minmax(8.5rem,12rem)_minmax(0,1fr)]",
+      "border-b-0",
+    );
     expect(screen.getByTestId("feed-dialog-folder-section")).not.toHaveClass("rounded-md", "border", "bg-surface-1/80");
     expect(screen.getByRole("combobox", { name: "Folder" })).toHaveTextContent("Work");
+    expect(screen.getByText("Folder").closest(".grid")).toHaveClass(
+      "sm:grid-cols-[minmax(8.5rem,12rem)_minmax(0,1fr)]",
+      "border-b-0",
+    );
     expect(screen.getByRole("button", { name: "Save" })).toHaveClass("min-h-11");
     expect(screen.getByRole("button", { name: "Cancel" })).toHaveClass("min-h-11");
     expect(screen.getByRole("button", { name: "Save" }).closest('[data-slot="dialog-footer"]')).toHaveClass("shrink-0");

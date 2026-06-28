@@ -92,10 +92,28 @@ describe("FolderSelectView", () => {
       />,
     );
 
-    expect(screen.getByText("Folder")).toHaveClass("whitespace-nowrap");
-    expect(screen.getByRole("combobox", { name: "Folder" })).toHaveClass("min-h-11", "w-full", "bg-surface-2");
-    expect(screen.getByText("Folder name")).toHaveClass("whitespace-nowrap");
-    expect(screen.getByLabelText("Folder name")).toHaveClass("min-h-11", "bg-surface-2");
+    expect(screen.getByText("Folder").closest(".grid")).toHaveClass(
+      "sm:grid-cols-[minmax(8.5rem,12rem)_minmax(0,1fr)]",
+      "border-b-0",
+    );
+    expect(screen.getByText("Folder")).toHaveClass("whitespace-nowrap", "text-[color:var(--form-row-label)]");
+    expect(screen.getByRole("combobox", { name: "Folder" })).toHaveClass(
+      "min-h-11",
+      "w-full",
+      "sm:w-[20rem]",
+      "sm:justify-self-end",
+    );
+    expect(screen.getByText("Folder name").closest(".grid")).toHaveClass(
+      "sm:grid-cols-[minmax(8.5rem,12rem)_minmax(0,1fr)]",
+      "border-b-0",
+    );
+    expect(screen.getByText("Folder name")).toHaveClass("whitespace-nowrap", "text-[color:var(--form-row-label)]");
+    expect(screen.getByLabelText("Folder name")).toHaveClass(
+      "min-h-11",
+      "w-full",
+      "sm:w-[20rem]",
+      "sm:justify-self-end",
+    );
   });
 
   it("omits the new folder option when folder creation is disabled", async () => {

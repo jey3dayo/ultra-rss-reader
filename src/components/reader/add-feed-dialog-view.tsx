@@ -72,7 +72,7 @@ export function AddFeedDialogView({
     >
       <div
         data-testid="feed-dialog-form-panel"
-        className={`${MOTION_CONTENT_SWAP_CLASS_NAME} motion-contextual-surface overflow-hidden rounded-md border border-border/70 bg-surface-1/72 shadow-elevation-1`}
+        className={`${MOTION_CONTENT_SWAP_CLASS_NAME} motion-contextual-surface`}
       >
         <FeedDialogUrlSection
           value={url}
@@ -99,7 +99,7 @@ export function AddFeedDialogView({
         <div
           data-testid="feed-dialog-folder-section"
           data-motion-phase="entering"
-          className={`${MOTION_CONTENT_SWAP_CLASS_NAME} border-t border-border/70`}
+          className={MOTION_CONTENT_SWAP_CLASS_NAME}
         >
           <FolderSelectView {...folderSelectProps} layout="inline" />
         </div>

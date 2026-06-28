@@ -25,6 +25,13 @@ export type FolderSelectViewProps = {
   layout?: "stacked" | "inline";
 };
 
+const FOLDER_SELECT_INLINE_ROW_CLASS_NAME =
+  "grid min-h-[52px] grid-cols-1 items-start gap-y-2.5 border-b-0 py-2.5 sm:grid-cols-[minmax(8.5rem,12rem)_minmax(0,1fr)] sm:items-center sm:gap-x-8 sm:gap-y-3";
+const FOLDER_SELECT_INLINE_LABEL_CLASS_NAME =
+  "mb-0 whitespace-nowrap font-sans text-[13px] leading-[1.35] font-medium text-[color:var(--form-row-label)] lg:pt-0";
+const FOLDER_SELECT_INLINE_CONTROL_CLASS_NAME =
+  "min-h-11 w-full bg-surface-1/78 shadow-none sm:w-[20rem] sm:justify-self-end";
+
 function encodeFolderOptionValue(value: string) {
   return value === "" ? value : `${FOLDER_OPTION_VALUE_PREFIX}${value}`;
 }
@@ -75,11 +82,9 @@ export function FolderSelectView({
         options={selectOptions}
         onChange={(nextValue) => onValueChange(decodeFolderSelectValue(nextValue))}
         disabled={disabled}
-        className={
-          layout === "inline" ? "grid gap-2 px-4 py-3.5 sm:grid-cols-[7rem_minmax(0,1fr)] sm:items-start" : undefined
-        }
-        labelClassName={layout === "inline" ? "mb-0 whitespace-nowrap sm:pt-2.5" : undefined}
-        triggerClassName={layout === "inline" ? "min-h-11 w-full bg-surface-2" : "mt-1 w-full"}
+        className={layout === "inline" ? FOLDER_SELECT_INLINE_ROW_CLASS_NAME : undefined}
+        labelClassName={layout === "inline" ? FOLDER_SELECT_INLINE_LABEL_CLASS_NAME : undefined}
+        triggerClassName={layout === "inline" ? FOLDER_SELECT_INLINE_CONTROL_CLASS_NAME : "mt-1 w-full"}
       />
 
       {canCreateFolder && isCreatingFolder && (
@@ -91,11 +96,9 @@ export function FolderSelectView({
           value={newFolderName}
           onChange={onNewFolderNameChange}
           placeholder={newFolderPlaceholder}
-          className={
-            layout === "inline" ? "grid gap-2 px-4 pb-3.5 sm:grid-cols-[7rem_minmax(0,1fr)] sm:items-start" : undefined
-          }
-          labelClassName={layout === "inline" ? "whitespace-nowrap sm:pt-2.5" : undefined}
-          inputClassName={layout === "inline" ? "min-h-11 bg-surface-2" : "mt-1"}
+          className={layout === "inline" ? FOLDER_SELECT_INLINE_ROW_CLASS_NAME : undefined}
+          labelClassName={layout === "inline" ? FOLDER_SELECT_INLINE_LABEL_CLASS_NAME : undefined}
+          inputClassName={layout === "inline" ? FOLDER_SELECT_INLINE_CONTROL_CLASS_NAME : "mt-1"}
           disabled={disabled}
         />
       )}
