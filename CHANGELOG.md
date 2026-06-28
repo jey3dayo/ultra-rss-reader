@@ -4,6 +4,18 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.52.1] - 2026-06-28
+
+### Bug Fixes
+
+- Webプレビュー時の wide layout を記事一覧とコンテンツの2ペインに収め、フォルダ/サイドバーの残り筋や hit-test が記事一覧操作を邪魔しないようにした。
+- Webプレビューの content pane 配置、bounds、overlay surface の契約を整理し、外部ブラウザ確認や Tauri WebView の表示位置がずれにくいようにした。
+- 空の選択状態からフィードを開いたとき、最初の記事へ自然に着地するようにした。
+
+### Maintenance
+
+- Webプレビューの wide layout、content pane geometry、overlay surface の回帰テストを追加・更新した。
+
 ## [0.52.0] - 2026-06-27
 
 ### Bug Fixes

@@ -1,7 +1,7 @@
 {
   "name": "ultra-rss-reader",
   "private": true,
-  "version": "0.52.0",
+  "version": "0.52.1",
   "type": "module",
   "packageManager": "pnpm@11.9.0",
   "engines": {
