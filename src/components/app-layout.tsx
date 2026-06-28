@@ -215,21 +215,23 @@ function WideLayout({
   accountPaneOpen: boolean;
 }) {
   const panes = subscriptionsWorkspaceOpen ? ["content"] : resolveLayout("wide", focusedPane, contentMode);
-  const shouldShowSidebar = !subscriptionsWorkspaceOpen && sidebarOpen;
+  const sidebarPaneAvailable = !subscriptionsWorkspaceOpen && panes.includes("sidebar");
+  const shouldShowSidebar = sidebarPaneAvailable && sidebarOpen;
   const shouldShowAccountPane = shouldShowSidebar && accountPaneOpen;
 
   return (
     <div className="flex h-full overflow-hidden bg-background text-foreground">
-      {panes.includes("sidebar") && (
+      {!subscriptionsWorkspaceOpen && (
         <>
           <div
             data-testid="wide-account-pane-shell"
             className={cn(
               MOTION_RESIZE_SURFACE_CLASS_NAME,
-              "shrink-0 overflow-hidden border-r",
+              "shrink-0 overflow-hidden",
               shouldShowAccountPane
                 ? "border-border opacity-100 translate-x-0"
-                : "border-transparent opacity-0 -translate-x-3",
+                : "border-r-0 border-transparent opacity-0 -translate-x-3",
+              shouldShowAccountPane && "border-r",
             )}
             style={{
               width: shouldShowAccountPane ? `${ACCOUNT_PANE_WIDTH_PX}px` : "0px",
@@ -248,10 +250,11 @@ function WideLayout({
             data-testid="wide-sidebar-shell"
             className={cn(
               MOTION_RESIZE_SURFACE_CLASS_NAME,
-              "shrink-0 overflow-hidden border-r",
+              "shrink-0 overflow-hidden",
               shouldShowSidebar
                 ? "border-border opacity-100 translate-x-0"
-                : "border-transparent opacity-0 -translate-x-3",
+                : "border-r-0 border-transparent opacity-0 -translate-x-3",
+              shouldShowSidebar && "border-r",
             )}
             style={{
               width: shouldShowSidebar ? `${SIDEBAR_PANE_WIDTH_PX}px` : "0px",

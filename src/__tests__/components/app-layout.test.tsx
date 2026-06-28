@@ -160,10 +160,20 @@ describe("AppLayout", () => {
 
     render(<AppLayout />);
 
-    expect(screen.queryByTestId("wide-account-pane-shell")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("wide-sidebar-shell")).not.toBeInTheDocument();
-    expect(screen.queryByText("Sidebar")).not.toBeInTheDocument();
-    expect(screen.queryByText("Account Pane")).not.toBeInTheDocument();
+    expect(screen.getByTestId("wide-account-pane-shell")).toHaveClass(
+      "motion-resize-surface",
+      "opacity-0",
+      "border-r-0",
+    );
+    expect(screen.getByTestId("wide-account-pane-shell")).toHaveStyle({ width: "0px" });
+    expect(screen.getByTestId("wide-account-pane-content")).toHaveAttribute("aria-hidden", "true");
+    expect(screen.getByTestId("wide-account-pane-content")).toHaveAttribute("inert");
+    expect(screen.getByTestId("wide-sidebar-shell")).toHaveClass("motion-resize-surface", "opacity-0", "border-r-0");
+    expect(screen.getByTestId("wide-sidebar-shell")).toHaveStyle({ width: "0px" });
+    expect(screen.getByTestId("wide-sidebar-content")).toHaveAttribute("aria-hidden", "true");
+    expect(screen.getByTestId("wide-sidebar-content")).toHaveAttribute("inert");
+    expect(screen.getByText("Sidebar")).toBeInTheDocument();
+    expect(screen.getByText("Account Pane")).toBeInTheDocument();
     expect(screen.getByText("Article List")).toBeInTheDocument();
     expect(screen.getByText("Article View")).toBeInTheDocument();
     expect(screen.getByTestId("main-stage").children).toHaveLength(2);
