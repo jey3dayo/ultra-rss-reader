@@ -36,7 +36,9 @@ describe("AccountSwitcherMenu", () => {
 
     expect(menu).toHaveClass("rounded-xl");
     expect(menu).toHaveClass("motion-popup-surface");
-    expect(menu).toHaveClass("bg-surface-2/90");
+    expect(menu).toHaveClass("border-border/75");
+    expect(menu).toHaveClass("bg-popover");
+    expect(menu).toHaveClass("text-popover-foreground");
     expect(menu).toHaveClass("shadow-elevation-2");
     expect(menu).toHaveAttribute("data-open", "");
     expect(menu).toHaveAttribute("data-side", "bottom");

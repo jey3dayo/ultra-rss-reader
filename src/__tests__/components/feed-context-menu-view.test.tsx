@@ -48,12 +48,12 @@ describe("FeedContextMenuView", () => {
 
     expect(screen.getByRole("menuitem", { name: "Edit…" }).closest("[data-side]")).toHaveClass(
       "motion-popup-surface",
-      "bg-surface-2/96",
+      "bg-popover",
       "shadow-elevation-3",
     );
     expect(screen.getByRole("menuitem", { name: "Open site" })).toHaveClass(
       "min-h-11",
-      "data-highlighted:bg-surface-1/72",
+      "data-highlighted:bg-surface-1/88",
     );
     expect(screen.queryByText("Display mode")).not.toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "Unsubscribe…" })).toHaveClass(

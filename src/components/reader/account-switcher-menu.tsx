@@ -40,7 +40,7 @@ export function AccountSwitcherMenu({
       data-side="bottom"
       aria-label={menuLabel}
       tabIndex={-1}
-      className="motion-popup-surface absolute top-full left-0 z-50 min-w-[200px] rounded-xl bg-surface-2/90 p-1 shadow-elevation-2"
+      className="motion-popup-surface absolute top-full left-0 z-50 min-w-[200px] rounded-xl border border-border/75 bg-popover p-1 text-popover-foreground shadow-elevation-2"
       onKeyDown={(e) => {
         if (!accounts.length) return;
 
