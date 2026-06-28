@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.53.1] - 2026-06-29
+
+### Bug Fixes
+
+- Reader のコンテキストメニューとアカウント切り替えメニューを不透明な popup surface に揃え、背後の記事本文が透けて文字がにじんで見える問題を抑えた。
+
 ## [0.53.0] - 2026-06-29
 
 ### Bug Fixes
