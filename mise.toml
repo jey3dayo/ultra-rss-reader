@@ -87,12 +87,12 @@ depends = ["test:rust", "test:unit"]
 
 [tasks.build]
 description = "Build frontend"
-run = ["mise exec -- pnpm build"]
+run = ["tsc && vite build"]
 run_windows = "tsc.CMD && vite.CMD build"
 
 [tasks."build:storybook"]
 description = "Build Storybook"
-run = "mise exec -- pnpm run build-storybook"
+run = "storybook build"
 run_windows = "pnpm.CMD run build-storybook"
 
 # ========================================
@@ -129,7 +129,7 @@ run = "node ./scripts/seed-dev-db-from-prod.ts"
 [tasks."app:dev:signed"]
 description = "Build, codesign, and run native app on macOS (no Keychain dialog)"
 run = """
-mise exec -- pnpm dev &
+vite &
 DEV_PID=$!
 cargo build --manifest-path src-tauri/Cargo.toml
 codesign -s "UltraRSSReader-Dev" -f src-tauri/target/debug/ultra-rss-reader
@@ -140,7 +140,7 @@ run_windows = "echo app:dev:signed is macOS-only (requires codesign and Unix she
 
 [tasks."app:dev:browser"]
 description = "Run frontend dev server for browser UI testing"
-run = "mise exec -- pnpm dev --host 127.0.0.1 --port 4173 --strictPort"
+run = "vite --host 127.0.0.1 --port 4173 --strictPort"
 
 [tasks."app:dev:vite-check"]
 description = "Check that the Tauri Vite dev port is available"
@@ -177,7 +177,7 @@ run_windows = "node ./scripts/tauri-cli-dispatch.ts build --debug"
 
 [tasks."app:icon"]
 description = "Generate app icons from source image"
-run = "mise exec -- pnpm exec tauri icon"
+run = "tauri icon"
 
 # ========================================
 # エイリアス（まとめ実行）

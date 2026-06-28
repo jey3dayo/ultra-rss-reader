@@ -1496,7 +1496,7 @@ describe("release repository contract", () => {
       expect(readSha256(`src-tauri/${iconPath}`), iconPath).toBe(expectedHash);
     }
 
-    expect(readText("mise.toml")).toContain('run = "mise exec -- pnpm exec tauri icon"');
+    expect(readText("mise.toml")).toContain('run = "tauri icon"');
     expect(readText("docs/README.md")).toContain("`src-tauri/icons/icon.png` is the checked-in source image");
   });
 

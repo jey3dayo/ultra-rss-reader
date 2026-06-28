@@ -262,7 +262,7 @@ Similarity: 90.00%, Score: 12.3 points (lines 4~6, avg: 5.0)
       .join("\n");
 
     expect(miseToml).toContain('["report:similarity"]');
-    expect(miseToml).toContain('run = "mise exec -- pnpm run report:similarity"');
+    expect(miseToml).toContain('run = "node ./scripts/similarity-report.ts"');
     expect(miseToml).toContain('run_windows = "pnpm.CMD run report:similarity"');
     expect(buildSimilaritySummary.toString()).not.toContain("todoContent");
   });

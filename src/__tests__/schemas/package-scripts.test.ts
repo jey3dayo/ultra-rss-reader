@@ -199,17 +199,9 @@ describe("package scripts", () => {
     expect(packageJson.knip?.ignoreDependencies).toEqual(["markdownlint-cli2"]);
 
     expect(extractMarkdownlintInvocation(extractMiseTaskCommand(miseToml, "format:md", "run"))).toEqual([
-      "mise",
-      "exec",
-      "--",
-      "pnpm",
       "markdownlint-cli2",
     ]);
     expect(extractMarkdownlintInvocation(extractMiseTaskCommand(miseToml, "lint:md", "run"))).toEqual([
-      "mise",
-      "exec",
-      "--",
-      "pnpm",
       "markdownlint-cli2",
     ]);
     expect(extractMarkdownlintInvocation(extractMiseTaskCommand(miseToml, "format:md", "run_windows"))).toEqual([
@@ -258,8 +250,8 @@ describe("package scripts", () => {
     expect(packageJson.scripts?.["build-storybook"]).toBe("storybook build");
     expect(miseTasks.has("test:storybook:e2e")).toBe(true);
     expect(miseTasks.has("build:storybook")).toBe(true);
-    expect(miseToml).toContain("pnpm run test:storybook:e2e");
-    expect(miseToml).toContain("pnpm run build-storybook");
+    expect(miseToml).toContain("playwright test --config playwright.storybook.config.ts");
+    expect(miseToml).toContain("storybook build");
   });
 
   it("exposes dependency license inventory generation through package scripts", () => {
@@ -305,25 +297,25 @@ describe("package scripts", () => {
     expect(vitestConfig).toContain('"tests/**/*.node.test.{ts,tsx}"');
     expect(vitestConfig).toContain("...nodeNamedTestGlobs");
     expect(fastTask).not.toBe("");
-    expect(fastTask).toContain("pnpm run test:node");
+    expect(fastTask).toContain("vitest run --project node");
     expect(fastTask).not.toContain("test:jsdom");
     expect(fastWindowsCommand).toContain("vitest.CMD run --project node");
     expect(domTask).not.toBe("");
-    expect(domTask).toContain("pnpm run test:jsdom");
+    expect(domTask).toContain("vitest run --project jsdom");
     expect(domTask).not.toContain("test:node");
     expect(domWindowsCommand).toContain("vitest.CMD run --project jsdom");
     expect(ciTask).not.toBe("");
-    expect(ciTask).toContain("pnpm run test:node --reporter=dot --silent=passed-only");
-    expect(ciTask).toContain("pnpm run test:jsdom --reporter=dot --silent=passed-only");
+    expect(ciTask).toContain("vitest run --project node --reporter=dot --silent=passed-only");
+    expect(ciTask).toContain("vitest run --project jsdom --reporter=dot --silent=passed-only");
     expect(ciWindowsCommand).toContain("pnpm.CMD run test:node --reporter=dot --silent=passed-only");
     expect(ciWindowsCommand).toContain("pnpm.CMD run test:jsdom --reporter=dot --silent=passed-only");
     expect(profileTask).not.toBe("");
-    expect(profileTask).toContain("pnpm run test:node --reporter=verbose --slow-test-threshold=300");
-    expect(profileTask).toContain("pnpm run test:jsdom --reporter=verbose --slow-test-threshold=300");
+    expect(profileTask).toContain("vitest run --project node --reporter=verbose --slow-test-threshold=300");
+    expect(profileTask).toContain("vitest run --project jsdom --reporter=verbose --slow-test-threshold=300");
     expect(profileWindowsCommand).toContain("pnpm.CMD run test:node --reporter=verbose --slow-test-threshold=300");
     expect(profileWindowsCommand).toContain("pnpm.CMD run test:jsdom --reporter=verbose --slow-test-threshold=300");
     expect(parallelProfileTask).not.toBe("");
-    expect(parallelProfileTask).toContain("pnpm exec vitest run --reporter=dot --silent=passed-only");
+    expect(parallelProfileTask).toContain("vitest run --reporter=dot --silent=passed-only");
     expect(parallelProfileWindowsCommand).toContain("pnpm.CMD exec vitest run --reporter=dot --silent=passed-only");
   });
 

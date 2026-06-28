@@ -1228,15 +1228,11 @@ describe("repository static contracts", () => {
     expect(extractMiseEnvValue(miseSource, "MD_EXCLUDE_WORKTREES")).toBe("#**/.worktrees/**");
     expect(extractMiseEnvValue(miseSource, "MD_EXCLUDE_TARGET")).toBe("#**/target/**");
     expect(extractMiseEnvValue(miseSource, "MD_EXCLUDE_TAURI_GEN")).toBe("#src-tauri/gen/**");
-    expect(extractMiseTaskCommand(miseSource, "format:md")).toBe(
-      `mise exec -- pnpm markdownlint-cli2 ${markdownArguments} --fix`,
-    );
+    expect(extractMiseTaskCommand(miseSource, "format:md")).toBe(`markdownlint-cli2 ${markdownArguments} --fix`);
     expect(extractMiseTaskCommand(miseSource, "format:md", "run_windows")).toBe(
       `markdownlint-cli2.CMD ${markdownWindowsArguments} --fix`,
     );
-    expect(extractMiseTaskCommand(miseSource, "lint:md")).toBe(
-      `mise exec -- pnpm markdownlint-cli2 ${markdownArguments}`,
-    );
+    expect(extractMiseTaskCommand(miseSource, "lint:md")).toBe(`markdownlint-cli2 ${markdownArguments}`);
     expect(extractMiseTaskCommand(miseSource, "lint:md", "run_windows")).toBe(
       `markdownlint-cli2.CMD ${markdownWindowsArguments}`,
     );
@@ -1630,12 +1626,12 @@ describe("repository static contracts", () => {
       "node ./scripts/quality-baseline.ts lockfile-duplicate-majors",
     );
     expect(extractMiseTaskCommand(miseSource, "quality:react-doctor:diff")).toBe(
-      "mise exec -- pnpm run quality:react-doctor:diff",
+      "node ./scripts/quality-baseline.ts react-doctor:diff",
     );
     expect(extractMiseTaskCommand(miseSource, "quality:react-doctor:full")).toBe(
-      "mise exec -- pnpm run quality:react-doctor:full",
+      "node ./scripts/quality-baseline.ts react-doctor:full",
     );
-    expect(extractMiseTaskCommand(miseSource, "quality:knip")).toBe("mise exec -- pnpm run quality:knip");
+    expect(extractMiseTaskCommand(miseSource, "quality:knip")).toBe("node ./scripts/quality-baseline.ts knip");
   });
 
   it("classifies knip file-level cleanup candidates by their runtime owner", () => {
@@ -2072,7 +2068,7 @@ describe("repository static contracts", () => {
       expect(existsSync(join(repoRoot, "src-tauri", iconPath)), iconPath).toBe(true);
     }
     expect(existsSync(join(repoRoot, "src-tauri/icons/icon.png"))).toBe(true);
-    expect(appIconTask).toContain("pnpm exec tauri icon");
+    expect(appIconTask).toContain("tauri icon");
     expect(docsReadme).toContain("Bundled app icon provenance");
     expect(docsReadme).toContain("`src-tauri/icons/icon.png` is the checked-in source image");
     expect(docsReadme).toContain("project-owned artwork with no third-party attribution requirement");
