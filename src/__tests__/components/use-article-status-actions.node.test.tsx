@@ -35,10 +35,6 @@ function createParams(overrides: Partial<UseArticleStatusActionsParams> = {}): U
     toggleStar: {
       mutate: vi.fn(),
     },
-    markedReadMessage: "marked read",
-    markedUnreadMessage: "marked unread",
-    starredMessage: "starred",
-    unstarredMessage: "unstarred",
     ...overrides,
   };
 }
@@ -80,10 +76,6 @@ describe("useArticleStatusActions", () => {
         retainArticle,
         setRead,
         toggleStar,
-        markedReadMessage: "marked read",
-        markedUnreadMessage: "marked unread",
-        starredMessage: "starred",
-        unstarredMessage: "unstarred",
       }),
     );
 
@@ -99,7 +91,7 @@ describe("useArticleStatusActions", () => {
     );
     expect(removeRecentlyRead).toHaveBeenCalledWith("art-1");
     expect(addRecentlyRead).not.toHaveBeenCalled();
-    expect(showToast).toHaveBeenCalledWith("marked unread");
+    expect(showToast).not.toHaveBeenCalled();
   });
 
   it("does not mutate, retain, or toast when articleId is null", () => {
@@ -129,16 +121,12 @@ describe("useArticleStatusActions", () => {
         retainArticle,
         setRead,
         toggleStar,
-        markedReadMessage: "marked read",
-        markedUnreadMessage: "marked unread",
-        starredMessage: "starred",
-        unstarredMessage: "unstarred",
       }),
     );
 
     act(() => {
       result.current.setReadStatus(true);
-      result.current.setStarStatus(true, { showStatusToast: true });
+      result.current.setStarStatus(true);
       result.current.handleToggleRead();
       result.current.handleToggleStar();
     });
@@ -151,7 +139,7 @@ describe("useArticleStatusActions", () => {
     expect(removeRecentlyRead).not.toHaveBeenCalled();
   });
 
-  it("shows recovery copy after marking an article read", () => {
+  it("updates recently-read state without success toast after marking an article read", () => {
     const showToast = vi.fn();
     const addRecentlyRead = vi.fn();
     const setRead: UseArticleStatusActionsParams["setRead"] = {
@@ -175,7 +163,7 @@ describe("useArticleStatusActions", () => {
     });
 
     expect(addRecentlyRead).toHaveBeenCalledWith("art-1");
-    expect(showToast).toHaveBeenCalledWith("marked read");
+    expect(showToast).not.toHaveBeenCalled();
   });
 
   it("rolls back newly retained unread articles and shows a toast when marking read fails", () => {
@@ -289,11 +277,10 @@ describe("useArticleStatusActions", () => {
     );
 
     act(() => {
-      result.current.setStarStatus(true, { showStatusToast: true });
+      result.current.setStarStatus(true);
     });
 
     expect(showToast).toHaveBeenCalledWith("Failed to star");
-    expect(showToast).not.toHaveBeenCalledWith("starred");
     expect(retainArticle).not.toHaveBeenCalled();
   });
 
@@ -321,11 +308,10 @@ describe("useArticleStatusActions", () => {
     );
 
     act(() => {
-      result.current.setStarStatus(false, { showStatusToast: true });
+      result.current.setStarStatus(false);
     });
 
     expect(retainArticle).not.toHaveBeenCalled();
     expect(showToast).toHaveBeenCalledWith("Failed to unstar");
-    expect(showToast).not.toHaveBeenCalledWith("unstarred");
   });
 });

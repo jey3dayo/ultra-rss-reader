@@ -7,7 +7,7 @@ type UnreadIconProps = {
   forceTone?: boolean;
   tone?: "state" | "none";
   className?: string;
-};
+} & ComponentProps<"span">;
 
 type StarIconProps = {
   starred: boolean;
@@ -16,7 +16,7 @@ type StarIconProps = {
   className?: string;
 } & ComponentProps<typeof Star>;
 
-export function UnreadIcon({ unread, forceTone = false, tone = "state", className }: UnreadIconProps) {
+export function UnreadIcon({ unread, forceTone = false, tone = "state", className, ...props }: UnreadIconProps) {
   const showSemanticTone = tone === "state" && (unread || forceTone);
 
   return (
@@ -36,6 +36,7 @@ export function UnreadIcon({ unread, forceTone = false, tone = "state", classNam
         className,
       )}
       aria-hidden="true"
+      {...props}
     />
   );
 }

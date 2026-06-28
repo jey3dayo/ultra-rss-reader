@@ -30,15 +30,11 @@ export type UseArticleStatusActionsParams = {
   retainArticle: (articleId: string) => void;
   setRead: SetReadMutation;
   toggleStar: ToggleStarMutation;
-  markedReadMessage: string;
-  markedUnreadMessage: string;
-  starredMessage: string;
-  unstarredMessage: string;
 };
 
 type UseArticleStatusActionsResult = {
   setReadStatus: (pressed: boolean) => void;
-  setStarStatus: (pressed: boolean, options?: { showStatusToast?: boolean }) => void;
+  setStarStatus: (pressed: boolean) => void;
   handleToggleRead: () => void;
   handleToggleStar: () => void;
 };
@@ -55,10 +51,6 @@ export function useArticleStatusActions({
   retainArticle,
   setRead,
   toggleStar,
-  markedReadMessage,
-  markedUnreadMessage,
-  starredMessage,
-  unstarredMessage,
 }: UseArticleStatusActionsParams): UseArticleStatusActionsResult {
   const retainIfNeeded = useCallback(
     (nextRead: boolean) => {
@@ -94,7 +86,6 @@ export function useArticleStatusActions({
               suppressAutoMarkAfterManualUnread(selectedAccountId, articleId);
               removeRecentlyRead(articleId);
             }
-            showToast(pressed ? markedReadMessage : markedUnreadMessage);
           },
           onError: (error) => {
             if (shouldRollbackRetainedArticle) {
@@ -105,21 +96,11 @@ export function useArticleStatusActions({
         },
       );
     },
-    [
-      addRecentlyRead,
-      articleId,
-      markedReadMessage,
-      markedUnreadMessage,
-      removeRecentlyRead,
-      retainIfNeeded,
-      setRead,
-      showToast,
-      viewMode,
-    ],
+    [addRecentlyRead, articleId, removeRecentlyRead, retainIfNeeded, setRead, showToast, viewMode],
   );
 
   const setStarStatus = useCallback(
-    (pressed: boolean, options?: { showStatusToast?: boolean }) => {
+    (pressed: boolean) => {
       if (!articleId) {
         return;
       }
@@ -131,9 +112,6 @@ export function useArticleStatusActions({
             if (!pressed && retainOnUnstar) {
               retainArticle(articleId);
             }
-            if (options?.showStatusToast) {
-              showToast(pressed ? starredMessage : unstarredMessage);
-            }
           },
           onError: (error) => {
             showToast(error.message);
@@ -141,7 +119,7 @@ export function useArticleStatusActions({
         },
       );
     },
-    [articleId, retainArticle, retainOnUnstar, showToast, starredMessage, toggleStar, unstarredMessage],
+    [articleId, retainArticle, retainOnUnstar, showToast, toggleStar],
   );
 
   const handleToggleRead = useCallback(() => {

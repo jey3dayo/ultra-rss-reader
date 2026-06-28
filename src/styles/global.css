@@ -141,6 +141,10 @@
   --motion-popup-scale-closed: 0.96;
   --motion-content-swap-offset: 4px;
   --motion-article-slide-offset: 48px;
+  --motion-settings-modal-offset: 10px;
+  --motion-settings-modal-scale-closed: 0.985;
+  --motion-state-toggle-scale-active: 1.08;
+  --motion-article-selection-marker-offset: 6px;
   --motion-icon-swap-inactive-blur: 0.75px;
   --motion-icon-swap-inactive-scale: 0.85;
   --digit-dur: 500ms;
@@ -1179,6 +1183,103 @@ html.vertical-wipe-transition::view-transition-new(root) {
   animation: motion-article-slide-prev var(--motion-duration-article-slide) var(--motion-ease-standard);
 }
 
+@keyframes motion-settings-modal-enter {
+  from {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% + var(--motion-settings-modal-offset)))
+      scale(var(--motion-settings-modal-scale-closed));
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.motion-settings-modal[data-open],
+.motion-settings-modal[data-starting-style] {
+  animation: motion-settings-modal-enter var(--motion-duration-resize) var(--motion-ease-emphasized);
+}
+
+@keyframes motion-state-toggle-pop {
+  0% {
+    transform: scale(0.92);
+    opacity: 0.72;
+  }
+
+  65% {
+    transform: scale(var(--motion-state-toggle-scale-active));
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes motion-star-toggle-pop {
+  0% {
+    transform: rotate(0deg) scale(0.92);
+    opacity: 0.72;
+  }
+
+  60% {
+    transform: rotate(-10deg) scale(var(--motion-state-toggle-scale-active));
+    opacity: 1;
+  }
+
+  100% {
+    transform: rotate(0deg) scale(1);
+    opacity: 1;
+  }
+}
+
+.motion-state-toggle [data-state-toggle-icon="true"] {
+  transform-origin: center;
+  transition:
+    transform var(--motion-duration-popup) var(--motion-ease-standard),
+    opacity var(--motion-duration-popup) var(--motion-ease-standard);
+}
+
+.motion-state-toggle[aria-pressed="true"] [data-state-toggle-icon="true"] {
+  animation: motion-state-toggle-pop var(--motion-duration-content-swap) var(--motion-ease-standard);
+}
+
+.motion-state-toggle[aria-pressed="true"] [data-state-toggle-icon-tone="starred"] {
+  animation: motion-star-toggle-pop var(--motion-duration-content-swap) var(--motion-ease-standard);
+}
+
+@keyframes motion-article-selection-marker {
+  from {
+    opacity: 0;
+    transform: translateY(var(--motion-article-selection-marker-offset));
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.motion-article-selection-marker,
+.motion-article-selection-marker::after {
+  transform-origin: center;
+  animation: motion-article-selection-marker var(--motion-duration-contextual) var(--motion-ease-standard);
+}
+
+.motion-article-state-slot {
+  transform-origin: center;
+  transition:
+    opacity var(--motion-duration-contextual) var(--motion-ease-standard),
+    transform var(--motion-duration-contextual) var(--motion-ease-standard);
+}
+
+.motion-article-state-slot:empty {
+  opacity: 0;
+  transform: scale(0.84);
+}
+
 @keyframes t-digit-pop-in {
   0% {
     transform: translate(
@@ -1390,7 +1491,10 @@ html.vertical-wipe-transition::view-transition-new(root) {
   .motion-popup-overlay,
   .motion-popup-dialog,
   .motion-popup-surface,
-  .motion-browser-overlay-panel {
+  .motion-browser-overlay-panel,
+  .motion-settings-modal,
+  .motion-state-toggle [data-state-toggle-icon="true"],
+  .motion-article-state-slot {
     transition-duration: 0ms;
   }
 
@@ -1427,6 +1531,34 @@ html.vertical-wipe-transition::view-transition-new(root) {
     animation: none;
     opacity: 1;
     transform: translateY(0);
+  }
+
+  .motion-settings-modal[data-open],
+  .motion-settings-modal[data-starting-style],
+  .motion-state-toggle[aria-pressed="true"] [data-state-toggle-icon="true"],
+  .motion-state-toggle[aria-pressed="true"] [data-state-toggle-icon-tone="starred"],
+  .motion-article-selection-marker,
+  .motion-article-selection-marker::after {
+    animation: none;
+  }
+
+  .motion-settings-modal[data-open],
+  .motion-settings-modal[data-starting-style] {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  .motion-state-toggle [data-state-toggle-icon="true"],
+  .motion-article-selection-marker,
+  .motion-article-selection-marker::after,
+  .motion-article-state-slot,
+  .motion-article-state-slot:empty {
+    transform: none;
+  }
+
+  .motion-article-state-slot,
+  .motion-article-state-slot:empty {
+    opacity: 1;
   }
 
   .motion-icon-swap-icon {

@@ -9,7 +9,12 @@ import {
   SETTINGS_SECTION_BORDER_CLASS,
   SETTINGS_SHELL_SHADOW_CLASS,
 } from "@/components/settings/shared/settings-surface";
-import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
+import {
+  MOTION_CONTENT_SWAP_CLASS_NAME,
+  MOTION_DATA_PHASE_ATTRIBUTE,
+  MOTION_PHASE_ENTERING,
+  MOTION_SETTINGS_MODAL_CLASS_NAME,
+} from "@/constants/motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, IndeterminateProgress, ScrollArea } from "@/design-system";
 import { cn } from "@/lib/utils";
 
@@ -59,6 +64,7 @@ export function SettingsModalView({
         data-testid="settings-modal-surface"
         className={cn(
           "flex h-[88vh] max-h-[860px] max-w-[1120px] flex-col gap-0 overflow-hidden rounded-xl border bg-popover p-0 sm:flex-row sm:max-w-[1120px]",
+          MOTION_SETTINGS_MODAL_CLASS_NAME,
           SETTINGS_DIVIDER_CLASS,
           SETTINGS_SHELL_SHADOW_CLASS,
         )}

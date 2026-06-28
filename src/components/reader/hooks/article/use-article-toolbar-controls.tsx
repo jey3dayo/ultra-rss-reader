@@ -103,7 +103,7 @@ export function useArticleToolbarControls({
       moreActions: t("more_actions"),
     },
     onToggleRead: setReadStatus,
-    onToggleStar: (pressed) => setStarStatus(pressed, { showStatusToast: true }),
+    onToggleStar: setStarStatus,
     onCopyLink: handleCopyLink,
     onOpenInBrowser: onToggleBrowserOverlay,
     onOpenInExternalBrowser: handleOpenExternalBrowser,

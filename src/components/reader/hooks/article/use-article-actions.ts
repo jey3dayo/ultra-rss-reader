@@ -34,7 +34,7 @@ type UseArticleActionsParams = {
 
 type UseArticleActionsResult = {
   setReadStatus: (pressed: boolean) => void;
-  setStarStatus: (pressed: boolean, options?: { showStatusToast?: boolean }) => void;
+  setStarStatus: (pressed: boolean) => void;
   handleToggleRead: () => void;
   handleToggleStar: () => void;
   handleOpenExternalBrowser: () => void;
@@ -74,10 +74,6 @@ export function useArticleActions({
     retainArticle,
     setRead,
     toggleStar,
-    markedReadMessage: t("article_marked_read_recovery"),
-    markedUnreadMessage: t("article_marked_unread_recovery"),
-    starredMessage: t("article_starred"),
-    unstarredMessage: t("article_unstarred"),
   });
 
   const handleOpenExternalBrowser = useCallback(() => {

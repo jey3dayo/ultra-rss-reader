@@ -1,6 +1,7 @@
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
 import type { ArticleDto } from "@/api/tauri-commands";
+import { MOTION_ARTICLE_SELECTION_MARKER_CLASS_NAME, MOTION_ARTICLE_STATE_SLOT_CLASS_NAME } from "@/constants";
 import { StarIcon, UnreadIcon } from "@/design-system";
 import { formatArticleTime } from "@/lib/articles/article-list";
 import { resolveArticleListItemPresentation } from "@/lib/articles/article-list-item-presentation";
@@ -95,6 +96,7 @@ export function ArticleListItem({
                   activePane
                     ? "bg-surface-2/45 after:bg-border-strong focus-visible:bg-surface-2/55"
                     : "bg-surface-2/28 after:bg-border-strong/50 focus-visible:bg-surface-2/38",
+                  MOTION_ARTICLE_SELECTION_MARKER_CLASS_NAME,
                   "after:absolute after:inset-y-2 after:left-2 after:w-0.5 after:rounded-full",
                 ),
             ),
@@ -106,7 +108,7 @@ export function ArticleListItem({
         <div className="flex min-w-0 flex-1 items-start gap-2">
           <UnreadIcon
             unread={presentation.isUnread}
-            className={cn("mt-1.5 size-2", !presentation.isUnread && "invisible")}
+            className={cn(MOTION_ARTICLE_STATE_SLOT_CLASS_NAME, "mt-1.5 size-2", !presentation.isUnread && "invisible")}
           />
           <div className="flex min-w-0 flex-1 items-start gap-1.5">
             <h3
@@ -124,7 +126,10 @@ export function ArticleListItem({
             <span
               aria-hidden={!article.is_starred}
               data-testid="article-star-slot"
-              className="mt-0.5 flex size-3 shrink-0 items-center justify-center"
+              className={cn(
+                MOTION_ARTICLE_STATE_SLOT_CLASS_NAME,
+                "mt-0.5 flex size-3 shrink-0 items-center justify-center",
+              )}
             >
               {article.is_starred ? <StarIcon starred className="size-3" data-testid="article-star-indicator" /> : null}
             </span>

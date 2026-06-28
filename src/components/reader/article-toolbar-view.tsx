@@ -1,6 +1,6 @@
 import { Copy, Ellipsis, ExternalLink, Eye, X } from "lucide-react";
 import type { ReactNode } from "react";
-import { MOTION_ICON_SWAP_STATE_A, MOTION_ICON_SWAP_STATE_B } from "@/constants";
+import { MOTION_ICON_SWAP_STATE_A, MOTION_ICON_SWAP_STATE_B, MOTION_STATE_TOGGLE_CLASS_NAME } from "@/constants";
 import {
   ghostUtilityActionInteractionClassName,
   IconToolbarButton,
@@ -127,6 +127,7 @@ function ArticleToolbarMobilePrimaryButton({
   disabled = false,
   active = false,
   activeTone = "neutral",
+  motionState = false,
   children,
 }: {
   label: string;
@@ -136,6 +137,7 @@ function ArticleToolbarMobilePrimaryButton({
   disabled?: boolean;
   active?: boolean;
   activeTone?: ArticleToolbarVisualActiveTone;
+  motionState?: boolean;
   children: ReactNode;
 }) {
   const visibleLabel = shortLabel ?? label;
@@ -150,6 +152,7 @@ function ArticleToolbarMobilePrimaryButton({
         "inline-flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-md px-1.5 text-xs font-medium text-foreground-soft select-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/45 disabled:text-foreground-soft sm:min-w-11 sm:px-2 [&_svg]:pointer-events-none [&_svg]:shrink-0",
         ghostUtilityActionInteractionClassName,
         articleToolbarUnavailableClassName,
+        motionState && MOTION_STATE_TOGGLE_CLASS_NAME,
         active && articleToolbarVisualActiveClassNames[activeTone],
       )}
     >
@@ -224,8 +227,13 @@ export function ArticleToolbarActionStrip({
             onPressedChange={(nextRead) => onToggleRead(nextRead)}
             active={resolvedHasArticle && !resolvedIsRead}
             activeTone="unread"
+            motionState
           >
-            <UnreadIcon unread={resolvedHasArticle && !resolvedIsRead} className="size-3" />
+            <UnreadIcon
+              unread={resolvedHasArticle && !resolvedIsRead}
+              className="size-3"
+              data-state-toggle-icon="true"
+            />
           </ArticleToolbarMobilePrimaryButton>
           <ArticleToolbarMobilePrimaryButton
             label={labels.toggleStar}
@@ -235,8 +243,14 @@ export function ArticleToolbarActionStrip({
             onPressedChange={(nextStarred) => onToggleStar(nextStarred)}
             active={resolvedIsStarred}
             activeTone="starred"
+            motionState
           >
-            <StarIcon starred={resolvedIsStarred} className="size-4" />
+            <StarIcon
+              starred={resolvedIsStarred}
+              className="size-4"
+              data-state-toggle-icon="true"
+              data-state-toggle-icon-tone="starred"
+            />
           </ArticleToolbarMobilePrimaryButton>
           {showOpenInBrowserButton && !shouldHideBrowserOverlayActions ? (
             <ArticleToolbarMobilePrimaryButton
@@ -266,10 +280,15 @@ export function ArticleToolbarActionStrip({
             pressedTone="none"
             className={cn(
               articleToolbarUnavailableClassName,
+              MOTION_STATE_TOGGLE_CLASS_NAME,
               resolvedHasArticle && !resolvedIsRead && articleToolbarVisualActiveClassNames.unread,
             )}
           >
-            <UnreadIcon unread={resolvedHasArticle && !resolvedIsRead} className="size-3" />
+            <UnreadIcon
+              unread={resolvedHasArticle && !resolvedIsRead}
+              className="size-3"
+              data-state-toggle-icon="true"
+            />
           </IconToolbarToggle>
           <IconToolbarToggle
             label={labels.toggleStar}
@@ -277,9 +296,14 @@ export function ArticleToolbarActionStrip({
             onPressedChange={(nextStarred) => onToggleStar(nextStarred)}
             disabled={!canToggleStar}
             pressedTone="starred"
-            className={articleToolbarUnavailableClassName}
+            className={cn(articleToolbarUnavailableClassName, MOTION_STATE_TOGGLE_CLASS_NAME)}
           >
-            <StarIcon starred={resolvedIsStarred} className="size-4" />
+            <StarIcon
+              starred={resolvedIsStarred}
+              className="size-4"
+              data-state-toggle-icon="true"
+              data-state-toggle-icon-tone="starred"
+            />
           </IconToolbarToggle>
           {showOpenInBrowserButton && !shouldHideBrowserOverlayActions ? (
             <IconToolbarToggle
