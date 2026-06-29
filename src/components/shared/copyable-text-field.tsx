@@ -2,6 +2,7 @@ import { Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AppTooltip } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 type CopyableTextFieldType = "text" | "url" | "password";
 
@@ -41,7 +42,7 @@ export function CopyableTextField({
   return (
     <div className="block text-sm text-foreground-soft">
       <span className="mb-1 block text-foreground-soft">{label}</span>
-      <div className="relative">
+      <div className={cn("flex min-w-0 items-center", copyLabel && onCopy ? "gap-2" : undefined)}>
         <Input
           name={name}
           type={type}
@@ -50,7 +51,7 @@ export function CopyableTextField({
           disabled={disabled}
           placeholder={placeholder}
           aria-label={label}
-          className={copyLabel && onCopy ? `pr-11 ${className ?? ""}`.trim() : className}
+          className={cn("min-w-0 flex-1", className)}
           onChange={(event) => onChange?.(event.target.value)}
           onBlur={() => onBlur?.()}
           onFocus={(event) => {
@@ -71,7 +72,7 @@ export function CopyableTextField({
               onClick={() => onCopy(value)}
               disabled={disabled || !canCopy}
               aria-label={copyLabel}
-              className="absolute top-1/2 right-1 -translate-y-1/2 text-foreground-soft transition-colors duration-200 hover:text-foreground active:not-aria-[haspopup]:-translate-y-1/2 motion-reduce:transition-none"
+              className="size-9 shrink-0 border-transparent bg-transparent text-foreground-soft shadow-none transition-colors duration-200 hover:bg-transparent hover:text-foreground motion-reduce:transition-none"
             >
               <Copy className="size-3.5" />
             </Button>

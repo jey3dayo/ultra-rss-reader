@@ -124,6 +124,26 @@ describe("CopyableTextField", () => {
     expect(screen.getByRole("button", { name: "Copy server URL" })).toBeEnabled();
   });
 
+  it("keeps the copy action outside the textbox layout", () => {
+    render(
+      <CopyableTextField
+        label="Server URL"
+        name="server-url"
+        value="https://example.com"
+        copyLabel="Copy server URL"
+        onCopy={vi.fn()}
+      />,
+    );
+
+    const input = screen.getByRole("textbox", { name: "Server URL" });
+    const copyButton = screen.getByRole("button", { name: "Copy server URL" });
+
+    expect(input.parentElement).toHaveClass("flex", "gap-2");
+    expect(input).toHaveClass("min-w-0", "flex-1");
+    expect(copyButton).toHaveClass("shrink-0");
+    expect(copyButton).not.toHaveClass("absolute");
+  });
+
   it("passes non-blank copy values unchanged", async () => {
     const user = userEvent.setup();
     const onCopy = vi.fn<(value: string) => void>();
