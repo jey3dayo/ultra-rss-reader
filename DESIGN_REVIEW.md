@@ -135,6 +135,16 @@ When reviewing settings rows or input-control specimens, check these before sugg
 - explanatory or safety copy is integrated into the settings row-group rhythm instead of becoming a centered prose block between controls
 - `DESIGN.md` and `UI Reference / Input Controls Canvas` were checked before proposing a feature-local fix
 
+### Navigation Rail Alignment Checklist
+
+When reviewing sidebar or navigation-rail rows with section toggles, folder rows, tag rows, or counters, check container alignment before adding icon nudges:
+
+- section headers and row controls share the same outer content endpoints
+- trailing counters use the shared right rail and right-align the final digit
+- disclosure chevrons are compared against the final digit glyph center, not only against the rail box
+- icon-only optical corrections stay on the chevron or icon, while numeric rail width and row container geometry remain shared
+- component extraction is required only when semantic role, state model, and accessibility behavior match; otherwise share the rail/style primitive and keep distinct components
+
 ### Runtime Chrome Checklist
 
 When reviewing browser previews, embedded WebView surfaces, or app-shell chrome, separate browser-mode evidence from native Tauri evidence before judging platform-specific layout:
