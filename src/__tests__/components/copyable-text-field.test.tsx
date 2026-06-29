@@ -141,6 +141,7 @@ describe("CopyableTextField", () => {
     expect(input.parentElement).toHaveClass("flex", "gap-2");
     expect(input).toHaveClass("min-w-0", "flex-1");
     expect(copyButton).toHaveClass("shrink-0");
+    expect(copyButton).not.toHaveClass("size-9");
     expect(copyButton).not.toHaveClass("absolute");
   });
 

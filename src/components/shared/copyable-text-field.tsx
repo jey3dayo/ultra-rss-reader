@@ -72,7 +72,7 @@ export function CopyableTextField({
               onClick={() => onCopy(value)}
               disabled={disabled || !canCopy}
               aria-label={copyLabel}
-              className="size-9 shrink-0 border-transparent bg-transparent text-foreground-soft shadow-none transition-colors duration-200 hover:bg-transparent hover:text-foreground motion-reduce:transition-none"
+              className="shrink-0 border-transparent bg-transparent text-foreground-soft shadow-none transition-colors duration-200 hover:bg-transparent hover:text-foreground active:not-aria-[haspopup]:translate-y-0 motion-reduce:transition-none"
             >
               <Copy className="size-3.5" />
             </Button>
