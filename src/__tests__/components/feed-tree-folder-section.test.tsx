@@ -32,7 +32,7 @@ describe("FeedTreeFolderSection", () => {
     });
 
     expect(folderButton).toHaveClass("pl-0.5");
-    expect(folderButton).toHaveClass("pr-1.5");
+    expect(folderButton).not.toHaveClass("pr-1.5");
     expect(folderButton).toHaveClass("-ml-1");
     expect(folderButton.querySelector("span")).not.toHaveClass("-ml-1");
     expect(folderButton).toHaveClass("rounded-lg");
@@ -48,7 +48,10 @@ describe("FeedTreeFolderSection", () => {
       "text-sidebar-foreground/54",
     );
     expect(screen.getByText("9,274")).not.toHaveClass("mr-1");
-    expect(folderButton.querySelector(".motion-disclosure-icon")).toHaveClass("h-3", "w-3", "-rotate-90");
+    expect(folderButton.querySelector(".motion-disclosure-icon")).toHaveClass("size-3.5", "-rotate-90");
+    expect(folderButton.querySelector(".motion-disclosure-icon")?.parentElement).toHaveClass(
+      "text-sidebar-foreground/54",
+    );
   });
 
   it("adds a folder icon slot when feed favicons are visible", () => {
@@ -68,10 +71,13 @@ describe("FeedTreeFolderSection", () => {
     });
 
     expect(folderButton).toHaveClass("pl-0.5");
-    expect(folderButton).toHaveClass("pr-1.5");
+    expect(folderButton).not.toHaveClass("pr-1.5");
     expect(folderButton).toHaveClass("-ml-1");
     expect(folderButton.querySelector("span")).not.toHaveClass("-ml-1");
-    expect(folderButton.querySelector(".motion-disclosure-icon")).toHaveClass("h-3", "w-3");
+    expect(folderButton.querySelector(".motion-disclosure-icon")).toHaveClass("size-3.5");
+    expect(folderButton.querySelector(".motion-disclosure-icon")?.parentElement).toHaveClass(
+      "text-sidebar-foreground/54",
+    );
     expect(folderButton.querySelector(".text-sidebar-foreground\\/46 svg")).toHaveClass("size-3.5");
   });
 
@@ -93,7 +99,7 @@ describe("FeedTreeFolderSection", () => {
     const selectedIndicator = document.querySelector<HTMLElement>("[data-folder-row-selected-indicator='folder-1']");
 
     expect(folderButton).toHaveClass("pl-0.5");
-    expect(folderButton).toHaveClass("pr-1.5");
+    expect(folderButton).not.toHaveClass("pr-1.5");
     expect(folderButton).not.toHaveClass("pl-7");
     expect(selectedIndicator?.parentElement).toHaveClass("flex", "items-center", "gap-0.5");
   });
@@ -337,5 +343,44 @@ describe("FeedTreeFolderSection", () => {
     expect(panel).toHaveAttribute("aria-hidden", "false");
     expect(panel).not.toHaveAttribute("inert");
     expect(screen.getByRole("button", { name: /Alpha/ }).closest(`#${panelId}`)).toBeInTheDocument();
+  });
+
+  it("toggles an expanded folder closed from the folder row", () => {
+    const onToggleFolder = vi.fn();
+    const onSelectFolder = vi.fn();
+
+    render(
+      <FeedTreeFolderSection
+        folder={{
+          ...baseFolder,
+          isExpanded: true,
+          feeds: [
+            {
+              id: "feed-1",
+              accountId: "acc-1",
+              folderId: "folder-1",
+              title: "Alpha",
+              url: "https://example.com/feed.xml",
+              siteUrl: "https://example.com",
+              unreadCount: 1,
+              readerMode: "on",
+              webPreviewMode: "off",
+              isSelected: false,
+              grayscaleFavicon: false,
+            },
+          ],
+        }}
+        activeDropTarget={null}
+        onToggleFolder={onToggleFolder}
+        onSelectFolder={onSelectFolder}
+        onSelectFeed={vi.fn()}
+        displayFavicons={false}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Select folder Comic" }));
+
+    expect(onToggleFolder).toHaveBeenCalledWith("folder-1");
+    expect(onSelectFolder).toHaveBeenCalledWith("folder-1");
   });
 });

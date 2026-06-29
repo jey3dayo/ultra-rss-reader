@@ -1,6 +1,6 @@
 import { cva } from "class-variance-authority";
 import type { ComponentPropsWithoutRef, ReactNode, Ref } from "react";
-import { MotionNumber } from "@/design-system";
+import { MotionNumber, SIDEBAR_RIGHT_RAIL_CLASS_NAME } from "@/design-system";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
 import type { SidebarDensity } from "./sidebar-density";
@@ -57,7 +57,8 @@ export function SidebarNavButton({
   const focusedPane = useUiStore((state) => state.focusedPane);
   const activePane = activePaneProp ?? focusedPane === "sidebar";
   const trailingClassNames = cn(
-    "ml-3 inline-flex w-8 shrink-0 justify-center text-center text-[0.75rem] font-medium text-[var(--sidebar-foreground-muted-strong)]",
+    SIDEBAR_RIGHT_RAIL_CLASS_NAME,
+    "text-[0.75rem] font-medium text-[var(--sidebar-foreground-muted-strong)]",
     selected && activePane && "text-[var(--sidebar-selection-muted)]",
     trailingClassName,
   );

@@ -105,7 +105,7 @@ function TagListItem({ tag, sidebarDensity, onSelectTag, renderContextMenu }: Ta
                 : "text-[0.72rem] text-sidebar-foreground/52"
             }
             className={cn(
-              "ml-[1.375rem] w-[calc(100%-1.375rem)] rounded-lg px-0.5",
+              "ml-[1.375rem] w-[calc(100%-1.375rem)] rounded-lg pl-0.5",
               !tag.isSelected && "text-sidebar-foreground",
             )}
           />

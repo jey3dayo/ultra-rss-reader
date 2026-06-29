@@ -122,7 +122,7 @@ export function FeedTreeFolderSection({
                     }
                   : {})}
                 className={cn(
-                  "flex-1 rounded-lg pl-0.5 pr-1.5",
+                  "flex-1 rounded-lg pl-0.5",
                   folderParentRailClassName,
                   isActive && "border-dashed bg-[var(--feed-tree-drop-target-surface)] ring-1 ring-sidebar-border",
                 )}
@@ -131,19 +131,17 @@ export function FeedTreeFolderSection({
             onContextMenu={captureTarget}
             onKeyDownCapture={captureKeyboardTarget}
             onClick={() => {
-              if (!folder.isExpanded) {
-                onToggleFolder(folder.id);
-              }
+              onToggleFolder(folder.id);
               onSelectFolder?.(folder.id);
             }}
             onMouseDown={handleMiddleMouseDown}
           >
             <span
               aria-hidden="true"
-              className="motion-disclosure-trigger flex size-5 shrink-0 items-center justify-center text-foreground-soft"
+              className="motion-disclosure-trigger flex size-5 shrink-0 items-center justify-center text-sidebar-foreground/54"
             >
               <ChevronDown
-                className={cn("motion-disclosure-icon h-3 w-3", folder.isExpanded ? "rotate-0" : "-rotate-90")}
+                className={cn("motion-disclosure-icon size-3.5", folder.isExpanded ? "rotate-0" : "-rotate-90")}
               />
             </span>
             {displayFavicons ? (

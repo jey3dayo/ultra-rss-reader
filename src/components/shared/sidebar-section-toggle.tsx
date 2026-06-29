@@ -2,6 +2,7 @@ import { ContextMenu } from "@base-ui/react/context-menu";
 import { ChevronDown } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { SIDEBAR_RIGHT_RAIL_CLASS_NAME } from "./sidebar-right-rail";
 
 type SidebarSectionToggleProps = {
   label: string;
@@ -35,9 +36,9 @@ export function SidebarSectionToggle({
       )}
     >
       <span className={sidebarSectionLabelClassName}>{label}</span>
-      <span className="ml-3 inline-flex w-8 shrink-0 justify-center">
+      <span className={SIDEBAR_RIGHT_RAIL_CLASS_NAME}>
         <ChevronDown
-          className={cn("motion-disclosure-icon h-3.5 w-3.5 text-sidebar-foreground/54", !isOpen && "-rotate-90")}
+          className={cn("motion-disclosure-icon size-3.5 text-sidebar-foreground/54", !isOpen && "-rotate-90")}
         />
       </span>
     </button>
