@@ -4,6 +4,23 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.53.2] - 2026-06-29
+
+### Bug Fixes
+
+- Reader の Web プレビューを 2 ペイン構成で安定させ、Tauri WebView の表示位置、上部コントロール、macOS のタイトルバー領域がずれにくいようにした。
+- Web プレビュー中の未読フッターや overlay surface の重なりを整理し、外部サイトのモーダルや reload 後でも操作を戻しやすいようにした。
+- フィード編集ダイアログ、選択 summary、サイドバーの右端レール、読み取り専用フィールドのコピー操作を揃え、Reader 周辺の余白と操作位置のずれを抑えた。
+- production bundle で dev intent が混入しないようにし、開発用 Agentation toolbar がダイアログ操作を邪魔しにくいようにした。
+
+### Documentation
+
+- PR テンプレートと主要 docs に、release、startup bundle、native/WebView まわりの確認観点と metadata を追加した。
+
+### Maintenance
+
+- フィード編集ダイアログと menu primitive の整理、NHK mock article 更新、WebView cleanup/dev scenario coverage を追加した。
+
 ## [0.53.1] - 2026-06-29
 
 ### Bug Fixes
