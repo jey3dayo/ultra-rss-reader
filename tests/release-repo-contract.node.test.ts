@@ -760,6 +760,24 @@ describe("release repository contract", () => {
     );
   });
 
+  it("keeps a local release preflight available before pushing release tags", () => {
+    const localPreflightTask = extractTaskBlock(miseToml, "release:preflight:local");
+    const releaseSkill = readText(".codex/skills/release/references/phase-3-publish.md");
+    const releaseCommand = readText(".claude/commands/release.md");
+    const releaseRule = readText(".claude/rules/release-workflow.md");
+
+    expect(localPreflightTask).toContain("RELEASE_TAG:?set RELEASE_TAG=vX.Y.Z");
+    expect(localPreflightTask).toContain("mise exec -- node ./scripts/release/validate-version-parity.ts");
+    expect(localPreflightTask).toContain("mise exec -- pnpm run check:release-contamination");
+    expect(localPreflightTask).toContain("mise exec -- mise run format:check");
+    expect(localPreflightTask).toContain("mise exec -- mise run lint:types");
+    expect(localPreflightTask).toContain("mise exec -- mise run test:unit:ci");
+    expect(releaseSkill).toContain("RELEASE_TAG=v{new_version} mise run release:preflight:local");
+    expect(releaseCommand).toContain("RELEASE_TAG=v{new_version} mise run release:preflight:local");
+    expect(releaseCommand).toContain("通常の commit hook ではなく");
+    expect(releaseRule).toContain("RELEASE_TAG=vX.Y.Z mise run release:preflight:local");
+  });
+
   it("keeps release draft and prerelease flags derived from the semver tag policy", () => {
     const releasePolicyStep = extractReleaseStepBlock(releaseWorkflow, "Resolve release semver policy");
     const tauriActionBlock = extractTauriActionBlock(releaseWorkflow);

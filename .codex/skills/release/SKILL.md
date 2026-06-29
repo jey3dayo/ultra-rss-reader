@@ -123,11 +123,12 @@ Required sequence:
 3. Capture the release commit hash from `HEAD`.
 4. Create annotated tag `v{new_version}` on that exact commit.
 5. Verify the local tag points to the release commit and the tagged version files contain `new_version`.
-6. Show `current_version -> new_version`, categorized release notes, release commit hash, tag name, and `release_state`.
-7. Push with `git push --atomic origin main v{new_version}` unless unsupported; use the documented fallback only when required.
-8. Verify the remote annotated tag and peeled commit.
-9. Create or update the draft GitHub Release notes through `gh`.
-10. Verify the `release.yml` workflow run that matches `v{new_version}` and the release commit, then verify structured GitHub Release fields.
+6. Run `RELEASE_TAG=v{new_version} mise run release:preflight:local` before pushing.
+7. Show `current_version -> new_version`, categorized release notes, release commit hash, tag name, and `release_state`.
+8. Push with `git push --atomic origin main v{new_version}` unless unsupported; use the documented fallback only when required.
+9. Verify the remote annotated tag and peeled commit.
+10. Create or update the draft GitHub Release notes through `gh`.
+11. Verify the `release.yml` workflow run that matches `v{new_version}` and the release commit, then verify structured GitHub Release fields.
 
 Ask explicitly whether pushing is okay only when publication intent has not already been approved.
 

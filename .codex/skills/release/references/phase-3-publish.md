@@ -21,6 +21,7 @@ Before any push, verify all of these:
 
 ```bash
 python3 .codex/skills/release/scripts/release_checks.py verify-tag v{new_version} {release_commit_hash} {new_version}
+RELEASE_TAG=v{new_version} mise run release:preflight:local
 ```
 
 The verification requires:
@@ -29,8 +30,9 @@ The verification requires:
 - `git show v{new_version}:package.json` contains `"version": "{new_version}"`;
 - `git show v{new_version}:src-tauri/Cargo.toml` contains `version = "{new_version}"`;
 - `git show v{new_version}:src-tauri/tauri.conf.json` contains `"version": "{new_version}"`.
+- the local release preflight mirror succeeds before the tag is pushed, including version parity, release build contamination, format, TypeScript, and CI unit tests.
 
-Abort if the tag points at any earlier commit or if any tagged file still shows the previous version.
+Abort if the tag points at any earlier commit, any tagged file still shows the previous version, or the local release preflight mirror fails.
 
 Before any push, show:
 

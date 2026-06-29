@@ -145,9 +145,12 @@ git rev-list -n 1 v{new_version}
 git show v{new_version}:package.json
 git show v{new_version}:src-tauri/Cargo.toml
 git show v{new_version}:src-tauri/tauri.conf.json
+RELEASE_TAG=v{new_version} mise run release:preflight:local
 ```
 
-タグが release commit hash と一致しない、または tag 先の 3 ファイルの version が `{new_version}` でない場合は中止する。
+タグが release commit hash と一致しない、tag 先の 3 ファイルの version が `{new_version}` でない、または local release preflight が失敗した場合は中止する。
+
+`release:preflight:local` は通常の commit hook ではなく、release commit と annotated tag を作った後、push 直前だけに実行する。GitHub Actions の artifact build 前 preflight をローカルで先取りし、version parity、release build contamination、format、TypeScript、CI unit tests を確認する。
 
 🔸 push 前報告: push 前に以下を表示する。公開意図が未承認の場合だけ確認を求める:
 

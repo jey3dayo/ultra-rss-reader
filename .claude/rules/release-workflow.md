@@ -29,6 +29,7 @@ paths:
 - タグ作成前に 3 箇所のバージョンが一致していることを確認する
 - release タグは version bump commit を作成した後、その `HEAD` commit に対して作成する
 - push 前に `git rev-list -n 1 vX.Y.Z` が release commit hash と一致し、tag 先の 3 ファイルが同じ `X.Y.Z` を返すことを確認する
+- push 前に `RELEASE_TAG=vX.Y.Z mise run release:preflight:local` を実行し、GitHub Actions の artifact build 前 preflight に近い軽量ゲートをローカルで先取りする
 - セマンティックバージョニング (semver) に従う
 
 ## 開発フロー（リリースノート自動生成の前提）
