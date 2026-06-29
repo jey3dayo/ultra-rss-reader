@@ -184,16 +184,10 @@ describe("ArticleListScreenView", () => {
     );
 
     const contentLane = screen.getByTestId("article-list-scroll-content").closest('[data-slot="scroll-area-content"]');
-    const scrollbarLane = screen.getByTestId("article-list-scrollbar-lane");
 
     expect(contentLane).toHaveClass("pb-4");
     expect(contentLane).not.toHaveClass("pr-3");
-    expect(scrollbarLane).toHaveClass(
-      "w-3",
-      "border-l",
-      "border-[color-mix(in_srgb,var(--color-border)_34%,transparent)]",
-      "bg-[color-mix(in_srgb,var(--background)_64%,var(--surface-2)_36%)]",
-    );
+    expect(screen.queryByTestId("article-list-scrollbar-lane")).not.toBeInTheDocument();
   });
 
   it("restores the unread marker when a retained row is no longer recently read", () => {

@@ -44,13 +44,13 @@ describe("ArticleGroupsView", () => {
     const headings = screen.getAllByText("Tech Blog");
     expect(headings.length).toBeGreaterThan(0);
     expect(headings[0]).toHaveClass("text-[11px]", "tracking-[0.12em]", "text-foreground-soft");
-    expect(headings[0].parentElement).toHaveClass(
-      "sticky",
-      "top-0",
-      "z-10",
-      "h-7",
-      "border-[var(--reader-context-border)]",
+    expect(headings[0].parentElement).toHaveClass("sticky", "top-0", "z-10", "h-7");
+    expect(headings[0].parentElement).not.toHaveClass(
+      "bg-[color-mix(in_srgb,var(--background)_64%,var(--surface-2)_36%)]",
     );
+    expect(headings[0].parentElement).not.toHaveClass("border-b");
+    expect(headings[0]).not.toHaveClass("rounded-sm");
+    expect(headings[0]).not.toHaveClass("bg-[color-mix(in_srgb,var(--background)_70%,var(--surface-2)_30%)]");
     expect(screen.getByRole("option", { name: /Second Article/i })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByTestId(`row-${sampleArticles[0].id}`)).toBeInTheDocument();
 
