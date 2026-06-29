@@ -37,7 +37,7 @@ describe("App", () => {
     const { rerender } = render(<AppLayout />, { wrapper: createWrapper() });
 
     const tray = screen.getByTestId("sliding-pane-tray");
-    expect(tray.parentElement).toHaveClass("overflow-clip");
+    expect(tray.parentElement).toHaveClass("overflow-hidden");
     expect(tray).toHaveStyle({ width: "100%" });
 
     // sidebar focused: sidebar visible, list and content hidden

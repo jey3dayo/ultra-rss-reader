@@ -53,7 +53,7 @@ describe("TagListView", () => {
     expect(screen.queryByRole("button", { name: /Important/ })).not.toBeInTheDocument();
   });
 
-  it("aligns tag rows to the folder icon rail", () => {
+  it("aligns tag unread counts to the shared sidebar right rail", () => {
     render(
       <TagListView
         tagsLabel="Tags"
@@ -71,7 +71,7 @@ describe("TagListView", () => {
     expect(tagButton).toHaveClass("rounded-lg");
     expect(tagButton).toHaveClass("pl-0.5");
     expect(tagButton).not.toHaveClass("pr-0.5");
-    expect(screen.getByText("1")).toHaveClass("w-8", "justify-center", "text-center");
+    expect(screen.getByText("1")).toHaveClass("w-8", "justify-end", "text-right");
     expect(screen.getByText("1")).not.toHaveClass("mr-1");
   });
 

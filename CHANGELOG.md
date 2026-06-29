@@ -4,6 +4,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.53.5] - 2026-06-30
+
+### Features
+
+- Reader の購読フィード切り替えに軽い選択マーカーと記事一覧の入れ替え motion を追加し、フィード移動時の状態変化が分かりやすくなるようにした。
+
+### Maintenance
+
+- Release 前にローカル preflight を通してから tag push する手順を追加し、version parity、release build contamination、format、型、unit CI の確認漏れを抑えるようにした。
+
 ## [0.53.4] - 2026-06-30
 
 ### Bug Fixes
