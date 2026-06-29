@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.53.6] - 2026-06-30
+
+### Bug Fixes
+
+- Reader の記事一覧で未読マーカー、選択インジケーター、日付ヘッダー、スクロールバーの見た目を整理し、キーボード移動やスクロール時に現在位置を追いやすいようにした。
+
 ## [0.53.5] - 2026-06-30
 
 ### Features
