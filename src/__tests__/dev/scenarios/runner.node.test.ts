@@ -7,6 +7,7 @@ import type { DevScenarioContext } from "@/dev/scenarios/types";
 import { tagQueryKeys } from "@/hooks/use-tags";
 import { queryKeys } from "@/lib/query/query-invalidation";
 import { usePreferencesStore } from "@/stores/preferences-store";
+import { useUiStore } from "@/stores/ui-store";
 
 setupBrowserTestDom({ url: "http://localhost:3000/" });
 
@@ -629,6 +630,55 @@ describe("runDevScenario", () => {
     expect(ui.setViewMode).toHaveBeenCalledWith("all");
     expect(ui.selectArticle).toHaveBeenCalledWith(landingNewestArticle.id);
     expect(ui.openBrowser).not.toHaveBeenCalled();
+    expect(ui.showToast).not.toHaveBeenCalled();
+  });
+
+  it("opens the feed landing article web preview in a two-pane reader context", async () => {
+    const { queryClient } = createQueryClientStub();
+    const ui = createUiStub();
+    const context: DevScenarioContext = {
+      ui,
+      queryClient,
+      actions: createActions({
+        executeAction: vi.fn(),
+        listAccounts: vi.fn(async () => [account]),
+        listFeeds: vi.fn(async () => [genericFeed, mangaFeed]),
+        listArticles: vi.fn(async (feedId: string) => {
+          if (feedId === genericFeed.id) {
+            return [];
+          }
+
+          return [overlayPreferredOlderArticle, landingNewestArticle, readArticle];
+        }),
+      }),
+    };
+
+    await runDevScenario("open-feed-first-article-web-preview", { context });
+    await vi.runAllTimersAsync();
+
+    expectCachedQuery(queryClient, queryKeys.feeds.byAccount(account.id), [
+      genericFeed,
+      { ...mangaFeed, reader_mode: "on", web_preview_mode: "on" },
+    ]);
+    expectCachedQuery(queryClient, queryKeys.articles.byFeed(mangaFeed.id, "all"), [
+      overlayPreferredOlderArticle,
+      landingNewestArticle,
+      readArticle,
+    ]);
+    expect(ui.selectAccount).toHaveBeenCalledWith(account.id);
+    expect(ui.selectFeed).toHaveBeenCalledWith(mangaFeed.id);
+    expect(ui.setViewMode).toHaveBeenCalledWith("all");
+    expect(ui.selectArticle).toHaveBeenCalledWith(landingNewestArticle.id);
+    expect(ui.openBrowser).not.toHaveBeenCalled();
+    expect(useUiStore.getState()).toMatchObject({
+      contentMode: "browser",
+      browserUrl: landingNewestArticle.url,
+      focusedPane: "content",
+      webPreviewSessionMode: "forced-on",
+      browserCloseInFlight: false,
+      pendingBrowserCloseAction: null,
+      pendingBrowserCloseActionQueue: [],
+    });
     expect(ui.showToast).not.toHaveBeenCalled();
   });
 

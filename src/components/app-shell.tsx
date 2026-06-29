@@ -5,6 +5,7 @@ import {
 } from "@/components/app-shell/settings-modal-preload";
 import { shouldStartDesktopTitlebarDrag } from "@/components/app-shell/titlebar-drag";
 import { APP_TOAST_PLACEMENTS, AppToastView } from "@/design-system";
+import { registerBrowserWebviewDevCleanup } from "@/lib/browser/browser-webview-dev-cleanup";
 import i18n from "@/lib/i18n";
 import { loadI18nResourceNamespace } from "@/lib/i18n-resources";
 import {
@@ -82,6 +83,7 @@ preloadSettingsModalModuleForDev(loadSettingsModalModule, {
   onInitialFailure: reportSettingsModalPreloadFailure,
   onRetryFailure: reportSettingsModalPreloadRetryFailure,
 });
+registerBrowserWebviewDevCleanup();
 
 const LazySettingsModal = lazy(async () => {
   const mod = await loadSettingsModalModule();
@@ -280,7 +282,12 @@ export function AppShell() {
   }, [overlayTitlebar]);
 
   return (
-    <div className="relative flex h-full flex-col bg-background text-foreground">
+    <div
+      className={cn(
+        "relative flex h-full flex-col bg-background text-foreground",
+        overlayTitlebar && "desktop-overlay-titlebar-shell",
+      )}
+    >
       {overlayTitlebar ? (
         <div
           data-testid="desktop-titlebar-drag-strip"

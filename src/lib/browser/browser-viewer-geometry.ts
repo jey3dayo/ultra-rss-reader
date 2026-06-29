@@ -1,3 +1,5 @@
+import { READER_CHROME_HEIGHT_PX } from "@/constants/ui-layout";
+
 export type BrowserViewerScope = "content-pane" | "main-stage";
 
 export type BrowserViewerGeometryInput = {
@@ -49,6 +51,7 @@ export type BrowserViewerGeometry = {
 };
 
 const INVALID_VIEWPORT_WIDTH_FALLBACK = 520;
+const DESKTOP_OVERLAY_TITLEBAR_OFFSET = 44;
 
 function normalizeViewportWidth(viewportWidth: number): number {
   if (!Number.isFinite(viewportWidth) || viewportWidth < 0) {
@@ -67,12 +70,15 @@ function resolveMainStageGeometry(
   const compact = normalizedViewportWidth <= 768;
   const ultraCompact = normalizedViewportWidth <= 520;
   const chromeHorizontalInset = compact ? 12 : 16;
-  const visualHeaderHeight = compact ? 48 : 44;
+  const visualHeaderHeight = READER_CHROME_HEIGHT_PX;
+  const titlebarTopInset = overlayTitlebar ? DESKTOP_OVERLAY_TITLEBAR_OFFSET : 0;
   const leadingSafeInset = overlayTitlebar ? (compact ? 64 : 72) : chromeHorizontalInset;
   const actionButtonSize = 44;
   const actionVerticalInset = (visualHeaderHeight - actionButtonSize) / 2;
   const leadingVerticalInset = actionVerticalInset;
-  const diagnosticsTop = compact ? visualHeaderHeight + 2 : diagnosticsVisible ? visualHeaderHeight + 8 : 16;
+  const chromeTop = titlebarTopInset;
+  const hostTop = chromeTop + visualHeaderHeight;
+  const diagnosticsTop = compact ? hostTop + 2 : diagnosticsVisible ? hostTop + 8 : titlebarTopInset + 16;
 
   return {
     compact,
@@ -81,7 +87,7 @@ function resolveMainStageGeometry(
       visible: true,
       left: 0,
       right: 0,
-      top: 0,
+      top: chromeTop,
       height: visualHeaderHeight,
     },
     stage: {
@@ -92,7 +98,7 @@ function resolveMainStageGeometry(
     },
     host: {
       left: 0,
-      top: 0,
+      top: hostTop,
       right: 0,
       bottom: 0,
     },
@@ -101,11 +107,11 @@ function resolveMainStageGeometry(
       leadingSafeInset,
       leading: {
         left: leadingSafeInset,
-        top: leadingVerticalInset,
+        top: chromeTop + leadingVerticalInset,
       },
       action: {
         right: chromeHorizontalInset,
-        top: actionVerticalInset,
+        top: chromeTop + actionVerticalInset,
         size: actionButtonSize,
       },
     },
@@ -130,11 +136,11 @@ export function resolveBrowserViewerGeometry({
     compact: false,
     ultraCompact: false,
     chromeRail: {
-      visible: false,
-      left: 16,
-      right: 16,
-      top: 16,
-      height: 46,
+      visible: true,
+      left: 0,
+      right: 0,
+      top: 0,
+      height: READER_CHROME_HEIGHT_PX,
     },
     stage: {
       left: 0,
@@ -144,12 +150,12 @@ export function resolveBrowserViewerGeometry({
     },
     host: {
       left: 0,
-      top: 0,
+      top: READER_CHROME_HEIGHT_PX,
       right: 0,
       bottom: 0,
     },
     chrome: {
-      visualHeaderHeight: 48,
+      visualHeaderHeight: READER_CHROME_HEIGHT_PX,
       leadingSafeInset: 16,
       leading: {
         left: 12,

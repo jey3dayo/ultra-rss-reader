@@ -5,6 +5,7 @@ import type { ViewMode } from "@/lib/reader/view-mode.types";
 
 export type ArticleListFooterProps = {
   viewMode: ViewMode;
+  hidden?: boolean;
   modes?: readonly ViewMode[];
   disabledModes?: readonly ViewMode[];
   onSetViewMode: (mode: ViewMode) => void;
@@ -27,7 +28,13 @@ function isViewMode(value: string | undefined): value is ViewMode {
   return VIEW_MODES.some((mode) => mode.value === value);
 }
 
-export function ArticleListFooter({ viewMode, modes, disabledModes, onSetViewMode }: ArticleListFooterProps) {
+export function ArticleListFooter({
+  viewMode,
+  hidden = false,
+  modes,
+  disabledModes,
+  onSetViewMode,
+}: ArticleListFooterProps) {
   const { t } = useTranslation("reader");
   const resolvedModes = modes ?? DEFAULT_VISIBLE_MODES;
   const resolvedDisabledModes = disabledModes ?? EMPTY_DISABLED_MODES;
@@ -41,7 +48,7 @@ export function ArticleListFooter({ viewMode, modes, disabledModes, onSetViewMod
 
   const visibleModes = VIEW_MODES.filter((mode) => resolvedModes.includes(mode.value));
 
-  if (visibleModes.length === 0) {
+  if (hidden || visibleModes.length === 0) {
     return null;
   }
 

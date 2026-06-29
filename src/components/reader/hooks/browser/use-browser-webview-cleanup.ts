@@ -58,7 +58,6 @@ function closeBrowserWebviewForCleanup() {
 
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {
-    useUiStore.getState().closeBrowser();
     closeBrowserWebviewForCleanup();
   });
 }

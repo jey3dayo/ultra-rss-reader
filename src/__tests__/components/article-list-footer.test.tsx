@@ -57,4 +57,20 @@ describe("ArticleListFooter", () => {
 
     expect(onSetViewMode).toHaveBeenCalledWith("starred");
   });
+
+  it("hides the footer controls when requested", () => {
+    const onSetViewMode = vi.fn();
+
+    const { container } = render(
+      <ArticleListFooter
+        viewMode="unread"
+        hidden={true}
+        onSetViewMode={onSetViewMode}
+        modes={["unread", "all", "starred"]}
+      />,
+    );
+
+    expect(container.firstElementChild).toBeNull();
+    expect(screen.queryByRole("button", { name: /unread/i })).not.toBeInTheDocument();
+  });
 });

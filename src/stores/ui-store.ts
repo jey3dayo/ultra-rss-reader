@@ -527,18 +527,21 @@ export const useUiStore = create<UiState & UiActions>()((set, get) => ({
     set((state) =>
       state.subscriptionsWorkspace !== null
         ? state
-        : {
-            accountPaneOpen: false,
-            selectedArticleId: id,
-            contentMode: "reader",
-            focusedPane: "content",
-            articleNavigationDirection: options?.navigationDirection ?? null,
-            retainedArticleIds: getRetainedArticleIdsAfterSelectingArticle({
-              articleId: id,
-              viewMode: state.viewMode,
-              currentRetainedArticleIds: state.retainedArticleIds,
-            }),
-          },
+        : (() => {
+            const nextContentMode = state.contentMode === "browser" ? "browser" : "reader";
+            return {
+              accountPaneOpen: false,
+              selectedArticleId: id,
+              contentMode: nextContentMode,
+              focusedPane: "content",
+              articleNavigationDirection: options?.navigationDirection ?? null,
+              retainedArticleIds: getRetainedArticleIdsAfterSelectingArticle({
+                articleId: id,
+                viewMode: state.viewMode,
+                currentRetainedArticleIds: state.retainedArticleIds,
+              }),
+            };
+          })(),
     ),
   clearArticle: () => set({ selectedArticleId: null, contentMode: "empty" }),
   openBrowser: (url) =>

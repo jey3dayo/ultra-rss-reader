@@ -7,9 +7,7 @@ import { ArticleListFooter } from "./article-list-footer";
 import { ArticleListHeader } from "./article-list-header";
 
 export function ArticleList() {
-  const { layoutMode, contentMode, headerProps, contextStripProps, bodyProps, footerProps } =
-    useArticleListController();
-  const showHeader = contentMode !== "browser";
+  const { layoutMode, headerProps, contextStripProps, bodyProps, footerProps } = useArticleListController();
 
   return (
     <div
@@ -20,7 +18,7 @@ export function ArticleList() {
       )}
       style={layoutMode === "mobile" ? undefined : { width: `${ARTICLE_LIST_PANE_WIDTH_PX}px` }}
     >
-      {showHeader ? <ArticleListHeader {...headerProps} /> : null}
+      <ArticleListHeader {...headerProps} />
       <ArticleListContextStrip {...contextStripProps} />
       <ArticleListBody {...bodyProps} />
       <ArticleListFooter {...footerProps} />

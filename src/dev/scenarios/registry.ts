@@ -1,6 +1,7 @@
 import { isDevScenarioId } from "@/dev/scenario-ids";
 import {
   runOpenFeedFirstArticleScenario,
+  runOpenFeedFirstArticleWebPreviewScenario,
   runOpenTagViewScenario,
   runOpenWebPreviewUrlScenario,
 } from "@/dev/scenarios/helpers";
@@ -90,6 +91,11 @@ const DEV_SCENARIO_DETAILS: Record<DevScenarioId, Omit<DevScenario, "id">> = {
     title: "Open feed first article",
     keywords: ["feed", "article", "open"],
     run: runOpenFeedFirstArticleScenario,
+  },
+  [DEV_SCENARIO_ID.openFeedFirstArticleWebPreview]: {
+    title: "Open feed first article web preview",
+    keywords: ["feed", "article", "web", "preview", "browser"],
+    run: runOpenFeedFirstArticleWebPreviewScenario,
   },
   [DEV_SCENARIO_ID.openTagView]: {
     title: "Open tag view",

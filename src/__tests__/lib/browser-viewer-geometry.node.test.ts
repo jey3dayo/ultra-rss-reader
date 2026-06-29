@@ -11,9 +11,10 @@ describe("resolveBrowserViewerGeometry", () => {
 
     expect(geometry.compact).toBe(false);
     expect(geometry.ultraCompact).toBe(false);
-    expect(geometry.chromeRail.visible).toBe(false);
+    expect(geometry.chromeRail.visible).toBe(true);
+    expect(geometry.chromeRail).toEqual({ visible: true, left: 0, right: 0, top: 0, height: 48 });
     expect(geometry.stage).toEqual({ left: 0, top: 0, right: 0, bottom: 0 });
-    expect(geometry.host).toEqual({ left: 0, top: 0, right: 0, bottom: 0 });
+    expect(geometry.host).toEqual({ left: 0, top: 48, right: 0, bottom: 0 });
     expect(geometry.chrome.visualHeaderHeight).toBe(48);
     expect(geometry.chrome.leading.left).toBe(12);
     expect(geometry.chrome.leading.top).toBe(2);
@@ -31,6 +32,7 @@ describe("resolveBrowserViewerGeometry", () => {
     });
 
     expect(geometry.stage).toEqual({ left: 0, top: 48, right: 0, bottom: 0 });
+    expect(geometry.host).toEqual({ left: 0, top: 48, right: 0, bottom: 0 });
     expect(geometry.diagnostics.top).toBe(16);
   });
 
@@ -53,7 +55,7 @@ describe("resolveBrowserViewerGeometry", () => {
     expect(geometry.chromeRail.top).toBe(0);
     expect(geometry.chromeRail.height).toBe(48);
     expect(geometry.host.left).toBe(0);
-    expect(geometry.host.top).toBe(0);
+    expect(geometry.host.top).toBe(48);
     expect(geometry.host.right).toBe(0);
     expect(geometry.host.bottom).toBe(0);
     expect(geometry.diagnostics.compact).toBe(true);
@@ -103,23 +105,23 @@ describe("resolveBrowserViewerGeometry", () => {
     expect(geometry.chromeRail.left).toBe(0);
     expect(geometry.chromeRail.right).toBe(0);
     expect(geometry.chromeRail.top).toBe(0);
-    expect(geometry.chromeRail.height).toBe(44);
+    expect(geometry.chromeRail.height).toBe(48);
     expect(geometry.host.left).toBe(0);
-    expect(geometry.host.top).toBe(0);
+    expect(geometry.host.top).toBe(48);
     expect(geometry.host.right).toBe(0);
     expect(geometry.host.bottom).toBe(0);
     expect(geometry.diagnostics.compact).toBe(false);
-    expect(geometry.diagnostics.top).toBe(52);
-    expect(geometry.chrome.visualHeaderHeight).toBe(44);
+    expect(geometry.diagnostics.top).toBe(56);
+    expect(geometry.chrome.visualHeaderHeight).toBe(48);
     expect(geometry.chrome.leadingSafeInset).toBe(16);
     expect(geometry.chrome.leading.left).toBe(16);
-    expect(geometry.chrome.leading.top).toBe(0);
+    expect(geometry.chrome.leading.top).toBe(2);
     expect(geometry.chrome.action.right).toBe(16);
-    expect(geometry.chrome.action.top).toBe(0);
+    expect(geometry.chrome.action.top).toBe(2);
     expect(geometry.chrome.action.size).toBe(44);
   });
 
-  it("keeps the desktop visual header height while reserving extra leading space for macOS overlay titlebars", () => {
+  it("keeps the desktop browser chrome below the macOS overlay titlebar", () => {
     const geometry = resolveBrowserViewerGeometry({
       scope: "main-stage",
       viewportWidth: 1280,
@@ -128,18 +130,20 @@ describe("resolveBrowserViewerGeometry", () => {
     });
 
     expect(geometry.stage.top).toBe(0);
-    expect(geometry.chromeRail.height).toBe(44);
-    expect(geometry.chrome.visualHeaderHeight).toBe(44);
+    expect(geometry.chromeRail.top).toBe(44);
+    expect(geometry.chromeRail.height).toBe(48);
+    expect(geometry.host.top).toBe(92);
+    expect(geometry.chrome.visualHeaderHeight).toBe(48);
     expect(geometry.chrome.leadingSafeInset).toBe(72);
     expect(geometry.chrome.leading.left).toBe(72);
-    expect(geometry.chrome.leading.top).toBe(0);
+    expect(geometry.chrome.leading.top).toBe(46);
     expect(geometry.chrome.action.right).toBe(16);
-    expect(geometry.chrome.action.top).toBe(0);
+    expect(geometry.chrome.action.top).toBe(46);
     expect(geometry.chrome.action.size).toBe(44);
-    expect(geometry.diagnostics.top).toBe(52);
+    expect(geometry.diagnostics.top).toBe(100);
   });
 
-  it("keeps the compact macOS overlay contract aligned with the same visual header height", () => {
+  it("keeps the compact macOS overlay contract below the titlebar", () => {
     const geometry = resolveBrowserViewerGeometry({
       scope: "main-stage",
       viewportWidth: 620,
@@ -148,17 +152,19 @@ describe("resolveBrowserViewerGeometry", () => {
     });
 
     expect(geometry.stage.top).toBe(0);
+    expect(geometry.chromeRail.top).toBe(44);
     expect(geometry.chromeRail.height).toBe(48);
+    expect(geometry.host.top).toBe(92);
     expect(geometry.chrome.visualHeaderHeight).toBe(48);
     expect(geometry.chrome.leadingSafeInset).toBe(64);
     expect(geometry.chrome.leading.left).toBe(64);
-    expect(geometry.chrome.leading.top).toBe(2);
+    expect(geometry.chrome.leading.top).toBe(46);
     expect(geometry.chrome.action.right).toBe(12);
-    expect(geometry.chrome.action.top).toBe(2);
+    expect(geometry.chrome.action.top).toBe(46);
     expect(geometry.chrome.action.size).toBe(44);
   });
 
-  it("keeps the ultra-compact main-stage contract aligned with the same full-width host", () => {
+  it("keeps the ultra-compact main-stage contract aligned with the control rail host inset", () => {
     const geometry = resolveBrowserViewerGeometry({
       scope: "main-stage",
       viewportWidth: 520,
@@ -177,7 +183,7 @@ describe("resolveBrowserViewerGeometry", () => {
     expect(geometry.chromeRail.top).toBe(0);
     expect(geometry.chromeRail.height).toBe(48);
     expect(geometry.host.left).toBe(0);
-    expect(geometry.host.top).toBe(0);
+    expect(geometry.host.top).toBe(48);
     expect(geometry.host.right).toBe(0);
     expect(geometry.host.bottom).toBe(0);
     expect(geometry.diagnostics.compact).toBe(true);
@@ -228,6 +234,6 @@ describe("resolveBrowserViewerGeometry", () => {
     expect(hiddenDiagnostics.chrome).toEqual(visibleDiagnostics.chrome);
     expect(hiddenDiagnostics.chromeRail).toEqual(visibleDiagnostics.chromeRail);
     expect(hiddenDiagnostics.diagnostics.top).toBe(16);
-    expect(visibleDiagnostics.diagnostics.top).toBe(52);
+    expect(visibleDiagnostics.diagnostics.top).toBe(56);
   });
 });

@@ -42,7 +42,7 @@ export function ArticleListHeaderActions({
 
   return (
     <TooltipProvider>
-      <div className="flex items-center">
+      <div className="article-list-leading-control flex items-center">
         {showSidebarButton &&
           (sidebarButtonText ? (
             <AppTooltip label={sidebarButtonLabel}>

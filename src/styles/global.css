@@ -952,6 +952,26 @@
   isolation: isolate;
 }
 
+.desktop-overlay-titlebar-shell [data-article-list-header="true"][data-titlebar-control-reserve="true"] {
+  padding-left: calc(var(--desktop-titlebar-offset) + 32px);
+}
+
+@keyframes article-list-titlebar-control-enter {
+  from {
+    opacity: 0.72;
+    transform: translateX(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.desktop-overlay-titlebar-shell .article-list-leading-control {
+  animation: article-list-titlebar-control-enter var(--motion-duration-popup) var(--motion-ease-emphasized);
+}
+
 *,
 *::before,
 *::after {
@@ -1542,7 +1562,8 @@ html.vertical-wipe-transition::view-transition-new(root) {
   .motion-state-toggle[aria-pressed="true"] [data-state-toggle-icon="true"],
   .motion-state-toggle[aria-pressed="true"] [data-state-toggle-icon-tone="starred"],
   .motion-article-selection-marker,
-  .motion-article-selection-marker::after {
+  .motion-article-selection-marker::after,
+  .desktop-overlay-titlebar-shell .article-list-leading-control {
     animation: none;
   }
 

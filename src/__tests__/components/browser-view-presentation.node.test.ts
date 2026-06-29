@@ -24,7 +24,7 @@ describe("browser-view-presentation", () => {
     });
   });
 
-  it("keeps the visual header height stable while macOS overlay titlebar increases only the leading safe inset", () => {
+  it("keeps the visual header height stable while macOS overlay titlebar reserves top and leading safe insets", () => {
     const standard = resolveBrowserViewPresentation({
       scope: "main-stage",
       viewportWidth: 1280,
@@ -40,6 +40,8 @@ describe("browser-view-presentation", () => {
     expect(overlayTitlebar.geometry.stage.top).toBe(standard.geometry.stage.top);
     expect(overlayTitlebar.geometry.chrome.visualHeaderHeight).toBe(standard.geometry.chrome.visualHeaderHeight);
     expect(overlayTitlebar.geometry.chrome.leadingSafeInset).toBeGreaterThan(standard.geometry.chrome.leadingSafeInset);
+    expect(overlayTitlebar.geometry.chromeRail.top).toBeGreaterThan(standard.geometry.chromeRail.top);
+    expect(overlayTitlebar.geometry.host.top).toBeGreaterThan(standard.geometry.host.top);
     expect(overlayTitlebar.leadingActionSurface).toEqual({
       compact: true,
       tone: "default",

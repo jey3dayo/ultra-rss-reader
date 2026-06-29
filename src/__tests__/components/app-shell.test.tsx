@@ -474,6 +474,7 @@ describe("AppShell", () => {
 
       const overlayRoot = container.querySelector<HTMLElement>("[data-browser-overlay-root]");
       const dragStrip = screen.getByTestId("desktop-titlebar-drag-strip");
+      expect(container.firstElementChild).toHaveClass("desktop-overlay-titlebar-shell");
       expect(container.firstElementChild).not.toHaveClass("desktop-overlay-titlebar");
       expect(overlayRoot).not.toHaveClass("desktop-titlebar-offset");
       expect(overlayRoot).toHaveClass("desktop-overlay-titlebar");
@@ -495,6 +496,7 @@ describe("AppShell", () => {
       const { container, rerender } = render(<AppShell />, { wrapper: createWrapper() });
 
       expect(container.querySelector("[data-testid='desktop-titlebar-drag-strip']")).toBeNull();
+      expect(container.firstElementChild).not.toHaveClass("desktop-overlay-titlebar-shell");
 
       setTauriRuntimePresent();
       usePlatformStore.setState({
@@ -559,6 +561,48 @@ describe("AppShell", () => {
         expect(startDraggingMock).toHaveBeenCalledOnce();
       });
     } finally {
+      if (originalTauriInternalsDescriptor) {
+        Object.defineProperty(window, "__TAURI_INTERNALS__", originalTauriInternalsDescriptor);
+      } else {
+        delete window.__TAURI_INTERNALS__;
+      }
+    }
+  });
+
+  it("starts native window dragging from the browser overlay top rail", async () => {
+    const originalTauriInternalsDescriptor = Object.getOwnPropertyDescriptor(window, "__TAURI_INTERNALS__");
+    const browserOverlayRail = document.createElement("div");
+    browserOverlayRail.dataset.tauriDragRegion = "";
+    browserOverlayRail.dataset.testid = "browser-overlay-top-rail";
+
+    try {
+      setTauriRuntimePresent();
+      usePlatformStore.setState({
+        platform: {
+          kind: "macos",
+          capabilities: {
+            supports_reading_list: false,
+            supports_background_browser_open: false,
+            supports_runtime_window_icon_replacement: true,
+            supports_native_browser_navigation: true,
+            uses_dev_file_credentials: false,
+          },
+        },
+        loaded: true,
+        loadError: false,
+        inFlightLoad: null,
+      });
+
+      render(<AppShell />, { wrapper: createWrapper() });
+      document.body.append(browserOverlayRail);
+
+      fireEvent.pointerDown(browserOverlayRail, { button: 0, clientY: 64 });
+
+      await waitFor(() => {
+        expect(startDraggingMock).toHaveBeenCalledOnce();
+      });
+    } finally {
+      browserOverlayRail.remove();
       if (originalTauriInternalsDescriptor) {
         Object.defineProperty(window, "__TAURI_INTERNALS__", originalTauriInternalsDescriptor);
       } else {

@@ -186,8 +186,31 @@ describe("ArticleListHeader", () => {
     );
 
     const header = container.firstElementChild;
+    expect(header).toHaveAttribute("data-article-list-header", "true");
+    expect(header).not.toHaveAttribute("data-titlebar-control-reserve");
     expect(header).not.toHaveAttribute("data-tauri-drag-region");
     expect(header?.querySelector("[data-tauri-drag-region]")).not.toBeNull();
+  });
+
+  it("reserves titlebar space only when the sidebar reveal control is shown", () => {
+    const { container } = render(
+      <ArticleListHeader
+        showSearch
+        searchQuery=""
+        searchInputRef={createRef<HTMLInputElement>()}
+        labels={articleListHeaderLabels}
+        showSidebarButton
+        sidebarButtonLabel="Show sidebar"
+        onMarkAllRead={vi.fn()}
+        onToggleSidebar={vi.fn()}
+        onToggleSearch={vi.fn()}
+        onCloseSearch={vi.fn()}
+        onSearchQueryChange={vi.fn()}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    expect(container.firstElementChild).toHaveAttribute("data-titlebar-control-reserve", "true");
   });
 
   it("keeps the list header visually separated from the article pane", () => {

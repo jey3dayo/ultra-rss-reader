@@ -591,7 +591,7 @@ describe("ArticleList", () => {
     expect(useUiStore.getState().focusedPane).toBe("sidebar");
   });
 
-  it("removes the article list header while web preview owns the content pane", async () => {
+  it("keeps the article list header aligned while web preview owns the content pane", async () => {
     useUiStore.getState().selectAccount("acc-1");
     useUiStore.getState().selectFeed("feed-1");
     useUiStore.setState({
@@ -610,7 +610,7 @@ describe("ArticleList", () => {
       expect(screen.getByText(sampleArticles[0].title)).toBeInTheDocument();
     });
 
-    expect(screen.queryByRole("button", { name: "Show sidebar" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Show sidebar" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Hide sidebar" })).not.toBeInTheDocument();
     expect(screen.getByRole("listbox", { name: "Article list" })).toBeInTheDocument();
   });

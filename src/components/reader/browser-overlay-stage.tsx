@@ -88,7 +88,7 @@ export function BrowserOverlayStage({ controller }: BrowserOverlayStageProps) {
         <div
           ref={controller.hostRef}
           data-testid="browser-webview-host"
-          className="absolute bg-background"
+          className="absolute bg-transparent"
           style={{
             left: `${controller.geometry.host.left}px`,
             top: `${controller.geometry.host.top}px`,

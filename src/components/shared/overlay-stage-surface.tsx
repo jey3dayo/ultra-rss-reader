@@ -7,7 +7,7 @@ const overlayStageSurfaceVariants = cva("absolute z-10 overflow-hidden", {
   variants: {
     scope: {
       "main-stage": "rounded-none bg-background",
-      "content-pane": "rounded-none bg-browser-overlay-shell",
+      "content-pane": "rounded-none bg-transparent",
     },
   },
 });

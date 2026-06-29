@@ -68,7 +68,7 @@ export function ArticleEmptyStateShell({ toolbar, body }: ArticleEmptyStateShell
 export function BrowserOnlyStateView({ onCloseOverlay }: BrowserOnlyStateViewProps) {
   return (
     <div className="relative flex h-full flex-1 flex-col bg-background">
-      <BrowserOverlaySurface onCloseOverlay={onCloseOverlay} />
+      <BrowserOverlaySurface scope="main-stage" onCloseOverlay={onCloseOverlay} />
     </div>
   );
 }

@@ -17,6 +17,7 @@ import { tagQueryKeys } from "@/hooks/use-tags";
 import { resolveFeedLandingArticle } from "@/lib/feed/feed-landing";
 import { queryKeys } from "@/lib/query/query-invalidation";
 import { usePreferencesStore } from "@/stores/preferences-store";
+import { useUiStore } from "@/stores/ui-store";
 
 type LandingFeedSelection = {
   account: AccountDto;
@@ -46,6 +47,7 @@ const OPEN_WEB_PREVIEW_URL_REPLAY_DELAYS_MS = [
   OPEN_WEB_PREVIEW_URL_SCENARIO_REPLAY_DELAY_MS,
   OPEN_WEB_PREVIEW_URL_SCENARIO_REPLAY_LATE_DELAY_MS,
 ] as const;
+const OPEN_FEED_WEB_PREVIEW_REPLAY_DELAYS_MS = [250, 750, 1500, 3000, 5000] as const;
 
 let openWebPreviewUrlReplayGeneration = 0;
 let openWebPreviewUrlReplayTimerIds: number[] = [];
@@ -504,6 +506,63 @@ export async function runOpenFeedFirstArticleScenario(ctx: DevScenarioContext): 
     }
     console.error(`Failed to run dev scenario "${DEV_SCENARIO_ID.openFeedFirstArticle}":`, error);
     ctx.ui.showToast(`Dev scenario "${DEV_SCENARIO_ID.openFeedFirstArticle}" failed to open a feed article.`);
+  }
+}
+
+export async function runOpenFeedFirstArticleWebPreviewScenario(ctx: DevScenarioContext): Promise<void> {
+  try {
+    const seedDraft = createDevScenarioSeedDraft();
+    const accounts = await stageAccounts(ctx, seedDraft);
+    if (!accounts) {
+      return;
+    }
+    if (accounts.length === 0) {
+      ctx.ui.showToast(`Dev scenario "${DEV_SCENARIO_ID.openFeedFirstArticleWebPreview}" could not find any accounts.`);
+      return;
+    }
+
+    const selection = await findRankedLandingFeedSelection(ctx, seedDraft, accounts);
+    if (!isCurrentDevScenarioRun(ctx)) {
+      return;
+    }
+    if (!selection) {
+      ctx.ui.showToast(`Dev scenario "${DEV_SCENARIO_ID.openFeedFirstArticleWebPreview}" could not find any articles.`);
+      return;
+    }
+
+    selectFeedArticle(ctx, seedDraft, selection.account.id, selection.feed.id, selection.article.id, "on", "on");
+    if (!isCurrentDevScenarioRun(ctx)) {
+      return;
+    }
+    const replayGeneration = beginOpenWebPreviewUrlScenarioReplay();
+    const isCurrentReplay = () =>
+      isCurrentOpenWebPreviewUrlScenarioReplay(replayGeneration) && isCurrentDevScenarioRun(ctx);
+    const applyPreviewState = () => {
+      if (isCurrentReplay()) {
+        useUiStore.setState({
+          accountPaneOpen: false,
+          contentMode: "browser",
+          browserUrl: selection.article.url,
+          browserNavigationState: { canGoBack: false, canGoForward: false },
+          focusedPane: "content",
+          webPreviewSessionMode: "forced-on",
+          browserCloseInFlight: false,
+          pendingBrowserCloseAction: null,
+          pendingBrowserCloseActionQueue: [],
+        });
+      }
+    };
+
+    applyPreviewState();
+    openWebPreviewUrlReplayTimerIds = OPEN_FEED_WEB_PREVIEW_REPLAY_DELAYS_MS.map((delayMs) =>
+      window.setTimeout(applyPreviewState, delayMs),
+    );
+  } catch (error) {
+    if (!isCurrentDevScenarioRun(ctx)) {
+      return;
+    }
+    console.error(`Failed to run dev scenario "${DEV_SCENARIO_ID.openFeedFirstArticleWebPreview}":`, error);
+    ctx.ui.showToast(`Dev scenario "${DEV_SCENARIO_ID.openFeedFirstArticleWebPreview}" failed to open a web preview.`);
   }
 }
 

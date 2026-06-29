@@ -103,6 +103,7 @@ export function useArticleListViewProps({
     bodyProps,
     footerProps: {
       viewMode: effectiveViewMode,
+      hidden: contentMode === "browser",
       modes: footerModes,
       disabledModes: footerDisabledModes,
       onSetViewMode: setViewMode,
