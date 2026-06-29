@@ -5,6 +5,7 @@ import type { ArticleDto } from "@/api/tauri-commands";
 import { useArticleActions } from "@/components/reader/hooks/article/use-article-actions";
 import { ContextMenu } from "@/design-system/context-menu";
 import { useSetRead, useToggleStar } from "@/hooks/use-articles";
+import { cn } from "@/lib/utils";
 import { usePlatformStore } from "@/stores/platform-store";
 import { useUiStore } from "@/stores/ui-store";
 import { ArticleContextMenuView } from "./article-context-menu-view";
@@ -14,9 +15,10 @@ import { useContextMenuTargetSnapshot } from "./context-menu-target";
 type ArticleContextMenuProps = {
   article: ArticleDto;
   children: ReactNode;
+  triggerClassName?: string;
 };
 
-export function ArticleContextMenu({ article, children }: ArticleContextMenuProps) {
+export function ArticleContextMenu({ article, children, triggerClassName }: ArticleContextMenuProps) {
   const { t } = useTranslation("reader");
   const contextMenuSource = useMemo(() => ({ article }), [article]);
   const { contextMenuTarget, captureTarget, captureKeyboardTarget, clearTarget } =
@@ -52,6 +54,7 @@ export function ArticleContextMenu({ article, children }: ArticleContextMenuProp
         render={
           // biome-ignore lint/a11y/noStaticElementInteractions: Base UI render prop needs the context menu capture handlers on the inert trigger element wrapping child controls.
           <div
+            className={cn(triggerClassName)}
             onContextMenu={(event) => {
               captureTarget();
               event.stopPropagation();

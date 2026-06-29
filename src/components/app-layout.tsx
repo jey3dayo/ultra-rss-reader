@@ -130,31 +130,34 @@ function SlidingPaneLayout({
         >
           <AccountPane />
         </HiddenPaneBoundary>
-        <main data-testid="main-stage" className="min-w-0 flex-1 overflow-clip">
+        <main data-testid="main-stage" className="h-full min-h-0 min-w-0 flex-1 overflow-hidden">
           <div
             data-testid="sliding-pane-tray"
-            className="flex h-full transition-transform duration-300 ease-in-out motion-reduce:transition-none"
+            className="flex h-full min-h-0 transition-transform duration-300 ease-in-out motion-reduce:transition-none"
             style={{
               width: isMobile ? "100%" : `calc(100% + ${SIDEBAR_PANE_WIDTH_PX}px)`,
               transform: `translateX(${translateX})`,
             }}
           >
             <HiddenPaneBoundary
-              className={cn(isMobile ? "w-full shrink-0" : "shrink-0")}
+              testId="sliding-sidebar-pane-shell"
+              className={cn("h-full min-h-0 overflow-hidden", isMobile ? "w-full shrink-0" : "shrink-0")}
               style={isMobile ? undefined : { width: `${SIDEBAR_PANE_WIDTH_PX}px` }}
               hidden={!isPaneVisible(layoutMode, activePane, "sidebar")}
             >
               <Sidebar />
             </HiddenPaneBoundary>
             <HiddenPaneBoundary
-              className={cn(isMobile ? "w-full shrink-0" : "shrink-0")}
+              testId="sliding-list-pane-shell"
+              className={cn("h-full min-h-0 overflow-hidden", isMobile ? "w-full shrink-0" : "shrink-0")}
               style={isMobile ? undefined : { width: `${ARTICLE_LIST_PANE_WIDTH_PX}px` }}
               hidden={!isPaneVisible(layoutMode, activePane, "list")}
             >
               <ArticleList />
             </HiddenPaneBoundary>
             <HiddenPaneBoundary
-              className={cn(isMobile ? "w-full shrink-0" : "min-w-0 flex-1")}
+              testId="sliding-content-pane-shell"
+              className={cn("h-full min-h-0 overflow-hidden", isMobile ? "w-full shrink-0" : "min-w-0 flex-1")}
               hidden={!isPaneVisible(layoutMode, activePane, "content")}
             >
               <ArticleView />

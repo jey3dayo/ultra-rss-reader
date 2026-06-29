@@ -202,6 +202,25 @@ describe("AppLayout", () => {
     expect(contentPane).toHaveClass("h-full", "min-h-0", "overflow-hidden");
   });
 
+  it("gives sliding article panes bounded height so their inner scroll areas can scroll", () => {
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      layoutMode: "compact",
+      focusedPane: "content",
+      selectedAccountId: "acc-1",
+      selectedArticleId: "art-1",
+      contentMode: "reader",
+    });
+
+    render(<AppLayout />);
+
+    expect(screen.getByTestId("main-stage")).toHaveClass("h-full", "min-h-0", "overflow-hidden");
+    expect(screen.getByTestId("sliding-pane-tray")).toHaveClass("h-full", "min-h-0");
+    expect(screen.getByTestId("sliding-sidebar-pane-shell")).toHaveClass("h-full", "min-h-0", "overflow-hidden");
+    expect(screen.getByTestId("sliding-list-pane-shell")).toHaveClass("h-full", "min-h-0", "overflow-hidden");
+    expect(screen.getByTestId("sliding-content-pane-shell")).toHaveClass("h-full", "min-h-0", "overflow-hidden");
+  });
+
   it("keeps app shell responsive constraints outside the workspace split helper", () => {
     useUiStore.setState({
       ...useUiStore.getInitialState(),

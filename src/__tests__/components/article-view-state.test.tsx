@@ -50,6 +50,7 @@ describe("BrowserOverlaySurface", () => {
     );
 
     expect(screen.getByText("Reader body")).toBeInTheDocument();
+    expect(screen.getByText("Reader body").parentElement).toHaveClass("h-full", "min-h-0", "overflow-hidden");
     expect(screen.queryByRole("button", { name: "Close Web Preview" })).not.toBeInTheDocument();
     expect(browserViewMock).not.toHaveBeenCalled();
   });

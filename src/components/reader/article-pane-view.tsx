@@ -87,7 +87,7 @@ export function ArticlePane({ article, feed, feedName }: ArticlePaneProps) {
       aria-label={article.title}
       tabIndex={-1}
       className={cn(
-        "typography-lane-reader flex h-full flex-1 flex-col bg-background outline-none transition-[background-color,box-shadow] duration-150 motion-reduce:transition-none",
+        "typography-lane-reader flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-background outline-none transition-[background-color,box-shadow] duration-150 motion-reduce:transition-none",
         focusedPane === "content" &&
           "bg-[linear-gradient(90deg,var(--background)_0%,color-mix(in_srgb,var(--sidebar-hover-surface)_24%,var(--background))_100%)]",
       )}
@@ -100,11 +100,11 @@ export function ArticlePane({ article, feed, feedName }: ArticlePaneProps) {
           </div>
         ) : null}
         {showReaderBody ? (
-          <ArticleContextMenu article={article}>
+          <ArticleContextMenu article={article} triggerClassName="h-full min-h-0 flex-1 overflow-hidden">
             <div
               {...readerBodyStateProps}
               {...{ [MOTION_DATA_DIRECTION_ATTRIBUTE]: motionDirection }}
-              className={cn("min-h-0 flex-1", MOTION_ARTICLE_SLIDE_CLASS_NAME)}
+              className={cn("h-full min-h-0 flex-1 overflow-hidden", MOTION_ARTICLE_SLIDE_CLASS_NAME)}
               data-testid="article-reader-body"
             >
               <ArticleReaderBody

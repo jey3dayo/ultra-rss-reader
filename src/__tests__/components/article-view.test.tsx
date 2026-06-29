@@ -2654,6 +2654,28 @@ describe("ArticleView", () => {
     expect(viewport.scrollTop).toBe(180);
   });
 
+  it("keeps the article pane itself height-bounded so the reader viewport owns scrolling", async () => {
+    setupTauriMocks((cmd) => {
+      switch (cmd) {
+        case "list_tags":
+          return [];
+        case "get_article_tags":
+          return [];
+        default:
+          return undefined;
+      }
+    });
+
+    render(<ArticlePane article={primaryArticle} feed={{ ...primaryFeed, reader_mode: "on" }} feedName="Tech Blog" />, {
+      wrapper: createWrapper(),
+    });
+
+    await screen.findByRole("heading", { level: 1, name: "First Article" });
+    expect(screen.getByTestId("article-pane")).toHaveClass("h-full", "min-h-0", "overflow-hidden");
+    expect(screen.getByTestId("article-reader-body").parentElement).toHaveClass("h-full", "min-h-0", "overflow-hidden");
+    expect(screen.getByTestId("article-reader-body")).toHaveClass("h-full", "min-h-0", "overflow-hidden");
+  });
+
   it("batches article reader keyboard scroll position updates", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {
