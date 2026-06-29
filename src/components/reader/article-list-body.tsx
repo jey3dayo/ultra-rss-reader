@@ -1,5 +1,5 @@
 import type { KeyboardEvent, RefObject } from "react";
-import { ContextMenu } from "@/design-system";
+import { ContextMenu } from "@/design-system/context-menu";
 import { ArticleContextMenu } from "./article-context-menu";
 import type { ArticleGroupsViewGroup } from "./article-groups-view";
 import type { ArticleListEmptyStateVariant } from "./article-list-screen-view";

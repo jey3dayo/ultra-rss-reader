@@ -1,7 +1,7 @@
 import { ChevronDown } from "lucide-react";
 import type { ButtonHTMLAttributes, ReactNode, Ref, RefObject } from "react";
 import type { AccountDto } from "@/api/tauri-commands";
-import { ContextMenu } from "@/design-system";
+import { ContextMenu } from "@/design-system/context-menu";
 import { SIDEBAR_FALLBACK_TARGET_ATTRIBUTE } from "@/lib/reader-focus";
 import { cn } from "@/lib/utils";
 import { AccountSwitcherMenu } from "./account-switcher-menu";

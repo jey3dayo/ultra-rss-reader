@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { ContextMenu } from "@/design-system";
+import { ContextMenu } from "@/design-system/context-menu";
 import { CONTEXT_MENU_ACTION_IDS } from "./context-menu-action-policy";
 import { contextMenuStyles } from "./context-menu-styles";
 

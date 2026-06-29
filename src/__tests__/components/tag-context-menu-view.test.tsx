@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TagContextMenuContent } from "@/components/reader/tag-context-menu";
 import { TagContextMenuView } from "@/components/reader/tag-context-menu-view";
-import { ContextMenu } from "@/design-system";
+import { ContextMenu } from "@/design-system/context-menu";
 
 const tagHooks = vi.hoisted(() => ({
   renameTagMutate: vi.fn(),

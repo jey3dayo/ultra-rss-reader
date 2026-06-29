@@ -43,6 +43,13 @@ const implementationFiles = globSync("{src/components/ui,src/components/shared}/
 }).map((path) => path.split("/").join(sep));
 
 describe("design system import boundary", () => {
+  it("keeps heavy menu primitives out of the startup public barrel", () => {
+    const publicBarrel = readFileSync(["src", "design-system", "index.ts"].join(sep), "utf8");
+
+    expect(publicBarrel).not.toContain("@base-ui/react/context-menu");
+    expect(publicBarrel).not.toContain("@base-ui/react/menu");
+  });
+
   it("routes app, feature, storybook, and test UI imports through the design-system public API", () => {
     const offenders = sourceFiles.flatMap((path) =>
       getImportSpecifiers(path)

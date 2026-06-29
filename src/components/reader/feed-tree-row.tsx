@@ -1,7 +1,8 @@
 import { GripVertical } from "lucide-react";
 import type { CSSProperties, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { ContextMenu, FeedFavicon } from "@/design-system";
+import { FeedFavicon } from "@/design-system";
+import { ContextMenu } from "@/design-system/context-menu";
 import { SIDEBAR_SELECTED_TARGET_ATTRIBUTE } from "@/lib/reader-focus";
 import { cn } from "@/lib/utils";
 import { useContextMenuTargetSnapshot } from "./context-menu-target";

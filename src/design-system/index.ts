@@ -1,5 +1,3 @@
-export { ContextMenu } from "@base-ui/react/context-menu";
-export { Menu } from "@base-ui/react/menu";
 export { Radio } from "@base-ui/react/radio";
 export { RadioGroup } from "@base-ui/react/radio-group";
 export { Toggle } from "@base-ui/react/toggle";

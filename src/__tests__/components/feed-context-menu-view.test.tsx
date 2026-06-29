@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { FeedContextMenuView } from "@/components/reader/feed-context-menu-view";
 import type { FeedTreeFeedViewModel } from "@/components/reader/feed-tree.types";
 import { FeedTreeRow } from "@/components/reader/feed-tree-row";
-import { ContextMenu } from "@/design-system";
+import { ContextMenu } from "@/design-system/context-menu";
 
 const baseFeed: FeedTreeFeedViewModel = {
   id: "feed-1",

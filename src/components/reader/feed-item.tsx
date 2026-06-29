@@ -1,5 +1,6 @@
 import type { FeedDto } from "@/api/tauri-commands";
-import { ContextMenu, FeedFavicon, MotionNumber, NavRowButton } from "@/design-system";
+import { FeedFavicon, MotionNumber, NavRowButton } from "@/design-system";
+import { ContextMenu } from "@/design-system/context-menu";
 import { cn } from "@/lib/utils";
 import { FeedContextMenuContent } from "./feed-context-menu";
 

@@ -7,9 +7,9 @@ import {
   IconToolbarMenuTrigger,
   IconToolbarSurfaceButton,
   IconToolbarToggle,
-  Menu,
   TooltipProvider,
 } from "@/design-system";
+import { Menu } from "@/design-system/menu";
 
 describe("IconToolbarControl", () => {
   it("renders a shared icon button with tooltip semantics and click handling", async () => {

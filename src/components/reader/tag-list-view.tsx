@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { ContextMenu, SidebarSectionToggle } from "@/design-system";
+import { SidebarSectionToggle } from "@/design-system";
+import { ContextMenu } from "@/design-system/context-menu";
 import { SIDEBAR_SELECTED_TARGET_ATTRIBUTE } from "@/lib/reader-focus";
 import { cn } from "@/lib/utils";
 import { useContextMenuTargetSnapshot } from "./context-menu-target";

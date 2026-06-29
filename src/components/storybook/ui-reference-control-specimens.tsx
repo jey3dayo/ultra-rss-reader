@@ -17,7 +17,6 @@ import {
   IconToolbarButton,
   IconToolbarMenuTrigger,
   IconToolbarSurfaceButton,
-  Menu,
   SectionHeading,
   SurfaceCard,
   TAG_COLOR_PRESETS,
@@ -26,6 +25,7 @@ import {
   TooltipProvider,
   WorkspaceHeaderActionButton,
 } from "@/design-system";
+import { Menu } from "@/design-system/menu";
 import { useUiStore } from "@/stores/ui-store";
 
 export {

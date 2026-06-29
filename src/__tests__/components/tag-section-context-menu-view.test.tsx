@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { TagSectionContextMenuView } from "@/components/reader/tag-section-context-menu-view";
-import { ContextMenu } from "@/design-system";
+import { ContextMenu } from "@/design-system/context-menu";
 
 describe("TagSectionContextMenuView", () => {
   it("renders tag section actions and delegates clicks", async () => {

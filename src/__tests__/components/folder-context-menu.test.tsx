@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { FolderDto } from "@/api/tauri-commands";
 import { FolderContextMenuContent } from "@/components/reader/folder-context-menu";
-import { ContextMenu } from "@/design-system";
+import { ContextMenu } from "@/design-system/context-menu";
 import { useUiStore } from "@/stores/ui-store";
 
 const markFolderReadMutate = vi.fn();

@@ -6,13 +6,13 @@ import {
   IconToolbarButton,
   IconToolbarMenuTrigger,
   IconToolbarToggle,
-  Menu,
   MotionIconSwap,
   StarIcon,
   Toggle,
   TooltipProvider,
   UnreadIcon,
 } from "@/design-system";
+import { Menu } from "@/design-system/menu";
 import { cn } from "@/lib/utils";
 import type {
   ArticleToolbarActionOptions,

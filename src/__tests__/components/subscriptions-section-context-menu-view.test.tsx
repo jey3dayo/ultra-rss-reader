@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { SubscriptionsSectionContextMenuView } from "@/components/reader/subscriptions-section-context-menu-view";
-import { ContextMenu } from "@/design-system";
+import { ContextMenu } from "@/design-system/context-menu";
 
 describe("SubscriptionsSectionContextMenuView", () => {
   it("renders subscription section actions and delegates clicks", async () => {

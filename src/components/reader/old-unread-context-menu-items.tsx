@@ -1,5 +1,5 @@
 import { ChevronRight } from "lucide-react";
-import { ContextMenu } from "@/design-system";
+import { ContextMenu } from "@/design-system/context-menu";
 import type { ContextMenuActionId } from "./context-menu-action-policy";
 import { contextMenuStyles } from "./context-menu-styles";
 
