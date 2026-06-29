@@ -26,7 +26,7 @@ export function AgentationMount() {
 
   return (
     <Suspense fallback={null}>
-      <AgentationToolbar endpoint={AGENTATION_ENDPOINT} />
+      <AgentationToolbar className="ultra-agentation-toolbar" endpoint={AGENTATION_ENDPOINT} />
     </Suspense>
   );
 }

@@ -90,7 +90,7 @@ vi.mock("@tauri-apps/api/event", () => ({
 }));
 
 vi.mock("agentation", () => ({
-  Agentation: () => <div data-testid="agentation-toolbar" />,
+  Agentation: ({ className }: { className?: string }) => <div className={className} data-testid="agentation-toolbar" />,
 }));
 
 function createAccount(overrides: Partial<AccountDto> = {}): AccountDto {
@@ -147,6 +147,18 @@ describe("App", () => {
     const view = render(<App />);
 
     expect(view.queryByTestId("agentation-toolbar")).toBeNull();
+  });
+
+  it("keeps Agentation above dialogs by default", async () => {
+    const dialog = document.createElement("div");
+    dialog.dataset.slot = "dialog-content";
+    dialog.dataset.open = "";
+    document.body.append(dialog);
+
+    const view = render(<App />);
+
+    expect((await view.findByTestId("agentation-toolbar")).className).toContain("ultra-agentation-toolbar");
+    dialog.remove();
   });
 
   it("shows Agentation over settings when debug visibility is always", async () => {

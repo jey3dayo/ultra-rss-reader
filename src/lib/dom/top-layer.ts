@@ -1,4 +1,5 @@
 const DIALOG_TOP_LAYER_SELECTOR = '[data-slot="dialog-content"][data-open]';
+const DIALOG_INERT_EXCLUSION_SELECTOR = "[data-agentation-root]";
 const NESTED_ESCAPE_LAYER_SELECTOR = ['[role="dialog"]', "[data-radix-popper-content-wrapper]"].join(",");
 const FOCUS_OWNING_TOP_LAYER_SELECTOR = [
   '[data-stack-layer="dialog"]:not([data-closed])',
@@ -27,6 +28,10 @@ function isOwnerDocumentHtmlElement(element: Element | null, ownerDocument: Docu
 }
 
 function collectOutsideDialogElements(element: HTMLElement, dialogElements: HTMLElement[]): HTMLElement[] {
+  if (element.matches(DIALOG_INERT_EXCLUSION_SELECTOR) || element.closest(DIALOG_INERT_EXCLUSION_SELECTOR)) {
+    return [];
+  }
+
   const isDialogElement = dialogElements.some(
     (dialogElement) => element === dialogElement || element.contains(dialogElement) || dialogElement.contains(element),
   );

@@ -966,6 +966,10 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+.ultra-agentation-toolbar.ultra-agentation-toolbar {
+  z-index: 2147483647;
+}
+
 [data-slot="input"]::selection {
   background: var(--text-selection);
   color: var(--text-selection-foreground);

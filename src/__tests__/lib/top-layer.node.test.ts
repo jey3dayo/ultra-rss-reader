@@ -78,17 +78,21 @@ describe("top-layer DOM helpers", () => {
   it("hides and restores body children outside the active dialog stack", () => {
     const background = document.createElement("main");
     background.setAttribute("aria-hidden", "false");
+    const agentationRoot = document.createElement("div");
+    agentationRoot.dataset.agentationRoot = "";
     const dialogOverlay = document.createElement("div");
     dialogOverlay.dataset.dialogStackId = "dialog-1";
     const dialogContent = document.createElement("div");
     dialogContent.dataset.dialogStackId = "dialog-1";
     dialogContent.dataset.slot = "dialog-content";
-    document.body.append(background, dialogOverlay, dialogContent);
+    document.body.append(background, agentationRoot, dialogOverlay, dialogContent);
 
     const restore = hideElementsOutsideDialog("dialog-1");
 
     expect(background).toHaveAttribute("aria-hidden", "true");
     expect(background).toHaveAttribute("inert");
+    expect(agentationRoot).not.toHaveAttribute("aria-hidden");
+    expect(agentationRoot).not.toHaveAttribute("inert");
     expect(dialogOverlay).not.toHaveAttribute("aria-hidden");
     expect(dialogContent).not.toHaveAttribute("aria-hidden");
 
