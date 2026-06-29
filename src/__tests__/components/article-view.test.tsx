@@ -2621,6 +2621,39 @@ describe("ArticleView", () => {
     expect(viewport.scrollTop).toBe(0);
   });
 
+  it("scrolls the reader viewport from wheel input on the reader body", async () => {
+    setupTauriMocks((cmd) => {
+      switch (cmd) {
+        case "list_tags":
+          return [];
+        case "get_article_tags":
+          return [];
+        default:
+          return undefined;
+      }
+    });
+    const longArticle = {
+      ...primaryArticle,
+      content_sanitized: Array.from(
+        { length: 16 },
+        (_, index) =>
+          `<p>Long reader wheel test paragraph ${index + 1}. This paragraph keeps the article scrollable.</p>`,
+      ).join(""),
+    };
+
+    render(<ArticlePane article={longArticle} feed={{ ...primaryFeed, reader_mode: "on" }} feedName="Tech Blog" />, {
+      wrapper: createWrapper(),
+    });
+
+    const heading = await screen.findByRole("heading", { level: 1, name: "First Article" });
+    const viewport = getArticleReaderViewport();
+    viewport.scrollTop = 0;
+
+    fireEvent.wheel(heading, { deltaY: 180 });
+
+    expect(viewport.scrollTop).toBe(180);
+  });
+
   it("batches article reader keyboard scroll position updates", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {

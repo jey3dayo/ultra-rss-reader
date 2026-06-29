@@ -22,6 +22,7 @@ type ArticleReaderBodyProps = {
 };
 
 const ARTICLE_READER_SCROLL_POSITION_COMMIT_DELAY_MS = 120;
+const WHEEL_DELTA_LINE_HEIGHT_PX = 40;
 
 function resolveArticleContentLinkUrl(href: string, articleUrl: string | null | undefined): string | null {
   const trimmedHref = href.trim();
@@ -62,6 +63,18 @@ function getReaderScrollDirection(event: KeyboardEvent<HTMLDivElement>): 1 | -1 
   }
 
   return null;
+}
+
+function normalizeWheelDeltaY(event: globalThis.WheelEvent, viewport: HTMLDivElement): number {
+  if (event.deltaMode === globalThis.WheelEvent.DOM_DELTA_LINE) {
+    return event.deltaY * WHEEL_DELTA_LINE_HEIGHT_PX;
+  }
+
+  if (event.deltaMode === globalThis.WheelEvent.DOM_DELTA_PAGE) {
+    return event.deltaY * viewport.clientHeight;
+  }
+
+  return event.deltaY;
 }
 
 export function ArticleReaderBody({ article, feedName, onOpenArticleTitleInWebPreview }: ArticleReaderBodyProps) {
@@ -119,6 +132,29 @@ export function ArticleReaderBody({ article, feedName, onOpenArticleTitleInWebPr
     [clearPendingScrollPositionCommit, commitPendingScrollPosition],
   );
 
+  const handleReaderWheel = useCallback(
+    (event: globalThis.WheelEvent) => {
+      if (event.ctrlKey || event.metaKey || event.deltaY === 0) {
+        return;
+      }
+
+      const viewport = viewportRef.current;
+      if (!viewport) {
+        return;
+      }
+
+      const previousScrollTop = viewport.scrollTop;
+      viewport.scrollTop += normalizeWheelDeltaY(event, viewport);
+      if (viewport.scrollTop === previousScrollTop) {
+        return;
+      }
+
+      event.preventDefault();
+      scheduleScrollPositionCommit(article.id, viewport.scrollTop);
+    },
+    [article.id, scheduleScrollPositionCommit],
+  );
+
   useLayoutEffect(() => {
     const viewport = viewportRef.current;
     const previousArticleId = currentArticleIdRef.current;
@@ -152,14 +188,16 @@ export function ArticleReaderBody({ article, feedName, onOpenArticleTitleInWebPr
     const handleScroll = () => scheduleScrollPositionCommit(currentArticleIdRef.current, viewport.scrollTop);
 
     viewport.addEventListener("scroll", handleScroll, { passive: true });
+    viewport.addEventListener("wheel", handleReaderWheel, { passive: false });
     return () => {
       viewport.removeEventListener("scroll", handleScroll);
+      viewport.removeEventListener("wheel", handleReaderWheel);
       const didFlushPendingScrollPosition = flushPendingScrollPosition();
       if (!didFlushPendingScrollPosition) {
         setArticleReaderScrollPosition(currentArticleIdRef.current, viewport.scrollTop);
       }
     };
-  }, [flushPendingScrollPosition, scheduleScrollPositionCommit, setArticleReaderScrollPosition]);
+  }, [flushPendingScrollPosition, handleReaderWheel, scheduleScrollPositionCommit, setArticleReaderScrollPosition]);
 
   const openArticleTitle = useCallback(
     (url: string, metaKey = false, ctrlKey = false) => {

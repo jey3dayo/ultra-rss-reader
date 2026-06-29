@@ -271,20 +271,20 @@ function WideLayout({
           </div>
         </>
       )}
-      <main data-testid="main-stage" className="flex min-w-0 flex-1">
+      <main data-testid="main-stage" className="flex h-full min-h-0 min-w-0 flex-1 overflow-hidden">
         {panes.includes("list") && (
-          <div className="shrink-0" style={{ width: `${ARTICLE_LIST_PANE_WIDTH_PX}px` }}>
+          <div className="h-full min-h-0 shrink-0 overflow-hidden" style={{ width: `${ARTICLE_LIST_PANE_WIDTH_PX}px` }}>
             <ArticleList />
           </div>
         )}
         {panes.includes("content") && (
-          <div className="min-w-0 flex-1">
+          <div className="h-full min-h-0 min-w-0 flex-1 overflow-hidden">
             <ArticleView />
           </div>
         )}
       </main>
       {!panes.includes("list") && !panes.includes("content") && (
-        <div className="min-w-0 flex-1">
+        <div className="h-full min-h-0 min-w-0 flex-1 overflow-hidden">
           <ArticleView />
         </div>
       )}

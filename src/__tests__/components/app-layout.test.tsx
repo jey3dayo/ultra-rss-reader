@@ -182,6 +182,26 @@ describe("AppLayout", () => {
     });
   });
 
+  it("gives wide article panes bounded height so their inner scroll areas can scroll", () => {
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      layoutMode: "wide",
+      focusedPane: "content",
+      selectedArticleId: "art-1",
+      contentMode: "reader",
+    });
+
+    render(<AppLayout />);
+
+    const stage = screen.getByTestId("main-stage");
+    const listPane = stage.children[0];
+    const contentPane = stage.children[1];
+
+    expect(stage).toHaveClass("h-full", "min-h-0", "overflow-hidden");
+    expect(listPane).toHaveClass("h-full", "min-h-0", "overflow-hidden");
+    expect(contentPane).toHaveClass("h-full", "min-h-0", "overflow-hidden");
+  });
+
   it("keeps app shell responsive constraints outside the workspace split helper", () => {
     useUiStore.setState({
       ...useUiStore.getInitialState(),
