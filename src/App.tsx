@@ -1,11 +1,11 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef } from "react";
+import { useDevIntent } from "@/dev/use-dev-intent";
+import { useResolvedDevIntent } from "@/dev/use-resolved-dev-intent";
 import { listAccounts, syncAccount, triggerStartupSync } from "./api/tauri-commands";
 import { AgentationMount } from "./components/app/agentation-mount";
 import { AppShell } from "./components/app-shell";
 import { APP_HIDDEN_DURATION_SYNC_THRESHOLD_MS } from "./constants/ui-runtime";
-import { useDevIntent } from "./dev/use-dev-intent";
-import { useResolvedDevIntent } from "./dev/use-resolved-dev-intent";
 import { getCurrentTimeMs } from "./lib/datetime";
 import { queryClient } from "./lib/query/query-client";
 import { invalidateSyncCompletedQueries } from "./lib/query/query-invalidation";
