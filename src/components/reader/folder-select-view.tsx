@@ -30,7 +30,8 @@ const FOLDER_SELECT_INLINE_ROW_CLASS_NAME =
 const FOLDER_SELECT_INLINE_LABEL_CLASS_NAME =
   "mb-0 whitespace-nowrap font-sans text-[13px] leading-[1.35] font-medium text-[color:var(--form-row-label)] lg:pt-0";
 const FOLDER_SELECT_INLINE_CONTROL_CLASS_NAME =
-  "min-h-11 w-full bg-surface-1/78 shadow-none sm:w-[20rem] sm:justify-self-end";
+  "min-h-11 w-full bg-surface-1/78 shadow-none sm:w-[20rem] sm:justify-self-end sm:mr-2";
+const FOLDER_SELECT_INLINE_POPUP_CLASS_NAME = "w-[var(--anchor-width)]";
 
 function encodeFolderOptionValue(value: string) {
   return value === "" ? value : `${FOLDER_OPTION_VALUE_PREFIX}${value}`;
@@ -85,6 +86,7 @@ export function FolderSelectView({
         className={layout === "inline" ? FOLDER_SELECT_INLINE_ROW_CLASS_NAME : undefined}
         labelClassName={layout === "inline" ? FOLDER_SELECT_INLINE_LABEL_CLASS_NAME : undefined}
         triggerClassName={layout === "inline" ? FOLDER_SELECT_INLINE_CONTROL_CLASS_NAME : "mt-1 w-full"}
+        popupClassName={layout === "inline" ? FOLDER_SELECT_INLINE_POPUP_CLASS_NAME : undefined}
       />
 
       {canCreateFolder && isCreatingFolder && (

@@ -42,7 +42,8 @@ const FEED_EDIT_ROW_CLASS_NAME =
   "min-h-[52px] border-b-0 py-2.5 sm:grid-cols-[minmax(8.5rem,12rem)_minmax(0,1fr)] sm:items-center sm:gap-x-8";
 const FEED_EDIT_CONTROL_CLASS_NAME = "sm:max-w-[20rem]";
 const FEED_EDIT_INPUT_CLASS_NAME = "min-h-11 bg-surface-1/78 shadow-none";
-const FEED_EDIT_SELECT_CLASS_NAME = "min-h-11 w-full bg-surface-1/78 shadow-none sm:w-[20rem]";
+const FEED_EDIT_SELECT_CLASS_NAME = "min-h-11 w-full bg-surface-1/78 shadow-none sm:w-[20rem] sm:justify-self-end";
+const FEED_EDIT_SELECT_POPUP_CLASS_NAME = "w-[var(--anchor-width)]";
 
 function ReadonlyUrlRow({ field, loading }: { field: FeedEditDialogUrlField; loading: boolean }) {
   const canCopy = field.value.trim().length > 0;
@@ -62,7 +63,7 @@ function ReadonlyUrlRow({ field, loading }: { field: FeedEditDialogUrlField; loa
               onClick={field.onCopy}
               disabled={loading || !canCopy}
               aria-label={field.copyLabel}
-              className="size-7 shrink-0 border-transparent bg-transparent text-foreground-soft shadow-none hover:text-foreground"
+              className="size-7 shrink-0 self-center border-0 bg-transparent text-foreground-soft shadow-none hover:bg-transparent hover:text-foreground"
             >
               <Copy className="size-3.5" aria-hidden="true" />
             </Button>
@@ -131,6 +132,7 @@ export function FeedEditDialogView({
         disabled={loading}
         rowClassName={FEED_EDIT_ROW_CLASS_NAME}
         triggerClassName={FEED_EDIT_SELECT_CLASS_NAME}
+        popupClassName={FEED_EDIT_SELECT_POPUP_CLASS_NAME}
       />
 
       {folderSelectProps ? (

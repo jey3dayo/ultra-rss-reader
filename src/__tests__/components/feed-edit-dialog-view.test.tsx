@@ -92,16 +92,25 @@ describe("FeedEditDialogView", () => {
       "border-b-0",
     );
     expect(screen.getByText("https://example.com/feed.xml")).not.toHaveAttribute("title");
-    expect(screen.getByRole("button", { name: "Copy Website URL" })).toHaveClass("bg-transparent", "shadow-none");
-    expect(screen.getByRole("button", { name: "Copy Feed URL" })).toHaveClass("bg-transparent", "shadow-none");
+    expect(screen.getByRole("button", { name: "Copy Website URL" })).toHaveClass(
+      "self-center",
+      "bg-transparent",
+      "shadow-none",
+    );
+    expect(screen.getByRole("button", { name: "Copy Feed URL" })).toHaveClass(
+      "self-center",
+      "bg-transparent",
+      "shadow-none",
+    );
     expect(screen.getByRole("combobox", { name: "Display Mode" })).toHaveTextContent("Preview");
-    expect(screen.getByRole("combobox", { name: "Display Mode" })).toHaveClass("min-h-11");
+    expect(screen.getByRole("combobox", { name: "Display Mode" })).toHaveClass("min-h-11", "sm:justify-self-end");
     expect(screen.getByText("Display Mode").closest(".grid")).toHaveClass(
       "sm:grid-cols-[minmax(8.5rem,12rem)_minmax(0,1fr)]",
       "border-b-0",
     );
     expect(screen.getByTestId("feed-dialog-folder-section")).not.toHaveClass("rounded-md", "border", "bg-surface-1/80");
     expect(screen.getByRole("combobox", { name: "Folder" })).toHaveTextContent("Work");
+    expect(screen.getByRole("combobox", { name: "Folder" })).toHaveClass("sm:mr-2", "sm:justify-self-end");
     expect(screen.getByText("Folder").closest(".grid")).toHaveClass(
       "sm:grid-cols-[minmax(8.5rem,12rem)_minmax(0,1fr)]",
       "border-b-0",

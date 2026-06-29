@@ -18,6 +18,7 @@ export type LabeledSelectRowProps = {
   rowClassName?: string;
   labelClassName?: string;
   triggerClassName?: string;
+  popupClassName?: string;
 };
 
 export function LabeledSelectRow({
@@ -31,6 +32,7 @@ export function LabeledSelectRow({
   rowClassName,
   labelClassName,
   triggerClassName,
+  popupClassName,
 }: LabeledSelectRowProps) {
   const labelId = useId();
   const handleValueChange = createSelectValueChangeHandler({ disabled, onChange });
@@ -46,7 +48,7 @@ export function LabeledSelectRow({
         <SelectTrigger aria-labelledby={labelId} className={cn("w-full sm:w-[220px]", triggerClassName)}>
           <SelectOptionValue options={options} />
         </SelectTrigger>
-        <AppSelectPopup>
+        <AppSelectPopup className={popupClassName}>
           <SelectOptionItems options={options} />
         </AppSelectPopup>
       </Select>

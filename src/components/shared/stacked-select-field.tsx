@@ -17,6 +17,7 @@ type StackedSelectFieldProps = {
   className?: string;
   labelClassName?: string;
   triggerClassName?: string;
+  popupClassName?: string;
 };
 
 export function StackedSelectField({
@@ -30,6 +31,7 @@ export function StackedSelectField({
   className,
   labelClassName,
   triggerClassName,
+  popupClassName,
 }: StackedSelectFieldProps) {
   const generatedLabelId = useId();
   const resolvedLabelId = labelId ?? generatedLabelId;
@@ -44,7 +46,7 @@ export function StackedSelectField({
         <SelectTrigger aria-labelledby={resolvedLabelId} className={cn("min-h-11", triggerClassName)}>
           <SelectOptionValue options={options} />
         </SelectTrigger>
-        <AppSelectPopup>
+        <AppSelectPopup className={popupClassName}>
           <SelectOptionItems options={options} />
         </AppSelectPopup>
       </Select>
