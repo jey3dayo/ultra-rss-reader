@@ -10,10 +10,10 @@ import {
   LabeledSelectRow,
 } from "@/design-system";
 import type { FeedDialogSelectOption } from "./feed-dialog-form.types";
+import type { FeedEditDialogUrlField } from "./feed-edit-dialog.types";
 import { FolderSelectView, type FolderSelectViewProps } from "./folder-select-view";
-import type { RenameFeedDialogUrlField } from "./rename-feed-dialog.types";
 
-type RenameFeedDialogViewLabels = {
+type FeedEditDialogViewLabels = {
   title: string;
   titleField: string;
   displayMode: string;
@@ -22,18 +22,18 @@ type RenameFeedDialogViewLabels = {
   saving: string;
 };
 
-type RenameFeedDialogViewProps = {
+type FeedEditDialogViewProps = {
   open: boolean;
   title: string;
   loading: boolean;
   displayMode: string;
   displayModeOptions: FeedDialogSelectOption[];
-  urlFields: RenameFeedDialogUrlField[];
+  urlFields: FeedEditDialogUrlField[];
   onOpenChange: (open: boolean) => void;
   onTitleChange: (value: string) => void;
   onDisplayModeChange: (value: string) => void;
   folderSelectProps?: FolderSelectViewProps;
-  labels: RenameFeedDialogViewLabels;
+  labels: FeedEditDialogViewLabels;
   inputRef?: RefObject<HTMLInputElement | null>;
   onSubmit: () => void;
 };
@@ -44,13 +44,13 @@ const FEED_EDIT_CONTROL_CLASS_NAME = "sm:max-w-[20rem]";
 const FEED_EDIT_INPUT_CLASS_NAME = "min-h-11 bg-surface-1/78 shadow-none";
 const FEED_EDIT_SELECT_CLASS_NAME = "min-h-11 w-full bg-surface-1/78 shadow-none sm:w-[20rem]";
 
-function ReadonlyUrlRow({ field, loading }: { field: RenameFeedDialogUrlField; loading: boolean }) {
+function ReadonlyUrlRow({ field, loading }: { field: FeedEditDialogUrlField; loading: boolean }) {
   const canCopy = field.value.trim().length > 0;
 
   return (
     <LabeledControlRow label={field.label} className={FEED_EDIT_ROW_CLASS_NAME}>
-      <div className="flex min-w-0 items-center justify-end gap-2 sm:w-[20rem]">
-        <span className="min-w-0 flex-1 truncate text-right font-sans text-sm leading-6 text-foreground">
+      <div className="flex min-h-11 min-w-0 items-center justify-end gap-1.5 sm:w-[20rem]">
+        <span className="min-w-0 flex-1 truncate text-right font-sans text-sm leading-5 text-foreground">
           {field.value}
         </span>
         {field.copyLabel && field.onCopy ? (
@@ -62,7 +62,7 @@ function ReadonlyUrlRow({ field, loading }: { field: RenameFeedDialogUrlField; l
               onClick={field.onCopy}
               disabled={loading || !canCopy}
               aria-label={field.copyLabel}
-              className="size-9 shrink-0 border-transparent bg-transparent text-foreground-soft shadow-none hover:text-foreground"
+              className="size-7 shrink-0 border-transparent bg-transparent text-foreground-soft shadow-none hover:text-foreground"
             >
               <Copy className="size-3.5" aria-hidden="true" />
             </Button>
@@ -73,7 +73,7 @@ function ReadonlyUrlRow({ field, loading }: { field: RenameFeedDialogUrlField; l
   );
 }
 
-export function RenameFeedDialogView({
+export function FeedEditDialogView({
   open,
   title,
   loading,
@@ -87,7 +87,7 @@ export function RenameFeedDialogView({
   labels,
   inputRef,
   onSubmit,
-}: RenameFeedDialogViewProps) {
+}: FeedEditDialogViewProps) {
   const submitDisabled = !title.trim() || loading;
 
   return (

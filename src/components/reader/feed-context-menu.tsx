@@ -11,8 +11,8 @@ import { useUiStore } from "@/stores/ui-store";
 import { CONTEXT_MENU_ACTION_IDS, createMenuActionHandler } from "./context-menu-action-policy";
 import { openFeedSiteInBrowser } from "./feed-context-menu-actions";
 import { FeedContextMenuView } from "./feed-context-menu-view";
+import { FeedEditDialog } from "./feed-edit-dialog";
 import { buildFeedMarkAllReadConfirmation } from "./feed-mark-all-read";
-import { RenameDialog } from "./rename-feed-dialog";
 import { UnsubscribeDialog } from "./unsubscribe-feed-dialog";
 
 type FeedContextMenuContentProps = {
@@ -20,7 +20,7 @@ type FeedContextMenuContentProps = {
 };
 
 type FeedContextMenuState = {
-  showRenameDialog: boolean;
+  showFeedEditDialog: boolean;
   showUnsubscribeDialog: boolean;
 };
 
@@ -29,14 +29,14 @@ type FeedContextMenuAction =
   | { type: "set-unsubscribe-dialog"; value: boolean };
 
 const initialFeedContextMenuState: FeedContextMenuState = {
-  showRenameDialog: false,
+  showFeedEditDialog: false,
   showUnsubscribeDialog: false,
 };
 
 function feedContextMenuReducer(state: FeedContextMenuState, action: FeedContextMenuAction): FeedContextMenuState {
   switch (action.type) {
     case "set-rename-dialog":
-      return { ...state, showRenameDialog: action.value };
+      return { ...state, showFeedEditDialog: action.value };
     case "set-unsubscribe-dialog":
       return { ...state, showUnsubscribeDialog: action.value };
     default:
@@ -47,7 +47,7 @@ function feedContextMenuReducer(state: FeedContextMenuState, action: FeedContext
 export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
   const { t } = useTranslation("reader");
   const [state, dispatch] = useReducer(feedContextMenuReducer, initialFeedContextMenuState);
-  const { showRenameDialog, showUnsubscribeDialog } = state;
+  const { showFeedEditDialog, showUnsubscribeDialog } = state;
   const confirmMarkAllRead = useConfirmMarkAllRead();
   const markFeedRead = useMarkFeedRead();
   const markOldUnreadRead = useOldUnreadReadAction("feed", feed.id);
@@ -80,7 +80,7 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
     dispatch({ type: "set-unsubscribe-dialog", value: true });
   }, []);
 
-  const handleOpenRenameDialog = useCallback(() => {
+  const handleOpenFeedEditDialog = useCallback(() => {
     dispatch({ type: "set-rename-dialog", value: true });
   }, []);
 
@@ -130,12 +130,12 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
           )();
         }}
         onUnsubscribe={handleOpenUnsubscribeDialog}
-        onEdit={handleOpenRenameDialog}
+        onEdit={handleOpenFeedEditDialog}
       />
 
-      <RenameDialog
+      <FeedEditDialog
         feed={feed}
-        open={showRenameDialog}
+        open={showFeedEditDialog}
         onOpenChange={(value) => dispatch({ type: "set-rename-dialog", value })}
       />
       <UnsubscribeDialog

@@ -5,13 +5,13 @@ import { createQueryWrapper } from "@tests/helpers/create-wrapper";
 import { sampleFeeds } from "@tests/helpers/fixtures";
 import { setupTauriMocks, teardownTauriMocks } from "@tests/helpers/tauri-mocks";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { RenameDialog } from "@/components/reader/rename-feed-dialog";
+import { FeedEditDialog } from "@/components/reader/feed-edit-dialog";
 import { queryKeys } from "@/lib/query/query-invalidation";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
-vi.mock("@/components/reader/rename-feed-dialog-view", () => ({
-  RenameFeedDialogView: (props: {
+vi.mock("@/components/reader/feed-edit-dialog-view", () => ({
+  FeedEditDialogView: (props: {
     title: string;
     onTitleChange: (value: string) => void;
     onDisplayModeChange: (value: string) => void;
@@ -90,7 +90,7 @@ const sampleFolders = [
   { id: "folder-2", account_id: "acc-1", name: "Personal", sort_order: 1 },
 ];
 
-describe("RenameDialog", () => {
+describe("FeedEditDialog", () => {
   beforeEach(() => {
     usePreferencesStore.setState({ prefs: {}, loaded: true });
     useUiStore.setState({ ...useUiStore.getInitialState() });
@@ -128,7 +128,7 @@ describe("RenameDialog", () => {
       }
     });
 
-    render(<RenameDialog feed={sampleFeeds[0]} open={true} onOpenChange={onOpenChange} />, { wrapper });
+    render(<FeedEditDialog feed={sampleFeeds[0]} open={true} onOpenChange={onOpenChange} />, { wrapper });
 
     expect(screen.getByTestId("folder-create-enabled")).toHaveTextContent("true");
 
@@ -164,7 +164,7 @@ describe("RenameDialog", () => {
       }
     });
 
-    render(<RenameDialog feed={sampleFeeds[0]} open={true} onOpenChange={vi.fn()} />, {
+    render(<FeedEditDialog feed={sampleFeeds[0]} open={true} onOpenChange={vi.fn()} />, {
       wrapper: createQueryWrapper().wrapper,
     });
 
@@ -201,7 +201,7 @@ describe("RenameDialog", () => {
       }
     });
 
-    render(<RenameDialog feed={feed} open={true} onOpenChange={onOpenChange} />, { wrapper });
+    render(<FeedEditDialog feed={feed} open={true} onOpenChange={onOpenChange} />, { wrapper });
 
     await user.clear(screen.getByLabelText("Title"));
     await user.type(screen.getByLabelText("Title"), "Renamed Feed");
@@ -249,7 +249,7 @@ describe("RenameDialog", () => {
       }
     });
 
-    render(<RenameDialog feed={sampleFeeds[0]} open={true} onOpenChange={onOpenChange} />, { wrapper });
+    render(<FeedEditDialog feed={sampleFeeds[0]} open={true} onOpenChange={onOpenChange} />, { wrapper });
 
     await user.click(screen.getByRole("button", { name: "Set preview" }));
     await user.click(screen.getByRole("button", { name: "Save" }));
@@ -284,7 +284,7 @@ describe("RenameDialog", () => {
       }
     });
 
-    render(<RenameDialog feed={sampleFeeds[0]} open={true} onOpenChange={onOpenChange} />, {
+    render(<FeedEditDialog feed={sampleFeeds[0]} open={true} onOpenChange={onOpenChange} />, {
       wrapper: createQueryWrapper().wrapper,
     });
 
@@ -314,7 +314,7 @@ describe("RenameDialog", () => {
       }
     });
 
-    render(<RenameDialog feed={sampleFeeds[0]} open={true} onOpenChange={onOpenChange} />, {
+    render(<FeedEditDialog feed={sampleFeeds[0]} open={true} onOpenChange={onOpenChange} />, {
       wrapper: createQueryWrapper().wrapper,
     });
 
@@ -347,7 +347,7 @@ describe("RenameDialog", () => {
       }
     });
 
-    render(<RenameDialog feed={sampleFeeds[0]} open={true} onOpenChange={onOpenChange} />, {
+    render(<FeedEditDialog feed={sampleFeeds[0]} open={true} onOpenChange={onOpenChange} />, {
       wrapper: createQueryWrapper().wrapper,
     });
 
@@ -380,7 +380,7 @@ describe("RenameDialog", () => {
       }
     });
 
-    render(<RenameDialog feed={sampleFeeds[0]} open={true} onOpenChange={onOpenChange} />, { wrapper });
+    render(<FeedEditDialog feed={sampleFeeds[0]} open={true} onOpenChange={onOpenChange} />, { wrapper });
 
     await user.clear(screen.getByLabelText("Title"));
     await user.type(screen.getByLabelText("Title"), "Renamed Feed");
@@ -417,7 +417,7 @@ describe("RenameDialog", () => {
       }
     });
 
-    render(<RenameDialog feed={sampleFeeds[0]} open={true} onOpenChange={vi.fn()} />, {
+    render(<FeedEditDialog feed={sampleFeeds[0]} open={true} onOpenChange={vi.fn()} />, {
       wrapper: createQueryWrapper().wrapper,
     });
 

@@ -9,7 +9,7 @@ import type {
 } from "./feed-dialog-form.types";
 
 export type FeedEditDisplayPreset = FeedDisplayPresetOption;
-export type RenameFeedDialogUrlField = Omit<FeedDialogReadonlyFieldProps, "name">;
+export type FeedEditDialogUrlField = Omit<FeedDialogReadonlyFieldProps, "name">;
 
 type FeedEditErrorLike = {
   message: string;
@@ -36,15 +36,15 @@ export type SubmitFeedEditsParams = {
   ) => Promise<boolean>;
 };
 
-export type RenameFeedDialogControllerParams = {
+export type FeedEditDialogControllerParams = {
   feed: FeedDto;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
 
-export type RenameDialogProps = RenameFeedDialogControllerParams;
+export type FeedEditDialogProps = FeedEditDialogControllerParams;
 
-export type RenameFeedDialogController = {
+export type FeedEditDialogController = {
   title: string;
   loading: boolean;
   displayPreset: FeedEditDisplayPreset;

@@ -3,8 +3,8 @@ import { createTestQueryClient } from "@tests/helpers/create-wrapper";
 import { createTauriMockCallRecorder, setupTauriMocks } from "@tests/helpers/tauri-mocks";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppError, FeedDto } from "@/api/tauri-commands";
+import type { SubmitFeedEditsParams } from "@/components/reader/feed-edit-dialog.types";
 import { submitFeedEdits } from "@/components/reader/feed-edit-submit";
-import type { SubmitFeedEditsParams } from "@/components/reader/rename-feed-dialog.types";
 import { queryKeys } from "@/lib/query/query-invalidation";
 
 const feed: FeedDto = {

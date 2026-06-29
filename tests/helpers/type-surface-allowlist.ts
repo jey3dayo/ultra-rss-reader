@@ -36,6 +36,11 @@ export const remainingTypeSurfaceAllowlist = [
     "FeedDialogFolderSelectionParams",
     "FeedDialogReadonlyFieldProps",
   ]),
+  remainingTypeSurface("src/components/reader/feed-edit-dialog.types.ts", [
+    "FeedEditDialogProps",
+    "FeedEditDialogControllerParams",
+    "SubmitFeedEditsParams",
+  ]),
   remainingTypeSurface("src/components/reader/feed-tree.types.ts", ["FeedTreeRowProps", "FeedTreeViewProps"]),
   remainingTypeSurface("src/components/reader/hooks/article-list/article-list-controller.types.ts", [
     "UseArticleListDataParams",
@@ -62,11 +67,6 @@ export const remainingTypeSurfaceAllowlist = [
     "UseFeedTreeDragParams",
     "UseFeedTreeDragResult",
     "UseFeedTreePointerDragEventsParams",
-  ]),
-  remainingTypeSurface("src/components/reader/rename-feed-dialog.types.ts", [
-    "RenameDialogProps",
-    "RenameFeedDialogControllerParams",
-    "SubmitFeedEditsParams",
   ]),
   remainingTypeSurface("src/components/reader/sidebar-feed-section.types.ts", [
     "SidebarFeedDragStateParams",

@@ -2,14 +2,14 @@ import { Result } from "@praha/byethrow";
 import { renameFeed } from "@/api/tauri-commands";
 import { normalizeRenameInput } from "@/hooks/normalize-rename-input";
 import { displayPresetToTriStateModes, resolveFeedDisplayPreset } from "@/lib/articles/article-display";
+import type { FeedEditDisplayPreset, SubmitFeedEditsParams } from "./feed-edit-dialog.types";
 import { createFolderIfNeededResult } from "./feed-folder-flow";
 import { invalidateFeedQueries } from "./feed-query-cache";
-import type { FeedEditDisplayPreset, SubmitFeedEditsParams } from "./rename-feed-dialog.types";
 
 export type {
   FeedEditDisplayPreset,
   SubmitFeedEditsParams,
-} from "./rename-feed-dialog.types";
+} from "./feed-edit-dialog.types";
 export type FeedMutationEditorState<ExtraState extends object = object> = {
   title: string;
   displayPreset: FeedEditDisplayPreset;

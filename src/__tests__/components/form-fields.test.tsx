@@ -5,7 +5,7 @@ import { sampleFeeds } from "@tests/helpers/fixtures";
 import { setupTauriMocks, teardownTauriMocks } from "@tests/helpers/tauri-mocks";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { AddFeedDialog } from "@/components/reader/add-feed-dialog";
-import { RenameDialog } from "@/components/reader/rename-feed-dialog";
+import { FeedEditDialog } from "@/components/reader/feed-edit-dialog";
 import { AddAccountForm } from "@/components/settings/add-account/controller";
 import { APP_STACKING_CLASS_NAMES } from "@/lib/window/window-chrome";
 
@@ -112,15 +112,15 @@ describe("Form fields", () => {
     expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
   });
 
-  it("rename feed dialog input exposes a name attribute", () => {
-    render(<RenameDialog feed={sampleFeeds[0]} open={true} onOpenChange={() => {}} />, { wrapper: createWrapper() });
+  it("feed edit dialog input exposes a name attribute", () => {
+    render(<FeedEditDialog feed={sampleFeeds[0]} open={true} onOpenChange={() => {}} />, { wrapper: createWrapper() });
 
     expect(screen.getByDisplayValue(sampleFeeds[0].title)).toHaveAttribute("name");
   });
 
-  it("rename feed dialog selects expose accessible names and selected labels", async () => {
+  it("feed edit dialog selects expose accessible names and selected labels", async () => {
     render(
-      <RenameDialog
+      <FeedEditDialog
         feed={{ ...sampleFeeds[0], folder_id: "folder-1", reader_mode: "on", web_preview_mode: "on" }}
         open={true}
         onOpenChange={() => {}}
@@ -132,11 +132,11 @@ describe("Form fields", () => {
     expect(await screen.findByRole("combobox", { name: "Folder" })).toHaveTextContent("Work");
   });
 
-  it("rename feed dialog offers a default display mode option for inheriting the global setting", async () => {
+  it("feed edit dialog offers a default display mode option for inheriting the global setting", async () => {
     const user = userEvent.setup();
 
     render(
-      <RenameDialog
+      <FeedEditDialog
         feed={{ ...sampleFeeds[0], reader_mode: "inherit", web_preview_mode: "inherit" }}
         open={true}
         onOpenChange={() => {}}
@@ -153,7 +153,7 @@ describe("Form fields", () => {
     expect(screen.getByRole("option", { name: "Web Preview" })).toBeInTheDocument();
   });
 
-  it("rename feed dialog offers a new folder option even when no folders exist yet", async () => {
+  it("feed edit dialog offers a new folder option even when no folders exist yet", async () => {
     const user = userEvent.setup();
 
     teardownTauriMocks();
@@ -166,7 +166,7 @@ describe("Form fields", () => {
       }
     });
 
-    render(<RenameDialog feed={sampleFeeds[0]} open={true} onOpenChange={() => {}} />, {
+    render(<FeedEditDialog feed={sampleFeeds[0]} open={true} onOpenChange={() => {}} />, {
       wrapper: createWrapper(),
     });
 

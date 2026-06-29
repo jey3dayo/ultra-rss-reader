@@ -42,8 +42,8 @@ vi.mock("@/components/reader/feed-context-menu-view", () => ({
   ),
 }));
 
-vi.mock("@/components/reader/rename-feed-dialog", () => ({
-  RenameDialog: () => null,
+vi.mock("@/components/reader/feed-edit-dialog", () => ({
+  FeedEditDialog: () => null,
 }));
 
 vi.mock("@/components/reader/unsubscribe-feed-dialog", () => ({

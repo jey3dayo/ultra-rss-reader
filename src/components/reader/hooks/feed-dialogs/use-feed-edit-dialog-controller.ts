@@ -12,24 +12,24 @@ import { scheduleAnimationFrame } from "@/lib/dom/animation-frame";
 import { focusAndSelectInput } from "@/lib/dom/input-focus";
 import { copyTextToClipboard } from "@/lib/runtime/clipboard";
 import { useUiStore } from "@/stores/ui-store";
-import { type FeedEditorState, submitFeedEdits } from "../../feed-edit-submit";
 import type {
+  FeedEditDialogController,
+  FeedEditDialogControllerParams,
   FeedEditDisplayPreset,
-  RenameFeedDialogController,
-  RenameFeedDialogControllerParams,
-} from "../../rename-feed-dialog.types";
+} from "../../feed-edit-dialog.types";
+import { type FeedEditorState, submitFeedEdits } from "../../feed-edit-submit";
 
-type RenameFeedDialogState = FeedEditorState<{
+type FeedEditDialogState = FeedEditorState<{
   feedSnapshot: FeedDto;
 }>;
 
-type RenameFeedDialogAction =
+type FeedEditDialogAction =
   | { type: "reset"; feed: FeedDto }
   | { type: "set-title"; value: string }
   | { type: "set-display-preset"; value: FeedEditDisplayPreset }
   | { type: "set-loading"; value: boolean };
 
-function createInitialRenameFeedDialogState(feed: FeedDto): RenameFeedDialogState {
+function createInitialFeedEditDialogState(feed: FeedDto): FeedEditDialogState {
   return {
     title: feed.title,
     displayPreset: resolveFeedDisplayPreset(feed),
@@ -38,10 +38,10 @@ function createInitialRenameFeedDialogState(feed: FeedDto): RenameFeedDialogStat
   };
 }
 
-function renameFeedDialogReducer(state: RenameFeedDialogState, action: RenameFeedDialogAction): RenameFeedDialogState {
+function feedEditDialogReducer(state: FeedEditDialogState, action: FeedEditDialogAction): FeedEditDialogState {
   switch (action.type) {
     case "reset":
-      return createInitialRenameFeedDialogState(action.feed);
+      return createInitialFeedEditDialogState(action.feed);
     case "set-title":
       return { ...state, title: action.value };
     case "set-display-preset":
@@ -53,13 +53,13 @@ function renameFeedDialogReducer(state: RenameFeedDialogState, action: RenameFee
   }
 }
 
-export function useRenameFeedDialogController({
+export function useFeedEditDialogController({
   feed,
   open,
   onOpenChange,
-}: RenameFeedDialogControllerParams): RenameFeedDialogController {
+}: FeedEditDialogControllerParams): FeedEditDialogController {
   const { t } = useTranslation("reader");
-  const [state, dispatch] = useReducer(renameFeedDialogReducer, feed, createInitialRenameFeedDialogState);
+  const [state, dispatch] = useReducer(feedEditDialogReducer, feed, createInitialFeedEditDialogState);
   const { title, displayPreset, loading, feedSnapshot } = state;
   const inputRef = useRef<HTMLInputElement>(null);
   const {

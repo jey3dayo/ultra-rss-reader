@@ -1,13 +1,13 @@
 import { createRef } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { buildRenameFeedDialogViewProps } from "@/components/reader/lib/rename-feed-dialog-view-props";
-import type { RenameFeedDialogController } from "@/components/reader/rename-feed-dialog.types";
+import type { FeedEditDialogController } from "@/components/reader/feed-edit-dialog.types";
+import { buildFeedEditDialogViewProps } from "@/components/reader/lib/feed-edit-dialog-view-props";
 import i18n from "@/lib/i18n";
 
 const t = i18n.getFixedT("en", "reader");
 const tc = i18n.getFixedT("en", "common");
 
-function createController(overrides: Partial<RenameFeedDialogController> = {}): RenameFeedDialogController {
+function createController(overrides: Partial<FeedEditDialogController> = {}): FeedEditDialogController {
   return {
     title: "Daily Feed",
     loading: false,
@@ -31,12 +31,12 @@ function createController(overrides: Partial<RenameFeedDialogController> = {}): 
   };
 }
 
-describe("useRenameFeedDialogViewProps", () => {
+describe("useFeedEditDialogViewProps", () => {
   it("maps dialog labels, readonly URL copy actions, and folder select props", () => {
     const controller = createController();
     const onOpenChange = vi.fn();
 
-    const props = buildRenameFeedDialogViewProps({
+    const props = buildFeedEditDialogViewProps({
       open: true,
       feedSiteUrl: "https://example.com",
       feedUrl: "https://example.com/feed.xml",
@@ -104,7 +104,7 @@ describe("useRenameFeedDialogViewProps", () => {
     const setDisplayPreset = vi.fn();
     const controller = createController({ setDisplayPreset });
 
-    const props = buildRenameFeedDialogViewProps({
+    const props = buildFeedEditDialogViewProps({
       open: false,
       feedSiteUrl: "",
       feedUrl: "",

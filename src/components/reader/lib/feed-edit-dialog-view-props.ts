@@ -1,20 +1,20 @@
 import type { TFunction } from "i18next";
 import { buildFeedDisplayPresetOptions, isFeedDisplayPresetOption } from "@/lib/articles/article-display";
 import type { FeedDialogSelectOption } from "../feed-dialog-form.types";
-import type { RenameFeedDialogController } from "../rename-feed-dialog.types";
+import type { FeedEditDialogController } from "../feed-edit-dialog.types";
 
-export type BuildRenameFeedDialogViewPropsParams = {
+export type BuildFeedEditDialogViewPropsParams = {
   open: boolean;
   feedSiteUrl: string;
   feedUrl: string;
   onOpenChange: (open: boolean) => void;
   folderLabelId: string;
-  controller: RenameFeedDialogController;
+  controller: FeedEditDialogController;
   t: TFunction<"reader">;
   tc: TFunction<"common">;
 };
 
-export function buildRenameFeedDialogViewProps({
+export function buildFeedEditDialogViewProps({
   open,
   feedSiteUrl,
   feedUrl,
@@ -23,7 +23,7 @@ export function buildRenameFeedDialogViewProps({
   controller,
   t,
   tc,
-}: BuildRenameFeedDialogViewPropsParams) {
+}: BuildFeedEditDialogViewPropsParams) {
   const displayModeOptions: FeedDialogSelectOption[] = buildFeedDisplayPresetOptions({
     default: t("display_mode_default"),
     standard: t("display_mode_standard"),

@@ -6,7 +6,7 @@ import { createQueryWrapper } from "@tests/helpers/create-wrapper";
 import { sampleFeeds } from "@tests/helpers/fixtures";
 import type React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useRenameFeedDialogController } from "@/components/reader/hooks/feed-dialogs/use-rename-feed-dialog-controller";
+import { useFeedEditDialogController } from "@/components/reader/hooks/feed-dialogs/use-feed-edit-dialog-controller";
 import type { ToastData } from "@/lib/ui/toast.types";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -74,7 +74,7 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-describe("useRenameFeedDialogController copy action", () => {
+describe("useFeedEditDialogController copy action", () => {
   let showToast: ReturnType<typeof vi.fn<(message: string | ToastData) => void>>;
 
   beforeEach(() => {
@@ -106,7 +106,7 @@ describe("useRenameFeedDialogController copy action", () => {
     const { wrapper } = createQueryWrapper();
     const { result } = renderHook(
       () =>
-        useRenameFeedDialogController({
+        useFeedEditDialogController({
           feed: sampleFeeds[0],
           open: true,
           onOpenChange: vi.fn(),
@@ -130,7 +130,7 @@ describe("useRenameFeedDialogController copy action", () => {
     const { wrapper } = createQueryWrapper();
     const { result } = renderHook(
       () =>
-        useRenameFeedDialogController({
+        useFeedEditDialogController({
           feed: sampleFeeds[0],
           open: true,
           onOpenChange: vi.fn(),
@@ -150,7 +150,7 @@ describe("useRenameFeedDialogController copy action", () => {
     const onOpenChange = vi.fn();
     const { result } = renderHook(
       () =>
-        useRenameFeedDialogController({
+        useFeedEditDialogController({
           feed: sampleFeeds[0],
           open: true,
           onOpenChange,

@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { RenameDialog } from "@/components/reader/rename-feed-dialog";
+import { FeedEditDialog } from "@/components/reader/feed-edit-dialog";
 import { UnsubscribeDialog } from "@/components/reader/unsubscribe-feed-dialog";
 import { useFeedArticleSummaries } from "@/components/subscriptions-index/hooks/use-feed-article-summaries";
 import { useAccountArticles } from "@/hooks/use-articles";
@@ -367,7 +367,7 @@ export function SubscriptionsIndexPage() {
       />
 
       {editTargetFeed ? (
-        <RenameDialog
+        <FeedEditDialog
           feed={editTargetFeed}
           open={true}
           onOpenChange={(open) => {

@@ -2,9 +2,9 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createRef } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { RenameFeedDialogView } from "@/components/reader/rename-feed-dialog-view";
+import { FeedEditDialogView } from "@/components/reader/feed-edit-dialog-view";
 
-describe("RenameFeedDialogView", () => {
+describe("FeedEditDialogView", () => {
   it("renders form fields and delegates interactions", async () => {
     const user = userEvent.setup();
     const onOpenChange = vi.fn();
@@ -17,7 +17,7 @@ describe("RenameFeedDialogView", () => {
     const inputRef = createRef<HTMLInputElement>();
 
     render(
-      <RenameFeedDialogView
+      <FeedEditDialogView
         open={true}
         title="Tech Blog"
         loading={false}
@@ -132,7 +132,7 @@ describe("RenameFeedDialogView", () => {
 
   it("disables saving for blank titles", () => {
     render(
-      <RenameFeedDialogView
+      <FeedEditDialogView
         open={true}
         title="   "
         loading={false}

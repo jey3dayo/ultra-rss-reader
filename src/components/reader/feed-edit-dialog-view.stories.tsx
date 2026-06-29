@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { fn } from "storybook/test";
-import { RenameFeedDialogView } from "./rename-feed-dialog-view";
+import { FeedEditDialogView } from "./feed-edit-dialog-view";
 
 const meta = {
-  title: "Reader/Dialog/RenameFeedDialogView",
-  component: RenameFeedDialogView,
+  title: "Reader/Dialog/FeedEditDialogView",
+  component: FeedEditDialogView,
   tags: ["autodocs"],
   args: {
     open: true,
@@ -64,7 +64,7 @@ const meta = {
     onDisplayModeChange: fn(),
     onSubmit: fn(),
   },
-} satisfies Meta<typeof RenameFeedDialogView>;
+} satisfies Meta<typeof FeedEditDialogView>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
