@@ -12,7 +12,7 @@ import { FeedTreeRow } from "./feed-tree-row";
 import { getSidebarDensityTokens, type SidebarDensity } from "./sidebar-density";
 import { SidebarNavButton } from "./sidebar-nav-button";
 
-const folderParentRailClassName = "-ml-1 pl-0.5";
+const folderParentRailClassName = "pl-0.5";
 const folderChildRailClassName = "ml-[1.125rem] pl-3";
 
 type FeedTreeFolderSectionProps = {

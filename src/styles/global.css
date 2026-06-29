@@ -952,8 +952,8 @@
   isolation: isolate;
 }
 
-.desktop-overlay-titlebar-shell [data-article-list-header="true"][data-titlebar-control-reserve="true"] {
-  padding-left: calc(var(--desktop-titlebar-offset) + 32px);
+.desktop-overlay-titlebar-shell [data-article-list-header="true"][data-titlebar-control-reserve="sidebar-hidden"] {
+  padding-left: calc(var(--desktop-titlebar-offset) + 16px);
 }
 
 @keyframes article-list-titlebar-control-enter {

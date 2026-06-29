@@ -38,7 +38,10 @@ export function SidebarSectionToggle({
       <span className={sidebarSectionLabelClassName}>{label}</span>
       <span className={SIDEBAR_RIGHT_RAIL_CLASS_NAME}>
         <ChevronDown
-          className={cn("motion-disclosure-icon size-3.5 text-sidebar-foreground/54", !isOpen && "-rotate-90")}
+          className={cn(
+            "motion-disclosure-icon size-3.5 translate-x-[3px] text-sidebar-foreground/54",
+            !isOpen && "-rotate-90",
+          )}
         />
       </span>
     </button>

@@ -44,6 +44,7 @@ export function ArticleListHeader({
   onSearchQueryChange,
 }: ArticleListHeaderProps) {
   const searchToggleContainerRef = useRef<HTMLSpanElement>(null);
+  const titlebarControlReserve = showSidebarButton && isSidebarVisible !== true ? "sidebar-hidden" : undefined;
   const restoreSearchToggleFocus = useCallback(() => {
     searchToggleContainerRef.current?.querySelector("button")?.focus({ preventScroll: true });
   }, []);
@@ -52,7 +53,7 @@ export function ArticleListHeader({
     <>
       <div
         data-article-list-header="true"
-        data-titlebar-control-reserve={showSidebarButton ? "true" : undefined}
+        data-titlebar-control-reserve={titlebarControlReserve}
         className="-mr-px flex h-12 items-center border-r border-b border-[var(--subscriptions-pane-divider)] bg-[var(--workspace-header-surface)] px-3 backdrop-blur-sm"
       >
         <ArticleListHeaderActions

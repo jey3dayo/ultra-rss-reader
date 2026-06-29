@@ -192,7 +192,7 @@ describe("ArticleListHeader", () => {
     expect(header?.querySelector("[data-tauri-drag-region]")).not.toBeNull();
   });
 
-  it("reserves titlebar space only when the sidebar reveal control is shown", () => {
+  it("reserves mac titlebar space when the sidebar reveal control is shown for a hidden sidebar", () => {
     const { container } = render(
       <ArticleListHeader
         showSearch
@@ -210,7 +210,29 @@ describe("ArticleListHeader", () => {
       { wrapper: createWrapper() },
     );
 
-    expect(container.firstElementChild).toHaveAttribute("data-titlebar-control-reserve", "true");
+    expect(container.firstElementChild).toHaveAttribute("data-titlebar-control-reserve", "sidebar-hidden");
+  });
+
+  it("does not reserve mac titlebar space when the wide sidebar is already visible", () => {
+    const { container } = render(
+      <ArticleListHeader
+        showSearch
+        searchQuery=""
+        searchInputRef={createRef<HTMLInputElement>()}
+        labels={articleListHeaderLabels}
+        showSidebarButton
+        sidebarButtonLabel="Hide sidebar"
+        isSidebarVisible
+        onMarkAllRead={vi.fn()}
+        onToggleSidebar={vi.fn()}
+        onToggleSearch={vi.fn()}
+        onCloseSearch={vi.fn()}
+        onSearchQueryChange={vi.fn()}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    expect(container.firstElementChild).not.toHaveAttribute("data-titlebar-control-reserve");
   });
 
   it("keeps the list header visually separated from the article pane", () => {
