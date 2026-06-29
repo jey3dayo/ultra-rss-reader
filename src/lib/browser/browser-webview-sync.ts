@@ -5,18 +5,6 @@ type BrowserWebviewHostRef = {
   current: HTMLDivElement | null;
 };
 
-export function resolveBrowserOverlayClientRelativeRect(element: HTMLElement, rect: DOMRect): DOMRect {
-  const overlayRoot =
-    element.closest<HTMLElement>("[data-browser-overlay-client-root]") ??
-    element.closest<HTMLElement>("[data-browser-overlay-root]");
-  const rootRect = overlayRoot?.getBoundingClientRect();
-  if (!rootRect) {
-    return rect;
-  }
-
-  return new DOMRect(rect.left - rootRect.left, rect.top - rootRect.top, rect.width, rect.height);
-}
-
 export function resolveBrowserWebviewBounds(
   hostRef: BrowserWebviewHostRef,
   platformKind: PlatformInfo["kind"],
@@ -27,7 +15,7 @@ export function resolveBrowserWebviewBounds(
   }
   const rect = host.getBoundingClientRect();
 
-  return toBrowserWebviewBounds(resolveBrowserOverlayClientRelativeRect(host, rect), {
+  return toBrowserWebviewBounds(rect, {
     unit: platformKind === "windows" ? "physical" : "logical",
   });
 }

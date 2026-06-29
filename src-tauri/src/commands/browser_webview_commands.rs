@@ -51,7 +51,7 @@ pub enum BrowserWebviewBoundsUnit {
 #[derive(Debug, Clone, Copy, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct BrowserWebviewBounds {
-    /// Bounds captured from the browser overlay client root.
+    /// Bounds captured from the main webview viewport coordinate space.
     x: f64,
     y: f64,
     width: f64,
@@ -150,7 +150,7 @@ fn validated_bounds(bounds: BrowserWebviewBounds) -> Result<BrowserWebviewBounds
 }
 
 fn child_webview_rect_from_browser_bounds(bounds: BrowserWebviewBounds) -> Rect {
-    // Child webviews use the browser overlay client root coordinate space.
+    // Child webviews use the main webview viewport coordinate space.
     // Do not add native title bar or menu insets here.
     bounds.rect()
 }

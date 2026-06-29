@@ -347,7 +347,7 @@ describe("BrowserView", () => {
         cmd: "create_or_update_browser_webview",
         args: {
           url: "https://example.com/article",
-          bounds: { x: 0, y: 44, width: 1400, height: 856 },
+          bounds: { x: 0, y: 18, width: 1400, height: 900 },
         },
       });
     });
@@ -492,7 +492,7 @@ describe("BrowserView", () => {
         cmd: "create_or_update_browser_webview",
         args: {
           url: "https://example.com/article",
-          bounds: { x: 0, y: 55, width: 1750, height: 1070, unit: "physical" },
+          bounds: { x: 0, y: 0, width: 1750, height: 1125, unit: "physical" },
         },
       });
     });
@@ -526,11 +526,8 @@ describe("BrowserView", () => {
     expect(screen.getByTestId("browser-webview-host")).toBeInTheDocument();
     expect(screen.queryByText("Web Preview")).not.toBeInTheDocument();
     const chrome = screen.getByTestId("browser-overlay-chrome");
-    const topRail = screen.getByTestId("browser-overlay-top-rail");
     expect(chrome).toBeInTheDocument();
-    expect(topRail).toHaveClass("border-b", "backdrop-blur-md");
-    expect(topRail.style.backgroundImage).toBe("var(--browser-overlay-rail)");
-    expect(topRail.style.borderColor).toBe("var(--color-browser-overlay-rail-border)");
+    expect(screen.getByTestId("browser-overlay-top-rail")).toBeInTheDocument();
     const closeButton = within(chrome).getByRole("button", {
       name: "Close Web Preview",
     });
@@ -615,7 +612,7 @@ describe("BrowserView", () => {
         cmd: "create_or_update_browser_webview",
         args: {
           url: "https://example.com/article",
-          bounds: { x: 0, y: 44, width: 1400, height: 856 },
+          bounds: { x: 0, y: 0, width: 1400, height: 900 },
         },
       });
     });
@@ -894,7 +891,7 @@ describe("BrowserView", () => {
     expect(onCloseOverlay).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps the main-stage content aligned below the floating rail", () => {
+  it("keeps the main-stage content full bleed behind the floating chrome", () => {
     mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
 
     useUiStore.setState({
@@ -909,7 +906,7 @@ describe("BrowserView", () => {
     expectInlineStyles(stage, {
       left: "0px",
       right: "0px",
-      top: "44px",
+      top: "0px",
       bottom: "0px",
     });
     expect(stage).toHaveClass("rounded-none");
@@ -950,11 +947,14 @@ describe("BrowserView", () => {
     });
     expect(screen.queryByTestId("browser-overlay-top-rail")).not.toBeInTheDocument();
     expect(screen.getByTestId("browser-webview-host")).toHaveStyle({
-      top: "52px",
+      left: "0px",
+      right: "0px",
+      top: "0px",
+      bottom: "0px",
     });
   });
 
-  it("uses the fullscreen main-stage geometry with a visible top rail", () => {
+  it("uses the fullscreen main-stage geometry with an overlay top rail", () => {
     mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
 
     useUiStore.setState({
@@ -969,7 +969,6 @@ describe("BrowserView", () => {
     const chrome = screen.getByTestId("browser-overlay-chrome");
     const shell = screen.getByTestId("browser-overlay-shell");
     const scrim = screen.getByTestId("browser-overlay-scrim");
-    const topRail = screen.getByTestId("browser-overlay-top-rail");
     const host = screen.getByTestId("browser-webview-host");
 
     expect(shell).toHaveClass("pointer-events-none");
@@ -982,20 +981,10 @@ describe("BrowserView", () => {
     expectInlineStyles(stage, {
       left: "0px",
       right: "0px",
-      top: "44px",
+      top: "0px",
       bottom: "0px",
     });
-    expect(topRail).toBeInTheDocument();
-    expect(topRail).toHaveClass("rounded-none");
-    expect(topRail).not.toHaveClass("pointer-events-none");
-    expect(topRail).toHaveAttribute("data-tauri-drag-region");
-    expect(topRail).toHaveClass("z-[50]");
-    expectInlineStyles(topRail, {
-      left: "0px",
-      right: "0px",
-      top: "0px",
-      height: "44px",
-    });
+    expect(screen.getByTestId("browser-overlay-top-rail")).toBeInTheDocument();
     expect(host).toHaveStyle({
       left: "0px",
       right: "0px",
@@ -1049,18 +1038,12 @@ describe("BrowserView", () => {
 
       const stage = screen.getByTestId("browser-overlay-stage-shell");
       const leadingAction = screen.getByTestId("browser-overlay-leading-action");
-      const topRail = screen.getByTestId("browser-overlay-top-rail");
       const trailingActions = screen.getByTestId("browser-overlay-actions");
 
       expectInlineStyles(stage, {
-        top: "44px",
+        top: "0px",
       });
-      expectInlineStyles(topRail, {
-        height: "44px",
-      });
-      expect(topRail).toHaveAttribute("data-tauri-drag-region");
-      expect(topRail).not.toHaveClass("pointer-events-none");
-      expect(topRail).toHaveClass("z-[50]");
+      expect(screen.getByTestId("browser-overlay-top-rail")).toBeInTheDocument();
       expect(leadingAction).toHaveClass("pointer-events-none");
       expect(screen.getByTestId("browser-overlay-chrome")).toHaveClass("pointer-events-auto");
       expect(trailingActions).toHaveClass("pointer-events-none");
@@ -1156,7 +1139,7 @@ describe("BrowserView", () => {
     await waitFor(() => {
       expect(screen.queryByTestId("browser-overlay-diagnostics")).not.toBeInTheDocument();
     });
-    expect(stage).toHaveStyle({ top: "44px" });
+    expect(stage).toHaveStyle({ top: "0px" });
     expect(screen.getByTestId("browser-overlay-top-rail")).toBeInTheDocument();
   });
 
@@ -1187,7 +1170,7 @@ describe("BrowserView", () => {
 
       expectInlineStyles(screen.getByTestId("browser-overlay-stage-shell"), {
         left: "0px",
-        top: "44px",
+        top: "0px",
         right: "0px",
         bottom: "0px",
       });
@@ -1202,16 +1185,16 @@ describe("BrowserView", () => {
           cmd: "create_or_update_browser_webview",
           args: {
             url: "https://example.com/article",
-            bounds: { x: 0, y: 44, width: 1400, height: 856 },
+            bounds: { x: 0, y: 18, width: 1400, height: 900 },
           },
         });
       });
       await waitFor(() => {
         expect(geometryEvents[geometryEvents.length - 1]?.detail.layoutDiagnostics.hostLogical).toEqual({
           x: 0,
-          y: 44,
+          y: 18,
           width: 1400,
-          height: 856,
+          height: 900,
         });
       });
     } finally {
@@ -1247,7 +1230,7 @@ describe("BrowserView", () => {
         cmd: "create_or_update_browser_webview",
         args: {
           url: "https://example.com/article",
-          bounds: { x: 28, y: 52, width: 1344, height: 792 },
+          bounds: { x: 0, y: 0, width: 1400, height: 900 },
         },
       });
     });
@@ -1277,7 +1260,7 @@ describe("BrowserView", () => {
     expectInlineStyles(stage, {
       left: "0px",
       right: "0px",
-      top: "48px",
+      top: "0px",
       bottom: "0px",
     });
     expect(stage).toHaveClass("rounded-none");
@@ -1308,7 +1291,7 @@ describe("BrowserView", () => {
     await waitFor(() => {
       expect(screen.queryByTestId("browser-overlay-diagnostics")).not.toBeInTheDocument();
     });
-    expect(stage).toHaveStyle({ top: "48px" });
+    expect(stage).toHaveStyle({ top: "0px" });
     expect(screen.getByTestId("browser-overlay-top-rail")).toBeInTheDocument();
   });
 
@@ -1485,7 +1468,7 @@ describe("BrowserView", () => {
         cmd: "create_or_update_browser_webview",
         args: {
           url: "https://example.com/article",
-          bounds: { x: 0, y: 44, width: 1400, height: 856 },
+          bounds: { x: 0, y: 0, width: 1400, height: 900 },
         },
       });
     });
@@ -1502,7 +1485,7 @@ describe("BrowserView", () => {
       expect(commands).toContainEqual({
         cmd: "set_browser_webview_bounds",
         args: {
-          bounds: { x: 0, y: 44, width: 1200, height: 756 },
+          bounds: { x: 0, y: 0, width: 1200, height: 800 },
         },
       });
     });
@@ -1546,7 +1529,7 @@ describe("BrowserView", () => {
         cmd: "create_or_update_browser_webview",
         args: {
           url: "https://example.com/article",
-          bounds: { x: 0, y: 44, width: 1400, height: 856 },
+          bounds: { x: 0, y: 0, width: 1400, height: 900 },
         },
       });
     });

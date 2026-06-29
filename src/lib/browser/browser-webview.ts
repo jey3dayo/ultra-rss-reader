@@ -2,7 +2,7 @@ import { Result } from "@praha/byethrow";
 import { BROWSER_WEBVIEW_DEFAULT_SCALE_FACTOR } from "@/constants/browser";
 
 export type BrowserWebviewBounds = {
-  // These bounds are measured from the browser overlay client root.
+  // These bounds are measured in the main webview viewport coordinate space.
   // When `unit` is omitted they are logical CSS pixels; Windows can opt into physical pixels to avoid DPI drift.
   x: number;
   y: number;

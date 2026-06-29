@@ -1,7 +1,6 @@
 import type { RefObject } from "react";
 import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import { toBrowserWebviewBounds } from "@/lib/browser/browser-webview";
-import { resolveBrowserOverlayClientRelativeRect } from "@/lib/browser/browser-webview-sync";
 import type { BrowserViewLayoutDiagnostics } from "../../browser-view.types";
 
 type UseBrowserLayoutDiagnosticsParams = {
@@ -38,11 +37,9 @@ export function useBrowserLayoutDiagnostics({
       return;
     }
 
-    const overlayBounds = toBrowserWebviewBounds(
-      resolveBrowserOverlayClientRelativeRect(overlayRef.current, overlayRect),
-    );
-    const stageBounds = toBrowserWebviewBounds(resolveBrowserOverlayClientRelativeRect(stageRef.current, stageRect));
-    const hostBounds = toBrowserWebviewBounds(resolveBrowserOverlayClientRelativeRect(hostRef.current, hostRect));
+    const overlayBounds = toBrowserWebviewBounds(overlayRect);
+    const stageBounds = toBrowserWebviewBounds(stageRect);
+    const hostBounds = toBrowserWebviewBounds(hostRect);
     if (!overlayBounds || !stageBounds || !hostBounds) {
       return;
     }

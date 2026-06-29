@@ -86,7 +86,7 @@ function resolveMainStageGeometry(
     },
     stage: {
       left: 0,
-      top: visualHeaderHeight,
+      top: 0,
       right: 0,
       bottom: 0,
     },
@@ -143,22 +143,22 @@ export function resolveBrowserViewerGeometry({
       bottom: 0,
     },
     host: {
-      left: 28,
-      top: 52,
-      right: 28,
-      bottom: 56,
+      left: 0,
+      top: 0,
+      right: 0,
+      bottom: 0,
     },
     chrome: {
-      visualHeaderHeight: 46,
+      visualHeaderHeight: 48,
       leadingSafeInset: 16,
       leading: {
-        left: 16,
-        top: 16,
+        left: 12,
+        top: 2,
       },
       action: {
-        right: 16,
-        top: 16,
-        size: 46,
+        right: 12,
+        top: 2,
+        size: 44,
       },
     },
     diagnostics: {

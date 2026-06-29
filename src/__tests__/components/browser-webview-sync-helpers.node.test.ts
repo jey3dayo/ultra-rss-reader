@@ -46,10 +46,10 @@ describe("browser-webview-sync-helpers", () => {
     });
   });
 
-  it("resolves browser webview bounds relative to the overlay root", () => {
+  it("resolves browser webview bounds in the main webview viewport coordinate space", () => {
     expect(resolveBrowserWebviewBounds(createRootRelativeHostRef({}, {}), "macos")).toEqual({
       x: 0,
-      y: 40,
+      y: 58,
       width: 1400,
       height: 860,
     });
@@ -76,8 +76,8 @@ describe("browser-webview-sync-helpers", () => {
         "windows",
       ),
     ).toEqual({
-      x: 40,
-      y: 80,
+      x: 62,
+      y: 116,
       width: 240,
       height: 160,
       unit: "physical",

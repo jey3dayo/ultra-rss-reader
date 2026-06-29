@@ -41,6 +41,28 @@ function logBrowserWebviewCloseFailure(error: AppError | unknown) {
   console.error(`Failed to close embedded browser webview (${category}):`, error);
 }
 
+function closeBrowserWebviewForCleanup() {
+  void closeBrowserWebview()
+    .then((result) => {
+      Result.pipe(
+        result,
+        Result.inspectError((error) => {
+          logBrowserWebviewCloseFailure(error);
+        }),
+      );
+    })
+    .catch((error: unknown) => {
+      logBrowserWebviewCloseFailure(error);
+    });
+}
+
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    useUiStore.getState().closeBrowser();
+    closeBrowserWebviewForCleanup();
+  });
+}
+
 export function useBrowserWebviewCleanup() {
   useEffect(() => {
     const mountedBrowserUrl = useUiStore.getState().browserUrl;
@@ -49,18 +71,7 @@ export function useBrowserWebviewCleanup() {
       if (currentBrowserUrl && currentBrowserUrl !== mountedBrowserUrl) {
         return;
       }
-      void closeBrowserWebview()
-        .then((result) => {
-          Result.pipe(
-            result,
-            Result.inspectError((error) => {
-              logBrowserWebviewCloseFailure(error);
-            }),
-          );
-        })
-        .catch((error: unknown) => {
-          logBrowserWebviewCloseFailure(error);
-        });
+      closeBrowserWebviewForCleanup();
     };
   }, []);
 }
