@@ -16,7 +16,7 @@ describe("desktop overlay titlebar contract", () => {
     expect(GLOBAL_CSS_SOURCE).toContain(
       '.desktop-overlay-titlebar-shell [data-article-list-header="true"][data-titlebar-control-reserve="sidebar-hidden"]',
     );
-    expect(GLOBAL_CSS_SOURCE).toContain("padding-left: calc(var(--desktop-titlebar-offset) + 16px);");
+    expect(GLOBAL_CSS_SOURCE).toContain("padding-left: calc(var(--desktop-titlebar-offset) + 24px);");
     expect(GLOBAL_CSS_SOURCE).not.toContain('[data-titlebar-control-reserve="true"]');
   });
 });

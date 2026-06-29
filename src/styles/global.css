@@ -953,7 +953,7 @@
 }
 
 .desktop-overlay-titlebar-shell [data-article-list-header="true"][data-titlebar-control-reserve="sidebar-hidden"] {
-  padding-left: calc(var(--desktop-titlebar-offset) + 16px);
+  padding-left: calc(var(--desktop-titlebar-offset) + 24px);
 }
 
 @keyframes article-list-titlebar-control-enter {
