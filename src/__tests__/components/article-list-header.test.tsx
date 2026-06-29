@@ -378,6 +378,7 @@ describe("ArticleListHeader", () => {
         isSearchEmptyState: false,
         setupEmptyState: "none",
         trimmedDebouncedQuery: "",
+        contentMotionKey: "all|all|browse",
         articleGroups: [],
         dimArchived: "true",
         textPreview: "none",

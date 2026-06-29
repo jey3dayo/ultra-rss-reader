@@ -20,9 +20,9 @@ type FeedItemContentProps = {
 
 function getFeedItemClassName(isSelected: boolean) {
   return cn(
-    "relative min-h-11 items-center overflow-hidden rounded-md px-2 py-1 text-sm hover:bg-[var(--sidebar-hover-surface)]",
+    "motion-feed-selection-marker relative min-h-11 items-center overflow-hidden rounded-md px-2 py-1 text-sm before:absolute before:inset-y-1.5 before:left-0 before:w-1.5 before:origin-center before:rounded-full before:bg-border-strong hover:bg-[var(--sidebar-hover-surface)]",
     isSelected
-      ? "border border-border-strong bg-surface-selected text-sidebar-accent-foreground shadow-none before:absolute before:inset-y-1.5 before:left-0 before:w-1.5 before:rounded-full before:bg-border-strong"
+      ? "border border-border-strong bg-surface-selected text-sidebar-accent-foreground shadow-none"
       : "text-sidebar-foreground",
   );
 }

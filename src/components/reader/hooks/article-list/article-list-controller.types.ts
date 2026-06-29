@@ -104,6 +104,7 @@ export type UseArticleListViewPropsParams = {
   isLoadingRecentArticles: boolean;
   isLoadingTagArticles: boolean;
   trimmedDebouncedQuery: string;
+  contentMotionKey: ArticleListBodyProps["contentMotionKey"];
   articleGroups: ArticleGroupsViewGroup[];
   dimArchived: string;
   textPreview: string;

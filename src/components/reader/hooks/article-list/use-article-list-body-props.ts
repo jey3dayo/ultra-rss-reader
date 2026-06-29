@@ -24,6 +24,7 @@ type UseArticleListBodyPropsParams = {
   isSearchEmptyState: boolean;
   setupEmptyState: ArticleListSetupState;
   trimmedDebouncedQuery: string;
+  contentMotionKey: ArticleListBodyProps["contentMotionKey"];
   articleGroups: ArticleListBodyProps["groups"];
   dimArchived: ArticleListBodyProps["dimArchived"];
   textPreview: ArticleListBodyProps["textPreview"];
@@ -136,6 +137,7 @@ export function useArticleListBodyProps({
   isSearchEmptyState,
   setupEmptyState,
   trimmedDebouncedQuery,
+  contentMotionKey,
   articleGroups,
   dimArchived,
   textPreview,
@@ -170,6 +172,7 @@ export function useArticleListBodyProps({
     loadingMessage: tc("loading"),
     ...emptyStateProps,
     groups: articleGroups,
+    contentMotionKey,
     dimArchived,
     textPreview,
     imagePreviews,

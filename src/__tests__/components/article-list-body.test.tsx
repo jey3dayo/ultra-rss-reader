@@ -32,6 +32,7 @@ function renderArticleListBody({
       ],
     },
   ],
+  contentMotionKey,
   onSelectArticle = vi.fn(),
   onMarkAllRead = vi.fn(),
   manageSelectedFeedLabel,
@@ -44,6 +45,7 @@ function renderArticleListBody({
   onEmptyAction?: () => void;
   isLoading?: boolean;
   groups?: ComponentProps<typeof ArticleListBody>["groups"];
+  contentMotionKey?: ComponentProps<typeof ArticleListBody>["contentMotionKey"];
   onSelectArticle?: (articleId: string) => void;
   onMarkAllRead?: () => void;
   manageSelectedFeedLabel?: string;
@@ -63,6 +65,7 @@ function renderArticleListBody({
       emptyActionLabel={emptyActionLabel}
       onEmptyAction={onEmptyAction}
       groups={groups}
+      contentMotionKey={contentMotionKey}
       dimArchived="true"
       textPreview="true"
       imagePreviews="off"
@@ -94,6 +97,8 @@ describe("ArticleListBody", () => {
     const row = screen.getByRole("option", { name: /First Article/ });
 
     expect(listbox).toContainElement(row);
+    expect(screen.getByTestId("article-list-scroll-content")).toHaveClass("motion-content-swap");
+    expect(screen.getByTestId("article-list-scroll-content")).toHaveAttribute("data-motion-phase", "entering");
 
     fireEvent.contextMenu(row);
     expect(await screen.findByRole("menuitem", { name: "Mark as Read" })).toBeInTheDocument();
@@ -101,6 +106,83 @@ describe("ArticleListBody", () => {
 
     await user.click(row);
     expect(onSelectArticle).toHaveBeenCalledWith(sampleArticles[0].id);
+  });
+
+  it("keeps the list DOM stable for article updates inside the same motion scope", () => {
+    const firstGroups = [
+      {
+        id: "today",
+        label: "Today",
+        showLabel: true,
+        items: [
+          {
+            article: sampleArticles[0],
+            feedName: "Tech Blog",
+            isSelected: false,
+            isRecentlyRead: false,
+          },
+        ],
+      },
+    ];
+    const secondGroups = [
+      {
+        ...firstGroups[0],
+        items: [
+          {
+            article: { ...sampleArticles[0], is_read: true },
+            feedName: "Tech Blog",
+            isSelected: false,
+            isRecentlyRead: true,
+          },
+        ],
+      },
+    ];
+
+    const { rerender } = render(
+      <ArticleListBody
+        listAriaLabel="Article list"
+        listRef={{ current: null }}
+        viewportRef={{ current: null }}
+        onListKeyDownCapture={vi.fn()}
+        isLoading={false}
+        loadingMessage="Loading articles"
+        emptyMessage="No articles"
+        groups={firstGroups}
+        contentMotionKey="feed:feed-1|unread|browse"
+        dimArchived="true"
+        textPreview="true"
+        imagePreviews="off"
+        selectionStyle="modern"
+        onSelectArticle={vi.fn()}
+        markAllReadLabel="Mark all as read"
+        onMarkAllRead={vi.fn()}
+      />,
+      { wrapper: createWrapper() },
+    );
+    const scrollContent = screen.getByTestId("article-list-scroll-content");
+
+    rerender(
+      <ArticleListBody
+        listAriaLabel="Article list"
+        listRef={{ current: null }}
+        viewportRef={{ current: null }}
+        onListKeyDownCapture={vi.fn()}
+        isLoading={false}
+        loadingMessage="Loading articles"
+        emptyMessage="No articles"
+        groups={secondGroups}
+        contentMotionKey="feed:feed-1|unread|browse"
+        dimArchived="true"
+        textPreview="true"
+        imagePreviews="off"
+        selectionStyle="modern"
+        onSelectArticle={vi.fn()}
+        markAllReadLabel="Mark all as read"
+        onMarkAllRead={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId("article-list-scroll-content")).toBe(scrollContent);
   });
 
   it("copies the right-clicked article URL from the row context menu", async () => {

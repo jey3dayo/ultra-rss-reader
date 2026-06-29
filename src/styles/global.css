@@ -1142,6 +1142,19 @@ html.vertical-wipe-transition::view-transition-new(root) {
   transform: none;
 }
 
+.motion-feed-selection-marker::before {
+  opacity: 0;
+  transform: scaleY(0.72);
+  transition:
+    opacity var(--motion-duration-contextual) var(--motion-ease-standard),
+    transform var(--motion-duration-contextual) var(--motion-ease-emphasized);
+}
+
+.motion-feed-selection-marker[aria-current="page"]::before {
+  opacity: 1;
+  transform: scaleY(1);
+}
+
 @keyframes motion-content-swap-enter {
   from {
     opacity: 0;
@@ -1510,6 +1523,7 @@ html.vertical-wipe-transition::view-transition-new(root) {
   .motion-filter-toggle,
   .motion-filter-toggle > [data-filter-toggle-content="true"],
   .motion-static-hover-surface,
+  .motion-feed-selection-marker::before,
   .motion-content-swap,
   .motion-resize-surface,
   .motion-popup-overlay,

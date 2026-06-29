@@ -4,7 +4,26 @@ import { useArticleListHeaderController } from "@/components/reader/hooks/articl
 import { useArticleListInteractions } from "@/components/reader/hooks/article-list/use-article-list-interactions";
 import { useArticleListViewProps } from "@/components/reader/hooks/article-list/use-article-list-view-props";
 import { useArticleListViewState } from "@/components/reader/hooks/article-list/use-article-list-view-state";
-import type { UseArticleListPresentationParams, UseArticleListViewPropsResult } from "./article-list-controller.types";
+import type {
+  ArticleListSelection,
+  UseArticleListPresentationParams,
+  UseArticleListViewPropsResult,
+} from "./article-list-controller.types";
+
+function getArticleListSelectionMotionKey(selection: ArticleListSelection): string {
+  switch (selection.type) {
+    case "feed":
+      return `feed:${selection.feedId}`;
+    case "folder":
+      return `folder:${selection.folderId}`;
+    case "smart":
+      return `smart:${selection.kind}`;
+    case "tag":
+      return `tag:${selection.tagId}`;
+    case "all":
+      return "all";
+  }
+}
 
 export function useArticleListPresentation({
   t,
@@ -106,6 +125,11 @@ export function useArticleListPresentation({
     setWebPreviewSessionMode,
   });
   const { handleMarkAllRead, ...headerControls } = headerController;
+  const contentMotionKey = [
+    getArticleListSelectionMotionKey(selection),
+    effectiveViewMode,
+    showSearch ? `search:${trimmedDebouncedQuery}` : "browse",
+  ].join("|");
 
   const { listRef, viewportRef, handleListKeyDownCapture } = useArticleListInteractions({
     filteredArticles,
@@ -153,6 +177,7 @@ export function useArticleListPresentation({
     isLoadingRecentArticles,
     isLoadingTagArticles,
     trimmedDebouncedQuery,
+    contentMotionKey,
     articleGroups,
     dimArchived,
     textPreview,

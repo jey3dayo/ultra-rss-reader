@@ -21,6 +21,7 @@ type ArticleListScreenViewProps = {
   emptyActionLabel?: string;
   onEmptyAction?: () => void;
   groups: ArticleGroupsViewGroup[];
+  contentMotionKey?: string;
   dimArchived: string;
   textPreview: string;
   imagePreviews: string;
@@ -42,6 +43,7 @@ export function ArticleListScreenView({
   emptyActionLabel,
   onEmptyAction,
   groups,
+  contentMotionKey = "article-list",
   dimArchived,
   textPreview,
   imagePreviews,
@@ -120,7 +122,12 @@ export function ArticleListScreenView({
         thumbClassName="bg-[color-mix(in_srgb,var(--color-border-strong)_72%,transparent)]"
         viewportRef={viewportRef}
       >
-        <div data-testid="article-list-scroll-content">
+        <div
+          key={contentMotionKey}
+          data-testid="article-list-scroll-content"
+          className="motion-content-swap"
+          data-motion-phase="entering"
+        >
           <div
             ref={listRef}
             role="listbox"
