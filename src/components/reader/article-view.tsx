@@ -1,3 +1,4 @@
+import { Clock3, Folder, Hash, Inbox, Star } from "lucide-react";
 import { type ComponentProps, lazy, type ReactNode, Suspense, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useArticleViewSelection } from "@/components/reader/hooks/article/use-article-view-selection";
@@ -7,6 +8,8 @@ import {
   type ArticleViewSummaryFeed,
   type ArticleViewSummaryState,
   resolveArticleDateLocale,
+  resolveArticleSummaryWebsiteHref,
+  resolveArticleSummaryWebsiteLabel,
 } from "@/lib/articles/article-view";
 import i18n from "@/lib/i18n";
 import { useI18nResourceNamespace } from "@/lib/i18n/use-i18n-resource-namespace";
@@ -37,6 +40,8 @@ type SummaryIdentityProps = {
 
 type SummaryScopeProps = {
   title: string;
+  subtitle: ReactNode;
+  visual: ReactNode;
   metrics: SummaryIdentityProps[];
   recentFeeds: ArticleViewSummaryFeed[];
   accentTone?: "unread" | "starred";
@@ -94,7 +99,7 @@ function RecentFeedRow({ feed }: { feed: ArticleViewSummaryFeed }) {
   );
 }
 
-function SummaryEmptyState({ title, metrics, recentFeeds, accentTone }: SummaryScopeProps) {
+function SummaryEmptyState({ title, subtitle, visual, metrics, recentFeeds, accentTone }: SummaryScopeProps) {
   const { t } = useTranslation("reader");
 
   return (
@@ -112,6 +117,20 @@ function SummaryEmptyState({ title, metrics, recentFeeds, accentTone }: SummaryS
             className={SUMMARY_CONTAINER_CLASS_NAME}
           >
             <div className="w-full px-1">
+              <div className="mb-7 flex min-w-0 items-center gap-3">
+                <span
+                  aria-hidden="true"
+                  className="flex size-9 shrink-0 items-center justify-center rounded-md text-foreground-soft"
+                >
+                  {visual}
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate font-sans text-xl font-semibold leading-tight text-foreground" dir="auto">
+                    {title}
+                  </p>
+                  <p className="mt-1 text-xs leading-tight text-foreground-soft">{subtitle}</p>
+                </div>
+              </div>
               <div
                 className="grid grid-cols-2 gap-x-9 gap-y-5 min-[34rem]:grid-cols-[repeat(3,minmax(4rem,1fr))_minmax(7.5rem,1.2fr)]"
                 data-testid="article-selection-summary-metrics"
@@ -201,8 +220,25 @@ function buildSummaryIdentityProps(
   ];
 
   if (summary.kind === "feed") {
+    const websiteHref = resolveArticleSummaryWebsiteHref(summary.feed);
+    const websiteLabel = resolveArticleSummaryWebsiteLabel(summary.feed);
+
     return {
       title: summary.feed.title,
+      subtitle:
+        websiteHref && websiteLabel ? (
+          <a
+            href={websiteHref}
+            className="underline-offset-2 transition-colors hover:text-foreground hover:underline focus-visible:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45"
+          >
+            {websiteLabel}
+          </a>
+        ) : (
+          readerT("feed_or_site_url")
+        ),
+      visual: (
+        <FeedFavicon title={summary.feed.title} url={summary.feed.url} siteUrl={summary.feed.site_url} size="md" />
+      ),
       metrics: buildMetrics({
         unreadCount: summary.feed.unread_count,
         todayArticleCount: summary.todayArticleCount,
@@ -216,6 +252,8 @@ function buildSummaryIdentityProps(
   if (summary.kind === "folder") {
     return {
       title: summary.folder.name,
+      subtitle: readerT("summary_feed_count", { count: summary.feedCount }),
+      visual: <Folder className="size-4" />,
       metrics: buildMetrics({
         unreadCount: summary.unreadCount,
         todayArticleCount: summary.todayArticleCount,
@@ -229,6 +267,8 @@ function buildSummaryIdentityProps(
   if (summary.kind === "tag") {
     return {
       title: summary.tag.name,
+      subtitle: readerT("summary_feed_count", { count: summary.feedCount }),
+      visual: <Hash className="size-4" />,
       metrics: buildMetrics({
         unreadCount: summary.unreadCount,
         todayArticleCount: summary.todayArticleCount,
@@ -241,20 +281,25 @@ function buildSummaryIdentityProps(
   const smartSummaryView = {
     unread: {
       title: sidebarT("unread"),
+      visual: <Inbox className="size-4" />,
       accentTone: "unread" as const,
     },
     starred: {
       title: sidebarT("starred"),
+      visual: <Star className="size-4" />,
       accentTone: "starred" as const,
     },
     recent: {
       title: sidebarT("recent_articles"),
+      visual: <Clock3 className="size-4" />,
       accentTone: undefined,
     },
   }[summary.smartKind];
 
   return {
     title: smartSummaryView.title,
+    subtitle: readerT("summary_article_count", { count: summary.articleCount }),
+    visual: smartSummaryView.visual,
     accentTone: smartSummaryView.accentTone,
     metrics: buildMetrics({
       unreadCount: summary.unreadCount,

@@ -2107,12 +2107,12 @@ describe("ArticleView", () => {
     expectSummaryMetricMotionValue(summary, "Published today", "0");
     expectSummaryMetricMotionValue(summary, "New this week", "0");
     expect(within(summary).queryByText("Recent feeds")).not.toBeInTheDocument();
-    expect(within(summary).queryByText("Tech Blog")).not.toBeInTheDocument();
+    expect(within(summary).getByText("Tech Blog")).toHaveClass("text-xl", "font-semibold");
+    expect(within(summary).getByRole("link", { name: "example.com" })).toHaveAttribute("href", "https://example.com");
     expect(within(summary).queryByRole("button", { name: /Manage subscription.*Tech Blog/i })).not.toBeInTheDocument();
     expect(within(summary).queryByText("Latest Article")).not.toBeInTheDocument();
     expect(within(summary).getByText("Latest Update")).toBeInTheDocument();
     expectSummaryMetricKind(summary, "Latest Update", "date");
-    expect(within(summary).queryByText("example.com")).not.toBeInTheDocument();
     expect(screen.queryByText("Select an article")).not.toBeInTheDocument();
   });
 
@@ -2168,6 +2168,8 @@ describe("ArticleView", () => {
 
     const summary = await screen.findByTestId("article-selection-summary");
     expect(within(summary).queryByText(/^Overview$/i)).not.toBeInTheDocument();
+    expect(within(summary).getByText("Gaming")).toHaveClass("text-xl", "font-semibold");
+    expect(within(summary).getByText("1 feed")).toBeInTheDocument();
     expectSummaryMetricMotionValue(summary, "Unread", "3");
     expectSummaryMetricMotionValue(summary, "Published today", "0");
     expectSummaryMetricMotionValue(summary, "New this week", "0");
