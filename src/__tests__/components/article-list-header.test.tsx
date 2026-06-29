@@ -361,11 +361,6 @@ describe("ArticleListHeader", () => {
         handleToggleSearch,
         handleCloseSearch,
         setSearchQuery,
-        contextStripContext: {
-          primaryLabel: null,
-          secondaryLabel: null,
-          tone: null,
-        },
         listRef,
         viewportRef,
         handleListKeyDownCapture: vi.fn(),

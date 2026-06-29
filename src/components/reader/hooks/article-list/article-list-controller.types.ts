@@ -9,7 +9,6 @@ import type { ViewMode } from "@/lib/reader/view-mode.types";
 import type { SmartViewKind } from "@/lib/sidebar/smart-view.types";
 import type { ArticleGroupsViewGroup } from "../../article-groups-view";
 import type { ArticleListBodyProps } from "../../article-list-body";
-import type { ArticleListContextStripProps } from "../../article-list-context-strip";
 import type { ArticleListFooterProps } from "../../article-list-footer";
 import type { ArticleListHeaderProps } from "../../article-list-header";
 import type { ArticleListSetupState } from "./use-article-list-body-props";
@@ -25,7 +24,6 @@ export type UseArticleListViewPropsResult = {
   layoutMode: LayoutMode;
   contentMode: ContentMode;
   headerProps: ArticleListHeaderProps;
-  contextStripProps: ArticleListContextStripProps;
   bodyProps: ArticleListBodyProps;
   footerProps: ArticleListFooterProps;
 };
@@ -50,7 +48,6 @@ export type UseArticleListInteractionsResult = {
 
 export type UseArticleListViewStateParams = {
   selection: ArticleListSelection;
-  t: TFunction<"reader">;
   selectedAccountId: string | null;
   feedId: string | null;
   tagId: string | null;
@@ -70,11 +67,6 @@ export type UseArticleListViewStateParams = {
 };
 
 export type UseArticleListViewStateResult = {
-  contextStripContext: {
-    primaryLabel: string | null;
-    secondaryLabel: string | null;
-    tone: "unread" | "starred" | null;
-  };
   footerModes: ReadonlyArray<ViewMode>;
   footerDisabledModes: ReadonlyArray<ViewMode>;
   isPrimarySourceLoading: boolean;
@@ -120,12 +112,7 @@ export type UseArticleListViewPropsParams = {
 > &
   Pick<
     UseArticleListViewStateResult,
-    | "contextStripContext"
-    | "footerModes"
-    | "footerDisabledModes"
-    | "isSearchLoading"
-    | "isSearchEmptyState"
-    | "setupEmptyState"
+    "footerModes" | "footerDisabledModes" | "isSearchLoading" | "isSearchEmptyState" | "setupEmptyState"
   >;
 
 export type UseArticleListPresentationParams = {

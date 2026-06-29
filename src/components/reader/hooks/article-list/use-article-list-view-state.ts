@@ -4,7 +4,6 @@ import type { UseArticleListViewStateParams, UseArticleListViewStateResult } fro
 
 export function useArticleListViewState({
   selection,
-  t,
   selectedAccountId,
   feedId,
   tagId,
@@ -21,34 +20,6 @@ export function useArticleListViewState({
   isSearching,
   filteredArticleCount,
 }: UseArticleListViewStateParams): UseArticleListViewStateResult {
-  const contextStripContext = useMemo<UseArticleListViewStateResult["contextStripContext"]>(() => {
-    if (selection.type !== "smart") {
-      return { primaryLabel: null, secondaryLabel: null, tone: null };
-    }
-
-    if (selection.kind === "unread") {
-      return {
-        primaryLabel: t("unread"),
-        secondaryLabel: null,
-        tone: "unread",
-      };
-    }
-
-    if (selection.kind === "recent") {
-      return {
-        primaryLabel: t("recent_articles"),
-        secondaryLabel: null,
-        tone: null,
-      };
-    }
-
-    return {
-      primaryLabel: t("starred"),
-      secondaryLabel: null,
-      tone: "starred",
-    };
-  }, [selection, t]);
-
   const footerModes = useMemo<ReadonlyArray<ViewMode>>(() => {
     if (selection.type !== "smart") {
       return ["unread", "all", "starred"];
@@ -96,7 +67,6 @@ export function useArticleListViewState({
           : "none";
 
   return {
-    contextStripContext,
     footerModes,
     footerDisabledModes,
     isPrimarySourceLoading,

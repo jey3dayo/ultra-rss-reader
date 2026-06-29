@@ -28,7 +28,6 @@ const localOnlyTypeSurfaceFiles = [
 const cleanupContractTestFiles = {
   semanticTokenAndRoleContracts: [
     "src/__tests__/components/article-filter-toggle-button.test.ts",
-    "src/__tests__/components/article-list-context-strip.test.tsx",
     "src/__tests__/components/article-list-footer.test.tsx",
     "src/__tests__/components/article-list-item.test.tsx",
     "src/__tests__/components/surface-card.test.tsx",

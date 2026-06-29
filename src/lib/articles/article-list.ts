@@ -606,8 +606,8 @@ export function calculateArticleNavigationScrollTop(params: CalculateArticleNavi
 
   let nextScrollTop: number | null = null;
 
-  if (direction === -1) {
-    nextScrollTop = currentScrollTop + (itemTop - topBoundary);
+  if (direction === -1 && itemTop < topBoundary) {
+    nextScrollTop = currentScrollTop - (topBoundary - itemTop);
   } else if (itemBottom > bottomBoundary) {
     nextScrollTop = currentScrollTop + (itemBottom - bottomBoundary);
   } else if (itemTop < topBoundary) {

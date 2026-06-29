@@ -18,7 +18,6 @@ export function useArticleListViewProps({
   handleToggleSearch,
   handleCloseSearch,
   setSearchQuery,
-  contextStripContext,
   listRef,
   viewportRef,
   handleListKeyDownCapture,
@@ -96,11 +95,6 @@ export function useArticleListViewProps({
       onToggleSearch: handleToggleSearch,
       onCloseSearch: handleCloseSearch,
       onSearchQueryChange: setSearchQuery,
-    },
-    contextStripProps: {
-      primaryLabel: contextStripContext.primaryLabel,
-      secondaryLabel: contextStripContext.secondaryLabel,
-      tone: contextStripContext.tone,
     },
     bodyProps,
     footerProps: {

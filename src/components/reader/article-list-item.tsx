@@ -95,7 +95,7 @@ export function ArticleListItem({
                 cn(
                   activePane
                     ? "bg-surface-2/45 after:bg-border-strong focus-visible:bg-surface-2/55"
-                    : "bg-surface-2/28 after:bg-border-strong/50 focus-visible:bg-surface-2/38",
+                    : "bg-surface-2/28 after:bg-border-strong/70 focus-visible:bg-surface-2/38",
                   MOTION_ARTICLE_SELECTION_MARKER_CLASS_NAME,
                   "after:absolute after:inset-y-2 after:left-2 after:w-0.5 after:rounded-full",
                 ),
@@ -125,6 +125,7 @@ export function ArticleListItem({
             </h3>
             <span
               aria-hidden={!article.is_starred}
+              data-article-state-slot="reserved"
               data-testid="article-star-slot"
               className={cn(
                 MOTION_ARTICLE_STATE_SLOT_CLASS_NAME,

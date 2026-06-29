@@ -1139,7 +1139,7 @@ describe("ArticleList", () => {
     await waitFor(() => {
       expect(useUiStore.getState().selectedArticleId).toBe("art-1");
       expect(useUiStore.getState().articleNavigationDirection).toBe(-1);
-      expect(viewport.scrollTop).toBe(316);
+      expect(viewport.scrollTop).toBe(240);
     });
   });
 
@@ -1650,7 +1650,7 @@ describe("ArticleList", () => {
     });
   });
 
-  it("shows smart unread context and keeps only a disabled unread footer control", async () => {
+  it("omits smart unread header context and keeps only a disabled unread footer control", async () => {
     useUiStore.getState().selectAccount("acc-1");
     useUiStore.getState().selectSmartView("unread");
 
@@ -1660,7 +1660,8 @@ describe("ArticleList", () => {
       expect(screen.getByText(sampleArticles[0].title)).toBeInTheDocument();
     });
 
-    expect(screen.getByText("Unread")).toHaveAttribute("data-emphasis", "primary");
+    expect(screen.queryByTestId("article-list-context-strip")).not.toBeInTheDocument();
+    expect(screen.queryByText("Unread")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "UNREAD" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "UNREAD" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.queryByRole("button", { name: "ALL" })).not.toBeInTheDocument();
@@ -1687,7 +1688,7 @@ describe("ArticleList", () => {
     expect(screen.queryByRole("button", { name: "STARRED" })).not.toBeInTheDocument();
   });
 
-  it("shows smart starred context and limits footer controls to unread and all while all filter is active", async () => {
+  it("omits smart starred header context and limits footer controls to unread and all while all filter is active", async () => {
     useUiStore.getState().selectAccount("acc-1");
     useUiStore.getState().setViewMode("all");
     useUiStore.getState().selectSmartView("starred");
@@ -1698,13 +1699,8 @@ describe("ArticleList", () => {
       expect(screen.getByText(sampleArticles[1].title)).toBeInTheDocument();
     });
 
-    const context = screen.getByText("Starred").closest("div");
-    expect(context).not.toBeNull();
-    if (!context) {
-      throw new Error("Expected smart view context strip to be rendered");
-    }
-    expect(within(context).getByText("Starred")).toHaveAttribute("data-emphasis", "primary");
-    expect(within(context).queryByText("ALL")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("article-list-context-strip")).not.toBeInTheDocument();
+    expect(screen.queryByText("Starred")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "UNREAD" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "ALL" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "STARRED" })).not.toBeInTheDocument();
@@ -1949,12 +1945,8 @@ describe("ArticleList", () => {
     expect(screen.getByRole("button", { name: "UNREAD" })).toHaveAttribute("aria-pressed", "false");
     expect(screen.queryByRole("button", { name: "STARRED" })).not.toBeInTheDocument();
 
-    const context = screen.getByText("Starred").closest("div");
-    expect(context).not.toBeNull();
-    if (!context) {
-      throw new Error("Expected smart view context strip to be rendered");
-    }
-    expect(within(context).queryByText("ALL")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("article-list-context-strip")).not.toBeInTheDocument();
+    expect(screen.queryByText("Starred")).not.toBeInTheDocument();
   });
 
   it("lets the recent smart view filter by unread, all, and starred articles", async () => {

@@ -137,6 +137,25 @@ describe("semantic tone tokens", () => {
     }
   });
 
+  it("keeps empty-slot motion from hiding filled unread indicators", () => {
+    const css = readFileSync(GLOBAL_CSS_PATH, "utf-8");
+
+    expect(css).toContain('.motion-article-state-slot[data-article-state-slot="reserved"]:empty');
+    expect(css).not.toContain(".motion-article-state-slot:empty {");
+  });
+
+  it("keeps article selection marker motion on compositor-friendly properties", () => {
+    const css = readFileSync(GLOBAL_CSS_PATH, "utf-8");
+    const markerKeyframes = css.match(/@keyframes motion-article-selection-marker\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
+
+    expect(markerKeyframes).toContain("opacity: 0");
+    expect(markerKeyframes).toContain("transform: scaleY(0.72)");
+    expect(css).toContain("transform: scaleY(1)");
+    expect(markerKeyframes).not.toContain("translateY");
+    expect(css).not.toContain("--motion-article-selection-marker-offset");
+    expect(css).not.toContain(".motion-article-selection-marker,\n.motion-article-selection-marker::after");
+  });
+
   it("keeps @theme color aliases backed by both light and dark root tokens", () => {
     const css = readFileSync(GLOBAL_CSS_PATH, "utf-8");
     const themeColorAliases = getThemeColorAliasTokenNames(getRuleBlock(css, "@theme inline"));

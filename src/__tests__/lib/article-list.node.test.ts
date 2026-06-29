@@ -1253,7 +1253,7 @@ describe("article-list utils", () => {
     expect(Result.unwrapError(result)).toBe("no_articles");
   });
 
-  it("positions the previous article below the sticky header when navigating upward", () => {
+  it("keeps the scroll position when the previous article is already comfortably visible", () => {
     const result = calculateArticleNavigationScrollTop({
       currentScrollTop: 240,
       viewportTop: 100,
@@ -1266,7 +1266,23 @@ describe("article-list utils", () => {
       maxScrollTop: 800,
     });
 
-    expect(result).toBe(316);
+    expect(result).toBeNull();
+  });
+
+  it("scrolls just enough to reveal the previous article below the sticky header", () => {
+    const result = calculateArticleNavigationScrollTop({
+      currentScrollTop: 240,
+      viewportTop: 100,
+      viewportHeight: 360,
+      itemTop: 128,
+      itemHeight: 72,
+      direction: -1,
+      stickyTopOffset: 32,
+      edgePadding: 12,
+      maxScrollTop: 800,
+    });
+
+    expect(result).toBe(224);
   });
 
   it("scrolls just enough to reveal the next article when navigating downward", () => {

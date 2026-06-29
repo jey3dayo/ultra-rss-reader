@@ -2,12 +2,11 @@ import { useArticleListController } from "@/components/reader/hooks/article-list
 import { ARTICLE_LIST_PANE_WIDTH_PX } from "@/constants/ui-layout";
 import { cn } from "@/lib/utils";
 import { ArticleListBody } from "./article-list-body";
-import { ArticleListContextStrip } from "./article-list-context-strip";
 import { ArticleListFooter } from "./article-list-footer";
 import { ArticleListHeader } from "./article-list-header";
 
 export function ArticleList() {
-  const { layoutMode, headerProps, contextStripProps, bodyProps, footerProps } = useArticleListController();
+  const { layoutMode, headerProps, bodyProps, footerProps } = useArticleListController();
 
   return (
     <div
@@ -19,7 +18,6 @@ export function ArticleList() {
       style={layoutMode === "mobile" ? undefined : { width: `${ARTICLE_LIST_PANE_WIDTH_PX}px` }}
     >
       <ArticleListHeader {...headerProps} />
-      <ArticleListContextStrip {...contextStripProps} />
       <ArticleListBody {...bodyProps} />
       <ArticleListFooter {...footerProps} />
     </div>

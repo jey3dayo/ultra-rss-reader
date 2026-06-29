@@ -79,7 +79,6 @@ export function useArticleListPresentation({
 }: UseArticleListPresentationParams): UseArticleListViewPropsResult {
   const viewState = useArticleListViewState({
     selection,
-    t,
     selectedAccountId,
     feedId,
     tagId,

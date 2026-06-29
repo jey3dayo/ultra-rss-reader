@@ -1,6 +1,5 @@
 import { cleanup, renderHook } from "@testing-library/react";
 import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
-import type { TFunction } from "i18next";
 import { afterEach, describe, expect, it } from "vitest";
 import type { UseArticleListViewStateParams } from "@/components/reader/hooks/article-list/article-list-controller.types";
 import { useArticleListViewState } from "@/components/reader/hooks/article-list/use-article-list-view-state";
@@ -12,7 +11,7 @@ afterEach(() => {
 });
 
 describe("useArticleListViewState", () => {
-  it("derives unread smart-view labels and locks the unread footer mode", () => {
+  it("locks the unread footer mode for the unread smart view", () => {
     const { result } = renderHook(() =>
       useArticleListViewState(
         createParams({
@@ -22,11 +21,6 @@ describe("useArticleListViewState", () => {
       ),
     );
 
-    expect(result.current.contextStripContext).toEqual({
-      primaryLabel: "reader:unread",
-      secondaryLabel: null,
-      tone: "unread",
-    });
     expect(result.current.footerModes).toEqual(["unread"]);
     expect(result.current.footerDisabledModes).toEqual(["unread"]);
     expect(result.current.isPrimarySourceLoading).toBe(false);
@@ -48,11 +42,6 @@ describe("useArticleListViewState", () => {
       ),
     );
 
-    expect(result.current.contextStripContext).toEqual({
-      primaryLabel: null,
-      secondaryLabel: null,
-      tone: null,
-    });
     expect(result.current.footerModes).toEqual(["unread", "all", "starred"]);
     expect(result.current.footerDisabledModes).toEqual([]);
     expect(result.current.isPrimarySourceLoading).toBe(true);
@@ -136,7 +125,6 @@ describe("useArticleListViewState", () => {
 function createParams(overrides: Partial<UseArticleListViewStateParams> = {}): UseArticleListViewStateParams {
   return {
     selection: { type: "smart", kind: "recent" },
-    t: ((key: string) => `reader:${key}`) as TFunction<"reader">,
     selectedAccountId: null,
     feedId: null,
     tagId: null,

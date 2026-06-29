@@ -533,6 +533,7 @@ describe("ArticleListItem", () => {
     });
     expect(inactiveOption).toHaveAttribute("data-active-pane", "false");
     expect(inactiveOption).toHaveClass("bg-surface-2/28");
+    expect(inactiveOption).toHaveClass("after:bg-border-strong/70");
     expect(inactiveOption).not.toHaveClass("shadow-[var(--sidebar-selection-shadow)]");
 
     rerender(

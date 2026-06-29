@@ -144,7 +144,6 @@
   --motion-settings-modal-offset: 10px;
   --motion-settings-modal-scale-closed: 0.985;
   --motion-state-toggle-scale-active: 1.08;
-  --motion-article-selection-marker-offset: 6px;
   --motion-icon-swap-inactive-blur: 0.75px;
   --motion-icon-swap-inactive-scale: 0.85;
   --digit-dur: 500ms;
@@ -1290,16 +1289,15 @@ html.vertical-wipe-transition::view-transition-new(root) {
 @keyframes motion-article-selection-marker {
   from {
     opacity: 0;
-    transform: translateY(var(--motion-article-selection-marker-offset));
+    transform: scaleY(0.72);
   }
 
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: scaleY(1);
   }
 }
 
-.motion-article-selection-marker,
 .motion-article-selection-marker::after {
   transform-origin: center;
   animation: motion-article-selection-marker var(--motion-duration-contextual) var(--motion-ease-standard);
@@ -1312,7 +1310,7 @@ html.vertical-wipe-transition::view-transition-new(root) {
     transform var(--motion-duration-contextual) var(--motion-ease-standard);
 }
 
-.motion-article-state-slot:empty {
+.motion-article-state-slot[data-article-state-slot="reserved"]:empty {
   opacity: 0;
   transform: scale(0.84);
 }
@@ -1591,12 +1589,12 @@ html.vertical-wipe-transition::view-transition-new(root) {
   .motion-article-selection-marker,
   .motion-article-selection-marker::after,
   .motion-article-state-slot,
-  .motion-article-state-slot:empty {
+  .motion-article-state-slot[data-article-state-slot="reserved"]:empty {
     transform: none;
   }
 
   .motion-article-state-slot,
-  .motion-article-state-slot:empty {
+  .motion-article-state-slot[data-article-state-slot="reserved"]:empty {
     opacity: 1;
   }
 
