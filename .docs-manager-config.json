@@ -1,0 +1,34 @@
+{
+  "docs_root": "./docs",
+  "project_type": "generic",
+  "metadata_profile": "okf",
+  "required_tags": ["category/", "audience/"],
+  "optional_tags": ["environment/", "layer/", "tool/", "status/"],
+  "tag_separator": ", ",
+  "size_limits": {
+    "ideal": 300,
+    "acceptable": 500,
+    "warning": 1000,
+    "maximum": 2000
+  },
+  "metadata_format": {
+    "frontmatter": true,
+    "required_fields": ["type"],
+    "recommended_fields": ["title", "description", "resource", "tags", "timestamp", "audience", "owner"],
+    "date_field": "timestamp",
+    "date_format": "YYYY-MM-DD",
+    "audience_field": "audience",
+    "tags_field": "tags"
+  },
+  "link_validation": {
+    "enabled": true
+  },
+  "custom_rules": {
+    "required_files": ["README.md", "incident-runbook.md", "release-manual-verification.md"],
+    "update_frequency": {
+      "README.md": "quarterly",
+      "incident-runbook.md": "quarterly",
+      "release-manual-verification.md": "quarterly"
+    }
+  }
+}

@@ -1,3 +1,14 @@
+---
+type: reference
+title: Reader Article Scope Matrix
+description: Reader article source, scope, filter, hook, and paging-order contract.
+resource: urn:ultra-rss-reader:docs:reader-article-scope-matrix
+tags: [category/reference, audience/developer, layer/frontend]
+timestamp: 2026-06-29
+audience: developer
+owner: project-maintainers
+---
+
 # Reader Article Scope Matrix
 
 記事一覧の表示対象は `resolveReaderQuery(selection, viewMode, selectedAccountId)` で `source / scope / filter` に正規化する。`ReaderQuery` は UX 上の表示意図だけを表し、ページング、ソート、API 最適化、表示ラベル、フォーカス制御は別レイヤで扱う。

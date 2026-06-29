@@ -1,3 +1,14 @@
+---
+type: policy
+title: Feed Content Privacy And CSP Policy
+description: Source of truth for remote article content privacy expectations and Tauri CSP decisions.
+resource: urn:ultra-rss-reader:docs:feed-content-privacy
+tags: [category/security, audience/developer, audience/maintainer, layer/runtime]
+timestamp: 2026-06-29
+audience: developer, maintainer
+owner: project-maintainers
+---
+
 # Feed Content Privacy And CSP Policy
 
 This document is the source of truth for how Ultra RSS Reader treats remote article content, privacy, and Tauri CSP decisions.

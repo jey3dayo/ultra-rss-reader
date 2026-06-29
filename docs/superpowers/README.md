@@ -1,3 +1,14 @@
+---
+type: index
+title: Superpowers Historical Records Index
+description: Entry point for dated historical specs and implementation plans created during feature exploration.
+resource: urn:ultra-rss-reader:docs:superpowers:index
+tags: [category/documentation, audience/agent, audience/developer, status/historical]
+timestamp: 2026-06-29
+audience: agent, developer
+owner: project-maintainers
+---
+
 # Superpowers Records
 
 This directory stores dated design and implementation records created during feature work.

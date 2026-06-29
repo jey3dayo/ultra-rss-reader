@@ -1,3 +1,14 @@
+---
+type: index
+title: Documentation Index
+description: Entry point for focused operational documentation and historical design or planning records.
+resource: urn:ultra-rss-reader:docs:index
+tags: [category/documentation, audience/agent, audience/developer]
+timestamp: 2026-06-29
+audience: agent, developer
+owner: project-maintainers
+---
+
 # Documentation Index
 
 Use this page as the documentation index outside the main [README.md](../README.md).

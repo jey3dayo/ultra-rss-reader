@@ -1,3 +1,14 @@
+---
+type: policy
+title: Flaky Test Quarantine Policy
+description: Policy for quarantining, documenting, and retiring flaky tests without hiding release risk.
+resource: urn:ultra-rss-reader:docs:flaky-test-quarantine-policy
+tags: [category/testing, audience/developer, audience/maintainer]
+timestamp: 2026-06-29
+audience: developer, maintainer
+owner: project-maintainers
+---
+
 # Flaky Test Quarantine Policy
 
 Flaky tests may be quarantined only when the unresolved risk remains discoverable from TODO tracking, issue tracking, and the skipped test annotation.

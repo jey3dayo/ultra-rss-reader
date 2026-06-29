@@ -1,3 +1,14 @@
+---
+type: guide
+title: Similarity Refactor Guidance
+description: Guidance for interpreting similarity reports before extracting shared code.
+resource: urn:ultra-rss-reader:docs:similarity-refactor-guidance
+tags: [category/quality, audience/developer, tool/similarity-ts]
+timestamp: 2026-06-29
+audience: developer
+owner: project-maintainers
+---
+
 # Similarity Refactor Guidance
 
 Use `similarity-ts` as a queue for investigation, not as an automatic refactor mandate.

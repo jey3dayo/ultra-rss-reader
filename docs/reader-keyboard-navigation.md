@@ -1,3 +1,14 @@
+---
+type: reference
+title: Reader Keyboard Navigation
+description: Reader pane keyboard navigation, focus return behavior, and focus styling contracts.
+resource: urn:ultra-rss-reader:docs:reader-keyboard-navigation
+tags: [category/reference, audience/developer, layer/frontend]
+timestamp: 2026-06-29
+audience: developer
+owner: project-maintainers
+---
+
 # Reader Keyboard Navigation
 
 This document is the source of truth for reader pane keyboard navigation. Keep it aligned with the implementation when changing pane focus, row selection, or keyboard shortcuts.

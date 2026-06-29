@@ -1,3 +1,14 @@
+---
+type: runbook
+title: Incident Runbook
+description: Fast triage path for logs, backups, updater checks, keyring failures, and sync incidents.
+resource: urn:ultra-rss-reader:docs:incident-runbook
+tags: [category/operations, audience/developer, audience/maintainer, environment/local]
+timestamp: 2026-06-29
+audience: developer, maintainer
+owner: project-maintainers
+---
+
 # Incident Runbook
 
 Use this page when the app is already failing and you need the fastest path to the right logs, backups, or manual checks.

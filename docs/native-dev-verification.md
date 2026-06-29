@@ -1,3 +1,14 @@
+---
+type: runbook
+title: Native Dev Verification
+description: Local Tauri dev app process capture, screenshots, keyboard input, and Debug HUD verification.
+resource: urn:ultra-rss-reader:docs:native-dev-verification
+tags: [category/testing, audience/agent, audience/developer, environment/local, tool/tauri]
+timestamp: 2026-06-29
+audience: agent, developer
+owner: project-maintainers
+---
+
 # Native Dev Verification
 
 Use this runbook when Codex or Computer Use needs to operate the Tauri dev app and keep visual evidence. It is for local dev verification only, not release sign-off.

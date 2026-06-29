@@ -1,3 +1,14 @@
+---
+type: checklist
+title: Release Manual Verification
+description: Manual release checks for packaged builds, live services, updater behavior, keyring validation, and sign-off.
+resource: urn:ultra-rss-reader:docs:release-manual-verification
+tags: [category/release, audience/maintainer, environment/local]
+timestamp: 2026-06-29
+audience: maintainer
+owner: project-maintainers
+---
+
 # Release Manual Verification
 
 `mise run ci` is the repository gate, but it intentionally stops before live-service and packaged-app checks.
