@@ -155,7 +155,6 @@
   "tags": {
     "heading": "Tags",
     "add_heading": "Add tag",
-    "note": "Create, edit, and remove tags used from the sidebar and article views.",
     "name": "Tag name",
     "name_placeholder": "Unread later",
     "create": "Create",

@@ -13,7 +13,6 @@ type TagsSettingsListItem = TagViewItem;
 type TagsSettingsViewProps = {
   title: string;
   addHeading: string;
-  intro: string;
   nameLabel: string;
   nameValue: string;
   namePlaceholder: string;
@@ -42,7 +41,6 @@ type TagsSettingsViewProps = {
 export function TagsSettingsView({
   title,
   addHeading,
-  intro,
   nameLabel,
   nameValue,
   namePlaceholder,
@@ -82,7 +80,6 @@ export function TagsSettingsView({
         <form onSubmit={handleCreateSubmit}>
           <SettingsSection
             heading={addHeading}
-            note={intro}
             surface="flat"
             className="px-3 py-2.5 sm:px-4 sm:py-3"
             headingClassName="mb-2"

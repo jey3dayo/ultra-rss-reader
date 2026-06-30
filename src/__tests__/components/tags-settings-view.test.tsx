@@ -8,12 +8,11 @@ function expectStandardSettingsActionButtonWidth(button: HTMLElement) {
 }
 
 describe("TagsSettingsView", () => {
-  it("uses softened helper tones for intro and empty state", () => {
+  it("uses softened helper tones for the empty state", () => {
     render(
       <TagsSettingsView
         title="Tags"
         addHeading="Add tag"
-        intro="Use tags to organize related articles."
         nameLabel="Name"
         nameValue=""
         namePlaceholder="News"
@@ -38,8 +37,6 @@ describe("TagsSettingsView", () => {
         onDelete={vi.fn()}
       />,
     );
-
-    expect(screen.getByText("Use tags to organize related articles.")).toHaveClass("text-foreground-soft");
     expect(screen.getByText("No tags yet.")).toHaveClass("text-foreground-soft");
   });
 
@@ -50,7 +47,6 @@ describe("TagsSettingsView", () => {
       <TagsSettingsView
         title="Tags"
         addHeading="Add tag"
-        intro="Use tags to organize related articles."
         nameLabel="Name"
         nameValue=""
         namePlaceholder="News"
@@ -103,7 +99,6 @@ describe("TagsSettingsView", () => {
       <TagsSettingsView
         title="Tags"
         addHeading="Add tag"
-        intro="Use tags to organize related articles."
         nameLabel="Name"
         nameValue="News"
         namePlaceholder="News"
@@ -154,7 +149,6 @@ describe("TagsSettingsView", () => {
       <TagsSettingsView
         title="Tags"
         addHeading="Add tag"
-        intro="Use tags to organize related articles."
         nameLabel="Name"
         nameValue="News"
         namePlaceholder="News"
@@ -187,7 +181,6 @@ describe("TagsSettingsView", () => {
       <TagsSettingsView
         title="Tags"
         addHeading="Add tag"
-        intro="Use tags to organize related articles."
         nameLabel="Name"
         nameValue="News"
         namePlaceholder="News"
@@ -226,7 +219,6 @@ describe("TagsSettingsView", () => {
       <TagsSettingsView
         title="Tags"
         addHeading="Add tag"
-        intro="Use tags to organize related articles."
         nameLabel="Name"
         nameValue="News"
         namePlaceholder="News"

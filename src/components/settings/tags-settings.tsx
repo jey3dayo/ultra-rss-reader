@@ -233,7 +233,6 @@ export function TagsSettings() {
       <TagsSettingsView
         title={t("tags.heading")}
         addHeading={t("tags.add_heading")}
-        intro={t("tags.note")}
         nameLabel={t("tags.name")}
         nameValue={name}
         namePlaceholder={t("tags.name_placeholder")}

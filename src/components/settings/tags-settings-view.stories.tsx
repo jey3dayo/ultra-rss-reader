@@ -10,7 +10,6 @@ const meta = {
   args: {
     title: "Tags",
     addHeading: "Add tag",
-    intro: "Create tags to organize feeds and articles.",
     nameLabel: "Title",
     nameValue: "Later",
     namePlaceholder: "Enter a tag name",
