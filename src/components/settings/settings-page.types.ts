@@ -20,7 +20,6 @@ type SettingsPageActionSize = "text" | "compact" | "standalone";
 
 type SettingsPageInlineAction = {
   actionLabel: string;
-  onAction: () => void;
   actionSize?: SettingsPageActionSize;
   actionLoading?: boolean;
   actionLoadingLabel?: string;
@@ -28,6 +27,7 @@ type SettingsPageInlineAction = {
 
 type SettingsPageTextAction = SettingsPageInlineAction & {
   actionAriaLabel: string;
+  onAction: (value: string) => void;
   actionDisabled?: boolean;
 };
 
@@ -65,6 +65,7 @@ type SettingsPageTextControl = SettingsPageTextFieldControl & (SettingsPageTextA
 
 type SettingsPageActionControl = SettingsPageControlHeader<"action"> &
   SettingsPageInlineAction & {
+    onAction: () => void;
     actionAriaLabel?: string;
     rowClassName?: string;
     labelClassName?: string;

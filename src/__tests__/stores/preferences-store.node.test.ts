@@ -1555,7 +1555,7 @@ describe("usePreferencesStore preferences", () => {
     expect(resolvePreferenceValue({}, "after_reading")).toBe("after_0_3s");
     expect(resolvePreferenceValue({}, "developer_mode")).toBe("false");
     expect(resolvePreferenceValue({}, "debug_browser_hud")).toBe("false");
-    expect(resolvePreferenceValue({}, "debug_web_preview_url")).toBe("");
+    expect(resolvePreferenceValue({}, "debug_web_preview_url")).toBe("https://news.yahoo.co.jp/");
     expect(resolvePreferenceValue({}, "debug_agentation_visibility")).toBe("always");
     expect(resolvePreferenceValue({}, "mute_auto_mark_read")).toBe("false");
   });

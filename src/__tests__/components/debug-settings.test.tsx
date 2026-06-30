@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
@@ -80,13 +80,17 @@ describe("DebugSettings", () => {
     render(<DebugSettings />, { wrapper: createWrapper() });
 
     expect(screen.queryByText("Open a URL in Web Preview")).not.toBeInTheDocument();
-    await user.type(screen.getByLabelText("Web preview URL"), "https://example.com/debug");
+    const urlInput = screen.getByLabelText("Web preview URL");
+    await user.clear(urlInput);
+    await user.type(urlInput, "https://example.com/debug");
     await user.click(screen.getByRole("button", { name: "Open: Web preview URL" }));
 
     expect(usePreferencesStore.getState().prefs.debug_web_preview_url).toBe("https://example.com/debug");
-    expect(useUiStore.getState().browserUrl).toBe("https://example.com/debug");
-    expect(useUiStore.getState().contentMode).toBe("browser");
     expect(useUiStore.getState().settingsOpen).toBe(false);
+    await waitFor(() => {
+      expect(useUiStore.getState().browserUrl).toBe("https://example.com/debug");
+      expect(useUiStore.getState().contentMode).toBe("browser");
+    });
   });
 
   it("shows a localized toast for an invalid non-empty web preview url", async () => {
@@ -96,7 +100,9 @@ describe("DebugSettings", () => {
 
     render(<DebugSettings />, { wrapper: createWrapper() });
 
-    await user.type(screen.getByLabelText("Web preview URL"), "not a url");
+    const urlInput = screen.getByLabelText("Web preview URL");
+    await user.clear(urlInput);
+    await user.type(urlInput, "not a url");
     await user.click(screen.getByRole("button", { name: "Open: Web preview URL" }));
 
     expect(useUiStore.getState().toastMessage).toEqual({

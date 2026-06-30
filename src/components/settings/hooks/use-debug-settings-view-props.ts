@@ -8,7 +8,7 @@ type UseDebugSettingsViewPropsParams = SettingsPreferenceViewPropsParams & {
   canResetDevCredentials: boolean;
   resetDevCredentials: () => void;
   resettingDevCredentials: boolean;
-  openWebPreviewUrl: () => void;
+  openWebPreviewUrl: (url: string) => void;
   openWebPreviewGeometryCheck: () => void;
   openWebPreviewToastCheck: () => void;
   runReadingDisplayModeScenario: () => void;

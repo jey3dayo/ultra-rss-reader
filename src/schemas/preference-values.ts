@@ -239,7 +239,7 @@ export const corePreferenceDefaults = {
   action_copy_link: "true",
   action_open_browser: "true",
   debug_browser_hud: "false",
-  debug_web_preview_url: "",
+  debug_web_preview_url: "https://news.yahoo.co.jp/",
   debug_agentation_visibility: "always",
   mute_auto_mark_read: "false",
 } as const satisfies {

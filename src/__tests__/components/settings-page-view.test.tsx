@@ -340,6 +340,7 @@ describe("SettingsPageView", () => {
 
     expect(onChange).toHaveBeenCalled();
     expect(onAction).toHaveBeenCalledTimes(1);
+    expect(onAction).toHaveBeenCalledWith("Main reader");
   });
 
   it("prefers explicit inline text action aria labels", () => {

@@ -4,7 +4,6 @@ import { SettingsPageView } from "@/components/settings/settings-page-view";
 import { DEV_SCENARIO_ID, type DevScenarioId } from "@/dev/scenario-ids";
 import { runRuntimeDevScenario } from "@/dev/scenario-runtime";
 import { resolveDevWebPreviewGeometryUrl } from "@/dev/web-preview-geometry";
-import { resolvePreferenceValue } from "@/schemas/preference-values";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -29,22 +28,27 @@ export function DebugSettings() {
     loadPlatformInfo();
   }, [loadPlatformInfo]);
 
-  const openWebPreviewUrl = useCallback(() => {
-    const url = resolvePreferenceValue(usePreferencesStore.getState().prefs, "debug_web_preview_url").trim();
-    if (!url) {
-      showToast(t("debug.web_preview_url_required"));
-      return;
-    }
-    try {
-      new URL(url);
-    } catch {
-      showToast(t("debug.web_preview_url_invalid"));
-      return;
-    }
+  const openWebPreviewUrl = useCallback(
+    (requestedUrl: string) => {
+      const url = requestedUrl.trim();
+      if (!url) {
+        showToast(t("debug.web_preview_url_required"));
+        return;
+      }
+      try {
+        new URL(url);
+      } catch {
+        showToast(t("debug.web_preview_url_invalid"));
+        return;
+      }
 
-    closeSettings();
-    openBrowser(url);
-  }, [closeSettings, openBrowser, showToast, t]);
+      closeSettings();
+      window.setTimeout(() => {
+        openBrowser(url);
+      }, 0);
+    },
+    [closeSettings, openBrowser, showToast, t],
+  );
 
   const openWebPreviewGeometryCheck = useCallback(() => {
     closeSettings();

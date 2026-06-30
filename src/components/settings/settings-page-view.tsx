@@ -71,7 +71,7 @@ function SettingsPageTextRow({ control }: SettingsPageControlRowProps<SettingsPa
           <SettingsActionButton
             type="button"
             size={control.actionSize ?? "compact"}
-            onClick={control.onAction}
+            onClick={() => control.onAction(control.value)}
             disabled={control.disabled || control.actionDisabled}
             aria-label={control.actionAriaLabel}
           >

@@ -56,12 +56,12 @@ describe("useDebugSettingsViewProps", () => {
     }
     if (urlControl?.type === "text") {
       urlControl.onChange("https://example.com/next");
-      urlControl.onAction?.();
+      urlControl.onAction?.("https://example.com/next");
     }
 
     expect(setPref).toHaveBeenCalledWith("debug_browser_hud", "false");
     expect(setPref).toHaveBeenCalledWith("debug_web_preview_url", "https://example.com/next");
-    expect(openWebPreviewUrl).toHaveBeenCalledOnce();
+    expect(openWebPreviewUrl).toHaveBeenCalledWith("https://example.com/next");
   });
 
   it("shows only the developer mode switch until it is enabled", () => {

@@ -325,8 +325,8 @@ describe("preference contract", () => {
     expect(debugWebPreviewUrlSchema?.safeParse("😀".repeat(257)).success).toBe(false);
     expect(debugWebPreviewUrlSchema?.safeParse("https://example.com/\u0000").success).toBe(false);
     expect(debugWebPreviewUrlSchema?.safeParse("https://example.com/\u0085").success).toBe(false);
-    expect(normalizePreferenceValue("debug_web_preview_url", "a".repeat(1025))).toBe("");
-    expect(normalizePreferenceValue("debug_web_preview_url", "あ".repeat(342))).toBe("");
+    expect(normalizePreferenceValue("debug_web_preview_url", "a".repeat(1025))).toBe("https://news.yahoo.co.jp/");
+    expect(normalizePreferenceValue("debug_web_preview_url", "あ".repeat(342))).toBe("https://news.yahoo.co.jp/");
 
     expect(shortcutSchema?.safeParse(" Shift+J ").data).toBe("Shift+J");
     expect(shortcutSchema?.safeParse("a".repeat(128)).success).toBe(true);
