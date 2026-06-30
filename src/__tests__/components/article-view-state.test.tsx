@@ -81,12 +81,12 @@ describe("BrowserOnlyStateView", () => {
     browserViewMock.mockClear();
   });
 
-  it("keeps the browser-only empty state inside the main-stage scope", async () => {
+  it("keeps the browser-only empty state aligned with article-pane Web Preview scope", async () => {
     render(<BrowserOnlyStateView onCloseOverlay={vi.fn()} />);
 
     expect(await screen.findByRole("button", { name: "Close Web Preview" })).toHaveAttribute(
       "data-scope",
-      "main-stage",
+      "content-pane",
     );
   });
 });
