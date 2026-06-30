@@ -71,7 +71,7 @@ describe("ShortcutsHelpModal", () => {
     expect(screen.getByText("?").closest("kbd")).toHaveClass("text-foreground-soft", "bg-surface-1/72");
     expect(screen.getByText("?").closest("p")).toHaveClass("flex-wrap");
     expect(option).toHaveClass("min-h-11", "flex-col");
-    expect(option.querySelector("[data-slot='command-shortcut']")).toHaveClass("ml-0");
+    expect(option.querySelector("[data-slot='kbd']")).toHaveClass("ml-0");
     expect(screen.getByTestId("shortcuts-help-results")).toHaveClass("motion-content-swap");
     expect(screen.getByTestId("shortcuts-help-results")).toHaveAttribute("data-motion-phase", "entering");
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
@@ -99,7 +99,7 @@ describe("ShortcutsHelpModal", () => {
     expect(
       screen.getAllByRole("option").map((option) => ({
         label: option.querySelector("span")?.textContent,
-        binding: option.querySelector("[data-slot='command-shortcut']")?.textContent,
+        binding: option.querySelector("[data-slot='kbd']")?.textContent,
       })),
     ).toMatchInlineSnapshot(`
       [

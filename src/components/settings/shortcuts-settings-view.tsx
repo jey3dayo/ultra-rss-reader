@@ -4,6 +4,7 @@ import { SettingsActionButton } from "@/components/settings/shared/settings-acti
 import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { SETTINGS_CONTROL_SURFACE_CLASS } from "@/components/settings/shared/settings-surface";
+import { Kbd } from "@/design-system";
 import { cn } from "@/lib/utils";
 import { bindWindowEvents, createKeyboardEventListener } from "@/lib/window/window-events";
 
@@ -186,15 +187,12 @@ export function ShortcutsSettingsView({
           {item.isLocked ? (
             <div className="flex items-center justify-end gap-1">
               <ShortcutResetButton item={item} disabled={true} forceVisible={showLockedReset} />
-              <kbd
+              <Kbd
                 data-testid={`shortcut-badge-${item.id}`}
-                className={cn(
-                  "inline-flex min-h-8 min-w-10 items-center justify-center rounded-md border bg-surface-1 px-2.5 py-1 text-center font-mono text-[12px] leading-none font-medium tracking-[0.02em] text-foreground-soft",
-                  SETTINGS_CONTROL_SURFACE_CLASS,
-                )}
+                className={cn("min-h-8 min-w-10 px-2.5 py-1 text-[12px]", SETTINGS_CONTROL_SURFACE_CLASS)}
               >
                 {item.displayKey}
-              </kbd>
+              </Kbd>
             </div>
           ) : (
             <ShortcutKeyBadge

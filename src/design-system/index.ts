@@ -64,6 +64,7 @@ export * from "@/components/ui/collapsible";
 export * from "@/components/ui/dialog";
 export * from "@/components/ui/headless-button";
 export * from "@/components/ui/input";
+export * from "@/components/ui/kbd";
 export * from "@/components/ui/scroll-area";
 export * from "@/components/ui/select";
 export * from "@/components/ui/skeleton";

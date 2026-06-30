@@ -1,15 +1,7 @@
 import { XIcon } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-  CommandShortcut,
-} from "@/components/ui/command";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { MOTION_CONTENT_SWAP_CLASS_NAME } from "@/constants/motion";
 import {
   Button,
@@ -19,6 +11,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  Kbd,
 } from "@/design-system";
 import { useStableOpenTranslation } from "@/lib/i18n/use-stable-open-translation";
 import { getShortcutDisplay, type ShortcutDefinition, shortcutDefinitions } from "@/lib/keyboard/keyboard-shortcuts";
@@ -106,9 +99,7 @@ export function ShortcutsHelpModal({ open, onOpenChange }: ShortcutsHelpModalPro
             </div>
             <DialogDescription className="flex flex-wrap items-center gap-2">
               <span>{t("shortcuts_help.description")}</span>
-              <kbd className="rounded-md border border-border/70 bg-surface-1/72 px-2 py-0.5 font-mono text-xs text-foreground-soft">
-                ?
-              </kbd>
+              <Kbd className="border-border/70 bg-surface-1/72">?</Kbd>
             </DialogDescription>
           </DialogHeader>
         </div>
@@ -140,7 +131,7 @@ export function ShortcutsHelpModal({ open, onOpenChange }: ShortcutsHelpModalPro
                       className="min-h-11 flex-col items-start gap-1.5 sm:flex-row sm:items-center"
                     >
                       <span className="min-w-0">{shortcut.label}</span>
-                      <CommandShortcut className="ml-0 sm:ml-auto">{shortcut.displayKey}</CommandShortcut>
+                      <Kbd className="ml-0 sm:ml-auto">{shortcut.displayKey}</Kbd>
                     </CommandItem>
                   ))}
                 </CommandGroup>
