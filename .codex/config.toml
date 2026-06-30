@@ -8,4 +8,11 @@ command = "npx"
 args = [ "-y", "agentation-mcp", "server",]
 id = ""
 
+[mcp_servers.chrome-devtools]
+command = "npx"
+args = [ "-y", "chrome-devtools-mcp@latest",]
+id = ""
+
 [mcp_servers.agentation.env]
+
+[mcp_servers.chrome-devtools.env]

@@ -7,6 +7,20 @@ targets:
 dependencies:
   apm: []
   mcp:
+  - name: tauri-mcp-server
+    registry: false
+    transport: stdio
+    command: npx
+    args:
+    - -y
+    - "@hypothesi/tauri-mcp-server"
+  - name: chrome-devtools
+    registry: false
+    transport: stdio
+    command: npx
+    args:
+    - -y
+    - chrome-devtools-mcp@latest
   - name: agentation
     registry: false
     transport: stdio
