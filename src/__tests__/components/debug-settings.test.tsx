@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createWrapper } from "@tests/helpers/create-wrapper";
 import { setupTauriMocks } from "@tests/helpers/tauri-mocks";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DebugSettings } from "@/components/settings/debug-settings";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -19,7 +19,7 @@ vi.mock("@/dev/scenario-runtime", () => ({
 describe("DebugSettings", () => {
   beforeEach(() => {
     setupTauriMocks();
-    usePreferencesStore.setState({ prefs: {}, loaded: true });
+    usePreferencesStore.setState({ prefs: { developer_mode: "true" }, loaded: true });
     usePlatformStore.setState({
       platform: {
         kind: "unknown",
@@ -39,6 +39,10 @@ describe("DebugSettings", () => {
     runRuntimeDevScenarioMock.mockReset();
   });
 
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it("toggles the web preview hud preference", async () => {
     const user = userEvent.setup();
 
@@ -54,17 +58,18 @@ describe("DebugSettings", () => {
 
   it("lets Agentation visibility be managed from debug overlays", async () => {
     const user = userEvent.setup();
+    vi.stubEnv("DEV", true);
 
     render(<DebugSettings />, { wrapper: createWrapper() });
 
     expect(screen.getByText("Developer Overlays")).toBeInTheDocument();
     const visibilitySelect = screen.getByRole("combobox", { name: "Agentation" });
-    expect(visibilitySelect).toHaveTextContent("Hide while settings is open");
+    expect(visibilitySelect).toHaveTextContent("Always show");
 
     await user.click(visibilitySelect);
-    await user.click(await screen.findByRole("option", { name: "Always show" }));
+    await user.click(await screen.findByRole("option", { name: "Do not show" }));
 
-    expect(usePreferencesStore.getState().prefs.debug_agentation_visibility).toBe("always");
+    expect(usePreferencesStore.getState().prefs.debug_agentation_visibility).toBe("off");
   });
 
   it("opens the saved web preview url from settings", async () => {
@@ -247,7 +252,7 @@ describe("DebugSettings", () => {
   it("omits support log privacy guidance from the developer debug surface", async () => {
     render(<DebugSettings />, { wrapper: createWrapper() });
 
-    expect(await screen.findByText("Debug")).toBeInTheDocument();
+    expect(await screen.findByText("Development")).toBeInTheDocument();
     expect(screen.queryByText("Support log privacy")).not.toBeInTheDocument();
     expect(screen.queryByText(/redacted app\.log excerpt/i)).not.toBeInTheDocument();
   });

@@ -19,7 +19,6 @@ type SettingsModalTranslator = TFunction<"settings"> | ((key: string) => string)
 
 type UseSettingsModalViewPropsParams = {
   t: SettingsModalTranslator;
-  devBuild: boolean;
   settingsOpen: boolean;
   settingsCategory: SettingsCategory;
   settingsAccountId: string | null;
@@ -57,7 +56,6 @@ function attachSettingsNavIcons(item: SettingsNavItemModel): SettingsNavItem {
 
 export function useSettingsModalViewProps({
   t,
-  devBuild,
   settingsOpen,
   settingsCategory,
   settingsAccountId,
@@ -77,7 +75,6 @@ export function useSettingsModalViewProps({
   const translateNavLabel = (key: string) => String(t(key));
   const navItems = buildSettingsNavItemModels({
     t: translateNavLabel,
-    devBuild,
     settingsCategory,
     settingsAccountId,
     settingsAddAccount,

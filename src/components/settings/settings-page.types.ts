@@ -50,6 +50,8 @@ type SettingsPageSelectControl = SettingsPageControlHeader<"select"> &
 type SettingsPageSwitchControl = SettingsPageControlHeader<"switch"> & {
   checked: boolean;
   onChange: (checked: boolean) => void;
+  rowClassName?: string;
+  labelClassName?: string;
 };
 
 type SettingsPageTextFieldControl = SettingsPageControlHeader<"text"> &
@@ -86,6 +88,8 @@ type SettingsPageSection = {
   heading: string;
   controls: SettingsPageControl[];
   note?: string;
+  density?: "default" | "compact";
+  motionPhase?: "entering";
 };
 
 export type SettingsPageViewProps = {

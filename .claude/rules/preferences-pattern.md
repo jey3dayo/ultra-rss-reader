@@ -66,6 +66,7 @@ Preference は UI state であると同時に local persisted data でもある�
 | `open_first_article_on_feed_selection` | frontend schema | required unless hidden |
 | `sort_subscriptions` | frontend schema | required unless hidden |
 | `sync_on_startup` | frontend schema | required unless hidden |
+| `developer_mode` | frontend schema | required unless hidden |
 | `action_copy_link` | frontend schema | required unless hidden |
 | `action_open_browser` | frontend schema | required unless hidden |
 | `mute_auto_mark_read` | frontend schema | required unless hidden |

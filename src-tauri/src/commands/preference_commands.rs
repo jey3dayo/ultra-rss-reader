@@ -187,6 +187,27 @@ mod tests {
     }
 
     #[test]
+    fn validates_developer_mode_as_boolean_string() {
+        assert!(validate_preference_input("developer_mode", "true").is_ok());
+        assert!(validate_preference_input("developer_mode", "false").is_ok());
+
+        for value in ["sometimes", "TRUE", "0", " true ", ""] {
+            let error = validate_preference_input("developer_mode", value)
+                .expect_err("developer mode should reject non-boolean strings");
+
+            match error {
+                AppError::UserVisible { message } => {
+                    assert_eq!(
+                        message,
+                        "Invalid boolean preference value for key: developer_mode"
+                    );
+                }
+                other => panic!("unexpected error category: {other:?}"),
+            }
+        }
+    }
+
+    #[test]
     fn save_preference_rejects_invalid_debug_browser_hud_without_persisting_or_toggling_diagnostics(
     ) {
         let _guard = BROWSER_WEBVIEW_DIAGNOSTICS_TEST_LOCK.lock().unwrap();

@@ -588,8 +588,8 @@ describe("UI Reference canvases", () => {
     expect(screen.getByTestId("reference-settings-workspace-add-shell")).toHaveClass("rounded-xl");
     expect(screen.getAllByText("Settings").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Accounts").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Debug").length).toBeGreaterThan(0);
-    expect(screen.getByRole("heading", { level: 2, name: "Debug" })).toBeInTheDocument();
+    expect(screen.getAllByText("Development").length).toBeGreaterThan(0);
+    expect(screen.getByRole("heading", { level: 2, name: "Development" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "FreshRSS" })).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "Add account…" }).length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "Test Connection" })).toHaveClass(

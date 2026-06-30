@@ -16,7 +16,7 @@
     "shortcuts": "ショートカット",
     "actions": "アクションと共有",
     "data": "データ",
-    "debug": "デバッグ"
+    "debug": "開発"
   },
   "general": {
     "heading": "一般",
@@ -387,11 +387,13 @@
     "open_log_dir_failed": "ログフォルダを開けませんでした: {{message}}"
   },
   "debug": {
-    "heading": "デバッグ",
+    "heading": "開発",
+    "developer_mode_section": "開発者モード",
+    "developer_mode": "開発者モード",
+    "developer_mode_note": "診断用の設定と実験的な操作を表示します。",
     "overlays": "開発オーバーレイ",
     "agentation_visibility": "Agentation",
     "agentation_always": "常に表示",
-    "agentation_hide_in_settings": "設定画面中は非表示",
     "agentation_off": "表示しない",
     "browser": "Webプレビュー",
     "web_preview_hud": "レイアウト HUD を表示",

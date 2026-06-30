@@ -83,7 +83,6 @@ function SnapshotBackedAccountDetail({
 }
 
 type SettingsContentProps = {
-  devBuild: boolean;
   settingsAddAccount: boolean;
   settingsAddAccountInitialKind: AddAccountProviderKind | null;
   settingsCategory: SettingsCategory;
@@ -145,7 +144,6 @@ function getSettingsAccountsViewTransition({
 }
 
 function SettingsContent({
-  devBuild,
   settingsAddAccount,
   settingsAddAccountInitialKind,
   settingsCategory,
@@ -177,7 +175,7 @@ function SettingsContent({
     case "data":
       return <DataSettings />;
     case "debug":
-      return devBuild ? <DebugSettings /> : <GeneralSettings />;
+      return <DebugSettings />;
     default:
       return <GeneralSettings />;
   }
@@ -192,7 +190,6 @@ export function SettingsModal() {
 }
 
 function SettingsModalContent() {
-  const devBuild = import.meta.env.DEV;
   const settingsOpen = useUiStore((s) => s.settingsOpen);
   const t = useStableOpenTranslation("settings", settingsOpen);
   const settingsCategory = useUiStore((s) => s.settingsCategory);
@@ -300,14 +297,6 @@ function SettingsModalContent() {
   }, [accounts, deletedAccountIds]);
 
   useEffect(() => {
-    if (import.meta.env.DEV || settingsCategory !== "debug") {
-      return;
-    }
-
-    setSettingsCategory("general");
-  }, [setSettingsCategory, settingsCategory]);
-
-  useEffect(() => {
     if (transitionAddAccount === undefined) {
       return;
     }
@@ -331,7 +320,6 @@ function SettingsModalContent() {
     accounts: visibleAccounts,
     content: (
       <SettingsContent
-        devBuild={devBuild}
         settingsAddAccount={settingsAddAccount}
         settingsAddAccountInitialKind={settingsAddAccountInitialKind}
         settingsCategory={settingsCategory}
@@ -339,7 +327,6 @@ function SettingsModalContent() {
         onAccountDeleted={handleAccountDeleted}
       />
     ),
-    devBuild,
     closeSettings,
     openSettings,
     setSettingsCategory,

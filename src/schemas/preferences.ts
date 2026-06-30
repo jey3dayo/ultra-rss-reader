@@ -4,6 +4,7 @@ import {
   afterReadingPreferenceValues,
   booleanStringPreferenceValues,
   debugAgentationVisibilityPreferenceValues,
+  developerModePreferenceValues,
   fontSizePreferenceValues,
   fontStylePreferenceValues,
   groupByPreferenceValues,
@@ -73,7 +74,10 @@ const imagePreviewsSchema = z.enum(imagePreviewsPreferenceValues);
 const afterReadingSchema = z.enum(afterReadingPreferenceValues);
 const sortSubscriptionsSchema = z.enum(sortSubscriptionsPreferenceValues);
 const startupFolderExpansionSchema = z.enum(startupFolderExpansionPreferenceValues);
-const debugAgentationVisibilitySchema = z.enum(debugAgentationVisibilityPreferenceValues);
+const developerModeSchema = z.enum(developerModePreferenceValues);
+const debugAgentationVisibilitySchema = z
+  .enum(debugAgentationVisibilityPreferenceValues)
+  .transform((value) => (value === "hide_in_settings" ? "always" : value));
 const persistedBooleanPreferenceSchema = z.enum(booleanStringPreferenceValues);
 const textEncoder = new TextEncoder();
 const hasControlCharacter = (value: string): boolean =>
@@ -138,6 +142,7 @@ export const preferenceSchemas = {
   recent_articles_history_enabled: booleanStringSchema,
   sort_subscriptions: sortSubscriptionsSchema,
   sync_on_startup: persistedBooleanPreferenceSchema,
+  developer_mode: developerModeSchema,
   action_copy_link: booleanStringSchema,
   action_open_browser: booleanStringSchema,
   debug_browser_hud: booleanStringSchema,

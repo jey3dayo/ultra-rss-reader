@@ -221,6 +221,30 @@ describe("preference contract", () => {
     }
   });
 
+  it("maps legacy Agentation visibility to always show", () => {
+    const agentationVisibilitySchema = getPreferenceValueSchema("debug_agentation_visibility");
+
+    expect(resolvePreferenceValue({}, "debug_agentation_visibility")).toBe("always");
+    expect(normalizePreferenceValue("debug_agentation_visibility", "hide_in_settings")).toBe("always");
+    expect(
+      resolvePreferenceValue({ debug_agentation_visibility: "hide_in_settings" }, "debug_agentation_visibility"),
+    ).toBe("always");
+    expect(agentationVisibilitySchema?.safeParse("always").success).toBe(true);
+    expect(agentationVisibilitySchema?.safeParse("off").success).toBe(true);
+  });
+
+  it("keeps developer mode as a boolean string preference", () => {
+    const developerModeSchema = getPreferenceValueSchema("developer_mode");
+
+    expect(resolvePreferenceValue({}, "developer_mode")).toBe("false");
+    expect(normalizePreferenceValue("developer_mode", "true")).toBe("true");
+    expect(normalizePreferenceValue("developer_mode", "false")).toBe("false");
+    expect(normalizePreferenceValue("developer_mode", "sometimes")).toBe("false");
+    expect(developerModeSchema?.safeParse("true").success).toBe(true);
+    expect(developerModeSchema?.safeParse("false").success).toBe(true);
+    expect(developerModeSchema?.safeParse("sometimes").success).toBe(false);
+  });
+
   it("normalizes known, shortcut, and unknown preference values at the frontend boundary", () => {
     expect(normalizePreferenceValue("theme", "dark")).toBe("dark");
     expect(normalizePreferenceValue("theme", "sepia")).toBe("light");

@@ -15,14 +15,13 @@ describe("settings modal view model", () => {
     "nav.shortcuts": "Shortcuts",
     "nav.actions": "Actions & Sharing",
     "nav.data": "Data Management",
-    "nav.debug": "Debug",
+    "nav.debug": "Development",
   };
   const t = (key: string) => labels[key] ?? key;
 
   it("orders settings categories by expected usage frequency", () => {
     const navItems = buildSettingsNavItemModels({
       t,
-      devBuild: true,
       settingsCategory: "general",
       settingsAccountId: null,
       settingsAddAccount: false,
@@ -37,14 +36,13 @@ describe("settings modal view model", () => {
       "Shortcuts",
       "Actions & Sharing",
       "Data Management",
-      "Debug",
+      "Development",
     ]);
   });
 
-  it("omits the debug category outside development builds", () => {
+  it("always includes the debug category as the developer mode entry point", () => {
     const navItems = buildSettingsNavItemModels({
       t,
-      devBuild: false,
       settingsCategory: "general",
       settingsAccountId: null,
       settingsAddAccount: false,
@@ -59,6 +57,7 @@ describe("settings modal view model", () => {
       "Shortcuts",
       "Actions & Sharing",
       "Data Management",
+      "Development",
     ]);
   });
 

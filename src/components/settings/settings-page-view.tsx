@@ -4,6 +4,7 @@ import { SettingsActionButton } from "@/components/settings/shared/settings-acti
 import { SettingsContentLayout } from "@/components/settings/shared/settings-content-layout";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { SETTINGS_CONTROL_SURFACE_CLASS } from "@/components/settings/shared/settings-surface";
+import { MOTION_CONTENT_SWAP_CLASS_NAME } from "@/constants/motion";
 import {
   LabeledActionInputRow,
   LabeledControlRow,
@@ -48,8 +49,8 @@ function SettingsPageSwitchRow({ control }: SettingsPageControlRowProps<Settings
       checked={control.checked}
       onChange={control.onChange}
       disabled={control.disabled}
-      rowClassName={SETTINGS_PAGE_INLINE_ROW_CLASS}
-      labelClassName="max-w-[24rem]"
+      rowClassName={cn(SETTINGS_PAGE_INLINE_ROW_CLASS, control.rowClassName)}
+      labelClassName={cn("max-w-[24rem]", control.labelClassName)}
     />
   );
 }
@@ -169,11 +170,15 @@ export function SettingsPageView({ title, sections, sectionSurface = "flat" }: S
       heading={section.heading}
       note={section.note}
       surface={sectionSurface}
+      motionPhase={section.motionPhase}
       className={cn(
-        sectionSurface === "flat" && "px-3 py-2.5 sm:px-4 sm:py-3",
+        section.motionPhase && MOTION_CONTENT_SWAP_CLASS_NAME,
+        sectionSurface === "flat" &&
+          (section.density === "compact" ? "px-3 py-2 sm:px-3 sm:py-2" : "px-3 py-2.5 sm:px-4 sm:py-3"),
         !usesSectionGrid && index !== sections.length - 1 && "mb-4 sm:mb-5",
       )}
-      headingClassName="text-[11px] tracking-[0.04em]"
+      headingClassName={cn("text-[11px] tracking-[0.04em]", section.density === "compact" ? "mb-1 sm:mb-1" : undefined)}
+      noteClassName={section.density === "compact" ? "mt-1 text-[12px] leading-4 sm:mt-1" : undefined}
     >
       {section.controls.map((control) =>
         control.type === "select" ? (

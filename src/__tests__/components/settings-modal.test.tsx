@@ -741,40 +741,46 @@ describe("SettingsModal", () => {
     });
   });
 
-  it("shows the debug category in navigation", async () => {
+  it("shows the debug category in navigation outside development builds", async () => {
     const user = userEvent.setup();
+    vi.stubEnv("DEV", false);
+
+    render(<SettingsModal />, { wrapper: createWrapper() });
+
+    await user.click(screen.getByRole("button", { name: "Development" }));
+
+    expect(screen.getByRole("button", { name: "Development" })).toBeInTheDocument();
+    expect(await screen.findByRole("switch", { name: "Developer Mode" })).toBeInTheDocument();
+    expect(screen.queryByRole("switch", { name: "Show layout HUD" })).not.toBeInTheDocument();
+  });
+
+  it("unlocks production-safe debug controls when developer mode is enabled", async () => {
+    const user = userEvent.setup();
+    vi.stubEnv("DEV", false);
+    usePreferencesStore.setState({ prefs: { developer_mode: "true" }, loaded: true });
+
+    render(<SettingsModal />, { wrapper: createWrapper() });
+
+    await user.click(screen.getByRole("button", { name: "Development" }));
+
+    expect(await screen.findByRole("switch", { name: "Show layout HUD" })).toBeInTheDocument();
+    expect(screen.queryByText("Developer Overlays")).not.toBeInTheDocument();
+  });
+
+  it("keeps direct debug selection on the debug page when developer mode is disabled", async () => {
     vi.stubEnv("DEV", true);
-
-    render(<SettingsModal />, { wrapper: createWrapper() });
-
-    await user.click(screen.getByRole("button", { name: "Debug" }));
-
-    expect(screen.getByRole("button", { name: "Debug" })).toBeInTheDocument();
-    expect(screen.getByRole("switch", { name: "Show layout HUD" })).toBeInTheDocument();
-  });
-
-  it("hides the debug category in navigation outside development builds", () => {
-    vi.stubEnv("DEV", false);
-
-    render(<SettingsModal />, { wrapper: createWrapper() });
-
-    expect(screen.queryByRole("button", { name: "Debug" })).not.toBeInTheDocument();
-    expect(screen.getByRole("switch", { name: "Show Unread in sidebar" })).toBeInTheDocument();
-  });
-
-  it("falls back to general settings when debug is selected outside development builds", async () => {
-    vi.stubEnv("DEV", false);
+    usePreferencesStore.setState({ prefs: { developer_mode: "false" }, loaded: true });
     useUiStore.setState(useUiStore.getInitialState());
     useUiStore.getState().openSettings("debug");
 
     render(<SettingsModal />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      expect(useUiStore.getState().settingsCategory).toBe("general");
+      expect(useUiStore.getState().settingsCategory).toBe("debug");
     });
 
-    expect(screen.queryByRole("button", { name: "Debug" })).not.toBeInTheDocument();
-    expect(screen.getByRole("switch", { name: "Show Unread in sidebar" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Development" })).toBeInTheDocument();
+    expect(screen.getByRole("switch", { name: "Developer Mode" })).toBeInTheDocument();
     expect(screen.queryByRole("switch", { name: "Show layout HUD" })).not.toBeInTheDocument();
   });
 

@@ -16,7 +16,7 @@
     "shortcuts": "Shortcuts",
     "actions": "Actions and Sharing",
     "data": "Data",
-    "debug": "Debug"
+    "debug": "Development"
   },
   "general": {
     "heading": "General",
@@ -387,11 +387,13 @@
     "open_log_dir_failed": "Failed to open log directory: {{message}}"
   },
   "debug": {
-    "heading": "Debug",
+    "heading": "Development",
+    "developer_mode_section": "Developer Mode",
+    "developer_mode": "Developer Mode",
+    "developer_mode_note": "Shows diagnostic settings and experimental tools.",
     "overlays": "Developer Overlays",
     "agentation_visibility": "Agentation",
     "agentation_always": "Always show",
-    "agentation_hide_in_settings": "Hide while settings is open",
     "agentation_off": "Do not show",
     "browser": "Web Preview",
     "web_preview_hud": "Show layout HUD",

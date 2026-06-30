@@ -57,18 +57,16 @@ export function buildSettingsContentResetKey({
 
 export function buildSettingsNavItemModels({
   t,
-  devBuild,
   settingsCategory,
   settingsAccountId,
   settingsAddAccount,
 }: {
   t: SettingsModalTranslator;
-  devBuild: boolean;
   settingsCategory: SettingsCategory;
   settingsAccountId: string | null;
   settingsAddAccount: boolean;
 }): SettingsNavItemModel[] {
-  const itemIds = devBuild ? [...settingsNavItemIds, "debug" as const] : [...settingsNavItemIds];
+  const itemIds = [...settingsNavItemIds, "debug" as const];
 
   return itemIds.map((id) => ({
     id,

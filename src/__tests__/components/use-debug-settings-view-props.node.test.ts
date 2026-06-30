@@ -29,6 +29,7 @@ describe("useDebugSettingsViewProps", () => {
     const openWebPreviewUrl = vi.fn();
     const props = createProps({
       prefs: {
+        developer_mode: "true",
         debug_browser_hud: "true",
         debug_web_preview_url: "https://example.com/debug",
       },
@@ -40,6 +41,7 @@ describe("useDebugSettingsViewProps", () => {
     const hudControl = browserSection?.controls.find((control) => control.id === "debug-browser-hud");
     const urlControl = browserSection?.controls.find((control) => control.id === "debug-web-preview-url");
 
+    expect(browserSection?.motionPhase).toBe("entering");
     expect(hudControl).toEqual(expect.objectContaining({ type: "switch", checked: true }));
     expect(urlControl).toEqual(
       expect.objectContaining({
@@ -62,44 +64,42 @@ describe("useDebugSettingsViewProps", () => {
     expect(openWebPreviewUrl).toHaveBeenCalledOnce();
   });
 
-  it("disables scenario actions outside dev builds and guards their handlers", () => {
+  it("shows only the developer mode switch until it is enabled", () => {
+    const setPref = vi.fn();
+    const props = createProps({ prefs: { developer_mode: "false" }, setPref });
+
+    expect(props.sections.map((section) => section.id)).toEqual(["debug-developer-mode"]);
+    const control = props.sections[0]?.controls[0];
+
+    expect(control).toEqual(
+      expect.objectContaining({
+        id: "debug-developer-mode-toggle",
+        type: "switch",
+        label: "Developer Mode",
+        checked: false,
+      }),
+    );
+
+    if (control?.type === "switch") {
+      control.onChange(true);
+    }
+
+    expect(setPref).toHaveBeenCalledWith("developer_mode", "true");
+  });
+
+  it("omits scenario actions outside dev builds", () => {
     const openWebPreviewGeometryCheck = vi.fn();
     const openWebPreviewToastCheck = vi.fn();
     const runReadingDisplayModeScenario = vi.fn();
     const props = createProps({
+      prefs: { developer_mode: "true" },
       devBuild: false,
       openWebPreviewGeometryCheck,
       openWebPreviewToastCheck,
       runReadingDisplayModeScenario,
     });
 
-    const scenariosSection = props.sections.find((section) => section.id === "debug-scenarios");
-    const scenarioControls = scenariosSection?.controls ?? [];
-
-    expect(scenarioControls).toHaveLength(3);
-    expect(scenarioControls).toEqual([
-      expect.objectContaining({
-        id: "debug-web-preview-geometry-check",
-        type: "action",
-        disabled: true,
-      }),
-      expect.objectContaining({
-        id: "debug-web-preview-toast-check",
-        type: "action",
-        disabled: true,
-      }),
-      expect.objectContaining({
-        id: "debug-reading-display-mode",
-        type: "action",
-        disabled: true,
-      }),
-    ]);
-
-    for (const control of scenarioControls) {
-      if (control.type === "action") {
-        control.onAction();
-      }
-    }
+    expect(props.sections.find((section) => section.id === "debug-scenarios")).toBeUndefined();
 
     expect(openWebPreviewGeometryCheck).not.toHaveBeenCalled();
     expect(openWebPreviewToastCheck).not.toHaveBeenCalled();
@@ -107,7 +107,7 @@ describe("useDebugSettingsViewProps", () => {
   });
 
   it("keeps debug scenario labels as nouns so action accessible names do not repeat open", () => {
-    const props = createProps({ devBuild: true });
+    const props = createProps({ prefs: { developer_mode: "true" }, devBuild: true });
 
     const scenariosSection = props.sections.find((section) => section.id === "debug-scenarios");
     const scenarioControls = scenariosSection?.controls ?? [];
@@ -138,7 +138,7 @@ describe("useDebugSettingsViewProps", () => {
   });
 
   it("stacks debug scenario action rows so localized labels can wrap in narrow cards", () => {
-    const props = createProps({ devBuild: true });
+    const props = createProps({ prefs: { developer_mode: "true" }, devBuild: true });
 
     const scenariosSection = props.sections.find((section) => section.id === "debug-scenarios");
     const scenarioControls = scenariosSection?.controls ?? [];
@@ -164,7 +164,7 @@ describe("useDebugSettingsViewProps", () => {
   });
 
   it("maps ja debug scenario action accessible names from locale keys", () => {
-    const props = createProps({ t: jaT, devBuild: true });
+    const props = createProps({ t: jaT, prefs: { developer_mode: "true" }, devBuild: true });
 
     const scenariosSection = props.sections.find((section) => section.id === "debug-scenarios");
     const scenarioControls = scenariosSection?.controls ?? [];
@@ -195,7 +195,7 @@ describe("useDebugSettingsViewProps", () => {
   });
 
   it("surfaces the Dev data seed command only for dev builds without wiring execution", () => {
-    const props = createProps({ devBuild: true });
+    const props = createProps({ prefs: { developer_mode: "true" }, devBuild: true });
 
     const devDataSection = props.sections.find((section) => section.id === "debug-dev-data");
 
@@ -216,7 +216,7 @@ describe("useDebugSettingsViewProps", () => {
   });
 
   it("omits the Dev data seed guidance outside dev builds", () => {
-    const props = createProps({ devBuild: false });
+    const props = createProps({ prefs: { developer_mode: "true" }, devBuild: false });
 
     expect(props.sections.find((section) => section.id === "debug-dev-data")).toBeUndefined();
   });
@@ -224,6 +224,7 @@ describe("useDebugSettingsViewProps", () => {
   it("adds the dev credential reset action only when dev file credentials are active", () => {
     const resetDevCredentials = vi.fn();
     const props = createProps({
+      prefs: { developer_mode: "true" },
       canResetDevCredentials: true,
       resetDevCredentials,
     });
@@ -251,7 +252,7 @@ describe("useDebugSettingsViewProps", () => {
   });
 
   it("omits the dev credential reset action for native keyring", () => {
-    const props = createProps({ canResetDevCredentials: false });
+    const props = createProps({ prefs: { developer_mode: "true" }, canResetDevCredentials: false });
 
     const credentialsSection = props.sections.find((section) => section.id === "debug-credentials");
 

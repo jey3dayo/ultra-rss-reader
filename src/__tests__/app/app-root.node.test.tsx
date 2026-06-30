@@ -141,12 +141,12 @@ describe("App", () => {
     uiState.settingsOpen = false;
   });
 
-  it("hides Agentation while settings is open by default", () => {
+  it("shows Agentation while settings is open by default", async () => {
     uiState.settingsOpen = true;
 
     const view = render(<App />);
 
-    expect(view.queryByTestId("agentation-toolbar")).toBeNull();
+    expect(await view.findByTestId("agentation-toolbar")).not.toBeNull();
   });
 
   it("keeps Agentation above dialogs by default", async () => {
@@ -161,13 +161,13 @@ describe("App", () => {
     dialog.remove();
   });
 
-  it("shows Agentation over settings when debug visibility is always", async () => {
-    preferencesState.prefs = { debug_agentation_visibility: "always" };
+  it("hides Agentation when debug visibility is off", () => {
+    preferencesState.prefs = { debug_agentation_visibility: "off" };
     uiState.settingsOpen = true;
 
     const view = render(<App />);
 
-    expect(await view.findByTestId("agentation-toolbar")).not.toBeNull();
+    expect(view.queryByTestId("agentation-toolbar")).toBeNull();
   });
 
   it("triggers one full sync on mount when startup sync is enabled", async () => {

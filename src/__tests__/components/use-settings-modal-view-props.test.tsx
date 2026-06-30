@@ -17,7 +17,7 @@ describe("useSettingsModalViewProps", () => {
     "nav.shortcuts": "Shortcuts",
     "nav.actions": "Actions & Sharing",
     "nav.data": "Data Management",
-    "nav.debug": "Debug",
+    "nav.debug": "Development",
   };
   const t = (key: string) => labels[key] ?? key;
 
@@ -28,7 +28,6 @@ describe("useSettingsModalViewProps", () => {
     const openSettingsAddAccount = vi.fn();
     const viewProps = useSettingsModalViewProps({
       t,
-      devBuild: false,
       settingsOpen: true,
       settingsCategory: "general",
       settingsAccountId: "acc-1",

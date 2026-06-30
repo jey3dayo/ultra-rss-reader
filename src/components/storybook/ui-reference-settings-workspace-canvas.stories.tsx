@@ -41,7 +41,7 @@ const settingsNavItems = [
 const detailAccounts = [
   {
     id: "acc-debug",
-    name: "Debug",
+    name: "Development",
     kind: "freshrss",
     username: "debug",
     serverUrl: "https://demo.freshrss.example.com/api/greader.php",
@@ -200,17 +200,17 @@ export function SettingsWorkspaceCanvas() {
                 isAddAccountActive={false}
                 content={
                   <AccountDetailView
-                    title="Debug"
+                    title="Development"
                     headerSummary={
                       <AccountConnectionSummary statusLabel="Verified" statusTone="success" detail="Today 12:55" />
                     }
                     generalSection={{
                       heading: "General",
                       nameLabel: "Description",
-                      nameValue: "Debug",
+                      nameValue: "Development",
                       editNameTitle: "Click to edit",
                       isEditingName: false,
-                      nameDraft: "Debug",
+                      nameDraft: "Development",
                       infoRows: [{ label: "Type", value: "FreshRSS" }],
                       onStartEditingName: () => {},
                       onNameDraftChange: () => {},

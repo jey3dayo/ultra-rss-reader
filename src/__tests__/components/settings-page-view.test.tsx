@@ -76,6 +76,35 @@ describe("SettingsPageView", () => {
     expect(container.querySelector('[data-surface-card="section"]')).not.toBeNull();
   });
 
+  it("applies compositor-only entrance motion to sections that opt in", () => {
+    render(
+      <SettingsPageView
+        title="Development"
+        sections={[
+          {
+            id: "browser",
+            heading: "Web Preview",
+            motionPhase: "entering",
+            controls: [
+              {
+                id: "browser-hud",
+                type: "switch",
+                label: "Show layout HUD",
+                checked: true,
+                onChange: vi.fn(),
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+
+    const section = screen.getByRole("heading", { name: "Web Preview" }).closest("section");
+
+    expect(section).toHaveClass("motion-content-swap");
+    expect(section).toHaveAttribute("data-motion-phase", "entering");
+  });
+
   it("renders read-only info rows without interactive controls", () => {
     render(
       <SettingsPageView

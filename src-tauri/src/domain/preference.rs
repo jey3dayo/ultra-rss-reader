@@ -37,6 +37,7 @@ const ALLOWED_KEYS: &[&str] = &[
     "open_first_article_on_feed_selection",
     "sort_subscriptions",
     "sync_on_startup",
+    "developer_mode",
     "action_copy_link",
     "action_open_browser",
     "mute_auto_mark_read",
@@ -118,7 +119,7 @@ pub fn preference_row_quarantine_reason(
         return Some(PreferenceRowQuarantineReason::UnknownKey);
     }
 
-    if key == "debug_browser_hud" && !matches!(value, "true" | "false") {
+    if matches!(key, "debug_browser_hud" | "developer_mode") && !matches!(value, "true" | "false") {
         return Some(PreferenceRowQuarantineReason::InvalidBooleanValue);
     }
 
@@ -162,6 +163,10 @@ mod tests {
         );
         assert_eq!(
             preference_row_quarantine_reason("debug_browser_hud", "TRUE"),
+            Some(PreferenceRowQuarantineReason::InvalidBooleanValue)
+        );
+        assert_eq!(
+            preference_row_quarantine_reason("developer_mode", "TRUE"),
             Some(PreferenceRowQuarantineReason::InvalidBooleanValue)
         );
         assert_eq!(

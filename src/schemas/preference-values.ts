@@ -40,8 +40,12 @@ export const sortSubscriptionsPreferenceValues = [
 export type SortSubscriptions = (typeof sortSubscriptionsPreferenceValues)[number];
 export const startupFolderExpansionPreferenceValues = ["all_collapsed", "unread_folders", "restore_previous"] as const;
 export type StartupFolderExpansionPreference = (typeof startupFolderExpansionPreferenceValues)[number];
+export const developerModePreferenceValues = booleanStringPreferenceValues;
 export const debugAgentationVisibilityPreferenceValues = ["always", "hide_in_settings", "off"] as const;
-export type DebugAgentationVisibilityPreference = (typeof debugAgentationVisibilityPreferenceValues)[number];
+export type DebugAgentationVisibilityPreference = Exclude<
+  (typeof debugAgentationVisibilityPreferenceValues)[number],
+  "hide_in_settings"
+>;
 
 export const preferenceKeyMaxLength = 128;
 export const preferenceValueMaxUtf8Bytes = 1024;
@@ -88,6 +92,7 @@ type PreferenceValueMap = {
   recent_articles_history_enabled: (typeof booleanStringPreferenceValues)[number];
   sort_subscriptions: SortSubscriptions;
   sync_on_startup: (typeof booleanStringPreferenceValues)[number];
+  developer_mode: (typeof developerModePreferenceValues)[number];
   action_copy_link: (typeof booleanStringPreferenceValues)[number];
   action_open_browser: (typeof booleanStringPreferenceValues)[number];
   debug_browser_hud: (typeof booleanStringPreferenceValues)[number];
@@ -152,6 +157,7 @@ const knownPreferenceKeys = [
   "recent_articles_history_enabled",
   "sort_subscriptions",
   "sync_on_startup",
+  "developer_mode",
   "action_copy_link",
   "action_open_browser",
   "debug_browser_hud",
@@ -229,11 +235,12 @@ export const corePreferenceDefaults = {
   recent_articles_history_enabled: "true",
   sort_subscriptions: "folders_first",
   sync_on_startup: "true",
+  developer_mode: "false",
   action_copy_link: "true",
   action_open_browser: "true",
   debug_browser_hud: "false",
   debug_web_preview_url: "",
-  debug_agentation_visibility: "hide_in_settings",
+  debug_agentation_visibility: "always",
   mute_auto_mark_read: "false",
 } as const satisfies {
   [K in KnownPreferenceKey]: PreferenceValueMap[K];
@@ -380,6 +387,7 @@ function parseKnownPreferenceValue<K extends KnownPreferenceKey>(key: K, value: 
     case "open_first_article_on_feed_selection":
     case "recent_articles_history_enabled":
     case "sync_on_startup":
+    case "developer_mode":
     case "action_copy_link":
     case "action_open_browser":
     case "debug_browser_hud":
@@ -431,6 +439,9 @@ function parseKnownPreferenceValue<K extends KnownPreferenceKey>(key: K, value: 
     case "debug_web_preview_url":
       return isUtf8ByteLimitedString(value, preferenceValueMaxUtf8Bytes) ? (value as PreferenceValue<K>) : null;
     case "debug_agentation_visibility":
+      if (value === "hide_in_settings") {
+        return "always" as PreferenceValue<K>;
+      }
       return debugAgentationVisibilityPreferenceValues.includes(value as DebugAgentationVisibilityPreference)
         ? (value as PreferenceValue<K>)
         : null;
