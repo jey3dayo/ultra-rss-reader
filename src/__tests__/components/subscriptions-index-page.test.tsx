@@ -134,7 +134,7 @@ describe("SubscriptionsIndexPage", () => {
               summary: null,
               url: "https://example.com/fresh/1",
               author: null,
-              published_at: "2026-04-01T10:00:00Z",
+              published_at: "2099-04-01T10:00:00Z",
               thumbnail: null,
               is_read: false,
               is_starred: true,
@@ -162,7 +162,7 @@ describe("SubscriptionsIndexPage", () => {
             },
             {
               feed_id: "feed-2",
-              latest_article_at: "2026-04-01T10:00:00Z",
+              latest_article_at: "2099-04-01T10:00:00Z",
               starred_count: 1,
             },
             {

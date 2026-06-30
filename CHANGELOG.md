@@ -4,6 +4,24 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.53.7] - 2026-06-30
+
+### Features
+
+- 開発者向け設定を追加し、Web Preview の検証 URL や開発用 overlay の表示を設定画面から扱えるようにした。
+- 共有のキーボードショートカット表示部品を追加し、ショートカット表記を UI 全体で揃えやすくした。
+
+### Bug Fixes
+
+- 設定から入力した Web Preview URL が保存済みの初期値ではなく、入力した URL で開くようにした。
+- 設定から開いた Web Preview が記事ペインの Web Preview と同じ右ペイン layout を使うようにし、表示位置と chrome の見え方を揃えた。
+- タグ設定の補足文を外し、設定画面の情報量を整理した。
+- preference resolver を zod schema から分離し、起動時 bundle に余計な依存が入りにくいようにした。
+
+### Maintenance
+
+- repo-local MCP 設定を追加し、Tauri と Chrome DevTools の開発支援ツールをこのリポジトリ向けに扱えるようにした。
+
 ## [0.53.6] - 2026-06-30
 
 ### Bug Fixes
