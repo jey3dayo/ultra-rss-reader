@@ -9,7 +9,7 @@ import {
   reloadBrowserWebview,
 } from "@/api/tauri-commands";
 import { isMissingEmbeddedBrowserWebviewError } from "@/lib/browser/browser-webview-state";
-import { resolvePreferenceValue } from "@/schemas/preferences";
+import { resolvePreferenceValue } from "@/schemas/preference-values";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { openUrlInExternalBrowser } from "../../article-browser-actions";

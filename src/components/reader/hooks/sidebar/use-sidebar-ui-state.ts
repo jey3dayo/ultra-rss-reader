@@ -1,4 +1,4 @@
-import { resolvePreferenceValue } from "@/schemas/preferences";
+import { resolvePreferenceValue } from "@/schemas/preference-values";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import type { SidebarUiStateResult } from "../../sidebar-runtime.types";

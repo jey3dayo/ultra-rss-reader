@@ -657,7 +657,7 @@ describe("release repository contract", () => {
   const appIconThemeSource = readText("src/hooks/use-app-icon-theme.ts");
   const platformSource = readText("src-tauri/src/platform/mod.rs");
   const keyboardShortcutsSource = readText("src/lib/keyboard/keyboard-shortcuts.ts");
-  const preferencesSchemaSource = readText("src/schemas/preferences.ts");
+  const preferenceValuesSource = readText("src/schemas/preference-values.ts");
   const preferencesStoreSource = readText("src/stores/preferences-store.ts");
   const providerSource = readText("src-tauri/src/domain/provider.rs");
   const sqliteAccountSource = readText("src-tauri/src/infra/db/sqlite_account.rs");
@@ -2324,8 +2324,8 @@ describe("release repository contract", () => {
     expect(preferencesStoreSource).toContain(
       'sortUnread: () => resolvePreferenceValue(getState().prefs, "reading_sort")',
     );
-    expect(preferencesSchemaSource).toContain('key === "reading_sort"');
-    expect(preferencesSchemaSource).toContain('prefs.sort_unread ?? fallbackValue ?? ""');
+    expect(preferenceValuesSource).toContain('key === "reading_sort"');
+    expect(preferenceValuesSource).toContain('prefs.sort_unread ?? fallbackValue ?? ""');
   });
 
   it("generates a release/debug feature flag inventory report", { timeout: 30_000 }, () => {

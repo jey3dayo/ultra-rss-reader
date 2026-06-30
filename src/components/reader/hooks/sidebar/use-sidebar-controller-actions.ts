@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { useSidebarUiActions } from "@/components/reader/hooks/sidebar/use-sidebar-ui-actions";
 import type { UpdateFeedFolderArgs } from "@/hooks/use-update-feed-folder";
-import type { PreferenceWritableKey } from "@/schemas/preferences";
+import type { PreferenceWritableKey } from "@/schemas/preference-values";
 import type {
   SidebarSetSelectedAccountPreference,
   SidebarUiActionsParams,

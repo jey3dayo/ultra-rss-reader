@@ -2281,7 +2281,14 @@ describe("repository static contracts", () => {
       (path) => [path, readRepoFile(path)] as const,
     );
 
-    expect(schemaFileStems).toEqual(["app-config", "parse", "preferences", "storage", "subscriptions-workspace"]);
+    expect(schemaFileStems).toEqual([
+      "app-config",
+      "parse",
+      "preference-values",
+      "preferences",
+      "storage",
+      "subscriptions-workspace",
+    ]);
     for (const schemaFileStem of schemaFileStems) {
       expect(
         schemaTestSource.some(

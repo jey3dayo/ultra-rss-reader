@@ -20,7 +20,7 @@ import {
   resolvePreferenceValue,
   type SortSubscriptions,
   type Theme,
-} from "@/schemas/preferences";
+} from "@/schemas/preference-values";
 import type { PreferencesActions, PreferencesState } from "@/stores/preferences-store.types";
 import { useUiStore } from "@/stores/ui-store";
 

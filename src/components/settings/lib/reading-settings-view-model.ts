@@ -6,7 +6,7 @@ import {
   isArticleDisplayPreset,
   resolveAppDefaultDisplayPreset,
 } from "@/lib/articles/article-display";
-import { resolvePreferenceValue } from "@/schemas/preferences";
+import { resolvePreferenceValue } from "@/schemas/preference-values";
 import type { UiStoreState } from "@/stores/ui-store";
 import type { ReadingSettingsViewProps } from "../reading-settings-view";
 import type { SettingsPageControl } from "../settings-page.types";

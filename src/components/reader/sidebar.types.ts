@@ -1,6 +1,6 @@
 import type { TFunction } from "i18next";
 import type { RefObject } from "react";
-import type { SortSubscriptions } from "@/schemas/preferences";
+import type { SortSubscriptions } from "@/schemas/preference-values";
 import type { FeedTreeViewProps } from "./feed-tree.types";
 import type { SidebarAccountSectionProps } from "./sidebar-account-section";
 import type { SidebarContentSectionsProps } from "./sidebar-content-sections";

@@ -1,5 +1,5 @@
 import { supportedLanguages } from "@/lib/i18n";
-import { resolvePreferenceValue } from "@/schemas/preferences";
+import { resolvePreferenceValue } from "@/schemas/preference-values";
 import type { GeneralSettingsViewProps } from "../general-settings-view";
 import type { SettingsPreferenceViewPropsParams } from "../settings-preference";
 

@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { useArticleActions } from "@/components/reader/hooks/article/use-article-actions";
 import { useSetRead, useToggleStar } from "@/hooks/use-articles";
-import { resolvePreferenceValue } from "@/schemas/preferences";
+import { resolvePreferenceValue } from "@/schemas/preference-values";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";

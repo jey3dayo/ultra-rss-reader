@@ -4,7 +4,7 @@ import { useAccountUnreadCount } from "@/hooks/use-account-unread-count";
 import { useFeeds } from "@/hooks/use-feeds";
 import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
 import { getWindowBadgeCountTarget, type WindowBadgeCountTarget } from "@/lib/window/tauri-window";
-import type { UnreadBadgePreference } from "@/schemas/preferences";
+import type { UnreadBadgePreference } from "@/schemas/preference-values";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 

@@ -1,11 +1,11 @@
 import { z } from "zod";
 import {
-  getPreferenceValueSchema,
   isReservedUnknownPreferenceKey,
   isRetiredBackendPassthroughPreferenceKey,
+  isValidPreferenceValue,
   preferenceKeyMaxLength,
   preferenceValueMaxUtf8Bytes,
-} from "@/schemas/preferences";
+} from "@/schemas/preference-values";
 
 const textEncoder = new TextEncoder();
 
@@ -43,8 +43,7 @@ export const PreferencesDtoSchema = z.record(z.string(), z.string()).superRefine
       });
     }
 
-    const valueSchema = getPreferenceValueSchema(key);
-    if (valueSchema?.safeParse(value).success === false) {
+    if (!isValidPreferenceValue(key, value)) {
       context.addIssue({
         code: "custom",
         message: `Invalid value for preference key: ${key}`,

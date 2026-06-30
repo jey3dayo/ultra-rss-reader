@@ -1,7 +1,7 @@
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import type { TriStateDisplayMode } from "@/lib/articles/article-display";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
-import type { SortSubscriptions } from "@/schemas/preferences";
+import type { SortSubscriptions } from "@/schemas/preference-values";
 import { sortFeedsByPreference, sumUnreadCounts } from "./sidebar";
 
 export type FeedTreeFeedViewModel = {
