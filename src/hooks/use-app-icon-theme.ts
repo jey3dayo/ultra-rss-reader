@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
 import { readMatchMedia, subscribeMatchMediaChange } from "@/lib/runtime/match-media-listener";
 import { setWindowIcon } from "@/lib/window/tauri-window";
-import { resolvePreferenceValue } from "@/schemas/preferences";
+import { resolvePreferenceValue } from "@/schemas/preference-values";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 

@@ -1,4 +1,4 @@
-import type { PreferenceRecord, PreferenceWritableKey, Theme } from "@/schemas/preferences";
+import type { PreferenceRecord, PreferenceWritableKey, Theme } from "@/schemas/preference-values";
 
 export type PreferencesState = {
   prefs: PreferenceRecord;

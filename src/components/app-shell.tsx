@@ -15,7 +15,7 @@ import {
   shouldUseDesktopOverlayTitlebar,
 } from "@/lib/window/window-chrome";
 import { bindWindowEvents, createPointerEventListener } from "@/lib/window/window-events";
-import { resolvePreferenceValue } from "@/schemas/preferences";
+import { resolvePreferenceValue } from "@/schemas/preference-values";
 import { useAppIconTheme } from "../hooks/use-app-icon-theme";
 import { useBadge } from "../hooks/use-badge";
 import { useBreakpoint } from "../hooks/use-breakpoint";

@@ -5,6 +5,7 @@ import { PreferencesDtoSchema } from "@/api/schemas/preferences";
 import keyboardShortcutsSource from "@/lib/keyboard/keyboard-shortcuts.ts?raw";
 import enSettings from "@/locales/en/settings.json";
 import jaSettings from "@/locales/ja/settings.json";
+import preferenceValuesSource from "@/schemas/preference-values.ts?raw";
 import {
   backendOwnedPreferenceKeys,
   getLikelyPreferenceKeyTypo,
@@ -36,6 +37,26 @@ function hasOwnKey(value: object, key: string): boolean {
 
 function extractFrontendPreferenceKeys(source: string): string[] {
   const block = extractBlock(source, /const preferenceSchemas = \{([\s\S]*?)\};/, "frontend preferenceSchemas block");
+
+  return [...block.matchAll(/^\s*([a-z_]+):/gm)].map((match) => match[1]);
+}
+
+function extractPreferenceValueKnownKeys(source: string): string[] {
+  const block = extractBlock(
+    source,
+    /const knownPreferenceKeys = \[([\s\S]*?)\] as const/,
+    "knownPreferenceKeys block",
+  );
+
+  return [...block.matchAll(/"([a-z_]+)"/g)].map((match) => match[1]);
+}
+
+function extractCorePreferenceDefaultKeys(source: string): string[] {
+  const block = extractBlock(
+    source,
+    /export const corePreferenceDefaults = \{([\s\S]*?)\} as const/,
+    "corePreferenceDefaults block",
+  );
 
   return [...block.matchAll(/^\s*([a-z_]+):/gm)].map((match) => match[1]);
 }
@@ -102,6 +123,20 @@ const afterReadingStoredValueCases = [
 ] as const;
 
 describe("preference contract", () => {
+  it("keeps schema-free preference value resolution under contract coverage", () => {
+    expect(preferenceValuesSource).toContain("corePreferenceDefaults");
+    expect(preferenceValuesSource).toContain('key === "reading_sort"');
+  });
+
+  it("keeps preference schema keys and schema-free value keys in sync", () => {
+    const schemaKeys = extractFrontendPreferenceKeys(frontendSource);
+    const knownValueKeys = extractPreferenceValueKnownKeys(preferenceValuesSource);
+    const defaultKeys = extractCorePreferenceDefaultKeys(preferenceValuesSource);
+
+    expect(knownValueKeys).toEqual(schemaKeys);
+    expect(defaultKeys).toEqual(schemaKeys);
+  });
+
   it("keeps every frontend preference key allowed by the Tauri backend", () => {
     const frontendKeys = extractFrontendPreferenceKeys(frontendSource);
     const backendAllowedKeys = extractBackendAllowedKeys(backendSource);

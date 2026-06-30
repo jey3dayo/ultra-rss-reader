@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { getPreferenceValueSchema } from "@/schemas/preferences";
+import { isKnownPreferenceKey, isShortcutPreferenceKey, isValidPreferenceValue } from "@/schemas/preference-values";
 import {
   controlCharPattern,
   countGraphemes,
@@ -71,10 +71,7 @@ export const setPreferenceArgs = z
     }),
   })
   .superRefine(({ key, value }, ctx) => {
-    const schema = getPreferenceValueSchema(key);
-    const result = schema?.safeParse(value);
-
-    if (!schema && key.startsWith("shortcut_")) {
+    if (!isKnownPreferenceKey(key) && key.startsWith("shortcut_") && !isShortcutPreferenceKey(key)) {
       ctx.addIssue({
         code: "custom",
         path: ["key"],
@@ -83,7 +80,7 @@ export const setPreferenceArgs = z
       return;
     }
 
-    if (result?.success === false) {
+    if (!isValidPreferenceValue(key, value)) {
       ctx.addIssue({
         code: "custom",
         path: ["value"],

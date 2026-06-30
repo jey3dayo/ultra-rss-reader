@@ -5,7 +5,7 @@ import type {
   FeedTreeFolderViewModel,
   SidebarFeedTreeViewMode,
 } from "@/lib/sidebar/sidebar-feed-tree";
-import type { SortSubscriptions } from "@/schemas/preferences";
+import type { SortSubscriptions } from "@/schemas/preference-values";
 
 export type SidebarSelection = ReaderQuerySelection;
 

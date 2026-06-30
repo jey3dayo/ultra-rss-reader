@@ -1,6 +1,6 @@
 import { Moon, Rss, Settings, Sun } from "lucide-react";
 import { SidebarFooterActionButton, TooltipProvider } from "@/design-system";
-import { resolvePreferenceValue } from "@/schemas/preferences";
+import { resolvePreferenceValue } from "@/schemas/preference-values";
 import { usePreferencesStore } from "@/stores/preferences-store";
 
 type SidebarFooterActionsViewProps = {

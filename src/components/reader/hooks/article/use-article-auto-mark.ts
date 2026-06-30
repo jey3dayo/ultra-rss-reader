@@ -1,7 +1,7 @@
 import type { UseMutationResult } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
-import type { AfterReadingPreference } from "@/schemas/preferences";
+import type { AfterReadingPreference } from "@/schemas/preference-values";
 import { useUiStore } from "@/stores/ui-store";
 import type { ArticleStatusToast } from "../../article-browser-actions";
 import { removeRetainedArticle } from "../../retained-articles";

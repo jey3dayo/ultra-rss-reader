@@ -11,7 +11,7 @@ import {
   useUpdateMuteKeyword,
 } from "@/hooks/use-mute-keywords";
 import { getErrorMessage } from "@/lib/ui/errors";
-import { resolvePreferenceValue } from "@/schemas/preferences";
+import { resolvePreferenceValue } from "@/schemas/preference-values";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 

@@ -4,7 +4,7 @@ import { SettingsPageView } from "@/components/settings/settings-page-view";
 import { DEV_SCENARIO_ID, type DevScenarioId } from "@/dev/scenario-ids";
 import { runRuntimeDevScenario } from "@/dev/scenario-runtime";
 import { resolveDevWebPreviewGeometryUrl } from "@/dev/web-preview-geometry";
-import { resolvePreferenceValue } from "@/schemas/preferences";
+import { resolvePreferenceValue } from "@/schemas/preference-values";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";

@@ -5,7 +5,7 @@ import type { BrowserWebviewState } from "@/api/tauri-commands";
 import { useBrowserNativeDiagnostics } from "@/components/reader/hooks/browser/use-browser-native-diagnostics";
 import { useBrowserOverlayViewportWidth } from "@/components/reader/hooks/browser/use-browser-overlay-viewport-width";
 import type { ToastData } from "@/lib/ui/toast.types";
-import { resolvePreferenceValue } from "@/schemas/preferences";
+import { resolvePreferenceValue } from "@/schemas/preference-values";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";

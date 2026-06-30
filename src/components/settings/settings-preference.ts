@@ -1,5 +1,5 @@
 import type { TFunction } from "i18next";
-import type { KnownPreferenceKey } from "@/schemas/preferences";
+import type { KnownPreferenceKey } from "@/schemas/preference-values";
 
 export type SettingsPreferenceSetPref = <K extends KnownPreferenceKey>(key: K, value: string) => void;
 
