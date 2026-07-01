@@ -4,6 +4,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.53.10] - 2026-07-02
+
+### Maintenance
+
+- mise の Windows タスクを pwsh インラインシェル方式へ移行し、`run_windows` を PowerShell 構文に統一した。
+- 整合性を守らない npm-check-updates のバージョン固定 assertion を契約テストから削除した。
+
 ## [0.53.9] - 2026-07-02
 
 ### Bug Fixes
