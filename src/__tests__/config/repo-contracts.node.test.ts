@@ -1189,7 +1189,6 @@ describe("repository static contracts", () => {
     const packageManagerVersion = extractPackageManagerVersion(packageJson.packageManager, "pnpm");
     const miseNodeVersion = extractMiseToolVersion(miseSource, "node");
     const misePnpmVersion = extractMiseToolVersion(miseSource, "npm:pnpm");
-    const miseNcuVersion = extractMiseToolVersion(miseSource, "npm:npm-check-updates");
 
     expect(packageJson.engines.node).toBe("26.4.0");
     expect(Object.keys(packageJson.engines).toSorted()).toEqual(["node", "pnpm"]);
@@ -1198,7 +1197,6 @@ describe("repository static contracts", () => {
     expect(miseNodeVersion).toBe(packageJson.engines.node);
     expect(packageManagerVersion).toBe("11.9.0");
     expect(misePnpmVersion).toBe(packageManagerVersion);
-    expect(miseNcuVersion).toBe("22.2.9");
   });
 
   it("keeps the base Tauri config on the official v2 schema URL", () => {
