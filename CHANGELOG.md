@@ -4,6 +4,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.53.9] - 2026-07-02
+
+### Bug Fixes
+
+- 既読更新時にフォルダ単位の記事一覧キャッシュも対象に含め、未読フィルタ表示との整合を取れるようにした。
+
+### Maintenance
+
+- npm-check-updates を 22.2.9 に更新した。
+
 ## [0.53.8] - 2026-07-01
 
 ### Bug Fixes
