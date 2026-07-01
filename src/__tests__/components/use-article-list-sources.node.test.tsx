@@ -795,6 +795,45 @@ describe("useArticleListSources", () => {
     expect(result.current.articles?.map((article) => article.id)).toEqual(["art-1", "art-3"]);
   });
 
+  it("refreshes a retained folder article read state from the all-mode folder source after it leaves the unread source", () => {
+    const folderFeeds = createMatrixFeeds().filter((feed) => feed.account_id === "acc-1");
+    useFeedsMock.mockReturnValue({ data: folderFeeds });
+    useFoldersMock.mockReturnValue({ data: createMatrixFolders() });
+
+    const unreadArticle = matrixArticle("matrix-4", "feed-2", false, false);
+    const readArticle = { ...unreadArticle, is_read: true };
+    let currentUnreadFolderArticles: ArticleDto[] = [unreadArticle];
+    let currentAllFolderArticles: ArticleDto[] = [unreadArticle];
+    useFolderArticlesMock.mockImplementation((folderId: string | null, options?: { mode?: ViewMode }) => ({
+      data: folderId ? (options?.mode === "all" ? currentAllFolderArticles : currentUnreadFolderArticles) : undefined,
+      isLoading: false,
+    }));
+
+    const props: Parameters<typeof useArticleListSources>[0] = {
+      selection: { type: "folder", folderId: "folder-1" },
+      selectedAccountId: "acc-1",
+      selectedArticleId: "matrix-4",
+      retainedArticleIds: new Set(["matrix-4"]),
+      viewMode: "unread",
+    };
+
+    const { result, rerender } = renderHook(() => useArticleListSources(props), {
+      wrapper: createWrapper(),
+    });
+
+    expect(result.current.accountArticles?.map((article) => article.id)).toEqual(["matrix-4"]);
+    expect(result.current.accountArticles?.[0]?.is_read).toBe(false);
+
+    // Simulate the auto-mark read patch: the article leaves the unread folder
+    // source but stays in the all-mode folder source with is_read: true.
+    currentUnreadFolderArticles = [];
+    currentAllFolderArticles = [readArticle];
+    rerender();
+
+    expect(result.current.accountArticles?.map((article) => article.id)).toEqual(["matrix-4"]);
+    expect(result.current.accountArticles?.[0]?.is_read).toBe(true);
+  });
+
   it("keeps a retained selected article in the smart starred source after unstar refetch removes it", () => {
     let currentStarredArticles = [sampleArticles[1]];
     useAccountArticlesMock.mockImplementation((_accountId: string | null, options?: { mode?: ViewMode }) => ({

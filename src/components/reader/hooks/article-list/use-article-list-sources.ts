@@ -109,6 +109,7 @@ export function useArticleListSources({
   const { data: folderArticles, isLoading: isLoadingFolderArticles } = useFolderArticles(sourcePlan.folderId, {
     mode: sourcePlan.folderMode,
   });
+  const { data: allFolderArticles } = useFolderArticles(sourcePlan.folderId, { mode: "all" });
   const { data: recentArticles, isLoading: isLoadingRecentArticles } = useRecentArticles(
     sourcePlan.sourceKind === "recent" ? sourcePlan.accountId : null,
     {
@@ -162,6 +163,15 @@ export function useArticleListSources({
         feeds: latestFeeds,
       }),
     [folderArticles, latestFeeds],
+  );
+  const latestAllFolderArticles = useMemo(
+    () =>
+      resolveLatestAccountArticles({
+        articles: allFolderArticles,
+        sourceKind: "folder",
+        feeds: latestFeeds,
+      }),
+    [allFolderArticles, latestFeeds],
   );
   const feedsSnapshotCandidate = useMemo(
     () =>
@@ -258,6 +268,7 @@ export function useArticleListSources({
         primarySourceArticles,
         latestAccountArticles,
         latestFolderArticles,
+        latestAllFolderArticles,
         latestRecentArticles,
         latestFeedArticles,
         latestAllFeedArticles,
@@ -271,6 +282,7 @@ export function useArticleListSources({
     latestAllFeedArticles,
     latestAllAccountArticles,
     latestFolderArticles,
+    latestAllFolderArticles,
     primarySourceArticles,
     latestRecentArticles,
     retainedArticleIds,
