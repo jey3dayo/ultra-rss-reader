@@ -4,6 +4,17 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.53.8] - 2026-07-01
+
+### Bug Fixes
+
+- Reader の classic 選択スタイルで左ボーダー領域を常時確保し、選択切り替え時に記事タイトルの折り返しや行幅が変わらないようにした。
+- Reader のサイドバー、記事一覧、本文ペインを遅延読み込みしつつ、ペイン切り替え時の状態と focus 復帰が崩れにくいようにした。
+
+### Maintenance
+
+- Storybook の記事一覧シナリオを整え、classic 選択スタイルの同一文言で選択/非選択の回帰確認をしやすくした。
+
 ## [0.53.7] - 2026-06-30
 
 ### Features
