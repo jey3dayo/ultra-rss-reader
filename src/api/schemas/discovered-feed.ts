@@ -20,12 +20,10 @@ const httpUrlSchema = z
     message: "Only valid http:// and https:// URLs are supported",
   });
 
-export const DiscoveredFeedDtoSchema = z
-  .object({
-    url: httpUrlSchema,
-    title: z.string(),
-  })
-  .strict();
+export const DiscoveredFeedDtoSchema = z.strictObject({
+  url: httpUrlSchema,
+  title: z.string(),
+});
 
 export const DiscoveredFeedDtoListSchema = z.array(DiscoveredFeedDtoSchema);
 

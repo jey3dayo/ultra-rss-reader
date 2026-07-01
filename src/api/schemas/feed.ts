@@ -30,20 +30,18 @@ const feedUrlSchema = z
   });
 const optionalFeedSiteUrlSchema = z.literal("").or(feedUrlSchema);
 
-export const FeedDtoSchema = z
-  .object({
-    id: nonBlankStringSchema,
-    account_id: nonBlankStringSchema,
-    folder_id: z.string().nullable(),
-    remote_id: z.string().nullable(),
-    title: nonBlankStringSchema,
-    url: feedUrlSchema,
-    site_url: optionalFeedSiteUrlSchema,
-    unread_count: NonnegativeIntegerSchema,
-    reader_mode: FeedDisplayModeSchema,
-    web_preview_mode: FeedDisplayModeSchema,
-  })
-  .strict();
+export const FeedDtoSchema = z.strictObject({
+  id: nonBlankStringSchema,
+  account_id: nonBlankStringSchema,
+  folder_id: z.string().nullable(),
+  remote_id: z.string().nullable(),
+  title: nonBlankStringSchema,
+  url: feedUrlSchema,
+  site_url: optionalFeedSiteUrlSchema,
+  unread_count: NonnegativeIntegerSchema,
+  reader_mode: FeedDisplayModeSchema,
+  web_preview_mode: FeedDisplayModeSchema,
+});
 
 export const FeedDtoListSchema = z.array(FeedDtoSchema);
 

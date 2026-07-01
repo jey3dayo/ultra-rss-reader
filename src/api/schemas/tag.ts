@@ -8,13 +8,11 @@ const tagColorSchema = z
   .transform((value) => value.toLowerCase())
   .nullable();
 
-export const TagDtoSchema = z
-  .object({
-    id: z.string(),
-    name: nonBlankTrimmedStringSchema,
-    color: tagColorSchema,
-  })
-  .strict();
+export const TagDtoSchema = z.strictObject({
+  id: z.string(),
+  name: nonBlankTrimmedStringSchema,
+  color: tagColorSchema,
+});
 
 export const TagDtoListSchema = z.array(TagDtoSchema);
 export const TagArticleCountsSchema = z.record(z.string(), NonnegativeIntegerSchema);

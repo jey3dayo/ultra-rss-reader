@@ -118,27 +118,23 @@ export const StoredSidebarExpandedFoldersSchema = z
 
 export type StoredSidebarExpandedFolders = z.output<typeof StoredSidebarExpandedFoldersSchema>;
 
-export const StoredSidebarExpandedFoldersStorageSchema = z
-  .object({
-    version: z.literal(SIDEBAR_EXPANDED_FOLDERS_STORAGE_VERSION),
-    accounts: StoredSidebarExpandedFoldersSchema,
-  })
-  .strict();
+export const StoredSidebarExpandedFoldersStorageSchema = z.strictObject({
+  version: z.literal(SIDEBAR_EXPANDED_FOLDERS_STORAGE_VERSION),
+  accounts: StoredSidebarExpandedFoldersSchema,
+});
 
-export const SidebarExpandedFoldersStorageVersionMarkerSchema = z.object({ version: z.unknown() }).passthrough();
+export const SidebarExpandedFoldersStorageVersionMarkerSchema = z.looseObject({ version: z.unknown() });
 
 export type SidebarExpandedFoldersStorage = z.output<typeof StoredSidebarExpandedFoldersStorageSchema>;
 
-const DatabaseRestoreStorageReconciliationPolicySchemaBase = z
-  .object({
-    removeKeys: z.tuple([
-      z.literal(STORAGE_KEYS.commandHistory),
-      z.literal(STORAGE_KEYS.sidebarExpandedFolders),
-      z.literal(STORAGE_KEYS.startupSyncLastTriggeredAt),
-    ]),
-    retainKeys: z.tuple([z.literal(STORAGE_KEYS.theme)]),
-  })
-  .strict();
+const DatabaseRestoreStorageReconciliationPolicySchemaBase = z.strictObject({
+  removeKeys: z.tuple([
+    z.literal(STORAGE_KEYS.commandHistory),
+    z.literal(STORAGE_KEYS.sidebarExpandedFolders),
+    z.literal(STORAGE_KEYS.startupSyncLastTriggeredAt),
+  ]),
+  retainKeys: z.tuple([z.literal(STORAGE_KEYS.theme)]),
+});
 
 export const DATABASE_RESTORE_STORAGE_RECONCILIATION_POLICY: z.input<
   typeof DatabaseRestoreStorageReconciliationPolicySchemaBase
@@ -198,11 +194,9 @@ const StorageKeySchema = z.enum([
   STORAGE_KEYS.startupSyncLastTriggeredAt,
 ]);
 
-export const StorageCleanupPolicyConnectionsSchema = z
-  .object({
-    settingsDataResetKeys: z.array(StorageKeySchema).readonly(),
-    privateDataExportKeys: z.array(StorageKeySchema).readonly(),
-  })
-  .strict();
+export const StorageCleanupPolicyConnectionsSchema = z.strictObject({
+  settingsDataResetKeys: z.array(StorageKeySchema).readonly(),
+  privateDataExportKeys: z.array(StorageKeySchema).readonly(),
+});
 
 export type StorageCleanupPolicyConnections = z.output<typeof StorageCleanupPolicyConnectionsSchema>;

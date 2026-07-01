@@ -22,9 +22,9 @@ const appErrorMessageSchema = z
   });
 
 export const AppErrorSchema = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("UserVisible"), message: appErrorMessageSchema }).strict(),
-  z.object({ type: z.literal("Retryable"), message: appErrorMessageSchema }).strict(),
-  z.object({ type: z.literal("Diagnostics"), message: appErrorMessageSchema }).strict(),
+  z.strictObject({ type: z.literal("UserVisible"), message: appErrorMessageSchema }),
+  z.strictObject({ type: z.literal("Retryable"), message: appErrorMessageSchema }),
+  z.strictObject({ type: z.literal("Diagnostics"), message: appErrorMessageSchema }),
 ]);
 
 export type AppError = z.infer<typeof AppErrorSchema>;

@@ -6,29 +6,25 @@ const nonBlankTrimmedStringSchema = z.string().trim().min(1);
 const accountNameSchema = z.string().trim();
 export const SyncIssueOwnerSchema = z.enum(["account", "feed", "credential", "scheduler"]);
 
-const AccountSyncErrorSchema = z
-  .object({
-    account_id: z.string(),
-    account_name: accountNameSchema,
-    action_owner: SyncIssueOwnerSchema.optional(),
-    message: nonBlankTrimmedStringSchema,
-  })
-  .strict();
+const AccountSyncErrorSchema = z.strictObject({
+  account_id: z.string(),
+  account_name: accountNameSchema,
+  action_owner: SyncIssueOwnerSchema.optional(),
+  message: nonBlankTrimmedStringSchema,
+});
 
-export const AccountSyncWarningSchema = z
-  .object({
-    account_id: z.string(),
-    account_name: accountNameSchema,
-    action_owner: SyncIssueOwnerSchema.optional(),
-    kind: z.enum(["generic", "retry_pending", "retry_scheduled"]).optional(),
-    message: nonBlankTrimmedStringSchema,
-    retry_at: IsoDateTimeStringSchema.nullish(),
-    retry_in_seconds: nonnegativeIntegerSchema.nullish(),
-  })
-  .strict();
+export const AccountSyncWarningSchema = z.strictObject({
+  account_id: z.string(),
+  account_name: accountNameSchema,
+  action_owner: SyncIssueOwnerSchema.optional(),
+  kind: z.enum(["generic", "retry_pending", "retry_scheduled"]).optional(),
+  message: nonBlankTrimmedStringSchema,
+  retry_at: IsoDateTimeStringSchema.nullish(),
+  retry_in_seconds: nonnegativeIntegerSchema.nullish(),
+});
 
 export const SyncResultSchema = z
-  .object({
+  .strictObject({
     synced: z.boolean(),
     total: nonnegativeIntegerSchema,
     succeeded: nonnegativeIntegerSchema,
@@ -38,8 +34,7 @@ export const SyncResultSchema = z
   .refine((result) => result.total === result.succeeded + result.failed.length, {
     message: "total must match succeeded plus failed count",
     path: ["total"],
-  })
-  .strict();
+  });
 
 export const SyncWarningPayloadSchema = z.array(AccountSyncWarningSchema);
 export const SyncCompletedPayloadSchema = z.null();

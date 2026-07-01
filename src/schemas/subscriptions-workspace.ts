@@ -12,26 +12,22 @@ const subscriptionsWorkspaceExpandedGroupKeySchema = z.custom<SubscriptionsWorks
   (value) => typeof value === "string" && value.startsWith("group:") && value.length > "group:".length,
 );
 
-export const SubscriptionsWorkspaceListScrollStateSchema = z
-  .object({
-    scrollTop: z.number().finite().nonnegative(),
-    layoutGeneration: z.string(),
-    viewportHeight: z.number().finite().nonnegative(),
-  })
-  .strict();
+export const SubscriptionsWorkspaceListScrollStateSchema = z.strictObject({
+  scrollTop: z.number().finite().nonnegative(),
+  layoutGeneration: z.string(),
+  viewportHeight: z.number().finite().nonnegative(),
+});
 
 export type SubscriptionsWorkspaceListScrollState = z.output<typeof SubscriptionsWorkspaceListScrollStateSchema>;
 
-export const SubscriptionsWorkspaceReturnStateSchema = z
-  .object({
-    accountId: subscriptionsWorkspaceAccountIdSchema,
-    activeSummaryFilter: subscriptionSummaryFilterStateSchema,
-    selectedFeedId: subscriptionsWorkspaceIdentitySchema.nullable(),
-    expandedGroups: z.record(subscriptionsWorkspaceExpandedGroupKeySchema, z.boolean()),
-    listScrollTop: SubscriptionsWorkspaceListScrollStateSchema,
-    keptFeedIds: z.array(subscriptionsWorkspaceIdentitySchema),
-    deferredFeedIds: z.array(subscriptionsWorkspaceIdentitySchema),
-  })
-  .strict();
+export const SubscriptionsWorkspaceReturnStateSchema = z.strictObject({
+  accountId: subscriptionsWorkspaceAccountIdSchema,
+  activeSummaryFilter: subscriptionSummaryFilterStateSchema,
+  selectedFeedId: subscriptionsWorkspaceIdentitySchema.nullable(),
+  expandedGroups: z.record(subscriptionsWorkspaceExpandedGroupKeySchema, z.boolean()),
+  listScrollTop: SubscriptionsWorkspaceListScrollStateSchema,
+  keptFeedIds: z.array(subscriptionsWorkspaceIdentitySchema),
+  deferredFeedIds: z.array(subscriptionsWorkspaceIdentitySchema),
+});
 
 export type SubscriptionsWorkspaceReturnState = z.output<typeof SubscriptionsWorkspaceReturnStateSchema>;

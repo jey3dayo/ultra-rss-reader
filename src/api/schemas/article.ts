@@ -20,22 +20,20 @@ const sanitizedArticleHtmlDtoShape = {
 
 export const SanitizedArticleHtmlDtoSchema = z.object(sanitizedArticleHtmlDtoShape);
 
-export const ArticleDtoSchema = z
-  .object({
-    id: z.string(),
-    feed_id: z.string(),
-    title: z.string(),
-    ...sanitizedArticleHtmlDtoShape,
-    summary: z.string().nullable(),
-    url: nullableNonBlankStringSchema,
-    author: z.string().nullable(),
-    published_at: IsoDateTimeStringSchema,
-    thumbnail: nullableRemoteImageUrlSchema,
-    is_read: z.boolean(),
-    is_starred: z.boolean(),
-    viewed_at: IsoDateTimeStringSchema.nullable().optional(),
-  })
-  .strict();
+export const ArticleDtoSchema = z.strictObject({
+  id: z.string(),
+  feed_id: z.string(),
+  title: z.string(),
+  ...sanitizedArticleHtmlDtoShape,
+  summary: z.string().nullable(),
+  url: nullableNonBlankStringSchema,
+  author: z.string().nullable(),
+  published_at: IsoDateTimeStringSchema,
+  thumbnail: nullableRemoteImageUrlSchema,
+  is_read: z.boolean(),
+  is_starred: z.boolean(),
+  viewed_at: IsoDateTimeStringSchema.nullable().optional(),
+});
 
 export const ArticleDtoListSchema = z.array(ArticleDtoSchema);
 

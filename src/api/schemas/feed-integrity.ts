@@ -1,30 +1,25 @@
 import { z } from "zod";
 import { IsoDateTimeStringSchema, NonnegativeIntegerSchema } from "./common";
 
-const FeedIntegrityIssueDtoSchema = z
-  .object({
-    missing_feed_id: z.string(),
-    article_count: NonnegativeIntegerSchema,
-    latest_article_title: z.string().nullable(),
-    latest_article_published_at: IsoDateTimeStringSchema.nullable(),
-  })
-  .strict();
+const FeedIntegrityIssueDtoSchema = z.strictObject({
+  missing_feed_id: z.string(),
+  article_count: NonnegativeIntegerSchema,
+  latest_article_title: z.string().nullable(),
+  latest_article_published_at: IsoDateTimeStringSchema.nullable(),
+});
 
-export const FeedIntegrityReportDtoSchema = z
-  .object({
-    orphaned_article_count: NonnegativeIntegerSchema,
-    orphaned_feeds: z.array(FeedIntegrityIssueDtoSchema),
-  })
-  .strict();
+export const FeedIntegrityReportDtoSchema = z.strictObject({
+  orphaned_article_count: NonnegativeIntegerSchema,
+  orphaned_feeds: z.array(FeedIntegrityIssueDtoSchema),
+});
 
 export const FeedIntegrityCleanupDtoSchema = z
-  .object({
+  .strictObject({
     dry_run: z.boolean(),
     orphaned_article_count: NonnegativeIntegerSchema,
     deleted_article_count: NonnegativeIntegerSchema,
     orphaned_article_ids: z.array(z.string()).optional(),
   })
-  .strict()
   .superRefine((value, ctx) => {
     if (value.dry_run && value.deleted_article_count !== 0) {
       ctx.addIssue({

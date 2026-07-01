@@ -10,34 +10,28 @@ export const BROWSER_WEBVIEW_EVENT_NAMES = {
 
 export type BrowserWebviewEventName = (typeof BROWSER_WEBVIEW_EVENT_NAMES)[keyof typeof BROWSER_WEBVIEW_EVENT_NAMES];
 
-export const BrowserWebviewStateSchema = z
-  .object({
-    url: z.string(),
-    can_go_back: z.boolean(),
-    can_go_forward: z.boolean(),
-    is_loading: z.boolean(),
-    load_generation: z.number().int().nonnegative(),
-  })
-  .strict();
+export const BrowserWebviewStateSchema = z.strictObject({
+  url: z.string(),
+  can_go_back: z.boolean(),
+  can_go_forward: z.boolean(),
+  is_loading: z.boolean(),
+  load_generation: z.number().int().nonnegative(),
+});
 
 export type BrowserWebviewState = z.output<typeof BrowserWebviewStateSchema>;
 
-export const BrowserWebviewFallbackPayloadSchema = z
-  .object({
-    url: z.string(),
-    opened_external: z.boolean(),
-    error_message: z.string().nullable(),
-  })
-  .strict();
+export const BrowserWebviewFallbackPayloadSchema = z.strictObject({
+  url: z.string(),
+  opened_external: z.boolean(),
+  error_message: z.string().nullable(),
+});
 
 export type BrowserWebviewFallbackPayload = z.output<typeof BrowserWebviewFallbackPayloadSchema>;
 
-export const BrowserWebviewClosedPayloadSchema = z
-  .object({
-    url: z.string(),
-    load_generation: z.number().int().nonnegative(),
-  })
-  .strict();
+export const BrowserWebviewClosedPayloadSchema = z.strictObject({
+  url: z.string(),
+  load_generation: z.number().int().nonnegative(),
+});
 
 export type BrowserWebviewClosedPayload = z.output<typeof BrowserWebviewClosedPayloadSchema>;
 
@@ -49,24 +43,20 @@ const BrowserWebviewDiagnosticsNumberSchema = z
   .min(-BROWSER_WEBVIEW_DIAGNOSTICS_MAX_RECT_VALUE)
   .max(BROWSER_WEBVIEW_DIAGNOSTICS_MAX_RECT_VALUE);
 
-const BrowserWebviewLogicalRectSchema = z
-  .object({
-    x: BrowserWebviewDiagnosticsNumberSchema,
-    y: BrowserWebviewDiagnosticsNumberSchema,
-    width: BrowserWebviewDiagnosticsNumberSchema,
-    height: BrowserWebviewDiagnosticsNumberSchema,
-  })
-  .strict();
+const BrowserWebviewLogicalRectSchema = z.strictObject({
+  x: BrowserWebviewDiagnosticsNumberSchema,
+  y: BrowserWebviewDiagnosticsNumberSchema,
+  width: BrowserWebviewDiagnosticsNumberSchema,
+  height: BrowserWebviewDiagnosticsNumberSchema,
+});
 
-export const BrowserWebviewDiagnosticsPayloadSchema = z
-  .object({
-    action: z.string(),
-    requestedLogical: BrowserWebviewLogicalRectSchema,
-    appliedLogical: BrowserWebviewLogicalRectSchema,
-    scaleFactor: z.number().finite(),
-    nativeWebviewBounds: BrowserWebviewLogicalRectSchema.nullable(),
-  })
-  .strict();
+export const BrowserWebviewDiagnosticsPayloadSchema = z.strictObject({
+  action: z.string(),
+  requestedLogical: BrowserWebviewLogicalRectSchema,
+  appliedLogical: BrowserWebviewLogicalRectSchema,
+  scaleFactor: z.number().finite(),
+  nativeWebviewBounds: BrowserWebviewLogicalRectSchema.nullable(),
+});
 
 export type BrowserWebviewDiagnosticsPayload = z.output<typeof BrowserWebviewDiagnosticsPayloadSchema>;
 

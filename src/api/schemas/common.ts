@@ -4,7 +4,7 @@ export const COUNT_RESPONSE_MAX_VALUE = Number.MAX_SAFE_INTEGER;
 
 const createNonnegativeSafeIntegerSchema = () => z.number().int().nonnegative().finite().max(COUNT_RESPONSE_MAX_VALUE);
 
-export const IsoDateTimeStringSchema = z.string().datetime({ offset: true });
+export const IsoDateTimeStringSchema = z.iso.datetime({ offset: true });
 
 export const NullResponseSchema = z.null();
 export const IntResponseSchema = z.number().int().finite();
