@@ -1214,12 +1214,12 @@ describe("repository static contracts", () => {
       "$MD_EXCLUDE_TAURI_GEN",
     ].join(" ");
     const markdownWindowsArguments = [
-      "%MD_GLOB%",
-      "%MD_EXCLUDE_NODE_MODULES%",
-      "%MD_EXCLUDE_PNPM_STORE%",
-      "%MD_EXCLUDE_WORKTREES%",
-      "%MD_EXCLUDE_TARGET%",
-      "%MD_EXCLUDE_TAURI_GEN%",
+      "$env:MD_GLOB",
+      "$env:MD_EXCLUDE_NODE_MODULES",
+      "$env:MD_EXCLUDE_PNPM_STORE",
+      "$env:MD_EXCLUDE_WORKTREES",
+      "$env:MD_EXCLUDE_TARGET",
+      "$env:MD_EXCLUDE_TAURI_GEN",
     ].join(" ");
 
     expect(extractMiseEnvValue(miseSource, "MD_GLOB")).toBe("**/*.md");
@@ -1230,11 +1230,11 @@ describe("repository static contracts", () => {
     expect(extractMiseEnvValue(miseSource, "MD_EXCLUDE_TAURI_GEN")).toBe("#src-tauri/gen/**");
     expect(extractMiseTaskCommand(miseSource, "format:md")).toBe(`markdownlint-cli2 ${markdownArguments} --fix`);
     expect(extractMiseTaskCommand(miseSource, "format:md", "run_windows")).toBe(
-      `markdownlint-cli2.CMD ${markdownWindowsArguments} --fix`,
+      `markdownlint-cli2 ${markdownWindowsArguments} --fix`,
     );
     expect(extractMiseTaskCommand(miseSource, "lint:md")).toBe(`markdownlint-cli2 ${markdownArguments}`);
     expect(extractMiseTaskCommand(miseSource, "lint:md", "run_windows")).toBe(
-      `markdownlint-cli2.CMD ${markdownWindowsArguments}`,
+      `markdownlint-cli2 ${markdownWindowsArguments}`,
     );
   });
 

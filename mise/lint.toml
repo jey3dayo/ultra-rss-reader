@@ -1,12 +1,12 @@
 ["lint:types"]
 description = "TypeScript type check"
 run = "tsc --noEmit"
-run_windows = "tsc.CMD --noEmit"
+run_windows = "tsc --noEmit"
 
 ["lint:biome"]
 description = "Biome lint check"
 run = "biome lint ."
-run_windows = "biome.CMD lint ."
+run_windows = "biome lint ."
 
 ["lint:clippy"]
 description = "Rust clippy for dev and release profiles"
@@ -19,7 +19,7 @@ run_windows = "cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings 
 ["lint:md"]
 description = "Markdown lint check"
 run = "markdownlint-cli2 $MD_GLOB $MD_EXCLUDE_NODE_MODULES $MD_EXCLUDE_PNPM_STORE $MD_EXCLUDE_WORKTREES $MD_EXCLUDE_TARGET $MD_EXCLUDE_TAURI_GEN"
-run_windows = "markdownlint-cli2.CMD %MD_GLOB% %MD_EXCLUDE_NODE_MODULES% %MD_EXCLUDE_PNPM_STORE% %MD_EXCLUDE_WORKTREES% %MD_EXCLUDE_TARGET% %MD_EXCLUDE_TAURI_GEN%"
+run_windows = "markdownlint-cli2 $env:MD_GLOB $env:MD_EXCLUDE_NODE_MODULES $env:MD_EXCLUDE_PNPM_STORE $env:MD_EXCLUDE_WORKTREES $env:MD_EXCLUDE_TARGET $env:MD_EXCLUDE_TAURI_GEN"
 
 ["lint:yaml"]
 description = "YAML lint check"
@@ -40,4 +40,4 @@ run = "node scripts/check-workflow-pins.mjs"
 ["audit:deps"]
 description = "Manual dependency security audit; not part of CI or release preflight until advisory policy is defined"
 run = "pnpm audit --audit-level high"
-run_windows = "pnpm.CMD audit --audit-level high"
+run_windows = "pnpm.exe audit --audit-level high"

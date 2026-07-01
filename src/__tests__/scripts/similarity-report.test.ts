@@ -263,7 +263,7 @@ Similarity: 90.00%, Score: 12.3 points (lines 4~6, avg: 5.0)
 
     expect(miseToml).toContain('["report:similarity"]');
     expect(miseToml).toContain('run = "node ./scripts/similarity-report.ts"');
-    expect(miseToml).toContain('run_windows = "pnpm.CMD run report:similarity"');
+    expect(miseToml).toContain('run_windows = "node ./scripts/similarity-report.ts"');
     expect(buildSimilaritySummary.toString()).not.toContain("todoContent");
   });
 });

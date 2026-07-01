@@ -1,7 +1,7 @@
 ["format:biome"]
 description = "Biome format + lint + import sort autofix"
 run = "biome check --write --formatter-enabled=true --linter-enabled=true ."
-run_windows = "biome.CMD check --write --formatter-enabled=true --linter-enabled=true ."
+run_windows = "biome check --write --formatter-enabled=true --linter-enabled=true ."
 
 ["format:rust"]
 description = "Rust format"
@@ -14,12 +14,12 @@ run = "taplo fmt mise.toml mise/*.toml src-tauri/Cargo.toml"
 ["format:md"]
 description = "Markdown format + lint autofix"
 run = "markdownlint-cli2 $MD_GLOB $MD_EXCLUDE_NODE_MODULES $MD_EXCLUDE_PNPM_STORE $MD_EXCLUDE_WORKTREES $MD_EXCLUDE_TARGET $MD_EXCLUDE_TAURI_GEN --fix"
-run_windows = "markdownlint-cli2.CMD %MD_GLOB% %MD_EXCLUDE_NODE_MODULES% %MD_EXCLUDE_PNPM_STORE% %MD_EXCLUDE_WORKTREES% %MD_EXCLUDE_TARGET% %MD_EXCLUDE_TAURI_GEN% --fix"
+run_windows = "markdownlint-cli2 $env:MD_GLOB $env:MD_EXCLUDE_NODE_MODULES $env:MD_EXCLUDE_PNPM_STORE $env:MD_EXCLUDE_WORKTREES $env:MD_EXCLUDE_TARGET $env:MD_EXCLUDE_TAURI_GEN --fix"
 
 ["format:biome:check"]
 description = "Biome format + lint check (no writes)"
 run = "biome check --formatter-enabled=true --linter-enabled=true ."
-run_windows = "biome.CMD check --formatter-enabled=true --linter-enabled=true ."
+run_windows = "biome check --formatter-enabled=true --linter-enabled=true ."
 
 ["format:rust:check"]
 description = "Rust format check (no writes)"

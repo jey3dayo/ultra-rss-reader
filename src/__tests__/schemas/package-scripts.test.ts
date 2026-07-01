@@ -94,8 +94,9 @@ function extractMarkdownlintInvocation(command: string): string[] {
 function resolveMiseEnvReferences(args: string[], env: Map<string, string>): string[] {
   return args.map((arg) => {
     const posixEnvName = arg.match(/^\$([A-Z0-9_]+)$/)?.[1];
+    const pwshEnvName = arg.match(/^\$env:([A-Z0-9_]+)$/)?.[1];
     const windowsEnvName = arg.match(/^%([A-Z0-9_]+)%$/)?.[1];
-    const envName = posixEnvName ?? windowsEnvName;
+    const envName = posixEnvName ?? pwshEnvName ?? windowsEnvName;
 
     return envName === undefined ? arg : (env.get(envName) ?? arg);
   });
@@ -170,9 +171,9 @@ describe("package scripts", () => {
     const markdownEnvNames = [...markdownEnv.keys()];
     const markdownTaskCommands = [
       { commandName: "run", expectedRefs: markdownEnvNames.map((key) => `$${key}`), taskName: "format:md" },
-      { commandName: "run_windows", expectedRefs: markdownEnvNames.map((key) => `%${key}%`), taskName: "format:md" },
+      { commandName: "run_windows", expectedRefs: markdownEnvNames.map((key) => `$env:${key}`), taskName: "format:md" },
       { commandName: "run", expectedRefs: markdownEnvNames.map((key) => `$${key}`), taskName: "lint:md" },
-      { commandName: "run_windows", expectedRefs: markdownEnvNames.map((key) => `%${key}%`), taskName: "lint:md" },
+      { commandName: "run_windows", expectedRefs: markdownEnvNames.map((key) => `$env:${key}`), taskName: "lint:md" },
     ] as const;
 
     expect(markdownTargets).toEqual([
@@ -205,10 +206,10 @@ describe("package scripts", () => {
       "markdownlint-cli2",
     ]);
     expect(extractMarkdownlintInvocation(extractMiseTaskCommand(miseToml, "format:md", "run_windows"))).toEqual([
-      "markdownlint-cli2.CMD",
+      "markdownlint-cli2",
     ]);
     expect(extractMarkdownlintInvocation(extractMiseTaskCommand(miseToml, "lint:md", "run_windows"))).toEqual([
-      "markdownlint-cli2.CMD",
+      "markdownlint-cli2",
     ]);
   });
 
@@ -299,24 +300,24 @@ describe("package scripts", () => {
     expect(fastTask).not.toBe("");
     expect(fastTask).toContain("vitest run --project node");
     expect(fastTask).not.toContain("test:jsdom");
-    expect(fastWindowsCommand).toContain("vitest.CMD run --project node");
+    expect(fastWindowsCommand).toContain("vitest run --project node");
     expect(domTask).not.toBe("");
     expect(domTask).toContain("vitest run --project jsdom");
     expect(domTask).not.toContain("test:node");
-    expect(domWindowsCommand).toContain("vitest.CMD run --project jsdom");
+    expect(domWindowsCommand).toContain("vitest run --project jsdom");
     expect(ciTask).not.toBe("");
     expect(ciTask).toContain("vitest run --project node --reporter=dot --silent=passed-only");
     expect(ciTask).toContain("vitest run --project jsdom --reporter=dot --silent=passed-only");
-    expect(ciWindowsCommand).toContain("pnpm.CMD run test:node --reporter=dot --silent=passed-only");
-    expect(ciWindowsCommand).toContain("pnpm.CMD run test:jsdom --reporter=dot --silent=passed-only");
+    expect(ciWindowsCommand).toContain("vitest run --project node --reporter=dot --silent=passed-only");
+    expect(ciWindowsCommand).toContain("vitest run --project jsdom --reporter=dot --silent=passed-only");
     expect(profileTask).not.toBe("");
     expect(profileTask).toContain("vitest run --project node --reporter=verbose --slow-test-threshold=300");
     expect(profileTask).toContain("vitest run --project jsdom --reporter=verbose --slow-test-threshold=300");
-    expect(profileWindowsCommand).toContain("pnpm.CMD run test:node --reporter=verbose --slow-test-threshold=300");
-    expect(profileWindowsCommand).toContain("pnpm.CMD run test:jsdom --reporter=verbose --slow-test-threshold=300");
+    expect(profileWindowsCommand).toContain("vitest run --project node --reporter=verbose --slow-test-threshold=300");
+    expect(profileWindowsCommand).toContain("vitest run --project jsdom --reporter=verbose --slow-test-threshold=300");
     expect(parallelProfileTask).not.toBe("");
     expect(parallelProfileTask).toContain("vitest run --reporter=dot --silent=passed-only");
-    expect(parallelProfileWindowsCommand).toContain("pnpm.CMD exec vitest run --reporter=dot --silent=passed-only");
+    expect(parallelProfileWindowsCommand).toContain("vitest run --reporter=dot --silent=passed-only");
   });
 
   it("keeps mise test:all semantics aligned with Storybook E2E", () => {

@@ -24,6 +24,10 @@ uv = "latest"
 "npm:pnpm" = "11.9.0"
 "npm:npm-check-updates" = "22.2.9"
 
+[settings]
+windows_default_inline_shell_args = "pwsh -Command"
+windows_default_file_shell_args = "pwsh -Command"
+
 [task_config]
 includes = [
   "mise/format.toml",
@@ -89,12 +93,12 @@ depends = ["test:rust", "test:unit"]
 [tasks.build]
 description = "Build frontend"
 run = ["tsc && vite build"]
-run_windows = "tsc.CMD && vite.CMD build"
+run_windows = "tsc && vite build"
 
 [tasks."build:storybook"]
 description = "Build Storybook"
 run = "storybook build"
-run_windows = "pnpm.CMD run build-storybook"
+run_windows = "storybook build"
 
 # ========================================
 # アプリ（Tauri）
@@ -137,7 +141,7 @@ codesign -s "UltraRSSReader-Dev" -f src-tauri/target/debug/ultra-rss-reader
 src-tauri/target/debug/ultra-rss-reader
 kill $DEV_PID 2>/dev/null || true
 """
-run_windows = "echo app:dev:signed is macOS-only (requires codesign and Unix shell tooling). && exit /b 1"
+run_windows = "echo 'app:dev:signed is macOS-only (requires codesign and Unix shell tooling).'; exit 1"
 
 [tasks."app:dev:browser"]
 description = "Run frontend dev server for browser UI testing"
@@ -198,7 +202,7 @@ run = [
   { task = "lint:actions-shell" },
   { task = "lint:workflow-pins" },
 ]
-run_windows = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/run-wsl-mise-task.ps1 check:wsl"
+run_windows = "pwsh -NoProfile -File scripts/run-wsl-mise-task.ps1 check:wsl"
 
 [tasks."release:preflight:local"]
 description = "Pre-push release preflight mirror; set RELEASE_TAG=vX.Y.Z after creating the local annotated tag"
@@ -210,7 +214,15 @@ mise exec -- mise run format:check
 mise exec -- mise run lint:types
 mise exec -- mise run test:unit:ci
 """
-run_windows = "powershell.exe -NoProfile -Command \"$ErrorActionPreference = 'Stop'; if (-not $env:RELEASE_TAG) { throw 'set RELEASE_TAG=vX.Y.Z' }; mise exec -- node ./scripts/release/validate-version-parity.ts; mise exec -- pnpm run check:release-contamination; mise exec -- mise run format:check; mise exec -- mise run lint:types; mise exec -- mise run test:unit:ci\""
+run_windows = """
+$ErrorActionPreference = 'Stop'
+if (-not $env:RELEASE_TAG) { throw 'set RELEASE_TAG=vX.Y.Z' }
+mise exec -- node ./scripts/release/validate-version-parity.ts
+mise exec -- pnpm run check:release-contamination
+mise exec -- mise run format:check
+mise exec -- mise run lint:types
+mise exec -- mise run test:unit:ci
+"""
 
 [tasks.ci]
 description = "CI equivalent, unit-first full gate (format:check + test:unit:ci + lint + test:rust + build)"
