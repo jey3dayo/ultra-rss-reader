@@ -1198,7 +1198,7 @@ describe("repository static contracts", () => {
     expect(miseNodeVersion).toBe(packageJson.engines.node);
     expect(packageManagerVersion).toBe("11.9.0");
     expect(misePnpmVersion).toBe(packageManagerVersion);
-    expect(miseNcuVersion).toBe("22.2.8");
+    expect(miseNcuVersion).toBe("22.2.9");
   });
 
   it("keeps the base Tauri config on the official v2 schema URL", () => {
