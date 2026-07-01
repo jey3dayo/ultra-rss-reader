@@ -1,5 +1,5 @@
 import type { RefObject } from "react";
-import { useCallback, useEffect, useLayoutEffect, useState } from "react";
+import { useCallback, useLayoutEffect, useState } from "react";
 import { toBrowserWebviewBounds } from "@/lib/browser/browser-webview";
 import type { BrowserViewLayoutDiagnostics } from "../../browser-view.types";
 
@@ -24,6 +24,16 @@ export function useBrowserLayoutDiagnostics({
   hostRef,
 }: UseBrowserLayoutDiagnosticsParams): UseBrowserLayoutDiagnosticsResult {
   const [layoutDiagnostics, setLayoutDiagnostics] = useState<BrowserViewLayoutDiagnostics | null>(null);
+  const [wasShowingDiagnostics, setWasShowingDiagnostics] = useState(showDiagnostics);
+
+  // Adjust state during render when the prop changes instead of routing the reset
+  // through an effect, which would force an extra render with a stale value.
+  if (wasShowingDiagnostics !== showDiagnostics) {
+    setWasShowingDiagnostics(showDiagnostics);
+    if (!showDiagnostics) {
+      setLayoutDiagnostics(null);
+    }
+  }
 
   const captureLayoutDiagnostics = useCallback(() => {
     if (!showDiagnostics) {
@@ -68,14 +78,6 @@ export function useBrowserLayoutDiagnostics({
 
     captureLayoutDiagnostics();
   }, [browserUrl, captureLayoutDiagnostics, showDiagnostics]);
-
-  useEffect(() => {
-    if (showDiagnostics) {
-      return;
-    }
-
-    setLayoutDiagnostics(null);
-  }, [showDiagnostics]);
 
   return {
     layoutDiagnostics,
