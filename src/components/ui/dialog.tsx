@@ -41,8 +41,9 @@ type DialogTopLayerContextValue = {
 const DialogTopLayerContext = React.createContext<DialogTopLayerContextValue>({ modal: true, open: undefined });
 
 function Dialog({ modal = true, open, ...props }: DialogProps) {
+  const topLayerValue = React.useMemo<DialogTopLayerContextValue>(() => ({ modal, open }), [modal, open]);
   return (
-    <DialogTopLayerContext value={{ modal, open }}>
+    <DialogTopLayerContext value={topLayerValue}>
       <DialogPrimitive.Root data-slot="dialog" modal={modal} open={open} {...props} />
     </DialogTopLayerContext>
   );

@@ -157,6 +157,18 @@ function SummaryEmptyState({ title, subtitle, visual, metrics, recentFeeds, acce
   );
 }
 
+const relativeTimeFormatCache = new Map<string, Intl.RelativeTimeFormat>();
+
+function getRelativeTimeFormat(locale: string): Intl.RelativeTimeFormat {
+  const cached = relativeTimeFormatCache.get(locale);
+  if (cached) {
+    return cached;
+  }
+  const formatter = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
+  relativeTimeFormatCache.set(locale, formatter);
+  return formatter;
+}
+
 function formatRelativeSummaryTime(value: string | null | undefined, locale: string): string {
   if (!value) {
     return "—";
@@ -169,13 +181,13 @@ function formatRelativeSummaryTime(value: string | null | undefined, locale: str
 
   const diffMs = Date.now() - publishedTime;
   if (diffMs < 0) {
-    return new Intl.RelativeTimeFormat(locale, { numeric: "auto" }).format(0, "minute");
+    return getRelativeTimeFormat(locale).format(0, "minute");
   }
 
   const minute = 60 * 1000;
   const hour = 60 * minute;
   const day = 24 * hour;
-  const formatter = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
+  const formatter = getRelativeTimeFormat(locale);
 
   if (diffMs < hour) {
     return formatter.format(-Math.max(1, Math.round(diffMs / minute)), "minute");

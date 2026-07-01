@@ -157,9 +157,10 @@ function SettingsPageInfoRow({ control }: SettingsPageControlRowProps<SettingsPa
   );
 }
 
+const sectionColumnKeys = ["primary", "secondary"] as const;
+
 export function SettingsPageView({ title, sections, sectionSurface = "flat" }: SettingsPageViewProps) {
   const usesSectionGrid = sections.length > 1;
-  const sectionColumnKeys = ["primary", "secondary"] as const;
   const gridColumns = usesSectionGrid
     ? [sections.filter((_, index) => index % 2 === 0), sections.filter((_, index) => index % 2 === 1)]
     : [sections];
