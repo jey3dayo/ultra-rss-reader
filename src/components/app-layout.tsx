@@ -1,4 +1,4 @@
-import { type CSSProperties, type ReactNode, useLayoutEffect, useRef } from "react";
+import { type CSSProperties, lazy, type ReactNode, Suspense, useLayoutEffect, useRef } from "react";
 import { MOTION_RESIZE_SURFACE_CLASS_NAME } from "@/constants";
 import { ACCOUNT_PANE_WIDTH_PX, ARTICLE_LIST_PANE_WIDTH_PX, SIDEBAR_PANE_WIDTH_PX } from "@/constants/ui-layout";
 import { disableHiddenPaneFocus, restoreHiddenPaneFocus } from "@/lib/dom/hidden-pane-focus";
@@ -6,10 +6,27 @@ import { computeTranslateX, isPaneVisible, resolveLayout, resolveVisiblePane } f
 import type { ContentMode } from "../lib/layout/layout-state.types";
 import { cn } from "../lib/utils";
 import { useUiStore } from "../stores/ui-store";
-import { AccountPane } from "./reader/account-pane";
-import { ArticleList } from "./reader/article-list";
-import { ArticleView } from "./reader/article-view";
-import { Sidebar } from "./reader/sidebar";
+
+const AccountPane = lazy(async () => {
+  const mod = await import("./reader/account-pane");
+  return { default: mod.AccountPane };
+});
+const ArticleList = lazy(async () => {
+  const mod = await import("./reader/article-list");
+  return { default: mod.ArticleList };
+});
+const ArticleView = lazy(async () => {
+  const mod = await import("./reader/article-view");
+  return { default: mod.ArticleView };
+});
+const Sidebar = lazy(async () => {
+  const mod = await import("./reader/sidebar");
+  return { default: mod.Sidebar };
+});
+
+function LazyPaneContent({ children }: { children: ReactNode }) {
+  return <Suspense fallback={<div aria-hidden="true" className="h-full min-h-0 min-w-0" />}>{children}</Suspense>;
+}
 
 function HiddenPaneBoundary({
   hidden,
@@ -102,7 +119,9 @@ function SlidingPaneLayout({
     return (
       <div className="h-full overflow-hidden bg-background text-foreground">
         <main data-testid="main-stage" className="h-full">
-          <ArticleView />
+          <LazyPaneContent>
+            <ArticleView />
+          </LazyPaneContent>
         </main>
       </div>
     );
@@ -112,6 +131,9 @@ function SlidingPaneLayout({
   const activePane = resolveVisiblePane(layoutMode, focusedPane, selectedAccountId);
   const translateX = computeTranslateX(layoutMode, activePane);
   const shouldShowAccountPane = !isMobile && accountPaneOpen;
+  const showSidebarPane = isPaneVisible(layoutMode, activePane, "sidebar");
+  const showListPane = isPaneVisible(layoutMode, activePane, "list");
+  const showContentPane = isPaneVisible(layoutMode, activePane, "content");
 
   return (
     <div className="h-full overflow-hidden bg-background text-foreground">
@@ -128,7 +150,11 @@ function SlidingPaneLayout({
           }}
           hidden={!shouldShowAccountPane}
         >
-          <AccountPane />
+          {shouldShowAccountPane && (
+            <LazyPaneContent>
+              <AccountPane />
+            </LazyPaneContent>
+          )}
         </HiddenPaneBoundary>
         <main data-testid="main-stage" className="h-full min-h-0 min-w-0 flex-1 overflow-hidden">
           <div
@@ -143,24 +169,36 @@ function SlidingPaneLayout({
               testId="sliding-sidebar-pane-shell"
               className={cn("h-full min-h-0 overflow-hidden", isMobile ? "w-full shrink-0" : "shrink-0")}
               style={isMobile ? undefined : { width: `${SIDEBAR_PANE_WIDTH_PX}px` }}
-              hidden={!isPaneVisible(layoutMode, activePane, "sidebar")}
+              hidden={!showSidebarPane}
             >
-              <Sidebar />
+              {showSidebarPane && (
+                <LazyPaneContent>
+                  <Sidebar />
+                </LazyPaneContent>
+              )}
             </HiddenPaneBoundary>
             <HiddenPaneBoundary
               testId="sliding-list-pane-shell"
               className={cn("h-full min-h-0 overflow-hidden", isMobile ? "w-full shrink-0" : "shrink-0")}
               style={isMobile ? undefined : { width: `${ARTICLE_LIST_PANE_WIDTH_PX}px` }}
-              hidden={!isPaneVisible(layoutMode, activePane, "list")}
+              hidden={!showListPane}
             >
-              <ArticleList />
+              {showListPane && (
+                <LazyPaneContent>
+                  <ArticleList />
+                </LazyPaneContent>
+              )}
             </HiddenPaneBoundary>
             <HiddenPaneBoundary
               testId="sliding-content-pane-shell"
               className={cn("h-full min-h-0 overflow-hidden", isMobile ? "w-full shrink-0" : "min-w-0 flex-1")}
-              hidden={!isPaneVisible(layoutMode, activePane, "content")}
+              hidden={!showContentPane}
             >
-              <ArticleView />
+              {showContentPane && (
+                <LazyPaneContent>
+                  <ArticleView />
+                </LazyPaneContent>
+              )}
             </HiddenPaneBoundary>
           </div>
         </main>
@@ -246,7 +284,11 @@ function WideLayout({
               style={{ width: `${ACCOUNT_PANE_WIDTH_PX}px` }}
               hidden={!shouldShowAccountPane}
             >
-              <AccountPane />
+              {shouldShowAccountPane && (
+                <LazyPaneContent>
+                  <AccountPane />
+                </LazyPaneContent>
+              )}
             </HiddenPaneBoundary>
           </div>
           <div
@@ -269,7 +311,11 @@ function WideLayout({
               style={{ width: `${SIDEBAR_PANE_WIDTH_PX}px` }}
               hidden={!shouldShowSidebar}
             >
-              <Sidebar />
+              {shouldShowSidebar && (
+                <LazyPaneContent>
+                  <Sidebar />
+                </LazyPaneContent>
+              )}
             </HiddenPaneBoundary>
           </div>
         </>
@@ -277,18 +323,24 @@ function WideLayout({
       <main data-testid="main-stage" className="flex h-full min-h-0 min-w-0 flex-1 overflow-hidden">
         {panes.includes("list") && (
           <div className="h-full min-h-0 shrink-0 overflow-hidden" style={{ width: `${ARTICLE_LIST_PANE_WIDTH_PX}px` }}>
-            <ArticleList />
+            <LazyPaneContent>
+              <ArticleList />
+            </LazyPaneContent>
           </div>
         )}
         {panes.includes("content") && (
           <div className="h-full min-h-0 min-w-0 flex-1 overflow-hidden">
-            <ArticleView />
+            <LazyPaneContent>
+              <ArticleView />
+            </LazyPaneContent>
           </div>
         )}
       </main>
       {!panes.includes("list") && !panes.includes("content") && (
         <div className="h-full min-h-0 min-w-0 flex-1 overflow-hidden">
-          <ArticleView />
+          <LazyPaneContent>
+            <ArticleView />
+          </LazyPaneContent>
         </div>
       )}
     </div>

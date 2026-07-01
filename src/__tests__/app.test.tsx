@@ -70,50 +70,51 @@ describe("App", () => {
     expect(tray).toHaveStyle({ transform: "translateX(-200%)" });
   });
 
-  it("mobile: removes hidden pane descendants from fallback keyboard focus when inert is unsupported", () => {
+  it("mobile: keeps hidden lazy pane descendants out of fallback keyboard focus", async () => {
     useUiStore.setState({ layoutMode: "mobile", focusedPane: "list", selectedAccountId: "acc-1" });
 
     render(<AppLayout />, { wrapper: createWrapper() });
 
     const [sidebarPane, listPane, contentPane] = getSlidingPanes();
     const hiddenFocusable = sidebarPane?.querySelector<HTMLElement>("button, [href], input, [tabindex]");
-    const visibleFocusable = listPane?.querySelector<HTMLElement>("button, [href], input, [tabindex]");
 
     expect(sidebarPane).toHaveAttribute("aria-hidden", "true");
     expect(contentPane).toHaveAttribute("aria-hidden", "true");
-    expect(hiddenFocusable).not.toBeNull();
-    expect(hiddenFocusable).toHaveAttribute("tabindex", "-1");
-    expect(visibleFocusable).not.toBeNull();
-    expect(visibleFocusable).not.toHaveAttribute("tabindex", "-1");
+    expect(hiddenFocusable).toBeNull();
 
-    hiddenFocusable?.focus();
-    expect(document.activeElement).not.toBe(hiddenFocusable);
+    await waitFor(() => {
+      const visibleFocusable = listPane?.querySelector<HTMLElement>("button, [href], input, [tabindex]");
+      expect(visibleFocusable).not.toBeNull();
+      expect(visibleFocusable).not.toHaveAttribute("tabindex", "-1");
+    });
   });
 
-  it("mobile: restores descendant tab order when a hidden pane becomes visible", () => {
+  it("mobile: mounts focusable descendants with normal tab order when a hidden pane becomes visible", async () => {
     useUiStore.setState({ layoutMode: "mobile", focusedPane: "sidebar" });
 
     const { rerender } = render(<AppLayout />, { wrapper: createWrapper() });
 
     const initialListFocusable = getSlidingPanes()[1]?.querySelector<HTMLElement>("button, [href], input, [tabindex]");
-    expect(initialListFocusable).not.toBeNull();
-    expect(initialListFocusable).toHaveAttribute("tabindex", "-1");
+    expect(initialListFocusable).toBeNull();
 
     useUiStore.setState({ layoutMode: "mobile", focusedPane: "list", selectedAccountId: "acc-1" });
     rerender(<AppLayout />);
 
-    const restoredListFocusable = getSlidingPanes()[1]?.querySelector<HTMLElement>("button, [href], input, [tabindex]");
-    expect(restoredListFocusable).not.toBeNull();
-    expect(restoredListFocusable).not.toHaveAttribute("tabindex", "-1");
+    await waitFor(() => {
+      const restoredListFocusable = getSlidingPanes()[1]?.querySelector<HTMLElement>(
+        "button, [href], input, [tabindex]",
+      );
+      expect(restoredListFocusable).not.toBeNull();
+      expect(restoredListFocusable).not.toHaveAttribute("tabindex", "-1");
+    });
   });
 
-  it("mobile: restores hidden pane descendants when subscriptions workspace unmounts the pane tray", async () => {
+  it("mobile: restores dynamically added hidden pane descendants when subscriptions workspace unmounts the pane tray", async () => {
     useUiStore.setState({ layoutMode: "mobile", focusedPane: "sidebar" });
 
     const { rerender } = render(<AppLayout />, { wrapper: createWrapper() });
 
     const hiddenListPane = getSlidingPanes()[1];
-    const initialListFocusable = hiddenListPane?.querySelector<HTMLElement>("button, [href], input, [tabindex]");
     const lazyButton = document.createElement("button");
     lazyButton.type = "button";
     lazyButton.textContent = "Lazy child";
@@ -122,10 +123,6 @@ describe("App", () => {
       flushTestMutationObservers();
     });
 
-    expect(initialListFocusable).not.toBeNull();
-    await waitFor(() => {
-      expect(initialListFocusable).toHaveAttribute("tabindex", "-1");
-    });
     await waitFor(() => {
       expect(lazyButton).toHaveAttribute("tabindex", "-1");
     });
@@ -134,8 +131,6 @@ describe("App", () => {
     rerender(<AppLayout />);
 
     expect(screen.queryByTestId("sliding-pane-tray")).not.toBeInTheDocument();
-    expect(initialListFocusable).not.toHaveAttribute("tabindex", "-1");
-    expect(initialListFocusable).not.toHaveAttribute("data-hidden-pane-previous-tabindex");
     expect(lazyButton).not.toHaveAttribute("tabindex");
     expect(lazyButton).not.toHaveAttribute("data-hidden-pane-previous-tabindex");
   });
