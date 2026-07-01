@@ -208,6 +208,7 @@ export function normalizeQueryAccountId(accountId: string | null | undefined): s
 export const ARTICLE_CACHE_QUERY_ROOTS = [
   queryKeys.articles.root,
   queryKeys.accountArticles.root,
+  queryKeys.folderArticles.root,
   queryKeys.articlesByTag.root,
   queryKeys.search.root,
   queryKeys.starredArticles.root,

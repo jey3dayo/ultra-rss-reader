@@ -719,6 +719,10 @@ describe("useSetRead", () => {
       sampleArticles.filter((article) => !article.is_read),
     );
     queryClient.setQueryData(
+      queryKeys.folderArticles.byFolder("folder-1", "unread"),
+      sampleArticles.filter((article) => !article.is_read),
+    );
+    queryClient.setQueryData(
       queryKeys.articlesByTag.byTagAndAccount("tag-1", "acc-1", "unread"),
       sampleArticles.filter((article) => !article.is_read),
     );
@@ -737,6 +741,7 @@ describe("useSetRead", () => {
 
     await waitFor(() => {
       expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "unread"))).toEqual([]);
+      expect(queryClient.getQueryData(queryKeys.folderArticles.byFolder("folder-1", "unread"))).toEqual([]);
       expect(queryClient.getQueryData(queryKeys.articlesByTag.byTagAndAccount("tag-1", "acc-1", "unread"))).toEqual([]);
       expect(queryClient.getQueryData(queryKeys.recentArticles.byAccount("acc-1", "unread"))).toEqual([]);
       expect(queryClient.getQueryData(queryKeys.search.byAccountAndQuery("acc-1", "fresh"))).toEqual([

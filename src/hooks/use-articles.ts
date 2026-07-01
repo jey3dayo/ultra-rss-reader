@@ -423,6 +423,7 @@ function patchUnknownAccountArticleCaches(qc: QueryClient, nextArticle: ArticleD
 function patchArticleListQueries(qc: QueryClient, nextArticle: ArticleDto, options: CachedArticleInsertOptions) {
   for (const queryRoot of [
     queryKeys.articles.root,
+    queryKeys.folderArticles.root,
     queryKeys.articlesByTag.root,
     queryKeys.search.root,
     queryKeys.recentArticles.root,

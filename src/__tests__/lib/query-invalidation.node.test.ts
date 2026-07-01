@@ -236,6 +236,7 @@ describe("query-invalidation", () => {
     expect(ARTICLE_CACHE_QUERY_ROOTS).toEqual([
       queryKeys.articles.root,
       queryKeys.accountArticles.root,
+      queryKeys.folderArticles.root,
       queryKeys.articlesByTag.root,
       queryKeys.search.root,
       queryKeys.starredArticles.root,
