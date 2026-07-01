@@ -84,11 +84,9 @@ export function ArticleListItem({
         "relative isolate flex w-full cursor-pointer select-none flex-col gap-1 rounded-md px-4 py-3 text-left outline-none transition-[background-color,border-color,box-shadow,color,opacity] duration-150 motion-reduce:transition-none",
         selectionStyle === "classic"
           ? cn(
-              "focus-visible:bg-[image:var(--sidebar-focus-gradient)]",
-              isSelected && activePane && "border-l-2 border-primary bg-[image:var(--sidebar-selection-gradient)]",
-              isSelected &&
-                !activePane &&
-                "border-l-2 border-border-strong/60 bg-[image:var(--sidebar-hover-gradient)]",
+              "border-l-2 border-transparent focus-visible:bg-[image:var(--sidebar-focus-gradient)]",
+              isSelected && activePane && "border-primary bg-[image:var(--sidebar-selection-gradient)]",
+              isSelected && !activePane && "border-border-strong/60 bg-[image:var(--sidebar-hover-gradient)]",
             )
           : cn(
               isSelected &&

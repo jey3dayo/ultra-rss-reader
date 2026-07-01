@@ -560,7 +560,7 @@ describe("ArticleListItem", () => {
   });
 
   it("keeps classic selection highlighted without using a loud primary wash", () => {
-    render(
+    const { rerender } = render(
       <ArticleListItem
         article={{ ...sampleArticles[0], is_read: false, is_starred: false }}
         isSelected
@@ -579,6 +579,26 @@ describe("ArticleListItem", () => {
       name: "First Article (unread)",
     });
     expect(option).toHaveClass("border-l-2", "border-primary", "bg-[image:var(--sidebar-selection-gradient)]");
+
+    rerender(
+      <ArticleListItem
+        article={{ ...sampleArticles[0], is_read: false, is_starred: false }}
+        isSelected={false}
+        isRecentlyRead={false}
+        dimArchived="true"
+        textPreview="true"
+        imagePreviews="off"
+        selectionStyle="classic"
+        feedName={undefined}
+        onSelect={() => {}}
+      />,
+    );
+
+    const unselectedOption = screen.getByRole("option", {
+      name: "First Article (unread)",
+    });
+    expect(unselectedOption).toHaveClass("border-l-2", "border-transparent");
+    expect(unselectedOption).not.toHaveClass("border-primary", "bg-[image:var(--sidebar-selection-gradient)]");
   });
 
   it("keeps selected modern rows free from extra keyboard focus outlines", () => {

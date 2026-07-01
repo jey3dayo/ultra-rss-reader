@@ -1,7 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import type { CSSProperties, ReactNode } from "react";
+import { type CSSProperties, type ReactNode, useState } from "react";
 import { fn } from "storybook/test";
 import { denseNarrowViewportParameters } from "@/components/storybook/viewport-fixtures";
+import { ArticleListItem } from "./article-list-item";
 import { ArticleListScreenView } from "./article-list-screen-view";
 
 type CssVariableProperties = CSSProperties & Record<`--${string}`, string | number>;
@@ -10,7 +11,10 @@ const darkStoryFrameStyle: CssVariableProperties = {
   colorScheme: "dark",
   "--background": "#1c1915",
   "--foreground": "#f3efe6",
+  "--foreground-soft": "rgba(243, 239, 230, 0.7)",
   "--card": "#26221d",
+  "--card-foreground": "#f3efe6",
+  "--muted-foreground": "rgba(243, 239, 230, 0.65)",
   "--border": "rgba(243, 239, 230, 0.12)",
   "--border-strong": "rgba(243, 239, 230, 0.22)",
   "--surface-1": "#221e19",
@@ -19,6 +23,15 @@ const darkStoryFrameStyle: CssVariableProperties = {
   "--surface-4": "#363028",
   "--color-border": "rgba(243, 239, 230, 0.12)",
   "--color-border-strong": "rgba(243, 239, 230, 0.22)",
+  "--primary": "#8fb9ed",
+  "--sidebar-selection-background": "rgba(243, 239, 230, 0.075)",
+  "--sidebar-hover-surface": "rgba(243, 239, 230, 0.052)",
+  "--sidebar-selection-gradient":
+    "linear-gradient(90deg, rgba(243, 239, 230, 0.075) 0%, rgba(243, 239, 230, 0.052) 100%)",
+  "--sidebar-hover-gradient":
+    "linear-gradient(90deg, rgba(243, 239, 230, 0.052) 0%, rgba(243, 239, 230, 0.026) 100%)",
+  "--sidebar-focus-gradient":
+    "linear-gradient(90deg, rgba(243, 239, 230, 0.065) 0%, rgba(243, 239, 230, 0.03) 100%)",
 };
 
 function StoryFrame({ children, theme = "light" }: { children: ReactNode; theme?: "light" | "dark" }) {
@@ -76,6 +89,21 @@ const selectedShortJapaneseArticleFixture = {
   url: "https://example.com/episode-57",
   author: null,
   published_at: "2026-05-15T07:30:00Z",
+  thumbnail: null,
+  is_read: false,
+  is_starred: false,
+};
+
+const garminWrapRegressionArticleFixture = {
+  id: "art-garmin-wrap-regression",
+  feed_id: "feed-1",
+  title: "ガーミン（Garmin）のスポーツウォッチがAmazonでタイムセール中 トレーニング支援機能を備えた…",
+  content_sanitized: "<p>Amazon.co.jpのガーミン（Garmin）ストアページでは同社のスポーツウォッチがタイムセール中だ。</p>",
+  summary:
+    "Amazon.co.jpのガーミン（Garmin）ストアページでは同社のスポーツウォッチがタイムセール中だ。",
+  url: "https://example.com/garmin-sale",
+  author: null,
+  published_at: "2026-07-01T04:00:00Z",
   thumbnail: null,
   is_read: false,
   is_starred: false,
@@ -241,4 +269,34 @@ export const DenseNarrowViewport: Story = {
       },
     ],
   },
+};
+
+function ClassicSelectionClickToggleRegressionStory() {
+  const [selectedArticleId, setSelectedArticleId] = useState("art-garmin-toggle-a");
+  const articleIds = ["art-garmin-toggle-a", "art-garmin-toggle-b"] as const;
+
+  return (
+    <StoryFrame theme="dark">
+      {articleIds.map((articleId) => (
+        <ArticleListItem
+          key={articleId}
+          article={{ ...garminWrapRegressionArticleFixture, id: articleId }}
+          isSelected={selectedArticleId === articleId}
+          isActivePane={selectedArticleId === articleId}
+          isRecentlyRead={false}
+          dimArchived="true"
+          textPreview="true"
+          imagePreviews="off"
+          selectionStyle="classic"
+          feedName="INTERNET Watch"
+          onSelect={() => setSelectedArticleId(articleId)}
+        />
+      ))}
+    </StoryFrame>
+  );
+}
+
+export const ClassicSelectionClickToggleRegression: Story = {
+  name: "Classic Selection Click Toggle Regression",
+  render: () => <ClassicSelectionClickToggleRegressionStory />,
 };
