@@ -300,11 +300,11 @@ describe("package scripts", () => {
     expect(fastTask).not.toBe("");
     expect(fastTask).toContain("vitest run --project node");
     expect(fastTask).not.toContain("test:jsdom");
-    expect(fastWindowsCommand).toContain("vitest run --project node");
+    expect(fastWindowsCommand).toBe("");
     expect(domTask).not.toBe("");
     expect(domTask).toContain("vitest run --project jsdom");
     expect(domTask).not.toContain("test:node");
-    expect(domWindowsCommand).toContain("vitest run --project jsdom");
+    expect(domWindowsCommand).toBe("");
     expect(ciTask).not.toBe("");
     expect(ciTask).toContain("vitest run --project node --reporter=dot --silent=passed-only");
     expect(ciTask).toContain("vitest run --project jsdom --reporter=dot --silent=passed-only");
@@ -317,7 +317,7 @@ describe("package scripts", () => {
     expect(profileWindowsCommand).toContain("vitest run --project jsdom --reporter=verbose --slow-test-threshold=300");
     expect(parallelProfileTask).not.toBe("");
     expect(parallelProfileTask).toContain("vitest run --reporter=dot --silent=passed-only");
-    expect(parallelProfileWindowsCommand).toContain("vitest run --reporter=dot --silent=passed-only");
+    expect(parallelProfileWindowsCommand).toBe("");
   });
 
   it("keeps mise test:all semantics aligned with Storybook E2E", () => {
@@ -347,9 +347,10 @@ describe("package scripts", () => {
     for (const taskName of tauriDevTasks) {
       const taskSection = extractMiseTaskSection(miseToml, taskName);
 
-      expect(extractMiseTaskCommand(miseToml, taskName, "run_windows")).toBe(
+      expect(extractMiseTaskCommand(miseToml, taskName, "run")).toBe(
         "node ./scripts/tauri-cli-dispatch.ts dev -c src-tauri/tauri.dev.conf.json",
       );
+      expect(extractMiseTaskCommand(miseToml, taskName, "run_windows")).toBe("");
       expect(taskSection).not.toContain('shell = "powershell.exe');
       expect(taskSection).not.toContain("windows-dev-env");
       expect(taskSection).not.toContain("%SystemRoot%");
@@ -358,9 +359,10 @@ describe("package scripts", () => {
 
     const viteCheckSection = extractMiseTaskSection(miseToml, "app:dev:vite-check");
 
-    expect(extractMiseTaskCommand(miseToml, "app:dev:vite-check", "run_windows")).toBe(
+    expect(extractMiseTaskCommand(miseToml, "app:dev:vite-check", "run")).toBe(
       "node ./scripts/tauri-dev-vite-manager.ts --check",
     );
+    expect(extractMiseTaskCommand(miseToml, "app:dev:vite-check", "run_windows")).toBe("");
     expect(viteCheckSection).not.toContain('shell = "powershell.exe');
     expect(viteCheckSection).not.toContain("windows-dev-env");
     expect(viteCheckSection).not.toContain("%SystemRoot%");

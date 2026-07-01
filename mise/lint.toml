@@ -1,12 +1,10 @@
 ["lint:types"]
 description = "TypeScript type check"
 run = "tsc --noEmit"
-run_windows = "tsc --noEmit"
 
 ["lint:biome"]
 description = "Biome lint check"
 run = "biome lint ."
-run_windows = "biome lint ."
 
 ["lint:clippy"]
 description = "Rust clippy for dev and release profiles"

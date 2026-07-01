@@ -19,12 +19,10 @@ run_windows = "vitest run"
 ["test:unit:fast"]
 description = "Run fast Vitest unit tests without jsdom"
 run = "vitest run --project node"
-run_windows = "vitest run --project node"
 
 ["test:unit:dom"]
 description = "Run jsdom Vitest unit tests"
 run = "vitest run --project jsdom"
-run_windows = "vitest run --project jsdom"
 
 ["test:unit:ci"]
 description = "Run Vitest unit tests with quieter CI output"
@@ -45,17 +43,14 @@ run_windows = "vitest run --project node --reporter=verbose --slow-test-threshol
 ["test:unit:parallel:profile"]
 description = "Measure Vitest unit tests with node and jsdom projects in one Vitest invocation"
 run = "vitest run --reporter=dot --silent=passed-only"
-run_windows = "vitest run --reporter=dot --silent=passed-only"
 
 ["test:e2e"]
 description = "Run Playwright E2E tests"
 run = "playwright test"
-run_windows = "playwright test"
 
 ["test:storybook:e2e"]
 description = "Run Storybook Playwright E2E tests"
 run = "playwright test --config playwright.storybook.config.ts"
-run_windows = "playwright test --config playwright.storybook.config.ts"
 
 ["test:all"]
 description = "Run all tests including E2E"

@@ -93,12 +93,10 @@ depends = ["test:rust", "test:unit"]
 [tasks.build]
 description = "Build frontend"
 run = ["tsc && vite build"]
-run_windows = "tsc && vite build"
 
 [tasks."build:storybook"]
 description = "Build Storybook"
 run = "storybook build"
-run_windows = "storybook build"
 
 # ========================================
 # アプリ（Tauri）
@@ -108,24 +106,20 @@ run_windows = "storybook build"
 description = "Run native app in dev mode"
 env = { DEV_CREDENTIALS = "1" }
 run = "node ./scripts/tauri-cli-dispatch.ts dev -c src-tauri/tauri.dev.conf.json"
-run_windows = "node ./scripts/tauri-cli-dispatch.ts dev -c src-tauri/tauri.dev.conf.json"
 
 [tasks."app:dev:native-keyring"]
 description = "Run native app in dev mode with the OS keyring backend"
 run = "node ./scripts/tauri-cli-dispatch.ts dev -c src-tauri/tauri.dev.conf.json"
-run_windows = "node ./scripts/tauri-cli-dispatch.ts dev -c src-tauri/tauri.dev.conf.json"
 
 [tasks."app:dev:subscriptions-index"]
 description = "Run native app in dev mode and jump into the subscriptions index workspace"
 env = { DEV_CREDENTIALS = "1", VITE_DEV_INTENT = "open-subscriptions-index" }
 run = "node ./scripts/tauri-cli-dispatch.ts dev -c src-tauri/tauri.dev.conf.json"
-run_windows = "node ./scripts/tauri-cli-dispatch.ts dev -c src-tauri/tauri.dev.conf.json"
 
 [tasks."app:dev:web-preview"]
 description = "Run native app in dev mode and open VITE_DEV_WEB_URL directly in Web Preview (optionally sized by VITE_DEV_WINDOW_WIDTH/HEIGHT)"
 env = { DEV_CREDENTIALS = "1", VITE_DEV_INTENT = "open-web-preview-url" }
 run = "node ./scripts/tauri-cli-dispatch.ts dev -c src-tauri/tauri.dev.conf.json"
-run_windows = "node ./scripts/tauri-cli-dispatch.ts dev -c src-tauri/tauri.dev.conf.json"
 
 [tasks."app:dev:seed-from-prod"]
 description = "Seed the Dev app database from the packaged app data database"
@@ -150,12 +144,10 @@ run = "vite --host 127.0.0.1 --port 4173 --strictPort"
 [tasks."app:dev:vite-check"]
 description = "Check that the Tauri Vite dev port is available"
 run = "node ./scripts/tauri-dev-vite-manager.ts --check"
-run_windows = "node ./scripts/tauri-dev-vite-manager.ts --check"
 
 [tasks."app:build"]
 description = "Build native app for current platform (.app/.dmg on macOS, .msi/.exe on Windows)"
 run = "node ./scripts/tauri-cli-dispatch.ts build"
-run_windows = "node ./scripts/tauri-cli-dispatch.ts build"
 
 [tasks."app:install"]
 description = "Build, locally re-sign, and install the current checkout; not a published release artifact verification"
@@ -178,7 +170,6 @@ run_windows = "node ./scripts/install-windows-app.ts"
 [tasks."app:build:debug"]
 description = "Build native app in debug mode (faster, no optimizations)"
 run = "node ./scripts/tauri-cli-dispatch.ts build --debug"
-run_windows = "node ./scripts/tauri-cli-dispatch.ts build --debug"
 
 [tasks."app:icon"]
 description = "Generate app icons from source image"

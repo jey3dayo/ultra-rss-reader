@@ -10,24 +10,19 @@ run_windows = "markdownlint-cli2 $env:MD_GLOB $env:MD_EXCLUDE_NODE_MODULES $env:
 ["report:licenses"]
 description = "Generate pnpm and Cargo dependency license inventory reports under tmp/dependency-licenses"
 run = "node ./scripts/report-dependency-licenses.ts"
-run_windows = "node ./scripts/report-dependency-licenses.ts"
 
 ["quality:react-doctor:diff"]
 description = "React Doctor diff regression gate; pinned tool and baseline"
 run = "node ./scripts/quality-baseline.ts react-doctor:diff"
-run_windows = "node ./scripts/quality-baseline.ts react-doctor:diff"
 
 ["quality:react-doctor:full"]
 description = "React Doctor full scan report; pinned tool and informational baseline"
 run = "node ./scripts/quality-baseline.ts react-doctor:full"
-run_windows = "node ./scripts/quality-baseline.ts react-doctor:full"
 
 ["quality:knip"]
 description = "Knip baseline drift gate; pinned tool and issue count"
 run = "node ./scripts/quality-baseline.ts knip"
-run_windows = "node ./scripts/quality-baseline.ts knip"
 
 ["report:similarity"]
 description = "Similarity scan report with TODO false-positive baseline"
 run = "node ./scripts/similarity-report.ts"
-run_windows = "node ./scripts/similarity-report.ts"
