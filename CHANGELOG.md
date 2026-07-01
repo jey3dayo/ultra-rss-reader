@@ -4,6 +4,20 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.53.11] - 2026-07-02
+
+### Bug Fixes
+
+- フォルダ選択時に記事を開いて自動既読になった際、記事一覧の未読アイコンも既読表示へ更新されるようにした（フィード選択時と挙動を統一）。
+
+### Maintenance
+
+- Reader のネイティブ診断値をレンダー時にリセットするよう整理した。
+- Reader のレイアウト診断値をレンダー時にリセットするよう整理した。
+- レンダー時に評価する値を安定化し、不要な再計算を減らした。
+- 非推奨の Zod v4 object API を新 API へ移行した。
+- `run` と同一の冗長な mise `run_windows` オーバーライドを削除した。
+
 ## [0.53.10] - 2026-07-02
 
 ### Maintenance
