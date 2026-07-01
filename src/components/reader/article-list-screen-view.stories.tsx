@@ -28,10 +28,8 @@ const darkStoryFrameStyle: CssVariableProperties = {
   "--sidebar-hover-surface": "rgba(243, 239, 230, 0.052)",
   "--sidebar-selection-gradient":
     "linear-gradient(90deg, rgba(243, 239, 230, 0.075) 0%, rgba(243, 239, 230, 0.052) 100%)",
-  "--sidebar-hover-gradient":
-    "linear-gradient(90deg, rgba(243, 239, 230, 0.052) 0%, rgba(243, 239, 230, 0.026) 100%)",
-  "--sidebar-focus-gradient":
-    "linear-gradient(90deg, rgba(243, 239, 230, 0.065) 0%, rgba(243, 239, 230, 0.03) 100%)",
+  "--sidebar-hover-gradient": "linear-gradient(90deg, rgba(243, 239, 230, 0.052) 0%, rgba(243, 239, 230, 0.026) 100%)",
+  "--sidebar-focus-gradient": "linear-gradient(90deg, rgba(243, 239, 230, 0.065) 0%, rgba(243, 239, 230, 0.03) 100%)",
 };
 
 function StoryFrame({ children, theme = "light" }: { children: ReactNode; theme?: "light" | "dark" }) {
@@ -98,9 +96,9 @@ const garminWrapRegressionArticleFixture = {
   id: "art-garmin-wrap-regression",
   feed_id: "feed-1",
   title: "ガーミン（Garmin）のスポーツウォッチがAmazonでタイムセール中 トレーニング支援機能を備えた…",
-  content_sanitized: "<p>Amazon.co.jpのガーミン（Garmin）ストアページでは同社のスポーツウォッチがタイムセール中だ。</p>",
-  summary:
-    "Amazon.co.jpのガーミン（Garmin）ストアページでは同社のスポーツウォッチがタイムセール中だ。",
+  content_sanitized:
+    "<p>Amazon.co.jpのガーミン（Garmin）ストアページでは同社のスポーツウォッチがタイムセール中だ。</p>",
+  summary: "Amazon.co.jpのガーミン（Garmin）ストアページでは同社のスポーツウォッチがタイムセール中だ。",
   url: "https://example.com/garmin-sale",
   author: null,
   published_at: "2026-07-01T04:00:00Z",
