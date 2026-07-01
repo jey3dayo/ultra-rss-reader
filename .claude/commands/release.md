@@ -1,12 +1,13 @@
 ---
 allowed-tools: Bash, Read, Edit, Glob, Grep
-description: "Release: version bump, release notes, tag, push, trigger GitHub Release workflow"
+description: "Release: version bump, release notes, tag, push, trigger GitHub Release workflow, wait for build, publish"
 ---
 
 # Release Command
 
 バージョンを bump し、リリースノートを自動生成し、タグを作成して push する。
 GitHub Actions の release workflow が発火してクロスプラットフォームビルド + ドラフト GitHub Release が作成される。
+ビルド完了を待ってアーティファクトを検証し、Release を publish するところまでを既定の完了地点とする。
 
 ## 引数
 
@@ -14,16 +15,17 @@ $ARGUMENTS (patch, minor, major のいずれか。省略時は対話で選択)
 
 ## 実行フロー
 
-### 3フェーズ構造。各フェーズ内は一括実行し、未承認の判断だけ確認する。ステップを飛ばさないこと
+### 4フェーズ構造。各フェーズ内は一括実行し、未承認の判断だけ確認する。ステップを飛ばさないこと
 
 ### 承認モデル
 
-- 有効な bump 種別と公開意図（`push`, `publish`, `tag`, `release`, `最後まで`, `リリースして` など）が同じ依頼内にある場合、必須チェック通過後に Phase 1-3 を進めてよい。
-- 途中の返答が `OK`, `push`, `進めて`, `そのまま` などの場合、その返答の意図に一致する残りのステップは承認済みとして扱う。
+- 有効な bump 種別と公開意図（`push`, `publish`, `tag`, `release`, `最後まで`, `リリースして` など）が同じ依頼内にある場合、必須チェック通過後に Phase 1-4 を進めてよい。publish は release フローの既定の終点であり、公開意図が承認済みなら Phase 4 の publish まで追加確認なしで実行する。
+- 途中の返答が `OK`, `push`, `publish`, `進めて`, `そのまま` などの場合、その返答の意図に一致する残りのステップは承認済みとして扱う。
 - bump 種別が未指定または不正な場合だけ確認する。
 - リリースノート確認は、公開意図が未承認の場合、または生成内容に曖昧さがあり公開前確認が必要な場合だけ停止する。公開意図が承認済みなら Phase 2 後に要約を表示して待たずに続行する。
 - push 確認は、公開意図が未承認の場合だけ行う。
-- 失敗したチェック、dirty working tree、ブランチ不一致、バージョン不一致、想定外の生成ファイル、ユーザーの修正指示をまたいで承認を持ち越さない。
+- publish は、公開意図が承認済みで、かつビルドが success かつ期待アーティファクトが添付済みのときに自動実行する。次の場合は publish せずドラフトのまま停止して報告する: 公開意図が未承認、ビルドが失敗またはタイムアウト、アーティファクト未添付、semver prerelease tag で手動確認が必要、ユーザーが `draft のみ` / `publish しない` を明示。
+- 失敗したチェック、dirty working tree、ブランチ不一致、バージョン不一致、想定外の生成ファイル、ビルド失敗、ユーザーの修正指示をまたいで承認を持ち越さない。
 
 ---
 
@@ -193,9 +195,68 @@ Release がまだ存在しない場合（GitHub Actions 未完了）は `gh rele
 
 workflow gate: `release.yml` はタグ対象コミットが checkout と一致し、かつ `origin/main` から到達可能であることを artifact 作成前に検証する。Release は常に draft とし、`v1.2.3-alpha.1` のような semver prerelease tag のみ `prerelease=true`、`v1.2.3+build.1` のような build metadata だけの tag は `prerelease=false` として扱う。
 
-#### 3d. 完了報告
+#### 3d. push 後報告
 
 - push したコミットとタグを報告
 - GitHub Actions のワークフロー URL を表示（`gh run list --workflow=release.yml --limit=1`）
-- GitHub Release URL を表示
-- ドラフト Release のリリースノートを確認し、問題なければ Publish する旨を案内
+- ドラフト GitHub Release URL を表示
+- 公開意図が承認済みなら Phase 4 へ進む。未承認ならここで停止し、ドラフト確認後に publish する旨を案内する
+
+---
+
+### Phase 4: ビルド完了待ち＋公開（publish）
+
+公開意図が承認済みの場合、release フローの終点として自動 publish する。承認モデルの publish 停止条件に該当する場合はドラフトのまま停止して報告する。
+
+#### 4a. 対象 run の特定
+
+```bash
+gh run list --workflow=release.yml --limit=5 --json databaseId,headSha,status,conclusion
+```
+
+`headSha` が release commit hash と一致する run を対象にする。一致する run が見つからない場合は、tag push 直後で run 登録前のことがあるため、短時間待って再取得する。
+
+#### 4b. ビルド完了待ち
+
+```bash
+gh run watch <run-id> --exit-status
+```
+
+- ビルドはクロスプラットフォームで長時間かかるため、必要なら分割して監視する（`gh run watch` を再実行、または `gh run view <run-id> --json status,conclusion`）。
+- `conclusion` が `success` 以外（`failure` / `cancelled` / `timed_out`）の場合は publish せず中止し、失敗ジョブと URL を報告する。fix-forward はユーザー判断に委ねる。
+
+#### 4c. アーティファクト検証
+
+```bash
+gh release view v{new_version} --json isDraft,isPrerelease,assets --jq '{isDraft,isPrerelease,assetCount:(.assets|length),assets:[.assets[].name]}'
+```
+
+- 各プラットフォームのインストーラ（macOS `.dmg` / `.app.tar.gz`、Windows `.exe` / `.msi`）が添付されていることを確認する。
+- updater 構成（`tauri.conf.json` に `plugins.updater`）の場合は `latest.json` と各 `.sig` の添付も確認する。
+- アセットが空、または期待アセットが欠落している場合は publish せず報告する。
+
+#### 4d. publish
+
+停止条件に該当しなければ draft を解除する:
+
+```bash
+# 安定版（通常の vX.Y.Z）
+gh release edit v{new_version} --draft=false --latest
+# semver prerelease tag（vX.Y.Z-alpha.1 など）を publish する場合
+# gh release edit v{new_version} --draft=false --prerelease
+```
+
+publish 後に確定を確認する:
+
+```bash
+gh release view v{new_version} --json isDraft,isPrerelease,publishedAt,url --jq '{isDraft,isPrerelease,publishedAt,url}'
+```
+
+`isDraft` が `false` であることを確認する。
+
+#### 4e. 完了報告
+
+- publish 済みの Release URL と `isDraft=false` / `isPrerelease` を報告
+- ビルド run の結論（success）と URL
+- 添付アーティファクト件数と主要インストーラ名
+- updater 構成の場合、`latest.json` 公開により自動更新が有効になった旨を明記
