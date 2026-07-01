@@ -70,32 +70,50 @@ describe("App", () => {
     expect(tray).toHaveStyle({ transform: "translateX(-200%)" });
   });
 
-  it("mobile: keeps hidden lazy pane descendants out of fallback keyboard focus", async () => {
-    useUiStore.setState({ layoutMode: "mobile", focusedPane: "list", selectedAccountId: "acc-1" });
+  it("mobile: removes hidden lazy pane descendants from fallback keyboard focus", async () => {
+    useUiStore.setState({ layoutMode: "mobile", focusedPane: "sidebar", selectedAccountId: null });
 
-    render(<AppLayout />, { wrapper: createWrapper() });
+    const { rerender } = render(<AppLayout />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(getSlidingPanes()[0]?.querySelector<HTMLElement>("button, [href], input, [tabindex]")).not.toBeNull();
+    });
+
+    useUiStore.setState({ layoutMode: "mobile", focusedPane: "list", selectedAccountId: "acc-1" });
+    rerender(<AppLayout />);
 
     const [sidebarPane, listPane, contentPane] = getSlidingPanes();
-    const hiddenFocusable = sidebarPane?.querySelector<HTMLElement>("button, [href], input, [tabindex]");
 
     expect(sidebarPane).toHaveAttribute("aria-hidden", "true");
     expect(contentPane).toHaveAttribute("aria-hidden", "true");
-    expect(hiddenFocusable).toBeNull();
 
     await waitFor(() => {
+      const hiddenFocusable = sidebarPane?.querySelector<HTMLElement>("button, [href], input, [tabindex]");
       const visibleFocusable = listPane?.querySelector<HTMLElement>("button, [href], input, [tabindex]");
+      expect(hiddenFocusable).not.toBeNull();
+      expect(hiddenFocusable).toHaveAttribute("tabindex", "-1");
       expect(visibleFocusable).not.toBeNull();
       expect(visibleFocusable).not.toHaveAttribute("tabindex", "-1");
     });
   });
 
-  it("mobile: mounts focusable descendants with normal tab order when a hidden pane becomes visible", async () => {
-    useUiStore.setState({ layoutMode: "mobile", focusedPane: "sidebar" });
+  it("mobile: restores descendant tab order when a hidden lazy pane becomes visible again", async () => {
+    useUiStore.setState({ layoutMode: "mobile", focusedPane: "list", selectedAccountId: "acc-1" });
 
     const { rerender } = render(<AppLayout />, { wrapper: createWrapper() });
 
-    const initialListFocusable = getSlidingPanes()[1]?.querySelector<HTMLElement>("button, [href], input, [tabindex]");
-    expect(initialListFocusable).toBeNull();
+    await waitFor(() => {
+      expect(getSlidingPanes()[1]?.querySelector<HTMLElement>("button, [href], input, [tabindex]")).not.toBeNull();
+    });
+
+    useUiStore.setState({ layoutMode: "mobile", focusedPane: "sidebar", selectedAccountId: null });
+    rerender(<AppLayout />);
+
+    await waitFor(() => {
+      const hiddenListFocusable = getSlidingPanes()[1]?.querySelector<HTMLElement>("button, [href], input, [tabindex]");
+      expect(hiddenListFocusable).not.toBeNull();
+      expect(hiddenListFocusable).toHaveAttribute("tabindex", "-1");
+    });
 
     useUiStore.setState({ layoutMode: "mobile", focusedPane: "list", selectedAccountId: "acc-1" });
     rerender(<AppLayout />);
