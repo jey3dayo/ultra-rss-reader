@@ -1276,6 +1276,8 @@ export function setupDevMocks(): RestoreDevMocks {
           shm_size_bytes: 32_768,
           total_size_bytes: 2_132_768,
         };
+      case "backup_database":
+        return null;
       case "open_log_dir":
         return null;
       case "check_for_update":

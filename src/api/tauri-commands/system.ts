@@ -33,5 +33,7 @@ export const getDatabaseInfo = () => safeInvoke("get_database_info", { response:
 
 export const vacuumDatabase = () => safeInvoke("vacuum_database", { response: DatabaseInfoDtoSchema });
 
+export const backupDatabase = () => safeInvoke("backup_database", { response: NullResponseSchema });
+
 // Logs
 export const openLogDir = () => safeInvoke("open_log_dir", { response: NullResponseSchema });

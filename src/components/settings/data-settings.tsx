@@ -15,6 +15,7 @@ export function DataSettings() {
   });
   const dataActionPending =
     controller.vacuuming ||
+    controller.backingUp ||
     controller.openingLogDir ||
     controller.exportingSettingsProfile ||
     controller.importingSettingsProfile;
@@ -41,6 +42,10 @@ export function DataSettings() {
       safetyHeading={t("data.safety")}
       safetyDescription={t("data.safety_description")}
       safetyChecklist={safetyChecklist}
+      backupLabel={t("data.backup")}
+      backupDescription={t("data.backup_description")}
+      backupActionLabel={controller.backingUp ? t("data.backing_up") : t("data.backup_action")}
+      backingUp={controller.backingUp}
       settingsProfileHeading={t("data.settings_profile")}
       settingsProfileDescription={t("data.settings_profile_description")}
       settingsProfileImportLabel={t("data.settings_profile_import")}
@@ -65,6 +70,7 @@ export function DataSettings() {
       openLogDirActionLabel={controller.openingLogDir ? t("data.opening_log_dir") : t("data.open_log_dir")}
       openingLogDir={controller.openingLogDir}
       onVacuum={() => void controller.handleVacuum()}
+      onBackupDatabase={() => void controller.handleBackupDatabase()}
       onOpenLogDir={() => void controller.handleOpenLogDir()}
       onImportSettingsProfile={(file) => void controller.handleImportSettingsProfileFile(file)}
       onExportSettingsProfile={() => void controller.handleExportSettingsProfile()}

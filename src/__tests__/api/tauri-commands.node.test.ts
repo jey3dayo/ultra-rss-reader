@@ -15,6 +15,7 @@ import {
   addAccount,
   addLocalFeed,
   addToReadingList,
+  backupDatabase,
   checkBrowserEmbedSupport,
   type checkForUpdate,
   clearArticleViewHistory,
@@ -1248,6 +1249,15 @@ describe("safeInvoke response validation", () => {
       expect(error.type).toBe("Diagnostics");
       expect(error.message).toContain("validation failed");
     }
+  });
+
+  it("resolves the manual database backup command with a null response", async () => {
+    setupTauriMocks(() => null);
+
+    const result = await backupDatabase();
+
+    expect(Result.isSuccess(result)).toBe(true);
+    expect(Result.unwrap(result)).toBeNull();
   });
 
   it("validates feed command group responses", async () => {

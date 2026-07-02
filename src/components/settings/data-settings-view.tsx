@@ -16,6 +16,10 @@ type DataSettingsViewProps = {
   safetyHeading: string;
   safetyDescription: string;
   safetyChecklist: readonly string[];
+  backupLabel: string;
+  backupDescription: string;
+  backupActionLabel?: string;
+  backingUp: boolean;
   settingsProfileHeading: string;
   settingsProfileDescription: string;
   settingsProfileImportLabel: string;
@@ -36,6 +40,7 @@ type DataSettingsViewProps = {
   openLogDirActionLabel?: string;
   openingLogDir: boolean;
   onVacuum: () => void;
+  onBackupDatabase: () => void;
   onOpenLogDir: () => void;
   onImportSettingsProfile: (file: File) => void;
   onExportSettingsProfile: () => void;
@@ -55,6 +60,10 @@ export function DataSettingsView({
   safetyHeading,
   safetyDescription,
   safetyChecklist,
+  backupLabel,
+  backupDescription,
+  backupActionLabel,
+  backingUp,
   settingsProfileHeading,
   settingsProfileDescription,
   settingsProfileImportLabel,
@@ -75,6 +84,7 @@ export function DataSettingsView({
   openLogDirActionLabel,
   openingLogDir,
   onVacuum,
+  onBackupDatabase,
   onOpenLogDir,
   onImportSettingsProfile,
   onExportSettingsProfile,
@@ -90,9 +100,11 @@ export function DataSettingsView({
   const vacuumDescriptionText =
     databaseSizeStatus === "ready" ? vacuumDescription : `${vacuumDescription} ${databaseSizeDisplayValue}`;
   const settingsProfileActionUnavailable =
-    vacuuming || openingLogDir || importingSettingsProfile || exportingSettingsProfile;
-  const vacuumActionUnavailable = vacuuming || openingLogDir || vacuumUnavailable;
-  const openLogDirActionUnavailable = openingLogDir || vacuuming;
+    backingUp || vacuuming || openingLogDir || importingSettingsProfile || exportingSettingsProfile;
+  const vacuumActionUnavailable = backingUp || vacuuming || openingLogDir || vacuumUnavailable;
+  const backupActionUnavailable =
+    backingUp || vacuuming || openingLogDir || importingSettingsProfile || exportingSettingsProfile;
+  const openLogDirActionUnavailable = backingUp || openingLogDir || vacuuming;
 
   const handleImportClick = () => {
     if (settingsProfileActionUnavailable) {
@@ -168,6 +180,20 @@ export function DataSettingsView({
               </li>
             ))}
           </ol>
+          <LabeledControlRow label={backupLabel} description={backupDescription} className={DATA_ACTION_ROW_CLASS_NAME}>
+            {({ descriptionId }) => (
+              <SettingsLoadingActionButton
+                aria-describedby={descriptionId}
+                size="standalone"
+                disabled={backupActionUnavailable}
+                loading={backingUp}
+                loadingLabel={backupActionLabel}
+                onClick={onBackupDatabase}
+              >
+                {backupActionLabel ?? backupLabel}
+              </SettingsLoadingActionButton>
+            )}
+          </LabeledControlRow>
         </SettingsSection>
 
         <SettingsSection heading={settingsProfileHeading} surface="flat" className="px-3 py-2.5 sm:px-4 sm:py-3">

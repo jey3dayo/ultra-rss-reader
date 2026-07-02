@@ -5,6 +5,7 @@ import { useCallback, useEffect, useReducer, useRef } from "react";
 import type { SettingsProfileImportResult } from "@/api/schemas";
 import type { AppError } from "@/api/tauri-commands";
 import {
+  backupDatabase,
   exportSettingsProfileToFile,
   getDatabaseInfo,
   importSettingsProfile,
@@ -36,10 +37,12 @@ type UseDataSettingsControllerResult = {
   databaseSizeValue: string;
   databaseRuntimeRecoverySurface: DatabaseRuntimeRecoverySurface | null;
   vacuuming: boolean;
+  backingUp: boolean;
   openingLogDir: boolean;
   exportingSettingsProfile: boolean;
   importingSettingsProfile: boolean;
   handleVacuum: () => Promise<void>;
+  handleBackupDatabase: () => Promise<void>;
   handleOpenLogDir: () => Promise<void>;
   handleExportSettingsProfile: () => Promise<void>;
   handleImportSettingsProfileFile: (file: File) => Promise<void>;
@@ -119,6 +122,7 @@ type DataSettingsControllerState = {
   totalSize: number | null;
   databaseRuntimeRecoverySurface: DatabaseRuntimeRecoverySurface | null;
   vacuuming: boolean;
+  backingUp: boolean;
   openingLogDir: boolean;
   exportingSettingsProfile: boolean;
   importingSettingsProfile: boolean;
@@ -135,6 +139,7 @@ type DataSettingsControllerAction =
       recoverySurface: DatabaseRuntimeRecoverySurface | null;
     }
   | { type: "set-vacuuming"; value: boolean }
+  | { type: "set-backing-up"; value: boolean }
   | { type: "set-opening-log-dir"; value: boolean }
   | { type: "set-exporting-settings-profile"; value: boolean }
   | { type: "set-importing-settings-profile"; value: boolean };
@@ -144,6 +149,7 @@ const initialDataSettingsControllerState: DataSettingsControllerState = {
   totalSize: null,
   databaseRuntimeRecoverySurface: null,
   vacuuming: false,
+  backingUp: false,
   openingLogDir: false,
   exportingSettingsProfile: false,
   importingSettingsProfile: false,
@@ -227,6 +233,8 @@ function dataSettingsControllerReducer(
       };
     case "set-vacuuming":
       return { ...state, vacuuming: action.value };
+    case "set-backing-up":
+      return { ...state, backingUp: action.value };
     case "set-opening-log-dir":
       return { ...state, openingLogDir: action.value };
     case "set-exporting-settings-profile":
@@ -442,7 +450,7 @@ export function useDataSettingsController({
     ...getDataSettingsActionLifecycle(),
   });
   const { databaseSizeStatus, totalSize, databaseRuntimeRecoverySurface, vacuuming, openingLogDir } = state;
-  const { exportingSettingsProfile, importingSettingsProfile } = state;
+  const { exportingSettingsProfile, importingSettingsProfile, backingUp } = state;
   const controllerIdRef = useRef<DataSettingsActionOwnerId>(Symbol("data-settings-controller"));
   const databaseSizeRequestRevisionRef = useRef(0);
   const mountedRef = useRef(false);
@@ -512,7 +520,7 @@ export function useDataSettingsController({
   }, [fetchDbInfo]);
 
   const handleVacuum = async () => {
-    if (!mountedRef.current || databaseSizeStatus !== "ready" || isDataSettingsActionInFlight()) {
+    if (!mountedRef.current || databaseSizeStatus !== "ready" || backingUp || isDataSettingsActionInFlight()) {
       return;
     }
 
@@ -565,8 +573,57 @@ export function useDataSettingsController({
     }
   };
 
+  const handleBackupDatabase = async () => {
+    if (
+      !mountedRef.current ||
+      backingUp ||
+      exportingSettingsProfile ||
+      importingSettingsProfile ||
+      isDataSettingsActionInFlight()
+    ) {
+      return;
+    }
+
+    dispatch({ type: "set-backing-up", value: true });
+    setSettingsLoading?.(true);
+    try {
+      Result.pipe(
+        await backupDatabase(),
+        Result.inspect(() => {
+          if (!mountedRef.current) {
+            return;
+          }
+          showToast(t("data.backup_success"));
+        }),
+        Result.inspectError((error) => {
+          if (!mountedRef.current) {
+            return;
+          }
+          const recoverySurface = classifyDatabaseRuntimeRecoverySurface(error, "write");
+          logDatabaseRuntimeRecoverySurface(recoverySurface, "write", error);
+          dispatch({
+            type: "set-database-runtime-recovery-surface",
+            recoverySurface,
+          });
+          console.error("Database backup failed:", error);
+          showToast(t("data.backup_failed", { message: error.message }));
+        }),
+      );
+    } catch (error) {
+      if (mountedRef.current) {
+        console.error("Database backup failed:", error);
+        showToast(t("data.backup_failed", { message: getErrorMessage(error) }));
+      }
+    } finally {
+      if (mountedRef.current) {
+        dispatch({ type: "set-backing-up", value: false });
+      }
+      setSettingsLoading?.(false);
+    }
+  };
+
   const handleOpenLogDir = async () => {
-    if (!mountedRef.current || isDataSettingsActionInFlight()) {
+    if (!mountedRef.current || backingUp || isDataSettingsActionInFlight()) {
       return;
     }
 
@@ -596,7 +653,13 @@ export function useDataSettingsController({
   };
 
   const handleExportSettingsProfile = async () => {
-    if (!mountedRef.current || exportingSettingsProfile || importingSettingsProfile || isDataSettingsActionInFlight()) {
+    if (
+      !mountedRef.current ||
+      backingUp ||
+      exportingSettingsProfile ||
+      importingSettingsProfile ||
+      isDataSettingsActionInFlight()
+    ) {
       return;
     }
 
@@ -640,7 +703,13 @@ export function useDataSettingsController({
   };
 
   const handleImportSettingsProfileFile = async (file: File) => {
-    if (!mountedRef.current || exportingSettingsProfile || importingSettingsProfile || isDataSettingsActionInFlight()) {
+    if (
+      !mountedRef.current ||
+      backingUp ||
+      exportingSettingsProfile ||
+      importingSettingsProfile ||
+      isDataSettingsActionInFlight()
+    ) {
       return;
     }
 
@@ -683,10 +752,12 @@ export function useDataSettingsController({
     databaseSizeValue: totalSize != null ? formatBytes(totalSize) : "",
     databaseRuntimeRecoverySurface,
     vacuuming,
+    backingUp,
     openingLogDir,
     exportingSettingsProfile,
     importingSettingsProfile,
     handleVacuum,
+    handleBackupDatabase,
     handleOpenLogDir,
     handleExportSettingsProfile,
     handleImportSettingsProfileFile,
