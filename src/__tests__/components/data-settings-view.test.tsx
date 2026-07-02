@@ -27,6 +27,10 @@ describe("DataSettingsView", () => {
         safetyHeading="Backup and Restore"
         safetyDescription="Confirm rollback before changing user data."
         safetyChecklist={["Use OPML export.", "Quit before restoring backups."]}
+        backupLabel="Back up"
+        backupDescription="Back up the database now."
+        backingUp={false}
+        onBackupDatabase={vi.fn()}
         settingsProfileHeading="Settings Profile"
         settingsProfileDescription="Export preferences and tags."
         settingsProfileImportLabel="Import profile"
@@ -91,6 +95,10 @@ describe("DataSettingsView", () => {
         safetyHeading="Backup and Restore"
         safetyDescription="Confirm rollback before changing user data."
         safetyChecklist={["Use OPML export.", "Quit before restoring backups."]}
+        backupLabel="Back up"
+        backupDescription="Back up the database now."
+        backingUp={false}
+        onBackupDatabase={vi.fn()}
         settingsProfileHeading="Settings Profile"
         settingsProfileDescription="Export preferences and tags."
         settingsProfileImportLabel="Import profile"
@@ -140,6 +148,10 @@ describe("DataSettingsView", () => {
         safetyHeading="Backup and Restore"
         safetyDescription="Confirm rollback before changing user data."
         safetyChecklist={["Use OPML export.", "Quit before restoring backups."]}
+        backupLabel="Back up"
+        backupDescription="Back up the database now."
+        backingUp={false}
+        onBackupDatabase={vi.fn()}
         settingsProfileHeading="Settings Profile"
         settingsProfileDescription="Export preferences and tags."
         settingsProfileImportLabel="Import profile"
@@ -188,6 +200,10 @@ describe("DataSettingsView", () => {
         safetyHeading="Backup and Restore"
         safetyDescription="Confirm rollback before changing user data."
         safetyChecklist={["Use OPML export.", "Quit before restoring backups."]}
+        backupLabel="Back up"
+        backupDescription="Back up the database now."
+        backingUp={false}
+        onBackupDatabase={vi.fn()}
         settingsProfileHeading="Settings Profile"
         settingsProfileDescription="Export preferences and tags."
         settingsProfileImportLabel="Import profile"
@@ -235,6 +251,10 @@ describe("DataSettingsView", () => {
         safetyHeading="Backup and Restore"
         safetyDescription="Confirm rollback before changing user data."
         safetyChecklist={["Use OPML export.", "Quit before restoring backups."]}
+        backupLabel="Back up"
+        backupDescription="Back up the database now."
+        backingUp={false}
+        onBackupDatabase={vi.fn()}
         settingsProfileHeading="Settings Profile"
         settingsProfileDescription="Export preferences and tags."
         settingsProfileImportLabel="Import profile"
@@ -291,6 +311,10 @@ describe("DataSettingsView", () => {
         safetyHeading="Backup and Restore"
         safetyDescription="Confirm rollback before changing user data."
         safetyChecklist={["Use OPML export.", "Quit before restoring backups."]}
+        backupLabel="Back up"
+        backupDescription="Back up the database now."
+        backingUp={false}
+        onBackupDatabase={vi.fn()}
         settingsProfileHeading="Settings Profile"
         settingsProfileDescription="Export preferences and tags."
         settingsProfileImportLabel="Import profile"
@@ -347,6 +371,10 @@ describe("DataSettingsView", () => {
         safetyHeading="Backup and Restore"
         safetyDescription="Confirm rollback before changing user data."
         safetyChecklist={["Use OPML export.", "Quit before restoring backups."]}
+        backupLabel="Back up"
+        backupDescription="Back up the database now."
+        backingUp={false}
+        onBackupDatabase={vi.fn()}
         settingsProfileHeading="Settings Profile"
         settingsProfileDescription="Export preferences and tags."
         settingsProfileImportLabel="Import profile"
@@ -395,6 +423,10 @@ describe("DataSettingsView", () => {
         safetyHeading="Backup and Restore"
         safetyDescription="Confirm rollback before changing user data."
         safetyChecklist={["Use OPML export.", "Quit before restoring backups."]}
+        backupLabel="Back up"
+        backupDescription="Back up the database now."
+        backingUp={false}
+        onBackupDatabase={vi.fn()}
         settingsProfileHeading="Settings Profile"
         settingsProfileDescription="Export preferences and tags."
         settingsProfileImportLabel="Import profile"
@@ -449,6 +481,10 @@ describe("DataSettingsView", () => {
         safetyHeading="Backup and Restore"
         safetyDescription="Confirm rollback before changing user data."
         safetyChecklist={["Use OPML export.", "Quit before restoring backups."]}
+        backupLabel="Back up"
+        backupDescription="Back up the database now."
+        backingUp={false}
+        onBackupDatabase={vi.fn()}
         settingsProfileHeading="Settings Profile"
         settingsProfileDescription="Export preferences and tags."
         settingsProfileImportLabel="Import profile"
@@ -493,6 +529,10 @@ describe("DataSettingsView", () => {
       safetyHeading: "Backup and Restore",
       safetyDescription: "Confirm rollback before changing user data.",
       safetyChecklist: ["Use OPML export.", "Quit before restoring backups."],
+      backupLabel: "Back up",
+      backupDescription: "Back up the database now.",
+      backingUp: false,
+      onBackupDatabase: vi.fn(),
       settingsProfileHeading: "Settings Profile",
       settingsProfileDescription: "Export preferences and tags.",
       settingsProfileImportLabel: "Import profile",
@@ -531,5 +571,109 @@ describe("DataSettingsView", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Database size unavailable");
     expect(screen.getByRole("status")).toHaveAttribute("data-database-size-status", "error");
     expect(screen.queryByText("Loading database size")).not.toBeInTheDocument();
+  });
+
+  it("delegates the manual backup action from the backup and restore section", async () => {
+    const user = userEvent.setup();
+    const onBackupDatabase = vi.fn();
+
+    render(
+      <DataSettingsView
+        title="Data"
+        databaseHeading="Database"
+        databaseSizeLabel="Database size"
+        databaseSizeStatus="ready"
+        databaseSizeValue="1.50 MB"
+        databaseSizeLoadingLabel="Loading..."
+        databaseSizeErrorLabel="Unavailable"
+        safetyHeading="Backup and Restore"
+        safetyDescription="Confirm rollback before changing user data."
+        safetyChecklist={["Use OPML export.", "Quit before restoring backups."]}
+        backupLabel="Back up"
+        backupDescription="Back up the database now."
+        backingUp={false}
+        onBackupDatabase={onBackupDatabase}
+        settingsProfileHeading="Settings Profile"
+        settingsProfileDescription="Export preferences and tags."
+        settingsProfileImportLabel="Import profile"
+        settingsProfileExportLabel="Export profile"
+        settingsProfileFileInputLabel="Choose settings profile JSON"
+        importingSettingsProfile={false}
+        exportingSettingsProfile={false}
+        optimizationHeading="Optimization"
+        vacuumDescription="Optimize the database."
+        vacuumLabel="Optimize now"
+        vacuuming={false}
+        logsHeading="Logs"
+        openLogDirDescription="Open the log directory."
+        openLogDirLabel="Open log directory"
+        openingLogDir={false}
+        onVacuum={vi.fn()}
+        onOpenLogDir={vi.fn()}
+        onImportSettingsProfile={vi.fn()}
+        onExportSettingsProfile={vi.fn()}
+      />,
+    );
+
+    const backupButton = screen.getByRole("button", { name: "Back up" });
+    expect(backupButton.closest("section")).toBe(
+      screen.getByRole("heading", { name: "Backup and Restore" }).closest("section"),
+    );
+
+    await user.click(backupButton);
+
+    expect(onBackupDatabase).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows busy feedback and keeps the backup action disabled while backing up", async () => {
+    const user = userEvent.setup();
+    const onBackupDatabase = vi.fn();
+
+    render(
+      <DataSettingsView
+        title="Data"
+        databaseHeading="Database"
+        databaseSizeLabel="Database size"
+        databaseSizeStatus="ready"
+        databaseSizeValue="1.50 MB"
+        databaseSizeLoadingLabel="Loading..."
+        databaseSizeErrorLabel="Unavailable"
+        safetyHeading="Backup and Restore"
+        safetyDescription="Confirm rollback before changing user data."
+        safetyChecklist={["Use OPML export.", "Quit before restoring backups."]}
+        backupLabel="Back up"
+        backupDescription="Back up the database now."
+        backupActionLabel="Backing up..."
+        backingUp={true}
+        onBackupDatabase={onBackupDatabase}
+        settingsProfileHeading="Settings Profile"
+        settingsProfileDescription="Export preferences and tags."
+        settingsProfileImportLabel="Import profile"
+        settingsProfileExportLabel="Export profile"
+        settingsProfileFileInputLabel="Choose settings profile JSON"
+        importingSettingsProfile={false}
+        exportingSettingsProfile={false}
+        optimizationHeading="Optimization"
+        vacuumDescription="Optimize the database."
+        vacuumLabel="Optimize now"
+        vacuuming={false}
+        logsHeading="Logs"
+        openLogDirDescription="Open the log directory."
+        openLogDirLabel="Open log directory"
+        openingLogDir={false}
+        onVacuum={vi.fn()}
+        onOpenLogDir={vi.fn()}
+        onImportSettingsProfile={vi.fn()}
+        onExportSettingsProfile={vi.fn()}
+      />,
+    );
+
+    const backupButton = screen.getByRole("button", { name: "Backing up..." });
+    expect(backupButton).toBeDisabled();
+    expect(backupButton).toHaveAttribute("aria-busy", "true");
+
+    await user.click(backupButton);
+
+    expect(onBackupDatabase).not.toHaveBeenCalled();
   });
 });

@@ -423,6 +423,7 @@ function createDefaultHandler(): MockHandler {
       case "open_in_browser":
       case "plugin:opener|open_url":
       case "open_log_dir":
+      case "backup_database":
         return null;
       case "reset_oversized_dev_credentials_store":
         return false;

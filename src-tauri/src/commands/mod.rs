@@ -48,6 +48,7 @@ pub(crate) fn command_db_lock_policy(command_name: &str) -> Option<CommandDbLock
     let policy = match command_name {
         "get_database_info"
         | "vacuum_database"
+        | "backup_database"
         | "import_opml"
         | "import_settings_profile"
         | "cleanup_feed_integrity_orphans" => CommandDbLockPolicy::TryLockDb,
@@ -427,6 +428,7 @@ mod tests {
         let cases = [
             ("get_database_info", CommandDbLockPolicy::TryLockDb),
             ("vacuum_database", CommandDbLockPolicy::TryLockDb),
+            ("backup_database", CommandDbLockPolicy::TryLockDb),
             ("import_opml", CommandDbLockPolicy::TryLockDb),
             ("import_settings_profile", CommandDbLockPolicy::TryLockDb),
             (

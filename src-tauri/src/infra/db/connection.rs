@@ -454,6 +454,37 @@ impl DbManager {
         self.restore_file_connections_after_vacuum(&db_path, vacuum_result)
     }
 
+    /// Create a manual backup of the current database without a migration.
+    /// Reuses the migration backup routine (integrity check, WAL checkpoint,
+    /// atomic copy, metadata) and keeps only the most recent backups afterward.
+    /// Live connections are swapped out during the copy, mirroring `vacuum`, so
+    /// the backup captures a checkpointed, consistent file.
+    pub fn create_manual_backup(&mut self) -> DomainResult<PathBuf> {
+        let Some(db_path) = self.database_path()? else {
+            return Err(DomainError::Persistence(
+                "In-memory database cannot be backed up".to_string(),
+            ));
+        };
+        let schema_version = super::migration::read_schema_version(&self.writer)?;
+
+        self.replace_with_in_memory_connections()?;
+        let backup_result = super::backup::create_backup(&db_path, schema_version);
+
+        let (writer, reader) = Self::open_file_connections(&db_path).map_err(|reopen_err| {
+            DomainError::Persistence(format!(
+                "Failed to reopen database connections after backup: {reopen_err}"
+            ))
+        })?;
+        self.writer = writer;
+        self.reader = reader;
+
+        let backup_path = backup_result?;
+        if let Err(e) = super::backup::cleanup_old_backups(&db_path, 3) {
+            tracing::warn!("Failed to clean up old backups: {e}");
+        }
+        Ok(backup_path)
+    }
+
     fn database_path(&self) -> DomainResult<Option<PathBuf>> {
         let db_path: String = self
             .writer
@@ -937,6 +968,66 @@ mod tests {
             "VACUUM size report should not include stale WAL bytes after checkpoint"
         );
         assert_eq!(count, 2, "DB should remain writable/readable after VACUUM");
+    }
+
+    #[test]
+    fn create_manual_backup_writes_a_backup_and_keeps_db_usable() {
+        let dir = tempfile::tempdir().unwrap();
+        let db_path = dir.path().join("manual-backup.db");
+        let mut db = DbManager::new(&db_path).unwrap();
+
+        db.writer()
+            .execute_batch(
+                "CREATE TABLE IF NOT EXISTS backup_probe (
+                    id INTEGER PRIMARY KEY,
+                    payload TEXT NOT NULL
+                );
+                INSERT INTO backup_probe (payload) VALUES ('before-backup');",
+            )
+            .unwrap();
+
+        let backup_path = db
+            .create_manual_backup()
+            .expect("manual backup should succeed");
+
+        assert!(
+            backup_path.exists(),
+            "backup file should be written to disk"
+        );
+
+        db.writer()
+            .execute(
+                "INSERT INTO backup_probe (payload) VALUES ('after-backup')",
+                [],
+            )
+            .unwrap();
+        let count: i32 = db
+            .reader()
+            .query_row("SELECT COUNT(*) FROM backup_probe", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(
+            count, 2,
+            "DB should remain writable/readable after manual backup"
+        );
+    }
+
+    #[test]
+    fn create_manual_backup_rejects_in_memory_database() {
+        let mut db = DbManager::new_in_memory().unwrap();
+
+        let error = db
+            .create_manual_backup()
+            .expect_err("in-memory database cannot be backed up");
+
+        match error {
+            DomainError::Persistence(message) => {
+                assert!(
+                    message.contains("In-memory"),
+                    "unexpected error message: {message}"
+                );
+            }
+            other => panic!("expected persistence error, got {other:?}"),
+        }
     }
 
     #[test]

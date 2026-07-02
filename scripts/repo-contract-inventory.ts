@@ -99,6 +99,7 @@ const SQLITE_INTERNAL_TABLES = new Set(["sqlite_master", "sqlite_stat1"]);
 const DYNAMIC_SQL_ALLOWLIST = [
   "__ultra_rss_backup_metadata",
   "articles_fts",
+  "backup_probe",
   "idx_folders_account_name_nocase_unique",
   "idx_folders_account_sort_order_unique",
   "pragma",

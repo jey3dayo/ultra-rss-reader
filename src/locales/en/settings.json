@@ -362,6 +362,12 @@
       "Quit the app before restoring a database backup.",
       "Before deleting or restoring data, check the account name and item count."
     ],
+    "backup": "Backup",
+    "backup_description": "Back up the current database. Save a recent copy to guard against corruption that happens outside a migration.",
+    "backup_action": "Back up now",
+    "backing_up": "Backing up…",
+    "backup_success": "Database backed up",
+    "backup_failed": "Backup failed: {{message}}",
     "settings_profile": "Settings Profile",
     "settings_profile_description": "Export preferences, account skeletons, tags, and mute keywords. Passwords and article data are not included.",
     "settings_profile_export": "Export",

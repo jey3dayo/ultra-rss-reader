@@ -362,6 +362,12 @@
       "バックアップを復元する前に、アプリを終了します。",
       "削除や復元の前に、対象のアカウント名と件数を確認します。"
     ],
+    "backup": "バックアップ",
+    "backup_description": "現在のデータベースをバックアップします。マイグレーション以外の破損に備えて、最新の状態を保存できます。",
+    "backup_action": "今すぐバックアップ",
+    "backing_up": "バックアップ中…",
+    "backup_success": "データベースをバックアップしました",
+    "backup_failed": "バックアップに失敗しました: {{message}}",
     "settings_profile": "設定プロファイル",
     "settings_profile_description": "設定、アカウント情報、タグ、ミュートキーワードを書き出します。パスワードや記事データは書き出しません。",
     "settings_profile_export": "書き出す",

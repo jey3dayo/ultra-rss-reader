@@ -4,6 +4,7 @@ import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DatabaseInfoDtoSchema } from "@/api/schemas/database-info";
 import {
+  backupDatabase,
   exportSettingsProfileToFile,
   getDatabaseInfo,
   importSettingsProfile,
@@ -37,6 +38,7 @@ vi.mock("@/api/tauri-commands", () => ({
     }),
   ),
   openLogDir: vi.fn(async () => Result.succeed(null)),
+  backupDatabase: vi.fn(async () => Result.succeed(null)),
   importSettingsProfile: vi.fn(async () =>
     Result.succeed({
       accounts_created: 0,
@@ -444,6 +446,54 @@ describe("useDataSettingsController", () => {
 
     expect(result.current.databaseSizeValue).toBe("2.0 KiB");
     expect(showToast).toHaveBeenCalledWith("Saved 0 B");
+  });
+
+  it("shows a success toast and clears busy state after a manual database backup", async () => {
+    vi.mocked(backupDatabase).mockResolvedValue(Result.succeed(null));
+    const showToast = vi.fn();
+    const { result } = renderDataSettingsController({ showToast });
+
+    await waitFor(() => {
+      expect(result.current.databaseSizeStatus).toBe("ready");
+    });
+
+    await act(async () => {
+      await result.current.handleBackupDatabase();
+    });
+
+    expect(backupDatabase).toHaveBeenCalledTimes(1);
+    expect(showToast).toHaveBeenCalledWith("data.backup_success");
+    expect(result.current.backingUp).toBe(false);
+  });
+
+  it("surfaces a failure toast and recovery surface when a manual database backup fails", async () => {
+    vi.mocked(backupDatabase).mockResolvedValue(
+      Result.fail({
+        type: "UserVisible",
+        message: "no space left on device",
+      }),
+    );
+    const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const showToast = vi.fn();
+    const { result } = renderDataSettingsController({ showToast });
+
+    await waitFor(() => {
+      expect(result.current.databaseSizeStatus).toBe("ready");
+    });
+
+    await act(async () => {
+      await result.current.handleBackupDatabase();
+    });
+
+    expect(showToast).toHaveBeenCalledWith("data.backup_failed");
+    expect(result.current.databaseRuntimeRecoverySurface).toMatchObject({
+      failureKind: "disk_full",
+      mode: "free_disk_space",
+    });
+    expect(result.current.backingUp).toBe(false);
+    consoleWarn.mockRestore();
+    consoleError.mockRestore();
   });
 
   it("exports settings profile to a selected JSON file and blocks duplicate profile actions", async () => {

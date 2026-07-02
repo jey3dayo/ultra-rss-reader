@@ -496,17 +496,31 @@ fn vacuum_database_inner(
     Ok(db.vacuum().map_err(AppError::from)?.into())
 }
 
+#[tauri::command]
+pub fn backup_database(state: State<'_, AppState>) -> Result<(), AppError> {
+    backup_database_inner(&state.db, &state.syncing)
+}
+
+fn backup_database_inner(db: &Mutex<DbManager>, syncing: &AtomicBool) -> Result<(), AppError> {
+    let _maintenance_guard = start_database_maintenance(syncing)?;
+
+    let mut db = try_lock_db(db)?;
+    db.create_manual_backup().map_err(AppError::from)?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::Mutex;
 
     use crate::commands::database_commands::{
-        database_runtime_recovery_contract, filesystem_recovery_contract, get_database_info_inner,
-        long_running_native_operation_contract, private_data_reset_contract,
-        schedule_database_maintenance_action, search_index_rebuild_maintenance_contract,
-        vacuum_database_inner, AppActivityState, AtomicFileWritePolicy, DatabaseInfoDto,
-        DatabaseMaintenanceAction, DatabaseMaintenanceScheduleDecision, DatabaseMaintenanceTrigger,
+        backup_database_inner, database_runtime_recovery_contract, filesystem_recovery_contract,
+        get_database_info_inner, long_running_native_operation_contract,
+        private_data_reset_contract, schedule_database_maintenance_action,
+        search_index_rebuild_maintenance_contract, vacuum_database_inner, AppActivityState,
+        AtomicFileWritePolicy, DatabaseInfoDto, DatabaseMaintenanceAction,
+        DatabaseMaintenanceScheduleDecision, DatabaseMaintenanceTrigger,
         DatabaseRecoveryActionSafety, DatabaseRuntimeFailureKind, DatabaseRuntimeRecoveryAction,
         DatabaseRuntimeRecoveryMode, FilenameSuggestionPolicy, FilesystemPathNormalizationPolicy,
         FilesystemRecoverySurface, LongRunningNativeOperation,
@@ -526,6 +540,22 @@ mod tests {
         let syncing = AtomicBool::new(true);
 
         let error = vacuum_database_inner(&db, &syncing).expect_err("syncing should block vacuum");
+
+        match error {
+            AppError::UserVisible { message } => {
+                assert_eq!(message, DATABASE_MAINTENANCE_BUSY_ERROR);
+            }
+            other => panic!("expected user-visible syncing error, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn backup_database_returns_syncing_error_before_trying_db_lock() {
+        let db = Mutex::new(DbManager::new_in_memory().unwrap());
+        let _guard = db.lock().unwrap();
+        let syncing = AtomicBool::new(true);
+
+        let error = backup_database_inner(&db, &syncing).expect_err("syncing should block backup");
 
         match error {
             AppError::UserVisible { message } => {
