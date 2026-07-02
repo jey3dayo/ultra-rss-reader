@@ -58,7 +58,7 @@ describe("ArticleFilterToggleButton class contracts", () => {
 
     expect(unreadClassName).toContain("disabled:hover:text-foreground-muted");
     expect(unreadClassName).toContain("disabled:opacity-[0.45]");
-    expect(unreadClassName).toContain("disabled:cursor-not-allowed");
+    expect(unreadClassName).toContain("disabled:cursor-default");
     expect(unreadClassName).toContain("disabled:hover:[&_[data-filter-toggle-content]]:bg-transparent");
   });
 });
