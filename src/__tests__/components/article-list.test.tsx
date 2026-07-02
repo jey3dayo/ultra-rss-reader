@@ -1174,9 +1174,7 @@ describe("ArticleList", () => {
           return [];
         case "mark_feed_read": {
           const feedId = String(args.feedId);
-          articles = articles.map((article) =>
-            article.feed_id === feedId ? { ...article, is_read: true } : article,
-          );
+          articles = articles.map((article) => (article.feed_id === feedId ? { ...article, is_read: true } : article));
           feeds = feeds.map((feed) => ({
             ...feed,
             unread_count: articles.filter((article) => article.feed_id === feed.id && !article.is_read).length,
