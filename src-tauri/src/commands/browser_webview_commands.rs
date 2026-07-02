@@ -32,6 +32,8 @@ const BROWSER_WEBVIEW_EMPTY_RELOAD_SOURCE_ERROR: &str =
     "Embedded browser webview has no current URL to reload";
 const BROWSER_WEBVIEW_SHORTCUT_NAVIGATION_SCHEME: &str = "ultra-rss-browser-shortcut";
 const BROWSER_WEBVIEW_CLOSE_SHORTCUT_NAVIGATION_HOST: &str = "close-browser";
+const BROWSER_WEBVIEW_MOUSE_BACK_SHORTCUT_NAVIGATION_HOST: &str = "mouse-back";
+const BROWSER_WEBVIEW_MOUSE_FORWARD_SHORTCUT_NAVIGATION_HOST: &str = "mouse-forward";
 
 #[cfg_attr(test, derive(Debug, PartialEq, Eq))]
 enum BrowserWebviewTimeoutFallbackEmission {
@@ -391,20 +393,30 @@ fn browser_host_focus_failure_warning(phase: &str, error: &impl std::fmt::Displa
     )
 }
 
-fn is_browser_webview_close_shortcut_navigation(target_url: &Url) -> bool {
-    target_url.scheme() == BROWSER_WEBVIEW_SHORTCUT_NAVIGATION_SCHEME
-        && target_url.host_str() == Some(BROWSER_WEBVIEW_CLOSE_SHORTCUT_NAVIGATION_HOST)
+fn browser_webview_shortcut_navigation_action(target_url: &Url) -> Option<&'static str> {
+    if target_url.scheme() != BROWSER_WEBVIEW_SHORTCUT_NAVIGATION_SCHEME {
+        return None;
+    }
+
+    match target_url.host_str() {
+        Some(BROWSER_WEBVIEW_CLOSE_SHORTCUT_NAVIGATION_HOST) => Some("close-browser"),
+        Some(BROWSER_WEBVIEW_MOUSE_BACK_SHORTCUT_NAVIGATION_HOST) => Some("mouse-back"),
+        Some(BROWSER_WEBVIEW_MOUSE_FORWARD_SHORTCUT_NAVIGATION_HOST) => Some("mouse-forward"),
+        _ => None,
+    }
 }
 
 fn handle_browser_webview_shortcut_navigation(window: &Window, target_url: &Url) -> bool {
-    if !is_browser_webview_close_shortcut_navigation(target_url) {
+    let Some(action) = browser_webview_shortcut_navigation_action(target_url) else {
         return false;
-    }
+    };
 
-    if let Err(error) = focus_browser_host_window(window) {
-        tracing::warn!("{}", browser_host_focus_failure_warning("before", &error));
+    if action == "close-browser" {
+        if let Err(error) = focus_browser_host_window(window) {
+            tracing::warn!("{}", browser_host_focus_failure_warning("before", &error));
+        }
     }
-    let _ = window.app_handle().emit(MENU_ACTION_EVENT, "close-browser");
+    let _ = window.app_handle().emit(MENU_ACTION_EVENT, action);
     true
 }
 
@@ -932,22 +944,37 @@ mod tests {
     }
 
     #[test]
-    fn browser_webview_shortcut_navigation_accepts_only_close_shortcut_url() {
+    fn browser_webview_shortcut_navigation_action_accepts_known_hosts_only() {
         let close_url = Url::parse("ultra-rss-browser-shortcut://close-browser")
+            .expect("shortcut URL should parse");
+        let mouse_back_url = Url::parse("ultra-rss-browser-shortcut://mouse-back")
+            .expect("shortcut URL should parse");
+        let mouse_forward_url = Url::parse("ultra-rss-browser-shortcut://mouse-forward")
             .expect("shortcut URL should parse");
         let other_host = Url::parse("ultra-rss-browser-shortcut://reload-webview")
             .expect("shortcut URL should parse");
         let other_scheme = Url::parse("https://close-browser").expect("https URL should parse");
 
-        assert!(super::is_browser_webview_close_shortcut_navigation(
-            &close_url
-        ));
-        assert!(!super::is_browser_webview_close_shortcut_navigation(
-            &other_host
-        ));
-        assert!(!super::is_browser_webview_close_shortcut_navigation(
-            &other_scheme
-        ));
+        assert_eq!(
+            super::browser_webview_shortcut_navigation_action(&close_url),
+            Some("close-browser")
+        );
+        assert_eq!(
+            super::browser_webview_shortcut_navigation_action(&mouse_back_url),
+            Some("mouse-back")
+        );
+        assert_eq!(
+            super::browser_webview_shortcut_navigation_action(&mouse_forward_url),
+            Some("mouse-forward")
+        );
+        assert_eq!(
+            super::browser_webview_shortcut_navigation_action(&other_host),
+            None
+        );
+        assert_eq!(
+            super::browser_webview_shortcut_navigation_action(&other_scheme),
+            None
+        );
     }
 
     #[test]

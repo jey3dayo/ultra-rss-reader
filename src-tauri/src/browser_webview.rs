@@ -805,6 +805,11 @@ pub fn browser_preview_close_bridge_source(prefs: &HashMap<String, String>) -> O
   const requestCloseViaNavigation = () => {{
     window.location.href = 'ultra-rss-browser-shortcut://close-browser';
   }};
+  const requestMouseNavigationViaNavigation = (action) => {{
+    window.location.href = action === 'mouse-back'
+      ? 'ultra-rss-browser-shortcut://mouse-back'
+      : 'ultra-rss-browser-shortcut://mouse-forward';
+  }};
   const getSpaceScrollDirection = (event) => {{
     if (event.altKey || event.metaKey || event.ctrlKey || event.key !== ' ') {{
       return 0;
@@ -879,6 +884,7 @@ pub fn browser_preview_close_bridge_source(prefs: &HashMap<String, String>) -> O
 
     const invoke = getInvoke();
     if (typeof invoke !== 'function') {{
+      requestMouseNavigationViaNavigation(event.button === 3 ? 'mouse-back' : 'mouse-forward');
       return;
     }}
 
@@ -894,6 +900,7 @@ pub fn browser_preview_close_bridge_source(prefs: &HashMap<String, String>) -> O
         }})
         .catch((error) => {{
           console.error('Failed to navigate back from mouse bridge:', error);
+          requestMouseNavigationViaNavigation('mouse-back');
         }})
         .finally(() => {{
           mouseNavigationInFlight = false;
@@ -904,6 +911,7 @@ pub fn browser_preview_close_bridge_source(prefs: &HashMap<String, String>) -> O
     void invoke('go_forward_browser_webview')
       .catch((error) => {{
         console.error('Failed to navigate forward from mouse bridge:', error);
+        requestMouseNavigationViaNavigation('mouse-forward');
       }})
       .finally(() => {{
         mouseNavigationInFlight = false;
@@ -2351,6 +2359,9 @@ mod tests {
         assert!(script.contains("if (mouseNavigationInFlight)"));
         assert!(script.contains("if (isEditableTarget(event.target))"));
         assert!(script.contains("if (!event.defaultPrevented && spaceScrollDirection !== 0)"));
+        assert!(script.contains("requestMouseNavigationViaNavigation"));
+        assert!(script.contains("ultra-rss-browser-shortcut://mouse-back"));
+        assert!(script.contains("ultra-rss-browser-shortcut://mouse-forward"));
         assert!(!script.contains(
             "window.addEventListener('keydown', (event) => {\n    if (event.defaultPrevented"
         ));

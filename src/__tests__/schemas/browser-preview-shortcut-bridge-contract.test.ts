@@ -156,5 +156,7 @@ describe("browser preview shortcut bridge contract", () => {
     );
     expect(closeBridgeBlock).toContain("if (!state?.can_go_back)");
     expect(closeBridgeBlock).toContain("return closeBrowserPreview();");
+    expect(closeBridgeBlock).toContain("ultra-rss-browser-shortcut://mouse-back");
+    expect(closeBridgeBlock).toContain("ultra-rss-browser-shortcut://mouse-forward");
   });
 });
