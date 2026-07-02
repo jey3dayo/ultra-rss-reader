@@ -23,6 +23,7 @@ Ultra RSS Reader is currently compatibility-first for feed content.
 - Remote `http:` / `https:` frames are allowed because Web Preview is an explicit embedded-browser feature.
 - The local app database is not encrypted by Ultra RSS Reader at rest in this release.
 - Support/debug copy must not include a stable app or environment fingerprint by default.
+- The app ships no outbound telemetry, analytics, or crash-reporting service. Diagnostics stay in local file logs and in-app support/debug copy, and no error data is sent to any remote endpoint automatically. This is a deliberate single-maintainer decision, not a deferred integration; field failures are expected to surface to the maintainer directly rather than through remote reporting.
 
 This means the app does not currently promise that opening an article avoids all third-party network requests.
 
