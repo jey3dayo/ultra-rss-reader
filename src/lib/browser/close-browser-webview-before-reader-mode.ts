@@ -3,20 +3,7 @@ import { closeBrowserWebview } from "@/api/tauri-commands";
 
 const BROWSER_WEBVIEW_CLOSE_TIMEOUT_MS = 2_000;
 
-let inFlightClose: Promise<void> | null = null;
-
-export function closeBrowserWebviewBeforeReaderMode(): Promise<void> {
-  if (inFlightClose) {
-    return inFlightClose;
-  }
-  const close = runCloseBrowserWebviewBeforeReaderMode().finally(() => {
-    inFlightClose = null;
-  });
-  inFlightClose = close;
-  return close;
-}
-
-async function runCloseBrowserWebviewBeforeReaderMode(): Promise<void> {
+export async function closeBrowserWebviewBeforeReaderMode(): Promise<void> {
   let timeoutId: number | null = null;
   const closeCommand = closeBrowserWebview()
     .then((result) => {

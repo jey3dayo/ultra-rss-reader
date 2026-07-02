@@ -286,7 +286,7 @@ describe("useArticleBrowserOverlayClose", () => {
     }
   });
 
-  it("waits for the native close timeout before finalizing when the native close command stalls", async () => {
+  it("finalizes the overlay close immediately when the native close command stalls", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     closeBrowserWebviewMock.mockReturnValue(new Promise(() => {}));
     const originalSetFocusedPane = useUiStore.getState().setFocusedPane;
@@ -314,10 +314,10 @@ describe("useArticleBrowserOverlayClose", () => {
       result.current.closeBrowserOverlay();
     });
 
-    expect(setFocusedPane).not.toHaveBeenCalled();
-    expect(setBrowserOverlayClosedPreference).not.toHaveBeenCalled();
-    expect(closeBrowser).not.toHaveBeenCalled();
-    expect(useUiStore.getState().browserCloseInFlight).toBe(true);
+    expect(setFocusedPane).toHaveBeenCalledWith("list");
+    expect(setBrowserOverlayClosedPreference).toHaveBeenCalledTimes(1);
+    expect(closeBrowser).toHaveBeenCalledTimes(1);
+    expect(useUiStore.getState().browserCloseInFlight).toBe(false);
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(2_000);
@@ -327,9 +327,6 @@ describe("useArticleBrowserOverlayClose", () => {
     });
 
     expect(warn).toHaveBeenCalledWith("Timed out closing embedded browser webview before returning to reader mode.");
-    expect(setBrowserOverlayClosedPreference).toHaveBeenCalledTimes(1);
-    expect(closeBrowser).toHaveBeenCalledTimes(1);
-    expect(useUiStore.getState().browserCloseInFlight).toBe(false);
   });
 
   it("finalizes the overlay close when the native timeout timer is unavailable", async () => {
