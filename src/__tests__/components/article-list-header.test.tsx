@@ -347,6 +347,7 @@ describe("ArticleListHeader", () => {
       useArticleListViewProps({
         t: i18n.getFixedT("en", "reader"),
         tc: i18n.getFixedT("en", "common"),
+        selection: { type: "feed", feedId: "feed-1" },
         layoutMode: "wide",
         contentMode: "reader",
         showSearch: true,
@@ -399,10 +400,69 @@ describe("ArticleListHeader", () => {
     });
     expect(result.current.headerProps.sidebarButtonLabel).toBe("Hide sidebar");
     expect(result.current.headerProps.onMarkAllRead).toBe(handleMarkAllRead);
+    expect(result.current.headerProps.markAllReadDisabled).toBe(false);
     expect(result.current.headerProps.onToggleSidebar).toBe(handleSidebarToggle);
     expect(result.current.headerProps.onToggleSearch).toBe(handleToggleSearch);
     expect(result.current.headerProps.onCloseSearch).toBe(handleCloseSearch);
     expect(result.current.headerProps.onSearchQueryChange).toBe(setSearchQuery);
+  });
+
+  it.each([
+    { name: "all articles", selection: { type: "all" } as const },
+    { name: "tag", selection: { type: "tag", tagId: "tag-1" } as const },
+    { name: "unread", selection: { type: "smart", kind: "unread" } as const },
+  ])("disables mark all read for $name article lists", ({ selection }) => {
+    const searchInputRef = createRef<HTMLInputElement>();
+    const listRef = createRef<HTMLDivElement>();
+    const viewportRef = createRef<HTMLDivElement>();
+
+    const { result } = renderHook(() =>
+      useArticleListViewProps({
+        t: i18n.getFixedT("en", "reader"),
+        tc: i18n.getFixedT("en", "common"),
+        selection,
+        layoutMode: "wide",
+        contentMode: "reader",
+        showSearch: false,
+        searchQuery: "",
+        searchInputRef,
+        showSidebarButton: false,
+        sidebarButtonLabel: "Show sidebar",
+        sidebarButtonText: undefined,
+        isSidebarVisible: false,
+        handleMarkAllRead: vi.fn(),
+        handleSidebarToggle: vi.fn(),
+        handleToggleSearch: vi.fn(),
+        handleCloseSearch: vi.fn(),
+        setSearchQuery: vi.fn(),
+        listRef,
+        viewportRef,
+        handleListKeyDownCapture: vi.fn(),
+        isLoadingFeedArticles: false,
+        isLoadingAccountArticles: false,
+        isLoadingFolderArticles: false,
+        isLoadingRecentArticles: false,
+        isLoadingTagArticles: false,
+        isSearchLoading: false,
+        isSearchEmptyState: false,
+        setupEmptyState: "none",
+        trimmedDebouncedQuery: "",
+        contentMotionKey: "smart:unread|all|browse",
+        articleGroups: [],
+        dimArchived: "true",
+        textPreview: "none",
+        imagePreviews: "none",
+        selectionStyle: "unread",
+        selectArticle: vi.fn(),
+        effectiveViewMode: "all",
+        footerModes: ["all"],
+        footerDisabledModes: [],
+        setViewMode: vi.fn(),
+      }),
+    );
+
+    expect(result.current.headerProps.labels.markAllReadLabel).toBe("Available for feeds and folders");
+    expect(result.current.headerProps.markAllReadDisabled).toBe(true);
   });
 
   it("closes search when pressing Escape in the focused search input", async () => {

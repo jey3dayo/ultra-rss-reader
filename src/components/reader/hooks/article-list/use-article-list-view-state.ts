@@ -21,24 +21,16 @@ export function useArticleListViewState({
   filteredArticleCount,
 }: UseArticleListViewStateParams): UseArticleListViewStateResult {
   const footerModes = useMemo<ReadonlyArray<ViewMode>>(() => {
-    if (selection.type !== "smart") {
-      return ["unread", "all", "starred"];
-    }
-
-    if (selection.kind === "unread") {
-      return ["unread"];
-    }
-
-    if (selection.kind === "recent") {
-      return ["unread", "all", "starred"];
-    }
-
-    return ["unread", "all"];
-  }, [selection]);
+    return ["unread", "all", "starred"];
+  }, []);
 
   const footerDisabledModes = useMemo<ReadonlyArray<ViewMode>>(() => {
     if (selection.type === "smart" && selection.kind === "unread") {
-      return ["unread"];
+      return ["unread", "all", "starred"];
+    }
+
+    if (selection.type === "smart" && selection.kind === "starred") {
+      return ["unread", "all", "starred"];
     }
 
     return [];

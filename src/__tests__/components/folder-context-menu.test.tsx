@@ -61,6 +61,7 @@ describe("FolderContextMenuContent", () => {
 
     expect(confirmMarkAllReadMock).toHaveBeenCalledWith({
       count: 6,
+      scope: "folder",
       onConfirm: expect.any(Function),
     });
     confirmMarkAllReadMock.mock.calls[0]?.[0].onConfirm();

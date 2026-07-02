@@ -34,6 +34,7 @@ export function SmartViewContextMenuContent({ accountId, view }: SmartViewContex
   const handleMarkUnreadRead = useCallback(() => {
     confirmMarkAllRead({
       count: view.count,
+      scope: "visible",
       onConfirm: () => markAccountRead.mutate(accountId),
     });
   }, [accountId, confirmMarkAllRead, markAccountRead, view.count]);
@@ -41,6 +42,7 @@ export function SmartViewContextMenuContent({ accountId, view }: SmartViewContex
   const handleMarkStarredRead = useCallback(() => {
     confirmMarkAllRead({
       count: view.count,
+      scope: "visible",
       onConfirm: () => markAccountStarredRead.mutate(accountId),
     });
   }, [accountId, confirmMarkAllRead, markAccountStarredRead, view.count]);

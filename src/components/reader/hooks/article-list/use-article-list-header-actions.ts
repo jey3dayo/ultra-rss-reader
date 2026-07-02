@@ -1,7 +1,11 @@
 import { useCallback, useMemo } from "react";
 import { useMarkAllRead, useMarkFeedRead, useMarkFolderRead } from "@/hooks/use-articles";
 import { useConfirmMarkAllRead } from "@/hooks/use-confirm-mark-all-read";
-import { getUnreadArticleIds, resolveArticleListMarkAllReadCount } from "@/lib/articles/article-list";
+import {
+  canMarkArticleListSelectionRead,
+  getUnreadArticleIds,
+  resolveArticleListMarkAllReadCount,
+} from "@/lib/articles/article-list";
 import { countUnreadFeedsInFolder } from "@/lib/sidebar/sidebar";
 import type {
   UseArticleListHeaderActionsParams,
@@ -39,8 +43,13 @@ export function useArticleListHeaderActions({
     folderUnreadCount,
     filteredArticles,
   });
+  const markAllReadDisabled = !canMarkArticleListSelectionRead(selection);
 
   const handleMarkAllRead = useCallback(() => {
+    if (markAllReadDisabled) {
+      return;
+    }
+
     switch (selection.type) {
       case "feed":
         if (!feedId) {
@@ -48,12 +57,14 @@ export function useArticleListHeaderActions({
         }
         confirmMarkAllRead({
           count: markAllReadCount,
+          scope: "feed",
           onConfirm: () => markFeedRead.mutate(feedId),
         });
         return;
       case "folder":
         confirmMarkAllRead({
           count: markAllReadCount,
+          scope: "folder",
           onConfirm: () => markFolderRead.mutate(selection.folderId),
         });
         return;
@@ -62,14 +73,25 @@ export function useArticleListHeaderActions({
       case "tag": {
         confirmMarkAllRead({
           count: markAllReadCount,
+          scope: "visible",
           onConfirm: doMarkAllRead,
         });
         return;
       }
     }
-  }, [confirmMarkAllRead, doMarkAllRead, feedId, markAllReadCount, markFeedRead, markFolderRead, selection]);
+  }, [
+    confirmMarkAllRead,
+    doMarkAllRead,
+    feedId,
+    markAllReadCount,
+    markAllReadDisabled,
+    markFeedRead,
+    markFolderRead,
+    selection,
+  ]);
 
   return {
     handleMarkAllRead,
+    markAllReadDisabled,
   };
 }

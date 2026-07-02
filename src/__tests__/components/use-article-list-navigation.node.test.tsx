@@ -383,6 +383,7 @@ describe("useArticleListEffects", () => {
     const deletedButton = document.createElement("button");
     const fallbackButton = document.createElement("button");
     const clearArticle = vi.fn();
+    const closeBrowser = vi.fn();
     const requestAnimationFrameCallbacks: FrameRequestCallback[] = [];
 
     stubWindowGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
@@ -404,10 +405,12 @@ describe("useArticleListEffects", () => {
           viewportRef: { current: viewport },
           filteredArticles,
           focusedPane: "list",
+          contentMode: "reader",
           selectedArticleId,
           isPrimarySourceLoading: false,
           isSearchLoading: false,
           clearArticle,
+          closeBrowser,
         }),
       {
         initialProps: {
@@ -427,14 +430,64 @@ describe("useArticleListEffects", () => {
     });
 
     expect(clearArticle).toHaveBeenCalledTimes(1);
+    expect(closeBrowser).not.toHaveBeenCalled();
     expect(deletedButton).not.toHaveFocus();
     expect(fallbackButton).not.toHaveFocus();
+  });
+
+  it("closes the browser overlay before clearing a selected article that leaves the current list", () => {
+    const list = document.createElement("div");
+    const viewport = document.createElement("div");
+    const clearArticle = vi.fn();
+    const closeBrowser = vi.fn();
+    const requestAnimationFrameCallbacks: FrameRequestCallback[] = [];
+
+    stubWindowGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+      requestAnimationFrameCallbacks.push(callback);
+      return requestAnimationFrameCallbacks.length;
+    });
+    stubWindowGlobal("cancelAnimationFrame", vi.fn());
+
+    const { rerender } = renderHook(
+      ({ filteredArticles }) =>
+        useArticleListEffects({
+          selection: { type: "all" },
+          scrollToTopOnChange: "false",
+          listRef: { current: list },
+          viewportRef: { current: viewport },
+          filteredArticles,
+          focusedPane: "list",
+          contentMode: "browser",
+          selectedArticleId: sampleArticles[1].id,
+          isPrimarySourceLoading: false,
+          isSearchLoading: false,
+          clearArticle,
+          closeBrowser,
+        }),
+      {
+        initialProps: {
+          filteredArticles: [sampleArticles[0], sampleArticles[1]],
+        },
+      },
+    );
+
+    rerender({
+      filteredArticles: [sampleArticles[0]],
+    });
+    requestAnimationFrameCallbacks.forEach((callback) => {
+      callback(0);
+    });
+
+    expect(closeBrowser).toHaveBeenCalledTimes(1);
+    expect(clearArticle).toHaveBeenCalledTimes(1);
+    expect(closeBrowser.mock.invocationCallOrder[0]).toBeLessThan(clearArticle.mock.invocationCallOrder[0]);
   });
 
   it("does not clear the selected article when a missing row is followed by a loading transition", () => {
     const list = document.createElement("div");
     const viewport = document.createElement("div");
     const clearArticle = vi.fn();
+    const closeBrowser = vi.fn();
     const requestAnimationFrameCallbacks: FrameRequestCallback[] = [];
     const cancelAnimationFrame = vi.fn();
 
@@ -453,10 +506,12 @@ describe("useArticleListEffects", () => {
           viewportRef: { current: viewport },
           filteredArticles,
           focusedPane: "list",
+          contentMode: "reader",
           selectedArticleId: sampleArticles[1].id,
           isPrimarySourceLoading,
           isSearchLoading: false,
           clearArticle,
+          closeBrowser,
         }),
       {
         initialProps: {
@@ -480,12 +535,14 @@ describe("useArticleListEffects", () => {
 
     expect(cancelAnimationFrame).toHaveBeenCalled();
     expect(clearArticle).not.toHaveBeenCalled();
+    expect(closeBrowser).not.toHaveBeenCalled();
   });
 
   it("does not clear the selected article when it returns before the stale missing frame runs", () => {
     const list = document.createElement("div");
     const viewport = document.createElement("div");
     const clearArticle = vi.fn();
+    const closeBrowser = vi.fn();
     const requestAnimationFrameCallbacks: FrameRequestCallback[] = [];
     const cancelAnimationFrame = vi.fn();
 
@@ -504,10 +561,12 @@ describe("useArticleListEffects", () => {
           viewportRef: { current: viewport },
           filteredArticles,
           focusedPane: "list",
+          contentMode: "reader",
           selectedArticleId: sampleArticles[1].id,
           isPrimarySourceLoading: false,
           isSearchLoading: false,
           clearArticle,
+          closeBrowser,
         }),
       {
         initialProps: {
@@ -528,12 +587,14 @@ describe("useArticleListEffects", () => {
 
     expect(cancelAnimationFrame).toHaveBeenCalled();
     expect(clearArticle).not.toHaveBeenCalled();
+    expect(closeBrowser).not.toHaveBeenCalled();
   });
 
   it("does not clear the selected article while search results for the current query are loading", () => {
     const list = document.createElement("div");
     const viewport = document.createElement("div");
     const clearArticle = vi.fn();
+    const closeBrowser = vi.fn();
     const requestAnimationFrameCallbacks: FrameRequestCallback[] = [];
     const cancelAnimationFrame = vi.fn();
 
@@ -552,10 +613,12 @@ describe("useArticleListEffects", () => {
           viewportRef: { current: viewport },
           filteredArticles,
           focusedPane: "list",
+          contentMode: "reader",
           selectedArticleId: sampleArticles[1].id,
           isPrimarySourceLoading: false,
           isSearchLoading,
           clearArticle,
+          closeBrowser,
         }),
       {
         initialProps: {
@@ -579,5 +642,6 @@ describe("useArticleListEffects", () => {
 
     expect(cancelAnimationFrame).toHaveBeenCalled();
     expect(clearArticle).not.toHaveBeenCalled();
+    expect(closeBrowser).not.toHaveBeenCalled();
   });
 });

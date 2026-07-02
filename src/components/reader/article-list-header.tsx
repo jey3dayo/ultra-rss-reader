@@ -22,6 +22,7 @@ export type ArticleListHeaderProps = {
   sidebarButtonText?: string;
   isSidebarVisible?: boolean;
   onMarkAllRead: () => void;
+  markAllReadDisabled?: boolean;
   onToggleSidebar: () => void;
   onToggleSearch: () => void;
   onCloseSearch: () => void;
@@ -38,6 +39,7 @@ export function ArticleListHeader({
   sidebarButtonText,
   isSidebarVisible,
   onMarkAllRead,
+  markAllReadDisabled,
   onToggleSidebar,
   onToggleSearch,
   onCloseSearch,
@@ -63,6 +65,7 @@ export function ArticleListHeader({
           sidebarButtonText={sidebarButtonText}
           isSidebarVisible={isSidebarVisible}
           onMarkAllRead={onMarkAllRead}
+          markAllReadDisabled={markAllReadDisabled}
           onToggleSidebar={onToggleSidebar}
           onToggleSearch={onToggleSearch}
           onCloseSearch={onCloseSearch}

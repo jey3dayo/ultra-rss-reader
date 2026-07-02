@@ -23,6 +23,7 @@ function buildFolderMarkAllReadConfirmation(params: {
 
   return {
     count: unreadCount,
+    scope: "folder" as const,
     onConfirm: () => markFolderRead.mutate(folderId),
   };
 }

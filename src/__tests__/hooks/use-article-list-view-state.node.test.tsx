@@ -11,7 +11,7 @@ afterEach(() => {
 });
 
 describe("useArticleListViewState", () => {
-  it("locks the unread footer mode for the unread smart view", () => {
+  it("keeps every footer button visible and locked for the unread smart view", () => {
     const { result } = renderHook(() =>
       useArticleListViewState(
         createParams({
@@ -21,9 +21,22 @@ describe("useArticleListViewState", () => {
       ),
     );
 
-    expect(result.current.footerModes).toEqual(["unread"]);
-    expect(result.current.footerDisabledModes).toEqual(["unread"]);
+    expect(result.current.footerModes).toEqual(["unread", "all", "starred"]);
+    expect(result.current.footerDisabledModes).toEqual(["unread", "all", "starred"]);
     expect(result.current.isPrimarySourceLoading).toBe(false);
+  });
+
+  it("keeps every footer button visible and locked for the starred smart view", () => {
+    const { result } = renderHook(() =>
+      useArticleListViewState(
+        createParams({
+          selection: { type: "smart", kind: "starred" },
+        }),
+      ),
+    );
+
+    expect(result.current.footerModes).toEqual(["unread", "all", "starred"]);
+    expect(result.current.footerDisabledModes).toEqual(["unread", "all", "starred"]);
   });
 
   it("uses the selected source loading flag before setup empty states", () => {

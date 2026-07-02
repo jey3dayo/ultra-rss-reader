@@ -139,6 +139,7 @@ export function useSidebarFeedSectionController({
     (folder: { id: string; unreadCount: number }) => {
       confirmMarkAllRead({
         count: folder.unreadCount,
+        scope: "folder",
         onConfirm: () => markFolderRead(folder.id),
       });
     },

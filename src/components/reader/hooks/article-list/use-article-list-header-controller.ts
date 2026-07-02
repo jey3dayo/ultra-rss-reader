@@ -22,7 +22,7 @@ export function useArticleListHeaderController({
   toggleSidebar,
   setWebPreviewSessionMode,
 }: UseArticleListHeaderControllerParams): UseArticleListHeaderControllerResult {
-  const { handleMarkAllRead } = useArticleListHeaderActions({
+  const { handleMarkAllRead, markAllReadDisabled } = useArticleListHeaderActions({
     selection,
     feeds,
     feedId,
@@ -46,5 +46,6 @@ export function useArticleListHeaderController({
   return {
     ...headerControls,
     handleMarkAllRead,
+    markAllReadDisabled,
   };
 }

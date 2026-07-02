@@ -467,6 +467,10 @@ export function resolveArticleListMarkAllReadCount(params: ArticleListMarkAllRea
   return getUnreadArticleIds(filteredArticles).length;
 }
 
+export function canMarkArticleListSelectionRead(selection: ArticleListMarkAllReadSelection): boolean {
+  return selection.type === "feed" || selection.type === "folder";
+}
+
 export function resolveEffectiveRetainedArticleIds(
   params: ResolveEffectiveRetainedArticleIdsParams,
 ): ReadonlySet<string> {

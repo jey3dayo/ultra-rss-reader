@@ -78,6 +78,7 @@ export type UseArticleListViewStateResult = {
 export type UseArticleListViewPropsParams = {
   t: TFunction<"reader">;
   tc: TFunction<"common">;
+  selection: ArticleListSelection;
   layoutMode: LayoutMode;
   contentMode: ContentMode;
   showSearch: boolean;
@@ -152,6 +153,7 @@ export type UseArticleListPresentationParams = {
   setWebPreviewSessionMode: (mode: WebPreviewSessionMode) => void;
   selectArticle: (articleId: string) => void;
   clearArticle: () => void;
+  closeBrowser: () => void;
   openSearch: () => void;
   keyboardPrefs: KeyboardShortcutPrefs;
   scrollToTopOnChange: string;
@@ -178,6 +180,7 @@ export type UseArticleListHeaderActionsParams = {
 
 export type UseArticleListHeaderActionsResult = {
   handleMarkAllRead: () => void;
+  markAllReadDisabled: boolean;
 };
 
 export type UseArticleListHeaderControllerParams = {
@@ -200,6 +203,7 @@ export type UseArticleListHeaderControllerParams = {
 
 export type UseArticleListHeaderControllerResult = UseArticleListHeaderControlsResult & {
   handleMarkAllRead: () => void;
+  markAllReadDisabled: boolean;
 };
 
 export type UseArticleListHeaderControlsParams = {

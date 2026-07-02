@@ -2,7 +2,7 @@ import type { RefObject } from "react";
 import { useEffect, useRef } from "react";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { queryElementByDataAttribute } from "@/lib/dom/data-attribute";
-import type { FocusedPane } from "@/lib/layout/layout-state.types";
+import type { ContentMode, FocusedPane } from "@/lib/layout/layout-state.types";
 import { scheduleReaderFocusFrame } from "@/lib/reader-focus";
 import type { ArticleListSelection } from "./article-list-controller.types";
 
@@ -13,10 +13,12 @@ type UseArticleListEffectsParams = {
   viewportRef: RefObject<HTMLDivElement | null>;
   filteredArticles: ArticleDto[];
   focusedPane: FocusedPane;
+  contentMode: ContentMode;
   selectedArticleId: string | null;
   isPrimarySourceLoading: boolean;
   isSearchLoading: boolean;
   clearArticle: () => void;
+  closeBrowser: () => void;
 };
 
 export function useArticleListEffects({
@@ -26,10 +28,12 @@ export function useArticleListEffects({
   viewportRef,
   filteredArticles,
   focusedPane,
+  contentMode,
   selectedArticleId,
   isPrimarySourceLoading,
   isSearchLoading,
   clearArticle,
+  closeBrowser,
 }: UseArticleListEffectsParams) {
   const selectedArticleClearGenerationRef = useRef(0);
   const isListDataLoading = isPrimarySourceLoading || isSearchLoading;
@@ -54,11 +58,14 @@ export function useArticleListEffects({
           (article) => article.id === currentSelectedArticleId,
         );
         if (!isListDataLoading && selectedArticleStillMissing) {
+          if (contentMode === "browser") {
+            closeBrowser();
+          }
           clearArticle();
         }
       });
     }
-  }, [clearArticle, filteredArticles, isListDataLoading, selectedArticleId]);
+  }, [clearArticle, closeBrowser, contentMode, filteredArticles, isListDataLoading, selectedArticleId]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: scroll to top when selection changes
   useEffect(() => {

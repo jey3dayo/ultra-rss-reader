@@ -1,9 +1,11 @@
 import { useArticleListBodyProps } from "@/components/reader/hooks/article-list/use-article-list-body-props";
+import { canMarkArticleListSelectionRead } from "@/lib/articles/article-list";
 import type { UseArticleListViewPropsParams, UseArticleListViewPropsResult } from "./article-list-controller.types";
 
 export function useArticleListViewProps({
   t,
   tc,
+  selection,
   layoutMode,
   contentMode,
   showSearch,
@@ -43,6 +45,8 @@ export function useArticleListViewProps({
   footerDisabledModes,
   setViewMode,
 }: UseArticleListViewPropsParams): UseArticleListViewPropsResult {
+  const markAllReadEnabled = canMarkArticleListSelectionRead(selection);
+  const footerViewMode = selection.type === "smart" && selection.kind === "starred" ? "starred" : effectiveViewMode;
   const bodyProps = useArticleListBodyProps({
     t,
     tc,
@@ -78,7 +82,7 @@ export function useArticleListViewProps({
       searchQuery,
       searchInputRef,
       labels: {
-        markAllReadLabel: t("mark_all_as_read"),
+        markAllReadLabel: markAllReadEnabled ? t("mark_all_as_read") : t("mark_all_as_read_disabled"),
         markAllReadButtonText: t("mark_all_read_short"),
         searchArticlesLabel: t("search_articles"),
         searchArticlesButtonText: t("search_short"),
@@ -91,6 +95,7 @@ export function useArticleListViewProps({
       sidebarButtonText,
       isSidebarVisible,
       onMarkAllRead: handleMarkAllRead,
+      markAllReadDisabled: !markAllReadEnabled,
       onToggleSidebar: handleSidebarToggle,
       onToggleSearch: handleToggleSearch,
       onCloseSearch: handleCloseSearch,
@@ -98,7 +103,7 @@ export function useArticleListViewProps({
     },
     bodyProps,
     footerProps: {
-      viewMode: effectiveViewMode,
+      viewMode: footerViewMode,
       hidden: contentMode === "browser",
       modes: footerModes,
       disabledModes: footerDisabledModes,

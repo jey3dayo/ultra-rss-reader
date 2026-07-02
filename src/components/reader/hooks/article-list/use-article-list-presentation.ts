@@ -62,6 +62,7 @@ export function useArticleListPresentation({
   setWebPreviewSessionMode,
   selectArticle,
   clearArticle,
+  closeBrowser,
   openSearch,
   keyboardPrefs,
   scrollToTopOnChange,
@@ -149,15 +150,18 @@ export function useArticleListPresentation({
     viewportRef,
     filteredArticles,
     focusedPane,
+    contentMode,
     selectedArticleId,
     isPrimarySourceLoading: viewState.isPrimarySourceLoading,
     isSearchLoading: viewState.isSearchLoading,
     clearArticle,
+    closeBrowser,
   });
 
   return useArticleListViewProps({
     t,
     tc,
+    selection,
     layoutMode,
     contentMode,
     showSearch,

@@ -9,6 +9,7 @@ export function useArticleListUiState() {
   const contentMode = useUiStore((s) => s.contentMode);
   const selectArticle = useUiStore((s) => s.selectArticle);
   const clearArticle = useUiStore((s) => s.clearArticle);
+  const closeBrowser = useUiStore((s) => s.closeBrowser);
   const openSidebar = useUiStore((s) => s.openSidebar);
   const toggleSidebar = useUiStore((s) => s.toggleSidebar);
   const setWebPreviewSessionMode = useUiStore((s) => s.setWebPreviewSessionMode);
@@ -36,6 +37,7 @@ export function useArticleListUiState() {
     contentMode,
     selectArticle,
     clearArticle,
+    closeBrowser,
     openSidebar,
     toggleSidebar,
     setWebPreviewSessionMode,

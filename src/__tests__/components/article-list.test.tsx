@@ -260,6 +260,7 @@ describe("ArticleList", () => {
 
     useUiStore.getState().selectAccount("acc-1");
     useUiStore.getState().selectFeed("feed-1");
+    useUiStore.getState().selectFeed("feed-1");
 
     const { rerender } = render(<ArticleList />, { wrapper: createWrapper() });
 
@@ -399,9 +400,9 @@ describe("ArticleList", () => {
     const searchInput = screen.getByRole("textbox", { name: "Search articles" });
     await waitFor(() => expect(searchInput).toHaveFocus());
 
-    const markAllReadButton = screen.getByRole("button", { name: "Mark all as read" });
-    markAllReadButton.focus();
-    expect(markAllReadButton).toHaveFocus();
+    const closeSearchButton = screen.getByRole("button", { name: "Close search" });
+    closeSearchButton.focus();
+    expect(closeSearchButton).toHaveFocus();
 
     await user.click(searchButton);
 
@@ -615,7 +616,7 @@ describe("ArticleList", () => {
     expect(screen.getByRole("listbox", { name: "Article list" })).toBeInTheDocument();
   });
 
-  it("returns focus to the selected article row when closing web preview", async () => {
+  it("returns focus to the web preview toggle when closing web preview", async () => {
     useUiStore.getState().selectAccount("acc-1");
     useUiStore.getState().selectFeed("feed-1");
     useUiStore.getState().setViewMode("all");
@@ -648,7 +649,7 @@ describe("ArticleList", () => {
     await waitFor(() => {
       expect(useUiStore.getState().contentMode).toBe("reader");
       expect(useUiStore.getState().focusedPane).toBe("list");
-      expect(screen.getByRole("option", { name: /First Article/ })).toHaveFocus();
+      expect(screen.getByRole("button", { name: "Open Web Preview" })).toHaveFocus();
     });
   });
 
@@ -1171,6 +1172,17 @@ describe("ArticleList", () => {
           return [];
         case "search_articles":
           return [];
+        case "mark_feed_read": {
+          const feedId = String(args.feedId);
+          articles = articles.map((article) =>
+            article.feed_id === feedId ? { ...article, is_read: true } : article,
+          );
+          feeds = feeds.map((feed) => ({
+            ...feed,
+            unread_count: articles.filter((article) => article.feed_id === feed.id && !article.is_read).length,
+          }));
+          return null;
+        }
         case "mark_articles_read": {
           const ids = new Set(requireStringArray(args.articleIds, "articleIds"));
           articles = articles.map((article) => (ids.has(article.id) ? { ...article, is_read: true } : article));
@@ -1186,6 +1198,8 @@ describe("ArticleList", () => {
     });
 
     useUiStore.getState().selectAccount("acc-1");
+    useUiStore.getState().selectFeed("feed-1");
+    useUiStore.getState().setViewMode("unread");
 
     const user = userEvent.setup();
     render(
@@ -1260,7 +1274,7 @@ describe("ArticleList", () => {
     const markAllReadButton = await screen.findByRole("button", { name: "Mark all as read" });
 
     await user.click(markAllReadButton);
-    expect(screen.getAllByText("Mark 48 articles as read?").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Mark 48 articles in this feed as read?").length).toBeGreaterThan(0);
     await user.click(
       screen.getByRole("button", {
         name: "Mark 48 articles as read. Use Mark as unread to reverse individual articles.",
@@ -1323,7 +1337,7 @@ describe("ArticleList", () => {
     const markAllReadButton = await screen.findByRole("button", { name: "Mark all as read" });
 
     await user.click(markAllReadButton);
-    expect(screen.getAllByText("Mark 7 articles as read?").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Mark 7 articles in this folder as read?").length).toBeGreaterThan(0);
     await user.click(
       screen.getByRole("button", {
         name: "Mark 7 articles as read. Use Mark as unread to reverse individual articles.",
@@ -1650,7 +1664,7 @@ describe("ArticleList", () => {
     });
   });
 
-  it("omits smart unread header context and keeps only a disabled unread footer control", async () => {
+  it("omits smart unread header context and locks every footer control while unread is active", async () => {
     useUiStore.getState().selectAccount("acc-1");
     useUiStore.getState().selectSmartView("unread");
 
@@ -1664,8 +1678,10 @@ describe("ArticleList", () => {
     expect(screen.queryByText("Unread")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "UNREAD" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "UNREAD" })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.queryByRole("button", { name: "ALL" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "STARRED" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "ALL" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "STARRED" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "ALL" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("button", { name: "STARRED" })).toHaveAttribute("aria-pressed", "false");
   });
 
   it("clamps smart unread to unread even if viewMode drifts elsewhere", async () => {
@@ -1684,11 +1700,12 @@ describe("ArticleList", () => {
 
     expect(screen.queryByText(sampleArticles[1].title)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "UNREAD" })).toBeDisabled();
-    expect(screen.queryByRole("button", { name: "ALL" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "STARRED" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "ALL" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "STARRED" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "UNREAD" })).toHaveAttribute("aria-pressed", "true");
   });
 
-  it("omits smart starred header context and limits footer controls to unread and all while all filter is active", async () => {
+  it("omits smart starred header context and locks all footer controls while starred filter is active", async () => {
     useUiStore.getState().selectAccount("acc-1");
     useUiStore.getState().setViewMode("all");
     useUiStore.getState().selectSmartView("starred");
@@ -1701,9 +1718,10 @@ describe("ArticleList", () => {
 
     expect(screen.queryByTestId("article-list-context-strip")).not.toBeInTheDocument();
     expect(screen.queryByText("Starred")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "UNREAD" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "ALL" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "STARRED" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "UNREAD" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "ALL" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "STARRED" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "STARRED" })).toHaveAttribute("aria-pressed", "true");
   });
 
   it("shows starred smart-view articles even when the general account query does not include them", async () => {
@@ -1941,9 +1959,12 @@ describe("ArticleList", () => {
       expect(screen.getByText(sampleArticles[1].title)).toBeInTheDocument();
     });
 
-    expect(screen.getByRole("button", { name: "ALL" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "STARRED" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("button", { name: "UNREAD" })).toHaveAttribute("aria-pressed", "false");
-    expect(screen.queryByRole("button", { name: "STARRED" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "ALL" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("button", { name: "UNREAD" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "ALL" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "STARRED" })).toBeDisabled();
 
     expect(screen.queryByTestId("article-list-context-strip")).not.toBeInTheDocument();
     expect(screen.queryByText("Starred")).not.toBeInTheDocument();

@@ -10,6 +10,7 @@ type ArticleListHeaderActionsProps = {
   sidebarButtonText?: string;
   isSidebarVisible?: boolean;
   onMarkAllRead: () => void;
+  markAllReadDisabled?: boolean;
   onToggleSidebar: () => void;
   onToggleSearch: () => void;
   onCloseSearch: () => void;
@@ -28,6 +29,7 @@ export function ArticleListHeaderActions({
   sidebarButtonText,
   isSidebarVisible,
   onMarkAllRead,
+  markAllReadDisabled = false,
   onToggleSidebar,
   onToggleSearch,
   onCloseSearch,
@@ -74,7 +76,7 @@ export function ArticleListHeaderActions({
       </div>
       <div data-tauri-drag-region aria-hidden="true" className="h-full min-w-0 flex-1" />
       <div className="flex items-center gap-2">
-        <IconToolbarButton label={markAllReadLabel} onClick={onMarkAllRead}>
+        <IconToolbarButton label={markAllReadLabel} onClick={onMarkAllRead} disabled={markAllReadDisabled}>
           <CheckCheck className="size-4" />
         </IconToolbarButton>
         <span ref={searchToggleContainerRef} className="inline-flex">
