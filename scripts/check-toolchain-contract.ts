@@ -9,7 +9,7 @@ const packageManagerPnpm = packageJson.packageManager?.match(/^pnpm@(.+)$/)?.[1]
 const miseNode = miseToml.match(/^node = "([^"]+)"$/m)?.[1];
 const misePnpm = miseToml.match(/^"npm:pnpm" = "([^"]+)"$/m)?.[1];
 const miseNcu = miseToml.match(/^"npm:npm-check-updates" = "([^"]+)"$/m)?.[1];
-const expectedNcu = "22.2.8";
+const expectedNcu = "22.2.9";
 
 const failures: string[] = [];
 if (!expectedNode || !expectedPnpm || !packageManagerPnpm) {
