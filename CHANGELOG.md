@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.53.15] - 2026-07-03
+
+### Bug Fixes
+
+- Toolchain compatibility: align npm-check-updates version with contract specification.
+
 ## [0.53.14] - 2026-07-03
 
 ### Features
