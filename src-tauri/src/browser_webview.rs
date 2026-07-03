@@ -647,8 +647,7 @@ fn is_supported_browser_preview_script_action(action: &str) -> bool {
         .any(|shortcut| shortcut.supports_script_bridge && shortcut.app_action == action)
 }
 
-#[cfg_attr(not(any(test, windows)), allow(dead_code))]
-fn is_supported_browser_preview_bridge_action(action: &str) -> bool {
+pub fn is_supported_browser_preview_bridge_action(action: &str) -> bool {
     is_supported_browser_preview_script_action(action)
         || matches!(action, "mouse-back" | "mouse-forward")
 }
@@ -759,8 +758,10 @@ pub fn browser_preview_close_bridge_source(prefs: &HashMap<String, String>) -> O
                 .unwrap_or(shortcut.default_binding);
             normalize_saved_browser_shortcut(binding)
         })?;
+    let bindings = browser_preview_script_bindings(prefs);
 
     let close_binding_json = serde_json::to_string(&close_binding).ok()?;
+    let bindings_json = serde_json::to_string(&bindings).ok()?;
     Some(format!(
         r#"
 (() => {{
@@ -771,8 +772,11 @@ pub fn browser_preview_close_bridge_source(prefs: &HashMap<String, String>) -> O
   }});
 
   const closeBinding = {close_binding_json};
+  const bindings = {bindings_json};
   let closeInFlight = false;
   let mouseNavigationInFlight = false;
+  const actionQueue = [];
+  let actionDrainInFlight = false;
   const isEditableTarget = (target) => {{
     if (!(target instanceof Element)) return false;
     if (target.closest('[data-disable-global-shortcuts="true"]')) {{
@@ -809,6 +813,26 @@ pub fn browser_preview_close_bridge_source(prefs: &HashMap<String, String>) -> O
     window.location.href = action === 'mouse-back'
       ? 'ultra-rss-browser-shortcut://mouse-back'
       : 'ultra-rss-browser-shortcut://mouse-forward';
+  }};
+  const requestActionViaNavigation = (action) => {{
+    window.location.href = 'ultra-rss-browser-shortcut://' + action;
+  }};
+  const drainActionQueue = () => {{
+    const next = actionQueue.shift();
+    if (next === undefined) {{
+      actionDrainInFlight = false;
+      return;
+    }}
+    requestActionViaNavigation(next);
+    window.setTimeout(drainActionQueue, 0);
+  }};
+  const queueBridgeAction = (action) => {{
+    actionQueue.push(action);
+    if (actionDrainInFlight) {{
+      return;
+    }}
+    actionDrainInFlight = true;
+    drainActionQueue();
   }};
   const getSpaceScrollDirection = (event) => {{
     if (event.altKey || event.metaKey || event.ctrlKey || event.key !== ' ') {{
@@ -856,12 +880,25 @@ pub fn browser_preview_close_bridge_source(prefs: &HashMap<String, String>) -> O
       return;
     }}
     const normalized = normalize(event);
-    if (!normalized || normalized !== closeBinding || closeInFlight) {{
+    if (!normalized) {{
+      return;
+    }}
+    if (normalized === closeBinding) {{
+      if (closeInFlight) {{
+        return;
+      }}
+      event.preventDefault();
+      event.stopPropagation();
+      void closeBrowserPreview();
+      return;
+    }}
+    const action = bindings[normalized];
+    if (!action) {{
       return;
     }}
     event.preventDefault();
     event.stopPropagation();
-    void closeBrowserPreview();
+    queueBridgeAction(action);
   }}, true);
   window.addEventListener('mousedown', (event) => {{
     if ((event.button !== 3 && event.button !== 4) || event.defaultPrevented || isEditableTarget(event.target)) {{
@@ -2365,6 +2402,28 @@ mod tests {
         assert!(!script.contains(
             "window.addEventListener('keydown', (event) => {\n    if (event.defaultPrevented"
         ));
+    }
+
+    #[test]
+    fn browser_preview_close_bridge_queues_full_shortcut_bindings_via_navigation() {
+        let prefs = HashMap::new();
+
+        let script = browser_preview_close_bridge_source(&prefs)
+            .expect("default close bridge script should exist");
+
+        assert!(script.contains("\"m\":\"toggle-read\""));
+        assert!(script.contains("\"s\":\"toggle-star\""));
+        assert!(script.contains("\"j\":\"next-article\""));
+        assert!(script.contains("\"k\":\"prev-article\""));
+        assert!(script.contains("const actionQueue = [];"));
+        assert!(script.contains("let actionDrainInFlight = false;"));
+        assert!(script.contains("const requestActionViaNavigation = (action)"));
+        assert!(script.contains("window.location.href = 'ultra-rss-browser-shortcut://' + action;"));
+        assert!(script.contains("const drainActionQueue = ()"));
+        assert!(script.contains("const queueBridgeAction = (action)"));
+        assert!(script.contains("const action = bindings[normalized];"));
+        assert!(script.contains("queueBridgeAction(action);"));
+        assert!(script.contains("if (normalized === closeBinding) {"));
     }
 
     #[test]

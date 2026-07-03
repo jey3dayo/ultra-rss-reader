@@ -137,7 +137,7 @@ describe("browser preview shortcut bridge contract", () => {
     expect(supportedBridgeActionBlock).toContain('matches!(action, "mouse-back" | "mouse-forward")');
   });
 
-  it("keeps non-Windows remote pages limited to browser WebView commands with denied-invoke recovery", () => {
+  it("keeps non-Windows close/mouse bridge actions on denied-invoke recovery with direct commands", () => {
     const closeBridgeBlock = extractBlock(
       backendSource,
       /pub fn browser_preview_close_bridge_source[\s\S]*?Some\(format!\(\s*r#"\n([\s\S]*?)"#\s*\)\)/,
@@ -149,7 +149,6 @@ describe("browser preview shortcut bridge contract", () => {
     expect(closeBridgeBlock).toContain("void invoke('go_back_browser_webview')");
     expect(closeBridgeBlock).toContain("void invoke('go_forward_browser_webview')");
     expect(closeBridgeBlock).not.toContain("emit(MENU_ACTION_EVENT");
-    expect(closeBridgeBlock).not.toContain("toggle-read");
     expect(closeBridgeBlock).toContain("closeInFlight = false;");
     expect(closeBridgeBlock).toContain(
       "console.error('Failed to close embedded browser webview from bridge:', error);",
@@ -158,5 +157,32 @@ describe("browser preview shortcut bridge contract", () => {
     expect(closeBridgeBlock).toContain("return closeBrowserPreview();");
     expect(closeBridgeBlock).toContain("ultra-rss-browser-shortcut://mouse-back");
     expect(closeBridgeBlock).toContain("ultra-rss-browser-shortcut://mouse-forward");
+
+    const specs = extractBrowserPreviewShortcutSpecs(backendSource);
+    const queueOnlyActions = specs
+      .filter((spec) => spec.supportsScriptBridge && spec.appAction !== "close-browser")
+      .map((spec) => spec.appAction);
+    for (const action of queueOnlyActions) {
+      expect(closeBridgeBlock).not.toContain(`invoke('${action}'`);
+    }
+  });
+
+  it("queues the full script-bridge shortcut set on non-Windows via serialized scheme navigation", () => {
+    const closeBridgeBlock = extractBlock(
+      backendSource,
+      /pub fn browser_preview_close_bridge_source[\s\S]*?Some\(format!\(\s*r#"\n([\s\S]*?)"#\s*\)\)/,
+      "non-Windows browser preview close bridge source",
+    );
+    const specs = extractBrowserPreviewShortcutSpecs(backendSource);
+    const scriptBridgeActions = specs.filter((spec) => spec.supportsScriptBridge).map((spec) => spec.appAction);
+
+    expect(scriptBridgeActions).toContain("toggle-read");
+    expect(closeBridgeBlock).toContain("const bindings = {bindings_json};");
+    expect(closeBridgeBlock).toContain("const actionQueue = [];");
+    expect(closeBridgeBlock).toContain("let actionDrainInFlight = false;");
+    expect(closeBridgeBlock).toContain("window.location.href = 'ultra-rss-browser-shortcut://' + action;");
+    expect(closeBridgeBlock).toContain("const action = bindings[normalized];");
+    expect(closeBridgeBlock).toContain("queueBridgeAction(action);");
+    expect(closeBridgeBlock).toContain("if (normalized === closeBinding) {");
   });
 });

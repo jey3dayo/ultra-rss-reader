@@ -10,7 +10,8 @@ use crate::browser_webview::{
     browser_preview_initialization_script_from_prefs_result, browser_webview,
     browser_webview_diagnostics_enabled, emit_browser_webview_closed,
     emit_browser_webview_diagnostics, emit_browser_webview_fallback, emit_browser_webview_state,
-    go_back, go_forward, install_escape_accelerator_bridge, load_browser_preview_prefs,
+    go_back, go_forward, install_escape_accelerator_bridge,
+    is_supported_browser_preview_bridge_action, load_browser_preview_prefs,
     navigation_availability, should_trigger_timeout_fallback, BrowserNavigationAvailability,
     BrowserWebviewDiagnosticsPayload, BrowserWebviewFallbackPayload, BrowserWebviewLogicalRect,
     BrowserWebviewState, BrowserWebviewTracker, BROWSER_WEBVIEW_LABEL,
@@ -31,9 +32,6 @@ const BROWSER_WEBVIEW_NOT_OPEN_ERROR: &str = "Embedded browser webview is not op
 const BROWSER_WEBVIEW_EMPTY_RELOAD_SOURCE_ERROR: &str =
     "Embedded browser webview has no current URL to reload";
 const BROWSER_WEBVIEW_SHORTCUT_NAVIGATION_SCHEME: &str = "ultra-rss-browser-shortcut";
-const BROWSER_WEBVIEW_CLOSE_SHORTCUT_NAVIGATION_HOST: &str = "close-browser";
-const BROWSER_WEBVIEW_MOUSE_BACK_SHORTCUT_NAVIGATION_HOST: &str = "mouse-back";
-const BROWSER_WEBVIEW_MOUSE_FORWARD_SHORTCUT_NAVIGATION_HOST: &str = "mouse-forward";
 
 #[cfg_attr(test, derive(Debug, PartialEq, Eq))]
 enum BrowserWebviewTimeoutFallbackEmission {
@@ -393,17 +391,13 @@ fn browser_host_focus_failure_warning(phase: &str, error: &impl std::fmt::Displa
     )
 }
 
-fn browser_webview_shortcut_navigation_action(target_url: &Url) -> Option<&'static str> {
+fn browser_webview_shortcut_navigation_action(target_url: &Url) -> Option<String> {
     if target_url.scheme() != BROWSER_WEBVIEW_SHORTCUT_NAVIGATION_SCHEME {
         return None;
     }
 
-    match target_url.host_str() {
-        Some(BROWSER_WEBVIEW_CLOSE_SHORTCUT_NAVIGATION_HOST) => Some("close-browser"),
-        Some(BROWSER_WEBVIEW_MOUSE_BACK_SHORTCUT_NAVIGATION_HOST) => Some("mouse-back"),
-        Some(BROWSER_WEBVIEW_MOUSE_FORWARD_SHORTCUT_NAVIGATION_HOST) => Some("mouse-forward"),
-        _ => None,
-    }
+    let host = target_url.host_str()?;
+    is_supported_browser_preview_bridge_action(host).then(|| host.to_string())
 }
 
 fn handle_browser_webview_shortcut_navigation(window: &Window, target_url: &Url) -> bool {
@@ -951,24 +945,42 @@ mod tests {
             .expect("shortcut URL should parse");
         let mouse_forward_url = Url::parse("ultra-rss-browser-shortcut://mouse-forward")
             .expect("shortcut URL should parse");
-        let other_host = Url::parse("ultra-rss-browser-shortcut://reload-webview")
+        let toggle_read_url = Url::parse("ultra-rss-browser-shortcut://toggle-read")
+            .expect("shortcut URL should parse");
+        let next_article_url = Url::parse("ultra-rss-browser-shortcut://next-article")
+            .expect("shortcut URL should parse");
+        let reload_webview_url = Url::parse("ultra-rss-browser-shortcut://reload-webview")
+            .expect("shortcut URL should parse");
+        let unknown_host = Url::parse("ultra-rss-browser-shortcut://unknown-action")
             .expect("shortcut URL should parse");
         let other_scheme = Url::parse("https://close-browser").expect("https URL should parse");
 
         assert_eq!(
             super::browser_webview_shortcut_navigation_action(&close_url),
-            Some("close-browser")
+            Some("close-browser".to_string())
         );
         assert_eq!(
             super::browser_webview_shortcut_navigation_action(&mouse_back_url),
-            Some("mouse-back")
+            Some("mouse-back".to_string())
         );
         assert_eq!(
             super::browser_webview_shortcut_navigation_action(&mouse_forward_url),
-            Some("mouse-forward")
+            Some("mouse-forward".to_string())
         );
         assert_eq!(
-            super::browser_webview_shortcut_navigation_action(&other_host),
+            super::browser_webview_shortcut_navigation_action(&toggle_read_url),
+            Some("toggle-read".to_string())
+        );
+        assert_eq!(
+            super::browser_webview_shortcut_navigation_action(&next_article_url),
+            Some("next-article".to_string())
+        );
+        assert_eq!(
+            super::browser_webview_shortcut_navigation_action(&reload_webview_url),
+            Some("reload-webview".to_string())
+        );
+        assert_eq!(
+            super::browser_webview_shortcut_navigation_action(&unknown_host),
             None
         );
         assert_eq!(

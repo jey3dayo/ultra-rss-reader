@@ -45,3 +45,10 @@
 ### GReader / Sync Flow / Account Setup
 
 ### Browser WebView / Runtime Diagnostics
+
+- priority: P2 / domain: reader-state / work type: contract test
+  - 対象: macOS 埋め込みブラウザの `browser_preview_close_bridge_source` が注入する actionQueue / drainActionQueue / queueBridgeAction の実際のドレイン挙動(FIFO順・connectionDrainInFlightの解放・setTimeout(0)による直列化)を、生成された JS 文字列の部分一致ではなく実行時に検証するテストが無い
+  - write scope: `src/__tests__/` 配下の新規テストファイル(生成スクリプトを抽出して jsdom 環境で評価する新しいハーネスが必要)
+  - acceptance criteria: 連続キーダウン(異なるアクション2件以上)を模擬し、`location.href` への代入が正しい順序・件数で行われることをアサートする
+  - focused verification: 新規 focused test。既存の `mise run test:unit:dom` に組み込む
+  - defer 範囲: 現時点では手動実機確認(macOS, 連打含む)と静的コードレビューで正しさを確認済み。新規 jsdom 実行ハーネスの投資対効果が上がったタイミングで着手する
