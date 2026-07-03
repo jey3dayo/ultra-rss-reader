@@ -4,6 +4,21 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.53.14] - 2026-07-03
+
+### Features
+
+- macOS の埋め込みブラウザで、j/k/m/s/b/r/h/l などアプリのキーボードショートカット全種を子 webview フォーカス中でも使えるようにした。従来は Escape のみ対応していた。
+
+### Bug Fixes
+
+- macOS の埋め込みブラウザで、マウスの戻る/進むボタンによるナビゲーションが動作しない問題を修正した。履歴が尽きた状態で戻るを押すと、閉じるボタンと同様に overlay を閉じる。
+- 無効化された記事フィルターボタンにカーソルを合わせた際、既定のカーソル表示になるよう修正した。
+
+### Maintenance
+
+- apm.yml のインデントを整形し、未使用の chrome-devtools MCP エントリを削除した。
+
 ## [0.53.13] - 2026-07-02
 
 ### Features
