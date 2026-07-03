@@ -3,31 +3,24 @@ version: 1.0.0
 description: APM project for ultra-rss-reader
 author: jey3dayo
 targets:
-- codex
+  - codex
 dependencies:
   apm: []
   mcp:
-  - name: tauri-mcp-server
-    registry: false
-    transport: stdio
-    command: npx
-    args:
-    - -y
-    - "@hypothesi/tauri-mcp-server"
-  - name: chrome-devtools
-    registry: false
-    transport: stdio
-    command: npx
-    args:
-    - -y
-    - chrome-devtools-mcp@latest
-  - name: agentation
-    registry: false
-    transport: stdio
-    command: npx
-    args:
-    - -y
-    - agentation-mcp
-    - server
+    - name: tauri-mcp-server
+      registry: false
+      transport: stdio
+      command: npx
+      args:
+        - -y
+        - "@hypothesi/tauri-mcp-server"
+    - name: agentation
+      registry: false
+      transport: stdio
+      command: npx
+      args:
+        - -y
+        - agentation-mcp
+        - server
 includes: auto
 scripts: {}
