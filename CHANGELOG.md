@@ -4,6 +4,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.53.16] - 2026-07-05
+
 ### Features
 
 - ローカルアカウントの同期フォルダを自動同期に対応した。アカウント同期のたびに操作ファイルの取り込みと、状態変化時のみの書き出し(digest 判定)を自動で行い、Dropbox / Resilio Sync などの同期フォルダに置くだけで複数デバイス間の購読・既読・スター・タグ状態が同期される。設定画面のローカル同期フォルダに「自動同期」トグルを追加した。
@@ -11,6 +13,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 ### Changed
 
 - OPML エクスポートをブラウザダウンロードからネイティブ保存ダイアログに変更し、temp file + rename の atomic write で書き込むようにした。保存ダイアログのキャンセルは何も行わない。
+
+### Maintenance
+
+- 品質チェックツール(react-doctor / knip)のバージョン固定チェックと Biome スキーマ URL を更新し、Codex 設定から未使用の chrome-devtools MCP エントリを削除した。
 
 ## [0.53.15] - 2026-07-03
 
