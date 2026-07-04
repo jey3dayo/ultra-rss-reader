@@ -183,6 +183,14 @@ pub enum LongRunningOperationInterruptionPolicy {
     ResetProgressBeforeRetry,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SleepResumeStance {
+    Supported,
+    Guarded,
+    Unsupported,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct DatabaseRuntimeRecoveryContract {
     pub failure_kind: DatabaseRuntimeFailureKind,
@@ -239,6 +247,7 @@ pub struct LongRunningNativeOperationContract {
     pub cancellation_token_required: bool,
     pub interruption_policies: Vec<LongRunningOperationInterruptionPolicy>,
     pub accepts_partial_artifact_after_resume: bool,
+    pub sleep_resume_stance: SleepResumeStance,
 }
 
 #[cfg(test)]
@@ -380,14 +389,24 @@ pub(crate) fn search_index_rebuild_maintenance_contract() -> SearchIndexRebuildM
 pub(crate) fn long_running_native_operation_contract(
     operation: LongRunningNativeOperation,
 ) -> LongRunningNativeOperationContract {
+    let sleep_resume_stance = match operation {
+        LongRunningNativeOperation::UpdaterDownload => SleepResumeStance::Unsupported,
+        LongRunningNativeOperation::OpmlExport => SleepResumeStance::Unsupported,
+        LongRunningNativeOperation::DatabaseBackup => SleepResumeStance::Guarded,
+    };
+
     LongRunningNativeOperationContract {
         operation,
+        // Required for a future Supported stance, but not sufficient on its own today:
+        // no operation currently reaches Supported because none of them persist and
+        // resume in-flight progress across a sleep/interruption boundary yet.
         cancellation_token_required: true,
         interruption_policies: vec![
             LongRunningOperationInterruptionPolicy::CancelAndInvalidatePartialArtifact,
             LongRunningOperationInterruptionPolicy::ResetProgressBeforeRetry,
         ],
         accepts_partial_artifact_after_resume: false,
+        sleep_resume_stance,
     }
 }
 
@@ -526,7 +545,7 @@ mod tests {
         FilesystemRecoverySurface, LongRunningNativeOperation,
         LongRunningOperationInterruptionPolicy, NativeFileDialogCancelPolicy,
         NativeFileDialogDirectoryPolicy, NativeFileDialogExtensionPolicy,
-        NativeFileDialogOverwritePolicy, PrivateDataResetStep,
+        NativeFileDialogOverwritePolicy, PrivateDataResetStep, SleepResumeStance,
     };
     use crate::commands::dto::AppError;
     use crate::commands::start_database_maintenance;
@@ -732,10 +751,19 @@ mod tests {
 
     #[test]
     fn long_running_native_operations_invalidate_partial_artifacts_after_interruption() {
-        for operation in [
-            LongRunningNativeOperation::UpdaterDownload,
-            LongRunningNativeOperation::OpmlExport,
-            LongRunningNativeOperation::DatabaseBackup,
+        for (operation, expected_sleep_resume_stance) in [
+            (
+                LongRunningNativeOperation::UpdaterDownload,
+                SleepResumeStance::Unsupported,
+            ),
+            (
+                LongRunningNativeOperation::OpmlExport,
+                SleepResumeStance::Unsupported,
+            ),
+            (
+                LongRunningNativeOperation::DatabaseBackup,
+                SleepResumeStance::Guarded,
+            ),
         ] {
             let contract = long_running_native_operation_contract(operation);
 
@@ -747,6 +775,7 @@ mod tests {
             assert!(contract
                 .interruption_policies
                 .contains(&LongRunningOperationInterruptionPolicy::ResetProgressBeforeRetry));
+            assert_eq!(contract.sleep_resume_stance, expected_sleep_resume_stance);
         }
     }
 
