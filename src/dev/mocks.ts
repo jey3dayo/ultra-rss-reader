@@ -937,6 +937,10 @@ export function setupDevMocks(): RestoreDevMocks {
   </body>
 </opml>`;
 
+      case "export_opml_to_file":
+        parseBrowserMockArgs("export_opml_to_file", rawIpcPayload);
+        return null;
+
       case "list_tags":
         return cloneMockResponse(mockTags);
 

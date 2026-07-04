@@ -52,6 +52,7 @@ import {
   deleteTag,
   discoverFeeds,
   exportOpml,
+  exportOpmlToFile,
   exportSettingsProfile,
   getAccountSyncStatus,
   getArticleTags,
@@ -450,6 +451,7 @@ describe("setupDevMocks", () => {
     expect(SyncResultSchema.parse(Result.unwrap(await syncFeed("feed-automaton")))).toBeDefined();
     expect(SyncResultSchema.parse(Result.unwrap(await triggerAutomaticSync()))).toBeDefined();
     expect(StringResponseSchema.parse(Result.unwrap(await exportOpml("acc-freshrss")))).toContain("<opml");
+    expect(Result.unwrap(await exportOpmlToFile("acc-freshrss", "/tmp/acc-freshrss-feeds.opml"))).toBeNull();
     expect(SettingsProfileSchema.parse(JSON.parse(Result.unwrap(await exportSettingsProfile())))).toMatchObject({
       version: 1,
       content_type: "application/vnd.ultra-rss-reader.settings-profile+json",

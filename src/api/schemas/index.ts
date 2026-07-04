@@ -46,6 +46,7 @@ export {
   discoverFeedsArgs,
   exportLocalAccountSyncOperationsArgs,
   exportOpmlArgs,
+  exportOpmlToFileArgs,
   exportSettingsProfileToFileArgs,
   getAccountSyncStatusArgs,
   getArticleArgs,

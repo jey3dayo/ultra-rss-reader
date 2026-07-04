@@ -56,6 +56,10 @@ const externalUrlSchema = z
 export const openExternalUrlArgs = z.object({ url: externalUrlSchema });
 
 export const exportOpmlArgs = z.object({ accountId: nonBlankTrimmedIdSchema });
+export const exportOpmlToFileArgs = z.object({
+  accountId: nonBlankTrimmedIdSchema,
+  path: z.string().trim().min(1),
+});
 export const importOpmlArgs = z.object({
   accountId: nonBlankTrimmedIdSchema,
   opmlContent: z.string().refine((value) => textEncoder.encode(value).length <= OPML_IMPORT_CONTENT_MAX_BYTES, {

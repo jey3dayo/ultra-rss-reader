@@ -1,7 +1,9 @@
 import {
   exportOpmlArgs,
+  exportOpmlToFileArgs,
   FeedDtoListSchema,
   importOpmlArgs,
+  NullResponseSchema,
   StringResponseSchema,
   SyncResultSchema,
   startupSyncArgs,
@@ -29,6 +31,9 @@ export const syncFeed = (feedId: string) =>
 
 export const exportOpml = (accountId: string) =>
   safeInvoke("export_opml", { response: StringResponseSchema, args: exportOpmlArgs }, { accountId });
+
+export const exportOpmlToFile = (accountId: string, path: string) =>
+  safeInvoke("export_opml_to_file", { response: NullResponseSchema, args: exportOpmlToFileArgs }, { accountId, path });
 
 export const importOpml = (accountId: string, opmlContent: string) =>
   safeInvoke("import_opml", { response: FeedDtoListSchema, args: importOpmlArgs }, { accountId, opmlContent });
