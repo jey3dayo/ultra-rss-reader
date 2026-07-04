@@ -136,6 +136,9 @@ pub fn set_local_account_sync_settings(
             .map(|settings| settings.device_id.clone())
             .unwrap_or_default(),
         enabled,
+        last_export_digest: existing
+            .as_ref()
+            .and_then(|settings| settings.last_export_digest.clone()),
     };
     settings_repo.save(&settings)?;
     Ok(settings_to_dto(settings))
