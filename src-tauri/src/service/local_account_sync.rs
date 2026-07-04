@@ -2,6 +2,7 @@ use std::path::Path;
 
 use chrono::Utc;
 use rusqlite::params;
+use sha2::{Digest, Sha256};
 
 use crate::domain::error::DomainResult;
 use crate::domain::local_account_sync::{
@@ -12,9 +13,13 @@ use crate::domain::local_account_sync::{
 };
 use crate::domain::types::AccountId;
 use crate::infra::db::connection::DbManager;
+use crate::infra::db::sqlite_local_account_sync_settings::SqliteLocalAccountSyncSettingsRepository;
 use crate::infra::local_account_sync_files::{
     load_local_sync_operation_dir, next_local_sync_operation_sequence,
     write_local_sync_operation_file,
+};
+use crate::repository::local_account_sync_settings::{
+    LocalAccountSyncSettings, LocalAccountSyncSettingsRepository,
 };
 use crate::service::local_account_sync_apply::{
     apply_local_account_sync_projection, LocalAccountSyncApplyReport,
@@ -76,6 +81,47 @@ pub fn export_local_account_sync_folder(
     account_root: &Path,
 ) -> DomainResult<LocalAccountSyncExportReport> {
     let operations = build_current_state_operations(db, account_id, sync_account_id, device_id)?;
+    write_operation_files(account_root, device_id, &operations)
+}
+
+/// Exports the current local-account state only when it differs from the
+/// last exported state, so unchanged runs neither rewrite the full operation
+/// snapshot nor grow the sync folder file count.
+///
+/// Returns `Ok(None)` without writing anything when the projected state is
+/// unchanged since the last export (per `settings.last_export_digest`).
+/// Otherwise writes the operation files exactly like
+/// [`export_local_account_sync_folder`] and persists the new digest.
+pub fn export_local_account_sync_folder_if_changed(
+    db: &DbManager,
+    account_id: &AccountId,
+    settings: &LocalAccountSyncSettings,
+) -> DomainResult<Option<LocalAccountSyncExportReport>> {
+    let operations = build_current_state_operations(
+        db,
+        account_id,
+        &settings.sync_account_id,
+        &settings.device_id,
+    )?;
+    let digest = compute_local_account_sync_digest(&operations);
+    if settings.last_export_digest.as_deref() == Some(digest.as_str()) {
+        return Ok(None);
+    }
+
+    let account_root = Path::new(&settings.sync_folder_path);
+    let report = write_operation_files(account_root, &settings.device_id, &operations)?;
+
+    let settings_repo = SqliteLocalAccountSyncSettingsRepository::new(db.writer());
+    settings_repo.save_export_digest(account_id, &digest)?;
+
+    Ok(Some(report))
+}
+
+fn write_operation_files(
+    account_root: &Path,
+    device_id: &LocalSyncDeviceId,
+    operations: &[LocalAccountSyncOperation],
+) -> DomainResult<LocalAccountSyncExportReport> {
     let next_sequence = next_local_sync_operation_sequence(account_root, device_id)?;
     for (index, operation) in operations.iter().enumerate() {
         write_local_sync_operation_file(account_root, operation, next_sequence + index as u64)?;
@@ -83,6 +129,25 @@ pub fn export_local_account_sync_folder(
     Ok(LocalAccountSyncExportReport {
         operations_written: operations.len(),
     })
+}
+
+/// Computes a deterministic digest over the canonical operation set,
+/// excluding `operation_id` and `occurred_at` since both are regenerated on
+/// every export and would otherwise make every digest unique.
+pub fn compute_local_account_sync_digest(operations: &[LocalAccountSyncOperation]) -> String {
+    let mut entries: Vec<String> = operations
+        .iter()
+        .map(|operation| {
+            serde_json::to_string(&(&operation.entity_key, &operation.action))
+                .expect("local account sync entity key and action should serialize")
+        })
+        .collect();
+    entries.sort();
+    let joined = entries.join("\n");
+
+    let mut hasher = Sha256::new();
+    hasher.update(joined.as_bytes());
+    hex::encode(hasher.finalize())
 }
 
 fn build_current_state_operations(
@@ -307,9 +372,15 @@ mod tests {
     };
     use crate::domain::types::AccountId;
     use crate::infra::db::connection::DbManager;
+    use crate::infra::db::sqlite_local_account_sync_settings::SqliteLocalAccountSyncSettingsRepository;
     use crate::infra::local_account_sync_files::write_local_sync_operation_file;
+    use crate::repository::local_account_sync_settings::{
+        LocalAccountSyncSettings, LocalAccountSyncSettingsRepository,
+    };
     use crate::service::local_account_sync::{
-        export_local_account_sync_folder, import_local_account_sync_folder,
+        build_current_state_operations, compute_local_account_sync_digest,
+        export_local_account_sync_folder, export_local_account_sync_folder_if_changed,
+        import_local_account_sync_folder,
     };
 
     fn ts(seconds: i64) -> DateTime<Utc> {
@@ -327,6 +398,40 @@ mod tests {
             },
             action: LocalSyncAction::SetRead { is_read: true },
         }
+    }
+
+    /// Seeds one folder, one feed, and one article (read + starred) for
+    /// `account_id`, matching the shape exercised by the export tests below.
+    fn seed_export_fixture(db: &DbManager, account_id: &AccountId) {
+        db.writer()
+            .execute(
+                "INSERT INTO accounts (id, kind, name) VALUES (?1, 'Local', 'Local')",
+                [&account_id.0],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO folders (id, account_id, name, sort_order)
+                 VALUES ('folder-1', ?1, 'Tech', 1)",
+                [&account_id.0],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO feeds (id, account_id, folder_id, title, url, site_url, reader_mode, web_preview_mode)
+                 VALUES ('feed-1', ?1, 'folder-1', 'Feed', 'https://example.com/feed.xml', 'https://example.com', 'inherit', 'inherit')",
+                [&account_id.0],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO articles (
+                    id, feed_id, remote_id, title, url, published_at, fetched_at, is_read, is_starred
+                 )
+                 VALUES ('article-1', 'feed-1', 'guid-1', 'Article', 'https://example.com/a', ?1, ?1, 1, 1)",
+                [ts(1).to_rfc3339()],
+            )
+            .unwrap();
     }
 
     #[test]
@@ -458,5 +563,163 @@ mod tests {
 
         assert_eq!(second_report.operations_written, 7);
         assert_eq!(second_load_report.operations.len(), 14);
+    }
+
+    #[test]
+    fn compute_digest_is_stable_across_differing_operation_ids_and_timestamps() {
+        let operation_a = operation("op-1");
+        let operation_b = LocalAccountSyncOperation {
+            operation_id: LocalSyncOperationId("op-2".to_string()),
+            occurred_at: ts(999),
+            ..operation_a.clone()
+        };
+
+        assert_eq!(
+            compute_local_account_sync_digest(&[operation_a]),
+            compute_local_account_sync_digest(&[operation_b])
+        );
+    }
+
+    #[test]
+    fn compute_digest_changes_when_action_changes() {
+        let unread = operation("op-1");
+        let read = LocalAccountSyncOperation {
+            action: LocalSyncAction::SetRead { is_read: false },
+            ..unread.clone()
+        };
+
+        assert_ne!(
+            compute_local_account_sync_digest(&[unread]),
+            compute_local_account_sync_digest(&[read])
+        );
+    }
+
+    #[test]
+    fn compute_digest_changes_when_a_feed_is_added() {
+        let db = DbManager::new_in_memory().unwrap();
+        let account_id = AccountId("account-1".to_string());
+        seed_export_fixture(&db, &account_id);
+
+        let before = compute_local_account_sync_digest(
+            &build_current_state_operations(
+                &db,
+                &account_id,
+                &LocalSyncAccountId("sync-account-a".to_string()),
+                &LocalSyncDeviceId("device-a".to_string()),
+            )
+            .unwrap(),
+        );
+
+        db.writer()
+            .execute(
+                "INSERT INTO feeds (id, account_id, folder_id, title, url, site_url, reader_mode, web_preview_mode)
+                 VALUES ('feed-2', ?1, NULL, 'Feed Two', 'https://example.com/feed2.xml', 'https://example.com', 'inherit', 'inherit')",
+                [&account_id.0],
+            )
+            .unwrap();
+
+        let after = compute_local_account_sync_digest(
+            &build_current_state_operations(
+                &db,
+                &account_id,
+                &LocalSyncAccountId("sync-account-a".to_string()),
+                &LocalSyncDeviceId("device-a".to_string()),
+            )
+            .unwrap(),
+        );
+
+        assert_ne!(before, after);
+    }
+
+    fn seeded_settings(sync_folder_path: &str, account_id: &AccountId) -> LocalAccountSyncSettings {
+        LocalAccountSyncSettings {
+            account_id: account_id.clone(),
+            sync_folder_path: sync_folder_path.to_string(),
+            sync_account_id: LocalSyncAccountId("sync-account-a".to_string()),
+            device_id: LocalSyncDeviceId("device-a".to_string()),
+            enabled: true,
+            last_export_digest: None,
+        }
+    }
+
+    #[test]
+    fn export_if_changed_writes_once_then_skips_when_state_is_unchanged() {
+        let db = DbManager::new_in_memory().unwrap();
+        let account_id = AccountId("account-1".to_string());
+        seed_export_fixture(&db, &account_id);
+        let dir = tempfile::tempdir().unwrap();
+
+        let settings_repo = SqliteLocalAccountSyncSettingsRepository::new(db.writer());
+        let settings = seeded_settings(&dir.path().to_string_lossy(), &account_id);
+        settings_repo.save(&settings).unwrap();
+
+        let first_report = export_local_account_sync_folder_if_changed(&db, &account_id, &settings)
+            .unwrap()
+            .expect("first export should write files because there is no prior digest");
+        assert_eq!(first_report.operations_written, 4);
+        let load_report =
+            crate::infra::local_account_sync_files::load_local_sync_operation_dir(dir.path())
+                .unwrap();
+        assert_eq!(load_report.operations.len(), 4);
+
+        let settings_after_first = settings_repo
+            .find_by_account_id(&account_id)
+            .unwrap()
+            .expect("settings should exist after first export");
+        assert!(settings_after_first.last_export_digest.is_some());
+
+        let second_result =
+            export_local_account_sync_folder_if_changed(&db, &account_id, &settings_after_first)
+                .unwrap();
+        assert_eq!(second_result, None);
+
+        let load_report_after_second =
+            crate::infra::local_account_sync_files::load_local_sync_operation_dir(dir.path())
+                .unwrap();
+        assert_eq!(load_report_after_second.operations.len(), 4);
+    }
+
+    #[test]
+    fn export_if_changed_writes_again_and_updates_digest_after_state_changes() {
+        let db = DbManager::new_in_memory().unwrap();
+        let account_id = AccountId("account-1".to_string());
+        seed_export_fixture(&db, &account_id);
+        let dir = tempfile::tempdir().unwrap();
+
+        let settings_repo = SqliteLocalAccountSyncSettingsRepository::new(db.writer());
+        let settings = seeded_settings(&dir.path().to_string_lossy(), &account_id);
+        settings_repo.save(&settings).unwrap();
+
+        export_local_account_sync_folder_if_changed(&db, &account_id, &settings)
+            .unwrap()
+            .expect("first export should write files because there is no prior digest");
+        let settings_after_first = settings_repo
+            .find_by_account_id(&account_id)
+            .unwrap()
+            .expect("settings should exist after first export");
+
+        db.writer()
+            .execute("UPDATE articles SET is_read = 0 WHERE id = 'article-1'", [])
+            .unwrap();
+
+        let second_report =
+            export_local_account_sync_folder_if_changed(&db, &account_id, &settings_after_first)
+                .unwrap()
+                .expect("changed state should trigger another export");
+        assert_eq!(second_report.operations_written, 4);
+
+        let load_report =
+            crate::infra::local_account_sync_files::load_local_sync_operation_dir(dir.path())
+                .unwrap();
+        assert_eq!(load_report.operations.len(), 8);
+
+        let settings_after_second = settings_repo
+            .find_by_account_id(&account_id)
+            .unwrap()
+            .expect("settings should exist after second export");
+        assert_ne!(
+            settings_after_second.last_export_digest,
+            settings_after_first.last_export_digest
+        );
     }
 }
