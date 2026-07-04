@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
+use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 use std::sync::Mutex;
 
@@ -30,6 +31,9 @@ const OPML_GENERATE_ERROR_MESSAGE: &str = "Failed to generate OPML export";
 const OPML_GENERATE_LOG_ERROR: &str = "redacted";
 pub(crate) const OPML_IMPORT_CONTENT_MAX_BYTES: usize = 4096 * 1024;
 const OPML_IMPORT_CONTENT_TOO_LARGE_MESSAGE: &str = "OPML import file is too large";
+const OPML_EXPORT_PATH_EMPTY_MESSAGE: &str = "OPML export path cannot be empty";
+const OPML_EXPORT_WRITE_ERROR_PREFIX: &str = "Failed to write OPML export";
+const OPML_EXPORT_FILE_EXTENSION: &str = "opml";
 
 #[tauri::command]
 pub fn import_opml(
@@ -318,7 +322,30 @@ fn hex_value(byte: u8) -> Option<u8> {
 #[tauri::command]
 pub fn export_opml(state: State<'_, AppState>, account_id: String) -> Result<String, AppError> {
     let db = crate::commands::lock_db(&state.db)?;
+    generate_export_opml_in_db(&db, account_id)
+}
 
+#[tauri::command]
+pub fn export_opml_to_file(
+    state: State<'_, AppState>,
+    account_id: String,
+    path: String,
+) -> Result<(), AppError> {
+    let path = validate_opml_export_path(path)?;
+    let db = crate::commands::lock_db(&state.db)?;
+    export_opml_to_file_in_db(&db, account_id, &path)
+}
+
+fn export_opml_to_file_in_db(
+    db: &DbManager,
+    account_id: String,
+    path: &Path,
+) -> Result<(), AppError> {
+    let opml = generate_export_opml_in_db(db, account_id)?;
+    write_opml_export_atomic(path, &opml)
+}
+
+fn generate_export_opml_in_db(db: &DbManager, account_id: String) -> Result<String, AppError> {
     let account_id = AccountId(account_id);
 
     // Get account name for the OPML title
@@ -354,6 +381,78 @@ pub fn export_opml(state: State<'_, AppState>, account_id: String) -> Result<Str
             message: OPML_GENERATE_ERROR_MESSAGE.to_string(),
         }
     })
+}
+
+fn validate_opml_export_path(path: String) -> Result<PathBuf, AppError> {
+    let trimmed = path.trim();
+    if trimmed.is_empty() {
+        return Err(AppError::UserVisible {
+            message: OPML_EXPORT_PATH_EMPTY_MESSAGE.to_string(),
+        });
+    }
+    Ok(ensure_opml_extension(PathBuf::from(trimmed)))
+}
+
+/// Contract: auto_appends_extension. Append ".opml" when the selected path
+/// does not already have the extension; never replace a user-provided
+/// extension because the OS dialog confirmed overwrite for that exact name.
+fn ensure_opml_extension(path: PathBuf) -> PathBuf {
+    let has_opml_extension = path
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .is_some_and(|extension| extension.eq_ignore_ascii_case(OPML_EXPORT_FILE_EXTENSION));
+    if has_opml_extension {
+        return path;
+    }
+
+    let Some(file_name) = path.file_name() else {
+        return path.with_file_name("feeds.opml");
+    };
+    let mut file_name = file_name.to_os_string();
+    file_name.push(".opml");
+    path.with_file_name(file_name)
+}
+
+fn opml_export_temp_path(path: &Path) -> PathBuf {
+    let mut file_name = path
+        .file_name()
+        .map(std::ffi::OsStr::to_os_string)
+        .unwrap_or_else(|| std::ffi::OsString::from("feeds.opml"));
+    file_name.push(".tmp");
+    path.with_file_name(file_name)
+}
+
+/// Contract: TempFileThenRename with temp cleanup on failure
+/// (same shape as infra/db/backup.rs::copy_backup_file_atomic).
+fn write_opml_export_atomic(path: &Path, contents: &str) -> Result<(), AppError> {
+    let temp_path = opml_export_temp_path(path);
+    if temp_path.exists() {
+        std::fs::remove_file(&temp_path)
+            .map_err(|error| opml_export_write_error(&temp_path, &error))?;
+    }
+    std::fs::write(&temp_path, contents).map_err(|error| {
+        let _ = std::fs::remove_file(&temp_path);
+        opml_export_write_error(path, &error)
+    })?;
+    std::fs::rename(&temp_path, path).map_err(|error| {
+        let _ = std::fs::remove_file(&temp_path);
+        opml_export_write_error(path, &error)
+    })?;
+    Ok(())
+}
+
+fn opml_export_write_error(path: &Path, error: &std::io::Error) -> AppError {
+    tracing::error!(
+        error = %error,
+        path = %crate::infra::db::backup::redacted_path_label(path),
+        "failed to write OPML export"
+    );
+    AppError::UserVisible {
+        message: format!(
+            "{OPML_EXPORT_WRITE_ERROR_PREFIX}: {error} ({})",
+            crate::infra::db::backup::redacted_path_label(path)
+        ),
+    }
 }
 
 fn next_import_folder_sort_order(existing_folders: &[Folder]) -> i32 {
@@ -2002,5 +2101,127 @@ mod tests {
             !xml.contains("<!--"),
             "OPML export must not put path-like remote content in comments"
         );
+    }
+
+    fn export_dir() -> tempfile::TempDir {
+        tempfile::tempdir().expect("temp OPML export directory should be created")
+    }
+
+    #[test]
+    fn export_to_file_appends_opml_extension_only_when_missing() {
+        use std::path::PathBuf;
+
+        assert_eq!(
+            ensure_opml_extension(PathBuf::from("/tmp/feeds")),
+            PathBuf::from("/tmp/feeds.opml")
+        );
+        assert_eq!(
+            ensure_opml_extension(PathBuf::from("/tmp/feeds.opml")),
+            PathBuf::from("/tmp/feeds.opml")
+        );
+        assert_eq!(
+            ensure_opml_extension(PathBuf::from("/tmp/FEEDS.OPML")),
+            PathBuf::from("/tmp/FEEDS.OPML")
+        );
+        assert_eq!(
+            ensure_opml_extension(PathBuf::from("/tmp/feeds.xml")),
+            PathBuf::from("/tmp/feeds.xml.opml")
+        );
+    }
+
+    #[test]
+    fn export_to_file_writes_opml_through_temp_file_without_leaving_temp_artifact() {
+        let db = test_db();
+        let account_id = insert_test_account(&db, "Primary");
+        let folder_id = insert_test_folder(&db, &account_id, "Engineering");
+        insert_test_feed(
+            &db,
+            &account_id,
+            Some(&folder_id),
+            "Rust Blog",
+            "https://blog.rust-lang.org/feed.xml",
+        );
+        let dir = export_dir();
+        let dest = dir.path().join("Primary-feeds.opml");
+
+        export_opml_to_file_in_db(&db, account_id.0.clone(), &dest)
+            .expect("OPML export should write the destination file");
+
+        let written =
+            std::fs::read_to_string(&dest).expect("exported OPML file should be readable");
+        assert!(written.contains("<opml"));
+        assert!(written.contains("https://blog.rust-lang.org/feed.xml"));
+        assert!(
+            !opml_export_temp_path(&dest).exists(),
+            "atomic OPML export should not leave a temp file behind"
+        );
+    }
+
+    #[test]
+    fn export_to_file_replaces_stale_temp_artifacts_before_writing() {
+        let db = test_db();
+        let account_id = insert_test_account(&db, "Primary");
+        let dir = export_dir();
+        let dest = dir.path().join("feeds.opml");
+        std::fs::write(opml_export_temp_path(&dest), "stale partial artifact").unwrap();
+
+        export_opml_to_file_in_db(&db, account_id.0.clone(), &dest)
+            .expect("stale temp artifacts should not block a fresh export");
+
+        assert!(std::fs::read_to_string(&dest).unwrap().contains("<opml"));
+        assert!(
+            !opml_export_temp_path(&dest).exists(),
+            "stale temp artifact should be replaced and cleaned up"
+        );
+    }
+
+    #[test]
+    fn export_to_file_cleans_up_temp_file_when_finalize_rename_fails() {
+        let db = test_db();
+        let account_id = insert_test_account(&db, "Primary");
+        let dir = export_dir();
+        let dest = dir.path().join("feeds.opml");
+        // A directory at the destination makes fs::rename(file -> dir) fail.
+        std::fs::create_dir(&dest).unwrap();
+
+        let error = export_opml_to_file_in_db(&db, account_id.0.clone(), &dest)
+            .expect_err("finalizing onto a directory should fail the export");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message } if message.contains("Failed to write OPML export")
+        ));
+        assert!(
+            !opml_export_temp_path(&dest).exists(),
+            "failed OPML export should clean up its temp file"
+        );
+    }
+
+    #[test]
+    fn export_to_file_rejects_blank_path_before_touching_the_database() {
+        let error = validate_opml_export_path("   ".to_string())
+            .expect_err("blank OPML export paths should be rejected");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message } if message == "OPML export path cannot be empty"
+        ));
+    }
+
+    #[test]
+    fn export_to_file_reports_missing_account_without_creating_the_file() {
+        let db = test_db();
+        let dir = export_dir();
+        let dest = dir.path().join("feeds.opml");
+
+        let error = export_opml_to_file_in_db(&db, "missing".to_string(), &dest)
+            .expect_err("missing account should fail the export before writing");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message } if message == "Account not found"
+        ));
+        assert!(!dest.exists());
+        assert!(!opml_export_temp_path(&dest).exists());
     }
 }

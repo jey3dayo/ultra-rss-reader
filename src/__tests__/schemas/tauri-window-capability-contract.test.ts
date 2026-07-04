@@ -101,6 +101,7 @@ const expectedCommandOwnerAllowlists = {
     "toggle_article_star",
     "import_opml",
     "export_opml",
+    "export_opml_to_file",
     "search_articles",
     "list_mute_keywords",
     "create_mute_keyword",

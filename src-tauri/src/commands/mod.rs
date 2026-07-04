@@ -107,6 +107,7 @@ pub(crate) fn command_db_lock_policy(command_name: &str) -> Option<CommandDbLock
         | "mark_folder_read"
         | "toggle_article_star"
         | "export_opml"
+        | "export_opml_to_file"
         | "export_settings_profile"
         | "export_settings_profile_to_file"
         | "search_articles"
@@ -440,6 +441,7 @@ mod tests {
                 CommandDbLockPolicy::BlockingLock,
             ),
             ("export_opml", CommandDbLockPolicy::BlockingLock),
+            ("export_opml_to_file", CommandDbLockPolicy::BlockingLock),
             ("export_settings_profile", CommandDbLockPolicy::BlockingLock),
             (
                 "export_settings_profile_to_file",
