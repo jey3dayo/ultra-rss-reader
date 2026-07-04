@@ -3,8 +3,14 @@ type: runbook
 title: Incident Runbook
 description: Fast triage path for logs, backups, updater checks, keyring failures, and sync incidents.
 resource: urn:ultra-rss-reader:docs:incident-runbook
-tags: [category/operations, audience/developer, audience/maintainer, environment/local]
-timestamp: 2026-06-29
+tags:
+  [
+    category/operations,
+    audience/developer,
+    audience/maintainer,
+    environment/local,
+  ]
+timestamp: 2026-07-04
 audience: developer, maintainer
 owner: project-maintainers
 ---
@@ -205,6 +211,7 @@ App data namespace migration contract:
 - Remote feed content and provider metadata must never provide filename or path suggestions for import, export, backup, log, or temporary artifacts. Treat publisher titles, article titles, URL path segments, enclosure filenames, favicons, `Content-Disposition`, and parser error text as display-only untrusted data.
 - Atomic writes must use a temporary file in the target directory followed by rename for export, database backup/restore, and the dev credential store. A stale temporary file is not a successful artifact and must be ignored or cleaned before retry.
 - If OS sleep, app restart, permission denial, or disk full interrupts an updater download, export, or backup, preserve logs and treat any partial artifact as untrusted until the flow reports a clean retry or cleanup.
+- The per-surface baseline sleep/resume stance (updater download, OPML export, database backup) is recorded in the stance table in the "Sleep And Long-Running Native Operation Cancellation" section of [feed-content-privacy.md](./feed-content-privacy.md); do not re-derive or restate it here.
 - App settings export/import is not a supported recovery promise until a schema version, source app identifier, secret exclusion list, import conflict behavior, and encryption decision are defined.
 - Do not recommend exporting settings as an uninstall/reinstall backup unless that versioned contract exists for the build being tested.
 - If import/export cancellation is reported, record whether the user confirmed before canceling, which phase was running, and whether a partial artifact or partial feed/folder mutation may remain.

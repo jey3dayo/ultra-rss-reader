@@ -3,8 +3,9 @@ type: policy
 title: Feed Content Privacy And CSP Policy
 description: Source of truth for remote article content privacy expectations and Tauri CSP decisions.
 resource: urn:ultra-rss-reader:docs:feed-content-privacy
-tags: [category/security, audience/developer, audience/maintainer, layer/runtime]
-timestamp: 2026-06-29
+tags:
+  [category/security, audience/developer, audience/maintainer, layer/runtime]
+timestamp: 2026-07-04
 audience: developer, maintainer
 owner: project-maintainers
 ---
@@ -299,9 +300,17 @@ Until this contract is implemented and verified, second launch must not dispatch
 
 Decision: long-running updater download, file export, and database backup flows must be cancellation-aware before they are expected to survive OS sleep or resume.
 
+| Surface          | Stance      | Rationale                                                                                                                                                                                                                                                                                            |
+| ---------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Updater download | Unsupported | Fully delegated to `tauri-plugin-updater`'s `download_and_install()`. The app has no interrupt detection, partial-cleanup evidence, or cancel API of its own, so a partial artifact stays untrusted until it is revalidated (see [incident-runbook.md](./incident-runbook.md) sleep/restart triage). |
+| OPML export      | Unsupported | `export_opml` only returns an OPML string; the file write itself is owned by the WebView/OS download mechanism, so no app-managed partial artifact can exist. Moving to a native save dialog with a temp-file-then-rename write is tracked as a followup in `TODO.md`.                               |
+| Database backup  | Guarded     | `src-tauri/src/infra/db/backup.rs` already performs a temp-file-then-rename atomic write with integrity checks before and after the copy and temp-file cleanup on failure, so a partial write can never become a finalized backup and every retry starts fresh.                                      |
+
+Stance definitions (`supported` / `guarded` / `unsupported`) are the ones defined in the "Long-Running Native Operation Preflight" section of [release-manual-verification.md](./release-manual-verification.md).
+
 Laptop sleep can interrupt network streams, filesystem writes, progress events, and SQLite backup reads. A resumed app must not treat a partial artifact or stale progress value as a successful download, export, or backup.
 
-Before these flows claim sleep/resume support, the contract must define:
+Promotion criteria: before any surface above can move from `unsupported` or `guarded` to `supported`, the contract must define:
 
 - an operation generation or cancellation token that is checked before writing completion state, toast copy, or diagnostics
 - partial artifact cleanup or quarantine for updater downloads, OPML exports, and database backups
@@ -311,7 +320,7 @@ Before these flows claim sleep/resume support, the contract must define:
 - database backup consistency requirements, including complete `.db` plus matching `-wal` / `-shm` handling where relevant
 - focused packaged-build verification for sleep during updater download, sleep during export, sleep during backup, resume cleanup, and manual retry
 
-Until that contract exists, docs and release notes must not promise that downloads, exports, or backups continue across OS sleep.
+`Unsupported` and `guarded` are the ceiling for these three surfaces today: docs and release notes must not promise that downloads, exports, or backups continue across OS sleep. Promotion to `supported` requires satisfying the promotion criteria above plus focused packaged-build verification on each affected OS.
 
 ### Native Notification Permission And Quiet Hours
 

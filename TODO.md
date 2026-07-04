@@ -42,6 +42,17 @@
 
 ### Feed / Folder / Storage / Settings Data
 
+#### OPML export native save dialog + atomic write migration
+
+- [ ] priority: P2 / domain: db-recovery / work type: implementation
+  - created batch: 2026-07-04
+  - 対象: OPML export の書き込み経路(現状のブラウザ Blob ダウンロード実装)を、`src/lib/platform/save-dialog.ts` の既存 native save dialog ヘルパー経由の temp file + rename 書き込みへ置き換える
+  - 概要: OPML export を Blob ダウンロードから native save dialog + temp file + rename の atomic write へ移行する
+  - acceptance criteria: `filesystem_recovery_contract(OpmlExport)`(`src-tauri/src/commands/database_commands.rs`)が宣言する `TempFileThenRename` + `ConfirmBeforeReplacingExistingFile` を production 実装で満たし、sleep/resume stance を unsupported から guarded へ昇格して `docs/feed-content-privacy.md` の stance table を更新する
+  - focused verification: 実装後の Rust/フロントエンド focused test を追加し、`mise run check` に組み込む
+  - defer 範囲: updater download の cancellation 対応は対象外。unsupported stance のまま据え置き、着手が必要になった時点で別 TODO を切り出す
+  - 発見方法: issue #32 の sleep/resume stance 決定時の code audit
+
 ### GReader / Sync Flow / Account Setup
 
 ### Browser WebView / Runtime Diagnostics

@@ -4,7 +4,7 @@ title: Release Manual Verification
 description: Manual release checks for packaged builds, live services, updater behavior, keyring validation, and sign-off.
 resource: urn:ultra-rss-reader:docs:release-manual-verification
 tags: [category/release, audience/maintainer, environment/local]
-timestamp: 2026-06-29
+timestamp: 2026-07-04
 audience: maintainer
 owner: project-maintainers
 ---
@@ -143,9 +143,14 @@ affected operation in the PR or release verification notes:
   failure.
 
 Do not define a new formal sleep/resume support contract in this checklist.
-If a release intends to make sleep/resume officially supported for updater
-download, OPML export, or database backup/restore, leave the design decision,
-state machine, and artifact lifecycle contract in issue #32 or its successor.
+The baseline stance per surface (updater download, OPML export, database
+backup/restore) is recorded in the stance table in the "Sleep And
+Long-Running Native Operation Cancellation" section of
+[feed-content-privacy.md](./feed-content-privacy.md); treat that table as the
+source of truth instead of duplicating it here. If a release intends to make
+sleep/resume officially supported for one of these surfaces, leave the design
+decision, state machine, and artifact lifecycle contract update in that
+document.
 
 ## Checklist
 
