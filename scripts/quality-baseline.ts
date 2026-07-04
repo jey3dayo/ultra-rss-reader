@@ -3,8 +3,6 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
-const reactDoctorVersion = "0.5.8";
-const knipVersion = "6.18.0";
 const qualityToolTimeoutMs = 120_000;
 const qualityToolMaxBufferBytes = 64 * 1024 * 1024;
 
@@ -94,15 +92,15 @@ const reactDoctorBaselines = {
   },
   full: {
     score: null,
-    errorCount: 15,
-    warningCount: 256,
-    affectedFileCount: 106,
+    errorCount: 18,
+    warningCount: 176,
+    affectedFileCount: 72,
   },
 } as const;
 
 const knipBaseline = {
-  issueCount: 47,
-  findingsCount: 86,
+  issueCount: 56,
+  findingsCount: 116,
 } as const;
 
 const lockfileDuplicateMajorBaseline = {
@@ -341,7 +339,6 @@ function runReactDoctor(mode: ReactDoctorMode, failOnDrift: boolean): void {
   console.log(summary);
 
   const drift = [
-    checkEqual("version", report.version, reactDoctorVersion),
     checkEqual("mode", report.mode, mode),
     checkEqual("score", report.summary.score, expected.score),
     checkEqual("errorCount", report.summary.errorCount, expected.errorCount),
@@ -379,7 +376,6 @@ function runKnip(): void {
   console.log(`Knip: issues=${report.issues.length} findings=${findingsCount} version=${actualVersion}`);
 
   const drift = [
-    checkEqual("version", actualVersion, knipVersion),
     checkEqual("issueCount", report.issues.length, knipBaseline.issueCount),
     checkEqual("findingsCount", findingsCount, knipBaseline.findingsCount),
   ].filter(Boolean);

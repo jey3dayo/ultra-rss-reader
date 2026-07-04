@@ -198,4 +198,65 @@ describe("AccountDangerZoneView", () => {
     expect(onImport).not.toHaveBeenCalled();
     expect(onExport).not.toHaveBeenCalled();
   });
+
+  const localSyncBlockProps = {
+    localSyncHeading: "Local sync folder",
+    localSyncFolderLabel: "Folder path",
+    localSyncFolderValue: "/tmp/UltraRSSReader",
+    onLocalSyncFolderChange: vi.fn(),
+    saveLocalSyncFolderLabel: "Save Folder",
+    exportLocalSyncLabel: "Write Operations",
+    importLocalSyncLabel: "Read Operations",
+    onSaveLocalSyncFolder: vi.fn(),
+    onExportLocalSync: vi.fn(),
+    onImportLocalSync: vi.fn(),
+  };
+
+  it("renders the local sync enabled toggle only when a label is provided and reports changes", async () => {
+    const user = userEvent.setup();
+    const onLocalSyncEnabledChange = vi.fn();
+
+    const { rerender } = render(
+      <AccountDangerZoneView
+        dataHeading="Data"
+        dangerHeading="Danger Zone"
+        importLabel="Import OPML"
+        exportLabel="Export OPML"
+        deleteLabel="Delete account"
+        onImport={vi.fn()}
+        onExport={vi.fn()}
+        onRequestDelete={vi.fn()}
+        {...localSyncBlockProps}
+      />,
+    );
+
+    expect(screen.queryByTestId("local-sync-enabled-toggle")).not.toBeInTheDocument();
+
+    rerender(
+      <AccountDangerZoneView
+        dataHeading="Data"
+        dangerHeading="Danger Zone"
+        importLabel="Import OPML"
+        exportLabel="Export OPML"
+        deleteLabel="Delete account"
+        localSyncEnabledLabel="Sync automatically"
+        localSyncEnabledDescription="Import and export run automatically."
+        localSyncEnabledChecked={true}
+        onLocalSyncEnabledChange={onLocalSyncEnabledChange}
+        onImport={vi.fn()}
+        onExport={vi.fn()}
+        onRequestDelete={vi.fn()}
+        {...localSyncBlockProps}
+      />,
+    );
+
+    const toggle = screen.getByRole("switch", { name: "Sync automatically" });
+    expect(screen.getByTestId("local-sync-enabled-toggle")).toBeInTheDocument();
+    expect(toggle).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByText("Import and export run automatically.")).toBeInTheDocument();
+
+    await user.click(toggle);
+
+    expect(onLocalSyncEnabledChange).toHaveBeenCalledWith(false);
+  });
 });

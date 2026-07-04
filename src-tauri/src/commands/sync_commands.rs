@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
@@ -19,6 +20,7 @@ use crate::infra::db::connection::DbManager;
 use crate::infra::db::sqlite_account::SqliteAccountRepository;
 use crate::infra::db::sqlite_article::SqliteArticleRepository;
 use crate::infra::db::sqlite_feed::SqliteFeedRepository;
+use crate::infra::db::sqlite_local_account_sync_settings::SqliteLocalAccountSyncSettingsRepository;
 use crate::infra::db::sqlite_preference::SqlitePreferenceRepository;
 use crate::infra::db::sqlite_sync_state::SqliteSyncStateRepository;
 use crate::infra::provider::greader::GReaderProvider;
@@ -26,8 +28,13 @@ use crate::infra::provider::local::LocalProvider;
 use crate::repository::account::AccountRepository;
 use crate::repository::article::ArticleRepository;
 use crate::repository::feed::FeedRepository;
+use crate::repository::local_account_sync_settings::LocalAccountSyncSettingsRepository;
 use crate::repository::preference::PreferenceRepository;
 use crate::repository::sync_state::{SyncState, SyncStateRepository, SyncStateScopeKey};
+use crate::service::local_account_sync::{
+    export_local_account_sync_folder_if_changed, import_local_account_sync_folder,
+    LocalAccountSyncImportReport,
+};
 
 use super::feed_commands::lock_db;
 use super::sync_providers::{
@@ -338,6 +345,113 @@ fn local_feed_sync_warning(feed: &Feed, error: &AppError) -> ProviderSyncWarning
     }
 }
 
+fn local_account_sync_error_warning(operation: &str, error: &AppError) -> ProviderSyncWarning {
+    ProviderSyncWarning {
+        kind: AccountSyncWarningKind::Generic,
+        message: format!("Local sync folder {operation} failed: {error}"),
+        retry_at: None,
+        retry_in_seconds: None,
+    }
+}
+
+fn local_account_import_result_warning(
+    report: &LocalAccountSyncImportReport,
+) -> Option<ProviderSyncWarning> {
+    if report.applied && report.conflicted_candidates == 0 && report.rejected_files == 0 {
+        return None;
+    }
+    Some(ProviderSyncWarning {
+        kind: AccountSyncWarningKind::Generic,
+        message: format!(
+            "Local sync folder import found {} conflicted and {} rejected file(s); use the manual import/export buttons in account settings to resolve them.",
+            report.conflicted_candidates, report.rejected_files
+        ),
+        retry_at: None,
+        retry_in_seconds: None,
+    })
+}
+
+/// Imports any pending operations from the account's local sync folder before
+/// the feed pull, so changes made on other devices apply before this device
+/// syncs. Silently skips accounts with no settings, disabled sync, or a blank
+/// folder path. Runs entirely inside one DB lock, so it is safe to call
+/// synchronously from async sync flows.
+fn run_local_account_auto_import(
+    db: &Mutex<DbManager>,
+    account_id: &AccountId,
+) -> Option<ProviderSyncWarning> {
+    let db_guard = match lock_db(db) {
+        Ok(guard) => guard,
+        Err(error) => return Some(local_account_sync_error_warning("import", &error)),
+    };
+
+    let settings_repo = SqliteLocalAccountSyncSettingsRepository::new(db_guard.reader());
+    let settings = match settings_repo.find_by_account_id(account_id) {
+        Ok(Some(settings)) => settings,
+        Ok(None) => return None,
+        Err(error) => {
+            return Some(local_account_sync_error_warning(
+                "import",
+                &AppError::from(error),
+            ))
+        }
+    };
+    if !settings.enabled || settings.sync_folder_path.trim().is_empty() {
+        return None;
+    }
+
+    match import_local_account_sync_folder(
+        &db_guard,
+        account_id,
+        &settings.sync_account_id,
+        &PathBuf::from(&settings.sync_folder_path),
+    ) {
+        Ok(report) => local_account_import_result_warning(&report),
+        Err(error) => Some(local_account_sync_error_warning(
+            "import",
+            &AppError::from(error),
+        )),
+    }
+}
+
+/// Digest-gated export of the account's current state to its local sync
+/// folder after the feed pull. Silently skips accounts with no settings,
+/// disabled sync, or a blank folder path, and is a no-op when the projected
+/// state is unchanged since the last export. Runs entirely inside one DB
+/// lock, so it is safe to call synchronously from async sync flows.
+fn run_local_account_auto_export(
+    db: &Mutex<DbManager>,
+    account_id: &AccountId,
+) -> Option<ProviderSyncWarning> {
+    let db_guard = match lock_db(db) {
+        Ok(guard) => guard,
+        Err(error) => return Some(local_account_sync_error_warning("export", &error)),
+    };
+
+    let settings_repo = SqliteLocalAccountSyncSettingsRepository::new(db_guard.reader());
+    let settings = match settings_repo.find_by_account_id(account_id) {
+        Ok(Some(settings)) => settings,
+        Ok(None) => return None,
+        Err(error) => {
+            return Some(local_account_sync_error_warning(
+                "export",
+                &AppError::from(error),
+            ))
+        }
+    };
+    if !settings.enabled || settings.sync_folder_path.trim().is_empty() {
+        return None;
+    }
+
+    match export_local_account_sync_folder_if_changed(&db_guard, account_id, &settings) {
+        Ok(_) => None,
+        Err(error) => Some(local_account_sync_error_warning(
+            "export",
+            &AppError::from(error),
+        )),
+    }
+}
+
 /// Sync a single account, returning warnings on soft anomalies and Err on hard failures.
 pub(crate) async fn sync_account(
     db: &Mutex<DbManager>,
@@ -346,12 +460,15 @@ pub(crate) async fn sync_account(
     match account.kind {
         ProviderKind::Local => {
             let provider = local_provider();
+            let mut warnings = Vec::new();
+            if let Some(warning) = run_local_account_auto_import(db, &account.id) {
+                warnings.push(warning);
+            }
             let feeds = {
                 let db_guard = lock_db(db)?;
                 let feed_repo = SqliteFeedRepository::new(db_guard.reader());
                 feed_repo.find_by_account(&account.id)?
             };
-            let mut warnings = Vec::new();
             for feed in &feeds {
                 if let Err(error) = sync_local_feed(db, &provider, &account.id, feed).await {
                     warn!(
@@ -360,6 +477,9 @@ pub(crate) async fn sync_account(
                     );
                     warnings.push(local_feed_sync_warning(feed, &error));
                 }
+            }
+            if let Some(warning) = run_local_account_auto_export(db, &account.id) {
+                warnings.push(warning);
             }
             Ok(ProviderSyncOutcome { warnings })
         }
@@ -519,6 +639,41 @@ async fn run_sync_for_accounts_with_progress(
     })
 }
 
+/// Runs [`run_local_account_auto_import`] for Local accounts that have
+/// `sync_on_startup` disabled and are therefore excluded from the startup
+/// feed-sync set below. Accounts already in `startup_sync_accounts` are
+/// covered by the auto-import hook inside `sync_account`, so this only
+/// supplements the ones that would otherwise never see their local sync
+/// folder read until a manual sync or the periodic scheduler runs.
+fn run_local_account_startup_import_supplement(
+    db: &Mutex<DbManager>,
+    all_accounts: &[Account],
+    startup_sync_accounts: &[Account],
+) -> Vec<AccountSyncWarning> {
+    let startup_ids = startup_sync_accounts
+        .iter()
+        .map(|account| account.id.as_ref())
+        .collect::<std::collections::HashSet<_>>();
+
+    all_accounts
+        .iter()
+        .filter(|account| {
+            matches!(account.kind, ProviderKind::Local)
+                && !startup_ids.contains(account.id.as_ref())
+        })
+        .filter_map(|account| {
+            run_local_account_auto_import(db, &account.id).map(|warning| AccountSyncWarning {
+                account_id: account.id.as_ref().to_string(),
+                account_name: account.name.clone(),
+                kind: warning.kind,
+                message: warning.message,
+                retry_at: warning.retry_at,
+                retry_in_seconds: warning.retry_in_seconds,
+            })
+        })
+        .collect()
+}
+
 #[tauri::command]
 pub async fn trigger_startup_sync(
     app_handle: tauri::AppHandle,
@@ -537,6 +692,11 @@ pub async fn trigger_startup_sync(
         .collect::<Vec<_>>();
     let startup_sync_accounts =
         prioritize_startup_sync_accounts(startup_sync_accounts, preferred_account_id.as_deref());
+    let local_startup_import_warnings = run_local_account_startup_import_supplement(
+        &state.db,
+        &all_accounts,
+        &startup_sync_accounts,
+    );
     let repair_pending = startup_remote_state_repair_pending(&state.db)?;
     let repair_only_accounts = if repair_pending {
         all_accounts
@@ -556,7 +716,7 @@ pub async fn trigger_startup_sync(
             total: 0,
             succeeded: 0,
             failed: Vec::new(),
-            warnings: Vec::new(),
+            warnings: local_startup_import_warnings,
         });
     }
 
@@ -605,6 +765,7 @@ pub async fn trigger_startup_sync(
         }
         result
     };
+    sync_result.warnings.extend(local_startup_import_warnings);
 
     if repair_pending
         && startup_remote_state_repair_succeeded(
@@ -1779,6 +1940,309 @@ mod tests {
             )
             .unwrap();
         assert_eq!(saved_article_count, 1);
+    }
+
+    fn insert_local_account_row(db: &Mutex<DbManager>, account: &Account) {
+        let db_guard = db.lock().unwrap();
+        db_guard
+            .writer()
+            .execute(
+                "INSERT INTO accounts (id, kind, name, sync_interval_secs, sync_on_startup, sync_on_wake, keep_read_items_days) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                rusqlite::params![
+                    account.id.as_ref(),
+                    "Local",
+                    account.name,
+                    account.sync_interval_secs,
+                    account.sync_on_startup,
+                    account.sync_on_wake,
+                    account.keep_read_items_days,
+                ],
+            )
+            .unwrap();
+    }
+
+    fn save_local_sync_settings(
+        db: &Mutex<DbManager>,
+        account_id: &AccountId,
+        sync_folder_path: &str,
+        enabled: bool,
+    ) -> crate::repository::local_account_sync_settings::LocalAccountSyncSettings {
+        use crate::domain::local_account_sync::{LocalSyncAccountId, LocalSyncDeviceId};
+        use crate::repository::local_account_sync_settings::LocalAccountSyncSettings;
+
+        let settings = LocalAccountSyncSettings {
+            account_id: account_id.clone(),
+            sync_folder_path: sync_folder_path.to_string(),
+            sync_account_id: LocalSyncAccountId("sync-account-a".to_string()),
+            device_id: LocalSyncDeviceId("this-device".to_string()),
+            enabled,
+            last_export_digest: None,
+        };
+        let db_guard = db.lock().unwrap();
+        let settings_repo = SqliteLocalAccountSyncSettingsRepository::new(db_guard.writer());
+        settings_repo.save(&settings).unwrap();
+        settings
+    }
+
+    #[tokio::test]
+    async fn local_sync_account_imports_folder_op_from_another_device_and_exports_after_sync() {
+        use crate::domain::local_account_sync::{
+            normalize_tag_name, LocalAccountSyncOperation, LocalSyncAccountId, LocalSyncAction,
+            LocalSyncDeviceId, LocalSyncEntityKey, LocalSyncOperationId,
+        };
+        use crate::infra::local_account_sync_files::{
+            load_local_sync_operation_dir, write_local_sync_operation_file,
+        };
+
+        let db = Mutex::new(DbManager::new_in_memory().unwrap());
+        let account = test_sync_command_account("local-import-export", ProviderKind::Local, false);
+        insert_local_account_row(&db, &account);
+
+        let dir = tempfile::tempdir().unwrap();
+        let other_device_op = LocalAccountSyncOperation {
+            sync_account_id: LocalSyncAccountId("sync-account-a".to_string()),
+            device_id: LocalSyncDeviceId("other-device".to_string()),
+            operation_id: LocalSyncOperationId::new(),
+            occurred_at: chrono::Utc::now(),
+            entity_key: LocalSyncEntityKey::Folder {
+                normalized_name: normalize_tag_name("Tech").unwrap(),
+            },
+            action: LocalSyncAction::UpsertFolder {
+                display_name: "Tech".to_string(),
+                sort_order: 1,
+            },
+        };
+        write_local_sync_operation_file(dir.path(), &other_device_op, 1).unwrap();
+        save_local_sync_settings(&db, &account.id, &dir.path().to_string_lossy(), true);
+
+        let outcome = sync_account(&db, &account).await.unwrap();
+
+        assert!(
+            outcome.warnings.is_empty(),
+            "unexpected warnings: {:?}",
+            outcome.warnings
+        );
+
+        let folder_count: i64 = db
+            .lock()
+            .unwrap()
+            .reader()
+            .query_row(
+                "SELECT COUNT(*) FROM folders WHERE account_id = ?1 AND name = 'Tech'",
+                rusqlite::params![account.id.as_ref()],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(
+            folder_count, 1,
+            "folder op written by another device should be imported"
+        );
+
+        let load_report = load_local_sync_operation_dir(dir.path()).unwrap();
+        assert!(
+            load_report.operations.iter().any(
+                |operation| operation.device_id == LocalSyncDeviceId("this-device".to_string())
+            ),
+            "export should have written operation files for this device after sync"
+        );
+    }
+
+    #[tokio::test]
+    async fn local_sync_account_with_missing_settings_leaves_sync_folder_untouched() {
+        let db = Mutex::new(DbManager::new_in_memory().unwrap());
+        let account = test_sync_command_account("local-no-settings", ProviderKind::Local, false);
+        insert_local_account_row(&db, &account);
+
+        let outcome = sync_account(&db, &account).await.unwrap();
+
+        assert!(outcome.warnings.is_empty());
+    }
+
+    #[tokio::test]
+    async fn local_sync_account_with_disabled_settings_leaves_sync_folder_untouched() {
+        let db = Mutex::new(DbManager::new_in_memory().unwrap());
+        let account = test_sync_command_account("local-disabled", ProviderKind::Local, false);
+        insert_local_account_row(&db, &account);
+        let dir = tempfile::tempdir().unwrap();
+        save_local_sync_settings(&db, &account.id, &dir.path().to_string_lossy(), false);
+
+        let outcome = sync_account(&db, &account).await.unwrap();
+
+        assert!(outcome.warnings.is_empty());
+        assert!(
+            !dir.path().join("ops").exists(),
+            "disabled sync folder should not be touched"
+        );
+    }
+
+    #[tokio::test]
+    async fn local_sync_account_returns_warning_when_sync_folder_path_is_unreachable() {
+        let db = Mutex::new(DbManager::new_in_memory().unwrap());
+        let account = test_sync_command_account("local-unreachable", ProviderKind::Local, false);
+        insert_local_account_row(&db, &account);
+        {
+            let db_guard = db.lock().unwrap();
+            db_guard
+                .writer()
+                .execute(
+                    "INSERT INTO folders (id, account_id, name, sort_order) VALUES ('folder-1', ?1, 'Tech', 1)",
+                    rusqlite::params![account.id.as_ref()],
+                )
+                .unwrap();
+        }
+
+        let dir = tempfile::tempdir().unwrap();
+        let blocking_file = dir.path().join("blocker");
+        std::fs::write(&blocking_file, b"not a directory").unwrap();
+        let unreachable_folder = blocking_file.join("account-root");
+        save_local_sync_settings(
+            &db,
+            &account.id,
+            &unreachable_folder.to_string_lossy(),
+            true,
+        );
+
+        let outcome = sync_account(&db, &account).await.unwrap();
+
+        assert!(
+            outcome
+                .warnings
+                .iter()
+                .any(|warning| warning.message.contains("Local sync folder export failed")),
+            "unexpected warnings: {:?}",
+            outcome.warnings
+        );
+    }
+
+    #[tokio::test]
+    async fn local_sync_account_returns_warning_and_skips_projection_when_conflicted_copy_present()
+    {
+        let db = Mutex::new(DbManager::new_in_memory().unwrap());
+        let account = test_sync_command_account("local-conflicted", ProviderKind::Local, false);
+        insert_local_account_row(&db, &account);
+
+        let dir = tempfile::tempdir().unwrap();
+        let op_dir = dir.path().join("ops").join("other-device");
+        std::fs::create_dir_all(&op_dir).unwrap();
+        std::fs::write(op_dir.join("00000001 (conflicted copy).json"), "{not-json").unwrap();
+        std::fs::write(
+            op_dir.join("00000002.json"),
+            serde_json::to_string(&crate::domain::local_account_sync::operation_file(
+                crate::domain::local_account_sync::LocalAccountSyncOperation {
+                    sync_account_id: crate::domain::local_account_sync::LocalSyncAccountId(
+                        "sync-account-a".to_string(),
+                    ),
+                    device_id: crate::domain::local_account_sync::LocalSyncDeviceId(
+                        "other-device".to_string(),
+                    ),
+                    operation_id: crate::domain::local_account_sync::LocalSyncOperationId::new(),
+                    occurred_at: chrono::Utc::now(),
+                    entity_key: crate::domain::local_account_sync::LocalSyncEntityKey::Folder {
+                        normalized_name: crate::domain::local_account_sync::normalize_tag_name(
+                            "Tech",
+                        )
+                        .unwrap(),
+                    },
+                    action: crate::domain::local_account_sync::LocalSyncAction::UpsertFolder {
+                        display_name: "Tech".to_string(),
+                        sort_order: 1,
+                    },
+                },
+            ))
+            .unwrap(),
+        )
+        .unwrap();
+        save_local_sync_settings(&db, &account.id, &dir.path().to_string_lossy(), true);
+
+        let outcome = sync_account(&db, &account).await.unwrap();
+
+        assert!(
+            outcome
+                .warnings
+                .iter()
+                .any(|warning| warning.message.contains("conflicted")),
+            "unexpected warnings: {:?}",
+            outcome.warnings
+        );
+
+        let folder_count: i64 = db
+            .lock()
+            .unwrap()
+            .reader()
+            .query_row(
+                "SELECT COUNT(*) FROM folders WHERE account_id = ?1 AND name = 'Tech'",
+                rusqlite::params![account.id.as_ref()],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(
+            folder_count, 0,
+            "projection should not be applied while a conflicted copy is present"
+        );
+    }
+
+    #[tokio::test]
+    async fn trigger_startup_sync_import_supplement_covers_excluded_local_accounts_only() {
+        use crate::domain::local_account_sync::{
+            normalize_tag_name, LocalAccountSyncOperation, LocalSyncAccountId, LocalSyncAction,
+            LocalSyncDeviceId, LocalSyncEntityKey, LocalSyncOperationId,
+        };
+        use crate::infra::local_account_sync_files::write_local_sync_operation_file;
+
+        let db = Mutex::new(DbManager::new_in_memory().unwrap());
+        let startup_account = test_sync_command_account("startup-local", ProviderKind::Local, true);
+        let excluded_account =
+            test_sync_command_account("excluded-local", ProviderKind::Local, false);
+        insert_local_account_row(&db, &startup_account);
+        insert_local_account_row(&db, &excluded_account);
+
+        let excluded_dir = tempfile::tempdir().unwrap();
+        let other_device_op = LocalAccountSyncOperation {
+            sync_account_id: LocalSyncAccountId("sync-account-a".to_string()),
+            device_id: LocalSyncDeviceId("other-device".to_string()),
+            operation_id: LocalSyncOperationId::new(),
+            occurred_at: chrono::Utc::now(),
+            entity_key: LocalSyncEntityKey::Folder {
+                normalized_name: normalize_tag_name("Tech").unwrap(),
+            },
+            action: LocalSyncAction::UpsertFolder {
+                display_name: "Tech".to_string(),
+                sort_order: 1,
+            },
+        };
+        write_local_sync_operation_file(excluded_dir.path(), &other_device_op, 1).unwrap();
+        save_local_sync_settings(
+            &db,
+            &excluded_account.id,
+            &excluded_dir.path().to_string_lossy(),
+            true,
+        );
+
+        let warnings = run_local_account_startup_import_supplement(
+            &db,
+            &[startup_account.clone(), excluded_account.clone()],
+            &[startup_account],
+        );
+
+        assert!(
+            warnings.is_empty(),
+            "clean import should not produce warnings: {warnings:?}"
+        );
+
+        let folder_count: i64 = db
+            .lock()
+            .unwrap()
+            .reader()
+            .query_row(
+                "SELECT COUNT(*) FROM folders WHERE account_id = ?1 AND name = 'Tech'",
+                rusqlite::params![excluded_account.id.as_ref()],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(
+            folder_count, 1,
+            "excluded local account should still be imported as a startup supplement"
+        );
     }
 
     #[test]

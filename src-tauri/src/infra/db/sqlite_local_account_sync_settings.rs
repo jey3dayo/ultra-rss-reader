@@ -48,6 +48,7 @@ fn row_to_settings(row: &rusqlite::Row) -> rusqlite::Result<LocalAccountSyncSett
         sync_account_id: LocalSyncAccountId(row.get(2)?),
         device_id: LocalSyncDeviceId(row.get(3)?),
         enabled: row.get(4)?,
+        last_export_digest: row.get(5)?,
     })
 }
 
@@ -59,7 +60,8 @@ impl LocalAccountSyncSettingsRepository for SqliteLocalAccountSyncSettingsReposi
         Ok(self
             .conn
             .query_row(
-                "SELECT account_id, sync_folder_path, sync_account_id, device_id, enabled
+                "SELECT account_id, sync_folder_path, sync_account_id, device_id, enabled,
+                        last_export_digest
                  FROM local_account_sync_settings
                  WHERE account_id = ?1",
                 params![account_id.0],
@@ -77,14 +79,16 @@ impl LocalAccountSyncSettingsRepository for SqliteLocalAccountSyncSettingsReposi
                 sync_account_id,
                 device_id,
                 enabled,
+                last_export_digest,
                 updated_at
              )
-             VALUES (?1, ?2, ?3, ?4, ?5, CURRENT_TIMESTAMP)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, CURRENT_TIMESTAMP)
              ON CONFLICT(account_id) DO UPDATE SET
                 sync_folder_path = excluded.sync_folder_path,
                 sync_account_id = excluded.sync_account_id,
                 device_id = excluded.device_id,
                 enabled = excluded.enabled,
+                last_export_digest = excluded.last_export_digest,
                 updated_at = excluded.updated_at",
             params![
                 settings.account_id.0,
@@ -92,8 +96,25 @@ impl LocalAccountSyncSettingsRepository for SqliteLocalAccountSyncSettingsReposi
                 settings.sync_account_id.0.trim(),
                 settings.device_id.0.trim(),
                 settings.enabled,
+                settings.last_export_digest,
             ],
         )?;
+        Ok(())
+    }
+
+    fn save_export_digest(&self, account_id: &AccountId, digest: &str) -> DomainResult<()> {
+        let rows_affected = self.conn.execute(
+            "UPDATE local_account_sync_settings
+             SET last_export_digest = ?1, updated_at = CURRENT_TIMESTAMP
+             WHERE account_id = ?2",
+            params![digest, account_id.0],
+        )?;
+        if rows_affected == 0 {
+            return Err(DomainError::Validation(format!(
+                "Local account sync settings not found: {}",
+                account_id.as_ref()
+            )));
+        }
         Ok(())
     }
 }
@@ -135,6 +156,7 @@ mod tests {
             sync_account_id: LocalSyncAccountId("sync-account-1".to_string()),
             device_id: LocalSyncDeviceId("device-1".to_string()),
             enabled: true,
+            last_export_digest: None,
         };
 
         repo.save(&settings).unwrap();
@@ -142,6 +164,71 @@ mod tests {
         assert_eq!(
             repo.find_by_account_id(&account_id).unwrap(),
             Some(settings)
+        );
+    }
+
+    #[test]
+    fn save_export_digest_round_trip_updates_existing_settings() {
+        let db = DbManager::new_in_memory().unwrap();
+        let repo = SqliteLocalAccountSyncSettingsRepository::new(db.writer());
+        let account_id = AccountId("account-1".to_string());
+        db.writer()
+            .execute(
+                "INSERT INTO accounts (
+                    id,
+                    kind,
+                    name,
+                    sync_interval_secs,
+                    sync_on_startup,
+                    sync_on_wake,
+                    keep_read_items_days
+                 )
+                 VALUES (?1, 'Local', 'Local', 3600, 0, 0, 30)",
+                [&account_id.0],
+            )
+            .unwrap();
+        let settings = LocalAccountSyncSettings {
+            account_id: account_id.clone(),
+            sync_folder_path: "/Users/example/Sync/UltraRSSReader/local-accounts/account-1"
+                .to_string(),
+            sync_account_id: LocalSyncAccountId("sync-account-1".to_string()),
+            device_id: LocalSyncDeviceId("device-1".to_string()),
+            enabled: true,
+            last_export_digest: None,
+        };
+        repo.save(&settings).unwrap();
+
+        let loaded = repo
+            .find_by_account_id(&account_id)
+            .unwrap()
+            .expect("settings should exist after save");
+        assert_eq!(loaded.last_export_digest, None);
+
+        repo.save_export_digest(&account_id, "digest-value")
+            .unwrap();
+
+        let reloaded = repo
+            .find_by_account_id(&account_id)
+            .unwrap()
+            .expect("settings should exist after digest update");
+        assert_eq!(
+            reloaded.last_export_digest,
+            Some("digest-value".to_string())
+        );
+    }
+
+    #[test]
+    fn save_export_digest_returns_error_for_missing_settings_row() {
+        let db = DbManager::new_in_memory().unwrap();
+        let repo = SqliteLocalAccountSyncSettingsRepository::new(db.writer());
+        let account_id = AccountId("missing-account".to_string());
+
+        let error = repo
+            .save_export_digest(&account_id, "digest-value")
+            .unwrap_err();
+        assert!(
+            error.to_string().contains("not found"),
+            "missing settings row should surface a not-found validation error: {error}"
         );
     }
 }

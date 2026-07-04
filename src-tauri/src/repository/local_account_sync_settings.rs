@@ -9,6 +9,7 @@ pub struct LocalAccountSyncSettings {
     pub sync_account_id: LocalSyncAccountId,
     pub device_id: LocalSyncDeviceId,
     pub enabled: bool,
+    pub last_export_digest: Option<String>,
 }
 
 pub trait LocalAccountSyncSettingsRepository {
@@ -18,4 +19,6 @@ pub trait LocalAccountSyncSettingsRepository {
     ) -> DomainResult<Option<LocalAccountSyncSettings>>;
 
     fn save(&self, settings: &LocalAccountSyncSettings) -> DomainResult<()>;
+
+    fn save_export_digest(&self, account_id: &AccountId, digest: &str) -> DomainResult<()>;
 }

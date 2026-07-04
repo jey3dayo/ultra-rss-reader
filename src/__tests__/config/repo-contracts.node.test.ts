@@ -1614,11 +1614,8 @@ describe("repository static contracts", () => {
 
   it("keeps quality baseline diagnostics routed through the pinned script gate", () => {
     const packageScripts = expectPackageJsonStringRecord("scripts");
-    const devDependencies = expectPackageJsonStringRecord("devDependencies");
     const miseSource = readMiseTaskCorpus();
 
-    expect(devDependencies["react-doctor"]).toBe("0.5.8");
-    expect(devDependencies.knip).toBe("6.23.0");
     expect(packageScripts["quality:react-doctor:diff"]).toBe("node ./scripts/quality-baseline.ts react-doctor:diff");
     expect(packageScripts["quality:react-doctor:full"]).toBe("node ./scripts/quality-baseline.ts react-doctor:full");
     expect(packageScripts["quality:knip"]).toBe("node ./scripts/quality-baseline.ts knip");

@@ -28,6 +28,9 @@ const MIGRATION_V20: &str =
     include_str!("../../../migrations/V20__article_account_ordered_indexes.sql");
 const MIGRATION_V21: &str =
     include_str!("../../../migrations/V21__local_account_sync_settings.sql");
+#[cfg(test)]
+const MIGRATION_V22: &str =
+    include_str!("../../../migrations/V22__local_account_sync_export_state.sql");
 
 const V8_READER_MODE_COLUMN: &str = "reader_mode";
 const V8_WEB_PREVIEW_MODE_COLUMN: &str = "web_preview_mode";
@@ -39,6 +42,9 @@ const V16_CONNECTION_VERIFIED_AT_SQL: &str =
     "ALTER TABLE accounts ADD COLUMN connection_verified_at TEXT";
 const V16_CONNECTION_VERIFICATION_ERROR_SQL: &str =
     "ALTER TABLE accounts ADD COLUMN connection_verification_error TEXT";
+const V22_LAST_EXPORT_DIGEST_COLUMN: &str = "last_export_digest";
+const V22_LAST_EXPORT_DIGEST_SQL: &str =
+    "ALTER TABLE local_account_sync_settings ADD COLUMN last_export_digest TEXT";
 
 /// Result of a migration run.
 #[derive(Debug)]
@@ -58,7 +64,7 @@ impl MigrationResult {
     }
 }
 
-pub const LATEST_VERSION: i32 = 21;
+pub const LATEST_VERSION: i32 = 22;
 
 /// Applies every pending migration in one SQLite transaction.
 ///
@@ -143,6 +149,9 @@ pub fn run_migrations(conn: &mut Connection) -> DomainResult<MigrationResult> {
     }
     if from_version < 21 {
         tx.execute_batch(MIGRATION_V21)?;
+    }
+    if from_version < 22 {
+        apply_v22_local_account_sync_export_state(&tx)?;
     }
 
     let to_version = read_schema_version(&tx)?;
@@ -364,6 +373,18 @@ fn apply_v16_account_connection_verification(conn: &Connection) -> DomainResult<
     Ok(())
 }
 
+fn apply_v22_local_account_sync_export_state(conn: &Connection) -> DomainResult<()> {
+    add_column_if_missing(
+        conn,
+        "local_account_sync_settings",
+        V22_LAST_EXPORT_DIGEST_COLUMN,
+        V22_LAST_EXPORT_DIGEST_SQL,
+    )?;
+
+    set_schema_version(conn, 22)?;
+    Ok(())
+}
+
 fn add_column_if_missing(
     conn: &Connection,
     table_name: &str,
@@ -532,6 +553,35 @@ mod tests {
     }
 
     #[test]
+    fn v22_file_migration_matches_inline_contract() {
+        let inline_v22_sql = format!(
+            "{V22_LAST_EXPORT_DIGEST_SQL};
+             DELETE FROM schema_version;
+             INSERT INTO schema_version (version) VALUES (22);"
+        );
+
+        assert_eq!(
+            normalize_sql(MIGRATION_V22),
+            normalize_sql(&inline_v22_sql),
+            "file-based V22 migration must stay in sync with the inline migration"
+        );
+    }
+
+    #[test]
+    fn v22_allows_duplicate_last_export_digest_column_only() {
+        let mut conn = open_in_memory();
+        run_migrations(&mut conn).unwrap();
+        set_schema_version(&conn, 21).unwrap();
+
+        let result = run_migrations(&mut conn).unwrap();
+        assert_eq!(result.from_version, 21);
+        assert_eq!(result.to_version, LATEST_VERSION);
+        assert!(conn
+            .prepare("SELECT last_export_digest FROM local_account_sync_settings LIMIT 0")
+            .is_ok());
+    }
+
+    #[test]
     fn version_skip_v1_to_latest() {
         let mut conn = open_in_memory();
         conn.execute_batch(MIGRATION_V1).unwrap();
@@ -622,6 +672,16 @@ mod tests {
             .is_ok());
         assert!(conn
             .prepare("SELECT connection_verification_error FROM accounts LIMIT 0")
+            .is_ok());
+    }
+
+    #[test]
+    fn latest_schema_includes_local_account_sync_export_digest_column() {
+        let mut conn = open_in_memory();
+        run_migrations(&mut conn).unwrap();
+
+        assert!(conn
+            .prepare("SELECT last_export_digest FROM local_account_sync_settings LIMIT 0")
             .is_ok());
     }
 
