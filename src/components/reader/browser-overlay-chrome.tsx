@@ -145,6 +145,7 @@ export function BrowserOverlayChrome(props: BrowserOverlayChromeProps) {
             actionKey="close-web-preview"
             compact={presentation.leadingActionSurface.compact}
             label={closeWebPreviewLabel}
+            tooltipSide="right"
             onClick={controller.handleCloseOverlay}
           >
             <X aria-hidden="true" className="size-4" />
@@ -153,6 +154,7 @@ export function BrowserOverlayChrome(props: BrowserOverlayChromeProps) {
             actionKey="browser-back"
             compact={presentation.leadingActionSurface.compact}
             label={browserBackLabel}
+            tooltipSide="right"
             onClick={() => {
               startAcceptedFeedback("browser-back");
               return controller.browserState?.can_go_back ? controller.handleGoBack() : controller.handleCloseOverlay();
@@ -166,6 +168,7 @@ export function BrowserOverlayChrome(props: BrowserOverlayChromeProps) {
             actionKey="browser-forward"
             compact={presentation.leadingActionSurface.compact}
             label={t("web_forward")}
+            tooltipSide="right"
             onClick={() => {
               startAcceptedFeedback("browser-forward");
               return controller.handleGoForward();
@@ -179,6 +182,7 @@ export function BrowserOverlayChrome(props: BrowserOverlayChromeProps) {
             actionKey="reload-web-preview"
             compact={presentation.leadingActionSurface.compact}
             label={t("reload_page")}
+            tooltipSide="right"
             onClick={() => {
               startAcceptedFeedback("reload-web-preview");
               return controller.handleReload();

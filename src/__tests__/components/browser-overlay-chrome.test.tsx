@@ -464,6 +464,34 @@ describe("BrowserOverlayChrome", () => {
     expect(await screen.findByText("Open in External Browser")).toHaveAttribute("data-app-tooltip-side", "left");
   });
 
+  it("keeps leading chrome tooltips out of the native webview area", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <BrowserOverlayChrome
+        controller={createController({
+          browserState: {
+            url: "https://example.com/article",
+            can_go_back: true,
+            can_go_forward: true,
+            is_loading: false,
+            load_generation: 1,
+          },
+        })}
+        presentation={createSurfacePresentation()}
+        closeWebPreviewLabel="Close Web Preview"
+      />,
+    );
+
+    for (const label of ["Close Web Preview", "Web back", "Web forward", "Reload page"]) {
+      const button = screen.getByRole("button", { name: label });
+
+      await user.hover(button);
+      expect(await screen.findByText(label)).toHaveAttribute("data-app-tooltip-side", "right");
+      await user.unhover(button);
+    }
+  });
+
   it("spins the back icon briefly after an accepted click", async () => {
     vi.useFakeTimers();
     const controller = createController({
