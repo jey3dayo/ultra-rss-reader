@@ -5,7 +5,7 @@ description: Source of truth for remote article content privacy expectations and
 resource: urn:ultra-rss-reader:docs:feed-content-privacy
 tags:
   [category/security, audience/developer, audience/maintainer, layer/runtime]
-timestamp: 2026-07-04
+timestamp: 2026-07-05
 audience: developer, maintainer
 owner: project-maintainers
 ---
@@ -300,11 +300,11 @@ Until this contract is implemented and verified, second launch must not dispatch
 
 Decision: long-running updater download, file export, and database backup flows must be cancellation-aware before they are expected to survive OS sleep or resume.
 
-| Surface          | Stance      | Rationale                                                                                                                                                                                                                                                                                            |
-| ---------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Updater download | Unsupported | Fully delegated to `tauri-plugin-updater`'s `download_and_install()`. The app has no interrupt detection, partial-cleanup evidence, or cancel API of its own, so a partial artifact stays untrusted until it is revalidated (see [incident-runbook.md](./incident-runbook.md) sleep/restart triage). |
-| OPML export      | Unsupported | `export_opml` only returns an OPML string; the file write itself is owned by the WebView/OS download mechanism, so no app-managed partial artifact can exist. Moving to a native save dialog with a temp-file-then-rename write is tracked as a followup in `TODO.md`.                               |
-| Database backup  | Guarded     | `src-tauri/src/infra/db/backup.rs` already performs a temp-file-then-rename atomic write with integrity checks before and after the copy and temp-file cleanup on failure, so a partial write can never become a finalized backup and every retry starts fresh.                                      |
+| Surface          | Stance      | Rationale                                                                                                                                                                                                                                                                                                                       |
+| ---------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Updater download | Unsupported | Fully delegated to `tauri-plugin-updater`'s `download_and_install()`. The app has no interrupt detection, partial-cleanup evidence, or cancel API of its own, so a partial artifact stays untrusted until it is revalidated (see [incident-runbook.md](./incident-runbook.md) sleep/restart triage).                            |
+| OPML export      | Guarded     | `export_opml_to_file` writes the artifact itself through a temp-file-then-rename atomic write with temp cleanup on failure, so a sleep- or crash-interrupted export can never become a finalized partial file and every retry starts fresh. The destination comes from a native save dialog with the OS overwrite confirmation. |
+| Database backup  | Guarded     | `src-tauri/src/infra/db/backup.rs` already performs a temp-file-then-rename atomic write with integrity checks before and after the copy and temp-file cleanup on failure, so a partial write can never become a finalized backup and every retry starts fresh.                                                                 |
 
 Stance definitions (`supported` / `guarded` / `unsupported`) are the ones defined in the "Long-Running Native Operation Preflight" section of [release-manual-verification.md](./release-manual-verification.md).
 

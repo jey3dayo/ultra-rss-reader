@@ -391,7 +391,7 @@ pub(crate) fn long_running_native_operation_contract(
 ) -> LongRunningNativeOperationContract {
     let sleep_resume_stance = match operation {
         LongRunningNativeOperation::UpdaterDownload => SleepResumeStance::Unsupported,
-        LongRunningNativeOperation::OpmlExport => SleepResumeStance::Unsupported,
+        LongRunningNativeOperation::OpmlExport => SleepResumeStance::Guarded,
         LongRunningNativeOperation::DatabaseBackup => SleepResumeStance::Guarded,
     };
 
@@ -758,7 +758,7 @@ mod tests {
             ),
             (
                 LongRunningNativeOperation::OpmlExport,
-                SleepResumeStance::Unsupported,
+                SleepResumeStance::Guarded,
             ),
             (
                 LongRunningNativeOperation::DatabaseBackup,
