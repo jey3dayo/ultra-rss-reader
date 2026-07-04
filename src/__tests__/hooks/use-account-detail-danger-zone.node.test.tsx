@@ -20,7 +20,7 @@ const MUTE_KEYWORD_QUERY_KEY = ["muteKeywords"] as const;
 const {
   deleteAccountMock,
   exportLocalAccountSyncOperationsMock,
-  exportOpmlMock,
+  exportOpmlToFileMock,
   getLocalAccountSyncSettingsMock,
   getPreferencesMock,
   importLocalAccountSyncOperationsMock,
@@ -30,7 +30,7 @@ const {
 } = vi.hoisted(() => ({
   deleteAccountMock: vi.fn(),
   exportLocalAccountSyncOperationsMock: vi.fn(),
-  exportOpmlMock: vi.fn(),
+  exportOpmlToFileMock: vi.fn(),
   getLocalAccountSyncSettingsMock: vi.fn(),
   getPreferencesMock: vi.fn(),
   importLocalAccountSyncOperationsMock: vi.fn(),
@@ -39,10 +39,12 @@ const {
   setPreferenceMock: vi.fn(),
 }));
 
+const { showSaveDialogMock } = vi.hoisted(() => ({ showSaveDialogMock: vi.fn() }));
+
 vi.mock("@/api/tauri-commands", () => ({
   deleteAccount: deleteAccountMock,
   exportLocalAccountSyncOperations: exportLocalAccountSyncOperationsMock,
-  exportOpml: exportOpmlMock,
+  exportOpmlToFile: exportOpmlToFileMock,
   getLocalAccountSyncSettings: getLocalAccountSyncSettingsMock,
   getPreferences: getPreferencesMock,
   importLocalAccountSyncOperations: importLocalAccountSyncOperationsMock,
@@ -50,6 +52,8 @@ vi.mock("@/api/tauri-commands", () => ({
   setLocalAccountSyncSettings: setLocalAccountSyncSettingsMock,
   setPreference: setPreferenceMock,
 }));
+
+vi.mock("@/lib/platform/save-dialog", () => ({ showSaveDialog: showSaveDialogMock }));
 
 setupBrowserTestDom();
 
@@ -63,24 +67,13 @@ function createDeferred<T>() {
 }
 
 describe("useAccountDetailDangerZone", () => {
-  let originalCreateObjectUrl: typeof URL.createObjectURL | undefined;
-  let originalRevokeObjectUrl: typeof URL.revokeObjectURL | undefined;
   const t = i18n.getFixedT("en", "settings");
 
   beforeEach(() => {
-    vi.stubGlobal("HTMLAnchorElement", window.HTMLAnchorElement);
-    originalCreateObjectUrl = URL.createObjectURL;
-    originalRevokeObjectUrl = URL.revokeObjectURL;
-    Object.defineProperty(URL, "createObjectURL", {
-      configurable: true,
-      value: vi.fn(() => "blob:opml"),
-    });
-    Object.defineProperty(URL, "revokeObjectURL", {
-      configurable: true,
-      value: vi.fn(),
-    });
-    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
-    exportOpmlMock.mockReset();
+    exportOpmlToFileMock.mockReset();
+    exportOpmlToFileMock.mockResolvedValue(Result.succeed(null));
+    showSaveDialogMock.mockReset();
+    showSaveDialogMock.mockResolvedValue("/tmp/Local-feeds.opml");
     exportLocalAccountSyncOperationsMock.mockReset();
     deleteAccountMock.mockReset();
     getLocalAccountSyncSettingsMock.mockReset();
@@ -132,14 +125,6 @@ describe("useAccountDetailDangerZone", () => {
     await new Promise<void>((resolve) => setImmediate(resolve));
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
-    Object.defineProperty(URL, "createObjectURL", {
-      configurable: true,
-      value: originalCreateObjectUrl,
-    });
-    Object.defineProperty(URL, "revokeObjectURL", {
-      configurable: true,
-      value: originalRevokeObjectUrl,
-    });
     useUiStore.setState(useUiStore.getInitialState());
     usePreferencesStore.setState({ prefs: {}, loaded: false });
   });
@@ -151,10 +136,10 @@ describe("useAccountDetailDangerZone", () => {
   });
 
   it("guards repeated OPML exports while the current export is in flight", async () => {
-    const exportResult = createDeferred<ReturnType<typeof Result.succeed<string>>>();
-    exportOpmlMock.mockReturnValue(exportResult.promise);
+    const exportResult = createDeferred<ReturnType<typeof Result.succeed<null>>>();
+    exportOpmlToFileMock.mockReturnValue(exportResult.promise);
     const queryClient = createTestQueryClient();
-    const account = { ...sampleAccounts[0], name: '<>:"/\\|?*' };
+    const account = { ...sampleAccounts[0], name: "Local" };
 
     const { result } = renderHook(() =>
       useAccountDetailDangerZone({
@@ -173,17 +158,19 @@ describe("useAccountDetailDangerZone", () => {
     });
 
     expect(result.current.exportingOpml).toBe(true);
-    expect(exportOpmlMock).toHaveBeenCalledTimes(1);
-    expect(exportOpmlMock).toHaveBeenCalledWith("acc-1");
+    expect(showSaveDialogMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(exportOpmlToFileMock).toHaveBeenCalledTimes(1);
+    });
+    expect(exportOpmlToFileMock).toHaveBeenCalledWith("acc-1", "/tmp/Local-feeds.opml");
 
-    exportResult.resolve(Result.succeed("<opml />"));
+    exportResult.resolve(Result.succeed(null));
     await firstExport;
     await secondExport;
 
     await waitFor(() => {
       expect(result.current.exportingOpml).toBe(false);
     });
-    expect(HTMLAnchorElement.prototype.click).toHaveBeenCalledTimes(1);
   });
 
   it("exposes import pending state and guards repeated OPML imports while in flight", async () => {
@@ -224,23 +211,11 @@ describe("useAccountDetailDangerZone", () => {
     });
   });
 
-  it("uses the account snapshot from export start for the OPML command and filename", async () => {
-    const exportResult = createDeferred<ReturnType<typeof Result.succeed<string>>>();
-    const clickedDownloads: string[] = [];
-    exportOpmlMock.mockReturnValue(exportResult.promise);
-    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
-      clickedDownloads.push(this.download);
-    });
-    const firstAccount = {
-      ...sampleAccounts[0],
-      id: "acc-1",
-      name: "Local Work",
-    };
-    const secondAccount = {
-      ...sampleAccounts[0],
-      id: "acc-2",
-      name: "Local Personal",
-    };
+  it("uses the account snapshot from export start for the suggested filename and command", async () => {
+    const dialogResult = createDeferred<string | null>();
+    showSaveDialogMock.mockReturnValue(dialogResult.promise);
+    const firstAccount = { ...sampleAccounts[0], id: "acc-1", name: "Local Work" };
+    const secondAccount = { ...sampleAccounts[0], id: "acc-2", name: "Local Personal" };
 
     const { result, rerender } = renderHook(
       ({ account }) =>
@@ -256,49 +231,40 @@ describe("useAccountDetailDangerZone", () => {
     const exportOpmlPromise = result.current.handleExportOpml();
     rerender({ account: secondAccount });
 
-    exportResult.resolve(Result.succeed("<opml />"));
+    dialogResult.resolve("/tmp/Local Work-feeds.opml");
     await exportOpmlPromise;
 
-    expect(exportOpmlMock).toHaveBeenCalledWith(firstAccount.id);
-    expect(clickedDownloads).toEqual(["Local Work-feeds.opml"]);
+    expect(showSaveDialogMock).toHaveBeenCalledWith({
+      defaultPath: "Local Work-feeds.opml",
+      filters: [{ name: "OPML", extensions: ["opml"] }],
+    });
+    expect(exportOpmlToFileMock).toHaveBeenCalledWith("acc-1", "/tmp/Local Work-feeds.opml");
   });
 
-  it("revokes the active OPML object URL when switching accounts", async () => {
-    exportOpmlMock.mockResolvedValue(Result.succeed("<opml />"));
-    const revokeObjectUrlMock = vi.mocked(URL.revokeObjectURL);
-    const firstAccount = {
-      ...sampleAccounts[0],
-      id: "acc-1",
-      name: "Local Work",
-    };
-    const secondAccount = {
-      ...sampleAccounts[0],
-      id: "acc-2",
-      name: "Local Personal",
-    };
+  it("treats a canceled save dialog as a silent no-op without invoking the export command", async () => {
+    showSaveDialogMock.mockResolvedValue(null);
 
-    const { result, rerender } = renderHook(
-      ({ account }) =>
-        useAccountDetailDangerZone({
-          account,
-          queryClient: createTestQueryClient(),
-          t,
-          onAccountDeleted: vi.fn(),
-        }),
-      { initialProps: { account: firstAccount } },
+    const { result } = renderHook(() =>
+      useAccountDetailDangerZone({
+        account: sampleAccounts[0],
+        queryClient: createTestQueryClient(),
+        t,
+        onAccountDeleted: vi.fn(),
+      }),
     );
 
     await act(async () => {
       await result.current.handleExportOpml();
     });
-    rerender({ account: secondAccount });
 
-    expect(revokeObjectUrlMock).toHaveBeenCalledWith("blob:opml");
+    expect(exportOpmlToFileMock).not.toHaveBeenCalled();
+    expect(useUiStore.getState().toastMessage?.message).toBeUndefined();
+    expect(result.current.exportingOpml).toBe(false);
   });
 
-  it("ignores a completed OPML export after unmount without creating an object URL", async () => {
-    const exportResult = createDeferred<ReturnType<typeof Result.succeed<string>>>();
-    exportOpmlMock.mockReturnValue(exportResult.promise);
+  it("skips the export write when the dialog resolves after unmount", async () => {
+    const dialogResult = createDeferred<string | null>();
+    showSaveDialogMock.mockReturnValue(dialogResult.promise);
 
     const { result, unmount } = renderHook(() =>
       useAccountDetailDangerZone({
@@ -312,74 +278,14 @@ describe("useAccountDetailDangerZone", () => {
     const exportOpmlPromise = result.current.handleExportOpml();
     unmount();
 
-    exportResult.resolve(Result.succeed("<opml />"));
+    dialogResult.resolve("/tmp/Local-feeds.opml");
     await exportOpmlPromise;
 
-    expect(URL.createObjectURL).not.toHaveBeenCalled();
-    expect(HTMLAnchorElement.prototype.click).not.toHaveBeenCalled();
-    expect(URL.revokeObjectURL).not.toHaveBeenCalled();
+    expect(exportOpmlToFileMock).not.toHaveBeenCalled();
   });
 
-  it("revokes the previous OPML object URL before replacing it and revokes the active URL on unmount", async () => {
-    const createObjectUrlMock = vi.fn().mockReturnValueOnce("blob:first").mockReturnValueOnce("blob:second");
-    Object.defineProperty(URL, "createObjectURL", {
-      configurable: true,
-      value: createObjectUrlMock,
-    });
-    const revokeObjectUrlMock = vi.mocked(URL.revokeObjectURL);
-    exportOpmlMock.mockResolvedValue(Result.succeed("<opml />"));
-
-    const { result, unmount } = renderHook(() =>
-      useAccountDetailDangerZone({
-        account: sampleAccounts[0],
-        queryClient: createTestQueryClient(),
-        t,
-        onAccountDeleted: vi.fn(),
-      }),
-    );
-
-    await act(async () => {
-      await result.current.handleExportOpml();
-    });
-    await act(async () => {
-      await result.current.handleExportOpml();
-    });
-    unmount();
-
-    expect(revokeObjectUrlMock).toHaveBeenCalledWith("blob:first");
-    expect(revokeObjectUrlMock).toHaveBeenCalledWith("blob:second");
-  });
-
-  it("revokes the active OPML object URL after the download grace period", async () => {
-    vi.useFakeTimers();
-    exportOpmlMock.mockResolvedValue(Result.succeed("<opml />"));
-    const revokeObjectUrlMock = vi.mocked(URL.revokeObjectURL);
-
-    const { result } = renderHook(() =>
-      useAccountDetailDangerZone({
-        account: sampleAccounts[0],
-        queryClient: createTestQueryClient(),
-        t,
-        onAccountDeleted: vi.fn(),
-      }),
-    );
-
-    await act(async () => {
-      await result.current.handleExportOpml();
-    });
-    act(() => {
-      vi.advanceTimersByTime(1000);
-    });
-
-    expect(revokeObjectUrlMock).toHaveBeenCalledWith("blob:opml");
-  });
-
-  it("revokes the OPML object URL immediately when the download click fails", async () => {
-    exportOpmlMock.mockResolvedValue(Result.succeed("<opml />"));
-    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {
-      throw new Error("download blocked");
-    });
-    const revokeObjectUrlMock = vi.mocked(URL.revokeObjectURL);
+  it("surfaces export write failures with the OPML export error toast", async () => {
+    exportOpmlToFileMock.mockResolvedValue(Result.fail({ type: "UserVisible", message: "disk full" }));
 
     const { result } = renderHook(() =>
       useAccountDetailDangerZone({
@@ -394,7 +300,33 @@ describe("useAccountDetailDangerZone", () => {
       await result.current.handleExportOpml();
     });
 
-    expect(revokeObjectUrlMock).toHaveBeenCalledWith("blob:opml");
+    await waitFor(() => {
+      expect(useUiStore.getState().toastMessage?.message).toBe("Failed to export OPML: disk full");
+    });
+    expect(result.current.exportingOpml).toBe(false);
+  });
+
+  it("shows the export error toast when the native save dialog is unavailable", async () => {
+    showSaveDialogMock.mockRejectedValue(new Error("dialog unavailable"));
+
+    const { result } = renderHook(() =>
+      useAccountDetailDangerZone({
+        account: sampleAccounts[0],
+        queryClient: createTestQueryClient(),
+        t,
+        onAccountDeleted: vi.fn(),
+      }),
+    );
+
+    await act(async () => {
+      await result.current.handleExportOpml();
+    });
+
+    expect(exportOpmlToFileMock).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(useUiStore.getState().toastMessage?.message).toBe("Failed to export OPML: dialog unavailable");
+    });
+    expect(result.current.exportingOpml).toBe(false);
   });
 
   it("invalidates reader article caches after account delete succeeds", async () => {

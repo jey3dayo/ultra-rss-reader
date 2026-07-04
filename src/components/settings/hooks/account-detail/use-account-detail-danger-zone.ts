@@ -6,12 +6,13 @@ import { useTranslation } from "react-i18next";
 import {
   deleteAccount,
   exportLocalAccountSyncOperations,
-  exportOpml,
+  exportOpmlToFile,
   getLocalAccountSyncSettings,
   importLocalAccountSyncOperations,
   importOpml,
   setLocalAccountSyncSettings,
 } from "@/api/tauri-commands";
+import { showSaveDialog } from "@/lib/platform/save-dialog";
 import {
   getQueryKeyRootName,
   getQueryKeyScopeValue,
@@ -151,8 +152,6 @@ export function useAccountDetailDangerZone({
   const [savingLocalSyncSettings, setSavingLocalSyncSettings] = useState(false);
   const [exportingLocalSyncOperations, setExportingLocalSyncOperations] = useState(false);
   const [importingLocalSyncOperations, setImportingLocalSyncOperations] = useState(false);
-  const pendingExportUrlRef = useRef<string | null>(null);
-  const pendingExportUrlTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mountedRef = useRef(true);
   const { t: tc } = useTranslation("common");
   const showConfirm = useUiStore((state) => state.showConfirm);
@@ -174,31 +173,12 @@ export function useAccountDetailDangerZone({
   const savedAccountId = usePreferencesStore((state) => state.prefs.selected_account_id ?? "");
   const setPref = usePreferencesStore((state) => state.setPref);
 
-  const revokePendingExportUrl = useCallback(() => {
-    if (pendingExportUrlTimerRef.current !== null) {
-      clearTimeout(pendingExportUrlTimerRef.current);
-      pendingExportUrlTimerRef.current = null;
-    }
-
-    if (pendingExportUrlRef.current !== null) {
-      URL.revokeObjectURL(pendingExportUrlRef.current);
-      pendingExportUrlRef.current = null;
-    }
-  }, []);
-
   useEffect(() => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
-      revokePendingExportUrl();
     };
-  }, [revokePendingExportUrl]);
-
-  useEffect(() => {
-    const accountId = account.id;
-    void accountId;
-    revokePendingExportUrl();
-  }, [account.id, revokePendingExportUrl]);
+  }, []);
 
   useEffect(() => {
     if (account.kind !== "Local") {
@@ -279,32 +259,24 @@ export function useAccountDetailDangerZone({
     exportInFlightRef.current = true;
     setExportingOpml(true);
     try {
-      const exportResult = await exportOpml(exportAccountSnapshot.id);
+      const path = await showSaveDialog({
+        defaultPath: buildOpmlExportFilename(exportAccountSnapshot.name),
+        filters: [{ name: "OPML", extensions: ["opml"] }],
+      });
+      if (path === null || !mountedRef.current) {
+        return;
+      }
+
+      const exportResult = await exportOpmlToFile(exportAccountSnapshot.id, path);
       if (!mountedRef.current) {
         return;
       }
 
-      Result.pipe(
-        exportResult,
-        Result.inspectError(showExportError),
-        Result.inspect((opmlString) => {
-          const blob = new Blob([opmlString], { type: "application/xml" });
-          revokePendingExportUrl();
-          const url = URL.createObjectURL(blob);
-          const anchor = document.createElement("a");
-          anchor.href = url;
-          anchor.download = buildOpmlExportFilename(exportAccountSnapshot.name);
-          pendingExportUrlRef.current = url;
-          try {
-            anchor.click();
-            pendingExportUrlTimerRef.current = setTimeout(() => {
-              revokePendingExportUrl();
-            }, 1000);
-          } catch {
-            revokePendingExportUrl();
-          }
-        }),
-      );
+      Result.pipe(exportResult, Result.inspectError(showExportError));
+    } catch (error) {
+      if (mountedRef.current) {
+        showExportError({ message: getErrorMessage(error) });
+      }
     } finally {
       exportInFlightRef.current = false;
       if (mountedRef.current) {

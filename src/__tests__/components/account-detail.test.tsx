@@ -85,6 +85,9 @@ async function findPasswordInput() {
   return input;
 }
 
+const { showSaveDialogMock } = vi.hoisted(() => ({ showSaveDialogMock: vi.fn() }));
+vi.mock("@/lib/platform/save-dialog", () => ({ showSaveDialog: showSaveDialogMock }));
+
 vi.mock("@/components/settings/account-detail/view", () => ({
   AccountDetailView: (props: AccountDetailViewMockProps) => {
     accountDetailViewSpy(props);
@@ -1508,14 +1511,13 @@ describe("AccountDetail", () => {
     expect(showToast).not.toHaveBeenCalledWith("Clipboard unavailable");
   });
 
-  it("revokes OPML export object URLs after download, before a rapid replacement, and on unmount", async () => {
-    const createObjectUrl = vi
-      .spyOn(URL, "createObjectURL")
-      .mockReturnValueOnce("blob:first")
-      .mockReturnValueOnce("blob:second");
-    const revokeObjectUrl = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
+  it("exports OPML through the native save dialog and the export_opml_to_file command", async () => {
+    const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
+    showSaveDialogMock.mockReset();
+    showSaveDialogMock.mockResolvedValue("/tmp/FreshRSS-feeds.opml");
 
-    setupTauriMocks((cmd) => {
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
       switch (cmd) {
         case "list_accounts":
           return [
@@ -1531,34 +1533,72 @@ describe("AccountDetail", () => {
               keep_read_items_days: 30,
             },
           ];
-        case "export_opml":
-          return '<opml version="2.0" />';
+        case "export_opml_to_file":
+          return null;
         default:
           return undefined;
       }
     });
 
-    const { unmount } = render(<AccountDetail />, { wrapper: createWrapper() });
+    render(<AccountDetail />, { wrapper: createWrapper() });
     const exportButton = await screen.findByRole("button", {
       name: "Export OPML",
     });
 
     fireEvent.click(exportButton);
+
     await waitFor(() => {
-      expect(createObjectUrl).toHaveBeenCalledTimes(1);
+      expect(calls).toContainEqual(
+        expect.objectContaining({
+          cmd: "export_opml_to_file",
+          args: expect.objectContaining({ accountId: "acc-1", path: "/tmp/FreshRSS-feeds.opml" }),
+        }),
+      );
+    });
+    expect(showSaveDialogMock).toHaveBeenCalledWith({
+      defaultPath: "FreshRSS-feeds.opml",
+      filters: [{ name: "OPML", extensions: ["opml"] }],
+    });
+  });
+
+  it("does not invoke the export command when the OPML save dialog is canceled", async () => {
+    const calls: Array<{ cmd: string }> = [];
+    showSaveDialogMock.mockReset();
+    showSaveDialogMock.mockResolvedValue(null);
+
+    setupTauriMocks((cmd) => {
+      calls.push({ cmd });
+      switch (cmd) {
+        case "list_accounts":
+          return [
+            {
+              id: "acc-1",
+              kind: "FreshRss",
+              name: "FreshRSS",
+              username: "user",
+              server_url: "https://freshrss.example.com",
+              sync_interval_secs: 3600,
+              sync_on_startup: true,
+              sync_on_wake: false,
+              keep_read_items_days: 30,
+            },
+          ];
+        default:
+          return undefined;
+      }
     });
 
-    expect(revokeObjectUrl).not.toHaveBeenCalled();
+    render(<AccountDetail />, { wrapper: createWrapper() });
+    const exportButton = await screen.findByRole("button", {
+      name: "Export OPML",
+    });
 
     fireEvent.click(exportButton);
+
     await waitFor(() => {
-      expect(createObjectUrl).toHaveBeenCalledTimes(2);
+      expect(showSaveDialogMock).toHaveBeenCalledTimes(1);
     });
-    expect(revokeObjectUrl).toHaveBeenCalledWith("blob:first");
-
-    unmount();
-
-    expect(revokeObjectUrl).toHaveBeenCalledWith("blob:second");
+    expect(calls.map(({ cmd }) => cmd)).not.toContain("export_opml_to_file");
   });
 
   it("imports the selected OPML file into the current account and shows a success toast", async () => {
