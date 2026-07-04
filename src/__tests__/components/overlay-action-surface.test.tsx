@@ -58,4 +58,34 @@ describe("OverlayActionSurface", () => {
     expect(chrome.className).toContain("has-[:active]:bg-transparent");
     expect(chrome).not.toHaveClass("border");
   });
+
+  it("keeps disabled child controls from picking up shell hover colors", () => {
+    render(
+      <>
+        <OverlayActionSurface data-testid="default-action" compact tone="default">
+          <button type="button" disabled>
+            Default action
+          </button>
+        </OverlayActionSurface>
+        <OverlayActionSurface data-testid="subtle-action" compact={false} tone="subtle">
+          <button type="button" disabled>
+            Subtle action
+          </button>
+        </OverlayActionSurface>
+        <OverlayActionSurface data-testid="chrome-action" compact variant="chrome">
+          <button type="button" disabled>
+            Chrome action
+          </button>
+        </OverlayActionSurface>
+      </>,
+    );
+
+    expect(screen.getByTestId("default-action").className).toContain("has-[:disabled]:hover:border-border/75");
+    expect(screen.getByTestId("default-action").className).toContain("has-[:disabled]:hover:bg-overlay-action-surface");
+    expect(screen.getByTestId("subtle-action").className).toContain("has-[:disabled]:hover:border-border/70");
+    expect(screen.getByTestId("subtle-action").className).toContain(
+      "has-[:disabled]:hover:bg-overlay-action-surface-subtle",
+    );
+    expect(screen.getByTestId("chrome-action").className).toContain("has-[:disabled]:hover:text-foreground-soft");
+  });
 });

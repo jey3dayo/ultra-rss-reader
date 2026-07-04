@@ -12,12 +12,13 @@ const overlayActionSurfaceVariants = cva("motion-pressable-surface pointer-event
     },
     variant: {
       default:
-        "border border-border/75 bg-overlay-action-surface shadow-elevation-2 backdrop-blur-md hover:border-border-strong hover:bg-overlay-action-surface-hover hover:text-foreground has-[:focus-visible]:border-border-strong has-[:focus-visible]:bg-overlay-action-surface-focus has-[:focus-visible]:text-foreground has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/70 has-[:focus-visible]:ring-offset-0 has-[:active]:border-border-strong has-[:active]:bg-overlay-action-surface-hover has-[:active]:shadow-elevation-1",
-      chrome: `${ghostUtilityActionInteractionClassName} text-foreground-soft hover:text-foreground has-[:focus-visible]:bg-transparent has-[:focus-visible]:text-foreground has-[:focus-visible]:ring-0 has-[:focus-visible]:ring-offset-0 has-[:active]:bg-transparent has-[:active]:shadow-none`,
+        "border border-border/75 bg-overlay-action-surface shadow-elevation-2 backdrop-blur-md hover:border-border-strong hover:bg-overlay-action-surface-hover hover:text-foreground has-[:disabled]:hover:border-border/75 has-[:disabled]:hover:bg-overlay-action-surface has-[:focus-visible]:border-border-strong has-[:focus-visible]:bg-overlay-action-surface-focus has-[:focus-visible]:text-foreground has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/70 has-[:focus-visible]:ring-offset-0 has-[:active]:border-border-strong has-[:active]:bg-overlay-action-surface-hover has-[:active]:shadow-elevation-1",
+      chrome: `${ghostUtilityActionInteractionClassName} text-foreground-soft hover:text-foreground has-[:disabled]:hover:text-foreground-soft has-[:focus-visible]:bg-transparent has-[:focus-visible]:text-foreground has-[:focus-visible]:ring-0 has-[:focus-visible]:ring-offset-0 has-[:active]:bg-transparent has-[:active]:shadow-none`,
     },
     tone: {
       default: "",
-      subtle: "bg-overlay-action-surface-subtle border-border/70",
+      subtle:
+        "bg-overlay-action-surface-subtle border-border/70 has-[:disabled]:hover:border-border/70 has-[:disabled]:hover:bg-overlay-action-surface-subtle",
     },
   },
   defaultVariants: {
