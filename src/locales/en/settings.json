@@ -118,7 +118,7 @@
     "clear_recent_articles_success": "Recently viewed history cleared",
     "clear_recent_articles_failed": "Failed to clear recently viewed history: {{message}}",
     "scroll": "Scroll",
-    "open_first_article_on_feed_selection": "Open the first article when selecting a feed",
+    "open_first_article_on_feed_selection": "Open the first article when selecting a feed or folder",
     "scroll_to_top_on_feed_change": "Scroll to top on feed change"
   },
   "mute": {

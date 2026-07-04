@@ -118,7 +118,7 @@
     "clear_recent_articles_success": "閲覧履歴を削除しました",
     "clear_recent_articles_failed": "閲覧履歴の削除に失敗しました: {{message}}",
     "scroll": "スクロール",
-    "open_first_article_on_feed_selection": "フィード選択時に最初の記事を開く",
+    "open_first_article_on_feed_selection": "フィード/フォルダ選択時に最初の記事を開く",
     "scroll_to_top_on_feed_change": "フィード切り替え時にトップへスクロール"
   },
   "mute": {
