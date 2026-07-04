@@ -2149,6 +2149,7 @@ describe("release repository contract", () => {
       "V19__article_list_ordered_indexes.sql",
       "V20__article_account_ordered_indexes.sql",
       "V21__local_account_sync_settings.sql",
+      "V22__local_account_sync_export_state.sql",
     ]);
     expect(new Set(migrationVersions).size).toBe(migrationVersions.length);
     for (let version = 1; version <= latestMigrationVersion; version += 1) {
