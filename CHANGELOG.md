@@ -4,6 +4,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+### Features
+
+- ローカルアカウントの同期フォルダを自動同期に対応した。アカウント同期のたびに操作ファイルの取り込みと、状態変化時のみの書き出し(digest 判定)を自動で行い、Dropbox / Resilio Sync などの同期フォルダに置くだけで複数デバイス間の購読・既読・スター・タグ状態が同期される。設定画面のローカル同期フォルダに「自動同期」トグルを追加した。
+
 ## [0.53.15] - 2026-07-03
 
 ### Bug Fixes

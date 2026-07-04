@@ -22,9 +22,21 @@
 
 ### Sync / App Runtime
 
+- P3 local-sync auto-sync accepted debt (created batch: 2026-07-04)
+  - priority: P3 / domain: provider-sync / work type: contract test + implementation / write scope: src-tauri local_account_sync service+commands
+  - 手動 export 成功後に digest を更新せず、直後の auto-export が冗長 full snapshot を 1 回書く(収束するため許容中)。修正時は manual export 後に `save_export_digest` を呼ぶ
+  - contract test 未整備: empty-operations の digest/export 挙動、auto-import の Err 分岐・rejected-only warning 分岐の単体カバー
+  - merge レベル `rejected_operations` は auto path で warning にならず silent drop(手動 import では件数可視)。発見方法: focused test
+  - pre-existing: `trigger_startup_sync` の warnings は SyncResult 返却のみで sync-warning event を emit しない(起動時は toast なし、次の scheduler cycle で toast される)
+
 ### App Shell / Command Palette / Dev Intent
 
 ### Reader UI / Account Settings
+
+- P3 local-sync enabled toggle polish (created batch: 2026-07-04)
+  - priority: P3 / domain: settings-state / work type: implementation + contract test / write scope: use-account-detail-danger-zone + locales
+  - 自動同期トグルの楽観更新は persist 失敗時にロールバックしない(既存 handleSaveLocalSyncFolder と parity、保存中は switch disabled + エラー toast あり)。failure-path test も未整備
+  - トグル単体の即時保存が `account.local_sync_settings_saved`(「ローカル同期フォルダを保存しました」)を流用。専用 toast キー追加候補。発見方法: focused test
 
 ### Dev / Tooling / E2E / Test Helpers
 
