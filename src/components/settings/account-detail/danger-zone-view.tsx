@@ -1,7 +1,7 @@
 import { type ChangeEvent, useId, useRef } from "react";
 import { SettingsLoadingActionButton } from "@/components/settings/settings-loading-action-button";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
-import { DeleteButton } from "@/design-system";
+import { DeleteButton, LabeledSwitchRow } from "@/design-system";
 
 type AccountDangerZoneViewProps = {
   dataHeading: string;
@@ -12,6 +12,10 @@ type AccountDangerZoneViewProps = {
   exportingLabel?: string;
   localSyncHeading?: string;
   localSyncDescription?: string;
+  localSyncEnabledLabel?: string;
+  localSyncEnabledDescription?: string;
+  localSyncEnabledChecked?: boolean;
+  onLocalSyncEnabledChange?: (checked: boolean) => void;
   localSyncFolderLabel?: string;
   localSyncFolderPlaceholder?: string;
   localSyncFolderValue?: string;
@@ -48,6 +52,10 @@ export function AccountDangerZoneView({
   exportingLabel,
   localSyncHeading,
   localSyncDescription,
+  localSyncEnabledLabel,
+  localSyncEnabledDescription,
+  localSyncEnabledChecked = true,
+  onLocalSyncEnabledChange,
   localSyncFolderLabel,
   localSyncFolderPlaceholder,
   localSyncFolderValue = "",
@@ -89,6 +97,7 @@ export function AccountDangerZoneView({
     onSaveLocalSyncFolder &&
     onExportLocalSync &&
     onImportLocalSync;
+  const hasLocalSyncEnabledControl = localSyncEnabledLabel && onLocalSyncEnabledChange;
   const localSyncBusy = loadingLocalSyncFolder || savingLocalSyncFolder || exportingLocalSync || importingLocalSync;
   const localSyncDisabled = disabled || localSyncBusy;
   const handleImportClick = () => {
@@ -114,6 +123,17 @@ export function AccountDangerZoneView({
                 <p className="mt-1 text-sm text-foreground-soft">{localSyncDescription}</p>
               ) : null}
             </div>
+            {hasLocalSyncEnabledControl ? (
+              <div data-testid="local-sync-enabled-toggle">
+                <LabeledSwitchRow
+                  label={localSyncEnabledLabel}
+                  description={localSyncEnabledDescription}
+                  checked={localSyncEnabledChecked}
+                  onChange={onLocalSyncEnabledChange}
+                  disabled={localSyncDisabled}
+                />
+              </div>
+            ) : null}
             <label className="flex flex-col gap-1 text-sm font-medium text-foreground">
               {localSyncFolderLabel}
               <input

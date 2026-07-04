@@ -254,6 +254,8 @@
     "exporting_opml": "OPMLをエクスポート中…",
     "local_sync_heading": "ローカル同期フォルダ",
     "local_sync_description": "購読URL、記事URL、タグ、既読、スター状態をUltra RSS Reader専用の操作ファイルとして保存します。SQLiteデータベース、WAL/SHM、認証情報は書き込みません。",
+    "local_sync_enabled_label": "自動同期",
+    "local_sync_enabled_description": "このアカウントの同期のたびに、操作ファイルの書き出しと取り込みを自動で行います。",
     "local_sync_folder": "フォルダパス",
     "local_sync_folder_placeholder": "/Users/alice/Sync/UltraRSSReader/local-accounts/main",
     "local_sync_save": "フォルダを保存",

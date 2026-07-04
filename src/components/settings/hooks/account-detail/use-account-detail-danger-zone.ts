@@ -43,6 +43,8 @@ export type AccountDetailDangerZoneResult = {
   handleExportOpml: () => Promise<void>;
   localSyncFolderPath: string;
   setLocalSyncFolderPath: (value: string) => void;
+  localSyncEnabled: boolean;
+  handleToggleLocalSyncEnabled: (next: boolean) => void;
   handleSaveLocalSyncFolder: () => Promise<void>;
   handleExportLocalSyncOperations: () => Promise<void>;
   handleImportLocalSyncOperations: () => Promise<void>;
@@ -144,6 +146,7 @@ export function useAccountDetailDangerZone({
   const [importingOpml, setImportingOpml] = useState(false);
   const [exportingOpml, setExportingOpml] = useState(false);
   const [localSyncFolderPath, setLocalSyncFolderPath] = useState("");
+  const [localSyncEnabled, setLocalSyncEnabled] = useState(true);
   const [loadingLocalSyncSettings, setLoadingLocalSyncSettings] = useState(false);
   const [savingLocalSyncSettings, setSavingLocalSyncSettings] = useState(false);
   const [exportingLocalSyncOperations, setExportingLocalSyncOperations] = useState(false);
@@ -200,6 +203,7 @@ export function useAccountDetailDangerZone({
   useEffect(() => {
     if (account.kind !== "Local") {
       setLocalSyncFolderPath("");
+      setLocalSyncEnabled(true);
       return;
     }
 
@@ -213,6 +217,7 @@ export function useAccountDetailDangerZone({
           Result.inspectError(showLocalSyncSettingsError),
           Result.inspect((settings) => {
             setLocalSyncFolderPath(settings?.sync_folder_path ?? "");
+            setLocalSyncEnabled(settings?.enabled ?? true);
           }),
         );
       })
@@ -313,10 +318,11 @@ export function useAccountDetailDangerZone({
     setSavingLocalSyncSettings(true);
     try {
       Result.pipe(
-        await setLocalAccountSyncSettings(account.id, localSyncFolderPath, true),
+        await setLocalAccountSyncSettings(account.id, localSyncFolderPath, localSyncEnabled),
         Result.inspectError(showLocalSyncSettingsError),
         Result.inspect((settings) => {
           setLocalSyncFolderPath(settings.sync_folder_path);
+          setLocalSyncEnabled(settings.enabled);
           useUiStore.getState().showToast(t("account.local_sync_settings_saved"));
         }),
       );
@@ -325,6 +331,34 @@ export function useAccountDetailDangerZone({
         setSavingLocalSyncSettings(false);
       }
     }
+  };
+
+  const handleToggleLocalSyncEnabled = (next: boolean) => {
+    if (account.kind !== "Local") return;
+    setLocalSyncEnabled(next);
+    if (localSyncFolderPath.trim().length === 0 || savingLocalSyncSettings) {
+      return;
+    }
+
+    setSavingLocalSyncSettings(true);
+    void setLocalAccountSyncSettings(account.id, localSyncFolderPath, next)
+      .then((result) => {
+        if (!mountedRef.current) return;
+        Result.pipe(
+          result,
+          Result.inspectError(showLocalSyncSettingsError),
+          Result.inspect((settings) => {
+            setLocalSyncFolderPath(settings.sync_folder_path);
+            setLocalSyncEnabled(settings.enabled);
+            useUiStore.getState().showToast(t("account.local_sync_settings_saved"));
+          }),
+        );
+      })
+      .finally(() => {
+        if (mountedRef.current) {
+          setSavingLocalSyncSettings(false);
+        }
+      });
   };
 
   const handleExportLocalSyncOperations = async () => {
@@ -416,6 +450,8 @@ export function useAccountDetailDangerZone({
     handleExportOpml,
     localSyncFolderPath,
     setLocalSyncFolderPath,
+    localSyncEnabled,
+    handleToggleLocalSyncEnabled,
     handleSaveLocalSyncFolder,
     handleExportLocalSyncOperations,
     handleImportLocalSyncOperations,

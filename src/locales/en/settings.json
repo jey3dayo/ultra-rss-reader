@@ -254,6 +254,8 @@
     "exporting_opml": "Exporting OPML…",
     "local_sync_heading": "Local sync folder",
     "local_sync_description": "Stores private subscription URLs, article URLs, tags, read state, and star state as Ultra RSS Reader operation files. It never writes the SQLite database, WAL/SHM files, or credentials.",
+    "local_sync_enabled_label": "Sync automatically",
+    "local_sync_enabled_description": "Import and export run automatically every time this account syncs.",
     "local_sync_folder": "Folder path",
     "local_sync_folder_placeholder": "/Users/alice/Sync/UltraRSSReader/local-accounts/main",
     "local_sync_save": "Save Folder",

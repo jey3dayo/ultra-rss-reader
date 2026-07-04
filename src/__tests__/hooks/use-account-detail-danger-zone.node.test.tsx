@@ -595,4 +595,172 @@ describe("useAccountDetailDangerZone", () => {
       expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey });
     }
   });
+
+  it("populates the local sync enabled toggle from loaded settings, defaulting to true when unset", async () => {
+    getLocalAccountSyncSettingsMock.mockResolvedValue(
+      Result.succeed({
+        account_id: "acc-1",
+        sync_folder_path: "/tmp/UltraRSSReader",
+        sync_account_id: "sync-account-1",
+        device_id: "device-1",
+        enabled: false,
+      }),
+    );
+
+    const { result } = renderHook(() =>
+      useAccountDetailDangerZone({
+        account: { ...sampleAccounts[0], kind: "Local" },
+        queryClient: createTestQueryClient(),
+        t,
+        onAccountDeleted: vi.fn(),
+      }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.localSyncFolderPath).toBe("/tmp/UltraRSSReader");
+    });
+    expect(result.current.localSyncEnabled).toBe(false);
+  });
+
+  it("defaults the local sync enabled toggle to true when settings are unset", async () => {
+    getLocalAccountSyncSettingsMock.mockResolvedValue(Result.succeed(null));
+
+    const { result } = renderHook(() =>
+      useAccountDetailDangerZone({
+        account: { ...sampleAccounts[0], kind: "Local" },
+        queryClient: createTestQueryClient(),
+        t,
+        onAccountDeleted: vi.fn(),
+      }),
+    );
+
+    await waitFor(() => {
+      expect(getLocalAccountSyncSettingsMock).toHaveBeenCalled();
+    });
+    expect(result.current.localSyncEnabled).toBe(true);
+  });
+
+  it("saves the toggled enabled value instead of a hardcoded true", async () => {
+    getLocalAccountSyncSettingsMock.mockResolvedValue(
+      Result.succeed({
+        account_id: "acc-1",
+        sync_folder_path: "/tmp/UltraRSSReader",
+        sync_account_id: "sync-account-1",
+        device_id: "device-1",
+        enabled: true,
+      }),
+    );
+    setLocalAccountSyncSettingsMock.mockImplementation((accountId: string, syncFolderPath: string, enabled: boolean) =>
+      Promise.resolve(
+        Result.succeed({
+          account_id: accountId,
+          sync_folder_path: syncFolderPath,
+          sync_account_id: "sync-account-1",
+          device_id: "device-1",
+          enabled,
+        }),
+      ),
+    );
+
+    const { result } = renderHook(() =>
+      useAccountDetailDangerZone({
+        account: { ...sampleAccounts[0], kind: "Local" },
+        queryClient: createTestQueryClient(),
+        t,
+        onAccountDeleted: vi.fn(),
+      }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.localSyncFolderPath).toBe("/tmp/UltraRSSReader");
+    });
+
+    act(() => {
+      result.current.handleToggleLocalSyncEnabled(false);
+    });
+
+    await waitFor(() => {
+      expect(setLocalAccountSyncSettingsMock).toHaveBeenCalledWith("acc-1", "/tmp/UltraRSSReader", false);
+    });
+    await waitFor(() => {
+      expect(result.current.localSyncEnabled).toBe(false);
+    });
+
+    setLocalAccountSyncSettingsMock.mockClear();
+    await act(async () => {
+      await result.current.handleSaveLocalSyncFolder();
+    });
+
+    expect(setLocalAccountSyncSettingsMock).toHaveBeenCalledWith("acc-1", "/tmp/UltraRSSReader", false);
+  });
+
+  it("toggling with a saved folder path persists immediately and shows the saved toast", async () => {
+    getLocalAccountSyncSettingsMock.mockResolvedValue(
+      Result.succeed({
+        account_id: "acc-1",
+        sync_folder_path: "/tmp/UltraRSSReader",
+        sync_account_id: "sync-account-1",
+        device_id: "device-1",
+        enabled: true,
+      }),
+    );
+    setLocalAccountSyncSettingsMock.mockResolvedValue(
+      Result.succeed({
+        account_id: "acc-1",
+        sync_folder_path: "/tmp/UltraRSSReader",
+        sync_account_id: "sync-account-1",
+        device_id: "device-1",
+        enabled: false,
+      }),
+    );
+
+    const { result } = renderHook(() =>
+      useAccountDetailDangerZone({
+        account: { ...sampleAccounts[0], kind: "Local" },
+        queryClient: createTestQueryClient(),
+        t,
+        onAccountDeleted: vi.fn(),
+      }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.localSyncFolderPath).toBe("/tmp/UltraRSSReader");
+    });
+
+    act(() => {
+      result.current.handleToggleLocalSyncEnabled(false);
+    });
+
+    expect(result.current.localSyncEnabled).toBe(false);
+    await waitFor(() => {
+      expect(setLocalAccountSyncSettingsMock).toHaveBeenCalledWith("acc-1", "/tmp/UltraRSSReader", false);
+    });
+    await waitFor(() => {
+      expect(useUiStore.getState().toastMessage?.message).toBe("Local sync folder saved");
+    });
+  });
+
+  it("toggling without a saved folder path only updates local state without persisting", async () => {
+    getLocalAccountSyncSettingsMock.mockResolvedValue(Result.succeed(null));
+
+    const { result } = renderHook(() =>
+      useAccountDetailDangerZone({
+        account: { ...sampleAccounts[0], kind: "Local" },
+        queryClient: createTestQueryClient(),
+        t,
+        onAccountDeleted: vi.fn(),
+      }),
+    );
+
+    await waitFor(() => {
+      expect(getLocalAccountSyncSettingsMock).toHaveBeenCalled();
+    });
+
+    act(() => {
+      result.current.handleToggleLocalSyncEnabled(false);
+    });
+
+    expect(result.current.localSyncEnabled).toBe(false);
+    expect(setLocalAccountSyncSettingsMock).not.toHaveBeenCalled();
+  });
 });
