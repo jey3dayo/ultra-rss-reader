@@ -33,6 +33,8 @@ pub(crate) const OPML_IMPORT_CONTENT_MAX_BYTES: usize = 4096 * 1024;
 const OPML_IMPORT_CONTENT_TOO_LARGE_MESSAGE: &str = "OPML import file is too large";
 const OPML_EXPORT_PATH_EMPTY_MESSAGE: &str = "OPML export path cannot be empty";
 const OPML_EXPORT_WRITE_ERROR_PREFIX: &str = "Failed to write OPML export";
+const OPML_EXPORT_EXTENSION_CONFLICT_PREFIX: &str =
+    "A file already exists at the auto-generated .opml path";
 const OPML_EXPORT_FILE_EXTENSION: &str = "opml";
 
 #[tauri::command]
@@ -384,7 +386,24 @@ fn validate_opml_export_path(path: String) -> Result<PathBuf, AppError> {
             message: OPML_EXPORT_PATH_EMPTY_MESSAGE.to_string(),
         });
     }
-    Ok(ensure_opml_extension(PathBuf::from(trimmed)))
+    let requested = PathBuf::from(trimmed);
+    let resolved = ensure_opml_extension(requested.clone());
+
+    // The OS save dialog only confirms overwrite for the exact name the user
+    // typed. When we auto-append ".opml" the resolved path is a different
+    // file the dialog never asked about, so silently replacing it here would
+    // bypass that confirmation. Only the auto-append case needs this check:
+    // an explicit ".opml" path already went through the dialog's own prompt.
+    if resolved != requested && resolved.exists() {
+        return Err(AppError::UserVisible {
+            message: format!(
+                "{OPML_EXPORT_EXTENSION_CONFLICT_PREFIX}: {}",
+                crate::infra::db::backup::redacted_path_label(&resolved)
+            ),
+        });
+    }
+
+    Ok(resolved)
 }
 
 /// Contract: auto_appends_extension. Append ".opml" when the selected path
@@ -2217,5 +2236,39 @@ mod tests {
         ));
         assert!(!dest.exists());
         assert!(!opml_export_temp_path(&dest).exists());
+    }
+
+    #[test]
+    fn export_to_file_rejects_auto_appended_extension_when_target_already_exists() {
+        let dir = export_dir();
+        let existing = dir.path().join("feeds.opml");
+        std::fs::write(&existing, "<opml></opml>").unwrap();
+        let requested = dir.path().join("feeds").to_string_lossy().to_string();
+
+        let error = validate_opml_export_path(requested)
+            .expect_err("auto-appended extension must not silently overwrite an existing file");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { message } if message.contains("already exists")
+        ));
+        assert_eq!(
+            std::fs::read_to_string(&existing).unwrap(),
+            "<opml></opml>",
+            "the pre-existing file must not be touched by the rejected export"
+        );
+    }
+
+    #[test]
+    fn export_to_file_allows_overwrite_when_user_typed_the_opml_extension_explicitly() {
+        let dir = export_dir();
+        let existing = dir.path().join("feeds.opml");
+        std::fs::write(&existing, "<opml></opml>").unwrap();
+        let requested = existing.to_string_lossy().to_string();
+
+        let path = validate_opml_export_path(requested)
+            .expect("an explicit .opml path should be accepted even if it already exists, since the OS dialog already confirmed overwrite for that exact name");
+
+        assert_eq!(path, existing);
     }
 }
