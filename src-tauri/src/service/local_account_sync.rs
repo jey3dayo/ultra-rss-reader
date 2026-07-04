@@ -111,12 +111,20 @@ pub fn export_local_account_sync_folder_if_changed(
     let account_root = Path::new(&settings.sync_folder_path);
     let report = write_operation_files(account_root, &settings.device_id, &operations)?;
 
+    // If the files above were written successfully but persisting the digest below
+    // fails (e.g. a transient DB error), the next call will not see the new digest
+    // and will re-export the same unchanged state once more. This is an accepted
+    // tolerance: a redundant export is harmless, while silently dropping the write
+    // would not be.
     let settings_repo = SqliteLocalAccountSyncSettingsRepository::new(db.writer());
     settings_repo.save_export_digest(account_id, &digest)?;
 
     Ok(Some(report))
 }
 
+/// Writes the given operations as sequential files under `account_root` for
+/// `device_id`, starting from the next available sequence number, and
+/// returns a report of how many operation files were written.
 fn write_operation_files(
     account_root: &Path,
     device_id: &LocalSyncDeviceId,

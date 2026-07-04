@@ -79,14 +79,16 @@ impl LocalAccountSyncSettingsRepository for SqliteLocalAccountSyncSettingsReposi
                 sync_account_id,
                 device_id,
                 enabled,
+                last_export_digest,
                 updated_at
              )
-             VALUES (?1, ?2, ?3, ?4, ?5, CURRENT_TIMESTAMP)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, CURRENT_TIMESTAMP)
              ON CONFLICT(account_id) DO UPDATE SET
                 sync_folder_path = excluded.sync_folder_path,
                 sync_account_id = excluded.sync_account_id,
                 device_id = excluded.device_id,
                 enabled = excluded.enabled,
+                last_export_digest = excluded.last_export_digest,
                 updated_at = excluded.updated_at",
             params![
                 settings.account_id.0,
@@ -94,6 +96,7 @@ impl LocalAccountSyncSettingsRepository for SqliteLocalAccountSyncSettingsReposi
                 settings.sync_account_id.0.trim(),
                 settings.device_id.0.trim(),
                 settings.enabled,
+                settings.last_export_digest,
             ],
         )?;
         Ok(())

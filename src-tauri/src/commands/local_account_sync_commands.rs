@@ -73,6 +73,40 @@ fn normalize_sync_folder_path(path: String) -> Result<String, AppError> {
     Ok(trimmed.to_string())
 }
 
+/// Merges an incoming `set_local_account_sync_settings` request with the
+/// existing persisted settings (if any).
+///
+/// When the sync folder path changes, `last_export_digest` is reset to
+/// `None` instead of carried forward: the previous digest describes state
+/// exported to the *old* folder, so keeping it would make
+/// `export_local_account_sync_folder_if_changed` believe the new (likely
+/// empty) folder already has the latest state and skip exporting into it.
+fn merge_local_account_sync_settings_update(
+    account_id: AccountId,
+    sync_folder_path: String,
+    enabled: bool,
+    existing: Option<&LocalAccountSyncSettings>,
+) -> LocalAccountSyncSettings {
+    let folder_path_changed =
+        existing.is_some_and(|settings| settings.sync_folder_path != sync_folder_path);
+    LocalAccountSyncSettings {
+        account_id,
+        sync_folder_path,
+        sync_account_id: existing
+            .map(|settings| settings.sync_account_id.clone())
+            .unwrap_or_default(),
+        device_id: existing
+            .map(|settings| settings.device_id.clone())
+            .unwrap_or_default(),
+        enabled,
+        last_export_digest: if folder_path_changed {
+            None
+        } else {
+            existing.and_then(|settings| settings.last_export_digest.clone())
+        },
+    }
+}
+
 fn settings_to_dto(settings: LocalAccountSyncSettings) -> LocalAccountSyncSettingsDto {
     LocalAccountSyncSettingsDto {
         account_id: settings.account_id.0,
@@ -124,22 +158,12 @@ pub fn set_local_account_sync_settings(
 
     let settings_repo = SqliteLocalAccountSyncSettingsRepository::new(db.writer());
     let existing = settings_repo.find_by_account_id(&account_id)?;
-    let settings = LocalAccountSyncSettings {
+    let settings = merge_local_account_sync_settings_update(
         account_id,
         sync_folder_path,
-        sync_account_id: existing
-            .as_ref()
-            .map(|settings| settings.sync_account_id.clone())
-            .unwrap_or_default(),
-        device_id: existing
-            .as_ref()
-            .map(|settings| settings.device_id.clone())
-            .unwrap_or_default(),
         enabled,
-        last_export_digest: existing
-            .as_ref()
-            .and_then(|settings| settings.last_export_digest.clone()),
-    };
+        existing.as_ref(),
+    );
     settings_repo.save(&settings)?;
     Ok(settings_to_dto(settings))
 }
@@ -240,10 +264,20 @@ pub fn export_local_account_sync_operations(
 #[cfg(test)]
 mod tests {
     use crate::commands::dto::AppError;
-    use crate::commands::local_account_sync_commands::ensure_local_account;
+    use crate::commands::local_account_sync_commands::{
+        ensure_local_account, merge_local_account_sync_settings_update,
+    };
     use crate::domain::account::{Account, ConnectionVerificationStatus};
+    use crate::domain::local_account_sync::{LocalSyncAccountId, LocalSyncDeviceId};
     use crate::domain::provider::ProviderKind;
     use crate::domain::types::AccountId;
+    use crate::infra::db::connection::DbManager;
+    use crate::infra::db::sqlite_local_account_sync_settings::SqliteLocalAccountSyncSettingsRepository;
+    use crate::infra::local_account_sync_files::load_local_sync_operation_dir;
+    use crate::repository::local_account_sync_settings::{
+        LocalAccountSyncSettings, LocalAccountSyncSettingsRepository,
+    };
+    use crate::service::local_account_sync::export_local_account_sync_folder_if_changed;
 
     fn account(kind: ProviderKind) -> Account {
         Account {
@@ -274,5 +308,129 @@ mod tests {
             AppError::UserVisible { ref message }
                 if message == "Local account sync folders are only available for Local accounts"
         ));
+    }
+
+    fn seeded_settings(sync_folder_path: &str, account_id: &AccountId) -> LocalAccountSyncSettings {
+        LocalAccountSyncSettings {
+            account_id: account_id.clone(),
+            sync_folder_path: sync_folder_path.to_string(),
+            sync_account_id: LocalSyncAccountId("sync-account-a".to_string()),
+            device_id: LocalSyncDeviceId("device-a".to_string()),
+            enabled: true,
+            last_export_digest: None,
+        }
+    }
+
+    #[test]
+    fn merge_settings_update_keeps_digest_when_folder_path_is_unchanged() {
+        let account_id = AccountId("account-1".to_string());
+        let existing = LocalAccountSyncSettings {
+            last_export_digest: Some("digest-a".to_string()),
+            ..seeded_settings("/sync/folder-a", &account_id)
+        };
+
+        let updated = merge_local_account_sync_settings_update(
+            account_id,
+            "/sync/folder-a".to_string(),
+            true,
+            Some(&existing),
+        );
+
+        assert_eq!(updated.last_export_digest, Some("digest-a".to_string()));
+    }
+
+    #[test]
+    fn merge_settings_update_clears_digest_when_folder_path_changes() {
+        let account_id = AccountId("account-1".to_string());
+        let existing = LocalAccountSyncSettings {
+            last_export_digest: Some("digest-a".to_string()),
+            ..seeded_settings("/sync/folder-a", &account_id)
+        };
+
+        let updated = merge_local_account_sync_settings_update(
+            account_id,
+            "/sync/folder-b".to_string(),
+            true,
+            Some(&existing),
+        );
+
+        assert_eq!(updated.last_export_digest, None);
+        assert_eq!(updated.sync_account_id, existing.sync_account_id);
+        assert_eq!(updated.device_id, existing.device_id);
+    }
+
+    /// Reproduces the final-review finding: pointing an account at a new
+    /// sync folder must not leave the stale digest in place, or
+    /// `export_local_account_sync_folder_if_changed` would keep returning
+    /// `Ok(None)` and the new folder would stay empty.
+    #[test]
+    fn folder_path_change_clears_digest_so_new_folder_gets_exported() {
+        let db = DbManager::new_in_memory().unwrap();
+        let account_id = AccountId("account-1".to_string());
+        db.writer()
+            .execute(
+                "INSERT INTO accounts (id, kind, name) VALUES (?1, 'Local', 'Local')",
+                [&account_id.0],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO folders (id, account_id, name, sort_order)
+                 VALUES ('folder-1', ?1, 'Tech', 1)",
+                [&account_id.0],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO feeds (id, account_id, folder_id, title, url, site_url, reader_mode, web_preview_mode)
+                 VALUES ('feed-1', ?1, 'folder-1', 'Feed', 'https://example.com/feed.xml', 'https://example.com', 'inherit', 'inherit')",
+                [&account_id.0],
+            )
+            .unwrap();
+
+        let dir_a = tempfile::tempdir().unwrap();
+        let dir_b = tempfile::tempdir().unwrap();
+        let settings_repo = SqliteLocalAccountSyncSettingsRepository::new(db.writer());
+
+        let settings_a = seeded_settings(&dir_a.path().to_string_lossy(), &account_id);
+        settings_repo.save(&settings_a).unwrap();
+
+        export_local_account_sync_folder_if_changed(&db, &account_id, &settings_a)
+            .unwrap()
+            .expect("first export should write files because there is no prior digest");
+        let after_first_export = settings_repo
+            .find_by_account_id(&account_id)
+            .unwrap()
+            .expect("settings should exist after first export");
+        assert!(after_first_export.last_export_digest.is_some());
+
+        // Mirrors what `set_local_account_sync_settings` does when the caller
+        // points the account at a new folder.
+        let settings_b = merge_local_account_sync_settings_update(
+            account_id.clone(),
+            dir_b.path().to_string_lossy().to_string(),
+            true,
+            Some(&after_first_export),
+        );
+        assert_eq!(settings_b.last_export_digest, None);
+        settings_repo.save(&settings_b).unwrap();
+
+        let after_folder_change = settings_repo
+            .find_by_account_id(&account_id)
+            .unwrap()
+            .expect("settings should exist after folder change");
+        assert_eq!(after_folder_change.last_export_digest, None);
+
+        let report =
+            export_local_account_sync_folder_if_changed(&db, &account_id, &after_folder_change)
+                .unwrap()
+                .expect("folder change should trigger an export into the new folder");
+        assert!(report.operations_written > 0);
+
+        let load_report = load_local_sync_operation_dir(dir_b.path()).unwrap();
+        assert!(
+            !load_report.operations.is_empty(),
+            "new sync folder should receive the exported operation files"
+        );
     }
 }
