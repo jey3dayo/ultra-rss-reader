@@ -55,7 +55,6 @@ const externalUrlSchema = z
   });
 export const openExternalUrlArgs = z.object({ url: externalUrlSchema });
 
-export const exportOpmlArgs = z.object({ accountId: nonBlankTrimmedIdSchema });
 export const exportOpmlToFileArgs = z.object({
   accountId: nonBlankTrimmedIdSchema,
   path: z.string().trim().min(1),

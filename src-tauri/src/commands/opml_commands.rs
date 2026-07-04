@@ -320,12 +320,6 @@ fn hex_value(byte: u8) -> Option<u8> {
 }
 
 #[tauri::command]
-pub fn export_opml(state: State<'_, AppState>, account_id: String) -> Result<String, AppError> {
-    let db = crate::commands::lock_db(&state.db)?;
-    generate_export_opml_in_db(&db, account_id)
-}
-
-#[tauri::command]
 pub fn export_opml_to_file(
     state: State<'_, AppState>,
     account_id: String,

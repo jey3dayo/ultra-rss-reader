@@ -28,7 +28,6 @@ import {
   PreferencesDtoSchema,
   SettingsProfileImportResultSchema,
   SettingsProfileSchema,
-  StringResponseSchema,
   SyncResultSchema,
   TagArticleCountsSchema,
   TagDtoListSchema,
@@ -51,7 +50,6 @@ import {
   deleteFeed,
   deleteTag,
   discoverFeeds,
-  exportOpml,
   exportOpmlToFile,
   exportSettingsProfile,
   getAccountSyncStatus,
@@ -450,7 +448,6 @@ describe("setupDevMocks", () => {
     expect(SyncResultSchema.parse(Result.unwrap(await syncAccount("acc-freshrss")))).toBeDefined();
     expect(SyncResultSchema.parse(Result.unwrap(await syncFeed("feed-automaton")))).toBeDefined();
     expect(SyncResultSchema.parse(Result.unwrap(await triggerAutomaticSync()))).toBeDefined();
-    expect(StringResponseSchema.parse(Result.unwrap(await exportOpml("acc-freshrss")))).toContain("<opml");
     expect(Result.unwrap(await exportOpmlToFile("acc-freshrss", "/tmp/acc-freshrss-feeds.opml"))).toBeNull();
     expect(SettingsProfileSchema.parse(JSON.parse(Result.unwrap(await exportSettingsProfile())))).toMatchObject({
       version: 1,

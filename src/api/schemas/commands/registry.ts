@@ -53,7 +53,6 @@ import {
 import {
   addToReadingListArgs,
   copyToClipboardArgs,
-  exportOpmlArgs,
   exportOpmlToFileArgs,
   importOpmlArgs,
   openExternalUrlArgs,
@@ -136,7 +135,6 @@ export const commandArgsSchemas = {
   create_or_update_browser_webview: createOrUpdateBrowserWebviewArgs,
   set_browser_webview_bounds: setBrowserWebviewBoundsArgs,
   import_opml: importOpmlArgs,
-  export_opml: exportOpmlArgs,
   export_opml_to_file: exportOpmlToFileArgs,
   export_settings_profile_to_file: exportSettingsProfileToFileArgs,
   import_settings_profile: importSettingsProfileArgs,

@@ -924,19 +924,6 @@ export function setupDevMocks(): RestoreDevMocks {
         };
       }
 
-      case "export_opml":
-        parseBrowserMockArgs("export_opml", rawIpcPayload);
-        return `<?xml version="1.0" encoding="UTF-8"?>
-<opml version="2.0">
-  <head><title>Mock Export</title></head>
-  <body>
-    <outline text="Tech" title="Tech">
-      <outline text="Ars Technica" title="Ars Technica" type="rss" xmlUrl="https://feeds.arstechnica.com/arstechnica/index" htmlUrl="https://arstechnica.com"/>
-    </outline>
-    <outline text="Standalone" title="Standalone" type="rss" xmlUrl="https://example.com/feed.xml"/>
-  </body>
-</opml>`;
-
       case "export_opml_to_file":
         parseBrowserMockArgs("export_opml_to_file", rawIpcPayload);
         return null;

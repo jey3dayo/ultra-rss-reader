@@ -904,7 +904,6 @@ pub fn run() {
             commands::browser_webview_commands::reload_browser_webview,
             commands::browser_webview_commands::close_browser_webview,
             commands::opml_commands::import_opml,
-            commands::opml_commands::export_opml,
             commands::opml_commands::export_opml_to_file,
             commands::article_commands::search_articles,
             commands::mute_keyword_commands::list_mute_keywords,

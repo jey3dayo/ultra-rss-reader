@@ -52,7 +52,7 @@ const INTENTIONALLY_UNHANDLED_DEFAULT_MOCK_COMMANDS = [
   "delete_feed",
   "discover_feeds",
   "download_and_install_update",
-  "export_opml",
+  "export_opml_to_file",
   "export_settings_profile",
   "get_article_tags",
   "get_platform_permission_denied_recovery",
@@ -388,8 +388,8 @@ describe("setupTauriMocks fixture isolation", () => {
   });
 
   it("keeps intentionally unmocked frontend commands aligned with strict unhandled failures", async () => {
-    await expect(invoke("export_opml", { accountId: "acc-1" })).rejects.toThrow(
-      "Unhandled Tauri mock command: export_opml",
+    await expect(invoke("export_opml_to_file", { accountId: "acc-1", path: "/tmp/feeds.opml" })).rejects.toThrow(
+      "Unhandled Tauri mock command: export_opml_to_file",
     );
   });
 
