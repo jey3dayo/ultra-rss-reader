@@ -858,7 +858,7 @@ describe("SettingsModal", () => {
     render(<ReadingSettings />, { wrapper: createWrapper() });
 
     const autoOpenSwitch = screen.getByRole("switch", {
-      name: "Open the first article when selecting a feed",
+      name: "Open the first article when selecting a feed or folder",
     });
     expect(autoOpenSwitch).not.toBeChecked();
 
@@ -887,7 +887,7 @@ describe("SettingsModal", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole("switch", {
-        name: "Open the first article when selecting a feed",
+        name: "Open the first article when selecting a feed or folder",
       }),
     ).toBeInTheDocument();
   });
