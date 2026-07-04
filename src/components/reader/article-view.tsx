@@ -14,6 +14,8 @@ import {
 import i18n from "@/lib/i18n";
 import { useI18nResourceNamespace } from "@/lib/i18n/use-i18n-resource-namespace";
 import { loadI18nResourceNamespace } from "@/lib/i18n-resources";
+import { resolvePreferenceValue } from "@/schemas/preference-values";
+import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { ArticleEmptyStateView } from "./article-empty-state-view";
 import { ArticlePane, ArticleToolbar } from "./article-pane-view";
@@ -423,6 +425,9 @@ export function ArticleView() {
   const selection = useUiStore((state) => state.selection);
   const viewMode = useUiStore((state) => state.viewMode);
   const focusedPane = useUiStore((state) => state.focusedPane);
+  const openFirstArticleOnSelection =
+    usePreferencesStore((state) => resolvePreferenceValue(state.prefs, "open_first_article_on_feed_selection")) ===
+    "true";
   const landedSelectionKeyRef = useRef<string | null>(null);
   const selectionLandingKey = resolveSelectionLandingKey(selection, viewMode);
   const landingCandidate = selectionState.kind === "empty" ? selectionState.landingCandidate : undefined;
@@ -442,6 +447,11 @@ export function ArticleView() {
     if (landedSelectionKeyRef.current === selectionLandingKey) {
       return;
     }
+
+    const isSourceSelection = selection.type === "feed" || selection.type === "folder" || selection.type === "tag";
+    if (isSourceSelection && !openFirstArticleOnSelection) {
+      return;
+    }
     landedSelectionKeyRef.current = selectionLandingKey;
 
     selectArticle(landingArticleId);
@@ -457,7 +467,9 @@ export function ArticleView() {
     landingArticleId,
     landingBrowserUrl,
     openBrowser,
+    openFirstArticleOnSelection,
     selectArticle,
+    selection.type,
     selectionLandingKey,
     selectionState.kind,
   ]);

@@ -2055,6 +2055,10 @@ describe("ArticleView", () => {
   });
 
   it("lands on the first feed article when a feed is selected without an article", async () => {
+    usePreferencesStore.setState({
+      prefs: { open_first_article_on_feed_selection: "true" },
+      loaded: true,
+    });
     useUiStore.setState({
       ...useUiStore.getInitialState(),
       selectedAccountId: "acc-1",
@@ -2072,6 +2076,22 @@ describe("ArticleView", () => {
     });
     expect(screen.queryByTestId("article-selection-summary")).not.toBeInTheDocument();
     expect(screen.queryByText("Select an article")).not.toBeInTheDocument();
+  });
+
+  it("does not land on the first feed article when a feed is selected without an article and the preference is off", async () => {
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "feed", feedId: "feed-1" },
+      selectedArticleId: null,
+      contentMode: "empty",
+    });
+
+    render(<ArticleView />, { wrapper: createWrapper() });
+
+    expect(await screen.findByTestId("article-selection-summary")).toBeInTheDocument();
+    expect(useUiStore.getState().selectedArticleId).toBeNull();
+    expect(useUiStore.getState().contentMode).toBe("empty");
   });
 
   it("keeps the feed summary card stable when the selected feed has no articles", async () => {
@@ -2180,6 +2200,10 @@ describe("ArticleView", () => {
   });
 
   it("lands on the first folder article when a folder is selected without an article", async () => {
+    usePreferencesStore.setState({
+      prefs: { open_first_article_on_feed_selection: "true" },
+      loaded: true,
+    });
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_accounts":
@@ -2227,7 +2251,54 @@ describe("ArticleView", () => {
     expect(screen.queryByText("Select an article")).not.toBeInTheDocument();
   });
 
+  it("does not land on the first folder article when a folder is selected without an article and the preference is off", async () => {
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_folders":
+          return [
+            {
+              id: "folder-1",
+              account_id: "acc-1",
+              name: "Gaming",
+              sort_order: 0,
+            },
+          ];
+        case "list_feeds":
+          return listAccountFeedsInFolder(args.accountId, "folder-1");
+        case "list_account_articles":
+          return sampleArticles;
+        case "list_folder_articles":
+          return sampleArticles;
+        case "list_tags":
+        case "get_article_tags":
+          return [];
+        default:
+          return undefined;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "folder", folderId: "folder-1" },
+      selectedArticleId: null,
+      contentMode: "empty",
+    });
+
+    render(<ArticleView />, { wrapper: createWrapper() });
+
+    expect(await screen.findByTestId("article-selection-summary")).toBeInTheDocument();
+    expect(useUiStore.getState().selectedArticleId).toBeNull();
+    expect(useUiStore.getState().contentMode).toBe("empty");
+  });
+
   it("lands on the first tagged article when a tag is selected without an article", async () => {
+    usePreferencesStore.setState({
+      prefs: { open_first_article_on_feed_selection: "true" },
+      loaded: true,
+    });
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_accounts":
