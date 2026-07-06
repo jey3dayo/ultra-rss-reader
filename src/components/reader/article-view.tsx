@@ -14,6 +14,7 @@ import {
 import i18n from "@/lib/i18n";
 import { useI18nResourceNamespace } from "@/lib/i18n/use-i18n-resource-namespace";
 import { loadI18nResourceNamespace } from "@/lib/i18n-resources";
+import { focusSelectedSidebarTarget, scheduleReaderFocusFrame } from "@/lib/reader-focus";
 import { resolvePreferenceValue } from "@/schemas/preference-values";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -87,22 +88,35 @@ function SummaryMetric({ label, value, kind = "count" }: SummaryIdentityProps) {
   );
 }
 
-function RecentFeedRow({ feed }: { feed: ArticleViewSummaryFeed }) {
+function RecentFeedRow({ feed, onSelect }: { feed: ArticleViewSummaryFeed; onSelect: (feedId: string) => void }) {
   return (
     <li className="min-w-0">
-      <div className="flex h-9 min-w-0 items-center gap-2 rounded-md border border-border/55 bg-surface-1/52 px-2.5 text-sm shadow-none dark:border-border/70 dark:bg-surface-2/42">
+      <button
+        type="button"
+        onClick={() => onSelect(feed.id)}
+        className="flex h-9 w-full min-w-0 items-center gap-2 rounded-md border border-border/55 bg-surface-1/52 px-2.5 text-left text-sm shadow-none transition-colors hover:bg-surface-2/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45 dark:border-border/70 dark:bg-surface-2/42 dark:hover:bg-surface-2/70"
+      >
         <FeedFavicon title={feed.title} url={feed.url} siteUrl={feed.site_url} size="sm" />
         <span className="min-w-0 flex-1 truncate text-foreground" dir="auto">
           {feed.title}
         </span>
         <span className="shrink-0 text-xs text-foreground-soft tabular-nums">{feed.unread_count.toLocaleString()}</span>
-      </div>
+      </button>
     </li>
   );
 }
 
 function SummaryEmptyState({ title, subtitle, visual, metrics, recentFeeds, accentTone }: SummaryScopeProps) {
   const { t } = useTranslation("reader");
+  const selectFeedFromCurrentContext = useUiStore((s) => s.selectFeedFromCurrentContext);
+
+  function handleSelectRecentFeed(feedId: string) {
+    selectFeedFromCurrentContext(feedId);
+    focusSelectedSidebarTarget();
+    scheduleReaderFocusFrame(() => {
+      focusSelectedSidebarTarget();
+    });
+  }
 
   return (
     <ArticleEmptyStateShell
@@ -146,7 +160,7 @@ function SummaryEmptyState({ title, subtitle, visual, metrics, recentFeeds, acce
                   <h3 className="text-sm font-medium text-foreground">{t("recent_feeds")}</h3>
                   <ul className="mt-3 grid grid-cols-2 gap-2">
                     {recentFeeds.map((feed) => (
-                      <RecentFeedRow key={feed.id} feed={feed} />
+                      <RecentFeedRow key={feed.id} feed={feed} onSelect={handleSelectRecentFeed} />
                     ))}
                   </ul>
                 </div>

@@ -2199,6 +2199,65 @@ describe("ArticleView", () => {
     expect(screen.queryByText("Select an article")).not.toBeInTheDocument();
   });
 
+  it("selects the feed when a recent feed row is clicked from a folder summary", async () => {
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_folders":
+          return [
+            {
+              id: "folder-1",
+              account_id: "acc-1",
+              name: "Gaming",
+              sort_order: 0,
+            },
+          ];
+        case "list_feeds":
+          return [
+            {
+              id: "feed-folder-empty",
+              account_id: args.accountId,
+              folder_id: "folder-1",
+              remote_id: null,
+              title: "Quiet Feed",
+              url: "https://example.com/quiet.xml",
+              site_url: "https://example.com/quiet",
+              unread_count: 3,
+              reader_mode: "inherit",
+              web_preview_mode: "inherit",
+            },
+          ];
+        case "list_account_articles":
+        case "list_folder_articles":
+          return [];
+        case "list_tags":
+        case "get_article_tags":
+          return [];
+        default:
+          return undefined;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "folder", folderId: "folder-1" },
+      selectedArticleId: null,
+      contentMode: "empty",
+    });
+
+    const user = userEvent.setup();
+    render(<ArticleView />, { wrapper: createWrapper() });
+
+    const summary = await screen.findByTestId("article-selection-summary");
+    await user.click(within(summary).getByRole("button", { name: /Quiet Feed/ }));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().selection).toEqual({ type: "feed", feedId: "feed-folder-empty" });
+    });
+  });
+
   it("lands on the first folder article when a folder is selected without an article", async () => {
     usePreferencesStore.setState({
       prefs: { open_first_article_on_feed_selection: "true" },
