@@ -4,6 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { BrowserWebviewState } from "@/api/tauri-commands";
 import type { AppAction } from "@/lib/actions";
 import { keyboardEvents } from "@/lib/keyboard/keyboard-shortcuts";
+import { queryClient } from "@/lib/query/query-client";
+import { queryKeys } from "@/lib/query/query-invalidation";
 import { useUiStore } from "@/stores/ui-store";
 
 const { triggerSyncMock, i18nTMock, isWindowFullscreenMock, setWindowFullscreenMock } = vi.hoisted(() => ({
@@ -137,6 +139,7 @@ afterEach(() => {
   reloadBrowserWebviewMock.mockClear();
   goBackBrowserWebviewMock.mockClear();
   goForwardBrowserWebviewMock.mockClear();
+  queryClient.clear();
 });
 
 describe("executeAction", () => {
@@ -244,6 +247,52 @@ describe("executeAction", () => {
         });
         expect(useUiStore.getState().focusedPane).toBe("sidebar");
         expect(document.activeElement).toHaveAttribute("data-feed-id", "feed-1");
+      });
+    });
+
+    it("goes back to the containing folder for mouse-back when a folder feed is selected", async () => {
+      document.body.innerHTML = '<button data-sidebar-selected-target="true" data-feed-id="folder-1">Folder</button>';
+      queryClient.setQueryData(queryKeys.feeds.byAccount("acc-1"), [
+        { id: "feed-1", account_id: "acc-1", folder_id: "folder-1" },
+      ]);
+      useUiStore.setState({
+        ...useUiStore.getInitialState(),
+        selectedAccountId: "acc-1",
+        selection: { type: "feed", feedId: "feed-1" },
+        focusedPane: "list",
+      });
+
+      executeAction("mouse-back");
+
+      await waitFor(() => {
+        expect(useUiStore.getState().selection).toEqual({
+          type: "folder",
+          folderId: "folder-1",
+        });
+        expect(useUiStore.getState().focusedPane).toBe("sidebar");
+      });
+    });
+
+    it("falls back to focusing the sidebar for mouse-back when the selected feed has no folder", async () => {
+      document.body.innerHTML = '<button data-sidebar-selected-target="true" data-feed-id="feed-1">Feed</button>';
+      queryClient.setQueryData(queryKeys.feeds.byAccount("acc-1"), [
+        { id: "feed-1", account_id: "acc-1", folder_id: null },
+      ]);
+      useUiStore.setState({
+        ...useUiStore.getInitialState(),
+        selectedAccountId: "acc-1",
+        selection: { type: "feed", feedId: "feed-1" },
+        focusedPane: "list",
+      });
+
+      executeAction("mouse-back");
+
+      await waitFor(() => {
+        expect(useUiStore.getState().selection).toEqual({
+          type: "feed",
+          feedId: "feed-1",
+        });
+        expect(useUiStore.getState().focusedPane).toBe("sidebar");
       });
     });
   });

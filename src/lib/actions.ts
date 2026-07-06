@@ -1,11 +1,19 @@
 import { Result } from "@praha/byethrow";
-import { goBackBrowserWebview, goForwardBrowserWebview, reloadBrowserWebview, restartApp } from "@/api/tauri-commands";
+import {
+  type FeedDto,
+  goBackBrowserWebview,
+  goForwardBrowserWebview,
+  reloadBrowserWebview,
+  restartApp,
+} from "@/api/tauri-commands";
 import { APP_EVENTS } from "@/constants/events";
 import { runManualUpdateCheck } from "@/hooks/use-updater";
 import type { AppAction } from "@/lib/app-actions";
 import { emitDebugInputTrace } from "@/lib/debug/debug-input-trace";
 import i18n from "@/lib/i18n";
 import { keyboardEvents } from "@/lib/keyboard/keyboard-shortcuts";
+import { queryClient } from "@/lib/query/query-client";
+import { queryKeys } from "@/lib/query/query-invalidation";
 import { focusArticleListTarget, focusSelectedSidebarTarget, scheduleReaderFocusFrame } from "@/lib/reader-focus";
 import { logRuntimeDiagnostic, type RuntimeDiagnosticPolicyId } from "@/lib/runtime/diagnostics";
 import { triggerManualSyncWithCooldown } from "@/lib/sync/manual-sync";
@@ -150,6 +158,11 @@ function focusSidebarSelection(): void {
   scheduleReaderFocusFrame(() => {
     focusSelectedSidebarTarget();
   });
+}
+
+function getFeedFolderId(feedId: string, accountId: string | null): string | null {
+  const feeds = queryClient.getQueryData<FeedDto[]>(queryKeys.feeds.byAccount(accountId));
+  return feeds?.find((feed) => feed.id === feedId)?.folder_id ?? null;
 }
 
 async function navigateBrowserBackOrClose(): Promise<void> {
@@ -429,6 +442,14 @@ export function executeAction(action: AppAction): void {
         store.clearArticle();
         focusArticleListAfterClearingArticle(previousArticleId);
         break;
+      }
+      if (store.selection.type === "feed") {
+        const folderId = getFeedFolderId(store.selection.feedId, store.selectedAccountId);
+        if (folderId) {
+          store.selectFolderFromCurrentContext(folderId);
+          focusSidebarSelection();
+          break;
+        }
       }
       if (store.focusedPane === "list") {
         focusSidebarSelection();
