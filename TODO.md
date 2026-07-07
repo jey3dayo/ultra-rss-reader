@@ -33,6 +33,15 @@
 
 ### Reader UI / Account Settings
 
+- P3 reader "next article" button no-op at last article (created batch: 2026-07-08)
+  - priority: P3 / domain: reader-state / work type: implementation-time checklist + implementation / write scope: reader body 下部の次記事ボタン + 呼び出し元 hook(article/use-article-view-selection 系)
+  - 「次の記事」ボタンが最後の記事でも表示され、クリックしても無反応(no-op)になる。末尾記事ではボタンを無効化または非表示にするか検討する
+  - 理由: DESIGN.md の「押せそうで何も起きない」アンチパターンに軽く抵触する。ただしリスト文脈(次記事の有無)を reader body へ配線するコストがあるため要検討。発見方法: 実装時チェックリスト + 手動確認
+
+- P2 recent smart view empty-state summary omits "recent" source (created batch: 2026-07-08)
+  - priority: P2 / domain: reader-state / work type: implementation + contract test / write scope: src/lib/reader/reader-source-articles.ts + 呼び出し元(use-article-list-sources.ts, use-article-view-selection.ts)
+  - `resolveReaderSourceArticles` が `recent` ソースを受け取れず fallback(account 全体)に落ちるため、「最近見た記事」スマートビューの空状態サマリ集計が正しくない可能性がある。表示・集計側のソース列挙を recent 対応に揃える。発見方法: focused test(`resolveReaderSourceArticles` の recent ケース)
+
 - P3 local-sync enabled toggle polish (created batch: 2026-07-04)
   - priority: P3 / domain: settings-state / work type: implementation + contract test / write scope: use-account-detail-danger-zone + locales
   - 自動同期トグルの楽観更新は persist 失敗時にロールバックしない(既存 handleSaveLocalSyncFolder と parity、保存中は switch disabled + エラー toast あり)。failure-path test も未整備
