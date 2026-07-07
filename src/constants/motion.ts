@@ -5,6 +5,10 @@ const MOTION_DISCLOSURE_BODY_CLASS_NAME = "motion-disclosure-body";
 export const MOTION_DISCLOSURE_TRIGGER_CLASS_NAME = "motion-disclosure-trigger";
 const MOTION_DISCLOSURE_ICON_CLASS_NAME = "motion-disclosure-icon";
 export const MOTION_CONTENT_SWAP_CLASS_NAME = "motion-content-swap";
+// Shared --motion-duration-content-swap (180ms/4px) is tuned for small toggle pops;
+// large content-swap surfaces (article list, selection summary) use this slower/larger pair instead.
+export const MOTION_CONTENT_SWAP_SLOW_DURATION_MS = "260ms";
+export const MOTION_CONTENT_SWAP_SLOW_OFFSET_PX = "10px";
 export const MOTION_ARTICLE_SLIDE_CLASS_NAME = "motion-article-slide";
 export const MOTION_CONTEXTUAL_SURFACE_CLASS_NAME = "motion-contextual-surface";
 const MOTION_STATIC_HOVER_SURFACE_CLASS_NAME = "motion-static-hover-surface";

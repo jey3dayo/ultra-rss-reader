@@ -1,8 +1,13 @@
 import { Clock3, Folder, Hash, Inbox, Star } from "lucide-react";
-import { type ComponentProps, lazy, type ReactNode, Suspense, useEffect, useRef } from "react";
+import { type ComponentProps, type CSSProperties, lazy, type ReactNode, Suspense, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useArticleViewSelection } from "@/components/reader/hooks/article/use-article-view-selection";
 import { useArticleViewUiState } from "@/components/reader/hooks/article/use-article-view-ui-state";
+import {
+  MOTION_CONTENT_SWAP_CLASS_NAME,
+  MOTION_CONTENT_SWAP_SLOW_DURATION_MS,
+  MOTION_CONTENT_SWAP_SLOW_OFFSET_PX,
+} from "@/constants";
 import { FeedFavicon, MotionNumber } from "@/design-system";
 import {
   type ArticleViewSummaryFeed,
@@ -15,6 +20,7 @@ import i18n from "@/lib/i18n";
 import { useI18nResourceNamespace } from "@/lib/i18n/use-i18n-resource-namespace";
 import { loadI18nResourceNamespace } from "@/lib/i18n-resources";
 import { focusSelectedSidebarTarget, scheduleReaderFocusFrame } from "@/lib/reader-focus";
+import { cn } from "@/lib/utils";
 import { resolvePreferenceValue } from "@/schemas/preference-values";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -33,6 +39,13 @@ export { ArticlePane, ArticleToolbar } from "./article-pane-view";
 
 const SUMMARY_CONTAINER_CLASS_NAME = "w-full max-w-[39rem]";
 
+type SummaryMotionStyle = CSSProperties &
+  Record<"--motion-content-swap-offset" | "--motion-duration-content-swap", string>;
+const SUMMARY_MOTION_STYLE: SummaryMotionStyle = {
+  "--motion-content-swap-offset": MOTION_CONTENT_SWAP_SLOW_OFFSET_PX,
+  "--motion-duration-content-swap": MOTION_CONTENT_SWAP_SLOW_DURATION_MS,
+};
+
 type ArticleEmptyStateViewProps = ComponentProps<typeof ArticleEmptyStateView>;
 
 type SummaryIdentityProps = {
@@ -42,6 +55,7 @@ type SummaryIdentityProps = {
 };
 
 type SummaryScopeProps = {
+  motionKey: string;
   title: string;
   subtitle: ReactNode;
   visual: ReactNode;
@@ -106,7 +120,15 @@ function RecentFeedRow({ feed, onSelect }: { feed: ArticleViewSummaryFeed; onSel
   );
 }
 
-function SummaryEmptyState({ title, subtitle, visual, metrics, recentFeeds, accentTone }: SummaryScopeProps) {
+function SummaryEmptyState({
+  motionKey,
+  title,
+  subtitle,
+  visual,
+  metrics,
+  recentFeeds,
+  accentTone,
+}: SummaryScopeProps) {
   const { t } = useTranslation("reader");
   const selectFeedFromCurrentContext = useUiStore((s) => s.selectFeedFromCurrentContext);
 
@@ -126,11 +148,14 @@ function SummaryEmptyState({ title, subtitle, visual, metrics, recentFeeds, acce
       body={
         <div className="flex flex-1 items-start justify-start overflow-hidden px-10 pt-[7vh] pb-12">
           <section
+            key={motionKey}
             data-testid="article-selection-summary"
             data-selection-identity=""
             data-selection-identity-accent={accentTone}
             aria-label={title}
-            className={SUMMARY_CONTAINER_CLASS_NAME}
+            data-motion-phase="entering"
+            className={cn(SUMMARY_CONTAINER_CLASS_NAME, MOTION_CONTENT_SWAP_CLASS_NAME)}
+            style={SUMMARY_MOTION_STYLE}
           >
             <div className="w-full px-1">
               <div className="mb-7 flex min-w-0 items-center gap-3">
@@ -252,6 +277,7 @@ function buildSummaryIdentityProps(
     const websiteLabel = resolveArticleSummaryWebsiteLabel(summary.feed);
 
     return {
+      motionKey: `feed:${summary.feed.id}`,
       title: summary.feed.title,
       subtitle:
         websiteHref && websiteLabel ? (
@@ -279,6 +305,7 @@ function buildSummaryIdentityProps(
 
   if (summary.kind === "folder") {
     return {
+      motionKey: `folder:${summary.folder.id}`,
       title: summary.folder.name,
       subtitle: readerT("summary_feed_count", { count: summary.feedCount }),
       visual: <Folder className="size-4" />,
@@ -294,6 +321,7 @@ function buildSummaryIdentityProps(
 
   if (summary.kind === "tag") {
     return {
+      motionKey: `tag:${summary.tag.id}`,
       title: summary.tag.name,
       subtitle: readerT("summary_feed_count", { count: summary.feedCount }),
       visual: <Hash className="size-4" />,
@@ -325,6 +353,7 @@ function buildSummaryIdentityProps(
   }[summary.smartKind];
 
   return {
+    motionKey: `smart:${summary.smartKind}`,
     title: smartSummaryView.title,
     subtitle: readerT("summary_article_count", { count: summary.articleCount }),
     visual: smartSummaryView.visual,

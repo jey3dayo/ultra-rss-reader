@@ -1,5 +1,6 @@
-import type { KeyboardEvent as ReactKeyboardEvent, ReactNode, RefObject } from "react";
+import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, ReactNode, RefObject } from "react";
 import type { ArticleDto } from "@/api/tauri-commands";
+import { MOTION_CONTENT_SWAP_SLOW_DURATION_MS, MOTION_CONTENT_SWAP_SLOW_OFFSET_PX } from "@/constants";
 import { ScrollArea } from "@/design-system";
 import { cn } from "@/lib/utils";
 import { ArticleGroupsView, type ArticleGroupsViewGroup } from "./article-groups-view";
@@ -7,6 +8,13 @@ import { ReaderPassiveActionButton } from "./reader-passive-action-button";
 import { ReaderPassiveCard, readerListPassiveCardOffsetClassName } from "./reader-passive-card";
 
 export type ArticleListEmptyStateVariant = "default" | "setup" | "hidden";
+
+type ListMotionStyle = CSSProperties &
+  Record<"--motion-content-swap-offset" | "--motion-duration-content-swap", string>;
+const LIST_MOTION_STYLE: ListMotionStyle = {
+  "--motion-content-swap-offset": MOTION_CONTENT_SWAP_SLOW_OFFSET_PX,
+  "--motion-duration-content-swap": MOTION_CONTENT_SWAP_SLOW_DURATION_MS,
+};
 
 type ArticleListScreenViewProps = {
   listAriaLabel: string;
@@ -121,6 +129,7 @@ export function ArticleListScreenView({
           data-testid="article-list-scroll-content"
           className="motion-content-swap"
           data-motion-phase="entering"
+          style={LIST_MOTION_STYLE}
         >
           <div
             ref={listRef}
