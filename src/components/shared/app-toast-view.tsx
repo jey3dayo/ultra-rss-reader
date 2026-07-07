@@ -63,7 +63,7 @@ export function AppToastView({
           aria-label={t("close")}
           variant="ghost"
           size="icon-sm"
-          className="ml-1 size-8 shrink-0 text-foreground-soft hover:bg-surface-1/72"
+          className="ml-1 size-8 shrink-0 text-foreground-soft"
         >
           &times;
         </Button>
@@ -90,7 +90,7 @@ export function AppToastView({
               disabled={resolveActionDisabled(action.disabled)}
               variant="ghost"
               size="sm"
-              className="min-h-8 px-3 py-1 text-xs font-medium text-primary hover:bg-surface-1/72 hover:text-primary"
+              className="min-h-8 px-3 py-1 text-xs font-medium text-primary hover:text-primary"
             >
               {action.label}
             </Button>

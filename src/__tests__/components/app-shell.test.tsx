@@ -791,7 +791,7 @@ describe("AppShell", () => {
     expect(screen.getByTestId("app-toast")).toHaveAttribute("data-open");
     expect(screen.getByTestId("app-toast")).toHaveAttribute("data-side", "top");
     expect(screen.getByRole("button", { name: "Close" })).toHaveClass("text-foreground-soft");
-    expect(screen.getByRole("button", { name: "Close" })).toHaveClass("hover:bg-surface-1/72");
+    expect(screen.getByRole("button", { name: "Close" })).not.toHaveClass("hover:bg-surface-1/72");
   });
 
   it.each([
