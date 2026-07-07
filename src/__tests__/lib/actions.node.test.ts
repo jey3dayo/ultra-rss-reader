@@ -25,7 +25,6 @@ const { triggerSyncMock, i18nTMock, isWindowFullscreenMock, setWindowFullscreenM
 
 const runManualUpdateCheckMock = vi.fn();
 const performUpdateCheckMock = vi.fn();
-const showUpdateAvailableToastMock = vi.fn();
 const reloadBrowserWebviewMock = vi.fn<() => Promise<Result.Result<BrowserWebviewState, never>>>(async () =>
   Result.succeed({
     url: "https://example.com/article",
@@ -151,7 +150,6 @@ vi.mock("@/lib/i18n", () => ({
 vi.mock("@/hooks/use-updater", () => ({
   runManualUpdateCheck: runManualUpdateCheckMock,
   performUpdateCheck: performUpdateCheckMock,
-  showUpdateAvailableToast: showUpdateAvailableToastMock,
 }));
 
 vi.mock("@/lib/window/tauri-window", () => ({
@@ -179,7 +177,6 @@ beforeEach(async () => {
   runManualUpdateCheckMock.mockReset();
   runManualUpdateCheckMock.mockResolvedValue(undefined);
   performUpdateCheckMock.mockReset();
-  showUpdateAvailableToastMock.mockReset();
   i18nTMock.mockClear();
   triggerSyncMock.mockReset();
   triggerSyncMock.mockResolvedValue(
@@ -420,7 +417,6 @@ describe("executeAction node contracts", () => {
 
       expect(runManualUpdateCheckMock).toHaveBeenCalledTimes(1);
       expect(performUpdateCheckMock).not.toHaveBeenCalled();
-      expect(showUpdateAvailableToastMock).not.toHaveBeenCalled();
     });
 
     it("reports rejected update checks as updates action diagnostics", async () => {

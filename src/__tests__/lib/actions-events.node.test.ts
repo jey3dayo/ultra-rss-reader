@@ -21,7 +21,6 @@ const { triggerSyncMock, i18nTMock, isWindowFullscreenMock, setWindowFullscreenM
 const runManualUpdateCheckMock = vi.fn();
 const restartAppMock = vi.fn();
 const performUpdateCheckMock = vi.fn();
-const showUpdateAvailableToastMock = vi.fn();
 const reloadBrowserWebviewMock = vi.fn();
 const goBackBrowserWebviewMock = vi.fn();
 const goForwardBrowserWebviewMock = vi.fn();
@@ -58,7 +57,6 @@ vi.mock("@/lib/i18n", () => ({
 vi.mock("@/hooks/use-updater", () => ({
   runManualUpdateCheck: runManualUpdateCheckMock,
   performUpdateCheck: performUpdateCheckMock,
-  showUpdateAvailableToast: showUpdateAvailableToastMock,
 }));
 
 vi.mock("@/lib/window/tauri-window", () => ({
@@ -88,7 +86,6 @@ beforeEach(async () => {
   runManualUpdateCheckMock.mockReset();
   restartAppMock.mockReset();
   performUpdateCheckMock.mockReset();
-  showUpdateAvailableToastMock.mockReset();
   i18nTMock.mockClear();
   triggerSyncMock.mockReset();
   triggerSyncMock.mockResolvedValue(
