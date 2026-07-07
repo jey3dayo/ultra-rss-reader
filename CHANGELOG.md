@@ -4,10 +4,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.53.21] - 2026-07-07
+
 ### Changed
 
 - フォルダ/フィード/タグ/スマートビューの選択サマリー画面と記事一覧に、選択切替時のフェードイン(コンテンツスワップ)アニメーションを追加した。大きい面用に通常より遅め・大きめ(260ms/10px)のモーションを使い、`prefers-reduced-motion` では無効化される。
 - 選択サマリーの「最近のフィード」ボタンと購読一覧の検索クリア操作を、独自スタイルのボタンからデザインシステムの Button(outline/ghost)に統一した。
+
+### Maintenance
+
+- react-doctor、vitest、pnpm ツールチェーンのバージョンを最新に更新した。
 
 ## [0.53.20] - 2026-07-06
 
