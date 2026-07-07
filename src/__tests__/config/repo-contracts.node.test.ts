@@ -1195,7 +1195,7 @@ describe("repository static contracts", () => {
     expect(packageJson.engines.pnpm).toBe(packageManagerVersion);
     expect(packageJson.packageManager).toBe(`pnpm@${packageJson.engines.pnpm}`);
     expect(miseNodeVersion).toBe(packageJson.engines.node);
-    expect(packageManagerVersion).toBe("11.9.0");
+    expect(packageManagerVersion).toBe("11.10.0");
     expect(misePnpmVersion).toBe(packageManagerVersion);
   });
 
@@ -1446,9 +1446,9 @@ describe("repository static contracts", () => {
     expect(toolchainSection).toContain("process.versions.node");
     expect(toolchainSection).toContain('execFileSync("pnpm", ["--version"]');
     expect(extractMiseTaskSection(miseSource, "quality:toolchain")).not.toBe("");
-    expect(packageJsonSource).toContain('"packageManager": "pnpm@11.9.0"');
+    expect(packageJsonSource).toContain('"packageManager": "pnpm@11.10.0"');
     expect(packageJsonSource).toContain('"node": "26.4.0"');
-    expect(packageJsonSource).toContain('"pnpm": "11.9.0"');
+    expect(packageJsonSource).toContain('"pnpm": "11.10.0"');
   });
 
   it("keeps CI quality gate summary explicit for skipped or cancelled required matrix jobs", () => {
