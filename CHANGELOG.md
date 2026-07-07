@@ -4,6 +4,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.53.23] - 2026-07-08
+
 ### Features
 
 - 記事ペインの下部に「次の記事」へ移動するボタンを追加した。本文の長さに関わらずペイン下部に固定表示され、既存のキーボードショートカットと同じ挙動で次の記事に移動する。
