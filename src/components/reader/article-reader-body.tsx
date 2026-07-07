@@ -1,7 +1,9 @@
+import { ChevronDownIcon } from "lucide-react";
 import { type KeyboardEvent, useCallback, useLayoutEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import type { ArticleDto } from "@/api/tauri-commands";
-import { ScrollArea } from "@/design-system";
+import { IconToolbarSurfaceButton, ScrollArea } from "@/design-system";
+import { executeAction } from "@/lib/actions";
 import {
   formatArticleDate,
   resolveArticleDateLocale,
@@ -78,7 +80,7 @@ function normalizeWheelDeltaY(event: globalThis.WheelEvent, viewport: HTMLDivEle
 }
 
 export function ArticleReaderBody({ article, feedName, onOpenArticleTitleInWebPreview }: ArticleReaderBodyProps) {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation("reader");
   const openLinks = usePreferencesStore((s) => s.prefs.open_links ?? "in_app");
   const selectFeedFromCurrentContext = useUiStore((s) => s.selectFeedFromCurrentContext);
   const setArticleReaderScrollPosition = useUiStore((s) => s.setArticleReaderScrollPosition);
@@ -291,7 +293,7 @@ export function ArticleReaderBody({ article, feedName, onOpenArticleTitleInWebPr
     [article.id, scheduleScrollPositionCommit],
   );
 
-  return (
+  const scrollArea = (
     <ScrollArea
       data-testid="article-reader-scroll-area"
       className="h-full"
@@ -344,5 +346,20 @@ export function ArticleReaderBody({ article, feedName, onOpenArticleTitleInWebPr
         </div>
       </article>
     </ScrollArea>
+  );
+
+  return (
+    <div className="relative h-full min-h-0">
+      {scrollArea}
+      <div className="pointer-events-none absolute inset-x-0 bottom-4 z-10 flex justify-center">
+        <IconToolbarSurfaceButton
+          label={t("shortcuts.next_article")}
+          variant="chrome"
+          onClick={() => executeAction("next-article")}
+        >
+          <ChevronDownIcon className="[filter:drop-shadow(0_1px_2px_rgb(0_0_0/0.45))_drop-shadow(0_0_2px_rgb(255_255_255/0.35))]" />
+        </IconToolbarSurfaceButton>
+      </div>
+    </div>
   );
 }
