@@ -8,7 +8,7 @@ import {
   MOTION_STATE_CLOSED,
   MOTION_STATE_OPEN,
 } from "@/constants/motion";
-import { AppTooltip, FeedFavicon, Input, LabelChip, NavRowButton, TooltipProvider } from "@/design-system";
+import { AppTooltip, Button, FeedFavicon, Input, LabelChip, NavRowButton, TooltipProvider } from "@/design-system";
 import { countSubscriptionGroupRows } from "@/lib/subscriptions/subscriptions-index";
 import type { SubscriptionListGroup, SubscriptionListRow } from "@/lib/subscriptions/subscriptions-index.types";
 import { cn } from "@/lib/utils";
@@ -220,14 +220,16 @@ export function SubscriptionsListPane({
             className="h-11 rounded-md border-[var(--workspace-low-wire-section-border)] bg-[var(--workspace-low-wire-group-surface)] pl-10 pr-12 text-[0.88rem] shadow-none"
           />
           {searchQuery.length > 0 ? (
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-sm"
               aria-label={searchClearLabel}
               onClick={() => onSearchQueryChange("")}
-              className="absolute right-0 top-1/2 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-md text-foreground-soft transition-[background-color,color] duration-150 hover:bg-[color:var(--subscriptions-list-row-hover)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-strong/45 motion-reduce:transition-none"
+              className="absolute right-0 top-1/2 -translate-y-1/2 text-foreground-soft hover:bg-[color:var(--subscriptions-list-row-hover)] hover:text-foreground"
             >
               <X aria-hidden="true" className="h-4 w-4" />
-            </button>
+            </Button>
           ) : null}
         </div>
       </div>
@@ -244,13 +246,14 @@ export function SubscriptionsListPane({
           >
             <p className="text-foreground-soft">{emptyLabel}</p>
             {searchQuery.length > 0 ? (
-              <button
+              <Button
                 type="button"
+                variant="outline"
                 onClick={() => onSearchQueryChange("")}
-                className="mt-3 inline-flex min-h-11 items-center justify-center rounded-md border border-border/70 px-3 text-sm font-medium text-foreground transition-[background-color,color,border-color] duration-150 hover:bg-[color:var(--subscriptions-list-row-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-strong/45 motion-reduce:transition-none"
+                className="mt-3 min-h-11 hover:bg-[color:var(--subscriptions-list-row-hover)]"
               >
                 {searchClearLabel}
-              </button>
+              </Button>
             ) : null}
           </div>
         ) : (

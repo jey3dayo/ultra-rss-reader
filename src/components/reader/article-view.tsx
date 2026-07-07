@@ -8,7 +8,7 @@ import {
   MOTION_CONTENT_SWAP_SLOW_DURATION_MS,
   MOTION_CONTENT_SWAP_SLOW_OFFSET_PX,
 } from "@/constants";
-import { FeedFavicon, MotionNumber } from "@/design-system";
+import { Button, FeedFavicon, MotionNumber } from "@/design-system";
 import {
   type ArticleViewSummaryFeed,
   type ArticleViewSummaryState,
@@ -105,17 +105,18 @@ function SummaryMetric({ label, value, kind = "count" }: SummaryIdentityProps) {
 function RecentFeedRow({ feed, onSelect }: { feed: ArticleViewSummaryFeed; onSelect: (feedId: string) => void }) {
   return (
     <li className="min-w-0">
-      <button
+      <Button
         type="button"
+        variant="outline"
         onClick={() => onSelect(feed.id)}
-        className="flex h-9 w-full min-w-0 items-center gap-2 rounded-md border border-border/55 bg-surface-1/52 px-2.5 text-left text-sm shadow-none transition-colors hover:bg-surface-2/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45 dark:border-border/70 dark:bg-surface-2/42 dark:hover:bg-surface-2/70"
+        className="h-11 w-full min-w-0 justify-start gap-2.5 px-3 text-left"
       >
-        <FeedFavicon title={feed.title} url={feed.url} siteUrl={feed.site_url} size="sm" />
-        <span className="min-w-0 flex-1 truncate text-foreground" dir="auto">
+        <FeedFavicon title={feed.title} url={feed.url} siteUrl={feed.site_url} size="md" />
+        <span className="min-w-0 flex-1 truncate" dir="auto">
           {feed.title}
         </span>
         <span className="shrink-0 text-xs text-foreground-soft tabular-nums">{feed.unread_count.toLocaleString()}</span>
-      </button>
+      </Button>
     </li>
   );
 }
@@ -183,7 +184,7 @@ function SummaryEmptyState({
               {recentFeeds.length > 0 ? (
                 <div className="mt-8">
                   <h3 className="text-sm font-medium text-foreground">{t("recent_feeds")}</h3>
-                  <ul className="mt-3 grid grid-cols-2 gap-2">
+                  <ul className="mt-3 grid grid-cols-2 gap-2.5">
                     {recentFeeds.map((feed) => (
                       <RecentFeedRow key={feed.id} feed={feed} onSelect={handleSelectRecentFeed} />
                     ))}
