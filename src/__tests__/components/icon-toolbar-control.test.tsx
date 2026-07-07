@@ -229,7 +229,7 @@ describe("IconToolbarControl", () => {
       "size-11",
       "rounded-lg",
       "text-inherit",
-      "disabled:opacity-100",
+      "disabled:opacity-50",
       "disabled:text-foreground-soft",
     );
     expect(button).not.toHaveClass("md:size-8");

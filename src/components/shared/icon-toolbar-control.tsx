@@ -55,7 +55,7 @@ const iconToolbarControlVariants = cva(iconToolbarButtonClassName, {
 });
 
 const iconToolbarSurfaceButtonClassName = cn(
-  "motion-interactive-surface inline-flex size-11 shrink-0 items-center justify-center rounded-lg bg-transparent text-inherit shadow-none outline-none select-none transition-none hover:bg-transparent hover:text-inherit aria-expanded:bg-transparent focus-visible:ring-0 active:translate-y-0 disabled:pointer-events-none disabled:opacity-100 disabled:text-foreground-soft [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "motion-interactive-surface inline-flex size-11 shrink-0 items-center justify-center rounded-lg bg-transparent text-inherit shadow-none outline-none select-none transition-none hover:bg-transparent hover:text-inherit aria-expanded:bg-transparent focus-visible:ring-0 active:translate-y-0 disabled:pointer-events-none disabled:opacity-50 disabled:text-foreground-soft [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
 );
 
 type IconToolbarSurfaceButtonProps = IconToolbarButtonProps & {
