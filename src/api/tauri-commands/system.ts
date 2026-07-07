@@ -23,8 +23,7 @@ export const resetOversizedDevCredentialsStore = () =>
 // Updater
 export const checkForUpdate = () => safeInvoke("check_for_update", { response: UpdateInfoDtoSchema.nullable() });
 
-export const downloadAndInstallUpdate = () =>
-  safeInvoke("download_and_install_update", { response: NullResponseSchema });
+export const downloadUpdate = () => safeInvoke("download_update", { response: NullResponseSchema });
 
 export const restartApp = () => safeInvoke("restart_app", { response: NullResponseSchema });
 

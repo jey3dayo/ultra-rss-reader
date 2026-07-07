@@ -1273,7 +1273,7 @@ export function setupDevMocks(): RestoreDevMocks {
         return null;
       case "check_for_update":
         return null;
-      case "download_and_install_update":
+      case "download_update":
         return null;
       case "restart_app":
         return null;

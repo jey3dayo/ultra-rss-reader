@@ -131,7 +131,7 @@ const expectedCommandOwnerAllowlists = {
     "get_platform_info",
   ],
   "share-commands": ["copy_to_clipboard", "add_to_reading_list"],
-  "updater-commands": ["check_for_update", "download_and_install_update", "restart_app"],
+  "updater-commands": ["check_for_update", "download_update", "restart_app"],
 } as const satisfies Record<string, readonly string[]>;
 
 function permissionIdentifier(permission: TauriCapability["permissions"][number]): string {

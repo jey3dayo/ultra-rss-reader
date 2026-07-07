@@ -69,7 +69,7 @@ pub(crate) fn command_db_lock_policy(command_name: &str) -> Option<CommandDbLock
         | "reset_oversized_dev_credentials_store"
         | "discover_feeds"
         | "check_for_update"
-        | "download_and_install_update"
+        | "download_update"
         | "restart_app"
         | "open_log_dir" => CommandDbLockPolicy::NoDatabaseLock,
         "list_accounts"
@@ -470,10 +470,7 @@ mod tests {
             ("open_in_browser", CommandDbLockPolicy::NoDatabaseLock),
             ("discover_feeds", CommandDbLockPolicy::NoDatabaseLock),
             ("check_for_update", CommandDbLockPolicy::NoDatabaseLock),
-            (
-                "download_and_install_update",
-                CommandDbLockPolicy::NoDatabaseLock,
-            ),
+            ("download_update", CommandDbLockPolicy::NoDatabaseLock),
         ];
 
         for (command_name, expected_policy) in cases {

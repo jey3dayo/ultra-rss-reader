@@ -937,7 +937,7 @@ pub fn run() {
             commands::platform_commands::get_platform_permission_denied_recovery,
             commands::platform_commands::reset_oversized_dev_credentials_store,
             commands::updater_commands::check_for_update,
-            commands::updater_commands::download_and_install_update,
+            commands::updater_commands::download_update,
             commands::updater_commands::restart_app,
             commands::database_commands::get_database_info,
             commands::database_commands::vacuum_database,

@@ -21,6 +21,11 @@ pub(crate) struct PendingUpdateHandle {
     update: Update,
     version: String,
     source: String,
+    /// Bytes downloaded but not yet installed. Populated when install is
+    /// deferred until the user requests a restart: always on non-macOS
+    /// platforms, and on macOS when the sync/maintenance guard was busy at
+    /// download completion. `None` after a macOS immediate install.
+    downloaded_bytes: Option<Vec<u8>>,
 }
 
 /// Cached update handle from the last successful check. The version/source
@@ -115,10 +120,59 @@ impl Drop for SyncInstallGuard<'_> {
     }
 }
 
+/// How to apply freshly downloaded update bytes on the immediate-install path.
+#[cfg(any(target_os = "macos", test))]
+enum PostDownloadInstall<'a> {
+    /// The sync/maintenance guard is free: install right now while holding it.
+    Immediate(SyncInstallGuard<'a>),
+    /// The guard is busy (e.g. sync in flight when the download finishes).
+    /// Do not fail the completed download; keep the bytes as a pending update
+    /// and install later from `restart_app`.
+    DeferUntilRestart,
+}
+
+#[cfg(any(target_os = "macos", test))]
+fn resolve_post_download_install(
+    acquire_result: Result<SyncInstallGuard<'_>, AppError>,
+) -> PostDownloadInstall<'_> {
+    match acquire_result {
+        Ok(guard) => PostDownloadInstall::Immediate(guard),
+        Err(_) => PostDownloadInstall::DeferUntilRestart,
+    }
+}
+
 #[tauri::command]
-pub fn restart_app(app: AppHandle) -> Result<(), AppError> {
+pub async fn restart_app(app: AppHandle) -> Result<(), AppError> {
     let state = app.state::<AppState>();
     let _guard = SyncInstallGuard::acquire(state.syncing.as_ref())?;
+
+    // Install any update downloaded-but-not-yet-installed before restarting.
+    // This deferred path covers non-macOS platforms and the macOS fallback
+    // where the sync/maintenance guard was busy when the download finished.
+    // After a macOS immediate install there is nothing pending here.
+    let pending = app.state::<PendingUpdate>();
+    let pending_update = pending.0.lock().await.take();
+    if let Some(pending_update) = pending_update {
+        if let Some(bytes) = pending_update.downloaded_bytes {
+            let update = pending_update.update;
+            if !pending_update_metadata_matches(
+                &pending_update.version,
+                &pending_update.source,
+                &update,
+            ) {
+                return Err(AppError::UserVisible {
+                    message: "Pending update handle changed before install".to_string(),
+                });
+            }
+            if let Some(message) = update_policy_error(&update) {
+                return Err(AppError::UserVisible { message });
+            }
+            update.install(bytes).map_err(|e| AppError::UserVisible {
+                message: format!("Failed to install update: {e}"),
+            })?;
+        }
+    }
+
     app.restart()
 }
 
@@ -286,6 +340,7 @@ fn make_pending_update_handle(update: Update) -> PendingUpdateHandle {
         version: update.version.clone(),
         source: update_source(&update),
         update,
+        downloaded_bytes: None,
     }
 }
 
@@ -337,23 +392,25 @@ pub async fn check_for_update(app: AppHandle) -> Result<Option<UpdateInfo>, AppE
 
     let info = update.as_ref().map(make_update_info);
 
-    // Cache the update handle for download_and_install_update
+    // Cache the update handle for download_update
     *pending.0.lock().await = update.map(make_pending_update_handle);
 
     Ok(info)
 }
 
+/// Downloads the pending update in the background. `SyncInstallGuard` is
+/// intentionally not held for the network transfer: it is only acquired for
+/// the brief install step, so sync and other database-maintenance operations
+/// are not blocked for the full download duration.
 #[tauri::command]
-pub async fn download_and_install_update(app: AppHandle) -> Result<(), AppError> {
+pub async fn download_update(app: AppHandle) -> Result<(), AppError> {
     let session_id = next_download_session_id();
     let download_guard = DownloadGuard::acquire(session_id)?;
-    let state = app.state::<AppState>();
-    let _sync_guard = SyncInstallGuard::acquire(state.syncing.as_ref())?;
 
-    do_download_and_install(&app, session_id, &download_guard).await
+    do_download_update(&app, session_id, &download_guard).await
 }
 
-async fn do_download_and_install(
+async fn do_download_update(
     app: &AppHandle,
     session_id: u64,
     download_guard: &DownloadGuard,
@@ -399,8 +456,8 @@ async fn do_download_and_install(
     let mut total_downloaded: usize = 0;
     let mut last_percent: Option<u8> = None;
 
-    update
-        .download_and_install(
+    let bytes = update
+        .download(
             move |chunk_length, content_length| {
                 total_downloaded += chunk_length;
                 let percent =
@@ -419,7 +476,7 @@ async fn do_download_and_install(
         )
         .await
         .map_err(|e| AppError::UserVisible {
-            message: format!("Failed to download/install update: {e}"),
+            message: format!("Failed to download update: {e}"),
         })?;
 
     if !download_guard.is_current() {
@@ -428,10 +485,44 @@ async fn do_download_and_install(
         });
     }
 
-    // On Windows, download_and_install may restart the app immediately,
-    // so this emit may never be reached. The frontend handles both cases:
-    // if the app restarts, the user sees the update applied on next launch.
-    emit_update_event_log_only(app, "update-ready", UpdateReady { session_id });
+    #[cfg(target_os = "macos")]
+    {
+        // The .app bundle can be swapped out while the current process keeps
+        // running the old binary; the replacement takes effect on next launch.
+        // Only the brief install step needs the sync/maintenance guard. When
+        // sync is holding that guard, do not fail the finished download: keep
+        // the bytes and fall back to the deferred install path (`restart_app`
+        // installs before restarting), the same contract as other OSes.
+        let state = app.state::<AppState>();
+        match resolve_post_download_install(SyncInstallGuard::acquire(state.syncing.as_ref())) {
+            PostDownloadInstall::Immediate(_sync_guard) => {
+                update.install(bytes).map_err(|e| AppError::UserVisible {
+                    message: format!("Failed to install update: {e}"),
+                })?;
+            }
+            PostDownloadInstall::DeferUntilRestart => {
+                *pending.0.lock().await = Some(PendingUpdateHandle {
+                    version: pending_update.version,
+                    source: pending_update.source,
+                    update,
+                    downloaded_bytes: Some(bytes),
+                });
+            }
+        }
+        emit_update_event_log_only(app, "update-ready", UpdateReady { session_id });
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        // Defer install until the user requests a restart (see `restart_app`).
+        *pending.0.lock().await = Some(PendingUpdateHandle {
+            version: pending_update.version,
+            source: pending_update.source,
+            update,
+            downloaded_bytes: Some(bytes),
+        });
+        emit_update_event_log_only(app, "update-ready", UpdateReady { session_id });
+    }
 
     Ok(())
 }
@@ -462,9 +553,9 @@ mod tests {
         clear_pending_update, is_prerelease_version, is_strictly_newer_version,
         is_update_download_in_flight, is_updater_manual_check_configured,
         next_download_progress_percent, next_download_session_id, parse_semantic_version_parts,
-        pending_update_metadata_matches_parts, update_event_emit_warning,
-        update_policy_error_parts, updater_endpoint_error_message,
-        updater_initialization_error_message, DownloadGuard, SyncInstallGuard,
+        pending_update_metadata_matches_parts, resolve_post_download_install,
+        update_event_emit_warning, update_policy_error_parts, updater_endpoint_error_message,
+        updater_initialization_error_message, DownloadGuard, PostDownloadInstall, SyncInstallGuard,
         ACTIVE_DOWNLOAD_SESSION_ID, DOWNLOADING, DOWNLOAD_SESSION_ID,
     };
     use crate::commands::dto::AppError;
@@ -702,6 +793,73 @@ mod tests {
             "stale download guard must not clear a superseding session"
         );
         ACTIVE_DOWNLOAD_SESSION_ID.store(0, Ordering::SeqCst);
+    }
+
+    #[test]
+    fn post_download_install_defers_to_restart_when_sync_install_guard_is_busy() {
+        // Contract: a busy sync/maintenance flag when the download finishes
+        // must not fail the download. The bytes fall back to the deferred
+        // install path (`restart_app` installs them later), and the other
+        // operation's flag stays untouched.
+        let _test_lock = UPDATER_COMMAND_TEST_LOCK
+            .lock()
+            .expect("test lock poisoned");
+        let busy = AtomicBool::new(true);
+
+        match resolve_post_download_install(SyncInstallGuard::acquire(&busy)) {
+            PostDownloadInstall::DeferUntilRestart => {}
+            PostDownloadInstall::Immediate(_) => {
+                panic!("busy sync flag must defer install to restart_app instead of failing")
+            }
+        }
+        assert!(
+            busy.load(Ordering::SeqCst),
+            "deferred fallback must not clear another operation's flag"
+        );
+
+        let idle = AtomicBool::new(false);
+        match resolve_post_download_install(SyncInstallGuard::acquire(&idle)) {
+            PostDownloadInstall::Immediate(guard) => {
+                assert!(
+                    idle.load(Ordering::SeqCst),
+                    "immediate install must hold the sync/install guard"
+                );
+                drop(guard);
+                assert!(
+                    !idle.load(Ordering::SeqCst),
+                    "immediate install must release the guard after the install step"
+                );
+            }
+            PostDownloadInstall::DeferUntilRestart => {
+                panic!("idle sync flag should install immediately after download")
+            }
+        };
+    }
+
+    #[test]
+    fn download_guard_does_not_hold_sync_install_guard_during_download() {
+        // Contract: `download_update` acquires `DownloadGuard` for the whole
+        // network transfer but must not acquire `SyncInstallGuard` until the
+        // brief install step. Verify the two guards are independent locks so
+        // sync/database-maintenance operations are never blocked for the full
+        // download duration, only for the install itself.
+        let _test_lock = UPDATER_COMMAND_TEST_LOCK
+            .lock()
+            .expect("test lock poisoned");
+        DOWNLOADING.store(false, Ordering::SeqCst);
+        let syncing = AtomicBool::new(false);
+
+        let download_guard = DownloadGuard::acquire(1).expect("guard should acquire idle flag");
+        assert!(is_update_download_in_flight());
+
+        let sync_guard = SyncInstallGuard::acquire(&syncing)
+            .expect("sync/install guard must remain acquirable while a download is in flight");
+        assert!(syncing.load(Ordering::SeqCst));
+
+        drop(sync_guard);
+        assert!(!syncing.load(Ordering::SeqCst));
+        drop(download_guard);
+        assert!(!is_update_download_in_flight());
     }
 
     #[test]

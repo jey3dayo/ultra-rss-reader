@@ -3,6 +3,6 @@ identifier = "updater-commands"
 description = "Allows application updater commands."
 commands.allow = [
   "check_for_update",
-  "download_and_install_update",
+  "download_update",
   "restart_app",
 ]

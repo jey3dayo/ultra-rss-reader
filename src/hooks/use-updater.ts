@@ -5,7 +5,7 @@ import {
   type UpdateInfoDto,
   UpdateReadyEventPayloadSchema,
 } from "@/api/schemas/update-info";
-import { type AppError, checkForUpdate, downloadAndInstallUpdate, restartApp } from "@/api/tauri-commands";
+import { type AppError, checkForUpdate, downloadUpdate, restartApp } from "@/api/tauri-commands";
 import { getAddFeedDialogRestartBlockerSnapshot } from "@/components/reader/hooks/feed-dialogs/use-add-feed-dialog-actions";
 import { getSettingsDirtyStateSnapshot } from "@/components/settings/hooks/settings-dirty-state-registry";
 import i18n from "@/lib/i18n";
@@ -21,6 +21,10 @@ let downloadInFlight = false;
 let activeDownloadSessionId: number | null = null;
 let activeDownloadProgressPercent: number | null = null;
 let activeDownloadRequestId: number | null = null;
+let activeDownloadVersion: string | null = null;
+/** Whether the active download was started silently (startup check). Silent
+ * downloads suppress progress and failure toasts; the ready toast still fires. */
+let activeDownloadSilent = false;
 let nextDownloadRequestId = 0;
 let updateCheckGeneration = 0;
 const staleDownloadSessionIds = new Set<number>();
@@ -40,10 +44,6 @@ function clearToastIfCurrent(toast: ToastData): void {
   useUiStore.getState().clearToast();
 }
 
-function isSyncActive(): boolean {
-  return useUiStore.getState().syncProgress.active;
-}
-
 function rememberStaleDownloadSession(): void {
   if (activeDownloadSessionId !== null) {
     staleDownloadSessionIds.add(activeDownloadSessionId);
@@ -55,37 +55,15 @@ function completeActiveDownloadAsReady(downloadRequestId: number): void {
     return;
   }
 
+  const version = activeDownloadVersion ?? "";
   rememberStaleDownloadSession();
   downloadInFlight = false;
   activeDownloadSessionId = null;
   activeDownloadProgressPercent = null;
   activeDownloadRequestId = null;
-  showRestartToast();
-}
-
-export function showUpdateAvailableToast(version: string): void {
-  const store = useUiStore.getState();
-  const toast: ToastData = {
-    message: i18n.t("updater.available", { version }),
-    persistent: true,
-    variant: "update",
-    actions: [
-      {
-        label: i18n.t("updater.update_now"),
-        disabled: isSyncActive,
-        onClick: () => {
-          startDownload(toast);
-        },
-      },
-      {
-        label: i18n.t("updater.later"),
-        onClick: () => {
-          clearToastIfCurrent(toast);
-        },
-      },
-    ],
-  };
-  store.showToast(toast);
+  activeDownloadVersion = null;
+  activeDownloadSilent = false;
+  showRestartToast(version);
 }
 
 function getUpdateFailureToastMessage(message: string): string {
@@ -141,15 +119,15 @@ function getErrorMessage(error: unknown): string {
   return "Unknown update download failure";
 }
 
-function startDownload(ownerToast?: ToastData): void {
-  if (ownerToast && !isCurrentToast(ownerToast)) {
-    return;
-  }
-
-  if (isSyncActive()) {
-    return;
-  }
-
+/**
+ * Start a background update download.
+ *
+ * `silent` downloads (startup check) suppress progress and failure toasts;
+ * failures are logged only, since the next startup check will retry. Manual
+ * checks pass `silent: false` to surface the existing progress/failure UX.
+ * The ready toast fires exactly once regardless of trigger.
+ */
+function startDownload(version: string, options: { silent: boolean }): void {
   if (downloadInFlight || checkInFlight) {
     return;
   }
@@ -160,15 +138,19 @@ function startDownload(ownerToast?: ToastData): void {
   activeDownloadRequestId = nextDownloadRequestId + 1;
   nextDownloadRequestId = activeDownloadRequestId;
   const downloadRequestId = activeDownloadRequestId;
-  const store = useUiStore.getState();
-  store.showToast({
-    message: i18n.t("updater.downloading_percent", { percent: 0 }),
-    persistent: true,
-    progress: 0,
-    variant: "update",
-  });
+  activeDownloadVersion = version;
+  activeDownloadSilent = options.silent;
 
-  void downloadAndInstallUpdate()
+  if (!options.silent) {
+    useUiStore.getState().showToast({
+      message: i18n.t("updater.downloading_percent", { percent: 0 }),
+      persistent: true,
+      progress: 0,
+      variant: "update",
+    });
+  }
+
+  void downloadUpdate()
     .then((result) =>
       Result.pipe(
         result,
@@ -181,11 +163,17 @@ function startDownload(ownerToast?: ToastData): void {
           }
 
           rememberStaleDownloadSession();
-          showUpdateFailureToast(e.message);
+          if (activeDownloadSilent) {
+            console.warn("Silent update download failed:", e.message);
+          } else {
+            showUpdateFailureToast(e.message);
+          }
           downloadInFlight = false;
           activeDownloadSessionId = null;
           activeDownloadProgressPercent = null;
           activeDownloadRequestId = null;
+          activeDownloadVersion = null;
+          activeDownloadSilent = false;
         }),
       ),
     )
@@ -195,11 +183,17 @@ function startDownload(ownerToast?: ToastData): void {
       }
 
       rememberStaleDownloadSession();
-      showUpdateFailureToast(getErrorMessage(error));
+      if (activeDownloadSilent) {
+        console.warn("Silent update download failed:", getErrorMessage(error));
+      } else {
+        showUpdateFailureToast(getErrorMessage(error));
+      }
       downloadInFlight = false;
       activeDownloadSessionId = null;
       activeDownloadProgressPercent = null;
       activeDownloadRequestId = null;
+      activeDownloadVersion = null;
+      activeDownloadSilent = false;
     });
 }
 
@@ -344,16 +338,7 @@ function requestPreparedUpdateRestart(ownerToast: ToastData): void {
     return;
   }
 
-  useUiStore.getState().showConfirm(
-    i18n.t("updater.ready"),
-    () => {
-      restartPreparedUpdate(ownerToast);
-    },
-    {
-      actionLabel: i18n.t("updater.restart"),
-      variant: "warning",
-    },
-  );
+  restartPreparedUpdate(ownerToast);
 }
 
 function isUpdaterRuntimeUnavailable(): boolean {
@@ -363,15 +348,15 @@ function isUpdaterRuntimeUnavailable(): boolean {
   );
 }
 
-export function showRestartToast(): void {
+export function showRestartToast(version: string): void {
   const store = useUiStore.getState();
   const toast: ToastData = {
-    message: i18n.t("updater.ready"),
+    message: i18n.t("updater.ready_next_launch", { version }),
     persistent: true,
     variant: "update",
     actions: [
       {
-        label: i18n.t("updater.restart"),
+        label: i18n.t("updater.restart_now"),
         onClick: () => {
           if (!isCurrentToast(toast)) {
             return;
@@ -381,7 +366,7 @@ export function showRestartToast(): void {
         },
       },
       {
-        label: i18n.t("updater.later"),
+        label: i18n.t("close"),
         onClick: () => {
           clearToastIfCurrent(toast);
         },
@@ -440,7 +425,7 @@ export async function runManualUpdateCheck(): Promise<void> {
 
   const info = Result.unwrap(result);
   if (info) {
-    showUpdateAvailableToast(info.version);
+    startDownload(info.version, { silent: false });
     return;
   }
   store.showToast(i18n.t("updater.up_to_date"));
@@ -456,6 +441,8 @@ export function useUpdater(): void {
 
     // Startup check (silent on failure). Delay it so a freshly reloaded app
     // does not surface an actionable update toast while the shell is still settling.
+    // A detected update starts a fully silent background download: no "update
+    // available" toast, no progress toast. Only the one-time ready toast surfaces.
     const startupCheckTimer = isUpdaterRuntimeUnavailable()
       ? null
       : window.setTimeout(() => {
@@ -473,7 +460,7 @@ export function useUpdater(): void {
                 result,
                 Result.inspect((info) => {
                   if (info) {
-                    showUpdateAvailableToast(info.version);
+                    startDownload(info.version, { silent: true });
                   }
                 }),
                 Result.inspectError((error) => {
@@ -497,13 +484,15 @@ export function useUpdater(): void {
               return;
             }
 
-            const store = useUiStore.getState();
             const percent = readDownloadProgressPercent(event.payload);
             if (percent === undefined) {
               return;
             }
+            if (activeDownloadSilent) {
+              return;
+            }
             const message = getDownloadProgressToastMessage(percent);
-            store.showToast({
+            useUiStore.getState().showToast({
               message,
               persistent: true,
               progress: percent,

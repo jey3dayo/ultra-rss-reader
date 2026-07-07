@@ -51,7 +51,7 @@ const INTENTIONALLY_UNHANDLED_DEFAULT_MOCK_COMMANDS = [
   "create_folder",
   "delete_feed",
   "discover_feeds",
-  "download_and_install_update",
+  "download_update",
   "export_opml_to_file",
   "export_settings_profile",
   "get_article_tags",
@@ -407,7 +407,7 @@ describe("setupTauriMocks fixture isolation", () => {
     const unhandledCommands = createCommandIndex(INTENTIONALLY_UNHANDLED_DEFAULT_MOCK_COMMANDS);
 
     expect(orderedCommandDifference(unhandledCommands, schemaCommands)).toEqual([
-      "download_and_install_update",
+      "download_update",
       "export_settings_profile",
       "get_platform_permission_denied_recovery",
       "restart_app",
