@@ -2618,7 +2618,7 @@ describe("ArticleView", () => {
     expect(useUiStore.getState().browserUrl).toBeNull();
   });
 
-  it("renders the reader after account articles finish loading", async () => {
+  it("renders the reader from the by-id fetch even before account articles finish loading", async () => {
     let resolveAccountArticles: ((articles: typeof sampleArticles) => void) | undefined;
 
     setupTauriMocks((cmd, args) => {
@@ -2652,7 +2652,11 @@ describe("ArticleView", () => {
 
     render(<ArticleView />, { wrapper: createWrapper() });
 
-    expect(await screen.findByText("Article not found")).toHaveClass("text-foreground-soft");
+    // The by-id fetch resolves the selected article, so the reader renders without a
+    // not-found interstitial while the account article list is still loading.
+    await screen.findByRole("heading", { level: 1, name: "First Article" });
+    expect(screen.queryByText("Article not found")).not.toBeInTheDocument();
+
     const resolveLoadedArticles = resolveAccountArticles;
     if (!resolveLoadedArticles) {
       throw new Error("account articles resolver was not set");

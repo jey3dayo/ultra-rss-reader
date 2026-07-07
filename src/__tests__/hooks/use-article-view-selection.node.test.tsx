@@ -122,6 +122,39 @@ describe("useArticleViewSelection", () => {
     });
   });
 
+  it("keeps the article view when the by-id fetch resolves even in browser mode", () => {
+    const browserResolvedArticle = {
+      ...sampleArticles[0],
+      id: "browser-mode-article",
+      feed_id: "feed-1",
+    };
+
+    useUiStore.setState({
+      contentMode: "browser",
+      browserUrl: "https://example.com/x",
+      selectedArticleId: "browser-mode-article",
+      selection: { type: "all" },
+      subscriptionsWorkspace: null,
+      selectedAccountId: "acc-1",
+      retainedArticleIds: new Set(),
+      viewMode: "all",
+    });
+    // The list does not contain the selected article; only the by-id fetch resolves it.
+    useArticleListDataMock.mockReturnValue({
+      feedId: null,
+      filteredArticles: [],
+      tagId: null,
+    });
+    useArticleMock.mockReturnValue({ data: browserResolvedArticle, isPending: false });
+
+    const { result } = renderHook(() => useArticleViewSelection());
+
+    expect(result.current).toMatchObject({
+      kind: "article",
+      article: { id: "browser-mode-article" },
+    });
+  });
+
   it("returns not-found when reader mode cannot resolve the selected article", () => {
     setArticleViewState("reader", "https://example.com/article");
 
@@ -175,6 +208,49 @@ describe("useArticleViewSelection", () => {
         content_sanitized: "<p>Full body</p>",
       },
     });
+  });
+
+  it("resolves a search-clicked article via the by-id fetch even when it is absent from the reconstructed list", () => {
+    const searchOnlyArticle = {
+      ...sampleArticles[0],
+      id: "search-only-article",
+      feed_id: "feed-1",
+      content_sanitized: "<p>Search body</p>",
+    };
+
+    useUiStore.setState({
+      contentMode: "reader",
+      browserUrl: null,
+      selectedArticleId: "search-only-article",
+      selection: { type: "all" },
+      subscriptionsWorkspace: null,
+      selectedAccountId: "acc-1",
+      retainedArticleIds: new Set(),
+      viewMode: "unread",
+    });
+    // The reconstructed (search-less) list does not include the clicked article.
+    useArticleListDataMock.mockReturnValue({
+      feedId: null,
+      filteredArticles: [],
+      tagId: null,
+    });
+    useArticleMock.mockReturnValue({ data: searchOnlyArticle, isPending: false });
+
+    const { result } = renderHook(() => useArticleViewSelection());
+
+    expect(result.current).toMatchObject({
+      kind: "article",
+      article: { id: "search-only-article", content_sanitized: "<p>Search body</p>" },
+    });
+  });
+
+  it("returns loading instead of not-found while the by-id fetch for a list-absent article is pending", () => {
+    setArticleViewState("reader", null);
+    useArticleMock.mockReturnValue({ data: undefined, isPending: true });
+
+    const { result } = renderHook(() => useArticleViewSelection());
+
+    expect(result.current).toEqual({ kind: "loading" });
   });
 
   it("uses the account switch reset instead of surfacing a stale not-found state", () => {

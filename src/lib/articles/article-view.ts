@@ -6,15 +6,6 @@ import { resolveFeedWebsiteHref, resolveSiteHostLabel } from "@/lib/feed/feed";
 import { countFeedsInFolder } from "@/lib/sidebar/sidebar";
 import type { SmartViewKind } from "@/lib/sidebar/smart-view.types";
 
-export type FindSelectedArticleParams = {
-  selectedArticleId: string | null;
-  feedId: string | null;
-  tagId: string | null;
-  articles: ArticleDto[] | undefined;
-  accountArticles: ArticleDto[] | undefined;
-  tagArticles: ArticleDto[] | undefined;
-};
-
 export type LinkNavigationParams = {
   openLinks: string;
   metaKey: boolean;
@@ -194,19 +185,6 @@ function buildRecentSummaryFeeds({
 
 function buildFeedIdsFromArticles(articles: ArticleDto[]): Set<string> {
   return new Set(articles.map((article) => article.feed_id));
-}
-
-export function findSelectedArticle(params: FindSelectedArticleParams): Result.Result<ArticleDto, "article_not_found"> {
-  const { selectedArticleId, feedId, tagId, articles, accountArticles, tagArticles } = params;
-
-  if (!selectedArticleId) {
-    return Result.fail("article_not_found");
-  }
-
-  const sourceArticles = tagId ? tagArticles : feedId ? articles : accountArticles;
-  const article = sourceArticles?.find((candidate) => candidate.id === selectedArticleId);
-
-  return article ? Result.succeed(article) : Result.fail("article_not_found");
 }
 
 export function findLatestArticleOrNull(articles: ArticleDto[] | undefined): ArticleDto | null {

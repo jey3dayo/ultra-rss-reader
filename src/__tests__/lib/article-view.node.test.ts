@@ -6,7 +6,6 @@ import {
   buildArticleViewSummary,
   buildArticleViewSummaryResult,
   findLatestArticleOrNull,
-  findSelectedArticle,
   formatArticleDate,
   normalizeArticleRemoteImageUrl,
   resolveArticleDateLocale,
@@ -16,58 +15,6 @@ import {
 } from "@/lib/articles/article-view";
 
 describe("article-view utils", () => {
-  it("resolves the selected article from feed articles", () => {
-    const result = findSelectedArticle({
-      selectedArticleId: "art-1",
-      feedId: "feed-1",
-      tagId: null,
-      articles: sampleArticles,
-      accountArticles: [],
-      tagArticles: [],
-    });
-
-    expect(Result.unwrap(result)).toEqual(sampleArticles[0]);
-  });
-
-  it("resolves the selected article from account articles when no feed is selected", () => {
-    const result = findSelectedArticle({
-      selectedArticleId: "art-2",
-      feedId: null,
-      tagId: null,
-      articles: [],
-      accountArticles: sampleArticles,
-      tagArticles: [],
-    });
-
-    expect(Result.unwrap(result)).toEqual(sampleArticles[1]);
-  });
-
-  it("prefers tag articles when a tag is selected", () => {
-    const result = findSelectedArticle({
-      selectedArticleId: "art-1",
-      feedId: "feed-1",
-      tagId: "tag-1",
-      articles: [],
-      accountArticles: [],
-      tagArticles: [sampleArticles[0]],
-    });
-
-    expect(Result.unwrap(result)).toEqual(sampleArticles[0]);
-  });
-
-  it("returns an error when the selected article cannot be found", () => {
-    const result = findSelectedArticle({
-      selectedArticleId: "missing",
-      feedId: "feed-1",
-      tagId: null,
-      articles: sampleArticles,
-      accountArticles: [],
-      tagArticles: [],
-    });
-
-    expect(Result.unwrapError(result)).toBe("article_not_found");
-  });
-
   it("uses the external browser for article titles when the preference requires it", () => {
     expect(
       shouldOpenArticleTitleInExternalBrowser({

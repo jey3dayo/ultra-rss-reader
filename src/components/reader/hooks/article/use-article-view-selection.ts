@@ -6,11 +6,7 @@ import { useAccounts } from "@/hooks/use-accounts";
 import { useArticle, useArticles, useFolderArticles } from "@/hooks/use-articles";
 import { useFolders } from "@/hooks/use-folders";
 import { useArticlesByTag, useTags } from "@/hooks/use-tags";
-import {
-  type ArticleViewSummaryState,
-  buildArticleViewSummaryResult,
-  findSelectedArticle,
-} from "@/lib/articles/article-view";
+import { type ArticleViewSummaryState, buildArticleViewSummaryResult } from "@/lib/articles/article-view";
 import { resolveFeedLandingDisplay } from "@/lib/feed/feed-landing";
 import { resolveReaderSelectionSourceKind, resolveReaderSourceArticles } from "@/lib/reader/reader-source-articles";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -27,6 +23,7 @@ export type ArticleViewSelectionState =
   | { kind: "subscriptions-index" }
   | { kind: "browser-only"; browserUrl: string }
   | ArticleViewEmptyState
+  | { kind: "loading" }
   | { kind: "not-found" }
   | { kind: "article"; article: ArticleDto; feed?: FeedDto };
 
@@ -84,7 +81,7 @@ export function useArticleViewSelection(): ArticleViewSelectionState {
     mode: "all",
   });
   const { data: allTagArticles } = useArticlesByTag(selectedTagId, selectedAccountId, { mode: "all" });
-  const { data: fullSelectedArticle } = useArticle(selectedArticleId);
+  const { data: fullSelectedArticle, isPending: isSelectedArticlePending } = useArticle(selectedArticleId);
   const prefs = usePreferencesStore((s) => s.prefs);
   const sortUnread = usePreferencesStore((s) => s.prefs.reading_sort ?? s.prefs.sort_unread ?? "newest_first");
   const groupBy = usePreferencesStore((s) => s.prefs.group_by ?? "date");
@@ -168,23 +165,20 @@ export function useArticleViewSelection(): ArticleViewSelectionState {
     });
   }
 
-  const articleResult = findSelectedArticle({
-    selectedArticleId,
-    feedId: data.feedId,
-    tagId: data.tagId,
-    articles: data.filteredArticles,
-    accountArticles: data.filteredArticles,
-    tagArticles: data.filteredArticles,
-  });
+  // The by-id fetch is the single source of truth for the opened article, so it works
+  // regardless of which source (feed, folder, tag, smart view, search, ...) the row came
+  // from. The current list is only a source-agnostic cache used for an instant render
+  // while that fetch is still loading; it must never gate whether the article can open.
+  const listArticle = data.filteredArticles.find((candidate) => candidate.id === selectedArticleId);
+  const article = fullSelectedArticle ?? listArticle;
 
-  if (Result.isFailure(articleResult)) {
+  if (!article) {
     if (contentMode === "browser" && browserUrl) {
       return { kind: "browser-only", browserUrl };
     }
-    return { kind: "not-found" };
+    return isSelectedArticlePending ? { kind: "loading" } : { kind: "not-found" };
   }
 
-  const article = fullSelectedArticle ?? Result.unwrap(articleResult);
   const feed = sources.feeds?.find((candidate) => candidate.id === article.feed_id);
 
   return { kind: "article", article, feed };

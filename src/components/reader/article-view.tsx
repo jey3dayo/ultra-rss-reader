@@ -534,6 +534,22 @@ export function ArticleView() {
     return <EmptyState emptyReason={selectionState.emptyReason} summary={selectionState.summary} />;
   }
 
+  if (selectionState.kind === "loading") {
+    return (
+      <ArticleEmptyStateShell
+        toolbar={
+          <ArticleToolbar
+            article={null}
+            isBrowserOpen={false}
+            onCloseView={() => {}}
+            onToggleBrowserOverlay={() => {}}
+          />
+        }
+        body={null}
+      />
+    );
+  }
+
   if (selectionState.kind === "not-found") {
     return <ArticleNotFoundStateView message={t("article_not_found")} />;
   }
