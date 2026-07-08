@@ -4,6 +4,20 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.53.24] - 2026-07-09
+
+### Bug Fixes
+
+- ブラウザ内 webview で `target=_blank` のリンクを開いた際、埋め込みビューではなく OS の既定ブラウザで開くよう修正した。
+
+### Maintenance
+
+- pre-push の CI ゲートをステージごとの個別ジョブに分割した。
+- Lefthook のワークフローおよび Rust フォーマットチェックを対象に追加した。
+- ステージされた YAML ファイルの lint を追加した。
+- Lefthook の各種ゲートを追加した。
+- Knip のクリーンアップ結果を整理した。
+
 ## [0.53.23] - 2026-07-08
 
 ### Features
