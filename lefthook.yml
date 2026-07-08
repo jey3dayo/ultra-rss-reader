@@ -1,0 +1,20 @@
+pre-commit:
+  parallel: true
+  jobs:
+    - name: biome
+      glob: "*.{ts,tsx,js,jsx,json,css}"
+      run: pnpm exec biome check --write --formatter-enabled=true --linter-enabled=true --no-errors-on-unmatched {staged_files}
+      stage_fixed: true
+    - name: markdown
+      glob: "*.md"
+      run: pnpm exec markdownlint-cli2 --fix {staged_files}
+      stage_fixed: true
+    - name: toml
+      glob: "*.toml"
+      run: taplo fmt {staged_files}
+      stage_fixed: true
+
+pre-push:
+  jobs:
+    - name: ci
+      run: mise run ci
