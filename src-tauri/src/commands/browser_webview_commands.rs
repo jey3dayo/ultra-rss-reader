@@ -1,6 +1,6 @@
 use serde::Deserialize;
 use tauri::{
-    webview::{PageLoadEvent, WebviewBuilder},
+    webview::{NewWindowResponse, PageLoadEvent, WebviewBuilder},
     Emitter, LogicalPosition, LogicalSize, Manager, PhysicalPosition, PhysicalSize, Position, Rect,
     Size, State, Url, WebviewUrl, Window,
 };
@@ -527,6 +527,13 @@ fn external_url(url: &str) -> Result<Url, AppError> {
     crate::commands::parse_browser_http_url(url)
 }
 
+// The embedded browser preview webview has no Tauri window/tab of its own to host a
+// `target="_blank"` / `window.open()` request, so every new-window request is denied and
+// forwarded to the OS default browser instead of silently doing nothing.
+fn open_new_window_request_in_external_browser(target_url: &Url) -> Result<(), AppError> {
+    crate::commands::article_commands::open_in_browser(target_url.to_string(), Some(false))
+}
+
 fn tracker_start(
     state: &AppState,
     app_handle: &tauri::AppHandle,
@@ -658,6 +665,14 @@ fn create_browser_webview(
                 );
             }
             true
+        })
+        .on_new_window(|target_url, _features| {
+            if let Err(error) = open_new_window_request_in_external_browser(&target_url) {
+                tracing::warn!(
+                    "Failed to open embedded browser preview new-window request in external browser: {error}"
+                );
+            }
+            NewWindowResponse::Deny
         })
         .on_page_load(move |browser_webview, payload| {
             if uses_placeholder_url && is_placeholder_browser_webview_url(payload.url().as_str()) {
@@ -901,12 +916,13 @@ mod tests {
         child_webview_add_child_bounds, child_webview_rect_from_browser_bounds,
         empty_reload_source_error, external_url, finish_browser_webview_timeout,
         is_placeholder_browser_webview_url, navigation_failure_emissions,
-        should_accept_page_load_finish, should_navigate_existing_browser_webview,
-        should_use_placeholder_browser_webview_url, timeout_fallback_emissions,
-        tracker_navigation_availability, validate_browser_webview_fallback_url, validated_bounds,
-        BrowserNavigationAvailability, BrowserWebviewBounds, BrowserWebviewBoundsUnit,
-        BrowserWebviewTimeoutFallbackEmission, BROWSER_WEBVIEW_EMPTY_RELOAD_SOURCE_ERROR,
-        BROWSER_WEBVIEW_NOT_OPEN_ERROR, INVALID_BROWSER_BOUNDS_ERROR,
+        open_new_window_request_in_external_browser, should_accept_page_load_finish,
+        should_navigate_existing_browser_webview, should_use_placeholder_browser_webview_url,
+        timeout_fallback_emissions, tracker_navigation_availability,
+        validate_browser_webview_fallback_url, validated_bounds, BrowserNavigationAvailability,
+        BrowserWebviewBounds, BrowserWebviewBoundsUnit, BrowserWebviewTimeoutFallbackEmission,
+        BROWSER_WEBVIEW_EMPTY_RELOAD_SOURCE_ERROR, BROWSER_WEBVIEW_NOT_OPEN_ERROR,
+        INVALID_BROWSER_BOUNDS_ERROR,
     };
     use crate::browser_webview::{
         set_browser_webview_diagnostics_enabled, BrowserWebviewLogicalRect, BrowserWebviewState,
@@ -935,6 +951,18 @@ mod tests {
         let result = external_url("file:///tmp/article.html");
 
         assert!(result.is_err(), "file:// URLs must be rejected");
+    }
+
+    #[test]
+    fn open_new_window_request_in_external_browser_rejects_javascript_scheme() {
+        let target_url = Url::parse("javascript:alert('owned')").expect("test URL should parse");
+
+        let result = open_new_window_request_in_external_browser(&target_url);
+
+        assert!(
+            result.is_err(),
+            "javascript: new-window requests must not be forwarded to the OS browser"
+        );
     }
 
     #[test]
