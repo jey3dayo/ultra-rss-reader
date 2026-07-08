@@ -92,15 +92,14 @@ export const TauriCapabilityPermissionSchema = z.union([
   }),
 ]);
 
-export const TauriCapabilityEntrySchema = z.object({
+export const TauriCapabilitySchema = z.object({
   identifier: z.string().optional(),
   webviews: z.array(z.string()).optional(),
   permissions: z.array(TauriCapabilityPermissionSchema),
 });
 
-export const TauriCapabilitySchema = TauriCapabilityEntrySchema;
-export const TauriCapabilityFileSchema = z.union([TauriCapabilityEntrySchema, z.array(TauriCapabilityEntrySchema)]);
+export const TauriCapabilityFileSchema = z.union([TauriCapabilitySchema, z.array(TauriCapabilitySchema)]);
 
 export type TauriCapabilityPermission = z.output<typeof TauriCapabilityPermissionSchema>;
-export type TauriCapability = z.output<typeof TauriCapabilityEntrySchema>;
+export type TauriCapability = z.output<typeof TauriCapabilitySchema>;
 export type TauriCapabilityFile = z.output<typeof TauriCapabilityFileSchema>;

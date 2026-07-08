@@ -22,7 +22,7 @@ minimumReleaseAgeExclude:
   - playwright@1.61.1
   - vite@8.1.0
   - '@types/node@26.0.1'
-  - knip@6.20.0 || 6.23.0
+  - knip@6.20.0 || 6.23.0 || 6.25.0
   - portless@0.15.0
   - deslop-js@0.6.3
 supportedArchitectures:
