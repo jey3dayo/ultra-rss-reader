@@ -9,6 +9,9 @@ pre-commit:
       glob: "*.md"
       run: pnpm exec markdownlint-cli2 --fix {staged_files}
       stage_fixed: true
+    - name: yaml
+      glob: "*.{yml,yaml}"
+      run: yamllint -c .yamllint {staged_files}
     - name: toml
       glob: "*.toml"
       run: taplo fmt {staged_files}
