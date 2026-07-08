@@ -29,5 +29,13 @@ pre-commit:
 
 pre-push:
   jobs:
-    - name: ci
-      run: mise run ci
+    - name: format:check
+      run: mise run format:check
+    - name: test:unit:ci
+      run: mise run test:unit:ci
+    - name: lint
+      run: mise run lint
+    - name: test:rust
+      run: mise run test:rust
+    - name: build
+      run: mise run build
