@@ -12,9 +12,19 @@ pre-commit:
     - name: yaml
       glob: "*.{yml,yaml}"
       run: yamllint -c .yamllint {staged_files}
+    - name: actions
+      glob: ".github/workflows/*.{yml,yaml}"
+      run: actionlint -shellcheck= {staged_files}
+    - name: workflow-pins
+      glob: ".github/workflows/*.{yml,yaml}"
+      run: node scripts/check-workflow-pins.mjs
     - name: toml
       glob: "*.toml"
       run: taplo fmt {staged_files}
+      stage_fixed: true
+    - name: rustfmt
+      glob: "*.rs"
+      run: rustfmt {staged_files}
       stage_fixed: true
 
 pre-push:
