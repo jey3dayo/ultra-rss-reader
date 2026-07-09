@@ -1,0 +1,4 @@
+interface:
+  display_name: "Tauri Webview Geometry & Lifecycle"
+  short_description: "Implement and debug Tauri child webview bounds, lifecycle, and native/DOM sync."
+  default_prompt: "Use this skill when implementing or debugging Tauri child webviews: bounds and client-area geometry, logical vs physical pixels, overlay/native alignment, and open/close/resize lifecycle ordering (immediate finalize, dedupe, stale completions, stale events)."
