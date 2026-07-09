@@ -57,6 +57,11 @@
 
 ### Release / Native / Keyboard / I18n / A11y
 
+- P3 tauri-系 skill の配置先検討(created batch: 2026-07-10)
+  - priority: P3 / domain: release-native / work type: 意思決定タスク(実装なし) / write scope: なし(検討のみ)
+  - 現状 `~/.apm`(global apm.yml)にある `EpicenterHQ/epicenter/.agents/skills/tauri`、catalog の `tauri-icon-gen`、`tauri-webview-geometry` はこのリポジトリでしか使っていない。このリポジトリの repo-local `apm.yml` へ移すか、あるいは tauri 系 skill 専用の別リポジトリを新設して切り出すかを検討する
+  - 発見方法: 検討のみのため N/A。決定後 `apm-repo-bootstrap` skill で移管作業を行う
+
 ### Database / Updater / Window
 
 ### Article List / Schema / Mute / Tags / Share
