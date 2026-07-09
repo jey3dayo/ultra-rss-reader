@@ -11,7 +11,8 @@
   "scripts": {
     "dev": "pnpm exec vite",
     "dev:tauri:vite": "node ./scripts/tauri-dev-vite-manager.ts",
-    "build": "pnpm exec tsc && pnpm exec vite build",
+    "build": "pnpm exec tsc6 && pnpm exec vite build",
+    "typecheck": "pnpm exec tsc --noEmit",
     "preview": "pnpm exec vite preview",
     "tauri": "pnpm exec tauri",
     "format": "pnpm exec biome format --write .",
@@ -100,7 +101,8 @@
     "react-doctor": "0.7.1",
     "storybook": "^10.4.6",
     "tailwindcss": "^4.3.2",
-    "typescript": "^6.0.3",
+    "typescript": "npm:@typescript/typescript6@^6.0.0",
+    "typescript-7": "npm:typescript@rc",
     "vite": "^8.1.3",
     "vitest": "^4.1.10"
   }

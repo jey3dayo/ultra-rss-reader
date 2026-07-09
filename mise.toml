@@ -92,7 +92,7 @@ depends = ["test:rust", "test:unit"]
 
 [tasks.build]
 description = "Build frontend"
-run = ["tsc && vite build"]
+run = ["tsc6 && vite build"]
 
 [tasks."build:storybook"]
 description = "Build Storybook"

@@ -49,6 +49,12 @@
 
 ### Dev / Tooling / E2E / Test Helpers
 
+- P3 TypeScript 7 compatibility alias cleanup (created batch: 2026-07-10)
+  - priority: P3 / domain: quality-tooling / work type: dependency compatibility follow-up / write scope: package.json, pnpm-lock.yaml, build/typecheck task definitions
+  - typescript-eslint など TypeScript API を読む依存ツールが TypeScript 7 を peer dependency として正式サポートしたら、`typescript` の `@typescript/typescript6` compatibility alias と `typescript-7` を外し、`tsc6` を `tsc` に戻して emit build も TypeScript 7 へ全面移行する
+  - acceptance criteria: `tsc6` が不要になり、typecheck・emit build・lint 関連ツールが単一の TypeScript 7 で動作する
+  - focused verification: `mise run ci`、lint 関連ツールの TypeScript peer dependency 確認
+
 ### Rust Provider / DB / Scheduler
 
 ### Query / Store / Browser Runtime

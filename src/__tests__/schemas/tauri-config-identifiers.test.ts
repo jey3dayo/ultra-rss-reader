@@ -47,7 +47,7 @@ describe("Tauri bundle identifiers", () => {
     expect(readConfig("src-tauri/tauri.dev.conf.json").build).toMatchObject({
       beforeDevCommand: "pnpm run dev:tauri:vite",
       devUrl: "http://127.0.0.1:1420",
-      beforeBuildCommand: "pnpm exec tsc && pnpm exec vite build",
+      beforeBuildCommand: "pnpm exec tsc6 && pnpm exec vite build",
       frontendDist: "../dist",
     });
   });
