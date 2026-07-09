@@ -26,5 +26,9 @@
     ".worktrees",
     ".kiro",
     ".plans",
+    "apm_modules",
+    ".agents/skills",
+    ".claude/skills",
+    ".codex/skills",
   ],
 }

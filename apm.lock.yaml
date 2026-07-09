@@ -1,5 +1,5 @@
 lockfile_version: '1'
-generated_at: '2026-07-09T16:48:31.600525+00:00'
+generated_at: '2026-07-09T17:19:41.296740+00:00'
 apm_version: 0.22.0
 dependencies:
 - repo_url: EpicenterHQ/epicenter
@@ -16,6 +16,38 @@ dependencies:
   deployed_file_hashes:
     .agents/skills/tauri/SKILL.md: sha256:823e1fc91afa885a25c60696c9eaaa49da69d0fbce37f3f46542c8d4fd531fb9
   content_hash: sha256:1e4ae283d9d0afa6f7afe5598c5525e465735dbd245704000088239100752a86
+- repo_url: apollographql/skills
+  name: skills
+  host: github.com
+  resolved_commit: 7df6a608dd71f937e664b19183fb60d101bb13a1
+  version: unknown
+  virtual_path: skills/rust-best-practices
+  is_virtual: true
+  package_type: claude_skill
+  deployed_files:
+  - .agents/skills/rust-best-practices
+  - .agents/skills/rust-best-practices/SKILL.md
+  - .agents/skills/rust-best-practices/references/chapter_01.md
+  - .agents/skills/rust-best-practices/references/chapter_02.md
+  - .agents/skills/rust-best-practices/references/chapter_03.md
+  - .agents/skills/rust-best-practices/references/chapter_04.md
+  - .agents/skills/rust-best-practices/references/chapter_05.md
+  - .agents/skills/rust-best-practices/references/chapter_06.md
+  - .agents/skills/rust-best-practices/references/chapter_07.md
+  - .agents/skills/rust-best-practices/references/chapter_08.md
+  - .agents/skills/rust-best-practices/references/chapter_09.md
+  deployed_file_hashes:
+    .agents/skills/rust-best-practices/SKILL.md: sha256:80eeb8ab3da0c889eaaacf1963e8c6126d02e22fae2d4abd9056b4c16c7cc083
+    .agents/skills/rust-best-practices/references/chapter_01.md: sha256:96130f7b81a525f16824b0fc319d9e7ad3e913e8dcd75cc03e85d3ae83947df4
+    .agents/skills/rust-best-practices/references/chapter_02.md: sha256:05c6495150ea1b3a038555231e1965b75dc4c2499e4c7a784a0a35640eaee579
+    .agents/skills/rust-best-practices/references/chapter_03.md: sha256:160883f80db912c748cb73884942b6824be0599c98b8f16e9256f27fb9a44c6a
+    .agents/skills/rust-best-practices/references/chapter_04.md: sha256:3257b7dfa06698bd59fe2d315b33b22181926d30cda3776bc16c792b51eeb239
+    .agents/skills/rust-best-practices/references/chapter_05.md: sha256:0f976571e145f12c2435de60ec7a8791d9618917ee84fef9c90c0e5e6fe3a198
+    .agents/skills/rust-best-practices/references/chapter_06.md: sha256:c001d3dbffe3e403cfc52ad81e4fe0468416f61add2e140d0f442fee1812049c
+    .agents/skills/rust-best-practices/references/chapter_07.md: sha256:a3c989e1aff99c6de53123ce97f3cf9496e0d68fe4099faabe436758ac1a5475
+    .agents/skills/rust-best-practices/references/chapter_08.md: sha256:c546b765720e9bdd98af1f4ca0818ae1703d0552531d18776b0ce56487cb93cf
+    .agents/skills/rust-best-practices/references/chapter_09.md: sha256:6edd831122b04ee9f11c0a529a9ebddf2d34b5d1d8edef9bd6929d41693ad262
+  content_hash: sha256:62f6902bb48e44f2cc6d4ccb85d7162eb3752e7a3970a735435df6a4b5913ad4
 mcp_servers:
 - agentation
 - tauri-mcp-server
