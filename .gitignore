@@ -26,3 +26,6 @@ playwright-report/
 # Storybook
 storybook-static/
 debug-storybook.log
+
+# APM dependencies
+apm_modules/

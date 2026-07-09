@@ -1,0 +1,39 @@
+lockfile_version: '1'
+generated_at: '2026-07-09T16:48:31.600525+00:00'
+apm_version: 0.22.0
+dependencies:
+- repo_url: EpicenterHQ/epicenter
+  name: epicenter
+  host: github.com
+  resolved_commit: f5dc86890b0976e2e6034c964977200dfc730129
+  version: unknown
+  virtual_path: .agents/skills/tauri
+  is_virtual: true
+  package_type: claude_skill
+  deployed_files:
+  - .agents/skills/tauri
+  - .agents/skills/tauri/SKILL.md
+  deployed_file_hashes:
+    .agents/skills/tauri/SKILL.md: sha256:823e1fc91afa885a25c60696c9eaaa49da69d0fbce37f3f46542c8d4fd531fb9
+  content_hash: sha256:1e4ae283d9d0afa6f7afe5598c5525e465735dbd245704000088239100752a86
+mcp_servers:
+- agentation
+- tauri-mcp-server
+mcp_configs:
+  agentation:
+    name: agentation
+    transport: stdio
+    args:
+    - -y
+    - agentation-mcp
+    - server
+    registry: false
+    command: npx
+  tauri-mcp-server:
+    name: tauri-mcp-server
+    transport: stdio
+    args:
+    - -y
+    - '@hypothesi/tauri-mcp-server'
+    registry: false
+    command: npx
