@@ -1406,12 +1406,12 @@ describe("repository static contracts", () => {
     const miseSource = readMiseTaskCorpus();
 
     expect(miseSource).toContain(
-      'run = "yamllint -c .yamllint .github/ .yamllint apm.yml lefthook.yml pnpm-workspace.yaml"',
+      'run = "yamllint -c .yamllint .github/ .yamllint apm.lock.yaml apm.yml lefthook.yml pnpm-workspace.yaml"',
     );
   });
 
   it("keeps root-level YAML additions out of the lint blind spot", () => {
-    expect(listRepoRootYamlFiles()).toEqual(["apm.yml", "lefthook.yml", "pnpm-workspace.yaml"]);
+    expect(listRepoRootYamlFiles()).toEqual(["apm.lock.yaml", "apm.yml", "lefthook.yml", "pnpm-workspace.yaml"]);
   });
 
   it("keeps CI quality gate waiting on every check job", () => {

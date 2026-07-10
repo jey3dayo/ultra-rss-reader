@@ -21,7 +21,7 @@ run_windows = "markdownlint-cli2 $env:MD_GLOB $env:MD_EXCLUDE_NODE_MODULES $env:
 
 ["lint:yaml"]
 description = "YAML lint check"
-run = "yamllint -c .yamllint .github/ .yamllint apm.yml lefthook.yml pnpm-workspace.yaml"
+run = "yamllint -c .yamllint .github/ .yamllint apm.lock.yaml apm.yml lefthook.yml pnpm-workspace.yaml"
 
 ["lint:actions"]
 description = "GitHub Actions workflow check (actionlint)"
