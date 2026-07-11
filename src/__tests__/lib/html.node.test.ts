@@ -244,6 +244,17 @@ describe("normalizeReaderContentImageUrl", () => {
     expect(normalizeReaderContentImageUrl("https://localhost/hero.jpg")).toBeNull();
     expect(normalizeReaderContentImageUrl("https://[::1]/hero.jpg")).toBeNull();
   });
+
+  it("blocks IPv4-mapped IPv6 reader image hosts (::ffff:127.0.0.1)", () => {
+    expect(normalizeReaderContentImageUrl("https://[::ffff:127.0.0.1]/hero.jpg")).toBeNull();
+    expect(normalizeReaderContentImageUrl("https://[::ffff:192.168.1.1]/hero.jpg")).toBeNull();
+    expect(normalizeReaderContentImageUrl("https://[::ffff:10.0.0.1]/hero.jpg")).toBeNull();
+  });
+
+  it("keeps blocking already-normalized decimal and hex IPv4 reader image hosts (regression)", () => {
+    expect(normalizeReaderContentImageUrl("https://2130706433/hero.jpg")).toBeNull();
+    expect(normalizeReaderContentImageUrl("https://0x7f000001/hero.jpg")).toBeNull();
+  });
 });
 
 describe("normalizeArticleBodyHtml", () => {

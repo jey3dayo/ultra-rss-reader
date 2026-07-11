@@ -185,6 +185,43 @@ function isPrivateIpv4Address(octets: number[]): boolean {
   );
 }
 
+function extractIpv4MappedAddress(hostname: string): string | null {
+  if (!hostname.includes(":")) {
+    return null;
+  }
+
+  const lastColonIndex = hostname.lastIndexOf(":");
+  const tail = hostname.slice(lastColonIndex + 1);
+  const head = hostname.slice(0, lastColonIndex);
+
+  // Dotted-quad form, e.g. "::ffff:127.0.0.1" -> head "::ffff", tail "127.0.0.1"
+  if (tail.includes(".")) {
+    if (!/^(::ffff:|::ffff:0:)$/i.test(`${head}:`)) {
+      return null;
+    }
+    return tail;
+  }
+
+  // Hextet form, e.g. "::ffff:7f00:1" -> groups ["ffff", "7f00", "1"]
+  const groups = hostname.split(":");
+  if (groups.length < 4) {
+    return null;
+  }
+  const [hiHex, loHex] = groups.slice(-2);
+  const prefixGroups = groups.slice(0, -3);
+  const mappedMarker = groups.at(-3);
+  if (mappedMarker?.toLowerCase() !== "ffff" || !prefixGroups.every((group) => group === "")) {
+    return null;
+  }
+  if (!hiHex || !loHex || !/^[0-9a-f]{1,4}$/i.test(hiHex) || !/^[0-9a-f]{1,4}$/i.test(loHex)) {
+    return null;
+  }
+
+  const hi = Number.parseInt(hiHex, 16);
+  const lo = Number.parseInt(loHex, 16);
+  return `${(hi >> 8) & 0xff}.${hi & 0xff}.${(lo >> 8) & 0xff}.${lo & 0xff}`;
+}
+
 function isPrivateHostname(hostname: string): boolean {
   const normalizedHostname = hostname.toLowerCase().replace(/^\[|\]$/g, "");
   if (
@@ -196,6 +233,14 @@ function isPrivateHostname(hostname: string): boolean {
     normalizedHostname.startsWith("fe80:")
   ) {
     return true;
+  }
+
+  const mappedIpv4 = extractIpv4MappedAddress(normalizedHostname);
+  if (mappedIpv4 !== null) {
+    const mappedOctets = parseIpv4Address(mappedIpv4);
+    if (mappedOctets !== null && isPrivateIpv4Address(mappedOctets)) {
+      return true;
+    }
   }
 
   const ipv4Address = parseIpv4Address(normalizedHostname);
