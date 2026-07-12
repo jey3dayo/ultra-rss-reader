@@ -224,7 +224,7 @@ describe("SubscriptionsIndexPage", () => {
     const detailPane = screen.getByTestId("subscriptions-detail-pane");
     expect(await within(detailPane).findByRole("heading", { name: "Example Feed" })).toBeInTheDocument();
     expect(detailPane.querySelector(".motion-content-swap")).toHaveAttribute("data-motion-phase", "entering");
-    expect(await within(detailPane).findByText("90日以上更新なし")).toBeInTheDocument();
+    expect(await within(detailPane).findByText(/90日以上、新しい記事がありません/)).toBeInTheDocument();
     expect(await within(detailPane).findByTestId("subscriptions-detail-decision-bar")).toHaveClass(
       "motion-content-swap",
       "rounded-md",
