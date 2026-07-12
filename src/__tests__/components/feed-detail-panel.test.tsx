@@ -154,7 +154,7 @@ describe("FeedDetailPanel", () => {
     expect(screen.queryByText("https://example.com/rss.xml")).not.toBeInTheDocument();
   });
 
-  it("keeps title links centered with their external-link icon", () => {
+  it("uses the feed name as the title link without a separate external-link icon", () => {
     render(
       <FeedDetailPanel
         title="Example Feed"
@@ -168,7 +168,7 @@ describe("FeedDetailPanel", () => {
     const titleLink = screen.getByRole("link", { name: "Example Feed" });
     expect(titleLink).toHaveClass("items-center");
     expect(screen.getByRole("heading", { level: 3, name: "Example Feed" })).toHaveClass("leading-none");
-    expect(titleLink.querySelector(".lucide-external-link")).not.toHaveClass("mt-0.5");
+    expect(titleLink.querySelector(".lucide-external-link")).toBeNull();
   });
 
   it("keeps secondary actions on the shared touch target contract", () => {

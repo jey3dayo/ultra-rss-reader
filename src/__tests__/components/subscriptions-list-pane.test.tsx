@@ -94,9 +94,7 @@ describe("SubscriptionsListPane", () => {
     expect(screen.getByRole("region", { name: "全購読" })).toBeInTheDocument();
   });
 
-  it("keeps the search input and clear control on the shared touch target contract", async () => {
-    const user = userEvent.setup();
-    const onSearchQueryChange = vi.fn();
+  it("does not add a duplicate clear button to the search input", () => {
     const row = {
       feed: buildFeed({ title: "Searchable Feed" }),
       folderId: null,
@@ -122,17 +120,13 @@ describe("SubscriptionsListPane", () => {
         formatLatestArticleLabel={(value) => (value ? `最終更新 ${value}` : "取得記事なし")}
         isGroupExpanded={() => true}
         onSelectFeed={vi.fn()}
-        onSearchQueryChange={onSearchQueryChange}
+        onSearchQueryChange={vi.fn()}
         onToggleGroup={vi.fn()}
       />,
     );
 
-    expect(screen.getByRole("searchbox", { name: "購読を検索" })).toHaveClass("h-11", "pl-10", "pr-12");
-    expect(screen.getByRole("button", { name: "検索をクリア" })).toHaveClass("size-11");
-
-    await user.click(screen.getByRole("button", { name: "検索をクリア" }));
-
-    expect(onSearchQueryChange).toHaveBeenCalledWith("");
+    expect(screen.queryByRole("button", { name: "検索をクリア" })).not.toBeInTheDocument();
+    expect(screen.getByRole("searchbox", { name: "購読を検索" })).toHaveClass("h-11", "pl-10", "pr-3");
   });
 
   it("offers a clear-search recovery action when a query returns no subscriptions", async () => {
@@ -161,9 +155,9 @@ describe("SubscriptionsListPane", () => {
     );
 
     expect(screen.getByText("一致する購読はありません。")).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: "検索をクリア" })[1]).toHaveClass("min-h-11");
+    expect(screen.getByRole("button", { name: "検索をクリア" })).toHaveClass("min-h-11");
 
-    await user.click(screen.getAllByRole("button", { name: "検索をクリア" })[1]);
+    await user.click(screen.getByRole("button", { name: "検索をクリア" }));
 
     expect(onSearchQueryChange).toHaveBeenCalledWith("");
   });

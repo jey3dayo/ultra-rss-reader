@@ -1,4 +1,4 @@
-import { ChevronDown, FolderOpen, Search, X } from "lucide-react";
+import { ChevronDown, FolderOpen, Search } from "lucide-react";
 import { useCallback, useEffect, useId, useRef } from "react";
 import {
   MOTION_CONTENT_SWAP_CLASS_NAME,
@@ -217,20 +217,8 @@ export function SubscriptionsListPane({
             aria-label={searchLabel}
             placeholder={searchPlaceholder}
             onChange={(event) => onSearchQueryChange(event.currentTarget.value)}
-            className="h-11 rounded-md border-[var(--workspace-low-wire-section-border)] bg-[var(--workspace-low-wire-group-surface)] pl-10 pr-12 text-[0.88rem] shadow-none"
+            className="h-11 rounded-md border-[var(--workspace-low-wire-section-border)] bg-[var(--workspace-low-wire-group-surface)] pl-10 pr-3 text-[0.88rem] shadow-none"
           />
-          {searchQuery.length > 0 ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              aria-label={searchClearLabel}
-              onClick={() => onSearchQueryChange("")}
-              className="absolute right-0 top-1/2 -translate-y-1/2 text-foreground-soft hover:bg-[color:var(--subscriptions-list-row-hover)] hover:text-foreground"
-            >
-              <X aria-hidden="true" className="h-4 w-4" />
-            </Button>
-          ) : null}
         </div>
       </div>
       <div

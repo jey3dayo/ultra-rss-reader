@@ -204,12 +204,11 @@ export function FeedDetailPanel({
                   href={resolvedTitleHref}
                   target="_blank"
                   rel="noreferrer"
-                  className={cn(detailLinkClassName, "inline-flex min-w-0 max-w-full items-center gap-2 no-underline")}
+                  className={cn(detailLinkClassName, "inline-flex min-w-0 max-w-full no-underline")}
                 >
                   <h3 className="font-sans text-[1.12rem] font-semibold leading-none tracking-[-0.025em] text-foreground">
                     {title}
                   </h3>
-                  <ExternalLink aria-hidden="true" className="size-3.5 shrink-0" />
                 </a>
               ) : (
                 <h3 className="font-sans text-[1.12rem] font-semibold leading-none tracking-[-0.025em] text-foreground">
