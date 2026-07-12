@@ -4,6 +4,27 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.53.25] - 2026-07-12
+
+### Bug Fixes
+
+- Block IPv4-mapped IPv6 private-host bypass in image/link filter
+- Revert pnpm version to 11.10.0 to match mise-managed toolchain
+- Sync lint contracts
+
+### Maintenance
+
+- Bump biome schema URL to 2.5.3
+- Bump pnpm to 11.11.0 and refresh package versions
+- Adopt TypeScript 7 type checks
+- Add repo-local tauri-icon-gen/tauri-webview-geometry skills migrated from global catalog
+- Add rust-best-practices skill as repo-local dependency
+- Add epicenter tauri skill and generate apm lockfile
+
+### Documentation
+
+- Note tauri skill placement decision as pending TODO
+
 ## [0.53.24] - 2026-07-09
 
 ### Bug Fixes
