@@ -212,19 +212,21 @@ describe("SubscriptionsIndexPage", () => {
     expect(screen.getByText("見直し候補")).toBeInTheDocument();
     expect(screen.queryByText("条件")).toBeNull();
     expect(screen.queryByText("見直し候補: 更新が止まっている、または更新がないまま未読も残っていない購読")).toBeNull();
-    expect(screen.getByText("90日更新なし")).toBeInTheDocument();
+    expect(screen.getByText("RSS上で90日更新なし")).toBeInTheDocument();
     expect(await screen.findAllByRole("heading", { name: "Work" })).toHaveLength(2);
     expect(document.querySelectorAll('img[src*="google.com/s2/favicons?domain=example.com"]').length).toBeGreaterThan(
       0,
     );
     expect(screen.getByText("未読 0件")).toBeInTheDocument();
-    expect(screen.getByText((text) => text.startsWith("最終更新 ") && text.includes("2024"))).toBeInTheDocument();
+    expect(
+      screen.getByText((text) => text.startsWith("RSS上の最終更新 ") && text.includes("2024")),
+    ).toBeInTheDocument();
     expect(screen.getAllByText("対応不要").length).toBeGreaterThan(0);
 
     const detailPane = screen.getByTestId("subscriptions-detail-pane");
     expect(await within(detailPane).findByRole("heading", { name: "Example Feed" })).toBeInTheDocument();
     expect(detailPane.querySelector(".motion-content-swap")).toHaveAttribute("data-motion-phase", "entering");
-    expect(await within(detailPane).findByText(/90日以上、新しい記事がありません/)).toBeInTheDocument();
+    expect(await within(detailPane).findByText(/RSS上で90日以上、新しい記事がありません/)).toBeInTheDocument();
     expect(await within(detailPane).findByTestId("subscriptions-detail-decision-bar")).toHaveClass(
       "motion-content-swap",
       "rounded-md",
@@ -310,7 +312,7 @@ describe("SubscriptionsIndexPage", () => {
     expect(await screen.findByRole("button", { name: /見直し候補/ })).toHaveClass(
       "shadow-[var(--subscriptions-summary-card-shadow)]",
     );
-    expect(await screen.findByRole("button", { name: /90日更新なし/ })).toHaveClass(
+    expect(await screen.findByRole("button", { name: /RSS上で90日更新なし/ })).toHaveClass(
       "rounded-md",
       "border-state-danger-border/72",
       "bg-state-danger-surface/82",
@@ -567,9 +569,9 @@ describe("SubscriptionsIndexPage", () => {
     });
     expect(screen.queryByRole("button", { name: "まとめて処理" })).toBeNull();
 
-    await user.click(screen.getByRole("button", { name: /90日更新なし/ }));
+    await user.click(screen.getByRole("button", { name: /RSS上で90日更新なし/ }));
 
-    expect(await screen.findByRole("heading", { name: "90日更新なし" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "RSS上で90日更新なし" })).toBeInTheDocument();
     expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
       kind: "index",
     });
@@ -730,7 +732,7 @@ describe("SubscriptionsIndexPage", () => {
 
     render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("button", { name: /90日更新なし/ }));
+    await user.click(await screen.findByRole("button", { name: /RSS上で90日更新なし/ }));
     expect(await screen.findByText("一致する購読はありません。")).toBeInTheDocument();
 
     await vi.advanceTimersByTimeAsync(24 * 60 * 60 * 1000);
@@ -791,7 +793,7 @@ describe("SubscriptionsIndexPage", () => {
       wrapper: createWrapper(),
     });
 
-    await user.click(await screen.findByRole("button", { name: /90日更新なし/ }));
+    await user.click(await screen.findByRole("button", { name: /RSS上で90日更新なし/ }));
     expect(await screen.findByText("一致する購読はありません。")).toBeInTheDocument();
 
     vi.setSystemTime(new Date("2026-04-01T00:00:00Z"));

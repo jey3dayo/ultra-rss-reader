@@ -596,7 +596,7 @@ const generatedMockArticles = [
     id: "art-29",
     feedId: "feed-chimolog",
     title: "旧世代構成のベンチマークを整理する、春時点の検証ログ",
-    summary: "90日更新なしカードの見た目を確認するための開発用サンプル記事です。",
+    summary: "RSS上で90日更新なしカードの見た目を確認するための開発用サンプル記事です。",
     url: "https://chimolog.co/mock-stale-benchmark/",
     author: "ちもろぐ",
     date: addLocalDays(now, -140),
