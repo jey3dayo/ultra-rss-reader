@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.53.27] - 2026-07-13
+
+### Documentation
+
+- 購読画面のラベルが RSS の更新状態を表すことを明確化した。
+
 ## [0.53.26] - 2026-07-13
 
 ### Bug Fixes
