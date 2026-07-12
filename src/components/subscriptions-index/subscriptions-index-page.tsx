@@ -322,6 +322,7 @@ export function SubscriptionsIndexPage() {
         detailEmptyLabel={t("detail_empty")}
         statusLabels={{
           normal: t("status_normal"),
+          attention_30d: t("status_attention_30d"),
           review: t("status_review"),
           stale_90d: t("status_stale_90d"),
           quiet_no_unread: t("status_quiet_no_unread"),
@@ -329,6 +330,7 @@ export function SubscriptionsIndexPage() {
         reasonTooltipLabels={{
           no_articles: t("tooltip_reason_no_articles"),
           normal: t("detail_reason_normal"),
+          attention_30d: t("tooltip_reason_attention_30d"),
           review: t("tooltip_reason_review"),
           stale_90d: t("tooltip_reason_stale_90d"),
           quiet_no_unread: t("tooltip_reason_quiet_no_unread"),

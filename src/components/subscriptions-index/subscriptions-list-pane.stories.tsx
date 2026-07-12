@@ -136,17 +136,19 @@ const readerAlignedGroups = [
 
 const statusLabels = {
   normal: "No action",
+  attention_30d: "Attention",
   review: "Review",
-  stale_90d: "90 days stale",
-  quiet_no_unread: "Quiet with no unread",
+  stale_90d: "Long-inactive candidate",
+  quiet_no_unread: "Review candidate",
 } satisfies Record<SubscriptionListRow["status"]["labelKey"], string>;
 
 const reasonTooltipLabels = {
   no_articles: "No fetched articles yet",
   normal: "No action needed",
+  attention_30d: "Latest article is older than 30 days",
   review: "Review signal",
-  stale_90d: "Latest article is older than 90 days",
-  quiet_no_unread: "This feed has stayed quiet and has no unread items",
+  stale_90d: "Latest article is older than 90 days, so this feed is a long-inactive candidate",
+  quiet_no_unread: "Latest article is older than 60 days and the feed has no unread items",
 } satisfies Record<NonNullable<SubscriptionListRow["reasonTooltipKey"]>, string>;
 
 function isEveryGroupExpanded(_groupKey?: string) {

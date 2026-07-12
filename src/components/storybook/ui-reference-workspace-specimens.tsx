@@ -270,16 +270,18 @@ export function SubscriptionGroupDisclosureSpecimen() {
           searchClearLabel="検索をクリア"
           statusLabels={{
             normal: "確認済み",
+            attention_30d: "注意",
             review: "確認待ち",
-            stale_90d: "90日以上更新なし",
-            quiet_no_unread: "更新停止かつ未読なし",
+            stale_90d: "長期停止候補",
+            quiet_no_unread: "見直し候補",
           }}
           reasonTooltipLabels={{
             no_articles: "記事がまだ取れていないため、見直し候補にはしていません",
             normal: "最近も動きがあります",
+            attention_30d: "最終記事から30日以上たっているため注意表示です",
             review: "見直しの判断材料があります",
-            stale_90d: "最後に取得した記事から90日以上たっています",
-            quiet_no_unread: "更新停止が続いていて、未読もありません",
+            stale_90d: "最終記事から90日以上たっているため長期停止候補です",
+            quiet_no_unread: "最終記事から60日以上なく、未読もありません",
           }}
           formatUnreadCountLabel={(count) => `${count} unread`}
           formatLatestArticleLabel={(value) => (value ? "最終更新あり" : "更新なし")}

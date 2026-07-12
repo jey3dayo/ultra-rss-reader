@@ -9,7 +9,10 @@ describe("Japanese feed management labels", () => {
   });
 
   it("keeps subscription review reason labels consistent", () => {
-    expect(jaSubscriptions.reason_quiet_no_unread).toBe("更新停止かつ未読なし");
+    expect(jaSubscriptions.status_attention_30d).toBe("注意");
+    expect(jaSubscriptions.reason_attention_30d).toBe("30日以上、新しい記事がありません");
+    expect(jaSubscriptions.reason_quiet_no_unread).toBe("60日以上、新しい記事がなく未読もありません");
+    expect(jaSubscriptions.status_stale_90d).toBe("長期停止候補");
     expect(jaSubscriptions.fact_stale_days).toBe("更新なし {{count, count}}日");
   });
 

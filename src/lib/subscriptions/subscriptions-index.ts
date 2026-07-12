@@ -33,7 +33,7 @@ export type SubscriptionDecisionActions = {
 };
 
 export function isSubscriptionRowFlagged(status: SubscriptionRowStatus): boolean {
-  return status.labelKey !== "normal";
+  return status.labelKey !== "normal" && status.labelKey !== "attention_30d";
 }
 
 function countReviewCandidates(candidates: SubscriptionReviewCandidate[]): number {
@@ -284,6 +284,8 @@ export function buildSubscriptionDetailCandidate(params: {
   const summary = summarizeSubscriptionReviewCandidate(selectedCandidate);
   const reasonFacts = buildSubscriptionReviewReasonFacts(selectedCandidate);
   const summaryText = labels.summaryText(summary.summaryKey);
+  const reasonLabels = selectedCandidate.reasonKeys.map((reasonKey) => labels.reasonLabel(reasonKey));
+  const primaryReasonLabel = reasonLabels[0] ?? null;
 
   return {
     candidate: selectedCandidate,
@@ -291,8 +293,12 @@ export function buildSubscriptionDetailCandidate(params: {
     statusLabel: labels.statusLabel(selectedRow.status.labelKey),
     summary: summaryText,
     reasonBoxBody:
-      reasonFacts.length > 0 ? reasonFacts.map((fact) => labels.reasonFact(fact)).join(" / ") : summaryText,
-    reasonLabels: selectedCandidate.reasonKeys.map((reasonKey) => labels.reasonLabel(reasonKey)),
+      reasonFacts.length > 0
+        ? [primaryReasonLabel, ...reasonFacts.map((fact) => labels.reasonFact(fact))]
+            .filter((value): value is string => value !== null)
+            .join(" / ")
+        : summaryText,
+    reasonLabels,
   };
 }
 
@@ -479,7 +485,15 @@ export function resolveSubscriptionRowStatus({
 }: {
   candidate?: SubscriptionReviewCandidate;
 }): SubscriptionRowStatus {
-  if (!candidate || summarizeSubscriptionReviewCandidate(candidate).tone === "low") {
+  if (!candidate) {
+    return { tone: "neutral", labelKey: "normal" };
+  }
+
+  if (hasSubscriptionReviewReason(candidate, "attention_30d")) {
+    return { tone: "low", labelKey: "attention_30d" };
+  }
+
+  if (summarizeSubscriptionReviewCandidate(candidate).tone === "low") {
     return { tone: "neutral", labelKey: "normal" };
   }
 

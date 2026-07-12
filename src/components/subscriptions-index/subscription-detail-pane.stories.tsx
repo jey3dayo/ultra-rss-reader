@@ -70,8 +70,8 @@ const detailCandidate = {
   tone: "medium",
   statusLabel: "Needs review",
   summary: null,
-  reasonBoxBody: "This feed has not published recently and has no unread backlog.",
-  reasonLabels: ["90 days stale", "No unread articles"],
+  reasonBoxBody: "90+ days without a new article / Updated 94 days ago / Unread 0",
+  reasonLabels: ["90+ days without a new article", "60+ days without a new article and no unread"],
 } satisfies SubscriptionDetailCandidate;
 
 const meta = {

@@ -23,6 +23,7 @@ function buildFeed(overrides: Partial<FeedDto>): FeedDto {
 
 const statusLabels = {
   normal: "対応不要",
+  attention_30d: "注意",
   review: "見直し候補",
   stale_90d: "90日以上更新なし",
   quiet_no_unread: "見直し候補",
@@ -31,6 +32,7 @@ const statusLabels = {
 const reasonTooltipLabels = {
   no_articles: "記事がまだ取れていないため、見直し候補にはしていません",
   normal: "最近も動きがあります。今はそのままでよさそうです。",
+  attention_30d: "最終記事から30日以上たっているため注意表示です",
   review: "見直しの判断材料があります",
   stale_90d: "最後に取得した記事から90日以上たっています",
   quiet_no_unread: "更新停止が続いていて、未読もありません",

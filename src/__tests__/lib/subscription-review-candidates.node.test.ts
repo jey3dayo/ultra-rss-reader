@@ -245,16 +245,19 @@ describe("buildSubscriptionReviewCandidates", () => {
     });
     expect(candidates.find((candidate) => candidate.feedId === "feed-recent-boundary")).toMatchObject({
       staleDays: 89,
-      reasonKeys: [],
+      reasonKeys: ["attention_30d"],
     });
   });
 
-  it("marks quiet unread feeds at the 30 day boundary only", () => {
+  it("uses 30 days for attention and 60 days for review candidates", () => {
     const candidates = buildSubscriptionReviewCandidates({
       feeds: [
         { ...feeds[0], id: "feed-quiet-boundary", unread_count: 0 },
         { ...feeds[1], id: "feed-recent-unread-boundary", unread_count: 0 },
         { ...feeds[2], id: "feed-quiet-with-unread", unread_count: 1 },
+        { ...feeds[0], id: "feed-review-boundary", unread_count: 0 },
+        { ...feeds[1], id: "feed-review-recent-boundary", unread_count: 0 },
+        { ...feeds[2], id: "feed-review-with-unread", unread_count: 1 },
       ],
       folders,
       feedArticleSummaries: [
@@ -273,6 +276,21 @@ describe("buildSubscriptionReviewCandidates", () => {
           latest_article_at: "2026-03-06T00:00:00Z",
           starred_count: 0,
         },
+        {
+          feed_id: "feed-review-boundary",
+          latest_article_at: "2026-02-04T00:00:00Z",
+          starred_count: 0,
+        },
+        {
+          feed_id: "feed-review-recent-boundary",
+          latest_article_at: "2026-02-05T00:00:00Z",
+          starred_count: 0,
+        },
+        {
+          feed_id: "feed-review-with-unread",
+          latest_article_at: "2026-02-04T00:00:00Z",
+          starred_count: 0,
+        },
       ],
       now: new Date("2026-04-05T00:00:00Z"),
       hiddenFeedIds: new Set(),
@@ -280,7 +298,7 @@ describe("buildSubscriptionReviewCandidates", () => {
 
     expect(candidates.find((candidate) => candidate.feedId === "feed-quiet-boundary")).toMatchObject({
       staleDays: 30,
-      reasonKeys: ["quiet_no_unread"],
+      reasonKeys: ["attention_30d"],
     });
     expect(candidates.find((candidate) => candidate.feedId === "feed-recent-unread-boundary")).toMatchObject({
       staleDays: 29,
@@ -288,7 +306,19 @@ describe("buildSubscriptionReviewCandidates", () => {
     });
     expect(candidates.find((candidate) => candidate.feedId === "feed-quiet-with-unread")).toMatchObject({
       staleDays: 30,
-      reasonKeys: [],
+      reasonKeys: ["attention_30d"],
+    });
+    expect(candidates.find((candidate) => candidate.feedId === "feed-review-boundary")).toMatchObject({
+      staleDays: 60,
+      reasonKeys: ["quiet_no_unread"],
+    });
+    expect(candidates.find((candidate) => candidate.feedId === "feed-review-recent-boundary")).toMatchObject({
+      staleDays: 59,
+      reasonKeys: ["attention_30d"],
+    });
+    expect(candidates.find((candidate) => candidate.feedId === "feed-review-with-unread")).toMatchObject({
+      staleDays: 60,
+      reasonKeys: ["attention_30d"],
     });
   });
 
@@ -369,7 +399,7 @@ describe("buildSubscriptionReviewCandidates", () => {
     });
     expect(candidates.find((candidate) => candidate.feedId === "feed-timezone-boundary")).toMatchObject({
       staleDays: 89,
-      reasonKeys: [],
+      reasonKeys: ["attention_30d"],
     });
   });
 
@@ -454,11 +484,11 @@ describe("buildSubscriptionReviewCandidates", () => {
     expect(candidates.map((candidate) => candidate.feedId)).toEqual(["feed-visible-medium", "feed-visible-low"]);
     expect(candidates.map((candidate) => summarizeSubscriptionReviewCandidate(candidate).summaryKey)).toEqual([
       "stale_but_supported",
-      "healthy_feed",
+      "attention_low_activity",
     ]);
     expect(candidates.map((candidate) => buildSubscriptionReviewReasonFacts(candidate))).toEqual([
       [{ key: "stale_days", value: 94 }],
-      [],
+      [{ key: "stale_days", value: 35 }],
     ]);
   });
 

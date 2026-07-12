@@ -8,6 +8,7 @@ export type SubscriptionSummaryFilterKey = "all" | "review" | "stale";
 
 export type SubscriptionRowStatus =
   | { tone: "neutral"; labelKey: "normal" }
+  | { tone: "low"; labelKey: "attention_30d" }
   | {
       tone: "medium";
       labelKey: "review" | "stale_90d" | "quiet_no_unread";

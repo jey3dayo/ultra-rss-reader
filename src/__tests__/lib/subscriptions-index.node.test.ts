@@ -211,7 +211,7 @@ describe("subscriptions index helpers", () => {
     expect(candidate).toMatchObject({
       feedId: "feed-stale",
       staleDays: 89,
-      reasonKeys: [],
+      reasonKeys: ["attention_30d"],
     });
   });
 
@@ -306,6 +306,27 @@ describe("subscriptions index helpers", () => {
         },
       }),
     ).toEqual({ tone: "neutral", labelKey: "normal" });
+  });
+
+  it("labels 30-day feeds as attention without making them decision candidates", () => {
+    const [attentionCandidate] = buildSubscriptionReviewCandidates({
+      feeds: [{ ...feeds[0], id: "feed-attention", unread_count: 0 }],
+      folders,
+      feedArticleSummaries: [
+        {
+          feed_id: "feed-attention",
+          latest_article_at: "2026-03-06T00:00:00Z",
+          starred_count: 0,
+        },
+      ],
+      now: new Date("2026-04-05T00:00:00Z"),
+      hiddenFeedIds: new Set(),
+    });
+
+    expect(resolveSubscriptionRowStatus({ candidate: attentionCandidate })).toEqual({
+      tone: "low",
+      labelKey: "attention_30d",
+    });
   });
 
   it("builds latest-article metrics and preview rows for the right detail pane", () => {
@@ -1363,7 +1384,7 @@ describe("subscriptions index helpers", () => {
       tone: "high",
       statusLabel: "stale_90d",
       summary: "stale_and_inactive",
-      reasonBoxBody: "stale_days:155 / unread_count:0",
+      reasonBoxBody: "stale_90d / stale_days:155 / unread_count:0",
       reasonLabels: ["stale_90d", "quiet_no_unread"],
     });
   });

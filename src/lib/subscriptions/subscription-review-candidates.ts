@@ -2,11 +2,12 @@ import type { FeedArticleSummaryDto, FeedDto, FolderDto } from "@/api/tauri-comm
 import { parseDateInput } from "@/lib/datetime";
 import { normalizeSubscriptionCount } from "@/lib/subscriptions/subscription-count";
 
-export type SubscriptionReviewReasonKey = "stale_90d" | "quiet_no_unread";
+export type SubscriptionReviewReasonKey = "attention_30d" | "stale_90d" | "quiet_no_unread";
 export type SubscriptionReviewTone = "high" | "medium" | "low";
-export type SubscriptionReviewTitleKey = "review_now" | "consider" | "keep";
+export type SubscriptionReviewTitleKey = "attention" | "review_now" | "consider" | "keep";
 export type SubscriptionCleanupRecommendation = "cleanup_candidate" | "watch" | "retain";
 export type SubscriptionReviewSummaryKey =
+  | "attention_low_activity"
   | "stale_and_inactive"
   | "quiet_without_unread"
   | "stale_but_supported"
@@ -15,6 +16,7 @@ export type SubscriptionReviewSummaryKey =
 export type SubscriptionReviewReasonFactKey = "stale_days" | "unread_count";
 
 type SubscriptionReviewSummaryTranslationKey =
+  | "detail_reason_attention"
   | "detail_reason_stale_and_inactive"
   | "detail_reason_quiet_without_unread"
   | "detail_reason_stale_but_supported"
@@ -22,6 +24,7 @@ type SubscriptionReviewSummaryTranslationKey =
 type SubscriptionReviewReasonFactTranslationKey = "fact_stale_days" | "fact_unread_count";
 
 const SUBSCRIPTION_REVIEW_SUMMARY_TRANSLATION_KEY_BY_SUMMARY = {
+  attention_low_activity: "detail_reason_attention",
   stale_and_inactive: "detail_reason_stale_and_inactive",
   quiet_without_unread: "detail_reason_quiet_without_unread",
   stale_but_supported: "detail_reason_stale_but_supported",
@@ -34,7 +37,8 @@ const SUBSCRIPTION_REVIEW_REASON_FACT_TRANSLATION_KEY_BY_FACT = {
 } satisfies Record<SubscriptionReviewReasonFactKey, SubscriptionReviewReasonFactTranslationKey>;
 
 const SUBSCRIPTION_REVIEW_STALE_DAYS = 90;
-const SUBSCRIPTION_REVIEW_QUIET_UNREAD_DAYS = 30;
+const SUBSCRIPTION_REVIEW_ATTENTION_DAYS = 30;
+const SUBSCRIPTION_REVIEW_QUIET_UNREAD_DAYS = 60;
 
 export type SubscriptionReviewCandidate = {
   feedId: string;
@@ -82,6 +86,7 @@ export function summarizeSubscriptionReviewCandidate(candidate: SubscriptionRevi
 } {
   const hasStale = hasSubscriptionReviewReason(candidate, "stale_90d");
   const hasQuietNoUnread = hasSubscriptionReviewReason(candidate, "quiet_no_unread");
+  const hasAttention = hasSubscriptionReviewReason(candidate, "attention_30d");
 
   if (hasStale && hasQuietNoUnread) {
     return {
@@ -104,6 +109,14 @@ export function summarizeSubscriptionReviewCandidate(candidate: SubscriptionRevi
       tone: "medium",
       titleKey: "consider",
       summaryKey: "stale_but_supported",
+    };
+  }
+
+  if (hasAttention) {
+    return {
+      tone: "low",
+      titleKey: "attention",
+      summaryKey: "attention_low_activity",
     };
   }
 
@@ -136,7 +149,12 @@ export function buildSubscriptionReviewReasonFacts(candidate: SubscriptionReview
 }> {
   const facts: Array<{ key: SubscriptionReviewReasonFactKey; value: number }> = [];
 
-  if (hasSubscriptionReviewReason(candidate, "stale_90d") && candidate.staleDays != null) {
+  if (
+    (hasSubscriptionReviewReason(candidate, "attention_30d") ||
+      hasSubscriptionReviewReason(candidate, "stale_90d") ||
+      hasSubscriptionReviewReason(candidate, "quiet_no_unread")) &&
+    candidate.staleDays != null
+  ) {
     facts.push({ key: "stale_days", value: candidate.staleDays });
   }
   if (hasSubscriptionReviewReason(candidate, "quiet_no_unread")) {
@@ -205,16 +223,17 @@ export function buildSubscriptionReviewCandidates({
     const hasFetchedArticle = latestArticleAt !== null;
     const reasonKeys: SubscriptionReviewReasonKey[] = [];
 
-    if (staleDays != null && staleDays >= SUBSCRIPTION_REVIEW_STALE_DAYS) {
+    const hasStale90 = staleDays != null && staleDays >= SUBSCRIPTION_REVIEW_STALE_DAYS;
+    const hasQuietNoUnread =
+      hasFetchedArticle && staleDays != null && staleDays >= SUBSCRIPTION_REVIEW_QUIET_UNREAD_DAYS && unreadCount === 0;
+
+    if (hasStale90) {
       reasonKeys.push("stale_90d");
     }
-    if (
-      hasFetchedArticle &&
-      staleDays != null &&
-      staleDays >= SUBSCRIPTION_REVIEW_QUIET_UNREAD_DAYS &&
-      unreadCount === 0
-    ) {
+    if (hasQuietNoUnread) {
       reasonKeys.push("quiet_no_unread");
+    } else if (!hasStale90 && staleDays != null && staleDays >= SUBSCRIPTION_REVIEW_ATTENTION_DAYS) {
+      reasonKeys.push("attention_30d");
     }
 
     candidates.push({
