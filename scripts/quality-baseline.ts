@@ -30,6 +30,7 @@ export const markdownlintRepoContract = {
     ".worktrees",
     ".kiro",
     ".plans",
+    "plans",
     "apm_modules",
     ".agents/skills",
     ".claude/skills",
