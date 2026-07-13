@@ -2114,6 +2114,117 @@ mod tests {
         );
     }
 
+    /// Pins current behavior for the auto-import error branch: when reading
+    /// the local sync folder fails, `run_local_account_auto_import` surfaces
+    /// a warning instead of aborting the sync. The account's feed pull and
+    /// auto-export still run afterward.
+    ///
+    /// The failure is induced in a platform-independent way: the configured
+    /// sync folder path points at a plain file instead of a directory, so
+    /// `load_local_sync_operation_dir` calls `fs::read_dir` on a non-directory
+    /// and fails with the same I/O error class (`NotADirectory` / equivalent)
+    /// on every OS, without relying on Unix permission bits.
+    #[tokio::test]
+    async fn local_sync_account_returns_warning_when_auto_import_read_fails() {
+        let db = Mutex::new(DbManager::new_in_memory().unwrap());
+        let account = test_sync_command_account("local-import-error", ProviderKind::Local, false);
+        insert_local_account_row(&db, &account);
+
+        let dir = tempfile::tempdir().unwrap();
+        let sync_folder_path = dir.path().join("sync-root-is-actually-a-file");
+        std::fs::write(&sync_folder_path, b"not a directory").unwrap();
+
+        save_local_sync_settings(&db, &account.id, &sync_folder_path.to_string_lossy(), true);
+
+        let outcome = sync_account(&db, &account).await.unwrap();
+
+        assert!(
+            outcome
+                .warnings
+                .iter()
+                .any(|warning| warning.message.contains("Local sync folder import failed")),
+            "unexpected warnings: {:?}",
+            outcome.warnings
+        );
+    }
+
+    /// Pins current behavior for the auto-import rejected-only branch: when
+    /// the folder/file load itself succeeds (no rejected files, no
+    /// conflicted candidates) but merge-level operation validation rejects
+    /// one operation (mismatched entity key/action), the merge still applies
+    /// the remaining valid operations and `run_local_account_auto_import`
+    /// does not surface any warning. Rejected merge-level operations are
+    /// silently dropped in the auto path today.
+    #[tokio::test]
+    async fn local_sync_account_silently_drops_merge_rejected_operations_without_warning() {
+        use crate::domain::local_account_sync::{
+            normalize_tag_name, LocalAccountSyncOperation, LocalSyncAccountId, LocalSyncAction,
+            LocalSyncDeviceId, LocalSyncEntityKey, LocalSyncOperationId,
+        };
+        use crate::infra::local_account_sync_files::write_local_sync_operation_file;
+
+        let db = Mutex::new(DbManager::new_in_memory().unwrap());
+        let account =
+            test_sync_command_account("local-import-rejected", ProviderKind::Local, false);
+        insert_local_account_row(&db, &account);
+
+        let dir = tempfile::tempdir().unwrap();
+
+        let valid_op = LocalAccountSyncOperation {
+            sync_account_id: LocalSyncAccountId("sync-account-a".to_string()),
+            device_id: LocalSyncDeviceId("other-device".to_string()),
+            operation_id: LocalSyncOperationId::new(),
+            occurred_at: chrono::Utc::now(),
+            entity_key: LocalSyncEntityKey::Folder {
+                normalized_name: normalize_tag_name("Tech").unwrap(),
+            },
+            action: LocalSyncAction::UpsertFolder {
+                display_name: "Tech".to_string(),
+                sort_order: 1,
+            },
+        };
+        // Mismatched entity key/action: `apply_operation` rejects this at the
+        // merge layer (`Local sync operation action does not match entity
+        // key`), which is a merge-level rejection, not a rejected *file*.
+        let mismatched_op = LocalAccountSyncOperation {
+            sync_account_id: LocalSyncAccountId("sync-account-a".to_string()),
+            device_id: LocalSyncDeviceId("other-device".to_string()),
+            operation_id: LocalSyncOperationId::new(),
+            occurred_at: chrono::Utc::now(),
+            entity_key: LocalSyncEntityKey::Folder {
+                normalized_name: normalize_tag_name("Tech").unwrap(),
+            },
+            action: LocalSyncAction::SetRead { is_read: true },
+        };
+        write_local_sync_operation_file(dir.path(), &valid_op, 1).unwrap();
+        write_local_sync_operation_file(dir.path(), &mismatched_op, 2).unwrap();
+
+        save_local_sync_settings(&db, &account.id, &dir.path().to_string_lossy(), true);
+
+        let outcome = sync_account(&db, &account).await.unwrap();
+
+        assert!(
+            outcome.warnings.is_empty(),
+            "merge-level rejected operations are not currently surfaced as warnings: {:?}",
+            outcome.warnings
+        );
+
+        let folder_count: i64 = db
+            .lock()
+            .unwrap()
+            .reader()
+            .query_row(
+                "SELECT COUNT(*) FROM folders WHERE account_id = ?1 AND name = 'Tech'",
+                rusqlite::params![account.id.as_ref()],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(
+            folder_count, 1,
+            "the valid operation should still be applied despite the rejected sibling"
+        );
+    }
+
     #[tokio::test]
     async fn local_sync_account_returns_warning_and_skips_projection_when_conflicted_copy_present()
     {

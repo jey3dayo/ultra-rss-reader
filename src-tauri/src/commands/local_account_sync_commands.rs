@@ -16,6 +16,7 @@ use crate::repository::local_account_sync_settings::{
 };
 use crate::service::local_account_sync::{
     export_local_account_sync_folder, import_local_account_sync_folder,
+    save_current_state_export_digest,
 };
 
 #[derive(Debug, Serialize, Clone, PartialEq, Eq)]
@@ -256,6 +257,11 @@ pub fn export_local_account_sync_operations(
         &settings.device_id,
         &PathBuf::from(&settings.sync_folder_path),
     )?;
+    // Keep `settings.last_export_digest` in sync with what was just written,
+    // so the next auto-export does not redundantly rewrite the same full
+    // snapshot this manual export already wrote (see
+    // `export_local_account_sync_folder_if_changed`).
+    save_current_state_export_digest(&db, &account_id, &settings)?;
     Ok(LocalAccountSyncExportReportDto {
         operations_written: report.operations_written,
     })

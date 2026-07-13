@@ -122,6 +122,31 @@ pub fn export_local_account_sync_folder_if_changed(
     Ok(Some(report))
 }
 
+/// Persists `settings.last_export_digest` to match the current local-account
+/// state, without writing any operation files.
+///
+/// Intended to be called right after a manual export
+/// ([`export_local_account_sync_folder`]) succeeds, so the digest reflects
+/// what was just written and the very next auto-export
+/// ([`export_local_account_sync_folder_if_changed`]) does not redundantly
+/// rewrite the same full snapshot it just wrote manually.
+pub fn save_current_state_export_digest(
+    db: &DbManager,
+    account_id: &AccountId,
+    settings: &LocalAccountSyncSettings,
+) -> DomainResult<()> {
+    let operations = build_current_state_operations(
+        db,
+        account_id,
+        &settings.sync_account_id,
+        &settings.device_id,
+    )?;
+    let digest = compute_local_account_sync_digest(&operations);
+    let settings_repo = SqliteLocalAccountSyncSettingsRepository::new(db.writer());
+    settings_repo.save_export_digest(account_id, &digest)?;
+    Ok(())
+}
+
 /// Writes the given operations as sequential files under `account_root` for
 /// `device_id`, starting from the next available sequence number, and
 /// returns a report of how many operation files were written.
@@ -388,7 +413,7 @@ mod tests {
     use crate::service::local_account_sync::{
         build_current_state_operations, compute_local_account_sync_digest,
         export_local_account_sync_folder, export_local_account_sync_folder_if_changed,
-        import_local_account_sync_folder,
+        import_local_account_sync_folder, save_current_state_export_digest,
     };
 
     fn ts(seconds: i64) -> DateTime<Utc> {
@@ -637,6 +662,97 @@ mod tests {
         );
 
         assert_ne!(before, after);
+    }
+
+    /// Pins current behavior for a manual export with zero operations
+    /// (empty account, no folders/feeds/articles/tags/mute keywords): the
+    /// export still succeeds and writes zero operation files. This is
+    /// existing zero-operations semantics and is not changed by the
+    /// digest-save fix below.
+    #[test]
+    fn manual_export_with_empty_operations_writes_zero_files() {
+        let db = DbManager::new_in_memory().unwrap();
+        let account_id = AccountId("account-1".to_string());
+        db.writer()
+            .execute(
+                "INSERT INTO accounts (id, kind, name) VALUES (?1, 'Local', 'Local')",
+                [&account_id.0],
+            )
+            .unwrap();
+        let dir = tempfile::tempdir().unwrap();
+
+        let report = export_local_account_sync_folder(
+            &db,
+            &account_id,
+            &LocalSyncAccountId("sync-account-a".to_string()),
+            &LocalSyncDeviceId("device-a".to_string()),
+            dir.path(),
+        )
+        .unwrap();
+
+        assert_eq!(report.operations_written, 0);
+        let load_report =
+            crate::infra::local_account_sync_files::load_local_sync_operation_dir(dir.path())
+                .unwrap();
+        assert_eq!(load_report.operations.len(), 0);
+    }
+
+    /// After a manual export, `save_current_state_export_digest` (called by
+    /// the manual export command right after a successful export) persists
+    /// a digest matching the current state, so the following auto-export
+    /// (`export_local_account_sync_folder_if_changed`) sees the state as
+    /// unchanged and skips rewriting the full snapshot.
+    #[test]
+    fn manual_export_followed_by_digest_save_makes_next_auto_export_a_no_op() {
+        let db = DbManager::new_in_memory().unwrap();
+        let account_id = AccountId("account-1".to_string());
+        seed_export_fixture(&db, &account_id);
+        let dir = tempfile::tempdir().unwrap();
+
+        let settings_repo = SqliteLocalAccountSyncSettingsRepository::new(db.writer());
+        let settings = seeded_settings(&dir.path().to_string_lossy(), &account_id);
+        settings_repo.save(&settings).unwrap();
+
+        // Mirrors the manual export command: write the full snapshot, then
+        // save the digest for the state that was just written.
+        let manual_report = export_local_account_sync_folder(
+            &db,
+            &account_id,
+            &settings.sync_account_id,
+            &settings.device_id,
+            dir.path(),
+        )
+        .unwrap();
+        assert_eq!(manual_report.operations_written, 4);
+        save_current_state_export_digest(&db, &account_id, &settings).unwrap();
+
+        let settings_after_manual_export = settings_repo
+            .find_by_account_id(&account_id)
+            .unwrap()
+            .expect("settings should exist after manual export");
+        assert!(settings_after_manual_export.last_export_digest.is_some());
+
+        // The very next auto-export call should be a no-op: the digest
+        // already matches the current (unchanged) state.
+        let auto_export_result = export_local_account_sync_folder_if_changed(
+            &db,
+            &account_id,
+            &settings_after_manual_export,
+        )
+        .unwrap();
+        assert_eq!(
+            auto_export_result, None,
+            "auto-export should skip redundantly rewriting the snapshot the manual export just wrote"
+        );
+
+        let load_report_after_auto_export =
+            crate::infra::local_account_sync_files::load_local_sync_operation_dir(dir.path())
+                .unwrap();
+        assert_eq!(
+            load_report_after_auto_export.operations.len(),
+            4,
+            "auto-export should not have written a second, redundant snapshot"
+        );
     }
 
     fn seeded_settings(sync_folder_path: &str, account_id: &AccountId) -> LocalAccountSyncSettings {
