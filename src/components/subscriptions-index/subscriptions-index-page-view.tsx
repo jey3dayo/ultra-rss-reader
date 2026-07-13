@@ -138,11 +138,11 @@ export function SubscriptionsIndexPageView({
           />
           <div
             data-testid="subscriptions-workspace-shell"
-            className={workspaceSplitShellClassName("mt-0 border-border/60 bg-clip-padding")}
+            className={workspaceSplitShellClassName("mt-0 bg-clip-padding")}
             style={{
-              backgroundColor: "var(--subscriptions-workspace-surface)",
-              boxShadow:
-                "inset 0 1px 0 rgba(255,255,255,0.38), 0 24px 64px -52px rgba(38,37,30,0.34), var(--subscriptions-workspace-shadow)",
+              borderColor: "transparent",
+              backgroundColor: "transparent",
+              boxShadow: "var(--subscriptions-workspace-shadow)",
             }}
           >
             <SubscriptionsListPane

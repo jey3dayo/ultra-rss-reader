@@ -331,6 +331,9 @@ describe("SubscriptionsIndexPage", () => {
     expect(shell).toHaveClass("rounded-md");
     expect(shell).toHaveClass("lg:overflow-hidden");
     expect(shell).toHaveClass("lg:grid-cols-[minmax(0,1fr)_480px]");
+    expect(shell.style.borderColor).toBe("transparent");
+    expect(shell.style.backgroundColor).toBe("transparent");
+    expect(shell.style.boxShadow).toBe("var(--subscriptions-workspace-shadow)");
 
     const leftPaneSection = within(shell).getByRole("heading", { name: "全購読" }).closest("section");
     if (!leftPaneSection) {

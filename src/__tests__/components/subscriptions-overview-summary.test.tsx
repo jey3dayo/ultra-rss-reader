@@ -239,6 +239,38 @@ describe("SubscriptionsOverviewSummary", () => {
     expect(within(activeCard).queryByText("フィルタ中")).toBeNull();
   });
 
+  it("animates the active summary value with the shared content-swap motion", () => {
+    const renderSummary = (isActive: boolean) => (
+      <SubscriptionsOverviewSummary
+        cards={[
+          {
+            filterKey: "all",
+            label: "Total subscriptions",
+            value: "10",
+            caption: "All feeds in the workspace",
+            isActive,
+          },
+        ]}
+        onSelectFilter={vi.fn()}
+      />
+    );
+
+    const { rerender } = render(renderSummary(false));
+    const inactiveCard = screen.getByRole("button", { name: /Total subscriptions/ });
+    expect(inactiveCard.querySelector(".motion-content-swap")).toBeNull();
+
+    rerender(renderSummary(true));
+
+    const activeCard = screen.getByRole("button", { name: /Total subscriptions/ });
+    const animatedValue = getRequiredHTMLElement(
+      activeCard.querySelector(".motion-content-swap"),
+      "animated summary value",
+    );
+
+    expect(animatedValue).toHaveClass("motion-content-swap", "[--motion-content-swap-offset:2px]");
+    expect(animatedValue).toHaveAttribute("data-motion-phase", "entering");
+  });
+
   it("uses all-items copy when the total card is inactive", () => {
     render(
       <SubscriptionsOverviewSummary

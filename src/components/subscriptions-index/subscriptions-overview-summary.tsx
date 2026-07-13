@@ -1,5 +1,6 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import type { ReactNode } from "react";
+import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
 import { AppTooltip, TooltipProvider } from "@/design-system";
 import type { SubscriptionSummaryCard } from "@/lib/subscriptions/subscriptions-index.types";
 import { cn } from "@/lib/utils";
@@ -265,13 +266,22 @@ function SummaryFilterCardButton({
             </span>
           </span>
         </div>
-        <SummaryText
-          as="span"
-          variant="actionableValue"
-          className={cn(summaryCard.isActive && toneClasses.activeValue)}
+        <div
+          key={`${summaryCard.filterKey}-${summaryCard.isActive ? "active" : "idle"}`}
+          className={cn(
+            summaryCard.isActive && MOTION_CONTENT_SWAP_CLASS_NAME,
+            summaryCard.isActive && "[--motion-content-swap-offset:2px]",
+          )}
+          {...(summaryCard.isActive ? { [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING } : {})}
         >
-          {value}
-        </SummaryText>
+          <SummaryText
+            as="span"
+            variant="actionableValue"
+            className={cn(summaryCard.isActive && toneClasses.activeValue)}
+          >
+            {value}
+          </SummaryText>
+        </div>
         {summaryCard.caption ? (
           <SummaryText as="p" variant="actionableCaption" className={cn(summaryCard.isActive && "text-foreground")}>
             {summaryCard.caption}
