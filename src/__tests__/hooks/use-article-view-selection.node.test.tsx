@@ -17,6 +17,7 @@ const {
   useFoldersMock,
   useArticlesByTagMock,
   useTagsMock,
+  useRecentArticlesMock,
 } = vi.hoisted(() => ({
   useAccountsMock: vi.fn(),
   useArticleMock: vi.fn(),
@@ -27,6 +28,7 @@ const {
   useFoldersMock: vi.fn(),
   useArticlesByTagMock: vi.fn(),
   useTagsMock: vi.fn(),
+  useRecentArticlesMock: vi.fn(),
 }));
 
 vi.mock("@/hooks/use-accounts", () => ({
@@ -37,6 +39,7 @@ vi.mock("@/hooks/use-articles", () => ({
   useArticle: useArticleMock,
   useArticles: useArticlesMock,
   useFolderArticles: useFolderArticlesMock,
+  useRecentArticles: useRecentArticlesMock,
 }));
 
 vi.mock("@/hooks/use-folders", () => ({
@@ -78,6 +81,7 @@ describe("useArticleViewSelection", () => {
     useArticleMock.mockReturnValue({ data: undefined });
     useFolderArticlesMock.mockReturnValue({ data: [] });
     useArticlesByTagMock.mockReturnValue({ data: [] });
+    useRecentArticlesMock.mockReturnValue({ data: [] });
     useArticleListSourcesMock.mockReturnValue({
       accountArticles: [],
       accountListScopeId: "acc-1",

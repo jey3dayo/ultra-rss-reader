@@ -3,7 +3,7 @@ import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import { useArticleListData } from "@/components/reader/hooks/article-list/use-article-list-data";
 import { useArticleListSources } from "@/components/reader/hooks/article-list/use-article-list-sources";
 import { useAccounts } from "@/hooks/use-accounts";
-import { useArticle, useArticles, useFolderArticles } from "@/hooks/use-articles";
+import { useArticle, useArticles, useFolderArticles, useRecentArticles } from "@/hooks/use-articles";
 import { useFolders } from "@/hooks/use-folders";
 import { useArticlesByTag, useTags } from "@/hooks/use-tags";
 import { type ArticleViewSummaryState, buildArticleViewSummaryResult } from "@/lib/articles/article-view";
@@ -71,6 +71,7 @@ export function useArticleViewSelection(): ArticleViewSelectionState {
   const selectedFeedId = selection.type === "feed" ? selection.feedId : null;
   const selectedFolderId = selection.type === "folder" ? selection.folderId : null;
   const selectedTagId = selection.type === "tag" ? selection.tagId : null;
+  const isRecentSmartView = selection.type === "smart" && selection.kind === "recent";
   const { data: accounts } = useAccounts();
   const { data: folders } = useFolders(selectedAccountId);
   const { data: tags } = useTags();
@@ -81,6 +82,9 @@ export function useArticleViewSelection(): ArticleViewSelectionState {
     mode: "all",
   });
   const { data: allTagArticles } = useArticlesByTag(selectedTagId, selectedAccountId, { mode: "all" });
+  const { data: allRecentArticles } = useRecentArticles(isRecentSmartView ? selectedAccountId : null, {
+    mode: "all",
+  });
   const { data: fullSelectedArticle, isPending: isSelectedArticlePending } = useArticle(selectedArticleId);
   const prefs = usePreferencesStore((s) => s.prefs);
   const sortUnread = usePreferencesStore((s) => s.prefs.reading_sort ?? s.prefs.sort_unread ?? "newest_first");
@@ -132,6 +136,7 @@ export function useArticleViewSelection(): ArticleViewSelectionState {
         feedArticles: allFeedArticles,
         folderArticles: allFolderArticles,
         tagArticles: allTagArticles,
+        recentArticles: allRecentArticles,
       }),
       allFeedArticles,
     });
