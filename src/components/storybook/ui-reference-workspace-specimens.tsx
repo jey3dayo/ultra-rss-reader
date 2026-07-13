@@ -40,7 +40,7 @@ const SUMMARY_FILTER_CARDS: SubscriptionSummaryCard[] = [
   },
   {
     filterKey: "stale",
-    label: "RSS上で90日以上更新なし",
+    label: "90日以上未更新",
     value: "8",
     caption: "最近動きがない購読",
     tone: "stale",
@@ -145,7 +145,7 @@ export function WorkspaceFilterClusterSpecimen() {
         <div className="flex flex-wrap gap-2">
           {[
             { label: "すべて", count: 163, pressed: true },
-            { label: "RSS上で90日以上更新なし", count: 0, pressed: false },
+            { label: "90日以上未更新", count: 0, pressed: false },
             { label: "未読なし", count: 163, pressed: false },
             { label: "スターなし", count: 163, pressed: false },
           ].map((item) => (
@@ -272,7 +272,7 @@ export function SubscriptionGroupDisclosureSpecimen() {
             normal: "確認済み",
             attention_30d: "注意",
             review: "確認待ち",
-            stale_90d: "長期停止候補",
+            stale_90d: "長期未更新",
             quiet_no_unread: "見直し候補",
           }}
           reasonTooltipLabels={{
@@ -280,7 +280,7 @@ export function SubscriptionGroupDisclosureSpecimen() {
             normal: "最近も動きがあります",
             attention_30d: "RSS上の最終記事から30日以上たっているため注意表示です",
             review: "見直しの判断材料があります",
-            stale_90d: "RSS上の最終記事から90日以上たっているため長期停止候補です",
+            stale_90d: "RSS上の最終記事から90日以上経過しています",
             quiet_no_unread: "RSS上の最終記事から60日以上なく、未読もありません",
           }}
           formatUnreadCountLabel={(count) => `${count} unread`}

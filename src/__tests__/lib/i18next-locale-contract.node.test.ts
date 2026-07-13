@@ -548,8 +548,8 @@ describe("i18next locale contract", () => {
       },
       {
         key: "subscriptions:summary_stale_caption",
-        en: { one: "1 feed has gone quiet", other: "2 feeds have gone quiet" },
-        ja: { one: "1 件が長く止まっています", other: "2 件が長く止まっています" },
+        en: { one: "1 feed has had no updates for 90+ days", other: "2 feeds have had no updates for 90+ days" },
+        ja: { one: "1 件が90日以上未更新です", other: "2 件が90日以上未更新です" },
       },
     ] as const;
 

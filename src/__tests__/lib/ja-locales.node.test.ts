@@ -12,8 +12,8 @@ describe("Japanese feed management labels", () => {
     expect(jaSubscriptions.status_attention_30d).toBe("注意");
     expect(jaSubscriptions.reason_attention_30d).toBe("RSS上で30日以上、新しい記事がありません");
     expect(jaSubscriptions.reason_quiet_no_unread).toBe("RSS上で60日以上、新しい記事がなく未読もありません");
-    expect(jaSubscriptions.status_stale_90d).toBe("長期停止候補");
-    expect(jaSubscriptions.summary_stale).toBe("RSS上で90日更新なし");
+    expect(jaSubscriptions.status_stale_90d).toBe("長期未更新");
+    expect(jaSubscriptions.summary_stale).toBe("90日以上未更新");
     expect(jaSubscriptions.fact_stale_days).toBe("RSS上で更新なし {{count, count}}日");
   });
 

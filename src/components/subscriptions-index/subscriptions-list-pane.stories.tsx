@@ -138,7 +138,7 @@ const statusLabels = {
   normal: "No action",
   attention_30d: "Attention",
   review: "Review",
-  stale_90d: "Long-inactive candidate",
+  stale_90d: "Long-term inactive",
   quiet_no_unread: "Review candidate",
 } satisfies Record<SubscriptionListRow["status"]["labelKey"], string>;
 
@@ -147,7 +147,7 @@ const reasonTooltipLabels = {
   normal: "No action needed",
   attention_30d: "Latest article is older than 30 days",
   review: "Review signal",
-  stale_90d: "Latest article is older than 90 days, so this feed is a long-inactive candidate",
+  stale_90d: "Latest article is older than 90 days",
   quiet_no_unread: "Latest article is older than 60 days and the feed has no unread items",
 } satisfies Record<NonNullable<SubscriptionListRow["reasonTooltipKey"]>, string>;
 
