@@ -46,6 +46,7 @@ When current product behavior, architecture, commands, or verification scope mat
 - [reader-article-scope-matrix.md](./reader-article-scope-matrix.md): source of truth for reader article source, scope, and filter combinations
 - [flaky-test-quarantine-policy.md](./flaky-test-quarantine-policy.md): policy for quarantining, documenting, and retiring flaky tests
 - [similarity-refactor-guidance.md](./similarity-refactor-guidance.md): guidance for interpreting similarity reports before extracting shared code
+- [freshrss-feed-organization-pushback.md](./freshrss-feed-organization-pushback.md): design spike confirming the current FreshRSS feed rename/folder-move overwrite behavior, GReader `subscription/edit` request shapes, and the recommended push-back mechanism
 
 ## Project Guidance
 
