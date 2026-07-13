@@ -36,7 +36,11 @@ describe("AppToastView", () => {
       "px-3",
       "py-2",
     );
-    expect(screen.getByRole("button", { name: "Close" })).toHaveClass("ml-1", "size-8");
+    expect(screen.getByRole("button", { name: "Close" })).toHaveClass(
+      "ml-1",
+      "size-8",
+      "focus-visible:border-transparent",
+    );
   });
 
   it("keeps long toast messages from pushing dismiss and actions out of the row", () => {
@@ -52,7 +56,7 @@ describe("AppToastView", () => {
 
     expect(screen.getByText(/really\/long\/path/)).toHaveClass("min-w-0", "break-words", "leading-snug");
     expect(screen.getByRole("button", { name: "Close" })).toHaveClass("shrink-0");
-    expect(screen.getByRole("button", { name: "Retry" })).toHaveClass("min-h-8");
+    expect(screen.getByRole("button", { name: "Retry" })).toHaveClass("min-h-8", "focus-visible:border-transparent");
   });
 
   it("keeps recovery toast actions and dismiss reachable from the keyboard", async () => {
