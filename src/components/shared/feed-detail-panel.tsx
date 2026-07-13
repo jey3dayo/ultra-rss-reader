@@ -1,4 +1,4 @@
-import { ExternalLink, List } from "lucide-react";
+import { ExternalLink, List, type LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { FeedDetailCard, FeedDetailRow } from "@/components/shared/feed-detail-card";
 import { LabelChip } from "@/components/shared/label-chip";
@@ -13,6 +13,7 @@ type FeedDetailAccentTone = "unread" | "starred";
 type FeedDetailLink = {
   href: string;
   label: string;
+  icon?: LucideIcon;
 };
 
 type FeedDetailArticle = {
@@ -311,12 +312,15 @@ export function FeedDetailPanel({
 
           {links.length > 0 ? (
             <div className="grid gap-2 text-sm">
-              {links.map((link) => (
-                <a key={link.href} href={link.href} target="_blank" rel="noreferrer" className={detailLinkClassName}>
-                  <ExternalLink aria-hidden="true" className="size-4 shrink-0" />
-                  <span className="underline decoration-border underline-offset-4">{link.label}</span>
-                </a>
-              ))}
+              {links.map((link) => {
+                const LinkIcon = link.icon ?? ExternalLink;
+                return (
+                  <a key={link.href} href={link.href} target="_blank" rel="noreferrer" className={detailLinkClassName}>
+                    <LinkIcon aria-hidden="true" className="size-4 shrink-0" />
+                    <span className="underline decoration-border underline-offset-4">{link.label}</span>
+                  </a>
+                );
+              })}
             </div>
           ) : null}
 

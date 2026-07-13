@@ -1,4 +1,4 @@
-import { Check, Clock3, Pencil, Trash2 } from "lucide-react";
+import { Check, Clock3, Globe, Pencil, Rss, Trash2 } from "lucide-react";
 import { useId } from "react";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
 import {
@@ -112,8 +112,10 @@ export function SubscriptionDetailPane({
   const feedUrlHref = normalizeFeedWebsiteUrlCandidate(row?.feed.url ?? "");
   const contentUrlHref = normalizeFeedWebsiteUrlCandidate(row?.feed.site_url ?? "");
   const detailLinks = [
-    ...(feedUrlHref ? [{ href: feedUrlHref, label: feedUrlLabel }] : []),
-    ...(contentUrlHref && contentUrlHref !== feedUrlHref ? [{ href: contentUrlHref, label: contentUrlLabel }] : []),
+    ...(feedUrlHref ? [{ href: feedUrlHref, label: feedUrlLabel, icon: Rss }] : []),
+    ...(contentUrlHref && contentUrlHref !== feedUrlHref
+      ? [{ href: contentUrlHref, label: contentUrlLabel, icon: Globe }]
+      : []),
   ];
 
   return (
