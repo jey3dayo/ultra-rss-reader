@@ -20,6 +20,7 @@ export type ArticlePaneProps = {
   article: ArticleDto;
   feed?: FeedDto;
   feedName?: string;
+  hasNextArticle?: boolean;
 };
 
 export type ArticlePaneToolbarState = {
@@ -59,7 +60,7 @@ export function ArticleToolbar({
   );
 }
 
-export function ArticlePane({ article, feed, feedName }: ArticlePaneProps) {
+export function ArticlePane({ article, feed, feedName, hasNextArticle = true }: ArticlePaneProps) {
   const focusedPane = useUiStore((state) => state.focusedPane);
   const articleNavigationDirection = useUiStore((state) => state.articleNavigationDirection);
   const motionDirection: MotionDirection =
@@ -111,6 +112,7 @@ export function ArticlePane({ article, feed, feedName }: ArticlePaneProps) {
                 article={article}
                 feedName={feedName}
                 onOpenArticleTitleInWebPreview={onOpenArticleTitleInWebPreview}
+                hasNextArticle={hasNextArticle}
               />
             </div>
           </ArticleContextMenu>

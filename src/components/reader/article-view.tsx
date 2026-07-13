@@ -555,6 +555,11 @@ export function ArticleView() {
   }
 
   return (
-    <ArticlePane article={selectionState.article} feed={selectionState.feed} feedName={selectionState.feed?.title} />
+    <ArticlePane
+      article={selectionState.article}
+      feed={selectionState.feed}
+      feedName={selectionState.feed?.title}
+      hasNextArticle={selectionState.hasNextArticle}
+    />
   );
 }

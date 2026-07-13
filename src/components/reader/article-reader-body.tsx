@@ -21,6 +21,7 @@ type ArticleReaderBodyProps = {
   article: ArticleDto;
   feedName?: string;
   onOpenArticleTitleInWebPreview?: () => void;
+  hasNextArticle?: boolean;
 };
 
 const ARTICLE_READER_SCROLL_POSITION_COMMIT_DELAY_MS = 120;
@@ -79,7 +80,12 @@ function normalizeWheelDeltaY(event: globalThis.WheelEvent, viewport: HTMLDivEle
   return event.deltaY;
 }
 
-export function ArticleReaderBody({ article, feedName, onOpenArticleTitleInWebPreview }: ArticleReaderBodyProps) {
+export function ArticleReaderBody({
+  article,
+  feedName,
+  onOpenArticleTitleInWebPreview,
+  hasNextArticle = true,
+}: ArticleReaderBodyProps) {
   const { t, i18n } = useTranslation("reader");
   const openLinks = usePreferencesStore((s) => s.prefs.open_links ?? "in_app");
   const selectFeedFromCurrentContext = useUiStore((s) => s.selectFeedFromCurrentContext);
@@ -351,15 +357,17 @@ export function ArticleReaderBody({ article, feedName, onOpenArticleTitleInWebPr
   return (
     <div className="relative h-full min-h-0">
       {scrollArea}
-      <div className="pointer-events-none absolute inset-x-0 bottom-4 z-10 flex justify-center">
-        <IconToolbarSurfaceButton
-          label={t("shortcuts.next_article")}
-          variant="chrome"
-          onClick={() => executeAction("next-article")}
-        >
-          <ChevronDownIcon className="[filter:drop-shadow(0_1px_2px_rgb(0_0_0/0.45))_drop-shadow(0_0_2px_rgb(255_255_255/0.35))]" />
-        </IconToolbarSurfaceButton>
-      </div>
+      {hasNextArticle ? (
+        <div className="pointer-events-none absolute inset-x-0 bottom-4 z-10 flex justify-center">
+          <IconToolbarSurfaceButton
+            label={t("shortcuts.next_article")}
+            variant="chrome"
+            onClick={() => executeAction("next-article")}
+          >
+            <ChevronDownIcon className="[filter:drop-shadow(0_1px_2px_rgb(0_0_0/0.45))_drop-shadow(0_0_2px_rgb(255_255_255/0.35))]" />
+          </IconToolbarSurfaceButton>
+        </div>
+      ) : null}
     </div>
   );
 }

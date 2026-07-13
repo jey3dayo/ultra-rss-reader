@@ -33,7 +33,7 @@ describe("ArticleReaderBody", () => {
   });
 
   it("resolves relative content links against the article URL", () => {
-    render(<ArticleReaderBody article={baseArticle} />);
+    render(<ArticleReaderBody article={baseArticle} hasNextArticle={true} />);
 
     fireEvent.click(screen.getByRole("link", { name: "Read more" }));
 
@@ -41,7 +41,7 @@ describe("ArticleReaderBody", () => {
   });
 
   it("lets the reader content expand across the right pane with viewport-responsive padding", () => {
-    const { container } = render(<ArticleReaderBody article={baseArticle} />);
+    const { container } = render(<ArticleReaderBody article={baseArticle} hasNextArticle={true} />);
 
     const readerContent = container.querySelector("[data-article-slide-content]");
 
@@ -51,7 +51,9 @@ describe("ArticleReaderBody", () => {
   });
 
   it("delegates content link clicks added after the article body renders", () => {
-    const { container } = render(<ArticleReaderBody article={{ ...baseArticle, content_sanitized: "<p>Body</p>" }} />);
+    const { container } = render(
+      <ArticleReaderBody article={{ ...baseArticle, content_sanitized: "<p>Body</p>" }} hasNextArticle={true} />,
+    );
     const contentContainer = container.querySelector("[data-article-content-container]");
     const dynamicLink = document.createElement("a");
     dynamicLink.href = "/posts/dynamic";
@@ -70,6 +72,7 @@ describe("ArticleReaderBody", () => {
           ...baseArticle,
           content_sanitized: '<p><a href="/posts/nested"><span>Nested link</span></a></p>',
         }}
+        hasNextArticle={true}
       />,
     );
 
@@ -79,7 +82,12 @@ describe("ArticleReaderBody", () => {
   });
 
   it("does not intercept modified content link clicks", () => {
-    render(<ArticleReaderBody article={{ ...baseArticle, content_sanitized: '<p><a href="#email">Email</a></p>' }} />);
+    render(
+      <ArticleReaderBody
+        article={{ ...baseArticle, content_sanitized: '<p><a href="#email">Email</a></p>' }}
+        hasNextArticle={true}
+      />,
+    );
     const event = new MouseEvent("click", { bubbles: true, cancelable: true, metaKey: true });
 
     const defaultAllowed = screen.getByRole("link", { name: "Email" }).dispatchEvent(event);
@@ -89,15 +97,27 @@ describe("ArticleReaderBody", () => {
   });
 
   it("does not open relative content links without an article URL base", () => {
-    render(<ArticleReaderBody article={{ ...baseArticle, url: "" }} />);
+    render(<ArticleReaderBody article={{ ...baseArticle, url: "" }} hasNextArticle={true} />);
 
     fireEvent.click(screen.getByRole("link", { name: "Read more" }));
 
     expect(openArticleInExternalBrowserMock).not.toHaveBeenCalled();
   });
 
+  it("shows the floating next-article button when a next article exists", () => {
+    render(<ArticleReaderBody article={baseArticle} hasNextArticle={true} />);
+
+    expect(screen.getByRole("button", { name: "Next article" })).toBeInTheDocument();
+  });
+
+  it("hides the floating next-article button on the last article", () => {
+    render(<ArticleReaderBody article={baseArticle} hasNextArticle={false} />);
+
+    expect(screen.queryByRole("button", { name: "Next article" })).not.toBeInTheDocument();
+  });
+
   it("cleans up delegated content link clicks when switching articles", () => {
-    const { rerender } = render(<ArticleReaderBody article={baseArticle} />);
+    const { rerender } = render(<ArticleReaderBody article={baseArticle} hasNextArticle={true} />);
     const oldLink = screen.getByRole("link", { name: "Read more" });
     oldLink.addEventListener("click", (event) => {
       event.preventDefault();
@@ -110,6 +130,7 @@ describe("ArticleReaderBody", () => {
           id: "article-2",
           content_sanitized: '<p><a href="/posts/2">Second article</a></p>',
         }}
+        hasNextArticle={true}
       />,
     );
 

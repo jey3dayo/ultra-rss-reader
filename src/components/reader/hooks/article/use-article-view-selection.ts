@@ -6,6 +6,7 @@ import { useAccounts } from "@/hooks/use-accounts";
 import { useArticle, useArticles, useFolderArticles, useRecentArticles } from "@/hooks/use-articles";
 import { useFolders } from "@/hooks/use-folders";
 import { useArticlesByTag, useTags } from "@/hooks/use-tags";
+import { getAdjacentArticleId } from "@/lib/articles/article-list";
 import { type ArticleViewSummaryState, buildArticleViewSummaryResult } from "@/lib/articles/article-view";
 import { resolveFeedLandingDisplay } from "@/lib/feed/feed-landing";
 import { resolveReaderSelectionSourceKind, resolveReaderSourceArticles } from "@/lib/reader/reader-source-articles";
@@ -25,7 +26,7 @@ export type ArticleViewSelectionState =
   | ArticleViewEmptyState
   | { kind: "loading" }
   | { kind: "not-found" }
-  | { kind: "article"; article: ArticleDto; feed?: FeedDto };
+  | { kind: "article"; article: ArticleDto; feed?: FeedDto; hasNextArticle: boolean };
 
 export type ArticleViewLandingCandidate = {
   article: ArticleDto;
@@ -185,6 +186,8 @@ export function useArticleViewSelection(): ArticleViewSelectionState {
   }
 
   const feed = sources.feeds?.find((candidate) => candidate.id === article.feed_id);
+  const adjacentArticleId = getAdjacentArticleId(data.filteredArticles, selectedArticleId, 1);
+  const hasNextArticle = Result.isSuccess(adjacentArticleId) && Result.unwrap(adjacentArticleId) !== selectedArticleId;
 
-  return { kind: "article", article, feed };
+  return { kind: "article", article, feed, hasNextArticle };
 }

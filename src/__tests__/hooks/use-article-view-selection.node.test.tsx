@@ -248,6 +248,57 @@ describe("useArticleViewSelection", () => {
     });
   });
 
+  it("reports hasNextArticle true when a later article exists in the filtered list", () => {
+    const currentArticle = { ...sampleArticles[0], id: "selected-article" };
+    const nextArticle = { ...sampleArticles[0], id: "next-article" };
+
+    useUiStore.setState({
+      contentMode: "reader",
+      browserUrl: null,
+      selectedArticleId: "selected-article",
+      selection: { type: "all" },
+      subscriptionsWorkspace: null,
+      selectedAccountId: "acc-1",
+      retainedArticleIds: new Set(),
+      viewMode: "all",
+    });
+    useArticleListDataMock.mockReturnValue({
+      feedId: null,
+      filteredArticles: [currentArticle, nextArticle],
+      tagId: null,
+    });
+    useArticleMock.mockReturnValue({ data: currentArticle });
+
+    const { result } = renderHook(() => useArticleViewSelection());
+
+    expect(result.current).toMatchObject({ kind: "article", hasNextArticle: true });
+  });
+
+  it("reports hasNextArticle false when the selected article is the last in the filtered list", () => {
+    const currentArticle = { ...sampleArticles[0], id: "selected-article" };
+
+    useUiStore.setState({
+      contentMode: "reader",
+      browserUrl: null,
+      selectedArticleId: "selected-article",
+      selection: { type: "all" },
+      subscriptionsWorkspace: null,
+      selectedAccountId: "acc-1",
+      retainedArticleIds: new Set(),
+      viewMode: "all",
+    });
+    useArticleListDataMock.mockReturnValue({
+      feedId: null,
+      filteredArticles: [currentArticle],
+      tagId: null,
+    });
+    useArticleMock.mockReturnValue({ data: currentArticle });
+
+    const { result } = renderHook(() => useArticleViewSelection());
+
+    expect(result.current).toMatchObject({ kind: "article", hasNextArticle: false });
+  });
+
   it("returns loading instead of not-found while the by-id fetch for a list-absent article is pending", () => {
     setArticleViewState("reader", null);
     useArticleMock.mockReturnValue({ data: undefined, isPending: true });
