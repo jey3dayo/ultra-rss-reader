@@ -668,7 +668,51 @@ describe("useAccountDetailDangerZone", () => {
       expect(setLocalAccountSyncSettingsMock).toHaveBeenCalledWith("acc-1", "/tmp/UltraRSSReader", false);
     });
     await waitFor(() => {
-      expect(useUiStore.getState().toastMessage?.message).toBe("Local sync folder saved");
+      expect(useUiStore.getState().toastMessage?.message).toBe("Automatic sync disabled");
+    });
+  });
+
+  it("keeps the toggled value and shows an error toast when saving the toggle fails", async () => {
+    getLocalAccountSyncSettingsMock.mockResolvedValue(
+      Result.succeed({
+        account_id: "acc-1",
+        sync_folder_path: "/tmp/UltraRSSReader",
+        sync_account_id: "sync-account-1",
+        device_id: "device-1",
+        enabled: true,
+      }),
+    );
+    setLocalAccountSyncSettingsMock.mockResolvedValue(Result.fail({ type: "UserVisible", message: "disk full" }));
+
+    const { result } = renderHook(() =>
+      useAccountDetailDangerZone({
+        account: { ...sampleAccounts[0], kind: "Local" },
+        queryClient: createTestQueryClient(),
+        t,
+        onAccountDeleted: vi.fn(),
+      }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.localSyncFolderPath).toBe("/tmp/UltraRSSReader");
+    });
+
+    act(() => {
+      result.current.handleToggleLocalSyncEnabled(false);
+    });
+
+    // Optimistic value is retained (not rolled back) on persist failure,
+    // matching handleSaveLocalSyncFolder's existing failure behavior.
+    expect(result.current.localSyncEnabled).toBe(false);
+    await waitFor(() => {
+      expect(setLocalAccountSyncSettingsMock).toHaveBeenCalledWith("acc-1", "/tmp/UltraRSSReader", false);
+    });
+    await waitFor(() => {
+      expect(useUiStore.getState().toastMessage?.message).toBe("Failed to save local sync folder: disk full");
+    });
+    expect(result.current.localSyncEnabled).toBe(false);
+    await waitFor(() => {
+      expect(result.current.savingLocalSyncSettings).toBe(false);
     });
   });
 

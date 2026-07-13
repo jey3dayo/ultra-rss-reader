@@ -265,6 +265,8 @@
     "local_sync_import": "操作を取り込む",
     "local_sync_importing": "取り込み中…",
     "local_sync_settings_saved": "ローカル同期フォルダを保存しました",
+    "local_sync_enabled_saved_on": "自動同期を有効にしました",
+    "local_sync_enabled_saved_off": "自動同期を無効にしました",
     "local_sync_export_success": "{{count}} 件の同期操作を書き出しました",
     "local_sync_import_success": "{{count}} 件の同期操作を適用しました",
     "local_sync_import_blocked": "ローカル同期を停止しました: 拒否 {{rejected}} 件、競合 {{conflicted}} 件",

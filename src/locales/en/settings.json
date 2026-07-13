@@ -265,6 +265,8 @@
     "local_sync_import": "Read Operations",
     "local_sync_importing": "Reading…",
     "local_sync_settings_saved": "Local sync folder saved",
+    "local_sync_enabled_saved_on": "Automatic sync enabled",
+    "local_sync_enabled_saved_off": "Automatic sync disabled",
     "local_sync_export_success": "Local sync wrote {{count}} operations",
     "local_sync_import_success": "Local sync applied {{count}} operations",
     "local_sync_import_blocked": "Local sync paused: {{rejected}} rejected files, {{conflicted}} conflicted files",

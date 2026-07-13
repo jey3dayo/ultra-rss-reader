@@ -307,6 +307,11 @@ export function useAccountDetailDangerZone({
 
   const handleToggleLocalSyncEnabled = (next: boolean) => {
     if (account.kind !== "Local") return;
+    // Optimistic toggle: on persist failure we intentionally keep the toggled
+    // value (retain, not rollback) for parity with handleSaveLocalSyncFolder,
+    // which never reverts localSyncFolderPath/localSyncEnabled on failure
+    // either. The error toast is the user-visible signal; see the
+    // "keeps the toggled value" failure-path test below.
     setLocalSyncEnabled(next);
     if (localSyncFolderPath.trim().length === 0 || savingLocalSyncSettings) {
       return;
@@ -322,7 +327,11 @@ export function useAccountDetailDangerZone({
           Result.inspect((settings) => {
             setLocalSyncFolderPath(settings.sync_folder_path);
             setLocalSyncEnabled(settings.enabled);
-            useUiStore.getState().showToast(t("account.local_sync_settings_saved"));
+            useUiStore
+              .getState()
+              .showToast(
+                t(settings.enabled ? "account.local_sync_enabled_saved_on" : "account.local_sync_enabled_saved_off"),
+              );
           }),
         );
       })
