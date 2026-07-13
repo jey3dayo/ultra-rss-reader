@@ -902,9 +902,15 @@ describe("release repository contract", () => {
   it("keeps release workflow action, token, and cache surfaces pinned to the release asset scope", () => {
     const releaseUsesValues = extractWorkflowUses(releaseWorkflow);
     const expectedReleaseActions = [
+      // preflight job: source/version/signing preflight
       "actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd",
       "jdx/mise-action@1648a7812b9aeae629881980618f079932869151",
       "pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879",
+      // quality job: parallel format/lint/test preflight (gated by should_build)
+      "actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd",
+      "jdx/mise-action@1648a7812b9aeae629881980618f079932869151",
+      "pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879",
+      // release job: matrix artifact build + draft upload
       "actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd",
       "jdx/mise-action@1648a7812b9aeae629881980618f079932869151",
       "pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879",
@@ -1628,9 +1634,16 @@ describe("release repository contract", () => {
     expect(signingPreflightStep).toContain("rerun workflow_dispatch with dry_run=true");
     expect(signingPreflightStep).toContain('echo "should_publish=true" >> "$GITHUB_OUTPUT"');
     expect(signingPreflightStep).toContain('echo "should_build=true" >> "$GITHUB_OUTPUT"');
-    expect(extractReleaseStepBlock(releaseWorkflow, "Run release quality preflight")).toContain(
-      "if: steps.signing-preflight.outputs.should_build == 'true'",
+    // The quality preflight (format/lint/test) runs in its own job gated at the
+    // job level, so it only executes after the signing preflight resolves
+    // should_build=true — equivalent to the former step-level should_build gate.
+    const qualityJobBlock = releaseWorkflow.slice(
+      releaseWorkflow.indexOf("\n  quality:"),
+      releaseWorkflow.indexOf("\n  release:"),
     );
+    expect(qualityJobBlock).toContain("needs: preflight");
+    expect(qualityJobBlock).toContain("if: needs.preflight.outputs.should_build == 'true'");
+    expect(qualityJobBlock).toContain("Run release quality preflight");
     for (const stepName of [
       "Validate release build contamination contract",
       "Resolve release semver policy",
