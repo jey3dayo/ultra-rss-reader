@@ -121,6 +121,45 @@ describe("FeedDetailPanel", () => {
     expect(screen.getByTestId("feed-detail-recent-articles")).not.toHaveClass("border-t");
   });
 
+  it("keeps the danger reason-box border visible in low-wire mode", () => {
+    render(
+      <FeedDetailPanel
+        surface="low-wire"
+        title="Stale Feed"
+        reasonBox={{
+          title: "見直しの判断材料",
+          body: "90日以上更新がありません。",
+          tone: "high",
+        }}
+        metrics={[{ label: "フォルダ", value: "Work" }]}
+        recentArticlesHeading="最近の記事"
+        recentArticles={[]}
+      />,
+    );
+
+    expect(screen.getByTestId("feed-detail-reason-box")).toHaveClass("border-state-danger-border");
+    expect(screen.getByTestId("feed-detail-reason-box")).not.toHaveClass("border-transparent");
+  });
+
+  it("drops the reason-box border for quiet low-wire tones", () => {
+    render(
+      <FeedDetailPanel
+        surface="low-wire"
+        title="Quiet Feed"
+        reasonBox={{
+          title: "見直しの判断材料",
+          body: "今はそのままでよさそうです。",
+          tone: "low",
+        }}
+        metrics={[{ label: "フォルダ", value: "Work" }]}
+        recentArticlesHeading="最近の記事"
+        recentArticles={[]}
+      />,
+    );
+
+    expect(screen.getByTestId("feed-detail-reason-box")).toHaveClass("border-transparent");
+  });
+
   it("renders neutral reason chips instead of muted chips", () => {
     render(
       <FeedDetailPanel

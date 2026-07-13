@@ -266,7 +266,7 @@ export function FeedDetailPanel({
               padding="compact"
               className={cn(
                 "rounded-md px-3.5 py-3 shadow-none",
-                isLowWire && "border-[var(--workspace-low-wire-section-border)]",
+                isLowWire && reasonBox.tone !== "high" && reasonBox.tone !== "medium" && "border-transparent",
                 reasonBox.tone === "medium" &&
                   "border-state-warning-border/80 bg-state-warning-surface/80 text-state-warning-foreground",
               )}
@@ -380,10 +380,8 @@ export function FeedDetailPanel({
           <div
             data-testid="feed-detail-action-bar"
             className={cn(
-              "flex flex-wrap items-center justify-end gap-2 border-t pt-3",
-              isLowWire
-                ? "border-[var(--workspace-low-wire-divider)] bg-[var(--workspace-low-wire-action-surface)]"
-                : "border-border/55",
+              "flex flex-wrap items-center justify-end gap-2 pt-3",
+              isLowWire ? "bg-[var(--workspace-low-wire-action-surface)]" : "border-t border-border/55",
             )}
           >
             <Button variant="ghost" size="sm" className="min-h-11 px-4" onClick={secondaryAction.onClick}>
