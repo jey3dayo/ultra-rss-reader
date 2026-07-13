@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.53.29] - 2026-07-13
+
+### Bug Fixes
+
+- Ghost ボタンのフォーカス時に不要な枠が表示されないようにし、トースターなどの補助操作をすっきり表示するよう修正した。
+
 ## [0.53.28] - 2026-07-13
 
 ### Bug Fixes
