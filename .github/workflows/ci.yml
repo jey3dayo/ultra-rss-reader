@@ -57,7 +57,7 @@ jobs:
           const expectedPnpm = String(packageJson.engines?.pnpm ?? "");
           const packageManagerPnpm = packageJson.packageManager?.match(/^pnpm@(.+)$/)?.[1] ?? "";
           const miseNode = miseToml.match(/^node = "([^"]+)"$/m)?.[1] ?? "";
-          const misePnpm = miseToml.match(/^"npm:pnpm" = "([^"]+)"$/m)?.[1] ?? "";
+          const misePnpm = miseToml.match(/^"aqua:pnpm\/pnpm" = "([^"]+)"$/m)?.[1] ?? "";
           const actualPnpm = execFileSync("pnpm", ["--version"], { encoding: "utf8" }).trim();
           const failures = [];
 
