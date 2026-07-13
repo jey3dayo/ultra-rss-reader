@@ -781,7 +781,7 @@ function syncUnreadCounts(feeds: FeedDto[], articles: readonly ArticleDto[]) {
   }
 }
 
-function refreshRelativeMockArticleDates(articles: ArticleDto[]) {
+export function refreshRelativeMockArticleDates(articles: ArticleDto[]) {
   const currentDate = getCurrentDate();
 
   for (const article of articles) {

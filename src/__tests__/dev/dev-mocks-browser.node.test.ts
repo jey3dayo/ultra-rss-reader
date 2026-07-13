@@ -94,7 +94,7 @@ import {
   vacuumDatabase,
 } from "@/api/tauri-commands";
 import { DEFAULT_PLATFORM_INFO } from "@/constants/platform";
-import { mockArticles } from "@/dev/mock-data";
+import { mockArticles, refreshRelativeMockArticleDates } from "@/dev/mock-data";
 import { setupDevMocks } from "@/dev/mocks";
 import type { BrowserWebviewBounds } from "@/lib/browser/browser-webview";
 import { buildSubscriptionReviewCandidates } from "@/lib/subscriptions/subscription-review-candidates";
@@ -144,6 +144,9 @@ describe("setupDevMocks", () => {
     delete (window as DevMockExternalOpenerTestWindow).__ULTRA_RSS_DEV_MOCK_EXTERNAL_OPENS__;
     document.getElementById("ultra-rss-dev-mock-diagnostics")?.remove();
     vi.useRealTimers();
+    // Restore real-time-relative mock article dates in case a test re-seeded
+    // them against a frozen clock, so later tests start from the real baseline.
+    refreshRelativeMockArticleDates(mockArticles);
     vi.unstubAllEnvs();
   });
 
@@ -767,10 +770,20 @@ describe("setupDevMocks", () => {
   });
 
   it("keeps browser-only list output ordering stable with lookup indexes", async () => {
-    // Freeze the clock so recent_article_count stays deterministic; relative mock
-    // article dates and the 30-day recent window both read the current date.
+    // Freeze the clock AND re-seed relative mock article dates against it so
+    // recent_article_count is deterministic. Relative dates are otherwise baked
+    // at module import with the real clock, while the 30-day recent window reads
+    // the current (frozen) date -- that mismatch makes the count flaky across
+    // machines/CI timezones. Re-seeding after freezing aligns both sides.
+    //
+    // The instant is chosen so both CI (UTC) and local dev (JST, UTC+9) see the
+    // same calendar date (12:00Z is 07-13 in UTC and 21:00 07-13 in JST) and a
+    // "now" later than every same-day mock article time (max 09:07 local), so
+    // the `published_at <= now` recency guard treats them all as past in both
+    // timezones. Keep UTC time within (09:07, 15:00) if this instant changes.
     vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-07-13T03:00:00.000Z"));
+    vi.setSystemTime(new Date("2026-07-13T12:00:00.000Z"));
+    refreshRelativeMockArticleDates(mockArticles);
     setupDevMocks();
 
     expect(
