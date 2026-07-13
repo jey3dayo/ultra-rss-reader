@@ -19,6 +19,7 @@ use crate::commands::{start_database_maintenance, try_lock_db};
 use crate::domain::article::Article;
 use crate::domain::error::DomainError;
 use crate::domain::types::{AccountId, ArticleId, FeedId, FolderId};
+use crate::domain::url_policy::validate_public_http_url;
 use crate::infra::db::sqlite_article::SqliteArticleRepository;
 use crate::infra::db::sqlite_feed::SqliteFeedRepository;
 use crate::infra::sanitizer;
@@ -105,11 +106,13 @@ pub fn open_in_browser(url: String, background: Option<bool>) -> Result<(), AppE
 
 fn parse_public_browser_http_url(url: &str) -> Result<reqwest::Url, AppError> {
     let parsed_url = crate::commands::parse_browser_http_url(url)?;
-    crate::infra::feed_discovery::validate_discovery_request_url(&parsed_url).map_err(|error| {
-        match error {
-            DomainError::Validation(message) => AppError::UserVisible { message },
-            other => AppError::from(other),
-        }
+    // External-browser open only hands the URL to the OS browser (no app-side
+    // fetch), so it keeps literal-IP validation and must not incur DNS resolution
+    // or fail-closed behavior. The app-side fetch entry (check_browser_embed_support)
+    // resolves and pins separately via resolve_validated_public_addrs.
+    validate_public_http_url(&parsed_url).map_err(|error| match error {
+        DomainError::Validation(message) => AppError::UserVisible { message },
+        other => AppError::from(other),
     })?;
     Ok(parsed_url)
 }
