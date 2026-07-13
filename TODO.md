@@ -53,12 +53,6 @@
 
 ### Release / Native / Keyboard / I18n / A11y
 
-- P3 tauri-系 skill を repo-local apm.yml へ移管 (created batch: 2026-07-10, last reviewed: 2026-07-14)
-  - priority: P3 / domain: release-native / work type: 移管作業(apm-repo-bootstrap) / write scope: global apm.yml + このリポジトリの repo-local apm.yml
-  - decided (2026-07-14): `~/.apm`(global apm.yml)の `EpicenterHQ/epicenter/.agents/skills/tauri`、catalog の `tauri-icon-gen`、`tauri-webview-geometry` はこのリポジトリでしか使っていないため、repo-local `apm.yml` へ移す。global 汚染を避け、単一リポジトリ専用の依存をローカルに閉じる
-  - follow-up: `apm-repo-bootstrap` skill で global から外し repo-local `apm.yml` へ移す。将来複数 Tauri repo で再利用が必要になったら専用リポジトリ切り出しを再検討する
-  - 発見方法: 移管後 `mise run` 系タスクと skill 露出で疎通確認
-
 ### Database / Updater / Window
 
 ### Article List / Schema / Mute / Tags / Share
