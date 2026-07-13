@@ -729,6 +729,7 @@ describe("DTO schemas", () => {
       feed_id: "feed-1",
       latest_article_at: "2026-04-01T10:00:00Z",
       starred_count: 2,
+      recent_article_count: 12,
     };
     expect(FeedArticleSummaryDtoSchema.parse(data)).toEqual(data);
     expect(FeedArticleSummaryDtoSchema.parse({ ...data, latest_article_at: null })).toEqual({
@@ -741,6 +742,7 @@ describe("DTO schemas", () => {
       feed_id: "feed-1",
       latest_article_at: "2026-04-01T10:00:00Z",
       starred_count: 0,
+      recent_article_count: 0,
     };
 
     expect(() => FeedArticleSummaryDtoSchema.parse({ ...data, starred_count: -1 })).toThrow();
@@ -768,6 +770,23 @@ describe("DTO schemas", () => {
         ...data,
         latest_article_at: "not-a-date",
       }),
+    ).toThrow();
+  });
+  it("requires a nonnegative integer recent_article_count", () => {
+    const data = {
+      feed_id: "feed-1",
+      latest_article_at: "2026-04-01T10:00:00Z",
+      starred_count: 0,
+      recent_article_count: 0,
+    };
+
+    // strictObject: the field is required, so the backend must always send it.
+    const { recent_article_count: _omitted, ...withoutRecentCount } = data;
+    expect(() => FeedArticleSummaryDtoSchema.parse(withoutRecentCount)).toThrow();
+    expect(() => FeedArticleSummaryDtoSchema.parse({ ...data, recent_article_count: -1 })).toThrow();
+    expect(() => FeedArticleSummaryDtoSchema.parse({ ...data, recent_article_count: 1.5 })).toThrow();
+    expect(() =>
+      FeedArticleSummaryDtoSchema.parse({ ...data, recent_article_count: Number.POSITIVE_INFINITY }),
     ).toThrow();
   });
   it("parses valid ArticleDto", () => {

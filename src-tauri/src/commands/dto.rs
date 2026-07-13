@@ -103,6 +103,7 @@ pub struct FeedArticleSummaryDto {
     pub feed_id: String,
     pub latest_article_at: Option<String>,
     pub starred_count: i32,
+    pub recent_article_count: i32,
 }
 
 #[derive(Debug, Serialize, Clone)]

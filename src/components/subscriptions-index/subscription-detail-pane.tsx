@@ -33,6 +33,8 @@ type SubscriptionDetailPaneProps = {
   folderLabel: string;
   latestArticleLabel: string;
   latestArticleEmptyLabel?: string;
+  updateFrequencyLabel: string;
+  formatUpdateFrequencyValue: (recentArticleCount: number) => string;
   unreadCountLabel: string;
   starredCountLabel: string;
   reasonHeading: string;
@@ -95,6 +97,8 @@ export function SubscriptionDetailPane({
   folderLabel,
   latestArticleLabel,
   latestArticleEmptyLabel = "—",
+  updateFrequencyLabel,
+  formatUpdateFrequencyValue,
   unreadCountLabel,
   starredCountLabel,
   reasonHeading,
@@ -174,6 +178,10 @@ export function SubscriptionDetailPane({
                 {
                   label: latestArticleLabel,
                   value: formatLatestArticleMetric(metrics.latestArticleAt, dateLocale, latestArticleEmptyLabel),
+                },
+                {
+                  label: updateFrequencyLabel,
+                  value: formatUpdateFrequencyValue(metrics.recentArticleCount),
                 },
                 { label: unreadCountLabel, value: row.feed.unread_count },
                 { label: starredCountLabel, value: metrics.starredCount },

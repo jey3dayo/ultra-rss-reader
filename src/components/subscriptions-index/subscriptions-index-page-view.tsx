@@ -50,6 +50,8 @@ type SubscriptionsIndexPageViewProps = {
   folderLabel: string;
   latestArticleLabel: string;
   latestArticleEmptyLabel: string;
+  updateFrequencyLabel: string;
+  formatUpdateFrequencyValue: (recentArticleCount: number) => string;
   unreadCountLabel: string;
   starredCountLabel: string;
   reasonHeading: string;
@@ -101,6 +103,8 @@ export function SubscriptionsIndexPageView({
   folderLabel,
   latestArticleLabel,
   latestArticleEmptyLabel,
+  updateFrequencyLabel,
+  formatUpdateFrequencyValue,
   unreadCountLabel,
   starredCountLabel,
   reasonHeading,
@@ -178,6 +182,8 @@ export function SubscriptionsIndexPageView({
               folderLabel={folderLabel}
               latestArticleLabel={latestArticleLabel}
               latestArticleEmptyLabel={latestArticleEmptyLabel}
+              updateFrequencyLabel={updateFrequencyLabel}
+              formatUpdateFrequencyValue={formatUpdateFrequencyValue}
               unreadCountLabel={unreadCountLabel}
               starredCountLabel={starredCountLabel}
               reasonHeading={reasonHeading}

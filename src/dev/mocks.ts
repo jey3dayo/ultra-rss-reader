@@ -50,7 +50,8 @@ import {
   takeNextDevMockTagId,
   titleFromUrl,
 } from "@/dev/mock-state";
-import { addHours, getCurrentDate, getCurrentIsoTimestamp, toIsoTimestamp } from "@/lib/datetime";
+import { addHours, getCurrentDate, getCurrentIsoTimestamp, getDateInputTimeMs, toIsoTimestamp } from "@/lib/datetime";
+import { SUBSCRIPTION_UPDATE_FREQUENCY_WINDOW_DAYS } from "@/lib/subscriptions/subscription-update-frequency";
 import type { RuntimeSchema, SchemaOutput } from "@/schemas/parse";
 
 export const DEV_MOCK_PLATFORM_INFO = DEFAULT_PLATFORM_INFO;
@@ -470,6 +471,8 @@ export function setupDevMocks(): RestoreDevMocks {
       case "list_feed_article_summaries": {
         const { accountId } = parseBrowserMockArgs("list_feed_article_summaries", rawIpcPayload);
         const visibleArticles = applyMuteKeywordFilter(mockArticles);
+        const nowMs = getCurrentDate().getTime();
+        const windowStartMs = nowMs - SUBSCRIPTION_UPDATE_FREQUENCY_WINDOW_DAYS * 24 * 60 * 60 * 1000;
         const summaries: FeedArticleSummaryDto[] = [];
         for (const feed of mockFeeds) {
           if (feed.account_id !== accountId) {
@@ -481,6 +484,10 @@ export function setupDevMocks(): RestoreDevMocks {
             feed_id: feed.id,
             latest_article_at: findLatestPublishedAt(feedArticles),
             starred_count: feedArticles.filter((article) => article.is_starred).length,
+            recent_article_count: feedArticles.filter((article) => {
+              const publishedMs = getDateInputTimeMs(article.published_at);
+              return publishedMs !== null && publishedMs >= windowStartMs && publishedMs <= nowMs;
+            }).length,
           });
         }
         return cloneMockResponse(summaries);

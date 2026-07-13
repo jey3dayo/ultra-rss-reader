@@ -42,6 +42,7 @@ function buildMockFeedArticleSummaries() {
       feed_id: feed.id,
       latest_article_at: latestArticleAt ?? null,
       starred_count: feedArticles.filter((article) => article.is_starred).length,
+      recent_article_count: feedArticles.length,
     };
   });
 }
@@ -198,14 +199,19 @@ describe("dev mock data", () => {
     vi.setSystemTime(new Date("2026-06-26T13:00:00+09:00"));
     resetMockDataForDevMocks();
 
+    const feedArticleSummaries = buildMockFeedArticleSummaries();
     const candidates = buildSubscriptionReviewCandidates({
       feeds: mockFeeds,
       folders: mockFolders,
-      feedArticleSummaries: buildMockFeedArticleSummaries(),
+      feedArticleSummaries,
       now: new Date("2026-06-26T13:00:00+09:00"),
       hiddenFeedIds: new Set(),
     });
-    const summary = buildSubscriptionsIndexSummary({ feeds: mockFeeds, candidates });
+    const summary = buildSubscriptionsIndexSummary({
+      feeds: mockFeeds,
+      candidates,
+      feedArticleSummaryMap: new Map(feedArticleSummaries.map((s) => [s.feed_id, s])),
+    });
 
     expect(summary.reviewCount).toBeGreaterThanOrEqual(3);
     expect(summary.staleCount).toBeGreaterThanOrEqual(3);

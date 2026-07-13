@@ -786,16 +786,19 @@ describe("setupDevMocks", () => {
         feed_id: "feed-automaton",
         latest_article_at: accountArticles[0]?.published_at,
         starred_count: 0,
+        recent_article_count: 3,
       },
       {
         feed_id: "feed-hatima",
         latest_article_at: null,
         starred_count: 0,
+        recent_article_count: 0,
       },
       {
         feed_id: "feed-yumenavi",
         latest_article_at: null,
         starred_count: 0,
+        recent_article_count: 0,
       },
     ]);
     expect(
@@ -824,7 +827,11 @@ describe("setupDevMocks", () => {
       now: new Date("2026-06-26T13:00:00+09:00"),
       hiddenFeedIds: new Set(),
     });
-    const summary = buildSubscriptionsIndexSummary({ feeds, candidates });
+    const summary = buildSubscriptionsIndexSummary({
+      feeds,
+      candidates,
+      feedArticleSummaryMap: new Map(feedArticleSummaries.map((s) => [s.feed_id, s])),
+    });
 
     expect(summary.reviewCount).toBeGreaterThanOrEqual(3);
     expect(summary.staleCount).toBeGreaterThanOrEqual(3);

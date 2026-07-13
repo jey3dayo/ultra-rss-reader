@@ -8,6 +8,7 @@ import {
   hasSubscriptionReviewReason,
   summarizeSubscriptionReviewCandidate,
 } from "@/lib/subscriptions/subscription-review-candidates";
+import { resolveSubscriptionUpdateFrequencyTier } from "@/lib/subscriptions/subscription-update-frequency";
 import type {
   SubscriptionDetailCandidate,
   SubscriptionDetailMetrics,
@@ -68,6 +69,10 @@ function rowMatchesSubscriptionSummaryFilter(
     return row.status.labelKey === "stale_90d";
   }
 
+  if (filterKey === "frequent") {
+    return resolveSubscriptionUpdateFrequencyTier(row.recentArticleCount) === "high";
+  }
+
   if (filterKey === "review") {
     return (
       row.status.labelKey === "review" ||
@@ -87,7 +92,16 @@ function rowMatchesSubscriptionDecisionVisibility(params: {
 }): boolean {
   const { row, activeSummaryFilter, keptFeedIds, deferredFeedIds } = params;
 
-  return activeSummaryFilter === "all" ? true : !keptFeedIds.has(row.feed.id) && !deferredFeedIds.has(row.feed.id);
+  // Kept/deferred hiding is a cleanup-queue affordance: only the review/stale
+  // decision filters suppress already-decided feeds. Informational filters
+  // ("all", "frequent") show every matching row so the summary card count and
+  // the visible list stay consistent.
+  const isCleanupDecisionFilter = activeSummaryFilter === "review" || activeSummaryFilter === "stale";
+  if (!isCleanupDecisionFilter) {
+    return true;
+  }
+
+  return !keptFeedIds.has(row.feed.id) && !deferredFeedIds.has(row.feed.id);
 }
 
 function normalizeSubscriptionSearchText(value: string): string {
@@ -173,21 +187,36 @@ export function buildVisibleSubscriptionRows({
   return visibleRows;
 }
 
+function countFrequentFeeds(feeds: FeedDto[], feedArticleSummaryMap: Map<string, FeedArticleSummaryDto>): number {
+  let count = 0;
+  for (const feed of feeds) {
+    const recentArticleCount = feedArticleSummaryMap.get(feed.id)?.recent_article_count ?? 0;
+    if (resolveSubscriptionUpdateFrequencyTier(recentArticleCount) === "high") {
+      count += 1;
+    }
+  }
+  return count;
+}
+
 export function buildSubscriptionsIndexSummary({
   feeds,
   candidates,
+  feedArticleSummaryMap,
 }: {
   feeds: FeedDto[];
   candidates: SubscriptionReviewCandidate[];
+  feedArticleSummaryMap: Map<string, FeedArticleSummaryDto>;
 }): {
   totalCount: number;
   reviewCount: number;
   staleCount: number;
+  frequentCount: number;
 } {
   return {
     totalCount: feeds.length,
     reviewCount: countReviewCandidates(candidates),
     staleCount: countStaleCandidates(candidates),
+    frequentCount: countFrequentFeeds(feeds, feedArticleSummaryMap),
   };
 }
 
@@ -196,6 +225,7 @@ export function buildSubscriptionSummaryCards(params: {
     totalCount: number;
     reviewCount: number;
     staleCount: number;
+    frequentCount: number;
   };
   activeSummaryFilter: SubscriptionSummaryFilterKey;
   labels: {
@@ -205,12 +235,15 @@ export function buildSubscriptionSummaryCards(params: {
     reviewCaption: (count: number) => string;
     stale: string;
     staleCaption: (count: number) => string;
+    frequent: string;
+    frequentCaption: (count: number) => string;
   };
 }): SubscriptionSummaryCard[] {
   const { summary, activeSummaryFilter, labels } = params;
   const totalCount = normalizeSubscriptionCount(summary.totalCount);
   const reviewCount = normalizeSubscriptionCount(summary.reviewCount);
   const staleCount = normalizeSubscriptionCount(summary.staleCount);
+  const frequentCount = normalizeSubscriptionCount(summary.frequentCount);
 
   return [
     {
@@ -236,6 +269,14 @@ export function buildSubscriptionSummaryCards(params: {
       caption: labels.staleCaption(staleCount),
       tone: "stale",
       isActive: activeSummaryFilter === "stale",
+    },
+    {
+      filterKey: "frequent",
+      label: labels.frequent,
+      value: String(frequentCount),
+      caption: labels.frequentCaption(frequentCount),
+      tone: "neutral",
+      isActive: activeSummaryFilter === "frequent",
     },
   ];
 }
@@ -446,7 +487,9 @@ export function buildSubscriptionListRows({
   folderNameById: Map<string, string>;
 }): SubscriptionListRow[] {
   return feeds.map((feed) => {
-    const latestArticleAt = feedArticleSummaryMap.get(feed.id)?.latest_article_at ?? null;
+    const feedArticleSummary = feedArticleSummaryMap.get(feed.id);
+    const latestArticleAt = feedArticleSummary?.latest_article_at ?? null;
+    const recentArticleCount = feedArticleSummary?.recent_article_count ?? 0;
     const folderName = feed.folder_id ? (folderNameById.get(feed.folder_id) ?? null) : null;
     const status = resolveSubscriptionRowStatus({
       candidate: candidateMap.get(feed.id),
@@ -457,6 +500,7 @@ export function buildSubscriptionListRows({
       folderId: folderName === null ? null : feed.folder_id,
       folderName,
       latestArticleAt,
+      recentArticleCount,
       status,
       reasonTooltipKey: resolveSubscriptionRowReasonTooltipKey({
         latestArticleAt,
@@ -516,13 +560,16 @@ export function buildSubscriptionDetailMetrics({
   feed: FeedDto;
   articles: ArticleDto[];
   feedArticleSummary: FeedArticleSummaryDto | null;
-}): {
-  latestArticleAt: string | null;
-  starredCount: number;
-  previewArticles: ArticleDto[];
-} {
+}): SubscriptionDetailMetrics {
   let latestArticleAt: string | null = feedArticleSummary?.latest_article_at ?? null;
   let starredCount = feedArticleSummary?.starred_count ?? 0;
+  // recentArticleCount is only sourced from the summary DTO (the backend computes
+  // the 30-day window). Unlike latestArticleAt/starredCount, it is not recomputed
+  // from `articles` in the null-summary fallback because that array is a short
+  // preview, not the full window. In production every feed has a summary row
+  // (list_feed_article_summaries LEFT JOINs feeds), so this stays 0 only in
+  // synthetic callers that omit the summary.
+  const recentArticleCount = feedArticleSummary?.recent_article_count ?? 0;
   const previewArticles: ArticleDto[] = [];
 
   for (const article of articles) {
@@ -549,6 +596,7 @@ export function buildSubscriptionDetailMetrics({
   return {
     latestArticleAt,
     starredCount,
+    recentArticleCount,
     previewArticles,
   };
 }

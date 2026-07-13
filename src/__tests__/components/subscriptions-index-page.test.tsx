@@ -159,16 +159,19 @@ describe("SubscriptionsIndexPage", () => {
               feed_id: "feed-1",
               latest_article_at: "2024-01-01T10:00:00Z",
               starred_count: 0,
+              recent_article_count: 0,
             },
             {
               feed_id: "feed-2",
               latest_article_at: "2099-04-01T10:00:00Z",
               starred_count: 1,
+              recent_article_count: 0,
             },
             {
               feed_id: "feed-3",
               latest_article_at: "2026-03-15T10:00:00Z",
               starred_count: 0,
+              recent_article_count: 0,
             },
           ];
         case "get_feed_integrity_report":
@@ -342,7 +345,7 @@ describe("SubscriptionsIndexPage", () => {
     }
     expect(leftPaneSection).toHaveClass("rounded-md");
 
-    const leftPaneScrollRegion = leftPaneSection.querySelector("div.space-y-5");
+    const leftPaneScrollRegion = leftPaneSection.querySelector('[data-testid="subscriptions-list-scroll-region"]');
     expect(leftPaneScrollRegion).toBeTruthy();
     expect(leftPaneScrollRegion).toHaveClass("lg:min-h-0");
     expect(leftPaneScrollRegion).toHaveClass("lg:flex-1");
@@ -370,10 +373,7 @@ describe("SubscriptionsIndexPage", () => {
     expect(secondGroupButton).toHaveAccessibleName(/Work/);
     expect(firstGroupButton).toHaveAttribute("aria-expanded", "true");
     expect(secondGroupButton).toHaveAttribute("aria-expanded", "true");
-    expect(within(firstGroupButton).getByText("1").closest("[data-label-chip]")).toHaveAttribute(
-      "data-label-chip",
-      "neutral",
-    );
+    expect(within(firstGroupButton).getByText("1")).toHaveClass("text-foreground-soft");
     expect(firstGroupButton).toHaveClass("motion-disclosure-trigger");
     expect(firstGroupButton.className).toMatch(/rounded-(md|lg|xl)/);
     expect(secondGroupButton.className).toMatch(/rounded-(md|lg|xl)/);
@@ -615,7 +615,7 @@ describe("SubscriptionsIndexPage", () => {
     const detailPane = screen.getByTestId("subscriptions-detail-pane");
     const workspaceShell = screen.getByTestId("subscriptions-workspace-shell");
     const listPane = workspaceShell.querySelector("section");
-    const listScrollRegion = listPane?.querySelector("div.space-y-5");
+    const listScrollRegion = listPane?.querySelector('[data-testid="subscriptions-list-scroll-region"]');
 
     expect(firstGroupButton).toHaveAttribute("aria-expanded", "false");
     expect(firstGroupPanel).toHaveAttribute("aria-hidden", "true");
@@ -683,7 +683,7 @@ describe("SubscriptionsIndexPage", () => {
     expect(await screen.findByRole("button", { name: /Example Feed/ })).toBeInTheDocument();
     const workspaceShell = screen.getByTestId("subscriptions-workspace-shell");
     const listPane = workspaceShell.querySelector("section");
-    const listScrollRegion = listPane?.querySelector("div.space-y-5");
+    const listScrollRegion = listPane?.querySelector('[data-testid="subscriptions-list-scroll-region"]');
     expect(listScrollRegion).toHaveProperty("scrollTop", 0);
   });
 
@@ -717,6 +717,7 @@ describe("SubscriptionsIndexPage", () => {
               feed_id: "feed-boundary",
               latest_article_at: "2026-01-01T00:00:00Z",
               starred_count: 1,
+              recent_article_count: 0,
             },
           ];
         case "get_feed_integrity_report":
@@ -776,6 +777,7 @@ describe("SubscriptionsIndexPage", () => {
               feed_id: "feed-boundary",
               latest_article_at: "2026-01-01T00:00:00Z",
               starred_count: 1,
+              recent_article_count: 0,
             },
           ];
         case "get_feed_integrity_report":

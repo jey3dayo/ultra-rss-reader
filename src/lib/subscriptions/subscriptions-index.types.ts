@@ -4,7 +4,7 @@ import type {
   SubscriptionReviewTone,
 } from "@/lib/subscriptions/subscription-review-candidates";
 
-export type SubscriptionSummaryFilterKey = "all" | "review" | "stale";
+export type SubscriptionSummaryFilterKey = "all" | "review" | "stale" | "frequent";
 
 export type SubscriptionRowStatus =
   | { tone: "neutral"; labelKey: "normal" }
@@ -29,6 +29,7 @@ export type SubscriptionListRow = {
   folderId: string | null;
   folderName: string | null;
   latestArticleAt: string | null;
+  recentArticleCount: number;
   status: SubscriptionRowStatus;
   reasonTooltipKey: "no_articles" | SubscriptionRowStatus["labelKey"] | null;
 };
@@ -43,6 +44,7 @@ export type SubscriptionListGroup = {
 export type SubscriptionDetailMetrics = {
   latestArticleAt: string | null;
   starredCount: number;
+  recentArticleCount: number;
   previewArticles: ArticleDto[];
 };
 

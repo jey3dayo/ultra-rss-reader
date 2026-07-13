@@ -27,6 +27,7 @@ function buildRow(): SubscriptionListRow {
     folderId: null,
     folderName: null,
     latestArticleAt: null,
+    recentArticleCount: 0,
     status: { tone: "neutral", labelKey: "normal" },
     reasonTooltipKey: null,
   };
@@ -35,6 +36,7 @@ function buildRow(): SubscriptionListRow {
 const metrics: SubscriptionDetailMetrics = {
   latestArticleAt: null,
   starredCount: 0,
+  recentArticleCount: 0,
   previewArticles: [],
 };
 
@@ -47,6 +49,8 @@ const baseProps = {
   folderLabel: "Folder",
   latestArticleLabel: "Latest",
   latestArticleEmptyLabel: "No updates yet",
+  updateFrequencyLabel: "Update frequency",
+  formatUpdateFrequencyValue: (recentArticleCount: number) => `${recentArticleCount} recent`,
   unreadCountLabel: "Unread",
   starredCountLabel: "Starred",
   reasonHeading: "Reason",

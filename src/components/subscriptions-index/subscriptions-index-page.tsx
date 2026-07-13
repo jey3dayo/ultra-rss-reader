@@ -15,6 +15,11 @@ import {
   resolveSubscriptionReviewSummaryTranslationKey,
 } from "@/lib/subscriptions/subscription-review-candidates";
 import {
+  resolveSubscriptionUpdateFrequencyTier,
+  SUBSCRIPTION_UPDATE_FREQUENCY_HIGH_THRESHOLD,
+  SUBSCRIPTION_UPDATE_FREQUENCY_WINDOW_DAYS,
+} from "@/lib/subscriptions/subscription-update-frequency";
+import {
   buildFeedArticleSummaryMap,
   buildSubscriptionDecisionActions,
   buildSubscriptionDetailCandidate,
@@ -140,7 +145,7 @@ export function SubscriptionsIndexPage() {
     [state.visibleRows, t],
   );
 
-  const summary = buildSubscriptionsIndexSummary({ feeds, candidates });
+  const summary = buildSubscriptionsIndexSummary({ feeds, candidates, feedArticleSummaryMap });
   const summaryCards = buildSubscriptionSummaryCards({
     summary,
     activeSummaryFilter: state.activeSummaryFilter,
@@ -151,6 +156,13 @@ export function SubscriptionsIndexPage() {
       reviewCaption: (count) => t("summary_review_caption", { count }),
       stale: t("summary_stale"),
       staleCaption: (count) => t("summary_stale_caption", { count }),
+      frequent: t("summary_frequent"),
+      frequentCaption: (count) =>
+        t("summary_frequent_caption", {
+          count,
+          days: SUBSCRIPTION_UPDATE_FREQUENCY_WINDOW_DAYS,
+          threshold: SUBSCRIPTION_UPDATE_FREQUENCY_HIGH_THRESHOLD,
+        }),
     },
   }) satisfies SubscriptionSummaryCard[];
 
@@ -347,6 +359,18 @@ export function SubscriptionsIndexPage() {
         listScrollTop={state.listScrollTop}
         latestArticleLabel={t("latest_article")}
         latestArticleEmptyLabel={t("meta_latest_article_none")}
+        updateFrequencyLabel={t("update_frequency")}
+        formatUpdateFrequencyValue={(recentArticleCount) => {
+          const tier = resolveSubscriptionUpdateFrequencyTier(recentArticleCount);
+          if (tier === "none") {
+            return t("update_frequency_value_none", { days: SUBSCRIPTION_UPDATE_FREQUENCY_WINDOW_DAYS });
+          }
+          return t("update_frequency_value", {
+            tier: t(`update_frequency_tier_${tier}`),
+            days: SUBSCRIPTION_UPDATE_FREQUENCY_WINDOW_DAYS,
+            count: recentArticleCount,
+          });
+        }}
         unreadCountLabel={t("unread_count")}
         starredCountLabel={t("starred_count")}
         reasonHeading={t("detail_reason_heading")}

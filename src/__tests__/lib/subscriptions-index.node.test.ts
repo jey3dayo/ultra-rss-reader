@@ -156,21 +156,25 @@ const feedArticleSummaries: FeedArticleSummaryDto[] = [
     feed_id: "feed-stale",
     latest_article_at: "2025-11-01T10:00:00Z",
     starred_count: 1,
+    recent_article_count: 0,
   },
   {
     feed_id: "feed-active",
     latest_article_at: "2026-04-01T09:00:00Z",
     starred_count: 1,
+    recent_article_count: 0,
   },
   {
     feed_id: "feed-mid",
     latest_article_at: "2026-01-01T12:00:00Z",
     starred_count: 0,
+    recent_article_count: 0,
   },
   {
     feed_id: "feed-dormant",
     latest_article_at: "2026-03-15T12:00:00Z",
     starred_count: 0,
+    recent_article_count: 0,
   },
 ];
 
@@ -186,10 +190,17 @@ describe("subscriptions index helpers", () => {
       hiddenFeedIds: new Set(),
     });
 
-    expect(buildSubscriptionsIndexSummary({ feeds, candidates })).toEqual({
+    expect(
+      buildSubscriptionsIndexSummary({
+        feeds,
+        candidates,
+        feedArticleSummaryMap: new Map(feedArticleSummaries.map((s) => [s.feed_id, s])),
+      }),
+    ).toEqual({
       totalCount: 4,
       reviewCount: 2,
       staleCount: 2,
+      frequentCount: 0,
     });
   });
 
@@ -202,6 +213,7 @@ describe("subscriptions index helpers", () => {
           feed_id: "feed-stale",
           latest_article_at: "2026-01-01T23:30:00-02:00",
           starred_count: 1,
+          recent_article_count: 0,
         },
       ],
       now: new Date("2026-04-02T00:30:00+02:00"),
@@ -244,6 +256,7 @@ describe("subscriptions index helpers", () => {
           folderId: "folder-work",
           folderName: "Work",
           latestArticleAt: firstCandidate.latestArticleAt,
+          recentArticleCount: 0,
           status: { tone: "medium", labelKey: "stale_90d" },
           reasonTooltipKey: "stale_90d",
         },
@@ -255,11 +268,13 @@ describe("subscriptions index helpers", () => {
       buildSubscriptionsIndexSummary({
         feeds: [feeds[0]],
         candidates: [firstCandidate, secondCandidate],
+        feedArticleSummaryMap: new Map(),
       }),
     ).toEqual({
       totalCount: 1,
       reviewCount: 2,
       staleCount: 2,
+      frequentCount: 0,
     });
   });
 
@@ -317,6 +332,7 @@ describe("subscriptions index helpers", () => {
           feed_id: "feed-attention",
           latest_article_at: "2026-03-06T00:00:00Z",
           starred_count: 0,
+          recent_article_count: 0,
         },
       ],
       now: new Date("2026-04-05T00:00:00Z"),
@@ -346,6 +362,7 @@ describe("subscriptions index helpers", () => {
     ).toEqual({
       latestArticleAt: "2025-11-01T10:00:00Z",
       starredCount: 1,
+      recentArticleCount: 0,
       previewArticles: [articles[0], articles[1]],
     });
     expect(countStarredArticles(articles)).toBe(2);
@@ -449,6 +466,7 @@ describe("subscriptions index helpers", () => {
       feed_id: "feed-stale",
       latest_article_at: "2025-01-01T00:00:00Z",
       starred_count: 7,
+      recent_article_count: 0,
     };
 
     expect(
@@ -460,6 +478,7 @@ describe("subscriptions index helpers", () => {
     ).toEqual({
       latestArticleAt: "2026-04-02T10:00:00Z",
       starredCount: 1,
+      recentArticleCount: 0,
       previewArticles: [newerUnstarredArticle, olderStarredArticle],
     });
 
@@ -472,13 +491,14 @@ describe("subscriptions index helpers", () => {
     ).toEqual({
       latestArticleAt: "2025-01-01T00:00:00Z",
       starredCount: 7,
+      recentArticleCount: 0,
       previewArticles: [newerUnstarredArticle, olderStarredArticle],
     });
   });
 
   it("builds summary cards and derives the filtered inventory heading", () => {
     const summaryCards = buildSubscriptionSummaryCards({
-      summary: { totalCount: 4, reviewCount: 2, staleCount: 2 },
+      summary: { totalCount: 4, reviewCount: 2, staleCount: 2, frequentCount: 1 },
       activeSummaryFilter: "review",
       labels: {
         total: "All",
@@ -487,6 +507,8 @@ describe("subscriptions index helpers", () => {
         reviewCaption: (count) => `${count} candidates`,
         stale: "Stale",
         staleCaption: (count) => `${count} stale`,
+        frequent: "Frequent",
+        frequentCaption: (count) => `${count} frequent`,
       },
     });
 
@@ -494,6 +516,7 @@ describe("subscriptions index helpers", () => {
       { filterKey: "all", value: "4", isActive: false },
       { filterKey: "review", value: "2", isActive: true },
       { filterKey: "stale", value: "2", isActive: false },
+      { filterKey: "frequent", value: "1", isActive: false },
     ]);
     expect(
       resolveSubscriptionsInventoryHeading({
@@ -508,12 +531,14 @@ describe("subscriptions index helpers", () => {
     const totalCaption = vi.fn((count: number) => `${count} feeds`);
     const reviewCaption = vi.fn((count: number) => `${count} candidates`);
     const staleCaption = vi.fn((count: number) => `${count} stale`);
+    const frequentCaption = vi.fn((count: number) => `${count} frequent`);
 
     const summaryCards = buildSubscriptionSummaryCards({
       summary: {
         totalCount: -1,
         reviewCount: Number.NaN,
         staleCount: Number.POSITIVE_INFINITY,
+        frequentCount: Number.NEGATIVE_INFINITY,
       },
       activeSummaryFilter: "all",
       labels: {
@@ -523,13 +548,16 @@ describe("subscriptions index helpers", () => {
         reviewCaption,
         stale: "Stale",
         staleCaption,
+        frequent: "Frequent",
+        frequentCaption,
       },
     });
 
-    expect(summaryCards.map((card) => card.value)).toEqual(["0", "0", "0"]);
+    expect(summaryCards.map((card) => card.value)).toEqual(["0", "0", "0", "0"]);
     expect(totalCaption).toHaveBeenCalledWith(0);
     expect(reviewCaption).toHaveBeenCalledWith(0);
     expect(staleCaption).toHaveBeenCalledWith(0);
+    expect(frequentCaption).toHaveBeenCalledWith(0);
   });
 
   it("builds list rows with folder names and candidate status", () => {
@@ -893,6 +921,69 @@ describe("subscriptions index helpers", () => {
     ).toEqual([]);
   });
 
+  it("filters visible rows to high update-frequency feeds for the frequent card", () => {
+    const rows = buildSubscriptionListRows({
+      feeds,
+      candidateMap: new Map(),
+      feedArticleSummaryMap: new Map([
+        [
+          "feed-active",
+          { feed_id: "feed-active", latest_article_at: null, starred_count: 0, recent_article_count: 12 },
+        ],
+        ["feed-stale", { feed_id: "feed-stale", latest_article_at: null, starred_count: 0, recent_article_count: 3 }],
+      ]),
+      folderNameById: new Map([["folder-work", "Work"]]),
+    });
+
+    expect(
+      buildVisibleSubscriptionRows({
+        rows,
+        activeSummaryFilter: "frequent",
+        keptFeedIds: new Set(),
+        deferredFeedIds: new Set(),
+        searchQuery: "",
+        sortKey: "title",
+      }).map((row) => row.feed.id),
+    ).toEqual(["feed-active"]);
+  });
+
+  it("keeps the frequent card count consistent with the filtered list and does not hide deferred high-frequency feeds", () => {
+    const frequentSummaryMap = new Map([
+      ["feed-active", { feed_id: "feed-active", latest_article_at: null, starred_count: 0, recent_article_count: 12 }],
+      ["feed-mid", { feed_id: "feed-mid", latest_article_at: null, starred_count: 0, recent_article_count: 5 }],
+      ["feed-stale", { feed_id: "feed-stale", latest_article_at: null, starred_count: 0, recent_article_count: 3 }],
+      ["feed-dormant", { feed_id: "feed-dormant", latest_article_at: null, starred_count: 0, recent_article_count: 0 }],
+    ]);
+    const rows = buildSubscriptionListRows({
+      feeds,
+      candidateMap: new Map(),
+      feedArticleSummaryMap: frequentSummaryMap,
+      folderNameById: new Map([["folder-work", "Work"]]),
+    });
+
+    const { frequentCount } = buildSubscriptionsIndexSummary({
+      feeds,
+      candidates: [],
+      feedArticleSummaryMap: frequentSummaryMap,
+    });
+
+    // A high-frequency feed that was deferred must still appear under the
+    // informational "frequent" filter (only review/stale hide decided feeds).
+    const visibleFeedIds = buildVisibleSubscriptionRows({
+      rows,
+      activeSummaryFilter: "frequent",
+      keptFeedIds: new Set(),
+      deferredFeedIds: new Set(["feed-active"]),
+      searchQuery: "",
+      sortKey: "title",
+    }).map((row) => row.feed.id);
+
+    // Count side (summary card) and list side agree on the same input.
+    expect(frequentCount).toBe(1);
+    expect(visibleFeedIds).toEqual(["feed-active"]);
+    expect(visibleFeedIds).toHaveLength(frequentCount);
+  });
+
   it("filters visible rows by folder or feed search and sorts by unread count", () => {
     const rows = buildSubscriptionListRows({
       feeds,
@@ -1021,21 +1112,25 @@ describe("subscriptions index helpers", () => {
           feed_id: "feed-invalid-z",
           latest_article_at: "not-a-date",
           starred_count: 0,
+          recent_article_count: 0,
         },
         {
           feed_id: "feed-valid",
           latest_article_at: "2026-04-01T09:00:00Z",
           starred_count: 0,
+          recent_article_count: 0,
         },
         {
           feed_id: "feed-invalid-a",
           latest_article_at: "",
           starred_count: 0,
+          recent_article_count: 0,
         },
         {
           feed_id: "feed-invalid-b",
           latest_article_at: "invalid-date",
           starred_count: 0,
+          recent_article_count: 0,
         },
       ]),
       folderNameById: new Map(),
@@ -1072,6 +1167,7 @@ describe("subscriptions index helpers", () => {
           feed_id: feed.id,
           latest_article_at: "2026-04-01T09:00:00Z",
           starred_count: 0,
+          recent_article_count: 0,
         })),
       ),
       folderNameById: new Map(),
@@ -1366,6 +1462,7 @@ describe("subscriptions index helpers", () => {
         folderId: "folder-work",
         folderName: "Work",
         latestArticleAt: selectedCandidate?.latestArticleAt ?? null,
+        recentArticleCount: 0,
         status: { tone: "medium", labelKey: "stale_90d" },
         reasonTooltipKey: "stale_90d",
       },

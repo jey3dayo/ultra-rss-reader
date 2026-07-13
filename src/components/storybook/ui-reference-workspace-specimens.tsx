@@ -67,6 +67,7 @@ const SUBSCRIPTION_GROUPS: SubscriptionListGroup[] = [
         folderId: "folder-design",
         folderName: "Design",
         latestArticleAt: "2026-04-29T08:00:00Z",
+        recentArticleCount: 0,
         status: { tone: "neutral", labelKey: "normal" },
         reasonTooltipKey: null,
         feed: {
@@ -86,6 +87,7 @@ const SUBSCRIPTION_GROUPS: SubscriptionListGroup[] = [
         folderId: "folder-design",
         folderName: "Design",
         latestArticleAt: "2026-04-21T11:30:00Z",
+        recentArticleCount: 0,
         status: { tone: "medium", labelKey: "review" },
         reasonTooltipKey: "review",
         feed: {
@@ -112,6 +114,7 @@ const SUBSCRIPTION_GROUPS: SubscriptionListGroup[] = [
         folderId: null,
         folderName: null,
         latestArticleAt: null,
+        recentArticleCount: 0,
         status: { tone: "medium", labelKey: "stale_90d" },
         reasonTooltipKey: "stale_90d",
         feed: {

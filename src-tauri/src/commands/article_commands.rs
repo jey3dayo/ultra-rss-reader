@@ -941,6 +941,7 @@ pub fn list_feed_article_summaries(
             feed_id: summary.feed_id.0,
             latest_article_at: summary.latest_article_at,
             starred_count: summary.starred_count,
+            recent_article_count: summary.recent_article_count,
         })
         .collect())
 }

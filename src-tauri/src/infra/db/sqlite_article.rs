@@ -9,7 +9,7 @@ use crate::domain::article::{
 };
 #[cfg(test)]
 use crate::domain::constants::ARTICLE_MUTATION_TRANSACTION_CHUNK_SIZE;
-use crate::domain::constants::RECENT_ARTICLE_HISTORY_LIMIT;
+use crate::domain::constants::{RECENT_ARTICLE_ACTIVITY_WINDOW_DAYS, RECENT_ARTICLE_HISTORY_LIMIT};
 use crate::domain::error::DomainResult;
 use crate::domain::types::{AccountId, ArticleId, FeedId, FolderId};
 use crate::infra::db::sqlite_feed::recalculate_unread_count_with_conn;
@@ -38,6 +38,11 @@ pub struct FeedArticleSummary {
     pub feed_id: FeedId,
     pub latest_article_at: Option<String>,
     pub starred_count: i32,
+    /// Number of visible articles published within the recent activity window
+    /// (last `RECENT_ARTICLE_ACTIVITY_WINDOW_DAYS` days, future-dated rows excluded).
+    /// Raw count only; frequency-tier classification lives in the frontend
+    /// (`src/lib/subscriptions/subscription-update-frequency.ts`).
+    pub recent_article_count: i32,
 }
 
 impl<'a> SqliteArticleRepository<'a> {
@@ -160,11 +165,21 @@ impl<'a> SqliteArticleRepository<'a> {
             "a.id IS NOT NULL".to_string()
         };
 
+        // Recent activity window is bounded on both sides so future-dated rows
+        // (feeds that publish with pubDates ahead of "now") never inflate the
+        // count. `julianday` parses RFC3339 offsets; NULL/malformed published_at
+        // yields NULL and is excluded by the comparison.
+        let recent_window_clause = format!(
+            "julianday(a.published_at) >= julianday('now', '-{RECENT_ARTICLE_ACTIVITY_WINDOW_DAYS} days') \
+             AND julianday(a.published_at) <= julianday('now')"
+        );
+
         let sql = format!(
             "SELECT
                 f.id,
                 MAX(CASE WHEN {article_visible_clause} THEN a.published_at ELSE NULL END) AS latest_article_at,
-                COALESCE(SUM(CASE WHEN {article_visible_clause} AND a.is_starred = 1 THEN 1 ELSE 0 END), 0) AS starred_count
+                COALESCE(SUM(CASE WHEN {article_visible_clause} AND a.is_starred = 1 THEN 1 ELSE 0 END), 0) AS starred_count,
+                COALESCE(SUM(CASE WHEN {article_visible_clause} AND {recent_window_clause} THEN 1 ELSE 0 END), 0) AS recent_article_count
              FROM feeds f
              LEFT JOIN articles a ON a.feed_id = f.id
              WHERE f.account_id = ?1
@@ -178,6 +193,7 @@ impl<'a> SqliteArticleRepository<'a> {
                     feed_id: FeedId(row.get(0)?),
                     latest_article_at: row.get(1)?,
                     starred_count: row.get(2)?,
+                    recent_article_count: row.get(3)?,
                 })
             })?
             .collect::<Result<Vec<_>, _>>()?;
@@ -2154,6 +2170,67 @@ mod tests {
             None
         );
         assert!(!summary_by_feed_id.contains_key(&other_feed_id.0));
+    }
+
+    #[test]
+    fn list_feed_article_summaries_counts_recent_articles_within_window_excluding_future_and_muted()
+    {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let active_feed_id = insert_test_feed(&db, &account_id);
+        let quiet_feed_id = insert_test_feed(&db, &account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let now = Utc::now();
+        let mut within_recent = make_article(&active_feed_id, "Within window recent");
+        within_recent.published_at = now - chrono::Duration::days(5);
+        let mut within_edge = make_article(&active_feed_id, "Within window edge");
+        within_edge.published_at =
+            now - chrono::Duration::days(RECENT_ARTICLE_ACTIVITY_WINDOW_DAYS - 1);
+        let mut outside_old = make_article(&active_feed_id, "Outside window old");
+        outside_old.published_at =
+            now - chrono::Duration::days(RECENT_ARTICLE_ACTIVITY_WINDOW_DAYS + 10);
+        let mut future_dated = make_article(&active_feed_id, "Future dated article");
+        future_dated.published_at = now + chrono::Duration::days(5);
+        // Muted article inside the window must not count (article_visible_clause reuse).
+        let mut muted_recent = make_article(&active_feed_id, "Kindle Unlimited recent");
+        muted_recent.published_at = now - chrono::Duration::days(3);
+        let mut quiet_old = make_article(&quiet_feed_id, "Quiet old article");
+        quiet_old.published_at = now - chrono::Duration::days(60);
+
+        repo.upsert(&[
+            within_recent,
+            within_edge,
+            outside_old,
+            future_dated,
+            muted_recent,
+            quiet_old,
+        ])
+        .unwrap();
+        insert_mute_keyword(&db, "kindle unlimited", "title");
+
+        let summaries = repo
+            .list_feed_article_summaries_by_account(&account_id)
+            .unwrap();
+        let summary_by_feed_id = summaries
+            .into_iter()
+            .map(|summary| (summary.feed_id.0.clone(), summary))
+            .collect::<std::collections::HashMap<_, _>>();
+
+        assert_eq!(
+            summary_by_feed_id
+                .get(&active_feed_id.0)
+                .map(|summary| summary.recent_article_count),
+            Some(2),
+            "only the two visible articles inside the window should count"
+        );
+        assert_eq!(
+            summary_by_feed_id
+                .get(&quiet_feed_id.0)
+                .map(|summary| summary.recent_article_count),
+            Some(0),
+            "a feed with no article inside the window should count zero"
+        );
     }
 
     #[test]

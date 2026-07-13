@@ -924,6 +924,29 @@ describe("useUiStore", () => {
     ).toThrow();
   });
 
+  it("persists and restores the frequent summary filter without throwing at the schema boundary", () => {
+    const returnState = {
+      accountId: "acc-1",
+      activeSummaryFilter: "frequent",
+      selectedFeedId: "feed-1",
+      expandedGroups: {},
+      listScrollTop: {
+        scrollTop: 0,
+        layoutGeneration: "feed-1",
+        viewportHeight: 720,
+      },
+      keptFeedIds: [],
+      deferredFeedIds: [],
+    } satisfies Parameters<UiStoreState["openSubscriptionsIndex"]>[0];
+
+    expect(SubscriptionsWorkspaceReturnStateSchema.safeParse(returnState).success).toBe(true);
+    expect(() => useUiStore.getState().openSubscriptionsIndex(returnState)).not.toThrow();
+    expect(useUiStore.getState().subscriptionsWorkspace).toMatchObject({
+      kind: "index",
+      returnState: { activeSummaryFilter: "frequent" },
+    });
+  });
+
   it("selectFeed updates selection", () => {
     useUiStore.getState().selectFeed("f1");
     expect(useUiStore.getState().selection).toEqual({

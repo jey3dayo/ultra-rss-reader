@@ -1,8 +1,20 @@
 import { z } from "zod";
+import type { SubscriptionSummaryFilterKey } from "@/lib/subscriptions/subscriptions-index.types";
 
 export type SubscriptionsWorkspaceExpandedGroupKey = `group:${string}`;
 
-const subscriptionSummaryFilterStateSchema = z.enum(["all", "review", "stale"]);
+// Every SubscriptionSummaryFilterKey (source of truth) must be persistable here,
+// otherwise restoring a returnState whose activeSummaryFilter uses the missing
+// key throws at parse time. The type guard below fails to compile if a new
+// filter key is added to the union but not to this enum.
+const subscriptionSummaryFilterStateSchema = z.enum(["all", "review", "stale", "frequent"]);
+type PersistedSummaryFilterDriftGuard = Exclude<
+  SubscriptionSummaryFilterKey,
+  z.infer<typeof subscriptionSummaryFilterStateSchema>
+>;
+// If this line errors, add the missing key(s) to the enum above.
+const _assertAllSummaryFiltersPersisted: PersistedSummaryFilterDriftGuard extends never ? true : never = true;
+void _assertAllSummaryFiltersPersisted;
 
 const subscriptionsWorkspaceAccountIdSchema = z.string().trim().min(1).nullable();
 

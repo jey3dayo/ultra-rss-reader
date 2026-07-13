@@ -25,7 +25,9 @@ describe("useFeedArticleSummaries", () => {
     const listFeedArticleSummariesSpy = vi
       .spyOn(tauriCommands, "listFeedArticleSummaries")
       .mockResolvedValue(
-        Result.succeed([{ feed_id: "feed-1", latest_article_at: "2026-04-01T00:00:00Z", starred_count: 2 }]),
+        Result.succeed([
+          { feed_id: "feed-1", latest_article_at: "2026-04-01T00:00:00Z", starred_count: 2, recent_article_count: 0 },
+        ]),
       );
 
     const { result, rerender } = renderHook(({ accountId }: HookProps) => useFeedArticleSummaries(accountId), {
@@ -35,7 +37,7 @@ describe("useFeedArticleSummaries", () => {
 
     await waitFor(() => {
       expect(result.current.data).toEqual([
-        { feed_id: "feed-1", latest_article_at: "2026-04-01T00:00:00Z", starred_count: 2 },
+        { feed_id: "feed-1", latest_article_at: "2026-04-01T00:00:00Z", starred_count: 2, recent_article_count: 0 },
       ]);
     });
 
@@ -63,7 +65,9 @@ describe("useFeedArticleSummaries", () => {
     const listFeedArticleSummariesSpy = vi
       .spyOn(tauriCommands, "listFeedArticleSummaries")
       .mockResolvedValue(
-        Result.succeed([{ feed_id: "feed-1", latest_article_at: "2026-04-01T00:00:00Z", starred_count: 2 }]),
+        Result.succeed([
+          { feed_id: "feed-1", latest_article_at: "2026-04-01T00:00:00Z", starred_count: 2, recent_article_count: 0 },
+        ]),
       );
 
     const { result, rerender } = renderHook(({ accountId }: HookProps) => useFeedArticleSummaries(accountId), {
@@ -73,7 +77,7 @@ describe("useFeedArticleSummaries", () => {
 
     await waitFor(() => {
       expect(result.current.data).toEqual([
-        { feed_id: "feed-1", latest_article_at: "2026-04-01T00:00:00Z", starred_count: 2 },
+        { feed_id: "feed-1", latest_article_at: "2026-04-01T00:00:00Z", starred_count: 2, recent_article_count: 0 },
       ]);
     });
 
@@ -89,7 +93,9 @@ describe("useFeedArticleSummaries", () => {
     const listFeedArticleSummariesSpy = vi
       .spyOn(tauriCommands, "listFeedArticleSummaries")
       .mockResolvedValueOnce(
-        Result.succeed([{ feed_id: "feed-1", latest_article_at: "2026-04-01T00:00:00Z", starred_count: 2 }]),
+        Result.succeed([
+          { feed_id: "feed-1", latest_article_at: "2026-04-01T00:00:00Z", starred_count: 2, recent_article_count: 0 },
+        ]),
       )
       .mockImplementationOnce(
         () =>
@@ -105,7 +111,7 @@ describe("useFeedArticleSummaries", () => {
 
     await waitFor(() => {
       expect(result.current.data).toEqual([
-        { feed_id: "feed-1", latest_article_at: "2026-04-01T00:00:00Z", starred_count: 2 },
+        { feed_id: "feed-1", latest_article_at: "2026-04-01T00:00:00Z", starred_count: 2, recent_article_count: 0 },
       ]);
     });
 
@@ -114,10 +120,14 @@ describe("useFeedArticleSummaries", () => {
     expect(result.current.data).toBeUndefined();
     expect(result.current.fetchStatus).toBe("fetching");
 
-    resolveSecondAccount(Result.succeed([{ feed_id: "feed-2", latest_article_at: null, starred_count: 0 }]));
+    resolveSecondAccount(
+      Result.succeed([{ feed_id: "feed-2", latest_article_at: null, starred_count: 0, recent_article_count: 0 }]),
+    );
 
     await waitFor(() => {
-      expect(result.current.data).toEqual([{ feed_id: "feed-2", latest_article_at: null, starred_count: 0 }]);
+      expect(result.current.data).toEqual([
+        { feed_id: "feed-2", latest_article_at: null, starred_count: 0, recent_article_count: 0 },
+      ]);
     });
     expect(listFeedArticleSummariesSpy).toHaveBeenCalledWith("acc-1");
     expect(listFeedArticleSummariesSpy).toHaveBeenCalledWith("acc-2");

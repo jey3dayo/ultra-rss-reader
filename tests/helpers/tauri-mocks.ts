@@ -192,6 +192,9 @@ function createDefaultHandler(): MockHandler {
                     .slice(-1)[0] ?? null,
                 starred_count: mockArticles.filter((article) => article.feed_id === feed.id && article.is_starred)
                   .length,
+                // Deterministic stand-in for the backend's 30-day windowed count:
+                // the mock article set is small and recent, so total-per-feed is a fine proxy.
+                recent_article_count: mockArticles.filter((article) => article.feed_id === feed.id).length,
               }) satisfies FeedArticleSummaryDto,
           );
       }

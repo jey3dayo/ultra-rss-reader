@@ -1,12 +1,20 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { fn } from "storybook/test";
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
+import { resolveSubscriptionUpdateFrequencyTier } from "@/lib/subscriptions/subscription-update-frequency";
 import type {
   SubscriptionDetailCandidate,
   SubscriptionDetailMetrics,
   SubscriptionListRow,
 } from "@/lib/subscriptions/subscriptions-index.types";
 import { SubscriptionDetailPane } from "./subscription-detail-pane";
+
+const UPDATE_FREQUENCY_TIER_LABELS = { high: "High", medium: "Medium", low: "Low" } as const;
+
+function formatStoryUpdateFrequencyValue(recentArticleCount: number): string {
+  const tier = resolveSubscriptionUpdateFrequencyTier(recentArticleCount);
+  return tier === "none" ? "None (in 30d)" : `${UPDATE_FREQUENCY_TIER_LABELS[tier]} (${recentArticleCount} in 30d)`;
+}
 
 const feed = {
   id: "feed-1",
@@ -26,6 +34,7 @@ const row = {
   folderId: "folder-1",
   folderName: "Work",
   latestArticleAt: "2024-01-01T10:00:00Z",
+  recentArticleCount: 0,
   status: { tone: "medium", labelKey: "stale_90d" },
   reasonTooltipKey: "stale_90d",
 } satisfies SubscriptionListRow;
@@ -62,6 +71,7 @@ const previewArticles = [
 const metrics = {
   latestArticleAt: "2024-01-02T10:00:00Z",
   starredCount: 1,
+  recentArticleCount: 0,
   previewArticles,
 } satisfies SubscriptionDetailMetrics;
 
@@ -87,6 +97,8 @@ const meta = {
     folderLabel: "Folder",
     latestArticleLabel: "Latest article",
     latestArticleEmptyLabel: "No fetched articles",
+    updateFrequencyLabel: "Update frequency",
+    formatUpdateFrequencyValue: formatStoryUpdateFrequencyValue,
     unreadCountLabel: "Unread",
     starredCountLabel: "Starred",
     reasonHeading: "Review reason",
