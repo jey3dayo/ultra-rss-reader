@@ -39,7 +39,7 @@ Compiler adoption is opt-in only. Until that preflight is accepted, keep manual 
 
 `Array.prototype.toSorted()` and related ES2023 copy methods may be used only after confirming the touched code runs in one of these targets:
 
-- Node-side tests and scripts: Node 24 from `mise.toml` / `package.json` engines.
+- Node-side tests and scripts: Node 26 from `mise.toml` / `package.json` engines.
 - Frontend build output: Vite build target is explicitly `es2023`.
 - Tauri app WebView: current Tauri 2 platform WebViews for the supported desktop OS set; do not use ES2023 copy methods in compatibility-sensitive runtime boundaries without a focused check on the affected OS.
 
