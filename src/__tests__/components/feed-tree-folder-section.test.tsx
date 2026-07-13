@@ -381,6 +381,69 @@ describe("FeedTreeFolderSection", () => {
     fireEvent.click(screen.getByRole("button", { name: "Select folder Comic" }));
 
     expect(onToggleFolder).toHaveBeenCalledWith("folder-1");
+    expect(onSelectFolder).not.toHaveBeenCalled();
+  });
+
+  it("expands and selects a collapsed folder from the folder row", () => {
+    const onToggleFolder = vi.fn();
+    const onSelectFolder = vi.fn();
+
+    render(
+      <FeedTreeFolderSection
+        folder={{ ...baseFolder, isExpanded: false, isSelected: false }}
+        activeDropTarget={null}
+        onToggleFolder={onToggleFolder}
+        onSelectFolder={onSelectFolder}
+        onSelectFeed={vi.fn()}
+        displayFavicons={false}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Select folder Comic" }));
+
+    expect(onToggleFolder).toHaveBeenCalledWith("folder-1");
+    expect(onSelectFolder).toHaveBeenCalledWith("folder-1");
+  });
+
+  it("does not toggle collapsed state when selecting an already-expanded, unselected folder", () => {
+    const onToggleFolder = vi.fn();
+    const onSelectFolder = vi.fn();
+
+    render(
+      <FeedTreeFolderSection
+        folder={{ ...baseFolder, isExpanded: true, isSelected: false }}
+        activeDropTarget={null}
+        onToggleFolder={onToggleFolder}
+        onSelectFolder={onSelectFolder}
+        onSelectFeed={vi.fn()}
+        displayFavicons={false}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Select folder Comic" }));
+
+    expect(onToggleFolder).not.toHaveBeenCalled();
+    expect(onSelectFolder).toHaveBeenCalledWith("folder-1");
+  });
+
+  it("reopens and selects a selected folder that was collapsed", () => {
+    const onToggleFolder = vi.fn();
+    const onSelectFolder = vi.fn();
+
+    render(
+      <FeedTreeFolderSection
+        folder={{ ...baseFolder, isExpanded: false, isSelected: true }}
+        activeDropTarget={null}
+        onToggleFolder={onToggleFolder}
+        onSelectFolder={onSelectFolder}
+        onSelectFeed={vi.fn()}
+        displayFavicons={false}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Select folder Comic" }));
+
+    expect(onToggleFolder).toHaveBeenCalledWith("folder-1");
     expect(onSelectFolder).toHaveBeenCalledWith("folder-1");
   });
 });

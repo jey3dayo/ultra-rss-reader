@@ -13,6 +13,7 @@ describe("FeedTreeView", () => {
   it("renders folder and feed rows and delegates row actions", async () => {
     const user = userEvent.setup();
     const onToggleFolder = vi.fn();
+    const onSelectFolder = vi.fn();
     const onSelectFeed = vi.fn();
     const onMarkFeedRead = vi.fn();
     const onMarkFolderRead = vi.fn();
@@ -64,6 +65,7 @@ describe("FeedTreeView", () => {
           },
         ]}
         onToggleFolder={onToggleFolder}
+        onSelectFolder={onSelectFolder}
         onSelectFeed={onSelectFeed}
         onMarkFeedRead={onMarkFeedRead}
         onMarkFolderRead={onMarkFolderRead}
@@ -93,8 +95,8 @@ describe("FeedTreeView", () => {
       button: 1,
     });
 
-    expect(onToggleFolder).toHaveBeenCalledTimes(1);
-    expect(onToggleFolder).toHaveBeenCalledWith("folder-1");
+    expect(onToggleFolder).not.toHaveBeenCalled();
+    expect(onSelectFolder).toHaveBeenCalledWith("folder-1");
     expect(onSelectFeed).toHaveBeenNthCalledWith(1, "feed-1");
     expect(onSelectFeed).toHaveBeenNthCalledWith(2, "feed-2");
     expect(onMarkFolderRead).toHaveBeenCalledWith(expect.objectContaining({ id: "folder-1", unreadCount: 4 }));

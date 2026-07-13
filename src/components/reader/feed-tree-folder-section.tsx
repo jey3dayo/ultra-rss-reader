@@ -131,7 +131,13 @@ export function FeedTreeFolderSection({
             onContextMenu={captureTarget}
             onKeyDownCapture={captureKeyboardTarget}
             onClick={() => {
-              onToggleFolder(folder.id);
+              if (folder.isSelected && folder.isExpanded) {
+                onToggleFolder(folder.id);
+                return;
+              }
+              if (!folder.isExpanded) {
+                onToggleFolder(folder.id);
+              }
               onSelectFolder?.(folder.id);
             }}
             onMouseDown={handleMiddleMouseDown}
