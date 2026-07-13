@@ -1188,14 +1188,14 @@ describe("repository static contracts", () => {
     const miseSource = readMiseTaskCorpus();
     const packageManagerVersion = extractPackageManagerVersion(packageJson.packageManager, "pnpm");
     const miseNodeVersion = extractMiseToolVersion(miseSource, "node");
-    const misePnpmVersion = extractMiseToolVersion(miseSource, "aqua:pnpm/pnpm");
+    const misePnpmVersion = extractMiseToolVersion(miseSource, "npm:pnpm");
 
     expect(packageJson.engines.node).toBe("26.4.0");
     expect(Object.keys(packageJson.engines).toSorted()).toEqual(["node", "pnpm"]);
     expect(packageJson.engines.pnpm).toBe(packageManagerVersion);
     expect(packageJson.packageManager).toBe(`pnpm@${packageJson.engines.pnpm}`);
     expect(miseNodeVersion).toBe(packageJson.engines.node);
-    expect(packageManagerVersion).toBe("11.12.0");
+    expect(packageManagerVersion).toBe("11.10.0");
     expect(misePnpmVersion).toBe(packageManagerVersion);
   });
 
@@ -1448,9 +1448,9 @@ describe("repository static contracts", () => {
     expect(toolchainSection).toContain("process.versions.node");
     expect(toolchainSection).toContain('execFileSync("pnpm", ["--version"]');
     expect(extractMiseTaskSection(miseSource, "quality:toolchain")).not.toBe("");
-    expect(packageJsonSource).toContain('"packageManager": "pnpm@11.12.0"');
+    expect(packageJsonSource).toContain('"packageManager": "pnpm@11.10.0"');
     expect(packageJsonSource).toContain('"node": "26.4.0"');
-    expect(packageJsonSource).toContain('"pnpm": "11.12.0"');
+    expect(packageJsonSource).toContain('"pnpm": "11.10.0"');
   });
 
   it("keeps CI quality gate summary explicit for skipped or cancelled required matrix jobs", () => {

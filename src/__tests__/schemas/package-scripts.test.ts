@@ -137,7 +137,7 @@ describe("package scripts", () => {
     const packageJson = readPackageJson();
 
     expect(packageJson.version).toMatch(/^\d+\.\d+\.\d+$/);
-    expect(packageJson.packageManager).toBe("pnpm@11.12.0");
+    expect(packageJson.packageManager).toBe("pnpm@11.10.0");
     expect(packageJson.private).toBe(true);
     expect(packageJson.type).toBe("module");
 
@@ -160,7 +160,7 @@ describe("package scripts", () => {
     const packageManagerVersion = extractPackageManagerVersion(packageJson.packageManager, "pnpm");
 
     expect(packageJson.engines?.node).toBe(extractMiseToolVersion(miseToml, "node"));
-    expect(packageJson.engines?.pnpm).toBe(extractMiseToolVersion(miseToml, "aqua:pnpm/pnpm"));
+    expect(packageJson.engines?.pnpm).toBe(extractMiseToolVersion(miseToml, "npm:pnpm"));
     expect(packageJson.engines?.pnpm).toBe(packageManagerVersion);
   });
 

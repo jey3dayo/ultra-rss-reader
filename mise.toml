@@ -21,7 +21,7 @@ actionlint = "latest"
 shellcheck = "latest"
 uv = "latest"
 "pipx:yamllint" = "latest"
-"aqua:pnpm/pnpm" = "11.12.0"
+"npm:pnpm" = "11.10.0"
 "npm:npm-check-updates" = "22.2.9"
 
 [settings]
