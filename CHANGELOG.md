@@ -4,7 +4,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
-## [0.53.30] - 2026-07-13
+## [0.53.31] - 2026-07-13
 
 ### Features
 
@@ -21,7 +21,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ### Maintenance
 
-- pnpm を 11.12.0、Storybook を 10.5.0 に更新した。
+- Storybook を 10.5.0 に更新した。
 - リリースワークフローの品質プリフライトを並列化し、Rust キャッシュを永続化した。
 - リリース契約テストを並列化ワークフローに整合させた。
 
