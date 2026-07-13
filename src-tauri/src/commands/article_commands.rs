@@ -18,7 +18,6 @@ use crate::commands::{start_database_maintenance, try_lock_db};
 use crate::domain::article::Article;
 use crate::domain::error::DomainError;
 use crate::domain::types::{AccountId, ArticleId, FeedId, FolderId};
-use crate::domain::url_policy::validate_public_http_url;
 use crate::infra::db::sqlite_article::SqliteArticleRepository;
 use crate::infra::db::sqlite_feed::SqliteFeedRepository;
 use crate::infra::sanitizer;
@@ -105,9 +104,11 @@ pub fn open_in_browser(url: String, background: Option<bool>) -> Result<(), AppE
 
 fn parse_public_browser_http_url(url: &str) -> Result<reqwest::Url, AppError> {
     let parsed_url = crate::commands::parse_browser_http_url(url)?;
-    validate_public_http_url(&parsed_url).map_err(|error| match error {
-        DomainError::Validation(message) => AppError::UserVisible { message },
-        other => AppError::from(other),
+    crate::infra::feed_discovery::validate_discovery_request_url(&parsed_url).map_err(|error| {
+        match error {
+            DomainError::Validation(message) => AppError::UserVisible { message },
+            other => AppError::from(other),
+        }
     })?;
     Ok(parsed_url)
 }
@@ -859,7 +860,7 @@ fn validate_browser_embed_redirect(
     previous_urls: &[reqwest::Url],
     next_url: &reqwest::Url,
 ) -> Result<(), DomainError> {
-    validate_public_http_url(next_url)?;
+    crate::infra::feed_discovery::validate_discovery_request_url(next_url)?;
 
     if previous_urls
         .last()
@@ -1709,6 +1710,19 @@ mod tests {
         }
     }
 
+    #[tokio::test]
+    async fn check_browser_embed_support_rejects_host_that_resolves_to_private_ip() {
+        let error = check_browser_embed_support("http://private.test.invalid/x".to_string())
+            .await
+            .expect_err("host resolving to a private IP should be rejected before request");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { ref message }
+                if message == PRIVATE_URL_VALIDATION_MESSAGE
+        ));
+    }
+
     #[test]
     fn embed_support_redirect_policy_rejects_private_redirect_targets() {
         let previous = reqwest::Url::parse("https://example.com/article")
@@ -1731,6 +1745,33 @@ mod tests {
                     if message == PRIVATE_URL_VALIDATION_MESSAGE
             ));
         }
+    }
+
+    #[test]
+    fn validate_browser_embed_redirect_rejects_host_that_resolves_to_private_ip() {
+        let previous = reqwest::Url::parse("https://example.com/article")
+            .expect("public previous URL should parse");
+        let next = reqwest::Url::parse("https://private.test.invalid/x")
+            .expect("redirect target should parse");
+
+        let error = validate_browser_embed_redirect(std::slice::from_ref(&previous), &next)
+            .expect_err("redirect to a host resolving to a private IP should be rejected");
+
+        assert!(matches!(
+            error,
+            DomainError::Validation(ref message)
+                if message == PRIVATE_URL_VALIDATION_MESSAGE
+        ));
+    }
+
+    #[test]
+    fn validate_browser_embed_redirect_allows_host_that_resolves_to_public_ip() {
+        let previous = reqwest::Url::parse("https://example.com/article")
+            .expect("public previous URL should parse");
+        let next = reqwest::Url::parse("https://public.test.invalid/article")
+            .expect("public redirect target should parse");
+
+        assert!(validate_browser_embed_redirect(std::slice::from_ref(&previous), &next).is_ok());
     }
 
     #[tokio::test]
