@@ -28,6 +28,7 @@ export const markdownlintRepoContract = {
     "target",
     "src-tauri/target",
     ".worktrees",
+    ".claude/worktrees",
     ".kiro",
     ".plans",
     "plans",
