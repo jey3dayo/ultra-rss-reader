@@ -36,6 +36,7 @@ jobs:
     timeout-minutes: 30
     outputs:
       should_publish: ${{ steps.signing-preflight.outputs.should_publish }}
+      should_build: ${{ steps.signing-preflight.outputs.should_build }}
 
     steps:
       # actions/checkout@v6.0.2
@@ -115,8 +116,31 @@ jobs:
           echo "should_publish=true" >> "$GITHUB_OUTPUT"
           echo "should_build=true" >> "$GITHUB_OUTPUT"
 
+  quality:
+    needs: preflight
+    if: needs.preflight.outputs.should_build == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      # actions/checkout@v6.0.2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          ref: ${{ github.ref }}
+
+      # jdx/mise-action@v4.0.1
+      - uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151
+
+      # pnpm/setup@v1
+      - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879
+        with:
+          runtime: node@26.4.0
+          cache: true
+          install: false
+
+      - run: pnpm install --frozen-lockfile
+
       - name: Run release quality preflight
-        if: steps.signing-preflight.outputs.should_build == 'true'
         shell: bash
         run: |
           mise run format:check
@@ -188,7 +212,7 @@ jobs:
         with:
           workspaces: src-tauri
           shared-key: release-${{ runner.os }}-${{ hashFiles('src-tauri/Cargo.lock') }}
-          save-if: false
+          save-if: ${{ github.event_name == 'push' }}
 
       - run: pnpm install --frozen-lockfile
 
