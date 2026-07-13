@@ -4,6 +4,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.53.32] - 2026-07-14
+
 ### Bug Fixes
 
 - 「最近見た記事」スマートビューの空状態サマリを、表示中フィルタではなく全件を対象に集計するよう修正した。
@@ -14,7 +16,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 - 手動エクスポート成功後にエクスポートダイジェストを更新し、直後の自動エクスポートが冗長なフルスナップショットを書かないようにした。
 - macOS 埋め込みブラウザのアクションキュー直列化とローカル同期フローのコントラクトテストを追加した。
-- gitignore 済みの `plans/` を markdownlint 対象から除外し、日付相対の dev モックテストの時刻を固定して pre-push gate を安定化した。
+- gitignore 済みの `plans/` と agent worktree（`.claude/worktrees`）を markdownlint / biome 対象から除外し、日付相対の dev モックテストの時刻を固定して pre-push gate を安定化した。
 
 ## [0.53.31] - 2026-07-13
 
