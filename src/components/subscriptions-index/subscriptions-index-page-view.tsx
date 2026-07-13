@@ -55,6 +55,8 @@ type SubscriptionsIndexPageViewProps = {
   reasonHeading: string;
   reasonHint: string;
   recentArticlesHeading: string;
+  feedUrlLabel: string;
+  contentUrlLabel: string;
   displayModeLabel: string;
   displayModeValue: string;
   decisionActions: SubscriptionDecisionActions | null;
@@ -104,6 +106,8 @@ export function SubscriptionsIndexPageView({
   reasonHeading,
   reasonHint,
   recentArticlesHeading,
+  feedUrlLabel,
+  contentUrlLabel,
   displayModeLabel,
   displayModeValue,
   decisionActions,
@@ -140,7 +144,6 @@ export function SubscriptionsIndexPageView({
             data-testid="subscriptions-workspace-shell"
             className={workspaceSplitShellClassName("mt-0 bg-clip-padding")}
             style={{
-              borderColor: "transparent",
               backgroundColor: "transparent",
               boxShadow: "var(--subscriptions-workspace-shadow)",
             }}
@@ -180,6 +183,8 @@ export function SubscriptionsIndexPageView({
               reasonHeading={reasonHeading}
               reasonHint={reasonHint}
               recentArticlesHeading={recentArticlesHeading}
+              feedUrlLabel={feedUrlLabel}
+              contentUrlLabel={contentUrlLabel}
               displayModeLabel={displayModeLabel}
               displayModeValue={displayModeValue}
               dateLocale={dateLocale}

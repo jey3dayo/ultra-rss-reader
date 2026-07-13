@@ -44,6 +44,8 @@
   "detail_reason_quiet_without_unread": "This RSS feed has had no updates for 60+ days and has no unread items.",
   "detail_reason_stale_but_supported": "This RSS feed has had no updates for 90+ days and should be checked as long-term inactive.",
   "detail_recent_articles": "Recent articles",
+  "detail_feed_url": "RSS feed",
+  "detail_content_url": "Content URL",
   "empty": "No subscriptions match the current filters.",
   "detail_empty": "Select a subscription to view details.",
   "delete_target_unavailable": "The feed could not be reloaded. Unsubscribe is disabled until the target is known.",

@@ -352,6 +352,8 @@ export function SubscriptionsIndexPage() {
         reasonHeading={t("detail_reason_heading")}
         reasonHint={t("detail_reason_hint")}
         recentArticlesHeading={t("detail_recent_articles")}
+        feedUrlLabel={t("detail_feed_url")}
+        contentUrlLabel={t("detail_content_url")}
         displayModeLabel={tr("display_mode")}
         displayModeValue={selectedDisplayModeLabel}
         decisionActions={decisionActions}

@@ -8,6 +8,7 @@ import {
   SurfaceCard,
   WorkspaceManagementActionButton,
 } from "@/design-system";
+import { normalizeFeedWebsiteUrlCandidate } from "@/lib/feed/feed";
 import type { SubscriptionDecisionActions } from "@/lib/subscriptions/subscriptions-index";
 import { formatSubscriptionDate } from "@/lib/subscriptions/subscriptions-index";
 import type {
@@ -37,6 +38,8 @@ type SubscriptionDetailPaneProps = {
   reasonHeading: string;
   reasonHint: string;
   recentArticlesHeading: string;
+  feedUrlLabel: string;
+  contentUrlLabel: string;
   displayModeLabel: string;
   displayModeValue: string;
   dateLocale: string;
@@ -97,6 +100,8 @@ export function SubscriptionDetailPane({
   reasonHeading,
   reasonHint,
   recentArticlesHeading,
+  feedUrlLabel,
+  contentUrlLabel,
   displayModeLabel,
   displayModeValue,
   dateLocale,
@@ -104,6 +109,12 @@ export function SubscriptionDetailPane({
   managementActions,
 }: SubscriptionDetailPaneProps) {
   const headingId = useId();
+  const feedUrlHref = normalizeFeedWebsiteUrlCandidate(row?.feed.url ?? "");
+  const contentUrlHref = normalizeFeedWebsiteUrlCandidate(row?.feed.site_url ?? "");
+  const detailLinks = [
+    ...(feedUrlHref ? [{ href: feedUrlHref, label: feedUrlLabel }] : []),
+    ...(contentUrlHref && contentUrlHref !== feedUrlHref ? [{ href: contentUrlHref, label: contentUrlLabel }] : []),
+  ];
 
   return (
     <section
@@ -166,7 +177,7 @@ export function SubscriptionDetailPane({
                 { label: starredCountLabel, value: metrics.starredCount },
                 { label: displayModeLabel, value: displayModeValue },
               ]}
-              links={[]}
+              links={detailLinks}
               recentArticlesHeading={recentArticlesHeading}
               recentArticles={metrics.previewArticles.map((article) => ({
                 id: article.id,

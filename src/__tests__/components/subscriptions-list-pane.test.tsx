@@ -94,6 +94,21 @@ describe("SubscriptionsListPane", () => {
     expect(screen.getByRole("region", { name: "全購読" })).toBeInTheDocument();
   });
 
+  it("aligns the subscription count with the heading baseline", () => {
+    renderListPane([
+      {
+        feed: buildFeed({ title: "Aligned Feed" }),
+        folderId: null,
+        folderName: null,
+        latestArticleAt: null,
+        status: { tone: "neutral", labelKey: "normal" },
+        reasonTooltipKey: null,
+      },
+    ]);
+
+    expect(screen.getByRole("heading", { name: "全購読" }).parentElement).toHaveClass("items-baseline");
+  });
+
   it("does not add a duplicate clear button to the search input", () => {
     const row = {
       feed: buildFeed({ title: "Searchable Feed" }),

@@ -187,13 +187,13 @@ export function SubscriptionsListPane({
   return (
     <section
       aria-labelledby={headingId}
-      className="flex flex-col rounded-md px-4 py-5 sm:px-5 sm:py-6 lg:min-h-0 lg:border-r lg:border-[color:var(--subscriptions-pane-divider)]"
+      className="flex flex-col rounded-md px-4 py-5 sm:px-5 sm:py-6 lg:min-h-0 lg:rounded-r-none lg:border-r lg:border-[color:var(--subscriptions-pane-divider)]"
       style={{
         backgroundColor: "var(--subscriptions-list-surface)",
       }}
     >
       <div className="mb-4 flex flex-col gap-3 border-b border-border/55 pb-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex min-w-0 items-center gap-2.5">
+        <div className="flex min-w-0 items-baseline gap-2.5">
           <h2
             id={headingId}
             className="min-w-[4rem] truncate font-sans text-[1.08rem] font-semibold tracking-[-0.025em] text-foreground"

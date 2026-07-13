@@ -44,6 +44,8 @@
   "detail_reason_quiet_without_unread": "RSS上で60日以上更新がなく、未読もありません。",
   "detail_reason_stale_but_supported": "RSS上で90日以上更新がなく、長期未更新として確認が必要です。",
   "detail_recent_articles": "最近の記事",
+  "detail_feed_url": "RSSフィード",
+  "detail_content_url": "コンテンツのURL",
   "empty": "一致する購読はありません。",
   "detail_empty": "購読を選ぶと詳細が表示されます。",
   "delete_target_unavailable": "フィードを再読み込みできません。対象が確認できるまで購読解除は無効です。",

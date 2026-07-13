@@ -52,6 +52,8 @@ const baseProps = {
   reasonHeading: "Reason",
   reasonHint: "No review needed",
   recentArticlesHeading: "Recent articles",
+  feedUrlLabel: "Open RSS feed",
+  contentUrlLabel: "Content URL",
   displayModeLabel: "Display",
   displayModeValue: "Default",
   decisionActions: null,
@@ -73,6 +75,21 @@ describe("SubscriptionDetailPane", () => {
     render(<SubscriptionDetailPane {...baseProps} />);
 
     expect(screen.getByRole("region", { name: "Details" })).toBeInTheDocument();
+  });
+
+  it("places the RSS and content links between the metrics and recent articles", () => {
+    render(<SubscriptionDetailPane {...baseProps} />);
+
+    const feedLink = screen.getByRole("link", { name: "Open RSS feed" });
+    const contentLink = screen.getByRole("link", { name: "Content URL" });
+    const metricsList = screen.getByText("Folder").closest("dl");
+
+    expect(feedLink).toHaveAttribute("href", "https://example.com/feed.xml");
+    expect(feedLink).toHaveAttribute("target", "_blank");
+    expect(contentLink).toHaveAttribute("href", "https://example.com");
+    expect(contentLink).toHaveAttribute("target", "_blank");
+    expect(metricsList?.nextElementSibling).toContainElement(feedLink);
+    expect(feedLink.nextElementSibling).toBe(contentLink);
   });
 
   it("renders shared workspace management action button styles by intent", () => {

@@ -331,7 +331,8 @@ describe("SubscriptionsIndexPage", () => {
     expect(shell).toHaveClass("rounded-md");
     expect(shell).toHaveClass("lg:overflow-hidden");
     expect(shell).toHaveClass("lg:grid-cols-[minmax(0,1fr)_480px]");
-    expect(shell.style.borderColor).toBe("transparent");
+    expect(shell).toHaveClass("border", "border-border/70");
+    expect(shell.style.borderColor).toBe("");
     expect(shell.style.backgroundColor).toBe("transparent");
     expect(shell.style.boxShadow).toBe("var(--subscriptions-workspace-shadow)");
 
