@@ -95,7 +95,7 @@ describe("SubscriptionsListPane", () => {
     expect(screen.getByRole("region", { name: "全購読" })).toBeInTheDocument();
   });
 
-  it("aligns the subscription count with the heading baseline", () => {
+  it("centers the subscription count against the heading", () => {
     renderListPane([
       {
         feed: buildFeed({ title: "Aligned Feed" }),
@@ -108,7 +108,7 @@ describe("SubscriptionsListPane", () => {
       },
     ]);
 
-    expect(screen.getByRole("heading", { name: "全購読" }).parentElement).toHaveClass("items-baseline");
+    expect(screen.getByRole("heading", { name: "全購読" }).parentElement).toHaveClass("items-center");
   });
 
   it("does not add a duplicate clear button to the search input", () => {

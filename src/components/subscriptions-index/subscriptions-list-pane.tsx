@@ -1,4 +1,4 @@
-import { ChevronDown, FolderOpen, Search } from "lucide-react";
+import { ChevronDown, Folder, Search } from "lucide-react";
 import { useCallback, useEffect, useId, useRef } from "react";
 import {
   MOTION_CONTENT_SWAP_CLASS_NAME,
@@ -71,24 +71,25 @@ export function SubscriptionGroupDisclosureButton({
       aria-controls={controlsId}
       onClick={() => onToggleGroup(group.key)}
       className={cn(
-        "motion-disclosure-trigger flex min-h-11 w-full items-center justify-between rounded-md border border-transparent px-2.5 py-1.5 text-left text-foreground transition-[background-color,border-color,color,box-shadow] duration-150 hover:border-[color:var(--subscriptions-list-divider)] hover:bg-[color:var(--subscriptions-list-row-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-strong/45 motion-reduce:transition-none",
-        expanded
-          ? "bg-[color:var(--subscriptions-list-group-surface)] shadow-[var(--subscriptions-list-group-collapsed-shadow)]"
-          : "text-foreground-soft",
+        "motion-disclosure-trigger flex min-h-11 w-full items-center justify-between rounded-md border border-transparent px-2.5 py-1.5 text-left text-foreground transition-[background-color,color] duration-150 hover:bg-[color:var(--subscriptions-list-row-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-strong/45 motion-reduce:transition-none",
+        expanded ? "bg-[color:var(--subscriptions-list-row-hover)]" : "text-foreground-soft",
       )}
     >
-      <span className="flex min-w-0 items-center gap-2">
-        <span className="relative flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-surface-2/70 text-foreground-soft">
+      <span className="flex min-w-0 items-center gap-1.5">
+        <span className="flex size-5 shrink-0 items-center justify-center text-foreground-soft">
           <ChevronDown
-            className={cn("motion-disclosure-icon h-3 w-3 shrink-0", expanded ? "rotate-0" : "-rotate-90")}
+            aria-hidden="true"
+            className={cn("motion-disclosure-icon size-3.5 shrink-0", expanded ? "rotate-0" : "-rotate-90")}
           />
         </span>
-        <FolderOpen aria-hidden="true" className="h-4 w-4 shrink-0 text-foreground-soft" />
-        <h3 className="min-w-0 truncate text-[0.88rem] font-semibold tracking-[-0.01em]">{group.label}</h3>
+        <span className="flex size-5 shrink-0 items-center justify-center text-foreground-soft">
+          <Folder aria-hidden="true" className="size-3.5" />
+        </span>
+        <h3 className="min-w-0 truncate text-[0.88rem] font-medium tracking-[-0.01em]">{group.label}</h3>
       </span>
-      <LabelChip tone="neutral" size="compact" className="shrink-0 bg-surface-1/70 text-[0.72rem]">
+      <span className="ml-3 shrink-0 text-[0.72rem] font-medium tabular-nums text-foreground-soft">
         {group.rows.length}
-      </LabelChip>
+      </span>
     </button>
   );
 }
@@ -193,7 +194,7 @@ export function SubscriptionsListPane({
       }}
     >
       <div className="mb-4 flex flex-col gap-3 border-b border-border/55 pb-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex min-w-0 items-baseline gap-2.5">
+        <div className="flex min-w-0 items-center gap-2.5">
           <h2
             id={headingId}
             className="min-w-[4rem] truncate font-sans text-[1.08rem] font-semibold tracking-[-0.025em] text-foreground"
@@ -224,7 +225,7 @@ export function SubscriptionsListPane({
       <div
         ref={scrollRegionRef}
         data-testid="subscriptions-list-scroll-region"
-        className="space-y-5 pr-1.5 lg:min-h-0 lg:flex-1 lg:overflow-y-auto"
+        className="space-y-3 pr-1.5 lg:min-h-0 lg:flex-1 lg:overflow-y-auto"
         onScroll={(event) => scheduleScrollTopCommit(event.currentTarget.scrollTop)}
       >
         {!hasRows ? (
@@ -250,7 +251,7 @@ export function SubscriptionsListPane({
             const groupBodyId = `subscriptions-group-panel-${group.key}`;
 
             return (
-              <div key={group.key} className="relative space-y-1.5">
+              <div key={group.key} className="relative space-y-1">
                 <SubscriptionGroupDisclosureButton
                   group={group}
                   expanded={expanded}
