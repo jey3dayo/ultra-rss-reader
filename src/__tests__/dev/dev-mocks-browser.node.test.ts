@@ -767,6 +767,10 @@ describe("setupDevMocks", () => {
   });
 
   it("keeps browser-only list output ordering stable with lookup indexes", async () => {
+    // Freeze the clock so recent_article_count stays deterministic; relative mock
+    // article dates and the 30-day recent window both read the current date.
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-13T03:00:00.000Z"));
     setupDevMocks();
 
     expect(
