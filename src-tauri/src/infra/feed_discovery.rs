@@ -136,6 +136,16 @@ pub(crate) fn validate_discovery_request_url(url: &reqwest::Url) -> DomainResult
     validate_and_resolve_discovery_request_url(url).map(|_| ())
 }
 
+/// Validate the URL, resolve its host, and return the resolved public socket
+/// addresses so callers can pin the connection to the validated addresses.
+///
+/// Returns an empty vector when the host is a literal IP (nothing to pin); a
+/// non-empty vector of public addresses for a resolvable hostname; and an error
+/// when validation fails or any resolved address is private.
+pub(crate) fn resolve_validated_public_addrs(url: &reqwest::Url) -> DomainResult<Vec<SocketAddr>> {
+    validate_and_resolve_discovery_request_url(url)
+}
+
 fn validate_and_resolve_discovery_request_url(url: &reqwest::Url) -> DomainResult<Vec<SocketAddr>> {
     validate_discovery_url(url)?;
     validate_resolved_host_is_public(url)

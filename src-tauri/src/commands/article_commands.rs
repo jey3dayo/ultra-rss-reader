@@ -2,6 +2,7 @@ use chrono::{DateTime, NaiveTime, SecondsFormat, Utc};
 use reqwest::header::{HeaderMap, CONTENT_SECURITY_POLICY, X_FRAME_OPTIONS};
 use rusqlite::OptionalExtension;
 use std::collections::HashSet;
+use std::net::SocketAddr;
 use std::process::Command;
 use std::sync::atomic::AtomicBool;
 use std::sync::{Mutex, OnceLock};
@@ -105,6 +106,10 @@ pub fn open_in_browser(url: String, background: Option<bool>) -> Result<(), AppE
 
 fn parse_public_browser_http_url(url: &str) -> Result<reqwest::Url, AppError> {
     let parsed_url = crate::commands::parse_browser_http_url(url)?;
+    // External-browser open only hands the URL to the OS browser (no app-side
+    // fetch), so it keeps literal-IP validation and must not incur DNS resolution
+    // or fail-closed behavior. The app-side fetch entry (check_browser_embed_support)
+    // resolves and pins separately via resolve_validated_public_addrs.
     validate_public_http_url(&parsed_url).map_err(|error| match error {
         DomainError::Validation(message) => AppError::UserVisible { message },
         other => AppError::from(other),
@@ -807,18 +812,34 @@ async fn check_browser_embed_support_with_timeout(
     timeout: Duration,
 ) -> Result<bool, AppError> {
     let url = parse_public_browser_http_url(&url)?;
-    check_browser_embed_support_for_url(url, timeout).await
+    // Resolve and pin the validated public addresses so the fetch connects to the
+    // same addresses that passed validation, closing the DNS-rebinding window
+    // between validation and connect.
+    let resolved_addrs = crate::infra::feed_discovery::resolve_validated_public_addrs(&url)
+        .map_err(|error| match error {
+            DomainError::Validation(message) => AppError::UserVisible { message },
+            other => AppError::from(other),
+        })?;
+    check_browser_embed_support_for_url(url, timeout, &resolved_addrs).await
 }
 
 async fn check_browser_embed_support_for_url(
     url: reqwest::Url,
     timeout: Duration,
+    resolved_addrs: &[SocketAddr],
 ) -> Result<bool, AppError> {
-    let client = reqwest::Client::builder()
+    let mut builder = reqwest::Client::builder()
         .redirect(browser_embed_redirect_policy())
-        .timeout(timeout)
-        .build()
-        .map_err(DomainError::from)?;
+        .timeout(timeout);
+    // Pin the connection to the validated addresses when present. Direct callers
+    // (unit tests hitting a local mock server) pass an empty slice to preserve the
+    // original unpinned behavior.
+    if !resolved_addrs.is_empty() {
+        if let Some(host) = url.host_str() {
+            builder = builder.resolve_to_addrs(host, resolved_addrs);
+        }
+    }
+    let client = builder.build().map_err(DomainError::from)?;
 
     let response = match client
         .head(url.as_str())
@@ -859,7 +880,7 @@ fn validate_browser_embed_redirect(
     previous_urls: &[reqwest::Url],
     next_url: &reqwest::Url,
 ) -> Result<(), DomainError> {
-    validate_public_http_url(next_url)?;
+    crate::infra::feed_discovery::validate_discovery_request_url(next_url)?;
 
     if previous_urls
         .last()
@@ -1546,6 +1567,7 @@ mod tests {
         let supported = check_browser_embed_support_for_url(
             test_http_url(format!("{}/article", server.url())),
             BROWSER_EMBED_SUPPORT_REQUEST_TIMEOUT,
+            &[],
         )
         .await
         .expect("embed check should succeed");
@@ -1571,6 +1593,7 @@ mod tests {
         let supported = check_browser_embed_support_for_url(
             test_http_url(format!("{}/article", server.url())),
             BROWSER_EMBED_SUPPORT_REQUEST_TIMEOUT,
+            &[],
         )
         .await
         .expect("embed check should fall back to GET");
@@ -1598,6 +1621,7 @@ mod tests {
             let supported = check_browser_embed_support_for_url(
                 test_http_url(format!("{}/article", server.url())),
                 BROWSER_EMBED_SUPPORT_REQUEST_TIMEOUT,
+                &[],
             )
             .await
             .expect("embed check should resolve non-success GET responses");
@@ -1626,6 +1650,7 @@ mod tests {
         let supported = check_browser_embed_support_for_url(
             test_http_url(format!("{}/article", server.url())),
             BROWSER_EMBED_SUPPORT_REQUEST_TIMEOUT,
+            &[],
         )
         .await
         .expect("embed check should accept success GET responses");
@@ -1640,6 +1665,7 @@ mod tests {
         let error = check_browser_embed_support_for_url(
             test_http_url(stalled_http_url("/article").await),
             Duration::from_millis(20),
+            &[],
         )
         .await
         .expect_err("stalled HEAD response should time out");
@@ -1657,6 +1683,7 @@ mod tests {
         let error = check_browser_embed_support_for_url(
             test_http_url(head_rejected_then_stalled_get_url("/article").await),
             Duration::from_millis(20),
+            &[],
         )
         .await
         .expect_err("stalled GET fallback response should time out");
@@ -1709,6 +1736,19 @@ mod tests {
         }
     }
 
+    #[tokio::test]
+    async fn check_browser_embed_support_rejects_host_that_resolves_to_private_ip() {
+        let error = check_browser_embed_support("http://private.test.invalid/x".to_string())
+            .await
+            .expect_err("host resolving to a private IP should be rejected before request");
+
+        assert!(matches!(
+            error,
+            AppError::UserVisible { ref message }
+                if message == PRIVATE_URL_VALIDATION_MESSAGE
+        ));
+    }
+
     #[test]
     fn embed_support_redirect_policy_rejects_private_redirect_targets() {
         let previous = reqwest::Url::parse("https://example.com/article")
@@ -1733,6 +1773,33 @@ mod tests {
         }
     }
 
+    #[test]
+    fn validate_browser_embed_redirect_rejects_host_that_resolves_to_private_ip() {
+        let previous = reqwest::Url::parse("https://example.com/article")
+            .expect("public previous URL should parse");
+        let next = reqwest::Url::parse("https://private.test.invalid/x")
+            .expect("redirect target should parse");
+
+        let error = validate_browser_embed_redirect(std::slice::from_ref(&previous), &next)
+            .expect_err("redirect to a host resolving to a private IP should be rejected");
+
+        assert!(matches!(
+            error,
+            DomainError::Validation(ref message)
+                if message == PRIVATE_URL_VALIDATION_MESSAGE
+        ));
+    }
+
+    #[test]
+    fn validate_browser_embed_redirect_allows_host_that_resolves_to_public_ip() {
+        let previous = reqwest::Url::parse("https://example.com/article")
+            .expect("public previous URL should parse");
+        let next = reqwest::Url::parse("https://public.test.invalid/article")
+            .expect("public redirect target should parse");
+
+        assert!(validate_browser_embed_redirect(std::slice::from_ref(&previous), &next).is_ok());
+    }
+
     #[tokio::test]
     async fn embed_support_http_client_rejects_private_redirect_targets() {
         let mut server = Server::new_async().await;
@@ -1746,6 +1813,7 @@ mod tests {
         let error = check_browser_embed_support_for_url(
             test_http_url(format!("{}/article", server.url())),
             BROWSER_EMBED_SUPPORT_REQUEST_TIMEOUT,
+            &[],
         )
         .await
         .expect_err("private browser embed redirect should fail");
@@ -1755,6 +1823,35 @@ mod tests {
             AppError::Retryable { .. } | AppError::RetryableWithMetadata { .. }
         ));
         redirect.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn check_browser_embed_support_for_url_pins_resolved_addresses_when_provided() {
+        let mut server = Server::new_async().await;
+        let head_mock = server
+            .mock("HEAD", "/article")
+            .with_status(200)
+            .create_async()
+            .await;
+        let mock_addr: std::net::SocketAddr = server
+            .host_with_port()
+            .parse()
+            .expect("mockito host should parse to a socket address");
+        let port = mock_addr.port();
+
+        // Use a domain host so resolve_to_addrs actually overrides resolution:
+        // example.com never resolves to loopback, so reaching the mock server
+        // proves the pinned addresses drove the connection.
+        let supported = check_browser_embed_support_for_url(
+            test_http_url(format!("http://example.com:{port}/article")),
+            BROWSER_EMBED_SUPPORT_REQUEST_TIMEOUT,
+            std::slice::from_ref(&mock_addr),
+        )
+        .await
+        .expect("pinned embed check should reach the mock server");
+
+        assert!(supported);
+        head_mock.assert_async().await;
     }
 
     #[test]

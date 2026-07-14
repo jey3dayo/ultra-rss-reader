@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use reqwest::header::{ETAG, IF_MODIFIED_SINCE, IF_NONE_MATCH, LAST_MODIFIED};
 use reqwest::StatusCode;
+use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::Semaphore;
 
@@ -10,7 +11,9 @@ use crate::domain::url_policy::{
     validate_http_url_without_credentials, CREDENTIAL_URL_VALIDATION_MESSAGE,
     PRIVATE_URL_VALIDATION_MESSAGE, UNSUPPORTED_URL_VALIDATION_MESSAGE,
 };
-use crate::infra::feed_discovery::validate_discovery_request_url;
+use crate::infra::feed_discovery::{
+    resolve_validated_public_addrs, validate_discovery_request_url,
+};
 use crate::repository::sync_state::{
     normalize_http_etag_validator, normalize_http_last_modified_validator,
 };
@@ -96,17 +99,47 @@ impl LocalProvider {
         })
     }
 
-    fn validate_feed_url(&self, feed_url: &str) -> DomainResult<reqwest::Url> {
+    fn validate_feed_url(&self, feed_url: &str) -> DomainResult<(reqwest::Url, Vec<SocketAddr>)> {
         let url = reqwest::Url::parse(feed_url)
             .map_err(|_| DomainError::Validation(UNSUPPORTED_URL_VALIDATION_MESSAGE.to_string()))?;
 
-        if self.allow_private_feed_urls {
+        // Test/bypass mode neither resolves against DNS nor pins the connection,
+        // so it returns no addresses. Production resolves the host and returns the
+        // validated public addresses so the fetch can be pinned to them, closing
+        // the DNS-rebinding window between validation and connect.
+        let resolved_addrs = if self.allow_private_feed_urls {
             validate_http_url_without_credentials(&url)?;
+            Vec::new()
         } else {
-            validate_external_feed_url(&url)?;
-        }
+            resolve_validated_public_addrs(&url)?
+        };
 
-        Ok(url)
+        Ok((url, resolved_addrs))
+    }
+
+    /// Build the HTTP client for a single feed fetch.
+    ///
+    /// When `resolved_addrs` is non-empty (production mode with a resolvable
+    /// hostname), the connection is pinned to the validated addresses so reqwest
+    /// cannot independently re-resolve the host to a different (private) address
+    /// at connect time. When empty (literal-IP hosts or the test bypass), the
+    /// shared client is reused unchanged.
+    fn feed_http_client(
+        &self,
+        url: &reqwest::Url,
+        resolved_addrs: &[SocketAddr],
+    ) -> DomainResult<reqwest::Client> {
+        if resolved_addrs.is_empty() {
+            return Ok(self.http_client.clone());
+        }
+        let Some(host) = url.host_str() else {
+            return Ok(self.http_client.clone());
+        };
+        http_client_builder()
+            .redirect(Self::redirect_policy(self.allow_private_feed_urls))
+            .resolve_to_addrs(host, resolved_addrs)
+            .build()
+            .map_err(DomainError::from_provider_http_error)
     }
 
     fn header_value_to_string(
@@ -412,9 +445,10 @@ impl FeedProvider for LocalProvider {
             }
         };
 
-        let feed_url = self.validate_feed_url(&feed_url)?;
+        let (feed_url, resolved_addrs) = self.validate_feed_url(&feed_url)?;
         let _permit = self.acquire_sync_request_permit().await?;
-        let mut request = self.http_client.get(feed_url.clone());
+        let client = self.feed_http_client(&feed_url, &resolved_addrs)?;
+        let mut request = client.get(feed_url.clone());
         if let Some(current) = cursor.as_ref() {
             if let Some(etag) = current.etag.as_deref() {
                 request = request.header(IF_NONE_MATCH, etag);
@@ -495,10 +529,10 @@ impl FeedProvider for LocalProvider {
         _folder: Option<&str>,
     ) -> DomainResult<RemoteSubscription> {
         // For local feeds, just validate the URL by fetching and parsing
-        let url = self.validate_feed_url(url)?;
+        let (url, resolved_addrs) = self.validate_feed_url(url)?;
         let _permit = self.acquire_discovery_request_permit().await?;
-        let response = self
-            .http_client
+        let client = self.feed_http_client(&url, &resolved_addrs)?;
+        let response = client
             .get(url.clone())
             .send()
             .await
@@ -1285,6 +1319,35 @@ mod tests {
                 Err(DomainError::Validation(message)) if message == PRIVATE_URL_VALIDATION_MESSAGE
             ));
         }
+    }
+
+    #[test]
+    fn validate_feed_url_returns_resolved_addresses_to_pin_in_production_mode() {
+        let provider = LocalProvider::new();
+
+        let (url, resolved_addrs) = provider
+            .validate_feed_url("http://example.com/feed.xml")
+            .expect("public feed URL should validate and resolve in production mode");
+
+        assert_eq!(url.as_str(), "http://example.com/feed.xml");
+        assert!(
+            !resolved_addrs.is_empty(),
+            "production mode should return validated addresses to pin the connection"
+        );
+    }
+
+    #[test]
+    fn validate_feed_url_skips_pinning_addresses_in_private_allowed_mode() {
+        let provider = LocalProvider::new_allowing_private_feed_urls_for_tests();
+
+        let (_url, resolved_addrs) = provider
+            .validate_feed_url("http://localhost/feed.xml")
+            .expect("private feed URL should be allowed in the test bypass mode");
+
+        assert!(
+            resolved_addrs.is_empty(),
+            "test bypass mode should not resolve or pin addresses"
+        );
     }
 
     #[tokio::test]
