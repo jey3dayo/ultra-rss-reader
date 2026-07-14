@@ -116,6 +116,52 @@ pub(crate) fn recalculate_unread_count_with_conn(
     Ok(normalize_unread_count(count))
 }
 
+pub(crate) fn recalculate_unread_counts_with_conn(
+    conn: &Connection,
+    feed_ids: &[FeedId],
+) -> DomainResult<()> {
+    if feed_ids.is_empty() {
+        return Ok(());
+    }
+
+    let placeholders = std::iter::repeat_n("?", feed_ids.len())
+        .collect::<Vec<_>>()
+        .join(", ");
+    let params: Vec<&dyn rusqlite::types::ToSql> = feed_ids
+        .iter()
+        .map(|id| &id.0 as &dyn rusqlite::types::ToSql)
+        .collect();
+
+    if !SqliteMuteKeywordRepository::new(conn).has_any()? {
+        let sql = format!(
+            "UPDATE feeds
+             SET unread_count = (
+               SELECT COUNT(*) FROM articles WHERE articles.feed_id = feeds.id AND articles.is_read = 0
+             )
+             WHERE feeds.id IN ({placeholders})"
+        );
+        conn.execute(&sql, rusqlite::params_from_iter(params))?;
+    } else {
+        let mute_clause = build_mute_keyword_exclusion_clause(
+            "title",
+            "CASE WHEN trim(coalesce(content_text, '')) = '' THEN coalesce(summary, '') ELSE content_text END",
+        );
+        let sql = format!(
+            "UPDATE feeds
+             SET unread_count = (
+               SELECT COUNT(*)
+               FROM articles
+               WHERE articles.feed_id = feeds.id
+                 AND articles.is_read = 0
+                 AND {mute_clause}
+             )
+             WHERE feeds.id IN ({placeholders})"
+        );
+        conn.execute(&sql, rusqlite::params_from_iter(params))?;
+    }
+    Ok(())
+}
+
 const SELECT_COLS: &str =
     "id, account_id, folder_id, remote_id, title, url, site_url, icon, unread_count, reader_mode, web_preview_mode";
 
@@ -237,6 +283,10 @@ impl FeedRepository for SqliteFeedRepository<'_> {
 
     fn recalculate_unread_count(&self, feed_id: &FeedId) -> DomainResult<i32> {
         recalculate_unread_count_with_conn(self.conn, feed_id)
+    }
+
+    fn recalculate_unread_counts(&self, feed_ids: &[FeedId]) -> DomainResult<()> {
+        recalculate_unread_counts_with_conn(self.conn, feed_ids)
     }
 
     fn find_by_remote_id(
@@ -753,6 +803,100 @@ mod tests {
             .unwrap();
 
         assert_eq!(repo.recalculate_unread_count(&feed.id).unwrap(), 0);
+    }
+
+    #[test]
+    fn recalculate_unread_counts_matches_single_feed_results() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let repo = SqliteFeedRepository::new(db.writer());
+
+        let feed_a = make_feed(&account_id, "Feed A", "http://a.com/rss");
+        let feed_b = make_feed(&account_id, "Feed B", "http://b.com/rss");
+        let feed_c = make_feed(&account_id, "Feed C", "http://c.com/rss");
+        repo.save(&feed_a).unwrap();
+        repo.save(&feed_b).unwrap();
+        repo.save(&feed_c).unwrap();
+
+        let now = chrono::Utc::now().to_rfc3339();
+        // Feed A: 2 unread, 1 read. Feed B: 1 unread. Feed C: 0 articles.
+        for (i, feed_id, is_read) in [
+            (1, &feed_a.id, 0),
+            (2, &feed_a.id, 0),
+            (3, &feed_a.id, 1),
+            (4, &feed_b.id, 0),
+        ] {
+            db.writer()
+                .execute(
+                    "INSERT INTO articles (id, feed_id, title, published_at, fetched_at, is_read) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                    params![format!("a{i}"), feed_id.0, format!("Article {i}"), now, now, is_read],
+                )
+                .unwrap();
+        }
+
+        repo.recalculate_unread_counts(&[feed_a.id.clone(), feed_b.id.clone(), feed_c.id.clone()])
+            .unwrap();
+
+        assert_eq!(
+            repo.find_by_id(&feed_a.id).unwrap().unwrap().unread_count,
+            2
+        );
+        assert_eq!(
+            repo.find_by_id(&feed_b.id).unwrap().unwrap().unread_count,
+            1
+        );
+        assert_eq!(
+            repo.find_by_id(&feed_c.id).unwrap().unwrap().unread_count,
+            0
+        );
+    }
+
+    #[test]
+    fn recalculate_unread_counts_excludes_muted_articles_like_single_feed_version() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let repo = SqliteFeedRepository::new(db.writer());
+
+        let feed = make_feed(&account_id, "Feed", "http://f.com/rss");
+        repo.save(&feed).unwrap();
+
+        let now = chrono::Utc::now().to_rfc3339();
+        db.writer()
+            .execute(
+                "INSERT INTO articles (id, feed_id, title, published_at, fetched_at, is_read) VALUES (?1, ?2, ?3, ?4, ?5, 0)",
+                params!["a1", feed.id.0, "Muted Keyword Article", now, now],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO articles (id, feed_id, title, published_at, fetched_at, is_read) VALUES (?1, ?2, ?3, ?4, ?5, 0)",
+                params!["a2", feed.id.0, "Regular Article", now, now],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO mute_keywords (id, keyword, scope, created_at, updated_at) VALUES ('m1', 'muted', 'title', ?1, ?1)",
+                params![now],
+            )
+            .unwrap();
+
+        repo.recalculate_unread_counts(&[feed.id.clone()]).unwrap();
+
+        assert_eq!(repo.find_by_id(&feed.id).unwrap().unwrap().unread_count, 1);
+    }
+
+    #[test]
+    fn recalculate_unread_counts_with_empty_slice_is_noop() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let repo = SqliteFeedRepository::new(db.writer());
+
+        let feed = make_feed(&account_id, "Feed", "http://f.com/rss");
+        repo.save(&feed).unwrap();
+
+        repo.recalculate_unread_counts(&[]).unwrap();
+
+        assert_eq!(repo.find_by_id(&feed.id).unwrap().unwrap().unread_count, 0);
     }
 
     #[test]

@@ -8,6 +8,7 @@ pub trait FeedRepository {
     fn save(&self, feed: &Feed) -> DomainResult<()>;
     fn update_unread_count(&self, feed_id: &FeedId, count: i32) -> DomainResult<()>;
     fn recalculate_unread_count(&self, feed_id: &FeedId) -> DomainResult<i32>;
+    fn recalculate_unread_counts(&self, feed_ids: &[FeedId]) -> DomainResult<()>;
     fn find_by_remote_id(
         &self,
         account_id: &AccountId,
