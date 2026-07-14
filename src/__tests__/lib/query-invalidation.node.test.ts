@@ -351,7 +351,37 @@ describe("query-invalidation", () => {
       queryKeys.feedArticleSummaries.root,
     ];
 
-    expect(resolveArticleMutationInvalidationQueryKeys("article-read-star")).toEqual(articleVisibleListMatrix);
+    expect(resolveArticleMutationInvalidationQueryKeys("article-read")).toEqual([
+      queryKeys.articles.root,
+      queryKeys.accountArticles.root,
+      queryKeys.folderArticles.root,
+      queryKeys.starredArticles.root,
+      queryKeys.accountUnreadCount.root,
+      queryKeys.feeds.root,
+      queryKeys.articlesByTag.root,
+      queryKeys.tagArticleCounts.root,
+      queryKeys.search.root,
+      queryKeys.recentArticles.root,
+      queryKeys.feedArticleSummaries.root,
+    ]);
+    expect(resolveArticleMutationInvalidationQueryKeys("article-read")).not.toContainEqual(
+      queryKeys.accountStarredCount.root,
+    );
+    expect(resolveArticleMutationInvalidationQueryKeys("article-star")).toEqual([
+      queryKeys.articles.root,
+      queryKeys.accountArticles.root,
+      queryKeys.folderArticles.root,
+      queryKeys.starredArticles.root,
+      queryKeys.accountStarredCount.root,
+      queryKeys.articlesByTag.root,
+      queryKeys.search.root,
+      queryKeys.recentArticles.root,
+      queryKeys.feedArticleSummaries.root,
+    ]);
+    expect(resolveArticleMutationInvalidationQueryKeys("article-star")).not.toContainEqual(
+      queryKeys.accountUnreadCount.root,
+    );
+    expect(resolveArticleMutationInvalidationQueryKeys("article-star")).not.toContainEqual(queryKeys.feeds.root);
     expect(resolveArticleMutationInvalidationQueryKeys("mute-keyword")).toEqual(articleVisibleListMatrix);
     expect(resolveArticleMutationInvalidationQueryKeys("tag-article-assignment")).toEqual([
       queryKeys.articles.root,
@@ -380,7 +410,7 @@ describe("query-invalidation", () => {
     const restoreDiagnosticsReporter = setQueryInvalidationFailureReporterForDiagnostics(diagnosticsReporter);
 
     invalidateQueries.mockRejectedValueOnce(articleRejection);
-    invalidateArticleMutationQueries(queryClient, "article-read-star");
+    invalidateArticleMutationQueries(queryClient, "article-read");
 
     await vi.waitFor(() => {
       expect(diagnosticsReporter).toHaveBeenCalledWith([

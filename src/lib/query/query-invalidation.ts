@@ -60,7 +60,12 @@ type FeedMutationInvalidationOwnerMatrixEntry = {
   includeAccountScopedFeedArticleSummaries: boolean;
 };
 
-type ArticleMutationInvalidationKind = "article-read-star" | "mute-keyword" | "tag-article-assignment" | "tag-metadata";
+type ArticleMutationInvalidationKind =
+  | "article-read"
+  | "article-star"
+  | "mute-keyword"
+  | "tag-article-assignment"
+  | "tag-metadata";
 
 type ArticleMutationInvalidationMatrixEntry = {
   actionOwner: Extract<QueryInvalidationActionOwner, "article-mutation" | "mute-keyword-mutation" | "tag-mutation">;
@@ -346,10 +351,18 @@ const FEED_MUTATION_INVALIDATION_OWNER_MATRIX = {
 >;
 
 const ARTICLE_MUTATION_INVALIDATION_MATRIX = {
-  "article-read-star": {
+  "article-read": {
     actionOwner: "article-mutation",
     articleOptions: {
+      includeAccountStarredCount: false,
       includeTagArticleCounts: true,
+    },
+  },
+  "article-star": {
+    actionOwner: "article-mutation",
+    articleOptions: {
+      includeAccountUnreadCount: false,
+      includeFeeds: false,
     },
   },
   "mute-keyword": {
