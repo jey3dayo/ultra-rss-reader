@@ -108,7 +108,7 @@ fn upsert_articles_in_current_transaction(
                summary = excluded.summary,
                url = excluded.url,
                author = excluded.author,
-               published_at = excluded.published_at,
+               published_at = MIN(articles.published_at, excluded.published_at),
                thumbnail = excluded.thumbnail,
                fetched_at = excluded.fetched_at",
         )
@@ -2274,6 +2274,74 @@ mod tests {
         feed_repo.save(&feed).unwrap();
 
         (account, feed)
+    }
+
+    #[test]
+    fn upsert_articles_in_current_transaction_preserves_older_published_at_on_resync() {
+        let db = test_db();
+        let (_account, feed) = insert_account_and_feed(&db, "http://localhost");
+        let db_guard = db.lock().unwrap();
+        let conn = db_guard.writer();
+
+        let t1 = chrono::DateTime::parse_from_rfc3339("2026-01-01T00:00:00+00:00")
+            .unwrap()
+            .with_timezone(&chrono::Utc);
+        let t2 = chrono::DateTime::parse_from_rfc3339("2026-06-01T00:00:00+00:00")
+            .unwrap()
+            .with_timezone(&chrono::Utc);
+        let mut article = Article {
+            id: ArticleId("preserve-published-at".to_string()),
+            feed_id: feed.id.clone(),
+            remote_id: Some("entry-preserve-published-at".to_string()),
+            title: "Preserve on re-sync".to_string(),
+            content_raw: "body".to_string(),
+            content_sanitized: "body".to_string(),
+            sanitizer_version: sanitizer::SANITIZER_VERSION,
+            summary: None,
+            url: None,
+            author: None,
+            published_at: t1,
+            thumbnail: None,
+            is_read: false,
+            is_starred: false,
+            fetched_at: t1,
+        };
+        upsert_articles_in_current_transaction(conn, std::slice::from_ref(&article)).unwrap();
+
+        // Re-sync synthesizes a newer published_at (e.g. now()) for the same id.
+        article.published_at = t2;
+        upsert_articles_in_current_transaction(conn, std::slice::from_ref(&article)).unwrap();
+
+        let published_at: String = conn
+            .query_row(
+                "SELECT published_at FROM articles WHERE id = ?1",
+                rusqlite::params![article.id.0],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(
+            published_at, "2026-01-01T00:00:00+00:00",
+            "existing older published_at should be preserved across re-sync"
+        );
+
+        // A later sync delivering an even older real publish date should replace it.
+        let t0 = chrono::DateTime::parse_from_rfc3339("2025-12-01T00:00:00+00:00")
+            .unwrap()
+            .with_timezone(&chrono::Utc);
+        article.published_at = t0;
+        upsert_articles_in_current_transaction(conn, std::slice::from_ref(&article)).unwrap();
+
+        let published_at: String = conn
+            .query_row(
+                "SELECT published_at FROM articles WHERE id = ?1",
+                rusqlite::params![article.id.0],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(
+            published_at, "2025-12-01T00:00:00+00:00",
+            "an older real published_at delivered later should replace the synthesized value"
+        );
     }
 
     fn make_test_feed(

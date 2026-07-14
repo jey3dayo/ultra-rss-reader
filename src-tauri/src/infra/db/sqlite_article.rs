@@ -1102,7 +1102,7 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
                    summary = excluded.summary,
                    url = excluded.url,
                    author = excluded.author,
-                   published_at = excluded.published_at,
+                   published_at = MIN(articles.published_at, excluded.published_at),
                    thumbnail = excluded.thumbnail,
                    fetched_at = excluded.fetched_at",
             )?;
@@ -1657,6 +1657,101 @@ mod tests {
         assert_eq!(fetched_at, "2026-05-10T15:30:00+00:00");
         assert_utc_rfc3339(&published_at);
         assert_utc_rfc3339(&fetched_at);
+    }
+
+    #[test]
+    fn upsert_inserts_provided_published_at_on_first_insert() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let mut article = make_article(&feed_id, "First insert article");
+        article.published_at = DateTime::parse_from_rfc3339("2026-01-01T00:00:00+00:00")
+            .unwrap()
+            .with_timezone(&Utc);
+
+        repo.upsert(std::slice::from_ref(&article)).unwrap();
+
+        let published_at: String = db
+            .reader()
+            .query_row(
+                "SELECT published_at FROM articles WHERE id = ?1",
+                params![article.id.0],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(published_at, "2026-01-01T00:00:00+00:00");
+    }
+
+    #[test]
+    fn upsert_preserves_older_published_at_on_update() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let mut article = make_article(&feed_id, "Preserve on re-sync");
+        let t1 = DateTime::parse_from_rfc3339("2026-01-01T00:00:00+00:00")
+            .unwrap()
+            .with_timezone(&Utc);
+        article.published_at = t1;
+        repo.upsert(std::slice::from_ref(&article)).unwrap();
+
+        // Re-sync synthesizes a newer published_at (e.g. now()) for the same id.
+        let t2 = DateTime::parse_from_rfc3339("2026-06-01T00:00:00+00:00")
+            .unwrap()
+            .with_timezone(&Utc);
+        article.published_at = t2;
+        repo.upsert(std::slice::from_ref(&article)).unwrap();
+
+        let published_at: String = db
+            .reader()
+            .query_row(
+                "SELECT published_at FROM articles WHERE id = ?1",
+                params![article.id.0],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(
+            published_at, "2026-01-01T00:00:00+00:00",
+            "existing older published_at should be preserved across re-sync"
+        );
+    }
+
+    #[test]
+    fn upsert_accepts_older_real_published_at_on_update() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let mut article = make_article(&feed_id, "Accept real date");
+        let t2 = DateTime::parse_from_rfc3339("2026-06-01T00:00:00+00:00")
+            .unwrap()
+            .with_timezone(&Utc);
+        article.published_at = t2;
+        repo.upsert(std::slice::from_ref(&article)).unwrap();
+
+        // Later sync delivers the real (older) publish date once the feed provides one.
+        let t1 = DateTime::parse_from_rfc3339("2026-01-01T00:00:00+00:00")
+            .unwrap()
+            .with_timezone(&Utc);
+        article.published_at = t1;
+        repo.upsert(std::slice::from_ref(&article)).unwrap();
+
+        let published_at: String = db
+            .reader()
+            .query_row(
+                "SELECT published_at FROM articles WHERE id = ?1",
+                params![article.id.0],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(
+            published_at, "2026-01-01T00:00:00+00:00",
+            "an older real published_at delivered later should replace the synthesized value"
+        );
     }
 
     #[test]
