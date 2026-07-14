@@ -1,5 +1,14 @@
 import { Clock3, Folder, Hash, Inbox, Star } from "lucide-react";
-import { type ComponentProps, type CSSProperties, lazy, type ReactNode, Suspense, useEffect, useRef } from "react";
+import {
+  type ComponentProps,
+  type CSSProperties,
+  lazy,
+  type MouseEvent as ReactMouseEvent,
+  type ReactNode,
+  Suspense,
+  useEffect,
+  useRef,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { useArticleViewSelection } from "@/components/reader/hooks/article/use-article-view-selection";
 import { useArticleViewUiState } from "@/components/reader/hooks/article/use-article-view-ui-state";
@@ -57,6 +66,7 @@ type SummaryIdentityProps = {
 type SummaryScopeProps = {
   motionKey: string;
   title: string;
+  titleHref?: string | null;
   subtitle: ReactNode;
   visual: ReactNode;
   metrics: SummaryIdentityProps[];
@@ -124,6 +134,7 @@ function RecentFeedRow({ feed, onSelect }: { feed: ArticleViewSummaryFeed; onSel
 function SummaryEmptyState({
   motionKey,
   title,
+  titleHref,
   subtitle,
   visual,
   metrics,
@@ -132,6 +143,7 @@ function SummaryEmptyState({
 }: SummaryScopeProps) {
   const { t } = useTranslation("reader");
   const selectFeedFromCurrentContext = useUiStore((s) => s.selectFeedFromCurrentContext);
+  const openBrowser = useUiStore((s) => s.openBrowser);
 
   function handleSelectRecentFeed(feedId: string) {
     selectFeedFromCurrentContext(feedId);
@@ -139,6 +151,11 @@ function SummaryEmptyState({
     scheduleReaderFocusFrame(() => {
       focusSelectedSidebarTarget();
     });
+  }
+
+  function handleWebsiteLinkClick(event: ReactMouseEvent<HTMLAnchorElement>) {
+    event.preventDefault();
+    openBrowser(event.currentTarget.href);
   }
 
   return (
@@ -167,9 +184,20 @@ function SummaryEmptyState({
                   {visual}
                 </span>
                 <div className="min-w-0">
-                  <p className="truncate font-sans text-xl font-semibold leading-tight text-foreground" dir="auto">
-                    {title}
-                  </p>
+                  {titleHref ? (
+                    <a
+                      href={titleHref}
+                      onClick={handleWebsiteLinkClick}
+                      className="block truncate font-sans text-xl font-semibold leading-tight text-foreground underline-offset-2 transition-colors hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45"
+                      dir="auto"
+                    >
+                      {title}
+                    </a>
+                  ) : (
+                    <p className="truncate font-sans text-xl font-semibold leading-tight text-foreground" dir="auto">
+                      {title}
+                    </p>
+                  )}
                   <p className="mt-1 text-xs leading-tight text-foreground-soft">{subtitle}</p>
                 </div>
               </div>
@@ -280,10 +308,15 @@ function buildSummaryIdentityProps(
     return {
       motionKey: `feed:${summary.feed.id}`,
       title: summary.feed.title,
+      titleHref: websiteHref,
       subtitle:
         websiteHref && websiteLabel ? (
           <a
             href={websiteHref}
+            onClick={(event) => {
+              event.preventDefault();
+              useUiStore.getState().openBrowser(event.currentTarget.href);
+            }}
             className="underline-offset-2 transition-colors hover:text-foreground hover:underline focus-visible:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45"
           >
             {websiteLabel}
