@@ -2,6 +2,20 @@
 
 React Doctor / Knip / similarity / TODO priority rules that are too durable for `TODO.md` live here.
 
+## Dependency Advisory Policy
+
+CI runs `mise run audit:deps` (pnpm, prod paths) and `mise run audit:deps:rust` (cargo audit) in the `audit` job.
+
+- Fail: CI fails when a high-or-above advisory hits a reachable path — any Rust dependency, or an npm dependency reachable from `--prod` scope.
+- Ignore: dev/test/CLI-only-path advisories must be registered explicitly in the ignore list (`auditConfig.ignoreGhsas` in `pnpm-workspace.yaml` for npm; `src-tauri/audit.toml` for Rust) with advisory ID, reason, and date recorded here. Anonymous ignores are forbidden.
+- Review: ignore entries are re-triaged during release preflight.
+
+Ignore entries:
+
+- `GHSA-88fw-hqm2-52qc` — hono via shadcn (build-time CSS import, listed in dependencies); unreachable in shipping bundle; vetted 2026-07-14.
+
+Known dev-path advisories (13 findings: 4 high / 6 moderate / 3 low via jsdom→vitest, shadcn→hono, storybook→esbuild) were vetted as unreachable from the shipping Tauri app and production Vite bundle on 2026-07-14.
+
 ## TODO Priority Taxonomy
 
 - `P0`: release-blocking regression, data loss, security issue, or broken app start/build.

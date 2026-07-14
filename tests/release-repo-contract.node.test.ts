@@ -2376,9 +2376,12 @@ describe("release repository contract", () => {
     }
   });
 
-  it("keeps dependency audit manual until advisory policy is defined", () => {
-    expect(extractTaskBlock(miseToml, "audit:deps")).toContain("Manual dependency security audit");
-    expect(ciWorkflow).not.toMatch(/\b(?:pnpm|cargo)\s+audit\b/);
+  it("keeps dependency audit CI-enforced under the advisory policy", () => {
+    expect(extractTaskBlock(miseToml, "audit:deps")).toContain("CI-enforced dependency audit");
+    expect(extractTaskBlock(miseToml, "audit:deps")).toContain("pnpm audit --prod --audit-level high");
+    expect(extractTaskBlock(miseToml, "audit:deps:rust")).toContain("cargo audit --file src-tauri/Cargo.lock");
+    expect(ciWorkflow).toContain("mise run audit:deps");
+    expect(ciWorkflow).toContain("mise run audit:deps:rust");
     expect(releaseWorkflow).not.toMatch(/\b(?:pnpm|cargo)\s+audit\b/);
     expect(miseToml).not.toMatch(/depends = \[[^\]]*"audit:deps"/);
   });

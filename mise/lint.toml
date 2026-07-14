@@ -36,6 +36,11 @@ description = "Workflow action references must be pinned to commit SHAs"
 run = "node scripts/check-workflow-pins.mjs"
 
 ["audit:deps"]
-description = "Manual dependency security audit; not part of CI or release preflight until advisory policy is defined"
-run = "pnpm audit --audit-level high"
-run_windows = "pnpm.exe audit --audit-level high"
+description = "CI-enforced dependency audit (prod paths); dev-path advisories are triaged manually — see policy doc"
+run = "pnpm audit --prod --audit-level high"
+run_windows = "pnpm.exe audit --prod --audit-level high"
+
+["audit:deps:rust"]
+description = "CI-enforced Rust dependency audit (cargo audit against src-tauri/Cargo.lock)"
+run = "cargo audit --file src-tauri/Cargo.lock"
+run_windows = "cargo audit --file src-tauri/Cargo.lock"
