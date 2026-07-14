@@ -1393,6 +1393,8 @@ describe("repository static contracts", () => {
 
     expect([...new Set(ciTasks)].toSorted()).toEqual([
       "app:build:debug",
+      "audit:deps",
+      "audit:deps:rust",
       "build",
       "format:check",
       "lint",
