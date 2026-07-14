@@ -444,7 +444,7 @@ mod tests {
         let caller_inventory = [
             ("sqlite_article.rs", include_str!("sqlite_article.rs"), 18),
             ("sqlite_tag.rs", include_str!("sqlite_tag.rs"), 3),
-            ("sqlite_feed.rs", include_str!("sqlite_feed.rs"), 2),
+            ("sqlite_feed.rs", include_str!("sqlite_feed.rs"), 3),
         ];
 
         for (owner, source, expected_exclusion_calls) in caller_inventory {

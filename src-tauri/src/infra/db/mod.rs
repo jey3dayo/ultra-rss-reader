@@ -198,7 +198,7 @@ mod tests {
             "tag_article",
             "untag_article",
         ];
-        let maintenance_methods = ["recalculate_unread_count"];
+        let maintenance_methods = ["recalculate_unread_count", "recalculate_unread_counts"];
         let mut expected_methods = read_methods
             .into_iter()
             .chain(write_methods)

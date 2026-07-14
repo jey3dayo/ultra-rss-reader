@@ -677,11 +677,12 @@ pub(super) async fn repair_greader_remote_state(
     {
         let db_guard = lock_db(db)?;
         let feed_repo = SqliteFeedRepository::new(db_guard.writer());
-        for feed in &feeds {
-            if is_provider_managed_greader_feed(feed.remote_id.as_deref()) {
-                feed_repo.recalculate_unread_count(&feed.id)?;
-            }
-        }
+        let managed_feed_ids: Vec<FeedId> = feeds
+            .iter()
+            .filter(|feed| is_provider_managed_greader_feed(feed.remote_id.as_deref()))
+            .map(|feed| feed.id.clone())
+            .collect();
+        feed_repo.recalculate_unread_counts(&managed_feed_ids)?;
     }
 
     let server_unread_counts = provider.get_unread_count_map().await?;
@@ -1255,9 +1256,8 @@ async fn sync_greader_feeds(
     {
         let db_guard = lock_db(db)?;
         let feed_repo = SqliteFeedRepository::new(db_guard.writer());
-        for feed in &feeds {
-            feed_repo.recalculate_unread_count(&feed.id)?;
-        }
+        let feed_ids: Vec<FeedId> = feeds.iter().map(|feed| feed.id.clone()).collect();
+        feed_repo.recalculate_unread_counts(&feed_ids)?;
     }
 
     let unread_reconcile_started_at = Instant::now();

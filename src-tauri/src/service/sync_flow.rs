@@ -209,9 +209,8 @@ pub async fn sync_account(
     }
 
     // Step 6: Recalculate unread counts
-    for feed in &feeds {
-        feed_repo.recalculate_unread_count(&feed.id)?;
-    }
+    let feed_ids: Vec<FeedId> = feeds.iter().map(|feed| feed.id.clone()).collect();
+    feed_repo.recalculate_unread_counts(&feed_ids)?;
 
     Ok(updated_feeds)
 }
