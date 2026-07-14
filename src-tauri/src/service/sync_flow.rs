@@ -386,6 +386,16 @@ mod tests {
         async fn delete_subscription(&self, _id: &FeedIdentifier) -> DomainResult<()> {
             Ok(())
         }
+
+        async fn edit_subscription(
+            &self,
+            _remote_id: &str,
+            _title: Option<&str>,
+            _add_folder_label: Option<&str>,
+            _remove_folder_label: Option<&str>,
+        ) -> DomainResult<()> {
+            Ok(())
+        }
     }
 
     #[async_trait]
@@ -449,6 +459,16 @@ mod tests {
         }
 
         async fn delete_subscription(&self, _id: &FeedIdentifier) -> DomainResult<()> {
+            Ok(())
+        }
+
+        async fn edit_subscription(
+            &self,
+            _remote_id: &str,
+            _title: Option<&str>,
+            _add_folder_label: Option<&str>,
+            _remove_folder_label: Option<&str>,
+        ) -> DomainResult<()> {
             Ok(())
         }
     }
@@ -515,6 +535,16 @@ mod tests {
         }
 
         async fn delete_subscription(&self, _id: &FeedIdentifier) -> DomainResult<()> {
+            Ok(())
+        }
+
+        async fn edit_subscription(
+            &self,
+            _remote_id: &str,
+            _title: Option<&str>,
+            _add_folder_label: Option<&str>,
+            _remove_folder_label: Option<&str>,
+        ) -> DomainResult<()> {
             Ok(())
         }
     }
@@ -587,6 +617,16 @@ mod tests {
         async fn delete_subscription(&self, _id: &FeedIdentifier) -> DomainResult<()> {
             Ok(())
         }
+
+        async fn edit_subscription(
+            &self,
+            _remote_id: &str,
+            _title: Option<&str>,
+            _add_folder_label: Option<&str>,
+            _remove_folder_label: Option<&str>,
+        ) -> DomainResult<()> {
+            Ok(())
+        }
     }
 
     #[async_trait]
@@ -650,6 +690,16 @@ mod tests {
         }
 
         async fn delete_subscription(&self, _id: &FeedIdentifier) -> DomainResult<()> {
+            Ok(())
+        }
+
+        async fn edit_subscription(
+            &self,
+            _remote_id: &str,
+            _title: Option<&str>,
+            _add_folder_label: Option<&str>,
+            _remove_folder_label: Option<&str>,
+        ) -> DomainResult<()> {
             Ok(())
         }
     }
@@ -726,6 +776,16 @@ mod tests {
         async fn delete_subscription(&self, _id: &FeedIdentifier) -> DomainResult<()> {
             Ok(())
         }
+
+        async fn edit_subscription(
+            &self,
+            _remote_id: &str,
+            _title: Option<&str>,
+            _add_folder_label: Option<&str>,
+            _remove_folder_label: Option<&str>,
+        ) -> DomainResult<()> {
+            Ok(())
+        }
     }
 
     #[async_trait]
@@ -781,6 +841,16 @@ mod tests {
         }
 
         async fn delete_subscription(&self, _id: &FeedIdentifier) -> DomainResult<()> {
+            unreachable!("sync_account must not manage provider subscriptions")
+        }
+
+        async fn edit_subscription(
+            &self,
+            _remote_id: &str,
+            _title: Option<&str>,
+            _add_folder_label: Option<&str>,
+            _remove_folder_label: Option<&str>,
+        ) -> DomainResult<()> {
             unreachable!("sync_account must not manage provider subscriptions")
         }
     }
