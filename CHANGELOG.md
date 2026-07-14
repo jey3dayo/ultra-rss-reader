@@ -4,6 +4,22 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.53.34] - 2026-07-14
+
+### Features
+
+- FreshRSS アカウントのフィード rename・フォルダ移動をサーバへ push し、次回 sync でローカル編集が上書き消失する問題を解消した（`FeedProvider::edit_subscription` 追加、push-before-local-write）。
+
+### Bug Fixes
+
+- publish 日時を持たないフィードエントリの `published_at` が再 sync のたびに現在時刻で上書きされ、記事がリスト先頭へ跳ね続ける問題を修正した（既存のより古い日時を保持）。
+
+### Maintenance
+
+- sync 終端の per-feed 未読数再計算ループをアカウント一括 UPDATE に置き換え、数百 feed 環境での sync 終端 DB 負荷を削減した。
+- 既読/スター切り替えの query invalidation を read 軸 / star 軸に分割し、スター操作による未読カウント・フィードツリーの不要な refetch を削減した。
+- CI に依存脆弱性監査ゲート（`cargo audit` + `pnpm audit --prod`）と advisory policy を追加した。
+
 ## [0.53.33] - 2026-07-14
 
 ### Bug Fixes
