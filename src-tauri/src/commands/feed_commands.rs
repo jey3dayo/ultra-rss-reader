@@ -322,12 +322,40 @@ async fn authenticated_freshrss_provider(account: &Account) -> Result<GReaderPro
 }
 
 #[tauri::command]
-pub fn rename_feed(
+pub async fn rename_feed(
     state: State<'_, AppState>,
     feed_id: String,
     title: String,
 ) -> Result<(), AppError> {
-    let db = lock_db(&state.db)?;
+    rename_feed_with_remote_sync_boundary(&state.db, feed_id, title).await
+}
+
+async fn rename_feed_with_remote_sync_boundary(
+    db: &Mutex<DbManager>,
+    feed_id: String,
+    title: String,
+) -> Result<(), AppError> {
+    let title = validate_feed_title(&title)?;
+    let feed_id_typed = FeedId(feed_id.clone());
+    let feed = {
+        let db = lock_db(db)?;
+        load_feed_for_delete(&db, &feed_id_typed)?
+    };
+    let account = {
+        let db = lock_db(db)?;
+        load_delete_feed_account(&db, &feed.account_id)?
+    };
+
+    if matches!(account.kind, ProviderKind::FreshRss) {
+        if let Some(remote_id) = feed.remote_id.clone() {
+            let provider = authenticated_freshrss_provider(&account).await?;
+            provider
+                .edit_subscription(&remote_id, Some(&title), None, None)
+                .await?;
+        }
+    }
+
+    let db = lock_db(db)?;
     rename_feed_in_db(&db, feed_id, title)
 }
 
@@ -339,13 +367,87 @@ fn rename_feed_in_db(db: &DbManager, feed_id: String, title: String) -> Result<(
 }
 
 #[tauri::command]
-pub fn update_feed_folder(
+pub async fn update_feed_folder(
     state: State<'_, AppState>,
     feed_id: String,
     folder_id: Option<String>,
 ) -> Result<(), AppError> {
-    let db = lock_db(&state.db)?;
+    update_feed_folder_with_remote_sync_boundary(&state.db, feed_id, folder_id).await
+}
+
+async fn update_feed_folder_with_remote_sync_boundary(
+    db: &Mutex<DbManager>,
+    feed_id: String,
+    folder_id: Option<String>,
+) -> Result<(), AppError> {
+    let feed_id_typed = FeedId(feed_id.clone());
+    let feed = {
+        let db = lock_db(db)?;
+        load_feed_for_delete(&db, &feed_id_typed)?
+    };
+    let account = {
+        let db = lock_db(db)?;
+        load_delete_feed_account(&db, &feed.account_id)?
+    };
+
+    if matches!(account.kind, ProviderKind::FreshRss) {
+        if let Some(remote_id) = feed.remote_id.clone() {
+            let (add_label, remove_label) = {
+                let db = lock_db(db)?;
+                resolve_folder_edit_labels(&db, &feed, folder_id.as_deref())?
+            };
+            if add_label.is_some() || remove_label.is_some() {
+                let provider = authenticated_freshrss_provider(&account).await?;
+                provider
+                    .edit_subscription(
+                        &remote_id,
+                        None,
+                        add_label.as_deref(),
+                        remove_label.as_deref(),
+                    )
+                    .await?;
+            }
+        }
+    }
+
+    let db = lock_db(db)?;
     update_feed_folder_in_db(&db, feed_id, folder_id)
+}
+
+fn lookup_folder_name(db: &DbManager, folder_id: &str) -> Result<String, AppError> {
+    db.reader()
+        .query_row(
+            "SELECT name FROM folders WHERE id = ?1",
+            params![folder_id],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()
+        .map_err(|error| AppError::UserVisible {
+            message: format!("Failed to resolve folder name: {error}"),
+        })?
+        .ok_or_else(|| AppError::UserVisible {
+            message: "Folder not found".to_string(),
+        })
+}
+
+fn resolve_folder_edit_labels(
+    db: &DbManager,
+    feed: &Feed,
+    new_folder_id: Option<&str>,
+) -> Result<(Option<String>, Option<String>), AppError> {
+    validate_update_feed_folder_target(db.reader(), &feed.id.0, new_folder_id)?;
+
+    let add_label = match new_folder_id {
+        Some(folder_id) => Some(lookup_folder_name(db, folder_id)?),
+        None => None,
+    };
+    let remove_label = match feed.folder_id.as_ref() {
+        Some(old_folder_id) if Some(old_folder_id.0.as_str()) != new_folder_id => {
+            Some(lookup_folder_name(db, &old_folder_id.0)?)
+        }
+        _ => None,
+    };
+    Ok((add_label, remove_label))
 }
 
 fn update_feed_folder_in_db(
@@ -825,8 +927,10 @@ mod tests {
         add_local_feed_with_db, add_local_feed_with_provider, classify_update_feed_folder_error,
         create_folder_in_db, delete_feed_in_db, delete_feed_with_provider_sync_boundary,
         delete_feed_with_remote_sync_boundary, delete_feed_with_sync_boundary, lock_db,
-        recalculate_feed_unread_count_in_db, rename_feed_in_db, update_feed_display_settings_in_db,
-        update_feed_folder_in_db, validate_add_freshrss_feed_preflight_in_db,
+        recalculate_feed_unread_count_in_db, rename_feed_in_db,
+        rename_feed_with_remote_sync_boundary, update_feed_display_settings_in_db,
+        update_feed_folder_in_db, update_feed_folder_with_remote_sync_boundary,
+        validate_add_freshrss_feed_preflight_in_db,
         validate_add_freshrss_subscription_unique_in_db, validate_add_local_feed_account_in_db,
         validate_add_local_feed_duplicate_url_in_db, UPDATE_FEED_FOLDER_TARGET_VALIDATION_MESSAGE,
     };
@@ -1394,6 +1498,115 @@ mod tests {
         ));
     }
 
+    #[tokio::test]
+    async fn rename_feed_command_pushes_title_to_freshrss_before_local_write() {
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(200)
+            .with_body("Auth=tok\n")
+            .create_async()
+            .await;
+        let edit_mock = server
+            .mock("POST", "/api/greader.php/reader/api/0/subscription/edit")
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .match_body(mockito::Matcher::AllOf(vec![
+                mockito::Matcher::Regex("(^|&)ac=edit(&|$)".to_string()),
+                mockito::Matcher::Regex(
+                    "(^|&)s=feed%2Fhttp%3A%2F%2Fexample.com%2Frss(&|$)".to_string(),
+                ),
+                mockito::Matcher::Regex("(^|&)t=Renamed%20Feed(&|$)".to_string()),
+            ]))
+            .with_status(200)
+            .create_async()
+            .await;
+
+        let db = Mutex::new(test_db());
+        let account_id = {
+            let guard = db.lock().unwrap();
+            insert_freshrss_account(&guard, &server.url())
+        };
+        let feed_id = {
+            let guard = db.lock().unwrap();
+            insert_remote_test_feed(&guard, &account_id, "feed/http://example.com/rss")
+        };
+        let _credentials = configure_dev_credentials(&account_id).await;
+
+        rename_feed_with_remote_sync_boundary(&db, feed_id.0.clone(), "Renamed Feed".to_string())
+            .await
+            .expect("FreshRSS rename should push the new title before the local write");
+
+        edit_mock.assert_async().await;
+        let guard = db.lock().unwrap();
+        let feed_repo = SqliteFeedRepository::new(guard.reader());
+        let feed = feed_repo.find_by_id(&feed_id).unwrap().unwrap();
+        assert_eq!(feed.title, "Renamed Feed");
+    }
+
+    #[tokio::test]
+    async fn rename_feed_command_keeps_local_title_when_remote_push_fails() {
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(200)
+            .with_body("Auth=tok\n")
+            .create_async()
+            .await;
+        server
+            .mock("POST", "/api/greader.php/reader/api/0/subscription/edit")
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_status(500)
+            .create_async()
+            .await;
+
+        let db = Mutex::new(test_db());
+        let account_id = {
+            let guard = db.lock().unwrap();
+            insert_freshrss_account(&guard, &server.url())
+        };
+        let feed_id = {
+            let guard = db.lock().unwrap();
+            insert_remote_test_feed(&guard, &account_id, "feed/http://example.com/rss")
+        };
+        let _credentials = configure_dev_credentials(&account_id).await;
+
+        let error = rename_feed_with_remote_sync_boundary(
+            &db,
+            feed_id.0.clone(),
+            "Renamed Feed".to_string(),
+        )
+        .await
+        .expect_err("a failed remote push should not update the local title");
+
+        assert!(!matches!(error, AppError::UserVisible { message } if message == "Renamed Feed"));
+        let guard = db.lock().unwrap();
+        let feed_repo = SqliteFeedRepository::new(guard.reader());
+        let feed = feed_repo.find_by_id(&feed_id).unwrap().unwrap();
+        assert_eq!(feed.title, "Feed");
+    }
+
+    #[tokio::test]
+    async fn rename_feed_command_skips_remote_push_for_local_account() {
+        let db = Mutex::new(test_db());
+        let account_id = {
+            let guard = db.lock().unwrap();
+            insert_test_account(&guard, "Primary")
+        };
+        let feed_id = {
+            let guard = db.lock().unwrap();
+            insert_test_feed(&guard, &account_id)
+        };
+
+        rename_feed_with_remote_sync_boundary(&db, feed_id.0.clone(), "Renamed Feed".to_string())
+            .await
+            .expect("local account rename should not require a remote provider");
+
+        let guard = db.lock().unwrap();
+        let feed_repo = SqliteFeedRepository::new(guard.reader());
+        let feed = feed_repo.find_by_id(&feed_id).unwrap().unwrap();
+        assert_eq!(feed.title, "Renamed Feed");
+    }
+
     #[test]
     fn update_feed_folder_command_rejects_missing_feed() {
         let db = test_db();
@@ -1481,6 +1694,171 @@ mod tests {
             AppError::UserVisible { message }
                 if message == "Folder belongs to another account"
         ));
+    }
+
+    #[tokio::test]
+    async fn update_feed_folder_command_pushes_folder_move_to_freshrss_before_local_write() {
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(200)
+            .with_body("Auth=tok\n")
+            .create_async()
+            .await;
+        let edit_mock = server
+            .mock("POST", "/api/greader.php/reader/api/0/subscription/edit")
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .match_body(mockito::Matcher::AllOf(vec![
+                mockito::Matcher::Regex("(^|&)ac=edit(&|$)".to_string()),
+                mockito::Matcher::Regex(
+                    "(^|&)s=feed%2Fhttp%3A%2F%2Fexample.com%2Frss(&|$)".to_string(),
+                ),
+                mockito::Matcher::Regex("(^|&)a=user%2F-%2Flabel%2FNew(&|$)".to_string()),
+                mockito::Matcher::Regex("(^|&)r=user%2F-%2Flabel%2FOld(&|$)".to_string()),
+            ]))
+            .with_status(200)
+            .create_async()
+            .await;
+
+        let db = Mutex::new(test_db());
+        let account_id = {
+            let guard = db.lock().unwrap();
+            insert_freshrss_account(&guard, &server.url())
+        };
+        let feed_id = {
+            let guard = db.lock().unwrap();
+            insert_remote_test_feed(&guard, &account_id, "feed/http://example.com/rss")
+        };
+        let old_folder_id = FolderId::new();
+        let new_folder_id = FolderId::new();
+        {
+            let guard = db.lock().unwrap();
+            guard
+                .writer()
+                .execute(
+                    "INSERT INTO folders (id, account_id, name, sort_order) VALUES (?1, ?2, ?3, ?4)",
+                    params![old_folder_id.0, account_id.0, "Old", 0],
+                )
+                .unwrap();
+            guard
+                .writer()
+                .execute(
+                    "INSERT INTO folders (id, account_id, name, sort_order) VALUES (?1, ?2, ?3, ?4)",
+                    params![new_folder_id.0, account_id.0, "New", 1],
+                )
+                .unwrap();
+            guard
+                .writer()
+                .execute(
+                    "UPDATE feeds SET folder_id = ?1 WHERE id = ?2",
+                    params![old_folder_id.0, feed_id.0],
+                )
+                .unwrap();
+        }
+        let _credentials = configure_dev_credentials(&account_id).await;
+
+        update_feed_folder_with_remote_sync_boundary(
+            &db,
+            feed_id.0.clone(),
+            Some(new_folder_id.0.clone()),
+        )
+        .await
+        .expect("FreshRSS folder move should push the label change before the local write");
+
+        edit_mock.assert_async().await;
+        let guard = db.lock().unwrap();
+        let feed_repo = SqliteFeedRepository::new(guard.reader());
+        let feed = feed_repo.find_by_id(&feed_id).unwrap().unwrap();
+        assert_eq!(feed.folder_id, Some(new_folder_id));
+    }
+
+    #[tokio::test]
+    async fn update_feed_folder_command_keeps_local_folder_when_remote_push_fails() {
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(200)
+            .with_body("Auth=tok\n")
+            .create_async()
+            .await;
+        server
+            .mock("POST", "/api/greader.php/reader/api/0/subscription/edit")
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_status(500)
+            .create_async()
+            .await;
+
+        let db = Mutex::new(test_db());
+        let account_id = {
+            let guard = db.lock().unwrap();
+            insert_freshrss_account(&guard, &server.url())
+        };
+        let feed_id = {
+            let guard = db.lock().unwrap();
+            insert_remote_test_feed(&guard, &account_id, "feed/http://example.com/rss")
+        };
+        let new_folder_id = FolderId::new();
+        {
+            let guard = db.lock().unwrap();
+            guard
+                .writer()
+                .execute(
+                    "INSERT INTO folders (id, account_id, name, sort_order) VALUES (?1, ?2, ?3, ?4)",
+                    params![new_folder_id.0, account_id.0, "New", 0],
+                )
+                .unwrap();
+        }
+        let _credentials = configure_dev_credentials(&account_id).await;
+
+        update_feed_folder_with_remote_sync_boundary(
+            &db,
+            feed_id.0.clone(),
+            Some(new_folder_id.0.clone()),
+        )
+        .await
+        .expect_err("a failed remote push should not update the local folder assignment");
+
+        let guard = db.lock().unwrap();
+        let feed_repo = SqliteFeedRepository::new(guard.reader());
+        let feed = feed_repo.find_by_id(&feed_id).unwrap().unwrap();
+        assert_eq!(feed.folder_id, None);
+    }
+
+    #[tokio::test]
+    async fn update_feed_folder_command_skips_remote_push_for_local_account() {
+        let db = Mutex::new(test_db());
+        let account_id = {
+            let guard = db.lock().unwrap();
+            insert_test_account(&guard, "Primary")
+        };
+        let feed_id = {
+            let guard = db.lock().unwrap();
+            insert_test_feed(&guard, &account_id)
+        };
+        let folder_id = FolderId::new();
+        {
+            let guard = db.lock().unwrap();
+            guard
+                .writer()
+                .execute(
+                    "INSERT INTO folders (id, account_id, name, sort_order) VALUES (?1, ?2, ?3, ?4)",
+                    params![folder_id.0, account_id.0, "Folder", 0],
+                )
+                .unwrap();
+        }
+
+        update_feed_folder_with_remote_sync_boundary(
+            &db,
+            feed_id.0.clone(),
+            Some(folder_id.0.clone()),
+        )
+        .await
+        .expect("local account folder move should not require a remote provider");
+
+        let guard = db.lock().unwrap();
+        let feed_repo = SqliteFeedRepository::new(guard.reader());
+        let feed = feed_repo.find_by_id(&feed_id).unwrap().unwrap();
+        assert_eq!(feed.folder_id, Some(folder_id));
     }
 
     #[test]
