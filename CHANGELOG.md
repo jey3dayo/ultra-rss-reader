@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.53.35] - 2026-07-15
+
+### Maintenance
+
+- FreshRSS 実サーバに対する `edit_subscription`（rename・フォルダ add/remove）の live 検証テストを追加し、spike の Open Question 1 を解消した。
+
 ## [0.53.34] - 2026-07-14
 
 ### Features
