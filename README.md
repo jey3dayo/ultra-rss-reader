@@ -13,7 +13,7 @@ It supports local feeds and FreshRSS, stores data in SQLite, and keeps credentia
 - Reader and Web Preview — Three-pane reading flow plus embedded publisher pages with dedicated browser controls
 - Full-text search — SQLite FTS5 across all articles
 - Sync — Background periodic sync, sync-on-wake, manual trigger, and bidirectional pending mutations (read status, stars)
-- Folder hierarchy — Organize feeds into nested folders
+- Folders — Organize feeds into folders
 - Organization workflows — Command palette feed landing, subscriptions index workspace with subscription review, tags, and mute keywords
 - OPML — Import and export feed lists
 - Bionic reading — Bold-emphasis rendering for faster reading
