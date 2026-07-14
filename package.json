@@ -3,10 +3,10 @@
   "private": true,
   "version": "0.53.32",
   "type": "module",
-  "packageManager": "pnpm@11.13.0",
+  "packageManager": "pnpm@11.10.0",
   "engines": {
     "node": "26.4.0",
-    "pnpm": "11.13.0"
+    "pnpm": "11.10.0"
   },
   "scripts": {
     "dev": "pnpm exec vite",
@@ -97,8 +97,8 @@
     "knip": "6.26.0",
     "lefthook": "2.1.10",
     "markdownlint-cli2": "^0.23.0",
-    "portless": "^0.15.2",
-    "react-doctor": "0.7.7",
+    "portless": "^0.15.1",
+    "react-doctor": "0.7.6",
     "storybook": "^10.5.0",
     "tailwindcss": "^4.3.2",
     "typescript": "npm:@typescript/typescript6@^6.0.2",

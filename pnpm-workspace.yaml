@@ -7,8 +7,8 @@ minimumReleaseAgeExclude:
   - '@tanstack/query-core@5.101.0 || 5.101.1 || 5.101.2'
   - '@tanstack/react-query@5.101.0 || 5.101.1 || 5.101.2'
   - date-fns@4.4.0
-  - oxlint-plugin-react-doctor@0.5.8 || 0.6.3 || 0.7.3 || 0.7.7
-  - react-doctor@0.5.8 || 0.6.3 || 0.7.3 || 0.7.7
+  - oxlint-plugin-react-doctor@0.5.8 || 0.6.3 || 0.7.3
+  - react-doctor@0.5.8 || 0.6.3 || 0.7.3
   - '@types/react@19.2.17'
   - react-dom@19.2.7
   - react@19.2.7
@@ -24,8 +24,8 @@ minimumReleaseAgeExclude:
   - vite@8.1.0 || 8.1.4
   - '@types/node@26.0.1'
   - knip@6.20.0 || 6.23.0 || 6.25.0
-  - portless@0.15.0 || 0.15.2
-  - deslop-js@0.6.3 || 0.7.3 || 0.7.7
+  - portless@0.15.0
+  - deslop-js@0.6.3 || 0.7.3
   - react-i18next@17.0.9
 supportedArchitectures:
   os:
