@@ -28,6 +28,7 @@
     ".kiro",
     ".plans",
     "plans",
+    "docs/superpowers",
     "apm_modules",
     ".agents/skills",
     ".claude/skills",
