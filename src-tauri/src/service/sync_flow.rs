@@ -162,7 +162,7 @@ pub async fn sync_account(
                     content_raw: entry.content.clone(),
                     content_sanitized: sanitizer::sanitize_html(&entry.content),
                     sanitizer_version: sanitizer::SANITIZER_VERSION,
-                    summary: entry.summary.clone(),
+                    summary: entry.summary.as_deref().map(sanitizer::sanitize_html),
                     url: entry.url.clone(),
                     author: entry.author.clone(),
                     published_at: entry.published_at.unwrap_or_else(Utc::now),
@@ -1588,6 +1588,80 @@ mod tests {
             .unwrap()
             .unwrap();
         assert_eq!(saved_feed.unread_count, 1);
+    }
+
+    #[tokio::test]
+    async fn article_summary_is_sanitized_at_ingest() {
+        let db = DbManager::new_in_memory().unwrap();
+        let account = test_account();
+        let account_repo = SqliteAccountRepository::new(db.writer());
+        account_repo.save(&account).unwrap();
+
+        let remote_id = "feed/https://example.com/summary.xml".to_string();
+        let provider = RemoteSubscriptionEntryProvider {
+            subscription: RemoteSubscription {
+                remote_id: remote_id.clone(),
+                title: "Summary Remote".to_string(),
+                url: "https://example.com/summary.xml".to_string(),
+                site_url: "https://example.com".to_string(),
+                folder_remote_id: None,
+                icon_url: None,
+            },
+            entry: RemoteEntry {
+                id: Some("remote-entry-summary".to_string()),
+                source_feed_id: FeedIdentifier::Remote {
+                    remote_id: remote_id.clone(),
+                },
+                title: "Entry with dangerous summary".to_string(),
+                content: "<p>Body</p>".to_string(),
+                summary: Some(
+                    r#"<script>alert(1)</script><p onclick="evil()">Lead</p>"#.to_string(),
+                ),
+                url: Some("https://example.com/summary-entry".to_string()),
+                published_at: Some(Utc::now()),
+                updated_at: None,
+                thumbnail: None,
+                author: None,
+                is_read: Some(false),
+                is_starred: Some(false),
+            },
+        };
+        let article_repo = SqliteArticleRepository::new(db.writer());
+        let feed_repo = SqliteFeedRepository::new(db.writer());
+        let folder_repo = SqliteFolderRepository::new(db.writer());
+        let pending_repo = SqlitePendingMutationRepository::new(db.writer());
+
+        sync_account(
+            &account.id,
+            &provider,
+            &article_repo,
+            &feed_repo,
+            &folder_repo,
+            &pending_repo,
+        )
+        .await
+        .unwrap();
+
+        let saved_feed = feed_repo
+            .find_by_remote_id(&account.id, &remote_id)
+            .unwrap()
+            .unwrap();
+        let saved = article_repo
+            .find_by_feed(
+                &saved_feed.id,
+                &crate::repository::article::Pagination::default(),
+            )
+            .unwrap()
+            .into_iter()
+            .find(|article| article.remote_id.as_deref() == Some("remote-entry-summary"))
+            .unwrap();
+
+        let summary = saved
+            .summary
+            .expect("sanitized summary should still carry the visible text");
+        assert!(!summary.contains("<script"));
+        assert!(!summary.contains("onclick"));
+        assert!(summary.contains("Lead"));
     }
 
     #[tokio::test]

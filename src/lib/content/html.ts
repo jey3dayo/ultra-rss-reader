@@ -282,7 +282,15 @@ function isSafeReaderContentLinkUrl(value: string): boolean {
     return false;
   }
 
-  if (!normalizedValue.startsWith("//") && !/^[a-z][a-z\d+.-]*:/i.test(normalizedValue)) {
+  // Browsers strip ASCII tab/newline/carriage-return from a URL before
+  // parsing it, so a scheme like "java\tscript:" is interpreted as an
+  // absolute "javascript:" URL rather than a relative path. Strip the same
+  // control characters before the relative/absolute scheme check so a value
+  // like that is classified as absolute and rejected below instead of being
+  // misread as relative and left in place.
+  const schemeCheckValue = normalizedValue.replace(/[\t\n\r]/g, "");
+
+  if (!normalizedValue.startsWith("//") && !/^[a-z][a-z\d+.-]*:/i.test(schemeCheckValue)) {
     return true;
   }
 
@@ -351,6 +359,15 @@ export function applyReaderContentPrivacyPolicy(html: string): string {
     }
     anchor.setAttribute("rel", "noopener noreferrer");
     redactTitleAttribute(anchor, REDACTED_URL_TITLE);
+  });
+  // Inline `style` attributes can carry `url(...)` references (e.g.
+  // `background-image: url(http://tracker.example/pixel)`) that would load
+  // an external resource the same way an unfiltered `img[src]` would. The
+  // reader only needs sanitized article text to stay readable, so drop the
+  // whole attribute here instead of trying to parse individual style
+  // declarations.
+  doc.body.querySelectorAll("[style]").forEach((element) => {
+    element.removeAttribute("style");
   });
 
   return doc.body.innerHTML;

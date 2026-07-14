@@ -233,6 +233,44 @@ describe("applyReaderContentPrivacyPolicy", () => {
       }
     }
   });
+
+  it("removes an anchor href whose scheme is disguised with a control character (tab-split javascript:)", () => {
+    const normalized = applyReaderContentPrivacyPolicy('<a href="java\tscript:alert(1)">Click</a>');
+
+    expect(normalized).not.toContain("href=");
+    expect(normalized).not.toContain("javascript:");
+    expect(normalized).toContain('rel="noopener noreferrer"');
+  });
+
+  it("keeps a safe relative link and a safe absolute link unaffected by the control-character scheme check (regression)", () => {
+    const normalized = applyReaderContentPrivacyPolicy(
+      '<a href="../relative-article">Relative</a><a href="https://publisher.example.com/read">Absolute</a>',
+    );
+
+    expect(normalized).toContain('href="../relative-article"');
+    expect(normalized).toContain('href="https://publisher.example.com/read"');
+  });
+
+  it("removes the style attribute so an inline background-image url() cannot reach an external tracker", () => {
+    const normalized = applyReaderContentPrivacyPolicy(
+      '<div style="background-image:url(http://tracker.example/pixel)">Body</div>',
+    );
+
+    expect(normalized).not.toContain("style=");
+    expect(normalized).not.toContain("tracker.example");
+    expect(normalized).toContain("Body");
+  });
+
+  it("keeps existing img/srcset privacy rewrites unaffected by the new style-attribute removal (regression)", () => {
+    const normalized = applyReaderContentPrivacyPolicy(
+      '<picture><source srcset="https://cdn.example.com/hero.webp 1x"><img src="https://cdn.example.com/hero.jpg" alt="Hero" style="width:100%"></picture>',
+    );
+
+    expect(normalized).toContain('srcset="https://cdn.example.com/hero.webp 1x"');
+    expect(normalized).toContain('src="https://cdn.example.com/hero.jpg"');
+    expect(normalized).toContain('referrerpolicy="no-referrer"');
+    expect(normalized).not.toContain("style=");
+  });
 });
 
 describe("normalizeReaderContentImageUrl", () => {
