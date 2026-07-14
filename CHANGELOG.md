@@ -4,6 +4,26 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.53.33] - 2026-07-14
+
+### Bug Fixes
+
+- アプリ内ブラウザの埋め込みプレビュー判定で、feed 由来 URL が DNS 解決を経ずに private/loopback ホストへ到達できる SSRF を修正した。
+- 上記の DNS 解決結果をピン留めし、検証後に別アドレスへ再解決される DNS リバインドの隙も塞いだ。
+- 記事の概要文（summary）を本文と同様に Rust 側でサニタイズし、境界を越える前に無害化されるようにした。
+- reader のリンクフィルタが制御文字を含む scheme（例: タブ入り `javascript:`）を誤って安全と判定していた問題と、インライン `style` の `url()` 経由のトラッキングを防ぐ処理を追加した。
+
+### Documentation
+
+- FreshRSS アカウントのフィード整理（rename・フォルダ移動）をサーバへ反映するための設計調査ドキュメントを追加した。
+- `quality-policy.md` の Node バージョン記載を実際の値（26）に修正した。
+- README のフォルダ機能説明を実際のデータモデル（フラット）に合わせて修正した。
+
+### Maintenance
+
+- rules / skills / docs に markdownlint の自動整形を適用した。
+- `docs/superpowers` のプランドキュメントを markdownlint の対象から除外した。
+
 ## [0.53.32] - 2026-07-14
 
 ### Bug Fixes
