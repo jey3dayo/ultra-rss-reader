@@ -570,6 +570,16 @@ impl FeedProvider for LocalProvider {
     async fn delete_subscription(&self, _: &FeedIdentifier) -> DomainResult<()> {
         Ok(())
     }
+
+    async fn edit_subscription(
+        &self,
+        _remote_id: &str,
+        _title: Option<&str>,
+        _add_folder_label: Option<&str>,
+        _remove_folder_label: Option<&str>,
+    ) -> DomainResult<()> {
+        Ok(())
+    }
 }
 
 #[cfg(test)]

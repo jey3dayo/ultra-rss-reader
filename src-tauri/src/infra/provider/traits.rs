@@ -29,4 +29,11 @@ pub trait FeedProvider: Send + Sync {
         folder: Option<&str>,
     ) -> DomainResult<RemoteSubscription>;
     async fn delete_subscription(&self, id: &FeedIdentifier) -> DomainResult<()>;
+    async fn edit_subscription(
+        &self,
+        remote_id: &str,
+        title: Option<&str>,
+        add_folder_label: Option<&str>,
+        remove_folder_label: Option<&str>,
+    ) -> DomainResult<()>;
 }

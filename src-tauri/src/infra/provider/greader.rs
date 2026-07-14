@@ -949,6 +949,51 @@ impl FeedProvider for GReaderProvider {
 
         Ok(())
     }
+
+    async fn edit_subscription(
+        &self,
+        remote_id: &str,
+        title: Option<&str>,
+        add_folder_label: Option<&str>,
+        remove_folder_label: Option<&str>,
+    ) -> DomainResult<()> {
+        if title.is_none() && add_folder_label.is_none() && remove_folder_label.is_none() {
+            return Ok(());
+        }
+
+        let url = self.api_url("/reader/api/0/subscription/edit");
+        let auth = self.auth_header()?;
+        let mut body = format!("ac=edit&s={}", urlencoded(remote_id));
+        if let Some(title) = title {
+            body.push_str(&format!("&t={}", urlencoded(title)));
+        }
+        if let Some(folder_name) = add_folder_label {
+            body.push_str(&format!(
+                "&a={}{}",
+                urlencoded(LABEL_PREFIX),
+                urlencoded(folder_name)
+            ));
+        }
+        if let Some(folder_name) = remove_folder_label {
+            body.push_str(&format!(
+                "&r={}{}",
+                urlencoded(LABEL_PREFIX),
+                urlencoded(folder_name)
+            ));
+        }
+
+        self.http_client
+            .post(&url)
+            .header("Authorization", auth)
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .body(body)
+            .send()
+            .await
+            .map_err(DomainError::from_provider_http_error)
+            .and_then(Self::ensure_success_response)?;
+
+        Ok(())
+    }
 }
 
 #[derive(Deserialize)]
@@ -3655,5 +3700,127 @@ mod tests {
             normalize_item_id("0"),
             "tag:google.com,2005:reader/item/0000000000000000"
         );
+    }
+
+    #[tokio::test]
+    async fn edit_subscription_sends_rename_only_request() {
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(200)
+            .with_body("Auth=tok\n")
+            .create_async()
+            .await;
+
+        let edit_mock = server
+            .mock("POST", "/api/greader.php/reader/api/0/subscription/edit")
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .match_body(mockito::Matcher::AllOf(vec![
+                mockito::Matcher::Regex("(^|&)ac=edit(&|$)".to_string()),
+                mockito::Matcher::Regex(
+                    "(^|&)s=feed%2Fhttp%3A%2F%2Fexample.com%2Frss(&|$)".to_string(),
+                ),
+                mockito::Matcher::Regex("(^|&)t=New%20Title(&|$)".to_string()),
+            ]))
+            .with_status(200)
+            .create_async()
+            .await;
+
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
+        provider
+            .authenticate(&Credentials {
+                password: Some("p".into()),
+                token: Some("u".into()),
+            })
+            .await
+            .unwrap();
+
+        provider
+            .edit_subscription("feed/http://example.com/rss", Some("New Title"), None, None)
+            .await
+            .unwrap();
+
+        edit_mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn edit_subscription_sends_folder_move_with_add_and_remove_labels() {
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(200)
+            .with_body("Auth=tok\n")
+            .create_async()
+            .await;
+
+        let edit_mock = server
+            .mock("POST", "/api/greader.php/reader/api/0/subscription/edit")
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .match_body(mockito::Matcher::AllOf(vec![
+                mockito::Matcher::Regex("(^|&)ac=edit(&|$)".to_string()),
+                mockito::Matcher::Regex(
+                    "(^|&)s=feed%2Fhttp%3A%2F%2Fexample.com%2Frss(&|$)".to_string(),
+                ),
+                mockito::Matcher::Regex("(^|&)a=user%2F-%2Flabel%2FNew(&|$)".to_string()),
+                mockito::Matcher::Regex("(^|&)r=user%2F-%2Flabel%2FOld(&|$)".to_string()),
+            ]))
+            .with_status(200)
+            .create_async()
+            .await;
+
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
+        provider
+            .authenticate(&Credentials {
+                password: Some("p".into()),
+                token: Some("u".into()),
+            })
+            .await
+            .unwrap();
+
+        provider
+            .edit_subscription(
+                "feed/http://example.com/rss",
+                None,
+                Some("New"),
+                Some("Old"),
+            )
+            .await
+            .unwrap();
+
+        edit_mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn edit_subscription_maps_non_success_status_to_domain_error() {
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(200)
+            .with_body("Auth=tok\n")
+            .create_async()
+            .await;
+
+        server
+            .mock("POST", "/api/greader.php/reader/api/0/subscription/edit")
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_status(500)
+            .create_async()
+            .await;
+
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
+        provider
+            .authenticate(&Credentials {
+                password: Some("p".into()),
+                token: Some("u".into()),
+            })
+            .await
+            .unwrap();
+
+        let error = provider
+            .edit_subscription("feed/http://example.com/rss", Some("New Title"), None, None)
+            .await
+            .expect_err("non-2xx subscription/edit response should map to a domain error");
+
+        assert!(!matches!(error, DomainError::Validation(_)));
     }
 }
