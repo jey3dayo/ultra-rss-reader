@@ -3346,6 +3346,213 @@ mod tests {
         println!("Starred IDs: {}", state.starred_ids.len());
     }
 
+    #[tokio::test]
+    #[ignore]
+    async fn freshrss_live_edit_subscription() {
+        let Some((provider, _)) = live_provider("freshrss_live_edit_subscription").await else {
+            return;
+        };
+
+        let subs = provider.get_subscriptions().await.unwrap();
+        let Some(original) = subs.first() else {
+            println!(
+                "No subscriptions found on live server; skipping edit_subscription verification"
+            );
+            return;
+        };
+
+        let remote_id = original.remote_id.clone();
+        let original_title = original.title.clone();
+        let original_folder_remote_id = original.folder_remote_id.clone();
+
+        let folders = provider.get_folders().await.unwrap();
+        let original_folder_name = original_folder_remote_id.as_ref().and_then(|folder_id| {
+            folders
+                .iter()
+                .find(|f| &f.remote_id == folder_id)
+                .map(|f| f.name.clone())
+        });
+
+        // Pick an existing folder distinct from the subscription's current folder
+        // (if any) to exercise a real add/remove round trip.
+        let target_folder_name = folders
+            .iter()
+            .map(|f| f.name.clone())
+            .find(|name| Some(name.clone()) != original_folder_name);
+
+        let new_title = format!("{original_title} [live-test]");
+
+        // --- Rename verification ---
+        let rename_result: Result<(), String> = async {
+            provider
+                .edit_subscription(&remote_id, Some(&new_title), None, None)
+                .await
+                .map_err(|e| format!("edit_subscription rename call failed: {e}"))?;
+
+            let subs_after = provider
+                .get_subscriptions()
+                .await
+                .map_err(|e| format!("get_subscriptions after rename failed: {e}"))?;
+            let renamed = subs_after
+                .iter()
+                .find(|s| s.remote_id == remote_id)
+                .ok_or_else(|| "subscription disappeared after rename".to_string())?;
+            if renamed.title != new_title {
+                return Err(format!(
+                    "expected title '{new_title}' after rename, server reports '{}'",
+                    renamed.title
+                ));
+            }
+            println!("Rename verified: '{original_title}' -> '{}'", renamed.title);
+            Ok(())
+        }
+        .await;
+
+        // Restore the original title regardless of the rename outcome above, so a
+        // failed assertion never leaves the user's real server renamed.
+        let restore_title_result = provider
+            .edit_subscription(&remote_id, Some(&original_title), None, None)
+            .await
+            .map_err(|e| format!("restore title call failed: {e}"));
+
+        let restore_verify_result: Result<(), String> = async {
+            let subs_after = provider
+                .get_subscriptions()
+                .await
+                .map_err(|e| format!("get_subscriptions after restore failed: {e}"))?;
+            let restored = subs_after
+                .iter()
+                .find(|s| s.remote_id == remote_id)
+                .ok_or_else(|| "subscription disappeared after restore".to_string())?;
+            if restored.title != original_title {
+                return Err(format!(
+                    "restore failed: expected title '{original_title}', server reports '{}'",
+                    restored.title
+                ));
+            }
+            println!("Restore verified: title back to '{original_title}'");
+            Ok(())
+        }
+        .await;
+
+        // --- Folder add/remove round trip (only when an alternate folder exists) ---
+        let folder_result: Result<(), String> = if let Some(target_folder_name) =
+            target_folder_name.clone()
+        {
+            async {
+                    provider
+                        .edit_subscription(&remote_id, None, Some(&target_folder_name), None)
+                        .await
+                        .map_err(|e| format!("add folder label call failed: {e}"))?;
+
+                    let subs_after = provider
+                        .get_subscriptions()
+                        .await
+                        .map_err(|e| format!("get_subscriptions after folder add failed: {e}"))?;
+                    let moved = subs_after
+                        .iter()
+                        .find(|s| s.remote_id == remote_id)
+                        .ok_or_else(|| "subscription disappeared after folder add".to_string())?;
+
+                    let folders_after = provider
+                        .get_folders()
+                        .await
+                        .map_err(|e| format!("get_folders after folder add failed: {e}"))?;
+                    let moved_folder_name = moved
+                        .folder_remote_id
+                        .as_ref()
+                        .and_then(|fid| folders_after.iter().find(|f| &f.remote_id == fid))
+                        .map(|f| f.name.clone());
+
+                    if moved_folder_name.as_deref() != Some(target_folder_name.as_str()) {
+                        return Err(format!(
+                            "expected folder '{target_folder_name}' after add, server reports {moved_folder_name:?}"
+                        ));
+                    }
+                    println!("Folder add verified: subscription now in '{target_folder_name}'");
+                    Ok(())
+                }
+                .await
+        } else {
+            println!(
+                    "No alternate folder available on live server; skipping folder add/remove verification"
+                );
+            Ok(())
+        };
+
+        // Restore the folder state regardless of the folder add outcome above.
+        let restore_folder_result: Result<(), String> = if let Some(target_folder_name) =
+            target_folder_name
+        {
+            async {
+                provider
+                    .edit_subscription(
+                        &remote_id,
+                        None,
+                        original_folder_name.as_deref(),
+                        Some(&target_folder_name),
+                    )
+                    .await
+                    .map_err(|e| format!("restore folder call failed: {e}"))?;
+
+                let subs_after = provider
+                    .get_subscriptions()
+                    .await
+                    .map_err(|e| format!("get_subscriptions after folder restore failed: {e}"))?;
+                let restored = subs_after
+                    .iter()
+                    .find(|s| s.remote_id == remote_id)
+                    .ok_or_else(|| "subscription disappeared after folder restore".to_string())?;
+
+                let folders_after = provider
+                    .get_folders()
+                    .await
+                    .map_err(|e| format!("get_folders after folder restore failed: {e}"))?;
+                let restored_folder_name = restored
+                    .folder_remote_id
+                    .as_ref()
+                    .and_then(|fid| folders_after.iter().find(|f| &f.remote_id == fid))
+                    .map(|f| f.name.clone());
+
+                if restored_folder_name != original_folder_name {
+                    return Err(format!(
+                        "folder restore failed: expected {original_folder_name:?}, server reports {restored_folder_name:?}"
+                    ));
+                }
+                println!("Folder restore verified: back to {original_folder_name:?}");
+                Ok(())
+            }
+            .await
+        } else {
+            Ok(())
+        };
+
+        // Aggregate failures only after every restore attempt above has run, so we
+        // never skip restoring the live server's state just because an earlier
+        // assertion failed.
+        let mut failures = Vec::new();
+        if let Err(e) = rename_result {
+            failures.push(format!("rename: {e}"));
+        }
+        if let Err(e) = restore_title_result {
+            failures.push(format!("restore title call: {e}"));
+        }
+        if let Err(e) = restore_verify_result {
+            failures.push(format!("restore title verify: {e}"));
+        }
+        if let Err(e) = folder_result {
+            failures.push(format!("folder add: {e}"));
+        }
+        if let Err(e) = restore_folder_result {
+            failures.push(format!("folder restore: {e}"));
+        }
+
+        assert!(
+            failures.is_empty(),
+            "freshrss_live_edit_subscription failures: {failures:?}"
+        );
+    }
+
     /// Helper: create an authenticated live provider
     async fn live_provider(test_name: &str) -> Option<(GReaderProvider, ())> {
         let Some(credentials) = live_freshrss_credentials() else {
