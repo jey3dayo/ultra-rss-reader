@@ -1134,7 +1134,8 @@ describe("repository static contracts", () => {
       }),
     ];
     const mutationTargetRoots = [
-      ...resolveArticleMutationInvalidationQueryKeys("article-read-star"),
+      ...resolveArticleMutationInvalidationQueryKeys("article-read"),
+      ...resolveArticleMutationInvalidationQueryKeys("article-star"),
       ...resolveArticleMutationInvalidationQueryKeys("mute-keyword"),
       ...resolveArticleMutationInvalidationQueryKeys("tag-article-assignment"),
       ...resolveArticleMutationInvalidationQueryKeys("tag-metadata"),

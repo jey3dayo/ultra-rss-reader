@@ -541,7 +541,9 @@ describe("useToggleStar", () => {
     expect(
       queryClient.getQueryState(queryKeys.articlesByTag.byTagAndAccount("tag-1", "acc-2", "all"))?.isInvalidated,
     ).toBe(true);
-    expect(queryClient.getQueryState(queryKeys.tagArticleCounts.byAccount("acc-2"))?.isInvalidated).toBe(true);
+    // Star toggles cannot change tag counts (count_articles_per_tag ignores star state),
+    // so the star axis intentionally leaves tagArticleCounts untouched.
+    expect(queryClient.getQueryState(queryKeys.tagArticleCounts.byAccount("acc-2"))?.isInvalidated).toBe(false);
   });
 
   it("does not insert a starred article into another account when feed cache is missing", async () => {
