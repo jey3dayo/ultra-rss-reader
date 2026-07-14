@@ -80,10 +80,10 @@ Before choosing a path API, determine your execution context:
 
 | Context                 | Location                                       | Correct API            |
 | ----------------------- | ---------------------------------------------- | ---------------------- |
-| **Tauri frontend**      | `apps/*/src/**/*.ts`, `apps/*/src/**/*.svelte` | `@tauri-apps/api/path` |
-| **Node.js/Bun backend** | `packages/**/*.ts`, CLI tools                  | Node.js `path` module  |
+| Tauri frontend      | `apps/*/src/**/*.ts`, `apps/*/src/**/*.svelte` | `@tauri-apps/api/path` |
+| Node.js/Bun backend | `packages/**/*.ts`, CLI tools                  | Node.js `path` module  |
 
-**Rule**: If the code runs in the browser (Tauri webview), use Tauri's path APIs. If it runs in Node.js/Bun, use the Node.js `path` module.
+Rule: If the code runs in the browser (Tauri webview), use Tauri's path APIs. If it runs in Node.js/Bun, use the Node.js `path` module.
 
 ## Available Functions from `@tauri-apps/api/path`
 

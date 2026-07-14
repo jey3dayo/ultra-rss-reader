@@ -138,7 +138,7 @@ struct BadIdea {
 
 * If your enum acts like tags and atoms.
 * The enum payloads are all `Copy`.
-* **❗Enums size are based on their largest element.**
+* ❗Enums size are based on their largest element.
 
 ### ✅ Good Enum to derive
 
@@ -325,7 +325,7 @@ let sum: i32 = (0..=10)
 ### When to prefer `for` loops
 
 * When you need **early exits** (`break`, `continue`, `return`).
-* **Simple iteration** with side-effects (e.g., logging, IO)
+* Simple iteration with side-effects (e.g., logging, IO)
   * logging can be done correctly in `Iterators` using `inspect` and `inspect_err` functions.
 * When readability matters more than simplicity or chaining.
 
@@ -523,7 +523,7 @@ If you find a comment, **don't trust it blindly**. Read it in context. If it's w
 
 When deeper justification is needed, prefer to:
 
-* **Link to a Design Doc or an ADR**, business logic lives well in design docs while performance tradeoffs live well in ADRs.
+* Link to a Design Doc or an ADR, business logic lives well in design docs while performance tradeoffs live well in ADRs.
 * Move runtime example and usage docs into Rust Docs, `/// doc comment`, where they can be tested and kept up-to-date by tools like `cargo doc`.
 
 > Doc-comments and Doc-testing, `///` and `//!` in [Chapter 8 - Comments vs Documentation](./chapter_08.md)

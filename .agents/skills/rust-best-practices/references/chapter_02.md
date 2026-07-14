@@ -85,7 +85,7 @@ enum Message {
 Sometimes Clippy complains even when your code is correct, in those cases there are two solutions:
 
 1. Try to refactor the code, so it improves the warning.
-2. **Locally** override the lint with `#[expect(clippy::lint_name)]` and a comment with the reason.
+2. Locally override the lint with `#[expect(clippy::lint_name)]` and a comment with the reason.
 3. Avoid global overrides, unless it is core crate issue, a good example of this is the Bevy Engine that has a set of lints that should be allowed by default.
 
 ## 2.5 Configure workspace/package lints

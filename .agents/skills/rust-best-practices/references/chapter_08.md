@@ -15,7 +15,7 @@
 
 Use `//` comments (double slashed) when something can't be expressed clearly in code, like:
 
-* **Safety Guarantees**, some of which can be better expressed with code conditionals.
+* Safety Guarantees, some of which can be better expressed with code conditionals.
 * Workarounds or **Optimizations**.
 * Legacy or **platform-specific** behaviors. Some of them can be expressed with `#[cfg(..)]`.
 * Links to **Design Docs** or **ADRs**.
@@ -97,7 +97,7 @@ fn save_user(&self) -> Result<(), MyError> {
 }
 ```
 
-**✅ Extract for clarity**:
+#### ✅ Extract for clarity
 
 ```rust
 fn save_auth_user(&self) -> Result<PathBuf, MyError> {
@@ -146,7 +146,7 @@ Use `///` doc comments to document:
 fn load_user(path: &Path) -> Result<User, MyError> {...}
 ```
 
-**Doc comments can also include examples, links and even tests:**
+### Doc comments can also include examples, links and even tests:
 
 ```rust
 /// Returns the square of the integer part of any number.

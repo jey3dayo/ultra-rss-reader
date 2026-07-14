@@ -18,7 +18,7 @@ convention unless nearby code already proves that shape.
 | --- | --- | --- |
 | Tauri IPC request / response schemas | `src/api/schemas/` plus `src/api/tauri-commands.ts` | Command payload parsing or DTO validation is repeated outside the API boundary |
 | Frontend-owned runtime schemas | `src/schemas/` | Preferences, localStorage, app config, or other non-IPC runtime data parsing is repeated |
-| Result and error conversion | `src/api/**`, `src/lib/**`, or the adapter hook that owns the async boundary | Components inspect `@praha/byethrow` directly or repeated error conversion appears in multiple callers |
+| Result and error conversion | `src/api/`, `src/lib/`, or the adapter hook that owns the async boundary | Components inspect `@praha/byethrow` directly or repeated error conversion appears in multiple callers |
 | Rust data access contracts | `src-tauri/src/repository/` | A service or command starts defining ad hoc data-access behavior instead of using a repository trait |
 | SQLite schema, migration, and query implementation | `src-tauri/src/infra/db/` | Raw SQL, migrations, connection policy, or SQLite row mapping leaks outside the DB implementation |
 | Rust orchestration | `src-tauri/src/service/` | Commands coordinate multi-step domain or repository work that should be reusable outside IPC |

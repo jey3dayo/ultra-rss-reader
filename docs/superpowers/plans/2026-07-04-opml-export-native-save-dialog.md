@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace the browser Blob + `<a download>` OPML export with a native save dialog and an atomic temp-file-then-rename write, satisfying the test-declared `filesystem_recovery_contract(OpmlExport)` and promoting the sleep/resume stance from `Unsupported` to `Guarded`.
+Goal: Replace the browser Blob + `<a download>` OPML export with a native save dialog and an atomic temp-file-then-rename write, satisfying the test-declared `filesystem_recovery_contract(OpmlExport)` and promoting the sleep/resume stance from `Unsupported` to `Guarded`.
 
-**Architecture:** A new Tauri command `export_opml_to_file(account_id, path)` generates the OPML string in the backend (shared with the current generation logic) and writes it atomically next to the destination (`<name>.opml.tmp` → `fs::rename`), mirroring `settings_profile_commands::export_settings_profile_to_file` for the dialog/path flow and `infra/db/backup.rs::copy_backup_file_atomic` for the atomic-write shape. The frontend hook `useAccountDetailDangerZone.handleExportOpml` follows the `handleExportSettingsProfile` pattern: `showSaveDialog` → `null` cancel is a silent no-op → invoke the command → Result toast on failure. The legacy string-returning `export_opml` command is removed after the frontend is migrated (5 tasks, each commit compiles and its test suites pass).
+Architecture: A new Tauri command `export_opml_to_file(account_id, path)` generates the OPML string in the backend (shared with the current generation logic) and writes it atomically next to the destination (`<name>.opml.tmp` → `fs::rename`), mirroring `settings_profile_commands::export_settings_profile_to_file` for the dialog/path flow and `infra/db/backup.rs::copy_backup_file_atomic` for the atomic-write shape. The frontend hook `useAccountDetailDangerZone.handleExportOpml` follows the `handleExportSettingsProfile` pattern: `showSaveDialog` → `null` cancel is a silent no-op → invoke the command → Result toast on failure. The legacy string-returning `export_opml` command is removed after the frontend is migrated (5 tasks, each commit compiles and its test suites pass).
 
-**Tech Stack:** Tauri 2 (Rust commands, `tauri-plugin-dialog` via existing `src/lib/platform/save-dialog.ts` wrapper with `dialog:allow-save` already granted), React + `@praha/byethrow` Result, zod IPC schemas, vitest (node/jsdom projects), cargo test with `tempfile` (already a dev-dependency).
+Tech Stack: Tauri 2 (Rust commands, `tauri-plugin-dialog` via existing `src/lib/platform/save-dialog.ts` wrapper with `dialog:allow-save` already granted), React + `@praha/byethrow` Result, zod IPC schemas, vitest (node/jsdom projects), cargo test with `tempfile` (already a dev-dependency).
 
 ## Global Constraints
 
@@ -23,7 +23,7 @@
 
 ### Task 1: Backend command `export_opml_to_file` with atomic write (legacy `export_opml` kept temporarily)
 
-**Files:**
+### Files
 
 - Modify: `src-tauri/src/commands/opml_commands.rs` (command + helpers + tests; refactor `export_opml` body into a shared generator)
 - Modify: `src-tauri/src/commands/mod.rs:109-112` (lock-policy match arm) and `src-tauri/src/commands/mod.rs:442` area (lock-policy test table)
@@ -31,7 +31,7 @@
 - Modify: `src-tauri/permissions/reader-commands.toml:51` (command allowlist)
 - Modify: `src/__tests__/schemas/tauri-window-capability-contract.test.ts:103` (expected reader-commands allowlist)
 
-**Interfaces:**
+### Interfaces
 
 - Consumes: existing `crate::commands::lock_db`, `SqliteAccountRepository` / `SqliteFolderRepository` / `SqliteFeedRepository`, `opml::generate_opml`, `crate::infra::db::backup::redacted_path_label` (already `pub(crate)`).
 - Produces (later tasks rely on these exact names):
@@ -398,7 +398,7 @@ git commit -m "feat(opml): add export_opml_to_file command with atomic temp-file
 
 ### Task 2: Frontend IPC wiring — schema, wrapper, dev mock (additive; legacy wrapper stays until Task 4)
 
-**Files:**
+### Files
 
 - Modify: `src/api/schemas/commands/integration.ts:58` (new args schema)
 - Modify: `src/api/schemas/commands/registry.ts:56,138` (import + registry entry)
@@ -407,7 +407,7 @@ git commit -m "feat(opml): add export_opml_to_file command with atomic temp-file
 - Modify: `src/dev/mocks.ts:927` area (new browser dev-mode mock case)
 - Test: `src/__tests__/api/tauri-commands.node.test.ts` (blank-arg contract), `src/__tests__/dev/dev-mocks-browser.node.test.ts` (dev mock round-trip)
 
-**Interfaces:**
+### Interfaces
 
 - Consumes: Task 1's `export_opml_to_file` command name and `{ accountId, path }` camelCase args; existing `safeInvoke`, `NullResponseSchema`, `nonBlankTrimmedIdSchema`, `parseBrowserMockArgs`.
 - Produces: `export const exportOpmlToFileArgs = z.object({ accountId: nonBlankTrimmedIdSchema, path: z.string().trim().min(1) })` (exported from `@/api/schemas`); `export const exportOpmlToFile = (accountId: string, path: string) => Result.ResultAsync<null, AppError>`-shaped wrapper exported from `@/api/tauri-commands`. Task 3's hook imports `exportOpmlToFile`.
@@ -519,14 +519,14 @@ git commit -m "feat(api): add exportOpmlToFile IPC wrapper, schema, and dev mock
 
 ### Task 3: Hook rewrite — native save dialog flow in `handleExportOpml` (tests first)
 
-**Files:**
+### Files
 
 - Modify: `src/components/settings/hooks/account-detail/use-account-detail-danger-zone.ts` (export handler + remove Blob/objectURL machinery)
 - Test: `src/__tests__/hooks/use-account-detail-danger-zone.node.test.tsx` (rewrite Blob/anchor export tests to showSaveDialog pattern)
 - Test: `src/__tests__/components/account-detail.test.tsx:1511-1562` (rewrite objectURL integration test)
 - Verify only (no expected change): `src/__tests__/components/account-danger-zone-view.test.tsx` (pure view test; `onExport` callback contract is unchanged)
 
-**Interfaces:**
+### Interfaces
 
 - Consumes: `exportOpmlToFile(accountId: string, path: string)` from `@/api/tauri-commands` (Task 2); `showSaveDialog(options: { defaultPath?: string; filters?: { name: string; extensions: string[] }[] }): Promise<string | null>` from `@/lib/platform/save-dialog`; existing `buildOpmlExportFilename`, `createAccountDetailErrorToast(t, "account.failed_to_export_opml")`, `getErrorMessage`.
 - Produces: unchanged public hook contract — `handleExportOpml: () => Promise<void>`, `exportingOpml: boolean`, and unchanged `buildOpmlExportFilename` export. `use-account-detail-view-props.tsx` needs no changes.
@@ -958,7 +958,7 @@ git commit -m "feat(settings): export OPML through native save dialog"
 
 ### Task 4: Remove the legacy `export_opml` string command end-to-end
 
-**Files:**
+### Files
 
 - Modify: `src-tauri/src/commands/opml_commands.rs` (delete the `export_opml` command fn; keep `generate_export_opml_in_db`)
 - Modify: `src-tauri/src/commands/mod.rs` (remove `| "export_opml"` arm entry and the `("export_opml", CommandDbLockPolicy::BlockingLock),` test row)
@@ -973,7 +973,7 @@ git commit -m "feat(settings): export OPML through native save dialog"
 - Modify: `src/__tests__/api/tauri-commands.node.test.ts` (remove `exportOpml` import and the line-1609 blank-arg row)
 - Modify: `src/__tests__/dev/dev-mocks-browser.node.test.ts` (remove `exportOpml` import and its line-452 assertion; keep the Task 2 `exportOpmlToFile` assertion)
 
-**Interfaces:**
+### Interfaces
 
 - Consumes: nothing new. This task only deletes the superseded surface added-around in Tasks 1-3.
 - Produces: `export_opml` no longer exists anywhere as a command; `export_opml_to_file` is the only OPML export IPC surface.
@@ -1068,14 +1068,14 @@ git commit -m "refactor(opml): remove legacy export_opml string command"
 
 ### Task 5: Promote sleep/resume stance to Guarded + docs + TODO/CHANGELOG
 
-**Files:**
+### Files
 
 - Modify: `src-tauri/src/commands/database_commands.rs:394` (stance) and `src-tauri/src/commands/database_commands.rs:759-762` (test expectation)
 - Modify: `docs/feed-content-privacy.md:306` (stance table row) and frontmatter `timestamp` (line 8)
 - Modify: `TODO.md` (delete the P2 OPML export migration entry under "Feed / Folder / Storage / Settings Data")
 - Modify: `CHANGELOG.md` (one line under `[Unreleased]`)
 
-**Interfaces:**
+### Interfaces
 
 - Consumes: Tasks 1-4 complete (production code now satisfies `TempFileThenRename` + native dialog overwrite confirmation).
 - Produces: `long_running_native_operation_contract(LongRunningNativeOperation::OpmlExport).sleep_resume_stance == SleepResumeStance::Guarded`; docs/TODO/CHANGELOG reflect completion.
@@ -1149,6 +1149,6 @@ git commit -m "docs(privacy): promote OPML export sleep/resume stance to guarded
 
 ## Self-Review Notes
 
-- **Contract coverage:** `TempFileThenRename` (Task 1 atomic helper + temp-cleanup tests), `ConfirmBeforeReplacingExistingFile` (OS save dialog, documented in Task 5 row), `NoOpSuccess` cancel (Task 3 hook `path === null` early return + silent-no-op tests at hook and integration level), `auto_appends_extension` (Task 1 `ensure_opml_extension` + case-insensitivity test), `RequireOpmlExtension` (Task 3 `filters: [{ name: "OPML", extensions: ["opml"] }]` asserted in tests), `filename_suggestion` (Task 3 `defaultPath: buildOpmlExportFilename(...)` asserted with account snapshot semantics), `exposes_raw_path_to_webview` (dialog path passed through the frontend to the command).
-- **Type consistency:** command args are camelCase `{ accountId, path }` over IPC (Tauri converts to `account_id`/`path` for the Rust signature, same as `export_settings_profile_to_file`); the wrapper is `exportOpmlToFile(accountId: string, path: string)` everywhere (Tasks 2, 3, 4); Rust helpers `generate_export_opml_in_db` / `export_opml_to_file_in_db` / `opml_export_temp_path` are named identically in Task 1 code and tests.
-- **Green-per-commit strategy:** Task 1 adds the new command alongside the old one (capability contract test updated in the same commit because it parses `lib.rs` and the permission TOML); Task 2 is additive on the frontend; Task 3 switches the only caller; Task 4 deletes the then-dead legacy surface on both sides; Task 5 promotes the stance only after the implementation exists.
+- Contract coverage: `TempFileThenRename` (Task 1 atomic helper + temp-cleanup tests), `ConfirmBeforeReplacingExistingFile` (OS save dialog, documented in Task 5 row), `NoOpSuccess` cancel (Task 3 hook `path === null` early return + silent-no-op tests at hook and integration level), `auto_appends_extension` (Task 1 `ensure_opml_extension` + case-insensitivity test), `RequireOpmlExtension` (Task 3 `filters: [{ name: "OPML", extensions: ["opml"] }]` asserted in tests), `filename_suggestion` (Task 3 `defaultPath: buildOpmlExportFilename(...)` asserted with account snapshot semantics), `exposes_raw_path_to_webview` (dialog path passed through the frontend to the command).
+- Type consistency: command args are camelCase `{ accountId, path }` over IPC (Tauri converts to `account_id`/`path` for the Rust signature, same as `export_settings_profile_to_file`); the wrapper is `exportOpmlToFile(accountId: string, path: string)` everywhere (Tasks 2, 3, 4); Rust helpers `generate_export_opml_in_db` / `export_opml_to_file_in_db` / `opml_export_temp_path` are named identically in Task 1 code and tests.
+- Green-per-commit strategy: Task 1 adds the new command alongside the old one (capability contract test updated in the same commit because it parses `lib.rs` and the permission TOML); Task 2 is additive on the frontend; Task 3 switches the only caller; Task 4 deletes the then-dead legacy surface on both sides; Task 5 promotes the stance only after the implementation exists.

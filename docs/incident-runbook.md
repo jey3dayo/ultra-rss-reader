@@ -129,9 +129,9 @@ Platform permission denied copy contract:
 
 When a release that includes a schema bump (`LATEST_VERSION` change in `migration.rs`) causes a critical regression, prefer fix-forward as the primary recovery path. Because `migration.rs` blocks downgrade startup with the error `"Database schema version {from_version} is newer than this application supports (v{LATEST_VERSION}). Downgrade startup is blocked to avoid data loss. Install a newer application version or restore a compatible backup."`, reinstalling an older binary against the already-migrated database will not start the app. Downgrade is a last resort, not the standard response.
 
-**Fix-forward (preferred):** Release a corrected version that supports the bumped schema. Users with the migrated database can install it without any data loss or restore step.
+Fix-forward (preferred): Release a corrected version that supports the bumped schema. Users with the migrated database can install it without any data loss or restore step.
 
-**Manual downgrade (last resort, only when a pre-migration backup exists):**
+### Manual downgrade (last resort, only when a pre-migration backup exists)
 
 Pre-migration backups are written to `backups/` inside the app data directory before each migration. The filename format is `<db-stem>_v<schema-version>_<YYYYMMDD>T<HHMMSS>.db` — for example `ultra-rss-reader_v18_20260601T120000.db`. Matching `-wal` and `-shm` sidecars are backed up alongside the main file. Platform paths:
 
@@ -149,9 +149,9 @@ Steps:
 5. Copy the backup `.db` file over the live database file at the app data root. If the backup set includes `-wal` / `-shm` sidecars, copy those too. If the backup set does not include `-wal` / `-shm` sidecars, delete the live `-wal` / `-shm` files if they exist; leaving stale sidecars from a newer schema against a restored older database will cause startup errors. See `manual_restore_instruction()` in `backup.rs` for the source and destination paths.
 6. Launch the app once and confirm successful startup.
 
-**Data loss warning:** Restoring a pre-migration backup discards all read state, starred articles, fetched articles, and any other changes recorded after the backup was taken.
+Data loss warning: Restoring a pre-migration backup discards all read state, starred articles, fetched articles, and any other changes recorded after the backup was taken.
 
-**No backup available:** Manual downgrade is not possible. Preserve the current database and logs, wait for a fix-forward release, and report the issue. Do not edit `schema_version` manually.
+No backup available: Manual downgrade is not possible. Preserve the current database and logs, wait for a fix-forward release, and report the issue. Do not edit `schema_version` manually.
 
 ### Private Data Reset And Uninstall
 
