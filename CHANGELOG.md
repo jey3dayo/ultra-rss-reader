@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.53.36] - 2026-07-15
+
+### Bug Fixes
+
+- フィードサマリー画面のサイトリンクが素の `<a>` タグでアプリの WebView ごと外部サイトへ遷移してしまう問題を修正し、既存のアプリ内 WebView オーバーレイで開くようにした。
+
 ## [0.53.35] - 2026-07-15
 
 ### Maintenance
