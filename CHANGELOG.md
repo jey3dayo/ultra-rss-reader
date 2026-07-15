@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.53.37] - 2026-07-15
+
+### Bug Fixes
+
+- `ammonia` の mXSS 脆弱性（RUSTSEC-2026-0193）を修正し、自前で直接依存する `quick-xml` を 0.36 系から 0.41 系へ更新して高深刻度の DoS 脆弱性（RUSTSEC-2026-0194 / 0195）を解消した。
+
 ## [0.53.36] - 2026-07-15
 
 ### Bug Fixes
