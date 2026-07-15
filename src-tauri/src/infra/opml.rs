@@ -130,7 +130,7 @@ fn parse_outline_attrs(
             attr.map_err(|error| format!("OPML parse error: invalid outline attribute: {error}"))?;
         let key = String::from_utf8_lossy(attr.key.as_ref()).to_string();
         let value = attr
-            .unescape_value()
+            .normalized_value(quick_xml::XmlVersion::Implicit1_0)
             .map_err(|error| format!("OPML parse error: invalid outline attribute value: {error}"))?
             .to_string();
         if !value.chars().all(is_xml_10_char) {

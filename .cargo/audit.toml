@@ -1,0 +1,24 @@
+# cargo-audit ignore list.
+#
+# Each entry must record the advisory ID, the reason it is safe to defer,
+# and the date it was reviewed. Anonymous ignores are forbidden — see
+# .claude/rules/quality-policy.md "Dependency Advisory Policy".
+
+[advisories]
+ignore = [
+  # RUSTSEC-2026-0194 / RUSTSEC-2026-0195: quick-xml <0.41 quadratic-time
+  # attribute parsing and unbounded namespace-declaration allocation.
+  # Ignoring by advisory ID also covers both transitive paths that still
+  # pull an affected quick-xml version, since neither upstream crate has
+  # released a fix yet:
+  #   - quick-xml 0.37.5 via feed-rs 2.3.1 (parses untrusted RSS/Atom feed
+  #     content fetched over the network — the more reachable path).
+  #   - quick-xml 0.39.4 via plist 1.9.0 -> tauri 2.11.3 (Tauri-internal
+  #     plist/config handling, lower reachability).
+  # Our own direct quick-xml dependency is already bumped to 0.41 and is
+  # not affected. Tracked in TODO.md (P1) to re-check for a feed-rs/plist
+  # release that upgrades quick-xml >=0.41 and remove this entry once one
+  # ships. Reviewed 2026-07-15.
+  "RUSTSEC-2026-0194",
+  "RUSTSEC-2026-0195",
+]

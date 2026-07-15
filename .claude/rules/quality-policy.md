@@ -7,12 +7,13 @@ React Doctor / Knip / similarity / TODO priority rules that are too durable for 
 CI runs `mise run audit:deps` (pnpm, prod paths) and `mise run audit:deps:rust` (cargo audit) in the `audit` job.
 
 - Fail: CI fails when a high-or-above advisory hits a reachable path — any Rust dependency, or an npm dependency reachable from `--prod` scope.
-- Ignore: dev/test/CLI-only-path advisories must be registered explicitly in the ignore list (`auditConfig.ignoreGhsas` in `pnpm-workspace.yaml` for npm; `src-tauri/audit.toml` for Rust) with advisory ID, reason, and date recorded here. Anonymous ignores are forbidden.
+- Ignore: dev/test/CLI-only-path advisories must be registered explicitly in the ignore list (`auditConfig.ignoreGhsas` in `pnpm-workspace.yaml` for npm; `.cargo/audit.toml` for Rust) with advisory ID, reason, and date recorded here. Anonymous ignores are forbidden.
 - Review: ignore entries are re-triaged during release preflight.
 
 Ignore entries:
 
 - `GHSA-88fw-hqm2-52qc` — hono via shadcn (build-time CSS import, listed in dependencies); unreachable in shipping bundle; vetted 2026-07-14.
+- `RUSTSEC-2026-0194`, `RUSTSEC-2026-0195` — quick-xml <0.41 (quadratic-time attribute parsing, unbounded namespace-declaration allocation) via `feed-rs 2.3.1` (untrusted RSS/Atom parsing, reachable) and via `plist 1.9.0 -> tauri 2.11.3` (lower reachability); no upstream fix released yet for either crate; our own direct quick-xml dependency is already on 0.41. Tracked as P1 in `TODO.md` to remove once feed-rs/plist ship a fix; reviewed 2026-07-15.
 
 Known dev-path advisories (13 findings: 4 high / 6 moderate / 3 low via jsdom→vitest, shadcn→hono, storybook→esbuild) were vetted as unreachable from the shipping Tauri app and production Vite bundle on 2026-07-14.
 
