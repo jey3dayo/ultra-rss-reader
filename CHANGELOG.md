@@ -4,6 +4,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.53.38] - 2026-07-17
+
+### Maintenance
+
+- トップページのトースト退場、フィードドラッグプレビュー、初期状態カードに共有モーションを適用し、操作時の視覚的な連続性を改善した。
+- Claude Code向けAgentationの導入とagent-browser構成の整理を行い、開発用スキル・設定を同期した。
+
 ## [0.53.37] - 2026-07-15
 
 ### Bug Fixes
