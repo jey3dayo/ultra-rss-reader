@@ -3,28 +3,33 @@ version: 1.0.0
 description: APM project for ultra-rss-reader
 author: jey3dayo
 targets:
-- codex
+  - codex
+  - claude
 dependencies:
   apm:
-  - EpicenterHQ/epicenter/.agents/skills/tauri
-  - apollographql/skills/skills/rust-best-practices
-  - ./.apm/skills/tauri-icon-gen
-  - ./.apm/skills/tauri-webview-geometry
+    - EpicenterHQ/epicenter/.agents/skills/tauri
+    - apollographql/skills/skills/rust-best-practices
+    - ./.apm/skills/tauri-icon-gen
+    - ./.apm/skills/tauri-webview-geometry
+    - git: benjitaylor/agentation
+      skills:
+        - agentation
+        - agentation-self-driving
   mcp:
-  - name: tauri-mcp-server
-    registry: false
-    transport: stdio
-    command: npx
-    args:
-    - -y
-    - '@hypothesi/tauri-mcp-server'
-  - name: agentation
-    registry: false
-    transport: stdio
-    command: npx
-    args:
-    - -y
-    - agentation-mcp
-    - server
+    - name: tauri-mcp-server
+      registry: false
+      transport: stdio
+      command: npx
+      args:
+        - -y
+        - "@hypothesi/tauri-mcp-server"
+    - name: agentation
+      registry: false
+      transport: stdio
+      command: npx
+      args:
+        - -y
+        - agentation-mcp
+        - server
 includes: auto
 scripts: {}
