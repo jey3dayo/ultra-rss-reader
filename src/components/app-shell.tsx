@@ -1,9 +1,10 @@
-import { Component, lazy, type ReactNode, Suspense, useEffect, useRef } from "react";
+import { Component, lazy, type ReactNode, Suspense, useEffect, useRef, useState } from "react";
 import {
   preloadSettingsModalModuleForDev,
   resetSettingsModalPreloadSession,
 } from "@/components/app-shell/settings-modal-preload";
 import { shouldStartDesktopTitlebarDrag } from "@/components/app-shell/titlebar-drag";
+import { TOAST_EXIT_DURATION_MS } from "@/constants/ui-runtime";
 import { APP_TOAST_PLACEMENTS, AppToastView } from "@/design-system";
 import { registerBrowserWebviewDevCleanup } from "@/lib/browser/browser-webview-dev-cleanup";
 import i18n from "@/lib/i18n";
@@ -131,14 +132,40 @@ function Toast() {
   const clearToast = useUiStore((state) => state.clearToast);
   const browserUrl = useUiStore((state) => state.browserUrl);
   const syncActive = useUiStore((state) => state.syncProgress.active);
-  if (!toastMessage) return null;
+  const [renderedToast, setRenderedToast] = useState(toastMessage);
+  const [isExiting, setIsExiting] = useState(false);
+
+  useEffect(() => {
+    if (toastMessage) {
+      setRenderedToast(toastMessage);
+      setIsExiting(false);
+      return;
+    }
+
+    if (!renderedToast) {
+      return;
+    }
+
+    setIsExiting(true);
+    const exitTimer = window.setTimeout(() => {
+      setRenderedToast(null);
+      setIsExiting(false);
+    }, TOAST_EXIT_DURATION_MS);
+
+    return () => {
+      window.clearTimeout(exitTimer);
+    };
+  }, [renderedToast, toastMessage]);
+
+  if (!renderedToast) return null;
 
   return (
     <AppToastView
-      toastMessage={toastMessage}
+      toastMessage={renderedToast}
       onClose={clearToast}
       placement={browserUrl ? APP_TOAST_PLACEMENTS.browserRail : APP_TOAST_PLACEMENTS.bottomRight}
       syncActionState={syncActive}
+      ending={isExiting}
     />
   );
 }

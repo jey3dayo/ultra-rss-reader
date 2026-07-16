@@ -1,3 +1,4 @@
+import { MOTION_POPUP_SURFACE_CLASS_NAME } from "@/constants";
 import { FeedFavicon } from "@/design-system";
 import type { FeedTreeFeedViewModel } from "./feed-tree.types";
 
@@ -19,7 +20,11 @@ type FeedTreeDragOverlayCardProps = {
 
 function FeedTreeDragOverlayCard({ feed, displayFavicons }: FeedTreeDragOverlayCardProps) {
   return (
-    <div className="pointer-events-none min-w-48 rounded-md border border-[var(--sidebar-frame-border)] bg-[var(--sidebar-frame-solid-surface)] px-2 py-1.5 text-sm text-sidebar-foreground shadow-[var(--feed-tree-drag-overlay-shadow)]">
+    <div
+      data-open
+      className={`${MOTION_POPUP_SURFACE_CLASS_NAME} pointer-events-none min-w-48 rounded-md border border-[var(--sidebar-frame-border)] bg-[var(--sidebar-frame-solid-surface)] px-2 py-1.5 text-sm text-sidebar-foreground shadow-[var(--feed-tree-drag-overlay-shadow)]`}
+      style={{ transformOrigin: "top left" }}
+    >
       <div className="flex items-center gap-2">
         {displayFavicons ? (
           <span className="flex size-5 shrink-0 items-center justify-center">

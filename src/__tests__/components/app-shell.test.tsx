@@ -18,6 +18,7 @@ import {
 } from "@/components/app-shell/settings-modal-preload";
 import { shouldStartDesktopTitlebarDrag } from "@/components/app-shell/titlebar-drag";
 import { APP_EVENTS } from "@/constants/events";
+import { TOAST_EXIT_DURATION_MS } from "@/constants/ui-runtime";
 import { TAURI_EVENT_LISTENER_FAILURE_EVENT } from "@/lib/runtime/tauri-event-listeners";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -998,6 +999,38 @@ describe("AppShell", () => {
     render(<AppShell />, { wrapper: createWrapper() });
 
     expect(screen.getByTestId("app-toast").className).not.toContain("w-[min(320px,calc(100vw-2rem))]");
+  });
+
+  it("keeps a dismissed toast mounted through its exit transition", async () => {
+    vi.useFakeTimers();
+    useUiStore.setState({
+      toastMessage: {
+        message: "Saved",
+        persistent: true,
+      },
+    });
+
+    try {
+      render(<AppShell />, { wrapper: createWrapper() });
+
+      act(() => {
+        useUiStore.getState().clearToast();
+      });
+
+      expect(screen.getByTestId("app-toast")).toHaveAttribute("data-ending-style");
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(TOAST_EXIT_DURATION_MS - 1);
+      });
+      expect(screen.getByTestId("app-toast")).toBeInTheDocument();
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1);
+      });
+      expect(screen.queryByTestId("app-toast")).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("places toast in the browser rail while the native web preview is open", () => {

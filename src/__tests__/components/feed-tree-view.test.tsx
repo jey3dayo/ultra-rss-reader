@@ -732,12 +732,14 @@ describe("FeedTreeView", () => {
     expect(overlay).toHaveStyle({ transform: "translate3d(52px, 64px, 0)" });
     expect(overlay.className).not.toContain("motion-");
     expect(overlay.firstElementChild).toHaveClass(
+      "motion-popup-surface",
       "border-[var(--sidebar-frame-border)]",
       "bg-[var(--sidebar-frame-solid-surface)]",
       "px-2",
       "py-1.5",
     );
-    expect(overlay.firstElementChild?.className).not.toContain("motion-");
+    expect(overlay.firstElementChild).toHaveAttribute("data-open");
+    expect(overlay.firstElementChild).toHaveStyle({ transformOrigin: "top left" });
     const overlayFaviconSlot = overlay.querySelector("img")?.parentElement;
     expect(overlayFaviconSlot).toHaveClass("size-5");
     expect(overlayFaviconSlot).not.toHaveClass("h-5", "w-5");

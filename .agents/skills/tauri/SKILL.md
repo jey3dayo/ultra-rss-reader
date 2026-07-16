@@ -7,7 +7,6 @@ metadata:
 ---
 
 # Tauri Patterns
-
 ## Reference Repositories
 
 - [Tauri](https://github.com/tauri-apps/tauri): Desktop app framework with Rust backend and web frontend
@@ -80,10 +79,10 @@ Before choosing a path API, determine your execution context:
 
 | Context                 | Location                                       | Correct API            |
 | ----------------------- | ---------------------------------------------- | ---------------------- |
-| Tauri frontend      | `apps/*/src/**/*.ts`, `apps/*/src/**/*.svelte` | `@tauri-apps/api/path` |
-| Node.js/Bun backend | `packages/**/*.ts`, CLI tools                  | Node.js `path` module  |
+| **Tauri frontend**      | `apps/*/src/**/*.ts`, `apps/*/src/**/*.svelte` | `@tauri-apps/api/path` |
+| **Node.js/Bun backend** | `packages/**/*.ts`, CLI tools                  | Node.js `path` module  |
 
-Rule: If the code runs in the browser (Tauri webview), use Tauri's path APIs. If it runs in Node.js/Bun, use the Node.js `path` module.
+**Rule**: If the code runs in the browser (Tauri webview), use Tauri's path APIs. If it runs in Node.js/Bun, use the Node.js `path` module.
 
 ## Available Functions from `@tauri-apps/api/path`
 
@@ -200,14 +199,14 @@ Always import from `@tauri-apps/api/path`:
 
 ```typescript
 import {
- appLocalDataDir,
- dirname,
- join,
- basename,
- extname,
- normalize,
- resolve,
- sep,
+	appLocalDataDir,
+	dirname,
+	join,
+	basename,
+	extname,
+	normalize,
+	resolve,
+	sep,
 } from '@tauri-apps/api/path';
 ```
 
@@ -231,14 +230,14 @@ import { appLocalDataDir, dirname, join } from '@tauri-apps/api/path';
 import { mkdir, readFile, writeFile } from '@tauri-apps/plugin-fs';
 
 async function saveData(segments: string[], data: Uint8Array) {
- const baseDir = await appLocalDataDir();
- const filePath = await join(baseDir, ...segments);
+	const baseDir = await appLocalDataDir();
+	const filePath = await join(baseDir, ...segments);
 
- // Ensure parent directory exists
- const parentDir = await dirname(filePath);
- await mkdir(parentDir, { recursive: true });
+	// Ensure parent directory exists
+	const parentDir = await dirname(filePath);
+	await mkdir(parentDir, { recursive: true });
 
- await writeFile(filePath, data);
+	await writeFile(filePath, data);
 }
 ```
 

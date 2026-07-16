@@ -1,3 +1,11 @@
+import type { CSSProperties } from "react";
+import {
+  MOTION_CONTENT_SWAP_CLASS_NAME,
+  MOTION_CONTENT_SWAP_SLOW_DURATION_MS,
+  MOTION_CONTENT_SWAP_SLOW_OFFSET_PX,
+  MOTION_DATA_PHASE_ATTRIBUTE,
+  MOTION_PHASE_ENTERING,
+} from "@/constants";
 import { cn } from "@/lib/utils";
 import { ReaderPassiveActionButton } from "./reader-passive-action-button";
 
@@ -8,6 +16,7 @@ type ArticleEmptyStateViewProps = {
   hints?: string[];
   containerClassName?: string;
   cardClassName?: string;
+  animateCardEntrance?: boolean;
   actions?: Array<{
     label: string;
     onClick: () => void;
@@ -17,6 +26,12 @@ type ArticleEmptyStateViewProps = {
 
 const EMPTY_HINTS: string[] = [];
 const EMPTY_ACTIONS: NonNullable<ArticleEmptyStateViewProps["actions"]> = [];
+type EmptyStateMotionStyle = CSSProperties &
+  Record<"--motion-content-swap-offset" | "--motion-duration-content-swap", string>;
+const EMPTY_STATE_MOTION_STYLE: EmptyStateMotionStyle = {
+  "--motion-content-swap-offset": MOTION_CONTENT_SWAP_SLOW_OFFSET_PX,
+  "--motion-duration-content-swap": MOTION_CONTENT_SWAP_SLOW_DURATION_MS,
+};
 
 export function ArticleEmptyStateView({
   eyebrow,
@@ -25,6 +40,7 @@ export function ArticleEmptyStateView({
   hints = EMPTY_HINTS,
   containerClassName,
   cardClassName,
+  animateCardEntrance = false,
   actions = EMPTY_ACTIONS,
 }: ArticleEmptyStateViewProps) {
   return (
@@ -35,11 +51,14 @@ export function ArticleEmptyStateView({
       )}
     >
       <div
+        {...(animateCardEntrance ? { [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING } : {})}
         className={cn(
+          animateCardEntrance && MOTION_CONTENT_SWAP_CLASS_NAME,
           "relative w-full max-w-[40rem] overflow-hidden rounded-md border border-border/75 bg-surface-1/72 px-6 py-6 text-left text-foreground-soft shadow-[var(--shadow-elevation-1)] dark:border-border/90 dark:bg-surface-2/72",
           hints.length > 0 && "min-h-44",
           cardClassName,
         )}
+        style={animateCardEntrance ? EMPTY_STATE_MOTION_STYLE : undefined}
       >
         {eyebrow ? (
           <div className="mb-4 inline-flex rounded-md border border-border/70 bg-surface-1/88 px-3 py-1 text-[0.68rem] font-medium tracking-[0.14em] text-foreground-soft uppercase">

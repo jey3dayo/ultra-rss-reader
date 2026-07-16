@@ -13,6 +13,7 @@ type AppToastViewProps = {
   placement?: AppToastPlacement;
   testId?: string;
   syncActionState?: boolean;
+  ending?: boolean;
 };
 
 const UPDATE_TOAST_WIDTH_CLASS_NAME = "w-[min(320px,calc(100vw-2rem))]";
@@ -32,6 +33,7 @@ export function AppToastView({
   placement = APP_TOAST_PLACEMENTS.bottomRight,
   testId = "app-toast",
   syncActionState = false,
+  ending = false,
 }: AppToastViewProps) {
   const { t } = useTranslation("common");
   const { message, progress, actions, variant } = toastMessage;
@@ -41,8 +43,11 @@ export function AppToastView({
   return (
     <div
       data-open
+      data-ending-style={ending ? "" : undefined}
       data-side="top"
       data-testid={testId}
+      aria-hidden={ending || undefined}
+      inert={ending || undefined}
       className={cn(
         MOTION_POPUP_SURFACE_CLASS_NAME,
         position === "fixed" && placement === APP_TOAST_PLACEMENTS.bottomRight && "fixed right-4 bottom-4",

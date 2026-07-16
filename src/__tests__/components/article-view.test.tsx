@@ -2048,7 +2048,10 @@ describe("ArticleView", () => {
   it("keeps empty-state article actions hidden while preserving the passive toolbar shell", () => {
     render(<ArticleView />, { wrapper: createWrapper() });
 
-    expect(screen.getByText("Select an article")).toBeInTheDocument();
+    const emptyStateCard = screen.getByText("Select an article").parentElement;
+    expect(emptyStateCard).toBeInTheDocument();
+    expect(emptyStateCard).not.toHaveClass("motion-content-swap");
+    expect(emptyStateCard).not.toHaveAttribute("data-motion-phase");
     expect(screen.queryByRole("button", { name: "Toggle read" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Toggle star" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Open Web Preview" })).not.toBeInTheDocument();
@@ -2471,7 +2474,14 @@ describe("ArticleView", () => {
 
     render(<ArticleView />, { wrapper: createWrapper() });
 
-    expect(await screen.findByText("Add your first account")).toBeInTheDocument();
+    const accountSetupCard = (await screen.findByText("Add your first account")).parentElement;
+    expect(accountSetupCard).toBeInTheDocument();
+    expect(accountSetupCard).toHaveClass("motion-content-swap");
+    expect(accountSetupCard).toHaveAttribute("data-motion-phase", "entering");
+    expect(accountSetupCard).toHaveStyle({
+      "--motion-content-swap-offset": "10px",
+      "--motion-duration-content-swap": "260ms",
+    });
     expect(screen.getByText("Add an account first to get subscriptions and sync ready.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add account…" })).toBeInTheDocument();
     expect(screen.queryByText("Select an article")).not.toBeInTheDocument();
@@ -2507,7 +2517,14 @@ describe("ArticleView", () => {
 
     render(<ArticleView />, { wrapper: createWrapper() });
 
-    expect(await screen.findByText("Add your first feed")).toBeInTheDocument();
+    const feedSetupCard = (await screen.findByText("Add your first feed")).parentElement;
+    expect(feedSetupCard).toBeInTheDocument();
+    expect(feedSetupCard).toHaveClass("motion-content-swap");
+    expect(feedSetupCard).toHaveAttribute("data-motion-phase", "entering");
+    expect(feedSetupCard).toHaveStyle({
+      "--motion-content-swap-offset": "10px",
+      "--motion-duration-content-swap": "260ms",
+    });
     expect(
       screen.getByText("Your account is ready. Add the first feed and the reading queue will come to life."),
     ).toBeInTheDocument();

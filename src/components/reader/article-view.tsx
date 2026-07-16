@@ -481,6 +481,7 @@ function EmptyState({
           hints={content.hints}
           containerClassName={content.containerClassName}
           cardClassName={content.cardClassName}
+          animateCardEntrance={emptyReason !== "default"}
           actions={content.actions}
         />
       }

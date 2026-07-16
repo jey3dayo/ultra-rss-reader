@@ -12,9 +12,7 @@ In Rust, as in many other languages, tests often show how the functions are mean
 ### Use descriptive names
 
 > In the unit test name we should see the following:
->
 > * `unit_of_work`: which *function* we are calling. The **action** that will be executed. This is often be the name of the the test `mod` where the function is being tested.
->
 ```rust
 #[cfg(test)] 
 mod test { 
@@ -24,21 +22,17 @@ mod test {
     } 
 }
 ```
->
 > * `expected_behavior`: the set of **assertions** that we need to verify that the test works.
 > * `state_that_the_test_will_check`: the general **arrangement**, or setup, of the specific test case.
 
 #### ❌ Don't use a generic name for a test
-
 ```rust
 #[test]
 fn test_add_happy_path() {
     assert_eq!(add(2, 2), 4);
 }
 ```
-
 #### ✅ Use a name which reads like a sentence, describing the desired behavior
->
 > Alternatively, if you function has too many tests, you can blob them together in a `mod`, it makes it easier to read and navigate.
 
 ```rust
@@ -111,11 +105,10 @@ mod test { // IDEs will provide a ▶️ button here
 
 ### Only test one behavior per function
 
-To keep tests clear, they should describe *one* thing that the unit does.
+To keep tests clear, they should describe _one_ thing that the unit does.
 This makes it easier to understand why a test is failing.
 
 #### ❌ Don't test multiple things in the same test
-
 ```rust
 fn test_thing_parser(...) {
     assert!(Thing::parse("abcd").is_ok());
@@ -124,7 +117,6 @@ fn test_thing_parser(...) {
 ```
 
 #### ✅ Test one thing per test
-
 ```rust
 #[cfg(test)]
 mod test_thing_parser {
@@ -149,7 +141,7 @@ mod test_thing_parser {
 
 ### Use very few, ideally one, assertion per test
 
-When there are multiple assertions per test, it's both harder to understand the intended behavior and
+When there are multiple assertions per test, it's both harder to understand the intended behavior and 
 often requires many iterations to fix a broken test, as you work through assertions one by one.
 
 ❌ Don't include many assertions in one test:
@@ -166,7 +158,6 @@ fn test_valid_inputs() {
 
 If you are testing separate behaviors, make multiple tests each with descriptive names.
 To avoid boilerplate, either use a shared setup function or [rstest](https://crates.io/crates/rstest) cases *with descriptive test names*:
-
 ```rust
 #[rstest]
 #[case::single("a")]
@@ -214,7 +205,6 @@ We will deep dive into docs at a later stage, so in this section we will just br
 ```
 
 This documentation code would look like:
-
 ```rust
 use num::numeric;
 
@@ -253,7 +243,7 @@ mod unit_of_work_tests {
 
 ### Integration Tests
 
-Tests that go under the `tests/` directory, they are entirely external to your library and use the same code as any other code would use, not have access to private and crate level functions, which means they can **only test** functions on your **public API**.
+Tests that go under the `tests/` directory, they are entirely external to your library and use the same code as any other code would use, not have access to private and crate level functions, which means they can **only test** functions on your **public API**. 
 
 > Their purpose is to test whether many parts of the code work together correctly, units of code that work correctly on their own could have problems when integrated.
 
@@ -277,7 +267,7 @@ Tests that go under the `tests/` directory, they are entirely external to your l
 
 As mentioned in section [5.2](#52-add-test-examples-to-your-docs), doc tests should have happy paths, general public API usage and more powerful attributes that improve documentation, like custom CSS for the code blocks.
 
-### Attributes
+### Attributes:
 
 * `ignore`: tells rust to ignore the code, usually not recommended, if you want just a code formatted text, use `text`.
 * `should_panic`: tells the rust compiler that this example block will panic.
@@ -287,40 +277,33 @@ As mentioned in section [5.2](#52-add-test-examples-to-your-docs), doc tests sho
 ## 5.4 How to `assert!`
 
 Rust comes with 2 macros to make assertions:
-
 * `assert!` for asserting boolean values like `assert!(value.is_ok(), "'value' is not Ok: {value:?}")`
 * `assert_eq!` for checking equality between two different values, `assert_eq!(result, expected, "'result' differs from 'expected': {}", result.diff(expected))`.
 
 ### 🚨 `assert!` reminders
-
 * Rust asserts support formatted strings, like the previous examples, those strings will be printed in case of failure, so it is a good practice to add what the actual state was and how it differs from the expected.
 * If you don't care about the exact pattern matching value, using `matches!` combined with `assert!` might be a good alternative.
-
 ```rust
 assert!(matches!(error, MyError::BadInput(_), "Expected `BadInput`, found {error}"));
 ```
-
 * Use `#[should_panic]` wisely. It should only be used when panic is the desired behavior, prefer result instead of panic.
 * There are some other that can enhance your testing experience like:
-  * [`rstest`](https://crates.io/crates/rstest): fixture based test framework with procedural macros.
-  * [`pretty_assertions`](https://crates.io/crates/pretty_assertions): overrides `assert_eq` and `assert_ne`, and creates colorful diffs between them.
+    * [`rstest`](https://crates.io/crates/rstest): fixture based test framework with procedural macros.
+    * [`pretty_assertions`](https://crates.io/crates/pretty_assertions): overrides `assert_eq` and `assert_ne`, and creates colorful diffs between them.
 
 ## 5.5 Snapshot Testing with `cargo insta`
 
 > When correctness is visual or structural, snapshots tell the story better than asserts.
 
 1. Add to your dependencies:
-
 ```toml
 insta = { version = "1.42.2", features = ["yaml"] }
 ```
-
 > For most real world applications the recommendation is to use YAML snapshots of serializable values. This is because they look best under version control and the diff viewer and support redaction. To use this enable the yaml feature of insta.
 
-1. For a better review experience, add the CLI `cargo install cargo-insta`.
+2. For a better review experience, add the CLI `cargo install cargo-insta`.
 
-2. Writing a simple test:
-
+3. Writing a simple test:
 ```rust
 fn split_words(s: &str) -> Vec<&str> {
     s.split_whitespace().collect()
@@ -333,21 +316,19 @@ fn test_split_words() {
 }
 ```
 
-1. Run `cargo insta test` to execute, and `cargo insta review` to review conflicts.
+4. Run `cargo insta test` to execute, and `cargo insta review` to review conflicts.
 
 To learn more about `cargo insta` check out its [documentation](https://insta.rs/docs/quickstart/) as it is a very complete and well documented tool.
 
 ### What is snapshot testing?
 
 Snapshot testing compares your output (text, Json, HTML, YAML, etc) against a saved "golden" version. On future runs, the test fails if the output changes, unless humanly approved. It is perfect for:
-
 * Generate code.
 * Serializing complex data.
 * Rendered HTML.
 * CLI output.
 
 #### ❌ What not to test with snapshot
-
 * Very stable, numeric-only or small structured data associated logic (prefer `assert_eq!`).
 * Critical path logic (prefer precise unit tests).
 * Flaky tests, randomly generated output, unless redacted.
@@ -356,13 +337,11 @@ Snapshot testing compares your output (text, Json, HTML, YAML, etc) against a sa
 ## 5.6 ✅ Snapshot Best Practices
 
 * Named snapshots, it gives meaningful snapshot files names, e.g. `snapshots/this_is_a_named_snapshot.snap`
-
 ```rust
 assert_snapshot!("this_is_a_named_snapshot", output);
 ```
 
-* Keep snapshots small and clear.
-
+* Keep snapshots small and clear. 
 ```rust
 // ✅ Best case:
 assert_snapshot!("app_config/http", whole_app_config.http);
@@ -371,12 +350,10 @@ assert_snapshot!("app_config/http", whole_app_config.http);
 assert_snapshot!("app_config", whole_app_config); // Huge object
 ```
 
-> #### 🚨 Avoid snapshotting huge objects
->
+> #### 🚨 Avoid snapshotting huge objects 
 > Huge objects become hard to review and reason about.
 
 * Avoid snapshotting simple types (primitives, flat enums, small structs):
-
 ```rust
 // ✅ Better:
 assert_eq!(meaning_of_life, 42);
@@ -386,7 +363,6 @@ assert_snapshot!("the_meaning_of_life", meaning_of_life); // meaning_of_life == 
 ```
 
 * Use [redactions](https://insta.rs/docs/redactions/) for unstable fields (randomly generated, timestamps, uuid, etc):
-
 ```rust
 use insta::assert_json_snapshot;
 
@@ -401,6 +377,5 @@ fn endpoint_get_user_data() {
     );
 }
 ```
-
 * Commit your snapshots into git. They will be stored in `snapshots/` alongside your tests.
 * Review changes carefully before accepting.

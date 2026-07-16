@@ -3,15 +3,14 @@
 > Static where you can, dynamic where you must
 
 Rust allows you to handle polymorphic code in two ways:
-
-* Generics / Static Dispatch: compile-time, monomorphized per use.
-* Trait Objects / Dynamic Dispatch: runtime vtable, single implementation.
+* **Generics / Static Dispatch**: compile-time, monomorphized per use.
+* **Trait Objects / Dynamic Dispatch**: runtime vtable, single implementation.
 
 Understanding the trade-offs lets you write faster, smaller and more flexible code.
 
 ## 6.1 [Generics](https://doc.rust-lang.org/book/ch10-00-generics.html)
 
-Every programming language has tools for effectively handling the duplication of concepts. In Rust, one such tool is generics: abstract stand-ins for concrete types or other properties. We can express the behavior of generics or how they relate to other generics without knowing what will be in their place when compiling and running the code.
+Every programming language has tools for effectively handling the duplication of concepts. In Rust, one such tool is generics: abstract stand-ins for concrete types or other properties. We can express the behavior of generics or how they relate to other generics without knowing what will be in their place when compiling and running the code. 
 
 We use generics to create definitions for items like function signatures or structs, which we can then use with many different concrete data types. Let's first look at how to define functions, structs, enums, and methods using generics. Generics can also be used to implement Type State Pattern and constrain a struct functionality to certain expected types, more on type state on [Chapter 7](./chapter_07.md).
 
@@ -25,15 +24,13 @@ You might be wondering whether there is a runtime cost when using generic type p
 
 A static dispatch is basically a constrained version of a generics, a trait bounded generic, at compile-time it is able to check if your generic satisfies the declared traits.
 
-### ✅ Best when
-
+### ✅ Best when:
 * You want **zero runtime cost**, by paying the compile time cost.
 * You need **tight loops or performance**.
 * Your types are **known at compile time**.
 * Your are working with **single-use implementations** (monomorphized).
 
 ### 🏎️ Example: High-performance function with generic
-
 ```rust
 fn specialized_sum<T: MyTrait, U: Iterator<Item = T>>(iter: U) -> T {
     iter.map(|x| x.random_mapping()).sum()
@@ -51,8 +48,7 @@ This is compiled into **specialized machine code** for each usage, fast and inli
 
 Usually dynamic dispatch is used with some kind of pointer or a reference, like `Box<dyn Trait>`, `Arc<dyn Trait>` or `&dyn trait`.
 
-### ✅ Best when
-
+### ✅ Best when:
 * You absolutely need runtime polymorphism.
 * You need to **store different implementations** in one collection.
 * You want to **abstract internals behind a stable interface**.
@@ -91,7 +87,7 @@ fn all_animals_greeting(animals: Vec<Box<dyn Animal>>) {
 ## 6.4 Trade-off summary
 
 | | Static Dispatch (impl Trait) | Dynamic Dispatch (dyn Trait) |
-| ------------------- | ------------------------------ | ---------------------------------- |
+|------------------- |------------------------------ |---------------------------------- |
 | Performance | ✅ Faster, inlined | ❌ Slower: vtable indirection |
 | Compile time | ❌ Slower: monomorphization | ✅ Faster: shared code |
 | Binary size | ❌ Larger: per-type codegen | ✅ Smaller |
@@ -109,10 +105,9 @@ fn all_animals_greeting(animals: Vec<Box<dyn Animal>>) {
 
 Dynamic dispatch `Ptr<dyn Trait>` is a powerful tool, but it also has significant performance trade-offs. You should only reach for it when **type erasure or runtime polymorphism** are essential. It is important to know when you need Trait Objects:
 
-### ✅ Use Dynamic Dispatch When
+### ✅ Use Dynamic Dispatch When:
 
 * You need heterogeneous types in a collection:
-
 ```rust
 fn all_animals_greeting(animals: Vec<Box<dyn Animal>>) {
     for animal in animals {
@@ -124,7 +119,8 @@ fn all_animals_greeting(animals: Vec<Box<dyn Animal>>) {
 * You want runtime plugins or hot-swappable components.
 * You want to abstract internals from the caller (library design).
 
-### ❌ Avoid Dynamic Dispatch When
+
+### ❌ Avoid Dynamic Dispatch When:
 
 * You control the concrete types.
 * You are writing code in performance critical paths.
@@ -135,8 +131,7 @@ fn all_animals_greeting(animals: Vec<Box<dyn Animal>>) {
 * Prefer `&dyn Trait` over `Box<dyn Trait>` when you don't need ownership.
 * Use `Arc<dyn Trait>` for shared access across threads.
 * Don't use `dyn Trait` if the trait has methods that return `Self`.
-* Avoid boxing too early. Don't box inside structs unless you are sure it'll be beneficial or is required (recursive).
-
+* **Avoid boxing too early**. Don't box inside structs unless you are sure it'll be beneficial or is required (recursive).
 ```rust
 // ✅ Use generics when possible
 struct Renderer<B: Backend> {
@@ -148,13 +143,11 @@ struct Renderer {
     backend: Box<dyn Backend> // Boxing too early
 }
 ```
-
 * If you must expose a `dyn trait` in a public API, `Box` at the boundary, not internally.
-* Object Safety: You can only create `dyn Traits` from object-safe traits:
-  * It has **no generic methods**.
-  * It doesn't require `Self: Sized`.
-  * All method signatures use `&self`, `&mut self` or `self`.
-
+* **Object Safety**: You can only create `dyn Traits` from object-safe traits:
+    * It has **no generic methods**.
+    * It doesn't require `Self: Sized`.
+    * All method signatures use `&self`, `&mut self` or `self`.
     ```rust
     // ✅ Object Safe
     trait Runnable {
