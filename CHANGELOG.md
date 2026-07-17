@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.53.39] - 2026-07-17
+
+### Bug Fixes
+
+- アカウント追加時のサービス選択・設定フォームの切り替えと接続エラー表示に共有モーションを適用し、設定フローの状態変化を追いやすくした。
+
 ## [0.53.38] - 2026-07-17
 
 ### Maintenance
