@@ -322,7 +322,8 @@ describe("AddAccountFormView", () => {
     const errorAlert = screen.getByRole("alert");
     expect(errorAlert).toHaveTextContent("Connection failed");
     expect(errorAlert).toHaveAttribute("aria-live", "assertive");
-    expect(errorAlert).toHaveClass("border-state-danger-border", "bg-state-danger-surface");
+    expect(errorAlert).toHaveClass("border-state-danger-border", "bg-state-danger-surface", "motion-content-swap");
+    expect(errorAlert).toHaveAttribute("data-motion-phase", "entering");
   });
 });
 

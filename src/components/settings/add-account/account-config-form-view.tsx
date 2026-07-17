@@ -2,6 +2,7 @@ import { ChevronLeft } from "lucide-react";
 import { SettingsActionButton } from "@/components/settings/shared/settings-action-button";
 import { SettingsSection } from "@/components/settings/shared/settings-section";
 import { SETTINGS_CONTROL_SURFACE_CLASS, SETTINGS_DIVIDER_CLASS } from "@/components/settings/shared/settings-surface";
+import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
 import { FormActionButtons, LabeledInputRow, SurfaceCard } from "@/design-system";
 import { cn } from "@/lib/utils";
 import type { AddAccountCredentialsSection, AddAccountInputControl } from "./form-view";
@@ -124,7 +125,16 @@ export function AccountConfigFormView({
         )}
 
         {errorMessage ? (
-          <SurfaceCard variant="info" tone="danger" padding="compact" role="alert" aria-live="assertive">
+          <SurfaceCard
+            key={errorMessage}
+            {...{ [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING }}
+            className={MOTION_CONTENT_SWAP_CLASS_NAME}
+            variant="info"
+            tone="danger"
+            padding="compact"
+            role="alert"
+            aria-live="assertive"
+          >
             <p className="text-sm leading-[1.5]">{errorMessage}</p>
           </SurfaceCard>
         ) : null}

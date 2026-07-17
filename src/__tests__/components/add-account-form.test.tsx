@@ -454,6 +454,7 @@ describe("AddAccountForm", () => {
     await selectService(user, "FreshRSS");
 
     expect(screen.getByLabelText("Name")).toBeInTheDocument();
+    expect(screen.getByLabelText("Name").closest("[data-motion-phase='entering']")).toHaveClass("motion-content-swap");
     expect(screen.getByLabelText("Server URL")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Back/ })).toHaveClass("text-foreground-soft");
     expect(screen.getByText("freshrss.org")).toHaveClass("text-foreground-soft");
@@ -469,6 +470,9 @@ describe("AddAccountForm", () => {
     await waitFor(() => {
       expect(screen.getByText("Local Feeds")).toBeInTheDocument();
     });
+    expect(screen.getByTestId("service-picker-surface").closest("[data-motion-phase='entering']")).toHaveClass(
+      "motion-content-swap",
+    );
   });
 
   it("does not navigate to the config form when a planned service is clicked", async () => {
