@@ -269,13 +269,11 @@ export function SubscriptionsListPane({
                 >
                   <div className="motion-disclosure-body">
                     <div
-                      data-testid={`subscriptions-folder-tree-rail-${group.folderId ?? "ungrouped"}`}
-                      className="relative ml-5 space-y-2 pl-5 pt-2"
+                      data-testid={`subscriptions-folder-rows-${group.folderId ?? "ungrouped"}`}
+                      className="space-y-1.5 pl-9 pt-1"
                     >
-                      {group.rows.map((row, rowIndex) => {
+                      {group.rows.map((row) => {
                         const isSelected = selectedFeedId === row.feed.id;
-                        const isFirstRow = rowIndex === 0;
-                        const isLastRow = rowIndex === group.rows.length - 1;
                         const rowButton = (
                           <NavRowButton
                             key={row.feed.id}
@@ -283,7 +281,7 @@ export function SubscriptionsListPane({
                             aria-pressed={isSelected}
                             onClick={() => onSelectFeed(row.feed.id)}
                             className={cn(
-                              "motion-static-hover-surface items-center rounded-md border border-transparent px-3.5 py-3.5 shadow-none",
+                              "motion-list-item-enter motion-static-hover-surface items-center rounded-md border border-transparent px-3.5 py-3.5 shadow-none",
                               isSelected
                                 ? "border-[color:var(--subscriptions-list-row-selected-border)] bg-[color:var(--subscriptions-list-row-selected-surface)] shadow-[var(--subscriptions-list-row-selected-shadow)]"
                                 : "bg-surface-1/36 hover:border-[color:var(--subscriptions-list-divider)] hover:bg-[color:var(--subscriptions-list-row-hover)]",
@@ -344,35 +342,14 @@ export function SubscriptionsListPane({
                           />
                         );
 
-                        const treeRow = (
-                          <div
-                            key={`${row.feed.id}-tree-row`}
-                            className={cn(
-                              "relative before:absolute before:left-[-1.25rem] before:w-px before:bg-[color:var(--subscriptions-list-tree-rail)] before:content-['']",
-                              isFirstRow ? "before:top-1/2" : "before:-top-1",
-                              isLastRow ? "before:bottom-1/2" : "before:-bottom-1",
-                            )}
-                          >
-                            <span
-                              aria-hidden="true"
-                              className="absolute left-[-1.25rem] top-1/2 h-px w-4 bg-[color:var(--subscriptions-list-tree-rail)]"
-                            />
-                            <span
-                              aria-hidden="true"
-                              className="absolute left-[-1.25rem] top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[color:var(--subscriptions-list-tree-node-border)] bg-[color:var(--subscriptions-list-tree-node-surface)]"
-                            />
-                            {rowButton}
-                          </div>
-                        );
-
                         return row.reasonTooltipKey ? (
                           <TooltipProvider key={row.feed.id}>
                             <AppTooltip label={reasonTooltipLabels[row.reasonTooltipKey]} side="top" align="start">
-                              {treeRow}
+                              {rowButton}
                             </AppTooltip>
                           </TooltipProvider>
                         ) : (
-                          treeRow
+                          rowButton
                         );
                       })}
                     </div>

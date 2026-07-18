@@ -197,22 +197,20 @@ export function FeedDetailPanel({
             </div>
           ) : null}
           <div data-testid="feed-detail-main-column" className="min-w-0">
-            <div
-              className={cn("flex min-w-0 flex-wrap items-center justify-between gap-2.5", leadingVisual && "min-h-10")}
-            >
+            <div className={cn("flex min-w-0 items-start justify-between gap-2.5", leadingVisual && "min-h-10")}>
               {resolvedTitleHref ? (
                 <a
                   href={resolvedTitleHref}
                   target="_blank"
                   rel="noreferrer"
-                  className={cn(detailLinkClassName, "inline-flex min-w-0 max-w-full no-underline")}
+                  className={cn(detailLinkClassName, "inline-flex min-w-0 flex-1 no-underline")}
                 >
-                  <h3 className="font-sans text-[1.12rem] font-semibold leading-none tracking-[-0.025em] text-foreground">
+                  <h3 className="min-w-0 font-sans text-[1.12rem] font-semibold leading-snug tracking-[-0.025em] text-foreground">
                     {title}
                   </h3>
                 </a>
               ) : (
-                <h3 className="font-sans text-[1.12rem] font-semibold leading-none tracking-[-0.025em] text-foreground">
+                <h3 className="min-w-0 flex-1 font-sans text-[1.12rem] font-semibold leading-snug tracking-[-0.025em] text-foreground">
                   {title}
                 </h3>
               )}
@@ -220,7 +218,7 @@ export function FeedDetailPanel({
                 <LabelChip
                   data-testid="feed-detail-status"
                   tone={resolveBadgeClassName(badgeTone)}
-                  className="rounded-md px-2 py-0.5 text-[10px] tracking-[0.08em]"
+                  className="mt-0.5 shrink-0 rounded-md px-2 py-0.5 text-[10px] tracking-[0.08em]"
                 >
                   {badgeLabel}
                 </LabelChip>
@@ -232,7 +230,7 @@ export function FeedDetailPanel({
                   size="icon-xs"
                   data-testid="feed-detail-primary-action"
                   className={cn(
-                    "size-8 border-transparent bg-transparent p-0 text-foreground-soft shadow-none hover:bg-transparent hover:text-foreground",
+                    "size-8 shrink-0 border-transparent bg-transparent p-0 text-foreground-soft shadow-none hover:bg-transparent hover:text-foreground",
                     isLowWire && "hover:text-foreground",
                   )}
                   title={primaryAction.label}
@@ -340,7 +338,7 @@ export function FeedDetailPanel({
                     className={cn(
                       "px-3 py-2 shadow-none",
                       isLowWire &&
-                        "rounded-md border border-[var(--workspace-low-wire-section-border)] bg-[var(--workspace-low-wire-group-surface)] px-3 py-2.5",
+                        "rounded-md border-transparent bg-[var(--workspace-low-wire-group-surface)] px-3 py-2.5",
                     )}
                   >
                     <div className={cn("min-w-0", isLowWire ? "space-y-1" : "flex items-center justify-between gap-3")}>

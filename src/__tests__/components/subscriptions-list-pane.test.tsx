@@ -228,7 +228,7 @@ describe("SubscriptionsListPane", () => {
     expect(await screen.findByText("更新停止が続いていて、未読もありません")).toHaveClass("motion-popup-surface");
   });
 
-  it("renders folder disclosure rows as a tree section with count and rail", () => {
+  it("renders folder disclosure rows as an indented section with count", () => {
     renderListPane([
       {
         feed: buildFeed({ title: "Tree Feed", unread_count: 2 }),
@@ -248,59 +248,9 @@ describe("SubscriptionsListPane", () => {
     expect(folderButton).toHaveClass("border", "border-transparent");
     expect(folderButton).toHaveTextContent("1");
 
-    const rail = screen.getByTestId("subscriptions-folder-tree-rail-ungrouped");
-    expect(rail).toHaveClass("pl-5");
-    expect(rail).not.toHaveClass("before:bg-[color:var(--subscriptions-list-tree-rail)]");
-    expect(screen.getByRole("button", { name: /Tree Feed/ }).parentElement).toHaveClass(
-      "before:top-1/2",
-      "before:bottom-1/2",
-      "before:bg-[color:var(--subscriptions-list-tree-rail)]",
-    );
-  });
-
-  it("draws subscription tree rails only between visible feed rows", () => {
-    renderListPane([
-      {
-        feed: buildFeed({ id: "feed-first", title: "First Tree Feed", unread_count: 2 }),
-        folderId: null,
-        folderName: null,
-        latestArticleAt: "2026-05-07T00:00:00Z",
-        recentArticleCount: 0,
-        status: { tone: "neutral", labelKey: "normal" },
-        reasonTooltipKey: null,
-      },
-      {
-        feed: buildFeed({ id: "feed-middle", title: "Middle Tree Feed", unread_count: 0 }),
-        folderId: null,
-        folderName: null,
-        latestArticleAt: null,
-        recentArticleCount: 0,
-        status: { tone: "neutral", labelKey: "normal" },
-        reasonTooltipKey: null,
-      },
-      {
-        feed: buildFeed({ id: "feed-last", title: "Last Tree Feed", unread_count: 0 }),
-        folderId: null,
-        folderName: null,
-        latestArticleAt: null,
-        recentArticleCount: 0,
-        status: { tone: "neutral", labelKey: "normal" },
-        reasonTooltipKey: null,
-      },
-    ]);
-
-    expect(screen.getByRole("button", { name: /First Tree Feed/ }).parentElement).toHaveClass(
-      "before:top-1/2",
-      "before:-bottom-1",
-    );
-    expect(screen.getByRole("button", { name: /Middle Tree Feed/ }).parentElement).toHaveClass(
-      "before:-top-1",
-      "before:-bottom-1",
-    );
-    expect(screen.getByRole("button", { name: /Last Tree Feed/ }).parentElement).toHaveClass(
-      "before:-top-1",
-      "before:bottom-1/2",
-    );
+    const rows = screen.getByTestId("subscriptions-folder-rows-ungrouped");
+    expect(rows).toHaveClass("pl-9");
+    expect(screen.getByRole("button", { name: /Tree Feed/ })).toHaveClass("motion-list-item-enter");
   });
 
   it("keeps collapsed folder panels hidden and inert", () => {
@@ -627,7 +577,7 @@ describe("SubscriptionsListPane", () => {
     expect(secondFolderButton).toHaveAttribute("aria-controls", "subscriptions-group-panel-folder-b");
     expect(document.getElementById("subscriptions-group-panel-folder-a")).toBeInTheDocument();
     expect(document.getElementById("subscriptions-group-panel-folder-b")).toBeInTheDocument();
-    expect(screen.getByTestId("subscriptions-folder-tree-rail-folder-a")).toBeInTheDocument();
-    expect(screen.getByTestId("subscriptions-folder-tree-rail-folder-b")).toBeInTheDocument();
+    expect(screen.getByTestId("subscriptions-folder-rows-folder-a")).toBeInTheDocument();
+    expect(screen.getByTestId("subscriptions-folder-rows-folder-b")).toBeInTheDocument();
   });
 });

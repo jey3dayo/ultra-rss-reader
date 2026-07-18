@@ -243,9 +243,6 @@
   --subscriptions-list-surface: rgba(242, 241, 237, 0.42);
   --subscriptions-detail-surface: rgba(235, 234, 229, 0.5);
   --subscriptions-list-divider: rgba(38, 37, 30, 0.12);
-  --subscriptions-list-tree-rail: rgba(38, 37, 30, 0.2);
-  --subscriptions-list-tree-node-border: rgba(38, 37, 30, 0.22);
-  --subscriptions-list-tree-node-surface: rgba(247, 247, 244, 0.92);
   --subscriptions-list-favicon-surface: rgba(247, 247, 244, 0.88);
   --subscriptions-list-favicon-surface-muted: rgba(235, 234, 229, 0.88);
   --subscriptions-list-meta-divider: rgba(38, 37, 30, 0.25);
@@ -392,6 +389,17 @@
     0 0 1px 1px rgba(0, 0, 0, 0.25), 0 1px 1px rgba(0, 0, 0, 0.25), 1px 2px 4px -1px rgba(0, 0, 0, 0.25);
   --tone-foreground-strength: 36%;
   --tone-surface-strength: 18%;
+  --tone-nav-selected-surface-strength: 34%;
+  --semantic-tone-unread-nav-selected-surface: color-mix(
+    in srgb,
+    var(--tone-unread) var(--tone-nav-selected-surface-strength),
+    transparent
+  );
+  --semantic-tone-starred-nav-selected-surface: color-mix(
+    in srgb,
+    var(--tone-starred) var(--tone-nav-selected-surface-strength),
+    transparent
+  );
   --semantic-tone-unread-surface: color-mix(in srgb, var(--tone-unread) var(--tone-surface-strength), transparent);
   --semantic-tone-unread-sidebar-foreground: color-mix(
     in srgb,
@@ -601,9 +609,6 @@
   --subscriptions-list-surface: rgba(28, 25, 21, 0.34);
   --subscriptions-detail-surface: rgba(35, 31, 26, 0.44);
   --subscriptions-list-divider: rgba(243, 239, 230, 0.12);
-  --subscriptions-list-tree-rail: rgba(243, 239, 230, 0.2);
-  --subscriptions-list-tree-node-border: rgba(243, 239, 230, 0.22);
-  --subscriptions-list-tree-node-surface: rgba(34, 30, 25, 0.92);
   --subscriptions-list-favicon-surface: rgba(34, 30, 25, 0.9);
   --subscriptions-list-favicon-surface-muted: rgba(45, 40, 34, 0.88);
   --subscriptions-list-meta-divider: rgba(243, 239, 230, 0.25);
@@ -746,6 +751,17 @@
     0 0 1px 1px rgba(0, 0, 0, 0.25), 0 1px 1px rgba(0, 0, 0, 0.25), 1px 2px 4px -1px rgba(0, 0, 0, 0.25);
   --tone-foreground-strength: 78%;
   --tone-surface-strength: 22%;
+  --tone-nav-selected-surface-strength: 38%;
+  --semantic-tone-unread-nav-selected-surface: color-mix(
+    in srgb,
+    var(--tone-unread) var(--tone-nav-selected-surface-strength),
+    transparent
+  );
+  --semantic-tone-starred-nav-selected-surface: color-mix(
+    in srgb,
+    var(--tone-starred) var(--tone-nav-selected-surface-strength),
+    transparent
+  );
   --semantic-tone-unread-surface: color-mix(in srgb, var(--tone-unread) var(--tone-surface-strength), transparent);
   --semantic-tone-unread-sidebar-foreground: color-mix(
     in srgb,
@@ -971,10 +987,12 @@
   animation: article-list-titlebar-control-enter var(--motion-duration-popup) var(--motion-ease-emphasized);
 }
 
-*,
-*::before,
-*::after {
-  border-color: var(--color-border);
+@layer base {
+  *,
+  *::before,
+  *::after {
+    border-color: var(--color-border);
+  }
 }
 
 body {
@@ -1027,6 +1045,20 @@ html.vertical-wipe-transition::view-transition-new(root) {
   .motion-browser-theme-wipe-overlay {
     animation: none;
   }
+}
+
+@keyframes motion-loading-pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.motion-loading-dot {
+  animation: motion-loading-pulse 1.2s var(--motion-ease-standard) infinite;
 }
 
 .motion-disclosure-panel {
@@ -1176,6 +1208,25 @@ html.vertical-wipe-transition::view-transition-new(root) {
 
 .motion-content-swap[data-motion-phase="entering"] {
   animation: motion-content-swap-enter var(--motion-duration-content-swap) var(--motion-ease-standard);
+}
+
+@keyframes motion-list-item-enter {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/*
+ * Fires once per DOM mount (React key-based insertion), so it only plays for
+ * genuinely new/re-ordered rows (e.g. filter or subscription-list changes),
+ * not for prop updates on an already-mounted row.
+ */
+.motion-list-item-enter {
+  animation: motion-list-item-enter var(--motion-duration-contextual) var(--motion-ease-standard);
 }
 
 @keyframes motion-article-slide-next {
@@ -1534,6 +1585,11 @@ html.vertical-wipe-transition::view-transition-new(root) {
     transition-duration: 0ms;
   }
 
+  .motion-loading-dot {
+    animation: none;
+    opacity: 0.7;
+  }
+
   .motion-disclosure-panel[data-state="open"] > .motion-disclosure-body,
   .motion-disclosure-panel[data-state="closed"] > .motion-disclosure-body {
     transform: translateY(0);
@@ -1559,6 +1615,11 @@ html.vertical-wipe-transition::view-transition-new(root) {
     animation: none;
     opacity: 1;
     transform: translateY(0);
+  }
+
+  .motion-list-item-enter {
+    animation: none;
+    opacity: 1;
   }
 
   .motion-article-slide[data-motion-direction="next"],

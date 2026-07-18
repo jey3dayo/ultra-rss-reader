@@ -1,3 +1,4 @@
+import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
 import type { FeedTreeEmptyState as FeedTreeEmptyStateModel } from "./feed-tree.types";
 import { ReaderPassiveActionButton } from "./reader-passive-action-button";
 
@@ -11,14 +12,16 @@ export function FeedTreeEmptyState(props: FeedTreeEmptyStateProps) {
   const text = props.text ?? props.message ?? props.label;
   return (
     <div
-      className="px-2 py-4 text-center text-sm text-foreground-soft"
+      key={props.kind}
+      {...{ [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING }}
+      className={`${MOTION_CONTENT_SWAP_CLASS_NAME} px-2 py-4 text-center text-sm text-foreground-soft`}
       aria-live={props.kind === "loading" ? "polite" : undefined}
     >
       {props.kind === "message" ? (
         text
       ) : props.kind === "loading" ? (
         <div className="inline-flex items-center gap-2">
-          <span className="size-2 rounded-full bg-foreground-soft/50" aria-hidden="true" />
+          <span className="motion-loading-dot size-2 rounded-full bg-foreground-soft/50" aria-hidden="true" />
           <span>{text}</span>
         </div>
       ) : (

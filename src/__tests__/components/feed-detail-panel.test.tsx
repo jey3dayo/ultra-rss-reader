@@ -51,13 +51,12 @@ describe("FeedDetailPanel", () => {
       screen.getByTestId("feed-detail-secondary-column").contains(screen.getByTestId("feed-detail-reason-box")),
     ).toBe(true);
     expect(screen.getByTestId("feed-detail-secondary-column")).not.toHaveClass("grid-cols-[auto_minmax(0,1fr)]");
-    expect(screen.getByRole("heading", { level: 3, name: "Example Feed" })).toHaveClass("leading-none");
+    expect(screen.getByRole("heading", { level: 3, name: "Example Feed" })).toHaveClass("leading-snug");
     expect(screen.getByRole("heading", { level: 3, name: "Example Feed" }).parentElement).toHaveClass(
-      "items-center",
+      "items-start",
       "min-h-10",
     );
-    expect(screen.getByTestId("feed-detail-status")).toHaveClass("rounded-md");
-    expect(screen.getByTestId("feed-detail-status")).not.toHaveClass("self-start", "mt-0.5");
+    expect(screen.getByTestId("feed-detail-status")).toHaveClass("rounded-md", "shrink-0", "mt-0.5");
     expect(screen.getByTestId("feed-detail-reason-box").closest('[data-surface-card="section"]')).toHaveClass(
       "bg-card/38",
     );
@@ -78,7 +77,7 @@ describe("FeedDetailPanel", () => {
     expect(screen.getByRole("link", { name: "Help" })).toHaveClass("text-foreground-soft");
     expect(screen.getByTestId("feed-detail-recent-articles")).toHaveClass("space-y-2", "border-t", "pt-3");
     expect(screen.getByText("最近の記事タイトル")).toHaveClass("text-[0.88rem]", "leading-5");
-    expect(screen.getByTestId("feed-detail-primary-action").parentElement).toHaveClass("items-center", "min-h-10");
+    expect(screen.getByTestId("feed-detail-primary-action").parentElement).toHaveClass("items-start", "min-h-10");
     expect(screen.queryByTestId("feed-detail-action-bar")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "フィードを編集" })).toHaveClass(
       "size-8",
@@ -206,7 +205,7 @@ describe("FeedDetailPanel", () => {
 
     const titleLink = screen.getByRole("link", { name: "Example Feed" });
     expect(titleLink).toHaveClass("items-center");
-    expect(screen.getByRole("heading", { level: 3, name: "Example Feed" })).toHaveClass("leading-none");
+    expect(screen.getByRole("heading", { level: 3, name: "Example Feed" })).toHaveClass("leading-snug");
     expect(titleLink.querySelector(".lucide-external-link")).toBeNull();
   });
 
@@ -371,12 +370,7 @@ describe("FeedDetailPanel", () => {
     );
 
     const articleCard = screen.getByText("最近の記事タイトル").closest('[data-surface-card="info"]');
-    expect(articleCard).toHaveClass(
-      "rounded-md",
-      "border",
-      "border-[var(--workspace-low-wire-section-border)]",
-      "bg-[var(--workspace-low-wire-group-surface)]",
-    );
+    expect(articleCard).toHaveClass("rounded-md", "border-transparent", "bg-[var(--workspace-low-wire-group-surface)]");
     expect(screen.getByText("2026/04/17")).toHaveClass("text-foreground-soft");
     expect(screen.getByText("2026/04/17")).not.toHaveClass("shrink-0");
     expect(screen.getByText("2026/04/17").parentElement).toHaveClass("space-y-1");

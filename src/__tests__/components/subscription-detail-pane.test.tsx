@@ -75,7 +75,7 @@ function getLatestArticleMetricRow(): HTMLElement {
 }
 
 describe("SubscriptionDetailPane", () => {
-  it("names the detail pane region from its visible heading", () => {
+  it("names the detail pane region via an accessible label", () => {
     render(<SubscriptionDetailPane {...baseProps} />);
 
     expect(screen.getByRole("region", { name: "Details" })).toBeInTheDocument();
