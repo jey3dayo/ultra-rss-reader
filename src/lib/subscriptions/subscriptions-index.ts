@@ -303,7 +303,7 @@ export function buildSubscriptionDetailCandidate(params: {
     normalReason: string;
     summaryText: (summaryKey: ReturnType<typeof summarizeSubscriptionReviewCandidate>["summaryKey"]) => string;
     reasonFact: (fact: { key: "stale_days" | "unread_count"; value: number }) => string;
-    reasonLabel: (reasonKey: SubscriptionReviewCandidate["reasonKeys"][number]) => string;
+    reasonLabel: (reasonKey: SubscriptionReviewCandidate["reasonKeys"][number], staleDays: number | null) => string;
   };
 }): SubscriptionDetailCandidate | null {
   const { selectedRow, selectedCandidate, labels } = params;
@@ -325,7 +325,9 @@ export function buildSubscriptionDetailCandidate(params: {
   const summary = summarizeSubscriptionReviewCandidate(selectedCandidate);
   const reasonFacts = buildSubscriptionReviewReasonFacts(selectedCandidate);
   const summaryText = labels.summaryText(summary.summaryKey);
-  const reasonLabels = selectedCandidate.reasonKeys.map((reasonKey) => labels.reasonLabel(reasonKey));
+  const reasonLabels = selectedCandidate.reasonKeys.map((reasonKey) =>
+    labels.reasonLabel(reasonKey, selectedCandidate.staleDays),
+  );
   const primaryReasonLabel = reasonLabels[0] ?? null;
 
   return {

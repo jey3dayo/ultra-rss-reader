@@ -125,7 +125,7 @@ export function SubscriptionsIndexPage() {
           normalReason: t("detail_reason_normal"),
           summaryText: (summaryKey) => t(resolveSubscriptionReviewSummaryTranslationKey(summaryKey)),
           reasonFact: (fact) => t(resolveSubscriptionReviewReasonFactTranslationKey(fact.key), { count: fact.value }),
-          reasonLabel: (reasonKey) => t(`reason_${reasonKey}`),
+          reasonLabel: (reasonKey, staleDays) => t(`reason_${reasonKey}`, { count: staleDays ?? 0 }),
         },
       }),
     [selectedCandidate, state.selectedRow, t],

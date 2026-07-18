@@ -149,14 +149,6 @@ export function buildSubscriptionReviewReasonFacts(candidate: SubscriptionReview
 }> {
   const facts: Array<{ key: SubscriptionReviewReasonFactKey; value: number }> = [];
 
-  if (
-    (hasSubscriptionReviewReason(candidate, "attention_30d") ||
-      hasSubscriptionReviewReason(candidate, "stale_90d") ||
-      hasSubscriptionReviewReason(candidate, "quiet_no_unread")) &&
-    candidate.staleDays != null
-  ) {
-    facts.push({ key: "stale_days", value: candidate.staleDays });
-  }
   if (hasSubscriptionReviewReason(candidate, "quiet_no_unread")) {
     facts.push({ key: "unread_count", value: candidate.unreadCount });
   }

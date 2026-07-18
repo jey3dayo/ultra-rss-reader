@@ -217,10 +217,7 @@ describe("buildSubscriptionReviewCandidates", () => {
       titleKey: "review_now",
       summaryKey: "stale_and_inactive",
     });
-    expect(buildSubscriptionReviewReasonFacts(multiReasonCandidate)).toEqual([
-      { key: "stale_days", value: 94 },
-      { key: "unread_count", value: 0 },
-    ]);
+    expect(buildSubscriptionReviewReasonFacts(multiReasonCandidate)).toEqual([{ key: "unread_count", value: 0 }]);
   });
 
   it("marks stale feeds at the 90 day boundary only", () => {
@@ -509,10 +506,7 @@ describe("buildSubscriptionReviewCandidates", () => {
       "stale_but_supported",
       "attention_low_activity",
     ]);
-    expect(candidates.map((candidate) => buildSubscriptionReviewReasonFacts(candidate))).toEqual([
-      [{ key: "stale_days", value: 94 }],
-      [{ key: "stale_days", value: 35 }],
-    ]);
+    expect(candidates.map((candidate) => buildSubscriptionReviewReasonFacts(candidate))).toEqual([[], []]);
   });
 
   it("does not mark feeds with no fetched articles as review candidates just because counts are zero", () => {
@@ -577,10 +571,7 @@ describe("buildSubscriptionReviewCandidates", () => {
       starredCount: 0,
       reasonKeys: ["stale_90d", "quiet_no_unread"],
     });
-    expect(buildSubscriptionReviewReasonFacts(candidates[0])).toEqual([
-      { key: "stale_days", value: 94 },
-      { key: "unread_count", value: 0 },
-    ]);
+    expect(buildSubscriptionReviewReasonFacts(candidates[0])).toEqual([{ key: "unread_count", value: 0 }]);
   });
 
   it("sorts equally stale candidates by reason count, unread count, then title without using stars", () => {
@@ -771,14 +762,8 @@ describe("buildSubscriptionReviewCandidates", () => {
       hiddenFeedIds: new Set(),
     });
 
-    expect(buildSubscriptionReviewReasonFacts(candidates[0])).toEqual([
-      { key: "stale_days", value: 155 },
-      { key: "unread_count", value: 0 },
-    ]);
-    expect(buildSubscriptionReviewReasonFacts(candidates[1])).toEqual([
-      { key: "stale_days", value: 94 },
-      { key: "unread_count", value: 0 },
-    ]);
+    expect(buildSubscriptionReviewReasonFacts(candidates[0])).toEqual([{ key: "unread_count", value: 0 }]);
+    expect(buildSubscriptionReviewReasonFacts(candidates[1])).toEqual([{ key: "unread_count", value: 0 }]);
     expect(buildSubscriptionReviewReasonFacts(candidates[2])).toEqual([]);
   });
 

@@ -1472,7 +1472,7 @@ describe("subscriptions index helpers", () => {
         normalReason: "Normal",
         summaryText: (summaryKey) => summaryKey,
         reasonFact: (fact) => `${fact.key}:${fact.value}`,
-        reasonLabel: (reasonKey) => reasonKey,
+        reasonLabel: (reasonKey, staleDays) => `${reasonKey}:${staleDays}`,
       },
     });
 
@@ -1481,8 +1481,8 @@ describe("subscriptions index helpers", () => {
       tone: "high",
       statusLabel: "stale_90d",
       summary: "stale_and_inactive",
-      reasonBoxBody: "stale_90d / stale_days:155 / unread_count:0",
-      reasonLabels: ["stale_90d", "quiet_no_unread"],
+      reasonBoxBody: "stale_90d:155 / unread_count:0",
+      reasonLabels: ["stale_90d:155", "quiet_no_unread:155"],
     });
   });
 });
