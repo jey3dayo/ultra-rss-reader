@@ -37,7 +37,7 @@ describe("SmartViewsView", () => {
     expect(unreadButton).toHaveClass("rounded-lg");
     expect(starredButton).toHaveClass("w-full");
     expect(starredButton).toHaveClass("rounded-lg");
-    expect(unreadButton).toHaveClass("bg-[var(--semantic-tone-unread-surface)]");
+    expect(unreadButton).toHaveClass("bg-[var(--semantic-tone-unread-nav-selected-surface)]");
     expect(unreadButton).toHaveClass("text-[var(--semantic-tone-unread-sidebar-foreground)]");
     expect(unreadButton).not.toHaveClass("before:bg-primary/85");
     expect(unreadButton).not.toHaveClass("before:absolute");

@@ -483,7 +483,7 @@ describe("UI Reference canvases", () => {
 
     const alignmentSection = screen.getByTestId("reference-account-article-nav-alignment");
     const unreadSmartView = within(alignmentSection).getByRole("button", { name: "未読1,988" });
-    expect(unreadSmartView).toHaveClass("bg-[var(--semantic-tone-unread-surface)]");
+    expect(unreadSmartView).toHaveClass("bg-[var(--semantic-tone-unread-nav-selected-surface)]");
     expect(unreadSmartView).not.toHaveClass("before:bg-primary/85");
 
     expect(screen.getByText("Folder stack")).toBeInTheDocument();
