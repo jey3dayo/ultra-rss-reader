@@ -22,12 +22,14 @@ type SmartViewToneClassNames = {
 
 const SMART_VIEW_TONE_CLASSNAMES: Record<SmartViewKind, SmartViewToneClassNames> = {
   unread: {
-    selected: "bg-[var(--semantic-tone-unread-surface)] text-[var(--semantic-tone-unread-sidebar-foreground)]",
+    selected:
+      "bg-[var(--semantic-tone-unread-nav-selected-surface)] text-[var(--semantic-tone-unread-sidebar-foreground)]",
     hover: "hover:text-[var(--semantic-tone-unread-sidebar-foreground)]",
     trailing: "text-[var(--semantic-tone-unread-sidebar-foreground)] opacity-80",
   },
   starred: {
-    selected: "bg-[var(--semantic-tone-starred-surface)] text-[var(--semantic-tone-starred-sidebar-foreground)]",
+    selected:
+      "bg-[var(--semantic-tone-starred-nav-selected-surface)] text-[var(--semantic-tone-starred-sidebar-foreground)]",
     hover: "hover:text-[var(--semantic-tone-starred-sidebar-foreground)]",
     trailing: "text-[var(--semantic-tone-starred-sidebar-foreground)] opacity-80",
   },
