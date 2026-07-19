@@ -32,6 +32,10 @@
 
 ### Reader UI / Account Settings
 
+- P3 MAX_RETAINED_ARTICLE_IDS=50 と一括既読の仕様判断 (created batch: 2026-07-20)
+  - priority: P3 / domain: reader-state / work type: decision + implementation / write scope: article-retention.ts + use-articles.ts
+  - 未読51件以上の一括既読では cap により古い ID から retention が外れ、unread 表示で一部行が消える。また一括 retain が選択中記事の retention を追い出しうる。cap を bulk 時に緩めるか、消えてよい仕様とするか、選択中記事の eviction を防ぐかのプロダクト判断が必要。Rust 側返却順の ORDER BY 付与(newest 保証)もこの判断とセット。発見方法: 実装時チェックリスト + 大量未読フォルダでの手動確認
+
 - P3 reader next-article button の has-next 判定が search 中に list pane とずれうる (created batch: 2026-07-14)
   - priority: P3 / domain: reader-state / work type: implementation-time checklist / write scope: use-article-view-selection.ts の hasNextArticle 算出
   - `hasNextArticle` は content pane の `data.filteredArticles`(`searchResults: undefined`)から算出するため、list pane で検索が有効なときは実際の navigable list と件数がずれ、末尾判定が不一致になりうる。通常閲覧では問題なし。既知の許容エッジとして記録。発見方法: 実装時チェックリスト + 検索中の手動確認
