@@ -26,11 +26,12 @@ describe("article-display preset conversions", () => {
   it.each([
     ["standard", { readerMode: true, webPreviewMode: false }],
     ["preview", { readerMode: true, webPreviewMode: true }],
-  ] satisfies Array<
-    [ArticleDisplayPreset, { readerMode: boolean; webPreviewMode: boolean }]
-  >)("converts preset %s into two display axes", (preset, expected) => {
-    expect(displayPresetToModes(preset)).toEqual(expected);
-  });
+  ] satisfies Array<[ArticleDisplayPreset, { readerMode: boolean; webPreviewMode: boolean }]>)(
+    "converts preset %s into two display axes",
+    (preset, expected) => {
+      expect(displayPresetToModes(preset)).toEqual(expected);
+    },
+  );
 
   it("converts two enabled modes back into their display preset", () => {
     expect(modesToDisplayPreset({ readerMode: true, webPreviewMode: false })).toBe("standard");

@@ -1,5 +1,5 @@
 ["quality:toolchain"]
-description = "Check Node, pnpm, and mise toolchain version contract"
+description = "Check Node/mise and pnpm/corepack toolchain version contract"
 run = "node ./scripts/check-toolchain-contract.ts"
 
 ["quality:markdownlint-contract"]

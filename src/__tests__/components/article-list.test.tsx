@@ -127,100 +127,99 @@ describe("ArticleList", () => {
       selection: { type: "tag", tagId: "tag-1" } as const,
       initialArticle: { ...sampleArticles[0], id: "tag-snapshot", title: "Tag Snapshot Article" },
     },
-  ])("keeps the $label list visible while the primary source revalidates", async ({
-    label,
-    selection,
-    initialArticle,
-  }) => {
-    const articlesSpy = vi.spyOn(articleHooks, "useArticles");
-    const accountArticlesSpy = vi.spyOn(articleHooks, "useAccountArticles");
-    const recentArticlesSpy = vi.spyOn(articleHooks, "useRecentArticles");
-    const tagArticlesSpy = vi.spyOn(tagHooks, "useArticlesByTag");
+  ])(
+    "keeps the $label list visible while the primary source revalidates",
+    async ({ label, selection, initialArticle }) => {
+      const articlesSpy = vi.spyOn(articleHooks, "useArticles");
+      const accountArticlesSpy = vi.spyOn(articleHooks, "useAccountArticles");
+      const recentArticlesSpy = vi.spyOn(articleHooks, "useRecentArticles");
+      const tagArticlesSpy = vi.spyOn(tagHooks, "useArticlesByTag");
 
-    articlesSpy.mockReturnValue(articlesResult({ data: undefined, isLoading: false }));
-    accountArticlesSpy.mockReturnValue(accountArticlesResult({ data: undefined, isLoading: false }));
-    recentArticlesSpy.mockReturnValue(recentArticlesResult({ data: undefined, isLoading: false }));
-    tagArticlesSpy.mockReturnValue(tagArticlesResult({ data: undefined, isLoading: false }));
+      articlesSpy.mockReturnValue(articlesResult({ data: undefined, isLoading: false }));
+      accountArticlesSpy.mockReturnValue(accountArticlesResult({ data: undefined, isLoading: false }));
+      recentArticlesSpy.mockReturnValue(recentArticlesResult({ data: undefined, isLoading: false }));
+      tagArticlesSpy.mockReturnValue(tagArticlesResult({ data: undefined, isLoading: false }));
 
-    if (label === "feed") {
-      articlesSpy.mockReturnValue(
-        articlesResult({
-          data: [initialArticle],
-          isLoading: false,
-        }),
-      );
-    } else if (label === "all") {
-      accountArticlesSpy.mockReturnValue(
-        accountArticlesResult({
-          data: [initialArticle],
-          isLoading: false,
-        }),
-      );
-    } else if (label === "recent") {
-      recentArticlesSpy.mockReturnValue(
-        recentArticlesResult({
-          data: [initialArticle],
-          isLoading: false,
-        }),
-      );
-    } else {
-      tagArticlesSpy.mockReturnValue(
-        tagArticlesResult({
-          data: [initialArticle],
-          isLoading: false,
-        }),
-      );
-    }
+      if (label === "feed") {
+        articlesSpy.mockReturnValue(
+          articlesResult({
+            data: [initialArticle],
+            isLoading: false,
+          }),
+        );
+      } else if (label === "all") {
+        accountArticlesSpy.mockReturnValue(
+          accountArticlesResult({
+            data: [initialArticle],
+            isLoading: false,
+          }),
+        );
+      } else if (label === "recent") {
+        recentArticlesSpy.mockReturnValue(
+          recentArticlesResult({
+            data: [initialArticle],
+            isLoading: false,
+          }),
+        );
+      } else {
+        tagArticlesSpy.mockReturnValue(
+          tagArticlesResult({
+            data: [initialArticle],
+            isLoading: false,
+          }),
+        );
+      }
 
-    useUiStore.setState({
-      ...useUiStore.getInitialState(),
-      selectedAccountId: "acc-1",
-      selection,
-      viewMode: "all",
-    });
+      useUiStore.setState({
+        ...useUiStore.getInitialState(),
+        selectedAccountId: "acc-1",
+        selection,
+        viewMode: "all",
+      });
 
-    const { rerender } = render(<ArticleList />, { wrapper: createWrapper() });
+      const { rerender } = render(<ArticleList />, { wrapper: createWrapper() });
 
-    await waitFor(() => {
-      expect(screen.getByText(initialArticle.title)).toBeInTheDocument();
-    });
+      await waitFor(() => {
+        expect(screen.getByText(initialArticle.title)).toBeInTheDocument();
+      });
 
-    if (label === "feed") {
-      articlesSpy.mockReturnValue(
-        articlesResult({
-          data: undefined,
-          isLoading: true,
-        }),
-      );
-    } else if (label === "all") {
-      accountArticlesSpy.mockReturnValue(
-        accountArticlesResult({
-          data: undefined,
-          isLoading: true,
-        }),
-      );
-    } else if (label === "recent") {
-      recentArticlesSpy.mockReturnValue(
-        recentArticlesResult({
-          data: undefined,
-          isLoading: true,
-        }),
-      );
-    } else {
-      tagArticlesSpy.mockReturnValue(
-        tagArticlesResult({
-          data: undefined,
-          isLoading: true,
-        }),
-      );
-    }
+      if (label === "feed") {
+        articlesSpy.mockReturnValue(
+          articlesResult({
+            data: undefined,
+            isLoading: true,
+          }),
+        );
+      } else if (label === "all") {
+        accountArticlesSpy.mockReturnValue(
+          accountArticlesResult({
+            data: undefined,
+            isLoading: true,
+          }),
+        );
+      } else if (label === "recent") {
+        recentArticlesSpy.mockReturnValue(
+          recentArticlesResult({
+            data: undefined,
+            isLoading: true,
+          }),
+        );
+      } else {
+        tagArticlesSpy.mockReturnValue(
+          tagArticlesResult({
+            data: undefined,
+            isLoading: true,
+          }),
+        );
+      }
 
-    rerender(<ArticleList />);
+      rerender(<ArticleList />);
 
-    await waitFor(() => {
-      expect(screen.getByText(initialArticle.title)).toBeInTheDocument();
-    });
-  });
+      await waitFor(() => {
+        expect(screen.getByText(initialArticle.title)).toBeInTheDocument();
+      });
+    },
+  );
 
   it("does not reuse a feed snapshot after switching to the all-articles context", async () => {
     const articlesSpy = vi.spyOn(articleHooks, "useArticles");

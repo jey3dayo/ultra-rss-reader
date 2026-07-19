@@ -140,40 +140,37 @@ describe("clipboard", () => {
     expect(resolveClipboardErrorCategory("Clipboard write failed in an insecure context")).toBe("permission_denied");
   });
 
-  it.each([
-    "Invalid clipboard text",
-    "Clipboard text validation failed",
-    "clipboard text is empty",
-  ])("classifies known invalid text clipboard errors: %j", (message) => {
-    expect(resolveClipboardErrorCategory(message)).toBe("invalid_text");
-  });
+  it.each(["Invalid clipboard text", "Clipboard text validation failed", "clipboard text is empty"])(
+    "classifies known invalid text clipboard errors: %j",
+    (message) => {
+      expect(resolveClipboardErrorCategory(message)).toBe("invalid_text");
+    },
+  );
 
   it("classifies known invalid URL clipboard errors", () => {
     expect(resolveClipboardErrorCategory("Only http:// and https:// URLs are supported")).toBe("invalid_url");
   });
 
-  it.each([
-    "clipboard context failed",
-    "clipboard pretext failed",
-    "clipboard textual content failed",
-  ])("does not classify incidental text substrings as invalid text: %j", (message) => {
-    expect(resolveClipboardErrorCategory(message)).toBe("unknown");
-  });
+  it.each(["clipboard context failed", "clipboard pretext failed", "clipboard textual content failed"])(
+    "does not classify incidental text substrings as invalid text: %j",
+    (message) => {
+      expect(resolveClipboardErrorCategory(message)).toBe("unknown");
+    },
+  );
 
-  it.each([
-    "",
-    "   ",
-    "\n\t",
-  ])("returns invalid text without calling the Tauri clipboard command for blank direct values: %j", async (value) => {
-    const result = await copyTextToClipboard(value);
+  it.each(["", "   ", "\n\t"])(
+    "returns invalid text without calling the Tauri clipboard command for blank direct values: %j",
+    async (value) => {
+      const result = await copyTextToClipboard(value);
 
-    expect(Result.isFailure(result)).toBe(true);
-    expect(Result.unwrapError(result)).toMatchObject({
-      message: "Invalid clipboard text",
-      category: "invalid_text",
-    });
-    expect(copyToClipboardMock).not.toHaveBeenCalled();
-  });
+      expect(Result.isFailure(result)).toBe(true);
+      expect(Result.unwrapError(result)).toMatchObject({
+        message: "Invalid clipboard text",
+        category: "invalid_text",
+      });
+      expect(copyToClipboardMock).not.toHaveBeenCalled();
+    },
+  );
 
   it("adds a category to native clipboard failures", async () => {
     const error = {

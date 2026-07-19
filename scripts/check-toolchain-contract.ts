@@ -7,7 +7,6 @@ const expectedNode = packageJson.engines?.node;
 const expectedPnpm = packageJson.engines?.pnpm;
 const packageManagerPnpm = packageJson.packageManager?.match(/^pnpm@(.+)$/)?.[1];
 const miseNode = miseToml.match(/^node = "([^"]+)"$/m)?.[1];
-const misePnpm = miseToml.match(/^"npm:pnpm" = "([^"]+)"$/m)?.[1];
 const miseNcu = miseToml.match(/^"npm:npm-check-updates" = "([^"]+)"$/m)?.[1];
 const expectedNcu = "22.2.9";
 
@@ -18,10 +17,8 @@ if (!expectedNode || !expectedPnpm || !packageManagerPnpm) {
 if (expectedNode !== miseNode) {
   failures.push(`Node version drift: package.json engines.node=${expectedNode} mise.toml tools.node=${miseNode}`);
 }
-if (expectedPnpm !== packageManagerPnpm || expectedPnpm !== misePnpm) {
-  failures.push(
-    `pnpm version drift: engines.pnpm=${expectedPnpm} packageManager=${packageManagerPnpm} mise.toml=${misePnpm}`,
-  );
+if (expectedPnpm !== packageManagerPnpm) {
+  failures.push(`pnpm version drift: engines.pnpm=${expectedPnpm} packageManager=${packageManagerPnpm}`);
 }
 if (miseNcu !== expectedNcu) {
   failures.push(`ncu version drift: expected ${expectedNcu} mise.toml=${miseNcu}`);

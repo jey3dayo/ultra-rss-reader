@@ -33,31 +33,31 @@ describe("keyboard shortcut resolver", () => {
     expect(Result.unwrap(result)).toEqual({ type: "open-settings" });
   });
 
-  it.each([
-    "x",
-    "",
-  ] as const)("keeps Cmd+Comma as the fixed settings shortcut when open_settings has custom binding %j", (shortcut) => {
-    const keyToAction = buildKeyToActionMap({
-      shortcut_open_settings: shortcut,
-    });
+  it.each(["x", ""] as const)(
+    "keeps Cmd+Comma as the fixed settings shortcut when open_settings has custom binding %j",
+    (shortcut) => {
+      const keyToAction = buildKeyToActionMap({
+        shortcut_open_settings: shortcut,
+      });
 
-    expect(keyToAction.get("x")).toBeUndefined();
-    expect(keyToAction.get("⌘,")).toBeUndefined();
+      expect(keyToAction.get("x")).toBeUndefined();
+      expect(keyToAction.get("⌘,")).toBeUndefined();
 
-    const result = resolveKeyboardAction({
-      key: ",",
-      metaKey: true,
-      ctrlKey: false,
-      shiftKey: false,
-      targetTag: "INPUT",
-      selectedArticleId: null,
-      contentMode: "empty",
-      viewMode: "all",
-      keyToAction,
-    });
+      const result = resolveKeyboardAction({
+        key: ",",
+        metaKey: true,
+        ctrlKey: false,
+        shiftKey: false,
+        targetTag: "INPUT",
+        selectedArticleId: null,
+        contentMode: "empty",
+        viewMode: "all",
+        keyToAction,
+      });
 
-    expect(Result.unwrap(result)).toEqual({ type: "open-settings" });
-  });
+      expect(Result.unwrap(result)).toEqual({ type: "open-settings" });
+    },
+  );
 
   it("ignores a single-key open settings remap when an input is focused", () => {
     const result = resolveKeyboardAction({
@@ -736,28 +736,27 @@ describe("keyboard shortcut resolver", () => {
     { platformKind: "macos", modifier: "Cmd", metaKey: true, ctrlKey: false },
     { platformKind: "windows", modifier: "Ctrl", metaKey: false, ctrlKey: true },
     { platformKind: "linux", modifier: "Ctrl", metaKey: false, ctrlKey: true },
-  ] as const)("lets the native menu own $modifier+R on $platformKind even when Web Preview reload is remapped to it", ({
-    platformKind,
-    metaKey,
-    ctrlKey,
-  }) => {
-    const result = resolveKeyboardAction({
-      key: "r",
-      metaKey,
-      ctrlKey,
-      shiftKey: false,
-      targetTag: "DIV",
-      selectedArticleId: "art-1",
-      contentMode: "browser",
-      viewMode: "all",
-      platformKind,
-      keyToAction: buildKeyToActionMap({
-        shortcut_reload_webview: "⌘+r",
-      }),
-    });
+  ] as const)(
+    "lets the native menu own $modifier+R on $platformKind even when Web Preview reload is remapped to it",
+    ({ platformKind, metaKey, ctrlKey }) => {
+      const result = resolveKeyboardAction({
+        key: "r",
+        metaKey,
+        ctrlKey,
+        shiftKey: false,
+        targetTag: "DIV",
+        selectedArticleId: "art-1",
+        contentMode: "browser",
+        viewMode: "all",
+        platformKind,
+        keyToAction: buildKeyToActionMap({
+          shortcut_reload_webview: "⌘+r",
+        }),
+      });
 
-    expect(Result.unwrapError(result)).toBe("no_action");
-  });
+      expect(Result.unwrapError(result)).toBe("no_action");
+    },
+  );
 
   it("does not include native menu owned shortcuts in the runtime key map", () => {
     expect(
@@ -787,33 +786,33 @@ describe("keyboard shortcut resolver", () => {
     ).toBeNull();
   });
 
-  it.each([
-    "?",
-    "Shift+?",
-  ] as const)("reports %s as owned by shortcuts help and keeps help resolution ahead of custom bindings", (shortcut) => {
-    const keyToAction = buildKeyToActionMap({
-      shortcut_next_article: shortcut,
-    });
+  it.each(["?", "Shift+?"] as const)(
+    "reports %s as owned by shortcuts help and keeps help resolution ahead of custom bindings",
+    (shortcut) => {
+      const keyToAction = buildKeyToActionMap({
+        shortcut_next_article: shortcut,
+      });
 
-    expect(getShortcutConflict("next_article", shortcut, {})).toEqual({
-      type: "shortcuts_help",
-    });
-    expect(keyToAction.get(shortcut)).toBe("next_article");
+      expect(getShortcutConflict("next_article", shortcut, {})).toEqual({
+        type: "shortcuts_help",
+      });
+      expect(keyToAction.get(shortcut)).toBe("next_article");
 
-    const result = resolveKeyboardAction({
-      key: "?",
-      metaKey: false,
-      ctrlKey: false,
-      shiftKey: false,
-      targetTag: "DIV",
-      selectedArticleId: "art-1",
-      contentMode: "reader",
-      viewMode: "all",
-      keyToAction,
-    });
+      const result = resolveKeyboardAction({
+        key: "?",
+        metaKey: false,
+        ctrlKey: false,
+        shiftKey: false,
+        targetTag: "DIV",
+        selectedArticleId: "art-1",
+        contentMode: "reader",
+        viewMode: "all",
+        keyToAction,
+      });
 
-    expect(Result.unwrap(result)).toEqual({ type: "open-shortcuts-help" });
-  });
+      expect(Result.unwrap(result)).toEqual({ type: "open-shortcuts-help" });
+    },
+  );
 
   it("lets Web Preview reload use a non-native custom shortcut", () => {
     const result = resolveKeyboardAction({
@@ -891,19 +890,22 @@ describe("keyboard shortcut resolver", () => {
     ["browser mode", "browser", "art-1"],
     ["selected article", "reader", "art-1"],
     ["no selected article", "reader", null],
-  ] as const)("keeps close_or_clear as a noop while subscriptions workspace is open with %s", (_label, contentMode, selectedArticleId) => {
-    const result = resolveKeyboardAction({
-      key: "Escape",
-      metaKey: false,
-      ctrlKey: false,
-      shiftKey: false,
-      targetTag: "DIV",
-      selectedArticleId,
-      contentMode,
-      viewMode: "all",
-      subscriptionsWorkspaceOpen: true,
-    });
+  ] as const)(
+    "keeps close_or_clear as a noop while subscriptions workspace is open with %s",
+    (_label, contentMode, selectedArticleId) => {
+      const result = resolveKeyboardAction({
+        key: "Escape",
+        metaKey: false,
+        ctrlKey: false,
+        shiftKey: false,
+        targetTag: "DIV",
+        selectedArticleId,
+        contentMode,
+        viewMode: "all",
+        subscriptionsWorkspaceOpen: true,
+      });
 
-    expect(Result.unwrapError(result)).toBe("no_action");
-  });
+      expect(Result.unwrapError(result)).toBe("no_action");
+    },
+  );
 });

@@ -437,51 +437,54 @@ describe("ArticleTagChips", () => {
         message: "Invalid tag payload",
       } satisfies AppError,
     ],
-  ])("keeps the new tag draft open and surfaces feedback when create_tag fails with %s error", async (_kind, error, loggedError) => {
-    const user = userEvent.setup();
-    const consoleError = suppressConsoleError();
-    const commands: Array<{ cmd: string; args: Record<string, unknown> }> = [];
+  ])(
+    "keeps the new tag draft open and surfaces feedback when create_tag fails with %s error",
+    async (_kind, error, loggedError) => {
+      const user = userEvent.setup();
+      const consoleError = suppressConsoleError();
+      const commands: Array<{ cmd: string; args: Record<string, unknown> }> = [];
 
-    useUiStore.setState({ toastMessage: null });
-    setupTauriMocks((cmd, args) => {
-      commands.push({ cmd, args });
-      switch (cmd) {
-        case "get_article_tags":
-          return [];
-        case "list_tags":
-          return [];
-        case "create_tag":
-          throw error;
-        case "tag_article":
-          throw new Error("tag_article should not be called when create_tag fails");
-        default:
-          return undefined;
-      }
-    });
+      useUiStore.setState({ toastMessage: null });
+      setupTauriMocks((cmd, args) => {
+        commands.push({ cmd, args });
+        switch (cmd) {
+          case "get_article_tags":
+            return [];
+          case "list_tags":
+            return [];
+          case "create_tag":
+            throw error;
+          case "tag_article":
+            throw new Error("tag_article should not be called when create_tag fails");
+          default:
+            return undefined;
+        }
+      });
 
-    render(<ArticleTagChips articleId="art-1" />, {
-      wrapper: createWrapper(),
-    });
+      render(<ArticleTagChips articleId="art-1" />, {
+        wrapper: createWrapper(),
+      });
 
-    await user.click(await screen.findByRole("button", { name: "Add tag" }));
-    const input = await screen.findByRole("textbox");
-    await user.type(input, "Review");
-    await user.keyboard("{Enter}");
+      await user.click(await screen.findByRole("button", { name: "Add tag" }));
+      const input = await screen.findByRole("textbox");
+      await user.type(input, "Review");
+      await user.keyboard("{Enter}");
 
-    const inlineError = await screen.findByText(error.message);
-    const newTagInput = screen.getByRole("textbox");
-    expect(inlineError).toBeInTheDocument();
-    expect(newTagInput).toHaveAttribute("aria-invalid", "true");
-    expect(newTagInput).toHaveAttribute("aria-describedby", inlineError.id);
-    expect(screen.getByRole("listbox", { name: "Available tags" })).toBeInTheDocument();
-    expect(newTagInput).toHaveValue("Review");
-    expect(commands).toContainEqual({
-      cmd: "create_tag",
-      args: { name: "Review", color: undefined },
-    });
-    expect(commands.some((command) => command.cmd === "tag_article")).toBe(false);
-    expect(consoleError).toHaveBeenCalledWith("[tauri-commands] create_tag failed:", loggedError);
-  });
+      const inlineError = await screen.findByText(error.message);
+      const newTagInput = screen.getByRole("textbox");
+      expect(inlineError).toBeInTheDocument();
+      expect(newTagInput).toHaveAttribute("aria-invalid", "true");
+      expect(newTagInput).toHaveAttribute("aria-describedby", inlineError.id);
+      expect(screen.getByRole("listbox", { name: "Available tags" })).toBeInTheDocument();
+      expect(newTagInput).toHaveValue("Review");
+      expect(commands).toContainEqual({
+        cmd: "create_tag",
+        args: { name: "Review", color: undefined },
+      });
+      expect(commands.some((command) => command.cmd === "tag_article")).toBe(false);
+      expect(consoleError).toHaveBeenCalledWith("[tauri-commands] create_tag failed:", loggedError);
+    },
+  );
 
   it("surfaces pending state and ignores duplicate create requests while create_tag is pending", async () => {
     const user = userEvent.setup();

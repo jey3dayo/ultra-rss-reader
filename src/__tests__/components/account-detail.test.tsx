@@ -1466,50 +1466,51 @@ describe("AccountDetail", () => {
     expect(showToast).toHaveBeenCalledWith("Failed to copy server URL: Server URL is required");
   });
 
-  it.each(
-    accountDetailCopyFailureLocaleCases,
-  )("wraps server URL copy failures in the %s locale toast", async (language, expectedMessage) => {
-    await i18n.changeLanguage(language);
-    const user = userEvent.setup();
-    const showToast = vi.fn();
-    useUiStore.setState({ showToast });
+  it.each(accountDetailCopyFailureLocaleCases)(
+    "wraps server URL copy failures in the %s locale toast",
+    async (language, expectedMessage) => {
+      await i18n.changeLanguage(language);
+      const user = userEvent.setup();
+      const showToast = vi.fn();
+      useUiStore.setState({ showToast });
 
-    setupTauriMocks((cmd) => {
-      switch (cmd) {
-        case "list_accounts":
-          return [
-            {
-              id: "acc-1",
-              kind: "FreshRss",
-              name: "FreshRSS",
-              username: "user",
-              server_url: "https://freshrss.example.com",
-              sync_interval_secs: 3600,
-              sync_on_startup: true,
-              sync_on_wake: false,
-              keep_read_items_days: 30,
-            },
-          ];
-        case "copy_to_clipboard":
-          throw { type: "UserVisible", message: "Clipboard unavailable" };
-        default:
-          return undefined;
-      }
-    });
+      setupTauriMocks((cmd) => {
+        switch (cmd) {
+          case "list_accounts":
+            return [
+              {
+                id: "acc-1",
+                kind: "FreshRss",
+                name: "FreshRSS",
+                username: "user",
+                server_url: "https://freshrss.example.com",
+                sync_interval_secs: 3600,
+                sync_on_startup: true,
+                sync_on_wake: false,
+                keep_read_items_days: 30,
+              },
+            ];
+          case "copy_to_clipboard":
+            throw { type: "UserVisible", message: "Clipboard unavailable" };
+          default:
+            return undefined;
+        }
+      });
 
-    render(<AccountDetail />, { wrapper: createWrapper() });
+      render(<AccountDetail />, { wrapper: createWrapper() });
 
-    await user.click(
-      await screen.findByRole("button", {
-        name: i18n.t("settings:account.copy_server_url"),
-      }),
-    );
+      await user.click(
+        await screen.findByRole("button", {
+          name: i18n.t("settings:account.copy_server_url"),
+        }),
+      );
 
-    await waitFor(() => {
-      expect(showToast).toHaveBeenCalledWith(expectedMessage);
-    });
-    expect(showToast).not.toHaveBeenCalledWith("Clipboard unavailable");
-  });
+      await waitFor(() => {
+        expect(showToast).toHaveBeenCalledWith(expectedMessage);
+      });
+      expect(showToast).not.toHaveBeenCalledWith("Clipboard unavailable");
+    },
+  );
 
   it("exports OPML through the native save dialog and the export_opml_to_file command", async () => {
     const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];

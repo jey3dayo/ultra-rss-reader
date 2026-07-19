@@ -1880,25 +1880,25 @@ describe("safeInvoke args validation", () => {
     Result.unwrap(await updateAccountCredentials("acc-1", " https://example.com ", " user ", " secret "));
   });
 
-  it.each([
-    "",
-    "   ",
-  ] as const)("allows account credential password %j without trimming before invoking Tauri", async (password) => {
-    setupTauriMocks((cmd, args) => {
-      if (cmd === "update_account_credentials") {
-        expect(args).toEqual({
-          accountId: "acc-1",
-          serverUrl: "https://example.com",
-          username: "user",
-          password,
-        });
-        return sampleAccounts[0];
-      }
-      return null;
-    });
+  it.each(["", "   "] as const)(
+    "allows account credential password %j without trimming before invoking Tauri",
+    async (password) => {
+      setupTauriMocks((cmd, args) => {
+        if (cmd === "update_account_credentials") {
+          expect(args).toEqual({
+            accountId: "acc-1",
+            serverUrl: "https://example.com",
+            username: "user",
+            password,
+          });
+          return sampleAccounts[0];
+        }
+        return null;
+      });
 
-    Result.unwrap(await updateAccountCredentials("acc-1", "https://example.com", "user", password));
-  });
+      Result.unwrap(await updateAccountCredentials("acc-1", "https://example.com", "user", password));
+    },
+  );
 
   it.each([
     ["serverUrl", () => updateAccountCredentials("acc-1", "   ", "user", "secret")],
@@ -1953,29 +1953,26 @@ describe("safeInvoke args validation", () => {
     expectTauriCommandValidationError(consoleError, "copy_to_clipboard", "args");
   });
 
-  it.each([
-    "",
-    "   ",
-    "https://example.com/article\nnext",
-    "mailto:hello@example.com",
-    "file:///tmp/article.html",
-  ])("rejects invalid open-in-browser URL %j before invoking Tauri", async (url) => {
-    const consoleError = suppressConsoleError();
-    let invoked = false;
-    setupTauriMocks((cmd) => {
-      if (cmd === "open_in_browser") {
-        invoked = true;
-      }
-      return null;
-    });
+  it.each(["", "   ", "https://example.com/article\nnext", "mailto:hello@example.com", "file:///tmp/article.html"])(
+    "rejects invalid open-in-browser URL %j before invoking Tauri",
+    async (url) => {
+      const consoleError = suppressConsoleError();
+      let invoked = false;
+      setupTauriMocks((cmd) => {
+        if (cmd === "open_in_browser") {
+          invoked = true;
+        }
+        return null;
+      });
 
-    const result = await openInBrowser(url, false);
+      const result = await openInBrowser(url, false);
 
-    expect(Result.isFailure(result)).toBe(true);
-    expect(Result.unwrapError(result).message).toContain("validation failed");
-    expect(invoked).toBe(false);
-    expectTauriCommandValidationError(consoleError, "open_in_browser", "args");
-  });
+      expect(Result.isFailure(result)).toBe(true);
+      expect(Result.unwrapError(result).message).toContain("validation failed");
+      expect(invoked).toBe(false);
+      expectTauriCommandValidationError(consoleError, "open_in_browser", "args");
+    },
+  );
 
   it("rejects blank create folder names before invoking Tauri", async () => {
     const consoleError = suppressConsoleError();

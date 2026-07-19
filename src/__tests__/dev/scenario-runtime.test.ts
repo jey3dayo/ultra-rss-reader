@@ -188,26 +188,25 @@ describe("dev-scenario-runtime", () => {
     expect(expectResultValue(retriedResult)).toEqual([]);
   });
 
-  it.each([
-    undefined,
-    "",
-    new Error(""),
-  ] as const)("uses the runtime fallback message when module listing throws %s", async (thrownValue) => {
-    vi.stubEnv("DEV", true);
-    devScenariosModuleMock.module = {
-      listDevScenarios: vi.fn(() => {
-        throw thrownValue;
-      }),
-      runDevScenario: vi.fn(async () => {}),
-    };
+  it.each([undefined, "", new Error("")] as const)(
+    "uses the runtime fallback message when module listing throws %s",
+    async (thrownValue) => {
+      vi.stubEnv("DEV", true);
+      devScenariosModuleMock.module = {
+        listDevScenarios: vi.fn(() => {
+          throw thrownValue;
+        }),
+        runDevScenario: vi.fn(async () => {}),
+      };
 
-    const result = await loadRuntimeDevScenariosResult();
+      const result = await loadRuntimeDevScenariosResult();
 
-    expect(expectResultError(result)).toEqual({
-      type: "module_load_failed",
-      message: "Unknown dev scenario runtime error.",
-    });
-  });
+      expect(expectResultError(result)).toEqual({
+        type: "module_load_failed",
+        message: "Unknown dev scenario runtime error.",
+      });
+    },
+  );
 
   it("returns module_load_failed when scenario listing throws an Error", async () => {
     vi.stubEnv("DEV", true);
@@ -274,26 +273,25 @@ describe("dev-scenario-runtime", () => {
     });
   });
 
-  it.each([
-    undefined,
-    "",
-    new Error(""),
-  ] as const)("uses the runtime fallback message when the scenario runner rejects %s", async (thrownValue) => {
-    vi.stubEnv("DEV", true);
-    devScenariosModuleMock.module = {
-      listDevScenarios: vi.fn(() => []),
-      runDevScenario: vi.fn(async () => {
-        throw thrownValue;
-      }),
-    };
+  it.each([undefined, "", new Error("")] as const)(
+    "uses the runtime fallback message when the scenario runner rejects %s",
+    async (thrownValue) => {
+      vi.stubEnv("DEV", true);
+      devScenariosModuleMock.module = {
+        listDevScenarios: vi.fn(() => []),
+        runDevScenario: vi.fn(async () => {
+          throw thrownValue;
+        }),
+      };
 
-    const result = await runRuntimeDevScenarioResult(DEV_SCENARIO_ID.openSubscriptionsIndex);
+      const result = await runRuntimeDevScenarioResult(DEV_SCENARIO_ID.openSubscriptionsIndex);
 
-    expect(expectResultError(result)).toEqual({
-      type: "scenario_failed",
-      message: "Unknown dev scenario runtime error.",
-    });
-  });
+      expect(expectResultError(result)).toEqual({
+        type: "scenario_failed",
+        message: "Unknown dev scenario runtime error.",
+      });
+    },
+  );
 
   it("rejects promise wrappers with the scenario failure fallback message", async () => {
     vi.stubEnv("DEV", true);

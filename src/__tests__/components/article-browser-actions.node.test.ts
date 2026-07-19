@@ -392,27 +392,25 @@ describe("article-browser-actions", () => {
     expect(Result.unwrap(result)).toBe(expected);
   });
 
-  it.each([
-    "mailto:hello@example.com",
-    "file:///tmp/article.html",
-    "javascript:alert('owned')",
-    "/relative",
-  ])("rejects non-http article external-browser URLs before invoking Tauri: %j", async (url) => {
-    setupTauriMocks((cmd, args) => {
-      calls.push({ cmd, args });
-      return undefined;
-    });
+  it.each(["mailto:hello@example.com", "file:///tmp/article.html", "javascript:alert('owned')", "/relative"])(
+    "rejects non-http article external-browser URLs before invoking Tauri: %j",
+    async (url) => {
+      setupTauriMocks((cmd, args) => {
+        calls.push({ cmd, args });
+        return undefined;
+      });
 
-    const result = await openUrlInExternalBrowser(url, {
-      background: false,
-      showToast,
-      errorLabel: "Failed to open in browser",
-    });
+      const result = await openUrlInExternalBrowser(url, {
+        background: false,
+        showToast,
+        errorLabel: "Failed to open in browser",
+      });
 
-    expect(result).toSatisfy(Result.isFailure);
-    expect(calls).toEqual([]);
-    expect(showToast).toHaveBeenCalledWith("Only http:// and https:// URLs are supported");
-  });
+      expect(result).toSatisfy(Result.isFailure);
+      expect(calls).toEqual([]);
+      expect(showToast).toHaveBeenCalledWith("Only http:// and https:// URLs are supported");
+    },
+  );
 
   it("rejects article external-browser URLs with credentials before invoking Tauri", async () => {
     setupTauriMocks((cmd, args) => {

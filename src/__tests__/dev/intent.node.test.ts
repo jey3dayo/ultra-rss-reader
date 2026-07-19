@@ -124,36 +124,32 @@ describe("dev-intent helpers", () => {
     expect(readDevWebUrl()).toBe("https://example.com/legacy");
   });
 
-  it.each([
-    "http://localhost:1420/preview",
-    "http://127.0.0.1:1420/preview",
-    "http://[::1]:1420/preview",
-  ])("accepts private dev web URL hosts allowed by browser/open URL schema: %s", (url) => {
-    vi.stubEnv("VITE_DEV_WEB_URL", url);
+  it.each(["http://localhost:1420/preview", "http://127.0.0.1:1420/preview", "http://[::1]:1420/preview"])(
+    "accepts private dev web URL hosts allowed by browser/open URL schema: %s",
+    (url) => {
+      vi.stubEnv("VITE_DEV_WEB_URL", url);
 
-    expect(readDevWebUrl()).toBe(url);
-  });
+      expect(readDevWebUrl()).toBe(url);
+    },
+  );
 
-  it.each([
-    "",
-    "   ",
-    "file:///tmp/article.html",
-    "mailto:test@example.com",
-    "/relative/path",
-  ])("ignores invalid dev web URL env values before runtime fallback: %j", async (url) => {
-    vi.stubEnv("VITE_DEV_WEB_URL", url);
-    getDevRuntimeOptionsMock.mockResolvedValueOnce(
-      Result.succeed({
-        dev_intent: null,
-        dev_web_url: "https://example.com/runtime",
-        dev_window_width: null,
-        dev_window_height: null,
-      }),
-    );
+  it.each(["", "   ", "file:///tmp/article.html", "mailto:test@example.com", "/relative/path"])(
+    "ignores invalid dev web URL env values before runtime fallback: %j",
+    async (url) => {
+      vi.stubEnv("VITE_DEV_WEB_URL", url);
+      getDevRuntimeOptionsMock.mockResolvedValueOnce(
+        Result.succeed({
+          dev_intent: null,
+          dev_web_url: "https://example.com/runtime",
+          dev_window_width: null,
+          dev_window_height: null,
+        }),
+      );
 
-    expect(Result.isSuccess(await loadDevRuntimeOptionsResult())).toBe(true);
-    expect(readDevWebUrl()).toBe("https://example.com/runtime");
-  });
+      expect(Result.isSuccess(await loadDevRuntimeOptionsResult())).toBe(true);
+      expect(readDevWebUrl()).toBe("https://example.com/runtime");
+    },
+  );
 
   it("reads a short dev window size for scenario verification", () => {
     vi.stubEnv("DEV", true);
@@ -535,32 +531,35 @@ describe("dev-intent helpers", () => {
     ],
     ["tauri_unavailable", false, 0, () => hasTauriRuntimeMock.mockReturnValue(false)],
     ["not_dev_build", false, 0, () => vi.stubEnv("DEV", false)],
-  ] as const)("only retries retryable runtime option failures: %s", async (expectedError, shouldRetry, expectedCallCount, arrangeFailure) => {
-    arrangeFailure();
-    getDevRuntimeOptionsMock.mockResolvedValueOnce(
-      Result.succeed({
-        dev_intent: "open-settings-general",
-        dev_web_url: "https://example.com/retry",
-        dev_window_width: 720,
-        dev_window_height: 960,
-      }),
-    );
+  ] as const)(
+    "only retries retryable runtime option failures: %s",
+    async (expectedError, shouldRetry, expectedCallCount, arrangeFailure) => {
+      arrangeFailure();
+      getDevRuntimeOptionsMock.mockResolvedValueOnce(
+        Result.succeed({
+          dev_intent: "open-settings-general",
+          dev_web_url: "https://example.com/retry",
+          dev_window_width: 720,
+          dev_window_height: 960,
+        }),
+      );
 
-    expect(expectResultError(await loadDevRuntimeOptionsResult())).toBe(expectedError);
-    const result = await loadDevRuntimeOptionsResult();
+      expect(expectResultError(await loadDevRuntimeOptionsResult())).toBe(expectedError);
+      const result = await loadDevRuntimeOptionsResult();
 
-    if (shouldRetry) {
-      expect(expectResultValue(result)).toEqual({
-        dev_intent: "open-settings-general",
-        dev_web_url: "https://example.com/retry",
-        dev_window_width: 720,
-        dev_window_height: 960,
-      });
-    } else {
-      expect(expectResultError(result)).toBe(expectedError);
-    }
-    expect(getDevRuntimeOptionsMock).toHaveBeenCalledTimes(expectedCallCount);
-  });
+      if (shouldRetry) {
+        expect(expectResultValue(result)).toEqual({
+          dev_intent: "open-settings-general",
+          dev_web_url: "https://example.com/retry",
+          dev_window_width: 720,
+          dev_window_height: 960,
+        });
+      } else {
+        expect(expectResultError(result)).toBe(expectedError);
+      }
+      expect(getDevRuntimeOptionsMock).toHaveBeenCalledTimes(expectedCallCount);
+    },
+  );
 
   it.each([
     ["not_dev_build", () => vi.stubEnv("DEV", false)],

@@ -78,21 +78,24 @@ describe("window-chrome", () => {
     ["MacIntel", "Win32", true],
     ["Windows", "MacIntel", false],
     ["", "MacIntel", false],
-  ])("keeps unknown-platform Tauri chrome fallback deterministic when userAgentData platform is %s and navigator platform is %s", (userAgentDataPlatform, navigatorPlatform, expected) => {
-    setTauriRuntimePresent();
-    const restorePlatform = stubNavigatorPlatform({ platform: navigatorPlatform, userAgentDataPlatform });
+  ])(
+    "keeps unknown-platform Tauri chrome fallback deterministic when userAgentData platform is %s and navigator platform is %s",
+    (userAgentDataPlatform, navigatorPlatform, expected) => {
+      setTauriRuntimePresent();
+      const restorePlatform = stubNavigatorPlatform({ platform: navigatorPlatform, userAgentDataPlatform });
 
-    try {
-      expect(
-        shouldUseDesktopOverlayTitlebar({
-          platformKind: "unknown",
-          hasTauriRuntime: hasTauriRuntime(),
-        }),
-      ).toBe(expected);
-    } finally {
-      restorePlatform();
-    }
-  });
+      try {
+        expect(
+          shouldUseDesktopOverlayTitlebar({
+            platformKind: "unknown",
+            hasTauriRuntime: hasTauriRuntime(),
+          }),
+        ).toBe(expected);
+      } finally {
+        restorePlatform();
+      }
+    },
+  );
 
   it.each([
     ["Win32", false],

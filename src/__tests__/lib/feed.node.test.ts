@@ -23,14 +23,12 @@ describe("extractSiteHost", () => {
     expect(resolveFeedWebsiteHref("not-a-url", "https://feed.example.com/rss")).toBe("https://feed.example.com/rss");
   });
 
-  it.each([
-    "not-a-url",
-    "mailto:owner@example.com",
-    "javascript:alert(1)",
-    "https://user:pass@example.com/rss",
-  ])("does not expose invalid or credentialed website href candidates: %s", (url) => {
-    expect(resolveFeedWebsiteHref(url, "")).toBeNull();
-  });
+  it.each(["not-a-url", "mailto:owner@example.com", "javascript:alert(1)", "https://user:pass@example.com/rss"])(
+    "does not expose invalid or credentialed website href candidates: %s",
+    (url) => {
+      expect(resolveFeedWebsiteHref(url, "")).toBeNull();
+    },
+  );
 
   it("normalizes whitespace-only website hrefs before falling back to feed url", () => {
     expect(resolveFeedWebsiteHref("   ", " https://feed.example.com/rss ")).toBe("https://feed.example.com/rss");

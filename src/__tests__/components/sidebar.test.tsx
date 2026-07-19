@@ -2127,41 +2127,41 @@ describe("Sidebar", () => {
     expect(freshRssAccount.querySelector("svg")).toBeNull();
   });
 
-  it.each([
-    "Enter",
-    "ArrowRight",
-  ] as const)("selects the focused account with %s and returns focus to the unread smart view", async (key) => {
-    useUiStore.setState({
-      ...useUiStore.getInitialState(),
-      selectedAccountId: "acc-1",
-      accountPaneOpen: true,
-      focusedPane: "sidebar",
-      layoutMode: "wide",
-    });
+  it.each(["Enter", "ArrowRight"] as const)(
+    "selects the focused account with %s and returns focus to the unread smart view",
+    async (key) => {
+      useUiStore.setState({
+        ...useUiStore.getInitialState(),
+        selectedAccountId: "acc-1",
+        accountPaneOpen: true,
+        focusedPane: "sidebar",
+        layoutMode: "wide",
+      });
 
-    render(
-      <>
-        <AccountPane />
-        <Sidebar />
-      </>,
-      { wrapper: createWrapper() },
-    );
+      render(
+        <>
+          <AccountPane />
+          <Sidebar />
+        </>,
+        { wrapper: createWrapper() },
+      );
 
-    const accountPane = screen.getByRole("navigation", { name: "Accounts" });
-    const freshRssAccount = await within(accountPane).findByRole("button", { name: /FreshRSS/ });
-    const sidebar = screen.getByRole("navigation", { name: "Sidebar" });
-    const unreadButton = await within(sidebar).findByRole("button", { name: /Unread/ });
+      const accountPane = screen.getByRole("navigation", { name: "Accounts" });
+      const freshRssAccount = await within(accountPane).findByRole("button", { name: /FreshRSS/ });
+      const sidebar = screen.getByRole("navigation", { name: "Sidebar" });
+      const unreadButton = await within(sidebar).findByRole("button", { name: /Unread/ });
 
-    freshRssAccount.focus();
-    fireEvent.keyDown(freshRssAccount, { key });
+      freshRssAccount.focus();
+      fireEvent.keyDown(freshRssAccount, { key });
 
-    await waitFor(() => {
-      expect(useUiStore.getState().selectedAccountId).toBe("acc-2");
-      expect(useUiStore.getState().accountPaneOpen).toBe(false);
-      expect(useUiStore.getState().focusedPane).toBe("sidebar");
-      expect(unreadButton).toHaveFocus();
-    });
-  });
+      await waitFor(() => {
+        expect(useUiStore.getState().selectedAccountId).toBe("acc-2");
+        expect(useUiStore.getState().accountPaneOpen).toBe(false);
+        expect(useUiStore.getState().focusedPane).toBe("sidebar");
+        expect(unreadButton).toHaveFocus();
+      });
+    },
+  );
 
   it("opens the first article immediately when the reading preference is enabled", async () => {
     const user = userEvent.setup();

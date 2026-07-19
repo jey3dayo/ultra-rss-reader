@@ -129,21 +129,20 @@ describe("browser-debug-geometry", () => {
     ]);
   });
 
-  it.each([
-    Number.NaN,
-    Number.POSITIVE_INFINITY,
-    Number.NEGATIVE_INFINITY,
-  ])("formats non-finite native scale factor %s as n/a", (scaleFactor) => {
-    expect(
-      getBrowserGeometryRows({
-        layoutDiagnostics: null,
-        nativeDiagnostics: {
-          ...nativeDiagnostics,
-          scaleFactor,
-        },
-      }),
-    ).toContainEqual({ label: "rust", value: "resize xn/a" });
-  });
+  it.each([Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY])(
+    "formats non-finite native scale factor %s as n/a",
+    (scaleFactor) => {
+      expect(
+        getBrowserGeometryRows({
+          layoutDiagnostics: null,
+          nativeDiagnostics: {
+            ...nativeDiagnostics,
+            scaleFactor,
+          },
+        }),
+      ).toContainEqual({ label: "rust", value: "resize xn/a" });
+    },
+  );
 
   it("formats non-finite native geometry values as n/a", () => {
     const rows = getBrowserGeometryRows({

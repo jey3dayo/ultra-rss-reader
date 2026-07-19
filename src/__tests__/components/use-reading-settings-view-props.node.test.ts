@@ -270,28 +270,28 @@ describe("buildReadingSettingsViewProps", () => {
     );
   });
 
-  it.each([
-    "   ",
-    "\n",
-  ])("disables recent history clearing and skips confirm when selected account id is blank %#", (selectedAccountId) => {
-    const showConfirm = vi.fn();
-    const clearHistory = {
-      isPending: false,
-      mutate: vi.fn(),
-    };
-    const props = buildProps({ clearHistory, selectedAccountId, showConfirm });
+  it.each(["   ", "\n"])(
+    "disables recent history clearing and skips confirm when selected account id is blank %#",
+    (selectedAccountId) => {
+      const showConfirm = vi.fn();
+      const clearHistory = {
+        isPending: false,
+        mutate: vi.fn(),
+      };
+      const props = buildProps({ clearHistory, selectedAccountId, showConfirm });
 
-    expect(getActionControl(props, "clear-recent-articles")).toEqual(
-      expect.objectContaining({
-        disabled: true,
-      }),
-    );
+      expect(getActionControl(props, "clear-recent-articles")).toEqual(
+        expect.objectContaining({
+          disabled: true,
+        }),
+      );
 
-    getActionControl(props, "clear-recent-articles").onAction?.();
+      getActionControl(props, "clear-recent-articles").onAction?.();
 
-    expect(showConfirm).not.toHaveBeenCalled();
-    expect(clearHistory.mutate).not.toHaveBeenCalled();
-  });
+      expect(showConfirm).not.toHaveBeenCalled();
+      expect(clearHistory.mutate).not.toHaveBeenCalled();
+    },
+  );
 
   it("opens destructive recent history confirmation with target and irreversible accessible label", () => {
     const showConfirm = vi.fn();

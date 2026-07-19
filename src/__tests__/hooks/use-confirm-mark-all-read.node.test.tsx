@@ -38,25 +38,22 @@ describe("useConfirmMarkAllRead", () => {
     usePreferencesStore.setState({ prefs: {}, loaded: true });
   });
 
-  it.each([
-    0,
-    -1,
-    Number.NaN,
-    Number.POSITIVE_INFINITY,
-    Number.NEGATIVE_INFINITY,
-  ])("does not confirm or run the action for invalid count %s", (count) => {
-    const onConfirm = vi.fn();
-    const showConfirm = vi.fn();
-    useUiStore.setState({ showConfirm });
-    const { result } = renderHook(() => useConfirmMarkAllRead());
+  it.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY])(
+    "does not confirm or run the action for invalid count %s",
+    (count) => {
+      const onConfirm = vi.fn();
+      const showConfirm = vi.fn();
+      useUiStore.setState({ showConfirm });
+      const { result } = renderHook(() => useConfirmMarkAllRead());
 
-    act(() => {
-      result.current({ count, scope: "visible", onConfirm });
-    });
+      act(() => {
+        result.current({ count, scope: "visible", onConfirm });
+      });
 
-    expect(showConfirm).not.toHaveBeenCalled();
-    expect(onConfirm).not.toHaveBeenCalled();
-  });
+      expect(showConfirm).not.toHaveBeenCalled();
+      expect(onConfirm).not.toHaveBeenCalled();
+    },
+  );
 
   it("opens a warning confirmation for a positive count when confirmation is enabled", () => {
     const onConfirm = vi.fn();
