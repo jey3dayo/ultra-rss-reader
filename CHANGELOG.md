@@ -4,6 +4,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.53.41] - 2026-07-20
+
+### Bug Fixes
+
+- CIのtoolchain整合性チェックに残っていたmise管理pnpmとの比較ロジックを削除し、pnpmのcorepack一本化後もCIが通るようにした。
+
+### Maintenance
+
+- tauri-plugin-dialog、lucide-react、react-i18next、Biome、Storybook、Knip、React Doctor、Tailwind CSS、Viteなどの依存関係を更新し、pnpmの管理方式をmiseからcorepack一本化に変更した。
+
 ## [0.53.40] - 2026-07-19
 
 ### Bug Fixes
