@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   addRetainedArticle,
+  addRetainedArticles,
   getRetainedArticleIdsAfterSelectingArticle,
   MAX_RETAINED_ARTICLE_IDS,
 } from "@/lib/articles/article-retention";
@@ -93,6 +94,24 @@ describe("article retention", () => {
 
     expect(result).toHaveLength(MAX_RETAINED_ARTICLE_IDS);
     expect([...result]).toEqual(retainedArticleIds.slice(2));
+  });
+
+  it("adds bulk retained articles while skipping blank ids and preserving the previous set", () => {
+    const previousRetainedArticleIds = new Set(["art-1"]);
+
+    const result = addRetainedArticles(previousRetainedArticleIds, ["art-2", "   ", "art-3"]);
+
+    expect(previousRetainedArticleIds).toEqual(new Set(["art-1"]));
+    expect(result).toEqual(new Set(["art-1", "art-2", "art-3"]));
+  });
+
+  it("caps bulk retained articles to the newest ids", () => {
+    const articleIds = Array.from({ length: MAX_RETAINED_ARTICLE_IDS + 10 }, (_, index) => `art-${index}`);
+
+    const result = addRetainedArticles(new Set(), articleIds);
+
+    expect(result).toHaveLength(MAX_RETAINED_ARTICLE_IDS);
+    expect([...result]).toEqual(articleIds.slice(10));
   });
 
   it("keeps selected unread article retention separate from cleanup recommendation policy", () => {

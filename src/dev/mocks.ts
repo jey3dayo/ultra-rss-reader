@@ -761,11 +761,15 @@ export function setupDevMocks(): RestoreDevMocks {
 
       case "mark_feed_read": {
         const { feedId } = parseBrowserMockArgs("mark_feed_read", rawIpcPayload);
+        const markedArticleIds: string[] = [];
         for (const art of mockArticles) {
-          if (art.feed_id === feedId) art.is_read = true;
+          if (art.feed_id === feedId && !art.is_read) {
+            art.is_read = true;
+            markedArticleIds.push(art.id);
+          }
         }
         recalcUnread(feedId);
-        return null;
+        return markedArticleIds;
       }
 
       case "mark_folder_read": {
@@ -776,11 +780,15 @@ export function setupDevMocks(): RestoreDevMocks {
             folderFeedIds.add(feed.id);
           }
         }
+        const markedArticleIds: string[] = [];
         for (const art of mockArticles) {
-          if (folderFeedIds.has(art.feed_id)) art.is_read = true;
+          if (folderFeedIds.has(art.feed_id) && !art.is_read) {
+            art.is_read = true;
+            markedArticleIds.push(art.id);
+          }
         }
         for (const fid of folderFeedIds) recalcUnread(fid);
-        return null;
+        return markedArticleIds;
       }
 
       case "toggle_article_star": {

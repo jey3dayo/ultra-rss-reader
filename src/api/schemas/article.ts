@@ -37,5 +37,7 @@ export const ArticleDtoSchema = z.strictObject({
 
 export const ArticleDtoListSchema = z.array(ArticleDtoSchema);
 
+export const ArticleIdListResponseSchema = z.array(z.string().min(1));
+
 export type SanitizedArticleHtmlDto = z.output<typeof SanitizedArticleHtmlDtoSchema>;
 export type ArticleDto = z.output<typeof ArticleDtoSchema>;

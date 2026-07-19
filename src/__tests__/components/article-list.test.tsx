@@ -1143,7 +1143,7 @@ describe("ArticleList", () => {
     });
   });
 
-  it("removes articles from unread view after confirming mark all read", async () => {
+  it("keeps bulk-read rows visible in the unread view after confirming mark all read", async () => {
     let articles = [
       { ...sampleArticles[0], is_read: false },
       { ...sampleArticles[1], is_read: true },
@@ -1173,12 +1173,15 @@ describe("ArticleList", () => {
           return [];
         case "mark_feed_read": {
           const feedId = String(args.feedId);
+          const markedArticleIds = articles
+            .filter((article) => article.feed_id === feedId && !article.is_read)
+            .map((article) => article.id);
           articles = articles.map((article) => (article.feed_id === feedId ? { ...article, is_read: true } : article));
           feeds = feeds.map((feed) => ({
             ...feed,
             unread_count: articles.filter((article) => article.feed_id === feed.id && !article.is_read).length,
           }));
-          return null;
+          return markedArticleIds;
         }
         case "mark_articles_read": {
           const ids = new Set(requireStringArray(args.articleIds, "articleIds"));
@@ -1218,8 +1221,13 @@ describe("ArticleList", () => {
       }),
     );
 
+    // Bulk mark-read matches the single-article read-in-place UX: the row stays
+    // visible via retention while its unread state clears.
     await waitFor(() => {
-      expect(screen.queryByText("First Article")).not.toBeInTheDocument();
+      expect(useUiStore.getState().retainedArticleIds).toEqual(new Set(["art-1"]));
+    });
+    await waitFor(() => {
+      expect(screen.getByText("First Article")).toBeInTheDocument();
     });
   });
 
@@ -1250,7 +1258,7 @@ describe("ArticleList", () => {
         case "search_articles":
           return [];
         case "mark_feed_read":
-          return null;
+          return [];
         default:
           return undefined;
       }
@@ -1309,7 +1317,7 @@ describe("ArticleList", () => {
         case "search_articles":
           return [];
         case "mark_folder_read":
-          return null;
+          return [];
         default:
           return undefined;
       }

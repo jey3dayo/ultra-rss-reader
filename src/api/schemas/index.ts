@@ -11,6 +11,7 @@ export {
   type ArticleDto,
   ArticleDtoListSchema,
   ArticleDtoSchema,
+  ArticleIdListResponseSchema,
 } from "./article";
 export {
   type BrowserWebviewDiagnosticsPayload,

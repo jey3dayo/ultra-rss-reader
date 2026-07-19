@@ -182,6 +182,7 @@ describe("useUiStore", () => {
         | "removeRecentlyRead"
         | "clearRecentlyRead"
         | "retainArticle"
+        | "retainArticles"
         | "clearRetainedArticles"
         | "setArticleReaderScrollPosition"
       >

@@ -18,6 +18,8 @@ import {
   useArticles,
   useClearArticleViewHistory,
   useFolderArticles,
+  useMarkFeedRead,
+  useMarkFolderRead,
   useMarkOldUnreadRead,
   useRecentArticles,
   useRecordArticleView,
@@ -26,6 +28,7 @@ import {
   useToggleStar,
 } from "@/hooks/use-articles";
 import { queryKeys } from "@/lib/query/query-invalidation";
+import { useUiStore } from "@/stores/ui-store";
 
 setupBrowserTestDom();
 
@@ -875,6 +878,96 @@ describe("useSetRead", () => {
     expect(queryClient.getQueryData(queryKeys.accountArticles.byAccount("acc-1", "all"))).toEqual(
       expect.arrayContaining([expect.objectContaining({ id: "art-1", is_read: false })]),
     );
+  });
+});
+
+describe("useMarkFolderRead / useMarkFeedRead", () => {
+  let queryClient: QueryClient;
+  let wrapper: ReturnType<typeof createQueryWrapper>["wrapper"];
+
+  beforeEach(() => {
+    const queryWrapper = createQueryWrapper({
+      queryClientConfig: {
+        defaultOptions: {
+          mutations: { retry: false },
+        },
+      },
+    });
+    queryClient = queryWrapper.queryClient;
+    wrapper = queryWrapper.wrapper;
+    vi.restoreAllMocks();
+  });
+
+  it("patches cached article read state synchronously from returned folder article ids", async () => {
+    setupTauriMocks((cmd) => (cmd === "mark_folder_read" ? ["art-1"] : undefined));
+
+    queryClient.setQueryData(queryKeys.folderArticles.byFolder("folder-1", "all"), sampleArticles);
+    queryClient.setQueryData(
+      queryKeys.folderArticles.byFolder("folder-1", "unread"),
+      sampleArticles.filter((article) => !article.is_read),
+    );
+
+    const { result } = renderHook(() => useMarkFolderRead(), { wrapper });
+
+    await result.current.mutateAsync("folder-1");
+
+    expect(queryClient.getQueryData(queryKeys.folderArticles.byFolder("folder-1", "all"))).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: "art-1", is_read: true })]),
+    );
+    expect(queryClient.getQueryData(queryKeys.folderArticles.byFolder("folder-1", "unread"))).toEqual([]);
+  });
+
+  it("patches cached article read state synchronously from returned feed article ids", async () => {
+    setupTauriMocks((cmd) => (cmd === "mark_feed_read" ? ["art-1"] : undefined));
+
+    queryClient.setQueryData(queryKeys.articles.byFeed("feed-1", "all"), sampleArticles);
+
+    const { result } = renderHook(() => useMarkFeedRead(), { wrapper });
+
+    await result.current.mutateAsync("feed-1");
+
+    expect(queryClient.getQueryData(queryKeys.articles.byFeed("feed-1", "all"))).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: "art-1", is_read: true })]),
+    );
+  });
+
+  it("retains bulk-marked articles in the unread view so rows stay visible with cleared dots", async () => {
+    setupTauriMocks((cmd) => (cmd === "mark_folder_read" ? ["art-1"] : undefined));
+    useUiStore.setState({ ...useUiStore.getInitialState(), viewMode: "unread" });
+
+    const { result } = renderHook(() => useMarkFolderRead(), { wrapper });
+
+    await result.current.mutateAsync("folder-1");
+
+    expect(useUiStore.getState().retainedArticleIds).toEqual(new Set(["art-1"]));
+  });
+
+  it("does not retain bulk-marked articles outside the unread view", async () => {
+    setupTauriMocks((cmd) => (cmd === "mark_folder_read" ? ["art-1"] : undefined));
+    useUiStore.setState({ ...useUiStore.getInitialState(), viewMode: "all" });
+
+    const { result } = renderHook(() => useMarkFolderRead(), { wrapper });
+
+    await result.current.mutateAsync("folder-1");
+
+    expect(useUiStore.getState().retainedArticleIds).toEqual(new Set());
+  });
+
+  it("leaves cached read state unchanged when the folder mutation fails", async () => {
+    setupTauriMocks((cmd) => {
+      if (cmd === "mark_folder_read") {
+        throw new Error("mark folder read failed");
+      }
+      return undefined;
+    });
+
+    queryClient.setQueryData(queryKeys.folderArticles.byFolder("folder-1", "all"), sampleArticles);
+
+    const { result } = renderHook(() => useMarkFolderRead(), { wrapper });
+
+    await expect(result.current.mutateAsync("folder-1")).rejects.toThrow("mark folder read failed");
+
+    expect(queryClient.getQueryData(queryKeys.folderArticles.byFolder("folder-1", "all"))).toEqual(sampleArticles);
   });
 });
 

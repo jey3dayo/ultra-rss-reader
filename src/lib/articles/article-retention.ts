@@ -32,6 +32,14 @@ export function addRetainedArticle(currentRetainedArticleIds: ReadonlySet<string
   return capRetainedArticleIds([...currentRetainedArticleIds, articleId]);
 }
 
+export function addRetainedArticles(
+  currentRetainedArticleIds: ReadonlySet<string>,
+  articleIds: readonly string[],
+): Set<string> {
+  const validArticleIds = articleIds.filter((articleId) => articleId.trim() !== "");
+  return capRetainedArticleIds([...currentRetainedArticleIds, ...validArticleIds]);
+}
+
 function capRetainedArticleIds(articleIds: Iterable<string>): Set<string> {
   return new Set([...articleIds].slice(-MAX_RETAINED_ARTICLE_IDS));
 }

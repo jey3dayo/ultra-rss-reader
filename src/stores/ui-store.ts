@@ -2,7 +2,11 @@ import { create } from "zustand";
 import type { SyncProgressEventDto } from "@/api/schemas/sync-progress";
 import { getPreferredAccountId } from "@/lib/account/account-selection";
 import type { AddAccountProviderKind } from "@/lib/account/add-account-form";
-import { addRetainedArticle, getRetainedArticleIdsAfterSelectingArticle } from "@/lib/articles/article-retention";
+import {
+  addRetainedArticle,
+  addRetainedArticles,
+  getRetainedArticleIdsAfterSelectingArticle,
+} from "@/lib/articles/article-retention";
 import type { FocusedPane } from "@/lib/layout/layout-state.types";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
 import type { SettingsCategory } from "@/lib/settings/settings-category.types";
@@ -837,6 +841,10 @@ export const useUiStore = create<UiState & UiActions>()((set, get) => ({
   retainArticle: (id) =>
     set((s) => ({
       retainedArticleIds: addRetainedArticle(s.retainedArticleIds, id),
+    })),
+  retainArticles: (ids) =>
+    set((s) => ({
+      retainedArticleIds: addRetainedArticles(s.retainedArticleIds, ids),
     })),
   clearRetainedArticles: () => set({ retainedArticleIds: new Set() }),
   setArticleReaderScrollPosition: (articleId, scrollTop) =>

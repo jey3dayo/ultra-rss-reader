@@ -773,23 +773,26 @@ fn toggle_article_star_with_conn(
     Ok(())
 }
 
-fn mark_feed_read_with_conn(conn: &rusqlite::Connection, feed_id: FeedId) -> Result<(), AppError> {
+fn mark_feed_read_with_conn(
+    conn: &rusqlite::Connection,
+    feed_id: FeedId,
+) -> Result<Vec<String>, AppError> {
     let tx = conn.unchecked_transaction().map_err(DomainError::from)?;
     let rows = collect_feed_unread_rows(&tx, &feed_id)?;
     mark_rows_read(&tx, &rows)?;
     tx.commit().map_err(DomainError::from)?;
-    Ok(())
+    Ok(rows.into_iter().map(|row| row.article_id).collect())
 }
 
 fn mark_folder_read_with_conn(
     conn: &rusqlite::Connection,
     folder_id: FolderId,
-) -> Result<(), AppError> {
+) -> Result<Vec<String>, AppError> {
     let tx = conn.unchecked_transaction().map_err(DomainError::from)?;
     let rows = collect_folder_unread_rows(&tx, &folder_id)?;
     mark_rows_read(&tx, &rows)?;
     tx.commit().map_err(DomainError::from)?;
-    Ok(())
+    Ok(rows.into_iter().map(|row| row.article_id).collect())
 }
 
 fn record_article_view_with_conn(
@@ -1218,14 +1221,20 @@ pub fn mark_articles_read(
 }
 
 #[tauri::command]
-pub fn mark_feed_read(state: State<'_, AppState>, feed_id: String) -> Result<(), AppError> {
+pub fn mark_feed_read(
+    state: State<'_, AppState>,
+    feed_id: String,
+) -> Result<Vec<String>, AppError> {
     let db = crate::commands::lock_db(&state.db)?;
     let feed_id = FeedId(feed_id);
     mark_feed_read_with_conn(db.writer(), feed_id)
 }
 
 #[tauri::command]
-pub fn mark_folder_read(state: State<'_, AppState>, folder_id: String) -> Result<(), AppError> {
+pub fn mark_folder_read(
+    state: State<'_, AppState>,
+    folder_id: String,
+) -> Result<Vec<String>, AppError> {
     let db = crate::commands::lock_db(&state.db)?;
     let folder_id = FolderId(folder_id);
     mark_folder_read_with_conn(db.writer(), folder_id)
@@ -3135,6 +3144,65 @@ mod tests {
         assert!(!article_is_read(&db, "article-a"));
         assert_eq!(feed_unread_count(&db, "feed-a"), 1);
         assert_eq!(pending_mutation_count(&db), 0);
+    }
+
+    #[test]
+    fn mark_folder_read_returns_marked_unread_article_ids() {
+        let db = DbManager::new_in_memory().expect("in-memory DB should initialize");
+        insert_bulk_account(&db, "acc-a", "FreshRss");
+        db.writer()
+            .execute(
+                "INSERT INTO folders (id, account_id, name, sort_order) VALUES ('folder-a', 'acc-a', 'Folder', 0)",
+                [],
+            )
+            .expect("folder insert should succeed");
+        insert_bulk_feed(&db, "feed-a", "acc-a", Some("folder-a"), Some("feed/a"));
+        insert_bulk_article(
+            &db,
+            "article-unread",
+            "feed-a",
+            Some("remote-a"),
+            "2026-04-01T00:00:00Z",
+            false,
+            false,
+        );
+        insert_bulk_article(
+            &db,
+            "article-read",
+            "feed-a",
+            Some("remote-b"),
+            "2026-04-02T00:00:00Z",
+            true,
+            false,
+        );
+
+        let marked_ids = mark_folder_read_with_conn(db.writer(), FolderId("folder-a".to_string()))
+            .expect("folder mark read should succeed");
+
+        assert_eq!(marked_ids, vec!["article-unread".to_string()]);
+        assert!(article_is_read(&db, "article-unread"));
+    }
+
+    #[test]
+    fn mark_feed_read_returns_marked_unread_article_ids() {
+        let db = DbManager::new_in_memory().expect("in-memory DB should initialize");
+        insert_bulk_account(&db, "acc-a", "FreshRss");
+        insert_bulk_feed(&db, "feed-a", "acc-a", None, Some("feed/a"));
+        insert_bulk_article(
+            &db,
+            "article-unread",
+            "feed-a",
+            Some("remote-a"),
+            "2026-04-01T00:00:00Z",
+            false,
+            false,
+        );
+
+        let marked_ids = mark_feed_read_with_conn(db.writer(), FeedId("feed-a".to_string()))
+            .expect("feed mark read should succeed");
+
+        assert_eq!(marked_ids, vec!["article-unread".to_string()]);
+        assert!(article_is_read(&db, "article-unread"));
     }
 
     #[test]

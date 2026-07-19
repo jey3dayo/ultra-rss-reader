@@ -270,6 +270,27 @@ function createDefaultHandler(): MockHandler {
         );
         return null;
       }
+      case "mark_feed_read": {
+        const markedArticleIds = mockArticles
+          .filter((article) => article.feed_id === args.feedId && !article.is_read)
+          .map((article) => article.id);
+        mockArticles = mockArticles.map((article) =>
+          article.feed_id === args.feedId ? { ...article, is_read: true } : article,
+        );
+        return markedArticleIds;
+      }
+      case "mark_folder_read": {
+        const folderFeedIds = new Set(
+          mockFeeds.filter((feed) => feed.folder_id === args.folderId).map((feed) => feed.id),
+        );
+        const markedArticleIds = mockArticles
+          .filter((article) => folderFeedIds.has(article.feed_id) && !article.is_read)
+          .map((article) => article.id);
+        mockArticles = mockArticles.map((article) =>
+          folderFeedIds.has(article.feed_id) ? { ...article, is_read: true } : article,
+        );
+        return markedArticleIds;
+      }
       case "mark_account_read":
       case "mark_account_starred_read": {
         const accountFeedIds = new Set(

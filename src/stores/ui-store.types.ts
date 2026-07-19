@@ -183,6 +183,7 @@ export type UiActions = {
   removeRecentlyRead: (id: string) => void;
   clearRecentlyRead: () => void;
   retainArticle: (id: string) => void;
+  retainArticles: (ids: readonly string[]) => void;
   clearRetainedArticles: () => void;
   setArticleReaderScrollPosition: (articleId: string, scrollTop: number) => void;
   showConfirm: (
@@ -321,6 +322,7 @@ export type UiStoreReaderActions = Pick<
   | "removeRecentlyRead"
   | "clearRecentlyRead"
   | "retainArticle"
+  | "retainArticles"
   | "clearRetainedArticles"
   | "setArticleReaderScrollPosition"
 >;
@@ -358,6 +360,7 @@ export type UiStoreReaderSelectionActions = Pick<
   | "removeRecentlyRead"
   | "clearRecentlyRead"
   | "retainArticle"
+  | "retainArticles"
   | "clearRetainedArticles"
   | "setArticleReaderScrollPosition"
 >;

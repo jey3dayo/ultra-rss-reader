@@ -40,6 +40,7 @@ import {
   resolveArticleInvalidationQueryKeys,
 } from "@/lib/query/query-invalidation";
 import type { ReaderFilter } from "@/lib/reader/reader-query";
+import { useUiStore } from "@/stores/ui-store";
 
 export type SetReadMutationInput = {
   id: string;
@@ -651,12 +652,62 @@ export function useClearArticleViewHistory() {
   });
 }
 
-export const useMarkFeedRead = createMutation(markFeedRead, (qc) =>
-  invalidateArticleMutationQueries(qc, "article-read"),
+// Single-pass bulk variant of patchCachedArticleReadState: bulk mark-read never
+// needs insertIfMissing, so one sweep over the cached list queries stays O(queries
+// × articles) instead of O(ids × queries × articles) for large folders.
+function patchCachedArticlesMarkedRead(qc: QueryClient, markedArticleIds: ReadonlySet<string>) {
+  for (const queryRoot of ARTICLE_CACHE_QUERY_ROOTS) {
+    for (const [queryKey, data] of qc.getQueriesData<unknown>({ queryKey: queryRoot })) {
+      if (!Array.isArray(data)) {
+        continue;
+      }
+
+      let changed = false;
+      const nextData = data.flatMap((candidate) => {
+        if (!isArticleDto(candidate) || !markedArticleIds.has(candidate.id) || candidate.is_read) {
+          return [candidate];
+        }
+
+        changed = true;
+        const nextArticle = { ...candidate, is_read: true };
+        return shouldKeepArticleInQuery(queryKey, nextArticle) ? [nextArticle] : [];
+      });
+
+      if (changed) {
+        qc.setQueryData(queryKey, nextData);
+      }
+    }
+  }
+
+  for (const articleId of markedArticleIds) {
+    qc.setQueryData(queryKeys.articles.byId(articleId), (current: ArticleDto | undefined) =>
+      current === undefined ? undefined : { ...current, is_read: true },
+    );
+  }
+}
+
+function patchMarkedArticlesReadAndInvalidate(qc: QueryClient, markedArticleIds: readonly string[]) {
+  // In the unread view, keep bulk-read rows visible (dot cleared, row retained)
+  // to match the single-article read-in-place behavior. The retention snapshot
+  // resolves the retained DTOs from the always-mounted "all"-mode list caches,
+  // which keep the patched articles after unread-mode caches drop them.
+  const { viewMode, retainArticles } = useUiStore.getState();
+  if (viewMode === "unread") {
+    retainArticles(markedArticleIds);
+  }
+
+  // Patch cached lists synchronously so unread dots clear even when the
+  // background refetch is slow or fails; invalidation stays the durable sync path.
+  patchCachedArticlesMarkedRead(qc, new Set(markedArticleIds));
+  invalidateArticleMutationQueries(qc, "article-read");
+}
+
+export const useMarkFeedRead = createMutation(markFeedRead, (qc, _feedId, markedArticleIds) =>
+  patchMarkedArticlesReadAndInvalidate(qc, markedArticleIds),
 );
 
-export const useMarkFolderRead = createMutation(markFolderRead, (qc) =>
-  invalidateArticleMutationQueries(qc, "article-read"),
+export const useMarkFolderRead = createMutation(markFolderRead, (qc, _folderId, markedArticleIds) =>
+  patchMarkedArticlesReadAndInvalidate(qc, markedArticleIds),
 );
 
 export function useSearchArticles(accountId: string | null, query: string) {

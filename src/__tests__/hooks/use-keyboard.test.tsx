@@ -40,9 +40,10 @@ function renderAppShell(calls: MockTauriCommandCall[]) {
         return [];
       case "get_tag_article_counts":
         return {};
+      case "mark_feed_read":
+        return [];
       case "mark_article_read":
       case "mark_articles_read":
-      case "mark_feed_read":
       case "toggle_article_star":
       case "open_in_browser":
       case "trigger_sync":

@@ -1,4 +1,5 @@
 import {
+  ArticleIdListResponseSchema,
   addLocalFeedArgs,
   cleanupFeedIntegrityOrphansArgs,
   createFolderArgs,
@@ -59,10 +60,10 @@ export const cleanupFeedIntegrityOrphans = (dryRun: boolean, orphanedArticleIds?
   );
 
 export const markFeedRead = (feedId: string) =>
-  safeInvoke("mark_feed_read", { response: NullResponseSchema, args: markFeedReadArgs }, { feedId });
+  safeInvoke("mark_feed_read", { response: ArticleIdListResponseSchema, args: markFeedReadArgs }, { feedId });
 
 export const markFolderRead = (folderId: string) =>
-  safeInvoke("mark_folder_read", { response: NullResponseSchema, args: markFolderReadArgs }, { folderId });
+  safeInvoke("mark_folder_read", { response: ArticleIdListResponseSchema, args: markFolderReadArgs }, { folderId });
 
 export const discoverFeeds = (url: string) =>
   safeInvoke("discover_feeds", { response: DiscoveredFeedDtoListSchema, args: discoverFeedsArgs }, { url });

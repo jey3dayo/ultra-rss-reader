@@ -53,6 +53,7 @@ const publicSchemaRuntimeExports = [
   "AppErrorSchema",
   "ArticleDtoListSchema",
   "ArticleDtoSchema",
+  "ArticleIdListResponseSchema",
   "BooleanResponseSchema",
   "BrowserWebviewDiagnosticsPayloadSchema",
   "BrowserWebviewFallbackPayloadSchema",
