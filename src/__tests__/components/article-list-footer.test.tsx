@@ -24,7 +24,8 @@ describe("ArticleListFooter", () => {
     const allButton = screen.getByRole("button", { name: /all/i });
 
     expect(unreadButton).toHaveClass("text-foreground-soft");
-    expect(unreadButton).toHaveClass("hover:text-foreground");
+    expect(unreadButton).toHaveClass("hover:text-[var(--semantic-tone-unread-content-foreground)]");
+    expect(unreadButton).toHaveClass("data-[pressed]:text-[var(--semantic-tone-unread-content-foreground)]");
     expect(unreadButton).toHaveClass("h-11", "rounded-md", "font-medium");
     expect(unreadButton).not.toHaveClass("sm:h-7");
     expect(unreadButton).toHaveClass("focus-visible:bg-transparent", "focus-visible:ring-2");
@@ -36,7 +37,8 @@ describe("ArticleListFooter", () => {
       "[&_[data-filter-toggle-content]]:py-2",
     );
     expect(starredButton).toHaveClass("text-foreground-soft");
-    expect(starredButton).toHaveClass("hover:text-foreground");
+    expect(starredButton).toHaveClass("hover:text-[var(--semantic-tone-starred-content-foreground)]");
+    expect(starredButton).toHaveClass("data-[pressed]:text-[var(--semantic-tone-starred-content-foreground)]");
     expect(starredButton).toHaveClass("h-11", "rounded-md", "font-medium");
     expect(allButton).toHaveClass("data-[pressed]:bg-transparent");
     expect(allButton).toHaveClass("bg-transparent", "shadow-none");
