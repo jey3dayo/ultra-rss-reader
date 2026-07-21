@@ -44,13 +44,13 @@ Keep pane-local behavior close to the pane component. Use the global keyboard ho
 
 The account pane is transient. It appears to the left of the sidebar in non-mobile layouts.
 
-| Key | Behavior |
-| --- | --- |
-| `ArrowUp` | Move focus to the previous account row. Wrap at the top. |
-| `ArrowDown` | Move focus to the next account row. Wrap at the bottom. |
-| `Enter` | Select the focused account, close the account pane, and focus the sidebar unread smart view. |
-| `ArrowRight` | Same as `Enter`. Treat it as commit, not merely close. |
-| `Escape` | Close the account pane without changing account selection, then focus the current sidebar selection. |
+| Key          | Behavior                                                                                             |
+| ------------ | ---------------------------------------------------------------------------------------------------- |
+| `ArrowUp`    | Move focus to the previous account row. Wrap at the top.                                             |
+| `ArrowDown`  | Move focus to the next account row. Wrap at the bottom.                                              |
+| `Enter`      | Select the focused account, close the account pane, and focus the sidebar unread smart view.         |
+| `ArrowRight` | Same as `Enter`. Treat it as commit, not merely close.                                               |
+| `Escape`     | Close the account pane without changing account selection, then focus the current sidebar selection. |
 
 The account pane must not open the account switcher popover in non-mobile layouts. The popover remains a mobile behavior.
 
@@ -58,11 +58,11 @@ The account pane must not open the account switcher popover in non-mobile layout
 
 The sidebar contains smart views, subscription folders/feeds, and tags. It owns row selection for these items.
 
-| Key | Behavior |
-| --- | --- |
-| `ArrowUp` | Move to the previous visible sidebar navigation target and activate it. |
-| `ArrowDown` | Move to the next visible sidebar navigation target and activate it. |
-| `ArrowLeft` | Open the account pane and focus the selected account row. |
+| Key          | Behavior                                                                                                                         |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| `ArrowUp`    | Move to the previous visible sidebar navigation target and activate it.                                                          |
+| `ArrowDown`  | Move to the next visible sidebar navigation target and activate it.                                                              |
+| `ArrowLeft`  | Open the account pane and focus the selected account row.                                                                        |
 | `ArrowRight` | Move focus to the article list. Focus the selected article row when present; otherwise focus the first readable row/list target. |
 
 Section disclosure headers such as Subscriptions and Tags may receive focus, but they should use tonal background focus. They must not show the orange ring style used by general form controls.
@@ -71,11 +71,11 @@ Section disclosure headers such as Subscriptions and Tags may receive focus, but
 
 The article list owns article-row navigation and article selection.
 
-| Key | Behavior |
-| --- | --- |
-| `ArrowUp` | Move to the previous article row. |
-| `ArrowDown` | Move to the next article row. |
-| `ArrowLeft` | Open/focus the sidebar and focus the current sidebar selection. |
+| Key          | Behavior                                                                |
+| ------------ | ----------------------------------------------------------------------- |
+| `ArrowUp`    | Move to the previous article row.                                       |
+| `ArrowDown`  | Move to the next article row.                                           |
+| `ArrowLeft`  | Open/focus the sidebar and focus the current sidebar selection.         |
 | `ArrowRight` | Select the focused article row when needed, then focus article content. |
 
 Global shortcuts can still apply when the event is not one of the pane-owned arrow keys.
@@ -86,11 +86,13 @@ When the selected smart view is `recent`, article selection must not record the 
 
 Article content is not a row list. It should prioritize content reading, scrolling, and article-local controls.
 
-| Key | Behavior |
-| --- | --- |
-| `ArrowLeft` | Return to the article list when the article content pane is focused. |
-| `ArrowUp` | Reserved for content scroll or focused article-local controls. Do not move the article list selection. |
-| `ArrowDown` | Reserved for content scroll or focused article-local controls. Do not move the article list selection. |
+| Key                                              | Behavior                                                                                                                                                                                                                                              |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ArrowLeft`                                      | Return to the article list when the article content pane is focused.                                                                                                                                                                                  |
+| `ArrowUp`                                        | Reserved for content scroll or focused article-local controls. Do not move the article list selection.                                                                                                                                                |
+| `ArrowDown`                                      | Reserved for content scroll or focused article-local controls. Do not move the article list selection.                                                                                                                                                |
+| `Space` (customizable `scroll_article_down`)     | Scrolls the article content viewport down ~85% of its height, focus-independent, unless a native-activation target (button/link) is focused or the browser overlay is active. At the bottom of the content, falls through to next-article navigation. |
+| `Shift+Space` (customizable `scroll_article_up`) | Scrolls the article content viewport up ~85% of its height, focus-independent, with the same native-activation and browser-overlay guards. No special behavior at the top.                                                                            |
 
 When `ArrowLeft` originates from an article-list row while the app state still says content is focused, route back to the sidebar. This preserves the leftward chain from article content to article list to sidebar.
 
@@ -107,13 +109,13 @@ Forward navigation order:
 
 Return navigation follows the same order in reverse. Each transition must restore both the app focus state and the DOM focus target:
 
-| Closing or returning from | Required stable target |
-| --- | --- |
-| Account pane | Current sidebar selection. |
-| Sidebar pane / feed list into article list | Selected article row; if none exists, the first readable article row or article-list root. |
-| Article content pane | Selected article row in the article list. |
-| Embedded browser WebView or browser overlay | `focusedPane="list"` and the selected article row. |
-| Browser overlay fallback without a selected row | Article-list root, with `focusedPane="list"`. |
+| Closing or returning from                       | Required stable target                                                                     |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Account pane                                    | Current sidebar selection.                                                                 |
+| Sidebar pane / feed list into article list      | Selected article row; if none exists, the first readable article row or article-list root. |
+| Article content pane                            | Selected article row in the article list.                                                  |
+| Embedded browser WebView or browser overlay     | `focusedPane="list"` and the selected article row.                                         |
+| Browser overlay fallback without a selected row | Article-list root, with `focusedPane="list"`.                                              |
 
 Invalid post-close states:
 
@@ -174,12 +176,12 @@ Dense control keyboard contract:
 
 Pointer target inventory:
 
-| Surface | Minimum target contract | Notes |
-| --- | --- | --- |
-| Compact toolbar icon buttons | At least 32px square on desktop and 44px square on touch-oriented/mobile layouts. | The visual glyph may be smaller, but the interactive hit area must meet the target. |
-| Feed tree and sidebar rows | Full row height is the pointer target; row actions must keep at least a 32px hit area. | Disclosure toggles and inline actions must not require pixel-precise clicks. |
-| Tag chips and chip remove actions | The chip body must be at least 32px high; remove affordances must keep at least a 32px target or use the whole chip as the action. | Do not rely on a tiny icon-only remove target inside dense chips. |
-| Settings action buttons | At least 32px high in desktop settings rows, with 44px reserved for mobile or touch layouts. | Adjacent buttons need enough gap that the target areas do not overlap. |
+| Surface                           | Minimum target contract                                                                                                            | Notes                                                                               |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Compact toolbar icon buttons      | At least 32px square on desktop and 44px square on touch-oriented/mobile layouts.                                                  | The visual glyph may be smaller, but the interactive hit area must meet the target. |
+| Feed tree and sidebar rows        | Full row height is the pointer target; row actions must keep at least a 32px hit area.                                             | Disclosure toggles and inline actions must not require pixel-precise clicks.        |
+| Tag chips and chip remove actions | The chip body must be at least 32px high; remove affordances must keep at least a 32px target or use the whole chip as the action. | Do not rely on a tiny icon-only remove target inside dense chips.                   |
+| Settings action buttons           | At least 32px high in desktop settings rows, with 44px reserved for mobile or touch layouts.                                       | Adjacent buttons need enough gap that the target areas do not overlap.              |
 
 Pointer target verification should inventory compact toolbar buttons, feed tree rows, tag chips, settings action buttons, and browser overlay controls together. A smaller visual treatment is acceptable only when padding or row geometry preserves the interactive target.
 
@@ -194,12 +196,12 @@ Dense display width and tooltip policy:
 
 Reader, settings, and subscriptions surfaces need a stable screen reader outline even when the visual layout is pane-based.
 
-| Surface | Required structure |
-| --- | --- |
-| Reader app shell | One primary `main` landmark owns the active reader workspace. Sidebar navigation uses `nav`; secondary article metadata or feed detail panels use `complementary` only when they are not the primary reading target. |
-| Reader panes | Account, sidebar, article list, and article content panes each need a programmatic label. The article content pane must expose the article heading when an article is selected; empty and loading states need labeled status text. |
-| Settings | Settings modal/dialog content must have a modal heading. Each settings section needs a heading or an equivalent accessible label tied to its controls. Hidden settings panels must not remain in the screen reader traversal order. |
-| Subscriptions index | The subscriptions workspace uses a single page heading, labeled review/list regions, and row/group labels that identify account, feed, folder, or tag context. |
+| Surface             | Required structure                                                                                                                                                                                                                  |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Reader app shell    | One primary `main` landmark owns the active reader workspace. Sidebar navigation uses `nav`; secondary article metadata or feed detail panels use `complementary` only when they are not the primary reading target.                |
+| Reader panes        | Account, sidebar, article list, and article content panes each need a programmatic label. The article content pane must expose the article heading when an article is selected; empty and loading states need labeled status text.  |
+| Settings            | Settings modal/dialog content must have a modal heading. Each settings section needs a heading or an equivalent accessible label tied to its controls. Hidden settings panels must not remain in the screen reader traversal order. |
+| Subscriptions index | The subscriptions workspace uses a single page heading, labeled review/list regions, and row/group labels that identify account, feed, folder, or tag context.                                                                      |
 
 Hidden panes and collapsed sections must not expose duplicate headings or stale row actions to assistive technology. When a pane is visually present but inactive, keep its landmark or region label stable and let focus/selection state explain whether it is the active keyboard target.
 
@@ -207,13 +209,13 @@ Hidden panes and collapsed sections must not expose duplicate headings or stale 
 
 Sync, account, feed, and tag status must never be communicated by color alone.
 
-| State class | Required non-color signal |
-| --- | --- |
-| Syncing or updating | Text such as "Syncing" / "Updating", a progress label, or an accessible live-region announcement. |
-| Sync failure, auth failure, or stale content | Error/warning text or icon with an accessible label. Feed/account names must be included when safe. |
-| Selected account, feed, article, or tag | `aria-current`, `aria-selected`, checked/pressed state, or equivalent text/icon treatment in addition to color. |
-| Muted, filtered, starred, unread, or tagged state | Icon, text, count, or accessible label that names the state. |
-| High contrast or forced-colors mode | State must remain detectable through text, icon shape, border, underline, or system color mapping. |
+| State class                                       | Required non-color signal                                                                                       |
+| ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Syncing or updating                               | Text such as "Syncing" / "Updating", a progress label, or an accessible live-region announcement.               |
+| Sync failure, auth failure, or stale content      | Error/warning text or icon with an accessible label. Feed/account names must be included when safe.             |
+| Selected account, feed, article, or tag           | `aria-current`, `aria-selected`, checked/pressed state, or equivalent text/icon treatment in addition to color. |
+| Muted, filtered, starred, unread, or tagged state | Icon, text, count, or accessible label that names the state.                                                    |
+| High contrast or forced-colors mode               | State must remain detectable through text, icon shape, border, underline, or system color mapping.              |
 
 Color may reinforce severity or selection, but it is secondary evidence. Review dense controls by turning off color-dependent assumptions: if the state cannot be named from text, icon, accessible label, or structural state, the contract is not met.
 
@@ -253,11 +255,11 @@ Action identifiers are public only at the boundary where another surface stores 
 
 Public persistence boundary:
 
-| Boundary class | Persistent or external surface | Stable identifier contract |
-| --- | --- | --- |
-| Preference | Shortcut overrides are stored as `shortcut_${ShortcutActionId}`. The allowed action id suffixes are the `ShortcutActionId` values in `src/lib/keyboard/keyboard-shortcuts.ts`, and Rust preferences accept the same suffix list. | Rename only by keeping the old key readable until a migration copies it to the new key. Unknown `shortcut_*` keys are invalid and must not silently become defaults. |
-| History | Command palette recent action history stores values created from `{ kind: "action", id }`. The action id is either an `AppAction` or the palette-only `open-shortcuts-help`. | Rename only by migrating or ignoring old history entries explicitly. Do not persist labels, translated text, or menu ids as history ids. |
-| Debug | Debug input trace records resolved action strings such as `window-key / -> emit`, `menu-action open-settings`, and `queue next-article`. | Debug trace strings are diagnostic evidence, not preferences. They may change for clarity, but incident notes must record the exact string observed for that build. |
+| Boundary class | Persistent or external surface                                                                                                                                                                                                   | Stable identifier contract                                                                                                                                           |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Preference     | Shortcut overrides are stored as `shortcut_${ShortcutActionId}`. The allowed action id suffixes are the `ShortcutActionId` values in `src/lib/keyboard/keyboard-shortcuts.ts`, and Rust preferences accept the same suffix list. | Rename only by keeping the old key readable until a migration copies it to the new key. Unknown `shortcut_*` keys are invalid and must not silently become defaults. |
+| History        | Command palette recent action history stores values created from `{ kind: "action", id }`. The action id is either an `AppAction` or the palette-only `open-shortcuts-help`.                                                     | Rename only by migrating or ignoring old history entries explicitly. Do not persist labels, translated text, or menu ids as history ids.                             |
+| Debug          | Debug input trace records resolved action strings such as `window-key / -> emit`, `menu-action open-settings`, and `queue next-article`.                                                                                         | Debug trace strings are diagnostic evidence, not preferences. They may change for clarity, but incident notes must record the exact string observed for that build.  |
 
 Keyboard shortcut migration path:
 
@@ -280,14 +282,14 @@ Shortcut help content contract:
 
 Command availability matrix:
 
-| Surface | Source of available ids | Availability gate | Persistence behavior |
-| --- | --- | --- | --- |
-| Global keyboard | `shortcutDefinitions` plus `resolveKeyboardAction` | Blocks in text editing targets, IME composition, unsupported keys, top-layer UI, missing selected article, non-browser `reload_webview`, and `close_or_clear` with no current close/clear target. | Stores only shortcut override preferences. It does not write command history. |
-| Shortcut help | `shortcutDefinitions` | Shows configured/default bindings even when the current runtime state would skip an action. | Reads preferences only. |
-| Shortcut settings | `shortcutDefinitions` | Rejects duplicate active bindings and native-menu-owned shortcuts such as `⌘+r`. | Writes `shortcut_${id}` preference keys. |
-| Command palette | `useCommandPaletteActions` | Hides or no-ops unavailable account-scoped actions when no account is selected; no-ops `sync-all` while sync is already running; `open-shortcuts-help` is palette-only and bypasses `executeAction`. | Writes command history for executed actions and selected resources. |
-| Native menu | Rust `resolve_menu_action` emits `AppAction` strings through `menu-action`. | Native menu availability lives in Rust menu construction. `accounts-sync` owns `CmdOrCtrl+R`; item menu shortcut hints are fixed display labels and do not read user shortcut preferences. | Does not write shortcut preferences or command history. |
-| Browser preview shortcut bridge | Rust browser shortcut specs keyed by selected `shortcut_*` preferences. | Only bridge-owned browser preview actions are available inside the native browser overlay. | Reads preferences to build the bridge script; write ownership remains shortcut settings. |
+| Surface                         | Source of available ids                                                     | Availability gate                                                                                                                                                                                    | Persistence behavior                                                                     |
+| ------------------------------- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Global keyboard                 | `shortcutDefinitions` plus `resolveKeyboardAction`                          | Blocks in text editing targets, IME composition, unsupported keys, top-layer UI, missing selected article, non-browser `reload_webview`, and `close_or_clear` with no current close/clear target.    | Stores only shortcut override preferences. It does not write command history.            |
+| Shortcut help                   | `shortcutDefinitions`                                                       | Shows configured/default bindings even when the current runtime state would skip an action.                                                                                                          | Reads preferences only.                                                                  |
+| Shortcut settings               | `shortcutDefinitions`                                                       | Rejects duplicate active bindings and native-menu-owned shortcuts such as `⌘+r`.                                                                                                                     | Writes `shortcut_${id}` preference keys.                                                 |
+| Command palette                 | `useCommandPaletteActions`                                                  | Hides or no-ops unavailable account-scoped actions when no account is selected; no-ops `sync-all` while sync is already running; `open-shortcuts-help` is palette-only and bypasses `executeAction`. | Writes command history for executed actions and selected resources.                      |
+| Native menu                     | Rust `resolve_menu_action` emits `AppAction` strings through `menu-action`. | Native menu availability lives in Rust menu construction. `accounts-sync` owns `CmdOrCtrl+R`; item menu shortcut hints are fixed display labels and do not read user shortcut preferences.           | Does not write shortcut preferences or command history.                                  |
+| Browser preview shortcut bridge | Rust browser shortcut specs keyed by selected `shortcut_*` preferences.     | Only bridge-owned browser preview actions are available inside the native browser overlay.                                                                                                           | Reads preferences to build the bridge script; write ownership remains shortcut settings. |
 
 ## A11y Baseline Checklist
 

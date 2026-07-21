@@ -78,6 +78,8 @@ Preference は UI state であると同時に local persisted data でもある�
 | `startup_remote_state_repair_v1` | backend-owned | backend/runtime only |
 | `shortcut_next_article` | shortcut definition | shortcutDefaults |
 | `shortcut_prev_article` | shortcut definition | shortcutDefaults |
+| `shortcut_scroll_article_down` | shortcut definition | shortcutDefaults |
+| `shortcut_scroll_article_up` | shortcut definition | shortcutDefaults |
 | `shortcut_next_feed` | shortcut definition | shortcutDefaults |
 | `shortcut_prev_feed` | shortcut definition | shortcutDefaults |
 | `shortcut_reload_webview` | shortcut definition | shortcutDefaults |
@@ -104,8 +106,12 @@ Preference は UI state であると同時に local persisted data でもある�
 
 ```typescript
 // 個別セレクタで必要な値だけ購読
-const dimArchived = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "dim_archived"));
-const textPreview = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "text_preview"));
+const dimArchived = usePreferencesStore((s) =>
+  resolvePreferenceValue(s.prefs, "dim_archived"),
+);
+const textPreview = usePreferencesStore((s) =>
+  resolvePreferenceValue(s.prefs, "text_preview"),
+);
 
 // 書き込み
 const setPref = usePreferencesStore((s) => s.setPref);
