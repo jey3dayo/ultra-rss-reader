@@ -16,6 +16,11 @@ vi.mock("@/components/app-confirm-dialog", () => ({
   AppConfirmDialog: () => null,
 }));
 
+const scrollArticleContentByViewportMock = vi.fn<(direction: 1 | -1) => "scrolled" | "reached-end" | "unavailable">();
+vi.mock("@/lib/reader/reader-content-scroll", () => ({
+  scrollArticleContentByViewport: (direction: 1 | -1) => scrollArticleContentByViewportMock(direction),
+}));
+
 function renderAppShell(calls: MockTauriCommandCall[]) {
   setupTauriMocks((cmd, args) => {
     calls.push({ cmd, args });
@@ -110,6 +115,7 @@ describe("useKeyboard", () => {
   afterEach(() => {
     useUiStore.setState(useUiStore.getInitialState());
     usePlatformStore.setState(usePlatformStore.getInitialState());
+    scrollArticleContentByViewportMock.mockReset();
   });
 
   it("pressing m toggles the selected article to read", async () => {
@@ -685,6 +691,110 @@ describe("useKeyboard", () => {
       vi.useRealTimers();
       restoreWindowProperty("requestAnimationFrame", requestAnimationFrameDescriptor);
       restoreWindowProperty("cancelAnimationFrame", cancelAnimationFrameDescriptor);
+    }
+  });
+
+  it("pressing Space scrolls the article content viewport regardless of focus", () => {
+    scrollArticleContentByViewportMock.mockReturnValue("scrolled");
+    const navigateArticleSpy = vi.fn();
+    window.addEventListener(APP_EVENTS.navigateArticle, navigateArticleSpy);
+
+    try {
+      useUiStore.setState({
+        ...useUiStore.getInitialState(),
+        selectedArticleId: "art-1",
+        contentMode: "reader",
+        viewMode: "all",
+      });
+
+      renderHook(() => useKeyboard());
+
+      fireEvent.keyDown(window, { key: " " });
+
+      expect(scrollArticleContentByViewportMock).toHaveBeenCalledWith(1);
+      expect(navigateArticleSpy).not.toHaveBeenCalled();
+    } finally {
+      window.removeEventListener(APP_EVENTS.navigateArticle, navigateArticleSpy);
+    }
+  });
+
+  it("pressing Shift+Space scrolls the article content viewport upward", () => {
+    scrollArticleContentByViewportMock.mockReturnValue("scrolled");
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedArticleId: "art-1",
+      contentMode: "reader",
+      viewMode: "all",
+    });
+
+    renderHook(() => useKeyboard());
+
+    fireEvent.keyDown(window, { key: " ", shiftKey: true });
+
+    expect(scrollArticleContentByViewportMock).toHaveBeenCalledWith(-1);
+  });
+
+  it("navigates to the next article when Space is pressed already scrolled to the bottom", () => {
+    scrollArticleContentByViewportMock.mockReturnValue("reached-end");
+    const navigateArticleSpy = vi.fn();
+    window.addEventListener(APP_EVENTS.navigateArticle, navigateArticleSpy);
+
+    try {
+      useUiStore.setState({
+        ...useUiStore.getInitialState(),
+        selectedArticleId: "art-1",
+        contentMode: "reader",
+        viewMode: "all",
+      });
+
+      renderHook(() => useKeyboard());
+
+      fireEvent.keyDown(window, { key: " " });
+
+      expect(navigateArticleSpy).toHaveBeenCalledOnce();
+      expect(navigateArticleSpy.mock.calls[0]?.[0]).toMatchObject({ detail: 1 });
+    } finally {
+      window.removeEventListener(APP_EVENTS.navigateArticle, navigateArticleSpy);
+    }
+  });
+
+  it("does not scroll or navigate on Space while the browser overlay is active", () => {
+    scrollArticleContentByViewportMock.mockReturnValue("scrolled");
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      viewMode: "all",
+    });
+
+    renderHook(() => useKeyboard());
+
+    fireEvent.keyDown(window, { key: " " });
+
+    expect(scrollArticleContentByViewportMock).not.toHaveBeenCalled();
+  });
+
+  it("does not intercept Space when a button is focused", () => {
+    scrollArticleContentByViewportMock.mockReturnValue("scrolled");
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedArticleId: "art-1",
+      contentMode: "reader",
+      viewMode: "all",
+    });
+
+    renderHook(() => useKeyboard());
+
+    const button = document.createElement("button");
+    document.body.appendChild(button);
+    try {
+      fireEvent.keyDown(button, { key: " " });
+      expect(scrollArticleContentByViewportMock).not.toHaveBeenCalled();
+    } finally {
+      button.remove();
     }
   });
 

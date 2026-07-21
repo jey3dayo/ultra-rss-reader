@@ -1,6 +1,7 @@
 import { setupBrowserTestDom } from "@tests/helpers/browser-test-globals";
 import { describe, expect, it } from "vitest";
 import {
+  isGlobalShortcutNativeActivationTarget,
   isGlobalShortcutTextEditingTarget,
   isModalBlockedMenuAction,
   shouldIgnoreGlobalShortcutKeyboardEvent,
@@ -51,6 +52,26 @@ describe("global shortcut targets", () => {
     ["process key", { key: "Process" }],
   ] as const)("ignores %s before resolving global shortcuts", (_label, event) => {
     expect(shouldIgnoreGlobalShortcutKeyboardEvent(event)).toBe(true);
+  });
+
+  it.each([
+    ["button", "<button></button>"],
+    ["anchor with href", '<a href="https://example.test">link</a>'],
+    ["ARIA button role", '<div role="button"></div>'],
+    ["ARIA link role", '<div role="link"></div>'],
+    ["summary", "<summary></summary>"],
+    ["nested inside a button", "<button><span></span></button>"],
+  ] as const)("treats %s as a native-activation target", (_label, markup) => {
+    const element = createElement(markup);
+    expect(isGlobalShortcutNativeActivationTarget(element.querySelector("span") ?? element)).toBe(true);
+  });
+
+  it.each([
+    ["plain div", "<div></div>"],
+    ["input", "<input />"],
+    ["anchor without href", "<a>no href</a>"],
+  ] as const)("does not treat %s as a native-activation target", (_label, markup) => {
+    expect(isGlobalShortcutNativeActivationTarget(createElement(markup))).toBe(false);
   });
 
   it("keeps native menu reader actions modal-blocked while allowing app-level actions", () => {

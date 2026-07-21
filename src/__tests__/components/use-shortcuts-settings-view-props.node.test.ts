@@ -142,6 +142,16 @@ describe("buildShortcutsSettingsViewProps", () => {
             resetDisabled: true,
           },
           {
+            id: "scroll_article_down",
+            label: tReader("shortcuts.scroll_article_down"),
+            resetDisabled: true,
+          },
+          {
+            id: "scroll_article_up",
+            label: tReader("shortcuts.scroll_article_up"),
+            resetDisabled: true,
+          },
+          {
             id: "next_feed",
             label: tReader("shortcuts.next_feed"),
             resetDisabled: true,

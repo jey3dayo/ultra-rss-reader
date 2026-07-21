@@ -245,6 +245,8 @@
   "shortcuts": {
     "next_article": "次の記事",
     "prev_article": "前の記事",
+    "scroll_article_down": "本文を下へスクロール",
+    "scroll_article_up": "本文を上へスクロール",
     "next_feed": "次のフィード",
     "prev_feed": "前のフィード",
     "reload_webview": "Webプレビューを再読み込み",

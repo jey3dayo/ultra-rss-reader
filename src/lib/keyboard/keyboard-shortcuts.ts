@@ -32,6 +32,7 @@ export type KeyboardAction =
   | { type: "focus-sidebar" }
   | { type: "navigate-article"; direction: 1 | -1 }
   | { type: "navigate-feed"; direction: 1 | -1 }
+  | { type: "scroll-article"; direction: 1 | -1 }
   | { type: "reload-webview" }
   | { type: "noop" };
 
@@ -41,6 +42,8 @@ export type KeyboardActionSkipReason = "ignored_input" | "missing_selected_artic
 export type ShortcutActionId =
   | "next_article"
   | "prev_article"
+  | "scroll_article_down"
+  | "scroll_article_up"
   | "next_feed"
   | "prev_feed"
   | "reload_webview"
@@ -75,6 +78,8 @@ type ShortcutKeyEvent = ShortcutModifierEvent & {
 export type ShortcutLabelKey =
   | "shortcuts.next_article"
   | "shortcuts.prev_article"
+  | "shortcuts.scroll_article_down"
+  | "shortcuts.scroll_article_up"
   | "shortcuts.next_feed"
   | "shortcuts.prev_feed"
   | "shortcuts.reload_webview"
@@ -119,6 +124,18 @@ export const shortcutDefinitions: ShortcutDefinition[] = [
     labelKey: "shortcuts.prev_article",
     categoryKey: "shortcuts.category_navigation",
     defaultKey: "k",
+  },
+  {
+    id: "scroll_article_down",
+    labelKey: "shortcuts.scroll_article_down",
+    categoryKey: "shortcuts.category_navigation",
+    defaultKey: "Space",
+  },
+  {
+    id: "scroll_article_up",
+    labelKey: "shortcuts.scroll_article_up",
+    categoryKey: "shortcuts.category_navigation",
+    defaultKey: "Shift+Space",
   },
   {
     id: "next_feed",
@@ -430,11 +447,20 @@ function hasNonPrimaryModifier(platformKind: PlatformKind, e: ShortcutModifierEv
   return (platformKind === "macos" && e.ctrlKey) || (platformKind !== "macos" && e.metaKey);
 }
 
+const SPACE_KEY_TOKEN = "Space";
+
+function normalizeKeyToken(key: string, shiftKey: boolean): string {
+  if (key === " ") {
+    return SPACE_KEY_TOKEN;
+  }
+  return key.length === 1 && shiftKey ? key.toUpperCase() : key;
+}
+
 function normalizeKeyFromEvent(e: ShortcutKeyEvent): string {
   const parts: string[] = [];
   if (e.metaKey || e.ctrlKey) parts.push("\u2318");
   if (e.shiftKey && e.key !== "Shift") parts.push("Shift");
-  parts.push(e.key.length === 1 && e.shiftKey ? e.key.toUpperCase() : e.key);
+  parts.push(normalizeKeyToken(e.key, e.shiftKey));
   return parts.join("+");
 }
 
@@ -448,7 +474,7 @@ function normalizeKeyFromRuntimeEvent(e: ShortcutKeyEvent, platformKind: Platfor
     parts.push("Ctrl");
   }
   if (e.shiftKey && e.key !== "Shift") parts.push("Shift");
-  parts.push(e.key.length === 1 && e.shiftKey ? e.key.toUpperCase() : e.key);
+  parts.push(normalizeKeyToken(e.key, e.shiftKey));
   return parts.join("+");
 }
 
@@ -487,6 +513,7 @@ type KeyboardContext = {
   isComposing?: boolean;
   targetTag?: string | null;
   targetIsTextEditing?: boolean;
+  targetIsNativeActivation?: boolean;
   selectedArticleId: string | null;
   contentMode: ContentMode;
   viewMode: ViewMode;
@@ -578,6 +605,16 @@ function resolveActionForId(
       return Result.succeed({ type: "navigate-article", direction: 1 });
     case "prev_article":
       return Result.succeed({ type: "navigate-article", direction: -1 });
+    case "scroll_article_down":
+      if (context.contentMode === "browser") return Result.fail("no_action");
+      return context.selectedArticleId
+        ? Result.succeed({ type: "scroll-article", direction: 1 })
+        : Result.fail("missing_selected_article");
+    case "scroll_article_up":
+      if (context.contentMode === "browser") return Result.fail("no_action");
+      return context.selectedArticleId
+        ? Result.succeed({ type: "scroll-article", direction: -1 })
+        : Result.fail("missing_selected_article");
     case "next_feed":
       return Result.succeed({ type: "navigate-feed", direction: 1 });
     case "prev_feed":
@@ -599,6 +636,7 @@ export function resolveKeyboardAction(
     isComposing,
     targetTag,
     targetIsTextEditing,
+    targetIsNativeActivation,
     selectedArticleId,
     contentMode,
     viewMode,
@@ -649,6 +687,10 @@ export function resolveKeyboardAction(
 
   // Modifier shortcuts should not fall back to plain single-key bindings.
   const actionId = metaKey || ctrlKey ? map.get(normalizedActionKey) : (map.get(normalizedActionKey) ?? map.get(key));
+  if ((actionId === "scroll_article_down" || actionId === "scroll_article_up") && targetIsNativeActivation) {
+    return Result.fail("no_action");
+  }
+
   if (actionId && actionId !== "open_settings") {
     return resolveActionForId(actionId, {
       selectedArticleId,

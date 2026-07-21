@@ -54,6 +54,8 @@ pub const PREFERENCE_VALUE_MAX_BYTES: usize = 1024;
 const ALLOWED_SHORTCUT_IDS: &[&str] = &[
     "next_article",
     "prev_article",
+    "scroll_article_down",
+    "scroll_article_up",
     "next_feed",
     "prev_feed",
     "reload_webview",

@@ -36,6 +36,31 @@ export function shouldIgnoreGlobalShortcutKeyboardEvent(event: GlobalShortcutKey
   return event.isComposing === true || event.altKey === true || globalShortcutIgnoredKeys.has(event.key);
 }
 
+const nativeActivationTagNames = new Set(["BUTTON", "SUMMARY"]);
+const nativeActivationClosestSelector = 'button, a[href], summary, [role="button"], [role="link"]';
+
+/** True when the target has a native (Space/Enter) activation behavior that a global shortcut should not intercept. */
+export function isGlobalShortcutNativeActivationTarget(target: Element | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+
+  if (nativeActivationTagNames.has(target.tagName)) {
+    return true;
+  }
+
+  if (target.tagName === "A" && target.hasAttribute("href")) {
+    return true;
+  }
+
+  const role = target.getAttribute("role");
+  if (role === "button" || role === "link") {
+    return true;
+  }
+
+  return target.closest(nativeActivationClosestSelector) !== null;
+}
+
 export function isModalBlockedMenuAction(action: AppAction): boolean {
   return !modalAllowedMenuActions.has(action);
 }

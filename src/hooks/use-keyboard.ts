@@ -9,10 +9,12 @@ import {
 import { executeAction } from "@/lib/actions";
 import { emitDebugInputTrace } from "@/lib/debug/debug-input-trace";
 import {
+  isGlobalShortcutNativeActivationTarget,
   isGlobalShortcutTextEditingTarget,
   shouldIgnoreGlobalShortcutKeyboardEvent,
 } from "@/lib/keyboard/global-shortcut-targets";
 import { buildKeyToActionMap, type keyboardEvents, resolveKeyboardAction } from "@/lib/keyboard/keyboard-shortcuts";
+import { scrollArticleContentByViewport } from "@/lib/reader/reader-content-scroll";
 import {
   focusArticleListRowTargetWhenReady,
   focusSelectedSidebarTarget,
@@ -219,6 +221,7 @@ export function useKeyboard() {
         isComposing: e.isComposing,
         targetTag: targetElement?.tagName,
         targetIsTextEditing: isGlobalShortcutTextEditingTarget(targetElement),
+        targetIsNativeActivation: isGlobalShortcutNativeActivationTarget(targetElement),
         selectedArticleId,
         contentMode,
         viewMode,
@@ -283,6 +286,13 @@ export function useKeyboard() {
         case "navigate-article":
           executeAction(resolvedAction.direction === 1 ? "next-article" : "prev-article");
           break;
+        case "scroll-article": {
+          const scrollResult = scrollArticleContentByViewport(resolvedAction.direction);
+          if (scrollResult === "reached-end" && resolvedAction.direction === 1) {
+            executeAction("next-article");
+          }
+          break;
+        }
         case "navigate-feed":
           executeAction(resolvedAction.direction === 1 ? "next-feed" : "prev-feed");
           break;

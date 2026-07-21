@@ -245,6 +245,8 @@
   "shortcuts": {
     "next_article": "Next article",
     "prev_article": "Previous article",
+    "scroll_article_down": "Scroll article down",
+    "scroll_article_up": "Scroll article up",
     "next_feed": "Next feed",
     "prev_feed": "Previous feed",
     "reload_webview": "Reload Web Preview",

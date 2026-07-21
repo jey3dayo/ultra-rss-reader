@@ -415,6 +415,8 @@ describe("keyboard shortcut resolver", () => {
     expect(shortcutIds).toEqual([
       "next_article",
       "prev_article",
+      "scroll_article_down",
+      "scroll_article_up",
       "next_feed",
       "prev_feed",
       "reload_webview",
@@ -908,4 +910,89 @@ describe("keyboard shortcut resolver", () => {
       expect(Result.unwrapError(result)).toBe("no_action");
     },
   );
+
+  it.each([
+    ["scroll_article_down", { key: " ", shiftKey: false }, 1],
+    ["scroll_article_up", { key: " ", shiftKey: true }, -1],
+  ] as const)("resolves default Space binding for %s", (actionId, keyEvent, direction) => {
+    const result = resolveKeyboardAction({
+      key: keyEvent.key,
+      metaKey: false,
+      ctrlKey: false,
+      shiftKey: keyEvent.shiftKey,
+      targetTag: "DIV",
+      selectedArticleId: "art-1",
+      contentMode: "reader",
+      viewMode: "all",
+    });
+
+    expect(Result.unwrap(result)).toEqual({ type: "scroll-article", direction });
+    expect(shortcutDefinitions.find((definition) => definition.id === actionId)?.defaultKey).toBe(
+      keyEvent.shiftKey ? "Shift+Space" : "Space",
+    );
+  });
+
+  it("fails scroll_article_down/up with missing_selected_article when no article is selected", () => {
+    const downResult = resolveKeyboardAction({
+      key: " ",
+      metaKey: false,
+      ctrlKey: false,
+      shiftKey: false,
+      targetTag: "DIV",
+      selectedArticleId: null,
+      contentMode: "reader",
+      viewMode: "all",
+    });
+    const upResult = resolveKeyboardAction({
+      key: " ",
+      metaKey: false,
+      ctrlKey: false,
+      shiftKey: true,
+      targetTag: "DIV",
+      selectedArticleId: null,
+      contentMode: "reader",
+      viewMode: "all",
+    });
+
+    expect(Result.unwrapError(downResult)).toBe("missing_selected_article");
+    expect(Result.unwrapError(upResult)).toBe("missing_selected_article");
+  });
+
+  it("treats scroll_article_down/up as no_action while the browser overlay is active", () => {
+    const result = resolveKeyboardAction({
+      key: " ",
+      metaKey: false,
+      ctrlKey: false,
+      shiftKey: false,
+      targetTag: "DIV",
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      viewMode: "all",
+    });
+
+    expect(Result.unwrapError(result)).toBe("no_action");
+  });
+
+  it("does not intercept Space when focus is on a native-activation target", () => {
+    const result = resolveKeyboardAction({
+      key: " ",
+      metaKey: false,
+      ctrlKey: false,
+      shiftKey: false,
+      targetTag: "BUTTON",
+      targetIsNativeActivation: true,
+      selectedArticleId: "art-1",
+      contentMode: "reader",
+      viewMode: "all",
+    });
+
+    expect(Result.unwrapError(result)).toBe("no_action");
+  });
+
+  it("builds Space and Shift+Space into the key-to-action map by default", () => {
+    const keyToAction = buildKeyToActionMap({});
+
+    expect(keyToAction.get("Space")).toBe("scroll_article_down");
+    expect(keyToAction.get("Shift+Space")).toBe("scroll_article_up");
+  });
 });

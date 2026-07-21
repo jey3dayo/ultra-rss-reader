@@ -112,6 +112,14 @@ describe("ShortcutsHelpModal", () => {
           "label": "Previous article",
         },
         {
+          "binding": "Space",
+          "label": "Scroll article down",
+        },
+        {
+          "binding": "Shift + Space",
+          "label": "Scroll article up",
+        },
+        {
           "binding": "l",
           "label": "Next feed",
         },
