@@ -4,6 +4,7 @@ import {
   clearManualUnreadAutoMarkSuppression,
   suppressAutoMarkAfterManualUnread,
 } from "@/components/reader/hooks/article/use-article-auto-mark";
+import { planOptimisticRetainOnRead } from "@/lib/articles/article-read-projection";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
 import { useUiStore } from "@/stores/ui-store";
 import type { ArticleStatusToast } from "../../article-browser-actions";
@@ -52,29 +53,21 @@ export function useArticleStatusActions({
   setRead,
   toggleStar,
 }: UseArticleStatusActionsParams): UseArticleStatusActionsResult {
-  const retainIfNeeded = useCallback(
-    (nextRead: boolean) => {
-      if (!articleId) {
-        return;
-      }
-
-      if (nextRead && viewMode === "unread") {
-        retainArticle(articleId);
-      }
-    },
-    [articleId, retainArticle, viewMode],
-  );
-
   const setReadStatus = useCallback(
     (pressed: boolean) => {
       if (!articleId) {
         return;
       }
 
-      const shouldRollbackRetainedArticle =
-        pressed && viewMode === "unread" && !useUiStore.getState().retainedArticleIds.has(articleId);
+      const retainPlan = planOptimisticRetainOnRead({
+        viewMode,
+        markingRead: pressed,
+        isAlreadyRetained: useUiStore.getState().retainedArticleIds.has(articleId),
+      });
       const selectedAccountId = useUiStore.getState().selectedAccountId;
-      retainIfNeeded(pressed);
+      if (retainPlan.shouldRetain) {
+        retainArticle(articleId);
+      }
       setRead.mutate(
         { id: articleId, read: pressed },
         {
@@ -88,7 +81,7 @@ export function useArticleStatusActions({
             }
           },
           onError: (error) => {
-            if (shouldRollbackRetainedArticle) {
+            if (retainPlan.shouldRollbackOnError) {
               removeRetainedArticle(articleId);
             }
             showToast(error.message);
@@ -96,7 +89,7 @@ export function useArticleStatusActions({
         },
       );
     },
-    [addRecentlyRead, articleId, removeRecentlyRead, retainIfNeeded, setRead, showToast, viewMode],
+    [addRecentlyRead, articleId, removeRecentlyRead, retainArticle, setRead, showToast, viewMode],
   );
 
   const setStarStatus = useCallback(

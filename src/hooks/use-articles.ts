@@ -29,6 +29,7 @@ import {
 } from "@/api/tauri-commands";
 import { createMutation } from "@/hooks/create-mutation";
 import { createQuery } from "@/hooks/create-query";
+import { shouldKeepArticleInListQuery, shouldRetainBulkMarkedRead } from "@/lib/articles/article-read-projection";
 import {
   ARTICLE_CACHE_QUERY_ROOTS,
   getReaderArticleQueryMode,
@@ -315,17 +316,7 @@ function getRecentArticleQueryKeysForAccount(accountId: string) {
 }
 
 function shouldKeepArticleInQuery(queryKey: QueryKey, nextArticle: ArticleDto): boolean {
-  const mode = getReaderArticleQueryMode(queryKey);
-
-  if (mode === "unread" && nextArticle.is_read) {
-    return false;
-  }
-
-  if (mode === "starred" && !nextArticle.is_starred) {
-    return false;
-  }
-
-  return true;
+  return shouldKeepArticleInListQuery(getReaderArticleQueryMode(queryKey), nextArticle);
 }
 
 function updateCachedArticleArray(
@@ -687,12 +678,9 @@ function patchCachedArticlesMarkedRead(qc: QueryClient, markedArticleIds: Readon
 }
 
 function patchMarkedArticlesReadAndInvalidate(qc: QueryClient, markedArticleIds: readonly string[]) {
-  // In the unread view, keep bulk-read rows visible (dot cleared, row retained)
-  // to match the single-article read-in-place behavior. The retention snapshot
-  // resolves the retained DTOs from the always-mounted "all"-mode list caches,
-  // which keep the patched articles after unread-mode caches drop them.
+  // Bulk mark-read retention policy contract: see article-read-projection.ts.
   const { viewMode, retainArticles } = useUiStore.getState();
-  if (viewMode === "unread") {
+  if (shouldRetainBulkMarkedRead(viewMode)) {
     retainArticles(markedArticleIds);
   }
 

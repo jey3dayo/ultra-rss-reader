@@ -1,5 +1,6 @@
 import type { UseMutationResult } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
+import { planOptimisticRetainOnRead } from "@/lib/articles/article-read-projection";
 import type { ViewMode } from "@/lib/reader/view-mode.types";
 import type { AfterReadingPreference } from "@/schemas/preference-values";
 import { useUiStore } from "@/stores/ui-store";
@@ -109,9 +110,12 @@ export function useArticleAutoMark({
             latestArticleState.viewMode === viewMode
           );
         };
-        const shouldRollbackRetainedArticle =
-          viewMode === "unread" && !useUiStore.getState().retainedArticleIds.has(articleId);
-        if (viewMode === "unread") {
+        const retainPlan = planOptimisticRetainOnRead({
+          viewMode,
+          markingRead: true,
+          isAlreadyRetained: useUiStore.getState().retainedArticleIds.has(articleId),
+        });
+        if (retainPlan.shouldRetain) {
           retainArticle(articleId);
         }
 
@@ -134,7 +138,7 @@ export function useArticleAutoMark({
               if (autoMarkedOwnerKeyRef.current === autoMarkOwnerKey) {
                 autoMarkedOwnerKeyRef.current = null;
               }
-              if (shouldRollbackRetainedArticle) {
+              if (retainPlan.shouldRollbackOnError) {
                 removeRetainedArticle(articleId);
               }
               showToast(error.message);
