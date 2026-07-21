@@ -85,7 +85,7 @@ export function ArticleListScreenView({
           {isHiddenEmptyState ? null : (
             <ReaderPassiveCard
               className={cn(
-                "w-full max-w-sm px-5 py-5 text-left",
+                "w-full max-w-sm px-7 py-6 text-left",
                 !isSetupEmptyState ? readerListPassiveCardOffsetClassName : undefined,
                 isSetupEmptyState
                   ? "rounded-md border border-border/65 bg-surface-1/48 shadow-[0_18px_48px_-40px_rgba(38,37,30,0.18)] dark:border-border/75 dark:bg-[rgba(38,34,29,0.52)] dark:shadow-none"
