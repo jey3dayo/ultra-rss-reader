@@ -38,7 +38,6 @@ import {
   invalidateQueryKeysLogOnly,
   normalizeQueryAccountId,
   queryKeys,
-  resolveArticleInvalidationQueryKeys,
 } from "@/lib/query/query-invalidation";
 import type { ReaderFilter } from "@/lib/reader/reader-query";
 import { useUiStore } from "@/stores/ui-store";
@@ -155,10 +154,6 @@ function patchCachedArticleState(
 
 function patchCachedArticleReadState(qc: QueryClient, articleId: string, read: boolean) {
   patchCachedArticleState(qc, articleId, (cachedArticle) => ({ ...cachedArticle, is_read: read }));
-}
-
-export function resolveArticleMutationInvalidationQueryKeys() {
-  return resolveArticleInvalidationQueryKeys({ includeTagArticleCounts: true });
 }
 
 function isArticleDto(candidate: unknown): candidate is ArticleDto {

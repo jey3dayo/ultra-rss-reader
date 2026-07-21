@@ -11,7 +11,6 @@ import { QUERY_CACHE_KEY_VERSION } from "@/api/schemas/runtime-contracts";
 import * as tauriCommands from "@/api/tauri-commands";
 import {
   normalizeArticleSearchQuery,
-  resolveArticleMutationInvalidationQueryKeys,
   resolveArticleSearchQueryOwner,
   useAccountArticles,
   useAccountStarredCount,
@@ -27,7 +26,7 @@ import {
   useSetRead,
   useToggleStar,
 } from "@/hooks/use-articles";
-import { queryKeys } from "@/lib/query/query-invalidation";
+import { queryKeys, resolveArticleInvalidationQueryKeys } from "@/lib/query/query-invalidation";
 import { useUiStore } from "@/stores/ui-store";
 
 setupBrowserTestDom();
@@ -54,7 +53,7 @@ function createDeferred<T>() {
 
 describe("article mutation cache contract", () => {
   it("keeps article mutation invalidation roots aligned with query cache roots", () => {
-    expect(resolveArticleMutationInvalidationQueryKeys()).toEqual([
+    expect(resolveArticleInvalidationQueryKeys({ includeTagArticleCounts: true })).toEqual([
       queryKeys.articles.root,
       queryKeys.accountArticles.root,
       queryKeys.folderArticles.root,
