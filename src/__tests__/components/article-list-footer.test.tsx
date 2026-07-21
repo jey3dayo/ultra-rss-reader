@@ -28,8 +28,11 @@ describe("ArticleListFooter", () => {
     expect(unreadButton).toHaveClass("data-[pressed]:text-[var(--semantic-tone-unread-content-foreground)]");
     expect(unreadButton).toHaveClass("h-11", "rounded-md", "font-medium");
     expect(unreadButton).not.toHaveClass("sm:h-7");
-    expect(unreadButton).toHaveClass("focus-visible:bg-transparent", "focus-visible:ring-2");
-    expect(unreadButton).toHaveClass("focus-visible:ring-ring/45");
+    expect(unreadButton).toHaveClass("focus-visible:bg-transparent", "focus-visible:outline-none");
+    expect(unreadButton).toHaveClass(
+      "focus-visible:[&_[data-filter-toggle-content]]:ring-2",
+      "focus-visible:[&_[data-filter-toggle-content]]:ring-ring/45",
+    );
     expect(unreadContent).not.toBeNull();
     expect(unreadButton).toHaveClass(
       "[&_[data-filter-toggle-content]]:rounded-md",
