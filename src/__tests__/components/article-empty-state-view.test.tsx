@@ -35,7 +35,7 @@ describe("ArticleEmptyStateView", () => {
     );
   });
 
-  it("left-aligns the message and guidance for easier scanning", () => {
+  it("center-aligns the message and guidance as an unboxed empty state", () => {
     render(
       <ArticleEmptyStateView
         message="Select an article to read"
@@ -43,12 +43,12 @@ describe("ArticleEmptyStateView", () => {
       />,
     );
 
-    expect(screen.getByText("Select an article to read")).toHaveClass("text-left");
-    expect(screen.getByText("Pick one from the list").closest("ul")).toHaveClass("text-left");
-    expect(screen.getByText("Pick one from the list").closest("ul")).toHaveClass("pl-5");
+    const layout = screen.getByText("Select an article to read").parentElement;
+    expect(layout).toHaveClass("flex-col", "items-center", "text-center");
+    expect(screen.getByText("Pick one from the list").closest("ul")).toHaveClass("text-center");
   });
 
-  it("renders the empty-state container as a surfaced welcome card in reader mode", () => {
+  it("renders without card chrome and keeps the optical offset on the outer layout", () => {
     render(
       <ArticleEmptyStateView
         eyebrow="Reader ready"
@@ -61,25 +61,13 @@ describe("ArticleEmptyStateView", () => {
 
     const container = screen.getByText("Select an article to read").parentElement;
     const layout = container?.parentElement;
-    const hintsList = screen.getByRole("list");
 
-    expect(container).toHaveClass("max-w-[40rem]");
-    expect(container).toHaveClass("relative");
-    expect(layout).toHaveClass("relative");
-    expect(layout).toHaveClass("overflow-hidden");
+    expect(container).toHaveClass("max-w-[26rem]");
+    expect(container).not.toHaveClass("rounded-md");
+    expect(container).not.toHaveClass("border");
+    expect(container).not.toHaveClass("shadow-[var(--shadow-elevation-1)]");
     expect(layout).toHaveClass("-translate-y-[14%]");
-    expect(container).toHaveClass("rounded-md");
-    expect(container).toHaveClass("border");
-    expect(container).toHaveClass("dark:border-border/90");
-    expect(container).toHaveClass("px-6");
-    expect(container).toHaveClass("py-6");
-    expect(container).toHaveClass("min-h-44");
-    expect(container).toHaveClass("text-foreground-soft");
-    expect(container).toHaveClass("shadow-[var(--shadow-elevation-1)]");
     expect(screen.getByText("Reader ready")).toHaveClass("uppercase");
-    expect(hintsList).toHaveClass("marker:text-foreground-soft");
-    expect(hintsList).toHaveClass("max-w-[29rem]");
-    expect(layout?.querySelector('[aria-hidden="true"]')).toBeNull();
   });
 
   it("uses semantic list markers so wrapped hints stay aligned", () => {
@@ -93,8 +81,7 @@ describe("ArticleEmptyStateView", () => {
     const list = screen.getByRole("list");
     const [firstHint] = screen.getAllByRole("listitem");
 
-    expect(list).toHaveClass("list-disc");
-    expect(list).toHaveClass("pl-5");
+    expect(list).toHaveClass("text-center");
     expect(firstHint.querySelector('[aria-hidden="true"]')).toBeNull();
   });
 
@@ -112,12 +99,8 @@ describe("ArticleEmptyStateView", () => {
     const container = screen.getByText("Add your first feed").parentElement;
     const hintsList = screen.getByRole("list");
 
-    expect(container).toHaveClass("max-w-[40rem]");
-    expect(container).toHaveClass("px-6");
-    expect(container).toHaveClass("py-6");
-    expect(container).toHaveClass("min-h-44");
-    expect(screen.getByText("Add your first feed")).toHaveClass("text-left");
-    expect(hintsList).toHaveClass("text-left");
-    expect(hintsList).toHaveClass("pl-5");
+    expect(container).toHaveClass("max-w-[26rem]", "flex-col", "items-center");
+    expect(container).not.toHaveClass("border");
+    expect(hintsList).toHaveClass("text-center");
   });
 });

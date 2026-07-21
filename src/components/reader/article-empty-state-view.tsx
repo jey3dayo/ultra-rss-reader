@@ -54,25 +54,18 @@ export function ArticleEmptyStateView({
         {...(animateCardEntrance ? { [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING } : {})}
         className={cn(
           animateCardEntrance && MOTION_CONTENT_SWAP_CLASS_NAME,
-          "relative w-full max-w-[40rem] overflow-hidden rounded-md border border-border/75 bg-surface-1/72 px-6 py-6 text-left text-foreground-soft shadow-[var(--shadow-elevation-1)] dark:border-border/90 dark:bg-surface-2/72",
-          hints.length > 0 && "min-h-44",
+          "relative flex w-full max-w-[26rem] flex-col items-center text-center text-foreground-soft",
           cardClassName,
         )}
         style={animateCardEntrance ? EMPTY_STATE_MOTION_STYLE : undefined}
       >
         {eyebrow ? (
-          <div className="mb-4 inline-flex rounded-md border border-border/70 bg-surface-1/88 px-3 py-1 text-[0.68rem] font-medium tracking-[0.14em] text-foreground-soft uppercase">
-            {eyebrow}
-          </div>
+          <p className="mb-3 text-[0.68rem] font-medium tracking-[0.14em] text-foreground-soft uppercase">{eyebrow}</p>
         ) : null}
-        <p className="max-w-[28rem] text-left text-[1.9rem] font-semibold leading-[1.05] tracking-[-0.04em] text-foreground">
-          {message}
-        </p>
-        {description ? (
-          <p className="mt-3 max-w-[29rem] text-[0.97rem] leading-6 text-foreground-soft">{description}</p>
-        ) : null}
+        <p className="text-[1.6rem] font-semibold leading-[1.15] tracking-[-0.02em] text-foreground">{message}</p>
+        {description ? <p className="mt-2.5 text-[0.97rem] leading-6 text-foreground-soft">{description}</p> : null}
         {actions.length > 0 ? (
-          <div className="mt-6 flex flex-wrap gap-3">
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
             {actions.map((action) => (
               <ReaderPassiveActionButton
                 key={action.label}
@@ -85,7 +78,7 @@ export function ArticleEmptyStateView({
           </div>
         ) : null}
         {hints.length > 0 ? (
-          <ul className="mt-7 max-w-[29rem] list-disc space-y-2.5 border-t border-border/55 pt-5 pl-5 text-left text-sm leading-6 marker:text-foreground-soft dark:border-border/75">
+          <ul className="mt-6 space-y-1.5 text-center text-sm leading-6 text-foreground-soft/90">
             {hints.map((hint) => (
               <li key={hint} className="leading-6">
                 {hint}
