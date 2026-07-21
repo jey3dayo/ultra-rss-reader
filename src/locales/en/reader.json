@@ -15,7 +15,7 @@
   "latest_update": "Latest Update",
   "today_published": "Published today",
   "week_new": "New this week",
-  "recent_feeds": "Recent feeds",
+  "recent_feeds": "Feeds",
   "summary_feed_count_one": "{{count, count}} feed",
   "summary_feed_count_other": "{{count, count}} feeds",
   "summary_article_count_one": "{{count, count}} article",

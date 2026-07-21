@@ -17,7 +17,7 @@ import {
   MOTION_CONTENT_SWAP_SLOW_DURATION_MS,
   MOTION_CONTENT_SWAP_SLOW_OFFSET_PX,
 } from "@/constants";
-import { Button, FeedFavicon, MotionNumber } from "@/design-system";
+import { FeedFavicon, MotionNumber } from "@/design-system";
 import {
   type ArticleViewSummaryFeed,
   type ArticleViewSummaryState,
@@ -60,7 +60,6 @@ type ArticleEmptyStateViewProps = ComponentProps<typeof ArticleEmptyStateView>;
 type SummaryIdentityProps = {
   label: string;
   value: ReactNode;
-  kind?: "count" | "date";
 };
 
 type SummaryScopeProps = {
@@ -70,6 +69,8 @@ type SummaryScopeProps = {
   subtitle: ReactNode;
   visual: ReactNode;
   metrics: SummaryIdentityProps[];
+  latestUpdateLabel: string;
+  latestUpdateValue: string;
   recentFeeds: ArticleViewSummaryFeed[];
   accentTone?: "unread" | "starred";
 };
@@ -98,35 +99,49 @@ function renderSummaryCount(value: number, locale: string) {
   return <MotionNumber key={label} value={label} />;
 }
 
-function SummaryMetric({ label, value, kind = "count" }: SummaryIdentityProps) {
-  const valueClassName =
-    kind === "date"
-      ? "flex h-[1.55rem] items-end font-sans text-[1.08rem] font-medium leading-[1.08] tracking-normal text-foreground tabular-nums"
-      : "font-sans text-[1.55rem] font-medium leading-none tracking-normal text-foreground tabular-nums";
-
+function SummaryMetric({ label, value }: SummaryIdentityProps) {
   return (
-    <div className="min-w-0" data-summary-metric-kind={kind}>
-      <p className={valueClassName}>{value}</p>
-      <p className="mt-1 text-[0.7rem] leading-tight text-foreground-soft">{label}</p>
+    <div className="min-w-0">
+      <p className="font-sans text-[1.55rem] font-medium leading-tight tracking-tight text-foreground tabular-nums">
+        {value}
+      </p>
+      <p className="mt-1 text-[0.7rem] leading-tight tracking-wide text-foreground/85">{label}</p>
     </div>
   );
 }
 
 function RecentFeedRow({ feed, onSelect }: { feed: ArticleViewSummaryFeed; onSelect: (feedId: string) => void }) {
+  const hasUnread = feed.unread_count > 0;
+
   return (
     <li className="min-w-0">
-      <Button
+      <button
         type="button"
-        variant="outline"
         onClick={() => onSelect(feed.id)}
-        className="h-11 w-full min-w-0 justify-start gap-2.5 px-3 text-left"
+        className={cn(
+          "flex h-11 w-full min-w-0 items-center gap-2.5 rounded-md border border-border-strong bg-surface-1 px-3 text-left shadow-elevation-1",
+          "transition-[background-color,box-shadow,transform] duration-150 ease-standard motion-reduce:transition-none",
+          "hover:-translate-y-px hover:bg-surface-2 hover:shadow-elevation-2",
+          "active:scale-[0.98] active:duration-100 active:ease-out",
+          "focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/60",
+          !hasUnread && "opacity-60",
+        )}
       >
-        <FeedFavicon title={feed.title} url={feed.url} siteUrl={feed.site_url} size="md" />
-        <span className="min-w-0 flex-1 truncate" dir="auto">
+        <FeedFavicon title={feed.title} url={feed.url} siteUrl={feed.site_url} size="md" grayscale={!hasUnread} />
+        <span className={cn("min-w-0 flex-1 truncate", !hasUnread && "text-foreground-soft")} dir="auto">
           {feed.title}
         </span>
-        <span className="shrink-0 text-xs text-foreground-soft tabular-nums">{feed.unread_count.toLocaleString()}</span>
-      </Button>
+        <span
+          className={cn(
+            "shrink-0 rounded-full px-1.5 py-0.5 text-xs tabular-nums",
+            hasUnread
+              ? "bg-[var(--semantic-tone-unread-surface)] font-medium text-[var(--semantic-tone-unread-content-foreground)]"
+              : "text-foreground-soft",
+          )}
+        >
+          {feed.unread_count.toLocaleString()}
+        </span>
+      </button>
     </li>
   );
 }
@@ -138,6 +153,8 @@ function SummaryEmptyState({
   subtitle,
   visual,
   metrics,
+  latestUpdateLabel,
+  latestUpdateValue,
   recentFeeds,
   accentTone,
 }: SummaryScopeProps) {
@@ -176,35 +193,40 @@ function SummaryEmptyState({
             style={SUMMARY_MOTION_STYLE}
           >
             <div className="w-full px-1">
-              <div className="mb-7 flex min-w-0 items-center gap-3">
-                <span
-                  aria-hidden="true"
-                  className="flex size-9 shrink-0 items-center justify-center rounded-md text-foreground-soft"
-                >
-                  {visual}
-                </span>
-                <div className="min-w-0">
-                  {titleHref ? (
-                    <a
-                      href={titleHref}
-                      onClick={handleWebsiteLinkClick}
-                      className="block truncate font-sans text-xl font-semibold leading-tight text-foreground underline-offset-2 transition-colors hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45"
-                      dir="auto"
-                    >
-                      {title}
-                    </a>
-                  ) : (
-                    <p className="truncate font-sans text-xl font-semibold leading-tight text-foreground" dir="auto">
-                      {title}
-                    </p>
-                  )}
-                  <p className="mt-1 text-xs leading-tight text-foreground-soft">{subtitle}</p>
+              <div className="mb-7 flex min-w-0 items-start justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span
+                    aria-hidden="true"
+                    className="flex size-9 shrink-0 items-center justify-center rounded-md text-foreground-soft"
+                  >
+                    {visual}
+                  </span>
+                  <div className="min-w-0">
+                    {titleHref ? (
+                      <a
+                        href={titleHref}
+                        onClick={handleWebsiteLinkClick}
+                        className="block truncate font-sans text-xl font-semibold leading-tight text-foreground underline-offset-2 transition-colors hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45"
+                        dir="auto"
+                      >
+                        {title}
+                      </a>
+                    ) : (
+                      <p className="truncate font-sans text-xl font-semibold leading-tight text-foreground" dir="auto">
+                        {title}
+                      </p>
+                    )}
+                    <p className="mt-1 text-xs leading-tight text-foreground-soft">{subtitle}</p>
+                  </div>
+                </div>
+                <div className="shrink-0 pl-3 text-right">
+                  <p className="text-[0.7rem] leading-tight tracking-wide text-foreground/85">{latestUpdateLabel}</p>
+                  <p className="mt-0.5 font-sans text-[0.95rem] font-medium leading-tight tracking-tight text-foreground tabular-nums">
+                    {latestUpdateValue}
+                  </p>
                 </div>
               </div>
-              <div
-                className="grid grid-cols-2 gap-x-9 gap-y-5 min-[34rem]:grid-cols-[repeat(3,minmax(4rem,1fr))_minmax(7.5rem,1.2fr)]"
-                data-testid="article-selection-summary-metrics"
-              >
+              <div className="grid grid-cols-3 gap-x-6 gap-y-5" data-testid="article-selection-summary-metrics">
                 {metrics.map((metric) => (
                   <SummaryMetric key={metric.label} {...metric} />
                 ))}
@@ -212,7 +234,7 @@ function SummaryEmptyState({
               {recentFeeds.length > 0 ? (
                 <div className="mt-8">
                   <h3 className="text-sm font-medium text-foreground">{t("recent_feeds")}</h3>
-                  <ul className="mt-3 grid grid-cols-2 gap-2.5">
+                  <ul className="mt-3 grid max-h-72 grid-cols-2 gap-2.5 overflow-y-auto pr-1">
                     {recentFeeds.map((feed) => (
                       <RecentFeedRow key={feed.id} feed={feed} onSelect={handleSelectRecentFeed} />
                     ))}
@@ -294,12 +316,8 @@ function buildSummaryIdentityProps(
       label: readerT("week_new"),
       value: renderSummaryCount(params.weekArticleCount, locale),
     },
-    {
-      label: readerT("latest_update"),
-      value: latestUpdate,
-      kind: "date",
-    },
   ];
+  const latestUpdateLabel = readerT("latest_update");
 
   if (summary.kind === "feed") {
     const websiteHref = resolveArticleSummaryWebsiteHref(summary.feed);
@@ -332,6 +350,8 @@ function buildSummaryIdentityProps(
         todayArticleCount: summary.todayArticleCount,
         weekArticleCount: summary.weekArticleCount,
       }),
+      latestUpdateLabel,
+      latestUpdateValue: latestUpdate,
       recentFeeds: [],
       accentTone: "unread",
     };
@@ -342,12 +362,14 @@ function buildSummaryIdentityProps(
       motionKey: `folder:${summary.folder.id}`,
       title: summary.folder.name,
       subtitle: readerT("summary_feed_count", { count: summary.feedCount }),
-      visual: <Folder className="size-4" />,
+      visual: <Folder className="size-6" />,
       metrics: buildMetrics({
         unreadCount: summary.unreadCount,
         todayArticleCount: summary.todayArticleCount,
         weekArticleCount: summary.weekArticleCount,
       }),
+      latestUpdateLabel,
+      latestUpdateValue: latestUpdate,
       recentFeeds: summary.recentFeeds,
       accentTone: "unread",
     };
@@ -358,12 +380,14 @@ function buildSummaryIdentityProps(
       motionKey: `tag:${summary.tag.id}`,
       title: summary.tag.name,
       subtitle: readerT("summary_feed_count", { count: summary.feedCount }),
-      visual: <Hash className="size-4" />,
+      visual: <Hash className="size-6" />,
       metrics: buildMetrics({
         unreadCount: summary.unreadCount,
         todayArticleCount: summary.todayArticleCount,
         weekArticleCount: summary.weekArticleCount,
       }),
+      latestUpdateLabel,
+      latestUpdateValue: latestUpdate,
       recentFeeds: summary.recentFeeds,
     };
   }
@@ -371,17 +395,17 @@ function buildSummaryIdentityProps(
   const smartSummaryView = {
     unread: {
       title: sidebarT("unread"),
-      visual: <Inbox className="size-4" />,
+      visual: <Inbox className="size-6" />,
       accentTone: "unread" as const,
     },
     starred: {
       title: sidebarT("starred"),
-      visual: <Star className="size-4" />,
+      visual: <Star className="size-6" />,
       accentTone: "starred" as const,
     },
     recent: {
       title: sidebarT("recent_articles"),
-      visual: <Clock3 className="size-4" />,
+      visual: <Clock3 className="size-6" />,
       accentTone: undefined,
     },
   }[summary.smartKind];
@@ -397,6 +421,8 @@ function buildSummaryIdentityProps(
       todayArticleCount: summary.todayArticleCount,
       weekArticleCount: summary.weekArticleCount,
     }),
+    latestUpdateLabel,
+    latestUpdateValue: latestUpdate,
     recentFeeds: summary.recentFeeds,
   };
 }

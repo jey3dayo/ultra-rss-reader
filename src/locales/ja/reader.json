@@ -15,7 +15,7 @@
   "latest_update": "最終更新",
   "today_published": "今日の発行",
   "week_new": "今週の新着",
-  "recent_feeds": "最近のフィード",
+  "recent_feeds": "フィード",
   "summary_feed_count_one": "{{count, count}} フィード",
   "summary_feed_count_other": "{{count, count}} フィード",
   "summary_article_count_one": "{{count, count}} 記事",

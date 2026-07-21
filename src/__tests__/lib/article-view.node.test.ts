@@ -444,7 +444,7 @@ describe("buildArticleViewSummary", () => {
     });
   });
 
-  it("orders folder recent feeds by the latest article in each feed", () => {
+  it("orders folder recent feeds by unread count descending", () => {
     const folders: FolderDto[] = [
       {
         id: "folder-1",
@@ -510,11 +510,53 @@ describe("buildArticleViewSummary", () => {
     expect(Result.unwrap(result)).toMatchObject({
       kind: "folder",
       recentFeeds: [
-        expect.objectContaining({ id: newestLowUnreadFeed.id }),
-        expect.objectContaining({ id: middleFeed.id }),
         expect.objectContaining({ id: oldestHighUnreadFeed.id }),
+        expect.objectContaining({ id: middleFeed.id }),
+        expect.objectContaining({ id: newestLowUnreadFeed.id }),
       ],
     });
+  });
+
+  it("does not cap folder recent feeds when the folder has more than six feeds", () => {
+    const folders: FolderDto[] = [
+      {
+        id: "folder-many",
+        account_id: "acc-1",
+        name: "Many Feeds",
+        sort_order: 0,
+      },
+    ];
+    const manyFeeds = Array.from({ length: 8 }, (_, index) => ({
+      ...sampleFeeds[0],
+      id: `feed-many-${index}`,
+      title: `Feed ${index}`,
+      folder_id: "folder-many",
+      unread_count: index,
+    }));
+
+    const result = buildArticleViewSummaryResult({
+      selection: { type: "folder", folderId: "folder-many" },
+      selectedFeedId: null,
+      feeds: manyFeeds,
+      folders,
+      tags: [],
+      filteredArticles: [],
+      summaryArticles: [],
+      allFeedArticles: [],
+    });
+
+    const summary = Result.unwrap(result);
+    expect(summary.recentFeeds).toHaveLength(8);
+    expect(summary.recentFeeds.map((feed) => feed.id)).toEqual([
+      "feed-many-7",
+      "feed-many-6",
+      "feed-many-5",
+      "feed-many-4",
+      "feed-many-3",
+      "feed-many-2",
+      "feed-many-1",
+      "feed-many-0",
+    ]);
   });
 
   it("keeps tag article stats independent from the currently visible articles", () => {

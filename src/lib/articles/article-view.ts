@@ -133,47 +133,25 @@ function countUnreadFeedsInFolder(feeds: FeedDto[] | undefined, folderId: string
   }, 0);
 }
 
-function buildLatestArticleTimeByFeedId(articles: ArticleDto[]): Map<string, number> {
-  const latestTimeByFeedId = new Map<string, number>();
-
-  for (const article of articles) {
-    const articleTime = getDateInputTimeMs(article.published_at);
-    if (articleTime === null) {
-      continue;
-    }
-
-    const currentLatestTime = latestTimeByFeedId.get(article.feed_id);
-    if (currentLatestTime === undefined || articleTime > currentLatestTime) {
-      latestTimeByFeedId.set(article.feed_id, articleTime);
-    }
-  }
-
-  return latestTimeByFeedId;
-}
-
 function buildRecentSummaryFeeds({
   feeds,
   feedIds,
-  articles,
 }: {
   feeds: FeedDto[] | undefined;
   feedIds: Set<string> | undefined;
-  articles: ArticleDto[];
 }): ArticleViewSummaryFeed[] {
   const candidates = feeds?.filter((feed) => (feedIds ? feedIds.has(feed.id) : true)) ?? [];
-  const latestTimeByFeedId = buildLatestArticleTimeByFeedId(articles);
 
+  // Scope-summary feed list is sorted by unread count so the busiest feeds surface first;
+  // full scope is shown rather than truncated, so no slice cap is applied here.
   return candidates
     .toSorted((a, b) => {
-      const aLatestTime = latestTimeByFeedId.get(a.id) ?? Number.NEGATIVE_INFINITY;
-      const bLatestTime = latestTimeByFeedId.get(b.id) ?? Number.NEGATIVE_INFINITY;
-      if (aLatestTime !== bLatestTime) {
-        return bLatestTime - aLatestTime;
+      if (a.unread_count !== b.unread_count) {
+        return b.unread_count - a.unread_count;
       }
 
       return a.title.localeCompare(b.title);
     })
-    .slice(0, 6)
     .map((feed) => ({
       id: feed.id,
       title: feed.title,
@@ -343,7 +321,6 @@ export function buildArticleViewSummaryResult(
           recentFeeds: buildRecentSummaryFeeds({
             feeds,
             feedIds: new Set([feed.id]),
-            articles: summaryArticles,
           }),
           latestArticleTitle: latestFeedArticle?.title ?? null,
           latestArticlePublishedAt: latestFeedArticle?.published_at ?? null,
@@ -368,7 +345,6 @@ export function buildArticleViewSummaryResult(
       recentFeeds: buildRecentSummaryFeeds({
         feeds,
         feedIds: new Set((feeds ?? []).filter((feed) => feed.folder_id === folder.id).map((feed) => feed.id)),
-        articles: summaryArticles,
       }),
       latestArticlePublishedAt: summaryStats.latestArticlePublishedAt,
     });
@@ -388,7 +364,6 @@ export function buildArticleViewSummaryResult(
       recentFeeds: buildRecentSummaryFeeds({
         feeds,
         feedIds: buildFeedIdsFromArticles(summaryArticles),
-        articles: summaryArticles,
       }),
     });
   }
@@ -401,7 +376,6 @@ export function buildArticleViewSummaryResult(
     recentFeeds: buildRecentSummaryFeeds({
       feeds,
       feedIds: buildFeedIdsFromArticles(summaryArticles),
-      articles: summaryArticles,
     }),
   });
 }
