@@ -23,7 +23,7 @@ describe("SidebarNavButton", () => {
     expect(content).toHaveClass("justify-start");
   });
 
-  it("uses a quieter selected state when its pane is inactive", () => {
+  it("keeps the selection fill distinct from hover when its pane is inactive", () => {
     render(
       <SidebarNavButton selected activePane={false}>
         Selected feed
@@ -32,7 +32,8 @@ describe("SidebarNavButton", () => {
 
     const button = screen.getByRole("button", { name: "Selected feed" });
     expect(button).toHaveAttribute("data-active-pane", "false");
-    expect(button).toHaveClass("bg-[image:var(--sidebar-hover-gradient)]");
+    expect(button).toHaveClass("bg-[image:var(--sidebar-selection-gradient)]");
+    expect(button).not.toHaveClass("bg-[image:var(--sidebar-hover-gradient)]");
     expect(button).not.toHaveClass("shadow-[var(--sidebar-selection-shadow)]");
   });
 

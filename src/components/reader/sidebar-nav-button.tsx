@@ -77,7 +77,7 @@ export function SidebarNavButton({
           ? cn(
               activePane
                 ? "bg-[image:var(--sidebar-selection-gradient)] text-[var(--sidebar-selection-foreground)] focus-visible:bg-[image:var(--sidebar-selection-gradient)]"
-                : "bg-[image:var(--sidebar-hover-gradient)] text-[var(--sidebar-foreground-strong)] focus-visible:bg-[image:var(--sidebar-hover-gradient)]",
+                : "bg-[image:var(--sidebar-selection-gradient)] text-[var(--sidebar-foreground-strong)] focus-visible:bg-[image:var(--sidebar-selection-gradient)]",
               selectedIndicatorMode !== "hidden" &&
                 selectedIndicatorVariants({
                   tone: activePane ? selectedIndicatorTone : "neutral",
