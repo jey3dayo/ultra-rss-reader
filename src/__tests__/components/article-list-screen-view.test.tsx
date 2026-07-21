@@ -2,7 +2,6 @@ import { render, screen } from "@testing-library/react";
 import { sampleArticles } from "@tests/helpers/fixtures";
 import { describe, expect, it, vi } from "vitest";
 import { ArticleListScreenView } from "@/components/reader/article-list-screen-view";
-import { readerPassiveCardClassName } from "@/components/reader/reader-passive-card";
 
 describe("ArticleListScreenView", () => {
   it("renders the loading state inside the article list body", () => {
@@ -55,8 +54,11 @@ describe("ArticleListScreenView", () => {
     );
 
     expect(screen.getByText("No articles")).toBeInTheDocument();
-    expect(screen.getByText("No articles").closest(".rounded-md")).toHaveClass(
-      ...readerPassiveCardClassName.split(" "),
+    expect(screen.getByText("No articles").closest('[data-testid="article-list-empty-state"]')).toHaveClass(
+      "flex",
+      "flex-col",
+      "items-center",
+      "text-center",
     );
 
     rerender(
@@ -295,11 +297,11 @@ describe("ArticleListScreenView", () => {
 
     expect(screen.getByRole("button", { name: "Clear search" })).toHaveAttribute("data-reader-passive-action", "true");
     expect(screen.queryByText("Queue")).not.toBeInTheDocument();
-    expect(screen.getByText('No matches for "Nope"').closest(".rounded-md")).toHaveClass("-translate-y-[5%]");
-    expect(screen.getByText('No matches for "Nope"')).toHaveClass("min-h-11");
+    expect(screen.getByText('No matches for "Nope"').closest('[data-testid="article-list-empty-state"]')).toHaveClass(
+      "-translate-y-[5%]",
+    );
     expect(screen.getByText("Try a different keyword or clear the current search.")).toHaveClass(
-      "mt-3",
-      "min-h-12",
+      "mt-1.5",
       "text-sm",
       "leading-6",
       "text-foreground-soft",

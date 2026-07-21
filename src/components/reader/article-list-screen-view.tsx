@@ -1,3 +1,4 @@
+import { Inbox } from "lucide-react";
 import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, ReactNode, RefObject } from "react";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { MOTION_CONTENT_SWAP_SLOW_DURATION_MS, MOTION_CONTENT_SWAP_SLOW_OFFSET_PX } from "@/constants";
@@ -82,32 +83,11 @@ export function ArticleListScreenView({
     return (
       <ScrollArea className="h-full" viewportRef={viewportRef}>
         <div className={cn("h-full", isHiddenEmptyState ? "" : "flex items-center justify-center p-6")}>
-          {isHiddenEmptyState ? null : (
-            <ReaderPassiveCard
-              className={cn(
-                "w-full max-w-sm px-7 py-6 text-left",
-                !isSetupEmptyState ? readerListPassiveCardOffsetClassName : undefined,
-                isSetupEmptyState
-                  ? "rounded-md border border-border/65 bg-surface-1/48 shadow-[0_18px_48px_-40px_rgba(38,37,30,0.18)] dark:border-border/75 dark:bg-[rgba(38,34,29,0.52)] dark:shadow-none"
-                  : undefined,
-              )}
-            >
-              <p
-                className={cn(
-                  "text-foreground",
-                  isSetupEmptyState
-                    ? "text-base font-medium leading-6 tracking-[-0.01em]"
-                    : "min-h-11 text-[1.15rem] font-semibold leading-[1.2] tracking-[-0.02em]",
-                )}
-              >
-                {emptyMessage}
-              </p>
+          {isHiddenEmptyState ? null : isSetupEmptyState ? (
+            <ReaderPassiveCard className="w-full max-w-sm rounded-md border border-border/65 bg-surface-1/48 px-7 py-6 text-left shadow-[0_18px_48px_-40px_rgba(38,37,30,0.18)] dark:border-border/75 dark:bg-[rgba(38,34,29,0.52)] dark:shadow-none">
+              <p className="text-base font-medium leading-6 tracking-[-0.01em] text-foreground">{emptyMessage}</p>
               {emptyDescription ? (
-                <p
-                  className={cn("text-sm leading-6 text-foreground-soft", isSetupEmptyState ? "mt-2" : "mt-3 min-h-12")}
-                >
-                  {emptyDescription}
-                </p>
+                <p className="mt-2 text-sm leading-6 text-foreground-soft">{emptyDescription}</p>
               ) : null}
               {emptyActionLabel && onEmptyAction ? (
                 <ReaderPassiveActionButton variant="outline" size="sm" className="mt-5" onClick={onEmptyAction}>
@@ -115,6 +95,27 @@ export function ArticleListScreenView({
                 </ReaderPassiveActionButton>
               ) : null}
             </ReaderPassiveCard>
+          ) : (
+            <div
+              className={cn(
+                "flex w-full max-w-[17rem] flex-col items-center text-center",
+                readerListPassiveCardOffsetClassName,
+              )}
+              data-testid="article-list-empty-state"
+            >
+              <Inbox aria-hidden="true" className="size-9 text-foreground-soft/60" strokeWidth={1.5} />
+              <p className="mt-3 text-base font-semibold leading-tight tracking-[-0.01em] text-foreground">
+                {emptyMessage}
+              </p>
+              {emptyDescription ? (
+                <p className="mt-1.5 text-sm leading-6 text-foreground-soft">{emptyDescription}</p>
+              ) : null}
+              {emptyActionLabel && onEmptyAction ? (
+                <ReaderPassiveActionButton variant="outline" size="sm" className="mt-5" onClick={onEmptyAction}>
+                  {emptyActionLabel}
+                </ReaderPassiveActionButton>
+              ) : null}
+            </div>
           )}
         </div>
       </ScrollArea>
