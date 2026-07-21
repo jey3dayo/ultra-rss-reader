@@ -1001,6 +1001,23 @@ describe("AppShell", () => {
     expect(screen.getByTestId("app-toast").className).not.toContain("w-[min(320px,calc(100vw-2rem))]");
   });
 
+  it("keeps the update toast at the bottom-right instead of the browser rail while the in-app browser is open", () => {
+    useUiStore.setState({
+      browserUrl: "https://example.com/",
+      toastMessage: {
+        message: "v1.2.3 の更新を準備しました。再起動後に適用されます",
+        variant: "update",
+        persistent: true,
+      },
+    });
+
+    render(<AppShell />, { wrapper: createWrapper() });
+
+    const toast = screen.getByTestId("app-toast");
+    expect(toast.className).toContain("bottom-4");
+    expect(toast.className).not.toContain("top-1");
+  });
+
   it("keeps a dismissed toast mounted through its exit transition", async () => {
     vi.useFakeTimers();
     useUiStore.setState({

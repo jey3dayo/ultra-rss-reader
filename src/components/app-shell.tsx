@@ -163,7 +163,11 @@ function Toast() {
     <AppToastView
       toastMessage={renderedToast}
       onClose={clearToast}
-      placement={browserUrl ? APP_TOAST_PLACEMENTS.browserRail : APP_TOAST_PLACEMENTS.bottomRight}
+      placement={
+        browserUrl && renderedToast.variant !== "update"
+          ? APP_TOAST_PLACEMENTS.browserRail
+          : APP_TOAST_PLACEMENTS.bottomRight
+      }
       syncActionState={syncActive}
       ending={isExiting}
     />
