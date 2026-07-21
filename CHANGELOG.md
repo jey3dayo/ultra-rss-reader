@@ -4,6 +4,24 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.53.44] - 2026-07-21
+
+### Features
+
+- Space / Shift+Space で記事本文をフォーカス位置に関係なくスクロールできるようにした。本文末尾で Space を押すと次の記事へ進むため、Space だけで記事を読み流せる。どちらも設定画面でキー変更可能。
+
+### Bug Fixes
+
+- 記事フィルタートグルのフォーカスリングが、タップ領域全体ではなく表示上のピル形状に沿うよう修正した。
+
+### Documentation
+
+- 記事スクロールショートカットの挙動とショートカット preference allowlist をドキュメントへ反映した。
+
+### Maintenance
+
+- 依存パッケージを一括更新し、pnpm 11.15.1 へ更新、biome スキーマを 2.5.4 へ移行した。
+
 ## [0.53.43] - 2026-07-21
 
 ### Features
