@@ -1,11 +1,15 @@
 import {
   CircleHelpIcon,
+  ClockIcon,
+  ListFilterIcon,
+  MonitorIcon,
   MoonIcon,
   NewspaperIcon,
   RefreshCwIcon,
   RotateCcwIcon,
   RssIcon,
   SettingsIcon,
+  StarIcon,
   SunIcon,
 } from "lucide-react";
 import { useMemo } from "react";
@@ -101,6 +105,71 @@ export function useCommandPaletteActions({
           tSettings("appearance.dark"),
         ],
         icon: MoonIcon,
+      },
+      {
+        id: "set-theme-system",
+        label: t("command_palette.theme_action", {
+          theme: tSettings("appearance.automatic"),
+        }),
+        keywords: [
+          "theme",
+          "appearance",
+          "system",
+          "auto",
+          "テーマ",
+          "外観",
+          "システム",
+          "自動",
+          tSettings("appearance.theme"),
+          tSettings("appearance.automatic"),
+        ],
+        icon: MonitorIcon,
+      },
+      ...(selectedAccountId
+        ? [
+            {
+              id: "show-smart-unread" as const,
+              label: tSidebar("unread"),
+              keywords: ["unread", "smart", "view", "未読"],
+              icon: NewspaperIcon,
+            },
+            {
+              id: "show-smart-starred" as const,
+              label: tSidebar("starred"),
+              keywords: ["starred", "smart", "view", "スター"],
+              icon: StarIcon,
+            },
+            {
+              id: "show-smart-recent" as const,
+              label: tSidebar("recent_articles"),
+              keywords: ["recent", "smart", "view", "最近", "履歴"],
+              icon: ClockIcon,
+            },
+            {
+              id: "show-smart-all" as const,
+              label: tSidebar("all"),
+              keywords: ["all", "smart", "view", "すべて"],
+              icon: ListFilterIcon,
+            },
+          ]
+        : []),
+      {
+        id: "set-filter-unread",
+        label: t("command_palette.filter_action", { filter: t("filter_unread") }),
+        keywords: ["filter", "unread", "フィルター", "未読"],
+        icon: ListFilterIcon,
+      },
+      {
+        id: "set-filter-all",
+        label: t("command_palette.filter_action", { filter: t("filter_all") }),
+        keywords: ["filter", "all", "フィルター", "すべて"],
+        icon: ListFilterIcon,
+      },
+      {
+        id: "set-filter-starred",
+        label: t("command_palette.filter_action", { filter: t("filter_starred") }),
+        keywords: ["filter", "starred", "フィルター", "スター"],
+        icon: ListFilterIcon,
       },
       ...(selectedAccountId
         ? [

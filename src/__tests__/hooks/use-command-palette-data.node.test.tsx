@@ -8,8 +8,9 @@ import { useCommandPaletteData } from "@/components/reader/hooks/command-palette
 import { STORAGE_KEYS } from "@/constants/storage";
 import { useRecentArticles, useSearchArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
+import { useFolders } from "@/hooks/use-folders";
 import { useTags } from "@/hooks/use-tags";
-import { sampleArticles, sampleFeeds, sampleTags } from "../../../tests/helpers/fixtures";
+import { sampleArticles, sampleFeeds, sampleFolders, sampleTags } from "../../../tests/helpers/fixtures";
 
 vi.mock("@/hooks/use-articles", () => ({
   useRecentArticles: vi.fn(),
@@ -18,6 +19,10 @@ vi.mock("@/hooks/use-articles", () => ({
 
 vi.mock("@/hooks/use-feeds", () => ({
   useFeeds: vi.fn(),
+}));
+
+vi.mock("@/hooks/use-folders", () => ({
+  useFolders: vi.fn(),
 }));
 
 vi.mock("@/hooks/use-tags", () => ({
@@ -42,6 +47,7 @@ describe("useCommandPaletteData", () => {
   beforeEach(() => {
     localStorage.clear();
     vi.mocked(useFeeds).mockReturnValue(createHookDataResult<ReturnType<typeof useFeeds>>(sampleFeeds));
+    vi.mocked(useFolders).mockReturnValue(createHookDataResult<ReturnType<typeof useFolders>>(sampleFolders));
     vi.mocked(useTags).mockReturnValue(createHookDataResult<ReturnType<typeof useTags>>(sampleTags));
     vi.mocked(useSearchArticles).mockReturnValue(createHookDataResult<ReturnType<typeof useSearchArticles>>([]));
     vi.mocked(useRecentArticles).mockReturnValue(
@@ -52,7 +58,15 @@ describe("useCommandPaletteData", () => {
   it("projects only existing feed, tag, and article targets into recent resources", () => {
     localStorage.setItem(
       STORAGE_KEYS.commandHistory,
-      JSON.stringify(["feed:feed-1", "tag:tag-1", "article:art-1", "action:open-settings", "feed:missing"]),
+      JSON.stringify([
+        "feed:feed-1",
+        "folder:folder-1",
+        "tag:tag-1",
+        "article:art-1",
+        "action:open-settings",
+        "feed:missing",
+        "folder:missing",
+      ]),
     );
 
     const { result } = renderHook(() =>
@@ -67,6 +81,7 @@ describe("useCommandPaletteData", () => {
     );
 
     expect(result.current.recentFeeds.map((feed) => feed.id)).toEqual(["feed-1"]);
+    expect(result.current.recentFolders.map((folder) => folder.id)).toEqual(["folder-1"]);
     expect(result.current.recentTags.map((tag) => tag.id)).toEqual(["tag-1"]);
     expect(result.current.recentArticles.map((article) => article.id)).toEqual(["art-1"]);
     expect(result.current.recentActions.map((recentAction) => recentAction.id)).toEqual(["open-settings"]);
@@ -157,5 +172,21 @@ describe("useCommandPaletteData", () => {
 
     expect(queried.result.current.showRecentResources).toBe(false);
     expect(prefixed.result.current.showRecentResources).toBe(false);
+  });
+
+  it("shows folders alongside feeds for the @ prefix", () => {
+    const prefixed = renderHook(() =>
+      useCommandPaletteData({
+        actions: [],
+        deferredQuery: "",
+        devScenarios: [],
+        prefix: "@",
+        query: "",
+        selectedAccountId: "acc-1",
+      }),
+    );
+
+    expect(prefixed.result.current.showFeeds).toBe(true);
+    expect(prefixed.result.current.showFolders).toBe(true);
   });
 });

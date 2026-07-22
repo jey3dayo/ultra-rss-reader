@@ -27,11 +27,14 @@ type UseCommandPaletteHandlersParams = {
   commandPaletteOpen?: boolean;
   canSelectArticle: (feedId: string, articleId: string) => boolean;
   canSelectTag?: (tagId: string) => boolean;
+  canSelectFolder?: (folderId: string) => boolean;
+  selectFolderFromCurrentContext: (folderId: string) => void;
 };
 
 type UseCommandPaletteHandlersResult = {
   handleActionSelect: (action: PaletteAction["id"]) => void;
   handleFeedSelect: (feedId: string) => void;
+  handleFolderSelect: (folderId: string) => void;
   handleTagSelect: (tagId: string) => void;
   handleArticleSelect: (feedId: string, articleId: string) => void;
   handleDevScenarioSelect: (scenarioId: RuntimeDevScenario["id"]) => void;
@@ -104,6 +107,8 @@ export function useCommandPaletteHandlers({
   commandPaletteOpen = true,
   canSelectArticle,
   canSelectTag = () => true,
+  canSelectFolder = () => true,
+  selectFolderFromCurrentContext,
 }: UseCommandPaletteHandlersParams): UseCommandPaletteHandlersResult {
   const feedLandingRequestIdRef = useRef(0);
   const devScenarioRequestIdRef = useRef(0);
@@ -144,6 +149,35 @@ export function useCommandPaletteHandlers({
       }
 
       openShortcutsHelp();
+      closePalette();
+      return;
+    }
+
+    if (
+      action === "show-smart-unread" ||
+      action === "show-smart-starred" ||
+      action === "show-smart-recent" ||
+      action === "show-smart-all"
+    ) {
+      if (!tryClaimPaletteSubmit(`action:${action}`)) {
+        return;
+      }
+
+      const uiStore = useUiStore.getState();
+      switch (action) {
+        case "show-smart-all":
+          uiStore.selectAll();
+          break;
+        case "show-smart-unread":
+          uiStore.selectSmartView("unread");
+          break;
+        case "show-smart-starred":
+          uiStore.selectSmartView("starred");
+          break;
+        case "show-smart-recent":
+          uiStore.selectSmartView("recent");
+          break;
+      }
       closePalette();
       return;
     }
@@ -215,6 +249,20 @@ export function useCommandPaletteHandlers({
     closePalette();
   }
 
+  function handleFolderSelect(folderId: string) {
+    if (!canSelectFolder(folderId)) {
+      return;
+    }
+
+    if (!tryClaimPaletteSubmit(`folder:${folderId}`)) {
+      return;
+    }
+
+    addToHistory(createCommandPaletteHistoryValue({ kind: "folder", id: folderId }));
+    selectFolderFromCurrentContext(folderId);
+    closePalette();
+  }
+
   function handleTagSelect(tagId: string) {
     if (!canSelectTag(tagId)) {
       return;
@@ -275,6 +323,7 @@ export function useCommandPaletteHandlers({
   return {
     handleActionSelect,
     handleFeedSelect,
+    handleFolderSelect,
     handleTagSelect,
     handleArticleSelect,
     handleDevScenarioSelect,

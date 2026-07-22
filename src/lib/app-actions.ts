@@ -6,7 +6,7 @@ type FilterAction = `set-filter-${ViewMode}`;
 
 export const APP_ACTION_REGISTRY = {
   viewFilters: ["set-filter-unread", "set-filter-all", "set-filter-starred"] as const satisfies readonly FilterAction[],
-  preferences: ["toggle-sort-unread", "toggle-group-by-feed", "set-theme-light", "set-theme-dark"],
+  preferences: ["toggle-sort-unread", "toggle-group-by-feed", "set-theme-light", "set-theme-dark", "set-theme-system"],
   window: ["toggle-fullscreen"],
   sync: ["sync-all"],
   settings: [

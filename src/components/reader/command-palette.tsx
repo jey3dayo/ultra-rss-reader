@@ -3,7 +3,7 @@ import { Command, CommandInput, CommandSeparator } from "@/components/ui/command
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/design-system";
 import { CommandPaletteResults } from "./command-palette-results";
 
-function getCommandItemValue(kind: "action" | "feed" | "tag" | "article" | "scenario", id: string): string {
+function getCommandItemValue(kind: "action" | "feed" | "folder" | "tag" | "article" | "scenario", id: string): string {
   return `${kind}:${id}`;
 }
 

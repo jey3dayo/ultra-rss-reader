@@ -66,6 +66,7 @@ function createHandlers(overrides: Partial<Parameters<typeof useCommandPaletteHa
       selectedAccountId: "acc-1",
       isSyncing: false,
       selectFeedFromCurrentContext: vi.fn(),
+      selectFolderFromCurrentContext: vi.fn(),
       selectTagFromCurrentContext: vi.fn(),
       selectArticle: vi.fn(),
       openFeedLanding: vi.fn(),
@@ -88,6 +89,7 @@ function renderHandlers(initialOverrides: Partial<Parameters<typeof useCommandPa
         selectedAccountId: "acc-1",
         isSyncing: false,
         selectFeedFromCurrentContext: vi.fn(),
+        selectFolderFromCurrentContext: vi.fn(),
         selectTagFromCurrentContext: vi.fn(),
         selectArticle: vi.fn(),
         openFeedLanding: vi.fn(),
@@ -290,6 +292,44 @@ describe("useCommandPaletteHandlers", () => {
     await waitFor(() => {
       expect(showToast).not.toHaveBeenCalled();
     });
+  });
+
+  it.each([
+    ["show-smart-unread", "unread"],
+    ["show-smart-starred", "starred"],
+    ["show-smart-recent", "recent"],
+  ] as const)("dispatches %s to selectSmartView(%s) and closes the palette", (action, smartView) => {
+    const closePalette = vi.fn();
+    const selectSmartViewSpy = vi.spyOn(useUiStore.getState(), "selectSmartView");
+    const handlers = createHandlers({ closePalette });
+
+    handlers.handleActionSelect(action);
+
+    expect(selectSmartViewSpy).toHaveBeenCalledWith(smartView);
+    expect(closePalette).toHaveBeenCalledOnce();
+  });
+
+  it("dispatches show-smart-all to selectAll and closes the palette", () => {
+    const closePalette = vi.fn();
+    const selectAllSpy = vi.spyOn(useUiStore.getState(), "selectAll");
+    const handlers = createHandlers({ closePalette });
+
+    handlers.handleActionSelect("show-smart-all");
+
+    expect(selectAllSpy).toHaveBeenCalledOnce();
+    expect(closePalette).toHaveBeenCalledOnce();
+  });
+
+  it("guards smart view double submits within the same palette session", () => {
+    const closePalette = vi.fn();
+    const selectSmartViewSpy = vi.spyOn(useUiStore.getState(), "selectSmartView");
+    const handlers = createHandlers({ closePalette });
+
+    handlers.handleActionSelect("show-smart-unread");
+    handlers.handleActionSelect("show-smart-unread");
+
+    expect(selectSmartViewSpy).toHaveBeenCalledOnce();
+    expect(closePalette).toHaveBeenCalledOnce();
   });
 
   it("falls back to bundled command palette messages when locale resources return keys", async () => {

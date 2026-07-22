@@ -41,9 +41,11 @@ export function CommandPaletteResults({
         items={{
           filteredDevScenarios: items.filteredDevScenarios,
           filteredFeeds: items.filteredFeeds,
+          filteredFolders: items.filteredFolders,
           filteredTags: items.filteredTags,
           articles: items.articles,
           recentFeeds: items.recentFeeds,
+          recentFolders: items.recentFolders,
           recentTags: items.recentTags,
           recentArticles: items.recentArticles,
         }}
@@ -53,6 +55,7 @@ export function CommandPaletteResults({
                 mode: "recent",
                 groups: {
                   feeds: visibility.feeds,
+                  folders: visibility.folders,
                   tags: visibility.tags,
                   articles: visibility.articles,
                 },
@@ -62,6 +65,7 @@ export function CommandPaletteResults({
                 groups: {
                   devScenarios: visibility.devScenarios,
                   feeds: visibility.feeds,
+                  folders: visibility.folders,
                   tags: visibility.tags,
                   articles: visibility.articles,
                 },
@@ -70,6 +74,7 @@ export function CommandPaletteResults({
         headings={{
           devScenariosHeading: headings.devScenariosHeading,
           feedsHeading: headings.feedsHeading,
+          foldersHeading: headings.foldersHeading,
           tagsHeading: headings.tagsHeading,
           articlesHeading: headings.articlesHeading,
         }}
@@ -77,6 +82,7 @@ export function CommandPaletteResults({
         handlers={{
           onDevScenarioSelect: handlers.onDevScenarioSelect,
           onFeedSelect: handlers.onFeedSelect,
+          onFolderSelect: handlers.onFolderSelect,
           onTagSelect: handlers.onTagSelect,
           onArticleSelect: handlers.onArticleSelect,
         }}

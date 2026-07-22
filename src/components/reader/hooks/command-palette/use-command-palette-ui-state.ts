@@ -13,6 +13,7 @@ const useCommandPaletteUiStoreSlice = createUiStoreSliceHook((state) => ({
   selectedAccountId: state.selectedAccountId,
   isSyncing: state.syncProgress.active,
   selectFeedFromCurrentContext: state.selectFeedFromCurrentContext,
+  selectFolderFromCurrentContext: state.selectFolderFromCurrentContext,
   selectTagFromCurrentContext: state.selectTagFromCurrentContext,
   selectArticle: state.selectArticle,
 }));

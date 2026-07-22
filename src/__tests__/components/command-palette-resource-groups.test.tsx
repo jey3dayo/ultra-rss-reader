@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CommandPaletteResourceGroups } from "@/components/reader/command-palette-resource-groups";
 import { Command, CommandList } from "@/components/ui/command";
 import { DEV_SCENARIO_ID } from "@/dev/scenario-ids";
-import { sampleArticles, sampleFeeds, sampleTags } from "../../../tests/helpers/fixtures";
+import { sampleArticles, sampleFeeds, sampleFolders, sampleTags } from "../../../tests/helpers/fixtures";
 
 type CommandPaletteResourceGroupsProps = Parameters<typeof CommandPaletteResourceGroups>[0];
 type CommandPaletteResourceGroupsOverrides = Omit<
@@ -21,9 +21,11 @@ function renderResourceGroups(overrides: CommandPaletteResourceGroupsOverrides =
     items: {
       filteredDevScenarios: [],
       filteredFeeds: [],
+      filteredFolders: [],
       filteredTags: [],
       articles: [],
       recentFeeds: [],
+      recentFolders: [],
       recentTags: [],
       recentArticles: [],
       ...overrides.items,
@@ -33,6 +35,7 @@ function renderResourceGroups(overrides: CommandPaletteResourceGroupsOverrides =
       groups: {
         devScenarios: false,
         feeds: true,
+        folders: true,
         tags: true,
         articles: true,
       },
@@ -40,6 +43,7 @@ function renderResourceGroups(overrides: CommandPaletteResourceGroupsOverrides =
     headings: {
       devScenariosHeading: "Dev Scenarios",
       feedsHeading: "Feeds",
+      foldersHeading: "Folders",
       tagsHeading: "Tags",
       articlesHeading: "Articles",
       ...overrides.headings,
@@ -48,6 +52,7 @@ function renderResourceGroups(overrides: CommandPaletteResourceGroupsOverrides =
     handlers: {
       onDevScenarioSelect: vi.fn(),
       onFeedSelect: vi.fn(),
+      onFolderSelect: vi.fn(),
       onTagSelect: vi.fn(),
       onArticleSelect: vi.fn(),
       ...overrides.handlers,
@@ -77,12 +82,15 @@ describe("CommandPaletteResourceGroups", () => {
   });
 
   it("renders recent resource entries while recent actions are visible", () => {
+    const otherFolder = { ...sampleFolders[0], id: "folder-2", name: "Archive" };
     renderResourceGroups({
       items: {
         filteredFeeds: [sampleFeeds[1]],
+        filteredFolders: [otherFolder],
         filteredTags: [sampleTags[1]],
         articles: [sampleArticles[1]],
         recentFeeds: [sampleFeeds[0]],
+        recentFolders: [sampleFolders[0]],
         recentTags: [sampleTags[0]],
         recentArticles: [sampleArticles[0]],
       },
@@ -90,11 +98,16 @@ describe("CommandPaletteResourceGroups", () => {
         mode: "recent",
         groups: {
           feeds: true,
+          folders: true,
           tags: true,
           articles: true,
         },
       },
     });
+
+    expect(screen.getByRole("group", { name: "Folders" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: sampleFolders[0].name })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: otherFolder.name })).not.toBeInTheDocument();
 
     expect(screen.getByRole("group", { name: "Feeds" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: /Tech Blog/ })).toBeInTheDocument();
@@ -132,6 +145,7 @@ describe("CommandPaletteResourceGroups", () => {
         groups: {
           devScenarios: true,
           feeds: true,
+          folders: true,
           tags: true,
           articles: true,
         },

@@ -291,6 +291,7 @@ describe("CommandPalette", () => {
         selectedAccountId: null,
         isSyncing: true,
         selectFeedFromCurrentContext: vi.fn(),
+        selectFolderFromCurrentContext: vi.fn(),
         selectTagFromCurrentContext: vi.fn(),
         selectArticle: vi.fn(),
         openFeedLanding: vi.fn(),

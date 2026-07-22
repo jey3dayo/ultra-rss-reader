@@ -1,6 +1,6 @@
 import { type AppAction, isAppAction } from "@/lib/app-actions";
 
-type CommandPaletteHistoryDocumentKind = "feed" | "tag" | "article";
+type CommandPaletteHistoryDocumentKind = "feed" | "folder" | "tag" | "article";
 
 export type CommandPaletteHistoryEntry =
   | { kind: "action"; id: AppAction }
@@ -11,6 +11,7 @@ type CommandPaletteHistoryKind = CommandPaletteHistoryEntry["kind"];
 const COMMAND_PALETTE_HISTORY_PREFIX: Record<CommandPaletteHistoryKind, string> = {
   action: "action:",
   feed: "feed:",
+  folder: "folder:",
   tag: "tag:",
   article: "article:",
 };
@@ -18,6 +19,7 @@ const COMMAND_PALETTE_HISTORY_PREFIX: Record<CommandPaletteHistoryKind, string> 
 const COMMAND_PALETTE_HISTORY_PREFIX_ENTRIES: Array<[CommandPaletteHistoryKind, string]> = [
   ["action", COMMAND_PALETTE_HISTORY_PREFIX.action],
   ["feed", COMMAND_PALETTE_HISTORY_PREFIX.feed],
+  ["folder", COMMAND_PALETTE_HISTORY_PREFIX.folder],
   ["tag", COMMAND_PALETTE_HISTORY_PREFIX.tag],
   ["article", COMMAND_PALETTE_HISTORY_PREFIX.article],
 ];

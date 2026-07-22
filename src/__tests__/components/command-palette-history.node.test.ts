@@ -16,6 +16,10 @@ describe("command-palette-history", () => {
       kind: "feed",
       id: "feed-1",
     });
+    expect(parseCommandPaletteHistoryEntry("folder:folder-1")).toEqual({
+      kind: "folder",
+      id: "folder-1",
+    });
     expect(parseCommandPaletteHistoryEntry("tag:tag-1")).toEqual({
       kind: "tag",
       id: "tag-1",
@@ -30,6 +34,7 @@ describe("command-palette-history", () => {
     expect(parseCommandPaletteHistoryEntry("unknown:value")).toBeNull();
     expect(parseCommandPaletteHistoryEntry("action")).toBeNull();
     expect(parseCommandPaletteHistoryEntry("feed:")).toBeNull();
+    expect(parseCommandPaletteHistoryEntry("folder:")).toBeNull();
     expect(parseCommandPaletteHistoryEntry("tag:")).toBeNull();
     expect(parseCommandPaletteHistoryEntry("article:")).toBeNull();
     expect(parseCommandPaletteHistoryEntry("action:removed-action")).toBeNull();
@@ -52,6 +57,7 @@ describe("command-palette-history", () => {
   it("formats history values from structured entries", () => {
     expect(createCommandPaletteHistoryValue({ kind: "action", id: "open-settings" })).toBe("action:open-settings");
     expect(createCommandPaletteHistoryValue({ kind: "feed", id: "feed-1" })).toBe("feed:feed-1");
+    expect(createCommandPaletteHistoryValue({ kind: "folder", id: "folder-1" })).toBe("folder:folder-1");
     expect(createCommandPaletteHistoryValue({ kind: "tag", id: "tag-1" })).toBe("tag:tag-1");
     expect(createCommandPaletteHistoryValue({ kind: "article", id: "art-1" })).toBe("article:art-1");
   });
@@ -59,6 +65,7 @@ describe("command-palette-history", () => {
   it("roundtrips non-action resource history values", () => {
     const entries = [
       { kind: "feed", id: "feed-1" },
+      { kind: "folder", id: "folder-1" },
       { kind: "tag", id: "tag-1" },
       { kind: "article", id: "art-1" },
     ] as const;

@@ -1,8 +1,9 @@
 import { useEffect, useMemo } from "react";
-import type { ArticleDto, FeedDto, TagDto } from "@/api/tauri-commands";
+import type { ArticleDto, FeedDto, FolderDto, TagDto } from "@/api/tauri-commands";
 import type { RuntimeDevScenario } from "@/dev/scenario-runtime";
 import { useRecentArticles, useSearchArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
+import { useFolders } from "@/hooks/use-folders";
 import { useTags } from "@/hooks/use-tags";
 import {
   type CommandPaletteHistoryEntry,
@@ -29,19 +30,23 @@ type UseCommandPaletteDataResult = {
   filteredActions: PaletteAction[];
   filteredDevScenarios: RuntimeDevScenario[];
   filteredFeeds: FeedDto[];
+  filteredFolders: FolderDto[];
   filteredTags: TagDto[];
   recentFeeds: FeedDto[];
+  recentFolders: FolderDto[];
   recentTags: TagDto[];
   recentArticles: ArticleDto[];
   recentActions: PaletteAction[];
   selectableArticleFeedIds: ReadonlySet<string>;
   selectableArticleIds: ReadonlySet<string>;
   selectableTagIds: ReadonlySet<string>;
+  selectableFolderIds: ReadonlySet<string>;
   showRecentActions: boolean;
   showRecentResources: boolean;
   showActions: boolean;
   showDevScenarios: boolean;
   showFeeds: boolean;
+  showFolders: boolean;
   showTags: boolean;
   showArticles: boolean;
   hasVisibleResults: boolean;
@@ -90,6 +95,8 @@ function resolveHasVisiblePaletteResults(params: {
   filteredDevScenariosCount: number;
   showFeeds: boolean;
   filteredFeedsCount: number;
+  showFolders: boolean;
+  filteredFoldersCount: number;
   showTags: boolean;
   filteredTagsCount: number;
   showArticles: boolean;
@@ -106,6 +113,8 @@ function resolveHasVisiblePaletteResults(params: {
     filteredDevScenariosCount,
     showFeeds,
     filteredFeedsCount,
+    showFolders,
+    filteredFoldersCount,
     showTags,
     filteredTagsCount,
     showArticles,
@@ -126,6 +135,7 @@ function resolveHasVisiblePaletteResults(params: {
     (showActions && filteredActionsCount > 0) ||
     (showDevScenarios && filteredDevScenariosCount > 0) ||
     (showFeeds && filteredFeedsCount > 0) ||
+    (showFolders && filteredFoldersCount > 0) ||
     (showTags && filteredTagsCount > 0) ||
     (showArticles && articlesCount > 0)
   );
@@ -140,6 +150,7 @@ export function useCommandPaletteData({
   selectedAccountId,
 }: UseCommandPaletteDataParams): UseCommandPaletteDataResult {
   const feedsQuery = useFeeds(selectedAccountId);
+  const foldersQuery = useFolders(selectedAccountId);
   const tagsQuery = useTags();
   const { data: searchArticleCandidates = [] } = useSearchArticles(
     selectedAccountId,
@@ -147,6 +158,7 @@ export function useCommandPaletteData({
   );
   const recentArticlesQuery = useRecentArticles(selectedAccountId);
   const feeds = feedsQuery.data ?? [];
+  const folders = foldersQuery.data ?? [];
   const tags = tagsQuery.data ?? [];
   const currentFeedIds = useMemo(() => new Set(feeds.map((feed) => feed.id)), [feeds]);
   const articles = useMemo(
@@ -162,6 +174,7 @@ export function useCommandPaletteData({
     [articles, recentArticleCandidates],
   );
   const selectableTagIds = useMemo(() => new Set(tags.map((tag) => tag.id)), [tags]);
+  const selectableFolderIds = useMemo(() => new Set(folders.map((folder) => folder.id)), [folders]);
 
   const filteredActions = useMemo(
     () => filterByQuery(actions, query, { label: (action) => action.label, keywords: (action) => action.keywords }),
@@ -179,17 +192,25 @@ export function useCommandPaletteData({
     () => filterByQuery(feeds, query, { label: (feed) => feed.title, keywords: (feed) => [feed.url, feed.site_url] }),
     [feeds, query],
   );
+  const filteredFolders = useMemo(
+    () => filterByQuery(folders, query, { label: (folder) => folder.name, keywords: () => [] }),
+    [folders, query],
+  );
   const filteredTags = useMemo(
     () => filterByQuery(tags, query, { label: (tag) => tag.name, keywords: () => [] }),
     [tags, query],
   );
 
-  const { recentActions, recentFeeds, recentTags, recentArticles, historyProjection } = useMemo(() => {
+  const { recentActions, recentFeeds, recentFolders, recentTags, recentArticles, historyProjection } = useMemo(() => {
     const resourcesReady =
-      hasFetchedData(feedsQuery) && hasFetchedData(tagsQuery) && hasFetchedData(recentArticlesQuery);
+      hasFetchedData(feedsQuery) &&
+      hasFetchedData(foldersQuery) &&
+      hasFetchedData(tagsQuery) &&
+      hasFetchedData(recentArticlesQuery);
 
     const actionMap = new Map(actions.map((action) => [action.id, action]));
     const feedMap = new Map(feeds.map((feed) => [feed.id, feed]));
+    const folderMap = new Map(folders.map((folder) => [folder.id, folder]));
     const tagMap = new Map(tags.map((tag) => [tag.id, tag]));
     const articleMap = new Map(recentArticleCandidates.map((article) => [article.id, article]));
     const history = getHistory();
@@ -199,6 +220,7 @@ export function useCommandPaletteData({
           new Set<string>([
             ...actions.map((action) => `action:${action.id}`),
             ...feeds.map((feed) => `feed:${feed.id}`),
+            ...folders.map((folder) => `folder:${folder.id}`),
             ...tags.map((tag) => `tag:${tag.id}`),
             ...recentArticleCandidates.map((article) => `article:${article.id}`),
           ]),
@@ -215,6 +237,7 @@ export function useCommandPaletteData({
 
     const recentActions: PaletteAction[] = [];
     const recentFeeds: FeedDto[] = [];
+    const recentFolders: FolderDto[] = [];
     const recentTags: TagDto[] = [];
     const recentArticles: ArticleDto[] = [];
     const projectedEntryKeys = new Set<string>();
@@ -246,6 +269,14 @@ export function useCommandPaletteData({
         continue;
       }
 
+      if (entry.kind === "folder") {
+        const folder = folderMap.get(entry.id);
+        if (folder) {
+          recentFolders.push(folder);
+        }
+        continue;
+      }
+
       if (entry.kind === "tag") {
         const tag = tagMap.get(entry.id);
         if (tag) {
@@ -260,8 +291,18 @@ export function useCommandPaletteData({
       }
     }
 
-    return { recentActions, recentFeeds, recentTags, recentArticles, historyProjection };
-  }, [actions, feeds, feedsQuery, recentArticleCandidates, recentArticlesQuery, tags, tagsQuery]);
+    return { recentActions, recentFeeds, recentFolders, recentTags, recentArticles, historyProjection };
+  }, [
+    actions,
+    feeds,
+    feedsQuery,
+    folders,
+    foldersQuery,
+    recentArticleCandidates,
+    recentArticlesQuery,
+    tags,
+    tagsQuery,
+  ]);
 
   useEffect(() => {
     if (!historyProjection) {
@@ -272,11 +313,12 @@ export function useCommandPaletteData({
   }, [historyProjection]);
 
   const showRecentActions = prefix === null && query.length === 0 && recentActions.length > 0;
-  const recentResourcesCount = recentFeeds.length + recentTags.length + recentArticles.length;
+  const recentResourcesCount = recentFeeds.length + recentFolders.length + recentTags.length + recentArticles.length;
   const showRecentResources = prefix === null && query.length === 0 && recentResourcesCount > 0;
   const showActions = prefix === null || prefix === ">";
   const showDevScenarios = import.meta.env.DEV && prefix === null;
   const showFeeds = prefix === null || prefix === "@";
+  const showFolders = prefix === null || prefix === "@";
   const showTags = prefix === null || prefix === "#";
   const showArticles = prefix === null;
 
@@ -289,6 +331,8 @@ export function useCommandPaletteData({
     filteredDevScenariosCount: filteredDevScenarios.length,
     showFeeds,
     filteredFeedsCount: filteredFeeds.length,
+    showFolders,
+    filteredFoldersCount: filteredFolders.length,
     showTags,
     filteredTagsCount: filteredTags.length,
     showArticles,
@@ -302,19 +346,23 @@ export function useCommandPaletteData({
     filteredActions,
     filteredDevScenarios,
     filteredFeeds,
+    filteredFolders,
     filteredTags,
     recentFeeds,
+    recentFolders,
     recentTags,
     recentArticles,
     recentActions,
     selectableArticleFeedIds: currentFeedIds,
     selectableArticleIds,
     selectableTagIds,
+    selectableFolderIds,
     showRecentActions,
     showRecentResources,
     showActions,
     showDevScenarios,
     showFeeds,
+    showFolders,
     showTags,
     showArticles,
     hasVisibleResults,

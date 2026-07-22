@@ -1,4 +1,4 @@
-import { FlaskConicalIcon, HashIcon, NewspaperIcon, RssIcon } from "lucide-react";
+import { FlaskConicalIcon, FolderIcon, HashIcon, NewspaperIcon, RssIcon } from "lucide-react";
 import { CommandGroup, CommandItem } from "@/components/ui/command";
 import type { CommandPaletteResultsProps } from "./command-palette.types";
 
@@ -7,26 +7,28 @@ type CommandPaletteResourceGroupsProps = Pick<CommandPaletteResultsProps, "getCo
     CommandPaletteResultsProps["items"],
     | "filteredDevScenarios"
     | "filteredFeeds"
+    | "filteredFolders"
     | "filteredTags"
     | "articles"
     | "recentFeeds"
+    | "recentFolders"
     | "recentTags"
     | "recentArticles"
   >;
   displayState: CommandPaletteResourceGroupsDisplayState;
   headings: Pick<
     CommandPaletteResultsProps["headings"],
-    "devScenariosHeading" | "feedsHeading" | "tagsHeading" | "articlesHeading"
+    "devScenariosHeading" | "feedsHeading" | "foldersHeading" | "tagsHeading" | "articlesHeading"
   >;
   handlers: Pick<
     CommandPaletteResultsProps["handlers"],
-    "onDevScenarioSelect" | "onFeedSelect" | "onTagSelect" | "onArticleSelect"
+    "onDevScenarioSelect" | "onFeedSelect" | "onFolderSelect" | "onTagSelect" | "onArticleSelect"
   >;
 };
 
 type CommandPaletteResourceGroupVisibility = Pick<
   CommandPaletteResultsProps["visibility"],
-  "feeds" | "tags" | "articles"
+  "feeds" | "folders" | "tags" | "articles"
 >;
 
 type CommandPaletteResourceGroupsDisplayState =
@@ -48,6 +50,7 @@ export function CommandPaletteResourceGroups({
 }: CommandPaletteResourceGroupsProps) {
   const displayRecentResources = displayState.mode === "recent";
   const visibleFeeds = displayRecentResources ? items.recentFeeds : items.filteredFeeds;
+  const visibleFolders = displayRecentResources ? items.recentFolders : items.filteredFolders;
   const visibleTags = displayRecentResources ? items.recentTags : items.filteredTags;
   const visibleArticles = displayRecentResources ? items.recentArticles : items.articles;
   const feedTitleById = new Map(items.filteredFeeds.map((feed) => [feed.id, feed.title]));
@@ -69,6 +72,21 @@ export function CommandPaletteResourceGroups({
             >
               <FlaskConicalIcon />
               <span className="min-w-0 truncate">{scenario.title}</span>
+            </CommandItem>
+          ))}
+        </CommandGroup>
+      ) : null}
+
+      {displayState.groups.folders && visibleFolders.length > 0 ? (
+        <CommandGroup heading={headings.foldersHeading}>
+          {visibleFolders.map((folder) => (
+            <CommandItem
+              key={folder.id}
+              value={getCommandItemValue("folder", folder.id)}
+              onSelect={() => handlers.onFolderSelect(folder.id)}
+            >
+              <FolderIcon />
+              <span className="min-w-0 truncate">{folder.name}</span>
             </CommandItem>
           ))}
         </CommandGroup>

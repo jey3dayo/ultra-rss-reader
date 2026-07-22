@@ -318,6 +318,9 @@ export function executeAction(action: AppAction): void {
     case "set-theme-dark":
       usePreferencesStore.getState().setPref("theme", "dark");
       break;
+    case "set-theme-system":
+      usePreferencesStore.getState().setPref("theme", "system");
+      break;
 
     // --- Window ---
     case "toggle-fullscreen":

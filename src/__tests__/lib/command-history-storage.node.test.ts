@@ -77,6 +77,15 @@ describe("command-history-storage", () => {
     expect(getHistory()).toEqual(["feed:feed-1", "action:open-settings"]);
   });
 
+  it("preserves folder history entries without dropping them as unknown kinds", () => {
+    localStorage.setItem(
+      STORAGE_KEYS.commandHistory,
+      JSON.stringify(["folder:folder-1", "feed:feed-1", "action:open-settings"]),
+    );
+
+    expect(getHistory()).toEqual(["folder:folder-1", "feed:feed-1", "action:open-settings"]);
+  });
+
   it("caps oversized stored history before exposing it to the UI", () => {
     const entries = Array.from({ length: MAX_COMMAND_HISTORY + 25 }, (_, index) => `item-${index}`);
     localStorage.setItem(STORAGE_KEYS.commandHistory, JSON.stringify(entries));

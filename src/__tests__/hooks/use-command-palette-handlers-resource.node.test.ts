@@ -34,6 +34,7 @@ function createHandlers(overrides: Partial<Parameters<typeof createCommandPalett
       selectedAccountId: "acc-1",
       isSyncing: false,
       selectFeedFromCurrentContext: vi.fn(),
+      selectFolderFromCurrentContext: vi.fn(),
       selectTagFromCurrentContext: vi.fn(),
       selectArticle: vi.fn(),
       openFeedLanding: vi.fn(),
@@ -121,6 +122,7 @@ describe("useCommandPaletteHandlers resource history", () => {
           selectedAccountId,
           isSyncing: false,
           selectFeedFromCurrentContext: vi.fn(),
+          selectFolderFromCurrentContext: vi.fn(),
           selectTagFromCurrentContext: vi.fn(),
           selectArticle: vi.fn(),
           showToast,
@@ -225,6 +227,41 @@ describe("useCommandPaletteHandlers resource history", () => {
     handlers.handleTagSelect("stale-tag");
 
     expect(selectTagFromCurrentContext).not.toHaveBeenCalled();
+    expect(closePalette).not.toHaveBeenCalled();
+    expect(localStorage.getItem(STORAGE_KEYS.commandHistory)).toBeNull();
+  });
+
+  it("records folder resource history before selection and closes after navigation", () => {
+    const closePalette = vi.fn();
+    const selectFolderFromCurrentContext = vi.fn(() => {
+      expectCommandHistory(["folder:folder-1"]);
+    });
+    const handlers = createHandlers({
+      closePalette,
+      selectFolderFromCurrentContext,
+    });
+
+    handlers.handleFolderSelect("folder-1");
+
+    expect(selectFolderFromCurrentContext).toHaveBeenCalledWith("folder-1");
+    expect(closePalette).toHaveBeenCalledTimes(1);
+    expect(selectFolderFromCurrentContext.mock.invocationCallOrder[0]).toBeLessThan(
+      closePalette.mock.invocationCallOrder[0] ?? 0,
+    );
+  });
+
+  it("does not select, close, or write history for stale folder selections", () => {
+    const closePalette = vi.fn();
+    const selectFolderFromCurrentContext = vi.fn();
+    const handlers = createHandlers({
+      closePalette,
+      selectFolderFromCurrentContext,
+      canSelectFolder: () => false,
+    });
+
+    handlers.handleFolderSelect("stale-folder");
+
+    expect(selectFolderFromCurrentContext).not.toHaveBeenCalled();
     expect(closePalette).not.toHaveBeenCalled();
     expect(localStorage.getItem(STORAGE_KEYS.commandHistory)).toBeNull();
   });
