@@ -181,7 +181,7 @@ function SummaryEmptyState({
         <ArticleToolbar article={null} isBrowserOpen={false} onCloseView={() => {}} onToggleBrowserOverlay={() => {}} />
       }
       body={
-        <div className="flex flex-1 items-start justify-start overflow-hidden px-10 pt-[7vh] pb-12">
+        <div className="flex flex-1 items-start justify-start overflow-y-auto px-10 pt-10 pb-12">
           <section
             key={motionKey}
             data-testid="article-selection-summary"
@@ -234,7 +234,7 @@ function SummaryEmptyState({
               {recentFeeds.length > 0 ? (
                 <div className="mt-8">
                   <h3 className="text-sm font-medium text-foreground">{t("recent_feeds")}</h3>
-                  <ul className="mt-3 grid max-h-72 grid-cols-2 gap-2.5 overflow-y-auto pr-1">
+                  <ul className="mt-3 grid grid-cols-2 gap-2.5">
                     {recentFeeds.map((feed) => (
                       <RecentFeedRow key={feed.id} feed={feed} onSelect={handleSelectRecentFeed} />
                     ))}
