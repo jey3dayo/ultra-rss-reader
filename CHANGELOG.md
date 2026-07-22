@@ -4,6 +4,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.53.45] - 2026-07-22
+
+### Bug Fixes
+
+- アプリ内ブラウザ表示中にアップデート通知トーストが右上のコンパクトなレール枠に押し込まれて崩れていたのを、右下の通常トースト位置に表示するよう修正した。
+
+### Maintenance
+
+- 依存 audit で検出された `js-yaml` / `brace-expansion` の high advisory（いずれも shadcn CLI 経由の transitive）をパッチ版へ更新・固定して解消した。
+
 ## [0.53.44] - 2026-07-21
 
 ### Features
