@@ -227,6 +227,30 @@ fn dropped_pending_mutation_warning(mutation_type: PendingMutationType) -> Provi
     }
 }
 
+/// Read the current pending-mutation protection lists (read axis, star axis).
+///
+/// Must be called inside the same DB lock as `apply_remote_state`: reading the
+/// snapshot before the network `pull_state()` call leaves a window where an
+/// article marked read during the pull gets reverted to the stale remote state.
+fn pending_remote_ids_by_axis(
+    conn: &rusqlite::Connection,
+    account_id: &AccountId,
+) -> Result<(Vec<String>, Vec<String>), AppError> {
+    let pending_repo = SqlitePendingMutationRepository::new(conn);
+    let pending = pending_repo.find_by_account(account_id)?;
+    let read_ids = pending
+        .iter()
+        .filter(|pm| pm.mutation_type.axis() == PendingMutationAxis::ReadState)
+        .map(|pm| pm.remote_entry_id.clone())
+        .collect();
+    let starred_ids = pending
+        .iter()
+        .filter(|pm| pm.mutation_type.axis() == PendingMutationAxis::StarState)
+        .map(|pm| pm.remote_entry_id.clone())
+        .collect();
+    Ok((read_ids, starred_ids))
+}
+
 fn build_article_from_remote_entry(
     account: &Account,
     feed: &Feed,
@@ -641,26 +665,11 @@ pub(super) async fn repair_greader_remote_state(
         })
         .await?;
 
-    let (pending_read_remote_ids, pending_starred_remote_ids): (Vec<String>, Vec<String>) = {
-        let db_guard = lock_db(db)?;
-        let pending_repo = SqlitePendingMutationRepository::new(db_guard.reader());
-        let pending = pending_repo.find_by_account(&account.id)?;
-        let pending_read_ids = pending
-            .iter()
-            .filter(|pm| pm.mutation_type.axis() == PendingMutationAxis::ReadState)
-            .map(|pm| pm.remote_entry_id.clone())
-            .collect();
-        let pending_starred_ids = pending
-            .iter()
-            .filter(|pm| pm.mutation_type.axis() == PendingMutationAxis::StarState)
-            .map(|pm| pm.remote_entry_id.clone())
-            .collect();
-        (pending_read_ids, pending_starred_ids)
-    };
-
     let remote_state = provider.pull_state().await?;
     let feeds = {
         let db_guard = lock_db(db)?;
+        let (pending_read_remote_ids, pending_starred_remote_ids) =
+            pending_remote_ids_by_axis(db_guard.reader(), &account.id)?;
         let article_repo = SqliteArticleRepository::new(db_guard.writer());
         article_repo.apply_remote_state(
             &account.id,
@@ -1203,36 +1212,21 @@ async fn sync_greader_feeds(
     }
 
     let pull_state_started_at = Instant::now();
-    let (pending_read_remote_ids, pending_starred_remote_ids): (Vec<String>, Vec<String>) = {
-        let db_guard = lock_db(db)?;
-        let pending_repo = SqlitePendingMutationRepository::new(db_guard.reader());
-        let pending = pending_repo.find_by_account(&account.id)?;
-        let mut read_ids: Vec<String> = pending
-            .iter()
-            .filter(|pm| pm.mutation_type.axis() == PendingMutationAxis::ReadState)
-            .map(|pm| pm.remote_entry_id.clone())
-            .collect();
-        read_ids.extend(pushed_read_remote_ids);
-        read_ids.sort();
-        read_ids.dedup();
-
-        let mut starred_ids: Vec<String> = pending
-            .iter()
-            .filter(|pm| pm.mutation_type.axis() == PendingMutationAxis::StarState)
-            .map(|pm| pm.remote_entry_id.clone())
-            .collect();
-        starred_ids.extend(pushed_starred_remote_ids);
-        starred_ids.sort();
-        starred_ids.dedup();
-
-        (read_ids, starred_ids)
-    };
     let now = chrono::Utc::now();
     let should_pull_remote_state = should_pull_remote_state(db, &account.id, now)?;
     if should_pull_remote_state {
         let remote_state = provider.pull_state().await?;
         {
             let db_guard = lock_db(db)?;
+            let (mut pending_read_remote_ids, mut pending_starred_remote_ids) =
+                pending_remote_ids_by_axis(db_guard.reader(), &account.id)?;
+            pending_read_remote_ids.extend(pushed_read_remote_ids);
+            pending_read_remote_ids.sort();
+            pending_read_remote_ids.dedup();
+            pending_starred_remote_ids.extend(pushed_starred_remote_ids);
+            pending_starred_remote_ids.sort();
+            pending_starred_remote_ids.dedup();
+
             let article_repo = SqliteArticleRepository::new(db_guard.writer());
             article_repo.apply_remote_state(
                 &account.id,
@@ -4347,6 +4341,130 @@ mod tests {
         assert_eq!(articles.len(), 1);
         assert!(articles[0].is_read);
         assert_eq!(repaired_feed.unread_count, 0);
+    }
+
+    #[tokio::test]
+    async fn repair_greader_remote_state_keeps_article_marked_read_during_pull_state() {
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(200)
+            .with_body("Auth=tok\n")
+            .create_async()
+            .await;
+
+        let db = std::sync::Arc::new(test_db());
+        let (account, feed) = insert_account_and_feed(&db, &server.url());
+        let remote_entry_id = "tag:google.com,2005:reader/item/0000000000000002".to_string();
+        let article_id = generate_entry_id(
+            account.id.as_ref(),
+            Some(&remote_entry_id),
+            &feed.url,
+            Some("https://example.com/2"),
+            Some("Read During Pull"),
+        );
+        {
+            let db_guard = db.lock().unwrap();
+            let article_repo = SqliteArticleRepository::new(db_guard.writer());
+            let article = Article {
+                id: article_id.clone(),
+                feed_id: feed.id.clone(),
+                remote_id: Some(remote_entry_id.clone()),
+                title: "Read During Pull".to_string(),
+                content_raw: "body".to_string(),
+                content_sanitized: "body".to_string(),
+                sanitizer_version: sanitizer::SANITIZER_VERSION,
+                summary: None,
+                url: Some("https://example.com/2".to_string()),
+                author: None,
+                published_at: chrono::Utc::now(),
+                thumbnail: None,
+                is_read: false,
+                is_starred: false,
+                fetched_at: chrono::Utc::now(),
+            };
+            article_repo.upsert(&[article]).unwrap();
+        }
+
+        // Remote still reports the article as unread. While the read-ids
+        // stream response is being produced (mid pull_state), the user marks
+        // the article read locally, queueing a pending mutation.
+        let mark_read_db = std::sync::Arc::clone(&db);
+        let mark_read_account_id = account.id.clone();
+        let mark_read_article_id = article_id.clone();
+        let mark_read_remote_entry_id = remote_entry_id.clone();
+        server
+            .mock("GET", "/api/greader.php/reader/api/0/stream/items/ids")
+            .match_query(Matcher::AllOf(vec![
+                Matcher::UrlEncoded("output".into(), "json".into()),
+                Matcher::UrlEncoded("s".into(), "user/-/state/com.google/read".into()),
+            ]))
+            .with_status(200)
+            .with_body_from_request(move |_| {
+                let db_guard = mark_read_db.lock().unwrap();
+                db_guard
+                    .writer()
+                    .execute(
+                        "UPDATE articles SET is_read = 1 WHERE id = ?1",
+                        rusqlite::params![mark_read_article_id.0],
+                    )
+                    .unwrap();
+                let pending_repo = SqlitePendingMutationRepository::new(db_guard.writer());
+                pending_repo
+                    .save(&PendingMutation {
+                        id: None,
+                        account_id: mark_read_account_id.clone(),
+                        mutation_type: PendingMutationType::MarkRead,
+                        remote_entry_id: mark_read_remote_entry_id.clone(),
+                        created_at: chrono::Utc::now().to_rfc3339(),
+                    })
+                    .unwrap();
+                br#"{ "itemRefs": [] }"#.to_vec()
+            })
+            .create_async()
+            .await;
+
+        server
+            .mock("GET", "/api/greader.php/reader/api/0/stream/items/ids")
+            .match_query(Matcher::AllOf(vec![
+                Matcher::UrlEncoded("output".into(), "json".into()),
+                Matcher::UrlEncoded("s".into(), "user/-/state/com.google/starred".into()),
+            ]))
+            .with_status(200)
+            .with_body(r#"{ "itemRefs": [] }"#)
+            .create_async()
+            .await;
+
+        server
+            .mock("GET", "/api/greader.php/reader/api/0/unread-count")
+            .match_query(Matcher::AllOf(vec![
+                Matcher::UrlEncoded("output".into(), "json".into()),
+                Matcher::UrlEncoded("all".into(), "true".into()),
+            ]))
+            .with_status(200)
+            .with_body(format!(
+                r#"{{ "unreadcounts": [{{ "id": "{FEED_REMOTE_ID}", "count": 0 }}] }}"#
+            ))
+            .create_async()
+            .await;
+
+        let _credentials = configure_dev_credentials(&account.id).await;
+
+        let provider = GReaderProvider::for_freshrss(&server.url());
+        repair_greader_remote_state(&db, &account, provider)
+            .await
+            .unwrap();
+
+        let db_guard = db.lock().unwrap();
+        let article_repo = SqliteArticleRepository::new(db_guard.reader());
+        let articles = article_repo
+            .find_by_feed(&feed.id, &Pagination::default())
+            .unwrap();
+        assert_eq!(articles.len(), 1);
+        assert!(
+            articles[0].is_read,
+            "a read marked during pull_state should stay read after apply_remote_state"
+        );
     }
 
     #[tokio::test]
