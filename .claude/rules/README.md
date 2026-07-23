@@ -60,6 +60,7 @@
 - [rust-async-mutex.md](./rust-async-mutex.md): `std::sync::Mutex` と `async` を安全に併用する指針
 - [rust-keyring.md](./rust-keyring.md): OS Keyring を使った認証情報管理の方針
 - [rust-test-unwrap-policy.md](./rust-test-unwrap-policy.md): Rust tests の `unwrap` / `expect` を fixture boundary と production behavior boundary に分類する方針
+- [remote-state-reconciliation.md](./remote-state-reconciliation.md): リモート状態反映時の保護リストは apply と同一 DB ロック内で読み直す(pull_state またぎの TOCTOU 防止)
 
 ## Release / Operations
 
