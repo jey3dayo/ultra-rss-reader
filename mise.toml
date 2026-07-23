@@ -33,6 +33,7 @@ includes = [
   "mise/lint.toml",
   "mise/quality.toml",
   "mise/test.toml",
+  "mise/setup.toml",
 ]
 
 # ========================================
