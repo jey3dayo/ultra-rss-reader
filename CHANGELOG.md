@@ -4,6 +4,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.54.1] - 2026-07-23
+
+### Bug Fixes
+
+- FreshRSS 同期のリモート状態取得中に記事を既読化すると未読へ巻き戻される競合を修正した。保護リストを apply 直前に同一 DB ロック内で再読込するようにした。
+
+### Documentation
+
+- リモート状態反映時の pending 保護リスト読み直しルールを `.claude/rules/remote-state-reconciliation.md` として記録した。
+
 ## [0.54.0] - 2026-07-22
 
 ### Features
