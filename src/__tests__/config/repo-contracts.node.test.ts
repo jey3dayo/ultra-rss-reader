@@ -1973,6 +1973,15 @@ describe("repository static contracts", () => {
     expect(tauriConfig.app.security.csp).toContain("connect-src ipc: http://ipc.localhost");
   });
 
+  it("uses the native Windows URL opener for percent-encoded article links", () => {
+    const cargoToml = readRepoFile("src-tauri/Cargo.toml");
+    const cargoLock = readRepoFile("src-tauri/Cargo.lock");
+
+    expect(cargoToml).toContain('open = "5.4"');
+    expect(cargoToml).not.toContain('features = ["insecure"]');
+    expect(cargoLock).toMatch(/\[\[package\]\]\r?\nname = "open"\r?\nversion = "5\.4\.\d+"/u);
+  });
+
   it("keeps Web Preview ATS relaxation scoped to web content loads", () => {
     const infoPlist = readRepoFile("src-tauri/Info.plist");
 

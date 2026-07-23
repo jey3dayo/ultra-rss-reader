@@ -506,6 +506,40 @@ describe("useBrowserViewActions", () => {
     });
   });
 
+  it("opens the current preview URL after in-page navigation", async () => {
+    const showToast = vi.fn();
+    const { result } = renderHook(() => {
+      const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(() =>
+        createBrowserState({ url: "https://example.com/navigated" }),
+      );
+      const browserStateRef = useRef(browserState);
+      browserStateRef.current = browserState;
+      const fallbackInFlightRef = useRef(false);
+
+      return useBrowserViewActions({
+        browserUrl: "https://example.com/feed-article",
+        browserStateRef,
+        setBrowserState,
+        resetBrowserWebviewSyncState: vi.fn(),
+        clearSurfaceIssue: vi.fn(),
+        showToast,
+        syncBrowserWebview: vi.fn(async () => {}),
+        initialBrowserState: createInitialBrowserState,
+        fallbackInFlightRef,
+      });
+    });
+
+    await act(async () => {
+      await result.current.handleOpenExternal();
+    });
+
+    expect(openUrlInExternalBrowserMock).toHaveBeenCalledWith("https://example.com/navigated", {
+      background: false,
+      errorLabel: "Failed to open preview in external browser",
+      showToast,
+    });
+  });
+
   it("does not retry the embedded webview without a browser URL", () => {
     const resetBrowserWebviewSyncState = vi.fn();
     const clearSurfaceIssue = vi.fn();
