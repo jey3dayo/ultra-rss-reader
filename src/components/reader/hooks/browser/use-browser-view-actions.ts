@@ -180,12 +180,13 @@ export function useBrowserViewActions({
       return;
     }
 
-    await openUrlInExternalBrowser(browserUrl, {
+    const currentUrl = browserStateRef.current?.url ?? browserUrl;
+    await openUrlInExternalBrowser(currentUrl, {
       background: false,
       showToast,
       errorLabel: "Failed to open preview in external browser",
     });
-  }, [browserUrl, showToast]);
+  }, [browserStateRef, browserUrl, showToast]);
 
   return {
     handleGoBack,
