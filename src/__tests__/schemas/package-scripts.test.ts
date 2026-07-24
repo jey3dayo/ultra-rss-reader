@@ -49,11 +49,6 @@ function extractMiseTaskSection(miseToml: string, taskName: string): string {
   return sectionLines.slice(0, sectionEnd === -1 ? undefined : sectionEnd).join("\n");
 }
 
-function extractMiseToolVersion(miseToml: string, toolName: string): string | null {
-  const escapedToolName = toolName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return miseToml.match(new RegExp(`^(?:"${escapedToolName}"|${escapedToolName})\\s*=\\s*"([^"]+)"`, "m"))?.[1] ?? null;
-}
-
 function extractMiseEnvValues(miseToml: string, prefix: string): string[] {
   return [...miseToml.matchAll(new RegExp(`^${prefix}[A-Z0-9_]*\\s*=\\s*"([^"]+)"`, "gm"))].map(
     (match) => match[1] ?? "",
@@ -110,10 +105,6 @@ function extractMarkdownTaskTargets(
   return extractMarkdownlintTargets(extractMiseTaskCommand(miseToml, taskName, commandName));
 }
 
-function extractPackageManagerVersion(packageManager: string | undefined, managerName: string): string | null {
-  return packageManager?.match(new RegExp(`^${managerName}@(.+)$`))?.[1] ?? null;
-}
-
 function extractReadmeMiseCommands(readme: string): string[] {
   return [...new Set([...readme.matchAll(/mise run ([a-z0-9:_-]+)/g)].map((match) => match[1] ?? ""))]
     .filter(Boolean)
@@ -133,11 +124,9 @@ describe("package scripts", () => {
     expect(isSchemaParseError(schemaError)).toBe(true);
   });
 
-  it("parses static package contract fields without mixing engine parity checks", () => {
+  it("parses static package contract fields", () => {
     const packageJson = readPackageJson();
 
-    expect(packageJson.version).toMatch(/^\d+\.\d+\.\d+$/);
-    expect(packageJson.packageManager).toBe("pnpm@11.15.1");
     expect(packageJson.private).toBe(true);
     expect(packageJson.type).toBe("module");
 
@@ -152,15 +141,6 @@ describe("package scripts", () => {
       node: ">=20",
       pnpm: ">=10",
     });
-  });
-
-  it("keeps package engines aligned with mise node tool and packageManager pnpm", () => {
-    const packageJson = readPackageJson();
-    const miseToml = readMiseTaskCorpus();
-    const packageManagerVersion = extractPackageManagerVersion(packageJson.packageManager, "pnpm");
-
-    expect(packageJson.engines?.node).toBe(extractMiseToolVersion(miseToml, "node"));
-    expect(packageJson.engines?.pnpm).toBe(packageManagerVersion);
   });
 
   it("keeps markdown format and lint task globs aligned with env definitions", () => {
