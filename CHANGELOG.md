@@ -4,6 +4,18 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.54.2] - 2026-07-24
+
+### Bug Fixes
+
+- アプリ内ブラウザの現在URLを開く操作で、表示中のURLが正しく引き継がれない問題を修正した。
+- CIのpnpm契約テストを現行のpnpm 11.17.0へ同期し、依存監査で検出されたfast-uriのhigh脆弱性を修正版へ固定した。
+
+### Maintenance
+
+- Ubuntu/WSL環境でTauri開発依存関係をセットアップするmiseタスクを追加した。
+- package scriptsの不要なエンジンバージョン固定チェックを削除した。
+
 ## [0.54.1] - 2026-07-23
 
 ### Bug Fixes
