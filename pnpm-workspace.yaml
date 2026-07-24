@@ -2,6 +2,7 @@
 # minimatch の依存範囲 (^5.0.5) 内の patch bump で、upstream が追い付いたら削除する。
 overrides:
   "brace-expansion@>=5.0.0 <5.0.7": ">=5.0.7"
+  fast-uri: 3.1.4
 auditConfig:
   ignoreGhsas:
     - GHSA-88fw-hqm2-52qc
