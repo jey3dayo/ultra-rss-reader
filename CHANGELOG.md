@@ -4,6 +4,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.54.3] - 2026-07-25
+
+### Bug Fixes
+
+- HTMLサニタイズ依存関係のセキュリティ修正版を適用した。
+
+### Maintenance
+
+- Storybook関連パッケージを10.5.4へ更新した。
+
 ## [0.54.2] - 2026-07-24
 
 ### Bug Fixes
