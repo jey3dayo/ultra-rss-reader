@@ -29,7 +29,7 @@ function prefersReducedMotion() {
   );
 }
 
-const BROWSER_THEME_WIPE_DURATION_MS = 750;
+const BROWSER_THEME_WIPE_DURATION_MS = 500;
 const SYSTEM_COLOR_SCHEME_QUERY = "(prefers-color-scheme: dark)";
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 

@@ -1033,11 +1033,11 @@ html.vertical-wipe-transition::view-transition-old(root) {
 
 html.vertical-wipe-transition::view-transition-new(root) {
   z-index: 2;
-  animation: vertical-wipe 0.75s ease-in-out forwards;
+  animation: vertical-wipe 500ms ease-in-out forwards;
 }
 
 .motion-browser-theme-wipe-overlay {
-  animation: vertical-wipe 0.75s ease-in-out forwards;
+  animation: vertical-wipe 500ms ease-in-out forwards;
   will-change: clip-path;
 }
 

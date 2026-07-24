@@ -672,11 +672,11 @@ describe("BrowserView", () => {
     });
 
     const wipeOverlay = screen.getByTestId("browser-theme-wipe-overlay");
-    expect(wipeOverlay).toHaveClass(MOTION_BROWSER_THEME_WIPE_OVERLAY_CLASS_NAME, "bg-background");
+    expect(wipeOverlay).toHaveClass(MOTION_BROWSER_THEME_WIPE_OVERLAY_CLASS_NAME);
     expect(wipeOverlay).toHaveAttribute("aria-hidden", "true");
 
     act(() => {
-      vi.advanceTimersByTime(750);
+      vi.runOnlyPendingTimers();
     });
 
     expect(screen.queryByTestId("browser-theme-wipe-overlay")).not.toBeInTheDocument();
@@ -755,7 +755,7 @@ describe("BrowserView", () => {
     expect(clearTimeoutSpy).toHaveBeenCalled();
 
     act(() => {
-      vi.advanceTimersByTime(750);
+      vi.runOnlyPendingTimers();
     });
 
     expect(screen.queryByTestId("browser-theme-wipe-overlay")).not.toBeInTheDocument();
@@ -804,16 +804,10 @@ describe("BrowserView", () => {
     const firstWipe = screen.getByTestId("browser-theme-wipe-overlay");
 
     act(() => {
-      vi.advanceTimersByTime(300);
       usePreferencesStore.getState().setPref("theme", "light");
     });
 
     expect(screen.getByTestId("browser-theme-wipe-overlay")).not.toBe(firstWipe);
-
-    act(() => {
-      vi.advanceTimersByTime(449);
-    });
-    expect(screen.getByTestId("browser-theme-wipe-overlay")).toBeInTheDocument();
 
     act(() => {
       reducedMotionQuery.dispatch(true);

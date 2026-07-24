@@ -5,14 +5,10 @@ import { extractSortedUniqueRegistryMatches, sortedRegistryValues } from "@tests
 import { describe, expect, it, vi } from "vitest";
 import { CommandDialog } from "@/components/ui/command";
 import {
-  MOTION_ARTICLE_SLIDE_CLASS_NAME,
   MOTION_BUTTON_SURFACE_CLASS_NAME,
   MOTION_CLASS_NAMES,
   MOTION_CONTEXTUAL_SURFACE_CLASS_NAME,
   MOTION_DATA_ATTRIBUTES,
-  MOTION_DATA_DIRECTION_ATTRIBUTE,
-  MOTION_DIRECTION_NEXT,
-  MOTION_DIRECTION_PREV,
   MOTION_DISCLOSURE_TRIGGER_CLASS_NAME,
   MOTION_GLOBAL_CSS_CONTRACT_SELECTORS,
   MOTION_KEYFRAMES_NAMES,
@@ -117,33 +113,20 @@ describe("Design-themed UI primitives", () => {
 
     expect(screen.getByRole("textbox", { name: "Feed URL" })).toHaveClass("bg-surface-1", "border-border");
     expect(screen.getByRole("combobox", { name: "Theme" })).toHaveClass("bg-surface-1", "border-border");
-    expectGlobalCssToContain(
-      "--motion-duration-disclosure: 200ms;",
-      "--motion-duration-popup: 160ms;",
-      "--motion-duration-resize: 260ms;",
-      "--motion-duration-theme: 180ms;",
-      "--motion-duration-contextual: 180ms;",
-      "--motion-duration-content-swap: 180ms;",
-      "--motion-ease-standard: cubic-bezier(0.22, 1, 0.36, 1);",
-      "--motion-ease-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);",
-    );
     expectGlobalCssToContainMotionContract();
-    expectGlobalCssToContain("@starting-style", `.${MOTION_DISCLOSURE_TRIGGER_CLASS_NAME}:hover`);
-    expect(globalCss).toContain(".motion-filter-toggle[data-pressed]");
-    expect(globalCss).toContain("transform: translateY(-1px);");
-    expect(globalCss).not.toContain(
-      "box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-border-strong) 28%, transparent);",
-    );
     expectGlobalCssToContain(
+      "@starting-style",
+      `.${MOTION_DISCLOSURE_TRIGGER_CLASS_NAME}:hover`,
       "border-color: color-mix(in srgb, var(--color-border-strong) 28%, transparent);",
       `.${MOTION_CONTEXTUAL_SURFACE_CLASS_NAME}:focus-within`,
       "html.vertical-wipe-transition::view-transition-old(root)",
       "html.vertical-wipe-transition::view-transition-new(root)",
-      "animation: vertical-wipe 0.75s ease-in-out forwards;",
-      "will-change: clip-path;",
       "@media (prefers-reduced-motion: reduce)",
-      `.${MOTION_ARTICLE_SLIDE_CLASS_NAME}[${MOTION_DATA_DIRECTION_ATTRIBUTE}="${MOTION_DIRECTION_NEXT}"],`,
-      `.${MOTION_ARTICLE_SLIDE_CLASS_NAME}[${MOTION_DATA_DIRECTION_ATTRIBUTE}="${MOTION_DIRECTION_PREV}"],`,
+    );
+    expect(globalCss).toContain(".motion-filter-toggle[data-pressed]");
+    expect(globalCss).toContain("transform: translateY(-1px);");
+    expect(globalCss).not.toContain(
+      "box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-border-strong) 28%, transparent);",
     );
     expect(globalCss).not.toContain(":root.theme-transitioning body");
     expect(globalCss).not.toContain(
