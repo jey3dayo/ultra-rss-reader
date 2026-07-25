@@ -35,6 +35,8 @@ type UpdateInfo = {
 } | null;
 
 const sharedOperationBusyMessage = "Database maintenance is unavailable while syncing. Try again after sync completes.";
+const sharedOperationBusyMessageJa =
+  "同期中はデータベースのメンテナンスを実行できません。同期が完了してから再試行してください。";
 const startupUpdateCheckDelayMs = 1_500;
 
 function updateInfo(version: string): NonNullable<UpdateInfo> {
@@ -462,7 +464,7 @@ describe("use-updater background download flow", () => {
       await flushMicrotasksAndRealTimer();
 
       expect(useUiStore.getState().toastMessage).toMatchObject({
-        message: sharedOperationBusyMessage,
+        message: sharedOperationBusyMessageJa,
         persistent: true,
         variant: "update",
       });
@@ -699,7 +701,7 @@ describe("use-updater background download flow", () => {
       await flushMicrotasksAndRealTimer();
 
       expect(useUiStore.getState().toastMessage).toMatchObject({
-        message: sharedOperationBusyMessage,
+        message: sharedOperationBusyMessageJa,
         persistent: true,
         variant: "update",
       });

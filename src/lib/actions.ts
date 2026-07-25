@@ -18,6 +18,7 @@ import { focusArticleListTarget, focusSelectedSidebarTarget, scheduleReaderFocus
 import { logRuntimeDiagnostic, type RuntimeDiagnosticPolicyId } from "@/lib/runtime/diagnostics";
 import { triggerManualSyncWithCooldown } from "@/lib/sync/manual-sync";
 import { resolveSyncFeedbackMessage, summarizeSyncResult } from "@/lib/sync/sync-result-feedback";
+import { localizeUserVisibleAppErrorMessage } from "@/lib/ui/localize-app-error-message";
 import { classifyRuntimeActionErrorCategory, type RuntimeActionErrorCategory } from "@/lib/ui-errors";
 import { isWindowFullscreen, setWindowFullscreen } from "@/lib/window/tauri-window";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -262,7 +263,7 @@ async function restartApplication(): Promise<void> {
   Result.pipe(
     result,
     Result.inspectError((error) => {
-      useUiStore.getState().showToast(error.message);
+      useUiStore.getState().showToast(localizeUserVisibleAppErrorMessage(error.message));
       logRuntimeDiagnostic("app-action-window", "[actions:window] restart-app failed.", error);
     }),
   );

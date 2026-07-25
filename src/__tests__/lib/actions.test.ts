@@ -201,7 +201,7 @@ describe("executeAction", () => {
 
       await waitFor(() => {
         expect(useUiStore.getState().toastMessage).toEqual({
-          message: "Database maintenance is unavailable while syncing. Try again after sync completes.",
+          message: "translated:errors.database_maintenance_busy",
         });
       });
     });

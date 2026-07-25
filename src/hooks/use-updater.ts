@@ -10,6 +10,10 @@ import { getAddFeedDialogRestartBlockerSnapshot } from "@/components/reader/hook
 import { getSettingsDirtyStateSnapshot } from "@/components/settings/hooks/settings-dirty-state-registry";
 import i18n from "@/lib/i18n";
 import { attachTauriListeners, listenTauriEvent } from "@/lib/runtime/tauri-event-listeners";
+import {
+  isLocalizableUserVisibleAppErrorMessage,
+  localizeUserVisibleAppErrorMessage,
+} from "@/lib/ui/localize-app-error-message";
 import type { ToastData } from "@/lib/ui/toast.types";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -28,8 +32,6 @@ let activeDownloadSilent = false;
 let nextDownloadRequestId = 0;
 let updateCheckGeneration = 0;
 const staleDownloadSessionIds = new Set<number>();
-const SHARED_OPERATION_BUSY_ERROR =
-  "Database maintenance is unavailable while syncing. Try again after sync completes.";
 const STARTUP_UPDATE_CHECK_DELAY_MS = 1_500;
 
 function isCurrentToast(toast: ToastData): boolean {
@@ -67,7 +69,9 @@ function completeActiveDownloadAsReady(downloadRequestId: number): void {
 }
 
 function getUpdateFailureToastMessage(message: string): string {
-  return message === SHARED_OPERATION_BUSY_ERROR ? message : i18n.t("updater.download_failed_keep_current");
+  return isLocalizableUserVisibleAppErrorMessage(message)
+    ? localizeUserVisibleAppErrorMessage(message)
+    : i18n.t("updater.download_failed_keep_current");
 }
 
 function getDownloadProgressToastMessage(percent: number | null): string {
@@ -272,8 +276,9 @@ function restartPreparedUpdate(ownerToast?: ToastData): void {
           return;
         }
 
-        const message =
-          error.message === SHARED_OPERATION_BUSY_ERROR ? error.message : i18n.t("updater.restart_failed_ready");
+        const message = isLocalizableUserVisibleAppErrorMessage(error.message)
+          ? localizeUserVisibleAppErrorMessage(error.message)
+          : i18n.t("updater.restart_failed_ready");
         console.error("App restart failed:", error);
         const failureToast: ToastData = {
           message,

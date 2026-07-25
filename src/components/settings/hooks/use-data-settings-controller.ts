@@ -21,6 +21,7 @@ import {
 import { resolveRestoredAccountSelection } from "@/lib/account/account-selection";
 import { showSaveDialog } from "@/lib/platform/save-dialog";
 import { logRuntimeDiagnostic } from "@/lib/runtime/diagnostics";
+import { localizeUserVisibleAppErrorMessage } from "@/lib/ui/localize-app-error-message";
 import {
   DATABASE_RESTORE_STORAGE_RECONCILIATION_POLICY,
   type DatabaseRestoreStorageReconciliationPolicy,
@@ -270,6 +271,10 @@ function getErrorMessage(error: unknown): string {
 
 function getAppErrorMessage(error: AppError): string {
   return error.message;
+}
+
+function getUserFacingAppErrorMessage(error: AppError): string {
+  return localizeUserVisibleAppErrorMessage(error.message);
 }
 
 function isDatabaseLockedMessage(message: string): boolean {
@@ -559,13 +564,13 @@ export function useDataSettingsController({
             recoverySurface,
           });
           console.error("VACUUM failed:", error);
-          showToast(t("data.vacuum_failed", { message: error.message }));
+          showToast(t("data.vacuum_failed", { message: getUserFacingAppErrorMessage(error) }));
         }),
       );
     } catch (error) {
       if (mountedRef.current) {
         console.error("VACUUM failed:", error);
-        showToast(t("data.vacuum_failed", { message: getErrorMessage(error) }));
+        showToast(t("data.vacuum_failed", { message: localizeUserVisibleAppErrorMessage(getErrorMessage(error)) }));
       }
     } finally {
       setDataSettingsActionLifecycle("vacuuming", false, controllerIdRef.current);
@@ -606,13 +611,13 @@ export function useDataSettingsController({
             recoverySurface,
           });
           console.error("Database backup failed:", error);
-          showToast(t("data.backup_failed", { message: error.message }));
+          showToast(t("data.backup_failed", { message: getUserFacingAppErrorMessage(error) }));
         }),
       );
     } catch (error) {
       if (mountedRef.current) {
         console.error("Database backup failed:", error);
-        showToast(t("data.backup_failed", { message: getErrorMessage(error) }));
+        showToast(t("data.backup_failed", { message: localizeUserVisibleAppErrorMessage(getErrorMessage(error)) }));
       }
     } finally {
       if (mountedRef.current) {
@@ -638,13 +643,15 @@ export function useDataSettingsController({
             return;
           }
           console.error("Failed to open log directory:", error);
-          showToast(t("data.open_log_dir_failed", { message: error.message }));
+          showToast(t("data.open_log_dir_failed", { message: getUserFacingAppErrorMessage(error) }));
         }),
       );
     } catch (error) {
       if (mountedRef.current) {
         console.error("Failed to open log directory:", error);
-        showToast(t("data.open_log_dir_failed", { message: getErrorMessage(error) }));
+        showToast(
+          t("data.open_log_dir_failed", { message: localizeUserVisibleAppErrorMessage(getErrorMessage(error)) }),
+        );
       }
     } finally {
       setDataSettingsActionLifecycle("openingLogDir", false);
@@ -686,13 +693,17 @@ export function useDataSettingsController({
             return;
           }
           console.error("Failed to export settings profile:", error);
-          showToast(t("data.settings_profile_export_failed", { message: error.message }));
+          showToast(t("data.settings_profile_export_failed", { message: getUserFacingAppErrorMessage(error) }));
         }),
       );
     } catch (error) {
       if (mountedRef.current) {
         console.error("Failed to export settings profile:", error);
-        showToast(t("data.settings_profile_export_failed", { message: getErrorMessage(error) }));
+        showToast(
+          t("data.settings_profile_export_failed", {
+            message: localizeUserVisibleAppErrorMessage(getErrorMessage(error)),
+          }),
+        );
       }
     } finally {
       if (mountedRef.current) {
@@ -731,13 +742,17 @@ export function useDataSettingsController({
             return;
           }
           console.error("Failed to import settings profile:", error);
-          showToast(t("data.settings_profile_import_failed", { message: error.message }));
+          showToast(t("data.settings_profile_import_failed", { message: getUserFacingAppErrorMessage(error) }));
         }),
       );
     } catch (error) {
       if (mountedRef.current) {
         console.error("Failed to import settings profile:", error);
-        showToast(t("data.settings_profile_import_failed", { message: getErrorMessage(error) }));
+        showToast(
+          t("data.settings_profile_import_failed", {
+            message: localizeUserVisibleAppErrorMessage(getErrorMessage(error)),
+          }),
+        );
       }
     } finally {
       if (mountedRef.current) {
