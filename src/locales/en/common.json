@@ -16,6 +16,9 @@
   "back": "Back",
   "failed_to_save_setting": "Failed to save setting: {{message}}",
   "connection_testing": "Testing connection…",
+  "errors": {
+    "database_maintenance_busy": "Database maintenance is unavailable while syncing. Try again after sync completes."
+  },
   "updater": {
     "later": "Later",
     "download_failed_keep_current": "Update failed. You can keep using the current version.",
