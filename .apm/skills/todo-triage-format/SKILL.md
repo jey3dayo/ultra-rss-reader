@@ -1,6 +1,6 @@
 ---
 name: todo-triage-format
-description: "Use when writing an entry in this repository's `TODO.md` or running `scripts/todo-triage.ts`, because both require a parser-specific format that plain Markdown bullets do not satisfy. Lifecycle rules (what belongs in TODO vs CHANGELOG, when to move, CHANGELOG entry style) live in the `todo-changelog-ops` skill; this skill covers only the machine-readable format and the triage commands."
+description: "Use when writing an entry in this repository's `TODO.md` or running `scripts/todo-triage.ts`. Lifecycle rules (what belongs in TODO vs CHANGELOG, when to move, CHANGELOG entry style) live in the `todo-changelog-ops` skill; this skill covers only the machine-readable format and the triage commands."
 version: 1.0.0
 tags: [todo, triage, parser]
 triggers:
@@ -20,7 +20,7 @@ triggers:
 | P0-P3 taxonomy、aging 閾値、`created batch` / `last reviewed` 運用 | `.claude/rules/quality-policy.md`                     |
 | intake stop rules、domain shard、並列投入の可否                    | `TODO.md` 冒頭セクション                              |
 | TODO / CHANGELOG の役割分担と移動タイミング                        | `todo-changelog-ops` skill、`CLAUDE.md` Task Tracking |
-| `[Unreleased]` をバージョン節へ切り出す                            | `.claude/rules/release-workflow.md`                   |
+| `[Unreleased]` をバージョン節へ切り出す                            | `release` skill、`.claude/rules/release-workflow.md`  |
 
 ## Entry format
 
@@ -56,4 +56,4 @@ triggers:
 
 ## 検証
 
-`TODO.md` のみを変更したときは full gate を回さず、`node scripts/todo-triage.ts json TODO.md` が例外なく完走することと、`git diff --check` を確認する。パーサ自体（`scripts/todo-triage.ts`）を変更したときは `tests/todo-triage.test.ts` を実行する。
+`TODO.md` のみを変更したときは full gate を回さず、`node scripts/todo-triage.ts json TODO.md` が例外なく完走することと、`git diff --check` を確認する。パーサ自体（`scripts/todo-triage.ts`）を変更したときは `tests/todo-triage.test.ts` と `src/__tests__/scripts/todo-triage.test.ts` の両方を実行する。
