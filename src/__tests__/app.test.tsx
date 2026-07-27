@@ -175,7 +175,10 @@ describe("App", () => {
     render(<AppLayout />, { wrapper: createWrapper() });
 
     const tray = screen.getByTestId("sliding-pane-tray");
-    expect(tray).toHaveStyle({ width: `calc(100% + ${SIDEBAR_PANE_WIDTH_PX}px)` });
+    // Assert the inline style the component sets. jsdom 30's computed-style
+    // engine throws while resolving a `calc()` that mixes % and px, so
+    // `toHaveStyle` cannot read this width.
+    expect(tray.style.width).toBe(`calc(100% + ${SIDEBAR_PANE_WIDTH_PX}px)`);
   });
 
   it("wide: renders conditional panes without sliding tray", () => {
