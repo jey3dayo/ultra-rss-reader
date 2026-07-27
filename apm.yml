@@ -9,6 +9,7 @@ dependencies:
   apm:
     - EpicenterHQ/epicenter/.agents/skills/tauri
     - apollographql/skills/skills/rust-best-practices
+    - ./.apm/skills/todo-triage-format
     - ./.apm/skills/tauri-icon-gen
     - ./.apm/skills/tauri-webview-geometry
     - git: benjitaylor/agentation
