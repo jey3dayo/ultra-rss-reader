@@ -66,6 +66,12 @@
 
 ### Database / Updater / Window
 
+- P3 window-state 復元の Windows 実機検証と generated schema 再生成 (created batch: 2026-07-28)
+  - priority: P3 / domain: release-native / work type: manual verification / write scope: src-tauri/gen/schemas
+  - `tauri-plugin-window-state` 追加時、`src-tauri/gen/schemas/windows-schema.json` は Windows 実機でしか再生成できないため、macOS で生成した `desktop-schema.json` を手で同期した(追加前は 3 ファイルが byte 一致、生成後も desktop/macOS は一致、`release-repo-contract` は 3 ファイルの一致を要求)
+  - 残: 次の Windows ビルドで Tauri CLI に再生成させ、差分が出ないことを確認する。併せて Windows 実機でサイズ復元とセンタリング、および最大化して終了した場合は最後の非最大化サイズで開くこと(最大化状態は復元しない)を確認する
+  - 発見方法: manual native verification (`docs/release-manual-verification.md` §5)
+
 ### Article List / Schema / Mute / Tags / Share
 
 ### Feed / Folder / Storage / Settings Data

@@ -39,6 +39,22 @@ const SHUTDOWN_DRAIN_TIMEOUT: Duration = Duration::from_secs(5);
 const SHUTDOWN_DRAIN_POLL_INTERVAL: Duration = Duration::from_millis(25);
 #[cfg(not(test))]
 const MAIN_WINDOW_CLOSE_BLOCKED_EVENT: &str = "main-window-close-blocked";
+/// Only the size is persisted.
+///
+/// `POSITION` would let a saved geometry reopen the window on a disconnected
+/// monitor or at negative coordinates, and `FULLSCREEN` would reopen fullscreen
+/// on a display that no longer exists, so both stay off and the window keeps its
+/// centered placement.
+///
+/// `MAXIMIZED` is excluded because the restored maximized state is not readable
+/// from the window while the size guards run: the platform has not committed the
+/// restored frame yet, so `is_maximized` reports `false` and the guards would
+/// un-maximize the window. The plugin also skips recording the size while the
+/// window is maximized or minimized, so quitting maximized reopens at the last
+/// non-maximized size rather than at the size the maximized window covered.
+#[cfg(all(desktop, not(test)))]
+const MAIN_WINDOW_STATE_FLAGS: tauri_plugin_window_state::StateFlags =
+    tauri_plugin_window_state::StateFlags::SIZE;
 const MAIN_WINDOW_MIN_WIDTH: u64 = 520;
 const MAIN_WINDOW_MIN_HEIGHT: u64 = 420;
 #[cfg(any(not(debug_assertions), test))]
@@ -510,6 +526,141 @@ fn main_window_min_size() -> tauri::Size {
     ))
 }
 
+/// Window-state restore saves the physical inner size, so a size captured on a
+/// large or high-DPI display can exceed the work area the app reopens on.
+/// Returns the corrected inner size, or `None` when the restored size already
+/// fits.
+///
+/// `decoration` is `outer - inner`, so the clamp keeps the *outer* window inside
+/// the work area instead of letting decorations push the bottom edge off-screen.
+/// `work_area_size` is `None` when the monitor is unknown.
+fn clamped_main_window_physical_inner_size(
+    restored_inner: (u32, u32),
+    decoration: (u32, u32),
+    work_area_size: Option<(u32, u32)>,
+    min_inner: (u32, u32),
+) -> Option<(u32, u32)> {
+    let (min_width, min_height) = min_inner;
+    // `clamp` panics when min > max, and `.max(min_*)` is what prevents it: a
+    // work area smaller than the minimum layout size must not shrink the window
+    // below the size the ultra-compact layout needs.
+    let (max_width, max_height) = match work_area_size {
+        Some((work_width, work_height)) => (
+            work_width.saturating_sub(decoration.0).max(min_width),
+            work_height.saturating_sub(decoration.1).max(min_height),
+        ),
+        None => (u32::MAX, u32::MAX),
+    };
+
+    let clamped = (
+        restored_inner.0.clamp(min_width, max_width),
+        restored_inner.1.clamp(min_height, max_height),
+    );
+    if clamped == restored_inner {
+        return None;
+    }
+    Some(clamped)
+}
+
+/// Centers a window of `outer_size` inside the work area.
+///
+/// The math stays in physical pixels: converting the monitor rect with the
+/// monitor scale factor and then applying a logical position, which Tauri
+/// converts back with the *window* scale factor, does not round-trip on a
+/// mixed-DPI multi-monitor setup and can land the window on the wrong display.
+fn centered_main_window_physical_position(
+    work_area_position: (i32, i32),
+    work_area_size: (u32, u32),
+    outer_size: (u32, u32),
+) -> (i32, i32) {
+    let inset =
+        |work: u32, window: u32| i32::try_from(work.saturating_sub(window) / 2).unwrap_or(i32::MAX);
+    (
+        work_area_position
+            .0
+            .saturating_add(inset(work_area_size.0, outer_size.0)),
+        work_area_position
+            .1
+            .saturating_add(inset(work_area_size.1, outer_size.1)),
+    )
+}
+
+/// Applies the size guards for a window whose state was just restored, then
+/// re-centers it: `set_size` pins the top-left corner, so a restored size that
+/// differs from the configured default would otherwise leave the window visibly
+/// off-center.
+///
+/// The centered position is computed from the size this function is applying
+/// rather than read back from the window, because the platform may not have
+/// committed the new frame yet: `Window::center` observed here would still use
+/// the size the window had before the guard ran.
+#[cfg(all(desktop, not(test)))]
+fn clamp_main_window_size_after_state_restore<R: tauri::Runtime>(window: &tauri::Window<R>) {
+    let Ok(scale_factor) = window.scale_factor() else {
+        tracing::warn!("Failed to read main window scale factor while clamping restored size");
+        return;
+    };
+    let Ok(inner) = window.inner_size() else {
+        tracing::warn!("Failed to read main window inner size while clamping restored size");
+        return;
+    };
+    let Ok(outer) = window.outer_size() else {
+        tracing::warn!("Failed to read main window outer size while clamping restored size");
+        return;
+    };
+
+    let decoration = (
+        outer.width.saturating_sub(inner.width),
+        outer.height.saturating_sub(inner.height),
+    );
+    // The work area excludes the macOS menu bar and the Windows taskbar, so a
+    // restored full-height window keeps a draggable title bar on screen.
+    let work_area = window
+        .current_monitor()
+        .ok()
+        .flatten()
+        .map(|monitor| *monitor.work_area());
+    let min_inner = (
+        (MAIN_WINDOW_MIN_WIDTH as f64 * scale_factor).round() as u32,
+        (MAIN_WINDOW_MIN_HEIGHT as f64 * scale_factor).round() as u32,
+    );
+
+    let applied_inner = match clamped_main_window_physical_inner_size(
+        (inner.width, inner.height),
+        decoration,
+        work_area.map(|rect| (rect.size.width, rect.size.height)),
+        min_inner,
+    ) {
+        Some((width, height)) => {
+            let clamped_size = tauri::Size::Physical(tauri::PhysicalSize::new(width, height));
+            if let Err(error) = window.set_size(clamped_size) {
+                tracing::warn!("Failed to clamp restored main window size: {error}");
+            }
+            (width, height)
+        }
+        None => (inner.width, inner.height),
+    };
+
+    let Some(rect) = work_area else {
+        if let Err(error) = window.center() {
+            tracing::warn!("Failed to re-center main window after size restore: {error}");
+        }
+        return;
+    };
+    let (x, y) = centered_main_window_physical_position(
+        (rect.position.x, rect.position.y),
+        (rect.size.width, rect.size.height),
+        (
+            applied_inner.0.saturating_add(decoration.0),
+            applied_inner.1.saturating_add(decoration.1),
+        ),
+    );
+    let position = tauri::Position::Physical(tauri::PhysicalPosition::new(x, y));
+    if let Err(error) = window.set_position(position) {
+        tracing::warn!("Failed to center main window after size restore: {error}");
+    }
+}
+
 #[cfg(not(test))]
 fn enforce_main_window_min_size_after_window_resize<R: tauri::Runtime>(
     window: &tauri::Window<R>,
@@ -644,6 +795,17 @@ pub fn run() {
         focus_main_webview_on_second_launch(app);
     }));
 
+    // The main window is restored explicitly in `setup` so the size guards and
+    // re-centering run before the window is shown, instead of racing the
+    // plugin's own on-ready restore.
+    #[cfg(desktop)]
+    let builder = builder.plugin(
+        tauri_plugin_window_state::Builder::default()
+            .with_state_flags(MAIN_WINDOW_STATE_FLAGS)
+            .skip_initial_state("main")
+            .build(),
+    );
+
     #[cfg(debug_assertions)]
     let builder = builder.plugin(
         tauri_plugin_mcp_bridge::Builder::new()
@@ -727,6 +889,23 @@ pub fn run() {
                     .set_min_size(Some(main_window_min_size()))
                     .expect("Failed to configure main window minimum size");
 
+                #[cfg(desktop)]
+                {
+                    use tauri_plugin_window_state::WindowExt;
+
+                    if let Err(error) = window
+                        .as_ref()
+                        .window()
+                        .restore_state(MAIN_WINDOW_STATE_FLAGS)
+                    {
+                        tracing::warn!("Failed to restore main window state: {error}");
+                    }
+                    // The size guards run from the delayed startup task instead of
+                    // here: the restored resize is queued on the event loop, so a
+                    // size read back inside `setup` still reports the configured
+                    // default.
+                }
+
                 let startup_focus_restore_active_for_window = startup_focus_restore_active.clone();
                 window.on_window_event(move |event| match event {
                     tauri::WindowEvent::CloseRequested { api, .. } => {
@@ -794,6 +973,19 @@ pub fn run() {
                                     "App shutdown forced before all runtime drains completed"
                                 );
                             }
+                            // The custom drain path prevents the default close,
+                            // so persist the window size here instead of
+                            // relying only on the plugin's exit hook.
+                            #[cfg(desktop)]
+                            {
+                                use tauri_plugin_window_state::AppHandleExt;
+
+                                if let Err(error) =
+                                    app_handle.save_window_state(MAIN_WINDOW_STATE_FLAGS)
+                                {
+                                    tracing::warn!("Failed to save main window state: {error}");
+                                }
+                            }
                             app_handle.exit(0);
                         });
                     }
@@ -814,6 +1006,8 @@ pub fn run() {
                     tracing::warn!("Failed to find main window while enforcing startup size");
                     return;
                 };
+                #[cfg(desktop)]
+                clamp_main_window_size_after_state_restore(&window);
                 match window.inner_size() {
                     Ok(size) => enforce_main_window_min_size_after_window_resize(&window, size),
                     Err(error) => {
@@ -958,6 +1152,7 @@ mod tests {
     use std::time::Duration;
 
     use super::{
+        centered_main_window_physical_position, clamped_main_window_physical_inner_size,
         cleanup_old_logs, cleanup_old_logs_entry_debug, cleanup_old_logs_metadata_debug,
         cleanup_old_logs_modified_debug, cleanup_old_logs_read_dir_warning,
         cleanup_old_logs_remove_warning, database_init_error_message,
@@ -1459,6 +1654,9 @@ mod tests {
         let single_instance_index = lib_rs
             .find("tauri_plugin_single_instance::init")
             .expect("single-instance plugin should be initialized");
+        let window_state_index = lib_rs
+            .find("tauri_plugin_window_state::Builder")
+            .expect("window-state plugin should be initialized");
         let mcp_bridge_index = lib_rs
             .find("tauri_plugin_mcp_bridge::Builder")
             .expect("MCP bridge plugin should remain initialized");
@@ -1466,6 +1664,10 @@ mod tests {
             .find("tauri_plugin_log::Builder")
             .expect("release log plugin should remain initialized");
 
+        assert!(
+            single_instance_index < window_state_index,
+            "single-instance must exit the second process before window-state rewrites the saved size"
+        );
         assert!(
             single_instance_index < mcp_bridge_index,
             "single-instance plugin must be registered before debug-only plugins"
@@ -1476,8 +1678,139 @@ mod tests {
         );
     }
 
+    const TEST_DECORATION: (u32, u32) = (0, 28);
+    const TEST_MIN_INNER: (u32, u32) =
+        (MAIN_WINDOW_MIN_WIDTH as u32, MAIN_WINDOW_MIN_HEIGHT as u32);
+
     #[test]
-    fn main_window_uses_safe_center_without_restoring_monitor_bound_state() {
+    fn restored_main_window_size_within_the_work_area_is_kept() {
+        assert_eq!(
+            clamped_main_window_physical_inner_size(
+                (1100, 800),
+                TEST_DECORATION,
+                Some((1512, 920)),
+                TEST_MIN_INNER
+            ),
+            None
+        );
+    }
+
+    #[test]
+    fn restored_main_window_size_larger_than_the_work_area_is_shrunk() {
+        // Saved on a 2560x1440 external display, reopened on a 1512x920 work area.
+        assert_eq!(
+            clamped_main_window_physical_inner_size(
+                (2400, 1300),
+                TEST_DECORATION,
+                Some((1512, 920)),
+                TEST_MIN_INNER
+            ),
+            Some((1512, 892))
+        );
+    }
+
+    #[test]
+    fn restored_main_window_size_leaves_room_for_window_decorations() {
+        // The outer window, not the inner size, has to fit the work area.
+        assert_eq!(
+            clamped_main_window_physical_inner_size(
+                (1512, 920),
+                TEST_DECORATION,
+                Some((1512, 920)),
+                TEST_MIN_INNER
+            ),
+            Some((1512, 892))
+        );
+    }
+
+    #[test]
+    fn restored_main_window_size_below_minimum_is_grown() {
+        assert_eq!(
+            clamped_main_window_physical_inner_size(
+                (200, 100),
+                TEST_DECORATION,
+                Some((1512, 920)),
+                TEST_MIN_INNER
+            ),
+            Some(TEST_MIN_INNER)
+        );
+    }
+
+    #[test]
+    fn restored_main_window_size_keeps_minimum_on_a_work_area_smaller_than_the_minimum() {
+        assert_eq!(
+            clamped_main_window_physical_inner_size(
+                (1400, 900),
+                TEST_DECORATION,
+                Some((400, 300)),
+                TEST_MIN_INNER
+            ),
+            Some(TEST_MIN_INNER)
+        );
+    }
+
+    #[test]
+    fn restored_main_window_size_only_enforces_the_minimum_when_the_monitor_is_unknown() {
+        assert_eq!(
+            clamped_main_window_physical_inner_size(
+                (1400, 900),
+                TEST_DECORATION,
+                None,
+                TEST_MIN_INNER
+            ),
+            None
+        );
+        assert_eq!(
+            clamped_main_window_physical_inner_size(
+                (300, 900),
+                TEST_DECORATION,
+                None,
+                TEST_MIN_INNER
+            ),
+            Some((TEST_MIN_INNER.0, 900))
+        );
+    }
+
+    #[test]
+    fn restored_main_window_is_centered_for_the_size_being_applied() {
+        // Regression: centering read back from the window used the configured
+        // 1400x900 default because the restored frame had not been committed yet,
+        // which left the window offset on a 3440x1440 display.
+        assert_eq!(
+            centered_main_window_physical_position((0, 0), (3440, 1440), (900, 700)),
+            (1270, 370)
+        );
+    }
+
+    #[test]
+    fn restored_main_window_centering_keeps_the_title_bar_below_the_menu_bar() {
+        // macOS-shaped work area: origin below the menu bar, height reduced.
+        // A window as tall as the work area must not be placed at y = 0.
+        assert_eq!(
+            centered_main_window_physical_position((0, 25), (1512, 920), (1512, 920)),
+            (0, 25)
+        );
+    }
+
+    #[test]
+    fn restored_main_window_is_centered_on_the_monitor_it_reopens_on() {
+        assert_eq!(
+            centered_main_window_physical_position((-1512, -200), (1512, 900), (900, 700)),
+            (-1206, -100)
+        );
+    }
+
+    #[test]
+    fn main_window_centering_keeps_the_work_area_origin_when_the_window_is_larger() {
+        assert_eq!(
+            centered_main_window_physical_position((0, 25), (800, 600), (900, 700)),
+            (0, 25)
+        );
+    }
+
+    #[test]
+    fn main_window_restores_only_size_without_monitor_bound_state() {
+        let lib_rs = include_str!("lib.rs");
         let tauri_config = include_str!("../tauri.conf.json");
         let dev_tauri_config = include_str!("../tauri.dev.conf.json");
         let cargo_toml = include_str!("../Cargo.toml");
@@ -1547,12 +1880,60 @@ mod tests {
                 "main window config must not restore fullscreen state across disconnected monitors"
             );
         }
+        assert!(cargo_toml.contains("tauri-plugin-window-state"));
+        // Search only production code: this test's own assertion strings would
+        // otherwise satisfy the call-site assertions below.
+        let test_module_index = lib_rs
+            .find("#[cfg(test)]\nmod tests {")
+            .expect("lib.rs should keep its test module boundary");
+        let lib_rs = &lib_rs[..test_module_index];
+        let state_flags_index = lib_rs
+            .find("const MAIN_WINDOW_STATE_FLAGS")
+            .expect("main window state flags should be declared in one place");
+        let state_flags = &lib_rs[state_flags_index
+            ..state_flags_index
+                + lib_rs[state_flags_index..]
+                    .find(';')
+                    .expect("state flags declaration should be terminated")];
         assert!(
-            !cargo_toml.contains("tauri-plugin-window-state"),
-            "window-state plugin would need disconnected-monitor, negative-coordinate, DPI-change, maximized, and fullscreen guards before enabling"
+            state_flags.contains("StateFlags::SIZE"),
+            "main window size should be restored across launches"
+        );
+        assert!(
+            !state_flags.contains("MAXIMIZED"),
+            "the restored maximized state is not readable while the size guards run, so restoring it would un-maximize the window; the last non-maximized size is restored instead"
+        );
+        assert!(
+            !state_flags.contains("POSITION"),
+            "restoring position could place the window on a disconnected monitor or at negative coordinates"
+        );
+        assert!(
+            !state_flags.contains("FULLSCREEN"),
+            "restoring fullscreen could reopen on a display that no longer exists"
+        );
+        assert!(
+            lib_rs.contains(".with_state_flags(MAIN_WINDOW_STATE_FLAGS)"),
+            "the flags constant must be the only place that chooses what is restored"
+        );
+        assert!(
+            lib_rs.contains(".restore_state(MAIN_WINDOW_STATE_FLAGS)"),
+            "the flags constant must be the only place that chooses what is restored"
+        );
+        assert!(
+            lib_rs.contains(".skip_initial_state(\"main\")"),
+            "the plugin's on-ready restore must stay off so the size guards own the restored geometry"
+        );
+        assert!(
+            lib_rs.contains("clamp_main_window_size_after_state_restore(&window)"),
+            "restored physical sizes need a DPI-change and monitor-shrink guard to actually run"
+        );
+        assert!(
+            lib_rs.contains("save_window_state(MAIN_WINDOW_STATE_FLAGS)"),
+            "the custom shutdown drain path prevents the default close, so window state must be saved explicitly"
         );
         assert!(release_manual.contains("disconnecting any external monitor"));
         assert!(release_manual.contains("Saved negative or off-screen window coordinates"));
+        assert!(release_manual.contains("A window size saved on an external high-DPI display"));
     }
 
     #[test]

@@ -75,6 +75,13 @@ windows = { version = "0.61.2", features = [
 
 [target.'cfg(any(target_os = "macos", windows, target_os = "linux"))'.dependencies]
 tauri-plugin-single-instance = "2.4.2"
+# Restores only the main window size and maximized state. Position and
+# fullscreen restore stay disabled so a saved geometry can never place the
+# window on a disconnected monitor or at negative coordinates; the window
+# always uses Tauri's visible-display center. Saved sizes are physical pixels,
+# so `clamp_main_window_size_after_state_restore` re-clamps them against the
+# current monitor before the window is shown.
+tauri-plugin-window-state = "2"
 
 [dev-dependencies]
 flate2 = "1"

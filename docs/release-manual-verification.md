@@ -482,6 +482,9 @@ Confirm:
 - The first window appears without requiring a dev server or dev credentials path.
 - The main window opens on a visible display after disconnecting any external monitor used by the previous run.
 - Saved negative or off-screen window coordinates are not restored; the fallback is the platform default visible placement.
+- A resized window reopens at the same size, centered on the current display. A window maximized at quit reopens at the last non-maximized size, not maximized and not at the size the maximized window covered.
+- A brief resize from the configured default size shortly after launch is expected: the restored size is applied from the delayed startup task, not during window creation.
+- A window size saved on an external high-DPI display fits inside the built-in display when the app is reopened with the external monitor disconnected.
 - Existing accounts, preferences, and last selected reader state load without schema errors.
 - A migration failure message points to the backup location and tells the verifier to preserve logs before retrying.
 - Quitting and reopening the app does not require manual cleanup of `-wal` or `-shm` files.
