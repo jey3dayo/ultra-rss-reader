@@ -36,6 +36,7 @@ import { useUiStore } from "@/stores/ui-store";
 import { ArticleEmptyStateView } from "./article-empty-state-view";
 import { ArticlePane, ArticleToolbar } from "./article-pane-view";
 import { ArticleEmptyStateShell, ArticleNotFoundStateView, BrowserOnlyStateView } from "./article-view-state";
+import { FeedContextMenuTrigger } from "./feed-context-menu-trigger";
 import { readerPassiveCardOffsetClassName } from "./reader-passive-card";
 
 const LazySubscriptionsIndexPage = lazy(async () => {
@@ -115,33 +116,39 @@ function RecentFeedRow({ feed, onSelect }: { feed: ArticleViewSummaryFeed; onSel
 
   return (
     <li className="min-w-0">
-      <button
-        type="button"
-        onClick={() => onSelect(feed.id)}
-        className={cn(
-          "flex h-11 w-full min-w-0 items-center gap-2.5 rounded-md border border-border-strong bg-surface-1 px-3 text-left shadow-elevation-1",
-          "transition-[background-color,box-shadow,transform] duration-150 ease-standard motion-reduce:transition-none",
-          "hover:-translate-y-px hover:bg-surface-2 hover:shadow-elevation-2",
-          "active:scale-[0.98] active:duration-100 active:ease-out",
-          "focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/60",
-          !hasUnread && "opacity-60",
-        )}
-      >
-        <FeedFavicon title={feed.title} url={feed.url} siteUrl={feed.site_url} size="md" grayscale={!hasUnread} />
-        <span className={cn("min-w-0 flex-1 truncate", !hasUnread && "text-foreground-soft")} dir="auto">
-          {feed.title}
-        </span>
-        <span
-          className={cn(
-            "shrink-0 rounded-full px-1.5 py-0.5 text-xs tabular-nums",
-            hasUnread
-              ? "bg-[var(--semantic-tone-unread-surface)] font-medium text-[var(--semantic-tone-unread-content-foreground)]"
-              : "text-foreground-soft",
-          )}
-        >
-          {feed.unread_count.toLocaleString()}
-        </span>
-      </button>
+      <FeedContextMenuTrigger
+        feed={feed}
+        onSelect={() => onSelect(feed.id)}
+        render={
+          <button
+            type="button"
+            aria-haspopup="menu"
+            className={cn(
+              "flex h-11 w-full min-w-0 items-center gap-2.5 rounded-md border border-border-strong bg-surface-1 px-3 text-left shadow-elevation-1",
+              "transition-[background-color,box-shadow,transform] duration-150 ease-standard motion-reduce:transition-none",
+              "hover:-translate-y-px hover:bg-surface-2 hover:shadow-elevation-2",
+              "active:scale-[0.98] active:duration-100 active:ease-out",
+              "focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/60",
+              !hasUnread && "opacity-60",
+            )}
+          >
+            <FeedFavicon title={feed.title} url={feed.url} siteUrl={feed.site_url} size="md" grayscale={!hasUnread} />
+            <span className={cn("min-w-0 flex-1 truncate", !hasUnread && "text-foreground-soft")} dir="auto">
+              {feed.title}
+            </span>
+            <span
+              className={cn(
+                "shrink-0 rounded-full px-1.5 py-0.5 text-xs tabular-nums",
+                hasUnread
+                  ? "bg-[var(--semantic-tone-unread-surface)] font-medium text-[var(--semantic-tone-unread-content-foreground)]"
+                  : "text-foreground-soft",
+              )}
+            >
+              {feed.unread_count.toLocaleString()}
+            </span>
+          </button>
+        }
+      />
     </li>
   );
 }

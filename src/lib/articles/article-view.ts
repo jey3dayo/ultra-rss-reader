@@ -73,7 +73,7 @@ type ArticleViewSummarySelection =
   | { type: "tag"; tagId: string }
   | { type: "all" };
 
-export type ArticleViewSummaryFeed = Pick<FeedDto, "id" | "title" | "url" | "site_url" | "unread_count">;
+export type ArticleViewSummaryFeed = FeedDto;
 
 export type BuildArticleViewSummaryParams = {
   selection: ArticleViewSummarySelection;
@@ -144,21 +144,13 @@ function buildRecentSummaryFeeds({
 
   // Scope-summary feed list is sorted by unread count so the busiest feeds surface first;
   // full scope is shown rather than truncated, so no slice cap is applied here.
-  return candidates
-    .toSorted((a, b) => {
-      if (a.unread_count !== b.unread_count) {
-        return b.unread_count - a.unread_count;
-      }
+  return candidates.toSorted((a, b) => {
+    if (a.unread_count !== b.unread_count) {
+      return b.unread_count - a.unread_count;
+    }
 
-      return a.title.localeCompare(b.title);
-    })
-    .map((feed) => ({
-      id: feed.id,
-      title: feed.title,
-      url: feed.url,
-      site_url: feed.site_url,
-      unread_count: feed.unread_count,
-    }));
+    return a.title.localeCompare(b.title);
+  });
 }
 
 function buildFeedIdsFromArticles(articles: ArticleDto[]): Set<string> {

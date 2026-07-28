@@ -1,8 +1,7 @@
 import type { FeedDto } from "@/api/tauri-commands";
 import { FeedFavicon, MotionNumber, NavRowButton } from "@/design-system";
-import { ContextMenu } from "@/design-system/context-menu";
 import { cn } from "@/lib/utils";
-import { FeedContextMenuContent } from "./feed-context-menu";
+import { FeedContextMenuTrigger } from "./feed-context-menu-trigger";
 
 type FeedItemViewProps = {
   feed: FeedDto;
@@ -68,20 +67,18 @@ export function FeedItem(props: FeedItemViewProps) {
     grayscaleFavicons: props.grayscaleFavicons ?? false,
   });
   return (
-    <ContextMenu.Root>
-      <ContextMenu.Trigger
-        render={
-          <NavRowButton
-            tone="sidebar"
-            selected={props.isSelected}
-            className={getFeedItemClassName(props.isSelected)}
-            aria-haspopup="menu"
-            {...buttonProps}
-          />
-        }
-        onClick={() => props.onSelect(props.feed.id)}
-      />
-      <FeedContextMenuContent feed={props.feed} />
-    </ContextMenu.Root>
+    <FeedContextMenuTrigger
+      feed={props.feed}
+      onSelect={() => props.onSelect(props.feed.id)}
+      render={
+        <NavRowButton
+          tone="sidebar"
+          selected={props.isSelected}
+          className={getFeedItemClassName(props.isSelected)}
+          aria-haspopup="menu"
+          {...buttonProps}
+        />
+      }
+    />
   );
 }

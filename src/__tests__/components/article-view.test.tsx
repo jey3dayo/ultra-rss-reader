@@ -2250,6 +2250,73 @@ describe("ArticleView", () => {
     });
   });
 
+  it("opens the shared feed context menu when a recent feed row is right-clicked from a folder summary", async () => {
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_folders":
+          return [
+            {
+              id: "folder-1",
+              account_id: "acc-1",
+              name: "Gaming",
+              sort_order: 0,
+            },
+          ];
+        case "list_feeds":
+          return [
+            {
+              id: "feed-folder-empty",
+              account_id: args.accountId,
+              folder_id: "folder-1",
+              remote_id: null,
+              title: "Quiet Feed",
+              url: "https://example.com/quiet.xml",
+              site_url: "https://example.com/quiet",
+              unread_count: 3,
+              reader_mode: "inherit",
+              web_preview_mode: "inherit",
+            },
+          ];
+        case "list_account_articles":
+        case "list_folder_articles":
+          return [];
+        case "list_tags":
+        case "get_article_tags":
+          return [];
+        default:
+          return undefined;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "folder", folderId: "folder-1" },
+      selectedArticleId: null,
+      contentMode: "empty",
+    });
+
+    render(<ArticleView />, { wrapper: createWrapper() });
+
+    const summary = await screen.findByTestId("article-selection-summary");
+    const recentFeedRow = within(summary).getByRole("button", { name: /Quiet Feed/ });
+    expect(recentFeedRow).toHaveAttribute("aria-haspopup", "menu");
+
+    fireEvent.contextMenu(recentFeedRow);
+
+    expect(await screen.findByText("Unsubscribe…")).toBeInTheDocument();
+    expect(useUiStore.getState().selection).toEqual({ type: "folder", folderId: "folder-1" });
+
+    // Webviews that emit `click` alongside `contextmenu` must not select the feed,
+    // because selecting replaces the summary view that owns the open menu.
+    fireEvent.click(recentFeedRow);
+    fireEvent.click(recentFeedRow, { ctrlKey: true });
+
+    expect(useUiStore.getState().selection).toEqual({ type: "folder", folderId: "folder-1" });
+  });
+
   it("lands on the first folder article when a folder is selected without an article", async () => {
     usePreferencesStore.setState({
       prefs: { open_first_article_on_feed_selection: "true" },
