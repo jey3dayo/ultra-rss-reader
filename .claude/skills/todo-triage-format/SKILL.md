@@ -36,6 +36,7 @@ triggers:
 - タイトル行は checkbox 付き (`- [ ]`) で始め、直後を `P0`-`P3`（任意で `-CODE`、例 `P1-Q3`）にする。
 - detail は半角スペース 2 個インデントの `- key: value`。**1 行 1 キー**にする。`priority: P3 / domain: reader-state / ...` のような複合行は先頭キーだけが読まれ、残りは値へ埋没する。
 - 認識されるキー: `対象`(=`target`) / `検証`(=`verification`) / `完了条件`(=`acceptance`) / `defer` / `domain shard` / `親バッチ` / `背景` / `shard` / `worker prompt` / `created batch`(=`created`) / `last reviewed`(=`reviewed`) / `supersedes` / `superseded by` / `completed by`。大文字小文字は無視、全角コロンも可。
+- `domain shard:` に既知の domain（`TODO.md` 冒頭の一覧）を書くと、見出しやパスからの推論より優先される。未知の値を書いた場合は推論へフォールバックする。
 - 値のパス・識別子はバッククォートで囲む。`対象` は inline code があればそれだけを、無ければ `、` `,` `;` 区切りのうちパス様の要素を拾う。
 - `検証` の値に `manual` / `native` / `手動` / `目視` を含めると manual verification として分離される。
 - 上記以外のキー（`priority`、`work type`、`write scope`、`focused verification`、`acceptance criteria`、`発見方法`、`blocked`、`残` など）は `rawDetails` に残るだけで構造化されない。散文で補う場合は認識キーの値側か、インデントした素の箇条書きに置く。

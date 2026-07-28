@@ -84,4 +84,28 @@ describe("todo triage tooling", () => {
     expect(report.entries.find((entry) => entry.title.includes("自動分類"))?.action).toBe("none");
     expect(report.entries.find((entry) => entry.title.includes("risk register"))?.action).toBe("changelog-candidate");
   });
+
+  it("prefers an explicit domain shard over a bucket inferred from the section heading", () => {
+    // "Account Settings" を含む見出しの下でも reader-state 項目が settings-state に落ちないことを固定する。
+    const shadowed = parseTodoMarkdown(
+      [
+        "## Reader UI / Account Settings",
+        "",
+        "- [ ] P3 reader selection retention を見直す",
+        "  - domain shard: `reader-state`",
+        "  - 対象: `src/hooks/use-articles.ts`",
+      ].join("\n"),
+    );
+
+    expect(shadowed[0]?.domainBucket).toBe("reader-state");
+    expect(buildTodoShardPlans(shadowed)[0]?.owner).toBe("reader");
+  });
+
+  it("keeps inferring the bucket when the declared shard is not a known domain", () => {
+    const unknownShard = parseTodoMarkdown(
+      ["## Intake", "", "- [ ] P3 provider backoff を調整する", "  - domain shard: `not-a-domain`"].join("\n"),
+    );
+
+    expect(unknownShard[0]?.domainBucket).toBe("provider-sync");
+  });
 });

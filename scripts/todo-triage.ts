@@ -411,6 +411,10 @@ function addDetail(item: MutableTodoItem, rawKey: string, value: string): void {
   }
 }
 
+function isKnownDomainBucket(value: string | null): value is string {
+  return value !== null && Object.hasOwn(domainOwners, value);
+}
+
 function finalizeTodoItem(item: MutableTodoItem): TodoItem {
   const domainSource = [
     item.title,
@@ -419,7 +423,10 @@ function finalizeTodoItem(item: MutableTodoItem): TodoItem {
     item.focusedVerification.join(" "),
     item.workerPrompt ?? "",
   ].join(" ");
-  const domainBucket = domainRules.find((rule) => rule.pattern.test(domainSource))?.bucket ?? "unclassified";
+  // 明示された domain shard は heading / path からの推論より優先する。
+  // 例: "Reader UI / Account Settings" 配下の reader-state 項目が settings-state に落ちるのを防ぐ。
+  const inferredBucket = domainRules.find((rule) => rule.pattern.test(domainSource))?.bucket ?? "unclassified";
+  const domainBucket = isKnownDomainBucket(item.explicitShard) ? item.explicitShard : inferredBucket;
   const workTypes = inferWorkTypes(item, domainSource);
 
   return {

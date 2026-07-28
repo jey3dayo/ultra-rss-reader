@@ -4,6 +4,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+### Maintenance
+
+- TODO triage で `domain shard:` の明示指定が見出しからの推論に上書きされ、reader 系タスクが別ドメインへ分類されていたのを修正した。
+
 ## [0.54.4] - 2026-07-28
 
 ### Features
