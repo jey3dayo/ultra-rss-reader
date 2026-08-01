@@ -25,6 +25,7 @@ export const markdownlintRepoContract = {
     "dist",
     "tmp",
     "test-results",
+    "playwright-report",
     "target",
     "src-tauri/target",
     ".worktrees",
