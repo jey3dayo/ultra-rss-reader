@@ -99,6 +99,7 @@ export type UseArticleListViewPropsParams = {
   trimmedDebouncedQuery: string;
   contentMotionKey: ArticleListBodyProps["contentMotionKey"];
   articleGroups: ArticleGroupsViewGroup[];
+  feeds?: FeedDto[];
   dimArchived: string;
   textPreview: string;
   imagePreviews: string;

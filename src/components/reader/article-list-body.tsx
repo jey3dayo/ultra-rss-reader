@@ -1,4 +1,5 @@
-import type { KeyboardEvent, RefObject } from "react";
+import { type KeyboardEvent, type RefObject, useMemo } from "react";
+import type { FeedDto } from "@/api/tauri-commands";
 import { ContextMenu } from "@/design-system/context-menu";
 import { ArticleContextMenu } from "./article-context-menu";
 import type { ArticleGroupsViewGroup } from "./article-groups-view";
@@ -20,6 +21,7 @@ export type ArticleListBodyProps = {
   emptyActionLabel?: string;
   onEmptyAction?: () => void;
   groups: ArticleGroupsViewGroup[];
+  feeds?: FeedDto[];
   contentMotionKey?: string;
   dimArchived: string;
   textPreview: string;
@@ -45,6 +47,7 @@ export function ArticleListBody({
   emptyActionLabel,
   onEmptyAction,
   groups,
+  feeds,
   contentMotionKey,
   dimArchived,
   textPreview,
@@ -58,6 +61,7 @@ export function ArticleListBody({
 }: ArticleListBodyProps) {
   const hasArticles = groups.some((group) => group.items.length > 0);
   const showBodyContextMenu = !isLoading && hasArticles;
+  const feedsById = useMemo(() => new Map(feeds?.map((feed) => [feed.id, feed])), [feeds]);
 
   return (
     <ContextMenu.Root>
@@ -81,7 +85,11 @@ export function ArticleListBody({
           imagePreviews={imagePreviews}
           selectionStyle={selectionStyle}
           onSelectArticle={onSelectArticle}
-          renderRow={({ article, content }) => <ArticleContextMenu article={article}>{content}</ArticleContextMenu>}
+          renderRow={({ article, content }) => (
+            <ArticleContextMenu article={article} sourceFeed={feedsById.get(article.feed_id)}>
+              {content}
+            </ArticleContextMenu>
+          )}
         />
       </ContextMenu.Trigger>
       {showBodyContextMenu ? (

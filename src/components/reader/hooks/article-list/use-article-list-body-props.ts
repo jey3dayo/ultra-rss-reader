@@ -26,6 +26,7 @@ type UseArticleListBodyPropsParams = {
   trimmedDebouncedQuery: string;
   contentMotionKey: ArticleListBodyProps["contentMotionKey"];
   articleGroups: ArticleListBodyProps["groups"];
+  feeds: ArticleListBodyProps["feeds"];
   dimArchived: ArticleListBodyProps["dimArchived"];
   textPreview: ArticleListBodyProps["textPreview"];
   imagePreviews: ArticleListBodyProps["imagePreviews"];
@@ -139,6 +140,7 @@ export function useArticleListBodyProps({
   trimmedDebouncedQuery,
   contentMotionKey,
   articleGroups,
+  feeds,
   dimArchived,
   textPreview,
   imagePreviews,
@@ -172,6 +174,7 @@ export function useArticleListBodyProps({
     loadingMessage: tc("loading"),
     ...emptyStateProps,
     groups: articleGroups,
+    feeds,
     contentMotionKey,
     dimArchived,
     textPreview,

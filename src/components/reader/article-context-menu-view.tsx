@@ -7,10 +7,12 @@ type ArticleContextMenuViewProps = {
   toggleStarLabel: string;
   openInBrowserLabel?: string;
   copyArticleLinkLabel?: string;
+  editSourceFeedLabel?: string;
   onToggleRead: () => void;
   onToggleStar: () => void;
   onOpenInBrowser?: () => void;
   onCopyArticleLink?: () => void;
+  onEditSourceFeed?: () => void;
 };
 
 export function ArticleContextMenuView({
@@ -18,10 +20,12 @@ export function ArticleContextMenuView({
   toggleStarLabel,
   openInBrowserLabel,
   copyArticleLinkLabel,
+  editSourceFeedLabel,
   onToggleRead,
   onToggleStar,
   onOpenInBrowser,
   onCopyArticleLink,
+  onEditSourceFeed,
 }: ArticleContextMenuViewProps) {
   const hasSecondaryActions = (onOpenInBrowser && openInBrowserLabel) || (onCopyArticleLink && copyArticleLinkLabel);
 
@@ -64,6 +68,18 @@ export function ArticleContextMenuView({
                   {copyArticleLinkLabel}
                 </ContextMenu.Item>
               )}
+            </>
+          )}
+          {onEditSourceFeed && editSourceFeedLabel && (
+            <>
+              <ContextMenu.Separator className={contextMenuStyles.separator} />
+              <ContextMenu.Item
+                data-action-id={CONTEXT_MENU_ACTION_IDS.articleSourceFeedEdit}
+                className={contextMenuStyles.item}
+                onClick={onEditSourceFeed}
+              >
+                {editSourceFeedLabel}
+              </ContextMenu.Item>
             </>
           )}
         </ContextMenu.Popup>

@@ -7,6 +7,7 @@ export const CONTEXT_MENU_ACTION_IDS = {
   articleAddToReadingList: "article-add-to-reading-list",
   articleCopyLink: "article-copy-link",
   articleOpenBrowser: "article-open-browser",
+  articleSourceFeedEdit: "article-source-feed-edit",
   articleShareEmail: "article-share-email",
   articleToggleRead: "article-toggle-read",
   articleToggleStar: "article-toggle-star",

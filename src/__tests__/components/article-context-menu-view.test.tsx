@@ -11,6 +11,7 @@ describe("ArticleContextMenuView", () => {
     const onToggleStar = vi.fn();
     const onOpenInBrowser = vi.fn();
     const onCopyArticleLink = vi.fn();
+    const onEditSourceFeed = vi.fn();
 
     render(
       <ContextMenu.Root open>
@@ -19,10 +20,12 @@ describe("ArticleContextMenuView", () => {
           toggleStarLabel="Star"
           openInBrowserLabel="Open in Browser"
           copyArticleLinkLabel="Copy link"
+          editSourceFeedLabel="Edit source feed…"
           onToggleRead={onToggleRead}
           onToggleStar={onToggleStar}
           onOpenInBrowser={onOpenInBrowser}
           onCopyArticleLink={onCopyArticleLink}
+          onEditSourceFeed={onEditSourceFeed}
         />
       </ContextMenu.Root>,
     );
@@ -31,6 +34,7 @@ describe("ArticleContextMenuView", () => {
     await user.click(screen.getByRole("menuitem", { name: "Star" }));
     await user.click(screen.getByRole("menuitem", { name: "Open in Browser" }));
     await user.click(screen.getByRole("menuitem", { name: "Copy link" }));
+    await user.click(screen.getByRole("menuitem", { name: "Edit source feed…" }));
 
     expect(screen.getByRole("menuitem", { name: "Mark as Read" })).toHaveAttribute(
       "data-action-id",
@@ -42,11 +46,16 @@ describe("ArticleContextMenuView", () => {
       "article-open-browser",
     );
     expect(screen.getByRole("menuitem", { name: "Copy link" })).toHaveAttribute("data-action-id", "article-copy-link");
+    expect(screen.getByRole("menuitem", { name: "Edit source feed…" })).toHaveAttribute(
+      "data-action-id",
+      "article-source-feed-edit",
+    );
     expect(screen.getByRole("menu").parentElement).toHaveClass("z-50");
     expect(onToggleRead).toHaveBeenCalledTimes(1);
     expect(onToggleStar).toHaveBeenCalledTimes(1);
     expect(onOpenInBrowser).toHaveBeenCalledTimes(1);
     expect(onCopyArticleLink).toHaveBeenCalledTimes(1);
+    expect(onEditSourceFeed).toHaveBeenCalledTimes(1);
   });
 
   it("omits open in browser when no URL action is available", () => {
@@ -81,5 +90,21 @@ describe("ArticleContextMenuView", () => {
     );
 
     expect(screen.queryByRole("menuitem", { name: "Copy link" })).toBeNull();
+  });
+
+  it("omits source-feed editing when the source feed cannot be resolved", () => {
+    render(
+      <ContextMenu.Root open>
+        <ArticleContextMenuView
+          toggleReadLabel="Mark as Read"
+          toggleStarLabel="Star"
+          editSourceFeedLabel="Edit source feed…"
+          onToggleRead={vi.fn()}
+          onToggleStar={vi.fn()}
+        />
+      </ContextMenu.Root>,
+    );
+
+    expect(screen.queryByRole("menuitem", { name: "Edit source feed…" })).toBeNull();
   });
 });

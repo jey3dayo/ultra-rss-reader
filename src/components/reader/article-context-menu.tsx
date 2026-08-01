@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { ArticleDto } from "@/api/tauri-commands";
+import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import { useArticleActions } from "@/components/reader/hooks/article/use-article-actions";
 import { ContextMenu } from "@/design-system/context-menu";
 import { useSetRead, useToggleStar } from "@/hooks/use-articles";
@@ -11,19 +11,23 @@ import { useUiStore } from "@/stores/ui-store";
 import { ArticleContextMenuView } from "./article-context-menu-view";
 import { CONTEXT_MENU_ACTION_IDS, createMenuActionHandler } from "./context-menu-action-policy";
 import { useContextMenuTargetSnapshot } from "./context-menu-target";
+import { FeedEditDialog } from "./feed-edit-dialog";
 
 type ArticleContextMenuProps = {
   article: ArticleDto;
+  sourceFeed?: FeedDto;
   children: ReactNode;
   triggerClassName?: string;
 };
 
-export function ArticleContextMenu({ article, children, triggerClassName }: ArticleContextMenuProps) {
+export function ArticleContextMenu({ article, sourceFeed, children, triggerClassName }: ArticleContextMenuProps) {
   const { t } = useTranslation("reader");
-  const contextMenuSource = useMemo(() => ({ article }), [article]);
+  const contextMenuSource = useMemo(() => ({ article, sourceFeed }), [article, sourceFeed]);
   const { contextMenuTarget, captureTarget, captureKeyboardTarget, clearTarget } =
     useContextMenuTargetSnapshot(contextMenuSource);
   const targetArticle = contextMenuTarget.article;
+  const targetSourceFeed = contextMenuTarget.sourceFeed;
+  const [feedEditTarget, setFeedEditTarget] = useState<FeedDto | null>(null);
   const setRead = useSetRead();
   const toggleStar = useToggleStar();
   const addRecentlyRead = useUiStore((s) => s.addRecentlyRead);
@@ -78,7 +82,26 @@ export function ArticleContextMenu({ article, children, triggerClassName }: Arti
             ? createMenuActionHandler(CONTEXT_MENU_ACTION_IDS.articleCopyLink, handleCopyLink, { showToast })
             : undefined
         }
+        editSourceFeedLabel={targetSourceFeed ? t("edit_source_feed_ellipsis") : undefined}
+        onEditSourceFeed={
+          targetSourceFeed
+            ? createMenuActionHandler(CONTEXT_MENU_ACTION_IDS.articleSourceFeedEdit, () => {
+                setFeedEditTarget(targetSourceFeed);
+              })
+            : undefined
+        }
       />
+      {feedEditTarget ? (
+        <FeedEditDialog
+          feed={feedEditTarget}
+          open={true}
+          onOpenChange={(open) => {
+            if (!open) {
+              setFeedEditTarget(null);
+            }
+          }}
+        />
+      ) : null}
     </ContextMenu.Root>
   );
 }

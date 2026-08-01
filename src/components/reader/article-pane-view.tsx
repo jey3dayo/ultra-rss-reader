@@ -101,7 +101,11 @@ export function ArticlePane({ article, feed, feedName, hasNextArticle = true }: 
           </div>
         ) : null}
         {showReaderBody ? (
-          <ArticleContextMenu article={article} triggerClassName="h-full min-h-0 flex-1 overflow-hidden">
+          <ArticleContextMenu
+            article={article}
+            sourceFeed={feed}
+            triggerClassName="h-full min-h-0 flex-1 overflow-hidden"
+          >
             <div
               {...readerBodyStateProps}
               {...{ [MOTION_DATA_DIRECTION_ATTRIBUTE]: motionDirection }}

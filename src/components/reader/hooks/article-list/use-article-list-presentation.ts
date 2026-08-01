@@ -182,6 +182,7 @@ export function useArticleListPresentation({
     trimmedDebouncedQuery,
     contentMotionKey,
     articleGroups,
+    feeds,
     dimArchived,
     textPreview,
     imagePreviews,
