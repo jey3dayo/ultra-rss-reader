@@ -2589,11 +2589,37 @@ mod tests {
                     ],
                 )
                 .unwrap();
+            db_guard
+                .writer()
+                .execute(
+                    "INSERT INTO articles (id, feed_id, title, published_at, fetched_at, is_read) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                    rusqlite::params![
+                        "older-read",
+                        feed_id.as_ref(),
+                        "Older read",
+                        (old - chrono::Duration::minutes(1)).to_rfc3339(),
+                        (old - chrono::Duration::minutes(1)).to_rfc3339(),
+                        true,
+                    ],
+                )
+                .unwrap();
         }
 
         purge_old_articles(&db);
 
-        let remaining: i64 = db
+        let older_remaining: i64 = db
+            .lock()
+            .unwrap()
+            .reader()
+            .query_row(
+                "SELECT COUNT(*) FROM articles WHERE id = ?1",
+                rusqlite::params!["older-read"],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(older_remaining, 0);
+
+        let latest_remaining: i64 = db
             .lock()
             .unwrap()
             .reader()
@@ -2603,7 +2629,7 @@ mod tests {
                 |row| row.get(0),
             )
             .unwrap();
-        assert_eq!(remaining, 0);
+        assert_eq!(latest_remaining, 1);
     }
 
     #[test]

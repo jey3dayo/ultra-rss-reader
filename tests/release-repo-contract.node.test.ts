@@ -107,6 +107,7 @@ const MIGRATION_OWNER_BY_DESCRIPTION_PATTERN = [
   [/^account_/, "accounts"],
   [/^local_account_sync_/, "local-account-sync"],
   [/^sync_/, "sync"],
+  [/^reset_empty_freshrss_feed_sync_state$/, "sync"],
   [/^mute_/, "mute-keywords"],
   [/^article_/, "articles"],
   [/^remove_inoreader$/, "accounts"],
@@ -2163,6 +2164,7 @@ describe("release repository contract", () => {
       "V20__article_account_ordered_indexes.sql",
       "V21__local_account_sync_settings.sql",
       "V22__local_account_sync_export_state.sql",
+      "V23__reset_empty_freshrss_feed_sync_state.sql",
     ]);
     expect(new Set(migrationVersions).size).toBe(migrationVersions.length);
     for (let version = 1; version <= latestMigrationVersion; version += 1) {

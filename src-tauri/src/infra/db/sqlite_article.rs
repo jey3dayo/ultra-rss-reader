@@ -1204,6 +1204,23 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
                  FROM article_view_history h
                  WHERE h.account_id = ?2
                    AND h.article_id = articles.id
+               )
+               AND EXISTS (
+                 SELECT 1
+                 FROM articles newer
+                 WHERE newer.feed_id = articles.feed_id
+                   AND (
+                     newer.published_at > articles.published_at
+                     OR (
+                       newer.published_at = articles.published_at
+                       AND newer.fetched_at > articles.fetched_at
+                     )
+                     OR (
+                       newer.published_at = articles.published_at
+                       AND newer.fetched_at = articles.fetched_at
+                       AND newer.id > articles.id
+                     )
+                   )
                )",
             params![before.to_rfc3339(), account_id.0],
         )?;
@@ -3790,6 +3807,49 @@ mod tests {
     }
 
     #[test]
+    fn purge_old_read_keeps_latest_article_and_feed_summary_timestamp() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let cutoff = Utc::now();
+        let old_time = cutoff - chrono::Duration::days(1);
+        let latest_time = old_time + chrono::Duration::minutes(2);
+
+        let mut older_read = make_article(&feed_id, "Older read");
+        older_read.is_read = true;
+        older_read.published_at = old_time;
+        older_read.fetched_at = old_time;
+
+        let mut latest_read = make_article(&feed_id, "Latest read");
+        latest_read.is_read = true;
+        latest_read.published_at = latest_time;
+        latest_read.fetched_at = latest_time;
+
+        repo.upsert(&[older_read, latest_read]).unwrap();
+
+        let deleted = repo.purge_old_read(&account_id, cutoff).unwrap();
+
+        assert_eq!(deleted, 1);
+        let remaining = repo.find_by_feed(&feed_id, &Pagination::default()).unwrap();
+        assert_eq!(remaining.len(), 1);
+        assert_eq!(remaining[0].title, "Latest read");
+
+        let expected_latest_at = latest_time.to_rfc3339();
+        let summary = repo
+            .list_feed_article_summaries_by_account(&account_id)
+            .unwrap()
+            .into_iter()
+            .find(|summary| summary.feed_id == feed_id)
+            .expect("feed summary should remain after purging old articles");
+        assert_eq!(
+            summary.latest_article_at.as_deref(),
+            Some(expected_latest_at.as_str())
+        );
+    }
+
+    #[test]
     fn purge_old_read_keeps_tagged_and_view_history_articles() {
         let db = test_db();
         let account_id = insert_test_account(&db);
@@ -3876,16 +3936,29 @@ mod tests {
 
         let mut target_article = make_article(&target_feed_id, "Target Old Read");
         target_article.is_read = true;
+        target_article.published_at = old_time;
         target_article.fetched_at = old_time;
+
+        let mut target_latest_article = make_article(&target_feed_id, "Target Latest Read");
+        target_latest_article.is_read = true;
+        target_latest_article.published_at = old_time + chrono::Duration::minutes(1);
+        target_latest_article.fetched_at = old_time + chrono::Duration::minutes(1);
 
         let mut other_article = make_article(&other_feed_id, "Other Old Read");
         other_article.is_read = true;
         other_article.fetched_at = old_time;
 
-        repo.upsert(&[target_article, other_article]).unwrap();
+        repo.upsert(&[target_article, target_latest_article, other_article])
+            .unwrap();
 
         let deleted = repo.purge_old_read(&target_account_id, cutoff).unwrap();
         assert_eq!(deleted, 1);
+
+        let target_remaining = repo
+            .find_by_feed(&target_feed_id, &Pagination::default())
+            .unwrap();
+        assert_eq!(target_remaining.len(), 1);
+        assert_eq!(target_remaining[0].title, "Target Latest Read");
 
         let other_remaining = repo
             .find_by_feed(&other_feed_id, &Pagination::default())
