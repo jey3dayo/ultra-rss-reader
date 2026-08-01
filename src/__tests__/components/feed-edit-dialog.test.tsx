@@ -4,6 +4,7 @@ import { expectTauriCommandError, suppressConsoleError } from "@tests/helpers/co
 import { createQueryWrapper } from "@tests/helpers/create-wrapper";
 import { sampleFeeds } from "@tests/helpers/fixtures";
 import { setupTauriMocks, teardownTauriMocks } from "@tests/helpers/tauri-mocks";
+import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FeedEditDialog } from "@/components/reader/feed-edit-dialog";
 import { queryKeys } from "@/lib/query/query-invalidation";
@@ -32,9 +33,12 @@ vi.mock("@/components/reader/feed-edit-dialog-view", () => ({
       titleField: string;
       save: string;
       cancel: string;
+      unsubscribe: string;
+      unsubscribeAction: string;
     };
     onOpenChange: (open: boolean) => void;
     onSubmit: () => void;
+    onRequestUnsubscribe: () => void;
     open: boolean;
   }) => {
     if (!props.open) return null;
@@ -76,6 +80,9 @@ vi.mock("@/components/reader/feed-edit-dialog-view", () => ({
         )}
         <button type="button" onClick={props.onSubmit}>
           {props.labels.save}
+        </button>
+        <button type="button" onClick={props.onRequestUnsubscribe}>
+          {props.labels.unsubscribeAction}
         </button>
         <button type="button" onClick={() => props.onOpenChange(false)}>
           {props.labels.cancel}
@@ -174,6 +181,48 @@ describe("FeedEditDialog", () => {
 
     expect(calls.find((call) => call.cmd === "create_folder")).toBeUndefined();
     expect(calls.find((call) => call.cmd === "update_feed_folder")).toBeUndefined();
+  });
+
+  it("confirms unsubscribe from the edit dialog and closes the edit flow after deletion", async () => {
+    const user = userEvent.setup();
+    const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
+
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      switch (cmd) {
+        case "list_folders":
+          return sampleFolders.filter((folder) => folder.account_id === args.accountId);
+        case "delete_feed":
+          return null;
+        default:
+          return undefined;
+      }
+    });
+
+    function EditFlow() {
+      const [open, setOpen] = useState(true);
+      return <FeedEditDialog feed={sampleFeeds[0]} open={open} onOpenChange={setOpen} />;
+    }
+
+    render(<EditFlow />, { wrapper: createQueryWrapper().wrapper });
+
+    await user.click(screen.getByRole("button", { name: "Unsubscribe…" }));
+    await user.click(await screen.findByRole("button", { name: "Cancel" }));
+    expect(screen.getByRole("button", { name: "Unsubscribe…" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Unsubscribe…" }));
+    await user.click(
+      await screen.findByRole("button", {
+        name: 'Unsubscribe from "Tech Blog". This cannot be undone.',
+      }),
+    );
+
+    await waitFor(() => {
+      expect(calls).toContainEqual({ cmd: "delete_feed", args: { feedId: "feed-1" } });
+      expect(screen.queryByRole("button", { name: "Unsubscribe…" })).toBeNull();
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
   });
 
   it("continues renaming and display-mode updates when folder update fails", async () => {

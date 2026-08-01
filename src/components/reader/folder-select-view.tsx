@@ -23,6 +23,7 @@ export type FolderSelectViewProps = {
   onNewFolderNameChange: (value: string) => void;
   newFolderInputRef?: RefObject<HTMLInputElement | null>;
   layout?: "stacked" | "inline";
+  compact?: boolean;
 };
 
 const FOLDER_SELECT_INLINE_ROW_CLASS_NAME =
@@ -32,6 +33,12 @@ const FOLDER_SELECT_INLINE_LABEL_CLASS_NAME =
 const FOLDER_SELECT_INLINE_CONTROL_CLASS_NAME =
   "min-h-11 w-full bg-surface-1/78 shadow-none sm:w-[20rem] sm:justify-self-end sm:mr-2";
 const FOLDER_SELECT_INLINE_POPUP_CLASS_NAME = "w-[var(--anchor-width)]";
+const FOLDER_SELECT_COMPACT_INLINE_ROW_CLASS_NAME =
+  "grid min-h-10 grid-cols-1 items-start gap-y-1.5 border-b-0 py-1.5 sm:grid-cols-[8.5rem_minmax(0,1fr)] sm:items-center sm:gap-x-5 lg:grid-cols-[8.5rem_minmax(0,1fr)] lg:items-center lg:gap-x-5";
+const FOLDER_SELECT_COMPACT_INLINE_LABEL_CLASS_NAME =
+  "mb-0 whitespace-nowrap font-sans text-[13px] leading-[1.35] font-medium text-[color:var(--form-row-label)] lg:pt-0";
+const FOLDER_SELECT_COMPACT_INLINE_CONTROL_CLASS_NAME =
+  "min-h-10 w-full bg-surface-1/78 shadow-none sm:w-[17rem] sm:justify-self-end lg:w-[17rem] lg:justify-self-end lg:mr-2";
 
 function encodeFolderOptionValue(value: string) {
   return value === "" ? value : `${FOLDER_OPTION_VALUE_PREFIX}${value}`;
@@ -61,6 +68,7 @@ export function FolderSelectView({
   onNewFolderNameChange,
   newFolderInputRef,
   layout = "stacked",
+  compact = false,
 }: FolderSelectViewProps) {
   const hasSelectedValue = value !== "" && value !== NEW_FOLDER_VALUE;
   const hasSelectedOption = options.some((option) => option.value === value);
@@ -83,9 +91,27 @@ export function FolderSelectView({
         options={selectOptions}
         onChange={(nextValue) => onValueChange(decodeFolderSelectValue(nextValue))}
         disabled={disabled}
-        className={layout === "inline" ? FOLDER_SELECT_INLINE_ROW_CLASS_NAME : undefined}
-        labelClassName={layout === "inline" ? FOLDER_SELECT_INLINE_LABEL_CLASS_NAME : undefined}
-        triggerClassName={layout === "inline" ? FOLDER_SELECT_INLINE_CONTROL_CLASS_NAME : "mt-1 w-full"}
+        className={
+          layout === "inline"
+            ? compact
+              ? FOLDER_SELECT_COMPACT_INLINE_ROW_CLASS_NAME
+              : FOLDER_SELECT_INLINE_ROW_CLASS_NAME
+            : undefined
+        }
+        labelClassName={
+          layout === "inline"
+            ? compact
+              ? FOLDER_SELECT_COMPACT_INLINE_LABEL_CLASS_NAME
+              : FOLDER_SELECT_INLINE_LABEL_CLASS_NAME
+            : undefined
+        }
+        triggerClassName={
+          layout === "inline"
+            ? compact
+              ? FOLDER_SELECT_COMPACT_INLINE_CONTROL_CLASS_NAME
+              : FOLDER_SELECT_INLINE_CONTROL_CLASS_NAME
+            : "mt-1 w-full"
+        }
         popupClassName={layout === "inline" ? FOLDER_SELECT_INLINE_POPUP_CLASS_NAME : undefined}
       />
 
@@ -98,9 +124,27 @@ export function FolderSelectView({
           value={newFolderName}
           onChange={onNewFolderNameChange}
           placeholder={newFolderPlaceholder}
-          className={layout === "inline" ? FOLDER_SELECT_INLINE_ROW_CLASS_NAME : undefined}
-          labelClassName={layout === "inline" ? FOLDER_SELECT_INLINE_LABEL_CLASS_NAME : undefined}
-          inputClassName={layout === "inline" ? FOLDER_SELECT_INLINE_CONTROL_CLASS_NAME : "mt-1"}
+          className={
+            layout === "inline"
+              ? compact
+                ? FOLDER_SELECT_COMPACT_INLINE_ROW_CLASS_NAME
+                : FOLDER_SELECT_INLINE_ROW_CLASS_NAME
+              : undefined
+          }
+          labelClassName={
+            layout === "inline"
+              ? compact
+                ? FOLDER_SELECT_COMPACT_INLINE_LABEL_CLASS_NAME
+                : FOLDER_SELECT_INLINE_LABEL_CLASS_NAME
+              : undefined
+          }
+          inputClassName={
+            layout === "inline"
+              ? compact
+                ? FOLDER_SELECT_COMPACT_INLINE_CONTROL_CLASS_NAME
+                : FOLDER_SELECT_INLINE_CONTROL_CLASS_NAME
+              : "mt-1"
+          }
           disabled={disabled}
         />
       )}

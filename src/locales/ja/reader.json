@@ -170,6 +170,8 @@
   "edit_ellipsis": "編集…",
   "edit_feed_ellipsis": "フィードを編集…",
   "edit_source_feed_ellipsis": "配信元フィードを編集…",
+  "feed_information": "フィード情報",
+  "unsubscribe_description": "このフィードの記事も削除されます。",
   "unsubscribed_from": "{{title}} の購読を解除しました",
   "failed_to_unsubscribe": "購読解除に失敗しました: {{message}}",
   "confirm_mark_read_one": "1件の記事を既読にしますか？",

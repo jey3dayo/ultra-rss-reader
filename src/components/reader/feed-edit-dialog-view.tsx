@@ -4,6 +4,7 @@ import { MOTION_CONTENT_SWAP_CLASS_NAME } from "@/constants/motion";
 import {
   AppTooltip,
   Button,
+  DeleteButton,
   FormDialogShell,
   LabeledControlRow,
   LabeledInputRow,
@@ -20,6 +21,10 @@ type FeedEditDialogViewLabels = {
   cancel: string;
   save: string;
   saving: string;
+  unsubscribe: string;
+  unsubscribeAction: string;
+  feedInformation: string;
+  unsubscribeDescription: string;
 };
 
 type FeedEditDialogViewProps = {
@@ -36,13 +41,15 @@ type FeedEditDialogViewProps = {
   labels: FeedEditDialogViewLabels;
   inputRef?: RefObject<HTMLInputElement | null>;
   onSubmit: () => void;
+  onRequestUnsubscribe: () => void;
 };
 
 const FEED_EDIT_ROW_CLASS_NAME =
-  "min-h-[52px] border-b-0 py-2.5 sm:grid-cols-[minmax(8.5rem,12rem)_minmax(0,1fr)] sm:items-center sm:gap-x-8";
-const FEED_EDIT_CONTROL_CLASS_NAME = "sm:max-w-[20rem]";
-const FEED_EDIT_INPUT_CLASS_NAME = "min-h-11 bg-surface-1/78 shadow-none";
-const FEED_EDIT_SELECT_CLASS_NAME = "min-h-11 w-full bg-surface-1/78 shadow-none sm:w-[20rem] sm:justify-self-end";
+  "min-h-10 border-b-0 py-1.5 sm:grid-cols-[8.5rem_minmax(0,1fr)] sm:items-center sm:gap-x-5 lg:grid-cols-[8.5rem_minmax(0,1fr)] lg:items-center lg:gap-x-5";
+const FEED_EDIT_CONTROL_CLASS_NAME = "sm:ml-auto sm:max-w-[17rem] lg:max-w-[17rem]";
+const FEED_EDIT_INPUT_CLASS_NAME = "min-h-10 bg-surface-1/78 shadow-none";
+const FEED_EDIT_SELECT_CLASS_NAME =
+  "min-h-10 w-full bg-surface-1/78 shadow-none sm:w-[17rem] sm:justify-self-end lg:w-[17rem] lg:justify-self-end";
 const FEED_EDIT_SELECT_POPUP_CLASS_NAME = "w-[var(--anchor-width)]";
 
 function ReadonlyUrlRow({ field, loading }: { field: FeedEditDialogUrlField; loading: boolean }) {
@@ -50,8 +57,8 @@ function ReadonlyUrlRow({ field, loading }: { field: FeedEditDialogUrlField; loa
 
   return (
     <LabeledControlRow label={field.label} className={FEED_EDIT_ROW_CLASS_NAME}>
-      <div className="flex min-h-11 min-w-0 items-center justify-end gap-1.5 sm:w-[20rem]">
-        <span className="min-w-0 flex-1 truncate text-right font-sans text-sm leading-5 text-foreground">
+      <div className="flex min-h-10 min-w-0 items-center justify-end gap-1.5 sm:ml-auto sm:w-[17rem] lg:w-[17rem]">
+        <span className="min-w-0 flex-1 truncate text-right font-sans text-xs leading-4 text-foreground">
           {field.value}
         </span>
         {field.copyLabel && field.onCopy ? (
@@ -88,6 +95,7 @@ export function FeedEditDialogView({
   labels,
   inputRef,
   onSubmit,
+  onRequestUnsubscribe,
 }: FeedEditDialogViewProps) {
   const submitDisabled = !title.trim() || loading;
 
@@ -102,7 +110,8 @@ export function FeedEditDialogView({
       submitDisabled={submitDisabled}
       cancelDisabled={loading}
       size="wide"
-      bodyClassName="py-5"
+      contentClassName="sm:max-w-[34rem]"
+      bodyClassName="space-y-0 py-3"
       onOpenChange={onOpenChange}
       onSubmit={onSubmit}
     >
@@ -118,10 +127,6 @@ export function FeedEditDialogView({
         inputClassName={FEED_EDIT_INPUT_CLASS_NAME}
         disabled={loading}
       />
-
-      {urlFields.map((field) => (
-        <ReadonlyUrlRow key={field.key} field={field} loading={loading} />
-      ))}
 
       <LabeledSelectRow
         label={labels.displayMode}
@@ -141,9 +146,38 @@ export function FeedEditDialogView({
           data-motion-phase="entering"
           className={MOTION_CONTENT_SWAP_CLASS_NAME}
         >
-          <FolderSelectView {...folderSelectProps} layout="inline" />
+          <FolderSelectView {...folderSelectProps} layout="inline" compact />
         </div>
       ) : null}
+
+      <details data-testid="feed-information" open className="mt-3 border-t border-border/60 pt-2">
+        <summary className="cursor-pointer select-none py-1 text-xs font-medium text-foreground-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
+          {labels.feedInformation}
+        </summary>
+        <div className="pt-1">
+          {urlFields.map((field) => (
+            <ReadonlyUrlRow key={field.key} field={field} loading={loading} />
+          ))}
+        </div>
+      </details>
+
+      <LabeledControlRow
+        label={labels.unsubscribe}
+        description={labels.unsubscribeDescription}
+        className={`${FEED_EDIT_ROW_CLASS_NAME} mt-3 border-t border-border/70 pt-3`}
+      >
+        {({ descriptionId }) => (
+          <DeleteButton
+            type="button"
+            aria-describedby={descriptionId}
+            disabled={loading}
+            onClick={onRequestUnsubscribe}
+            className="min-h-9 sm:ml-auto sm:flex sm:justify-center"
+          >
+            {labels.unsubscribeAction}
+          </DeleteButton>
+        )}
+      </LabeledControlRow>
     </FormDialogShell>
   );
 }

@@ -64,6 +64,10 @@ describe("useFeedEditDialogViewProps", () => {
           cancel: tc("cancel"),
           save: tc("save"),
           saving: tc("saving"),
+          unsubscribe: t("unsubscribe"),
+          unsubscribeAction: t("unsubscribe_ellipsis"),
+          feedInformation: t("feed_information"),
+          unsubscribeDescription: t("unsubscribe_description"),
         },
       }),
     );
