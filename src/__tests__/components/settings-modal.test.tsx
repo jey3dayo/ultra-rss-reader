@@ -65,11 +65,13 @@ describe("SettingsModal", () => {
   it("keeps open modal chrome on one locale while language changes", async () => {
     render(<SettingsModal />, { wrapper: createWrapper() });
 
+    expect(document.documentElement).toHaveAttribute("lang", "en");
     expect(screen.getByRole("heading", { name: "Settings" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Close settings" })).toBeInTheDocument();
 
     await i18n.changeLanguage("ja");
 
+    expect(document.documentElement).toHaveAttribute("lang", "ja");
     expect(screen.getByRole("heading", { name: "Settings" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Close settings" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "環境設定" })).not.toBeInTheDocument();

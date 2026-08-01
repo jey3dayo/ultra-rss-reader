@@ -1,3 +1,4 @@
+import { PHRASE_AWARE_TEXT_CLASS_NAME } from "@/constants";
 import { LabelChip } from "@/design-system";
 import { cn } from "@/lib/utils";
 
@@ -23,7 +24,14 @@ export function AccountConnectionSummary({
         {statusLabel}
       </LabelChip>
       {detail ? (
-        <p className="font-sans text-[12px] leading-[1.35] text-foreground/72 sm:text-right">{detail}</p>
+        <p
+          className={cn(
+            "font-sans text-[12px] leading-[1.35] text-foreground/72 sm:text-right",
+            PHRASE_AWARE_TEXT_CLASS_NAME,
+          )}
+        >
+          {detail}
+        </p>
       ) : null}
     </div>
   );

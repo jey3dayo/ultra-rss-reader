@@ -1,5 +1,9 @@
 import type { ButtonHTMLAttributes, ReactNode, Ref } from "react";
-import { MOTION_CONTEXTUAL_SURFACE_CLASS_NAME, MOTION_INTERACTIVE_SURFACE_CLASS_NAME } from "@/constants";
+import {
+  MOTION_CONTEXTUAL_SURFACE_CLASS_NAME,
+  MOTION_INTERACTIVE_SURFACE_CLASS_NAME,
+  PHRASE_AWARE_TEXT_CLASS_NAME,
+} from "@/constants";
 import { cn } from "@/lib/utils";
 import { MotionNumber } from "./motion-number";
 
@@ -55,7 +59,15 @@ export function NavRowButton({
       <div className="min-w-0 flex-1 space-y-0.5">
         <div className="truncate font-medium leading-[1.3]">{title}</div>
         {description ? (
-          <div className={cn("text-xs leading-[1.35] text-foreground-soft", descriptionClassName)}>{description}</div>
+          <div
+            className={cn(
+              "text-xs leading-[1.35] text-foreground-soft",
+              PHRASE_AWARE_TEXT_CLASS_NAME,
+              descriptionClassName,
+            )}
+          >
+            {description}
+          </div>
         ) : null}
       </div>
       {trailing ? (

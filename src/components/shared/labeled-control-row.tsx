@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { useId } from "react";
-import { MOTION_CONTEXTUAL_SURFACE_CLASS_NAME } from "@/constants";
+import { MOTION_CONTEXTUAL_SURFACE_CLASS_NAME, PHRASE_AWARE_TEXT_CLASS_NAME } from "@/constants";
 import { cn } from "@/lib/utils";
 
 type LabeledControlRowA11y = {
@@ -42,7 +42,10 @@ export function LabeledControlRow({
     <span className="flex min-w-0 flex-col gap-1.5">
       <span className={labelClasses}>{label}</span>
       {description ? (
-        <span id={resolvedDescriptionId} className="font-sans text-[13px] leading-[1.5] text-foreground-soft">
+        <span
+          id={resolvedDescriptionId}
+          className={cn("font-sans text-[13px] leading-[1.5] text-foreground-soft", PHRASE_AWARE_TEXT_CLASS_NAME)}
+        >
           {description}
         </span>
       ) : null}

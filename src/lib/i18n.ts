@@ -29,6 +29,15 @@ i18n
 
 registerCountFormatter(i18n);
 
+function syncDocumentLanguage(language: string) {
+  if (typeof document !== "undefined") {
+    document.documentElement.lang = language;
+  }
+}
+
+syncDocumentLanguage(i18n.resolvedLanguage ?? i18n.language);
+i18n.on("languageChanged", syncDocumentLanguage);
+
 if (import.meta.env.MODE === "test") {
   await Promise.all(i18nDeferredResourceNamespaces.map((namespace) => loadI18nResourceNamespace(i18n, namespace)));
 }

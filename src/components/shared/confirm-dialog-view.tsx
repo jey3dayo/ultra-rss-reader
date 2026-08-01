@@ -3,6 +3,7 @@ import type { ComponentProps, ComponentType } from "react";
 import type { ConfirmDialogVariant } from "@/components/shared/dialog.types";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { PHRASE_AWARE_TEXT_CLASS_NAME } from "@/constants";
 import { cn } from "@/lib/utils";
 
 type ConfirmDialogIcon = ComponentType<{ className?: string }> | null;
@@ -86,7 +87,7 @@ export function ConfirmDialogView({
           >
             <Icon data-testid="confirm-dialog-icon-svg" className={cn("size-5", tone.iconClassName)} />
           </div>
-          <p className="text-sm text-foreground" aria-hidden="true">
+          <p className={cn("text-sm text-foreground", PHRASE_AWARE_TEXT_CLASS_NAME)} aria-hidden="true">
             {message}
           </p>
           <div className="flex w-full flex-col gap-2">

@@ -3,5 +3,7 @@ export const ACCOUNT_PANE_WIDTH_PX = 236;
 export const ARTICLE_LIST_PANE_WIDTH_PX = 380;
 export const READER_CHROME_HEIGHT_PX = 48;
 
+export const PHRASE_AWARE_TEXT_CLASS_NAME = "[word-break:auto-phrase]";
+
 export const MOBILE_LAYOUT_BREAKPOINT_PX = 640;
 export const COMPACT_LAYOUT_BREAKPOINT_PX = 1100;

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { PHRASE_AWARE_TEXT_CLASS_NAME } from "@/constants";
 import { SectionHeading, SurfaceCard } from "@/design-system";
 import { cn } from "@/lib/utils";
 import { SETTINGS_SECTION_BORDER_CLASS } from "./settings-surface";
@@ -26,7 +27,10 @@ export function SettingsSection({
   noteClassName,
   contentClassName,
 }: SettingsSectionProps) {
-  const defaultNoteClassName = "mt-1.5 font-sans text-[13px] leading-[1.5] text-foreground-soft sm:mt-2";
+  const defaultNoteClassName = cn(
+    "mt-1.5 font-sans text-[13px] leading-[1.5] text-foreground-soft sm:mt-2",
+    PHRASE_AWARE_TEXT_CLASS_NAME,
+  );
 
   if (surface === "flat") {
     return (

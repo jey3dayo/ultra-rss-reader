@@ -6,6 +6,7 @@ import {
   MOTION_PHASE_ENTERING,
   MOTION_PHASE_STEADY,
   type MotionPhase,
+  PHRASE_AWARE_TEXT_CLASS_NAME,
 } from "@/constants";
 import { cn } from "@/lib/utils";
 import {
@@ -46,7 +47,7 @@ const workspaceHeaderStackingClassNames = WORKSPACE_HEADER_STACKING_CLASS_NAMES;
 const motionTextClassNames: Record<MotionTextVariant, string> = {
   eyebrow: "font-sans text-[11px] font-medium tracking-[0.18em] text-foreground-soft uppercase",
   title: "font-sans text-[1.65rem] leading-[0.96] font-normal tracking-[-0.04em] text-foreground",
-  subtitle: "max-w-2xl font-serif text-[0.95rem] leading-[1.42] text-foreground-soft",
+  subtitle: `max-w-2xl font-serif text-[0.95rem] leading-[1.42] text-foreground-soft ${PHRASE_AWARE_TEXT_CLASS_NAME}`,
 };
 
 const workspaceHeaderActionClassName =

@@ -5,7 +5,11 @@ import { XIcon } from "lucide-react";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { MOTION_POPUP_DIALOG_CLASS_NAME, MOTION_POPUP_OVERLAY_CLASS_NAME } from "@/constants";
+import {
+  MOTION_POPUP_DIALOG_CLASS_NAME,
+  MOTION_POPUP_OVERLAY_CLASS_NAME,
+  PHRASE_AWARE_TEXT_CLASS_NAME,
+} from "@/constants";
 import { hideElementsOutsideDialog } from "@/lib/dom/top-layer";
 import { cn } from "@/lib/utils";
 import { APP_STACKING_CLASS_NAMES } from "@/lib/window/window-chrome";
@@ -196,6 +200,7 @@ function DialogDescription({ className, ...props }: DialogDescriptionProps) {
       data-slot="dialog-description"
       className={cn(
         "text-sm text-foreground-soft *:[a]:underline *:[a]:underline-offset-3 *:[a]:hover:text-foreground",
+        PHRASE_AWARE_TEXT_CLASS_NAME,
         className,
       )}
       {...props}
