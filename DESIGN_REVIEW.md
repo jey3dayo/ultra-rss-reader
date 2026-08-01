@@ -133,6 +133,7 @@ When reviewing settings rows or input-control specimens, check these before sugg
 - shared primitives use approved Tailwind radius tokens only
 - compact controls do not invent one-off placement
 - explanatory or safety copy is integrated into the settings row-group rhythm instead of becoming a centered prose block between controls
+- entity editors prioritize mutable settings, keep read-only reference information quieter, and isolate destructive actions at the end with concise consequence copy and a confirmation step
 - `DESIGN.md` and `UI Reference / Input Controls Canvas` were checked before proposing a feature-local fix
 
 ### Navigation Rail Alignment Checklist
