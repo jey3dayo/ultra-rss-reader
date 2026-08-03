@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.54.8] - 2026-08-03
+
+### Bug Fixes
+
+- 依存監査で検出された `brace-expansion` の high 脆弱性を、修正版へ固定して解消した。
+
 ## [0.54.7] - 2026-08-02
 
 ### Features
