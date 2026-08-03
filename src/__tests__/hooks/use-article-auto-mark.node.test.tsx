@@ -28,6 +28,7 @@ function createParams(overrides: Partial<UseArticleAutoMarkParams> = {}): UseArt
   return {
     articleId: "art-1",
     isRead: false,
+    articleEngagement: "reading",
     afterReading: "after_1s",
     viewMode: "all",
     retainArticle: vi.fn(),

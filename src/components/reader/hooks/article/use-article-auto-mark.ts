@@ -4,6 +4,7 @@ import { planOptimisticRetainOnRead } from "@/lib/articles/article-read-projecti
 import type { ViewMode } from "@/lib/reader/view-mode.types";
 import type { AfterReadingPreference } from "@/schemas/preference-values";
 import { useUiStore } from "@/stores/ui-store";
+import type { ArticleEngagement } from "@/stores/ui-store.types";
 import type { ArticleStatusToast } from "../../article-browser-actions";
 import { removeRetainedArticle } from "../../retained-articles";
 
@@ -12,6 +13,7 @@ type ArticleStatusMutation<TVariables> = Pick<UseMutationResult<unknown, Error, 
 type UseArticleAutoMarkParams = {
   articleId: string;
   isRead: boolean;
+  articleEngagement: ArticleEngagement;
   afterReading: AfterReadingPreference;
   viewMode: ViewMode;
   retainArticle: (articleId: string) => void;
@@ -52,6 +54,7 @@ export function clearManualUnreadAutoMarkSuppressionsForTests(): void {
 export function useArticleAutoMark({
   articleId,
   isRead,
+  articleEngagement,
   afterReading,
   viewMode,
   retainArticle,
@@ -93,6 +96,7 @@ export function useArticleAutoMark({
         autoMarkedOwnerKeyRef.current = null;
       }
     } else if (
+      articleEngagement === "reading" &&
       afterReading !== "never" &&
       manualUnreadAutoMarkSuppressionKey !== autoMarkOwnerKey &&
       autoMarkedOwnerKeyRef.current !== autoMarkOwnerKey
@@ -178,6 +182,7 @@ export function useArticleAutoMark({
   }, [
     addRecentlyRead,
     afterReading,
+    articleEngagement,
     articleId,
     autoMarkOwnerKey,
     isRead,

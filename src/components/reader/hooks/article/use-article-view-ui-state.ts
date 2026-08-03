@@ -15,6 +15,7 @@ const useArticleViewUiStoreSlice = createUiStoreSliceHook((s) => ({
   showToast: s.showToast,
   addRecentlyRead: s.addRecentlyRead,
   retainArticle: s.retainArticle,
+  articleEngagement: s.articleEngagement,
   viewMode: s.viewMode,
   setFocusedPane: s.setFocusedPane,
 }));

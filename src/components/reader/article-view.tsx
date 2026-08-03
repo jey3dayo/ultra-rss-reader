@@ -565,7 +565,7 @@ export function ArticleView() {
     }
     landedSelectionKeyRef.current = selectionLandingKey;
 
-    selectArticle(landingArticleId);
+    selectArticle(landingArticleId, { engagement: "preview" });
     if (landingBrowserUrl) {
       openBrowser(landingBrowserUrl);
       return;

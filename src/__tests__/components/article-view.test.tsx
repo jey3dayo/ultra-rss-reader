@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { flushMicrotasksAndRealTimer } from "@tests/helpers/async-flush";
 import { createWrapper } from "@tests/helpers/create-wrapper";
@@ -1573,6 +1573,49 @@ describe("ArticleView", () => {
     });
   });
 
+  it("starts the delayed auto-mark timer only after a previewed article is explicitly selected", async () => {
+    vi.useFakeTimers();
+
+    try {
+      const calls: MockTauriCommandCall[] = [];
+      setupAutoMarkMocks(calls);
+      useUiStore.setState({
+        ...useUiStore.getInitialState(),
+        selectedAccountId: "acc-1",
+        selectedArticleId: "art-1",
+        articleEngagement: "preview",
+        contentMode: "reader",
+      });
+      usePreferencesStore.setState({
+        prefs: { after_reading: "after_0_3s" },
+        loaded: true,
+      });
+
+      render(<ArticlePane {...requirePrimaryArticlePaneProps()} />, {
+        wrapper: createWrapper(),
+      });
+
+      await vi.advanceTimersByTimeAsync(300);
+      expect(calls).not.toContainEqual(autoMarkArticleReadCall);
+
+      act(() => {
+        useUiStore.getState().selectArticle("art-1");
+      });
+      expect(useUiStore.getState().articleEngagement).toBe("reading");
+
+      await vi.advanceTimersByTimeAsync(299);
+      expect(calls).not.toContainEqual(autoMarkArticleReadCall);
+
+      await vi.advanceTimersByTimeAsync(1);
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(calls.filter((call) => call.cmd === "mark_article_read")).toHaveLength(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("auto-marks the selected article as read after 0.5 seconds", async () => {
     await expectArticleAutoMarksAsRead({
       afterReading: "after_0_5s",
@@ -2468,6 +2511,7 @@ describe("ArticleView", () => {
     expect(await screen.findByTestId("article-pane")).toHaveAttribute("aria-label", "First Article");
     await waitFor(() => {
       expect(useUiStore.getState().selectedArticleId).toBe("art-1");
+      expect(useUiStore.getState().articleEngagement).toBe("preview");
       expect(useUiStore.getState().contentMode).not.toBe("empty");
     });
     expect(screen.queryByTestId("article-selection-summary")).not.toBeInTheDocument();

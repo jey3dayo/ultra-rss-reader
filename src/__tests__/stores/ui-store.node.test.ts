@@ -130,6 +130,7 @@ describe("useUiStore", () => {
         | "selectedAccountId"
         | "selection"
         | "selectedArticleId"
+        | "articleEngagement"
         | "viewMode"
         | "contentMode"
         | "browserUrl"
@@ -1148,6 +1149,21 @@ describe("useUiStore", () => {
     useUiStore.getState().selectArticle("a1");
     expect(useUiStore.getState().contentMode).toBe("reader");
     expect(useUiStore.getState().selectedArticleId).toBe("a1");
+  });
+
+  it("tracks automatic article landing as preview", () => {
+    useUiStore.getState().selectArticle("a1", { engagement: "preview" });
+
+    expect(useUiStore.getState().selectedArticleId).toBe("a1");
+    expect(useUiStore.getState().articleEngagement).toBe("preview");
+  });
+
+  it("defaults direct selection to reading and promotes the same previewed article", () => {
+    useUiStore.getState().selectArticle("a1", { engagement: "preview" });
+    useUiStore.getState().selectArticle("a1");
+
+    expect(useUiStore.getState().selectedArticleId).toBe("a1");
+    expect(useUiStore.getState().articleEngagement).toBe("reading");
   });
 
   it("keeps selected articles retained in unread mode until the screen changes", () => {

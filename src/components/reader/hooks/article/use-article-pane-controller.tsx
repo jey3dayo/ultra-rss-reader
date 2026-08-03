@@ -40,6 +40,7 @@ export function useArticlePaneController({ article, feed }: ArticlePaneProps): A
     showToast,
     addRecentlyRead,
     retainArticle,
+    articleEngagement,
     viewMode,
     setFocusedPane,
     afterReading,
@@ -75,6 +76,7 @@ export function useArticlePaneController({ article, feed }: ArticlePaneProps): A
   useArticleAutoMark({
     articleId: article.id,
     isRead: article.is_read,
+    articleEngagement,
     afterReading,
     viewMode,
     retainArticle,

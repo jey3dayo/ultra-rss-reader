@@ -230,6 +230,7 @@ describe("useFeedLanding", () => {
 
     await waitFor(() => {
       expect(useUiStore.getState().selectedArticleId).toBe("art-1");
+      expect(useUiStore.getState().articleEngagement).toBe("preview");
       expect(useUiStore.getState().contentMode).toBe("browser");
       expect(useUiStore.getState().browserUrl).toBe("https://example.com/1");
     });

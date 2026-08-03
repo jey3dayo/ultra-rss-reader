@@ -184,7 +184,7 @@ export function useFeedLanding() {
           }
 
           const landingArticle = Result.unwrap(landingArticleResult);
-          store.selectArticle(landingArticle.id);
+          store.selectArticle(landingArticle.id, { engagement: "preview" });
 
           const resolvedDisplay = resolveFeedLandingDisplay({
             feed,

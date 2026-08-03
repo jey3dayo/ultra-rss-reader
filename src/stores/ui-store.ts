@@ -25,6 +25,7 @@ import type {
 import { TOAST_AUTO_DISMISS_TIMEOUT_MS } from "../constants/ui-runtime";
 
 export type {
+  ArticleEngagement,
   NativeLifecycleBlockerEntry,
   NativeLifecycleBlockerOwner,
   NativeLifecycleBlockerSnapshot,
@@ -334,6 +335,7 @@ const initialState: UiState = {
   selectedAccountId: null,
   selection: { type: "all" },
   selectedArticleId: null,
+  articleEngagement: "reading",
   viewMode: "unread",
   searchQuery: "",
   browserUrl: null,
@@ -536,6 +538,7 @@ export const useUiStore = create<UiState & UiActions>()((set, get) => ({
             return {
               accountPaneOpen: false,
               selectedArticleId: id,
+              articleEngagement: options?.engagement ?? "reading",
               contentMode: nextContentMode,
               focusedPane: "content",
               articleNavigationDirection: options?.navigationDirection ?? null,

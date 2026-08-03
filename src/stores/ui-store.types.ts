@@ -21,6 +21,8 @@ import type { SubscriptionsWorkspaceReturnState } from "@/schemas/subscriptions-
 
 export type UiStoreReaderSelection = ReaderQuerySelection;
 
+export type ArticleEngagement = "preview" | "reading";
+
 type ToastAnnouncement = {
   id: number;
   message: string;
@@ -70,6 +72,7 @@ export type UiState = {
   selectedAccountId: string | null;
   selection: UiStoreReaderSelection;
   selectedArticleId: string | null;
+  articleEngagement: ArticleEngagement;
   viewMode: ViewMode;
   searchQuery: string;
   browserUrl: string | null;
@@ -133,7 +136,13 @@ export type UiActions = {
   selectTagFromCurrentContext: (tagId: string) => void;
   handleTagDeleted: (deletedTagId: string) => void;
   selectAll: () => void;
-  selectArticle: (id: string, options?: { navigationDirection?: ArticleNavigationDirection | null }) => void;
+  selectArticle: (
+    id: string,
+    options?: {
+      engagement?: ArticleEngagement;
+      navigationDirection?: ArticleNavigationDirection | null;
+    },
+  ) => void;
   clearArticle: () => void;
   openBrowser: (url: string) => void;
   closeBrowser: () => void;
@@ -225,6 +234,7 @@ export type UiStoreReaderState = Pick<
   | "selectedAccountId"
   | "selection"
   | "selectedArticleId"
+  | "articleEngagement"
   | "viewMode"
   | "contentMode"
   | "browserUrl"
