@@ -4,6 +4,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.54.9] - 2026-08-03
+
+### Bug Fixes
+
+- 自動表示された記事を未読のまま保持し、記事を明示的に選択または移動したときに既存の既読処理を開始するようにした。
+
+### Documentation
+
+- 記事プレビューと読書意図の設計をドキュメント化した。
+
 ## [0.54.8] - 2026-08-03
 
 ### Bug Fixes
