@@ -11,7 +11,7 @@ GitHub Actions の release workflow が発火してクロスプラットフォ�
 
 ## 引数
 
-$ARGUMENTS (patch, minor, major のいずれか。省略時は対話で選択)
+$ARGUMENTS (patch, minor, major のいずれか。省略時は patch をデフォルトとする。ただし Phase 1 のコミット分析で minor/major が適切と判断した場合はその種別を提案して確認する)
 
 ## 実行フロー
 
@@ -19,13 +19,10 @@ $ARGUMENTS (patch, minor, major のいずれか。省略時は対話で選択)
 
 ### 承認モデル
 
-- 有効な bump 種別と公開意図（`push`, `publish`, `tag`, `release`, `最後まで`, `リリースして` など）が同じ依頼内にある場合、必須チェック通過後に Phase 1-4 を進めてよい。publish は release フローの既定の終点であり、公開意図が承認済みなら Phase 4 の publish まで追加確認なしで実行する。
-- 途中の返答が `OK`, `push`, `publish`, `進めて`, `そのまま` などの場合、その返答の意図に一致する残りのステップは承認済みとして扱う。
-- bump 種別が未指定または不正な場合だけ確認する。
-- リリースノート確認は、公開意図が未承認の場合、または生成内容に曖昧さがあり公開前確認が必要な場合だけ停止する。公開意図が承認済みなら Phase 2 後に要約を表示して待たずに続行する。
-- push 確認は、公開意図が未承認の場合だけ行う。
-- publish は、公開意図が承認済みで、かつビルドが success かつ期待アーティファクトが添付済みのときに自動実行する。次の場合は publish せずドラフトのまま停止して報告する: 公開意図が未承認、ビルドが失敗またはタイムアウト、アーティファクト未添付、semver prerelease tag で手動確認が必要、ユーザーが `draft のみ` / `publish しない` を明示。
-- 失敗したチェック、dirty working tree、ブランチ不一致、バージョン不一致、想定外の生成ファイル、ビルド失敗、ユーザーの修正指示をまたいで承認を持ち越さない。
+- `/release` の実行自体を公開意図の承認とみなす。commit・push・publish まで途中確認を挟まず最後まで進める。
+- 実行を止めて確認するのは次の場合のみ: 必須チェック（Phase 1 の事前チェック、`mise run check`、ビルド）が失敗した場合、期待アーティファクトが欠落している場合、対象タグが semver prerelease（`vX.Y.Z-alpha.1` 等）で手動確認が必要な場合、ユーザーが `draft のみ` / `publish しない` など draft 止まりを明示した場合、bump 種別の提案（引数省略時に minor/major が適切と判断したケース）。
+- 引数で bump 種別が明示指定されている場合は、コミット内容に関わらず提案せずその種別をそのまま使う。
+- 失敗したチェック、dirty working tree（意図不明な差分に限る）、ブランチ不一致、バージョン不一致、想定外の生成ファイル、ビルド失敗などが発生した場合は、その時点で停止して報告し、ユーザーの修正指示をまたいで承認を持ち越さない。
 
 ---
 
@@ -35,11 +32,15 @@ $ARGUMENTS (patch, minor, major のいずれか。省略時は対話で選択)
 
 1. 現在のブランチが `main` であること (`git branch --show-current`)
 2. `git fetch origin main` でリモート最新化し、ローカルが `origin/main` と一致すること (`git rev-parse HEAD` と `git rev-parse origin/main` を比較。behind している場合はエラー終了)
-3. uncommitted changes がないこと (`git status --porcelain` が空)
+3. uncommitted changes の扱い (`git status --porcelain`):
+   - 空ならそのまま続行する。
+   - 差分がある場合、それがリリース対象として意図された作業内容（直前の会話で行った修正など）であれば、release コミットとは別に適切な conventional commit（例: `fix(ui): ...`）として先にコミットしてから続行する。
+   - 差分が無関係または意図不明な場合は中止し、内容を報告する。
 4. `mise run check` が成功すること（format + lint + test）
 5. `package.json` から現在のバージョンを読み取る
-
-🔸 ユーザー確認①: bump 種別を選択（patch / minor / major）。$ARGUMENTS や依頼文で指定済みならスキップ。
+6. bump 種別の決定:
+   - $ARGUMENTS や依頼文で明示指定されている場合はその種別を確認なしで使う。
+   - 未指定の場合は patch をデフォルトとしつつ、前回タグ以降のコミットログを分析する。`feat:` コミットが含まれれば minor を、`!` 付き breaking change コミットが含まれれば major を提案し、ユーザーに確認する。それ以外は確認なしで patch のまま進める。
 
 ---
 
@@ -119,7 +120,7 @@ fi
 
 リリースに含まれる内容に対応するタスクがあれば `[x]` にマーク。該当なしならスキップ。
 
-🔸 リリースノート確認: 生成されたリリースノートを表示する。公開意図が承認済みで、内容がコミット履歴から明確なら待たずに Phase 3 へ進む。未承認または曖昧な場合だけ確認し、修正指示があれば反映する。
+🔸 リリースノート表示: 生成されたリリースノートを表示し、確認を待たずに Phase 3 へ進む。
 
 ---
 
@@ -154,17 +155,14 @@ RELEASE_TAG=v{new_version} mise run release:preflight:local
 
 `release:preflight:local` は通常の commit hook ではなく、release commit と annotated tag を作った後、push 直前だけに実行する。GitHub Actions の artifact build 前 preflight をローカルで先取りし、version parity、release build contamination、format、TypeScript、CI unit tests を確認する。
 
-🔸 push 前報告: push 前に以下を表示する。公開意図が未承認の場合だけ確認を求める:
+🔸 push 前報告: push 前に以下を表示し、確認を待たずに続行する:
 
 - 旧バージョン → 新バージョン
 - リリースノート（カテゴリ分類済み）
 - コミットハッシュ
 - タグ名
-- 公開意図が未承認の場合は "push してよいですか？" と確認
 
 #### 3b. push
-
-ユーザーが承認したら:
 
 ```bash
 # atomic push（branch + tag を同時に。片方だけ通る壊れた状態を防ぐ）
@@ -200,13 +198,13 @@ workflow gate: `release.yml` はタグ対象コミットが checkout と一致�
 - push したコミットとタグを報告
 - GitHub Actions のワークフロー URL を表示（`gh run list --workflow=release.yml --limit=1`）
 - ドラフト GitHub Release URL を表示
-- 公開意図が承認済みなら Phase 4 へ進む。未承認ならここで停止し、ドラフト確認後に publish する旨を案内する
+- 確認を待たずに Phase 4 へ進む
 
 ---
 
 ### Phase 4: ビルド完了待ち＋公開（publish）
 
-公開意図が承認済みの場合、release フローの終点として自動 publish する。承認モデルの publish 停止条件に該当する場合はドラフトのまま停止して報告する。
+release フローの終点として自動 publish する。承認モデルの停止条件に該当する場合はドラフトのまま停止して報告する。
 
 #### 4a. 対象 run の特定
 
