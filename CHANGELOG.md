@@ -4,6 +4,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.54.10] - 2026-08-05
+
+### Bug Fixes
+
+- ダイアログを重ねて閉じたあと(フィード編集 → 購読解除の確認)にアプリ全体が inert のまま残り、クリックや右クリックメニューが効かなくなる問題を修正した。
+
+### Documentation
+
+- release コマンドのデフォルトを patch にし、途中確認なしで最後まで進めるように整理した。
+
 ## [0.54.9] - 2026-08-03
 
 ### Bug Fixes
