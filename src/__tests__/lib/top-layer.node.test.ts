@@ -102,6 +102,36 @@ describe("top-layer DOM helpers", () => {
     expect(background).not.toHaveAttribute("inert");
   });
 
+  it("keeps the app interactive when stacked dialog hides release in mount order", () => {
+    // Regression: feed edit dialog + unsubscribe confirm both hide the app
+    // root; when both close in one commit, cleanups run in mount order and the
+    // later dialog must not restore the inert state the earlier dialog applied.
+    const appRoot = document.createElement("main");
+    const editOverlay = document.createElement("div");
+    editOverlay.dataset.dialogStackId = "dialog-edit";
+    const editContent = document.createElement("div");
+    editContent.dataset.dialogStackId = "dialog-edit";
+    editContent.dataset.slot = "dialog-content";
+    editContent.dataset.open = "";
+    const confirmContent = document.createElement("div");
+    confirmContent.dataset.dialogStackId = "dialog-confirm";
+    confirmContent.dataset.slot = "dialog-content";
+    confirmContent.dataset.open = "";
+    document.body.append(appRoot, editOverlay, editContent, confirmContent);
+
+    const restoreEdit = hideElementsOutsideDialog("dialog-edit");
+    const restoreConfirm = hideElementsOutsideDialog("dialog-confirm");
+
+    expect(appRoot).toHaveAttribute("inert");
+
+    restoreEdit();
+    restoreConfirm();
+
+    expect(appRoot).not.toHaveAttribute("inert");
+    expect(appRoot).not.toHaveAttribute("aria-hidden");
+    expect(appRoot.inert).toBeFalsy();
+  });
+
   it("does not hide ancestors that contain dialog stack elements", () => {
     const portalRoot = document.createElement("div");
     const unrelatedChild = document.createElement("section");

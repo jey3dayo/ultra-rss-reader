@@ -7,12 +7,19 @@ const FOCUS_OWNING_TOP_LAYER_SELECTOR = [
   '[role="dialog"][aria-modal="true"]',
 ].join(",");
 
-type HiddenDialogSibling = {
-  element: HTMLElement;
+type HiddenDialogState = {
+  count: number;
   ariaHidden: string | null;
   inertAttribute: string | null;
   inert: boolean;
 };
+
+// Stacked dialogs (e.g. feed edit -> unsubscribe confirm) can hide the same
+// element twice. Snapshot-restore alone breaks when cleanups run in mount
+// order: the later dialog would restore the inert state the earlier dialog had
+// applied. Reference-count per element so only the last release restores the
+// original attributes.
+const hiddenDialogStates = new WeakMap<HTMLElement, HiddenDialogState>();
 
 function getDefaultDocument(): Document | null {
   return typeof document === "undefined" ? null : document;
@@ -99,36 +106,56 @@ export function hideElementsOutsideDialog(
       ].join(","),
     ),
   ).filter((element): element is HTMLElement => isOwnerDocumentHtmlElement(element, ownerDocument));
-  const hiddenElements: HiddenDialogSibling[] = [];
+  const hiddenElements: HTMLElement[] = [];
   const outsideElements = Array.from(ownerDocument.body.children).flatMap((child) =>
     isOwnerDocumentHtmlElement(child, ownerDocument) ? collectOutsideDialogElements(child, dialogElements) : [],
   );
 
   for (const element of outsideElements) {
-    hiddenElements.push({
-      element,
-      ariaHidden: element.getAttribute("aria-hidden"),
-      inertAttribute: element.getAttribute("inert"),
-      inert: element.inert,
-    });
+    const state = hiddenDialogStates.get(element);
+    if (state) {
+      state.count += 1;
+    } else {
+      hiddenDialogStates.set(element, {
+        count: 1,
+        ariaHidden: element.getAttribute("aria-hidden"),
+        inertAttribute: element.getAttribute("inert"),
+        inert: element.inert,
+      });
+    }
+    hiddenElements.push(element);
     element.setAttribute("aria-hidden", "true");
     element.setAttribute("inert", "");
     element.inert = true;
   }
 
+  let released = false;
   return () => {
-    for (const { element, ariaHidden, inertAttribute, inert } of hiddenElements) {
-      if (ariaHidden === null) {
+    if (released) {
+      return;
+    }
+    released = true;
+    for (const element of hiddenElements) {
+      const state = hiddenDialogStates.get(element);
+      if (!state) {
+        continue;
+      }
+      if (state.count > 1) {
+        state.count -= 1;
+        continue;
+      }
+      hiddenDialogStates.delete(element);
+      if (state.ariaHidden === null) {
         element.removeAttribute("aria-hidden");
       } else {
-        element.setAttribute("aria-hidden", ariaHidden);
+        element.setAttribute("aria-hidden", state.ariaHidden);
       }
-      if (inertAttribute === null) {
+      if (state.inertAttribute === null) {
         element.removeAttribute("inert");
       } else {
-        element.setAttribute("inert", inertAttribute);
+        element.setAttribute("inert", state.inertAttribute);
       }
-      element.inert = inert;
+      element.inert = state.inert;
     }
   };
 }
